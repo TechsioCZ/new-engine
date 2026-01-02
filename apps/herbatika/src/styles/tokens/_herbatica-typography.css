@@ -1,0 +1,40 @@
+
+
+@theme static {
+  /* ============================================
+   * Font Families
+   * ============================================ */
+  --font-verdana: Verdana, sans-serif;
+  --font-rubik: Rubik, sans-serif;
+  --font-sans: "Open Sans", sans-serif;
+
+  /* ============================================
+   * Font Sizes
+   * ============================================ */
+   --text-2xs:0.625rem; /* 10px - small text */
+   --text-xs:0.8125rem; /* 13px - small text */
+   --text-sm:0.875rem; /* 14px - navigation, menus */
+   --text-md:1rem; /* 16px - body text */
+   --text-lg:1.125rem; /* 18px - sections, headings */
+   --text-xl:1.25rem; /* 20px - large headings */
+   --text-2xl:1.5rem; /* 24px - hero text */
+   --text-3xl:1.75rem; /* 28px - very large */
+   --text-4xl:2.25rem; /* 36px - extra large */
+
+  /* ============================================
+   * Font Weights
+   * ============================================ */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ============================================
+   * Line Heights
+   * ============================================ */
+  --leading-tight: 0.875;     /* 100% - Navigation, badges */
+  --leading-snug: 1.125;  /* 112.5% - Regular text */
+  --leading-normal: 1.375; /* 138.4% - Body text, tagline */
+  --leading-relaxed: 1.5;     /* 150% - Section headings */
+  --leading-loose: 1.75; /* 187.5% - Contact info */
+}
