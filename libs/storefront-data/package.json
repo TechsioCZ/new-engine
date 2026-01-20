@@ -28,14 +28,18 @@
   "scripts": {
     "build": "tsc --build tsconfig.build.json --force",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "lint": "pnpm -w exec biome lint libs/storefront-data/src --diagnostic-level=error"
+    "lint": "pnpm -w exec biome lint libs/storefront-data/src --diagnostic-level=error",
+    "test": "vitest run --config vitest.config.ts"
   },
   "devDependencies": {
     "@rsbuild/plugin-react": "^1.4.1",
     "@rslib/core": "^0.18.0",
+    "@testing-library/react": "^16.3.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "typescript": "^5.9.3"
+    "jsdom": "^27.4.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
   },
   "peerDependencies": {
     "@medusajs/js-sdk": ">=2.12.0",
