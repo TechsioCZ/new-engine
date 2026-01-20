@@ -461,14 +461,14 @@ export function createProductHooks<
 
   function usePrefetchPages(params: UsePrefetchPagesParams<TListInput>) {
     const queryClient = useQueryClient()
+    // Call resolveRegion outside useEffect to follow Rules of Hooks
+    const region = resolveRegion ? resolveRegion() : null
+    const resolvedBaseInput = applyRegion(params.baseInput, region ?? undefined)
 
     useEffect(() => {
       if (params.enabled === false || params.shouldPrefetch === false) {
         return
       }
-
-      const region = resolveRegion ? resolveRegion() : null
-      const resolvedBaseInput = applyRegion(params.baseInput, region ?? undefined)
 
       if (requireRegion && !resolvedBaseInput.region_id) {
         return
@@ -577,7 +577,7 @@ export function createProductHooks<
     }, [
       params.enabled,
       params.shouldPrefetch,
-      params.baseInput,
+      resolvedBaseInput,
       params.currentPage,
       params.hasNextPage,
       params.hasPrevPage,

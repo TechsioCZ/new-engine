@@ -11,11 +11,13 @@ export type AuthService<
   TLoginInput,
   TRegisterInput,
   TUpdateInput,
+  TCreateCustomerInput = unknown,
 > = {
   getCustomer: (signal?: AbortSignal) => Promise<TCustomer | null>
   login: (input: TLoginInput) => Promise<unknown>
   logout: () => Promise<void>
   register: (input: TRegisterInput) => Promise<unknown>
+  createCustomer?: (input: TCreateCustomerInput) => Promise<TCustomer>
   updateCustomer?: (input: TUpdateInput) => Promise<TCustomer>
   refresh?: () => Promise<unknown>
 }

@@ -20,8 +20,15 @@ export type CreateAuthHooksConfig<
   TLoginInput,
   TRegisterInput,
   TUpdateInput,
+  TCreateCustomerInput = unknown,
 > = {
-  service: AuthService<TCustomer, TLoginInput, TRegisterInput, TUpdateInput>
+  service: AuthService<
+    TCustomer,
+    TLoginInput,
+    TRegisterInput,
+    TUpdateInput,
+    TCreateCustomerInput
+  >
   queryKeys?: AuthQueryKeys
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
@@ -37,12 +44,19 @@ export function createAuthHooks<
   TLoginInput,
   TRegisterInput,
   TUpdateInput,
+  TCreateCustomerInput = unknown,
 >({
   service,
   queryKeys,
   queryKeyNamespace = "storefront-data",
   cacheConfig,
-}: CreateAuthHooksConfig<TCustomer, TLoginInput, TRegisterInput, TUpdateInput>) {
+}: CreateAuthHooksConfig<
+  TCustomer,
+  TLoginInput,
+  TRegisterInput,
+  TUpdateInput,
+  TCreateCustomerInput
+>) {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createAuthQueryKeys(queryKeyNamespace)
@@ -104,6 +118,29 @@ export function createAuthHooks<
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: (input: TRegisterInput) => service.register(input),
+      onSuccess: (data, variables) => {
+        queryClient.invalidateQueries({
+          queryKey: resolvedQueryKeys.customer(),
+        })
+        options?.onSuccess?.(data, variables)
+      },
+      onError: (error) => {
+        options?.onError?.(error)
+      },
+    })
+  }
+
+  function useCreateCustomer(
+    options?: AuthMutationOptions<TCustomer, TCreateCustomerInput>
+  ) {
+    const queryClient = useQueryClient()
+    return useMutation({
+      mutationFn: (input: TCreateCustomerInput) => {
+        if (!service.createCustomer) {
+          throw new Error("createCustomer service is not configured")
+        }
+        return service.createCustomer(input)
+      },
       onSuccess: (data, variables) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
@@ -183,6 +220,7 @@ export function createAuthHooks<
     useSuspenseAuth,
     useLogin,
     useRegister,
+    useCreateCustomer,
     useLogout,
     useUpdateCustomer,
     useRefreshAuth,
