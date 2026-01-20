@@ -14,3 +14,4 @@ export { createQueryClientConfig, getQueryClient, makeQueryClient } from "./quer
 export type { QueryClientConfig } from "./query-client"
 export { createQueryKey, createQueryKeyFactory } from "./query-keys"
 export type { QueryKey, QueryNamespace } from "./query-keys"
+export type { RegionInfo } from "./region"
