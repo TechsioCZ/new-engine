@@ -339,6 +339,7 @@ export function createCartHooks<
   }
 
   function useAddLineItem(options?: CartMutationOptions<TCart, TAddInput>) {
+    const region = resolveRegion ? resolveRegion() : null
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: async (input: TAddInput) => {
@@ -346,7 +347,7 @@ export function createCartHooks<
           throw new Error("addLineItem service is not configured")
         }
 
-        const resolvedInput = applyRegion(input, resolveRegion?.() ?? undefined)
+        const resolvedInput = applyRegion(input, region ?? undefined)
         let cartId = resolveCartId(resolvedInput.cartId)
         const autoCreate = resolvedInput.autoCreate ?? true
         const canCreate =
@@ -518,11 +519,11 @@ export function createCartHooks<
     skipIfCached?: boolean
   }) {
     const queryClient = useQueryClient()
+    const region = resolveRegion ? resolveRegion() : null
     const cacheStrategy = options?.cacheStrategy ?? "realtime"
     const skipIfCached = options?.skipIfCached ?? true
 
     const prefetchCart = async (input: CartInputBase) => {
-      const region = resolveRegion ? resolveRegion() : null
       const resolvedInput = applyRegion(input, region ?? undefined)
       const cartId = resolveCartId(resolvedInput.cartId)
       const autoCreate = resolvedInput.autoCreate ?? true

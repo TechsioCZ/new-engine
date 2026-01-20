@@ -261,6 +261,7 @@ export function createProductHooks<
     skipIfCached?: boolean
   }) {
     const queryClient = useQueryClient()
+    const region = resolveRegion ? resolveRegion() : null
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
       new Map()
     )
@@ -272,7 +273,6 @@ export function createProductHooks<
       input: TListInput,
       prefetchOptions?: PrefetchListOptions
     ) => {
-      const region = resolveRegion ? resolveRegion() : null
       const resolvedInput = applyRegion(input, region ?? undefined)
       if (requireRegion && !resolvedInput.region_id) {
         return
@@ -306,7 +306,6 @@ export function createProductHooks<
       input: TListInput,
       prefetchOptions?: PrefetchListOptions
     ) => {
-      const region = resolveRegion ? resolveRegion() : null
       const resolvedInput = applyRegion(input, region ?? undefined)
       if (requireRegion && !resolvedInput.region_id) {
         return
@@ -341,7 +340,6 @@ export function createProductHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const region = resolveRegion ? resolveRegion() : null
       const resolvedInput = applyRegion(input, region ?? undefined)
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
@@ -382,6 +380,7 @@ export function createProductHooks<
     skipIfCached?: boolean
   }) {
     const queryClient = useQueryClient()
+    const region = resolveRegion ? resolveRegion() : null
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
       new Map()
     )
@@ -393,7 +392,6 @@ export function createProductHooks<
       input: TDetailInput,
       prefetchOptions?: PrefetchProductOptions
     ) => {
-      const region = resolveRegion ? resolveRegion() : null
       const resolvedInput = applyRegion(input, region ?? undefined)
       if (requireRegion && !resolvedInput.region_id) {
         return
@@ -425,7 +423,6 @@ export function createProductHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const region = resolveRegion ? resolveRegion() : null
       const resolvedInput = applyRegion(input, region ?? undefined)
       const detailParams = buildDetail(resolvedInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
