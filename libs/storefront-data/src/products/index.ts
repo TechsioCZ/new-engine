@@ -3,10 +3,12 @@ export { resolvePagination } from "./pagination"
 export { createProductHooks } from "./hooks"
 export type {
   ProductDetailInputBase,
+  ProductInfiniteInputBase,
   ProductListInputBase,
   ProductListResponse,
   ProductQueryKeys,
   ProductService,
+  UseInfiniteProductsResult,
   UseProductsResult,
   UseSuspenseProductsResult,
 } from "./types"

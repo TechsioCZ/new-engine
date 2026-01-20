@@ -8,6 +8,10 @@ export type ProductListInputBase = RegionInfo & {
   enabled?: boolean
 }
 
+export type ProductInfiniteInputBase = ProductListInputBase & {
+  offset?: number
+}
+
 export type ProductDetailInputBase = RegionInfo & {
   handle: string
   fields?: string
@@ -34,6 +38,7 @@ export type ProductService<TProduct, TListParams, TDetailParams> = {
 
 export type ProductQueryKeys<TListParams, TDetailParams> = {
   list: (params: TListParams) => QueryKey
+  infinite?: (params: TListParams) => QueryKey
   detail: (params: TDetailParams) => QueryKey
 }
 
@@ -58,4 +63,16 @@ export type UseSuspenseProductsResult<TProduct> = {
   totalPages: number
   hasNextPage: boolean
   hasPrevPage: boolean
+}
+
+export type UseInfiniteProductsResult<TProduct> = {
+  products: TProduct[]
+  isLoading: boolean
+  isFetching: boolean
+  isFetchingNextPage: boolean
+  hasNextPage: boolean
+  error: string | null
+  totalCount: number
+  fetchNextPage: () => void
+  refetch: () => void
 }

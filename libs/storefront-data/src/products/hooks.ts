@@ -1,4 +1,5 @@
 import {
+  useInfiniteQuery,
   useQuery,
   useQueryClient,
   useSuspenseQuery,
@@ -10,10 +11,12 @@ import { createProductQueryKeys } from "./query-keys"
 import { resolvePagination } from "./pagination"
 import type {
   ProductDetailInputBase,
+  ProductInfiniteInputBase,
   ProductListInputBase,
   ProductQueryKeys,
   ProductService,
   RegionInfo,
+  UseInfiniteProductsResult,
   UseProductsResult,
   UseSuspenseProductsResult,
 } from "./types"
@@ -165,6 +168,92 @@ export function createProductHooks<
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+    }
+  }
+
+  function useInfiniteProducts(
+    input: TListInput & ProductInfiniteInputBase
+  ): UseInfiniteProductsResult<TProduct> {
+    const region = resolveRegion ? resolveRegion() : null
+    const baseInput = { ...input } as TListInput & { enabled?: boolean }
+    delete baseInput.enabled
+    const resolvedInput = applyRegion(baseInput, region ?? undefined)
+    const enabled =
+      input.enabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
+
+    const limitFromInput = (resolvedInput as { limit?: number }).limit
+    const resolvedLimit =
+      typeof limitFromInput === "number" && limitFromInput > 0
+        ? limitFromInput
+        : defaultPageSize
+    const offsetFromInput = (resolvedInput as { offset?: number }).offset
+    const pageFromInput = resolvedInput.page ?? 1
+    const baseOffset =
+      typeof offsetFromInput === "number"
+        ? offsetFromInput
+        : (pageFromInput - 1) * resolvedLimit
+
+    const baseListParams = buildList(resolvedInput)
+    const baseQueryKey = resolvedQueryKeys.infinite
+      ? resolvedQueryKeys.infinite(baseListParams)
+      : resolvedQueryKeys.list(baseListParams)
+    const queryKey =
+      resolvedQueryKeys.infinite ||
+      baseQueryKey[baseQueryKey.length - 1] === "__infinite"
+        ? baseQueryKey
+        : [...baseQueryKey, "__infinite"]
+
+    const {
+      data,
+      isLoading,
+      isFetching,
+      isFetchingNextPage,
+      hasNextPage,
+      fetchNextPage,
+      refetch,
+      error,
+    } = useInfiniteQuery({
+      queryKey,
+      queryFn: ({ pageParam = baseOffset, signal }) => {
+        const offset =
+          typeof pageParam === "number" ? pageParam : baseOffset
+        const page =
+          resolvedLimit > 0 ? Math.floor(offset / resolvedLimit) + 1 : 1
+        const pageInput = {
+          ...resolvedInput,
+          page,
+          limit: resolvedLimit,
+          offset,
+        } as TListInput & { offset?: number }
+        const listParams = buildList(pageInput)
+        return service.getProducts(listParams, signal)
+      },
+      initialPageParam: baseOffset,
+      getNextPageParam: (lastPage) => {
+        const limit = lastPage.limit ?? resolvedLimit
+        const offset = lastPage.offset ?? 0
+        const moreItemsExist = lastPage.count > offset + limit
+        return moreItemsExist ? offset + limit : undefined
+      },
+      enabled,
+      ...resolvedCacheConfig.semiStatic,
+    })
+
+    return {
+      products: data?.pages.flatMap((page) => page.products) ?? [],
+      isLoading,
+      isFetching,
+      isFetchingNextPage,
+      hasNextPage: Boolean(hasNextPage),
+      error:
+        error instanceof Error ? error.message : error ? String(error) : null,
+      totalCount: data?.pages[0]?.count ?? 0,
+      fetchNextPage: () => {
+        void fetchNextPage()
+      },
+      refetch: () => {
+        void refetch()
+      },
     }
   }
 
@@ -590,6 +679,7 @@ export function createProductHooks<
 
   return {
     useProducts,
+    useInfiniteProducts,
     useSuspenseProducts,
     useProduct,
     useSuspenseProduct,

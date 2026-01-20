@@ -11,6 +11,8 @@ export function createProductQueryKeys<
 > {
   return {
     list: (params) => createQueryKey(namespace, "products", "list", params),
+    infinite: (params) =>
+      createQueryKey(namespace, "products", "infinite", params),
     detail: (params) => createQueryKey(namespace, "products", "detail", params),
   }
 }
