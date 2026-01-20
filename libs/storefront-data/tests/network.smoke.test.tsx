@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
 import {
   createProductHooks,
@@ -7,6 +8,7 @@ import {
   type ProductService,
 } from "../src/products"
 import { StorefrontDataProvider } from "../src/client"
+import { server } from "./msw-server"
 
 type TestProduct = {
   id: string
@@ -41,41 +43,33 @@ const buildListParams = (
 describe("storefront-data network smoke", () => {
   const baseUrl = "https://storefront.test"
   let requestCount = 0
-  const originalFetch = globalThis.fetch
 
   beforeEach(() => {
     requestCount = 0
-    globalThis.fetch = (async (input: RequestInfo | URL) => {
-      requestCount += 1
+    server.use(
+      http.get(`${baseUrl}/products`, ({ request }) => {
+        requestCount += 1
 
-      const url = new URL(String(input))
-      const limit = Number(url.searchParams.get("limit") ?? "0")
-      const offset = Number(url.searchParams.get("offset") ?? "0")
-      const regionId = url.searchParams.get("region_id") ?? ""
+        const url = new URL(request.url)
+        const limit = Number(url.searchParams.get("limit") ?? "0")
+        const offset = Number(url.searchParams.get("offset") ?? "0")
+        const regionId = url.searchParams.get("region_id") ?? ""
 
-      const payload = {
-        products: [
-          {
-            id: `prod_${regionId || "default"}`,
-            title: "Network Product",
-          },
-        ],
-        count: 1,
-        limit,
-        offset,
-      }
+        const payload = {
+          products: [
+            {
+              id: `prod_${regionId || "default"}`,
+              title: "Network Product",
+            },
+          ],
+          count: 1,
+          limit,
+          offset,
+        }
 
-      return new Response(JSON.stringify(payload), {
-        status: 200,
-        headers: {
-          "content-type": "application/json",
-        },
+        return HttpResponse.json(payload)
       })
-    }) as typeof fetch
-  })
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch
+    )
   })
 
   it("fetches products through network and caches the result", async () => {

@@ -31,6 +31,18 @@
     "lint": "pnpm -w exec biome lint libs/storefront-data/src --diagnostic-level=error",
     "test": "vitest run --config vitest.config.ts"
   },
+  "nx": {
+    "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm test",
+          "cwd": "libs/storefront-data"
+        },
+        "cache": true
+      }
+    }
+  },
   "devDependencies": {
     "@rsbuild/plugin-react": "^1.4.1",
     "@rslib/core": "^0.18.0",
@@ -38,6 +50,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "jsdom": "^27.4.0",
+    "msw": "^2.8.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
   },
