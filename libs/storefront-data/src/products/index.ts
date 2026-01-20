@@ -7,7 +7,6 @@ export type {
   ProductListResponse,
   ProductQueryKeys,
   ProductService,
-  RegionInfo,
   UseProductsResult,
   UseSuspenseProductsResult,
 } from "./types"

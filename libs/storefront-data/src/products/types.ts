@@ -1,9 +1,6 @@
 import type { QueryKey } from "../shared/query-keys"
-
-export type RegionInfo = {
-  region_id?: string
-  country_code?: string
-}
+import type { RegionInfo } from "../shared/region"
+export type { RegionInfo } from "../shared/region"
 
 export type ProductListInputBase = RegionInfo & {
   page?: number

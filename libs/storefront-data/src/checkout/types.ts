@@ -1,0 +1,89 @@
+import type { QueryKey } from "../shared/query-keys"
+
+export type ShippingOptionLike = {
+  id: string
+  price_type?: string | null
+  amount?: number | null
+}
+
+export type CheckoutCartLike = {
+  id: string
+  region_id?: string | null
+  shipping_methods?: { shipping_option_id?: string }[]
+  payment_collection?: { payment_sessions?: unknown[] }
+}
+
+export type CheckoutShippingInputBase = {
+  cartId?: string
+  enabled?: boolean
+}
+
+export type CheckoutPaymentInputBase = {
+  cartId?: string
+  regionId?: string
+  enabled?: boolean
+}
+
+export type CheckoutService<
+  TCart,
+  TShippingOption,
+  TPaymentProvider,
+  TPaymentCollection,
+  TCompleteResult,
+> = {
+  listShippingOptions: (
+    cartId: string,
+    signal?: AbortSignal
+  ) => Promise<TShippingOption[]>
+  calculateShippingOption?: (
+    optionId: string,
+    input: { cart_id: string; data?: Record<string, unknown> },
+    signal?: AbortSignal
+  ) => Promise<TShippingOption>
+  addShippingMethod: (
+    cartId: string,
+    optionId: string,
+    data?: Record<string, unknown>
+  ) => Promise<TCart>
+  listPaymentProviders: (
+    regionId: string,
+    signal?: AbortSignal
+  ) => Promise<TPaymentProvider[]>
+  initiatePaymentSession: (
+    cartId: string,
+    providerId: string
+  ) => Promise<TPaymentCollection>
+  completeCart?: (cartId: string) => Promise<TCompleteResult>
+}
+
+export type CheckoutQueryKeys = {
+  all: () => QueryKey
+  shippingOptions: (cartId: string) => QueryKey
+  shippingOptionPrice: (params: {
+    cartId: string
+    optionId: string
+    data?: Record<string, unknown>
+  }) => QueryKey
+  paymentProviders: (regionId: string) => QueryKey
+}
+
+export type UseCheckoutShippingResult<TShippingOption> = {
+  shippingOptions: TShippingOption[]
+  shippingPrices: Record<string, number>
+  isLoading: boolean
+  isFetching: boolean
+  isCalculating: boolean
+  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
+  isSettingShipping: boolean
+  selectedShippingMethodId?: string
+  selectedOption?: TShippingOption
+}
+
+export type UseCheckoutPaymentResult<TPaymentProvider> = {
+  paymentProviders: TPaymentProvider[]
+  initiatePayment: (providerId: string) => void
+  isInitiatingPayment: boolean
+  canInitiatePayment: boolean
+  hasPaymentCollection: boolean
+  hasPaymentSessions: boolean
+}
