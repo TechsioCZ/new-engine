@@ -10,6 +10,8 @@ import type { RegionInfo } from "../shared/region"
 import { createCartQueryKeys } from "./query-keys"
 import type {
   AddLineItemInputBase,
+  CartAddressInputBase,
+  CartAddressValidationResult,
   CartCreateInputBase,
   CartLike,
   CartQueryKeys,
@@ -48,6 +50,21 @@ const getItemCount = (cart: CartLike | null): number => {
   return cart.items.reduce((acc, item) => acc + (item.quantity ?? 0), 0)
 }
 
+const handleAddressValidation = (result: CartAddressValidationResult) => {
+  if (!result) {
+    return
+  }
+  if (result instanceof Error) {
+    throw result
+  }
+  if (Array.isArray(result)) {
+    throw new Error(result.filter(Boolean).join(", "))
+  }
+  if (typeof result === "string") {
+    throw new Error(result)
+  }
+}
+
 export type CreateCartHooksConfig<
   TCart extends CartLike,
   TCreateInput extends CartCreateInputBase,
@@ -59,6 +76,8 @@ export type CreateCartHooksConfig<
   TUpdateItemInput extends UpdateLineItemInputBase,
   TUpdateItemParams,
   TCompleteResult,
+  TAddressInput,
+  TAddressPayload,
 > = {
   service: CartService<
     TCart,
@@ -80,6 +99,16 @@ export type CreateCartHooksConfig<
   resolveRegionSuspense?: () => RegionInfo
   cartStorage?: CartStorage
   isNotFoundError?: (error: unknown) => boolean
+  normalizeShippingAddressInput?: (input: TAddressInput) => TAddressInput
+  normalizeBillingAddressInput?: (input: TAddressInput) => TAddressInput
+  validateShippingAddressInput?: (
+    input: TAddressInput
+  ) => CartAddressValidationResult
+  validateBillingAddressInput?: (
+    input: TAddressInput
+  ) => CartAddressValidationResult
+  buildShippingAddress?: (input: TAddressInput) => TAddressPayload
+  buildBillingAddress?: (input: TAddressInput) => TAddressPayload
 }
 
 export type CartMutationOptions<TData, TVariables> = {
@@ -98,6 +127,8 @@ export function createCartHooks<
   TUpdateItemInput extends UpdateLineItemInputBase = UpdateLineItemInputBase,
   TUpdateItemParams = TUpdateItemInput,
   TCompleteResult = unknown,
+  TAddressInput = Record<string, unknown>,
+  TAddressPayload = Record<string, unknown>,
 >({
   service,
   buildCreateParams,
@@ -112,6 +143,12 @@ export function createCartHooks<
   resolveRegionSuspense,
   cartStorage,
   isNotFoundError,
+  normalizeShippingAddressInput,
+  normalizeBillingAddressInput,
+  validateShippingAddressInput,
+  validateBillingAddressInput,
+  buildShippingAddress,
+  buildBillingAddress,
 }: CreateCartHooksConfig<
   TCart,
   TCreateInput,
@@ -122,7 +159,9 @@ export function createCartHooks<
   TAddParams,
   TUpdateItemInput,
   TUpdateItemParams,
-  TCompleteResult
+  TCompleteResult,
+  TAddressInput,
+  TAddressPayload
 >) {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
@@ -139,6 +178,11 @@ export function createCartHooks<
   const buildUpdateItem =
     buildUpdateItemParams ??
     ((input: TUpdateItemInput) => input as unknown as TUpdateItemParams)
+  const buildShipping =
+    buildShippingAddress ??
+    ((input: TAddressInput) => input as unknown as TAddressPayload)
+  const buildBilling =
+    buildBillingAddress ?? ((input: TAddressInput) => buildShipping(input))
 
   const resolveCartId = (inputCartId?: string | null): string | null => {
     return inputCartId ?? cartStorage?.getCartId() ?? null
@@ -321,6 +365,70 @@ export function createCartHooks<
           throw new Error("Cart id is required")
         }
         return service.updateCart(cartId, buildUpdate(input))
+      },
+      onSuccess: (cart, variables) => {
+        queryClient.setQueryData(
+          resolvedQueryKeys.active({
+            cartId: cart.id,
+            regionId: cart.region_id ?? null,
+          }),
+          cart
+        )
+        options?.onSuccess?.(cart, variables)
+      },
+      onError: (error) => {
+        options?.onError?.(error)
+      },
+    })
+  }
+
+  function useUpdateCartAddress(
+    options?: CartMutationOptions<TCart, CartAddressInputBase<TAddressInput>>
+  ) {
+    const queryClient = useQueryClient()
+    return useMutation({
+      mutationFn: (input: CartAddressInputBase<TAddressInput>) => {
+        if (!service.updateCart) {
+          throw new Error("updateCart service is not configured")
+        }
+        const cartId = resolveCartId(input.cartId)
+        if (!cartId) {
+          throw new Error("Cart id is required")
+        }
+        const normalizedShipping = normalizeShippingAddressInput
+          ? normalizeShippingAddressInput(input.shippingAddress)
+          : input.shippingAddress
+        handleAddressValidation(
+          validateShippingAddressInput?.(normalizedShipping)
+        )
+        const resolvedBillingInput =
+          input.useSameAddress || !input.billingAddress
+            ? normalizedShipping
+            : normalizeBillingAddressInput
+              ? normalizeBillingAddressInput(input.billingAddress)
+              : input.billingAddress
+        if (resolvedBillingInput) {
+          handleAddressValidation(
+            validateBillingAddressInput?.(resolvedBillingInput)
+          )
+        }
+        const updateInput = {
+          ...(input as unknown as TUpdateInput),
+          shipping_address: buildShipping(normalizedShipping),
+          billing_address: resolvedBillingInput
+            ? buildBilling(resolvedBillingInput)
+            : undefined,
+        } as TUpdateInput & {
+          shippingAddress?: TAddressInput
+          billingAddress?: TAddressInput
+          useSameAddress?: boolean
+          shipping_address?: TAddressPayload
+          billing_address?: TAddressPayload
+        }
+        delete updateInput.shippingAddress
+        delete updateInput.billingAddress
+        delete updateInput.useSameAddress
+        return service.updateCart(cartId, buildUpdate(updateInput))
       },
       onSuccess: (cart, variables) => {
         queryClient.setQueryData(
@@ -561,6 +669,7 @@ export function createCartHooks<
     useSuspenseCart,
     useCreateCart,
     useUpdateCart,
+    useUpdateCartAddress,
     useAddLineItem,
     useUpdateLineItem,
     useRemoveLineItem,

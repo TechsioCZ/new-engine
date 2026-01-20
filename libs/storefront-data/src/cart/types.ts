@@ -53,6 +53,20 @@ export type UpdateCartInputBase = CartCreateInputBase & {
   cartId?: string
 }
 
+export type CartAddressInputBase<TAddressInput = Record<string, unknown>> =
+  UpdateCartInputBase & {
+    shippingAddress: TAddressInput
+    billingAddress?: TAddressInput
+    useSameAddress?: boolean
+  }
+
+export type CartAddressValidationResult =
+  | string
+  | string[]
+  | Error
+  | null
+  | undefined
+
 export type TransferCartInputBase = {
   cartId?: string
 }
