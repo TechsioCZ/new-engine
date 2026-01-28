@@ -159,9 +159,6 @@ export function createAuthHooks<
       mutationFn: () => service.logout(),
       onSuccess: () => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), null)
-        queryClient.invalidateQueries({
-          queryKey: resolvedQueryKeys.all(),
-        })
         queryClient.removeQueries({
           queryKey: resolvedQueryKeys.all(),
         })
