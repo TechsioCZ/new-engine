@@ -93,6 +93,17 @@ export function getQueryClient(overrides?: QueryClientConfig): QueryClient {
   if (isServer) {
     return makeQueryClient(overrides)
   }
+  if (
+    browserQueryClient &&
+    overrides &&
+    typeof process !== "undefined" &&
+    process.env?.NODE_ENV !== "production"
+  ) {
+    console.warn(
+      "[getQueryClient] Browser QueryClient already exists; overrides will be ignored. " +
+        "Pass overrides only on first initialisation or use makeQueryClient for a fresh instance."
+    )
+  }
   if (!browserQueryClient) {
     browserQueryClient = makeQueryClient(overrides)
   }
