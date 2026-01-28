@@ -66,9 +66,12 @@ export function createRegionHooks<
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
   function useRegions(input: TListInput): UseRegionsResult<TRegion> {
-    const listParams = buildList(input)
+    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
+      enabled?: boolean
+    }
+    const listParams = buildList(listInput as TListInput)
     const queryKey = resolvedQueryKeys.list(listParams)
-    const enabled = input.enabled ?? true
+    const enabled = inputEnabled ?? true
 
     const { data, isLoading, isFetching, isSuccess, error } = useQuery({
       queryKey,
@@ -109,7 +112,10 @@ export function createRegionHooks<
   }
 
   function useSuspenseRegions(input: TListInput) {
-    const listParams = buildList(input)
+    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+      enabled?: boolean
+    }
+    const listParams = buildList(listInput as TListInput)
     const { data, isFetching } = useSuspenseQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getRegions(listParams, signal),
@@ -144,9 +150,12 @@ export function createRegionHooks<
   }
 
   function useRegion(input: TDetailInput) {
-    const detailParams = buildDetail(input)
+    const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
+      enabled?: boolean
+    }
+    const detailParams = buildDetail(detailInput as TDetailInput)
     const queryKey = resolvedQueryKeys.detail(detailParams)
-    const enabled = input.enabled ?? Boolean(input.id)
+    const enabled = inputEnabled ?? Boolean(input.id)
 
     return useQuery({
       queryKey,
@@ -157,10 +166,13 @@ export function createRegionHooks<
   }
 
   function useSuspenseRegion(input: TDetailInput) {
+    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+      enabled?: boolean
+    }
     if (!input.id) {
       throw new Error("Region id is required for region queries")
     }
-    const detailParams = buildDetail(input)
+    const detailParams = buildDetail(detailInput as TDetailInput)
     return useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
       queryFn: () => service.getRegion(detailParams),
@@ -182,7 +194,10 @@ export function createRegionHooks<
     const skipIfCached = options?.skipIfCached ?? true
 
     const prefetchRegions = async (input: TListInput) => {
-      const listParams = buildList(input)
+      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+        enabled?: boolean
+      }
+      const listParams = buildList(listInput as TListInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const cached = queryClient.getQueryData(queryKey)
       if (skipIfCached && cached) {
@@ -201,7 +216,10 @@ export function createRegionHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const listParams = buildList(input)
+      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+        enabled?: boolean
+      }
+      const listParams = buildList(listInput as TListInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
       const existing = timeoutsRef.current.get(id)
@@ -250,7 +268,10 @@ export function createRegionHooks<
       if (!input.id) {
         return
       }
-      const detailParams = buildDetail(input)
+      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+        enabled?: boolean
+      }
+      const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const cached = queryClient.getQueryData(queryKey)
       if (skipIfCached && cached) {
@@ -269,7 +290,10 @@ export function createRegionHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const detailParams = buildDetail(input)
+      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+        enabled?: boolean
+      }
+      const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
       const existing = timeoutsRef.current.get(id)
