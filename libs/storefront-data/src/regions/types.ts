@@ -24,7 +24,7 @@ export type RegionService<
     params: TListParams,
     signal?: AbortSignal
   ) => Promise<RegionListResponse<TRegion>>
-  getRegion: (params: TDetailParams) => Promise<TRegion | null>
+  getRegion: (params: TDetailParams, signal?: AbortSignal) => Promise<TRegion | null>
 }
 
 export type RegionQueryKeys<TListParams, TDetailParams> = {

@@ -159,7 +159,7 @@ export function createRegionHooks<
 
     return useQuery({
       queryKey,
-      queryFn: () => service.getRegion(detailParams),
+      queryFn: ({ signal }) => service.getRegion(detailParams, signal),
       enabled,
       ...resolvedCacheConfig.static,
     })
@@ -175,7 +175,7 @@ export function createRegionHooks<
     const detailParams = buildDetail(detailInput as TDetailInput)
     return useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: () => service.getRegion(detailParams),
+      queryFn: ({ signal }) => service.getRegion(detailParams, signal),
       ...resolvedCacheConfig.static,
     })
   }
