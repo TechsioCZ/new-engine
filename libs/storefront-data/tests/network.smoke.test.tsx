@@ -81,7 +81,12 @@ describe("storefront-data network smoke", () => {
           region_id: params.region_id ?? "",
         })
         const response = await fetch(`${baseUrl}/products?${query}`)
-        return response.json()
+        return response.json() as Promise<{
+          products: TestProduct[]
+          count: number
+          limit: number
+          offset: number
+        }>
       },
       getProductByHandle: async () => null,
     }
