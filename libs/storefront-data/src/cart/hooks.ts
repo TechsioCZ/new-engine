@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+import { useCallback } from "react"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
@@ -640,35 +641,43 @@ export function createCartHooks<
     const cacheStrategy = options?.cacheStrategy ?? "realtime"
     const skipIfCached = options?.skipIfCached ?? true
 
-    const prefetchCart = async (input: CartInputBase) => {
-      const resolvedInput = applyRegion(input, region ?? undefined)
-      const cartId = resolveCartId(resolvedInput.cartId)
-      const autoCreate = resolvedInput.autoCreate ?? true
-      const canCreate =
-        autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
+    const prefetchCart = useCallback(
+      async (input: CartInputBase) => {
+        const resolvedInput = applyRegion(input, region ?? undefined)
+        const cartId = resolveCartId(resolvedInput.cartId)
+        const autoCreate = resolvedInput.autoCreate ?? true
+        const canCreate =
+          autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
 
-      const queryKey = resolvedQueryKeys.active({
-        cartId,
-        regionId: resolvedInput.region_id ?? null,
-      })
+        const queryKey = resolvedQueryKeys.active({
+          cartId,
+          regionId: resolvedInput.region_id ?? null,
+        })
 
-      if (skipIfCached && queryClient.getQueryData(queryKey)) {
-        return
-      }
+        if (skipIfCached && queryClient.getQueryData(queryKey)) {
+          return
+        }
 
-      await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: ({ signal }) =>
-          loadCart(
-            resolvedInput,
-            cartId,
-            canCreate,
-            resolvedInput.autoUpdateRegion ?? true,
-            signal
-          ),
-        ...resolvedCacheConfig[cacheStrategy],
-      })
-    }
+        await queryClient.prefetchQuery({
+          queryKey,
+          queryFn: ({ signal }) =>
+            loadCart(
+              resolvedInput,
+              cartId,
+              canCreate,
+              resolvedInput.autoUpdateRegion ?? true,
+              signal
+            ),
+          ...resolvedCacheConfig[cacheStrategy],
+        })
+      },
+      [
+        cacheStrategy,
+        queryClient,
+        region,
+        skipIfCached,
+      ]
+    )
 
     return { prefetchCart }
   }
