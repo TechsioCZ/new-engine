@@ -604,7 +604,9 @@ export function createCartHooks<
   }
 
   function useCompleteCart(
-    options?: CartMutationOptions<TCompleteResult, { cartId?: string }>
+    options?: CartMutationOptions<TCompleteResult, { cartId?: string }> & {
+      clearCartOnSuccess?: boolean
+    }
   ) {
     return useMutation({
       mutationFn: (input: { cartId?: string }) => {
@@ -618,6 +620,9 @@ export function createCartHooks<
         return service.completeCart(cartId)
       },
       onSuccess: (data, variables) => {
+        if (options?.clearCartOnSuccess === true) {
+          clearCartId()
+        }
         options?.onSuccess?.(data, variables)
       },
       onError: (error) => {
