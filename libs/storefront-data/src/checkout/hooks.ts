@@ -226,7 +226,11 @@ export function createCheckoutHooks<
     const regionId = input.regionId ?? input.cart?.region_id ?? undefined
     const enabled = input.enabled ?? Boolean(regionId)
 
-    const { data: paymentProviders = [] } = useQuery({
+    const {
+      data: paymentProviders = [],
+      isLoading,
+      isFetching,
+    } = useQuery({
       queryKey: resolvedQueryKeys.paymentProviders(regionId ?? "unknown"),
       queryFn: ({ signal }) => {
         if (!regionId) {
@@ -269,6 +273,8 @@ export function createCheckoutHooks<
       paymentProviders,
       initiatePayment,
       isInitiatingPayment,
+      isLoading,
+      isFetching,
       canInitiatePayment,
       hasPaymentCollection,
       hasPaymentSessions,

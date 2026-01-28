@@ -83,6 +83,8 @@ export type UseCheckoutPaymentResult<TPaymentProvider> = {
   paymentProviders: TPaymentProvider[]
   initiatePayment: (providerId: string) => void
   isInitiatingPayment: boolean
+  isLoading: boolean
+  isFetching: boolean
   canInitiatePayment: boolean
   hasPaymentCollection: boolean
   hasPaymentSessions: boolean
