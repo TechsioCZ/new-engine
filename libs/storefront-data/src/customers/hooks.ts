@@ -73,6 +73,15 @@ export type CreateCustomerHooksConfig<
   cacheConfig?: CacheConfig
 }
 
+/**
+ * Create customer hooks with strongly-typed address/profile mappers.
+ *
+ * @example
+ * const { useCustomerAddresses, useUpdateCustomer } = createCustomerHooks({
+ *   service,
+ *   buildListParams: (input) => ({ ...input }),
+ * })
+ */
 export function createCustomerHooks<
   TCustomer,
   TAddress,
@@ -127,11 +136,12 @@ export function createCustomerHooks<
   function useCustomerAddresses(
     input: TListInput
   ): UseCustomerAddressesResult<TAddress> {
-    const listInput = { ...input } as TListInput & { enabled?: boolean }
-    delete listInput.enabled
-    const listParams = buildList(listInput)
+    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
+      enabled?: boolean
+    }
+    const listParams = buildList(listInput as TListInput)
     const queryKey = resolvedQueryKeys.addresses(listParams)
-    const enabled = input.enabled ?? true
+    const enabled = inputEnabled ?? true
 
     const { data, isLoading, isFetching, isSuccess, error } = useQuery({
       queryKey,
@@ -151,9 +161,10 @@ export function createCustomerHooks<
   }
 
   function useSuspenseCustomerAddresses(input: TListInput) {
-    const listInput = { ...input } as TListInput & { enabled?: boolean }
-    delete listInput.enabled
-    const listParams = buildList(listInput)
+    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+      enabled?: boolean
+    }
+    const listParams = buildList(listInput as TListInput)
     const { data, isFetching } = useSuspenseQuery({
       queryKey: resolvedQueryKeys.addresses(listParams),
       queryFn: ({ signal }) => service.getAddresses(listParams, signal),
