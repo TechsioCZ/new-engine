@@ -128,7 +128,7 @@ export default async function ProductsPage() {
 
 ## Package Structure
 
-```
+```text
 src/
 ├── index.ts              # Main exports
 ├── client/               # Client-side utilities
@@ -219,4 +219,3 @@ pnpm -C libs/storefront-data lint
 
 - [TanStack Query Docs](https://tanstack.com/query/latest)
 - [Medusa.js SDK Docs](https://docs.medusajs.com/js-sdk)
-

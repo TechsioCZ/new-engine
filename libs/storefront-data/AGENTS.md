@@ -18,7 +18,7 @@ NOTE: `libs/storefront-data/AGENTS.md` is the canonical source of truth.
 
 ## Structure
 
-```
+```text
 src/
   client/             # StorefrontDataProvider, browser QueryClient
   server/             # getServerQueryClient, hydration helpers
