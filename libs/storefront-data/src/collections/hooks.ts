@@ -3,7 +3,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 import { resolvePagination } from "../products/pagination"
@@ -177,6 +177,14 @@ export function createCollectionHooks<
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
       new Map()
     )
+    useEffect(() => {
+      return () => {
+        for (const timeout of timeoutsRef.current.values()) {
+          clearTimeout(timeout)
+        }
+        timeoutsRef.current.clear()
+      }
+    }, [])
     const cacheStrategy = options?.cacheStrategy ?? "static"
     const defaultDelay = options?.defaultDelay ?? 800
     const skipIfCached = options?.skipIfCached ?? true
@@ -242,6 +250,14 @@ export function createCollectionHooks<
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
       new Map()
     )
+    useEffect(() => {
+      return () => {
+        for (const timeout of timeoutsRef.current.values()) {
+          clearTimeout(timeout)
+        }
+        timeoutsRef.current.clear()
+      }
+    }, [])
     const cacheStrategy = options?.cacheStrategy ?? "static"
     const defaultDelay = options?.defaultDelay ?? 400
     const skipIfCached = options?.skipIfCached ?? true
