@@ -4,8 +4,8 @@ import type { ProductQueryKeys } from "./types"
 
 export function createProductQueryKeys<
   TListParams,
-  TDetailParams = Record<string, unknown>,
->(namespace: QueryNamespace = "storefront-data"): ProductQueryKeys<
+  TDetailParams,
+>(namespace: QueryNamespace): ProductQueryKeys<
   TListParams,
   TDetailParams
 > {
