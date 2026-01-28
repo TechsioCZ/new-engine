@@ -17,18 +17,29 @@ const normalizeNamespace = (namespace: QueryNamespace): readonly string[] => {
   return namespace
 }
 
-const stableValue = (value: unknown): unknown => {
+const stableValue = (value: unknown, visited: WeakSet<object>): unknown => {
   if (Array.isArray(value)) {
-    return value.map(stableValue)
+    if (visited.has(value)) {
+      throw new Error("QueryKey contains a circular reference")
+    }
+    visited.add(value)
+    const result = value.map((entry) => stableValue(entry, visited))
+    visited.delete(value)
+    return result
   }
   if (isPlainObject(value)) {
+    if (visited.has(value)) {
+      throw new Error("QueryKey contains a circular reference")
+    }
+    visited.add(value)
     const entries = Object.entries(value).sort(([a], [b]) =>
       a.localeCompare(b)
     )
     const result: Record<string, unknown> = {}
     for (const [key, entryValue] of entries) {
-      result[key] = stableValue(entryValue)
+      result[key] = stableValue(entryValue, visited)
     }
+    visited.delete(value)
     return result
   }
   return value
@@ -39,7 +50,8 @@ export function createQueryKey(
   ...parts: readonly unknown[]
 ): QueryKey {
   const scope = normalizeNamespace(namespace)
-  return [...scope, ...parts.map(stableValue)]
+  const visited = new WeakSet<object>()
+  return [...scope, ...parts.map((part) => stableValue(part, visited))]
 }
 
 export function createQueryKeyFactory(namespace: QueryNamespace) {
