@@ -66,9 +66,12 @@ export function createCategoryHooks<
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
   function useCategories(input: TListInput): UseCategoriesResult<TCategory> {
-    const listParams = buildList(input)
+    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
+      enabled?: boolean
+    }
+    const listParams = buildList(listInput as TListInput)
     const queryKey = resolvedQueryKeys.list(listParams)
-    const enabled = input.enabled ?? true
+    const enabled = inputEnabled ?? true
 
     const { data, isLoading, isFetching, isSuccess, error } = useQuery({
       queryKey,
@@ -109,7 +112,10 @@ export function createCategoryHooks<
   }
 
   function useSuspenseCategories(input: TListInput) {
-    const listParams = buildList(input)
+    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+      enabled?: boolean
+    }
+    const listParams = buildList(listInput as TListInput)
     const { data, isFetching } = useSuspenseQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getCategories(listParams, signal),
@@ -144,9 +150,12 @@ export function createCategoryHooks<
   }
 
   function useCategory(input: TDetailInput) {
-    const detailParams = buildDetail(input)
+    const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
+      enabled?: boolean
+    }
+    const detailParams = buildDetail(detailInput as TDetailInput)
     const queryKey = resolvedQueryKeys.detail(detailParams)
-    const enabled = input.enabled ?? Boolean(input.id)
+    const enabled = inputEnabled ?? Boolean(input.id)
 
     return useQuery({
       queryKey,
@@ -157,10 +166,13 @@ export function createCategoryHooks<
   }
 
   function useSuspenseCategory(input: TDetailInput) {
+    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+      enabled?: boolean
+    }
     if (!input.id) {
       throw new Error("Category id is required for category queries")
     }
-    const detailParams = buildDetail(input)
+    const detailParams = buildDetail(detailInput as TDetailInput)
     return useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
       queryFn: () => service.getCategory(detailParams),
@@ -182,7 +194,10 @@ export function createCategoryHooks<
     const skipIfCached = options?.skipIfCached ?? true
 
     const prefetchCategories = async (input: TListInput) => {
-      const listParams = buildList(input)
+      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+        enabled?: boolean
+      }
+      const listParams = buildList(listInput as TListInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const cached = queryClient.getQueryData(queryKey)
       if (skipIfCached && cached) {
@@ -201,7 +216,10 @@ export function createCategoryHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const listParams = buildList(input)
+      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+        enabled?: boolean
+      }
+      const listParams = buildList(listInput as TListInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
       const existing = timeoutsRef.current.get(id)
@@ -250,7 +268,10 @@ export function createCategoryHooks<
       if (!input.id) {
         return
       }
-      const detailParams = buildDetail(input)
+      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+        enabled?: boolean
+      }
+      const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const cached = queryClient.getQueryData(queryKey)
       if (skipIfCached && cached) {
@@ -269,7 +290,10 @@ export function createCategoryHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const detailParams = buildDetail(input)
+      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+        enabled?: boolean
+      }
+      const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
       const existing = timeoutsRef.current.get(id)
