@@ -11,6 +11,15 @@ import type {
   UseOrdersResult,
 } from "./types"
 
+type SuspenseListInput<TInput extends OrderListInputBase> = Omit<
+  TInput,
+  "enabled"
+>
+type SuspenseDetailInput<TInput extends OrderDetailInputBase> = Omit<
+  TInput,
+  "enabled"
+>
+
 export type CreateOrderHooksConfig<
   TOrder,
   TListInput extends OrderListInputBase,
@@ -103,10 +112,8 @@ export function createOrderHooks<
     }
   }
 
-  function useSuspenseOrders(input: TListInput) {
-    const listInput = { ...input } as TListInput & { enabled?: boolean }
-    delete listInput.enabled
-    const listParams = buildList(listInput)
+  function useSuspenseOrders(input: SuspenseListInput<TListInput>) {
+    const listParams = buildList(input as TListInput)
     const { data, isFetching } = useSuspenseQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getOrders(listParams, signal),
@@ -155,13 +162,11 @@ export function createOrderHooks<
     })
   }
 
-  function useSuspenseOrder(input: TDetailInput) {
+  function useSuspenseOrder(input: SuspenseDetailInput<TDetailInput>) {
     if (!input.id) {
       throw new Error("Order id is required for order queries")
     }
-    const detailInput = { ...input } as TDetailInput & { enabled?: boolean }
-    delete detailInput.enabled
-    const detailParams = buildDetail(detailInput)
+    const detailParams = buildDetail(input as TDetailInput)
 
     return useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
