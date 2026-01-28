@@ -175,11 +175,12 @@ export function createProductHooks<
     input: TListInput & ProductInfiniteInputBase
   ): UseInfiniteProductsResult<TProduct> {
     const region = resolveRegion ? resolveRegion() : null
-    const baseInput = { ...input } as TListInput & { enabled?: boolean }
-    delete baseInput.enabled
-    const resolvedInput = applyRegion(baseInput, region ?? undefined)
+    const { enabled: inputEnabled, ...baseInput } = input as TListInput & {
+      enabled?: boolean
+    }
+    const resolvedInput = applyRegion(baseInput as TListInput, region ?? undefined)
     const enabled =
-      input.enabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
+      inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
 
     const limitFromInput = (resolvedInput as { limit?: number }).limit
     const resolvedLimit =
@@ -354,6 +355,14 @@ export function createProductHooks<
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
       new Map()
     )
+    useEffect(() => {
+      return () => {
+        for (const timeout of timeoutsRef.current.values()) {
+          clearTimeout(timeout)
+        }
+        timeoutsRef.current.clear()
+      }
+    }, [])
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const defaultDelay = options?.defaultDelay ?? 800
     const skipIfCached = options?.skipIfCached ?? true
@@ -473,6 +482,14 @@ export function createProductHooks<
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
       new Map()
     )
+    useEffect(() => {
+      return () => {
+        for (const timeout of timeoutsRef.current.values()) {
+          clearTimeout(timeout)
+        }
+        timeoutsRef.current.clear()
+      }
+    }, [])
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const defaultDelay = options?.defaultDelay ?? 400
     const skipIfCached = options?.skipIfCached ?? true
