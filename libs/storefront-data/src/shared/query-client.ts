@@ -38,6 +38,11 @@ const defaultQueryClientConfig: QueryClientConfig = {
   },
 }
 
+/**
+ * Shallow merge overrides into the base config.
+ * Merges up to defaultOptions.{queries,mutations,dehydrate,hydrate}; deeper
+ * nested values are replaced, not deep-merged.
+ */
 const mergeQueryClientConfig = (
   baseConfig: QueryClientConfig,
   overrides?: QueryClientConfig
