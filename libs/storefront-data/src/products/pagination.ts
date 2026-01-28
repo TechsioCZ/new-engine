@@ -16,8 +16,13 @@ export function resolvePagination(
 ): PaginationState {
   const limit = input.limit ?? defaultLimit
   const offset =
-    input.offset ?? (input.page ? (input.page - 1) * limit : 0)
-  const page = input.page ?? (limit > 0 ? Math.floor(offset / limit) + 1 : 1)
+    input.offset ?? (input.page != null ? (input.page - 1) * limit : 0)
+  const page =
+    input.offset != null
+      ? limit > 0
+        ? Math.floor(offset / limit) + 1
+        : 1
+      : input.page ?? (limit > 0 ? Math.floor(offset / limit) + 1 : 1)
 
   return { page, limit, offset }
 }
