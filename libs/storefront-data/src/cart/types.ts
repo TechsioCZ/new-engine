@@ -34,7 +34,6 @@ export type AddLineItemInputBase = CartCreateInputBase & {
   cartId?: string
   variantId: string
   quantity?: number
-  metadata?: Record<string, unknown>
   autoCreate?: boolean
 }
 
