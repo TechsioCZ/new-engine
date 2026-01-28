@@ -4,7 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createProductQueryKeys } from "./query-keys"
@@ -566,7 +566,10 @@ export function createProductHooks<
     const queryClient = useQueryClient()
     // Call resolveRegion outside useEffect to follow Rules of Hooks
     const region = resolveRegion ? resolveRegion() : null
-    const resolvedBaseInput = applyRegion(params.baseInput, region ?? undefined)
+    const resolvedBaseInput = useMemo(
+      () => applyRegion(params.baseInput, region ?? undefined),
+      [params.baseInput, region]
+    )
 
     useEffect(() => {
       if (params.enabled === false || params.shouldPrefetch === false) {
