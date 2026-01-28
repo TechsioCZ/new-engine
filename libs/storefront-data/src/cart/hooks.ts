@@ -395,39 +395,43 @@ export function createCartHooks<
         if (!cartId) {
           throw new Error("Cart id is required")
         }
+        const {
+          shippingAddress,
+          billingAddress,
+          useSameAddress,
+          ...restInput
+        } = input as CartAddressInputBase<TAddressInput> & {
+          shippingAddress: TAddressInput
+          billingAddress?: TAddressInput
+          useSameAddress?: boolean
+        }
         const normalizedShipping = normalizeShippingAddressInput
-          ? normalizeShippingAddressInput(input.shippingAddress)
-          : input.shippingAddress
+          ? normalizeShippingAddressInput(shippingAddress)
+          : shippingAddress
         handleAddressValidation(
           validateShippingAddressInput?.(normalizedShipping)
         )
         const resolvedBillingInput =
-          input.useSameAddress || !input.billingAddress
+          useSameAddress || !billingAddress
             ? normalizedShipping
             : normalizeBillingAddressInput
-              ? normalizeBillingAddressInput(input.billingAddress)
-              : input.billingAddress
+              ? normalizeBillingAddressInput(billingAddress)
+              : billingAddress
         if (resolvedBillingInput) {
           handleAddressValidation(
             validateBillingAddressInput?.(resolvedBillingInput)
           )
         }
         const updateInput = {
-          ...(input as unknown as TUpdateInput),
+          ...(restInput as unknown as TUpdateInput),
           shipping_address: buildShipping(normalizedShipping),
           billing_address: resolvedBillingInput
             ? buildBilling(resolvedBillingInput)
             : undefined,
         } as TUpdateInput & {
-          shippingAddress?: TAddressInput
-          billingAddress?: TAddressInput
-          useSameAddress?: boolean
           shipping_address?: TAddressPayload
           billing_address?: TAddressPayload
         }
-        delete updateInput.shippingAddress
-        delete updateInput.billingAddress
-        delete updateInput.useSameAddress
         return service.updateCart(cartId, buildUpdate(updateInput))
       },
       onSuccess: (cart, variables) => {
