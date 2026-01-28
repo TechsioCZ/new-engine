@@ -31,7 +31,8 @@ export type ProductService<TProduct, TListParams, TDetailParams> = {
     signal?: AbortSignal
   ) => Promise<ProductListResponse<TProduct>>
   getProductsGlobal?: (
-    params: TListParams
+    params: TListParams,
+    signal?: AbortSignal
   ) => Promise<ProductListResponse<TProduct>>
   getProductByHandle: (params: TDetailParams) => Promise<TProduct | null>
 }

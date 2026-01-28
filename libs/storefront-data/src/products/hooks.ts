@@ -390,7 +390,7 @@ export function createProductHooks<
         queryKey,
         queryFn: ({ signal }) =>
           useGlobalFetcher
-            ? service.getProductsGlobal?.(listParams) ??
+            ? service.getProductsGlobal?.(listParams, signal) ??
               service.getProducts(listParams, signal)
             : service.getProducts(listParams, signal),
         ...resolvedCacheConfig[prefetchOptions?.cacheStrategy ?? cacheStrategy],
@@ -423,7 +423,7 @@ export function createProductHooks<
         queryKey,
         queryFn: ({ signal }) =>
           useGlobalFetcher
-            ? service.getProductsGlobal?.(listParams) ??
+            ? service.getProductsGlobal?.(listParams, signal) ??
               service.getProducts(listParams, signal)
             : service.getProducts(listParams, signal),
         ...resolvedCacheConfig[prefetchOptions?.cacheStrategy ?? cacheStrategy],
