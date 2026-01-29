@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query"
+﻿import { QueryClient } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
@@ -39,6 +39,21 @@ const buildListParams = (
     region_id: input.region_id,
   }
 }
+
+const trackedClients: QueryClient[] = []
+
+const createTestClient = (config?: ConstructorParameters<typeof QueryClient>[0]) => {
+  const client = new QueryClient(config)
+  trackedClients.push(client)
+  return client
+}
+
+afterEach(() => {
+  for (const client of trackedClients) {
+    client.clear()
+  }
+  trackedClients.length = 0
+})
 
 describe("storefront-data network smoke", () => {
   const baseUrl = "https://storefront.test"
@@ -97,7 +112,7 @@ describe("storefront-data network smoke", () => {
       queryKeyNamespace: "smoke-network",
     })
 
-    const queryClient = new QueryClient({
+    const queryClient = createTestClient({
       defaultOptions: {
         queries: {
           retry: false,
@@ -129,3 +144,4 @@ describe("storefront-data network smoke", () => {
     expect(requestCount).toBe(1)
   })
 })
+

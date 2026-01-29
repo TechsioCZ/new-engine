@@ -45,6 +45,23 @@ const buildListParams = (
   }
 }
 
+const trackedClients: QueryClient[] = []
+
+const trackClient = (client: QueryClient) => {
+  trackedClients.push(client)
+  return client
+}
+
+const createTestClient = (config?: ConstructorParameters<typeof QueryClient>[0]) =>
+  trackClient(new QueryClient(config))
+
+afterEach(() => {
+  for (const client of trackedClients) {
+    client.clear()
+  }
+  trackedClients.length = 0
+})
+
 describe("storefront-data SSR hydration smoke", () => {
   it("hydrates prefetched queries without refetching on the client", async () => {
     let fetchCount = 0
@@ -95,7 +112,7 @@ describe("storefront-data SSR hydration smoke", () => {
       queryKeyNamespace
     )
 
-    const serverQueryClient = getServerQueryClient()
+    const serverQueryClient = trackClient(getServerQueryClient())
     await serverQueryClient.prefetchQuery({
       queryKey: queryKeys.list(listParams),
       queryFn: () => service.getProducts(listParams),
@@ -103,7 +120,7 @@ describe("storefront-data SSR hydration smoke", () => {
 
     const dehydratedState = dehydrate(serverQueryClient)
 
-    const clientQueryClient = new QueryClient({
+    const clientQueryClient = createTestClient({
       defaultOptions: {
         queries: {
           retry: false,

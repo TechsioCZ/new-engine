@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query"
+﻿import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
@@ -32,6 +32,21 @@ const createWrapper = (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
+
+const trackedClients: QueryClient[] = []
+
+const createTestClient = (config?: ConstructorParameters<typeof QueryClient>[0]) => {
+  const client = new QueryClient(config)
+  trackedClients.push(client)
+  return client
+}
+
+afterEach(() => {
+  for (const client of trackedClients) {
+    client.clear()
+  }
+  trackedClients.length = 0
+})
 
 describe("storefront-data hook smoke tests", () => {
   const baseUrl = "https://storefront.test"
@@ -176,7 +191,7 @@ describe("storefront-data hook smoke tests", () => {
         buildBillingAddress: buildAddressPayload,
       })
 
-      const queryClient = new QueryClient({
+      const queryClient = createTestClient({
         defaultOptions: {
           queries: {
             retry: false,
@@ -297,7 +312,7 @@ describe("storefront-data hook smoke tests", () => {
         queryKeyNamespace,
       })
 
-      const queryClient = new QueryClient({
+      const queryClient = createTestClient({
         defaultOptions: {
           queries: { retry: false },
         },
@@ -409,7 +424,7 @@ describe("storefront-data hook smoke tests", () => {
         queryKeyNamespace: "smoke-orders",
       })
 
-      const queryClient = new QueryClient({
+      const queryClient = createTestClient({
         defaultOptions: { queries: { retry: false } },
       })
 
@@ -536,7 +551,7 @@ describe("storefront-data hook smoke tests", () => {
         queryKeyNamespace: "smoke-customers",
       })
 
-      const queryClient = new QueryClient({
+      const queryClient = createTestClient({
         defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
       })
       const wrapper = createWrapper(queryClient)
@@ -589,3 +604,4 @@ describe("storefront-data hook smoke tests", () => {
     })
   })
 })
+
