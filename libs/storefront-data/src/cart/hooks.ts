@@ -4,7 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { useCallback } from "react"
+import { useCallback, useEffect } from "react"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
@@ -391,6 +391,7 @@ export function createCartHooks<
   }
 
   function useCart(input: CartInputBase): UseCartResult<TCart> {
+    const queryClient = useQueryClient()
     const region = resolveRegion ? resolveRegion() : null
     const resolvedInput = applyRegion(input, region ?? undefined)
     const cartId = resolveCartId(resolvedInput.cartId)
@@ -414,6 +415,31 @@ export function createCartHooks<
     const cart = data ?? null
     const itemCount = getItemCount(cart)
 
+    useEffect(() => {
+      if (!cart?.id) {
+        return
+      }
+      const nextRegionId = cart.region_id ?? resolvedInput.region_id ?? null
+      const nextKey = resolvedQueryKeys.active({
+        cartId: cart.id,
+        regionId: nextRegionId,
+      })
+      queryClient.setQueryData(nextKey, cart)
+      if (cartId !== cart.id) {
+        const previousKey = resolvedQueryKeys.active({
+          cartId,
+          regionId: resolvedInput.region_id ?? null,
+        })
+        queryClient.removeQueries({ queryKey: previousKey, exact: true })
+      }
+    }, [
+      cart,
+      cartId,
+      queryClient,
+      resolvedInput.region_id,
+      resolvedQueryKeys,
+    ])
+
     return {
       cart,
       isLoading,
@@ -428,6 +454,7 @@ export function createCartHooks<
   }
 
   function useSuspenseCart(input: CartInputBase): UseSuspenseCartResult<TCart> {
+    const queryClient = useQueryClient()
     const region = resolveRegionSuspense
       ? resolveRegionSuspense()
       : resolveRegion?.()
@@ -450,6 +477,31 @@ export function createCartHooks<
 
     const cart = data ?? null
     const itemCount = getItemCount(cart)
+
+    useEffect(() => {
+      if (!cart?.id) {
+        return
+      }
+      const nextRegionId = cart.region_id ?? resolvedInput.region_id ?? null
+      const nextKey = resolvedQueryKeys.active({
+        cartId: cart.id,
+        regionId: nextRegionId,
+      })
+      queryClient.setQueryData(nextKey, cart)
+      if (cartId !== cart.id) {
+        const previousKey = resolvedQueryKeys.active({
+          cartId,
+          regionId: resolvedInput.region_id ?? null,
+        })
+        queryClient.removeQueries({ queryKey: previousKey, exact: true })
+      }
+    }, [
+      cart,
+      cartId,
+      queryClient,
+      resolvedInput.region_id,
+      resolvedQueryKeys,
+    ])
 
     return {
       cart,
