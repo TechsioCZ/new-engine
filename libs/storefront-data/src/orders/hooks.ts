@@ -68,9 +68,10 @@ export function createOrderHooks<
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
   function useOrders(input: TListInput): UseOrdersResult<TOrder> {
-    const listInput = { ...input } as TListInput & { enabled?: boolean }
-    delete listInput.enabled
-    const listParams = buildList(listInput)
+    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+      enabled?: boolean
+    }
+    const listParams = buildList(listInput as TListInput)
     const queryKey = resolvedQueryKeys.list(listParams)
     const enabled = input.enabled ?? true
 
@@ -148,9 +149,10 @@ export function createOrderHooks<
   }
 
   function useOrder(input: TDetailInput) {
-    const detailInput = { ...input } as TDetailInput & { enabled?: boolean }
-    delete detailInput.enabled
-    const detailParams = buildDetail(detailInput)
+    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+      enabled?: boolean
+    }
+    const detailParams = buildDetail(detailInput as TDetailInput)
     const queryKey = resolvedQueryKeys.detail(detailParams)
     const enabled = input.enabled ?? Boolean(input.id)
 

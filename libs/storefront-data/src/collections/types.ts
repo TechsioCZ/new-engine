@@ -28,9 +28,9 @@ export type CollectionService<
 }
 
 export type CollectionQueryKeys<TListParams, TDetailParams> = {
-  all: () => readonly unknown[]
-  list: (params: TListParams) => readonly unknown[]
-  detail: (params: TDetailParams) => readonly unknown[]
+  all: () => QueryKey
+  list: (params: TListParams) => QueryKey
+  detail: (params: TDetailParams) => QueryKey
 }
 
 export type UseCollectionsResult<TCollection> = {
@@ -45,3 +45,4 @@ export type UseCollectionsResult<TCollection> = {
   hasNextPage: boolean
   hasPrevPage: boolean
 }
+import type { QueryKey } from "../shared/query-keys"
