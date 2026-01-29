@@ -36,6 +36,7 @@ export const defaultCacheConfig: CacheConfig = {
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: "always",
+    refetchOnReconnect: true,
   },
   userData: {
     staleTime: 5 * 60 * 1000,
