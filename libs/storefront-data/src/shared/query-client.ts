@@ -33,7 +33,7 @@ const defaultQueryClientConfig: QueryClientConfig = {
     dehydrate: {
       shouldDehydrateQuery: (query) =>
         defaultShouldDehydrateQuery(query) || query.state.status === "pending",
-      shouldRedactErrors: () => false,
+      shouldRedactErrors: () => true,
     },
   },
 }
