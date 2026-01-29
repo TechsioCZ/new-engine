@@ -29,6 +29,130 @@ import type {
 
 type CacheStrategy = keyof CacheConfig
 
+const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
+  input: TInput
+): TInput => {
+  const {
+    cartId: _cartId,
+    autoCreate: _autoCreate,
+    autoUpdateRegion: _autoUpdateRegion,
+    enabled: _enabled,
+    variantId: _variantId,
+    quantity: _quantity,
+    useSameAddress: _useSameAddress,
+    shippingAddress: _shippingAddress,
+    billingAddress: _billingAddress,
+    salesChannelId,
+    ...rest
+  } = input as CartCreateInputBase & {
+    cartId?: string
+    autoCreate?: boolean
+    autoUpdateRegion?: boolean
+    enabled?: boolean
+    variantId?: string
+    quantity?: number
+    useSameAddress?: boolean
+    shippingAddress?: unknown
+    billingAddress?: unknown
+    salesChannelId?: string
+  }
+
+  if (salesChannelId) {
+    return {
+      ...rest,
+      sales_channel_id: salesChannelId,
+    } as TInput
+  }
+
+  return rest as TInput
+}
+
+const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
+  input: TInput
+): TInput => {
+  const {
+    cartId: _cartId,
+    autoCreate: _autoCreate,
+    autoUpdateRegion: _autoUpdateRegion,
+    enabled: _enabled,
+    variantId: _variantId,
+    quantity: _quantity,
+    useSameAddress: _useSameAddress,
+    shippingAddress: _shippingAddress,
+    billingAddress: _billingAddress,
+    salesChannelId,
+    ...rest
+  } = input as UpdateCartInputBase & {
+    cartId?: string
+    autoCreate?: boolean
+    autoUpdateRegion?: boolean
+    enabled?: boolean
+    variantId?: string
+    quantity?: number
+    useSameAddress?: boolean
+    shippingAddress?: unknown
+    billingAddress?: unknown
+    salesChannelId?: string
+  }
+
+  if (salesChannelId) {
+    return {
+      ...rest,
+      sales_channel_id: salesChannelId,
+    } as TInput
+  }
+
+  return rest as TInput
+}
+
+const normalizeAddLineItemPayload = <TInput extends AddLineItemInputBase>(
+  input: TInput
+): TInput => {
+  const {
+    cartId: _cartId,
+    autoCreate: _autoCreate,
+    autoUpdateRegion: _autoUpdateRegion,
+    enabled: _enabled,
+    region_id: _regionId,
+    country_code: _countryCode,
+    salesChannelId: _salesChannelId,
+    ...rest
+  } = input as AddLineItemInputBase & {
+    cartId?: string
+    autoCreate?: boolean
+    autoUpdateRegion?: boolean
+    enabled?: boolean
+    region_id?: string
+    country_code?: string
+    salesChannelId?: string
+  }
+
+  return rest as TInput
+}
+
+const normalizeUpdateLineItemPayload = <
+  TInput extends UpdateLineItemInputBase,
+>(
+  input: TInput
+): TInput => {
+  const {
+    cartId: _cartId,
+    lineItemId: _lineItemId,
+    enabled: _enabled,
+    autoCreate: _autoCreate,
+    autoUpdateRegion: _autoUpdateRegion,
+    ...rest
+  } = input as UpdateLineItemInputBase & {
+    cartId?: string
+    lineItemId?: string
+    enabled?: boolean
+    autoCreate?: boolean
+    autoUpdateRegion?: boolean
+  }
+
+  return rest as TInput
+}
+
 const applyRegion = <T extends RegionInfo>(
   input: T,
   region?: RegionInfo | null
@@ -169,16 +293,20 @@ export function createCartHooks<
     queryKeys ?? createCartQueryKeys(queryKeyNamespace)
   const buildCreate =
     buildCreateParams ??
-    ((input: TCreateInput) => input as unknown as TCreateParams)
+    ((input: TCreateInput) =>
+      normalizeCartCreatePayload(input) as unknown as TCreateParams)
   const buildUpdate =
     buildUpdateParams ??
-    ((input: TUpdateInput) => input as unknown as TUpdateParams)
+    ((input: TUpdateInput) =>
+      normalizeCartUpdatePayload(input) as unknown as TUpdateParams)
   const buildAdd =
     buildAddParams ??
-    ((input: TAddInput) => input as unknown as TAddParams)
+    ((input: TAddInput) =>
+      normalizeAddLineItemPayload(input) as unknown as TAddParams)
   const buildUpdateItem =
     buildUpdateItemParams ??
-    ((input: TUpdateItemInput) => input as unknown as TUpdateItemParams)
+    ((input: TUpdateItemInput) =>
+      normalizeUpdateLineItemPayload(input) as unknown as TUpdateItemParams)
   const buildShipping =
     buildShippingAddress ??
     ((input: TAddressInput) => input as unknown as TAddressPayload)
