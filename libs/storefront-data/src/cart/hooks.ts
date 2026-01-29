@@ -313,9 +313,8 @@ export function createCartHooks<
   const buildBilling =
     buildBillingAddress ?? ((input: TAddressInput) => buildShipping(input))
 
-  const resolveCartId = (inputCartId?: string | null): string | null => {
-    return inputCartId ?? cartStorage?.getCartId() ?? null
-  }
+  const resolveCartId = (inputCartId?: string | null): string | null =>
+    inputCartId ?? cartStorage?.getCartId() ?? null
 
   const persistCartId = (cartId: string) => {
     cartStorage?.setCartId(cartId)
@@ -325,13 +324,21 @@ export function createCartHooks<
     cartStorage?.clearCartId()
   }
 
-  const loadCart = async (
-    input: CartInputBase,
-    cartId: string | null,
-    canCreate: boolean,
-    autoUpdateRegion: boolean,
+  type LoadCartOptions = {
+    input: CartInputBase
+    cartId: string | null
+    canCreate: boolean
+    autoUpdateRegion: boolean
     signal?: AbortSignal
-  ): Promise<TCart | null> => {
+  }
+
+  const loadCart = async ({
+    input,
+    cartId,
+    canCreate,
+    autoUpdateRegion,
+    signal,
+  }: LoadCartOptions): Promise<TCart | null> => {
     if (!cartId) {
       if (!canCreate) {
         return null
@@ -390,6 +397,31 @@ export function createCartHooks<
     }
   }
 
+  const syncCartCache = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    queryKeys: CartQueryKeys,
+    cart: CartLike | null,
+    cartId: string | null,
+    regionId: string | null
+  ) => {
+    if (!cart?.id) {
+      return
+    }
+    const nextRegionId = cart.region_id ?? regionId ?? null
+    const nextKey = queryKeys.active({
+      cartId: cart.id,
+      regionId: nextRegionId,
+    })
+    queryClient.setQueryData(nextKey, cart)
+    if (cartId !== cart.id) {
+      const previousKey = queryKeys.active({
+        cartId,
+        regionId,
+      })
+      queryClient.removeQueries({ queryKey: previousKey, exact: true })
+    }
+  }
+
   function useCart(input: CartInputBase): UseCartResult<TCart> {
     const queryClient = useQueryClient()
     const region = resolveRegion ? resolveRegion() : null
@@ -407,7 +439,13 @@ export function createCartHooks<
         regionId: resolvedInput.region_id ?? null,
       }),
       queryFn: ({ signal }) =>
-        loadCart(resolvedInput, cartId, canCreate, autoUpdateRegion, signal),
+        loadCart({
+          input: resolvedInput,
+          cartId,
+          canCreate,
+          autoUpdateRegion,
+          signal,
+        }),
       enabled,
       ...resolvedCacheConfig.realtime,
     })
@@ -416,22 +454,13 @@ export function createCartHooks<
     const itemCount = getItemCount(cart)
 
     useEffect(() => {
-      if (!cart?.id) {
-        return
-      }
-      const nextRegionId = cart.region_id ?? resolvedInput.region_id ?? null
-      const nextKey = resolvedQueryKeys.active({
-        cartId: cart.id,
-        regionId: nextRegionId,
-      })
-      queryClient.setQueryData(nextKey, cart)
-      if (cartId !== cart.id) {
-        const previousKey = resolvedQueryKeys.active({
-          cartId,
-          regionId: resolvedInput.region_id ?? null,
-        })
-        queryClient.removeQueries({ queryKey: previousKey, exact: true })
-      }
+      syncCartCache(
+        queryClient,
+        resolvedQueryKeys,
+        cart,
+        cartId,
+        resolvedInput.region_id ?? null
+      )
     }, [
       cart,
       cartId,
@@ -471,7 +500,13 @@ export function createCartHooks<
         regionId: resolvedInput.region_id ?? null,
       }),
       queryFn: ({ signal }) =>
-        loadCart(resolvedInput, cartId, canCreate, autoUpdateRegion, signal),
+        loadCart({
+          input: resolvedInput,
+          cartId,
+          canCreate,
+          autoUpdateRegion,
+          signal,
+        }),
       ...resolvedCacheConfig.realtime,
     })
 
@@ -479,22 +514,13 @@ export function createCartHooks<
     const itemCount = getItemCount(cart)
 
     useEffect(() => {
-      if (!cart?.id) {
-        return
-      }
-      const nextRegionId = cart.region_id ?? resolvedInput.region_id ?? null
-      const nextKey = resolvedQueryKeys.active({
-        cartId: cart.id,
-        regionId: nextRegionId,
-      })
-      queryClient.setQueryData(nextKey, cart)
-      if (cartId !== cart.id) {
-        const previousKey = resolvedQueryKeys.active({
-          cartId,
-          regionId: resolvedInput.region_id ?? null,
-        })
-        queryClient.removeQueries({ queryKey: previousKey, exact: true })
-      }
+      syncCartCache(
+        queryClient,
+        resolvedQueryKeys,
+        cart,
+        cartId,
+        resolvedInput.region_id ?? null
+      )
     }, [
       cart,
       cartId,
@@ -841,13 +867,13 @@ export function createCartHooks<
         await queryClient.prefetchQuery({
           queryKey,
           queryFn: ({ signal }) =>
-            loadCart(
-              resolvedInput,
+            loadCart({
+              input: resolvedInput,
               cartId,
               canCreate,
-              resolvedInput.autoUpdateRegion ?? true,
-              signal
-            ),
+              autoUpdateRegion: resolvedInput.autoUpdateRegion ?? true,
+              signal,
+            }),
           ...resolvedCacheConfig[cacheStrategy],
         })
       },

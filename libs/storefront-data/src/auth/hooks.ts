@@ -21,13 +21,17 @@ export type CreateAuthHooksConfig<
   TRegisterInput,
   TUpdateInput,
   TCreateCustomerInput = unknown,
+  TLoginResult = unknown,
+  TRegisterResult = unknown,
 > = {
   service: AuthService<
     TCustomer,
     TLoginInput,
     TRegisterInput,
     TUpdateInput,
-    TCreateCustomerInput
+    TCreateCustomerInput,
+    TLoginResult,
+    TRegisterResult
   >
   queryKeys?: AuthQueryKeys
   queryKeyNamespace?: QueryNamespace
@@ -45,6 +49,8 @@ export function createAuthHooks<
   TRegisterInput,
   TUpdateInput,
   TCreateCustomerInput = unknown,
+  TLoginResult = unknown,
+  TRegisterResult = unknown,
 >({
   service,
   queryKeys,
@@ -55,7 +61,9 @@ export function createAuthHooks<
   TLoginInput,
   TRegisterInput,
   TUpdateInput,
-  TCreateCustomerInput
+  TCreateCustomerInput,
+  TLoginResult,
+  TRegisterResult
 >) {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
@@ -98,7 +106,7 @@ export function createAuthHooks<
     }
   }
 
-  function useLogin(options?: AuthMutationOptions<unknown, TLoginInput>) {
+  function useLogin(options?: AuthMutationOptions<TLoginResult, TLoginInput>) {
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: (input: TLoginInput) => service.login(input),
@@ -114,7 +122,9 @@ export function createAuthHooks<
     })
   }
 
-  function useRegister(options?: AuthMutationOptions<unknown, TRegisterInput>) {
+  function useRegister(
+    options?: AuthMutationOptions<TRegisterResult, TRegisterInput>
+  ) {
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: (input: TRegisterInput) => service.register(input),
