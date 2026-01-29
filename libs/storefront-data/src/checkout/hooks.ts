@@ -110,55 +110,59 @@ export function createCheckoutHooks<
       (option) => option.price_type === "calculated"
     )
 
+    const shouldCalculate =
+      Boolean(cartId) &&
+      calculatePrices &&
+      typeof service.calculateShippingOption === "function"
+
     const calculatedQueries = useQueries({
-      queries:
-        cartId && calculatePrices && service.calculateShippingOption
-          ? calculatedOptions.map((option) => {
-              const data = input.buildShippingData?.(option)
-              return {
-                queryKey: resolvedQueryKeys.shippingOptionPrice({
-                  cartId,
-                  optionId: option.id,
-                  data,
-                }),
-                queryFn: ({ signal }: { signal?: AbortSignal }) =>
-                  service.calculateShippingOption?.(
-                    option.id,
-                    {
-                      cart_id: cartId,
-                      data,
-                    },
-                    signal
-                  ) as Promise<TShippingOption>,
-                enabled,
-                ...resolvedCacheConfig.realtime,
-              }
-            })
-          : [],
+      queries: shouldCalculate
+        ? calculatedOptions.map((option) => {
+            const data = input.buildShippingData?.(option)
+            return {
+              queryKey: resolvedQueryKeys.shippingOptionPrice({
+                cartId,
+                optionId: option.id,
+                data,
+              }),
+              queryFn: ({ signal }: { signal?: AbortSignal }) =>
+                service.calculateShippingOption?.(
+                  option.id,
+                  {
+                    cart_id: cartId,
+                    data,
+                  },
+                  signal
+                ) as Promise<TShippingOption>,
+              enabled,
+              ...resolvedCacheConfig.realtime,
+            }
+          })
+        : [],
     })
 
     const calculatedById = new Map<string, TShippingOption>()
-    calculatedQueries.forEach((query, index) => {
+    for (const [index, query] of calculatedQueries.entries()) {
       const option = calculatedOptions[index]
       if (!option || !query.data) {
-        return
+        continue
       }
       calculatedById.set(option.id, query.data)
-    })
+    }
 
     const shippingPrices: Record<string, number> = {}
-    shippingOptions.forEach((option) => {
+    for (const option of shippingOptions) {
       if (option.price_type === "calculated") {
         const calculated = calculatedById.get(option.id)
         if (calculated && typeof calculated.amount === "number") {
           shippingPrices[option.id] = calculated.amount
         }
-        return
+        continue
       }
       if (typeof option.amount === "number") {
         shippingPrices[option.id] = option.amount
       }
-    })
+    }
 
     const { mutate: mutateShippingMethod, isPending: isSettingShipping } =
       useMutation({
