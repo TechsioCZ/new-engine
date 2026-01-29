@@ -191,6 +191,14 @@ const cacheConfig = createCacheConfig({
 | `realtime` | 30 seconds | Cart, inventory |
 | `userData` | 5 minutes | User profile, orders |
 
+## Notes (Short)
+
+- `enabled` is stripped from list/detail inputs before building query params/keys.
+- Cart payloads are normalized by default (Medusa-friendly field names).
+- Prefetch respects `skipIfCached`; pass `false` to force prefetch.
+- Some service methods accept `signal` for aborting in-flight requests.
+- SSR: use `getServerQueryClient` + `dehydrate` on server, `StorefrontDataProvider` + `HydrationBoundary` on client.
+
 ## Peer Dependencies
 
 ```json
@@ -213,6 +221,9 @@ pnpm -C libs/storefront-data dev
 
 # Lint
 pnpm -C libs/storefront-data lint
+
+# Tests
+pnpm -C libs/storefront-data test
 ```
 
 ## Related Documentation
