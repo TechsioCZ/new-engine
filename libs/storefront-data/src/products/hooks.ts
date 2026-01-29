@@ -396,8 +396,10 @@ export function createProductHooks<
       const cached = queryClient.getQueryData(queryKey)
       const useGlobalFetcher =
         prefetchOptions?.useGlobalFetcher && service.getProductsGlobal
+      const skipIfCachedResolved =
+        prefetchOptions?.skipIfCached ?? skipIfCached
 
-      if (skipIfCached && cached) {
+      if (skipIfCachedResolved && cached) {
         return
       }
 
@@ -432,8 +434,10 @@ export function createProductHooks<
       const cached = queryClient.getQueryData(queryKey)
       const useGlobalFetcher =
         prefetchOptions?.useGlobalFetcher && service.getProductsGlobal
+      const skipIfCachedResolved =
+        prefetchOptions?.skipIfCached ?? skipIfCached
 
-      if (skipIfCached && cached) {
+      if (skipIfCachedResolved && cached) {
         return
       }
 
@@ -533,8 +537,10 @@ export function createProductHooks<
       const detailParams = buildDetail(resolvedInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const cached = queryClient.getQueryData(queryKey)
+      const skipIfCachedResolved =
+        prefetchOptions?.skipIfCached ?? skipIfCached
 
-      if (skipIfCached && cached) {
+      if (skipIfCachedResolved && cached) {
         return
       }
 
