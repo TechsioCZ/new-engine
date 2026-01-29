@@ -4,9 +4,9 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
-import type { QueryNamespace } from "../shared/query-keys"
 import type { CartQueryKeys } from "../cart/types"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import type { QueryNamespace } from "../shared/query-keys"
 import { createCheckoutQueryKeys } from "./query-keys"
 import type {
   CheckoutCartLike,
@@ -83,7 +83,10 @@ export function createCheckoutHooks<
 
   function useCheckoutShipping(
     input: CheckoutShippingHookInput<TCart, TShippingOption>,
-    options?: CheckoutMutationOptions<TCart, { optionId: string; data?: Record<string, unknown> }>
+    options?: CheckoutMutationOptions<
+      TCart,
+      { optionId: string; data?: Record<string, unknown> }
+    >
   ): UseCheckoutShippingResult<TShippingOption> {
     const queryClient = useQueryClient()
     const cartId = input.cartId
@@ -114,6 +117,7 @@ export function createCheckoutHooks<
       Boolean(cartId) &&
       calculatePrices &&
       typeof service.calculateShippingOption === "function"
+    const cartIdValue = cartId ?? ""
 
     const calculatedQueries = useQueries({
       queries: shouldCalculate
@@ -121,7 +125,7 @@ export function createCheckoutHooks<
             const data = input.buildShippingData?.(option)
             return {
               queryKey: resolvedQueryKeys.shippingOptionPrice({
-                cartId,
+                cartId: cartIdValue,
                 optionId: option.id,
                 data,
               }),
@@ -129,7 +133,7 @@ export function createCheckoutHooks<
                 service.calculateShippingOption?.(
                   option.id,
                   {
-                    cart_id: cartId,
+                    cart_id: cartIdValue,
                     data,
                   },
                   signal
@@ -144,7 +148,7 @@ export function createCheckoutHooks<
     const calculatedById = new Map<string, TShippingOption>()
     for (const [index, query] of calculatedQueries.entries()) {
       const option = calculatedOptions[index]
-      if (!option || !query.data) {
+      if (!(option && query.data)) {
         continue
       }
       calculatedById.set(option.id, query.data)

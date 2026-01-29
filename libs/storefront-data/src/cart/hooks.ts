@@ -5,7 +5,7 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { useCallback, useEffect } from "react"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
 import { createCartQueryKeys } from "./query-keys"
@@ -14,11 +14,11 @@ import type {
   CartAddressInputBase,
   CartAddressValidationResult,
   CartCreateInputBase,
+  CartInputBase,
   CartLike,
   CartQueryKeys,
   CartService,
   CartStorage,
-  CartInputBase,
   RemoveLineItemInputBase,
   TransferCartInputBase,
   UpdateCartInputBase,
@@ -61,7 +61,7 @@ const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
     return {
       ...rest,
       sales_channel_id: salesChannelId,
-    } as TInput
+    } as unknown as TInput
   }
 
   return rest as TInput
@@ -99,7 +99,7 @@ const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
     return {
       ...rest,
       sales_channel_id: salesChannelId,
-    } as TInput
+    } as unknown as TInput
   }
 
   return rest as TInput
@@ -130,9 +130,7 @@ const normalizeAddLineItemPayload = <TInput extends AddLineItemInputBase>(
   return rest as TInput
 }
 
-const normalizeUpdateLineItemPayload = <
-  TInput extends UpdateLineItemInputBase,
->(
+const normalizeUpdateLineItemPayload = <TInput extends UpdateLineItemInputBase>(
   input: TInput
 ): TInput => {
   const {
@@ -289,8 +287,7 @@ export function createCartHooks<
   TAddressPayload
 >) {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
-  const resolvedQueryKeys =
-    queryKeys ?? createCartQueryKeys(queryKeyNamespace)
+  const resolvedQueryKeys = queryKeys ?? createCartQueryKeys(queryKeyNamespace)
   const buildCreate =
     buildCreateParams ??
     ((input: TCreateInput) =>
@@ -343,7 +340,9 @@ export function createCartHooks<
       if (!canCreate) {
         return null
       }
-      const created = await service.createCart(buildCreate(input as TCreateInput))
+      const created = await service.createCart(
+        buildCreate(input as TCreateInput)
+      )
       persistCartId(created.id)
       return created
     }
@@ -461,13 +460,7 @@ export function createCartHooks<
         cartId,
         resolvedInput.region_id ?? null
       )
-    }, [
-      cart,
-      cartId,
-      queryClient,
-      resolvedInput.region_id,
-      resolvedQueryKeys,
-    ])
+    }, [cart, cartId, queryClient, resolvedInput.region_id, resolvedQueryKeys])
 
     return {
       cart,
@@ -521,13 +514,7 @@ export function createCartHooks<
         cartId,
         resolvedInput.region_id ?? null
       )
-    }, [
-      cart,
-      cartId,
-      queryClient,
-      resolvedInput.region_id,
-      resolvedQueryKeys,
-    ])
+    }, [cart, cartId, queryClient, resolvedInput.region_id, resolvedQueryKeys])
 
     return {
       cart,
@@ -877,12 +864,7 @@ export function createCartHooks<
           ...resolvedCacheConfig[cacheStrategy],
         })
       },
-      [
-        cacheStrategy,
-        queryClient,
-        region,
-        skipIfCached,
-      ]
+      [cacheStrategy, queryClient, region, skipIfCached]
     )
 
     return { prefetchCart }
