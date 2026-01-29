@@ -158,7 +158,7 @@ export function createOrderHooks<
 
     return useQuery({
       queryKey,
-      queryFn: () => service.getOrder(detailParams),
+      queryFn: ({ signal }) => service.getOrder(detailParams, signal),
       enabled,
       ...resolvedCacheConfig.userData,
     })
@@ -172,7 +172,7 @@ export function createOrderHooks<
 
     return useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: () => service.getOrder(detailParams),
+      queryFn: ({ signal }) => service.getOrder(detailParams, signal),
       ...resolvedCacheConfig.userData,
     })
   }

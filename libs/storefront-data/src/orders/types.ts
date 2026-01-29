@@ -20,7 +20,10 @@ export type OrderService<TOrder, TListParams, TDetailParams> = {
     params: TListParams,
     signal?: AbortSignal
   ) => Promise<OrderListResponse<TOrder>>
-  getOrder: (params: TDetailParams) => Promise<TOrder | null>
+  getOrder: (
+    params: TDetailParams,
+    signal?: AbortSignal
+  ) => Promise<TOrder | null>
 }
 
 export type OrderQueryKeys<TListParams, TDetailParams> = {

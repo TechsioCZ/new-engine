@@ -34,7 +34,10 @@ export type ProductService<TProduct, TListParams, TDetailParams> = {
     params: TListParams,
     signal?: AbortSignal
   ) => Promise<ProductListResponse<TProduct>>
-  getProductByHandle: (params: TDetailParams) => Promise<TProduct | null>
+  getProductByHandle: (
+    params: TDetailParams,
+    signal?: AbortSignal
+  ) => Promise<TProduct | null>
 }
 
 export type ProductQueryKeys<TListParams, TDetailParams> = {

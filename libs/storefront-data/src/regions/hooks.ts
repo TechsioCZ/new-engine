@@ -280,7 +280,7 @@ export function createRegionHooks<
 
       await queryClient.prefetchQuery({
         queryKey,
-        queryFn: () => service.getRegion(detailParams),
+        queryFn: ({ signal }) => service.getRegion(detailParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
       })
     }

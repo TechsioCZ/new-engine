@@ -325,7 +325,7 @@ export function createProductHooks<
 
     return useQuery({
       queryKey,
-      queryFn: () => service.getProductByHandle(detailParams),
+      queryFn: ({ signal }) => service.getProductByHandle(detailParams, signal),
       enabled,
       ...resolvedCacheConfig.semiStatic,
     })
@@ -352,7 +352,7 @@ export function createProductHooks<
 
     return useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: () => service.getProductByHandle(detailParams),
+      queryFn: ({ signal }) => service.getProductByHandle(detailParams, signal),
       ...resolvedCacheConfig.semiStatic,
     })
   }
@@ -546,7 +546,8 @@ export function createProductHooks<
 
       await queryClient.prefetchQuery({
         queryKey,
-        queryFn: () => service.getProductByHandle(detailParams),
+        queryFn: ({ signal }) =>
+          service.getProductByHandle(detailParams, signal),
         ...resolvedCacheConfig[prefetchOptions?.cacheStrategy ?? cacheStrategy],
         meta: prefetchOptions?.prefetchedBy
           ? { prefetchedBy: prefetchOptions.prefetchedBy }
