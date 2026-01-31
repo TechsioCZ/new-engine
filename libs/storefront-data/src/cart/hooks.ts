@@ -232,11 +232,29 @@ export type CreateCartHooksConfig<
   ) => CartAddressValidationResult
   buildShippingAddress?: (input: TAddressInput) => TAddressPayload
   buildBillingAddress?: (input: TAddressInput) => TAddressPayload
+  invalidateOnSuccess?: boolean
 }
 
-export type CartMutationOptions<TData, TVariables> = {
-  onSuccess?: (data: TData, variables: TVariables) => void
-  onError?: (error: unknown) => void
+export type CartMutationOptions<TData, TVariables, TContext = unknown> = {
+  onSuccess?: (
+    data: TData,
+    variables: TVariables,
+    context: TContext | undefined
+  ) => void
+  onError?: (
+    error: unknown,
+    variables: TVariables,
+    context: TContext | undefined
+  ) => void
+  onMutate?: (
+    variables: TVariables
+  ) => TContext | void | Promise<TContext | void>
+  onSettled?: (
+    data: TData | undefined,
+    error: unknown | null,
+    variables: TVariables,
+    context: TContext | undefined
+  ) => void
 }
 
 export function createCartHooks<
@@ -272,6 +290,7 @@ export function createCartHooks<
   validateBillingAddressInput,
   buildShippingAddress,
   buildBillingAddress,
+  invalidateOnSuccess = false,
 }: CreateCartHooksConfig<
   TCart,
   TCreateInput,
@@ -319,6 +338,22 @@ export function createCartHooks<
 
   const clearCartId = () => {
     cartStorage?.clearCartId()
+  }
+
+  const invalidateCart = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    cart: CartLike | null
+  ) => {
+    if (!invalidateOnSuccess || !cart?.id) {
+      return
+    }
+
+    queryClient.invalidateQueries({
+      queryKey: resolvedQueryKeys.active({
+        cartId: cart.id,
+        regionId: cart.region_id ?? null,
+      }),
+    })
   }
 
   type LoadCartOptions = {
@@ -530,7 +565,8 @@ export function createCartHooks<
     return useMutation({
       mutationFn: (input: TCreateInput) =>
         service.createCart(buildCreate(input)),
-      onSuccess: (cart, variables) => {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onSuccess: (cart, variables, context) => {
         persistCartId(cart.id)
         queryClient.setQueryData(
           resolvedQueryKeys.active({
@@ -539,10 +575,14 @@ export function createCartHooks<
           }),
           cart
         )
-        options?.onSuccess?.(cart, variables)
+        invalidateCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
@@ -560,7 +600,8 @@ export function createCartHooks<
         }
         return service.updateCart(cartId, buildUpdate(input))
       },
-      onSuccess: (cart, variables) => {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
             cartId: cart.id,
@@ -568,10 +609,14 @@ export function createCartHooks<
           }),
           cart
         )
-        options?.onSuccess?.(cart, variables)
+        invalidateCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
@@ -628,7 +673,8 @@ export function createCartHooks<
         }
         return service.updateCart(cartId, buildUpdate(updateInput))
       },
-      onSuccess: (cart, variables) => {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
             cartId: cart.id,
@@ -636,10 +682,14 @@ export function createCartHooks<
           }),
           cart
         )
-        options?.onSuccess?.(cart, variables)
+        invalidateCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
@@ -684,7 +734,8 @@ export function createCartHooks<
         persistCartId(updated.id)
         return updated
       },
-      onSuccess: (cart, variables) => {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
             cartId: cart.id,
@@ -692,10 +743,14 @@ export function createCartHooks<
           }),
           cart
         )
-        options?.onSuccess?.(cart, variables)
+        invalidateCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
@@ -719,7 +774,8 @@ export function createCartHooks<
           buildUpdateItem(input)
         )
       },
-      onSuccess: (cart, variables) => {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
             cartId: cart.id,
@@ -727,10 +783,14 @@ export function createCartHooks<
           }),
           cart
         )
-        options?.onSuccess?.(cart, variables)
+        invalidateCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
@@ -750,7 +810,8 @@ export function createCartHooks<
         }
         return service.removeLineItem(cartId, input.lineItemId)
       },
-      onSuccess: (cart, variables) => {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
             cartId: cart.id,
@@ -758,10 +819,14 @@ export function createCartHooks<
           }),
           cart
         )
-        options?.onSuccess?.(cart, variables)
+        invalidateCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
@@ -781,7 +846,8 @@ export function createCartHooks<
         }
         return service.transferCart(cartId)
       },
-      onSuccess: (cart, variables) => {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
             cartId: cart.id,
@@ -789,10 +855,14 @@ export function createCartHooks<
           }),
           cart
         )
-        options?.onSuccess?.(cart, variables)
+        invalidateCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
@@ -813,14 +883,18 @@ export function createCartHooks<
         }
         return service.completeCart(cartId)
       },
-      onSuccess: (data, variables) => {
+      onMutate: (variables) => options?.onMutate?.(variables),
+      onSuccess: (data, variables, context) => {
         if (options?.clearCartOnSuccess === true) {
           clearCartId()
         }
-        options?.onSuccess?.(data, variables)
+        options?.onSuccess?.(data, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }

@@ -3,6 +3,8 @@ import {
   useQueries,
   useQuery,
   useQueryClient,
+  useSuspenseQueries,
+  useSuspenseQuery,
 } from "@tanstack/react-query"
 import type { CartQueryKeys } from "../cart/types"
 import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
@@ -37,6 +39,18 @@ export type CheckoutPaymentHookInput<TCart extends CheckoutCartLike> =
   CheckoutPaymentInputBase & {
     cart?: TCart | null
   }
+
+type CheckoutShippingSuspenseHookInput<
+  TCart extends CheckoutCartLike,
+  TShippingOption extends ShippingOptionLike,
+> = Omit<CheckoutShippingHookInput<TCart, TShippingOption>, "enabled" | "cartId"> & {
+  cartId: string
+}
+
+type CheckoutPaymentSuspenseHookInput<TCart extends CheckoutCartLike> = Omit<
+  CheckoutPaymentHookInput<TCart>,
+  "enabled"
+>
 
 export type CreateCheckoutHooksConfig<
   TCart extends CheckoutCartLike,
@@ -225,6 +239,133 @@ export function createCheckoutHooks<
     }
   }
 
+  function useSuspenseCheckoutShipping(
+    input: CheckoutShippingSuspenseHookInput<TCart, TShippingOption>,
+    options?: CheckoutMutationOptions<
+      TCart,
+      { optionId: string; data?: Record<string, unknown> }
+    >
+  ): UseCheckoutShippingResult<TShippingOption> {
+    const queryClient = useQueryClient()
+    const cartId = input.cartId
+    if (!cartId) {
+      throw new Error("Cart id is required for checkout shipping")
+    }
+    const calculatePrices = input.calculatePrices ?? true
+
+    const { data: shippingOptions, isFetching } = useSuspenseQuery({
+      queryKey: resolvedQueryKeys.shippingOptions(cartId),
+      queryFn: ({ signal }) => service.listShippingOptions(cartId, signal),
+      ...resolvedCacheConfig.realtime,
+    })
+
+    const calculatedOptions = shippingOptions.filter(
+      (option) => option.price_type === "calculated"
+    )
+
+    const shouldCalculate =
+      calculatePrices && typeof service.calculateShippingOption === "function"
+
+    const calculatedQueries = useSuspenseQueries({
+      queries: shouldCalculate
+        ? calculatedOptions.map((option) => {
+            const data = input.buildShippingData?.(option)
+            return {
+              queryKey: resolvedQueryKeys.shippingOptionPrice({
+                cartId,
+                optionId: option.id,
+                data,
+              }),
+              queryFn: ({ signal }: { signal?: AbortSignal }) =>
+                service.calculateShippingOption?.(
+                  option.id,
+                  {
+                    cart_id: cartId,
+                    data,
+                  },
+                  signal
+                ) as Promise<TShippingOption>,
+              ...resolvedCacheConfig.realtime,
+            }
+          })
+        : [],
+    })
+
+    const calculatedById = new Map<string, TShippingOption>()
+    for (const [index, query] of calculatedQueries.entries()) {
+      const option = calculatedOptions[index]
+      if (!(option && query.data)) {
+        continue
+      }
+      calculatedById.set(option.id, query.data)
+    }
+
+    const shippingPrices: Record<string, number> = {}
+    for (const option of shippingOptions) {
+      if (option.price_type === "calculated") {
+        const calculated = calculatedById.get(option.id)
+        if (calculated && typeof calculated.amount === "number") {
+          shippingPrices[option.id] = calculated.amount
+        }
+        continue
+      }
+      if (typeof option.amount === "number") {
+        shippingPrices[option.id] = option.amount
+      }
+    }
+
+    const { mutate: mutateShippingMethod, isPending: isSettingShipping } =
+      useMutation({
+        mutationFn: ({
+          optionId,
+          data,
+        }: {
+          optionId: string
+          data?: Record<string, unknown>
+        }) => service.addShippingMethod(cartId, optionId, data),
+        onSuccess: (cart, variables) => {
+          if (cartQueryKeys) {
+            queryClient.setQueryData(
+              cartQueryKeys.active({
+                cartId: cart.id,
+                regionId: cart.region_id ?? null,
+              }),
+              cart
+            )
+          }
+          options?.onSuccess?.(cart, variables)
+        },
+        onError: (error) => {
+          options?.onError?.(error)
+        },
+      })
+
+    const setShippingMethod = (
+      optionId: string,
+      data?: Record<string, unknown>
+    ) => {
+      mutateShippingMethod({ optionId, data })
+    }
+
+    const selectedShippingMethodId =
+      input.cart?.shipping_methods?.[0]?.shipping_option_id
+    const selectedOption = shippingOptions.find(
+      (option) => option.id === selectedShippingMethodId
+    )
+
+    return {
+      shippingOptions,
+      shippingPrices,
+      isLoading: false,
+      isFetching,
+      isCalculating: calculatedQueries.some((query) => query.isFetching),
+      setShippingMethod,
+      isSettingShipping,
+      selectedShippingMethodId,
+      selectedOption,
+    }
+  }
+
   function useCheckoutPayment(
     input: CheckoutPaymentHookInput<TCart>,
     options?: CheckoutMutationOptions<TPaymentCollection, string>
@@ -289,8 +430,66 @@ export function createCheckoutHooks<
     }
   }
 
+  function useSuspenseCheckoutPayment(
+    input: CheckoutPaymentSuspenseHookInput<TCart>,
+    options?: CheckoutMutationOptions<TPaymentCollection, string>
+  ): UseCheckoutPaymentResult<TPaymentProvider> {
+    const queryClient = useQueryClient()
+    const cartId = input.cartId
+    const regionId = input.regionId ?? input.cart?.region_id ?? undefined
+    if (!regionId) {
+      throw new Error("Region id is required for checkout payment")
+    }
+
+    const { data: paymentProviders, isFetching } = useSuspenseQuery({
+      queryKey: resolvedQueryKeys.paymentProviders(regionId),
+      queryFn: ({ signal }) => service.listPaymentProviders(regionId, signal),
+      ...resolvedCacheConfig.semiStatic,
+    })
+
+    const { mutate: initiatePayment, isPending: isInitiatingPayment } =
+      useMutation({
+        mutationFn: (providerId: string) => {
+          if (!cartId) {
+            throw new Error("Cart id is required")
+          }
+          return service.initiatePaymentSession(cartId, providerId)
+        },
+        onSuccess: (data, variables) => {
+          if (cartQueryKeys) {
+            queryClient.invalidateQueries({
+              queryKey: cartQueryKeys.all(),
+            })
+          }
+          options?.onSuccess?.(data, variables)
+        },
+        onError: (error) => {
+          options?.onError?.(error)
+        },
+      })
+
+    const hasShippingMethod = (input.cart?.shipping_methods?.length ?? 0) > 0
+    const canInitiatePayment = Boolean(cartId && hasShippingMethod)
+    const hasPaymentCollection = Boolean(input.cart?.payment_collection)
+    const hasPaymentSessions =
+      (input.cart?.payment_collection?.payment_sessions?.length ?? 0) > 0
+
+    return {
+      paymentProviders,
+      initiatePayment,
+      isInitiatingPayment,
+      isLoading: false,
+      isFetching,
+      canInitiatePayment,
+      hasPaymentCollection,
+      hasPaymentSessions,
+    }
+  }
+
   return {
     useCheckoutShipping,
+    useSuspenseCheckoutShipping,
     useCheckoutPayment,
+    useSuspenseCheckoutPayment,
   }
 }
