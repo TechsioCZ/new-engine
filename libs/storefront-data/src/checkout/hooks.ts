@@ -12,6 +12,7 @@ import type { QueryNamespace } from "../shared/query-keys"
 import { createCheckoutQueryKeys } from "./query-keys"
 import type {
   CheckoutCartLike,
+  CheckoutMutationOptions,
   CheckoutPaymentInputBase,
   CheckoutQueryKeys,
   CheckoutService,
@@ -21,10 +22,7 @@ import type {
   UseCheckoutShippingResult,
 } from "./types"
 
-export type CheckoutMutationOptions<TData, TVariables> = {
-  onSuccess?: (data: TData, variables: TVariables) => void
-  onError?: (error: unknown) => void
-}
+export type { CheckoutMutationOptions }
 
 export type CheckoutShippingHookInput<
   TCart extends CheckoutCartLike,
@@ -95,11 +93,12 @@ export function createCheckoutHooks<
   const resolvedQueryKeys =
     queryKeys ?? createCheckoutQueryKeys(queryKeyNamespace)
 
-  function useCheckoutShipping(
+  function useCheckoutShipping<TContext = unknown>(
     input: CheckoutShippingHookInput<TCart, TShippingOption>,
     options?: CheckoutMutationOptions<
       TCart,
-      { optionId: string; data?: Record<string, unknown> }
+      { optionId: string; data?: Record<string, unknown> },
+      TContext
     >
   ): UseCheckoutShippingResult<TShippingOption> {
     const queryClient = useQueryClient()
@@ -196,7 +195,10 @@ export function createCheckoutHooks<
           }
           return service.addShippingMethod(cartId, optionId, data)
         },
-        onSuccess: (cart, variables) => {
+        onMutate: async (variables) => {
+          return options?.onMutate?.(variables)
+        },
+        onSuccess: (cart, variables, context) => {
           if (cartQueryKeys) {
             queryClient.setQueryData(
               cartQueryKeys.active({
@@ -206,10 +208,18 @@ export function createCheckoutHooks<
               cart
             )
           }
-          options?.onSuccess?.(cart, variables)
+          options?.onSuccess?.(cart, variables, context as TContext)
         },
-        onError: (error) => {
-          options?.onError?.(error)
+        onError: (error, variables, context) => {
+          options?.onError?.(error, variables, context as TContext | undefined)
+        },
+        onSettled: (data, error, variables, context) => {
+          options?.onSettled?.(
+            data,
+            error,
+            variables,
+            context as TContext | undefined
+          )
         },
       })
 
@@ -239,11 +249,12 @@ export function createCheckoutHooks<
     }
   }
 
-  function useSuspenseCheckoutShipping(
+  function useSuspenseCheckoutShipping<TContext = unknown>(
     input: CheckoutShippingSuspenseHookInput<TCart, TShippingOption>,
     options?: CheckoutMutationOptions<
       TCart,
-      { optionId: string; data?: Record<string, unknown> }
+      { optionId: string; data?: Record<string, unknown> },
+      TContext
     >
   ): UseCheckoutShippingResult<TShippingOption> {
     const queryClient = useQueryClient()
@@ -323,7 +334,10 @@ export function createCheckoutHooks<
           optionId: string
           data?: Record<string, unknown>
         }) => service.addShippingMethod(cartId, optionId, data),
-        onSuccess: (cart, variables) => {
+        onMutate: async (variables) => {
+          return options?.onMutate?.(variables)
+        },
+        onSuccess: (cart, variables, context) => {
           if (cartQueryKeys) {
             queryClient.setQueryData(
               cartQueryKeys.active({
@@ -333,10 +347,18 @@ export function createCheckoutHooks<
               cart
             )
           }
-          options?.onSuccess?.(cart, variables)
+          options?.onSuccess?.(cart, variables, context as TContext)
         },
-        onError: (error) => {
-          options?.onError?.(error)
+        onError: (error, variables, context) => {
+          options?.onError?.(error, variables, context as TContext | undefined)
+        },
+        onSettled: (data, error, variables, context) => {
+          options?.onSettled?.(
+            data,
+            error,
+            variables,
+            context as TContext | undefined
+          )
         },
       })
 
@@ -366,9 +388,9 @@ export function createCheckoutHooks<
     }
   }
 
-  function useCheckoutPayment(
+  function useCheckoutPayment<TPaymentContext = unknown>(
     input: CheckoutPaymentHookInput<TCart>,
-    options?: CheckoutMutationOptions<TPaymentCollection, string>
+    options?: CheckoutMutationOptions<TPaymentCollection, string, TPaymentContext>
   ): UseCheckoutPaymentResult<TPaymentProvider> {
     const queryClient = useQueryClient()
     const cartId = input.cartId
@@ -399,16 +421,31 @@ export function createCheckoutHooks<
           }
           return service.initiatePaymentSession(cartId, providerId)
         },
-        onSuccess: (data, variables) => {
+        onMutate: async (variables) => {
+          return options?.onMutate?.(variables)
+        },
+        onSuccess: (data, variables, context) => {
           if (cartQueryKeys) {
             queryClient.invalidateQueries({
               queryKey: cartQueryKeys.all(),
             })
           }
-          options?.onSuccess?.(data, variables)
+          options?.onSuccess?.(data, variables, context as TPaymentContext)
         },
-        onError: (error) => {
-          options?.onError?.(error)
+        onError: (error, variables, context) => {
+          options?.onError?.(
+            error,
+            variables,
+            context as TPaymentContext | undefined
+          )
+        },
+        onSettled: (data, error, variables, context) => {
+          options?.onSettled?.(
+            data,
+            error,
+            variables,
+            context as TPaymentContext | undefined
+          )
         },
       })
 
@@ -430,9 +467,13 @@ export function createCheckoutHooks<
     }
   }
 
-  function useSuspenseCheckoutPayment(
+  function useSuspenseCheckoutPayment<TSuspensePaymentContext = unknown>(
     input: CheckoutPaymentSuspenseHookInput<TCart>,
-    options?: CheckoutMutationOptions<TPaymentCollection, string>
+    options?: CheckoutMutationOptions<
+      TPaymentCollection,
+      string,
+      TSuspensePaymentContext
+    >
   ): UseCheckoutPaymentResult<TPaymentProvider> {
     const queryClient = useQueryClient()
     const cartId = input.cartId
@@ -455,16 +496,35 @@ export function createCheckoutHooks<
           }
           return service.initiatePaymentSession(cartId, providerId)
         },
-        onSuccess: (data, variables) => {
+        onMutate: async (variables) => {
+          return options?.onMutate?.(variables)
+        },
+        onSuccess: (data, variables, context) => {
           if (cartQueryKeys) {
             queryClient.invalidateQueries({
               queryKey: cartQueryKeys.all(),
             })
           }
-          options?.onSuccess?.(data, variables)
+          options?.onSuccess?.(
+            data,
+            variables,
+            context as TSuspensePaymentContext
+          )
         },
-        onError: (error) => {
-          options?.onError?.(error)
+        onError: (error, variables, context) => {
+          options?.onError?.(
+            error,
+            variables,
+            context as TSuspensePaymentContext | undefined
+          )
+        },
+        onSettled: (data, error, variables, context) => {
+          options?.onSettled?.(
+            data,
+            error,
+            variables,
+            context as TSuspensePaymentContext | undefined
+          )
         },
       })
 

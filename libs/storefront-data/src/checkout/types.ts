@@ -1,5 +1,33 @@
 import type { QueryKey } from "../shared/query-keys"
 
+/**
+ * Mutation options with full TanStack Query lifecycle support
+ * Enables optimistic updates via onMutate returning context
+ */
+export type CheckoutMutationOptions<
+  TData,
+  TVariables,
+  TContext = unknown,
+> = {
+  /** Called before mutation, return value becomes context */
+  onMutate?: (variables: TVariables) => Promise<TContext> | TContext
+  /** Called on success with context from onMutate */
+  onSuccess?: (data: TData, variables: TVariables, context: TContext) => void
+  /** Called on error with context from onMutate (for rollback) */
+  onError?: (
+    error: unknown,
+    variables: TVariables,
+    context: TContext | undefined
+  ) => void
+  /** Called after mutation completes (success or error) */
+  onSettled?: (
+    data: TData | undefined,
+    error: unknown | null,
+    variables: TVariables,
+    context: TContext | undefined
+  ) => void
+}
+
 export type ShippingOptionLike = {
   id: string
   price_type?: string | null

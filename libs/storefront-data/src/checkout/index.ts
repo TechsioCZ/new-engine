@@ -1,13 +1,13 @@
 export { createCheckoutHooks } from "./hooks"
 export { createCheckoutQueryKeys } from "./query-keys"
 export type {
-  CheckoutMutationOptions,
   CheckoutPaymentHookInput,
   CheckoutShippingHookInput,
   CreateCheckoutHooksConfig,
 } from "./hooks"
 export type {
   CheckoutCartLike,
+  CheckoutMutationOptions,
   CheckoutPaymentInputBase,
   CheckoutQueryKeys,
   CheckoutService,
