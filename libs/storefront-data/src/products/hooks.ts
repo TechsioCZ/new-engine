@@ -7,6 +7,7 @@ import {
 import { useEffect, useMemo, useRef } from "react"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
+import { useRegionContext } from "../shared/region-context"
 import { createProductQueryKeys } from "./query-keys"
 import { resolvePagination } from "./pagination"
 import type {
@@ -69,8 +70,6 @@ export type CreateProductHooksConfig<
   cacheConfig?: CacheConfig
   defaultPageSize?: number
   requireRegion?: boolean
-  resolveRegion?: () => RegionInfo | null
-  resolveRegionSuspense?: () => RegionInfo
 }
 
 const applyRegion = <T extends RegionInfo>(
@@ -103,8 +102,6 @@ export function createProductHooks<
   cacheConfig,
   defaultPageSize = 20,
   requireRegion = true,
-  resolveRegion,
-  resolveRegionSuspense,
 }: CreateProductHooksConfig<
   TProduct,
   TListInput,
@@ -125,11 +122,11 @@ export function createProductHooks<
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
   function useProducts(input: TListInput): UseProductsResult<TProduct> {
-    const region = resolveRegion ? resolveRegion() : null
+    const contextRegion = useRegionContext()
     const { enabled: inputEnabled, ...baseInput } = input as TListInput & {
       enabled?: boolean
     }
-    const resolvedInput = applyRegion(baseInput as TListInput, region ?? undefined)
+    const resolvedInput = applyRegion(baseInput as TListInput, contextRegion ?? undefined)
     const listParams = buildList(resolvedInput)
     const queryKey = resolvedQueryKeys.list(listParams)
     const enabled =
@@ -177,11 +174,11 @@ export function createProductHooks<
   function useInfiniteProducts(
     input: TListInput & ProductInfiniteInputBase
   ): UseInfiniteProductsResult<TProduct> {
-    const region = resolveRegion ? resolveRegion() : null
+    const contextRegion = useRegionContext()
     const { enabled: inputEnabled, ...baseInput } = input as TListInput & {
       enabled?: boolean
     }
-    const resolvedInput = applyRegion(baseInput as TListInput, region ?? undefined)
+    const resolvedInput = applyRegion(baseInput as TListInput, contextRegion ?? undefined)
     const enabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
 
@@ -264,13 +261,11 @@ export function createProductHooks<
   function useSuspenseProducts(
     input: TListInput
   ): UseSuspenseProductsResult<TProduct> {
-    const region = resolveRegionSuspense
-      ? resolveRegionSuspense()
-      : resolveRegion?.()
+    const contextRegion = useRegionContext()
     const { enabled: _inputEnabled, ...baseInput } = input as TListInput & {
       enabled?: boolean
     }
-    const resolvedInput = applyRegion(baseInput as TListInput, region ?? undefined)
+    const resolvedInput = applyRegion(baseInput as TListInput, contextRegion ?? undefined)
 
     if (requireRegion && !resolvedInput.region_id) {
       throw new Error("Region is required for product queries")
@@ -311,11 +306,11 @@ export function createProductHooks<
   }
 
   function useProduct(input: TDetailInput) {
-    const region = resolveRegion ? resolveRegion() : null
+    const contextRegion = useRegionContext()
     const { enabled: inputEnabled, ...baseInput } = input as TDetailInput & {
       enabled?: boolean
     }
-    const resolvedInput = applyRegion(baseInput as TDetailInput, region ?? undefined)
+    const resolvedInput = applyRegion(baseInput as TDetailInput, contextRegion ?? undefined)
     const detailParams = buildDetail(resolvedInput)
     const queryKey = resolvedQueryKeys.detail(detailParams)
     const enabled =
@@ -332,13 +327,11 @@ export function createProductHooks<
   }
 
   function useSuspenseProduct(input: TDetailInput) {
-    const region = resolveRegionSuspense
-      ? resolveRegionSuspense()
-      : resolveRegion?.()
+    const contextRegion = useRegionContext()
     const { enabled: _inputEnabled, ...baseInput } = input as TDetailInput & {
       enabled?: boolean
     }
-    const resolvedInput = applyRegion(baseInput as TDetailInput, region ?? undefined)
+    const resolvedInput = applyRegion(baseInput as TDetailInput, contextRegion ?? undefined)
 
     if (requireRegion && !resolvedInput.region_id) {
       throw new Error("Region is required for product queries")
@@ -363,7 +356,7 @@ export function createProductHooks<
     skipIfCached?: boolean
   }) {
     const queryClient = useQueryClient()
-    const region = resolveRegion ? resolveRegion() : null
+    const contextRegion = useRegionContext()
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
       new Map()
     )
@@ -386,7 +379,7 @@ export function createProductHooks<
       const { enabled: _inputEnabled, ...baseInput } = input as TListInput & {
         enabled?: boolean
       }
-      const resolvedInput = applyRegion(baseInput as TListInput, region ?? undefined)
+      const resolvedInput = applyRegion(baseInput as TListInput, contextRegion ?? undefined)
       if (requireRegion && !resolvedInput.region_id) {
         return
       }
@@ -424,7 +417,7 @@ export function createProductHooks<
       const { enabled: _inputEnabled, ...baseInput } = input as TListInput & {
         enabled?: boolean
       }
-      const resolvedInput = applyRegion(baseInput as TListInput, region ?? undefined)
+      const resolvedInput = applyRegion(baseInput as TListInput, contextRegion ?? undefined)
       if (requireRegion && !resolvedInput.region_id) {
         return
       }
@@ -463,7 +456,7 @@ export function createProductHooks<
       const { enabled: _inputEnabled, ...baseInput } = input as TListInput & {
         enabled?: boolean
       }
-      const resolvedInput = applyRegion(baseInput as TListInput, region ?? undefined)
+      const resolvedInput = applyRegion(baseInput as TListInput, contextRegion ?? undefined)
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
@@ -503,7 +496,7 @@ export function createProductHooks<
     skipIfCached?: boolean
   }) {
     const queryClient = useQueryClient()
-    const region = resolveRegion ? resolveRegion() : null
+    const contextRegion = useRegionContext()
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
       new Map()
     )
@@ -526,7 +519,7 @@ export function createProductHooks<
       const { enabled: _inputEnabled, ...baseInput } = input as TDetailInput & {
         enabled?: boolean
       }
-      const resolvedInput = applyRegion(baseInput as TDetailInput, region ?? undefined)
+      const resolvedInput = applyRegion(baseInput as TDetailInput, contextRegion ?? undefined)
       if (requireRegion && !resolvedInput.region_id) {
         return
       }
@@ -563,7 +556,7 @@ export function createProductHooks<
       const { enabled: _inputEnabled, ...baseInput } = input as TDetailInput & {
         enabled?: boolean
       }
-      const resolvedInput = applyRegion(baseInput as TDetailInput, region ?? undefined)
+      const resolvedInput = applyRegion(baseInput as TDetailInput, contextRegion ?? undefined)
       const detailParams = buildDetail(resolvedInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
@@ -598,15 +591,14 @@ export function createProductHooks<
 
   function usePrefetchPages(params: UsePrefetchPagesParams<TListInput>) {
     const queryClient = useQueryClient()
-    // Call resolveRegion outside useEffect to follow Rules of Hooks
-    const region = resolveRegion ? resolveRegion() : null
+    const contextRegion = useRegionContext()
     const { enabled: _inputEnabled, ...baseInput } =
       params.baseInput as TListInput & {
         enabled?: boolean
       }
     const resolvedBaseInput = useMemo(
-      () => applyRegion(baseInput as TListInput, region ?? undefined),
-      [params.baseInput, region]
+      () => applyRegion(baseInput as TListInput, contextRegion ?? undefined),
+      [params.baseInput, contextRegion]
     )
 
     useEffect(() => {

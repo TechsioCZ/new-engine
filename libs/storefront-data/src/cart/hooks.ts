@@ -8,6 +8,7 @@ import { useCallback, useEffect } from "react"
 import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
+import { useRegionContext } from "../shared/region-context"
 import { createCartQueryKeys } from "./query-keys"
 import type {
   AddLineItemInputBase,
@@ -218,8 +219,6 @@ export type CreateCartHooksConfig<
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
   requireRegion?: boolean
-  resolveRegion?: () => RegionInfo | null
-  resolveRegionSuspense?: () => RegionInfo
   cartStorage?: CartStorage
   isNotFoundError?: (error: unknown) => boolean
   normalizeShippingAddressInput?: (input: TAddressInput) => TAddressInput
@@ -280,8 +279,6 @@ export function createCartHooks<
   queryKeyNamespace = "storefront-data",
   cacheConfig,
   requireRegion = true,
-  resolveRegion,
-  resolveRegionSuspense,
   cartStorage,
   isNotFoundError,
   normalizeShippingAddressInput,
@@ -458,8 +455,8 @@ export function createCartHooks<
 
   function useCart(input: CartInputBase): UseCartResult<TCart> {
     const queryClient = useQueryClient()
-    const region = resolveRegion ? resolveRegion() : null
-    const resolvedInput = applyRegion(input, region ?? undefined)
+    const contextRegion = useRegionContext()
+    const resolvedInput = applyRegion(input, contextRegion ?? undefined)
     const cartId = resolveCartId(resolvedInput.cartId)
     const autoCreate = resolvedInput.autoCreate ?? true
     const autoUpdateRegion = resolvedInput.autoUpdateRegion ?? true
@@ -512,10 +509,8 @@ export function createCartHooks<
 
   function useSuspenseCart(input: CartInputBase): UseSuspenseCartResult<TCart> {
     const queryClient = useQueryClient()
-    const region = resolveRegionSuspense
-      ? resolveRegionSuspense()
-      : resolveRegion?.()
-    const resolvedInput = applyRegion(input, region ?? undefined)
+    const contextRegion = useRegionContext()
+    const resolvedInput = applyRegion(input, contextRegion ?? undefined)
     const cartId = resolveCartId(resolvedInput.cartId)
     const autoCreate = resolvedInput.autoCreate ?? true
     const autoUpdateRegion = resolvedInput.autoUpdateRegion ?? true
@@ -695,7 +690,7 @@ export function createCartHooks<
   }
 
   function useAddLineItem(options?: CartMutationOptions<TCart, TAddInput>) {
-    const region = resolveRegion ? resolveRegion() : null
+    const contextRegion = useRegionContext()
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: async (input: TAddInput) => {
@@ -703,7 +698,7 @@ export function createCartHooks<
           throw new Error("addLineItem service is not configured")
         }
 
-        const resolvedInput = applyRegion(input, region ?? undefined)
+        const resolvedInput = applyRegion(input, contextRegion ?? undefined)
         let cartId = resolveCartId(resolvedInput.cartId)
         const autoCreate = resolvedInput.autoCreate ?? true
         const canCreate =
@@ -904,13 +899,13 @@ export function createCartHooks<
     skipIfCached?: boolean
   }) {
     const queryClient = useQueryClient()
-    const region = resolveRegion ? resolveRegion() : null
+    const contextRegion = useRegionContext()
     const cacheStrategy = options?.cacheStrategy ?? "realtime"
     const skipIfCached = options?.skipIfCached ?? true
 
     const prefetchCart = useCallback(
       async (input: CartInputBase) => {
-        const resolvedInput = applyRegion(input, region ?? undefined)
+        const resolvedInput = applyRegion(input, contextRegion ?? undefined)
         const cartId = resolveCartId(resolvedInput.cartId)
         const autoCreate = resolvedInput.autoCreate ?? true
         const canCreate =
@@ -938,7 +933,7 @@ export function createCartHooks<
           ...resolvedCacheConfig[cacheStrategy],
         })
       },
-      [cacheStrategy, queryClient, region, skipIfCached]
+      [cacheStrategy, queryClient, contextRegion, skipIfCached]
     )
 
     return { prefetchCart }
