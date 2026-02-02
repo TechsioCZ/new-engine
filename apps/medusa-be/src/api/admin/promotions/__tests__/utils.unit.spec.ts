@@ -2,6 +2,7 @@ import { validRuleTypes } from "../const"
 import {
   escapeLikePattern,
   getExtendedRuleAttributesMap,
+  isRuleType,
   mapVariantToRuleValueOption,
   validateRuleType,
 } from "../utils"
@@ -162,6 +163,38 @@ describe("escapeLikePattern", () => {
   })
 })
 
+describe("isRuleType", () => {
+  describe("valid rule types", () => {
+    it.each(validRuleTypes)('returns true for "%s"', (ruleType) => {
+      expect(isRuleType(ruleType)).toBe(true)
+    })
+  })
+
+  describe("invalid rule types", () => {
+    it.each([
+      "invalid",
+      "RULES",
+      "target_rules",
+      "buy_rules",
+      "",
+      "rule",
+      "target",
+      "buy",
+    ])('returns false for "%s"', (invalidType) => {
+      expect(isRuleType(invalidType)).toBe(false)
+    })
+  })
+
+  it("acts as a type guard", () => {
+    const ruleType: string = "rules"
+    if (isRuleType(ruleType)) {
+      // TypeScript should narrow ruleType to RuleType here
+      const narrowed: "rules" | "target-rules" | "buy-rules" = ruleType
+      expect(narrowed).toBe("rules")
+    }
+  })
+})
+
 describe("validateRuleType", () => {
   describe("valid rule types", () => {
     it.each(validRuleTypes)('accepts "%s" as valid', (ruleType) => {
@@ -184,6 +217,14 @@ describe("validateRuleType", () => {
         `Invalid rule type: ${invalidType}. Must be one of: rules, target-rules, buy-rules`
       )
     })
+  })
+
+  it("narrows type after assertion", () => {
+    const ruleType: string = "target-rules"
+    validateRuleType(ruleType)
+    // TypeScript should narrow ruleType to RuleType after validateRuleType
+    const narrowed: "rules" | "target-rules" | "buy-rules" = ruleType
+    expect(narrowed).toBe("target-rules")
   })
 })
 
