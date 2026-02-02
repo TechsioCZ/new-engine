@@ -1,6 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { RemoteQueryFunction } from "@medusajs/types"
 import {
   ContainerRegistrationKeys,
+  MedusaError,
   remoteQueryObjectFromString,
 } from "@medusajs/framework/utils"
 import {
@@ -25,12 +27,17 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const ruleType = req.params.rule_type
 
   if (!ruleType) {
-    throw new Error("rule_type parameter is required")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "rule_type parameter is required"
+    )
   }
 
   validateRuleType(ruleType)
 
-  const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
+  const remoteQuery = req.scope.resolve<RemoteQueryFunction>(
+    ContainerRegistrationKeys.REMOTE_QUERY
+  )
 
   // Build filters
   const filters: Record<string, unknown> = {}

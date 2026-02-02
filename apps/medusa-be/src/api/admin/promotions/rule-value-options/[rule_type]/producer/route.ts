@@ -1,8 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
   ContainerRegistrationKeys,
+  MedusaError,
   remoteQueryObjectFromString,
 } from "@medusajs/framework/utils"
+import type { RuleValueOptionsQuerySchemaType } from "../../../schema"
 import { escapeLikePattern, validateRuleType } from "../../../utils"
 
 /**
@@ -16,11 +18,17 @@ import { escapeLikePattern, validateRuleType } from "../../../utils"
  * - limit: Pagination limit (default 10)
  * - offset: Pagination offset (default 0)
  */
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(
+  req: MedusaRequest<unknown, RuleValueOptionsQuerySchemaType>,
+  res: MedusaResponse
+) {
   const ruleType = req.params.rule_type
 
   if (!ruleType) {
-    throw new Error("rule_type parameter is required")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "rule_type parameter is required"
+    )
   }
 
   validateRuleType(ruleType)
@@ -31,20 +39,20 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const filters: Record<string, unknown> = {}
 
   // Handle search query
-  const searchQuery = req.query.q as string | undefined
+  const searchQuery = req.query.q
   if (searchQuery) {
     filters.title = { $ilike: `%${escapeLikePattern(searchQuery)}%` }
   }
 
   // Handle specific value filter (for hydrating existing selections)
-  const valueFilter = req.query.value as string | string[] | undefined
+  const valueFilter = req.query.value
   if (valueFilter) {
     filters.id = Array.isArray(valueFilter) ? valueFilter : [valueFilter]
   }
 
   // Pagination (clamped to valid ranges)
-  const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 100)
-  const offset = Math.max(Number(req.query.offset) || 0, 0)
+  const limit = Math.min(Math.max(req.query.limit ?? 10, 1), 100)
+  const offset = Math.max(req.query.offset ?? 0, 0)
 
   const { rows, metadata } = await remoteQuery(
     remoteQueryObjectFromString({
