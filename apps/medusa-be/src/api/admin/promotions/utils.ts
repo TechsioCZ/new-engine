@@ -66,6 +66,15 @@ const ruleAttributes = [
     field_type: "multiselect",
     operators: multiselectOperators,
   },
+  // Cart value condition for "free item on cart value" standard promotions
+  {
+    id: "cart_item_total",
+    value: "item_total",
+    label: "Cart Item Total",
+    required: false,
+    field_type: "number",
+    operators: numericOperators,
+  },
 ]
 
 /** Item attributes for target/buy rules - EXTENDED with variant */
