@@ -3,7 +3,11 @@ import {
   ContainerRegistrationKeys,
   remoteQueryObjectFromString,
 } from "@medusajs/framework/utils"
-import { escapeLikePattern, validateRuleType } from "../../../utils"
+import {
+  escapeLikePattern,
+  mapVariantToRuleValueOption,
+  validateRuleType,
+} from "../../../utils"
 
 /**
  * GET /admin/promotions/rule-value-options/:rule_type/product_variant
@@ -65,32 +69,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   )
 
   // Format as label/value pairs for the admin UI
-  const values = rows.map(
-    (variant: {
-      id: string
-      title: string
-      sku: string | null
-      product?: { title: string }
-    }) => {
-      // Build a descriptive label: "Product Title - Variant Title (SKU)"
-      const parts: string[] = []
-      if (variant.product?.title) {
-        parts.push(variant.product.title)
-      }
-      if (variant.title) {
-        parts.push(variant.title)
-      }
-      let label = parts.join(" - ") || variant.id
-      if (variant.sku) {
-        label += ` (${variant.sku})`
-      }
-
-      return {
-        label,
-        value: variant.id,
-      }
-    }
-  )
+  const values = rows.map(mapVariantToRuleValueOption)
 
   res.json({
     values,
