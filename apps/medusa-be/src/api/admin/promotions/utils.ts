@@ -93,12 +93,19 @@ export function getExtendedRuleAttributesMap({
 }
 
 /**
+ * Type guard to check if a string is a valid RuleType
+ */
+export function isRuleType(ruleType: string): ruleType is RuleType {
+  return (validRuleTypes as readonly string[]).includes(ruleType)
+}
+
+/**
  * Validate rule type parameter
  */
 export function validateRuleType(
   ruleType: string
 ): asserts ruleType is RuleType {
-  if (!validRuleTypes.includes(ruleType as RuleType)) {
+  if (!isRuleType(ruleType)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       `Invalid rule type: ${ruleType}. Must be one of: ${validRuleTypes.join(", ")}`

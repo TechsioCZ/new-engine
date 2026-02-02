@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { RemoteQueryFunction } from "@medusajs/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -33,26 +34,28 @@ export async function GET(
 
   validateRuleType(ruleType)
 
-  const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
+  const remoteQuery = req.scope.resolve<RemoteQueryFunction>(
+    ContainerRegistrationKeys.REMOTE_QUERY
+  )
 
   // Build filters
   const filters: Record<string, unknown> = {}
 
   // Handle search query
-  const searchQuery = req.query.q
+  const searchQuery = req.validatedQuery.q
   if (searchQuery) {
     filters.title = { $ilike: `%${escapeLikePattern(searchQuery)}%` }
   }
 
   // Handle specific value filter (for hydrating existing selections)
-  const valueFilter = req.query.value
+  const valueFilter = req.validatedQuery.value
   if (valueFilter) {
     filters.id = Array.isArray(valueFilter) ? valueFilter : [valueFilter]
   }
 
   // Pagination (clamped to valid ranges)
-  const limit = Math.min(Math.max(req.query.limit ?? 10, 1), 100)
-  const offset = Math.max(req.query.offset ?? 0, 0)
+  const limit = Math.min(Math.max(req.validatedQuery.limit ?? 10, 1), 100)
+  const offset = Math.max(req.validatedQuery.offset ?? 0, 0)
 
   const { rows, metadata } = await remoteQuery(
     remoteQueryObjectFromString({
