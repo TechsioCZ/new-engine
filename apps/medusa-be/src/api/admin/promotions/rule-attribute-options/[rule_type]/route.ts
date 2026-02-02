@@ -1,9 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import {
-  getExtendedRuleAttributesMap,
-  type RuleType,
-  validateRuleType,
-} from "../../utils"
+import type { RuleType } from "../../types"
+import { getExtendedRuleAttributesMap, validateRuleType } from "../../utils"
 
 /**
  * GET /admin/promotions/rule-attribute-options/:rule_type
