@@ -6,114 +6,124 @@ import {
   validateRuleType,
 } from "../utils"
 
+type VariantFixture = {
+  id: string
+  title: string
+  sku: string | null
+  product?: { title: string }
+}
+
+const createVariant = (
+  overrides: Partial<VariantFixture> = {}
+): VariantFixture => ({
+  id: "variant_test",
+  title: "Test Variant",
+  sku: "TEST-SKU",
+  product: { title: "Test Product" },
+  ...overrides,
+})
+
 describe("mapVariantToRuleValueOption", () => {
-  it("returns full label with product title, variant title, and SKU", () => {
-    const result = mapVariantToRuleValueOption({
-      id: "variant_123",
-      title: "Large",
-      sku: "SHIRT-L-BLU",
-      product: { title: "Blue T-Shirt" },
-    })
-
-    expect(result).toEqual({
-      label: "Blue T-Shirt - Large (SHIRT-L-BLU)",
-      value: "variant_123",
-    })
-  })
-
-  it("omits SKU when null", () => {
-    const result = mapVariantToRuleValueOption({
-      id: "variant_123",
-      title: "Medium",
-      sku: null,
-      product: { title: "Red Pants" },
-    })
-
-    expect(result).toEqual({
-      label: "Red Pants - Medium",
-      value: "variant_123",
-    })
-  })
-
-  it("omits product title when product is undefined", () => {
-    const result = mapVariantToRuleValueOption({
-      id: "variant_456",
-      title: "Small",
-      sku: "SM-001",
-    })
-
-    expect(result).toEqual({
-      label: "Small (SM-001)",
-      value: "variant_456",
-    })
-  })
-
-  it("shows only product title with SKU when variant title is empty", () => {
-    const result = mapVariantToRuleValueOption({
-      id: "variant_789",
-      title: "",
-      sku: "PROD-001",
-      product: { title: "Single Variant Product" },
-    })
-
-    expect(result).toEqual({
-      label: "Single Variant Product (PROD-001)",
-      value: "variant_789",
-    })
-  })
-
-  it("falls back to variant ID when no title or product available", () => {
-    const result = mapVariantToRuleValueOption({
-      id: "variant_fallback",
-      title: "",
-      sku: null,
-    })
-
-    expect(result).toEqual({
-      label: "variant_fallback",
-      value: "variant_fallback",
-    })
-  })
-
-  it("falls back to variant ID with SKU when no titles available", () => {
-    const result = mapVariantToRuleValueOption({
-      id: "variant_only_sku",
-      title: "",
-      sku: "SKU-ONLY",
-    })
-
-    expect(result).toEqual({
-      label: "variant_only_sku (SKU-ONLY)",
-      value: "variant_only_sku",
-    })
-  })
-
-  it("handles product with empty title", () => {
-    const result = mapVariantToRuleValueOption({
-      id: "variant_empty_product",
-      title: "Default",
-      sku: null,
-      product: { title: "" },
-    })
-
-    expect(result).toEqual({
-      label: "Default",
-      value: "variant_empty_product",
-    })
-  })
-
-  it("handles special characters in titles and SKU", () => {
-    const result = mapVariantToRuleValueOption({
-      id: "variant_special",
-      title: 'Size: 10" x 12"',
-      sku: "ITEM-10x12/A",
-      product: { title: "Photo Frame (Black & White)" },
-    })
-
-    expect(result).toEqual({
-      label: 'Photo Frame (Black & White) - Size: 10" x 12" (ITEM-10x12/A)',
-      value: "variant_special",
-    })
+  it.each<{
+    name: string
+    variant: VariantFixture
+    expected: { label: string; value: string }
+  }>([
+    {
+      name: "returns full label with product title, variant title, and SKU",
+      variant: createVariant({
+        id: "variant_123",
+        title: "Large",
+        sku: "SHIRT-L-BLU",
+        product: { title: "Blue T-Shirt" },
+      }),
+      expected: {
+        label: "Blue T-Shirt - Large (SHIRT-L-BLU)",
+        value: "variant_123",
+      },
+    },
+    {
+      name: "omits SKU when null",
+      variant: createVariant({
+        id: "variant_123",
+        title: "Medium",
+        sku: null,
+        product: { title: "Red Pants" },
+      }),
+      expected: { label: "Red Pants - Medium", value: "variant_123" },
+    },
+    {
+      name: "omits product title when product is undefined",
+      variant: createVariant({
+        id: "variant_456",
+        title: "Small",
+        sku: "SM-001",
+        product: undefined,
+      }),
+      expected: { label: "Small (SM-001)", value: "variant_456" },
+    },
+    {
+      name: "shows only product title with SKU when variant title is empty",
+      variant: createVariant({
+        id: "variant_789",
+        title: "",
+        sku: "PROD-001",
+        product: { title: "Single Variant Product" },
+      }),
+      expected: {
+        label: "Single Variant Product (PROD-001)",
+        value: "variant_789",
+      },
+    },
+    {
+      name: "falls back to variant ID when no title or product available",
+      variant: createVariant({
+        id: "variant_fallback",
+        title: "",
+        sku: null,
+        product: undefined,
+      }),
+      expected: { label: "variant_fallback", value: "variant_fallback" },
+    },
+    {
+      name: "falls back to variant ID with SKU when no titles available",
+      variant: createVariant({
+        id: "variant_only_sku",
+        title: "",
+        sku: "SKU-ONLY",
+        product: undefined,
+      }),
+      expected: {
+        label: "variant_only_sku (SKU-ONLY)",
+        value: "variant_only_sku",
+      },
+    },
+    {
+      name: "handles product with empty title",
+      variant: createVariant({
+        id: "variant_empty_product",
+        title: "Default",
+        sku: null,
+        product: { title: "" },
+      }),
+      expected: { label: "Default", value: "variant_empty_product" },
+    },
+    {
+      name: "handles special characters in titles and SKU",
+      variant: createVariant({
+        id: "variant_special",
+        title: 'Size: 10" x 12"',
+        sku: "ITEM-10x12/A",
+        product: { title: "Photo Frame (Black & White)" },
+      }),
+      expected: {
+        label: 'Photo Frame (Black & White) - Size: 10" x 12" (ITEM-10x12/A)',
+        value: "variant_special",
+      },
+    },
+  ])("$name", ({ variant, expected }) => {
+    const result = mapVariantToRuleValueOption(variant)
+    expect(result).toEqual(expected)
   })
 })
 

@@ -17,3 +17,7 @@ export const RuleValueOptionsQuerySchema = z.object({
   application_method_target_type: z.string().optional(),
   promotion_type: z.string().optional(),
 })
+
+export type RuleValueOptionsQuerySchemaType = z.infer<
+  typeof RuleValueOptionsQuerySchema
+>

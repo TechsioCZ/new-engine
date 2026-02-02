@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import {
   buyGetBuyRules,
   buyGetTargetRules,
@@ -98,7 +99,8 @@ export function validateRuleType(
   ruleType: string
 ): asserts ruleType is RuleType {
   if (!validRuleTypes.includes(ruleType as RuleType)) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Invalid rule type: ${ruleType}. Must be one of: ${validRuleTypes.join(", ")}`
     )
   }
