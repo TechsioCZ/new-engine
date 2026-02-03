@@ -1,10 +1,17 @@
 export { createCustomerHooks } from "./hooks"
 export type {
-  CustomerAddressInputBase,
+  MedusaCustomerAddressCreateInput,
+  MedusaCustomerAddressUpdateInput,
+  MedusaCustomerListInput,
+  MedusaCustomerProfileUpdateInput,
+} from "./medusa-service"
+export { createMedusaCustomerService } from "./medusa-service"
+export type {
   CustomerAddressCreateInputBase,
-  CustomerAddressUpdateInputBase,
+  CustomerAddressInputBase,
   CustomerAddressListInputBase,
   CustomerAddressListResponse,
+  CustomerAddressUpdateInputBase,
   CustomerAddressValidationResult,
   CustomerMutationOptions,
   CustomerProfileUpdateInputBase,
