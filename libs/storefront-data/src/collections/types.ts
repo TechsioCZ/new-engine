@@ -1,3 +1,11 @@
+import type { QueryKey } from "../shared/query-keys"
+import type {
+  QueryResult,
+  ReadResultBase,
+  SuspenseQueryResult,
+  SuspenseResultBase,
+} from "../shared/hook-types"
+
 export type CollectionListInputBase = {
   page?: number
   limit?: number
@@ -33,16 +41,36 @@ export type CollectionQueryKeys<TListParams, TDetailParams> = {
   detail: (params: TDetailParams) => QueryKey
 }
 
-export type UseCollectionsResult<TCollection> = {
+export type UseCollectionsResult<TCollection> = ReadResultBase<
+  QueryResult<CollectionListResponse<TCollection>>
+> & {
   collections: TCollection[]
-  isLoading: boolean
-  isFetching: boolean
-  isSuccess: boolean
-  error: string | null
   totalCount: number
   currentPage: number
   totalPages: number
   hasNextPage: boolean
   hasPrevPage: boolean
 }
-import type { QueryKey } from "../shared/query-keys"
+
+export type UseSuspenseCollectionsResult<TCollection> = SuspenseResultBase<
+  SuspenseQueryResult<CollectionListResponse<TCollection>>
+> & {
+  collections: TCollection[]
+  totalCount: number
+  currentPage: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+export type UseCollectionResult<TCollection> = ReadResultBase<
+  QueryResult<TCollection | null>
+> & {
+  collection: TCollection | null
+}
+
+export type UseSuspenseCollectionResult<TCollection> = SuspenseResultBase<
+  SuspenseQueryResult<TCollection | null>
+> & {
+  collection: TCollection | null
+}

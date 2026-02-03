@@ -6,6 +6,12 @@ import {
 } from "@tanstack/react-query"
 import { useEffect, useMemo, useRef } from "react"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import type { DefaultError } from "@tanstack/react-query"
+import type {
+  InfiniteQueryOptions,
+  ReadQueryOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useRegionContext } from "../shared/region-context"
 import { createProductQueryKeys } from "./query-keys"
@@ -14,11 +20,15 @@ import type {
   ProductDetailInputBase,
   ProductInfiniteInputBase,
   ProductListInputBase,
+  ProductInfiniteData,
+  ProductListResponse,
   ProductQueryKeys,
   ProductService,
   RegionInfo,
   UseInfiniteProductsResult,
+  UseProductResult,
   UseProductsResult,
+  UseSuspenseProductResult,
   UseSuspenseProductsResult,
 } from "./types"
 
@@ -121,7 +131,12 @@ export function createProductHooks<
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  function useProducts(input: TListInput): UseProductsResult<TProduct> {
+  function useProducts(
+    input: TListInput,
+    options?: {
+      queryOptions?: ReadQueryOptions<ProductListResponse<TProduct>>
+    }
+  ): UseProductsResult<TProduct> {
     const contextRegion = useRegionContext()
     const { enabled: inputEnabled, ...baseInput } = input as TListInput & {
       enabled?: boolean
@@ -133,12 +148,14 @@ export function createProductHooks<
       inputEnabled ??
       (!requireRegion || Boolean(resolvedInput.region_id))
 
-    const { data, isLoading, isFetching, isSuccess, error } = useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getProducts(listParams, signal),
       enabled,
       ...resolvedCacheConfig.semiStatic,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -168,11 +185,19 @@ export function createProductHooks<
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
   function useInfiniteProducts(
-    input: TListInput & ProductInfiniteInputBase
+    input: TListInput & ProductInfiniteInputBase,
+    options?: {
+      queryOptions?: InfiniteQueryOptions<
+        ProductListResponse<TProduct>,
+        DefaultError,
+        ProductInfiniteData<TProduct>
+      >
+    }
   ): UseInfiniteProductsResult<TProduct> {
     const contextRegion = useRegionContext()
     const { enabled: inputEnabled, ...baseInput } = input as TListInput & {
@@ -204,16 +229,11 @@ export function createProductHooks<
         ? baseQueryKey
         : [...baseQueryKey, "__infinite"]
 
-    const {
-      data,
-      isLoading,
-      isFetching,
-      isFetchingNextPage,
-      hasNextPage,
-      fetchNextPage,
-      refetch,
-      error,
-    } = useInfiniteQuery({
+    const query = useInfiniteQuery<
+      ProductListResponse<TProduct>,
+      DefaultError,
+      ProductInfiniteData<TProduct>
+    >({
       queryKey,
       queryFn: ({ pageParam = baseOffset, signal }) => {
         const offset =
@@ -238,7 +258,19 @@ export function createProductHooks<
       },
       enabled,
       ...resolvedCacheConfig.semiStatic,
+      ...(options?.queryOptions ?? {}),
     })
+    const {
+      data,
+      isLoading,
+      isFetching,
+      isFetchingNextPage,
+      hasNextPage,
+      fetchNextPage,
+      refetch,
+      error,
+      isSuccess,
+    } = query
 
     return {
       products: data?.pages.flatMap((page) => page.products) ?? [],
@@ -249,17 +281,22 @@ export function createProductHooks<
       error:
         error instanceof Error ? error.message : error ? String(error) : null,
       totalCount: data?.pages[0]?.count ?? 0,
+      isSuccess,
       fetchNextPage: () => {
         void fetchNextPage()
       },
       refetch: () => {
         void refetch()
       },
+      query,
     }
   }
 
   function useSuspenseProducts(
-    input: TListInput
+    input: TListInput,
+    options?: {
+      queryOptions?: SuspenseQueryOptions<ProductListResponse<TProduct>>
+    }
   ): UseSuspenseProductsResult<TProduct> {
     const contextRegion = useRegionContext()
     const { enabled: _inputEnabled, ...baseInput } = input as TListInput & {
@@ -272,11 +309,13 @@ export function createProductHooks<
     }
 
     const listParams = buildList(resolvedInput)
-    const { data, isFetching } = useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getProducts(listParams, signal),
       ...resolvedCacheConfig.semiStatic,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -296,16 +335,23 @@ export function createProductHooks<
 
     return {
       products: data?.products ?? [],
+      isLoading: false,
       isFetching,
+      isSuccess: true,
+      error: null,
       totalCount,
       currentPage: pagination.page,
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
-  function useProduct(input: TDetailInput) {
+  function useProduct(
+    input: TDetailInput,
+    options?: { queryOptions?: ReadQueryOptions<TProduct | null> }
+  ): UseProductResult<TProduct> {
     const contextRegion = useRegionContext()
     const { enabled: inputEnabled, ...baseInput } = input as TDetailInput & {
       enabled?: boolean
@@ -318,15 +364,30 @@ export function createProductHooks<
       (Boolean(resolvedInput.handle) &&
         (!requireRegion || Boolean(resolvedInput.region_id)))
 
-    return useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getProductByHandle(detailParams, signal),
       enabled,
       ...resolvedCacheConfig.semiStatic,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
+
+    return {
+      product: data ?? null,
+      isLoading,
+      isFetching,
+      isSuccess,
+      error:
+        error instanceof Error ? error.message : error ? String(error) : null,
+      query,
+    }
   }
 
-  function useSuspenseProduct(input: TDetailInput) {
+  function useSuspenseProduct(
+    input: TDetailInput,
+    options?: { queryOptions?: SuspenseQueryOptions<TProduct | null> }
+  ): UseSuspenseProductResult<TProduct> {
     const contextRegion = useRegionContext()
     const { enabled: _inputEnabled, ...baseInput } = input as TDetailInput & {
       enabled?: boolean
@@ -343,11 +404,22 @@ export function createProductHooks<
 
     const detailParams = buildDetail(resolvedInput)
 
-    return useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
       queryFn: ({ signal }) => service.getProductByHandle(detailParams, signal),
       ...resolvedCacheConfig.semiStatic,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
+
+    return {
+      product: data ?? null,
+      isLoading: false,
+      isFetching,
+      isSuccess: true,
+      error: null,
+      query,
+    }
   }
 
   function usePrefetchProducts(options?: {

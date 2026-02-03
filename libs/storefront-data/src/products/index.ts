@@ -10,7 +10,9 @@ export type {
   ProductService,
   UseInfiniteProductsResult,
   UseProductsResult,
+  UseProductResult,
   UseSuspenseProductsResult,
+  UseSuspenseProductResult,
 } from "./types"
 export type {
   CreateProductHooksConfig,

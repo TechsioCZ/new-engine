@@ -5,15 +5,20 @@ import {
 } from "@tanstack/react-query"
 import { useRef } from "react"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { resolvePagination } from "../products/pagination"
 import { createRegionQueryKeys } from "./query-keys"
 import type {
   RegionDetailInputBase,
   RegionListInputBase,
+  RegionListResponse,
   RegionQueryKeys,
   RegionService,
+  UseRegionResult,
   UseRegionsResult,
+  UseSuspenseRegionResult,
+  UseSuspenseRegionsResult,
 } from "./types"
 
 type CacheStrategy = keyof CacheConfig
@@ -65,7 +70,10 @@ export function createRegionHooks<
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  function useRegions(input: TListInput): UseRegionsResult<TRegion> {
+  function useRegions(
+    input: TListInput,
+    options?: { queryOptions?: ReadQueryOptions<RegionListResponse<TRegion>> }
+  ): UseRegionsResult<TRegion> {
     const { enabled: inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
@@ -73,12 +81,14 @@ export function createRegionHooks<
     const queryKey = resolvedQueryKeys.list(listParams)
     const enabled = inputEnabled ?? true
 
-    const { data, isLoading, isFetching, isSuccess, error } = useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getRegions(listParams, signal),
       enabled,
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -108,19 +118,25 @@ export function createRegionHooks<
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
-  function useSuspenseRegions(input: TListInput) {
+  function useSuspenseRegions(
+    input: TListInput,
+    options?: { queryOptions?: SuspenseQueryOptions<RegionListResponse<TRegion>> }
+  ): UseSuspenseRegionsResult<TRegion> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
     const listParams = buildList(listInput as TListInput)
-    const { data, isFetching } = useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getRegions(listParams, signal),
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -140,16 +156,23 @@ export function createRegionHooks<
 
     return {
       regions: data?.regions ?? [],
+      isLoading: false,
       isFetching,
+      isSuccess: true,
+      error: null,
       totalCount,
       currentPage: pagination.page,
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
-  function useRegion(input: TDetailInput) {
+  function useRegion(
+    input: TDetailInput,
+    options?: { queryOptions?: ReadQueryOptions<TRegion | null> }
+  ): UseRegionResult<TRegion> {
     const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
@@ -157,15 +180,30 @@ export function createRegionHooks<
     const queryKey = resolvedQueryKeys.detail(detailParams)
     const enabled = inputEnabled ?? Boolean(input.id)
 
-    return useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getRegion(detailParams, signal),
       enabled,
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
+
+    return {
+      region: data ?? null,
+      isLoading,
+      isFetching,
+      isSuccess,
+      error:
+        error instanceof Error ? error.message : error ? String(error) : null,
+      query,
+    }
   }
 
-  function useSuspenseRegion(input: TDetailInput) {
+  function useSuspenseRegion(
+    input: TDetailInput,
+    options?: { queryOptions?: SuspenseQueryOptions<TRegion | null> }
+  ): UseSuspenseRegionResult<TRegion> {
     const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
@@ -173,11 +211,22 @@ export function createRegionHooks<
       throw new Error("Region id is required for region queries")
     }
     const detailParams = buildDetail(detailInput as TDetailInput)
-    return useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
       queryFn: ({ signal }) => service.getRegion(detailParams, signal),
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
+
+    return {
+      region: data ?? null,
+      isLoading: false,
+      isFetching,
+      isSuccess: true,
+      error: null,
+      query,
+    }
   }
 
   function usePrefetchRegions(options?: {

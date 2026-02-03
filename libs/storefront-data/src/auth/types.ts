@@ -1,4 +1,11 @@
 import type { QueryKey } from "../shared/query-keys"
+import type {
+  QueryResult,
+  ReadQueryOptions,
+  ReadResultBase,
+  SuspenseQueryResult,
+  SuspenseResultBase,
+} from "../shared/hook-types"
 
 export type AuthQueryKeys = {
   all: () => QueryKey
@@ -24,21 +31,21 @@ export type AuthService<
   refresh?: () => Promise<unknown>
 }
 
-export type AuthQueryInput = {
+export type AuthQueryInput<TCustomer = unknown> = {
   enabled?: boolean
+  queryOptions?: ReadQueryOptions<TCustomer | null>
 }
 
-export type UseAuthResult<TCustomer> = {
+export type UseAuthResult<TCustomer> = ReadResultBase<
+  QueryResult<TCustomer | null>
+> & {
   customer: TCustomer | null
   isAuthenticated: boolean
-  isLoading: boolean
-  isFetching: boolean
-  isSuccess: boolean
-  error: string | null
 }
 
-export type UseSuspenseAuthResult<TCustomer> = {
+export type UseSuspenseAuthResult<TCustomer> = SuspenseResultBase<
+  SuspenseQueryResult<TCustomer | null>
+> & {
   customer: TCustomer | null
   isAuthenticated: boolean
-  isFetching: boolean
 }

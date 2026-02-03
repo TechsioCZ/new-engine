@@ -1,5 +1,12 @@
 import type { QueryKey } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
+import type {
+  InfiniteQueryResult,
+  QueryResult,
+  ReadResultBase,
+  SuspenseQueryResult,
+  SuspenseResultBase,
+} from "../shared/hook-types"
 export type { RegionInfo } from "../shared/region"
 
 export type ProductListInputBase = RegionInfo & {
@@ -25,6 +32,11 @@ export type ProductListResponse<TProduct> = {
   offset: number
 }
 
+export type ProductInfiniteData<TProduct> = {
+  pages: ProductListResponse<TProduct>[]
+  pageParams: unknown[]
+}
+
 export type ProductService<TProduct, TListParams, TDetailParams> = {
   getProducts: (
     params: TListParams,
@@ -46,12 +58,10 @@ export type ProductQueryKeys<TListParams, TDetailParams> = {
   detail: (params: TDetailParams) => QueryKey
 }
 
-export type UseProductsResult<TProduct> = {
+export type UseProductsResult<TProduct> = ReadResultBase<
+  QueryResult<ProductListResponse<TProduct>>
+> & {
   products: TProduct[]
-  isLoading: boolean
-  isFetching: boolean
-  isSuccess: boolean
-  error: string | null
   totalCount: number
   currentPage: number
   totalPages: number
@@ -59,9 +69,10 @@ export type UseProductsResult<TProduct> = {
   hasPrevPage: boolean
 }
 
-export type UseSuspenseProductsResult<TProduct> = {
+export type UseSuspenseProductsResult<TProduct> = SuspenseResultBase<
+  SuspenseQueryResult<ProductListResponse<TProduct>>
+> & {
   products: TProduct[]
-  isFetching: boolean
   totalCount: number
   currentPage: number
   totalPages: number
@@ -69,14 +80,25 @@ export type UseSuspenseProductsResult<TProduct> = {
   hasPrevPage: boolean
 }
 
-export type UseInfiniteProductsResult<TProduct> = {
+export type UseInfiniteProductsResult<TProduct> = ReadResultBase<
+  InfiniteQueryResult<ProductInfiniteData<TProduct>>
+> & {
   products: TProduct[]
-  isLoading: boolean
-  isFetching: boolean
   isFetchingNextPage: boolean
   hasNextPage: boolean
-  error: string | null
   totalCount: number
   fetchNextPage: () => void
   refetch: () => void
+}
+
+export type UseProductResult<TProduct> = ReadResultBase<
+  QueryResult<TProduct | null>
+> & {
+  product: TProduct | null
+}
+
+export type UseSuspenseProductResult<TProduct> = SuspenseResultBase<
+  SuspenseQueryResult<TProduct | null>
+> & {
+  product: TProduct | null
 }

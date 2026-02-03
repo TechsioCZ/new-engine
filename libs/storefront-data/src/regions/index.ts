@@ -8,6 +8,9 @@ export type {
   RegionQueryKeys,
   RegionService,
   UseRegionsResult,
+  UseRegionResult,
+  UseSuspenseRegionsResult,
+  UseSuspenseRegionResult,
 } from "./types"
 export type { CreateRegionHooksConfig } from "./hooks"
 export type {

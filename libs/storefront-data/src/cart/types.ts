@@ -1,5 +1,11 @@
 import type { QueryKey } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
+import type {
+  QueryResult,
+  ReadResultBase,
+  SuspenseQueryResult,
+  SuspenseResultBase,
+} from "../shared/hook-types"
 
 export type CartLineItemLike = {
   quantity?: number
@@ -104,20 +110,17 @@ export type CartQueryKeys = {
   detail: (cartId: string) => QueryKey
 }
 
-export type UseCartResult<TCart> = {
+export type UseCartResult<TCart> = ReadResultBase<QueryResult<TCart | null>> & {
   cart: TCart | null
-  isLoading: boolean
-  isFetching: boolean
-  isSuccess: boolean
-  error: string | null
   itemCount: number
   isEmpty: boolean
   hasItems: boolean
 }
 
-export type UseSuspenseCartResult<TCart> = {
+export type UseSuspenseCartResult<TCart> = SuspenseResultBase<
+  SuspenseQueryResult<TCart | null>
+> & {
   cart: TCart | null
-  isFetching: boolean
   itemCount: number
   isEmpty: boolean
   hasItems: boolean

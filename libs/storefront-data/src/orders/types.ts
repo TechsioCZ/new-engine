@@ -1,3 +1,10 @@
+import type {
+  QueryResult,
+  ReadResultBase,
+  SuspenseQueryResult,
+  SuspenseResultBase,
+} from "../shared/hook-types"
+
 export type OrderListInputBase = {
   page?: number
   limit?: number
@@ -32,15 +39,36 @@ export type OrderQueryKeys<TListParams, TDetailParams> = {
   detail: (params: TDetailParams) => readonly unknown[]
 }
 
-export type UseOrdersResult<TOrder> = {
+export type UseOrdersResult<TOrder> = ReadResultBase<
+  QueryResult<OrderListResponse<TOrder>>
+> & {
   orders: TOrder[]
-  isLoading: boolean
-  isFetching: boolean
-  isSuccess: boolean
-  error: string | null
   totalCount: number
   currentPage: number
   totalPages: number
   hasNextPage: boolean
   hasPrevPage: boolean
+}
+
+export type UseSuspenseOrdersResult<TOrder> = SuspenseResultBase<
+  SuspenseQueryResult<OrderListResponse<TOrder>>
+> & {
+  orders: TOrder[]
+  totalCount: number
+  currentPage: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+export type UseOrderResult<TOrder> = ReadResultBase<
+  QueryResult<TOrder | null>
+> & {
+  order: TOrder | null
+}
+
+export type UseSuspenseOrderResult<TOrder> = SuspenseResultBase<
+  SuspenseQueryResult<TOrder | null>
+> & {
+  order: TOrder | null
 }

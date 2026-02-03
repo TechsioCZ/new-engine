@@ -5,15 +5,20 @@ import {
 } from "@tanstack/react-query"
 import { useEffect, useRef } from "react"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { resolvePagination } from "../products/pagination"
 import { createCategoryQueryKeys } from "./query-keys"
 import type {
   CategoryDetailInputBase,
   CategoryListInputBase,
+  CategoryListResponse,
   CategoryQueryKeys,
   CategoryService,
+  UseCategoryResult,
   UseCategoriesResult,
+  UseSuspenseCategoriesResult,
+  UseSuspenseCategoryResult,
 } from "./types"
 
 type CacheStrategy = keyof CacheConfig
@@ -65,7 +70,12 @@ export function createCategoryHooks<
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  function useCategories(input: TListInput): UseCategoriesResult<TCategory> {
+  function useCategories(
+    input: TListInput,
+    options?: {
+      queryOptions?: ReadQueryOptions<CategoryListResponse<TCategory>>
+    }
+  ): UseCategoriesResult<TCategory> {
     const { enabled: inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
@@ -73,12 +83,14 @@ export function createCategoryHooks<
     const queryKey = resolvedQueryKeys.list(listParams)
     const enabled = inputEnabled ?? true
 
-    const { data, isLoading, isFetching, isSuccess, error } = useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getCategories(listParams, signal),
       enabled,
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -108,19 +120,27 @@ export function createCategoryHooks<
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
-  function useSuspenseCategories(input: TListInput) {
+  function useSuspenseCategories(
+    input: TListInput,
+    options?: {
+      queryOptions?: SuspenseQueryOptions<CategoryListResponse<TCategory>>
+    }
+  ): UseSuspenseCategoriesResult<TCategory> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
     const listParams = buildList(listInput as TListInput)
-    const { data, isFetching } = useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getCategories(listParams, signal),
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -140,16 +160,23 @@ export function createCategoryHooks<
 
     return {
       categories: data?.categories ?? [],
+      isLoading: false,
       isFetching,
+      isSuccess: true,
+      error: null,
       totalCount,
       currentPage: pagination.page,
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
-  function useCategory(input: TDetailInput) {
+  function useCategory(
+    input: TDetailInput,
+    options?: { queryOptions?: ReadQueryOptions<TCategory | null> }
+  ): UseCategoryResult<TCategory> {
     const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
@@ -157,15 +184,30 @@ export function createCategoryHooks<
     const queryKey = resolvedQueryKeys.detail(detailParams)
     const enabled = inputEnabled ?? Boolean(input.id)
 
-    return useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: () => service.getCategory(detailParams),
       enabled,
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
+
+    return {
+      category: data ?? null,
+      isLoading,
+      isFetching,
+      isSuccess,
+      error:
+        error instanceof Error ? error.message : error ? String(error) : null,
+      query,
+    }
   }
 
-  function useSuspenseCategory(input: TDetailInput) {
+  function useSuspenseCategory(
+    input: TDetailInput,
+    options?: { queryOptions?: SuspenseQueryOptions<TCategory | null> }
+  ): UseSuspenseCategoryResult<TCategory> {
     const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
@@ -173,11 +215,22 @@ export function createCategoryHooks<
       throw new Error("Category id is required for category queries")
     }
     const detailParams = buildDetail(detailInput as TDetailInput)
-    return useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
       queryFn: () => service.getCategory(detailParams),
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
+
+    return {
+      category: data ?? null,
+      isLoading: false,
+      isFetching,
+      isSuccess: true,
+      error: null,
+      query,
+    }
   }
 
   function usePrefetchCategories(options?: {

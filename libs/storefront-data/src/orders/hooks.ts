@@ -1,14 +1,19 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { resolvePagination } from "../products/pagination"
 import { createOrderQueryKeys } from "./query-keys"
 import type {
   OrderDetailInputBase,
   OrderListInputBase,
+  OrderListResponse,
   OrderQueryKeys,
   OrderService,
+  UseOrderResult,
   UseOrdersResult,
+  UseSuspenseOrdersResult,
+  UseSuspenseOrderResult,
 } from "./types"
 
 type SuspenseListInput<TInput extends OrderListInputBase> = Omit<
@@ -67,7 +72,12 @@ export function createOrderHooks<
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  function useOrders(input: TListInput): UseOrdersResult<TOrder> {
+  function useOrders(
+    input: TListInput,
+    options?: {
+      queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
+    }
+  ): UseOrdersResult<TOrder> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
@@ -75,12 +85,14 @@ export function createOrderHooks<
     const queryKey = resolvedQueryKeys.list(listParams)
     const enabled = input.enabled ?? true
 
-    const { data, isLoading, isFetching, isSuccess, error } = useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getOrders(listParams, signal),
       enabled,
       ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -110,16 +122,24 @@ export function createOrderHooks<
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
-  function useSuspenseOrders(input: SuspenseListInput<TListInput>) {
+  function useSuspenseOrders(
+    input: SuspenseListInput<TListInput>,
+    options?: {
+      queryOptions?: SuspenseQueryOptions<OrderListResponse<TOrder>>
+    }
+  ): UseSuspenseOrdersResult<TOrder> {
     const listParams = buildList(input as TListInput)
-    const { data, isFetching } = useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getOrders(listParams, signal),
       ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -139,16 +159,23 @@ export function createOrderHooks<
 
     return {
       orders: data?.orders ?? [],
+      isLoading: false,
       isFetching,
+      isSuccess: true,
+      error: null,
       totalCount,
       currentPage: pagination.page,
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
-  function useOrder(input: TDetailInput) {
+  function useOrder(
+    input: TDetailInput,
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
+  ): UseOrderResult<TOrder> {
     const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
@@ -156,25 +183,51 @@ export function createOrderHooks<
     const queryKey = resolvedQueryKeys.detail(detailParams)
     const enabled = input.enabled ?? Boolean(input.id)
 
-    return useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getOrder(detailParams, signal),
       enabled,
       ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
+
+    return {
+      order: data ?? null,
+      isLoading,
+      isFetching,
+      isSuccess,
+      error:
+        error instanceof Error ? error.message : error ? String(error) : null,
+      query,
+    }
   }
 
-  function useSuspenseOrder(input: SuspenseDetailInput<TDetailInput>) {
+  function useSuspenseOrder(
+    input: SuspenseDetailInput<TDetailInput>,
+    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
+  ): UseSuspenseOrderResult<TOrder> {
     if (!input.id) {
       throw new Error("Order id is required for order queries")
     }
     const detailParams = buildDetail(input as TDetailInput)
 
-    return useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
       queryFn: ({ signal }) => service.getOrder(detailParams, signal),
       ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
+
+    return {
+      order: data ?? null,
+      isLoading: false,
+      isFetching,
+      isSuccess: true,
+      error: null,
+      query,
+    }
   }
 
   return {

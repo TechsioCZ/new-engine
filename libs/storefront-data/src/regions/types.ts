@@ -1,3 +1,10 @@
+import type {
+  QueryResult,
+  ReadResultBase,
+  SuspenseQueryResult,
+  SuspenseResultBase,
+} from "../shared/hook-types"
+
 export type RegionListInputBase = {
   page?: number
   limit?: number
@@ -33,15 +40,36 @@ export type RegionQueryKeys<TListParams, TDetailParams> = {
   detail: (params: TDetailParams) => readonly unknown[]
 }
 
-export type UseRegionsResult<TRegion> = {
+export type UseRegionsResult<TRegion> = ReadResultBase<
+  QueryResult<RegionListResponse<TRegion>>
+> & {
   regions: TRegion[]
-  isLoading: boolean
-  isFetching: boolean
-  isSuccess: boolean
-  error: string | null
   totalCount: number
   currentPage: number
   totalPages: number
   hasNextPage: boolean
   hasPrevPage: boolean
+}
+
+export type UseSuspenseRegionsResult<TRegion> = SuspenseResultBase<
+  SuspenseQueryResult<RegionListResponse<TRegion>>
+> & {
+  regions: TRegion[]
+  totalCount: number
+  currentPage: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+export type UseRegionResult<TRegion> = ReadResultBase<
+  QueryResult<TRegion | null>
+> & {
+  region: TRegion | null
+}
+
+export type UseSuspenseRegionResult<TRegion> = SuspenseResultBase<
+  SuspenseQueryResult<TRegion | null>
+> & {
+  region: TRegion | null
 }

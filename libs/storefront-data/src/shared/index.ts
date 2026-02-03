@@ -14,5 +14,16 @@ export { createQueryClientConfig, getQueryClient, makeQueryClient } from "./quer
 export type { QueryClientConfig } from "./query-client"
 export { createQueryKey, createQueryKeyFactory } from "./query-keys"
 export type { QueryKey, QueryNamespace } from "./query-keys"
+export type {
+  InfiniteQueryOptions,
+  InfiniteQueryResult,
+  MutationOptions,
+  QueryResult,
+  ReadQueryOptions,
+  ReadResultBase,
+  SuspenseQueryOptions,
+  SuspenseQueryResult,
+  SuspenseResultBase,
+} from "./hook-types"
 export type { RegionInfo } from "./region"
 export { RegionProvider, useRegionContext } from "./region-context"

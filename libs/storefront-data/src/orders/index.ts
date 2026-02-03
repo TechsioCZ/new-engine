@@ -13,4 +13,7 @@ export type {
   OrderQueryKeys,
   OrderService,
   UseOrdersResult,
+  UseOrderResult,
+  UseSuspenseOrdersResult,
+  UseSuspenseOrderResult,
 } from "./types"

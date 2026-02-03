@@ -5,15 +5,20 @@ import {
 } from "@tanstack/react-query"
 import { useEffect, useRef } from "react"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { resolvePagination } from "../products/pagination"
 import { createCollectionQueryKeys } from "./query-keys"
 import type {
   CollectionDetailInputBase,
   CollectionListInputBase,
+  CollectionListResponse,
   CollectionQueryKeys,
   CollectionService,
+  UseCollectionResult,
   UseCollectionsResult,
+  UseSuspenseCollectionResult,
+  UseSuspenseCollectionsResult,
 } from "./types"
 
 type CacheStrategy = keyof CacheConfig
@@ -65,7 +70,12 @@ export function createCollectionHooks<
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  function useCollections(input: TListInput): UseCollectionsResult<TCollection> {
+  function useCollections(
+    input: TListInput,
+    options?: {
+      queryOptions?: ReadQueryOptions<CollectionListResponse<TCollection>>
+    }
+  ): UseCollectionsResult<TCollection> {
     const { enabled: inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
@@ -73,12 +83,14 @@ export function createCollectionHooks<
     const queryKey = resolvedQueryKeys.list(listParams)
     const enabled = inputEnabled ?? true
 
-    const { data, isLoading, isFetching, isSuccess, error } = useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getCollections(listParams, signal),
       enabled,
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -108,19 +120,27 @@ export function createCollectionHooks<
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
-  function useSuspenseCollections(input: TListInput) {
+  function useSuspenseCollections(
+    input: TListInput,
+    options?: {
+      queryOptions?: SuspenseQueryOptions<CollectionListResponse<TCollection>>
+    }
+  ): UseSuspenseCollectionsResult<TCollection> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
     const listParams = buildList(listInput as TListInput)
-    const { data, isFetching } = useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getCollections(listParams, signal),
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
     const offsetFromParams = (listParams as { offset?: number }).offset
@@ -140,16 +160,23 @@ export function createCollectionHooks<
 
     return {
       collections: data?.collections ?? [],
+      isLoading: false,
       isFetching,
+      isSuccess: true,
+      error: null,
       totalCount,
       currentPage: pagination.page,
       totalPages,
       hasNextPage: pagination.page < totalPages,
       hasPrevPage: pagination.page > 1,
+      query,
     }
   }
 
-  function useCollection(input: TDetailInput) {
+  function useCollection(
+    input: TDetailInput,
+    options?: { queryOptions?: ReadQueryOptions<TCollection | null> }
+  ): UseCollectionResult<TCollection> {
     const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
@@ -157,15 +184,30 @@ export function createCollectionHooks<
     const queryKey = resolvedQueryKeys.detail(detailParams)
     const enabled = inputEnabled ?? Boolean(input.id)
 
-    return useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: () => service.getCollection(detailParams),
       enabled,
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
+
+    return {
+      collection: data ?? null,
+      isLoading,
+      isFetching,
+      isSuccess,
+      error:
+        error instanceof Error ? error.message : error ? String(error) : null,
+      query,
+    }
   }
 
-  function useSuspenseCollection(input: TDetailInput) {
+  function useSuspenseCollection(
+    input: TDetailInput,
+    options?: { queryOptions?: SuspenseQueryOptions<TCollection | null> }
+  ): UseSuspenseCollectionResult<TCollection> {
     const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
@@ -173,11 +215,22 @@ export function createCollectionHooks<
       throw new Error("Collection id is required for collection queries")
     }
     const detailParams = buildDetail(detailInput as TDetailInput)
-    return useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
       queryFn: () => service.getCollection(detailParams),
       ...resolvedCacheConfig.static,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
+
+    return {
+      collection: data ?? null,
+      isLoading: false,
+      isFetching,
+      isSuccess: true,
+      error: null,
+      query,
+    }
   }
 
   function usePrefetchCollections(options?: {

@@ -1,4 +1,4 @@
-import {
+﻿import {
   useMutation,
   useQuery,
   useQueryClient,
@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query"
 import { useCallback, useEffect } from "react"
 import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
@@ -453,7 +454,10 @@ export function createCartHooks<
     }
   }
 
-  function useCart(input: CartInputBase): UseCartResult<TCart> {
+  function useCart(
+    input: CartInputBase,
+    options?: { queryOptions?: ReadQueryOptions<TCart | null> }
+  ): UseCartResult<TCart> {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const resolvedInput = applyRegion(input, contextRegion ?? undefined)
@@ -464,7 +468,7 @@ export function createCartHooks<
       autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
     const enabled = resolvedInput.enabled ?? (Boolean(cartId) || canCreate)
 
-    const { data, isLoading, isFetching, isSuccess, error } = useQuery({
+    const query = useQuery({
       queryKey: resolvedQueryKeys.active({
         cartId,
         regionId: resolvedInput.region_id ?? null,
@@ -479,7 +483,9 @@ export function createCartHooks<
         }),
       enabled,
       ...resolvedCacheConfig.realtime,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
 
     const cart = data ?? null
     const itemCount = getItemCount(cart)
@@ -504,10 +510,14 @@ export function createCartHooks<
       itemCount,
       isEmpty: itemCount === 0,
       hasItems: itemCount > 0,
+      query,
     }
   }
 
-  function useSuspenseCart(input: CartInputBase): UseSuspenseCartResult<TCart> {
+  function useSuspenseCart(
+    input: CartInputBase,
+    options?: { queryOptions?: SuspenseQueryOptions<TCart | null> }
+  ): UseSuspenseCartResult<TCart> {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const resolvedInput = applyRegion(input, contextRegion ?? undefined)
@@ -517,7 +527,7 @@ export function createCartHooks<
     const canCreate =
       autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
 
-    const { data, isFetching } = useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.active({
         cartId,
         regionId: resolvedInput.region_id ?? null,
@@ -531,7 +541,9 @@ export function createCartHooks<
           signal,
         }),
       ...resolvedCacheConfig.realtime,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
 
     const cart = data ?? null
     const itemCount = getItemCount(cart)
@@ -548,10 +560,14 @@ export function createCartHooks<
 
     return {
       cart,
+      isLoading: false,
       isFetching,
+      isSuccess: true,
+      error: null,
       itemCount,
       isEmpty: itemCount === 0,
       hasItems: itemCount > 0,
+      query,
     }
   }
 
@@ -560,7 +576,7 @@ export function createCartHooks<
     return useMutation({
       mutationFn: (input: TCreateInput) =>
         service.createCart(buildCreate(input)),
-      onMutate: (variables) => options?.onMutate?.(variables),
+      onMutate: options?.onMutate,
       onSuccess: (cart, variables, context) => {
         persistCartId(cart.id)
         queryClient.setQueryData(
@@ -595,7 +611,7 @@ export function createCartHooks<
         }
         return service.updateCart(cartId, buildUpdate(input))
       },
-      onMutate: (variables) => options?.onMutate?.(variables),
+      onMutate: options?.onMutate,
       onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
@@ -668,7 +684,7 @@ export function createCartHooks<
         }
         return service.updateCart(cartId, buildUpdate(updateInput))
       },
-      onMutate: (variables) => options?.onMutate?.(variables),
+      onMutate: options?.onMutate,
       onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
@@ -729,7 +745,7 @@ export function createCartHooks<
         persistCartId(updated.id)
         return updated
       },
-      onMutate: (variables) => options?.onMutate?.(variables),
+      onMutate: options?.onMutate,
       onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
@@ -769,7 +785,7 @@ export function createCartHooks<
           buildUpdateItem(input)
         )
       },
-      onMutate: (variables) => options?.onMutate?.(variables),
+      onMutate: options?.onMutate,
       onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
@@ -805,7 +821,7 @@ export function createCartHooks<
         }
         return service.removeLineItem(cartId, input.lineItemId)
       },
-      onMutate: (variables) => options?.onMutate?.(variables),
+      onMutate: options?.onMutate,
       onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
@@ -841,7 +857,7 @@ export function createCartHooks<
         }
         return service.transferCart(cartId)
       },
-      onMutate: (variables) => options?.onMutate?.(variables),
+      onMutate: options?.onMutate,
       onSuccess: (cart, variables, context) => {
         queryClient.setQueryData(
           resolvedQueryKeys.active({
@@ -878,7 +894,7 @@ export function createCartHooks<
         }
         return service.completeCart(cartId)
       },
-      onMutate: (variables) => options?.onMutate?.(variables),
+      onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         if (options?.clearCartOnSuccess === true) {
           clearCartId()
@@ -953,3 +969,4 @@ export function createCartHooks<
     usePrefetchCart,
   }
 }
+

@@ -18,4 +18,5 @@ export type {
   CustomerQueryKeys,
   CustomerService,
   UseCustomerAddressesResult,
+  UseSuspenseCustomerAddressesResult,
 } from "./types"

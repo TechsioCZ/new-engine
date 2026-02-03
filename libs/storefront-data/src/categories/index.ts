@@ -7,5 +7,8 @@ export type {
   CategoryQueryKeys,
   CategoryService,
   UseCategoriesResult,
+  UseCategoryResult,
+  UseSuspenseCategoriesResult,
+  UseSuspenseCategoryResult,
 } from "./types"
 export type { CreateCategoryHooksConfig } from "./hooks"

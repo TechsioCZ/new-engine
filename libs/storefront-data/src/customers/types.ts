@@ -1,4 +1,11 @@
 import type { QueryKey } from "../shared/query-keys"
+import type {
+  MutationOptions,
+  QueryResult,
+  ReadResultBase,
+  SuspenseQueryResult,
+  SuspenseResultBase,
+} from "../shared/hook-types"
 
 export type CustomerAddressListInputBase = {
   enabled?: boolean
@@ -58,18 +65,19 @@ export type CustomerQueryKeys<TListParams> = {
   addresses: (params: TListParams) => QueryKey
 }
 
-export type UseCustomerAddressesResult<TAddress> = {
+export type UseCustomerAddressesResult<TAddress> = ReadResultBase<
+  QueryResult<CustomerAddressListResponse<TAddress>>
+> & {
   addresses: TAddress[]
-  isLoading: boolean
-  isFetching: boolean
-  isSuccess: boolean
-  error: string | null
 }
 
-export type CustomerMutationOptions<TData, TVariables> = {
-  onSuccess?: (data: TData, variables: TVariables) => void
-  onError?: (error: unknown) => void
-}
+export type UseSuspenseCustomerAddressesResult<TAddress> =
+  SuspenseResultBase<SuspenseQueryResult<CustomerAddressListResponse<TAddress>>> & {
+    addresses: TAddress[]
+  }
+
+export type CustomerMutationOptions<TData, TVariables, TContext = unknown> =
+  MutationOptions<TData, TVariables, TContext>
 
 export type CustomerAddressValidationResult =
   | string

@@ -1,10 +1,11 @@
-import {
+﻿import {
   useMutation,
   useQuery,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import type { MutationOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createAuthQueryKeys } from "./query-keys"
 import type {
@@ -38,10 +39,8 @@ export type CreateAuthHooksConfig<
   cacheConfig?: CacheConfig
 }
 
-export type AuthMutationOptions<TData, TVariables> = {
-  onSuccess?: (data: TData, variables: TVariables) => void
-  onError?: (error: unknown) => void
-}
+export type AuthMutationOptions<TData, TVariables, TContext = unknown> =
+  MutationOptions<TData, TVariables, TContext>
 
 export function createAuthHooks<
   TCustomer,
@@ -69,14 +68,18 @@ export function createAuthHooks<
   const resolvedQueryKeys =
     queryKeys ?? createAuthQueryKeys(queryKeyNamespace)
 
-  function useAuth(options?: AuthQueryInput): UseAuthResult<TCustomer> {
-    const { data, isLoading, isFetching, isSuccess, error } = useQuery({
+  function useAuth(
+    options?: AuthQueryInput<TCustomer>
+  ): UseAuthResult<TCustomer> {
+    const query = useQuery({
       queryKey: resolvedQueryKeys.customer(),
       queryFn: ({ signal }) => service.getCustomer(signal),
       enabled: options?.enabled ?? true,
       retry: false,
       ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
 
     const customer = data ?? null
 
@@ -88,136 +91,175 @@ export function createAuthHooks<
       isSuccess,
       error:
         error instanceof Error ? error.message : error ? String(error) : null,
+      query,
     }
   }
 
-  function useSuspenseAuth(): UseSuspenseAuthResult<TCustomer> {
-    const { data, isFetching } = useSuspenseQuery<TCustomer | null, Error>({
+  function useSuspenseAuth(options?: {
+    queryOptions?: SuspenseQueryOptions<TCustomer | null>
+  }): UseSuspenseAuthResult<TCustomer> {
+    const query = useSuspenseQuery<TCustomer | null>({
       queryKey: resolvedQueryKeys.customer(),
       queryFn: ({ signal }) => service.getCustomer(signal),
       ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
     const customer = data ?? null
 
     return {
       customer,
       isAuthenticated: customer !== null,
+      isLoading: false,
       isFetching,
+      isSuccess: true,
+      error: null,
+      query,
     }
   }
 
-  function useLogin(options?: AuthMutationOptions<TLoginResult, TLoginInput>) {
+  function useLogin<TContext = unknown>(
+    options?: AuthMutationOptions<TLoginResult, TLoginInput, TContext>
+  ) {
     const queryClient = useQueryClient()
-    return useMutation({
+    return useMutation<TLoginResult, unknown, TLoginInput, TContext>({
       mutationFn: (input: TLoginInput) => service.login(input),
-      onSuccess: (data, variables) => {
+      onMutate: options?.onMutate,
+      onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
-        options?.onSuccess?.(data, variables)
+        options?.onSuccess?.(data, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
 
-  function useRegister(
-    options?: AuthMutationOptions<TRegisterResult, TRegisterInput>
+  function useRegister<TContext = unknown>(
+    options?: AuthMutationOptions<TRegisterResult, TRegisterInput, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation({
+    return useMutation<TRegisterResult, unknown, TRegisterInput, TContext>({
       mutationFn: (input: TRegisterInput) => service.register(input),
-      onSuccess: (data, variables) => {
+      onMutate: options?.onMutate,
+      onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
-        options?.onSuccess?.(data, variables)
+        options?.onSuccess?.(data, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
 
-  function useCreateCustomer(
-    options?: AuthMutationOptions<TCustomer, TCreateCustomerInput>
+  function useCreateCustomer<TContext = unknown>(
+    options?: AuthMutationOptions<TCustomer, TCreateCustomerInput, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation({
+    return useMutation<TCustomer, unknown, TCreateCustomerInput, TContext>({
       mutationFn: (input: TCreateCustomerInput) => {
         if (!service.createCustomer) {
           throw new Error("createCustomer service is not configured")
         }
         return service.createCustomer(input)
       },
-      onSuccess: (data, variables) => {
+      onMutate: options?.onMutate,
+      onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
-        options?.onSuccess?.(data, variables)
+        options?.onSuccess?.(data, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
 
-  function useLogout(options?: AuthMutationOptions<void, void>) {
+  function useLogout<TContext = unknown>(
+    options?: AuthMutationOptions<void, void, TContext>
+  ) {
     const queryClient = useQueryClient()
-    return useMutation({
+    return useMutation<void, unknown, void, TContext>({
       mutationFn: () => service.logout(),
-      onSuccess: () => {
+      onMutate: options?.onMutate,
+      onSuccess: (_data, _variables, context) => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), null)
         queryClient.removeQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        options?.onSuccess?.(undefined, undefined)
+        options?.onSuccess?.(undefined, undefined, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
 
-  function useUpdateCustomer(
-    options?: AuthMutationOptions<TCustomer, TUpdateInput>
+  function useUpdateCustomer<TContext = unknown>(
+    options?: AuthMutationOptions<TCustomer, TUpdateInput, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation({
+    return useMutation<TCustomer, unknown, TUpdateInput, TContext>({
       mutationFn: (input: TUpdateInput) => {
         if (!service.updateCustomer) {
           throw new Error("updateCustomer service is not configured")
         }
         return service.updateCustomer(input)
       },
-      onSuccess: (data, variables) => {
+      onMutate: options?.onMutate,
+      onSuccess: (data, variables, context) => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), data)
-        options?.onSuccess?.(data, variables)
+        options?.onSuccess?.(data, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
 
-  function useRefreshAuth(options?: AuthMutationOptions<unknown, void>) {
+  function useRefreshAuth<TContext = unknown>(
+    options?: AuthMutationOptions<unknown, void, TContext>
+  ) {
     const queryClient = useQueryClient()
-    return useMutation({
+    return useMutation<unknown, unknown, void, TContext>({
       mutationFn: () => {
         if (!service.refresh) {
           throw new Error("refresh service is not configured")
         }
         return service.refresh()
       },
-      onSuccess: (data) => {
+      onMutate: options?.onMutate,
+      onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
-        options?.onSuccess?.(data, undefined)
+        options?.onSuccess?.(data, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
@@ -233,3 +275,4 @@ export function createAuthHooks<
     useRefreshAuth,
   }
 }
+

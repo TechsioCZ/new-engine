@@ -7,5 +7,8 @@ export type {
   CollectionQueryKeys,
   CollectionService,
   UseCollectionsResult,
+  UseCollectionResult,
+  UseSuspenseCollectionsResult,
+  UseSuspenseCollectionResult,
 } from "./types"
 export type { CreateCollectionHooksConfig } from "./hooks"

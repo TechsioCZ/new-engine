@@ -1,15 +1,20 @@
-import {
+﻿import {
   useMutation,
   useQuery,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import type {
+  ReadQueryOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createCustomerQueryKeys } from "./query-keys"
 import type {
   CustomerAddressCreateInputBase,
   CustomerAddressListInputBase,
+  CustomerAddressListResponse,
   CustomerAddressUpdateInputBase,
   CustomerAddressValidationResult,
   CustomerMutationOptions,
@@ -17,6 +22,7 @@ import type {
   CustomerQueryKeys,
   CustomerService,
   UseCustomerAddressesResult,
+  UseSuspenseCustomerAddressesResult,
 } from "./types"
 
 const handleAddressValidation = (result: CustomerAddressValidationResult) => {
@@ -134,7 +140,12 @@ export function createCustomerHooks<
     ((input: TUpdateCustomerInput) => input as unknown as TUpdateCustomerParams)
 
   function useCustomerAddresses(
-    input: TListInput
+    input: TListInput,
+    options?: {
+      queryOptions?: ReadQueryOptions<
+        CustomerAddressListResponse<TAddress>
+      >
+    }
   ): UseCustomerAddressesResult<TAddress> {
     const { enabled: inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
@@ -143,12 +154,14 @@ export function createCustomerHooks<
     const queryKey = resolvedQueryKeys.addresses(listParams)
     const enabled = inputEnabled ?? true
 
-    const { data, isLoading, isFetching, isSuccess, error } = useQuery({
+    const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getAddresses(listParams, signal),
       enabled,
       ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isLoading, isFetching, isSuccess, error } = query
 
     return {
       addresses: data?.addresses ?? [],
@@ -157,31 +170,45 @@ export function createCustomerHooks<
       isSuccess,
       error:
         error instanceof Error ? error.message : error ? String(error) : null,
+      query,
     }
   }
 
-  function useSuspenseCustomerAddresses(input: TListInput) {
+  function useSuspenseCustomerAddresses(
+    input: TListInput,
+    options?: {
+      queryOptions?: SuspenseQueryOptions<
+        CustomerAddressListResponse<TAddress>
+      >
+    }
+  ): UseSuspenseCustomerAddressesResult<TAddress> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
     const listParams = buildList(listInput as TListInput)
-    const { data, isFetching } = useSuspenseQuery({
+    const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.addresses(listParams),
       queryFn: ({ signal }) => service.getAddresses(listParams, signal),
       ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
     })
+    const { data, isFetching } = query
 
     return {
       addresses: data?.addresses ?? [],
+      isLoading: false,
       isFetching,
+      isSuccess: true,
+      error: null,
+      query,
     }
   }
 
-  function useCreateCustomerAddress(
-    options?: CustomerMutationOptions<TAddress, TCreateInput>
+  function useCreateCustomerAddress<TContext = unknown>(
+    options?: CustomerMutationOptions<TAddress, TCreateInput, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation({
+    return useMutation<TAddress, unknown, TCreateInput, TContext>({
       mutationFn: (input: TCreateInput) => {
         const normalized = normalizeCreateAddressInput
           ? normalizeCreateAddressInput(input)
@@ -189,23 +216,27 @@ export function createCustomerHooks<
         handleAddressValidation(validateCreateAddressInput?.(normalized))
         return service.createAddress(buildCreate(normalized))
       },
-      onSuccess: (address, variables) => {
+      onMutate: options?.onMutate,
+      onSuccess: (address, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        options?.onSuccess?.(address, variables)
+        options?.onSuccess?.(address, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
 
-  function useUpdateCustomerAddress(
-    options?: CustomerMutationOptions<TAddress, TUpdateInput>
+  function useUpdateCustomerAddress<TContext = unknown>(
+    options?: CustomerMutationOptions<TAddress, TUpdateInput, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation({
+    return useMutation<TAddress, unknown, TUpdateInput, TContext>({
       mutationFn: (input: TUpdateInput) => {
         const addressId = input.addressId
         if (!addressId) {
@@ -221,60 +252,72 @@ export function createCustomerHooks<
         handleAddressValidation(validateUpdateAddressInput?.(normalized))
         return service.updateAddress(addressId, buildUpdate(updateInput))
       },
-      onSuccess: (address, variables) => {
+      onMutate: options?.onMutate,
+      onSuccess: (address, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        options?.onSuccess?.(address, variables)
+        options?.onSuccess?.(address, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
 
-  function useDeleteCustomerAddress(
-    options?: CustomerMutationOptions<void, { addressId?: string }>
+  function useDeleteCustomerAddress<TContext = unknown>(
+    options?: CustomerMutationOptions<void, { addressId?: string }, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation<void, unknown, { addressId?: string }>({
+    return useMutation<void, unknown, { addressId?: string }, TContext>({
       mutationFn: ({ addressId }) => {
         if (!addressId) {
           throw new Error("Address id is required")
         }
         return service.deleteAddress(addressId)
       },
-      onSuccess: (data, variables) => {
+      onMutate: options?.onMutate,
+      onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        options?.onSuccess?.(data, variables)
+        options?.onSuccess?.(data, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
 
-  function useUpdateCustomer(
-    options?: CustomerMutationOptions<TCustomer, TUpdateCustomerInput>
+  function useUpdateCustomer<TContext = unknown>(
+    options?: CustomerMutationOptions<TCustomer, TUpdateCustomerInput, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation({
+    return useMutation<TCustomer, unknown, TUpdateCustomerInput, TContext>({
       mutationFn: (input: TUpdateCustomerInput) => {
         if (!service.updateCustomer) {
           throw new Error("updateCustomer service is not configured")
         }
         return service.updateCustomer(buildUpdateCustomer(input))
       },
-      onSuccess: (customer, variables) => {
+      onMutate: options?.onMutate,
+      onSuccess: (customer, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.profile(),
         })
-        options?.onSuccess?.(customer, variables)
+        options?.onSuccess?.(customer, variables, context)
       },
-      onError: (error) => {
-        options?.onError?.(error)
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
       },
     })
   }
@@ -288,3 +331,4 @@ export function createCustomerHooks<
     useUpdateCustomer,
   }
 }
+
