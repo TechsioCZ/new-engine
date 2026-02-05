@@ -1,4 +1,4 @@
-import {
+﻿import {
   useInfiniteQuery,
   useQuery,
   useQueryClient,
@@ -200,9 +200,11 @@ export function createProductHooks<
     }
   ): UseInfiniteProductsResult<TProduct> {
     const contextRegion = useRegionContext()
-    const { enabled: inputEnabled, ...baseInput } = input as TListInput & {
-      enabled?: boolean
-    }
+    const { enabled: inputEnabled, initialLimit, ...baseInput } =
+      input as TListInput & {
+        enabled?: boolean
+        initialLimit?: number
+      }
     const resolvedInput = applyRegion(baseInput as TListInput, contextRegion ?? undefined)
     const enabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
@@ -212,6 +214,11 @@ export function createProductHooks<
       typeof limitFromInput === "number" && limitFromInput > 0
         ? limitFromInput
         : defaultPageSize
+    const resolvedInitialLimit =
+      typeof initialLimit === "number" && initialLimit > 0
+        ? initialLimit
+        : undefined
+    const initialPageLimit = resolvedInitialLimit ?? resolvedLimit
     const offsetFromInput = (resolvedInput as { offset?: number }).offset
     const pageFromInput = resolvedInput.page ?? 1
     const baseOffset =
@@ -228,22 +235,30 @@ export function createProductHooks<
       baseQueryKey[baseQueryKey.length - 1] === "__infinite"
         ? baseQueryKey
         : [...baseQueryKey, "__infinite"]
+    const initialLimitKey =
+      typeof resolvedInitialLimit === "number"
+        ? ["__initialLimit", resolvedInitialLimit]
+        : []
+    const resolvedQueryKey =
+      initialLimitKey.length > 0 ? [...queryKey, ...initialLimitKey] : queryKey
 
     const query = useInfiniteQuery<
       ProductListResponse<TProduct>,
       DefaultError,
       ProductInfiniteData<TProduct>
     >({
-      queryKey,
+      queryKey: resolvedQueryKey,
       queryFn: ({ pageParam = baseOffset, signal }) => {
         const offset =
           typeof pageParam === "number" ? pageParam : baseOffset
+        const limitForPage =
+          offset === baseOffset ? initialPageLimit : resolvedLimit
         const page =
-          resolvedLimit > 0 ? Math.floor(offset / resolvedLimit) + 1 : 1
+          limitForPage > 0 ? Math.floor(offset / limitForPage) + 1 : 1
         const pageInput = {
           ...resolvedInput,
           page,
-          limit: resolvedLimit,
+          limit: limitForPage,
           offset,
         } as TListInput & { offset?: number }
         const listParams = buildList(pageInput)
@@ -282,12 +297,8 @@ export function createProductHooks<
         error instanceof Error ? error.message : error ? String(error) : null,
       totalCount: data?.pages[0]?.count ?? 0,
       isSuccess,
-      fetchNextPage: () => {
-        void fetchNextPage()
-      },
-      refetch: () => {
-        void refetch()
-      },
+      fetchNextPage: () => fetchNextPage(),
+      refetch: () => refetch(),
       query,
     }
   }

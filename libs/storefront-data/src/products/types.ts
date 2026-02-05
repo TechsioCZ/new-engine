@@ -17,6 +17,7 @@ export type ProductListInputBase = RegionInfo & {
 
 export type ProductInfiniteInputBase = ProductListInputBase & {
   offset?: number
+  initialLimit?: number
 }
 
 export type ProductDetailInputBase = RegionInfo & {
@@ -87,8 +88,8 @@ export type UseInfiniteProductsResult<TProduct> = ReadResultBase<
   isFetchingNextPage: boolean
   hasNextPage: boolean
   totalCount: number
-  fetchNextPage: () => void
-  refetch: () => void
+  fetchNextPage: () => Promise<unknown>
+  refetch: () => Promise<unknown>
 }
 
 export type UseProductResult<TProduct> = ReadResultBase<
