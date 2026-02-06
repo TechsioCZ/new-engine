@@ -3,6 +3,7 @@ import {
   useQueries,
   useQuery,
   useQueryClient,
+  type QueryClient,
   useSuspenseQueries,
   useSuspenseQuery,
 } from "@tanstack/react-query"
@@ -93,6 +94,20 @@ export function createCheckoutHooks<
   const resolvedQueryKeys =
     queryKeys ?? createCheckoutQueryKeys(queryKeyNamespace)
 
+  const getPaymentProvidersQueryOptions = (regionId: string) => ({
+    queryKey: resolvedQueryKeys.paymentProviders(regionId),
+    queryFn: ({ signal }: { signal?: AbortSignal }) =>
+      service.listPaymentProviders(regionId, signal),
+    ...resolvedCacheConfig.semiStatic,
+  })
+
+  async function fetchPaymentProviders(
+    queryClient: QueryClient,
+    regionId: string
+  ) {
+    return queryClient.fetchQuery(getPaymentProvidersQueryOptions(regionId))
+  }
+
   function useCheckoutShipping<TContext = unknown>(
     input: CheckoutShippingHookInput<TCart, TShippingOption>,
     options?: CheckoutMutationOptions<
@@ -100,18 +115,22 @@ export function createCheckoutHooks<
       { optionId: string; data?: Record<string, unknown> },
       TContext
     >
-  ): UseCheckoutShippingResult<TShippingOption> {
+  ): UseCheckoutShippingResult<TShippingOption, TCart> {
     const queryClient = useQueryClient()
     const cartId = input.cartId
     const enabled = input.enabled ?? Boolean(cartId)
     const calculatePrices = input.calculatePrices ?? true
+    const cacheKey = input.cacheKey
 
     const {
       data: shippingOptions = [],
       isLoading,
       isFetching,
     } = useQuery({
-      queryKey: resolvedQueryKeys.shippingOptions(cartId ?? "unknown"),
+      queryKey: resolvedQueryKeys.shippingOptions(
+        cartId ?? "unknown",
+        cacheKey
+      ),
       queryFn: ({ signal }) => {
         if (!cartId) {
           return []
@@ -181,8 +200,11 @@ export function createCheckoutHooks<
       }
     }
 
-    const { mutate: mutateShippingMethod, isPending: isSettingShipping } =
-      useMutation({
+    const {
+      mutate: mutateShippingMethod,
+      mutateAsync: mutateShippingMethodAsync,
+      isPending: isSettingShipping,
+    } = useMutation({
         mutationFn: ({
           optionId,
           data,
@@ -230,6 +252,13 @@ export function createCheckoutHooks<
       mutateShippingMethod({ optionId, data })
     }
 
+    const setShippingMethodAsync = async (
+      optionId: string,
+      data?: Record<string, unknown>
+    ) => {
+      return mutateShippingMethodAsync({ optionId, data })
+    }
+
     const selectedShippingMethodId =
       input.cart?.shipping_methods?.[0]?.shipping_option_id
     const selectedOption = shippingOptions.find(
@@ -243,6 +272,7 @@ export function createCheckoutHooks<
       isFetching,
       isCalculating: calculatedQueries.some((query) => query.isFetching),
       setShippingMethod,
+      setShippingMethodAsync,
       isSettingShipping,
       selectedShippingMethodId,
       selectedOption,
@@ -256,16 +286,17 @@ export function createCheckoutHooks<
       { optionId: string; data?: Record<string, unknown> },
       TContext
     >
-  ): UseCheckoutShippingResult<TShippingOption> {
+  ): UseCheckoutShippingResult<TShippingOption, TCart> {
     const queryClient = useQueryClient()
     const cartId = input.cartId
     if (!cartId) {
       throw new Error("Cart id is required for checkout shipping")
     }
     const calculatePrices = input.calculatePrices ?? true
+    const cacheKey = input.cacheKey
 
     const { data: shippingOptions, isFetching } = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.shippingOptions(cartId),
+      queryKey: resolvedQueryKeys.shippingOptions(cartId, cacheKey),
       queryFn: ({ signal }) => service.listShippingOptions(cartId, signal),
       ...resolvedCacheConfig.realtime,
     })
@@ -325,8 +356,11 @@ export function createCheckoutHooks<
       }
     }
 
-    const { mutate: mutateShippingMethod, isPending: isSettingShipping } =
-      useMutation({
+    const {
+      mutate: mutateShippingMethod,
+      mutateAsync: mutateShippingMethodAsync,
+      isPending: isSettingShipping,
+    } = useMutation({
         mutationFn: ({
           optionId,
           data,
@@ -369,6 +403,13 @@ export function createCheckoutHooks<
       mutateShippingMethod({ optionId, data })
     }
 
+    const setShippingMethodAsync = async (
+      optionId: string,
+      data?: Record<string, unknown>
+    ) => {
+      return mutateShippingMethodAsync({ optionId, data })
+    }
+
     const selectedShippingMethodId =
       input.cart?.shipping_methods?.[0]?.shipping_option_id
     const selectedOption = shippingOptions.find(
@@ -382,6 +423,7 @@ export function createCheckoutHooks<
       isFetching,
       isCalculating: calculatedQueries.some((query) => query.isFetching),
       setShippingMethod,
+      setShippingMethodAsync,
       isSettingShipping,
       selectedShippingMethodId,
       selectedOption,
@@ -391,30 +433,34 @@ export function createCheckoutHooks<
   function useCheckoutPayment<TPaymentContext = unknown>(
     input: CheckoutPaymentHookInput<TCart>,
     options?: CheckoutMutationOptions<TPaymentCollection, string, TPaymentContext>
-  ): UseCheckoutPaymentResult<TPaymentProvider> {
+  ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
     const queryClient = useQueryClient()
     const cartId = input.cartId
     const regionId = input.regionId ?? input.cart?.region_id ?? undefined
     const enabled = input.enabled ?? Boolean(regionId)
+
+    const paymentProvidersQueryOptions = regionId
+      ? getPaymentProvidersQueryOptions(regionId)
+      : {
+          queryKey: resolvedQueryKeys.paymentProviders("unknown"),
+          queryFn: async () => [] as TPaymentProvider[],
+          ...resolvedCacheConfig.semiStatic,
+        }
 
     const {
       data: paymentProviders = [],
       isLoading,
       isFetching,
     } = useQuery({
-      queryKey: resolvedQueryKeys.paymentProviders(regionId ?? "unknown"),
-      queryFn: ({ signal }) => {
-        if (!regionId) {
-          return []
-        }
-        return service.listPaymentProviders(regionId, signal)
-      },
+      ...paymentProvidersQueryOptions,
       enabled,
-      ...resolvedCacheConfig.semiStatic,
     })
 
-    const { mutate: initiatePayment, isPending: isInitiatingPayment } =
-      useMutation({
+    const {
+      mutate: initiatePayment,
+      mutateAsync: initiatePaymentAsync,
+      isPending: isInitiatingPayment,
+    } = useMutation({
         mutationFn: (providerId: string) => {
           if (!cartId) {
             throw new Error("Cart id is required")
@@ -458,6 +504,9 @@ export function createCheckoutHooks<
     return {
       paymentProviders,
       initiatePayment,
+      initiatePaymentAsync: async (providerId: string) => {
+        return initiatePaymentAsync(providerId)
+      },
       isInitiatingPayment,
       isLoading,
       isFetching,
@@ -474,7 +523,7 @@ export function createCheckoutHooks<
       string,
       TSuspensePaymentContext
     >
-  ): UseCheckoutPaymentResult<TPaymentProvider> {
+  ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
     const queryClient = useQueryClient()
     const cartId = input.cartId
     const regionId = input.regionId ?? input.cart?.region_id ?? undefined
@@ -482,14 +531,15 @@ export function createCheckoutHooks<
       throw new Error("Region id is required for checkout payment")
     }
 
-    const { data: paymentProviders, isFetching } = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.paymentProviders(regionId),
-      queryFn: ({ signal }) => service.listPaymentProviders(regionId, signal),
-      ...resolvedCacheConfig.semiStatic,
-    })
+    const { data: paymentProviders, isFetching } = useSuspenseQuery(
+      getPaymentProvidersQueryOptions(regionId)
+    )
 
-    const { mutate: initiatePayment, isPending: isInitiatingPayment } =
-      useMutation({
+    const {
+      mutate: initiatePayment,
+      mutateAsync: initiatePaymentAsync,
+      isPending: isInitiatingPayment,
+    } = useMutation({
         mutationFn: (providerId: string) => {
           if (!cartId) {
             throw new Error("Cart id is required")
@@ -537,6 +587,9 @@ export function createCheckoutHooks<
     return {
       paymentProviders,
       initiatePayment,
+      initiatePaymentAsync: async (providerId: string) => {
+        return initiatePaymentAsync(providerId)
+      },
       isInitiatingPayment,
       isLoading: false,
       isFetching,
@@ -551,5 +604,7 @@ export function createCheckoutHooks<
     useSuspenseCheckoutShipping,
     useCheckoutPayment,
     useSuspenseCheckoutPayment,
+    getPaymentProvidersQueryOptions,
+    fetchPaymentProviders,
   }
 }

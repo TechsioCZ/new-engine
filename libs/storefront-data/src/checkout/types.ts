@@ -44,6 +44,7 @@ export type CheckoutCartLike = {
 export type CheckoutShippingInputBase = {
   cartId?: string
   enabled?: boolean
+  cacheKey?: string
 }
 
 export type CheckoutPaymentInputBase = {
@@ -86,7 +87,7 @@ export type CheckoutService<
 
 export type CheckoutQueryKeys = {
   all: () => QueryKey
-  shippingOptions: (cartId: string) => QueryKey
+  shippingOptions: (cartId: string, cacheKey?: string) => QueryKey
   shippingOptionPrice: (params: {
     cartId: string
     optionId: string
@@ -95,21 +96,29 @@ export type CheckoutQueryKeys = {
   paymentProviders: (regionId: string) => QueryKey
 }
 
-export type UseCheckoutShippingResult<TShippingOption> = {
+export type UseCheckoutShippingResult<TShippingOption, TCart = unknown> = {
   shippingOptions: TShippingOption[]
   shippingPrices: Record<string, number>
   isLoading: boolean
   isFetching: boolean
   isCalculating: boolean
   setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
+  setShippingMethodAsync: (
+    optionId: string,
+    data?: Record<string, unknown>
+  ) => Promise<TCart>
   isSettingShipping: boolean
   selectedShippingMethodId?: string
   selectedOption?: TShippingOption
 }
 
-export type UseCheckoutPaymentResult<TPaymentProvider> = {
+export type UseCheckoutPaymentResult<
+  TPaymentProvider,
+  TPaymentCollection = unknown,
+> = {
   paymentProviders: TPaymentProvider[]
   initiatePayment: (providerId: string) => void
+  initiatePaymentAsync: (providerId: string) => Promise<TPaymentCollection>
   isInitiatingPayment: boolean
   isLoading: boolean
   isFetching: boolean
