@@ -2,6 +2,23 @@ import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import type { AuthService } from "./types"
 
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (!error || typeof error !== "object") {
+    return undefined
+  }
+
+  const err = error as {
+    status?: number
+    response?: { status?: number }
+  }
+  return err.status ?? err.response?.status
+}
+
+const isAuthError = (error: unknown) => {
+  const status = getErrorStatus(error)
+  return status === 401 || status === 403
+}
+
 export type MedusaAuthCredentials = {
   email: string
   password: string
@@ -65,9 +82,12 @@ export function createMedusaAuthService(
           )
         }
         return customer
-      } catch {
-        // Not authenticated or session expired
-        return null
+      } catch (error) {
+        if (isAuthError(error)) {
+          // Not authenticated or session expired
+          return null
+        }
+        throw error
       }
     },
 

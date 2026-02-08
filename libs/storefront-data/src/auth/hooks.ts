@@ -2,11 +2,16 @@
   useMutation,
   useQuery,
   useQueryClient,
+  type QueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
 import type { MutationOptions, SuspenseQueryOptions } from "../shared/hook-types"
-import type { QueryNamespace } from "../shared/query-keys"
+import {
+  createQueryKey,
+  type QueryKey,
+  type QueryNamespace,
+} from "../shared/query-keys"
 import { createAuthQueryKeys } from "./query-keys"
 import type {
   AuthQueryInput,
@@ -37,6 +42,17 @@ export type CreateAuthHooksConfig<
   queryKeys?: AuthQueryKeys
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
+  invalidateOnAuthChange?: {
+    /**
+     * Include default cross-domain keys (`customer`, `orders`).
+     * Enabled by default.
+     */
+    includeDefaults?: boolean
+    /** Additional key prefixes to invalidate on auth changes. */
+    invalidate?: readonly QueryKey[]
+    /** Additional key prefixes to remove when logging out. */
+    removeOnLogout?: readonly QueryKey[]
+  }
 }
 
 export type AuthMutationOptions<TData, TVariables, TContext = unknown> =
@@ -50,12 +66,14 @@ export function createAuthHooks<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
->({
-  service,
-  queryKeys,
-  queryKeyNamespace = "storefront-data",
-  cacheConfig,
-}: CreateAuthHooksConfig<
+>(
+  {
+    service,
+    queryKeys,
+    queryKeyNamespace = "storefront-data",
+    cacheConfig,
+    invalidateOnAuthChange,
+  }: CreateAuthHooksConfig<
   TCustomer,
   TLoginInput,
   TRegisterInput,
@@ -63,10 +81,41 @@ export function createAuthHooks<
   TCreateCustomerInput,
   TLoginResult,
   TRegisterResult
->) {
+>
+) {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createAuthQueryKeys(queryKeyNamespace)
+  const includeDefaultInvalidation =
+    invalidateOnAuthChange?.includeDefaults ?? true
+  const defaultInvalidateKeys = includeDefaultInvalidation
+    ? [
+        createQueryKey(queryKeyNamespace, "customer"),
+        createQueryKey(queryKeyNamespace, "orders"),
+      ]
+    : []
+  const invalidateKeys = [
+    ...defaultInvalidateKeys,
+    ...(invalidateOnAuthChange?.invalidate ?? []),
+  ]
+  const removeOnLogoutKeys = [
+    ...defaultInvalidateKeys,
+    ...(invalidateOnAuthChange?.removeOnLogout ?? []),
+  ]
+
+  const invalidateCrossDomain = (queryClient: QueryClient) => {
+    for (const queryKey of invalidateKeys) {
+      queryClient.invalidateQueries({ queryKey })
+    }
+  }
+
+  const removeCrossDomainOnLogout = (
+    queryClient: QueryClient
+  ) => {
+    for (const queryKey of removeOnLogoutKeys) {
+      queryClient.removeQueries({ queryKey })
+    }
+  }
 
   function useAuth(
     options?: AuthQueryInput<TCustomer>
@@ -98,6 +147,7 @@ export function createAuthHooks<
   function useSuspenseAuth(options?: {
     queryOptions?: SuspenseQueryOptions<TCustomer | null>
   }): UseSuspenseAuthResult<TCustomer> {
+    // TanStack Query limitation: suspense hooks don't support cancellation.
     const query = useSuspenseQuery<TCustomer | null>({
       queryKey: resolvedQueryKeys.customer(),
       queryFn: ({ signal }) => service.getCustomer(signal),
@@ -129,6 +179,7 @@ export function createAuthHooks<
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
+        invalidateCrossDomain(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       onError: (error, variables, context) => {
@@ -151,6 +202,7 @@ export function createAuthHooks<
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
+        invalidateCrossDomain(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       onError: (error, variables, context) => {
@@ -178,6 +230,7 @@ export function createAuthHooks<
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
+        invalidateCrossDomain(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       onError: (error, variables, context) => {
@@ -201,6 +254,7 @@ export function createAuthHooks<
         queryClient.removeQueries({
           queryKey: resolvedQueryKeys.all(),
         })
+        removeCrossDomainOnLogout(queryClient)
         options?.onSuccess?.(undefined, undefined, context)
       },
       onError: (error, variables, context) => {
@@ -253,6 +307,7 @@ export function createAuthHooks<
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
+        invalidateCrossDomain(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       onError: (error, variables, context) => {
@@ -275,4 +330,3 @@ export function createAuthHooks<
     useRefreshAuth,
   }
 }
-
