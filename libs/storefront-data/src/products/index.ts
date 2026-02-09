@@ -1,6 +1,7 @@
 export { createProductQueryKeys } from "./query-keys"
 export { resolvePagination } from "./pagination"
 export { createProductHooks } from "./hooks"
+export { createMedusaProductService } from "./medusa-service"
 export type {
   ProductDetailInputBase,
   ProductInfiniteInputBase,
@@ -14,6 +15,13 @@ export type {
   UseSuspenseProductsResult,
   UseSuspenseProductResult,
 } from "./types"
+export type {
+  MedusaProductDetailInput,
+  MedusaProductListInput,
+  MedusaProductServiceConfig,
+  MedusaProductTransformDetailContext,
+  MedusaProductTransformListContext,
+} from "./medusa-service"
 export type {
   CreateProductHooksConfig,
   PrefetchListOptions,

@@ -5,13 +5,18 @@
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { useEffect, useMemo, useRef } from "react"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import {
+  createCacheConfig,
+  getPrefetchCacheOptions,
+  type CacheConfig,
+} from "../shared/cache-config"
 import type { DefaultError } from "@tanstack/react-query"
 import type {
   InfiniteQueryOptions,
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
+import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useRegionContext } from "../shared/region-context"
 import { createProductQueryKeys } from "./query-keys"
@@ -39,12 +44,14 @@ export type PrefetchListOptions = {
   prefetchedBy?: string
   useGlobalFetcher?: boolean
   skipIfCached?: boolean
+  skipMode?: PrefetchSkipMode
 }
 
 export type PrefetchProductOptions = {
   cacheStrategy?: CacheStrategy
   prefetchedBy?: string
   skipIfCached?: boolean
+  skipMode?: PrefetchSkipMode
 }
 
 export type UsePrefetchPagesParams<TListInput> = {
@@ -437,6 +444,7 @@ export function createProductHooks<
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
+    skipMode?: PrefetchSkipMode
   }) {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
@@ -454,6 +462,7 @@ export function createProductHooks<
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const defaultDelay = options?.defaultDelay ?? 800
     const skipIfCached = options?.skipIfCached ?? true
+    const skipMode = options?.skipMode ?? "fresh"
 
     const prefetchProducts = async (
       input: TListInput,
@@ -469,13 +478,27 @@ export function createProductHooks<
 
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
-      const cached = queryClient.getQueryData(queryKey)
       const useGlobalFetcher =
         prefetchOptions?.useGlobalFetcher && service.getProductsGlobal
       const skipIfCachedResolved =
         prefetchOptions?.skipIfCached ?? skipIfCached
+      const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
+      const cacheStrategyResolved =
+        prefetchOptions?.cacheStrategy ?? cacheStrategy
+      const prefetchCacheOptions = getPrefetchCacheOptions(
+        resolvedCacheConfig,
+        cacheStrategyResolved
+      )
 
-      if (skipIfCachedResolved && cached) {
+      if (
+        shouldSkipPrefetch({
+          queryClient,
+          queryKey,
+          cacheOptions: prefetchCacheOptions,
+          skipIfCached: skipIfCachedResolved,
+          skipMode: skipModeResolved,
+        })
+      ) {
         return
       }
 
@@ -486,7 +509,7 @@ export function createProductHooks<
             ? service.getProductsGlobal?.(listParams, signal) ??
               service.getProducts(listParams, signal)
             : service.getProducts(listParams, signal),
-        ...resolvedCacheConfig[prefetchOptions?.cacheStrategy ?? cacheStrategy],
+        ...prefetchCacheOptions,
         meta: prefetchOptions?.prefetchedBy
           ? { prefetchedBy: prefetchOptions.prefetchedBy }
           : undefined,
@@ -507,13 +530,27 @@ export function createProductHooks<
 
       const listParams = buildPrefetch(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
-      const cached = queryClient.getQueryData(queryKey)
       const useGlobalFetcher =
         prefetchOptions?.useGlobalFetcher && service.getProductsGlobal
       const skipIfCachedResolved =
         prefetchOptions?.skipIfCached ?? skipIfCached
+      const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
+      const cacheStrategyResolved =
+        prefetchOptions?.cacheStrategy ?? cacheStrategy
+      const prefetchCacheOptions = getPrefetchCacheOptions(
+        resolvedCacheConfig,
+        cacheStrategyResolved
+      )
 
-      if (skipIfCachedResolved && cached) {
+      if (
+        shouldSkipPrefetch({
+          queryClient,
+          queryKey,
+          cacheOptions: prefetchCacheOptions,
+          skipIfCached: skipIfCachedResolved,
+          skipMode: skipModeResolved,
+        })
+      ) {
         return
       }
 
@@ -524,7 +561,7 @@ export function createProductHooks<
             ? service.getProductsGlobal?.(listParams, signal) ??
               service.getProducts(listParams, signal)
             : service.getProducts(listParams, signal),
-        ...resolvedCacheConfig[prefetchOptions?.cacheStrategy ?? cacheStrategy],
+        ...prefetchCacheOptions,
         meta: prefetchOptions?.prefetchedBy
           ? { prefetchedBy: prefetchOptions.prefetchedBy }
           : undefined,
@@ -577,6 +614,7 @@ export function createProductHooks<
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
+    skipMode?: PrefetchSkipMode
   }) {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
@@ -594,6 +632,7 @@ export function createProductHooks<
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const defaultDelay = options?.defaultDelay ?? 400
     const skipIfCached = options?.skipIfCached ?? true
+    const skipMode = options?.skipMode ?? "fresh"
 
     const prefetchProduct = async (
       input: TDetailInput,
@@ -612,11 +651,25 @@ export function createProductHooks<
 
       const detailParams = buildDetail(resolvedInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
-      const cached = queryClient.getQueryData(queryKey)
       const skipIfCachedResolved =
         prefetchOptions?.skipIfCached ?? skipIfCached
+      const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
+      const cacheStrategyResolved =
+        prefetchOptions?.cacheStrategy ?? cacheStrategy
+      const prefetchCacheOptions = getPrefetchCacheOptions(
+        resolvedCacheConfig,
+        cacheStrategyResolved
+      )
 
-      if (skipIfCachedResolved && cached) {
+      if (
+        shouldSkipPrefetch({
+          queryClient,
+          queryKey,
+          cacheOptions: prefetchCacheOptions,
+          skipIfCached: skipIfCachedResolved,
+          skipMode: skipModeResolved,
+        })
+      ) {
         return
       }
 
@@ -624,7 +677,7 @@ export function createProductHooks<
         queryKey,
         queryFn: ({ signal }) =>
           service.getProductByHandle(detailParams, signal),
-        ...resolvedCacheConfig[prefetchOptions?.cacheStrategy ?? cacheStrategy],
+        ...prefetchCacheOptions,
         meta: prefetchOptions?.prefetchedBy
           ? { prefetchedBy: prefetchOptions.prefetchedBy }
           : undefined,
@@ -698,6 +751,10 @@ export function createProductHooks<
       const mediumDelay = params.delays?.medium ?? 500
       const lowDelay = params.delays?.low ?? 1500
       const timers: ReturnType<typeof setTimeout>[] = []
+      const prefetchCacheOptions = getPrefetchCacheOptions(
+        resolvedCacheConfig,
+        cacheStrategy
+      )
 
       const prefetchPage = (page: number) => {
         const inputWithPage = {
@@ -711,7 +768,7 @@ export function createProductHooks<
         return queryClient.prefetchQuery({
           queryKey: resolvedQueryKeys.list(listParams),
           queryFn: ({ signal }) => service.getProducts(listParams, signal),
-          ...resolvedCacheConfig[cacheStrategy],
+          ...prefetchCacheOptions,
         })
       }
 

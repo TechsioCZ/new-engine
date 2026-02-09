@@ -1,5 +1,5 @@
 import type { QueryNamespace } from "../shared/query-keys"
-import { createQueryKey } from "../shared/query-keys"
+import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { ProductQueryKeys } from "./types"
 
 export function createProductQueryKeys<
@@ -10,9 +10,26 @@ export function createProductQueryKeys<
   TDetailParams
 > {
   return {
-    list: (params) => createQueryKey(namespace, "products", "list", params),
+    list: (params) =>
+      createQueryKey(
+        namespace,
+        "products",
+        "list",
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+      ),
     infinite: (params) =>
-      createQueryKey(namespace, "products", "infinite", params),
-    detail: (params) => createQueryKey(namespace, "products", "detail", params),
+      createQueryKey(
+        namespace,
+        "products",
+        "infinite",
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+      ),
+    detail: (params) =>
+      createQueryKey(
+        namespace,
+        "products",
+        "detail",
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+      ),
   }
 }
