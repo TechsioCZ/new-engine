@@ -2,6 +2,23 @@ import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import type { CustomerAddressListResponse, CustomerService } from "./types"
 
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (!error || typeof error !== "object") {
+    return undefined
+  }
+
+  const err = error as {
+    status?: number
+    response?: { status?: number }
+  }
+  return err.status ?? err.response?.status
+}
+
+const isAuthError = (error: unknown) => {
+  const status = getErrorStatus(error)
+  return status === 401 || status === 403
+}
+
 export type MedusaCustomerListInput = {
   enabled?: boolean
 }
@@ -64,8 +81,11 @@ export function createMedusaCustomerService(
       try {
         const response = await sdk.store.customer.listAddress()
         return { addresses: response.addresses ?? [] }
-      } catch {
-        return { addresses: [] }
+      } catch (error) {
+        if (isAuthError(error)) {
+          return { addresses: [] }
+        }
+        throw error
       }
     },
 

@@ -4,12 +4,13 @@
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+import type { AuthQueryKeys } from "../auth/types"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import type { QueryNamespace } from "../shared/query-keys"
+import { createQueryKey, type QueryNamespace } from "../shared/query-keys"
 import { createCustomerQueryKeys } from "./query-keys"
 import type {
   CustomerAddressCreateInputBase,
@@ -75,6 +76,7 @@ export type CreateCustomerHooksConfig<
     input: TUpdateInput
   ) => CustomerAddressValidationResult
   queryKeys?: CustomerQueryKeys<TListParams>
+  authQueryKeys?: Pick<AuthQueryKeys, "customer">
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
 }
@@ -110,6 +112,7 @@ export function createCustomerHooks<
   validateCreateAddressInput,
   validateUpdateAddressInput,
   queryKeys,
+  authQueryKeys,
   queryKeyNamespace = "storefront-data",
   cacheConfig,
 }: CreateCustomerHooksConfig<
@@ -127,6 +130,9 @@ export function createCustomerHooks<
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createCustomerQueryKeys<TListParams>(queryKeyNamespace)
+  const resolvedAuthQueryKeys = authQueryKeys ?? {
+    customer: () => createQueryKey(queryKeyNamespace, "auth", "customer"),
+  }
   const buildList =
     buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
   const buildCreate =
@@ -311,6 +317,9 @@ export function createCustomerHooks<
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.profile(),
         })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
+        })
         options?.onSuccess?.(customer, variables, context)
       },
       onError: (error, variables, context) => {
@@ -331,4 +340,3 @@ export function createCustomerHooks<
     useUpdateCustomer,
   }
 }
-
