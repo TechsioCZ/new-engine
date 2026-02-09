@@ -447,7 +447,7 @@ describe("storefront-data hook smoke tests", () => {
       )
 
       await waitFor(() => {
-        expect(detailHook.result.current.data?.id).toBe("order_1")
+        expect(detailHook.result.current.order?.id).toBe("order_1")
       })
     })
   })
@@ -604,4 +604,3 @@ describe("storefront-data hook smoke tests", () => {
     })
   })
 })
-
