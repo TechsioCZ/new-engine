@@ -6,6 +6,8 @@ export type CacheOptions = {
   refetchOnReconnect?: boolean
 }
 
+export type PrefetchCacheOptions = Pick<CacheOptions, "staleTime" | "gcTime">
+
 export type CacheConfig = {
   static: CacheOptions
   semiStatic: CacheOptions
@@ -54,5 +56,16 @@ export function createCacheConfig(
     semiStatic: { ...defaultCacheConfig.semiStatic, ...overrides.semiStatic },
     realtime: { ...defaultCacheConfig.realtime, ...overrides.realtime },
     userData: { ...defaultCacheConfig.userData, ...overrides.userData },
+  }
+}
+
+export function getPrefetchCacheOptions(
+  cacheConfig: CacheConfig,
+  strategy: keyof CacheConfig
+): PrefetchCacheOptions {
+  const config = cacheConfig[strategy]
+  return {
+    staleTime: config.staleTime,
+    gcTime: config.gcTime,
   }
 }
