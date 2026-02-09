@@ -4,8 +4,13 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { useEffect, useRef } from "react"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import {
+  createCacheConfig,
+  getPrefetchCacheOptions,
+  type CacheConfig,
+} from "../shared/cache-config"
 import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { resolvePagination } from "../products/pagination"
 import { createCollectionQueryKeys } from "./query-keys"
@@ -186,7 +191,7 @@ export function createCollectionHooks<
 
     const query = useQuery({
       queryKey,
-      queryFn: () => service.getCollection(detailParams),
+      queryFn: ({ signal }) => service.getCollection(detailParams, signal),
       enabled,
       ...resolvedCacheConfig.static,
       ...(options?.queryOptions ?? {}),
@@ -217,7 +222,7 @@ export function createCollectionHooks<
     const detailParams = buildDetail(detailInput as TDetailInput)
     const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: () => service.getCollection(detailParams),
+      queryFn: ({ signal }) => service.getCollection(detailParams, signal),
       ...resolvedCacheConfig.static,
       ...(options?.queryOptions ?? {}),
     })
@@ -237,6 +242,7 @@ export function createCollectionHooks<
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
+    skipMode?: PrefetchSkipMode
   }) {
     const queryClient = useQueryClient()
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
@@ -253,6 +259,11 @@ export function createCollectionHooks<
     const cacheStrategy = options?.cacheStrategy ?? "static"
     const defaultDelay = options?.defaultDelay ?? 800
     const skipIfCached = options?.skipIfCached ?? true
+    const skipMode = options?.skipMode ?? "fresh"
+    const prefetchCacheOptions = getPrefetchCacheOptions(
+      resolvedCacheConfig,
+      cacheStrategy
+    )
 
     const prefetchCollections = async (input: TListInput) => {
       const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
@@ -260,15 +271,22 @@ export function createCollectionHooks<
       }
       const listParams = buildList(listInput as TListInput)
       const queryKey = resolvedQueryKeys.list(listParams)
-      const cached = queryClient.getQueryData(queryKey)
-      if (skipIfCached && cached) {
+      if (
+        shouldSkipPrefetch({
+          queryClient,
+          queryKey,
+          cacheOptions: prefetchCacheOptions,
+          skipIfCached,
+          skipMode,
+        })
+      ) {
         return
       }
 
       await queryClient.prefetchQuery({
         queryKey,
         queryFn: ({ signal }) => service.getCollections(listParams, signal),
-        ...resolvedCacheConfig[cacheStrategy],
+        ...prefetchCacheOptions,
       })
     }
 
@@ -316,6 +334,7 @@ export function createCollectionHooks<
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
+    skipMode?: PrefetchSkipMode
   }) {
     const queryClient = useQueryClient()
     const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
@@ -332,6 +351,11 @@ export function createCollectionHooks<
     const cacheStrategy = options?.cacheStrategy ?? "static"
     const defaultDelay = options?.defaultDelay ?? 400
     const skipIfCached = options?.skipIfCached ?? true
+    const skipMode = options?.skipMode ?? "fresh"
+    const prefetchCacheOptions = getPrefetchCacheOptions(
+      resolvedCacheConfig,
+      cacheStrategy
+    )
 
     const prefetchCollection = async (input: TDetailInput) => {
       if (!input.id) {
@@ -342,15 +366,22 @@ export function createCollectionHooks<
       }
       const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
-      const cached = queryClient.getQueryData(queryKey)
-      if (skipIfCached && cached) {
+      if (
+        shouldSkipPrefetch({
+          queryClient,
+          queryKey,
+          cacheOptions: prefetchCacheOptions,
+          skipIfCached,
+          skipMode,
+        })
+      ) {
         return
       }
 
       await queryClient.prefetchQuery({
         queryKey,
-        queryFn: () => service.getCollection(detailParams),
-        ...resolvedCacheConfig[cacheStrategy],
+        queryFn: ({ signal }) => service.getCollection(detailParams, signal),
+        ...prefetchCacheOptions,
       })
     }
 

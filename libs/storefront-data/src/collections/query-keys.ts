@@ -1,4 +1,4 @@
-import { createQueryKey } from "../shared/query-keys"
+import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { CollectionQueryKeys } from "./types"
 
@@ -8,8 +8,19 @@ export function createCollectionQueryKeys<
 >(namespace: QueryNamespace): CollectionQueryKeys<TListParams, TDetailParams> {
   return {
     all: () => createQueryKey(namespace, "collections"),
-    list: (params) => createQueryKey(namespace, "collections", "list", params),
+    list: (params) =>
+      createQueryKey(
+        namespace,
+        "collections",
+        "list",
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+      ),
     detail: (params) =>
-      createQueryKey(namespace, "collections", "detail", params),
+      createQueryKey(
+        namespace,
+        "collections",
+        "detail",
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+      ),
   }
 }

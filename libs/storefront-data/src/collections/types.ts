@@ -32,7 +32,10 @@ export type CollectionService<
     params: TListParams,
     signal?: AbortSignal
   ) => Promise<CollectionListResponse<TCollection>>
-  getCollection: (params: TDetailParams) => Promise<TCollection | null>
+  getCollection: (
+    params: TDetailParams,
+    signal?: AbortSignal
+  ) => Promise<TCollection | null>
 }
 
 export type CollectionQueryKeys<TListParams, TDetailParams> = {
