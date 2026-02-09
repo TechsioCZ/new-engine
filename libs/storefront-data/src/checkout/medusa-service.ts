@@ -80,16 +80,20 @@ export function createMedusaCheckoutService(
 
     async initiatePaymentSession(
       cartId: string,
-      providerId: string
+      providerId: string,
+      cart?: HttpTypes.StoreCart | null
     ): Promise<HttpTypes.StorePaymentCollection> {
-      const { cart } = await sdk.store.cart.retrieve(cartId)
-      if (!cart) {
+      const resolvedCart = cart ?? (await sdk.store.cart.retrieve(cartId)).cart
+      if (!resolvedCart) {
         throw new Error("Failed to load cart for payment")
       }
 
-      const response = await sdk.store.payment.initiatePaymentSession(cart, {
-        provider_id: providerId,
-      })
+      const response = await sdk.store.payment.initiatePaymentSession(
+        resolvedCart,
+        {
+          provider_id: providerId,
+        }
+      )
       if (!response.payment_collection) {
         throw new Error("Failed to initiate payment session")
       }

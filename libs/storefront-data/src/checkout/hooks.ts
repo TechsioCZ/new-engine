@@ -8,7 +8,11 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import type { CartQueryKeys } from "../cart/types"
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import {
+  type CacheConfig,
+  createCacheConfig,
+  getPrefetchCacheOptions,
+} from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createCheckoutQueryKeys } from "./query-keys"
 import type {
@@ -105,7 +109,12 @@ export function createCheckoutHooks<
     queryClient: QueryClient,
     regionId: string
   ) {
-    return queryClient.fetchQuery(getPaymentProvidersQueryOptions(regionId))
+    const queryOptions = getPaymentProvidersQueryOptions(regionId)
+    return queryClient.fetchQuery({
+      queryKey: queryOptions.queryKey,
+      queryFn: queryOptions.queryFn,
+      ...getPrefetchCacheOptions(resolvedCacheConfig, "semiStatic"),
+    })
   }
 
   function useCheckoutShipping<TContext = unknown>(
@@ -199,12 +208,18 @@ export function createCheckoutHooks<
         shippingPrices[option.id] = option.amount
       }
     }
+    const onMutate = options?.onMutate
 
     const {
       mutate: mutateShippingMethod,
       mutateAsync: mutateShippingMethodAsync,
       isPending: isSettingShipping,
-    } = useMutation({
+    } = useMutation<
+      TCart,
+      unknown,
+      { optionId: string; data?: Record<string, unknown> },
+      TContext
+    >({
         mutationFn: ({
           optionId,
           data,
@@ -217,9 +232,9 @@ export function createCheckoutHooks<
           }
           return service.addShippingMethod(cartId, optionId, data)
         },
-        onMutate: async (variables) => {
-          return options?.onMutate?.(variables)
-        },
+        onMutate: onMutate
+          ? async (variables) => onMutate(variables)
+          : undefined,
         onSuccess: (cart, variables, context) => {
           if (cartQueryKeys) {
             queryClient.setQueryData(
@@ -230,18 +245,13 @@ export function createCheckoutHooks<
               cart
             )
           }
-          options?.onSuccess?.(cart, variables, context as TContext)
+          options?.onSuccess?.(cart, variables, context)
         },
         onError: (error, variables, context) => {
-          options?.onError?.(error, variables, context as TContext | undefined)
+          options?.onError?.(error, variables, context)
         },
         onSettled: (data, error, variables, context) => {
-          options?.onSettled?.(
-            data,
-            error,
-            variables,
-            context as TContext | undefined
-          )
+          options?.onSettled?.(data, error, variables, context)
         },
       })
 
@@ -355,12 +365,18 @@ export function createCheckoutHooks<
         shippingPrices[option.id] = option.amount
       }
     }
+    const onMutate = options?.onMutate
 
     const {
       mutate: mutateShippingMethod,
       mutateAsync: mutateShippingMethodAsync,
       isPending: isSettingShipping,
-    } = useMutation({
+    } = useMutation<
+      TCart,
+      unknown,
+      { optionId: string; data?: Record<string, unknown> },
+      TContext
+    >({
         mutationFn: ({
           optionId,
           data,
@@ -368,9 +384,9 @@ export function createCheckoutHooks<
           optionId: string
           data?: Record<string, unknown>
         }) => service.addShippingMethod(cartId, optionId, data),
-        onMutate: async (variables) => {
-          return options?.onMutate?.(variables)
-        },
+        onMutate: onMutate
+          ? async (variables) => onMutate(variables)
+          : undefined,
         onSuccess: (cart, variables, context) => {
           if (cartQueryKeys) {
             queryClient.setQueryData(
@@ -381,18 +397,13 @@ export function createCheckoutHooks<
               cart
             )
           }
-          options?.onSuccess?.(cart, variables, context as TContext)
+          options?.onSuccess?.(cart, variables, context)
         },
         onError: (error, variables, context) => {
-          options?.onError?.(error, variables, context as TContext | undefined)
+          options?.onError?.(error, variables, context)
         },
         onSettled: (data, error, variables, context) => {
-          options?.onSettled?.(
-            data,
-            error,
-            variables,
-            context as TContext | undefined
-          )
+          options?.onSettled?.(data, error, variables, context)
         },
       })
 
@@ -455,43 +466,40 @@ export function createCheckoutHooks<
       ...paymentProvidersQueryOptions,
       enabled,
     })
+    const onMutate = options?.onMutate
 
     const {
       mutate: initiatePayment,
       mutateAsync: initiatePaymentAsync,
       isPending: isInitiatingPayment,
-    } = useMutation({
+    } = useMutation<
+      TPaymentCollection,
+      unknown,
+      string,
+      TPaymentContext
+    >({
         mutationFn: (providerId: string) => {
           if (!cartId) {
             throw new Error("Cart id is required")
           }
           return service.initiatePaymentSession(cartId, providerId)
         },
-        onMutate: async (variables) => {
-          return options?.onMutate?.(variables)
-        },
+        onMutate: onMutate
+          ? async (variables) => onMutate(variables)
+          : undefined,
         onSuccess: (data, variables, context) => {
           if (cartQueryKeys) {
             queryClient.invalidateQueries({
               queryKey: cartQueryKeys.all(),
             })
           }
-          options?.onSuccess?.(data, variables, context as TPaymentContext)
+          options?.onSuccess?.(data, variables, context)
         },
         onError: (error, variables, context) => {
-          options?.onError?.(
-            error,
-            variables,
-            context as TPaymentContext | undefined
-          )
+          options?.onError?.(error, variables, context)
         },
         onSettled: (data, error, variables, context) => {
-          options?.onSettled?.(
-            data,
-            error,
-            variables,
-            context as TPaymentContext | undefined
-          )
+          options?.onSettled?.(data, error, variables, context)
         },
       })
 
@@ -534,47 +542,40 @@ export function createCheckoutHooks<
     const { data: paymentProviders, isFetching } = useSuspenseQuery(
       getPaymentProvidersQueryOptions(regionId)
     )
+    const onMutate = options?.onMutate
 
     const {
       mutate: initiatePayment,
       mutateAsync: initiatePaymentAsync,
       isPending: isInitiatingPayment,
-    } = useMutation({
+    } = useMutation<
+      TPaymentCollection,
+      unknown,
+      string,
+      TSuspensePaymentContext
+    >({
         mutationFn: (providerId: string) => {
           if (!cartId) {
             throw new Error("Cart id is required")
           }
           return service.initiatePaymentSession(cartId, providerId)
         },
-        onMutate: async (variables) => {
-          return options?.onMutate?.(variables)
-        },
+        onMutate: onMutate
+          ? async (variables) => onMutate(variables)
+          : undefined,
         onSuccess: (data, variables, context) => {
           if (cartQueryKeys) {
             queryClient.invalidateQueries({
               queryKey: cartQueryKeys.all(),
             })
           }
-          options?.onSuccess?.(
-            data,
-            variables,
-            context as TSuspensePaymentContext
-          )
+          options?.onSuccess?.(data, variables, context)
         },
         onError: (error, variables, context) => {
-          options?.onError?.(
-            error,
-            variables,
-            context as TSuspensePaymentContext | undefined
-          )
+          options?.onError?.(error, variables, context)
         },
         onSettled: (data, error, variables, context) => {
-          options?.onSettled?.(
-            data,
-            error,
-            variables,
-            context as TSuspensePaymentContext | undefined
-          )
+          options?.onSettled?.(data, error, variables, context)
         },
       })
 

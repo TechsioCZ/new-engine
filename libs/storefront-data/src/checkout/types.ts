@@ -12,7 +12,11 @@ export type CheckoutMutationOptions<
   /** Called before mutation, return value becomes context */
   onMutate?: (variables: TVariables) => Promise<TContext> | TContext
   /** Called on success with context from onMutate */
-  onSuccess?: (data: TData, variables: TVariables, context: TContext) => void
+  onSuccess?: (
+    data: TData,
+    variables: TVariables,
+    context: TContext | undefined
+  ) => void
   /** Called on error with context from onMutate (for rollback) */
   onError?: (
     error: unknown,
@@ -80,7 +84,8 @@ export type CheckoutService<
   ) => Promise<TPaymentProvider[]>
   initiatePaymentSession: (
     cartId: string,
-    providerId: string
+    providerId: string,
+    cart?: TCart | null
   ) => Promise<TPaymentCollection>
   completeCart?: (cartId: string) => Promise<TCompleteResult>
 }
