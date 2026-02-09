@@ -32,7 +32,7 @@ export type CategoryService<
     params: TListParams,
     signal?: AbortSignal
   ) => Promise<CategoryListResponse<TCategory>>
-  getCategory: (params: TDetailParams) => Promise<TCategory | null>
+  getCategory: (params: TDetailParams, signal?: AbortSignal) => Promise<TCategory | null>
 }
 
 export type CategoryQueryKeys<TListParams, TDetailParams> = {
