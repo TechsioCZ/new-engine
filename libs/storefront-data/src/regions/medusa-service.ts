@@ -1,12 +1,13 @@
 import type Medusa from "@medusajs/js-sdk"
-import type { HttpTypes } from "@medusajs/types"
+import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
 import type { RegionService, RegionListResponse } from "./types"
 
-export type MedusaRegionListInput = {
+export type MedusaRegionListInput = FindParams &
+  HttpTypes.StoreRegionFilters & {
   enabled?: boolean
 }
 
-export type MedusaRegionDetailInput = {
+export type MedusaRegionDetailInput = SelectParams & {
   id?: string
   enabled?: boolean
 }
@@ -34,24 +35,38 @@ export function createMedusaRegionService(
 > {
   return {
     async getRegions(
-      _params: MedusaRegionListInput,
-      _signal?: AbortSignal
+      params: MedusaRegionListInput,
+      signal?: AbortSignal
     ): Promise<RegionListResponse<HttpTypes.StoreRegion>> {
-      const response = await sdk.store.region.list()
+      const { enabled: _enabled, ...query } = params
+      const response = await sdk.client.fetch<HttpTypes.StoreRegionListResponse>(
+        "/store/regions",
+        {
+          query,
+          signal,
+        }
+      )
       return {
-        regions: response.regions,
-        count: response.regions.length,
+        regions: response.regions ?? [],
+        count: response.count ?? response.regions?.length ?? 0,
       }
     },
 
     async getRegion(
       params: MedusaRegionDetailInput,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StoreRegion | null> {
       if (!params.id) {
         return null
       }
-      const response = await sdk.store.region.retrieve(params.id)
+      const { id, enabled: _enabled, ...query } = params
+      const response = await sdk.client.fetch<HttpTypes.StoreRegionResponse>(
+        `/store/regions/${id}`,
+        {
+          query,
+          signal,
+        }
+      )
       return response.region ?? null
     },
   }
