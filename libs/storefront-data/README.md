@@ -5,11 +5,16 @@ Shared data fetching library for Medusa.js e-commerce storefronts using TanStack
 ## Overview
 
 This library provides a unified data fetching layer with:
-- **Factory pattern hooks** for products, collections, categories, and regions
+- **Factory pattern hooks** for products, collections, categories, regions, auth, cart, checkout, orders, and customers
 - **Smart caching** with configurable cache strategies
 - **Prefetching utilities** for optimized navigation
 - **SSR support** with hydration helpers
 - **Type-safe** generics for custom product/entity types
+
+Behavior notes:
+- Prefetch helpers default to skipping only **fresh** cache entries (`skipMode: "fresh"`), not merely existing entries.
+- TanStack Query cancellation does not apply to Suspense hooks (`useSuspenseQuery` / `useSuspenseQueries`).
+- Query-key factories normalize plain-object params and keep primitive detail params (for example `id: string`) as-is.
 
 ## Installation
 
@@ -172,6 +177,8 @@ All domain hooks factories and shared utilities.
 - `createCacheConfig` - Cache strategy factory
 - `createMedusaSdk` - Medusa SDK factory
 - `createQueryKey`, `createQueryKeyFactory` - Query key utilities
+- `normalizeQueryKeyParams` - Stable params normalization for query keys
+- `normalizeQueryKeyPart` - Safe query-key part normalization (object normalize + primitive passthrough)
 
 ## Cache Strategies
 
@@ -194,8 +201,10 @@ const cacheConfig = createCacheConfig({
 ## Notes (Short)
 
 - `enabled` is stripped from list/detail inputs before building query params/keys.
+- Prefer plain objects for list/detail params in custom builders. Primitive detail params are supported and preserved in keys.
 - Cart payloads are normalized by default (Medusa-friendly field names).
-- Prefetch respects `skipIfCached`; pass `false` to force prefetch.
+- Prefetch default is `skipMode: "fresh"` with `skipIfCached: true`; use `skipMode: "any"` to skip whenever any cache entry exists.
+- Prefetch respects `skipIfCached`; pass `false` to force prefetch regardless of cache.
 - Some service methods accept `signal` for aborting in-flight requests.
 - SSR: use `getServerQueryClient` + `dehydrate` on server, `StorefrontDataProvider` + `HydrationBoundary` on client.
 

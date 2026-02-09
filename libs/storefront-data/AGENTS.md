@@ -27,6 +27,11 @@ src/
   collections/        # createCollectionHooks factory
   categories/         # createCategoryHooks factory
   regions/            # createRegionHooks factory
+  auth/               # createAuthHooks factory + Medusa auth adapter
+  cart/               # createCartHooks factory + cart lifecycle
+  checkout/           # createCheckoutHooks factory + checkout flow
+  orders/             # createOrderHooks factory
+  customers/          # createCustomerHooks factory
   index.ts            # Re-exports all modules
 ```
 
@@ -50,7 +55,7 @@ src/
 - Type service interfaces with generics
 - Use cache strategies from `CacheConfig` (static, semiStatic, realtime, userData)
 - Keep `"use client"` directive only in client components
-- Re-export TanStack Query utilities from `server/` entry
+- Use `getServerQueryClient` from `server/` entry for Server Components
 
 ## Hook Factory Pattern
 
