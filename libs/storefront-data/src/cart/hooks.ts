@@ -5,8 +5,13 @@
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { useCallback, useEffect } from "react"
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import {
+  type CacheConfig,
+  createCacheConfig,
+  getPrefetchCacheOptions,
+} from "../shared/cache-config"
 import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
@@ -913,11 +918,17 @@ export function createCartHooks<
   function usePrefetchCart(options?: {
     cacheStrategy?: CacheStrategy
     skipIfCached?: boolean
+    skipMode?: PrefetchSkipMode
   }) {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const cacheStrategy = options?.cacheStrategy ?? "realtime"
     const skipIfCached = options?.skipIfCached ?? true
+    const skipMode = options?.skipMode ?? "fresh"
+    const prefetchCacheOptions = getPrefetchCacheOptions(
+      resolvedCacheConfig,
+      cacheStrategy
+    )
 
     const prefetchCart = useCallback(
       async (input: CartInputBase) => {
@@ -932,7 +943,15 @@ export function createCartHooks<
           regionId: resolvedInput.region_id ?? null,
         })
 
-        if (skipIfCached && queryClient.getQueryData(queryKey)) {
+        if (
+          shouldSkipPrefetch({
+            queryClient,
+            queryKey,
+            cacheOptions: prefetchCacheOptions,
+            skipIfCached,
+            skipMode,
+          })
+        ) {
           return
         }
 
@@ -946,10 +965,10 @@ export function createCartHooks<
               autoUpdateRegion: resolvedInput.autoUpdateRegion ?? true,
               signal,
             }),
-          ...resolvedCacheConfig[cacheStrategy],
+          ...prefetchCacheOptions,
         })
       },
-      [cacheStrategy, queryClient, contextRegion, skipIfCached]
+      [contextRegion, prefetchCacheOptions, queryClient, skipIfCached, skipMode]
     )
 
     return { prefetchCart }
@@ -969,4 +988,3 @@ export function createCartHooks<
     usePrefetchCart,
   }
 }
-

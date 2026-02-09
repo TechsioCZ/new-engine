@@ -1,4 +1,4 @@
-import { createQueryKey } from "../shared/query-keys"
+import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { CartQueryKeys } from "./types"
 
@@ -7,7 +7,13 @@ export function createCartQueryKeys(
 ): CartQueryKeys {
   return {
     all: () => createQueryKey(namespace, "cart"),
-    active: (params) => createQueryKey(namespace, "cart", "active", params),
+    active: (params) =>
+      createQueryKey(
+        namespace,
+        "cart",
+        "active",
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+      ),
     detail: (cartId) => createQueryKey(namespace, "cart", "detail", cartId),
   }
 }
