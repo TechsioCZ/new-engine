@@ -43,7 +43,7 @@ const asRecord = (value: unknown): Record<string, unknown> | null => {
   return null;
 };
 
-const formatMinorAmount = (minorAmount: number, currencyCode: string): string => {
+const formatAmount = (amount: number, currencyCode: string): string => {
   const normalizedCurrency =
     typeof currencyCode === "string" && currencyCode.length === 3
       ? currencyCode.toUpperCase()
@@ -56,9 +56,9 @@ const formatMinorAmount = (minorAmount: number, currencyCode: string): string =>
       currency: normalizedCurrency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(minorAmount / 100);
+    }).format(amount);
   } catch {
-    return `${(minorAmount / 100).toFixed(2)} ${normalizedCurrency}`;
+    return `${amount.toFixed(2)} ${normalizedCurrency}`;
   }
 };
 
@@ -78,10 +78,10 @@ const resolvePriceState = (product: HttpTypes.StoreProduct): ProductPriceState =
     };
   }
 
-  const currentLabel = formatMinorAmount(calculatedAmount, currencyCode);
+  const currentLabel = formatAmount(calculatedAmount, currencyCode);
   const originalLabel =
     typeof originalAmount === "number" && originalAmount > calculatedAmount
-      ? formatMinorAmount(originalAmount, currencyCode)
+      ? formatAmount(originalAmount, currencyCode)
       : null;
 
   return {

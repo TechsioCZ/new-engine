@@ -34,7 +34,7 @@ const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
   sk: "EUR",
 };
 
-const resolveMinorTotal = (cart: HttpTypes.StoreCart | null | undefined) => {
+const resolveCartTotalAmount = (cart: HttpTypes.StoreCart | null | undefined) => {
   if (!cart) {
     return 0;
   }
@@ -64,7 +64,7 @@ const resolveMinorTotal = (cart: HttpTypes.StoreCart | null | undefined) => {
   );
 };
 
-const formatPrice = (minor: number, currency: "EUR" | "CZK") => {
+const formatPrice = (amount: number, currency: "EUR" | "CZK") => {
   const locale = currency === "CZK" ? "cs-CZ" : "sk-SK";
 
   return new Intl.NumberFormat(locale, {
@@ -72,7 +72,7 @@ const formatPrice = (minor: number, currency: "EUR" | "CZK") => {
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(minor / 100);
+  }).format(amount);
 };
 
 export function HerbatikaHeader() {
@@ -115,7 +115,7 @@ export function HerbatikaHeader() {
   }, [cart?.id]);
 
   const currency = REGION_TO_CURRENCY[region?.country_code ?? ""] ?? "EUR";
-  const cartTotalLabel = formatPrice(resolveMinorTotal(cart), currency);
+  const cartTotalLabel = formatPrice(resolveCartTotalAmount(cart), currency);
 
   return (
     <Header

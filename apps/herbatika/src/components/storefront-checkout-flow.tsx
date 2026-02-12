@@ -69,7 +69,7 @@ const resolveErrorMessage = (error: unknown) => {
   return "An unknown error occurred.";
 };
 
-const resolveCartTotalMinor = (cart: HttpTypes.StoreCart | null | undefined) => {
+const resolveCartTotalAmount = (cart: HttpTypes.StoreCart | null | undefined) => {
   if (!cart) {
     return 0;
   }
@@ -85,7 +85,7 @@ const resolveCartTotalMinor = (cart: HttpTypes.StoreCart | null | undefined) => 
   return 0;
 };
 
-const resolveLineItemTotalMinor = (item: HttpTypes.StoreCartLineItem) => {
+const resolveLineItemTotalAmount = (item: HttpTypes.StoreCartLineItem) => {
   if (typeof item.total === "number") {
     return item.total;
   }
@@ -99,7 +99,7 @@ const resolveLineItemTotalMinor = (item: HttpTypes.StoreCartLineItem) => {
   return unitPrice * quantity;
 };
 
-const formatMinor = (minor: number, currencyCode?: string | null) => {
+const formatAmount = (amount: number, currencyCode?: string | null) => {
   const code = (currencyCode ?? "EUR").toUpperCase();
   const locale = code === "CZK" ? "cs-CZ" : "sk-SK";
 
@@ -108,7 +108,7 @@ const formatMinor = (minor: number, currencyCode?: string | null) => {
     currency: code,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(minor / 100);
+  }).format(amount);
 };
 
 const resolveOrderId = (result: unknown) => {
@@ -593,7 +593,7 @@ export function StorefrontCheckoutFlow() {
                         <p className="font-medium">
                           {option.name ?? option.id}
                         </p>
-                        <ExtraText>{formatMinor(optionPrice, currencyCode)}</ExtraText>
+                        <ExtraText>{formatAmount(optionPrice, currencyCode)}</ExtraText>
                       </div>
                       <Button
                         disabled={isBusy}
@@ -667,8 +667,8 @@ export function StorefrontCheckoutFlow() {
                   item.variant_title ??
                   item.id;
                 const itemQuantity = item.quantity ?? 0;
-                const itemPrice = formatMinor(
-                  resolveLineItemTotalMinor(item),
+                const itemPrice = formatAmount(
+                  resolveLineItemTotalAmount(item),
                   currencyCode,
                 );
 
@@ -690,7 +690,7 @@ export function StorefrontCheckoutFlow() {
             <div className="flex items-center justify-between border-t border-black/10 pt-3">
               <p className="font-semibold">Celkom</p>
               <p className="text-lg font-bold">
-                {formatMinor(resolveCartTotalMinor(cartQuery.cart), currencyCode)}
+                {formatAmount(resolveCartTotalAmount(cartQuery.cart), currencyCode)}
               </p>
             </div>
 
