@@ -166,13 +166,15 @@ export function HerbatikaHeader() {
             type="button"
           />
 
-          <Button
-            aria-label="Prihlásenie"
-            className="text-3xl text-fg-secondary hover:text-primary"
+          <LinkButton
+            aria-label="Účet"
+            as={NextLink}
+            className="px-0 py-0 text-3xl text-fg-secondary hover:text-primary"
+            href="/account"
             icon="token-icon-user"
             size="current"
             theme="unstyled"
-            type="button"
+            variant="secondary"
           />
 
           <div className="relative">

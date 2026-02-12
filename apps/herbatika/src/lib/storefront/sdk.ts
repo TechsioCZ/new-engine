@@ -3,7 +3,7 @@ import {
   type MedusaClientConfig,
 } from "@techsio/storefront-data";
 
-const AUTH_TOKEN_STORAGE_KEY = "herbatika_auth_token";
+export const AUTH_TOKEN_STORAGE_KEY = "herbatika_auth_token";
 
 const MEDUSA_BACKEND_URL =
   process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000";
