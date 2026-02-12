@@ -2,15 +2,19 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@techsio/ui-kit', '@techsio/analytics', '@techsio/medusa-client'],
+  transpilePackages: [
+    "@techsio/ui-kit",
+    "@techsio/analytics",
+    "@techsio/storefront-data",
+  ],
   reactCompiler: true,
   cacheComponents: true,
 
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'cdn.myshoptet.com',  // Herbatika CDN
+        protocol: "https",
+        hostname: "cdn.myshoptet.com", // Herbatika CDN
       },
     ],
     qualities: [40, 50, 60, 75, 90],
@@ -27,6 +31,6 @@ const nextConfig: NextConfig = {
   experimental: {
     typedEnv: true,
   },
-}
+};
 
 export default nextConfig;

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
@@ -12,8 +12,9 @@
   "dependencies": {
     "@techsio/ui-kit": "workspace:*",
     "@techsio/analytics": "workspace:*",
-    "@medusajs/js-sdk": "^2.10.3",
-    "@medusajs/types": "^2.10.3",
+    "@techsio/storefront-data": "workspace:*",
+    "@medusajs/js-sdk": "^2.12.5",
+    "@medusajs/types": "^2.12.5",
     "@tanstack/react-query": "^5.90.2",
     "@tanstack/react-store": "^0.7.1",
     "next": "16.1.1",

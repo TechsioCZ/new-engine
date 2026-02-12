@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Open_Sans, Roboto, Rubik } from "next/font/google";
+import { HerbatikaFooter } from "@/components/herbatika-footer";
+import { HerbatikaHeader } from "@/components/herbatika-header";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -56,7 +58,13 @@ export default function RootLayout({
       className={`${verdana.variable} ${openSans.variable} ${rubik.variable} ${roboto.variable}`}
     >
       <body className={`text-fg-primary ${verdana.className}`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="grid min-h-dvh grid-rows-[auto_1fr_auto] bg-base">
+            <HerbatikaHeader />
+            {children}
+            <HerbatikaFooter />
+          </div>
+        </Providers>
       </body>
     </html>
   );
