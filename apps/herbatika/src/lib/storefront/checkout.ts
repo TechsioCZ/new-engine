@@ -3,6 +3,7 @@ import {
   createMedusaCheckoutService,
 } from "@techsio/storefront-data";
 import { cartQueryKeys } from "./cart";
+import { storefrontCacheConfig } from "./cache";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
 
@@ -11,6 +12,7 @@ export const checkoutService = createMedusaCheckoutService(storefrontSdk);
 export const checkoutHooks = createCheckoutHooks({
   service: checkoutService,
   queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
+  cacheConfig: storefrontCacheConfig,
   cartQueryKeys,
 });
 

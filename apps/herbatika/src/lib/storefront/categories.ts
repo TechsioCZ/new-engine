@@ -5,6 +5,7 @@ import {
   type MedusaCategoryDetailInput,
   type MedusaCategoryListInput,
 } from "@techsio/storefront-data";
+import { storefrontCacheConfig } from "./cache";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
 
@@ -51,6 +52,7 @@ export const categoryHooks = createCategoryHooks<
 >({
   service: categoryService,
   queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
+  cacheConfig: storefrontCacheConfig,
   buildListParams: toCategoryListParams,
   buildDetailParams: (input) => input,
   defaultPageSize: DEFAULT_PAGE_SIZE,

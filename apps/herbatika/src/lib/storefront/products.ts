@@ -5,6 +5,7 @@ import {
   type MedusaProductDetailInput,
   type MedusaProductListInput,
 } from "@techsio/storefront-data";
+import { storefrontCacheConfig } from "./cache";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
 
@@ -56,6 +57,7 @@ export const productHooks = createProductHooks<
 >({
   service: productService,
   queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
+  cacheConfig: storefrontCacheConfig,
   buildListParams: toProductListParams,
   buildPrefetchParams: toProductListParams,
   buildDetailParams: (input) => input,

@@ -12,6 +12,7 @@ import {
   type UpdateCartInputBase,
 } from "@techsio/storefront-data";
 import { cartStorage } from "./cart-storage";
+import { storefrontCacheConfig } from "./cache";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
 
@@ -216,6 +217,7 @@ const buildAddLineItemParams = (
 export const cartHooks = createCartHooks({
   service: cartService,
   queryKeys: cartQueryKeys,
+  cacheConfig: storefrontCacheConfig,
   cartStorage,
   requireRegion: true,
   buildCreateParams: buildCreateCartParams,

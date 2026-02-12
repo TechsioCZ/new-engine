@@ -5,6 +5,7 @@ import {
   type RegionInfo,
 } from "@techsio/storefront-data";
 import { useEffect, useMemo, useState } from "react";
+import { storefrontCacheConfig } from "./cache";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
 
@@ -83,6 +84,7 @@ export const regionHooks = createRegionHooks<
 >({
   service: regionService,
   queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
+  cacheConfig: storefrontCacheConfig,
   buildListParams: (input) => input,
   buildDetailParams: (input) => input,
 });

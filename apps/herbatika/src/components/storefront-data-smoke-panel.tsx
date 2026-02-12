@@ -15,6 +15,9 @@ import {
   useCheckoutPayment,
   useCheckoutShipping,
 } from "@/lib/storefront/checkout";
+import { useCustomerAddresses } from "@/lib/storefront/customers";
+import { useAuth } from "@/lib/storefront/auth";
+import { useOrders } from "@/lib/storefront/orders";
 import { useProduct, useProducts } from "@/lib/storefront/products";
 import { useRegions } from "@/lib/storefront/regions";
 
@@ -23,6 +26,7 @@ const sectionClassName = "rounded-xl border border-black/10 bg-white p-4";
 export function StorefrontDataSmokePanel() {
   const region = useRegionContext();
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const authQuery = useAuth();
 
   const { regions, isLoading: isRegionsLoading } = useRegions({
     fields: "id,name,currency_code,countries.*",
@@ -71,6 +75,16 @@ export function StorefrontDataSmokePanel() {
     cart: cartQuery.cart,
     regionId: cartQuery.cart?.region_id ?? region?.region_id,
     enabled: Boolean(cartQuery.cart?.region_id ?? region?.region_id),
+  });
+
+  const customerAddressesQuery = useCustomerAddresses({
+    enabled: authQuery.isAuthenticated,
+  });
+
+  const ordersQuery = useOrders({
+    page: 1,
+    limit: 5,
+    enabled: authQuery.isAuthenticated,
   });
 
   const handleAddToCart = async () => {
@@ -137,6 +151,9 @@ export function StorefrontDataSmokePanel() {
         <Badge variant={cartQuery.cart?.id ? "success" : "warning"}>
           {`cart: ${cartQuery.cart?.id ? "ready" : "missing"}`}
         </Badge>
+        <Badge variant={authQuery.isAuthenticated ? "success" : "info"}>
+          {`auth: ${authQuery.isAuthenticated ? "authenticated" : "guest"}`}
+        </Badge>
         <Badge
           variant={
             checkoutShippingQuery.shippingOptions.length > 0
@@ -155,6 +172,28 @@ export function StorefrontDataSmokePanel() {
         >
           {`payment providers: ${checkoutPaymentQuery.paymentProviders.length}`}
         </Badge>
+        <Badge
+          variant={
+            authQuery.isAuthenticated
+              ? customerAddressesQuery.addresses.length > 0
+                ? "success"
+                : "info"
+              : "info"
+          }
+        >
+          {`addresses: ${authQuery.isAuthenticated ? customerAddressesQuery.addresses.length : "-"}`}
+        </Badge>
+        <Badge
+          variant={
+            authQuery.isAuthenticated
+              ? ordersQuery.orders.length > 0
+                ? "success"
+                : "info"
+              : "info"
+          }
+        >
+          {`orders: ${authQuery.isAuthenticated ? ordersQuery.orders.length : "-"}`}
+        </Badge>
       </div>
 
       {mutationError && <ErrorText showIcon>{mutationError}</ErrorText>}
@@ -162,6 +201,11 @@ export function StorefrontDataSmokePanel() {
         <ErrorText showIcon>{productsQuery.error}</ErrorText>
       )}
       {cartQuery.error && <ErrorText showIcon>{cartQuery.error}</ErrorText>}
+      {authQuery.error && <ErrorText showIcon>{authQuery.error}</ErrorText>}
+      {customerAddressesQuery.error && (
+        <ErrorText showIcon>{customerAddressesQuery.error}</ErrorText>
+      )}
+      {ordersQuery.error && <ErrorText showIcon>{ordersQuery.error}</ErrorText>}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className={sectionClassName}>
@@ -205,6 +249,30 @@ export function StorefrontDataSmokePanel() {
             </div>
           )}
         </article>
+      </section>
+
+      <section className={sectionClassName}>
+        <h2 className="mb-3 text-lg font-semibold">Auth + account data</h2>
+        {authQuery.isLoading ? (
+          <Skeleton>
+            <Skeleton.Text noOfLines={3} />
+          </Skeleton>
+        ) : (
+          <div className="space-y-1 text-sm">
+            <p>Authenticated: {authQuery.isAuthenticated ? "yes" : "no"}</p>
+            <p>Customer email: {authQuery.customer?.email ?? "-"}</p>
+            <p>
+              Customer addresses loaded:{" "}
+              {authQuery.isAuthenticated
+                ? customerAddressesQuery.addresses.length
+                : "-"}
+            </p>
+            <p>
+              Orders loaded (page 1):{" "}
+              {authQuery.isAuthenticated ? ordersQuery.orders.length : "-"}
+            </p>
+          </div>
+        )}
       </section>
 
       <section className={sectionClassName}>
