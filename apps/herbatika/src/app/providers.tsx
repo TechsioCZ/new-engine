@@ -2,6 +2,7 @@
 
 import { StorefrontDataProvider } from "@techsio/storefront-data/client";
 import { RegionProvider } from "@techsio/storefront-data/shared";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { PropsWithChildren } from "react";
 import { useRegionBootstrap } from "@/lib/storefront/regions";
 
@@ -14,7 +15,9 @@ function RegionBootstrapProvider({ children }: PropsWithChildren) {
 export function Providers({ children }: PropsWithChildren) {
   return (
     <StorefrontDataProvider>
-      <RegionBootstrapProvider>{children}</RegionBootstrapProvider>
+      <NuqsAdapter>
+        <RegionBootstrapProvider>{children}</RegionBootstrapProvider>
+      </NuqsAdapter>
     </StorefrontDataProvider>
   );
 }

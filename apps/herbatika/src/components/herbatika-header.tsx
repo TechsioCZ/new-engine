@@ -19,13 +19,13 @@ import {
 import { HerbatikaLogo } from "./herbatika-logo";
 
 const PRIMARY_NAV_ITEMS = [
-  { href: "/#trapi-ma", label: "Trápi ma" },
-  { href: "/#prirodna-kozmetika", label: "Prírodná kozmetika" },
-  { href: "/#doplnky-vyzivy", label: "Doplnky výživy" },
-  { href: "/#potraviny-a-napoje", label: "Potraviny a nápoje" },
-  { href: "/#eko-domacnost", label: "EKO domácnosť" },
-  { href: "/#ucinne-zlozky", label: "Účinné zložky od A po Z" },
-  { href: "/#novinky", label: "Novinky" },
+  { href: "/c/trapi-ma", label: "Trápi ma" },
+  { href: "/c/prirodna-kozmetika", label: "Prírodná kozmetika" },
+  { href: "/c/doplnky-vyzivy", label: "Doplnky výživy" },
+  { href: "/c/potraviny-a-napoje", label: "Potraviny a nápoje" },
+  { href: "/c/eko-domacnost", label: "EKO domácnosť" },
+  { href: "/c/ucinne-zlozky-od-a-po-z", label: "Účinné zložky od A po Z" },
+  { href: "/c/novinky", label: "Novinky" },
 ];
 
 const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
@@ -241,7 +241,7 @@ export function HerbatikaHeader() {
               <LinkButton
                 as={NextLink}
                 className="rounded-[10px] px-4 py-2 text-2xl font-bold"
-                href="/#darceky"
+                href="/c/darceky"
                 icon="icon-[mdi--gift-outline]"
                 size="sm"
                 variant="secondary"
@@ -253,7 +253,7 @@ export function HerbatikaHeader() {
               <LinkButton
                 as={NextLink}
                 className="rounded-[10px] px-4 py-2 text-2xl font-bold"
-                href="/#akcie"
+                href="/c/vypredaj-zlavy-a-akcie"
                 icon="icon-[mdi--fire]"
                 size="sm"
                 variant="secondary"
@@ -296,7 +296,7 @@ export function HerbatikaHeader() {
             as={NextLink}
             block
             className="justify-center rounded-[10px] font-bold"
-            href="/#darceky"
+            href="/c/darceky"
             icon="icon-[mdi--gift-outline]"
             size="sm"
             variant="secondary"
@@ -307,7 +307,7 @@ export function HerbatikaHeader() {
             as={NextLink}
             block
             className="justify-center rounded-[10px] font-bold"
-            href="/#akcie"
+            href="/c/vypredaj-zlavy-a-akcie"
             icon="icon-[mdi--fire]"
             size="sm"
             variant="secondary"

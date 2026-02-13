@@ -6,6 +6,7 @@ export * from "./checkout";
 export * from "./customers";
 export * from "./orders";
 export * from "./products";
+export * from "./plp-query-state";
 export * from "./query-keys";
 export * from "./regions";
 export * from "./sdk";
