@@ -1,9 +1,5 @@
-import { StorefrontAuthControls } from "@/components/storefront-auth-controls";
+import { StorefrontAccountOverview } from "@/components/storefront-account-overview";
 
 export default function AccountPage() {
-  return (
-    <main className="mx-auto w-full max-w-4xl p-6">
-      <StorefrontAuthControls mode="both" />
-    </main>
-  );
+  return <StorefrontAccountOverview />;
 }

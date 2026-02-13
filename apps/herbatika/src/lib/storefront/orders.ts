@@ -2,6 +2,7 @@ import type { HttpTypes } from "@medusajs/types";
 import {
   createMedusaOrderService,
   createOrderHooks,
+  createOrderQueryKeys,
   type MedusaOrderDetailInput,
   type MedusaOrderListInput,
 } from "@techsio/storefront-data";
@@ -37,8 +38,32 @@ const toOrderListParams = (input: OrderListInput): MedusaOrderListInput => {
 
 export const orderService = createMedusaOrderService(storefrontSdk, {
   defaultFields:
-    "id,display_id,status,created_at,currency_code,total,item_total,items.id,items.title,items.quantity",
+    [
+      "id",
+      "display_id",
+      "status",
+      "created_at",
+      "updated_at",
+      "currency_code",
+      "email",
+      "total",
+      "item_total",
+      "shipping_total",
+      "tax_total",
+      "items.id",
+      "items.title",
+      "items.quantity",
+      "items.unit_price",
+      "items.total",
+      "items.thumbnail",
+      "items.variant_title",
+    ].join(","),
 });
+
+export const orderQueryKeys = createOrderQueryKeys<
+  MedusaOrderListInput,
+  MedusaOrderDetailInput
+>(STOREFRONT_QUERY_KEY_NAMESPACE);
 
 export const orderHooks = createOrderHooks<
   HttpTypes.StoreOrder,
@@ -48,6 +73,7 @@ export const orderHooks = createOrderHooks<
   MedusaOrderDetailInput
 >({
   service: orderService,
+  queryKeys: orderQueryKeys,
   queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
   cacheConfig: storefrontCacheConfig,
   buildListParams: toOrderListParams,

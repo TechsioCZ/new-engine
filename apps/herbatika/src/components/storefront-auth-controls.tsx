@@ -8,7 +8,8 @@ import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import NextLink from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   useAuth,
   useLogin,
@@ -22,6 +23,7 @@ type AuthControlsMode = "login" | "register" | "both";
 
 type StorefrontAuthControlsProps = {
   mode?: AuthControlsMode;
+  afterAuthHref?: string;
 };
 
 const DEFAULT_PASSWORD = "CodexTest123!";
@@ -54,9 +56,31 @@ const buildGeneratedIdentity = () => {
   };
 };
 
+const resolveSafeRedirectHref = (value?: string) => {
+  if (!value) {
+    return null;
+  }
+
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+
+  return value;
+};
+
+const buildAuthRouteHref = (path: "/auth/login" | "/auth/register", next?: string) => {
+  if (!next) {
+    return path;
+  }
+
+  return `${path}?next=${encodeURIComponent(next)}`;
+};
+
 export function StorefrontAuthControls({
   mode = "both",
+  afterAuthHref,
 }: StorefrontAuthControlsProps) {
+  const router = useRouter();
   const region = useRegionContext();
   const authQuery = useAuth();
   const loginMutation = useLogin();
@@ -83,6 +107,27 @@ export function StorefrontAuthControls({
   const [registerLastName, setRegisterLastName] = useState(
     DEFAULT_REGISTER_LAST_NAME,
   );
+  const safeRedirectHref = useMemo(
+    () => resolveSafeRedirectHref(afterAuthHref),
+    [afterAuthHref],
+  );
+
+  useEffect(() => {
+    if (!safeRedirectHref) {
+      return;
+    }
+
+    if (authQuery.isLoading || !authQuery.isAuthenticated) {
+      return;
+    }
+
+    router.replace(safeRedirectHref);
+  }, [
+    authQuery.isAuthenticated,
+    authQuery.isLoading,
+    router,
+    safeRedirectHref,
+  ]);
 
   const transferCartIfAvailable = async () => {
     const activeCartId = cartQuery.cart?.id;
@@ -110,6 +155,11 @@ export function StorefrontAuthControls({
         password: loginPassword,
       });
       await transferCartIfAvailable();
+      if (safeRedirectHref) {
+        router.replace(safeRedirectHref);
+        return;
+      }
+
       setAuthMessage("Prihlásenie prebehlo úspešne.");
     } catch (error) {
       setAuthError(resolveErrorMessage(error));
@@ -129,6 +179,11 @@ export function StorefrontAuthControls({
         last_name: registerLastName,
       });
       await transferCartIfAvailable();
+      if (safeRedirectHref) {
+        router.replace(safeRedirectHref);
+        return;
+      }
+
       setAuthMessage("Registrácia prebehla úspešne.");
     } catch (error) {
       setAuthError(resolveErrorMessage(error));
@@ -213,7 +268,12 @@ export function StorefrontAuthControls({
             <Button disabled={isBusy || !loginEmail || !loginPassword} isLoading={isBusy} type="submit">
               Prihlásiť
             </Button>
-            <LinkButton as={NextLink} href="/auth/register" theme="outlined" variant="secondary">
+            <LinkButton
+              as={NextLink}
+              href={buildAuthRouteHref("/auth/register", safeRedirectHref ?? undefined)}
+              theme="outlined"
+              variant="secondary"
+            >
               Na registráciu
             </LinkButton>
           </div>
@@ -274,7 +334,12 @@ export function StorefrontAuthControls({
             >
               Vygenerovať test identitu
             </Button>
-            <LinkButton as={NextLink} href="/auth/login" theme="outlined" variant="secondary">
+            <LinkButton
+              as={NextLink}
+              href={buildAuthRouteHref("/auth/login", safeRedirectHref ?? undefined)}
+              theme="outlined"
+              variant="secondary"
+            >
               Na prihlásenie
             </LinkButton>
           </div>
