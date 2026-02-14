@@ -1,7 +1,6 @@
 import { RegionProvider } from "@techsio/storefront-data/shared";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ClientOnly } from "@/components/client-only";
 import { StorefrontProductDetail } from "@/components/storefront-product-detail";
 import { StorefrontHydrationBoundary } from "@/components/storefront-hydration-boundary";
 import { prefetchProductDetailPageStorefrontData } from "@/lib/storefront/ssr";
@@ -26,9 +25,7 @@ async function ProductDetailPageContent({ params }: ProductDetailPageProps) {
   return (
     <StorefrontHydrationBoundary state={dehydratedState}>
       <RegionProvider region={region}>
-        <ClientOnly fallback={<ProductDetailPageFallback />}>
-          <StorefrontProductDetail handle={handle} />
-        </ClientOnly>
+        <StorefrontProductDetail handle={handle} />
       </RegionProvider>
     </StorefrontHydrationBoundary>
   );

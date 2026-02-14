@@ -2,7 +2,6 @@ import { RegionProvider } from "@techsio/storefront-data/shared";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { ClientOnly } from "@/components/client-only";
 import { StorefrontCategoryListing } from "@/components/storefront-category-listing";
 import { StorefrontHydrationBoundary } from "@/components/storefront-hydration-boundary";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-config";
@@ -48,9 +47,7 @@ async function CategoryPageContent({
   return (
     <StorefrontHydrationBoundary state={dehydratedState}>
       <RegionProvider region={region}>
-        <ClientOnly fallback={<CategoryPageFallback />}>
-          <StorefrontCategoryListing slug={normalizedSlug} />
-        </ClientOnly>
+        <StorefrontCategoryListing slug={normalizedSlug} />
       </RegionProvider>
     </StorefrontHydrationBoundary>
   );

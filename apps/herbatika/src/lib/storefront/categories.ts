@@ -1,3 +1,5 @@
+"use client";
+
 import type { HttpTypes } from "@medusajs/types";
 import type { FindParams } from "@medusajs/types";
 import {

@@ -12,9 +12,5 @@ export function StorefrontHydrationBoundary({
   children,
   state,
 }: StorefrontHydrationBoundaryProps) {
-  if (typeof window === "undefined") {
-    return <>{children}</>;
-  }
-
   return <HydrationBoundary state={state}>{children}</HydrationBoundary>;
 }
