@@ -17,7 +17,6 @@ import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import { FormNumericInput } from "@techsio/ui-kit/molecules/form-numeric-input";
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import { Tabs } from "@techsio/ui-kit/molecules/tabs";
-import { Table } from "@techsio/ui-kit/organisms/table";
 import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { HerbatikaHomeProductCard } from "@/components/herbatika-home-product-card";
@@ -37,37 +36,18 @@ type ProductPriceState = {
   originalLabel: string | null;
 };
 
-type ProductInfoRow = {
-  label: string;
-  value: string;
-};
-
-type ProductFileReference = {
-  label: string;
-  url: string;
-};
-
-type ProductContentSection = {
+type RelatedProductsSection = {
   id: string;
   title: string;
   products: HttpTypes.StoreProduct[];
 };
 
-type ProducerAttribute = {
-  value?: string | null;
-  attributeType?: {
-    name?: string | null;
-  } | null;
+type ProductDetailContentSection = {
+  key: string;
+  title: string;
+  html: string;
 };
-
-type ProducerRelation = {
-  title?: string | null;
-  attributes?: ProducerAttribute[] | null;
-};
-
-type StorefrontProduct = HttpTypes.StoreProduct & {
-  producer?: ProducerRelation | null;
-};
+type StorefrontProduct = HttpTypes.StoreProduct;
 
 type ProductOfferState = {
   code: string | null;
@@ -79,7 +59,7 @@ type ProductOfferState = {
 };
 
 const PRODUCT_DETAIL_FIELDS =
-  "id,title,handle,description,thumbnail,*images,categories.id,categories.name,categories.handle,categories.parent_category_id,options.id,options.title,variants.id,variants.title,variants.options.value,variants.options.option_id,*variants.calculated_price,+metadata,producer.title,producer.attributes.value,producer.attributes.attributeType.name";
+  "id,title,handle,description,thumbnail,*images,categories.id,categories.name,categories.handle,categories.parent_category_id,options.id,options.title,variants.id,variants.title,variants.options.value,variants.options.option_id,*variants.calculated_price,+metadata.short_description,+metadata.top_offer,+metadata.content_sections,+metadata.content_sections_map";
 
 const RELATED_PRODUCTS_FIELDS =
   "id,title,handle,thumbnail,*variants.calculated_price";
@@ -93,6 +73,20 @@ const RELATED_SECTION_TITLES = [
 ] as const;
 const RELATED_PRODUCTS_LIMIT =
   RELATED_PRODUCTS_PER_SECTION * RELATED_SECTION_TITLES.length + 1;
+const PRODUCT_DETAIL_SECTION_ORDER = [
+  "description",
+  "usage",
+  "composition",
+  "warning",
+  "other",
+] as const;
+const PRODUCT_DETAIL_SECTION_TITLES: Record<string, string> = {
+  description: "Popis",
+  usage: "Použitie",
+  composition: "Zloženie",
+  warning: "Upozornenie",
+  other: "Ostatné informácie",
+};
 
 const ALLOWED_HTML_TAGS = new Set([
   "a",
@@ -155,6 +149,20 @@ const asString = (value: unknown): string | null => {
 
 const asNumber = (value: unknown): number | null => {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+};
+
+const normalizeSectionKey = (value: unknown): string | null => {
+  const parsed = asString(value);
+  if (!parsed) {
+    return null;
+  }
+
+  const normalized = parsed
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_-]/g, "");
+
+  return normalized.length > 0 ? normalized : null;
 };
 
 const normalizeCategoryName = (value?: string | null) => {
@@ -409,132 +417,52 @@ const sanitizeHtml = (html: string): string => {
   return document.body.innerHTML.trim();
 };
 
-const resolveTextProperties = (product: StorefrontProduct | null): ProductInfoRow[] => {
-  const metadata = asRecord(product?.metadata);
-  const textProperties = metadata?.text_properties;
-
-  if (!Array.isArray(textProperties)) {
-    return [];
-  }
-
-  const rows: ProductInfoRow[] = [];
-
-  for (const property of textProperties) {
-    const propertyRecord = asRecord(property);
-    if (!propertyRecord) {
-      continue;
-    }
-
-    const label = asString(propertyRecord.name)?.replace(/:\s*$/, "");
-    const value = asString(propertyRecord.value);
-
-    if (!label || !value) {
-      continue;
-    }
-
-    rows.push({
-      label,
-      value,
-    });
-  }
-
-  return rows;
-};
-
-const resolveRelatedFiles = (product: StorefrontProduct | null): ProductFileReference[] => {
-  const metadata = asRecord(product?.metadata);
-  const relatedFiles = metadata?.related_files;
-
-  if (!Array.isArray(relatedFiles)) {
-    return [];
-  }
-
-  const files: ProductFileReference[] = [];
-
-  for (const file of relatedFiles) {
-    const fileRecord = asRecord(file);
-    if (!fileRecord) {
-      continue;
-    }
-
-    const url = asString(fileRecord.url);
-    if (!url) {
-      continue;
-    }
-
-    files.push({
-      label: asString(fileRecord.text) ?? "Stiahnuť dokument",
-      url,
-    });
-  }
-
-  return files;
-};
-
-const resolveProductInfoRows = (
+const resolveProductContentSections = (
   product: StorefrontProduct | null,
-  offerState: ProductOfferState,
-): ProductInfoRow[] => {
-  if (!product) {
-    return [];
+  shortDescriptionHtml: string,
+): ProductDetailContentSection[] => {
+  const metadata = asRecord(product?.metadata);
+  const sectionMap = asRecord(metadata?.content_sections_map);
+  const sectionsFromList = Array.isArray(metadata?.content_sections)
+    ? metadata.content_sections
+    : [];
+
+  const sectionHtmlByKey = new Map<string, string>();
+  for (const section of sectionsFromList) {
+    const sectionRecord = asRecord(section);
+    if (!sectionRecord) {
+      continue;
+    }
+
+    const key = normalizeSectionKey(sectionRecord.key);
+    const html = asString(sectionRecord.html);
+    if (!key || !html) {
+      continue;
+    }
+
+    if (!sectionHtmlByKey.has(key)) {
+      sectionHtmlByKey.set(key, html);
+    }
   }
 
-  const rows: ProductInfoRow[] = [];
+  const fallbackHtml = [shortDescriptionHtml, asString(product?.description)]
+    .filter((value): value is string => Boolean(value))
+    .join("\n");
 
-  rows.push({
-    label: "Kód produktu",
-    value: offerState.code ?? product.handle ?? "-",
+  return PRODUCT_DETAIL_SECTION_ORDER.map((sectionKey) => {
+    let html =
+      asString(sectionMap?.[sectionKey]) ?? sectionHtmlByKey.get(sectionKey) ?? "";
+
+    if (!html && sectionKey === "description") {
+      html = fallbackHtml;
+    }
+
+    return {
+      key: sectionKey,
+      title: PRODUCT_DETAIL_SECTION_TITLES[sectionKey] ?? "Obsah",
+      html,
+    };
   });
-
-  if (offerState.ean) {
-    rows.push({
-      label: "EAN",
-      value: offerState.ean,
-    });
-  }
-
-  const producerTitle = asString(product.producer?.title);
-  if (producerTitle) {
-    rows.push({
-      label: "Značka",
-      value: producerTitle,
-    });
-  }
-
-  for (const attribute of product.producer?.attributes ?? []) {
-    const attributeName = asString(attribute.attributeType?.name);
-    const attributeValue = asString(attribute.value);
-
-    if (!attributeName || !attributeValue) {
-      continue;
-    }
-
-    if (attributeName === "manufacturer") {
-      rows.push({
-        label: "Výrobca",
-        value: attributeValue,
-      });
-      continue;
-    }
-
-    if (attributeName === "supplier") {
-      rows.push({
-        label: "Dodávateľ",
-        value: attributeValue,
-      });
-    }
-  }
-
-  const uniqueRows = new Map<string, ProductInfoRow>();
-
-  for (const row of rows) {
-    const key = `${row.label}::${row.value}`;
-    if (!uniqueRows.has(key)) {
-      uniqueRows.set(key, row);
-    }
-  }
-
-  return Array.from(uniqueRows.values());
 };
 
 const fillSectionProducts = (
@@ -573,7 +501,7 @@ const fillSectionProducts = (
 
 const resolveRelatedSections = (
   products: HttpTypes.StoreProduct[],
-): ProductContentSection[] => {
+): RelatedProductsSection[] => {
   return RELATED_SECTION_TITLES.map((title, sectionIndex) => {
     return {
       id: `related-${sectionIndex}`,
@@ -669,12 +597,11 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
     return descriptionText || "Popis produktu bude čoskoro doplnený.";
   }, [product?.description, shortDescriptionHtml]);
 
-  const textProperties = useMemo(() => resolveTextProperties(product), [product]);
-  const productInfoRows = useMemo(
-    () => resolveProductInfoRows(product, offerState),
-    [offerState, product],
+  const productContentSections = useMemo(
+    () => resolveProductContentSections(product, shortDescriptionHtml),
+    [product, shortDescriptionHtml],
   );
-  const relatedFiles = useMemo(() => resolveRelatedFiles(product), [product]);
+  const defaultInfoSectionValue = productContentSections[0]?.key ?? "description";
 
   const variants = product?.variants ?? [];
 
@@ -771,12 +698,11 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
       categoryCount: product.categories?.length ?? 0,
       variantCount: product.variants?.length ?? 0,
       hasShortDescription: typeof metadata?.short_description === "string",
-      textPropertiesCount: Array.isArray(metadata?.text_properties)
-        ? metadata.text_properties.length
+      contentSectionsCount: Array.isArray(metadata?.content_sections)
+        ? metadata.content_sections.length
         : 0,
-      relatedFilesCount: Array.isArray(metadata?.related_files)
-        ? metadata.related_files.length
-        : 0,
+      hasContentSectionsMap:
+        asRecord(metadata?.content_sections_map) !== null,
     });
   }, [product]);
 
@@ -1072,170 +998,43 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
             <h2 className="mb-4 text-xl font-semibold text-fg-primary">Informácie o produkte</h2>
 
             <div className="hidden lg:block">
-              <Tabs defaultValue="description" fitted justify="start" variant="line">
+              <Tabs defaultValue={defaultInfoSectionValue} fitted justify="start" variant="line">
                 <Tabs.List>
-                  <Tabs.Trigger value="description">Popis produktu</Tabs.Trigger>
-                  <Tabs.Trigger value="properties">Vlastnosti</Tabs.Trigger>
-                  <Tabs.Trigger value="files">Dokumenty</Tabs.Trigger>
+                  {productContentSections.map((section) => (
+                    <Tabs.Trigger key={section.key} value={section.key}>
+                      {section.title}
+                    </Tabs.Trigger>
+                  ))}
                   <Tabs.Indicator />
                 </Tabs.List>
 
-                <Tabs.Content className="pt-4" value="description">
-                  {shortDescriptionHtml ? (
-                    <div className="mb-4 rounded-xl border border-border-secondary bg-surface-secondary p-4">
-                      <HtmlContent
-                        fallback=""
-                        html={shortDescriptionHtml}
-                      />
-                    </div>
-                  ) : null}
-
-                  <HtmlContent
-                    fallback="Popis produktu bude čoskoro doplnený."
-                    html={product.description ?? ""}
-                  />
-                </Tabs.Content>
-
-                <Tabs.Content className="pt-4" value="properties">
-                  <div className="grid gap-4 xl:grid-cols-2">
-                    <div className="rounded-xl border border-border-secondary p-3">
-                      <h3 className="mb-3 text-sm font-semibold text-fg-primary">Základné údaje</h3>
-                      {productInfoRows.length > 0 ? (
-                        <Table size="sm" variant="line">
-                          <Table.Body>
-                            {productInfoRows.map((row) => (
-                              <Table.Row key={`${row.label}-${row.value}`}>
-                                <Table.Cell className="w-1/3 font-semibold text-fg-primary">
-                                  {row.label}
-                                </Table.Cell>
-                                <Table.Cell>{row.value}</Table.Cell>
-                              </Table.Row>
-                            ))}
-                          </Table.Body>
-                        </Table>
-                      ) : (
-                        <ExtraText className="text-fg-tertiary">
-                          Parametre zatiaľ nie sú dostupné.
-                        </ExtraText>
-                      )}
-                    </div>
-
-                    <div className="rounded-xl border border-border-secondary p-3">
-                      <h3 className="mb-3 text-sm font-semibold text-fg-primary">Zloženie a vlastnosti</h3>
-                      {textProperties.length > 0 ? (
-                        <Table size="sm" variant="line">
-                          <Table.Body>
-                            {textProperties.map((row) => (
-                              <Table.Row key={`${row.label}-${row.value}`}>
-                                <Table.Cell className="w-1/3 font-semibold text-fg-primary">
-                                  {row.label}
-                                </Table.Cell>
-                                <Table.Cell>{row.value}</Table.Cell>
-                              </Table.Row>
-                            ))}
-                          </Table.Body>
-                        </Table>
-                      ) : (
-                        <ExtraText className="text-fg-tertiary">
-                          Špecifické vlastnosti zatiaľ nie sú doplnené.
-                        </ExtraText>
-                      )}
-                    </div>
-                  </div>
-                </Tabs.Content>
-
-                <Tabs.Content className="pt-4" value="files">
-                  {relatedFiles.length > 0 ? (
-                    <div className="space-y-2">
-                      {relatedFiles.map((file) => (
-                        <div
-                          className="rounded-xl border border-border-secondary bg-surface-secondary p-3"
-                          key={`${file.url}-${file.label}`}
-                        >
-                          <Link className="font-semibold text-primary underline" external href={file.url}>
-                            {file.label}
-                          </Link>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <ExtraText className="text-fg-tertiary">
-                      K produktu zatiaľ nie sú priložené dokumenty.
-                    </ExtraText>
-                  )}
-                </Tabs.Content>
+                {productContentSections.map((section) => (
+                  <Tabs.Content className="pt-4" key={section.key} value={section.key}>
+                    <HtmlContent
+                      fallback="Obsah sekcie bude čoskoro doplnený."
+                      html={section.html}
+                    />
+                  </Tabs.Content>
+                ))}
               </Tabs>
             </div>
 
             <div className="lg:hidden">
-              <Accordion defaultValue={["description"]} size="sm" variant="default">
-                <Accordion.Item value="description">
-                  <Accordion.Header>
-                    <Accordion.Title>Popis produktu</Accordion.Title>
-                    <Accordion.Indicator />
-                  </Accordion.Header>
-                  <Accordion.Content>
-                    {shortDescriptionHtml ? (
-                      <div className="mb-3 rounded-xl border border-border-secondary bg-surface-secondary p-3">
-                        <HtmlContent fallback="" html={shortDescriptionHtml} />
-                      </div>
-                    ) : null}
-                    <HtmlContent
-                      fallback="Popis produktu bude čoskoro doplnený."
-                      html={product.description ?? ""}
-                    />
-                  </Accordion.Content>
-                </Accordion.Item>
-
-                <Accordion.Item value="properties">
-                  <Accordion.Header>
-                    <Accordion.Title>Vlastnosti</Accordion.Title>
-                    <Accordion.Indicator />
-                  </Accordion.Header>
-                  <Accordion.Content>
-                    <div className="space-y-3">
-                      {productInfoRows.map((row) => (
-                        <div key={`${row.label}-${row.value}`}>
-                          <ExtraText className="text-fg-tertiary">{row.label}</ExtraText>
-                          <p className="text-sm font-medium text-fg-primary">{row.value}</p>
-                        </div>
-                      ))}
-                      {textProperties.map((row) => (
-                        <div key={`${row.label}-${row.value}`}>
-                          <ExtraText className="text-fg-tertiary">{row.label}</ExtraText>
-                          <p className="text-sm font-medium text-fg-primary">{row.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </Accordion.Content>
-                </Accordion.Item>
-
-                <Accordion.Item value="files">
-                  <Accordion.Header>
-                    <Accordion.Title>Dokumenty</Accordion.Title>
-                    <Accordion.Indicator />
-                  </Accordion.Header>
-                  <Accordion.Content>
-                    {relatedFiles.length > 0 ? (
-                      <div className="space-y-2">
-                        {relatedFiles.map((file) => (
-                          <Link
-                            className="font-semibold text-primary underline"
-                            external
-                            href={file.url}
-                            key={`${file.url}-${file.label}`}
-                          >
-                            {file.label}
-                          </Link>
-                        ))}
-                      </div>
-                    ) : (
-                      <ExtraText className="text-fg-tertiary">
-                        K produktu zatiaľ nie sú priložené dokumenty.
-                      </ExtraText>
-                    )}
-                  </Accordion.Content>
-                </Accordion.Item>
+              <Accordion defaultValue={[defaultInfoSectionValue]} size="sm" variant="default">
+                {productContentSections.map((section) => (
+                  <Accordion.Item key={section.key} value={section.key}>
+                    <Accordion.Header>
+                      <Accordion.Title>{section.title}</Accordion.Title>
+                      <Accordion.Indicator />
+                    </Accordion.Header>
+                    <Accordion.Content>
+                      <HtmlContent
+                        fallback="Obsah sekcie bude čoskoro doplnený."
+                        html={section.html}
+                      />
+                    </Accordion.Content>
+                  </Accordion.Item>
+                ))}
               </Accordion>
             </div>
           </section>
