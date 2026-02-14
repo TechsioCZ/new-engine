@@ -4,6 +4,7 @@ import {
   buildErrorResponse,
   buildMedusaUrl,
   parseResponseJson,
+  setSessionTokenCookie,
   serverError,
 } from "../_lib";
 
@@ -57,12 +58,15 @@ export async function POST(request: Request) {
       return serverError("Login succeeded but no auth token was returned.");
     }
 
-    return NextResponse.json<LoginResponse>(
+    const response = NextResponse.json<LoginResponse>(
       {
         token,
       },
       { status: 200 },
     );
+
+    setSessionTokenCookie(response, token);
+    return response;
   } catch (error) {
     return serverError("Unable to reach Medusa auth service.", {
       error: error instanceof Error ? error.message : String(error),

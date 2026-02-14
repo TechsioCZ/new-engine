@@ -11,7 +11,11 @@ import {
 import { cartQueryKeys } from "./cart";
 import { storefrontCacheConfig } from "./cache";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
-import { AUTH_TOKEN_STORAGE_KEY, storefrontSdk } from "./sdk";
+import {
+  authTokenStorage,
+  isSessionProxyAuthMode,
+  storefrontSdk,
+} from "./sdk";
 
 type AuthLoginInput = MedusaAuthCredentials;
 type AuthRegisterInput = MedusaRegisterData;
@@ -22,29 +26,24 @@ type AuthProxyResponse = {
 };
 
 const authServiceBase = createMedusaAuthService(storefrontSdk);
+let sessionBootstrapPromise: Promise<string | null> | null = null;
 
 const getStoredToken = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  return authTokenStorage.get();
 };
 
 const storeToken = async (token: string) => {
+  authTokenStorage.set(token);
+
   try {
     await storefrontSdk.client.setToken(token);
   } catch {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
-    }
+    // noop: storage is already updated above
   }
 };
 
 const clearToken = () => {
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-  }
+  authTokenStorage.clear();
 };
 
 const parseProxyError = async (response: Response) => {
@@ -86,13 +85,90 @@ const requestAuthProxy = async <TBody extends Record<string, unknown>>(
   };
 };
 
-export const authService = {
-  async getCustomer(signal?: AbortSignal) {
-    if (!getStoredToken()) {
+const requestSessionProxy = async (): Promise<AuthProxyResponse | null> => {
+  const response = await fetch("/api/storefront-auth/session", {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(await parseProxyError(response));
+  }
+
+  const payload = (await response.json()) as Partial<AuthProxyResponse>;
+  if (typeof payload.token !== "string" || payload.token.length === 0) {
+    return null;
+  }
+
+  return {
+    token: payload.token,
+  };
+};
+
+const requestLogoutProxy = async () => {
+  const response = await fetch("/api/storefront-auth/logout", {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseProxyError(response));
+  }
+};
+
+const ensureSessionProxyToken = async (): Promise<string | null> => {
+  const existingToken = getStoredToken();
+  if (existingToken) {
+    return existingToken;
+  }
+
+  if (sessionBootstrapPromise) {
+    return sessionBootstrapPromise;
+  }
+
+  sessionBootstrapPromise = (async () => {
+    const response = await requestSessionProxy();
+    if (!response?.token) {
+      clearToken();
       return null;
     }
 
-    return authServiceBase.getCustomer(signal);
+    await storeToken(response.token);
+    return response.token;
+  })();
+
+  try {
+    return await sessionBootstrapPromise;
+  } finally {
+    sessionBootstrapPromise = null;
+  }
+};
+
+export const authService = {
+  async getCustomer(signal?: AbortSignal) {
+    if (!getStoredToken()) {
+      if (isSessionProxyAuthMode) {
+        const restoredToken = await ensureSessionProxyToken();
+        if (!restoredToken) {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
+
+    try {
+      return await authServiceBase.getCustomer(signal);
+    } catch (error) {
+      if (isSessionProxyAuthMode) {
+        clearToken();
+      }
+
+      throw error;
+    }
   },
   async login(credentials: AuthLoginInput) {
     const { token } = await requestAuthProxy("login", {
@@ -115,8 +191,16 @@ export const authService = {
     return token;
   },
   async logout() {
-    clearToken();
+    if (isSessionProxyAuthMode) {
+      try {
+        await requestLogoutProxy();
+      } catch {
+        // best effort: continue with local logout cleanup
+      }
+    }
+
     await authServiceBase.logout();
+    clearToken();
   },
   async updateCustomer(input: AuthUpdateInput) {
     if (!authServiceBase.updateCustomer) {

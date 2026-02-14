@@ -5,6 +5,7 @@ import {
   buildMedusaUrl,
   getPublishableHeaders,
   parseResponseJson,
+  setSessionTokenCookie,
   serverError,
 } from "../_lib";
 
@@ -124,12 +125,15 @@ export async function POST(request: Request) {
     });
 
     if (!refreshResponse.ok) {
-      return NextResponse.json<RegisterResponse>(
+      const fallbackResponse = NextResponse.json<RegisterResponse>(
         {
           token: loginToken,
         },
         { status: 200 },
       );
+
+      setSessionTokenCookie(fallbackResponse, loginToken);
+      return fallbackResponse;
     }
 
     const refreshPayload = await parseResponseJson(refreshResponse);
@@ -138,12 +142,15 @@ export async function POST(request: Request) {
         ? refreshPayload.token
         : loginToken;
 
-    return NextResponse.json<RegisterResponse>(
+    const response = NextResponse.json<RegisterResponse>(
       {
         token: refreshedToken,
       },
       { status: 200 },
     );
+
+    setSessionTokenCookie(response, refreshedToken);
+    return response;
   } catch (error) {
     return serverError("Unable to complete customer registration.", {
       error: error instanceof Error ? error.message : String(error),
