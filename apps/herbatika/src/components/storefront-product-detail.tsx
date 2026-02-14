@@ -7,16 +7,26 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { Image } from "@techsio/ui-kit/atoms/image";
+import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
+import { Rating } from "@techsio/ui-kit/atoms/rating";
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
+import { Accordion } from "@techsio/ui-kit/molecules/accordion";
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import { FormNumericInput } from "@techsio/ui-kit/molecules/form-numeric-input";
+import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
+import { Tabs } from "@techsio/ui-kit/molecules/tabs";
+import { Table } from "@techsio/ui-kit/organisms/table";
 import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { HerbatikaHomeProductCard } from "@/components/herbatika-home-product-card";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
-import { usePrefetchProduct, useProduct, useProducts } from "@/lib/storefront/products";
+import {
+  usePrefetchProduct,
+  useProduct,
+  useProducts,
+} from "@/lib/storefront/products";
 
 type StorefrontProductDetailProps = {
   handle: string;
@@ -27,11 +37,95 @@ type ProductPriceState = {
   originalLabel: string | null;
 };
 
-const PRODUCT_DETAIL_FIELDS =
-  "id,title,handle,description,thumbnail,images,*categories.id,*categories.name,*categories.handle,*categories.parent_category_id,*variants.calculated_price,+metadata";
+type ProductInfoRow = {
+  label: string;
+  value: string;
+};
 
-const RELATED_PRODUCTS_LIMIT = 4;
+type ProductFileReference = {
+  label: string;
+  url: string;
+};
+
+type ProductContentSection = {
+  id: string;
+  title: string;
+  products: HttpTypes.StoreProduct[];
+};
+
+type ProducerAttribute = {
+  value?: string | null;
+  attributeType?: {
+    name?: string | null;
+  } | null;
+};
+
+type ProducerRelation = {
+  title?: string | null;
+  attributes?: ProducerAttribute[] | null;
+};
+
+type StorefrontProduct = HttpTypes.StoreProduct & {
+  producer?: ProducerRelation | null;
+};
+
+type ProductOfferState = {
+  code: string | null;
+  ean: string | null;
+  availabilityLabel: string;
+  deliveryLabel: string;
+  stockAmount: number | null;
+  isInStock: boolean;
+};
+
+const PRODUCT_DETAIL_FIELDS =
+  "id,title,handle,description,thumbnail,*images,categories.id,categories.name,categories.handle,categories.parent_category_id,options.id,options.title,variants.id,variants.title,variants.options.value,variants.options.option_id,*variants.calculated_price,+metadata,producer.title,producer.attributes.value,producer.attributes.attributeType.name";
+
+const RELATED_PRODUCTS_FIELDS =
+  "id,title,handle,thumbnail,*variants.calculated_price";
+
 const PRODUCT_FALLBACK_IMAGE = "/file.svg";
+const RELATED_PRODUCTS_PER_SECTION = 4;
+const RELATED_SECTION_TITLES = [
+  "Ďalšie kúpil tiež",
+  "Súvisiace produkty",
+  "Naposledy navštívené",
+] as const;
+const RELATED_PRODUCTS_LIMIT =
+  RELATED_PRODUCTS_PER_SECTION * RELATED_SECTION_TITLES.length + 1;
+
+const ALLOWED_HTML_TAGS = new Set([
+  "a",
+  "b",
+  "blockquote",
+  "br",
+  "em",
+  "h2",
+  "h3",
+  "h4",
+  "i",
+  "li",
+  "ol",
+  "p",
+  "span",
+  "strong",
+  "table",
+  "tbody",
+  "td",
+  "th",
+  "thead",
+  "tr",
+  "u",
+  "ul",
+]);
+
+const ALLOWED_GLOBAL_ATTRIBUTES = new Set(["title"]);
+
+const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
+  a: new Set(["href", "target", "rel", "title"]),
+  td: new Set(["colspan", "rowspan", "title"]),
+  th: new Set(["colspan", "rowspan", "title"]),
+};
 
 const resolveErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
@@ -43,6 +137,24 @@ const resolveErrorMessage = (error: unknown) => {
   }
 
   return "An unknown error occurred.";
+};
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return null;
+};
+
+const asString = (value: unknown): string | null => {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
+};
+
+const asNumber = (value: unknown): number | null => {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 };
 
 const normalizeCategoryName = (value?: string | null) => {
@@ -72,32 +184,7 @@ const formatAmount = (amount: number, currencyCode: string): string => {
   }
 };
 
-const resolvePriceState = (product: HttpTypes.StoreProduct): ProductPriceState => {
-  const calculatedPrice = product.variants?.[0]?.calculated_price;
-  const calculatedAmount = calculatedPrice?.calculated_amount;
-  const originalAmount = calculatedPrice?.original_amount;
-  const currencyCode =
-    typeof calculatedPrice?.currency_code === "string"
-      ? calculatedPrice.currency_code
-      : "EUR";
-
-  if (typeof calculatedAmount !== "number") {
-    return {
-      currentLabel: "Cena na vyžiadanie",
-      originalLabel: null,
-    };
-  }
-
-  return {
-    currentLabel: formatAmount(calculatedAmount, currencyCode),
-    originalLabel:
-      typeof originalAmount === "number" && originalAmount > calculatedAmount
-        ? formatAmount(originalAmount, currencyCode)
-        : null,
-  };
-};
-
-const resolveProductImages = (product: HttpTypes.StoreProduct | null): string[] => {
+const resolveProductImages = (product: StorefrontProduct | null): string[] => {
   if (!product) {
     return [];
   }
@@ -117,7 +204,7 @@ const resolveProductImages = (product: HttpTypes.StoreProduct | null): string[] 
   return imageUrls.size > 0 ? Array.from(imageUrls) : [PRODUCT_FALLBACK_IMAGE];
 };
 
-const resolveRelatedCategoryIds = (product: HttpTypes.StoreProduct | null): string[] => {
+const resolveRelatedCategoryIds = (product: StorefrontProduct | null): string[] => {
   const productCategories = product?.categories ?? [];
   if (productCategories.length === 0) {
     return [];
@@ -146,10 +233,360 @@ const resolveRelatedCategoryIds = (product: HttpTypes.StoreProduct | null): stri
   );
 };
 
+const resolveVariantLabel = (
+  variant: HttpTypes.StoreProductVariant,
+  optionTitlesById: Map<string, string>,
+) => {
+  const optionLabels = (variant.options ?? [])
+    .map((option) => {
+      const optionValue = asString(option?.value);
+      if (!optionValue) {
+        return null;
+      }
+
+      const optionTitle = option.option_id
+        ? optionTitlesById.get(option.option_id)
+        : undefined;
+
+      return optionTitle ? `${optionTitle}: ${optionValue}` : optionValue;
+    })
+    .filter((value): value is string => Boolean(value));
+
+  if (optionLabels.length > 0) {
+    return optionLabels.join(" | ");
+  }
+
+  const title = asString(variant.title);
+
+  if (title && title !== "Default") {
+    return title;
+  }
+
+  return "Predvolená varianta";
+};
+
+const resolvePriceState = (
+  product: StorefrontProduct,
+  selectedVariantId: string | null,
+): ProductPriceState => {
+  const variants = product.variants ?? [];
+  const selectedVariant =
+    variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
+
+  const calculatedPrice = selectedVariant?.calculated_price;
+  const calculatedAmount = calculatedPrice?.calculated_amount;
+  const originalAmount = calculatedPrice?.original_amount;
+  const currencyCode =
+    typeof calculatedPrice?.currency_code === "string"
+      ? calculatedPrice.currency_code
+      : "EUR";
+
+  if (typeof calculatedAmount !== "number") {
+    return {
+      currentLabel: "Cena na vyžiadanie",
+      originalLabel: null,
+    };
+  }
+
+  return {
+    currentLabel: formatAmount(calculatedAmount, currencyCode),
+    originalLabel:
+      typeof originalAmount === "number" && originalAmount > calculatedAmount
+        ? formatAmount(originalAmount, currencyCode)
+        : null,
+  };
+};
+
+const resolveOfferState = (product: StorefrontProduct | null): ProductOfferState => {
+  const metadata = asRecord(product?.metadata);
+  const topOffer = asRecord(metadata?.top_offer);
+  const stock = asRecord(topOffer?.stock);
+  const stockAmount = asNumber(stock?.amount);
+
+  const isInStock = stockAmount === null ? true : stockAmount > 0;
+
+  const inStockLabel =
+    asString(topOffer?.availability_in_stock) ?? "Skladom";
+  const outOfStockLabel =
+    asString(topOffer?.availability_out_of_stock) ?? "Momentálne nie je skladom";
+
+  return {
+    code: asString(topOffer?.code),
+    ean: asString(topOffer?.ean),
+    availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
+    deliveryLabel: isInStock
+      ? "Doručenie 1-3 pracovné dni"
+      : "Doručenie po naskladnení",
+    stockAmount,
+    isInStock,
+  };
+};
+
+const stripHtml = (value: string | null | undefined): string => {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const sanitizeHtml = (html: string): string => {
+  if (!html || typeof window === "undefined") {
+    return "";
+  }
+
+  const parser = new DOMParser();
+  const document = parser.parseFromString(html, "text/html");
+
+  const sanitizeNode = (node: Node) => {
+    const childNodes = Array.from(node.childNodes);
+
+    for (const childNode of childNodes) {
+      if (childNode.nodeType === Node.COMMENT_NODE) {
+        childNode.parentNode?.removeChild(childNode);
+        continue;
+      }
+
+      if (childNode.nodeType !== Node.ELEMENT_NODE) {
+        continue;
+      }
+
+      const element = childNode as HTMLElement;
+      const tag = element.tagName.toLowerCase();
+
+      sanitizeNode(element);
+
+      if (!ALLOWED_HTML_TAGS.has(tag)) {
+        const fragment = document.createDocumentFragment();
+        while (element.firstChild) {
+          fragment.appendChild(element.firstChild);
+        }
+        element.replaceWith(fragment);
+        continue;
+      }
+
+      const allowedTagAttributes =
+        ALLOWED_TAG_ATTRIBUTES[tag] ?? new Set<string>();
+
+      for (const attribute of Array.from(element.attributes)) {
+        const name = attribute.name.toLowerCase();
+
+        const isAllowed =
+          ALLOWED_GLOBAL_ATTRIBUTES.has(name) || allowedTagAttributes.has(name);
+
+        if (!isAllowed) {
+          element.removeAttribute(attribute.name);
+        }
+      }
+
+      if (tag === "a") {
+        const href = element.getAttribute("href")?.trim() ?? "";
+
+        const hasSafeHref = /^(https?:|mailto:|tel:|\/|#)/i.test(href);
+
+        if (!hasSafeHref) {
+          element.removeAttribute("href");
+          element.removeAttribute("target");
+          element.removeAttribute("rel");
+          continue;
+        }
+
+        if (/^https?:/i.test(href)) {
+          element.setAttribute("target", "_blank");
+          element.setAttribute("rel", "noopener noreferrer");
+        }
+      }
+    }
+  };
+
+  sanitizeNode(document.body);
+  return document.body.innerHTML.trim();
+};
+
+const resolveTextProperties = (product: StorefrontProduct | null): ProductInfoRow[] => {
+  const metadata = asRecord(product?.metadata);
+  const textProperties = metadata?.text_properties;
+
+  if (!Array.isArray(textProperties)) {
+    return [];
+  }
+
+  const rows: ProductInfoRow[] = [];
+
+  for (const property of textProperties) {
+    const propertyRecord = asRecord(property);
+    if (!propertyRecord) {
+      continue;
+    }
+
+    const label = asString(propertyRecord.name)?.replace(/:\s*$/, "");
+    const value = asString(propertyRecord.value);
+
+    if (!label || !value) {
+      continue;
+    }
+
+    rows.push({
+      label,
+      value,
+    });
+  }
+
+  return rows;
+};
+
+const resolveRelatedFiles = (product: StorefrontProduct | null): ProductFileReference[] => {
+  const metadata = asRecord(product?.metadata);
+  const relatedFiles = metadata?.related_files;
+
+  if (!Array.isArray(relatedFiles)) {
+    return [];
+  }
+
+  const files: ProductFileReference[] = [];
+
+  for (const file of relatedFiles) {
+    const fileRecord = asRecord(file);
+    if (!fileRecord) {
+      continue;
+    }
+
+    const url = asString(fileRecord.url);
+    if (!url) {
+      continue;
+    }
+
+    files.push({
+      label: asString(fileRecord.text) ?? "Stiahnuť dokument",
+      url,
+    });
+  }
+
+  return files;
+};
+
+const resolveProductInfoRows = (
+  product: StorefrontProduct | null,
+  offerState: ProductOfferState,
+): ProductInfoRow[] => {
+  if (!product) {
+    return [];
+  }
+
+  const rows: ProductInfoRow[] = [];
+
+  rows.push({
+    label: "Kód produktu",
+    value: offerState.code ?? product.handle ?? "-",
+  });
+
+  if (offerState.ean) {
+    rows.push({
+      label: "EAN",
+      value: offerState.ean,
+    });
+  }
+
+  const producerTitle = asString(product.producer?.title);
+  if (producerTitle) {
+    rows.push({
+      label: "Značka",
+      value: producerTitle,
+    });
+  }
+
+  for (const attribute of product.producer?.attributes ?? []) {
+    const attributeName = asString(attribute.attributeType?.name);
+    const attributeValue = asString(attribute.value);
+
+    if (!attributeName || !attributeValue) {
+      continue;
+    }
+
+    if (attributeName === "manufacturer") {
+      rows.push({
+        label: "Výrobca",
+        value: attributeValue,
+      });
+      continue;
+    }
+
+    if (attributeName === "supplier") {
+      rows.push({
+        label: "Dodávateľ",
+        value: attributeValue,
+      });
+    }
+  }
+
+  const uniqueRows = new Map<string, ProductInfoRow>();
+
+  for (const row of rows) {
+    const key = `${row.label}::${row.value}`;
+    if (!uniqueRows.has(key)) {
+      uniqueRows.set(key, row);
+    }
+  }
+
+  return Array.from(uniqueRows.values());
+};
+
+const fillSectionProducts = (
+  products: HttpTypes.StoreProduct[],
+  sectionIndex: number,
+): HttpTypes.StoreProduct[] => {
+  if (products.length === 0) {
+    return [];
+  }
+
+  const start = sectionIndex * RELATED_PRODUCTS_PER_SECTION;
+  const initialSlice = products.slice(start, start + RELATED_PRODUCTS_PER_SECTION);
+
+  if (initialSlice.length >= RELATED_PRODUCTS_PER_SECTION) {
+    return initialSlice;
+  }
+
+  const sectionProducts = [...initialSlice];
+  const usedIds = new Set(sectionProducts.map((product) => product.id));
+
+  for (const product of products) {
+    if (sectionProducts.length >= RELATED_PRODUCTS_PER_SECTION) {
+      break;
+    }
+
+    if (usedIds.has(product.id)) {
+      continue;
+    }
+
+    sectionProducts.push(product);
+    usedIds.add(product.id);
+  }
+
+  return sectionProducts;
+};
+
+const resolveRelatedSections = (
+  products: HttpTypes.StoreProduct[],
+): ProductContentSection[] => {
+  return RELATED_SECTION_TITLES.map((title, sectionIndex) => {
+    return {
+      id: `related-${sectionIndex}`,
+      title,
+      products: fillSectionProducts(products, sectionIndex),
+    };
+  }).filter((section) => section.products.length > 0);
+};
+
 function ProductDetailSkeleton() {
   return (
     <section className="rounded-xl border border-black/10 bg-white p-6">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,560px)_minmax(0,1fr)]">
         <Skeleton.Rectangle className="aspect-square rounded-xl" />
         <div className="space-y-4">
           <Skeleton.Text noOfLines={2} />
@@ -161,10 +598,32 @@ function ProductDetailSkeleton() {
   );
 }
 
+type HtmlContentProps = {
+  html: string;
+  fallback: string;
+};
+
+function HtmlContent({ html, fallback }: HtmlContentProps) {
+  const sanitizedHtml = useMemo(() => sanitizeHtml(html), [html]);
+
+  if (!sanitizedHtml) {
+    return <p className="text-sm leading-relaxed text-fg-secondary">{fallback}</p>;
+  }
+
+  return (
+    <div
+      className="space-y-3 text-sm leading-relaxed text-fg-secondary [&_a]:text-primary [&_a]:underline [&_h2]:mt-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:text-base [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ol]:space-y-1 [&_p]:mb-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border-secondary [&_td]:p-2 [&_th]:border [&_th]:border-border-secondary [&_th]:bg-surface-secondary [&_th]:p-2"
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+    />
+  );
+}
+
 export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps) {
   const region = useRegionContext();
+
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
 
@@ -187,45 +646,150 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
     skipMode: "any",
   });
 
-  const product = productQuery.product;
+  const product = (productQuery.product ?? null) as StorefrontProduct | null;
+
   const productImages = useMemo(() => resolveProductImages(product), [product]);
   const relatedCategoryIds = useMemo(() => resolveRelatedCategoryIds(product), [product]);
 
+  const offerState = useMemo(() => resolveOfferState(product), [product]);
+
+  const shortDescriptionHtml = useMemo(() => {
+    const metadata = asRecord(product?.metadata);
+    return asString(metadata?.short_description) ?? "";
+  }, [product?.metadata]);
+
+  const productSummaryText = useMemo(() => {
+    const shortText = stripHtml(shortDescriptionHtml);
+    if (shortText) {
+      return shortText;
+    }
+
+    const descriptionText = stripHtml(product?.description);
+
+    return descriptionText || "Popis produktu bude čoskoro doplnený.";
+  }, [product?.description, shortDescriptionHtml]);
+
+  const textProperties = useMemo(() => resolveTextProperties(product), [product]);
+  const productInfoRows = useMemo(
+    () => resolveProductInfoRows(product, offerState),
+    [offerState, product],
+  );
+  const relatedFiles = useMemo(() => resolveRelatedFiles(product), [product]);
+
+  const variants = product?.variants ?? [];
+
+  const selectedVariant = useMemo(() => {
+    if (variants.length === 0) {
+      return null;
+    }
+
+    return variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
+  }, [selectedVariantId, variants]);
+
+  const productPrice = useMemo(() => {
+    if (!product) {
+      return null;
+    }
+
+    return resolvePriceState(product, selectedVariantId);
+  }, [product, selectedVariantId]);
+
+  const optionTitlesById = useMemo(() => {
+    const titles = new Map<string, string>();
+
+    for (const option of product?.options ?? []) {
+      if (!option.id) {
+        continue;
+      }
+
+      const title = asString(option.title);
+      if (!title) {
+        continue;
+      }
+
+      titles.set(option.id, title);
+    }
+
+    return titles;
+  }, [product?.options]);
+
+  const variantItems = useMemo<SelectItem[]>(() => {
+    return variants
+      .filter((variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
+        Boolean(variant.id),
+      )
+      .map((variant) => {
+        return {
+          value: variant.id,
+          label: resolveVariantLabel(variant, optionTitlesById),
+        };
+      });
+  }, [optionTitlesById, variants]);
+
   const relatedProductsQuery = useProducts({
     page: 1,
-    limit: RELATED_PRODUCTS_LIMIT + 1,
+    limit: RELATED_PRODUCTS_LIMIT,
     category_id: relatedCategoryIds.length > 0 ? relatedCategoryIds : undefined,
     order: "-created_at",
+    fields: RELATED_PRODUCTS_FIELDS,
     enabled: Boolean(region?.region_id && product?.id),
   });
 
   const relatedProducts = useMemo(() => {
-    if (!product?.id) {
-      return relatedProductsQuery.products.slice(0, RELATED_PRODUCTS_LIMIT);
-    }
+    const filtered = relatedProductsQuery.products.filter(
+      (relatedProduct) => relatedProduct.id !== product?.id,
+    );
 
-    return relatedProductsQuery.products
-      .filter((relatedProduct) => relatedProduct.id !== product.id)
-      .slice(0, RELATED_PRODUCTS_LIMIT);
+    return filtered.slice(0, RELATED_PRODUCTS_LIMIT);
   }, [product?.id, relatedProductsQuery.products]);
+
+  const relatedSections = useMemo(
+    () => resolveRelatedSections(relatedProducts),
+    [relatedProducts],
+  );
 
   useEffect(() => {
     setQuantity(1);
-  }, [product?.id]);
+    setSelectedVariantId(product?.variants?.[0]?.id ?? null);
+  }, [product?.id, product?.variants]);
 
   useEffect(() => {
     setSelectedImage(productImages[0] ?? PRODUCT_FALLBACK_IMAGE);
   }, [productImages]);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" || !product) {
+      return;
+    }
+
+    const metadata = asRecord(product.metadata);
+
+    console.info("[PDP] loaded product", {
+      id: product.id,
+      handle: product.handle,
+      imageCount: product.images?.length ?? 0,
+      categoryCount: product.categories?.length ?? 0,
+      variantCount: product.variants?.length ?? 0,
+      hasShortDescription: typeof metadata?.short_description === "string",
+      textPropertiesCount: Array.isArray(metadata?.text_properties)
+        ? metadata.text_properties.length
+        : 0,
+      relatedFilesCount: Array.isArray(metadata?.related_files)
+        ? metadata.related_files.length
+        : 0,
+    });
+  }, [product]);
+
   const addProductToCart = async (
     productToAdd: HttpTypes.StoreProduct,
     quantityToAdd: number,
+    variantIdOverride?: string | null,
   ) => {
     setAddToCartError(null);
     setActiveProductId(productToAdd.id);
 
     try {
-      const variantId = productToAdd.variants?.[0]?.id;
+      const variantId = variantIdOverride ?? productToAdd.variants?.[0]?.id;
       if (!variantId || !region?.region_id) {
         throw new Error("Produkt nemá dostupnú variantu na pridanie do košíka.");
       }
@@ -246,8 +810,8 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
   };
 
   const isBootstrappingRegion = !region?.region_id;
-  const productPrice = product ? resolvePriceState(product) : null;
   const productCategories = product?.categories ?? [];
+
   const isMainProductAdding =
     addLineItemMutation.isPending &&
     Boolean(product?.id) &&
@@ -267,7 +831,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
   ];
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 lg:px-6">
       <Breadcrumb items={breadcrumbItems} linkAs={NextLink} />
 
       {isBootstrappingRegion || productQuery.isLoading ? <ProductDetailSkeleton /> : null}
@@ -296,171 +860,432 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
       ) : null}
 
       {!isBootstrappingRegion && !productQuery.isLoading && !productQuery.error && product ? (
-        <section className="rounded-xl border border-black/10 bg-white p-6">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)]">
-            <div className="space-y-3">
-              <Image
-                alt={product.title || "Produkt"}
-                className="aspect-square w-full rounded-xl border border-border-secondary object-cover"
-                src={selectedImage || PRODUCT_FALLBACK_IMAGE}
-              />
+        <>
+          <section className="rounded-xl border border-black/10 bg-white p-4 lg:p-6">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,560px)_minmax(0,1fr)]">
+              <div className="grid gap-3 sm:grid-cols-[84px_minmax(0,1fr)]">
+                {productImages.length > 1 ? (
+                  <div className="order-2 flex gap-2 overflow-x-auto pb-1 sm:order-1 sm:flex-col sm:overflow-visible sm:pb-0">
+                    {productImages.map((imageUrl) => {
+                      const isSelected = selectedImage === imageUrl;
 
-              {productImages.length > 1 ? (
-                <div className="grid grid-cols-5 gap-2">
-                  {productImages.map((imageUrl) => {
-                    const isSelected = selectedImage === imageUrl;
-                    return (
-                      <Button
-                        className={`rounded-lg border p-0 ${isSelected ? "border-primary" : "border-border-secondary"}`}
-                        key={imageUrl}
-                        onClick={() => setSelectedImage(imageUrl)}
-                        theme="unstyled"
-                        type="button"
-                      >
-                        <Image
-                          alt={product.title || "Produkt"}
-                          className="aspect-square w-full rounded-lg object-cover"
-                          src={imageUrl}
-                        />
-                      </Button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="space-y-4">
-              <header className="space-y-2">
-                <h1 className="text-2xl font-bold text-fg-primary">{product.title}</h1>
-                <ExtraText className="text-fg-tertiary">Kód produktu: {product.handle}</ExtraText>
-                {productCategories.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {productCategories.slice(0, 6).map((category) => (
-                      <LinkButton
-                        as={NextLink}
-                        href={category.handle ? `/c/${category.handle}` : "#"}
-                        key={category.id}
-                        size="sm"
-                        theme="outlined"
-                        variant="secondary"
-                      >
-                        {normalizeCategoryName(category.name)}
-                      </LinkButton>
-                    ))}
+                      return (
+                        <Button
+                          className={`min-w-[72px] rounded-lg border p-0 sm:min-w-0 ${
+                            isSelected ? "border-primary" : "border-border-secondary"
+                          }`}
+                          key={imageUrl}
+                          onClick={() => setSelectedImage(imageUrl)}
+                          theme="unstyled"
+                          type="button"
+                        >
+                          <Image
+                            alt={product.title || "Produkt"}
+                            className="aspect-square w-full rounded-lg object-cover"
+                            src={imageUrl}
+                          />
+                        </Button>
+                      );
+                    })}
                   </div>
                 ) : null}
-              </header>
 
-              {productPrice ? (
-                <div className="space-y-1">
-                  {productPrice.originalLabel ? (
-                    <div className="text-sm text-fg-tertiary line-through">
-                      {productPrice.originalLabel}
+                <Image
+                  alt={product.title || "Produkt"}
+                  className="order-1 aspect-square w-full rounded-xl border border-border-secondary object-cover sm:order-2"
+                  src={selectedImage || PRODUCT_FALLBACK_IMAGE}
+                />
+              </div>
+
+              <div className="space-y-5">
+                <header className="space-y-3">
+                  <h1 className="text-3xl font-bold leading-tight text-fg-primary">
+                    {product.title}
+                  </h1>
+
+                  <div className="space-y-1">
+                    <ExtraText className="text-fg-tertiary">
+                      Kód produktu: {offerState.code ?? product.handle}
+                    </ExtraText>
+                    {offerState.ean ? (
+                      <ExtraText className="text-fg-tertiary">EAN: {offerState.ean}</ExtraText>
+                    ) : null}
+                  </div>
+
+                  {productCategories.length > 0 ? (
+                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                      {productCategories.slice(0, 8).map((category) => {
+                        if (!category.handle) {
+                          return null;
+                        }
+
+                        return (
+                          <Link
+                            as={NextLink}
+                            className="text-sm font-medium text-fg-primary hover:text-primary"
+                            href={`/c/${category.handle}`}
+                            key={category.id}
+                          >
+                            {normalizeCategoryName(category.name)}
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : null}
-                  <div className="text-3xl font-bold text-primary">
-                    {productPrice.currentLabel}
+                </header>
+
+                {productPrice ? (
+                  <div className="space-y-1">
+                    {productPrice.originalLabel ? (
+                      <div className="text-sm text-fg-tertiary line-through">
+                        {productPrice.originalLabel}
+                      </div>
+                    ) : null}
+                    <div className="text-4xl font-bold text-primary">{productPrice.currentLabel}</div>
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant={offerState.isInStock ? "success" : "warning"}>
+                    {offerState.availabilityLabel}
+                  </Badge>
+                  <Badge variant="info">{offerState.deliveryLabel}</Badge>
+                  {typeof offerState.stockAmount === "number" ? (
+                    <Badge variant="secondary">{`Sklad: ${offerState.stockAmount} ks`}</Badge>
+                  ) : null}
+                </div>
+
+                <p className="text-sm leading-relaxed text-fg-secondary">{productSummaryText}</p>
+
+                {variantItems.length > 1 ? (
+                  <Select
+                    items={variantItems}
+                    onValueChange={(details) => {
+                      setSelectedVariantId(details.value[0] ?? null);
+                    }}
+                    size="sm"
+                    value={selectedVariant?.id ? [selectedVariant.id] : []}
+                  >
+                    <Select.Label>Varianta</Select.Label>
+                    <Select.Control>
+                      <Select.Trigger>
+                        <Select.ValueText placeholder="Vyberte variantu" />
+                      </Select.Trigger>
+                    </Select.Control>
+                    <Select.Positioner>
+                      <Select.Content>
+                        {variantItems.map((item) => (
+                          <Select.Item item={item} key={item.value}>
+                            <Select.ItemText />
+                            <Select.ItemIndicator />
+                          </Select.Item>
+                        ))}
+                      </Select.Content>
+                    </Select.Positioner>
+                  </Select>
+                ) : null}
+
+                <div className="grid gap-3 md:grid-cols-[200px_minmax(0,1fr)]">
+                  <FormNumericInput
+                    id="product-quantity"
+                    label="Množstvo"
+                    max={50}
+                    min={1}
+                    onChange={(value) => {
+                      if (!Number.isFinite(value) || value < 1) {
+                        setQuantity(1);
+                        return;
+                      }
+
+                      setQuantity(Math.floor(value));
+                    }}
+                    size="sm"
+                    value={quantity}
+                  >
+                    <NumericInput.Control>
+                      <NumericInput.Input />
+                      <NumericInput.TriggerContainer>
+                        <NumericInput.IncrementTrigger />
+                        <NumericInput.DecrementTrigger />
+                      </NumericInput.TriggerContainer>
+                    </NumericInput.Control>
+                  </FormNumericInput>
+
+                  <div className="flex items-end gap-2">
+                    <Button
+                      block
+                      disabled={!selectedVariant?.id || isMainProductAdding}
+                      onClick={() => {
+                        void addProductToCart(product, quantity, selectedVariant?.id);
+                      }}
+                      variant="primary"
+                    >
+                      {isMainProductAdding ? "Pridávam..." : "Pridať do košíka"}
+                    </Button>
+                    <LinkButton as={NextLink} href="/checkout" theme="outlined" variant="secondary">
+                      Košík
+                    </LinkButton>
                   </div>
                 </div>
-              ) : null}
 
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="success">Skladom</Badge>
-                <Badge variant="info">Doručenie 1-3 pracovné dni</Badge>
+                {addToCartError ? <ErrorText showIcon>{addToCartError}</ErrorText> : null}
               </div>
-
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-fg-secondary">
-                {product.description || "Popis produktu bude čoskoro doplnený."}
-              </p>
-
-              <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
-                <FormNumericInput
-                  id="product-quantity"
-                  label="Množstvo"
-                  max={50}
-                  min={1}
-                  onChange={(value) => {
-                    if (!Number.isFinite(value) || value < 1) {
-                      setQuantity(1);
-                      return;
-                    }
-
-                    setQuantity(Math.floor(value));
-                  }}
-                  size="sm"
-                  value={quantity}
-                >
-                  <NumericInput.Control>
-                    <NumericInput.Input />
-                    <NumericInput.TriggerContainer>
-                      <NumericInput.IncrementTrigger />
-                      <NumericInput.DecrementTrigger />
-                    </NumericInput.TriggerContainer>
-                  </NumericInput.Control>
-                </FormNumericInput>
-
-                <div className="flex items-end gap-2">
-                  <Button
-                    block
-                    disabled={!product.variants?.[0]?.id || isMainProductAdding}
-                    onClick={() => {
-                      void addProductToCart(product, quantity);
-                    }}
-                    variant="primary"
-                  >
-                    {isMainProductAdding ? "Pridávam..." : "Pridať do košíka"}
-                  </Button>
-                  <LinkButton as={NextLink} href="/checkout" theme="outlined" variant="secondary">
-                    Košík
-                  </LinkButton>
-                </div>
-              </div>
-
-              {addToCartError ? <ErrorText showIcon>{addToCartError}</ErrorText> : null}
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section className="rounded-xl border border-black/10 bg-white p-4 lg:p-6">
+            <header className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold text-fg-primary">Hodnotenie produktu</h2>
+              <div className="flex items-center gap-2">
+                <Rating readOnly size="sm" value={0} />
+                <ExtraText className="text-fg-tertiary">Zatiaľ bez hodnotení</ExtraText>
+              </div>
+            </header>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-border-secondary bg-surface-secondary p-3">
+                <ExtraText className="text-fg-tertiary">Dostupnosť</ExtraText>
+                <p className="mt-1 text-sm font-semibold text-fg-primary">
+                  {offerState.availabilityLabel}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border-secondary bg-surface-secondary p-3">
+                <ExtraText className="text-fg-tertiary">Kategórie</ExtraText>
+                <p className="mt-1 text-sm font-semibold text-fg-primary">
+                  {productCategories.length > 0
+                    ? `${productCategories.length} zaradení`
+                    : "Bez zaradenia"}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border-secondary bg-surface-secondary p-3">
+                <ExtraText className="text-fg-tertiary">Varianty</ExtraText>
+                <p className="mt-1 text-sm font-semibold text-fg-primary">
+                  {variants.length > 1 ? `${variants.length} možností` : "1 možnosť"}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-black/10 bg-white p-4 lg:p-6">
+            <h2 className="mb-4 text-xl font-semibold text-fg-primary">Informácie o produkte</h2>
+
+            <div className="hidden lg:block">
+              <Tabs defaultValue="description" fitted justify="start" variant="line">
+                <Tabs.List>
+                  <Tabs.Trigger value="description">Popis produktu</Tabs.Trigger>
+                  <Tabs.Trigger value="properties">Vlastnosti</Tabs.Trigger>
+                  <Tabs.Trigger value="files">Dokumenty</Tabs.Trigger>
+                  <Tabs.Indicator />
+                </Tabs.List>
+
+                <Tabs.Content className="pt-4" value="description">
+                  {shortDescriptionHtml ? (
+                    <div className="mb-4 rounded-xl border border-border-secondary bg-surface-secondary p-4">
+                      <HtmlContent
+                        fallback=""
+                        html={shortDescriptionHtml}
+                      />
+                    </div>
+                  ) : null}
+
+                  <HtmlContent
+                    fallback="Popis produktu bude čoskoro doplnený."
+                    html={product.description ?? ""}
+                  />
+                </Tabs.Content>
+
+                <Tabs.Content className="pt-4" value="properties">
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    <div className="rounded-xl border border-border-secondary p-3">
+                      <h3 className="mb-3 text-sm font-semibold text-fg-primary">Základné údaje</h3>
+                      {productInfoRows.length > 0 ? (
+                        <Table size="sm" variant="line">
+                          <Table.Body>
+                            {productInfoRows.map((row) => (
+                              <Table.Row key={`${row.label}-${row.value}`}>
+                                <Table.Cell className="w-1/3 font-semibold text-fg-primary">
+                                  {row.label}
+                                </Table.Cell>
+                                <Table.Cell>{row.value}</Table.Cell>
+                              </Table.Row>
+                            ))}
+                          </Table.Body>
+                        </Table>
+                      ) : (
+                        <ExtraText className="text-fg-tertiary">
+                          Parametre zatiaľ nie sú dostupné.
+                        </ExtraText>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl border border-border-secondary p-3">
+                      <h3 className="mb-3 text-sm font-semibold text-fg-primary">Zloženie a vlastnosti</h3>
+                      {textProperties.length > 0 ? (
+                        <Table size="sm" variant="line">
+                          <Table.Body>
+                            {textProperties.map((row) => (
+                              <Table.Row key={`${row.label}-${row.value}`}>
+                                <Table.Cell className="w-1/3 font-semibold text-fg-primary">
+                                  {row.label}
+                                </Table.Cell>
+                                <Table.Cell>{row.value}</Table.Cell>
+                              </Table.Row>
+                            ))}
+                          </Table.Body>
+                        </Table>
+                      ) : (
+                        <ExtraText className="text-fg-tertiary">
+                          Špecifické vlastnosti zatiaľ nie sú doplnené.
+                        </ExtraText>
+                      )}
+                    </div>
+                  </div>
+                </Tabs.Content>
+
+                <Tabs.Content className="pt-4" value="files">
+                  {relatedFiles.length > 0 ? (
+                    <div className="space-y-2">
+                      {relatedFiles.map((file) => (
+                        <div
+                          className="rounded-xl border border-border-secondary bg-surface-secondary p-3"
+                          key={`${file.url}-${file.label}`}
+                        >
+                          <Link className="font-semibold text-primary underline" external href={file.url}>
+                            {file.label}
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <ExtraText className="text-fg-tertiary">
+                      K produktu zatiaľ nie sú priložené dokumenty.
+                    </ExtraText>
+                  )}
+                </Tabs.Content>
+              </Tabs>
+            </div>
+
+            <div className="lg:hidden">
+              <Accordion defaultValue={["description"]} size="sm" variant="default">
+                <Accordion.Item value="description">
+                  <Accordion.Header>
+                    <Accordion.Title>Popis produktu</Accordion.Title>
+                    <Accordion.Indicator />
+                  </Accordion.Header>
+                  <Accordion.Content>
+                    {shortDescriptionHtml ? (
+                      <div className="mb-3 rounded-xl border border-border-secondary bg-surface-secondary p-3">
+                        <HtmlContent fallback="" html={shortDescriptionHtml} />
+                      </div>
+                    ) : null}
+                    <HtmlContent
+                      fallback="Popis produktu bude čoskoro doplnený."
+                      html={product.description ?? ""}
+                    />
+                  </Accordion.Content>
+                </Accordion.Item>
+
+                <Accordion.Item value="properties">
+                  <Accordion.Header>
+                    <Accordion.Title>Vlastnosti</Accordion.Title>
+                    <Accordion.Indicator />
+                  </Accordion.Header>
+                  <Accordion.Content>
+                    <div className="space-y-3">
+                      {productInfoRows.map((row) => (
+                        <div key={`${row.label}-${row.value}`}>
+                          <ExtraText className="text-fg-tertiary">{row.label}</ExtraText>
+                          <p className="text-sm font-medium text-fg-primary">{row.value}</p>
+                        </div>
+                      ))}
+                      {textProperties.map((row) => (
+                        <div key={`${row.label}-${row.value}`}>
+                          <ExtraText className="text-fg-tertiary">{row.label}</ExtraText>
+                          <p className="text-sm font-medium text-fg-primary">{row.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </Accordion.Content>
+                </Accordion.Item>
+
+                <Accordion.Item value="files">
+                  <Accordion.Header>
+                    <Accordion.Title>Dokumenty</Accordion.Title>
+                    <Accordion.Indicator />
+                  </Accordion.Header>
+                  <Accordion.Content>
+                    {relatedFiles.length > 0 ? (
+                      <div className="space-y-2">
+                        {relatedFiles.map((file) => (
+                          <Link
+                            className="font-semibold text-primary underline"
+                            external
+                            href={file.url}
+                            key={`${file.url}-${file.label}`}
+                          >
+                            {file.label}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <ExtraText className="text-fg-tertiary">
+                        K produktu zatiaľ nie sú priložené dokumenty.
+                      </ExtraText>
+                    )}
+                  </Accordion.Content>
+                </Accordion.Item>
+              </Accordion>
+            </div>
+          </section>
+        </>
       ) : null}
 
-      {!isBootstrappingRegion && product && !relatedProductsQuery.isLoading && relatedProducts.length > 0 ? (
-        <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
-          <header className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Súvisiace produkty</h2>
-            <ExtraText className="text-fg-tertiary">
-              {`Nájdené: ${relatedProducts.length}`}
-            </ExtraText>
-          </header>
+      {!isBootstrappingRegion && product && relatedSections.length > 0
+        ? relatedSections.map((section) => (
+            <section className="space-y-4 rounded-xl border border-black/10 bg-white p-4 lg:p-6" key={section.id}>
+              <header className="flex items-center justify-between gap-2">
+                <h2 className="text-xl font-semibold text-fg-primary">{section.title}</h2>
+                <ExtraText className="text-fg-tertiary">
+                  {`Nájdené: ${section.products.length}`}
+                </ExtraText>
+              </header>
 
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-            {relatedProducts.map((relatedProduct) => (
-              <HerbatikaHomeProductCard
-                isAdding={
-                  addLineItemMutation.isPending && activeProductId === relatedProduct.id
-                }
-                key={relatedProduct.id}
-                onAddToCart={(productToAdd) => {
-                  void addProductToCart(productToAdd, 1);
-                }}
-                onProductHoverEnd={(hoveredProduct) => {
-                  prefetchProduct.cancelPrefetch(`related-product-${hoveredProduct.id}`);
-                }}
-                onProductHoverStart={(hoveredProduct) => {
-                  if (!hoveredProduct.handle) {
-                    return;
-                  }
+              <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                {section.products.map((relatedProduct) => (
+                  <HerbatikaHomeProductCard
+                    isAdding={
+                      addLineItemMutation.isPending &&
+                      activeProductId === relatedProduct.id
+                    }
+                    key={relatedProduct.id}
+                    onAddToCart={(productToAdd) => {
+                      void addProductToCart(productToAdd, 1);
+                    }}
+                    onProductHoverEnd={(hoveredProduct) => {
+                      prefetchProduct.cancelPrefetch(
+                        `${section.id}-product-${hoveredProduct.id}`,
+                      );
+                    }}
+                    onProductHoverStart={(hoveredProduct) => {
+                      if (!hoveredProduct.handle) {
+                        return;
+                      }
 
-                  prefetchProduct.delayedPrefetch(
-                    { handle: hoveredProduct.handle },
-                    220,
-                    `related-product-${hoveredProduct.id}`,
-                  );
-                }}
-                product={relatedProduct}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
+                      prefetchProduct.delayedPrefetch(
+                        { handle: hoveredProduct.handle },
+                        220,
+                        `${section.id}-product-${hoveredProduct.id}`,
+                      );
+                    }}
+                    product={relatedProduct}
+                  />
+                ))}
+              </div>
+            </section>
+          ))
+        : null}
     </main>
   );
 }
