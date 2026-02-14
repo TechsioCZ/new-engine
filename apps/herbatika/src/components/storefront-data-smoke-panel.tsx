@@ -7,6 +7,7 @@ import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import { useState } from "react";
 import { StorefrontAuthControls } from "@/components/storefront-auth-controls";
+import { StorefrontQueryMonitorPanel } from "@/components/storefront-query-monitor-panel";
 import {
   useAddLineItem,
   useCart,
@@ -277,6 +278,7 @@ export function StorefrontDataSmokePanel() {
       </section>
 
       <StorefrontAuthControls />
+      <StorefrontQueryMonitorPanel />
 
       <section className={sectionClassName}>
         <h2 className="mb-3 text-lg font-semibold">Mutation tests (cart)</h2>

@@ -16,6 +16,7 @@ import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
 import {
+  STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchPages,
   usePrefetchProduct,
   usePrefetchProducts,
@@ -527,6 +528,7 @@ export function HerbatikaHomepage() {
     delayedPrefetch(
       {
         handle: product.handle,
+        fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
         region_id: region?.region_id,
         country_code: region?.country_code,
       },

@@ -29,6 +29,7 @@ import {
   type ProductSortValue,
 } from "@/lib/storefront/plp-query-state";
 import {
+  STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchPages,
   usePrefetchProduct,
   usePrefetchProducts,
@@ -567,7 +568,10 @@ export function StorefrontCategoryListing({ slug }: StorefrontCategoryListingPro
                     }
 
                     prefetchProduct.delayedPrefetch(
-                      { handle: hoveredProduct.handle },
+                      {
+                        handle: hoveredProduct.handle,
+                        fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
+                      },
                       180,
                       `plp-product-${hoveredProduct.id}`,
                     );

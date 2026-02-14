@@ -1,19 +1,37 @@
+import { RegionProvider } from "@techsio/storefront-data/shared";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
+import { ClientOnly } from "@/components/client-only";
 import { StorefrontCategoryListing } from "@/components/storefront-category-listing";
+import { StorefrontHydrationBoundary } from "@/components/storefront-hydration-boundary";
+import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-config";
+import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr";
 
 type CategoryPageProps = {
   params: Promise<{
     slug: string;
   }>;
+  searchParams: Promise<
+    Record<string, string | string[] | undefined>
+  >;
 };
 
 const CATEGORY_SLUG_ALIASES: Record<string, string> = {
   akcie: "vypredaj-zlavy-a-akcie",
 };
 
-async function CategoryPageContent({ params }: CategoryPageProps) {
-  const { slug } = await params;
+function CategoryPageFallback() {
+  return <main className="mx-auto min-h-[40dvh] w-full max-w-(--breakpoint-2xl)" />;
+}
+
+async function CategoryPageContent({
+  params,
+  searchParams,
+}: CategoryPageProps) {
+  await connection();
+  const [{ slug }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+
   const normalizedSlug = slug.trim().toLowerCase();
   const canonicalSlug = CATEGORY_SLUG_ALIASES[normalizedSlug];
 
@@ -21,19 +39,27 @@ async function CategoryPageContent({ params }: CategoryPageProps) {
     redirect(`/c/${canonicalSlug}`);
   }
 
-  return <StorefrontCategoryListing slug={normalizedSlug} />;
+  const queryState = parsePlpQueryStateFromSearchParams(resolvedSearchParams);
+  const { dehydratedState, region } = await prefetchCategoryPageStorefrontData(
+    normalizedSlug,
+    queryState,
+  );
+
+  return (
+    <StorefrontHydrationBoundary state={dehydratedState}>
+      <RegionProvider region={region}>
+        <ClientOnly fallback={<CategoryPageFallback />}>
+          <StorefrontCategoryListing slug={normalizedSlug} />
+        </ClientOnly>
+      </RegionProvider>
+    </StorefrontHydrationBoundary>
+  );
 }
 
-export default function CategoryPage({ params }: CategoryPageProps) {
+export default function CategoryPage(props: CategoryPageProps) {
   return (
-    <Suspense
-      fallback={
-        <main className="mx-auto w-full max-w-6xl p-6">
-          <div className="h-96 animate-pulse rounded-xl border border-black/10 bg-white" />
-        </main>
-      }
-    >
-      <CategoryPageContent params={params} />
+    <Suspense fallback={<CategoryPageFallback />}>
+      <CategoryPageContent {...props} />
     </Suspense>
   );
 }

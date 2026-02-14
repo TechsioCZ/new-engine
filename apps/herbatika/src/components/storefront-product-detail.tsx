@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import { HerbatikaHomeProductCard } from "@/components/herbatika-home-product-card";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
 import {
+  STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
   useProduct,
   useProducts,
@@ -57,9 +58,6 @@ type ProductOfferState = {
   stockAmount: number | null;
   isInStock: boolean;
 };
-
-const PRODUCT_DETAIL_FIELDS =
-  "id,title,handle,description,thumbnail,*images,categories.id,categories.name,categories.handle,categories.parent_category_id,options.id,options.title,variants.id,variants.title,variants.options.value,variants.options.option_id,*variants.calculated_price,+metadata.short_description,+metadata.top_offer,+metadata.content_sections,+metadata.content_sections_map";
 
 const RELATED_PRODUCTS_FIELDS =
   "id,title,handle,thumbnail,*variants.calculated_price";
@@ -558,7 +556,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
   const productQuery = useProduct({
     handle,
     enabled: Boolean(region?.region_id),
-    fields: PRODUCT_DETAIL_FIELDS,
+    fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
   });
 
   const cartQuery = useCart({
@@ -1073,7 +1071,10 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
                       }
 
                       prefetchProduct.delayedPrefetch(
-                        { handle: hoveredProduct.handle },
+                        {
+                          handle: hoveredProduct.handle,
+                          fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
+                        },
                         220,
                         `${section.id}-product-${hoveredProduct.id}`,
                       );

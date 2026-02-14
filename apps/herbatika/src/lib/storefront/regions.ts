@@ -1,79 +1,18 @@
 import type { HttpTypes } from "@medusajs/types";
 import {
-  createMedusaRegionService,
   createRegionHooks,
   type RegionInfo,
 } from "@techsio/storefront-data";
 import { useEffect, useMemo, useState } from "react";
 import { storefrontCacheConfig } from "./cache";
+import {
+  getStoredRegionPreference,
+  persistRegionPreference,
+} from "./region-preferences";
+import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "./region-query-config";
+import { regionService } from "./region-service";
+import { resolveRegionByIdOrDefault, toRegionInfo } from "./region-selection";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
-import { storefrontSdk } from "./sdk";
-
-const REGION_STORAGE_KEY = "herbatika_region_id";
-const DEFAULT_COUNTRY_CODE = "sk";
-
-const PREFERRED_COUNTRY_CODES = ["sk", "at", "cz"] as const;
-const PREFERRED_CURRENCIES = ["eur", "czk"] as const;
-
-const getStoredRegionId = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return window.localStorage.getItem(REGION_STORAGE_KEY);
-};
-
-const setStoredRegionId = (regionId: string) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(REGION_STORAGE_KEY, regionId);
-};
-
-const resolveCountryCode = (region: HttpTypes.StoreRegion): string => {
-  const firstCountry = region.countries?.[0]?.iso_2?.toLowerCase();
-  return firstCountry ?? DEFAULT_COUNTRY_CODE;
-};
-
-const toRegionInfo = (region: HttpTypes.StoreRegion): RegionInfo => {
-  return {
-    region_id: region.id,
-    country_code: resolveCountryCode(region),
-  };
-};
-
-const pickDefaultRegion = (
-  regions: HttpTypes.StoreRegion[],
-): HttpTypes.StoreRegion | null => {
-  if (regions.length === 0) {
-    return null;
-  }
-
-  for (const preferredCountryCode of PREFERRED_COUNTRY_CODES) {
-    const byCountry = regions.find((region) => {
-      const regionCountryCodes =
-        region.countries?.map((country) => country.iso_2?.toLowerCase()) ?? [];
-
-      return regionCountryCodes.includes(preferredCountryCode);
-    });
-
-    if (byCountry) {
-      return byCountry;
-    }
-  }
-
-  const byCurrency = regions.find((region) => {
-    const currency = region.currency_code?.toLowerCase();
-    return Boolean(
-      currency && PREFERRED_CURRENCIES.includes(currency as "eur" | "czk"),
-    );
-  });
-
-  return byCurrency ?? regions[0] ?? null;
-};
-
-export const regionService = createMedusaRegionService(storefrontSdk);
 
 export const regionHooks = createRegionHooks<
   HttpTypes.StoreRegion,
@@ -98,19 +37,33 @@ export const {
   usePrefetchRegion,
 } = regionHooks;
 
-export function useRegionBootstrap() {
-  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
+type UseRegionBootstrapOptions = {
+  initialRegion?: RegionInfo | null;
+};
+
+export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
+  const initialRegion = options.initialRegion ?? null;
+
+  const [selectedRegionId, setSelectedRegionId] = useState<string | null>(
+    initialRegion?.region_id ?? null,
+  );
 
   const { regions, isLoading, isFetching, error } = useRegions({
-    fields: "id,name,currency_code,countries.*",
-    limit: 50,
+    fields: REGION_LIST_FIELDS,
+    limit: REGION_LIST_LIMIT,
   });
 
   useEffect(() => {
-    const storedRegionId = getStoredRegionId();
-    if (storedRegionId) {
-      setSelectedRegionId(storedRegionId);
+    const storedRegion = getStoredRegionPreference();
+    const storedRegionId = storedRegion?.region_id ?? null;
+
+    if (!storedRegionId) {
+      return;
     }
+
+    setSelectedRegionId((currentRegionId) => {
+      return currentRegionId ?? storedRegionId;
+    });
   }, []);
 
   useEffect(() => {
@@ -118,13 +71,7 @@ export function useRegionBootstrap() {
       return;
     }
 
-    const selectedRegion = selectedRegionId
-      ? regions.find((region) => region.id === selectedRegionId)
-      : null;
-    const preferredRegion = pickDefaultRegion(regions);
-
-    // Always prefer deterministic bootstrap region priority over stale localStorage.
-    const resolvedRegion = preferredRegion ?? selectedRegion;
+    const resolvedRegion = resolveRegionByIdOrDefault(regions, selectedRegionId);
 
     if (!resolvedRegion) {
       return;
@@ -134,7 +81,7 @@ export function useRegionBootstrap() {
       setSelectedRegionId(resolvedRegion.id);
     }
 
-    setStoredRegionId(resolvedRegion.id);
+    persistRegionPreference(toRegionInfo(resolvedRegion));
   }, [regions, selectedRegionId]);
 
   const selectedRegion = useMemo(() => {
@@ -146,21 +93,21 @@ export function useRegionBootstrap() {
   }, [regions, selectedRegionId]);
 
   const region = useMemo(() => {
-    if (!selectedRegion) {
-      return null;
+    if (selectedRegion) {
+      return toRegionInfo(selectedRegion);
     }
 
-    return toRegionInfo(selectedRegion);
-  }, [selectedRegion]);
+    return initialRegion;
+  }, [initialRegion, selectedRegion]);
 
   const setRegionById = (regionId: string) => {
-    const exists = regions.some((region) => region.id === regionId);
-    if (!exists) {
+    const nextRegion = regions.find((region) => region.id === regionId);
+    if (!nextRegion) {
       return;
     }
 
-    setSelectedRegionId(regionId);
-    setStoredRegionId(regionId);
+    setSelectedRegionId(nextRegion.id);
+    persistRegionPreference(toRegionInfo(nextRegion));
   };
 
   return {

@@ -13,6 +13,7 @@ import {
 } from "@techsio/storefront-data";
 import { cartStorage } from "./cart-storage";
 import { storefrontCacheConfig } from "./cache";
+import { REGION_STORAGE_KEY } from "./region-preferences";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
 
@@ -21,7 +22,6 @@ export const cartQueryKeys = createCartQueryKeys(
 );
 
 const baseCartService = createMedusaCartService(storefrontSdk);
-const REGION_STORAGE_KEY = "herbatika_region_id";
 
 const getPreferredRegionId = () => {
   if (typeof window === "undefined") {

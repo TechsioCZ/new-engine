@@ -1,40 +1,26 @@
 import type { HttpTypes } from "@medusajs/types";
+import type { FindParams } from "@medusajs/types";
 import {
   createCategoryHooks,
   createMedusaCategoryService,
   type MedusaCategoryDetailInput,
-  type MedusaCategoryListInput,
 } from "@techsio/storefront-data";
+import {
+  buildCategoryListParams,
+  DEFAULT_CATEGORY_PAGE_SIZE,
+  type StorefrontCategoryListInput,
+} from "./category-query-config";
 import { storefrontCacheConfig } from "./cache";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
 
-const DEFAULT_PAGE_SIZE = 24;
-
-type CategoryListInput = MedusaCategoryListInput & {
+type CategoryListInput = StorefrontCategoryListInput & {
   page?: number;
-};
-
-const toCategoryListParams = (
-  input: CategoryListInput,
-): MedusaCategoryListInput => {
-  const { page, limit, offset, ...rest } = input;
-
-  const resolvedLimit =
-    typeof limit === "number" && limit > 0 ? limit : DEFAULT_PAGE_SIZE;
-  const resolvedPage = typeof page === "number" && page > 0 ? page : 1;
-
-  return {
-    ...rest,
-    limit: resolvedLimit,
-    offset:
-      typeof offset === "number" ? offset : (resolvedPage - 1) * resolvedLimit,
-  };
 };
 
 export const categoryService = createMedusaCategoryService<
   HttpTypes.StoreProductCategory,
-  MedusaCategoryListInput,
+  FindParams & HttpTypes.StoreProductCategoryListParams,
   MedusaCategoryDetailInput
 >(storefrontSdk, {
   defaultListFields:
@@ -46,16 +32,16 @@ export const categoryService = createMedusaCategoryService<
 export const categoryHooks = createCategoryHooks<
   HttpTypes.StoreProductCategory,
   CategoryListInput,
-  MedusaCategoryListInput,
+  FindParams & HttpTypes.StoreProductCategoryListParams,
   MedusaCategoryDetailInput,
   MedusaCategoryDetailInput
 >({
   service: categoryService,
   queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
   cacheConfig: storefrontCacheConfig,
-  buildListParams: toCategoryListParams,
+  buildListParams: buildCategoryListParams,
   buildDetailParams: (input) => input,
-  defaultPageSize: DEFAULT_PAGE_SIZE,
+  defaultPageSize: DEFAULT_CATEGORY_PAGE_SIZE,
 });
 
 export const {
