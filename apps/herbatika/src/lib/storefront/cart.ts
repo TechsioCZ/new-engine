@@ -15,7 +15,6 @@ import {
 } from "@techsio/storefront-data";
 import { cartStorage } from "./cart-storage";
 import { storefrontCacheConfig } from "./cache";
-import { REGION_STORAGE_KEY } from "./region-preferences";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
 
@@ -24,14 +23,6 @@ export const cartQueryKeys = createCartQueryKeys(
 );
 
 const baseCartService = createMedusaCartService(storefrontSdk);
-
-const getPreferredRegionId = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return window.localStorage.getItem(REGION_STORAGE_KEY);
-};
 
 export const cartService = {
   async retrieveCart(
@@ -78,41 +69,11 @@ export const cartService = {
     cartId: string,
     params: MedusaCartAddItemParams,
   ): Promise<HttpTypes.StoreCart> {
-    const preferredRegionId = getPreferredRegionId();
-    let resolvedCartId = cartId;
-
-    if (preferredRegionId) {
-      try {
-        const { cart: existingCart } = await storefrontSdk.store.cart.retrieve(
-          cartId,
-          { fields: "id,region_id" },
-        );
-
-        const existingRegionId = existingCart?.region_id ?? null;
-
-        if (existingRegionId && existingRegionId !== preferredRegionId) {
-          const { cart: regionSyncedCart } = await storefrontSdk.store.cart.update(
-            cartId,
-            { region_id: preferredRegionId },
-          );
-
-          if (regionSyncedCart?.id) {
-            resolvedCartId = regionSyncedCart.id;
-          }
-        }
-      } catch {
-        // Best-effort only: fallback to original cart id on sync failure.
-      }
+    if (!baseCartService.addLineItem) {
+      throw new Error("addLineItem service is not configured");
     }
 
-    await storefrontSdk.store.cart.createLineItem(resolvedCartId, params);
-
-    const { cart } = await storefrontSdk.store.cart.retrieve(resolvedCartId);
-    if (!cart) {
-      throw new Error("Failed to add item to cart");
-    }
-
-    return cart;
+    return baseCartService.addLineItem(cartId, params);
   },
   async updateLineItem(
     cartId: string,
