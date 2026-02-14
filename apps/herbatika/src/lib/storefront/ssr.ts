@@ -38,6 +38,8 @@ const PDP_RELATED_PRODUCTS_FIELDS =
 const MEDUSA_BACKEND_URL =
   process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000";
 const MEDUSA_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? "";
+const SSR_STATIC_REVALIDATE_SECONDS = 60 * 60;
+const SSR_SEMI_STATIC_REVALIDATE_SECONDS = 2 * 60;
 
 type RegionListParams = HttpTypes.StoreRegionFilters & {
   fields?: string;
@@ -66,6 +68,31 @@ type QueryParamValue =
   | null[]
   | undefined[];
 type QueryInput = Record<string, QueryParamValue>;
+
+type SsrFetchProfile = "static" | "semiStatic";
+
+const SSR_FETCH_OPTIONS: Record<
+  SsrFetchProfile,
+  {
+    cache: RequestCache;
+    next: {
+      revalidate: number;
+    };
+  }
+> = {
+  static: {
+    cache: "force-cache",
+    next: {
+      revalidate: SSR_STATIC_REVALIDATE_SECONDS,
+    },
+  },
+  semiStatic: {
+    cache: "force-cache",
+    next: {
+      revalidate: SSR_SEMI_STATIC_REVALIDATE_SECONDS,
+    },
+  },
+};
 
 const buildListQueryKey = (
   resource: "products" | "categories" | "regions",
@@ -120,6 +147,7 @@ const toQueryString = (query: QueryInput): string => {
 const fetchStore = async <T>(
   path: string,
   query: unknown,
+  fetchProfile: SsrFetchProfile,
   signal?: AbortSignal,
 ): Promise<T> => {
   const normalizedQuery =
@@ -136,7 +164,7 @@ const fetchStore = async <T>(
     method: "GET",
     headers,
     signal,
-    cache: "no-store",
+    ...SSR_FETCH_OPTIONS[fetchProfile],
   });
 
   if (!response.ok) {
@@ -159,6 +187,7 @@ const fetchRegions = async (
   const response = await fetchStore<HttpTypes.StoreRegionListResponse>(
     "/store/regions",
     params,
+    "static",
     signal,
   );
 
@@ -175,6 +204,7 @@ const fetchCategories = async (
   const response = await fetchStore<HttpTypes.StoreProductCategoryListResponse>(
     "/store/product-categories",
     params,
+    "static",
     signal,
   );
 
@@ -191,6 +221,7 @@ const fetchProducts = async (
   return fetchStore<HttpTypes.StoreProductListResponse>(
     "/store/products",
     params,
+    "semiStatic",
     signal,
   );
 };
