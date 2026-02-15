@@ -1,7 +1,7 @@
 "use client";
 
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { Button } from "@techsio/ui-kit/atoms/button";
+import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Footer } from "@techsio/ui-kit/organisms/footer";
 import { HerbatikaLogo } from "./herbatika-logo";
@@ -82,41 +82,57 @@ const LANGUAGES: { code: string; icon: IconType; active?: boolean }[] = [
 
 export function HerbatikaFooter() {
   return (
-    <Footer className="w-full max-w-none px-0 py-0" direction="vertical">
-      <Footer.Container className="mx-auto grid w-full grid-cols-1 gap-x-750 gap-y-750 px-500 pt-850 pb-750 sm:grid-cols-2 xl:grid-cols-4">
-        <Footer.Section>
+    <Footer
+      className="w-full bg-surface max-w-none px-0 py-0"
+      direction="vertical"
+    >
+      <Footer.Container className="mx-auto grid w-full grid-cols-1 gap-x-0 gap-y-700 px-500 pt-850 pb-700 sm:grid-cols-2 xl:grid-cols-4 xl:gap-y-0">
+        <Footer.Section className="px-500 py-250">
           <HerbatikaLogo className="inline-flex" size="lg" />
 
-          <Footer.Text className="max-w-sm text-2xl leading-relaxed">
+          <Footer.Text className="max-w-sm text-md leading-normal">
             Váš partner pre zdravý životný štýl a vitalitu.
           </Footer.Text>
 
-          <Footer.Text className="mt-500 flex items-start gap-300 text-2xl text-primary">
-            <Icon className="mt-50 text-2xl text-fg-secondary" icon="icon-[mdi--phone-outline]" />
-            <span className="leading-snug">
-              <span className="block font-bold text-primary">+421 2/321 123 45</span>
-              <span className="block text-xl text-fg-secondary">
+          <Footer.Text className="mt-250 flex items-start gap-300 text-md text-primary">
+            <Icon
+              className="mt-50 text-2xl text-fg-secondary"
+              icon="icon-[mdi--phone-outline]"
+            />
+            <span className="leading-normal">
+              <span className="block text-md font-bold text-primary">
+                +421 2/321 123 45
+              </span>
+              <span className="block text-sm text-fg-secondary">
                 (Po-Pia: 9:00 - 16:00)
               </span>
             </span>
           </Footer.Text>
 
           <Footer.Link
-            className="mt-500 inline-flex items-center gap-300 text-2xl font-bold text-primary"
+            className="mt-500 inline-flex items-center gap-300 text-md font-bold text-primary"
             href="mailto:ahoj@herbatica.sk"
           >
-            <Icon className="text-2xl text-fg-secondary" icon="icon-[mdi--email-outline]" />
+            <Icon
+              className="text-2xl text-fg-secondary"
+              icon="icon-[mdi--email-outline]"
+            />
             ahoj@herbatica.sk
           </Footer.Link>
         </Footer.Section>
 
         {FOOTER_SECTIONS.map((section) => (
-          <Footer.Section key={section.title}>
-            <Footer.Title className="text-xl uppercase">{section.title}</Footer.Title>
+          <Footer.Section className="px-500 py-250" key={section.title}>
+            <Footer.Title className="text-md leading-relaxed uppercase">
+              {section.title}
+            </Footer.Title>
             <Footer.List className="bg-transparent">
               {section.links.map((link) => (
-                <li key={link.href}>
-                  <Footer.Link className="text-2xl leading-snug" href={link.href}>
+                <li className="pb-150 last:pb-0" key={link.href}>
+                  <Footer.Link
+                    className="text-md leading-normal"
+                    href={link.href}
+                  >
                     {link.label}
                   </Footer.Link>
                 </li>
@@ -126,17 +142,19 @@ export function HerbatikaFooter() {
         ))}
       </Footer.Container>
 
-      <Footer.Divider className="mx-auto max-w-footer-max bg-border-secondary" />
+      <Footer.Divider className="mx-auto max-w-footer-max bg-bg-disabled" />
 
-      <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-550 lg:flex-row lg:items-center">
+      <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-750 lg:flex-row lg:items-center lg:gap-900">
         <div className="flex flex-wrap items-center gap-300">
           {SOCIAL_LINKS.map((social) => (
             <Button
               aria-label={social.label}
-              className="h-12 w-12 rounded-full border border-border-secondary bg-surface text-3xl text-fg-secondary hover:text-primary"
+              className="h-10 w-10 rounded-full bg-bg-disabled text-2xl text-fg-secondary hover:text-primary"
               icon={social.icon}
               key={social.label}
-              onClick={() => window.open(social.href, "_blank", "noopener,noreferrer")}
+              onClick={() =>
+                window.open(social.href, "_blank", "noopener,noreferrer")
+              }
               size="current"
               theme="unstyled"
               type="button"
@@ -144,36 +162,40 @@ export function HerbatikaFooter() {
           ))}
         </div>
 
-        <div className="grid w-full gap-3 sm:grid-cols-3 lg:w-auto">
+        <div className="grid w-full gap-x-500 gap-y-300 sm:grid-cols-3 lg:w-auto lg:gap-y-0">
           {REVIEW_BADGES.map((badge) => (
             <article
-              className="rounded-button-md border border-border-secondary bg-surface px-600 py-450 text-center"
+              className="rounded-sm bg-overlay px-500 py-500 text-center"
               key={badge.brand}
             >
-              <Footer.Text className="text-2xl font-bold text-fg-primary">
-                {badge.brand} <span className="text-primary">{badge.score}</span>
+              <Footer.Text className="text-md font-bold leading-relaxed text-fg-primary">
+                {badge.brand}{" "}
+                <span className="text-primary">{badge.score}</span>
               </Footer.Text>
-              <Footer.Text className="text-lg text-fg-tertiary">{badge.votes}</Footer.Text>
+              <Footer.Text className="text-2xs leading-snug text-fg-disabled">
+                {badge.votes}
+              </Footer.Text>
             </article>
           ))}
         </div>
       </section>
 
-      <Footer.Divider className="mx-auto max-w-footer-max bg-border-secondary" />
+      <Footer.Divider className="mx-auto max-w-footer-max bg-border-primary" />
 
-      <Footer.Bottom className="mx-auto w-full max-w-footer-max flex-wrap items-center gap-400 border-0 px-500 py-550">
-        <Footer.Text className="text-xl leading-relaxed text-fg-secondary">
-          Copyright 2025 <strong className="text-fg-primary">Herbatica.sk.</strong> Všetky
+      <Footer.Bottom className="mx-auto w-full max-w-footer-max flex-wrap items-center gap-400 border-0 px-500 py-600">
+        <Footer.Text className="text-md leading-normal text-fg-secondary">
+          Copyright 2025{" "}
+          <strong className="text-fg-primary">Herbatica.sk.</strong> Všetky
           práva vyhradené.{" "}
           <Footer.Link className="text-primary underline" href="/#cookies">
             Upraviť nastavenie cookies
           </Footer.Link>
         </Footer.Text>
 
-        <div className="flex flex-wrap items-center justify-start gap-200 sm:justify-end">
+        <div className="flex flex-wrap items-center justify-start gap-150 sm:justify-end">
           {LANGUAGES.map((language) => (
             <Button
-              className={`rounded-full px-300 py-150 text-sm font-semibold ${
+              className={`rounded-sm px-200 py-150 text-sm font-semibold ${
                 language.active
                   ? "border border-primary/15 bg-primary/12 text-primary"
                   : "border border-border-secondary bg-surface text-fg-secondary"
