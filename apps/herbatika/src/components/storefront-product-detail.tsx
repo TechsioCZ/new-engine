@@ -23,6 +23,7 @@ import { HerbatikaHomeProductCard } from "@/components/herbatika-home-product-ca
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree";
 import {
+  STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
   useProduct,
@@ -59,9 +60,6 @@ type ProductOfferState = {
   stockAmount: number | null;
   isInStock: boolean;
 };
-
-const RELATED_PRODUCTS_FIELDS =
-  "id,title,handle,thumbnail,*variants.calculated_price";
 
 const PRODUCT_FALLBACK_IMAGE = "/file.svg";
 const RELATED_PRODUCTS_PER_SECTION = 4;
@@ -695,7 +693,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
     limit: RELATED_PRODUCTS_LIMIT,
     category_id: relatedCategoryIds.length > 0 ? relatedCategoryIds : undefined,
     order: "-created_at",
-    fields: RELATED_PRODUCTS_FIELDS,
+    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
     enabled: Boolean(region?.region_id && product?.id),
   });
 

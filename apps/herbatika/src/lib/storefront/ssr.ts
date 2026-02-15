@@ -22,6 +22,7 @@ import {
 } from "./plp-config";
 import {
   buildProductListParams,
+  STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
 } from "./product-query-config";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
@@ -36,8 +37,6 @@ import { resolveRegionByIdOrDefault, toRegionInfo } from "./region-selection";
 const HOMEPAGE_PRODUCTS_LIMIT = 24;
 const CATEGORY_LIST_LIMIT = 500;
 const PDP_RELATED_PRODUCTS_LIMIT = 13;
-const PDP_RELATED_PRODUCTS_FIELDS =
-  "id,title,handle,thumbnail,*variants.calculated_price";
 
 const MEDUSA_BACKEND_URL =
   process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000";
@@ -318,6 +317,7 @@ export const prefetchHomePageStorefrontData = async () => {
     const listParams = buildProductListParams({
       page: 1,
       limit: HOMEPAGE_PRODUCTS_LIMIT,
+      fields: STOREFRONT_PRODUCT_CARD_FIELDS,
       region_id: region.region_id,
       country_code: region.country_code,
     });
@@ -363,6 +363,7 @@ export const prefetchCategoryPageStorefrontData = async (
     const productListParams = buildProductListParams({
       page: queryState.page,
       limit: PLP_PAGE_SIZE,
+      fields: STOREFRONT_PRODUCT_CARD_FIELDS,
       category_id: categoryIds,
       order: sortOrder,
       q: searchQuery || undefined,
@@ -399,7 +400,7 @@ export const prefetchProductDetailPageStorefrontData = async (handle: string) =>
         limit: PDP_RELATED_PRODUCTS_LIMIT,
         category_id: relatedCategoryIds,
         order: "-created_at",
-        fields: PDP_RELATED_PRODUCTS_FIELDS,
+        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
         region_id: region.region_id,
         country_code: region.country_code,
       });

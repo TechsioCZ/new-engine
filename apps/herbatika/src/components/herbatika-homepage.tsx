@@ -16,8 +16,8 @@ import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
 import {
+  STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
-  usePrefetchPages,
   usePrefetchProduct,
   usePrefetchProducts,
   useProducts,
@@ -368,6 +368,7 @@ export function HerbatikaHomepage() {
   const productsQuery = useProducts({
     page: 1,
     limit: PRODUCT_FETCH_LIMIT,
+    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
     region_id: region?.region_id,
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
@@ -426,6 +427,7 @@ export function HerbatikaHomepage() {
       {
         page: 1,
         limit: PRODUCT_FETCH_LIMIT,
+        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
         region_id: region.region_id,
         country_code: region.country_code,
       },
@@ -438,6 +440,7 @@ export function HerbatikaHomepage() {
       {
         page: 2,
         limit: PRODUCT_FETCH_LIMIT,
+        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
         region_id: region.region_id,
         country_code: region.country_code,
       },
@@ -452,24 +455,6 @@ export function HerbatikaHomepage() {
     prefetchFirstPage,
     prefetchProducts,
   ]);
-
-  usePrefetchPages({
-    enabled: Boolean(region?.region_id && productsQuery.isSuccess),
-    shouldPrefetch: productsQuery.isSuccess,
-    baseInput: {
-      page: 1,
-      limit: PRODUCT_FETCH_LIMIT,
-      region_id: region?.region_id,
-      country_code: region?.country_code,
-    },
-    currentPage: productsQuery.currentPage,
-    hasNextPage: productsQuery.hasNextPage,
-    hasPrevPage: productsQuery.hasPrevPage,
-    totalPages: Math.max(productsQuery.totalPages, 1),
-    pageSize: PRODUCT_FETCH_LIMIT,
-    mode: "simple",
-    cacheStrategy: "semiStatic",
-  });
 
   useEffect(() => {
     if (!cartMessage) {

@@ -30,6 +30,7 @@ import {
   type ProductSortValue,
 } from "@/lib/storefront/plp-query-state";
 import {
+  STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchPages,
   usePrefetchProduct,
@@ -210,6 +211,7 @@ export function StorefrontCategoryListing({ slug }: StorefrontCategoryListingPro
     return {
       page: queryState.page,
       limit: PLP_PAGE_SIZE,
+      fields: STOREFRONT_PRODUCT_CARD_FIELDS,
       category_id: activeCategoryFilterIds.length > 0 ? activeCategoryFilterIds : undefined,
       order: sortOrder,
       q: searchQuery || undefined,
@@ -387,6 +389,7 @@ export function StorefrontCategoryListing({ slug }: StorefrontCategoryListingPro
                   {
                     page: 1,
                     limit: PLP_PAGE_SIZE,
+                    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
                     category_id: [category.id],
                     order: sortOrder,
                   },
@@ -409,6 +412,7 @@ export function StorefrontCategoryListing({ slug }: StorefrontCategoryListingPro
                   {
                     page: 1,
                     limit: PLP_PAGE_SIZE,
+                    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
                     category_id: [category.id],
                     order: sortOrder,
                   },

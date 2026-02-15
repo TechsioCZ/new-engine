@@ -10,6 +10,7 @@ import { storefrontCacheConfig } from "./cache";
 import {
   buildProductListParams,
   DEFAULT_PRODUCT_PAGE_SIZE,
+  STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   type StorefrontProductListInput,
 } from "./product-query-config";
@@ -30,8 +31,7 @@ export const productService = createMedusaProductService<
   HttpTypes.StoreProductListParams,
   MedusaProductDetailInput
 >(storefrontSdk, {
-  defaultListFields:
-    "id,title,handle,thumbnail,status,*variants.calculated_price,+metadata",
+  defaultListFields: STOREFRONT_PRODUCT_CARD_FIELDS,
   defaultDetailFields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
 });
 
@@ -62,5 +62,9 @@ export const {
   usePrefetchPages,
 } = productHooks;
 
-export { buildProductListParams, STOREFRONT_PRODUCT_DETAIL_FIELDS };
+export {
+  buildProductListParams,
+  STOREFRONT_PRODUCT_CARD_FIELDS,
+  STOREFRONT_PRODUCT_DETAIL_FIELDS,
+};
 export type { ProductListInput, ProductDetailInput };
