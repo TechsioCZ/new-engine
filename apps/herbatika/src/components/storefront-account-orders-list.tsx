@@ -10,7 +10,7 @@ import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
 import { Table } from "@techsio/ui-kit/organisms/table";
 import NextLink from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect } from "react";
 import {
   formatOrderAmount,
@@ -30,19 +30,6 @@ import {
 
 const ORDER_PAGE_SIZE = 10;
 
-const resolvePageFromSearch = (value: string | null) => {
-  if (!value) {
-    return 1;
-  }
-
-  const parsedPage = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsedPage) || parsedPage < 1) {
-    return 1;
-  }
-
-  return parsedPage;
-};
-
 const resolveOrderDisplayId = (order: HttpTypes.StoreOrder) => {
   if (order.display_id) {
     return `#${order.display_id}`;
@@ -53,12 +40,11 @@ const resolveOrderDisplayId = (order: HttpTypes.StoreOrder) => {
 
 export function StorefrontAccountOrdersList() {
   const queryClient = useQueryClient();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const authQuery = useAuth();
-  const searchQuery = searchParams.toString();
-  const currentPage = resolvePageFromSearch(searchParams.get("page"));
+  const [currentPage, setCurrentPage] = useQueryState(
+    "page",
+    parseAsInteger.withDefault(1),
+  );
   const ordersQuery = useOrders({
     page: currentPage,
     limit: ORDER_PAGE_SIZE,
@@ -68,25 +54,11 @@ export function StorefrontAccountOrdersList() {
   const setPage = useCallback(
     (nextPage: number, replaceHistoryEntry = false) => {
       const normalizedPage = Math.max(1, nextPage);
-      const nextParams = new URLSearchParams(searchQuery);
-
-      if (normalizedPage <= 1) {
-        nextParams.delete("page");
-      } else {
-        nextParams.set("page", String(normalizedPage));
-      }
-
-      const nextQuery = nextParams.toString();
-      const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
-
-      if (replaceHistoryEntry) {
-        router.replace(nextUrl);
-        return;
-      }
-
-      router.push(nextUrl);
+      void setCurrentPage(normalizedPage, {
+        history: replaceHistoryEntry ? "replace" : "push",
+      });
     },
-    [pathname, router, searchQuery],
+    [setCurrentPage],
   );
 
   useEffect(() => {

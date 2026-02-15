@@ -21,6 +21,7 @@ import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { HerbatikaHomeProductCard } from "@/components/herbatika-home-product-card";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
+import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree";
 import {
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
@@ -208,35 +209,6 @@ const resolveProductImages = (product: StorefrontProduct | null): string[] => {
   }
 
   return imageUrls.size > 0 ? Array.from(imageUrls) : [PRODUCT_FALLBACK_IMAGE];
-};
-
-const resolveRelatedCategoryIds = (product: StorefrontProduct | null): string[] => {
-  const productCategories = product?.categories ?? [];
-  if (productCategories.length === 0) {
-    return [];
-  }
-
-  const parentCategoryIds = new Set<string>();
-  const allCategoryIds = new Set<string>();
-
-  for (const category of productCategories) {
-    if (category.id) {
-      allCategoryIds.add(category.id);
-    }
-
-    if (category.parent_category_id) {
-      parentCategoryIds.add(category.parent_category_id);
-    }
-  }
-
-  const leafCategoryIds = Array.from(allCategoryIds).filter(
-    (categoryId) => !parentCategoryIds.has(categoryId),
-  );
-
-  return (leafCategoryIds.length > 0 ? leafCategoryIds : Array.from(allCategoryIds)).slice(
-    0,
-    3,
-  );
 };
 
 const resolveVariantLabel = (

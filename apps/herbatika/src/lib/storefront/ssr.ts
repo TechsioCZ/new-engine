@@ -10,6 +10,10 @@ import { dehydrate, getServerQueryClient } from "@techsio/storefront-data/server
 import type { QueryClient } from "@tanstack/react-query";
 import { cookies } from "next/headers";
 import { storefrontCacheConfig } from "./cache";
+import {
+  collectDescendantCategoryIds,
+  resolveRelatedCategoryIds,
+} from "./category-tree";
 import { buildCategoryListParams } from "./category-query-config";
 import {
   PLP_PAGE_SIZE,
@@ -254,76 +258,6 @@ const resolveCookieRegionPreference = async (): Promise<RegionInfo | null> => {
     cookieStore.get(REGION_STORAGE_KEY)?.value,
     cookieStore.get(REGION_COUNTRY_CODE_STORAGE_KEY)?.value,
   );
-};
-
-const resolveRelatedCategoryIds = (product: HttpTypes.StoreProduct | null): string[] => {
-  const productCategories = product?.categories ?? [];
-  if (productCategories.length === 0) {
-    return [];
-  }
-
-  const parentCategoryIds = new Set<string>();
-  const allCategoryIds = new Set<string>();
-
-  for (const category of productCategories) {
-    if (category.id) {
-      allCategoryIds.add(category.id);
-    }
-
-    if (category.parent_category_id) {
-      parentCategoryIds.add(category.parent_category_id);
-    }
-  }
-
-  const leafCategoryIds = Array.from(allCategoryIds).filter(
-    (categoryId) => !parentCategoryIds.has(categoryId),
-  );
-
-  return (leafCategoryIds.length > 0 ? leafCategoryIds : Array.from(allCategoryIds)).slice(
-    0,
-    3,
-  );
-};
-
-const collectDescendantCategoryIds = (
-  categories: HttpTypes.StoreProductCategory[],
-  rootCategoryId: string,
-): string[] => {
-  const childrenByParentId = new Map<string, string[]>();
-
-  for (const category of categories) {
-    if (!category.parent_category_id) {
-      continue;
-    }
-
-    const siblings = childrenByParentId.get(category.parent_category_id) ?? [];
-    siblings.push(category.id);
-    childrenByParentId.set(category.parent_category_id, siblings);
-  }
-
-  const stack = [rootCategoryId];
-  const visited = new Set<string>([rootCategoryId]);
-  const descendants: string[] = [];
-
-  while (stack.length > 0) {
-    const currentId = stack.pop();
-    if (!currentId) {
-      continue;
-    }
-
-    const childIds = childrenByParentId.get(currentId) ?? [];
-    for (const childId of childIds) {
-      if (visited.has(childId)) {
-        continue;
-      }
-
-      visited.add(childId);
-      descendants.push(childId);
-      stack.push(childId);
-    }
-  }
-
-  return descendants;
 };
 
 const getRegionServerContext = async () => {

@@ -1,4 +1,3 @@
-import { RegionProvider } from "@techsio/storefront-data/shared";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { HerbatikaHomepage } from "@/components/herbatika-homepage";
@@ -11,13 +10,11 @@ function HomePageFallback() {
 
 async function HomePageContent() {
   await connection();
-  const { dehydratedState, region } = await prefetchHomePageStorefrontData();
+  const { dehydratedState } = await prefetchHomePageStorefrontData();
 
   return (
     <StorefrontHydrationBoundary state={dehydratedState}>
-      <RegionProvider region={region}>
-        <HerbatikaHomepage />
-      </RegionProvider>
+      <HerbatikaHomepage />
     </StorefrontHydrationBoundary>
   );
 }

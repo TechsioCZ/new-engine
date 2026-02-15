@@ -9,28 +9,29 @@ import { Pagination } from "@techsio/ui-kit/molecules/pagination";
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card";
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import NextLink from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
-import type {
-  StorefrontSearchHit,
-  StorefrontSearchResult,
-} from "@/lib/storefront/meili-search";
+import { useStorefrontSearch } from "@/lib/storefront/search";
 
 const SEARCH_RESULT_LIMIT = 24;
 const PRODUCT_FALLBACK_IMAGE = "/file.svg";
 
-type SearchState = {
-  isLoading: boolean;
-  error: string | null;
-  result: StorefrontSearchResult | null;
+const searchQueryParsers = {
+  q: parseAsString.withDefault(""),
+  page: parseAsInteger.withDefault(1),
 };
 
-const createEmptyState = (): SearchState => {
-  return {
-    isLoading: false,
-    error: null,
-    result: null,
-  };
+const normalizePage = (value: number): number => {
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+
+  const normalizedPage = Math.trunc(value);
+  if (normalizedPage < 1) {
+    return 1;
+  }
+
+  return normalizedPage;
 };
 
 const resolveErrorMessage = (error: unknown): string => {
@@ -43,35 +44,6 @@ const resolveErrorMessage = (error: unknown): string => {
   }
 
   return "Vyhľadávanie zlyhalo.";
-};
-
-const normalizeQuery = (value: string | null): string => {
-  return (value ?? "").trim();
-};
-
-const normalizePage = (value: string | null): number => {
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) {
-    return 1;
-  }
-
-  const normalizedPage = Math.trunc(numericValue);
-  if (normalizedPage < 1) {
-    return 1;
-  }
-
-  return normalizedPage;
-};
-
-const buildSearchHref = (query: string, page: number): string => {
-  const normalizedPage = Math.max(1, Math.trunc(page));
-  const encodedQuery = encodeURIComponent(query);
-
-  if (normalizedPage <= 1) {
-    return `/search?q=${encodedQuery}`;
-  }
-
-  return `/search?q=${encodedQuery}&page=${normalizedPage}`;
 };
 
 const renderSkeletonCards = () => {
@@ -91,98 +63,50 @@ const renderSkeletonCards = () => {
 };
 
 export function StorefrontSearchResults() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const query = useMemo(() => normalizeQuery(searchParams.get("q")), [searchParams]);
-  const currentPage = useMemo(
-    () => normalizePage(searchParams.get("page")),
-    [searchParams],
-  );
-  const [state, setState] = useState<SearchState>(() => createEmptyState());
+  const [queryState, setQueryState] = useQueryStates(searchQueryParsers);
+  const query = queryState.q.trim();
+  const currentPage = normalizePage(queryState.page);
+  const [searchDraft, setSearchDraft] = useState(query);
 
   useEffect(() => {
-    if (!query) {
-      setState(createEmptyState());
-      return;
-    }
+    setSearchDraft(query);
+  }, [query]);
 
-    let isMounted = true;
-    const controller = new AbortController();
+  const searchQuery = useStorefrontSearch({
+    q: query,
+    page: currentPage,
+    limit: SEARCH_RESULT_LIMIT,
+  });
 
-    setState((previousState) => ({
-      ...previousState,
-      isLoading: true,
-      error: null,
-    }));
-
-    const run = async () => {
-      try {
-        const response = await fetch(
-          `/api/storefront-search?q=${encodeURIComponent(query)}&limit=${SEARCH_RESULT_LIMIT}&page=${currentPage}`,
-          {
-            method: "GET",
-            signal: controller.signal,
-            cache: "no-store",
-          },
-        );
-
-        const payload = (await response.json()) as
-          | StorefrontSearchResult
-          | { message?: string };
-
-        if (!response.ok) {
-          const payloadMessage =
-            payload && typeof payload === "object" && "message" in payload
-              ? payload.message
-              : null;
-          throw new Error(
-            typeof payloadMessage === "string" && payloadMessage.trim().length > 0
-              ? payloadMessage
-              : `Search failed with status ${response.status}`,
-          );
-        }
-
-        if (!isMounted) {
-          return;
-        }
-
-        setState({
-          isLoading: false,
-          error: null,
-          result: payload as StorefrontSearchResult,
-        });
-      } catch (error) {
-        if (!isMounted || controller.signal.aborted) {
-          return;
-        }
-
-        setState({
-          isLoading: false,
-          error: resolveErrorMessage(error),
-          result: null,
-        });
-      }
-    };
-
-    void run();
-
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, [currentPage, query]);
+  const result = searchQuery.data;
+  const hits = result?.hits ?? [];
 
   useEffect(() => {
-    if (!(query && state.result && state.result.totalPages > 0)) {
+    if (!(query && result && result.totalPages > 0)) {
       return;
     }
 
-    if (currentPage <= state.result.totalPages) {
+    if (currentPage <= result.totalPages) {
       return;
     }
 
-    router.replace(buildSearchHref(query, state.result.totalPages));
-  }, [currentPage, query, router, state.result]);
+    void setQueryState(
+      {
+        page: result.totalPages,
+      },
+      {
+        history: "replace",
+      },
+    );
+  }, [currentPage, query, result, setQueryState]);
+
+  const pageBadgeLabel = useMemo(() => {
+    if (result && result.totalPages > 0) {
+      return `strana: ${result.page}/${result.totalPages}`;
+    }
+
+    return `strana: ${currentPage}`;
+  }, [currentPage, result]);
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const formData = new FormData(event.currentTarget);
@@ -190,18 +114,32 @@ export function StorefrontSearchResults() {
     const nextQuery = typeof formValue === "string" ? formValue.trim() : "";
 
     if (!nextQuery) {
-      router.replace("/search");
+      void setQueryState(
+        {
+          q: "",
+          page: 1,
+        },
+        {
+          history: "replace",
+        },
+      );
       return;
     }
 
-    router.push(buildSearchHref(nextQuery, 1));
+    void setQueryState(
+      {
+        q: nextQuery,
+        page: 1,
+      },
+      {
+        history: "push",
+      },
+    );
   };
 
-  const hits: StorefrontSearchHit[] = state.result?.hits ?? [];
-  const pageBadgeLabel =
-    state.result && state.result.totalPages > 0
-      ? `strana: ${state.result.page}/${state.result.totalPages}`
-      : `strana: ${currentPage}`;
+  const errorMessage = searchQuery.error
+    ? resolveErrorMessage(searchQuery.error)
+    : null;
 
   return (
     <main className="mx-auto w-full max-w-[1418px] px-4 py-8 lg:px-6">
@@ -216,8 +154,9 @@ export function StorefrontSearchResults() {
 
           <SearchForm
             className="w-full max-w-[620px]"
-            defaultValue={query}
             onSubmit={handleSearchSubmit}
+            onValueChange={setSearchDraft}
+            value={searchDraft}
           >
             <SearchForm.Control className="rounded-[12px] border-border-secondary bg-surface">
               <SearchForm.Input
@@ -237,18 +176,16 @@ export function StorefrontSearchResults() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="info">{`dotaz: ${query}`}</Badge>
               <Badge variant="secondary">
-                {`nájdené: ${state.result?.estimatedTotalHits ?? 0}`}
+                {`nájdené: ${result?.estimatedTotalHits ?? 0}`}
               </Badge>
               <Badge variant="secondary">
                 {`zobrazené: ${hits.length}`}
               </Badge>
-              <Badge variant="secondary">
-                {pageBadgeLabel}
-              </Badge>
+              <Badge variant="secondary">{pageBadgeLabel}</Badge>
             </div>
           ) : null}
 
-          {state.error ? <ErrorText showIcon>{state.error}</ErrorText> : null}
+          {errorMessage ? <ErrorText showIcon>{errorMessage}</ErrorText> : null}
 
           {!query ? (
             <p className="text-sm text-fg-secondary">
@@ -256,21 +193,21 @@ export function StorefrontSearchResults() {
             </p>
           ) : null}
 
-          {state.isLoading ? (
+          {searchQuery.isLoading ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {renderSkeletonCards()}
             </div>
           ) : null}
 
-          {!state.isLoading && query && hits.length === 0 && !state.error ? (
+          {!searchQuery.isLoading && query && hits.length === 0 && !errorMessage ? (
             <p className="text-sm text-fg-secondary">
-              {(state.result?.estimatedTotalHits ?? 0) === 0
+              {(result?.estimatedTotalHits ?? 0) === 0
                 ? "Pre zadaný výraz sme nenašli žiadny produkt."
                 : "Na tejto strane nie sú žiadne produkty."}
             </p>
           ) : null}
 
-          {!state.isLoading && hits.length > 0 ? (
+          {!searchQuery.isLoading && hits.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {hits.map((hit) => {
                 const href = `/p/${hit.handle}`;
@@ -317,21 +254,28 @@ export function StorefrontSearchResults() {
             </div>
           ) : null}
 
-          {!state.isLoading &&
-          !state.error &&
+          {!searchQuery.isLoading &&
+          !errorMessage &&
           query &&
-          (state.result?.totalPages ?? 0) > 1 ? (
+          (result?.totalPages ?? 0) > 1 ? (
             <Pagination
-              count={state.result?.estimatedTotalHits ?? 0}
+              count={result?.estimatedTotalHits ?? 0}
               onPageChange={(nextPage) => {
                 if (nextPage === currentPage) {
                   return;
                 }
 
-                router.push(buildSearchHref(query, nextPage));
+                void setQueryState(
+                  {
+                    page: nextPage,
+                  },
+                  {
+                    history: "push",
+                  },
+                );
               }}
               page={currentPage}
-              pageSize={state.result?.pageSize ?? SEARCH_RESULT_LIMIT}
+              pageSize={result?.pageSize ?? SEARCH_RESULT_LIMIT}
               size="sm"
               variant="outlined"
             />

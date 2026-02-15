@@ -21,6 +21,7 @@ import {
   usePrefetchCategories,
   usePrefetchCategory,
 } from "@/lib/storefront/categories";
+import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree";
 import {
   PLP_PAGE_SIZE,
   plpQueryParsers,
@@ -66,47 +67,6 @@ const resolveCategoryRank = (category: HttpTypes.StoreProductCategory) => {
   }
 
   return Number.MAX_SAFE_INTEGER;
-};
-
-const collectDescendantCategoryIds = (
-  categories: HttpTypes.StoreProductCategory[],
-  rootCategoryId: string,
-) => {
-  const childrenByParentId = new Map<string, string[]>();
-
-  for (const category of categories) {
-    if (!category.parent_category_id) {
-      continue;
-    }
-
-    const siblings = childrenByParentId.get(category.parent_category_id) ?? [];
-    siblings.push(category.id);
-    childrenByParentId.set(category.parent_category_id, siblings);
-  }
-
-  const stack: string[] = [rootCategoryId];
-  const visited = new Set<string>([rootCategoryId]);
-  const descendants: string[] = [];
-
-  while (stack.length > 0) {
-    const currentId = stack.pop();
-    if (!currentId) {
-      continue;
-    }
-
-    const childIds = childrenByParentId.get(currentId) ?? [];
-    for (const childId of childIds) {
-      if (visited.has(childId)) {
-        continue;
-      }
-
-      visited.add(childId);
-      descendants.push(childId);
-      stack.push(childId);
-    }
-  }
-
-  return descendants;
 };
 
 const SORT_SELECT_ITEMS: SelectItem[] = PRODUCT_SORT_OPTIONS.map((option) => ({

@@ -1,4 +1,3 @@
-import { RegionProvider } from "@techsio/storefront-data/shared";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { StorefrontProductDetail } from "@/components/storefront-product-detail";
@@ -18,15 +17,11 @@ function ProductDetailPageFallback() {
 async function ProductDetailPageContent({ params }: ProductDetailPageProps) {
   await connection();
   const { handle } = await params;
-  const { dehydratedState, region } = await prefetchProductDetailPageStorefrontData(
-    handle,
-  );
+  const { dehydratedState } = await prefetchProductDetailPageStorefrontData(handle);
 
   return (
     <StorefrontHydrationBoundary state={dehydratedState}>
-      <RegionProvider region={region}>
-        <StorefrontProductDetail handle={handle} />
-      </RegionProvider>
+      <StorefrontProductDetail handle={handle} />
     </StorefrontHydrationBoundary>
   );
 }

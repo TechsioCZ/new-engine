@@ -1,4 +1,3 @@
-import { RegionProvider } from "@techsio/storefront-data/shared";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -39,16 +38,14 @@ async function CategoryPageContent({
   }
 
   const queryState = parsePlpQueryStateFromSearchParams(resolvedSearchParams);
-  const { dehydratedState, region } = await prefetchCategoryPageStorefrontData(
+  const { dehydratedState } = await prefetchCategoryPageStorefrontData(
     normalizedSlug,
     queryState,
   );
 
   return (
     <StorefrontHydrationBoundary state={dehydratedState}>
-      <RegionProvider region={region}>
-        <StorefrontCategoryListing slug={normalizedSlug} />
-      </RegionProvider>
+      <StorefrontCategoryListing slug={normalizedSlug} />
     </StorefrontHydrationBoundary>
   );
 }
