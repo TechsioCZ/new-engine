@@ -10,6 +10,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import { Header } from "@techsio/ui-kit/organisms/header";
 import NextLink from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/storefront/cart";
 import {
@@ -76,6 +77,7 @@ const formatPrice = (amount: number, currency: "EUR" | "CZK") => {
 };
 
 export function HerbatikaHeader() {
+  const router = useRouter();
   const region = useRegionContext();
   const [cartId, setCartId] = useState<string | null>(() => getStoredCartId());
 
@@ -117,6 +119,19 @@ export function HerbatikaHeader() {
   const currency = REGION_TO_CURRENCY[region?.country_code ?? ""] ?? "EUR";
   const cartTotalLabel = formatPrice(resolveCartTotalAmount(cart), currency);
 
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const formData = new FormData(event.currentTarget);
+    const queryValue = formData.get("q");
+    const query = typeof queryValue === "string" ? queryValue.trim() : "";
+
+    if (!query) {
+      router.push("/search");
+      return;
+    }
+
+    router.push(`/search?q=${encodeURIComponent(query)}`);
+  };
+
   return (
     <Header
       className="relative z-50 border-b border-border-secondary bg-surface"
@@ -125,7 +140,10 @@ export function HerbatikaHeader() {
       <Header.Container className="mx-auto flex w-full max-w-[1418px] items-center gap-3 px-4 py-5 lg:px-6">
         <HerbatikaLogo className="shrink-0" />
 
-        <SearchForm className="mx-auto hidden w-full max-w-[490px] md:grid">
+        <SearchForm
+          className="mx-auto hidden w-full max-w-[490px] md:grid"
+          onSubmit={handleSearchSubmit}
+        >
           <SearchForm.Control className="rounded-[12px] border-border-secondary bg-surface">
             <SearchForm.Input
               className="h-12 text-lg"
@@ -270,7 +288,7 @@ export function HerbatikaHeader() {
         position="left"
       >
         <div className="border-border-secondary border-b p-4">
-          <SearchForm className="w-full">
+          <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
             <SearchForm.Control className="rounded-[12px] border-border-secondary bg-surface">
               <SearchForm.Input name="q" placeholder="Napíšte, čo hľadáte..." />
               <SearchForm.Button aria-label="Hľadať" showSearchIcon />
