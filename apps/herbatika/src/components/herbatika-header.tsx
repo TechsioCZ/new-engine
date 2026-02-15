@@ -134,42 +134,41 @@ export function HerbatikaHeader() {
 
   return (
     <Header
-      className="relative z-50 border-b border-border-secondary bg-surface"
+      className="relative z-50 w-full border-b border-border-secondary bg-header-bg"
       direction="vertical"
     >
-      <Header.Container className="mx-auto flex w-full max-w-[1418px] items-center gap-3 px-4 py-5 lg:px-6">
-        <HerbatikaLogo className="shrink-0" />
+      <Header.Container className="mx-auto flex w-full max-w-[96rem] items-center gap-600 px-400 py-300 md:px-600">
+        <HerbatikaLogo className="shrink-0" size="lg" />
 
-        <SearchForm
-          className="mx-auto hidden w-full max-w-[490px] md:grid"
-          onSubmit={handleSearchSubmit}
-        >
-          <SearchForm.Control className="rounded-[12px] border-border-secondary bg-surface">
-            <SearchForm.Input
-              className="h-12 text-lg"
-              name="q"
-              placeholder="Napíšte, čo hľadáte..."
-            />
-            <SearchForm.Button
-              aria-label="Hľadať"
-              className="min-w-14 rounded-r-[12px] px-4"
-              showSearchIcon
-            />
-          </SearchForm.Control>
-        </SearchForm>
+        <div className="hidden w-full max-w-[30.625rem] flex-1 md:block">
+          <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
+            <SearchForm.Control className="h-12 rounded-search-form border-border-secondary bg-surface">
+              <SearchForm.Input
+                className="h-full px-500 text-lg text-fg-secondary placeholder:text-fg-tertiary"
+                name="q"
+                placeholder="Napíšte, čo hľadáte..."
+              />
+              <SearchForm.Button
+                aria-label="Hľadať"
+                className="min-w-14 rounded-r-search-form rounded-l-none px-450"
+                showSearchIcon
+              />
+            </SearchForm.Control>
+          </SearchForm>
+        </div>
 
-        <div className="hidden items-center gap-4 lg:flex">
+        <div className="hidden items-center gap-450 lg:flex">
           <Link
             as={NextLink}
-            className="inline-flex items-center gap-2 text-fg-secondary hover:text-fg-primary"
+            className="inline-flex items-center gap-300 text-fg-secondary hover:text-fg-primary"
             href="tel:+421232112345"
           >
-            <Icon className="text-3xl" icon="icon-[mdi--phone-outline]" />
+            <Icon className="text-2xl" icon="icon-[mdi--phone-outline]" />
             <span className="leading-tight">
-              <span className="block text-lg font-semibold text-fg-primary">
+              <span className="block text-2xl font-bold text-fg-primary">
                 +421 2/321 123 45
               </span>
-              <span className="block text-sm text-fg-tertiary">
+              <span className="block text-lg text-fg-tertiary">
                 (Po-Pia: 09:00 - 16:00)
               </span>
             </span>
@@ -198,7 +197,7 @@ export function HerbatikaHeader() {
           <div className="relative">
             <LinkButton
               as={NextLink}
-              className="rounded-[10px] px-4 py-2 text-xl font-bold"
+              className="px-450 py-300 text-xl font-bold"
               href="/checkout"
               icon="token-icon-cart"
               size="sm"
@@ -215,11 +214,11 @@ export function HerbatikaHeader() {
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2 lg:hidden">
+        <div className="ml-auto flex items-center gap-250 lg:hidden">
           <div className="relative">
             <LinkButton
               as={NextLink}
-              className="rounded-[10px] px-3 py-2 text-sm font-bold"
+              className="px-350 py-250 text-xl font-bold"
               href="/checkout"
               icon="token-icon-cart"
               size="sm"
@@ -235,30 +234,27 @@ export function HerbatikaHeader() {
             </Badge>
           </div>
 
-          <Header.Hamburger className="rounded-[10px] border border-border-secondary p-2 text-2xl text-fg-primary" />
+          <Header.Hamburger className="border border-border-secondary text-2xl text-fg-primary" />
         </div>
       </Header.Container>
 
       <Header.Desktop className="w-full bg-primary">
-        <Header.Container className="mx-auto flex w-full max-w-[1418px] items-center justify-between px-4 lg:px-6">
-          <Header.Nav className="flex-nowrap gap-0">
+        <Header.Container className="mx-auto flex min-h-11 w-full max-w-[96rem] items-center justify-between gap-300 px-300 md:px-600">
+          <Header.Nav className="flex-nowrap gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {PRIMARY_NAV_ITEMS.map((item) => (
-              <Header.NavItem
-                className="px-3 py-3 text-sm font-bold text-fg-reverse hover:bg-white/12"
-                key={item.href}
-              >
-                <Link as={NextLink} className="whitespace-nowrap" href={item.href}>
+              <Header.NavItem className="shrink-0 py-300" key={item.href}>
+                <Link as={NextLink} className="whitespace-nowrap leading-none" href={item.href}>
                   {item.label}
                 </Link>
               </Header.NavItem>
             ))}
           </Header.Nav>
 
-          <Header.Actions className="gap-2 py-2">
+          <Header.Actions className="gap-300 pl-300">
             <Header.ActionItem>
               <LinkButton
                 as={NextLink}
-                className="rounded-[10px] px-4 py-2 text-2xl font-bold"
+                className="px-500 py-250 text-xl font-bold"
                 href="/c/darceky"
                 icon="icon-[mdi--gift-outline]"
                 size="sm"
@@ -270,7 +266,7 @@ export function HerbatikaHeader() {
             <Header.ActionItem>
               <LinkButton
                 as={NextLink}
-                className="rounded-[10px] px-4 py-2 text-2xl font-bold"
+                className="px-500 py-250 text-xl font-bold"
                 href="/c/vypredaj-zlavy-a-akcie"
                 icon="icon-[mdi--fire]"
                 size="sm"
@@ -284,13 +280,17 @@ export function HerbatikaHeader() {
       </Header.Desktop>
 
       <Header.Mobile
-        className="z-40 w-full border-t border-border-secondary bg-surface shadow-md"
+        className="w-full border-t border-border-secondary bg-surface"
         position="left"
       >
-        <div className="border-border-secondary border-b p-4">
+        <div className="border-border-secondary border-b p-400">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
-            <SearchForm.Control className="rounded-[12px] border-border-secondary bg-surface">
-              <SearchForm.Input name="q" placeholder="Napíšte, čo hľadáte..." />
+            <SearchForm.Control className="h-12 rounded-search-form border-border-secondary bg-surface">
+              <SearchForm.Input
+                className="h-full px-500 text-lg text-fg-secondary placeholder:text-fg-tertiary"
+                name="q"
+                placeholder="Napíšte, čo hľadáte..."
+              />
               <SearchForm.Button aria-label="Hľadať" showSearchIcon />
             </SearchForm.Control>
           </SearchForm>
@@ -299,7 +299,7 @@ export function HerbatikaHeader() {
         <Header.Nav className="w-full gap-0">
           {PRIMARY_NAV_ITEMS.map((item) => (
             <Header.NavItem
-              className="w-full border-border-secondary border-b px-4 py-3 text-sm font-bold text-fg-primary"
+              className="w-full border-border-secondary border-b"
               key={`mobile-${item.href}`}
             >
               <Link as={NextLink} className="w-full" href={item.href}>
@@ -309,11 +309,11 @@ export function HerbatikaHeader() {
           ))}
         </Header.Nav>
 
-        <div className="flex gap-2 p-4">
+        <div className="flex gap-300 p-400">
           <LinkButton
             as={NextLink}
             block
-            className="justify-center rounded-[10px] font-bold"
+            className="justify-center font-bold"
             href="/c/darceky"
             icon="icon-[mdi--gift-outline]"
             size="sm"
@@ -324,7 +324,7 @@ export function HerbatikaHeader() {
           <LinkButton
             as={NextLink}
             block
-            className="justify-center rounded-[10px] font-bold"
+            className="justify-center font-bold"
             href="/c/vypredaj-zlavy-a-akcie"
             icon="icon-[mdi--fire]"
             size="sm"

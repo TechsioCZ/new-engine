@@ -1,3 +1,44 @@
 @theme static {
-  --header-height: 64px;
+  --color-header-bg: var(--color-surface);
+  --color-header-fg: var(--color-fg-primary);
+  --color-header-nav-fg: var(--color-fg-reverse);
+  --color-header-nav-fg-hover: var(--color-fg-reverse);
+  --color-header-nav-fg-active: var(--color-fg-reverse);
+  --color-header-actions-fg: var(--color-fg-reverse);
+  --color-header-actions-fg-hover: var(--color-fg-reverse);
+  --color-header-hamburger-fg: var(--color-fg-primary);
+  --color-header-hamburger-fg-hover: var(--color-primary);
+
+  --color-header-nav-item-bg: transparent;
+  --color-header-nav-item-bg-hover: transparent;
+
+  --font-weight-header-nav: var(--font-weight-semibold);
+  --font-weight-header-nav-active: var(--font-weight-semibold);
+
+  --text-header-item-sm: var(--text-sm);
+  --text-header-item-md: var(--text-sm);
+  --text-header-item-lg: var(--text-sm);
+
+  --width-header-max: 96rem;
+
+  --spacing-header-container: var(--spacing-300);
+  --spacing-header-nav-sm: var(--spacing-150);
+  --spacing-header-nav-md: var(--spacing-150);
+  --spacing-header-nav-lg: var(--spacing-150);
+  --spacing-header-actions-sm: var(--spacing-300);
+  --spacing-header-actions-md: var(--spacing-300);
+  --spacing-header-actions-lg: var(--spacing-300);
+
+  --padding-header-item-sm: var(--spacing-300);
+  --padding-header-item-md: var(--spacing-300);
+  --padding-header-item-lg: var(--spacing-300);
+  --padding-header-hamburger-sm: var(--spacing-300);
+  --padding-header-hamburger-md: var(--spacing-300);
+  --padding-header-hamburger-lg: var(--spacing-300);
+
+  --text-header-hamburger-sm: var(--text-2xl);
+  --text-header-hamburger-md: var(--text-2xl);
+  --text-header-hamburger-lg: var(--text-2xl);
+
+  --container-header-desktop: 64rem;
 }

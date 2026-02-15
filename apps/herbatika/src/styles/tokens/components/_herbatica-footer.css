@@ -1,0 +1,63 @@
+@theme static {
+  --footer-cols: repeat(4, minmax(0, 1fr));
+
+  --color-footer-bg: var(--color-base);
+  --color-footer-container-bg: transparent;
+  --color-footer-section-bg: transparent;
+  --color-footer-list-bg: transparent;
+  --color-footer-bottom-bg: transparent;
+
+  --color-footer-title-fg: var(--color-fg-primary);
+  --color-footer-title-fg-hover: var(--color-fg-primary);
+  --color-footer-link-fg: var(--color-fg-secondary);
+  --color-footer-link-fg-hover: var(--color-primary);
+  --color-footer-text-fg: var(--color-fg-secondary);
+  --color-footer-divider-bg: var(--color-border-secondary);
+
+  --text-footer-title-sm: var(--text-lg);
+  --text-footer-title-md: var(--text-lg);
+  --text-footer-title-lg: var(--text-lg);
+
+  --text-footer-link-sm: var(--text-2xl);
+  --text-footer-link-md: var(--text-2xl);
+  --text-footer-link-lg: var(--text-2xl);
+
+  --text-footer-text-sm: var(--text-xl);
+  --text-footer-text-md: var(--text-xl);
+  --text-footer-text-lg: var(--text-xl);
+
+  --font-weight-footer-title: var(--font-weight-bold);
+  --font-weight-footer-link: var(--font-weight-regular);
+
+  --container-footer-max: 88.625rem;
+
+  --padding-footer-root-sm: 0;
+  --padding-footer-root-md: 0;
+  --padding-footer-root-lg: 0;
+
+  --spacing-footer-container-sm: var(--spacing-600);
+  --spacing-footer-container-md: var(--spacing-700);
+  --spacing-footer-container-lg: var(--spacing-700);
+
+  --spacing-footer-section-sm: var(--spacing-300);
+  --spacing-footer-section-md: var(--spacing-300);
+  --spacing-footer-section-lg: var(--spacing-300);
+
+  --spacing-footer-list-gap: var(--spacing-300);
+  --spacing-footer-list-gap-sm: var(--spacing-300);
+  --spacing-footer-list-gap-md: var(--spacing-300);
+  --spacing-footer-list-gap-lg: var(--spacing-300);
+
+  --padding-footer-bottom: var(--spacing-500);
+  --padding-footer-bottom-sm: var(--spacing-500);
+  --padding-footer-bottom-md: var(--spacing-500);
+  --padding-footer-bottom-lg: var(--spacing-500);
+
+  --margin-footer-divider-sm: 0;
+  --margin-footer-divider-md: 0;
+  --margin-footer-divider-lg: 0;
+
+  --border-width-footer: var(--border-width-sm);
+  --height-footer-divider: 1px;
+  --radius-footer: 0;
+}
