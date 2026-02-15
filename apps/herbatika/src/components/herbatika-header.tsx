@@ -35,7 +35,9 @@ const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
   sk: "EUR",
 };
 
-const resolveCartTotalAmount = (cart: HttpTypes.StoreCart | null | undefined) => {
+const resolveCartTotalAmount = (
+  cart: HttpTypes.StoreCart | null | undefined,
+) => {
   if (!cart) {
     return 0;
   }
@@ -58,7 +60,8 @@ const resolveCartTotalAmount = (cart: HttpTypes.StoreCart | null | undefined) =>
         return total + item.subtotal;
       }
 
-      const unitPrice = typeof item.unit_price === "number" ? item.unit_price : 0;
+      const unitPrice =
+        typeof item.unit_price === "number" ? item.unit_price : 0;
       const quantity = typeof item.quantity === "number" ? item.quantity : 1;
       return total + unitPrice * quantity;
     }, 0) ?? 0
@@ -137,14 +140,14 @@ export function HerbatikaHeader() {
       className="relative z-50 w-full border-b border-border-secondary bg-header-bg"
       direction="vertical"
     >
-      <Header.Container className="mx-auto flex w-full max-w-[96rem] items-center gap-600 px-400 py-300 md:px-600">
+      <Header.Container className="mx-auto flex w-full max-w-max-w items-center gap-600 px-400 py-300 @header-desktop:px-600">
         <HerbatikaLogo className="shrink-0" size="lg" />
 
-        <div className="hidden w-full max-w-[30.625rem] flex-1 md:block">
+        <div className="hidden w-full max-w-[30.625rem] flex-1 @header-desktop:block">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
             <SearchForm.Control className="h-12 rounded-search-form border-border-secondary bg-surface">
               <SearchForm.Input
-                className="h-full px-500 text-lg text-fg-secondary placeholder:text-fg-tertiary"
+                className="h-full px-500 text-md text-fg-secondary placeholder:text-fg-placeholder"
                 name="q"
                 placeholder="Napíšte, čo hľadáte..."
               />
@@ -157,18 +160,18 @@ export function HerbatikaHeader() {
           </SearchForm>
         </div>
 
-        <div className="hidden items-center gap-450 lg:flex">
+        <div className="flex items-center gap-450 @max-header-desktop:hidden">
           <Link
             as={NextLink}
             className="inline-flex items-center gap-300 text-fg-secondary hover:text-fg-primary"
             href="tel:+421232112345"
           >
             <Icon className="text-2xl" icon="icon-[mdi--phone-outline]" />
-            <span className="leading-tight">
-              <span className="block text-2xl font-bold text-fg-primary">
+            <span className="leading-snug">
+              <span className="block text-md font-semibold leading-snug text-fg-primary">
                 +421 2/321 123 45
               </span>
-              <span className="block text-lg text-fg-tertiary">
+              <span className="block text-xs font-normal leading-snug text-fg-secondary">
                 (Po-Pia: 09:00 - 16:00)
               </span>
             </span>
@@ -214,7 +217,7 @@ export function HerbatikaHeader() {
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-250 lg:hidden">
+        <div className="ml-auto flex items-center gap-250 @header-desktop:hidden">
           <div className="relative">
             <LinkButton
               as={NextLink}
@@ -239,11 +242,15 @@ export function HerbatikaHeader() {
       </Header.Container>
 
       <Header.Desktop className="w-full bg-primary">
-        <Header.Container className="mx-auto flex min-h-11 w-full max-w-[96rem] items-center justify-between gap-300 px-300 md:px-600">
+        <Header.Container className="mx-auto flex min-h-11 w-full max-w-max-w items-center justify-between gap-300 px-300 @header-desktop:px-600">
           <Header.Nav className="flex-nowrap gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {PRIMARY_NAV_ITEMS.map((item) => (
               <Header.NavItem className="shrink-0 py-300" key={item.href}>
-                <Link as={NextLink} className="whitespace-nowrap leading-none" href={item.href}>
+                <Link
+                  as={NextLink}
+                  className="whitespace-nowrap leading-none"
+                  href={item.href}
+                >
                   {item.label}
                 </Link>
               </Header.NavItem>
@@ -287,7 +294,7 @@ export function HerbatikaHeader() {
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
             <SearchForm.Control className="h-12 rounded-search-form border-border-secondary bg-surface">
               <SearchForm.Input
-                className="h-full px-500 text-lg text-fg-secondary placeholder:text-fg-tertiary"
+                className="h-full px-500 text-md text-fg-secondary placeholder:text-fg-placeholder"
                 name="q"
                 placeholder="Napíšte, čo hľadáte..."
               />

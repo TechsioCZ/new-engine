@@ -1,78 +1,52 @@
 @theme static {
-  --color-herbatica-white: #ffffff;
-  --color-herbatica-white-2: #f8f8f8;
-  --color-herbatica-white-3: #dddddd;
-  --color-herbatica-black: #000000;
-  --color-herbatica-black-2: #4d4d4d;
-  --color-herbatica-black-3: #767676;
-  --color-herbatica-black-4: #333333;
-  --color-herbatica-black-5: #3b3a3c;
-  --color-herbatica-black-6: #dadada;
-  --color-herbatica-teal: #009869;
-  --color-herbatica-teal-2: #00a376;
-  --color-herbatica-teal-3: #62ba46;
-  --color-herbatica-teal-4: #c3cbcc;
+  --color-herbatica-white: oklch(1 0 0); /* #ffffff - cista bila */
+  --color-herbatica-base: oklch(0.9791 0 0); /* #f8f8f8 - velmi svetla neutralni seda */
+  --color-herbatica-overlay: oklch(0.9846 0.0017 247.84); /* #f9fafb - chladna off-white */
+  --color-herbatica-highlight: oklch(0.9553 0.0079 177.32); /* #ebf2f0 - svetla mint seda */
+  --color-herbatica-fg: oklch(0.2423 0.0212 276.66); /* #1d1f2a - velmi tmava modroseda */
+  --color-herbatica-fg-strong: oklch(0 0 0); /* #000000 - cerna */
+  --color-herbatica-fg-secondary: oklch(0.4202 0 0); /* #4d4d4d - stredne tmava seda */
+  --color-herbatica-fg-muted: oklch(0.5658 0 0); /* #767676 - tlumena stredni seda */
+  --color-herbatica-border: oklch(0.9039 0.0087 205.89); /* #d9e1e2 - svetla modroseda */
+  --color-herbatica-border-soft: oklch(0.9426 0.0055 211.04); /* #e8edee - velmi svetla modroseda */
+  --color-herbatica-primary: oklch(0.601 0.1305 162.66); /* #009869 - syta smaragdove zelena */
+  --color-herbatica-primary-strong: oklch(0.5313 0.1124 164.54); /* #00805b - tmavsi smaragdove zelena */
+  --color-herbatica-secondary: oklch(0.7092 0.1749 138.92); /* #62ba46 - listova zelena */
+  --color-herbatica-tertiary: oklch(0.6251 0.2133 351.08); /* #df3d97 - syta magenta ruzova */
+  --color-herbatica-success: oklch(0.634 0.1331 165.09); /* #00a376 - jasna zelena */
+  --color-herbatica-info: oklch(0.6885 0.1197 226.99); /* #30a9d4 - azurova modra */
+  --color-herbatica-warning: oklch(0.8321 0.1354 80.84); /* #f5be56 - tepla jantarova */
+  --color-herbatica-danger: oklch(0.5782 0.2193 26.15); /* #de2129 - syta cervena */
 
-  /* ============================================
-   * Primary Colors - Herbatica Teal
-   * ============================================ */
-  --color-primary: var(--color-herbatica-teal);
-  --color-primary-hover: oklch(
-    from var(--color-primary) calc(l + var(--state-hover)) c h
-  );
-  --color-primary-active: oklch(
-    from var(--color-primary) calc(l + var(--state-active)) c h
-  );
-  --color-primary-disabled: oklch(
-    from var(--color-primary) l calc(c * var(--state-disabled-chroma)) h
-  );
+  --color-primary: var(--color-herbatica-primary);
+  --color-secondary: var(--color-herbatica-secondary);
+  --color-tertiary: var(--color-herbatica-tertiary);
+  --color-success: var(--color-herbatica-success);
+  --color-info: var(--color-herbatica-info);
+  --color-warning: var(--color-herbatica-warning);
+  --color-danger: var(--color-herbatica-danger);
 
-  /* ============================================
-   * Secondary Colors - Herbatica Green
-   * ============================================ */
-  --color-secondary: var(--color-herbatica-teal-3);
-  --color-secondary-hover: oklch(
-    from var(--color-secondary) calc(l + var(--state-hover)) c h
-  );
-  --color-secondary-active: oklch(
-    from var(--color-secondary) calc(l + var(--state-active)) c h
-  );
-  --color-secondary-disabled: oklch(
-    from var(--color-secondary) l calc(c * var(--state-disabled-chroma)) h
-  );
-
-  /* ============================================
-   * Foreground Colors
-   * ============================================ */
-  --color-fg-light: var(--color-herbatica-black);
+  --color-fg-light: var(--color-herbatica-fg);
   --color-fg-dark: var(--color-herbatica-white);
-  --color-fg-primary: light-dark(var(--color-fg-light), var(--color-fg-light));
-  --color-fg-secondary: var(--color-herbatica-black-2);
-  --color-fg-tertiary: var(--color-herbatica-black-3);
-  --color-fg-4: var(--color-herbatica-black-4);
-  --color-fg-accent-primary: var(--color-herbatica-teal);
-  --color-fg-accent-secondary: var(--color-herbatica-teal-2);
-  --color-fg-reverse: light-dark(var(--color-fg-dark), var(--color-fg-dark));
+  --color-fg-primary: var(--color-herbatica-fg);
+  --color-fg-secondary: var(--color-herbatica-fg-secondary);
+  --color-fg-placeholder: var(--color-herbatica-fg-muted);
+  --color-fg-reverse: var(--color-herbatica-white);
 
-  /* ============================================
-   * Background Colors
-   * ============================================ */
-  --color-base-light: var(--color-herbatica-white-2);
-  --color-base-dark: var(--color-herbatica-black-4);
-  --color-base: light-dark(var(--color-base-light), var(--color-base-light));
+  --color-base-light: var(--color-herbatica-base);
+  --color-base-dark: var(--color-herbatica-fg-strong);
+  --color-base: var(--color-herbatica-base);
   --color-surface: var(--color-herbatica-white);
+  --color-overlay: var(--color-herbatica-overlay);
+  --color-float: var(--color-herbatica-white);
+  --color-highlight: var(--color-herbatica-highlight);
 
-  /* ============================================
-   * Border Colors - Herbatica Light Gray
-   * ============================================ */
-  --color-border-primary: var(--color-herbatica-black-5);
-  --color-border-secondary: var(--color-herbatica-white-3);
-  --color-border-tertiary: var(--color-herbatica-black-6);
-  --color-border-accent-primary: var(--color-herbatica-teal);
-  --color-border-accent-secondary: var(--color-herbatica-teal-2);
+  --color-border-primary: var(--color-herbatica-border);
+  --color-border-secondary: var(--color-herbatica-border-soft);
 
-  /* ============================================
-   * Link Colors
-   * ============================================ */
-  --color-link: var(--color-herbatica-black);
+  --color-link: var(--color-herbatica-primary);
+
+  --color-bg-disabled: oklch(0.967 0.0029 264.54); /* #f3f4f6 - svetla neutralni seda */
+  --color-fg-disabled: oklch(0.7137 0.0192 261.32); /* #9ca3af - tlumena modroseda */
+  --color-border-disabled: var(--color-herbatica-border);
 }
