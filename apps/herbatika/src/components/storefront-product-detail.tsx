@@ -19,7 +19,7 @@ import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import { Tabs } from "@techsio/ui-kit/molecules/tabs";
 import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { HerbatikaHomeProductCard } from "@/components/herbatika-home-product-card";
+import { HerbatikaProductCard } from "@/components/herbatika-product-card";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree";
 import {
@@ -1088,7 +1088,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
 
               <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
                 {section.products.map((relatedProduct) => (
-                  <HerbatikaHomeProductCard
+                  <HerbatikaProductCard
                     isAdding={
                       addLineItemMutation.isPending &&
                       activeProductId === relatedProduct.id

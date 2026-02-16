@@ -11,7 +11,10 @@ import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Rating } from "@techsio/ui-kit/atoms/rating";
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { Carousel, type CarouselSlide } from "@techsio/ui-kit/molecules/carousel";
+import {
+  Carousel,
+  type CarouselSlide,
+} from "@techsio/ui-kit/molecules/carousel";
 import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
@@ -24,8 +27,8 @@ import {
 } from "@/lib/storefront/products";
 import {
   getProductPriceLabel,
-  HerbatikaHomeProductCard,
-} from "./herbatika-home-product-card";
+  HerbatikaProductCard,
+} from "./herbatika-product-card";
 
 const PRODUCT_FETCH_LIMIT = 24;
 const PRODUCTS_PER_GRID_SECTION = 4;
@@ -271,6 +274,18 @@ const BLOG_POSTS: BlogTeaserItem[] = [
 
 const HERO_PAGE_SIZE = 4;
 const TOTAL_GRID_PRODUCTS = PRODUCT_SECTIONS.length * PRODUCTS_PER_GRID_SECTION;
+const HOME_PRODUCT_SKELETON_KEYS = [
+  "home-product-skeleton-1",
+  "home-product-skeleton-2",
+  "home-product-skeleton-3",
+  "home-product-skeleton-4",
+] as const;
+const RECENT_PRODUCT_SKELETON_KEYS = [
+  "recent-product-skeleton-1",
+  "recent-product-skeleton-2",
+  "recent-product-skeleton-3",
+  "recent-product-skeleton-4",
+] as const;
 
 const buildHeroSlides = (): CarouselSlide[] => {
   const slides: CarouselSlide[] = [];
@@ -345,14 +360,19 @@ const getSectionProducts = (
 function HomeProductGridSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {Array.from({ length: PRODUCTS_PER_GRID_SECTION }).map((_, index) => (
+      {HOME_PRODUCT_SKELETON_KEYS.map((skeletonKey) => (
         <div
-          className="rounded-[14px] border border-border-secondary bg-surface p-3"
-          key={`home-skeleton-${index}`}
+          className="rounded-[16px] border-transparent bg-surface p-[20px] pb-[26px]"
+          key={skeletonKey}
         >
-          <Skeleton.Rectangle className="mb-3 h-44 rounded-[10px]" />
-          <Skeleton.Text className="rounded-full" noOfLines={2} size="sm" />
-          <Skeleton.Rectangle className="mt-4 h-8 rounded-[8px]" />
+          <Skeleton.Rectangle className="mb-[10px] aspect-[294/259.2] rounded-none" />
+          <Skeleton.Text className="rounded-full" noOfLines={2} size="lg" />
+          <Skeleton.Text
+            className="mt-2 rounded-full"
+            noOfLines={2}
+            size="sm"
+          />
+          <Skeleton.Rectangle className="mt-[18px] h-[40px] rounded-[7px]" />
         </div>
       ))}
     </div>
@@ -480,7 +500,9 @@ export function HerbatikaHomepage() {
     }
 
     if (!variantId) {
-      setMutationError("Produkt nemá dostupnú variantu pre vloženie do košíka.");
+      setMutationError(
+        "Produkt nemá dostupnú variantu pre vloženie do košíka.",
+      );
       return;
     }
 
@@ -537,7 +559,10 @@ export function HerbatikaHomepage() {
           slideCount={HERO_SLIDES.length}
           size="full"
         >
-          <Carousel.Slides className="h-[260px] md:h-[320px] lg:h-[360px]" slides={HERO_SLIDES} />
+          <Carousel.Slides
+            className="h-[260px] md:h-[320px] lg:h-[360px]"
+            slides={HERO_SLIDES}
+          />
           <Carousel.Previous className="-translate-y-1/2 absolute top-1/2 left-2 rounded-full border border-white/80 bg-white/85 p-2 text-xl text-fg-primary hover:bg-surface" />
           <Carousel.Next className="-translate-y-1/2 absolute top-1/2 right-2 rounded-full border border-white/80 bg-white/85 p-2 text-xl text-fg-primary hover:bg-surface" />
           <Carousel.Control className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-white/85 px-3 py-2">
@@ -547,14 +572,19 @@ export function HerbatikaHomepage() {
       </section>
 
       <section className="rounded-[18px] border border-border-secondary bg-[#ecf7f3] p-3 md:p-4">
-        <h2 className="mb-3 text-lg font-bold text-fg-primary">Čo vám Herbatika prináša</h2>
+        <h2 className="mb-3 text-lg font-bold text-fg-primary">
+          Čo vám Herbatika prináša
+        </h2>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
           {BENEFITS.map((benefit) => (
             <article
               className="rounded-[12px] border border-border-secondary bg-surface px-3 py-3"
               key={benefit.id}
             >
-              <Icon className="mb-2 text-2xl text-primary" icon={benefit.icon} />
+              <Icon
+                className="mb-2 text-2xl text-primary"
+                icon={benefit.icon}
+              />
               <p className="text-xs leading-tight font-bold text-fg-primary">
                 {benefit.title}
               </p>
@@ -568,7 +598,10 @@ export function HerbatikaHomepage() {
 
       {cartMessage && (
         <div className="flex">
-          <Badge className="rounded-full px-3 py-1 text-xs font-semibold" variant="success">
+          <Badge
+            className="rounded-full px-3 py-1 text-xs font-semibold"
+            variant="success"
+          >
             {cartMessage}
           </Badge>
         </div>
@@ -590,8 +623,12 @@ export function HerbatikaHomepage() {
         <section className="space-y-4" id={section.id} key={section.id}>
           <header className="flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-fg-primary">{section.title}</h2>
-              <p className="mt-1 text-sm text-fg-secondary">{section.subtitle}</p>
+              <h2 className="text-2xl font-bold text-fg-primary">
+                {section.title}
+              </h2>
+              <p className="mt-1 text-sm text-fg-secondary">
+                {section.subtitle}
+              </p>
             </div>
             <LinkButton
               as={NextLink}
@@ -612,7 +649,7 @@ export function HerbatikaHomepage() {
           ) : section.products.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {section.products.map((product, index) => (
-                <HerbatikaHomeProductCard
+                <HerbatikaProductCard
                   isAdding={addingVariantId === product.variants?.[0]?.id}
                   key={`${section.id}-${product.id}-${index}`}
                   onAddToCart={handleAddToCart}
@@ -633,12 +670,17 @@ export function HerbatikaHomepage() {
       <section className="space-y-4 rounded-[18px] border border-border-secondary bg-surface p-4 md:p-6">
         <header className="flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-fg-primary">Overené skúsenosti</h2>
+            <h2 className="text-2xl font-bold text-fg-primary">
+              Overené skúsenosti
+            </h2>
             <p className="mt-1 text-sm text-fg-secondary">
               Skutočné hodnotenia od našich zákazníkov.
             </p>
           </div>
-          <Badge className="rounded-full px-3 py-1 text-xs font-semibold" variant="info">
+          <Badge
+            className="rounded-full px-3 py-1 text-xs font-semibold"
+            variant="info"
+          >
             4.9 / 5
           </Badge>
         </header>
@@ -650,11 +692,15 @@ export function HerbatikaHomepage() {
               key={review.id}
             >
               <Rating readOnly size="sm" value={review.rating} />
-              <p className="mt-2 text-sm font-bold text-fg-primary">{review.title}</p>
+              <p className="mt-2 text-sm font-bold text-fg-primary">
+                {review.title}
+              </p>
               <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
                 {review.message}
               </p>
-              <p className="mt-3 text-xs font-semibold text-primary">{review.author}</p>
+              <p className="mt-3 text-xs font-semibold text-primary">
+                {review.author}
+              </p>
             </article>
           ))}
         </div>
@@ -664,8 +710,12 @@ export function HerbatikaHomepage() {
         <section className="space-y-4" id={section.id} key={section.id}>
           <header className="flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-fg-primary">{section.title}</h2>
-              <p className="mt-1 text-sm text-fg-secondary">{section.subtitle}</p>
+              <h2 className="text-2xl font-bold text-fg-primary">
+                {section.title}
+              </h2>
+              <p className="mt-1 text-sm text-fg-secondary">
+                {section.subtitle}
+              </p>
             </div>
             <LinkButton
               as={NextLink}
@@ -686,7 +736,7 @@ export function HerbatikaHomepage() {
           ) : section.products.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {section.products.map((product, index) => (
-                <HerbatikaHomeProductCard
+                <HerbatikaProductCard
                   isAdding={addingVariantId === product.variants?.[0]?.id}
                   key={`${section.id}-${product.id}-${index}`}
                   onAddToCart={handleAddToCart}
@@ -707,7 +757,9 @@ export function HerbatikaHomepage() {
       <section className="space-y-4" id="blog">
         <header className="flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-fg-primary">Blog o zdravom životnom štýle</h2>
+            <h2 className="text-2xl font-bold text-fg-primary">
+              Blog o zdravom životnom štýle
+            </h2>
             <p className="mt-1 text-sm text-fg-secondary">
               Nové články o prírode, vitalite a každodennej rovnováhe.
             </p>
@@ -733,15 +785,25 @@ export function HerbatikaHomepage() {
               key={post.id}
             >
               <Link as={NextLink} className="block" href={post.href}>
-                <Image alt={post.title} className="h-44 w-full object-cover" src={post.imageSrc} />
+                <Image
+                  alt={post.title}
+                  className="h-44 w-full object-cover"
+                  src={post.imageSrc}
+                />
               </Link>
               <div className="space-y-2 p-4">
                 <h3 className="line-clamp-2 text-sm leading-snug font-bold text-fg-primary">
-                  <Link as={NextLink} className="hover:text-primary" href={post.href}>
+                  <Link
+                    as={NextLink}
+                    className="hover:text-primary"
+                    href={post.href}
+                  >
                     {post.title}
                   </Link>
                 </h3>
-                <p className="line-clamp-3 text-sm text-fg-secondary">{post.excerpt}</p>
+                <p className="line-clamp-3 text-sm text-fg-secondary">
+                  {post.excerpt}
+                </p>
                 <LinkButton
                   as={NextLink}
                   className="rounded-[9px] px-3 py-2 text-xs font-semibold"
@@ -770,7 +832,10 @@ export function HerbatikaHomepage() {
         </div>
 
         <div className="flex flex-col justify-center gap-3">
-          <Badge className="w-fit rounded-full px-3 py-1 text-xs font-semibold" variant="secondary">
+          <Badge
+            className="w-fit rounded-full px-3 py-1 text-xs font-semibold"
+            variant="secondary"
+          >
             Spoja nás láska k prírode
           </Badge>
           <h2 className="text-2xl leading-tight font-bold text-fg-primary">
@@ -797,7 +862,9 @@ export function HerbatikaHomepage() {
 
       <section className="space-y-4" id="naposledy-navstivene">
         <header>
-          <h2 className="text-2xl font-bold text-fg-primary">Naposledy navštívené</h2>
+          <h2 className="text-2xl font-bold text-fg-primary">
+            Naposledy navštívené
+          </h2>
           <p className="mt-1 text-sm text-fg-secondary">
             Produkty, ktoré ste si naposledy prezerali.
           </p>
@@ -805,10 +872,10 @@ export function HerbatikaHomepage() {
 
         {shouldShowProductSkeleton ? (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {Array.from({ length: PRODUCTS_PER_GRID_SECTION }).map((_, index) => (
+            {RECENT_PRODUCT_SKELETON_KEYS.map((skeletonKey) => (
               <div
                 className="rounded-[12px] border border-border-secondary bg-surface p-3"
-                key={`recent-skeleton-${index}`}
+                key={skeletonKey}
               >
                 <Skeleton.Rectangle className="h-28 rounded-[9px]" />
                 <Skeleton.Text className="mt-2" noOfLines={2} size="sm" />
