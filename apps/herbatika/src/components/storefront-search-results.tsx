@@ -18,14 +18,7 @@ import { useSearchQueryState } from "./search/use-search-query-state";
 
 export function StorefrontSearchResults() {
   const region = useRegionContext();
-  const {
-    query,
-    currentPage,
-    searchDraft,
-    setSearchDraft,
-    setPage,
-    handleSearchSubmit,
-  } = useSearchQueryState();
+  const { query, currentPage, setPage } = useSearchQueryState();
 
   const searchQuery = useStorefrontSearch({
     q: query,
@@ -86,17 +79,14 @@ export function StorefrontSearchResults() {
     orderedProducts.length === 0;
 
   return (
-    <main className="mx-auto w-full max-w-[1418px] px-4 py-8 lg:px-6">
-      <section className="rounded-[14px] border border-border-secondary bg-surface p-4 md:p-6">
-        <div className="space-y-4">
+    <main className="mx-auto w-full max-w-max-w px-400 py-700 lg:px-550">
+      <section className="rounded-2xl border border-border-secondary bg-surface p-400 md:p-550">
+        <div className="space-y-400">
           <SearchToolbar
             estimatedTotalHits={result?.estimatedTotalHits ?? 0}
             hitsCount={hits.length}
-            onSearchDraftChange={setSearchDraft}
-            onSearchSubmit={handleSearchSubmit}
             pageBadgeLabel={pageBadgeLabel}
             query={query}
-            searchDraft={searchDraft}
           />
 
           {errorMessage ? <ErrorText showIcon>{errorMessage}</ErrorText> : null}
@@ -106,7 +96,7 @@ export function StorefrontSearchResults() {
 
           {!query ? (
             <p className="text-sm text-fg-secondary">
-              Zadajte výraz do vyhľadávania a potvrďte Enter.
+              Zadajte výraz do vyhľadávania v hornom paneli.
             </p>
           ) : null}
 

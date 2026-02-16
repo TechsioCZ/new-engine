@@ -15,20 +15,20 @@ const SEARCH_SKELETON_KEYS = [
 
 export function SearchSkeletonGrid() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid gap-300 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {SEARCH_SKELETON_KEYS.map((skeletonKey) => (
         <div
-          className="rounded-[16px] border-transparent bg-surface p-[20px] pb-[26px]"
+          className="rounded-2xl border-transparent bg-surface p-500 pb-550"
           key={skeletonKey}
         >
-          <Skeleton.Rectangle className="mb-[10px] aspect-[294/259.2] rounded-none" />
+          <Skeleton.Rectangle className="mb-250 h-950 rounded-none" />
           <Skeleton.Text className="rounded-full" noOfLines={2} size="lg" />
           <Skeleton.Text
-            className="mt-2 rounded-full"
+            className="mt-200 rounded-full"
             noOfLines={2}
             size="sm"
           />
-          <Skeleton.Rectangle className="mt-[18px] h-[40px] rounded-[7px]" />
+          <Skeleton.Rectangle className="mt-450 h-750 rounded-md" />
         </div>
       ))}
     </div>
