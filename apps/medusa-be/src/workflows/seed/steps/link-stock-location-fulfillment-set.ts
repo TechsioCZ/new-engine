@@ -25,16 +25,31 @@ export const linkStockLocationFulfillmentSetStep = createStep(
     logger.info("Linking stock location to fulfillment set...")
 
     for (const stockLocation of input.stockLocations) {
-      const linkResult = await link.create({
-        [Modules.STOCK_LOCATION]: {
-          stock_location_id: stockLocation.id,
-        },
-        [Modules.FULFILLMENT]: {
-          fulfillment_set_id: input.fulfillmentSet.id,
-        },
-      })
+      try {
+        const linkResult = await link.create({
+          [Modules.STOCK_LOCATION]: {
+            stock_location_id: stockLocation.id,
+          },
+          [Modules.FULFILLMENT]: {
+            fulfillment_set_id: input.fulfillmentSet.id,
+          },
+        })
 
-      result.push(linkResult)
+        result.push(linkResult)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (
+          message.includes(
+            "Cannot create multiple links between 'stock_location' and 'fulfillment'"
+          )
+        ) {
+          logger.warn(
+            `Skipping existing stock location -> fulfillment set link for stock location "${stockLocation.id}" and fulfillment set "${input.fulfillmentSet.id}"`
+          )
+          continue
+        }
+        throw error
+      }
     }
 
     return new StepResponse({
