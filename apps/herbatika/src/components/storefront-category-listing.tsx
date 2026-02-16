@@ -6,7 +6,6 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
@@ -19,6 +18,7 @@ import {
   type AsideFilterCategoryItem,
 } from "@/components/aside-filter";
 import { HerbatikaProductCard } from "@/components/herbatika-product-card";
+import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
 import {
   useCategories,
@@ -224,21 +224,9 @@ const PRODUCT_SKELETON_KEYS = [
 
 function ProductGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-2 gap-400 lg:grid-cols-3">
       {PRODUCT_SKELETON_KEYS.map((skeletonKey) => (
-        <div
-          className="rounded-[16px] border-transparent bg-surface p-[20px] pb-[26px]"
-          key={skeletonKey}
-        >
-          <Skeleton.Rectangle className="mb-[10px] aspect-[294/259.2] rounded-none" />
-          <Skeleton.Text className="rounded-full" noOfLines={2} size="lg" />
-          <Skeleton.Text
-            className="mt-2 rounded-full"
-            noOfLines={2}
-            size="sm"
-          />
-          <Skeleton.Rectangle className="mt-[18px] h-[40px] rounded-[7px]" />
-        </div>
+        <HerbatikaProductCardSkeleton key={skeletonKey} />
       ))}
     </div>
   );

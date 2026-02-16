@@ -29,6 +29,7 @@ import {
   getProductPriceLabel,
   HerbatikaProductCard,
 } from "./herbatika-product-card";
+import { HerbatikaProductCardSkeleton } from "./herbatika-product-card-skeleton";
 
 const PRODUCT_FETCH_LIMIT = 24;
 const PRODUCTS_PER_GRID_SECTION = 4;
@@ -359,21 +360,9 @@ const getSectionProducts = (
 
 function HomeProductGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-400 lg:grid-cols-4">
       {HOME_PRODUCT_SKELETON_KEYS.map((skeletonKey) => (
-        <div
-          className="rounded-[16px] border-transparent bg-surface p-[20px] pb-[26px]"
-          key={skeletonKey}
-        >
-          <Skeleton.Rectangle className="mb-[10px] aspect-[294/259.2] rounded-none" />
-          <Skeleton.Text className="rounded-full" noOfLines={2} size="lg" />
-          <Skeleton.Text
-            className="mt-2 rounded-full"
-            noOfLines={2}
-            size="sm"
-          />
-          <Skeleton.Rectangle className="mt-[18px] h-[40px] rounded-[7px]" />
-        </div>
+        <HerbatikaProductCardSkeleton key={skeletonKey} />
       ))}
     </div>
   );
@@ -871,35 +860,35 @@ export function HerbatikaHomepage() {
         </header>
 
         {shouldShowProductSkeleton ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-300 md:grid-cols-4">
             {RECENT_PRODUCT_SKELETON_KEYS.map((skeletonKey) => (
               <div
-                className="rounded-[12px] border border-border-secondary bg-surface p-3"
+                className="rounded-xl border border-border-secondary bg-surface p-300"
                 key={skeletonKey}
               >
-                <Skeleton.Rectangle className="h-28 rounded-[9px]" />
-                <Skeleton.Text className="mt-2" noOfLines={2} size="sm" />
+                <Skeleton.Rectangle className="h-900 rounded-lg" />
+                <Skeleton.Text className="mt-200" noOfLines={2} size="sm" />
               </div>
             ))}
           </div>
         ) : recentProducts.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-300 md:grid-cols-4">
             {recentProducts.map((product, index) => (
               <Link
                 as={NextLink}
-                className="rounded-[12px] border border-border-secondary bg-surface p-3 hover:border-primary/30"
+                className="rounded-xl border border-border-secondary bg-surface p-300 hover:border-primary/30"
                 href={product.handle ? `/p/${product.handle}` : "/#"}
                 key={`recent-product-${product.id}-${index}`}
               >
                 <Image
                   alt={product.title || "Produkt"}
-                  className="h-28 w-full rounded-[9px] border border-border-secondary object-cover"
+                  className="h-900 w-full rounded-lg border border-border-secondary object-cover"
                   src={product.thumbnail || "/file.svg"}
                 />
-                <p className="mt-2 line-clamp-2 text-sm leading-snug font-semibold text-fg-primary">
+                <p className="mt-200 line-clamp-2 text-sm leading-snug font-semibold text-fg-primary">
                   {product.title}
                 </p>
-                <p className="mt-1 text-sm font-bold text-primary">
+                <p className="mt-100 text-sm font-bold text-primary">
                   {getProductPriceLabel(product)}
                 </p>
               </Link>

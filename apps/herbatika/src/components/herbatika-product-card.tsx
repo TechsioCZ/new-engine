@@ -420,8 +420,8 @@ export function HerbatikaProductCard({
   const description = resolveDescription(product);
 
   return (
-    <ProductCard className="h-full max-w-none rounded-md border-transparent bg-surface p-[20px] pb-[26px] shadow-none">
-      <div className="relative pb-[10px]">
+    <ProductCard className="h-full max-w-none rounded-2xl border-transparent bg-surface p-500 pb-550 shadow-none">
+      <div className="relative pb-250">
         <Link
           as={NextLink}
           className="block"
@@ -439,10 +439,10 @@ export function HerbatikaProductCard({
         </Link>
 
         {flags.length > 0 ? (
-          <ProductCard.Badges className="absolute top-0 left-0 flex-col gap-[3.4px]">
+          <ProductCard.Badges className="absolute top-0 left-0 flex-col gap-100">
             {flags.map((flag) => (
               <Badge
-                className="rounded-[6px] px-[7.68px] py-[3.24px] text-[12.5px] leading-[14px] font-bold"
+                className="rounded-md px-200 py-100 text-xs leading-tight font-bold"
                 key={`${product.id}-${flag.label}`}
                 variant={flag.variant}
               >
@@ -453,17 +453,17 @@ export function HerbatikaProductCard({
         ) : null}
 
         {discountLabel ? (
-          <div className="absolute right-0 bottom-0 rounded-[6px] bg-tertiary px-[8px] py-[8px]">
-            <span className="text-[11.5px] leading-[13px] font-bold text-fg-reverse">
+          <div className="absolute right-0 bottom-0 rounded-md bg-tertiary px-200 py-200">
+            <span className="text-xs leading-tight font-bold text-fg-reverse">
               {discountLabel}
             </span>
           </div>
         ) : null}
       </div>
 
-      <div className="flex h-full flex-col gap-[18px]">
-        <div className="flex flex-col gap-[9.6px]">
-          <ProductCard.Name className="min-h-[44px] text-[18px] leading-[22px] font-semibold text-fg-primary">
+      <div className="flex h-full flex-col gap-450">
+        <div className="flex flex-col gap-250">
+          <ProductCard.Name className="min-h-750 text-lg leading-snug font-semibold text-fg-primary">
             <Link
               as={NextLink}
               className="hover:text-primary"
@@ -474,27 +474,27 @@ export function HerbatikaProductCard({
           </ProductCard.Name>
 
           {description ? (
-            <p className="line-clamp-3 min-h-[52px] whitespace-pre-line text-[13.4px] leading-[17px] text-fg-secondary">
+            <p className="line-clamp-3 min-h-800 whitespace-pre-line text-xs leading-normal text-fg-secondary">
               {description}
             </p>
           ) : null}
         </div>
 
-        <div className="mt-auto flex items-end justify-between gap-3">
-          <div className="flex min-h-[38px] flex-col justify-end">
+        <div className="mt-auto flex items-end justify-between gap-300">
+          <div className="flex min-h-750 flex-col justify-end">
             {price.originalLabel && (
-              <span className="text-[12.5px] leading-[17px] text-fg-tertiary line-through">
+              <span className="text-xs leading-normal text-fg-tertiary line-through">
                 {price.originalLabel}
               </span>
             )}
-            <ProductCard.Price className="text-[19.2px] leading-[19px] font-bold text-fg-primary">
+            <ProductCard.Price className="text-xl leading-tight font-bold text-fg-primary">
               {price.currentLabel}
             </ProductCard.Price>
           </div>
 
           <ProductCard.Actions className="mt-0 shrink-0">
             <Button
-              className="[&_.token-icon-cart]:text-[20px] inline-flex h-[39.68px] min-w-[119.92px] items-center gap-[6.72px] rounded-[7px] border border-primary bg-primary px-[13.08px] py-[4.76px] text-[13.4px] leading-[23px] font-medium text-fg-reverse hover:bg-primary-hover"
+              className="inline-flex h-750 min-w-900 items-center gap-200 rounded-md border border-primary bg-primary px-450 text-sm leading-normal font-medium text-fg-reverse hover:bg-primary-hover"
               icon="token-icon-cart"
               isLoading={isAdding}
               onClick={() => {
