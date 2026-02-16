@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "validate:token-usage": "node scripts/validate-token-usage.mjs",
+    "validate:token-usage:json": "node scripts/validate-token-usage.mjs --json",
+    "validate:ui-primitives": "node scripts/validate-ui-primitives.mjs",
+    "validate:ui-primitives:json": "node scripts/validate-ui-primitives.mjs --json",
+    "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives"
   },
   "dependencies": {
     "@medusajs/js-sdk": "^2.12.5",
