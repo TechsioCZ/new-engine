@@ -1,76 +1,31 @@
 "use client";
 
-import { Badge } from "@techsio/ui-kit/atoms/badge";
+import { useRegionContext } from "@techsio/storefront-data/shared";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
-import { Link } from "@techsio/ui-kit/atoms/link";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { Pagination } from "@techsio/ui-kit/molecules/pagination";
-import { ProductCard } from "@techsio/ui-kit/molecules/product-card";
-import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
-import NextLink from "next/link";
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useStorefrontSearch } from "@/lib/storefront/search";
-
-const SEARCH_RESULT_LIMIT = 24;
-const PRODUCT_FALLBACK_IMAGE = "/file.svg";
-
-const searchQueryParsers = {
-  q: parseAsString.withDefault(""),
-  page: parseAsInteger.withDefault(1),
-};
-
-const normalizePage = (value: number): number => {
-  if (!Number.isFinite(value)) {
-    return 1;
-  }
-
-  const normalizedPage = Math.trunc(value);
-  if (normalizedPage < 1) {
-    return 1;
-  }
-
-  return normalizedPage;
-};
-
-const resolveErrorMessage = (error: unknown): string => {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-
-  if (typeof error === "string" && error.trim().length > 0) {
-    return error;
-  }
-
-  return "Vyhľadávanie zlyhalo.";
-};
-
-const renderSkeletonCards = () => {
-  return Array.from({ length: 8 }).map((_, index) => (
-    <div
-      className="rounded-[14px] border border-border-secondary bg-surface p-3"
-      key={`search-skeleton-${index}`}
-    >
-      <Skeleton className="h-48 w-full rounded-[10px]" />
-      <div className="mt-3 space-y-2">
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-3 w-full" />
-      </div>
-    </div>
-  ));
-};
+import { SearchPagination } from "./search/search-pagination";
+import {
+  resolveErrorMessage,
+  SEARCH_RESULT_LIMIT,
+} from "./search/search-query-config";
+import { SearchResultsGrid } from "./search/search-results-grid";
+import { SearchSkeletonGrid } from "./search/search-skeleton-grid";
+import { SearchToolbar } from "./search/search-toolbar";
+import { useSearchAddToCart } from "./search/use-search-add-to-cart";
+import { useSearchProducts } from "./search/use-search-products";
+import { useSearchQueryState } from "./search/use-search-query-state";
 
 export function StorefrontSearchResults() {
-  const [queryState, setQueryState] = useQueryStates(searchQueryParsers);
-  const query = queryState.q.trim();
-  const currentPage = normalizePage(queryState.page);
-  const [searchDraft, setSearchDraft] = useState(query);
-
-  useEffect(() => {
-    setSearchDraft(query);
-  }, [query]);
+  const region = useRegionContext();
+  const {
+    query,
+    currentPage,
+    searchDraft,
+    setSearchDraft,
+    setPage,
+    handleSearchSubmit,
+  } = useSearchQueryState();
 
   const searchQuery = useStorefrontSearch({
     q: query,
@@ -80,6 +35,22 @@ export function StorefrontSearchResults() {
 
   const result = searchQuery.data;
   const hits = result?.hits ?? [];
+  const {
+    orderedProducts,
+    missingProductsCount,
+    isProductGridLoading: isSearchProductsLoading,
+  } = useSearchProducts({
+    query,
+    hits,
+    regionId: region?.region_id,
+    countryCode: region?.country_code,
+  });
+
+  const { addToCartError, activeProductId, isAddPending, handleAddToCart } =
+    useSearchAddToCart({
+      regionId: region?.region_id,
+      countryCode: region?.country_code,
+    });
 
   useEffect(() => {
     if (!(query && result && result.totalPages > 0)) {
@@ -90,15 +61,8 @@ export function StorefrontSearchResults() {
       return;
     }
 
-    void setQueryState(
-      {
-        page: result.totalPages,
-      },
-      {
-        history: "replace",
-      },
-    );
-  }, [currentPage, query, result, setQueryState]);
+    setPage(result.totalPages, "replace");
+  }, [currentPage, query, result, setPage]);
 
   const pageBadgeLabel = useMemo(() => {
     if (result && result.totalPages > 0) {
@@ -108,84 +72,37 @@ export function StorefrontSearchResults() {
     return `strana: ${currentPage}`;
   }, [currentPage, result]);
 
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    const formData = new FormData(event.currentTarget);
-    const formValue = formData.get("q");
-    const nextQuery = typeof formValue === "string" ? formValue.trim() : "";
-
-    if (!nextQuery) {
-      void setQueryState(
-        {
-          q: "",
-          page: 1,
-        },
-        {
-          history: "replace",
-        },
-      );
-      return;
-    }
-
-    void setQueryState(
-      {
-        q: nextQuery,
-        page: 1,
-      },
-      {
-        history: "push",
-      },
-    );
-  };
-
   const errorMessage = searchQuery.error
     ? resolveErrorMessage(searchQuery.error)
     : null;
+  const isProductGridLoading =
+    !searchQuery.isLoading && isSearchProductsLoading;
+  const shouldShowGridSkeleton = searchQuery.isLoading || isProductGridLoading;
+  const shouldShowEmptyState =
+    !searchQuery.isLoading &&
+    !isProductGridLoading &&
+    query.length > 0 &&
+    !errorMessage &&
+    orderedProducts.length === 0;
 
   return (
     <main className="mx-auto w-full max-w-[1418px] px-4 py-8 lg:px-6">
       <section className="rounded-[14px] border border-border-secondary bg-surface p-4 md:p-6">
         <div className="space-y-4">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-fg-primary">Vyhľadávanie</h1>
-            <p className="text-sm text-fg-secondary">
-              Výsledky sú načítané cez Meilisearch index `products`.
-            </p>
-          </div>
-
-          <SearchForm
-            className="w-full max-w-[620px]"
-            onSubmit={handleSearchSubmit}
-            onValueChange={setSearchDraft}
-            value={searchDraft}
-          >
-            <SearchForm.Control className="rounded-[12px] border-border-secondary bg-surface">
-              <SearchForm.Input
-                className="h-11"
-                name="q"
-                placeholder="Napíšte, čo hľadáte..."
-              />
-              <SearchForm.Button
-                aria-label="Hľadať"
-                className="min-w-14 rounded-r-[12px] px-4"
-                showSearchIcon
-              />
-            </SearchForm.Control>
-          </SearchForm>
-
-          {query ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="info">{`dotaz: ${query}`}</Badge>
-              <Badge variant="secondary">
-                {`nájdené: ${result?.estimatedTotalHits ?? 0}`}
-              </Badge>
-              <Badge variant="secondary">
-                {`zobrazené: ${hits.length}`}
-              </Badge>
-              <Badge variant="secondary">{pageBadgeLabel}</Badge>
-            </div>
-          ) : null}
+          <SearchToolbar
+            estimatedTotalHits={result?.estimatedTotalHits ?? 0}
+            hitsCount={hits.length}
+            onSearchDraftChange={setSearchDraft}
+            onSearchSubmit={handleSearchSubmit}
+            pageBadgeLabel={pageBadgeLabel}
+            query={query}
+            searchDraft={searchDraft}
+          />
 
           {errorMessage ? <ErrorText showIcon>{errorMessage}</ErrorText> : null}
+          {addToCartError ? (
+            <ErrorText showIcon>{addToCartError}</ErrorText>
+          ) : null}
 
           {!query ? (
             <p className="text-sm text-fg-secondary">
@@ -193,93 +110,47 @@ export function StorefrontSearchResults() {
             </p>
           ) : null}
 
-          {searchQuery.isLoading ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {renderSkeletonCards()}
-            </div>
-          ) : null}
+          {shouldShowGridSkeleton ? <SearchSkeletonGrid /> : null}
 
-          {!searchQuery.isLoading && query && hits.length === 0 && !errorMessage ? (
+          {shouldShowEmptyState ? (
             <p className="text-sm text-fg-secondary">
-              {(result?.estimatedTotalHits ?? 0) === 0
+              {hits.length === 0
                 ? "Pre zadaný výraz sme nenašli žiadny produkt."
-                : "Na tejto strane nie sú žiadne produkty."}
+                : "Produkty sa nepodarilo načítať v aktuálnom regióne."}
             </p>
           ) : null}
 
-          {!searchQuery.isLoading && hits.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {hits.map((hit) => {
-                const href = `/p/${hit.handle}`;
-
-                return (
-                  <ProductCard
-                    className="h-full max-w-none rounded-[14px] border-border-secondary bg-surface p-3 shadow-sm"
-                    key={hit.id}
-                  >
-                    <Link as={NextLink} className="block" href={href}>
-                      <ProductCard.Image
-                        alt={hit.title}
-                        className="aspect-[4/5] w-full rounded-[10px] border border-border-secondary object-cover"
-                        src={hit.thumbnail ?? PRODUCT_FALLBACK_IMAGE}
-                      />
-                    </Link>
-
-                    <ProductCard.Name className="min-h-10 text-sm leading-snug text-fg-primary">
-                      <Link as={NextLink} className="hover:text-primary" href={href}>
-                        {hit.title}
-                      </Link>
-                    </ProductCard.Name>
-
-                    <p className="line-clamp-3 text-xs leading-relaxed text-fg-secondary">
-                      {hit.descriptionSnippet || "Bez stručného popisu."}
-                    </p>
-
-                    <ProductCard.Actions className="mt-2">
-                      <LinkButton
-                        as={NextLink}
-                        block
-                        className="rounded-[9px] px-3 py-2 text-xs font-semibold"
-                        href={href}
-                        size="sm"
-                        theme="outlined"
-                        variant="secondary"
-                      >
-                        Detail
-                      </LinkButton>
-                    </ProductCard.Actions>
-                  </ProductCard>
-                );
-              })}
-            </div>
-          ) : null}
-
-          {!searchQuery.isLoading &&
-          !errorMessage &&
-          query &&
-          (result?.totalPages ?? 0) > 1 ? (
-            <Pagination
-              count={result?.estimatedTotalHits ?? 0}
-              onPageChange={(nextPage) => {
-                if (nextPage === currentPage) {
-                  return;
-                }
-
-                void setQueryState(
-                  {
-                    page: nextPage,
-                  },
-                  {
-                    history: "push",
-                  },
-                );
-              }}
-              page={currentPage}
-              pageSize={result?.pageSize ?? SEARCH_RESULT_LIMIT}
-              size="sm"
-              variant="outlined"
+          {!shouldShowGridSkeleton && orderedProducts.length > 0 ? (
+            <SearchResultsGrid
+              activeProductId={activeProductId}
+              isAddPending={isAddPending}
+              onAddToCart={handleAddToCart}
+              products={orderedProducts}
             />
           ) : null}
+
+          {!shouldShowGridSkeleton && missingProductsCount > 0 ? (
+            <p className="text-xs text-fg-tertiary">{`Nepodarilo sa načítať ${missingProductsCount} položiek.`}</p>
+          ) : null}
+
+          <SearchPagination
+            count={result?.estimatedTotalHits ?? 0}
+            currentPage={currentPage}
+            isVisible={
+              !searchQuery.isLoading &&
+              !errorMessage &&
+              query.length > 0 &&
+              (result?.totalPages ?? 0) > 1
+            }
+            onPageChange={(nextPage) => {
+              if (nextPage === currentPage) {
+                return;
+              }
+
+              setPage(nextPage, "push");
+            }}
+            pageSize={result?.pageSize ?? SEARCH_RESULT_LIMIT}
+          />
         </div>
       </section>
     </main>

@@ -3,7 +3,7 @@ import type { HttpTypes } from "@medusajs/types";
 export const DEFAULT_PRODUCT_PAGE_SIZE = 12;
 
 export const STOREFRONT_PRODUCT_CARD_FIELDS =
-  "id,title,handle,thumbnail,*variants.calculated_price,+metadata.flags,+metadata.top_offer,+metadata.short_description";
+  "id,title,handle,thumbnail,*variants.calculated_price,+metadata.flags,+metadata.top_offer,+metadata.short_description,+metadata.content_sections_map";
 
 export const STOREFRONT_PRODUCT_DETAIL_FIELDS =
   "id,title,handle,description,thumbnail,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,options.id,options.title,variants.id,variants.title,variants.options.value,variants.options.option_id,*variants.calculated_price,+metadata.short_description,+metadata.top_offer,+metadata.content_sections_map";

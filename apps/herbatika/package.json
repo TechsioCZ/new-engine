@@ -10,14 +10,15 @@
     "format": "biome format --write"
   },
   "dependencies": {
-    "@techsio/ui-kit": "workspace:*",
-    "@techsio/analytics": "workspace:*",
-    "@techsio/storefront-data": "workspace:*",
     "@medusajs/js-sdk": "^2.12.5",
     "@medusajs/types": "^2.12.5",
     "@tanstack/react-query": "^5.90.2",
     "@tanstack/react-store": "^0.7.1",
+    "@techsio/analytics": "workspace:*",
+    "@techsio/storefront-data": "workspace:*",
+    "@techsio/ui-kit": "workspace:*",
     "next": "16.1.1",
+    "nuqs": "^2.8.8",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.67.0",

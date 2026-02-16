@@ -20,6 +20,12 @@ type ProductFlagState = {
   variant: "success" | "warning" | "discount";
 };
 
+type TopOfferPriceState = {
+  currentAmount: number | null;
+  originalAmount: number | null;
+  currencyCode: string;
+};
+
 const PRODUCT_FALLBACK_IMAGE = "/file.svg";
 
 const FLAG_CONFIG = {
@@ -33,6 +39,57 @@ type SupportedFlagCode = keyof typeof FLAG_CONFIG;
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return value as Record<string, unknown>;
+  }
+
+  return null;
+};
+
+const asNumber = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const asBoolean = (value: unknown): boolean | null => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    if (value === 1) {
+      return true;
+    }
+
+    if (value === 0) {
+      return false;
+    }
+
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no"].includes(normalized)) {
+    return false;
   }
 
   return null;
@@ -57,18 +114,74 @@ const formatAmount = (amount: number, currencyCode: string): string => {
   }
 };
 
+const resolveTopOfferPriceState = (
+  product: HttpTypes.StoreProduct,
+): TopOfferPriceState => {
+  const metadata = asRecord(product.metadata);
+  const topOffer = asRecord(metadata?.top_offer);
+
+  if (!topOffer) {
+    return {
+      currentAmount: null,
+      originalAmount: null,
+      currencyCode: "EUR",
+    };
+  }
+
+  const currencyCode =
+    typeof topOffer.currency === "string" && topOffer.currency.length === 3
+      ? topOffer.currency
+      : "EUR";
+
+  const currentAmount =
+    asNumber(topOffer.current_price) ??
+    asNumber(topOffer.action_price) ??
+    asNumber(topOffer.price_vat);
+  const compareAtAmount =
+    asNumber(topOffer.compare_at_price) ?? asNumber(topOffer.standard_price);
+  const originalAmount =
+    currentAmount !== null &&
+    compareAtAmount !== null &&
+    compareAtAmount > currentAmount
+      ? compareAtAmount
+      : null;
+
+  return {
+    currentAmount,
+    originalAmount,
+    currencyCode,
+  };
+};
+
 const resolvePriceState = (
   product: HttpTypes.StoreProduct,
 ): ProductPriceState => {
   const calculatedPrice = product.variants?.[0]?.calculated_price;
   const calculatedAmount = calculatedPrice?.calculated_amount;
-  const originalAmount = calculatedPrice?.original_amount;
+  const calculatedOriginalAmount = calculatedPrice?.original_amount;
+  const topOfferPrice = resolveTopOfferPriceState(product);
+
+  const currentAmount =
+    typeof calculatedAmount === "number"
+      ? calculatedAmount
+      : topOfferPrice.currentAmount;
   const currencyCode =
     typeof calculatedPrice?.currency_code === "string"
       ? calculatedPrice.currency_code
-      : "EUR";
+      : topOfferPrice.currencyCode;
 
-  if (typeof calculatedAmount !== "number") {
+  const originalAmount =
+    typeof calculatedOriginalAmount === "number" &&
+    typeof currentAmount === "number" &&
+    calculatedOriginalAmount > currentAmount
+      ? calculatedOriginalAmount
+      : typeof topOfferPrice.originalAmount === "number" &&
+          typeof currentAmount === "number" &&
+          topOfferPrice.originalAmount > currentAmount
+        ? topOfferPrice.originalAmount
+        : null;
+
+  if (typeof currentAmount !== "number") {
     return {
       currentLabel: "Cena na vyžiadanie",
       originalLabel: null,
@@ -78,27 +191,37 @@ const resolvePriceState = (
     };
   }
 
-  const currentLabel = formatAmount(calculatedAmount, currencyCode);
+  const currentLabel = formatAmount(currentAmount, currencyCode);
   const originalLabel =
-    typeof originalAmount === "number" && originalAmount > calculatedAmount
+    typeof originalAmount === "number" && originalAmount > currentAmount
       ? formatAmount(originalAmount, currencyCode)
       : null;
 
   return {
     currentLabel,
     originalLabel,
-    currentAmount: calculatedAmount,
-    originalAmount: typeof originalAmount === "number" ? originalAmount : null,
+    currentAmount,
+    originalAmount,
     currencyCode,
   };
 };
 
-const resolveFlags = (product: HttpTypes.StoreProduct): ProductFlagState[] => {
+const resolveFlags = (
+  product: HttpTypes.StoreProduct,
+  hasDiscount: boolean,
+): ProductFlagState[] => {
   const metadata = asRecord(product.metadata);
   const flags = metadata?.flags;
 
   if (!Array.isArray(flags)) {
-    return [];
+    return hasDiscount
+      ? [
+          {
+            label: FLAG_CONFIG.action.label,
+            variant: FLAG_CONFIG.action.variant,
+          },
+        ]
+      : [];
   }
 
   const resolvedFlags: ProductFlagState[] = [];
@@ -111,9 +234,9 @@ const resolveFlags = (product: HttpTypes.StoreProduct): ProductFlagState[] => {
     }
 
     const code = flagRecord.code;
-    const active = flagRecord.active;
+    const active = asBoolean(flagRecord.active);
 
-    if (active !== true || typeof code !== "string") {
+    if (typeof code !== "string") {
       continue;
     }
 
@@ -122,6 +245,12 @@ const resolveFlags = (product: HttpTypes.StoreProduct): ProductFlagState[] => {
     }
 
     const typedCode = code as SupportedFlagCode;
+    const isActive =
+      typedCode === "action" ? active === true || hasDiscount : active === true;
+
+    if (!isActive) {
+      continue;
+    }
 
     if (usedCodes.has(typedCode)) {
       continue;
@@ -133,6 +262,13 @@ const resolveFlags = (product: HttpTypes.StoreProduct): ProductFlagState[] => {
     resolvedFlags.push({
       label: config.label,
       variant: config.variant,
+    });
+  }
+
+  if (hasDiscount && !usedCodes.has("action")) {
+    resolvedFlags.push({
+      label: FLAG_CONFIG.action.label,
+      variant: FLAG_CONFIG.action.variant,
     });
   }
 
@@ -180,33 +316,60 @@ const toBulletLines = (value: string): string | null => {
     .join("\n");
 };
 
+const extractListItems = (value: string): string[] => {
+  const listMatches = [...value.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)];
+  if (listMatches.length === 0) {
+    return [];
+  }
+
+  return listMatches.map((item) => stripHtml(item[1] || "")).filter(Boolean);
+};
+
 const resolveDescription = (product: HttpTypes.StoreProduct): string | null => {
   const metadata = asRecord(product.metadata);
+  const contentSectionsMap = asRecord(metadata?.content_sections_map);
+  const descriptionSection =
+    typeof contentSectionsMap?.description === "string"
+      ? contentSectionsMap.description
+      : null;
+  const usageSection =
+    typeof contentSectionsMap?.usage === "string"
+      ? contentSectionsMap.usage
+      : null;
   const shortDescription =
     typeof metadata?.short_description === "string"
       ? metadata.short_description
       : null;
 
-  if (!shortDescription) {
+  const htmlCandidates = [
+    descriptionSection,
+    usageSection,
+    shortDescription,
+  ].filter(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
+  );
+
+  for (const candidate of htmlCandidates) {
+    const listItems = extractListItems(candidate);
+    if (listItems.length === 0) {
+      continue;
+    }
+
+    const cardListItems = listItems.length > 1 ? listItems.slice(1) : listItems;
+
+    return cardListItems
+      .slice(0, 3)
+      .map((item) => `• ${item}`)
+      .join("\n");
+  }
+
+  const textSource = htmlCandidates.find((candidate) => stripHtml(candidate));
+  if (!textSource) {
     return null;
   }
 
-  const listMatches = [
-    ...shortDescription.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi),
-  ];
-  if (listMatches.length > 0) {
-    const bullets = listMatches
-      .map((item) => stripHtml(item[1] || ""))
-      .filter(Boolean)
-      .slice(0, 3)
-      .map((item) => `• ${item}`);
-
-    if (bullets.length > 0) {
-      return bullets.join("\n");
-    }
-  }
-
-  const text = stripHtml(shortDescription);
+  const text = stripHtml(textSource);
   if (!text) {
     return null;
   }
@@ -251,10 +414,10 @@ export function HerbatikaProductCard({
   const productHref = product.handle ? `/p/${product.handle}` : "/#";
   const defaultVariantId = product.variants?.[0]?.id;
   const price = resolvePriceState(product);
-  const flags = resolveFlags(product);
+  const discountLabel = resolveDiscountLabel(price);
+  const flags = resolveFlags(product, Boolean(discountLabel));
   const title = product.title || "Produkt";
   const description = resolveDescription(product);
-  const discountLabel = resolveDiscountLabel(price);
 
   return (
     <ProductCard className="h-full max-w-none rounded-md border-transparent bg-surface p-[20px] pb-[26px] shadow-none">
