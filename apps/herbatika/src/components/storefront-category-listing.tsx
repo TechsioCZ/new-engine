@@ -2,23 +2,24 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Button } from "@techsio/ui-kit/atoms/button";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
-import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
-import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import NextLink from "next/link";
 import { useQueryStates } from "nuqs";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AsideFilter } from "@/components/aside-filter";
+import { CategoryHeader } from "@/components/category/category-header";
 import {
-  AsideFilter,
-  type AsideFilterCategoryItem,
-} from "@/components/aside-filter";
-import { HerbatikaProductCard } from "@/components/herbatika-product-card";
-import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton";
+  normalizeCategoryName,
+  resolveCategoryRank,
+  resolveErrorMessage,
+} from "@/components/category/category-listing.helpers";
+import { CategoryProductsGrid } from "@/components/category/category-products-grid";
+import { CategorySortTabs } from "@/components/category/category-sort-tabs";
+import { CategoryTopLevelLinks } from "@/components/category/category-top-level-links";
+import { ProductGridSkeleton } from "@/components/category/product-grid-skeleton";
+import { useCategoryAsideFilters } from "@/components/category/use-category-aside-filters";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
 import {
   useCategories,
@@ -28,7 +29,6 @@ import {
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree";
 import {
   PLP_PAGE_SIZE,
-  PRODUCT_SORT_OPTIONS,
   type ProductSortValue,
   plpQueryParsers,
   resolveProductSortOrder,
@@ -46,191 +46,13 @@ type StorefrontCategoryListingProps = {
   slug: string;
 };
 
-const normalizeCategoryName = (value?: string | null) => {
-  if (!value) {
-    return "Kategória";
-  }
-
-  return value.replace(/^>\s*/, "").trim();
-};
-
-const resolveErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "An unknown error occurred.";
-};
-
-const resolveCategoryRank = (category: HttpTypes.StoreProductCategory) => {
-  if (typeof category.rank === "number") {
-    return category.rank;
-  }
-
-  return Number.MAX_SAFE_INTEGER;
-};
-
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-
-  return null;
-};
-
-const resolveProductPriceAmount = (
-  product: HttpTypes.StoreProduct,
-): number | null => {
-  const amount = product.variants?.[0]?.calculated_price?.calculated_amount;
-  return typeof amount === "number" ? amount : null;
-};
-
-const resolveProductCurrencyCode = (
-  products: HttpTypes.StoreProduct[],
-): string => {
-  for (const product of products) {
-    const code = product.variants?.[0]?.calculated_price?.currency_code;
-    if (typeof code === "string" && code.length === 3) {
-      return code.toUpperCase();
-    }
-  }
-
-  return "EUR";
-};
-
-const resolveProductInStock = (product: HttpTypes.StoreProduct): boolean => {
-  const metadata = asRecord(product.metadata);
-  const topOffer = asRecord(metadata?.top_offer);
-  const stock = asRecord(topOffer?.stock);
-  const amount = stock?.amount;
-
-  if (typeof amount === "number") {
-    return amount > 0;
-  }
-
-  return true;
-};
-
-type PriceBandDefinition = {
-  id: string;
-  min: number;
-  maxExclusive: number | null;
-};
-
-const buildPriceBandDefinitions = (
-  amounts: number[],
-): PriceBandDefinition[] => {
-  if (amounts.length === 0) {
-    return [];
-  }
-
-  const minimum = Math.floor(Math.min(...amounts));
-  const maximum = Math.ceil(Math.max(...amounts));
-
-  if (minimum >= maximum) {
-    return [
-      {
-        id: `price-${minimum}-plus`,
-        min: minimum,
-        maxExclusive: null,
-      },
-    ];
-  }
-
-  const bandCount = 4;
-  const span = maximum - minimum;
-  const step = Math.max(Math.ceil(span / bandCount), 1);
-  const definitions: PriceBandDefinition[] = [];
-
-  for (let index = 0; index < bandCount; index += 1) {
-    const start = minimum + index * step;
-    if (start > maximum) {
-      break;
-    }
-
-    const nextBoundary = start + step;
-    const maxExclusive = nextBoundary > maximum ? null : nextBoundary;
-
-    definitions.push({
-      id: `price-${start}-${maxExclusive ?? "plus"}`,
-      min: start,
-      maxExclusive,
-    });
-
-    if (maxExclusive === null) {
-      break;
-    }
-  }
-
-  return definitions;
-};
-
-const matchesPriceBand = (amount: number, definition: PriceBandDefinition) => {
-  if (definition.maxExclusive === null) {
-    return amount >= definition.min;
-  }
-
-  return amount >= definition.min && amount < definition.maxExclusive;
-};
-
-const formatAmount = (amount: number, currencyCode: string): string => {
-  const locale = currencyCode === "CZK" ? "cs-CZ" : "sk-SK";
-
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${Math.round(amount)} ${currencyCode}`;
-  }
-};
-
-const formatPriceBandLabel = (
-  definition: PriceBandDefinition,
-  currencyCode: string,
-): string => {
-  if (definition.maxExclusive === null) {
-    return `${formatAmount(definition.min, currencyCode)}+`;
-  }
-
-  return `${formatAmount(definition.min, currencyCode)} - ${formatAmount(
-    definition.maxExclusive,
-    currencyCode,
-  )}`;
-};
-
-const SORT_SELECT_ITEMS: SelectItem[] = PRODUCT_SORT_OPTIONS.map((option) => ({
-  label: option.label,
-  value: option.value,
-}));
-
-const PRODUCT_SKELETON_KEYS = [
-  "skeleton-1",
-  "skeleton-2",
-  "skeleton-3",
-  "skeleton-4",
-  "skeleton-5",
-  "skeleton-6",
-  "skeleton-7",
-  "skeleton-8",
-] as const;
-
-function ProductGridSkeleton() {
-  return (
-    <div className="grid grid-cols-2 gap-400 lg:grid-cols-3">
-      {PRODUCT_SKELETON_KEYS.map((skeletonKey) => (
-        <HerbatikaProductCardSkeleton key={skeletonKey} />
-      ))}
-    </div>
-  );
-}
+const SORT_TAB_ITEMS: Array<{ label: string; value: ProductSortValue }> = [
+  { label: "Odporúčame", value: "recommended" },
+  { label: "Najlacnejšie", value: "title-asc" },
+  { label: "Najdrahšie", value: "title-desc" },
+  { label: "Najpredávanejšie", value: "oldest" },
+  { label: "Najnovšie", value: "newest" },
+];
 
 export function StorefrontCategoryListing({
   slug,
@@ -239,21 +61,12 @@ export function StorefrontCategoryListing({
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers);
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
-  const [searchDraft, setSearchDraft] = useState(queryState.q);
-  const [selectedPriceBandIds, setSelectedPriceBandIds] = useState<string[]>(
-    [],
-  );
-  const [onlyInStock, setOnlyInStock] = useState(false);
 
   const categoriesQuery = useCategories({
     page: 1,
     limit: 500,
     fields: "id,name,handle,parent_category_id,rank",
   });
-
-  useEffect(() => {
-    setSearchDraft(queryState.q);
-  }, [queryState.q]);
 
   const categoryByHandle = useMemo(() => {
     const map = new Map<string, HttpTypes.StoreProductCategory>();
@@ -298,59 +111,6 @@ export function StorefrontCategoryListing({
         );
       });
   }, [categoriesQuery.categories]);
-
-  const asideCategoryItems = useMemo<AsideFilterCategoryItem[]>(() => {
-    const sourceCategories = activeCategory
-      ? categoriesQuery.categories.filter(
-          (category) =>
-            category.parent_category_id === activeCategory.id &&
-            category.handle,
-        )
-      : topLevelCategories;
-
-    const sortedSourceCategories = [...sourceCategories].sort((left, right) => {
-      const rankDifference =
-        resolveCategoryRank(left) - resolveCategoryRank(right);
-      if (rankDifference !== 0) {
-        return rankDifference;
-      }
-
-      return normalizeCategoryName(left.name).localeCompare(
-        normalizeCategoryName(right.name),
-        "sk",
-      );
-    });
-
-    const items: AsideFilterCategoryItem[] = sortedSourceCategories.map(
-      (category) => ({
-        id: category.id,
-        label: normalizeCategoryName(category.name),
-        href: `/c/${category.handle}`,
-        isActive: category.handle === activeCategory?.handle,
-      }),
-    );
-
-    if (activeCategory?.handle) {
-      items.unshift({
-        id: activeCategory.id,
-        label: normalizeCategoryName(activeCategory.name),
-        href: `/c/${activeCategory.handle}`,
-        isActive: true,
-      });
-    }
-
-    const deduplicatedItems = new Map<string, AsideFilterCategoryItem>();
-
-    for (const item of items) {
-      if (deduplicatedItems.has(item.id)) {
-        continue;
-      }
-
-      deduplicatedItems.set(item.id, item);
-    }
-
-    return Array.from(deduplicatedItems.values());
-  }, [activeCategory, categoriesQuery.categories, topLevelCategories]);
 
   const activeCategoryFilterIds = useMemo(() => {
     if (!activeCategory) {
@@ -410,7 +170,6 @@ export function StorefrontCategoryListing({
   }, [activeCategory, categoryById, slug]);
 
   const sortOrder = resolveProductSortOrder(queryState.sort);
-  const searchQuery = queryState.q.trim();
 
   const productsInput = useMemo(() => {
     return {
@@ -422,128 +181,39 @@ export function StorefrontCategoryListing({
           ? activeCategoryFilterIds
           : undefined,
       order: sortOrder,
-      q: searchQuery || undefined,
+      region_id: region?.region_id,
+      country_code: region?.country_code,
       enabled: Boolean(region?.region_id && activeCategory?.id),
     };
   }, [
     activeCategory?.id,
     activeCategoryFilterIds,
-    queryState.page,
+    region?.country_code,
     region?.region_id,
-    searchQuery,
+    queryState.page,
     sortOrder,
   ]);
 
   const productsQuery = useProducts(productsInput);
-
-  const productPriceAmounts = useMemo(() => {
-    return productsQuery.products
-      .map(resolveProductPriceAmount)
-      .filter((amount): amount is number => typeof amount === "number");
-  }, [productsQuery.products]);
-
-  const priceBandDefinitions = useMemo(() => {
-    return buildPriceBandDefinitions(productPriceAmounts);
-  }, [productPriceAmounts]);
-
-  const priceBandDefinitionById = useMemo(() => {
-    return new Map(
-      priceBandDefinitions.map((definition) => [definition.id, definition]),
-    );
-  }, [priceBandDefinitions]);
-
-  const productsCurrencyCode = useMemo(() => {
-    return resolveProductCurrencyCode(productsQuery.products);
-  }, [productsQuery.products]);
-
-  const asidePriceBands = useMemo(() => {
-    return priceBandDefinitions.map((definition) => {
-      let count = 0;
-
-      for (const product of productsQuery.products) {
-        const amount = resolveProductPriceAmount(product);
-        if (typeof amount !== "number") {
-          continue;
-        }
-
-        if (matchesPriceBand(amount, definition)) {
-          count += 1;
-        }
-      }
-
-      return {
-        id: definition.id,
-        label: formatPriceBandLabel(definition, productsCurrencyCode),
-        checked: selectedPriceBandIds.includes(definition.id),
-        count,
-        disabled: count === 0,
-      };
-    });
-  }, [
-    priceBandDefinitions,
+  const {
     productsCurrencyCode,
-    productsQuery.products,
-    selectedPriceBandIds,
-  ]);
-
-  const inStockCount = useMemo(() => {
-    return productsQuery.products.reduce((count, product) => {
-      return count + (resolveProductInStock(product) ? 1 : 0);
-    }, 0);
-  }, [productsQuery.products]);
-
-  const outOfStockCount = Math.max(
-    productsQuery.products.length - inStockCount,
-    0,
-  );
-
-  const activeAsideFilterCount =
-    selectedPriceBandIds.length + (onlyInStock ? 1 : 0);
-
-  const displayedProducts = useMemo(() => {
-    return productsQuery.products.filter((product) => {
-      if (onlyInStock && !resolveProductInStock(product)) {
-        return false;
-      }
-
-      if (selectedPriceBandIds.length === 0) {
-        return true;
-      }
-
-      const amount = resolveProductPriceAmount(product);
-      if (typeof amount !== "number") {
-        return false;
-      }
-
-      return selectedPriceBandIds.some((selectedBandId) => {
-        const definition = priceBandDefinitionById.get(selectedBandId);
-        if (!definition) {
-          return false;
-        }
-
-        return matchesPriceBand(amount, definition);
-      });
-    });
-  }, [
-    onlyInStock,
-    priceBandDefinitionById,
-    productsQuery.products,
-    selectedPriceBandIds,
-  ]);
-
-  useEffect(() => {
-    setSelectedPriceBandIds((currentState) =>
-      currentState.filter((bandId) => priceBandDefinitionById.has(bandId)),
-    );
-  }, [priceBandDefinitionById]);
-
-  useEffect(() => {
-    setSelectedPriceBandIds([]);
-    setOnlyInStock(false);
-    if (activeCategoryId === null) {
-      return;
-    }
-  }, [activeCategoryId]);
+    asidePriceBands,
+    asideStatusItems,
+    asideFormItems,
+    asideBrandItems,
+    asideIngredientItems,
+    activeAsideFilterCount,
+    displayedProducts,
+    applyPriceBandsFromRange,
+    toggleStatusFilter,
+    toggleFormFilter,
+    toggleBrandFilter,
+    toggleIngredientFilter,
+    resetAsideFilters,
+  } = useCategoryAsideFilters({
+    products: productsQuery.products,
+    activeCategoryId,
+  });
 
   useEffect(() => {
     if (!productsInput.enabled || productsQuery.isLoading) {
@@ -636,44 +306,6 @@ export function StorefrontCategoryListing({
     });
   };
 
-  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    void setQueryState({
-      q: searchDraft.trim(),
-      page: 1,
-    });
-  };
-
-  const resetFilters = () => {
-    setSearchDraft("");
-    void setQueryState({
-      q: "",
-      sort: "recommended",
-      page: 1,
-    });
-  };
-
-  const togglePriceBand = (bandId: string) => {
-    setSelectedPriceBandIds((currentState) => {
-      if (currentState.includes(bandId)) {
-        return currentState.filter(
-          (existingBandId) => existingBandId !== bandId,
-        );
-      }
-
-      return [...currentState, bandId];
-    });
-  };
-
-  const resetAsideFilters = () => {
-    setSelectedPriceBandIds([]);
-    setOnlyInStock(false);
-  };
-
-  const activeSortSelection = useMemo(() => {
-    return [queryState.sort];
-  }, [queryState.sort]);
-
   const showCategoryNotFound =
     !categoriesQuery.isLoading &&
     categoriesQuery.categories.length > 0 &&
@@ -684,186 +316,149 @@ export function StorefrontCategoryListing({
       ? `Zobrazené vrátane ${activeCategoryFilterIds.length - 1} podkategórií`
       : "Zobrazené produkty danej kategórie";
 
+  const handleCategoryBlur = (category: HttpTypes.StoreProductCategory) => {
+    prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`);
+    prefetchProducts.cancelPrefetch(
+      `prefetch-category-products-${category.id}`,
+    );
+  };
+
+  const handleCategoryFocus = (category: HttpTypes.StoreProductCategory) => {
+    prefetchCategory.delayedPrefetch(
+      { id: category.id },
+      200,
+      `prefetch-category-${category.id}`,
+    );
+    prefetchProducts.delayedPrefetch(
+      {
+        page: 1,
+        limit: PLP_PAGE_SIZE,
+        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
+        category_id: [category.id],
+        order: sortOrder,
+        region_id: region?.region_id,
+        country_code: region?.country_code,
+      },
+      250,
+      `prefetch-category-products-${category.id}`,
+    );
+  };
+
+  const handleCategoryMouseEnter = (
+    category: HttpTypes.StoreProductCategory,
+  ) => {
+    prefetchCategory.delayedPrefetch(
+      { id: category.id },
+      200,
+      `prefetch-category-${category.id}`,
+    );
+    prefetchCategories.delayedPrefetch(
+      { page: 1, limit: 100, parent_category_id: category.id },
+      300,
+      `prefetch-category-children-${category.id}`,
+    );
+    prefetchProducts.delayedPrefetch(
+      {
+        page: 1,
+        limit: PLP_PAGE_SIZE,
+        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
+        category_id: [category.id],
+        order: sortOrder,
+        region_id: region?.region_id,
+        country_code: region?.country_code,
+      },
+      250,
+      `prefetch-category-products-${category.id}`,
+    );
+  };
+
+  const handleCategoryMouseLeave = (
+    category: HttpTypes.StoreProductCategory,
+  ) => {
+    prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`);
+    prefetchCategories.cancelPrefetch(
+      `prefetch-category-children-${category.id}`,
+    );
+    prefetchProducts.cancelPrefetch(
+      `prefetch-category-products-${category.id}`,
+    );
+  };
+
+  const handleProductHoverEnd = (product: HttpTypes.StoreProduct) => {
+    prefetchProduct.cancelPrefetch(`plp-product-${product.id}`);
+  };
+
+  const handleProductHoverStart = (product: HttpTypes.StoreProduct) => {
+    if (!product.handle) {
+      return;
+    }
+
+    prefetchProduct.delayedPrefetch(
+      {
+        handle: product.handle,
+        fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
+      },
+      180,
+      `plp-product-${product.id}`,
+    );
+  };
+
+  const isProductAdding = (productId: string) => {
+    return addLineItemMutation.isPending && activeProductId === productId;
+  };
+
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 p-600">
       <Breadcrumb items={breadcrumbItems} linkAs={NextLink} />
 
-      <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold">
-            {normalizeCategoryName(activeCategory?.name ?? slug)}
-          </h1>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant={activeCategory ? "success" : "warning"}>
-              {activeCategory ? "kategória nájdená" : "kategória nenájdená"}
-            </Badge>
-            <Badge variant="info">{categorySubtitle}</Badge>
-            <Badge variant="info">{`produkty: ${productsQuery.totalCount}`}</Badge>
-            {activeAsideFilterCount > 0 && (
-              <Badge variant="warning">{`po filtri: ${displayedProducts.length}`}</Badge>
-            )}
-          </div>
-        </header>
-
-        <div className="flex flex-wrap gap-2">
-          {topLevelCategories.map((category) => (
-            <LinkButton
-              as={NextLink}
-              href={`/c/${category.handle}`}
-              key={category.id}
-              onBlur={() => {
-                prefetchCategory.cancelPrefetch(
-                  `prefetch-category-${category.id}`,
-                );
-                prefetchProducts.cancelPrefetch(
-                  `prefetch-category-products-${category.id}`,
-                );
-              }}
-              onFocus={() => {
-                prefetchCategory.delayedPrefetch(
-                  { id: category.id },
-                  200,
-                  `prefetch-category-${category.id}`,
-                );
-                prefetchProducts.delayedPrefetch(
-                  {
-                    page: 1,
-                    limit: PLP_PAGE_SIZE,
-                    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-                    category_id: [category.id],
-                    order: sortOrder,
-                  },
-                  250,
-                  `prefetch-category-products-${category.id}`,
-                );
-              }}
-              onMouseEnter={() => {
-                prefetchCategory.delayedPrefetch(
-                  { id: category.id },
-                  200,
-                  `prefetch-category-${category.id}`,
-                );
-                prefetchCategories.delayedPrefetch(
-                  { page: 1, limit: 100, parent_category_id: category.id },
-                  300,
-                  `prefetch-category-children-${category.id}`,
-                );
-                prefetchProducts.delayedPrefetch(
-                  {
-                    page: 1,
-                    limit: PLP_PAGE_SIZE,
-                    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-                    category_id: [category.id],
-                    order: sortOrder,
-                  },
-                  250,
-                  `prefetch-category-products-${category.id}`,
-                );
-              }}
-              onMouseLeave={() => {
-                prefetchCategory.cancelPrefetch(
-                  `prefetch-category-${category.id}`,
-                );
-                prefetchCategories.cancelPrefetch(
-                  `prefetch-category-children-${category.id}`,
-                );
-                prefetchProducts.cancelPrefetch(
-                  `prefetch-category-products-${category.id}`,
-                );
-              }}
-              size="sm"
-              theme={
-                category.handle === activeCategory?.handle
-                  ? "solid"
-                  : "outlined"
-              }
-              variant={
-                category.handle === activeCategory?.handle
-                  ? "primary"
-                  : "secondary"
-              }
-            >
-              {normalizeCategoryName(category.name)}
-            </LinkButton>
-          ))}
-        </div>
+      <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
+        <CategoryHeader
+          activeAsideFilterCount={activeAsideFilterCount}
+          categoryFound={Boolean(activeCategory)}
+          categorySubtitle={categorySubtitle}
+          displayedProductsCount={displayedProducts.length}
+          title={normalizeCategoryName(activeCategory?.name ?? slug)}
+          totalProducts={productsQuery.totalCount}
+        />
+        <CategoryTopLevelLinks
+          activeCategoryHandle={activeCategory?.handle ?? null}
+          getCategoryLabel={(category) => normalizeCategoryName(category.name)}
+          onCategoryBlur={handleCategoryBlur}
+          onCategoryFocus={handleCategoryFocus}
+          onCategoryMouseEnter={handleCategoryMouseEnter}
+          onCategoryMouseLeave={handleCategoryMouseLeave}
+          topLevelCategories={topLevelCategories}
+        />
       </section>
 
-      <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
-        <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <AsideFilter
-            activeFilterCount={activeAsideFilterCount}
-            categoryItems={asideCategoryItems}
-            inStockCount={inStockCount}
-            isLoading={categoriesQuery.isLoading || productsQuery.isLoading}
-            onOnlyInStockChange={setOnlyInStock}
-            onPriceBandToggle={togglePriceBand}
-            onReset={resetAsideFilters}
-            onlyInStock={onlyInStock}
-            outOfStockCount={outOfStockCount}
-            priceBands={asidePriceBands}
-          />
+      <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
+        <div className="grid gap-600 xl:grid-cols-12">
+          <div className="xl:col-span-3">
+            <AsideFilter
+              activeFilterCount={activeAsideFilterCount}
+              brandItems={asideBrandItems}
+              currencyCode={productsCurrencyCode}
+              formItems={asideFormItems}
+              ingredientItems={asideIngredientItems}
+              isLoading={categoriesQuery.isLoading || productsQuery.isLoading}
+              onBrandToggle={toggleBrandFilter}
+              onFormToggle={toggleFormFilter}
+              onIngredientToggle={toggleIngredientFilter}
+              onPriceBandSelectionChange={applyPriceBandsFromRange}
+              onReset={resetAsideFilters}
+              onStatusToggle={toggleStatusFilter}
+              priceBands={asidePriceBands}
+              statusItems={asideStatusItems}
+            />
+          </div>
 
-          <div className="space-y-4">
-            <form
-              className="grid gap-3 md:grid-cols-[1fr_240px_auto]"
-              onSubmit={handleSearchSubmit}
-            >
-              <FormInput
-                id="plp-search"
-                label="Hľadať v kategórii"
-                name="q"
-                placeholder="Napr. borovica, vitamín C..."
-                type="text"
-                value={searchDraft}
-                onChange={(event) => setSearchDraft(event.target.value)}
-              />
-
-              <Select
-                items={SORT_SELECT_ITEMS}
-                onValueChange={(details) => {
-                  const nextSort = details.value[0];
-                  if (!nextSort) {
-                    return;
-                  }
-
-                  handleSortChange(nextSort as ProductSortValue);
-                }}
-                value={activeSortSelection}
-              >
-                <Select.Label>Zoradiť podľa</Select.Label>
-                <Select.Control>
-                  <Select.Trigger>
-                    <Select.ValueText placeholder="Zvoľte radenie" />
-                  </Select.Trigger>
-                  <Select.ClearTrigger />
-                </Select.Control>
-                <Select.Positioner>
-                  <Select.Content>
-                    {SORT_SELECT_ITEMS.map((item) => (
-                      <Select.Item item={item} key={item.value}>
-                        <Select.ItemText />
-                        <Select.ItemIndicator />
-                      </Select.Item>
-                    ))}
-                  </Select.Content>
-                </Select.Positioner>
-              </Select>
-
-              <div className="flex items-end gap-2">
-                <Button type="submit" variant="secondary">
-                  Použiť
-                </Button>
-                <Button
-                  onClick={resetFilters}
-                  theme="outlined"
-                  type="button"
-                  variant="secondary"
-                >
-                  Reset
-                </Button>
-              </div>
-            </form>
+          <div className="space-y-400 xl:col-span-9">
+            <CategorySortTabs
+              activeSort={queryState.sort}
+              onSortChange={handleSortChange}
+              sortItems={SORT_TAB_ITEMS}
+              totalProducts={productsQuery.totalCount}
+            />
 
             {addToCartError && <ErrorText showIcon>{addToCartError}</ErrorText>}
             {categoriesQuery.error && (
@@ -887,7 +482,7 @@ export function StorefrontCategoryListing({
               !productsQuery.isLoading &&
               !showCategoryNotFound &&
               productsQuery.products.length === 0 && (
-                <div className="rounded-lg border border-black/10 bg-base p-4">
+                <div className="rounded-lg border border-border-secondary bg-base p-400">
                   <p className="text-sm text-fg-secondary">
                     V tejto kategórii zatiaľ nie sú dostupné produkty pre
                     zvolený filter.
@@ -900,7 +495,7 @@ export function StorefrontCategoryListing({
               !showCategoryNotFound &&
               productsQuery.products.length > 0 &&
               displayedProducts.length === 0 && (
-                <div className="rounded-lg border border-black/10 bg-base p-4">
+                <div className="rounded-lg border border-border-secondary bg-base p-400">
                   <p className="text-sm text-fg-secondary">
                     Žiadny produkt nevyhovuje vybranému filtrovanému rozsahu.
                   </p>
@@ -910,38 +505,13 @@ export function StorefrontCategoryListing({
             {!categoriesQuery.isLoading &&
               !productsQuery.isLoading &&
               displayedProducts.length > 0 && (
-                <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-                  {displayedProducts.map((product) => (
-                    <HerbatikaProductCard
-                      isAdding={
-                        addLineItemMutation.isPending &&
-                        activeProductId === product.id
-                      }
-                      key={product.id}
-                      onAddToCart={handleAddToCart}
-                      onProductHoverEnd={(hoveredProduct) => {
-                        prefetchProduct.cancelPrefetch(
-                          `plp-product-${hoveredProduct.id}`,
-                        );
-                      }}
-                      onProductHoverStart={(hoveredProduct) => {
-                        if (!hoveredProduct.handle) {
-                          return;
-                        }
-
-                        prefetchProduct.delayedPrefetch(
-                          {
-                            handle: hoveredProduct.handle,
-                            fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
-                          },
-                          180,
-                          `plp-product-${hoveredProduct.id}`,
-                        );
-                      }}
-                      product={product}
-                    />
-                  ))}
-                </div>
+                <CategoryProductsGrid
+                  isProductAdding={isProductAdding}
+                  onAddToCart={handleAddToCart}
+                  onProductHoverEnd={handleProductHoverEnd}
+                  onProductHoverStart={handleProductHoverStart}
+                  products={displayedProducts}
+                />
               )}
 
             {productsQuery.totalPages > 1 && (

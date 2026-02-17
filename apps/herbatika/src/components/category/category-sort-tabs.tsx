@@ -1,0 +1,45 @@
+import { Button } from "@techsio/ui-kit/atoms/button";
+import type { ProductSortValue } from "@/lib/storefront/plp-query-state";
+
+type CategorySortTabsProps = {
+  sortItems: Array<{ label: string; value: ProductSortValue }>;
+  activeSort: ProductSortValue;
+  onSortChange: (value: ProductSortValue) => void;
+  totalProducts: number;
+};
+
+export function CategorySortTabs({
+  sortItems,
+  activeSort,
+  onSortChange,
+  totalProducts,
+}: CategorySortTabsProps) {
+  return (
+    <div className="grid items-center gap-150 rounded-xl bg-highlight px-250 py-200 md:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="flex min-w-0 items-center gap-100 overflow-x-auto">
+        {sortItems.map((item) => {
+          const isActive = item.value === activeSort;
+
+          return (
+            <Button
+              className={`shrink-0 rounded-full px-350 py-150 text-base leading-tight font-semibold transition-colors ${
+                isActive
+                  ? "bg-primary text-fg-reverse"
+                  : "text-fg-secondary hover:text-primary"
+              }`}
+              key={item.value}
+              onClick={() => onSortChange(item.value)}
+              size="current"
+              theme="unstyled"
+              type="button"
+            >
+              {item.label}
+            </Button>
+          );
+        })}
+      </div>
+
+      <p className="text-base font-semibold text-fg-secondary md:justify-self-end">{`${totalProducts} položiek celkom`}</p>
+    </div>
+  );
+}

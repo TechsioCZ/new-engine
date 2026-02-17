@@ -1,201 +1,229 @@
 "use client";
 
-import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { Checkbox } from "@techsio/ui-kit/atoms/checkbox";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
-import { Link } from "@techsio/ui-kit/atoms/link";
-import { Accordion } from "@techsio/ui-kit/molecules/accordion";
-import NextLink from "next/link";
-
-export type AsideFilterCategoryItem = {
-  id: string;
-  label: string;
-  href: string;
-  isActive: boolean;
-};
-
-export type AsideFilterPriceBand = {
-  id: string;
-  label: string;
-  checked: boolean;
-  count: number;
-  disabled?: boolean;
-};
+import { Slider } from "@techsio/ui-kit/molecules/slider";
+import { useEffect, useMemo, useState } from "react";
+import {
+  type AsideFilterChipItem,
+  AsideFilterChipSection,
+} from "@/components/aside-filter-chip-section";
+import {
+  type AsideFilterPriceBand,
+  formatAmount,
+  resolveBandIdsFromRange,
+  resolveSelectedRangeFromBands,
+  resolveSliderBounds,
+} from "@/components/aside-filter-price-range";
 
 type AsideFilterProps = {
-  categoryItems: AsideFilterCategoryItem[];
   priceBands: AsideFilterPriceBand[];
-  onlyInStock: boolean;
-  onOnlyInStockChange: (value: boolean) => void;
-  onPriceBandToggle: (bandId: string) => void;
+  currencyCode: string;
+  statusItems: AsideFilterChipItem[];
+  formItems: AsideFilterChipItem[];
+  brandItems: AsideFilterChipItem[];
+  ingredientItems: AsideFilterChipItem[];
+  onStatusToggle: (itemId: string) => void;
+  onFormToggle: (itemId: string) => void;
+  onBrandToggle: (itemId: string) => void;
+  onIngredientToggle: (itemId: string) => void;
+  onPriceBandSelectionChange: (bandIds: string[]) => void;
   activeFilterCount: number;
-  inStockCount: number;
-  outOfStockCount: number;
   isLoading?: boolean;
   onReset: () => void;
 };
 
 export function AsideFilter({
-  categoryItems,
   priceBands,
-  onlyInStock,
-  onOnlyInStockChange,
-  onPriceBandToggle,
+  currencyCode,
+  statusItems,
+  formItems,
+  brandItems,
+  ingredientItems,
+  onStatusToggle,
+  onFormToggle,
+  onBrandToggle,
+  onIngredientToggle,
+  onPriceBandSelectionChange,
   activeFilterCount,
-  inStockCount,
-  outOfStockCount,
   isLoading = false,
   onReset,
 }: AsideFilterProps) {
+  const sliderBounds = useMemo(
+    () => resolveSliderBounds(priceBands),
+    [priceBands],
+  );
+
+  const selectedRangeFromBands = useMemo(
+    () => resolveSelectedRangeFromBands(priceBands, sliderBounds),
+    [priceBands, sliderBounds],
+  );
+
+  const [sliderRange, setSliderRange] = useState<[number, number]>(
+    selectedRangeFromBands,
+  );
+
+  useEffect(() => {
+    setSliderRange(selectedRangeFromBands);
+  }, [selectedRangeFromBands]);
+
+  const safeSliderBounds = useMemo(() => {
+    const min = Number.isFinite(sliderBounds.min) ? sliderBounds.min : 0;
+    const maxCandidate = Number.isFinite(sliderBounds.max)
+      ? sliderBounds.max
+      : min + 1;
+
+    return {
+      min,
+      max: maxCandidate > min ? maxCandidate : min + 1,
+    };
+  }, [sliderBounds.max, sliderBounds.min]);
+
+  const safeSliderValue = useMemo<[number, number]>(() => {
+    const currentMin = Number.isFinite(sliderRange[0])
+      ? sliderRange[0]
+      : safeSliderBounds.min;
+    const currentMax = Number.isFinite(sliderRange[1])
+      ? sliderRange[1]
+      : safeSliderBounds.max;
+    const normalizedMin = Math.max(
+      safeSliderBounds.min,
+      Math.min(safeSliderBounds.max, currentMin),
+    );
+    const normalizedMax = Math.max(
+      safeSliderBounds.min,
+      Math.min(safeSliderBounds.max, currentMax),
+    );
+
+    if (normalizedMin <= normalizedMax) {
+      return [normalizedMin, normalizedMax];
+    }
+
+    return [normalizedMax, normalizedMin];
+  }, [
+    safeSliderBounds.max,
+    safeSliderBounds.min,
+    sliderRange[0],
+    sliderRange[1],
+  ]);
+
+  const chipButtonClass = (checked: boolean, disabled?: boolean) => {
+    return [
+      "rounded-full px-250 py-100 text-sm font-medium leading-tight transition-colors",
+      checked ? "bg-primary text-fg-reverse" : "bg-highlight text-primary",
+      disabled ? "opacity-55" : "hover:bg-highlight-hover",
+    ].join(" ");
+  };
+
   return (
-    <aside className="space-y-4 rounded-xl border border-border-secondary bg-surface p-4 text-fg-primary xl:sticky xl:top-4">
-      <header className="space-y-2 border-border-secondary border-b pb-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-base">Filtre</h2>
-          {activeFilterCount > 0 && (
-            <Badge variant="info">{`${activeFilterCount} aktívne`}</Badge>
-          )}
-        </div>
-        <ExtraText className="text-fg-secondary text-xs">
-          Filter sidebar používa dáta z kategórií, cien variantov a metadata
-          skladovosti.
-        </ExtraText>
-      </header>
+    <aside className="rounded-2xl border border-border-secondary bg-surface p-500 text-fg-primary xl:sticky xl:top-400">
+      <div className="space-y-500">
+        <section className="space-y-300">
+          <h2 className="text-2xl font-bold uppercase leading-none">Cena</h2>
+          <div className="flex items-center justify-between text-lg font-medium text-fg-secondary">
+            <span>{formatAmount(safeSliderValue[0], currencyCode)}</span>
+            <span>{formatAmount(safeSliderValue[1], currencyCode)}</span>
+          </div>
+          <Slider
+            defaultValue={[safeSliderBounds.min, safeSliderBounds.max]}
+            max={safeSliderBounds.max}
+            min={safeSliderBounds.min}
+            minStepsBetweenThumbs={0}
+            onChange={(values) => {
+              if (values[0] === undefined || values[1] === undefined) {
+                return;
+              }
 
-      <Accordion
-        defaultValue={["price", "availability", "categories"]}
-        multiple
-        size="sm"
-        variant="default"
-      >
-        <Accordion.Item value="price">
-          <Accordion.Header>
-            <Accordion.Title>Cena</Accordion.Title>
-            <Accordion.Indicator />
-          </Accordion.Header>
-          <Accordion.Content>
-            <div className="space-y-2 pb-2">
-              {priceBands.length === 0 && (
-                <ExtraText className="text-fg-secondary text-xs">
-                  Ceny zatiaľ nie sú dostupné.
-                </ExtraText>
-              )}
+              setSliderRange([Math.round(values[0]), Math.round(values[1])]);
+            }}
+            onChangeEnd={(values) => {
+              if (values[0] === undefined || values[1] === undefined) {
+                return;
+              }
 
-              {priceBands.map((priceBand) => (
-                <label
-                  className="flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border-secondary px-2 py-1.5 hover:bg-overlay"
-                  htmlFor={`price-band-${priceBand.id}`}
-                  key={priceBand.id}
-                >
-                  <span className="flex items-center gap-2">
-                    <Checkbox
-                      checked={priceBand.checked}
-                      disabled={isLoading || priceBand.disabled}
-                      id={`price-band-${priceBand.id}`}
-                      name="price-band"
-                      onChange={() => onPriceBandToggle(priceBand.id)}
-                    />
-                    <span className="text-sm">{priceBand.label}</span>
-                  </span>
-                  <span className="text-fg-secondary text-xs">
-                    {priceBand.count}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </Accordion.Content>
-        </Accordion.Item>
+              const nextRange: [number, number] = [
+                Math.round(values[0]),
+                Math.round(values[1]),
+              ];
 
-        <Accordion.Item value="availability">
-          <Accordion.Header>
-            <Accordion.Title>Dostupnosť</Accordion.Title>
-            <Accordion.Indicator />
-          </Accordion.Header>
-          <Accordion.Content>
-            <div className="space-y-2 pb-2">
-              <label
-                className="flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border-secondary px-2 py-1.5 hover:bg-overlay"
-                htmlFor="availability-in-stock"
+              const nextBandIds = resolveBandIdsFromRange(
+                nextRange,
+                priceBands,
+                safeSliderBounds,
+              );
+              onPriceBandSelectionChange(nextBandIds);
+            }}
+            size="sm"
+            step={1}
+            value={safeSliderValue}
+          />
+        </section>
+
+        <section className="space-y-250">
+          <div className="flex flex-wrap gap-200">
+            {statusItems.map((item) => (
+              <Button
+                className={chipButtonClass(item.checked, item.disabled)}
+                disabled={isLoading || item.disabled}
+                key={item.id}
+                onClick={() => onStatusToggle(item.id)}
+                size="current"
+                theme="unstyled"
+                type="button"
               >
-                <span className="flex items-center gap-2">
-                  <Checkbox
-                    checked={onlyInStock}
-                    disabled={isLoading}
-                    id="availability-in-stock"
-                    name="availability"
-                    onChange={(event) =>
-                      onOnlyInStockChange(event.currentTarget.checked)
-                    }
-                  />
-                  <span className="text-sm">Len skladom</span>
-                </span>
-                <span className="text-fg-secondary text-xs">
-                  {inStockCount}
-                </span>
-              </label>
+                {`${item.label} (${item.count})`}
+              </Button>
+            ))}
+          </div>
+        </section>
 
-              <div className="flex items-center justify-between rounded-md border border-border-secondary px-2 py-1.5">
-                <ExtraText className="text-fg-secondary text-xs">
-                  Momentálne nedostupné
-                </ExtraText>
-                <span className="text-fg-secondary text-xs">
-                  {outOfStockCount}
-                </span>
-              </div>
-            </div>
-          </Accordion.Content>
-        </Accordion.Item>
+        <div>
+          <AsideFilterChipSection
+            emptyMessage="Formy sa načítavajú."
+            isLoading={isLoading}
+            items={formItems}
+            onToggle={onFormToggle}
+            title="Forma"
+          />
+        </div>
 
-        <Accordion.Item value="categories">
-          <Accordion.Header>
-            <Accordion.Title>Kategórie</Accordion.Title>
-            <Accordion.Indicator />
-          </Accordion.Header>
-          <Accordion.Content>
-            <div className="space-y-1 pb-2">
-              {categoryItems.length === 0 && (
-                <ExtraText className="text-fg-secondary text-xs">
-                  Kategórie sa načítavajú.
-                </ExtraText>
-              )}
+        <div>
+          <AsideFilterChipSection
+            collapseAfter={12}
+            emptyMessage="Značky zatiaľ nie sú dostupné."
+            isLoading={isLoading}
+            items={brandItems}
+            onToggle={onBrandToggle}
+            title="Značka"
+          />
+        </div>
 
-              {categoryItems.map((category) => (
-                <div
-                  className="flex items-center justify-between rounded-md border border-border-secondary px-2 py-1.5"
-                  key={category.id}
-                >
-                  <Link
-                    as={NextLink}
-                    className={
-                      category.isActive
-                        ? "font-medium text-primary text-sm"
-                        : "text-fg-primary text-sm hover:text-primary"
-                    }
-                    href={category.href}
-                  >
-                    {category.label}
-                  </Link>
-                  {category.isActive && (
-                    <Badge variant="success">aktívna</Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Accordion.Content>
-        </Accordion.Item>
-      </Accordion>
+        <div>
+          <AsideFilterChipSection
+            collapseAfter={12}
+            emptyMessage="Aktívne látky sa načítavajú."
+            isLoading={isLoading}
+            items={ingredientItems}
+            onToggle={onIngredientToggle}
+            title="Aktívna látka"
+          />
+        </div>
 
-      <Button
-        block
-        disabled={activeFilterCount === 0}
-        onClick={onReset}
-        size="sm"
-        theme="outlined"
-        variant="secondary"
-      >
-        Vymazať filtre
-      </Button>
+        <div className="space-y-250">
+          <Button
+            block
+            disabled={activeFilterCount === 0}
+            onClick={onReset}
+            size="sm"
+            theme="outlined"
+            variant="secondary"
+          >
+            Vymazať filtre
+          </Button>
+        </div>
+      </div>
     </aside>
   );
 }
+
+export type { AsideFilterChipItem };
+export type { AsideFilterPriceBand } from "@/components/aside-filter-price-range";

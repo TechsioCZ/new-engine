@@ -1,0 +1,15 @@
+@theme static {
+  --color-slider-track-bg: var(--color-border-secondary);
+  --color-slider-track-bg-hover: var(--color-border-secondary);
+  --color-slider-range-bg: var(--color-primary);
+  --color-slider-range-bg-hover: var(--color-herbatica-primary-strong);
+  --color-slider-thumb-bg: var(--color-surface);
+  --color-slider-thumb-bg-hover: var(--color-surface);
+  --color-slider-border: var(--color-primary);
+  --color-slider-ring: var(--color-primary);
+
+  --border-width-slider: var(--border-width-md);
+  --spacing-slider-track-sm: var(--spacing-100);
+  --spacing-slider-thumb-sm: var(--spacing-300);
+  --shadow-slider-thumb: 0 0 transparent;
+}
