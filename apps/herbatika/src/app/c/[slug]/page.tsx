@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { StorefrontCategoryListing } from "@/components/storefront-category-listing";
 import { StorefrontHydrationBoundary } from "@/components/storefront-hydration-boundary";
-import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-config";
+import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr";
 
 type CategoryPageProps = {

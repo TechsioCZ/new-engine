@@ -9,6 +9,10 @@ import NextLink from "next/link";
 import { useQueryStates } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
 import { AsideFilter } from "@/components/aside-filter";
+import {
+  buildCategoryContextTiles,
+  CategoryContextPanel,
+} from "@/components/category/category-context-panel";
 import { CategoryHeader } from "@/components/category/category-header";
 import {
   normalizeCategoryName,
@@ -31,6 +35,7 @@ import {
   PLP_PAGE_SIZE,
   type ProductSortValue,
   plpQueryParsers,
+  resolveCatalogQueryStatePatch,
   resolveProductSortOrder,
 } from "@/lib/storefront/plp-query-state";
 import {
@@ -54,6 +59,45 @@ const SORT_TAB_ITEMS: Array<{ label: string; value: ProductSortValue }> = [
   { label: "Najnovšie", value: "newest" },
 ];
 
+type CategoryContextPreset = {
+  introText: string;
+  preferredTiles: Array<{
+    handle: string;
+    label: string;
+  }>;
+};
+
+const CATEGORY_DESCRIPTION_PLACEHOLDER = "Imported from Herbatica XML feed.";
+
+const CATEGORY_CONTEXT_PRESETS: Record<string, CategoryContextPreset> = {
+  "trapi-ma": {
+    introText:
+      "Človek je neoddeliteľnou súčasťou prírody, každá jedna bunka je s ňou prepojená a závislá od jej ďalších zložiek: vody, vzduchu, stromov, rastlín a ďalších živých tvorov na zemi. Spôsob, akým k nej pristupujeme, sa odráža aj na našom zdraví. Trápi vás oslabená imunita, kožné problémy, únava alebo bolesti kĺbov? V Herbatica sme pre vás pripravili jedinečnú kategóriu Trápi ma, v ktorej nájdete prírodné produkty rozdelené podľa účelu a oblasti zdravia.",
+    preferredTiles: [
+      { handle: "trapi-ma-kozne-problemy", label: "Kožné problémy" },
+      {
+        handle: "trapi-ma-mozog-a-nervovy-system",
+        label: "Mozog a nervový systém",
+      },
+      { handle: "trapi-ma-imunita-a-obranyschopnost", label: "Imunita" },
+      { handle: "trapi-ma-klby-a-pohybovy-aparat", label: "Kĺby a pohyb" },
+      {
+        handle: "trapi-ma-travenie-a-metabolizmus",
+        label: "Trávenie a metabolizmus",
+      },
+      { handle: "trapi-ma-srdce-a-cievy", label: "Srdce a cievy" },
+      {
+        handle: "trapi-ma-hormonalna-rovnovaha",
+        label: "Hormonálna rovnováha",
+      },
+      {
+        handle: "trapi-ma-hormonalna-rovnovaha-zenske-zdravie",
+        label: "Ženské zdravie",
+      },
+    ],
+  },
+};
+
 export function StorefrontCategoryListing({
   slug,
 }: StorefrontCategoryListingProps) {
@@ -65,7 +109,7 @@ export function StorefrontCategoryListing({
   const categoriesQuery = useCategories({
     page: 1,
     limit: 500,
-    fields: "id,name,handle,parent_category_id,rank",
+    fields: "id,name,handle,parent_category_id,rank,description",
   });
 
   const categoryByHandle = useMemo(() => {
@@ -300,10 +344,11 @@ export function StorefrontCategoryListing({
   };
 
   const handleSortChange = (value: ProductSortValue) => {
-    void setQueryState({
-      sort: value,
-      page: 1,
-    });
+    void setQueryState(
+      resolveCatalogQueryStatePatch(queryState, {
+        sort: value,
+      }),
+    );
   };
 
   const showCategoryNotFound =
@@ -315,6 +360,128 @@ export function StorefrontCategoryListing({
     activeCategoryFilterIds.length > 1
       ? `Zobrazené vrátane ${activeCategoryFilterIds.length - 1} podkategórií`
       : "Zobrazené produkty danej kategórie";
+
+  const categoryIntroText = useMemo(() => {
+    const presetIntro = CATEGORY_CONTEXT_PRESETS[slug]?.introText;
+    if (presetIntro) {
+      return presetIntro;
+    }
+
+    const description = activeCategory?.description?.trim();
+    if (!description || description === CATEGORY_DESCRIPTION_PLACEHOLDER) {
+      return null;
+    }
+
+    return description;
+  }, [activeCategory?.description, slug]);
+
+  const categoryContextTiles = useMemo(() => {
+    if (!activeCategory) {
+      return [];
+    }
+
+    const presetTilesConfig =
+      CATEGORY_CONTEXT_PRESETS[slug]?.preferredTiles ?? [];
+    if (presetTilesConfig.length > 0) {
+      const presetTiles = presetTilesConfig
+        .map((tileConfig) => {
+          const category = categoryByHandle.get(tileConfig.handle) ?? null;
+          if (!category?.handle) {
+            return null;
+          }
+
+          return {
+            id: category.id,
+            label: tileConfig.label,
+            href: `/c/${category.handle}`,
+            handle: category.handle,
+          };
+        })
+        .filter(
+          (
+            tile,
+          ): tile is {
+            id: string;
+            label: string;
+            href: string;
+            handle: string;
+          } => Boolean(tile),
+        );
+
+      if (presetTiles.length > 0) {
+        return buildCategoryContextTiles(presetTiles);
+      }
+    }
+
+    const directChildren = categoriesQuery.categories
+      .filter((category) => {
+        return (
+          category.parent_category_id === activeCategory.id &&
+          Boolean(category.handle)
+        );
+      })
+      .sort((left, right) => {
+        const rankDifference =
+          resolveCategoryRank(left) - resolveCategoryRank(right);
+        if (rankDifference !== 0) {
+          return rankDifference;
+        }
+
+        return normalizeCategoryName(left.name).localeCompare(
+          normalizeCategoryName(right.name),
+          "sk",
+        );
+      })
+      .slice(0, 8)
+      .map((category) => ({
+        id: category.id,
+        label: normalizeCategoryName(category.name),
+        href: `/c/${category.handle}`,
+        handle: category.handle,
+      }));
+
+    if (directChildren.length > 0) {
+      return buildCategoryContextTiles(directChildren);
+    }
+
+    const descendants = activeCategoryFilterIds
+      .map((categoryId) => categoryById.get(categoryId) ?? null)
+      .filter((category): category is HttpTypes.StoreProductCategory => {
+        if (!category || !category.handle) {
+          return false;
+        }
+
+        return category.id !== activeCategory.id;
+      })
+      .sort((left, right) => {
+        const rankDifference =
+          resolveCategoryRank(left) - resolveCategoryRank(right);
+        if (rankDifference !== 0) {
+          return rankDifference;
+        }
+
+        return normalizeCategoryName(left.name).localeCompare(
+          normalizeCategoryName(right.name),
+          "sk",
+        );
+      })
+      .slice(0, 8)
+      .map((category) => ({
+        id: category.id,
+        label: normalizeCategoryName(category.name),
+        href: `/c/${category.handle}`,
+        handle: category.handle,
+      }));
+
+    return buildCategoryContextTiles(descendants);
+  }, [
+    activeCategory,
+    activeCategoryFilterIds,
+    categoriesQuery.categories,
+    categoryByHandle,
+    categoryById,
+    slug,
+  ]);
 
   const handleCategoryBlur = (category: HttpTypes.StoreProductCategory) => {
     prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`);
@@ -430,6 +597,11 @@ export function StorefrontCategoryListing({
           topLevelCategories={topLevelCategories}
         />
       </section>
+
+      <CategoryContextPanel
+        introText={categoryIntroText}
+        tiles={categoryContextTiles}
+      />
 
       <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
         <div className="grid gap-600 xl:grid-cols-12">
