@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
-import { HerbatikaProductCard } from "@/components/herbatika-product-card";
+import { HerbatikaProductGrid } from "@/components/product/herbatika-product-grid";
 
 type CategoryProductsGridProps = {
   products: HttpTypes.StoreProduct[];
@@ -17,17 +17,14 @@ export function CategoryProductsGrid({
   onProductHoverEnd,
 }: CategoryProductsGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-300 xl:grid-cols-3">
-      {products.map((product) => (
-        <HerbatikaProductCard
-          isAdding={isProductAdding(product.id)}
-          key={product.id}
-          onAddToCart={onAddToCart}
-          onProductHoverEnd={onProductHoverEnd}
-          onProductHoverStart={onProductHoverStart}
-          product={product}
-        />
-      ))}
-    </div>
+    <HerbatikaProductGrid
+      isProductAdding={(product) => isProductAdding(product.id)}
+      keyPrefix="category-product"
+      layout="category"
+      onAddToCart={onAddToCart}
+      onProductHoverEnd={onProductHoverEnd}
+      onProductHoverStart={onProductHoverStart}
+      products={products}
+    />
   );
 }

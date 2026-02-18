@@ -25,11 +25,9 @@ import {
   usePrefetchProducts,
   useProducts,
 } from "@/lib/storefront/products";
-import {
-  getProductPriceLabel,
-  HerbatikaProductCard,
-} from "./herbatika-product-card";
-import { HerbatikaProductCardSkeleton } from "./herbatika-product-card-skeleton";
+import { getProductPriceLabel } from "./herbatika-product-card";
+import { HerbatikaProductGrid } from "./product/herbatika-product-grid";
+import { HerbatikaProductGridSkeleton } from "./product/herbatika-product-grid-skeleton";
 
 const PRODUCT_FETCH_LIMIT = 24;
 const PRODUCTS_PER_GRID_SECTION = 4;
@@ -275,12 +273,6 @@ const BLOG_POSTS: BlogTeaserItem[] = [
 
 const HERO_PAGE_SIZE = 4;
 const TOTAL_GRID_PRODUCTS = PRODUCT_SECTIONS.length * PRODUCTS_PER_GRID_SECTION;
-const HOME_PRODUCT_SKELETON_KEYS = [
-  "home-product-skeleton-1",
-  "home-product-skeleton-2",
-  "home-product-skeleton-3",
-  "home-product-skeleton-4",
-] as const;
 const RECENT_PRODUCT_SKELETON_KEYS = [
   "recent-product-skeleton-1",
   "recent-product-skeleton-2",
@@ -357,16 +349,6 @@ const getSectionProducts = (
   const fallback = products.slice(0, Math.max(size - chunk.length, 0));
   return [...chunk, ...fallback];
 };
-
-function HomeProductGridSkeleton() {
-  return (
-    <div className="grid grid-cols-2 gap-400 lg:grid-cols-4">
-      {HOME_PRODUCT_SKELETON_KEYS.map((skeletonKey) => (
-        <HerbatikaProductCardSkeleton key={skeletonKey} />
-      ))}
-    </div>
-  );
-}
 
 export function HerbatikaHomepage() {
   const region = useRegionContext();
@@ -633,20 +615,19 @@ export function HerbatikaHomepage() {
           </header>
 
           {shouldShowProductSkeleton ? (
-            <HomeProductGridSkeleton />
+            <HerbatikaProductGridSkeleton layout="home" />
           ) : section.products.length > 0 ? (
-            <div className="grid grid-cols-1 gap-400 sm:grid-cols-2 xl:grid-cols-4">
-              {section.products.map((product, index) => (
-                <HerbatikaProductCard
-                  isAdding={addingVariantId === product.variants?.[0]?.id}
-                  key={`${section.id}-${product.id}-${index}`}
-                  onAddToCart={handleAddToCart}
-                  onProductHoverEnd={handleProductHoverEnd}
-                  onProductHoverStart={handleProductHoverStart}
-                  product={product}
-                />
-              ))}
-            </div>
+            <HerbatikaProductGrid
+              isProductAdding={(product) =>
+                addingVariantId === product.variants?.[0]?.id
+              }
+              keyPrefix={section.id}
+              layout="home"
+              onAddToCart={handleAddToCart}
+              onProductHoverEnd={handleProductHoverEnd}
+              onProductHoverStart={handleProductHoverStart}
+              products={section.products}
+            />
           ) : (
             <ExtraText className="text-sm text-fg-secondary">
               Produkty sa momentálne načítavajú.
@@ -720,20 +701,19 @@ export function HerbatikaHomepage() {
           </header>
 
           {shouldShowProductSkeleton ? (
-            <HomeProductGridSkeleton />
+            <HerbatikaProductGridSkeleton layout="home" />
           ) : section.products.length > 0 ? (
-            <div className="grid grid-cols-1 gap-400 sm:grid-cols-2 xl:grid-cols-4">
-              {section.products.map((product, index) => (
-                <HerbatikaProductCard
-                  isAdding={addingVariantId === product.variants?.[0]?.id}
-                  key={`${section.id}-${product.id}-${index}`}
-                  onAddToCart={handleAddToCart}
-                  onProductHoverEnd={handleProductHoverEnd}
-                  onProductHoverStart={handleProductHoverStart}
-                  product={product}
-                />
-              ))}
-            </div>
+            <HerbatikaProductGrid
+              isProductAdding={(product) =>
+                addingVariantId === product.variants?.[0]?.id
+              }
+              keyPrefix={section.id}
+              layout="home"
+              onAddToCart={handleAddToCart}
+              onProductHoverEnd={handleProductHoverEnd}
+              onProductHoverStart={handleProductHoverStart}
+              products={section.products}
+            />
           ) : (
             <ExtraText className="text-sm text-fg-secondary">
               Produkty sa momentálne načítavajú.
