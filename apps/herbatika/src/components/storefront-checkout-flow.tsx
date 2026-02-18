@@ -7,8 +7,13 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
+import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { Image } from "@techsio/ui-kit/atoms/image";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
+import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
+import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/storefront/auth";
@@ -48,6 +53,20 @@ const DEFAULT_ADDRESS_FORM: AddressFormState = {
   postalCode: "",
   countryCode: "SK",
 };
+
+const COUNTRY_SELECT_ITEMS: SelectItem[] = [
+  { value: "SK", label: "Slovensko" },
+  { value: "CZ", label: "Česko" },
+  { value: "AT", label: "Rakúsko" },
+  { value: "HU", label: "Maďarsko" },
+];
+
+const CHECKOUT_STEPS = [
+  { id: "cart", title: "Košík" },
+  { id: "address", title: "Údaje" },
+  { id: "shipping", title: "Doprava" },
+  { id: "payment", title: "Platba" },
+] as const;
 
 const isObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
@@ -171,6 +190,68 @@ const buildMissingFieldMessage = (form: AddressFormState) => {
   return `Vyplňte povinné polia: ${missing.join(", ")}`;
 };
 
+const resolveProviderLabel = (providerId: string) => {
+  if (!providerId) {
+    return "Neznámy poskytovateľ";
+  }
+
+  return providerId
+    .replace(/[_-]+/g, " ")
+    .split(" ")
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
+const resolveCartItemName = (item: HttpTypes.StoreCartLineItem) => {
+  return item.title ?? item.product_title ?? item.variant_title ?? item.id;
+};
+
+const resolveHasStoredAddress = (cart: HttpTypes.StoreCart | null | undefined) => {
+  if (!cart?.email) {
+    return false;
+  }
+
+  const address = cart.billing_address ?? cart.shipping_address;
+  if (!address) {
+    return false;
+  }
+
+  return Boolean(
+    address.first_name &&
+      address.last_name &&
+      address.address_1 &&
+      address.city &&
+      address.postal_code &&
+      address.country_code,
+  );
+};
+
+const resolveCheckoutStepIndex = (params: {
+  hasItems: boolean;
+  hasStoredAddress: boolean;
+  hasShipping: boolean;
+  hasPayment: boolean;
+}) => {
+  if (!params.hasItems) {
+    return 0;
+  }
+
+  if (!params.hasStoredAddress) {
+    return 1;
+  }
+
+  if (!params.hasShipping) {
+    return 2;
+  }
+
+  if (!params.hasPayment) {
+    return 3;
+  }
+
+  return CHECKOUT_STEPS.length - 1;
+};
+
 export function StorefrontCheckoutFlow() {
   const queryClient = useQueryClient();
   const region = useRegionContext();
@@ -182,6 +263,8 @@ export function StorefrontCheckoutFlow() {
     DEFAULT_ADDRESS_FORM,
   );
   const [isAddressInitialized, setIsAddressInitialized] = useState(false);
+  const [createAccountConsent, setCreateAccountConsent] = useState(false);
+  const [acceptTermsConsent, setAcceptTermsConsent] = useState(false);
 
   const cartQuery = useCart({
     autoCreate: true,
@@ -270,6 +353,33 @@ export function StorefrontCheckoutFlow() {
     checkoutShippingQuery.isSettingShipping ||
     checkoutPaymentQuery.isInitiatingPayment ||
     completeCartMutation.isPending;
+
+  const cartItems = cartQuery.cart?.items ?? [];
+  const hasStoredAddress = resolveHasStoredAddress(cartQuery.cart);
+  const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId);
+  const hasPayment = checkoutPaymentQuery.hasPaymentSessions;
+  const checkoutStepIndex = resolveCheckoutStepIndex({
+    hasItems: cartItems.length > 0,
+    hasStoredAddress,
+    hasShipping,
+    hasPayment,
+  });
+
+  const selectedShippingPrice = useMemo(() => {
+    if (!checkoutShippingQuery.selectedShippingMethodId) {
+      return 0;
+    }
+
+    return checkoutShippingQuery.shippingPrices[checkoutShippingQuery.selectedShippingMethodId] ?? 0;
+  }, [checkoutShippingQuery.selectedShippingMethodId, checkoutShippingQuery.shippingPrices]);
+
+  const cartSubtotalAmount = useMemo(() => {
+    if (typeof cartQuery.cart?.subtotal === "number") {
+      return cartQuery.cart.subtotal;
+    }
+
+    return cartItems.reduce((sum, item) => sum + resolveLineItemTotalAmount(item), 0);
+  }, [cartItems, cartQuery.cart?.subtotal]);
 
   const updateAddressField = <K extends keyof AddressFormState>(
     key: K,
@@ -380,6 +490,11 @@ export function StorefrontCheckoutFlow() {
       return;
     }
 
+    if (!acceptTermsConsent) {
+      setCheckoutError("Pred dokončením objednávky potvrďte súhlas s obchodnými podmienkami.");
+      return;
+    }
+
     try {
       const completeResult = await completeCartMutation.mutateAsync({
         cartId: cartQuery.cart.id,
@@ -405,44 +520,64 @@ export function StorefrontCheckoutFlow() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Checkout</h1>
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-500 px-400 py-550 lg:px-550">
+      <header className="space-y-200">
+        <h1 className="text-2xl font-semibold text-fg-primary">Dokončenie objednávky</h1>
         <p className="text-sm text-fg-secondary">
-          Storefront checkout flow: adresa, doprava, platba, dokončenie objednávky.
+          Vyplňte údaje, zvoľte dopravu a platbu, potom potvrďte objednávku.
         </p>
       </header>
 
-      <section className="flex flex-wrap gap-2">
-        <Badge variant={cartQuery.cart?.id ? "success" : "warning"}>
-          {`cart: ${cartQuery.cart?.id ? "ready" : "missing"}`}
-        </Badge>
-        <Badge variant={cartQuery.itemCount > 0 ? "success" : "warning"}>
-          {`items: ${cartQuery.itemCount}`}
-        </Badge>
-        <Badge variant={checkoutShippingQuery.selectedShippingMethodId ? "success" : "info"}>
-          {`shipping: ${checkoutShippingQuery.selectedShippingMethodId ? "selected" : "not selected"}`}
-        </Badge>
-        <Badge variant={checkoutPaymentQuery.hasPaymentSessions ? "success" : "info"}>
-          {`payment: ${checkoutPaymentQuery.hasPaymentSessions ? "ready" : "not initialized"}`}
-        </Badge>
+      <section className="grid gap-200 sm:grid-cols-2 xl:grid-cols-4">
+        {CHECKOUT_STEPS.map((step, index) => {
+          const isComplete = index < checkoutStepIndex;
+          const isCurrent = index === checkoutStepIndex;
+          const stateLabel = isComplete ? "Hotovo" : isCurrent ? "Aktuálne" : "Čaká";
+
+          return (
+            <div
+              className={`flex items-center gap-200 rounded-lg border p-250 ${
+                isComplete || isCurrent
+                  ? "border-primary bg-highlight"
+                  : "border-border-secondary bg-surface"
+              }`}
+              key={step.id}
+            >
+              <span
+                className={`flex size-500 items-center justify-center rounded-full border text-sm font-semibold ${
+                  isComplete
+                    ? "border-primary bg-primary text-fg-reverse"
+                    : isCurrent
+                      ? "border-primary text-primary"
+                      : "border-border-primary text-fg-tertiary"
+                }`}
+              >
+                {isComplete ? <Icon icon="token-icon-check" /> : index + 1}
+              </span>
+              <div className="space-y-50">
+                <p className="text-sm font-semibold text-fg-primary">{step.title}</p>
+                <ExtraText className="text-fg-tertiary">{stateLabel}</ExtraText>
+              </div>
+            </div>
+          );
+        })}
       </section>
 
-      {checkoutMessage && (
-        <Badge className="w-fit rounded-full px-3 py-1 text-xs font-semibold" variant="success">
+      {checkoutMessage ? (
+        <StatusText showIcon status="success">
           {checkoutMessage}
-        </Badge>
-      )}
+        </StatusText>
+      ) : null}
+      {checkoutError ? <ErrorText showIcon>{checkoutError}</ErrorText> : null}
+      {cartQuery.error ? <ErrorText showIcon>{cartQuery.error}</ErrorText> : null}
 
-      {checkoutError && <ErrorText showIcon>{checkoutError}</ErrorText>}
-
-      {cartQuery.error && <ErrorText showIcon>{cartQuery.error}</ErrorText>}
-
-      {completedOrderId && (
-        <section className="space-y-3 rounded-xl border border-black/10 bg-white p-4">
-          <h2 className="text-lg font-semibold">Objednávka dokončená</h2>
-          <ExtraText>{`Order id: ${completedOrderId}`}</ExtraText>
-          <div className="flex flex-wrap gap-2">
+      {completedOrderId ? (
+        <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
+          <h2 className="text-xl font-semibold text-fg-primary">Objednávka dokončená</h2>
+          <StatusText showIcon status="success">
+            {`Objednávka bola vytvorená (${completedOrderId}).`}
+          </StatusText>
+          <div className="flex flex-wrap gap-200">
             <LinkButton as={NextLink} href="/" variant="secondary">
               Pokračovať v nákupe
             </LinkButton>
@@ -451,266 +586,397 @@ export function StorefrontCheckoutFlow() {
             </LinkButton>
           </div>
         </section>
-      )}
+      ) : null}
 
-      {!completedOrderId && cartQuery.itemCount < 1 && (
-        <section className="space-y-3 rounded-xl border border-black/10 bg-white p-4">
-          <h2 className="text-lg font-semibold">Košík je prázdny</h2>
+      {!completedOrderId && cartItems.length < 1 ? (
+        <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
+          <h2 className="text-xl font-semibold text-fg-primary">Košík je prázdny</h2>
           <ExtraText>Pred checkoutom pridajte aspoň jeden produkt.</ExtraText>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-200">
             <LinkButton as={NextLink} href="/" variant="secondary">
               Ísť na domovskú stránku
             </LinkButton>
-            <LinkButton as={NextLink} href="/test-page" theme="outlined" variant="secondary">
-              Otvoriť test-page
+            <LinkButton as={NextLink} href="/c/trapi-ma" theme="outlined" variant="secondary">
+              Otvoriť kategóriu
             </LinkButton>
           </div>
         </section>
-      )}
+      ) : null}
 
-      {!completedOrderId && cartQuery.itemCount > 0 && (
-        <>
-          <section className="space-y-4 rounded-xl border border-black/10 bg-white p-4">
-            <h2 className="text-lg font-semibold">1. Fakturačné a doručovacie údaje</h2>
-            <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSaveAddress}>
-              <FormInput
-                id="checkout-email"
-                label="Email"
-                name="email"
-                required
-                type="email"
-                value={addressForm.email}
-                onChange={(event) => updateAddressField("email", event.target.value)}
-              />
-              <FormInput
-                id="checkout-phone"
-                label="Telefón"
-                name="phone"
-                type="tel"
-                value={addressForm.phone}
-                onChange={(event) => updateAddressField("phone", event.target.value)}
-              />
-              <FormInput
-                id="checkout-first-name"
-                label="Meno"
-                name="first_name"
-                required
-                type="text"
-                value={addressForm.firstName}
-                onChange={(event) => updateAddressField("firstName", event.target.value)}
-              />
-              <FormInput
-                id="checkout-last-name"
-                label="Priezvisko"
-                name="last_name"
-                required
-                type="text"
-                value={addressForm.lastName}
-                onChange={(event) => updateAddressField("lastName", event.target.value)}
-              />
-              <FormInput
-                id="checkout-company"
-                label="Firma"
-                name="company"
-                type="text"
-                value={addressForm.company}
-                onChange={(event) => updateAddressField("company", event.target.value)}
-              />
-              <FormInput
-                id="checkout-address-1"
-                label="Ulica"
-                name="address_1"
-                required
-                type="text"
-                value={addressForm.address1}
-                onChange={(event) => updateAddressField("address1", event.target.value)}
-              />
-              <FormInput
-                id="checkout-address-2"
-                label="Ulica 2"
-                name="address_2"
-                type="text"
-                value={addressForm.address2}
-                onChange={(event) => updateAddressField("address2", event.target.value)}
-              />
-              <FormInput
-                id="checkout-city"
-                label="Mesto"
-                name="city"
-                required
-                type="text"
-                value={addressForm.city}
-                onChange={(event) => updateAddressField("city", event.target.value)}
-              />
-              <FormInput
-                id="checkout-postal-code"
-                label="PSČ"
-                name="postal_code"
-                required
-                type="text"
-                value={addressForm.postalCode}
-                onChange={(event) => updateAddressField("postalCode", event.target.value)}
-              />
-              <FormInput
-                id="checkout-country-code"
-                label="Krajina (ISO)"
-                name="country_code"
-                required
-                type="text"
-                value={addressForm.countryCode}
-                onChange={(event) =>
-                  updateAddressField("countryCode", event.target.value.toUpperCase())
-                }
-              />
+      {!completedOrderId && cartItems.length > 0 ? (
+        <div className="grid gap-500 xl:grid-cols-3">
+          <div className="space-y-350 xl:col-span-2">
+            <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
+              <header className="flex flex-wrap items-center justify-between gap-200">
+                <h2 className="text-lg font-semibold text-fg-primary">1. Fakturačné a doručovacie údaje</h2>
+                <Badge variant={hasStoredAddress ? "success" : "info"}>
+                  {hasStoredAddress ? "Uložené" : "Povinné"}
+                </Badge>
+              </header>
 
-              <div className="md:col-span-2">
-                <Button
-                  disabled={isBusy || !cartQuery.cart?.id}
-                  isLoading={updateCartAddressMutation.isPending}
-                  type="submit"
+              <form className="grid gap-300 md:grid-cols-2" onSubmit={handleSaveAddress}>
+                <FormInput
+                  id="checkout-email"
+                  label="Email"
+                  name="email"
+                  required
+                  type="email"
+                  value={addressForm.email}
+                  onChange={(event) => updateAddressField("email", event.target.value)}
+                />
+                <FormInput
+                  id="checkout-phone"
+                  label="Telefón"
+                  name="phone"
+                  type="tel"
+                  value={addressForm.phone}
+                  onChange={(event) => updateAddressField("phone", event.target.value)}
+                />
+                <FormInput
+                  id="checkout-first-name"
+                  label="Meno"
+                  name="first_name"
+                  required
+                  type="text"
+                  value={addressForm.firstName}
+                  onChange={(event) => updateAddressField("firstName", event.target.value)}
+                />
+                <FormInput
+                  id="checkout-last-name"
+                  label="Priezvisko"
+                  name="last_name"
+                  required
+                  type="text"
+                  value={addressForm.lastName}
+                  onChange={(event) => updateAddressField("lastName", event.target.value)}
+                />
+                <FormInput
+                  id="checkout-company"
+                  label="Firma"
+                  name="company"
+                  type="text"
+                  value={addressForm.company}
+                  onChange={(event) => updateAddressField("company", event.target.value)}
+                />
+                <FormInput
+                  id="checkout-address-1"
+                  label="Ulica"
+                  name="address_1"
+                  required
+                  type="text"
+                  value={addressForm.address1}
+                  onChange={(event) => updateAddressField("address1", event.target.value)}
+                />
+                <FormInput
+                  id="checkout-address-2"
+                  label="Ulica 2"
+                  name="address_2"
+                  type="text"
+                  value={addressForm.address2}
+                  onChange={(event) => updateAddressField("address2", event.target.value)}
+                />
+                <FormInput
+                  id="checkout-city"
+                  label="Mesto"
+                  name="city"
+                  required
+                  type="text"
+                  value={addressForm.city}
+                  onChange={(event) => updateAddressField("city", event.target.value)}
+                />
+                <FormInput
+                  id="checkout-postal-code"
+                  label="PSČ"
+                  name="postal_code"
+                  required
+                  type="text"
+                  value={addressForm.postalCode}
+                  onChange={(event) => updateAddressField("postalCode", event.target.value)}
+                />
+                <Select
+                  items={COUNTRY_SELECT_ITEMS}
+                  onValueChange={(details) => {
+                    updateAddressField(
+                      "countryCode",
+                      (details.value[0] ?? "SK").toUpperCase(),
+                    );
+                  }}
+                  size="sm"
+                  value={[addressForm.countryCode]}
                 >
-                  Uložiť adresu
-                </Button>
-              </div>
-            </form>
-          </section>
+                  <Select.Label>Krajina</Select.Label>
+                  <Select.Control>
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Vyberte krajinu" />
+                    </Select.Trigger>
+                  </Select.Control>
+                  <Select.Positioner>
+                    <Select.Content>
+                      {COUNTRY_SELECT_ITEMS.map((country) => (
+                        <Select.Item item={country} key={country.value}>
+                          <Select.ItemText />
+                          <Select.ItemIndicator />
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select>
 
-          <section className="space-y-4 rounded-xl border border-black/10 bg-white p-4">
-            <h2 className="text-lg font-semibold">2. Doprava</h2>
-            <div className="grid gap-2">
-              {checkoutShippingQuery.shippingOptions.length > 0 ? (
-                checkoutShippingQuery.shippingOptions.map((option) => {
-                  const optionPrice = checkoutShippingQuery.shippingPrices[option.id] ?? 0;
-                  const isSelected =
-                    checkoutShippingQuery.selectedShippingMethodId === option.id;
+                <div className="space-y-200 md:col-span-2">
+                  <FormCheckbox
+                    checked={createAccountConsent}
+                    label="Chcem si vytvoriť účet pre rýchlejší nákup nabudúce."
+                    onCheckedChange={setCreateAccountConsent}
+                    size="sm"
+                  />
+                  <FormCheckbox
+                    checked={acceptTermsConsent}
+                    label="Súhlasím s obchodnými podmienkami."
+                    onCheckedChange={setAcceptTermsConsent}
+                    required
+                    size="sm"
+                  />
+                </div>
 
-                  return (
-                    <div
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-black/10 p-3"
-                      key={option.id}
-                    >
-                      <div className="space-y-1">
-                        <p className="font-medium">
-                          {option.name ?? option.id}
-                        </p>
-                        <ExtraText>{formatAmount(optionPrice, currencyCode)}</ExtraText>
-                      </div>
+                <div className="flex justify-end md:col-span-2">
+                  <Button
+                    disabled={isBusy || !cartQuery.cart?.id}
+                    isLoading={updateCartAddressMutation.isPending}
+                    type="submit"
+                    variant="primary"
+                  >
+                    Uložiť údaje
+                  </Button>
+                </div>
+              </form>
+            </section>
+
+            <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
+              <header className="flex flex-wrap items-center justify-between gap-200">
+                <h2 className="text-lg font-semibold text-fg-primary">2. Doprava</h2>
+                <Badge variant={hasShipping ? "success" : "info"}>
+                  {hasShipping ? "Zvolená" : "Vyberte dopravu"}
+                </Badge>
+              </header>
+              <div className="grid gap-200">
+                {checkoutShippingQuery.shippingOptions.length > 0 ? (
+                  checkoutShippingQuery.shippingOptions.map((option) => {
+                    const optionPrice = checkoutShippingQuery.shippingPrices[option.id] ?? 0;
+                    const isSelected = checkoutShippingQuery.selectedShippingMethodId === option.id;
+
+                    return (
                       <Button
+                        className={`w-full rounded-lg border p-300 text-left ${
+                          isSelected
+                            ? "border-primary bg-highlight"
+                            : "border-border-secondary bg-surface-secondary"
+                        }`}
                         disabled={isBusy}
-                        isLoading={checkoutShippingQuery.isSettingShipping && isSelected}
+                        key={option.id}
                         onClick={() => {
                           void handleSelectShipping(option.id);
                         }}
-                        theme={isSelected ? "solid" : "outlined"}
+                        theme="unstyled"
                         type="button"
-                        variant={isSelected ? "primary" : "secondary"}
                       >
-                        {isSelected ? "Zvolená doprava" : "Vybrať dopravu"}
+                        <div className="flex flex-wrap items-center justify-between gap-300">
+                          <div className="flex items-center gap-200">
+                            <Icon
+                              className={isSelected ? "text-primary" : "text-fg-tertiary"}
+                              icon={isSelected ? "token-icon-check" : "token-icon-chevron-right"}
+                            />
+                            <div className="space-y-50">
+                              <p className="text-sm font-semibold text-fg-primary">
+                                {option.name ?? option.id}
+                              </p>
+                              <ExtraText className="text-fg-secondary">
+                                {isSelected ? "Zvolená doprava" : "Dostupná možnosť"}
+                              </ExtraText>
+                            </div>
+                          </div>
+                          <p className="text-sm font-semibold text-fg-primary">
+                            {formatAmount(optionPrice, currencyCode)}
+                          </p>
+                        </div>
                       </Button>
-                    </div>
-                  );
-                })
-              ) : (
-                <ExtraText>Nie sú dostupné žiadne možnosti dopravy.</ExtraText>
-              )}
-            </div>
-          </section>
+                    );
+                  })
+                ) : (
+                  <ExtraText>Nie sú dostupné žiadne možnosti dopravy.</ExtraText>
+                )}
+              </div>
+            </section>
 
-          <section className="space-y-4 rounded-xl border border-black/10 bg-white p-4">
-            <h2 className="text-lg font-semibold">3. Platba</h2>
-            <div className="grid gap-2">
-              {checkoutPaymentQuery.paymentProviders.length > 0 ? (
-                checkoutPaymentQuery.paymentProviders.map((provider) => {
-                  const providerId =
-                    "id" in provider && typeof provider.id === "string"
-                      ? provider.id
-                      : "";
-                  const providerLabel =
-                    "id" in provider && typeof provider.id === "string"
-                      ? provider.id
-                      : "unknown-provider";
+            <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
+              <header className="flex flex-wrap items-center justify-between gap-200">
+                <h2 className="text-lg font-semibold text-fg-primary">3. Platba</h2>
+                <Badge variant={hasPayment ? "success" : "info"}>
+                  {hasPayment ? "Inicializovaná" : "Vyberte platbu"}
+                </Badge>
+              </header>
+              <div className="grid gap-200">
+                {checkoutPaymentQuery.paymentProviders.length > 0 ? (
+                  checkoutPaymentQuery.paymentProviders.map((provider, index) => {
+                    const providerId =
+                      "id" in provider && typeof provider.id === "string"
+                        ? provider.id
+                        : "";
+                    const providerLabel = resolveProviderLabel(providerId);
+
+                    return (
+                      <div
+                        className="flex flex-wrap items-center justify-between gap-250 rounded-lg border border-border-secondary bg-surface-secondary p-300"
+                        key={providerId || `${providerLabel}-${index}`}
+                      >
+                        <div className="space-y-50">
+                          <p className="text-sm font-semibold text-fg-primary">{providerLabel}</p>
+                          <ExtraText className="text-fg-secondary">
+                            Platba bude potvrdená po výbere.
+                          </ExtraText>
+                        </div>
+                        <Button
+                          disabled={
+                            isBusy || !providerId || !checkoutPaymentQuery.canInitiatePayment
+                          }
+                          isLoading={checkoutPaymentQuery.isInitiatingPayment}
+                          onClick={() => {
+                            void handleSelectPaymentProvider(providerId);
+                          }}
+                          theme={hasPayment ? "solid" : "outlined"}
+                          type="button"
+                          variant={hasPayment ? "primary" : "secondary"}
+                        >
+                          {hasPayment ? "Zvolená platba" : "Vybrať platbu"}
+                        </Button>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <ExtraText>Nie sú dostupné žiadne platobné metódy.</ExtraText>
+                )}
+              </div>
+            </section>
+
+            <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
+              <h2 className="text-lg font-semibold text-fg-primary">4. Súhrn a dokončenie</h2>
+              <div className="grid gap-200 sm:grid-cols-2">
+                <StatusText showIcon size="sm" status={hasStoredAddress ? "success" : "warning"}>
+                  {hasStoredAddress ? "Údaje sú uložené." : "Najprv uložte údaje."}
+                </StatusText>
+                <StatusText showIcon size="sm" status={hasShipping ? "success" : "warning"}>
+                  {hasShipping ? "Doprava je vybraná." : "Vyberte dopravu."}
+                </StatusText>
+                <StatusText showIcon size="sm" status={hasPayment ? "success" : "warning"}>
+                  {hasPayment ? "Platba je pripravená." : "Vyberte platbu."}
+                </StatusText>
+                <StatusText
+                  showIcon
+                  size="sm"
+                  status={acceptTermsConsent ? "success" : "warning"}
+                >
+                  {acceptTermsConsent
+                    ? "Súhlas s podmienkami potvrdený."
+                    : "Potvrďte obchodné podmienky."}
+                </StatusText>
+              </div>
+              <Button
+                block
+                disabled={
+                  isBusy ||
+                  !checkoutShippingQuery.selectedShippingMethodId ||
+                  !checkoutPaymentQuery.hasPaymentSessions ||
+                  !acceptTermsConsent
+                }
+                isLoading={completeCartMutation.isPending}
+                onClick={() => {
+                  void handleCompleteOrder();
+                }}
+                type="button"
+                variant="primary"
+              >
+                Dokončiť objednávku
+              </Button>
+            </section>
+          </div>
+
+          <aside className="space-y-300 xl:sticky xl:top-400 xl:self-start">
+            <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
+              <header className="flex items-center justify-between gap-200">
+                <h2 className="text-lg font-semibold text-fg-primary">
+                  {`Váš košík (${cartItems.length})`}
+                </h2>
+                <Badge variant={cartItems.length > 0 ? "success" : "warning"}>
+                  {cartItems.length > 0 ? "Aktívny" : "Prázdny"}
+                </Badge>
+              </header>
+
+              <div className="space-y-250">
+                {cartItems.map((item) => {
+                  const itemName = resolveCartItemName(item);
+                  const itemQuantity = item.quantity ?? 0;
+                  const itemPrice = formatAmount(resolveLineItemTotalAmount(item), currencyCode);
+                  const itemThumbnail =
+                    typeof item.thumbnail === "string" && item.thumbnail.length > 0
+                      ? item.thumbnail
+                      : "/file.svg";
 
                   return (
-                    <div
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-black/10 p-3"
-                      key={providerLabel}
+                    <article
+                      className="flex gap-250 rounded-lg border border-border-secondary bg-surface-secondary p-250"
+                      key={item.id}
                     >
-                      <p className="font-medium">{providerLabel}</p>
-                      <Button
-                        disabled={isBusy || !providerId || !checkoutPaymentQuery.canInitiatePayment}
-                        isLoading={checkoutPaymentQuery.isInitiatingPayment}
-                        onClick={() => {
-                          void handleSelectPaymentProvider(providerId);
-                        }}
-                        theme="outlined"
-                        type="button"
-                        variant="secondary"
-                      >
-                        Vybrať platbu
-                      </Button>
-                    </div>
+                      <Image
+                        alt={itemName}
+                        className="size-850 shrink-0 rounded-lg border border-border-secondary object-cover"
+                        src={itemThumbnail}
+                      />
+                      <div className="min-w-0 flex-1 space-y-100">
+                        <p className="line-clamp-2 text-sm font-semibold text-fg-primary">{itemName}</p>
+                        <div className="flex items-center justify-between gap-150">
+                          <ExtraText className="text-fg-secondary">{`× ${itemQuantity}`}</ExtraText>
+                          <p className="text-sm font-semibold text-fg-primary">{itemPrice}</p>
+                        </div>
+                      </div>
+                    </article>
                   );
-                })
-              ) : (
-                <ExtraText>Nie sú dostupné žiadne platobné metódy.</ExtraText>
-              )}
-            </div>
-          </section>
+                })}
+              </div>
 
-          <section className="space-y-4 rounded-xl border border-black/10 bg-white p-4">
-            <h2 className="text-lg font-semibold">4. Súhrn a dokončenie</h2>
-            <div className="space-y-2">
-              {(cartQuery.cart?.items ?? []).map((item) => {
-                const itemName =
-                  item.title ??
-                  item.product_title ??
-                  item.variant_title ??
-                  item.id;
-                const itemQuantity = item.quantity ?? 0;
-                const itemPrice = formatAmount(
-                  resolveLineItemTotalAmount(item),
-                  currencyCode,
-                );
+              <div className="space-y-150 border-t border-border-secondary pt-250">
+                <div className="flex items-center justify-between gap-200">
+                  <ExtraText className="text-fg-secondary">Medzisúčet</ExtraText>
+                  <p className="text-sm font-semibold text-fg-primary">
+                    {formatAmount(cartSubtotalAmount, currencyCode)}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-200">
+                  <ExtraText className="text-fg-secondary">Doprava</ExtraText>
+                  <p className="text-sm font-semibold text-fg-primary">
+                    {formatAmount(selectedShippingPrice, currencyCode)}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-200 border-t border-border-secondary pt-150">
+                  <p className="text-sm font-semibold text-fg-primary">Celkom</p>
+                  <p className="text-lg font-bold text-fg-primary">
+                    {formatAmount(resolveCartTotalAmount(cartQuery.cart), currencyCode)}
+                  </p>
+                </div>
+              </div>
 
-                return (
-                  <div
-                    className="flex items-center justify-between gap-3 rounded-lg border border-black/10 px-3 py-2"
-                    key={item.id}
-                  >
-                    <p className="text-sm">
-                      {itemName}
-                      {` × ${itemQuantity}`}
-                    </p>
-                    <p className="text-sm font-semibold">{itemPrice}</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center justify-between border-t border-black/10 pt-3">
-              <p className="font-semibold">Celkom</p>
-              <p className="text-lg font-bold">
-                {formatAmount(resolveCartTotalAmount(cartQuery.cart), currencyCode)}
-              </p>
-            </div>
-
-            <Button
-              disabled={
-                isBusy ||
-                !checkoutShippingQuery.selectedShippingMethodId ||
-                !checkoutPaymentQuery.hasPaymentSessions
-              }
-              isLoading={completeCartMutation.isPending}
-              onClick={() => {
-                void handleCompleteOrder();
-              }}
-              type="button"
-            >
-              Dokončiť objednávku
-            </Button>
-          </section>
-        </>
-      )}
+              <div className="space-y-150 rounded-lg border border-border-secondary bg-surface-secondary p-250">
+                <StatusText showIcon size="sm" status={hasShipping ? "success" : "warning"}>
+                  {hasShipping
+                    ? `Doprava: ${checkoutShippingQuery.selectedOption?.name ?? "Zvolená"}`
+                    : "Doprava: nevybraná"}
+                </StatusText>
+                <StatusText showIcon size="sm" status={hasPayment ? "success" : "warning"}>
+                  {hasPayment ? "Platba: inicializovaná" : "Platba: nevybraná"}
+                </StatusText>
+              </div>
+            </section>
+          </aside>
+        </div>
+      ) : null}
     </main>
   );
 }
