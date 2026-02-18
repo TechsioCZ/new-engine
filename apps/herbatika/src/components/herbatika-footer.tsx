@@ -90,7 +90,7 @@ export function HerbatikaFooter() {
         <Footer.Section className="px-500 py-250">
           <HerbatikaLogo className="inline-flex" size="lg" />
 
-          <Footer.Text className="max-w-sm text-md leading-normal">
+          <Footer.Text className="max-w-footer-intro text-md leading-normal">
             Váš partner pre zdravý životný štýl a vitalitu.
           </Footer.Text>
 
@@ -149,7 +149,7 @@ export function HerbatikaFooter() {
           {SOCIAL_LINKS.map((social) => (
             <Button
               aria-label={social.label}
-              className="h-10 w-10 rounded-full bg-bg-disabled text-2xl text-fg-secondary hover:text-primary"
+              className="h-750 w-750 rounded-full bg-bg-disabled text-2xl text-fg-secondary hover:text-primary"
               icon={social.icon}
               key={social.label}
               onClick={() =>

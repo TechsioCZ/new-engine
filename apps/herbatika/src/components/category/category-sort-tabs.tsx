@@ -15,7 +15,7 @@ export function CategorySortTabs({
   totalProducts,
 }: CategorySortTabsProps) {
   return (
-    <div className="grid items-center gap-150 rounded-xl bg-highlight px-250 py-200 md:grid-cols-[minmax(0,1fr)_auto]">
+    <div className="flex flex-col gap-150 rounded-xl bg-highlight px-250 py-200 md:flex-row md:items-center md:justify-between">
       <div className="flex min-w-0 items-center gap-100 overflow-x-auto">
         {sortItems.map((item) => {
           const isActive = item.value === activeSort;
@@ -39,7 +39,7 @@ export function CategorySortTabs({
         })}
       </div>
 
-      <p className="text-base font-semibold text-fg-secondary md:justify-self-end">{`${totalProducts} položiek celkom`}</p>
+      <p className="text-base font-semibold text-fg-secondary">{`${totalProducts} položiek celkom`}</p>
     </div>
   );
 }

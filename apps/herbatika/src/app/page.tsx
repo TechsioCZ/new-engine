@@ -5,7 +5,7 @@ import { StorefrontHydrationBoundary } from "@/components/storefront-hydration-b
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr";
 
 function HomePageFallback() {
-  return <main className="mx-auto min-h-[40dvh] w-full max-w-(--breakpoint-2xl)" />;
+  return <main className="mx-auto min-h-dvh w-full max-w-max-w" />;
 }
 
 async function HomePageContent() {

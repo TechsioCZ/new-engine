@@ -143,9 +143,9 @@ export function HerbatikaHeader() {
       <Header.Container className="mx-auto flex w-full max-w-max-w items-center gap-600 px-400 py-300 @header-desktop:px-600">
         <HerbatikaLogo className="shrink-0" size="lg" />
 
-        <div className="hidden w-full max-w-[30.625rem] flex-1 @header-desktop:block">
+        <div className="hidden w-full max-w-header-search flex-1 @header-desktop:block">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
-            <SearchForm.Control className="h-12 rounded-search-form border-border-secondary bg-surface">
+            <SearchForm.Control className="h-750 rounded-search-form border-border-secondary bg-surface">
               <SearchForm.Input
                 className="h-full px-500 text-md text-fg-secondary placeholder:text-fg-placeholder"
                 name="q"
@@ -153,7 +153,7 @@ export function HerbatikaHeader() {
               />
               <SearchForm.Button
                 aria-label="Hľadať"
-                className="min-w-14 rounded-r-search-form rounded-l-none px-450"
+                className="min-w-800 rounded-r-search-form rounded-l-none px-450"
                 showSearchIcon
               />
             </SearchForm.Control>
@@ -209,7 +209,7 @@ export function HerbatikaHeader() {
               {cartTotalLabel}
             </LinkButton>
             <Badge
-              className="absolute -top-2 -right-2 min-w-5 justify-center rounded-full px-1 py-0.5 text-xs"
+              className="absolute -top-200 -right-200 min-w-500 justify-center rounded-full px-100 py-50 text-xs"
               variant="secondary"
             >
               {String(itemCount)}
@@ -230,7 +230,7 @@ export function HerbatikaHeader() {
               {cartTotalLabel}
             </LinkButton>
             <Badge
-              className="absolute -top-2 -right-2 min-w-5 justify-center rounded-full px-1 py-0.5 text-xs"
+              className="absolute -top-200 -right-200 min-w-500 justify-center rounded-full px-100 py-50 text-xs"
               variant="secondary"
             >
               {String(itemCount)}
@@ -242,7 +242,7 @@ export function HerbatikaHeader() {
       </Header.Container>
 
       <Header.Desktop className="w-full bg-primary">
-        <Header.Container className="mx-auto flex min-h-11 w-full max-w-max-w items-center justify-between gap-300 px-300 @header-desktop:px-600">
+        <Header.Container className="mx-auto flex min-h-750 w-full max-w-max-w items-center justify-between gap-300 px-300 @header-desktop:px-600">
           <Header.Nav className="flex-nowrap gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {PRIMARY_NAV_ITEMS.map((item) => (
               <Header.NavItem className="shrink-0 py-300" key={item.href}>
@@ -292,7 +292,7 @@ export function HerbatikaHeader() {
       >
         <div className="border-border-secondary border-b p-400">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
-            <SearchForm.Control className="h-12 rounded-search-form border-border-secondary bg-surface">
+            <SearchForm.Control className="h-750 rounded-search-form border-border-secondary bg-surface">
               <SearchForm.Input
                 className="h-full px-500 text-md text-fg-secondary placeholder:text-fg-placeholder"
                 name="q"

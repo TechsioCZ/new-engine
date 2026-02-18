@@ -59,9 +59,9 @@ export default function RootLayout({
     >
       <body className={`text-fg-primary ${verdana.className}`}>
         <Providers>
-          <div className="grid min-h-dvh grid-rows-[auto_1fr_auto] bg-base">
+          <div className="flex min-h-dvh flex-col bg-base">
             <HerbatikaHeader />
-            {children}
+            <div className="flex-1">{children}</div>
             <HerbatikaFooter />
           </div>
         </Providers>
