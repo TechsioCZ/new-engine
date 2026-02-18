@@ -6,17 +6,20 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
-import { Image } from "@techsio/ui-kit/atoms/image";
+import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
+import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery";
 import { Rating } from "@techsio/ui-kit/atoms/rating";
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { Accordion } from "@techsio/ui-kit/molecules/accordion";
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import { FormNumericInput } from "@techsio/ui-kit/molecules/form-numeric-input";
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import { Tabs } from "@techsio/ui-kit/molecules/tabs";
+import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery";
 import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { HerbatikaProductCard } from "@/components/herbatika-product-card";
@@ -37,6 +40,9 @@ type StorefrontProductDetailProps = {
 type ProductPriceState = {
   currentLabel: string;
   originalLabel: string | null;
+  currentAmount: number | null;
+  originalAmount: number | null;
+  currencyCode: string;
 };
 
 type RelatedProductsSection = {
@@ -59,10 +65,25 @@ type ProductOfferState = {
   deliveryLabel: string;
   stockAmount: number | null;
   isInStock: boolean;
+  offerSource: Record<string, unknown> | null;
+  unitLabel: string | null;
+  currentAmount: number | null;
+  standardAmount: number | null;
+  actionAmount: number | null;
+  hasActiveDiscount: boolean;
+};
+
+type VolumeDiscountOption = {
+  id: string;
+  title: string;
+  quantity: number;
+  totalAmountLabel: string;
+  perUnitLabel: string;
+  oldTotalAmountLabel: string | null;
 };
 
 const PRODUCT_FALLBACK_IMAGE = "/file.svg";
-const RELATED_PRODUCTS_PER_SECTION = 4;
+const RELATED_PRODUCTS_PER_SECTION = 5;
 const RELATED_SECTION_TITLES = [
   "Ďalšie kúpil tiež",
   "Súvisiace produkty",
@@ -146,6 +167,10 @@ const asString = (value: unknown): string | null => {
 
 const asNumber = (value: unknown): number | null => {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+};
+
+const asBoolean = (value: unknown): boolean | null => {
+  return typeof value === "boolean" ? value : null;
 };
 
 const normalizeSectionKey = (value: unknown): string | null => {
@@ -248,53 +273,95 @@ const resolvePriceState = (
   const variants = product.variants ?? [];
   const selectedVariant =
     variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
+  const selectedVariantMetadata = asRecord(selectedVariant?.metadata);
 
   const calculatedPrice = selectedVariant?.calculated_price;
   const calculatedAmount = calculatedPrice?.calculated_amount;
   const originalAmount = calculatedPrice?.original_amount;
+  const fallbackCalculatedAmount =
+    asNumber(selectedVariantMetadata?.current_price) ??
+    asNumber(selectedVariantMetadata?.price_vat);
+  const fallbackOriginalAmount = asNumber(selectedVariantMetadata?.standard_price);
   const currencyCode =
     typeof calculatedPrice?.currency_code === "string"
       ? calculatedPrice.currency_code
       : "EUR";
 
-  if (typeof calculatedAmount !== "number") {
+  const resolvedCalculatedAmount =
+    typeof calculatedAmount === "number" ? calculatedAmount : fallbackCalculatedAmount;
+
+  if (typeof resolvedCalculatedAmount !== "number") {
     return {
       currentLabel: "Cena na vyžiadanie",
       originalLabel: null,
+      currentAmount: null,
+      originalAmount: null,
+      currencyCode: currencyCode.toUpperCase(),
     };
   }
 
+  const normalizedOriginalAmount =
+    typeof originalAmount === "number"
+      ? originalAmount
+      : typeof fallbackOriginalAmount === "number"
+        ? fallbackOriginalAmount
+        : null;
+
   return {
-    currentLabel: formatAmount(calculatedAmount, currencyCode),
+    currentLabel: formatAmount(resolvedCalculatedAmount, currencyCode),
     originalLabel:
-      typeof originalAmount === "number" && originalAmount > calculatedAmount
-        ? formatAmount(originalAmount, currencyCode)
-        : null,
+      normalizedOriginalAmount && normalizedOriginalAmount > resolvedCalculatedAmount
+      ? formatAmount(normalizedOriginalAmount, currencyCode)
+      : null,
+    currentAmount: resolvedCalculatedAmount,
+    originalAmount: normalizedOriginalAmount,
+    currencyCode: currencyCode.toUpperCase(),
   };
 };
 
-const resolveOfferState = (product: StorefrontProduct | null): ProductOfferState => {
+const resolveOfferState = (
+  product: StorefrontProduct | null,
+  selectedVariant: HttpTypes.StoreProductVariant | null,
+): ProductOfferState => {
   const metadata = asRecord(product?.metadata);
   const topOffer = asRecord(metadata?.top_offer);
-  const stock = asRecord(topOffer?.stock);
+  const variantMetadata = asRecord(selectedVariant?.metadata);
+  const source = topOffer ?? variantMetadata;
+  const stock = asRecord(source?.stock);
   const stockAmount = asNumber(stock?.amount);
 
   const isInStock = stockAmount === null ? true : stockAmount > 0;
 
   const inStockLabel =
-    asString(topOffer?.availability_in_stock) ?? "Skladom";
+    asString(source?.availability_in_stock) ?? "Skladom";
   const outOfStockLabel =
-    asString(topOffer?.availability_out_of_stock) ?? "Momentálne nie je skladom";
+    asString(source?.availability_out_of_stock) ?? "Momentálne nie je skladom";
+  const currentAmount =
+    asNumber(source?.current_price) ?? asNumber(source?.price_vat);
+  const standardAmount = asNumber(source?.standard_price);
+  const actionAmount = asNumber(source?.action_price);
+  const hasActiveDiscountFlag = asBoolean(source?.has_active_discount);
+  const hasActiveDiscount =
+    hasActiveDiscountFlag ??
+    (typeof actionAmount === "number" &&
+      typeof currentAmount === "number" &&
+      actionAmount < currentAmount);
 
   return {
-    code: asString(topOffer?.code),
-    ean: asString(topOffer?.ean),
+    code: asString(source?.code) ?? asString(selectedVariant?.sku),
+    ean: asString(source?.ean) ?? asString(selectedVariant?.ean),
     availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
     deliveryLabel: isInStock
       ? "Doručenie 1-3 pracovné dni"
       : "Doručenie po naskladnení",
     stockAmount,
     isInStock,
+    offerSource: source,
+    unitLabel: asString(source?.unit),
+    currentAmount,
+    standardAmount,
+    actionAmount,
+    hasActiveDiscount,
   };
 };
 
@@ -310,6 +377,152 @@ const stripHtml = (value: string | null | undefined): string => {
     .replace(/&nbsp;/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+};
+
+const resolveGalleryItems = (
+  imageUrls: string[],
+  title: string | null | undefined,
+): GalleryItem[] => {
+  if (imageUrls.length === 0) {
+    return [
+      {
+        id: "gallery-fallback",
+        src: PRODUCT_FALLBACK_IMAGE,
+        alt: title || "Produkt",
+      },
+    ];
+  }
+
+  return imageUrls.map((imageUrl, index) => ({
+    id: `gallery-${index}`,
+    src: imageUrl,
+    alt: title ? `${title} (${index + 1})` : `Produkt (${index + 1})`,
+  }));
+};
+
+const resolveProductHighlights = (
+  summaryText: string,
+  categories: HttpTypes.StoreProductCategory[],
+): string[] => {
+  const sentenceCandidates = summaryText
+    .split(/[\.\!\?]/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length >= 24)
+    .slice(0, 3);
+
+  if (sentenceCandidates.length >= 3) {
+    return sentenceCandidates;
+  }
+
+  const categoryHighlights = categories
+    .map((category) => normalizeCategoryName(category.name))
+    .filter((name) => name.length > 0)
+    .slice(0, 3)
+    .map((name) => `Vhodné pre oblasť ${name.toLowerCase()}`);
+
+  const merged = [...sentenceCandidates];
+  for (const categoryHighlight of categoryHighlights) {
+    if (merged.length >= 3) {
+      break;
+    }
+    merged.push(categoryHighlight);
+  }
+
+  if (merged.length > 0) {
+    return merged;
+  }
+
+  return [
+    "Obnovuje funkciu bunky.",
+    "Posilnenie obranyschopnosti.",
+    "Optimalizácia hladiny cholesterolu.",
+  ];
+};
+
+const resolveDisplayOriginalAmount = (
+  priceState: ProductPriceState | null,
+  offerState: ProductOfferState,
+): number | null => {
+  if (!priceState?.currentAmount) {
+    return null;
+  }
+
+  const variantOriginalAmount = priceState.originalAmount;
+  if (
+    typeof variantOriginalAmount === "number" &&
+    variantOriginalAmount > priceState.currentAmount
+  ) {
+    return variantOriginalAmount;
+  }
+
+  const offerStandardAmount = offerState.standardAmount;
+  if (
+    typeof offerStandardAmount === "number" &&
+    offerStandardAmount > priceState.currentAmount
+  ) {
+    return offerStandardAmount;
+  }
+
+  return null;
+};
+
+const resolveDiscountPercent = (
+  currentAmount: number | null,
+  originalAmount: number | null,
+): number | null => {
+  if (
+    typeof currentAmount !== "number" ||
+    typeof originalAmount !== "number" ||
+    originalAmount <= currentAmount ||
+    originalAmount <= 0
+  ) {
+    return null;
+  }
+
+  return Math.round(((originalAmount - currentAmount) / originalAmount) * 100);
+};
+
+const resolveVipCreditLabel = (
+  currentAmount: number | null,
+  currencyCode: string,
+): string | null => {
+  if (typeof currentAmount !== "number") {
+    return null;
+  }
+
+  return formatAmount(currentAmount * 0.02, currencyCode);
+};
+
+const resolveVolumeDiscountOptions = (
+  currentAmount: number | null,
+  currencyCode: string,
+): VolumeDiscountOption[] => {
+  if (typeof currentAmount !== "number") {
+    return [];
+  }
+
+  const options = [
+    { quantity: 2, ratio: 0.95 },
+    { quantity: 3, ratio: 0.9 },
+  ];
+
+  return options.map((option) => {
+    const discountedUnitAmount = currentAmount * option.ratio;
+    const discountedTotalAmount = discountedUnitAmount * option.quantity;
+    const originalTotalAmount = currentAmount * option.quantity;
+
+    return {
+      id: `quantity-tier-${option.quantity}`,
+      title: `Kúpte ${option.quantity} a ušetrite`,
+      quantity: option.quantity,
+      totalAmountLabel: formatAmount(discountedTotalAmount, currencyCode),
+      perUnitLabel: `${formatAmount(discountedUnitAmount, currencyCode)} / kus`,
+      oldTotalAmountLabel:
+        discountedTotalAmount < originalTotalAmount
+          ? formatAmount(originalTotalAmount, currencyCode)
+          : null,
+    };
+  });
 };
 
 const escapeHtmlAttribute = (value: string): string => {
@@ -548,12 +761,12 @@ const resolveRelatedSections = (
 
 function ProductDetailSkeleton() {
   return (
-    <section className="rounded-xl border border-black/10 bg-white p-6">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,560px)_minmax(0,1fr)]">
+    <section className="rounded-xl border border-border-secondary bg-surface p-600">
+      <div className="grid gap-600 xl:grid-cols-2">
         <Skeleton.Rectangle className="aspect-square rounded-xl" />
-        <div className="space-y-4">
+        <div className="space-y-400">
           <Skeleton.Text noOfLines={2} />
-          <Skeleton.Rectangle className="h-10 w-40 rounded-lg" />
+          <Skeleton.Rectangle className="h-500 w-900 rounded-lg" />
           <Skeleton.Text noOfLines={5} />
         </div>
       </div>
@@ -575,7 +788,7 @@ function HtmlContent({ html, fallback }: HtmlContentProps) {
 
   return (
     <div
-      className="space-y-3 text-sm leading-relaxed text-fg-secondary [&_a]:text-primary [&_a]:underline [&_h2]:mt-4 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:text-base [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ol]:space-y-1 [&_p]:mb-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border-secondary [&_td]:p-2 [&_th]:border [&_th]:border-border-secondary [&_th]:bg-surface-secondary [&_th]:p-2"
+      className="space-y-300 text-sm leading-relaxed text-fg-secondary"
       dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
     />
   );
@@ -585,8 +798,8 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
   const region = useRegionContext();
 
   const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<string | null>(null);
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
 
@@ -612,9 +825,11 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
   const product = (productQuery.product ?? null) as StorefrontProduct | null;
 
   const productImages = useMemo(() => resolveProductImages(product), [product]);
+  const galleryItems = useMemo(
+    () => resolveGalleryItems(productImages, product?.title),
+    [product?.title, productImages],
+  );
   const relatedCategoryIds = useMemo(() => resolveRelatedCategoryIds(product), [product]);
-
-  const offerState = useMemo(() => resolveOfferState(product), [product]);
 
   const shortDescriptionHtml = useMemo(() => {
     const metadata = asRecord(product?.metadata);
@@ -648,6 +863,11 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
     return variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
   }, [selectedVariantId, variants]);
 
+  const offerState = useMemo(
+    () => resolveOfferState(product, selectedVariant),
+    [product, selectedVariant],
+  );
+
   const productPrice = useMemo(() => {
     if (!product) {
       return null;
@@ -655,6 +875,57 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
 
     return resolvePriceState(product, selectedVariantId);
   }, [product, selectedVariantId]);
+
+  const productHighlights = useMemo(
+    () => resolveProductHighlights(productSummaryText, product?.categories ?? []),
+    [product?.categories, productSummaryText],
+  );
+
+  const displayOriginalAmount = useMemo(
+    () => resolveDisplayOriginalAmount(productPrice, offerState),
+    [offerState, productPrice],
+  );
+  const displayOriginalLabel = useMemo(() => {
+    if (!productPrice || typeof displayOriginalAmount !== "number") {
+      return null;
+    }
+
+    return formatAmount(displayOriginalAmount, productPrice.currencyCode);
+  }, [displayOriginalAmount, productPrice]);
+  const discountPercent = useMemo(
+    () =>
+      resolveDiscountPercent(
+        productPrice?.currentAmount ?? offerState.currentAmount,
+        displayOriginalAmount,
+      ),
+    [displayOriginalAmount, offerState.currentAmount, productPrice?.currentAmount],
+  );
+  const vipCreditLabel = useMemo(
+    () =>
+      resolveVipCreditLabel(
+        productPrice?.currentAmount ?? offerState.currentAmount,
+        productPrice?.currencyCode ?? "EUR",
+      ),
+    [offerState.currentAmount, productPrice?.currencyCode, productPrice?.currentAmount],
+  );
+  const volumeDiscountOptions = useMemo(
+    () =>
+      resolveVolumeDiscountOptions(
+        productPrice?.currentAmount ?? offerState.currentAmount,
+        productPrice?.currencyCode ?? "EUR",
+      ),
+    [offerState.currentAmount, productPrice?.currencyCode, productPrice?.currentAmount],
+  );
+  const selectedVolumeDiscountOption = useMemo(() => {
+    if (volumeDiscountOptions.length === 0) {
+      return null;
+    }
+
+    return (
+      volumeDiscountOptions.find((option) => option.id === selectedVolumeDiscountId) ??
+      volumeDiscountOptions[0]
+    );
+  }, [selectedVolumeDiscountId, volumeDiscountOptions]);
 
   const optionTitlesById = useMemo(() => {
     const titles = new Map<string, string>();
@@ -713,11 +984,12 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
   useEffect(() => {
     setQuantity(1);
     setSelectedVariantId(product?.variants?.[0]?.id ?? null);
+    setSelectedVolumeDiscountId(null);
   }, [product?.id, product?.variants]);
 
   useEffect(() => {
-    setSelectedImage(productImages[0] ?? PRODUCT_FALLBACK_IMAGE);
-  }, [productImages]);
+    setSelectedVolumeDiscountId(volumeDiscountOptions[0]?.id ?? null);
+  }, [volumeDiscountOptions]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || !product) {
@@ -790,15 +1062,24 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
       : []),
     { label: product?.title || handle },
   ];
+  const currentAmount = productPrice?.currentAmount ?? offerState.currentAmount;
+  const currentAmountLabel = productPrice?.currentLabel ?? "Cena na vyžiadanie";
+  const currentCurrencyCode = productPrice?.currencyCode ?? "EUR";
+  const unitPriceLabel =
+    typeof currentAmount === "number" && offerState.unitLabel
+      ? `${formatAmount(currentAmount, currentCurrencyCode)} / ${offerState.unitLabel}`
+      : null;
+  const freeShippingThreshold = 49;
+  const freeShippingThresholdLabel = formatAmount(freeShippingThreshold, currentCurrencyCode);
 
   return (
-    <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-6 lg:px-6">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-600 lg:px-550">
       <Breadcrumb items={breadcrumbItems} linkAs={NextLink} />
 
       {isBootstrappingRegion || productQuery.isLoading ? <ProductDetailSkeleton /> : null}
 
       {!isBootstrappingRegion && productQuery.error ? (
-        <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
+        <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
           <ErrorText showIcon>{productQuery.error}</ErrorText>
           <Button
             onClick={() => {
@@ -812,7 +1093,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
       ) : null}
 
       {!isBootstrappingRegion && !productQuery.isLoading && !productQuery.error && !product ? (
-        <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
+        <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
           <ErrorText showIcon>Produkt sa nepodarilo nájsť.</ErrorText>
           <LinkButton as={NextLink} href="/" variant="secondary">
             Späť na domovskú stránku
@@ -822,159 +1103,190 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
 
       {!isBootstrappingRegion && !productQuery.isLoading && !productQuery.error && product ? (
         <>
-          <section className="rounded-xl border border-black/10 bg-white p-4 lg:p-6">
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,560px)_minmax(0,1fr)]">
-              <div className="grid gap-3 sm:grid-cols-[84px_minmax(0,1fr)]">
-                {productImages.length > 1 ? (
-                  <div className="order-2 flex gap-2 overflow-x-auto pb-1 sm:order-1 sm:flex-col sm:overflow-visible sm:pb-0">
-                    {productImages.map((imageUrl) => {
-                      const isSelected = selectedImage === imageUrl;
-
-                      return (
-                        <Button
-                          className={`min-w-[72px] rounded-lg border p-0 sm:min-w-0 ${
-                            isSelected ? "border-primary" : "border-border-secondary"
-                          }`}
-                          key={imageUrl}
-                          onClick={() => setSelectedImage(imageUrl)}
-                          theme="unstyled"
-                          type="button"
-                        >
-                          <Image
-                            alt={product.title || "Produkt"}
-                            className="aspect-square w-full rounded-lg object-cover"
-                            src={imageUrl}
-                          />
-                        </Button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-
-                <Image
-                  alt={product.title || "Produkt"}
-                  className="order-1 aspect-square w-full rounded-xl border border-border-secondary object-cover sm:order-2"
-                  src={selectedImage || PRODUCT_FALLBACK_IMAGE}
+          <section className="rounded-xl border border-border-secondary bg-surface p-500 lg:p-600">
+            <div className="grid gap-500 xl:grid-cols-2">
+              <div className="space-y-300">
+                <GalleryTemplate
+                  aspectRatio="square"
+                  fitParent
+                  items={galleryItems}
+                  mainClassName="overflow-hidden rounded-xl border border-border-secondary bg-overlay"
+                  orientation="vertical"
+                  thumbnailSize={72}
+                  thumbnailsListClassName="gap-100"
                 />
-              </div>
 
-              <div className="space-y-5">
-                <header className="space-y-3">
-                  <h1 className="text-3xl font-bold leading-tight text-fg-primary">
-                    {product.title}
-                  </h1>
-
-                  <div className="space-y-1">
-                    <ExtraText className="text-fg-tertiary">
-                      Kód produktu: {offerState.code ?? product.handle}
+                <div className="grid gap-200 sm:grid-cols-3">
+                  <div className="flex items-center gap-150 rounded-lg border border-border-secondary bg-surface-secondary px-250 py-200">
+                    <Icon className="text-primary" icon="token-icon-check" />
+                    <ExtraText className="font-semibold text-fg-primary">
+                      {typeof offerState.stockAmount === "number"
+                        ? `${offerState.stockAmount} ks skladom`
+                        : offerState.availabilityLabel}
                     </ExtraText>
-                    {offerState.ean ? (
-                      <ExtraText className="text-fg-tertiary">EAN: {offerState.ean}</ExtraText>
-                    ) : null}
                   </div>
-
-                  {productCategories.length > 0 ? (
-                    <div className="flex flex-wrap gap-x-4 gap-y-2">
-                      {productCategories.slice(0, 8).map((category) => {
-                        if (!category.handle) {
-                          return null;
-                        }
-
-                        return (
-                          <Link
-                            as={NextLink}
-                            className="text-sm font-medium text-fg-primary hover:text-primary"
-                            href={`/c/${category.handle}`}
-                            key={category.id}
-                          >
-                            {normalizeCategoryName(category.name)}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </header>
-
-                {productPrice ? (
-                  <div className="space-y-1">
-                    {productPrice.originalLabel ? (
-                      <div className="text-sm text-fg-tertiary line-through">
-                        {productPrice.originalLabel}
-                      </div>
-                    ) : null}
-                    <div className="text-4xl font-bold text-primary">{productPrice.currentLabel}</div>
+                  <div className="flex items-center gap-150 rounded-lg border border-border-secondary bg-surface-secondary px-250 py-200">
+                    <Icon className="text-primary" icon="token-icon-check" />
+                    <ExtraText className="font-semibold text-fg-primary">
+                      {offerState.unitLabel
+                        ? `Balenie: ${offerState.unitLabel}`
+                        : "Rýchle doručenie"}
+                    </ExtraText>
                   </div>
-                ) : null}
-
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant={offerState.isInStock ? "success" : "warning"}>
-                    {offerState.availabilityLabel}
-                  </Badge>
-                  <Badge variant="info">{offerState.deliveryLabel}</Badge>
-                  {typeof offerState.stockAmount === "number" ? (
-                    <Badge variant="secondary">{`Sklad: ${offerState.stockAmount} ks`}</Badge>
-                  ) : null}
+                  <div className="flex items-center gap-150 rounded-lg border border-border-secondary bg-surface-secondary px-250 py-200">
+                    <Icon className="text-primary" icon="token-icon-check" />
+                    <ExtraText className="font-semibold text-fg-primary">Overený produkt</ExtraText>
+                  </div>
                 </div>
 
-                <p className="text-sm leading-relaxed text-fg-secondary">{productSummaryText}</p>
-
-                {variantItems.length > 1 ? (
-                  <Select
-                    items={variantItems}
-                    onValueChange={(details) => {
-                      setSelectedVariantId(details.value[0] ?? null);
-                    }}
+                <div className="flex flex-wrap items-center justify-between gap-300 rounded-lg border border-border-secondary bg-surface p-300">
+                  <div className="space-y-100">
+                    <p className="text-sm font-semibold text-fg-primary">Potrebujete poradiť?</p>
+                    <ExtraText className="text-fg-secondary">
+                      Kontaktujte nás, radi vám pomôžeme.
+                    </ExtraText>
+                    <Link as={NextLink} className="text-sm font-semibold text-primary" href="tel:+421232112345">
+                      +421 2/321 123 45
+                    </Link>
+                  </div>
+                  <LinkButton
+                    as={NextLink}
+                    href="/kontakt"
                     size="sm"
-                    value={selectedVariant?.id ? [selectedVariant.id] : []}
+                    theme="outlined"
+                    variant="primary"
                   >
-                    <Select.Label>Varianta</Select.Label>
-                    <Select.Control>
-                      <Select.Trigger>
-                        <Select.ValueText placeholder="Vyberte variantu" />
-                      </Select.Trigger>
-                    </Select.Control>
-                    <Select.Positioner>
-                      <Select.Content>
-                        {variantItems.map((item) => (
-                          <Select.Item item={item} key={item.value}>
-                            <Select.ItemText />
-                            <Select.ItemIndicator />
-                          </Select.Item>
-                        ))}
-                      </Select.Content>
-                    </Select.Positioner>
-                  </Select>
-                ) : null}
+                    Spustiť chat
+                  </LinkButton>
+                </div>
+              </div>
 
-                <div className="grid gap-3 md:grid-cols-[200px_minmax(0,1fr)]">
-                  <FormNumericInput
-                    id="product-quantity"
-                    label="Množstvo"
-                    max={50}
-                    min={1}
-                    onChange={(value) => {
-                      if (!Number.isFinite(value) || value < 1) {
-                        setQuantity(1);
-                        return;
-                      }
+              <div className="space-y-300">
+                <div className="space-y-400 rounded-lg border border-border-secondary bg-surface p-400">
+                  <div className="flex flex-wrap items-center justify-between gap-200">
+                    <div className="flex flex-wrap items-center gap-200">
+                      <ExtraText className="text-fg-tertiary">ID: {offerState.code ?? product.handle}</ExtraText>
+                      {offerState.ean ? (
+                        <Badge variant="outline">{`EAN ${offerState.ean}`}</Badge>
+                      ) : null}
+                    </div>
+                    {offerState.hasActiveDiscount && discountPercent ? (
+                      <Badge variant="discount">{`-${discountPercent}%`}</Badge>
+                    ) : null}
+                  </div>
 
-                      setQuantity(Math.floor(value));
-                    }}
-                    size="sm"
-                    value={quantity}
-                  >
-                    <NumericInput.Control>
-                      <NumericInput.Input />
-                      <NumericInput.TriggerContainer>
-                        <NumericInput.IncrementTrigger />
-                        <NumericInput.DecrementTrigger />
-                      </NumericInput.TriggerContainer>
-                    </NumericInput.Control>
-                  </FormNumericInput>
+                  <header className="space-y-250">
+                    <h1 className="text-3xl font-bold leading-tight text-fg-primary">
+                      {product.title}
+                    </h1>
 
-                  <div className="flex items-end gap-2">
+                    {productCategories.length > 0 ? (
+                      <div className="flex flex-wrap gap-200">
+                        {productCategories.slice(0, 8).map((category) => {
+                          if (!category.handle) {
+                            return null;
+                          }
+
+                          return (
+                            <Link
+                              as={NextLink}
+                              className="text-sm font-medium text-fg-primary hover:text-primary"
+                              href={`/c/${category.handle}`}
+                              key={category.id}
+                            >
+                              {normalizeCategoryName(category.name)}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </header>
+
+                  <ul className="space-y-150">
+                    {productHighlights.map((highlight) => (
+                      <li className="flex items-start gap-150 text-sm text-fg-secondary" key={highlight}>
+                        <Icon className="mt-50 text-primary" icon="token-icon-check" />
+                        <span>{highlight}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="flex flex-wrap items-end justify-between gap-300">
+                    <div className="space-y-100">
+                      {displayOriginalLabel ? (
+                        <p className="text-sm text-fg-tertiary line-through">{displayOriginalLabel}</p>
+                      ) : null}
+                      <p className="text-3xl font-bold text-primary">{currentAmountLabel}</p>
+                      {unitPriceLabel ? (
+                        <ExtraText className="text-fg-tertiary">{unitPriceLabel}</ExtraText>
+                      ) : null}
+                    </div>
+
+                    {vipCreditLabel ? (
+                      <div className="rounded-lg border border-border-secondary bg-surface-secondary px-300 py-200 text-right">
+                        <ExtraText className="font-semibold text-primary">VIP kredit</ExtraText>
+                        <ExtraText className="text-fg-secondary">{`Nákupom získate ${vipCreditLabel}`}</ExtraText>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {variantItems.length > 1 ? (
+                    <Select
+                      items={variantItems}
+                      onValueChange={(details) => {
+                        setSelectedVariantId(details.value[0] ?? null);
+                      }}
+                      size="sm"
+                      value={selectedVariant?.id ? [selectedVariant.id] : []}
+                    >
+                      <Select.Label>Varianta</Select.Label>
+                      <Select.Control>
+                        <Select.Trigger>
+                          <Select.ValueText placeholder="Vyberte variantu" />
+                        </Select.Trigger>
+                      </Select.Control>
+                      <Select.Positioner>
+                        <Select.Content>
+                          {variantItems.map((item) => (
+                            <Select.Item item={item} key={item.value}>
+                              <Select.ItemText />
+                              <Select.ItemIndicator />
+                            </Select.Item>
+                          ))}
+                        </Select.Content>
+                      </Select.Positioner>
+                    </Select>
+                  ) : null}
+
+                  <div className="grid gap-300 sm:grid-cols-3">
+                    <FormNumericInput
+                      id="product-quantity"
+                      label="Množstvo"
+                      max={50}
+                      min={1}
+                      onChange={(value) => {
+                        if (!Number.isFinite(value) || value < 1) {
+                          setQuantity(1);
+                          return;
+                        }
+
+                        setQuantity(Math.floor(value));
+                      }}
+                      size="sm"
+                      value={quantity}
+                    >
+                      <NumericInput.Control>
+                        <NumericInput.Input />
+                        <NumericInput.TriggerContainer>
+                          <NumericInput.IncrementTrigger />
+                          <NumericInput.DecrementTrigger />
+                        </NumericInput.TriggerContainer>
+                      </NumericInput.Control>
+                    </FormNumericInput>
+
                     <Button
                       block
+                      className="sm:self-end"
                       disabled={!selectedVariant?.id || isMainProductAdding}
                       onClick={() => {
                         void addProductToCart(product, quantity, selectedVariant?.id);
@@ -983,54 +1295,140 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
                     >
                       {isMainProductAdding ? "Pridávam..." : "Pridať do košíka"}
                     </Button>
-                    <LinkButton as={NextLink} href="/checkout" theme="outlined" variant="secondary">
+
+                    <LinkButton
+                      as={NextLink}
+                      className="sm:self-end"
+                      href="/checkout"
+                      theme="outlined"
+                      variant="secondary"
+                    >
                       Košík
                     </LinkButton>
                   </div>
+
+                  <div className="rounded-lg border border-border-secondary bg-highlight px-300 py-250">
+                    <div className="flex flex-wrap items-center justify-between gap-250">
+                      <StatusText showIcon size="sm" status={offerState.isInStock ? "success" : "warning"}>
+                        {offerState.availabilityLabel}
+                      </StatusText>
+                      <StatusText showIcon size="sm" status="success">
+                        {`Doručenie zdarma nad ${freeShippingThresholdLabel}`}
+                      </StatusText>
+                    </div>
+                  </div>
                 </div>
+
+                {volumeDiscountOptions.length > 0 ? (
+                  <section className="space-y-250 rounded-lg border border-border-secondary bg-surface p-300">
+                    <h2 className="text-xl font-semibold text-fg-primary">Množstevná zľava</h2>
+                    <div className="space-y-200">
+                      {volumeDiscountOptions.map((option) => {
+                        const isSelected = selectedVolumeDiscountOption?.id === option.id;
+
+                        return (
+                          <Button
+                            className={`w-full rounded-lg border p-300 text-left ${
+                              isSelected
+                                ? "border-primary bg-highlight"
+                                : "border-border-secondary bg-surface-secondary"
+                            }`}
+                            key={option.id}
+                            onClick={() => setSelectedVolumeDiscountId(option.id)}
+                            theme="unstyled"
+                            type="button"
+                          >
+                            <div className="flex items-start justify-between gap-300">
+                              <div className="flex items-start gap-200">
+                                <Icon
+                                  className={isSelected ? "text-primary" : "text-fg-tertiary"}
+                                  icon={isSelected ? "token-icon-check" : "token-icon-chevron-right"}
+                                />
+                                <div className="space-y-50">
+                                  <p className="text-sm font-semibold text-fg-primary">{option.title}</p>
+                                  <ExtraText className="text-fg-secondary">
+                                    {option.perUnitLabel}
+                                  </ExtraText>
+                                </div>
+                              </div>
+                              <div className="space-y-50 text-right">
+                                <p className="text-sm font-semibold text-fg-primary">
+                                  {option.totalAmountLabel}
+                                </p>
+                                {option.oldTotalAmountLabel ? (
+                                  <ExtraText className="text-fg-tertiary line-through">
+                                    {option.oldTotalAmountLabel}
+                                  </ExtraText>
+                                ) : null}
+                              </div>
+                            </div>
+                          </Button>
+                        );
+                      })}
+                    </div>
+
+                    <Button
+                      block
+                      disabled={!selectedVariant?.id || isMainProductAdding || !selectedVolumeDiscountOption}
+                      onClick={() => {
+                        if (!selectedVolumeDiscountOption) {
+                          return;
+                        }
+                        void addProductToCart(
+                          product,
+                          selectedVolumeDiscountOption.quantity,
+                          selectedVariant?.id,
+                        );
+                      }}
+                      variant="primary"
+                    >
+                      {isMainProductAdding ? "Pridávam..." : "Pridať do košíka"}
+                    </Button>
+                  </section>
+                ) : null}
 
                 {addToCartError ? <ErrorText showIcon>{addToCartError}</ErrorText> : null}
               </div>
             </div>
           </section>
 
-          <section className="rounded-xl border border-black/10 bg-white p-4 lg:p-6">
-            <header className="flex flex-wrap items-center justify-between gap-3">
+          <section className="rounded-xl border border-border-secondary bg-surface p-500 lg:p-600">
+            <header className="flex flex-wrap items-center justify-between gap-300">
               <h2 className="text-xl font-semibold text-fg-primary">Hodnotenie produktu</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-200">
                 <Rating readOnly size="sm" value={0} />
                 <ExtraText className="text-fg-tertiary">Zatiaľ bez hodnotení</ExtraText>
               </div>
             </header>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <div className="rounded-xl border border-border-secondary bg-surface-secondary p-3">
+            <div className="mt-400 grid gap-300 md:grid-cols-3">
+              <div className="rounded-xl border border-border-secondary bg-surface-secondary p-300">
                 <ExtraText className="text-fg-tertiary">Dostupnosť</ExtraText>
-                <p className="mt-1 text-sm font-semibold text-fg-primary">
+                <p className="mt-100 text-sm font-semibold text-fg-primary">
                   {offerState.availabilityLabel}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border-secondary bg-surface-secondary p-3">
+              <div className="rounded-xl border border-border-secondary bg-surface-secondary p-300">
                 <ExtraText className="text-fg-tertiary">Kategórie</ExtraText>
-                <p className="mt-1 text-sm font-semibold text-fg-primary">
+                <p className="mt-100 text-sm font-semibold text-fg-primary">
                   {productCategories.length > 0
                     ? `${productCategories.length} zaradení`
                     : "Bez zaradenia"}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border-secondary bg-surface-secondary p-3">
+              <div className="rounded-xl border border-border-secondary bg-surface-secondary p-300">
                 <ExtraText className="text-fg-tertiary">Varianty</ExtraText>
-                <p className="mt-1 text-sm font-semibold text-fg-primary">
+                <p className="mt-100 text-sm font-semibold text-fg-primary">
                   {variants.length > 1 ? `${variants.length} možností` : "1 možnosť"}
                 </p>
               </div>
             </div>
           </section>
 
-          <section className="rounded-xl border border-black/10 bg-white p-4 lg:p-6">
-            <h2 className="mb-4 text-xl font-semibold text-fg-primary">Informácie o produkte</h2>
+          <section className="rounded-xl border border-border-secondary bg-surface p-500 lg:p-600">
+            <h2 className="mb-400 text-xl font-semibold text-fg-primary">Informácie o produkte</h2>
 
             <div className="hidden lg:block">
               <Tabs defaultValue={defaultInfoSectionValue} fitted justify="start" variant="line">
@@ -1044,7 +1442,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
                 </Tabs.List>
 
                 {productContentSections.map((section) => (
-                  <Tabs.Content className="pt-4" key={section.key} value={section.key}>
+                  <Tabs.Content className="pt-400" key={section.key} value={section.key}>
                     <HtmlContent
                       fallback="Obsah sekcie bude čoskoro doplnený."
                       html={section.html}
@@ -1078,15 +1476,15 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
 
       {!isBootstrappingRegion && product && relatedSections.length > 0
         ? relatedSections.map((section) => (
-            <section className="space-y-4 rounded-xl border border-black/10 bg-white p-4 lg:p-6" key={section.id}>
-              <header className="flex items-center justify-between gap-2">
+            <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-500 lg:p-600" key={section.id}>
+              <header className="flex items-center justify-between gap-200">
                 <h2 className="text-xl font-semibold text-fg-primary">{section.title}</h2>
                 <ExtraText className="text-fg-tertiary">
                   {`Nájdené: ${section.products.length}`}
                 </ExtraText>
               </header>
 
-              <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-400 md:grid-cols-3 xl:grid-cols-5">
                 {section.products.map((relatedProduct) => (
                   <HerbatikaProductCard
                     isAdding={

@@ -7,16 +7,127 @@ import {
   type AsideFilterChipItem,
   AsideFilterChipSection,
 } from "@/components/aside-filter-chip-section";
-import {
-  type AsideFilterPriceBand,
-  formatAmount,
-  resolveBandIdsFromRange,
-  resolveSelectedRangeFromBands,
-  resolveSliderBounds,
-} from "@/components/aside-filter-price-range";
+
+type AsideFilterPriceBounds = {
+  min: number;
+  max: number;
+};
+
+type AsideFilterPriceRange = {
+  min?: number;
+  max?: number;
+};
+
+const clampNumber = (value: number, min: number, max: number) => {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+
+  return Math.max(min, Math.min(max, value));
+};
+
+const toSafeBounds = (
+  bounds: AsideFilterPriceBounds | null,
+): AsideFilterPriceBounds | null => {
+  if (!bounds) {
+    return null;
+  }
+
+  const min = Number.isFinite(bounds.min) ? bounds.min : 0;
+  const maxCandidate = Number.isFinite(bounds.max) ? bounds.max : min + 1;
+  const max = maxCandidate > min ? maxCandidate : min + 1;
+
+  return {
+    min: Math.floor(min),
+    max: Math.ceil(max),
+  };
+};
+
+const resolveRangeFromSelection = (
+  selectedRange: AsideFilterPriceRange,
+  bounds: AsideFilterPriceBounds,
+): [number, number] => {
+  const selectedMin =
+    typeof selectedRange.min === "number"
+      ? clampNumber(selectedRange.min, bounds.min, bounds.max)
+      : bounds.min;
+  const selectedMax =
+    typeof selectedRange.max === "number"
+      ? clampNumber(selectedRange.max, bounds.min, bounds.max)
+      : bounds.max;
+
+  if (selectedMin <= selectedMax) {
+    return [selectedMin, selectedMax];
+  }
+
+  return [selectedMax, selectedMin];
+};
+
+const resolveRangeWithinBounds = (
+  range: [number, number],
+  bounds: AsideFilterPriceBounds,
+): [number, number] => {
+  return resolveRangeFromSelection(
+    {
+      min: range[0],
+      max: range[1],
+    },
+    bounds,
+  );
+};
+
+const resolveBoundsForRender = (
+  currentBounds: AsideFilterPriceBounds,
+  incomingBounds: AsideFilterPriceBounds | null,
+  hasActivePriceFilter: boolean,
+): AsideFilterPriceBounds => {
+  if (!incomingBounds) {
+    return currentBounds;
+  }
+
+  if (!hasActivePriceFilter) {
+    return incomingBounds;
+  }
+
+  return {
+    min: Math.min(currentBounds.min, incomingBounds.min),
+    max: Math.max(currentBounds.max, incomingBounds.max),
+  };
+};
+
+const normalizeCommittedRange = (
+  nextRange: [number, number],
+  bounds: AsideFilterPriceBounds,
+): AsideFilterPriceRange => {
+  const rangeMin = clampNumber(nextRange[0], bounds.min, bounds.max);
+  const rangeMax = clampNumber(nextRange[1], bounds.min, bounds.max);
+  const normalizedMin = rangeMin <= bounds.min ? undefined : rangeMin;
+  const normalizedMax = rangeMax >= bounds.max ? undefined : rangeMax;
+
+  return {
+    min: normalizedMin,
+    max: normalizedMax,
+  };
+};
+
+const formatAmount = (amount: number, currencyCode: string): string => {
+  const locale = currencyCode === "CZK" ? "cs-CZ" : "sk-SK";
+
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${Math.round(amount)} ${currencyCode}`;
+  }
+};
 
 type AsideFilterProps = {
-  priceBands: AsideFilterPriceBand[];
+  priceBounds: AsideFilterPriceBounds | null;
+  selectedPriceRange: AsideFilterPriceRange;
   currencyCode: string;
   statusItems: AsideFilterChipItem[];
   formItems: AsideFilterChipItem[];
@@ -26,14 +137,15 @@ type AsideFilterProps = {
   onFormToggle: (itemId: string) => void;
   onBrandToggle: (itemId: string) => void;
   onIngredientToggle: (itemId: string) => void;
-  onPriceBandSelectionChange: (bandIds: string[]) => void;
+  onPriceRangeCommit: (range: AsideFilterPriceRange) => void;
   activeFilterCount: number;
   isLoading?: boolean;
   onReset: () => void;
 };
 
 export function AsideFilter({
-  priceBands,
+  priceBounds,
+  selectedPriceRange,
   currencyCode,
   statusItems,
   formItems,
@@ -43,68 +155,52 @@ export function AsideFilter({
   onFormToggle,
   onBrandToggle,
   onIngredientToggle,
-  onPriceBandSelectionChange,
+  onPriceRangeCommit,
   activeFilterCount,
   isLoading = false,
   onReset,
 }: AsideFilterProps) {
-  const sliderBounds = useMemo(
-    () => resolveSliderBounds(priceBands),
-    [priceBands],
+  const incomingPriceBounds = useMemo(
+    () => toSafeBounds(priceBounds),
+    [priceBounds],
   );
+  const hasActivePriceFilter =
+    typeof selectedPriceRange.min === "number" ||
+    typeof selectedPriceRange.max === "number";
+  const [priceBoundsForRender, setPriceBoundsForRender] =
+    useState<AsideFilterPriceBounds>(
+      incomingPriceBounds ?? {
+        min: 0,
+        max: 1,
+      },
+    );
 
-  const selectedRangeFromBands = useMemo(
-    () => resolveSelectedRangeFromBands(priceBands, sliderBounds),
-    [priceBands, sliderBounds],
+  useEffect(() => {
+    setPriceBoundsForRender((currentBounds) =>
+      resolveBoundsForRender(
+        currentBounds,
+        incomingPriceBounds,
+        hasActivePriceFilter,
+      ),
+    );
+  }, [hasActivePriceFilter, incomingPriceBounds]);
+
+  const selectedRange = useMemo(
+    () => resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender),
+    [priceBoundsForRender, selectedPriceRange],
   );
 
   const [sliderRange, setSliderRange] = useState<[number, number]>(
-    selectedRangeFromBands,
+    selectedRange,
+  );
+  const sliderRangeForRender = useMemo(
+    () => resolveRangeWithinBounds(sliderRange, priceBoundsForRender),
+    [priceBoundsForRender, sliderRange],
   );
 
   useEffect(() => {
-    setSliderRange(selectedRangeFromBands);
-  }, [selectedRangeFromBands]);
-
-  const safeSliderBounds = useMemo(() => {
-    const min = Number.isFinite(sliderBounds.min) ? sliderBounds.min : 0;
-    const maxCandidate = Number.isFinite(sliderBounds.max)
-      ? sliderBounds.max
-      : min + 1;
-
-    return {
-      min,
-      max: maxCandidate > min ? maxCandidate : min + 1,
-    };
-  }, [sliderBounds.max, sliderBounds.min]);
-
-  const safeSliderValue = useMemo<[number, number]>(() => {
-    const currentMin = Number.isFinite(sliderRange[0])
-      ? sliderRange[0]
-      : safeSliderBounds.min;
-    const currentMax = Number.isFinite(sliderRange[1])
-      ? sliderRange[1]
-      : safeSliderBounds.max;
-    const normalizedMin = Math.max(
-      safeSliderBounds.min,
-      Math.min(safeSliderBounds.max, currentMin),
-    );
-    const normalizedMax = Math.max(
-      safeSliderBounds.min,
-      Math.min(safeSliderBounds.max, currentMax),
-    );
-
-    if (normalizedMin <= normalizedMax) {
-      return [normalizedMin, normalizedMax];
-    }
-
-    return [normalizedMax, normalizedMin];
-  }, [
-    safeSliderBounds.max,
-    safeSliderBounds.min,
-    sliderRange[0],
-    sliderRange[1],
-  ]);
+    setSliderRange(selectedRange);
+  }, [selectedRange]);
 
   const chipButtonClass = (checked: boolean, disabled?: boolean) => {
     return [
@@ -120,41 +216,45 @@ export function AsideFilter({
         <section className="space-y-300">
           <h2 className="text-2xl font-bold uppercase leading-none">Cena</h2>
           <div className="flex items-center justify-between text-lg font-medium text-fg-secondary">
-            <span>{formatAmount(safeSliderValue[0], currencyCode)}</span>
-            <span>{formatAmount(safeSliderValue[1], currencyCode)}</span>
+            <span>{formatAmount(sliderRangeForRender[0], currencyCode)}</span>
+            <span>{formatAmount(sliderRangeForRender[1], currencyCode)}</span>
           </div>
           <Slider
-            defaultValue={[safeSliderBounds.min, safeSliderBounds.max]}
-            max={safeSliderBounds.max}
-            min={safeSliderBounds.min}
+            defaultValue={[
+              priceBoundsForRender.min,
+              priceBoundsForRender.max,
+            ]}
+            max={priceBoundsForRender.max}
+            min={priceBoundsForRender.min}
             minStepsBetweenThumbs={0}
             onChange={(values) => {
               if (values[0] === undefined || values[1] === undefined) {
                 return;
               }
 
-              setSliderRange([Math.round(values[0]), Math.round(values[1])]);
+              setSliderRange(
+                resolveRangeWithinBounds(
+                  [Math.round(values[0]), Math.round(values[1])],
+                  priceBoundsForRender,
+                ),
+              );
             }}
             onChangeEnd={(values) => {
               if (values[0] === undefined || values[1] === undefined) {
                 return;
               }
 
-              const nextRange: [number, number] = [
-                Math.round(values[0]),
-                Math.round(values[1]),
-              ];
-
-              const nextBandIds = resolveBandIdsFromRange(
-                nextRange,
-                priceBands,
-                safeSliderBounds,
+              const nextRange = resolveRangeWithinBounds(
+                [Math.round(values[0]), Math.round(values[1])],
+                priceBoundsForRender,
               );
-              onPriceBandSelectionChange(nextBandIds);
+              onPriceRangeCommit(
+                normalizeCommittedRange(nextRange, priceBoundsForRender),
+              );
             }}
             size="sm"
             step={1}
-            value={safeSliderValue}
+            value={sliderRangeForRender}
           />
         </section>
 
@@ -226,4 +326,4 @@ export function AsideFilter({
 }
 
 export type { AsideFilterChipItem };
-export type { AsideFilterPriceBand } from "@/components/aside-filter-price-range";
+export type { AsideFilterPriceBounds, AsideFilterPriceRange };

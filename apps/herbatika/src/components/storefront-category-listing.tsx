@@ -18,13 +18,18 @@ import {
   normalizeCategoryName,
   resolveCategoryRank,
   resolveErrorMessage,
+  resolveProductCurrencyCode,
 } from "@/components/category/category-listing.helpers";
 import { CategoryProductsGrid } from "@/components/category/category-products-grid";
 import { CategorySortTabs } from "@/components/category/category-sort-tabs";
 import { CategoryTopLevelLinks } from "@/components/category/category-top-level-links";
 import { ProductGridSkeleton } from "@/components/category/product-grid-skeleton";
-import { useCategoryAsideFilters } from "@/components/category/use-category-aside-filters";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
+import { useCatalogProducts } from "@/lib/storefront/catalog-products";
+import {
+  buildCatalogProductsParams,
+  resolveCatalogActiveFilterCount,
+} from "@/lib/storefront/catalog-query-state";
 import {
   useCategories,
   usePrefetchCategories,
@@ -36,15 +41,10 @@ import {
   type ProductSortValue,
   plpQueryParsers,
   resolveCatalogQueryStatePatch,
-  resolveProductSortOrder,
 } from "@/lib/storefront/plp-query-state";
 import {
-  STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
-  usePrefetchPages,
   usePrefetchProduct,
-  usePrefetchProducts,
-  useProducts,
 } from "@/lib/storefront/products";
 
 type StorefrontCategoryListingProps = {
@@ -98,6 +98,74 @@ const CATEGORY_CONTEXT_PRESETS: Record<string, CategoryContextPreset> = {
   },
 };
 
+const toggleMultiValueSelection = (values: string[], value: string): string[] => {
+  if (values.includes(value)) {
+    return values.filter((item) => item !== value);
+  }
+
+  return [...values, value];
+};
+
+type CatalogFacetItem = {
+  id: string;
+  label: string;
+  count: number;
+};
+
+const buildFacetChipItems = (
+  currentFacetItems: CatalogFacetItem[],
+  seedFacetItems: CatalogFacetItem[],
+  selectedIds: string[],
+) => {
+  const countById = new Map(currentFacetItems.map((item) => [item.id, item.count]));
+  const labelById = new Map<string, string>();
+  const orderedIds: string[] = [];
+  const seenIds = new Set<string>();
+
+  const pushOrderedId = (id: string) => {
+    if (seenIds.has(id)) {
+      return;
+    }
+
+    seenIds.add(id);
+    orderedIds.push(id);
+  };
+
+  for (const item of seedFacetItems) {
+    labelById.set(item.id, item.label);
+    pushOrderedId(item.id);
+  }
+
+  for (const item of currentFacetItems) {
+    labelById.set(item.id, item.label);
+    pushOrderedId(item.id);
+  }
+
+  for (const selectedId of selectedIds) {
+    if (!labelById.has(selectedId)) {
+      labelById.set(selectedId, selectedId);
+    }
+
+    pushOrderedId(selectedId);
+  }
+
+  const selectedIdSet = new Set(selectedIds);
+
+  return orderedIds.map((id) => {
+    const label = labelById.get(id) ?? id;
+    const count = countById.get(id) ?? 0;
+    const checked = selectedIdSet.has(id);
+
+    return {
+      id,
+      label,
+      count,
+      checked,
+      disabled: count === 0 && !checked,
+    };
+  });
+};
+
 export function StorefrontCategoryListing({
   slug,
 }: StorefrontCategoryListingProps) {
@@ -137,7 +205,6 @@ export function StorefrontCategoryListing({
   }, [categoriesQuery.categories]);
 
   const activeCategory = categoryByHandle.get(slug) ?? null;
-  const activeCategoryId = activeCategory?.id ?? null;
 
   const topLevelCategories = useMemo(() => {
     return categoriesQuery.categories
@@ -213,82 +280,124 @@ export function StorefrontCategoryListing({
     return items;
   }, [activeCategory, categoryById, slug]);
 
-  const sortOrder = resolveProductSortOrder(queryState.sort);
-
-  const productsInput = useMemo(() => {
-    return {
-      page: queryState.page,
+  const catalogProductsInput = useMemo(() => {
+    return buildCatalogProductsParams({
+      queryState,
+      categoryIds: activeCategoryFilterIds,
       limit: PLP_PAGE_SIZE,
-      fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-      category_id:
-        activeCategoryFilterIds.length > 0
-          ? activeCategoryFilterIds
-          : undefined,
-      order: sortOrder,
-      region_id: region?.region_id,
-      country_code: region?.country_code,
-      enabled: Boolean(region?.region_id && activeCategory?.id),
-    };
+      regionId: region?.region_id,
+      countryCode: region?.country_code,
+    });
   }, [
-    activeCategory?.id,
     activeCategoryFilterIds,
+    queryState,
     region?.country_code,
     region?.region_id,
-    queryState.page,
-    sortOrder,
   ]);
+  const isCatalogQueryEnabled = Boolean(region?.region_id && activeCategory?.id);
 
-  const productsQuery = useProducts(productsInput);
-  const {
-    productsCurrencyCode,
-    asidePriceBands,
-    asideStatusItems,
-    asideFormItems,
-    asideBrandItems,
-    asideIngredientItems,
-    activeAsideFilterCount,
-    displayedProducts,
-    applyPriceBandsFromRange,
-    toggleStatusFilter,
-    toggleFormFilter,
-    toggleBrandFilter,
-    toggleIngredientFilter,
-    resetAsideFilters,
-  } = useCategoryAsideFilters({
-    products: productsQuery.products,
-    activeCategoryId,
+  const catalogQuery = useCatalogProducts({
+    ...catalogProductsInput,
+    enabled: isCatalogQueryEnabled,
   });
 
+  const catalogFacetSeedInput = useMemo(() => {
+    return buildCatalogProductsParams({
+      queryState: {
+        ...queryState,
+        page: 1,
+        sort: "recommended",
+        status: [],
+        form: [],
+        brand: [],
+        ingredient: [],
+        price_min: null,
+        price_max: null,
+      },
+      categoryIds: activeCategoryFilterIds,
+      limit: 1,
+      regionId: region?.region_id,
+      countryCode: region?.country_code,
+    });
+  }, [
+    activeCategoryFilterIds,
+    queryState.q,
+    region?.country_code,
+    region?.region_id,
+  ]);
+
+  const catalogFacetSeedQuery = useCatalogProducts({
+    ...catalogFacetSeedInput,
+    enabled: isCatalogQueryEnabled,
+  });
+
+  const activeAsideFilterCount = resolveCatalogActiveFilterCount(queryState);
+  const productsCurrencyCode = useMemo(() => {
+    return resolveProductCurrencyCode(catalogQuery.products);
+  }, [catalogQuery.products]);
+
+  const asideStatusItems = useMemo(() => {
+    return buildFacetChipItems(
+      catalogQuery.facets.status,
+      catalogFacetSeedQuery.facets.status,
+      queryState.status,
+    );
+  }, [
+    catalogFacetSeedQuery.facets.status,
+    catalogQuery.facets.status,
+    queryState.status,
+  ]);
+
+  const asideFormItems = useMemo(() => {
+    return buildFacetChipItems(
+      catalogQuery.facets.form,
+      catalogFacetSeedQuery.facets.form,
+      queryState.form,
+    );
+  }, [catalogFacetSeedQuery.facets.form, catalogQuery.facets.form, queryState.form]);
+
+  const asideBrandItems = useMemo(() => {
+    return buildFacetChipItems(
+      catalogQuery.facets.brand,
+      catalogFacetSeedQuery.facets.brand,
+      queryState.brand,
+    );
+  }, [
+    catalogFacetSeedQuery.facets.brand,
+    catalogQuery.facets.brand,
+    queryState.brand,
+  ]);
+
+  const asideIngredientItems = useMemo(() => {
+    return buildFacetChipItems(
+      catalogQuery.facets.ingredient,
+      catalogFacetSeedQuery.facets.ingredient,
+      queryState.ingredient,
+    );
+  }, [
+    catalogFacetSeedQuery.facets.ingredient,
+    catalogQuery.facets.ingredient,
+    queryState.ingredient,
+  ]);
+
   useEffect(() => {
-    if (!productsInput.enabled || productsQuery.isLoading) {
+    if (!isCatalogQueryEnabled || catalogQuery.isLoading) {
       return;
     }
 
-    const safeLastPage = Math.max(productsQuery.totalPages, 1);
+    const safeLastPage = Math.max(catalogQuery.totalPages, 1);
     if (queryState.page <= safeLastPage) {
       return;
     }
 
     void setQueryState({ page: safeLastPage });
   }, [
-    productsInput.enabled,
-    productsQuery.isLoading,
-    productsQuery.totalPages,
+    isCatalogQueryEnabled,
+    catalogQuery.isLoading,
+    catalogQuery.totalPages,
     queryState.page,
     setQueryState,
   ]);
-
-  usePrefetchPages({
-    enabled: Boolean(productsInput.enabled),
-    shouldPrefetch: productsQuery.products.length > 0,
-    baseInput: productsInput,
-    currentPage: productsQuery.currentPage,
-    hasNextPage: productsQuery.hasNextPage,
-    hasPrevPage: productsQuery.hasPrevPage,
-    totalPages: productsQuery.totalPages,
-    pageSize: PLP_PAGE_SIZE,
-    mode: "priority",
-  });
 
   const cartQuery = useCart({
     autoCreate: true,
@@ -306,10 +415,6 @@ export function StorefrontCategoryListing({
     skipMode: "any",
   });
   const prefetchCategories = usePrefetchCategories({
-    defaultDelay: 250,
-    skipMode: "any",
-  });
-  const prefetchProducts = usePrefetchProducts({
     defaultDelay: 250,
     skipMode: "any",
   });
@@ -348,6 +453,64 @@ export function StorefrontCategoryListing({
       resolveCatalogQueryStatePatch(queryState, {
         sort: value,
       }),
+    );
+  };
+
+  const handleStatusToggle = (itemId: string) => {
+    void setQueryState(
+      resolveCatalogQueryStatePatch(queryState, {
+        status: toggleMultiValueSelection(queryState.status, itemId),
+      }),
+    );
+  };
+
+  const handleFormToggle = (itemId: string) => {
+    void setQueryState(
+      resolveCatalogQueryStatePatch(queryState, {
+        form: toggleMultiValueSelection(queryState.form, itemId),
+      }),
+    );
+  };
+
+  const handleBrandToggle = (itemId: string) => {
+    void setQueryState(
+      resolveCatalogQueryStatePatch(queryState, {
+        brand: toggleMultiValueSelection(queryState.brand, itemId),
+      }),
+    );
+  };
+
+  const handleIngredientToggle = (itemId: string) => {
+    void setQueryState(
+      resolveCatalogQueryStatePatch(queryState, {
+        ingredient: toggleMultiValueSelection(queryState.ingredient, itemId),
+      }),
+    );
+  };
+
+  const handlePriceRangeCommit = (range: { min?: number; max?: number }) => {
+    void setQueryState(
+      resolveCatalogQueryStatePatch(queryState, {
+        price_min: range.min ?? null,
+        price_max: range.max ?? null,
+      }),
+    );
+  };
+
+  const handleResetFilters = () => {
+    void setQueryState(
+      resolveCatalogQueryStatePatch(
+        queryState,
+        {
+          status: [],
+          form: [],
+          brand: [],
+          ingredient: [],
+          price_min: null,
+          price_max: null,
+        },
+        { resetPage: "always" },
+      ),
     );
   };
 
@@ -485,9 +648,6 @@ export function StorefrontCategoryListing({
 
   const handleCategoryBlur = (category: HttpTypes.StoreProductCategory) => {
     prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`);
-    prefetchProducts.cancelPrefetch(
-      `prefetch-category-products-${category.id}`,
-    );
   };
 
   const handleCategoryFocus = (category: HttpTypes.StoreProductCategory) => {
@@ -495,19 +655,6 @@ export function StorefrontCategoryListing({
       { id: category.id },
       200,
       `prefetch-category-${category.id}`,
-    );
-    prefetchProducts.delayedPrefetch(
-      {
-        page: 1,
-        limit: PLP_PAGE_SIZE,
-        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-        category_id: [category.id],
-        order: sortOrder,
-        region_id: region?.region_id,
-        country_code: region?.country_code,
-      },
-      250,
-      `prefetch-category-products-${category.id}`,
     );
   };
 
@@ -524,19 +671,6 @@ export function StorefrontCategoryListing({
       300,
       `prefetch-category-children-${category.id}`,
     );
-    prefetchProducts.delayedPrefetch(
-      {
-        page: 1,
-        limit: PLP_PAGE_SIZE,
-        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-        category_id: [category.id],
-        order: sortOrder,
-        region_id: region?.region_id,
-        country_code: region?.country_code,
-      },
-      250,
-      `prefetch-category-products-${category.id}`,
-    );
   };
 
   const handleCategoryMouseLeave = (
@@ -545,9 +679,6 @@ export function StorefrontCategoryListing({
     prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`);
     prefetchCategories.cancelPrefetch(
       `prefetch-category-children-${category.id}`,
-    );
-    prefetchProducts.cancelPrefetch(
-      `prefetch-category-products-${category.id}`,
     );
   };
 
@@ -583,9 +714,9 @@ export function StorefrontCategoryListing({
           activeAsideFilterCount={activeAsideFilterCount}
           categoryFound={Boolean(activeCategory)}
           categorySubtitle={categorySubtitle}
-          displayedProductsCount={displayedProducts.length}
+          displayedProductsCount={catalogQuery.totalCount}
           title={normalizeCategoryName(activeCategory?.name ?? slug)}
-          totalProducts={productsQuery.totalCount}
+          totalProducts={catalogQuery.totalCount}
         />
         <CategoryTopLevelLinks
           activeCategoryHandle={activeCategory?.handle ?? null}
@@ -612,14 +743,33 @@ export function StorefrontCategoryListing({
               currencyCode={productsCurrencyCode}
               formItems={asideFormItems}
               ingredientItems={asideIngredientItems}
-              isLoading={categoriesQuery.isLoading || productsQuery.isLoading}
-              onBrandToggle={toggleBrandFilter}
-              onFormToggle={toggleFormFilter}
-              onIngredientToggle={toggleIngredientFilter}
-              onPriceBandSelectionChange={applyPriceBandsFromRange}
-              onReset={resetAsideFilters}
-              onStatusToggle={toggleStatusFilter}
-              priceBands={asidePriceBands}
+              isLoading={
+                categoriesQuery.isLoading ||
+                catalogQuery.isLoading ||
+                catalogFacetSeedQuery.isLoading
+              }
+              onBrandToggle={handleBrandToggle}
+              onFormToggle={handleFormToggle}
+              onIngredientToggle={handleIngredientToggle}
+              onPriceRangeCommit={handlePriceRangeCommit}
+              onReset={handleResetFilters}
+              onStatusToggle={handleStatusToggle}
+              priceBounds={
+                catalogQuery.facets.price.min === null &&
+                catalogQuery.facets.price.max === null
+                  ? null
+                  : {
+                      min: catalogQuery.facets.price.min ?? 0,
+                      max:
+                        catalogQuery.facets.price.max ??
+                        catalogQuery.facets.price.min ??
+                        1,
+                    }
+              }
+              selectedPriceRange={{
+                min: queryState.price_min ?? undefined,
+                max: queryState.price_max ?? undefined,
+              }}
               statusItems={asideStatusItems}
             />
           </div>
@@ -629,15 +779,15 @@ export function StorefrontCategoryListing({
               activeSort={queryState.sort}
               onSortChange={handleSortChange}
               sortItems={SORT_TAB_ITEMS}
-              totalProducts={productsQuery.totalCount}
+              totalProducts={catalogQuery.totalCount}
             />
 
             {addToCartError && <ErrorText showIcon>{addToCartError}</ErrorText>}
             {categoriesQuery.error && (
               <ErrorText showIcon>{categoriesQuery.error}</ErrorText>
             )}
-            {productsQuery.error && (
-              <ErrorText showIcon>{productsQuery.error}</ErrorText>
+            {catalogQuery.error && (
+              <ErrorText showIcon>{catalogQuery.error}</ErrorText>
             )}
             {showCategoryNotFound && (
               <ErrorText showIcon>
@@ -646,14 +796,14 @@ export function StorefrontCategoryListing({
               </ErrorText>
             )}
 
-            {(categoriesQuery.isLoading || productsQuery.isLoading) && (
+            {(categoriesQuery.isLoading || catalogQuery.isLoading) && (
               <ProductGridSkeleton />
             )}
 
             {!categoriesQuery.isLoading &&
-              !productsQuery.isLoading &&
+              !catalogQuery.isLoading &&
               !showCategoryNotFound &&
-              productsQuery.products.length === 0 && (
+              catalogQuery.products.length === 0 && (
                 <div className="rounded-lg border border-border-secondary bg-base p-400">
                   <p className="text-sm text-fg-secondary">
                     V tejto kategórii zatiaľ nie sú dostupné produkty pre
@@ -663,32 +813,20 @@ export function StorefrontCategoryListing({
               )}
 
             {!categoriesQuery.isLoading &&
-              !productsQuery.isLoading &&
-              !showCategoryNotFound &&
-              productsQuery.products.length > 0 &&
-              displayedProducts.length === 0 && (
-                <div className="rounded-lg border border-border-secondary bg-base p-400">
-                  <p className="text-sm text-fg-secondary">
-                    Žiadny produkt nevyhovuje vybranému filtrovanému rozsahu.
-                  </p>
-                </div>
-              )}
-
-            {!categoriesQuery.isLoading &&
-              !productsQuery.isLoading &&
-              displayedProducts.length > 0 && (
+              !catalogQuery.isLoading &&
+              catalogQuery.products.length > 0 && (
                 <CategoryProductsGrid
                   isProductAdding={isProductAdding}
                   onAddToCart={handleAddToCart}
                   onProductHoverEnd={handleProductHoverEnd}
                   onProductHoverStart={handleProductHoverStart}
-                  products={displayedProducts}
+                  products={catalogQuery.products}
                 />
               )}
 
-            {productsQuery.totalPages > 1 && (
+            {catalogQuery.totalPages > 1 && (
               <Pagination
-                count={productsQuery.totalCount}
+                count={catalogQuery.totalCount}
                 onPageChange={(nextPage) => {
                   if (nextPage === queryState.page) {
                     return;
