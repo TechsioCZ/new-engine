@@ -298,11 +298,11 @@ const buildHeroSlides = (): CarouselSlide[] => {
     slides.push({
       id: `hero-page-${pageIndex}`,
       content: (
-        <div className="grid h-full w-full grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid h-full w-full grid-cols-2 gap-300 lg:grid-cols-4">
           {page.map((banner) => (
             <Link
               as={NextLink}
-              className="group relative h-full overflow-hidden rounded-[14px] border border-border-secondary"
+              className="group relative h-full overflow-hidden rounded-2xl border border-border-secondary"
               href={banner.href}
               key={banner.id}
             >
@@ -312,11 +312,11 @@ const buildHeroSlides = (): CarouselSlide[] => {
                 src={banner.imageSrc}
               />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-fg-primary/70 via-fg-primary/20 to-transparent" />
 
-              <div className="absolute inset-x-0 bottom-0 p-3 text-fg-reverse">
+              <div className="absolute inset-x-0 bottom-0 p-300 text-fg-reverse">
                 <Badge
-                  className="mb-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
+                  className="mb-100 rounded-full px-200 py-50 text-2xs font-semibold uppercase"
                   variant="secondary"
                 >
                   {banner.badge}
@@ -324,7 +324,7 @@ const buildHeroSlides = (): CarouselSlide[] => {
                 <p className="line-clamp-2 text-sm leading-tight font-bold">
                   {banner.title}
                 </p>
-                <p className="line-clamp-2 text-xs text-white/85">
+                <p className="line-clamp-2 text-xs text-fg-reverse/85">
                   {banner.subtitle}
                 </p>
               </div>
@@ -538,46 +538,45 @@ export function HerbatikaHomepage() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-[1418px] flex-col gap-8 px-4 py-6 lg:px-6 lg:py-8">
-      <section className="rounded-[18px] border border-border-secondary bg-surface p-3 shadow-sm">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-700 px-400 py-550 lg:px-550 lg:py-700">
+      <section className="rounded-2xl border border-border-secondary bg-surface p-300 shadow-sm">
         <Carousel.Root
           aspectRatio="none"
-          autoplay
           className="w-full"
           loop
           slideCount={HERO_SLIDES.length}
           size="full"
         >
           <Carousel.Slides
-            className="h-[260px] md:h-[320px] lg:h-[360px]"
+            className="home-hero-slides"
             slides={HERO_SLIDES}
           />
-          <Carousel.Previous className="-translate-y-1/2 absolute top-1/2 left-2 rounded-full border border-white/80 bg-white/85 p-2 text-xl text-fg-primary hover:bg-surface" />
-          <Carousel.Next className="-translate-y-1/2 absolute top-1/2 right-2 rounded-full border border-white/80 bg-white/85 p-2 text-xl text-fg-primary hover:bg-surface" />
-          <Carousel.Control className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-white/85 px-3 py-2">
-            <Carousel.Indicators className="gap-1.5" />
+          <Carousel.Previous className="-translate-y-1/2 absolute top-1/2 left-200 rounded-full border border-surface/80 bg-surface/85 p-200 text-xl text-fg-primary hover:bg-surface" />
+          <Carousel.Next className="-translate-y-1/2 absolute top-1/2 right-200 rounded-full border border-surface/80 bg-surface/85 p-200 text-xl text-fg-primary hover:bg-surface" />
+          <Carousel.Control className="absolute bottom-200 left-1/2 -translate-x-1/2 rounded-full bg-surface/85 px-300 py-200">
+            <Carousel.Indicators className="gap-150" />
           </Carousel.Control>
         </Carousel.Root>
       </section>
 
-      <section className="rounded-[18px] border border-border-secondary bg-[#ecf7f3] p-3 md:p-4">
-        <h2 className="mb-3 text-lg font-bold text-fg-primary">
+      <section className="rounded-2xl border border-border-secondary bg-highlight p-300 md:p-400">
+        <h2 className="mb-300 text-lg font-bold text-fg-primary">
           Čo vám Herbatika prináša
         </h2>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
+        <div className="grid grid-cols-2 gap-200 md:grid-cols-4 xl:grid-cols-8">
           {BENEFITS.map((benefit) => (
             <article
-              className="rounded-[12px] border border-border-secondary bg-surface px-3 py-3"
+              className="rounded-lg border border-border-secondary bg-surface px-300 py-300"
               key={benefit.id}
             >
               <Icon
-                className="mb-2 text-2xl text-primary"
+                className="mb-200 text-2xl text-primary"
                 icon={benefit.icon}
               />
               <p className="text-xs leading-tight font-bold text-fg-primary">
                 {benefit.title}
               </p>
-              <p className="mt-1 text-2xs leading-snug text-fg-secondary">
+              <p className="mt-100 text-2xs leading-snug text-fg-secondary">
                 {benefit.description}
               </p>
             </article>
@@ -588,7 +587,7 @@ export function HerbatikaHomepage() {
       {cartMessage && (
         <div className="flex">
           <Badge
-            className="rounded-full px-3 py-1 text-xs font-semibold"
+            className="rounded-full px-300 py-100 text-xs font-semibold"
             variant="success"
           >
             {cartMessage}
@@ -609,19 +608,19 @@ export function HerbatikaHomepage() {
       )}
 
       {preparedProductSections.slice(0, 2).map((section) => (
-        <section className="space-y-4" id={section.id} key={section.id}>
-          <header className="flex items-end justify-between gap-4">
+        <section className="space-y-400" id={section.id} key={section.id}>
+          <header className="flex items-end justify-between gap-400">
             <div>
               <h2 className="text-2xl font-bold text-fg-primary">
                 {section.title}
               </h2>
-              <p className="mt-1 text-sm text-fg-secondary">
+              <p className="mt-100 text-sm text-fg-secondary">
                 {section.subtitle}
               </p>
             </div>
             <LinkButton
               as={NextLink}
-              className="hidden rounded-[10px] px-4 py-2 text-sm font-semibold md:inline-flex"
+              className="hidden rounded-md px-400 py-200 text-sm font-semibold md:inline-flex"
               href="/#"
               icon="icon-[mdi--arrow-right]"
               iconPosition="right"
@@ -636,7 +635,7 @@ export function HerbatikaHomepage() {
           {shouldShowProductSkeleton ? (
             <HomeProductGridSkeleton />
           ) : section.products.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-400 sm:grid-cols-2 xl:grid-cols-4">
               {section.products.map((product, index) => (
                 <HerbatikaProductCard
                   isAdding={addingVariantId === product.variants?.[0]?.id}
@@ -656,38 +655,38 @@ export function HerbatikaHomepage() {
         </section>
       ))}
 
-      <section className="space-y-4 rounded-[18px] border border-border-secondary bg-surface p-4 md:p-6">
-        <header className="flex items-end justify-between gap-4">
+      <section className="space-y-400 rounded-2xl border border-border-secondary bg-surface p-400 md:p-550">
+        <header className="flex items-end justify-between gap-400">
           <div>
             <h2 className="text-2xl font-bold text-fg-primary">
               Overené skúsenosti
             </h2>
-            <p className="mt-1 text-sm text-fg-secondary">
+            <p className="mt-100 text-sm text-fg-secondary">
               Skutočné hodnotenia od našich zákazníkov.
             </p>
           </div>
           <Badge
-            className="rounded-full px-3 py-1 text-xs font-semibold"
+            className="rounded-full px-300 py-100 text-xs font-semibold"
             variant="info"
           >
             4.9 / 5
           </Badge>
         </header>
 
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-300 lg:grid-cols-3">
           {REVIEWS.map((review) => (
             <article
-              className="rounded-[14px] border border-border-secondary bg-base/70 p-4"
+              className="rounded-2xl border border-border-secondary bg-base/70 p-400"
               key={review.id}
             >
               <Rating readOnly size="sm" value={review.rating} />
-              <p className="mt-2 text-sm font-bold text-fg-primary">
+              <p className="mt-200 text-sm font-bold text-fg-primary">
                 {review.title}
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-fg-secondary">
+              <p className="mt-200 text-sm leading-relaxed text-fg-secondary">
                 {review.message}
               </p>
-              <p className="mt-3 text-xs font-semibold text-primary">
+              <p className="mt-300 text-xs font-semibold text-primary">
                 {review.author}
               </p>
             </article>
@@ -696,19 +695,19 @@ export function HerbatikaHomepage() {
       </section>
 
       {preparedProductSections.slice(2).map((section) => (
-        <section className="space-y-4" id={section.id} key={section.id}>
-          <header className="flex items-end justify-between gap-4">
+        <section className="space-y-400" id={section.id} key={section.id}>
+          <header className="flex items-end justify-between gap-400">
             <div>
               <h2 className="text-2xl font-bold text-fg-primary">
                 {section.title}
               </h2>
-              <p className="mt-1 text-sm text-fg-secondary">
+              <p className="mt-100 text-sm text-fg-secondary">
                 {section.subtitle}
               </p>
             </div>
             <LinkButton
               as={NextLink}
-              className="hidden rounded-[10px] px-4 py-2 text-sm font-semibold md:inline-flex"
+              className="hidden rounded-md px-400 py-200 text-sm font-semibold md:inline-flex"
               href="/#"
               icon="icon-[mdi--arrow-right]"
               iconPosition="right"
@@ -723,7 +722,7 @@ export function HerbatikaHomepage() {
           {shouldShowProductSkeleton ? (
             <HomeProductGridSkeleton />
           ) : section.products.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-400 sm:grid-cols-2 xl:grid-cols-4">
               {section.products.map((product, index) => (
                 <HerbatikaProductCard
                   isAdding={addingVariantId === product.variants?.[0]?.id}
@@ -743,19 +742,19 @@ export function HerbatikaHomepage() {
         </section>
       ))}
 
-      <section className="space-y-4" id="blog">
-        <header className="flex items-end justify-between gap-4">
+      <section className="space-y-400" id="blog">
+        <header className="flex items-end justify-between gap-400">
           <div>
             <h2 className="text-2xl font-bold text-fg-primary">
               Blog o zdravom životnom štýle
             </h2>
-            <p className="mt-1 text-sm text-fg-secondary">
+            <p className="mt-100 text-sm text-fg-secondary">
               Nové články o prírode, vitalite a každodennej rovnováhe.
             </p>
           </div>
           <LinkButton
             as={NextLink}
-            className="hidden rounded-[10px] px-4 py-2 text-sm font-semibold md:inline-flex"
+            className="hidden rounded-md px-400 py-200 text-sm font-semibold md:inline-flex"
             href="/blog"
             icon="icon-[mdi--open-in-new]"
             iconPosition="right"
@@ -767,20 +766,20 @@ export function HerbatikaHomepage() {
           </LinkButton>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-400 lg:grid-cols-3">
           {BLOG_POSTS.map((post) => (
             <article
-              className="overflow-hidden rounded-[14px] border border-border-secondary bg-surface shadow-sm"
+              className="overflow-hidden rounded-2xl border border-border-secondary bg-surface shadow-sm"
               key={post.id}
             >
               <Link as={NextLink} className="block" href={post.href}>
                 <Image
                   alt={post.title}
-                  className="h-44 w-full object-cover"
+                  className="home-blog-card-image w-full object-cover"
                   src={post.imageSrc}
                 />
               </Link>
-              <div className="space-y-2 p-4">
+              <div className="space-y-200 p-400">
                 <h3 className="line-clamp-2 text-sm leading-snug font-bold text-fg-primary">
                   <Link
                     as={NextLink}
@@ -795,7 +794,7 @@ export function HerbatikaHomepage() {
                 </p>
                 <LinkButton
                   as={NextLink}
-                  className="rounded-[9px] px-3 py-2 text-xs font-semibold"
+                  className="rounded-md px-300 py-200 text-xs font-semibold"
                   href={post.href}
                   icon="icon-[mdi--arrow-right]"
                   iconPosition="right"
@@ -811,18 +810,18 @@ export function HerbatikaHomepage() {
         </div>
       </section>
 
-      <section className="grid gap-4 rounded-[18px] border border-border-secondary bg-surface p-4 md:grid-cols-[1.1fr_1fr] md:p-6">
-        <div className="overflow-hidden rounded-[14px] border border-border-secondary">
+      <section className="home-promo-grid grid gap-400 rounded-2xl border border-border-secondary bg-surface p-400 md:p-550">
+        <div className="overflow-hidden rounded-2xl border border-border-secondary">
           <Image
             alt="Predajňa Herbatika"
-            className="h-full min-h-[230px] w-full object-cover"
+            className="home-promo-image h-full w-full object-cover"
             src="https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?auto=format&fit=crop&w=1100&q=80"
           />
         </div>
 
-        <div className="flex flex-col justify-center gap-3">
+        <div className="flex flex-col justify-center gap-300">
           <Badge
-            className="w-fit rounded-full px-3 py-1 text-xs font-semibold"
+            className="w-fit rounded-full px-300 py-100 text-xs font-semibold"
             variant="secondary"
           >
             Spoja nás láska k prírode
@@ -837,7 +836,7 @@ export function HerbatikaHomepage() {
           </p>
           <LinkButton
             as={NextLink}
-            className="w-fit rounded-[10px] px-4 py-2 text-sm font-semibold"
+            className="w-fit rounded-md px-400 py-200 text-sm font-semibold"
             href="/#"
             icon="icon-[mdi--arrow-right]"
             iconPosition="right"
@@ -849,12 +848,12 @@ export function HerbatikaHomepage() {
         </div>
       </section>
 
-      <section className="space-y-4" id="naposledy-navstivene">
+      <section className="space-y-400" id="naposledy-navstivene">
         <header>
           <h2 className="text-2xl font-bold text-fg-primary">
             Naposledy navštívené
           </h2>
-          <p className="mt-1 text-sm text-fg-secondary">
+          <p className="mt-100 text-sm text-fg-secondary">
             Produkty, ktoré ste si naposledy prezerali.
           </p>
         </header>
