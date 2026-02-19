@@ -15,11 +15,9 @@ import {
   resolveRelatedCategoryIds,
 } from "./category-tree";
 import { buildCategoryListParams } from "./category-query-config";
-import {
-  PLP_PAGE_SIZE,
-  resolveProductSortOrder,
-  type PlpQueryState,
-} from "./plp-config";
+import { buildCatalogProductsParams } from "./catalog-query-state";
+import { PLP_PAGE_SIZE } from "./plp-config";
+import type { PlpQueryState } from "./plp-query-state";
 import {
   buildProductListParams,
   STOREFRONT_PRODUCT_CARD_FIELDS,
@@ -52,6 +50,7 @@ type RegionListParams = HttpTypes.StoreRegionFilters & {
 
 type CategoryListParams = FindParams & HttpTypes.StoreProductCategoryListParams;
 type ProductListParams = HttpTypes.StoreProductListParams;
+type CatalogListParams = ReturnType<typeof buildCatalogProductsParams>;
 type ProductDetailParams = {
   handle: string;
   region_id?: string;
@@ -98,7 +97,7 @@ const SSR_FETCH_OPTIONS: Record<
 };
 
 const buildListQueryKey = (
-  resource: "products" | "categories" | "regions",
+  resource: "products" | "categories" | "regions" | "catalog",
   params: unknown,
 ) => {
   return createQueryKey(
@@ -223,6 +222,27 @@ const fetchProducts = async (
 ): Promise<HttpTypes.StoreProductListResponse> => {
   return fetchStore<HttpTypes.StoreProductListResponse>(
     "/store/products",
+    params,
+    "semiStatic",
+    signal,
+  );
+};
+
+type CatalogStoreResponse = {
+  products?: HttpTypes.StoreProduct[];
+  count?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  facets?: unknown;
+};
+
+const fetchCatalogProducts = async (
+  params: CatalogListParams,
+  signal?: AbortSignal,
+): Promise<CatalogStoreResponse> => {
+  return fetchStore<CatalogStoreResponse>(
+    "/store/catalog/products",
     params,
     "semiStatic",
     signal,
@@ -357,21 +377,19 @@ export const prefetchCategoryPageStorefrontData = async (
       activeCategory.id,
       ...collectDescendantCategoryIds(categoryResponse.categories, activeCategory.id),
     ];
-    const sortOrder = resolveProductSortOrder(queryState.sort);
-    const searchQuery = queryState.q.trim();
-
-    const productListParams = buildProductListParams({
-      page: queryState.page,
+    const catalogListParams = buildCatalogProductsParams({
+      queryState,
+      categoryIds,
       limit: PLP_PAGE_SIZE,
-      fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-      category_id: categoryIds,
-      order: sortOrder,
-      q: searchQuery || undefined,
-      region_id: region.region_id,
-      country_code: region.country_code,
+      regionId: region.region_id,
+      countryCode: region.country_code,
     });
 
-    await prefetchProductList(queryClient, productListParams);
+    await queryClient.prefetchQuery({
+      queryKey: buildListQueryKey("catalog", catalogListParams),
+      queryFn: ({ signal }) => fetchCatalogProducts(catalogListParams, signal),
+      ...storefrontCacheConfig.semiStatic,
+    });
   }
 
   return {

@@ -1,24 +1,25 @@
+import type { inferParserType } from "nuqs/server";
 import {
-  parseAsInteger,
-  parseAsString,
-  parseAsStringLiteral,
-  type inferParserType,
-} from "nuqs";
-import { PRODUCT_SORT_VALUES } from "./plp-config";
+  catalogQueryParsers,
+  parseCatalogQueryStateFromSearchParams,
+  resolveCatalogQueryStatePatch,
+} from "./catalog-query-state";
 
 export {
-  parsePlpQueryStateFromSearchParams,
   PLP_PAGE_SIZE,
   PRODUCT_SORT_OPTIONS,
   PRODUCT_SORT_VALUES,
   resolveProductSortOrder,
-} from "./plp-config";
-export type { PlpQueryState, ProductSortValue } from "./plp-config";
+  resolveCatalogQueryStatePatch,
+} from "./catalog-query-state";
+export type {
+  CatalogQueryState as PlpQueryState,
+  CatalogQueryStatePatch as PlpQueryStatePatch,
+  ProductSortValue,
+} from "./catalog-query-state";
 
-export const plpQueryParsers = {
-  page: parseAsInteger.withDefault(1),
-  sort: parseAsStringLiteral(PRODUCT_SORT_VALUES).withDefault("recommended"),
-  q: parseAsString.withDefault(""),
-};
+export const parsePlpQueryStateFromSearchParams =
+  parseCatalogQueryStateFromSearchParams;
+export const plpQueryParsers = catalogQueryParsers;
 
 export type NuqsPlpQueryState = inferParserType<typeof plpQueryParsers>;

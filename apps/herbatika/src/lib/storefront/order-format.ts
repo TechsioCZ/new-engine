@@ -41,6 +41,17 @@ export const resolveOrderStatusBadgeVariant = (
   return "info";
 };
 
+export const resolveOrderDisplayId = (order: {
+  display_id?: number | null;
+  id: string;
+}) => {
+  if (order.display_id) {
+    return `#${order.display_id}`;
+  }
+
+  return order.id;
+};
+
 export const formatOrderDate = (value?: Date | string | null) => {
   if (!value) {
     return "-";
