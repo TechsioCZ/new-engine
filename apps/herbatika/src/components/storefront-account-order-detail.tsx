@@ -4,13 +4,17 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import { Table } from "@techsio/ui-kit/organisms/table";
 import NextLink from "next/link";
 import {
+  StorefrontAccountSkeletonSurface,
+  StorefrontAccountSurface,
+} from "@/components/account/storefront-account-surface";
+import {
   formatOrderAmount,
   formatOrderDate,
+  resolveOrderDisplayId,
   resolveOrderItemCount,
   resolveOrderItemTotalAmount,
   resolveOrderStatusBadgeVariant,
@@ -19,20 +23,6 @@ import {
 } from "@/lib/storefront/order-format";
 import { useAuth } from "@/lib/storefront/auth";
 import { useOrder } from "@/lib/storefront/orders";
-
-const resolveOrderDisplayId = (
-  order: { display_id?: number | null; id: string } | null,
-) => {
-  if (!order) {
-    return "-";
-  }
-
-  if (order.display_id) {
-    return `#${order.display_id}`;
-  }
-
-  return order.id;
-};
 
 type StorefrontAccountOrderDetailProps = {
   orderId: string;
@@ -48,29 +38,23 @@ export function StorefrontAccountOrderDetail({
   });
 
   if (authQuery.isLoading || orderQuery.isLoading) {
-    return (
-      <section className="rounded-xl border border-black/10 bg-white p-6">
-        <Skeleton>
-          <Skeleton.Text noOfLines={10} />
-        </Skeleton>
-      </section>
-    );
+    return <StorefrontAccountSkeletonSurface lines={10} />;
   }
 
   if (orderQuery.error) {
     return (
-      <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
+      <StorefrontAccountSurface className="space-y-400">
         <ErrorText showIcon>{orderQuery.error}</ErrorText>
         <LinkButton as={NextLink} href="/account/orders" variant="secondary">
           Späť na objednávky
         </LinkButton>
-      </section>
+      </StorefrontAccountSurface>
     );
   }
 
   if (!orderQuery.order) {
     return (
-      <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
+      <StorefrontAccountSurface className="space-y-400">
         <h2 className="text-lg font-semibold">Objednávka nebola nájdená</h2>
         <p className="text-sm text-fg-secondary">
           Skontrolujte URL alebo sa vráťte do zoznamu objednávok.
@@ -78,7 +62,7 @@ export function StorefrontAccountOrderDetail({
         <LinkButton as={NextLink} href="/account/orders" variant="secondary">
           Späť na objednávky
         </LinkButton>
-      </section>
+      </StorefrontAccountSurface>
     );
   }
 
@@ -96,7 +80,7 @@ export function StorefrontAccountOrderDetail({
   const orderTotal = resolveOrderTotalAmount(order);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-400">
       <Breadcrumb
         items={[
           { label: "Domov", href: "/" },
@@ -107,9 +91,9 @@ export function StorefrontAccountOrderDetail({
         linkAs={NextLink}
       />
 
-      <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
-        <header className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
+      <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-550">
+        <header className="flex flex-wrap items-start justify-between gap-300">
+          <div className="space-y-100">
             <h2 className="text-xl font-semibold">
               {`Objednávka ${resolveOrderDisplayId(order)}`}
             </h2>
@@ -121,8 +105,8 @@ export function StorefrontAccountOrderDetail({
           </Badge>
         </header>
 
-        <div className="grid gap-3 rounded-xl border border-black/10 bg-base p-4 md:grid-cols-2">
-          <article className="space-y-1">
+        <div className="grid gap-300 rounded-xl border border-border-secondary bg-base p-400 md:grid-cols-2">
+          <article className="space-y-100">
             <h3 className="font-semibold">Zhrnutie platby</h3>
             <p className="text-sm text-fg-secondary">
               {`Medzisúčet: ${formatOrderAmount(orderSubtotal, order.currency_code)}`}
@@ -138,7 +122,7 @@ export function StorefrontAccountOrderDetail({
             </p>
           </article>
 
-          <article className="space-y-1">
+          <article className="space-y-100">
             <h3 className="font-semibold">Detaily objednávky</h3>
             <p className="text-sm text-fg-secondary">{`ID: ${order.id}`}</p>
             <p className="text-sm text-fg-secondary">
@@ -154,7 +138,7 @@ export function StorefrontAccountOrderDetail({
         </div>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-black/10 bg-white p-6">
+      <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-550">
         <h3 className="text-lg font-semibold">Položky objednávky</h3>
         <div className="overflow-x-auto">
           <Table size="sm" variant="outline">

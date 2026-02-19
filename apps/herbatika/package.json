@@ -17,6 +17,7 @@
   "dependencies": {
     "@medusajs/js-sdk": "^2.12.5",
     "@medusajs/types": "^2.12.5",
+    "@tanstack/react-form": "^1.27.4",
     "@tanstack/react-query": "^5.90.2",
     "@tanstack/react-store": "^0.7.1",
     "@techsio/analytics": "workspace:*",
@@ -42,6 +43,6 @@
     "postcss-import": "^16.1.1",
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }

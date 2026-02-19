@@ -1,25 +1,20 @@
 "use client";
 
-import type { HttpTypes } from "@medusajs/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
 import { Table } from "@techsio/ui-kit/organisms/table";
 import NextLink from "next/link";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect } from "react";
+import { StorefrontAccountOrderRow } from "@/components/account/storefront-account-order-row";
 import {
-  formatOrderAmount,
-  formatOrderDate,
-  resolveOrderItemCount,
-  resolveOrderStatusBadgeVariant,
-  resolveOrderStatusLabel,
-  resolveOrderTotalAmount,
-} from "@/lib/storefront/order-format";
+  StorefrontAccountSkeletonSurface,
+  StorefrontAccountSurface,
+} from "@/components/account/storefront-account-surface";
 import { storefrontCacheConfig } from "@/lib/storefront/cache";
 import { useAuth } from "@/lib/storefront/auth";
 import {
@@ -29,14 +24,6 @@ import {
 } from "@/lib/storefront/orders";
 
 const ORDER_PAGE_SIZE = 10;
-
-const resolveOrderDisplayId = (order: HttpTypes.StoreOrder) => {
-  if (order.display_id) {
-    return `#${order.display_id}`;
-  }
-
-  return order.id;
-};
 
 export function StorefrontAccountOrdersList() {
   const queryClient = useQueryClient();
@@ -85,18 +72,12 @@ export function StorefrontAccountOrdersList() {
   );
 
   if (authQuery.isLoading || (ordersQuery.isLoading && currentPage === 1)) {
-    return (
-      <section className="rounded-xl border border-black/10 bg-white p-6">
-        <Skeleton>
-          <Skeleton.Text noOfLines={8} />
-        </Skeleton>
-      </section>
-    );
+    return <StorefrontAccountSkeletonSurface lines={8} />;
   }
 
   if (ordersQuery.error) {
     return (
-      <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
+      <StorefrontAccountSurface className="space-y-400">
         <ErrorText showIcon>{ordersQuery.error}</ErrorText>
         <Button
           onClick={() => {
@@ -106,13 +87,13 @@ export function StorefrontAccountOrdersList() {
         >
           Skúsiť znova
         </Button>
-      </section>
+      </StorefrontAccountSurface>
     );
   }
 
   if (ordersQuery.orders.length === 0) {
     return (
-      <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
+      <StorefrontAccountSurface className="space-y-400">
         <h2 className="text-lg font-semibold">Objednávky</h2>
         <p className="text-sm text-fg-secondary">
           Zatiaľ nemáte žiadnu dokončenú objednávku.
@@ -120,15 +101,15 @@ export function StorefrontAccountOrdersList() {
         <LinkButton as={NextLink} href="/" variant="secondary">
           Prejsť na produkty
         </LinkButton>
-      </section>
+      </StorefrontAccountSurface>
     );
   }
 
   return (
-    <section className="space-y-4 rounded-xl border border-black/10 bg-white p-6">
-      <header className="space-y-2">
+    <StorefrontAccountSurface className="space-y-400">
+      <header className="space-y-200">
         <h2 className="text-lg font-semibold">Objednávky</h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-200">
           <Badge variant="info">{`celkom: ${ordersQuery.totalCount}`}</Badge>
           <Badge variant="info">{`strana: ${ordersQuery.currentPage}/${ordersQuery.totalPages}`}</Badge>
         </div>
@@ -149,41 +130,12 @@ export function StorefrontAccountOrdersList() {
           </Table.Header>
           <Table.Body>
             {ordersQuery.orders.map((order) => {
-              const orderTotalAmount = resolveOrderTotalAmount(order);
-              const orderItemCount = resolveOrderItemCount(order.items);
-              const detailHref = `/account/orders/${order.id}`;
-
               return (
-                <Table.Row key={order.id}>
-                  <Table.Cell>{resolveOrderDisplayId(order)}</Table.Cell>
-                  <Table.Cell>{formatOrderDate(order.created_at)}</Table.Cell>
-                  <Table.Cell>
-                    <Badge variant={resolveOrderStatusBadgeVariant(order.status)}>
-                      {resolveOrderStatusLabel(order.status)}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell numeric>{String(orderItemCount)}</Table.Cell>
-                  <Table.Cell numeric>
-                    {formatOrderAmount(orderTotalAmount, order.currency_code)}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <LinkButton
-                      as={NextLink}
-                      href={detailHref}
-                      onFocus={() => {
-                        prefetchOrderDetail(order.id);
-                      }}
-                      onMouseEnter={() => {
-                        prefetchOrderDetail(order.id);
-                      }}
-                      size="sm"
-                      theme="outlined"
-                      variant="secondary"
-                    >
-                      Detail
-                    </LinkButton>
-                  </Table.Cell>
-                </Table.Row>
+                <StorefrontAccountOrderRow
+                  key={order.id}
+                  onPrefetchOrderDetail={prefetchOrderDetail}
+                  order={order}
+                />
               );
             })}
           </Table.Body>
@@ -206,6 +158,6 @@ export function StorefrontAccountOrdersList() {
           variant="outlined"
         />
       )}
-    </section>
+    </StorefrontAccountSurface>
   );
 }

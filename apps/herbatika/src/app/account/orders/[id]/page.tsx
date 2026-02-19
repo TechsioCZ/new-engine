@@ -21,8 +21,8 @@ export default function AccountOrderDetailPage({
   return (
     <Suspense
       fallback={
-        <main className="mx-auto w-full max-w-6xl p-6">
-          <div className="h-96 animate-pulse rounded-xl border border-black/10 bg-white" />
+        <main className="mx-auto w-full max-w-account-content px-400 py-550 lg:px-550">
+          <div className="h-950 animate-pulse rounded-xl border border-border-secondary bg-surface" />
         </main>
       }
     >

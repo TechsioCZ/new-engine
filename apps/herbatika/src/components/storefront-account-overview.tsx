@@ -3,8 +3,11 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import NextLink from "next/link";
+import {
+  StorefrontAccountSkeletonSurface,
+  StorefrontAccountSurface,
+} from "@/components/account/storefront-account-surface";
 import { useAuth } from "@/lib/storefront/auth";
 import { useOrders } from "@/lib/storefront/orders";
 
@@ -17,13 +20,7 @@ export function StorefrontAccountOverview() {
   });
 
   if (authQuery.isLoading) {
-    return (
-      <section className="rounded-xl border border-black/10 bg-white p-6">
-        <Skeleton>
-          <Skeleton.Text noOfLines={4} />
-        </Skeleton>
-      </section>
-    );
+    return <StorefrontAccountSkeletonSurface lines={4} />;
   }
 
   if (!authQuery.customer) {
@@ -31,15 +28,15 @@ export function StorefrontAccountOverview() {
   }
 
   return (
-    <section className="space-y-5 rounded-xl border border-black/10 bg-white p-6">
-      <header className="space-y-2">
+    <StorefrontAccountSurface className="space-y-500">
+      <header className="space-y-200">
         <h2 className="text-xl font-semibold">Prehľad účtu</h2>
         <p className="text-sm text-fg-secondary">
           Správa objednávok a údajov zákazníka.
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-200">
         <Badge variant="success">
           {`${authQuery.customer.first_name ?? ""} ${authQuery.customer.last_name ?? ""}`.trim() ||
             "Zákazník"}
@@ -52,7 +49,7 @@ export function StorefrontAccountOverview() {
 
       {ordersQuery.error && <ErrorText showIcon>{ordersQuery.error}</ErrorText>}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-200">
         <LinkButton as={NextLink} href="/account/orders" variant="secondary">
           Otvoriť objednávky
         </LinkButton>
@@ -65,6 +62,6 @@ export function StorefrontAccountOverview() {
           Prejsť na checkout
         </LinkButton>
       </div>
-    </section>
+    </StorefrontAccountSurface>
   );
 }

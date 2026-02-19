@@ -10,7 +10,9 @@ import {
 } from "../_lib";
 
 type SessionResponse = {
-  token: string;
+  token: string | null;
+  authenticated: boolean;
+  message?: string;
 };
 
 const resolveToken = (
@@ -28,7 +30,14 @@ export async function GET(request: NextRequest) {
   const token = getSessionTokenFromCookieHeader(request.headers.get("cookie"));
 
   if (!token) {
-    return NextResponse.json({ message: "Authentication required." }, { status: 401 });
+    return NextResponse.json<SessionResponse>(
+      {
+        token: null,
+        authenticated: false,
+        message: "Authentication required.",
+      },
+      { status: 200 },
+    );
   }
 
   try {
@@ -44,7 +53,7 @@ export async function GET(request: NextRequest) {
       const refreshPayload = await parseResponseJson(refreshResponse);
       const refreshedToken = resolveToken(refreshPayload, token);
       const response = NextResponse.json<SessionResponse>(
-        { token: refreshedToken },
+        { token: refreshedToken, authenticated: true },
         { status: 200 },
       );
       setSessionTokenCookie(response, refreshedToken);
@@ -61,16 +70,20 @@ export async function GET(request: NextRequest) {
     });
 
     if (!customerResponse.ok) {
-      const unauthorizedResponse = NextResponse.json(
-        { message: "Authentication required." },
-        { status: 401 },
+      const unauthorizedResponse = NextResponse.json<SessionResponse>(
+        {
+          token: null,
+          authenticated: false,
+          message: "Authentication required.",
+        },
+        { status: 200 },
       );
       clearSessionTokenCookie(unauthorizedResponse);
       return unauthorizedResponse;
     }
 
     const response = NextResponse.json<SessionResponse>(
-      { token },
+      { token, authenticated: true },
       { status: 200 },
     );
     setSessionTokenCookie(response, token);

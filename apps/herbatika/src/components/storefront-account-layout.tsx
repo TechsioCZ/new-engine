@@ -11,23 +11,12 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useAuth, useLogout } from "@/lib/storefront/auth";
 import { cartStorage } from "@/lib/storefront/cart-storage";
+import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 
 const ACCOUNT_NAV_ITEMS = [
   { href: "/account", label: "Prehľad" },
   { href: "/account/orders", label: "Objednávky" },
 ] as const;
-
-const resolveErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "An unknown error occurred.";
-};
 
 const isNavItemActive = (pathname: string, href: string) => {
   if (pathname === href) {
@@ -90,8 +79,8 @@ export function StorefrontAccountLayout({
 
   if (authQuery.isLoading) {
     return (
-      <main className="mx-auto w-full max-w-6xl p-6">
-        <section className="rounded-xl border border-black/10 bg-white p-6">
+      <main className="mx-auto w-full max-w-account-content px-400 py-550 lg:px-550">
+        <section className="rounded-xl border border-border-secondary bg-surface p-550">
           <Skeleton>
             <Skeleton.Text noOfLines={4} />
           </Skeleton>
@@ -102,8 +91,8 @@ export function StorefrontAccountLayout({
 
   if (!authQuery.isAuthenticated) {
     return (
-      <main className="mx-auto w-full max-w-6xl p-6">
-        <section className="space-y-3 rounded-xl border border-black/10 bg-white p-6">
+      <main className="mx-auto w-full max-w-account-content px-400 py-550 lg:px-550">
+        <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-550">
           <h1 className="text-lg font-semibold">Presmerovanie na prihlásenie</h1>
           <p className="text-sm text-fg-secondary">
             Účet je dostupný iba pre prihlásených používateľov.
@@ -121,15 +110,15 @@ export function StorefrontAccountLayout({
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl p-6">
-      <div className="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
-        <aside className="space-y-4 rounded-xl border border-black/10 bg-white p-4">
-          <header className="space-y-2">
+    <main className="mx-auto w-full max-w-account-content px-400 py-550 lg:px-550">
+      <div className="grid gap-550 lg:grid-cols-12">
+        <aside className="space-y-400 rounded-xl border border-border-secondary bg-surface p-400 lg:col-span-3">
+          <header className="space-y-200">
             <h1 className="text-xl font-semibold">Môj účet</h1>
             <Badge variant="info">{authQuery.customer?.email ?? "-"}</Badge>
           </header>
 
-          <nav className="flex flex-col gap-2">
+          <nav className="flex flex-col gap-200">
             {ACCOUNT_NAV_ITEMS.map((item) => {
               const isActive = isNavItemActive(pathname, item.href);
 
@@ -163,7 +152,7 @@ export function StorefrontAccountLayout({
           </Button>
         </aside>
 
-        <section className="min-w-0">{children}</section>
+        <section className="min-w-0 lg:col-span-9">{children}</section>
       </div>
     </main>
   );
