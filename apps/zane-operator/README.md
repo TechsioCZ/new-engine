@@ -2,6 +2,8 @@
 
 Internal Bun service for preview PostgreSQL database lifecycle operations.
 
+Minimum supported PostgreSQL version: `18`.
+
 ## Endpoints
 
 - `GET /healthz`
@@ -40,7 +42,10 @@ Teardown response includes role cleanup result:
   "db_name": "medusa_pr_123",
   "deleted": true,
   "app_user": "medusa_pr_app_123",
-  "role_deleted": true
+  "role_deleted": true,
+  "dev_grants_cleaned": true,
+  "noop": false,
+  "noop_reason": null
 }
 ```
 
@@ -62,7 +67,8 @@ Teardown response includes role cleanup result:
 - `DB_PREVIEW_OWNER` (default: `zane_operator`)
 - `DB_PREVIEW_APP_USER_PREFIX` (default: `medusa_pr_app_`)
 - `DB_PREVIEW_DEV_ROLE` (default: `medusa_dev`)
-- `DB_PREVIEW_APP_PASSWORD_SECRET` (defaults to `API_AUTH_TOKEN`, but set explicitly in production)
+- `DB_APP_SCHEMA` (default: `medusa`)
+- `DB_PREVIEW_APP_PASSWORD_SECRET` (required in production; defaults to `API_AUTH_TOKEN` in non-production)
 - `DB_PROTECTED_NAMES` (extra protected DB names, comma-separated)
 
 ## Onboarding
@@ -72,10 +78,19 @@ Teardown response includes role cleanup result:
 For local Docker Compose environments, role bootstrap is automated by:
 - `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
 
+Bootstrap creates/maintains `medusa_app` and `medusa_dev` only.
+Bootstrap does **not** create `zane_operator`.
+
 For existing Postgres volumes (already initialized before bootstrap script was added), apply once:
 
 ```bash
 ./scripts/apply-postgres-role-bootstrap.sh
+```
+
+Idempotency verification for existing databases:
+
+```bash
+./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent
 ```
 
 Run as a PostgreSQL admin role:
@@ -93,6 +108,7 @@ GRANT pg_signal_backend TO zane_operator;
 - clone from template DB (`template_medusa`)
 
 `medusa_dev` (or your configured `DB_PREVIEW_DEV_ROLE`) must exist. `ensure` grants it connect+schema/table access on each preview DB.
+Preview app users are scoped to one schema only (configured by `DB_APP_SCHEMA`, default `medusa`).
 
 For `CREATE DATABASE ... WITH TEMPLATE ...`, the operator must be superuser or own the template DB.
 Preferred setup is ownership transfer of the template DB:
@@ -119,6 +135,7 @@ Required production values:
 - `DB_PREVIEW_OWNER=zane_operator`
 - `DB_PREVIEW_APP_USER_PREFIX=medusa_pr_app_`
 - `DB_PREVIEW_DEV_ROLE=medusa_dev`
+- `DB_APP_SCHEMA=medusa`
 - `DB_PREVIEW_APP_PASSWORD_SECRET=<long-random-secret>`
 
 ### 3. Smoke test before deployment
@@ -193,7 +210,8 @@ Required values in `.env` for this container:
 - `DB_PREVIEW_OWNER` (optional)
 - `DB_PREVIEW_APP_USER_PREFIX` (optional)
 - `DB_PREVIEW_DEV_ROLE` (optional)
-- `DB_PREVIEW_APP_PASSWORD_SECRET` (recommended)
+- `DB_APP_SCHEMA` (optional, default `medusa`)
+- `DB_PREVIEW_APP_PASSWORD_SECRET` (required in production)
 
 If `medusa-db` is in Docker Compose, set `PGHOST` in `.env` to the Compose service name (usually `medusa-db`) and run this container on the same Docker network.
 
@@ -214,7 +232,36 @@ Preview workflow template is present in:
 
 zane-operator calls are intentionally commented out for now. Uncomment them when you are ready to enable preview DB lifecycle from PR events.
 
-### 7. Manually refresh `template_medusa` from a different source DB
+### 7. Create or update dev role via CLI (no HTTP route)
+
+Command:
+
+```bash
+cd apps/zane-operator
+bun run create:dev-user -- --username medusa_dev --password 'replace-with-strong-password'
+```
+
+Optional flag:
+- `--no-grant-connect-all-dbs` skips cross-database `CONNECT` and schema/object grant sync.
+- `--allow-prod-broad-grants` allows broad grants when `NODE_ENV=production` (default behavior blocks this)
+
+Behavior:
+- creates the role when missing
+- always enforces role attributes: `NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS INHERIT LOGIN`
+- grants explicit read/write privileges on existing objects for all non-system schemas (including schema `CREATE`)
+- attempts to apply matching default privileges for discovered schema owners
+- by default grants `CONNECT` on all non-template databases
+- returns idempotent output for existing roles
+
+Required env vars for CLI run:
+- `PGHOST`
+- `PGUSER`
+- `PGPASSWORD`
+- `PGPORT` (optional, default `5432`)
+- `PGDATABASE` (optional, default `postgres`)
+- `PGSSLMODE` (optional, default `disable`)
+
+### 8. Manually refresh `template_medusa` from a different source DB
 
 Use this flow when you want preview DBs to be cloned from a new upstream data snapshot.
 

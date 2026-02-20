@@ -1,8 +1,9 @@
 x-medusa-env: &medusa-env
+  NODE_ENV: ${DC_NODE_ENV:-development}
   JWT_SECRET: ${DC_JWT_SECRET:-supersecret}
   COOKIE_SECRET: ${DC_COOKIE_SECRET:-supersecret}
   DATABASE_TYPE: postgres
-  DATABASE_URL: ${DC_DATABASE_URL}
+  DATABASE_URL: postgresql://${DC_MEDUSA_APP_DB_USER:-medusa_app}:${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}@medusa-db:5432/${DC_MEDUSA_APP_DB_NAME:-medusa}?sslmode=${DC_POSTGRES_SSLMODE:-disable}
   LEGACY_DATABASE_URL: ${DC_LEGACY_DATABASE_URL}
   MINIO_FILE_URL: ${DC_MINIO_FILE_URL}
   MINIO_REGION: ${DC_MINIO_REGION}
@@ -21,6 +22,25 @@ x-medusa-env: &medusa-env
   SETTINGS_ENCRYPTION_KEY: ${DC_SETTINGS_ENCRYPTION_KEY}
   FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
   PPL_ENVIRONMENT: ${DC_PPL_ENVIRONMENT:-testing}
+
+x-zane-operator-env: &zane-operator-env
+  PORT: ${DC_ZANE_OPERATOR_PORT:-8080}
+  NODE_ENV: ${DC_NODE_ENV:-development}
+  API_AUTH_TOKEN: ${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-replace-me}
+  PGHOST: medusa-db
+  PGPORT: 5432
+  PGUSER: ${DC_ZANE_OPERATOR_PGUSER:-zane_operator}
+  PGPASSWORD: ${DC_ZANE_OPERATOR_PGPASSWORD:-replace-me}
+  PGDATABASE: ${DC_ZANE_OPERATOR_PGDATABASE:-postgres}
+  PGSSLMODE: ${DC_POSTGRES_SSLMODE:-disable}
+  DB_TEMPLATE_NAME: ${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-template_medusa}
+  DB_PREVIEW_PREFIX: ${DC_ZANE_OPERATOR_DB_PREVIEW_PREFIX:-medusa_pr_}
+  DB_PREVIEW_OWNER: ${DC_ZANE_OPERATOR_PGUSER:-zane_operator}
+  DB_PREVIEW_APP_USER_PREFIX: ${DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX:-medusa_pr_app_}
+  DB_PREVIEW_DEV_ROLE: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
+  DB_APP_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
+  DB_PREVIEW_APP_PASSWORD_SECRET: ${DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET:-replace-me}
+  DB_PROTECTED_NAMES: ${DC_ZANE_OPERATOR_DB_PROTECTED_NAMES:-demo,postgres,template0,template1,template_medusa}
 
 x-medusa-base: &medusa-base
   restart: unless-stopped
@@ -148,7 +168,7 @@ services:
     restart: unless-stopped
     command: ["postgres", "-cshared_preload_libraries=pg_stat_statements"]
     ports:
-      - "5432:5432"
+      - "${DC_POSTGRES_PUBLIC_PORT:-5432}:5432"
     volumes:
       - ${DC_POSTGRES_VOLUME_DATA:-./.docker_data/db}:/var/lib/postgresql
       - ./docker/development/postgres/initdb:/docker-entrypoint-initdb.d:ro
@@ -161,9 +181,9 @@ services:
       timeout: 60s
       retries: 3
     environment:
-      POSTGRES_PASSWORD: root
-      POSTGRES_USER: root
-      POSTGRES_DB: medusa
+      POSTGRES_PASSWORD: ${DC_POSTGRES_SUPERUSER_PASSWORD:-root}
+      POSTGRES_USER: ${DC_POSTGRES_SUPERUSER:-root}
+      POSTGRES_DB: ${DC_MEDUSA_APP_DB_NAME:-medusa}
       PGDATA: /var/lib/postgresql/18/docker
       ZANE_OPERATOR_DB_USER: ${DC_ZANE_OPERATOR_DB_USER:-zane_operator}
       ZANE_OPERATOR_DB_PASSWORD: ${DC_ZANE_OPERATOR_DB_PASSWORD:-zane_operator_change_me}
@@ -172,6 +192,21 @@ services:
       MEDUSA_DEV_DB_USER: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
       MEDUSA_DEV_DB_PASSWORD: ${DC_MEDUSA_DEV_DB_PASSWORD:-medusa_dev_change_me}
       MEDUSA_APP_DB_NAME: ${DC_MEDUSA_APP_DB_NAME:-medusa}
+      MEDUSA_APP_DB_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
+  zane-operator:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/development/zane-operator/Dockerfile
+    depends_on:
+      medusa-db:
+        condition: service_healthy
+    ports:
+      - "${DC_ZANE_OPERATOR_PUBLIC_PORT:-8082}:${DC_ZANE_OPERATOR_PORT:-8080}"
+    networks:
+      - internal
+    environment:
+      <<: *zane-operator-env
   engine-db:
     image: mariadb:latest
     restart: no

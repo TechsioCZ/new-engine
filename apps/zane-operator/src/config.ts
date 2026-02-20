@@ -7,6 +7,7 @@ const DEFAULT_DB_PREVIEW_PREFIX = "medusa_pr_"
 const DEFAULT_DB_PREVIEW_OWNER = "zane_operator"
 const DEFAULT_DB_PREVIEW_APP_USER_PREFIX = "medusa_pr_app_"
 const DEFAULT_DB_PREVIEW_DEV_ROLE = "medusa_dev"
+const DEFAULT_DB_APP_SCHEMA = "medusa"
 const DEFAULT_PROTECTED_DB_NAMES = [
   "demo",
   "postgres",
@@ -26,6 +27,7 @@ export interface AppConfig {
   previewOwner: string
   previewAppUserPrefix: string
   previewDevRole: string
+  appSchema: string
   previewAppPasswordSecret: string
   protectedDbNames: Set<string>
 }
@@ -80,7 +82,7 @@ function parseProtectedDatabaseNames(rawValue: string | undefined): Set<string> 
   return protectedNames
 }
 
-function buildPostgresConnectionUrl(env: Environment): string {
+export function buildPostgresConnectionUrl(env: Environment): string {
   const host = readRequiredEnv(env, "PGHOST")
   const port = parsePort(env.PGPORT, DEFAULT_PG_PORT, "PGPORT")
   const user = readRequiredEnv(env, "PGUSER")
@@ -105,14 +107,21 @@ export function loadConfig(env: Environment = process.env): AppConfig {
   const previewOwner = env.DB_PREVIEW_OWNER?.trim() || DEFAULT_DB_PREVIEW_OWNER
   const previewAppUserPrefix = env.DB_PREVIEW_APP_USER_PREFIX?.trim() || DEFAULT_DB_PREVIEW_APP_USER_PREFIX
   const previewDevRole = env.DB_PREVIEW_DEV_ROLE?.trim() || DEFAULT_DB_PREVIEW_DEV_ROLE
+  const appSchema = env.DB_APP_SCHEMA?.trim() || DEFAULT_DB_APP_SCHEMA
   const apiAuthToken = readRequiredEnv(env, "API_AUTH_TOKEN")
-  const previewAppPasswordSecret = env.DB_PREVIEW_APP_PASSWORD_SECRET?.trim() || apiAuthToken
+  const explicitPreviewSecret = env.DB_PREVIEW_APP_PASSWORD_SECRET?.trim()
+  const isProduction = env.NODE_ENV?.trim() === "production"
+  if (isProduction && !explicitPreviewSecret) {
+    throw new Error("DB_PREVIEW_APP_PASSWORD_SECRET is required when NODE_ENV=production")
+  }
+  const previewAppPasswordSecret = explicitPreviewSecret || apiAuthToken
 
   assertSafeIdentifier(previewPrefix, "DB_PREVIEW_PREFIX")
   assertSafeIdentifier(defaultTemplateName, "DB_TEMPLATE_NAME")
   assertSafeIdentifier(previewOwner, "DB_PREVIEW_OWNER")
   assertSafeIdentifier(previewAppUserPrefix, "DB_PREVIEW_APP_USER_PREFIX")
   assertSafeIdentifier(previewDevRole, "DB_PREVIEW_DEV_ROLE")
+  assertSafeIdentifier(appSchema, "DB_APP_SCHEMA")
 
   return {
     port: parsePort(env.PORT, DEFAULT_PORT, "PORT"),
@@ -123,6 +132,7 @@ export function loadConfig(env: Environment = process.env): AppConfig {
     previewOwner,
     previewAppUserPrefix,
     previewDevRole,
+    appSchema,
     previewAppPasswordSecret,
     protectedDbNames: parseProtectedDatabaseNames(env.DB_PROTECTED_NAMES),
   }

@@ -27,11 +27,24 @@
     ```shell
     make dev
     ```
-    * Postgres role bootstrap (`zane_operator`, `medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
+    * Postgres role bootstrap (`medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
+    * Bootstrap no longer creates `zane_operator`; create/manage that role from `apps/zane-operator` onboarding instructions
     * If your Postgres volume already existed before this change, apply bootstrap manually once:
     ```shell
     ./scripts/apply-postgres-role-bootstrap.sh
     ```
+    * Medusa BE must use app credentials (`medusa_app`) in `DC_DATABASE_URL`, not superuser credentials
+
+### Manual live `.env` updates (not automated)
+
+When DB env wiring changes, apply these actions manually on the live `.env` file:
+
+1. Open live `.env`.
+2. Set medusa-be DB connection values to APP credentials (`medusa_app`-style account), not superuser credentials.
+3. Ensure DB host, port, and database match the compose service defaults used in your environment.
+4. Keep operator-only credentials separate from app credentials.
+5. Restart services that consume `.env`.
+6. Validate with one read and one write operation from medusa-be.
 
 4. <b>Migrate database</b> (if needed)
     * <i>(optional)</i> `medusa` schema needs to exist, which it should, unless it was manually dropped

@@ -23,6 +23,9 @@ export async function handleTeardownPreviewDb(
         deleted: result.deleted,
         app_user: result.appUser,
         role_deleted: result.roleDeleted,
+        dev_grants_cleaned: result.devGrantsCleaned,
+        noop: result.noop,
+        noop_reason: result.noopReason,
         terminated_connections: result.terminatedConnections,
       }),
     )
@@ -32,6 +35,9 @@ export async function handleTeardownPreviewDb(
       deleted: result.deleted,
       app_user: result.appUser,
       role_deleted: result.roleDeleted,
+      dev_grants_cleaned: result.devGrantsCleaned,
+      noop: result.noop,
+      noop_reason: result.noopReason,
     })
   } catch (error: unknown) {
     return mapHandlerError(error, "teardown-preview-db")
