@@ -6,377 +6,15 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card";
 import NextLink from "next/link";
-import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-
-type ProductPriceState = {
-  currentLabel: string;
-  originalLabel: string | null;
-  currentAmount: number | null;
-  originalAmount: number | null;
-  currencyCode: string;
-};
-
-type ProductFlagState = {
-  label: string;
-  variant: "success" | "warning" | "discount";
-};
-
-type TopOfferPriceState = {
-  currentAmount: number | null;
-  originalAmount: number | null;
-  currencyCode: string;
-};
-
-const PRODUCT_FALLBACK_IMAGE = "/file.svg";
-
-const FLAG_CONFIG = {
-  action: { label: "Akcia", variant: "discount" },
-  new: { label: "Novinka", variant: "success" },
-  tip: { label: "Tip", variant: "warning" },
-} as const;
-
-type SupportedFlagCode = keyof typeof FLAG_CONFIG;
-
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-
-  return null;
-};
-
-const asNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim().replace(",", ".");
-  if (!normalized) {
-    return null;
-  }
-
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-const asBoolean = (value: unknown): boolean | null => {
-  if (typeof value === "boolean") {
-    return value;
-  }
-
-  if (typeof value === "number") {
-    if (value === 1) {
-      return true;
-    }
-
-    if (value === 0) {
-      return false;
-    }
-
-    return null;
-  }
-
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim().toLowerCase();
-  if (["1", "true", "yes"].includes(normalized)) {
-    return true;
-  }
-
-  if (["0", "false", "no"].includes(normalized)) {
-    return false;
-  }
-
-  return null;
-};
-
-const resolveTopOfferPriceState = (
-  product: HttpTypes.StoreProduct,
-): TopOfferPriceState => {
-  const metadata = asRecord(product.metadata);
-  const topOffer = asRecord(metadata?.top_offer);
-
-  if (!topOffer) {
-    return {
-      currentAmount: null,
-      originalAmount: null,
-      currencyCode: "EUR",
-    };
-  }
-
-  const currencyCode =
-    typeof topOffer.currency === "string" && topOffer.currency.length === 3
-      ? topOffer.currency
-      : "EUR";
-
-  const currentAmount =
-    asNumber(topOffer.current_price) ??
-    asNumber(topOffer.action_price) ??
-    asNumber(topOffer.price_vat);
-  const compareAtAmount =
-    asNumber(topOffer.compare_at_price) ?? asNumber(topOffer.standard_price);
-  const originalAmount =
-    currentAmount !== null &&
-    compareAtAmount !== null &&
-    compareAtAmount > currentAmount
-      ? compareAtAmount
-      : null;
-
-  return {
-    currentAmount,
-    originalAmount,
-    currencyCode,
-  };
-};
-
-const resolvePriceState = (
-  product: HttpTypes.StoreProduct,
-): ProductPriceState => {
-  const calculatedPrice = product.variants?.[0]?.calculated_price;
-  const calculatedAmount = calculatedPrice?.calculated_amount;
-  const calculatedOriginalAmount = calculatedPrice?.original_amount;
-  const topOfferPrice = resolveTopOfferPriceState(product);
-
-  const currentAmount =
-    typeof calculatedAmount === "number"
-      ? calculatedAmount
-      : topOfferPrice.currentAmount;
-  const currencyCode =
-    typeof calculatedPrice?.currency_code === "string"
-      ? calculatedPrice.currency_code
-      : topOfferPrice.currencyCode;
-
-  const originalAmount =
-    typeof calculatedOriginalAmount === "number" &&
-    typeof currentAmount === "number" &&
-    calculatedOriginalAmount > currentAmount
-      ? calculatedOriginalAmount
-      : typeof topOfferPrice.originalAmount === "number" &&
-          typeof currentAmount === "number" &&
-          topOfferPrice.originalAmount > currentAmount
-        ? topOfferPrice.originalAmount
-        : null;
-
-  if (typeof currentAmount !== "number") {
-    return {
-      currentLabel: "Cena na vyžiadanie",
-      originalLabel: null,
-      currentAmount: null,
-      originalAmount: null,
-      currencyCode,
-    };
-  }
-
-  const currentLabel = formatCurrencyAmount(currentAmount, currencyCode);
-  const originalLabel =
-    typeof originalAmount === "number" && originalAmount > currentAmount
-      ? formatCurrencyAmount(originalAmount, currencyCode)
-      : null;
-
-  return {
-    currentLabel,
-    originalLabel,
-    currentAmount,
-    originalAmount,
-    currencyCode,
-  };
-};
-
-const resolveFlags = (
-  product: HttpTypes.StoreProduct,
-  hasDiscount: boolean,
-): ProductFlagState[] => {
-  const metadata = asRecord(product.metadata);
-  const flags = metadata?.flags;
-
-  if (!Array.isArray(flags)) {
-    return hasDiscount
-      ? [
-          {
-            label: FLAG_CONFIG.action.label,
-            variant: FLAG_CONFIG.action.variant,
-          },
-        ]
-      : [];
-  }
-
-  const resolvedFlags: ProductFlagState[] = [];
-  const usedCodes = new Set<SupportedFlagCode>();
-
-  for (const flag of flags) {
-    const flagRecord = asRecord(flag);
-    if (!flagRecord) {
-      continue;
-    }
-
-    const code = flagRecord.code;
-    const active = asBoolean(flagRecord.active);
-
-    if (typeof code !== "string") {
-      continue;
-    }
-
-    if (!(code in FLAG_CONFIG)) {
-      continue;
-    }
-
-    const typedCode = code as SupportedFlagCode;
-    const isActive =
-      typedCode === "action" ? active === true || hasDiscount : active === true;
-
-    if (!isActive) {
-      continue;
-    }
-
-    if (usedCodes.has(typedCode)) {
-      continue;
-    }
-
-    usedCodes.add(typedCode);
-    const config = FLAG_CONFIG[typedCode];
-
-    resolvedFlags.push({
-      label: config.label,
-      variant: config.variant,
-    });
-  }
-
-  if (hasDiscount && !usedCodes.has("action")) {
-    resolvedFlags.push({
-      label: FLAG_CONFIG.action.label,
-      variant: FLAG_CONFIG.action.variant,
-    });
-  }
-
-  return resolvedFlags;
-};
-
-const resolveThumbnail = (product: HttpTypes.StoreProduct): string => {
-  return product.thumbnail || PRODUCT_FALLBACK_IMAGE;
-};
-
-const decodeHtmlEntities = (value: string): string => {
-  return value
-    .replaceAll(/&nbsp;/gi, " ")
-    .replaceAll(/&amp;/gi, "&")
-    .replaceAll(/&lt;/gi, "<")
-    .replaceAll(/&gt;/gi, ">")
-    .replaceAll(/&quot;/gi, '"')
-    .replaceAll(/&#39;/gi, "'");
-};
-
-const stripHtml = (value: string): string => {
-  return decodeHtmlEntities(value)
-    .replaceAll(/<br\s*\/?>/gi, "\n")
-    .replaceAll(/<\/(p|div|li|ul|ol|h[1-6])>/gi, "\n")
-    .replaceAll(/<[^>]*>/g, "")
-    .replaceAll(/[ \t]+\n/g, "\n")
-    .replaceAll(/\n{2,}/g, "\n")
-    .replaceAll(/[ \t]{2,}/g, " ")
-    .trim();
-};
-
-const toBulletLines = (value: string): string | null => {
-  const sentences = value
-    .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim().replace(/[.!?]+$/, ""))
-    .filter(Boolean);
-
-  if (sentences.length < 2) {
-    return null;
-  }
-
-  return sentences
-    .slice(0, 3)
-    .map((sentence) => `• ${sentence}`)
-    .join("\n");
-};
-
-const extractListItems = (value: string): string[] => {
-  const listMatches = [...value.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)];
-  if (listMatches.length === 0) {
-    return [];
-  }
-
-  return listMatches.map((item) => stripHtml(item[1] || "")).filter(Boolean);
-};
-
-const resolveDescription = (product: HttpTypes.StoreProduct): string | null => {
-  const metadata = asRecord(product.metadata);
-  const contentSectionsMap = asRecord(metadata?.content_sections_map);
-  const descriptionSection =
-    typeof contentSectionsMap?.description === "string"
-      ? contentSectionsMap.description
-      : null;
-  const usageSection =
-    typeof contentSectionsMap?.usage === "string"
-      ? contentSectionsMap.usage
-      : null;
-  const shortDescription =
-    typeof metadata?.short_description === "string"
-      ? metadata.short_description
-      : null;
-
-  const htmlCandidates = [
-    descriptionSection,
-    usageSection,
-    shortDescription,
-  ].filter(
-    (value): value is string =>
-      typeof value === "string" && value.trim().length > 0,
-  );
-
-  for (const candidate of htmlCandidates) {
-    const listItems = extractListItems(candidate);
-    if (listItems.length === 0) {
-      continue;
-    }
-
-    const cardListItems = listItems.length > 1 ? listItems.slice(1) : listItems;
-
-    return cardListItems
-      .slice(0, 3)
-      .map((item) => `• ${item}`)
-      .join("\n");
-  }
-
-  const textSource = htmlCandidates.find((candidate) => stripHtml(candidate));
-  if (!textSource) {
-    return null;
-  }
-
-  const text = stripHtml(textSource);
-  if (!text) {
-    return null;
-  }
-
-  return toBulletLines(text) || text;
-};
-
-const resolveDiscountLabel = (price: ProductPriceState): string | null => {
-  if (
-    typeof price.currentAmount !== "number" ||
-    typeof price.originalAmount !== "number" ||
-    price.originalAmount <= price.currentAmount
-  ) {
-    return null;
-  }
-
-  const discountAmount = price.originalAmount - price.currentAmount;
-  return `-${formatCurrencyAmount(discountAmount, price.currencyCode)}`;
-};
-
-export const getProductPriceLabel = (
-  product: HttpTypes.StoreProduct,
-): string => {
-  return resolvePriceState(product).currentLabel;
-};
+import { resolveDescription } from "@/components/product-card/product-card.description";
+import { resolveFlags } from "@/components/product-card/product-card.flags";
+import {
+  resolveDiscountLabel,
+  resolvePriceState,
+} from "@/components/product-card/product-card.pricing";
+import { resolveThumbnail } from "@/components/product-card/product-card.thumbnail";
+
+export { getProductPriceLabel } from "@/components/product-card/product-card.pricing";
 
 type HerbatikaProductCardProps = {
   product: HttpTypes.StoreProduct;
@@ -446,11 +84,7 @@ export function HerbatikaProductCard({
       <div className="flex h-full flex-col gap-450">
         <div className="flex flex-col gap-250">
           <ProductCard.Name className="min-h-750 text-lg leading-snug font-semibold text-fg-primary">
-            <Link
-              as={NextLink}
-              className="hover:text-primary"
-              href={productHref}
-            >
+            <Link as={NextLink} className="hover:text-primary" href={productHref}>
               {title}
             </Link>
           </ProductCard.Name>
@@ -464,11 +98,11 @@ export function HerbatikaProductCard({
 
         <div className="mt-auto flex items-end justify-between gap-300">
           <div className="flex min-h-750 flex-col justify-end">
-            {price.originalLabel && (
+            {price.originalLabel ? (
               <span className="text-xs leading-normal text-fg-tertiary line-through">
                 {price.originalLabel}
               </span>
-            )}
+            ) : null}
             <ProductCard.Price className="text-xl leading-tight font-bold text-fg-primary">
               {price.currentLabel}
             </ProductCard.Price>
@@ -477,13 +111,13 @@ export function HerbatikaProductCard({
           <ProductCard.Actions className="mt-0 shrink-0">
             <Button
               className="inline-flex h-750 min-w-900 items-center gap-200 rounded-md border border-primary bg-primary px-450 text-sm leading-normal font-medium text-fg-reverse hover:bg-primary-hover"
+              disabled={!defaultVariantId}
               icon="token-icon-cart"
               isLoading={isAdding}
               onClick={() => {
                 void onAddToCart(product);
               }}
               size="current"
-              disabled={!defaultVariantId}
               type="button"
             >
               Do košíka
