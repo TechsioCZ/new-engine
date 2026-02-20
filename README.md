@@ -39,8 +39,13 @@
     make postgres-role-bootstrap-verify
     make postgres-zane-operator-bootstrap-verify
     ```
+    * Optional grant hardening check (read-only verification):
+    ```shell
+    make postgres-grants-verify
+    ```
     * Existing DB migration note: bootstrap includes idempotent legacy-object migration from `public` schema into `DC_MEDUSA_APP_DB_SCHEMA` (default `medusa`), with conflict fail-fast if same object already exists in target schema.
     * Medusa BE DB connection is derived from `DC_MEDUSA_APP_DB_*`; keep those on app credentials (`medusa_app`), not superuser credentials
+    * `MEDUSA_DATABASE_SCHEMA` / `DATABASE_SCHEMA` are derived from `DC_MEDUSA_APP_DB_SCHEMA` and must stay aligned with app schema grants
     * `medusa-db` starts with `-c file_copy_method=clone`; zane-operator preview cloning uses `CREATE DATABASE ... STRATEGY=FILE_COPY`
 
 ### Cloud predeploy hook (idempotent)

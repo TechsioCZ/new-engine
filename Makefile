@@ -103,6 +103,10 @@ postgres-zane-operator-bootstrap:
 postgres-zane-operator-bootstrap-verify:
 	bash ./scripts/apply-zane-operator-role-bootstrap.sh --verify-idempotent
 
+# Verify hardened grants/search_path for app role after bootstrap/migration
+postgres-grants-verify:
+	bash ./scripts/verify-postgres-grants.sh
+
 # Upgrade local postgres data from <18 cluster into PG18-compatible data dir.
 postgres18-migrate-local:
 	bash ./scripts/postgres18-local-migrate.sh
