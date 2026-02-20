@@ -1,0 +1,39 @@
+import type { AppConfig } from "../config"
+import { parsePrNumber, teardownPreviewDatabase } from "../db"
+import { jsonResponse, mapHandlerError } from "../http"
+
+interface TeardownPreviewDbDeps {
+  config: AppConfig
+  sql: Bun.SQL
+}
+
+export async function handleTeardownPreviewDb(
+  prNumberParam: string,
+  deps: TeardownPreviewDbDeps,
+): Promise<Response> {
+  try {
+    const prNumber = parsePrNumber(prNumberParam, "pr_number path parameter")
+    const result = await teardownPreviewDatabase(deps.sql, deps.config, prNumber)
+
+    console.info(
+      JSON.stringify({
+        event: "preview-db.teardown",
+        pr_number: prNumber,
+        db_name: result.dbName,
+        deleted: result.deleted,
+        app_user: result.appUser,
+        role_deleted: result.roleDeleted,
+        terminated_connections: result.terminatedConnections,
+      }),
+    )
+
+    return jsonResponse(200, {
+      db_name: result.dbName,
+      deleted: result.deleted,
+      app_user: result.appUser,
+      role_deleted: result.roleDeleted,
+    })
+  } catch (error: unknown) {
+    return mapHandlerError(error, "teardown-preview-db")
+  }
+}

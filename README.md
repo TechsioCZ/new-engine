@@ -27,6 +27,11 @@
     ```shell
     make dev
     ```
+    * Postgres role bootstrap (`zane_operator`, `medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
+    * If your Postgres volume already existed before this change, apply bootstrap manually once:
+    ```shell
+    ./scripts/apply-postgres-role-bootstrap.sh
+    ```
 
 4. <b>Migrate database</b> (if needed)
     * <i>(optional)</i> `medusa` schema needs to exist, which it should, unless it was manually dropped

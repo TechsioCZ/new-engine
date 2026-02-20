@@ -150,7 +150,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./.docker_data/db18:/var/lib/postgresql
+      - ${DC_POSTGRES_VOLUME_DATA:-./.docker_data/db}:/var/lib/postgresql
+      - ./docker/development/postgres/initdb:/docker-entrypoint-initdb.d:ro
     networks:
       - internal
     healthcheck:
@@ -164,6 +165,13 @@ services:
       POSTGRES_USER: root
       POSTGRES_DB: medusa
       PGDATA: /var/lib/postgresql/18/docker
+      ZANE_OPERATOR_DB_USER: ${DC_ZANE_OPERATOR_DB_USER:-zane_operator}
+      ZANE_OPERATOR_DB_PASSWORD: ${DC_ZANE_OPERATOR_DB_PASSWORD:-zane_operator_change_me}
+      MEDUSA_APP_DB_USER: ${DC_MEDUSA_APP_DB_USER:-medusa_app}
+      MEDUSA_APP_DB_PASSWORD: ${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}
+      MEDUSA_DEV_DB_USER: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
+      MEDUSA_DEV_DB_PASSWORD: ${DC_MEDUSA_DEV_DB_PASSWORD:-medusa_dev_change_me}
+      MEDUSA_APP_DB_NAME: ${DC_MEDUSA_APP_DB_NAME:-medusa}
   engine-db:
     image: mariadb:latest
     restart: no

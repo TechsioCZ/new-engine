@@ -1,0 +1,41 @@
+name: ZaneOps Preview Deploy
+
+on:
+  workflow_dispatch:
+  # pull_request:
+  #   types: [opened, reopened, synchronize, closed]
+
+permissions:
+  contents: read
+
+jobs:
+  preview-wiring-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wiring prepared but disabled
+        run: |
+          echo "Preview zane-operator wiring is intentionally commented out."
+
+      # - name: Ensure preview DB for opened/reopened/synchronize
+      #   if: github.event.action != 'closed'
+      #   env:
+      #     ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+      #     ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+      #   run: |
+      #     curl --fail --show-error --silent \
+      #       --retry 3 --retry-all-errors --retry-delay 2 \
+      #       -X POST "${ZANE_OPERATOR_BASE_URL}/v1/preview-db/ensure" \
+      #       -H "Authorization: Bearer ${ZANE_OPERATOR_API_TOKEN}" \
+      #       -H "Content-Type: application/json" \
+      #       -d "{\"pr_number\":${{ github.event.pull_request.number }}}"
+
+      # - name: Teardown preview DB on PR close
+      #   if: github.event.action == 'closed'
+      #   env:
+      #     ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+      #     ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+      #   run: |
+      #     curl --fail --show-error --silent \
+      #       --retry 3 --retry-all-errors --retry-delay 2 \
+      #       -X DELETE "${ZANE_OPERATOR_BASE_URL}/v1/preview-db/${{ github.event.pull_request.number }}" \
+      #       -H "Authorization: Bearer ${ZANE_OPERATOR_API_TOKEN}"
