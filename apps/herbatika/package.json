@@ -12,7 +12,9 @@
     "validate:token-usage:json": "node scripts/validate-token-usage.mjs --json",
     "validate:ui-primitives": "node scripts/validate-ui-primitives.mjs",
     "validate:ui-primitives:json": "node scripts/validate-ui-primitives.mjs --json",
-    "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives"
+    "validate:file-size": "node scripts/validate-file-size-guardrail.mjs",
+    "validate:file-size:json": "node scripts/validate-file-size-guardrail.mjs --json",
+    "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size"
   },
   "dependencies": {
     "@medusajs/js-sdk": "^2.12.5",
