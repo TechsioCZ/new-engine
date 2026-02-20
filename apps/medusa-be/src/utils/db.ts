@@ -11,7 +11,7 @@ import * as schema from "./schema"
 );*/
 const db = drizzle(
   process.env.DATABASE_URL ||
-    "postgresql://root:root@medusa-db:5432/medusa?sslmode=disable",
+    "postgresql://root:root@medusa-db:5432/medusa?sslmode=disable&options=-csearch_path%3Dmedusa%2Cpg_catalog",
   { schema }
 )
 // Helper function to check if a string is a date (ISO format YYYY-MM-DD)

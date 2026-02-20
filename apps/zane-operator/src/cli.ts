@@ -106,6 +106,7 @@ async function runCreateDevUser(args: string[]): Promise<void> {
         username: result.username,
         created: result.created,
         connect_grants_applied: result.connectGrantsApplied,
+        connect_grants_revoked: result.connectGrantsRevoked,
         schema_grants_applied: result.schemaGrantsApplied,
         default_privilege_owners_applied: result.defaultPrivilegeOwnersApplied,
         default_privilege_owners_skipped: result.defaultPrivilegeOwnersSkipped,

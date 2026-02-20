@@ -28,6 +28,10 @@ module.exports = defineConfig({
     //     'query'
     // ],
     databaseUrl: process.env.DATABASE_URL,
+    databaseSchema:
+      process.env.MEDUSA_DATABASE_SCHEMA ||
+      process.env.DATABASE_SCHEMA ||
+      "public",
     http: {
       storeCors: process.env.STORE_CORS ?? "",
       adminCors: process.env.ADMIN_CORS ?? "",

@@ -3,7 +3,10 @@ x-medusa-env: &medusa-env
   JWT_SECRET: ${DC_JWT_SECRET:-supersecret}
   COOKIE_SECRET: ${DC_COOKIE_SECRET:-supersecret}
   DATABASE_TYPE: postgres
-  DATABASE_URL: postgresql://${DC_MEDUSA_APP_DB_USER:-medusa_app}:${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}@medusa-db:5432/${DC_MEDUSA_APP_DB_NAME:-medusa}?sslmode=${DC_POSTGRES_SSLMODE:-disable}
+  # Force all Medusa module DB clients (MikroORM/Knex) to use the app schema.
+  MEDUSA_DATABASE_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
+  DATABASE_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
+  DATABASE_URL: postgresql://${DC_MEDUSA_APP_DB_USER:-medusa_app}:${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}@medusa-db:5432/${DC_MEDUSA_APP_DB_NAME:-medusa}?sslmode=${DC_POSTGRES_SSLMODE:-disable}&options=-csearch_path%3D${DC_MEDUSA_APP_DB_SCHEMA:-medusa}%2Cpg_catalog
   LEGACY_DATABASE_URL: ${DC_LEGACY_DATABASE_URL}
   MINIO_FILE_URL: ${DC_MINIO_FILE_URL}
   MINIO_REGION: ${DC_MINIO_REGION}
@@ -23,10 +26,7 @@ x-medusa-env: &medusa-env
   FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
   PPL_ENVIRONMENT: ${DC_PPL_ENVIRONMENT:-testing}
 
-x-zane-operator-env: &zane-operator-env
-  PORT: ${DC_ZANE_OPERATOR_PORT:-8080}
-  NODE_ENV: ${DC_NODE_ENV:-development}
-  API_AUTH_TOKEN: ${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-replace-me}
+x-zane-operator-db-env: &zane-operator-db-env
   PGHOST: medusa-db
   PGPORT: 5432
   PGUSER: ${DC_ZANE_OPERATOR_PGUSER:-zane_operator}
@@ -41,6 +41,12 @@ x-zane-operator-env: &zane-operator-env
   DB_APP_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
   DB_PREVIEW_APP_PASSWORD_SECRET: ${DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET:-replace-me}
   DB_PROTECTED_NAMES: ${DC_ZANE_OPERATOR_DB_PROTECTED_NAMES:-demo,postgres,template0,template1,template_medusa}
+
+x-zane-operator-env: &zane-operator-env
+  PORT: ${DC_ZANE_OPERATOR_PORT:-8080}
+  NODE_ENV: ${DC_NODE_ENV:-development}
+  API_AUTH_TOKEN: ${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-replace-me}
+  <<: *zane-operator-db-env
 
 x-medusa-base: &medusa-base
   restart: unless-stopped
@@ -166,7 +172,14 @@ services:
   medusa-db:
     image: postgres:18.1-alpine
     restart: unless-stopped
-    command: ["postgres", "-cshared_preload_libraries=pg_stat_statements"]
+    command:
+      [
+        "postgres",
+        "-c",
+        "shared_preload_libraries=pg_stat_statements",
+        "-c",
+        "file_copy_method=clone",
+      ]
     ports:
       - "${DC_POSTGRES_PUBLIC_PORT:-5432}:5432"
     volumes:
@@ -185,14 +198,27 @@ services:
       POSTGRES_USER: ${DC_POSTGRES_SUPERUSER:-root}
       POSTGRES_DB: ${DC_MEDUSA_APP_DB_NAME:-medusa}
       PGDATA: /var/lib/postgresql/18/docker
-      ZANE_OPERATOR_DB_USER: ${DC_ZANE_OPERATOR_DB_USER:-zane_operator}
-      ZANE_OPERATOR_DB_PASSWORD: ${DC_ZANE_OPERATOR_DB_PASSWORD:-zane_operator_change_me}
       MEDUSA_APP_DB_USER: ${DC_MEDUSA_APP_DB_USER:-medusa_app}
       MEDUSA_APP_DB_PASSWORD: ${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}
       MEDUSA_DEV_DB_USER: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
       MEDUSA_DEV_DB_PASSWORD: ${DC_MEDUSA_DEV_DB_PASSWORD:-medusa_dev_change_me}
       MEDUSA_APP_DB_NAME: ${DC_MEDUSA_APP_DB_NAME:-medusa}
       MEDUSA_APP_DB_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
+  zane-operator-bootstrap:
+    restart: "no"
+    build:
+      context: .
+      dockerfile: docker/development/zane-operator/Dockerfile
+    entrypoint: ["/app/zane-operator-bootstrap-role"]
+    depends_on:
+      medusa-db:
+        condition: service_healthy
+    networks:
+      - internal
+    environment:
+      <<: *zane-operator-db-env
+      BOOTSTRAP_ADMIN_PGUSER: ${DC_POSTGRES_SUPERUSER:-root}
+      BOOTSTRAP_ADMIN_PGPASSWORD: ${DC_POSTGRES_SUPERUSER_PASSWORD:-root}
   zane-operator:
     restart: unless-stopped
     build:
@@ -201,6 +227,8 @@ services:
     depends_on:
       medusa-db:
         condition: service_healthy
+      zane-operator-bootstrap:
+        condition: service_completed_successfully
     ports:
       - "${DC_ZANE_OPERATOR_PUBLIC_PORT:-8082}:${DC_ZANE_OPERATOR_PORT:-8080}"
     networks:

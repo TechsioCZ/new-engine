@@ -5,6 +5,7 @@ WORKDIR /workspace
 COPY apps/zane-operator/src ./apps/zane-operator/src
 
 RUN bun build ./apps/zane-operator/src/main.ts --compile --outfile /out/zane-operator
+RUN bun build ./apps/zane-operator/src/bootstrap-role.ts --compile --outfile /out/zane-operator-bootstrap-role
 
 FROM debian:bookworm-slim AS runtime
 
@@ -15,10 +16,11 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY --from=build /out/zane-operator /app/zane-operator
+COPY --from=build /out/zane-operator-bootstrap-role /app/zane-operator-bootstrap-role
 
 RUN useradd --system --uid 1001 zaneoperator \
-  && chown zaneoperator:zaneoperator /app/zane-operator \
-  && chmod +x /app/zane-operator
+  && chown zaneoperator:zaneoperator /app/zane-operator /app/zane-operator-bootstrap-role \
+  && chmod +x /app/zane-operator /app/zane-operator-bootstrap-role
 
 USER zaneoperator
 

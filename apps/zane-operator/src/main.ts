@@ -1,6 +1,6 @@
 import { enforceBearerToken } from "./auth"
 import { loadConfig } from "./config"
-import { createDbClient } from "./db"
+import { createDbClient, inspectFileCopyMethod } from "./db"
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
 import { handleTeardownPreviewDb } from "./handlers/teardown-preview-db"
@@ -10,6 +10,26 @@ const config = loadConfig()
 const sql = createDbClient(config)
 
 await sql.connect()
+const fileCopyMethod = await inspectFileCopyMethod(sql)
+
+if (fileCopyMethod.warning) {
+  console.warn(
+    JSON.stringify({
+      event: "server.startup.warning",
+      warning: fileCopyMethod.warning,
+      file_copy_method: fileCopyMethod.method,
+      clone_optimized: fileCopyMethod.cloneOptimized,
+    }),
+  )
+} else {
+  console.info(
+    JSON.stringify({
+      event: "server.startup.file_copy_method",
+      file_copy_method: fileCopyMethod.method,
+      clone_optimized: fileCopyMethod.cloneOptimized,
+    }),
+  )
+}
 
 const server = Bun.serve({
   port: config.port,

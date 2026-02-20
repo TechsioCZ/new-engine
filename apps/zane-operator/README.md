@@ -75,37 +75,55 @@ Teardown response includes role cleanup result:
 
 ### 1. Create database role with required permissions
 
-For local Docker Compose environments, role bootstrap is automated by:
-- `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
+For local Docker Compose environments:
+- `medusa_app` and `medusa_dev` are bootstrapped by `docker/development/postgres/initdb/01-zane-role-bootstrap.sh` (first DB init)
+- `zane_operator` is bootstrapped by one-shot compose service `zane-operator-bootstrap` before `zane-operator` starts (every run, idempotent)
 
-Bootstrap creates/maintains `medusa_app` and `medusa_dev` only.
-Bootstrap does **not** create `zane_operator`.
-
-For existing Postgres volumes (already initialized before bootstrap script was added), apply once:
+For existing Postgres volumes (already initialized before bootstrap scripts were added), apply once:
 
 ```bash
-./scripts/apply-postgres-role-bootstrap.sh
+bash ./scripts/apply-postgres-role-bootstrap.sh
+bash ./scripts/apply-zane-operator-role-bootstrap.sh
 ```
+
+The Postgres bootstrap migration is idempotent and includes legacy object migration from `public` schema into the configured app schema (`MEDUSA_APP_DB_SCHEMA`, default `medusa`).
+If an object with the same name already exists in the target app schema, bootstrap fails explicitly so you can resolve collisions safely.
 
 Idempotency verification for existing databases:
 
 ```bash
-./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent
+bash ./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent
+bash ./scripts/apply-zane-operator-role-bootstrap.sh --verify-idempotent
 ```
 
-Run as a PostgreSQL admin role:
+If you need a manual/admin bootstrap (for cloud predeploy hooks), run:
 
-```sql
-CREATE ROLE zane_operator LOGIN PASSWORD 'replace-with-strong-password' CREATEDB;
-GRANT pg_signal_backend TO zane_operator;
+```bash
+cd apps/zane-operator
+bun run bootstrap:role
 ```
+
+This command is idempotent and enforces role attributes:
+- `LOGIN`
+- `NOSUPERUSER`
+- `CREATEDB`
+- `CREATEROLE` (required for per-preview app role creation)
+- `NOBYPASSRLS`
+- `INHERIT`
+- `pg_signal_backend` membership
 
 `zane_operator` must be able to:
 - connect to the server (`PGHOST`/`PGPORT`)
 - create preview DBs (`CREATEDB`)
+- create per-preview app login roles (`CREATEROLE`)
 - drop preview DBs it owns
 - terminate active DB sessions during teardown (`pg_signal_backend`)
 - clone from template DB (`template_medusa`)
+
+Preview DB cloning uses:
+- `CREATE DATABASE ... STRATEGY=FILE_COPY`
+- startup recommendation: run PostgreSQL with `-c file_copy_method=clone` for fastest file-copy cloning
+- zane-operator logs a startup warning (non-blocking) when `file_copy_method` is not `clone`
 
 `medusa_dev` (or your configured `DB_PREVIEW_DEV_ROLE`) must exist. `ensure` grants it connect+schema/table access on each preview DB.
 Preview app users are scoped to one schema only (configured by `DB_APP_SCHEMA`, default `medusa`).
@@ -117,7 +135,8 @@ Preferred setup is ownership transfer of the template DB:
 ALTER DATABASE template_medusa OWNER TO zane_operator;
 ```
 
-If you cannot transfer ownership, set `PGUSER` to a role that is allowed to clone from `template_medusa`.
+The bootstrap command can enforce this ownership transfer automatically (`BOOTSTRAP_SET_TEMPLATE_OWNER=1`, default).
+If you cannot transfer ownership, disable it with `BOOTSTRAP_SET_TEMPLATE_OWNER=0` and run the operator with a role that can clone from `template_medusa`.
 
 Important runtime assumption:
 - preview grant/ownership sync expects cloned objects to be owned by the executing role for zane-operator (normally `zane_operator` when following this guide)
@@ -137,6 +156,14 @@ Required production values:
 - `DB_PREVIEW_DEV_ROLE=medusa_dev`
 - `DB_APP_SCHEMA=medusa`
 - `DB_PREVIEW_APP_PASSWORD_SECRET=<long-random-secret>`
+
+Optional bootstrap-only values (for one-shot predeploy/init command):
+- Reuses operator `PG*` and `DB_*` values above for target role/template behavior.
+- `BOOTSTRAP_ADMIN_PGUSER`, `BOOTSTRAP_ADMIN_PGPASSWORD` (admin credentials for role bootstrap)
+- Optional admin endpoint overrides: `BOOTSTRAP_ADMIN_PGHOST`, `BOOTSTRAP_ADMIN_PGPORT`, `BOOTSTRAP_ADMIN_PGDATABASE`, `BOOTSTRAP_ADMIN_PGSSLMODE`
+- `BOOTSTRAP_SET_TEMPLATE_OWNER=1` (default)
+- `BOOTSTRAP_FAIL_IF_TEMPLATE_MISSING=0` (set `1` to fail hard when template DB is missing)
+- `BOOTSTRAP_VERIFY_IDEMPOTENT=0` (set `1` to run the bootstrap twice)
 
 ### 3. Smoke test before deployment
 
@@ -188,7 +215,16 @@ docker build -f docker/development/zane-operator/Dockerfile -t zane-operator:lat
 
 ### 5. Run Docker image
 
-Run the container with environment loaded from an env file:
+Run one-shot role bootstrap first (admin credentials required):
+
+```bash
+docker run --rm --name zane-operator-bootstrap \
+  --env-file .env \
+  --entrypoint /app/zane-operator-bootstrap-role \
+  zane-operator:latest
+```
+
+Then run the service container:
 
 ```bash
 docker run --rm --name zane-operator \
@@ -212,6 +248,17 @@ Required values in `.env` for this container:
 - `DB_PREVIEW_DEV_ROLE` (optional)
 - `DB_APP_SCHEMA` (optional, default `medusa`)
 - `DB_PREVIEW_APP_PASSWORD_SECRET` (required in production)
+
+Required extra values for bootstrap container:
+- Reuses runtime `PG*` + `DB_TEMPLATE_NAME` + `DB_PREVIEW_OWNER` values
+- `BOOTSTRAP_ADMIN_PGUSER`
+- `BOOTSTRAP_ADMIN_PGPASSWORD`
+
+Optional bootstrap hardening values:
+- `BOOTSTRAP_SET_TEMPLATE_OWNER` (default `1`)
+- `BOOTSTRAP_FAIL_IF_TEMPLATE_MISSING` (default `0`)
+- `BOOTSTRAP_VERIFY_IDEMPOTENT` (default `0`)
+- Optional admin endpoint overrides: `BOOTSTRAP_ADMIN_PGHOST`, `BOOTSTRAP_ADMIN_PGPORT`, `BOOTSTRAP_ADMIN_PGDATABASE`, `BOOTSTRAP_ADMIN_PGSSLMODE`
 
 If `medusa-db` is in Docker Compose, set `PGHOST` in `.env` to the Compose service name (usually `medusa-db`) and run this container on the same Docker network.
 
@@ -242,7 +289,7 @@ bun run create:dev-user -- --username medusa_dev --password 'replace-with-strong
 ```
 
 Optional flag:
-- `--no-grant-connect-all-dbs` skips cross-database `CONNECT` and schema/object grant sync.
+- `--no-grant-connect-all-dbs` skips broad cross-database grant sync and revokes broad database-level grants (`CONNECT`, `TEMPORARY`, `CREATE`) from the target role on all non-template databases.
 - `--allow-prod-broad-grants` allows broad grants when `NODE_ENV=production` (default behavior blocks this)
 
 Behavior:
@@ -251,6 +298,7 @@ Behavior:
 - grants explicit read/write privileges on existing objects for all non-system schemas (including schema `CREATE`)
 - attempts to apply matching default privileges for discovered schema owners
 - by default grants `CONNECT` on all non-template databases
+- in `--no-grant-connect-all-dbs` mode, strips broad database-level grants so access can be granted back manually with narrow scope
 - returns idempotent output for existing roles
 
 Required env vars for CLI run:

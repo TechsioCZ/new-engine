@@ -87,6 +87,22 @@ medusa-seed-dev-data:
 medusa-seed-n1:
 	docker exec wr_medusa_be pnpm --filter medusa-be run seedN1
 
+# Postgres role bootstrap for existing DB volumes (medusa_app/medusa_dev grants)
+postgres-role-bootstrap:
+	bash ./scripts/apply-postgres-role-bootstrap.sh
+
+# Run bootstrap twice to verify idempotency
+postgres-role-bootstrap-verify:
+	bash ./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent
+
+# zane-operator role bootstrap (CREATEDB/CREATEROLE + pg_signal_backend + template owner)
+postgres-zane-operator-bootstrap:
+	bash ./scripts/apply-zane-operator-role-bootstrap.sh
+
+# Run zane-operator bootstrap twice to verify idempotency
+postgres-zane-operator-bootstrap-verify:
+	bash ./scripts/apply-zane-operator-role-bootstrap.sh --verify-idempotent
+
 # Upgrade local postgres data from <18 cluster into PG18-compatible data dir.
 postgres18-migrate-local:
 	bash ./scripts/postgres18-local-migrate.sh

@@ -112,9 +112,20 @@ DECLARE
   app_user text := current_setting('zane.app_user');
   dev_user text := current_setting('zane.dev_user');
   postgres_user text := current_setting('zane.postgres_user');
+  db_record RECORD;
 BEGIN
+  FOR db_record IN
+    SELECT datname
+    FROM pg_database
+    WHERE datistemplate = false
+      AND datname <> app_db
+  LOOP
+    EXECUTE format('REVOKE ALL PRIVILEGES ON DATABASE %I FROM %I', db_record.datname, app_user);
+  END LOOP;
+
   IF EXISTS (SELECT 1 FROM pg_database WHERE datname = app_db) THEN
     EXECUTE format('ALTER DATABASE %I OWNER TO %I', app_db, postgres_user);
+    EXECUTE format('REVOKE ALL PRIVILEGES ON DATABASE %I FROM %I', app_db, app_user);
     EXECUTE format('REVOKE CONNECT, TEMPORARY ON DATABASE %I FROM PUBLIC', app_db);
     EXECUTE format('REVOKE CREATE, TEMPORARY ON DATABASE %I FROM %I', app_db, app_user);
     EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', app_db, app_user);
@@ -154,10 +165,118 @@ DECLARE
   rel_record RECORD;
   routine_record RECORD;
   type_record RECORD;
+  public_rel RECORD;
+  public_routine RECORD;
+  public_type RECORD;
 BEGIN
   EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I AUTHORIZATION %I', app_schema, app_user);
   -- Enforce secure schema usage pattern for this database.
   EXECUTE 'REVOKE ALL ON SCHEMA public FROM PUBLIC';
+
+  -- Migrate legacy app objects from public schema into the configured app schema.
+  IF app_schema <> 'public' THEN
+    FOR public_rel IN
+      SELECT c.oid, c.relkind, c.relname
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      LEFT JOIN pg_depend d ON d.objid = c.oid AND d.deptype = 'e'
+      WHERE n.nspname = 'public'
+        AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+        AND (
+          c.relkind <> 'S'
+          OR NOT EXISTS (
+            SELECT 1
+            FROM pg_depend sd
+            WHERE sd.classid = 'pg_class'::regclass
+              AND sd.objid = c.oid
+              AND sd.refclassid = 'pg_class'::regclass
+              AND sd.deptype IN ('a', 'i')
+          )
+        )
+        AND d.objid IS NULL
+    LOOP
+      IF EXISTS (
+        SELECT 1
+        FROM pg_class c2
+        JOIN pg_namespace n2 ON n2.oid = c2.relnamespace
+        WHERE n2.nspname = app_schema
+          AND c2.relname = public_rel.relname
+          AND c2.relkind = public_rel.relkind
+      ) THEN
+        RAISE EXCEPTION
+          'cannot migrate public.% to %.% because target object already exists',
+          public_rel.relname,
+          app_schema,
+          public_rel.relname;
+      END IF;
+
+      IF public_rel.relkind IN ('r', 'p') THEN
+        EXECUTE format('ALTER TABLE public.%I SET SCHEMA %I', public_rel.relname, app_schema);
+      ELSIF public_rel.relkind = 'v' THEN
+        EXECUTE format('ALTER VIEW public.%I SET SCHEMA %I', public_rel.relname, app_schema);
+      ELSIF public_rel.relkind = 'm' THEN
+        EXECUTE format('ALTER MATERIALIZED VIEW public.%I SET SCHEMA %I', public_rel.relname, app_schema);
+      ELSIF public_rel.relkind = 'f' THEN
+        EXECUTE format('ALTER FOREIGN TABLE public.%I SET SCHEMA %I', public_rel.relname, app_schema);
+      ELSIF public_rel.relkind = 'S' THEN
+        EXECUTE format('ALTER SEQUENCE public.%I SET SCHEMA %I', public_rel.relname, app_schema);
+      END IF;
+    END LOOP;
+
+    FOR public_routine IN
+      SELECT p.oid::regprocedure AS identity,
+             p.proname,
+             pg_get_function_identity_arguments(p.oid) AS args
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      LEFT JOIN pg_depend d ON d.objid = p.oid AND d.deptype = 'e'
+      WHERE n.nspname = 'public'
+        AND d.objid IS NULL
+    LOOP
+      IF EXISTS (
+        SELECT 1
+        FROM pg_proc p2
+        JOIN pg_namespace n2 ON n2.oid = p2.pronamespace
+        WHERE n2.nspname = app_schema
+          AND p2.proname = public_routine.proname
+          AND pg_get_function_identity_arguments(p2.oid) = public_routine.args
+      ) THEN
+        RAISE EXCEPTION
+          'cannot migrate routine public.%(%) to schema % because target routine already exists',
+          public_routine.proname,
+          public_routine.args,
+          app_schema;
+      END IF;
+
+      EXECUTE format('ALTER ROUTINE %s SET SCHEMA %I', public_routine.identity, app_schema);
+    END LOOP;
+
+    FOR public_type IN
+      SELECT t.typname, t.typtype
+      FROM pg_type t
+      JOIN pg_namespace n ON n.oid = t.typnamespace
+      LEFT JOIN pg_depend d ON d.objid = t.oid AND d.deptype = 'e'
+      WHERE n.nspname = 'public'
+        AND t.typtype IN ('d', 'e')
+        AND d.objid IS NULL
+    LOOP
+      IF EXISTS (
+        SELECT 1
+        FROM pg_type t2
+        JOIN pg_namespace n2 ON n2.oid = t2.typnamespace
+        WHERE n2.nspname = app_schema
+          AND t2.typname = public_type.typname
+          AND t2.typtype = public_type.typtype
+      ) THEN
+        RAISE EXCEPTION
+          'cannot migrate type public.% to schema % because target type already exists',
+          public_type.typname,
+          app_schema;
+      END IF;
+
+      EXECUTE format('ALTER TYPE public.%I SET SCHEMA %I', public_type.typname, app_schema);
+    END LOOP;
+  END IF;
 
   FOR schema_record IN
     SELECT nspname
@@ -205,6 +324,17 @@ BEGIN
         LEFT JOIN pg_depend d ON d.objid = c.oid AND d.deptype = 'e'
         WHERE n.nspname = schema_record.nspname
           AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+          AND (
+            c.relkind <> 'S'
+            OR NOT EXISTS (
+              SELECT 1
+              FROM pg_depend sd
+              WHERE sd.classid = 'pg_class'::regclass
+                AND sd.objid = c.oid
+                AND sd.refclassid = 'pg_class'::regclass
+                AND sd.deptype IN ('a', 'i')
+            )
+          )
           AND d.objid IS NULL
       LOOP
         IF rel_record.relkind IN ('r', 'p', 'f') THEN
@@ -307,6 +437,17 @@ BEGIN
         LEFT JOIN pg_depend d ON d.objid = c.oid AND d.deptype = 'e'
         WHERE n.nspname = schema_record.nspname
           AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+          AND (
+            c.relkind <> 'S'
+            OR NOT EXISTS (
+              SELECT 1
+              FROM pg_depend sd
+              WHERE sd.classid = 'pg_class'::regclass
+                AND sd.objid = c.oid
+                AND sd.refclassid = 'pg_class'::regclass
+                AND sd.deptype IN ('a', 'i')
+            )
+          )
           AND d.objid IS NULL
           AND pg_get_userbyid(c.relowner) = app_user
       LOOP

@@ -71,6 +71,48 @@ export function createDbClient(config: AppConfig): Bun.SQL {
   })
 }
 
+export interface FileCopyMethodInspection {
+  method: string | null
+  cloneOptimized: boolean
+  warning: string | null
+}
+
+export async function inspectFileCopyMethod(sql: Bun.SQL): Promise<FileCopyMethodInspection> {
+  try {
+    const rows = await sql<{ file_copy_method: string }[]>`SHOW file_copy_method`
+    const method = rows[0]?.file_copy_method?.trim().toLowerCase() || null
+    if (method === "clone") {
+      return { method, cloneOptimized: true, warning: null }
+    }
+
+    return {
+      method,
+      cloneOptimized: false,
+      warning:
+        method === null
+          ? "file_copy_method is unavailable; preview clone performance can be improved by starting PostgreSQL with -c file_copy_method=clone."
+          : `file_copy_method is "${method}"; preview clone performance can be improved by starting PostgreSQL with -c file_copy_method=clone.`,
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    const normalizedMessage = message.toLowerCase()
+    if (normalizedMessage.includes("unrecognized configuration parameter")) {
+      return {
+        method: null,
+        cloneOptimized: false,
+        warning:
+          "file_copy_method is not recognized on this PostgreSQL server; preview clone performance can be improved by using PostgreSQL 18+ with -c file_copy_method=clone.",
+      }
+    }
+
+    return {
+      method: null,
+      cloneOptimized: false,
+      warning: `unable to read file_copy_method (${message}); preview clone performance can be improved by starting PostgreSQL with -c file_copy_method=clone.`,
+    }
+  }
+}
+
 function buildPreviewDatabaseName(previewPrefix: string, prNumber: number): string {
   const dbName = `${previewPrefix}${prNumber}`
   assertSafeIdentifier(dbName, "derived database name")
@@ -308,6 +350,17 @@ BEGIN
     LEFT JOIN pg_depend d ON d.objid = c.oid AND d.deptype = 'e'
     WHERE n.nspname = ${quoteLiteral(schemaName)}
       AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+      AND (
+        c.relkind <> 'S'
+        OR NOT EXISTS (
+          SELECT 1
+          FROM pg_depend sd
+          WHERE sd.classid = 'pg_class'::regclass
+            AND sd.objid = c.oid
+            AND sd.refclassid = 'pg_class'::regclass
+            AND sd.deptype IN ('a', 'i')
+        )
+      )
       AND d.objid IS NULL
   LOOP
     IF rel.relkind IN ('r', 'p', 'f') THEN
@@ -359,9 +412,127 @@ async function grantAppRoleOnSchema(databaseSql: Bun.SQL, schemaName: string, ap
   await databaseSql.unsafe(`GRANT EXECUTE ON ALL ROUTINES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`)
 }
 
+async function transferOwnedObjectsInSchemaToRole(
+  databaseSql: Bun.SQL,
+  schemaName: string,
+  sourceRole: string,
+  targetRole: string,
+): Promise<void> {
+  await databaseSql.unsafe(
+    `
+DO $do$
+DECLARE
+  rel RECORD;
+  routine RECORD;
+  custom_type RECORD;
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_namespace n
+    WHERE n.nspname = ${quoteLiteral(schemaName)}
+      AND pg_get_userbyid(n.nspowner) = ${quoteLiteral(sourceRole)}
+  ) THEN
+    EXECUTE format('ALTER SCHEMA %I OWNER TO %I', ${quoteLiteral(schemaName)}, ${quoteLiteral(targetRole)});
+  END IF;
+
+  FOR rel IN
+    SELECT c.oid, c.relkind, n.nspname, c.relname
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    LEFT JOIN pg_depend d ON d.objid = c.oid AND d.deptype = 'e'
+    WHERE n.nspname = ${quoteLiteral(schemaName)}
+      AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+      AND (
+        c.relkind <> 'S'
+        OR NOT EXISTS (
+          SELECT 1
+          FROM pg_depend sd
+          WHERE sd.classid = 'pg_class'::regclass
+            AND sd.objid = c.oid
+            AND sd.refclassid = 'pg_class'::regclass
+            AND sd.deptype IN ('a', 'i')
+        )
+      )
+      AND d.objid IS NULL
+      AND pg_get_userbyid(c.relowner) = ${quoteLiteral(sourceRole)}
+  LOOP
+    IF rel.relkind IN ('r', 'p', 'f') THEN
+      EXECUTE format('ALTER TABLE %I.%I OWNER TO %I', rel.nspname, rel.relname, ${quoteLiteral(targetRole)});
+    ELSIF rel.relkind = 'v' THEN
+      EXECUTE format('ALTER VIEW %I.%I OWNER TO %I', rel.nspname, rel.relname, ${quoteLiteral(targetRole)});
+    ELSIF rel.relkind = 'm' THEN
+      EXECUTE format('ALTER MATERIALIZED VIEW %I.%I OWNER TO %I', rel.nspname, rel.relname, ${quoteLiteral(targetRole)});
+    ELSIF rel.relkind = 'S' THEN
+      EXECUTE format('ALTER SEQUENCE %I.%I OWNER TO %I', rel.nspname, rel.relname, ${quoteLiteral(targetRole)});
+    END IF;
+  END LOOP;
+
+  FOR routine IN
+    SELECT p.oid::regprocedure AS identity
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    LEFT JOIN pg_depend d ON d.objid = p.oid AND d.deptype = 'e'
+    WHERE n.nspname = ${quoteLiteral(schemaName)}
+      AND d.objid IS NULL
+      AND pg_get_userbyid(p.proowner) = ${quoteLiteral(sourceRole)}
+  LOOP
+    EXECUTE format('ALTER ROUTINE %s OWNER TO %I', routine.identity, ${quoteLiteral(targetRole)});
+  END LOOP;
+
+  FOR custom_type IN
+    SELECT format('%I.%I', n.nspname, t.typname) AS identity
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    LEFT JOIN pg_depend d ON d.objid = t.oid AND d.deptype = 'e'
+    WHERE n.nspname = ${quoteLiteral(schemaName)}
+      AND t.typtype IN ('d', 'e')
+      AND d.objid IS NULL
+      AND pg_get_userbyid(t.typowner) = ${quoteLiteral(sourceRole)}
+  LOOP
+    EXECUTE format('ALTER TYPE %s OWNER TO %I', custom_type.identity, ${quoteLiteral(targetRole)});
+  END LOOP;
+END
+$do$;
+`,
+  )
+}
+
+async function revokeDefaultPrivilegesOnSchema(
+  databaseSql: Bun.SQL,
+  schemaName: string,
+  targetRole: string,
+): Promise<void> {
+  const quotedSchemaName = quoteCatalogIdentifier(schemaName)
+  const quotedTargetRole = quoteIdentifier(targetRole)
+  const owners = await listSchemaOwnerRoles(databaseSql, schemaName)
+
+  for (const owner of owners) {
+    const quotedOwnerName = quoteCatalogIdentifier(owner)
+    try {
+      await databaseSql.unsafe(
+        `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedOwnerName} IN SCHEMA ${quotedSchemaName} REVOKE ALL PRIVILEGES ON TABLES FROM ${quotedTargetRole};`,
+      )
+      await databaseSql.unsafe(
+        `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedOwnerName} IN SCHEMA ${quotedSchemaName} REVOKE ALL PRIVILEGES ON SEQUENCES FROM ${quotedTargetRole};`,
+      )
+      await databaseSql.unsafe(
+        `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedOwnerName} IN SCHEMA ${quotedSchemaName} REVOKE ALL PRIVILEGES ON ROUTINES FROM ${quotedTargetRole};`,
+      )
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      const normalizedMessage = message.toLowerCase()
+      if (normalizedMessage.includes("must be member of role") || normalizedMessage.includes("permission denied")) {
+        continue
+      }
+      throw error
+    }
+  }
+}
+
 async function revokeAppRoleOutsideSchema(
   databaseSql: Bun.SQL,
   appRoleName: string,
+  fallbackOwnerRole: string,
   allowedSchemaName: string,
 ): Promise<void> {
   const schemas = await listNonSystemSchemas(databaseSql)
@@ -369,6 +540,9 @@ async function revokeAppRoleOutsideSchema(
     if (schemaName === allowedSchemaName) {
       continue
     }
+
+    await transferOwnedObjectsInSchemaToRole(databaseSql, schemaName, appRoleName, fallbackOwnerRole)
+    await revokeDefaultPrivilegesOnSchema(databaseSql, schemaName, appRoleName)
 
     const quotedSchemaName = quoteCatalogIdentifier(schemaName)
     const quotedAppRoleName = quoteIdentifier(appRoleName)
@@ -444,6 +618,7 @@ async function syncPreviewDatabaseGrants(
     throw new BadRequestError(`configured dev role "${devRole}" does not exist`)
   }
 
+  await sql.unsafe(`REVOKE ALL PRIVILEGES ON DATABASE ${quoteIdentifier(dbName)} FROM ${quoteIdentifier(appRoleName)};`)
   await sql.unsafe(
     `REVOKE CREATE, TEMPORARY ON DATABASE ${quoteIdentifier(dbName)} FROM ${quoteIdentifier(appRoleName)};`,
   )
@@ -457,7 +632,7 @@ async function syncPreviewDatabaseGrants(
     await ensureSchemaExists(dbSql, config.appSchema, appRoleName)
     await transferSchemaOwnershipToRole(dbSql, config.appSchema, appRoleName)
     await grantAppRoleOnSchema(dbSql, config.appSchema, appRoleName)
-    await revokeAppRoleOutsideSchema(dbSql, appRoleName, config.appSchema)
+    await revokeAppRoleOutsideSchema(dbSql, appRoleName, config.previewOwner, config.appSchema)
 
     const schemas = await listNonSystemSchemas(dbSql)
     for (const schemaName of schemas) {
@@ -510,7 +685,7 @@ export async function ensurePreviewDatabase(
       }
 
       await lockedSql.unsafe(
-        `CREATE DATABASE ${quoteIdentifier(dbName)} WITH TEMPLATE ${quoteIdentifier(templateDatabase)} OWNER ${quoteIdentifier(owner)};`,
+        `CREATE DATABASE ${quoteIdentifier(dbName)} WITH TEMPLATE ${quoteIdentifier(templateDatabase)} OWNER ${quoteIdentifier(owner)} STRATEGY = FILE_COPY;`,
       )
     }
 
@@ -643,6 +818,20 @@ async function listNonTemplateDatabases(sql: Bun.SQL): Promise<string[]> {
   return rows.map((row) => row.name)
 }
 
+async function revokeBroadDatabaseConnectGrants(sql: Bun.SQL, roleName: string): Promise<number> {
+  const databases = await listNonTemplateDatabases(sql)
+  let revoked = 0
+
+  for (const databaseName of databases) {
+    await sql.unsafe(
+      `REVOKE CONNECT, TEMPORARY, CREATE ON DATABASE ${quoteCatalogIdentifier(databaseName)} FROM ${quoteIdentifier(roleName)};`,
+    )
+    revoked += 1
+  }
+
+  return revoked
+}
+
 export interface CreateOrUpdateDevRoleParams {
   username: string
   password: string
@@ -654,6 +843,7 @@ export interface CreateOrUpdateDevRoleResult {
   username: string
   created: boolean
   connectGrantsApplied: number
+  connectGrantsRevoked: number
   schemaGrantsApplied: number
   defaultPrivilegeOwnersApplied: number
   defaultPrivilegeOwnersSkipped: number
@@ -678,6 +868,7 @@ export async function createOrUpdateDevRole(
   )
 
   let connectGrantsApplied = 0
+  let connectGrantsRevoked = 0
   let schemaGrantsApplied = 0
   let defaultPrivilegeOwnersApplied = 0
   let defaultPrivilegeOwnersSkipped = 0
@@ -701,12 +892,15 @@ export async function createOrUpdateDevRole(
         }
       })
     }
+  } else {
+    connectGrantsRevoked = await revokeBroadDatabaseConnectGrants(sql, username)
   }
 
   return {
     username,
     created: !exists,
     connectGrantsApplied,
+    connectGrantsRevoked,
     schemaGrantsApplied,
     defaultPrivilegeOwnersApplied,
     defaultPrivilegeOwnersSkipped,

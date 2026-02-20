@@ -28,12 +28,38 @@
     make dev
     ```
     * Postgres role bootstrap (`medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
-    * Bootstrap no longer creates `zane_operator`; create/manage that role from `apps/zane-operator` onboarding instructions
-    * If your Postgres volume already existed before this change, apply bootstrap manually once:
+    * `zane_operator` role bootstrap runs as one-shot service `zane-operator-bootstrap` before `zane-operator` starts (idempotent)
+    * If your Postgres volume already existed before this change, run bootstrap migration once:
     ```shell
-    ./scripts/apply-postgres-role-bootstrap.sh
+    make postgres-role-bootstrap
+    make postgres-zane-operator-bootstrap
     ```
-    * Medusa BE must use app credentials (`medusa_app`) in `DC_DATABASE_URL`, not superuser credentials
+    * Optional idempotency check (runs bootstrap twice):
+    ```shell
+    make postgres-role-bootstrap-verify
+    make postgres-zane-operator-bootstrap-verify
+    ```
+    * Existing DB migration note: bootstrap includes idempotent legacy-object migration from `public` schema into `DC_MEDUSA_APP_DB_SCHEMA` (default `medusa`), with conflict fail-fast if same object already exists in target schema.
+    * Medusa BE DB connection is derived from `DC_MEDUSA_APP_DB_*`; keep those on app credentials (`medusa_app`), not superuser credentials
+    * `medusa-db` starts with `-c file_copy_method=clone`; zane-operator preview cloning uses `CREATE DATABASE ... STRATEGY=FILE_COPY`
+
+### Cloud predeploy hook (idempotent)
+
+If you deploy `zane-operator` separately in cloud, run role bootstrap once before service start:
+
+```shell
+/app/zane-operator-bootstrap-role
+```
+
+Required env vars for this hook:
+* Reuses operator envs (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE`, `DB_TEMPLATE_NAME`, `DB_PREVIEW_OWNER`)
+* Add only admin override credentials: `BOOTSTRAP_ADMIN_PGUSER`, `BOOTSTRAP_ADMIN_PGPASSWORD`
+
+Optional hardening toggles:
+* `BOOTSTRAP_SET_TEMPLATE_OWNER=1` (default)
+* `BOOTSTRAP_FAIL_IF_TEMPLATE_MISSING=0` (set to `1` to fail hard if template DB does not exist yet)
+* `BOOTSTRAP_VERIFY_IDEMPOTENT=1` (runs bootstrap twice in the same hook)
+* Optional admin endpoint overrides (if admin connects to different DB endpoint): `BOOTSTRAP_ADMIN_PGHOST`, `BOOTSTRAP_ADMIN_PGPORT`, `BOOTSTRAP_ADMIN_PGDATABASE`, `BOOTSTRAP_ADMIN_PGSSLMODE`
 
 ### Manual live `.env` updates (not automated)
 
