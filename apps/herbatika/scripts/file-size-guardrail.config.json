@@ -1,0 +1,30 @@
+{
+  "scanDirectories": ["src"],
+  "fileExtensions": [".ts", ".tsx"],
+  "exclude": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/.git/**",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+  "thresholds": {
+    "warning": 181,
+    "error": 261
+  },
+  "allowlist": [
+    "src/app/theme/page.tsx",
+    "src/lib/storefront/blog-content.ts",
+    "src/lib/storefront/ssr.ts",
+    "src/lib/storefront/query-monitor.ts",
+    "src/components/herbatika-header.tsx",
+    "src/components/aside-filter.tsx",
+    "src/components/storefront-data-smoke-panel.tsx",
+    "src/lib/storefront/catalog-query-state.ts",
+    "src/lib/storefront/meili-search.ts"
+  ]
+}
