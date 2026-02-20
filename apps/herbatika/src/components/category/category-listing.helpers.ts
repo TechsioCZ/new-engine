@@ -1,4 +1,6 @@
 import type { HttpTypes } from "@medusajs/types";
+import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { formatWholeCurrencyAmount } from "@/lib/storefront/price-format";
 
 export const normalizeCategoryName = (value?: string | null) => {
   if (!value) {
@@ -8,17 +10,7 @@ export const normalizeCategoryName = (value?: string | null) => {
   return value.replace(/^>\s*/, "").trim();
 };
 
-export const resolveErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "An unknown error occurred.";
-};
+export { resolveErrorMessage };
 
 export const resolveCategoryRank = (
   category: HttpTypes.StoreProductCategory,
@@ -138,20 +130,7 @@ export const matchesPriceBand = (
   return amount >= definition.min && amount < definition.maxExclusive;
 };
 
-export const formatAmount = (amount: number, currencyCode: string): string => {
-  const locale = currencyCode === "CZK" ? "cs-CZ" : "sk-SK";
-
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${Math.round(amount)} ${currencyCode}`;
-  }
-};
+export const formatAmount = formatWholeCurrencyAmount;
 
 export const formatPriceBandLabel = (
   definition: PriceBandDefinition,

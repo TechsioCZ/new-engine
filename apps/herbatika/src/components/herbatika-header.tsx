@@ -17,6 +17,7 @@ import {
   CART_ID_CHANGED_EVENT,
   getStoredCartId,
 } from "@/lib/storefront/cart-storage";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { HerbatikaLogo } from "./herbatika-logo";
 
 const PRIMARY_NAV_ITEMS = [
@@ -68,17 +69,6 @@ const resolveCartTotalAmount = (
   );
 };
 
-const formatPrice = (amount: number, currency: "EUR" | "CZK") => {
-  const locale = currency === "CZK" ? "cs-CZ" : "sk-SK";
-
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-};
-
 export function HerbatikaHeader() {
   const router = useRouter();
   const region = useRegionContext();
@@ -120,7 +110,10 @@ export function HerbatikaHeader() {
   }, [cart?.id]);
 
   const currency = REGION_TO_CURRENCY[region?.country_code ?? ""] ?? "EUR";
-  const cartTotalLabel = formatPrice(resolveCartTotalAmount(cart), currency);
+  const cartTotalLabel = formatCurrencyAmount(
+    resolveCartTotalAmount(cart),
+    currency,
+  );
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const formData = new FormData(event.currentTarget);

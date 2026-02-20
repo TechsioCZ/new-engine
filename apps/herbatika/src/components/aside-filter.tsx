@@ -7,6 +7,7 @@ import {
   type AsideFilterChipItem,
   AsideFilterChipSection,
 } from "@/components/aside-filter-chip-section";
+import { formatWholeCurrencyAmount } from "@/lib/storefront/price-format";
 
 type AsideFilterPriceBounds = {
   min: number;
@@ -110,21 +111,6 @@ const normalizeCommittedRange = (
   };
 };
 
-const formatAmount = (amount: number, currencyCode: string): string => {
-  const locale = currencyCode === "CZK" ? "cs-CZ" : "sk-SK";
-
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${Math.round(amount)} ${currencyCode}`;
-  }
-};
-
 type AsideFilterProps = {
   priceBounds: AsideFilterPriceBounds | null;
   selectedPriceRange: AsideFilterPriceRange;
@@ -216,8 +202,12 @@ export function AsideFilter({
         <section className="space-y-300">
           <h2 className="text-2xl font-bold uppercase leading-none">Cena</h2>
           <div className="flex items-center justify-between text-lg font-medium text-fg-secondary">
-            <span>{formatAmount(sliderRangeForRender[0], currencyCode)}</span>
-            <span>{formatAmount(sliderRangeForRender[1], currencyCode)}</span>
+            <span>
+              {formatWholeCurrencyAmount(sliderRangeForRender[0], currencyCode)}
+            </span>
+            <span>
+              {formatWholeCurrencyAmount(sliderRangeForRender[1], currencyCode)}
+            </span>
           </div>
           <Slider
             defaultValue={[

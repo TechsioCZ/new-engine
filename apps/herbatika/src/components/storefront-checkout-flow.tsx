@@ -27,6 +27,8 @@ import {
   useCompleteCart,
   useUpdateCartAddress,
 } from "@/lib/storefront/cart";
+import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
 type AddressFormState = {
   email: string;
@@ -72,22 +74,6 @@ const isObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
 };
 
-const resolveErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  if (isObject(error) && typeof error.message === "string") {
-    return error.message;
-  }
-
-  return "An unknown error occurred.";
-};
-
 const resolveCartTotalAmount = (cart: HttpTypes.StoreCart | null | undefined) => {
   if (!cart) {
     return 0;
@@ -116,18 +102,6 @@ const resolveLineItemTotalAmount = (item: HttpTypes.StoreCartLineItem) => {
   const unitPrice = typeof item.unit_price === "number" ? item.unit_price : 0;
   const quantity = typeof item.quantity === "number" ? item.quantity : 1;
   return unitPrice * quantity;
-};
-
-const formatAmount = (amount: number, currencyCode?: string | null) => {
-  const code = (currencyCode ?? "EUR").toUpperCase();
-  const locale = code === "CZK" ? "cs-CZ" : "sk-SK";
-
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: code,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
 };
 
 const resolveOrderId = (result: unknown) => {
@@ -795,7 +769,7 @@ export function StorefrontCheckoutFlow() {
                             </div>
                           </div>
                           <p className="text-sm font-semibold text-fg-primary">
-                            {formatAmount(optionPrice, currencyCode)}
+                            {formatCurrencyAmount(optionPrice, currencyCode)}
                           </p>
                         </div>
                       </Button>
@@ -914,7 +888,7 @@ export function StorefrontCheckoutFlow() {
                 {cartItems.map((item) => {
                   const itemName = resolveCartItemName(item);
                   const itemQuantity = item.quantity ?? 0;
-                  const itemPrice = formatAmount(resolveLineItemTotalAmount(item), currencyCode);
+                  const itemPrice = formatCurrencyAmount(resolveLineItemTotalAmount(item), currencyCode);
                   const itemThumbnail =
                     typeof item.thumbnail === "string" && item.thumbnail.length > 0
                       ? item.thumbnail
@@ -946,19 +920,19 @@ export function StorefrontCheckoutFlow() {
                 <div className="flex items-center justify-between gap-200">
                   <ExtraText className="text-fg-secondary">Medzisúčet</ExtraText>
                   <p className="text-sm font-semibold text-fg-primary">
-                    {formatAmount(cartSubtotalAmount, currencyCode)}
+                    {formatCurrencyAmount(cartSubtotalAmount, currencyCode)}
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-200">
                   <ExtraText className="text-fg-secondary">Doprava</ExtraText>
                   <p className="text-sm font-semibold text-fg-primary">
-                    {formatAmount(selectedShippingPrice, currencyCode)}
+                    {formatCurrencyAmount(selectedShippingPrice, currencyCode)}
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-200 border-t border-border-secondary pt-150">
                   <p className="text-sm font-semibold text-fg-primary">Celkom</p>
                   <p className="text-lg font-bold text-fg-primary">
-                    {formatAmount(resolveCartTotalAmount(cartQuery.cart), currencyCode)}
+                    {formatCurrencyAmount(resolveCartTotalAmount(cartQuery.cart), currencyCode)}
                   </p>
                 </div>
               </div>

@@ -25,6 +25,8 @@ import { useEffect, useMemo, useState } from "react";
 import { HerbatikaProductCard } from "@/components/herbatika-product-card";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree";
+import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import {
   STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
@@ -139,18 +141,6 @@ const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
   th: new Set(["colspan", "rowspan", "title"]),
 };
 
-const resolveErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "An unknown error occurred.";
-};
-
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return value as Record<string, unknown>;
@@ -193,25 +183,6 @@ const normalizeCategoryName = (value?: string | null) => {
   }
 
   return value.replace(/^>\s*/, "").trim();
-};
-
-const formatAmount = (amount: number, currencyCode: string): string => {
-  const normalizedCurrency =
-    typeof currencyCode === "string" && currencyCode.length === 3
-      ? currencyCode.toUpperCase()
-      : "EUR";
-  const locale = normalizedCurrency === "CZK" ? "cs-CZ" : "sk-SK";
-
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: normalizedCurrency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${normalizedCurrency}`;
-  }
 };
 
 const resolveProductImages = (product: StorefrontProduct | null): string[] => {
@@ -308,10 +279,10 @@ const resolvePriceState = (
         : null;
 
   return {
-    currentLabel: formatAmount(resolvedCalculatedAmount, currencyCode),
+    currentLabel: formatCurrencyAmount(resolvedCalculatedAmount, currencyCode),
     originalLabel:
       normalizedOriginalAmount && normalizedOriginalAmount > resolvedCalculatedAmount
-      ? formatAmount(normalizedOriginalAmount, currencyCode)
+      ? formatCurrencyAmount(normalizedOriginalAmount, currencyCode)
       : null,
     currentAmount: resolvedCalculatedAmount,
     originalAmount: normalizedOriginalAmount,
@@ -490,7 +461,7 @@ const resolveVipCreditLabel = (
     return null;
   }
 
-  return formatAmount(currentAmount * 0.02, currencyCode);
+  return formatCurrencyAmount(currentAmount * 0.02, currencyCode);
 };
 
 const resolveVolumeDiscountOptions = (
@@ -515,11 +486,11 @@ const resolveVolumeDiscountOptions = (
       id: `quantity-tier-${option.quantity}`,
       title: `Kúpte ${option.quantity} a ušetrite`,
       quantity: option.quantity,
-      totalAmountLabel: formatAmount(discountedTotalAmount, currencyCode),
-      perUnitLabel: `${formatAmount(discountedUnitAmount, currencyCode)} / kus`,
+      totalAmountLabel: formatCurrencyAmount(discountedTotalAmount, currencyCode),
+      perUnitLabel: `${formatCurrencyAmount(discountedUnitAmount, currencyCode)} / kus`,
       oldTotalAmountLabel:
         discountedTotalAmount < originalTotalAmount
-          ? formatAmount(originalTotalAmount, currencyCode)
+          ? formatCurrencyAmount(originalTotalAmount, currencyCode)
           : null,
     };
   });
@@ -890,7 +861,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
       return null;
     }
 
-    return formatAmount(displayOriginalAmount, productPrice.currencyCode);
+    return formatCurrencyAmount(displayOriginalAmount, productPrice.currencyCode);
   }, [displayOriginalAmount, productPrice]);
   const discountPercent = useMemo(
     () =>
@@ -1067,10 +1038,10 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
   const currentCurrencyCode = productPrice?.currencyCode ?? "EUR";
   const unitPriceLabel =
     typeof currentAmount === "number" && offerState.unitLabel
-      ? `${formatAmount(currentAmount, currentCurrencyCode)} / ${offerState.unitLabel}`
+      ? `${formatCurrencyAmount(currentAmount, currentCurrencyCode)} / ${offerState.unitLabel}`
       : null;
   const freeShippingThreshold = 49;
-  const freeShippingThresholdLabel = formatAmount(freeShippingThreshold, currentCurrencyCode);
+  const freeShippingThresholdLabel = formatCurrencyAmount(freeShippingThreshold, currentCurrencyCode);
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-600 lg:px-550">

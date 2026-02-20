@@ -3,12 +3,10 @@
 import { useRegionContext } from "@techsio/storefront-data/shared";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { useEffect, useMemo } from "react";
+import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { useStorefrontSearch } from "@/lib/storefront/search";
 import { SearchPagination } from "./search/search-pagination";
-import {
-  resolveErrorMessage,
-  SEARCH_RESULT_LIMIT,
-} from "./search/search-query-config";
+import { SEARCH_RESULT_LIMIT } from "./search/search-query-config";
 import { SearchResultsGrid } from "./search/search-results-grid";
 import { SearchSkeletonGrid } from "./search/search-skeleton-grid";
 import { SearchToolbar } from "./search/search-toolbar";
@@ -66,7 +64,7 @@ export function StorefrontSearchResults() {
   }, [currentPage, result]);
 
   const errorMessage = searchQuery.error
-    ? resolveErrorMessage(searchQuery.error)
+    ? resolveErrorMessage(searchQuery.error, "Vyhľadávanie zlyhalo.")
     : null;
   const isProductGridLoading =
     !searchQuery.isLoading && isSearchProductsLoading;

@@ -1,3 +1,5 @@
+import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_NUMBER_REGEX = /\d/;
 
@@ -147,20 +149,8 @@ export const isRegisterFormValid = (values: RegisterFormValues) => {
   );
 };
 
-const resolveErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "";
-};
-
 export const resolveLoginSubmitError = (error: unknown) => {
-  const message = resolveErrorMessage(error);
+  const message = resolveErrorMessage(error, "");
   const normalizedMessage = message.toLowerCase();
 
   if (

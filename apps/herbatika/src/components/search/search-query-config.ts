@@ -21,15 +21,3 @@ export const normalizePage = (value: number): number => {
 
   return normalizedPage;
 };
-
-export const resolveErrorMessage = (error: unknown): string => {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-
-  if (typeof error === "string" && error.trim().length > 0) {
-    return error;
-  }
-
-  return "Vyhľadávanie zlyhalo.";
-};

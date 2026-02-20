@@ -3,7 +3,7 @@
 import type { HttpTypes } from "@medusajs/types";
 import { useState } from "react";
 import { useAddLineItem, useCart } from "@/lib/storefront/cart";
-import { resolveErrorMessage } from "./search-query-config";
+import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 
 type UseSearchAddToCartInput = {
   regionId?: string;
@@ -48,7 +48,7 @@ export const useSearchAddToCart = ({
         country_code: countryCode,
       });
     } catch (error) {
-      setAddToCartError(resolveErrorMessage(error));
+      setAddToCartError(resolveErrorMessage(error, "Pridanie do košíka zlyhalo."));
     } finally {
       setActiveProductId(null);
     }

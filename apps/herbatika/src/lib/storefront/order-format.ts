@@ -1,3 +1,5 @@
+import { formatCurrencyAmount } from "./price-format";
+
 const ORDER_STATUS_LABELS: Record<string, string> = {
   canceled: "Zrušená",
   completed: "Dokončená",
@@ -6,14 +8,6 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
 };
 
 type OrderStatusBadgeVariant = "danger" | "info" | "success" | "warning";
-
-const resolveLocaleFromCurrency = (currencyCode?: string | null) => {
-  if (currencyCode?.toUpperCase() === "CZK") {
-    return "cs-CZ";
-  }
-
-  return "sk-SK";
-};
 
 export const resolveOrderStatusLabel = (status?: string | null) => {
   if (!status) {
@@ -69,14 +63,7 @@ export const formatOrderDate = (value?: Date | string | null) => {
 };
 
 export const formatOrderAmount = (amount: number, currencyCode?: string | null) => {
-  const safeCurrencyCode = (currencyCode ?? "EUR").toUpperCase();
-
-  return new Intl.NumberFormat(resolveLocaleFromCurrency(currencyCode), {
-    style: "currency",
-    currency: safeCurrencyCode,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return formatCurrencyAmount(amount, currencyCode);
 };
 
 export const resolveOrderTotalAmount = (order: {

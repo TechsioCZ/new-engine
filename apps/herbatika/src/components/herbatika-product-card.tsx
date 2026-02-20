@@ -6,6 +6,7 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card";
 import NextLink from "next/link";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
 type ProductPriceState = {
   currentLabel: string;
@@ -95,25 +96,6 @@ const asBoolean = (value: unknown): boolean | null => {
   return null;
 };
 
-const formatAmount = (amount: number, currencyCode: string): string => {
-  const normalizedCurrency =
-    typeof currencyCode === "string" && currencyCode.length === 3
-      ? currencyCode.toUpperCase()
-      : "EUR";
-  const locale = normalizedCurrency === "CZK" ? "cs-CZ" : "sk-SK";
-
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: normalizedCurrency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${normalizedCurrency}`;
-  }
-};
-
 const resolveTopOfferPriceState = (
   product: HttpTypes.StoreProduct,
 ): TopOfferPriceState => {
@@ -191,10 +173,10 @@ const resolvePriceState = (
     };
   }
 
-  const currentLabel = formatAmount(currentAmount, currencyCode);
+  const currentLabel = formatCurrencyAmount(currentAmount, currencyCode);
   const originalLabel =
     typeof originalAmount === "number" && originalAmount > currentAmount
-      ? formatAmount(originalAmount, currencyCode)
+      ? formatCurrencyAmount(originalAmount, currencyCode)
       : null;
 
   return {
@@ -387,7 +369,7 @@ const resolveDiscountLabel = (price: ProductPriceState): string | null => {
   }
 
   const discountAmount = price.originalAmount - price.currentAmount;
-  return `-${formatAmount(discountAmount, price.currencyCode)}`;
+  return `-${formatCurrencyAmount(discountAmount, price.currencyCode)}`;
 };
 
 export const getProductPriceLabel = (
