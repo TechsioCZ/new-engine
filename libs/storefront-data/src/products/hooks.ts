@@ -1,4 +1,4 @@
-﻿import {
+import {
   useInfiniteQuery,
   useQuery,
   useQueryClient,
