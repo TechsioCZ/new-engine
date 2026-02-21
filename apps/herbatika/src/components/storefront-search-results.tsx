@@ -2,20 +2,27 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
-import { useStorefrontSearch } from "@/lib/storefront/search";
+import {
+  prefetchStorefrontSearch,
+  prefetchStorefrontSearchProducts,
+  useStorefrontSearch,
+} from "@/lib/storefront/search";
 import { SearchPagination } from "./search/search-pagination";
 import { SEARCH_RESULT_LIMIT } from "./search/search-query-config";
 import { SearchResultsGrid } from "./search/search-results-grid";
 import { SearchSkeletonGrid } from "./search/search-skeleton-grid";
 import { SearchToolbar } from "./search/search-toolbar";
 import { useSearchAddToCart } from "./search/use-search-add-to-cart";
+import { resolveSortedUniqueSearchHitHandles } from "./search/search-hit-utils";
 import { useSearchProducts } from "./search/use-search-products";
 import { useSearchQueryState } from "./search/use-search-query-state";
 
 export function StorefrontSearchResults() {
   const region = useRegionContext();
+  const queryClient = useQueryClient();
   const { query, currentPage, setPage } = useSearchQueryState();
 
   const searchQuery = useStorefrontSearch({
@@ -55,6 +62,63 @@ export function StorefrontSearchResults() {
 
     setPage(result.totalPages, "replace");
   }, [currentPage, query, result, setPage]);
+
+  useEffect(() => {
+    if (!query || !region?.region_id || searchQuery.isLoading || searchQuery.error) {
+      return;
+    }
+
+    const nextPage = currentPage + 1;
+    const totalPages = result?.totalPages ?? 0;
+    if (nextPage > totalPages) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const prefetchNextSearchPage = async () => {
+      try {
+        const nextPageResult = await prefetchStorefrontSearch(queryClient, {
+          q: query,
+          page: nextPage,
+          limit: SEARCH_RESULT_LIMIT,
+        });
+        if (isCancelled || !nextPageResult) {
+          return;
+        }
+
+        const nextPageHandles = resolveSortedUniqueSearchHitHandles(
+          nextPageResult.hits,
+        );
+        if (nextPageHandles.length === 0) {
+          return;
+        }
+
+        await prefetchStorefrontSearchProducts(queryClient, {
+          handles: nextPageHandles,
+          regionId: region.region_id,
+          countryCode: region.country_code,
+        });
+      } catch {
+        // Best-effort prefetch; user-facing flow should not fail.
+      }
+    };
+
+    void prefetchNextSearchPage();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    currentPage,
+    query,
+    queryClient,
+    region?.country_code,
+    region?.region_id,
+    result?.totalPages,
+    searchQuery.error,
+    searchQuery.isLoading,
+  ]);
 
   const pageBadgeLabel = useMemo(() => {
     if (result && result.totalPages > 0) {

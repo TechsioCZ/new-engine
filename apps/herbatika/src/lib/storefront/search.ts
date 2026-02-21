@@ -203,12 +203,29 @@ export const prefetchStorefrontSearch = async (
 ) => {
   const normalizedInput = normalizeSearchInput(input);
   if (!normalizedInput.q) {
-    return;
+    return null;
   }
 
-  await queryClient.prefetchQuery({
+  return queryClient.fetchQuery({
     queryKey: searchQueryKeys.list(normalizedInput),
     queryFn: ({ signal }) => fetchStorefrontSearch(normalizedInput, signal),
+    ...storefrontCacheConfig.semiStatic,
+  });
+};
+
+export const prefetchStorefrontSearchProducts = async (
+  queryClient: QueryClient,
+  input: StorefrontSearchProductsInput,
+) => {
+  const normalizedInput = normalizeSearchProductsInput(input);
+  if (normalizedInput.handles.length === 0 || !normalizedInput.regionId) {
+    return { products: [], count: 0 };
+  }
+
+  return queryClient.fetchQuery({
+    queryKey: searchQueryKeys.products(normalizedInput),
+    queryFn: ({ signal }) =>
+      fetchStorefrontSearchProducts(normalizedInput, signal),
     ...storefrontCacheConfig.semiStatic,
   });
 };

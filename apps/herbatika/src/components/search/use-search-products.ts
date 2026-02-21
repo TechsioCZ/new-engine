@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { useMemo } from "react";
 import type { StorefrontSearchHit } from "@/lib/storefront/meili-search";
 import { useStorefrontSearchProducts } from "@/lib/storefront/search";
+import { resolveSortedUniqueSearchHitHandles } from "./search-hit-utils";
 
 type UseSearchProductsInput = {
   query: string;
@@ -18,24 +19,9 @@ export const useSearchProducts = ({
   regionId,
   countryCode,
 }: UseSearchProductsInput) => {
-  const searchHitHandles = useMemo(() => {
-    const handles = new Set<string>();
-
-    for (const hit of hits) {
-      const normalizedHandle = hit.handle.trim();
-      if (!normalizedHandle) {
-        continue;
-      }
-
-      handles.add(normalizedHandle);
-    }
-
-    return Array.from(handles);
-  }, [hits]);
-
   const sortedSearchHitHandles = useMemo(() => {
-    return [...searchHitHandles].sort((left, right) => left.localeCompare(right));
-  }, [searchHitHandles]);
+    return resolveSortedUniqueSearchHitHandles(hits);
+  }, [hits]);
 
   const descriptionByHandle = useMemo(() => {
     const nextDescriptions: Record<string, string> = {};
