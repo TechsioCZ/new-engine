@@ -14,7 +14,11 @@ import {
 import { resolveLoginSubmitError } from "@/lib/auth/auth-form-validators";
 import type { RegisterFormValues } from "@/lib/auth/auth-form-validators";
 import { useAuth, useLogin, useLogout, useRegister } from "@/lib/storefront/auth";
-import { useCart, useTransferCart } from "@/lib/storefront/cart";
+import {
+  storefrontCartReadQueryOptions,
+  useCart,
+  useTransferCart,
+} from "@/lib/storefront/cart";
 import { cartStorage } from "@/lib/storefront/cart-storage";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 
@@ -45,6 +49,8 @@ export const useStorefrontAuthController = ({
     region_id: region?.region_id,
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
+  }, {
+    queryOptions: storefrontCartReadQueryOptions,
   });
 
   const safeRedirectHref = useMemo(

@@ -5,7 +5,11 @@ import type {
   ProductDetailDataState,
 } from "@/components/product-detail/use-product-detail-data";
 import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
-import { useAddLineItem, useCart } from "@/lib/storefront/cart";
+import {
+  storefrontCartReadQueryOptions,
+  useAddLineItem,
+  useCart,
+} from "@/lib/storefront/cart";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import {
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
@@ -35,6 +39,8 @@ export function useProductDetailActions({
     region_id: region?.region_id,
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
+  }, {
+    queryOptions: storefrontCartReadQueryOptions,
   });
 
   const addLineItemMutation = useAddLineItem();

@@ -6,7 +6,11 @@ import { useQueryStates } from "nuqs";
 import { useEffect, useState } from "react";
 import { useCategoryListingQueries } from "@/components/category/use-category-listing-queries";
 import { toggleSelection } from "@/components/category/category-selection-utils";
-import { useAddLineItem, useCart } from "@/lib/storefront/cart";
+import {
+  storefrontCartReadQueryOptions,
+  useAddLineItem,
+  useCart,
+} from "@/lib/storefront/cart";
 import {
   usePrefetchCategories,
   usePrefetchCategory,
@@ -46,6 +50,8 @@ export function useCategoryListingController({
     region_id: region?.region_id,
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
+  }, {
+    queryOptions: storefrontCartReadQueryOptions,
   });
   const addLineItemMutation = useAddLineItem();
   const prefetchProduct = usePrefetchProduct({ defaultDelay: 180, skipMode: "any" });

@@ -12,7 +12,10 @@ import { Header } from "@techsio/ui-kit/organisms/header";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useCart } from "@/lib/storefront/cart";
+import {
+  storefrontCartReadQueryOptions,
+  useCart,
+} from "@/lib/storefront/cart";
 import {
   CART_ID_CHANGED_EVENT,
   getStoredCartId,
@@ -93,6 +96,8 @@ export function HerbatikaHeader() {
     region_id: region?.region_id,
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
+  }, {
+    queryOptions: storefrontCartReadQueryOptions,
   });
 
   useEffect(() => {

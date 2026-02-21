@@ -20,6 +20,14 @@ export const cartQueryKeys = createCartQueryKeys(
 
 export { cartService };
 
+export const storefrontCartReadQueryOptions = {
+  staleTime: 60 * 1000,
+  gcTime: storefrontCacheConfig.realtime.gcTime,
+  refetchOnMount: false,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: true,
+} as const;
+
 export const cartHooks = createCartHooks({
   service: cartService,
   queryKeys: cartQueryKeys,

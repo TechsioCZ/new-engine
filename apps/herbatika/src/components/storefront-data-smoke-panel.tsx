@@ -9,6 +9,7 @@ import { useState } from "react";
 import { StorefrontAuthControls } from "@/components/storefront-auth-controls";
 import { StorefrontQueryMonitorPanel } from "@/components/storefront-query-monitor-panel";
 import {
+  storefrontCartReadQueryOptions,
   useAddLineItem,
   useCart,
   useRemoveLineItem,
@@ -59,6 +60,8 @@ export function StorefrontDataSmokePanel() {
     country_code: region?.country_code,
     autoCreate: true,
     enabled: Boolean(region?.region_id),
+  }, {
+    queryOptions: storefrontCartReadQueryOptions,
   });
 
   const addLineItem = useAddLineItem();

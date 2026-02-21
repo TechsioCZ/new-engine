@@ -1,6 +1,10 @@
 import type { HttpTypes } from "@medusajs/types";
 import { useEffect, useState } from "react";
-import { useAddLineItem, useCart } from "@/lib/storefront/cart";
+import {
+  storefrontCartReadQueryOptions,
+  useAddLineItem,
+  useCart,
+} from "@/lib/storefront/cart";
 
 type RegionLike = {
   region_id?: string;
@@ -26,6 +30,8 @@ export function useHomepageCartActions(
     region_id: region?.region_id,
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
+  }, {
+    queryOptions: storefrontCartReadQueryOptions,
   });
   const addLineItem = useAddLineItem();
 

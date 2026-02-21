@@ -2,7 +2,11 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useState } from "react";
-import { useAddLineItem, useCart } from "@/lib/storefront/cart";
+import {
+  storefrontCartReadQueryOptions,
+  useAddLineItem,
+  useCart,
+} from "@/lib/storefront/cart";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 
 type UseSearchAddToCartInput = {
@@ -22,6 +26,8 @@ export const useSearchAddToCart = ({
     region_id: regionId,
     country_code: countryCode,
     enabled: Boolean(regionId),
+  }, {
+    queryOptions: storefrontCartReadQueryOptions,
   });
   const addLineItemMutation = useAddLineItem();
 
