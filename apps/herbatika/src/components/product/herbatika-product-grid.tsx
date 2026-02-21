@@ -18,6 +18,7 @@ type HerbatikaProductGridProps = {
   isProductAdding?: (product: HttpTypes.StoreProduct) => boolean;
   onProductHoverStart?: (product: HttpTypes.StoreProduct) => void;
   onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void;
+  getDescriptionOverride?: (product: HttpTypes.StoreProduct) => string | null;
   keyPrefix?: string;
 };
 
@@ -28,6 +29,7 @@ export function HerbatikaProductGrid({
   isProductAdding,
   onProductHoverStart,
   onProductHoverEnd,
+  getDescriptionOverride,
   keyPrefix,
 }: HerbatikaProductGridProps) {
   return (
@@ -37,6 +39,7 @@ export function HerbatikaProductGrid({
           isAdding={isProductAdding?.(product) ?? false}
           key={`${keyPrefix ?? layout}-${product.id}-${index}`}
           onAddToCart={onAddToCart}
+          descriptionOverride={getDescriptionOverride?.(product) ?? null}
           onProductHoverEnd={onProductHoverEnd}
           onProductHoverStart={onProductHoverStart}
           product={product}

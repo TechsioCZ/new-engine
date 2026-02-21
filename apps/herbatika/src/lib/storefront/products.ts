@@ -12,6 +12,7 @@ import {
   DEFAULT_PRODUCT_PAGE_SIZE,
   STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,
   type StorefrontProductListInput,
 } from "./product-query-config";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
@@ -66,5 +67,6 @@ export {
   buildProductListParams,
   STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,
 };
 export type { ProductListInput, ProductDetailInput };

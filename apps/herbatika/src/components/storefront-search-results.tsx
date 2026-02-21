@@ -28,6 +28,7 @@ export function StorefrontSearchResults() {
   const hits = result?.hits ?? [];
   const {
     orderedProducts,
+    descriptionByHandle,
     missingProductsCount,
     isProductGridLoading: isSearchProductsLoading,
   } = useSearchProducts({
@@ -111,6 +112,7 @@ export function StorefrontSearchResults() {
           {!shouldShowGridSkeleton && orderedProducts.length > 0 ? (
             <SearchResultsGrid
               activeProductId={activeProductId}
+              descriptionByHandle={descriptionByHandle}
               isAddPending={isAddPending}
               onAddToCart={handleAddToCart}
               products={orderedProducts}

@@ -1,5 +1,6 @@
 "use client";
 
+import type { HttpTypes } from "@medusajs/types";
 import { createQueryKey, normalizeQueryKeyPart } from "@techsio/storefront-data/shared";
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { storefrontCacheConfig } from "./cache";
@@ -11,6 +12,18 @@ type StorefrontSearchInput = {
   page?: number;
   limit?: number;
   enabled?: boolean;
+};
+
+type StorefrontSearchProductsInput = {
+  handles: string[];
+  regionId?: string;
+  countryCode?: string;
+  enabled?: boolean;
+};
+
+type StorefrontSearchProductsResult = {
+  products: HttpTypes.StoreProduct[];
+  count: number;
 };
 
 const DEFAULT_SEARCH_PAGE = 1;
@@ -41,6 +54,23 @@ const normalizeSearchInput = (input: StorefrontSearchInput) => {
   };
 };
 
+const normalizeSearchProductsInput = (input: StorefrontSearchProductsInput) => {
+  const handles = Array.from(
+    new Set(
+      input.handles
+        .map((handle) => handle.trim())
+        .filter((handle) => handle.length > 0),
+    ),
+  ).sort((left, right) => left.localeCompare(right));
+
+  return {
+    handles,
+    regionId: input.regionId?.trim() || "",
+    countryCode: input.countryCode?.trim() || "",
+    enabled: input.enabled ?? true,
+  };
+};
+
 const parseSearchErrorMessage = async (response: Response): Promise<string> => {
   try {
     const payload = (await response.json()) as { message?: string };
@@ -62,6 +92,15 @@ export const searchQueryKeys = {
       "search",
       "list",
       normalizeQueryKeyPart(normalizeSearchInput(input), {
+        omitKeys: ["enabled"],
+      }),
+    ),
+  products: (input: StorefrontSearchProductsInput) =>
+    createQueryKey(
+      STOREFRONT_QUERY_KEY_NAMESPACE,
+      "search",
+      "products",
+      normalizeQueryKeyPart(normalizeSearchProductsInput(input), {
         omitKeys: ["enabled"],
       }),
     ),
@@ -108,6 +147,51 @@ export const useStorefrontSearch = (input: StorefrontSearchInput) => {
   return useQuery({
     queryKey: searchQueryKeys.list(normalizedInput),
     queryFn: ({ signal }) => fetchStorefrontSearch(normalizedInput, signal),
+    enabled: isQueryEnabled,
+    ...storefrontCacheConfig.semiStatic,
+  });
+};
+
+export const fetchStorefrontSearchProducts = async (
+  input: StorefrontSearchProductsInput,
+  signal?: AbortSignal,
+): Promise<StorefrontSearchProductsResult> => {
+  const normalizedInput = normalizeSearchProductsInput(input);
+  if (normalizedInput.handles.length === 0) {
+    return { products: [], count: 0 };
+  }
+
+  const response = await fetch("/api/storefront-search/products", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      handles: normalizedInput.handles,
+      regionId: normalizedInput.regionId || undefined,
+      countryCode: normalizedInput.countryCode || undefined,
+    }),
+    cache: "no-store",
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseSearchErrorMessage(response));
+  }
+
+  return (await response.json()) as StorefrontSearchProductsResult;
+};
+
+export const useStorefrontSearchProducts = (input: StorefrontSearchProductsInput) => {
+  const normalizedInput = normalizeSearchProductsInput(input);
+  const isQueryEnabled =
+    normalizedInput.enabled &&
+    normalizedInput.handles.length > 0 &&
+    Boolean(normalizedInput.regionId);
+
+  return useQuery({
+    queryKey: searchQueryKeys.products(normalizedInput),
+    queryFn: ({ signal }) => fetchStorefrontSearchProducts(normalizedInput, signal),
     enabled: isQueryEnabled,
     ...storefrontCacheConfig.semiStatic,
   });

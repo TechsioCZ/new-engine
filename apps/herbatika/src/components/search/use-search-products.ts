@@ -3,11 +3,7 @@
 import type { HttpTypes } from "@medusajs/types";
 import { useMemo } from "react";
 import type { StorefrontSearchHit } from "@/lib/storefront/meili-search";
-import {
-  STOREFRONT_PRODUCT_CARD_FIELDS,
-  useProducts,
-} from "@/lib/storefront/products";
-import { SEARCH_RESULT_LIMIT } from "./search-query-config";
+import { useStorefrontSearchProducts } from "@/lib/storefront/search";
 
 type UseSearchProductsInput = {
   query: string;
@@ -37,21 +33,42 @@ export const useSearchProducts = ({
     return Array.from(handles);
   }, [hits]);
 
-  const searchProductsQuery = useProducts({
-    page: 1,
-    limit: searchHitHandles.length || SEARCH_RESULT_LIMIT,
-    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-    handle: searchHitHandles.length > 0 ? searchHitHandles : undefined,
-    region_id: regionId,
-    country_code: countryCode,
+  const sortedSearchHitHandles = useMemo(() => {
+    return [...searchHitHandles].sort((left, right) => left.localeCompare(right));
+  }, [searchHitHandles]);
+
+  const descriptionByHandle = useMemo(() => {
+    const nextDescriptions: Record<string, string> = {};
+
+    for (const hit of hits) {
+      const normalizedHandle = hit.handle.trim();
+      if (!normalizedHandle || nextDescriptions[normalizedHandle]) {
+        continue;
+      }
+
+      const snippet = hit.descriptionSnippet.trim();
+      if (!snippet) {
+        continue;
+      }
+
+      nextDescriptions[normalizedHandle] = snippet;
+    }
+
+    return nextDescriptions;
+  }, [hits]);
+
+  const searchProductsQuery = useStorefrontSearchProducts({
+    handles: sortedSearchHitHandles,
+    regionId,
+    countryCode,
     enabled:
-      query.length > 0 && searchHitHandles.length > 0 && Boolean(regionId),
+      query.length > 0 && sortedSearchHitHandles.length > 0 && Boolean(regionId),
   });
 
   const productsByHandle = useMemo(() => {
     const handleToProduct = new Map<string, HttpTypes.StoreProduct>();
 
-    for (const product of searchProductsQuery.products) {
+    for (const product of searchProductsQuery.data?.products ?? []) {
       const handle = product.handle?.trim();
       if (!handle || handleToProduct.has(handle)) {
         continue;
@@ -61,7 +78,7 @@ export const useSearchProducts = ({
     }
 
     return handleToProduct;
-  }, [searchProductsQuery.products]);
+  }, [searchProductsQuery.data?.products]);
 
   const orderedProducts = useMemo(() => {
     return hits
@@ -78,11 +95,12 @@ export const useSearchProducts = ({
     query.length > 0 &&
     hits.length > 0 &&
     Boolean(regionId) &&
-    (searchProductsQuery.isLoading ||
+      (searchProductsQuery.isLoading ||
       (searchProductsQuery.isFetching && orderedProducts.length === 0));
 
   return {
     orderedProducts,
+    descriptionByHandle,
     missingProductsCount,
     isProductGridLoading,
   };

@@ -22,6 +22,7 @@ type HerbatikaProductCardProps = {
   onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void;
   onProductHoverStart?: (product: HttpTypes.StoreProduct) => void;
   onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void;
+  descriptionOverride?: string | null;
 };
 
 export function HerbatikaProductCard({
@@ -30,6 +31,7 @@ export function HerbatikaProductCard({
   onAddToCart,
   onProductHoverStart,
   onProductHoverEnd,
+  descriptionOverride,
 }: HerbatikaProductCardProps) {
   const productHref = product.handle ? `/p/${product.handle}` : "/#";
   const defaultVariantId = product.variants?.[0]?.id;
@@ -37,7 +39,10 @@ export function HerbatikaProductCard({
   const discountLabel = resolveDiscountLabel(price);
   const flags = resolveFlags(product, Boolean(discountLabel));
   const title = product.title || "Produkt";
-  const description = resolveDescription(product);
+  const description =
+    descriptionOverride && descriptionOverride.trim().length > 0
+      ? descriptionOverride
+      : resolveDescription(product);
 
   return (
     <ProductCard className="h-full max-w-none rounded-2xl border-transparent bg-surface p-500 pb-550 shadow-none">
