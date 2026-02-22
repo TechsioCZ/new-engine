@@ -14,7 +14,7 @@ This library provides a unified data fetching layer with:
 Behavior notes:
 - Prefetch helpers default to skipping only **fresh** cache entries (`skipMode: "fresh"`), not merely existing entries.
 - TanStack Query cancellation does not apply to Suspense hooks (`useSuspenseQuery` / `useSuspenseQueries`).
-- Query-key factories normalize plain-object params and keep primitive detail params (for example `id: string`) as-is.
+- Query-key factories normalize plain-object params and keep primitive detail params (for example, `id: string`) as-is.
 
 ## Installation
 
@@ -62,6 +62,8 @@ export function Providers({ children }) {
   )
 }
 ```
+
+`clientConfig` is only applied when the internal singleton QueryClient is first created; later renders do not reconfigure it.
 
 ### 2. Create Domain Hooks
 
