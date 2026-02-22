@@ -34,23 +34,37 @@ export function createMedusaCheckoutService(
   return {
     async listShippingOptions(
       cartId: string,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StoreCartShippingOption[]> {
-      const response = await sdk.store.fulfillment.listCartOptions({
-        cart_id: cartId,
-      })
+      const response =
+        await sdk.client.fetch<HttpTypes.StoreShippingOptionListResponse>(
+          "/store/shipping-options",
+          {
+            query: {
+              cart_id: cartId,
+            },
+            signal,
+          }
+        )
       return response.shipping_options ?? []
     },
 
     async calculateShippingOption(
       optionId: string,
       input: { cart_id: string; data?: Record<string, unknown> },
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StoreCartShippingOption> {
-      const response = await sdk.store.fulfillment.calculate(optionId, {
-        cart_id: input.cart_id,
-        data: input.data,
-      })
+      const response = await sdk.client.fetch<HttpTypes.StoreShippingOptionResponse>(
+        `/store/shipping-options/${optionId}/calculate`,
+        {
+          method: "POST",
+          body: {
+            cart_id: input.cart_id,
+            data: input.data,
+          },
+          signal,
+        }
+      )
       return response.shipping_option
     },
 
@@ -71,11 +85,18 @@ export function createMedusaCheckoutService(
 
     async listPaymentProviders(
       regionId: string,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StorePaymentProvider[]> {
-      const response = await sdk.store.payment.listPaymentProviders({
-        region_id: regionId,
-      })
+      const response =
+        await sdk.client.fetch<HttpTypes.StorePaymentProviderListResponse>(
+          "/store/payment-providers",
+          {
+            query: {
+              region_id: regionId,
+            },
+            signal,
+          }
+        )
       return response.payment_providers ?? []
     },
 

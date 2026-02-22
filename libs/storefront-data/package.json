@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
+    ".": {
+      "types": "./dist/src/client/provider.d.ts",
+      "import": "./dist/client/provider.js"
+    },
     "./*": {
       "types": "./dist/src/*.d.ts",
       "import": "./dist/*.js"

@@ -116,13 +116,16 @@ function ProductList() {
 // app/products/page.tsx
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
 import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
+import { createProductQueryKeys } from "@techsio/storefront-data/products/query-keys"
 
 export default async function ProductsPage() {
   const queryClient = getServerQueryClient()
+  const productQueryKeys = createProductQueryKeys("my-app")
+  const listParams = { limit: 20, offset: 0, region_id: "reg_123" }
 
   await queryClient.prefetchQuery({
-    queryKey: ["my-app", "products", "list", {}],
-    queryFn: () => fetchProducts(),
+    queryKey: productQueryKeys.list(listParams),
+    queryFn: () => fetchProducts(listParams),
   })
 
   return (

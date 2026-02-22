@@ -47,29 +47,43 @@ export function createMedusaOrderService(
   return {
     async getOrders(
       params: MedusaOrderListInput,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<OrderListResponse<HttpTypes.StoreOrder>> {
-      const response = await sdk.store.order.list({
-        fields: defaultFields,
-        limit: params.limit,
-        offset: params.offset,
-      })
+      const response = await sdk.client.fetch<HttpTypes.StoreOrderListResponse>(
+        "/store/orders",
+        {
+          query: {
+            fields: defaultFields,
+            limit: params.limit,
+            offset: params.offset,
+          },
+          signal,
+        }
+      )
       return {
-        orders: response.orders,
+        orders: response.orders ?? [],
         count: response.count,
       }
     },
 
     async getOrder(
       params: MedusaOrderDetailInput,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StoreOrder | null> {
       if (!params.id) {
         return null
       }
-      const response = await sdk.store.order.retrieve(params.id, {
-        fields: defaultFields,
-      })
+
+      const response = await sdk.client.fetch<{ order: HttpTypes.StoreOrder }>(
+        `/store/orders/${params.id}`,
+        {
+          query: {
+            fields: defaultFields,
+          },
+          signal,
+        }
+      )
+
       return response.order ?? null
     },
   }

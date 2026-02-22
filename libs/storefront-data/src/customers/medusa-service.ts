@@ -202,10 +202,16 @@ export function createMedusaCustomerService(
   return {
     async getAddresses(
       _params: MedusaCustomerListInput,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<CustomerAddressListResponse<HttpTypes.StoreCustomerAddress>> {
       try {
-        const response = await sdk.store.customer.listAddress()
+        const response =
+          await sdk.client.fetch<HttpTypes.StoreCustomerAddressListResponse>(
+            "/store/customers/me/addresses",
+            {
+              signal,
+            }
+          )
         return { addresses: response.addresses ?? [] }
       } catch (error) {
         if (isAuthError(error)) {

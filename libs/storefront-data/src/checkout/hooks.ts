@@ -153,11 +153,12 @@ export function createCheckoutHooks<
     const calculatedOptions = shippingOptions.filter(
       (option) => option.price_type === "calculated"
     )
+    const calculateShippingOption = service.calculateShippingOption
 
     const shouldCalculate =
       Boolean(cartId) &&
       calculatePrices &&
-      typeof service.calculateShippingOption === "function"
+      typeof calculateShippingOption === "function"
     const cartIdValue = cartId ?? ""
 
     const calculatedQueries = useQueries({
@@ -171,14 +172,14 @@ export function createCheckoutHooks<
                 data,
               }),
               queryFn: ({ signal }: { signal?: AbortSignal }) =>
-                service.calculateShippingOption?.(
+                calculateShippingOption(
                   option.id,
                   {
                     cart_id: cartIdValue,
                     data,
                   },
                   signal
-                ) as Promise<TShippingOption>,
+                ),
               enabled,
               ...resolvedCacheConfig.realtime,
             }
