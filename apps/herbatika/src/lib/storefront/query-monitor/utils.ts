@@ -1,5 +1,5 @@
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "../query-keys";
-import type { QueryLike } from "./types";
+import type { QueryLike, TrackedApiKind } from "./types";
 
 export const isStorefrontNamespaceQuery = (query: QueryLike): boolean => {
   const firstKeySegment = query.queryKey?.[0];
@@ -40,11 +40,31 @@ export const getRequestUrl = (input: RequestInfo | URL): string => {
   return input.url;
 };
 
-export const isStoreRequest = (url: string): boolean => {
+export const getTrackedApiKind = (url: string): TrackedApiKind | null => {
+  const isSearchPath = (path: string): boolean =>
+    path === "/api/storefront-search" ||
+    path.startsWith("/api/storefront-search/");
+
   try {
     const resolved = new URL(url, window.location.origin);
-    return resolved.pathname.startsWith("/store/");
+    if (resolved.pathname.startsWith("/store/")) {
+      return "store";
+    }
+    if (isSearchPath(resolved.pathname)) {
+      return "search";
+    }
+    return null;
   } catch {
-    return url.includes("/store/");
+    if (url.includes("/store/")) {
+      return "store";
+    }
+    if (
+      url.includes("/api/storefront-search?") ||
+      url.endsWith("/api/storefront-search") ||
+      url.includes("/api/storefront-search/")
+    ) {
+      return "search";
+    }
+    return null;
   }
 };

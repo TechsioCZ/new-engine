@@ -6,6 +6,7 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
+    "audit:storefront-monitor": "node scripts/audit-storefront-monitor.mjs",
     "lint": "biome check",
     "format": "biome format --write",
     "validate:token-usage": "node scripts/validate-token-usage.mjs",

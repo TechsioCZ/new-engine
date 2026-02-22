@@ -82,18 +82,28 @@ export function StorefrontQueryMonitorPanel() {
           {`prefetch reuse hit ratio: ${prefetchReuseRatio}`}
         </Badge>
         <Badge
-          variant={snapshot.network.server5xx === 0 ? "success" : "danger"}
+          variant={snapshot.network.storeServer5xx === 0 ? "success" : "danger"}
         >
-          {`store 5xx: ${snapshot.network.server5xx}`}
+          {`store 5xx: ${snapshot.network.storeServer5xx}`}
         </Badge>
         <Badge
-          variant={snapshot.network.failed === 0 ? "success" : "warning"}
+          variant={snapshot.network.storeFailed === 0 ? "success" : "warning"}
         >
-          {`store failed(non-abort): ${snapshot.network.failed}`}
+          {`store failed(non-abort): ${snapshot.network.storeFailed}`}
+        </Badge>
+        <Badge
+          variant={snapshot.network.searchServer5xx === 0 ? "success" : "danger"}
+        >
+          {`search 5xx: ${snapshot.network.searchServer5xx}`}
+        </Badge>
+        <Badge
+          variant={snapshot.network.searchFailed === 0 ? "success" : "warning"}
+        >
+          {`search failed(non-abort): ${snapshot.network.searchFailed}`}
         </Badge>
       </div>
 
-      <div className="grid gap-3 text-sm md:grid-cols-3">
+      <div className="grid gap-3 text-sm md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-border-secondary p-3">
           <p className="font-semibold">Observer cache</p>
           <p>{`hit: ${snapshot.query.cacheHit}`}</p>
@@ -113,11 +123,21 @@ export function StorefrontQueryMonitorPanel() {
         <div className="rounded-lg border border-border-secondary p-3">
           <p className="font-semibold">Store API network</p>
           <p>{`requests: ${snapshot.network.storeRequests}`}</p>
-          <p>{`2xx: ${snapshot.network.ok2xx}`}</p>
-          <p>{`4xx: ${snapshot.network.client4xx}`}</p>
-          <p>{`5xx: ${snapshot.network.server5xx}`}</p>
-          <p>{`aborted: ${snapshot.network.aborted}`}</p>
-          <p>{`failed(non-abort): ${snapshot.network.failed}`}</p>
+          <p>{`2xx: ${snapshot.network.storeOk2xx}`}</p>
+          <p>{`4xx: ${snapshot.network.storeClient4xx}`}</p>
+          <p>{`5xx: ${snapshot.network.storeServer5xx}`}</p>
+          <p>{`aborted: ${snapshot.network.storeAborted}`}</p>
+          <p>{`failed(non-abort): ${snapshot.network.storeFailed}`}</p>
+        </div>
+
+        <div className="rounded-lg border border-border-secondary p-3">
+          <p className="font-semibold">Search API network</p>
+          <p>{`requests: ${snapshot.network.searchRequests}`}</p>
+          <p>{`2xx: ${snapshot.network.searchOk2xx}`}</p>
+          <p>{`4xx: ${snapshot.network.searchClient4xx}`}</p>
+          <p>{`5xx: ${snapshot.network.searchServer5xx}`}</p>
+          <p>{`aborted: ${snapshot.network.searchAborted}`}</p>
+          <p>{`failed(non-abort): ${snapshot.network.searchFailed}`}</p>
         </div>
       </div>
     </section>

@@ -8,7 +8,36 @@ import {
   resetStorefrontMonitor,
 } from "./snapshot";
 import type { MonitorWindow } from "./types";
-import { getRequestUrl, isStoreRequest } from "./utils";
+import type { TrackedApiKind } from "./types";
+import { getRequestUrl, getTrackedApiKind } from "./utils";
+
+type NetworkMetricKeys = {
+  requests: string;
+  ok2xx: string;
+  client4xx: string;
+  server5xx: string;
+  aborted: string;
+  failed: string;
+};
+
+const networkMetricKeysByKind: Record<TrackedApiKind, NetworkMetricKeys> = {
+  store: {
+    requests: "storeRequests",
+    ok2xx: "storeOk2xx",
+    client4xx: "storeClient4xx",
+    server5xx: "storeServer5xx",
+    aborted: "storeAborted",
+    failed: "storeFailed",
+  },
+  search: {
+    requests: "searchRequests",
+    ok2xx: "searchOk2xx",
+    client4xx: "searchClient4xx",
+    server5xx: "searchServer5xx",
+    aborted: "searchAborted",
+    failed: "searchFailed",
+  },
+};
 
 const isAbortLikeError = (error: unknown): boolean => {
   if (error instanceof DOMException) {
@@ -43,9 +72,9 @@ export const setupFetchPatch = () => {
   monitorState.originalFetch = window.fetch.bind(window);
   const patchedFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = getRequestUrl(input);
-    const shouldTrack = isStoreRequest(url);
-    if (shouldTrack) {
-      bump("network", "storeRequests");
+    const apiKind = getTrackedApiKind(url);
+    if (apiKind) {
+      bump("network", networkMetricKeysByKind[apiKind].requests);
     }
 
     try {
@@ -53,23 +82,25 @@ export const setupFetchPatch = () => {
         input,
         init,
       );
-      if (shouldTrack) {
+      if (apiKind) {
+        const metricKeys = networkMetricKeysByKind[apiKind];
         if (response.status >= 500) {
-          bump("network", "server5xx");
+          bump("network", metricKeys.server5xx);
         } else if (response.status >= 400) {
-          bump("network", "client4xx");
+          bump("network", metricKeys.client4xx);
         } else {
-          bump("network", "ok2xx");
+          bump("network", metricKeys.ok2xx);
         }
         emitSnapshot();
       }
       return response;
     } catch (error) {
-      if (shouldTrack) {
+      if (apiKind) {
+        const metricKeys = networkMetricKeysByKind[apiKind];
         if (isAbortLikeError(error)) {
-          bump("network", "aborted");
+          bump("network", metricKeys.aborted);
         } else {
-          bump("network", "failed");
+          bump("network", metricKeys.failed);
         }
         emitSnapshot();
       }

@@ -6,6 +6,7 @@ import type {
 
 export type QueryActionType = "fetch" | "success" | "error";
 export type PrefetchKind = "prefetch" | "observer";
+export type TrackedApiKind = "store" | "search";
 
 export type QueryLike = TanstackQuery<unknown, unknown, unknown, QueryKey>;
 
@@ -34,11 +35,17 @@ export type StorefrontMonitorSnapshot = {
   };
   network: {
     storeRequests: number;
-    ok2xx: number;
-    client4xx: number;
-    server5xx: number;
-    aborted: number;
-    failed: number;
+    storeOk2xx: number;
+    storeClient4xx: number;
+    storeServer5xx: number;
+    storeAborted: number;
+    storeFailed: number;
+    searchRequests: number;
+    searchOk2xx: number;
+    searchClient4xx: number;
+    searchServer5xx: number;
+    searchAborted: number;
+    searchFailed: number;
   };
 };
 
