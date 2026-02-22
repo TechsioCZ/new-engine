@@ -86,6 +86,11 @@ export function StorefrontQueryMonitorPanel() {
         >
           {`store 5xx: ${snapshot.network.server5xx}`}
         </Badge>
+        <Badge
+          variant={snapshot.network.failed === 0 ? "success" : "warning"}
+        >
+          {`store failed(non-abort): ${snapshot.network.failed}`}
+        </Badge>
       </div>
 
       <div className="grid gap-3 text-sm md:grid-cols-3">
@@ -111,7 +116,8 @@ export function StorefrontQueryMonitorPanel() {
           <p>{`2xx: ${snapshot.network.ok2xx}`}</p>
           <p>{`4xx: ${snapshot.network.client4xx}`}</p>
           <p>{`5xx: ${snapshot.network.server5xx}`}</p>
-          <p>{`failed: ${snapshot.network.failed}`}</p>
+          <p>{`aborted: ${snapshot.network.aborted}`}</p>
+          <p>{`failed(non-abort): ${snapshot.network.failed}`}</p>
         </div>
       </div>
     </section>

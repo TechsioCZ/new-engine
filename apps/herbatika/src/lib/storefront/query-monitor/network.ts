@@ -1,7 +1,35 @@
 import { monitorState, setStorefrontMonitorVerbose } from "./state";
-import { bump, emitSnapshot, getStorefrontMonitorSnapshot, printStorefrontMonitorSummary, resetStorefrontMonitor } from "./snapshot";
+import {
+  bump,
+  diffStorefrontMonitorSnapshots,
+  emitSnapshot,
+  getStorefrontMonitorSnapshot,
+  printStorefrontMonitorSummary,
+  resetStorefrontMonitor,
+} from "./snapshot";
 import type { MonitorWindow } from "./types";
 import { getRequestUrl, isStoreRequest } from "./utils";
+
+const isAbortLikeError = (error: unknown): boolean => {
+  if (error instanceof DOMException) {
+    return error.name === "AbortError";
+  }
+
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  const maybeName = (error as { name?: unknown }).name;
+  if (typeof maybeName === "string" && maybeName === "AbortError") {
+    return true;
+  }
+
+  const maybeMessage = (error as { message?: unknown }).message;
+  return (
+    typeof maybeMessage === "string" &&
+    /\babort(ed)?\b/i.test(maybeMessage)
+  );
+};
 
 export const setupFetchPatch = () => {
   if (typeof window === "undefined") {
@@ -38,7 +66,11 @@ export const setupFetchPatch = () => {
       return response;
     } catch (error) {
       if (shouldTrack) {
-        bump("network", "failed");
+        if (isAbortLikeError(error)) {
+          bump("network", "aborted");
+        } else {
+          bump("network", "failed");
+        }
         emitSnapshot();
       }
       throw error;
@@ -58,6 +90,7 @@ export const registerWindowMonitorApi = () => {
   const monitorWindow = window as MonitorWindow;
   monitorWindow.__HERBATIKA_STOREFRONT_MONITOR__ = {
     getSnapshot: getStorefrontMonitorSnapshot,
+    diffSnapshots: diffStorefrontMonitorSnapshots,
     reset: resetStorefrontMonitor,
     printSummary: printStorefrontMonitorSummary,
     setVerbose: setStorefrontMonitorVerbose,

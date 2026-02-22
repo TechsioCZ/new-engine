@@ -1,8 +1,16 @@
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "../query-keys";
 import type { StorefrontMonitorSnapshot, StorefrontMonitorState } from "./types";
 
-export const defaultSnapshot = (): StorefrontMonitorSnapshot => ({
+const createMonitorInstanceId = () =>
+  `monitor-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+export const defaultSnapshot = (
+  instanceId: string,
+  bootedAt: number,
+): StorefrontMonitorSnapshot => ({
   namespace: STOREFRONT_QUERY_KEY_NAMESPACE,
+  instanceId,
+  bootedAt,
   updatedAt: Date.now(),
   query: {
     added: 0,
@@ -27,12 +35,18 @@ export const defaultSnapshot = (): StorefrontMonitorSnapshot => ({
     ok2xx: 0,
     client4xx: 0,
     server5xx: 0,
+    aborted: 0,
     failed: 0,
   },
 });
 
+const bootedAt = Date.now();
+const instanceId = createMonitorInstanceId();
+
 export const monitorState: StorefrontMonitorState = {
-  snapshot: defaultSnapshot(),
+  instanceId,
+  bootedAt,
+  snapshot: defaultSnapshot(instanceId, bootedAt),
   listeners: new Set(),
   installedClients: new WeakSet(),
   inFlightKinds: new Map(),

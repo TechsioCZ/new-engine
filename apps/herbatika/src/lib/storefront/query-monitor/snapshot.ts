@@ -1,5 +1,6 @@
 import { defaultSnapshot, monitorState } from "./state";
 import type {
+  StorefrontMonitorDiff,
   StorefrontMonitorListener,
   StorefrontMonitorSnapshot,
 } from "./types";
@@ -33,6 +34,51 @@ export const emitSnapshot = () => {
   }
 };
 
+const diffMetricSection = <
+  Section extends
+    | StorefrontMonitorSnapshot["query"]
+    | StorefrontMonitorSnapshot["prefetch"]
+    | StorefrontMonitorSnapshot["network"],
+>(
+  before: Section,
+  after: Section,
+): Section => {
+  const keys = new Set([
+    ...Object.keys(before ?? {}),
+    ...Object.keys(after ?? {}),
+  ]);
+  const delta: Record<string, number> = {};
+
+  for (const key of keys) {
+    const beforeValue = before[key as keyof Section] as number | undefined;
+    const afterValue = after[key as keyof Section] as number | undefined;
+    delta[key] = (afterValue ?? 0) - (beforeValue ?? 0);
+  }
+
+  return delta as Section;
+};
+
+export const diffStorefrontMonitorSnapshots = (
+  before: StorefrontMonitorSnapshot,
+  after: StorefrontMonitorSnapshot,
+): StorefrontMonitorDiff => {
+  if (before.instanceId !== after.instanceId) {
+    return {
+      mode: "reset",
+      query: { ...after.query },
+      prefetch: { ...after.prefetch },
+      network: { ...after.network },
+    };
+  }
+
+  return {
+    mode: "delta",
+    query: diffMetricSection(before.query, after.query),
+    prefetch: diffMetricSection(before.prefetch, after.prefetch),
+    network: diffMetricSection(before.network, after.network),
+  };
+};
+
 export const logVerbose = (message: string, payload?: Record<string, unknown>) => {
   if (!monitorState.verbose) {
     return;
@@ -58,7 +104,10 @@ export const subscribeStorefrontMonitor = (
 };
 
 export const resetStorefrontMonitor = (): void => {
-  monitorState.snapshot = defaultSnapshot();
+  monitorState.snapshot = defaultSnapshot(
+    monitorState.instanceId,
+    monitorState.bootedAt,
+  );
   monitorState.inFlightKinds.clear();
   monitorState.prefetchedQueryHashes.clear();
   emitSnapshot();
@@ -82,6 +131,7 @@ export const printStorefrontMonitorSummary = (): void => {
     store2xx: snapshot.network.ok2xx,
     store4xx: snapshot.network.client4xx,
     store5xx: snapshot.network.server5xx,
-    storeFailed: snapshot.network.failed,
+    storeAborted: snapshot.network.aborted,
+    storeFailedNonAbort: snapshot.network.failed,
   });
 };

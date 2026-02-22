@@ -11,6 +11,8 @@ export type QueryLike = TanstackQuery<unknown, unknown, unknown, QueryKey>;
 
 export type StorefrontMonitorSnapshot = {
   namespace: string;
+  instanceId: string;
+  bootedAt: number;
   updatedAt: number;
   query: {
     added: number;
@@ -35,8 +37,16 @@ export type StorefrontMonitorSnapshot = {
     ok2xx: number;
     client4xx: number;
     server5xx: number;
+    aborted: number;
     failed: number;
   };
+};
+
+export type StorefrontMonitorDiff = {
+  mode: "delta" | "reset";
+  query: StorefrontMonitorSnapshot["query"];
+  prefetch: StorefrontMonitorSnapshot["prefetch"];
+  network: StorefrontMonitorSnapshot["network"];
 };
 
 export type StorefrontMonitorListener = (
@@ -46,6 +56,10 @@ export type StorefrontMonitorListener = (
 export type MonitorWindow = Window & {
   __HERBATIKA_STOREFRONT_MONITOR__?: {
     getSnapshot: () => StorefrontMonitorSnapshot;
+    diffSnapshots: (
+      before: StorefrontMonitorSnapshot,
+      after: StorefrontMonitorSnapshot,
+    ) => StorefrontMonitorDiff;
     reset: () => void;
     printSummary: () => void;
     setVerbose: (verbose: boolean) => void;
@@ -53,6 +67,8 @@ export type MonitorWindow = Window & {
 };
 
 export type StorefrontMonitorState = {
+  instanceId: string;
+  bootedAt: number;
   snapshot: StorefrontMonitorSnapshot;
   listeners: Set<StorefrontMonitorListener>;
   installedClients: WeakSet<QueryClient>;
