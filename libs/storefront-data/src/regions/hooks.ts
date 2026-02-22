@@ -10,9 +10,9 @@ import {
   type CacheConfig,
 } from "../shared/cache-config"
 import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import { resolvePagination } from "../shared/pagination"
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
-import { resolvePagination } from "../products/pagination"
 import { createRegionQueryKeys } from "./query-keys"
 import type {
   RegionDetailInputBase,

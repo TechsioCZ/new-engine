@@ -1,8 +1,8 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
 import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
-import { resolvePagination } from "../products/pagination"
 import { createOrderQueryKeys } from "./query-keys"
 import type {
   OrderDetailInputBase,

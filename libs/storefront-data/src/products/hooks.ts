@@ -18,9 +18,9 @@ import type {
 } from "../shared/hook-types"
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
+import { resolvePagination } from "../shared/pagination"
 import { useRegionContext } from "../shared/region-context"
 import { createProductQueryKeys } from "./query-keys"
-import { resolvePagination } from "./pagination"
 import type {
   ProductDetailInputBase,
   ProductInfiniteInputBase,

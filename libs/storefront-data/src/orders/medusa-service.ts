@@ -9,12 +9,10 @@ export type MedusaOrderServiceConfig = {
 export type MedusaOrderListInput = {
   limit?: number
   offset?: number
-  enabled?: boolean
 }
 
 export type MedusaOrderDetailInput = {
   id?: string
-  enabled?: boolean
 }
 
 /**

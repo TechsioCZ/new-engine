@@ -72,10 +72,13 @@ export function createMedusaCartService(
   return {
     async retrieveCart(
       cartId: string,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StoreCart | null> {
       try {
-        const { cart } = await sdk.store.cart.retrieve(cartId)
+        const { cart } = await sdk.client.fetch<HttpTypes.StoreCartResponse>(
+          `/store/carts/${cartId}`,
+          { signal }
+        )
         return cart ?? null
       } catch (error: unknown) {
         if (isNotFoundError(error)) {

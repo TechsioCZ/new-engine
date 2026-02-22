@@ -106,9 +106,12 @@ export function createMedusaAuthService(
   }
 
   return {
-    async getCustomer() {
+    async getCustomer(signal?: AbortSignal) {
       try {
-        const { customer } = await sdk.store.customer.retrieve()
+        const { customer } = await sdk.client.fetch<HttpTypes.StoreCustomerResponse>(
+          "/store/customers/me",
+          { signal }
+        )
         if (!customer) {
           return null
         }
@@ -151,22 +154,25 @@ export function createMedusaAuthService(
 
     async register(data) {
       // Step 1: Register creates auth identity (email + password)
-      const token = await sdk.auth.register("customer", "emailpass", {
+      const registrationToken = await sdk.auth.register("customer", "emailpass", {
         email: data.email,
         password: data.password,
       })
 
       // Handle OAuth redirects
-      if (typeof token !== "string") {
+      if (typeof registrationToken !== "string") {
         throw new Error("Multi-step authentication not supported")
       }
 
       try {
         // Step 2: Login to establish proper session (REQUIRED!)
-        await sdk.auth.login("customer", "emailpass", {
+        const loginToken = await sdk.auth.login("customer", "emailpass", {
           email: data.email,
           password: data.password,
         })
+        if (typeof loginToken !== "string") {
+          throw new Error("Multi-step authentication not supported")
+        }
 
         // Step 3: CREATE customer profile (not update!)
         await sdk.store.customer.create({
@@ -176,9 +182,9 @@ export function createMedusaAuthService(
         })
 
         // Step 4: Refresh token for proper permissions (REQUIRED!)
-        await sdk.auth.refresh()
+        const sessionToken = await sdk.auth.refresh()
 
-        return token
+        return sessionToken
       } catch (err) {
         // CRITICAL: Clean up orphaned token if customer.create() failed
         // If register() succeeded but create() failed, we have token without customer

@@ -275,10 +275,10 @@ export function createCustomerHooks<
   }
 
   function useDeleteCustomerAddress<TContext = unknown>(
-    options?: CustomerMutationOptions<void, { addressId?: string }, TContext>
+    options?: CustomerMutationOptions<void, { addressId: string }, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation<void, unknown, { addressId?: string }, TContext>({
+    return useMutation<void, unknown, { addressId: string }, TContext>({
       mutationFn: ({ addressId }) => {
         if (!addressId) {
           throw new Error("Address id is required")

@@ -10,7 +10,11 @@ import {
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
-import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import type {
+  MutationOptions,
+  ReadQueryOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
 import { omitKeys } from "../shared/object-utils"
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
@@ -351,27 +355,8 @@ export type CreateCartHooksConfig<
   BuildCreateInputFromAddInputOption<TAddInput, TCreateInput> &
   BuildUpdateItemParamsOption<TUpdateItemInput, TUpdateItemParams>
 
-export type CartMutationOptions<TData, TVariables, TContext = unknown> = {
-  onSuccess?: (
-    data: TData,
-    variables: TVariables,
-    context: TContext | undefined
-  ) => void
-  onError?: (
-    error: unknown,
-    variables: TVariables,
-    context: TContext | undefined
-  ) => void
-  onMutate?: (
-    variables: TVariables
-  ) => TContext | void | Promise<TContext | void>
-  onSettled?: (
-    data: TData | undefined,
-    error: unknown | null,
-    variables: TVariables,
-    context: TContext | undefined
-  ) => void
-}
+export type CartMutationOptions<TData, TVariables, TContext = unknown> =
+  MutationOptions<TData, TVariables, TContext>
 
 export function createCartHooks<
   TCart extends CartLike,
