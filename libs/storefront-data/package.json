@@ -7,9 +7,58 @@
       "types": "./dist/src/client/provider.d.ts",
       "import": "./dist/client/provider.js"
     },
-    "./*": {
-      "types": "./dist/src/*.d.ts",
-      "import": "./dist/*.js"
+    "./server/get-query-client": {
+      "types": "./dist/src/server/get-query-client.d.ts",
+      "import": "./dist/server/get-query-client.js"
+    },
+    "./get-query-client": null,
+    "./auth/*": {
+      "types": "./dist/src/auth/*.d.ts",
+      "import": "./dist/auth/*.js"
+    },
+    "./cart/*": {
+      "types": "./dist/src/cart/*.d.ts",
+      "import": "./dist/cart/*.js"
+    },
+    "./catalog/*": {
+      "types": "./dist/src/catalog/*.d.ts",
+      "import": "./dist/catalog/*.js"
+    },
+    "./categories/*": {
+      "types": "./dist/src/categories/*.d.ts",
+      "import": "./dist/categories/*.js"
+    },
+    "./checkout/*": {
+      "types": "./dist/src/checkout/*.d.ts",
+      "import": "./dist/checkout/*.js"
+    },
+    "./client/*": {
+      "types": "./dist/src/client/*.d.ts",
+      "import": "./dist/client/*.js"
+    },
+    "./collections/*": {
+      "types": "./dist/src/collections/*.d.ts",
+      "import": "./dist/collections/*.js"
+    },
+    "./customers/*": {
+      "types": "./dist/src/customers/*.d.ts",
+      "import": "./dist/customers/*.js"
+    },
+    "./orders/*": {
+      "types": "./dist/src/orders/*.d.ts",
+      "import": "./dist/orders/*.js"
+    },
+    "./products/*": {
+      "types": "./dist/src/products/*.d.ts",
+      "import": "./dist/products/*.js"
+    },
+    "./regions/*": {
+      "types": "./dist/src/regions/*.d.ts",
+      "import": "./dist/regions/*.js"
+    },
+    "./shared/*": {
+      "types": "./dist/src/shared/*.d.ts",
+      "import": "./dist/shared/*.js"
     }
   },
   "files": [

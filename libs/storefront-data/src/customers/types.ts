@@ -79,9 +79,4 @@ export type UseSuspenseCustomerAddressesResult<TAddress> =
 export type CustomerMutationOptions<TData, TVariables, TContext = unknown> =
   MutationOptions<TData, TVariables, TContext>
 
-export type CustomerAddressValidationResult =
-  | string
-  | string[]
-  | Error
-  | null
-  | undefined
+export type CustomerAddressValidationResult = string[] | null

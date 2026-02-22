@@ -26,18 +26,16 @@ import type {
   UseSuspenseCustomerAddressesResult,
 } from "./types"
 
-const handleAddressValidation = (result: CustomerAddressValidationResult) => {
-  if (!result) {
+const handleAddressValidation = (
+  result: CustomerAddressValidationResult | undefined
+) => {
+  if (!result || result.length === 0) {
     return
   }
-  if (result instanceof Error) {
-    throw result
-  }
-  if (Array.isArray(result)) {
-    throw new Error(result.filter(Boolean).join(", "))
-  }
-  if (typeof result === "string") {
-    throw new Error(result)
+
+  const message = result.filter(Boolean).join(", ")
+  if (message) {
+    throw new Error(message)
   }
 }
 
