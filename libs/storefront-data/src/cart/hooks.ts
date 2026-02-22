@@ -1,4 +1,4 @@
-﻿import {
+import {
   useMutation,
   useQuery,
   useQueryClient,
@@ -18,7 +18,7 @@ import type {
 import { omitKeys } from "../shared/object-utils"
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
-import type { RegionInfo } from "../shared/region"
+import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
 import { createCartQueryKeys } from "./query-keys"
 import type {
@@ -168,35 +168,19 @@ const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
 
 const normalizeAddLineItemPayload = <TInput extends AddLineItemInputBase>(
   input: TInput
-): NormalizedAddLineItemPayload<TInput> => {
-  return omitKeys(
+): NormalizedAddLineItemPayload<TInput> =>
+  omitKeys(
     input as TInput & AddLineItemTransientInput,
     addLineItemPayloadOmitKeys
   )
-}
 
 const normalizeUpdateLineItemPayload = <TInput extends UpdateLineItemInputBase>(
   input: TInput
-): NormalizedUpdateLineItemPayload<TInput> => {
-  return omitKeys(
+): NormalizedUpdateLineItemPayload<TInput> =>
+  omitKeys(
     input as TInput & UpdateLineItemTransientInput,
     updateLineItemPayloadOmitKeys
   )
-}
-
-const applyRegion = <T extends RegionInfo>(
-  input: T,
-  region?: RegionInfo | null
-): T => {
-  if (!region) {
-    return input
-  }
-
-  return {
-    ...region,
-    ...input,
-  }
-}
 
 const getItemCount = (cart: CartLike | null): number => {
   if (!cart?.items?.length) {
@@ -258,13 +242,9 @@ type BuildUpdateItemParamsOption<
 
 type CreateCartHooksBaseConfig<
   TCart extends CartLike,
-  TCreateInput extends CartCreateInputBase,
   TCreateParams,
-  TUpdateInput extends UpdateCartInputBase,
   TUpdateParams,
-  TAddInput extends AddLineItemInputBase,
   TAddParams,
-  TUpdateItemInput extends UpdateLineItemInputBase,
   TUpdateItemParams,
   TCompleteResult,
   TAddressInput,
@@ -298,6 +278,12 @@ type CreateCartHooksBaseConfig<
 }
 
 type ParamBuilder<TInput, TParams> = (input: TInput) => TParams
+type AddressMutationInput<TAddressInput> =
+  CartAddressInputBase<TAddressInput> & {
+    shippingAddress: TAddressInput
+    billingAddress?: TAddressInput
+    useSameAddress?: boolean
+  }
 
 export type CreateCartHooksConfig<
   TCart extends CartLike,
@@ -314,13 +300,9 @@ export type CreateCartHooksConfig<
   TAddressPayload,
 > = CreateCartHooksBaseConfig<
   TCart,
-  TCreateInput,
   TCreateParams,
-  TUpdateInput,
   TUpdateParams,
-  TAddInput,
   TAddParams,
-  TUpdateItemInput,
   TUpdateItemParams,
   TCompleteResult,
   TAddressInput,
@@ -421,17 +403,98 @@ export function createCartHooks<
     cartStorage?.clearCartId()
   }
 
+  const requireUpdateCartService = () => {
+    if (!service.updateCart) {
+      throw new Error("updateCart service is not configured")
+    }
+    return service.updateCart
+  }
+
+  const requireCartId = (inputCartId?: string | null): string => {
+    const cartId = resolveCartId(inputCartId)
+    if (!cartId) {
+      throw new Error("Cart id is required")
+    }
+    return cartId
+  }
+
+  const resolveBillingAddressInput = (
+    useSameAddress: boolean | undefined,
+    billingAddress: TAddressInput | undefined,
+    normalizedShipping: TAddressInput
+  ): TAddressInput | undefined => {
+    if (useSameAddress || !billingAddress) {
+      return normalizedShipping
+    }
+    return normalizeBillingAddressInput
+      ? normalizeBillingAddressInput(billingAddress)
+      : billingAddress
+  }
+
+  const resolveAddressMutationInput = (
+    input: CartAddressInputBase<TAddressInput>
+  ) => {
+    const {
+      shippingAddress,
+      billingAddress,
+      useSameAddress,
+      ...restInput
+    } = input as AddressMutationInput<TAddressInput>
+    const normalizedShipping = normalizeShippingAddressInput
+      ? normalizeShippingAddressInput(shippingAddress)
+      : shippingAddress
+    const resolvedBillingInput = resolveBillingAddressInput(
+      useSameAddress,
+      billingAddress,
+      normalizedShipping
+    )
+
+    return {
+      restInput,
+      normalizedShipping,
+      resolvedBillingInput,
+    }
+  }
+
+  const validateAddressInputs = (
+    shippingInput: TAddressInput,
+    billingInput: TAddressInput | undefined
+  ) => {
+    handleAddressValidation(validateShippingAddressInput?.(shippingInput))
+    if (!billingInput) {
+      return
+    }
+    handleAddressValidation(validateBillingAddressInput?.(billingInput))
+  }
+
+  const buildAddressUpdateInput = (
+    restInput: Omit<AddressMutationInput<TAddressInput>, "shippingAddress" | "billingAddress" | "useSameAddress">,
+    normalizedShipping: TAddressInput,
+    resolvedBillingInput: TAddressInput | undefined
+  ) =>
+    ({
+      ...(restInput as TUpdateInput),
+      shipping_address: buildShipping(normalizedShipping),
+      billing_address: resolvedBillingInput
+        ? buildBilling(resolvedBillingInput)
+        : undefined,
+    }) as TUpdateInput & {
+      shipping_address?: TAddressPayload
+      billing_address?: TAddressPayload
+    }
+
   const invalidateCart = (
     queryClient: ReturnType<typeof useQueryClient>,
     cart: CartLike | null
   ) => {
-    if (!invalidateOnSuccess || !cart?.id) {
+    const cartId = cart?.id
+    if (!invalidateOnSuccess || !cartId) {
       return
     }
 
     queryClient.invalidateQueries({
       queryKey: resolvedQueryKeys.active({
-        cartId: cart.id,
+        cartId,
         regionId: cart.region_id ?? null,
       }),
     })
@@ -445,6 +508,12 @@ export function createCartHooks<
     signal?: AbortSignal
   }
 
+  const createCartFromInput = async (input: CartInputBase): Promise<TCart> => {
+    const created = await service.createCart(buildCreate(input as TCreateInput))
+    persistCartId(created.id)
+    return created
+  }
+
   const loadCart = async ({
     input,
     cartId,
@@ -452,15 +521,35 @@ export function createCartHooks<
     autoUpdateRegion,
     signal,
   }: LoadCartOptions): Promise<TCart | null> => {
-    if (!cartId) {
+    const createIfAllowed = async (): Promise<TCart | null> => {
       if (!canCreate) {
         return null
       }
-      const created = await service.createCart(
-        buildCreate(input as TCreateInput)
+      return createCartFromInput(input)
+    }
+
+    const resolveRegionUpdate = async (cart: TCart): Promise<TCart> => {
+      if (
+        !autoUpdateRegion ||
+        !input.region_id ||
+        !cart.region_id ||
+        cart.region_id === input.region_id ||
+        !service.updateCart
+      ) {
+        return cart
+      }
+
+      return service.updateCart(
+        cart.id,
+        buildUpdate({
+          ...(input as TUpdateInput),
+          region_id: input.region_id,
+        })
       )
-      persistCartId(created.id)
-      return created
+    }
+
+    if (!cartId) {
+      return createIfAllowed()
     }
 
     try {
@@ -468,70 +557,39 @@ export function createCartHooks<
 
       if (!cart) {
         clearCartId()
-        if (canCreate) {
-          const created = await service.createCart(
-            buildCreate(input as TCreateInput)
-          )
-          persistCartId(created.id)
-          return created
-        }
-        return null
+        return createIfAllowed()
       }
 
-      if (
-        autoUpdateRegion &&
-        input.region_id &&
-        cart.region_id &&
-        cart.region_id !== input.region_id &&
-        service.updateCart
-      ) {
-        const updated = await service.updateCart(
-          cartId,
-          buildUpdate({
-            ...(input as TUpdateInput),
-            region_id: input.region_id,
-          })
-        )
-        return updated
-      }
-
-      return cart
+      return resolveRegionUpdate(cart)
     } catch (error) {
-      if (isNotFoundError?.(error)) {
-        clearCartId()
-        if (canCreate) {
-          const created = await service.createCart(
-            buildCreate(input as TCreateInput)
-          )
-          persistCartId(created.id)
-          return created
-        }
-        return null
+      if (!isNotFoundError?.(error)) {
+        throw error
       }
-      throw error
+
+      clearCartId()
+      return createIfAllowed()
     }
   }
 
   const syncCartCache = (
     queryClient: ReturnType<typeof useQueryClient>,
-    queryKeys: CartQueryKeys,
     cart: CartLike | null,
-    cartId: string | null,
-    regionId: string | null
+    previousCartId: string | null,
+    previousRegionId: string | null
   ) => {
     if (!cart?.id) {
       return
     }
-    const nextRegionId = cart.region_id ?? regionId ?? null
-    const nextKey = queryKeys.active({
+    const nextRegionId = cart.region_id ?? previousRegionId ?? null
+    const nextKey = resolvedQueryKeys.active({
       cartId: cart.id,
       regionId: nextRegionId,
     })
     queryClient.setQueryData(nextKey, cart)
-    if (cartId !== cart.id) {
-      const previousKey = queryKeys.active({
-        cartId,
-        regionId,
+    if (previousCartId !== cart.id) {
+      const previousKey = resolvedQueryKeys.active({
+        cartId: previousCartId,
+        regionId: previousRegionId,
       })
       queryClient.removeQueries({ queryKey: previousKey, exact: true })
     }
@@ -576,12 +634,11 @@ export function createCartHooks<
     useEffect(() => {
       syncCartCache(
         queryClient,
-        resolvedQueryKeys,
         cart,
         cartId,
         resolvedInput.region_id ?? null
       )
-    }, [cart, cartId, queryClient, resolvedInput.region_id, resolvedQueryKeys])
+    }, [cart, cartId, queryClient, resolvedInput.region_id])
 
     return {
       cart,
@@ -634,12 +691,11 @@ export function createCartHooks<
     useEffect(() => {
       syncCartCache(
         queryClient,
-        resolvedQueryKeys,
         cart,
         cartId,
         resolvedInput.region_id ?? null
       )
-    }, [cart, cartId, queryClient, resolvedInput.region_id, resolvedQueryKeys])
+    }, [cart, cartId, queryClient, resolvedInput.region_id])
 
     return {
       cart,
@@ -721,51 +777,20 @@ export function createCartHooks<
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: (input: CartAddressInputBase<TAddressInput>) => {
-        if (!service.updateCart) {
-          throw new Error("updateCart service is not configured")
-        }
-        const cartId = resolveCartId(input.cartId)
-        if (!cartId) {
-          throw new Error("Cart id is required")
-        }
-        const {
-          shippingAddress,
-          billingAddress,
-          useSameAddress,
-          ...restInput
-        } = input as CartAddressInputBase<TAddressInput> & {
-          shippingAddress: TAddressInput
-          billingAddress?: TAddressInput
-          useSameAddress?: boolean
-        }
-        const normalizedShipping = normalizeShippingAddressInput
-          ? normalizeShippingAddressInput(shippingAddress)
-          : shippingAddress
-        handleAddressValidation(
-          validateShippingAddressInput?.(normalizedShipping)
+        const updateCartService = requireUpdateCartService()
+        const cartId = requireCartId(input.cartId)
+        const { restInput, normalizedShipping, resolvedBillingInput } =
+          resolveAddressMutationInput(input)
+
+        validateAddressInputs(normalizedShipping, resolvedBillingInput)
+
+        const updateInput = buildAddressUpdateInput(
+          restInput,
+          normalizedShipping,
+          resolvedBillingInput
         )
-        const resolvedBillingInput =
-          useSameAddress || !billingAddress
-            ? normalizedShipping
-            : normalizeBillingAddressInput
-              ? normalizeBillingAddressInput(billingAddress)
-              : billingAddress
-        if (resolvedBillingInput) {
-          handleAddressValidation(
-            validateBillingAddressInput?.(resolvedBillingInput)
-          )
-        }
-        const updateInput = {
-          ...(restInput as TUpdateInput),
-          shipping_address: buildShipping(normalizedShipping),
-          billing_address: resolvedBillingInput
-            ? buildBilling(resolvedBillingInput)
-            : undefined,
-        } as TUpdateInput & {
-          shipping_address?: TAddressPayload
-          billing_address?: TAddressPayload
-        }
-        return service.updateCart(cartId, buildUpdate(updateInput))
+
+        return updateCartService(cartId, buildUpdate(updateInput))
       },
       onMutate: options?.onMutate,
       onSuccess: (cart, variables, context) => {

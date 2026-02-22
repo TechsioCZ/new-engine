@@ -48,6 +48,12 @@ export type MedusaProductServiceConfig<
    * Include desired `fields` directly in the returned query object.
    */
   normalizeListQuery?: (params: TListParams) => MedusaProductListQuery
+  /**
+   * Custom detail query builder.
+   *
+   * When provided, `defaultDetailFields` is not applied automatically.
+   * Include desired `fields` directly in the returned query object.
+   */
   normalizeDetailQuery?: (params: TDetailParams) => MedusaProductListQuery
   transformProduct?: (product: HttpTypes.StoreProduct) => TProduct
   transformListProduct?: (

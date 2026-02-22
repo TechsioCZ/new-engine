@@ -9,6 +9,7 @@ import {
 import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
+import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
 import { createCatalogQueryKeys } from "./query-keys"
 import { resolvePositiveInteger } from "./utils"
@@ -38,20 +39,6 @@ export type CreateCatalogHooksConfig<
   defaultPageSize?: number
   requireRegion?: boolean
   fallbackFacets: TFacets
-}
-
-const applyRegion = <T extends RegionInfo>(
-  input: T,
-  region?: RegionInfo | null
-): T => {
-  if (!region) {
-    return input
-  }
-
-  return {
-    ...region,
-    ...input,
-  }
 }
 
 const resolveErrorMessage = (error: unknown): string | null => {

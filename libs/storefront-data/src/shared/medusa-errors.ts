@@ -1,6 +1,6 @@
 export const getErrorStatus = (error: unknown): number | undefined => {
   if (!error || typeof error !== "object") {
-    return undefined
+    return
   }
 
   const err = error as {

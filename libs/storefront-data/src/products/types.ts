@@ -66,9 +66,7 @@ export type ProductQueryKeys<TListParams, TDetailParams> = {
   detail: (params: TDetailParams) => QueryKey
 }
 
-export type UseProductsResult<TProduct> = ReadResultBase<
-  QueryResult<ProductListResponse<TProduct>>
-> & {
+type ProductsResultFields<TProduct> = {
   products: TProduct[]
   totalCount: number
   currentPage: number
@@ -77,16 +75,15 @@ export type UseProductsResult<TProduct> = ReadResultBase<
   hasPrevPage: boolean
 }
 
+export type UseProductsResult<TProduct> = ReadResultBase<
+  QueryResult<ProductListResponse<TProduct>>
+> &
+  ProductsResultFields<TProduct>
+
 export type UseSuspenseProductsResult<TProduct> = SuspenseResultBase<
   SuspenseQueryResult<ProductListResponse<TProduct>>
-> & {
-  products: TProduct[]
-  totalCount: number
-  currentPage: number
-  totalPages: number
-  hasNextPage: boolean
-  hasPrevPage: boolean
-}
+> &
+  ProductsResultFields<TProduct>
 
 export type UseInfiniteProductsResult<TProduct> = ReadResultBase<
   InfiniteQueryResult<ProductInfiniteData<TProduct>>

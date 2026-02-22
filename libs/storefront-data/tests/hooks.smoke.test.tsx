@@ -384,7 +384,12 @@ describe("storefront-data hook smoke tests", () => {
 
     const buildDetailParams = (
       input: OrderDetailInputBase
-    ): OrderDetailParams => ({ id: input.id })
+    ): OrderDetailParams => {
+      if (!input.id) {
+        throw new Error("Order id is required for order queries")
+      }
+      return { id: input.id }
+    }
 
     it("fetches order list and detail", async () => {
       server.use(

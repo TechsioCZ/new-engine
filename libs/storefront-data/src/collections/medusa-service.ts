@@ -95,6 +95,8 @@ export function createMedusaCollectionService<
     transformDetailCollection,
   } = config ?? {}
 
+  // Default transform assumes TCollection is compatible with StoreCollection.
+  // If not, provide transformCollection/transformListCollection/transformDetailCollection.
   const baseTransform =
     transformCollection ??
     ((collection) => collection as unknown as TCollection)

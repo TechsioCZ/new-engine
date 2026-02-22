@@ -67,7 +67,10 @@ export function createMedusaAuthService(
   HttpTypes.StoreCustomer,
   MedusaAuthCredentials,
   MedusaRegisterData,
-  MedusaUpdateCustomerData
+  MedusaUpdateCustomerData,
+  unknown,
+  string,
+  string
 > {
   const reportLogoutError = (
     error: unknown,
@@ -167,6 +170,9 @@ export function createMedusaAuthService(
 
         // Step 4: Refresh token for proper permissions (REQUIRED!)
         const sessionToken = await sdk.auth.refresh()
+        if (typeof sessionToken !== "string") {
+          throw new Error("Multi-step authentication not supported")
+        }
 
         return sessionToken
       } catch (err) {

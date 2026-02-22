@@ -78,12 +78,12 @@ export function createOrderHooks<
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
     }
   ): UseOrdersResult<TOrder> {
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
     const listParams = buildList(listInput as TListInput)
     const queryKey = resolvedQueryKeys.list(listParams)
-    const enabled = input.enabled ?? true
+    const enabled = inputEnabled ?? true
 
     const query = useQuery({
       queryKey,
@@ -176,12 +176,12 @@ export function createOrderHooks<
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
   ): UseOrderResult<TOrder> {
-    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+    const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
     const detailParams = buildDetail(detailInput as TDetailInput)
     const queryKey = resolvedQueryKeys.detail(detailParams)
-    const enabled = input.enabled ?? Boolean(input.id)
+    const enabled = inputEnabled ?? Boolean(input.id)
 
     const query = useQuery({
       queryKey,
@@ -207,14 +207,16 @@ export function createOrderHooks<
     input: SuspenseDetailInput<TDetailInput>,
     options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
   ): UseSuspenseOrderResult<TOrder> {
-    if (!input.id) {
-      throw new Error("Order id is required for order queries")
-    }
     const detailParams = buildDetail(input as TDetailInput)
 
     const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => service.getOrder(detailParams, signal),
+      queryFn: ({ signal }) => {
+        if (!input.id) {
+          throw new Error("Order id is required for order queries")
+        }
+        return service.getOrder(detailParams, signal)
+      },
       ...resolvedCacheConfig.userData,
       ...(options?.queryOptions ?? {}),
     })

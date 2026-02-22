@@ -337,12 +337,10 @@ export function createCheckoutHooks<
       mutateShippingMethod({ optionId, data })
     }
 
-    const setShippingMethodAsync = async (
+    const setShippingMethodAsync = (
       optionId: string,
       data?: Record<string, unknown>
-    ) => {
-      return mutateShippingMethodAsync({ optionId, data })
-    }
+    ) => mutateShippingMethodAsync({ optionId, data })
 
     const selectedShippingMethodId =
       input.cart?.shipping_methods?.[0]?.shipping_option_id
@@ -434,12 +432,10 @@ export function createCheckoutHooks<
       mutateShippingMethod({ optionId, data })
     }
 
-    const setShippingMethodAsync = async (
+    const setShippingMethodAsync = (
       optionId: string,
       data?: Record<string, unknown>
-    ) => {
-      return mutateShippingMethodAsync({ optionId, data })
-    }
+    ) => mutateShippingMethodAsync({ optionId, data })
 
     const selectedShippingMethodId =
       input.cart?.shipping_methods?.[0]?.shipping_option_id
@@ -466,7 +462,7 @@ export function createCheckoutHooks<
     options?: CheckoutMutationOptions<TPaymentCollection, string, TPaymentContext>
   ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
     const cartId = input.cartId
-    const regionId = input.regionId ?? input.cart?.region_id ?? undefined
+    const regionId = input.regionId ?? input.cart?.region_id
     const enabled = input.enabled ?? Boolean(regionId)
 
     const paymentProvidersQueryOptions = regionId
@@ -516,7 +512,7 @@ export function createCheckoutHooks<
     >
   ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
     const cartId = input.cartId
-    const regionId = input.regionId ?? input.cart?.region_id ?? undefined
+    const regionId = input.regionId ?? input.cart?.region_id
     if (!regionId) {
       throw new Error("Region id is required for checkout payment")
     }

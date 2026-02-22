@@ -140,5 +140,110 @@ describe("createMedusaCartService", () => {
 
     await expect(service.retrieveCart("cart_1")).rejects.toBe(error)
   })
+
+  it("forwards params and returns carts for mutation methods", async () => {
+    const sdk = createSdkMock()
+    sdk.store.cart.create.mockResolvedValue({
+      cart: { id: "cart_created" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.update.mockResolvedValue({
+      cart: { id: "cart_updated" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.createLineItem.mockResolvedValue({
+      cart: { id: "cart_with_item" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.updateLineItem.mockResolvedValue({
+      cart: { id: "cart_item_updated" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.deleteLineItem.mockResolvedValue({
+      parent: { id: "cart_item_removed" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.transferCart.mockResolvedValue({
+      cart: { id: "cart_transferred" } as HttpTypes.StoreCart,
+    })
+    const completeResult = {
+      type: "order",
+      order: { id: "order_1" } as HttpTypes.StoreOrder,
+    } as const
+    sdk.store.cart.complete.mockResolvedValue(completeResult)
+
+    const service = createMedusaCartService(sdk as never)
+
+    await expect(service.createCart({} as never)).resolves.toEqual({
+      id: "cart_created",
+    })
+    await expect(service.updateCart("cart_1", {} as never)).resolves.toEqual({
+      id: "cart_updated",
+    })
+    await expect(service.addLineItem("cart_1", {} as never)).resolves.toEqual({
+      id: "cart_with_item",
+    })
+    await expect(
+      service.updateLineItem("cart_1", "item_1", {} as never)
+    ).resolves.toEqual({
+      id: "cart_item_updated",
+    })
+    await expect(service.removeLineItem("cart_1", "item_1")).resolves.toEqual({
+      id: "cart_item_removed",
+    })
+    await expect(service.transferCart("cart_1")).resolves.toEqual({
+      id: "cart_transferred",
+    })
+    await expect(service.completeCart("cart_1")).resolves.toBe(completeResult)
+
+    expect(sdk.store.cart.create).toHaveBeenCalledWith({})
+    expect(sdk.store.cart.update).toHaveBeenCalledWith("cart_1", {})
+    expect(sdk.store.cart.createLineItem).toHaveBeenCalledWith("cart_1", {})
+    expect(sdk.store.cart.updateLineItem).toHaveBeenCalledWith(
+      "cart_1",
+      "item_1",
+      {}
+    )
+    expect(sdk.store.cart.deleteLineItem).toHaveBeenCalledWith("cart_1", "item_1")
+    expect(sdk.store.cart.transferCart).toHaveBeenCalledWith("cart_1")
+    expect(sdk.store.cart.complete).toHaveBeenCalledWith("cart_1")
+  })
+
+  it("throws clear errors when mutation responses miss cart payloads", async () => {
+    const sdk = createSdkMock()
+    sdk.store.cart.create.mockResolvedValue({})
+    sdk.store.cart.update.mockResolvedValue({})
+    sdk.store.cart.createLineItem.mockResolvedValue({})
+    sdk.store.cart.updateLineItem.mockResolvedValue({})
+    sdk.store.cart.deleteLineItem.mockResolvedValue({})
+    sdk.store.cart.transferCart.mockResolvedValue({})
+
+    const service = createMedusaCartService(sdk as never)
+
+    await expect(service.createCart({} as never)).rejects.toThrow(
+      "Failed to create cart"
+    )
+    await expect(service.updateCart("cart_1", {} as never)).rejects.toThrow(
+      "Failed to update cart"
+    )
+    await expect(service.addLineItem("cart_1", {} as never)).rejects.toThrow(
+      "Failed to add item to cart"
+    )
+    await expect(
+      service.updateLineItem("cart_1", "item_1", {} as never)
+    ).rejects.toThrow("Failed to update line item")
+    await expect(service.removeLineItem("cart_1", "item_1")).rejects.toThrow(
+      "Failed to remove line item"
+    )
+    await expect(service.transferCart("cart_1")).rejects.toThrow(
+      "Failed to transfer cart"
+    )
+  })
+
+  it("rethrows completeCart errors from SDK", async () => {
+    const sdk = createSdkMock()
+    const error = new Error("complete failed")
+    sdk.store.cart.complete.mockRejectedValue(error)
+
+    const service = createMedusaCartService(sdk as never)
+
+    await expect(service.completeCart("cart_1")).rejects.toBe(error)
+    expect(sdk.store.cart.complete).toHaveBeenCalledWith("cart_1")
+  })
 })
 

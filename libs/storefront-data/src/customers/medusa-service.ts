@@ -40,22 +40,14 @@ const pickNewestAddress = <T extends HttpTypes.StoreCustomerAddress>(
   }
 
   return [...addresses].sort((left, right) => {
-    const rightCreatedAt = toComparableTimestamp(
-      (right as Record<string, unknown>).created_at
-    )
-    const leftCreatedAt = toComparableTimestamp(
-      (left as Record<string, unknown>).created_at
-    )
+    const rightCreatedAt = toComparableTimestamp(right.created_at)
+    const leftCreatedAt = toComparableTimestamp(left.created_at)
     if (rightCreatedAt !== leftCreatedAt) {
       return rightCreatedAt - leftCreatedAt
     }
 
-    const rightUpdatedAt = toComparableTimestamp(
-      (right as Record<string, unknown>).updated_at
-    )
-    const leftUpdatedAt = toComparableTimestamp(
-      (left as Record<string, unknown>).updated_at
-    )
+    const rightUpdatedAt = toComparableTimestamp(right.updated_at)
+    const leftUpdatedAt = toComparableTimestamp(left.updated_at)
     return rightUpdatedAt - leftUpdatedAt
   })[0]
 }

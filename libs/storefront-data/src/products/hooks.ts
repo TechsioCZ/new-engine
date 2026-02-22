@@ -19,6 +19,7 @@ import type {
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { resolvePagination } from "../shared/pagination"
+import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
 import { createProductQueryKeys } from "./query-keys"
 import type {
@@ -29,7 +30,6 @@ import type {
   ProductListResponse,
   ProductQueryKeys,
   ProductService,
-  RegionInfo,
   UseInfiniteProductsResult,
   UseProductResult,
   UseProductsResult,
@@ -87,20 +87,6 @@ export type CreateProductHooksConfig<
   cacheConfig?: CacheConfig
   defaultPageSize?: number
   requireRegion?: boolean
-}
-
-const applyRegion = <T extends RegionInfo>(
-  input: T,
-  region?: RegionInfo | null
-): T => {
-  if (!region) {
-    return input
-  }
-
-  return {
-    ...region,
-    ...input,
-  }
 }
 
 export function createProductHooks<

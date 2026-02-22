@@ -204,8 +204,8 @@ const cacheConfig = createCacheConfig({
 {
   "@medusajs/js-sdk": ">=2.12.0",
   "@tanstack/react-query": ">=5.0.0",
-  "react": ">=19.0.0",
-  "react-dom": ">=19.0.0"
+  "react": ">=19.2.0",
+  "react-dom": ">=19.2.0"
 }
 ```
 

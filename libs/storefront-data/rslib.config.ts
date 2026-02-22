@@ -8,6 +8,7 @@ export default defineConfig({
       bundle: false,
       dts: true,
       format: "esm",
+      outBase: "./src",
       source: {
         entry: {
           index: "./src/**/*.{ts,tsx}",

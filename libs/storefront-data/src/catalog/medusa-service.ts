@@ -78,15 +78,19 @@ const normalizeNonNegativeNumber = (
   value: number | undefined
 ): number | undefined => {
   if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
-    return undefined
+    return
   }
 
-  return value < 0 ? undefined : value
+  if (value < 0) {
+    return
+  }
+
+  return value
 }
 
 const normalizeStringArray = (values: string[] | undefined): string[] | undefined => {
   if (!Array.isArray(values)) {
-    return undefined
+    return
   }
 
   const seenValues = new Set<string>()
@@ -177,7 +181,7 @@ const normalizeFacets = (value: unknown): CatalogFacets => {
 
 const toCsv = (values: string[] | undefined): string | undefined => {
   if (!values || values.length === 0) {
-    return undefined
+    return
   }
 
   return values.join(",")
