@@ -4,6 +4,10 @@ import type { QueryKey } from "./query-keys"
 
 export type PrefetchSkipMode = "fresh" | "any"
 
+const assertNever = (value: never): never => {
+  throw new Error(`Unsupported prefetch skip mode: ${String(value)}`)
+}
+
 export const isQueryFresh = (
   queryClient: QueryClient,
   queryKey: QueryKey,
@@ -27,13 +31,16 @@ export const shouldSkipPrefetch = (params: {
     return false
   }
 
-  if (params.skipMode === "any") {
-    return params.queryClient.getQueryData(params.queryKey) !== undefined
+  switch (params.skipMode) {
+    case "any":
+      return params.queryClient.getQueryData(params.queryKey) !== undefined
+    case "fresh":
+      return isQueryFresh(
+        params.queryClient,
+        params.queryKey,
+        params.cacheOptions.staleTime
+      )
+    default:
+      return assertNever(params.skipMode)
   }
-
-  return isQueryFresh(
-    params.queryClient,
-    params.queryKey,
-    params.cacheOptions.staleTime
-  )
 }

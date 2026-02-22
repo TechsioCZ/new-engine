@@ -5,11 +5,10 @@ export function omitKeys<
   object: TObject,
   keys: TKeys
 ): Omit<TObject, TKeys[number]> {
-  const result: Partial<TObject> = { ...object }
+  const keysToOmit = new Set<keyof TObject>(keys)
+  const entries = Object.entries(object).filter(
+    ([key]) => !keysToOmit.has(key as keyof TObject)
+  )
 
-  for (const key of keys) {
-    delete result[key]
-  }
-
-  return result as Omit<TObject, TKeys[number]>
+  return Object.fromEntries(entries) as Omit<TObject, TKeys[number]>
 }

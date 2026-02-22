@@ -4,6 +4,7 @@ import type {
   SuspenseQueryResult,
   SuspenseResultBase,
 } from "../shared/hook-types"
+import type { QueryKey } from "../shared/query-keys"
 
 export type OrderListInputBase = {
   page?: number
@@ -34,9 +35,9 @@ export type OrderService<TOrder, TListParams, TDetailParams> = {
 }
 
 export type OrderQueryKeys<TListParams, TDetailParams> = {
-  all: () => readonly unknown[]
-  list: (params: TListParams) => readonly unknown[]
-  detail: (params: TDetailParams) => readonly unknown[]
+  all: () => QueryKey
+  list: (params: TListParams) => QueryKey
+  detail: (params: TDetailParams) => QueryKey
 }
 
 export type UseOrdersResult<TOrder> = ReadResultBase<
