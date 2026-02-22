@@ -237,11 +237,11 @@ export function createProductHooks<
     const baseQueryKey = resolvedQueryKeys.infinite
       ? resolvedQueryKeys.infinite(baseListParams)
       : resolvedQueryKeys.list(baseListParams)
-    const queryKey =
-      resolvedQueryKeys.infinite ||
+    const isInfiniteKey =
+      Boolean(resolvedQueryKeys.infinite) ||
       baseQueryKey[baseQueryKey.length - 1] === "__infinite"
-        ? baseQueryKey
-        : [...baseQueryKey, "__infinite"]
+    const queryKey =
+      isInfiniteKey ? baseQueryKey : [...baseQueryKey, "__infinite"]
     const initialLimitKey =
       typeof resolvedInitialLimit === "number"
         ? ["__initialLimit", resolvedInitialLimit]
