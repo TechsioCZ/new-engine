@@ -17,6 +17,13 @@ export type ProductListInputBase = RegionInfo & {
 
 export type ProductInfiniteInputBase = ProductListInputBase & {
   offset?: number
+  /**
+   * Optional first-page override for infinite queries.
+   *
+   * If both `limit` and `initialLimit` are provided:
+   * - first page uses `initialLimit`
+   * - subsequent pages use `limit`
+   */
   initialLimit?: number
 }
 

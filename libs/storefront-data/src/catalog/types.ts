@@ -64,24 +64,20 @@ export type CatalogQueryKeys<TListParams> = {
   list: (params: TListParams) => QueryKey
 }
 
+type CatalogProductsResultFields<TProduct, TFacets> = {
+  products: TProduct[]
+  facets: TFacets
+  totalCount: number
+  currentPage: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
 export type UseCatalogProductsResult<TProduct, TFacets = CatalogFacets> =
-  ReadResultBase<QueryResult<CatalogListResponse<TProduct, TFacets>>> & {
-    products: TProduct[]
-    facets: TFacets
-    totalCount: number
-    currentPage: number
-    totalPages: number
-    hasNextPage: boolean
-    hasPrevPage: boolean
-  }
+  ReadResultBase<QueryResult<CatalogListResponse<TProduct, TFacets>>> &
+    CatalogProductsResultFields<TProduct, TFacets>
 
 export type UseSuspenseCatalogProductsResult<TProduct, TFacets = CatalogFacets> =
-  SuspenseResultBase<SuspenseQueryResult<CatalogListResponse<TProduct, TFacets>>> & {
-    products: TProduct[]
-    facets: TFacets
-    totalCount: number
-    currentPage: number
-    totalPages: number
-    hasNextPage: boolean
-    hasPrevPage: boolean
-  }
+  SuspenseResultBase<SuspenseQueryResult<CatalogListResponse<TProduct, TFacets>>> &
+    CatalogProductsResultFields<TProduct, TFacets>

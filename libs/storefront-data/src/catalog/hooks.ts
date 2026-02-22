@@ -11,6 +11,7 @@ import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useRegionContext } from "../shared/region-context"
 import { createCatalogQueryKeys } from "./query-keys"
+import { resolvePositiveInteger } from "./utils"
 import type {
   CatalogListInputBase,
   CatalogListResponse,
@@ -53,22 +54,6 @@ const applyRegion = <T extends RegionInfo>(
   }
 }
 
-const resolvePositiveInteger = (
-  value: number | undefined,
-  fallbackValue: number
-): number => {
-  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
-    return fallbackValue
-  }
-
-  const normalizedValue = Math.trunc(value)
-  if (normalizedValue < 1) {
-    return fallbackValue
-  }
-
-  return normalizedValue
-}
-
 const resolveErrorMessage = (error: unknown): string | null => {
   if (!error) {
     return null
@@ -105,6 +90,7 @@ export function createCatalogHooks<
   function useCatalogProducts(
     input: TListInput,
     options?: {
+      cacheStrategy?: CacheStrategy
       queryOptions?: ReadQueryOptions<CatalogListResponse<TProduct, TFacets>>
     }
   ): UseCatalogProductsResult<TProduct, TFacets> {
@@ -117,12 +103,13 @@ export function createCatalogHooks<
     const queryKey = resolvedQueryKeys.list(listParams)
     const enabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
+    const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
     const query = useQuery({
       queryKey,
       queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
       enabled,
-      ...resolvedCacheConfig.semiStatic,
+      ...resolvedCacheConfig[cacheStrategy],
       ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
@@ -155,6 +142,7 @@ export function createCatalogHooks<
   function useSuspenseCatalogProducts(
     input: TListInput,
     options?: {
+      cacheStrategy?: CacheStrategy
       queryOptions?: SuspenseQueryOptions<CatalogListResponse<TProduct, TFacets>>
     }
   ): UseSuspenseCatalogProductsResult<TProduct, TFacets> {
@@ -168,10 +156,11 @@ export function createCatalogHooks<
     }
 
     const listParams = buildList(resolvedInput)
+    const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
-      ...resolvedCacheConfig.semiStatic,
+      ...resolvedCacheConfig[cacheStrategy],
       ...(options?.queryOptions ?? {}),
     })
     const { data, isFetching } = query

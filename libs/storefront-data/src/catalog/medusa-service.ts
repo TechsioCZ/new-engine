@@ -6,6 +6,7 @@ import type {
   CatalogListResponse,
   CatalogService,
 } from "./types"
+import { resolvePositiveInteger } from "./utils"
 
 type MedusaCatalogListQuery = Record<string, unknown>
 
@@ -55,22 +56,6 @@ const EMPTY_FACETS: CatalogFacets = {
     min: null,
     max: null,
   },
-}
-
-const resolvePositiveInteger = (
-  value: number | undefined,
-  fallbackValue: number
-): number => {
-  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
-    return fallbackValue
-  }
-
-  const normalizedValue = Math.trunc(value)
-  if (normalizedValue < 1) {
-    return fallbackValue
-  }
-
-  return normalizedValue
 }
 
 const resolveNonNegativeInteger = (
@@ -198,7 +183,7 @@ const toCsv = (values: string[] | undefined): string | undefined => {
   return values.join(",")
 }
 
-const stripUndefinedValues = (
+const stripNullishValues = (
   input: Record<string, unknown>
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {}
@@ -230,7 +215,7 @@ const buildDefaultListQuery = (
   const normalizedIngredient = normalizeStringArray(params.ingredient)
   const normalizedCategoryIds = normalizeStringArray(params.category_id)
 
-  return stripUndefinedValues({
+  return stripNullishValues({
     q: params.q?.trim() || undefined,
     page: normalizedPage,
     limit: normalizedLimit,
@@ -285,7 +270,7 @@ export function createMedusaCatalogService<
 
   const buildListQuery = (params: TListParams): MedusaCatalogListQuery => {
     if (normalizeListQuery) {
-      return stripUndefinedValues(normalizeListQuery(params))
+      return stripNullishValues(normalizeListQuery(params))
     }
 
     return buildDefaultListQuery(params, { defaultLimit, defaultSort })
