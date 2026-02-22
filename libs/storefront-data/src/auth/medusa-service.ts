@@ -1,23 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { isAuthError } from "../shared/medusa-errors"
 import type { AuthService } from "./types"
-
-const getErrorStatus = (error: unknown): number | undefined => {
-  if (!error || typeof error !== "object") {
-    return undefined
-  }
-
-  const err = error as {
-    status?: number
-    response?: { status?: number }
-  }
-  return err.status ?? err.response?.status
-}
-
-const isAuthError = (error: unknown) => {
-  const status = getErrorStatus(error)
-  return status === 401 || status === 403
-}
 
 export type MedusaAuthCredentials = {
   email: string

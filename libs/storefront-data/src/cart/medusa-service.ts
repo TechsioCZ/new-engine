@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { getErrorStatus } from "../shared/medusa-errors"
 import type { CartService } from "./types"
 
 export type MedusaCartServiceConfig = {
@@ -18,19 +19,6 @@ export type MedusaCompleteCartResult =
       cart: HttpTypes.StoreCart
       error: { message: string; name: string; type: string }
     }
-
-const getErrorStatus = (error: unknown): number | undefined => {
-  if (!error || typeof error !== "object") {
-    return undefined
-  }
-
-  const err = error as {
-    status?: number
-    response?: { status?: number }
-  }
-
-  return err.status ?? err.response?.status
-}
 
 const defaultIsNotFoundError = (error: unknown): boolean =>
   getErrorStatus(error) === 404
