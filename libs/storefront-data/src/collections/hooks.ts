@@ -216,13 +216,15 @@ export function createCollectionHooks<
     const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
-    if (!input.id) {
-      throw new Error("Collection id is required for collection queries")
-    }
     const detailParams = buildDetail(detailInput as TDetailInput)
     const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => service.getCollection(detailParams, signal),
+      queryFn: ({ signal }) => {
+        if (!input.id) {
+          throw new Error("Collection id is required for collection queries")
+        }
+        return service.getCollection(detailParams, signal)
+      },
       ...resolvedCacheConfig.static,
       ...(options?.queryOptions ?? {}),
     })

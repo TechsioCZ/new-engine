@@ -216,13 +216,15 @@ export function createCategoryHooks<
     const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
-    if (!input.id) {
-      throw new Error("Category id is required for category queries")
-    }
     const detailParams = buildDetail(detailInput as TDetailInput)
     const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => service.getCategory(detailParams, signal),
+      queryFn: ({ signal }) => {
+        if (!input.id) {
+          throw new Error("Category id is required for category queries")
+        }
+        return service.getCategory(detailParams, signal)
+      },
       ...resolvedCacheConfig.static,
       ...(options?.queryOptions ?? {}),
     })

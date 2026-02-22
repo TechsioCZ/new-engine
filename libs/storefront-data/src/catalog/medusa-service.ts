@@ -108,6 +108,9 @@ const normalizeStringArray = (values: string[] | undefined): string[] | undefine
   const normalizedValues: string[] = []
 
   for (const rawValue of values) {
+    if (typeof rawValue !== "string") {
+      continue
+    }
     const value = rawValue.trim()
     if (!value || seenValues.has(value)) {
       continue

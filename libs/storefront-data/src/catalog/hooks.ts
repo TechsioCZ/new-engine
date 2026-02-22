@@ -312,17 +312,23 @@ export function createCatalogHooks<
 
   const prefetchCatalogProducts = async (
     queryClient: QueryClient,
-    input: TListInput
+    input: TListInput,
+    region?: RegionInfo | null
   ) => {
     const { enabled: inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
-    const isEnabled = inputEnabled ?? (!requireRegion || Boolean(listInput.region_id))
+    const resolvedInput = applyRegion(
+      listInput as TListInput,
+      region ?? undefined
+    )
+    const isEnabled =
+      inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
     if (!isEnabled) {
       return
     }
 
-    const listParams = buildList(listInput as TListInput)
+    const listParams = buildList(resolvedInput)
     await queryClient.prefetchQuery({
       queryKey: resolvedQueryKeys.list(listParams),
       queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),

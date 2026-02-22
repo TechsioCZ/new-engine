@@ -1,8 +1,5 @@
 import { cache } from "react"
-import {
-  makeQueryClient,
-  type QueryClientConfig,
-} from "../shared/query-client"
+import { makeQueryClient } from "../shared/query-client"
 
 /**
  * Get a per-request QueryClient for Server Components.
@@ -28,6 +25,4 @@ import {
  * }
  * ```
  */
-export const getServerQueryClient = cache((config?: QueryClientConfig) =>
-  makeQueryClient(config)
-)
+export const getServerQueryClient = cache(() => makeQueryClient())
