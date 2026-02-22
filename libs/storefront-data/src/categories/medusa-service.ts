@@ -1,6 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
-import { omitKeys } from "../shared/object-utils"
 import type { CategoryListResponse, CategoryService } from "./types"
 
 type MedusaCategoryListQuery = FindParams &
@@ -58,7 +57,12 @@ export type MedusaCategoryServiceConfig<
 
 const stripEnabled = <TQuery extends Record<string, unknown>>(
   query: TQuery
-): TQuery => omitKeys(query as TQuery & { enabled?: boolean }, ["enabled"]) as TQuery
+): Omit<TQuery, "enabled"> => {
+  const { enabled: _enabled, ...rest } = query as TQuery & {
+    enabled?: unknown
+  }
+  return rest
+}
 
 /**
  * Creates a CategoryService for Medusa Store API.
@@ -93,14 +97,16 @@ export function createMedusaCategoryService<
     context: MedusaCategoryTransformListContext<TListParams>
   ) => TCategory =
     transformListCategory ??
-    ((category: HttpTypes.StoreProductCategory) => baseTransform(category))
+    ((category: HttpTypes.StoreProductCategory, _context) =>
+      baseTransform(category))
 
   const mapDetailCategory: (
     category: HttpTypes.StoreProductCategory,
     context: MedusaCategoryTransformDetailContext<TDetailParams>
   ) => TCategory =
     transformDetailCategory ??
-    ((category: HttpTypes.StoreProductCategory) => baseTransform(category))
+    ((category: HttpTypes.StoreProductCategory, _context) =>
+      baseTransform(category))
 
   const buildListQuery = (params: TListParams): MedusaCategoryListQuery => {
     const query = normalizeListQuery
@@ -112,7 +118,7 @@ export function createMedusaCategoryService<
             : {}),
         } as MedusaCategoryListQuery)
 
-    return stripEnabled(query)
+    return stripEnabled(query) as MedusaCategoryListQuery
   }
 
   const buildDetailQuery = (
@@ -130,7 +136,7 @@ export function createMedusaCategoryService<
     const { id: _id, ...withoutId } = query as MedusaCategoryDetailQuery & {
       id?: string
     }
-    return stripEnabled(withoutId)
+    return stripEnabled(withoutId) as MedusaCategoryDetailQuery
   }
 
   return {

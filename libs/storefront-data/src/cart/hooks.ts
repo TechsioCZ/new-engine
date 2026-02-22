@@ -41,7 +41,7 @@ import type {
 
 type CacheStrategy = keyof CacheConfig
 
-type CartCreateTransientInput = {
+type CartTransientInput = {
   cartId?: string
   autoCreate?: boolean
   autoUpdateRegion?: boolean
@@ -54,18 +54,8 @@ type CartCreateTransientInput = {
   salesChannelId?: string
 }
 
-type CartUpdateTransientInput = {
-  cartId?: string
-  autoCreate?: boolean
-  autoUpdateRegion?: boolean
-  enabled?: boolean
-  variantId?: string
-  quantity?: number
-  useSameAddress?: boolean
-  shippingAddress?: unknown
-  billingAddress?: unknown
-  salesChannelId?: string
-}
+type CartCreateTransientInput = CartTransientInput
+type CartUpdateTransientInput = CartTransientInput
 
 type AddLineItemTransientInput = {
   cartId?: string
@@ -85,20 +75,7 @@ type UpdateLineItemTransientInput = {
   autoUpdateRegion?: boolean
 }
 
-const cartCreatePayloadOmitKeys = [
-  "cartId",
-  "autoCreate",
-  "autoUpdateRegion",
-  "enabled",
-  "variantId",
-  "quantity",
-  "useSameAddress",
-  "shippingAddress",
-  "billingAddress",
-  "salesChannelId",
-] as const
-
-const cartUpdatePayloadOmitKeys = [
+const cartPayloadOmitKeys = [
   "cartId",
   "autoCreate",
   "autoUpdateRegion",
@@ -131,14 +108,14 @@ const updateLineItemPayloadOmitKeys = [
 
 type NormalizedCartCreatePayload<TInput extends CartCreateInputBase> = Omit<
   TInput & CartCreateTransientInput,
-  (typeof cartCreatePayloadOmitKeys)[number]
+  (typeof cartPayloadOmitKeys)[number]
 > & {
   sales_channel_id?: string
 }
 
 type NormalizedCartUpdatePayload<TInput extends UpdateCartInputBase> = Omit<
   TInput & CartUpdateTransientInput,
-  (typeof cartUpdatePayloadOmitKeys)[number]
+  (typeof cartPayloadOmitKeys)[number]
 > & {
   sales_channel_id?: string
 }
@@ -159,7 +136,7 @@ const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
   input: TInput
 ): NormalizedCartCreatePayload<TInput> => {
   const normalizedInput = input as TInput & CartCreateTransientInput
-  const payload = omitKeys(normalizedInput, cartCreatePayloadOmitKeys)
+  const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
   const salesChannelId = normalizedInput.salesChannelId
 
   if (!salesChannelId) {
@@ -176,7 +153,7 @@ const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
   input: TInput
 ): NormalizedCartUpdatePayload<TInput> => {
   const normalizedInput = input as TInput & CartUpdateTransientInput
-  const payload = omitKeys(normalizedInput, cartUpdatePayloadOmitKeys)
+  const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
   const salesChannelId = normalizedInput.salesChannelId
 
   if (!salesChannelId) {

@@ -1,6 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
-import { omitKeys } from "../shared/object-utils"
 import type { CollectionListResponse, CollectionService } from "./types"
 
 type MedusaCollectionListQuery = FindParams &
@@ -60,7 +59,12 @@ export type MedusaCollectionServiceConfig<
 
 const stripEnabled = <TQuery extends Record<string, unknown>>(
   query: TQuery
-): TQuery => omitKeys(query as TQuery & { enabled?: boolean }, ["enabled"]) as TQuery
+): Omit<TQuery, "enabled"> => {
+  const { enabled: _enabled, ...rest } = query as TQuery & {
+    enabled?: unknown
+  }
+  return rest
+}
 
 /**
  * Creates a CollectionService for Medusa Store API.
@@ -100,14 +104,16 @@ export function createMedusaCollectionService<
     context: MedusaCollectionTransformListContext<TListParams>
   ) => TCollection =
     transformListCollection ??
-    ((collection: HttpTypes.StoreCollection) => baseTransform(collection))
+    ((collection: HttpTypes.StoreCollection, _context) =>
+      baseTransform(collection))
 
   const mapDetailCollection: (
     collection: HttpTypes.StoreCollection,
     context: MedusaCollectionTransformDetailContext<TDetailParams>
   ) => TCollection =
     transformDetailCollection ??
-    ((collection: HttpTypes.StoreCollection) => baseTransform(collection))
+    ((collection: HttpTypes.StoreCollection, _context) =>
+      baseTransform(collection))
 
   const buildListQuery = (params: TListParams): MedusaCollectionListQuery => {
     const query = normalizeListQuery
@@ -119,7 +125,7 @@ export function createMedusaCollectionService<
             : {}),
         } as MedusaCollectionListQuery)
 
-    return stripEnabled(query)
+    return stripEnabled(query) as MedusaCollectionListQuery
   }
 
   const buildDetailQuery = (
@@ -137,7 +143,7 @@ export function createMedusaCollectionService<
     const { id: _id, ...withoutId } = query as MedusaCollectionDetailQuery & {
       id?: string
     }
-    return stripEnabled(withoutId)
+    return stripEnabled(withoutId) as MedusaCollectionDetailQuery
   }
 
   return {

@@ -249,10 +249,9 @@ export function createCustomerHooks<
         const normalized = normalizeUpdateAddressInput
           ? normalizeUpdateAddressInput(input)
           : input
-        const updateInput = {
-          ...(normalized as TUpdateInput & { addressId?: string }),
-        }
-        delete updateInput.addressId
+        const { addressId: _addressId, ...restUpdateInput } =
+          normalized as TUpdateInput & { addressId?: string }
+        const updateInput = restUpdateInput as TUpdateInput
         handleAddressValidation(validateUpdateAddressInput?.(normalized))
         return service.updateAddress(addressId, buildUpdate(updateInput))
       },
