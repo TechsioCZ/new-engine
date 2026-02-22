@@ -594,6 +594,7 @@ describe("storefront-data hook smoke tests", () => {
       await act(async () => {
         await deleteHook.result.current.mutateAsync({ addressId: "addr_1" })
       })
+      expect(deleteHook.result.current.isSuccess).toBe(true)
 
       const updateCustomerHook = renderHook(() => useUpdateCustomer(), { wrapper })
 

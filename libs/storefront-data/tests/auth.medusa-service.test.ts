@@ -2,6 +2,9 @@ import type { HttpTypes } from "@medusajs/types"
 import { createMedusaAuthService } from "../src/auth/medusa-service"
 
 type SdkLike = {
+  client: {
+    fetch: ReturnType<typeof vi.fn>
+  }
   auth: {
     register: ReturnType<typeof vi.fn>
     login: ReturnType<typeof vi.fn>
@@ -20,8 +23,18 @@ type SdkLike = {
 function createSdkMock(overrides?: {
   logout?: SdkLike["auth"]["logout"]
   createCustomer?: SdkLike["store"]["customer"]["create"]
+  fetchCustomer?: SdkLike["client"]["fetch"]
 }): SdkLike {
   return {
+    client: {
+      fetch:
+        overrides?.fetchCustomer ??
+        vi
+          .fn()
+          .mockResolvedValue({
+            customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
+          }),
+    },
     auth: {
       register: vi.fn().mockResolvedValue("token_1"),
       login: vi.fn().mockResolvedValue("token_1"),
@@ -49,6 +62,78 @@ function createSdkMock(overrides?: {
 }
 
 describe("createMedusaAuthService", () => {
+  it("forwards AbortSignal in getCustomer and sorts addresses by creation time", async () => {
+    const sdk = createSdkMock({
+      fetchCustomer: vi.fn().mockResolvedValue({
+        customer: {
+          id: "cus_1",
+          addresses: [
+            { id: "addr_2", created_at: "2026-02-21T12:00:00.000Z" },
+            { id: "addr_1", created_at: "2026-02-21T10:00:00.000Z" },
+          ],
+        } as HttpTypes.StoreCustomer,
+      }),
+    })
+    const service = createMedusaAuthService(sdk as never)
+    const controller = new AbortController()
+
+    const customer = await service.getCustomer(controller.signal)
+
+    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/customers/me", {
+      signal: controller.signal,
+    })
+    expect(customer?.addresses?.map((address) => address.id)).toEqual([
+      "addr_1",
+      "addr_2",
+    ])
+  })
+
+  it("returns null from getCustomer on auth errors", async () => {
+    const sdk = createSdkMock({
+      fetchCustomer: vi.fn().mockRejectedValue({ status: 401 }),
+    })
+    const service = createMedusaAuthService(sdk as never)
+
+    await expect(service.getCustomer()).resolves.toBeNull()
+  })
+
+  it("returns refreshed session token from register flow", async () => {
+    const sdk = createSdkMock()
+    sdk.auth.register.mockResolvedValue("registration_token")
+    sdk.auth.login.mockResolvedValue("login_token")
+    sdk.auth.refresh.mockResolvedValue("session_token")
+    const service = createMedusaAuthService(sdk as never)
+
+    await expect(
+      service.register({
+        email: "john@example.com",
+        password: "secret123",
+      })
+    ).resolves.toBe("session_token")
+
+    expect(sdk.auth.register).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.login).toHaveBeenCalledTimes(1)
+    expect(sdk.store.customer.create).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it("cleans up and rejects when register login requires multi-step auth", async () => {
+    const sdk = createSdkMock()
+    sdk.auth.login.mockResolvedValue({ location: "https://idp.example.test" })
+    const service = createMedusaAuthService(sdk as never)
+
+    await expect(
+      service.register({
+        email: "john@example.com",
+        password: "secret123",
+      })
+    ).rejects.toThrow("Multi-step authentication not supported")
+
+    expect(sdk.store.customer.create).not.toHaveBeenCalled()
+    expect(sdk.auth.refresh).not.toHaveBeenCalled()
+    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
+  })
+
   it("logs logout errors by default and keeps logout as best effort", async () => {
     const logoutError = new Error("logout failed")
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})

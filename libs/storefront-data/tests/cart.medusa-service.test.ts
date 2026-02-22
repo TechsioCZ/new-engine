@@ -2,6 +2,9 @@ import type { HttpTypes } from "@medusajs/types"
 import { createMedusaCartService } from "../src/cart/medusa-service"
 
 type SdkLike = {
+  client: {
+    fetch: ReturnType<typeof vi.fn>
+  }
   store: {
     cart: {
       retrieve: ReturnType<typeof vi.fn>
@@ -17,20 +20,28 @@ type SdkLike = {
 }
 
 function createSdkMock(
-  retrieveImpl?: (cartId: string) => Promise<{ cart?: HttpTypes.StoreCart | null }>
+  fetchImpl?: (
+    path: string,
+    init?: { signal?: AbortSignal }
+  ) => Promise<{ cart?: HttpTypes.StoreCart | null }>
 ): SdkLike {
   return {
+    client: {
+      fetch: vi
+        .fn()
+        .mockImplementation(
+          fetchImpl ??
+            ((path: string) =>
+              Promise.resolve({
+                cart: {
+                  id: path.replace("/store/carts/", ""),
+                } as HttpTypes.StoreCart,
+              }))
+        ),
+    },
     store: {
       cart: {
-        retrieve: vi
-          .fn()
-          .mockImplementation(
-            retrieveImpl ??
-              ((cartId: string) =>
-                Promise.resolve({
-                  cart: { id: cartId } as HttpTypes.StoreCart,
-                }))
-          ),
+        retrieve: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
         createLineItem: vi.fn(),
@@ -51,6 +62,30 @@ describe("createMedusaCartService", () => {
     const result = await service.retrieveCart("cart_1")
 
     expect(result).toEqual({ id: "cart_1" })
+    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/carts/cart_1", {
+      signal: undefined,
+    })
+  })
+
+  it("forwards AbortSignal to retrieve cart request", async () => {
+    const sdk = createSdkMock()
+    const service = createMedusaCartService(sdk as never)
+    const controller = new AbortController()
+
+    await service.retrieveCart("cart_1", controller.signal)
+
+    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/carts/cart_1", {
+      signal: controller.signal,
+    })
+  })
+
+  it("returns null when API response has no cart payload", async () => {
+    const sdk = createSdkMock(async () => ({ cart: undefined }))
+    const service = createMedusaCartService(sdk as never)
+
+    const result = await service.retrieveCart("cart_empty")
+
+    expect(result).toBeNull()
   })
 
   it("returns null for top-level 404 errors", async () => {

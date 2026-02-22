@@ -88,4 +88,26 @@ describe("createMedusaCheckoutService", () => {
       { provider_id: "pp_default" }
     )
   })
+
+  it("throws when cart cannot be resolved for payment initiation", async () => {
+    const sdk = createSdkMock({
+      retrieveCart: async () => ({ cart: null }),
+    })
+    const service = createMedusaCheckoutService(sdk as never)
+
+    await expect(
+      service.initiatePaymentSession("cart_missing", "pp_default")
+    ).rejects.toThrow("Failed to load cart for payment")
+  })
+
+  it("throws when payment collection is missing in initiation response", async () => {
+    const sdk = createSdkMock({
+      initiatePaymentSession: async () => ({ payment_collection: null }),
+    })
+    const service = createMedusaCheckoutService(sdk as never)
+
+    await expect(
+      service.initiatePaymentSession("cart_1", "pp_default")
+    ).rejects.toThrow("Failed to initiate payment session")
+  })
 })

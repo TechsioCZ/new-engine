@@ -25,184 +25,178 @@ const createWrapper = (client: QueryClient) =>
   )
 
 describe("storefront-data missing hook coverage", () => {
-  it("strips enabled from categories list/detail params", async () => {
-    type Category = { id: string }
-
-    let listSawEnabled = false
-    let detailSawEnabled = false
-
-    const service = {
-      getCategories: async () => ({
-        categories: [{ id: "cat_1" }],
-        count: 1,
-      }),
-      getCategory: async () => ({ id: "cat_1" }),
-    }
-
-    const { useCategories, useCategory } = createCategoryHooks({
-      service,
-      buildListParams: (input: {
-        page?: number
-        limit?: number
-        offset?: number
-        enabled?: boolean
+  describe.each([
+    {
+      domain: "categories",
+      namespace: "test-categories",
+      listInput: { page: 1, limit: 2, enabled: true },
+      detailInput: { id: "cat_1", enabled: true },
+      createHooks: (args: {
+        service: {
+          getList: () => Promise<{ items: { id: string }[]; count: number }>
+          getDetail: () => Promise<{ id: string }>
+        }
+        onListInput: (input: {
+          page?: number
+          limit?: number
+          offset?: number
+          enabled?: boolean
+        }) => void
+        onDetailInput: (input: { id: string; enabled?: boolean }) => void
       }) => {
-        listSawEnabled = "enabled" in input
-        return input
+        const mappedService = {
+          getCategories: async () => {
+            const response = await args.service.getList()
+            return { categories: response.items, count: response.count }
+          },
+          getCategory: args.service.getDetail,
+        }
+        const { useCategories, useCategory } = createCategoryHooks({
+          service: mappedService,
+          buildListParams: (input) => {
+            args.onListInput(input)
+            return input
+          },
+          buildDetailParams: (input) => {
+            args.onDetailInput(input)
+            return input
+          },
+          queryKeyNamespace: "test-categories",
+        })
+        return {
+          useListHook: () => useCategories({ page: 1, limit: 2, enabled: true }),
+          useDetailHook: () => useCategory({ id: "cat_1", enabled: true }),
+        }
       },
-      buildDetailParams: (input: { id: string; enabled?: boolean }) => {
-        detailSawEnabled = "enabled" in input
-        return input
-      },
-      queryKeyNamespace: "test-categories",
-    })
-
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    const wrapper = createWrapper(queryClient)
-
-    const { result: listResult } = renderHook(
-      () => useCategories({ page: 1, limit: 2, enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(listResult.current.isSuccess).toBe(true)
-    })
-
-    expect(listSawEnabled).toBe(false)
-
-    const { result: detailResult } = renderHook(
-      () => useCategory({ id: "cat_1", enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(detailResult.current.isSuccess).toBe(true)
-    })
-
-    expect(detailSawEnabled).toBe(false)
-  })
-
-  it("strips enabled from collections list/detail params", async () => {
-    type Collection = { id: string }
-
-    let listSawEnabled = false
-    let detailSawEnabled = false
-
-    const service = {
-      getCollections: async () => ({
-        collections: [{ id: "col_1" }],
-        count: 1,
-      }),
-      getCollection: async () => ({ id: "col_1" }),
-    }
-
-    const { useCollections, useCollection } = createCollectionHooks({
-      service,
-      buildListParams: (input: {
-        page?: number
-        limit?: number
-        offset?: number
-        enabled?: boolean
+    },
+    {
+      domain: "collections",
+      namespace: "test-collections",
+      listInput: { page: 1, limit: 1, enabled: true },
+      detailInput: { id: "col_1", enabled: true },
+      createHooks: (args: {
+        service: {
+          getList: () => Promise<{ items: { id: string }[]; count: number }>
+          getDetail: () => Promise<{ id: string }>
+        }
+        onListInput: (input: {
+          page?: number
+          limit?: number
+          offset?: number
+          enabled?: boolean
+        }) => void
+        onDetailInput: (input: { id: string; enabled?: boolean }) => void
       }) => {
-        listSawEnabled = "enabled" in input
-        return input
+        const mappedService = {
+          getCollections: async () => {
+            const response = await args.service.getList()
+            return { collections: response.items, count: response.count }
+          },
+          getCollection: args.service.getDetail,
+        }
+        const { useCollections, useCollection } = createCollectionHooks({
+          service: mappedService,
+          buildListParams: (input) => {
+            args.onListInput(input)
+            return input
+          },
+          buildDetailParams: (input) => {
+            args.onDetailInput(input)
+            return input
+          },
+          queryKeyNamespace: "test-collections",
+        })
+        return {
+          useListHook: () => useCollections({ page: 1, limit: 1, enabled: true }),
+          useDetailHook: () => useCollection({ id: "col_1", enabled: true }),
+        }
       },
-      buildDetailParams: (input: { id: string; enabled?: boolean }) => {
-        detailSawEnabled = "enabled" in input
-        return input
-      },
-      queryKeyNamespace: "test-collections",
-    })
-
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    const wrapper = createWrapper(queryClient)
-
-    const { result: listResult } = renderHook(
-      () => useCollections({ page: 1, limit: 1, enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(listResult.current.isSuccess).toBe(true)
-    })
-
-    expect(listSawEnabled).toBe(false)
-
-    const { result: detailResult } = renderHook(
-      () => useCollection({ id: "col_1", enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(detailResult.current.isSuccess).toBe(true)
-    })
-
-    expect(detailSawEnabled).toBe(false)
-  })
-
-  it("strips enabled from regions list/detail params", async () => {
-    type Region = { id: string }
-
-    let listSawEnabled = false
-    let detailSawEnabled = false
-
-    const service = {
-      getRegions: async () => ({
-        regions: [{ id: "reg_1" }],
-        count: 1,
-      }),
-      getRegion: async () => ({ id: "reg_1" }),
-    }
-
-    const { useRegions, useRegion } = createRegionHooks({
-      service,
-      buildListParams: (input: {
-        page?: number
-        limit?: number
-        offset?: number
-        enabled?: boolean
+    },
+    {
+      domain: "regions",
+      namespace: "test-regions",
+      listInput: { page: 1, limit: 1, enabled: true },
+      detailInput: { id: "reg_1", enabled: true },
+      createHooks: (args: {
+        service: {
+          getList: () => Promise<{ items: { id: string }[]; count: number }>
+          getDetail: () => Promise<{ id: string }>
+        }
+        onListInput: (input: {
+          page?: number
+          limit?: number
+          offset?: number
+          enabled?: boolean
+        }) => void
+        onDetailInput: (input: { id: string; enabled?: boolean }) => void
       }) => {
-        listSawEnabled = "enabled" in input
-        return input
+        const mappedService = {
+          getRegions: async () => {
+            const response = await args.service.getList()
+            return { regions: response.items, count: response.count }
+          },
+          getRegion: args.service.getDetail,
+        }
+        const { useRegions, useRegion } = createRegionHooks({
+          service: mappedService,
+          buildListParams: (input) => {
+            args.onListInput(input)
+            return input
+          },
+          buildDetailParams: (input) => {
+            args.onDetailInput(input)
+            return input
+          },
+          queryKeyNamespace: "test-regions",
+        })
+        return {
+          useListHook: () => useRegions({ page: 1, limit: 1, enabled: true }),
+          useDetailHook: () => useRegion({ id: "reg_1", enabled: true }),
+        }
       },
-      buildDetailParams: (input: { id: string; enabled?: boolean }) => {
-        detailSawEnabled = "enabled" in input
-        return input
-      },
-      queryKeyNamespace: "test-regions",
+    },
+  ])("enabled stripping ($domain)", ({ domain, createHooks }) => {
+    it(`strips enabled from ${domain} list/detail params`, async () => {
+      let listSawEnabled = false
+      let detailSawEnabled = false
+
+      const service = {
+        getList: async () => ({
+          items: [{ id: `${domain}_1` }],
+          count: 1,
+        }),
+        getDetail: async () => ({ id: `${domain}_1` }),
+      }
+
+      const { useListHook, useDetailHook } = createHooks({
+        service,
+        onListInput: (input) => {
+          listSawEnabled = "enabled" in input
+        },
+        onDetailInput: (input) => {
+          detailSawEnabled = "enabled" in input
+        },
+      })
+
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      })
+      const wrapper = createWrapper(queryClient)
+
+      const { result: listResult } = renderHook(() => useListHook(), { wrapper })
+      await waitFor(() => {
+        expect(listResult.current.isSuccess).toBe(true)
+      })
+      expect(listSawEnabled).toBe(false)
+
+      const { result: detailResult } = renderHook(() => useDetailHook(), {
+        wrapper,
+      })
+      await waitFor(() => {
+        expect(detailResult.current.isSuccess).toBe(true)
+      })
+      expect(detailSawEnabled).toBe(false)
     })
-
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    const wrapper = createWrapper(queryClient)
-
-    const { result: listResult } = renderHook(
-      () => useRegions({ page: 1, limit: 1, enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(listResult.current.isSuccess).toBe(true)
-    })
-
-    expect(listSawEnabled).toBe(false)
-
-    const { result: detailResult } = renderHook(
-      () => useRegion({ id: "reg_1", enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(detailResult.current.isSuccess).toBe(true)
-    })
-
-    expect(detailSawEnabled).toBe(false)
   })
 
   it("exposes auth state", async () => {
@@ -272,7 +266,7 @@ describe("storefront-data missing hook coverage", () => {
   it("invalidates customer and order domains on login", async () => {
     const service = {
       getCustomer: async () => ({ id: "cus_1" }),
-      login: async () => ({ ok: true }),
+      login: async (_input: { email: string; password: string }) => ({ ok: true }),
       register: async () => ({ ok: true }),
       logout: async () => undefined,
     }
@@ -294,7 +288,10 @@ describe("storefront-data missing hook coverage", () => {
     const { result } = renderHook(() => useLogin(), { wrapper })
 
     await act(async () => {
-      await result.current.mutateAsync({} as never)
+      await result.current.mutateAsync({
+        email: "qa@example.com",
+        password: "password",
+      })
     })
 
     expect(invalidateSpy).toHaveBeenCalledWith({
