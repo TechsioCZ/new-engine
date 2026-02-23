@@ -55,33 +55,31 @@ export function ProductDetailHero({
   vipCreditLabel,
 }: ProductDetailHeroProps) {
   return (
-    <section className="rounded-xl border border-border-secondary bg-surface p-500 lg:p-600">
-      <div className="grid gap-500 xl:grid-cols-2">
-        <ProductDetailMediaColumn galleryItems={galleryItems} offerState={offerState} />
+    <section className="grid gap-500 xl:grid-cols-2">
+      <ProductDetailMediaColumn galleryItems={galleryItems} offerState={offerState} />
 
-        <div className="space-y-300">
-          <ProductDetailPurchasePanel
-            currentAmountLabel={currentAmountLabel}
-            discountPercent={discountPercent}
-            displayOriginalLabel={displayOriginalLabel}
-            freeShippingThresholdLabel={freeShippingThresholdLabel}
-            isAdding={isAdding}
-            offerState={offerState}
-            onAddToCart={onAddToCart}
-            onQuantityChange={onQuantityChange}
-            onVariantChange={onVariantChange}
-            product={product}
-            productCategories={productCategories}
-            productHighlights={productHighlights}
-            quantity={quantity}
-            selectedVariantId={selectedVariantId}
-            unitPriceLabel={unitPriceLabel}
-            variantItems={variantItems}
-            vipCreditLabel={vipCreditLabel}
-          />
+      <div className="space-y-300">
+        <ProductDetailPurchasePanel
+          currentAmountLabel={currentAmountLabel}
+          discountPercent={discountPercent}
+          displayOriginalLabel={displayOriginalLabel}
+          freeShippingThresholdLabel={freeShippingThresholdLabel}
+          isAdding={isAdding}
+          offerState={offerState}
+          onAddToCart={onAddToCart}
+          onQuantityChange={onQuantityChange}
+          onVariantChange={onVariantChange}
+          product={product}
+          productCategories={productCategories}
+          productHighlights={productHighlights}
+          quantity={quantity}
+          selectedVariantId={selectedVariantId}
+          unitPriceLabel={unitPriceLabel}
+          variantItems={variantItems}
+          vipCreditLabel={vipCreditLabel}
+        />
 
-          {children}
-        </div>
+        {children}
       </div>
     </section>
   );
