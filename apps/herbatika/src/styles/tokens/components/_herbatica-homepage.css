@@ -4,6 +4,10 @@
   --layout-home-hero-height-lg: 22.5rem; /* 360px */
   --layout-home-blog-image-height: 11rem; /* 176px */
   --layout-home-promo-image-min-h: 14.375rem; /* 230px */
+  --layout-home-benefit-title-max-w: 11.5rem; /* 184px */
+  --layout-home-purpose-card-min-w: 8.75rem; /* 140px */
+  --layout-home-purpose-card-max-w: 9.5rem; /* 152px */
+  --layout-home-purpose-card-min-h: 7rem; /* 112px */
 }
 
 .home-hero-slides {
@@ -32,4 +36,17 @@
 
 .home-promo-image {
   min-height: var(--layout-home-promo-image-min-h);
+}
+
+.home-benefit-title {
+  max-width: var(--layout-home-benefit-title-max-w);
+}
+
+.home-purpose-item {
+  min-width: var(--layout-home-purpose-card-min-w);
+  max-width: var(--layout-home-purpose-card-max-w);
+}
+
+.home-purpose-card {
+  min-height: var(--layout-home-purpose-card-min-h);
 }
