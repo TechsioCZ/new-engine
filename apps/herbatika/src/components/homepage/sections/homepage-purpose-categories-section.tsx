@@ -51,7 +51,7 @@ function PurposeCategoriesCarousel({
   return (
     <Carousel.Root
       aspectRatio="none"
-      className="w-full rounded-lg border border-border-secondary bg-surface p-200"
+      className="w-full p-200"
       loop={hasOverflow}
       size="full"
       slideCount={slides.length}
@@ -70,9 +70,7 @@ function PurposeCategoriesCarousel({
             className="-translate-y-1/2 absolute top-1/2 right-100 z-10 rounded-full border border-border-secondary bg-surface/90 p-150 text-lg text-primary hover:bg-surface"
             icon="icon-[mdi--chevron-right]"
           />
-          <Carousel.Control className="absolute bottom-100 left-1/2 -translate-x-1/2 rounded-none bg-transparent p-0">
-            <Carousel.Indicators className="gap-100" />
-          </Carousel.Control>
+
         </>
       ) : null}
     </Carousel.Root>
