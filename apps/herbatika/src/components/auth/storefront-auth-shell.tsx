@@ -29,7 +29,7 @@ export const StorefrontAuthShell = ({
   children,
 }: StorefrontAuthShellProps) => {
   return (
-    <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-400">
+    <section className="space-y-400 max-w-max-w mx-auto p-400">
       <header className="space-y-200">
         <h2 className="text-lg font-semibold">{title}</h2>
 

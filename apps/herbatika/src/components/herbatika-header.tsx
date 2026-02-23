@@ -1,6 +1,5 @@
 "use client";
 
-import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
@@ -12,64 +11,23 @@ import { Header } from "@techsio/ui-kit/organisms/header";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  storefrontCartReadQueryOptions,
-  useCart,
-} from "@/lib/storefront/cart";
+import { storefrontCartReadQueryOptions, useCart } from "@/lib/storefront/cart";
+import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
 import {
   CART_ID_CHANGED_EVENT,
   getStoredCartId,
 } from "@/lib/storefront/cart-storage";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { HEADER_ACTION_ITEMS, PRIMARY_NAV_ITEMS } from "./header/herbatika-header.navigation";
+import { HerbatikaAccountPopover } from "./header/herbatika-account-popover";
+import { HerbatikaCartPopover } from "./header/herbatika-cart-popover";
 import { HerbatikaLogo } from "./herbatika-logo";
-
-const PRIMARY_NAV_ITEMS = [
-  { href: "/c/trapi-ma", label: "Trápi ma" },
-  { href: "/c/prirodna-kozmetika", label: "Prírodná kozmetika" },
-  { href: "/c/doplnky-vyzivy", label: "Doplnky výživy" },
-  { href: "/c/potraviny-a-napoje", label: "Potraviny a nápoje" },
-  { href: "/c/eko-domacnost", label: "EKO domácnosť" },
-  { href: "/c/ucinne-zlozky-od-a-po-z", label: "Účinné zložky od A po Z" },
-  { href: "/c/novinky", label: "Novinky" },
-];
+import { resolveSearchHref } from "./search/search-query-config";
 
 const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
   at: "EUR",
   cz: "CZK",
   sk: "EUR",
-};
-
-const resolveCartTotalAmount = (
-  cart: HttpTypes.StoreCart | null | undefined,
-) => {
-  if (!cart) {
-    return 0;
-  }
-
-  if (typeof cart.total === "number") {
-    return cart.total;
-  }
-
-  if (typeof cart.subtotal === "number") {
-    return cart.subtotal;
-  }
-
-  return (
-    cart.items?.reduce((total, item) => {
-      if (typeof item.total === "number") {
-        return total + item.total;
-      }
-
-      if (typeof item.subtotal === "number") {
-        return total + item.subtotal;
-      }
-
-      const unitPrice =
-        typeof item.unit_price === "number" ? item.unit_price : 0;
-      const quantity = typeof item.quantity === "number" ? item.quantity : 1;
-      return total + unitPrice * quantity;
-    }, 0) ?? 0
-  );
 };
 
 export function HerbatikaHeader() {
@@ -90,15 +48,18 @@ export function HerbatikaHeader() {
     };
   }, []);
 
-  const { cart, itemCount } = useCart({
-    cartId: cartId ?? undefined,
-    autoCreate: true,
-    region_id: region?.region_id,
-    country_code: region?.country_code,
-    enabled: Boolean(region?.region_id),
-  }, {
-    queryOptions: storefrontCartReadQueryOptions,
-  });
+  const { cart, itemCount } = useCart(
+    {
+      cartId: cartId ?? undefined,
+      autoCreate: true,
+      region_id: region?.region_id,
+      country_code: region?.country_code,
+      enabled: Boolean(region?.region_id),
+    },
+    {
+      queryOptions: storefrontCartReadQueryOptions,
+    },
+  );
 
   useEffect(() => {
     if (!cart?.id) {
@@ -122,15 +83,7 @@ export function HerbatikaHeader() {
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const formData = new FormData(event.currentTarget);
-    const queryValue = formData.get("q");
-    const query = typeof queryValue === "string" ? queryValue.trim() : "";
-
-    if (!query) {
-      router.push("/search");
-      return;
-    }
-
-    router.push(`/search?q=${encodeURIComponent(query)}`);
+    router.push(resolveSearchHref(formData.get("q")));
   };
 
   return (
@@ -184,35 +137,13 @@ export function HerbatikaHeader() {
             type="button"
           />
 
-          <LinkButton
-            aria-label="Účet"
-            as={NextLink}
-            className="px-0 py-0 text-3xl text-fg-secondary hover:text-primary"
-            href="/account"
-            icon="token-icon-user"
-            size="current"
-            theme="unstyled"
-            variant="secondary"
+          <HerbatikaAccountPopover />
+          <HerbatikaCartPopover
+            cart={cart}
+            cartTotalLabel={cartTotalLabel}
+            currencyCode={currency}
+            itemCount={itemCount}
           />
-
-          <div className="relative">
-            <LinkButton
-              as={NextLink}
-              className="px-450 py-300 text-xl font-bold"
-              href="/checkout"
-              icon="token-icon-cart"
-              size="sm"
-              variant="primary"
-            >
-              {cartTotalLabel}
-            </LinkButton>
-            <Badge
-              className="absolute -top-200 -right-200 min-w-500 justify-center rounded-full px-100 py-50 text-xs"
-              variant="secondary"
-            >
-              {String(itemCount)}
-            </Badge>
-          </div>
         </div>
 
         <div className="ml-auto flex items-center gap-250 @header-desktop:hidden">
@@ -256,30 +187,20 @@ export function HerbatikaHeader() {
           </Header.Nav>
 
           <Header.Actions className="gap-300 pl-300">
-            <Header.ActionItem>
-              <LinkButton
-                as={NextLink}
-                className="px-500 py-250 text-xl font-bold"
-                href="/c/darceky"
-                icon="icon-[mdi--gift-outline]"
-                size="sm"
-                variant="secondary"
-              >
-                Darčeky
-              </LinkButton>
-            </Header.ActionItem>
-            <Header.ActionItem>
-              <LinkButton
-                as={NextLink}
-                className="px-500 py-250 text-xl font-bold"
-                href="/c/vypredaj-zlavy-a-akcie"
-                icon="icon-[mdi--fire]"
-                size="sm"
-                variant="secondary"
-              >
-                Akcie
-              </LinkButton>
-            </Header.ActionItem>
+            {HEADER_ACTION_ITEMS.map((action) => (
+              <Header.ActionItem key={action.href}>
+                <LinkButton
+                  as={NextLink}
+                  className="px-500 py-250 text-xl font-bold"
+                  href={action.href}
+                  icon={action.icon}
+                  size="sm"
+                  variant="secondary"
+                >
+                  {action.label}
+                </LinkButton>
+              </Header.ActionItem>
+            ))}
           </Header.Actions>
         </Header.Container>
       </Header.Desktop>
@@ -315,28 +236,20 @@ export function HerbatikaHeader() {
         </Header.Nav>
 
         <div className="flex gap-300 p-400">
-          <LinkButton
-            as={NextLink}
-            block
-            className="justify-center font-bold"
-            href="/c/darceky"
-            icon="icon-[mdi--gift-outline]"
-            size="sm"
-            variant="secondary"
-          >
-            Darčeky
-          </LinkButton>
-          <LinkButton
-            as={NextLink}
-            block
-            className="justify-center font-bold"
-            href="/c/vypredaj-zlavy-a-akcie"
-            icon="icon-[mdi--fire]"
-            size="sm"
-            variant="secondary"
-          >
-            Akcie
-          </LinkButton>
+          {HEADER_ACTION_ITEMS.map((action) => (
+            <LinkButton
+              as={NextLink}
+              block
+              className="justify-center font-bold"
+              href={action.href}
+              icon={action.icon}
+              key={`mobile-action-${action.href}`}
+              size="sm"
+              variant="secondary"
+            >
+              {action.label}
+            </LinkButton>
+          ))}
         </div>
       </Header.Mobile>
     </Header>

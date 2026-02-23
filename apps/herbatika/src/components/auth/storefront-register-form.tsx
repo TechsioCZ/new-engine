@@ -178,7 +178,7 @@ export const StorefrontRegisterForm = ({
           </Button>
         ) : null}
 
-        <LinkButton as={NextLink} href={loginHref} theme="outlined" variant="secondary">
+        <LinkButton as={NextLink} href={loginHref} variant="primary" className="items-center rounded-sm px-200 text-sm">
           Na prihlásenie
         </LinkButton>
       </div>

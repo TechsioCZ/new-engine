@@ -40,7 +40,7 @@ export const StorefrontLoginForm = ({
 
   return (
     <form
-      className="grid gap-300 md:grid-cols-2"
+      className="flex flex-col gap-300"
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
@@ -82,7 +82,7 @@ export const StorefrontLoginForm = ({
         <Button disabled={isSubmitDisabled} isLoading={isBusy} type="submit">
           Prihlásiť
         </Button>
-        <LinkButton as={NextLink} href={registerHref} theme="outlined" variant="secondary">
+        <LinkButton as={NextLink} href={registerHref} variant="primary" className="items-center rounded-sm px-200 text-sm">
           Na registráciu
         </LinkButton>
       </div>

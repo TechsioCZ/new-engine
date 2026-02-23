@@ -1,4 +1,9 @@
 import type { HttpTypes } from "@medusajs/types";
+import {
+  resolveCartItemName as resolveCartItemNameShared,
+  resolveCartTotalAmount as resolveCartTotalAmountShared,
+  resolveLineItemTotalAmount as resolveLineItemTotalAmountShared,
+} from "@/lib/storefront/cart-calculations";
 import { CHECKOUT_STEPS, type AddressFormState } from "./checkout.constants";
 
 const isObject = (value: unknown): value is Record<string, unknown> => {
@@ -8,33 +13,11 @@ const isObject = (value: unknown): value is Record<string, unknown> => {
 export const resolveCartTotalAmount = (
   cart: HttpTypes.StoreCart | null | undefined,
 ) => {
-  if (!cart) {
-    return 0;
-  }
-
-  if (typeof cart.total === "number") {
-    return cart.total;
-  }
-
-  if (typeof cart.subtotal === "number") {
-    return cart.subtotal;
-  }
-
-  return 0;
+  return resolveCartTotalAmountShared(cart);
 };
 
 export const resolveLineItemTotalAmount = (item: HttpTypes.StoreCartLineItem) => {
-  if (typeof item.total === "number") {
-    return item.total;
-  }
-
-  if (typeof item.subtotal === "number") {
-    return item.subtotal;
-  }
-
-  const unitPrice = typeof item.unit_price === "number" ? item.unit_price : 0;
-  const quantity = typeof item.quantity === "number" ? item.quantity : 1;
-  return unitPrice * quantity;
+  return resolveLineItemTotalAmountShared(item);
 };
 
 export const resolveOrderId = (result: unknown) => {
@@ -119,7 +102,7 @@ export const resolveProviderLabel = (providerId: string) => {
 };
 
 export const resolveCartItemName = (item: HttpTypes.StoreCartLineItem) => {
-  return item.title ?? item.product_title ?? item.variant_title ?? item.id;
+  return resolveCartItemNameShared(item);
 };
 
 export const resolveHasStoredAddress = (
