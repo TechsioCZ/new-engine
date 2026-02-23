@@ -30,10 +30,20 @@ export type BlogTeaserItem = {
   excerpt: string;
   href: string;
   imageSrc: string;
+  topic: "fitness" | "krasa" | "zdravie";
+  publishedAt: string;
+  readingTime: string;
 };
 
 export type ProductSectionDefinition = {
   id: string;
   title: string;
   subtitle: string;
+};
+
+export type PurposeCategoryItem = {
+  id: string;
+  label: string;
+  href: string;
+  icon: IconType;
 };
