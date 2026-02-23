@@ -521,31 +521,31 @@ export function createCartHooks<
     autoUpdateRegion,
     signal,
   }: LoadCartOptions): Promise<TCart | null> => {
-    const createIfAllowed = async (): Promise<TCart | null> => {
+    const createIfAllowed = (): Promise<TCart | null> => {
       if (!canCreate) {
-        return null
+        return Promise.resolve(null)
       }
       return createCartFromInput(input)
     }
 
-    const resolveRegionUpdate = async (cart: TCart): Promise<TCart> => {
+    const resolveRegionUpdate = (cart: TCart): Promise<TCart> => {
       if (
-        !autoUpdateRegion ||
-        !input.region_id ||
-        !cart.region_id ||
-        cart.region_id === input.region_id ||
-        !service.updateCart
+        autoUpdateRegion &&
+        input.region_id &&
+        cart.region_id &&
+        cart.region_id !== input.region_id &&
+        service.updateCart
       ) {
-        return cart
+        return service.updateCart(
+          cart.id,
+          buildUpdate({
+            ...(input as TUpdateInput),
+            region_id: input.region_id,
+          })
+        )
       }
 
-      return service.updateCart(
-        cart.id,
-        buildUpdate({
-          ...(input as TUpdateInput),
-          region_id: input.region_id,
-        })
-      )
+      return Promise.resolve(cart)
     }
 
     if (!cartId) {

@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
 import type { AuthService } from "./types"
 
@@ -107,7 +108,8 @@ export function createMedusaAuthService(
         if (customer.addresses?.length) {
           customer.addresses = [...customer.addresses].sort(
             (a, b) =>
-              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              toComparableTimestamp(a.created_at) -
+              toComparableTimestamp(b.created_at)
           )
         }
         return customer
@@ -146,13 +148,18 @@ export function createMedusaAuthService(
         password: data.password,
       })
 
-      // Handle OAuth redirects
-      if (typeof registrationToken !== "string") {
-        throw new Error("Multi-step authentication not supported")
-      }
-
       try {
-        // Step 2: Login to establish proper session (REQUIRED!)
+        // Handle OAuth redirects.
+        // This guard lives inside the cleanup scope so we always attempt logout
+        // when register created an auth identity but we cannot continue.
+        if (typeof registrationToken !== "string") {
+          throw new Error("Multi-step authentication not supported")
+        }
+
+        // Step 2: Login to establish a standard customer session.
+        // Medusa docs show register token usage directly for customer.create, but
+        // we intentionally keep this login step so the flow consistently returns
+        // a refreshed session token after create+refresh.
         const loginToken = await sdk.auth.login("customer", "emailpass", {
           email: data.email,
           password: data.password,

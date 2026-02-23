@@ -260,13 +260,15 @@ export function createRegionHooks<
     const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
-    if (!input.id) {
-      throw new Error("Region id is required for region queries")
-    }
     const detailParams = buildDetail(detailInput as TDetailInput)
     const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => service.getRegion(detailParams, signal),
+      queryFn: ({ signal }) => {
+        if (!input.id) {
+          throw new Error("Region id is required for region queries")
+        }
+        return service.getRegion(detailParams, signal)
+      },
       ...resolvedCacheConfig.static,
       ...(options?.queryOptions ?? {}),
     })

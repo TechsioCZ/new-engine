@@ -115,6 +115,33 @@ describe("createMedusaAuthService", () => {
     expect(sdk.auth.login).toHaveBeenCalledTimes(1)
     expect(sdk.store.customer.create).toHaveBeenCalledTimes(1)
     expect(sdk.auth.refresh).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.register.mock.invocationCallOrder[0]!).toBeLessThan(
+      sdk.auth.login.mock.invocationCallOrder[0]!
+    )
+    expect(sdk.auth.login.mock.invocationCallOrder[0]!).toBeLessThan(
+      sdk.store.customer.create.mock.invocationCallOrder[0]!
+    )
+    expect(sdk.store.customer.create.mock.invocationCallOrder[0]!).toBeLessThan(
+      sdk.auth.refresh.mock.invocationCallOrder[0]!
+    )
+  })
+
+  it("cleans up and rejects when register requires multi-step auth", async () => {
+    const sdk = createSdkMock()
+    sdk.auth.register.mockResolvedValue({ location: "https://idp.example.test" })
+    const service = createMedusaAuthService(sdk as never)
+
+    await expect(
+      service.register({
+        email: "john@example.com",
+        password: "secret123",
+      })
+    ).rejects.toThrow("Multi-step authentication not supported")
+
+    expect(sdk.auth.login).not.toHaveBeenCalled()
+    expect(sdk.store.customer.create).not.toHaveBeenCalled()
+    expect(sdk.auth.refresh).not.toHaveBeenCalled()
+    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
   })
 
   it("cleans up and rejects when register login requires multi-step auth", async () => {

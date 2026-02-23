@@ -132,7 +132,7 @@ const normalizeFacetItems = (items: unknown) => {
           ? typedItem.count
           : 0
 
-      if (!id || !label) {
+      if (!(id && label)) {
         return null
       }
 

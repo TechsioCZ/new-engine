@@ -56,7 +56,13 @@ import { StorefrontDataProvider } from "@techsio/storefront-data/client/provider
 
 export function Providers({ children }) {
   return (
-    <StorefrontDataProvider>
+    <StorefrontDataProvider
+      clientConfig={{
+        defaultOptions: {
+          queries: { retry: 2 },
+        },
+      }}
+    >
       {children}
     </StorefrontDataProvider>
   )
@@ -74,7 +80,22 @@ import type { ProductService } from "@techsio/storefront-data/products/types"
 import type { Product } from "@/types/product"
 import { getProducts, getProduct } from "@/services/product-service"
 
-const productService: ProductService<Product, ListParams, DetailParams> = {
+type ProductListParams = {
+  page?: number
+  limit?: number
+  region_id?: string
+}
+
+type ProductDetailParams = {
+  handle: string
+  region_id?: string
+}
+
+const productService: ProductService<
+  Product,
+  ProductListParams,
+  ProductDetailParams
+> = {
   getProducts: (params) => getProducts(params),
   getProductByHandle: (params) => getProduct(params.handle, params.region_id),
 }
@@ -142,27 +163,36 @@ export default async function ProductsPage() {
 
 ```text
 src/
-├── client/               # Client-side utilities
-│   ├── provider.tsx      # StorefrontDataProvider
-├── server/               # Server-side utilities
-│   └── get-query-client.ts  # Per-request QueryClient
-├── shared/               # Shared utilities
-│   ├── cache-config.ts   # Cache strategy configs
-│   ├── medusa-client.ts  # Medusa SDK factory
-│   ├── query-client.ts   # QueryClient factory
-│   └── query-keys.ts     # Query key utilities
-├── products/             # Product hooks factory
-│   ├── hooks.ts          # createProductHooks
-│   ├── types.ts          # Product types
-│   └── query-keys.ts
-├── collections/          # Collection hooks factory
-├── categories/           # Category hooks factory
-└── regions/              # Region hooks factory
+  auth/                  # auth hooks + medusa service
+  cart/                  # cart hooks + medusa service
+  catalog/               # catalog hooks + medusa service
+  categories/            # category hooks factory
+  checkout/              # checkout hooks + medusa service
+  client/                # client-side utilities
+    provider.tsx         # StorefrontDataProvider
+  collections/           # collection hooks factory
+  customers/             # customer hooks + medusa service
+  orders/                # order hooks + medusa service
+  products/              # product hooks factory
+  regions/               # region hooks factory
+  server/                # server-side utilities
+    get-query-client.ts  # per-request QueryClient
+  shared/                # shared utilities
+    cache-config.ts      # cache strategy configs
+    medusa-client.ts     # Medusa SDK factory
+    query-client.ts      # QueryClient factory
+    query-keys.ts        # query key utilities
 ```
 
 ## Exports
 
 Use explicit file-level subpaths (no barrel entrypoints), for example:
+- `@techsio/storefront-data/auth/hooks`
+- `@techsio/storefront-data/cart/hooks`
+- `@techsio/storefront-data/catalog/hooks`
+- `@techsio/storefront-data/checkout/hooks`
+- `@techsio/storefront-data/customers/hooks`
+- `@techsio/storefront-data/orders/hooks`
 - `@techsio/storefront-data/products/hooks`
 - `@techsio/storefront-data/products/types`
 - `@techsio/storefront-data/client/provider`
@@ -183,7 +213,7 @@ const cacheConfig = createCacheConfig({
 
 | Strategy | Stale Time | Use Case |
 |----------|------------|----------|
-| `static` | 24 hours | Regions, rarely-changing data |
+| `static` | 24 hours | Regions, rarely changing data |
 | `semiStatic` | 1 hour | Products, collections |
 | `realtime` | 30 seconds | Cart, inventory |
 | `userData` | 5 minutes | User profile, orders |

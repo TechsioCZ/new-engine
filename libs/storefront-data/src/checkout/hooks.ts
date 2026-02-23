@@ -105,7 +105,7 @@ export function createCheckoutHooks<
     ...resolvedCacheConfig.semiStatic,
   })
 
-  async function fetchPaymentProviders(
+  function fetchPaymentProviders(
     queryClient: QueryClient,
     regionId: string
   ) {

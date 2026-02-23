@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
 import type { CustomerAddressListResponse, CustomerService } from "./types"
 
@@ -17,19 +18,6 @@ const normalizeComparableString = (
   }
 
   return lowercase ? normalized.toLowerCase() : normalized
-}
-
-const toComparableTimestamp = (value: unknown): number => {
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? Number.NEGATIVE_INFINITY : value.getTime()
-  }
-
-  if (typeof value === "string") {
-    const parsed = Date.parse(value)
-    return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed
-  }
-
-  return Number.NEGATIVE_INFINITY
 }
 
 const pickNewestAddress = <T extends HttpTypes.StoreCustomerAddress>(
@@ -175,6 +163,39 @@ export function createMedusaCustomerService(
   MedusaCustomerAddressUpdateInput,
   MedusaCustomerProfileUpdateInput
 > {
+  const fetchAllCustomerAddresses = async (): Promise<
+    HttpTypes.StoreCustomerAddress[]
+  > => {
+    const pageSize = 100
+    const addresses: HttpTypes.StoreCustomerAddress[] = []
+    let offset = 0
+
+    while (true) {
+      const response = await sdk.store.customer.listAddress({
+        limit: pageSize,
+        offset,
+      })
+      const page = response.addresses ?? []
+      addresses.push(...page)
+
+      if (page.length === 0) {
+        break
+      }
+
+      offset += page.length
+
+      if (typeof response.count === "number" && offset >= response.count) {
+        break
+      }
+
+      if (typeof response.count !== "number" && page.length < pageSize) {
+        break
+      }
+    }
+
+    return addresses
+  }
+
   return {
     async getAddresses(
       _params: MedusaCustomerListInput,
@@ -203,9 +224,9 @@ export function createMedusaCustomerService(
       let existingAddressIds: Set<string> | null = null
 
       try {
-        const existingAddresses = await sdk.store.customer.listAddress()
+        const existingAddresses = await fetchAllCustomerAddresses()
         existingAddressIds = new Set(
-          (existingAddresses.addresses ?? [])
+          existingAddresses
             .map((address) => address.id)
             .filter((id): id is string => Boolean(id))
         )
