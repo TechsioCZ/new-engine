@@ -41,9 +41,7 @@ const resolveBreadcrumbItems = (
   activeCategory: HttpTypes.StoreProductCategory | null,
   categoryById: Map<string, HttpTypes.StoreProductCategory>,
 ) => {
-  const items: Array<{ label: string; href?: string }> = [
-    { label: "Domov", href: "/" },
-  ];
+  const items = [{ label: "Products", href: "/", icon: "icon-[mdi--home-outline]" as const }];
 
   if (!activeCategory) {
     items.push({ label: normalizeCategoryName(slug) });

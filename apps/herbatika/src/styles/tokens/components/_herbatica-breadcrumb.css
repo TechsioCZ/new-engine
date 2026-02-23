@@ -1,0 +1,5 @@
+@theme static {
+  --color-breadcrumb-bg: transparent;
+  --color-breadcrumb-item-fg: var(--color-fg-secondary);
+  --color-breadcrumb-fg-current: var(--color-fg-primary);
+}
