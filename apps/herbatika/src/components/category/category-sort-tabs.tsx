@@ -15,17 +15,17 @@ export function CategorySortTabs({
   totalProducts,
 }: CategorySortTabsProps) {
   return (
-    <div className="flex flex-col gap-150 rounded-xl bg-highlight px-250 py-200 md:flex-row md:items-center md:justify-between">
-      <div className="flex min-w-0 items-center gap-100 overflow-x-auto">
+    <div className="flex flex-col gap-150 rounded-full bg-highlight px-250 py-200 md:flex-row md:items-center md:justify-between">
+      <div className="flex min-w-0 items-center gap-100 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-visible">
         {sortItems.map((item) => {
           const isActive = item.value === activeSort;
 
           return (
             <Button
-              className={`shrink-0 rounded-full px-350 py-150 text-base leading-tight font-semibold transition-colors ${
+              className={`shrink-0 rounded-full px-350 py-150 text-sm leading-tight font-semibold transition-colors ${
                 isActive
                   ? "bg-primary text-fg-reverse"
-                  : "text-fg-secondary hover:text-primary"
+                  : "text-fg-primary hover:text-primary"
               }`}
               key={item.value}
               onClick={() => onSortChange(item.value)}
@@ -39,7 +39,10 @@ export function CategorySortTabs({
         })}
       </div>
 
-      <p className="text-base font-semibold text-fg-secondary">{`${totalProducts} položiek celkom`}</p>
+      <p className="shrink-0 text-sm text-fg-secondary">
+        <span className="font-semibold text-fg-primary">{totalProducts}</span>{" "}
+        položiek celkom
+      </p>
     </div>
   );
 }
