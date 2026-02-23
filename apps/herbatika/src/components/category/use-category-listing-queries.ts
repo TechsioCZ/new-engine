@@ -1,8 +1,10 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
+import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { useMemo } from "react";
 import {
+  resolveCategoryIntroSegments,
   resolveCategoryContextTiles,
   resolveCategoryIntroText,
 } from "@/components/category/category-context.utils";
@@ -41,7 +43,11 @@ const resolveBreadcrumbItems = (
   activeCategory: HttpTypes.StoreProductCategory | null,
   categoryById: Map<string, HttpTypes.StoreProductCategory>,
 ) => {
-  const items = [{ label: "Products", href: "/", icon: "icon-[mdi--home-outline]" as const }];
+  const items: Array<{
+    label: string;
+    href?: string;
+    icon?: IconType;
+  }> = [{ label: "Products", href: "/", icon: "icon-[mdi--home-outline]" }];
 
   if (!activeCategory) {
     items.push({ label: normalizeCategoryName(slug) });
@@ -238,6 +244,7 @@ export function useCategoryListingQueries({
       : null,
     categoriesQuery,
     categoryContextTiles,
+    categoryIntroSegments: resolveCategoryIntroSegments({ slug, categoryByHandle }),
     categoryIntroText: resolveCategoryIntroText({ slug, activeCategory }),
     categorySubtitle:
       activeCategoryFilterIds.length > 1

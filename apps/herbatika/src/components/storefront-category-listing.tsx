@@ -55,11 +55,12 @@ export function StorefrontCategoryListing({
       </section>
 
       <CategoryContextPanel
+        introSegments={controller.categoryIntroSegments}
         introText={controller.categoryIntroText}
         tiles={controller.categoryContextTiles}
       />
 
-      <section className="space-y-400 p-600">
+      <section className="space-y-400">
         <div className="grid gap-600 xl:grid-cols-12">
           <div className="xl:col-span-3">
             <CategoryFacetsPanel

@@ -2,8 +2,10 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
+import { Link } from "@techsio/ui-kit/atoms/link";
 import NextLink from "next/link";
 import { useState } from "react";
+import type { CategoryContextIntroSegment } from "@/components/category/category-context.utils";
 
 type CategoryContextTile = {
   id: string;
@@ -14,6 +16,7 @@ type CategoryContextTile = {
 
 type CategoryContextPanelProps = {
   introText?: string | null;
+  introSegments?: CategoryContextIntroSegment[] | null;
   tiles: CategoryContextTile[];
 };
 
@@ -101,26 +104,52 @@ export const buildCategoryContextTiles = (
 
 export function CategoryContextPanel({
   introText,
+  introSegments,
   tiles,
 }: CategoryContextPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const shouldShowIntroToggle = Boolean(introText && introText.length > 260);
+  const introContentText = introSegments?.map((segment) => segment.value).join("") ?? "";
+  const hasIntroSegments = Boolean(introSegments && introSegments.length > 0);
+  const resolvedIntroText = introText ?? introContentText;
+  const shouldShowIntroToggle =
+    Boolean(resolvedIntroText && resolvedIntroText.length > 260);
 
-  if (!introText && tiles.length === 0) {
+  if (!introText && !hasIntroSegments && tiles.length === 0) {
     return null;
   }
 
   return (
     <section className="space-y-350">
-      {introText && (
+      {(introText || hasIntroSegments) && (
         <div className="space-y-150">
-          <p
+          <div
             className={`max-w-none text-sm leading-relaxed text-fg-primary ${
               !isExpanded ? "line-clamp-4" : ""
             }`}
           >
-            {introText}
-          </p>
+            {hasIntroSegments
+              ? introSegments?.map((segment, index) => {
+                  if (segment.type === "text") {
+                    return (
+                      <span key={`intro-text-${index}-${segment.value.slice(0, 10)}`}>
+                        {segment.value}
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      as={NextLink}
+                      className="font-semibold text-primary underline underline-offset-2"
+                      href={segment.href}
+                      key={`intro-link-${index}-${segment.href}`}
+                    >
+                      {segment.value}
+                    </Link>
+                  );
+                })
+              : introText}
+          </div>
           {shouldShowIntroToggle && (
             <Button
               className="p-0 text-sm font-semibold text-primary underline-offset-2 hover:underline"
@@ -138,20 +167,21 @@ export function CategoryContextPanel({
       )}
 
       {tiles.length > 0 && (
-        <ul className="grid gap-250 sm:grid-cols-2 xl:grid-cols-4">
+        <ul className="grid gap-250 sm:grid-cols-2 lg:grid-cols-4">
           {tiles.map((tile) => (
             <li key={tile.id}>
-              <NextLink
-                className="group flex min-h-900 items-center gap-250 rounded-xl border border-border-secondary bg-surface px-300 py-250 text-fg-primary transition-colors hover:border-primary/30 hover:bg-highlight"
+              <Link
+                as={NextLink}
+                className="group flex min-h-750 items-center gap-200 rounded-lg border border-border-secondary bg-surface px-300 py-200 text-fg-primary transition-colors hover:border-primary/30"
                 href={tile.href}
               >
-                <span className="flex h-600 w-600 shrink-0 items-center justify-center rounded-full bg-highlight text-md text-primary">
-                  <Icon className="text-md" icon={tile.icon} />
+                <span className="flex h-500 w-500 shrink-0 items-center justify-center text-primary">
+                  <Icon className="text-2xl" icon={tile.icon} />
                 </span>
-                <span className="text-sm font-semibold leading-tight text-fg-primary transition-colors group-hover:text-primary">
+                <span className="text-sm font-semibold leading-snug text-fg-primary">
                   {tile.label}
                 </span>
-              </NextLink>
+              </Link>
             </li>
           ))}
         </ul>

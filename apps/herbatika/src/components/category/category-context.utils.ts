@@ -1,47 +1,52 @@
 import type { HttpTypes } from "@medusajs/types";
 import { buildCategoryContextTiles } from "@/components/category/category-context-panel";
 import {
+  CATEGORY_CONTEXT_PRESETS,
+  type CategoryContextIntroSegmentPreset,
+} from "@/components/category/category-context.data";
+import {
   normalizeCategoryName,
   resolveCategoryRank,
 } from "@/components/category/category-product-utils";
 
-type CategoryContextPreset = {
-  introText: string;
-  preferredTiles: Array<{
-    handle: string;
-    label: string;
-  }>;
-};
+export type CategoryContextIntroSegment =
+  | {
+      type: "text";
+      value: string;
+    }
+  | {
+      type: "link";
+      value: string;
+      href: string;
+    };
 
 const CATEGORY_DESCRIPTION_PLACEHOLDER = "Imported from Herbatica XML feed.";
 
-const CATEGORY_CONTEXT_PRESETS: Record<string, CategoryContextPreset> = {
-  "trapi-ma": {
-    introText:
-      "Človek je neoddeliteľnou súčasťou prírody, každá jedna bunka je s ňou prepojená a závislá od jej ďalších zložiek: vody, vzduchu, stromov, rastlín a ďalších živých tvorov na zemi. Spôsob, akým k nej pristupujeme, sa odráža aj na našom zdraví. Trápi vás oslabená imunita, kožné problémy, únava alebo bolesti kĺbov? V Herbatica sme pre vás pripravili jedinečnú kategóriu Trápi ma, v ktorej nájdete prírodné produkty rozdelené podľa účelu a oblasti zdravia.",
-    preferredTiles: [
-      { handle: "trapi-ma-kozne-problemy", label: "Kožné problémy" },
-      {
-        handle: "trapi-ma-mozog-a-nervovy-system",
-        label: "Mozog a nervový systém",
-      },
-      { handle: "trapi-ma-imunita-a-obranyschopnost", label: "Imunita" },
-      { handle: "trapi-ma-klby-a-pohybovy-aparat", label: "Kĺby a pohyb" },
-      {
-        handle: "trapi-ma-travenie-a-metabolizmus",
-        label: "Trávenie a metabolizmus",
-      },
-      { handle: "trapi-ma-srdce-a-cievy", label: "Srdce a cievy" },
-      {
-        handle: "trapi-ma-hormonalna-rovnovaha",
-        label: "Hormonálna rovnováha",
-      },
-      {
-        handle: "trapi-ma-hormonalna-rovnovaha-zenske-zdravie",
-        label: "Ženské zdravie",
-      },
-    ],
-  },
+const resolveIntroTextFromSegments = (
+  segments: CategoryContextIntroSegmentPreset[],
+) => {
+  return segments.map((segment) => segment.value).join("");
+};
+
+const resolveIntroLinkHref = ({
+  slug,
+  categoryByHandle,
+  segment,
+}: {
+  slug: string;
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>;
+  segment: Extract<CategoryContextIntroSegmentPreset, { type: "link" }>;
+}) => {
+  if (segment.href) {
+    return segment.href;
+  }
+
+  if (segment.handle) {
+    const categoryHandle = categoryByHandle.get(segment.handle)?.handle ?? segment.handle;
+    return `/c/${categoryHandle}`;
+  }
+
+  return `/c/${slug}`;
 };
 
 const sortCategories = (categories: HttpTypes.StoreProductCategory[]) => {
@@ -67,9 +72,9 @@ export const resolveCategoryIntroText = ({
   slug,
   activeCategory,
 }: ResolveCategoryIntroTextInput) => {
-  const presetIntro = CATEGORY_CONTEXT_PRESETS[slug]?.introText;
-  if (presetIntro) {
-    return presetIntro;
+  const presetIntroSegments = CATEGORY_CONTEXT_PRESETS[slug]?.introSegments ?? [];
+  if (presetIntroSegments.length > 0) {
+    return resolveIntroTextFromSegments(presetIntroSegments);
   }
 
   const description = activeCategory?.description?.trim();
@@ -78,6 +83,33 @@ export const resolveCategoryIntroText = ({
   }
 
   return description;
+};
+
+type ResolveCategoryIntroSegmentsInput = {
+  slug: string;
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>;
+};
+
+export const resolveCategoryIntroSegments = ({
+  slug,
+  categoryByHandle,
+}: ResolveCategoryIntroSegmentsInput): CategoryContextIntroSegment[] | null => {
+  const presetIntroSegments = CATEGORY_CONTEXT_PRESETS[slug]?.introSegments ?? [];
+  if (presetIntroSegments.length === 0) {
+    return null;
+  }
+
+  return presetIntroSegments.map((segment) => {
+    if (segment.type === "text") {
+      return segment;
+    }
+
+    return {
+      type: "link",
+      value: segment.value,
+      href: resolveIntroLinkHref({ slug, categoryByHandle, segment }),
+    };
+  });
 };
 
 type ResolveCategoryContextTilesInput = {
