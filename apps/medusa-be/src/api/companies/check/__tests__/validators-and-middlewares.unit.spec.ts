@@ -68,10 +68,12 @@ describe("companiesCheckRoutesMiddlewares", () => {
   })
 
   it("registers all company-check routes", () => {
-    expect(companiesCheckRoutesMiddlewares).toHaveLength(4)
+    expect(companiesCheckRoutesMiddlewares).toHaveLength(6)
     expect(companiesCheckRoutesMiddlewares.map((route) => route.matcher)).toEqual(
       [
+        "/admin/companies/check/cz/info",
         "/store/companies/check/cz/info",
+        "/admin/companies/check/vies",
         "/store/companies/check/vies",
         "/admin/companies/check/cz/tax-reliability",
         "/admin/companies/check/cz/address-count",

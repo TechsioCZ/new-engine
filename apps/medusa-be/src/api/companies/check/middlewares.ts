@@ -27,10 +27,30 @@ const requireCompanyFeatureEnabled = (
 export const companiesCheckRoutesMiddlewares: MiddlewareRoute[] = [
   {
     methods: ["GET"],
+    matcher: "/admin/companies/check/cz/info",
+    middlewares: [
+      requireCompanyFeatureEnabled,
+      validateAndTransformQuery(StoreCompaniesCheckCzInfoSchema, {
+        isList: false,
+      }),
+    ],
+  },
+  {
+    methods: ["GET"],
     matcher: "/store/companies/check/cz/info",
     middlewares: [
       requireCompanyFeatureEnabled,
       validateAndTransformQuery(StoreCompaniesCheckCzInfoSchema, {
+        isList: false,
+      }),
+    ],
+  },
+  {
+    methods: ["GET"],
+    matcher: "/admin/companies/check/vies",
+    middlewares: [
+      requireCompanyFeatureEnabled,
+      validateAndTransformQuery(StoreCompaniesCheckViesSchema, {
         isList: false,
       }),
     ],

@@ -1,6 +1,8 @@
 import { createSelectParams } from "@medusajs/medusa/api/utils/validators"
 import { z } from "@medusajs/framework/zod"
 import { ApprovalStatusType } from "../../../types/approval"
+import { VatIdentificationNumberSchema } from "../../companies/check/validators"
+import { CzCompanyIdentificationNumberSchema } from "./check/cz/info/validators"
 
 /* Company Validators */
 export type StoreGetCompanyParamsType = z.infer<typeof StoreGetCompanyParams>
@@ -18,6 +20,10 @@ export const StoreCreateCompany = z
     state: z.string().optional().nullable(),
     zip: z.string().optional().nullable(),
     country: z.string().optional().nullable(),
+    company_identification_number:
+      CzCompanyIdentificationNumberSchema.optional().nullable(),
+    vat_identification_number:
+      VatIdentificationNumberSchema.optional().nullable(),
     logo_url: z.string().optional().nullable(),
     spending_limit_reset_frequency: z
       .enum(["never", "daily", "weekly", "monthly", "yearly"])
@@ -38,6 +44,10 @@ export const StoreUpdateCompany = z
     state: z.string().optional().nullable(),
     zip: z.string().optional().nullable(),
     country: z.string().optional().nullable(),
+    company_identification_number:
+      CzCompanyIdentificationNumberSchema.optional().nullable(),
+    vat_identification_number:
+      VatIdentificationNumberSchema.optional().nullable(),
     logo_url: z.string().optional().nullable(),
     spending_limit_reset_frequency: z
       .enum(["never", "daily", "weekly", "monthly", "yearly"])

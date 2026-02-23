@@ -24,7 +24,7 @@ export function CompanyCreateDrawer() {
           Create
         </Button>
       </Drawer.Trigger>
-      <Drawer.Content>
+      <Drawer.Content className="z-50 overflow-auto">
         <Drawer.Header>
           <Drawer.Title>Create Company</Drawer.Title>
         </Drawer.Header>

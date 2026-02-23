@@ -22,6 +22,8 @@ export type ModuleCompany = {
   state: string | null
   zip: string | null
   country: string | null
+  company_identification_number: string | null
+  vat_identification_number: string | null
   logo_url: string | null
   currency_code: string | null
   spending_limit_reset_frequency: ModuleCompanySpendingLimitResetFrequency
@@ -40,6 +42,8 @@ export type ModuleCreateCompany = {
   state: string | null
   zip: string | null
   country: string | null
+  company_identification_number: string | null
+  vat_identification_number: string | null
   logo_url: string | null
   currency_code: string
   spending_limit_reset_frequency: ModuleCompanySpendingLimitResetFrequency | null

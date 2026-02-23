@@ -10,6 +10,8 @@ export const storeCompanyFields = [
   "state",
   "zip",
   "country",
+  "company_identification_number",
+  "vat_identification_number",
   "currency_code",
   "*employees",
   "*approval_settings",

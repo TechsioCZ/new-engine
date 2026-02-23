@@ -15,17 +15,190 @@ import type {
 } from "../../../types"
 import { sdk } from "../../lib/client"
 import { queryKeysFactory } from "../../lib/query-key-factory"
+import {
+  normalizeCompanyCheckCzAddressCountQuery,
+  normalizeCompanyCheckCzInfoQuery,
+  normalizeCompanyCheckCzTaxReliabilityQuery,
+  normalizeCompanyCheckViesQuery,
+} from "../../utils"
 
 export const companyQueryKey = queryKeysFactory("company")
+export const companyCheckQueryKey = queryKeysFactory("company-check")
+
+export type CompanyCheckCzInfoQuery = {
+  vat_identification_number?: string | null
+  company_identification_number?: string | null
+  company_name?: string | null
+}
+
+export type CompanyCheckCzInfoResult = {
+  company_name: string
+  company_identification_number: string
+  vat_identification_number?: string | null
+  street: string
+  city: string
+  country: string
+  postal_code: string
+}
+
+export type CompanyCheckCzAddressCountQuery = {
+  street?: string | null
+  city?: string | null
+}
+
+export type CompanyCheckCzAddressCountResult = {
+  count: number
+}
+
+export type CompanyCheckCzTaxReliabilityQuery = {
+  vat_identification_number?: string | null
+}
+
+export type CompanyCheckCzTaxReliabilityResult = {
+  reliable: boolean | null
+  unreliable_published_at: string | null
+  subject_type: string | null
+}
+
+export type CompanyCheckViesQuery = {
+  vat_identification_number?: string | null
+}
+
+export type CompanyCheckViesResult = {
+  valid: boolean
+  name: string | null
+  address: string | null
+  is_group_registration: boolean
+  request_date: string | null
+  request_identifier: string | null
+  trader_name_match: string | null
+  trader_address_match: string | null
+  trader_company_type_match: string | null
+  trader_street_match: string | null
+  trader_postal_code_match: string | null
+  trader_city_match: string | null
+}
+
+type QueryOptions<TData> = Omit<
+  UseQueryOptions<TData, FetchError, TData, QueryKey>,
+  "queryFn" | "queryKey"
+>
+
+export const useCompanyCheckCzInfo = (
+  query?: CompanyCheckCzInfoQuery,
+  options?: QueryOptions<CompanyCheckCzInfoResult[]>
+) => {
+  const normalizedQuery = normalizeCompanyCheckCzInfoQuery(query)
+  const filterQuery = normalizedQuery
+    ? new URLSearchParams(normalizedQuery).toString()
+    : ""
+
+  const fetchCompanyCheckCzInfo = async () =>
+    sdk.client.fetch<CompanyCheckCzInfoResult[]>(
+      `/admin/companies/check/cz/info${filterQuery ? `?${filterQuery}` : ""}`,
+      {
+        method: "GET",
+      }
+    )
+
+  return useQuery({
+    queryKey: companyCheckQueryKey.list({
+      endpoint: "cz-info",
+      query: normalizedQuery,
+    }),
+    queryFn: fetchCompanyCheckCzInfo,
+    ...options,
+    enabled: Boolean(normalizedQuery) && (options?.enabled ?? true),
+  })
+}
+
+export const useCompanyCheckCzAddressCount = (
+  query?: CompanyCheckCzAddressCountQuery,
+  options?: QueryOptions<CompanyCheckCzAddressCountResult>
+) => {
+  const normalizedQuery = normalizeCompanyCheckCzAddressCountQuery(query)
+  const filterQuery = normalizedQuery
+    ? new URLSearchParams(normalizedQuery).toString()
+    : ""
+
+  const fetchCompanyCheckCzAddressCount = async () =>
+    sdk.client.fetch<CompanyCheckCzAddressCountResult>(
+      `/admin/companies/check/cz/address-count${filterQuery ? `?${filterQuery}` : ""}`,
+      {
+        method: "GET",
+      }
+    )
+
+  return useQuery({
+    queryKey: companyCheckQueryKey.list({
+      endpoint: "cz-address-count",
+      query: normalizedQuery,
+    }),
+    queryFn: fetchCompanyCheckCzAddressCount,
+    ...options,
+    enabled: Boolean(normalizedQuery) && (options?.enabled ?? true),
+  })
+}
+
+export const useCompanyCheckCzTaxReliability = (
+  query?: CompanyCheckCzTaxReliabilityQuery,
+  options?: QueryOptions<CompanyCheckCzTaxReliabilityResult>
+) => {
+  const normalizedQuery = normalizeCompanyCheckCzTaxReliabilityQuery(query)
+  const filterQuery = normalizedQuery
+    ? new URLSearchParams(normalizedQuery).toString()
+    : ""
+
+  const fetchCompanyCheckCzTaxReliability = async () =>
+    sdk.client.fetch<CompanyCheckCzTaxReliabilityResult>(
+      `/admin/companies/check/cz/tax-reliability${filterQuery ? `?${filterQuery}` : ""}`,
+      {
+        method: "GET",
+      }
+    )
+
+  return useQuery({
+    queryKey: companyCheckQueryKey.list({
+      endpoint: "cz-tax-reliability",
+      query: normalizedQuery,
+    }),
+    queryFn: fetchCompanyCheckCzTaxReliability,
+    ...options,
+    enabled: Boolean(normalizedQuery) && (options?.enabled ?? true),
+  })
+}
+
+export const useCompanyCheckVies = (
+  query?: CompanyCheckViesQuery,
+  options?: QueryOptions<CompanyCheckViesResult>
+) => {
+  const normalizedQuery = normalizeCompanyCheckViesQuery(query)
+  const filterQuery = normalizedQuery
+    ? new URLSearchParams(normalizedQuery).toString()
+    : ""
+
+  const fetchCompanyCheckVies = async () =>
+    sdk.client.fetch<CompanyCheckViesResult>(
+      `/admin/companies/check/vies${filterQuery ? `?${filterQuery}` : ""}`,
+      {
+        method: "GET",
+      }
+    )
+
+  return useQuery({
+    queryKey: companyCheckQueryKey.list({
+      endpoint: "vies",
+      query: normalizedQuery,
+    }),
+    queryFn: fetchCompanyCheckVies,
+    ...options,
+    enabled: Boolean(normalizedQuery) && (options?.enabled ?? true),
+  })
+}
 
 export const useCompanies = (
   query?: Record<string, any>,
-  options?: UseQueryOptions<
-    AdminCompaniesResponse,
-    FetchError,
-    AdminCompaniesResponse,
-    QueryKey
-  >
+  options?: QueryOptions<AdminCompaniesResponse>
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
@@ -47,12 +220,7 @@ export const useCompanies = (
 export const useCompany = (
   companyId: string,
   query?: Record<string, any>,
-  options?: UseQueryOptions<
-    AdminCompanyResponse,
-    FetchError,
-    AdminCompanyResponse,
-    QueryKey
-  >
+  options?: QueryOptions<AdminCompanyResponse>
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
@@ -162,7 +330,7 @@ export const useAddCompanyToCustomerGroup = (
 
   return useMutation({
     mutationFn: (groupId: string) =>
-      sdk.client.fetch(`/admin/companies/${companyId}/customer-group`, {
+      sdk.client.fetch<void>(`/admin/companies/${companyId}/customer-group`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -190,7 +358,7 @@ export const useRemoveCompanyFromCustomerGroup = (
 
   return useMutation({
     mutationFn: (groupId: string) =>
-      sdk.client.fetch(
+      sdk.client.fetch<void>(
         `/admin/companies/${companyId}/customer-group/${groupId}`,
         {
           method: "DELETE",

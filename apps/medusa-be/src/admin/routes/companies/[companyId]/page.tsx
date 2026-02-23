@@ -10,8 +10,19 @@ import {
 } from "@medusajs/ui"
 import { useParams } from "react-router-dom"
 import type { QueryEmployee } from "../../../../types"
-import { useAdminCustomerGroups, useCompany } from "../../../hooks/api"
-import { formatAmount } from "../../../utils"
+import {
+  useAdminCustomerGroups,
+  useCompany,
+  useCompanyCheckCzAddressCount,
+  useCompanyCheckCzTaxReliability,
+  useCompanyCheckVies,
+} from "../../../hooks/api"
+import {
+  formatAmount,
+  hasAddressCountWarning,
+  taxReliabilityBadge,
+  viesValidationBadge,
+} from "../../../utils"
 import { CompanyActionsMenu } from "../components"
 import {
   EmployeeCreateDrawer,
@@ -28,6 +39,46 @@ const CompanyDetails = () => {
   const { data: customerGroups } = useAdminCustomerGroups()
 
   const company = data?.company
+  const {
+    data: addressCountData,
+    error: addressCountError,
+    isFetching: isAddressCountFetching,
+  } = useCompanyCheckCzAddressCount(
+    {
+      street: company?.address,
+      city: company?.city,
+    },
+    {
+      retry: false,
+    }
+  )
+  const {
+    data: taxReliabilityData,
+    error: taxReliabilityError,
+    isFetching: isTaxReliabilityFetching,
+  } = useCompanyCheckCzTaxReliability(
+    {
+      vat_identification_number: company?.vat_identification_number,
+    },
+    {
+      retry: false,
+    }
+  )
+  const {
+    data: viesData,
+    error: viesError,
+    isFetching: isViesFetching,
+  } = useCompanyCheckVies(
+    {
+      vat_identification_number: company?.vat_identification_number,
+    },
+    {
+      retry: false,
+    }
+  )
+  const hasAddressCountWarningState = hasAddressCountWarning(addressCountData?.count)
+  const taxReliability = taxReliabilityBadge(taxReliabilityData?.reliable)
+  const viesValidation = viesValidationBadge(viesData)
 
   if (!company) {
     return <div>Company not found</div>
@@ -87,6 +138,20 @@ const CompanyDetails = () => {
                 </Table.Row>
                 <Table.Row>
                   <Table.Cell className="txt-compact-small font-medium font-sans">
+                    Company ID Number (ICO)
+                  </Table.Cell>
+                  <Table.Cell>
+                    {company?.company_identification_number || "-"}
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell className="txt-compact-small font-medium font-sans">
+                    VAT Identification Number (DIC)
+                  </Table.Cell>
+                  <Table.Cell>{company?.vat_identification_number || "-"}</Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell className="txt-compact-small font-medium font-sans">
                     Currency
                   </Table.Cell>
                   <Table.Cell>
@@ -132,6 +197,109 @@ const CompanyDetails = () => {
                         <Badge color="grey" size="small">
                           No approval required
                         </Badge>
+                      )}
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell className="txt-compact-small font-medium font-sans">
+                    Address concentration
+                  </Table.Cell>
+                  <Table.Cell>
+                    <div className="flex flex-col items-start gap-1">
+                      {isAddressCountFetching ? (
+                        <Badge color="grey" size="2xsmall">
+                          Checking
+                        </Badge>
+                      ) : addressCountError ? (
+                        <Badge color="orange" size="2xsmall">
+                          Check unavailable
+                        </Badge>
+                      ) : typeof addressCountData?.count === "number" ? (
+                        <>
+                          <Badge
+                            color={hasAddressCountWarningState ? "orange" : "green"}
+                            size="2xsmall"
+                          >
+                            {hasAddressCountWarningState
+                              ? `Warning (${addressCountData.count})`
+                              : `OK (${addressCountData.count})`}
+                          </Badge>
+                          {hasAddressCountWarningState && (
+                            <Text className="txt-compact-small text-ui-fg-warning">
+                              {addressCountData.count} companies share this
+                              address.
+                            </Text>
+                          )}
+                        </>
+                      ) : (
+                        <Badge color="grey" size="2xsmall">
+                          Not run
+                        </Badge>
+                      )}
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell className="txt-compact-small font-medium font-sans">
+                    Tax reliability
+                  </Table.Cell>
+                  <Table.Cell>
+                    <div className="flex flex-col items-start gap-1">
+                      {isTaxReliabilityFetching ? (
+                        <Badge color="grey" size="2xsmall">
+                          Checking
+                        </Badge>
+                      ) : taxReliabilityError ? (
+                        <Badge color="orange" size="2xsmall">
+                          Check unavailable
+                        </Badge>
+                      ) : !company?.vat_identification_number ? (
+                        <Badge color="grey" size="2xsmall">
+                          Not run
+                        </Badge>
+                      ) : (
+                        <Badge color={taxReliability.color} size="2xsmall">
+                          {taxReliability.label}
+                        </Badge>
+                      )}
+                      {taxReliabilityData?.reliable === false &&
+                        taxReliabilityData.unreliable_published_at && (
+                          <Text className="txt-compact-small text-ui-fg-warning">
+                            Published as unreliable payer on{" "}
+                            {taxReliabilityData.unreliable_published_at}.
+                          </Text>
+                        )}
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+                <Table.Row>
+                  <Table.Cell className="txt-compact-small font-medium font-sans">
+                    VIES VAT verification
+                  </Table.Cell>
+                  <Table.Cell>
+                    <div className="flex flex-col items-start gap-1">
+                      {isViesFetching ? (
+                        <Badge color="grey" size="2xsmall">
+                          Checking
+                        </Badge>
+                      ) : viesError ? (
+                        <Badge color="orange" size="2xsmall">
+                          Check unavailable
+                        </Badge>
+                      ) : !company?.vat_identification_number ? (
+                        <Badge color="grey" size="2xsmall">
+                          Not run
+                        </Badge>
+                      ) : (
+                        <Badge color={viesValidation.color} size="2xsmall">
+                          {viesValidation.label}
+                        </Badge>
+                      )}
+                      {viesData?.valid === false && (
+                        <Text className="txt-compact-small text-ui-fg-warning">
+                          VAT is not valid in VIES.
+                        </Text>
                       )}
                     </div>
                   </Table.Cell>

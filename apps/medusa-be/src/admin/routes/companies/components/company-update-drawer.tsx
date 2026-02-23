@@ -38,7 +38,7 @@ export function CompanyUpdateDrawer({
 
   return (
     <Drawer onOpenChange={setOpen} open={open}>
-      <Drawer.Content className="z-50">
+      <Drawer.Content className="z-50 overflow-auto">
         <Drawer.Header>
           <Drawer.Title>Edit Company</Drawer.Title>
         </Drawer.Header>

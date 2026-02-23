@@ -10,6 +10,8 @@ export interface CompanyDTO {
   state: string | null
   zip: string | null
   country: string | null
+  company_identification_number: string | null
+  vat_identification_number: string | null
   logo_url: string | null
   employees?: EmployeeDTO[]
   currency_code: string | null

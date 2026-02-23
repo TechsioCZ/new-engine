@@ -15,6 +15,8 @@ export const Company = model.define("company", {
   state: model.text().nullable(),
   zip: model.text().nullable(),
   country: model.text().nullable(),
+  company_identification_number: model.text().nullable(),
+  vat_identification_number: model.text().nullable(),
   logo_url: model.text().nullable(),
   currency_code: model.text().nullable(),
   spending_limit_reset_frequency: model

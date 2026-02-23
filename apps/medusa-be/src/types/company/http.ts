@@ -31,6 +31,8 @@ export type AdminCreateCompany = {
   state: string | null
   zip: string | null
   country: string | null
+  company_identification_number: string | null
+  vat_identification_number: string | null
   logo_url: string | null
   currency_code: string | null
 }
@@ -81,6 +83,8 @@ export type StoreCreateCompany = {
   state?: string | null
   zip?: string | null
   country?: string | null
+  company_identification_number?: string | null
+  vat_identification_number?: string | null
   logo_url?: string | null
   currency_code: string
 }
@@ -95,6 +99,8 @@ export type StoreUpdateCompany = {
   state: string | null
   zip: string | null
   country: string | null
+  company_identification_number: string | null
+  vat_identification_number: string | null
   logo_url: string | null
   currency_code: string
   spending_limit_reset_frequency?: ModuleCompanySpendingLimitResetFrequency

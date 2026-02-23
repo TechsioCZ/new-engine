@@ -1,5 +1,7 @@
 import { createSelectParams } from "@medusajs/medusa/api/utils/validators"
 import { z } from "@medusajs/framework/zod"
+import { VatIdentificationNumberSchema } from "../../companies/check/validators"
+import { CzCompanyIdentificationNumberSchema } from "../../store/companies/check/cz/info/validators"
 
 /* Company Validators */
 export type AdminGetCompanyParamsType = z.infer<typeof AdminGetCompanyParams>
@@ -17,6 +19,10 @@ export const AdminCreateCompany = z
     state: z.string().optional(),
     zip: z.string().optional(),
     country: z.string().optional(),
+    company_identification_number:
+      CzCompanyIdentificationNumberSchema.optional().nullable(),
+    vat_identification_number:
+      VatIdentificationNumberSchema.optional().nullable(),
     logo_url: z.string().optional(),
   })
   .strict()
@@ -33,6 +39,10 @@ export const AdminUpdateCompany = z
     state: z.string().optional(),
     zip: z.string().optional(),
     country: z.string().optional(),
+    company_identification_number:
+      CzCompanyIdentificationNumberSchema.optional().nullable(),
+    vat_identification_number:
+      VatIdentificationNumberSchema.optional().nullable(),
     logo_url: z.string().optional().nullable(),
   })
   .strict()
