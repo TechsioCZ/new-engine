@@ -20,5 +20,5 @@
   --color-header-hamburger-fg: var(--color-fg-primary);
   --color-header-hamburger-fg-hover: var(--color-primary);
 
-  --container-header-desktop: 64rem; /* 1024px */
+  --container-header-desktop: 72rem; /* 1152px */
 }

@@ -171,13 +171,20 @@ export function HerbatikaHeader() {
       </Header.Container>
 
       <Header.Desktop className="w-full bg-primary">
-        <Header.Container className="mx-auto flex min-h-750 w-full max-w-max-w items-center justify-between gap-300 px-300 @header-desktop:px-600">
-          <Header.Nav className="flex-nowrap gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <Header.Container className="mx-auto flex min-h-750 w-full max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
+          <Header.Nav
+            className="flex-nowrap gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            size="sm"
+          >
             {PRIMARY_NAV_ITEMS.map((item) => (
-              <Header.NavItem className="shrink-0 py-300" key={item.href}>
+              <Header.NavItem
+                className="shrink-0 px-100 py-200"
+                key={item.href}
+                size="sm"
+              >
                 <Link
                   as={NextLink}
-                  className="whitespace-nowrap leading-none"
+                  className="whitespace-nowrap leading-none text-xs"
                   href={item.href}
                 >
                   {item.label}
@@ -186,12 +193,12 @@ export function HerbatikaHeader() {
             ))}
           </Header.Nav>
 
-          <Header.Actions className="gap-300 pl-300">
+          <Header.Actions className="gap-100 pl-100" size="sm">
             {HEADER_ACTION_ITEMS.map((action) => (
-              <Header.ActionItem key={action.href}>
+              <Header.ActionItem className="p-0" key={action.href} size="sm">
                 <LinkButton
                   as={NextLink}
-                  className="px-500 py-250 text-xl font-bold"
+                  className="px-300 py-150 text-sm font-bold"
                   href={action.href}
                   icon={action.icon}
                   size="sm"

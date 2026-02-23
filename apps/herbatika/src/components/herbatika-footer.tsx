@@ -86,7 +86,7 @@ export function HerbatikaFooter() {
       className="w-full bg-surface max-w-none px-0 py-0"
       direction="vertical"
     >
-      <Footer.Container className="mx-auto grid w-full grid-cols-1 gap-x-0 gap-y-700 px-500 pt-850 pb-700 sm:grid-cols-2 xl:grid-cols-4 xl:gap-y-0">
+      <Footer.Container className="mx-auto grid w-full grid-cols-1 gap-x-0 gap-y-700 px-500 pt-850 pb-700 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-600 xl:gap-y-0">
         <Footer.Section className="px-500 py-250">
           <HerbatikaLogo className="inline-flex" size="lg" />
 
@@ -144,7 +144,7 @@ export function HerbatikaFooter() {
 
       <Footer.Divider className="mx-auto max-w-footer-max bg-bg-disabled" />
 
-      <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-750 lg:flex-row lg:items-center lg:gap-900">
+      <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-700 lg:flex-row lg:items-center lg:gap-800">
         <div className="flex flex-wrap items-center gap-300">
           {SOCIAL_LINKS.map((social) => (
             <Button
@@ -162,7 +162,7 @@ export function HerbatikaFooter() {
           ))}
         </div>
 
-        <div className="grid w-full gap-x-500 gap-y-300 sm:grid-cols-3 lg:w-auto lg:gap-y-0">
+        <div className="grid w-full gap-x-400 gap-y-300 sm:grid-cols-3 lg:w-auto lg:gap-y-0">
           {REVIEW_BADGES.map((badge) => (
             <article
               className="rounded-sm bg-overlay px-500 py-500 text-center"
