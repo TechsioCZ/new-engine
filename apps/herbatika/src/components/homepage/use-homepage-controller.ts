@@ -63,7 +63,7 @@ export function useHomepageController(): UseHomepageControllerResult {
     return getSectionProducts(
       productsQuery.products,
       TOTAL_GRID_PRODUCTS,
-      PRODUCTS_PER_GRID_SECTION,
+      productsQuery.products.length,
     );
   }, [productsQuery.products]);
 

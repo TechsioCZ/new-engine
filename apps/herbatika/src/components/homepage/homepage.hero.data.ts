@@ -100,28 +100,4 @@ export const BENEFITS: BenefitItem[] = [
     description: "Dlhodobo testované značky.",
     icon: "icon-[mdi--account-group-outline]",
   },
-  {
-    id: "benefit-secure",
-    title: "Bezpečný nákup a overené platobné metódy.",
-    description: "Platíte pohodlne a bezpečne.",
-    icon: "icon-[mdi--credit-card-check-outline]",
-  },
-  {
-    id: "benefit-eu",
-    title: "SK, CZ, HU, RO - dodávame do viacerých krajín.",
-    description: "Doručujeme po celej strednej Európe.",
-    icon: "icon-[mdi--map-marker-radius-outline]",
-  },
-  {
-    id: "benefit-support",
-    title: "Odborné poradenstvo pre správny výber.",
-    description: "Pomôžeme vám vybrať vhodnú kombináciu.",
-    icon: "icon-[mdi--headset]",
-  },
-  {
-    id: "benefit-eco",
-    title: "EKO balenie, šetrné k prírode.",
-    description: "Myslíme na udržateľnosť.",
-    icon: "icon-[mdi--recycle-variant]",
-  },
 ];
