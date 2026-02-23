@@ -1,12 +1,9 @@
 ﻿"use client"
 
-import {
-  type MutableRefObject,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import { useQuery } from "@tanstack/react-query"
+import { useEffect, useMemo, useState } from "react"
+import { queryKeys } from "@/lib/query-keys"
+import { useRegion } from "@/hooks/use-region"
 import {
   type BrandSuggestion,
   type CategorySuggestion,
@@ -30,11 +27,6 @@ type UseSearchSuggestionsResult = {
   hasAnySuggestions: boolean
 }
 
-type FetchSuggestionsResult = {
-  suggestions: SearchSuggestions
-  isError: boolean
-}
-
 const EMPTY_SUGGESTIONS: SearchSuggestions = {
   products: [],
   categories: [],
@@ -44,6 +36,8 @@ const EMPTY_SUGGESTIONS: SearchSuggestions = {
 const DEFAULT_DEBOUNCE_MS = 170
 const DEFAULT_MIN_QUERY_LENGTH = 2
 const DEFAULT_LIMIT_PER_SECTION = 5
+const SUGGESTIONS_STALE_TIME_MS = 2 * 60 * 1000
+const SUGGESTIONS_GC_TIME_MS = 15 * 60 * 1000
 
 function hasSuggestions(
   products: ProductSuggestion[],
@@ -53,49 +47,20 @@ function hasSuggestions(
   return products.length > 0 || categories.length > 0 || brands.length > 0
 }
 
-function isCurrentRequest(
-  latestRequestIdRef: MutableRefObject<number>,
-  requestId: number,
-  signal: AbortSignal
-): boolean {
-  return latestRequestIdRef.current === requestId && !signal.aborted
-}
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value)
 
-async function fetchSuggestions(
-  query: string,
-  limitPerSection: number,
-  signal: AbortSignal
-): Promise<FetchSuggestionsResult> {
-  try {
-    const suggestions = await getSearchSuggestions(query, {
-      signal,
-      limitPerSection,
-    })
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delayMs)
 
-    return {
-      suggestions,
-      isError: false,
+    return () => {
+      clearTimeout(timeout)
     }
-  } catch (error) {
-    if (signal.aborted) {
-      return {
-        suggestions: EMPTY_SUGGESTIONS,
-        isError: false,
-      }
-    }
+  }, [delayMs, value])
 
-    if (process.env.NODE_ENV === "development") {
-      console.error(
-        "[useSearchSuggestions] failed to fetch suggestions:",
-        error
-      )
-    }
-
-    return {
-      suggestions: EMPTY_SUGGESTIONS,
-      isError: true,
-    }
-  }
+  return debouncedValue
 }
 
 export function useSearchSuggestions({
@@ -105,62 +70,43 @@ export function useSearchSuggestions({
   minQueryLength = DEFAULT_MIN_QUERY_LENGTH,
   limitPerSection = DEFAULT_LIMIT_PER_SECTION,
 }: UseSearchSuggestionsOptions): UseSearchSuggestionsResult {
-  const [suggestions, setSuggestions] =
-    useState<SearchSuggestions>(EMPTY_SUGGESTIONS)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isError, setIsError] = useState(false)
-  const latestRequestIdRef = useRef(0)
-
   const trimmedQuery = query.trim()
-  const shouldSearch = enabled && trimmedQuery.length >= minQueryLength
+  const debouncedQuery = useDebouncedValue(trimmedQuery, debounceMs)
+  const { regionId, countryCode } = useRegion()
+  const shouldSearch =
+    enabled && debouncedQuery.length >= minQueryLength && Boolean(regionId)
 
-  useEffect(() => {
-    if (!shouldSearch) {
-      setSuggestions(EMPTY_SUGGESTIONS)
-      setIsLoading(false)
-      setIsError(false)
-      return
-    }
-
-    const requestId = latestRequestIdRef.current + 1
-    latestRequestIdRef.current = requestId
-
-    const controller = new AbortController()
-    setIsLoading(true)
-    setIsError(false)
-
-    const runFetch = async () => {
-      const result = await fetchSuggestions(
-        trimmedQuery,
+  const suggestionsQuery = useQuery({
+    queryKey: queryKeys.search.suggestions({
+      q: debouncedQuery,
+      limitPerSection,
+      regionId,
+      countryCode,
+    }),
+    queryFn: ({ signal }) =>
+      getSearchSuggestions(debouncedQuery, {
+        signal,
         limitPerSection,
-        controller.signal
-      )
+        regionId,
+        countryCode,
+      }),
+    enabled: shouldSearch,
+    staleTime: SUGGESTIONS_STALE_TIME_MS,
+    gcTime: SUGGESTIONS_GC_TIME_MS,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 0,
+    placeholderData: (previousData) => previousData,
+  })
 
-      if (!isCurrentRequest(latestRequestIdRef, requestId, controller.signal)) {
-        return
-      }
-
-      setSuggestions(result.suggestions)
-      setIsError(result.isError)
-      setIsLoading(false)
-    }
-
-    const timeout = setTimeout(() => {
-      runFetch().catch((error) => {
-        if (process.env.NODE_ENV === "development") {
-          console.error(
-            "[useSearchSuggestions] unexpected runFetch failure:",
-            error
-          )
-        }
-      })
-    }, debounceMs)
-
-    return () => {
-      clearTimeout(timeout)
-      controller.abort()
-    }
-  }, [debounceMs, limitPerSection, shouldSearch, trimmedQuery])
+  const suggestions =
+    shouldSearch && suggestionsQuery.data
+      ? suggestionsQuery.data
+      : EMPTY_SUGGESTIONS
+  const isLoading = shouldSearch
+    ? suggestionsQuery.isPending || suggestionsQuery.isFetching
+    : false
+  const isError = shouldSearch ? suggestionsQuery.isError : false
 
   const hasAnySuggestions = useMemo(
     () =>

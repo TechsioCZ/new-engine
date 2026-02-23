@@ -36,6 +36,13 @@ export type SearchSuggestions = {
 type SearchSuggestionsOptions = {
   limitPerSection?: number
   signal?: AbortSignal
+  regionId?: string
+  countryCode?: string
+}
+
+type ProductSuggestionsBundle = {
+  products: ProductSuggestion[]
+  brandsFromProducts: BrandSuggestion[]
 }
 
 type StoreRequestContext = {
@@ -76,8 +83,6 @@ type StoreProductWithProducer = StoreProduct & {
 
 const DEFAULT_LIMIT_PER_SECTION = 5
 const DEFAULT_COUNTRY_CODE = "cz"
-const DEFAULT_REGION_ID =
-  process.env.NEXT_PUBLIC_DEFAULT_REGION_ID || "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
 const FALLBACK_THUMBNAIL = "/placeholder.jpg"
 const EXPECTED_PRODUCER_FALLBACK_ERROR_REGEX =
   /HTTP (404|405|501)|Failed to fetch/i
@@ -90,7 +95,8 @@ const BRAND_MIN_QUERY_LENGTH = 3
 const BRAND_PRODUCTS_LOOKUP_MULTIPLIER = 3
 const MIN_BRAND_PRODUCTS_LOOKUP_LIMIT = 15
 const SUGGESTIONS_FETCH_MULTIPLIER = 3
-const PRODUCT_BRAND_FIELDS = "id,producer.id,producer.title,producer.handle"
+const PRODUCT_BRAND_FIELDS = "producer.id,producer.title,producer.handle"
+const PRODUCT_SUGGESTION_FIELDS = `${PRODUCT_LIST_FIELDS}${PRODUCT_BRAND_FIELDS}`
 const CATEGORY_BY_ID = new Map(
   allCategories.map((category) => [category.id, category])
 )
@@ -582,23 +588,39 @@ function dedupeBrands(items: BrandSuggestion[]): BrandSuggestion[] {
   return dedupeByKey(items, (item) => item.id || normalizeSearchText(item.handle))
 }
 
-async function fetchProductSuggestions(
-  query: string,
-  limitPerSection: number,
-  signal?: AbortSignal
-): Promise<ProductSuggestion[]> {
-  const requestedLimit = Math.max(
+function getProductSuggestionsLookupLimit(limitPerSection: number): number {
+  return Math.max(
     limitPerSection * SUGGESTIONS_FETCH_MULTIPLIER,
     limitPerSection
+  )
+}
+
+function getBrandSuggestionsLookupLimit(limitPerSection: number): number {
+  return Math.max(
+    limitPerSection * BRAND_PRODUCTS_LOOKUP_MULTIPLIER,
+    MIN_BRAND_PRODUCTS_LOOKUP_LIMIT
+  )
+}
+
+async function fetchProductAndBrandSuggestionsFromProducts(
+  query: string,
+  limitPerSection: number,
+  countryCode: string,
+  regionId: string,
+  signal?: AbortSignal
+): Promise<ProductSuggestionsBundle> {
+  const requestedLimit = Math.max(
+    getProductSuggestionsLookupLimit(limitPerSection),
+    getBrandSuggestionsLookupLimit(limitPerSection)
   )
   const { products } = await getProducts(
     {
       q: query,
       limit: requestedLimit,
       offset: 0,
-      fields: PRODUCT_LIST_FIELDS,
-      country_code: DEFAULT_COUNTRY_CODE,
-      region_id: DEFAULT_REGION_ID,
+      fields: PRODUCT_SUGGESTION_FIELDS,
+      country_code: countryCode,
+      region_id: regionId,
     },
     signal
   )
@@ -609,7 +631,10 @@ async function fetchProductSuggestions(
       Boolean(suggestion)
     )
 
-  return dedupeProducts(mapped).slice(0, limitPerSection)
+  return {
+    products: dedupeProducts(mapped).slice(0, limitPerSection),
+    brandsFromProducts: mapBrandsFromProducts(products, limitPerSection),
+  }
 }
 
 async function fetchCategorySuggestionsFromMeili(
@@ -837,31 +862,6 @@ function mapBrandsFromProducts(
     .slice(0, limitPerSection)
 }
 
-async function fetchBrandSuggestionsFromProducts(
-  query: string,
-  limitPerSection: number,
-  signal?: AbortSignal
-): Promise<BrandSuggestion[]> {
-  const requestedLimit = Math.max(
-    limitPerSection * BRAND_PRODUCTS_LOOKUP_MULTIPLIER,
-    MIN_BRAND_PRODUCTS_LOOKUP_LIMIT
-  )
-
-  const { products } = await getProducts(
-    {
-      q: query,
-      limit: requestedLimit,
-      offset: 0,
-      fields: PRODUCT_BRAND_FIELDS,
-      country_code: DEFAULT_COUNTRY_CODE,
-      region_id: DEFAULT_REGION_ID,
-    },
-    signal
-  )
-
-  return mapBrandsFromProducts(products, limitPerSection)
-}
-
 function mapProducerHits(
   hits: MeiliSearchProducerHit[] | undefined,
   query: string,
@@ -914,45 +914,14 @@ async function fetchBrandSuggestionsFromMeili(
   return mapProducerHits(response.hits, query, limitPerSection)
 }
 
-async function fetchBrandSuggestions(
-  query: string,
-  limitPerSection: number,
-  context: StoreRequestContext
-): Promise<BrandSuggestion[]> {
-  const normalizedQuery = normalizeSearchText(query)
-
-  if (normalizedQuery.length < BRAND_MIN_QUERY_LENGTH) {
-    return []
+function mergeBrandSuggestions(
+  brandsFromProducts: BrandSuggestion[],
+  brandsFromMeili: BrandSuggestion[],
+  limitPerSection: number
+): BrandSuggestion[] {
+  if (brandsFromProducts.length >= limitPerSection) {
+    return brandsFromProducts.slice(0, limitPerSection)
   }
-
-  const brandsFromProductsPromise = fetchBrandSuggestionsFromProducts(
-    query,
-    limitPerSection,
-    context.signal
-  ).catch((error) => {
-    if (shouldLogWarning(error)) {
-      console.warn("[SearchSuggestions] brands from products failed:", error)
-    }
-
-    return []
-  })
-
-  const brandsFromMeili = await fetchBrandSuggestionsFromMeili(
-    query,
-    limitPerSection,
-    context
-  ).catch((error) => {
-    if (
-      shouldLogWarning(error) &&
-      !isExpectedProducerMeiliFallbackError(error)
-    ) {
-      console.warn("[SearchSuggestions] producers-hits endpoint failed:", error)
-    }
-
-    return []
-  })
-
-  const brandsFromProducts = await brandsFromProductsPromise
 
   return dedupeBrands([...brandsFromMeili, ...brandsFromProducts]).slice(
     0,
@@ -966,6 +935,8 @@ export async function getSearchSuggestions(
 ): Promise<SearchSuggestions> {
   const trimmedQuery = query.trim()
   const limitPerSection = options?.limitPerSection || DEFAULT_LIMIT_PER_SECTION
+  const countryCode = options?.countryCode || DEFAULT_COUNTRY_CODE
+  const regionId = options?.regionId?.trim()
 
   if (!trimmedQuery) {
     return {
@@ -975,18 +946,34 @@ export async function getSearchSuggestions(
     }
   }
 
-  const context = createStoreRequestContext(options?.signal)
+  if (!regionId) {
+    return {
+      products: [],
+      categories: [],
+      brands: [],
+    }
+  }
 
-  const [products, categories, brands] = await Promise.all([
-    fetchProductSuggestions(
+  const context = createStoreRequestContext(options?.signal)
+  const shouldFetchBrands =
+    normalizeSearchText(trimmedQuery).length >= BRAND_MIN_QUERY_LENGTH
+
+  const [productBundle, categories, brandsFromMeili] = await Promise.all([
+    fetchProductAndBrandSuggestionsFromProducts(
       trimmedQuery,
       limitPerSection,
+      countryCode,
+      regionId,
       options?.signal
     ).catch((error) => {
       if (shouldLogWarning(error)) {
         console.warn("[SearchSuggestions] products failed:", error)
       }
-      return []
+
+      return {
+        products: [],
+        brandsFromProducts: [],
+      } satisfies ProductSuggestionsBundle
     }),
     fetchCategorySuggestions(trimmedQuery, limitPerSection, context).catch(
       (error) => {
@@ -996,18 +983,37 @@ export async function getSearchSuggestions(
         return []
       }
     ),
-    fetchBrandSuggestions(trimmedQuery, limitPerSection, context).catch(
-      (error) => {
-        if (shouldLogWarning(error)) {
-          console.warn("[SearchSuggestions] brands failed:", error)
-        }
-        return []
-      }
-    ),
+    shouldFetchBrands
+      ? fetchBrandSuggestionsFromMeili(
+          trimmedQuery,
+          limitPerSection,
+          context
+        ).catch((error) => {
+          if (
+            shouldLogWarning(error) &&
+            !isExpectedProducerMeiliFallbackError(error)
+          ) {
+            console.warn(
+              "[SearchSuggestions] producers-hits endpoint failed:",
+              error
+            )
+          }
+
+          return []
+        })
+      : Promise.resolve<BrandSuggestion[]>([]),
   ])
 
+  const brands = shouldFetchBrands
+    ? mergeBrandSuggestions(
+        productBundle.brandsFromProducts,
+        brandsFromMeili,
+        limitPerSection
+      )
+    : []
+
   return {
-    products,
+    products: productBundle.products,
     categories,
     brands,
   }
