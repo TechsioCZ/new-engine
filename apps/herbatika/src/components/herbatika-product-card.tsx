@@ -6,6 +6,8 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card";
 import NextLink from "next/link";
+import { useEffect, useState } from "react";
+import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants";
 import { resolveDescription } from "@/components/product-card/product-card.description";
 import { resolveFlags } from "@/components/product-card/product-card.flags";
 import {
@@ -16,29 +18,91 @@ import { resolveThumbnail } from "@/components/product-card/product-card.thumbna
 
 export { getProductPriceLabel } from "@/components/product-card/product-card.pricing";
 
-type HerbatikaProductCardProps = {
+type HerbatikaProductCardBaseProps = {
   product: HttpTypes.StoreProduct;
-  isAdding: boolean;
-  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void;
   onProductHoverStart?: (product: HttpTypes.StoreProduct) => void;
   onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void;
+};
+
+type HerbatikaProductCardDefaultProps = HerbatikaProductCardBaseProps & {
+  variant?: "default";
+  isAdding: boolean;
+  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void;
   descriptionOverride?: string | null;
 };
 
-export function HerbatikaProductCard({
-  product,
-  isAdding,
-  onAddToCart,
-  onProductHoverStart,
-  onProductHoverEnd,
-  descriptionOverride,
-}: HerbatikaProductCardProps) {
+type HerbatikaProductCardCompactProps = HerbatikaProductCardBaseProps & {
+  variant: "compact";
+  onCompactImageError?: (product: HttpTypes.StoreProduct) => void;
+};
+
+type HerbatikaProductCardProps =
+  | HerbatikaProductCardDefaultProps
+  | HerbatikaProductCardCompactProps;
+
+export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
+  const { product, onProductHoverStart, onProductHoverEnd } = props;
   const productHref = product.handle ? `/p/${product.handle}` : "/#";
-  const defaultVariantId = product.variants?.[0]?.id;
   const price = resolvePriceState(product);
+  const thumbnail = resolveThumbnail(product);
+  const [imageSrc, setImageSrc] = useState(thumbnail);
+  const title = product.title || "Produkt";
+
+  useEffect(() => {
+    setImageSrc(thumbnail);
+  }, [thumbnail]);
+
+  const handleImageError = () => {
+    if (props.variant === "compact") {
+      props.onCompactImageError?.(product);
+    }
+
+    setImageSrc((currentImageSrc) =>
+      currentImageSrc === PRODUCT_FALLBACK_IMAGE
+        ? currentImageSrc
+        : PRODUCT_FALLBACK_IMAGE,
+    );
+  };
+
+  if (props.variant === "compact") {
+    return (
+      <ProductCard className="h-full max-w-none rounded-2xl border-transparent bg-surface p-300 shadow-none">
+        <Link
+          as={NextLink}
+          className="block"
+          href={productHref}
+          onBlur={() => onProductHoverEnd?.(product)}
+          onFocus={() => onProductHoverStart?.(product)}
+          onMouseEnter={() => onProductHoverStart?.(product)}
+          onMouseLeave={() => onProductHoverEnd?.(product)}
+        >
+          <ProductCard.Image
+            alt={title}
+            className="aspect-square w-full rounded-none object-contain"
+            onError={handleImageError}
+            src={imageSrc}
+          />
+        </Link>
+
+        <div className="mt-250 flex flex-col gap-150">
+          <ProductCard.Name className="text-md leading-snug font-bold text-primary">
+            <Link as={NextLink} className="hover:text-primary-hover" href={productHref}>
+              {title}
+            </Link>
+          </ProductCard.Name>
+
+          <ProductCard.Price className="text-lg leading-tight font-bold text-fg-primary">
+            {price.currentLabel}
+          </ProductCard.Price>
+        </div>
+      </ProductCard>
+    );
+  }
+
+  const { descriptionOverride, isAdding, onAddToCart } = props;
+  const defaultVariantId = product.variants?.[0]?.id;
   const discountLabel = resolveDiscountLabel(price);
   const flags = resolveFlags(product, Boolean(discountLabel));
-  const title = product.title || "Produkt";
   const description =
     descriptionOverride && descriptionOverride.trim().length > 0
       ? descriptionOverride
@@ -59,7 +123,8 @@ export function HerbatikaProductCard({
           <ProductCard.Image
             alt={title}
             className="w-full object-cover"
-            src={resolveThumbnail(product)}
+            onError={handleImageError}
+            src={imageSrc}
           />
         </Link>
 
