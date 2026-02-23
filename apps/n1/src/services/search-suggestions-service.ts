@@ -82,7 +82,6 @@ type StoreProductWithProducer = StoreProduct & {
 }
 
 const DEFAULT_LIMIT_PER_SECTION = 5
-const DEFAULT_COUNTRY_CODE = "cz"
 const FALLBACK_THUMBNAIL = "/placeholder.jpg"
 const EXPECTED_PRODUCER_FALLBACK_ERROR_REGEX =
   /HTTP (404|405|501)|Failed to fetch/i
@@ -100,6 +99,22 @@ const PRODUCT_SUGGESTION_FIELDS = `${PRODUCT_LIST_FIELDS}${PRODUCT_BRAND_FIELDS}
 const CATEGORY_BY_ID = new Map(
   allCategories.map((category) => [category.id, category])
 )
+
+type CategoryFallbackIndexEntry = {
+  suggestion: CategorySuggestion
+  normalizedDisplayName: string
+  normalizedName: string
+  normalizedHandle: string
+  normalizedDescription: string
+  displayNameTokens: string[]
+  nameTokens: string[]
+  handleTokens: string[]
+  descriptionTokens: string[]
+  combinedTokens: string[]
+  rootBoost: number
+}
+
+const CATEGORY_FALLBACK_INDEX = buildCategoryFallbackIndex()
 
 function normalizeSearchText(value: string): string {
   return value
@@ -398,6 +413,62 @@ function tokenizeSearchText(value: string): string[] {
     .filter(Boolean)
 }
 
+function mergeUniqueTokens(...tokenGroups: string[][]): string[] {
+  return Array.from(new Set(tokenGroups.flat()))
+}
+
+function buildCategoryFallbackIndex(): CategoryFallbackIndexEntry[] {
+  return allCategories
+    .map((category) => {
+      const suggestion = toCategorySuggestion(category, {
+        id: category.id,
+        handle: category.handle,
+        description: category.description,
+      })
+
+      if (!suggestion) {
+        return null
+      }
+
+      const normalizedDisplayName = normalizeSearchText(suggestion.displayName)
+      const normalizedName = normalizeSearchText(suggestion.name)
+      const normalizedHandle = normalizeCategoryHandleForMatching(
+        suggestion.handle
+      )
+      const normalizedDescription = normalizeSearchText(
+        category.description || ""
+      )
+      const displayNameTokens = tokenizeSearchText(normalizedDisplayName)
+      const nameTokens = tokenizeSearchText(normalizedName)
+      const handleTokens = tokenizeSearchText(normalizedHandle)
+      const descriptionTokens = tokenizeSearchText(normalizedDescription)
+      const combinedTokens = mergeUniqueTokens(
+        displayNameTokens,
+        nameTokens,
+        handleTokens,
+        descriptionTokens
+      )
+      const rootCategory = resolveRootCategory(category)
+      const rootHandle = normalizeSearchText(rootCategory?.handle || "")
+      const rootBoost = ROOT_CATEGORY_HANDLE_PREFIXES.has(rootHandle) ? 8 : 0
+
+      return {
+        suggestion,
+        normalizedDisplayName,
+        normalizedName,
+        normalizedHandle,
+        normalizedDescription,
+        displayNameTokens,
+        nameTokens,
+        handleTokens,
+        descriptionTokens,
+        combinedTokens,
+        rootBoost,
+      } satisfies CategoryFallbackIndexEntry
+    })
+    .filter((entry): entry is CategoryFallbackIndexEntry => Boolean(entry))
+}
+
 function getSharedPrefixLength(left: string, right: string): number {
   const sharedLength = Math.min(left.length, right.length)
   let index = 0
@@ -448,8 +519,29 @@ function getSearchFieldMatchKind(
   }
 
   const sourceTokens = tokenizeSearchText(normalizedSource)
+  return getSearchFieldMatchKindWithTokens(
+    normalizedSource,
+    sourceTokens,
+    normalizedQuery,
+    queryTokens
+  )
+}
 
-  if (sourceTokens.length === 0) {
+function getSearchFieldMatchKindWithTokens(
+  normalizedSource: string,
+  sourceTokens: string[],
+  normalizedQuery: string,
+  queryTokens: string[]
+): SearchFieldMatchKind {
+  if (!(normalizedSource && normalizedQuery)) {
+    return "none"
+  }
+
+  if (normalizedSource.includes(normalizedQuery)) {
+    return "exact"
+  }
+
+  if (queryTokens.length === 0 || sourceTokens.length === 0) {
     return "none"
   }
 
@@ -496,41 +588,108 @@ function getCategorySuggestionMatchKind(
   return "none"
 }
 
+function getCategorySuggestionMatchKindFromIndex(
+  entry: CategoryFallbackIndexEntry,
+  normalizedQuery: string,
+  queryTokens: string[]
+): SearchFieldMatchKind {
+  const matches = [
+    getSearchFieldMatchKindWithTokens(
+      entry.normalizedDisplayName,
+      entry.displayNameTokens,
+      normalizedQuery,
+      queryTokens
+    ),
+    getSearchFieldMatchKindWithTokens(
+      entry.normalizedName,
+      entry.nameTokens,
+      normalizedQuery,
+      queryTokens
+    ),
+    getSearchFieldMatchKindWithTokens(
+      entry.normalizedHandle,
+      entry.handleTokens,
+      normalizedQuery,
+      queryTokens
+    ),
+  ]
+
+  if (matches.includes("exact")) {
+    return "exact"
+  }
+
+  if (matches.includes("fuzzy")) {
+    return "fuzzy"
+  }
+
+  return "none"
+}
+
 type CategoryMatchScore = {
   score: number
   hasPrimaryMatch: boolean
 }
 
 function getCategoryMatchScore(
-  category: Category,
-  suggestion: CategorySuggestion,
+  entry: CategoryFallbackIndexEntry,
   normalizedQuery: string,
   queryTokens: string[]
 ): CategoryMatchScore {
-  const suggestionMatch = getCategorySuggestionMatchKind(
-    suggestion,
+  const suggestionMatch = getCategorySuggestionMatchKindFromIndex(
+    entry,
     normalizedQuery,
     queryTokens
   )
 
-  const descriptionMatch = getSearchFieldMatchKind(
-    normalizeSearchText(category.description || ""),
+  const descriptionMatch = getSearchFieldMatchKindWithTokens(
+    entry.normalizedDescription,
+    entry.descriptionTokens,
     normalizedQuery,
     queryTokens
   )
-
-  const rootCategory = resolveRootCategory(category)
-  const rootHandle = normalizeSearchText(rootCategory?.handle || "")
-  const rootBoost = ROOT_CATEGORY_HANDLE_PREFIXES.has(rootHandle) ? 8 : 0
 
   const suggestionScore = getMatchKindScore(suggestionMatch, 300, 180)
   const descriptionScore = getMatchKindScore(descriptionMatch, 60, 30)
-  const score = suggestionScore + descriptionScore + rootBoost
+  const score = suggestionScore + descriptionScore + entry.rootBoost
 
   return {
     score,
     hasPrimaryMatch: suggestionMatch !== "none",
   }
+}
+
+function isCategoryFallbackCandidate(
+  entry: CategoryFallbackIndexEntry,
+  normalizedQuery: string,
+  queryTokens: string[]
+): boolean {
+  if (
+    entry.normalizedDisplayName.includes(normalizedQuery) ||
+    entry.normalizedName.includes(normalizedQuery) ||
+    entry.normalizedHandle.includes(normalizedQuery) ||
+    entry.normalizedDescription.includes(normalizedQuery)
+  ) {
+    return true
+  }
+
+  if (queryTokens.length === 0 || entry.combinedTokens.length === 0) {
+    return false
+  }
+
+  return queryTokens.every((queryToken) =>
+    entry.combinedTokens.some((sourceToken) =>
+      hasLooseTokenMatch(sourceToken, queryToken)
+    )
+  )
+}
+
+function getCategoryFallbackCandidates(
+  normalizedQuery: string,
+  queryTokens: string[]
+): CategoryFallbackIndexEntry[] {
+  return CATEGORY_FALLBACK_INDEX.filter((entry) =>
+    isCategoryFallbackCandidate(entry, normalizedQuery, queryTokens)
+  )
 }
 
 function getMatchKindScore(
@@ -568,7 +727,7 @@ function dedupeByKey<T>(items: T[], getKey: (item: T) => string): T[] {
 }
 
 function dedupeProducts(items: ProductSuggestion[]): ProductSuggestion[] {
-  return dedupeByKey(items, (item) => normalizeSearchText(item.title))
+  return dedupeByKey(items, (item) => item.id || item.handle)
 }
 
 function dedupeCategories(items: CategorySuggestion[]): CategorySuggestion[] {
@@ -689,24 +848,15 @@ function fetchCategorySuggestionsFromStaticData(
     return []
   }
 
-  const scoredSuggestions = allCategories
-    .map((category) => {
-      const suggestion = toCategorySuggestion(category, {
-        id: category.id,
-        handle: category.handle,
-        description: category.description,
-      })
+  const candidates = getCategoryFallbackCandidates(normalizedQuery, queryTokens)
 
-      if (!suggestion) {
-        return null
-      }
+  if (candidates.length === 0) {
+    return []
+  }
 
-      const match = getCategoryMatchScore(
-        category,
-        suggestion,
-        normalizedQuery,
-        queryTokens
-      )
+  const scoredSuggestions = candidates
+    .map((entry) => {
+      const match = getCategoryMatchScore(entry, normalizedQuery, queryTokens)
 
       if (match.score <= 0) {
         return null
@@ -715,7 +865,7 @@ function fetchCategorySuggestionsFromStaticData(
       return {
         score: match.score,
         hasPrimaryMatch: match.hasPrimaryMatch,
-        suggestion,
+        suggestion: entry.suggestion,
       }
     })
     .filter(
@@ -759,6 +909,7 @@ async function fetchCategorySuggestions(
   context: StoreRequestContext
 ): Promise<CategorySuggestion[]> {
   let categoriesFromMeili: CategorySuggestion[] = []
+  let shouldUseStaticFallback = false
 
   try {
     categoriesFromMeili = await fetchCategorySuggestionsFromMeili(
@@ -766,7 +917,9 @@ async function fetchCategorySuggestions(
       limitPerSection,
       context
     )
+    shouldUseStaticFallback = categoriesFromMeili.length === 0
   } catch (error) {
+    shouldUseStaticFallback = true
     if (shouldLogWarning(error)) {
       console.warn(
         "[SearchSuggestions] categories-hits endpoint failed:",
@@ -775,19 +928,14 @@ async function fetchCategorySuggestions(
     }
   }
 
-  if (categoriesFromMeili.length >= limitPerSection) {
+  if (!shouldUseStaticFallback) {
     return categoriesFromMeili.slice(0, limitPerSection)
   }
 
-  const categoriesFromStatic = fetchCategorySuggestionsFromStaticData(
-    query,
-    Math.max(limitPerSection * SUGGESTIONS_FETCH_MULTIPLIER, limitPerSection)
+  return fetchCategorySuggestionsFromStaticData(query, limitPerSection).slice(
+    0,
+    limitPerSection
   )
-
-  return dedupeCategories([
-    ...categoriesFromMeili,
-    ...categoriesFromStatic,
-  ]).slice(0, limitPerSection)
 }
 
 function toBrandSuggestionFromProduct(
@@ -935,7 +1083,7 @@ export async function getSearchSuggestions(
 ): Promise<SearchSuggestions> {
   const trimmedQuery = query.trim()
   const limitPerSection = options?.limitPerSection || DEFAULT_LIMIT_PER_SECTION
-  const countryCode = options?.countryCode || DEFAULT_COUNTRY_CODE
+  const countryCode = options?.countryCode?.trim().toLowerCase()
   const regionId = options?.regionId?.trim()
 
   if (!trimmedQuery) {
@@ -946,7 +1094,7 @@ export async function getSearchSuggestions(
     }
   }
 
-  if (!regionId) {
+  if (!(regionId && countryCode)) {
     return {
       products: [],
       categories: [],

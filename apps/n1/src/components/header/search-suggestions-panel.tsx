@@ -2,7 +2,7 @@
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import Image from "next/image"
-import type { MouseEvent } from "react"
+import type { KeyboardEvent, MouseEvent } from "react"
 import type {
   BrandSuggestion,
   CategorySuggestion,
@@ -11,6 +11,7 @@ import type {
 } from "@/services/search-suggestions-service"
 
 export const SEARCH_SUGGESTION_VIEW_ALL_ID = "action:view-all"
+export const SEARCH_SUGGESTIONS_LISTBOX_ID = "search-suggestions-listbox"
 
 export function getProductSuggestionItemId(id: string): string {
   return `product:${id}`
@@ -25,6 +26,7 @@ export function getBrandSuggestionItemId(id: string): string {
 }
 
 type SearchSuggestionsPanelProps = {
+  listboxId: string
   query: string
   suggestions: SearchSuggestions
   highlightedItemId: string | null
@@ -44,6 +46,16 @@ type ItemHighlightProps = {
 
 function preventBlurOnMouseDown(event: MouseEvent<HTMLElement>) {
   event.preventDefault()
+}
+
+function handleOptionKeyDown(
+  event: KeyboardEvent<HTMLElement>,
+  onSelect: () => void
+) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault()
+    onSelect()
+  }
 }
 
 function getListItemClassName(isHighlighted: boolean): string {
@@ -81,14 +93,20 @@ function ProductSection({
 
           return (
             <li key={itemId}>
-              <button
-                className={`grid w-full grid-cols-[3rem_1fr_auto] items-center gap-200 px-200 py-150 text-left text-sm ${getListItemClassName(
+              <div
+                aria-selected={isHighlighted}
+                className={`grid w-full cursor-pointer grid-cols-[3rem_1fr_auto] items-center gap-200 px-200 py-150 text-left text-sm ${getListItemClassName(
                   isHighlighted
                 )}`}
+                id={itemId}
                 onClick={() => onSelectProduct(product)}
+                onKeyDown={(event) =>
+                  handleOptionKeyDown(event, () => onSelectProduct(product))
+                }
                 onMouseDown={preventBlurOnMouseDown}
                 onMouseEnter={() => onHighlight(itemId)}
-                type="button"
+                role="option"
+                tabIndex={-1}
               >
                 <Image
                   alt={product.title}
@@ -103,7 +121,7 @@ function ProductSection({
                 <span className="ml-200 whitespace-nowrap font-bold text-fg">
                   {product.price}
                 </span>
-              </button>
+              </div>
             </li>
           )
         })}
@@ -135,14 +153,20 @@ function CategorySection({
 
           return (
             <li key={itemId}>
-              <button
-                className={`flex w-full items-center gap-200 px-200 py-150 text-left text-sm ${getListItemClassName(
+              <div
+                aria-selected={isHighlighted}
+                className={`flex w-full cursor-pointer items-center gap-200 px-200 py-150 text-left text-sm ${getListItemClassName(
                   isHighlighted
                 )}`}
+                id={itemId}
                 onClick={() => onSelectCategory(category)}
+                onKeyDown={(event) =>
+                  handleOptionKeyDown(event, () => onSelectCategory(category))
+                }
                 onMouseDown={preventBlurOnMouseDown}
                 onMouseEnter={() => onHighlight(itemId)}
-                type="button"
+                role="option"
+                tabIndex={-1}
               >
                 <Icon
                   className="text-lg text-tertiary"
@@ -151,7 +175,7 @@ function CategorySection({
                 <span className="line-clamp-1 text-fg">
                   {category.displayName || category.name}
                 </span>
-              </button>
+              </div>
             </li>
           )
         })}
@@ -182,20 +206,26 @@ function BrandsSection({
           const isHighlighted = highlightedItemId === itemId
 
           return (
-            <button
-              className={`rounded-xs border px-150 py-100 font-semibold text-xs transition-colors ${
+            <div
+              aria-selected={isHighlighted}
+              className={`cursor-pointer rounded-xs border px-150 py-100 font-semibold text-xs transition-colors ${
                 isHighlighted
                   ? "border-primary bg-primary text-base"
                   : "border-border bg-base-light text-fg hover:bg-overlay"
               }`}
+              id={itemId}
               key={itemId}
               onClick={() => onSelectBrand(brand)}
+              onKeyDown={(event) =>
+                handleOptionKeyDown(event, () => onSelectBrand(brand))
+              }
               onMouseDown={preventBlurOnMouseDown}
               onMouseEnter={() => onHighlight(itemId)}
-              type="button"
+              role="option"
+              tabIndex={-1}
             >
               {brand.title}
-            </button>
+            </div>
           )
         })}
       </div>
@@ -226,25 +256,30 @@ function ViewAllButton({
 
   return (
     <div className="sticky bottom-0 border-border border-t bg-base-light p-150">
-      <button
-        className={`flex w-full items-center justify-center gap-150 rounded-xs px-200 py-150 font-semibold text-sm transition-colors ${
+      <div
+        aria-selected={isHighlighted}
+        className={`flex w-full cursor-pointer items-center justify-center gap-150 rounded-xs px-200 py-150 font-semibold text-sm transition-colors ${
           isHighlighted
             ? "bg-primary text-base"
             : "bg-secondary text-fg-reverse hover:bg-primary hover:text-base"
         }`}
+        id={SEARCH_SUGGESTION_VIEW_ALL_ID}
         onClick={onSelectViewAll}
+        onKeyDown={(event) => handleOptionKeyDown(event, onSelectViewAll)}
         onMouseDown={preventBlurOnMouseDown}
         onMouseEnter={() => onHighlight(SEARCH_SUGGESTION_VIEW_ALL_ID)}
-        type="button"
+        role="option"
+        tabIndex={-1}
       >
         <Icon icon="token-icon-search" />
         <span>Zobrazit všechny výsledky</span>
-      </button>
+      </div>
     </div>
   )
 }
 
 export function SearchSuggestionsPanel({
+  listboxId,
   query,
   suggestions,
   highlightedItemId,
@@ -263,7 +298,9 @@ export function SearchSuggestionsPanel({
 
   return (
     <div
+      aria-label="Návrhy vyhledávání"
       className="absolute top-full right-0 left-0 z-[70] mt-100 max-h-[65vh] overflow-y-auto rounded-sm border border-border bg-base-light shadow-lg"
+      id={listboxId}
       role="listbox"
     >
       {isLoading ? (

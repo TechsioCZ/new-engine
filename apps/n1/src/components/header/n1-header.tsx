@@ -19,6 +19,7 @@ import {
   getCategorySuggestionItemId,
   getProductSuggestionItemId,
   SEARCH_SUGGESTION_VIEW_ALL_ID,
+  SEARCH_SUGGESTIONS_LISTBOX_ID,
   SearchSuggestionsPanel,
 } from "./search-suggestions-panel"
 import { useSearchSuggestions } from "./use-search-suggestions"
@@ -105,6 +106,8 @@ export const N1Header = () => {
   const highlightedItem =
     highlightedIndex >= 0 ? suggestionItems[highlightedIndex] : null
   const shouldShowSuggestions = isSearchFocused && isQueryLongEnough
+  const activeDescendantId =
+    shouldShowSuggestions && highlightedItem ? highlightedItem.id : undefined
 
   const closeSuggestions = () => {
     setIsSearchFocused(false)
@@ -280,12 +283,21 @@ export const N1Header = () => {
             >
               <SearchForm.Control>
                 <SearchForm.Input
+                  aria-activedescendant={activeDescendantId}
+                  aria-autocomplete="list"
+                  aria-controls={
+                    shouldShowSuggestions
+                      ? SEARCH_SUGGESTIONS_LISTBOX_ID
+                      : undefined
+                  }
+                  aria-expanded={shouldShowSuggestions}
                   className="bg-base-light"
                   name="q"
                   onBlur={() => closeSuggestions()}
                   onFocus={() => setIsSearchFocused(true)}
                   onKeyDown={handleInputKeyDown}
                   placeholder="Hledat produkty..."
+                  role="combobox"
                 />
                 <SearchForm.Button showSearchIcon />
               </SearchForm.Control>
@@ -296,6 +308,7 @@ export const N1Header = () => {
                 highlightedItemId={highlightedItem?.id || null}
                 isError={isError}
                 isLoading={isLoading}
+                listboxId={SEARCH_SUGGESTIONS_LISTBOX_ID}
                 onHighlight={handleSuggestionHighlight}
                 onSelectBrand={(brand) => navigateToSearch(brand.title)}
                 onSelectCategory={(category) =>

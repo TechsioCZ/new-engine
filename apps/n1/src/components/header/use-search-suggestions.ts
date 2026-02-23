@@ -73,22 +73,26 @@ export function useSearchSuggestions({
   const trimmedQuery = query.trim()
   const debouncedQuery = useDebouncedValue(trimmedQuery, debounceMs)
   const { regionId, countryCode } = useRegion()
+  const normalizedRegionId = regionId?.trim()
+  const normalizedCountryCode = countryCode?.trim().toLowerCase()
   const shouldSearch =
-    enabled && debouncedQuery.length >= minQueryLength && Boolean(regionId)
+    enabled &&
+    debouncedQuery.length >= minQueryLength &&
+    Boolean(normalizedRegionId && normalizedCountryCode)
 
   const suggestionsQuery = useQuery({
     queryKey: queryKeys.search.suggestions({
       q: debouncedQuery,
       limitPerSection,
-      regionId,
-      countryCode,
+      regionId: normalizedRegionId,
+      countryCode: normalizedCountryCode,
     }),
     queryFn: ({ signal }) =>
       getSearchSuggestions(debouncedQuery, {
         signal,
         limitPerSection,
-        regionId,
-        countryCode,
+        regionId: normalizedRegionId,
+        countryCode: normalizedCountryCode,
       }),
     enabled: shouldSearch,
     staleTime: SUGGESTIONS_STALE_TIME_MS,
