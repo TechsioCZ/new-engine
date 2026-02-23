@@ -10,6 +10,7 @@ import {
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
 import type {
   MutationOptions,
   ReadQueryOptions,
@@ -403,11 +404,11 @@ export function createCartHooks<
     cartStorage?.clearCartId()
   }
 
-  const requireUpdateCartService = () => {
+  const callUpdateCart = (cartId: string, params: TUpdateParams) => {
     if (!service.updateCart) {
       throw new Error("updateCart service is not configured")
     }
-    return service.updateCart
+    return service.updateCart.call(service, cartId, params)
   }
 
   const requireCartId = (inputCartId?: string | null): string => {
@@ -645,8 +646,7 @@ export function createCartHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       itemCount,
       isEmpty: itemCount === 0,
       hasItems: itemCount > 0,
@@ -777,7 +777,6 @@ export function createCartHooks<
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: (input: CartAddressInputBase<TAddressInput>) => {
-        const updateCartService = requireUpdateCartService()
         const cartId = requireCartId(input.cartId)
         const { restInput, normalizedShipping, resolvedBillingInput } =
           resolveAddressMutationInput(input)
@@ -790,7 +789,7 @@ export function createCartHooks<
           resolvedBillingInput
         )
 
-        return updateCartService(cartId, buildUpdate(updateInput))
+        return callUpdateCart(cartId, buildUpdate(updateInput))
       },
       onMutate: options?.onMutate,
       onSuccess: (cart, variables, context) => {

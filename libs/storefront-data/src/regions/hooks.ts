@@ -3,16 +3,17 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { useEffect, useRef } from "react"
 import {
   createCacheConfig,
   getPrefetchCacheOptions,
   type CacheConfig,
 } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
 import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import { resolvePagination } from "../shared/pagination"
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
+import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createRegionQueryKeys } from "./query-keys"
 import type {
   RegionDetailInputBase,
@@ -27,54 +28,6 @@ import type {
 } from "./types"
 
 type CacheStrategy = keyof CacheConfig
-
-const useDelayedPrefetchController = () => {
-  const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map()
-  )
-
-  useEffect(() => {
-    const timeouts = timeoutsRef.current
-    return () => {
-      for (const timeout of timeouts.values()) {
-        clearTimeout(timeout)
-      }
-      timeouts.clear()
-    }
-  }, [])
-
-  const schedulePrefetch = (
-    execute: () => void,
-    prefetchId: string,
-    delay: number
-  ) => {
-    const existing = timeoutsRef.current.get(prefetchId)
-    if (existing) {
-      clearTimeout(existing)
-    }
-
-    const timeoutId = setTimeout(() => {
-      execute()
-      timeoutsRef.current.delete(prefetchId)
-    }, delay)
-
-    timeoutsRef.current.set(prefetchId, timeoutId)
-    return prefetchId
-  }
-
-  const cancelPrefetch = (prefetchId: string) => {
-    const timeout = timeoutsRef.current.get(prefetchId)
-    if (timeout) {
-      clearTimeout(timeout)
-      timeoutsRef.current.delete(prefetchId)
-    }
-  }
-
-  return {
-    schedulePrefetch,
-    cancelPrefetch,
-  }
-}
 
 export type CreateRegionHooksConfig<
   TRegion,
@@ -164,8 +117,7 @@ export function createRegionHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       totalCount,
       currentPage: pagination.page,
       totalPages,
@@ -247,8 +199,7 @@ export function createRegionHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }

@@ -6,6 +6,7 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
 import type { MutationOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import {
   createQueryKey,
@@ -138,8 +139,7 @@ export function createAuthHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }

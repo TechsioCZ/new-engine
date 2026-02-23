@@ -4,13 +4,14 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo } from "react"
 import {
   createCacheConfig,
   getPrefetchCacheOptions,
   type CacheConfig,
 } from "../shared/cache-config"
 import type { DefaultError } from "@tanstack/react-query"
+import { toErrorMessage } from "../shared/error-utils"
 import type {
   InfiniteQueryOptions,
   ReadQueryOptions,
@@ -21,6 +22,7 @@ import type { QueryNamespace } from "../shared/query-keys"
 import { resolvePagination } from "../shared/pagination"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
+import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createProductQueryKeys } from "./query-keys"
 import type {
   ProductDetailInputBase,
@@ -171,8 +173,7 @@ export function createProductHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       totalCount,
       currentPage: pagination.page,
       totalPages,
@@ -286,8 +287,7 @@ export function createProductHooks<
       isFetching,
       isFetchingNextPage,
       hasNextPage: Boolean(hasNextPage),
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       totalCount: data?.pages[0]?.count ?? 0,
       isSuccess,
       fetchNextPage: () => fetchNextPage(),
@@ -382,8 +382,7 @@ export function createProductHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }
@@ -434,17 +433,7 @@ export function createProductHooks<
   }) {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
-    const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-      new Map()
-    )
-    useEffect(() => {
-      return () => {
-        for (const timeout of timeoutsRef.current.values()) {
-          clearTimeout(timeout)
-        }
-        timeoutsRef.current.clear()
-      }
-    }, [])
+    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const defaultDelay = options?.defaultDelay ?? 800
     const skipIfCached = options?.skipIfCached ?? true
@@ -566,26 +555,9 @@ export function createProductHooks<
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      const existing = timeoutsRef.current.get(id)
-      if (existing) {
-        clearTimeout(existing)
-      }
-
-      const timeoutId = setTimeout(() => {
-        prefetchProducts(input)
-        timeoutsRef.current.delete(id)
-      }, delay)
-
-      timeoutsRef.current.set(id, timeoutId)
-      return id
-    }
-
-    const cancelPrefetch = (prefetchId: string) => {
-      const timeout = timeoutsRef.current.get(prefetchId)
-      if (timeout) {
-        clearTimeout(timeout)
-        timeoutsRef.current.delete(prefetchId)
-      }
+      return schedulePrefetch(() => {
+        void prefetchProducts(input)
+      }, id, delay)
     }
 
     return {
@@ -604,17 +576,7 @@ export function createProductHooks<
   }) {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
-    const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-      new Map()
-    )
-    useEffect(() => {
-      return () => {
-        for (const timeout of timeoutsRef.current.values()) {
-          clearTimeout(timeout)
-        }
-        timeoutsRef.current.clear()
-      }
-    }, [])
+    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const defaultDelay = options?.defaultDelay ?? 400
     const skipIfCached = options?.skipIfCached ?? true
@@ -682,26 +644,9 @@ export function createProductHooks<
       const detailParams = buildDetail(resolvedInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      const existing = timeoutsRef.current.get(id)
-      if (existing) {
-        clearTimeout(existing)
-      }
-
-      const timeoutId = setTimeout(() => {
-        prefetchProduct(input)
-        timeoutsRef.current.delete(id)
-      }, delay)
-
-      timeoutsRef.current.set(id, timeoutId)
-      return id
-    }
-
-    const cancelPrefetch = (prefetchId: string) => {
-      const timeout = timeoutsRef.current.get(prefetchId)
-      if (timeout) {
-        clearTimeout(timeout)
-        timeoutsRef.current.delete(prefetchId)
-      }
+      return schedulePrefetch(() => {
+        void prefetchProduct(input)
+      }, id, delay)
     }
 
     return {

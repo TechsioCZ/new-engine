@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query"
 import type { AuthQueryKeys } from "../auth/types"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
@@ -172,8 +173,7 @@ export function createCustomerHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }

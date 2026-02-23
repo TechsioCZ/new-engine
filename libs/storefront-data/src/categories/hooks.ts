@@ -3,16 +3,17 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { useEffect, useRef } from "react"
 import {
   createCacheConfig,
   getPrefetchCacheOptions,
   type CacheConfig,
 } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
 import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import { resolvePagination } from "../shared/pagination"
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
+import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createCategoryQueryKeys } from "./query-keys"
 import type {
   CategoryDetailInputBase,
@@ -118,8 +119,7 @@ export function createCategoryHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       totalCount,
       currentPage: pagination.page,
       totalPages,
@@ -203,8 +203,7 @@ export function createCategoryHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }
@@ -247,18 +246,7 @@ export function createCategoryHooks<
     skipMode?: PrefetchSkipMode
   }) {
     const queryClient = useQueryClient()
-    const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-      new Map()
-    )
-    useEffect(() => {
-      const timeouts = timeoutsRef.current
-      return () => {
-        for (const timeout of timeouts.values()) {
-          clearTimeout(timeout)
-        }
-        timeouts.clear()
-      }
-    }, [])
+    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? "static"
     const defaultDelay = options?.defaultDelay ?? 800
     const skipIfCached = options?.skipIfCached ?? true
@@ -304,26 +292,9 @@ export function createCategoryHooks<
       const listParams = buildList(listInput as TListInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      const existing = timeoutsRef.current.get(id)
-      if (existing) {
-        clearTimeout(existing)
-      }
-
-      const timeoutId = setTimeout(() => {
-        prefetchCategories(input)
-        timeoutsRef.current.delete(id)
-      }, delay)
-
-      timeoutsRef.current.set(id, timeoutId)
-      return id
-    }
-
-    const cancelPrefetch = (prefetchId: string) => {
-      const timeout = timeoutsRef.current.get(prefetchId)
-      if (timeout) {
-        clearTimeout(timeout)
-        timeoutsRef.current.delete(prefetchId)
-      }
+      return schedulePrefetch(() => {
+        void prefetchCategories(input)
+      }, id, delay)
     }
 
     return {
@@ -340,18 +311,7 @@ export function createCategoryHooks<
     skipMode?: PrefetchSkipMode
   }) {
     const queryClient = useQueryClient()
-    const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-      new Map()
-    )
-    useEffect(() => {
-      const timeouts = timeoutsRef.current
-      return () => {
-        for (const timeout of timeouts.values()) {
-          clearTimeout(timeout)
-        }
-        timeouts.clear()
-      }
-    }, [])
+    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? "static"
     const defaultDelay = options?.defaultDelay ?? 400
     const skipIfCached = options?.skipIfCached ?? true
@@ -400,26 +360,9 @@ export function createCategoryHooks<
       const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      const existing = timeoutsRef.current.get(id)
-      if (existing) {
-        clearTimeout(existing)
-      }
-
-      const timeoutId = setTimeout(() => {
-        prefetchCategory(input)
-        timeoutsRef.current.delete(id)
-      }, delay)
-
-      timeoutsRef.current.set(id, timeoutId)
-      return id
-    }
-
-    const cancelPrefetch = (prefetchId: string) => {
-      const timeout = timeoutsRef.current.get(prefetchId)
-      if (timeout) {
-        clearTimeout(timeout)
-        timeoutsRef.current.delete(prefetchId)
-      }
+      return schedulePrefetch(() => {
+        void prefetchCategory(input)
+      }, id, delay)
     }
 
     return {

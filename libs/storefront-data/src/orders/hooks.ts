@@ -1,5 +1,6 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
 import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
@@ -115,8 +116,7 @@ export function createOrderHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       totalCount,
       currentPage: pagination.page,
       totalPages,
@@ -197,8 +197,7 @@ export function createOrderHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }

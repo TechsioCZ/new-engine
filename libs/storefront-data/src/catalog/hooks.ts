@@ -1,16 +1,17 @@
 import type { QueryClient } from "@tanstack/react-query"
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { useEffect, useRef } from "react"
 import {
   createCacheConfig,
   getPrefetchCacheOptions,
   type CacheConfig,
 } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
 import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
+import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createCatalogQueryKeys } from "./query-keys"
 import { resolvePositiveInteger } from "./utils"
 import type {
@@ -39,18 +40,6 @@ export type CreateCatalogHooksConfig<
   defaultPageSize?: number
   requireRegion?: boolean
   fallbackFacets: TFacets
-}
-
-const resolveErrorMessage = (error: unknown): string | null => {
-  if (!error) {
-    return null
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return String(error)
 }
 
 export function createCatalogHooks<
@@ -116,7 +105,7 @@ export function createCatalogHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error: resolveErrorMessage(error),
+      error: toErrorMessage(error),
       totalCount,
       currentPage,
       totalPages,
@@ -185,18 +174,7 @@ export function createCatalogHooks<
   }) {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
-    const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-      new Map()
-    )
-    useEffect(() => {
-      const timeouts = timeoutsRef.current
-      return () => {
-        for (const timeout of timeouts.values()) {
-          clearTimeout(timeout)
-        }
-        timeouts.clear()
-      }
-    }, [])
+    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
 
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const defaultDelay = options?.defaultDelay ?? 250
@@ -257,26 +235,9 @@ export function createCatalogHooks<
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      const existing = timeoutsRef.current.get(id)
-      if (existing) {
-        clearTimeout(existing)
-      }
-
-      const timeoutId = setTimeout(() => {
-        prefetchCatalogProducts(input)
-        timeoutsRef.current.delete(id)
-      }, delay)
-
-      timeoutsRef.current.set(id, timeoutId)
-      return id
-    }
-
-    const cancelPrefetch = (prefetchId: string) => {
-      const timeout = timeoutsRef.current.get(prefetchId)
-      if (timeout) {
-        clearTimeout(timeout)
-        timeoutsRef.current.delete(prefetchId)
-      }
+      return schedulePrefetch(() => {
+        void prefetchCatalogProducts(input)
+      }, id, delay)
     }
 
     return {
