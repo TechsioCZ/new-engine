@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
+import type { IconType } from "@techsio/ui-kit/atoms/icon";
 
 export type StorefrontProduct = HttpTypes.StoreProduct;
 
@@ -27,6 +28,13 @@ export type ProductOfferState = {
   standardAmount: number | null;
   actionAmount: number | null;
   hasActiveDiscount: boolean;
+};
+
+export type ProductMediaFact = {
+  id: "doses" | "daily-intake";
+  icon: IconType;
+  value: string;
+  label: string;
 };
 
 export type ProductDetailContentSection = {

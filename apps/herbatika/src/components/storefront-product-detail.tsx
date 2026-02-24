@@ -64,6 +64,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
             displayOriginalLabel={controller.displayOriginalLabel}
             freeShippingThresholdLabel={controller.freeShippingThresholdLabel}
             galleryItems={controller.galleryItems}
+            mediaFacts={controller.mediaFacts}
             isAdding={controller.isMainProductAdding}
             offerState={controller.offerState}
             onAddToCart={controller.handleAddMainProductToCart}

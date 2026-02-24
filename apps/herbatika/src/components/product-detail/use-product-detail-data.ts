@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared";
+import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import { useEffect, useMemo, useState } from "react";
 import { PDP_FREE_SHIPPING_THRESHOLD } from "@/components/product-detail/product-detail.constants";
@@ -10,6 +11,7 @@ import { useProductDetailDebugLog } from "@/components/product-detail/use-produc
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products";
 import { resolveGalleryItems, resolveProductHighlights } from "@/components/product-detail/utils/display-utils";
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer";
+import { resolveProductMediaFacts } from "@/components/product-detail/utils/media-facts";
 import {
   normalizeCategoryName,
   resolveOfferState,
@@ -131,6 +133,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     () => resolveProductContentSections(product, shortDescriptionHtml),
     [product, shortDescriptionHtml],
   );
+  const mediaFacts = useMemo(
+    () => resolveProductMediaFacts(product, productContentSections),
+    [product, productContentSections],
+  );
 
   const currentAmount = productPrice?.currentAmount ?? offerState.currentAmount;
   const currentAmountLabel = productPrice?.currentLabel ?? "Cena na vyžiadanie";
@@ -196,19 +202,25 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   useProductDetailDebugLog(product);
 
+  const breadcrumbItems: Array<{
+    label: string;
+    href?: string;
+    icon?: IconType;
+  }> = [
+    { label: "", href: "/", icon: "icon-[mdi--home-outline]" },
+    ...(productCategories[0]?.handle
+      ? [
+          {
+            label: normalizeCategoryName(productCategories[0].name),
+            href: `/c/${productCategories[0].handle}`,
+          },
+        ]
+      : []),
+    { label: product?.title || handle },
+  ];
+
   return {
-    breadcrumbItems: [
-      { label: "", href: "/", icon: "icon-[mdi--home-outline]" },
-      ...(productCategories[0]?.handle
-        ? [
-            {
-              label: normalizeCategoryName(productCategories[0].name),
-              href: `/c/${productCategories[0].handle}`,
-            },
-          ]
-        : []),
-      { label: product?.title || handle },
-    ],
+    breadcrumbItems,
     currentAmountLabel,
     defaultInfoSectionValue: productContentSections[0]?.key ?? "description",
     displayOriginalLabel,
@@ -219,6 +231,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     ),
     galleryItems,
     isBootstrappingRegion: !region?.region_id,
+    mediaFacts,
     product,
     productCategories,
     productContentSections,

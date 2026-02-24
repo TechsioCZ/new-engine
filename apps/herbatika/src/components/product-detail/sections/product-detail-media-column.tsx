@@ -7,15 +7,20 @@ import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery";
 import NextLink from "next/link";
-import type { ProductOfferState } from "@/components/product-detail/product-detail.types";
+import type {
+  ProductMediaFact,
+  ProductOfferState,
+} from "@/components/product-detail/product-detail.types";
 
 type ProductDetailMediaColumnProps = {
   galleryItems: GalleryItem[];
+  mediaFacts: ProductMediaFact[];
   offerState: ProductOfferState;
 };
 
 export function ProductDetailMediaColumn({
   galleryItems,
+  mediaFacts,
   offerState,
 }: ProductDetailMediaColumnProps) {
   return (
@@ -38,33 +43,28 @@ export function ProductDetailMediaColumn({
           className="md:col-start-1 md:row-start-1"
           listClassName="gap-100"
         />
-        <Gallery.Main className="overflow-hidden rounded-md md:col-start-2 md:row-start-1">
+        <Gallery.Main className="flex-col overflow-hidden rounded-lg border border-border-secondary bg-surface md:col-start-2 md:row-start-1">
           <Gallery.Carousel>
             <Gallery.Slides />
           </Gallery.Carousel>
+
+          {mediaFacts.length > 0 ? (
+            <div className="flex items-center justify-center divide-x divide-border-secondary border-t border-border-secondary bg-surface">
+              {mediaFacts.slice(0, 2).map((fact) => (
+                <div className="flex items-center gap-200 px-350 py-250" key={fact.id}>
+                  <span className="flex h-600 w-600 items-center justify-center rounded-md bg-highlight">
+                    <Icon className="text-lg text-primary" icon={fact.icon} />
+                  </span>
+                  <ExtraText className="text-md leading-snug text-fg-secondary">
+                    <span className="font-semibold text-primary">{`${fact.value} `}</span>
+                    <span>{fact.label}</span>
+                  </ExtraText>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </Gallery.Main>
       </Gallery>
-
-      <div className="grid gap-200 sm:grid-cols-3">
-        <div className="flex items-center gap-150 rounded-lg border border-border-secondary bg-surface-secondary px-250 py-200">
-          <Icon className="text-primary" icon="token-icon-check" />
-          <ExtraText className="font-semibold text-fg-primary">
-            {typeof offerState.stockAmount === "number"
-              ? `${offerState.stockAmount} ks skladom`
-              : offerState.availabilityLabel}
-          </ExtraText>
-        </div>
-        <div className="flex items-center gap-150 rounded-lg border border-border-secondary bg-surface-secondary px-250 py-200">
-          <Icon className="text-primary" icon="token-icon-check" />
-          <ExtraText className="font-semibold text-fg-primary">
-            {offerState.unitLabel ? `Balenie: ${offerState.unitLabel}` : "Rýchle doručenie"}
-          </ExtraText>
-        </div>
-        <div className="flex items-center gap-150 rounded-lg border border-border-secondary bg-surface-secondary px-250 py-200">
-          <Icon className="text-primary" icon="token-icon-check" />
-          <ExtraText className="font-semibold text-fg-primary">Overený produkt</ExtraText>
-        </div>
-      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-250 rounded-lg border border-primary/20 bg-surface p-400 md:flex-nowrap">
         <div className="flex items-center gap-150">

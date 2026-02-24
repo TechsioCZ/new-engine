@@ -8,6 +8,7 @@ import { ProductDetailDeliveryInfo } from "@/components/product-detail/sections/
 import { ProductDetailMediaColumn } from "@/components/product-detail/sections/product-detail-media-column";
 import { ProductDetailPurchasePanel } from "@/components/product-detail/sections/product-detail-purchase-panel";
 import type {
+  ProductMediaFact,
   ProductOfferState,
   StorefrontProduct,
 } from "@/components/product-detail/product-detail.types";
@@ -19,6 +20,7 @@ type ProductDetailHeroProps = {
   displayOriginalLabel: string | null;
   freeShippingThresholdLabel: string;
   galleryItems: GalleryItem[];
+  mediaFacts: ProductMediaFact[];
   isAdding: boolean;
   offerState: ProductOfferState;
   onAddToCart: () => void;
@@ -41,6 +43,7 @@ export function ProductDetailHero({
   displayOriginalLabel,
   freeShippingThresholdLabel,
   galleryItems,
+  mediaFacts,
   isAdding,
   offerState,
   onAddToCart,
@@ -57,7 +60,11 @@ export function ProductDetailHero({
 }: ProductDetailHeroProps) {
   return (
     <section className="grid gap-500 xl:grid-cols-2">
-      <ProductDetailMediaColumn galleryItems={galleryItems} offerState={offerState} />
+      <ProductDetailMediaColumn
+        galleryItems={galleryItems}
+        mediaFacts={mediaFacts}
+        offerState={offerState}
+      />
 
       <div className="space-y-300">
         <ProductDetailPurchasePanel
