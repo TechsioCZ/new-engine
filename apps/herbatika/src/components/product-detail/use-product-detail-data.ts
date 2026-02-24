@@ -198,7 +198,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   return {
     breadcrumbItems: [
-      { label: "Domov", href: "/" },
+      { label: "", href: "/", icon: "icon-[mdi--home-outline]" },
       ...(productCategories[0]?.handle
         ? [
             {

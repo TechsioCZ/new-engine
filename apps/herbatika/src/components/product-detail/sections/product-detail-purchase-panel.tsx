@@ -3,13 +3,9 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import { FormNumericInput } from "@techsio/ui-kit/molecules/form-numeric-input";
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import NextLink from "next/link";
 import type {
@@ -22,7 +18,6 @@ type ProductDetailPurchasePanelProps = {
   currentAmountLabel: string;
   discountPercent: number | null;
   displayOriginalLabel: string | null;
-  freeShippingThresholdLabel: string;
   isAdding: boolean;
   offerState: ProductOfferState;
   onAddToCart: () => void;
@@ -40,9 +35,7 @@ type ProductDetailPurchasePanelProps = {
 
 export function ProductDetailPurchasePanel({
   currentAmountLabel,
-  discountPercent,
   displayOriginalLabel,
-  freeShippingThresholdLabel,
   isAdding,
   offerState,
   onAddToCart,
@@ -57,65 +50,87 @@ export function ProductDetailPurchasePanel({
   variantItems,
   vipCreditLabel,
 }: ProductDetailPurchasePanelProps) {
+  const primaryCategory = productCategories[0];
+  const displayHighlights = productHighlights
+    .map((highlight) => highlight.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
   return (
-    <div className="space-y-400 rounded-lg border border-border-secondary bg-surface p-400">
-      <div className="flex flex-wrap items-center justify-between gap-200">
-        <div className="flex flex-wrap items-center gap-200">
-          <ExtraText className="text-fg-tertiary">ID: {offerState.code ?? product.handle}</ExtraText>
-          {offerState.ean ? <Badge variant="outline">{`EAN ${offerState.ean}`}</Badge> : null}
-        </div>
-        {offerState.hasActiveDiscount && discountPercent ? (
-          <Badge variant="discount">{`-${discountPercent}%`}</Badge>
-        ) : null}
-      </div>
+    <div className="space-y-300 rounded-lg border border-border-secondary bg-surface p-350">
+      <div className="flex min-h-600 items-center justify-between gap-200">
+        {offerState.hasActiveDiscount ? (
+          <Badge className="font-bold" variant="tertiary">
+            Akcia
+          </Badge>
+        ) : (
+          <span />
+        )}
 
-      <header className="space-y-250">
-        <h1 className="text-3xl font-bold leading-tight text-fg-primary">{product.title}</h1>
-
-        {productCategories.length > 0 ? (
-          <div className="flex flex-wrap gap-200">
-            {productCategories.slice(0, 8).map((category) => {
-              if (!category.handle) {
-                return null;
-              }
-
-              return (
+        <div className="ml-auto flex items-center gap-500">
+          <div className="flex items-center gap-100">
+            <span className="text-sm leading-tight text-fg-placeholder">
+              ID: {offerState.code ?? product.handle}
+            </span>
+            {primaryCategory?.handle ? (
+              <>
+                <span className="text-sm leading-tight text-fg-placeholder">•</span>
                 <Link
                   as={NextLink}
-                  className="text-sm font-medium text-fg-primary hover:text-primary"
-                  href={`/c/${category.handle}`}
-                  key={category.id}
+                  className="text-sm leading-tight font-normal text-primary underline hover:text-primary-strong"
+                  href={`/c/${primaryCategory.handle}`}
                 >
-                  {normalizeCategoryName(category.name)}
+                  {normalizeCategoryName(primaryCategory.name)}
                 </Link>
-              );
-            })}
+              </>
+            ) : null}
           </div>
-        ) : null}
+
+          <Button
+            aria-label="Pridať do obľúbených"
+            className="h-600 w-600 min-h-600 min-w-600 p-0 text-fg-secondary hover:text-fg-primary"
+            size="sm"
+            theme="borderless"
+            variant="secondary"
+          >
+            <Icon className="text-2xl" icon="token-icon-heart" />
+          </Button>
+        </div>
+      </div>
+
+      <header className="space-y-200">
+        <h1 className="text-3xl font-semibold leading-none text-fg-primary">{product.title}</h1>
       </header>
 
-      <ul className="space-y-150">
-        {productHighlights.map((highlight) => (
-          <li className="flex items-start gap-150 text-sm text-fg-secondary" key={highlight}>
-            <Icon className="mt-50 text-primary" icon="token-icon-check" />
+      <ul className="space-y-50">
+        {displayHighlights.map((highlight) => (
+          <li className="relative pl-500 pt-100 text-md leading-tight text-fg-primary" key={highlight}>
+            <span className="absolute top-300 left-0 h-200 w-200 rounded-full bg-primary" />
             <span>{highlight}</span>
           </li>
         ))}
       </ul>
 
-      <div className="flex flex-wrap items-end justify-between gap-300">
-        <div className="space-y-100">
-          {displayOriginalLabel ? (
-            <p className="text-sm text-fg-tertiary line-through">{displayOriginalLabel}</p>
-          ) : null}
-          <p className="text-3xl font-bold text-primary">{currentAmountLabel}</p>
-          {unitPriceLabel ? <ExtraText className="text-fg-tertiary">{unitPriceLabel}</ExtraText> : null}
+      <div className="flex flex-wrap items-end justify-between gap-250">
+        <div className="space-y-200">
+          <div className="flex flex-wrap items-end gap-150">
+            <p className="text-3xl leading-tight font-medium text-fg-primary">{currentAmountLabel}</p>
+            {displayOriginalLabel ? (
+              <span className="pb-50 text-lg leading-normal font-normal text-fg-secondary line-through">
+                {displayOriginalLabel}
+              </span>
+            ) : null}
+          </div>
+          {unitPriceLabel ? <p className="text-md leading-tight text-fg-primary">{unitPriceLabel}</p> : null}
         </div>
 
         {vipCreditLabel ? (
-          <div className="rounded-lg border border-border-secondary bg-surface-secondary px-300 py-200 text-right">
-            <ExtraText className="font-semibold text-primary">VIP kredit</ExtraText>
-            <ExtraText className="text-fg-secondary">{`Nákupom získate ${vipCreditLabel}`}</ExtraText>
+          <div className="flex items-center gap-400 rounded-sm bg-highlight px-400 py-200">
+            <Icon className="text-primary" icon="icon-[mdi--star-check-outline]" />
+            <div className="space-y-50">
+              <p className="text-md leading-tight font-semibold text-fg-primary">VIP kredit</p>
+              <p className="text-sm leading-tight text-fg-secondary">{`Nákupom získate ${vipCreditLabel}`}</p>
+            </div>
           </div>
         ) : null}
       </div>
@@ -148,62 +163,51 @@ export function ProductDetailPurchasePanel({
         </Select>
       ) : null}
 
-      <div className="grid gap-300 sm:grid-cols-3">
-        <FormNumericInput
-          id="product-quantity"
-          label="Množstvo"
-          max={50}
-          min={1}
-          onChange={(value) => {
-            if (!Number.isFinite(value) || value < 1) {
-              onQuantityChange(1);
-              return;
-            }
+      <div className="grid items-center gap-350 sm:grid-cols-4">
+        <div className="sm:col-span-1 sm:px-300">
+          <NumericInput
+            id="product-quantity"
+            max={50}
+            min={1}
+            onChange={(value) => {
+              if (!Number.isFinite(value) || value < 1) {
+                onQuantityChange(1);
+                return;
+              }
 
-            onQuantityChange(Math.floor(value));
-          }}
-          size="sm"
-          value={quantity}
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
+              onQuantityChange(Math.floor(value));
+            }}
+            size="sm"
+            value={quantity}
+          >
+            <div className="grid grid-cols-3 overflow-hidden rounded-sm border border-border-primary">
+              <NumericInput.DecrementTrigger
+                className="rounded-none border-0 bg-transparent px-0 py-300 text-md leading-tight text-fg-primary disabled:opacity-35"
+                icon="icon-[mdi--minus]"
+                theme="borderless"
+              />
+              <NumericInput.Control className="rounded-none border-x-0 border-y-0 border-border-primary bg-transparent">
+                <NumericInput.Input className="rounded-none border-0 focus:bg-base px-200 py-300 text-center text-md" />
+              </NumericInput.Control>
+              <NumericInput.IncrementTrigger
+                className="rounded-none border-0 bg-transparent px-0 py-300 text-md leading-tight text-fg-primary"
+                icon="icon-[mdi--plus]"
+                theme="borderless"
+              />
+            </div>
+          </NumericInput>
+        </div>
 
         <Button
           block
-          className="sm:self-end"
+          className="py-250 text-md leading-tight sm:col-span-3"
           disabled={!selectedVariantId || isAdding}
           onClick={onAddToCart}
           variant="primary"
         >
+          <Icon className="text-2xl" icon="token-icon-cart" />
           {isAdding ? "Pridávam..." : "Pridať do košíka"}
         </Button>
-
-        <LinkButton
-          as={NextLink}
-          className="sm:self-end"
-          href="/checkout"
-          theme="outlined"
-          variant="secondary"
-        >
-          Košík
-        </LinkButton>
-      </div>
-
-      <div className="rounded-lg border border-border-secondary bg-highlight px-300 py-250">
-        <div className="flex flex-wrap items-center justify-between gap-250">
-          <StatusText showIcon size="sm" status={offerState.isInStock ? "success" : "warning"}>
-            {offerState.availabilityLabel}
-          </StatusText>
-          <StatusText showIcon size="sm" status="success">
-            {`Doručenie zdarma nad ${freeShippingThresholdLabel}`}
-          </StatusText>
-        </div>
       </div>
     </div>
   );

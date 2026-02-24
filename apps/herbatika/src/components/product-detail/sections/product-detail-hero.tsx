@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types";
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery";
 import type { ReactNode } from "react";
+import { ProductDetailDeliveryInfo } from "@/components/product-detail/sections/product-detail-delivery-info";
 import { ProductDetailMediaColumn } from "@/components/product-detail/sections/product-detail-media-column";
 import { ProductDetailPurchasePanel } from "@/components/product-detail/sections/product-detail-purchase-panel";
 import type {
@@ -63,7 +64,6 @@ export function ProductDetailHero({
           currentAmountLabel={currentAmountLabel}
           discountPercent={discountPercent}
           displayOriginalLabel={displayOriginalLabel}
-          freeShippingThresholdLabel={freeShippingThresholdLabel}
           isAdding={isAdding}
           offerState={offerState}
           onAddToCart={onAddToCart}
@@ -77,6 +77,11 @@ export function ProductDetailHero({
           unitPriceLabel={unitPriceLabel}
           variantItems={variantItems}
           vipCreditLabel={vipCreditLabel}
+        />
+
+        <ProductDetailDeliveryInfo
+          freeShippingThresholdLabel={freeShippingThresholdLabel}
+          offerState={offerState}
         />
 
         {children}

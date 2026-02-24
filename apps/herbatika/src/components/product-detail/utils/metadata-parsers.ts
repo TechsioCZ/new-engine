@@ -30,6 +30,34 @@ const normalizeSectionKey = (value: unknown): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
+const toSkDate = (date: Date) => {
+  const day = `${date.getDate()}`.padStart(2, "0");
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}.${month}.${year}`;
+};
+
+const addBusinessDays = (start: Date, daysToAdd: number) => {
+  const date = new Date(start);
+  let remainingDays = daysToAdd;
+
+  while (remainingDays > 0) {
+    date.setDate(date.getDate() + 1);
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      remainingDays -= 1;
+    }
+  }
+
+  return date;
+};
+
+const resolveInStockDeliveryLabel = () => {
+  const deliveryDate = addBusinessDays(new Date(), 3);
+  return `u vás do ${toSkDate(deliveryDate)}`;
+};
+
 export const normalizeCategoryName = (value?: string | null) => {
   if (!value) {
     return "Kategória";
@@ -122,8 +150,8 @@ export const resolveOfferState = (
     ean: asString(source?.ean) ?? asString(selectedVariant?.ean),
     availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
     deliveryLabel: isInStock
-      ? "Doručenie 1-3 pracovné dni"
-      : "Doručenie po naskladnení",
+      ? resolveInStockDeliveryLabel()
+      : "po naskladnení",
     stockAmount,
     isInStock,
     offerSource: source,
