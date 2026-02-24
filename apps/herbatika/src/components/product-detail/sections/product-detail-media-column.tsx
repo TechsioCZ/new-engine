@@ -2,6 +2,7 @@
 
 import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery";
@@ -65,15 +66,28 @@ export function ProductDetailMediaColumn({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-300 rounded-lg border border-border-secondary bg-surface p-300">
-        <div className="space-y-100">
-          <p className="text-sm font-semibold text-fg-primary">Potrebujete poradiť?</p>
-          <ExtraText className="text-fg-secondary">
-            Kontaktujte nás, radi vám pomôžeme.
-          </ExtraText>
+      <div className="flex flex-wrap items-center justify-between gap-250 rounded-lg border border-primary/20 bg-surface p-400 md:flex-nowrap">
+        <div className="flex items-center gap-150">
+          <Image
+            alt="Poradca Herbatika"
+            className="size-8 shrink-0 rounded-full object-cover"
+            src="/photos/image.png"
+          />
+          <div className="space-y-0">
+            <p className="whitespace-nowrap text-md font-bold leading-tight text-fg-strong">
+              Potrebujete poradiť?
+            </p>
+            <ExtraText className="whitespace-nowrap text-2xs leading-tight text-fg-secondary">
+              Kontaktujte nás, radi vám pomôžeme
+            </ExtraText>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-200">
+          <Icon className="text-2xl text-primary" icon="icon-[mdi--phone-outline]" />
           <Link
             as={NextLink}
-            className="text-sm font-semibold text-primary"
+            className="whitespace-nowrap text-sm leading-tight font-medium text-fg-strong hover:text-fg-primary"
             href="tel:+421232112345"
           >
             +421 2/321 123 45
@@ -81,6 +95,7 @@ export function ProductDetailMediaColumn({
         </div>
         <LinkButton
           as={NextLink}
+          className="shrink-0"
           href="/kontakt"
           size="sm"
           theme="outlined"
