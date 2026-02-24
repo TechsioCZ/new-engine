@@ -16,6 +16,7 @@ FROM base AS dev
 ENV NODE_ENV=development
 ENV DATABASE_TYPE=postgres
 CMD ["pnpm", "--filter", "medusa-be", "dev"]
+#CMD ["sh", "-c", "pnpm --filter medusa-be migrate && pnpm --filter medusa-be entrypoint && pnpm --filter medusa-be dev"]
 #CMD ["tail", "-f", "/dev/null"]
 
 # ============================================
@@ -58,4 +59,4 @@ USER node
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:9000/health || exit 1
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npm run migrateProd && npm run entrypoint && npm run start"]

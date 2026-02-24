@@ -15,7 +15,9 @@
   "scripts": {
     "build": "medusa build",
     "start": "medusa start",
+    "entrypoint": "npm run createInitialSuperadmin && npm run -s setInitialPublishableKey > /dev/null",
     "start:dev": "cross-env NODE_ENV=development medusa start",
+    "develop": "medusa develop",
     "dev": "medusa develop",
     "test:integration:http": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
     "test:integration:modules": "cross-env TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit",
@@ -25,7 +27,7 @@
     "migrate": "medusa db:migrate",
     "migrate:generate-only": "medusa db:generate",
     "syncLinks": "medusa db:sync-links",
-    "createInitialSuperadmin": "medusa user -e \"$SUPERADMIN_EMAIL\" -p \"$SUPERADMIN_PASSWORD\"",
+    "createInitialSuperadmin": "bash -c 'if [ -f ./src/scripts/create-initial-superadmin.ts ]; then medusa exec ./src/scripts/create-initial-superadmin.ts; else medusa exec ./src/scripts/create-initial-superadmin.js; fi'",
     "seedDevData": "medusa exec ./src/scripts/seed-dev-data.ts",
     "seedN1": "medusa exec ./src/scripts/seed-n1.ts",
     "seedInitialData": "medusa exec ./src/scripts/seed.ts",
@@ -33,7 +35,8 @@
     "seedDefaultData": "medusa exec ./src/scripts/seed-products-from-db.ts",
     "seedDefaultDataTs": "medusa exec ./src/scripts/seed-products-from-db.ts",
     "addInitialSearchDocuments": "medusa exec ./src/scripts/search-index.ts",
-    "setInitialPublishableKey": "bash -c \"medusa exec ./src/scripts/output-publishable-key.ts | grep -o '<PK_TOKEN>.*</PK_TOKEN>' | sed 's/<PK_TOKEN>//g;s/<\\/PK_TOKEN>//g' | tr -d '\\n\\r' | zsc setSecretEnv CHANNEL_PUBLISHABLE_KEY\""
+    "setInitialPublishableKey": "bash -c 'PUBLISHABLE_KEY_TITLE=\"${INITIAL_PUBLISHABLE_KEY_NAME:-${PUBLISHABLE_KEY_NAME:-Storefront Publishable Key}}\"; if [ -f ./src/scripts/output-publishable-key.ts ]; then medusa exec ./src/scripts/output-publishable-key.ts \"$PUBLISHABLE_KEY_TITLE\"; else medusa exec ./src/scripts/output-publishable-key.js \"$PUBLISHABLE_KEY_TITLE\"; fi | grep -o \"<PK_TOKEN>.*</PK_TOKEN>\" | sed \"s/<PK_TOKEN>//g;s/<\\\\/PK_TOKEN>//g\" | tr -d \"\\n\\r\"'",
+    "setInitialPublishableKeyZerops": "bash -c \"npm run -s setInitialPublishableKey | tr -d '\\n\\r' | zsc setSecretEnv CHANNEL_PUBLISHABLE_KEY\""
   },
   "dependencies": {
     "@badgateway/oauth2-client": "^3.3.1",
