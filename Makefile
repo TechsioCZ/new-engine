@@ -1,6 +1,10 @@
 CFLAGS=-g
 export CFLAGS
 
+PROJECT_NAME=new-engine
+COMPOSE_DEV=docker compose -f docker-compose.yaml -p $(PROJECT_NAME)
+COMPOSE_PROD=docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p $(PROJECT_NAME)
+
 # Global commands
 corepack-update:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
@@ -21,13 +25,20 @@ npkill:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
 	docker run -it -v .:/var/www pnpm-env pnpx npkill -x -D -y
 dev:
-	docker compose -f docker-compose.yaml -p new-engine up --force-recreate -d --build
-prod:
-	-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine down
+	$(COMPOSE_DEV) up --force-recreate -d --build
+
+prod: PROD_BUILD_FLAGS=
+prod: prod-run
+
+prod-no-cache: PROD_BUILD_FLAGS=--no-cache
+prod-no-cache: prod-run
+
+prod-run:
+	-$(COMPOSE_PROD) down
 	-docker rmi new-engine-medusa-be new-engine-n1
 	# Build and start medusa-be first, then generate n1 categories against live Medusa API.
-	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine build --no-cache medusa-be
-	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine up -d medusa-be
+	$(COMPOSE_PROD) build $(PROD_BUILD_FLAGS) medusa-be
+	$(COMPOSE_PROD) up -d medusa-be
 	@echo "Waiting for medusa-be to become healthy..."
 	@timeout=180; \
 	while [ $$timeout -gt 0 ]; do \
@@ -49,7 +60,7 @@ prod:
 		docker logs --tail=120 wr_medusa_be; \
 		exit 1; \
 	fi
-	docker compose -f docker-compose.yaml -p new-engine run --rm --no-deps \
+	$(COMPOSE_DEV) run --rm --no-deps \
 		-e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
 		-e CI=1 \
 		-e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
@@ -57,12 +68,12 @@ prod:
 			[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
 			pnpm --filter n1 run generate:categories \
 		"
-	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine build --no-cache n1
-	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine up -d
+	$(COMPOSE_PROD) build $(PROD_BUILD_FLAGS) n1
+	$(COMPOSE_PROD) up -d
 down:
-	docker compose -f docker-compose.yaml -p new-engine down
+	$(COMPOSE_DEV) down
 down-with-volumes:
-	docker compose -f docker-compose.yaml -p new-engine down -v
+	$(COMPOSE_DEV) down -v
 
 # Medusa specific commands
 # Usage: make medusa-create-user EMAIL=admin@example.com PASSWORD=secret
