@@ -65,20 +65,6 @@ export default async function createInitialSuperadmin({
     }
 
     authIdentity = registration.authIdentity
-  } else {
-    const updateProviderResult = await authService.updateProvider(
-      EMAIL_PASS_PROVIDER,
-      {
-        entity_id: email,
-        password,
-      }
-    )
-
-    if (updateProviderResult.error || !updateProviderResult.success) {
-      throw new Error(
-        `Failed to update superadmin credentials: ${updateProviderResult.error ?? "unknown error"}`
-      )
-    }
   }
 
   const linkedUserId =

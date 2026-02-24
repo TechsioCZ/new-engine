@@ -1,34 +1,56 @@
+x-medusa-app-db-env: &medusa-app-db-env
+  MEDUSA_APP_DB_USER: ${DC_MEDUSA_APP_DB_USER:-medusa_app}
+  MEDUSA_APP_DB_PASSWORD: ${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}
+  MEDUSA_APP_DB_NAME: ${DC_MEDUSA_APP_DB_NAME:-medusa}
+  MEDUSA_APP_DB_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
+
+x-medusa-bootstrap-db-env: &medusa-bootstrap-db-env
+  <<: *medusa-app-db-env
+  MEDUSA_DEV_DB_USER: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
+  MEDUSA_DEV_DB_PASSWORD: ${DC_MEDUSA_DEV_DB_PASSWORD:-medusa_dev_change_me}
+
 x-medusa-env: &medusa-env
+  # Medusa BE: core runtime
   NODE_ENV: ${DC_NODE_ENV:-development}
   JWT_SECRET: ${DC_JWT_SECRET:-supersecret}
   COOKIE_SECRET: ${DC_COOKIE_SECRET:-supersecret}
+  MEDUSA_BACKEND_URL: ${DC_MEDUSA_BACKEND_URL:-}
+  STORE_CORS: ${DC_STORE_CORS}
+  ADMIN_CORS: ${DC_ADMIN_CORS}
+  AUTH_CORS: ${DC_AUTH_CORS}
+  SUPERADMIN_EMAIL: ${DC_SUPERADMIN_EMAIL:-}
+  SUPERADMIN_PASSWORD: ${DC_SUPERADMIN_PASSWORD:-}
+  INITIAL_PUBLISHABLE_KEY_NAME: ${DC_INITIAL_PUBLISHABLE_KEY_NAME:-Storefront Publishable Key}
+
+  # Medusa BE: database and schema
   DATABASE_TYPE: postgres
+  <<: *medusa-app-db-env
   # Force all Medusa module DB clients (MikroORM/Knex) to use the app schema.
   MEDUSA_DATABASE_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
   DATABASE_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
   DATABASE_URL: postgresql://${DC_MEDUSA_APP_DB_USER:-medusa_app}:${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}@medusa-db:5432/${DC_MEDUSA_APP_DB_NAME:-medusa}?sslmode=${DC_POSTGRES_SSLMODE:-disable}&options=-csearch_path%3D${DC_MEDUSA_APP_DB_SCHEMA:-medusa}%2Cpg_catalog
   LEGACY_DATABASE_URL: ${DC_LEGACY_DATABASE_URL}
+
+  # Medusa BE: dependencies/integrations
+  REDIS_URL: ${DC_REDIS_URL}
+  MEILISEARCH_HOST: ${DC_MEILISEARCH_HOST}
+  MEILISEARCH_API_KEY: ${DC_MEILISEARCH_API_KEY}
   MINIO_FILE_URL: ${DC_MINIO_FILE_URL}
   MINIO_REGION: ${DC_MINIO_REGION}
   MINIO_ENDPOINT: ${DC_MINIO_ENDPOINT}
   MINIO_BUCKET: ${DC_MINIO_BUCKET}
   MINIO_ACCESS_KEY: ${DC_MINIO_ACCESS_KEY}
   MINIO_SECRET_KEY: ${DC_MINIO_SECRET_KEY}
-  REDIS_URL: ${DC_REDIS_URL}
-  MEILISEARCH_HOST: ${DC_MEILISEARCH_HOST}
-  MEILISEARCH_API_KEY: ${DC_MEILISEARCH_API_KEY}
-  STORE_CORS: ${DC_STORE_CORS}
-  ADMIN_CORS: ${DC_ADMIN_CORS}
-  AUTH_CORS: ${DC_AUTH_CORS}
+
+  # Medusa BE: observability/features
   SENTRY_NAME: ${DC_SENTRY_NAME}
   SENTRY_DSN: ${DC_SENTRY_DSN}
   SETTINGS_ENCRYPTION_KEY: ${DC_SETTINGS_ENCRYPTION_KEY}
   FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
   PPL_ENVIRONMENT: ${DC_PPL_ENVIRONMENT:-testing}
-  SUPERADMIN_EMAIL: ${DC_SUPERADMIN_EMAIL:-}
-  SUPERADMIN_PASSWORD: ${DC_SUPERADMIN_PASSWORD:-}
 
 x-zane-operator-db-env: &zane-operator-db-env
+  # zane-operator: postgres connectivity
   PGHOST: medusa-db
   PGPORT: 5432
   PGUSER: ${DC_ZANE_OPERATOR_PGUSER:-zane_operator}
@@ -45,6 +67,7 @@ x-zane-operator-db-env: &zane-operator-db-env
   DB_PROTECTED_NAMES: ${DC_ZANE_OPERATOR_DB_PROTECTED_NAMES:-demo,postgres,template0,template1,template_medusa}
 
 x-zane-operator-env: &zane-operator-env
+  # zane-operator: service runtime
   PORT: ${DC_ZANE_OPERATOR_PORT:-8080}
   NODE_ENV: ${DC_NODE_ENV:-development}
   API_AUTH_TOKEN: ${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-replace-me}
@@ -68,16 +91,23 @@ x-medusa-base: &medusa-base
     <<: *medusa-env
 
 x-n1-env: &n1-env
+  # N1: backend connectivity
   MEDUSA_BACKEND_URL_INTERNAL: ${DC_N1_MEDUSA_BACKEND_URL_INTERNAL:-http://medusa-be:9000}
   NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL:-http://localhost:9000}
   NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:-}
+
+  # N1: search/discovery
   NEXT_PUBLIC_MEILISEARCH_URL: ${DC_N1_NEXT_PUBLIC_MEILISEARCH_URL:-http://localhost:7700}
   NEXT_PUBLIC_MEILISEARCH_API_KEY: ${DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY:-}
+
+  # N1: site and tracking
   NEXT_PUBLIC_SITE_URL: ${DC_N1_NEXT_PUBLIC_SITE_URL:-http://localhost:8000}
   NEXT_PUBLIC_META_PIXEL_ID: ${DC_N1_NEXT_PUBLIC_META_PIXEL_ID:-}
   NEXT_PUBLIC_GOOGLE_ADS_ID: ${DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID:-}
   NEXT_PUBLIC_HEUREKA_API_KEY: ${DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY:-}
   NEXT_PUBLIC_LEADHUB_TRACKING_ID: ${DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID:-}
+
+  # N1: email/contact
   RESEND_API_KEY: ${DC_N1_MEDUSA_RESEND_API_KEY:-}
   CONTACT_EMAIL: ${DC_N1_MEDUSA_CONTACT_EMAIL:-}
   RESEND_FROM_EMAIL: ${DC_N1_MEDUSA_RESEND_FROM_EMAIL:-}
@@ -196,16 +226,11 @@ services:
       timeout: 60s
       retries: 3
     environment:
+      <<: *medusa-bootstrap-db-env
       POSTGRES_PASSWORD: ${DC_POSTGRES_SUPERUSER_PASSWORD:-root}
       POSTGRES_USER: ${DC_POSTGRES_SUPERUSER:-root}
       POSTGRES_DB: ${DC_MEDUSA_APP_DB_NAME:-medusa}
       PGDATA: /var/lib/postgresql/18/docker
-      MEDUSA_APP_DB_USER: ${DC_MEDUSA_APP_DB_USER:-medusa_app}
-      MEDUSA_APP_DB_PASSWORD: ${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}
-      MEDUSA_DEV_DB_USER: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
-      MEDUSA_DEV_DB_PASSWORD: ${DC_MEDUSA_DEV_DB_PASSWORD:-medusa_dev_change_me}
-      MEDUSA_APP_DB_NAME: ${DC_MEDUSA_APP_DB_NAME:-medusa}
-      MEDUSA_APP_DB_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
   zane-operator-bootstrap:
     restart: "no"
     build:

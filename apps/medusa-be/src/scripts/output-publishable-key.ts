@@ -8,7 +8,6 @@ export default async function myScript({ container, args }: ExecArgs) {
   const keyTitle =
     args?.[0]?.trim() ||
     process.env.INITIAL_PUBLISHABLE_KEY_NAME?.trim() ||
-    process.env.PUBLISHABLE_KEY_NAME?.trim() ||
     DEFAULT_PUBLISHABLE_KEY_TITLE
 
   const existingKeys = await service.listApiKeys({
