@@ -239,9 +239,6 @@ importers:
       drizzle-orm:
         specifier: ^0.45.0
         version: 0.45.0(@neondatabase/serverless@1.0.2)(@opentelemetry/api@1.9.0)(@types/pg@8.15.6)(bun-types@1.3.3)(knex@3.1.0(mysql2@3.15.3)(pg@8.16.3))(mysql2@3.15.3)(pg@8.16.3)
-      i18n-iso-countries:
-        specifier: ^7.14.0
-        version: 7.14.0
       mime:
         specifier: 4.1.0
         version: 4.1.0
@@ -8461,9 +8458,6 @@ packages:
     engines: {node: '>= 4.0.0'}
     hasBin: true
 
-  diacritics@1.3.0:
-    resolution: {integrity: sha512-wlwEkqcsaxvPJML+rDh/2iS824jbREk6DUMUKkEaSlxdYHeS43cClJtsWglvw2RfeXGm6ohKDqsXteJ5sP5enA==}
-
   didyoumean@1.2.2:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
 
@@ -9539,10 +9533,6 @@ packages:
   hyperlinker@1.0.0:
     resolution: {integrity: sha512-Ty8UblRWFEcfSuIaajM34LdPXIhbs1ajEX/BBPv24J+enSVaEVY63xQ6lTO9VRYS5LAoghIG0IDJ+p+IPzKUQQ==}
     engines: {node: '>=4'}
-
-  i18n-iso-countries@7.14.0:
-    resolution: {integrity: sha512-nXHJZYtNrfsi1UQbyRqm3Gou431elgLjKl//CYlnBGt5aTWdRPH1PiS2T/p/n8Q8LnqYqzQJik3Q7mkwvLokeg==}
-    engines: {node: '>= 12'}
 
   i18next-browser-languagedetector@7.2.0:
     resolution: {integrity: sha512-U00DbDtFIYD3wkWsr2aVGfXGAj2TgnELzOX9qv8bT0aJtvPV9CRO77h+vgmHFBMe7LAxdwvT/7VkCWGya6L3tA==}
@@ -23276,8 +23266,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  diacritics@1.3.0: {}
-
   didyoumean@1.2.2: {}
 
   diff@4.0.2:
@@ -24423,10 +24411,6 @@ snapshots:
   hyperdyperid@1.2.0: {}
 
   hyperlinker@1.0.0: {}
-
-  i18n-iso-countries@7.14.0:
-    dependencies:
-      diacritics: 1.3.0
 
   i18next-browser-languagedetector@7.2.0:
     dependencies:

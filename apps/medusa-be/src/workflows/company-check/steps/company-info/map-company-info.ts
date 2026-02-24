@@ -19,6 +19,7 @@ function mapSubjectToCompanyInfo(
     vat_identification_number: input.verifiedVatByIco[subject.ico] ?? null,
     street: composeStreet(subject.sidlo),
     city: toTrimmedString(subject.sidlo?.nazevObce),
+    country_code: toTrimmedString(subject.sidlo?.kodStatu),
     country: toTrimmedString(subject.sidlo?.nazevStatu),
     postal_code: toTrimmedString(subject.sidlo?.psc),
   }

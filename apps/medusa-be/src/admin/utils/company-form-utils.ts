@@ -1,7 +1,3 @@
-import * as isoCountries from "i18n-iso-countries"
-import { MedusaError } from "@medusajs/framework/utils"
-import { countryLocaleDataMap } from "./country-locale-data-map"
-
 export const toTrimmedOrNull = (value: string): string | null => {
   const trimmedValue = value.trim()
   return trimmedValue.length > 0 ? trimmedValue : null
@@ -10,58 +6,28 @@ export const toTrimmedOrNull = (value: string): string | null => {
 export const isDefined = <T,>(value: T | null | undefined): value is T =>
   value !== null && value !== undefined
 
-const ensureLocaleRegistered = (locale: string): void => {
-  if (isoCountries.langs().includes(locale)) {
-    return
-  }
-
-  const localeData = countryLocaleDataMap[
-    locale
-  ] as Parameters<typeof isoCountries.registerLocale>[0] | undefined
-  if (!localeData) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Unsupported locale for country lookup: "${locale}"`
-    )
-  }
-
-  isoCountries.registerLocale(localeData)
-}
-
 /**
- * Normalizes company-info country input to ISO alpha-2 lowercase (e.g. "CZ" -> "cz").
+ * Normalizes company-info country code input to ISO alpha-2 lowercase (e.g. "CZ" -> "cz").
  *
  * Why this works this way:
- * - Upstream data can contain either alpha-2 codes or localized country names.
- * - We fast-path valid alpha-2 codes to avoid locale dependency when not needed.
- * - For localized names, we resolve through `i18n-iso-countries` and require explicit
- *   locale registration so behavior is deterministic across supported locales.
- * - Unsupported locales throw a Medusa INVALID_DATA error instead of returning
- *   a silent `undefined`, which makes integration failures visible and debuggable.
+ * - ARES now provides country code directly, so we only accept canonical alpha-2 values.
+ * - Returning `undefined` for non alpha-2 input prevents silently saving bad country data.
  */
-export const normalizeCountryFromCompanyInfo = (
-  countryValue: string | null | undefined,
-  locale: string
+export const normalizeCountryCodeFromCompanyInfo = (
+  countryCodeValue: string | null | undefined
 ): string | undefined => {
-  if (!countryValue) {
+  if (!countryCodeValue) {
     return undefined
   }
 
-  const raw = countryValue.trim()
+  const raw = countryCodeValue.trim()
   if (!raw) {
     return undefined
   }
 
   const lower = raw.toLowerCase()
 
-  if (/^[a-z]{2}$/.test(lower)) {
-    return isoCountries.alpha2ToAlpha3(lower.toUpperCase()) ? lower : undefined
-  }
-
-  const normalizedLocale = locale.trim().toLowerCase()
-  ensureLocaleRegistered(normalizedLocale)
-
-  return isoCountries.getAlpha2Code(raw, normalizedLocale)?.toLowerCase()
+  return /^[a-z]{2}$/.test(lower) ? lower : undefined
 }
 
 /**

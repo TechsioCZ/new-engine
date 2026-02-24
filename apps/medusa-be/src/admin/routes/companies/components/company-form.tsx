@@ -13,7 +13,7 @@ import {
   buildCompanyInfoLookupQuery,
   hasAddressCountWarning,
   isDefined,
-  normalizeCountryFromCompanyInfo,
+  normalizeCountryCodeFromCompanyInfo,
   resolveCurrencyFromCountry,
   taxReliabilityBadge,
   toTrimmedOrNull,
@@ -150,9 +150,8 @@ export function CompanyForm({
   }
 
   const handleApplyCompanyInfo = (companyInfo: CompanyCheckCzInfoResult) => {
-    const normalizedCountry = normalizeCountryFromCompanyInfo(
-      companyInfo.country,
-      "cs"
+    const normalizedCountry = normalizeCountryCodeFromCompanyInfo(
+      companyInfo.country_code
     )
     const resolvedCurrencyCode = resolveCurrencyFromCountry(
       normalizedCountry,

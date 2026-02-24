@@ -166,6 +166,7 @@ export const companyCheckCzInfoWorkflow = createWorkflow(
               vat_identification_number: normalizedRequestedVat,
               street: "",
               city: "",
+              country_code: "",
               country: "",
               postal_code: "",
             },

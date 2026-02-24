@@ -37,6 +37,7 @@ export type CompanyCheckCzInfoResult = {
   vat_identification_number?: string | null
   street: string
   city: string
+  country_code: string
   country: string
   postal_code: string
 }

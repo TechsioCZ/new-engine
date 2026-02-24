@@ -21,6 +21,7 @@ export const AresAddressSchema = z
     cisloOrientacni: NullableAresAddressValueSchema,
     cisloOrientacniPismeno: NullableStringSchema,
     nazevObce: NullableStringSchema,
+    kodStatu: NullableAresAddressValueSchema,
     nazevStatu: NullableStringSchema,
     psc: NullableAresAddressValueSchema,
   })

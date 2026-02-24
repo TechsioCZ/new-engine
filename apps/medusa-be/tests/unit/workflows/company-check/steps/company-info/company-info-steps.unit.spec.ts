@@ -222,6 +222,7 @@ describe("mapCompanyInfoStep", () => {
               cisloOrientacni: "5",
               cisloOrientacniPismeno: "A",
               nazevObce: "Prague",
+              kodStatu: "CZ",
               nazevStatu: "Czech Republic",
               psc: "11000",
             },
@@ -243,6 +244,7 @@ describe("mapCompanyInfoStep", () => {
     expect(result.output[0]).toMatchObject({
       company_name: "ACME s.r.o.",
       vat_identification_number: "CZ12345678",
+      country_code: "CZ",
       street: "Main 10/5A",
     })
   })
