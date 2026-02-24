@@ -71,8 +71,8 @@ BEGIN
     RAISE EXCEPTION 'app role "%" missing CONNECT on database "%"', app_user, app_db;
   END IF;
 
-  IF has_database_privilege(app_user, app_db, 'CREATE') THEN
-    RAISE EXCEPTION 'app role "%" must not have CREATE on database "%"', app_user, app_db;
+  IF NOT has_database_privilege(app_user, app_db, 'CREATE') THEN
+    RAISE EXCEPTION 'app role "%" missing CREATE on database "%"', app_user, app_db;
   END IF;
 
   IF has_database_privilege(app_user, app_db, 'TEMPORARY') THEN

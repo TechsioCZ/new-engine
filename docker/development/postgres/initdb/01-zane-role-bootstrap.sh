@@ -127,8 +127,8 @@ BEGIN
     EXECUTE format('ALTER DATABASE %I OWNER TO %I', app_db, postgres_user);
     EXECUTE format('REVOKE ALL PRIVILEGES ON DATABASE %I FROM %I', app_db, app_user);
     EXECUTE format('REVOKE CONNECT, TEMPORARY ON DATABASE %I FROM PUBLIC', app_db);
-    EXECUTE format('REVOKE CREATE, TEMPORARY ON DATABASE %I FROM %I', app_db, app_user);
-    EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', app_db, app_user);
+    EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM %I', app_db, app_user);
+    EXECUTE format('GRANT CONNECT, CREATE ON DATABASE %I TO %I', app_db, app_user);
     EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', app_db, dev_user);
     EXECUTE format(
       'ALTER ROLE %I IN DATABASE %I SET search_path = %I, pg_catalog',

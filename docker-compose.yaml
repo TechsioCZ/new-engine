@@ -28,7 +28,7 @@ x-medusa-env: &medusa-env
   # Force all Medusa module DB clients (MikroORM/Knex) to use the app schema.
   MEDUSA_DATABASE_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
   DATABASE_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
-  DATABASE_URL: postgresql://${DC_MEDUSA_APP_DB_USER:-medusa_app}:${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}@medusa-db:5432/${DC_MEDUSA_APP_DB_NAME:-medusa}?sslmode=${DC_POSTGRES_SSLMODE:-disable}&options=-csearch_path%3D${DC_MEDUSA_APP_DB_SCHEMA:-medusa}%2Cpg_catalog
+  DATABASE_URL: postgresql://${DC_MEDUSA_APP_DB_USER:-medusa_app}:${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}@${DC_MEDUSA_APP_DB_HOST:-medusa-db}:${DC_MEDUSA_APP_DB_PORT:-5432}/${DC_MEDUSA_APP_DB_NAME:-medusa}?sslmode=${DC_POSTGRES_SSLMODE:-disable}&options=-csearch_path%3D${DC_MEDUSA_APP_DB_SCHEMA:-medusa}%2Cpg_catalog
   LEGACY_DATABASE_URL: ${DC_LEGACY_DATABASE_URL}
 
   # Medusa BE: dependencies/integrations

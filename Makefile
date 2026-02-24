@@ -87,7 +87,7 @@ medusa-seed-dev-data:
 medusa-seed-n1:
 	docker exec wr_medusa_be pnpm --filter medusa-be run seedN1
 
-# Postgres role bootstrap for existing DB volumes (medusa_app/medusa_dev grants)
+# Postgres role bootstrap for existing DB volumes (migrates pre-strict grants; ensures medusa_app DB CREATE)
 postgres-role-bootstrap:
 	bash ./scripts/apply-postgres-role-bootstrap.sh
 
