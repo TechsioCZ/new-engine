@@ -152,7 +152,7 @@ export function CompanyForm({
   const handleApplyCompanyInfo = (companyInfo: CompanyCheckCzInfoResult) => {
     const normalizedCountry = normalizeCountryFromCompanyInfo(
       companyInfo.country,
-      countries
+      "cs"
     )
     const resolvedCurrencyCode = resolveCurrencyFromCountry(
       normalizedCountry,
