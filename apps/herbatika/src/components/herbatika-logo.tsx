@@ -5,22 +5,25 @@ import NextLink from "next/link";
 interface HerbatikaLogoProps {
   className?: string;
   href?: string;
+  imageClassName?: string;
   size?: "sm" | "md" | "lg";
 }
 
 export function HerbatikaLogo({
   className,
   href = "/",
+  imageClassName,
   size = "md",
 }: HerbatikaLogoProps) {
   const sizeClass =
     size === "sm" ? "h-11 w-auto" : size === "lg" ? "h-[4.5rem] w-auto" : "h-13 w-auto";
+  const imageClasses = imageClassName ? `${sizeClass} ${imageClassName}` : sizeClass;
 
   return (
     <Link as={NextLink} className={className} href={href}>
       <Image
         alt="Herbatika"
-        className={sizeClass}
+        className={imageClasses}
         src="/herbatika-logo.svg"
       />
     </Link>

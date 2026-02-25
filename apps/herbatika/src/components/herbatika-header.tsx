@@ -151,7 +151,7 @@ export function HerbatikaHeader() {
             <LinkButton
               as={NextLink}
               className="px-350 py-250 text-xl font-bold"
-              href="/checkout"
+              href="/checkout/kosik"
               icon="token-icon-cart"
               size="sm"
               variant="primary"

@@ -181,7 +181,7 @@ export function HerbatikaCartPopover({
               as={NextLink}
               block
               className="justify-center"
-              href="/checkout"
+              href="/checkout/kosik"
               onClick={handleClose}
               size="md"
               variant="primary"

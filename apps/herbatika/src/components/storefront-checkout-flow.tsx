@@ -1,31 +1,77 @@
 "use client";
 
-import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants";
+import { CheckoutStepContent } from "@/components/checkout/checkout-step-content";
+import {
+  canAccessCheckoutStep,
+  resolveCheckoutStepHref,
+  resolveCheckoutStepIndexBySlug,
+  resolveRequiredCheckoutStepSlug,
+} from "@/components/checkout/checkout-route.utils";
 import { useCheckoutController } from "@/components/checkout/use-checkout-controller";
-import { CheckoutAddressSection } from "@/components/checkout/sections/checkout-address-section";
-import { CheckoutCompleteSection } from "@/components/checkout/sections/checkout-complete-section";
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section";
 import { CheckoutEmptyCartSection } from "@/components/checkout/sections/checkout-empty-cart-section";
 import { CheckoutFeedbackSection } from "@/components/checkout/sections/checkout-feedback-section";
-import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section";
-import { CheckoutPaymentSection } from "@/components/checkout/sections/checkout-payment-section";
-import { CheckoutShippingSection } from "@/components/checkout/sections/checkout-shipping-section";
 import { CheckoutStepsSection } from "@/components/checkout/sections/checkout-steps-section";
 
-export function StorefrontCheckoutFlow() {
+type StorefrontCheckoutFlowProps = {
+  activeStep: CheckoutStepSlug;
+};
+
+export function StorefrontCheckoutFlow({
+  activeStep,
+}: StorefrontCheckoutFlowProps) {
+  const router = useRouter();
   const controller = useCheckoutController();
+  const requiredStep = resolveRequiredCheckoutStepSlug({
+    hasItems: controller.hasItems,
+    hasPayment: controller.hasPayment,
+    hasShipping: controller.hasShipping,
+    hasStoredAddress: controller.hasStoredAddress,
+  });
+  const redirectStep =
+    requiredStep === "kosik" && activeStep !== "kosik"
+      ? "doprava-platba"
+      : requiredStep;
+
+  const canAccessStep = canAccessCheckoutStep({
+    requestedStep: activeStep,
+    hasItems: controller.hasItems,
+    hasPayment: controller.hasPayment,
+    hasShipping: controller.hasShipping,
+    hasStoredAddress: controller.hasStoredAddress,
+  });
+
+  const isStepGateLoading =
+    controller.cartQuery.isLoading || controller.cartQuery.isFetching;
+  const hasResolvedCart = typeof controller.cartQuery.cart !== "undefined";
+  const shouldRedirectStep =
+    hasResolvedCart &&
+    !isStepGateLoading &&
+    !canAccessStep &&
+    !controller.completedOrderId &&
+    redirectStep !== activeStep;
+
+  useEffect(() => {
+    if (!shouldRedirectStep) {
+      return;
+    }
+
+    router.replace(resolveCheckoutStepHref(redirectStep));
+  }, [redirectStep, router, shouldRedirectStep]);
+
+  if (shouldRedirectStep) {
+    return <main className="mx-auto min-h-dvh w-full max-w-max-w" />;
+  }
+
+  const activeStepIndex = resolveCheckoutStepIndexBySlug(activeStep);
 
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-500 px-400 py-550 lg:px-550">
-      <header className="space-y-200">
-        <h1 className="text-2xl font-semibold text-fg-primary">Dokončenie objednávky</h1>
-        <p className="text-sm text-fg-secondary">
-          Vyplňte údaje, zvoľte dopravu a platbu, potom potvrďte objednávku.
-        </p>
-      </header>
-
+    <main className="checkout-main mx-auto flex w-full flex-col gap-750 px-400 pt-700 pb-850 lg:px-550">
       <CheckoutStepsSection
-        checkoutStepIndex={controller.checkoutStepIndex}
+        checkoutStepIndex={activeStepIndex}
         steps={controller.checkoutSteps}
       />
 
@@ -42,66 +88,7 @@ export function StorefrontCheckoutFlow() {
       {!controller.completedOrderId && !controller.hasItems ? <CheckoutEmptyCartSection /> : null}
 
       {!controller.completedOrderId && controller.hasItems ? (
-        <div className="grid gap-500 xl:grid-cols-3">
-          <div className="space-y-350 xl:col-span-2">
-            <CheckoutAddressSection
-              acceptTermsConsent={controller.acceptTermsConsent}
-              addressForm={controller.addressForm}
-              countryItems={COUNTRY_SELECT_ITEMS}
-              createAccountConsent={controller.createAccountConsent}
-              hasStoredAddress={controller.hasStoredAddress}
-              isBusy={controller.isBusy}
-              isSavingAddress={controller.updateCartAddressMutation.isPending}
-              onAcceptTermsConsentChange={controller.setAcceptTermsConsent}
-              onCreateAccountConsentChange={controller.setCreateAccountConsent}
-              onSaveAddress={controller.handleSaveAddress}
-              onUpdateAddressField={controller.updateAddressField}
-              ready={Boolean(controller.cartQuery.cart?.id)}
-            />
-
-            <CheckoutShippingSection
-              currencyCode={controller.currencyCode}
-              hasShipping={controller.hasShipping}
-              isBusy={controller.isBusy}
-              onSelectShipping={controller.handleSelectShipping}
-              selectedShippingMethodId={controller.checkoutShippingQuery.selectedShippingMethodId}
-              shippingOptions={controller.checkoutShippingQuery.shippingOptions}
-              shippingPrices={controller.checkoutShippingQuery.shippingPrices}
-            />
-
-            <CheckoutPaymentSection
-              canInitiatePayment={controller.checkoutPaymentQuery.canInitiatePayment}
-              hasPayment={controller.hasPayment}
-              isBusy={controller.isBusy}
-              isInitiatingPayment={controller.checkoutPaymentQuery.isInitiatingPayment}
-              onSelectPaymentProvider={controller.handleSelectPaymentProvider}
-              paymentProviders={controller.checkoutPaymentQuery.paymentProviders}
-            />
-
-            <CheckoutCompleteSection
-              acceptTermsConsent={controller.acceptTermsConsent}
-              canCompleteOrder={controller.canCompleteOrder}
-              hasPayment={controller.hasPayment}
-              hasShipping={controller.hasShipping}
-              hasStoredAddress={controller.hasStoredAddress}
-              isCompletingOrder={controller.completeCartMutation.isPending}
-              onCompleteOrder={controller.handleCompleteOrder}
-            />
-          </div>
-
-          <aside className="space-y-300 xl:sticky xl:top-400 xl:self-start">
-            <CheckoutOrderSummarySection
-              cartItems={controller.cartItems}
-              cartSubtotalAmount={controller.cartSubtotalAmount}
-              cartTotalAmount={controller.cartTotalAmount}
-              currencyCode={controller.currencyCode}
-              hasPayment={controller.hasPayment}
-              hasShipping={controller.hasShipping}
-              selectedOptionName={controller.checkoutShippingQuery.selectedOption?.name ?? undefined}
-              selectedShippingPrice={controller.selectedShippingPrice}
-            />
-          </aside>
-        </div>
+        <CheckoutStepContent activeStep={activeStep} controller={controller} />
       ) : null}
     </main>
   );

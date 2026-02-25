@@ -14,7 +14,7 @@ export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
     return `/p/${productHandle}`;
   }
 
-  return "/checkout";
+  return "/checkout/kosik";
 };
 
 export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {

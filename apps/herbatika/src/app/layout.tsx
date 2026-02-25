@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Open_Sans, Roboto, Rubik } from "next/font/google";
-import { HerbatikaFooter } from "@/components/herbatika-footer";
-import { HerbatikaHeader } from "@/components/herbatika-header";
+import { Suspense } from "react";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -59,11 +59,9 @@ export default function RootLayout({
     >
       <body className={`text-fg-primary ${verdana.className}`}>
         <Providers>
-          <div className="flex min-h-dvh flex-col bg-base">
-            <HerbatikaHeader />
-            <div className="flex-1">{children}</div>
-            <HerbatikaFooter />
-          </div>
+          <Suspense fallback={<div className="min-h-dvh bg-base">{children}</div>}>
+            <AppShell>{children}</AppShell>
+          </Suspense>
         </Providers>
       </body>
     </html>
