@@ -576,7 +576,7 @@ async function syncPreviewDatabaseGrants(
   })
 }
 
-interface EnsurePreviewDatabaseParams {
+export interface EnsurePreviewDatabaseParams {
   prNumber: number
   templateDatabase: string
   owner: string
@@ -680,16 +680,12 @@ async function dropDatabase(sql: Bun.SQL, databaseName: string): Promise<void> {
   const quotedDbName = quoteIdentifier(databaseName)
 
   try {
+    // Project baseline is PostgreSQL 18, so DROP DATABASE ... WITH (FORCE) is supported.
     await sql.unsafe(`DROP DATABASE IF EXISTS ${quotedDbName} WITH (FORCE);`)
     return
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
     const normalizedMessage = message.toLowerCase()
-
-    if (normalizedMessage.includes("syntax error at or near \"with\"")) {
-      await sql.unsafe(`DROP DATABASE IF EXISTS ${quotedDbName};`)
-      return
-    }
 
     if (normalizedMessage.includes("permission denied to terminate process")) {
       const roleSummary = await getActiveConnectionSummary(sql, databaseName)
