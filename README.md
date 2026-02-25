@@ -133,7 +133,7 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
     * Minio console should be available at:
         * <a href="http://localhost:9003">localhost:9003</a>
         * <a href="https://admin.minio.localhost">https://admin.minio.localhost</a>
-            * credentials: `minioadmin`/`minioadmin`
+            * credentials: `DC_MINIO_ROOT_USER`/`DC_MINIO_ROOT_PASSWORD` (defaults: `minioadmin`/`minioadmin`)
     * Meilisearch console should be available at:
         * <a href="http://localhost:7700">localhost:7700</a>
         * <a href="https://admin.meilisearch.localhost">https://admin.meilisearch.localhost</a>

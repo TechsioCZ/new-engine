@@ -93,8 +93,14 @@ medusa-migrate:
 medusa-generate-migration:
 	docker exec wr_medusa_be pnpm --filter medusa-be run migrate:generate-only $(MODULE)
 medusa-minio-init:
-	docker exec wr_medusa_minio mc alias set local http://localhost:9004 minioadmin minioadmin && \
-	docker exec wr_medusa_minio mc admin accesskey create --access-key minioadminkey --secret-key minioadminkey local && \
+	@ROOT_USER=$$(docker exec wr_medusa_minio printenv MINIO_ROOT_USER); \
+	ROOT_PASSWORD=$$(docker exec wr_medusa_minio printenv MINIO_ROOT_PASSWORD); \
+	ACCESS_KEY=$$(docker exec wr_medusa_be printenv MINIO_ACCESS_KEY); \
+	SECRET_KEY=$$(docker exec wr_medusa_be printenv MINIO_SECRET_KEY); \
+	docker exec wr_medusa_minio mc alias set local http://localhost:9004 "$$ROOT_USER" "$$ROOT_PASSWORD" && \
+	if ! docker exec wr_medusa_minio mc admin accesskey info local "$$ACCESS_KEY" >/dev/null 2>&1; then \
+		docker exec wr_medusa_minio mc admin accesskey create --access-key "$$ACCESS_KEY" --secret-key "$$SECRET_KEY" local; \
+	fi && \
 	docker cp ./docker/development/medusa-minio/config/local-bucket-metadata.zip wr_medusa_minio:. && \
 	docker exec wr_medusa_minio mc admin cluster bucket import local /local-bucket-metadata.zip
 medusa-meilisearch-reseed:
