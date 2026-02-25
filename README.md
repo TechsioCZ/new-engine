@@ -25,6 +25,11 @@
 
 3. <b>Run docker compose</b>
 
+    Before running `make dev`, populate required zane-operator secrets in `.env` (you can copy `.env.docker` as a template), otherwise compose will fail fast on required variable expansion:
+    * `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
+    * `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`
+    * `DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET=<replace-with-long-random-secret>`
+
     ```shell
     make dev
     ```

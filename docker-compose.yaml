@@ -246,7 +246,7 @@ services:
     ports:
       - "${DC_POSTGRES_PUBLIC_PORT:-5432}:5432"
     volumes:
-      - ${DC_POSTGRES_VOLUME_DATA:-./.docker_data/db}:/var/lib/postgresql
+      - ${DC_POSTGRES_VOLUME_DATA:-./.docker_data/db18}:/var/lib/postgresql
       - ./docker/development/postgres/initdb:/docker-entrypoint-initdb.d:ro
     networks:
       - internal
