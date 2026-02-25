@@ -5,6 +5,11 @@ PROJECT_NAME=new-engine
 COMPOSE_DEV=docker compose -f docker-compose.yaml -p $(PROJECT_NAME)
 COMPOSE_PROD=docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p $(PROJECT_NAME)
 
+.PHONY: dev down down-with-volumes prod prod-no-cache prod-run \
+	postgres-role-bootstrap postgres-role-bootstrap-verify \
+	postgres-zane-operator-bootstrap postgres-zane-operator-bootstrap-verify \
+	postgres-grants-verify
+
 # Global commands
 corepack-update:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
@@ -35,7 +40,7 @@ prod-no-cache: prod-run
 
 prod-run:
 	-$(COMPOSE_PROD) down
-	-docker rmi new-engine-medusa-be new-engine-n1
+	-docker rmi $(PROJECT_NAME)-medusa-be $(PROJECT_NAME)-n1
 	# Build and start medusa-be first, then generate n1 categories against live Medusa API.
 	$(COMPOSE_PROD) build $(PROD_BUILD_FLAGS) medusa-be
 	$(COMPOSE_PROD) up -d medusa-be
@@ -55,15 +60,18 @@ prod-run:
 		sleep 2; \
 		timeout=$$((timeout-2)); \
 	done; \
-	if [ $$timeout -le 0 ]; then \
-		echo "Timed out waiting for medusa-be health"; \
-		docker logs --tail=120 wr_medusa_be; \
-		exit 1; \
-	fi
-	$(COMPOSE_DEV) run --rm --no-deps \
-		-e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
-		-e CI=1 \
-		-e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
+		if [ $$timeout -le 0 ]; then \
+			echo "Timed out waiting for medusa-be health"; \
+			docker logs --tail=120 wr_medusa_be; \
+			exit 1; \
+		fi
+		# Intentionally uses $(COMPOSE_DEV), not $(COMPOSE_PROD): dev compose mounts host source (.:/var/www),
+		# which is required for `pnpm --filter n1 run generate:categories`. This makes prod build depend on
+		# dev compose mount behavior; accepted tradeoff for now to avoid duplicating generation wiring.
+		$(COMPOSE_DEV) run --rm --no-deps \
+			-e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+			-e CI=1 \
+			-e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
 		n1 sh -lc "\
 			[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
 			pnpm --filter n1 run generate:categories \

@@ -2,9 +2,13 @@ import { createHmac } from "node:crypto"
 import { SQL } from "bun"
 
 import type { AppConfig } from "./config"
-
-const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
-const MAX_IDENTIFIER_LENGTH = 63
+import {
+  assertSafeIdentifier as assertSafeIdentifierBase,
+  databaseExists,
+  quoteIdentifier as quoteIdentifierBase,
+  quoteLiteral,
+  roleExists,
+} from "./pg-utils"
 
 export class BadRequestError extends Error {
   constructor(message: string) {
@@ -13,27 +17,21 @@ export class BadRequestError extends Error {
   }
 }
 
-function assertSafeIdentifier(value: string, label: string): void {
-  if (!IDENTIFIER_REGEX.test(value)) {
-    throw new BadRequestError(`${label} must match ${IDENTIFIER_REGEX.source}`)
-  }
+const toBadRequestError = (message: string): Error => new BadRequestError(message)
+const DEV_ROLE_DB_GRANT_CONCURRENCY = 4
 
-  if (value.length > MAX_IDENTIFIER_LENGTH) {
-    throw new BadRequestError(`${label} must be at most ${MAX_IDENTIFIER_LENGTH} characters`)
-  }
+function assertSafeIdentifier(value: string, label: string): void {
+  assertSafeIdentifierBase(value, label, toBadRequestError)
 }
 
 function quoteIdentifier(identifier: string): string {
-  assertSafeIdentifier(identifier, "identifier")
-  return `"${identifier}"`
+  return quoteIdentifierBase(identifier, "identifier", toBadRequestError)
 }
 
 function quoteCatalogIdentifier(identifier: string): string {
+  // Catalog-derived names can include characters outside IDENTIFIER_REGEX.
+  // Use this only with trusted values read from PostgreSQL catalogs (never raw user/config input).
   return `"${identifier.replaceAll("\"", "\"\"")}"`
-}
-
-function quoteLiteral(value: string): string {
-  return `'${value.replaceAll("'", "''")}'`
 }
 
 export function parsePrNumber(value: unknown, label = "pr_number"): number {
@@ -138,30 +136,6 @@ function assertSafeTargetDatabaseName(dbName: string, config: AppConfig): void {
   if (config.protectedDbNames.has(dbName.toLowerCase())) {
     throw new BadRequestError("refusing operation on protected database name")
   }
-}
-
-async function databaseExists(sql: Bun.SQL, databaseName: string): Promise<boolean> {
-  const rows = await sql<{ exists: boolean }[]>`
-    SELECT EXISTS(
-      SELECT 1
-      FROM pg_database
-      WHERE datname = ${databaseName}
-    ) AS "exists"
-  `
-
-  return rows[0]?.exists === true
-}
-
-async function roleExists(sql: Bun.SQL, roleName: string): Promise<boolean> {
-  const rows = await sql<{ exists: boolean }[]>`
-    SELECT EXISTS(
-      SELECT 1
-      FROM pg_roles
-      WHERE rolname = ${roleName}
-    ) AS "exists"
-  `
-
-  return rows[0]?.exists === true
 }
 
 function buildDatabaseUrl(databaseUrl: string, databaseName: string): string {
@@ -332,7 +306,30 @@ async function setRoleSearchPath(sql: Bun.SQL, roleName: string, databaseName: s
   )
 }
 
-async function transferSchemaOwnershipToRole(databaseSql: Bun.SQL, schemaName: string, targetRole: string): Promise<void> {
+async function transferObjectsOwnership(
+  databaseSql: Bun.SQL,
+  schemaName: string,
+  targetRole: string,
+  sourceRole?: string,
+): Promise<void> {
+  const schemaOwnerBlock = sourceRole
+    ? `
+  IF EXISTS (
+    SELECT 1
+    FROM pg_namespace n
+    WHERE n.nspname = ${quoteLiteral(schemaName)}
+      AND pg_get_userbyid(n.nspowner) = ${quoteLiteral(sourceRole)}
+  ) THEN
+    EXECUTE format('ALTER SCHEMA %I OWNER TO %I', ${quoteLiteral(schemaName)}, ${quoteLiteral(targetRole)});
+  END IF;
+`
+    : `
+  EXECUTE format('ALTER SCHEMA %I OWNER TO %I', ${quoteLiteral(schemaName)}, ${quoteLiteral(targetRole)});
+`
+  const relationOwnerFilter = sourceRole ? `\n      AND pg_get_userbyid(c.relowner) = ${quoteLiteral(sourceRole)}` : ""
+  const routineOwnerFilter = sourceRole ? `\n      AND pg_get_userbyid(p.proowner) = ${quoteLiteral(sourceRole)}` : ""
+  const typeOwnerFilter = sourceRole ? `\n      AND pg_get_userbyid(t.typowner) = ${quoteLiteral(sourceRole)}` : ""
+
   await databaseSql.unsafe(
     `
 DO $do$
@@ -341,8 +338,7 @@ DECLARE
   routine RECORD;
   custom_type RECORD;
 BEGIN
-  EXECUTE format('ALTER SCHEMA %I OWNER TO %I', ${quoteLiteral(schemaName)}, ${quoteLiteral(targetRole)});
-
+${schemaOwnerBlock}
   FOR rel IN
     SELECT c.oid, c.relkind, n.nspname, c.relname
     FROM pg_class c
@@ -361,7 +357,7 @@ BEGIN
             AND sd.deptype IN ('a', 'i')
         )
       )
-      AND d.objid IS NULL
+      AND d.objid IS NULL${relationOwnerFilter}
   LOOP
     IF rel.relkind IN ('r', 'p', 'f') THEN
       EXECUTE format('ALTER TABLE %I.%I OWNER TO %I', rel.nspname, rel.relname, ${quoteLiteral(targetRole)});
@@ -380,7 +376,7 @@ BEGIN
     JOIN pg_namespace n ON n.oid = p.pronamespace
     LEFT JOIN pg_depend d ON d.objid = p.oid AND d.deptype = 'e'
     WHERE n.nspname = ${quoteLiteral(schemaName)}
-      AND d.objid IS NULL
+      AND d.objid IS NULL${routineOwnerFilter}
   LOOP
     EXECUTE format('ALTER ROUTINE %s OWNER TO %I', routine.identity, ${quoteLiteral(targetRole)});
   END LOOP;
@@ -392,7 +388,7 @@ BEGIN
     LEFT JOIN pg_depend d ON d.objid = t.oid AND d.deptype = 'e'
     WHERE n.nspname = ${quoteLiteral(schemaName)}
       AND t.typtype IN ('d', 'e')
-      AND d.objid IS NULL
+      AND d.objid IS NULL${typeOwnerFilter}
   LOOP
     EXECUTE format('ALTER TYPE %s OWNER TO %I', custom_type.identity, ${quoteLiteral(targetRole)});
   END LOOP;
@@ -400,6 +396,10 @@ END
 $do$;
 `,
   )
+}
+
+async function transferSchemaOwnershipToRole(databaseSql: Bun.SQL, schemaName: string, targetRole: string): Promise<void> {
+  await transferObjectsOwnership(databaseSql, schemaName, targetRole)
 }
 
 async function grantAppRoleOnSchema(databaseSql: Bun.SQL, schemaName: string, appRoleName: string): Promise<void> {
@@ -418,83 +418,7 @@ async function transferOwnedObjectsInSchemaToRole(
   sourceRole: string,
   targetRole: string,
 ): Promise<void> {
-  await databaseSql.unsafe(
-    `
-DO $do$
-DECLARE
-  rel RECORD;
-  routine RECORD;
-  custom_type RECORD;
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM pg_namespace n
-    WHERE n.nspname = ${quoteLiteral(schemaName)}
-      AND pg_get_userbyid(n.nspowner) = ${quoteLiteral(sourceRole)}
-  ) THEN
-    EXECUTE format('ALTER SCHEMA %I OWNER TO %I', ${quoteLiteral(schemaName)}, ${quoteLiteral(targetRole)});
-  END IF;
-
-  FOR rel IN
-    SELECT c.oid, c.relkind, n.nspname, c.relname
-    FROM pg_class c
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    LEFT JOIN pg_depend d ON d.objid = c.oid AND d.deptype = 'e'
-    WHERE n.nspname = ${quoteLiteral(schemaName)}
-      AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
-      AND (
-        c.relkind <> 'S'
-        OR NOT EXISTS (
-          SELECT 1
-          FROM pg_depend sd
-          WHERE sd.classid = 'pg_class'::regclass
-            AND sd.objid = c.oid
-            AND sd.refclassid = 'pg_class'::regclass
-            AND sd.deptype IN ('a', 'i')
-        )
-      )
-      AND d.objid IS NULL
-      AND pg_get_userbyid(c.relowner) = ${quoteLiteral(sourceRole)}
-  LOOP
-    IF rel.relkind IN ('r', 'p', 'f') THEN
-      EXECUTE format('ALTER TABLE %I.%I OWNER TO %I', rel.nspname, rel.relname, ${quoteLiteral(targetRole)});
-    ELSIF rel.relkind = 'v' THEN
-      EXECUTE format('ALTER VIEW %I.%I OWNER TO %I', rel.nspname, rel.relname, ${quoteLiteral(targetRole)});
-    ELSIF rel.relkind = 'm' THEN
-      EXECUTE format('ALTER MATERIALIZED VIEW %I.%I OWNER TO %I', rel.nspname, rel.relname, ${quoteLiteral(targetRole)});
-    ELSIF rel.relkind = 'S' THEN
-      EXECUTE format('ALTER SEQUENCE %I.%I OWNER TO %I', rel.nspname, rel.relname, ${quoteLiteral(targetRole)});
-    END IF;
-  END LOOP;
-
-  FOR routine IN
-    SELECT p.oid::regprocedure AS identity
-    FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    LEFT JOIN pg_depend d ON d.objid = p.oid AND d.deptype = 'e'
-    WHERE n.nspname = ${quoteLiteral(schemaName)}
-      AND d.objid IS NULL
-      AND pg_get_userbyid(p.proowner) = ${quoteLiteral(sourceRole)}
-  LOOP
-    EXECUTE format('ALTER ROUTINE %s OWNER TO %I', routine.identity, ${quoteLiteral(targetRole)});
-  END LOOP;
-
-  FOR custom_type IN
-    SELECT format('%I.%I', n.nspname, t.typname) AS identity
-    FROM pg_type t
-    JOIN pg_namespace n ON n.oid = t.typnamespace
-    LEFT JOIN pg_depend d ON d.objid = t.oid AND d.deptype = 'e'
-    WHERE n.nspname = ${quoteLiteral(schemaName)}
-      AND t.typtype IN ('d', 'e')
-      AND d.objid IS NULL
-      AND pg_get_userbyid(t.typowner) = ${quoteLiteral(sourceRole)}
-  LOOP
-    EXECUTE format('ALTER TYPE %s OWNER TO %I', custom_type.identity, ${quoteLiteral(targetRole)});
-  END LOOP;
-END
-$do$;
-`,
-  )
+  await transferObjectsOwnership(databaseSql, schemaName, targetRole, sourceRole)
 }
 
 async function revokeDefaultPrivilegesOnSchema(
@@ -619,9 +543,6 @@ async function syncPreviewDatabaseGrants(
   }
 
   await sql.unsafe(`REVOKE ALL PRIVILEGES ON DATABASE ${quoteIdentifier(dbName)} FROM ${quoteIdentifier(appRoleName)};`)
-  await sql.unsafe(
-    `REVOKE CREATE, TEMPORARY ON DATABASE ${quoteIdentifier(dbName)} FROM ${quoteIdentifier(appRoleName)};`,
-  )
   await sql.unsafe(`REVOKE CONNECT, TEMPORARY ON DATABASE ${quoteIdentifier(dbName)} FROM PUBLIC;`)
   await sql.unsafe(`GRANT CONNECT ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(appRoleName)};`)
   await sql.unsafe(`GRANT CONNECT ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(devRole)};`)
@@ -832,6 +753,35 @@ async function revokeBroadDatabaseConnectGrants(sql: Bun.SQL, roleName: string):
   return revoked
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) {
+    return []
+  }
+
+  const safeConcurrency = Math.max(1, Math.min(concurrency, items.length))
+  const results: R[] = new Array(items.length)
+  let nextIndex = 0
+
+  const runWorker = async (): Promise<void> => {
+    while (true) {
+      const index = nextIndex
+      nextIndex += 1
+      if (index >= items.length) {
+        return
+      }
+
+      results[index] = await worker(items[index]!, index)
+    }
+  }
+
+  await Promise.all(Array.from({ length: safeConcurrency }, () => runWorker()))
+  return results
+}
+
 export interface CreateOrUpdateDevRoleParams {
   username: string
   password: string
@@ -874,23 +824,47 @@ export async function createOrUpdateDevRole(
   let defaultPrivilegeOwnersSkipped = 0
   if (params.grantConnectToAllDatabases) {
     const databases = await listNonTemplateDatabases(sql)
-    for (const databaseName of databases) {
-      await sql.unsafe(
-        `GRANT CONNECT ON DATABASE ${quoteCatalogIdentifier(databaseName)} TO ${quoteIdentifier(username)};`,
-      )
-      connectGrantsApplied += 1
+    console.info(
+      JSON.stringify({
+        event: "cli.create-dev-user.grant-connect-scope",
+        username,
+        total_databases: databases.length,
+        concurrency: DEV_ROLE_DB_GRANT_CONCURRENCY,
+      }),
+    )
+
+    const perDatabaseResults = await mapWithConcurrency(databases, DEV_ROLE_DB_GRANT_CONCURRENCY, async (databaseName) => {
+      await sql.unsafe(`GRANT CONNECT ON DATABASE ${quoteCatalogIdentifier(databaseName)} TO ${quoteIdentifier(username)};`)
+
+      let schemaGrantsAppliedForDatabase = 0
+      let defaultPrivilegeOwnersAppliedForDatabase = 0
+      let defaultPrivilegeOwnersSkippedForDatabase = 0
 
       await withDatabaseClientByUrl(params.databaseUrl, databaseName, async (databaseSql) => {
         const schemas = await listNonSystemSchemas(databaseSql)
         for (const schemaName of schemas) {
           await grantReadWriteOnSchema(databaseSql, schemaName, username, true)
-          schemaGrantsApplied += 1
+          schemaGrantsAppliedForDatabase += 1
 
           const defaultPrivilegeResult = await grantReadWriteDefaultPrivilegesOnSchema(databaseSql, schemaName, username)
-          defaultPrivilegeOwnersApplied += defaultPrivilegeResult.applied
-          defaultPrivilegeOwnersSkipped += defaultPrivilegeResult.skipped
+          defaultPrivilegeOwnersAppliedForDatabase += defaultPrivilegeResult.applied
+          defaultPrivilegeOwnersSkippedForDatabase += defaultPrivilegeResult.skipped
         }
       })
+
+      return {
+        connectGrantsApplied: 1,
+        schemaGrantsApplied: schemaGrantsAppliedForDatabase,
+        defaultPrivilegeOwnersApplied: defaultPrivilegeOwnersAppliedForDatabase,
+        defaultPrivilegeOwnersSkipped: defaultPrivilegeOwnersSkippedForDatabase,
+      }
+    })
+
+    for (const result of perDatabaseResults) {
+      connectGrantsApplied += result.connectGrantsApplied
+      schemaGrantsApplied += result.schemaGrantsApplied
+      defaultPrivilegeOwnersApplied += result.defaultPrivilegeOwnersApplied
+      defaultPrivilegeOwnersSkipped += result.defaultPrivilegeOwnersSkipped
     }
   } else {
     connectGrantsRevoked = await revokeBroadDatabaseConnectGrants(sql, username)
@@ -910,7 +884,7 @@ export async function createOrUpdateDevRole(
 export interface TeardownPreviewDatabaseResult {
   dbName: string
   deleted: boolean
-  terminatedConnections: number
+  activeConnectionsAtDrop: number
   appUser: string
   roleDeleted: boolean
   devGrantsCleaned: boolean
@@ -930,10 +904,10 @@ export async function teardownPreviewDatabase(
   return await withAdvisoryLock(sql, dbName, async (lockedSql) => {
     const exists = await databaseExists(lockedSql, dbName)
     let deleted = false
-    let terminatedConnections = 0
+    let activeConnectionsAtDrop = 0
 
     if (exists) {
-      terminatedConnections = await countActiveDatabaseConnections(lockedSql, dbName)
+      activeConnectionsAtDrop = await countActiveDatabaseConnections(lockedSql, dbName)
       await dropDatabase(lockedSql, dbName)
       deleted = true
     }
@@ -943,7 +917,7 @@ export async function teardownPreviewDatabase(
     return {
       dbName,
       deleted,
-      terminatedConnections,
+      activeConnectionsAtDrop,
       appUser,
       roleDeleted,
       devGrantsCleaned: deleted,

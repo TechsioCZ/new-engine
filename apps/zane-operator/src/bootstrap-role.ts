@@ -1,11 +1,9 @@
 import { SQL } from "bun"
+import { assertSafeIdentifier, databaseExists, quoteIdentifier, quoteLiteral, roleExists } from "./pg-utils"
 
-const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
-const MAX_IDENTIFIER_LENGTH = 63
 const DEFAULT_PG_PORT = 5432
 const DEFAULT_PG_DATABASE = "postgres"
 const DEFAULT_PG_SSLMODE = "disable"
-const DEFAULT_TARGET_ROLE = "zane_operator"
 const DEFAULT_TEMPLATE_DB = "template_medusa"
 
 interface BootstrapConfig {
@@ -71,25 +69,6 @@ function readRequiredEnv(env: Environment, name: string): string {
   return value
 }
 
-function assertSafeIdentifier(value: string, label: string): void {
-  if (!IDENTIFIER_REGEX.test(value)) {
-    throw new Error(`${label} must match ${IDENTIFIER_REGEX.source}`)
-  }
-
-  if (value.length > MAX_IDENTIFIER_LENGTH) {
-    throw new Error(`${label} must be at most ${MAX_IDENTIFIER_LENGTH} characters`)
-  }
-}
-
-function quoteIdentifier(identifier: string): string {
-  assertSafeIdentifier(identifier, "identifier")
-  return `"${identifier}"`
-}
-
-function quoteLiteral(value: string): string {
-  return `'${value.replaceAll("'", "''")}'`
-}
-
 function buildAdminDatabaseUrl(env: Environment): { databaseUrl: string; database: string } {
   const host = readFirstPresent(env, ["BOOTSTRAP_ADMIN_PGHOST", "PGHOST"], "Postgres host")
   const port = parsePort(
@@ -97,8 +76,8 @@ function buildAdminDatabaseUrl(env: Environment): { databaseUrl: string; databas
     DEFAULT_PG_PORT,
     "BOOTSTRAP_ADMIN_PGPORT/PGPORT",
   )
-  const user = readFirstPresent(env, ["BOOTSTRAP_ADMIN_PGUSER", "PGUSER"], "Postgres admin user")
-  const password = readFirstPresent(env, ["BOOTSTRAP_ADMIN_PGPASSWORD", "PGPASSWORD"], "Postgres admin password")
+  const user = readRequiredEnv(env, "BOOTSTRAP_ADMIN_PGUSER")
+  const password = readRequiredEnv(env, "BOOTSTRAP_ADMIN_PGPASSWORD")
   const database = (env.BOOTSTRAP_ADMIN_PGDATABASE ?? env.PGDATABASE)?.trim() || DEFAULT_PG_DATABASE
   const sslMode = (env.BOOTSTRAP_ADMIN_PGSSLMODE ?? env.PGSSLMODE)?.trim() || DEFAULT_PG_SSLMODE
 
@@ -117,12 +96,12 @@ function buildAdminDatabaseUrl(env: Environment): { databaseUrl: string; databas
 
 function loadBootstrapConfig(env: Environment = process.env): BootstrapConfig {
   const { databaseUrl, database } = buildAdminDatabaseUrl(env)
-  const targetRole =
-    env.BOOTSTRAP_TARGET_ROLE?.trim() || env.DB_PREVIEW_OWNER?.trim() || env.PGUSER?.trim() || DEFAULT_TARGET_ROLE
-  const targetPassword = env.BOOTSTRAP_TARGET_PASSWORD?.trim() || readRequiredEnv(env, "PGPASSWORD")
+
+  const targetRole = readRequiredEnv(env, "PGUSER")
+  const targetPassword = readRequiredEnv(env, "PGPASSWORD")
   const templateDatabase = env.BOOTSTRAP_TEMPLATE_DB?.trim() || env.DB_TEMPLATE_NAME?.trim() || DEFAULT_TEMPLATE_DB
 
-  assertSafeIdentifier(targetRole, "BOOTSTRAP_TARGET_ROLE/DB_PREVIEW_OWNER/PGUSER")
+  assertSafeIdentifier(targetRole, "PGUSER")
   assertSafeIdentifier(templateDatabase, "BOOTSTRAP_TEMPLATE_DB/DB_TEMPLATE_NAME")
 
   return {
@@ -141,37 +120,13 @@ function loadBootstrapConfig(env: Environment = process.env): BootstrapConfig {
   }
 }
 
-async function roleExists(sql: Bun.SQL, roleName: string): Promise<boolean> {
-  const rows = await sql<{ exists: boolean }[]>`
-    SELECT EXISTS(
-      SELECT 1
-      FROM pg_catalog.pg_roles
-      WHERE rolname = ${roleName}
-    ) AS "exists"
-  `
-
-  return rows[0]?.exists === true
-}
-
-async function databaseExists(sql: Bun.SQL, databaseName: string): Promise<boolean> {
-  const rows = await sql<{ exists: boolean }[]>`
-    SELECT EXISTS(
-      SELECT 1
-      FROM pg_database
-      WHERE datname = ${databaseName}
-    ) AS "exists"
-  `
-
-  return rows[0]?.exists === true
-}
-
 async function applyBootstrap(sql: Bun.SQL, config: BootstrapConfig): Promise<void> {
   const quotedTargetRole = quoteIdentifier(config.targetRole)
   const quotedTemplateDb = quoteIdentifier(config.templateDatabase)
   const quotedAdminDb = quoteIdentifier(config.adminDatabase)
 
-  const created = !(await roleExists(sql, config.targetRole))
-  if (created) {
+  const needsCreation = !(await roleExists(sql, config.targetRole))
+  if (needsCreation) {
     await sql.unsafe(`CREATE ROLE ${quotedTargetRole} LOGIN;`)
   }
 

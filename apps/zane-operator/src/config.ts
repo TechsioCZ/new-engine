@@ -4,17 +4,10 @@ const DEFAULT_PG_DATABASE = "postgres"
 const DEFAULT_PG_SSL_MODE = "disable"
 const DEFAULT_DB_TEMPLATE_NAME = "template_medusa"
 const DEFAULT_DB_PREVIEW_PREFIX = "medusa_pr_"
-const DEFAULT_DB_PREVIEW_OWNER = "zane_operator"
 const DEFAULT_DB_PREVIEW_APP_USER_PREFIX = "medusa_pr_app_"
 const DEFAULT_DB_PREVIEW_DEV_ROLE = "medusa_dev"
 const DEFAULT_DB_APP_SCHEMA = "medusa"
-const DEFAULT_PROTECTED_DB_NAMES = [
-  "demo",
-  "postgres",
-  "template0",
-  "template1",
-  "template_medusa",
-]
+const BASE_PROTECTED_DB_NAMES = ["postgres", "template0", "template1"]
 
 const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
 
@@ -62,8 +55,15 @@ function assertSafeIdentifier(value: string, label: string): void {
   }
 }
 
-function parseProtectedDatabaseNames(rawValue: string | undefined): Set<string> {
-  const protectedNames = new Set<string>(DEFAULT_PROTECTED_DB_NAMES.map((name) => name.toLowerCase()))
+function parseProtectedDatabaseNames(rawValue: string | undefined, requiredNames: string[]): Set<string> {
+  const protectedNames = new Set<string>(BASE_PROTECTED_DB_NAMES.map((name) => name.toLowerCase()))
+
+  for (const requiredName of requiredNames) {
+    const normalized = requiredName.trim().toLowerCase()
+    if (normalized) {
+      protectedNames.add(normalized)
+    }
+  }
 
   if (!rawValue) {
     return protectedNames
@@ -102,23 +102,21 @@ export function buildPostgresConnectionUrl(env: Environment): string {
 }
 
 export function loadConfig(env: Environment = process.env): AppConfig {
+  const connectionUser = readRequiredEnv(env, "PGUSER")
+
   const previewPrefix = env.DB_PREVIEW_PREFIX?.trim() || DEFAULT_DB_PREVIEW_PREFIX
   const defaultTemplateName = env.DB_TEMPLATE_NAME?.trim() || DEFAULT_DB_TEMPLATE_NAME
-  const previewOwner = env.DB_PREVIEW_OWNER?.trim() || DEFAULT_DB_PREVIEW_OWNER
+  const previewOwner = connectionUser
   const previewAppUserPrefix = env.DB_PREVIEW_APP_USER_PREFIX?.trim() || DEFAULT_DB_PREVIEW_APP_USER_PREFIX
   const previewDevRole = env.DB_PREVIEW_DEV_ROLE?.trim() || DEFAULT_DB_PREVIEW_DEV_ROLE
   const appSchema = env.DB_APP_SCHEMA?.trim() || DEFAULT_DB_APP_SCHEMA
   const apiAuthToken = readRequiredEnv(env, "API_AUTH_TOKEN")
-  const explicitPreviewSecret = env.DB_PREVIEW_APP_PASSWORD_SECRET?.trim()
-  const isProduction = env.NODE_ENV?.trim() === "production"
-  if (isProduction && !explicitPreviewSecret) {
-    throw new Error("DB_PREVIEW_APP_PASSWORD_SECRET is required when NODE_ENV=production")
-  }
-  const previewAppPasswordSecret = explicitPreviewSecret || apiAuthToken
+  const previewAppPasswordSecret = readRequiredEnv(env, "DB_PREVIEW_APP_PASSWORD_SECRET")
+  const connectionDatabase = env.PGDATABASE?.trim() || DEFAULT_PG_DATABASE
 
+  assertSafeIdentifier(connectionUser, "PGUSER")
   assertSafeIdentifier(previewPrefix, "DB_PREVIEW_PREFIX")
   assertSafeIdentifier(defaultTemplateName, "DB_TEMPLATE_NAME")
-  assertSafeIdentifier(previewOwner, "DB_PREVIEW_OWNER")
   assertSafeIdentifier(previewAppUserPrefix, "DB_PREVIEW_APP_USER_PREFIX")
   assertSafeIdentifier(previewDevRole, "DB_PREVIEW_DEV_ROLE")
   assertSafeIdentifier(appSchema, "DB_APP_SCHEMA")
@@ -134,6 +132,6 @@ export function loadConfig(env: Environment = process.env): AppConfig {
     previewDevRole,
     appSchema,
     previewAppPasswordSecret,
-    protectedDbNames: parseProtectedDatabaseNames(env.DB_PROTECTED_NAMES),
+    protectedDbNames: parseProtectedDatabaseNames(env.DB_PROTECTED_NAMES, [connectionDatabase, defaultTemplateName]),
   }
 }

@@ -16,8 +16,10 @@ WORKDIR /var/www
 FROM base AS dev
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
+WORKDIR /tmp/corepack
 COPY package.json /tmp/corepack/package.json
-RUN cd /tmp/corepack && corepack install && rm -rf /tmp/corepack
+RUN corepack install && rm -rf /tmp/corepack
+WORKDIR /var/www
 CMD ["sh", "-lc", "\
   [ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
   [ -f libs/ui/dist/utils.js ] || pnpm --filter=@techsio/ui-kit build; \

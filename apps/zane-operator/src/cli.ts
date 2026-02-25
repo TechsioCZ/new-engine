@@ -13,8 +13,9 @@ interface CliArgs {
 function printUsage(): void {
   console.error("Usage:")
   console.error(
-    "  bun src/cli.ts create-dev-user --username <name> --password <value> [--no-grant-connect-all-dbs] [--allow-prod-broad-grants]",
+    "  bun src/cli.ts create-dev-user --username <name> --password-env <ENV_VAR> [--no-grant-connect-all-dbs] [--allow-prod-broad-grants]",
   )
+  console.error("  plaintext --password is not supported; provide the password via environment variable")
 }
 
 function readFlagValue(args: string[], index: number, flag: string): string {
@@ -27,7 +28,7 @@ function readFlagValue(args: string[], index: number, flag: string): string {
 
 function parseCreateDevUserArgs(args: string[]): CliArgs {
   let username = ""
-  let password = ""
+  let passwordEnvVar = ""
   let grantConnectToAllDatabases = true
   let allowProdBroadGrants = false
 
@@ -39,10 +40,14 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
       continue
     }
 
-    if (arg === "--password") {
-      password = readFlagValue(args, index, "--password")
+    if (arg === "--password-env") {
+      passwordEnvVar = readFlagValue(args, index, "--password-env")
       index += 1
       continue
+    }
+
+    if (arg === "--password") {
+      throw new BadRequestError("plaintext --password is not supported; use --password-env <ENV_VAR>")
     }
 
     if (arg === "--no-grant-connect-all-dbs") {
@@ -62,8 +67,15 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
     throw new BadRequestError("--username is required")
   }
 
+  if (!passwordEnvVar) {
+    throw new BadRequestError("--password-env is required")
+  }
+
+  const password = process.env[passwordEnvVar]?.trim()
   if (!password) {
-    throw new BadRequestError("--password is required")
+    throw new BadRequestError(
+      `environment variable ${passwordEnvVar} is required and must be non-empty when using --password-env`,
+    )
   }
 
   return {

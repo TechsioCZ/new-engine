@@ -64,11 +64,10 @@ Teardown response includes role cleanup result:
 - `PGSSLMODE` (default: `disable`)
 - `DB_TEMPLATE_NAME` (default: `template_medusa`)
 - `DB_PREVIEW_PREFIX` (default: `medusa_pr_`)
-- `DB_PREVIEW_OWNER` (default: `zane_operator`)
 - `DB_PREVIEW_APP_USER_PREFIX` (default: `medusa_pr_app_`)
 - `DB_PREVIEW_DEV_ROLE` (default: `medusa_dev`)
 - `DB_APP_SCHEMA` (default: `medusa`)
-- `DB_PREVIEW_APP_PASSWORD_SECRET` (required in production; defaults to `API_AUTH_TOKEN` in non-production)
+- `DB_PREVIEW_APP_PASSWORD_SECRET` (required)
 - `DB_PROTECTED_NAMES` (extra protected DB names, comma-separated)
 
 ## Onboarding
@@ -86,7 +85,7 @@ bash ./scripts/apply-postgres-role-bootstrap.sh
 bash ./scripts/apply-zane-operator-role-bootstrap.sh
 ```
 
-The Postgres bootstrap migration is idempotent and includes legacy object migration from `public` schema into the configured app schema (`MEDUSA_APP_DB_SCHEMA`, default `medusa`).
+The Postgres bootstrap migration is idempotent and includes legacy object migration from `public` schema into the configured app schema (`DB_APP_SCHEMA`, default `medusa`).
 If an object with the same name already exists in the target app schema, bootstrap fails explicitly so you can resolve collisions safely.
 
 Idempotency verification for existing databases:
@@ -151,7 +150,6 @@ Required production values:
 - `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
 - `DB_TEMPLATE_NAME=template_medusa`
 - `DB_PREVIEW_PREFIX=medusa_pr_`
-- `DB_PREVIEW_OWNER=zane_operator`
 - `DB_PREVIEW_APP_USER_PREFIX=medusa_pr_app_`
 - `DB_PREVIEW_DEV_ROLE=medusa_dev`
 - `DB_APP_SCHEMA=medusa`
@@ -159,6 +157,7 @@ Required production values:
 
 Optional bootstrap-only values (for one-shot predeploy/init command):
 - Reuses operator `PG*` and `DB_*` values above for target role/template behavior.
+- Bootstrap always applies to role `PGUSER` with password `PGPASSWORD`.
 - `BOOTSTRAP_ADMIN_PGUSER`, `BOOTSTRAP_ADMIN_PGPASSWORD` (admin credentials for role bootstrap)
 - Optional admin endpoint overrides: `BOOTSTRAP_ADMIN_PGHOST`, `BOOTSTRAP_ADMIN_PGPORT`, `BOOTSTRAP_ADMIN_PGDATABASE`, `BOOTSTRAP_ADMIN_PGSSLMODE`
 - `BOOTSTRAP_SET_TEMPLATE_OWNER=1` (default)
@@ -243,14 +242,13 @@ Required values in `.env` for this container:
 - `PORT` (optional, defaults to `8080`)
 - `DB_TEMPLATE_NAME` (optional)
 - `DB_PREVIEW_PREFIX` (optional)
-- `DB_PREVIEW_OWNER` (optional)
 - `DB_PREVIEW_APP_USER_PREFIX` (optional)
 - `DB_PREVIEW_DEV_ROLE` (optional)
 - `DB_APP_SCHEMA` (optional, default `medusa`)
-- `DB_PREVIEW_APP_PASSWORD_SECRET` (required in production)
+- `DB_PREVIEW_APP_PASSWORD_SECRET` (required)
 
 Required extra values for bootstrap container:
-- Reuses runtime `PG*` + `DB_TEMPLATE_NAME` + `DB_PREVIEW_OWNER` values
+- Reuses runtime `PG*` + `DB_TEMPLATE_NAME` values
 - `BOOTSTRAP_ADMIN_PGUSER`
 - `BOOTSTRAP_ADMIN_PGPASSWORD`
 
@@ -285,8 +283,12 @@ Command:
 
 ```bash
 cd apps/zane-operator
-bun run create:dev-user -- --username medusa_dev --password 'replace-with-strong-password'
+export DEV_ROLE_PASSWORD='replace-with-strong-password'
+bun run create:dev-user -- --username medusa_dev --password-env DEV_ROLE_PASSWORD
 ```
+
+Required flag:
+- `--password-env <VAR>` reads the password from `process.env[VAR]`. Plaintext `--password` is not supported.
 
 Optional flag:
 - `--no-grant-connect-all-dbs` skips broad cross-database grant sync and revokes broad database-level grants (`CONNECT`, `TEMPORARY`, `CREATE`) from the target role on all non-template databases.
@@ -305,6 +307,7 @@ Required env vars for CLI run:
 - `PGHOST`
 - `PGUSER`
 - `PGPASSWORD`
+- variable referenced by `--password-env` (for example `DEV_ROLE_PASSWORD`)
 - `PGPORT` (optional, default `5432`)
 - `PGDATABASE` (optional, default `postgres`)
 - `PGSSLMODE` (optional, default `disable`)

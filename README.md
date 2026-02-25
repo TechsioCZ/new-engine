@@ -24,25 +24,33 @@
   ```
 
 3. <b>Run docker compose</b>
+
     ```shell
     make dev
     ```
+
     * Postgres role bootstrap (`medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
     * `zane_operator` role bootstrap runs as one-shot service `zane-operator-bootstrap` before `zane-operator` starts (idempotent)
     * If your Postgres volume already existed before this change, run bootstrap migration once:
+
     ```shell
     make postgres-role-bootstrap
     make postgres-zane-operator-bootstrap
     ```
+
     * Optional idempotency check (runs bootstrap twice):
+
     ```shell
     make postgres-role-bootstrap-verify
     make postgres-zane-operator-bootstrap-verify
     ```
+
     * Optional grant hardening check (read-only verification):
+
     ```shell
     make postgres-grants-verify
     ```
+
     * Existing DB migration note: bootstrap includes idempotent legacy-object migration from `public` schema into `DC_MEDUSA_APP_DB_SCHEMA` (default `medusa`), with conflict fail-fast if same object already exists in target schema.
     * Medusa BE DB connection is derived from `DC_MEDUSA_APP_DB_*`; keep those on app credentials (`medusa_app`), not superuser credentials
     * `MEDUSA_DATABASE_SCHEMA` / `DATABASE_SCHEMA` are derived from `DC_MEDUSA_APP_DB_SCHEMA` and must stay aligned with app schema grants
@@ -57,8 +65,9 @@ If you deploy `zane-operator` separately in cloud, run role bootstrap once befor
 ```
 
 Required env vars for this hook:
-* Reuses operator envs (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE`, `DB_TEMPLATE_NAME`, `DB_PREVIEW_OWNER`)
-* Add only admin override credentials: `BOOTSTRAP_ADMIN_PGUSER`, `BOOTSTRAP_ADMIN_PGPASSWORD`
+* Reuses operator envs (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE`, `DB_TEMPLATE_NAME`)
+* Bootstrap target role/password are derived from runtime operator credentials (`PGUSER`/`PGPASSWORD`)
+* Add admin override credentials: `BOOTSTRAP_ADMIN_PGUSER`, `BOOTSTRAP_ADMIN_PGPASSWORD`
 
 Optional hardening toggles:
 * `BOOTSTRAP_SET_TEMPLATE_OWNER=1` (default)

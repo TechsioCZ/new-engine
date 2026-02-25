@@ -16,8 +16,10 @@ WORKDIR /var/www
 FROM base AS dev
 ENV NODE_ENV=development
 ENV DATABASE_TYPE=postgres
+WORKDIR /tmp/corepack
 COPY package.json /tmp/corepack/package.json
-RUN cd /tmp/corepack && corepack install && rm -rf /tmp/corepack
+RUN corepack install && rm -rf /tmp/corepack
+WORKDIR /var/www
 CMD ["pnpm", "--filter", "medusa-be", "dev"]
 #CMD ["sh", "-c", "pnpm --filter medusa-be migrate && pnpm --filter medusa-be entrypoint && pnpm --filter medusa-be dev"]
 #CMD ["tail", "-f", "/dev/null"]
@@ -71,4 +73,4 @@ USER node
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:9000/health || exit 1
 
-CMD ["sh", "-c", "npm run migrateProd && npm run entrypoint && npm run start"]
+CMD ["sh", "-c", "npm run migrateProd && npm run entrypoint && exec npm run start"]

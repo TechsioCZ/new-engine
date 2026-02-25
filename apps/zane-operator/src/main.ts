@@ -97,9 +97,24 @@ const handleShutdown = async (signal: string): Promise<void> => {
   shuttingDown = true
   console.info(JSON.stringify({ event: "server.shutdown", signal }))
 
-  server.stop(true)
-  await sql.close({ timeout: 5 })
-  process.exit(0)
+  let exitCode = 0
+
+  try {
+    server.stop(true)
+    await sql.close({ timeout: 10 })
+  } catch (error: unknown) {
+    exitCode = 1
+    const message = error instanceof Error ? error.message : String(error)
+    console.error(
+      JSON.stringify({
+        event: "server.shutdown.error",
+        signal,
+        error: message,
+      }),
+    )
+  } finally {
+    process.exit(exitCode)
+  }
 }
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

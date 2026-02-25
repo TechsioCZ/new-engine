@@ -11,7 +11,7 @@ docker compose run --rm --build zane-operator-bootstrap
 
 if [ "${1:-}" = "--verify-idempotent" ]; then
   echo "Running zane-operator bootstrap second time to verify idempotency..."
-  docker compose run --rm --build -e BOOTSTRAP_VERIFY_IDEMPOTENT=1 zane-operator-bootstrap
+  docker compose run --rm -e BOOTSTRAP_VERIFY_IDEMPOTENT=1 zane-operator-bootstrap
 fi
 
 echo "Done."

@@ -3,9 +3,22 @@ import type {
   IAuthModuleService,
   IUserModuleService,
 } from "@medusajs/framework/types"
-import { Modules } from "@medusajs/framework/utils"
+import { MedusaError, Modules } from "@medusajs/framework/utils"
 
 const EMAIL_PASS_PROVIDER = "emailpass"
+
+function maskEmailForLog(email: string): string {
+  const [localPart = "", domain = ""] = email.split("@")
+  if (!localPart || !domain) {
+    return "<redacted>"
+  }
+
+  if (localPart.length <= 2) {
+    return `**@${domain}`
+  }
+
+  return `${localPart[0]}***${localPart[localPart.length - 1]}@${domain}`
+}
 
 export default async function createInitialSuperadmin({
   container,
@@ -55,13 +68,17 @@ export default async function createInitialSuperadmin({
     })
 
     if (registration.error || !registration.success) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Failed to register superadmin auth identity: ${registration.error ?? "unknown error"}`
       )
     }
 
     if (!registration.authIdentity) {
-      throw new Error("Failed to register superadmin auth identity.")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Failed to register superadmin auth identity."
+      )
     }
 
     authIdentity = registration.authIdentity
@@ -82,5 +99,5 @@ export default async function createInitialSuperadmin({
     })
   }
 
-  console.log(`Superadmin is ready: ${email}`)
+  console.log(`Superadmin is ready: ${maskEmailForLog(email)}`)
 }

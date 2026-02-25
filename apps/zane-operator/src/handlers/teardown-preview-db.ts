@@ -26,7 +26,7 @@ export async function handleTeardownPreviewDb(
         dev_grants_cleaned: result.devGrantsCleaned,
         noop: result.noop,
         noop_reason: result.noopReason,
-        terminated_connections: result.terminatedConnections,
+        active_connections_at_drop: result.activeConnectionsAtDrop,
       }),
     )
 

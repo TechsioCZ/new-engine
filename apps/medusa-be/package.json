@@ -35,8 +35,8 @@
     "seedDefaultData": "medusa exec ./src/scripts/seed-products-from-db.ts",
     "seedDefaultDataTs": "medusa exec ./src/scripts/seed-products-from-db.ts",
     "addInitialSearchDocuments": "medusa exec ./src/scripts/search-index.ts",
-    "setInitialPublishableKey": "bash -c 'PUBLISHABLE_KEY_TITLE=\"${INITIAL_PUBLISHABLE_KEY_NAME:-Storefront Publishable Key}\"; if [ -f ./src/scripts/output-publishable-key.ts ]; then medusa exec ./src/scripts/output-publishable-key.ts \"$PUBLISHABLE_KEY_TITLE\"; else medusa exec ./src/scripts/output-publishable-key.js \"$PUBLISHABLE_KEY_TITLE\"; fi | grep -o \"<PK_TOKEN>.*</PK_TOKEN>\" | sed \"s/<PK_TOKEN>//g;s/<\\\\/PK_TOKEN>//g\" | tr -d \"\\n\\r\"'",
-    "setInitialPublishableKeyZerops": "bash -c \"npm run -s setInitialPublishableKey | tr -d '\\n\\r' | zsc setSecretEnv CHANNEL_PUBLISHABLE_KEY\""
+    "setInitialPublishableKey": "bash -euo pipefail -c 'PUBLISHABLE_KEY_TITLE=\"${INITIAL_PUBLISHABLE_KEY_NAME:-Storefront Publishable Key}\"; if [ -f ./src/scripts/output-publishable-key.ts ]; then medusa exec ./src/scripts/output-publishable-key.ts \"$PUBLISHABLE_KEY_TITLE\"; else medusa exec ./src/scripts/output-publishable-key.js \"$PUBLISHABLE_KEY_TITLE\"; fi | grep -o \"<PK_TOKEN>.*</PK_TOKEN>\" | sed \"s/<PK_TOKEN>//g;s/<\\\\/PK_TOKEN>//g\" | tr -d \"\\n\\r\"'",
+    "setInitialPublishableKeyZerops": "bash -euo pipefail -c \"npm run -s setInitialPublishableKey | tr -d '\\n\\r' | zsc setSecretEnv CHANNEL_PUBLISHABLE_KEY\""
   },
   "dependencies": {
     "@badgateway/oauth2-client": "^3.3.1",
