@@ -7,7 +7,6 @@ import {
   BLOG_POSTS,
   HERO_BANNERS,
   PURPOSE_CATEGORIES,
-  REVIEWS,
 } from "@/components/homepage/homepage.data";
 import { useHomepageController } from "@/components/homepage/use-homepage-controller";
 import { HomepageBenefitsSection } from "@/components/homepage/sections/homepage-benefits-section";
@@ -63,7 +62,7 @@ export function HerbatikaHomepage() {
         />
       ))}
 
-      <HomepageReviewsSection reviews={REVIEWS} />
+      <HomepageReviewsSection />
 
       {controller.trailingSections.map((section) => (
         <HomepageProductCollectionSection

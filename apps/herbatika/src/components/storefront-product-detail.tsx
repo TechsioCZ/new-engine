@@ -20,7 +20,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
   const controller = useProductDetailController({ handle });
 
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-600 lg:px-550">
+    <main className="mx-auto font-rubik flex w-full max-w-max-w flex-col gap-600 px-400 py-600 lg:px-550">
       <Breadcrumb items={controller.breadcrumbItems} linkAs={NextLink} />
 
       {controller.isBootstrappingRegion || controller.productQuery.isLoading ? (
@@ -92,11 +92,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
             ) : null}
           </ProductDetailHero>
 
-          <ProductDetailMetrics
-            offerState={controller.offerState}
-            productCategoriesCount={controller.productCategories.length}
-            variantsCount={controller.variants.length}
-          />
+          <ProductDetailMetrics />
 
           <ProductDetailTabs
             defaultSectionValue={controller.defaultInfoSectionValue}
