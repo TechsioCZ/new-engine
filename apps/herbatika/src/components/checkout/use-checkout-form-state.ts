@@ -21,8 +21,12 @@ export function useCheckoutFormState({
     DEFAULT_ADDRESS_FORM,
   );
   const [isAddressInitialized, setIsAddressInitialized] = useState(false);
+  const [isCompanyPurchase, setIsCompanyPurchase] = useState(true);
+  const [hasDifferentShippingAddress, setHasDifferentShippingAddress] = useState(false);
+  const [hasCustomerSupportNote, setHasCustomerSupportNote] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [heurekaConsent, setHeurekaConsent] = useState(false);
   const [createAccountConsent, setCreateAccountConsent] = useState(false);
-  const [acceptTermsConsent, setAcceptTermsConsent] = useState(false);
 
   useEffect(() => {
     if (isAddressInitialized || isCartLoading) {
@@ -40,6 +44,9 @@ export function useCheckoutFormState({
       lastName: baseAddress?.last_name ?? customer?.last_name ?? previous.lastName,
       phone: baseAddress?.phone ?? previous.phone,
       company: baseAddress?.company ?? previous.company,
+      companyId: previous.companyId,
+      taxId: previous.taxId,
+      vatId: previous.vatId,
       address1: baseAddress?.address_1 ?? previous.address1,
       address2: baseAddress?.address_2 ?? previous.address2,
       city: baseAddress?.city ?? previous.city,
@@ -49,7 +56,9 @@ export function useCheckoutFormState({
         regionCountryCode ??
         previous.countryCode
       ).toUpperCase(),
+      customerNote: previous.customerNote,
     }));
+    setIsCompanyPurchase(Boolean(baseAddress?.company) || isCompanyPurchase);
     setIsAddressInitialized(true);
   }, [
     cart,
@@ -58,6 +67,7 @@ export function useCheckoutFormState({
     customer?.last_name,
     isAddressInitialized,
     isCartLoading,
+    isCompanyPurchase,
     regionCountryCode,
   ]);
 
@@ -72,11 +82,19 @@ export function useCheckoutFormState({
   };
 
   return {
-    acceptTermsConsent,
     addressForm,
     createAccountConsent,
-    setAcceptTermsConsent,
+    hasCustomerSupportNote,
+    hasDifferentShippingAddress,
+    heurekaConsent,
+    isCompanyPurchase,
+    marketingConsent,
     setCreateAccountConsent,
+    setHasCustomerSupportNote,
+    setHasDifferentShippingAddress,
+    setHeurekaConsent,
+    setIsCompanyPurchase,
+    setMarketingConsent,
     updateAddressField,
   };
 }

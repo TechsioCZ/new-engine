@@ -72,13 +72,13 @@ export function useCheckoutController() {
   });
 
   const actions = useCheckoutActions({
-    acceptTermsConsent: formState.acceptTermsConsent,
     addressForm: formState.addressForm,
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
     completeCart: completeCartMutation.mutateAsync,
     hasPaymentSessions: checkoutPaymentQuery.hasPaymentSessions,
     initiatePayment: checkoutPaymentQuery.initiatePaymentAsync,
+    isCompanyPurchase: formState.isCompanyPurchase,
     itemCount: cartQuery.itemCount,
     saveAddress: updateCartAddressMutation.mutateAsync,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
@@ -90,11 +90,12 @@ export function useCheckoutController() {
   }, [cartQuery.cart?.currency_code]);
 
   const cartItems = cartQuery.cart?.items ?? [];
+  const hasItems = cartQuery.itemCount > 0 || cartItems.length > 0;
   const hasStoredAddress = resolveHasStoredAddress(cartQuery.cart);
   const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId);
   const hasPayment = checkoutPaymentQuery.hasPaymentSessions;
   const checkoutStepIndex = resolveCheckoutStepIndex({
-    hasItems: cartItems.length > 0,
+    hasItems,
     hasStoredAddress,
     hasShipping,
     hasPayment,
@@ -146,7 +147,7 @@ export function useCheckoutController() {
     checkoutStepIndex,
     completeCartMutation,
     currencyCode,
-    hasItems: cartItems.length > 0,
+    hasItems,
     hasPayment,
     hasShipping,
     hasStoredAddress,
@@ -156,8 +157,7 @@ export function useCheckoutController() {
     canCompleteOrder:
       !isBusy &&
       Boolean(checkoutShippingQuery.selectedShippingMethodId) &&
-      checkoutPaymentQuery.hasPaymentSessions &&
-      formState.acceptTermsConsent,
+      checkoutPaymentQuery.hasPaymentSessions,
     checkoutSteps: CHECKOUT_STEPS,
   };
 }

@@ -38,9 +38,9 @@ type AddressMutationInput = {
 };
 
 type UseCheckoutActionsProps = {
-  acceptTermsConsent: boolean;
   addressForm: AddressFormState;
   cartId?: string;
+  isCompanyPurchase: boolean;
   hasPaymentSessions: boolean;
   itemCount: number;
   canInitiatePayment: boolean;
@@ -52,9 +52,9 @@ type UseCheckoutActionsProps = {
 };
 
 export function useCheckoutActions({
-  acceptTermsConsent,
   addressForm,
   cartId,
+  isCompanyPurchase,
   canInitiatePayment,
   completeCart,
   hasPaymentSessions,
@@ -83,7 +83,10 @@ export function useCheckoutActions({
       return;
     }
 
-    const missingFieldsMessage = buildMissingFieldMessage(addressForm);
+    const missingFieldsMessage = buildMissingFieldMessage(
+      addressForm,
+      isCompanyPurchase,
+    );
     if (missingFieldsMessage) {
       setCheckoutError(missingFieldsMessage);
       return;
@@ -162,13 +165,6 @@ export function useCheckoutActions({
 
     if (!hasPaymentSessions) {
       setCheckoutError("Vyberte platobnú metódu pred dokončením objednávky.");
-      return;
-    }
-
-    if (!acceptTermsConsent) {
-      setCheckoutError(
-        "Pred dokončením objednávky potvrďte súhlas s obchodnými podmienkami.",
-      );
       return;
     }
 

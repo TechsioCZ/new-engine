@@ -10,7 +10,7 @@ export function CheckoutCompletedOrderSection({
   completedOrderId,
 }: CheckoutCompletedOrderSectionProps) {
   return (
-    <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
+    <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-350">
       <h2 className="text-xl font-semibold text-fg-primary">Objednávka dokončená</h2>
       <StatusText showIcon status="success">
         {`Objednávka bola vytvorená (${completedOrderId}).`}

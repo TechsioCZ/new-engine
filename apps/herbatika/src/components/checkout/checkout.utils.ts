@@ -56,7 +56,10 @@ export const resolveCompleteCartFailure = (result: unknown) => {
   return null;
 };
 
-export const buildMissingFieldMessage = (form: AddressFormState) => {
+export const buildMissingFieldMessage = (
+  form: AddressFormState,
+  isCompanyPurchase: boolean,
+) => {
   const missing: string[] = [];
 
   if (!form.email.trim()) {
@@ -67,6 +70,9 @@ export const buildMissingFieldMessage = (form: AddressFormState) => {
   }
   if (!form.lastName.trim()) {
     missing.push("priezvisko");
+  }
+  if (!form.phone.trim()) {
+    missing.push("telefón");
   }
   if (!form.address1.trim()) {
     missing.push("ulica");
@@ -79,6 +85,17 @@ export const buildMissingFieldMessage = (form: AddressFormState) => {
   }
   if (!form.countryCode.trim()) {
     missing.push("krajina");
+  }
+  if (isCompanyPurchase) {
+    if (!form.company.trim()) {
+      missing.push("názov firmy");
+    }
+    if (!form.companyId.trim()) {
+      missing.push("IČO");
+    }
+    if (!form.taxId.trim()) {
+      missing.push("DIČ");
+    }
   }
 
   if (missing.length === 0) {
@@ -137,16 +154,12 @@ export const resolveCheckoutStepIndex = (params: {
     return 0;
   }
 
-  if (!params.hasStoredAddress) {
+  if (!params.hasShipping || !params.hasPayment) {
     return 1;
   }
 
-  if (!params.hasShipping) {
+  if (!params.hasStoredAddress) {
     return 2;
-  }
-
-  if (!params.hasPayment) {
-    return 3;
   }
 
   return CHECKOUT_STEPS.length - 1;

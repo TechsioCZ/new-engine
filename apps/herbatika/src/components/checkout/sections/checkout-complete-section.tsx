@@ -1,60 +1,190 @@
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
+import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
+import NextLink from "next/link";
+import type { AddressFormState } from "@/components/checkout/checkout.constants";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
 type CheckoutCompleteSectionProps = {
-  acceptTermsConsent: boolean;
+  addressForm: AddressFormState;
   canCompleteOrder: boolean;
+  cartTotalAmount: number;
+  currencyCode: string;
+  detailsStepHref: string;
   hasPayment: boolean;
   hasShipping: boolean;
   hasStoredAddress: boolean;
+  heurekaConsent: boolean;
   isCompletingOrder: boolean;
+  marketingConsent: boolean;
+  onHeurekaConsentChange: (value: boolean) => void;
+  onMarketingConsentChange: (value: boolean) => void;
   onCompleteOrder: () => Promise<void>;
+  paymentLabel?: string;
+  shippingLabel?: string;
+  shippingStepHref: string;
+};
+
+const resolveAddressRows = (form: AddressFormState) => {
+  return [
+    { label: "Meno", value: form.firstName },
+    { label: "Priezvisko", value: form.lastName },
+    { label: "Názov firmy", value: form.company },
+    { label: "IČO", value: form.companyId },
+    { label: "DIČ", value: form.taxId },
+    { label: "IČ DPH", value: form.vatId },
+    { label: "E-mail", value: form.email },
+    { label: "Telefón", value: form.phone },
+    { label: "Krajina", value: form.countryCode },
+    { label: "Mesto", value: form.city },
+    { label: "PSČ", value: form.postalCode },
+    { label: "Ulica a číslo domu", value: form.address1 },
+  ];
+};
+
+const resolveValue = (value: string) => {
+  return value.trim().length > 0 ? value : "—";
 };
 
 export function CheckoutCompleteSection({
-  acceptTermsConsent,
+  addressForm,
   canCompleteOrder,
+  cartTotalAmount,
+  currencyCode,
+  detailsStepHref,
   hasPayment,
   hasShipping,
   hasStoredAddress,
+  heurekaConsent,
   isCompletingOrder,
+  marketingConsent,
+  onHeurekaConsentChange,
+  onMarketingConsentChange,
   onCompleteOrder,
+  paymentLabel,
+  shippingLabel,
+  shippingStepHref,
 }: CheckoutCompleteSectionProps) {
+  const taxBaseAmount = Math.round(cartTotalAmount / 1.2);
+  const addressRows = resolveAddressRows(addressForm);
+
   return (
-    <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
-      <h2 className="text-lg font-semibold text-fg-primary">4. Súhrn a dokončenie</h2>
-      <div className="grid gap-200 sm:grid-cols-2">
-        <StatusText showIcon size="sm" status={hasStoredAddress ? "success" : "warning"}>
-          {hasStoredAddress ? "Údaje sú uložené." : "Najprv uložte údaje."}
-        </StatusText>
-        <StatusText showIcon size="sm" status={hasShipping ? "success" : "warning"}>
-          {hasShipping ? "Doprava je vybraná." : "Vyberte dopravu."}
-        </StatusText>
-        <StatusText showIcon size="sm" status={hasPayment ? "success" : "warning"}>
-          {hasPayment ? "Platba je pripravená." : "Vyberte platbu."}
-        </StatusText>
-        <StatusText
-          showIcon
-          size="sm"
-          status={acceptTermsConsent ? "success" : "warning"}
-        >
-          {acceptTermsConsent
-            ? "Súhlas s podmienkami potvrdený."
-            : "Potvrďte obchodné podmienky."}
-        </StatusText>
+    <section className="space-y-300">
+      <h2 className="text-xl font-medium text-fg-primary">Súhrn objednávky</h2>
+
+      <div className="checkout-card space-y-250 p-550">
+        <div className="flex items-start justify-between gap-200 border-b border-border-secondary pb-250">
+          <p className="text-sm text-fg-primary">Spolu s DPH</p>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-fg-primary">
+              {formatCurrencyAmount(cartTotalAmount, currencyCode)}
+            </p>
+            <ExtraText className="text-fg-secondary">
+              {`bez DPH: ${formatCurrencyAmount(taxBaseAmount, currencyCode)}`}
+            </ExtraText>
+          </div>
+        </div>
+
+        <div className="space-y-150">
+          <FormCheckbox
+            checked={marketingConsent}
+            label="Súhlasím so zasielaním marketingových informácií"
+            onCheckedChange={onMarketingConsentChange}
+            size="sm"
+          />
+          <FormCheckbox
+            checked={heurekaConsent}
+            label="Súhlasím so zaslaním dotazníka spokojnosti Heureka"
+            onCheckedChange={onHeurekaConsentChange}
+            size="sm"
+          />
+        </div>
+
+        <div className="space-y-150">
+          <Button
+            block
+            icon="token-icon-chevron-right"
+            iconPosition="right"
+            isLoading={isCompletingOrder}
+            onClick={() => {
+              void onCompleteOrder();
+            }}
+            type="button"
+            variant="primary"
+          >
+            Dokončiť objednávku
+          </Button>
+          <ExtraText className="text-fg-secondary">
+            Potvrdzujem, že som sa oboznámil s obchodnými podmienkami a ochranou osobných údajov.
+          </ExtraText>
+        </div>
       </div>
-      <Button
-        block
-        disabled={!canCompleteOrder}
-        isLoading={isCompletingOrder}
-        onClick={() => {
-          void onCompleteOrder();
-        }}
-        type="button"
-        variant="primary"
-      >
-        Dokončiť objednávku
-      </Button>
+
+      <div className="space-y-150 rounded-sm border border-border-primary bg-surface p-250">
+        <div className="flex items-center justify-between gap-200">
+          <p className="text-sm font-medium text-fg-primary">Doprava</p>
+          <LinkButton
+            as={NextLink}
+            className="px-0 text-sm underline"
+            href={shippingStepHref}
+            size="sm"
+            theme="unstyled"
+          >
+            Upraviť
+          </LinkButton>
+        </div>
+        <ExtraText className={hasShipping ? "text-fg-primary" : "text-warning"}>
+          {hasShipping ? shippingLabel ?? "Zvolená doprava" : "Doprava nie je vybraná"}
+        </ExtraText>
+      </div>
+
+      <div className="space-y-150 rounded-sm border border-border-primary bg-surface p-250">
+        <div className="flex items-center justify-between gap-200">
+          <p className="text-sm font-medium text-fg-primary">Platba</p>
+          <LinkButton
+            as={NextLink}
+            className="px-0 text-sm underline"
+            href={shippingStepHref}
+            size="sm"
+            theme="unstyled"
+          >
+            Upraviť
+          </LinkButton>
+        </div>
+        <ExtraText className={hasPayment ? "text-fg-primary" : "text-warning"}>
+          {hasPayment ? paymentLabel ?? "Zvolená platba" : "Platba nie je vybraná"}
+        </ExtraText>
+      </div>
+
+      <div className="space-y-200 rounded-sm border border-border-primary bg-surface p-250">
+        <div className="flex items-center justify-between gap-200">
+          <p className="text-sm font-medium text-fg-primary">Vaše údaje</p>
+          <LinkButton
+            as={NextLink}
+            className="px-0 text-sm underline"
+            href={detailsStepHref}
+            size="sm"
+            theme="unstyled"
+          >
+            Upraviť
+          </LinkButton>
+        </div>
+        <div className="grid gap-150 sm:grid-cols-2">
+          {addressRows.map((row) => (
+            <div className="space-y-50" key={row.label}>
+              <ExtraText className="text-fg-secondary">{row.label}</ExtraText>
+              <p className="text-sm text-fg-primary">{resolveValue(row.value)}</p>
+            </div>
+          ))}
+        </div>
+        {!hasStoredAddress ? (
+          <ExtraText className="text-warning">
+            Niektoré povinné údaje ešte nie sú uložené.
+          </ExtraText>
+        ) : null}
+      </div>
+
     </section>
   );
 }

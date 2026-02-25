@@ -4,7 +4,7 @@ import NextLink from "next/link";
 
 export function CheckoutEmptyCartSection() {
   return (
-    <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-400">
+    <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-350">
       <h2 className="text-xl font-semibold text-fg-primary">Košík je prázdny</h2>
       <ExtraText>Pred checkoutom pridajte aspoň jeden produkt.</ExtraText>
       <div className="flex flex-wrap gap-200">
