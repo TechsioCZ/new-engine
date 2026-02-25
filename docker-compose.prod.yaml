@@ -5,7 +5,9 @@ services:
       target: prod
       args:
         FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
-    volumes: []  # No volume mounts in prod
+    environment:
+      NODE_ENV: production
+    volumes: !reset []  # Remove inherited dev bind mounts in prod
   n1:
     build:
       target: prod
@@ -21,4 +23,4 @@ services:
         NEXT_PUBLIC_HEUREKA_API_KEY: ${DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY:-}
     environment:
       NODE_ENV: production
-    volumes: []  # No volume mounts in prod
+    volumes: !reset []  # Remove inherited dev bind mounts in prod

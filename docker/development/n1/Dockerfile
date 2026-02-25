@@ -16,6 +16,10 @@ WORKDIR /var/www
 FROM base AS dev
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
+WORKDIR /tmp/corepack
+COPY package.json /tmp/corepack/package.json
+RUN corepack install && rm -rf /tmp/corepack
+WORKDIR /var/www
 CMD ["sh", "-lc", "\
   [ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
   [ -f libs/ui/dist/utils.js ] || pnpm --filter=@techsio/ui-kit build; \
@@ -28,8 +32,20 @@ CMD ["sh", "-lc", "\
 # ============================================
 FROM base AS build
 
+# Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
+    corepack install && \
+    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+
 COPY . .
 RUN mkdir -p apps/n1/public
+
+RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
+    pnpm --filter=@techsio/ui-kit build && \
+    pnpm --filter=@techsio/analytics build
+
 ARG NEXT_PUBLIC_MEDUSA_BACKEND_URL
 ARG NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_SITE_URL
@@ -49,11 +65,10 @@ ENV NEXT_PUBLIC_GOOGLE_ADS_ID=${NEXT_PUBLIC_GOOGLE_ADS_ID}
 ENV NEXT_PUBLIC_LEADHUB_TRACKING_ID=${NEXT_PUBLIC_LEADHUB_TRACKING_ID}
 ENV NEXT_PUBLIC_HEUREKA_API_KEY=${NEXT_PUBLIC_HEUREKA_API_KEY}
 
-# Install dependencies and create standalone production build
-RUN pnpm install --frozen-lockfile --filter=n1... && \
-    pnpm --filter=@techsio/ui-kit build && \
-    pnpm --filter=@techsio/analytics build && \
-    pnpm install --frozen-lockfile --prefer-offline --filter=n1... && \
+# Keep this second install: with inject-workspace-packages=true, N1 needs a relink
+# after building @techsio/* dist outputs or Next build can resolve stale package state.
+RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
     pnpm --filter=n1 exec next typegen && \
     pnpm --filter=n1 build && \
     test -f apps/n1/.next/BUILD_ID
