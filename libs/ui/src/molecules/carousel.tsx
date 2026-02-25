@@ -1,6 +1,7 @@
 import * as carousel from "@zag-js/carousel"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import {
+  type CSSProperties,
   type ComponentPropsWithoutRef,
   createContext,
   type ElementType,
@@ -37,11 +38,13 @@ const carouselVariants = tv({
       "overflow-hidden",
       "scrollbar-hide",
       "data-dragging:cursor-grabbing",
+      "data-[orientation=vertical]:h-full",
     ],
     slide: [
       "relative shrink-0",
       "flex items-center justify-center",
       "overflow-hidden",
+      "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-full",
     ],
     prevTrigger: "",
     nextTrigger: "",
@@ -111,18 +114,23 @@ const carouselVariants = tv({
     },
     aspectRatio: {
       square: {
-        slide: "aspect-square",
+        slideGroup: "data-[orientation=vertical]:aspect-square",
+        slide: "data-[orientation=horizontal]:aspect-square",
       },
       landscape: {
-        slide: "aspect-video",
+        slideGroup: "data-[orientation=vertical]:aspect-video",
+        slide: "data-[orientation=horizontal]:aspect-video",
       },
       portrait: {
-        slide: "aspect-portrait",
+        slideGroup: "data-[orientation=vertical]:aspect-portrait",
+        slide: "data-[orientation=horizontal]:aspect-portrait",
       },
       wide: {
-        slide: "aspect-wide",
+        slideGroup: "data-[orientation=vertical]:aspect-wide",
+        slide: "data-[orientation=horizontal]:aspect-wide",
       },
       none: {
+        slideGroup: "",
         slide: "",
       },
     },
@@ -198,6 +206,8 @@ export type CarouselSlide = {
   imageProps?: Record<string, unknown>
 }
 
+type CarouselDimension = CSSProperties["width"]
+
 export interface CarouselRootProps<T extends ElementType = typeof Image>
   extends Omit<VariantProps<typeof carouselVariants>, "controlPosition">,
     Omit<carousel.Props, "id" | "size"> {
@@ -205,16 +215,14 @@ export interface CarouselRootProps<T extends ElementType = typeof Image>
   className?: string
   children: ReactNode
   imageAs?: CarouselImageComponent<T>
-  width?: number
-  height?: number
+  width?: CarouselDimension
+  height?: CarouselDimension
 }
 
 interface CarouselSlidesProps {
   slides: CarouselSlide[]
   size?: "sm" | "md" | "lg" | "full"
   imageAs?: ElementType
-  width?: number
-  height?: number
   className?: string
 }
 
@@ -276,6 +284,8 @@ export function Carousel<T extends ElementType = typeof Image>({
   /* Others */
   className,
   children,
+  width,
+  height,
   onPageChange,
   ...props
 }: CarouselRootProps<T>) {
@@ -299,11 +309,25 @@ export function Carousel<T extends ElementType = typeof Image>({
 
   const api = carousel.connect(service, normalizeProps)
   const { wrapper, root } = carouselVariants({ size, objectFit, aspectRatio })
+  const rootProps = api.getRootProps()
+  const resolvedRootStyle = {
+    ...(rootProps.style as CSSProperties),
+    ...(width !== undefined ? { width } : {}),
+    ...(height !== undefined ? { height } : {}),
+  }
+  const resolvedWrapperStyle = {
+    ...(size === "full" ? { width: "100%" } : {}),
+    ...(width !== undefined ? { width } : {}),
+  }
 
   return (
     <CarouselContext.Provider value={{ api, size, objectFit, aspectRatio }}>
-      <div className={wrapper()}>
-        <div className={root({ className })} {...api.getRootProps()}>
+      <div className={wrapper()} style={resolvedWrapperStyle}>
+        <div
+          {...rootProps}
+          className={root({ className })}
+          style={resolvedRootStyle}
+        >
           {children}
         </div>
       </div>
@@ -315,8 +339,6 @@ Carousel.Slides = function CarouselSlides({
   slides,
   size: overrideSize,
   imageAs,
-  width,
-  height,
   className,
 }: CarouselSlidesProps) {
   const {
@@ -331,21 +353,29 @@ Carousel.Slides = function CarouselSlides({
     objectFit,
     aspectRatio,
   })
-  const ImageComponent = (imageAs || Image) as ElementType
+  const hasCustomImageComponent = imageAs && imageAs !== Image
+  const CustomImageComponent = hasCustomImageComponent
+    ? (imageAs as ElementType)
+    : Image
 
   return (
     <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
       {slides.map((slide, index) => (
         <Carousel.Slide index={index} key={slide.id}>
           {slide.content || (
-            <ImageComponent
-              alt={slide.alt || ""}
-              as={imageAs === Image ? undefined : imageAs}
-              height={height}
-              src={slide.src || ""}
-              width={width}
-              {...slide.imageProps}
-            />
+            hasCustomImageComponent ? (
+              <CustomImageComponent
+                alt={slide.alt || ""}
+                src={slide.src || ""}
+                {...slide.imageProps}
+              />
+            ) : (
+              <Image
+                alt={slide.alt || ""}
+                src={slide.src || ""}
+                {...slide.imageProps}
+              />
+            )
           )}
         </Carousel.Slide>
       ))}
@@ -371,9 +401,10 @@ Carousel.Slide = function CarouselSlide({
     objectFit,
     aspectRatio,
   })
+  const itemProps = api.getItemProps({ index })
 
   return (
-    <div className={slideSlot({ className })} {...api.getItemProps({ index })}>
+    <div {...itemProps} className={slideSlot({ className })}>
       {children}
     </div>
   )
