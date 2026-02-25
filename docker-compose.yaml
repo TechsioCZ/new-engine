@@ -20,7 +20,11 @@ x-medusa-env: &medusa-env
   SENTRY_DSN: ${DC_SENTRY_DSN}
   SETTINGS_ENCRYPTION_KEY: ${DC_SETTINGS_ENCRYPTION_KEY}
   FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
+  FEATURE_COMPANY_ENABLED: ${DC_FEATURE_COMPANY_ENABLED:-0}
   PPL_ENVIRONMENT: ${DC_PPL_ENVIRONMENT:-testing}
+  ARES_BASE_URL: ${DC_ARES_BASE_URL:-https://ares.gov.cz/ekonomicke-subjekty-v-be/rest}
+  VIES_BASE_URL: ${DC_VIES_BASE_URL:-https://ec.europa.eu/taxation_customs/vies/rest-api}
+  MOJE_DANE_WSDL_URL: ${DC_MOJE_DANE_WSDL_URL:-https://adisrws.mfcr.cz/dpr/axis2/services/rozhraniCRPDPH.rozhraniCRPDPHSOAP}
 
 x-medusa-base: &medusa-base
   restart: unless-stopped

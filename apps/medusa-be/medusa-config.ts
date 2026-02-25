@@ -6,6 +6,7 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
+const FEATURE_COMPANY_ENABLED = process.env.FEATURE_COMPANY_ENABLED === "1"
 
 module.exports = defineConfig({
   featureFlags: {
@@ -124,6 +125,15 @@ module.exports = defineConfig({
       resolve: "./src/modules/producer",
     },
     {
+      resolve: "./src/modules/company",
+    },
+    {
+      resolve: "./src/modules/quote",
+    },
+    {
+      resolve: "./src/modules/approval",
+    },
+    {
       resolve: "@medusajs/event-bus-redis",
       key: Modules.EVENT_BUS,
       options: {
@@ -181,6 +191,13 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/database",
     },
+    ...(FEATURE_COMPANY_ENABLED
+      ? [
+          {
+            resolve: "./src/modules/company-check",
+          },
+        ]
+      : []),
     // PPL Client Module - config stored in DB, managed via Settings → PPL
     ...(FEATURE_PPL_ENABLED
       ? [

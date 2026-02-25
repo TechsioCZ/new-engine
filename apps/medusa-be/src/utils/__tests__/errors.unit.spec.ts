@@ -1,8 +1,11 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import {
   type ErrorWithOriginalThrowable,
+  isMedusaErrorType,
+  isMedusaInvalidData404Error,
   normalizeError,
   shouldCaptureException,
+  withMedusaStatusCode,
 } from "../errors"
 
 describe("normalizeError", () => {
@@ -113,5 +116,32 @@ describe("shouldCaptureException", () => {
     it("returns true for plain Error instances without status", () => {
       expect(shouldCaptureException(new Error("test"))).toBe(true)
     })
+  })
+})
+
+describe("isMedusaErrorType", () => {
+  it("matches MedusaError by type", () => {
+    const error = new MedusaError(MedusaError.Types.INVALID_DATA, "Invalid")
+    expect(isMedusaErrorType(error, MedusaError.Types.INVALID_DATA)).toBe(true)
+  })
+})
+
+describe("isMedusaInvalidData404Error", () => {
+  it("matches INVALID_DATA errors with statusCode 404", () => {
+    const error = withMedusaStatusCode(
+      new MedusaError(MedusaError.Types.INVALID_DATA, "Not found"),
+      404
+    )
+    expect(isMedusaInvalidData404Error(error)).toBe(true)
+  })
+
+  it("matches NOT_FOUND MedusaError", () => {
+    const error = new MedusaError(MedusaError.Types.NOT_FOUND, "Not found")
+    expect(isMedusaInvalidData404Error(error)).toBe(true)
+  })
+
+  it("does not match INVALID_DATA without statusCode 404", () => {
+    const error = new MedusaError(MedusaError.Types.INVALID_DATA, "Invalid")
+    expect(isMedusaInvalidData404Error(error)).toBe(false)
   })
 })
