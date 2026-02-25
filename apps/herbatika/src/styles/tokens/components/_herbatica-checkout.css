@@ -1,0 +1,101 @@
+@theme static {
+  --layout-checkout-main-max-w: 76.75rem; /* 1228px */
+  --layout-checkout-stepper-max-w: 42.625rem; /* 682px */
+  --layout-checkout-content-gap: 2.5rem; /* 40px */
+  --layout-checkout-col-main: 45.25rem; /* 724px */
+  --layout-checkout-col-aside: 26.5rem; /* 424px */
+  --layout-checkout-summary-thumb-size: 5rem; /* 80px */
+  --layout-checkout-action-back-min-w: 13.125rem; /* 210px */
+  --layout-checkout-action-next-min-w: 18.5rem; /* 296px */
+}
+
+.checkout-main {
+  max-width: var(--layout-checkout-main-max-w);
+}
+
+.checkout-stepper-shell {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.checkout-stepper-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: var(--layout-checkout-stepper-max-w);
+  min-height: 5rem;
+  padding-inline: var(--spacing-400);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+}
+
+.checkout-stepper-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-100);
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.checkout-stepper-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-150);
+  white-space: nowrap;
+}
+
+.checkout-stepper-separator {
+  color: var(--color-fg-placeholder);
+}
+
+.checkout-step-grid {
+  display: grid;
+  gap: var(--layout-checkout-content-gap);
+}
+
+.checkout-card {
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.checkout-summary-thumb {
+  width: var(--layout-checkout-summary-thumb-size);
+  height: var(--layout-checkout-summary-thumb-size);
+}
+
+.checkout-step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-200);
+}
+
+.checkout-step-action-back {
+  min-width: var(--layout-checkout-action-back-min-w);
+  justify-content: center;
+}
+
+.checkout-step-action-next {
+  min-width: var(--layout-checkout-action-next-min-w);
+  justify-content: center;
+}
+
+@media (min-width: 80rem) {
+  .checkout-step-grid {
+    grid-template-columns: minmax(0, var(--layout-checkout-col-main)) minmax(0, var(--layout-checkout-col-aside));
+    justify-content: space-between;
+    align-items: start;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  .checkout-step-actions > * {
+    width: 100%;
+  }
+}

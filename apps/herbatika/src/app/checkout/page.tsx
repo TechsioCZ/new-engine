@@ -1,5 +1,7 @@
-import { StorefrontCheckoutFlow } from "@/components/storefront-checkout-flow";
+import { redirect } from "next/navigation";
+import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants";
+import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils";
 
 export default function CheckoutPage() {
-  return <StorefrontCheckoutFlow />;
+  redirect(resolveCheckoutStepHref(DEFAULT_CHECKOUT_STEP_SLUG));
 }
