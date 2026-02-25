@@ -24,8 +24,40 @@ dev:
 	docker compose -f docker-compose.yaml -p new-engine up --force-recreate -d --build
 prod:
 	-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine down
-	-docker rmi new-engine-medusa-be-prod
+	-docker rmi new-engine-medusa-be new-engine-n1
+	# Build and start medusa-be first, then generate n1 categories against live Medusa API.
 	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine build --no-cache medusa-be
+	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine up -d medusa-be
+	@echo "Waiting for medusa-be to become healthy..."
+	@timeout=180; \
+	while [ $$timeout -gt 0 ]; do \
+		status=$$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}starting{{end}}' wr_medusa_be 2>/dev/null || echo "missing"); \
+		if [ "$$status" = "healthy" ]; then \
+			echo "medusa-be is healthy"; \
+			break; \
+		fi; \
+		if [ "$$status" = "unhealthy" ]; then \
+			echo "medusa-be is unhealthy"; \
+			docker logs --tail=120 wr_medusa_be; \
+			exit 1; \
+		fi; \
+		sleep 2; \
+		timeout=$$((timeout-2)); \
+	done; \
+	if [ $$timeout -le 0 ]; then \
+		echo "Timed out waiting for medusa-be health"; \
+		docker logs --tail=120 wr_medusa_be; \
+		exit 1; \
+	fi
+	docker compose -f docker-compose.yaml -p new-engine run --rm --no-deps \
+		-e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+		-e CI=1 \
+		-e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
+		n1 sh -lc "\
+			[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
+			pnpm --filter n1 run generate:categories \
+		"
+	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine build --no-cache n1
 	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine up -d
 down:
 	docker compose -f docker-compose.yaml -p new-engine down
@@ -54,6 +86,18 @@ medusa-seed-dev-data:
 	docker exec wr_medusa_be pnpm --filter medusa-be run seedDevData
 medusa-seed-n1:
 	docker exec wr_medusa_be pnpm --filter medusa-be run seedN1
+
+# Upgrade local postgres data from <18 cluster into PG18-compatible data dir.
+postgres18-migrate-local:
+	bash ./scripts/postgres18-local-migrate.sh
+
+# Verify migrated PG18 state against old cluster data without deleting old state.
+postgres18-verify:
+	bash ./scripts/postgres18-verify-and-finalize.sh --check-only
+
+# Verify migrated PG18 state and remove old cluster data + migration backups.
+postgres18-finalize:
+	bash ./scripts/postgres18-verify-and-finalize.sh --yes
 
 # Biome commands
 biome-be:

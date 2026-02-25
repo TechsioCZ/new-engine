@@ -69,3 +69,4 @@ static-data/
 .code
 
 plans/
+apps/n1/next-env.d.ts

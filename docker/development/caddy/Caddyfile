@@ -20,12 +20,12 @@ admin.medusa.localhost {
     redir https://{host}{uri}
 }
 
-front.medusa.localhost:443 {
-    reverse_proxy medusa-fe:8000
+n1.medusa.localhost:443 {
+    reverse_proxy n1:3000
     tls internal
 }
 
-front.medusa.localhost {
+n1.medusa.localhost {
     redir https://{host}{uri}
 }
 

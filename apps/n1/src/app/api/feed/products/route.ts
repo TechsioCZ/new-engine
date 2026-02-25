@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
+import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
 
-const MEDUSA_API_URL =
-  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ||
-  "https://medusa-13d1-9000.prg1.zerops.app"
+const MEDUSA_API_URL = getMedusaBackendUrl()
 const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 const BATCH_SIZE = 100
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"

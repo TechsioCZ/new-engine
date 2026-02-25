@@ -8,6 +8,7 @@
  * Test with: pnpm run test:categories
  */
 
+import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -15,10 +16,45 @@ import dotenv from "dotenv"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+// NOTE: DEFAULT_MEDUSA_BACKEND_URL and getMedusaBackendUrl() intentionally
+// duplicate apps/n1/src/lib/medusa-backend-url.ts because this .mjs script
+// cannot import TypeScript modules. If default URL or resolution logic changes,
+// update both copies together.
+const DEFAULT_MEDUSA_BACKEND_URL = "http://localhost:9000"
 
 // Load environment variables - try .env first, then .env.local
 dotenv.config({ path: path.join(__dirname, "../.env") })
 dotenv.config({ path: path.join(__dirname, "../.env.local") })
+
+function getMedusaBackendUrl() {
+  return (
+    process.env.MEDUSA_BACKEND_URL_INTERNAL ||
+    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ||
+    DEFAULT_MEDUSA_BACKEND_URL
+  )
+}
+
+function formatGeneratedFile(filePath) {
+  const cwd = path.join(__dirname, "..")
+
+  const formatCommands = [
+    ["pnpm", ["exec", "biome", "format", "--write", filePath]],
+    ["biome", ["format", "--write", filePath]],
+  ]
+
+  for (const [cmd, args] of formatCommands) {
+    try {
+      execFileSync(cmd, args, { stdio: "ignore", cwd })
+      return
+    } catch {
+      // Try next formatter command variant.
+    }
+  }
+
+  console.warn(
+    `⚠️ Could not auto-format generated file: ${filePath}. Run biome format manually.`
+  )
+}
 
 // ============================================================================
 // API FETCH FUNCTIONS
@@ -28,8 +64,7 @@ dotenv.config({ path: path.join(__dirname, "../.env.local") })
  * Fetch categories from Medusa API
  */
 async function fetchCategoriesDirectly() {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+  const baseUrl = getMedusaBackendUrl()
 
   const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
@@ -63,8 +98,7 @@ async function fetchCategoriesDirectly() {
  */
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: paging with nested category aggregation
 async function fetchProductsAndCategorizesByCategory() {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+  const baseUrl = getMedusaBackendUrl()
 
   const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
@@ -646,9 +680,9 @@ async function generateCategories() {
 // Run 'pnpm run generate:categories' to regenerate
 // This version filters out categories without products and adds root_category_id
 
-import type { Category, CategoryTreeNode } from '@/data/static/type'
+import type { Category, CategoryTreeNode } from "@/data/static/type"
 
-export interface LeafCategory {
+export type LeafCategory = {
   id: string
   name: string
   handle: string
@@ -656,7 +690,7 @@ export interface LeafCategory {
   root_category_id: string | null // NEW: ID of root category
 }
 
-export interface LeafParent {
+export type LeafParent = {
   id: string
   name: string
   handle: string
@@ -664,14 +698,14 @@ export interface LeafParent {
   leafs: string[] // Array of ALL nested leaf category IDs
 }
 
-export interface FilteringStats {
+export type FilteringStats = {
   totalCategoriesBeforeFiltering: number
   totalCategoriesAfterFiltering: number
   categoriesWithDirectProducts: number
   filteredOutCount: number
 }
 
-export interface StaticCategoryData {
+export type StaticCategoryData = {
   allCategories: Category[]
   categoryTree: CategoryTreeNode[]
   rootCategories: Category[]
@@ -689,6 +723,7 @@ export const { allCategories, categoryTree, rootCategories, categoryMap, leafCat
 `
 
     fs.writeFileSync(tsOutputPath, tsContent)
+    formatGeneratedFile(tsOutputPath)
 
     console.log(
       "\n✅ Category data with root_category_id generated successfully!"

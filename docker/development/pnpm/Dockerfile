@@ -6,5 +6,4 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN npm i -g corepack@latest
 
 RUN corepack enable
-RUN corepack install -g pnpm@10.26.0
 WORKDIR /var/www

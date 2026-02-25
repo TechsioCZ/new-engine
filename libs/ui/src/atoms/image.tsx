@@ -1,6 +1,6 @@
 import type { ComponentPropsWithoutRef, ElementType } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { tv } from "@/utils"
+import { tv } from "../utils"
 
 const imageVariants = tv({
   variants: {

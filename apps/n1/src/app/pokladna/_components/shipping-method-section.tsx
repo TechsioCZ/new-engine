@@ -1,7 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text"
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { ReactNode } from "react"
 import type { UseCheckoutShippingReturn } from "@/hooks/use-checkout-shipping"
 import type { ShippingMethodData } from "@/services/cart-service"
@@ -72,7 +71,7 @@ function ShippingOptionCard({
     >
       <div className="flex-1 text-left">
         <p className="font-medium text-fg-primary text-sm">{option.name}</p>
-        <ExtraText size="sm">Dodání 2-3 dny</ExtraText>
+        <StatusText size="sm">Dodání 2-3 dny</StatusText>
       </div>
       <span>{formattedPrice || "Zdarma"}</span>
     </Button>
@@ -116,10 +115,10 @@ export function ShippingMethodSection({
     )
   } else {
     content = (
-      <ErrorText showIcon size="md">
+      <StatusText showIcon size="md" status="error">
         Žádné způsoby dopravy nejsou momentálně k dispozici. Zkuste to prosím
         později.
-      </ErrorText>
+      </StatusText>
     )
   }
 

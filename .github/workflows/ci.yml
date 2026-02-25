@@ -38,6 +38,19 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v4
+      - name: Determine affected projects
+        id: determine_affected
+        run: |
+          base="${NX_BASE:-origin/master}"
+          head="${NX_HEAD:-HEAD}"
+          projects_json="$(pnpm exec nx show projects --affected --json --base="$base" --head="$head")"
+          projects="$(printf '%s' "$projects_json" | node -e 'let input = ""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const projects = input.trim() ? JSON.parse(input) : []; if (!Array.isArray(projects)) { throw new Error("Expected an array from nx show projects --json"); } process.stdout.write(projects.join(",")); });')"
+          echo "projects=${projects}" >> "$GITHUB_OUTPUT"
+          echo "projects_csv=,${projects}," >> "$GITHUB_OUTPUT"
+      - name: Generate Next.js types (n1)
+        id: generate_next_types_n1
+        if: contains(steps.determine_affected.outputs.projects_csv, ',n1,')
+        run: pnpm --filter=n1 exec next typegen
 
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       # - run: pnpm exec nx-cloud record -- echo Hello World

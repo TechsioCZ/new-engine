@@ -58,7 +58,7 @@
     * Login via user created in previous step
     * Go to settings -> Publishable API Keys
     * Create or copy existing key
-    * Update NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY in .env
+    * Update DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY in .env
     * Restart services
     ```shell
    make down
@@ -66,9 +66,9 @@
     ```
 
 9. <b>Explore local envs</b>
-    * Medusa FE should be available at:
+    * N1 FE should be available at:
         * <a href="http://localhost:8000">localhost:8000</a>
-        * <a href="https://front.medusa.localhost">https://front.medusa.localhost</a>
+        * <a href="https://n1.medusa.localhost">https://n1.medusa.localhost</a>
     * Medusa BE should be available at:
         * <a href="http://localhost:9000/app">localhost:9000/app</a>
         * <sup>(1)</sup><a href="https://admin.medusa.localhost/app">https://admin.medusa.localhost/app</a>
@@ -99,6 +99,49 @@
 
 ---
 
+## Local Postgres 18 Upgrade (Safe Path)
+
+Postgres Docker image `18+` changed its default `PGDATA` layout. This repo now pins Postgres to
+`postgres:18.1-alpine` and stores cluster files in `./.docker_data/db18` (mounted to `/var/lib/postgresql`,
+with `PGDATA=/var/lib/postgresql/18/docker`).
+
+If you already have local data in `./.docker_data/db` from Postgres `<18`, run:
+
+```shell
+make postgres18-migrate-local
+```
+
+What the migration script does:
+* stops `medusa-db` (if running)
+* creates a physical backup archive of `./.docker_data/db`
+* creates a logical SQL backup using `pg_dumpall`
+* restores into a fresh Postgres 18 data dir at `./.docker_data/db18`
+* leaves old data untouched for rollback
+
+After migration:
+
+```shell
+make dev
+```
+
+Rollback path:
+* keep using `./.docker_data/db` with a Postgres 17 image
+* restore from the generated SQL/tar backups in `./.docker_data/backups/postgres18-migration`
+
+When migration looks good and you want to keep only the PG18 state:
+
+```shell
+make postgres18-verify
+make postgres18-finalize
+```
+
+`make postgres18-verify` checks that old cluster DBs/roles exist in the new cluster and compares structure, sequence values, and per-table row counts.
+If old `./.docker_data/db` cannot be started, it falls back to verifying against the newest
+`./.docker_data/backups/postgres18-migration/pg_dumpall_*.sql` backup.
+`make postgres18-finalize` runs the same verification and then deletes `./.docker_data/db` and `./.docker_data/backups/postgres18-migration`.
+
+---
+
 ## Testing Production Build Locally
 
 To test the production Docker build locally:
@@ -111,6 +154,7 @@ This builds a production-optimized image and starts the container. Access the ad
 * <a href="https://admin.medusa.localhost/app">https://admin.medusa.localhost/app</a> (requires HTTPS for session cookies)
 
 Note: Production mode uses secure cookies, so you must access via HTTPS (Caddy) rather than `http://localhost:9000`.
+Note: `make prod` now starts `medusa-be`, waits for health, regenerates `apps/n1/src/data/static/categories.ts` from Medusa data, then builds the `n1` prod image.
 
 ---
 

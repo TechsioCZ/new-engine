@@ -5,8 +5,7 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     rm -rf /var/lib/apt/lists/* && \
     npm i -g corepack@0.34.5 && \
-    corepack enable && \
-    corepack install -g pnpm@10.26.0
+    corepack enable
 
 WORKDIR /var/www
 

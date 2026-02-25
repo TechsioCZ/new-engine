@@ -1,8 +1,8 @@
 import Medusa from "@medusajs/js-sdk"
+import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
 
 // Environment validation
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+const BACKEND_URL = getMedusaBackendUrl()
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
 if (!PUBLISHABLE_KEY) {
