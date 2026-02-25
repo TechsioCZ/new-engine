@@ -16,14 +16,6 @@ export type BenefitItem = {
   icon: IconType;
 };
 
-export type ReviewItem = {
-  id: string;
-  author: string;
-  title: string;
-  message: string;
-  rating: number;
-};
-
 export type BlogTeaserItem = {
   id: string;
   title: string;

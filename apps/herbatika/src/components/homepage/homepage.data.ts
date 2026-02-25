@@ -4,7 +4,6 @@ export {
   type HeroBannerItem,
   type ProductSectionDefinition,
   type PurposeCategoryItem,
-  type ReviewItem,
 } from "./homepage.data.types";
 export { BENEFITS, HERO_BANNERS } from "./homepage.hero.data";
 export {
@@ -12,7 +11,6 @@ export {
   PRODUCT_SECTIONS,
   PURPOSE_CATEGORIES,
   RECENT_PRODUCT_SKELETON_KEYS,
-  REVIEWS,
 } from "./homepage.content.data";
 
 import { PRODUCT_SECTIONS } from "./homepage.content.data";

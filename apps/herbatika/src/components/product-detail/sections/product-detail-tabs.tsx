@@ -15,7 +15,7 @@ export function ProductDetailTabs({
   sections,
 }: ProductDetailTabsProps) {
   return (
-    <section className="rounded-xl border border-border-secondary bg-surface p-500 lg:p-600">
+    <section>
       <h2 className="mb-400 text-xl font-semibold text-fg-primary">Informácie o produkte</h2>
 
       <div className="hidden lg:block">
@@ -30,7 +30,7 @@ export function ProductDetailTabs({
           </Tabs.List>
 
           {sections.map((section) => (
-            <Tabs.Content className="pt-400" key={section.key} value={section.key}>
+            <Tabs.Content className="px-800 py-400" key={section.key} value={section.key}>
               <ProductDetailHtmlContent
                 fallback="Obsah sekcie bude čoskoro doplnený."
                 html={section.html}

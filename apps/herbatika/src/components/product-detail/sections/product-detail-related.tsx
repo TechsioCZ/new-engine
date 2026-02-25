@@ -1,7 +1,7 @@
 "use client";
 
 import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
-import { HerbatikaProductCard } from "@/components/herbatika-product-card";
+import { ProductCollectionSection } from "@/components/product/product-collection-section";
 import type {
   RelatedProductsSection,
   StorefrontProduct,
@@ -29,34 +29,29 @@ export function ProductDetailRelated({
   return (
     <>
       {sections.map((section) => (
-        <section
-          className="space-y-400 rounded-xl border border-border-secondary bg-surface p-500 lg:p-600"
-          key={section.id}
-        >
-          <header className="flex items-center justify-between gap-200">
-            <h2 className="text-xl font-semibold text-fg-primary">{section.title}</h2>
+        <ProductCollectionSection
+          headerAction={
             <ExtraText className="text-fg-tertiary">{`Nájdené: ${section.products.length}`}</ExtraText>
-          </header>
-
-          <div className="grid grid-cols-2 gap-400 md:grid-cols-3 xl:grid-cols-5">
-            {section.products.map((relatedProduct) => (
-              <HerbatikaProductCard
-                isAdding={isProductAdding(relatedProduct.id)}
-                key={relatedProduct.id}
-                onAddToCart={(productToAdd) => {
-                  onAddToCart(productToAdd);
-                }}
-                onProductHoverEnd={(hoveredProduct) => {
-                  onProductHoverEnd(section.id, hoveredProduct);
-                }}
-                onProductHoverStart={(hoveredProduct) => {
-                  onProductHoverStart(section.id, hoveredProduct);
-                }}
-                product={relatedProduct}
-              />
-            ))}
-          </div>
-        </section>
+          }
+          headerClassName="items-center gap-200"
+          isProductAdding={(product) => isProductAdding(product.id)}
+          key={section.id}
+          keyPrefix={section.id}
+          layout="related"
+          onAddToCart={(productToAdd) => {
+            onAddToCart(productToAdd);
+          }}
+          onProductHoverEnd={(hoveredProduct) => {
+            onProductHoverEnd(section.id, hoveredProduct);
+          }}
+          onProductHoverStart={(hoveredProduct) => {
+            onProductHoverStart(section.id, hoveredProduct);
+          }}
+          products={section.products}
+          sectionClassName="p-500 lg:p-600"
+          title={section.title}
+          titleClassName="text-xl font-semibold text-fg-primary"
+        />
       ))}
     </>
   );

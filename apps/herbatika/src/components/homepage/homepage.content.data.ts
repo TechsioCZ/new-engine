@@ -2,7 +2,6 @@ import type {
   BlogTeaserItem,
   PurposeCategoryItem,
   ProductSectionDefinition,
-  ReviewItem,
 } from "./homepage.data.types";
 
 export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
@@ -20,33 +19,6 @@ export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
     id: "atraktivna-v-cene",
     title: "Atraktívna v cene",
     subtitle: "Výber produktov s výhodnou cenou.",
-  },
-];
-
-export const REVIEWS: ReviewItem[] = [
-  {
-    id: "review-1",
-    author: "Veronika M.",
-    title: "Rýchle doručenie a kvalitné produkty",
-    message:
-      "Objednávka prišla rýchlo, produkty boli dobre zabalené a kvalita je výborná.",
-    rating: 5,
-  },
-  {
-    id: "review-2",
-    author: "Peter H.",
-    title: "Skvelý výber doplnkov",
-    message:
-      "Našiel som presne to, čo som potreboval. Oceňujem detailné popisy produktov.",
-    rating: 4.5,
-  },
-  {
-    id: "review-3",
-    author: "Jana K.",
-    title: "Príjemná zákaznícka podpora",
-    message:
-      "Pomohli mi s výberom a poradili vhodnú kombináciu produktov. Odporúčam.",
-    rating: 5,
   },
 ];
 

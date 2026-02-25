@@ -1,9 +1,8 @@
 import type { HttpTypes } from "@medusajs/types";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
-import { HerbatikaProductGrid } from "@/components/product/herbatika-product-grid";
-import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton";
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import NextLink from "next/link";
 import type { HomepageProductSection } from "@/components/homepage/homepage.types";
-import { HomepageSectionHeader } from "./homepage-section-header";
+import { ProductCollectionSection } from "@/components/product/product-collection-section";
 
 type HomepageProductCollectionSectionProps = {
   section: HomepageProductSection;
@@ -23,31 +22,32 @@ export function HomepageProductCollectionSection({
   onProductHoverEnd,
 }: HomepageProductCollectionSectionProps) {
   return (
-    <section className="space-y-400" id={section.id}>
-      <HomepageSectionHeader
-        ctaHref="/#"
-        ctaLabel="Zobraziť viac"
-        title={section.title}
-        subtitle={section.subtitle}
-      />
-
-      {shouldShowProductSkeleton ? (
-        <HerbatikaProductGridSkeleton layout="home" />
-      ) : section.products.length > 0 ? (
-        <HerbatikaProductGrid
-          isProductAdding={isProductAdding}
-          keyPrefix={section.id}
-          layout="home"
-          onAddToCart={onAddToCart}
-          onProductHoverEnd={onProductHoverEnd}
-          onProductHoverStart={onProductHoverStart}
-          products={section.products}
-        />
-      ) : (
-        <ExtraText className="text-sm text-fg-secondary">
-          Produkty sa momentálne načítavajú.
-        </ExtraText>
-      )}
-    </section>
+    <ProductCollectionSection
+      headerAction={
+        <LinkButton
+          as={NextLink}
+          className="hidden rounded-md px-400 py-200 text-sm font-semibold md:inline-flex"
+          href="/#"
+          icon="icon-[mdi--arrow-right]"
+          iconPosition="right"
+          size="sm"
+          theme="outlined"
+          variant="secondary"
+        >
+          Zobraziť viac
+        </LinkButton>
+      }
+      id={section.id}
+      isProductAdding={isProductAdding}
+      keyPrefix={section.id}
+      layout="home"
+      onAddToCart={onAddToCart}
+      onProductHoverEnd={onProductHoverEnd}
+      onProductHoverStart={onProductHoverStart}
+      products={section.products}
+      shouldShowSkeleton={shouldShowProductSkeleton}
+      subtitle={section.subtitle}
+      title={section.title}
+    />
   );
 }

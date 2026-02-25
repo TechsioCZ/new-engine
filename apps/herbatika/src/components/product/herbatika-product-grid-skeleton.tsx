@@ -6,12 +6,14 @@ import type { HerbatikaProductGridLayout } from "./herbatika-product-grid";
 const SKELETON_LAYOUT_CLASSNAME: Record<HerbatikaProductGridLayout, string> = {
   category: "grid grid-cols-2 gap-400 lg:grid-cols-3",
   home: "grid grid-cols-2 gap-400 lg:grid-cols-4",
+  related: "grid grid-cols-2 gap-400 md:grid-cols-3 xl:grid-cols-4",
   search: "grid gap-300 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
 };
 
 const SKELETON_LAYOUT_COUNT: Record<HerbatikaProductGridLayout, number> = {
   category: 8,
   home: 4,
+  related: 4,
   search: 8,
 };
 

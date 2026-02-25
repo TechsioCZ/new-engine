@@ -1,6 +1,6 @@
 export const PRODUCT_FALLBACK_IMAGE = "/file.svg";
 
-export const RELATED_PRODUCTS_PER_SECTION = 5;
+export const RELATED_PRODUCTS_PER_SECTION = 4;
 
 export const RELATED_SECTION_TITLES = [
   "Ďalšie kúpil tiež",
