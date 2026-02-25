@@ -221,7 +221,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "pg_isready", "-d", "medusa"]
+      test: ["CMD", "pg_isready", "-U", "${DC_POSTGRES_SUPERUSER:-root}", "-d", "${DC_MEDUSA_APP_DB_NAME:-medusa}"]
       start_period: 10s
       interval: 30s
       timeout: 60s

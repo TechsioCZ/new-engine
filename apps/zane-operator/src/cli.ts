@@ -71,10 +71,16 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
     throw new BadRequestError("--password-env is required")
   }
 
-  const password = process.env[passwordEnvVar]?.trim()
-  if (!password) {
+  const password = process.env[passwordEnvVar]
+  if (password === undefined || password === "") {
     throw new BadRequestError(
       `environment variable ${passwordEnvVar} is required and must be non-empty when using --password-env`,
+    )
+  }
+
+  if (password !== password.trim()) {
+    console.warn(
+      `warning: environment variable ${passwordEnvVar} contains leading/trailing whitespace and will be used as-is`,
     )
   }
 

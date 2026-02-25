@@ -15,7 +15,7 @@
   "scripts": {
     "build": "medusa build",
     "start": "medusa start",
-    "entrypoint": "npm run createInitialSuperadmin && npm run -s setInitialPublishableKey > /dev/null",
+    "entrypoint": "bash -euo pipefail -c 'npm run createInitialSuperadmin; : \"setInitialPublishableKey runs for side-effects only; setInitialPublishableKeyZerops persists the token\"; if [ \"${EXPOSE_INITIAL_PUBLISHABLE_KEY:-0}\" = \"1\" ]; then npm run -s setInitialPublishableKey; else npm run -s setInitialPublishableKey > /dev/null; fi'",
     "start:dev": "cross-env NODE_ENV=development medusa start",
     "develop": "medusa develop",
     "dev": "medusa develop",
@@ -27,7 +27,7 @@
     "migrate": "medusa db:migrate",
     "migrate:generate-only": "medusa db:generate",
     "syncLinks": "medusa db:sync-links",
-    "createInitialSuperadmin": "bash -c 'if [ -f ./src/scripts/create-initial-superadmin.ts ]; then medusa exec ./src/scripts/create-initial-superadmin.ts; else medusa exec ./src/scripts/create-initial-superadmin.js; fi'",
+    "createInitialSuperadmin": "bash -euo pipefail -c 'if [ -f ./src/scripts/create-initial-superadmin.ts ]; then medusa exec ./src/scripts/create-initial-superadmin.ts; else medusa exec ./src/scripts/create-initial-superadmin.js; fi'",
     "seedDevData": "medusa exec ./src/scripts/seed-dev-data.ts",
     "seedN1": "medusa exec ./src/scripts/seed-n1.ts",
     "seedInitialData": "medusa exec ./src/scripts/seed.ts",

@@ -23,6 +23,7 @@
     },
     "dev": {
       "executor": "nx:run-commands",
+      "cache": false,
       "options": {
         "cwd": "apps/zane-operator",
         "command": "bun run dev"

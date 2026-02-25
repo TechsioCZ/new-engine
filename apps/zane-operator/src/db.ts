@@ -605,6 +605,11 @@ export async function ensurePreviewDatabase(
         throw new BadRequestError(`template database "${templateDatabase}" does not exist`)
       }
 
+      const ownerExists = await roleExists(lockedSql, owner)
+      if (!ownerExists) {
+        throw new BadRequestError(`owner role "${owner}" does not exist`)
+      }
+
       await lockedSql.unsafe(
         `CREATE DATABASE ${quoteIdentifier(dbName)} WITH TEMPLATE ${quoteIdentifier(templateDatabase)} OWNER ${quoteIdentifier(owner)} STRATEGY = FILE_COPY;`,
       )

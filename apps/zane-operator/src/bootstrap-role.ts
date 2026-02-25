@@ -98,6 +98,12 @@ function loadBootstrapConfig(env: Environment = process.env): BootstrapConfig {
   const { databaseUrl, database } = buildAdminDatabaseUrl(env)
 
   const targetRole = readRequiredEnv(env, "PGUSER")
+  const adminRole = readRequiredEnv(env, "BOOTSTRAP_ADMIN_PGUSER")
+  if (targetRole === adminRole) {
+    throw new Error(
+      "PGUSER must not match BOOTSTRAP_ADMIN_PGUSER; refusing to bootstrap admin account as target role",
+    )
+  }
   const targetPassword = readRequiredEnv(env, "PGPASSWORD")
   const templateDatabase = env.BOOTSTRAP_TEMPLATE_DB?.trim() || env.DB_TEMPLATE_NAME?.trim() || DEFAULT_TEMPLATE_DB
 

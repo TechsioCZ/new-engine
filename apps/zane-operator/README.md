@@ -55,6 +55,7 @@ Teardown response includes role cleanup result:
 - `PGHOST`
 - `PGUSER`
 - `PGPASSWORD`
+- `DB_PREVIEW_APP_PASSWORD_SECRET`
 
 ## Optional env vars
 
@@ -67,7 +68,6 @@ Teardown response includes role cleanup result:
 - `DB_PREVIEW_APP_USER_PREFIX` (default: `medusa_pr_app_`)
 - `DB_PREVIEW_DEV_ROLE` (default: `medusa_dev`)
 - `DB_APP_SCHEMA` (default: `medusa`)
-- `DB_PREVIEW_APP_PASSWORD_SECRET` (required)
 - `DB_PROTECTED_NAMES` (extra protected DB names, comma-separated)
 
 ## Onboarding
