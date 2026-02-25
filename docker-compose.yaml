@@ -51,6 +51,12 @@ x-medusa-env: &medusa-env
   FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
   PPL_ENVIRONMENT: ${DC_PPL_ENVIRONMENT:-testing}
 
+x-minio-bootstrap-env: &minio-bootstrap-env
+  MINIO_ROOT_USER: ${DC_MINIO_ROOT_USER:-minioadmin}
+  MINIO_ROOT_PASSWORD: ${DC_MINIO_ROOT_PASSWORD:-minioadmin}
+  MINIO_ACCESS_KEY: ${DC_MINIO_ACCESS_KEY:-minioadminkey}
+  MINIO_SECRET_KEY: ${DC_MINIO_SECRET_KEY:-minioadminkey}
+
 x-zane-operator-db-env: &zane-operator-db-env
   # zane-operator: postgres connectivity
   PGHOST: medusa-db
@@ -82,10 +88,16 @@ x-medusa-base: &medusa-base
     - "9009:9009"
     - "24678:24678"
   depends_on:
-    - medusa-db
-    - medusa-valkey
-    - medusa-minio
-    - medusa-meilisearch
+    medusa-db:
+      condition: service_started
+    medusa-valkey:
+      condition: service_started
+    medusa-minio:
+      condition: service_healthy
+    medusa-minio-bootstrap:
+      condition: service_completed_successfully
+    medusa-meilisearch:
+      condition: service_started
   networks:
     - internal
   environment:
@@ -185,6 +197,24 @@ services:
     environment:
       MINIO_ROOT_USER: ${DC_MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${DC_MINIO_ROOT_PASSWORD:-minioadmin}
+  medusa-minio-bootstrap:
+    image: minio/mc
+    restart: "no"
+    depends_on:
+      medusa-minio:
+        condition: service_healthy
+    networks:
+      - internal
+    volumes:
+      - ./docker/development/medusa-minio/config/local-bucket-metadata.zip:/config/local-bucket-metadata.zip:ro
+    environment:
+      <<: *minio-bootstrap-env
+    entrypoint:
+      [
+        "sh",
+        "-euc",
+        "mc alias set local http://medusa-minio:9004 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\"; if ! mc admin accesskey info local \"$$MINIO_ACCESS_KEY\" >/dev/null 2>&1; then mc admin accesskey create --access-key \"$$MINIO_ACCESS_KEY\" --secret-key \"$$MINIO_SECRET_KEY\" local; fi; mc admin cluster bucket import local /config/local-bucket-metadata.zip",
+      ]
   medusa-meilisearch:
     image: getmeili/meilisearch:v1.35.1
     container_name: wr_medusa_meilisearch

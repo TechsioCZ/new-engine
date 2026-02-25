@@ -30,6 +30,7 @@
     ```
 
     * Postgres role bootstrap (`medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
+    * MinIO bootstrap (`medusa-minio-bootstrap`) now runs automatically and ensures the configured Medusa access key exists and bucket metadata is imported
     * `zane_operator` role bootstrap runs as one-shot service `zane-operator-bootstrap` before `zane-operator` starts (idempotent)
     * If your Postgres volume already existed before this change, run bootstrap migration once:
 
@@ -97,7 +98,7 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
     make medusa-create-user EMAIL=[some@email.com] PASSWORD=[PASSWORD]
     ```
 
-6. <b>Prepare file storage</b> (only first time setup)
+6. <b>Prepare file storage</b> (automatic in compose; manual fallback only if needed)
     ```shell
     make medusa-minio-init
     ```
