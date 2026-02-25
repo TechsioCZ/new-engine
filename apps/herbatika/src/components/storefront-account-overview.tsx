@@ -55,7 +55,15 @@ export function StorefrontAccountOverview() {
         </LinkButton>
         <LinkButton
           as={NextLink}
-          href="/checkout"
+          href="/account/settings"
+          theme="outlined"
+          variant="secondary"
+        >
+          Upraviť údaje
+        </LinkButton>
+        <LinkButton
+          as={NextLink}
+          href="/checkout/kosik"
           theme="outlined"
           variant="secondary"
         >

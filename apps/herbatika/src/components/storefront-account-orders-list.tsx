@@ -1,16 +1,14 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
-import { Table } from "@techsio/ui-kit/organisms/table";
 import NextLink from "next/link";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect } from "react";
-import { StorefrontAccountOrderRow } from "@/components/account/storefront-account-order-row";
+import { StorefrontAccountOrderGroup } from "@/components/account/orders/storefront-account-order-group";
 import {
   StorefrontAccountSkeletonSurface,
   StorefrontAccountSurface,
@@ -106,40 +104,25 @@ export function StorefrontAccountOrdersList() {
   }
 
   return (
-    <StorefrontAccountSurface className="space-y-400">
+    <StorefrontAccountSurface className="space-y-500">
       <header className="space-y-200">
         <h2 className="text-lg font-semibold">Objednávky</h2>
-        <div className="flex flex-wrap gap-200">
-          <Badge variant="info">{`celkom: ${ordersQuery.totalCount}`}</Badge>
-          <Badge variant="info">{`strana: ${ordersQuery.currentPage}/${ordersQuery.totalPages}`}</Badge>
-        </div>
+        <p className="text-sm text-fg-secondary">
+          Prehľad dokončených objednávok s položkami a stavom doručenia.
+        </p>
+        <p className="text-fg-tertiary text-xs">{`Celkom: ${ordersQuery.totalCount} | Strana ${ordersQuery.currentPage}/${ordersQuery.totalPages}`}</p>
       </header>
 
-      <div className="overflow-x-auto">
-        <Table size="sm" variant="outline">
-          <Table.Caption>Zoznam vašich objednávok</Table.Caption>
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Objednávka</Table.ColumnHeader>
-              <Table.ColumnHeader>Dátum</Table.ColumnHeader>
-              <Table.ColumnHeader>Stav</Table.ColumnHeader>
-              <Table.ColumnHeader numeric>Položky</Table.ColumnHeader>
-              <Table.ColumnHeader numeric>Suma</Table.ColumnHeader>
-              <Table.ColumnHeader>Akcia</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {ordersQuery.orders.map((order) => {
-              return (
-                <StorefrontAccountOrderRow
-                  key={order.id}
-                  onPrefetchOrderDetail={prefetchOrderDetail}
-                  order={order}
-                />
-              );
-            })}
-          </Table.Body>
-        </Table>
+      <div className="space-y-300">
+        {ordersQuery.orders.map((order) => {
+          return (
+            <StorefrontAccountOrderGroup
+              key={order.id}
+              onPrefetchOrderDetail={prefetchOrderDetail}
+              order={order}
+            />
+          );
+        })}
       </div>
 
       {ordersQuery.totalPages > 1 && (

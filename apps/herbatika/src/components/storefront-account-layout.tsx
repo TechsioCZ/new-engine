@@ -16,6 +16,7 @@ import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 const ACCOUNT_NAV_ITEMS = [
   { href: "/account", label: "Prehľad" },
   { href: "/account/orders", label: "Objednávky" },
+  { href: "/account/settings", label: "Nastavenia" },
 ] as const;
 
 const isNavItemActive = (pathname: string, href: string) => {
@@ -79,8 +80,8 @@ export function StorefrontAccountLayout({
 
   if (authQuery.isLoading) {
     return (
-      <main className="mx-auto w-full max-w-account-content px-400 py-550 lg:px-550">
-        <section className="rounded-xl border border-border-secondary bg-surface p-550">
+      <main className="mx-auto w-full max-w-max-w px-400 py-550 lg:px-550">
+        <section className="rounded-lg border border-border-secondary bg-surface p-550">
           <Skeleton>
             <Skeleton.Text noOfLines={4} />
           </Skeleton>
@@ -91,8 +92,8 @@ export function StorefrontAccountLayout({
 
   if (!authQuery.isAuthenticated) {
     return (
-      <main className="mx-auto w-full max-w-account-content px-400 py-550 lg:px-550">
-        <section className="space-y-300 rounded-xl border border-border-secondary bg-surface p-550">
+      <main className="mx-auto w-full max-w-max-w px-400 py-550 lg:px-550">
+        <section className="space-y-300 rounded-lg border border-border-secondary bg-surface p-550">
           <h1 className="text-lg font-semibold">Presmerovanie na prihlásenie</h1>
           <p className="text-sm text-fg-secondary">
             Účet je dostupný iba pre prihlásených používateľov.
@@ -110,9 +111,9 @@ export function StorefrontAccountLayout({
   }
 
   return (
-    <main className="mx-auto w-full max-w-account-content px-400 py-550 lg:px-550">
-      <div className="grid gap-550 lg:grid-cols-12">
-        <aside className="space-y-400 rounded-xl border border-border-secondary bg-surface p-400 lg:col-span-3">
+    <main className="mx-auto w-full max-w-max-w px-400 py-550 lg:px-550">
+      <div className="grid gap-550 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
+        <aside className="space-y-400 rounded-lg border border-border-secondary bg-surface p-400">
           <header className="space-y-200">
             <h1 className="text-xl font-semibold">Môj účet</h1>
             <Badge variant="info">{authQuery.customer?.email ?? "-"}</Badge>
@@ -152,7 +153,7 @@ export function StorefrontAccountLayout({
           </Button>
         </aside>
 
-        <section className="min-w-0 lg:col-span-9">{children}</section>
+        <section className="min-w-0 w-full max-w-account-content">{children}</section>
       </div>
     </main>
   );

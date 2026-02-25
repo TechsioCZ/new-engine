@@ -7,7 +7,7 @@ type StorefrontAccountSurfaceProps = {
 };
 
 const ACCOUNT_SURFACE_CLASSNAME =
-  "rounded-xl border border-border-secondary bg-surface p-550";
+  "rounded-lg border border-border-secondary bg-surface p-550";
 
 export function StorefrontAccountSurface({
   children,

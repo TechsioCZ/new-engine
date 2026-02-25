@@ -96,6 +96,14 @@ export const resolveOrderItemTotalAmount = (item: {
   return unitPrice * quantity;
 };
 
+export const resolveOrderItemQuantity = (item: { quantity?: number | null }) => {
+  if (typeof item.quantity === "number" && item.quantity > 0) {
+    return item.quantity;
+  }
+
+  return 0;
+};
+
 export const resolveOrderItemCount = (
   items?: Array<{ quantity?: number | null }> | null,
 ) => {
@@ -104,7 +112,37 @@ export const resolveOrderItemCount = (
   }
 
   return items.reduce((count, item) => {
-    const quantity = typeof item.quantity === "number" ? item.quantity : 0;
+    const quantity = resolveOrderItemQuantity(item);
     return count + quantity;
   }, 0);
+};
+
+const resolveRecordValue = (
+  source: Record<string, unknown>,
+  key: string,
+): string | null => {
+  const value = source[key];
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+export const resolveOrderInvoiceUrl = (
+  order: { metadata?: unknown } | null | undefined,
+) => {
+  if (!order || !(order.metadata && typeof order.metadata === "object")) {
+    return null;
+  }
+
+  const metadata = order.metadata as Record<string, unknown>;
+
+  return (
+    resolveRecordValue(metadata, "invoice_url") ??
+    resolveRecordValue(metadata, "invoiceUrl") ??
+    resolveRecordValue(metadata, "invoice_href") ??
+    resolveRecordValue(metadata, "invoiceHref")
+  );
 };
