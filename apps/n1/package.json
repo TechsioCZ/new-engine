@@ -19,11 +19,12 @@
     "validate:token-usage": "node scripts/validate-token-usage.mjs"
   },
   "dependencies": {
-    "@medusajs/js-sdk": "^2.10.3",
-    "@medusajs/types": "^2.10.3",
+    "@medusajs/js-sdk": "^2.13.1",
+    "@medusajs/types": "^2.13.1",
     "@tanstack/react-form": "^1.27.4",
     "@tanstack/react-query": "^5.90.2",
     "@techsio/analytics": "workspace:*",
+    "@techsio/storefront-data": "workspace:*",
     "@techsio/ui-kit": "workspace:*",
     "next": "16.0.7",
     "react": "^19.2.3",
