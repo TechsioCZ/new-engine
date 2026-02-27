@@ -74,7 +74,7 @@ export type StorefrontProductDetailInput = StorefrontProductDetailParams & {
 }
 
 const SORT_MAP: Record<string, string> = {
-  newest: "id",
+  newest: "-created_at",
   "price-asc": "variants.prices.amount",
   "price-desc": "-variants.prices.amount",
   "name-asc": "title",
@@ -116,12 +116,14 @@ const transformProduct = (product: HttpTypes.StoreProduct): Product => {
     primaryVariant?.calculated_price?.calculated_amount_with_tax
 
   const reducedImages =
-    product.images && product.images.length > 2 && product.images.slice(0, 2)
+    product.images && product.images.length > 2
+      ? product.images.slice(0, 2)
+      : product.images
 
   return {
     ...product,
     thumbnail: product.thumbnail,
-    images: reducedImages || product.images,
+    images: reducedImages,
     inStock: true,
     price: price ?? null,
     priceWithTax: priceWithTax ?? null,

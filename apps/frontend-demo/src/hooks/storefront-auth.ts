@@ -8,6 +8,7 @@ import {
   type MedusaRegisterData,
   type MedusaUpdateCustomerData,
 } from "@techsio/storefront-data/auth/medusa-service"
+import { getErrorStatus } from "@techsio/storefront-data/shared/medusa-errors"
 import type { AuthQueryKeys } from "@techsio/storefront-data/auth/types"
 import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
@@ -21,19 +22,6 @@ type StorefrontCreateCustomerInput = {
 export type StorefrontLoginInput = MedusaAuthCredentials & {
   first_name?: string
   last_name?: string
-}
-
-const getErrorStatus = (error: unknown): number | undefined => {
-  if (!error || typeof error !== "object") {
-    return
-  }
-
-  const err = error as {
-    status?: number
-    response?: { status?: number }
-  }
-
-  return err.status ?? err.response?.status
 }
 
 const authQueryKeys: AuthQueryKeys = {

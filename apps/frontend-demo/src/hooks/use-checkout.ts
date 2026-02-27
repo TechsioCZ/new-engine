@@ -3,7 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { resolveCheckoutPaymentMethods } from "@/lib/checkout-payment-policy"
 import { isCheckoutShippingOptionSupported } from "@/lib/checkout-shipping-policy"
 import { STORAGE_KEYS } from "@/lib/constants"
@@ -63,6 +63,97 @@ const isStaleCartError = (error: unknown): boolean => {
   return status === 404 || (message.includes("cart") && message.includes("not found"))
 }
 
+const hasValue = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0
+
+const hasAddressCoreFields = (address: {
+  firstName?: string
+  lastName?: string
+  street?: string
+  city?: string
+  postalCode?: string
+  country?: string
+}) =>
+  hasValue(address.firstName) &&
+  hasValue(address.lastName) &&
+  hasValue(address.street) &&
+  hasValue(address.city) &&
+  hasValue(address.postalCode) &&
+  hasValue(address.country)
+
+const hasCheckoutAddressData = (
+  data: CheckoutAddressData | null | undefined
+): boolean => {
+  if (!data) {
+    return false
+  }
+
+  const hasShippingAddress =
+    hasAddressCoreFields({
+      firstName: data.shipping.firstName,
+      lastName: data.shipping.lastName,
+      street: data.shipping.street,
+      city: data.shipping.city,
+      postalCode: data.shipping.postalCode,
+      country: data.shipping.country,
+    }) && hasValue(data.shipping.email)
+
+  if (!hasShippingAddress) {
+    return false
+  }
+
+  if (data.useSameAddress) {
+    return true
+  }
+
+  return hasAddressCoreFields({
+    firstName: data.billing.firstName,
+    lastName: data.billing.lastName,
+    street: data.billing.street,
+    city: data.billing.city,
+    postalCode: data.billing.postalCode,
+    country: data.billing.country,
+  })
+}
+
+const hasCartShippingAddress = (
+  address: HttpTypes.StoreCart["shipping_address"] | undefined,
+  email?: string | null
+): boolean => {
+  if (!address) {
+    return false
+  }
+
+  return (
+    hasValue(address.first_name) &&
+    hasValue(address.last_name) &&
+    hasValue(address.address_1) &&
+    hasValue(address.city) &&
+    hasValue(address.postal_code) &&
+    hasValue(address.country_code) &&
+    hasValue(email)
+  )
+}
+
+const hasCustomerAddress = (
+  address:
+    | {
+        street?: string
+        city?: string
+        postalCode?: string
+        country?: string
+      }
+    | null
+    | undefined
+): boolean =>
+  Boolean(
+    address &&
+      hasValue(address.street) &&
+      hasValue(address.city) &&
+      hasValue(address.postalCode) &&
+      hasValue(address.country)
+  )
+
 export function useCheckout(): UseCheckoutReturn {
   const { cart, refetch } = useCart()
   const { address } = useCustomer()
@@ -76,6 +167,7 @@ export function useCheckout(): UseCheckoutReturn {
     null
   )
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const previousCartIdRef = useRef<string | undefined>(cart?.id)
   const shippingCacheKey =
     typeof cart?.updated_at === "string"
       ? cart.updated_at
@@ -129,7 +221,10 @@ export function useCheckout(): UseCheckoutReturn {
     () => resolveCheckoutPaymentMethods(paymentProviders),
     [paymentProviders]
   )
-  const hasAddress = Boolean(addressData || cart?.shipping_address || address)
+  const hasAddress =
+    hasCheckoutAddressData(addressData) ||
+    hasCartShippingAddress(cart?.shipping_address, cart?.email) ||
+    hasCustomerAddress(address)
 
   const isLoadingShipping = isLoadingShippingOptions || isFetchingShippingOptions
 
@@ -141,6 +236,7 @@ export function useCheckout(): UseCheckoutReturn {
     await queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
     await refetch()
 
+    setAddressData(null)
     setSelectedShipping("")
     setSelectedPayment("")
     setCurrentStep(0)
@@ -182,6 +278,20 @@ export function useCheckout(): UseCheckoutReturn {
       setSelectedPayment(paymentMethods[0].id)
     }
   }, [paymentMethods, selectedPayment])
+
+  useEffect(() => {
+    const previousCartId = previousCartIdRef.current
+    const currentCartId = cart?.id
+
+    if (previousCartId && currentCartId && previousCartId !== currentCartId) {
+      setAddressData(null)
+      setSelectedShipping("")
+      setSelectedPayment("")
+      setCurrentStep(0)
+    }
+
+    previousCartIdRef.current = currentCartId
+  }, [cart?.id])
 
   // Update addresses in cart
   const updateAddresses = async (data: CheckoutAddressData) => {

@@ -43,7 +43,7 @@ const orderQueryKeys: OrderQueryKeys<
       page: resolveOrderListPage(params),
       limit: params.limit,
     }),
-  detail: (params) => queryKeys.orders.detail(params.id ?? ""),
+  detail: (params) => queryKeys.orders.detail(params.id),
 }
 
 const orderHooks = createOrderHooks<

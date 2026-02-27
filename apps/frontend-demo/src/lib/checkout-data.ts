@@ -21,8 +21,14 @@ const normalizeShippingKey = (value?: string | null) =>
 
 const hasNormalizedMatch = (
   values: string[] | undefined,
-  target: string | undefined
-) => Boolean(target && values?.some((value) => normalizeShippingKey(value) === target))
+  target: string | null | undefined
+) => {
+  const normalizedTarget = normalizeShippingKey(target)
+  return Boolean(
+    normalizedTarget &&
+      values?.some((value) => normalizeShippingKey(value) === normalizedTarget)
+  )
+}
 
 export const SHIPPING_METHODS: ShippingMethodMetadata[] = [
   {
@@ -100,9 +106,9 @@ export const resolveShippingMethodMetadata = (input: {
   typeCode?: string
   name?: string
 }) => {
-  const providerId = normalizeShippingKey(input.providerId)
-  const typeCode = normalizeShippingKey(input.typeCode)
-  const name = normalizeShippingKey(input.name)
+  const providerId = input.providerId
+  const typeCode = input.typeCode
+  const normalizedName = normalizeShippingKey(input.name)
 
   return (
     SHIPPING_METHODS.find((method) =>
@@ -113,8 +119,8 @@ export const resolveShippingMethodMetadata = (input: {
     ) ??
     SHIPPING_METHODS.find(
       (method) =>
-        normalizeShippingKey(method.name) === name ||
-        hasNormalizedMatch(method.nameAliases, name)
+        normalizeShippingKey(method.name) === normalizedName ||
+        hasNormalizedMatch(method.nameAliases, normalizedName)
     )
   )
 }

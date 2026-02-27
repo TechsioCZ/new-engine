@@ -16,7 +16,7 @@ import { queryKeys } from "@/lib/query-keys"
 const customerQueryKeys: CustomerQueryKeys<MedusaCustomerListInput> = {
   all: () => [...queryKeys.all, "customer"] as const,
   profile: () => queryKeys.auth.customer(),
-  addresses: () => queryKeys.customer.addresses(),
+  addresses: (params) => queryKeys.customer.addresses(params),
 }
 
 const customerHooks = createCustomerHooks<

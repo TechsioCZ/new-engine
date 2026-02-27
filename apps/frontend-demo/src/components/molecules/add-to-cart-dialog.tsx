@@ -15,6 +15,19 @@ interface AddToCartDialogProps {
   onOpenChange: (details: { open: boolean }) => void
 }
 
+const getVariantName = (variant: ProductVariant) => {
+  const optionValues =
+    variant.options
+      ?.map((option) => option.value)
+      .filter((value): value is string => Boolean(value)) || []
+
+  if (optionValues.length > 0) {
+    return optionValues.join(" / ")
+  }
+
+  return variant.title || "Varianta"
+}
+
 export function AddToCartDialog({
   product,
   open,
@@ -24,18 +37,6 @@ export function AddToCartDialog({
   const [selectedVariantId, setSelectedVariantId] = useState<string>("")
 
   const variants = product.variants || []
-  const getVariantName = (variant: ProductVariant) => {
-    const optionValues =
-      variant.options
-        ?.map((option) => option.value)
-        .filter((value): value is string => Boolean(value)) || []
-
-    if (optionValues.length > 0) {
-      return optionValues.join(" / ")
-    }
-
-    return variant.title || "Varianta"
-  }
 
   const variantOptions = variants.map((variant) => {
     const variantName = getVariantName(variant)

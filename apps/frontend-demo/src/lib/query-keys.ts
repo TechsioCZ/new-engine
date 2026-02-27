@@ -118,7 +118,10 @@ export const queryKeys = {
           { omitKeys: ["enabled"] }
         ),
       ] as const,
-    detail: (id: string) => [...queryKeys.orders.all(), "detail", id] as const,
+    detail: (id?: string) =>
+      id
+        ? ([...queryKeys.orders.all(), "detail", id] as const)
+        : ([...queryKeys.orders.all(), "detail"] as const),
   },
 
   // Customer queries

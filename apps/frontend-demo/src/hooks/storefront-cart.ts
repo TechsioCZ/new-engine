@@ -114,5 +114,5 @@ export const {
   useUpdateLineItem: useStorefrontUpdateLineItem,
   useRemoveLineItem: useStorefrontRemoveLineItem,
   useCompleteCart: useStorefrontCompleteCart,
-  usePrefetchCart,
+  usePrefetchCart: useStorefrontPrefetchCart,
 } = cartHooks

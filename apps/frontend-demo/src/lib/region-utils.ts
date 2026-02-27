@@ -1,18 +1,34 @@
 import type { StoreRegion } from "@medusajs/types"
 
+const extractCountryCodeFromLocale = (locale: string): string | undefined => {
+  const localeParts = locale
+    .replaceAll("_", "-")
+    .split("-")
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  if (localeParts.length < 2) {
+    return undefined
+  }
+
+  const regionPart = localeParts
+    .slice(1)
+    .find((part) => /^[a-z]{2}$/i.test(part) || /^[0-9]{3}$/.test(part))
+
+  return regionPart?.toLowerCase()
+}
+
 const getBrowserCountryCode = (): string | undefined => {
   if (typeof navigator === "undefined") {
     return undefined
   }
 
   const locale = navigator.languages?.[0] ?? navigator.language
-  const localeParts = locale?.split("-")
-
-  if (!localeParts || localeParts.length < 2) {
+  if (!locale) {
     return undefined
   }
 
-  return localeParts[1]?.toLowerCase()
+  return extractCountryCodeFromLocale(locale)
 }
 
 export function resolveRegionCountryCode(

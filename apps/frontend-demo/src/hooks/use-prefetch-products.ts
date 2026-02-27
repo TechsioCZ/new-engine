@@ -49,9 +49,12 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
         return
       }
 
-      const infiniteQueryKey = storefrontProductQueryKeys.infinite
-        ? storefrontProductQueryKeys.infinite(listParams)
-        : [...listQueryKey, "__infinite"]
+      const buildInfiniteQueryKey = storefrontProductQueryKeys.infinite
+      if (!buildInfiniteQueryKey) {
+        return
+      }
+
+      const infiniteQueryKey = buildInfiniteQueryKey(listParams)
 
       queryClient.setQueryData<PrefetchedInfiniteProducts | undefined>(
         infiniteQueryKey,
@@ -83,12 +86,18 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
         country_code: countryCode,
       }
 
-      void (async () => {
-        await sdPrefetchProducts(queryParams, {
-          cacheStrategy,
+      void sdPrefetchProducts(queryParams, {
+        cacheStrategy,
+      })
+        .then(() => {
+          seedInfiniteProductsCache(queryParams)
         })
-        seedInfiniteProductsCache(queryParams)
-      })()
+        .catch((error) => {
+          console.warn("Product prefetch failed", {
+            error,
+            queryParams,
+          })
+        })
     },
     [
       selectedRegion,

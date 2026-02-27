@@ -5,7 +5,12 @@ const getStoredAuthToken = (): string | null => {
     return null
   }
 
-  return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
+  try {
+    return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
+  } catch (error) {
+    console.warn("Failed to read auth token from storage", error)
+    return null
+  }
 }
 
 export const hasStoredAuthToken = (): boolean =>
@@ -16,5 +21,9 @@ export const clearStoredAuthToken = () => {
     return
   }
 
-  localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+  try {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+  } catch (error) {
+    console.warn("Failed to clear auth token from storage", error)
+  }
 }

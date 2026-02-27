@@ -15,6 +15,8 @@ interface ShippingSelectionProps {
   isLoading: boolean
 }
 
+const SHIPPING_METHODS_LOADING_TEXT = "Nacitam dostupne dopravce..."
+
 const ShippingMethodDetail = ({
   method,
   selected,
@@ -111,7 +113,9 @@ export function ShippingSelection({
       </div>
 
       {isLoading && (
-        <p className="text-fg-secondary text-sm">Nacitam dostupne dopravce...</p>
+        <p className="text-fg-secondary text-sm">
+          {SHIPPING_METHODS_LOADING_TEXT}
+        </p>
       )}
 
       <div className="flex w-full justify-between">

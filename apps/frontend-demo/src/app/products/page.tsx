@@ -16,10 +16,18 @@ import {
 } from "@/hooks/use-url-filters"
 
 const SORT_OPTIONS: Array<{ value: ExtendedSortOption; label: string }> = [
-  { value: "newest", label: "NejnovÄ›jĹˇĂ­" },
-  { value: "name-asc", label: "NĂˇzev: A-Z" },
-  { value: "name-desc", label: "NĂˇzev: Z-A" },
+  { value: "newest", label: "Nejnovější" },
+  { value: "name-asc", label: "Název: A-Z" },
+  { value: "name-desc", label: "Název: Z-A" },
 ]
+
+const SIZE_FILTER_ERROR_HINTS = ["size", "variant", "option", "velikost"]
+
+const isSizeFilterRelatedError = (error: string | null) => {
+  if (!error) return false
+  const normalizedError = error.toLowerCase()
+  return SIZE_FILTER_ERROR_HINTS.some((hint) => normalizedError.includes(hint))
+}
 
 function ProductsContent() {
   const { selectedRegion } = useRegions()
@@ -41,8 +49,6 @@ function ProductsContent() {
     error,
     totalCount,
     hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
   } = useInfiniteProducts({
     pageRange: urlFilters.pageRange,
     limit: pageSize,
@@ -54,7 +60,9 @@ function ProductsContent() {
 
   const currentPage = urlFilters.pageRange.end
   const hasSizeFilters = productFilters.sizes.length > 0
-  const hasSizeFilterError = Boolean(error && hasSizeFilters)
+  const hasSizeFilterError = Boolean(
+    hasSizeFilters && isSizeFilterRelatedError(error)
+  )
 
   const clearSizeFilters = () => {
     urlFilters.setFilters({
@@ -68,13 +76,13 @@ function ProductsContent() {
       <div className="mb-product-listing-header-margin">
         <Breadcrumb
           items={[
-            { label: "DomĹŻ", href: "/" },
+            { label: "Domů", href: "/" },
             { label: "Produkty", href: "/products" },
           ]}
           linkAs={Link}
         />
         <h1 className="mb-product-listing-title-margin font-product-listing-title text-product-listing-title">
-          VĹˇechny produkty
+          Všechny produkty
         </h1>
       </div>
       <div className="sticky top-16 z-40 mb-4 sm:static lg:hidden">
@@ -94,19 +102,19 @@ function ProductsContent() {
         <main className="w-full flex-1">
           <div className="mb-6 flex items-center justify-between">
             <p className="text-gray-600 text-sm dark:text-gray-400">
-              Zobrazeno {products.length} z {totalCount} produktĹŻ
+              Zobrazeno {products.length} z {totalCount} produktů
             </p>
             <SelectTemplate
               className="max-w-64"
               items={SORT_OPTIONS}
-              label="Ĺadit podle"
+              label="Řadit podle"
               onValueChange={(details) => {
                 const value = details.value[0] as ExtendedSortOption | undefined
                 if (value) {
                   urlFilters.setSortBy(value)
                 }
               }}
-              placeholder="Vybrat ĹazenĂ­"
+              placeholder="Vybrat řazení"
               size="sm"
               value={[urlFilters.sortBy || "newest"]}
             />
@@ -114,7 +122,7 @@ function ProductsContent() {
           {hasSizeFilterError && (
             <div className="mb-4 space-y-2 rounded-md border border-error bg-surface p-3">
               <ErrorText showIcon>
-                Filtr velikosti je docasne nedostupny. Zkuste prosim jinou
+                Filtr velikosti je dočasně nedostupný. Zkuste prosím jinou
                 velikost nebo filtr vymazat.
               </ErrorText>
               <Button onClick={clearSizeFilters} size="sm" theme="borderless">
@@ -137,19 +145,13 @@ function ProductsContent() {
               {hasNextPage && (
                 <div className="mt-8 flex justify-center">
                   <Button
-                    disabled={isFetchingNextPage}
-                    onClick={async () => {
-                      // First fetch the next page data
-                      await fetchNextPage()
-                      // Then update URL without navigation
+                    onClick={() => {
                       urlFilters.extendPageRange()
                     }}
                     size="sm"
                     variant="primary"
                   >
-                    {isFetchingNextPage
-                      ? `NaÄŤĂ­tĂˇnĂ­ dalĹˇĂ­ch ${pageSize}...`
-                      : `NaÄŤĂ­st dalĹˇĂ­ch ${pageSize} produktĹŻ`}
+                    {`Načíst dalších ${pageSize} produktů`}
                   </Button>
                 </div>
               )}
@@ -157,7 +159,7 @@ function ProductsContent() {
           ) : error ? (
             <div className="py-12 text-center">
               <ErrorText showIcon>
-                Nepodarilo se nacist produkty. Obnovte prosim stranku.
+                Nepodařilo se načíst produkty. Obnovte prosím stránku.
               </ErrorText>
             </div>
           ) : (

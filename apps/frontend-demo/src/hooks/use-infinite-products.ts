@@ -49,6 +49,7 @@ export function useInfiniteProducts(
 
   const rangeBootstrapRef = useRef<{
     start: number
+    end: number
     limit: number
     initialLimit: number
   } | null>(null)
@@ -56,11 +57,13 @@ export function useInfiniteProducts(
   if (
     !rangeBootstrapRef.current ||
     rangeBootstrapRef.current.start !== pageRange.start ||
+    rangeBootstrapRef.current.end !== pageRange.end ||
     rangeBootstrapRef.current.limit !== limit
   ) {
     const totalPagesNeeded = pageRange.end - pageRange.start + 1
     rangeBootstrapRef.current = {
       start: pageRange.start,
+      end: pageRange.end,
       limit,
       initialLimit: totalPagesNeeded * limit,
     }

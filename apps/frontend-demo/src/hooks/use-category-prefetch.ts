@@ -15,53 +15,33 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
   const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
   const prefetchLimit = options?.prefetchLimit ?? 12
   const activePrefetchIdsRef = useRef<Set<string>>(new Set())
-  const cleanupTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map()
-  )
-  const {
-    prefetchProducts,
-    delayedPrefetch: delayedStorefrontPrefetch,
-    cancelPrefetch: cancelStorefrontPrefetch,
-  } = useStorefrontPrefetchProducts({
+  const delayedPrefetchTimersRef = useRef<
+    Map<string, ReturnType<typeof setTimeout>>
+  >(new Map())
+
+  const { prefetchProducts } = useStorefrontPrefetchProducts({
     cacheStrategy,
   })
 
   useEffect(() => {
     return () => {
-      const pendingPrefetchIds = Array.from(activePrefetchIdsRef.current)
-      for (const prefetchId of pendingPrefetchIds) {
-        cancelStorefrontPrefetch(prefetchId)
-      }
-
-      const cleanupTimers = Array.from(cleanupTimersRef.current.values())
-      for (const timer of cleanupTimers) {
+      const pendingTimers = Array.from(delayedPrefetchTimersRef.current.values())
+      for (const timer of pendingTimers) {
         clearTimeout(timer)
       }
 
-      cleanupTimersRef.current.clear()
+      delayedPrefetchTimersRef.current.clear()
       activePrefetchIdsRef.current.clear()
-    }
-  }, [cancelStorefrontPrefetch])
-
-  const clearCleanupTimer = useCallback((prefetchId: string) => {
-    const timer = cleanupTimersRef.current.get(prefetchId)
-    if (timer) {
-      clearTimeout(timer)
-      cleanupTimersRef.current.delete(prefetchId)
     }
   }, [])
 
-  const scheduleIdCleanup = useCallback(
-    (prefetchId: string, delay: number) => {
-      clearCleanupTimer(prefetchId)
-      const timer = setTimeout(() => {
-        activePrefetchIdsRef.current.delete(prefetchId)
-        cleanupTimersRef.current.delete(prefetchId)
-      }, delay + 50)
-      cleanupTimersRef.current.set(prefetchId, timer)
-    },
-    [clearCleanupTimer]
-  )
+  const clearPrefetchTimer = useCallback((prefetchId: string) => {
+    const timer = delayedPrefetchTimersRef.current.get(prefetchId)
+    if (timer) {
+      clearTimeout(timer)
+      delayedPrefetchTimersRef.current.delete(prefetchId)
+    }
+  }, [])
 
   const prefetchCategoryProducts = useCallback(
     async (categoryIds: string[]) => {
@@ -85,67 +65,78 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
         }
       )
     },
-    [prefetchProducts, selectedRegion?.id, enabled, cacheStrategy, prefetchLimit]
+    [cacheStrategy, enabled, prefetchLimit, prefetchProducts, selectedRegion?.id]
   )
 
-  // Delayed prefetch with cancellation support
   const delayedPrefetch = useCallback(
     (categoryIds: string[], delay = 800, prefetchId?: string) => {
       const id = prefetchId || `prefetch_${Date.now()}_${Math.random()}`
       if (!(enabled && selectedRegion?.id) || categoryIds.length === 0) {
         return id
       }
+
       activePrefetchIdsRef.current.add(id)
+      clearPrefetchTimer(id)
 
-      delayedStorefrontPrefetch(
-        {
-          page: 1,
-          limit: prefetchLimit,
-          filters: { categories: categoryIds, sizes: [] },
-          region_id: selectedRegion?.id,
-          sort: "newest",
-        },
-        delay,
-        id
-      )
-      scheduleIdCleanup(id, delay)
+      const timer = setTimeout(() => {
+        delayedPrefetchTimersRef.current.delete(id)
+        void prefetchProducts(
+          {
+            page: 1,
+            limit: prefetchLimit,
+            filters: { categories: categoryIds, sizes: [] },
+            region_id: selectedRegion.id,
+            sort: "newest",
+          },
+          {
+            cacheStrategy,
+            skipIfCached: true,
+            skipMode: "fresh",
+            prefetchedBy: "category-tree",
+          }
+        )
+          .catch((error) => {
+            console.warn("Category delayed prefetch failed", {
+              error,
+              categoryIds,
+            })
+          })
+          .finally(() => {
+            activePrefetchIdsRef.current.delete(id)
+          })
+      }, delay)
 
+      delayedPrefetchTimersRef.current.set(id, timer)
       return id
     },
     [
-      delayedStorefrontPrefetch,
+      cacheStrategy,
+      clearPrefetchTimer,
       enabled,
       prefetchLimit,
-      scheduleIdCleanup,
+      prefetchProducts,
       selectedRegion?.id,
     ]
   )
 
-  // Cancel specific prefetch by ID
   const cancelPrefetch = useCallback(
     (prefetchId: string) => {
       const exists = activePrefetchIdsRef.current.has(prefetchId)
-      cancelStorefrontPrefetch(prefetchId)
-      clearCleanupTimer(prefetchId)
+      clearPrefetchTimer(prefetchId)
       activePrefetchIdsRef.current.delete(prefetchId)
       return exists
     },
-    [cancelStorefrontPrefetch, clearCleanupTimer]
+    [clearPrefetchTimer]
   )
 
-  // Cancel all pending prefetches
   const cancelAllPrefetches = useCallback(() => {
-    const pendingPrefetchIds = Array.from(activePrefetchIdsRef.current)
-    for (const prefetchId of pendingPrefetchIds) {
-      cancelStorefrontPrefetch(prefetchId)
-    }
-    const cleanupTimers = Array.from(cleanupTimersRef.current.values())
-    for (const timer of cleanupTimers) {
+    const pendingTimers = Array.from(delayedPrefetchTimersRef.current.values())
+    for (const timer of pendingTimers) {
       clearTimeout(timer)
     }
-    cleanupTimersRef.current.clear()
+    delayedPrefetchTimersRef.current.clear()
     activePrefetchIdsRef.current.clear()
-  }, [cancelStorefrontPrefetch])
+  }, [])
 
   return {
     prefetchCategoryProducts,

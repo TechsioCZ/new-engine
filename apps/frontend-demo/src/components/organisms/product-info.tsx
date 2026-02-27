@@ -36,6 +36,19 @@ export function ProductInfo({
 
   const validQuantity =
     typeof quantity === "number" && !Number.isNaN(quantity) ? quantity : 1
+  const normalizedQuantity = Math.max(
+    1,
+    Math.min(10, Math.trunc(validQuantity))
+  )
+
+  const handleQuantityChange = (nextQuantity: number) => {
+    if (typeof nextQuantity !== "number" || Number.isNaN(nextQuantity)) {
+      setQuantity(1)
+      return
+    }
+
+    setQuantity(Math.max(1, Math.min(10, Math.trunc(nextQuantity))))
+  }
 
   const handleAddToCart = () => {
     if (!selectedVariant) {
@@ -56,7 +69,7 @@ export function ProductInfo({
       return
     }
 
-    addItem(selectedVariant.id, validQuantity)
+    addItem(selectedVariant.id, normalizedQuantity)
   }
 
   return (
@@ -142,9 +155,9 @@ export function ProductInfo({
           className="h-fit w-24 py-0"
           max={10}
           min={1}
-          onChange={setQuantity}
+          onChange={handleQuantityChange}
           size="sm"
-          value={validQuantity}
+          value={normalizedQuantity}
         />
         <Button icon="icon-[mdi--heart-outline]" size="sm" variant="secondary">
           <span className="sr-only">Pridat do seznamu prani</span>

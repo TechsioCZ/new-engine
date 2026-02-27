@@ -1,21 +1,20 @@
 import { formatPrice } from "@/lib/format-price"
 import type { ReducedShippingMethod } from "@/types/checkout"
 
-type ShippingPrice = ReducedShippingMethod["calculated_price"] | undefined
-
-type PriceWithTax = {
+type ShippingPrice = NonNullable<ReducedShippingMethod["calculated_price"]> & {
   calculated_amount_with_tax?: number | null
-}
-
-type PriceTax = {
   calculated_tax?: number | null
-}
-
-type PriceTaxInclusive = {
   is_calculated_price_tax_inclusive?: boolean | null
 }
 
 const DEFAULT_TAX_RATE = 0.21
+
+const resolveShippingPrice = (
+  shippingMethod: ReducedShippingMethod | undefined
+): ShippingPrice | undefined => {
+  const price = shippingMethod?.calculated_price
+  return price ? (price as ShippingPrice) : undefined
+}
 
 export function getShippingAmount(
   shippingMethod: ReducedShippingMethod | undefined,
@@ -26,17 +25,16 @@ export function getShippingAmount(
 ): number {
   const includeTax = options?.includeTax ?? true
   const fallbackTaxRate = options?.fallbackTaxRate ?? DEFAULT_TAX_RATE
-  const price = shippingMethod?.calculated_price as ShippingPrice
+  const price = resolveShippingPrice(shippingMethod)
 
   if (!price) {
     return 0
   }
 
   const baseAmount = price.calculated_amount ?? 0
-  const amountWithTax = (price as PriceWithTax).calculated_amount_with_tax
-  const calculatedTax = (price as PriceTax).calculated_tax
-  const isTaxInclusive = (price as PriceTaxInclusive)
-    .is_calculated_price_tax_inclusive
+  const amountWithTax = price.calculated_amount_with_tax
+  const calculatedTax = price.calculated_tax
+  const isTaxInclusive = price.is_calculated_price_tax_inclusive
 
   if (!includeTax) {
     return baseAmount

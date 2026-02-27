@@ -108,7 +108,11 @@ export function ProfileForm({ initialAddress, user }: ProfileFormProps) {
           </div>
           <FormInput
             disabled
-            helpText={<StatusText size="sm">E-mail nelze změnit</StatusText>}
+            helpText={
+              <StatusText align="start" size="sm">
+                E-mail nelze změnit
+              </StatusText>
+            }
             id="email"
             label="E-mail"
             size="sm"
