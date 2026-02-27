@@ -57,7 +57,7 @@ export const AddToCartSection = ({
       {
         variantId: selectedVariant.id,
         quantity,
-        autoCreateCart: true,
+        autoCreate: true,
         metadata: {
           inventory_quantity: selectedVariant.inventory_quantity || 0,
         },

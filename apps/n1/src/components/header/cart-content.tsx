@@ -4,7 +4,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
 import { useRemoveLineItem, useUpdateLineItem } from "@/hooks/use-cart"
 import { useCartToast } from "@/hooks/use-toast"
-import type { Cart } from "@/services/cart-service"
+import type { Cart } from "@/types/cart"
 import { getOptimisticFlag } from "@/utils/cart/cart-helpers"
 import { formatAmount } from "@/utils/format/format-product"
 import { CartEmptyState } from "./cart-empty-state"
@@ -132,7 +132,6 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
         <LinkButton
           as={Link}
           className="w-full justify-center"
-          disabled={isPending}
           href="/pokladna"
           onClick={onClose}
           size="md"

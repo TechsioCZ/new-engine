@@ -1,4 +1,4 @@
-import type { Cart } from "@/services/cart-service"
+import type { Cart } from "@/types/cart"
 
 export type CartValidationResult =
   | {
