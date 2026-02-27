@@ -1,7 +1,9 @@
 import type { ProductQueryParams } from "./product-query-params"
 
+export const QUERY_KEY_NAMESPACE = "n1" as const
+
 export const queryKeys = {
-  all: ["n1"] as const,
+  all: [QUERY_KEY_NAMESPACE] as const,
 
   regions: () => [...queryKeys.all, "regions"] as const,
 
@@ -33,9 +35,28 @@ export const queryKeys = {
 
   cart: {
     all: () => [...queryKeys.all, "cart"] as const,
-    active: () => [...queryKeys.cart.all(), "active"] as const,
-    shippingOptions: (cartId: string) =>
-      [...queryKeys.cart.all(), "shipping-options", cartId] as const,
+    active: (params?: { cartId?: string | null; regionId?: string | null }) =>
+      params
+        ? ([
+            ...queryKeys.cart.all(),
+            "active",
+            params.cartId ?? null,
+            params.regionId ?? null,
+          ] as const)
+        : ([...queryKeys.cart.all(), "active"] as const),
+    detail: (cartId: string) => [...queryKeys.cart.all(), "detail", cartId] as const,
+    shippingOptions: (cartId: string, cacheKey?: string) =>
+      cacheKey
+        ? ([...queryKeys.cart.all(), "shipping-options", cartId, cacheKey] as const)
+        : ([...queryKeys.cart.all(), "shipping-options", cartId] as const),
+  },
+
+  checkout: {
+    all: () => [...queryKeys.all, "checkout"] as const,
+    shippingOptions: (cartId: string, cacheKey?: string) =>
+      queryKeys.cart.shippingOptions(cartId, cacheKey),
+    paymentProviders: (regionId: string) =>
+      queryKeys.payment.providers(regionId),
   },
 
   payment: {

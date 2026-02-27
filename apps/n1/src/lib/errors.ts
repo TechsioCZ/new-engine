@@ -60,6 +60,22 @@ function getErrorStatus(error: unknown): number | null {
   return null
 }
 
+export function toError(
+  error: unknown,
+  fallbackMessage = "An unknown error occurred"
+): Error {
+  if (error instanceof Error) {
+    return error
+  }
+
+  const message = getErrorMessage(error)
+  if (message === "An unknown error occurred") {
+    return new Error(fallbackMessage)
+  }
+
+  return new Error(message)
+}
+
 export function isNotFoundError(error: unknown): boolean {
   const status = getErrorStatus(error)
   return status === 404
