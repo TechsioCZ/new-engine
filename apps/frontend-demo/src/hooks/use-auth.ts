@@ -1,61 +1,80 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { useStore } from "@tanstack/react-store"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
+import type { MedusaRegisterData } from "@techsio/storefront-data/auth/medusa-service"
 import { AUTH_MESSAGES } from "@/lib/auth/constants"
-import { queryKeys } from "@/lib/query-keys"
+import { hasStoredAuthToken } from "@/lib/auth-token"
+import { STORAGE_KEYS } from "@/lib/constants"
 import { authHelpers, authStore } from "@/stores/auth-store"
+import {
+  type StorefrontLoginInput,
+  useStorefrontAuth,
+  useStorefrontLogin,
+  useStorefrontLogout,
+  useStorefrontRegister,
+  useStorefrontUpdateCustomer,
+} from "./storefront-auth"
 
 export function useAuth() {
   const authState = useStore(authStore)
   const router = useRouter()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const [hasAuthToken, setHasAuthToken] = useState(() =>
+    hasStoredAuthToken()
+  )
 
-  // Use React Query for initial auth check
-  const { data: currentUser } = useQuery({
-    queryKey: queryKeys.auth.customer(),
-    queryFn: authHelpers.fetchUser,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: false,
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEYS.AUTH_TOKEN) {
+        setHasAuthToken(Boolean(event.newValue))
+      }
+    }
+
+    window.addEventListener("storage", handleStorage)
+    return () => window.removeEventListener("storage", handleStorage)
+  }, [])
+
+  const authQuery = useStorefrontAuth({
+    enabled: hasAuthToken,
+    queryOptions: {
+      staleTime: 5 * 60 * 1000,
+      retry: false,
+    },
   })
 
-  // Update store when query data changes
   useEffect(() => {
-    if (currentUser !== undefined) {
-      authStore.setState((state) => ({
-        ...state,
-        user: currentUser,
-        isInitialized: true,
-        isLoading: false,
-      }))
-    }
-  }, [currentUser])
+    authHelpers.setAuthState({
+      user: authQuery.customer,
+      isInitialized: hasAuthToken ? authQuery.query.isFetched : true,
+      isLoading: hasAuthToken ? authQuery.isLoading : false,
+    })
+  }, [
+    authQuery.customer,
+    authQuery.isLoading,
+    authQuery.query.isFetched,
+    hasAuthToken,
+  ])
 
-  // Login mutation
-  const loginMutation = useMutation({
-    mutationFn: async ({
-      email,
-      password,
-      firstName,
-      lastName,
-    }: {
-      email: string
-      password: string
-      firstName?: string
-      lastName?: string
-    }) => authHelpers.login(email, password, firstName, lastName),
-    onSuccess: () => {
-      // Invalidate auth queries to refetch user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+  const loginMutation = useStorefrontLogin({
+    onSuccess: async () => {
+      authHelpers.setError(null)
+      setHasAuthToken(true)
+      await authQuery.query.refetch()
 
-      // Only redirect if not on test page
-      if (!window.location.pathname.includes("/test-auth")) {
-        router.push("/")
+      if (typeof window !== "undefined") {
+        if (!window.location.pathname.includes("/test-auth")) {
+          router.push("/")
+        }
       }
 
       toast.create({
@@ -63,35 +82,28 @@ export function useAuth() {
         type: "success",
       })
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Login failed"
+      authHelpers.setError(message)
       toast.create({
         ...AUTH_MESSAGES.LOGIN_ERROR,
-        description: error.message,
+        description: message,
         type: "error",
       })
     },
   })
 
-  // Register mutation
-  const registerMutation = useMutation({
-    mutationFn: async ({
-      email,
-      password,
-      firstName,
-      lastName,
-    }: {
-      email: string
-      password: string
-      firstName?: string
-      lastName?: string
-    }) => authHelpers.register(email, password, firstName, lastName),
-    onSuccess: () => {
-      // Invalidate auth queries to refetch user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+  const registerMutation = useStorefrontRegister({
+    onSuccess: async () => {
+      authHelpers.setError(null)
+      setHasAuthToken(true)
+      await authQuery.query.refetch()
 
-      // Only redirect if not on test page
-      if (!window.location.pathname.includes("/test-auth")) {
-        router.push("/")
+      if (typeof window !== "undefined") {
+        if (!window.location.pathname.includes("/test-auth")) {
+          router.push("/")
+        }
       }
 
       toast.create({
@@ -99,20 +111,22 @@ export function useAuth() {
         type: "success",
       })
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Registration failed"
+      authHelpers.setError(message)
       toast.create({
         ...AUTH_MESSAGES.REGISTER_ERROR,
-        description: error.message,
+        description: message,
         type: "error",
       })
     },
   })
 
-  // Logout mutation
-  const logoutMutation = useMutation({
-    mutationFn: authHelpers.logout,
+  const logoutMutation = useStorefrontLogout({
     onSuccess: () => {
-      // Invalidate all queries since user context changed
+      setHasAuthToken(false)
+      authHelpers.clearAuth()
       queryClient.invalidateQueries()
       router.push("/")
 
@@ -123,23 +137,22 @@ export function useAuth() {
     },
   })
 
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: (data: Partial<HttpTypes.StoreCustomer>) =>
-      authHelpers.updateProfile(data),
+  const updateProfileMutation = useStorefrontUpdateCustomer({
     onSuccess: () => {
-      // Invalidate auth queries to refetch updated user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+      authHelpers.setError(null)
 
       toast.create({
         ...AUTH_MESSAGES.UPDATE_SUCCESS,
         type: "success",
       })
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Profile update failed"
+      authHelpers.setError(message)
       toast.create({
         ...AUTH_MESSAGES.UPDATE_ERROR,
-        description: error.message,
+        description: message,
         type: "error",
       })
     },
@@ -157,11 +170,12 @@ export function useAuth() {
     user: authState.user,
     isLoading:
       authState.isLoading ||
+      (hasAuthToken && authQuery.isLoading) ||
       loginMutation.isPending ||
       registerMutation.isPending ||
       updateProfileMutation.isPending,
     isInitialized: authState.isInitialized,
-    error: authState.error,
+    error: authState.error ?? (hasAuthToken ? authQuery.error : null),
 
     // Auth actions with mutations
     login: (
@@ -169,18 +183,51 @@ export function useAuth() {
       password: string,
       firstName?: string,
       lastName?: string
-    ) => loginMutation.mutate({ email, password, firstName, lastName }),
+    ) => {
+      authHelpers.clearErrors()
+      const payload: StorefrontLoginInput = {
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+      }
+      loginMutation.mutate(payload)
+    },
     register: (
       email: string,
       password: string,
       firstName?: string,
       lastName?: string
-    ) => registerMutation.mutate({ email, password, firstName, lastName }),
+    ) => {
+      authHelpers.clearErrors()
+      const payload: MedusaRegisterData = {
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+      }
+      registerMutation.mutate(payload)
+    },
     logout: () => logoutMutation.mutate(),
-    updateProfile: (data: Partial<HttpTypes.StoreCustomer>) =>
-      updateProfileMutation.mutate(data),
-    refetch: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() }),
+    updateProfile: (data: Partial<HttpTypes.StoreCustomer>) => {
+      const payload = {
+        first_name: data.first_name ?? undefined,
+        last_name: data.last_name ?? undefined,
+        phone: data.phone ?? undefined,
+      }
+      updateProfileMutation.mutate(payload)
+    },
+    refetch: () => {
+      const tokenPresent = hasStoredAuthToken()
+      setHasAuthToken(tokenPresent)
+
+      if (!tokenPresent) {
+        authHelpers.clearAuth()
+        return Promise.resolve(undefined)
+      }
+
+      return authQuery.query.refetch()
+    },
 
     // Mutation states
     loginMutation,

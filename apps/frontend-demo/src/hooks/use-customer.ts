@@ -1,66 +1,116 @@
 import type { HttpTypes } from "@medusajs/types"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useStore } from "@tanstack/react-store"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
+import { authStore } from "@/stores/auth-store"
 import type { FormAddressData, FormUserData } from "@/types/checkout"
+import {
+  useStorefrontCreateCustomerAddress,
+  useStorefrontCustomerAddresses,
+  useStorefrontUpdateCustomerAddress,
+  useStorefrontUpdateCustomerProfile,
+} from "./storefront-customer"
 
 export function useCustomer() {
   const queryClient = useQueryClient()
   const toast = useToast()
+  const user = useStore(authStore, (state) => state.user)
+  const isAuthLoading = useStore(authStore, (state) => state.isLoading)
 
-  // Get customer addresses
   const {
-    data: addressesResponse,
-    isLoading,
+    addresses,
+    isLoading: isLoadingAddresses,
     error,
-  } = useQuery({
-    queryKey: queryKeys.customer.addresses(),
-    queryFn: async () => {
-      try {
-        const response = await sdk.store.customer.listAddress()
-        return response
-      } catch (error) {
-        return { addresses: [] }
+  } = useStorefrontCustomerAddresses({
+    enabled: Boolean(user?.id),
+  })
+
+  const mainAddress = addresses[0] as HttpTypes.StoreCustomerAddress | undefined
+  const createAddressMutation = useStorefrontCreateCustomerAddress()
+  const updateAddressMutation = useStorefrontUpdateCustomerAddress()
+
+  const updateProfileMutation = useStorefrontUpdateCustomerProfile({
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.auth.customer() })
+
+      const previousCustomer = queryClient.getQueryData(
+        queryKeys.auth.customer()
+      )
+
+      queryClient.setQueryData(
+        queryKeys.auth.customer(),
+        (old: HttpTypes.StoreCustomer | null) => {
+          if (!old) {
+            return old
+          }
+
+          return {
+            ...old,
+            first_name: newData.first_name,
+            last_name: newData.last_name,
+            phone: newData.phone,
+            company_name: newData.company_name,
+          }
+        }
+      )
+
+      return { previousCustomer }
+    },
+    onError: (mutationError, _variables, context) => {
+      if (context?.previousCustomer) {
+        queryClient.setQueryData(
+          queryKeys.auth.customer(),
+          context.previousCustomer
+        )
       }
+
+      const message =
+        mutationError instanceof Error
+          ? mutationError.message
+          : "Zkuste to prosim znovu"
+
+      toast.create({
+        title: "Chyba pri aktualizaci profilu",
+        description: message,
+        type: "error",
+      })
+    },
+    onSuccess: () => {
+      toast.create({
+        title: "Profil byl uspesne aktualizovan",
+        type: "success",
+      })
     },
   })
 
-  // Get the first address as the main address
-  const addresses = addressesResponse?.addresses || []
-  const mainAddress = addresses[0] as HttpTypes.StoreCustomerAddress | undefined
-
-  // Save address mutation (create or update)
   const saveAddressMutation = useMutation({
     mutationFn: async (data: FormAddressData) => {
-      // Map FormAddressData to Medusa API format
-      const medusaAddress = {
+      const addressInput = {
         address_1: data.street,
         city: data.city,
         postal_code: data.postalCode,
-        country_code: data.country,
+        country_code: (data.country || "cz").toLowerCase(),
       }
 
       if (mainAddress?.id) {
-        return await sdk.store.customer.updateAddress(
-          mainAddress.id,
-          medusaAddress
-        )
+        return updateAddressMutation.mutateAsync({
+          addressId: mainAddress.id,
+          ...addressInput,
+        })
       }
-      return await sdk.store.customer.createAddress(medusaAddress)
+
+      return createAddressMutation.mutateAsync(addressInput)
     },
     onMutate: async (newData) => {
-      // Cancel any outgoing refetches to avoid overwriting optimistic update
       await queryClient.cancelQueries({
         queryKey: queryKeys.customer.addresses(),
       })
 
-      // Snapshot the previous value
       const previousAddresses = queryClient.getQueryData(
         queryKeys.customer.addresses()
       )
 
-      // Optimistically update to the new value
       const optimisticAddress = {
         ...mainAddress,
         address_1: newData.street,
@@ -78,89 +128,35 @@ export function useCustomer() {
         })
       )
 
-      // Return context with snapshot for rollback
       return { previousAddresses }
     },
-    onError: (error: Error, newData, context) => {
-      // Rollback on error
+    onError: (mutationError, _variables, context) => {
       if (context?.previousAddresses) {
         queryClient.setQueryData(
           queryKeys.customer.addresses(),
           context.previousAddresses
         )
       }
+
+      const message =
+        mutationError instanceof Error
+          ? mutationError.message
+          : "Zkuste to prosim znovu"
+
       toast.create({
-        title: "Chyba při ukládání adresy",
-        description: error?.message || "Zkuste to prosím znovu",
+        title: "Chyba pri ukladani adresy",
+        description: message,
         type: "error",
       })
     },
     onSuccess: () => {
       toast.create({
-        title: "Adresa byla úspěšně uložena",
+        title: "Adresa byla uspesne ulozena",
         type: "success",
       })
     },
   })
 
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: FormUserData) => {
-      // Map FormUserData to Medusa API format - only send fields that can be updated
-      const updateData = {
-        first_name: data.first_name,
-        last_name: data.last_name,
-        phone: data.phone || undefined,
-        company_name: data.company_name || undefined,
-      }
-      const updatedCustomer = await sdk.store.customer.update(updateData)
-      return updatedCustomer
-    },
-    onMutate: async (newData) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.auth.customer() })
-      // Snapshot the previous value
-      const previousCustomer = queryClient.getQueryData(
-        queryKeys.auth.customer()
-      )
-
-      // Optimistically update to the new value
-      queryClient.setQueryData(
-        queryKeys.auth.customer(),
-        (old: HttpTypes.StoreCustomer) => ({
-          ...old,
-          first_name: newData.first_name,
-          last_name: newData.last_name,
-          phone: newData.phone,
-          company_name: newData.company_name,
-        })
-      )
-
-      // Return context with snapshot
-      return { previousCustomer }
-    },
-    onError: (error: Error, newData, context) => {
-      // Rollback on error
-      if (context?.previousCustomer) {
-        queryClient.setQueryData(
-          queryKeys.auth.customer(),
-          context.previousCustomer
-        )
-      }
-      toast.create({
-        title: "Chyba při aktualizaci profilu",
-        description: error?.message || "Zkuste to prosím znovu",
-        type: "error",
-      })
-    },
-    onSuccess: () => {
-      toast.create({
-        title: "Profil byl úspěšně aktualizován",
-        type: "success",
-      })
-    },
-  })
-
-  // Map the Medusa address to FormAddressData format
   const mappedAddress: FormAddressData | null = mainAddress
     ? {
         street: mainAddress.address_1 || "",
@@ -172,11 +168,20 @@ export function useCustomer() {
 
   return {
     address: mappedAddress,
-    isLoading,
+    isLoading: isAuthLoading || (Boolean(user?.id) && isLoadingAddresses),
     error,
     saveAddress: saveAddressMutation.mutateAsync,
-    isSaving: saveAddressMutation.isPending,
-    updateProfile: updateProfileMutation.mutateAsync,
+    isSaving:
+      saveAddressMutation.isPending ||
+      createAddressMutation.isPending ||
+      updateAddressMutation.isPending,
+    updateProfile: (data: FormUserData) =>
+      updateProfileMutation.mutateAsync({
+        first_name: data.first_name,
+        last_name: data.last_name,
+        phone: data.phone || undefined,
+        company_name: data.company_name || undefined,
+      }),
     isUpdating: updateProfileMutation.isPending,
   }
 }
