@@ -1,0 +1,4 @@
+@theme static {
+    --color-badge-fg-success: var(--color-fg-reverse);
+    --color-badge-fg-danger: var(--color-fg-reverse);
+}

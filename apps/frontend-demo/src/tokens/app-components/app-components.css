@@ -1,3 +1,5 @@
+@import "./atoms/_badge.css";
+@import "./atoms/_button.css";
 @import "./atoms/_skeleton-loader.css";
 @import "./atoms/_logo.css";
 

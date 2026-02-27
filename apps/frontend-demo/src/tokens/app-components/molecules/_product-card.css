@@ -33,7 +33,7 @@
     from var(--color-button-cart) calc(l + var(--state-hover)) c h
   );
 
-  --color-button-cart-fg: var(--color-button-fg);
+  --color-button-cart-fg: var(--color-fg-reverse);
 
   /* Detail button */
   --color-button-detail: var(--color-button-secondary);
@@ -97,4 +97,8 @@
 
 @utility token-icon-eye {
   @apply icon-[mdi--eye];
+}
+
+@utility grid-rows-pc-card {
+  grid-template-rows: auto auto minmax(var(--height-pc-badges-min), auto) auto 1fr auto;
 }
