@@ -8,6 +8,7 @@ import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
 import { adminPplConfigRoutesMiddlewares } from "./admin/ppl-config/middlewares"
+import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewares"
 import { storeProducersRoutesMiddlewares } from "./store/producers/middlewares"
 
 const originalErrorHandler = errorHandler()
@@ -27,6 +28,7 @@ export default defineMiddlewares({
   },
   routes: [
     ...adminPplConfigRoutesMiddlewares,
+    ...adminPromotionsExtensionMiddlewares,
     ...storeProducersRoutesMiddlewares,
   ],
 })
