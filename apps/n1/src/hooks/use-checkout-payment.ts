@@ -1,27 +1,14 @@
 import type { HttpTypes } from "@medusajs/types"
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
+import { getCachedCartById, patchCartCaches } from "./cart-cache-sync"
+import { checkoutHooks } from "./checkout-hooks-base"
 import { useCartToast } from "@/hooks/use-toast"
-import { CACHE_TIMES } from "@/lib/constants"
-import { CartServiceError } from "@/lib/errors"
-import { queryKeys } from "@/lib/query-keys"
-import {
-  type Cart,
-  createPaymentCollection,
-  getPaymentProviders,
-} from "@/services/cart-service"
+import type { Cart } from "@/types/cart"
 
-type CartMutationError = {
-  message: string
-  code?: string
-}
-
-type UseCheckoutPaymentReturn = {
+export type UseCheckoutPaymentReturn = {
   paymentProviders?: HttpTypes.StorePaymentProvider[]
   initiatePayment: (providerId: string) => void
+  initiatePaymentAsync: (providerId: string) => Promise<HttpTypes.StorePaymentCollection>
   isInitiatingPayment: boolean
   canInitiatePayment: boolean
   hasPaymentCollection: boolean
@@ -35,70 +22,46 @@ export function useCheckoutPayment(
 ): UseCheckoutPaymentReturn {
   const queryClient = useQueryClient()
   const toast = useCartToast()
+  const cachedCart = cartId ? getCachedCartById(queryClient, cartId) : null
+  const effectiveCart = cart ?? cachedCart
+  const resolvedRegionId = regionId ?? effectiveCart?.region_id ?? undefined
 
-  const canLoadProviders = !!regionId
-
-  // Fetch available payment providers for region
-  const { data: paymentProviders = [] } = useSuspenseQuery({
-    queryKey: queryKeys.payment.providers(regionId || "unknown"),
-    queryFn: () => {
-      if (!(canLoadProviders && regionId)) {
-        return []
-      }
-      return getPaymentProviders(regionId)
+  const payment = checkoutHooks.useCheckoutPayment(
+    {
+      cartId,
+      regionId: resolvedRegionId,
+      cart: effectiveCart,
+      enabled: Boolean(resolvedRegionId),
     },
-    staleTime: CACHE_TIMES.PAYMENT_PROVIDERS_STALE,
-  })
-
-  // Initiate payment collection mutation
-  const { mutate: initiatePayment, isPending: isInitiatingPayment } =
-    useMutation<
-      HttpTypes.StorePaymentCollectionResponse,
-      CartMutationError,
-      string
-    >({
-      mutationFn: (providerId: string) => {
+    {
+      // Keep cart UI in sync immediately after payment session init.
+      onSuccess: (paymentCollection) => {
         if (!cartId) {
-          throw new CartServiceError("Cart ID je povinné", "VALIDATION_ERROR")
+          return
         }
-        if (!providerId) {
-          throw new CartServiceError(
-            "Provider ID je povinné",
-            "VALIDATION_ERROR"
-          )
-        }
-        return createPaymentCollection(cartId, providerId)
+        patchCartCaches(queryClient, cartId, (cached) => ({
+          ...cached,
+          payment_collection: paymentCollection,
+        }))
       },
-      onSuccess: () => {
-        // Refresh cart to get payment collection
-        queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
-        if (process.env.NODE_ENV === "development") {
-          console.log("[useCheckoutPayment] Payment collection created")
-        }
-      },
-      onError: (error) => {
-        if (process.env.NODE_ENV === "development") {
-          console.error(
-            "[useCheckoutPayment] Failed to initiate payment:",
-            error
-          )
-        }
-
-        // Show error toast
+      onError: () => {
         toast.paymentInitiatedError()
       },
-    })
+    }
+  )
 
-  const hasShippingMethod = !!cart?.shipping_methods?.[0]
-  const canInitiatePayment = !!cartId && hasShippingMethod
-  const hasPaymentCollection = !!cart?.payment_collection
+  const canInitiatePayment = Boolean(
+    cartId && (effectiveCart?.shipping_methods?.length ?? 0) > 0
+  )
+  const hasPaymentCollection = Boolean(effectiveCart?.payment_collection)
   const hasPaymentSessions =
-    (cart?.payment_collection?.payment_sessions?.length || 0) > 0
+    (effectiveCart?.payment_collection?.payment_sessions?.length ?? 0) > 0
 
   return {
-    paymentProviders,
-    initiatePayment,
-    isInitiatingPayment,
+    paymentProviders: payment.paymentProviders,
+    initiatePayment: payment.initiatePayment,
+    initiatePaymentAsync: payment.initiatePaymentAsync,
+    isInitiatingPayment: payment.isInitiatingPayment,
     canInitiatePayment,
     hasPaymentCollection,
     hasPaymentSessions,

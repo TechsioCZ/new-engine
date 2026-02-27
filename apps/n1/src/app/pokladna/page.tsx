@@ -109,7 +109,7 @@ function CheckoutContent() {
             selectedAccessPoint={selectedAccessPoint}
             shipping={shipping}
           />
-          <PaymentFormSection cart={cart} />
+          <PaymentFormSection />
         </div>
         <div>
           <OrderSummary

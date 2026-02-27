@@ -1,17 +1,17 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
 import { useForm } from "@tanstack/react-form"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { Button } from "@ui/atoms/button"
 import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
 import { AddressValidationError } from "@/lib/errors"
-import type { StoreCustomerAddress } from "@/services/customer-service"
 import { addressToFormData, DEFAULT_ADDRESS } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"
 import { AddressFormFields } from "./address-form-fields"
 
 type AddressFormProps = {
-  address?: StoreCustomerAddress
+  address?: HttpTypes.StoreCustomerAddress
   onCancel: () => void
   onSuccess: () => void
 }

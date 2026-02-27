@@ -140,6 +140,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     useState<PplAccessPointData | null>(null)
   const [isPickupDialogOpen, setIsPickupDialogOpen] = useState(false)
   const [pendingOptionId, setPendingOptionId] = useState<string | null>(null)
+  const hasAutoSelectedShippingRef = useRef(false)
 
   const openPickupDialog = (optionId: string) => {
     setPendingOptionId(optionId)
@@ -186,6 +187,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
         const cartEmail = customer?.email || email
         await updateCartAddressAsync({
           cartId: cart.id,
+          region_id: regionId,
           billingAddress,
           shippingAddress,
           email: cartEmail,
@@ -209,6 +211,28 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
           }
         } else {
           setError("Nepodařilo se uložit adresu")
+        }
+        return
+      }
+
+      const selectedPaymentProviderId =
+        cart.payment_collection?.payment_sessions?.[0]?.provider_id ??
+        payment.paymentProviders?.[0]?.id
+
+      if (!selectedPaymentProviderId) {
+        setError("Není dostupný způsob platby")
+        return
+      }
+
+      // Address updates can invalidate existing payment sessions on backend.
+      // Re-initiate the selected provider right before completion.
+      try {
+        await payment.initiatePaymentAsync(selectedPaymentProviderId)
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(`Chyba platby: ${err.message}`)
+        } else {
+          setError("Nepodařilo se inicializovat platbu")
         }
         return
       }
@@ -241,6 +265,14 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
   // Auto-select PPL Private as default (PPL Parcel requires dialog)
   // NOTE: Options 0-6 use manual_manual provider which is disabled on backend
   useEffect(() => {
+    hasAutoSelectedShippingRef.current = false
+  }, [cart?.id])
+
+  useEffect(() => {
+    if (hasAutoSelectedShippingRef.current) {
+      return
+    }
+
     if (
       shipping.shippingOptions &&
       shipping.shippingOptions.length > 0 &&
@@ -251,11 +283,20 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
         opt.name.toLowerCase().includes("ppl private")
       )
       if (pplPrivate) {
+        hasAutoSelectedShippingRef.current = true
         shipping.setShipping(pplPrivate.id)
       }
       // Don't auto-select if no PPL Private found - let user choose manually
     }
-  }, [shipping.shippingOptions, shipping.selectedShippingMethodId, shipping])
+
+    if (shipping.selectedShippingMethodId) {
+      hasAutoSelectedShippingRef.current = true
+    }
+  }, [
+    shipping.shippingOptions,
+    shipping.selectedShippingMethodId,
+    shipping.setShipping,
+  ])
 
   // Reset access point when switching to non-parcel shipping method
   useEffect(() => {
