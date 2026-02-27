@@ -1,12 +1,9 @@
 "use client"
 
-import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
-import { cacheConfig } from "@/lib/cache-config"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
-import { buildProductQueryParams } from "@/lib/product-query-params"
-import { queryKeys } from "@/lib/query-keys"
-import { getProducts } from "@/services/product-service"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
+import { productHooks } from "./product-hooks-base"
 
 type UsePrefetchPagesParams = {
   enabled?: boolean
@@ -20,9 +17,6 @@ type UsePrefetchPagesParams = {
   countryCode?: string
 }
 
-const MEDIUM_PRIORITY_DELAY = 500
-const LOW_PRIORITY_DELAY = 1500
-
 export function usePrefetchPages({
   enabled = true,
   currentPage,
@@ -34,18 +28,20 @@ export function usePrefetchPages({
   regionId,
   countryCode,
 }: UsePrefetchPagesParams) {
-  const queryClient = useQueryClient()
+  const { prefetchProducts } = productHooks.usePrefetchProducts({
+    cacheStrategy: "semiStatic",
+    skipIfCached: true,
+    skipMode: "any",
+  })
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: prefetch scheduling has multiple priority branches
   useEffect(() => {
-    if (!(enabled && regionId)) {
+    if (!(enabled && regionId && category_id.length > 0)) {
       return
     }
 
     const categoryName = category_id[0]?.slice(-6) || "unknown"
-    const timers: NodeJS.Timeout[] = []
+    const timers: ReturnType<typeof setTimeout>[] = []
 
-    // Helper: Prefetch batch of pages with logging
     const prefetchBatch = (pages: number[], priority: string) => {
       if (pages.length === 0) {
         return
@@ -59,22 +55,22 @@ export function usePrefetchPages({
         `${categoryName}: ${pageLabels} (${priority})`
       )
 
-      Promise.all(
-        pages.map((page) => {
-          const queryParams = buildProductQueryParams({
-            category_id,
-            region_id: regionId,
-            country_code: countryCode,
-            page,
-            limit: pageSize,
-          })
-
-          return queryClient.prefetchQuery({
-            queryKey: queryKeys.products.list(queryParams),
-            queryFn: ({ signal }) => getProducts(queryParams, signal),
-            ...cacheConfig.semiStatic,
-          })
-        })
+      Promise.allSettled(
+        pages.map((page) =>
+          prefetchProducts(
+            {
+              category_id,
+              region_id: regionId,
+              country_code: countryCode,
+              page,
+              limit: pageSize,
+            },
+            {
+              skipIfCached: true,
+              skipMode: "any",
+            }
+          )
+        )
       ).then(() => {
         const duration = performance.now() - start
         prefetchLogger.complete(
@@ -85,42 +81,34 @@ export function usePrefetchPages({
       })
     }
 
-    // Build priority groups
     const high = hasNextPage ? [currentPage + 1] : []
 
     const medium =
       hasNextPage && currentPage + 2 <= totalPages ? [currentPage + 2] : []
 
     const lowCandidates = [
-      // previous page
       hasPrevPage ? currentPage - 1 : null,
-      // first page
       currentPage !== 1 ? 1 : null,
-      // last page
       totalPages > 1 && currentPage !== totalPages ? totalPages : null,
-    ].filter((p): p is number => p !== null)
+    ].filter((page): page is number => page !== null)
 
-    const low = [...new Set(lowCandidates)] // Deduplicate (e.g., p2: prev=1, first=1)
+    const low = Array.from(new Set(lowCandidates))
 
-    // Execute with priority delays
-    // HIGH: Immediate (0ms)
     prefetchBatch(high, "high")
 
-    // MEDIUM: 200ms delay
     if (medium.length > 0) {
       timers.push(
         setTimeout(() => {
           prefetchBatch(medium, "medium")
-        }, MEDIUM_PRIORITY_DELAY)
+        }, PREFETCH_DELAYS.PAGES.MEDIUM)
       )
     }
 
-    // LOW: 1000ms delay
     if (low.length > 0) {
       timers.push(
         setTimeout(() => {
           prefetchBatch(low, "low")
-        }, LOW_PRIORITY_DELAY)
+        }, PREFETCH_DELAYS.PAGES.LOW)
       )
     }
 
@@ -139,6 +127,6 @@ export function usePrefetchPages({
     category_id,
     regionId,
     countryCode,
-    queryClient,
+    prefetchProducts,
   ])
 }

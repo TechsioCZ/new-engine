@@ -7,9 +7,11 @@ type RelatedProductsProps = {
 }
 
 export const RelatedProducts = ({ categories }: RelatedProductsProps) => {
+  const hasCategories = Boolean(categories?.length)
   const { products: rawProducts } = useProducts({
-    category_id: categories,
+    category_id: categories ?? [],
     limit: 4,
+    enabled: hasCategories,
   })
   const products = rawProducts.map(transformProduct)
   return (

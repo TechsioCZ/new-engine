@@ -1,14 +1,17 @@
+import type { HttpTypes } from "@medusajs/types"
+import { createMedusaProductService } from "@techsio/storefront-data/products/medusa-service"
 import { NextResponse } from "next/server"
-import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
+import { sdk } from "@/lib/medusa-client"
 
-const MEDUSA_API_URL = getMedusaBackendUrl()
-const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 const BATCH_SIZE = 100
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
+const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 const DEFAULT_REGION_ID =
   process.env.NEXT_PUBLIC_DEFAULT_REGION_ID || "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
 
-type MedusaVariant = {
+const productService = createMedusaProductService(sdk)
+
+type FeedVariant = {
   id: string
   title: string
   sku?: string
@@ -22,41 +25,39 @@ type MedusaVariant = {
   }
 }
 
-type MedusaProduct = {
+type FeedProduct = {
   id: string
   title: string
   handle: string
   description?: string
   thumbnail?: string
-  variants?: MedusaVariant[]
+  variants?: FeedVariant[]
   categories?: Array<{ name: string }>
 }
 
-type MedusaResponse = {
-  products: MedusaProduct[]
-  count: number
-}
-
-async function fetchAllProducts(): Promise<MedusaProduct[]> {
-  const allProducts: MedusaProduct[] = []
+async function fetchAllProducts(): Promise<FeedProduct[]> {
+  const allProducts: FeedProduct[] = []
   let offset = 0
   let total = 0
 
   do {
-    const url = `${MEDUSA_API_URL}/store/products?limit=${BATCH_SIZE}&offset=${offset}&region_id=${DEFAULT_REGION_ID}&fields=*variants.calculated_price`
+    const response = await productService.getProducts(
+      {
+        limit: BATCH_SIZE,
+        offset,
+        region_id: DEFAULT_REGION_ID,
+        fields: "*variants.calculated_price",
+      },
+      undefined
+    )
 
-    const response = await fetch(url, {
-      headers: { "x-publishable-api-key": MEDUSA_API_KEY },
-      next: { revalidate: 3600 }, // Cache for 1 hour
-    })
-
-    if (!response.ok) {
-      throw new Error(`Medusa API error: ${response.status}`)
+    const products = response.products as HttpTypes.StoreProduct[]
+    if (!products.length) {
+      break
     }
 
-    const data: MedusaResponse = await response.json()
-    total = data.count
-    allProducts.push(...data.products)
+    total = response.count
+    allProducts.push(...(products as FeedProduct[]))
     offset += BATCH_SIZE
   } while (offset < total)
 
@@ -72,7 +73,7 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;")
 }
 
-function buildShopItem(product: MedusaProduct, variant: MedusaVariant): string {
+function buildShopItem(product: FeedProduct, variant: FeedVariant): string {
   const variantTitle = variant.title || "Default"
   const url = `${SITE_URL}/produkt/${product.handle}?variant=${encodeURIComponent(variantTitle)}`
 
@@ -108,7 +109,7 @@ function buildShopItem(product: MedusaProduct, variant: MedusaVariant): string {
     </SHOPITEM>`
 }
 
-function generateXmlFeed(products: MedusaProduct[]): string {
+function generateXmlFeed(products: FeedProduct[]): string {
   const items: string[] = []
 
   for (const product of products) {
