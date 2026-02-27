@@ -1,4 +1,4 @@
-import type { Country, PaymentMethod, ShippingMethod } from "@/types/checkout"
+import type { Country, ShippingMethod } from "@/types/checkout"
 
 const getDeliveryDate = (daysToAdd: number) => {
   const date = new Date()
@@ -10,74 +10,119 @@ const getDeliveryDate = (daysToAdd: number) => {
   })
 }
 
-export const SHIPPING_METHODS: ShippingMethod[] = [
+type ShippingMethodMetadata = ShippingMethod & {
+  providerIds?: string[]
+  typeCodes?: string[]
+  nameAliases?: string[]
+}
+
+const normalizeShippingKey = (value?: string | null) =>
+  value?.trim().toLowerCase()
+
+const hasNormalizedMatch = (
+  values: string[] | undefined,
+  target: string | undefined
+) => Boolean(target && values?.some((value) => normalizeShippingKey(value) === target))
+
+export const SHIPPING_METHODS: ShippingMethodMetadata[] = [
   {
     id: "ppl",
     name: "PPL",
-    description: "Doručení na adresu",
+    description: "Doruceni na adresu",
     price: 89,
-    priceFormatted: "89 Kč",
-    delivery: "Doručení za 2-3 pracovní dny",
-    deliveryDate: `Doručení ${getDeliveryDate(2)} - ${getDeliveryDate(3)}`,
+    priceFormatted: "89 Kc",
+    delivery: "Doruceni za 2-3 pracovni dny",
+    deliveryDate: `Doruceni ${getDeliveryDate(2)} - ${getDeliveryDate(3)}`,
     image: "/assets/ppl.webp",
+    providerIds: ["ppl_ppl"],
+    typeCodes: [
+      "ppl-private",
+      "ppl-private-cod",
+      "ppl-parcel-smart",
+      "ppl-parcel-smart-cod",
+    ],
+    nameAliases: ["ppl private", "ppl parcel smart", "ppl parcel smart cod"],
   },
   {
     id: "dhl",
     name: "DHL",
-    description: "Expresní doručení",
+    description: "Expresni doruceni",
     price: 129,
-    priceFormatted: "129 Kč",
-    delivery: "Doručení za 1-2 pracovní dny",
-    deliveryDate: `Doručení ${getDeliveryDate(1)} - ${getDeliveryDate(2)}`,
+    priceFormatted: "129 Kc",
+    delivery: "Doruceni za 1-2 pracovni dny",
+    deliveryDate: `Doruceni ${getDeliveryDate(1)} - ${getDeliveryDate(2)}`,
     image: "/assets/dhl.webp",
+    providerIds: ["dhl_dhl"],
+    typeCodes: ["dhl", "dhl-cod"],
   },
   {
     id: "zasilkovna",
-    name: "Zásilkovna",
-    description: "Výdejní místa po celé ČR",
+    name: "Zasilkovna",
+    description: "Vydejni mista po cele CR",
     price: 65,
-    priceFormatted: "65 Kč",
-    delivery: "Doručení za 2-3 pracovní dny",
-    deliveryDate: `Doručení ${getDeliveryDate(2)} - ${getDeliveryDate(3)}`,
+    priceFormatted: "65 Kc",
+    delivery: "Doruceni za 2-3 pracovni dny",
+    deliveryDate: `Doruceni ${getDeliveryDate(2)} - ${getDeliveryDate(3)}`,
     image: "/assets/zasilkovna.webp",
+    providerIds: ["packeta_packeta", "zasilkovna_zasilkovna"],
+    typeCodes: ["zasilkovna", "zasilkovna-cod", "packeta"],
+    nameAliases: ["packeta"],
   },
   {
     id: "balikovna",
-    name: "Balíkovna",
-    description: "Široká síť výdejních míst",
+    name: "Balikovna",
+    description: "Siroka sit vydejnich mist",
     price: 59,
-    priceFormatted: "59 Kč",
-    delivery: "Doručení za 2-3 pracovní dny",
-    deliveryDate: `Doručení ${getDeliveryDate(2)} - ${getDeliveryDate(3)}`,
+    priceFormatted: "59 Kc",
+    delivery: "Doruceni za 2-3 pracovni dny",
+    deliveryDate: `Doruceni ${getDeliveryDate(2)} - ${getDeliveryDate(3)}`,
     image: "/assets/balikovna.webp",
+    providerIds: ["balikovna_baliko", "ceskaposta_baliko"],
+    typeCodes: ["balikovna", "balikovna-cod", "cp-balikovna"],
   },
   {
     id: "personal",
-    name: "Osobní odběr",
-    description: "Vyzvednutí na prodejně",
+    name: "Osobni odber",
+    description: "Vyzvednuti na prodejne",
     price: 0,
     priceFormatted: "Zdarma",
-    delivery: "Připraveno ihned",
-    deliveryDate: "Vyzvednutí dnes",
+    delivery: "Pripraveno ihned",
+    deliveryDate: "Vyzvednuti dnes",
     image: "/assets/instore.webp",
+    providerIds: ["manual_manual", "in_store_in_store"],
+    typeCodes: ["pickup", "personal-pickup", "store-pickup"],
+    nameAliases: ["osobni odber", "pickup"],
   },
 ]
 
-export const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: "comgate", name: "Comgate", fee: 0, image: "/assets/comgate.webp" },
-  { id: "gopay", name: "GoPay", fee: 0, image: "/assets/gpay.webp" },
-  { id: "paypal", name: "PayPal", fee: 50, image: "/assets/paypal.webp" },
-  { id: "cash", name: "Dobírkou", fee: 30, image: "/assets/cash.webp" },
-  { id: "skippay", name: "SkipPay", fee: 0, image: "/assets/skippay.webp" },
-  { id: "stripe", name: "Stripe", fee: 0, image: "/assets/stripe.webp" },
-  { id: "card", name: "Platební kartou", fee: 0, image: "/assets/card.webp" },
-  { id: "qr", name: "QR platba", fee: 0, image: "/assets/qr.webp" },
-]
+export const resolveShippingMethodMetadata = (input: {
+  providerId?: string
+  typeCode?: string
+  name?: string
+}) => {
+  const providerId = normalizeShippingKey(input.providerId)
+  const typeCode = normalizeShippingKey(input.typeCode)
+  const name = normalizeShippingKey(input.name)
+
+  return (
+    SHIPPING_METHODS.find((method) =>
+      hasNormalizedMatch(method.typeCodes, typeCode)
+    ) ??
+    SHIPPING_METHODS.find((method) =>
+      hasNormalizedMatch(method.providerIds, providerId)
+    ) ??
+    SHIPPING_METHODS.find(
+      (method) =>
+        normalizeShippingKey(method.name) === name ||
+        hasNormalizedMatch(method.nameAliases, name)
+    )
+  )
+}
 
 export const COUNTRIES: Country[] = [
-  { label: "Česká republika", value: "cz" },
+  { label: "Ceska republika", value: "cz" },
   { label: "Slovensko", value: "sk" },
   { label: "Polsko", value: "pl" },
-  { label: "Německo", value: "de" },
+  { label: "Nemecko", value: "de" },
   { label: "Rakousko", value: "at" },
 ]

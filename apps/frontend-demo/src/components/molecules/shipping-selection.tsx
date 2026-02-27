@@ -2,8 +2,8 @@ import Image from "next/image"
 import "../../tokens/app-components/molecules/_shipping-selection.css"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { SHIPPING_METHODS } from "@/lib/checkout-data"
-import { formatPrice } from "@/lib/format-price"
+import { resolveShippingMethodMetadata } from "@/lib/checkout-data"
+import { formatShippingPrice } from "@/lib/checkout-shipping-pricing"
 import type { ReducedShippingMethod } from "@/types/checkout"
 
 interface ShippingSelectionProps {
@@ -22,13 +22,13 @@ const ShippingMethodDetail = ({
   method: ReducedShippingMethod
   selected: string
 }) => {
-  const detailInfo = SHIPPING_METHODS.find((m) => m.name === method.name)
+  const detailInfo = resolveShippingMethodMetadata({
+    name: method.name,
+    providerId: method.provider_id,
+    typeCode: method.type_code,
+  })
 
-  const priceWithTax = (method.calculated_price?.calculated_amount || 0) * 1.21
-  const formattedPrice = formatPrice(
-    priceWithTax,
-    method.calculated_price.currency_code || "CZK"
-  )
+  const formattedPrice = formatShippingPrice(method)
 
   return (
     <div className="flex flex-1 items-center gap-3 sm:gap-4">
@@ -74,22 +74,24 @@ export function ShippingSelection({
   isLoading,
 }: ShippingSelectionProps) {
   const toast = useToast()
+
   const handleProgress = () => {
-    if (selected) {
+    if (selected && !isLoading) {
       setCurrentStep(currentStep + 1)
-    } else {
-      toast.create({
-        type: "error",
-        title: "Není vybrán dopravce",
-        description: "Je potřeba zvolit jeden způsob dopravy",
-      })
+      return
     }
+
+    toast.create({
+      type: "error",
+      title: "Neni vybran dopravce",
+      description: "Je potreba zvolit jeden zpusob dopravy",
+    })
   }
 
   return (
     <div className="w-full space-y-250 py-2 sm:py-4">
       <div
-        aria-label="Vyberte způsob dopravy"
+        aria-label="Vyberte zpusob dopravy"
         className="grid grid-cols-1 gap-3 sm:gap-4"
         role="radiogroup"
       >
@@ -99,6 +101,7 @@ export function ShippingSelection({
             aria-label={`${method.name} - ${method.calculated_price.calculated_amount}`}
             className="relative flex items-center rounded-lg border-2 border-border-subtle bg-surface p-3 transition-all duration-200 hover:bg-surface-hover hover:shadow-md focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) data-[selected=true]:border-primary data-[selected=true]:bg-surface-selected data-[selected=true]:shadow-lg sm:p-4"
             data-selected={selected === method.id}
+            disabled={isLoading}
             key={method.id}
             onClick={() => onSelect(method.id)}
           >
@@ -106,12 +109,21 @@ export function ShippingSelection({
           </Button>
         ))}
       </div>
+
+      {isLoading && (
+        <p className="text-fg-secondary text-sm">Nacitam dostupne dopravce...</p>
+      )}
+
       <div className="flex w-full justify-between">
-        <Button onClick={() => setCurrentStep(currentStep - 1)} size="sm">
-          Zpět
+        <Button
+          disabled={isLoading}
+          onClick={() => setCurrentStep(currentStep - 1)}
+          size="sm"
+        >
+          Zpet
         </Button>
-        <Button onClick={handleProgress} size="sm">
-          Pokračovat
+        <Button disabled={isLoading} onClick={handleProgress} size="sm">
+          Pokracovat
         </Button>
       </div>
     </div>
