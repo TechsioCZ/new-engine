@@ -1,50 +1,102 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
+import type { CacheConfig } from "@techsio/storefront-data/shared/cache-config"
 import { useRegions } from "@/hooks/use-region"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import { getProducts, type ProductListParams } from "@/services/product-service"
+import { resolveRegionCountryCode } from "@/lib/region-utils"
+import type { ProductListParams } from "@/types/product-query"
+import {
+  buildStorefrontProductListParams,
+  fetchStorefrontProducts,
+  storefrontProductQueryKeys,
+  type StorefrontProductListInput,
+  useStorefrontPrefetchProducts,
+} from "./storefront-products"
 
 interface UsePrefetchProductsOptions {
   enabled?: boolean
-  // Allow custom cache config if needed
-  cacheStrategy?: keyof typeof cacheConfig
+  cacheStrategy?: keyof CacheConfig
 }
 
 const DEFAULT_LIMIT = 12
+type PrefetchedProductList = Awaited<ReturnType<typeof fetchStorefrontProducts>>
+type PrefetchedInfiniteProducts = {
+  pages: PrefetchedProductList[]
+  pageParams: number[]
+}
 
 export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
-  const { selectedRegion } = useRegions()
   const queryClient = useQueryClient()
+  const { selectedRegion } = useRegions()
   const enabled = options?.enabled ?? true
   const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
+  const { prefetchProducts: sdPrefetchProducts } = useStorefrontPrefetchProducts({
+    cacheStrategy,
+  })
+
+  const seedInfiniteProductsCache = useCallback(
+    (input: StorefrontProductListInput) => {
+      const listParams = buildStorefrontProductListParams(input)
+
+      if (listParams.offset !== 0) {
+        return
+      }
+
+      const listQueryKey = storefrontProductQueryKeys.list(listParams)
+      const prefetchedList =
+        queryClient.getQueryData<PrefetchedProductList>(listQueryKey)
+
+      if (!prefetchedList) {
+        return
+      }
+
+      const infiniteQueryKey = storefrontProductQueryKeys.infinite
+        ? storefrontProductQueryKeys.infinite(listParams)
+        : [...listQueryKey, "__infinite"]
+
+      queryClient.setQueryData<PrefetchedInfiniteProducts | undefined>(
+        infiniteQueryKey,
+        (existing) =>
+          existing ?? {
+            pages: [prefetchedList],
+            pageParams: [listParams.offset],
+          }
+      )
+    },
+    [queryClient]
+  )
 
   const prefetchProducts = useCallback(
     (params?: Omit<ProductListParams, "region_id">) => {
       if (!(enabled && selectedRegion?.id)) return
 
-      const queryParams = {
+      const limit = params?.limit ?? DEFAULT_LIMIT
+      const offset = params?.offset ?? 0
+      const page = Math.floor(offset / limit) + 1
+      const countryCode = resolveRegionCountryCode(selectedRegion)
+
+      const queryParams: StorefrontProductListInput = {
         ...params,
+        limit,
+        offset,
+        page,
         region_id: selectedRegion.id,
+        country_code: countryCode,
       }
 
-      queryClient.prefetchQuery({
-        queryKey: queryKeys.products.list({
-          page: params?.offset
-            ? Math.floor(params.offset / (params.limit || DEFAULT_LIMIT)) + 1
-            : 1,
-          limit: params?.limit,
-          filters: params?.filters,
-          sort: params?.sort,
-          category: params?.category,
-          q: params?.q,
-          region_id: selectedRegion.id,
-        }),
-        queryFn: () => getProducts(queryParams),
-        ...cacheConfig[cacheStrategy],
-      })
+      void (async () => {
+        await sdPrefetchProducts(queryParams, {
+          cacheStrategy,
+        })
+        seedInfiniteProductsCache(queryParams)
+      })()
     },
-    [queryClient, selectedRegion?.id, enabled, cacheStrategy]
+    [
+      selectedRegion,
+      enabled,
+      sdPrefetchProducts,
+      cacheStrategy,
+      seedInfiniteProductsCache,
+    ]
   )
 
   // Prefetch default products page (first page, no filters)

@@ -3,7 +3,7 @@
  * These functions build query parameters for server-side filtering
  */
 
-import type { ProductFilters } from "@/services/product-service"
+import type { ProductFilters } from "@/types/product-query"
 
 export interface MedusaProductQuery {
   limit?: number

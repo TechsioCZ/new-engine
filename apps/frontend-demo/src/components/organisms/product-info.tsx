@@ -1,4 +1,5 @@
 "use client"
+
 import { Badge, type BadgeProps } from "@ui/atoms/badge"
 import { Button } from "@ui/atoms/button"
 import { Label } from "@ui/atoms/label"
@@ -9,7 +10,7 @@ import { useState } from "react"
 import { SafeHtmlContent } from "@/components/safe-html-content"
 import { useCart } from "@/hooks/use-cart"
 import type { Product, ProductVariant } from "@/types/product"
-import { sortVariantsBySize } from "@/utils/variant-utils"
+import { isVariantInStock, sortVariantsBySize } from "@/utils/variant-utils"
 
 interface ProductInfoProps {
   product: Product
@@ -33,25 +34,33 @@ export function ProductInfo({
   const toast = useToast()
   const productVariants = product.variants || []
 
+  const validQuantity =
+    typeof quantity === "number" && !Number.isNaN(quantity) ? quantity : 1
+
   const handleAddToCart = () => {
     if (!selectedVariant) {
       toast.create({
-        title: "Vyberte prosím možnosti",
-        description:
-          "Před přidáním do košíku vyberte prosím všechny možnosti produktu.",
+        title: "Vyberte prosim moznosti",
+        description: "Pred pridanim do kosiku vyberte variantu produktu.",
         type: "error",
       })
       return
     }
+
+    if (!isVariantInStock(selectedVariant)) {
+      toast.create({
+        title: "Varianta neni skladem",
+        description: "Vyberte prosim jinou velikost.",
+        type: "error",
+      })
+      return
+    }
+
     addItem(selectedVariant.id, validQuantity)
   }
 
-  const validQuantity =
-    typeof quantity === "number" && !Number.isNaN(quantity) ? quantity : 1
-
   return (
     <div className="flex flex-col">
-      {/* Badges */}
       {badges.length > 0 && (
         <div className="mb-product-info-badge-margin flex flex-wrap gap-product-info-badge-gap">
           {badges.map((badge, idx) => (
@@ -60,57 +69,56 @@ export function ProductInfo({
         </div>
       )}
 
-      {/* Title */}
       <h1 className="mb-product-info-title-margin font-product-info-title text-product-info-title-size">
         {product.title}
       </h1>
 
-      {/* Rating */}
       {product.rating && (
         <div className="mb-product-info-rating-margin flex items-center gap-product-info-rating-gap">
           <Rating readOnly value={product.rating} />
           <span className="text-product-info-rating-text">
-            ({product.reviewCount || 0} recenzí)
+            ({product.reviewCount || 0} recenzi)
           </span>
         </div>
       )}
 
-      {/* Description */}
       <SafeHtmlContent
         className="mb-product-info-description-margin text-product-info-description"
         content={product.description}
       />
 
-      {/* Variant Selectors */}
       {productVariants.length > 1 && (
         <div className="mb-product-info-variant-margin">
           <Label className="mb-product-info-variant-label-margin font-medium text-md">
-            Vyberte Velikost
+            Vyberte velikost
           </Label>
 
-          {
-            /* Size or other option buttons */
-            <div className="flex flex-wrap gap-100">
-              {sortVariantsBySize(productVariants).map((variant) => {
-                const isSelected = selectedVariant?.id === variant.id
-                return (
-                  <Button
-                    className="roundend-product-btn border"
-                    key={variant.id}
-                    onClick={() => onVariantChange(variant)}
-                    size="sm"
-                    theme={isSelected ? "solid" : "borderless"}
-                  >
-                    {variant.title}
-                  </Button>
-                )
-              })}
-            </div>
-          }
+          <div className="flex flex-wrap gap-100">
+            {sortVariantsBySize(productVariants).map((variant) => {
+              const isSelected = selectedVariant?.id === variant.id
+              const isInStock = isVariantInStock(variant)
+
+              return (
+                <Button
+                  className={`roundend-product-btn border ${!isInStock ? "cursor-not-allowed opacity-50" : ""}`}
+                  disabled={!isInStock}
+                  key={variant.id}
+                  onClick={() => {
+                    if (isInStock) {
+                      onVariantChange(variant)
+                    }
+                  }}
+                  size="sm"
+                  theme={isSelected ? "solid" : "borderless"}
+                >
+                  {variant.title}
+                </Button>
+              )
+            })}
+          </div>
         </div>
       )}
 
-      {/* Price */}
       <div className="mb-product-info-price-margin flex flex-col gap-100">
         {!!priceWithTax && (
           <span className="font-product-info-price text-product-info-price-size">
@@ -120,7 +128,6 @@ export function ProductInfo({
         <span className="text-fg-secondary text-sm">bez DPH {price}</span>
       </div>
 
-      {/* Actions */}
       <div className="mb-product-info-action-margin flex gap-product-info-action-gap">
         <Button
           className="items-center"
@@ -129,7 +136,7 @@ export function ProductInfo({
           size="sm"
           variant="primary"
         >
-          Přidat do košíku
+          Pridat do kosiku
         </Button>{" "}
         <NumericInputTemplate
           className="h-fit w-24 py-0"
@@ -140,7 +147,7 @@ export function ProductInfo({
           value={validQuantity}
         />
         <Button icon="icon-[mdi--heart-outline]" size="sm" variant="secondary">
-          <span className="sr-only">Přidat do seznamu přání</span>
+          <span className="sr-only">Pridat do seznamu prani</span>
         </Button>
       </div>
     </div>

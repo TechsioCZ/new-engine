@@ -1,9 +1,9 @@
 "use client"
 
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { ErrorText } from "@/components/atoms/error-text"
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
 import { Gallery } from "@/components/organisms/gallery"
 import { ProductGrid } from "@/components/organisms/product-grid"
@@ -13,22 +13,23 @@ import { useProduct, useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
 import { truncateProductTitle } from "@/lib/order-utils"
 import { formatPrice } from "@/utils/price-utils"
+import { getDefaultVariant } from "@/utils/variant-utils"
 
 interface ProductDetailProps {
   handle: string
 }
 
 export default function ProductDetail({ handle }: ProductDetailProps) {
-  const { selectedRegion } = useRegions()
+  const { selectedRegion, isLoading: isLoadingRegions } = useRegions()
   const { product, isLoading, error } = useProduct(handle, selectedRegion?.id)
   const [selectedVariant, setSelectedVariant] = useState(
-    product?.variants?.[0] || null
+    getDefaultVariant(product?.variants)
   )
   const titleQuery = product?.title.split(" ").slice(0, 2).join(" ") || ""
   // Update selected variant when product loads or changes
   useEffect(() => {
-    if (product?.variants?.[0]) {
-      setSelectedVariant(product.variants[0])
+    if (product?.variants?.length) {
+      setSelectedVariant(getDefaultVariant(product.variants))
     }
   }, [product])
 
@@ -46,7 +47,9 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
     ?.filter((p) => p.handle !== handle)
     .slice(0, 4)
 
-  if (isLoading) {
+  const isWaitingForRegion = isLoadingRegions || !selectedRegion?.id
+
+  if (isLoading || isWaitingForRegion) {
     return (
       <div className="min-h-screen bg-product-detail-bg">
         <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y">
@@ -93,11 +96,12 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
     formatPrice(variantPrice.calculated_amount, selectedRegion?.currency_code)
 
   const priceWithTax =
-    variantPrice?.calculated_amount_with_tax &&
-    formatPrice(
-      variantPrice.calculated_amount_with_tax,
-      selectedRegion?.currency_code
-    )
+    variantPrice?.calculated_amount_with_tax != null
+      ? formatPrice(
+          variantPrice.calculated_amount_with_tax,
+          selectedRegion?.currency_code
+        )
+      : undefined
   // Get badges for the product
   const badges = []
   if (product.metadata?.isNew) {
@@ -114,7 +118,7 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
     product.images?.map((img, idx) => ({
       id: `image-${idx}`,
       src: img.url,
-      alt: img.alt || product.title,
+      alt: product.title,
     })) || []
 
   return (

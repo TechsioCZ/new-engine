@@ -6,7 +6,7 @@ import { SelectTemplate } from "@ui/templates/select"
 import { useState } from "react"
 import { useCart } from "@/hooks/use-cart"
 import { truncateProductTitle } from "@/lib/order-utils"
-import type { Product } from "@/types/product"
+import type { Product, ProductVariant } from "@/types/product"
 import { formatPrice } from "@/utils/price-utils"
 
 interface AddToCartDialogProps {
@@ -24,16 +24,26 @@ export function AddToCartDialog({
   const [selectedVariantId, setSelectedVariantId] = useState<string>("")
 
   const variants = product.variants || []
+  const getVariantName = (variant: ProductVariant) => {
+    const optionValues =
+      variant.options
+        ?.map((option) => option.value)
+        .filter((value): value is string => Boolean(value)) || []
+
+    if (optionValues.length > 0) {
+      return optionValues.join(" / ")
+    }
+
+    return variant.title || "Varianta"
+  }
 
   const variantOptions = variants.map((variant) => {
-    const variantName = variant.options
-      ? Object.values(variant.options).join(" / ")
-      : variant.title
+    const variantName = getVariantName(variant)
 
     const price = variant.calculated_price
       ? formatPrice(
           variant.calculated_price.calculated_amount || 0,
-          variant.calculated_price.currency_code
+          variant.calculated_price.currency_code ?? undefined
         )
       : ""
 
