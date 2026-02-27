@@ -4,8 +4,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import { getOrderById, type StoreOrder } from "@/services/order-service"
+import { useOrder } from "@/hooks/use-orders"
 import { formatDateString } from "@/utils/format/format-date"
 import {
   getOrderStatusColor,
@@ -15,39 +14,13 @@ import { OrderDetail } from "./order-detail"
 
 export function OrderDetailClient() {
   const { id } = useParams<{ id: string }>()
-  const [order, setOrder] = useState<StoreOrder | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    let active = true
-    setIsLoading(true)
-    setError(null)
+  const order = useOrder({
+    id,
+    enabled: Boolean(id),
+  })
 
-    getOrderById(id)
-      .then((data) => {
-        if (active) {
-          setOrder(data)
-        }
-      })
-      .catch((err) => {
-        if (!active) {
-          return
-        }
-        setError(err instanceof Error ? err.message : "Chyba při načítání")
-      })
-      .finally(() => {
-        if (active) {
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [id])
-
-  if (isLoading) {
+  if (order.isLoading) {
     return (
       <div className="mx-auto max-w-max-w px-400">
         <p className="text-fg-secondary">Načítám objednávku...</p>
@@ -55,11 +28,11 @@ export function OrderDetailClient() {
     )
   }
 
-  if (error || !order) {
+  if (order.error || !order.order) {
     return (
       <div className="mx-auto max-w-max-w px-400">
         <p className="text-fg-secondary">
-          {error || "Objednávka nebyla nalezena"}
+          {order.error || "Objednávka nebyla nalezena"}
         </p>
         <LinkButton
           as={Link}
@@ -74,7 +47,7 @@ export function OrderDetailClient() {
     )
   }
 
-  const statusVariant = getOrderStatusColor(order.status || "pending")
+  const statusVariant = getOrderStatusColor(order.order.status || "pending")
 
   return (
     <div className="mx-auto max-w-max-w px-400">
@@ -92,10 +65,10 @@ export function OrderDetailClient() {
         <div className="flex flex-col gap-200 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="font-bold text-fg-primary text-xl">
-              Objednávka #{order.display_id}
+              Objednávka #{order.order.display_id}
             </h1>
             <p className="text-fg-secondary">
-              {formatDateString(order.created_at as string, {
+              {formatDateString(order.order.created_at as string, {
                 month: "long",
                 year: "numeric",
                 day: "numeric",
@@ -104,13 +77,13 @@ export function OrderDetailClient() {
           </div>
           <div className="flex flex-wrap gap-200">
             <Badge variant={statusVariant}>
-              {getOrderStatusLabel(order.status)}
+              {getOrderStatusLabel(order.order.status)}
             </Badge>
           </div>
         </div>
       </div>
 
-      <OrderDetail order={order} />
+      <OrderDetail order={order.order} />
     </div>
   )
 }

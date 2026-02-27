@@ -98,9 +98,13 @@ export function RegisterForm({
         form.handleSubmit()
       }}
     >
-      {register.error && (
+      {Boolean(register.error) && (
         <ErrorBanner
-          message={register.error.message}
+          message={
+            register.error instanceof Error
+              ? register.error.message
+              : AUTH_MESSAGES.SERVER_ERROR
+          }
           title={AUTH_MESSAGES.REGISTER_FAILED}
         />
       )}

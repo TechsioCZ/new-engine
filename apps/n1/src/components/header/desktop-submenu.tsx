@@ -4,10 +4,11 @@ import Image from "next/image"
 import NextLink from "next/link"
 import { useState } from "react"
 import { links, type SubmenuCategory, submenuItems } from "@/data/header"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 
 export const DesktopSubmenu = () => {
-  const { prefetchCategoryProducts } = usePrefetchProducts()
+  const { delayedPrefetch, cancelPrefetch } = usePrefetchProducts()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const [activeCategory, setActiveCategory] = useState<SubmenuCategory | null>(
@@ -25,6 +26,14 @@ export const DesktopSubmenu = () => {
     setActiveCategory(category)
     setDrawerOpen(true)
   }
+
+  const getCategoryPrefetchId = (categoryIds?: string[]) => {
+    if (!categoryIds?.length) {
+      return null
+    }
+    return categoryIds.join("-")
+  }
+
   return (
     <Header.Desktop>
       {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: hover-only wrapper for submenu */}
@@ -72,9 +81,17 @@ export const DesktopSubmenu = () => {
                   href={item.href}
                   key={item.name}
                   onMouseEnter={() => {
-                    // Immediate prefetch on hover
-                    if (item.categoryIds && item.categoryIds.length > 0) {
-                      prefetchCategoryProducts(item.categoryIds)
+                    if (item.categoryIds?.length) {
+                      delayedPrefetch(
+                        item.categoryIds,
+                        PREFETCH_DELAYS.CATEGORY_HOVER
+                      )
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    const prefetchId = getCategoryPrefetchId(item.categoryIds)
+                    if (prefetchId) {
+                      cancelPrefetch(prefetchId)
                     }
                   }}
                 >
