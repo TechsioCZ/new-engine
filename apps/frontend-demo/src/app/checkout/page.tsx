@@ -4,12 +4,13 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { LoadingPage } from "@/components/loading-page"
 import { OrderSummary } from "@/components/order-summary"
 import { useCart } from "@/hooks/use-cart"
 import { useCheckout } from "@/hooks/use-checkout"
-import { PAYMENT_METHODS } from "@/lib/checkout-data"
+import { getShippingAmount } from "@/lib/checkout-shipping-pricing"
 import { formatPrice } from "@/lib/format-price"
 import { orderHelpers } from "@/stores/order-store"
 import { PaymentSelection } from "../../components/molecules/payment-selection"
@@ -19,6 +20,7 @@ import { OrderPreview } from "../../components/organisms/order-preview"
 
 export default function CheckoutPage() {
   const { cart, isLoading } = useCart()
+  const router = useRouter()
 
   const {
     currentStep,
@@ -34,6 +36,7 @@ export default function CheckoutPage() {
     processOrder,
     canProceedToStep,
     shippingMethods,
+    paymentMethods,
     isLoadingShipping,
   } = useCheckout()
 
@@ -53,10 +56,10 @@ export default function CheckoutPage() {
         !hasCompletedOrder &&
         !isOrderComplete
       ) {
-        //  router.push('/cart')
+        router.replace("/cart")
       }
     }
-  }, [cart, isLoading, isOrderComplete])
+  }, [cart, isLoading, isOrderComplete, router])
 
   // Show loading state while cart is loading
   if (isLoading) return <LoadingPage />
@@ -65,17 +68,36 @@ export default function CheckoutPage() {
   const orderData = orderHelpers.getOrderData(cart)
 
   if (!(orderData && orderData.items) || orderData.items.length === 0) {
-    return null
+    return (
+      <div className="container mx-auto max-w-[52rem] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="rounded-lg border border-border bg-surface p-6 text-center">
+          <h1 className="font-semibold text-2xl text-fg-primary">
+            Kosik je prazdny
+          </h1>
+          <p className="mt-2 text-fg-secondary text-sm">
+            Presmerovavame vas zpet do kosiku. Pokud se to nestane automaticky,
+            pokracujte tlacitkem nize.
+          </p>
+          <div className="mt-5">
+            <Link
+              className="inline-flex items-center rounded-md border border-border px-4 py-2 font-medium text-sm hover:bg-surface-hover"
+              href="/cart"
+            >
+              Prejit do kosiku
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const selectedShippingMethod = shippingMethods?.find(
     (m) => m.id === selectedShipping
   )
-  const selectedPaymentMethod = PAYMENT_METHODS.find(
+  const selectedPaymentMethod = paymentMethods.find(
     (m) => m.id === selectedPayment
   )
-  const shippingPrice =
-    selectedShippingMethod?.calculated_price.calculated_amount || 0
+  const shippingPrice = getShippingAmount(selectedShippingMethod)
 
   const paymentFee = selectedPaymentMethod?.fee || 0
 
@@ -143,6 +165,7 @@ export default function CheckoutPage() {
             setSelectedPayment(method)
             setCurrentStep(3)
           }}
+          paymentMethods={paymentMethods}
           selected={selectedPayment}
           setCurrentStep={setCurrentStep}
         />
@@ -220,7 +243,7 @@ export default function CheckoutPage() {
             </span>
           </div>
           <span className="font-bold">
-            {formatPrice(orderData?.total || 0 + shippingPrice + paymentFee)}
+            {formatPrice((orderData?.total ?? 0) + paymentFee)}
           </span>
         </Button>
         {/* Mobile: Collapsible order summary content */}

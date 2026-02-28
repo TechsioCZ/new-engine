@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["ui"],
+  transpilePackages: ["ui", "@techsio/storefront-data"],
   reactCompiler: true,
   // Removed 'output: export' to enable SSG with dynamic functions
   images: {

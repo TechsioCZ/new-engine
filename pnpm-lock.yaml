@@ -88,6 +88,9 @@ importers:
       '@tanstack/react-store':
         specifier: ^0.8.0
         version: 0.8.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@techsio/storefront-data':
+        specifier: workspace:*
+        version: file:libs/storefront-data(@medusajs/js-sdk@2.12.2)(@medusajs/types@2.12.2(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@techsio/ui-kit':
         specifier: workspace:*
         version: link:../../libs/ui
@@ -6915,6 +6918,15 @@ packages:
     resolution: {directory: libs/analytics, type: directory}
     peerDependencies:
       next: '>=16.0.0'
+      react: 19.2.3
+      react-dom: 19.2.3
+
+  '@techsio/storefront-data@file:libs/storefront-data':
+    resolution: {directory: libs/storefront-data, type: directory}
+    peerDependencies:
+      '@medusajs/js-sdk': '>=2.12.0'
+      '@medusajs/types': '>=2.12.0'
+      '@tanstack/react-query': '>=5.0.0'
       react: 19.2.3
       react-dom: 19.2.3
 
@@ -21655,6 +21667,14 @@ snapshots:
   '@techsio/analytics@file:libs/analytics(next@16.0.7(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       next: 16.0.7(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
+  '@techsio/storefront-data@file:libs/storefront-data(@medusajs/js-sdk@2.12.2)(@medusajs/types@2.12.2(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@medusajs/js-sdk': 2.12.2
+      '@medusajs/types': 2.12.2(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))
+      '@tanstack/react-query': 5.90.10(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 

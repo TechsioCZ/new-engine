@@ -1,11 +1,5 @@
 "use client"
 
-// Default filter state
-const DEFAULT_FILTER_STATE = {
-  categories: new Set<string>(),
-  sizes: new Set<string>(),
-}
-
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useMemo } from "react"
 import type { FilterState } from "@/components/organisms/product-filters"

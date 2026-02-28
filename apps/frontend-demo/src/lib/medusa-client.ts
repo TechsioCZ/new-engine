@@ -1,4 +1,5 @@
 import Medusa from "@medusajs/js-sdk"
+import { clearStoredAuthToken } from "./auth-token"
 import { STORAGE_KEYS } from "./constants"
 
 // Environment validation
@@ -68,7 +69,7 @@ if (typeof window !== "undefined") {
       try {
         await sdk.auth.refresh()
       } catch (error) {
-        // Silent fail - let the app handle auth errors
+        clearStoredAuthToken()
       }
     }
   }

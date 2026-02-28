@@ -1,12 +1,12 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInputRaw as FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import { useEffect, useState } from "react"
+import { ErrorText } from "@/components/atoms/error-text"
 import { useAuth } from "@/hooks/use-auth"
 import { useCustomer } from "@/hooks/use-customer"
 import {

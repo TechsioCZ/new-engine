@@ -30,6 +30,7 @@ export function ProductGrid({
   const prefetchProduct = usePrefetchProduct()
   const [dialogProduct, setDialogProduct] = useState<Product | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const eagerImageCount = 4
 
   // Calculate total pages based on totalCount or products length
   const totalPages = Math.ceil((totalCount || products.length) / pageSize)
@@ -60,7 +61,7 @@ export function ProductGrid({
   return (
     <div className="w-full">
       <div className="grid grid-cols-1 gap-product-grid-gap sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {products.map((product) => {
+        {products.map((product, index) => {
           const { displayBadges } = extractProductData(
             product,
             selectedRegion?.currency_code
@@ -87,6 +88,7 @@ export function ProductGrid({
                   cartButtonText="Do košíku"
                   className="hover:bg-highlight"
                   hasCartButton={true}
+                  imageLoading={index < eagerImageCount ? "eager" : "lazy"}
                   imageUrl={product.thumbnail || ""}
                   name={product.title}
                   onCartClick={() => handleAddToCart(product)}

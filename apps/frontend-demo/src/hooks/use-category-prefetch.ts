@@ -1,110 +1,241 @@
-import { useQueryClient } from "@tanstack/react-query"
-import { useCallback, useRef } from "react"
+import { useQueryClient, type QueryKey } from "@tanstack/react-query"
+import { useCallback, useEffect, useRef } from "react"
+import type { CacheConfig } from "@techsio/storefront-data/shared/cache-config"
 import { useRegions } from "@/hooks/use-region"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import { getProducts } from "@/services/product-service"
+import {
+  buildStorefrontProductListParams,
+  storefrontProductQueryKeys,
+  type StorefrontProductListInput,
+  useStorefrontPrefetchProducts,
+} from "./storefront-products"
 
 interface UseCategoryPrefetchOptions {
   enabled?: boolean
-  cacheStrategy?: keyof typeof cacheConfig
+  cacheStrategy?: keyof CacheConfig
   prefetchLimit?: number // Custom limit for prefetch vs normal queries
 }
 
+const CATEGORY_PREFETCH_SOURCE = "category-tree"
+const DEFAULT_PREFETCH_DELAY = 800
+
+type CategoryPrefetchRequest = {
+  input: StorefrontProductListInput
+  options: {
+    cacheStrategy: keyof CacheConfig
+    skipIfCached: true
+    skipMode: "fresh"
+    prefetchedBy: typeof CATEGORY_PREFETCH_SOURCE
+  }
+}
+
+type InFlightPrefetchEntry = {
+  queryKey: QueryKey
+  runToken: symbol
+}
+
 export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
-  const { selectedRegion } = useRegions()
   const queryClient = useQueryClient()
+  const { selectedRegion } = useRegions()
   const enabled = options?.enabled ?? true
   const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
   const prefetchLimit = options?.prefetchLimit ?? 12
-  // Track active timeouts for cancellation
-  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const activePrefetchIdsRef = useRef<Set<string>>(new Set())
+  const inFlightPrefetchQueriesRef = useRef<Map<string, InFlightPrefetchEntry>>(
+    new Map()
+  )
+  const delayedPrefetchTimersRef = useRef<
+    Map<string, ReturnType<typeof setTimeout>>
+  >(new Map())
+
+  const { prefetchProducts } = useStorefrontPrefetchProducts({
+    cacheStrategy,
+  })
+
+  useEffect(() => {
+    return () => {
+      const pendingTimers = Array.from(delayedPrefetchTimersRef.current.values())
+      for (const timer of pendingTimers) {
+        clearTimeout(timer)
+      }
+
+      const inFlightEntries = Array.from(inFlightPrefetchQueriesRef.current.values())
+      for (const entry of inFlightEntries) {
+        void queryClient.cancelQueries({
+          queryKey: entry.queryKey,
+          exact: true,
+          predicate: (query) =>
+            query.meta?.prefetchedBy === CATEGORY_PREFETCH_SOURCE,
+        })
+      }
+
+      delayedPrefetchTimersRef.current.clear()
+      inFlightPrefetchQueriesRef.current.clear()
+      activePrefetchIdsRef.current.clear()
+    }
+  }, [queryClient])
+
+  const clearPrefetchTimer = useCallback((prefetchId: string) => {
+    const timer = delayedPrefetchTimersRef.current.get(prefetchId)
+    if (!timer) {
+      return false
+    }
+
+    clearTimeout(timer)
+    delayedPrefetchTimersRef.current.delete(prefetchId)
+    return true
+  }, [])
+
+  const buildCategoryPrefetchRequest = useCallback(
+    (categoryIds: string[]): CategoryPrefetchRequest | null => {
+      if (!(enabled && selectedRegion?.id) || categoryIds.length === 0) {
+        return null
+      }
+
+      return {
+        input: {
+          page: 1,
+          limit: prefetchLimit,
+          filters: { categories: categoryIds, sizes: [] },
+          region_id: selectedRegion.id,
+          sort: "newest",
+        },
+        options: {
+          cacheStrategy,
+          skipIfCached: true,
+          skipMode: "fresh",
+          prefetchedBy: CATEGORY_PREFETCH_SOURCE,
+        },
+      }
+    },
+    [cacheStrategy, enabled, prefetchLimit, selectedRegion?.id]
+  )
+
+  const cancelInFlightPrefetch = useCallback(
+    (prefetchId: string) => {
+      const entry = inFlightPrefetchQueriesRef.current.get(prefetchId)
+      if (!entry) {
+        return false
+      }
+
+      inFlightPrefetchQueriesRef.current.delete(prefetchId)
+      void queryClient.cancelQueries({
+        queryKey: entry.queryKey,
+        exact: true,
+        predicate: (query) =>
+          query.meta?.prefetchedBy === CATEGORY_PREFETCH_SOURCE,
+      })
+      return true
+    },
+    [queryClient]
+  )
+
+  const executeCategoryPrefetch = useCallback(
+    async (prefetchId: string, request: CategoryPrefetchRequest) => {
+      activePrefetchIdsRef.current.add(prefetchId)
+      const runToken = Symbol(prefetchId)
+
+      const listParams = buildStorefrontProductListParams(request.input)
+      const queryKey = storefrontProductQueryKeys.list(listParams)
+      inFlightPrefetchQueriesRef.current.set(prefetchId, {
+        queryKey,
+        runToken,
+      })
+
+      try {
+        await prefetchProducts(request.input, request.options)
+      } finally {
+        const currentEntry = inFlightPrefetchQueriesRef.current.get(prefetchId)
+        if (currentEntry?.runToken === runToken) {
+          inFlightPrefetchQueriesRef.current.delete(prefetchId)
+          activePrefetchIdsRef.current.delete(prefetchId)
+        }
+      }
+    },
+    [prefetchProducts]
+  )
 
   const prefetchCategoryProducts = useCallback(
     async (categoryIds: string[]) => {
-      if (!(enabled && selectedRegion?.id) || categoryIds.length === 0) {
+      const request = buildCategoryPrefetchRequest(categoryIds)
+      if (!request) {
         return
       }
 
-      // Check if data is already in cache
-      const queryKey = queryKeys.products.list({
-        page: 1,
-        limit: prefetchLimit,
-        filters: { categories: categoryIds, sizes: [] },
-        region_id: selectedRegion.id,
-        sort: "newest",
-      })
-
-      const cachedData = queryClient.getQueryData(queryKey)
-      const queryState = queryClient.getQueryState(queryKey)
-
-      // Only prefetch if data is not in cache or is stale
-      if (!cachedData || queryState?.isInvalidated) {
-        //  console.log(`[Prefetch] Executing prefetch for ${categoryIds.length} categories`)
-
-        await queryClient.prefetchQuery({
-          queryKey,
-          queryFn: () =>
-            getProducts({
-              filters: { categories: categoryIds, sizes: [] },
-              limit: prefetchLimit,
-              offset: 0,
-              region_id: selectedRegion.id,
-              sort: "newest",
-            }),
-          ...cacheConfig[cacheStrategy],
-        })
-      } /* else {
-        console.log(`[Prefetch] Skipping - already in cache for ${categoryIds.length} categories`)
-      }*/
+      const prefetchId = `prefetch_${Date.now()}_${Math.random()}`
+      await executeCategoryPrefetch(prefetchId, request)
     },
-    [queryClient, selectedRegion?.id, enabled, cacheStrategy, prefetchLimit]
+    [buildCategoryPrefetchRequest, executeCategoryPrefetch]
   )
 
-  // Delayed prefetch with cancellation support
   const delayedPrefetch = useCallback(
-    (categoryIds: string[], delay = 800, prefetchId?: string) => {
+    (
+      categoryIds: string[],
+      delay = DEFAULT_PREFETCH_DELAY,
+      prefetchId?: string
+    ) => {
       const id = prefetchId || `prefetch_${Date.now()}_${Math.random()}`
-
-      // Cancel any existing timeout for this ID
-      const existingTimeout = timeoutsRef.current.get(id)
-      if (existingTimeout) {
-        clearTimeout(existingTimeout)
+      const request = buildCategoryPrefetchRequest(categoryIds)
+      if (!request) {
+        return id
       }
 
-      // Create new timeout
-      const timeoutId = setTimeout(() => {
-        prefetchCategoryProducts(categoryIds).catch(console.error)
-        timeoutsRef.current.delete(id)
+      activePrefetchIdsRef.current.add(id)
+      clearPrefetchTimer(id)
+
+      const timer = setTimeout(() => {
+        delayedPrefetchTimersRef.current.delete(id)
+        void executeCategoryPrefetch(id, request)
+          .catch((error) => {
+            console.warn("Category delayed prefetch failed", {
+              error,
+              prefetchId: id,
+              categoryIds,
+            })
+          })
       }, delay)
 
-      // Store timeout for potential cancellation
-      timeoutsRef.current.set(id, timeoutId)
-
-      return id // Return ID for potential cancellation
+      delayedPrefetchTimersRef.current.set(id, timer)
+      return id
     },
-    [prefetchCategoryProducts]
+    [
+      buildCategoryPrefetchRequest,
+      clearPrefetchTimer,
+      executeCategoryPrefetch,
+    ]
   )
 
-  // Cancel specific prefetch by ID
-  const cancelPrefetch = useCallback((prefetchId: string) => {
-    const timeout = timeoutsRef.current.get(prefetchId)
-    if (timeout) {
-      clearTimeout(timeout)
-      timeoutsRef.current.delete(prefetchId)
-      return true
-    }
-    return false
-  }, [])
+  const cancelPrefetch = useCallback(
+    (prefetchId: string) => {
+      const wasActive = activePrefetchIdsRef.current.has(prefetchId)
+      const hadPendingTimer = clearPrefetchTimer(prefetchId)
+      const hadInFlightRequest = cancelInFlightPrefetch(prefetchId)
+      activePrefetchIdsRef.current.delete(prefetchId)
+      return wasActive || hadPendingTimer || hadInFlightRequest
+    },
+    [cancelInFlightPrefetch, clearPrefetchTimer]
+  )
 
-  // Cancel all pending prefetches
-  const cancelAllPrefetches = useCallback(() => {
-    const timeouts = Array.from(timeoutsRef.current.values())
-    for (const timeout of timeouts) {
-      clearTimeout(timeout)
+  const cancelAllPrefetches = useCallback(async () => {
+    const pendingTimers = Array.from(delayedPrefetchTimersRef.current.values())
+    for (const timer of pendingTimers) {
+      clearTimeout(timer)
     }
-    timeoutsRef.current.clear()
-  }, [])
+    delayedPrefetchTimersRef.current.clear()
+
+    const inFlightEntries = Array.from(inFlightPrefetchQueriesRef.current.values())
+    await Promise.all(
+      inFlightEntries.map((entry) =>
+        queryClient.cancelQueries({
+          queryKey: entry.queryKey,
+          exact: true,
+          predicate: (query) =>
+            query.meta?.prefetchedBy === CATEGORY_PREFETCH_SOURCE,
+        })
+      )
+    )
+    inFlightPrefetchQueriesRef.current.clear()
+    activePrefetchIdsRef.current.clear()
+  }, [queryClient])
 
   return {
     prefetchCategoryProducts,
