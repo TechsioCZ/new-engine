@@ -7,7 +7,10 @@ import { Header } from "@techsio/ui-kit/organisms/header"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import NextLink from "next/link"
+import { useRouter } from "next/navigation"
+import type { FormEvent } from "react"
 import logo from "@/assets/logo-n1.webp"
+import { buildSearchHref } from "@/lib/url-state/search"
 import { CartPopover } from "./cart-popover"
 import { DesktopSubmenu } from "./desktop-submenu"
 import { LoginPopover } from "./login-popover"
@@ -22,6 +25,20 @@ const MobileMenu = dynamic(
 )
 
 export const N1Header = () => {
+  const router = useRouter()
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const formData = new FormData(event.currentTarget)
+    const rawQuery = formData.get("q")
+    const query = typeof rawQuery === "string" ? rawQuery.trim() : ""
+
+    if (!query) {
+      return
+    }
+
+    router.push(buildSearchHref({ q: query }))
+  }
+
   const topHeaderLinks = [
     {
       href: "/obchodni-podminky",
@@ -78,9 +95,17 @@ export const N1Header = () => {
               width={250}
             />
           </NextLink>
-          <SearchForm className="w-search max-header-desktop:hidden" size="sm">
+          <SearchForm
+            className="w-search max-header-desktop:hidden"
+            onSubmit={handleSearchSubmit}
+            size="sm"
+          >
             <SearchForm.Control>
-              <SearchForm.Input className="bg-white" placeholder="Search..." />
+              <SearchForm.Input
+                className="bg-base-light"
+                name="q"
+                placeholder="Hledat produkty..."
+              />
               <SearchForm.Button showSearchIcon />
             </SearchForm.Control>
           </SearchForm>
