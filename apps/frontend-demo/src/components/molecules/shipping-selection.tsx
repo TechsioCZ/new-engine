@@ -15,7 +15,7 @@ interface ShippingSelectionProps {
   isLoading: boolean
 }
 
-const SHIPPING_METHODS_LOADING_TEXT = "Nacitam dostupne dopravce..."
+const SHIPPING_METHODS_LOADING_TEXT = "Načítám dostupné dopravce..."
 
 const ShippingMethodDetail = ({
   method,
@@ -89,15 +89,15 @@ export function ShippingSelection({
 
     toast.create({
       type: "error",
-      title: "Neni vybran dopravce",
-      description: "Je potreba zvolit jeden zpusob dopravy",
+      title: "Není vybrán dopravce",
+      description: "Je potřeba zvolit jeden způsob dopravy",
     })
   }
 
   return (
     <div className="w-full space-y-250 py-2 sm:py-4">
       <div
-        aria-label="Vyberte zpusob dopravy"
+        aria-label="Vyberte způsob dopravy"
         className="grid grid-cols-1 gap-3 sm:gap-4"
         role="radiogroup"
       >
@@ -128,10 +128,10 @@ export function ShippingSelection({
           onClick={() => setCurrentStep(currentStep - 1)}
           size="sm"
         >
-          Zpet
+          Zpět
         </Button>
         <Button disabled={isLoading} onClick={handleProgress} size="sm">
-          Pokracovat
+          Pokračovat
         </Button>
       </div>
     </div>

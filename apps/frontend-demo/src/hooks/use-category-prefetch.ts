@@ -28,6 +28,11 @@ type CategoryPrefetchRequest = {
   }
 }
 
+type InFlightPrefetchEntry = {
+  queryKey: QueryKey
+  runToken: symbol
+}
+
 export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
   const queryClient = useQueryClient()
   const { selectedRegion } = useRegions()
@@ -35,7 +40,9 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
   const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
   const prefetchLimit = options?.prefetchLimit ?? 12
   const activePrefetchIdsRef = useRef<Set<string>>(new Set())
-  const inFlightPrefetchQueriesRef = useRef<Map<string, QueryKey>>(new Map())
+  const inFlightPrefetchQueriesRef = useRef<Map<string, InFlightPrefetchEntry>>(
+    new Map()
+  )
   const delayedPrefetchTimersRef = useRef<
     Map<string, ReturnType<typeof setTimeout>>
   >(new Map())
@@ -51,10 +58,10 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
         clearTimeout(timer)
       }
 
-      const inFlightQueryKeys = Array.from(inFlightPrefetchQueriesRef.current.values())
-      for (const queryKey of inFlightQueryKeys) {
+      const inFlightEntries = Array.from(inFlightPrefetchQueriesRef.current.values())
+      for (const entry of inFlightEntries) {
         void queryClient.cancelQueries({
-          queryKey,
+          queryKey: entry.queryKey,
           exact: true,
           predicate: (query) =>
             query.meta?.prefetchedBy === CATEGORY_PREFETCH_SOURCE,
@@ -105,14 +112,14 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
 
   const cancelInFlightPrefetch = useCallback(
     (prefetchId: string) => {
-      const queryKey = inFlightPrefetchQueriesRef.current.get(prefetchId)
-      if (!queryKey) {
+      const entry = inFlightPrefetchQueriesRef.current.get(prefetchId)
+      if (!entry) {
         return false
       }
 
       inFlightPrefetchQueriesRef.current.delete(prefetchId)
       void queryClient.cancelQueries({
-        queryKey,
+        queryKey: entry.queryKey,
         exact: true,
         predicate: (query) =>
           query.meta?.prefetchedBy === CATEGORY_PREFETCH_SOURCE,
@@ -125,16 +132,23 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
   const executeCategoryPrefetch = useCallback(
     async (prefetchId: string, request: CategoryPrefetchRequest) => {
       activePrefetchIdsRef.current.add(prefetchId)
+      const runToken = Symbol(prefetchId)
 
       const listParams = buildStorefrontProductListParams(request.input)
       const queryKey = storefrontProductQueryKeys.list(listParams)
-      inFlightPrefetchQueriesRef.current.set(prefetchId, queryKey)
+      inFlightPrefetchQueriesRef.current.set(prefetchId, {
+        queryKey,
+        runToken,
+      })
 
       try {
         await prefetchProducts(request.input, request.options)
       } finally {
-        inFlightPrefetchQueriesRef.current.delete(prefetchId)
-        activePrefetchIdsRef.current.delete(prefetchId)
+        const currentEntry = inFlightPrefetchQueriesRef.current.get(prefetchId)
+        if (currentEntry?.runToken === runToken) {
+          inFlightPrefetchQueriesRef.current.delete(prefetchId)
+          activePrefetchIdsRef.current.delete(prefetchId)
+        }
       }
     },
     [prefetchProducts]
@@ -208,11 +222,11 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
     }
     delayedPrefetchTimersRef.current.clear()
 
-    const inFlightQueryKeys = Array.from(inFlightPrefetchQueriesRef.current.values())
+    const inFlightEntries = Array.from(inFlightPrefetchQueriesRef.current.values())
     await Promise.all(
-      inFlightQueryKeys.map((queryKey) =>
+      inFlightEntries.map((entry) =>
         queryClient.cancelQueries({
-          queryKey,
+          queryKey: entry.queryKey,
           exact: true,
           predicate: (query) =>
             query.meta?.prefetchedBy === CATEGORY_PREFETCH_SOURCE,

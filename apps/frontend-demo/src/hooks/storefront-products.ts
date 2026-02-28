@@ -91,19 +91,41 @@ const resolveSortOrder = (sort?: string) => {
 
 const resolveLimit = (limit: number | undefined, fallback: number) => {
   if (typeof limit === "number" && Number.isFinite(limit) && limit > 0) {
-    return limit
+    return Math.max(1, Math.trunc(limit))
   }
-  return fallback
+  return Math.max(1, Math.trunc(fallback))
+}
+
+const resolveOffset = (offset: number | undefined, fallback: number) => {
+  if (typeof offset === "number" && Number.isFinite(offset)) {
+    return Math.max(0, Math.trunc(offset))
+  }
+  if (Number.isFinite(fallback)) {
+    return Math.max(0, Math.trunc(fallback))
+  }
+  return 0
+}
+
+const resolveInputPage = (page: number | undefined, fallback = 1) => {
+  if (typeof page === "number" && Number.isFinite(page) && page > 0) {
+    return Math.max(1, Math.trunc(page))
+  }
+  return Math.max(1, Math.trunc(fallback))
 }
 
 const resolvePage = (
   params: Pick<StorefrontProductListParams, "offset" | "limit">,
   fallback = 1
 ) => {
-  if (params.limit > 0) {
-    return Math.floor(params.offset / params.limit) + 1
+  const safeLimit =
+    Number.isFinite(params.limit) && params.limit > 0
+      ? Math.max(1, Math.trunc(params.limit))
+      : 0
+  if (safeLimit > 0) {
+    const safeOffset = resolveOffset(params.offset, 0)
+    return Math.floor(safeOffset / safeLimit) + 1
   }
-  return fallback
+  return resolveInputPage(fallback, 1)
 }
 
 const isVariantInStock = (
@@ -248,12 +270,12 @@ export const buildStorefrontProductListParams = (
   input: StorefrontProductListInput
 ): StorefrontProductListParams => {
   const limit = resolveLimit(input.limit, DEFAULT_PRODUCT_PAGE_SIZE)
-  const page = typeof input.page === "number" && input.page > 0 ? input.page : 1
+  const page = resolveInputPage(input.page, 1)
+  const offset = resolveOffset(input.offset, (page - 1) * limit)
 
   return {
     limit,
-    offset:
-      typeof input.offset === "number" ? input.offset : (page - 1) * limit,
+    offset,
     fields: input.fields,
     filters: input.filters,
     category: input.category,

@@ -76,8 +76,8 @@ export function ProductInfo({
   const handleAddToCart = () => {
     if (!selectedVariant) {
       toast.create({
-        title: "Vyberte prosim moznosti",
-        description: "Pred pridanim do kosiku vyberte variantu produktu.",
+        title: "Vyberte prosím možnosti",
+        description: "Před přidáním do košíku vyberte variantu produktu.",
         type: "error",
       })
       return
@@ -85,8 +85,8 @@ export function ProductInfo({
 
     if (!isVariantInStock(selectedVariant)) {
       toast.create({
-        title: "Varianta neni skladem",
-        description: "Vyberte prosim jinou velikost.",
+        title: "Varianta není skladem",
+        description: "Vyberte prosím jinou velikost.",
         type: "error",
       })
       return
@@ -113,7 +113,7 @@ export function ProductInfo({
         <div className="mb-product-info-rating-margin flex items-center gap-product-info-rating-gap">
           <Rating readOnly value={product.rating} />
           <span className="text-product-info-rating-text">
-            ({product.reviewCount || 0} recenzi)
+            ({product.reviewCount || 0} recenzí)
           </span>
         </div>
       )}
@@ -176,7 +176,7 @@ export function ProductInfo({
           size="sm"
           variant="primary"
         >
-          Pridat do kosiku
+          Přidat do košíku
         </Button>{" "}
         <NumericInputTemplate
           className="h-fit w-24 py-0"
@@ -187,7 +187,7 @@ export function ProductInfo({
           value={normalizedQuantity}
         />
         <Button icon="icon-[mdi--heart-outline]" size="sm" variant="secondary">
-          <span className="sr-only">Pridat do seznamu prani</span>
+          <span className="sr-only">Přidat do seznamu přání</span>
         </Button>
       </div>
     </div>

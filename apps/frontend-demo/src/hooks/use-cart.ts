@@ -228,17 +228,33 @@ export function useCart() {
       }),
     updateQuantity: (lineItemId: string, quantity: number) =>
       updateQuantityMutation.mutate({ lineItemId, quantity }),
-    removeItem: (lineItemId: string) =>
+    removeItem: (lineItemId: string) => {
+      if (!cart?.id) {
+        console.warn("[Cart Hook] Cannot remove item: no cart available")
+        return
+      }
+
       removeItemMutation.mutate({
-        cartId: cart?.id,
+        cartId: cart.id,
         lineItemId,
-      }),
+      })
+    },
     clearCart: () => clearCartMutation.mutate(),
-    applyDiscount: (code: string) =>
+    applyDiscount: (code: string) => {
+      if (!cart?.id) {
+        toast.create({
+          title: "Nelze aplikovat slevu",
+          description: "Nejprve pridejte polozku do kosiku",
+          type: "error",
+        })
+        return
+      }
+
       applyDiscountMutation.mutate({
-        cartId: cart?.id,
+        cartId: cart.id,
         promo_codes: [code],
-      }),
+      })
+    },
     refetch: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.cart(cart?.id) }),
 
