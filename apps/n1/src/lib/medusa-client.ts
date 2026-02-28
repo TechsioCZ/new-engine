@@ -1,4 +1,4 @@
-import Medusa from "@medusajs/js-sdk"
+import { createMedusaSdk } from "@techsio/storefront-data/shared/medusa-client"
 import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
 
 // Environment validation
@@ -9,8 +9,8 @@ if (!PUBLISHABLE_KEY) {
   console.warn("⚠️ NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set!")
 }
 
-// Create SDK instance (uses JWT + localStorage by default)
-export const sdk = new Medusa({
+// Create SDK instance through storefront-data helper for consistent behavior.
+export const sdk = createMedusaSdk({
   baseUrl: BACKEND_URL,
   publishableKey: PUBLISHABLE_KEY,
   debug: process.env.NODE_ENV === "development",

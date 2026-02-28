@@ -22,7 +22,7 @@ import {
 import { usePrefetchCategoryChildren } from "@/hooks/use-prefetch-category-children"
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { usePrefetchRootCategories } from "@/hooks/use-prefetch-root-categories"
-import { useSuspenseProducts } from "@/hooks/use-products"
+import { useProducts } from "@/hooks/use-products"
 import { useSuspenseRegion } from "@/hooks/use-region"
 import {
   ALL_CATEGORIES_MAP,
@@ -85,28 +85,37 @@ export default function CategoryPage() {
   // Get current page from URL or default to 1
   const currentPage = Number(searchParams.get("page")) || 1
 
-  const categoryIds = ALL_CATEGORIES_MAP[handle] ?? []
+  const isValidCategoryRoute = VALID_CATEGORY_ROUTES.includes(handle)
+  const categoryIds = isValidCategoryRoute
+    ? (ALL_CATEGORIES_MAP[handle] ?? [])
+    : []
 
   const {
     products: rawProducts,
+    isLoading,
     isFetching,
     totalCount,
     currentPage: responsePage,
     totalPages,
     hasNextPage,
     hasPrevPage,
-  } = useSuspenseProducts({
+  } = useProducts({
     category_id: categoryIds,
     page: currentPage,
     limit: PRODUCT_LIMIT,
+    enabled: isValidCategoryRoute && categoryIds.length > 0,
   })
 
-  const isCurrentPageReady = !isFetching
+  const isCurrentPageReady =
+    isValidCategoryRoute && categoryIds.length > 0 && !isLoading && !isFetching
+
+  if (!isValidCategoryRoute) {
+    notFound()
+  }
 
   usePrefetchRootCategories({
     enabled: isCurrentPageReady,
     currentHandle: handle,
-    delay: 200,
   })
 
   usePrefetchPages({
@@ -134,10 +143,6 @@ export default function CategoryPage() {
     router.push(`/kategorie/${handle}?${newSearchParams.toString()}`, {
       scroll: true,
     })
-  }
-
-  if (!VALID_CATEGORY_ROUTES.includes(handle)) {
-    notFound()
   }
 
   const rootCategoryTree = categoryTree.find(
@@ -185,6 +190,7 @@ export default function CategoryPage() {
         <section>
           <ProductGrid
             currentPage={responsePage}
+            isLoading={isLoading}
             onPageChange={handlePageChange}
             pageSize={PRODUCT_LIMIT}
             products={products}

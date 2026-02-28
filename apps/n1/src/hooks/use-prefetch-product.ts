@@ -1,18 +1,24 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { useRef } from "react"
-import { cacheConfig } from "@/lib/cache-config"
-import { prefetchLogger } from "@/lib/loggers/prefetch"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import { queryKeys } from "@/lib/query-keys"
-import { getProductByHandle } from "@/services/product-service"
+import { runLoggedPrefetch } from "./prefetch-utils"
+import { productHooks } from "./product-hooks-base"
 import { useRegion } from "./use-region"
 
-const PREFETCH_DELAY = 400
 export function usePrefetchProduct() {
   const { regionId, countryCode } = useRegion()
   const queryClient = useQueryClient()
-  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const {
+    prefetchProduct: prefetchProductBase,
+    delayedPrefetch: delayedPrefetchBase,
+    cancelPrefetch: cancelPrefetchBase,
+  } = productHooks.usePrefetchProduct({
+    cacheStrategy: "semiStatic",
+    skipIfCached: true,
+    skipMode: "any",
+  })
 
   const prefetchProduct = async (handle: string, fields?: string) => {
     if (!(regionId && handle)) {
@@ -20,51 +26,50 @@ export function usePrefetchProduct() {
     }
 
     const queryKey = queryKeys.products.detail(handle, regionId, countryCode)
-    const cached = queryClient.getQueryData(queryKey)
 
-    if (cached) {
-      prefetchLogger.cacheHit("Product", handle)
-    } else {
-      prefetchLogger.start("Product", handle)
-      await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () =>
-          getProductByHandle({
+    await runLoggedPrefetch({
+      queryClient,
+      queryKey,
+      type: "Product",
+      label: handle,
+      prefetch: () =>
+        prefetchProductBase(
+          {
             handle,
+            fields,
             region_id: regionId,
             country_code: countryCode,
-            fields,
-          }),
-        ...cacheConfig.semiStatic,
-      })
-    }
+          },
+          {
+            skipIfCached: true,
+            skipMode: "any",
+          }
+        ),
+    })
   }
 
   const delayedPrefetch = (
     handle: string,
-    delay = PREFETCH_DELAY,
+    delay: number = PREFETCH_DELAYS.PRODUCT_DETAIL,
     fields?: string
   ) => {
-    const existing = timeoutsRef.current.get(handle)
-    if (existing) {
-      clearTimeout(existing)
+    if (!(regionId && handle)) {
+      return handle
     }
-
-    const timeoutId = setTimeout(() => {
-      prefetchProduct(handle, fields)
-      timeoutsRef.current.delete(handle)
-    }, delay)
-
-    timeoutsRef.current.set(handle, timeoutId)
-    return handle
+    return delayedPrefetchBase(
+      {
+        handle,
+        fields,
+        region_id: regionId,
+        country_code: countryCode,
+      },
+      delay,
+      handle
+    )
   }
 
   const cancelPrefetch = (handle: string) => {
-    const timeout = timeoutsRef.current.get(handle)
-    if (timeout) {
-      clearTimeout(timeout)
-      timeoutsRef.current.delete(handle)
-    }
+    cancelPrefetchBase(handle)
   }
 
   return {

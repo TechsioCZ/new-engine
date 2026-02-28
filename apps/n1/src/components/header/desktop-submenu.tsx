@@ -2,13 +2,15 @@ import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { Header } from "@techsio/ui-kit/organisms/header"
 import Image from "next/image"
 import NextLink from "next/link"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { links, type SubmenuCategory, submenuItems } from "@/data/header"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 
 export const DesktopSubmenu = () => {
-  const { prefetchCategoryProducts } = usePrefetchProducts()
+  const { delayedPrefetch, cancelPrefetch } = usePrefetchProducts()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const hoverPrefetchIdsRef = useRef<Record<string, string | null>>({})
 
   const [activeCategory, setActiveCategory] = useState<SubmenuCategory | null>(
     null
@@ -25,6 +27,7 @@ export const DesktopSubmenu = () => {
     setActiveCategory(category)
     setDrawerOpen(true)
   }
+
   return (
     <Header.Desktop>
       {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: hover-only wrapper for submenu */}
@@ -72,9 +75,22 @@ export const DesktopSubmenu = () => {
                   href={item.href}
                   key={item.name}
                   onMouseEnter={() => {
-                    // Immediate prefetch on hover
-                    if (item.categoryIds && item.categoryIds.length > 0) {
-                      prefetchCategoryProducts(item.categoryIds)
+                    if (!item.categoryIds?.length) {
+                      hoverPrefetchIdsRef.current[item.href] = null
+                      return
+                    }
+
+                    const prefetchId = delayedPrefetch(
+                      item.categoryIds,
+                      PREFETCH_DELAYS.CATEGORY_HOVER
+                    )
+                    hoverPrefetchIdsRef.current[item.href] = prefetchId
+                  }}
+                  onMouseLeave={() => {
+                    const prefetchId = hoverPrefetchIdsRef.current[item.href]
+                    if (prefetchId) {
+                      cancelPrefetch(prefetchId)
+                      hoverPrefetchIdsRef.current[item.href] = null
                     }
                   }}
                 >

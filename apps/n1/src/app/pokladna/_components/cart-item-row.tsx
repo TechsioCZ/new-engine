@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import type { CartLineItem } from "@/services/cart-service"
+import type { CartLineItem } from "@/types/cart"
 import { formatToTaxIncluded } from "@/utils/format/format-product"
 
 type CartItemRowProps = {

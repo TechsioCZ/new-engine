@@ -1,33 +1,16 @@
 import type { HttpTypes } from "@medusajs/types"
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
-import { cacheConfig } from "@/lib/cache-config"
+import { useQueryClient } from "@tanstack/react-query"
+import type { MedusaCompleteCartResult } from "@techsio/storefront-data/cart/medusa-service"
+import { useSyncExternalStore } from "react"
+import { invalidateCartCaches, syncCartCaches } from "./cart-cache-sync"
+import { cartHooks, cartStorage, retrieveCartById } from "./cart-hooks-base"
+import { useRegion, useSuspenseRegion } from "./use-region"
 import { queryKeys } from "@/lib/query-keys"
-import {
-  addToCart,
-  type Cart,
-  type CompleteCartResult,
-  completeCart,
-  createCart,
-  getCart,
-  type OptimisticCart,
-  type OptimisticLineItem,
-  removeLineItem,
-  updateLineItem,
-} from "@/services/cart-service"
-import { useRegion } from "./use-region"
+import type { Cart } from "@/types/cart"
 
 type CartMutationError = {
   message: string
   code?: string
-}
-
-type CartMutationContext = {
-  previousCart?: Cart
 }
 
 type UseCartReturn = {
@@ -52,42 +35,122 @@ type UseAddToCartOptions = {
   onError?: (error: CartMutationError) => void
 }
 
-export function useCart(): UseCartReturn {
-  const {
-    data: cart,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({
-    queryKey: queryKeys.cart.active(),
-    queryFn: getCart,
-    enabled: true, // Always enabled for guest and authenticated users
-    retry: (failureCount, retryError) => {
-      if (
-        retryError instanceof Error &&
-        retryError.message?.includes("not found")
-      ) {
-        return false
-      }
-      // Retry network errors up to 3 times
-      if (error instanceof Error && error.message?.includes("Network")) {
-        return failureCount < 3
-      }
-      return failureCount < 1
-    },
-    ...cacheConfig.realtime,
-  })
+type UseCartMutationOptions = {
+  onSuccess?: (cart: Cart) => void
+  onError?: (error: CartMutationError) => void
+}
 
-  const itemCount =
-    cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
-  const isEmpty = itemCount === 0
-  const hasItems = itemCount > 0
+type UseCompleteCartOptions = {
+  onSuccess?: (order: HttpTypes.StoreOrder) => void
+  onError?: (
+    error: { message: string; type: string; name?: string },
+    cart: Cart
+  ) => void
+}
+
+const toCartMutationError = (error: unknown): CartMutationError => {
+  if (error && typeof error === "object") {
+    const withMessage = error as { message?: unknown; code?: unknown }
+
+    if (typeof withMessage.message === "string") {
+      return {
+        message: withMessage.message,
+        code: typeof withMessage.code === "string" ? withMessage.code : undefined,
+      }
+    }
+  }
+
+  if (typeof error === "string") {
+    return { message: error }
+  }
+
+  return { message: "An unknown error occurred" }
+}
+
+const useStoredCartId = () =>
+  useSyncExternalStore(
+    cartStorage.subscribe,
+    cartStorage.getSnapshot,
+    cartStorage.getServerSnapshot
+  )
+
+const isRenderableCartItem = (item: unknown): boolean => {
+  if (!item || typeof item !== "object") {
+    return false
+  }
+
+  const candidate = item as { id?: unknown; quantity?: unknown }
+  return (
+    typeof candidate.id === "string" && typeof candidate.quantity === "number"
+  )
+}
+
+const isRenderableCart = (cart: Cart): boolean => {
+  if (!Array.isArray(cart.items)) {
+    return false
+  }
+
+  return cart.items.every(isRenderableCartItem)
+}
+
+const fetchCanonicalCart = async (cartId: string): Promise<Cart | null> => {
+  try {
+    return (await retrieveCartById(cartId)) as Cart | null
+  } catch {
+    return null
+  }
+}
+
+const resolveRenderableCart = async (cart: Cart): Promise<Cart> => {
+  if (isRenderableCart(cart)) {
+    return cart
+  }
+
+  const canonicalCart = await fetchCanonicalCart(cart.id)
+  if (canonicalCart && isRenderableCart(canonicalCart)) {
+    return canonicalCart
+  }
+
+  return cart
+}
+
+const buildCartMutationHandlers = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  options?: UseAddToCartOptions | UseCartMutationOptions
+) => ({
+  onSuccess: async (cart: Cart) => {
+    const resolvedCart = await resolveRenderableCart(cart)
+
+    if (isRenderableCart(resolvedCart)) {
+      syncCartCaches(queryClient, resolvedCart)
+    }
+
+    invalidateCartCaches(queryClient, resolvedCart.id)
+    options?.onSuccess?.(resolvedCart)
+  },
+  onError: (error: unknown) => {
+    options?.onError?.(toCartMutationError(error))
+  },
+})
+
+export function useCart(): UseCartReturn {
+  const { regionId, countryCode } = useRegion()
+  const cartId = useStoredCartId()
+
+  const { cart, isLoading, error, itemCount, isEmpty, hasItems } =
+    cartHooks.useCart({
+      cartId: cartId ?? undefined,
+      region_id: regionId,
+      country_code: countryCode,
+      autoCreate: false,
+      autoUpdateRegion: false,
+    })
 
   return {
     cart,
     isLoading,
-    isError,
-    error: error as Error | null,
+    isError: Boolean(error),
+    error: error ? new Error(error) : null,
     itemCount,
     isEmpty,
     hasItems,
@@ -95,25 +158,16 @@ export function useCart(): UseCartReturn {
 }
 
 export function useSuspenseCart(): UseSuspenseCartReturn {
-  const { data: cart } = useSuspenseQuery({
-    queryKey: queryKeys.cart.active(),
-    queryFn: getCart,
-    retry: (failureCount, error) => {
-      if (error instanceof Error && error.message?.includes("not found")) {
-        return false
-      }
-      if (error instanceof Error && error.message?.includes("Network")) {
-        return failureCount < 3
-      }
-      return failureCount < 1
-    },
-    ...cacheConfig.realtime,
-  })
+  const { regionId, countryCode } = useSuspenseRegion()
+  const cartId = useStoredCartId()
 
-  const itemCount =
-    cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
-  const isEmpty = itemCount === 0
-  const hasItems = itemCount > 0
+  const { cart, itemCount, isEmpty, hasItems } = cartHooks.useSuspenseCart({
+    cartId: cartId ?? undefined,
+    region_id: regionId,
+    country_code: countryCode,
+    autoCreate: false,
+    autoUpdateRegion: false,
+  })
 
   return {
     cart,
@@ -125,253 +179,69 @@ export function useSuspenseCart(): UseSuspenseCartReturn {
 
 export function useAddToCart(options?: UseAddToCartOptions) {
   const queryClient = useQueryClient()
-  const { regionId } = useRegion()
 
-  return useMutation<
-    Cart,
-    CartMutationError,
-    {
-      variantId: string
-      quantity?: number
-      autoCreateCart?: boolean
-      metadata?: Record<string, unknown>
-    },
-    CartMutationContext
-  >({
-    mutationFn: async ({
-      variantId,
-      quantity = 1,
-      autoCreateCart = true,
-      metadata,
-    }) => {
-      // Get current cart or create new one
-      let cart = queryClient.getQueryData<Cart>(queryKeys.cart.active())
-
-      if (!cart && autoCreateCart && regionId) {
-        // Create cart synchronously if needed
-        cart = await createCart(regionId)
-        queryClient.setQueryData(queryKeys.cart.active(), cart)
-      }
-
-      if (!cart) {
-        throw new Error("No cart available")
-      }
-
-      return addToCart(cart.id, variantId, quantity, metadata)
-    },
-    onMutate: async () => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.cart.active() })
-
-      // Snapshot the previous cart
-      const previousCart = queryClient.getQueryData<Cart>(
-        queryKeys.cart.active()
-      )
-
-      // Optimistic update - add loading state indicator
-      if (previousCart) {
-        const optimisticCart: OptimisticCart = {
-          ...previousCart,
-          _optimistic: true,
-        }
-        queryClient.setQueryData(queryKeys.cart.active(), optimisticCart)
-      }
-
-      return { previousCart }
-    },
-    onSuccess: (cart, _variables) => {
-      // Update with real cart from server
-      queryClient.setQueryData(queryKeys.cart.active(), cart)
-
-      if (process.env.NODE_ENV === "development") {
-        console.log("[useAddToCart] Item added successfully")
-      }
-
-      options?.onSuccess?.(cart)
-    },
-    onError: (error, _variables, context) => {
-      // Rollback on error
-      if (context?.previousCart) {
-        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
-      }
-
-      if (process.env.NODE_ENV === "development") {
-        console.error("[useAddToCart] Failed to add item:", error)
-      }
-
-      options?.onError?.(error)
-    },
-    onSettled: () => {
-      // Always refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
-    },
-  })
+  return cartHooks.useAddLineItem(buildCartMutationHandlers(queryClient, options))
 }
 
-export function useUpdateLineItem() {
+export function useUpdateLineItem(options?: UseCartMutationOptions) {
   const queryClient = useQueryClient()
 
-  return useMutation<
-    Cart,
-    CartMutationError,
-    {
-      cartId: string
-      lineItemId: string
-      quantity: number
-    },
-    CartMutationContext
-  >({
-    mutationFn: ({ cartId, lineItemId, quantity }) =>
-      updateLineItem(cartId, lineItemId, quantity),
-    onMutate: async ({ lineItemId, quantity }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.cart.active() })
-
-      const previousCart = queryClient.getQueryData<Cart>(
-        queryKeys.cart.active()
-      )
-
-      // Optimistic update with validation
-      if (previousCart?.items) {
-        const updatedCart: OptimisticCart = {
-          ...previousCart,
-          items: previousCart.items.map(
-            (item): OptimisticLineItem =>
-              item.id === lineItemId
-                ? { ...item, quantity, _optimistic: true }
-                : item
-          ),
-          _optimistic: true,
-        }
-
-        queryClient.setQueryData(queryKeys.cart.active(), updatedCart)
-      }
-
-      return { previousCart }
-    },
-    onSuccess: (cart) => {
-      queryClient.setQueryData(queryKeys.cart.active(), cart)
-
-      if (process.env.NODE_ENV === "development") {
-        console.log("[useUpdateLineItem] Quantity updated successfully")
-      }
-    },
-    onError: (error, _variables, context) => {
-      if (context?.previousCart) {
-        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
-      }
-      if (process.env.NODE_ENV === "development") {
-        console.error("[useUpdateLineItem] Failed to update quantity:", error)
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
-    },
-  })
+  return cartHooks.useUpdateLineItem(
+    buildCartMutationHandlers(queryClient, options)
+  )
 }
 
-export function useRemoveLineItem() {
+export function useRemoveLineItem(options?: UseCartMutationOptions) {
   const queryClient = useQueryClient()
 
-  return useMutation<
-    Cart,
-    CartMutationError,
-    {
-      cartId: string
-      lineItemId: string
-    },
-    CartMutationContext
-  >({
-    mutationFn: ({ cartId, lineItemId }) => removeLineItem(cartId, lineItemId),
-    onMutate: async ({ lineItemId }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.cart.active() })
-
-      const previousCart = queryClient.getQueryData<Cart>(
-        queryKeys.cart.active()
-      )
-
-      // Optimistic removal
-      if (previousCart?.items) {
-        const updatedCart: OptimisticCart = {
-          ...previousCart,
-          items: previousCart.items.filter((item) => item.id !== lineItemId),
-          _optimistic: true,
-        }
-
-        queryClient.setQueryData(queryKeys.cart.active(), updatedCart)
-      }
-
-      return { previousCart }
-    },
-    onSuccess: (cart) => {
-      queryClient.setQueryData(queryKeys.cart.active(), cart)
-
-      if (process.env.NODE_ENV === "development") {
-        console.log("[useRemoveLineItem] Item removed successfully")
-      }
-    },
-    onError: (error, _variables, context) => {
-      if (context?.previousCart) {
-        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
-      }
-      if (process.env.NODE_ENV === "development") {
-        console.error("[useRemoveLineItem] Failed to remove item:", error)
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
-    },
-  })
-}
-
-type UseCompleteCartOptions = {
-  onSuccess?: (order: HttpTypes.StoreOrder) => void
-  onError?: (
-    error: { message: string; type: string; name?: string },
-    cart: Cart
-  ) => void
+  return cartHooks.useRemoveLineItem(
+    buildCartMutationHandlers(queryClient, options)
+  )
 }
 
 export function useCompleteCart(options?: UseCompleteCartOptions) {
   const queryClient = useQueryClient()
 
-  return useMutation<
-    CompleteCartResult,
-    CartMutationError,
-    { cartId: string },
-    CartMutationContext
-  >({
-    mutationFn: ({ cartId }) => completeCart(cartId),
-    onSuccess: (result) => {
-      if (result.success) {
-        const order = result.order
+  return cartHooks.useCompleteCart({
+    onSuccess: (result: MedusaCompleteCartResult) => {
+      if (result.type === "order") {
+        const completedCartId = cartStorage.getCartId()
 
-        // Clear cart cache
-        queryClient.setQueryData(queryKeys.cart.active(), null)
-        queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+        cartStorage.clearCartId()
+        queryClient.removeQueries({ queryKey: [...queryKeys.cart.all(), "active"] })
+        if (completedCartId) {
+          queryClient.removeQueries({
+            queryKey: queryKeys.cart.detail(completedCartId),
+          })
+          queryClient.removeQueries({
+            queryKey: queryKeys.cart.shippingOptions(completedCartId),
+          })
+        }
 
-        queryClient.setQueryData(queryKeys.orders.detail(order.id), order)
+        queryClient.invalidateQueries({ queryKey: queryKeys.cart.all() })
+        queryClient.invalidateQueries({ queryKey: queryKeys.checkout.all() })
+        if (result.order.region_id) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.checkout.paymentProviders(result.order.region_id),
+          })
+        }
 
+        queryClient.setQueryData(queryKeys.orders.detail(result.order.id), result.order)
         queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
 
-        if (process.env.NODE_ENV === "development") {
-          console.log("[useCompleteCart] Order created successfully:", order.id)
-        }
-
-        options?.onSuccess?.(order)
-      } else {
-        // FAILURE PATH: Validation or payment error
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            "[useCompleteCart] Cart completion failed:",
-            result.error
-          )
-        }
-
-        // Update cart cache with the returned cart (might have changes)
-        queryClient.setQueryData(queryKeys.cart.active(), result.cart)
-
-        options?.onError?.(result.error, result.cart)
+        options?.onSuccess?.(result.order)
+        return
       }
+
+      queryClient.setQueryData(
+        queryKeys.cart.active({
+          cartId: result.cart.id,
+          regionId: result.cart.region_id ?? null,
+        }),
+        result.cart
+      )
+
+      options?.onError?.(result.error, result.cart)
     },
     onError: (error) => {
       if (process.env.NODE_ENV === "development") {

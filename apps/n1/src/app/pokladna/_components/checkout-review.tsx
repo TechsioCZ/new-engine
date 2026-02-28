@@ -1,11 +1,11 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@ui/atoms/badge"
 import { Button } from "@ui/atoms/button"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import type { StoreOrder } from "@/services/order-service"
 import { formatDateString } from "@/utils/format/format-date"
 import {
   getOrderStatusColor,
@@ -15,7 +15,7 @@ import { formatAmount } from "@/utils/format/format-product"
 import { PriceSummaryRow } from "./price-summary-row"
 
 type CheckoutReviewProps = {
-  order: StoreOrder
+  order: HttpTypes.StoreOrder
 }
 
 export function CheckoutReview({ order }: CheckoutReviewProps) {
