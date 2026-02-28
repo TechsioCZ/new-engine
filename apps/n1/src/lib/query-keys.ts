@@ -82,3 +82,22 @@ export const queryKeys = {
     profile: () => [...queryKeys.all, "customer", "profile"] as const,
   },
 } as const
+
+export function extractProductListParamsFromKey(
+  queryKey: readonly unknown[] | undefined
+): ProductQueryParams | undefined {
+  if (!Array.isArray(queryKey) || queryKey.length < 4) {
+    return undefined
+  }
+
+  if (queryKey[1] !== "products" || queryKey[2] !== "list") {
+    return undefined
+  }
+
+  const maybeParams = queryKey[3]
+  if (!maybeParams || typeof maybeParams !== "object") {
+    return undefined
+  }
+
+  return maybeParams as ProductQueryParams
+}
