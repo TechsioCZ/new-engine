@@ -68,9 +68,16 @@ function findPreferredRegion(regions: Region[]): Region | undefined {
 }
 
 function getRegionValues(region: Region | undefined) {
+  const preferredCountry = region?.countries?.find(
+    (country) => country.iso_2 === DEFAULT_COUNTRY_CODE
+  )
+
   return {
     regionId: region?.id,
-    countryCode: region?.countries?.[0]?.iso_2 || DEFAULT_COUNTRY_CODE,
+    countryCode:
+      preferredCountry?.iso_2 ??
+      region?.countries?.[0]?.iso_2 ??
+      DEFAULT_COUNTRY_CODE,
     currencyCode: region?.currency_code || DEFAULT_CURRENCY_CODE,
   }
 }
@@ -82,7 +89,8 @@ export function useRegion() {
   )
 
   const selectedRegion = findPreferredRegion(regions)
-  const { regionId, countryCode, currencyCode } = getRegionValues(selectedRegion)
+  const { regionId, countryCode, currencyCode } =
+    getRegionValues(selectedRegion)
 
   return {
     regions,
@@ -101,7 +109,8 @@ export function useSuspenseRegion() {
   )
 
   const selectedRegion = findPreferredRegion(regions)
-  const { regionId, countryCode, currencyCode } = getRegionValues(selectedRegion)
+  const { regionId, countryCode, currencyCode } =
+    getRegionValues(selectedRegion)
 
   return {
     regions,

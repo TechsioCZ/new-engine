@@ -10,6 +10,8 @@ type ErrorWithResponse = {
   response: unknown
 }
 
+const UNKNOWN_ERROR_MESSAGE = "An unknown error occurred"
+
 function isError(error: unknown): error is Error {
   return error instanceof Error
 }
@@ -31,7 +33,7 @@ function getErrorMessage(error: unknown): string {
     }
   }
 
-  return "An unknown error occurred"
+  return UNKNOWN_ERROR_MESSAGE
 }
 
 function getErrorStatus(error: unknown): number | null {
@@ -62,14 +64,14 @@ function getErrorStatus(error: unknown): number | null {
 
 export function toError(
   error: unknown,
-  fallbackMessage = "An unknown error occurred"
+  fallbackMessage = UNKNOWN_ERROR_MESSAGE
 ): Error {
   if (error instanceof Error) {
     return error
   }
 
   const message = getErrorMessage(error)
-  if (message === "An unknown error occurred") {
+  if (message === UNKNOWN_ERROR_MESSAGE) {
     return new Error(fallbackMessage)
   }
 

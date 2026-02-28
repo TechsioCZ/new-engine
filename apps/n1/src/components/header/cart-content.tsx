@@ -131,7 +131,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
       <div className="space-y-200">
         <LinkButton
           as={Link}
-          className="w-full justify-center"
+          className="w-full justify-center text-fg-button"
           href="/pokladna"
           onClick={onClose}
           size="md"

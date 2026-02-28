@@ -86,7 +86,9 @@ export default function CategoryPage() {
   const currentPage = Number(searchParams.get("page")) || 1
 
   const isValidCategoryRoute = VALID_CATEGORY_ROUTES.includes(handle)
-  const categoryIds = isValidCategoryRoute ? ALL_CATEGORIES_MAP[handle] ?? [] : []
+  const categoryIds = isValidCategoryRoute
+    ? (ALL_CATEGORIES_MAP[handle] ?? [])
+    : []
 
   const {
     products: rawProducts,

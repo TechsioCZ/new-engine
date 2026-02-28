@@ -12,6 +12,22 @@ import {
 } from "@/utils/format/format-order-status"
 import { OrderDetail } from "./order-detail"
 
+function getOrderErrorMessage(error: unknown): string {
+  if (!error) {
+    return "Objednávka nebyla nalezena"
+  }
+
+  if (error instanceof Error) {
+    return error.message || "Objednávka nebyla nalezena"
+  }
+
+  if (typeof error === "string") {
+    return error
+  }
+
+  return "Objednávka nebyla nalezena"
+}
+
 export function OrderDetailClient() {
   const { id } = useParams<{ id: string }>()
 
@@ -31,9 +47,7 @@ export function OrderDetailClient() {
   if (order.error || !order.order) {
     return (
       <div className="mx-auto max-w-max-w px-400">
-        <p className="text-fg-secondary">
-          {order.error || "Objednávka nebyla nalezena"}
-        </p>
+        <p className="text-fg-secondary">{getOrderErrorMessage(order.error)}</p>
         <LinkButton
           as={Link}
           className="mt-300"

@@ -27,6 +27,7 @@ type OrderListParams = MedusaOrderListInput
 type OrderDetailParams = MedusaOrderDetailInput
 
 export const ACCOUNT_ORDERS_PAGE_SIZE = 5
+const MISSING_ORDER_ID_KEY = "__missing-order-id__"
 
 const storefrontCacheConfig = createCacheConfig({
   userData: appCacheConfig.userData,
@@ -56,7 +57,8 @@ const orderQueryKeys = {
       limit: params.limit,
       offset: params.offset,
     }),
-  detail: (params: OrderDetailParams) => queryKeys.orders.detail(params.id ?? ""),
+  detail: (params: OrderDetailParams) =>
+    queryKeys.orders.detail(params.id ?? MISSING_ORDER_ID_KEY),
 }
 
 const baseOrderService = createMedusaOrderService(sdk, {

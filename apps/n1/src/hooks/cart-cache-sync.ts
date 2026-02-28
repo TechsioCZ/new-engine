@@ -5,7 +5,11 @@ import type { Cart } from "@/types/cart"
 type CartUpdater = (cart: Cart) => Cart
 
 const isCartObject = (value: unknown): value is Cart =>
-  Boolean(value && typeof value === "object")
+  Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof (value as { id?: unknown }).id === "string"
+  )
 
 export const isActiveCartQueryKeyForCart = (
   queryKey: readonly unknown[],

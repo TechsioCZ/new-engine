@@ -1,5 +1,6 @@
-import { authHooks, type LoginCredentials } from "./auth-hooks-base"
 import { toError } from "@/lib/errors"
+import { authHooks } from "./auth-hooks-base"
+export type { LoginCredentials } from "./auth-hooks-base"
 
 export type UseLoginOptions = {
   onSuccess?: () => void
@@ -16,5 +17,3 @@ export function useLogin(options?: UseLoginOptions) {
     },
   })
 }
-
-export type { LoginCredentials }

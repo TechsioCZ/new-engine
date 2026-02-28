@@ -1,9 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import { buildPrefetchParams } from "@/lib/product-query-params"
 import { queryKeys } from "@/lib/query-keys"
-import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
-import { productHooks } from "./product-hooks-base"
 import { buildCategoryPrefetchLabels, runLoggedPrefetch } from "./prefetch-utils"
+import { productHooks } from "./product-hooks-base"
 import { useRegion } from "./use-region"
 
 export function usePrefetchProducts() {

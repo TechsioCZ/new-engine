@@ -136,6 +136,7 @@ export const AddToCartSection = ({
         disabled={isPending || !selectedVariant?.id || !regionId}
         onClick={handleAddToCart}
         variant="secondary"
+        className="items-center"
       >
         {isPending ? "Přidávám..." : "Přidat do košíku"}
       </Button>

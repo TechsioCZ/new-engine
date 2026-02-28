@@ -21,20 +21,17 @@ export default function OrderPage() {
     throw new Error("Order ID je povinný")
   }
 
-  const orderResult = useSuspensePublicOrder(
-    orderId,
-    {
-      queryOptions: {
-        retry: (failureCount, error) => {
-          if (error instanceof Error && error.message?.includes("nenalezena")) {
-            return false
-          }
-          return failureCount < 2
-        },
-        ...cacheConfig.semiStatic,
+  const orderResult = useSuspensePublicOrder(orderId, {
+    queryOptions: {
+      retry: (failureCount, error) => {
+        if (error instanceof Error && error.message?.includes("nenalezena")) {
+          return false
+        }
+        return failureCount < 2
       },
-    }
-  )
+      ...cacheConfig.semiStatic,
+    },
+  })
 
   if (!orderResult.order) {
     throw new Error("Objednávka nebyla nalezena")

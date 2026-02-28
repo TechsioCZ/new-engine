@@ -55,6 +55,18 @@ export const queryKeys = {
     all: () => [...queryKeys.all, "checkout"] as const,
     shippingOptions: (cartId: string, cacheKey?: string) =>
       queryKeys.cart.shippingOptions(cartId, cacheKey),
+    shippingOptionPrice: (params: {
+      cartId: string
+      optionId: string
+      data?: Record<string, unknown>
+    }) =>
+      [
+        ...queryKeys.checkout.all(),
+        "shipping-option",
+        params.cartId,
+        params.optionId,
+        params.data ?? {},
+      ] as const,
     paymentProviders: (regionId: string) =>
       queryKeys.payment.providers(regionId),
   },

@@ -13,14 +13,7 @@ const checkoutQueryKeys = {
     cartId: string
     optionId: string
     data?: Record<string, unknown>
-  }) =>
-    [
-      ...queryKeys.checkout.all(),
-      "shipping-option",
-      params.cartId,
-      params.optionId,
-      params.data ?? {},
-    ] as const,
+  }) => queryKeys.checkout.shippingOptionPrice(params),
   paymentProviders: (regionId: string) =>
     queryKeys.checkout.paymentProviders(regionId),
 }

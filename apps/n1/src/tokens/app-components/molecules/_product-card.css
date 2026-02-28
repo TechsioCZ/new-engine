@@ -1,0 +1,3 @@
+@theme static {
+    --color-product-card-button-cart-fg: var(--color-fg-reverse);
+}

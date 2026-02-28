@@ -44,7 +44,7 @@ export async function runLoggedPrefetch({
   prefetch,
 }: RunLoggedPrefetchOptions): Promise<void> {
   const cached = queryClient.getQueryData(queryKey)
-  if (cached) {
+  if (cached !== undefined) {
     prefetchLogger.cacheHit(type, cacheHitLabel ?? label)
     return
   }
@@ -55,4 +55,3 @@ export async function runLoggedPrefetch({
   const duration = performance.now() - start
   prefetchLogger.complete(type, label, duration)
 }
-

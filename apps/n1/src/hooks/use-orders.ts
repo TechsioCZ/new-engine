@@ -28,8 +28,8 @@ type UseOrderHookOptions = Parameters<typeof orderHooks.useOrder>[1]
 type UseSuspenseOrderHookOptions =
   Parameters<typeof orderHooks.useSuspenseOrder>[1]
 
-const AUTH_REQUIRED_ERROR = "Uzivatel neni prihlasen"
-const ORDER_ID_REQUIRED_ERROR = "Order ID je povinny"
+const AUTH_REQUIRED_ERROR = "Uživatel není přihlášen"
+const ORDER_ID_REQUIRED_ERROR = "Order ID je povinný"
 
 const assertAuthenticated = (isAuthenticated: boolean) => {
   if (!isAuthenticated) {
@@ -101,7 +101,7 @@ export function useSuspenseOrder(
 
 export function useOrder(input: UseOrderInput, options?: UseOrderHookOptions) {
   const id = input.id ?? undefined
-  const enabled = input.enabled ?? Boolean(id)
+  const enabled = Boolean(id) && (input.enabled ?? true)
 
   return orderHooks.useOrder(
     {

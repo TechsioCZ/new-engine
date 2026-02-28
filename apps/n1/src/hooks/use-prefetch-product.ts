@@ -1,11 +1,12 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { queryKeys } from "@/lib/query-keys"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
-import { productHooks } from "./product-hooks-base"
+import { queryKeys } from "@/lib/query-keys"
 import { runLoggedPrefetch } from "./prefetch-utils"
+import { productHooks } from "./product-hooks-base"
 import { useRegion } from "./use-region"
+
 export function usePrefetchProduct() {
   const { regionId, countryCode } = useRegion()
   const queryClient = useQueryClient()

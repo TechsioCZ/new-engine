@@ -1,5 +1,6 @@
-import { authHooks, type RegisterData } from "./auth-hooks-base"
 import { toError } from "@/lib/errors"
+import { authHooks } from "./auth-hooks-base"
+export type { RegisterData } from "./auth-hooks-base"
 
 export type UseRegisterOptions = {
   onSuccess?: () => void
@@ -16,5 +17,3 @@ export function useRegister(options?: UseRegisterOptions) {
     },
   })
 }
-
-export type { RegisterData }

@@ -9,6 +9,8 @@ type UseProductsProps = {
   enabled?: boolean
 }
 
+type UseSuspenseProductsProps = Omit<UseProductsProps, "enabled">
+
 type UseProductsReturn = {
   products: StoreProduct[]
   isLoading: boolean
@@ -63,7 +65,7 @@ export function useSuspenseProducts({
   category_id = [],
   page = 1,
   limit = PRODUCT_LIMIT,
-}: UseProductsProps): UseSuspenseProductsReturn {
+}: UseSuspenseProductsProps): UseSuspenseProductsReturn {
   const result = productHooks.useSuspenseProducts({
     category_id,
     page,

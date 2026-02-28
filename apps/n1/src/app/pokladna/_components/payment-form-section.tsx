@@ -21,9 +21,7 @@ export function PaymentFormSection() {
   useEffect(() => {
     const currentProvider =
       cart?.payment_collection?.payment_sessions?.[0]?.provider_id ?? ""
-    if (currentProvider) {
-      setSelectedProvider(currentProvider)
-    }
+    setSelectedProvider(currentProvider)
   }, [cart?.payment_collection?.payment_sessions])
 
   function handleProviderSelect(providerId: string) {

@@ -10,6 +10,8 @@ export type UseCheckoutPaymentReturn = {
   initiatePayment: (providerId: string) => void
   initiatePaymentAsync: (providerId: string) => Promise<HttpTypes.StorePaymentCollection>
   isInitiatingPayment: boolean
+  isLoadingPaymentProviders: boolean
+  isFetchingPaymentProviders: boolean
   canInitiatePayment: boolean
   hasPaymentCollection: boolean
   hasPaymentSessions: boolean
@@ -62,6 +64,8 @@ export function useCheckoutPayment(
     initiatePayment: payment.initiatePayment,
     initiatePaymentAsync: payment.initiatePaymentAsync,
     isInitiatingPayment: payment.isInitiatingPayment,
+    isLoadingPaymentProviders: payment.isLoading,
+    isFetchingPaymentProviders: payment.isFetching,
     canInitiatePayment,
     hasPaymentCollection,
     hasPaymentSessions,

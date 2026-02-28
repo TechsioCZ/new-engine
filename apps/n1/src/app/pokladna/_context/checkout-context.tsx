@@ -215,9 +215,20 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      const existingPaymentProviderId =
+        cart.payment_collection?.payment_sessions?.[0]?.provider_id
+      const isLoadingPaymentProviders =
+        !existingPaymentProviderId &&
+        (payment.isLoadingPaymentProviders ||
+          payment.isFetchingPaymentProviders)
+
+      if (isLoadingPaymentProviders) {
+        setError("Načítám dostupné způsoby platby")
+        return
+      }
+
       const selectedPaymentProviderId =
-        cart.payment_collection?.payment_sessions?.[0]?.provider_id ??
-        payment.paymentProviders?.[0]?.id
+        existingPaymentProviderId ?? payment.paymentProviders?.[0]?.id
 
       if (!selectedPaymentProviderId) {
         setError("Není dostupný způsob platby")

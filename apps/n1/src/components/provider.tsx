@@ -37,7 +37,6 @@ function StorefrontRegionBridge({ children }: { children: ReactNode }) {
 }
 
 export function Providers({ children }: { children: ReactNode }) {
-
   return (
     <StorefrontDataProvider client={queryClient}>
       <Suspense fallback={null}>

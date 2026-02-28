@@ -1,8 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { PplAccessPointData } from "@/app/pokladna/_components/ppl-widget"
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
-import type { AddressFormData } from "./address-validation"
 import type { ShippingMethodData } from "@/types/cart"
+import type { AddressFormData } from "./address-validation"
 import { formatPhoneNumber } from "./format/format-phone-number"
 import { formatPostalCode } from "./format/format-postal-code"
 

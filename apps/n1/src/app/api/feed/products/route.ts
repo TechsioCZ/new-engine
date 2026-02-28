@@ -1,5 +1,8 @@
-import type { HttpTypes } from "@medusajs/types"
-import { createMedusaProductService } from "@techsio/storefront-data/products/medusa-service"
+import {
+  createMedusaProductService,
+  type MedusaProductDetailInput,
+  type MedusaProductListInput,
+} from "@techsio/storefront-data/products/medusa-service"
 import { NextResponse } from "next/server"
 import { sdk } from "@/lib/medusa-client"
 
@@ -8,8 +11,6 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
 const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 const DEFAULT_REGION_ID =
   process.env.NEXT_PUBLIC_DEFAULT_REGION_ID || "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
-
-const productService = createMedusaProductService(sdk)
 
 type FeedVariant = {
   id: string
@@ -35,29 +36,32 @@ type FeedProduct = {
   categories?: Array<{ name: string }>
 }
 
+const productService = createMedusaProductService<
+  FeedProduct,
+  MedusaProductListInput,
+  MedusaProductDetailInput
+>(sdk)
+
 async function fetchAllProducts(): Promise<FeedProduct[]> {
   const allProducts: FeedProduct[] = []
   let offset = 0
   let total = 0
 
   do {
-    const response = await productService.getProducts(
-      {
-        limit: BATCH_SIZE,
-        offset,
-        region_id: DEFAULT_REGION_ID,
-        fields: "*variants.calculated_price",
-      },
-      undefined
-    )
+    const response = await productService.getProducts({
+      limit: BATCH_SIZE,
+      offset,
+      region_id: DEFAULT_REGION_ID,
+      fields: "*variants.calculated_price",
+    })
 
-    const products = response.products as HttpTypes.StoreProduct[]
+    const products = response.products
     if (!products.length) {
       break
     }
 
     total = response.count
-    allProducts.push(...(products as FeedProduct[]))
+    allProducts.push(...products)
     offset += BATCH_SIZE
   } while (offset < total)
 

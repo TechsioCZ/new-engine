@@ -36,6 +36,24 @@ const storefrontCacheConfig = createCacheConfig({
 
 const baseAuthService = createMedusaAuthService(sdk)
 
+const isExpectedAuthError = (error: unknown): boolean => {
+  if (!(error && typeof error === "object")) {
+    return false
+  }
+
+  const directStatus = "status" in error ? (error as { status?: unknown }).status : null
+  if (directStatus === 401 || directStatus === 403) {
+    return true
+  }
+
+  const responseStatus =
+    "response" in error
+      ? (error as { response?: { status?: unknown } }).response?.status
+      : null
+
+  return responseStatus === 401 || responseStatus === 403
+}
+
 export const authHooks = createAuthHooks<
   HttpTypes.StoreCustomer,
   LoginCredentials,
@@ -57,7 +75,10 @@ export const authHooks = createAuthHooks<
 
       try {
         return await baseAuthService.getCustomer(signal)
-      } catch {
+      } catch (error) {
+        if (!isExpectedAuthError(error)) {
+          logError("AuthService.getCustomer", error)
+        }
         return null
       }
     },
