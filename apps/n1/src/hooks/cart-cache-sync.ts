@@ -11,14 +11,19 @@ const isCartObject = (value: unknown): value is Cart =>
       typeof (value as { id?: unknown }).id === "string"
   )
 
+const activeCartQueryKeyPrefix = queryKeys.cart.active()
+
+const hasQueryKeyPrefix = (
+  queryKey: readonly unknown[],
+  prefix: readonly unknown[]
+): boolean => prefix.every((segment, index) => queryKey[index] === segment)
+
 export const isActiveCartQueryKeyForCart = (
   queryKey: readonly unknown[],
   cartId: string
 ): boolean =>
-  queryKey[0] === queryKeys.all[0] &&
-  queryKey[1] === "cart" &&
-  queryKey[2] === "active" &&
-  queryKey[3] === cartId
+  hasQueryKeyPrefix(queryKey, activeCartQueryKeyPrefix) &&
+  queryKey[activeCartQueryKeyPrefix.length] === cartId
 
 export const syncCartCaches = (queryClient: QueryClient, cart: Cart) => {
   queryClient.setQueriesData(

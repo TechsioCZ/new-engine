@@ -56,8 +56,6 @@ export function usePrefetchProducts() {
           },
           {
             prefetchedBy,
-            skipIfCached: true,
-            skipMode: "any",
           }
         ),
     })
@@ -95,8 +93,6 @@ export function usePrefetchProducts() {
           },
           {
             useGlobalFetcher: true,
-            skipIfCached: true,
-            skipMode: "any",
           }
         ),
     })

@@ -47,6 +47,7 @@ const assertOrderId = (orderId: string | null): string => {
 const mapSuspenseOrderResult = (
   result: ReturnType<typeof orderHooks.useSuspenseOrder>
 ) => ({
+  // Keep `data` as a legacy alias for existing call-sites that expect query-style naming.
   data: result.order as SuspenseOrderData | null,
   order: result.order,
 })

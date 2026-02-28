@@ -33,7 +33,6 @@ export function OrderDetailClient() {
 
   const order = useOrder({
     id,
-    enabled: Boolean(id),
   })
 
   if (order.isLoading) {
@@ -44,7 +43,7 @@ export function OrderDetailClient() {
     )
   }
 
-  if (order.error || !order.order) {
+  if (!order.order) {
     return (
       <div className="mx-auto max-w-max-w px-400">
         <p className="text-fg-secondary">{getOrderErrorMessage(order.error)}</p>

@@ -4,6 +4,7 @@ import { HeurekaOrder } from "@techsio/analytics/heureka"
 import { useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
 import { CheckoutReview } from "@/app/pokladna/_components/checkout-review"
+import { OrderNotFoundError } from "@/hooks/order-hooks-base"
 import { useSuspensePublicOrder } from "@/hooks/use-orders"
 import { cacheConfig } from "@/lib/cache-config"
 import { useAnalytics } from "@/providers/analytics-provider"
@@ -24,7 +25,7 @@ export default function OrderPage() {
   const orderResult = useSuspensePublicOrder(orderId, {
     queryOptions: {
       retry: (failureCount, error) => {
-        if (error instanceof Error && error.message?.includes("nenalezena")) {
+        if (error instanceof OrderNotFoundError) {
           return false
         }
         return failureCount < 2

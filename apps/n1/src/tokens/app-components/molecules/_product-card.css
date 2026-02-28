@@ -1,3 +1,4 @@
 @theme static {
-    --color-product-card-button-cart-fg: var(--color-fg-reverse);
+  --color-product-card-button-cart-fg: var(--color-fg-reverse);
+  --color-product-card-button-detail-fg: var(--color-fg-reverse);
 }

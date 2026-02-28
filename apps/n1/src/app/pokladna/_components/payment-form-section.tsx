@@ -13,7 +13,7 @@ export function PaymentFormSection() {
     hasPaymentSessions,
     canInitiatePayment,
     isInitiatingPayment,
-    initiatePayment,
+    initiatePaymentAsync,
   } = payment
 
   const [selectedProvider, setSelectedProvider] = useState<string>("")
@@ -24,13 +24,19 @@ export function PaymentFormSection() {
     setSelectedProvider(currentProvider)
   }, [cart?.payment_collection?.payment_sessions])
 
-  function handleProviderSelect(providerId: string) {
+  async function handleProviderSelect(providerId: string) {
     if (!(canInitiatePayment && selectedProvider !== providerId)) {
       return
     }
 
+    const previousProvider = selectedProvider
     setSelectedProvider(providerId)
-    initiatePayment(providerId)
+
+    try {
+      await initiatePaymentAsync(providerId)
+    } catch {
+      setSelectedProvider(previousProvider)
+    }
   }
 
   return (
@@ -58,7 +64,9 @@ export function PaymentFormSection() {
                       disabled={isInitiatingPayment || !canInitiatePayment}
                       id={providerInputId}
                       name="payment-provider"
-                      onChange={() => handleProviderSelect(provider.id)}
+                      onChange={() => {
+                        void handleProviderSelect(provider.id)
+                      }}
                     />
                     <span className="flex flex-1 flex-col">
                       <span className="font-medium text-fg-primary text-sm">

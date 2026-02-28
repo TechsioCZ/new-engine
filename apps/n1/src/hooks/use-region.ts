@@ -5,6 +5,7 @@ import {
   type MedusaRegionDetailInput,
   type MedusaRegionListInput,
 } from "@techsio/storefront-data/regions/medusa-service"
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
 import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 
@@ -17,7 +18,6 @@ type Region = HttpTypes.StoreRegion
 type RegionListInput = { enabled?: boolean }
 type RegionDetailInput = { id?: string; enabled?: boolean }
 
-const DEFAULT_COUNTRY_CODE = "cz"
 const DEFAULT_CURRENCY_CODE = "czk"
 
 const regionQueryOptions = {
@@ -82,15 +82,26 @@ function getRegionValues(region: Region | undefined) {
   }
 }
 
+function resolveRegionSelection(regions: Region[]) {
+  const selectedRegion = findPreferredRegion(regions)
+  const { regionId, countryCode, currencyCode } = getRegionValues(selectedRegion)
+
+  return {
+    selectedRegion,
+    regionId,
+    countryCode,
+    currencyCode,
+  }
+}
+
 export function useRegion() {
   const { regions, isLoading } = regionHooks.useRegions(
     {},
     { queryOptions: regionQueryOptions }
   )
 
-  const selectedRegion = findPreferredRegion(regions)
-  const { regionId, countryCode, currencyCode } =
-    getRegionValues(selectedRegion)
+  const { selectedRegion, regionId, countryCode, currencyCode } =
+    resolveRegionSelection(regions)
 
   return {
     regions,
@@ -108,9 +119,8 @@ export function useSuspenseRegion() {
     { queryOptions: regionQueryOptions }
   )
 
-  const selectedRegion = findPreferredRegion(regions)
-  const { regionId, countryCode, currencyCode } =
-    getRegionValues(selectedRegion)
+  const { selectedRegion, regionId, countryCode, currencyCode } =
+    resolveRegionSelection(regions)
 
   return {
     regions,

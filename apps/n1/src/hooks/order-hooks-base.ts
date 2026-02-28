@@ -33,6 +33,13 @@ const storefrontCacheConfig = createCacheConfig({
   userData: appCacheConfig.userData,
 })
 
+export class OrderNotFoundError extends Error {
+  constructor(message = "Objednávka nenalezena") {
+    super(message)
+    this.name = "OrderNotFoundError"
+  }
+}
+
 function buildListParams(input: OrderListInput): OrderListParams {
   const page = input.page ?? 1
   const limit = input.limit ?? 20
@@ -97,7 +104,7 @@ const orderService = {
       return await baseOrderService.getOrder(params, signal)
     } catch (error) {
       if (isNotFoundError(error)) {
-        throw new Error("Objednávka nenalezena")
+        throw new OrderNotFoundError()
       }
 
       if (process.env.NODE_ENV === "development") {

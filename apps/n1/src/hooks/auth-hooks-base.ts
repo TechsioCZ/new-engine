@@ -41,7 +41,8 @@ const isExpectedAuthError = (error: unknown): boolean => {
     return false
   }
 
-  const directStatus = "status" in error ? (error as { status?: unknown }).status : null
+  const directStatus =
+    "status" in error ? (error as { status?: unknown }).status : null
   if (directStatus === 401 || directStatus === 403) {
     return true
   }

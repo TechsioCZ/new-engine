@@ -8,7 +8,6 @@ import { sdk } from "@/lib/medusa-client"
 
 const BATCH_SIZE = 100
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
-const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 const DEFAULT_REGION_ID =
   process.env.NEXT_PUBLIC_DEFAULT_REGION_ID || "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
 
@@ -129,17 +128,6 @@ function generateXmlFeed(products: FeedProduct[]): string {
 }
 
 export async function GET() {
-  if (!MEDUSA_API_KEY) {
-    console.warn("NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set.")
-    const xml = generateXmlFeed([])
-    return new NextResponse(xml, {
-      headers: {
-        "Content-Type": "application/xml; charset=utf-8",
-        "Cache-Control": "public, max-age=3600, s-maxage=3600",
-      },
-    })
-  }
-
   try {
     const products = await fetchAllProducts()
     const xml = generateXmlFeed(products)
