@@ -29,6 +29,13 @@ const getErrorMessage = (error: unknown): string | undefined => {
   return err.message ?? err.response?.data?.message
 }
 
+const resolveAddQuantity = (quantity?: number) => {
+  if (typeof quantity === "number" && Number.isFinite(quantity) && quantity > 0) {
+    return Math.trunc(quantity)
+  }
+  return 1
+}
+
 // Cart hook using React Query
 export function useCart() {
   const { selectedRegion } = useRegions()
@@ -216,7 +223,7 @@ export function useCart() {
         cartId: cart?.id,
         region_id: selectedRegion?.id,
         variantId,
-        quantity,
+        quantity: resolveAddQuantity(quantity),
         autoCreate: true,
       }),
     updateQuantity: (lineItemId: string, quantity: number) =>

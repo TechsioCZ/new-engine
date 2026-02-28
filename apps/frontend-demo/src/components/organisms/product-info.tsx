@@ -6,6 +6,7 @@ import { Label } from "@ui/atoms/label"
 import { Rating } from "@ui/atoms/rating"
 import { useToast } from "@ui/molecules/toast"
 import { NumericInputTemplate } from "@ui/templates/numeric-input"
+import { tv } from "@techsio/ui-kit/utils"
 import { useState } from "react"
 import { SafeHtmlContent } from "@/components/safe-html-content"
 import { useCart } from "@/hooks/use-cart"
@@ -20,6 +21,28 @@ interface ProductInfoProps {
   priceWithTax?: string | number
   onVariantChange: (variant: ProductVariant) => void
 }
+
+const variantButtonStyles = tv({
+  slots: {
+    button: ["roundend-product-btn", "border"],
+  },
+  variants: {
+    isSelected: {
+      true: {
+        button: "border-primary",
+      },
+      false: {
+        button: "border-border-subtle",
+      },
+    },
+    isInStock: {
+      true: {},
+      false: {
+        button: "cursor-not-allowed opacity-50",
+      },
+    },
+  },
+})
 
 export function ProductInfo({
   product,
@@ -110,10 +133,14 @@ export function ProductInfo({
             {sortVariantsBySize(productVariants).map((variant) => {
               const isSelected = selectedVariant?.id === variant.id
               const isInStock = isVariantInStock(variant)
+              const { button } = variantButtonStyles({
+                isSelected,
+                isInStock,
+              })
 
               return (
                 <Button
-                  className={`roundend-product-btn border ${!isInStock ? "cursor-not-allowed opacity-50" : ""}`}
+                  className={button()}
                   disabled={!isInStock}
                   key={variant.id}
                   onClick={() => {

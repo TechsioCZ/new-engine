@@ -7,6 +7,8 @@ import type { PageRange } from "./use-url-filters"
 import { useRegions } from "./use-region"
 import { useStorefrontInfiniteProducts } from "./storefront-products"
 
+const MAX_BOOTSTRAP_PAGES = 8
+
 interface UseInfiniteProductsParams extends Omit<ProductListParams, "offset"> {
   pageRange: PageRange
   enabled?: boolean
@@ -15,6 +17,7 @@ interface UseInfiniteProductsParams extends Omit<ProductListParams, "offset"> {
 interface UseInfiniteProductsReturn {
   products: Product[]
   isLoading: boolean
+  isFetching: boolean
   error: string | null
   totalCount: number
   currentPageRange: PageRange
@@ -60,12 +63,13 @@ export function useInfiniteProducts(
     rangeBootstrapRef.current.end !== pageRange.end ||
     rangeBootstrapRef.current.limit !== limit
   ) {
-    const totalPagesNeeded = pageRange.end - pageRange.start + 1
+    const totalPagesNeeded = Math.max(1, pageRange.end - pageRange.start + 1)
+    const clampedPagesNeeded = Math.min(totalPagesNeeded, MAX_BOOTSTRAP_PAGES)
     rangeBootstrapRef.current = {
       start: pageRange.start,
       end: pageRange.end,
       limit,
-      initialLimit: totalPagesNeeded * limit,
+      initialLimit: clampedPagesNeeded * limit,
     }
   }
 
@@ -75,6 +79,7 @@ export function useInfiniteProducts(
   const {
     products,
     isLoading,
+    isFetching,
     error,
     totalCount,
     hasNextPage,
@@ -106,6 +111,7 @@ export function useInfiniteProducts(
   return {
     products,
     isLoading,
+    isFetching,
     error,
     totalCount,
     currentPageRange: pageRange,

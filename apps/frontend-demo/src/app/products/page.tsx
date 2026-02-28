@@ -3,7 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import Link from "next/link"
-import { Suspense, useMemo } from "react"
+import { Suspense, useEffect, useMemo, useRef } from "react"
 import { ErrorText } from "@/components/atoms/error-text"
 import { ProductGridSkeleton } from "@/components/molecules/product-grid-skeleton"
 import { ProductFilters } from "@/components/organisms/product-filters"
@@ -46,9 +46,11 @@ function ProductsContent() {
   const {
     products,
     isLoading,
+    isFetching,
     error,
     totalCount,
     hasNextPage,
+    isFetchingNextPage,
   } = useInfiniteProducts({
     pageRange: urlFilters.pageRange,
     limit: pageSize,
@@ -60,6 +62,8 @@ function ProductsContent() {
 
   const currentPage = urlFilters.pageRange.end
   const hasSizeFilters = productFilters.sizes.length > 0
+  const loadMoreLockRef = useRef(false)
+  const isLoadMoreRequestInFlight = isFetching || isFetchingNextPage
   const hasSizeFilterError = Boolean(
     hasSizeFilters && isSizeFilterRelatedError(error)
   )
@@ -69,6 +73,21 @@ function ProductsContent() {
       categories: new Set(urlFilters.filters.categories),
       sizes: new Set(),
     })
+  }
+
+  useEffect(() => {
+    if (!isLoadMoreRequestInFlight) {
+      loadMoreLockRef.current = false
+    }
+  }, [isLoadMoreRequestInFlight])
+
+  const handleLoadMore = () => {
+    if (loadMoreLockRef.current || isLoadMoreRequestInFlight) {
+      return
+    }
+
+    loadMoreLockRef.current = true
+    urlFilters.extendPageRange()
   }
 
   return (
@@ -145,13 +164,14 @@ function ProductsContent() {
               {hasNextPage && (
                 <div className="mt-8 flex justify-center">
                   <Button
-                    onClick={() => {
-                      urlFilters.extendPageRange()
-                    }}
+                    disabled={isLoadMoreRequestInFlight}
+                    onClick={handleLoadMore}
                     size="sm"
                     variant="primary"
                   >
-                    {`Načíst dalších ${pageSize} produktů`}
+                    {isLoadMoreRequestInFlight
+                      ? `Načítání dalších ${pageSize}...`
+                      : `Načíst dalších ${pageSize} produktů`}
                   </Button>
                 </div>
               )}

@@ -33,6 +33,23 @@ const resolveOrderListPage = (params: MedusaOrderListInput) => {
   return undefined
 }
 
+const resolveOrderListOffset = (input: StorefrontOrderListInput) => {
+  if (typeof input.offset === "number") {
+    return input.offset
+  }
+
+  if (
+    typeof input.page === "number" &&
+    input.page > 0 &&
+    typeof input.limit === "number" &&
+    input.limit > 0
+  ) {
+    return (input.page - 1) * input.limit
+  }
+
+  return undefined
+}
+
 const orderQueryKeys: OrderQueryKeys<
   MedusaOrderListInput,
   MedusaOrderDetailInput
@@ -58,7 +75,7 @@ const orderHooks = createOrderHooks<
   }),
   buildListParams: (input) => ({
     limit: input.limit,
-    offset: input.offset,
+    offset: resolveOrderListOffset(input),
   }),
   buildDetailParams: (input) => ({
     id: input.id,

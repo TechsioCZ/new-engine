@@ -78,7 +78,11 @@ export function ShippingSelection({
   const toast = useToast()
 
   const handleProgress = () => {
-    if (selected && !isLoading) {
+    if (isLoading) {
+      return
+    }
+
+    if (selected) {
       setCurrentStep(currentStep + 1)
       return
     }

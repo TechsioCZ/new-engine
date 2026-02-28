@@ -17,6 +17,11 @@ export function CartPrefetch() {
     void prefetchCart({
       autoCreate: true,
       autoUpdateRegion: true,
+    }).catch((error) => {
+      console.warn("Cart prefetch failed", {
+        error,
+        regionId: region.region_id,
+      })
     })
   }, [prefetchCart, region?.region_id, region?.country_code])
 

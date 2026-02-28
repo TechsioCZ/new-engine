@@ -24,6 +24,28 @@ type PrefetchedInfiniteProducts = {
   pageParams: number[]
 }
 
+const resolvePrefetchLimit = (requestedLimit?: number) => {
+  if (
+    typeof requestedLimit === "number" &&
+    Number.isFinite(requestedLimit) &&
+    requestedLimit > 0
+  ) {
+    return Math.trunc(requestedLimit)
+  }
+  return DEFAULT_LIMIT
+}
+
+const resolvePrefetchOffset = (requestedOffset?: number) => {
+  if (
+    typeof requestedOffset === "number" &&
+    Number.isFinite(requestedOffset) &&
+    requestedOffset >= 0
+  ) {
+    return Math.trunc(requestedOffset)
+  }
+  return 0
+}
+
 export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
   const queryClient = useQueryClient()
   const { selectedRegion } = useRegions()
@@ -72,8 +94,8 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
     (params?: Omit<ProductListParams, "region_id">) => {
       if (!(enabled && selectedRegion?.id)) return
 
-      const limit = params?.limit ?? DEFAULT_LIMIT
-      const offset = params?.offset ?? 0
+      const limit = resolvePrefetchLimit(params?.limit)
+      const offset = resolvePrefetchOffset(params?.offset)
       const page = Math.floor(offset / limit) + 1
       const countryCode = resolveRegionCountryCode(selectedRegion)
 

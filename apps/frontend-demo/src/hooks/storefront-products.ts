@@ -21,6 +21,7 @@ const LIST_FIELDS = [
   "*variants.calculated_price",
   "variants.inventory_quantity",
   "variants.manage_inventory",
+  "variants.allow_backorder",
 ].join(",")
 
 const DETAIL_FIELDS = [
@@ -105,6 +106,29 @@ const resolvePage = (
   return fallback
 }
 
+const isVariantInStock = (
+  variant:
+    | Pick<
+        HttpTypes.StoreProductVariant,
+        "manage_inventory" | "allow_backorder" | "inventory_quantity"
+      >
+    | undefined
+) => {
+  if (!variant) {
+    return false
+  }
+
+  if (variant.manage_inventory === false) {
+    return true
+  }
+
+  if (variant.allow_backorder === true) {
+    return true
+  }
+
+  return (variant.inventory_quantity ?? 0) > 0
+}
+
 const transformProduct = (product: HttpTypes.StoreProduct): Product => {
   if (!product) {
     throw new Error("Cannot transform null product")
@@ -124,7 +148,7 @@ const transformProduct = (product: HttpTypes.StoreProduct): Product => {
     ...product,
     thumbnail: product.thumbnail,
     images: reducedImages,
-    inStock: true,
+    inStock: product.variants?.some((variant) => isVariantInStock(variant)) ?? false,
     price: price ?? null,
     priceWithTax: priceWithTax ?? null,
     primaryVariant: primaryVariant ?? null,
