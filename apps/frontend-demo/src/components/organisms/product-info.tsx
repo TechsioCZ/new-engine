@@ -24,7 +24,7 @@ interface ProductInfoProps {
 
 const variantButtonStyles = tv({
   slots: {
-    button: ["roundend-product-btn", "border"],
+    button: ["rounded-product-btn", "border"],
   },
   variants: {
     isSelected: {

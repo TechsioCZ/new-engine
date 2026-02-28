@@ -82,7 +82,14 @@ const SORT_MAP: Record<string, string> = {
   "name-desc": "-title",
 }
 
-const normalizeCountryCode = (countryCode?: string) => countryCode?.toLowerCase()
+const normalizeCountryCode = (countryCode?: string) => {
+  if (typeof countryCode !== "string") {
+    return undefined
+  }
+
+  const normalizedCode = countryCode.trim().toLowerCase()
+  return normalizedCode.length > 0 ? normalizedCode : undefined
+}
 
 const resolveSortOrder = (sort?: string) => {
   if (!sort) return undefined
@@ -181,8 +188,9 @@ export const storefrontProductQueryKeys: ProductQueryKeys<
   StorefrontProductListParams,
   StorefrontProductDetailParams
 > = {
-  list: (params) =>
-    queryKeys.products.list({
+  list: (params) => {
+    const normalizedCountryCode = normalizeCountryCode(params.country_code)
+    return queryKeys.products.list({
       page: resolvePage(params),
       limit: params.limit,
       filters: params.filters,
@@ -190,10 +198,12 @@ export const storefrontProductQueryKeys: ProductQueryKeys<
       q: params.q,
       category: params.category,
       region_id: params.region_id,
-      country_code: params.country_code,
-    }),
-  infinite: (params) =>
-    queryKeys.products.infinite({
+      country_code: normalizedCountryCode,
+    })
+  },
+  infinite: (params) => {
+    const normalizedCountryCode = normalizeCountryCode(params.country_code)
+    return queryKeys.products.infinite({
       pageRangeStart: resolvePage(params),
       limit: params.limit,
       filters: params.filters,
@@ -201,10 +211,13 @@ export const storefrontProductQueryKeys: ProductQueryKeys<
       q: params.q,
       category: params.category,
       region_id: params.region_id,
-      country_code: params.country_code,
-    }),
-  detail: (params) =>
-    queryKeys.product(params.handle, params.region_id, params.country_code),
+      country_code: normalizedCountryCode,
+    })
+  },
+  detail: (params) => {
+    const normalizedCountryCode = normalizeCountryCode(params.country_code)
+    return queryKeys.product(params.handle, params.region_id, normalizedCountryCode)
+  },
 }
 
 const storefrontProductCacheConfig: CacheConfig = {
@@ -272,6 +285,7 @@ export const buildStorefrontProductListParams = (
   const limit = resolveLimit(input.limit, DEFAULT_PRODUCT_PAGE_SIZE)
   const page = resolveInputPage(input.page, 1)
   const offset = resolveOffset(input.offset, (page - 1) * limit)
+  const normalizedCountryCode = normalizeCountryCode(input.country_code)
 
   return {
     limit,
@@ -282,7 +296,7 @@ export const buildStorefrontProductListParams = (
     sort: input.sort,
     q: input.q,
     region_id: input.region_id,
-    country_code: input.country_code,
+    country_code: normalizedCountryCode,
   }
 }
 
@@ -308,7 +322,7 @@ const buildStorefrontProductDetailParams = (
   handle: input.handle,
   fields: input.fields,
   region_id: input.region_id,
-  country_code: input.country_code,
+  country_code: normalizeCountryCode(input.country_code),
   province: input.province,
   cart_id: input.cart_id,
   locale: input.locale,

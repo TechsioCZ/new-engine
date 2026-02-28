@@ -20,18 +20,17 @@ const SHIPPING_METHODS_LOADING_TEXT = "Načítám dostupné dopravce..."
 const ShippingMethodDetail = ({
   method,
   selected,
+  formattedPrice,
 }: {
   method: ReducedShippingMethod
   selected: string
+  formattedPrice: string
 }) => {
   const detailInfo = resolveShippingMethodMetadata({
     name: method.name,
     providerId: method.provider_id,
     typeCode: method.type_code,
   })
-
-  const formattedPrice = formatShippingPrice(method)
-
   return (
     <div className="flex flex-1 items-center gap-3 sm:gap-4">
       {detailInfo?.image && (
@@ -101,19 +100,26 @@ export function ShippingSelection({
         className="grid grid-cols-1 gap-3 sm:gap-4"
         role="radiogroup"
       >
-        {shippingMethods?.map((method) => (
-          <Button
-            aria-checked={selected === method.id}
-            aria-label={`${method.name} - ${method.calculated_price.calculated_amount}`}
-            className="relative flex items-center rounded-lg border-2 border-border-subtle bg-surface p-3 transition-all duration-200 hover:bg-surface-hover hover:shadow-md focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) data-[selected=true]:border-primary data-[selected=true]:bg-surface-selected data-[selected=true]:shadow-lg sm:p-4"
-            data-selected={selected === method.id}
-            disabled={isLoading}
-            key={method.id}
-            onClick={() => onSelect(method.id)}
-          >
-            <ShippingMethodDetail method={method} selected={selected} />
-          </Button>
-        ))}
+        {shippingMethods?.map((method) => {
+          const formattedPrice = formatShippingPrice(method)
+          return (
+            <Button
+              aria-checked={selected === method.id}
+              aria-label={`${method.name} - ${formattedPrice}`}
+              className="relative flex items-center rounded-lg border-2 border-border-subtle bg-surface p-3 transition-all duration-200 hover:bg-surface-hover hover:shadow-md focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) data-[selected=true]:border-primary data-[selected=true]:bg-surface-selected data-[selected=true]:shadow-lg sm:p-4"
+              data-selected={selected === method.id}
+              disabled={isLoading}
+              key={method.id}
+              onClick={() => onSelect(method.id)}
+            >
+              <ShippingMethodDetail
+                formattedPrice={formattedPrice}
+                method={method}
+                selected={selected}
+              />
+            </Button>
+          )
+        })}
       </div>
 
       {isLoading && (
@@ -130,7 +136,12 @@ export function ShippingSelection({
         >
           Zpět
         </Button>
-        <Button disabled={isLoading} onClick={handleProgress} size="sm">
+        <Button
+          disabled={isLoading}
+          isLoading={isLoading}
+          onClick={handleProgress}
+          size="sm"
+        >
           Pokračovat
         </Button>
       </div>

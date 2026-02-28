@@ -31,7 +31,7 @@ const getErrorMessage = (error: unknown): string | undefined => {
 
 const resolveAddQuantity = (quantity?: number) => {
   if (typeof quantity === "number" && Number.isFinite(quantity) && quantity > 0) {
-    return Math.trunc(quantity)
+    return Math.max(1, Math.trunc(quantity))
   }
   return 1
 }
@@ -110,15 +110,21 @@ export function useCart() {
       lineItemId: string
       quantity: number
     }) => {
+      if (!cart?.id) {
+        throw new Error("No cart available")
+      }
+
+      const cartId = cart.id
+
       if (quantity <= 0) {
         return removeLineItemSilentMutation.mutateAsync({
-          cartId: cart?.id,
+          cartId,
           lineItemId,
         })
       }
 
       return updateLineItemMutation.mutateAsync({
-        cartId: cart?.id,
+        cartId,
         lineItemId,
         quantity,
       })
