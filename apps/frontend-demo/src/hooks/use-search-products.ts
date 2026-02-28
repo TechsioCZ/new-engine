@@ -64,7 +64,7 @@ export function useSearchProducts(options?: UseSearchProductsOptions) {
         setIsSearching(false)
       }
     },
-    [options?.fields, options?.limit, queryClient, selectedRegion]
+    [options?.fields, options?.limit, queryClient, selectedRegion?.id]
   )
 
   const clearResults = useCallback(() => {
