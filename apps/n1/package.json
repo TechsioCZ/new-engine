@@ -27,6 +27,7 @@
     "@techsio/storefront-data": "workspace:*",
     "@techsio/ui-kit": "workspace:*",
     "next": "16.0.7",
+    "nuqs": "^2.8.8",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwind-variants": "^3.1.1"
