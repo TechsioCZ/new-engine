@@ -190,6 +190,14 @@ export function useCart() {
         type: "success",
       })
     },
+    onError: (error) => {
+      console.error("[Cart Hook] Clear cart error:", error)
+      toast.create({
+        title: "Nepodarilo se vyprazdnit kosik",
+        description: getErrorMessage(error) || "Unknown error",
+        type: "error",
+      })
+    },
   })
 
   // Apply discount mutation

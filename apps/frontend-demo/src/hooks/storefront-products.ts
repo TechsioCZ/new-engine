@@ -190,11 +190,12 @@ export const storefrontProductQueryKeys: ProductQueryKeys<
 > = {
   list: (params) => {
     const normalizedCountryCode = normalizeCountryCode(params.country_code)
+    const canonicalSort = resolveSortOrder(params.sort)
     return queryKeys.products.list({
       page: resolvePage(params),
       limit: params.limit,
       filters: params.filters,
-      sort: params.sort,
+      sort: canonicalSort,
       q: params.q,
       category: params.category,
       region_id: params.region_id,
@@ -203,11 +204,12 @@ export const storefrontProductQueryKeys: ProductQueryKeys<
   },
   infinite: (params) => {
     const normalizedCountryCode = normalizeCountryCode(params.country_code)
+    const canonicalSort = resolveSortOrder(params.sort)
     return queryKeys.products.infinite({
       pageRangeStart: resolvePage(params),
       limit: params.limit,
       filters: params.filters,
-      sort: params.sort,
+      sort: canonicalSort,
       q: params.q,
       category: params.category,
       region_id: params.region_id,
@@ -286,6 +288,7 @@ export const buildStorefrontProductListParams = (
   const page = resolveInputPage(input.page, 1)
   const offset = resolveOffset(input.offset, (page - 1) * limit)
   const normalizedCountryCode = normalizeCountryCode(input.country_code)
+  const canonicalSort = resolveSortOrder(input.sort)
 
   return {
     limit,
@@ -293,7 +296,7 @@ export const buildStorefrontProductListParams = (
     fields: input.fields,
     filters: input.filters,
     category: input.category,
-    sort: input.sort,
+    sort: canonicalSort,
     q: input.q,
     region_id: input.region_id,
     country_code: normalizedCountryCode,

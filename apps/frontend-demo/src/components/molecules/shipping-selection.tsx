@@ -15,17 +15,19 @@ interface ShippingSelectionProps {
   isLoading: boolean
 }
 
+interface ShippingMethodDetailProps {
+  method: ReducedShippingMethod
+  selected: string
+  formattedPrice: string
+}
+
 const SHIPPING_METHODS_LOADING_TEXT = "Načítám dostupné dopravce..."
 
 const ShippingMethodDetail = ({
   method,
   selected,
   formattedPrice,
-}: {
-  method: ReducedShippingMethod
-  selected: string
-  formattedPrice: string
-}) => {
+}: ShippingMethodDetailProps) => {
   const detailInfo = resolveShippingMethodMetadata({
     name: method.name,
     providerId: method.provider_id,
@@ -111,6 +113,7 @@ export function ShippingSelection({
               disabled={isLoading}
               key={method.id}
               onClick={() => onSelect(method.id)}
+              role="radio"
             >
               <ShippingMethodDetail
                 formattedPrice={formattedPrice}
