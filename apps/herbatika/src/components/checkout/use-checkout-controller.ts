@@ -5,6 +5,10 @@ import { useRegionContext } from "@techsio/storefront-data/shared";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/storefront/auth";
 import {
+  resolveCartSubtotalAmount,
+  resolveCartTotalWithoutTaxAmount,
+} from "@/lib/storefront/cart-calculations";
+import {
   fetchPaymentProviders,
   useCheckoutPayment,
   useCheckoutShipping,
@@ -20,7 +24,6 @@ import { useCheckoutFormState } from "./use-checkout-form-state";
 import {
   resolveCartTotalAmount,
   resolveHasStoredAddress,
-  resolveLineItemTotalAmount,
   resolveCheckoutStepIndex,
 } from "./checkout.utils";
 
@@ -117,15 +120,14 @@ export function useCheckoutController() {
   ]);
 
   const cartSubtotalAmount = useMemo(() => {
-    if (typeof cartQuery.cart?.subtotal === "number") {
-      return cartQuery.cart.subtotal;
-    }
-
-    return cartItems.reduce((sum, item) => sum + resolveLineItemTotalAmount(item), 0);
-  }, [cartItems, cartQuery.cart?.subtotal]);
+    return resolveCartSubtotalAmount(cartQuery.cart);
+  }, [cartQuery.cart]);
 
   const cartTotalAmount = useMemo(() => {
     return resolveCartTotalAmount(cartQuery.cart);
+  }, [cartQuery.cart]);
+  const cartTotalWithoutTaxAmount = useMemo(() => {
+    return resolveCartTotalWithoutTaxAmount(cartQuery.cart);
   }, [cartQuery.cart]);
 
   const isBusy =
@@ -141,6 +143,7 @@ export function useCheckoutController() {
     cartItems,
     cartQuery,
     cartSubtotalAmount,
+    cartTotalWithoutTaxAmount,
     cartTotalAmount,
     checkoutPaymentQuery,
     checkoutShippingQuery,

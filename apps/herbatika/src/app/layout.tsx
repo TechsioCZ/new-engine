@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Open_Sans, Roboto, Rubik } from "next/font/google";
+import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google";
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import "./globals.css";
@@ -25,6 +25,12 @@ const verdana = localFont({
 
 const openSans = Open_Sans({
   variable: "--font-sans",
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
+});
+
+const inter = Inter({
+  variable: "--font-inter-font",
   subsets: ["latin", "latin-ext"],
   display: "swap",
 });
@@ -55,7 +61,7 @@ export default function RootLayout({
   return (
     <html
       lang="sk"
-      className={`${verdana.variable} ${openSans.variable} ${rubik.variable} ${roboto.variable}`}
+      className={`${verdana.variable} ${openSans.variable} ${inter.variable} ${rubik.variable} ${roboto.variable}`}
     >
       <body className={`text-fg-primary ${verdana.className}`}>
         <Providers>

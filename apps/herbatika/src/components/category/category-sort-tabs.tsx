@@ -22,12 +22,12 @@ export function CategorySortTabs({
 
           return (
             <Button
-              className={`shrink-0 rounded-full px-350 py-150 text-sm leading-tight font-semibold transition-colors ${
+              className={`shrink-0 rounded-full px-350 py-150 font-open-sans text-sm leading-tight font-semibold transition-colors ${
                 isActive
                   ? "bg-primary text-fg-reverse"
                   : "text-fg-primary hover:text-primary"
               }`}
-              key={item.value}
+              key={`${item.value}-${item.label}`}
               onClick={() => onSortChange(item.value)}
               size="current"
               theme="unstyled"
@@ -39,7 +39,7 @@ export function CategorySortTabs({
         })}
       </div>
 
-      <p className="shrink-0 text-sm text-fg-secondary">
+      <p className="shrink-0 font-verdana text-sm text-fg-secondary">
         <span className="font-semibold text-fg-primary">{totalProducts}</span>{" "}
         položiek celkom
       </p>

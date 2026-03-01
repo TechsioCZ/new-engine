@@ -45,7 +45,7 @@ export function StorefrontCategoryListing({
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 p-600">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 p-600 font-rubik">
       <Breadcrumb items={controller.breadcrumbItems} linkAs={NextLink} />
 
       <section>

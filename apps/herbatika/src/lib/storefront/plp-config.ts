@@ -1,7 +1,10 @@
 export const PRODUCT_SORT_VALUES = [
   "recommended",
+  "best-selling",
   "newest",
   "oldest",
+  "price-asc",
+  "price-desc",
   "title-asc",
   "title-desc",
 ] as const;
@@ -19,8 +22,11 @@ export const PRODUCT_SORT_OPTIONS: Array<{
   value: ProductSortValue;
 }> = [
   { label: "Odporúčané", value: "recommended" },
+  { label: "Najpredávanejšie", value: "best-selling" },
   { label: "Najnovšie", value: "newest" },
   { label: "Najstaršie", value: "oldest" },
+  { label: "Cena od najnižšej", value: "price-asc" },
+  { label: "Cena od najvyššej", value: "price-desc" },
   { label: "Názov A-Z", value: "title-asc" },
   { label: "Názov Z-A", value: "title-desc" },
 ];
@@ -68,6 +74,10 @@ export const resolveProductSortOrder = (
       return "-created_at";
     case "oldest":
       return "created_at";
+    case "price-asc":
+      return "variants.calculated_price.calculated_amount";
+    case "price-desc":
+      return "-variants.calculated_price.calculated_amount";
     case "title-asc":
       return "title";
     case "title-desc":

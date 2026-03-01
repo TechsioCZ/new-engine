@@ -2,10 +2,9 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import NextLink from "next/link";
+import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { useState } from "react";
-import { CartItemRow } from "@/components/header/herbatika-cart-item-row";
+import { CheckoutCartItemRow } from "./checkout-cart-item-row";
 import {
   useRemoveLineItem,
   useUpdateLineItem,
@@ -24,7 +23,6 @@ type CheckoutCartStepSectionProps = {
   cartItems: HttpTypes.StoreCartLineItem[];
   cartSubtotalAmount: number;
   currencyCode: string;
-  nextStepHref: string;
 };
 
 export function CheckoutCartStepSection({
@@ -32,7 +30,6 @@ export function CheckoutCartStepSection({
   cartItems,
   cartSubtotalAmount,
   currencyCode,
-  nextStepHref,
 }: CheckoutCartStepSectionProps) {
   const [lineItemError, setLineItemError] = useState<string | null>(null);
   const updateLineItemMutation = useUpdateLineItem();
@@ -46,13 +43,14 @@ export function CheckoutCartStepSection({
     (cartSubtotalAmount / FREE_SHIPPING_THRESHOLD_EUR) * 100,
     100,
   );
-  const progressLabel =
-    missingAmount > 0
-      ? `Nakúpte ešte za ${formatCurrencyAmount(
-          missingAmount,
-          supportedCurrencyCode,
-        )} a získajte dopravu zadarmo.`
-      : "Dopravu zadarmo už máte v košíku.";
+  const missingAmountLabel = formatCurrencyAmount(
+    missingAmount,
+    supportedCurrencyCode,
+  );
+  const freeShippingTargetLabel = formatCurrencyAmount(
+    FREE_SHIPPING_THRESHOLD_EUR,
+    supportedCurrencyCode,
+  );
 
   const handleUpdateQuantity = (lineItemId: string, quantity: number) => {
     if (!cartId) {
@@ -87,32 +85,54 @@ export function CheckoutCartStepSection({
   };
 
   return (
-    <section className="checkout-card space-y-300 p-550">
-      <header className="space-y-150">
-        <h2 className="text-2xl font-semibold text-fg-primary">{`Váš košík (${cartItems.length})`}</h2>
-        <p className="text-sm text-fg-secondary">{progressLabel}</p>
-        <div
-          aria-label="Priebeh do dopravy zadarmo"
-          aria-valuemax={100}
-          aria-valuemin={0}
-          aria-valuenow={Math.round(progressValue)}
-          className="h-100 overflow-hidden rounded-full bg-surface-secondary"
-          role="progressbar"
-        >
-          <div
-            className="h-full bg-primary transition-[width] duration-300 ease-out"
-            style={{ width: `${progressValue}%` }}
-          />
-        </div>
-      </header>
+    <section className="space-y-300">
+      <h2 className="checkout-cart-step-heading text-4xl leading-tight font-semibold text-fg-primary">
+        {`Váš košík (${cartItems.length})`}
+      </h2>
 
-      <div className="overflow-hidden rounded-sm border border-border-primary bg-surface">
+      <div className="checkout-card checkout-cart-progress-card">
+        <p className="checkout-cart-progress-text text-sm text-fg-primary">
+          {missingAmount > 0 ? (
+            <>
+              {`Nakúpte ešte za ${missingAmountLabel} a získajte `}
+              <span className="font-semibold">dopravu zadarmo.</span>
+            </>
+          ) : (
+            "Dopravu zadarmo už máte v košíku."
+          )}
+        </p>
+
+        <div className="checkout-cart-progress-row">
+          <div
+            aria-label="Priebeh do dopravy zadarmo"
+            aria-valuemax={100}
+            aria-valuemin={0}
+            aria-valuenow={Math.round(progressValue)}
+            className="checkout-cart-progress-track"
+            role="progressbar"
+          >
+            <div
+              className="checkout-cart-progress-fill transition-[width] duration-300 ease-out"
+              style={{ width: `${progressValue}%` }}
+            />
+          </div>
+
+          <div className="checkout-cart-progress-target">
+            <span className="checkout-cart-progress-target-icon">
+              <Icon className="text-lg text-fg-secondary" icon="icon-[mdi--truck-delivery-outline]" />
+            </span>
+            <span className="font-rubik text-sm text-fg-primary">{freeShippingTargetLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="checkout-card checkout-cart-items-card overflow-hidden">
         {cartItems.map((item, index) => (
           <div
-            className={`${index > 0 ? "border-t border-border-secondary" : ""} p-250`}
+            className={`checkout-cart-item-shell ${index > 0 ? "border-t border-border-secondary" : ""}`}
             key={item.id}
           >
-            <CartItemRow
+            <CheckoutCartItemRow
               currencyCode={supportedCurrencyCode}
               isPending={isPending}
               item={item}
@@ -124,12 +144,6 @@ export function CheckoutCartStepSection({
       </div>
 
       {lineItemError ? <ErrorText showIcon>{lineItemError}</ErrorText> : null}
-
-      <div className="flex justify-end">
-        <LinkButton as={NextLink} href={nextStepHref} size="md" variant="primary">
-          Pokračovať na dopravu a platbu
-        </LinkButton>
-      </div>
     </section>
   );
 }

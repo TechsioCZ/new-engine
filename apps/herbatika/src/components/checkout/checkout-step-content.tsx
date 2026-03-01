@@ -2,6 +2,7 @@ import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
 import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants";
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
+import { CheckoutCartSidebarSection } from "@/components/checkout/sections/checkout-cart-sidebar-section";
 import { CheckoutCartStepSection } from "@/components/checkout/sections/checkout-cart-step-section";
 import { CheckoutDetailsStepSection } from "@/components/checkout/sections/checkout-details-step-section";
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section";
@@ -29,6 +30,7 @@ export function CheckoutStepContent({
     typeof selectedPaymentProviderId === "string" && selectedPaymentProviderId.length > 0
       ? resolveProviderLabel(selectedPaymentProviderId)
       : undefined;
+  const orderSummaryDetailsFont = activeStep === "kosik" ? "rubik" : "inter";
 
   const orderSummarySection = (
     <CheckoutOrderSummarySection
@@ -36,6 +38,7 @@ export function CheckoutStepContent({
       cartSubtotalAmount={controller.cartSubtotalAmount}
       cartTotalAmount={controller.cartTotalAmount}
       currencyCode={controller.currencyCode}
+      detailsFont={orderSummaryDetailsFont}
       hasPayment={controller.hasPayment}
       hasShipping={controller.hasShipping}
       selectedOptionName={controller.checkoutShippingQuery.selectedOption?.name ?? undefined}
@@ -52,11 +55,16 @@ export function CheckoutStepContent({
             cartItems={controller.cartItems}
             cartSubtotalAmount={controller.cartSubtotalAmount}
             currencyCode={controller.currencyCode}
-            nextStepHref={shippingStepHref}
           />
         </div>
         <aside className="space-y-300 xl:sticky xl:top-400 xl:self-start">
-          {orderSummarySection}
+          <CheckoutCartSidebarSection
+            cartSubtotalAmount={controller.cartSubtotalAmount}
+            cartTotalAmount={controller.cartTotalAmount}
+            cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
+            currencyCode={controller.currencyCode}
+            nextStepHref={shippingStepHref}
+          />
         </aside>
       </div>
     );
@@ -142,6 +150,7 @@ export function CheckoutStepContent({
             addressForm: controller.addressForm,
             canCompleteOrder: controller.canCompleteOrder,
             cartTotalAmount: controller.cartTotalAmount,
+            cartTotalWithoutTaxAmount: controller.cartTotalWithoutTaxAmount,
             currencyCode: controller.currencyCode,
             detailsStepHref,
             hasPayment: controller.hasPayment,

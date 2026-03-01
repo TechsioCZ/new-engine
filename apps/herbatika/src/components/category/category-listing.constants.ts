@@ -5,8 +5,8 @@ export const SORT_TAB_ITEMS: Array<{
   value: ProductSortValue;
 }> = [
   { label: "Odporúčame", value: "recommended" },
-  { label: "Najlacnejšie", value: "title-asc" },
-  { label: "Najdrahšie", value: "title-desc" },
-  { label: "Najpredávanejšie", value: "oldest" },
+  { label: "Najlacnejšie", value: "price-asc" },
+  { label: "Najdrahšie", value: "price-desc" },
+  { label: "Najpredávanejšie", value: "best-selling" },
   { label: "Najnovšie", value: "newest" },
 ];

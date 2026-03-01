@@ -1,6 +1,8 @@
 @theme static {
   --font-verdana: Verdana, sans-serif;
   --font-rubik: Rubik, sans-serif;
+  --font-open-sans: var(--font-sans), sans-serif;
+  --font-inter: var(--font-inter-font), sans-serif;
   --font-sans: "Rubik", "Open Sans", sans-serif;
 
   --text-2xs: 0.625rem; /* 10px */

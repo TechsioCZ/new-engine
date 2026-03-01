@@ -8,7 +8,7 @@ import { HerbatikaLogo } from "@/components/herbatika-logo";
 
 export function CheckoutHeader() {
   return (
-    <header className="w-full border-b border-border-secondary bg-surface">
+    <header className="w-full border-b border-border-secondary bg-surface font-rubik">
       <div className="mx-auto flex w-full max-w-max-w items-center justify-between gap-250 px-400 py-350 lg:px-550">
         <div className="flex min-w-0 items-center gap-300">
           <HerbatikaLogo imageClassName="h-15" size="md" />

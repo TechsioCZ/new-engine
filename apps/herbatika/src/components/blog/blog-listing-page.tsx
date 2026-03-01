@@ -59,7 +59,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
   const shouldShowPageIndicator = listing.totalPages > 1;
 
   return (
-    <main className="w-full bg-base">
+    <main className="w-full bg-base font-rubik">
       <div className="mx-auto flex w-full max-w-max-w flex-col gap-550 px-550 pt-550 pb-700">
         <Breadcrumb items={breadcrumbItems} linkAs={NextLink} size="md" />
 
@@ -69,7 +69,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
               Trápi ma
             </h1>
 
-            <p className="text-md leading-relaxed text-fg-primary">
+            <p className="font-verdana text-md leading-relaxed text-fg-primary">
               Najnovšie články o zdraví, kráse, stravovaní a wellness od našich
               odborníkov.
             </p>
@@ -80,7 +80,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
 
                 return (
                   <LinkButton
-                    className="rounded-full px-400 py-200 text-md font-semibold"
+                    className="rounded-full px-400 py-200 font-open-sans text-md font-semibold"
                     href={resolveBlogListingHref({
                       topic: filter.key,
                       page: 1,
@@ -107,7 +107,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
             <div className="relative flex min-h-600 items-center justify-center">
               {shouldShowLoadMore ? (
                 <LinkButton
-                  className="rounded-full px-550 py-250 text-sm font-semibold"
+                  className="rounded-full px-550 py-250 font-open-sans text-sm font-semibold"
                   href={resolveBlogListingHref({
                     topic: listing.topic,
                     page: nextPage,

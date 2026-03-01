@@ -44,7 +44,7 @@ export function BlogListingCard({ post }: BlogListingCardProps) {
           {post.title}
         </Link>
 
-        <p className="line-clamp-3 text-xs leading-relaxed text-fg-secondary">
+        <p className="line-clamp-3 font-verdana text-xs leading-relaxed text-fg-secondary">
           {post.excerpt}
         </p>
 

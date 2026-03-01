@@ -1,212 +1,89 @@
 "use client";
 
-import { useRegionContext } from "@techsio/storefront-data/shared";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
-import {
-  prefetchStorefrontSearch,
-  prefetchStorefrontSearchProducts,
-  useStorefrontSearch,
-} from "@/lib/storefront/search";
-import { SearchPagination } from "./search/search-pagination";
-import { SEARCH_RESULT_LIMIT } from "./search/search-query-config";
-import { SearchResultsGrid } from "./search/search-results-grid";
-import { SearchSkeletonGrid } from "./search/search-skeleton-grid";
-import { SearchToolbar } from "./search/search-toolbar";
-import { useSearchAddToCart } from "./search/use-search-add-to-cart";
-import { resolveSortedUniqueSearchHitHandles } from "./search/search-hit-utils";
-import { useSearchProducts } from "./search/use-search-products";
-import { useSearchQueryState } from "./search/use-search-query-state";
+import { Badge } from "@techsio/ui-kit/atoms/badge";
+import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
+import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
+import { CategoryResultsSection } from "@/components/category/category-results-section";
+import { useSearchListingController } from "./search/use-search-listing-controller";
+import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 
 export function StorefrontSearchResults() {
-  const region = useRegionContext();
-  const queryClient = useQueryClient();
-  const { query, currentPage, setPage } = useSearchQueryState();
-
-  const searchQuery = useStorefrontSearch({
-    q: query,
-    page: currentPage,
-    limit: SEARCH_RESULT_LIMIT,
-  });
-
-  const result = searchQuery.data;
-  const hits = result?.hits ?? [];
-  const {
-    orderedProducts,
-    descriptionByHandle,
-    missingProductsCount,
-    isProductGridLoading: isSearchProductsLoading,
-  } = useSearchProducts({
-    query,
-    hits,
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
-  });
-
-  const { addToCartError, activeProductId, isAddPending, handleAddToCart } =
-    useSearchAddToCart({
-      regionId: region?.region_id,
-      countryCode: region?.country_code,
-    });
-
-  useEffect(() => {
-    if (!(query && result && result.totalPages > 0)) {
-      return;
-    }
-
-    if (currentPage <= result.totalPages) {
-      return;
-    }
-
-    setPage(result.totalPages, "replace");
-  }, [currentPage, query, result, setPage]);
-
-  useEffect(() => {
-    if (!query || !region?.region_id || searchQuery.isLoading || searchQuery.error) {
-      return;
-    }
-
-    const nextPage = currentPage + 1;
-    const totalPages = result?.totalPages ?? 0;
-    if (nextPage > totalPages) {
-      return;
-    }
-
-    let isCancelled = false;
-
-    const prefetchNextSearchPage = async () => {
-      try {
-        const nextPageResult = await prefetchStorefrontSearch(queryClient, {
-          q: query,
-          page: nextPage,
-          limit: SEARCH_RESULT_LIMIT,
-        });
-        if (isCancelled || !nextPageResult) {
-          return;
-        }
-
-        const nextPageHandles = resolveSortedUniqueSearchHitHandles(
-          nextPageResult.hits,
-        );
-        if (nextPageHandles.length === 0) {
-          return;
-        }
-
-        await prefetchStorefrontSearchProducts(queryClient, {
-          handles: nextPageHandles,
-          regionId: region.region_id,
-          countryCode: region.country_code,
-        });
-      } catch {
-        // Best-effort prefetch; user-facing flow should not fail.
-      }
-    };
-
-    void prefetchNextSearchPage();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    currentPage,
-    query,
-    queryClient,
-    region?.country_code,
-    region?.region_id,
-    result?.totalPages,
-    searchQuery.error,
-    searchQuery.isLoading,
-  ]);
-
-  const pageBadgeLabel = useMemo(() => {
-    if (result && result.totalPages > 0) {
-      return `strana: ${result.page}/${result.totalPages}`;
-    }
-
-    return `strana: ${currentPage}`;
-  }, [currentPage, result]);
-
-  const errorMessage = searchQuery.error
-    ? resolveErrorMessage(searchQuery.error, "Vyhľadávanie zlyhalo.")
-    : null;
-  const isProductGridLoading =
-    !searchQuery.isLoading && isSearchProductsLoading;
-  const shouldShowGridSkeleton = searchQuery.isLoading || isProductGridLoading;
-  const shouldShowEmptyState =
-    !searchQuery.isLoading &&
-    !isProductGridLoading &&
-    query.length > 0 &&
-    !errorMessage &&
-    orderedProducts.length === 0;
+  const controller = useSearchListingController();
+  const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1);
 
   return (
-    <main className="mx-auto w-full max-w-max-w px-400 py-700 lg:px-550">
-      <section className="rounded-2xl border border-border-secondary bg-surface p-400 md:p-550">
-        <div className="space-y-400">
-          <SearchToolbar
-            estimatedTotalHits={result?.estimatedTotalHits ?? 0}
-            hitsCount={hits.length}
-            pageBadgeLabel={pageBadgeLabel}
-            query={query}
-          />
-
-          {errorMessage ? <ErrorText showIcon>{errorMessage}</ErrorText> : null}
-          {addToCartError ? (
-            <ErrorText showIcon>{addToCartError}</ErrorText>
-          ) : null}
-
-          {!query ? (
-            <p className="text-sm text-fg-secondary">
-              Zadajte výraz do vyhľadávania v hornom paneli.
-            </p>
-          ) : null}
-
-          {shouldShowGridSkeleton ? <SearchSkeletonGrid /> : null}
-
-          {shouldShowEmptyState ? (
-            <p className="text-sm text-fg-secondary">
-              {hits.length === 0
-                ? "Pre zadaný výraz sme nenašli žiadny produkt."
-                : "Produkty sa nepodarilo načítať v aktuálnom regióne."}
-            </p>
-          ) : null}
-
-          {!shouldShowGridSkeleton && orderedProducts.length > 0 ? (
-            <SearchResultsGrid
-              activeProductId={activeProductId}
-              descriptionByHandle={descriptionByHandle}
-              isAddPending={isAddPending}
-              onAddToCart={handleAddToCart}
-              products={orderedProducts}
-            />
-          ) : null}
-
-          {!shouldShowGridSkeleton && missingProductsCount > 0 ? (
-            <p className="text-xs text-fg-tertiary">{`Nepodarilo sa načítať ${missingProductsCount} položiek.`}</p>
-          ) : null}
-
-          <SearchPagination
-            count={result?.estimatedTotalHits ?? 0}
-            currentPage={currentPage}
-            isVisible={
-              !searchQuery.isLoading &&
-              !errorMessage &&
-              query.length > 0 &&
-              (result?.totalPages ?? 0) > 1
-            }
-            onPageChange={(nextPage) => {
-              if (nextPage === currentPage) {
-                return;
-              }
-
-              setPage(nextPage, "push");
-            }}
-            pageSize={result?.pageSize ?? SEARCH_RESULT_LIMIT}
-          />
-        </div>
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 p-600 font-rubik">
+      <section className="space-y-300">
+        <h1 className="text-4xl font-bold leading-snug text-fg-primary">
+          Vyhľadávanie
+        </h1>
+        <p className="text-sm text-fg-secondary">
+          Vyhľadajte produkty v katalógu.
+        </p>
       </section>
+
+      {controller.query ? (
+        <div className="flex flex-wrap items-center gap-200">
+          <Badge variant="info">{`dotaz: ${controller.query}`}</Badge>
+          <Badge variant="secondary">{`nájdené: ${controller.catalogQuery.totalCount}`}</Badge>
+          <Badge variant="secondary">{`strana: ${controller.page}/${safeTotalPages}`}</Badge>
+        </div>
+      ) : null}
+
+      {!controller.query ? (
+        <section className="rounded-lg border border-border-secondary bg-base p-400">
+          <p className="text-sm text-fg-secondary">
+            Zadajte výraz do vyhľadávania v hornom paneli.
+          </p>
+        </section>
+      ) : (
+        <section className="space-y-400">
+          <div className="grid gap-600 xl:grid-cols-12">
+            <div className="xl:col-span-3">
+              <CategoryFacetsPanel
+                activeFilterCount={controller.activeAsideFilterCount}
+                brandItems={controller.asideBrandItems}
+                currencyCode={controller.productsCurrencyCode}
+                formItems={controller.asideFormItems}
+                ingredientItems={controller.asideIngredientItems}
+                isLoading={controller.isFiltersLoading}
+                onBrandToggle={controller.onBrandToggle}
+                onFormToggle={controller.onFormToggle}
+                onIngredientToggle={controller.onIngredientToggle}
+                onPriceRangeCommit={controller.onPriceRangeCommit}
+                onReset={controller.onResetFilters}
+                onStatusToggle={controller.onStatusToggle}
+                priceBounds={controller.priceBounds}
+                selectedPriceRange={controller.selectedPriceRange}
+                statusItems={controller.asideStatusItems}
+              />
+            </div>
+
+            <CategoryResultsSection
+              activeSort={controller.queryState.sort}
+              addToCartError={controller.addToCartError}
+              categoriesError={null}
+              catalogError={controller.catalogError}
+              isEmpty={controller.products.length === 0}
+              isLoading={controller.isResultsLoading}
+              isProductAdding={controller.isProductAdding}
+              onAddToCart={controller.onAddToCart}
+              onPageChange={controller.onPageChange}
+              onProductHoverEnd={controller.onProductHoverEnd}
+              onProductHoverStart={controller.onProductHoverStart}
+              onSortChange={controller.onSortChange}
+              page={controller.page}
+              pageSize={PLP_PAGE_SIZE}
+              products={controller.products}
+              showCategoryNotFound={false}
+              sortItems={SORT_TAB_ITEMS}
+              totalCount={controller.catalogQuery.totalCount}
+              totalPages={controller.catalogQuery.totalPages}
+              totalProducts={controller.catalogQuery.totalCount}
+            />
+          </div>
+        </section>
+      )}
     </main>
   );
 }

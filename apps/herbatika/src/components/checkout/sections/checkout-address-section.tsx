@@ -62,7 +62,7 @@ function PurchaseTypeToggle({
     <div className="flex flex-wrap items-center gap-100">
       {options.map((option) => (
         <Button
-          className="gap-100 px-0 py-0 text-left"
+          className="font-rubik gap-100 px-0 py-0 text-left"
           key={option.id}
           onClick={() => {
             onChange(option.value);
@@ -77,7 +77,7 @@ function PurchaseTypeToggle({
           >
             {option.isActive ? <span className="size-150 rounded-full bg-primary" /> : null}
           </span>
-          <span className="text-sm font-normal text-fg-primary">{option.label}</span>
+          <span className="font-rubik text-sm font-normal text-fg-primary">{option.label}</span>
         </Button>
       ))}
     </div>
@@ -103,7 +103,7 @@ export function CheckoutAddressSection({
   ready,
 }: CheckoutAddressSectionProps) {
   return (
-    <section className="checkout-card space-y-300 p-550">
+    <section className="checkout-card space-y-300 p-550 font-rubik">
       <header>
         <h2 className="text-xl font-medium text-fg-primary">Vaše údaje</h2>
       </header>
@@ -127,7 +127,7 @@ export function CheckoutAddressSection({
       </div>
 
       <form
-        className="space-y-250"
+        className="space-y-250 font-inter"
         onSubmit={(event) => {
           void onSaveAddress(event);
         }}
@@ -137,7 +137,7 @@ export function CheckoutAddressSection({
             isCompanyPurchase={isCompanyPurchase}
             onChange={onIsCompanyPurchaseChange}
           />
-          <ExtraText className="text-fg-secondary">* povinné</ExtraText>
+          <ExtraText className="font-rubik text-fg-secondary">* povinné</ExtraText>
         </div>
 
         <div className="grid gap-250 md:grid-cols-2">

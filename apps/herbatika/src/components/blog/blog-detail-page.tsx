@@ -34,7 +34,7 @@ export function BlogDetailPage({ post, relatedPosts }: BlogDetailPageProps) {
   ];
 
   return (
-    <main className="w-full bg-base">
+    <main className="w-full bg-base font-rubik">
       <div className="mx-auto flex w-full max-w-max-w flex-col gap-550 px-550 pt-550 pb-700">
         <Breadcrumb items={breadcrumbItems} linkAs={NextLink} size="md" />
 

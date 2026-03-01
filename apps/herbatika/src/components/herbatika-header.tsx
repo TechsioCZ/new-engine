@@ -114,7 +114,7 @@ export function HerbatikaHeader() {
         <div className="flex items-center gap-450 @max-header-desktop:hidden">
           <Link
             as={NextLink}
-            className="inline-flex items-center gap-300 text-fg-secondary hover:text-fg-primary"
+            className="inline-flex items-center gap-300 text-fg-secondary font-open-sans hover:text-fg-primary"
             href="tel:+421232112345"
           >
             <Icon className="text-2xl" icon="icon-[mdi--phone-outline]" />

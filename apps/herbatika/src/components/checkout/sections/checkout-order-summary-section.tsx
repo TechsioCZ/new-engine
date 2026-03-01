@@ -12,6 +12,7 @@ type CheckoutOrderSummarySectionProps = {
   cartSubtotalAmount: number;
   cartTotalAmount: number;
   currencyCode: string;
+  detailsFont: "inter" | "rubik";
   hasPayment: boolean;
   hasShipping: boolean;
   selectedOptionName?: string;
@@ -23,21 +24,24 @@ export function CheckoutOrderSummarySection({
   cartSubtotalAmount,
   cartTotalAmount,
   currencyCode,
+  detailsFont,
   hasPayment,
   hasShipping,
   selectedOptionName,
   selectedShippingPrice,
 }: CheckoutOrderSummarySectionProps) {
+  const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik";
+
   return (
     <section className="checkout-card space-y-250 p-550">
       <header className="flex items-center justify-between gap-200">
-        <h2 className="text-xl font-medium text-fg-primary">{`Váš košík (${cartItems.length})`}</h2>
+        <h2 className="font-rubik text-xl font-medium text-fg-primary">{`Váš košík (${cartItems.length})`}</h2>
         <span className="rounded-full bg-primary px-200 py-100 text-xs font-medium text-fg-reverse">
           Aktívny
         </span>
       </header>
 
-      <div className="space-y-250">
+      <div className={`space-y-250 ${detailsFontClass}`}>
         {cartItems.length > 0 ? cartItems.map((item) => {
           const itemName = resolveCartItemName(item);
           const itemQuantity = item.quantity ?? 0;
@@ -76,7 +80,7 @@ export function CheckoutOrderSummarySection({
         )}
       </div>
 
-      <div className="space-y-150 border-t border-border-primary pt-250">
+      <div className={`space-y-150 border-t border-border-primary pt-250 ${detailsFontClass}`}>
         <div className="flex items-center justify-between gap-200">
           <ExtraText className="text-fg-secondary">Medzisúčet</ExtraText>
           <p className="text-sm font-semibold text-fg-primary">
@@ -97,7 +101,7 @@ export function CheckoutOrderSummarySection({
         </div>
       </div>
 
-      <div className="space-y-100 border-t border-border-secondary pt-200 text-xs text-fg-secondary">
+      <div className={`space-y-100 border-t border-border-secondary pt-200 text-xs text-fg-secondary ${detailsFontClass}`}>
         <p>{hasShipping ? `Doprava: ${selectedOptionName ?? "Zvolená"}` : "Doprava: nevybraná"}</p>
         <p>{hasPayment ? "Platba: vybraná" : "Platba: nevybraná"}</p>
       </div>

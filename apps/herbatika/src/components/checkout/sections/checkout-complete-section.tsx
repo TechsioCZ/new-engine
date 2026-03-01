@@ -10,6 +10,7 @@ type CheckoutCompleteSectionProps = {
   addressForm: AddressFormState;
   canCompleteOrder: boolean;
   cartTotalAmount: number;
+  cartTotalWithoutTaxAmount: number;
   currencyCode: string;
   detailsStepHref: string;
   hasPayment: boolean;
@@ -51,6 +52,7 @@ export function CheckoutCompleteSection({
   addressForm,
   canCompleteOrder,
   cartTotalAmount,
+  cartTotalWithoutTaxAmount,
   currencyCode,
   detailsStepHref,
   hasPayment,
@@ -66,12 +68,11 @@ export function CheckoutCompleteSection({
   shippingLabel,
   shippingStepHref,
 }: CheckoutCompleteSectionProps) {
-  const taxBaseAmount = Math.round(cartTotalAmount / 1.2);
   const addressRows = resolveAddressRows(addressForm);
 
   return (
-    <section className="space-y-300">
-      <h2 className="text-xl font-medium text-fg-primary">Súhrn objednávky</h2>
+    <section className="space-y-300 font-inter">
+      <h2 className="font-rubik text-xl font-medium text-fg-primary">Súhrn objednávky</h2>
 
       <div className="checkout-card space-y-250 p-550">
         <div className="flex items-start justify-between gap-200 border-b border-border-secondary pb-250">
@@ -81,7 +82,7 @@ export function CheckoutCompleteSection({
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
             </p>
             <ExtraText className="text-fg-secondary">
-              {`bez DPH: ${formatCurrencyAmount(taxBaseAmount, currencyCode)}`}
+              {`bez DPH: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
             </ExtraText>
           </div>
         </div>
@@ -104,6 +105,7 @@ export function CheckoutCompleteSection({
         <div className="space-y-150">
           <Button
             block
+            className="font-rubik"
             icon="token-icon-chevron-right"
             iconPosition="right"
             isLoading={isCompletingOrder}
