@@ -13,6 +13,7 @@ type N1AsideProps = {
   categoryMap: Record<string, Category>
   label?: string
   currentCategory?: Category
+  onCategorySelect?: (category: Category) => void
 }
 
 export function N1Aside({
@@ -20,6 +21,7 @@ export function N1Aside({
   categoryMap,
   label,
   currentCategory,
+  onCategorySelect,
 }: N1AsideProps) {
   const router = useRouter()
   const treeData = transformToTree(categories)
@@ -29,11 +31,22 @@ export function N1Aside({
   const expandedPath = getCategoryPath(currentCategory, categoryMap)
 
   const handleSelect = (details: TreeType.SelectionChangeDetails) => {
-    if (details.focusedValue) {
-      const node = findNodeById(treeData, details.focusedValue)
-      if (node) {
-        router.push(`/kategorie/${node.handle}`)
+    const selectedNodeId = details.selectedValue?.[0] ?? details.focusedValue
+
+    if (!selectedNodeId) {
+      return
+    }
+
+    const node = findNodeById(treeData, selectedNodeId)
+    if (node) {
+      const selectedCategory = categoryMap[node.id]
+
+      if (onCategorySelect && selectedCategory) {
+        onCategorySelect(selectedCategory)
+        return
       }
+
+      router.push(`/kategorie/${node.handle}`)
     }
   }
 
