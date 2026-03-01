@@ -87,8 +87,9 @@ const ROOT_CATEGORY_HANDLE_PREFIXES = new Set(["panske", "damske", "detske"])
 const CATEGORY_HANDLE_SUFFIX_REGEX = /-category-\d+$/i
 const SEARCH_TOKEN_SEPARATOR_REGEX = /[^a-z0-9]+/g
 const EDGE_DASHES_REGEX = /^-+|-+$/g
-const MIN_FUZZY_PREFIX_LENGTH = 4
+const MIN_FUZZY_PREFIX_LENGTH = 3
 const BRAND_MIN_QUERY_LENGTH = 3
+const BRAND_MEILI_TIMEOUT_MS = 180
 const BRAND_PRODUCTS_LOOKUP_MULTIPLIER = 3
 const MIN_BRAND_PRODUCTS_LOOKUP_LIMIT = 15
 const SUGGESTIONS_FETCH_MULTIPLIER = 3
@@ -973,6 +974,47 @@ async function fetchBrandSuggestionsFromMeili(
   return mapProducerHits(payload.hits, query, limitPerSection)
 }
 
+async function fetchBrandSuggestionsBestEffort(
+  query: string,
+  limitPerSection: number,
+  signal?: AbortSignal
+): Promise<BrandSuggestion[]> {
+  const controller = new AbortController()
+  const onParentAbort = () => {
+    controller.abort()
+  }
+
+  if (signal?.aborted) {
+    controller.abort()
+  } else {
+    signal?.addEventListener("abort", onParentAbort, { once: true })
+  }
+
+  const timeoutId = setTimeout(() => {
+    controller.abort()
+  }, BRAND_MEILI_TIMEOUT_MS)
+
+  try {
+    return await fetchBrandSuggestionsFromMeili(
+      query,
+      limitPerSection,
+      controller.signal
+    )
+  } catch (error) {
+    if (
+      shouldLogWarning(error) &&
+      !isExpectedProducerMeiliFallbackError(error)
+    ) {
+      console.warn("[SearchSuggestions] producers-hits endpoint failed:", error)
+    }
+
+    return []
+  } finally {
+    clearTimeout(timeoutId)
+    signal?.removeEventListener("abort", onParentAbort)
+  }
+}
+
 function mergeBrandSuggestions(
   brandsFromProducts: BrandSuggestion[],
   brandsFromMeili: BrandSuggestion[],
@@ -1009,7 +1051,15 @@ export async function getSearchSuggestions(
   const shouldFetchBrands =
     normalizeSearchText(trimmedQuery).length >= BRAND_MIN_QUERY_LENGTH
 
-  const [productBundle, categories, brandsFromMeili] = await Promise.all([
+  const brandsFromMeiliPromise = shouldFetchBrands
+    ? fetchBrandSuggestionsBestEffort(
+        trimmedQuery,
+        limitPerSection,
+        options?.signal
+      )
+    : Promise.resolve<BrandSuggestion[]>([])
+
+  const [productBundle, categories] = await Promise.all([
     fetchProductAndBrandSuggestionsFromProducts(
       trimmedQuery,
       limitPerSection,
@@ -1034,26 +1084,9 @@ export async function getSearchSuggestions(
         return []
       }
     ),
-    shouldFetchBrands
-      ? fetchBrandSuggestionsFromMeili(
-          trimmedQuery,
-          limitPerSection,
-          options?.signal
-        ).catch((error) => {
-          if (
-            shouldLogWarning(error) &&
-            !isExpectedProducerMeiliFallbackError(error)
-          ) {
-            console.warn(
-              "[SearchSuggestions] producers-hits endpoint failed:",
-              error
-            )
-          }
-
-          return []
-        })
-      : Promise.resolve<BrandSuggestion[]>([]),
   ])
+
+  const brandsFromMeili = await brandsFromMeiliPromise
 
   const brands = shouldFetchBrands
     ? mergeBrandSuggestions(
