@@ -14,6 +14,7 @@ export type ProductFiltersLike = {
 }
 
 export type ProductFetchStrategy =
+  | "MEILI_CATEGORY_INTERSECTION"
   | "MEILI_SIZE_INTERSECTION"
   | "SIZE_ONLY_FALLBACK"
   | "MEILI_ONLY"
@@ -37,6 +38,15 @@ export type StoreProductVariantLite = {
 
 export type StoreProductVariantListResponse = {
   variants?: StoreProductVariantLite[]
+  count?: number
+}
+
+export type StoreProductIdLite = {
+  id?: string
+}
+
+export type StoreProductIdListResponse = {
+  products?: StoreProductIdLite[]
   count?: number
 }
 

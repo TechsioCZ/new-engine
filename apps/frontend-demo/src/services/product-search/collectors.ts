@@ -1,6 +1,10 @@
 import { createPromiseCache } from "@/lib/promise-cache"
 import { IDS_CACHE_MAX_ENTRIES, IDS_CACHE_TTL_MS } from "./constants"
-import { fetchMeiliHits, fetchVariantProductIdsPage } from "./http"
+import {
+  fetchCategoryProductIdsPage,
+  fetchMeiliHits,
+  fetchVariantProductIdsPage,
+} from "./http"
 import { collectIdsFromPaginatedSource, dedupeIdsFromHits } from "./id-utils"
 
 const variantSizeIdsCache = createPromiseCache<string[]>({
@@ -13,12 +17,26 @@ const meiliQueryIdsCache = createPromiseCache<string[]>({
   ttlMs: IDS_CACHE_TTL_MS,
 })
 
+const categoryIdsCache = createPromiseCache<string[]>({
+  maxEntries: IDS_CACHE_MAX_ENTRIES,
+  ttlMs: IDS_CACHE_TTL_MS,
+})
+
 function getVariantSizeCacheKey(size: string, q?: string): string {
   return `${size.trim()}::${q?.trim() || ""}`
 }
 
 function getMeiliQueryCacheKey(query: string): string {
   return query.trim().toLowerCase()
+}
+
+function getCategoryCacheKey(params: {
+  categories: string[]
+  region_id?: string
+  country_code: string
+}): string {
+  const categoryKey = params.categories.map((category) => category.trim()).join(",")
+  return `${categoryKey}::${params.region_id || ""}::${params.country_code.trim().toLowerCase()}`
 }
 
 async function collectVariantProductIdsForSize(params: {
@@ -120,5 +138,66 @@ export async function collectMeiliProductIdsForQueryCached(
   const cacheKey = getMeiliQueryCacheKey(query)
   return await meiliQueryIdsCache.getOrCreate(cacheKey, async () => {
     return await collectMeiliProductIdsForQuery(query)
+  })
+}
+
+async function collectCategoryProductIds(params: {
+  categories: string[]
+  region_id?: string
+  country_code: string
+}): Promise<string[]> {
+  const { categories, region_id, country_code } = params
+
+  return await collectIdsFromPaginatedSource(async (offset, limit) => {
+    const page = await fetchCategoryProductIdsPage({
+      categories,
+      limit,
+      offset,
+      region_id,
+      country_code,
+    })
+    const products = page.products || []
+    const ids = products
+      .map((product) => product.id?.trim())
+      .filter((id): id is string => Boolean(id))
+
+    return {
+      ids,
+      itemCount: products.length,
+      totalCount: page.count,
+    }
+  })
+}
+
+export async function collectCategoryProductIdsCached(params: {
+  categories: string[]
+  region_id?: string
+  country_code: string
+}): Promise<string[]> {
+  const normalizedCategories = Array.from(
+    new Set(params.categories.map((category) => category.trim()).filter(Boolean))
+  ).sort()
+
+  if (normalizedCategories.length === 0) {
+    return []
+  }
+
+  const normalizedCountryCode = params.country_code.trim().toLowerCase()
+  if (!normalizedCountryCode) {
+    return []
+  }
+
+  const cacheKey = getCategoryCacheKey({
+    categories: normalizedCategories,
+    region_id: params.region_id,
+    country_code: normalizedCountryCode,
+  })
+
+  return await categoryIdsCache.getOrCreate(cacheKey, async () => {
+    return await collectCategoryProductIds({
+      categories: normalizedCategories,
+      region_id: params.region_id,
+      country_code: normalizedCountryCode,
+    })
   })
 }

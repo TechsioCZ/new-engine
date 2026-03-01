@@ -2,6 +2,7 @@ import { STORE_FETCH_TIMEOUT_MS } from "./constants"
 import type {
   MeiliSearchHitsResponse,
   QueryParamValue,
+  StoreProductIdListResponse,
   StoreProductVariantListResponse,
 } from "./types"
 
@@ -133,6 +134,30 @@ export async function fetchVariantProductIdsPage(params: {
       fields: "product_id",
       q,
       "options[value]": size,
+    },
+    signal
+  )
+}
+
+export async function fetchCategoryProductIdsPage(params: {
+  categories: string[]
+  limit: number
+  offset: number
+  region_id?: string
+  country_code: string
+  signal?: AbortSignal
+}): Promise<StoreProductIdListResponse> {
+  const { categories, limit, offset, region_id, country_code, signal } = params
+
+  return await fetchStoreJson<StoreProductIdListResponse>(
+    "/store/products",
+    {
+      limit,
+      offset,
+      fields: "id",
+      category_id: categories,
+      ...(region_id && { region_id }),
+      country_code,
     },
     signal
   )
