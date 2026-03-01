@@ -2,6 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { sdk } from "@/lib/medusa-client"
 import { buildMedusaQuery } from "@/utils/server-filters"
 import {
+  collectCategoryProductIdsCached,
   collectMeiliProductIdsForQueryCached,
   collectVariantProductIdsForSizes,
 } from "./collectors"
@@ -12,6 +13,9 @@ import {
   orderProductsByIds,
 } from "./id-utils"
 import type { RawProductListResponse, StoreProductRecord } from "./types"
+
+const LARGE_ID_SET_WARNING_THRESHOLD = 5000
+const MAX_EXPECTED_FETCH_IDS = 100
 
 async function fetchProductsByIds(params: {
   productIds: string[]
@@ -24,6 +28,12 @@ async function fetchProductsByIds(params: {
   const { productIds, fields, region_id, country_code, signal } = params
   if (productIds.length === 0) {
     return []
+  }
+
+  if (productIds.length > MAX_EXPECTED_FETCH_IDS) {
+    console.warn(
+      `[ProductSearch] fetchProductsByIds called with ${productIds.length} IDs; expected a pre-paged slice.`
+    )
   }
 
   const productsQuery = buildMedusaQuery(undefined, {
@@ -96,7 +106,75 @@ export async function fetchProductsViaMeiliAndVariantSearch(params: {
     collectVariantProductIdsForSizes({ sizes }),
   ])
 
+  if (
+    meiliIds.length > LARGE_ID_SET_WARNING_THRESHOLD ||
+    sizeIds.length > LARGE_ID_SET_WARNING_THRESHOLD
+  ) {
+    console.warn(
+      `[ProductSearch] Large ID collections in MEILI_SIZE_INTERSECTION (meili=${meiliIds.length}, size=${sizeIds.length}).`
+    )
+  }
+
   const matchingIds = intersectIdsPreservingOrder(meiliIds, sizeIds)
+  const totalCount = matchingIds.length
+  const pagedIds = matchingIds.slice(offset, offset + limit)
+  const products = await fetchProductsByIds({
+    productIds: pagedIds,
+    fields,
+    region_id,
+    country_code,
+    signal,
+  })
+
+  return {
+    products,
+    count: totalCount,
+    limit,
+    offset,
+  }
+}
+
+export async function fetchProductsViaMeiliAndCategorySearch(params: {
+  query: string
+  categories: string[]
+  limit: number
+  offset: number
+  fields: string
+  region_id?: string
+  country_code: string
+  signal?: AbortSignal
+}): Promise<RawProductListResponse> {
+  const {
+    query,
+    categories,
+    limit,
+    offset,
+    fields,
+    region_id,
+    country_code,
+    signal,
+  } = params
+
+  // Trade-off: we collect all IDs before intersecting to keep deterministic ordering.
+  const [meiliIds, categoryIds] = await Promise.all([
+    collectMeiliProductIdsForQueryCached(query),
+    collectCategoryProductIdsCached({
+      categories,
+      region_id,
+      country_code,
+    }),
+  ])
+
+  if (
+    meiliIds.length > LARGE_ID_SET_WARNING_THRESHOLD ||
+    categoryIds.length > LARGE_ID_SET_WARNING_THRESHOLD
+  ) {
+    console.warn(
+      `[ProductSearch] Large ID collections in MEILI_CATEGORY_INTERSECTION (meili=${meiliIds.length}, categories=${categoryIds.length}).`
+    )
+  }
+
+  const matchingIds = intersectIdsPreservingOrder(meiliIds, categoryIds)
   const totalCount = matchingIds.length
   const pagedIds = matchingIds.slice(offset, offset + limit)
   const products = await fetchProductsByIds({
@@ -133,6 +211,7 @@ export async function fetchProductsViaMeili(params: {
   const pageLimit = hitsResponse.limit ?? limit
   const observedCount = pageOffset + productIds.length
   const hasMoreByPageSize = hits.length >= pageLimit
+  // estimatedTotalHits can be approximate; we keep UI count monotonic but bounded by observed pages.
   const totalCount = hasMoreByPageSize
     ? Math.max(hitsResponse.estimatedTotalHits ?? 0, observedCount)
     : observedCount

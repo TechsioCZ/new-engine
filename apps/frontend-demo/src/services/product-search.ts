@@ -1,9 +1,14 @@
 import {
+  fetchProductsViaMeiliAndCategorySearch,
   fetchProductsViaMeili,
   fetchProductsViaMeiliAndVariantSearch,
   fetchProductsViaVariantSearch,
 } from "./product-search/product-fetchers"
-import { normalizeSizes, selectProductFetchStrategy } from "./product-search/strategy"
+import {
+  normalizeCategoriesInput,
+  normalizeSizes,
+  selectProductFetchStrategy,
+} from "./product-search/strategy"
 import type {
   RawProductListResponse,
   SearchStrategyInput,
@@ -12,6 +17,10 @@ import type {
 export async function tryGetProductsFromSearchStrategies(
   input: SearchStrategyInput
 ): Promise<RawProductListResponse | null> {
+  if (input.signal?.aborted) {
+    throw new DOMException("The operation was aborted.", "AbortError")
+  }
+
   const {
     limit,
     offset,
@@ -27,9 +36,33 @@ export async function tryGetProductsFromSearchStrategies(
 
   const normalizedQuery = q?.trim()
   const normalizedSizes = normalizeSizes(filters?.sizes)
+  const normalizedCategories = normalizeCategoriesInput(category, filters)
   const strategy = selectProductFetchStrategy({ q, sort, category, filters })
 
   switch (strategy) {
+    case "MEILI_CATEGORY_INTERSECTION":
+      try {
+        return await fetchProductsViaMeiliAndCategorySearch({
+          query: normalizedQuery || "",
+          categories: normalizedCategories,
+          limit,
+          offset,
+          fields,
+          region_id,
+          country_code,
+          signal,
+        })
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          throw error
+        }
+
+        console.warn(
+          "[ProductService] Meili + category intersection failed, falling back to default listing:",
+          error
+        )
+        return null
+      }
     case "MEILI_SIZE_INTERSECTION":
       try {
         return await fetchProductsViaMeiliAndVariantSearch({
