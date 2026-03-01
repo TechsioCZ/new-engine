@@ -8,12 +8,26 @@ import dynamic from "next/dynamic"
 import Image from "next/image"
 import NextLink from "next/link"
 import { useRouter } from "next/navigation"
-import type { FormEvent } from "react"
+import { type FormEvent, type KeyboardEvent, useMemo, useState } from "react"
 import logo from "@/assets/logo-n1.webp"
+import { useSearchSuggestions } from "@/hooks/use-search-suggestions"
+import type {
+  BrandSuggestion,
+  CategorySuggestion,
+  ProductSuggestion,
+} from "@/lib/search/search-suggestions-service"
 import { buildSearchHref } from "@/lib/url-state/search"
 import { CartPopover } from "./cart-popover"
 import { DesktopSubmenu } from "./desktop-submenu"
 import { LoginPopover } from "./login-popover"
+import {
+  getBrandSuggestionItemId,
+  getCategorySuggestionItemId,
+  getProductSuggestionItemId,
+  SEARCH_SUGGESTION_VIEW_ALL_ID,
+  SEARCH_SUGGESTIONS_LISTBOX_ID,
+  SearchSuggestionsPanel,
+} from "./search-suggestions-panel"
 
 // MobileMenu uses usePathname() which is runtime data
 // Skip SSR to avoid "uncached data outside Suspense" during prerender
@@ -24,19 +38,185 @@ const MobileMenu = dynamic(
   }
 )
 
+type SearchSuggestionItem =
+  | {
+      id: string
+      type: "product"
+      product: ProductSuggestion
+    }
+  | {
+      id: string
+      type: "category"
+      category: CategorySuggestion
+    }
+  | {
+      id: string
+      type: "brand"
+      brand: BrandSuggestion
+    }
+  | {
+      id: typeof SEARCH_SUGGESTION_VIEW_ALL_ID
+      type: "view-all"
+    }
+
 export const N1Header = () => {
   const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
 
-  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    const formData = new FormData(event.currentTarget)
-    const rawQuery = formData.get("q")
-    const query = typeof rawQuery === "string" ? rawQuery.trim() : ""
+  const trimmedSearchQuery = searchQuery.trim()
+  const isQueryLongEnough = trimmedSearchQuery.length >= 2
 
-    if (!query) {
+  const { suggestions, isLoading, isError } = useSearchSuggestions({
+    query: searchQuery,
+    enabled: isSearchFocused,
+  })
+
+  const suggestionItems = useMemo(() => {
+    const items: SearchSuggestionItem[] = [
+      ...suggestions.products.map((product) => ({
+        id: getProductSuggestionItemId(product.id),
+        type: "product" as const,
+        product,
+      })),
+      ...suggestions.categories.map((category) => ({
+        id: getCategorySuggestionItemId(category.id),
+        type: "category" as const,
+        category,
+      })),
+      ...suggestions.brands.map((brand) => ({
+        id: getBrandSuggestionItemId(brand.id),
+        type: "brand" as const,
+        brand,
+      })),
+    ]
+
+    if (trimmedSearchQuery) {
+      items.push({
+        id: SEARCH_SUGGESTION_VIEW_ALL_ID,
+        type: "view-all" as const,
+      })
+    }
+
+    return items
+  }, [suggestions, trimmedSearchQuery])
+
+  const highlightedItem =
+    highlightedIndex >= 0 ? suggestionItems[highlightedIndex] : null
+  const shouldShowSuggestions = isSearchFocused && isQueryLongEnough
+  const activeDescendantId =
+    shouldShowSuggestions && highlightedItem ? highlightedItem.id : undefined
+
+  const closeSuggestions = () => {
+    setIsSearchFocused(false)
+    setHighlightedIndex(-1)
+  }
+
+  const closeSuggestionsDeferred = () => {
+    setTimeout(() => {
+      closeSuggestions()
+    }, 0)
+  }
+
+  const navigateToSearch = (query: string) => {
+    const normalizedQuery = query.trim()
+    if (!normalizedQuery) {
       return
     }
 
-    router.push(buildSearchHref({ q: query }))
+    closeSuggestions()
+    router.push(buildSearchHref({ q: normalizedQuery }))
+  }
+
+  const navigateToHighlightedItem = () => {
+    if (!highlightedItem) {
+      return false
+    }
+
+    if (highlightedItem.type === "product") {
+      closeSuggestions()
+      router.push(`/produkt/${highlightedItem.product.handle}`)
+      return true
+    }
+
+    if (highlightedItem.type === "category") {
+      closeSuggestions()
+      router.push(
+        buildSearchHref({
+          q: trimmedSearchQuery,
+          category_id: highlightedItem.category.id,
+        })
+      )
+      return true
+    }
+
+    if (highlightedItem.type === "brand") {
+      navigateToSearch(highlightedItem.brand.title)
+      return true
+    }
+
+    if (highlightedItem.type === "view-all") {
+      navigateToSearch(trimmedSearchQuery)
+      return true
+    }
+
+    return false
+  }
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    navigateToSearch(searchQuery)
+  }
+
+  const handleInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      closeSuggestions()
+      return
+    }
+
+    if (!shouldShowSuggestions || suggestionItems.length === 0) {
+      return
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault()
+      setHighlightedIndex((prev) => (prev + 1) % suggestionItems.length)
+      return
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault()
+      setHighlightedIndex((prev) =>
+        prev <= 0 ? suggestionItems.length - 1 : prev - 1
+      )
+      return
+    }
+
+    if (event.key === "Enter" && highlightedItem) {
+      event.preventDefault()
+      navigateToHighlightedItem()
+    }
+  }
+
+  const handleSuggestionHighlight = (itemId: string) => {
+    const index = suggestionItems.findIndex((item) => item.id === itemId)
+    setHighlightedIndex(index)
+  }
+
+  const handleProductSelect = (handle: string) => {
+    closeSuggestions()
+    router.push(`/produkt/${handle}`)
+  }
+
+  const handleCategorySelect = (categoryId: string) => {
+    closeSuggestions()
+    router.push(
+      buildSearchHref({
+        q: trimmedSearchQuery,
+        category_id: categoryId,
+      })
+    )
   }
 
   const topHeaderLinks = [
@@ -95,20 +275,59 @@ export const N1Header = () => {
               width={250}
             />
           </NextLink>
-          <SearchForm
-            className="w-search max-header-desktop:hidden"
-            onSubmit={handleSearchSubmit}
-            size="sm"
-          >
-            <SearchForm.Control>
-              <SearchForm.Input
-                className="bg-base-light"
-                name="q"
-                placeholder="Hledat produkty..."
+          <div className="relative w-search max-header-desktop:hidden">
+            <SearchForm
+              className="w-full"
+              onSubmit={handleSearchSubmit}
+              onValueChange={(value) => {
+                setSearchQuery(value)
+                setHighlightedIndex(-1)
+              }}
+              size="sm"
+              value={searchQuery}
+            >
+              <SearchForm.Control>
+                <SearchForm.Input
+                  aria-activedescendant={activeDescendantId}
+                  aria-autocomplete="list"
+                  aria-controls={
+                    shouldShowSuggestions
+                      ? SEARCH_SUGGESTIONS_LISTBOX_ID
+                      : undefined
+                  }
+                  aria-expanded={shouldShowSuggestions}
+                  className="bg-base-light"
+                  name="q"
+                  onBlur={closeSuggestionsDeferred}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder="Hledat produkty..."
+                  role="combobox"
+                />
+                <SearchForm.Button showSearchIcon />
+              </SearchForm.Control>
+            </SearchForm>
+
+            {shouldShowSuggestions ? (
+              <SearchSuggestionsPanel
+                highlightedItemId={highlightedItem?.id || null}
+                isError={isError}
+                isLoading={isLoading}
+                listboxId={SEARCH_SUGGESTIONS_LISTBOX_ID}
+                onHighlight={handleSuggestionHighlight}
+                onSelectBrand={(brand) => navigateToSearch(brand.title)}
+                onSelectCategory={(category) =>
+                  handleCategorySelect(category.id)
+                }
+                onSelectProduct={(product) =>
+                  handleProductSelect(product.handle)
+                }
+                onSelectViewAll={() => navigateToSearch(trimmedSearchQuery)}
+                query={trimmedSearchQuery}
+                suggestions={suggestions}
               />
-              <SearchForm.Button showSearchIcon />
-            </SearchForm.Control>
-          </SearchForm>
+            ) : null}
+          </div>
         </div>
 
         <Header.Actions className="relative text-2xl">

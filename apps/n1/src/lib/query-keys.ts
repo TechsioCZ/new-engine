@@ -21,6 +21,17 @@ export const queryKeys = {
       ] as const,
   },
 
+  search: {
+    all: () => [...queryKeys.all, "search"] as const,
+    suggestions: (params: {
+      q: string
+      limitPerSection: number
+      regionId?: string
+      countryCode?: string
+    }) =>
+      [...queryKeys.search.all(), "suggestions", params] as const,
+  },
+
   auth: {
     all: () => [...queryKeys.all, "auth"] as const,
     session: () => [...queryKeys.auth.all(), "session"] as const,
