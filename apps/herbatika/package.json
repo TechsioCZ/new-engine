@@ -1,0 +1,40 @@
+{
+  "name": "herbatika",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "biome check",
+    "format": "biome format --write"
+  },
+  "dependencies": {
+    "@techsio/ui-kit": "workspace:*",
+    "@techsio/analytics": "workspace:*",
+    "@medusajs/js-sdk": "^2.10.3",
+    "@medusajs/types": "^2.10.3",
+    "@tanstack/react-query": "^5.90.2",
+    "@tanstack/react-store": "^0.7.1",
+    "next": "16.1.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-hook-form": "^7.67.0",
+    "tailwind-variants": "^3.1.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.0",
+    "@iconify/tailwind4": "^1.0.6",
+    "@tailwindcss/postcss": "^4",
+    "@tanstack/react-query-devtools": "^5.90.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "dotenv": "^16.4.7",
+    "postcss-import": "^16.1.1",
+    "tailwindcss": "^4",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5"
+  }
+}

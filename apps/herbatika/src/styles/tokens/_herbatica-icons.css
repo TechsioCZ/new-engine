@@ -1,0 +1,15 @@
+@utility token-icon-user {
+    @apply icon-[mdi--user-outline];
+}
+
+@utility token-icon-search {
+    @apply icon-[mdi--search];
+}
+
+@utility token-icon-heart {
+    @apply icon-[mdi--heart-outline];
+}
+
+@utility token-icon-cart {
+    @apply icon-[mdi--cart-outline];
+}

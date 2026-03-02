@@ -1,0 +1,7 @@
+@theme static {
+  --color-button-secondary: var(--color-surface);
+  --color-button-fg-secondary: var(--color-fg-primary);
+
+  --text-button-md: var(--text-sm);
+  --radius-button-md: var(--radius-sm);
+}
