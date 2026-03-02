@@ -18,13 +18,14 @@ const searchFormVariants = tv({
   slots: {
     root: ["relative grid"],
     control: [
-      "relative flex items-center",
-      "rounded-search-form",
-      "border border-input-border bg-input-bg",
+      "relative flex items-center overflow-hidden",
+      "form-control-base",
+      "hover:border-input-border-hover",
       "focus-within:border-input-border-focus",
       "focus-within:outline-(style:--default-ring-style) focus-within:outline-(length:--default-ring-width)",
       "focus-within:outline-input-ring",
       "focus-within:outline-offset-(length:--default-ring-offset)",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     input: [
       "peer",
@@ -44,9 +45,13 @@ const searchFormVariants = tv({
     size: {
       sm: {
         root: "gap-search-form-sm",
+        control:
+          "h-form-control-sm [--radius-form-control:var(--radius-form-control-sm)]",
       },
       md: {
         root: "gap-search-form-md",
+        control:
+          "h-form-control-md [--radius-form-control:var(--radius-form-control-md)]",
       },
       lg: {
         root: "gap-search-form-lg",

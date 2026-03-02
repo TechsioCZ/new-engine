@@ -14,8 +14,7 @@ const comboboxVariants = tv({
     root: ["relative flex w-full flex-col"],
     label: ["block font-label text-label-md"],
     control: [
-      "relative flex w-full items-center",
-      "border-(length:--border-width-combobox) rounded-combobox border-combobox-border bg-combobox-bg",
+      "form-control-base relative flex w-full items-center overflow-hidden",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
       "data-focus:border-combobox-border-focus data-focus:bg-combobox-bg-focus",
@@ -31,19 +30,20 @@ const comboboxVariants = tv({
       "data-[validation=warning]:border-combobox-warning-fg",
     ],
     input: [
-      "relative w-full border-none bg-combobox-input-bg",
+      "relative h-full w-full border-none bg-combobox-input-bg",
       "hover:bg-combobox-input-bg-hover focus-visible:outline-none",
       "focus:bg-combobox-input-bg-focused",
       "placeholder:text-combobox-placeholder",
       "data-disabled:text-combobox-fg-disabled",
       "data-disabled:bg-combobox-bg-disabled",
     ],
-    clearTrigger: ["absolute right-combobox-clear-right"],
+    clearTrigger: [
+      "absolute right-combobox-clear-right h-full p-combobox-trigger",
+    ],
     trigger: [
-      'flex items-center justify-center',
-      'p-combobox-trigger',
-      'transition-transform duration-200 motion-reduce:transition-none',
-      'data-[state=open]:rotate-180',
+      "group flex h-full shrink-0 items-center justify-center",
+      "font-normal",
+      "p-combobox-trigger",
     ],
     positioner: [
       "z-(--z-index) w-full *:max-h-(--available-height) *:overflow-y-auto",
@@ -77,7 +77,7 @@ const comboboxVariants = tv({
         "focus-visible:outline-offset-(length:--default-ring-offset)",
         "text-combobox-trigger text-combobox-trigger-size",
         "hover:text-combobox-trigger-hover",
-        "px-combobox-trigger",
+        "motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none",
         "hover:bg-combobox-trigger-bg-hover",
         "active:bg-combobox-trigger-bg-active",
       ],
@@ -87,20 +87,22 @@ const comboboxVariants = tv({
     size: {
       sm: {
         root: "gap-combobox-root-sm",
+        control:
+          "h-form-control-sm text-input-sm [--radius-form-control:var(--radius-form-control-sm)]",
         item: "p-combobox-item-sm",
-        input: "py-combobox-input-sm",
         content: "text-combobox-content-sm",
       },
       md: {
         root: "gap-combobox-root-md",
+        control:
+          "h-form-control-md text-input-md [--radius-form-control:var(--radius-form-control-md)]",
         item: "p-combobox-item-md",
-        input: "py-combobox-input-md",
         content: "text-combobox-content-md",
       },
       lg: {
         root: "gap-combobox-root-lg",
+        control: "text-input-lg",
         item: "p-combobox-item-lg",
-        input: "py-combobox-input-lg",
         content: "text-combobox-content-lg",
       },
     },
@@ -179,6 +181,8 @@ export function Combobox<T = unknown>({
   onInputValueChange,
   onOpenChange,
 }: ComboboxProps<T>) {
+  const resolvedChevronIconSize = size === "sm" ? "sm" : "md"
+
   const generatedId = useId()
   const uniqueId = id || generatedId
 
@@ -276,8 +280,8 @@ export function Combobox<T = unknown>({
         {clearable && api.value.length > 0 && (
           <Button
             className={clearTrigger()}
-            size={size}
-            theme="borderless"
+            size="current"
+            theme="unstyled"
             {...api.getClearTriggerProps()}
           >
             <Icon icon={"token-icon-combobox-clear"} size="current" />
@@ -287,10 +291,16 @@ export function Combobox<T = unknown>({
         <Button
           {...api.getTriggerProps()}
           className={trigger()}
-          size={size}
-          theme="borderless"
+          size="current"
+          theme="unstyled"
         >
-          <Icon icon="token-icon-combobox-chevron" />
+          <Icon
+            className={`text-combobox-trigger group-hover:text-combobox-trigger-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+              api.open ? "rotate-180" : "rotate-0"
+            }`}
+            icon="token-icon-combobox-chevron"
+            size={resolvedChevronIconSize}
+          />
         </Button>
       </div>
 

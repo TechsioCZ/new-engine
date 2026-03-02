@@ -17,8 +17,13 @@ const numericInputVariants = tv({
   slots: {
     root: ["relative flex"],
     container: [
-      "group border-(length:--border-width-numeric-input) relative flex",
-      "items-center overflow-hidden rounded-numeric-input border-numeric-input-border",
+      "group form-control-base relative flex",
+      "items-center overflow-hidden",
+      "hover:border-numeric-input-border-hover",
+      "focus-within:border-numeric-input-border-focus",
+      "data-disabled:bg-numeric-input-bg-disabled",
+      "data-disabled:border-numeric-input-border-disabled",
+      "data-disabled:text-numeric-input-fg-disabled",
       "data-invalid:bg-numeric-input-invalid-bg",
       "data-invalid:border-(length:--border-width-validation)",
       "data-invalid:border-numeric-input-invalid-border",
@@ -28,9 +33,10 @@ const numericInputVariants = tv({
       "focus-within:outline-(style:--default-ring-style) focus-within:outline-(length:--default-ring-width)",
       "focus-within:outline-numeric-input-ring",
       "focus-within:outline-offset-(length:--default-ring-offset)",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     input: [
-      "h-full rounded-none border-none pl-numeric-input-input",
+      "h-full rounded-none border-none",
       "bg-numeric-input-input-bg",
       "focus:bg-numeric-input-input-bg-focus",
       "hover:bg-numeric-input-input-bg-hover",
@@ -40,10 +46,11 @@ const numericInputVariants = tv({
       "duration-0 data-invalid:focus:border-input-border-danger-focus",
     ],
     triggerContainer: [
-      "flex h-fit flex-col justify-center bg-numeric-input-trigger-container-bg",
+      "flex flex-col gap-px self-stretch bg-numeric-input-border",
     ],
     trigger: [
-      "px-numeric-input-trigger-x py-numeric-input-trigger-y",
+      "flex flex-1 place-items-center",
+      "px-numeric-input-trigger-x py-0",
       "bg-numeric-input-trigger-bg hover:bg-numeric-input-trigger-bg-hover",
       "text-numeric-input-trigger-fg hover:text-numeric-input-trigger-fg-hover",
       "cursor-pointer",
@@ -56,18 +63,22 @@ const numericInputVariants = tv({
     size: {
       sm: {
         root: "text-numeric-input-sm",
+        container:
+          "h-form-control-sm [--radius-form-control:var(--radius-form-control-sm)]",
         trigger: "text-numeric-input-sm",
-        input: "text-numeric-input-sm",
+        input: "pl-numeric-input-input-sm text-numeric-input-sm",
       },
       md: {
         root: "text-numeric-input-md",
+        container:
+          "h-form-control-md [--radius-form-control:var(--radius-form-control-md)]",
         trigger: "text-numeric-input-md",
-        input: "text-numeric-input-md",
+        input: "pl-numeric-input-input-md text-numeric-input-md",
       },
       lg: {
         root: "text-numeric-input-lg",
         trigger: "text-numeric-input-lg",
-        input: "text-numeric-input-lg",
+        input: "pl-numeric-input-input-md text-numeric-input-lg",
       },
     },
   },
@@ -269,13 +280,13 @@ interface NumericInputIncrementTriggerProps
   // === Button styling ===
   variant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
   theme?: "solid" | "light" | "borderless" | "outlined"
-  size?: "sm" | "md" | "lg"
   uppercase?: boolean
   block?: boolean
 
   // === Icon ===
   icon?: IconType
   iconPosition?: "left" | "right"
+  iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
 
   // === Loading state ===
   isLoading?: boolean
@@ -290,9 +301,9 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   // Button props with defaults
   variant = "primary",
   theme = "borderless",
-  size = "sm",
   icon = "token-icon-numeric-input-increment",
   iconPosition = "left",
+  iconSize,
   uppercase,
   block,
   isLoading,
@@ -304,7 +315,9 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
   children,
   ...props
 }: NumericInputIncrementTriggerProps) {
-  const { api, styles } = useNumericInputContext()
+  const { api, styles, size } = useNumericInputContext()
+  const resolvedIconSize =
+    iconSize ?? (size === "sm" ? "xs" : size === "lg" ? "md" : "sm")
 
   return (
     <Button
@@ -312,10 +325,11 @@ NumericInput.IncrementTrigger = function NumericInputIncrementTrigger({
       className={styles.trigger({ className })}
       icon={icon}
       iconPosition={iconPosition}
+      iconSize={resolvedIconSize}
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}
-      size={size}
+      size="current"
       theme={theme}
       uppercase={uppercase}
       variant={variant}
@@ -333,13 +347,13 @@ interface NumericInputDecrementTriggerProps
   // === Button styling ===
   variant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
   theme?: "solid" | "light" | "borderless" | "outlined"
-  size?: "sm" | "md" | "lg"
   uppercase?: boolean
   block?: boolean
 
   // === Icon ===
   icon?: IconType
   iconPosition?: "left" | "right"
+  iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
 
   // === Loading state ===
   isLoading?: boolean
@@ -354,9 +368,9 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   // Button props with defaults
   variant = "primary",
   theme = "borderless",
-  size = "sm",
   icon = "token-icon-numeric-input-decrement",
   iconPosition = "left",
+  iconSize,
   uppercase,
   block,
   isLoading,
@@ -368,7 +382,9 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
   children,
   ...props
 }: NumericInputDecrementTriggerProps) {
-  const { api, styles } = useNumericInputContext()
+  const { api, styles, size } = useNumericInputContext()
+  const resolvedIconSize =
+    iconSize ?? (size === "sm" ? "xs" : size === "lg" ? "md" : "sm")
 
   return (
     <Button
@@ -376,10 +392,11 @@ NumericInput.DecrementTrigger = function NumericInputDecrementTrigger({
       className={styles.trigger({ className })}
       icon={icon}
       iconPosition={iconPosition}
+      iconSize={resolvedIconSize}
       isLoading={isLoading}
       loadingText={loadingText}
       ref={ref}
-      size={size}
+      size="current"
       theme={theme}
       uppercase={uppercase}
       variant={variant}

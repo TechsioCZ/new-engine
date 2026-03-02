@@ -5,8 +5,10 @@ import { tv } from "../utils"
 const textareaVariants = tv({
   base: [
     "block w-full",
+    "font-normal",
     "bg-textarea-bg",
     "text-textarea-fg",
+    "placeholder:font-normal",
     "placeholder:text-textarea-placeholder",
     "border-(length:--border-textarea-width) border-textarea-border",
     "rounded-textarea",
@@ -48,8 +50,8 @@ const textareaVariants = tv({
       ],
     },
     size: {
-      sm: "p-textarea-sm text-textarea-sm",
-      md: "p-textarea-md text-textarea-md",
+      sm: "p-textarea-sm text-textarea-sm [--radius-textarea:var(--radius-form-control-sm)]",
+      md: "p-textarea-md text-textarea-md [--radius-textarea:var(--radius-form-control-md)]",
       lg: "p-textarea-lg text-textarea-lg",
     },
     resize: {

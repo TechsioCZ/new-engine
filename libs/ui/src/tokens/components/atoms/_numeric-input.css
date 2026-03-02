@@ -1,14 +1,22 @@
 @theme static {
   /* === BASE TOKEN MAPPING === */
-  --color-numeric-input-bg: var(--color-surface);
+  --color-numeric-input-bg: var(--color-form-control-bg);
   --color-numeric-input-hover: oklch(
     from var(--color-numeric-input-bg) calc(l + var(--state-hover)) c h
   );
   --color-numeric-input-focus: oklch(
-    from var(--color-numeric-input-bg) calc(l + var(--state-hover)) c h
+    from var(--color-numeric-input-bg) calc(l + var(--state-active)) c h
   );
-  --color-numeric-input-border: var(--color-input-border);
+  --color-numeric-input-border: var(--color-form-control-border);
+  --color-numeric-input-border-hover: var(--color-form-control-border-hover);
+  --color-numeric-input-border-focus: var(--color-form-control-border-focus);
   --color-numeric-input-fg: var(--color-input-fg);
+
+  --color-numeric-input-bg-disabled: var(--color-form-control-bg-disabled);
+  --color-numeric-input-fg-disabled: var(--color-form-control-fg-disabled);
+  --color-numeric-input-border-disabled: var(
+    --color-form-control-border-disabled
+  );
 
   --color-numeric-input-invalid-border: var(--color-danger);
   --color-numeric-input-invalid-bg: --alpha(var(--color-danger) / 10%);
@@ -26,7 +34,8 @@
   --color-numeric-input-input-bg: transparent;
   --color-numeric-input-input-bg-hover: var(--color-numeric-input-hover);
   --color-numeric-input-input-bg-focus: var(--color-numeric-input-focus);
-  --padding-numeric-input-input: var(--spacing-150);
+  --padding-numeric-input-input-sm: var(--spacing-100);
+  --padding-numeric-input-input-md: var(--spacing-150);
 
   /* === TRIGGER === */
   --color-numeric-input-trigger-container-bg: var(--color-numeric-input-bg);
@@ -41,7 +50,7 @@
 
   /* === INCREMENT BUTTON === */
 
-  --radius-numeric-input: var(--radius-sm);
+  --radius-numeric-input: var(--radius-form-control);
   --border-width-numeric-input: var(--border-width-input);
 
   /* === FOCUS RING === */

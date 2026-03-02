@@ -1,4 +1,6 @@
 @theme static {
+  --border-width-search-form: var(--border-width-form-control);
+
   /* Spacing for stacked layout */
   --spacing-search-form-sm: var(--spacing-150);
   --spacing-search-form-md: var(--spacing-200);

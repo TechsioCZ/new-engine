@@ -1,0 +1,71 @@
+/*
+ * Shared form-control foundation tokens.
+ * All box-style form controls (Input, NumericInput, Combobox, Select, SearchForm)
+ * alias their visual tokens to these to maintain a single source of truth.
+ *
+ * To change the design of every form control at once, edit these tokens.
+ * To diverge a specific component, override its own alias token in its own CSS file.
+ */
+@theme static {
+  /* Border */
+  --border-width-form-control: var(--border-width-input); /* 2px */
+
+  /* Shape */
+  --radius-form-control-sm: var(--radius-button-sm);
+  --radius-form-control-md: var(--radius-button-md);
+  --radius-form-control: var(--radius-form-control-md); /* default md */
+
+  /* Colors */
+  --color-form-control-bg: var(--color-fill-base);
+  --color-form-control-border: var(--color-border-primary);
+  --color-form-control-border-hover: oklch(
+    from var(--color-form-control-border) calc(l + var(--state-hover)) c h
+  );
+  --color-form-control-border-focus: var(--color-primary);
+  --color-form-control-ring: var(--color-ring);
+
+  /* Disabled */
+  --color-form-control-bg-disabled: var(--color-bg-disabled);
+  --color-form-control-fg-disabled: var(--color-fg-disabled);
+  --color-form-control-border-disabled: var(--color-border-disabled);
+
+  /* Placeholder */
+  --color-form-control-placeholder: var(--color-fg-placeholder);
+
+  /*
+   * Shared heights for sm/md form controls + buttons.
+   * Formula: border×2 + button-padding-y×2 + 1lh
+   * (1lh resolves to the element's computed line-height at usage time)
+   * Apply h-form-control-sm / h-form-control-md to both buttons and
+   * form-control wrappers so they share an identical rendered height.
+   */
+  --height-form-control-sm: calc(
+    var(--border-width-form-control) *
+    2 +
+    var(--spacing-50) *
+    2 +
+    1lh
+  );
+  --height-form-control-md: calc(
+    var(--border-width-form-control) *
+    2 +
+    var(--spacing-100) *
+    2 +
+    1lh
+  );
+}
+
+/*
+ * Shared base utility for box-style form controls.
+ * Covers the static visual foundation (border, radius, background).
+ * Interactive states (hover border, focus ring, disabled, validation) are applied
+ * per-component via Tailwind classes in their tv() slots because focus behaviour
+ * differs (focus-within vs data-focus vs focus-visible) across components.
+ */
+@utility form-control-base {
+  border-width: var(--border-width-form-control);
+  border-style: solid;
+  border-color: var(--color-form-control-border);
+  border-radius: var(--radius-form-control);
+  background-color: var(--color-form-control-bg);
+}
