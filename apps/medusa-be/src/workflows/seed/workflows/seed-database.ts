@@ -12,6 +12,7 @@ export type SeedDatabaseWorkflowInput = {
   currencies: Steps.UpdateStoreCurrenciesStepCurrenciesInput
   regions: Steps.CreateRegionsStepInput
   taxRegions: Steps.CreateTaxRegionsStepInput
+  taxRates?: Omit<Steps.CreateTaxRatesStepInput, "productIds">
   stockLocations: Steps.CreateStockLocationStepInput
   defaultShippingProfile: Steps.CreateDefaultShippingProfileStepInput
   fulfillmentSets: Steps.CreateFulfillmentSetStepInput
@@ -54,6 +55,23 @@ const seedDatabaseWorkflow = createWorkflow(
 
     // create regions
     const createRegionsResult = Steps.createRegionsStep(input.regions)
+
+    const ensurePricePreferencesStepInput: Steps.EnsurePricePreferencesStepInput =
+      transform(
+        {
+          createRegionsResult,
+          input,
+        },
+        (data) => ({
+          regionIds: data.createRegionsResult.result.map((region) => region.id),
+          currencyCodes: data.input.currencies.map((currency) => currency.code),
+          isTaxInclusive: true,
+        })
+      )
+
+    const ensurePricePreferencesResult = Steps.ensurePricePreferencesStep(
+      ensurePricePreferencesStepInput
+    )
 
     // create tax regions
     const createTaxRegionsResult = Steps.createTaxRegionsStep(input.taxRegions)
@@ -232,6 +250,25 @@ const seedDatabaseWorkflow = createWorkflow(
 
     const createProductsResult = Steps.createProductsStep(input.products)
 
+    const createTaxRatesStepInput: Steps.CreateTaxRatesStepInput | undefined =
+      input.taxRates
+        ? transform(
+            {
+              createProductsResult,
+              input,
+            },
+            (data) => ({
+              fallbackCountryCode: data.input.taxRates?.fallbackCountryCode,
+              countries: data.input.taxRates?.countries,
+              productIds: data.createProductsResult.result,
+            })
+          )
+        : undefined
+
+    const createTaxRatesResult = createTaxRatesStepInput
+      ? Steps.createTaxRatesStep(createTaxRatesStepInput)
+      : undefined
+
     // create inventory levels
     const createInventoryLevelsInput: Steps.CreateInventoryLevelsStepInput =
       transform(
@@ -268,6 +305,7 @@ const seedDatabaseWorkflow = createWorkflow(
       salesChannelsResult,
       updateStoreCurrenciesResult,
       createRegionsResult,
+      ensurePricePreferencesResult,
       createTaxRegionsResult,
       createStockLocationResult,
       linkStockLocationsFulfillmentProviderResult,
@@ -280,6 +318,7 @@ const seedDatabaseWorkflow = createWorkflow(
       linkSalesChannelsApiKeyStepInputResult,
       createProductCategoriesResult,
       createProductsResult,
+      createTaxRatesResult,
       createInventoryLevelsResult,
     })
   }
