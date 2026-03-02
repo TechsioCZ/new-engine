@@ -31,6 +31,9 @@ export function CheckoutStepContent({
       ? resolveProviderLabel(selectedPaymentProviderId)
       : undefined;
   const orderSummaryDetailsFont = activeStep === "kosik" ? "rubik" : "inter";
+  const stepLayoutClassName = "grid gap-700 xl:grid-cols-12 xl:items-start";
+  const stepMainClassName = "space-y-350 xl:col-span-7";
+  const stepAsideClassName = "space-y-300 xl:col-span-5 xl:sticky xl:top-400 xl:self-start";
 
   const orderSummarySection = (
     <CheckoutOrderSummarySection
@@ -48,8 +51,8 @@ export function CheckoutStepContent({
 
   if (activeStep === "kosik") {
     return (
-      <div className="checkout-step-grid">
-        <div className="space-y-350">
+      <div className={stepLayoutClassName}>
+        <div className={stepMainClassName}>
           <CheckoutCartStepSection
             cartId={controller.cartQuery.cart?.id}
             cartItems={controller.cartItems}
@@ -57,7 +60,7 @@ export function CheckoutStepContent({
             currencyCode={controller.currencyCode}
           />
         </div>
-        <aside className="space-y-300 xl:sticky xl:top-400 xl:self-start">
+        <aside className={stepAsideClassName}>
           <CheckoutCartSidebarSection
             cartSubtotalAmount={controller.cartSubtotalAmount}
             cartTotalAmount={controller.cartTotalAmount}
@@ -72,8 +75,8 @@ export function CheckoutStepContent({
 
   if (activeStep === "doprava-platba") {
     return (
-      <div className="checkout-step-grid">
-        <div className="space-y-350">
+      <div className={stepLayoutClassName}>
+        <div className={stepMainClassName}>
           <CheckoutShippingPaymentStepSection
             backStepHref={cartStepHref}
             canContinue={controller.hasShipping && controller.hasPayment}
@@ -99,7 +102,7 @@ export function CheckoutStepContent({
             }}
           />
         </div>
-        <aside className="space-y-300 xl:sticky xl:top-400 xl:self-start">
+        <aside className={stepAsideClassName}>
           {orderSummarySection}
         </aside>
       </div>
@@ -108,8 +111,8 @@ export function CheckoutStepContent({
 
   if (activeStep === "udaje") {
     return (
-      <div className="checkout-step-grid">
-        <div className="space-y-350">
+      <div className={stepLayoutClassName}>
+        <div className={stepMainClassName}>
           <CheckoutDetailsStepSection
             addressProps={{
               addressForm: controller.addressForm,
@@ -135,7 +138,7 @@ export function CheckoutStepContent({
             nextStepHref={summaryStepHref}
           />
         </div>
-        <aside className="space-y-300 xl:sticky xl:top-400 xl:self-start">
+        <aside className={stepAsideClassName}>
           {orderSummarySection}
         </aside>
       </div>
@@ -143,8 +146,8 @@ export function CheckoutStepContent({
   }
 
   return (
-    <div className="checkout-step-grid">
-      <div className="space-y-350">
+    <div className={stepLayoutClassName}>
+      <div className={stepMainClassName}>
         <CheckoutSummaryStepSection
           completeProps={{
             addressForm: controller.addressForm,
@@ -168,7 +171,7 @@ export function CheckoutStepContent({
           }}
         />
       </div>
-      <aside className="space-y-300 xl:sticky xl:top-400 xl:self-start">
+      <aside className={stepAsideClassName}>
         {orderSummarySection}
       </aside>
     </div>

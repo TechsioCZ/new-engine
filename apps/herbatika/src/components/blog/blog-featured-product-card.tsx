@@ -32,7 +32,7 @@ export function BlogFeaturedProductCard() {
       <div className="relative overflow-hidden rounded-lg border border-border-secondary bg-base">
         <Image
           alt={BLOG_FEATURED_PRODUCT.title}
-          className="blog-featured-product-image w-full object-cover"
+          className="aspect-video w-full object-cover"
           height={380}
           loading="lazy"
           src={BLOG_FEATURED_PRODUCT.imageSrc}

@@ -86,12 +86,12 @@ export function CheckoutCartStepSection({
 
   return (
     <section className="space-y-300">
-      <h2 className="checkout-cart-step-heading text-4xl leading-tight font-semibold text-fg-primary">
+      <h2 className="text-4xl leading-tight font-semibold text-fg-primary">
         {`Váš košík (${cartItems.length})`}
       </h2>
 
-      <div className="checkout-card checkout-cart-progress-card">
-        <p className="checkout-cart-progress-text text-sm text-fg-primary">
+      <div className="min-h-900 rounded-sm border border-border-primary bg-surface px-400 pt-400 pb-650 md:px-550">
+        <p className="text-center text-sm font-light leading-relaxed text-fg-primary">
           {missingAmount > 0 ? (
             <>
               {`Nakúpte ešte za ${missingAmountLabel} a získajte `}
@@ -102,34 +102,34 @@ export function CheckoutCartStepSection({
           )}
         </p>
 
-        <div className="checkout-cart-progress-row">
+        <div className="mt-400 flex items-start gap-200">
           <div
             aria-label="Priebeh do dopravy zadarmo"
             aria-valuemax={100}
             aria-valuemin={0}
             aria-valuenow={Math.round(progressValue)}
-            className="checkout-cart-progress-track"
+            className="relative mt-150 h-100 flex-1 overflow-hidden rounded-xs bg-border-primary"
             role="progressbar"
           >
             <div
-              className="checkout-cart-progress-fill transition-[width] duration-300 ease-out"
+              className="h-full rounded-xs bg-success transition-all duration-300 ease-out"
               style={{ width: `${progressValue}%` }}
             />
           </div>
 
-          <div className="checkout-cart-progress-target">
-            <span className="checkout-cart-progress-target-icon">
+          <div className="flex min-w-700 flex-col items-center gap-50">
+            <span className="inline-flex h-700 w-700 items-center justify-center rounded-full border border-border-primary bg-overlay">
               <Icon className="text-lg text-fg-secondary" icon="icon-[mdi--truck-delivery-outline]" />
             </span>
-            <span className="font-rubik text-sm text-fg-primary">{freeShippingTargetLabel}</span>
+            <span className="text-sm text-fg-primary">{freeShippingTargetLabel}</span>
           </div>
         </div>
       </div>
 
-      <div className="checkout-card checkout-cart-items-card overflow-hidden">
+      <div className="overflow-hidden rounded-sm border border-border-primary bg-surface p-400 md:px-550 md:pt-550 md:pb-500">
         {cartItems.map((item, index) => (
           <div
-            className={`checkout-cart-item-shell ${index > 0 ? "border-t border-border-secondary" : ""}`}
+            className={`py-250 ${index > 0 ? "border-t border-border-secondary" : ""}`}
             key={item.id}
           >
             <CheckoutCartItemRow

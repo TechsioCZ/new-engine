@@ -36,7 +36,7 @@ export function BlogInlineProductCard({ product }: BlogInlineProductCardProps) {
       <div className="relative overflow-hidden rounded-lg border border-border-secondary bg-base">
         <Image
           alt={product.title}
-          className="blog-inline-product-image w-full object-cover"
+          className="aspect-video w-full object-cover"
           height={280}
           loading="lazy"
           src={product.imageSrc}

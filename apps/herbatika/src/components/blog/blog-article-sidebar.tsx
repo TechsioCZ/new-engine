@@ -27,7 +27,7 @@ export function BlogArticleSidebar() {
       <section className="relative overflow-hidden rounded-2xl border border-border-secondary bg-surface">
         <Image
           alt={BLOG_PROMO_BANNER.title}
-          className="blog-sidebar-promo-image w-full object-cover"
+          className="aspect-square w-full object-cover"
           height={560}
           loading="lazy"
           src={BLOG_PROMO_BANNER.imageSrc}

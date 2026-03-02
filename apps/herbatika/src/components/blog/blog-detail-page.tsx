@@ -81,7 +81,7 @@ export function BlogDetailPage({ post, relatedPosts }: BlogDetailPageProps) {
             <section className="overflow-hidden rounded-2xl border border-border-secondary bg-surface">
               <Image
                 alt={post.title}
-                className="blog-detail-hero-image w-full object-cover"
+                className="aspect-wide w-full object-cover"
                 height={620}
                 src={post.imageSrc}
                 width={1200}

@@ -25,10 +25,10 @@ export function CheckoutShippingPaymentStepSection({
       <CheckoutShippingSection {...shippingProps} />
       <CheckoutPaymentSection {...paymentProps} />
 
-      <div className="checkout-step-actions">
+      <div className="flex flex-wrap items-center justify-between gap-200">
         <LinkButton
           as={NextLink}
-          className="checkout-step-action-back"
+          className="w-full sm:min-w-950 sm:w-auto"
           href={backStepHref}
           size="md"
           theme="outlined"
@@ -39,7 +39,7 @@ export function CheckoutShippingPaymentStepSection({
         {canContinue ? (
           <LinkButton
             as={NextLink}
-            className="checkout-step-action-next"
+            className="w-full sm:min-w-950 sm:w-auto"
             href={nextStepHref}
             icon="token-icon-chevron-right"
             iconPosition="right"
@@ -49,7 +49,7 @@ export function CheckoutShippingPaymentStepSection({
             Pokračovať na vaše údaje
           </LinkButton>
         ) : (
-          <Button className="checkout-step-action-next" disabled size="md" variant="primary">
+          <Button className="w-full sm:min-w-950 sm:w-auto" disabled size="md" variant="primary">
             Pokračovať na vaše údaje
           </Button>
         )}

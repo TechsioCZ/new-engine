@@ -9,6 +9,48 @@ import type {
 
 type CartPayloadInput = Record<string, unknown> & { salesChannelId?: string };
 
+const normalizeCountryCode = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!/^[a-z]{2}$/.test(normalized)) {
+    return undefined;
+  }
+
+  return normalized;
+};
+
+const normalizeAddressPayload = (
+  value: unknown,
+): Record<string, unknown> | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const address = { ...(value as Record<string, unknown>) };
+  const fieldAliases: Array<[camel: string, snake: string]> = [
+    ["firstName", "first_name"],
+    ["lastName", "last_name"],
+    ["address1", "address_1"],
+    ["address2", "address_2"],
+    ["postalCode", "postal_code"],
+    ["countryCode", "country_code"],
+  ];
+
+  for (const [camel, snake] of fieldAliases) {
+    if (address[snake] !== undefined || address[camel] === undefined) {
+      continue;
+    }
+
+    address[snake] = address[camel];
+    delete address[camel];
+  }
+
+  return address;
+};
+
 const normalizeCartPayload = (input: CartPayloadInput) => {
   const {
     cartId: _cartId,
@@ -25,14 +67,43 @@ const normalizeCartPayload = (input: CartPayloadInput) => {
     ...rest
   } = input;
 
-  if (salesChannelId) {
-    return {
-      ...rest,
-      sales_channel_id: salesChannelId,
-    };
+  const normalizedCountryCode = normalizeCountryCode(_countryCode);
+  const shippingAddress = normalizeAddressPayload(_shippingAddress);
+  const billingAddress = normalizeAddressPayload(_billingAddress);
+
+  const resolvedShippingAddress = (() => {
+    if (!shippingAddress && !normalizedCountryCode) {
+      return undefined;
+    }
+
+    const nextShippingAddress = shippingAddress ?? {};
+    if (nextShippingAddress.countryCode !== undefined) {
+      delete nextShippingAddress.countryCode;
+    }
+    if (
+      normalizedCountryCode &&
+      nextShippingAddress.country_code === undefined
+    ) {
+      nextShippingAddress.country_code = normalizedCountryCode;
+    }
+
+    return nextShippingAddress;
+  })();
+
+  if (billingAddress?.countryCode !== undefined) {
+    delete billingAddress.countryCode;
   }
 
-  return rest;
+  const payload = {
+    ...rest,
+    ...(salesChannelId ? { sales_channel_id: salesChannelId } : {}),
+    ...(resolvedShippingAddress
+      ? { shipping_address: resolvedShippingAddress }
+      : {}),
+    ...(billingAddress ? { billing_address: billingAddress } : {}),
+  };
+
+  return payload;
 };
 
 export const buildCreateCartParams = (

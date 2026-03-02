@@ -23,10 +23,11 @@ import {
   resolveDiscountPercent,
   resolveDisplayOriginalAmount,
   resolvePriceState,
+  resolveUnitPriceLabel,
   resolveVipCreditLabel,
   resolveVolumeDiscountOptions,
 } from "@/components/product-detail/utils/pricing-utils";
-import { asRecord, asString } from "@/components/product-detail/utils/value-utils";
+import { asNumber, asRecord, asString } from "@/components/product-detail/utils/value-utils";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
 
@@ -164,10 +165,16 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     [currentAmount, currentCurrencyCode],
   );
 
-  const unitPriceLabel =
-    typeof currentAmount === "number" && offerState.unitLabel
-      ? `${formatCurrencyAmount(currentAmount, currentCurrencyCode)} / ${offerState.unitLabel}`
-      : null;
+  const unitPriceLabel = useMemo(() => {
+    const vatRate = asNumber(offerState.offerSource?.vat);
+
+    return resolveUnitPriceLabel({
+      currentAmount,
+      currencyCode: currentCurrencyCode,
+      unitLabel: offerState.unitLabel,
+      vatRate,
+    });
+  }, [currentAmount, currentCurrencyCode, offerState.offerSource, offerState.unitLabel]);
 
   const volumeDiscountOptions = useMemo(
     () => resolveVolumeDiscountOptions(currentAmount, currentCurrencyCode),

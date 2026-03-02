@@ -114,6 +114,26 @@ export const resolveVipCreditLabel = (
   return formatCurrencyAmount(currentAmount * 0.02, currencyCode);
 };
 
+export const resolveUnitPriceLabel = (params: {
+  currentAmount: number | null;
+  currencyCode: string;
+  unitLabel: string | null;
+  vatRate: number | null;
+}): string | null => {
+  const { currentAmount, currencyCode, unitLabel, vatRate } = params;
+
+  if (typeof currentAmount !== "number" || !unitLabel) {
+    return null;
+  }
+
+  if (typeof vatRate === "number" && vatRate > 0) {
+    const withoutTaxAmount = currentAmount / (1 + vatRate / 100);
+    return `bez DPH: ${formatCurrencyAmount(withoutTaxAmount, currencyCode)} / ${unitLabel}`;
+  }
+
+  return `${formatCurrencyAmount(currentAmount, currencyCode)} / ${unitLabel}`;
+};
+
 export const resolveVolumeDiscountOptions = (
   currentAmount: number | null,
   currencyCode: string,

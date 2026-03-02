@@ -11,11 +11,11 @@ type BlogRelatedCardProps = {
 
 export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
   return (
-    <article className="blog-related-card overflow-hidden rounded-2xl border border-border-secondary bg-surface">
+    <article className="min-h-950 overflow-hidden rounded-2xl border border-border-secondary bg-surface">
       <Link as={NextLink} className="block" href={`/blog/${post.slug}`}>
         <Image
           alt={post.title}
-          className="blog-related-card-image w-full object-cover"
+          className="aspect-video w-full object-cover"
           height={320}
           loading="lazy"
           src={post.imageSrc}

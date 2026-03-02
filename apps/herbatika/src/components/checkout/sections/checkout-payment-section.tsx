@@ -34,9 +34,9 @@ export function CheckoutPaymentSection({
   selectedPaymentProviderId,
 }: CheckoutPaymentSectionProps) {
   return (
-    <section className="checkout-card space-y-250 p-550">
+    <section className="space-y-250 rounded-sm border border-border-primary bg-surface p-550">
       <header className="font-inter">
-        <h2 className="font-inter text-xl font-medium text-fg-primary">3. Platba</h2>
+        <h2 className="text-xl font-medium text-fg-primary">3. Platba</h2>
       </header>
       <div className="grid gap-200">
         {paymentProviders.length > 0 ? (

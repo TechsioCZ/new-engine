@@ -10,7 +10,7 @@ export function BlogAuthorCard({ post }: BlogAuthorCardProps) {
     <section className="flex flex-col gap-300 rounded-2xl border border-border-secondary bg-surface p-400 sm:flex-row sm:items-center">
       <Image
         alt={post.author}
-        className="blog-author-image rounded-lg object-cover"
+        className="h-850 w-850 rounded-lg object-cover"
         height={200}
         src={post.authorImageSrc}
         width={200}

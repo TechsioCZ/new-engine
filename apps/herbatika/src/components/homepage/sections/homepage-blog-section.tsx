@@ -25,7 +25,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
             <Link as={NextLink} className="block" href={post.href}>
               <Image
                 alt={post.title}
-                className="home-blog-card-image w-full object-cover"
+                className="aspect-video w-full object-cover"
                 src={post.imageSrc}
               />
             </Link>

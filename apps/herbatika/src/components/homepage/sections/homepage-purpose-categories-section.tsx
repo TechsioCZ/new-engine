@@ -25,7 +25,7 @@ const buildPurposeSlides = (
     content: (
       <Link
         as={NextLink}
-        className="home-purpose-card group flex w-full flex-col items-center justify-center gap-200 rounded-md border border-border-secondary bg-surface px-250 py-250 text-center transition-colors hover:border-primary/30 hover:bg-highlight"
+        className="group flex min-h-900 w-full flex-col items-center justify-center gap-200 rounded-md border border-border-secondary bg-surface px-250 py-250 text-center transition-colors hover:border-primary/30 hover:bg-highlight"
         href={category.href}
       >
         <span className="flex h-700 w-700 items-center justify-center rounded-full bg-highlight text-primary transition-colors group-hover:bg-primary/10">
@@ -45,8 +45,8 @@ function PurposeCategoriesCarousel({
 }: PurposeCategoriesCarouselProps) {
   const hasOverflow = slides.length > slidesPerPage;
   const slidesClassName = hasOverflow
-    ? "home-purpose-slides px-500 pb-450 lg:px-550"
-    : "home-purpose-slides";
+    ? "px-500 pb-450 lg:px-550"
+    : undefined;
 
   return (
     <Carousel.Root

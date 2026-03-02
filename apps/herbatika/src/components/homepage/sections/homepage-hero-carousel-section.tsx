@@ -75,7 +75,7 @@ export function HomepageHeroCarouselSection({
         slideCount={slides.length}
         size="full"
       >
-        <Carousel.Slides className="home-hero-slides" slides={slides} />
+        <Carousel.Slides className="h-950 md:h-950 lg:h-950" slides={slides} />
         <Carousel.Previous className="-translate-y-1/2 absolute top-1/2 left-200 rounded-full border border-surface/80 bg-surface/85 p-200 text-xl text-fg-primary hover:bg-surface" />
         <Carousel.Next className="-translate-y-1/2 absolute top-1/2 right-200 rounded-full border border-surface/80 bg-surface/85 p-200 text-xl text-fg-primary hover:bg-surface" />
         <Carousel.Control className="absolute bottom-200 left-1/2 -translate-x-1/2 rounded-full bg-surface/85 px-300 py-200">

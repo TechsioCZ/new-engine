@@ -11,9 +11,9 @@ export function CheckoutStepsSection({
   steps,
 }: CheckoutStepsSectionProps) {
   return (
-    <section className="checkout-stepper-shell">
-      <div className="checkout-stepper-pill">
-        <ol className="checkout-stepper-list" role="list">
+    <section className="flex w-full justify-center">
+      <div className="flex min-h-850 w-full max-w-auth-content items-center justify-center rounded-xl bg-surface px-400">
+        <ol className="flex w-full items-center justify-center gap-100 overflow-x-auto" role="list">
           {steps.map((step, index) => {
             const isComplete = index < checkoutStepIndex;
             const isCurrent = index === checkoutStepIndex;
@@ -21,7 +21,7 @@ export function CheckoutStepsSection({
 
             return (
               <li className="contents" key={step.id}>
-                <div className="checkout-stepper-item">
+                <div className="inline-flex items-center gap-150 whitespace-nowrap">
                   <span
                     className={`flex size-700 items-center justify-center rounded-full text-sm font-medium ${
                       isActive
@@ -42,7 +42,7 @@ export function CheckoutStepsSection({
 
                 {index < steps.length - 1 ? (
                   <Icon
-                    className="checkout-stepper-separator text-sm"
+                    className="text-sm text-fg-placeholder"
                     icon="token-icon-chevron-right"
                   />
                 ) : null}

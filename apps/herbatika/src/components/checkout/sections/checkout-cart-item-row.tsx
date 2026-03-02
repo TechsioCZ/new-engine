@@ -158,25 +158,25 @@ export function CheckoutCartItemRow({
   };
 
   return (
-    <article className="checkout-cart-row">
-      <Link as={NextLink} className="checkout-cart-row-media" href={itemHref}>
+    <article className="grid grid-cols-12 items-start gap-200">
+      <Link as={NextLink} className="col-span-3 inline-flex h-750 w-750 md:col-span-2" href={itemHref}>
         <Image
           alt={itemName}
-          className="checkout-cart-row-thumb object-cover"
+          className="h-750 w-750 object-cover"
           src={resolveLineItemThumbnail(item)}
         />
       </Link>
 
-      <div className="checkout-cart-row-content">
+      <div className="col-span-9 min-w-0 pt-100 md:col-span-5">
         <Link
           as={NextLink}
-          className="checkout-cart-row-title text-md leading-snug font-normal text-fg-primary no-underline hover:text-fg-primary"
+          className="line-clamp-3 text-md leading-snug font-normal text-fg-primary no-underline hover:text-fg-primary"
           href={itemHref}
         >
           {itemName}
         </Link>
 
-        <p className="checkout-cart-row-availability text-xs leading-normal font-medium text-primary">
+        <p className="mt-500 inline-flex items-center gap-150 text-xs leading-normal font-medium text-primary">
           <Icon className="text-md" icon="icon-[mdi--check]" />
           <span>{availabilityText}</span>
         </p>
@@ -184,39 +184,37 @@ export function CheckoutCartItemRow({
 
       <NumericInput
         allowOverflow={false}
-        className="checkout-cart-row-quantity"
+        className="col-span-6 mt-200 w-full max-w-900 rounded-sm border border-border-primary md:col-span-2 md:mt-100"
         max={itemMaxQuantity}
         min={1}
         onChange={handleQuantityChange}
         value={localQuantity}
       >
         <NumericInput.DecrementTrigger
-          className="checkout-cart-row-quantity-trigger"
+          className="min-w-300 text-fg-primary"
           disabled={isPending || localQuantity <= 1}
           icon="icon-[mdi--minus]"
           size="sm"
-          theme="unstyled"
           variant="secondary"
         />
 
-        <NumericInput.Control className="checkout-cart-row-quantity-control">
+        <NumericInput.Control className="border-x-0">
           <NumericInput.Input
             aria-label={`Množstvo pre ${itemName}`}
-            className="checkout-cart-row-quantity-input"
+            className="font-inter text-center text-md leading-relaxed"
           />
         </NumericInput.Control>
 
         <NumericInput.IncrementTrigger
-          className="checkout-cart-row-quantity-trigger"
+          className="min-w-300 text-fg-primary"
           disabled={isPending || localQuantity >= itemMaxQuantity}
           icon="icon-[mdi--plus]"
           size="sm"
-          theme="unstyled"
           variant="secondary"
         />
       </NumericInput>
 
-      <div className="checkout-cart-row-side">
+      <div className="col-span-6 mt-200 flex items-center justify-end gap-150 md:col-span-3 md:mt-0 md:min-h-750 md:flex-col md:items-end md:justify-start md:gap-100">
         {shouldShowOriginalAmount ? (
           <p className="text-sm leading-tight font-light text-fg-secondary line-through">
             {formatCurrencyAmount(originalLineAmount, currencyCode)}
@@ -229,7 +227,7 @@ export function CheckoutCartItemRow({
         </p>
         <Button
           aria-label={`Odstrániť ${itemName} z košíka`}
-          className="checkout-cart-row-remove text-fg-secondary hover:text-fg-primary"
+          className="h-650 w-650 p-150 text-fg-secondary hover:text-fg-primary md:mt-auto"
           disabled={isPending}
           icon="icon-[mdi--trash-can-outline]"
           onClick={() => onRemove(item.id)}

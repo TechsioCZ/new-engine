@@ -5,11 +5,11 @@ import NextLink from "next/link";
 
 export function HomepagePromoSection() {
   return (
-    <section className="home-promo-grid grid gap-400 rounded-2xl border border-border-secondary bg-surface p-400 md:p-550">
+    <section className="grid gap-400 rounded-2xl border border-border-secondary bg-surface p-400 md:grid-cols-2 md:p-550">
       <div className="overflow-hidden rounded-2xl border border-border-secondary">
         <Image
           alt="Predajňa Herbatika"
-          className="home-promo-image h-full w-full object-cover"
+          className="h-full min-h-950 w-full object-cover"
           src="https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?auto=format&fit=crop&w=1100&q=80"
         />
       </div>
@@ -31,7 +31,7 @@ export function HomepagePromoSection() {
         </p>
         <LinkButton
           as={NextLink}
-          className="w-fit rounded-md px-400 py-200 text-sm font-semibold"
+          className="w-fit rounded-md px-400 py-200 font-semibold"
           href="/#"
           icon="icon-[mdi--arrow-right]"
           iconPosition="right"

@@ -11,11 +11,11 @@ type BlogListingCardProps = {
 
 export function BlogListingCard({ post }: BlogListingCardProps) {
   return (
-    <article className="blog-listing-card flex h-full flex-col overflow-hidden rounded-2xl border border-border-secondary bg-surface">
+    <article className="flex h-full min-h-950 flex-col overflow-hidden rounded-2xl border border-border-secondary bg-surface">
       <Link as={NextLink} className="block" href={`/blog/${post.slug}`}>
         <Image
           alt={post.title}
-          className="blog-listing-card-image w-full object-cover"
+          className="aspect-video w-full object-cover"
           height={360}
           loading="lazy"
           src={post.imageSrc}

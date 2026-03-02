@@ -30,12 +30,12 @@ export function CheckoutOrderSummarySection({
   selectedOptionName,
   selectedShippingPrice,
 }: CheckoutOrderSummarySectionProps) {
-  const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik";
+  const detailsFontClass = detailsFont === "inter" ? "font-inter" : "";
 
   return (
-    <section className="checkout-card space-y-250 p-550">
+    <section className="space-y-250 rounded-sm border border-border-primary bg-surface p-550">
       <header className="flex items-center justify-between gap-200">
-        <h2 className="font-rubik text-xl font-medium text-fg-primary">{`Váš košík (${cartItems.length})`}</h2>
+        <h2 className="text-xl font-medium text-fg-primary">{`Váš košík (${cartItems.length})`}</h2>
         <span className="rounded-full bg-primary px-200 py-100 text-xs font-medium text-fg-reverse">
           Aktívny
         </span>
@@ -61,7 +61,7 @@ export function CheckoutOrderSummarySection({
             >
               <Image
                 alt={itemName}
-                className="checkout-summary-thumb shrink-0 rounded-sm border border-border-secondary object-cover"
+                className="h-850 w-850 shrink-0 rounded-sm border border-border-secondary object-cover"
                 src={itemThumbnail}
               />
               <div className="min-w-0 flex-1 space-y-100">

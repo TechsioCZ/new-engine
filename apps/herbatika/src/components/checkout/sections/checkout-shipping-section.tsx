@@ -35,7 +35,7 @@ export function CheckoutShippingSection({
   };
 
   return (
-    <section className="checkout-card space-y-250 p-550">
+    <section className="space-y-250 rounded-sm border border-border-primary bg-surface p-550">
       <header className="space-y-50">
         <h2 className="text-xl font-medium text-fg-primary">2. Doprava</h2>
         <ExtraText className="text-fg-secondary">
@@ -50,7 +50,7 @@ export function CheckoutShippingSection({
 
             return (
               <Button
-                className={`w-full rounded-sm border p-0 text-left ${
+                className={`w-full border p-0 text-left ${
                   isSelected ? "border-primary bg-highlight" : "border-border-primary bg-surface"
                 }`}
                 disabled={isBusy}

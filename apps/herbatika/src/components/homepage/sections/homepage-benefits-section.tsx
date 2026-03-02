@@ -20,7 +20,7 @@ export function HomepageBenefitsSection({
               <Icon className="text-4xl text-primary" icon={benefit.icon} />
             </span>
 
-            <p className="home-benefit-title text-sm leading-snug font-bold text-fg-primary">
+            <p className="max-w-950 text-sm leading-snug font-bold text-fg-primary">
               {benefit.title}
             </p>
           </article>

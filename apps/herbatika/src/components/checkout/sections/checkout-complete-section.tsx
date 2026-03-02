@@ -74,7 +74,7 @@ export function CheckoutCompleteSection({
     <section className="space-y-300 font-inter">
       <h2 className="font-rubik text-xl font-medium text-fg-primary">Súhrn objednávky</h2>
 
-      <div className="checkout-card space-y-250 p-550">
+      <div className="space-y-250 rounded-sm border border-border-primary bg-surface p-550">
         <div className="flex items-start justify-between gap-200 border-b border-border-secondary pb-250">
           <p className="text-sm text-fg-primary">Spolu s DPH</p>
           <div className="text-right">
@@ -128,7 +128,7 @@ export function CheckoutCompleteSection({
           <p className="text-sm font-medium text-fg-primary">Doprava</p>
           <LinkButton
             as={NextLink}
-            className="px-0 text-sm underline"
+            className="px-0 underline"
             href={shippingStepHref}
             size="sm"
             theme="unstyled"
@@ -146,7 +146,7 @@ export function CheckoutCompleteSection({
           <p className="text-sm font-medium text-fg-primary">Platba</p>
           <LinkButton
             as={NextLink}
-            className="px-0 text-sm underline"
+            className="px-0 underline"
             href={shippingStepHref}
             size="sm"
             theme="unstyled"
@@ -164,7 +164,7 @@ export function CheckoutCompleteSection({
           <p className="text-sm font-medium text-fg-primary">Vaše údaje</p>
           <LinkButton
             as={NextLink}
-            className="px-0 text-sm underline"
+            className="px-0 underline"
             href={detailsStepHref}
             size="sm"
             theme="unstyled"

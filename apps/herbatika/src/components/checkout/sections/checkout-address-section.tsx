@@ -59,10 +59,10 @@ function PurchaseTypeToggle({
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-100">
+    <div className="flex flex-wrap items-center gap-100 font-rubik">
       {options.map((option) => (
         <Button
-          className="font-rubik gap-100 px-0 py-0 text-left"
+          className="gap-100 px-0 py-0 text-left"
           key={option.id}
           onClick={() => {
             onChange(option.value);
@@ -77,7 +77,7 @@ function PurchaseTypeToggle({
           >
             {option.isActive ? <span className="size-150 rounded-full bg-primary" /> : null}
           </span>
-          <span className="font-rubik text-sm font-normal text-fg-primary">{option.label}</span>
+          <span className="text-sm font-normal text-fg-primary">{option.label}</span>
         </Button>
       ))}
     </div>
@@ -103,7 +103,7 @@ export function CheckoutAddressSection({
   ready,
 }: CheckoutAddressSectionProps) {
   return (
-    <section className="checkout-card space-y-300 p-550 font-rubik">
+    <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
       <header>
         <h2 className="text-xl font-medium text-fg-primary">Vaše údaje</h2>
       </header>
