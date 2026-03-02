@@ -68,7 +68,7 @@ export async function fetchProductsViaVariantSearch(params: {
 }): Promise<RawProductListResponse> {
   const { sizes, q, limit, offset, fields, region_id, country_code, signal } =
     params
-  const productIds = await collectVariantProductIdsForSizes({ sizes, q })
+  const productIds = await collectVariantProductIdsForSizes({ sizes, q, signal })
   const totalCount = productIds.length
   const pagedIds = productIds.slice(offset, offset + limit)
   const products = await fetchProductsByIds({
@@ -102,8 +102,8 @@ export async function fetchProductsViaMeiliAndVariantSearch(params: {
 
   // Trade-off: we collect all IDs before intersecting to keep deterministic ordering.
   const [meiliIds, sizeIds] = await Promise.all([
-    collectMeiliProductIdsForQueryCached(query),
-    collectVariantProductIdsForSizes({ sizes }),
+    collectMeiliProductIdsForQueryCached(query, signal),
+    collectVariantProductIdsForSizes({ sizes, signal }),
   ])
 
   if (
@@ -157,11 +157,12 @@ export async function fetchProductsViaMeiliAndCategorySearch(params: {
 
   // Trade-off: we collect all IDs before intersecting to keep deterministic ordering.
   const [meiliIds, categoryIds] = await Promise.all([
-    collectMeiliProductIdsForQueryCached(query),
+    collectMeiliProductIdsForQueryCached(query, signal),
     collectCategoryProductIdsCached({
       categories,
       region_id,
       country_code,
+      signal,
     }),
   ])
 
@@ -175,6 +176,71 @@ export async function fetchProductsViaMeiliAndCategorySearch(params: {
   }
 
   const matchingIds = intersectIdsPreservingOrder(meiliIds, categoryIds)
+  const totalCount = matchingIds.length
+  const pagedIds = matchingIds.slice(offset, offset + limit)
+  const products = await fetchProductsByIds({
+    productIds: pagedIds,
+    fields,
+    region_id,
+    country_code,
+    signal,
+  })
+
+  return {
+    products,
+    count: totalCount,
+    limit,
+    offset,
+  }
+}
+
+export async function fetchProductsViaMeiliAndCategoryAndVariantSearch(params: {
+  query: string
+  categories: string[]
+  sizes: string[]
+  limit: number
+  offset: number
+  fields: string
+  region_id?: string
+  country_code: string
+  signal?: AbortSignal
+}): Promise<RawProductListResponse> {
+  const {
+    query,
+    categories,
+    sizes,
+    limit,
+    offset,
+    fields,
+    region_id,
+    country_code,
+    signal,
+  } = params
+
+  // Trade-off: we collect all IDs before intersecting to keep deterministic ordering.
+  const [meiliIds, categoryIds, sizeIds] = await Promise.all([
+    collectMeiliProductIdsForQueryCached(query, signal),
+    collectCategoryProductIdsCached({
+      categories,
+      region_id,
+      country_code,
+      signal,
+    }),
+    collectVariantProductIdsForSizes({ sizes, signal }),
+  ])
+
+  if (
+    meiliIds.length > LARGE_ID_SET_WARNING_THRESHOLD ||
+    categoryIds.length > LARGE_ID_SET_WARNING_THRESHOLD ||
+    sizeIds.length > LARGE_ID_SET_WARNING_THRESHOLD
+  ) {
+    console.warn(
+      `[ProductSearch] Large ID collections in MEILI_CATEGORY_SIZE_INTERSECTION (meili=${meiliIds.length}, categories=${categoryIds.length}, size=${sizeIds.length}).`
+    )
+  }
+
+  const meiliCategoryIds = intersectIdsPreservingOrder(meiliIds, categoryIds)
+  const matchingIds = intersectIdsPreservingOrder(meiliCategoryIds, sizeIds)
   const totalCount = matchingIds.length
   const pagedIds = matchingIds.slice(offset, offset + limit)
   const products = await fetchProductsByIds({

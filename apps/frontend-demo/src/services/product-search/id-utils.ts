@@ -1,4 +1,8 @@
-import { IDS_PAGE_SIZE, MAX_PAGINATION_ITERATIONS } from "./constants"
+import {
+  IDS_PAGE_SIZE,
+  MAX_COLLECTED_IDS,
+  MAX_PAGINATION_ITERATIONS,
+} from "./constants"
 import type { MeiliSearchProductHit, PaginatedIdsPageResult } from "./types"
 
 export function dedupeIdsFromHits(
@@ -46,24 +50,88 @@ export function intersectIdsPreservingOrder(
   return ids.filter((id) => allowed.has(id))
 }
 
+function createAbortError(): DOMException {
+  return new DOMException("The operation was aborted.", "AbortError")
+}
+
+export function assertNotAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw createAbortError()
+  }
+}
+
+export async function awaitAbortable<TValue>(
+  promise: Promise<TValue>,
+  signal?: AbortSignal
+): Promise<TValue> {
+  if (!signal) {
+    return await promise
+  }
+
+  assertNotAborted(signal)
+
+  return await new Promise<TValue>((resolve, reject) => {
+    const onAbort = () => {
+      cleanup()
+      reject(createAbortError())
+    }
+
+    const cleanup = () => {
+      signal.removeEventListener("abort", onAbort)
+    }
+
+    signal.addEventListener("abort", onAbort, { once: true })
+
+    promise.then(
+      (value) => {
+        cleanup()
+        resolve(value)
+      },
+      (error) => {
+        cleanup()
+        reject(error)
+      }
+    )
+  })
+}
+
 export async function collectIdsFromPaginatedSource(
-  fetchPage: (offset: number, limit: number) => Promise<PaginatedIdsPageResult>
+  fetchPage: (
+    offset: number,
+    limit: number,
+    signal?: AbortSignal
+  ) => Promise<PaginatedIdsPageResult>,
+  options?: {
+    signal?: AbortSignal
+    maxCollectedIds?: number
+    sourceLabel?: string
+  }
 ): Promise<string[]> {
+  const { signal, sourceLabel, maxCollectedIds } = options || {}
+  const safeMaxCollectedIds =
+    typeof maxCollectedIds === "number" && Number.isFinite(maxCollectedIds)
+      ? Math.max(1, Math.trunc(maxCollectedIds))
+      : MAX_COLLECTED_IDS
+  const normalizedSourceLabel = sourceLabel?.trim() || "unknown-source"
+
+  assertNotAborted(signal)
+
   const ids: string[] = []
   const seen = new Set<string>()
   let offset = 0
   let iterations = 0
 
   while (true) {
+    assertNotAborted(signal)
+
     if (iterations >= MAX_PAGINATION_ITERATIONS) {
-      console.warn(
-        `[ProductSearch] Pagination stopped after ${MAX_PAGINATION_ITERATIONS} iterations; returning partial results.`
+      throw new Error(
+        `[ProductSearch] Pagination exceeded ${MAX_PAGINATION_ITERATIONS} iterations for ${normalizedSourceLabel}.`
       )
-      break
     }
 
     iterations += 1
-    const page = await fetchPage(offset, IDS_PAGE_SIZE)
+    const page = await fetchPage(offset, IDS_PAGE_SIZE, signal)
     if (page.itemCount === 0) {
       break
     }
@@ -74,6 +142,13 @@ export async function collectIdsFromPaginatedSource(
       }
 
       seen.add(id)
+
+      if (ids.length >= safeMaxCollectedIds) {
+        throw new Error(
+          `[ProductSearch] Collected IDs exceeded ${safeMaxCollectedIds} for ${normalizedSourceLabel}.`
+        )
+      }
+
       ids.push(id)
     }
 

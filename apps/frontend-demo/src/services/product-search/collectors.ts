@@ -5,7 +5,12 @@ import {
   fetchMeiliHits,
   fetchVariantProductIdsPage,
 } from "./http"
-import { collectIdsFromPaginatedSource, dedupeIdsFromHits } from "./id-utils"
+import {
+  assertNotAborted,
+  awaitAbortable,
+  collectIdsFromPaginatedSource,
+  dedupeIdsFromHits,
+} from "./id-utils"
 
 const variantSizeIdsCache = createPromiseCache<string[]>({
   maxEntries: IDS_CACHE_MAX_ENTRIES,
@@ -42,60 +47,75 @@ function getCategoryCacheKey(params: {
 async function collectVariantProductIdsForSize(params: {
   size: string
   q?: string
+  signal?: AbortSignal
 }): Promise<string[]> {
-  const { size, q } = params
+  const { size, q, signal } = params
 
-  return await collectIdsFromPaginatedSource(async (offset, limit) => {
-    const page = await fetchVariantProductIdsPage({
-      size,
-      q,
-      limit,
-      offset,
-    })
+  return await collectIdsFromPaginatedSource(
+    async (offset, limit, pageSignal) => {
+      const page = await fetchVariantProductIdsPage({
+        size,
+        q,
+        limit,
+        offset,
+        signal: pageSignal,
+      })
 
-    const variants = page.variants || []
-    const ids = variants
-      .map((variant) => variant.product_id?.trim())
-      .filter((id): id is string => Boolean(id))
+      const variants = page.variants || []
+      const ids = variants
+        .map((variant) => variant.product_id?.trim())
+        .filter((id): id is string => Boolean(id))
 
-    return {
-      ids,
-      itemCount: variants.length,
-      totalCount: page.count,
+      return {
+        ids,
+        itemCount: variants.length,
+        totalCount: page.count,
+      }
+    },
+    {
+      signal,
+      sourceLabel: `variants:size:${size.toLowerCase()}`,
     }
-  })
+  )
 }
 
 async function collectVariantProductIdsForSizeCached(params: {
   size: string
   q?: string
+  signal?: AbortSignal
 }): Promise<string[]> {
-  const { size, q } = params
+  const { size, q, signal } = params
   const normalizedSize = size.trim()
   const normalizedQuery = q?.trim()
   const cacheKey = getVariantSizeCacheKey(normalizedSize, normalizedQuery)
 
-  return await variantSizeIdsCache.getOrCreate(cacheKey, async () => {
+  const sharedRequest = variantSizeIdsCache.getOrCreate(cacheKey, async () => {
     return await collectVariantProductIdsForSize({
       size: normalizedSize,
       q: normalizedQuery,
     })
   })
+
+  return await awaitAbortable(sharedRequest, signal)
 }
 
 export async function collectVariantProductIdsForSizes(params: {
   sizes: string[]
   q?: string
+  signal?: AbortSignal
 }): Promise<string[]> {
-  const { sizes, q } = params
+  const { sizes, q, signal } = params
   const mergedIds: string[] = []
   const seen = new Set<string>()
 
+  assertNotAborted(signal)
+
   const idsBySize = await Promise.all(
-    sizes.map((size) => collectVariantProductIdsForSizeCached({ size, q }))
+    sizes.map((size) => collectVariantProductIdsForSizeCached({ size, q, signal }))
   )
 
   for (const ids of idsBySize) {
+    assertNotAborted(signal)
     for (const id of ids) {
       if (seen.has(id)) {
         continue
@@ -109,70 +129,93 @@ export async function collectVariantProductIdsForSizes(params: {
   return mergedIds
 }
 
-async function collectMeiliProductIdsForQuery(query: string): Promise<string[]> {
+async function collectMeiliProductIdsForQuery(params: {
+  query: string
+  signal?: AbortSignal
+}): Promise<string[]> {
+  const { query, signal } = params
   const normalizedQuery = query.trim()
 
   if (!normalizedQuery) {
     return []
   }
 
-  return await collectIdsFromPaginatedSource(async (offset, limit) => {
-    const page = await fetchMeiliHits({
-      query: normalizedQuery,
-      limit,
-      offset,
-    })
-    const hits = page.hits || []
+  return await collectIdsFromPaginatedSource(
+    async (offset, limit, pageSignal) => {
+      const page = await fetchMeiliHits({
+        query: normalizedQuery,
+        limit,
+        offset,
+        signal: pageSignal,
+      })
+      const hits = page.hits || []
 
-    return {
-      ids: dedupeIdsFromHits(hits),
-      // totalCount intentionally omitted: estimatedTotalHits can be approximate.
-      itemCount: hits.length,
+      return {
+        ids: dedupeIdsFromHits(hits),
+        // totalCount intentionally omitted: estimatedTotalHits can be approximate.
+        itemCount: hits.length,
+      }
+    },
+    {
+      signal,
+      sourceLabel: `meili:query:${normalizedQuery.toLowerCase()}`,
     }
-  })
+  )
 }
 
 export async function collectMeiliProductIdsForQueryCached(
-  query: string
+  query: string,
+  signal?: AbortSignal
 ): Promise<string[]> {
   const cacheKey = getMeiliQueryCacheKey(query)
-  return await meiliQueryIdsCache.getOrCreate(cacheKey, async () => {
-    return await collectMeiliProductIdsForQuery(query)
+  const sharedRequest = meiliQueryIdsCache.getOrCreate(cacheKey, async () => {
+    return await collectMeiliProductIdsForQuery({ query })
   })
+
+  return await awaitAbortable(sharedRequest, signal)
 }
 
 async function collectCategoryProductIds(params: {
   categories: string[]
   region_id?: string
   country_code: string
+  signal?: AbortSignal
 }): Promise<string[]> {
-  const { categories, region_id, country_code } = params
+  const { categories, region_id, country_code, signal } = params
 
-  return await collectIdsFromPaginatedSource(async (offset, limit) => {
-    const page = await fetchCategoryProductIdsPage({
-      categories,
-      limit,
-      offset,
-      region_id,
-      country_code,
-    })
-    const products = page.products || []
-    const ids = products
-      .map((product) => product.id?.trim())
-      .filter((id): id is string => Boolean(id))
+  return await collectIdsFromPaginatedSource(
+    async (offset, limit, pageSignal) => {
+      const page = await fetchCategoryProductIdsPage({
+        categories,
+        limit,
+        offset,
+        region_id,
+        country_code,
+        signal: pageSignal,
+      })
+      const products = page.products || []
+      const ids = products
+        .map((product) => product.id?.trim())
+        .filter((id): id is string => Boolean(id))
 
-    return {
-      ids,
-      itemCount: products.length,
-      totalCount: page.count,
+      return {
+        ids,
+        itemCount: products.length,
+        totalCount: page.count,
+      }
+    },
+    {
+      signal,
+      sourceLabel: `categories:${categories.length}`,
     }
-  })
+  )
 }
 
 export async function collectCategoryProductIdsCached(params: {
   categories: string[]
   region_id?: string
   country_code: string
+  signal?: AbortSignal
 }): Promise<string[]> {
   const normalizedCategories = Array.from(
     new Set(params.categories.map((category) => category.trim()).filter(Boolean))
@@ -193,11 +236,13 @@ export async function collectCategoryProductIdsCached(params: {
     country_code: normalizedCountryCode,
   })
 
-  return await categoryIdsCache.getOrCreate(cacheKey, async () => {
+  const sharedRequest = categoryIdsCache.getOrCreate(cacheKey, async () => {
     return await collectCategoryProductIds({
       categories: normalizedCategories,
       region_id: params.region_id,
       country_code: normalizedCountryCode,
     })
   })
+
+  return await awaitAbortable(sharedRequest, params.signal)
 }

@@ -84,8 +84,13 @@ export function HeaderSearch() {
       (item) => (item.handle || item.id) === selected
     )
 
-    if (selectedProduct?.handle) {
-      router.push(`/products/${selectedProduct.handle}`)
+    if (selectedProduct) {
+      if (selectedProduct.handle) {
+        router.push(`/products/${selectedProduct.handle}`)
+      } else if (searchQuery.trim()) {
+        handleSearch(searchQuery)
+      }
+
       setSearchQuery("")
       setSelectedValue([])
       return

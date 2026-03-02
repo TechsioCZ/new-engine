@@ -14,6 +14,7 @@ export type ProductFiltersLike = {
 }
 
 export type ProductFetchStrategy =
+  | "MEILI_CATEGORY_SIZE_INTERSECTION"
   | "MEILI_CATEGORY_INTERSECTION"
   | "MEILI_SIZE_INTERSECTION"
   | "SIZE_ONLY_FALLBACK"
@@ -50,7 +51,9 @@ export type StoreProductIdListResponse = {
   count?: number
 }
 
-export type StoreProductRecord = HttpTypes.StoreProduct
+export type StoreProductRecord = HttpTypes.StoreProduct & {
+  id: string
+}
 
 export type RawProductListResponse = {
   products: StoreProductRecord[]

@@ -1,4 +1,5 @@
 import {
+  fetchProductsViaMeiliAndCategoryAndVariantSearch,
   fetchProductsViaMeiliAndCategorySearch,
   fetchProductsViaMeili,
   fetchProductsViaMeiliAndVariantSearch,
@@ -40,6 +41,30 @@ export async function tryGetProductsFromSearchStrategies(
   const strategy = selectProductFetchStrategy({ q, sort, category, filters })
 
   switch (strategy) {
+    case "MEILI_CATEGORY_SIZE_INTERSECTION":
+      try {
+        return await fetchProductsViaMeiliAndCategoryAndVariantSearch({
+          query: normalizedQuery || "",
+          categories: normalizedCategories,
+          sizes: normalizedSizes,
+          limit,
+          offset,
+          fields,
+          region_id,
+          country_code,
+          signal,
+        })
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          throw error
+        }
+
+        console.warn(
+          "[ProductService] Meili + category + variant intersection failed, falling back to default listing:",
+          error
+        )
+        return null
+      }
     case "MEILI_CATEGORY_INTERSECTION":
       try {
         return await fetchProductsViaMeiliAndCategorySearch({

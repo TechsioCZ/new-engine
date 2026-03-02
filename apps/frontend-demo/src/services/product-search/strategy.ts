@@ -87,6 +87,28 @@ function shouldUseMeiliCategoryIntersection(params: {
   return true
 }
 
+function shouldUseMeiliCategorySizeIntersection(params: {
+  q?: string
+  sort?: string
+  category?: string | string[]
+  filters?: ProductFiltersLike
+}): boolean {
+  const { q, sort, category, filters } = params
+  const hasQuery = Boolean(q?.trim())
+  const hasSizes = hasActiveSizeFilter(filters)
+  const categories = normalizeCategories(category, filters)
+
+  if (!hasQuery || categories.length === 0 || !hasSizes) {
+    return false
+  }
+
+  if (!isNewestSort(sort)) {
+    return false
+  }
+
+  return true
+}
+
 function shouldUseVariantSizeFallback(params: {
   filters?: ProductFiltersLike
   category?: string | string[]
@@ -107,6 +129,17 @@ export function selectProductFetchStrategy(params: {
 
   if (shouldUseVariantSizeFallback({ filters, category })) {
     return normalizedQuery ? "MEILI_SIZE_INTERSECTION" : "SIZE_ONLY_FALLBACK"
+  }
+
+  if (
+    shouldUseMeiliCategorySizeIntersection({
+      q: normalizedQuery,
+      sort,
+      category,
+      filters,
+    })
+  ) {
+    return "MEILI_CATEGORY_SIZE_INTERSECTION"
   }
 
   if (shouldUseMeiliCategoryIntersection({ q: normalizedQuery, sort, category, filters })) {
