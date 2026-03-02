@@ -69,13 +69,13 @@ export const ensurePricePreferencesStep = createStep(
     ]
 
     if (regionIds.length === 0 && currencyCodes.length === 0) {
-      return new StepResponse<EnsurePricePreferencesStepOutput>({
-        result: {
-          createdCount: 0,
-          updatedCount: 0,
-          targetCount: 0,
-        },
-      })
+      const output: EnsurePricePreferencesStepOutput = {
+        createdCount: 0,
+        updatedCount: 0,
+        targetCount: 0,
+      }
+
+      return new StepResponse({ result: output })
     }
 
     const [existingRegionPreferences, existingCurrencyPreferences] =
@@ -178,12 +178,12 @@ export const ensurePricePreferencesStep = createStep(
       `Ensured price preferences: created ${createPayloads.length}, updated ${uniqueUpdateIds.length}`
     )
 
-    return new StepResponse<EnsurePricePreferencesStepOutput>({
-      result: {
-        createdCount: createPayloads.length,
-        updatedCount: uniqueUpdateIds.length,
-        targetCount: regionIds.length + currencyCodes.length,
-      },
-    })
+    const output: EnsurePricePreferencesStepOutput = {
+      createdCount: createPayloads.length,
+      updatedCount: uniqueUpdateIds.length,
+      targetCount: regionIds.length + currencyCodes.length,
+    }
+
+    return new StepResponse({ result: output })
   }
 )
