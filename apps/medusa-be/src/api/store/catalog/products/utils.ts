@@ -7,8 +7,11 @@ import {
 
 export const CATALOG_SORT_VALUES = [
   "recommended",
+  "best-selling",
   "newest",
   "oldest",
+  "price-asc",
+  "price-desc",
   "title-asc",
   "title-desc",
 ] as const
@@ -141,10 +144,16 @@ export const resolveCatalogSort = (
   sort: CatalogSortValue
 ): string[] | undefined => {
   switch (sort) {
+    case "best-selling":
+      return undefined
     case "newest":
       return ["created_at:desc"]
     case "oldest":
       return ["created_at:asc"]
+    case "price-asc":
+      return ["facet_price:asc"]
+    case "price-desc":
+      return ["facet_price:desc"]
     case "title-asc":
       return ["title:asc"]
     case "title-desc":

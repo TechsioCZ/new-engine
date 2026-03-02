@@ -1981,12 +1981,14 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
       currencyCode: "czk",
       countries: ["cz"],
       paymentProviders: undefined,
+      isTaxInclusive: true,
     },
     {
       name: "Europe",
       currencyCode: "eur",
       countries: DEFAULT_COUNTRIES.filter((country) => country !== "cz"),
       paymentProviders: undefined,
+      isTaxInclusive: true,
     },
   ]
 
@@ -1998,6 +2000,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
           currencyCode: region.currency_code?.toLowerCase() || "eur",
           countries: undefined,
           paymentProviders: undefined,
+          isTaxInclusive: true,
         }))
 
   if (existingRegions.length > 0) {
@@ -2058,6 +2061,10 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     taxRegions: {
       countries: [...DEFAULT_COUNTRIES],
       taxProviderId: undefined,
+    },
+    taxRates: {
+      fallbackCountryCode: "sk",
+      countries: [...DEFAULT_COUNTRIES],
     },
     stockLocations: {
       locations: [
