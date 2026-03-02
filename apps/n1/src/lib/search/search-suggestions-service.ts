@@ -80,6 +80,8 @@ type StoreProductWithProducer = StoreProduct & {
 }
 
 const DEFAULT_LIMIT_PER_SECTION = 5
+const MIN_LIMIT_PER_SECTION = 1
+const MAX_LIMIT_PER_SECTION = 12
 const FALLBACK_THUMBNAIL = "/placeholder.jpg"
 const EXPECTED_PRODUCER_FALLBACK_ERROR_REGEX =
   /HTTP (404|405|501)|Failed to fetch/i
@@ -87,7 +89,8 @@ const ROOT_CATEGORY_HANDLE_PREFIXES = new Set(["panske", "damske", "detske"])
 const CATEGORY_HANDLE_SUFFIX_REGEX = /-category-\d+$/i
 const SEARCH_TOKEN_SEPARATOR_REGEX = /[^a-z0-9]+/g
 const EDGE_DASHES_REGEX = /^-+|-+$/g
-const MIN_FUZZY_PREFIX_LENGTH = 3
+const MIN_FUZZY_PREFIX_LENGTH = 4
+const MIN_TYPO_TOKEN_LENGTH = 5
 const BRAND_MIN_QUERY_LENGTH = 3
 const BRAND_MEILI_TIMEOUT_MS = 180
 const BRAND_PRODUCTS_LOOKUP_MULTIPLIER = 3
@@ -418,9 +421,64 @@ function hasLooseTokenMatch(sourceToken: string, queryToken: string): boolean {
     return true
   }
 
-  return (
-    getSharedPrefixLength(sourceToken, queryToken) >= MIN_FUZZY_PREFIX_LENGTH
-  )
+  if (getSharedPrefixLength(sourceToken, queryToken) >= MIN_FUZZY_PREFIX_LENGTH) {
+    return true
+  }
+
+  if (
+    sourceToken.length >= MIN_TYPO_TOKEN_LENGTH &&
+    queryToken.length >= MIN_TYPO_TOKEN_LENGTH
+  ) {
+    return isWithinSingleEditDistance(sourceToken, queryToken)
+  }
+
+  return false
+}
+
+function isWithinSingleEditDistance(left: string, right: string): boolean {
+  const leftLength = left.length
+  const rightLength = right.length
+  const lengthDifference = Math.abs(leftLength - rightLength)
+
+  if (lengthDifference > 1) {
+    return false
+  }
+
+  let leftIndex = 0
+  let rightIndex = 0
+  let edits = 0
+
+  while (leftIndex < leftLength && rightIndex < rightLength) {
+    if (left[leftIndex] === right[rightIndex]) {
+      leftIndex += 1
+      rightIndex += 1
+      continue
+    }
+
+    edits += 1
+    if (edits > 1) {
+      return false
+    }
+
+    if (leftLength > rightLength) {
+      leftIndex += 1
+      continue
+    }
+
+    if (rightLength > leftLength) {
+      rightIndex += 1
+      continue
+    }
+
+    leftIndex += 1
+    rightIndex += 1
+  }
+
+  if (leftIndex < leftLength || rightIndex < rightLength) {
+    edits += 1
+  }
+
+  return edits <= 1
 }
 
 function getSearchFieldMatchKindWithTokens(
@@ -642,6 +700,15 @@ function dedupeCategories(items: CategorySuggestion[]): CategorySuggestion[] {
   return dedupeByKey(items, (item) => item.id || item.handle)
 }
 
+function dedupeCategoriesByDisplayName(
+  items: CategorySuggestion[]
+): CategorySuggestion[] {
+  return dedupeByKey(
+    items,
+    (item) => normalizeSearchText(item.displayName || item.name)
+  )
+}
+
 function buildBrandHandleFallback(title: string, id: string): string {
   const normalizedTitle = normalizeSearchText(title)
   const slug = normalizedTitle
@@ -662,6 +729,18 @@ function getProductSuggestionsLookupLimit(limitPerSection: number): number {
   return Math.max(
     limitPerSection * SUGGESTIONS_FETCH_MULTIPLIER,
     limitPerSection
+  )
+}
+
+function resolveLimitPerSection(limitPerSection: number | undefined): number {
+  if (!(typeof limitPerSection === "number" && Number.isFinite(limitPerSection))) {
+    return DEFAULT_LIMIT_PER_SECTION
+  }
+
+  const normalizedLimit = Math.floor(limitPerSection)
+  return Math.min(
+    MAX_LIMIT_PER_SECTION,
+    Math.max(MIN_LIMIT_PER_SECTION, normalizedLimit)
   )
 }
 
@@ -749,7 +828,7 @@ async function fetchCategorySuggestionsFromMeili(
       "none"
   )
 
-  return filtered.slice(0, limitPerSection)
+  return dedupeCategoriesByDisplayName(filtered).slice(0, limitPerSection)
 }
 
 function fetchCategorySuggestionsFromStaticData(
@@ -802,51 +881,36 @@ function fetchCategorySuggestionsFromStaticData(
       )
     })
 
-  const primarySuggestions = dedupeCategories(
-    scoredSuggestions
-      .filter((category) => category.hasPrimaryMatch)
-      .map((category) => category.suggestion)
+  const primarySuggestions = dedupeCategoriesByDisplayName(
+    dedupeCategories(
+      scoredSuggestions
+        .filter((category) => category.hasPrimaryMatch)
+        .map((category) => category.suggestion)
+    )
   )
 
   if (primarySuggestions.length > 0) {
     return primarySuggestions.slice(0, limitPerSection)
   }
 
-  return dedupeCategories(
-    scoredSuggestions.map((category) => category.suggestion)
+  return dedupeCategoriesByDisplayName(
+    dedupeCategories(scoredSuggestions.map((category) => category.suggestion))
   ).slice(0, limitPerSection)
 }
 
-async function fetchCategorySuggestions(
+async function fetchCategorySuggestionsFromMeiliBestEffort(
   query: string,
   limitPerSection: number,
   signal?: AbortSignal
 ): Promise<CategorySuggestion[]> {
-  let categoriesFromMeili: CategorySuggestion[] = []
-  let shouldUseStaticFallback = false
-
   try {
-    categoriesFromMeili = await fetchCategorySuggestionsFromMeili(
-      query,
-      limitPerSection,
-      signal
-    )
-    shouldUseStaticFallback = categoriesFromMeili.length === 0
+    return await fetchCategorySuggestionsFromMeili(query, limitPerSection, signal)
   } catch (error) {
-    shouldUseStaticFallback = true
     if (shouldLogWarning(error)) {
       console.warn("[SearchSuggestions] categories-hits endpoint failed:", error)
     }
+    return []
   }
-
-  if (!shouldUseStaticFallback) {
-    return categoriesFromMeili.slice(0, limitPerSection)
-  }
-
-  return fetchCategorySuggestionsFromStaticData(query, limitPerSection).slice(
-    0,
-    limitPerSection
-  )
 }
 
 function toBrandSuggestionFromProduct(product: StoreProduct): BrandSuggestion | null {
@@ -1035,7 +1099,7 @@ export async function getSearchSuggestions(
   options?: SearchSuggestionsOptions
 ): Promise<SearchSuggestions> {
   const trimmedQuery = query.trim()
-  const limitPerSection = options?.limitPerSection || DEFAULT_LIMIT_PER_SECTION
+  const limitPerSection = resolveLimitPerSection(options?.limitPerSection)
   const countryCode =
     options?.countryCode?.trim().toLowerCase() || DEFAULT_COUNTRY_CODE
   const regionId = options?.regionId?.trim()
@@ -1051,6 +1115,12 @@ export async function getSearchSuggestions(
   const shouldFetchBrands =
     normalizeSearchText(trimmedQuery).length >= BRAND_MIN_QUERY_LENGTH
 
+  const categoriesFromMeiliPromise = fetchCategorySuggestionsFromMeiliBestEffort(
+    trimmedQuery,
+    limitPerSection,
+    options?.signal
+  )
+
   const brandsFromMeiliPromise = shouldFetchBrands
     ? fetchBrandSuggestionsBestEffort(
         trimmedQuery,
@@ -1059,7 +1129,7 @@ export async function getSearchSuggestions(
       )
     : Promise.resolve<BrandSuggestion[]>([])
 
-  const [productBundle, categories] = await Promise.all([
+  const [productBundle, categoriesFromMeili] = await Promise.all([
     fetchProductAndBrandSuggestionsFromProducts(
       trimmedQuery,
       limitPerSection,
@@ -1076,17 +1146,17 @@ export async function getSearchSuggestions(
         brandsFromProducts: [],
       } satisfies ProductSuggestionsBundle
     }),
-    fetchCategorySuggestions(trimmedQuery, limitPerSection, options?.signal).catch(
-      (error) => {
-        if (shouldLogWarning(error)) {
-          console.warn("[SearchSuggestions] categories failed:", error)
-        }
-        return []
-      }
-    ),
+    categoriesFromMeiliPromise,
   ])
 
   const brandsFromMeili = await brandsFromMeiliPromise
+
+  const categories =
+    categoriesFromMeili.length > 0
+      ? categoriesFromMeili
+      : productBundle.products.length > 0
+        ? fetchCategorySuggestionsFromStaticData(trimmedQuery, limitPerSection)
+        : []
 
   const brands = shouldFetchBrands
     ? mergeBrandSuggestions(
@@ -1107,4 +1177,5 @@ export const __searchSuggestionsTestUtils = {
   fetchCategorySuggestionsFromStaticData,
   mergeBrandSuggestions,
   normalizeSearchText,
+  resolveLimitPerSection,
 }

@@ -13,6 +13,12 @@ type CartMutationError = {
   code?: string
 }
 
+type CompleteCartError = {
+  message: string
+  type: string
+  name?: string
+}
+
 type UseCartReturn = {
   cart: Cart | null | undefined
   isLoading: boolean
@@ -42,10 +48,7 @@ type UseCartMutationOptions = {
 
 type UseCompleteCartOptions = {
   onSuccess?: (order: HttpTypes.StoreOrder) => void
-  onError?: (
-    error: { message: string; type: string; name?: string },
-    cart: Cart
-  ) => void
+  onError?: (error: CompleteCartError, cart?: Cart | null) => void
 }
 
 const toCartMutationError = (error: unknown): CartMutationError => {
@@ -65,6 +68,63 @@ const toCartMutationError = (error: unknown): CartMutationError => {
   }
 
   return { message: "An unknown error occurred" }
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const toCompleteCartError = (error: unknown): CompleteCartError => {
+  if (isRecord(error)) {
+    const message =
+      typeof error.message === "string"
+        ? error.message
+        : "Failed to complete cart"
+    const type =
+      typeof error.type === "string" ? error.type : "transport_error"
+    const name = typeof error.name === "string" ? error.name : undefined
+
+    return { message, type, name }
+  }
+
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      type: "transport_error",
+      name: error.name,
+    }
+  }
+
+  return {
+    message: typeof error === "string" ? error : "Failed to complete cart",
+    type: "transport_error",
+  }
+}
+
+const getCachedCartSnapshot = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  cartId?: string
+): Cart | null => {
+  const activeQueries = queryClient.getQueriesData<Cart | null | undefined>({
+    queryKey: queryKeys.cart.active(),
+  })
+
+  for (const [, cachedCart] of activeQueries) {
+    if (!(cachedCart && typeof cachedCart === "object")) {
+      continue
+    }
+
+    if (!("id" in cachedCart) || typeof cachedCart.id !== "string") {
+      continue
+    }
+
+    if (cartId && cachedCart.id !== cartId) {
+      continue
+    }
+
+    return cachedCart as Cart
+  }
+
+  return null
 }
 
 const useStoredCartId = () =>
@@ -243,7 +303,14 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
 
       options?.onError?.(result.error, result.cart)
     },
-    onError: (error) => {
+    onError: (error, variables) => {
+      const requestedCartId =
+        isRecord(variables) && typeof variables.cartId === "string"
+          ? variables.cartId
+          : undefined
+      const cachedCart = getCachedCartSnapshot(queryClient, requestedCartId)
+      options?.onError?.(toCompleteCartError(error), cachedCart)
+
       if (process.env.NODE_ENV === "development") {
         console.error("[useCompleteCart] Failed to complete cart:", error)
       }

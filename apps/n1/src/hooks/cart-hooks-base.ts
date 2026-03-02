@@ -186,7 +186,38 @@ const buildAddParams = (
   metadata: input.metadata,
 })
 
-const cartService = createMedusaCartService(sdk, { isNotFoundError })
+const baseCartService = createMedusaCartService(sdk, { isNotFoundError })
+const inFlightCartCreations = new Map<string, Promise<Cart>>()
+
+const getCartCreateFlightKey = (input: HttpTypes.StoreCreateCart): string =>
+  [
+    input.region_id ?? "",
+    input.email ?? "",
+    input.sales_channel_id ?? "",
+  ].join("|")
+
+async function createCartSingleFlight(
+  input: HttpTypes.StoreCreateCart
+): Promise<Cart> {
+  const flightKey = getCartCreateFlightKey(input)
+  const inFlight = inFlightCartCreations.get(flightKey)
+
+  if (inFlight) {
+    return inFlight
+  }
+
+  const createPromise = baseCartService
+    .createCart(input)
+    .finally(() => inFlightCartCreations.delete(flightKey))
+
+  inFlightCartCreations.set(flightKey, createPromise)
+  return createPromise
+}
+
+const cartService = {
+  ...baseCartService,
+  createCart: createCartSingleFlight,
+}
 
 export const retrieveCartById = (cartId: string, signal?: AbortSignal) =>
   cartService.retrieveCart(cartId, signal)

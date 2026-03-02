@@ -28,8 +28,8 @@ type UseOrderHookOptions = Parameters<typeof orderHooks.useOrder>[1]
 type UseSuspenseOrderHookOptions =
   Parameters<typeof orderHooks.useSuspenseOrder>[1]
 
-const AUTH_REQUIRED_ERROR = "Uživatel není přihlášen"
-const ORDER_ID_REQUIRED_ERROR = "Order ID je povinný"
+const AUTH_REQUIRED_ERROR = "U\u017Eivatel nen\u00ED p\u0159ihl\u00E1\u0161en"
+const ORDER_ID_REQUIRED_ERROR = "Order ID je povinn\u00FD"
 
 const assertAuthenticated = (isAuthenticated: boolean) => {
   if (!isAuthenticated) {
@@ -37,11 +37,20 @@ const assertAuthenticated = (isAuthenticated: boolean) => {
   }
 }
 
-const assertOrderId = (orderId: string | null): string => {
-  if (!orderId) {
+const normalizeOrderId = (
+  orderId: string | null | undefined
+): string | undefined => {
+  const normalized = orderId?.trim()
+  return normalized ? normalized : undefined
+}
+
+const requireOrderId = (orderId: string): string => {
+  const normalizedOrderId = normalizeOrderId(orderId)
+  if (!normalizedOrderId) {
     throw new Error(ORDER_ID_REQUIRED_ERROR)
   }
-  return orderId
+
+  return normalizedOrderId
 }
 
 const mapSuspenseOrderResult = (
@@ -84,12 +93,12 @@ export function useSuspenseOrders(options?: UseOrdersOptions) {
 }
 
 export function useSuspenseOrder(
-  orderId: string | null,
+  orderId: string,
   options?: UseSuspenseOrderHookOptions
 ) {
   const { isAuthenticated } = useSuspenseAuth()
   assertAuthenticated(isAuthenticated)
-  const requiredOrderId = assertOrderId(orderId)
+  const requiredOrderId = requireOrderId(orderId)
 
   const order = orderHooks.useSuspenseOrder(
     {
@@ -101,7 +110,7 @@ export function useSuspenseOrder(
 }
 
 export function useOrder(input: UseOrderInput, options?: UseOrderHookOptions) {
-  const id = input.id ?? undefined
+  const id = normalizeOrderId(input.id)
   const enabled = Boolean(id) && (input.enabled ?? true)
 
   return orderHooks.useOrder(
@@ -114,10 +123,10 @@ export function useOrder(input: UseOrderInput, options?: UseOrderHookOptions) {
 }
 
 export function useSuspensePublicOrder(
-  orderId: string | null,
+  orderId: string,
   options?: UseSuspenseOrderHookOptions
 ) {
-  const requiredOrderId = assertOrderId(orderId)
+  const requiredOrderId = requireOrderId(orderId)
 
   const order = orderHooks.useSuspenseOrder(
     {

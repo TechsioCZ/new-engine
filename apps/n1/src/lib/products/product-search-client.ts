@@ -38,6 +38,26 @@ type ProductFetchOptions = {
   logPrefix?: string
 }
 
+type CategorySearchRescueDiagnostics = {
+  scannedHits: number
+  hitsBatches: number
+  productBatches: number
+  matchedProducts: number
+  estimatedTotalHits: number
+  maxHitsToScan: number
+  hasPotentialMoreMatches: boolean
+}
+
+type CategorySearchRescueResult = {
+  response: ProductListResponse
+  diagnostics: CategorySearchRescueDiagnostics
+}
+
+type CategoryProductsByIdsResult = {
+  products: StoreProduct[]
+  batchCount: number
+}
+
 const CATEGORY_SEARCH_RESCUE_MATCH_RATIO = 4
 const CATEGORY_SEARCH_RESCUE_HITS_BATCH_LIMIT = 120
 const CATEGORY_SEARCH_RESCUE_PRODUCTS_BATCH_LIMIT = 24
@@ -49,12 +69,123 @@ function parseSearchQuery(query: string | undefined): string | null {
   return normalized ? normalized : null
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === "string") {
+    return error
+  }
+
+  return "Unknown error"
+}
+
+function reportProductSearchFallbackIssue(
+  logPrefix: string,
+  message: string,
+  error: unknown,
+  context: Record<string, unknown>
+) {
+  const payload = {
+    ...context,
+    errorMessage: getErrorMessage(error),
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.warn(`${logPrefix} ${message}`, payload, error)
+    return
+  }
+
+  console.error(`${logPrefix} ${message}`, payload)
+}
+
 function toSafeNonNegativeNumber(value: number | undefined): number {
   if (!(typeof value === "number" && Number.isFinite(value) && value >= 0)) {
     return 0
   }
 
   return Math.floor(value)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isStringOrUndefined(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === "string"
+}
+
+function isNumberOrUndefined(value: unknown): value is number | undefined {
+  return (
+    value === undefined ||
+    (typeof value === "number" && Number.isFinite(value))
+  )
+}
+
+function isStoreProductLike(value: unknown): value is StoreProduct {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  return (
+    isStringOrUndefined(value.id) &&
+    isStringOrUndefined(value.title) &&
+    isStringOrUndefined(value.handle)
+  )
+}
+
+function isStoreProductsApiResponse(value: unknown): value is StoreProductsApiResponse {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const products = value.products
+  return (
+    (products === undefined ||
+      (Array.isArray(products) &&
+        products.every((product) => isStoreProductLike(product)))) &&
+    isNumberOrUndefined(value.count) &&
+    isNumberOrUndefined(value.limit) &&
+    isNumberOrUndefined(value.offset)
+  )
+}
+
+function isMeiliSearchProductHit(value: unknown): value is MeiliSearchProductHit {
+  return isRecord(value) && isStringOrUndefined(value.id)
+}
+
+function isMeiliSearchHitsResponse(value: unknown): value is MeiliSearchHitsResponse {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const hits = value.hits
+  return (
+    (hits === undefined ||
+      (Array.isArray(hits) && hits.every((hit) => isMeiliSearchProductHit(hit)))) &&
+    isNumberOrUndefined(value.estimatedTotalHits) &&
+    isNumberOrUndefined(value.limit) &&
+    isNumberOrUndefined(value.offset)
+  )
+}
+
+function assertStoreProductsApiResponse(
+  value: unknown,
+  endpoint: string
+): asserts value is StoreProductsApiResponse {
+  if (!isStoreProductsApiResponse(value)) {
+    throw new Error(`Invalid ${endpoint} response payload shape`)
+  }
+}
+
+function assertMeiliSearchHitsResponse(
+  value: unknown,
+  endpoint: string
+): asserts value is MeiliSearchHitsResponse {
+  if (!isMeiliSearchHitsResponse(value)) {
+    throw new Error(`Invalid ${endpoint} response payload shape`)
+  }
 }
 
 function resolveCategorySearchRescueHitsScanLimit(
@@ -86,8 +217,9 @@ async function fetchCategoryProductsByIds(
     fields: string
   },
   signal?: AbortSignal
-): Promise<StoreProduct[]> {
+): Promise<CategoryProductsByIdsResult> {
   const productsById = new Map<string, StoreProduct>()
+  let batchCount = 0
 
   for (
     let start = 0;
@@ -112,11 +244,8 @@ async function fetchCategoryProductsByIds(
       offset: 0,
     })
 
-    const productsData = await fetchStoreJson<StoreProductsApiResponse>(
-      "/store/products",
-      productsQueryString,
-      signal
-    )
+    batchCount += 1
+    const productsData = await fetchValidatedStoreProducts(productsQueryString, signal)
 
     for (const product of productsData.products ?? []) {
       if (!product?.id || productsById.has(product.id)) {
@@ -127,7 +256,10 @@ async function fetchCategoryProductsByIds(
     }
   }
 
-  return Array.from(productsById.values())
+  return {
+    products: Array.from(productsById.values()),
+    batchCount,
+  }
 }
 
 function dedupeIdsFromHits(hits: MeiliSearchProductHit[] | undefined): string[] {
@@ -168,6 +300,28 @@ export async function fetchStoreJson<T>(
   return sdk.client.fetch<T>(requestPath, { signal })
 }
 
+async function fetchValidatedStoreProducts(
+  queryString: string,
+  signal?: AbortSignal
+): Promise<StoreProductsApiResponse> {
+  const payload = await fetchStoreJson<unknown>("/store/products", queryString, signal)
+  assertStoreProductsApiResponse(payload, "/store/products")
+  return payload
+}
+
+async function fetchValidatedMeiliProductHits(
+  queryString: string,
+  signal?: AbortSignal
+): Promise<MeiliSearchHitsResponse> {
+  const payload = await fetchStoreJson<unknown>(
+    "/store/meilisearch/products-hits",
+    queryString,
+    signal
+  )
+  assertMeiliSearchHitsResponse(payload, "/store/meilisearch/products-hits")
+  return payload
+}
+
 async function fetchStoreProducts(
   params: ProductQueryParams,
   signal?: AbortSignal
@@ -192,11 +346,7 @@ async function fetchStoreProducts(
     fields,
   })
 
-  const data = await fetchStoreJson<StoreProductsApiResponse>(
-    "/store/products",
-    queryString,
-    signal
-  )
+  const data = await fetchValidatedStoreProducts(queryString, signal)
 
   return {
     products: data.products ?? [],
@@ -210,7 +360,7 @@ async function fetchCategorySearchRescueProducts(
   params: ProductQueryParams,
   searchQuery: string,
   signal?: AbortSignal
-): Promise<ProductListResponse> {
+): Promise<CategorySearchRescueResult> {
   const {
     category_id = [],
     region_id,
@@ -234,6 +384,8 @@ async function fetchCategorySearchRescueProducts(
   let scannedHits = 0
   let hasMoreHits = true
   let estimatedTotalHits = 0
+  let hitsBatchCount = 0
+  let productBatchCount = 0
 
   while (
     hasMoreHits &&
@@ -255,11 +407,8 @@ async function fetchCategorySearchRescueProducts(
       offset: hitsOffset,
     })
 
-    const hitsData = await fetchStoreJson<MeiliSearchHitsResponse>(
-      "/store/meilisearch/products-hits",
-      hitsQueryString,
-      signal
-    )
+    hitsBatchCount += 1
+    const hitsData = await fetchValidatedMeiliProductHits(hitsQueryString, signal)
 
     estimatedTotalHits = Math.max(
       estimatedTotalHits,
@@ -277,7 +426,7 @@ async function fetchCategorySearchRescueProducts(
     })
 
     if (newHitIds.length > 0) {
-      const batchProducts = await fetchCategoryProductsByIds(
+      const batchProductsResult = await fetchCategoryProductsByIds(
         newHitIds,
         {
           category_id,
@@ -287,8 +436,9 @@ async function fetchCategorySearchRescueProducts(
         },
         signal
       )
+      productBatchCount += batchProductsResult.batchCount
 
-      for (const product of batchProducts) {
+      for (const product of batchProductsResult.products) {
         if (!product?.id || allMatchedProducts.has(product.id)) {
           continue
         }
@@ -339,10 +489,21 @@ async function fetchCategorySearchRescueProducts(
     : observedCount
 
   return {
-    products: paginatedProducts,
-    count: totalCount,
-    limit: pageLimit,
-    offset: pageOffset,
+    response: {
+      products: paginatedProducts,
+      count: totalCount,
+      limit: pageLimit,
+      offset: pageOffset,
+    },
+    diagnostics: {
+      scannedHits,
+      hitsBatches: hitsBatchCount,
+      productBatches: productBatchCount,
+      matchedProducts: observedCount,
+      estimatedTotalHits,
+      maxHitsToScan,
+      hasPotentialMoreMatches,
+    },
   }
 }
 
@@ -365,11 +526,7 @@ async function fetchSearchProducts(
     offset,
   })
 
-  const hitsData = await fetchStoreJson<MeiliSearchHitsResponse>(
-    "/store/meilisearch/products-hits",
-    hitsQueryString,
-    signal
-  )
+  const hitsData = await fetchValidatedMeiliProductHits(hitsQueryString, signal)
 
   const hits = hitsData.hits ?? []
   const productIds = dedupeIdsFromHits(hits)
@@ -402,11 +559,7 @@ async function fetchSearchProducts(
     offset: 0,
   })
 
-  const productsData = await fetchStoreJson<StoreProductsApiResponse>(
-    "/store/products",
-    productsQueryString,
-    signal
-  )
+  const productsData = await fetchValidatedStoreProducts(productsQueryString, signal)
 
   return {
     products: orderProductsByIds(productsData.products ?? [], productIds),
@@ -434,12 +587,15 @@ export async function getProductsWithMeiliFallback(
           throw error
         }
 
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            `${logPrefix} Meili search failed, falling back to store listing.`,
-            error
-          )
-        }
+        reportProductSearchFallbackIssue(
+          logPrefix,
+          "Meili search failed, falling back to store listing.",
+          error,
+          {
+            query: searchQuery,
+            hasCategoryFilter,
+          }
+        )
       }
     }
 
@@ -450,11 +606,12 @@ export async function getProductsWithMeiliFallback(
       }
 
       try {
-        const rescueResult = await fetchCategorySearchRescueProducts(
+        const rescue = await fetchCategorySearchRescueProducts(
           params,
           searchQuery,
           signal
         )
+        const rescueResult = rescue.response
         if (rescueResult.count > 0 || rescueResult.products.length > 0) {
           if (process.env.NODE_ENV === "development") {
             console.info(
@@ -463,23 +620,38 @@ export async function getProductsWithMeiliFallback(
                 query: searchQuery,
                 categoryCount: params.category_id?.length ?? 0,
                 rescuedCount: rescueResult.count,
+                ...rescue.diagnostics,
               }
             )
           }
 
           return rescueResult
         }
+
+        if (process.env.NODE_ENV === "development") {
+          console.info(
+            `${logPrefix} Category search typo rescue finished with no matches.`,
+            {
+              query: searchQuery,
+              categoryCount: params.category_id?.length ?? 0,
+              ...rescue.diagnostics,
+            }
+          )
+        }
       } catch (error) {
         if (isAbortError(error)) {
           throw error
         }
 
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            `${logPrefix} Category search typo rescue failed, keeping store result.`,
-            error
-          )
-        }
+        reportProductSearchFallbackIssue(
+          logPrefix,
+          "Category search typo rescue failed, keeping store result.",
+          error,
+          {
+            query: searchQuery,
+            categoryCount: params.category_id?.length ?? 0,
+          }
+        )
       }
 
       return storeResult
@@ -491,7 +663,19 @@ export async function getProductsWithMeiliFallback(
       throw error
     }
 
-    const message = error instanceof Error ? error.message : "Unknown error"
+    reportProductSearchFallbackIssue(logPrefix, "Failed to fetch products.", error, {
+      query: searchQuery,
+      hasCategoryFilter,
+    })
+
+    const message = getErrorMessage(error)
     throw new Error(`Failed to fetch products: ${message}`)
   }
+}
+
+export const __productSearchClientTestUtils = {
+  isStoreProductsApiResponse,
+  isMeiliSearchHitsResponse,
+  dedupeIdsFromHits,
+  resolveCategorySearchRescueHitsScanLimit,
 }
