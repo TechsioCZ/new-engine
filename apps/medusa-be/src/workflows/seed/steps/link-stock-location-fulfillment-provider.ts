@@ -28,16 +28,31 @@ export const linkStockLocationFulfillmentProviderSeedStep = createStep(
 
     for (const stockLocation of input.stockLocations) {
       for (const providerId of providerIds) {
-        const linkResult = await link.create({
-          [Modules.STOCK_LOCATION]: {
-            stock_location_id: stockLocation.id,
-          },
-          [Modules.FULFILLMENT]: {
-            fulfillment_provider_id: providerId,
-          },
-        })
+        try {
+          const linkResult = await link.create({
+            [Modules.STOCK_LOCATION]: {
+              stock_location_id: stockLocation.id,
+            },
+            [Modules.FULFILLMENT]: {
+              fulfillment_provider_id: providerId,
+            },
+          })
 
-        result.push(linkResult)
+          result.push(linkResult)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          if (
+            message.includes(
+              "Cannot create multiple links between 'stock_location' and 'fulfillment'"
+            )
+          ) {
+            logger.warn(
+              `Skipping existing stock location -> fulfillment provider link for stock location "${stockLocation.id}" and provider "${providerId}"`
+            )
+            continue
+          }
+          throw error
+        }
       }
     }
 

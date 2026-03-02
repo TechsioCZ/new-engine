@@ -15,6 +15,7 @@ export type CreateRegionsStepInput = {
   currencyCode: string
   countries?: string[]
   paymentProviders?: string[]
+  isTaxInclusive?: boolean
 }[]
 
 const CreateRegionsStepId = "create-regions-seed-step"
@@ -48,6 +49,7 @@ export const createRegionsStep = createStep(
             currency_code: inputRegion.currencyCode,
             countries: inputRegion.countries,
             payment_providers: inputRegion.paymentProviders,
+            is_tax_inclusive: inputRegion.isTaxInclusive ?? true,
           },
         ]
       }
@@ -66,6 +68,7 @@ export const createRegionsStep = createStep(
             currency_code: i.currencyCode,
             countries: i.countries,
             payment_providers: i.paymentProviders ?? ["pp_system_default"],
+            is_tax_inclusive: i.isTaxInclusive ?? true,
           })),
         },
       })
@@ -82,6 +85,7 @@ export const createRegionsStep = createStep(
           currency_code: i.currency_code,
           countries: i.countries,
           payment_providers: i.payment_providers ?? ["pp_system_default"],
+          is_tax_inclusive: i.is_tax_inclusive,
         },
       }))
 

@@ -31,6 +31,7 @@ type ProductInput = {
   handle: string
   weight?: number
   status?: ProductStatus
+  metadata?: Record<string, unknown>
   shippingProfileName: string
   thumbnail?: string
   images: {
@@ -65,6 +66,7 @@ type ProductInput = {
         value?: string
       }[]
       user_code?: string
+      [key: string]: unknown
     }
     quantities?: {
       quantity?: number
@@ -85,6 +87,115 @@ type ProductVariantImagesInput = {
 export type CreateProductsStepInput = ProductInput[]
 
 const CreateProductsStepId = "create-products-seed-step"
+
+function ensureUniqueVariantSkus(
+  inputProducts: ProductInput[],
+  existingProducts: ProductDTO[],
+  logger: Logger
+) {
+  const existingProductsByHandle = new Map(
+    existingProducts.map((product) => [product.handle, product])
+  )
+  const usedSkus = new Set<string>()
+  let renamedSkus = 0
+
+  for (const product of existingProducts) {
+    for (const variant of product.variants ?? []) {
+      if (variant.sku) {
+        usedSkus.add(variant.sku)
+      }
+    }
+  }
+
+  for (const inputProduct of inputProducts) {
+    const existingProduct = existingProductsByHandle.get(inputProduct.handle)
+    const existingSkusOnProduct = new Set(
+      (existingProduct?.variants ?? []).map((variant) => variant.sku).filter(Boolean)
+    )
+
+    for (const [index, variant] of (inputProduct.variants ?? []).entries()) {
+      const originalSku = variant.sku?.trim()
+      const baseSku = originalSku || `${inputProduct.handle}-variant-${index + 1}`
+      const isExistingVariant =
+        !!originalSku && existingSkusOnProduct.has(originalSku)
+
+      if (isExistingVariant) {
+        continue
+      }
+
+      let candidate = baseSku
+      let suffix = 2
+
+      while (usedSkus.has(candidate)) {
+        candidate = `${baseSku}-${suffix}`
+        suffix += 1
+      }
+
+      if (candidate !== variant.sku) {
+        variant.metadata = {
+          ...(variant.metadata ?? {}),
+          source_sku: variant.sku,
+        }
+        variant.sku = candidate
+        renamedSkus += 1
+      }
+
+      usedSkus.add(candidate)
+    }
+  }
+
+  if (renamedSkus > 0) {
+    logger.warn(
+      `Detected duplicate or empty SKUs in seed input, renamed ${renamedSkus} variant SKUs to keep them unique`
+    )
+  }
+}
+
+function toMetadataId(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const normalized = value.trim()
+    return normalized === "" ? undefined : normalized
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return undefined
+}
+
+function getSourceVariantId(variant: {
+  metadata?: Record<string, unknown> | null
+}): string | undefined {
+  const metadata = variant.metadata ?? undefined
+  if (!metadata) {
+    return undefined
+  }
+
+  return toMetadataId(metadata.source_variant_id ?? metadata.variant_id)
+}
+
+function findExistingVariant(
+  existingProduct: ProductDTO,
+  inputVariant: NonNullable<ProductInput["variants"]>[number]
+) {
+  const sourceVariantId = getSourceVariantId(inputVariant)
+  if (sourceVariantId) {
+    const bySourceId = (existingProduct.variants ?? []).find((variant) => {
+      const metadata = (variant as { metadata?: Record<string, unknown> | null })
+        .metadata
+      return getSourceVariantId({ metadata }) === sourceVariantId
+    })
+
+    if (bySourceId) {
+      return bySourceId
+    }
+  }
+
+  return (existingProduct.variants ?? []).find((variant) => {
+    return variant.sku === inputVariant.sku
+  })
+}
 
 function processProductProducerInput(
   inputProduct: ProductInput,
@@ -277,6 +388,8 @@ export const createProductsStep = createStep(
       }
     )
 
+    ensureUniqueVariantSkus(input, existingProducts, logger)
+
     const missingProducts = input.filter(
       (i) => !existingProducts.find((j) => j.handle === i.handle)
     )
@@ -308,6 +421,7 @@ export const createProductsStep = createStep(
           description: inputProduct.description,
           weight: inputProduct.weight,
           status: inputProduct.status || ProductStatus.PUBLISHED,
+          metadata: inputProduct.metadata,
           shipping_profile_id: (() => {
             const profile = existingShippingProfiles.find(
               (sp) => sp.name === inputProduct.shippingProfileName
@@ -323,8 +437,9 @@ export const createProductsStep = createStep(
           images: inputProduct.images ?? [],
           options: inputProduct.options,
           variants: inputProduct.variants?.map((inputVariant) => {
-            const existingVariant = existingProduct.variants.find(
-              (v) => v.sku === inputVariant.sku
+            const existingVariant = findExistingVariant(
+              existingProduct,
+              inputVariant
             )
             return existingVariant
               ? {
@@ -376,6 +491,7 @@ export const createProductsStep = createStep(
           handle: p.handle,
           weight: p.weight,
           status: p.status || ProductStatus.PUBLISHED,
+          metadata: p.metadata,
           shipping_profile_id: (() => {
             const profile = existingShippingProfiles.find(
               (sp) => sp.name === p.shippingProfileName

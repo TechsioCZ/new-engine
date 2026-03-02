@@ -12,6 +12,7 @@ export type SeedDatabaseWorkflowInput = {
   currencies: Steps.UpdateStoreCurrenciesStepCurrenciesInput
   regions: Steps.CreateRegionsStepInput
   taxRegions: Steps.CreateTaxRegionsStepInput
+  taxRates?: Omit<Steps.CreateTaxRatesStepInput, "productIds">
   stockLocations: Steps.CreateStockLocationStepInput
   defaultShippingProfile: Steps.CreateDefaultShippingProfileStepInput
   fulfillmentSets: Steps.CreateFulfillmentSetStepInput
@@ -232,6 +233,25 @@ const seedDatabaseWorkflow = createWorkflow(
 
     const createProductsResult = Steps.createProductsStep(input.products)
 
+    const createTaxRatesStepInput: Steps.CreateTaxRatesStepInput | undefined =
+      input.taxRates
+        ? transform(
+            {
+              createProductsResult,
+              input,
+            },
+            (data) => ({
+              fallbackCountryCode: data.input.taxRates?.fallbackCountryCode,
+              countries: data.input.taxRates?.countries,
+              productIds: data.createProductsResult.result,
+            })
+          )
+        : undefined
+
+    const createTaxRatesResult = createTaxRatesStepInput
+      ? Steps.createTaxRatesStep(createTaxRatesStepInput)
+      : undefined
+
     // create inventory levels
     const createInventoryLevelsInput: Steps.CreateInventoryLevelsStepInput =
       transform(
@@ -280,6 +300,7 @@ const seedDatabaseWorkflow = createWorkflow(
       linkSalesChannelsApiKeyStepInputResult,
       createProductCategoriesResult,
       createProductsResult,
+      createTaxRatesResult,
       createInventoryLevelsResult,
     })
   }

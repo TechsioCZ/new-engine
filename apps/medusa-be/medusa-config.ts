@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
+import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -58,20 +59,72 @@ module.exports = defineConfig({
               "title",
               "description",
               "handle",
-              "variant_sku",
               "thumbnail",
+              "created_at",
+              "metadata",
+              "categories.id",
+              "categories.name",
+              "categories.handle",
+              "producer.id",
+              "producer.title",
+              "producer.handle",
+              "variants.id",
+              "variants.sku",
+              "variants.prices.amount",
+              "variants.prices.currency_code",
             ],
             indexSettings: {
-              searchableAttributes: ["title", "description", "variant_sku"],
+              searchableAttributes: [
+                "title",
+                "description",
+                "handle",
+                "producer.title",
+                "categories.name",
+                "variants.sku",
+              ],
               displayedAttributes: [
                 "id",
                 "title",
                 "description",
-                "variant_sku",
                 "thumbnail",
                 "handle",
+                "created_at",
+                "metadata",
+                "producer",
+                "categories",
+                "facet_status",
+                "facet_form",
+                "facet_brand",
+                "facet_ingredient",
+                "facet_category_ids",
+                "facet_in_stock",
+                "facet_price",
               ],
-              filterableAttributes: ["id", "handle", "title"],
+              filterableAttributes: [
+                "id",
+                "handle",
+                "facet_status",
+                "facet_form",
+                "facet_brand",
+                "facet_ingredient",
+                "facet_category_ids",
+                "facet_in_stock",
+                "facet_price",
+              ],
+              sortableAttributes: ["created_at", "title", "facet_price"],
+            },
+            transformer: async (
+              document: Record<string, unknown>,
+              defaultTransformer: (
+                input: Record<string, unknown>
+              ) => Record<string, unknown>
+            ) => {
+              const transformedDocument = defaultTransformer(document)
+
+              return {
+                ...transformedDocument,
+                ...buildProductFacetDocument(transformedDocument),
+              }
             },
             primaryKey: "id",
           },
