@@ -113,14 +113,14 @@ const selectVariants = tv({
       },
       sm: {
         trigger:
-          "h-form-control-sm p-select-trigger-sm text-select-trigger-sm [--radius-form-control:var(--radius-form-control-sm)]",
+          "h-form-control-sm p-select-trigger-sm text-select-trigger-sm rounded-form-control-sm",
         item: "text-select-item-sm",
         valueText: "text-select-value-sm",
         itemGroupLabel: "text-select-item-group-label-sm",
       },
       md: {
         trigger:
-          "h-form-control-md p-select-trigger-md text-select-trigger-md [--radius-form-control:var(--radius-form-control-md)]",
+          "h-form-control-md p-select-trigger-md text-select-trigger-md rounded-form-control-md",
         item: "text-select-item-md",
         valueText: "text-select-value-md",
         itemGroupLabel: "text-select-item-group-label-md",

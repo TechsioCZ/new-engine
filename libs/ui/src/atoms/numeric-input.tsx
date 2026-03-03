@@ -64,14 +64,14 @@ const numericInputVariants = tv({
       sm: {
         root: "text-numeric-input-sm",
         container:
-          "h-form-control-sm [--radius-form-control:var(--radius-form-control-sm)]",
+          "h-form-control-sm rounded-form-control-sm",
         trigger: "text-numeric-input-sm",
         input: "pl-numeric-input-input-sm text-numeric-input-sm",
       },
       md: {
         root: "text-numeric-input-md",
         container:
-          "h-form-control-md [--radius-form-control:var(--radius-form-control-md)]",
+          "h-form-control-md rounded-form-control-md",
         trigger: "text-numeric-input-md",
         input: "pl-numeric-input-input-md text-numeric-input-md",
       },

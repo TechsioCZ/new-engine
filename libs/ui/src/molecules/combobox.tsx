@@ -88,14 +88,14 @@ const comboboxVariants = tv({
       sm: {
         root: "gap-combobox-root-sm",
         control:
-          "h-form-control-sm text-input-sm [--radius-form-control:var(--radius-form-control-sm)]",
+          "h-form-control-sm text-input-sm rounded-form-control-sm",
         item: "p-combobox-item-sm",
         content: "text-combobox-content-sm",
       },
       md: {
         root: "gap-combobox-root-md",
         control:
-          "h-form-control-md text-input-md [--radius-form-control:var(--radius-form-control-md)]",
+          "h-form-control-md text-input-md rounded-form-control-md",
         item: "p-combobox-item-md",
         content: "text-combobox-content-md",
       },
