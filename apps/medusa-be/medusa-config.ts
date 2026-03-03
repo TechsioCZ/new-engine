@@ -112,6 +112,14 @@ module.exports = defineConfig({
                 "facet_price",
               ],
               sortableAttributes: ["created_at", "title", "facet_price"],
+              rankingRules: [
+                "sort",
+                "words",
+                "typo",
+                "proximity",
+                "attribute",
+                "exactness",
+              ],
             },
             transformer: async (
               document: Record<string, unknown>,
