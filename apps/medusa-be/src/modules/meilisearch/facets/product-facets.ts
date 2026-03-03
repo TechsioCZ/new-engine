@@ -324,7 +324,12 @@ const resolveFacetPrice = (document: UnknownRecord): number | undefined => {
   ]
 
   for (const candidate of topOfferPriceCandidates) {
-    const normalizedTopOfferPrice = normalizeFacetPrice(parseNumericValue(candidate))
+    const parsedTopOfferPrice = parseNumericValue(candidate)
+    if (parsedTopOfferPrice === undefined || parsedTopOfferPrice <= 0) {
+      continue
+    }
+
+    const normalizedTopOfferPrice = normalizeFacetPrice(parsedTopOfferPrice)
     if (normalizedTopOfferPrice !== undefined) {
       return normalizedTopOfferPrice
     }
