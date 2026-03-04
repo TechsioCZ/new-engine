@@ -1,6 +1,15 @@
 CFLAGS=-g
 export CFLAGS
 
+PROJECT_NAME=new-engine
+COMPOSE_DEV=docker compose -f docker-compose.yaml -p $(PROJECT_NAME)
+COMPOSE_PROD=docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p $(PROJECT_NAME)
+
+.PHONY: dev down down-with-volumes prod prod-no-cache prod-run \
+	postgres-role-bootstrap postgres-role-bootstrap-verify \
+	postgres-zane-operator-bootstrap postgres-zane-operator-bootstrap-verify \
+	postgres-grants-verify
+
 # Global commands
 corepack-update:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
@@ -21,13 +30,20 @@ npkill:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
 	docker run -it -v .:/var/www pnpm-env pnpx npkill -x -D -y
 dev:
-	docker compose -f docker-compose.yaml -p new-engine up --force-recreate -d --build
-prod:
-	-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine down
-	-docker rmi new-engine-medusa-be new-engine-n1
+	$(COMPOSE_DEV) up --force-recreate -d --build
+
+prod: PROD_BUILD_FLAGS=
+prod: prod-run
+
+prod-no-cache: PROD_BUILD_FLAGS=--no-cache
+prod-no-cache: prod-run
+
+prod-run:
+	-$(COMPOSE_PROD) down
+	-docker rmi $(PROJECT_NAME)-medusa-be $(PROJECT_NAME)-n1
 	# Build and start medusa-be first, then generate n1 categories against live Medusa API.
-	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine build --no-cache medusa-be
-	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine up -d medusa-be
+	$(COMPOSE_PROD) build $(PROD_BUILD_FLAGS) medusa-be
+	$(COMPOSE_PROD) up -d medusa-be
 	@echo "Waiting for medusa-be to become healthy..."
 	@timeout=180; \
 	while [ $$timeout -gt 0 ]; do \
@@ -44,25 +60,28 @@ prod:
 		sleep 2; \
 		timeout=$$((timeout-2)); \
 	done; \
-	if [ $$timeout -le 0 ]; then \
-		echo "Timed out waiting for medusa-be health"; \
-		docker logs --tail=120 wr_medusa_be; \
-		exit 1; \
-	fi
-	docker compose -f docker-compose.yaml -p new-engine run --rm --no-deps \
-		-e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
-		-e CI=1 \
-		-e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
+		if [ $$timeout -le 0 ]; then \
+			echo "Timed out waiting for medusa-be health"; \
+			docker logs --tail=120 wr_medusa_be; \
+			exit 1; \
+		fi
+		# Intentionally uses $(COMPOSE_DEV), not $(COMPOSE_PROD): dev compose mounts host source (.:/var/www),
+		# which is required for `pnpm --filter n1 run generate:categories`. This makes prod build depend on
+		# dev compose mount behavior; accepted tradeoff for now to avoid duplicating generation wiring.
+		$(COMPOSE_DEV) run --rm --no-deps \
+			-e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+			-e CI=1 \
+			-e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
 		n1 sh -lc "\
 			[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
 			pnpm --filter n1 run generate:categories \
 		"
-	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine build --no-cache n1
-	docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -p new-engine up -d
+	$(COMPOSE_PROD) build $(PROD_BUILD_FLAGS) n1
+	$(COMPOSE_PROD) up -d
 down:
-	docker compose -f docker-compose.yaml -p new-engine down
+	$(COMPOSE_DEV) down
 down-with-volumes:
-	docker compose -f docker-compose.yaml -p new-engine down -v
+	$(COMPOSE_DEV) down -v
 
 # Medusa specific commands
 # Usage: make medusa-create-user EMAIL=admin@example.com PASSWORD=secret
@@ -74,8 +93,14 @@ medusa-migrate:
 medusa-generate-migration:
 	docker exec wr_medusa_be pnpm --filter medusa-be run migrate:generate-only $(MODULE)
 medusa-minio-init:
-	docker exec wr_medusa_minio mc alias set local http://localhost:9004 minioadmin minioadmin && \
-	docker exec wr_medusa_minio mc admin accesskey create --access-key minioadminkey --secret-key minioadminkey local && \
+	@ROOT_USER=$$(docker exec wr_medusa_minio printenv MINIO_ROOT_USER); \
+	ROOT_PASSWORD=$$(docker exec wr_medusa_minio printenv MINIO_ROOT_PASSWORD); \
+	ACCESS_KEY=$$(docker exec wr_medusa_be printenv MINIO_ACCESS_KEY); \
+	SECRET_KEY=$$(docker exec wr_medusa_be printenv MINIO_SECRET_KEY); \
+	docker exec wr_medusa_minio mc alias set local http://localhost:9004 "$$ROOT_USER" "$$ROOT_PASSWORD" && \
+	if ! docker exec wr_medusa_minio mc admin accesskey info local "$$ACCESS_KEY" >/dev/null 2>&1; then \
+		docker exec wr_medusa_minio mc admin accesskey create --access-key "$$ACCESS_KEY" --secret-key "$$SECRET_KEY" local; \
+	fi && \
 	docker cp ./docker/development/medusa-minio/config/local-bucket-metadata.zip wr_medusa_minio:. && \
 	docker exec wr_medusa_minio mc admin cluster bucket import local /local-bucket-metadata.zip
 medusa-meilisearch-reseed:
@@ -86,6 +111,26 @@ medusa-seed-dev-data:
 	docker exec wr_medusa_be pnpm --filter medusa-be run seedDevData
 medusa-seed-n1:
 	docker exec wr_medusa_be pnpm --filter medusa-be run seedN1
+
+# Postgres role bootstrap for existing DB volumes (migrates pre-strict grants; ensures medusa_app DB CREATE)
+postgres-role-bootstrap:
+	bash ./scripts/apply-postgres-role-bootstrap.sh
+
+# Run bootstrap twice to verify idempotency
+postgres-role-bootstrap-verify:
+	bash ./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent
+
+# zane-operator role bootstrap (CREATEDB/CREATEROLE + pg_signal_backend + template owner)
+postgres-zane-operator-bootstrap:
+	bash ./scripts/apply-zane-operator-role-bootstrap.sh
+
+# Run zane-operator bootstrap twice to verify idempotency
+postgres-zane-operator-bootstrap-verify:
+	bash ./scripts/apply-zane-operator-role-bootstrap.sh --verify-idempotent
+
+# Verify hardened grants/search_path for app role after bootstrap/migration
+postgres-grants-verify:
+	bash ./scripts/verify-postgres-grants.sh
 
 # Upgrade local postgres data from <18 cluster into PG18-compatible data dir.
 postgres18-migrate-local:
