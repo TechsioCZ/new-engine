@@ -1,9 +1,9 @@
 "use client"
 
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { ErrorText } from "@/components/atoms/error-text"
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
 import { Gallery } from "@/components/organisms/gallery"
 import { ProductGrid } from "@/components/organisms/product-grid"
@@ -75,9 +75,9 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
       <div className="min-h-screen bg-product-detail-bg">
         <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y text-center">
           <h1 className="mb-4 font-semibold text-2xl">Product not found</h1>
-          <ErrorText showIcon>
+          <StatusText status="error">
             {error || "The product you are looking for does not exist."}
-          </ErrorText>
+          </StatusText>
         </div>
       </div>
     )

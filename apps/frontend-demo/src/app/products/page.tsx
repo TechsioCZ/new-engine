@@ -1,10 +1,10 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import Link from "next/link"
 import { Suspense, useEffect, useMemo, useRef } from "react"
-import { ErrorText } from "@/components/atoms/error-text"
 import { ProductGridSkeleton } from "@/components/molecules/product-grid-skeleton"
 import { ProductFilters } from "@/components/organisms/product-filters"
 import { ProductGrid } from "@/components/organisms/product-grid"
@@ -140,10 +140,10 @@ function ProductsContent() {
           </div>
           {hasSizeFilterError && (
             <div className="mb-4 space-y-2 rounded-md border border-error bg-surface p-3">
-              <ErrorText showIcon>
+              <StatusText status="error">
                 Filtr velikosti je dočasně nedostupný. Zkuste prosím jinou
                 velikost nebo filtr vymazat.
-              </ErrorText>
+              </StatusText>
               <Button onClick={clearSizeFilters} size="sm" theme="borderless">
                 Vymazat filtr velikosti
               </Button>
@@ -178,9 +178,9 @@ function ProductsContent() {
             </div>
           ) : error ? (
             <div className="py-12 text-center">
-              <ErrorText showIcon>
+              <StatusText status="error">
                 Nepodařilo se načíst produkty. Obnovte prosím stránku.
-              </ErrorText>
+              </StatusText>
             </div>
           ) : (
             <div className="py-12 text-center">
