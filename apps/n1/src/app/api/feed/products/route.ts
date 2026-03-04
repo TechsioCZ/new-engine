@@ -3,7 +3,7 @@ import {
   type MedusaProductDetailInput,
   type MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
-import { NextResponse } from "next/server"
+import { connection, NextResponse } from "next/server"
 import { sdk } from "@/lib/medusa-client"
 
 const BATCH_SIZE = 100
@@ -128,6 +128,8 @@ function generateXmlFeed(products: FeedProduct[]): string {
 }
 
 export async function GET() {
+  await connection()
+
   try {
     const products = await fetchAllProducts()
     const xml = generateXmlFeed(products)

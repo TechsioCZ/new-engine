@@ -4,6 +4,7 @@ import { StorefrontDataProvider } from "@techsio/storefront-data/client/provider
 import { makeQueryClient } from "@techsio/storefront-data/shared/query-client"
 import { RegionProvider } from "@techsio/storefront-data/shared/region-context"
 import { Toaster } from "@techsio/ui-kit/molecules/toast"
+import { NuqsAdapter } from "nuqs/adapters/next/app"
 import { Suspense, type ReactNode } from "react"
 import { useSuspenseRegion } from "@/hooks/use-region"
 import { cacheConfig } from "@/lib/cache-config"
@@ -38,20 +39,22 @@ function StorefrontRegionBridge({ children }: { children: ReactNode }) {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <StorefrontDataProvider client={queryClient}>
-      <Suspense fallback={null}>
-        <StorefrontRegionBridge>
-          <Suspense fallback={null}>
-            <PrefetchManager />
-          </Suspense>
-          {children}
-        </StorefrontRegionBridge>
-      </Suspense>
-      <Toaster />
-      {/* React Query DevTools - only in development */}
-      {process.env.NODE_ENV === "development" && (
-        <ReactQueryDevtools initialIsOpen={false} />
-      )}
-    </StorefrontDataProvider>
+    <NuqsAdapter>
+      <StorefrontDataProvider client={queryClient}>
+        <Suspense fallback={null}>
+          <StorefrontRegionBridge>
+            <Suspense fallback={null}>
+              <PrefetchManager />
+            </Suspense>
+            {children}
+          </StorefrontRegionBridge>
+        </Suspense>
+        <Toaster />
+        {/* React Query DevTools - only in development */}
+        {process.env.NODE_ENV === "development" && (
+          <ReactQueryDevtools initialIsOpen={false} />
+        )}
+      </StorefrontDataProvider>
+    </NuqsAdapter>
   )
 }

@@ -2,10 +2,12 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useQueryState } from "nuqs"
 import { useLogout } from "@/hooks/use-logout"
 import { useAuthToast } from "@/hooks/use-toast"
 import { resolveTab } from "@/lib/account-tabs"
+import { parseAsAccountTab } from "@/lib/url-state/parsers"
 import { AddressList } from "./_components/address-list"
 import { OrderList } from "./_components/order-list"
 import { ProfileForm } from "./_components/profile-form"
@@ -13,9 +15,9 @@ import { ProfileForm } from "./_components/profile-form"
 export default function ProfilePage() {
   const router = useRouter()
   const toast = useAuthToast()
-  const searchParams = useSearchParams()
+  const [tabParam, setTabParam] = useQueryState("tab", parseAsAccountTab)
   const pathname = usePathname()
-  const activeTab = resolveTab(searchParams.get("tab"), pathname)
+  const activeTab = resolveTab(tabParam, pathname)
   const logoutMutation = useLogout({
     onSuccess: () => {
       toast.logoutSuccess()
@@ -28,16 +30,8 @@ export default function ProfilePage() {
 
   const handleTabChange = (value: string) => {
     const nextTab = resolveTab(value, pathname)
-    const params = new URLSearchParams(searchParams.toString())
-
-    if (nextTab === "profile") {
-      params.delete("tab")
-    } else {
-      params.set("tab", nextTab)
-    }
-
-    const query = params.toString()
-    router.replace(query ? `/ucet/profil?${query}` : "/ucet/profil", {
+    void setTabParam(nextTab === "profile" ? null : nextTab, {
+      history: "replace",
       scroll: false,
     })
   }

@@ -67,10 +67,19 @@ const findAllLeafIds = (categoryId: string): string[] => {
   return directChildren.flatMap((child) => findAllLeafIds(child.id))
 }
 
+const allCategoriesWithLeafIds = allCategories.map((cat) => ({
+  id: cat.id,
+  handle: cat.handle,
+  leafIds: findAllLeafIds(cat.id),
+}))
+
 // Alternative implementation using allCategories (includes ALL categories)
 export const ALL_CATEGORIES_MAP: Record<string, string[]> = Object.fromEntries(
-  allCategories.map((cat) => [cat.handle, findAllLeafIds(cat.id)])
+  allCategoriesWithLeafIds.map((cat) => [cat.handle, cat.leafIds])
 )
+
+export const ALL_CATEGORIES_MAP_BY_ID: Record<string, string[]> =
+  Object.fromEntries(allCategoriesWithLeafIds.map((cat) => [cat.id, cat.leafIds]))
 
 export const PRODUCT_DETAILED_FIELDS =
   "id,title,subtitle,description,handle,thumbnail,images.id,images.url," +
