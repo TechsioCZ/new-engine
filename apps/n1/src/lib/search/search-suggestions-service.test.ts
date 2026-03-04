@@ -2,15 +2,15 @@ import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import { allCategories } from "@/data/static/categories"
 import {
-  __searchSuggestionsTestUtils,
+  searchSuggestionsTestUtils,
   getSearchSuggestions,
 } from "./search-suggestions-service"
+import { normalizeSearchText } from "./search-text"
 
 const {
   fetchCategorySuggestionsFromStaticData,
   mergeBrandSuggestions,
-  normalizeSearchText,
-} = __searchSuggestionsTestUtils
+} = searchSuggestionsTestUtils
 
 describe("search suggestions service helpers", () => {
   it("normalizes diacritics and casing", () => {

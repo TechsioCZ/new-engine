@@ -8,6 +8,7 @@ import {
   buildQueryString,
   type ProductQueryParams,
 } from "@/lib/product-query-params"
+import { isRecord } from "@/lib/shared/type-guards"
 
 type StoreProductsApiResponse = {
   products?: StoreProduct[]
@@ -106,10 +107,6 @@ function toSafeNonNegativeNumber(value: number | undefined): number {
   }
 
   return Math.floor(value)
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
 }
 
 function isStringOrUndefined(value: unknown): value is string | undefined {

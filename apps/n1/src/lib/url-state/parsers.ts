@@ -1,4 +1,4 @@
-import { createParser, parseAsString, parseAsStringLiteral } from "nuqs"
+import { createParser, parseAsStringLiteral } from "nuqs"
 import { ACCOUNT_TABS } from "../account-tabs"
 
 function normalizePositiveInt(value: number): number {
@@ -29,6 +29,4 @@ export const parseAsPositivePage = createParser<number>({
 })
 
 export const parseAsPositivePageWithDefault = parseAsPositivePage.withDefault(1)
-export const parseAsSearchQuery = parseAsString
-export const parseAsCategoryId = parseAsString
 export const parseAsAccountTab = parseAsStringLiteral(ACCOUNT_TABS)

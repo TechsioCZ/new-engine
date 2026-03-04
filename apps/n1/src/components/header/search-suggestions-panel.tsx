@@ -2,6 +2,7 @@
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import Image from "next/image"
+import NextLink from "next/link"
 import type { KeyboardEvent, MouseEvent } from "react"
 import type {
   BrandSuggestion,
@@ -33,7 +34,6 @@ type SearchSuggestionsPanelProps = {
   isLoading: boolean
   isError: boolean
   onHighlight: (itemId: string) => void
-  onSelectProduct: (product: ProductSuggestion) => void
   onSelectCategory: (category: CategorySuggestion) => void
   onSelectBrand: (brand: BrandSuggestion) => void
   onSelectViewAll: () => void
@@ -74,10 +74,8 @@ function ProductSection({
   products,
   highlightedItemId,
   onHighlight,
-  onSelectProduct,
 }: {
   products: ProductSuggestion[]
-  onSelectProduct: (product: ProductSuggestion) => void
 } & ItemHighlightProps) {
   if (products.length === 0) {
     return null
@@ -92,21 +90,19 @@ function ProductSection({
           const isHighlighted = highlightedItemId === itemId
 
           return (
-            <li key={itemId}>
-              <div
-                aria-selected={isHighlighted}
+            <li
+              aria-selected={isHighlighted}
+              id={itemId}
+              key={itemId}
+              onMouseEnter={() => onHighlight(itemId)}
+              role="option"
+            >
+              <NextLink
                 className={`grid w-full cursor-pointer grid-cols-[3rem_1fr_auto] items-center gap-200 px-200 py-150 text-left text-sm ${getListItemClassName(
                   isHighlighted
                 )}`}
-                id={itemId}
-                onClick={() => onSelectProduct(product)}
-                onKeyDown={(event) =>
-                  handleOptionKeyDown(event, () => onSelectProduct(product))
-                }
+                href={`/produkt/${product.handle}`}
                 onMouseDown={preventBlurOnMouseDown}
-                onMouseEnter={() => onHighlight(itemId)}
-                role="option"
-                tabIndex={-1}
               >
                 <Image
                   alt={product.title}
@@ -121,7 +117,7 @@ function ProductSection({
                 <span className="ml-200 whitespace-nowrap font-bold text-fg">
                   {product.price}
                 </span>
-              </div>
+              </NextLink>
             </li>
           )
         })}
@@ -286,7 +282,6 @@ export function SearchSuggestionsPanel({
   isLoading,
   isError,
   onHighlight,
-  onSelectProduct,
   onSelectCategory,
   onSelectBrand,
   onSelectViewAll,
@@ -312,7 +307,6 @@ export function SearchSuggestionsPanel({
           <ProductSection
             highlightedItemId={highlightedItemId}
             onHighlight={onHighlight}
-            onSelectProduct={onSelectProduct}
             products={products}
           />
           <CategorySection

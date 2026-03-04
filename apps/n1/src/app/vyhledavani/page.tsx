@@ -93,7 +93,7 @@ export default function SearchPage() {
             </p>
           ) : (
             <p className="text-fg-secondary text-sm">
-              Zadej vyhledávací dotaz v headeru.
+              Zadej vyhledávací dotaz do vyhledávání nahoře.
             </p>
           )}
           {hasCategoryFilter ? (

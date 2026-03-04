@@ -11,12 +11,11 @@ import {
   toSearchQueryParam,
 } from "./search"
 
-function getUrl(href: string): URL {
-  return new URL(href, "https://example.local")
-}
-
 test("buildSearchHref trims query and omits page=1", () => {
-  const url = getUrl(buildSearchHref({ q: "  triko  ", page: 1 }))
+  const url = new URL(
+    buildSearchHref({ q: "  triko  ", page: 1 }),
+    "https://example.local"
+  )
 
   assert.equal(url.pathname, SEARCH_ROUTE)
   assert.equal(url.searchParams.get("q"), "triko")
@@ -24,12 +23,13 @@ test("buildSearchHref trims query and omits page=1", () => {
 })
 
 test("buildSearchHref serializes page > 1 and category_id", () => {
-  const url = getUrl(
+  const url = new URL(
     buildSearchHref({
       q: "triko",
       page: 3,
       category_id: "  pcat_abc  ",
-    })
+    }),
+    "https://example.local"
   )
 
   assert.equal(url.pathname, SEARCH_ROUTE)
@@ -39,12 +39,13 @@ test("buildSearchHref serializes page > 1 and category_id", () => {
 })
 
 test("buildSearchHref removes empty values", () => {
-  const url = getUrl(
+  const url = new URL(
     buildSearchHref({
       q: "",
       page: 0,
       category_id: "  ",
-    })
+    }),
+    "https://example.local"
   )
 
   assert.equal(url.pathname, SEARCH_ROUTE)

@@ -204,11 +204,6 @@ export const N1Header = () => {
     setHighlightedIndex(index)
   }
 
-  const handleProductSelect = (handle: string) => {
-    closeSuggestions()
-    router.push(`/produkt/${handle}`)
-  }
-
   const handleCategorySelect = (categoryId: string) => {
     closeSuggestions()
     router.push(
@@ -318,9 +313,6 @@ export const N1Header = () => {
                 onSelectBrand={(brand) => navigateToSearch(brand.title)}
                 onSelectCategory={(category) =>
                   handleCategorySelect(category.id)
-                }
-                onSelectProduct={(product) =>
-                  handleProductSelect(product.handle)
                 }
                 onSelectViewAll={() => navigateToSearch(trimmedSearchQuery)}
                 query={trimmedSearchQuery}

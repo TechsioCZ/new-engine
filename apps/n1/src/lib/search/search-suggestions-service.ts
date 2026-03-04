@@ -8,7 +8,10 @@ import {
   isAbortError,
 } from "@/lib/products/product-search-client"
 import { buildQueryString } from "@/lib/product-query-params"
+import { normalizeSearchText } from "@/lib/search/search-text"
+import { isRecord } from "@/lib/shared/type-guards"
 import { formatPrice } from "@/utils/format/format-product"
+import { getMedusaBackendUrl } from "../medusa-backend-url"
 
 export type ProductSuggestion = {
   id: string
@@ -118,18 +121,6 @@ type CategoryFallbackIndexEntry = {
 
 const CATEGORY_FALLBACK_INDEX = buildCategoryFallbackIndex()
 
-function normalizeSearchText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim()
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
-
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message
@@ -156,6 +147,19 @@ function isExpectedProducerMeiliFallbackError(error: unknown): boolean {
 
 function shouldLogWarning(error: unknown): boolean {
   return process.env.NODE_ENV === "development" && !isAbortError(error)
+}
+
+function shouldSkipProducerMeiliRequestInDevBrowser(): boolean {
+  if (process.env.NODE_ENV !== "development" || typeof window === "undefined") {
+    return false
+  }
+
+  try {
+    const backendOrigin = new URL(getMedusaBackendUrl()).origin
+    return backendOrigin !== window.location.origin
+  } catch {
+    return false
+  }
 }
 
 function isStringOrUndefined(value: unknown): value is string | undefined {
@@ -692,22 +696,14 @@ function dedupeByKey<T>(items: T[], getKey: (item: T) => string): T[] {
   return deduped
 }
 
-function dedupeProducts(items: ProductSuggestion[]): ProductSuggestion[] {
-  return dedupeByKey(items, (item) => item.id || item.handle)
-}
-
-function dedupeCategories(items: CategorySuggestion[]): CategorySuggestion[] {
-  return dedupeByKey(items, (item) => item.id || item.handle)
-}
-
-function dedupeCategoriesByDisplayName(
-  items: CategorySuggestion[]
-): CategorySuggestion[] {
-  return dedupeByKey(
-    items,
-    (item) => normalizeSearchText(item.displayName || item.name)
-  )
-}
+const productSuggestionKey = (item: ProductSuggestion): string =>
+  item.id || item.handle
+const categorySuggestionKey = (item: CategorySuggestion): string =>
+  item.id || item.handle
+const categoryDisplayNameKey = (item: CategorySuggestion): string =>
+  normalizeSearchText(item.displayName || item.name)
+const brandSuggestionKey = (item: BrandSuggestion): string =>
+  item.id || normalizeSearchText(item.handle)
 
 function buildBrandHandleFallback(title: string, id: string): string {
   const normalizedTitle = normalizeSearchText(title)
@@ -716,13 +712,6 @@ function buildBrandHandleFallback(title: string, id: string): string {
     .replace(EDGE_DASHES_REGEX, "")
 
   return slug || id
-}
-
-function dedupeBrands(items: BrandSuggestion[]): BrandSuggestion[] {
-  return dedupeByKey(
-    items,
-    (item) => item.id || normalizeSearchText(item.handle)
-  )
 }
 
 function getProductSuggestionsLookupLimit(limitPerSection: number): number {
@@ -781,7 +770,10 @@ async function fetchProductAndBrandSuggestionsFromProducts(
     .filter((suggestion): suggestion is ProductSuggestion => Boolean(suggestion))
 
   return {
-    products: dedupeProducts(mappedProducts).slice(0, limitPerSection),
+    products: dedupeByKey(mappedProducts, productSuggestionKey).slice(
+      0,
+      limitPerSection
+    ),
     brandsFromProducts: mapBrandsFromProducts(products, limitPerSection),
   }
 }
@@ -822,13 +814,13 @@ async function fetchCategorySuggestionsFromMeili(
     .map((hit) => toCategorySuggestion(CATEGORY_BY_ID.get(hit.id || ""), hit))
     .filter((category): category is CategorySuggestion => Boolean(category))
 
-  const filtered = dedupeCategories(mapped).filter(
+  const filtered = dedupeByKey(mapped, categorySuggestionKey).filter(
     (category) =>
       getCategorySuggestionMatchKind(category, normalizedQuery, queryTokens) !==
       "none"
   )
 
-  return dedupeCategoriesByDisplayName(filtered).slice(0, limitPerSection)
+  return dedupeByKey(filtered, categoryDisplayNameKey).slice(0, limitPerSection)
 }
 
 function fetchCategorySuggestionsFromStaticData(
@@ -881,21 +873,27 @@ function fetchCategorySuggestionsFromStaticData(
       )
     })
 
-  const primarySuggestions = dedupeCategoriesByDisplayName(
-    dedupeCategories(
-      scoredSuggestions
-        .filter((category) => category.hasPrimaryMatch)
-        .map((category) => category.suggestion)
-    )
+  const primaryRawSuggestions = scoredSuggestions
+    .filter((category) => category.hasPrimaryMatch)
+    .map((category) => category.suggestion)
+  const primaryDedupedById = dedupeByKey(
+    primaryRawSuggestions,
+    categorySuggestionKey
+  )
+  const primarySuggestions = dedupeByKey(
+    primaryDedupedById,
+    categoryDisplayNameKey
   )
 
   if (primarySuggestions.length > 0) {
     return primarySuggestions.slice(0, limitPerSection)
   }
 
-  return dedupeCategoriesByDisplayName(
-    dedupeCategories(scoredSuggestions.map((category) => category.suggestion))
-  ).slice(0, limitPerSection)
+  const allRawSuggestions = scoredSuggestions.map((category) => category.suggestion)
+  const allDedupedById = dedupeByKey(allRawSuggestions, categorySuggestionKey)
+  const allSuggestions = dedupeByKey(allDedupedById, categoryDisplayNameKey)
+
+  return allSuggestions.slice(0, limitPerSection)
 }
 
 async function fetchCategorySuggestionsFromMeiliBestEffort(
@@ -1011,7 +1009,7 @@ function mapProducerHits(
     })
     .filter((producer): producer is BrandSuggestion => Boolean(producer))
 
-  return dedupeBrands(mapped).slice(0, limitPerSection)
+  return dedupeByKey(mapped, brandSuggestionKey).slice(0, limitPerSection)
 }
 
 async function fetchBrandSuggestionsFromMeili(
@@ -1043,6 +1041,12 @@ async function fetchBrandSuggestionsBestEffort(
   limitPerSection: number,
   signal?: AbortSignal
 ): Promise<BrandSuggestion[]> {
+  // In local dev with cross-origin backend, this endpoint often fails preflight (CORS).
+  // We already have brand suggestions from product results, so skip noisy network calls.
+  if (shouldSkipProducerMeiliRequestInDevBrowser()) {
+    return []
+  }
+
   const controller = new AbortController()
   const onParentAbort = () => {
     controller.abort()
@@ -1088,10 +1092,10 @@ function mergeBrandSuggestions(
     return brandsFromProducts.slice(0, limitPerSection)
   }
 
-  return dedupeBrands([...brandsFromMeili, ...brandsFromProducts]).slice(
-    0,
-    limitPerSection
-  )
+  return dedupeByKey(
+    [...brandsFromMeili, ...brandsFromProducts],
+    brandSuggestionKey
+  ).slice(0, limitPerSection)
 }
 
 export async function getSearchSuggestions(
@@ -1173,7 +1177,7 @@ export async function getSearchSuggestions(
   }
 }
 
-export const __searchSuggestionsTestUtils = {
+export const searchSuggestionsTestUtils = {
   fetchCategorySuggestionsFromStaticData,
   mergeBrandSuggestions,
   normalizeSearchText,

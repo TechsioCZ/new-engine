@@ -28,8 +28,8 @@ type UseOrderHookOptions = Parameters<typeof orderHooks.useOrder>[1]
 type UseSuspenseOrderHookOptions =
   Parameters<typeof orderHooks.useSuspenseOrder>[1]
 
-const AUTH_REQUIRED_ERROR = "U\u017Eivatel nen\u00ED p\u0159ihl\u00E1\u0161en"
-const ORDER_ID_REQUIRED_ERROR = "Order ID je povinn\u00FD"
+const AUTH_REQUIRED_ERROR = "Uživatel není přihlášen"
+const ORDER_ID_REQUIRED_ERROR = "Order ID je povinný"
 
 const assertAuthenticated = (isAuthenticated: boolean) => {
   if (!isAuthenticated) {
