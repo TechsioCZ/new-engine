@@ -33,6 +33,20 @@ type InFlightPrefetchEntry = {
   runToken: symbol
 }
 
+const clearPrefetchTimerEntry = (
+  timers: Map<string, ReturnType<typeof setTimeout>>,
+  prefetchId: string
+) => {
+  const timer = timers.get(prefetchId)
+  if (!timer) {
+    return false
+  }
+
+  clearTimeout(timer)
+  timers.delete(prefetchId)
+  return true
+}
+
 export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
   const queryClient = useQueryClient()
   const { selectedRegion } = useRegions()
@@ -73,17 +87,6 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
       activePrefetchIdsRef.current.clear()
     }
   }, [queryClient])
-
-  const clearPrefetchTimer = useCallback((prefetchId: string) => {
-    const timer = delayedPrefetchTimersRef.current.get(prefetchId)
-    if (!timer) {
-      return false
-    }
-
-    clearTimeout(timer)
-    delayedPrefetchTimersRef.current.delete(prefetchId)
-    return true
-  }, [])
 
   const buildCategoryPrefetchRequest = useCallback(
     (categoryIds: string[]): CategoryPrefetchRequest | null => {
@@ -180,7 +183,7 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
       }
 
       activePrefetchIdsRef.current.add(id)
-      clearPrefetchTimer(id)
+      clearPrefetchTimerEntry(delayedPrefetchTimersRef.current, id)
 
       const timer = setTimeout(() => {
         delayedPrefetchTimersRef.current.delete(id)
@@ -197,22 +200,21 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
       delayedPrefetchTimersRef.current.set(id, timer)
       return id
     },
-    [
-      buildCategoryPrefetchRequest,
-      clearPrefetchTimer,
-      executeCategoryPrefetch,
-    ]
+    [buildCategoryPrefetchRequest, executeCategoryPrefetch]
   )
 
   const cancelPrefetch = useCallback(
     (prefetchId: string) => {
       const wasActive = activePrefetchIdsRef.current.has(prefetchId)
-      const hadPendingTimer = clearPrefetchTimer(prefetchId)
+      const hadPendingTimer = clearPrefetchTimerEntry(
+        delayedPrefetchTimersRef.current,
+        prefetchId
+      )
       const hadInFlightRequest = cancelInFlightPrefetch(prefetchId)
       activePrefetchIdsRef.current.delete(prefetchId)
       return wasActive || hadPendingTimer || hadInFlightRequest
     },
-    [cancelInFlightPrefetch, clearPrefetchTimer]
+    [cancelInFlightPrefetch]
   )
 
   const cancelAllPrefetches = useCallback(async () => {

@@ -1,5 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 
+export type ProductVariant = HttpTypes.StoreProductVariant
+
 export type Product = HttpTypes.StoreProduct & {
   rating?: number
   reviewCount?: number
@@ -8,15 +10,8 @@ export type Product = HttpTypes.StoreProduct & {
   inStock?: boolean
   price?: number | null
   priceWithTax?: number | null
-  primaryVariant?: HttpTypes.StoreProductVariant | null
+  primaryVariant?: ProductVariant | null
 }
-
-export type ProductImage = HttpTypes.StoreProductImage
-export type ProductCollection = HttpTypes.StoreCollection
-export type ProductCategory = HttpTypes.StoreProductCategory
-export type ProductVariant = HttpTypes.StoreProductVariant
-export type ProductPrice = NonNullable<HttpTypes.StoreProductVariant["calculated_price"]>
-export type ProductOption = HttpTypes.StoreProductOption
 
 export interface HomeCategory {
   name: string

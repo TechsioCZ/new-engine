@@ -68,17 +68,17 @@ export function useCustomer() {
       const message =
         mutationError instanceof Error
           ? mutationError.message
-          : "Zkuste to prosim znovu"
+          : "Zkuste to prosím znovu"
 
       toast.create({
-        title: "Chyba pri aktualizaci profilu",
+        title: "Chyba při aktualizaci profilu",
         description: message,
         type: "error",
       })
     },
     onSuccess: () => {
       toast.create({
-        title: "Profil byl uspesne aktualizovan",
+        title: "Profil byl úspěšně aktualizován",
         type: "success",
       })
     },
@@ -141,17 +141,17 @@ export function useCustomer() {
       const message =
         mutationError instanceof Error
           ? mutationError.message
-          : "Zkuste to prosim znovu"
+          : "Zkuste to prosím znovu"
 
       toast.create({
-        title: "Chyba pri ukladani adresy",
+        title: "Chyba při ukládání adresy",
         description: message,
         type: "error",
       })
     },
     onSuccess: () => {
       toast.create({
-        title: "Adresa byla uspesne ulozena",
+        title: "Adresa byla úspěšně uložena",
         type: "success",
       })
     },

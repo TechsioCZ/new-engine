@@ -66,6 +66,9 @@ const isStaleCartError = (error: unknown): boolean => {
 const hasValue = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
 
+// TODO(frontend-demo): Replace these manual presence checks with shared
+// schema-based validation (Zod/Effect) to keep UI, domain, and API mapping
+// validation rules consistent in one place.
 const hasAddressCoreFields = (address: {
   firstName?: string
   lastName?: string
@@ -217,10 +220,7 @@ export function useCheckout(): UseCheckoutReturn {
       type_code: normalizedOption.type?.code ?? undefined,
     }
   })
-  const paymentMethods = useMemo(
-    () => resolveCheckoutPaymentMethods(paymentProviders),
-    [paymentProviders]
-  )
+  const paymentMethods = resolveCheckoutPaymentMethods(paymentProviders)
   const hasAddress =
     hasCheckoutAddressData(addressData) ||
     hasCartShippingAddress(cart?.shipping_address, cart?.email) ||
@@ -242,8 +242,8 @@ export function useCheckout(): UseCheckoutReturn {
     setCurrentStep(0)
 
     toast.create({
-      title: "Kosik vyprsel",
-      description: "Vytvorili jsme novy kosik. Prosim zadejte adresu znovu.",
+      title: "Košík vypršel",
+      description: "Vytvořili jsme nový košík. Prosím zadejte adresu znovu.",
       type: "warning",
     })
   }
@@ -333,8 +333,8 @@ export function useCheckout(): UseCheckoutReturn {
 
       console.error("Failed to update cart with addresses:", err)
       toast.create({
-        title: "Chyba pri ukladani adresy",
-        description: "Zkuste to prosim znovu",
+        title: "Chyba při ukládání adresy",
+        description: "Zkuste to prosím znovu",
         type: "error",
       })
       throw err
@@ -351,8 +351,8 @@ export function useCheckout(): UseCheckoutReturn {
 
     if (!methodAvailable) {
       toast.create({
-        title: "Neplatny zpusob dopravy",
-        description: "Tento zpusob dopravy neni momentalne dostupny.",
+        title: "Neplatný způsob dopravy",
+        description: "Tento způsob dopravy není momentálně dostupný.",
         type: "error",
       })
       return
@@ -369,8 +369,8 @@ export function useCheckout(): UseCheckoutReturn {
 
       console.error("Failed to add shipping method:", error)
       toast.create({
-        title: "Chyba pri vyberu dopravy",
-        description: "Zkuste to prosim znovu",
+        title: "Chyba při výběru dopravy",
+        description: "Zkuste to prosím znovu",
         type: "error",
       })
       throw error
@@ -395,7 +395,7 @@ export function useCheckout(): UseCheckoutReturn {
       ) {
         toast.create({
           title: "Chyba",
-          description: "Prosim vyberte zpusob dopravy",
+          description: "Prosím vyberte způsob dopravy",
           type: "error",
         })
         setCurrentStep(1)
@@ -405,7 +405,7 @@ export function useCheckout(): UseCheckoutReturn {
       if (!currentCart.region_id) {
         toast.create({
           title: "Chyba",
-          description: "Kosik nema nastaveny region",
+          description: "Košík nemá nastavený region",
           type: "error",
         })
         return
@@ -414,7 +414,7 @@ export function useCheckout(): UseCheckoutReturn {
       if (!paymentMethods.length) {
         toast.create({
           title: "Chyba",
-          description: "Pro tento region neni dostupna zadna platebni metoda",
+          description: "Pro tento region není dostupná žádná platební metoda",
           type: "error",
         })
         return
@@ -474,9 +474,11 @@ export function useCheckout(): UseCheckoutReturn {
 
       console.error("Order creation error:", error)
       toast.create({
-        title: "Chyba pri vytvareni objednavky",
+        title: "Chyba při vytváření objednávky",
         description:
-          error instanceof Error ? error.message : "Neco se pokazilo. Zkuste to prosim znovu.",
+          error instanceof Error
+            ? error.message
+            : "Něco se pokazilo. Zkuste to prosím znovu.",
         type: "error",
       })
       throw error
