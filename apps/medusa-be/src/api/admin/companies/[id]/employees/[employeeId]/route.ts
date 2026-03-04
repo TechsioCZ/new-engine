@@ -2,7 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import {
   deleteEmployeesWorkflow,
   updateEmployeesWorkflow,
@@ -16,7 +16,15 @@ export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetEmployeeParamsType>,
   res: MedusaResponse
 ) => {
-  const { id, employeeId } = req.params
+  const employeeId = req.params.employeeId
+
+  if (!employeeId) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Employee id is required"
+    )
+  }
+
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
@@ -38,13 +46,29 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { id, employeeId } = req.params
+  const companyId = req.params.id
+  const employeeId = req.params.employeeId
+
+  if (!companyId) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Company id is required"
+    )
+  }
+
+  if (!employeeId) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Employee id is required"
+    )
+  }
+
   const { spending_limit, is_admin } = req.body
 
   await updateEmployeesWorkflow.run({
     input: {
       id: employeeId,
-      company_id: id,
+      company_id: companyId,
       spending_limit,
       is_admin,
     },
@@ -69,13 +93,39 @@ export const DELETE = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const { id, employeeId } = req.params
+  const companyId = req.params.id
+  const employeeId = req.params.employeeId
+
+  if (!companyId) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Company id is required"
+    )
+  }
+
+  if (!employeeId) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Employee id is required"
+    )
+  }
+
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+
+  await query.graph(
+    {
+      entity: "employee",
+      fields: ["id"],
+      filters: {
+        id: employeeId,
+        company_id: companyId,
+      },
+    },
+    { throwIfKeyNotFound: true }
+  )
 
   await deleteEmployeesWorkflow.run({
-    input: {
-      id: employeeId,
-      company_id: id,
-    },
+    input: [employeeId],
     container: req.scope,
   })
 

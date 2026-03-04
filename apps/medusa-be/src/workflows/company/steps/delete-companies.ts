@@ -12,7 +12,11 @@ export const deleteCompaniesStep = createStep(
 
     return new StepResponse(ids, ids)
   },
-  async (companyIds: string[], { container }) => {
+  async (companyIds, { container }) => {
+    if (!companyIds) {
+      return
+    }
+
     const companyModule =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 

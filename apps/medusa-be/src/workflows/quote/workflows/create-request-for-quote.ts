@@ -2,13 +2,13 @@ import {
   beginOrderEditOrderWorkflow,
   createOrdersWorkflow,
   useRemoteQueryStep,
-} from "@medusajs/core-flows"
+} from "@medusajs/medusa/core-flows"
 import { OrderStatus } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
   WorkflowResponse,
-} from "@medusajs/workflows-sdk"
+} from "@medusajs/framework/workflows-sdk"
 import { createQuotesWorkflow } from "./create-quote"
 
 /*
@@ -62,7 +62,9 @@ export const createRequestForQuoteWorkflow = createWorkflow(
       shipping_address: cart.shipping_address,
       items: cart.items,
       region_id: cart.region_id,
-      promo_codes: cart.promotions.map(({ code }) => code),
+      promo_codes: cart.promotions.map(
+        (promotion: { code: string }) => promotion.code
+      ),
       currency_code: cart.currency_code,
       shipping_methods: cart.shipping_methods,
     }))

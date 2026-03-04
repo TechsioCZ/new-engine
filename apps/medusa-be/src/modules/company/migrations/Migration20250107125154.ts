@@ -1,7 +1,7 @@
-import { Migration } from "@mikro-orm/migrations";
+import { Migration } from "@medusajs/framework/mikro-orm/migrations";
 
 export class Migration20250107125154 extends Migration {
-  async up(): Promise<void> {
+  override async up(): Promise<void> {
     this.addSql(
       'CREATE INDEX IF NOT EXISTS "IDX_company_deleted_at" ON "company" (deleted_at) WHERE deleted_at IS NULL;'
     );
@@ -10,7 +10,7 @@ export class Migration20250107125154 extends Migration {
     );
   }
 
-  async down(): Promise<void> {
+  override async down(): Promise<void> {
     this.addSql('DROP INDEX IF EXISTS "IDX_company_deleted_at";');
     this.addSql('DROP INDEX IF EXISTS "IDX_employee_deleted_at";');
   }

@@ -16,7 +16,11 @@ export const updateCompaniesStep = createStep(
 
     return new StepResponse(updatedCompanies, previousData)
   },
-  async (previousData: ModuleUpdateCompany, { container }) => {
+  async (previousData, { container }) => {
+    if (!previousData) {
+      return
+    }
+
     const companyModule =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 

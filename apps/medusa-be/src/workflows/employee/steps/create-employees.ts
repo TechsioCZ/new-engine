@@ -1,3 +1,4 @@
+import type { RemoteQueryFunction } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { COMPANY_MODULE } from "../../../modules/company"
@@ -18,7 +19,9 @@ export const createEmployeesStep = createStep(
 
     const createdEmployee = await companyModuleService.createEmployees(input)
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<RemoteQueryFunction>(
+      ContainerRegistrationKeys.QUERY
+    )
 
     const {
       data: [employee],
@@ -33,7 +36,11 @@ export const createEmployeesStep = createStep(
 
     return new StepResponse(employee as unknown as ModuleEmployee, employee.id)
   },
-  async (employeeId: string, { container }) => {
+  async (employeeId, { container }) => {
+    if (!employeeId) {
+      return
+    }
+
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
     await companyModuleService.deleteEmployees([employeeId])

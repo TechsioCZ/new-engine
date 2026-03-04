@@ -1,12 +1,12 @@
-import { Migration } from '@mikro-orm/migrations';
+import { Migration } from '@medusajs/framework/mikro-orm/migrations';
 
 export class Migration20250108113324 extends Migration {
 
-  async up(): Promise<void> {
+  override async up(): Promise<void> {
     this.addSql('alter table if exists "approval_settings" add column if not exists "company_id" text not null;');
   }
 
-  async down(): Promise<void> {
+  override async down(): Promise<void> {
     this.addSql('alter table if exists "approval_settings" drop column if exists "company_id";');
   }
 

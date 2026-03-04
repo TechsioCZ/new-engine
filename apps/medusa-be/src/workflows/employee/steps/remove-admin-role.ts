@@ -1,5 +1,10 @@
 import type { IAuthModuleService } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import type { RemoteQueryFunction } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 export const removeAdminRoleStep = createStep(
@@ -12,7 +17,9 @@ export const removeAdminRoleStep = createStep(
       Modules.AUTH
     )
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<RemoteQueryFunction>(
+      ContainerRegistrationKeys.QUERY
+    )
 
     const {
       data: [providerIdentity],
@@ -25,6 +32,13 @@ export const removeAdminRoleStep = createStep(
       },
     })
 
+    if (!providerIdentity?.id) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        "Provider identity not found"
+      )
+    }
+
     await authModuleService.updateProviderIdentities([
       {
         id: providerIdentity.id,
@@ -36,7 +50,11 @@ export const removeAdminRoleStep = createStep(
 
     return new StepResponse(undefined, providerIdentity.id)
   },
-  async (providerIdentityId: string, { container }) => {
+  async (providerIdentityId, { container }) => {
+    if (!providerIdentityId) {
+      return
+    }
+
     const authModuleService = container.resolve<IAuthModuleService>(
       Modules.AUTH
     )

@@ -1,17 +1,14 @@
 import { when } from "@medusajs/framework/workflows-sdk"
 import {
   createWorkflow,
-  type WorkflowData,
   WorkflowResponse,
-} from "@medusajs/workflows-sdk"
+} from "@medusajs/framework/workflows-sdk"
 import type { ModuleUpdateEmployee, QueryEmployee } from "../../../types"
 import { removeAdminRoleStep, updateEmployeesStep } from "../steps"
 
 export const updateEmployeesWorkflow = createWorkflow(
   "update-employees",
-  (
-    input: WorkflowData<ModuleUpdateEmployee>
-  ): WorkflowResponse<QueryEmployee> => {
+  (input: ModuleUpdateEmployee): WorkflowResponse<QueryEmployee> => {
     const updatedEmployee = updateEmployeesStep(input)
 
     when(updatedEmployee, ({ is_admin }) => is_admin === false).then(() => {

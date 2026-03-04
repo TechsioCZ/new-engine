@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+import { MedusaError } from "@medusajs/framework/utils"
 import { ApprovalStatusType } from "../../../../../types/approval"
 import { createApprovalsWorkflow } from "../../../../../workflows/approval/workflows"
 
@@ -9,7 +10,15 @@ export const POST = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const { id: cartId } = req.params
+  const cartId = req.params.id
+
+  if (!cartId) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Cart id is required"
+    )
+  }
+
   const { customer_id } = req.auth_context.app_metadata as {
     customer_id: string
   }
@@ -24,9 +33,14 @@ export const POST = async (
     throwOnError: false,
   })
 
-  if (errors.length > 0) {
+  const workflowError = errors[0]
+
+  if (workflowError) {
     res.status(400).json({
-      message: errors[0].error.message,
+      message:
+        workflowError.error instanceof Error
+          ? workflowError.error.message
+          : "INVALID_DATA",
       code: "INVALID_DATA",
     })
     return

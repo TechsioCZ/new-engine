@@ -25,7 +25,11 @@ export const createQuoteMessageStep = createStep(
 
     return new StepResponse(quoteMessage, quoteMessage.id)
   },
-  async (id: string, { container }) => {
+  async (id, { container }) => {
+    if (!id) {
+      return
+    }
+
     const quoteModule = container.resolve<IQuoteModuleService>(QUOTE_MODULE)
 
     await quoteModule.deleteMessages([id])

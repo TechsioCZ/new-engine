@@ -1,4 +1,5 @@
 import type { IAuthModuleService } from "@medusajs/framework/types"
+import type { RemoteQueryFunction } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
@@ -7,8 +8,12 @@ export const setAdminRoleStep = createStep(
   async (
     input: { employeeId: string; customerId: string },
     { container }
-  ): Promise<any> => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  ): Promise<
+    StepResponse<undefined, { providerIdentityId: string | undefined }>
+  > => {
+    const query = container.resolve<RemoteQueryFunction>(
+      ContainerRegistrationKeys.QUERY
+    )
 
     const {
       data: [employee],
@@ -24,7 +29,7 @@ export const setAdminRoleStep = createStep(
     )
 
     if (employee.customer?.has_account === false) {
-      return new StepResponse(undefined, input)
+      return new StepResponse(undefined, { providerIdentityId: undefined })
     }
 
     const {
@@ -41,7 +46,7 @@ export const setAdminRoleStep = createStep(
     )
 
     if (!customer.email) {
-      return new StepResponse(undefined, input)
+      return new StepResponse(undefined, { providerIdentityId: undefined })
     }
 
     const {
@@ -70,9 +75,15 @@ export const setAdminRoleStep = createStep(
       ])
     }
 
-    return new StepResponse(undefined, input)
+    return new StepResponse(undefined, {
+      providerIdentityId: providerIdentity?.id,
+    })
   },
-  async (input: { providerIdentityId: string }, { container }) => {
+  async (input, { container }) => {
+    if (!input?.providerIdentityId) {
+      return
+    }
+
     const authModuleService = container.resolve<IAuthModuleService>(
       Modules.AUTH
     )

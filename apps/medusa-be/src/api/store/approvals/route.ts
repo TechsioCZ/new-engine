@@ -6,6 +6,21 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { ApprovalType } from "../../../types/approval"
 import type { StoreGetApprovalsType } from "./validators"
 
+type ApprovalRecord = {
+  cart_id: string
+}
+
+type CompanyCart = Record<string, unknown> & {
+  id: string
+  approvals?: ApprovalRecord[]
+}
+
+type ApprovalStatusRecord = {
+  cart?: {
+    approvals?: Array<{ id?: string | null } | null> | null
+  } | null
+}
+
 export const GET = async (
   req: AuthenticatedMedusaRequest<StoreGetApprovalsType>,
   res: MedusaResponse
@@ -49,9 +64,10 @@ export const GET = async (
   }
 
   const { status } = req.validatedQuery || {}
+  const carts = company.carts as Array<CompanyCart | null | undefined>
 
-  const cartIds = company.carts
-    .filter((cart) => cart !== undefined && cart !== null)
+  const cartIds = carts
+    .filter((cart): cart is CompanyCart => Boolean(cart?.id))
     .map((cart) => cart.id)
 
   const approvalStatusFilters: any = {
@@ -69,7 +85,7 @@ export const GET = async (
     filters: approvalStatusFilters,
   })
 
-  const approvalIds = approvalStatuses
+  const approvalIds = (approvalStatuses as ApprovalStatusRecord[])
     .flatMap((approvalStatus) =>
       approvalStatus.cart?.approvals?.map((approval) => approval?.id)
     )
@@ -84,24 +100,29 @@ export const GET = async (
     },
   })
 
-  const cartsWithAdminApprovals = company.carts
+  const cartsWithAdminApprovals = carts
+    .filter((cart): cart is CompanyCart => Boolean(cart?.id))
     .map((cart) => {
-      const cartApprovals = approvals.filter(
-        (approval) => approval.cart_id === cart?.id
+      const cartApprovals = (approvals as ApprovalRecord[]).filter(
+        (approval) => approval.cart_id === cart.id
       )
+
       if (cartApprovals.length > 0) {
-        cart && (cart.approvals = cartApprovals)
-        return cart
+        return { ...cart, approvals: cartApprovals }
       }
+
       return null
     })
-    .filter(Boolean)
+    .filter(
+      (cart): cart is CompanyCart & { approvals: ApprovalRecord[] } =>
+        cart !== null
+    )
 
   if (!cartsWithAdminApprovals.length) {
     return res.json({ carts_with_approvals: [], count: 0 })
   }
 
-  res.json({
+  return res.json({
     carts_with_approvals: cartsWithAdminApprovals,
     ...metadata,
   })

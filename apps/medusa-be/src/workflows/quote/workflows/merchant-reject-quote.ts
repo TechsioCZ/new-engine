@@ -1,5 +1,5 @@
-import { useRemoteQueryStep } from "@medusajs/core-flows"
-import { createWorkflow } from "@medusajs/workflows-sdk"
+import { useRemoteQueryStep } from "@medusajs/medusa/core-flows"
+import { createWorkflow } from "@medusajs/framework/workflows-sdk"
 import type { QueryQuote } from "../../../types"
 import { validateQuoteRejectionStep } from "../steps/validate-quote-rejection"
 import { updateQuotesWorkflow } from "./update-quote"

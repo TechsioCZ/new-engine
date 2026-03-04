@@ -1,7 +1,7 @@
-import { Migration } from "@mikro-orm/migrations";
+import { Migration } from "@medusajs/framework/mikro-orm/migrations";
 
 export class Migration20240930144912 extends Migration {
-  async up(): Promise<void> {
+  override async up(): Promise<void> {
     this.addSql(
       'create table if not exists "company" ("id" text not null, "name" text not null, "phone" text not null, "email" text not null, "address" text null, "city" text null, "state" text null, "zip" text null, "country" text null, "logo_url" text null, "currency_code" text null, "spending_limit_reset_frequency" text check ("spending_limit_reset_frequency" in (\'never\', \'daily\', \'weekly\', \'monthly\', \'yearly\')) not null default \'monthly\', "created_at" timestamptz not null default now(), "updated_at" timestamptz not null default now(), "deleted_at" timestamptz null, constraint "company_pkey" primary key ("id"));'
     );
@@ -18,7 +18,7 @@ export class Migration20240930144912 extends Migration {
     );
   }
 
-  async down(): Promise<void> {
+  override async down(): Promise<void> {
     this.addSql(
       'alter table if exists "employee" drop constraint if exists "employee_company_id_foreign";'
     );

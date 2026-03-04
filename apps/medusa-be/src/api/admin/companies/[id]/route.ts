@@ -2,7 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import {
   deleteCompaniesWorkflow,
   updateCompaniesWorkflow,
@@ -18,6 +18,13 @@ export const GET = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Company id is required"
+    )
+  }
 
   const {
     data: [company],
@@ -39,6 +46,13 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Company id is required"
+    )
+  }
 
   await updateCompaniesWorkflow.run({
     input: { ...req.body, id },
@@ -63,9 +77,16 @@ export const DELETE = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const { id } = req.params
+  const id = req.params.id
 
-  const { result } = await deleteCompaniesWorkflow.run({
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Company id is required"
+    )
+  }
+
+  await deleteCompaniesWorkflow.run({
     input: {
       id,
     },

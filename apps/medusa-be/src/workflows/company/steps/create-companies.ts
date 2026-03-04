@@ -15,7 +15,7 @@ export const createCompaniesStep = createStep(
       companies.map((company) => company.id)
     )
   },
-  async (companyIds: string[], { container }) => {
+  async (companyIds, { container }) => {
     if (!companyIds) {
       return
     }

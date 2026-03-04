@@ -1,5 +1,5 @@
 import { WorkflowResponse } from "@medusajs/framework/workflows-sdk"
-import { createWorkflow } from "@medusajs/workflows-sdk"
+import { createWorkflow } from "@medusajs/framework/workflows-sdk"
 import type { ModuleDeleteCompany } from "../../../types"
 import { deleteApprovalSettingsStep } from "../../approval/steps/delete-approval-settings"
 import { deleteCompaniesStep } from "../steps"

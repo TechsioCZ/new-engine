@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows"
 import type {
   StoreCreateEmployeeType,

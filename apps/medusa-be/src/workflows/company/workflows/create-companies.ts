@@ -3,7 +3,7 @@ import {
   createWorkflow,
   transform,
   WorkflowResponse,
-} from "@medusajs/workflows-sdk"
+} from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ModuleCreateCompany } from "../../../types"

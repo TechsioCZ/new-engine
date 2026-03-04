@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
 import type { RemoteQueryFunction } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { customerRejectQuoteWorkflow } from "../../../../../workflows/quote/workflows"
 import type { RejectQuoteType } from "../../validators"
 
@@ -8,7 +8,15 @@ export const POST = async (
   req: MedusaRequest<RejectQuoteType>,
   res: MedusaResponse
 ) => {
-  const { id } = req.params
+  const id = req.params.id
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Quote id is required"
+    )
+  }
+
   const query = req.scope.resolve<RemoteQueryFunction>(
     ContainerRegistrationKeys.QUERY
   )

@@ -1,4 +1,5 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type { RemoteQueryFunction } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import { ApprovalStatusType, type IApprovalModuleService } from "../../../types"
@@ -6,7 +7,16 @@ import { ApprovalStatusType, type IApprovalModuleService } from "../../../types"
 export const createApprovalStatusStep = createStep(
   "create-approval-status",
   async (cartIds: string[], { container }) => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    if (!cartIds.length) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "At least one cart id is required"
+      )
+    }
+
+    const query = container.resolve<RemoteQueryFunction>(
+      ContainerRegistrationKeys.QUERY
+    )
     const approvalModuleService =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
@@ -29,6 +39,13 @@ export const createApprovalStatusStep = createStep(
           },
         ])
 
+      if (!approvalStatus) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "Failed to update approval status"
+        )
+      }
+
       return new StepResponse(approvalStatus, [approvalStatus.id])
     }
 
@@ -41,9 +58,16 @@ export const createApprovalStatusStep = createStep(
       approvalStatusesToCreate
     )
 
+    if (!approvalStatus) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Failed to create approval status"
+      )
+    }
+
     return new StepResponse(approvalStatus, [approvalStatus.id])
   },
-  async (statusIds: string[], { container }) => {
+  async (statusIds, { container }) => {
     if (!statusIds) {
       return
     }

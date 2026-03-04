@@ -2,7 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { createQuoteMessageWorkflow } from "../../../../../workflows/quote/workflows"
 import type { AdminCreateQuoteMessageType } from "../../validators"
 
@@ -11,7 +11,14 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { id } = req.params
+  const id = req.params.id
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Quote id is required"
+    )
+  }
 
   await createQuoteMessageWorkflow(req.scope).run({
     input: {

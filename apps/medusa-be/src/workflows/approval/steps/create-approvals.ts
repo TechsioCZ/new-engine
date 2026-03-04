@@ -1,3 +1,5 @@
+import type { RemoteQueryFunction } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
@@ -15,9 +17,19 @@ export const createApprovalStep = createStep(
       | Omit<ModuleCreateApproval, "type">[],
     { container }
   ) => {
-    const query = container.resolve("query")
+    const query = container.resolve<RemoteQueryFunction>(
+      ContainerRegistrationKeys.QUERY
+    )
 
     const approvalData = Array.isArray(input) ? input : [input]
+    const approvalLookupInput = approvalData[0]
+
+    if (!approvalLookupInput) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "At least one approval is required"
+      )
+    }
 
     const {
       data: [cart],
@@ -32,7 +44,7 @@ export const createApprovalStep = createStep(
           "company.approval_settings.*",
         ],
         filters: {
-          id: approvalData[0].cart_id,
+          id: approvalLookupInput.cart_id,
         },
       },
       {
@@ -44,14 +56,20 @@ export const createApprovalStep = createStep(
       (cart.approval_status?.status as unknown as ApprovalStatusType) ===
       ApprovalStatusType.PENDING
     ) {
-      throw new Error("Cart already has a pending approval")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Cart already has a pending approval"
+      )
     }
 
     if (
       (cart.approval_status?.status as unknown as ApprovalStatusType) ===
       ApprovalStatusType.APPROVED
     ) {
-      throw new Error("Cart is already approved")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Cart is already approved"
+      )
     }
 
     const { requires_admin_approval, requires_sales_manager_approval } =
@@ -78,7 +96,10 @@ export const createApprovalStep = createStep(
     }
 
     if (approvalsToCreate.length === 0) {
-      throw new Error("No enabled approval types found")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "No enabled approval types found"
+      )
     }
 
     const approvalModuleService =
@@ -92,7 +113,11 @@ export const createApprovalStep = createStep(
       approvals.map((approval) => approval.id)
     )
   },
-  async (approvalIds: string[], { container }) => {
+  async (approvalIds, { container }) => {
+    if (!approvalIds) {
+      return
+    }
+
     const approvalModuleService =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 

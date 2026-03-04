@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import {
   deleteEmployeesWorkflow,
   updateEmployeesWorkflow,
@@ -71,7 +71,14 @@ export const POST = async (
 }
 
 export const DELETE = async (req: MedusaRequest, res: MedusaResponse) => {
-  const { employeeId } = req.params
+  const employeeId = req.params.employeeId
+
+  if (!employeeId) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Employee id is required"
+    )
+  }
 
   await deleteEmployeesWorkflow.run({
     input: [employeeId],

@@ -1,3 +1,5 @@
+import type { RemoteQueryFunction } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
@@ -13,7 +15,9 @@ export const updateApprovalStep = createStep(
     input: ModuleUpdateApproval,
     { container }
   ): Promise<StepResponse<ModuleApproval, ModuleUpdateApproval>> => {
-    const query = container.resolve("query")
+    const query = container.resolve<RemoteQueryFunction>(
+      ContainerRegistrationKeys.QUERY
+    )
     const approvalModule =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
@@ -26,6 +30,10 @@ export const updateApprovalStep = createStep(
         id: input.id,
       },
     })
+
+    if (!approval) {
+      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Approval not found")
+    }
 
     if (input.status === ApprovalStatusType.REJECTED) {
       const { data: approvalsToReject } = await query.graph({
@@ -58,7 +66,11 @@ export const updateApprovalStep = createStep(
 
     return new StepResponse(updatedApproval, previousData)
   },
-  async (previousData: ModuleUpdateApproval, { container }) => {
+  async (previousData, { container }) => {
+    if (!previousData) {
+      return
+    }
+
     const approvalModule =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
