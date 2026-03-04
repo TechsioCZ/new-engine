@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import type {

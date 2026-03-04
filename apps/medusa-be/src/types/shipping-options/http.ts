@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import type { StorePrice } from "@medusajs/types"
 
 export type StoreFreeShippingPrice = StorePrice & {

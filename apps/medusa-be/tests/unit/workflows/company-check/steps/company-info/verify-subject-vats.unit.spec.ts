@@ -146,6 +146,26 @@ describe("verifySubjectVatsStep", () => {
     })
   })
 
+  it("skips subjects with missing VAT identification number", async () => {
+    const service = {
+      checkVatNumber: jest.fn().mockResolvedValue({ valid: true }),
+    }
+
+    const output = await executeStep(
+      [
+        createSubject("00000001", null),
+        createSubject("00000002", "CZ87654321"),
+      ],
+      service
+    )
+
+    expect(service.checkVatNumber).toHaveBeenCalledTimes(1)
+    expect(output).toEqual({
+      "00000001": null,
+      "00000002": "CZ87654321",
+    })
+  })
+
   it("marks a VAT as unverified when its VIES check fails", async () => {
     const service = {
       checkVatNumber: jest

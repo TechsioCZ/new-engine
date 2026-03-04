@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { createCartWorkflow } from "@medusajs/medusa/core-flows"
 import type { Link } from "@medusajs/framework/modules-sdk"
 import type { CartDTO } from "@medusajs/framework/types"

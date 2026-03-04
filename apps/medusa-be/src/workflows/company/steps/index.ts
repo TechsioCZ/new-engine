@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 export * from "./add-company-employees-to-customer-group"
 export * from "./create-companies"
 export * from "./delete-companies"

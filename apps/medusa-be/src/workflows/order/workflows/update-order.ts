@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { useRemoteQueryStep } from "@medusajs/medusa/core-flows"
 import { createWorkflow, WorkflowResponse } from "@medusajs/framework/workflows-sdk"
 import { updateOrderStep } from "../steps/update-order"

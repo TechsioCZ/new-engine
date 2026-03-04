@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 export interface IFilter {
   filter: {
     key: string

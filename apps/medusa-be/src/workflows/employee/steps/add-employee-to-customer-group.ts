@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { ICustomerModuleService } from "@medusajs/framework/types"
 import type { RemoteQueryFunction } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"

@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryCompany } from "../company/query"
 import type { ApprovalStatusType, ApprovalType } from "./module"

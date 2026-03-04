@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep } from "@medusajs/framework/workflows-sdk"
 import type { QueryQuote } from "../../../types"

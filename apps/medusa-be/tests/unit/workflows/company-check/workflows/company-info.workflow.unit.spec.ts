@@ -180,6 +180,26 @@ describe("companyCheckCzInfoWorkflow (unit, mocked SDK)", () => {
     ])
   })
 
+  it("returns empty result for ICO query when ARES subject is not found", () => {
+    mockParseCompanyInfoInputStep.mockReturnValue({
+      queryType: "ico",
+      requestedVatIdentificationNumber: null,
+      parsedRequestedVat: null,
+      companyIdentificationNumber: "00000001",
+      companyName: null,
+    })
+    mockFetchAresSubjectByIcoStep.mockReturnValue(null)
+    mockVerifySubjectVatsStep.mockReturnValue({})
+    mockMapCompanyInfoStep.mockReturnValue([])
+
+    const result = companyCheckCzInfoWorkflow({
+      company_identification_number: "00000001",
+    })
+
+    expect(mockVerifySubjectVatsStep).toHaveBeenCalledWith([])
+    expect(result).toEqual([])
+  })
+
   it("filters VAT query results to exact VAT match", () => {
     mockParseCompanyInfoInputStep.mockReturnValue({
       queryType: "vat",
@@ -273,6 +293,75 @@ describe("companyCheckCzInfoWorkflow (unit, mocked SDK)", () => {
     ])
   })
 
+  it("falls back to mapped company list when VAT has no exact match and no group-registration signal", () => {
+    mockParseCompanyInfoInputStep.mockReturnValue({
+      queryType: "vat",
+      requestedVatIdentificationNumber: "CZ12345678",
+      parsedRequestedVat: { countryCode: "CZ", vatNumber: "12345678" },
+      companyIdentificationNumber: null,
+      companyName: null,
+    })
+    mockResolveVatCompanyNameStep.mockReturnValue({
+      companyName: "ACME s.r.o.",
+      isVatValid: false,
+      isGroupRegistration: false,
+    })
+    mockSearchAresSubjectsByNameStep.mockReturnValue([{ ico: "00000001" }])
+    mockVerifySubjectVatsStep.mockReturnValue({
+      "00000001": "CZ00000001",
+      "00000002": "CZ00000002",
+    })
+    mockMapCompanyInfoStep.mockReturnValue([
+      {
+        company_name: "ACME",
+        company_identification_number: "00000001",
+        vat_identification_number: "CZ00000001",
+        street: "",
+        city: "",
+        country_code: "",
+        country: "",
+        postal_code: "",
+      },
+      {
+        company_name: "BETA",
+        company_identification_number: "00000002",
+        vat_identification_number: "CZ00000002",
+        street: "",
+        city: "",
+        country_code: "",
+        country: "",
+        postal_code: "",
+      },
+    ])
+
+    const result = companyCheckCzInfoWorkflow({
+      vat_identification_number: "CZ12345678",
+    })
+
+    expect(result).toEqual([
+      {
+        company_name: "ACME",
+        company_identification_number: "00000001",
+        vat_identification_number: "CZ00000001",
+        street: "",
+        city: "",
+        country_code: "",
+        country: "",
+        postal_code: "",
+      },
+      {
+        company_name: "BETA",
+        company_identification_number: "00000002",
+        vat_identification_number: "CZ00000002",
+        street: "",
+        city: "",
+        country_code: "",
+        country: "",
+        postal_code: "",
+      },
+    ])
+  })
+
   it("throws INVALID_DATA when VAT branch lacks parsed VAT", () => {
     mockParseCompanyInfoInputStep.mockReturnValue({
       queryType: "vat",
@@ -303,5 +392,36 @@ describe("companyCheckCzInfoWorkflow (unit, mocked SDK)", () => {
         company_identification_number: "00000001",
       })
     ).toThrow(MedusaError)
+  })
+
+  it("throws INVALID_DATA when name-search branch resolves to empty company name", () => {
+    mockParseCompanyInfoInputStep.mockReturnValue({
+      queryType: "vat",
+      requestedVatIdentificationNumber: "CZ12345678",
+      parsedRequestedVat: { countryCode: "CZ", vatNumber: "12345678" },
+      companyIdentificationNumber: null,
+      companyName: null,
+    })
+    mockResolveVatCompanyNameStep.mockReturnValue({
+      companyName: "   ",
+      isVatValid: false,
+      isGroupRegistration: false,
+    })
+    whenImpl = (name, state, predicate) => ({
+      then: (cb) => {
+        if (name === "company-check-name-subjects-branch") {
+          return cb()
+        }
+
+        return predicate(state) ? cb() : undefined
+      },
+    })
+
+    expect(() =>
+      companyCheckCzInfoWorkflow({
+        vat_identification_number: "CZ12345678",
+      })
+    ).toThrow("Missing company name for ARES name query")
+    expect(mockSearchAresSubjectsByNameStep).not.toHaveBeenCalled()
   })
 })

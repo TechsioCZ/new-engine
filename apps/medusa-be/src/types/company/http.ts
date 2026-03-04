@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import type { FindParams, PaginatedResponse } from "@medusajs/types"
 import type { ModuleCompanySpendingLimitResetFrequency } from "./module"
 import type { QueryCompany, QueryEmployee } from "./query"

@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 export * from "./create-employees"
 export * from "./delete-employees"
 export * from "./link-employee-to-customer"

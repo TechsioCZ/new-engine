@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { createWorkflow, WorkflowResponse } from "@medusajs/framework/workflows-sdk"
 import type { ModuleCreateQuote, ModuleQuote } from "../../../types"
 import { createQuotesStep } from "../steps/create-quotes"

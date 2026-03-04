@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { CompanyDTO, EmployeeDTO } from "./common"
 
 export interface CreateCompanyDTO

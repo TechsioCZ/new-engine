@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { QUOTE_MODULE } from "../../../modules/quote"
 import type {

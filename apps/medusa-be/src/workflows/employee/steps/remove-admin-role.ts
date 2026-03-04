@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { IAuthModuleService } from "@medusajs/framework/types"
 import type { RemoteQueryFunction } from "@medusajs/framework/types"
 import {

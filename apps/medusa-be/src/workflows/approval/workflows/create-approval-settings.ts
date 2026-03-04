@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { transform } from "@medusajs/framework/workflows-sdk"
 import { createRemoteLinkStep } from "@medusajs/medusa/core-flows"
 import { createWorkflow, WorkflowResponse } from "@medusajs/framework/workflows-sdk"

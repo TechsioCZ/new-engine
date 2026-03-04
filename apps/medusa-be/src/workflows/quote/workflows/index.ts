@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 export * from "./create-quote"
 export * from "./create-quote-message"
 export * from "./create-request-for-quote"

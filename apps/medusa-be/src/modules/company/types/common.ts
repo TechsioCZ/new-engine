@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { CustomerDTO, CustomerGroupDTO } from "@medusajs/framework/types"
 
 export interface CompanyDTO {

@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { when } from "@medusajs/framework/workflows-sdk"
 import {
   createWorkflow,

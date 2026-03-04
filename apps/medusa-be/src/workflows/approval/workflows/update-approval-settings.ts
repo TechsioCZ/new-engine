@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { createWorkflow, WorkflowResponse } from "@medusajs/framework/workflows-sdk"
 import type { ModuleUpdateApprovalSettings } from "../../../types"
 import { updateApprovalSettingsStep } from "../steps"

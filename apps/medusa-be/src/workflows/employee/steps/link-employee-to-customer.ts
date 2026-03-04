@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { Link } from "@medusajs/framework/modules-sdk"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"

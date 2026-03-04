@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { z } from "@medusajs/framework/zod"
 import {
   AresAddressSchema,

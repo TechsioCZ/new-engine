@@ -92,4 +92,9 @@ describe("address-count helpers", () => {
       })
     ).toBeNull()
   })
+
+  it("returns null sidlo filter when standardized address is missing", () => {
+    expect(buildSidloFilterFromStandardizedAddress(null)).toBeNull()
+    expect(buildSidloFilterFromStandardizedAddress(undefined)).toBeNull()
+  })
 })

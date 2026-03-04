@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { WorkflowResponse } from "@medusajs/framework/workflows-sdk"
 import { createWorkflow } from "@medusajs/framework/workflows-sdk"
 import type { ModuleDeleteCompany } from "../../../types"

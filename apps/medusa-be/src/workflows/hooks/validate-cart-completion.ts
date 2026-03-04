@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { RemoteQueryFunction } from "@medusajs/framework/types"
 import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"

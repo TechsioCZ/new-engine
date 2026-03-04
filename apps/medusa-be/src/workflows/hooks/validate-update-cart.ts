@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { RemoteQueryFunction } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"

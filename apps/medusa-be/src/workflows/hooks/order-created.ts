@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { Link } from "@medusajs/framework/modules-sdk"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"

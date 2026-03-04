@@ -161,6 +161,25 @@ describe("resolveAddressCountFilterStep", () => {
     })
   })
 
+  it("falls back to text address when standardization response has no addresses array", async () => {
+    const service = {
+      searchAresStandardizedAddresses: jest.fn().mockResolvedValue({
+        pocetCelkem: 0,
+      }),
+    }
+
+    const result = (await (
+      resolveAddressCountFilterStep as unknown as (
+        input: AddressCountState,
+        context: StepExecutionContextLike
+      ) => Promise<StepResult<unknown>>
+    )(baseState, createStepContext(service))) as StepResult<AddressCountState>
+
+    expect(result.output.sidloFilter).toEqual({
+      textovaAdresa: "Main 10, Prague",
+    })
+  })
+
   it("falls back to text address on INVALID_DATA errors", async () => {
     const service = {
       searchAresStandardizedAddresses: jest.fn().mockRejectedValue(

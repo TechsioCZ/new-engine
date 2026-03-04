@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 /* Entity: Quote */
 
 export type ModuleQuote = {
