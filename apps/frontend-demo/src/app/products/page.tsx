@@ -4,7 +4,7 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import Link from "next/link"
-import { Suspense, useEffect, useMemo, useRef } from "react"
+import { Suspense, useEffect, useRef } from "react"
 import { ProductGridSkeleton } from "@/components/molecules/product-grid-skeleton"
 import { ProductFilters } from "@/components/organisms/product-filters"
 import { ProductGrid } from "@/components/organisms/product-grid"
@@ -34,13 +34,10 @@ function ProductsContent() {
   const pageSize = 12
   const urlFilters = useUrlFilters()
 
-  const productFilters = useMemo(
-    () => ({
-      categories: Array.from(urlFilters.filters.categories).sort() as string[],
-      sizes: Array.from(urlFilters.filters.sizes).sort() as string[],
-    }),
-    [urlFilters.filters.categories, urlFilters.filters.sizes]
-  )
+  const productFilters = {
+    categories: Array.from(urlFilters.filters.categories).sort() as string[],
+    sizes: Array.from(urlFilters.filters.sizes).sort() as string[],
+  }
 
   // Single data path: infinite products powers both pagination and "load more".
   const {

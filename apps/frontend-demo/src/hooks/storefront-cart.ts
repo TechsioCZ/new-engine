@@ -6,6 +6,7 @@ import {
   createMedusaCartService,
   type MedusaCompleteCartResult,
 } from "@techsio/storefront-data/cart/medusa-service"
+import { omitKeys } from "@techsio/storefront-data/shared/object-utils"
 import type {
   AddLineItemInputBase,
   CartQueryKeys,
@@ -48,21 +49,28 @@ type StorefrontUpdateCartInput = UpdateCartInputBase & {
   promo_codes?: string[]
 }
 
+const cartPayloadOmitKeys = [
+  "cartId",
+  "autoCreate",
+  "autoUpdateRegion",
+  "enabled",
+  "country_code",
+  "salesChannelId",
+] as const
+
+const addLineItemPayloadOmitKeys = ["region_id", "variantId"] as const
+
 const sanitizeCartPayload = (
   input: Record<string, unknown>
 ): Record<string, unknown> => {
-  const payload = { ...input }
-  const salesChannelId = payload.salesChannelId
-
-  delete payload.cartId
-  delete payload.autoCreate
-  delete payload.autoUpdateRegion
-  delete payload.enabled
-  delete payload.country_code
-  delete payload.salesChannelId
+  const salesChannelId = input.salesChannelId
+  const payload = omitKeys(input, cartPayloadOmitKeys)
 
   if (typeof salesChannelId === "string" && salesChannelId.length > 0) {
-    payload.sales_channel_id = salesChannelId
+    return {
+      ...payload,
+      sales_channel_id: salesChannelId,
+    }
   }
 
   return payload
@@ -95,12 +103,10 @@ const cartHooks = createCartHooks<
   buildAddParams: (input) => {
     const payload = sanitizeCartPayload(input as Record<string, unknown>)
     const variantId = payload.variantId
-
-    delete payload.region_id
-    delete payload.variantId
+    const normalizedPayload = omitKeys(payload, addLineItemPayloadOmitKeys)
 
     return {
-      ...payload,
+      ...normalizedPayload,
       variant_id: variantId,
     } as HttpTypes.StoreAddCartLineItem
   },

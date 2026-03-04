@@ -59,8 +59,8 @@ export function useCart() {
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
-        title: "Pridano do kosiku",
-        description: "Polozka byla pridana do vaseho kosiku",
+        title: "Přidáno do košíku",
+        description: "Položka byla přidána do vašeho košíku",
         type: "success",
       })
     },
@@ -71,8 +71,8 @@ export function useCart() {
 
       if (errorMessage.toLowerCase().includes("inventory")) {
         toast.create({
-          title: "Vyprodano",
-          description: "Tato varianta produktu neni dostupna v pozadovanem mnozstvi.",
+          title: "Vyprodáno",
+          description: "Tato varianta produktu není dostupná v požadovaném množství.",
           type: "error",
         })
       } else if (
@@ -83,14 +83,14 @@ export function useCart() {
           localStorage.removeItem(STORAGE_KEYS.CART_ID)
         }
         toast.create({
-          title: "Kosik vyprsel",
-          description: "Vas kosik vyprsel. Zkuste to prosim znovu.",
+          title: "Košík vypršel",
+          description: "Váš košík vypršel. Zkuste to prosím znovu.",
           type: "error",
         })
         queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
       } else {
         toast.create({
-          title: "Nepodarilo se pridat polozku",
+          title: "Nepodařilo se přidat položku",
           description: errorMessage,
           type: "error",
         })
@@ -134,7 +134,7 @@ export function useCart() {
     },
     onError: (error) => {
       toast.create({
-        title: "Nepodarilo se aktualizovat mnozstvi",
+        title: "Nepodařilo se aktualizovat množství",
         description: getErrorMessage(error) || "Unknown error",
         type: "error",
       })
@@ -146,14 +146,14 @@ export function useCart() {
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
-        title: "Odebrano z kosiku",
-        description: "Polozka byla odebrana z vaseho kosiku",
+        title: "Odebráno z košíku",
+        description: "Položka byla odebrána z vašeho košíku",
         type: "success",
       })
     },
     onError: (error) => {
       toast.create({
-        title: "Nepodarilo se odebrat polozku",
+        title: "Nepodařilo se odebrat položku",
         description: getErrorMessage(error) || "Unknown error",
         type: "error",
       })
@@ -185,15 +185,15 @@ export function useCart() {
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
-        title: "Kosik vyprazdnen",
-        description: "Vsechny polozky byly odebrany z vaseho kosiku",
+        title: "Košík vyprázdněn",
+        description: "Všechny položky byly odebrány z vašeho košíku",
         type: "success",
       })
     },
     onError: (error) => {
       console.error("[Cart Hook] Clear cart error:", error)
       toast.create({
-        title: "Nepodarilo se vyprazdnit kosik",
+        title: "Nepodařilo se vyprázdnit košík",
         description: getErrorMessage(error) || "Unknown error",
         type: "error",
       })
@@ -205,14 +205,14 @@ export function useCart() {
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
-        title: "Sleva aplikovana",
-        description: "Vas slevovy kod byl aplikovan",
+        title: "Sleva aplikována",
+        description: "Váš slevový kód byl aplikován",
         type: "success",
       })
     },
     onError: (error) => {
       toast.create({
-        title: "Neplatny slevovy kod",
+        title: "Neplatný slevový kód",
         description: getErrorMessage(error) || "Unknown error",
         type: "error",
       })
@@ -258,7 +258,7 @@ export function useCart() {
       if (!cart?.id) {
         toast.create({
           title: "Nelze aplikovat slevu",
-          description: "Nejprve pridejte polozku do kosiku",
+          description: "Nejprve přidejte položku do košíku",
           type: "error",
         })
         return

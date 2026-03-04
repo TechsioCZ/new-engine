@@ -70,12 +70,7 @@ export function useAuth() {
       authHelpers.setError(null)
       setHasAuthToken(true)
       await authQuery.query.refetch()
-
-      if (typeof window !== "undefined") {
-        if (!window.location.pathname.includes("/test-auth")) {
-          router.push("/")
-        }
-      }
+      router.push("/")
 
       toast.create({
         ...AUTH_MESSAGES.LOGIN_SUCCESS,
@@ -99,12 +94,7 @@ export function useAuth() {
       authHelpers.setError(null)
       setHasAuthToken(true)
       await authQuery.query.refetch()
-
-      if (typeof window !== "undefined") {
-        if (!window.location.pathname.includes("/test-auth")) {
-          router.push("/")
-        }
-      }
+      router.push("/")
 
       toast.create({
         ...AUTH_MESSAGES.REGISTER_SUCCESS,

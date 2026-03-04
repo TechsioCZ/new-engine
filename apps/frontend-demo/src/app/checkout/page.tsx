@@ -72,18 +72,18 @@ export default function CheckoutPage() {
       <div className="container mx-auto max-w-[52rem] px-4 py-10 sm:px-6 lg:px-8">
         <div className="rounded-lg border border-border bg-surface p-6 text-center">
           <h1 className="font-semibold text-2xl text-fg-primary">
-            Kosik je prazdny
+            Košík je prázdný
           </h1>
           <p className="mt-2 text-fg-secondary text-sm">
-            Presmerovavame vas zpet do kosiku. Pokud se to nestane automaticky,
-            pokracujte tlacitkem nize.
+            Přesměrováváme vás zpět do košíku. Pokud se to nestane automaticky,
+            pokračujte tlačítkem níže.
           </p>
           <div className="mt-5">
             <Link
               className="inline-flex items-center rounded-md border border-border px-4 py-2 font-medium text-sm hover:bg-surface-hover"
               href="/cart"
             >
-              Prejit do kosiku
+              Přejít do košíku
             </Link>
           </div>
         </div>
