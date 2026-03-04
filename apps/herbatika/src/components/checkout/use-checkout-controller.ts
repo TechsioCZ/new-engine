@@ -41,6 +41,8 @@ export function useCheckoutController() {
 
   const updateCartAddressMutation = useUpdateCartAddress();
   const completeCartMutation = useCompleteCart({ clearCartOnSuccess: true });
+  const isUpdatingCartAddress = updateCartAddressMutation.isPending;
+  const mutateCartAddress = updateCartAddressMutation.mutate;
 
   const checkoutShippingQuery = useCheckoutShipping({
     cartId: cartQuery.cart?.id,
@@ -56,6 +58,35 @@ export function useCheckoutController() {
     regionId: activeRegionId,
     enabled: Boolean(activeRegionId),
   });
+
+  useEffect(() => {
+    const cartId = cartQuery.cart?.id;
+    const regionCountryCode = region?.country_code?.toLowerCase();
+    const cartCountryCode =
+      cartQuery.cart?.shipping_address?.country_code?.toLowerCase() ?? null;
+
+    if (!cartId || !regionCountryCode) {
+      return;
+    }
+
+    // Keep existing customer-entered country intact; only backfill missing value
+    // so Medusa can calculate taxes in cart/checkout summary.
+    if (cartCountryCode || isUpdatingCartAddress) {
+      return;
+    }
+
+    mutateCartAddress({
+      cartId,
+      shippingAddress: { country_code: regionCountryCode },
+      useSameAddress: true,
+    });
+  }, [
+    cartQuery.cart?.id,
+    cartQuery.cart?.shipping_address?.country_code,
+    region?.country_code,
+    isUpdatingCartAddress,
+    mutateCartAddress,
+  ]);
 
   useEffect(() => {
     if (!activeRegionId) {

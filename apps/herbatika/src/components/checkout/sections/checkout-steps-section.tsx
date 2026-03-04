@@ -11,7 +11,7 @@ export function CheckoutStepsSection({
   steps,
 }: CheckoutStepsSectionProps) {
   return (
-    <section className="flex w-full justify-center">
+    <section className="flex w-full justify-center max-w-max-w mx-auto">
       <div className="flex min-h-850 w-full max-w-auth-content items-center justify-center rounded-xl bg-surface px-400">
         <ol className="flex w-full items-center justify-center gap-100 overflow-x-auto" role="list">
           {steps.map((step, index) => {

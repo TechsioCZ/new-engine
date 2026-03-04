@@ -1,4 +1,5 @@
 export * from "./create-fulfillment-set"
+export * from "./ensure-price-preferences"
 export * from "./create-inventory-levels"
 export * from "./create-product-categories"
 export * from "./create-products"

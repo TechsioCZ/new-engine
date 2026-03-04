@@ -153,11 +153,8 @@ export const resolveCartTotalWithoutTaxAmount = (
     return 0;
   }
 
-  const total = asFiniteNumber(cart.total);
-  if (total !== null) {
-    return Math.max(total - resolveCartTaxAmount(cart), 0);
-  }
-
+  // `resolveCartSubtotalAmount` already resolves the pre-tax subtotal from the
+  // best available cart fields (or derives it from total-tax fallback).
   return resolveCartSubtotalAmount(cart);
 };
 

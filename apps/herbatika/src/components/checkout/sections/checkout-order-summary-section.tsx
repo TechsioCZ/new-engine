@@ -30,78 +30,78 @@ export function CheckoutOrderSummarySection({
   selectedOptionName,
   selectedShippingPrice,
 }: CheckoutOrderSummarySectionProps) {
-  const detailsFontClass = detailsFont === "inter" ? "font-inter" : "";
+  const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik";
 
   return (
-    <section className="space-y-250 rounded-sm border border-border-primary bg-surface p-550">
-      <header className="flex items-center justify-between gap-200">
+    <section className={`space-y-300 rounded-sm p-550 ${detailsFontClass}`}>
+      <header>
         <h2 className="text-xl font-medium text-fg-primary">{`Váš košík (${cartItems.length})`}</h2>
-        <span className="rounded-full bg-primary px-200 py-100 text-xs font-medium text-fg-reverse">
-          Aktívny
-        </span>
       </header>
 
-      <div className={`space-y-250 ${detailsFontClass}`}>
-        {cartItems.length > 0 ? cartItems.map((item) => {
-          const itemName = resolveCartItemName(item);
-          const itemQuantity = item.quantity ?? 0;
-          const itemPrice = formatCurrencyAmount(
-            resolveLineItemTotalAmount(item),
-            currencyCode,
-          );
-          const itemThumbnail =
-            typeof item.thumbnail === "string" && item.thumbnail.length > 0
-              ? item.thumbnail
-              : "/file.svg";
+      <div className="space-y-250">
+        {cartItems.length > 0 ? (
+          cartItems.map((item, index) => {
+            const itemName = resolveCartItemName(item);
+            const itemQuantity = item.quantity ?? 0;
+            const itemPrice = formatCurrencyAmount(
+              resolveLineItemTotalAmount(item),
+              currencyCode,
+            );
+            const itemThumbnail =
+              typeof item.thumbnail === "string" && item.thumbnail.length > 0
+                ? item.thumbnail
+                : "/file.svg";
+            const hasDivider = index < cartItems.length - 1;
 
-          return (
-            <article
-              className="flex gap-300 rounded-sm border border-border-primary bg-surface p-250"
-              key={item.id}
-            >
-              <Image
-                alt={itemName}
-                className="h-850 w-850 shrink-0 rounded-sm border border-border-secondary object-cover"
-                src={itemThumbnail}
-              />
-              <div className="min-w-0 flex-1 space-y-100">
-                <p className="line-clamp-2 text-sm font-medium text-fg-primary">{itemName}</p>
-                <div className="flex items-center justify-between gap-150">
+            return (
+              <article
+                className={`flex items-start gap-300 pb-250 ${
+                  hasDivider ? "border-b border-border-secondary" : ""
+                }`}
+                key={item.id}
+              >
+                <Image
+                  alt={itemName}
+                  className="h-850 w-850 shrink-0 rounded-sm border border-border-secondary object-cover"
+                  src={itemThumbnail}
+                />
+                <div className="min-w-0 flex-1 space-y-100">
+                  <p className="line-clamp-2 text-md font-medium text-fg-primary">{itemName}</p>
                   <ExtraText className="text-fg-secondary">{`× ${itemQuantity}`}</ExtraText>
-                  <p className="text-sm font-semibold text-fg-primary">{itemPrice}</p>
                 </div>
-              </div>
-            </article>
-          );
-        }) : (
+                <p className="shrink-0 text-lg font-semibold text-fg-primary">{itemPrice}</p>
+              </article>
+            );
+          })
+        ) : (
           <ExtraText className="text-fg-secondary">
             Košík je zatiaľ prázdny.
           </ExtraText>
         )}
       </div>
 
-      <div className={`space-y-150 border-t border-border-primary pt-250 ${detailsFontClass}`}>
+      <div className="space-y-150 border-y border-border-primary py-250">
         <div className="flex items-center justify-between gap-200">
           <ExtraText className="text-fg-secondary">Medzisúčet</ExtraText>
-          <p className="text-sm font-semibold text-fg-primary">
+          <p className="text-md font-medium text-fg-primary">
             {formatCurrencyAmount(cartSubtotalAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between gap-200">
           <ExtraText className="text-fg-secondary">Doprava</ExtraText>
-          <p className="text-sm font-semibold text-fg-primary">
+          <p className="text-md font-medium text-fg-primary">
             {formatCurrencyAmount(selectedShippingPrice, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between gap-200 border-t border-border-primary pt-150">
-          <p className="text-sm font-semibold text-fg-primary">Celkom</p>
-          <p className="text-lg font-bold text-fg-primary">
+          <p className="text-md font-semibold text-fg-primary">Celkom</p>
+          <p className="text-2xl font-bold text-fg-primary">
             {formatCurrencyAmount(cartTotalAmount, currencyCode)}
           </p>
         </div>
       </div>
 
-      <div className={`space-y-100 border-t border-border-secondary pt-200 text-xs text-fg-secondary ${detailsFontClass}`}>
+      <div className="space-y-100 text-sm text-fg-secondary">
         <p>{hasShipping ? `Doprava: ${selectedOptionName ?? "Zvolená"}` : "Doprava: nevybraná"}</p>
         <p>{hasPayment ? "Platba: vybraná" : "Platba: nevybraná"}</p>
       </div>

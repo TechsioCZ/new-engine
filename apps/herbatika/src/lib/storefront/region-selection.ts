@@ -5,9 +5,26 @@ const DEFAULT_COUNTRY_CODE = "sk";
 const PREFERRED_COUNTRY_CODES = ["sk", "at", "cz"] as const;
 const PREFERRED_CURRENCIES = ["eur", "czk"] as const;
 
+const resolveRegionCountryCodes = (
+  region: HttpTypes.StoreRegion,
+): string[] => {
+  return (
+    region.countries
+      ?.map((country) => country.iso_2?.toLowerCase())
+      .filter((countryCode): countryCode is string => Boolean(countryCode)) ?? []
+  );
+};
+
 export const resolveCountryCode = (region: HttpTypes.StoreRegion): string => {
-  const firstCountry = region.countries?.[0]?.iso_2?.toLowerCase();
-  return firstCountry ?? DEFAULT_COUNTRY_CODE;
+  const countryCodes = resolveRegionCountryCodes(region);
+
+  for (const preferredCountryCode of PREFERRED_COUNTRY_CODES) {
+    if (countryCodes.includes(preferredCountryCode)) {
+      return preferredCountryCode;
+    }
+  }
+
+  return countryCodes[0] ?? DEFAULT_COUNTRY_CODE;
 };
 
 export const toRegionInfo = (region: HttpTypes.StoreRegion): RegionInfo => {
@@ -26,8 +43,7 @@ export const pickDefaultRegion = (
 
   for (const preferredCountryCode of PREFERRED_COUNTRY_CODES) {
     const byCountry = regions.find((region) => {
-      const regionCountryCodes =
-        region.countries?.map((country) => country.iso_2?.toLowerCase()) ?? [];
+      const regionCountryCodes = resolveRegionCountryCodes(region);
 
       return regionCountryCodes.includes(preferredCountryCode);
     });

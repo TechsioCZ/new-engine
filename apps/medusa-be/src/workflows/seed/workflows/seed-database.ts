@@ -56,6 +56,23 @@ const seedDatabaseWorkflow = createWorkflow(
     // create regions
     const createRegionsResult = Steps.createRegionsStep(input.regions)
 
+    const ensurePricePreferencesStepInput: Steps.EnsurePricePreferencesStepInput =
+      transform(
+        {
+          createRegionsResult,
+          input,
+        },
+        (data) => ({
+          regionIds: data.createRegionsResult.result.map((region) => region.id),
+          currencyCodes: data.input.currencies.map((currency) => currency.code),
+          isTaxInclusive: true,
+        })
+      )
+
+    const ensurePricePreferencesResult = Steps.ensurePricePreferencesStep(
+      ensurePricePreferencesStepInput
+    )
+
     // create tax regions
     const createTaxRegionsResult = Steps.createTaxRegionsStep(input.taxRegions)
 
@@ -288,6 +305,7 @@ const seedDatabaseWorkflow = createWorkflow(
       salesChannelsResult,
       updateStoreCurrenciesResult,
       createRegionsResult,
+      ensurePricePreferencesResult,
       createTaxRegionsResult,
       createStockLocationResult,
       linkStockLocationsFulfillmentProviderResult,

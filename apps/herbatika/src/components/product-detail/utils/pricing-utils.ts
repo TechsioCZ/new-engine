@@ -7,6 +7,32 @@ import type {
 } from "@/components/product-detail/product-detail.types";
 import { asNumber, asRecord } from "@/components/product-detail/utils/value-utils";
 
+const resolveAmountWithoutTax = (params: {
+  amountWithTax: number | null;
+  amountWithoutTax: number | null;
+  vatRate: number | null;
+}): number | null => {
+  const { amountWithTax, amountWithoutTax, vatRate } = params;
+
+  if (
+    typeof amountWithoutTax === "number" &&
+    amountWithoutTax > 0 &&
+    (typeof amountWithTax !== "number" || amountWithoutTax <= amountWithTax)
+  ) {
+    return amountWithoutTax;
+  }
+
+  if (
+    typeof amountWithTax === "number" &&
+    typeof vatRate === "number" &&
+    vatRate > 0
+  ) {
+    return amountWithTax / (1 + vatRate / 100);
+  }
+
+  return null;
+};
+
 export const resolvePriceState = (
   product: StorefrontProduct,
   selectedVariantId: string | null,
@@ -30,12 +56,24 @@ export const resolvePriceState = (
 
   const resolvedCalculatedAmount =
     typeof calculatedAmount === "number" ? calculatedAmount : fallbackCalculatedAmount;
+  const vatRate = asNumber(selectedVariantMetadata?.vat);
+  const explicitCalculatedAmountWithoutTax =
+    typeof calculatedPrice?.calculated_amount_without_tax === "number"
+      ? calculatedPrice.calculated_amount_without_tax
+      : null;
+  const resolvedCalculatedAmountWithoutTax = resolveAmountWithoutTax({
+    amountWithTax:
+      typeof resolvedCalculatedAmount === "number" ? resolvedCalculatedAmount : null,
+    amountWithoutTax: explicitCalculatedAmountWithoutTax,
+    vatRate,
+  });
 
   if (typeof resolvedCalculatedAmount !== "number") {
     return {
       currentLabel: "Cena na vyžiadanie",
       originalLabel: null,
       currentAmount: null,
+      currentAmountWithoutTax: null,
       originalAmount: null,
       currencyCode: currencyCode.toUpperCase(),
     };
@@ -55,6 +93,10 @@ export const resolvePriceState = (
         ? formatCurrencyAmount(normalizedOriginalAmount, currencyCode)
         : null,
     currentAmount: resolvedCalculatedAmount,
+    currentAmountWithoutTax:
+      typeof resolvedCalculatedAmountWithoutTax === "number"
+        ? resolvedCalculatedAmountWithoutTax
+        : null,
     originalAmount: normalizedOriginalAmount,
     currencyCode: currencyCode.toUpperCase(),
   };
@@ -116,19 +158,25 @@ export const resolveVipCreditLabel = (
 
 export const resolveUnitPriceLabel = (params: {
   currentAmount: number | null;
+  currentAmountWithoutTax: number | null;
   currencyCode: string;
   unitLabel: string | null;
   vatRate: number | null;
 }): string | null => {
-  const { currentAmount, currencyCode, unitLabel, vatRate } = params;
+  const { currentAmount, currentAmountWithoutTax, currencyCode, unitLabel, vatRate } = params;
 
   if (typeof currentAmount !== "number" || !unitLabel) {
     return null;
   }
 
-  if (typeof vatRate === "number" && vatRate > 0) {
-    const withoutTaxAmount = currentAmount / (1 + vatRate / 100);
-    return `bez DPH: ${formatCurrencyAmount(withoutTaxAmount, currencyCode)} / ${unitLabel}`;
+  const resolvedAmountWithoutTax = resolveAmountWithoutTax({
+    amountWithTax: currentAmount,
+    amountWithoutTax: currentAmountWithoutTax,
+    vatRate,
+  });
+
+  if (typeof resolvedAmountWithoutTax === "number") {
+    return `bez DPH: ${formatCurrencyAmount(resolvedAmountWithoutTax, currencyCode)} / ${unitLabel}`;
   }
 
   return `${formatCurrencyAmount(currentAmount, currencyCode)} / ${unitLabel}`;

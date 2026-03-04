@@ -31,7 +31,7 @@ export function CheckoutStepContent({
       ? resolveProviderLabel(selectedPaymentProviderId)
       : undefined;
   const orderSummaryDetailsFont = activeStep === "kosik" ? "rubik" : "inter";
-  const stepLayoutClassName = "grid gap-700 xl:grid-cols-12 xl:items-start";
+  const stepLayoutClassName = "grid w-full gap-700 xl:grid-cols-12 xl:items-start";
   const stepMainClassName = "space-y-350 xl:col-span-7";
   const stepAsideClassName = "space-y-300 xl:col-span-5 xl:sticky xl:top-400 xl:self-start";
 

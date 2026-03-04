@@ -140,6 +140,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   );
 
   const currentAmount = productPrice?.currentAmount ?? offerState.currentAmount;
+  const currentAmountWithoutTax = productPrice?.currentAmountWithoutTax ?? null;
   const currentAmountLabel = productPrice?.currentLabel ?? "Cena na vyžiadanie";
   const currentCurrencyCode = productPrice?.currencyCode ?? "EUR";
 
@@ -170,11 +171,18 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
     return resolveUnitPriceLabel({
       currentAmount,
+      currentAmountWithoutTax,
       currencyCode: currentCurrencyCode,
       unitLabel: offerState.unitLabel,
       vatRate,
     });
-  }, [currentAmount, currentCurrencyCode, offerState.offerSource, offerState.unitLabel]);
+  }, [
+    currentAmount,
+    currentAmountWithoutTax,
+    currentCurrencyCode,
+    offerState.offerSource,
+    offerState.unitLabel,
+  ]);
 
   const volumeDiscountOptions = useMemo(
     () => resolveVolumeDiscountOptions(currentAmount, currentCurrencyCode),

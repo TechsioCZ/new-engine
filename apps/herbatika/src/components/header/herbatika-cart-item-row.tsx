@@ -2,7 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { Image } from "@techsio/ui-kit/atoms/image";
+import Image from "next/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
 import NextLink from "next/link";
@@ -81,10 +81,12 @@ export function CartItemRow({
   };
 
   return (
-    <article className="flex items-start gap-200">
+    <article className="grid grid-cols-[auto_1fr_auto] items-start gap-200">
       <Image
         alt={itemName}
-        className="size-850 rounded-md border border-border-secondary object-cover"
+        width={60}
+        height={60}
+        className="rounded-md h-10 w-10 border border-border-secondary object-cover"
         src={resolveLineItemThumbnail(item)}
       />
 
@@ -108,7 +110,7 @@ export function CartItemRow({
         ) : null}
       </div>
 
-      <div className="ml-auto flex items-start gap-150">
+      <div className="ml-auto flex items-center gap-150">
         <NumericInput
           allowOverflow={false}
           className="h-750 gap-0 border-collapse"

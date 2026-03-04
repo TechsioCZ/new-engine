@@ -2000,7 +2000,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
           currencyCode: region.currency_code?.toLowerCase() || "eur",
           countries: undefined,
           paymentProviders: undefined,
-          isTaxInclusive: (region as { is_tax_inclusive?: boolean }).is_tax_inclusive ?? true,
+          isTaxInclusive: true,
         }))
 
   if (existingRegions.length > 0) {

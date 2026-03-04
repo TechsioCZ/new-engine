@@ -11,6 +11,7 @@ export type ProductPriceState = {
   currentLabel: string;
   originalLabel: string | null;
   currentAmount: number | null;
+  currentAmountWithoutTax: number | null;
   originalAmount: number | null;
   currencyCode: string;
 };

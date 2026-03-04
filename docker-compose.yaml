@@ -51,7 +51,7 @@ services:
     volumes:
       - .:/var/www
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/app"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
       start_period: 10s
       interval: 30s
   medusa-valkey:
