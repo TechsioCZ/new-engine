@@ -3,11 +3,12 @@
 import type { HttpTypes } from "@medusajs/types"
 import { createProductHooks } from "@techsio/storefront-data/products/hooks"
 import { createMedusaProductService, type MedusaProductDetailInput } from "@techsio/storefront-data/products/medusa-service"
-import type { ProductQueryKeys } from "@techsio/storefront-data/products/types"
+import type { ProductQueryKeys, ProductService } from "@techsio/storefront-data/products/types"
 import type { CacheConfig } from "@techsio/storefront-data/shared/cache-config"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import { sdk } from "@/lib/medusa-client"
+import { tryGetProductsFromSearchStrategies } from "@/services/product-search"
 import type { Product } from "@/types/product"
 import type { ProductFilters, ProductListParams } from "@/types/product-query"
 import { buildMedusaQuery } from "@/utils/server-filters"
@@ -53,6 +54,7 @@ const DETAIL_FIELDS = [
 ].join(",")
 
 export const DEFAULT_PRODUCT_PAGE_SIZE = 20
+const DEFAULT_COUNTRY_CODE = "cz"
 
 export type StorefrontProductListParams = ProductListParams & {
   limit: number
@@ -229,7 +231,7 @@ const storefrontProductCacheConfig: CacheConfig = {
   userData: cacheConfig.user,
 }
 
-export const storefrontProductService = createMedusaProductService<
+const baseStorefrontProductService = createMedusaProductService<
   Product,
   StorefrontProductListParams,
   StorefrontProductDetailParams
@@ -280,6 +282,75 @@ export const storefrontProductService = createMedusaProductService<
   transformListProduct: (product) => transformProduct(product),
   transformDetailProduct: (product) => transformProduct(product),
 })
+
+const getProductsWithSearchStrategies = async (
+  params: StorefrontProductListParams,
+  signal?: AbortSignal
+) => {
+  const normalizedCountryCode =
+    normalizeCountryCode(params.country_code) ?? DEFAULT_COUNTRY_CODE
+
+  let searchStrategyResponse: Awaited<
+    ReturnType<typeof tryGetProductsFromSearchStrategies>
+  > = null
+
+  try {
+    searchStrategyResponse = await tryGetProductsFromSearchStrategies({
+      limit: params.limit,
+      offset: params.offset,
+      fields: params.fields ?? LIST_FIELDS,
+      filters: params.filters,
+      category: params.category,
+      sort: params.sort,
+      q: params.q,
+      region_id: params.region_id,
+      country_code: normalizedCountryCode,
+      signal,
+    })
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw error
+    }
+
+    console.warn(
+      "[ProductService] Search strategy failed unexpectedly, falling back to Medusa listing:",
+      error
+    )
+  }
+
+  if (searchStrategyResponse) {
+    const products = searchStrategyResponse.products.map((product) =>
+      transformProduct(product)
+    )
+
+    return {
+      products,
+      count: searchStrategyResponse.count || products.length,
+      limit: searchStrategyResponse.limit ?? params.limit,
+      offset: searchStrategyResponse.offset ?? params.offset,
+    }
+  }
+
+  return await baseStorefrontProductService.getProducts(
+    {
+      ...params,
+      country_code: normalizedCountryCode,
+    },
+    signal
+  )
+}
+
+export const storefrontProductService: ProductService<
+  Product,
+  StorefrontProductListParams,
+  StorefrontProductDetailParams
+> = {
+  getProducts: (params, signal) => getProductsWithSearchStrategies(params, signal),
+  getProductsGlobal: (params, signal) =>
+    getProductsWithSearchStrategies(params, signal),
+  getProductByHandle: (params, signal) =>
+    baseStorefrontProductService.getProductByHandle(params, signal),
+}
 
 export const buildStorefrontProductListParams = (
   input: StorefrontProductListInput

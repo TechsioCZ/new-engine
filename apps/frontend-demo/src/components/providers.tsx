@@ -5,6 +5,7 @@ import { RegionProvider } from "@techsio/storefront-data/shared/region-context"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { ThemeProvider } from "next-themes"
+import { NuqsAdapter } from "nuqs/adapters/next/app"
 import type { PropsWithChildren } from "react"
 import { useRegions } from "@/hooks/use-region"
 import { resolveRegionCountryCode } from "@/lib/region-utils"
@@ -25,19 +26,21 @@ function StorefrontRegionBoundary({ children }: PropsWithChildren) {
 
 export function Providers({ children }: PropsWithChildren) {
   return (
-    <StorefrontDataProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        disableTransitionOnChange
-        enableSystem
-      >
-        <StorefrontRegionBoundary>
-          <CartPrefetch />
-          {children}
-        </StorefrontRegionBoundary>
-        <Toaster />
-      </ThemeProvider>
-    </StorefrontDataProvider>
+    <NuqsAdapter>
+      <StorefrontDataProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          disableTransitionOnChange
+          enableSystem
+        >
+          <StorefrontRegionBoundary>
+            <CartPrefetch />
+            {children}
+          </StorefrontRegionBoundary>
+          <Toaster />
+        </ThemeProvider>
+      </StorefrontDataProvider>
+    </NuqsAdapter>
   )
 }
