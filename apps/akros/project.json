@@ -1,0 +1,7 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "akros",
+  "projectType": "application",
+  "sourceRoot": "apps/akros/src",
+  "tags": ["type:app", "platform:web", "framework:next"]
+}

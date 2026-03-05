@@ -1,0 +1,14 @@
+@theme static {
+  --font-weight-badge: var(--font-weight-medium);
+  --text-badge-size: var(--text-sm);
+  --radius-badge: var(--radius-full);
+
+  --color-badge-bg-warning: var(--color-primary);
+  --color-badge-fg-warning: var(--color-fg-primary);
+
+  --color-badge-bg-info: #152055;
+  --color-badge-fg-info: var(--color-fg-reverse);
+
+  --color-badge-fg-danger: var(--color-fg-reverse);
+
+}

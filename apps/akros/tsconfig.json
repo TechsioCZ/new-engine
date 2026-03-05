@@ -1,0 +1,43 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@ui/*": ["../../libs/ui/src/*"],
+      "@techsio/storefront-data": [
+        "../../libs/storefront-data/src/client/provider.tsx"
+      ],
+      "@techsio/storefront-data/*": ["../../libs/storefront-data/src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../../libs/ui/src/**/*.ts",
+    "../../libs/ui/src/**/*.tsx",
+    "../../libs/storefront-data/src/**/*.ts",
+    "../../libs/storefront-data/src/**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", "local", "local/**/*", ".next", "dist"]
+}

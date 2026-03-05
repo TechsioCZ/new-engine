@@ -1,0 +1,14 @@
+@theme static {
+  --color-select-trigger-border-focus: var(--color-border-primary);
+  --color-select-trigger-bg-hover: var(--color-overlay);
+
+  --color-select-content-border: var(--color-border-secondary);
+
+  --color-select-item-bg-hover: var(--color-overlay);
+  --color-select-item-bg-selected: var(--color-base);
+  --color-select-item-selected-fg: var(--color-fg-primary);
+
+  --color-select-placeholder: --alpha(var(--color-fg-placeholder) / 100%);
+
+  --padding-select-trigger: var(--spacing-150);
+}

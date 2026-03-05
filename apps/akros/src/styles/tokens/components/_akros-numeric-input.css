@@ -1,0 +1,14 @@
+@theme static {
+  --color-numeric-input-border: var(--color-border-secondary);
+  --color-numeric-input-fg: var(--color-fg-primary);
+
+  --color-numeric-input-input-bg-hover: var(--color-overlay);
+  --color-numeric-input-input-bg-focus: var(--color-overlay);
+
+  --color-numeric-input-trigger-bg: var(--color-base);
+  --color-numeric-input-trigger-bg-hover: var(--color-overlay);
+  --color-numeric-input-trigger-fg: var(--color-fg-primary);
+  --color-numeric-input-trigger-fg-hover: var(--color-fg-primary);
+
+  --border-width-numeric-input: var(--border-width-sm);
+}

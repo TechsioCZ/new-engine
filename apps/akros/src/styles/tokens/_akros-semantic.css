@@ -1,0 +1,49 @@
+@theme static {
+  --color-akros-black: #1c1c1a;
+  --color-akros-gray-700: #535353;
+  --color-akros-gray-500: #6c757d;
+  --color-akros-gray-400: #a8a8a8;
+  --color-akros-gray-300: #eeeeee;
+  --color-akros-gray-200: #f3f3f3;
+  --color-akros-gray-100: #f8f9fa;
+  --color-akros-white: #ffffff;
+
+  --color-akros-yellow: #fdc533;
+  --color-akros-yellow-strong: #ffd400;
+
+  --color-akros-success: #28a745;
+  --color-akros-danger: #e30400;
+  --color-akros-info: #0b8bc0;
+
+  --color-primary: var(--color-akros-yellow);
+  --color-secondary: var(--color-akros-black);
+  --color-tertiary: var(--color-akros-info);
+  --color-success: var(--color-akros-success);
+  --color-info: var(--color-akros-info);
+  --color-warning: var(--color-akros-yellow-strong);
+  --color-danger: var(--color-akros-danger);
+
+  --color-fg-light: var(--color-akros-black);
+  --color-fg-dark: var(--color-akros-white);
+  --color-fg-primary: var(--color-akros-black);
+  --color-fg-secondary: var(--color-akros-gray-700);
+  --color-fg-placeholder: var(--color-akros-gray-400);
+  --color-fg-reverse: var(--color-akros-white);
+
+  --color-base-light: var(--color-akros-gray-200);
+  --color-base-dark: var(--color-akros-black);
+  --color-base: var(--color-akros-gray-200);
+  --color-surface: var(--color-akros-white);
+  --color-overlay: var(--color-akros-gray-100);
+  --color-float: var(--color-akros-white);
+  --color-highlight: var(--color-akros-gray-300);
+
+  --color-border-primary: var(--color-akros-black);
+  --color-border-secondary: var(--color-akros-gray-300);
+
+  --color-link: var(--color-akros-black);
+
+  --color-bg-disabled: var(--color-akros-gray-100);
+  --color-fg-disabled: var(--color-akros-gray-400);
+  --color-border-disabled: var(--color-akros-gray-300);
+}

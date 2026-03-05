@@ -1,0 +1,20 @@
+{
+  "scanDirectories": ["src"],
+  "fileExtensions": [".ts", ".tsx"],
+  "exclude": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/.git/**",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+  "thresholds": {
+    "warning": 181,
+    "error": 261
+  },
+  "allowlist": []
+}

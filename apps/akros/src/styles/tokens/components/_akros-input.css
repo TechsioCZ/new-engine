@@ -1,0 +1,10 @@
+@theme static {
+  --color-input: var(--color-surface);
+  --color-input-border-hover: var(--color-border-primary);
+  --color-input-border-focus: var(--color-border-primary);
+  --radius-input: var(--radius-sm);
+
+  --padding-input-sm: var(--spacing-100) var(--spacing-200);
+  --padding-input-md: var(--spacing-150) var(--spacing-250);
+  --padding-input-lg: var(--spacing-200) var(--spacing-300);
+}

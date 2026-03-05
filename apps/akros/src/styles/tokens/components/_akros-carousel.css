@@ -1,0 +1,18 @@
+@theme static {
+  --color-carousel-trigger-bg: transparent;
+  --color-carousel-trigger-bg-hover: transparent;
+  --color-carousel-trigger-fg: var(--color-fg-reverse);
+  --color-carousel-trigger-fg-hover: var(--color-fg-reverse);
+
+  --color-carousel-control-bg: transparent;
+
+  --color-carousel-indicator-bg: --alpha(var(--color-fg-reverse) / 50%);
+  --color-carousel-indicator-bg-active: var(--color-fg-reverse);
+
+  --width-carousel-indicator: 1.5rem;
+  --gap-carousel-indicator: var(--spacing-200);
+
+  --radius-carousel: var(--radius-md);
+
+  --spacing-carousel-root-md: 100%;
+}

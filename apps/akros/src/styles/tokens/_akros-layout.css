@@ -1,0 +1,9 @@
+@theme static {
+  --container-max-w: 103.75rem; /* 1660px */
+  --container-header-search: 56.4375rem; /* 903px */
+  --container-product-detail: 83rem; /* 1328px */
+  --container-product-content: 85rem; /* 1360px */
+
+  --container-checkout-main: 70rem;
+  --container-checkout-sidebar: 22rem;
+}

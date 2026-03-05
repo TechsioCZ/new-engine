@@ -1,0 +1,21 @@
+@theme static {
+  --spacing-50: 0.125rem; /* 2px */
+  --spacing-100: 0.25rem; /* 4px */
+  --spacing-150: 0.375rem; /* 6px */
+  --spacing-200: 0.5rem; /* 8px */
+  --spacing-250: 0.625rem; /* 10px */
+  --spacing-300: 0.75rem; /* 12px */
+  --spacing-350: 0.875rem; /* 14px */
+  --spacing-400: 1rem; /* 16px */
+  --spacing-450: 1.125rem; /* 18px */
+  --spacing-500: 1.25rem; /* 20px */
+  --spacing-550: 1.5rem; /* 24px */
+  --spacing-600: 1.75rem; /* 28px */
+  --spacing-650: 2rem; /* 32px */
+  --spacing-700: 2.5rem; /* 40px */
+  --spacing-750: 3.5rem; /* 56px */
+  --spacing-800: 4.75rem; /* 76px */
+  --spacing-850: 6.25rem; /* 100px */
+  --spacing-900: 8.125rem; /* 130px */
+  --spacing-950: 10rem;
+}

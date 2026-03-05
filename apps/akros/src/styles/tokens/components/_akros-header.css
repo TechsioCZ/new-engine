@@ -1,0 +1,16 @@
+@theme static {
+  --color-header-nav-fg: var(--color-fg-primary);
+  --color-header-nav-fg-hover: var(--color-primary);
+  --color-header-nav-fg-active: var(--color-fg-primary);
+
+  --color-header-actions-fg: var(--color-fg-primary);
+  --color-header-actions-fg-hover: var(--color-primary);
+
+  --font-weight-header-nav-active: var(--font-weight-bold);
+
+  --padding-header-item-md: var(--spacing-200);
+
+  --color-header-hamburger-fg-hover: var(--color-primary);
+
+  --container-header-desktop: var(--container-max-w);
+}

@@ -1,0 +1,16 @@
+@theme static {
+  --color-button-secondary: var(--color-fg-primary);
+  --color-button-tertiary: var(--color-overlay);
+
+  --color-button-fg-primary: var(--color-fg-primary);
+  --color-button-fg-secondary: var(--color-fg-reverse);
+  --color-button-fg-tertiary: var(--color-fg-primary);
+
+  --color-button-border-secondary: var(--color-border-primary);
+
+  --padding-button-sm: var(--spacing-100) var(--spacing-250);
+  --padding-button-md: var(--spacing-150) var(--spacing-350);
+  --padding-button-lg: var(--spacing-200) var(--spacing-400);
+
+  --radius-button-lg: var(--radius-md);
+}

@@ -1,0 +1,13 @@
+[build]
+  base = "apps/akros"
+  command = "pnpm build"
+  publish = "apps/akros/.next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  included_files = ["!node_modules/@swc/**", "!node_modules/@rspack/**"]

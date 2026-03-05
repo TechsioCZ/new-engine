@@ -1,0 +1,23 @@
+@utility token-icon-user {
+  @apply icon-[mdi--account-outline];
+}
+
+@utility token-icon-search {
+  @apply icon-[mdi--magnify];
+}
+
+@utility token-icon-heart {
+  @apply icon-[mdi--heart-outline];
+}
+
+@utility token-icon-cart {
+  @apply icon-[mdi--cart-outline];
+}
+
+@utility token-icon-phone {
+  @apply icon-[mdi--phone-outline];
+}
+
+@utility token-icon-email {
+  @apply icon-[mdi--email-outline];
+}

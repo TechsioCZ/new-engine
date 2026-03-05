@@ -1,0 +1,58 @@
+{
+  "name": "akros",
+  "version": "0.1.0",
+  "private": true,
+  "nx": {
+    "tags": [
+      "type:app",
+      "platform:web",
+      "framework:next"
+    ]
+  },
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start",
+    "audit:storefront-monitor": "node scripts/audit-storefront-monitor.mjs",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "validate:token-usage": "node scripts/validate-token-usage.mjs",
+    "validate:token-usage:json": "node scripts/validate-token-usage.mjs --json",
+    "validate:ui-primitives": "node scripts/validate-ui-primitives.mjs",
+    "validate:ui-primitives:json": "node scripts/validate-ui-primitives.mjs --json",
+    "validate:file-size": "node scripts/validate-file-size-guardrail.mjs",
+    "validate:file-size:json": "node scripts/validate-file-size-guardrail.mjs --json",
+    "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size"
+  },
+  "dependencies": {
+    "@medusajs/js-sdk": "^2.12.5",
+    "@medusajs/types": "^2.12.5",
+    "@tanstack/react-form": "^1.27.4",
+    "@tanstack/react-query": "^5.90.2",
+    "@tanstack/react-store": "^0.7.1",
+    "@techsio/analytics": "workspace:*",
+    "@techsio/storefront-data": "workspace:*",
+    "@techsio/ui-kit": "workspace:*",
+    "next": "16.1.1",
+    "nuqs": "^2.8.8",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-hook-form": "^7.67.0",
+    "tailwind-variants": "^3.1.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.0",
+    "@iconify/tailwind4": "^1.0.6",
+    "@tailwindcss/postcss": "^4",
+    "@tanstack/react-query-devtools": "^5.90.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "dotenv": "^16.4.7",
+    "postcss-import": "^16.1.1",
+    "tailwindcss": "^4",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,17 @@
+@theme static {
+  --color-steps-root-bg: transparent;
+  --color-steps-list-bg: transparent;
+
+  --color-steps-indicator-bg: var(--color-overlay);
+  --color-steps-indicator-bg-complete: var(--color-fg-primary);
+  --color-steps-indicator-bg-current: var(--color-fg-primary);
+
+  --color-steps-separator-bg: var(--color-border-secondary);
+  --color-steps-separator-bg-complete: var(--color-fg-primary);
+
+  --color-steps-fg: var(--color-fg-secondary);
+
+  --height-steps-indicator: var(--spacing-400);
+
+  --padding-steps-btn: var(--spacing-150) var(--spacing-300);
+}

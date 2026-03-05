@@ -1,0 +1,12 @@
+@theme static {
+  --color-table-header-bg: var(--color-base);
+
+  --color-table-border: var(--color-border-secondary);
+  --color-table-row-bg-hover: var(--color-overlay);
+  --color-table-row-bg-selected: --alpha(var(--color-primary) / 20%);
+
+  --color-table-row-striped-bg-primary: var(--color-surface);
+  --color-table-row-striped-bg-secondary: var(--color-base);
+
+  --padding-table-cell-md: var(--spacing-200) var(--spacing-300);
+}

@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "@techsio/ui-kit/tokens";
+@import "./_akros-base.css";
+@import "./_akros-icons.css";
+@import "./_akros-layout.css";
+@import "./_akros-semantic.css";
+@import "./_akros-spacing.css";
+@import "./_akros-typography.css";
+
+/* Components overrides */
+@import "./components/components.css";
+
+@source "../../../node_modules/@techsio/ui-kit";
+@source "../../**/*.{ts,tsx,js,jsx,mdx}";
+@plugin "tailwindcss-animate";
