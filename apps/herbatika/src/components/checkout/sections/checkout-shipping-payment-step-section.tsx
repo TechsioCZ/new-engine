@@ -25,13 +25,13 @@ export function CheckoutShippingPaymentStepSection({
       <CheckoutShippingSection {...shippingProps} />
       <CheckoutPaymentSection {...paymentProps} />
 
-      <div className="flex flex-col gap-250 pt-150 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-250 pt-150 px-500 sm:flex-row sm:items-center">
         <LinkButton
           as={NextLink}
-          className="w-full sm:w-auto"
           href={backStepHref}
           size="md"
           theme="outlined"
+          icon="token-icon-chevron-left"
           variant="secondary"
         >
           Späť na košík

@@ -13,7 +13,7 @@ export function CheckoutHeader() {
         <div className="flex min-w-0 items-center gap-300">
           <HerbatikaLogo imageClassName="h-15" size="md" />
           <span className="hidden items-center gap-150 text-sm text-fg-primary sm:inline-flex">
-            <Icon className="text-sm" icon="icon-[mdi--shield-check-outline]" />
+            <Icon size="lg" icon="icon-[mdi--shield-check-outline]" />
             Bezpečný nákup
           </span>
         </div>
@@ -24,7 +24,7 @@ export function CheckoutHeader() {
             className="hidden items-center gap-100 text-sm text-fg-primary hover:text-primary md:inline-flex"
             href="/#chat"
           >
-            <Icon className="text-primary" icon="icon-[mdi--message-outline]" />
+            <Icon icon="icon-[mdi--message-processing]" color="success" />
             Spustiť chat
           </Link>
           <Link
@@ -32,15 +32,16 @@ export function CheckoutHeader() {
             className="hidden items-center gap-100 text-sm text-fg-primary hover:text-primary lg:inline-flex"
             href="tel:+421232112345"
           >
-            <Icon className="text-primary" icon="icon-[mdi--phone-outline]" />
+            <Icon icon="icon-[mdi--phone-in-talk]" color="success" />
             +421 2/321 123 45
           </Link>
           <LinkButton
             as={NextLink}
-            className="px-250 text-sm font-medium"
             href="/auth/login"
             size="sm"
             variant="secondary"
+            theme="outlined"
+            icon="icon-[mdi--account-outline]"
           >
             Prihlásiť sa
           </LinkButton>

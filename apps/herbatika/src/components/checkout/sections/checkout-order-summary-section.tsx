@@ -81,23 +81,26 @@ export function CheckoutOrderSummarySection({
       </div>
 
       <div className="space-y-150 border-y border-border-primary py-250">
-        <div className="flex items-center justify-between gap-200">
-          <ExtraText className="text-fg-secondary">Medzisúčet</ExtraText>
+        <div className="flex items-center justify-between gap-200 border-b border-border-primary">
+          <span className="text-fg-secondary pb-150">Cena produktov</span>
           <p className="text-md font-medium text-fg-primary">
             {formatCurrencyAmount(cartSubtotalAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between gap-200">
-          <ExtraText className="text-fg-secondary">Doprava</ExtraText>
+          <span className="text-fg-secondary">Doprava</span>
           <p className="text-md font-medium text-fg-primary">
             {formatCurrencyAmount(selectedShippingPrice, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between gap-200 border-t border-border-primary pt-150">
-          <p className="text-md font-semibold text-fg-primary">Celkom</p>
+          <span className="text-md font-semibold text-fg-primary">Spolu s DPH</span>
+          <div>
           <p className="text-2xl font-bold text-fg-primary">
             {formatCurrencyAmount(cartTotalAmount, currencyCode)}
           </p>
+          <span className="text-sm">bez DPH: </span>
+          </div>
         </div>
       </div>
 

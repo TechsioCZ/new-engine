@@ -24,11 +24,11 @@ export function CheckoutDetailsStepSection({
       <div className="flex flex-wrap items-center justify-between gap-200">
         <LinkButton
           as={NextLink}
-          className="w-full sm:min-w-950 sm:w-auto"
           href={backStepHref}
           size="md"
           theme="outlined"
           variant="secondary"
+          icon="token-icon-chevron-left"
         >
           Späť na dopravu a platbu
         </LinkButton>
