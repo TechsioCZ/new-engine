@@ -5,7 +5,6 @@
   --color-select-danger: var(--color-danger);
   --color-select-success: var(--color-success);
   --color-select-warning: var(--color-warning);
-  --color-select-border: var(--color-border-primary);
   --color-select-fg: var(--color-fg-primary);
 
   /* === STATE VARIATIONS === */
@@ -17,7 +16,6 @@
   --gap-select-root: var(--spacing-150);
 
   /* === TRIGGER === */
-  --color-select-trigger-border: var(--color-select-border);
   --color-select-trigger-bg-hover: var(--color-select-hover);
   --color-select-trigger: var(--color-select-fg);
   --color-select-trigger-hover: var(--color-select-accent);

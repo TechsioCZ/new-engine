@@ -6,7 +6,6 @@
   /* === BASE COLOR MAPPING === */
   /* Reference layer - single source of truth for theming */
   --color-dialog: var(--color-surface);
-  --color-dialog-accent: var(--color-primary);
 
   /* === DERIVED COLORS === */
   /* Background colors - using reference layer */

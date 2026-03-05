@@ -8,9 +8,6 @@
   --color-combobox-danger-fg: var(--color-danger);
 
   /* === DERIVED COLORS === */
-  /* Background colors - using reference layer */
-  --color-combobox-bg: var(--color-combobox);
-
   /* Foreground colors */
   --color-combobox-fg: var(--color-fg-primary);
   --color-combobox-placeholder: var(--color-form-control-placeholder);
@@ -67,10 +64,6 @@
   --spacing-combobox-root-md: var(--spacing-150);
   --spacing-combobox-root-lg: var(--spacing-200);
 
-  --padding-combobox-input-sm: var(--spacing-100);
-  --padding-combobox-input-md: var(--spacing-150);
-  --padding-combobox-input-lg: var(--spacing-200);
-
   --padding-combobox-item-sm: var(--spacing-50) var(--spacing-150);
   --padding-combobox-item-md: var(--spacing-50) var(--spacing-200);
   --padding-combobox-item-lg: var(--spacing-50) var(--spacing-250);
@@ -82,8 +75,6 @@
   /* === TYPOGRAPHY === */
   /* Font sizes and weights */
   --text-combobox-trigger-size: var(--text-lg);
-  --text-combobox-control-sm: var(--text-sm);
-  --text-combobox-control-md: var(--text-md);
   --text-combobox-content-sm: var(--text-sm);
   --text-combobox-content-md: var(--text-md);
   --text-combobox-content-lg: var(--text-lg);

@@ -2,7 +2,6 @@
   --opacity-borderless: 60%;
   /* === BASE COLOR MAPPING === */
   --color-textarea-base: var(--color-form-control-bg);
-  --color-textarea-accent: var(--color-primary);
   --color-textarea-success: var(--color-success);
   --color-textarea-warning: var(--color-warning);
   --color-textarea-danger: var(--color-danger);

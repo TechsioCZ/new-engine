@@ -21,10 +21,6 @@
   --color-numeric-input-invalid-border: var(--color-danger);
   --color-numeric-input-invalid-bg: --alpha(var(--color-danger) / 10%);
 
-  --gap-numeric-input-root-sm: var(--spacing-150);
-  --gap-numeric-input-root-md: var(--spacing-200);
-  --gap-numeric-input-root-lg: var(--spacing-250);
-
   /* ==== TYPOGRAPHY ==== */
   --text-numeric-input-sm: var(--text-sm);
   --text-numeric-input-md: var(--text-md);
@@ -38,7 +34,6 @@
   --padding-numeric-input-input-md: var(--spacing-150);
 
   /* === TRIGGER === */
-  --color-numeric-input-trigger-container-bg: var(--color-numeric-input-bg);
   --color-numeric-input-trigger-bg: var(--color-numeric-input-bg);
   --color-numeric-input-trigger-bg-hover: oklch(
     from var(--color-numeric-input-trigger-bg) calc(l + var(--state-hover)) c h
@@ -46,11 +41,8 @@
   --color-numeric-input-trigger-fg: var(--color-numeric-input-fg);
   --color-numeric-input-trigger-fg-hover: var(--color-primary);
   --padding-numeric-input-trigger-x: var(--spacing-150);
-  --padding-numeric-input-trigger-y: var(--spacing-100);
 
   /* === INCREMENT BUTTON === */
-
-  --radius-numeric-input: var(--radius-form-control);
   --border-width-numeric-input: var(--border-width-input);
 
   /* === FOCUS RING === */
