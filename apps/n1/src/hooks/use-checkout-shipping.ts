@@ -1,33 +1,10 @@
 import type { HttpTypes } from "@medusajs/types"
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
-import { CACHE_TIMES, TAX_RATE } from "@/lib/constants"
-import { CartServiceError } from "@/lib/errors"
-import { queryKeys } from "@/lib/query-keys"
-import {
-  type Cart,
-  getShippingOptions,
-  type ShippingMethodData,
-  setShippingMethod,
-} from "@/services/cart-service"
+import { useQueryClient } from "@tanstack/react-query"
+import { useCallback } from "react"
+import { syncCartCaches } from "./cart-cache-sync"
+import { checkoutHooks } from "./checkout-hooks-base"
 import { useCartToast } from "./use-toast"
-
-type CartMutationError = {
-  message: string
-  code?: string
-}
-
-type CartMutationContext = {
-  previousCart?: Cart
-}
-
-type SetShippingVariables = {
-  optionId: string
-  data?: ShippingMethodData
-}
+import type { Cart, ShippingMethodData } from "@/types/cart"
 
 export type UseCheckoutShippingReturn = {
   shippingOptions?: HttpTypes.StoreCartShippingOption[]
@@ -36,8 +13,63 @@ export type UseCheckoutShippingReturn = {
   canLoadShipping: boolean
   canSetShipping: boolean
   selectedShippingMethodId?: string
-  /** Currently selected shipping option (derived from shippingOptions + selectedShippingMethodId) */
   selectedOption?: HttpTypes.StoreCartShippingOption
+}
+
+const cleanShippingMethodData = (
+  data?: ShippingMethodData
+): Record<string, unknown> | undefined => {
+  if (!data) {
+    return undefined
+  }
+
+  const entries = Object.entries(data).filter(
+    ([, value]) => value != null && value !== ""
+  )
+
+  if (entries.length === 0) {
+    return undefined
+  }
+
+  return Object.fromEntries(entries)
+}
+
+const toRecord = (value: unknown): Record<string, unknown> | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined
+  }
+
+  return value as Record<string, unknown>
+}
+
+const toComparableShippingData = (
+  data?: Record<string, unknown>
+): string =>
+  JSON.stringify(
+    Object.entries(data ?? {})
+      .filter(([, value]) => value != null && value !== "")
+      .sort(([a], [b]) => a.localeCompare(b))
+  )
+
+const isSameShippingSelection = ({
+  selectedOptionId,
+  nextOptionId,
+  nextData,
+  currentData,
+}: {
+  selectedOptionId?: string
+  nextOptionId: string
+  nextData?: Record<string, unknown>
+  currentData?: unknown
+}): boolean => {
+  if (selectedOptionId !== nextOptionId) {
+    return false
+  }
+
+  return (
+    toComparableShippingData(nextData) ===
+    toComparableShippingData(toRecord(currentData))
+  )
 }
 
 export function useCheckoutShipping(
@@ -47,134 +79,54 @@ export function useCheckoutShipping(
   const queryClient = useQueryClient()
   const toast = useCartToast()
 
-  const canLoadShipping = !!cartId && (cart?.items?.length ?? 0) > 0
+  const canLoadShipping = Boolean(cartId && (cart?.items?.length ?? 0) > 0)
 
-  // Fetch shipping options for cart
-  const { data: shippingOptions = [] } = useSuspenseQuery({
-    queryKey: queryKeys.cart.shippingOptions(cartId || "unknown"),
-    queryFn: () => {
-      if (!(canLoadShipping && cartId)) {
-        return []
-      }
-      return getShippingOptions(cartId)
+  const shipping = checkoutHooks.useCheckoutShipping(
+    {
+      cartId,
+      cart,
+      enabled: canLoadShipping,
     },
-    // Longer cache for shipping options - they don't change often
-    staleTime: CACHE_TIMES.SHIPPING_OPTIONS_STALE,
-    gcTime: CACHE_TIMES.SHIPPING_OPTIONS_GC,
-    refetchOnWindowFocus: false,
-  })
-
-  // Set shipping method mutation
-  const { mutate: mutateShipping, isPending: isSettingShipping } = useMutation<
-    Cart,
-    CartMutationError,
-    SetShippingVariables,
-    CartMutationContext
-  >({
-    mutationFn: ({ optionId, data }) => {
-      if (!cartId) {
-        throw new CartServiceError("Cart ID je povinné", "VALIDATION_ERROR")
-      }
-      return setShippingMethod(cartId, optionId, data)
-    },
-    onMutate: async ({ optionId }) => {
-      // Cancel outgoing queries to prevent race conditions
-      await queryClient.cancelQueries({ queryKey: queryKeys.cart.active() })
-
-      // Snapshot previous value for rollback
-      const previousCart = queryClient.getQueryData<Cart>(
-        queryKeys.cart.active()
-      )
-
-      // Optimistically update cart with new shipping method
-      if (previousCart && shippingOptions) {
-        const selectedOption = shippingOptions.find(
-          (opt) => opt.id === optionId
-        )
-
-        if (selectedOption) {
-          // Calculate amount with tax using centralized constant
-          const amountWithTax = selectedOption.amount * (1 + TAX_RATE)
-
-          const optimisticCart: Cart = {
-            ...previousCart,
-            shipping_methods: [
-              {
-                id: `optimistic_${Date.now()}`,
-                cart_id: cartId || "",
-                shipping_option_id: optionId,
-                name: selectedOption.name,
-                amount: selectedOption.amount,
-                is_tax_inclusive: true,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              },
-            ],
-            shipping_total: amountWithTax,
-          }
-
-          // Immediately update UI
-          queryClient.setQueryData(queryKeys.cart.active(), optimisticCart)
-
-          if (process.env.NODE_ENV === "development") {
-            console.log("[useCheckoutShipping] Optimistic update applied")
-          }
-        }
-      }
-
-      return { previousCart }
-    },
-    onSuccess: (updatedCart) => {
-      // Replace optimistic data with real server data
-      queryClient.setQueryData(queryKeys.cart.active(), updatedCart)
-
-      if (process.env.NODE_ENV === "development") {
-        console.log("[useCheckoutShipping] Shipping method confirmed:", {
-          methodId: updatedCart.shipping_methods?.[0]?.shipping_option_id,
-          total: updatedCart.shipping_total,
-        })
-      }
-    },
-    onError: (error, _variables, context) => {
-      // Rollback to previous cart state
-      if (context?.previousCart) {
-        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
-      }
-
-      // Show error toast to user
-      toast.shippingError()
-
-      if (process.env.NODE_ENV === "development") {
-        console.error("[useCheckoutShipping] Failed to set shipping:", error)
-      }
-    },
-    onSettled: () => {
-      // No invalidations needed - we have fresh data from onSuccess
-      // Shipping options don't change when selecting a method
-    },
-  })
-
-  const canSetShipping = shippingOptions.length > 0
-  const selectedShippingMethodId =
-    cart?.shipping_methods?.[0]?.shipping_option_id
-
-  // Derive selected option from shippingOptions + selectedShippingMethodId
-  const selectedOption = shippingOptions?.find(
-    (opt) => opt.id === selectedShippingMethodId
+    {
+      onSuccess: (updatedCart) => {
+        syncCartCaches(queryClient, updatedCart as Cart)
+      },
+      onError: () => {
+        toast.shippingError()
+      },
+    }
   )
 
-  // Wrapper for easier API - accepts optionId and optional data
-  const setShipping = (optionId: string, data?: ShippingMethodData) => {
-    mutateShipping({ optionId, data })
-  }
+  const setShipping = useCallback(
+    (optionId: string, data?: ShippingMethodData) => {
+      const cleanedData = cleanShippingMethodData(data)
+      const currentData = cart?.shipping_methods?.find(
+        (method) => method.shipping_option_id === optionId
+      )?.data
+
+      if (
+        isSameShippingSelection({
+          selectedOptionId: shipping.selectedShippingMethodId,
+          nextOptionId: optionId,
+          nextData: cleanedData,
+          currentData,
+        })
+      ) {
+        return
+      }
+
+      shipping.setShippingMethod(optionId, cleanedData)
+    },
+    [cart?.shipping_methods, shipping.selectedShippingMethodId, shipping.setShippingMethod]
+  )
 
   return {
-    shippingOptions,
+    shippingOptions: shipping.shippingOptions,
     setShipping,
-    isSettingShipping,
+    isSettingShipping: shipping.isSettingShipping,
     canLoadShipping,
-    canSetShipping,
-    selectedShippingMethodId,
-    selectedOption,
+    canSetShipping: shipping.shippingOptions.length > 0,
+    selectedShippingMethodId: shipping.selectedShippingMethodId,
+    selectedOption: shipping.selectedOption,
   }
 }

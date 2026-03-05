@@ -1,33 +1,41 @@
 "use client"
 
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
-import { useState } from "react"
-import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
-import { useSuspenseRegion } from "@/hooks/use-region"
-import type { Cart } from "@/services/cart-service"
-
-type PaymentFormSectionProps = {
-  cart: Cart
-}
+import { useEffect, useState } from "react"
+import { useCheckoutContext } from "../_context/checkout-context"
 
 const CASH_ON_DELIVERY_PROVIDER = "pp_system_default"
 
-export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
-  const { regionId } = useSuspenseRegion()
-  const [selectedProvider, setSelectedProvider] = useState<string>("")
-
+export function PaymentFormSection() {
+  const { payment, cart } = useCheckoutContext()
   const {
     paymentProviders,
     hasPaymentSessions,
     canInitiatePayment,
     isInitiatingPayment,
-    initiatePayment,
-  } = useCheckoutPayment(cart.id, regionId, cart)
+    initiatePaymentAsync,
+  } = payment
 
-  function handleProviderSelect(providerId: string) {
-    if (selectedProvider !== providerId) {
-      setSelectedProvider(providerId)
-      initiatePayment(providerId)
+  const [selectedProvider, setSelectedProvider] = useState<string>("")
+
+  useEffect(() => {
+    const currentProvider =
+      cart?.payment_collection?.payment_sessions?.[0]?.provider_id ?? ""
+    setSelectedProvider(currentProvider)
+  }, [cart?.payment_collection?.payment_sessions])
+
+  async function handleProviderSelect(providerId: string) {
+    if (!(canInitiatePayment && selectedProvider !== providerId)) {
+      return
+    }
+
+    const previousProvider = selectedProvider
+    setSelectedProvider(providerId)
+
+    try {
+      await initiatePaymentAsync(providerId)
+    } catch {
+      setSelectedProvider(previousProvider)
     }
   }
 
@@ -53,10 +61,12 @@ export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
                   >
                     <Checkbox
                       checked={selectedProvider === provider.id}
-                      disabled={isInitiatingPayment}
+                      disabled={isInitiatingPayment || !canInitiatePayment}
                       id={providerInputId}
                       name="payment-provider"
-                      onChange={() => handleProviderSelect(provider.id)}
+                      onChange={() => {
+                        void handleProviderSelect(provider.id)
+                      }}
                     />
                     <span className="flex flex-1 flex-col">
                       <span className="font-medium text-fg-primary text-sm">
@@ -78,7 +88,7 @@ export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
 
           {!canInitiatePayment && (
             <p className="mt-300 text-fg-tertiary text-xs">
-              💡 Nejprve vyberte způsob dopravy
+              Nejprve vyberte způsob dopravy
             </p>
           )}
         </>

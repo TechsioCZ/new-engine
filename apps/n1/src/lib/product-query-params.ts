@@ -44,38 +44,3 @@ export function buildPrefetchParams(
     page: 1,
   })
 }
-
-/**
- * Converts query params to URL query string
- * Handles arrays (category_id) with indexed notation
- */
-type QueryParamValue =
-  | string
-  | number
-  | boolean
-  | Array<string | number | boolean>
-  | null
-  | undefined
-
-export function buildQueryString(
-  params: Record<string, QueryParamValue>
-): string {
-  const searchParams = new URLSearchParams()
-
-  for (const [key, value] of Object.entries(params)) {
-    if (value === undefined || value === null) {
-      continue
-    }
-
-    if (Array.isArray(value)) {
-      // category_id[0]=xxx&category_id[1]=yyy
-      value.forEach((v, i) => {
-        searchParams.append(`${key}[${i}]`, String(v))
-      })
-    } else {
-      searchParams.append(key, String(value))
-    }
-  }
-
-  return searchParams.toString()
-}

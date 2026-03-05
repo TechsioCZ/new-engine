@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { queryKeys } from "@/lib/query-keys"
-import { type LoginCredentials, login } from "@/services/auth-service"
+import { toError } from "@/lib/errors"
+import { authHooks } from "./auth-hooks-base"
+export type { LoginCredentials } from "./auth-hooks-base"
 
 export type UseLoginOptions = {
   onSuccess?: () => void
@@ -8,17 +8,12 @@ export type UseLoginOptions = {
 }
 
 export function useLogin(options?: UseLoginOptions) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (credentials: LoginCredentials) => login(credentials),
+  return authHooks.useLogin({
     onSuccess: () => {
-      // Invalidate auth cache to refetch customer data
-      queryClient.invalidateQueries({ queryKey: queryKeys.customer.profile() })
       options?.onSuccess?.()
     },
-    onError: (error: Error) => {
-      options?.onError?.(error)
+    onError: (error) => {
+      options?.onError?.(toError(error, "Login failed"))
     },
   })
 }

@@ -1,8 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { PplAccessPointData } from "@/app/pokladna/_components/ppl-widget"
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
-import type { ShippingMethodData } from "@/services/cart-service"
-import type { StoreCustomerAddress } from "@/services/customer-service"
+import type { ShippingMethodData } from "@/types/cart"
 import type { AddressFormData } from "./address-validation"
 import { formatPhoneNumber } from "./format/format-phone-number"
 import { formatPostalCode } from "./format/format-postal-code"
@@ -27,7 +26,10 @@ export const DEFAULT_ADDRESS: AddressFormData = {
  * works for customer address, cart address or any compatible address object
  */
 function addressToFormData(
-  address?: Partial<HttpTypes.StoreCartAddress> | StoreCustomerAddress | null
+  address?:
+    | Partial<HttpTypes.StoreCartAddress>
+    | HttpTypes.StoreCustomerAddress
+    | null
 ): AddressFormData {
   // Return empty form if no address provided
   if (!address) {
@@ -58,8 +60,8 @@ export { addressToFormData }
  * The first address in the list is considered the default
  */
 export function getDefaultAddress(
-  addresses: StoreCustomerAddress[] | undefined
-): StoreCustomerAddress | null {
+  addresses: HttpTypes.StoreCustomerAddress[] | undefined
+): HttpTypes.StoreCustomerAddress | null {
   if (!addresses || addresses.length === 0) {
     return null
   }

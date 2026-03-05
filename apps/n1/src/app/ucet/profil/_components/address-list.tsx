@@ -1,12 +1,12 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useState } from "react"
 import { AddressForm } from "@/components/address/address-form"
 import { ConfirmDialog } from "@/components/molecules/confirm-dialog"
 import { useDeleteAddress } from "@/hooks/use-addresses"
-import type { StoreCustomerAddress } from "@/services/customer-service"
 import { formatPhoneNumber } from "@/utils/format/format-phone-number"
 import { formatPostalCode } from "@/utils/format/format-postal-code"
 import { useAccountContext } from "../../context/account-context"
@@ -95,7 +95,7 @@ function AddressCard({
   address,
   onEdit,
 }: {
-  address: StoreCustomerAddress
+  address: HttpTypes.StoreCustomerAddress
   onEdit: () => void
 }) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
