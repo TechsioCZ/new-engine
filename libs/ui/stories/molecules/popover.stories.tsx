@@ -238,6 +238,28 @@ export const Controlled: Story = {
   },
 }
 
+export const OpenOnHover: Story = {
+  args: {
+    id: 'hover-popover',
+    trigger: 'Hover me',
+    children: <div />,
+  },
+  render: () => (
+    <Popover
+      id="hover-popover"
+      trigger="Hover me"
+      title="Hover popover"
+      description="Opens on pointer hover and closes when pointer leaves trigger and content."
+      openOnHover
+      hoverCloseDelay={100}
+    >
+      <div className="w-64">
+        <p>Useful for mini-cart previews or quick account hints.</p>
+      </div>
+    </Popover>
+  ),
+}
+
 export const WithForm: Story = {
   args: {
     id: 'form-popover',

@@ -298,6 +298,50 @@ export const Controlled: Story = {
   },
 }
 
+export const DynamicBoundsControlled: Story = {
+  args: {
+    ...baseSliderProps,
+    id: 'dynamic-bounds-controlled-slider',
+    label: 'Dynamic Bounds (Controlled)',
+  },
+  render: (args) => {
+    const [bounds, setBounds] = useState({ min: 0, max: 100 })
+    const [values, setValues] = useState<number[]>([20, 80])
+
+    return (
+      <div className="min-w-sm space-y-400">
+        <Slider
+          {...args}
+          min={bounds.min}
+          max={bounds.max}
+          value={values}
+          onChange={setValues}
+          helpText={`Bounds: ${bounds.min} - ${bounds.max}`}
+        />
+        <div className="flex flex-wrap gap-200">
+          <Button
+            size="sm"
+            onClick={() => setBounds({ min: 0, max: 30 })}
+          >
+            Shrink max to 30
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setBounds({ min: 0, max: 100 })}
+          >
+            Reset bounds
+          </Button>
+        </div>
+        <div className="rounded border bg-surface-secondary p-200 text-sm">
+          <p className="text-fg-secondary">Values (controlled):</p>
+          <p className="font-mono">[{values.join(', ')}]</p>
+        </div>
+      </div>
+    )
+  },
+}
+
 export const SingleVsMultiThumb: Story = {
   render: () => (
     <VariantContainer>

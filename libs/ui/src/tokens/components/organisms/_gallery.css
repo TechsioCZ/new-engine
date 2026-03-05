@@ -1,0 +1,35 @@
+@theme static {
+  /* === REFERENCE LAYER === */
+  --color-gallery: var(--color-surface);
+  --color-gallery-accent: var(--color-primary);
+
+  /* === DERIVED COLORS === */
+  --color-gallery-trigger-bg: oklch(
+    from var(--color-gallery) calc(l - var(--surface-increment) * 2) c h
+  );
+  --color-gallery-trigger-bg-active: oklch(
+    from var(--color-gallery) calc(l - var(--surface-increment) * 3) c h
+  );
+  --color-gallery-trigger-border: var(--color-border-primary);
+  --color-gallery-trigger-active: var(--color-gallery-accent);
+  --color-gallery-trigger-ring: var(--color-ring);
+
+  /* === SPACING === */
+  --spacing-gallery-xs: var(--spacing-50);
+  --spacing-gallery-sm: var(--spacing-100);
+  --spacing-gallery-md: var(--spacing-200);
+  --spacing-gallery-lg: var(--spacing-300);
+  --spacing-gallery-root: var(--spacing-200);
+  --padding-gallery-trigger: 0 0;
+
+  /* === DIMENSIONS === */
+  --height-gallery: min(60svh, 36rem);
+
+  /* === EFFECTS === */
+  --brightness-gallery-trigger: 82%;
+  --brightness-gallery-trigger-active: 100%;
+  --shadow-gallery-trigger: var(--shadow-sm);
+
+  /* === BORDERS === */
+  --radius-gallery-trigger: var(--radius-sm);
+}

@@ -1,6 +1,13 @@
 import * as popover from "@zag-js/popover"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type ReactNode, type Ref, useId } from "react"
+import {
+  type ReactNode,
+  type Ref,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { tv } from "../utils"
@@ -76,6 +83,9 @@ export interface PopoverProps
   triggerClassName?: string
   contentClassName?: string
   disabled?: boolean
+  openOnHover?: boolean
+  hoverOpenDelay?: number
+  hoverCloseDelay?: number
 }
 
 export function Popover({
@@ -108,10 +118,19 @@ export function Popover({
   shadow = true,
   border = true,
   disabled = false,
+  openOnHover = false,
+  hoverOpenDelay = 0,
+  hoverCloseDelay = 120,
   onPointerDownOutside,
 }: PopoverProps) {
   const generatedId = useId()
   const uniqueId = id || generatedId
+  const hoverOpenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
+  const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
 
   const service = useMachine(popover.machine, {
     id: uniqueId,
@@ -140,6 +159,46 @@ export function Popover({
 
   const api = popover.connect(service as popover.Service, normalizeProps)
 
+  const clearHoverTimeouts = useCallback(() => {
+    if (hoverOpenTimeoutRef.current) {
+      clearTimeout(hoverOpenTimeoutRef.current)
+      hoverOpenTimeoutRef.current = null
+    }
+
+    if (hoverCloseTimeoutRef.current) {
+      clearTimeout(hoverCloseTimeoutRef.current)
+      hoverCloseTimeoutRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      clearHoverTimeouts()
+    }
+  }, [clearHoverTimeouts])
+
+  const scheduleHoverOpen = useCallback(() => {
+    if (!openOnHover) {
+      return
+    }
+
+    clearHoverTimeouts()
+    hoverOpenTimeoutRef.current = setTimeout(() => {
+      api.setOpen(true)
+    }, hoverOpenDelay)
+  }, [api, clearHoverTimeouts, hoverOpenDelay, openOnHover])
+
+  const scheduleHoverClose = useCallback(() => {
+    if (!openOnHover) {
+      return
+    }
+
+    clearHoverTimeouts()
+    hoverCloseTimeoutRef.current = setTimeout(() => {
+      api.setOpen(false)
+    }, hoverCloseDelay)
+  }, [api, clearHoverTimeouts, hoverCloseDelay, openOnHover])
+
   const {
     trigger: triggerStyles,
     positioner,
@@ -149,14 +208,35 @@ export function Popover({
     description: descriptionStyles,
   } = popoverVariants({ size, shadow, border })
 
+  const triggerProps = api.getTriggerProps()
+  const contentProps = api.getContentProps()
+
   const renderContent = () => (
     <div {...api.getPositionerProps()} className={positioner()}>
       <div
-        {...api.getContentProps()}
+        {...contentProps}
         className={contentStyles({ className: contentClassName })}
         data-side={placement.split("-")[0]}
         data-state={api.open ? "open" : "closed"}
         ref={contentRef}
+        onPointerEnter={(event) => {
+          contentProps.onPointerEnter?.(event)
+
+          if (!openOnHover || event.pointerType !== "mouse") {
+            return
+          }
+
+          clearHoverTimeouts()
+        }}
+        onPointerLeave={(event) => {
+          contentProps.onPointerLeave?.(event)
+
+          if (event.pointerType !== "mouse") {
+            return
+          }
+
+          scheduleHoverClose()
+        }}
       >
         {showArrow && (
           <div {...api.getArrowProps()}>
@@ -184,10 +264,32 @@ export function Popover({
       <Button
         disabled={disabled}
         theme="borderless"
-        {...api.getTriggerProps()}
+        {...triggerProps}
         className={triggerStyles({ className: triggerClassName })}
         data-state={api.open ? "open" : "closed"}
         ref={triggerRef}
+        onPointerEnter={(event) => {
+          triggerProps.onPointerEnter?.(event)
+
+          if (event.pointerType !== "mouse") {
+            return
+          }
+
+          scheduleHoverOpen()
+        }}
+        onPointerLeave={(event) => {
+          triggerProps.onPointerLeave?.(event)
+
+          if (event.pointerType !== "mouse") {
+            return
+          }
+
+          scheduleHoverClose()
+        }}
+        onFocus={(event) => {
+          triggerProps.onFocus?.(event)
+          clearHoverTimeouts()
+        }}
       >
         {trigger}
       </Button>

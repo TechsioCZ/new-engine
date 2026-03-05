@@ -63,10 +63,8 @@ export function CarouselTemplate<T extends ElementType>({
       {...carouselProps}
     >
       <Carousel.Slides
-        height={height}
         imageAs={imageAs}
         slides={slides}
-        width={width}
       />
 
       {(showControls || showIndicators) && (
