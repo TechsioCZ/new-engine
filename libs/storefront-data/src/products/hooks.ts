@@ -18,6 +18,7 @@ import type {
   SuspenseQueryOptions,
 } from "../shared/hook-types"
 import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
+import { createPrefetchPagesPlan } from "../shared/prefetch-pages-plan"
 import type { QueryNamespace } from "../shared/query-keys"
 import { resolvePagination } from "../shared/pagination"
 import { applyRegion } from "../shared/region"
@@ -703,73 +704,32 @@ export function createProductHooks<
         })
       }
 
-      if (mode === "simple") {
-        const pagesToPrefetch: number[] = []
+      const plan = createPrefetchPagesPlan({
+        mode,
+        currentPage: params.currentPage,
+        totalPages: params.totalPages,
+        hasNextPage: params.hasNextPage,
+        hasPrevPage: params.hasPrevPage,
+      })
 
-        if (params.currentPage !== 1) {
-          pagesToPrefetch.push(1)
-        }
-
-        if (params.hasPrevPage) {
-          pagesToPrefetch.push(params.currentPage - 1)
-          if (params.currentPage - 2 >= 1) {
-            pagesToPrefetch.push(params.currentPage - 2)
-          }
-        }
-
-        if (params.hasNextPage) {
-          pagesToPrefetch.push(params.currentPage + 1)
-          if (params.currentPage + 2 <= params.totalPages) {
-            pagesToPrefetch.push(params.currentPage + 2)
-          }
-        }
-
-        if (
-          params.totalPages > 1 &&
-          params.currentPage !== params.totalPages
-        ) {
-          pagesToPrefetch.push(params.totalPages)
-        }
-
-        for (const page of pagesToPrefetch) {
-          prefetchPage(page)
-        }
-
-        return
-      }
-
-      const high = params.hasNextPage ? [params.currentPage + 1] : []
-      const medium =
-        params.hasNextPage && params.currentPage + 2 <= params.totalPages
-          ? [params.currentPage + 2]
-          : []
-      const lowCandidates = [
-        params.hasPrevPage ? params.currentPage - 1 : null,
-        params.currentPage !== 1 ? 1 : null,
-        params.totalPages > 1 && params.currentPage !== params.totalPages
-          ? params.totalPages
-          : null,
-      ].filter((page): page is number => page !== null)
-      const low = Array.from(new Set(lowCandidates))
-
-      for (const page of high) {
+      for (const page of plan.immediate) {
         prefetchPage(page)
       }
 
-      if (medium.length > 0) {
+      if (plan.medium.length > 0) {
         timers.push(
           setTimeout(() => {
-            for (const page of medium) {
+            for (const page of plan.medium) {
               prefetchPage(page)
             }
           }, mediumDelay)
         )
       }
 
-      if (low.length > 0) {
+      if (plan.low.length > 0) {
         timers.push(
           setTimeout(() => {
-            for (const page of low) {
+            for (const page of plan.low) {
               prefetchPage(page)
             }
           }, lowDelay)

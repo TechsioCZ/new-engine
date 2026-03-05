@@ -1,0 +1,81 @@
+export type PrefetchPagesMode = "priority" | "simple"
+
+export type CreatePrefetchPagesPlanInput = {
+  mode?: PrefetchPagesMode
+  currentPage: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+export type PrefetchPagesPlan = {
+  immediate: number[]
+  medium: number[]
+  low: number[]
+}
+
+const uniquePages = (pages: readonly number[]): number[] =>
+  Array.from(new Set(pages))
+
+/**
+ * Builds a deterministic prefetch plan for paginated product-like screens.
+ *
+ * - `priority`: immediate next page, then medium and low priority queues
+ * - `simple`: all candidate pages in one immediate queue
+ */
+export const createPrefetchPagesPlan = (
+  input: CreatePrefetchPagesPlanInput
+): PrefetchPagesPlan => {
+  const mode = input.mode ?? "priority"
+
+  if (mode === "simple") {
+    const pagesToPrefetch: number[] = []
+
+    if (input.currentPage !== 1) {
+      pagesToPrefetch.push(1)
+    }
+
+    if (input.hasPrevPage) {
+      pagesToPrefetch.push(input.currentPage - 1)
+      if (input.currentPage - 2 >= 1) {
+        pagesToPrefetch.push(input.currentPage - 2)
+      }
+    }
+
+    if (input.hasNextPage) {
+      pagesToPrefetch.push(input.currentPage + 1)
+      if (input.currentPage + 2 <= input.totalPages) {
+        pagesToPrefetch.push(input.currentPage + 2)
+      }
+    }
+
+    if (input.totalPages > 1 && input.currentPage !== input.totalPages) {
+      pagesToPrefetch.push(input.totalPages)
+    }
+
+    return {
+      immediate: uniquePages(pagesToPrefetch),
+      medium: [],
+      low: [],
+    }
+  }
+
+  const high = input.hasNextPage ? [input.currentPage + 1] : []
+  const medium =
+    input.hasNextPage && input.currentPage + 2 <= input.totalPages
+      ? [input.currentPage + 2]
+      : []
+  const lowCandidates = [
+    input.hasPrevPage ? input.currentPage - 1 : null,
+    input.currentPage !== 1 ? 1 : null,
+    input.totalPages > 1 && input.currentPage !== input.totalPages
+      ? input.totalPages
+      : null,
+  ].filter((page): page is number => page !== null)
+
+  return {
+    immediate: uniquePages(high),
+    medium: uniquePages(medium),
+    low: uniquePages(lowCandidates),
+  }
+}

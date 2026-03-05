@@ -52,6 +52,10 @@
       "types": "./dist/src/products/*.d.ts",
       "import": "./dist/products/*.js"
     },
+    "./medusa/*": {
+      "types": "./dist/src/medusa/*.d.ts",
+      "import": "./dist/medusa/*.js"
+    },
     "./regions/*": {
       "types": "./dist/src/regions/*.d.ts",
       "import": "./dist/regions/*.js"
