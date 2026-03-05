@@ -129,22 +129,30 @@ type MedusaAuthHooksConfig = OmitFactoryConfig<
 type MedusaCartHooksConfig<
   TAddressInput,
   TAddressPayload,
-> = OmitFactoryConfig<
-  CreateCartHooksConfig<
-    HttpTypes.StoreCart,
-    CartCreateInputBase,
-    MedusaCartCreateParams,
-    UpdateCartInputBase,
-    MedusaCartUpdateParams,
-    AddLineItemInputBase,
-    MedusaCartAddItemParams,
-    UpdateLineItemInputBase,
-    MedusaCartUpdateItemParams,
-    MedusaCompleteCartResult,
-    TAddressInput,
-    TAddressPayload
-  >
->
+> = Omit<
+  OmitFactoryConfig<
+    CreateCartHooksConfig<
+      HttpTypes.StoreCart,
+      CartCreateInputBase,
+      MedusaCartCreateParams,
+      UpdateCartInputBase,
+      MedusaCartUpdateParams,
+      AddLineItemInputBase,
+      MedusaCartAddItemParams,
+      UpdateLineItemInputBase,
+      MedusaCartUpdateItemParams,
+      MedusaCompleteCartResult,
+      TAddressInput,
+      TAddressPayload
+    >
+  >,
+  "buildAddParams"
+> & {
+  /**
+   * Optional in preset config: Medusa default mapper is provided internally.
+   */
+  buildAddParams?: (input: AddLineItemInputBase) => MedusaCartAddItemParams
+}
 
 type MedusaCheckoutHooksConfig = OmitFactoryConfig<
   CreateCheckoutHooksConfig<

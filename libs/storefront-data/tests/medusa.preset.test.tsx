@@ -3,7 +3,10 @@ import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { StorefrontDataProvider } from "../src/client/provider"
-import { createMedusaStorefrontPreset } from "../src/medusa/preset"
+import {
+  createMedusaStorefrontPreset,
+  type CreateMedusaStorefrontPresetConfig,
+} from "../src/medusa/preset"
 import type { CartQueryKeys } from "../src/cart/types"
 
 const createWrapper = (client: QueryClient) =>
@@ -81,6 +84,26 @@ const createSdkMock = () => {
 }
 
 describe("createMedusaStorefrontPreset", () => {
+  it("allows thin cart hook overrides without buildAddParams", () => {
+    const { sdk } = createSdkMock()
+
+    const config = {
+      sdk,
+      cart: {
+        hooks: {
+          cartStorage: {
+            getCartId: () => null,
+            setCartId: () => {},
+            clearCartId: () => {},
+          },
+        },
+      },
+    } satisfies CreateMedusaStorefrontPresetConfig
+
+    const preset = createMedusaStorefrontPreset(config)
+    expect(preset.hooks.cart).toBeDefined()
+  })
+
   it("builds namespaced query keys", () => {
     const { sdk } = createSdkMock()
     const preset = createMedusaStorefrontPreset({
