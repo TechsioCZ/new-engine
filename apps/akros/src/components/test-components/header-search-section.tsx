@@ -1,9 +1,10 @@
 import { Button } from "@ui/atoms/button"
-import { Link } from "@ui/atoms/link"
+import Link from "next/link"
 import { Accordion } from "@ui/molecules/accordion"
 import { SearchForm } from "@ui/molecules/search-form"
 import { Header } from "@ui/organisms/header"
 import { TestComponentsSection } from "./section"
+import Image from "next/image"
 
 export function HeaderSearchSection() {
   return (
@@ -13,14 +14,14 @@ export function HeaderSearchSection() {
     >
       <div className="flex flex-col gap-200">
         <Header size="md">
-          <Header.Desktop>
-            <Header.Container position="start">
-              <Link href="/" className="font-semibold text-lg">
-                AKROS
+          <Header.Desktop className="items-center gap-300 grid grid-cols-[auto_1fr_auto]">
+            <Header.Container>
+              <Link href="/">
+                <Image src="/logo.avif" alt="Logo" width={380} height={60} />
               </Link>
             </Header.Container>
 
-            <Header.Container position="center">
+            <Header.Container className="w-full">
               <SearchForm size="md" className="w-full">
                 <SearchForm.Control>
                   <SearchForm.Input placeholder="Hledat produkt" />
@@ -34,15 +35,15 @@ export function HeaderSearchSection() {
             <Header.Container position="end">
               <Header.Actions>
                 <Header.ActionItem>
-                  <Button icon="token-icon-user" size="current" theme="unstyled" />
+                  <Button icon="token-icon-user" className="text-xl" size="current" theme="unstyled" />
                 </Header.ActionItem>
                 <Header.ActionItem>
-                  <Button icon="token-icon-heart" size="current" theme="unstyled" />
+                  <Button icon="token-icon-heart" className="text-xl" size="current" theme="unstyled" />
                 </Header.ActionItem>
                 <Header.ActionItem>
                   <Button
                     icon="token-icon-cart"
-                    iconPosition="left"
+                    iconPosition="right"
                     size="lg"
                     theme="solid"
                     variant="primary"

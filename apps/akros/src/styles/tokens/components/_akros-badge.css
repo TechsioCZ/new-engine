@@ -6,9 +6,12 @@
   --color-badge-bg-warning: var(--color-primary);
   --color-badge-fg-warning: var(--color-fg-primary);
 
+  --color-badge-bg-secondary: var(--color-secondary);
+  --color-badge-fg-secondary: var(--color-fg-reverse);
+  --color-badge-border-secondary: transparent;
+
   --color-badge-bg-info: #152055;
   --color-badge-fg-info: var(--color-fg-reverse);
 
   --color-badge-fg-danger: var(--color-fg-reverse);
-
 }

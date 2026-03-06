@@ -1,3 +1,5 @@
+
+
 @theme static {
   --color-header-nav-fg: var(--color-fg-primary);
   --color-header-nav-fg-hover: var(--color-primary);
@@ -11,6 +13,5 @@
   --padding-header-item-md: var(--spacing-200);
 
   --color-header-hamburger-fg-hover: var(--color-primary);
-
-  --container-header-desktop: var(--container-max-w);
+  --container-header-desktop: 80rem;
 }

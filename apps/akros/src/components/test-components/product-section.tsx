@@ -12,10 +12,7 @@ export function ProductSection() {
       description="Produktová karta upravená směrem k Figma vzhledu: kompaktní formát, badge stack, wishlist nahoře, textové bloky a full CTA."
     >
       <div className="grid grid-cols-1 justify-items-start gap-300 md:grid-cols-2 xl:grid-cols-3">
-        <ProductCard
-          className="relative border border-border-primary bg-surface p-200 shadow-sm"
-          layout="column"
-        >
+        <ProductCard className="relative" layout="column">
           <ProductCard.Badges className="absolute top-100 left-100 z-10 flex-col items-start">
             <Badge variant="warning">Doporučujeme</Badge>
             <Badge variant="info">Video</Badge>
@@ -23,7 +20,7 @@ export function ProductSection() {
           </ProductCard.Badges>
 
           <Button
-            className="absolute top-100 right-100 z-10 text-fg-secondary"
+            className="absolute top-100 right-100 z-10"
             icon="token-icon-heart"
             size="current"
             theme="unstyled"
@@ -34,26 +31,17 @@ export function ProductSection() {
             width={200}
             height={200}
             alt="Spojovací materiál"
-            className="mx-auto w-950 rounded-none object-cover"
+            className="mx-auto"
             src="/tshirt.webp"
           />
 
-          <ProductCard.Name className="text-center text-sm uppercase">
-            Spojovací materiál matky a šroubky na dva řádky
-          </ProductCard.Name>
+          <ProductCard.Name>SPOJOVACÍ MATERIÁL MATKY A ŠROUBKY NA DVA ŘÁDKY</ProductCard.Name>
 
           <div className="flex items-center justify-between gap-100">
-            <ProductCard.Stock className="uppercase" status="in-stock">
-              Skladem
+            <ProductCard.Stock status="in-stock">
+              SKLADEM
             </ProductCard.Stock>
-            <Badge
-              bgColor="#1f1f1f"
-              borderColor="#1f1f1f"
-              fgColor="#ffffff"
-              variant="dynamic"
-            >
-              Více variant
-            </Badge>
+            <Badge variant="secondary">Více variant</Badge>
           </div>
 
           <p className="text-sm text-fg-secondary">
@@ -64,16 +52,13 @@ export function ProductSection() {
           <p className="font-semibold text-md">Délka 40 - 420 mm, ø 4 - 22 mm</p>
 
           <ProductCard.Actions>
-            <ProductCard.Button
-              buttonVariant="cart"
-              className="w-full justify-center uppercase"
-            >
-              Vybrat variantu
+            <ProductCard.Button buttonVariant="cart" className="w-full">
+              VYBRAT VARIANTU
             </ProductCard.Button>
           </ProductCard.Actions>
         </ProductCard>
 
-        <ProductCard className="border border-border-primary bg-surface p-200 shadow-sm" layout="column">
+        <ProductCard layout="column">
           <ProductCard.Image as={NextImage}
             width={200}
             height={200} alt="Lehátko Akros" src="/tshirt.webp" />
@@ -87,7 +72,7 @@ export function ProductSection() {
           </ProductCard.Actions>
         </ProductCard>
 
-        <ProductCard className="border border-border-primary bg-surface p-200 shadow-sm" layout="column">
+        <ProductCard layout="column">
           <ProductCard.Image as={NextImage}
             width={200}
             height={200} alt="Lehátko Akros" src="/tshirt.webp" />
