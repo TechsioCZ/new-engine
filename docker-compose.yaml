@@ -51,11 +51,19 @@ x-medusa-env: &medusa-env
   FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
   PPL_ENVIRONMENT: ${DC_PPL_ENVIRONMENT:-testing}
 
-x-minio-bootstrap-env: &minio-bootstrap-env
+x-minio-env: &minio-env
   MINIO_ROOT_USER: ${DC_MINIO_ROOT_USER:-minioadmin}
   MINIO_ROOT_PASSWORD: ${DC_MINIO_ROOT_PASSWORD:-minioadmin}
   MINIO_ACCESS_KEY: ${DC_MINIO_ACCESS_KEY:-minioadminkey}
   MINIO_SECRET_KEY: ${DC_MINIO_SECRET_KEY:-minioadminkey}
+  MINIO_BUCKET_METADATA_IMPORT_ENABLED: ${DC_MINIO_BUCKET_METADATA_IMPORT_ENABLED:-1}
+  MINIO_BUCKET_METADATA_ZIP_PATH: /config/local-bucket-metadata.zip
+  MINIO_BOOTSTRAP_URL: ${DC_MINIO_BOOTSTRAP_URL:-http://127.0.0.1:9004}
+  MINIO_START_TIMEOUT_SECONDS: ${DC_MINIO_START_TIMEOUT_SECONDS:-60}
+
+x-meilisearch-env: &meilisearch-env
+  MEILI_MASTER_KEY: ${DC_MEILI_MASTER_KEY}
+  MEILI_NO_ANALYTICS: true
 
 x-zane-operator-db-env: &zane-operator-db-env
   # zane-operator: postgres connectivity
@@ -94,10 +102,8 @@ x-medusa-base: &medusa-base
       condition: service_started
     medusa-minio:
       condition: service_healthy
-    medusa-minio-bootstrap:
-      condition: service_completed_successfully
     medusa-meilisearch:
-      condition: service_started
+      condition: service_healthy
   networks:
     - internal
   environment:
@@ -168,7 +174,10 @@ services:
       interval: 30s
       retries: 5
   medusa-valkey:
-    image: valkey/valkey:8-alpine
+    build:
+      context: ./docker/development/medusa-valkey
+      dockerfile: Dockerfile
+    container_name: wr_medusa_valkey
     healthcheck:
       test: "[ $$(valkey-cli ping) = 'PONG' ]"
       start_period: 5s
@@ -182,7 +191,9 @@ services:
     networks:
       - internal
   medusa-minio:
-    image: minio/minio
+    build:
+      context: ./docker/development/medusa-minio
+      dockerfile: Dockerfile
     container_name: wr_medusa_minio
     ports:
       - "9003:9003"
@@ -193,30 +204,13 @@ services:
       - internal
     command: server /data --console-address ":9003" --address :9004
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9003"]
+      test: ["CMD", "curl", "-f", "http://localhost:9004/minio/health/live"]
     environment:
-      MINIO_ROOT_USER: ${DC_MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${DC_MINIO_ROOT_PASSWORD:-minioadmin}
-  medusa-minio-bootstrap:
-    image: minio/mc
-    restart: "no"
-    depends_on:
-      medusa-minio:
-        condition: service_healthy
-    networks:
-      - internal
-    volumes:
-      - ./docker/development/medusa-minio/config/local-bucket-metadata.zip:/config/local-bucket-metadata.zip:ro
-    environment:
-      <<: *minio-bootstrap-env
-    entrypoint:
-      [
-        "sh",
-        "-euc",
-        "mc alias set local http://medusa-minio:9004 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\"; if ! mc admin accesskey info local \"$$MINIO_ACCESS_KEY\" >/dev/null 2>&1; then mc admin accesskey create --access-key \"$$MINIO_ACCESS_KEY\" --secret-key \"$$MINIO_SECRET_KEY\" local; fi; mc admin cluster bucket import local /config/local-bucket-metadata.zip",
-      ]
+      <<: [*medusa-env, *minio-env]
   medusa-meilisearch:
-    image: getmeili/meilisearch:v1.35.1
+    build:
+      context: ./docker/development/medusa-meilisearch
+      dockerfile: Dockerfile
     container_name: wr_medusa_meilisearch
     ports:
       - "7700:7700"
@@ -225,13 +219,12 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7700"]
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
       interval: 10s
       timeout: 5s
       retries: 5
     environment:
-      MEILI_MASTER_KEY: ${DC_MEILI_MASTER_KEY}
-      MEILI_NO_ANALYTICS: true
+      <<: [*medusa-env, *meilisearch-env]
   medusa-db:
     image: postgres:18.1-alpine
     restart: unless-stopped
