@@ -146,9 +146,11 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
         * <a href="http://localhost:7700">localhost:7700</a>
         * <a href="https://admin.meilisearch.localhost">https://admin.meilisearch.localhost</a>
             * credentials: `MEILI_MASTER_KEY_FOR_DEVELOPMENT_ONLY`
+            * frontend key (`DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY`) must be read-only search key, never the master key
             * (optional) if plugin was disabled before adding products:
                 * `make medusa-meilisearch-reseed`
     * Redis compatible ValKey storage can be connected at `localhost:6379`
+        * password: `DC_VALKEY_PASSWORD` (default in `.env`: `valkey_dev_change_me`)
     * Postgres DB can be connected at `localhost:5432`
         * default credentials: `root`/`root`
         * adminer can be accessed on <a href="http://localhost:8081">localhost:8081</a>

@@ -3,7 +3,8 @@ ARG MEILISEARCH_IMAGE=getmeili/meilisearch:v1.35.1@sha256:8b57fc3c7f46535ddef382
 
 FROM ${MEILISEARCH_IMAGE}
 
-COPY --chmod=755 entrypoint.sh /usr/local/bin/meilisearch-entrypoint.sh
+COPY entrypoint.sh /usr/local/bin/meilisearch-entrypoint.sh
+RUN chmod 755 /usr/local/bin/meilisearch-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/meilisearch-entrypoint.sh"]
 CMD ["/bin/meilisearch"]
