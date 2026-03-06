@@ -6,4 +6,6 @@
 
   --container-checkout-main: 70rem;
   --container-checkout-sidebar: 22rem;
+
+  --aspect-wide: 3/1;
 }

@@ -9,7 +9,7 @@
   --color-carousel-indicator-bg: --alpha(var(--color-fg-reverse) / 50%);
   --color-carousel-indicator-bg-active: var(--color-fg-reverse);
 
-  --width-carousel-indicator: 1.5rem;
+  --width-carousel-indicator: 1rem;
   --gap-carousel-indicator: var(--spacing-200);
 
   --radius-carousel: var(--radius-md);

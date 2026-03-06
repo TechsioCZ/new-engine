@@ -1,13 +1,9 @@
 import { Carousel } from "@ui/molecules/carousel"
 import { carouselSlides } from "./data"
-import { TestComponentsSection } from "./section"
 
 export function CarouselSection() {
   return (
-    <TestComponentsSection
-      title="Carousel"
-      description="Hero carousel s obrázky `carousel-1` až `carousel-3`, varianta `size=full`, `aspectRatio=wide`."
-    >
+    <div className="w-3xl">
       <Carousel.Root
         aspectRatio="wide"
         loop
@@ -16,12 +12,10 @@ export function CarouselSection() {
         slideCount={carouselSlides.length}
       >
         <Carousel.Slides slides={carouselSlides} />
-        <Carousel.Control>
-          <Carousel.Previous />
-          <Carousel.Indicators />
-          <Carousel.Next />
-        </Carousel.Control>
+        <Carousel.Previous className="absolute top-1/2 left-100 z-10 -translate-y-1/2 text-2xl" />
+        <Carousel.Next className="absolute top-1/2 right-100 z-10 -translate-y-1/2 text-2xl" />
+        <Carousel.Indicators className="absolute bottom-100 left-0 z-10" />
       </Carousel.Root>
-    </TestComponentsSection>
+      </div>
   )
 }
