@@ -35,7 +35,9 @@
     ```
 
     * Postgres role bootstrap (`medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
-    * MinIO bootstrap (`medusa-minio-bootstrap`) now runs automatically and ensures the configured Medusa access key exists and bucket metadata is imported
+    * MinIO bootstrap now runs inside `medusa-minio` container startup (idempotent, swarm-safe), ensuring the configured Medusa access key exists and bucket metadata is imported
+    * Meilisearch now starts through an in-image bootstrap wrapper (idempotent, swarm-safe) before serving traffic
+    * `medusa-minio` and `medusa-meilisearch` inherit the same runtime env block as `medusa-be`, with service-specific bootstrap envs layered on top
     * `zane_operator` role bootstrap runs as one-shot service `zane-operator-bootstrap` before `zane-operator` starts (idempotent)
     * If your Postgres volume already existed before this change, run bootstrap migration once:
 
@@ -219,6 +221,33 @@ This builds a production-optimized image and starts the container. Access the ad
 
 Note: Production mode uses secure cookies, so you must access via HTTPS (Caddy) rather than `http://localhost:9000`.
 Note: `make prod` now starts `medusa-be`, waits for health, regenerates `apps/n1/src/data/static/categories.ts` from Medusa data, then builds the `n1` prod image.
+
+---
+
+## Docker Swarm Compose (ZaneOps-friendly)
+
+For Docker Swarm / ZaneOps preview clones, use:
+
+```shell
+docker-compose.swarm.yaml
+```
+
+Design goals of this file:
+* image-only services (no `build:` and no one-shot bootstrap containers)
+* MinIO and Meilisearch are self-bootstrapping via their image entrypoints (idempotent)
+* MinIO and Meilisearch inherit the same runtime env block as `medusa-be`
+* no fixed host `ports:` in stack services (avoids collisions across preview environments)
+
+Required env vars before deploy:
+* `DC_MEDUSA_BE_IMAGE`
+* `DC_N1_IMAGE`
+
+Deploy example:
+
+```shell
+set -a; . ./.env; set +a
+docker stack deploy --with-registry-auth -c docker-compose.swarm.yaml medusa
+```
 
 ---
 
