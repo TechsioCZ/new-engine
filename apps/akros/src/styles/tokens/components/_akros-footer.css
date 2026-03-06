@@ -1,22 +1,35 @@
 @theme static {
   --footer-cols: repeat(4, minmax(0, 1fr));
 
-  --color-footer-bg: var(--color-base);
+  --color-footer-bg: var(--color-surface);
   --color-footer-container-bg: transparent;
   --color-footer-section-bg: transparent;
   --color-footer-list-bg: transparent;
   --color-footer-bottom-bg: transparent;
 
+  --color-footer-link-fg: var(--color-fg-secondary);
+  --color-footer-link-fg-hover: var(--color-fg-primary);
+  --color-footer-text-fg: var(--color-fg-secondary);
   --color-footer-title-fg-hover: var(--color-fg-primary);
-  --color-footer-divider-bg: var(--color-border-secondary);
+  --color-footer-divider-bg: var(--color-border-primary);
+
+  --text-footer-title-md: var(--text-xl);
+  --text-footer-title-md--line-height: var(--leading-tight);
+  --text-footer-link-md: var(--text-md);
+  --text-footer-link-md--line-height: 2;
+  --text-footer-text-md: var(--text-md);
+  --text-footer-text-md--line-height: var(--leading-relaxed);
 
   --font-weight-footer-title: var(--font-weight-bold);
+  --font-weight-footer-link: var(--font-weight-medium);
 
-  --padding-footer-root-md: 0;
-  --spacing-footer-container-md: var(--spacing-650);
-  --spacing-footer-section-md: var(--spacing-300);
-  --spacing-footer-list-gap-md: var(--spacing-200);
-  --padding-footer-bottom-md: var(--spacing-500);
+  --padding-footer-root-md: var(--spacing-700);
+  --padding-akros-footer-padding: var(--spacing-600) 0;
+  --gap-akros-footer-section: var(--spacing-550);
+  --spacing-footer-container-md: var(--spacing-700);
+  --spacing-footer-section-md: var(--spacing-550);
+  --spacing-footer-list-gap-md: 0;
+  --padding-footer-bottom-md: 0;
   --margin-footer-divider-md: 0;
 
   --border-width-footer: var(--border-width-sm);
