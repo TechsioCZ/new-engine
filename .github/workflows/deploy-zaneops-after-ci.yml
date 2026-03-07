@@ -1,343 +1,343 @@
-name: ZaneOps Deploy After CI
-
-on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-
-permissions:
-  contents: read
-  pull-requests: read
-
-jobs:
-  preview:
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
-    runs-on: ubuntu-latest
-    concurrency:
-      group: zaneops-preview-pr-${{ github.event.workflow_run.pull_requests[0].number }}
-      cancel-in-progress: true
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Resolve affected deployables
-        id: affected
-        env:
-          BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: scripts/ci/resolve-affected-services.sh
-
-      - name: Decide preview scope
-        id: preview_scope
-        run: |
-          should_deploy="false"
-          if [[ "${{ steps.affected.outputs.has_medusa_be }}" == "true" || "${{ steps.affected.outputs.has_n1 }}" == "true" || "${{ steps.affected.outputs.has_medusa_minio }}" == "true" || "${{ steps.affected.outputs.has_medusa_meilisearch }}" == "true" || "${{ steps.affected.outputs.has_medusa_valkey }}" == "true" ]]; then
-            should_deploy="true"
-          fi
-          echo "should_deploy=${should_deploy}" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve preview redeploy services
-        if: steps.preview_scope.outputs.should_deploy == 'true'
-        id: preview_services
-        run: |
-          services=()
-          if [[ "${{ steps.affected.outputs.has_medusa_be }}" == "true" ]]; then
-            services+=("medusa-be")
-          fi
-          if [[ "${{ steps.affected.outputs.has_n1 }}" == "true" ]]; then
-            services+=("n1")
-          fi
-          if [[ "${{ steps.affected.outputs.has_medusa_minio }}" == "true" ]]; then
-            services+=("medusa-minio")
-          fi
-          if [[ "${{ steps.affected.outputs.has_medusa_meilisearch }}" == "true" ]]; then
-            services+=("medusa-meilisearch")
-          fi
-          if [[ "${{ steps.affected.outputs.has_medusa_valkey }}" == "true" ]]; then
-            services+=("medusa-valkey")
-          fi
-
-          services_csv=""
-          if (( ${#services[@]} > 0 )); then
-            IFS=,
-            services_csv="${services[*]}"
-            unset IFS
-          fi
-
-          echo "services_csv=${services_csv}" >> "$GITHUB_OUTPUT"
-
-      - name: Ensure preview DB
-        if: steps.preview_scope.outputs.should_deploy == 'true'
-        id: ensure_db
-        env:
-          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
-          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-        run: scripts/ci/preview-db.sh ensure "${{ github.event.workflow_run.pull_requests[0].number }}"
-
-      - name: Build project env overrides payload
-        if: steps.preview_scope.outputs.should_deploy == 'true'
-        id: project_overrides
-        env:
-          MEDUSA_APP_DB_USER: ${{ steps.ensure_db.outputs.app_user }}
-          MEDUSA_APP_DB_PASSWORD: ${{ steps.ensure_db.outputs.app_password }}
-          MEDUSA_APP_DB_NAME: ${{ steps.ensure_db.outputs.db_name }}
-        run: |
-          overrides='{}'
-          if [[ "${{ steps.affected.outputs.has_medusa_be }}" == "true" ]]; then
-            overrides="$(jq -c \
-              --arg db_user "$MEDUSA_APP_DB_USER" \
-              --arg db_password "$MEDUSA_APP_DB_PASSWORD" \
-              --arg db_name "$MEDUSA_APP_DB_NAME" \
-              '. + {
-                "medusa-be": [
-                  {"key":"NODE_ENV","value":"development"},
-                  {"key":"MEDUSA_APP_DB_USER","value":$db_user},
-                  {"key":"MEDUSA_APP_DB_PASSWORD","value":$db_password},
-                  {"key":"MEDUSA_APP_DB_NAME","value":$db_name},
-                  {"key":"MEDUSA_DB_USER","value":$db_user},
-                  {"key":"MEDUSA_DB_PASSWORD","value":$db_password},
-                  {"key":"MEDUSA_DB_NAME","value":$db_name}
-                ]
-              }' <<<"$overrides")"
-          fi
-
-          if [[ "${{ steps.affected.outputs.has_n1 }}" == "true" ]]; then
-            overrides="$(jq -c '. + {"n1": ((.n1 // []) + [{"key":"NODE_ENV","value":"development"}])}' <<<"$overrides")"
-          fi
-
-          echo "json=${overrides}" >> "$GITHUB_OUTPUT"
-
-      - name: Build project settings overrides payload
-        if: steps.preview_scope.outputs.should_deploy == 'true'
-        id: project_settings_overrides
-        env:
-          ZANEOPS_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON: ${{ secrets.ZANEOPS_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON }}
-        run: |
-          settings_overrides="${ZANEOPS_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON:-{}}"
-          if ! printf '%s' "$settings_overrides" | jq -e . >/dev/null 2>&1; then
-            echo "ZANEOPS_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON must be valid JSON." >&2
-            exit 1
-          fi
-          echo "json=$(jq -c . <<<"$settings_overrides")" >> "$GITHUB_OUTPUT"
-
-      - name: Redeploy existing preview services
-        if: steps.preview_scope.outputs.should_deploy == 'true' && steps.ensure_db.outputs.created != 'true'
-        id: redeploy_preview
-        env:
-          ZANE_PROJECT_DEPLOY_WEBHOOK_URL: ${{ secrets.ZANEOPS_PROJECT_DEPLOY_WEBHOOK_URL }}
-          ZANE_PROJECT_SERVICES_ENV_OVERRIDES_JSON: ${{ steps.project_overrides.outputs.json }}
-          ZANE_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON: ${{ steps.project_settings_overrides.outputs.json }}
-          REPOSITORY_URL: https://github.com/${{ github.repository }}.git
-        run: |
-          scripts/ci/redeploy-preview-services.sh \
-            --pr-number "${{ github.event.workflow_run.pull_requests[0].number }}" \
-            --commit-sha "${{ github.event.workflow_run.head_sha }}" \
-            --services-csv "${{ steps.preview_services.outputs.services_csv }}" \
-            --repository-url "${REPOSITORY_URL}"
-
-      - name: Create preview environment when missing
-        if: steps.preview_scope.outputs.should_deploy == 'true' && (steps.ensure_db.outputs.created == 'true' || steps.redeploy_preview.outputs.status == 'not_found')
-        id: create_preview
-        env:
-          ZANE_PREVIEW_WEBHOOK_URL: ${{ secrets.ZANEOPS_PROJECT_PREVIEW_WEBHOOK_URL }}
-          MEDUSA_APP_DB_USER: ${{ steps.ensure_db.outputs.app_user }}
-          MEDUSA_APP_DB_PASSWORD: ${{ steps.ensure_db.outputs.app_password }}
-          MEDUSA_APP_DB_NAME: ${{ steps.ensure_db.outputs.db_name }}
-          REPOSITORY_URL: https://github.com/${{ github.repository }}.git
-          ZANE_PREVIEW_SERVICES_SETTINGS_OVERRIDES_JSON: ${{ steps.project_settings_overrides.outputs.json }}
-        run: |
-          cmd=(
-            scripts/ci/zane-deploy.sh preview
-            --pr-number "${{ github.event.workflow_run.pull_requests[0].number }}"
-            --commit-sha "${{ github.event.workflow_run.head_sha }}"
-            --repository-url "${REPOSITORY_URL}"
-          )
-
-          if [[ "${{ steps.affected.outputs.has_medusa_be }}" == "true" ]]; then
-            cmd+=(
-              --service-env "medusa-be:NODE_ENV=development"
-              --service-env "medusa-be:MEDUSA_APP_DB_USER=${MEDUSA_APP_DB_USER}"
-              --service-env "medusa-be:MEDUSA_APP_DB_PASSWORD=${MEDUSA_APP_DB_PASSWORD}"
-              --service-env "medusa-be:MEDUSA_APP_DB_NAME=${MEDUSA_APP_DB_NAME}"
-              --service-env "medusa-be:MEDUSA_DB_USER=${MEDUSA_APP_DB_USER}"
-              --service-env "medusa-be:MEDUSA_DB_PASSWORD=${MEDUSA_APP_DB_PASSWORD}"
-              --service-env "medusa-be:MEDUSA_DB_NAME=${MEDUSA_APP_DB_NAME}"
-            )
-          fi
-
-          if [[ "${{ steps.affected.outputs.has_n1 }}" == "true" ]]; then
-            cmd+=(--service-env "n1:NODE_ENV=development")
-          fi
-
-          "${cmd[@]}"
-
-      - name: Note preview redeploy result
-        if: steps.preview_scope.outputs.should_deploy == 'true' && steps.ensure_db.outputs.created != 'true'
-        run: |
-          echo "Redeploy status: ${{ steps.redeploy_preview.outputs.status || 'n/a' }}"
-          echo "HTTP code: ${{ steps.redeploy_preview.outputs.http_code || 'n/a' }}"
-          echo "Matched preview envs: ${{ steps.redeploy_preview.outputs.matched_env_count || '0' }}"
-          echo "Services redeployed: ${{ steps.redeploy_preview.outputs.redeploy_count || '0' }}"
-          echo "Failed redeploys: ${{ steps.redeploy_preview.outputs.failed_count || '0' }}"
-          if [[ "${{ steps.redeploy_preview.outputs.status || '' }}" == "not_found" ]]; then
-            echo "No existing preview env matched this PR, so create-preview fallback was used."
-          fi
-
-      - name: Optional preview smoke check
-        if: steps.preview_scope.outputs.should_deploy == 'true' && (steps.create_preview.outcome == 'success' || steps.redeploy_preview.outputs.status == 'accepted') && secrets.ZANEOPS_PREVIEW_HEALTHCHECK_URL != ''
-        run: scripts/ci/smoke-check.sh --url "${{ secrets.ZANEOPS_PREVIEW_HEALTHCHECK_URL }}" --retries 30 --delay 8
-
-      - name: Summary
-        if: always()
-        run: |
-          {
-            echo "## ZaneOps Preview Lane"
-            echo "- PR: #${{ github.event.workflow_run.pull_requests[0].number }}"
-            echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
-            echo "- Affected projects: ${{ steps.affected.outputs.projects_csv }}"
-            echo "- Affected services: ${{ steps.affected.outputs.services_csv }}"
-            echo "- Preview services: ${{ steps.preview_services.outputs.services_csv || 'n/a' }}"
-            echo "- Should deploy: ${{ steps.preview_scope.outputs.should_deploy }}"
-            echo "- DB ensure created: ${{ steps.ensure_db.outputs.created || 'n/a' }}"
-            echo "- Redeploy status: ${{ steps.redeploy_preview.outputs.status || 'n/a' }}"
-            echo "- Redeploy HTTP: ${{ steps.redeploy_preview.outputs.http_code || 'n/a' }}"
-            echo "- Preview env matches: ${{ steps.redeploy_preview.outputs.matched_env_count || 'n/a' }}"
-            echo "- Preview redeploy count: ${{ steps.redeploy_preview.outputs.redeploy_count || 'n/a' }}"
-            echo "- Preview redeploy failures: ${{ steps.redeploy_preview.outputs.failed_count || 'n/a' }}"
-            echo "- Preview create outcome: ${{ steps.create_preview.outcome || 'n/a' }}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  master:
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'master'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: zaneops-master
-      cancel-in-progress: true
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Resolve base SHA
-        id: base
-        run: |
-          base_sha="$(git rev-parse HEAD^ 2>/dev/null || true)"
-          if [[ -z "$base_sha" ]]; then
-            base_sha="$(git rev-list --max-parents=0 HEAD)"
-          fi
-          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve affected deployables
-        id: affected
-        env:
-          BASE_SHA: ${{ steps.base.outputs.base_sha }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: scripts/ci/resolve-affected-services.sh
-
-      - name: Deploy medusa-be (master)
-        if: steps.affected.outputs.has_medusa_be == 'true'
-        env:
-          ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_BE }}
-        run: |
-          scripts/ci/zane-deploy.sh main \
-            --kind git \
-            --commit-sha "${{ github.event.workflow_run.head_sha }}" \
-            --cleanup-queue true
-
-      - name: Deploy n1 (master)
-        if: steps.affected.outputs.has_n1 == 'true'
-        env:
-          ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_N1 }}
-        run: |
-          scripts/ci/zane-deploy.sh main \
-            --kind git \
-            --commit-sha "${{ github.event.workflow_run.head_sha }}" \
-            --cleanup-queue true
-
-      - name: Deploy medusa-minio (master)
-        if: steps.affected.outputs.has_medusa_minio == 'true'
-        env:
-          ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_MINIO }}
-        run: |
-          scripts/ci/zane-deploy.sh main \
-            --kind docker \
-            --commit-message "CI redeploy for ${{ github.event.workflow_run.head_sha }}" \
-            --cleanup-queue true
-
-      - name: Deploy medusa-meilisearch (master)
-        if: steps.affected.outputs.has_medusa_meilisearch == 'true'
-        env:
-          ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_MEILISEARCH }}
-        run: |
-          scripts/ci/zane-deploy.sh main \
-            --kind docker \
-            --commit-message "CI redeploy for ${{ github.event.workflow_run.head_sha }}" \
-            --cleanup-queue true
-
-      - name: Deploy medusa-valkey (master)
-        if: steps.affected.outputs.has_medusa_valkey == 'true'
-        env:
-          ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_VALKEY }}
-        run: |
-          scripts/ci/zane-deploy.sh main \
-            --kind docker \
-            --commit-message "CI redeploy for ${{ github.event.workflow_run.head_sha }}" \
-            --cleanup-queue true
-
-      - name: Deploy medusa-db (master)
-        if: steps.affected.outputs.has_medusa_db == 'true'
-        env:
-          ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_DB }}
-        run: |
-          scripts/ci/zane-deploy.sh main \
-            --kind docker \
-            --commit-message "CI redeploy for ${{ github.event.workflow_run.head_sha }}" \
-            --cleanup-queue true
-
-      - name: Optional medusa-be smoke check
-        if: steps.affected.outputs.has_medusa_be == 'true' && secrets.ZANEOPS_MASTER_HEALTHCHECK_URL_MEDUSA_BE != ''
-        run: scripts/ci/smoke-check.sh --url "${{ secrets.ZANEOPS_MASTER_HEALTHCHECK_URL_MEDUSA_BE }}" --retries 30 --delay 8
-
-      - name: Optional n1 smoke check
-        if: steps.affected.outputs.has_n1 == 'true' && secrets.ZANEOPS_MASTER_HEALTHCHECK_URL_N1 != ''
-        run: scripts/ci/smoke-check.sh --url "${{ secrets.ZANEOPS_MASTER_HEALTHCHECK_URL_N1 }}" --retries 30 --delay 8
-
-      - name: Summary
-        if: always()
-        run: |
-          {
-            echo "## ZaneOps Master Lane"
-            echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
-            echo "- Base SHA: ${{ steps.base.outputs.base_sha }}"
-            echo "- Affected projects: ${{ steps.affected.outputs.projects_csv }}"
-            echo "- Affected services: ${{ steps.affected.outputs.services_csv }}"
-          } >> "$GITHUB_STEP_SUMMARY"
+# name: ZaneOps Deploy After CI
+# 
+# on:
+#   workflow_run:
+#     workflows: ["CI"]
+#     types: [completed]
+# 
+# permissions:
+#   contents: read
+#   pull-requests: read
+# 
+# jobs:
+#   preview:
+#     if: >-
+#       github.event.workflow_run.conclusion == 'success' &&
+#       github.event.workflow_run.event == 'pull_request' &&
+#       github.event.workflow_run.head_repository.full_name == github.repository
+#     runs-on: ubuntu-latest
+#     concurrency:
+#       group: zaneops-preview-pr-${{ github.event.workflow_run.pull_requests[0].number }}
+#       cancel-in-progress: true
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           ref: ${{ github.event.workflow_run.head_sha }}
+#           fetch-depth: 0
+# 
+#       - uses: pnpm/action-setup@v4
+# 
+#       - uses: actions/setup-node@v4
+#         with:
+#           node-version: 22
+#           cache: pnpm
+# 
+#       - name: Install dependencies
+#         run: pnpm install --frozen-lockfile
+# 
+#       - name: Resolve affected deployables
+#         id: affected
+#         env:
+#           BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
+#           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+#         run: scripts/ci/resolve-affected-services.sh
+# 
+#       - name: Decide preview scope
+#         id: preview_scope
+#         run: |
+#           should_deploy="false"
+#           if [[ "${{ steps.affected.outputs.has_medusa_be }}" == "true" || "${{ steps.affected.outputs.has_n1 }}" == "true" || "${{ steps.affected.outputs.has_medusa_minio }}" == "true" || "${{ steps.affected.outputs.has_medusa_meilisearch }}" == "true" || "${{ steps.affected.outputs.has_medusa_valkey }}" == "true" ]]; then
+#             should_deploy="true"
+#           fi
+#           echo "should_deploy=${should_deploy}" >> "$GITHUB_OUTPUT"
+# 
+#       - name: Resolve preview redeploy services
+#         if: steps.preview_scope.outputs.should_deploy == 'true'
+#         id: preview_services
+#         run: |
+#           services=()
+#           if [[ "${{ steps.affected.outputs.has_medusa_be }}" == "true" ]]; then
+#             services+=("medusa-be")
+#           fi
+#           if [[ "${{ steps.affected.outputs.has_n1 }}" == "true" ]]; then
+#             services+=("n1")
+#           fi
+#           if [[ "${{ steps.affected.outputs.has_medusa_minio }}" == "true" ]]; then
+#             services+=("medusa-minio")
+#           fi
+#           if [[ "${{ steps.affected.outputs.has_medusa_meilisearch }}" == "true" ]]; then
+#             services+=("medusa-meilisearch")
+#           fi
+#           if [[ "${{ steps.affected.outputs.has_medusa_valkey }}" == "true" ]]; then
+#             services+=("medusa-valkey")
+#           fi
+# 
+#           services_csv=""
+#           if (( ${#services[@]} > 0 )); then
+#             IFS=,
+#             services_csv="${services[*]}"
+#             unset IFS
+#           fi
+# 
+#           echo "services_csv=${services_csv}" >> "$GITHUB_OUTPUT"
+# 
+#       - name: Ensure preview DB
+#         if: steps.preview_scope.outputs.should_deploy == 'true'
+#         id: ensure_db
+#         env:
+#           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+#           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+#         run: scripts/ci/preview-db.sh ensure "${{ github.event.workflow_run.pull_requests[0].number }}"
+# 
+#       - name: Build project env overrides payload
+#         if: steps.preview_scope.outputs.should_deploy == 'true'
+#         id: project_overrides
+#         env:
+#           MEDUSA_APP_DB_USER: ${{ steps.ensure_db.outputs.app_user }}
+#           MEDUSA_APP_DB_PASSWORD: ${{ steps.ensure_db.outputs.app_password }}
+#           MEDUSA_APP_DB_NAME: ${{ steps.ensure_db.outputs.db_name }}
+#         run: |
+#           overrides='{}'
+#           if [[ "${{ steps.affected.outputs.has_medusa_be }}" == "true" ]]; then
+#             overrides="$(jq -c \
+#               --arg db_user "$MEDUSA_APP_DB_USER" \
+#               --arg db_password "$MEDUSA_APP_DB_PASSWORD" \
+#               --arg db_name "$MEDUSA_APP_DB_NAME" \
+#               '. + {
+#                 "medusa-be": [
+#                   {"key":"NODE_ENV","value":"development"},
+#                   {"key":"MEDUSA_APP_DB_USER","value":$db_user},
+#                   {"key":"MEDUSA_APP_DB_PASSWORD","value":$db_password},
+#                   {"key":"MEDUSA_APP_DB_NAME","value":$db_name},
+#                   {"key":"MEDUSA_DB_USER","value":$db_user},
+#                   {"key":"MEDUSA_DB_PASSWORD","value":$db_password},
+#                   {"key":"MEDUSA_DB_NAME","value":$db_name}
+#                 ]
+#               }' <<<"$overrides")"
+#           fi
+# 
+#           if [[ "${{ steps.affected.outputs.has_n1 }}" == "true" ]]; then
+#             overrides="$(jq -c '. + {"n1": ((.n1 // []) + [{"key":"NODE_ENV","value":"development"}])}' <<<"$overrides")"
+#           fi
+# 
+#           echo "json=${overrides}" >> "$GITHUB_OUTPUT"
+# 
+#       - name: Build project settings overrides payload
+#         if: steps.preview_scope.outputs.should_deploy == 'true'
+#         id: project_settings_overrides
+#         env:
+#           ZANEOPS_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON: ${{ secrets.ZANEOPS_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON }}
+#         run: |
+#           settings_overrides="${ZANEOPS_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON:-{}}"
+#           if ! printf '%s' "$settings_overrides" | jq -e . >/dev/null 2>&1; then
+#             echo "ZANEOPS_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON must be valid JSON." >&2
+#             exit 1
+#           fi
+#           echo "json=$(jq -c . <<<"$settings_overrides")" >> "$GITHUB_OUTPUT"
+# 
+#       - name: Redeploy existing preview services
+#         if: steps.preview_scope.outputs.should_deploy == 'true' && steps.ensure_db.outputs.created != 'true'
+#         id: redeploy_preview
+#         env:
+#           ZANE_PROJECT_DEPLOY_WEBHOOK_URL: ${{ secrets.ZANEOPS_PROJECT_DEPLOY_WEBHOOK_URL }}
+#           ZANE_PROJECT_SERVICES_ENV_OVERRIDES_JSON: ${{ steps.project_overrides.outputs.json }}
+#           ZANE_PROJECT_SERVICES_SETTINGS_OVERRIDES_JSON: ${{ steps.project_settings_overrides.outputs.json }}
+#           REPOSITORY_URL: https://github.com/${{ github.repository }}.git
+#         run: |
+#           scripts/ci/redeploy-preview-services.sh \
+#             --pr-number "${{ github.event.workflow_run.pull_requests[0].number }}" \
+#             --commit-sha "${{ github.event.workflow_run.head_sha }}" \
+#             --services-csv "${{ steps.preview_services.outputs.services_csv }}" \
+#             --repository-url "${REPOSITORY_URL}"
+# 
+#       - name: Create preview environment when missing
+#         if: steps.preview_scope.outputs.should_deploy == 'true' && (steps.ensure_db.outputs.created == 'true' || steps.redeploy_preview.outputs.status == 'not_found')
+#         id: create_preview
+#         env:
+#           ZANE_PREVIEW_WEBHOOK_URL: ${{ secrets.ZANEOPS_PROJECT_PREVIEW_WEBHOOK_URL }}
+#           MEDUSA_APP_DB_USER: ${{ steps.ensure_db.outputs.app_user }}
+#           MEDUSA_APP_DB_PASSWORD: ${{ steps.ensure_db.outputs.app_password }}
+#           MEDUSA_APP_DB_NAME: ${{ steps.ensure_db.outputs.db_name }}
+#           REPOSITORY_URL: https://github.com/${{ github.repository }}.git
+#           ZANE_PREVIEW_SERVICES_SETTINGS_OVERRIDES_JSON: ${{ steps.project_settings_overrides.outputs.json }}
+#         run: |
+#           cmd=(
+#             scripts/ci/zane-deploy.sh preview
+#             --pr-number "${{ github.event.workflow_run.pull_requests[0].number }}"
+#             --commit-sha "${{ github.event.workflow_run.head_sha }}"
+#             --repository-url "${REPOSITORY_URL}"
+#           )
+# 
+#           if [[ "${{ steps.affected.outputs.has_medusa_be }}" == "true" ]]; then
+#             cmd+=(
+#               --service-env "medusa-be:NODE_ENV=development"
+#               --service-env "medusa-be:MEDUSA_APP_DB_USER=${MEDUSA_APP_DB_USER}"
+#               --service-env "medusa-be:MEDUSA_APP_DB_PASSWORD=${MEDUSA_APP_DB_PASSWORD}"
+#               --service-env "medusa-be:MEDUSA_APP_DB_NAME=${MEDUSA_APP_DB_NAME}"
+#               --service-env "medusa-be:MEDUSA_DB_USER=${MEDUSA_APP_DB_USER}"
+#               --service-env "medusa-be:MEDUSA_DB_PASSWORD=${MEDUSA_APP_DB_PASSWORD}"
+#               --service-env "medusa-be:MEDUSA_DB_NAME=${MEDUSA_APP_DB_NAME}"
+#             )
+#           fi
+# 
+#           if [[ "${{ steps.affected.outputs.has_n1 }}" == "true" ]]; then
+#             cmd+=(--service-env "n1:NODE_ENV=development")
+#           fi
+# 
+#           "${cmd[@]}"
+# 
+#       - name: Note preview redeploy result
+#         if: steps.preview_scope.outputs.should_deploy == 'true' && steps.ensure_db.outputs.created != 'true'
+#         run: |
+#           echo "Redeploy status: ${{ steps.redeploy_preview.outputs.status || 'n/a' }}"
+#           echo "HTTP code: ${{ steps.redeploy_preview.outputs.http_code || 'n/a' }}"
+#           echo "Matched preview envs: ${{ steps.redeploy_preview.outputs.matched_env_count || '0' }}"
+#           echo "Services redeployed: ${{ steps.redeploy_preview.outputs.redeploy_count || '0' }}"
+#           echo "Failed redeploys: ${{ steps.redeploy_preview.outputs.failed_count || '0' }}"
+#           if [[ "${{ steps.redeploy_preview.outputs.status || '' }}" == "not_found" ]]; then
+#             echo "No existing preview env matched this PR, so create-preview fallback was used."
+#           fi
+# 
+#       - name: Optional preview smoke check
+#         if: steps.preview_scope.outputs.should_deploy == 'true' && (steps.create_preview.outcome == 'success' || steps.redeploy_preview.outputs.status == 'accepted') && secrets.ZANEOPS_PREVIEW_HEALTHCHECK_URL != ''
+#         run: scripts/ci/smoke-check.sh --url "${{ secrets.ZANEOPS_PREVIEW_HEALTHCHECK_URL }}" --retries 30 --delay 8
+# 
+#       - name: Summary
+#         if: always()
+#         run: |
+#           {
+#             echo "## ZaneOps Preview Lane"
+#             echo "- PR: #${{ github.event.workflow_run.pull_requests[0].number }}"
+#             echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
+#             echo "- Affected projects: ${{ steps.affected.outputs.projects_csv }}"
+#             echo "- Affected services: ${{ steps.affected.outputs.services_csv }}"
+#             echo "- Preview services: ${{ steps.preview_services.outputs.services_csv || 'n/a' }}"
+#             echo "- Should deploy: ${{ steps.preview_scope.outputs.should_deploy }}"
+#             echo "- DB ensure created: ${{ steps.ensure_db.outputs.created || 'n/a' }}"
+#             echo "- Redeploy status: ${{ steps.redeploy_preview.outputs.status || 'n/a' }}"
+#             echo "- Redeploy HTTP: ${{ steps.redeploy_preview.outputs.http_code || 'n/a' }}"
+#             echo "- Preview env matches: ${{ steps.redeploy_preview.outputs.matched_env_count || 'n/a' }}"
+#             echo "- Preview redeploy count: ${{ steps.redeploy_preview.outputs.redeploy_count || 'n/a' }}"
+#             echo "- Preview redeploy failures: ${{ steps.redeploy_preview.outputs.failed_count || 'n/a' }}"
+#             echo "- Preview create outcome: ${{ steps.create_preview.outcome || 'n/a' }}"
+#           } >> "$GITHUB_STEP_SUMMARY"
+# 
+#   master:
+#     if: >-
+#       github.event.workflow_run.conclusion == 'success' &&
+#       github.event.workflow_run.event == 'push' &&
+#       github.event.workflow_run.head_branch == 'master'
+#     runs-on: ubuntu-latest
+#     concurrency:
+#       group: zaneops-master
+#       cancel-in-progress: true
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           ref: ${{ github.event.workflow_run.head_sha }}
+#           fetch-depth: 0
+# 
+#       - uses: pnpm/action-setup@v4
+# 
+#       - uses: actions/setup-node@v4
+#         with:
+#           node-version: 22
+#           cache: pnpm
+# 
+#       - name: Install dependencies
+#         run: pnpm install --frozen-lockfile
+# 
+#       - name: Resolve base SHA
+#         id: base
+#         run: |
+#           base_sha="$(git rev-parse HEAD^ 2>/dev/null || true)"
+#           if [[ -z "$base_sha" ]]; then
+#             base_sha="$(git rev-list --max-parents=0 HEAD)"
+#           fi
+#           echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+# 
+#       - name: Resolve affected deployables
+#         id: affected
+#         env:
+#           BASE_SHA: ${{ steps.base.outputs.base_sha }}
+#           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+#         run: scripts/ci/resolve-affected-services.sh
+# 
+#       - name: Deploy medusa-be (master)
+#         if: steps.affected.outputs.has_medusa_be == 'true'
+#         env:
+#           ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_BE }}
+#         run: |
+#           scripts/ci/zane-deploy.sh main \
+#             --kind git \
+#             --commit-sha "${{ github.event.workflow_run.head_sha }}" \
+#             --cleanup-queue true
+# 
+#       - name: Deploy n1 (master)
+#         if: steps.affected.outputs.has_n1 == 'true'
+#         env:
+#           ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_N1 }}
+#         run: |
+#           scripts/ci/zane-deploy.sh main \
+#             --kind git \
+#             --commit-sha "${{ github.event.workflow_run.head_sha }}" \
+#             --cleanup-queue true
+# 
+#       - name: Deploy medusa-minio (master)
+#         if: steps.affected.outputs.has_medusa_minio == 'true'
+#         env:
+#           ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_MINIO }}
+#         run: |
+#           scripts/ci/zane-deploy.sh main \
+#             --kind docker \
+#             --commit-message "CI redeploy for ${{ github.event.workflow_run.head_sha }}" \
+#             --cleanup-queue true
+# 
+#       - name: Deploy medusa-meilisearch (master)
+#         if: steps.affected.outputs.has_medusa_meilisearch == 'true'
+#         env:
+#           ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_MEILISEARCH }}
+#         run: |
+#           scripts/ci/zane-deploy.sh main \
+#             --kind docker \
+#             --commit-message "CI redeploy for ${{ github.event.workflow_run.head_sha }}" \
+#             --cleanup-queue true
+# 
+#       - name: Deploy medusa-valkey (master)
+#         if: steps.affected.outputs.has_medusa_valkey == 'true'
+#         env:
+#           ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_VALKEY }}
+#         run: |
+#           scripts/ci/zane-deploy.sh main \
+#             --kind docker \
+#             --commit-message "CI redeploy for ${{ github.event.workflow_run.head_sha }}" \
+#             --cleanup-queue true
+# 
+#       - name: Deploy medusa-db (master)
+#         if: steps.affected.outputs.has_medusa_db == 'true'
+#         env:
+#           ZANE_MAIN_WEBHOOK_URL: ${{ secrets.ZANEOPS_MASTER_DEPLOY_WEBHOOK_MEDUSA_DB }}
+#         run: |
+#           scripts/ci/zane-deploy.sh main \
+#             --kind docker \
+#             --commit-message "CI redeploy for ${{ github.event.workflow_run.head_sha }}" \
+#             --cleanup-queue true
+# 
+#       - name: Optional medusa-be smoke check
+#         if: steps.affected.outputs.has_medusa_be == 'true' && secrets.ZANEOPS_MASTER_HEALTHCHECK_URL_MEDUSA_BE != ''
+#         run: scripts/ci/smoke-check.sh --url "${{ secrets.ZANEOPS_MASTER_HEALTHCHECK_URL_MEDUSA_BE }}" --retries 30 --delay 8
+# 
+#       - name: Optional n1 smoke check
+#         if: steps.affected.outputs.has_n1 == 'true' && secrets.ZANEOPS_MASTER_HEALTHCHECK_URL_N1 != ''
+#         run: scripts/ci/smoke-check.sh --url "${{ secrets.ZANEOPS_MASTER_HEALTHCHECK_URL_N1 }}" --retries 30 --delay 8
+# 
+#       - name: Summary
+#         if: always()
+#         run: |
+#           {
+#             echo "## ZaneOps Master Lane"
+#             echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
+#             echo "- Base SHA: ${{ steps.base.outputs.base_sha }}"
+#             echo "- Affected projects: ${{ steps.affected.outputs.projects_csv }}"
+#             echo "- Affected services: ${{ steps.affected.outputs.services_csv }}"
+#           } >> "$GITHUB_STEP_SUMMARY"
