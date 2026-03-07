@@ -36,7 +36,7 @@ x-medusa-env: &medusa-env
   # Medusa BE: dependencies/integrations
   REDIS_URL: ${DC_REDIS_URL:-redis://:${DC_VALKEY_PASSWORD:-valkey_dev_change_me}@medusa-valkey:6379}
   MEILISEARCH_HOST: ${DC_MEILISEARCH_HOST}
-  MEILISEARCH_API_KEY: ${DC_MEILISEARCH_API_KEY}
+  MEILISEARCH_API_KEY: ${DC_MEILISEARCH_BACKEND_API_KEY:-${DC_MEILISEARCH_MASTER_KEY}}
   MINIO_FILE_URL: ${DC_MINIO_FILE_URL}
   MINIO_REGION: ${DC_MINIO_REGION}
   MINIO_ENDPOINT: ${DC_MINIO_ENDPOINT}
@@ -54,15 +54,12 @@ x-medusa-env: &medusa-env
 x-minio-env: &minio-env
   MINIO_ROOT_USER: ${DC_MINIO_ROOT_USER:-minioadmin}
   MINIO_ROOT_PASSWORD: ${DC_MINIO_ROOT_PASSWORD:-minioadmin}
-  MINIO_ACCESS_KEY: ${DC_MINIO_ACCESS_KEY:-minioadminkey}
-  MINIO_SECRET_KEY: ${DC_MINIO_SECRET_KEY:-minioadminkey}
-  MINIO_BUCKET_METADATA_IMPORT_ENABLED: ${DC_MINIO_BUCKET_METADATA_IMPORT_ENABLED:-1}
-  MINIO_BUCKET_METADATA_ZIP_PATH: /config/local-bucket-metadata.zip
-  MINIO_BOOTSTRAP_URL: ${DC_MINIO_BOOTSTRAP_URL:-http://127.0.0.1:9004}
-  MINIO_START_TIMEOUT_SECONDS: ${DC_MINIO_START_TIMEOUT_SECONDS:-60}
+  MINIO_MEDUSA_ACCESS_KEY: ${DC_MINIO_ACCESS_KEY:-medusaappkey}
+  MINIO_MEDUSA_SECRET_KEY: ${DC_MINIO_SECRET_KEY:-medusaappsecret_change_me}
+  MINIO_MEDUSA_BUCKET: ${DC_MINIO_BUCKET}
 
 x-meilisearch-env: &meilisearch-env
-  MEILI_MASTER_KEY: ${DC_MEILI_MASTER_KEY}
+  MEILI_MASTER_KEY: ${DC_MEILISEARCH_MASTER_KEY}
   MEILI_NO_ANALYTICS: true
 
 x-zane-operator-db-env: &zane-operator-db-env
@@ -70,7 +67,8 @@ x-zane-operator-db-env: &zane-operator-db-env
   PGHOST: medusa-db
   PGPORT: 5432
   PGUSER: ${DC_ZANE_OPERATOR_PGUSER:-zane_operator}
-  PGPASSWORD: ${DC_ZANE_OPERATOR_PGPASSWORD:?DC_ZANE_OPERATOR_PGPASSWORD is required}
+  # Keep optional at interpolation time; runtime entrypoint enforces required values when operator profile is used.
+  PGPASSWORD: ${DC_ZANE_OPERATOR_PGPASSWORD:-}
   PGDATABASE: ${DC_ZANE_OPERATOR_PGDATABASE:-postgres}
   PGSSLMODE: ${DC_POSTGRES_SSLMODE:-disable}
   DB_TEMPLATE_NAME: ${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-template_medusa}
@@ -78,14 +76,14 @@ x-zane-operator-db-env: &zane-operator-db-env
   DB_PREVIEW_APP_USER_PREFIX: ${DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX:-medusa_pr_app_}
   DB_PREVIEW_DEV_ROLE: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
   DB_APP_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
-  DB_PREVIEW_APP_PASSWORD_SECRET: ${DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET:?DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET is required}
+  DB_PREVIEW_APP_PASSWORD_SECRET: ${DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET:-}
   DB_PROTECTED_NAMES: ${DC_ZANE_OPERATOR_DB_PROTECTED_NAMES:-postgres,template0,template1}
 
 x-zane-operator-env: &zane-operator-env
   # zane-operator: service runtime
   PORT: ${DC_ZANE_OPERATOR_PORT:-8080}
   NODE_ENV: ${DC_NODE_ENV:-development}
-  API_AUTH_TOKEN: ${DC_ZANE_OPERATOR_API_AUTH_TOKEN:?DC_ZANE_OPERATOR_API_AUTH_TOKEN is required}
+  API_AUTH_TOKEN: ${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-}
   <<: *zane-operator-db-env
 
 x-medusa-base: &medusa-base
@@ -209,7 +207,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9004/minio/health/live"]
     environment:
-      <<: [*medusa-env, *minio-env]
+      <<: *minio-env
   medusa-meilisearch:
     build:
       context: ./docker/development/medusa-meilisearch
@@ -264,7 +262,14 @@ services:
     build:
       context: .
       dockerfile: docker/development/zane-operator/Dockerfile
-    entrypoint: ["/app/zane-operator-bootstrap-role"]
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        [ -n "$$PGUSER" ] || { echo "Missing required env: PGUSER. Set DC_ZANE_OPERATOR_PGUSER." >&2; exit 1; }
+        [ -n "$$PGPASSWORD" ] || { echo "Missing required env: PGPASSWORD. Set DC_ZANE_OPERATOR_PGPASSWORD." >&2; exit 1; }
+        [ -n "$$DB_PREVIEW_APP_PASSWORD_SECRET" ] || { echo "Missing required env: DB_PREVIEW_APP_PASSWORD_SECRET. Set DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET." >&2; exit 1; }
+        exec /app/zane-operator-bootstrap-role
     depends_on:
       medusa-db:
         condition: service_healthy
@@ -280,6 +285,15 @@ services:
     build:
       context: .
       dockerfile: docker/development/zane-operator/Dockerfile
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        [ -n "$$API_AUTH_TOKEN" ] || { echo "Missing required env: API_AUTH_TOKEN. Set DC_ZANE_OPERATOR_API_AUTH_TOKEN." >&2; exit 1; }
+        [ -n "$$PGUSER" ] || { echo "Missing required env: PGUSER. Set DC_ZANE_OPERATOR_PGUSER." >&2; exit 1; }
+        [ -n "$$PGPASSWORD" ] || { echo "Missing required env: PGPASSWORD. Set DC_ZANE_OPERATOR_PGPASSWORD." >&2; exit 1; }
+        [ -n "$$DB_PREVIEW_APP_PASSWORD_SECRET" ] || { echo "Missing required env: DB_PREVIEW_APP_PASSWORD_SECRET. Set DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET." >&2; exit 1; }
+        exec /app/zane-operator
     depends_on:
       medusa-db:
         condition: service_healthy
