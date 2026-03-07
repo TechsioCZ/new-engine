@@ -5,6 +5,7 @@
 * Docker compose + Docker
   * For Mac, <a href="https://orbstack.dev/">OrbStack</a> is recommended instead of Docker Desktop
 * make
+* mise (preferred for local orchestration and CI-parity helper tasks)
 
 ### Steps
 
@@ -25,32 +26,56 @@
 
 3. <b>Run docker compose</b>
 
-    Before running `make dev`, populate required zane-operator secrets in `.env` (you can copy `.env.docker` as a template), otherwise compose will fail fast on required variable expansion:
-    * `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
-    * `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`
-    * `DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET=<replace-with-long-random-secret>`
-
+    Preferred local startup path (stepped `mise` orchestration):
     ```shell
-    make dev
+    mise run dev
     ```
+    This runs in order:
+    1. graceful stop/removal of existing compose services for this project
+    2. resources (`medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`)
+    3. Meilisearch key provisioning
+    4. `medusa-be`
+    5. `n1`
+    Internal sub-steps are hidden from `mise tasks ls` and can still be run manually when needed:
+    * `mise run dev:internal:down`
+    * `mise run dev:internal:resources:up`
+    * `mise run dev:internal:resources:wait`
+    * `mise run dev:internal:meili:sync-env`
+    * `mise run dev:internal:backend:up`
+    * `mise run dev:internal:backend:wait`
+    * `mise run dev:internal:frontend:up`
+    * `mise run dev:internal:frontend:wait`
+    * (optional operator profile) `mise run dev:operator:bootstrap`
+    * (optional operator profile) `mise run dev:operator`
+
+    During step 3, `.env` handling is opinionated:
+    * if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written
+    * if existing values differ, you are prompted to `override` or `keep`
+    * provisioning itself stays in `scripts/ci/*`; only `mise run dev` performs `.env` sync logic
+    * `mise run dev` calls provisioning against host URL `http://127.0.0.1:7700` by default (override via `MISE_DEV_MEILI_URL`) so `DC_MEILISEARCH_HOST` can remain container-internal (`http://medusa-meilisearch:7700`)
 
     * Postgres role bootstrap (`medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
-    * MinIO bootstrap now runs inside `medusa-minio` container startup (idempotent, swarm-safe), ensuring the configured Medusa access key exists and bucket metadata is imported
+    * MinIO bootstrap now runs inside `medusa-minio` startup (idempotent): it ensures `DC_MINIO_BUCKET` exists, enforces public object reads, and provisions a non-root Medusa runtime key with object-scoped permissions
     * Meilisearch now starts through an in-image bootstrap wrapper (idempotent, swarm-safe) before serving traffic
-    * `medusa-minio` and `medusa-meilisearch` inherit the same runtime env block as `medusa-be`, with service-specific bootstrap envs layered on top
-    * `zane_operator` role bootstrap runs as one-shot service `zane-operator-bootstrap` before `zane-operator` starts (idempotent)
+    * `medusa-minio` uses dedicated MinIO bootstrap env (`MINIO_ROOT_*` + `MINIO_MEDUSA_*`) to avoid deprecated MinIO server env collisions
+    * `medusa-meilisearch` continues to use shared Medusa env plus service-specific Meili env
+    * `zane_operator` role bootstrap runs as one-shot service `zane-operator-bootstrap` before `zane-operator` starts (idempotent) when `operator` profile is enabled
+    * Default `mise run dev` does not require operator credentials; operator flow is explicit opt-in and requires:
+      * `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
+      * `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`
+      * `DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET=<replace-with-long-random-secret>`
     * If your Postgres volume already existed before this change, run bootstrap migration once:
 
     ```shell
     make postgres-role-bootstrap
-    make postgres-zane-operator-bootstrap
+    mise run dev:operator:bootstrap
     ```
 
     * Optional idempotency check (runs bootstrap twice):
 
     ```shell
     make postgres-role-bootstrap-verify
-    make postgres-zane-operator-bootstrap-verify
+    mise run dev:operator:bootstrap:verify
     ```
 
     * Optional grant hardening check (read-only verification):
@@ -131,6 +156,26 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
    make dev
     ```
 
+8b. <b>Provision and verify scoped Meilisearch keys</b> (recommended before frontend production builds)
+    * local via `mise` wrappers (no `.env` writes; outputs are printed):
+    ```shell
+   mise run ci:meili:provision
+   mise run ci:meili:verify
+    ```
+    * CI can call the same scripts directly (source of truth):
+    ```shell
+   bash ./scripts/ci/provision-meili-keys.sh
+   bash ./scripts/ci/verify-meili-keys.sh
+    ```
+    * `provision-meili-keys.sh` acts as a reconcile step: missing keys are created and drifted fixed-UID keys are patched back to policy.
+    * script policy is fixed (hardcoded):
+        * backend uid/description: `2f2e1f59-7b5a-4f2f-9f28-7a9137f7e6c1` / `backend-medusa`
+        * frontend uid/description: `3a6b6d2c-1e2f-4b8c-8d4f-0f7c2b9a1d55` / `frontend-medusa`
+        * backend actions: `search`, `documents.add`, `documents.delete`, `indexes.get`, `indexes.create`, `settings.update`
+        * backend indexes: `products`, `categories`, `producers`
+        * frontend actions: `search`
+        * frontend indexes: `products`, `categories`, `producers`
+
 9. <b>Explore local envs</b>
     * N1 FE should be available at:
         * <a href="http://localhost:8000">localhost:8000</a>
@@ -142,11 +187,13 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
         * <a href="http://localhost:9003">localhost:9003</a>
         * <a href="https://admin.minio.localhost">https://admin.minio.localhost</a>
             * credentials: `DC_MINIO_ROOT_USER`/`DC_MINIO_ROOT_PASSWORD` (defaults: `minioadmin`/`minioadmin`)
+            * Medusa runtime should use `DC_MINIO_ACCESS_KEY`/`DC_MINIO_SECRET_KEY` (non-root identity; object-level policy only)
     * Meilisearch console should be available at:
         * <a href="http://localhost:7700">localhost:7700</a>
         * <a href="https://admin.meilisearch.localhost">https://admin.meilisearch.localhost</a>
-            * credentials: `MEILI_MASTER_KEY_FOR_DEVELOPMENT_ONLY`
-            * frontend key (`DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY`) must be read-only search key, never the master key
+            * credentials: `DC_MEILISEARCH_MASTER_KEY`
+            * backend key: `DC_MEILISEARCH_BACKEND_API_KEY` (scoped, server-only)
+            * frontend key: `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` (read-only search key, never master)
             * (optional) if plugin was disabled before adding products:
                 * `make medusa-meilisearch-reseed`
     * Redis compatible ValKey storage can be connected at `localhost:6379`

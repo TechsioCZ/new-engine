@@ -1,0 +1,85 @@
+[tasks.dev]
+description = "Stepped local startup from clean state: down -> resources -> meili provisioning -> medusa-be -> n1"
+run = "mise run dev:internal:down && mise run dev:resources && mise run dev:internal:meili:sync-env && mise run dev:backend && mise run dev:frontend"
+
+[tasks."dev:resources"]
+description = "Start and wait for shared resources"
+run = "mise run dev:internal:resources:up && mise run dev:internal:resources:wait"
+
+[tasks."dev:backend"]
+description = "Start and wait for medusa-be"
+run = "mise run dev:internal:backend:up && mise run dev:internal:backend:wait"
+
+[tasks."dev:frontend"]
+description = "Start and wait for n1"
+run = "mise run dev:internal:frontend:up && mise run dev:internal:frontend:wait"
+
+[tasks."dev:operator"]
+description = "Start and wait for zane-operator (opt-in operator profile)"
+run = "mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
+
+[tasks."dev:operator:bootstrap"]
+description = "Run one-shot zane-operator role bootstrap (opt-in operator profile)"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator run --rm --build zane-operator-bootstrap"
+
+[tasks."dev:operator:bootstrap:verify"]
+description = "Run zane-operator bootstrap with in-command idempotency verification"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator run --rm --build -e BOOTSTRAP_VERIFY_IDEMPOTENT=1 zane-operator-bootstrap"
+
+[tasks."ci:meili:provision"]
+description = "Provision Meilisearch backend/frontend API keys (idempotent)"
+run = "bash ./scripts/ci/provision-meili-keys.sh"
+
+[tasks."ci:meili:verify"]
+description = "Verify Meilisearch backend/frontend API key scopes"
+run = "bash ./scripts/ci/verify-meili-keys.sh"
+
+[tasks."dev:internal:resources:up"]
+description = "Start shared resource services"
+hide = true
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build medusa-db medusa-valkey medusa-minio medusa-meilisearch"
+
+[tasks."dev:internal:down"]
+description = "Gracefully stop and remove compose services before stepped startup"
+hide = true
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} down --remove-orphans --timeout ${COMPOSE_STOP_TIMEOUT:-60}"
+
+[tasks."dev:internal:resources:wait"]
+description = "Wait for shared resource services to become healthy"
+hide = true
+run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy medusa-db medusa-valkey medusa-minio medusa-meilisearch"
+
+[tasks."dev:internal:meili:sync-env"]
+description = "Provision Meilisearch keys and sync .env with conflict prompts"
+hide = true
+run = "bash ./scripts/dev/mise-dev-helpers.sh sync-meili-env"
+
+[tasks."dev:internal:backend:up"]
+description = "Start medusa-be"
+hide = true
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build --no-deps medusa-be"
+
+[tasks."dev:internal:backend:wait"]
+description = "Wait for medusa-be to become healthy"
+hide = true
+run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy medusa-be"
+
+[tasks."dev:internal:frontend:up"]
+description = "Start n1 frontend"
+hide = true
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build --no-deps n1"
+
+[tasks."dev:internal:frontend:wait"]
+description = "Wait for n1 to become healthy"
+hide = true
+run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy n1"
+
+[tasks."dev:internal:operator:up"]
+description = "Start zane-operator (opt-in operator profile)"
+hide = true
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator up -d --build zane-operator"
+
+[tasks."dev:internal:operator:wait"]
+description = "Wait for zane-operator to become healthy"
+hide = true
+run = "COMPOSE_PROFILES=operator bash ./scripts/dev/mise-dev-helpers.sh wait-healthy zane-operator"

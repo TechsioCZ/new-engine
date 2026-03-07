@@ -9,7 +9,6 @@ FROM ${MINIO_IMAGE}
 
 COPY --from=minio-mc /usr/bin/mc /usr/bin/mc
 COPY entrypoint.sh /usr/local/bin/minio-entrypoint.sh
-COPY config/local-bucket-metadata.zip /config/local-bucket-metadata.zip
 RUN chmod 755 /usr/local/bin/minio-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/minio-entrypoint.sh"]
