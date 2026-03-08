@@ -1,10 +1,10 @@
-import { normalizeProps, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   connect as connectSteps,
-  type Api as ZagStepsApi,
-  type ItemState as ZagStepsItemState,
   type Props as StepsMachineProps,
   machine as stepsMachine,
+  type Api as ZagStepsApi,
+  type ItemState as ZagStepsItemState,
 } from "@zag-js/steps"
 import {
   type ComponentPropsWithoutRef,
@@ -281,15 +281,11 @@ export function Steps({
     step,
   })
   const styles = stepsVariants({ size, variant })
+  const rootProps = mergeProps(props, api.getRootProps())
 
   return (
     <StepsContext.Provider value={{ api, orientation, size, styles }}>
-      <div
-        className={styles.root({ className })}
-        ref={ref}
-        {...api.getRootProps()}
-        {...props}
-      >
+      <div className={styles.root({ className })} ref={ref} {...rootProps}>
         {children}
       </div>
     </StepsContext.Provider>
@@ -297,13 +293,11 @@ export function Steps({
 }
 
 type StepsRootProviderProps = StepsRootSharedProps & {
-  orientation?: StepsOrientation
   value: StepsApi
 }
 
 Steps.RootProvider = function StepsRootProvider({
   value,
-  orientation,
   size,
   variant,
   children,
@@ -312,7 +306,8 @@ Steps.RootProvider = function StepsRootProvider({
   ...props
 }: StepsRootProviderProps) {
   const styles = stepsVariants({ size, variant })
-  const resolvedOrientation = orientation ?? getOrientationFromApi(value)
+  const resolvedOrientation = getOrientationFromApi(value)
+  const rootProps = mergeProps(props, value.getRootProps())
 
   return (
     <StepsContext.Provider
@@ -323,12 +318,7 @@ Steps.RootProvider = function StepsRootProvider({
         styles,
       }}
     >
-      <div
-        className={styles.root({ className })}
-        ref={ref}
-        {...value.getRootProps()}
-        {...props}
-      >
+      <div className={styles.root({ className })} ref={ref} {...rootProps}>
         {children}
       </div>
     </StepsContext.Provider>
@@ -346,14 +336,10 @@ Steps.List = function StepsList({
   ...props
 }: StepsListProps) {
   const { api, styles } = useStepsContext()
+  const listProps = mergeProps(props, api.getListProps())
 
   return (
-    <div
-      className={styles.list({ className })}
-      ref={ref}
-      {...api.getListProps()}
-      {...props}
-    >
+    <div className={styles.list({ className })} ref={ref} {...listProps}>
       {children}
     </div>
   )
@@ -374,9 +360,9 @@ Steps.Panels = function StepsPanels({
   return (
     <div
       className={styles.panels({ className })}
-      data-orientation={orientation}
       ref={ref}
       {...props}
+      data-orientation={orientation}
     >
       {children}
     </div>
@@ -398,9 +384,9 @@ Steps.Navigation = function StepsNavigation({
   return (
     <div
       className={styles.navigation({ className })}
-      data-orientation={orientation}
       ref={ref}
       {...props}
+      data-orientation={orientation}
     >
       {children}
     </div>
@@ -421,15 +407,11 @@ Steps.Item = function StepsItem({
 }: StepsItemProps) {
   const { api, styles } = useStepsContext()
   const state = api.getItemState({ index })
+  const itemProps = mergeProps(props, api.getItemProps({ index }))
 
   return (
     <StepsItemContext.Provider value={{ index, state }}>
-      <div
-        className={styles.item({ className })}
-        ref={ref}
-        {...api.getItemProps({ index })}
-        {...props}
-      >
+      <div className={styles.item({ className })} ref={ref} {...itemProps}>
         {children}
       </div>
     </StepsItemContext.Provider>
@@ -454,7 +436,16 @@ Steps.Trigger = function StepsTrigger({
   const { api, styles } = useStepsContext()
   const { index } = useStepsItemContext()
   const triggerProps = api.getTriggerProps({ index })
-  const machineDisabled = (triggerProps as { disabled?: boolean }).disabled
+  const {
+    onClick: onTriggerClick,
+    disabled: machineDisabled,
+    ...restTriggerProps
+  } = triggerProps as typeof triggerProps & {
+    disabled?: boolean
+    onClick?: ButtonProps["onClick"]
+  }
+  const { onClick, ...restProps } = props
+  const buttonProps = mergeProps(restProps, restTriggerProps)
   const isDisabled = Boolean(machineDisabled || disabled)
 
   return (
@@ -464,10 +455,15 @@ Steps.Trigger = function StepsTrigger({
       size="current"
       theme="unstyled"
       type="button"
-      {...triggerProps}
-      {...props}
+      {...buttonProps}
       data-disabled={isDisabled || undefined}
       disabled={isDisabled}
+      onClick={(event) => {
+        onClick?.(event)
+        if (!event.defaultPrevented) {
+          onTriggerClick?.(event)
+        }
+      }}
     >
       {children}
     </Button>
@@ -489,9 +485,9 @@ Steps.ItemText = function StepsItemText({
   return (
     <span
       className={styles.itemText({ className })}
-      data-orientation={orientation}
       ref={ref}
       {...props}
+      data-orientation={orientation}
     >
       {children}
     </span>
@@ -510,13 +506,13 @@ Steps.Indicator = function StepsIndicator({
 }: StepsIndicatorProps) {
   const { api, styles } = useStepsContext()
   const { index } = useStepsItemContext()
+  const indicatorProps = mergeProps(props, api.getIndicatorProps({ index }))
 
   return (
     <div
       className={styles.indicator({ className })}
       ref={ref}
-      {...api.getIndicatorProps({ index })}
-      {...props}
+      {...indicatorProps}
     >
       {children ?? (
         <Steps.Status
@@ -571,11 +567,7 @@ Steps.Number = function StepsNumber({
   const { state } = useStepsItemContext()
 
   return (
-    <span
-      className={styles.number({ className })}
-      ref={ref}
-      {...props}
-    >
+    <span className={styles.number({ className })} ref={ref} {...props}>
       {state.index + 1}
     </span>
   )
@@ -598,8 +590,8 @@ Steps.Title = function StepsTitle({
     <span
       className={styles.title({ className })}
       ref={ref}
-      {...getStepStatusDataProps(state)}
       {...props}
+      {...getStepStatusDataProps(state)}
     >
       {children}
     </span>
@@ -623,8 +615,8 @@ Steps.Description = function StepsDescription({
     <span
       className={styles.description({ className })}
       ref={ref}
-      {...getStepStatusDataProps(state)}
       {...props}
+      {...getStepStatusDataProps(state)}
     >
       {children}
     </span>
@@ -642,14 +634,15 @@ Steps.Separator = function StepsSeparator({
 }: StepsSeparatorProps) {
   const { api, styles } = useStepsContext()
   const { index, state } = useStepsItemContext()
+  const separatorProps = mergeProps(props, api.getSeparatorProps({ index }), {
+    "data-last": state.last || undefined,
+  })
 
   return (
     <div
       className={styles.separator({ className })}
       ref={ref}
-      {...api.getSeparatorProps({ index })}
-      data-last={state.last || undefined}
-      {...props}
+      {...separatorProps}
     />
   )
 }
@@ -667,14 +660,10 @@ Steps.Content = function StepsContent({
   ...props
 }: StepsContentProps) {
   const { api, styles } = useStepsContext()
+  const contentProps = mergeProps(props, api.getContentProps({ index }))
 
   return (
-    <div
-      className={styles.content({ className })}
-      ref={ref}
-      {...api.getContentProps({ index })}
-      {...props}
-    >
+    <div className={styles.content({ className })} ref={ref} {...contentProps}>
       {children}
     </div>
   )
@@ -695,11 +684,11 @@ Steps.CompletedContent = function StepsCompletedContent({
   return (
     <div
       className={styles.completedContent({ className })}
+      ref={ref}
+      {...props}
       data-complete={api.isCompleted || undefined}
       data-state={api.isCompleted ? "open" : "closed"}
       hidden={!api.isCompleted}
-      ref={ref}
-      {...props}
     >
       {children}
     </div>
@@ -719,6 +708,14 @@ Steps.PrevTrigger = function StepsPrevTrigger({
   ...props
 }: StepsControlProps) {
   const { api, styles, size: rootSize } = useStepsContext()
+  const {
+    onClick: onPrevTriggerClick,
+    disabled: prevTriggerDisabled,
+    ...restPrevTriggerProps
+  } = api.getPrevTriggerProps()
+  const { onClick, disabled, ...restProps } = props
+  const buttonProps = mergeProps(restProps, restPrevTriggerProps)
+  const isDisabled = Boolean(disabled || prevTriggerDisabled)
 
   return (
     <Button
@@ -727,8 +724,14 @@ Steps.PrevTrigger = function StepsPrevTrigger({
       size={size ?? getControlSize(rootSize)}
       theme={theme}
       variant={variant}
-      {...props}
-      {...api.getPrevTriggerProps()}
+      {...buttonProps}
+      disabled={isDisabled}
+      onClick={(event) => {
+        onClick?.(event)
+        if (!event.defaultPrevented) {
+          onPrevTriggerClick?.(event)
+        }
+      }}
     />
   )
 }
@@ -742,6 +745,14 @@ Steps.NextTrigger = function StepsNextTrigger({
   ...props
 }: StepsControlProps) {
   const { api, styles, size: rootSize } = useStepsContext()
+  const {
+    onClick: onNextTriggerClick,
+    disabled: nextTriggerDisabled,
+    ...restNextTriggerProps
+  } = api.getNextTriggerProps()
+  const { onClick, disabled, ...restProps } = props
+  const buttonProps = mergeProps(restProps, restNextTriggerProps)
+  const isDisabled = Boolean(disabled || nextTriggerDisabled)
 
   return (
     <Button
@@ -750,8 +761,14 @@ Steps.NextTrigger = function StepsNextTrigger({
       size={size ?? getControlSize(rootSize)}
       theme={theme}
       variant={variant}
-      {...props}
-      {...api.getNextTriggerProps()}
+      {...buttonProps}
+      disabled={isDisabled}
+      onClick={(event) => {
+        onClick?.(event)
+        if (!event.defaultPrevented) {
+          onNextTriggerClick?.(event)
+        }
+      }}
     />
   )
 }

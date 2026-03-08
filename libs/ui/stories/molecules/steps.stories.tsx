@@ -289,6 +289,72 @@ export const Controlled: Story = {
   },
 }
 
+export const Variants: Story = {
+  render: () => (
+    <VariantContainer>
+      <VariantGroup fullWidth title="Subtle">
+        <div className="w-5xl">
+          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+            <Steps.List>
+              {demoSteps.map((item, index) => (
+                <Steps.Item index={index} key={item.title}>
+                  <Steps.Trigger>
+                    <Steps.Indicator />
+                    <Steps.ItemText>
+                      <Steps.Title>{item.title}</Steps.Title>
+                    </Steps.ItemText>
+                  </Steps.Trigger>
+                  <Steps.Separator />
+                </Steps.Item>
+              ))}
+            </Steps.List>
+            <Steps.Panels>
+              {demoSteps.map((item, index) => (
+                <Steps.Content index={index} key={item.title}>
+                  <p className="text-sm text-fg-secondary">{item.content}</p>
+                </Steps.Content>
+              ))}
+              <Steps.CompletedContent>
+                <p className="text-sm text-fg-secondary">{completedText}</p>
+              </Steps.CompletedContent>
+            </Steps.Panels>
+          </Steps>
+        </div>
+      </VariantGroup>
+
+      <VariantGroup fullWidth title="Solid">
+        <div className="w-5xl">
+          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="solid">
+            <Steps.List>
+              {demoSteps.map((item, index) => (
+                <Steps.Item index={index} key={item.title}>
+                  <Steps.Trigger>
+                    <Steps.Indicator />
+                    <Steps.ItemText>
+                      <Steps.Title>{item.title}</Steps.Title>
+                    </Steps.ItemText>
+                  </Steps.Trigger>
+                  <Steps.Separator />
+                </Steps.Item>
+              ))}
+            </Steps.List>
+            <Steps.Panels>
+              {demoSteps.map((item, index) => (
+                <Steps.Content index={index} key={item.title}>
+                  <p className="text-sm text-fg-secondary">{item.content}</p>
+                </Steps.Content>
+              ))}
+              <Steps.CompletedContent>
+                <p className="text-sm text-fg-secondary">{completedText}</p>
+              </Steps.CompletedContent>
+            </Steps.Panels>
+          </Steps>
+        </div>
+      </VariantGroup>
+    </VariantContainer>
+  ),
+}
+
 export const Sizes: Story = {
   render: () => (
     <VariantContainer>
@@ -444,72 +510,6 @@ export const Validation: Story = {
         </Steps.Panels>
       </Steps>
     </div>
-  ),
-}
-
-export const Variants: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup fullWidth title="Subtle">
-        <div className="w-5xl">
-          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
-            <Steps.List>
-              {demoSteps.map((item, index) => (
-                <Steps.Item index={index} key={item.title}>
-                  <Steps.Trigger>
-                    <Steps.Indicator />
-                    <Steps.ItemText>
-                      <Steps.Title>{item.title}</Steps.Title>
-                    </Steps.ItemText>
-                  </Steps.Trigger>
-                  <Steps.Separator />
-                </Steps.Item>
-              ))}
-            </Steps.List>
-            <Steps.Panels>
-              {demoSteps.map((item, index) => (
-                <Steps.Content index={index} key={item.title}>
-                  <p className="text-sm text-fg-secondary">{item.content}</p>
-                </Steps.Content>
-              ))}
-              <Steps.CompletedContent>
-                <p className="text-sm text-fg-secondary">{completedText}</p>
-              </Steps.CompletedContent>
-            </Steps.Panels>
-          </Steps>
-        </div>
-      </VariantGroup>
-
-      <VariantGroup fullWidth title="Solid">
-        <div className="w-5xl">
-          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="solid">
-            <Steps.List>
-              {demoSteps.map((item, index) => (
-                <Steps.Item index={index} key={item.title}>
-                  <Steps.Trigger>
-                    <Steps.Indicator />
-                    <Steps.ItemText>
-                      <Steps.Title>{item.title}</Steps.Title>
-                    </Steps.ItemText>
-                  </Steps.Trigger>
-                  <Steps.Separator />
-                </Steps.Item>
-              ))}
-            </Steps.List>
-            <Steps.Panels>
-              {demoSteps.map((item, index) => (
-                <Steps.Content index={index} key={item.title}>
-                  <p className="text-sm text-fg-secondary">{item.content}</p>
-                </Steps.Content>
-              ))}
-              <Steps.CompletedContent>
-                <p className="text-sm text-fg-secondary">{completedText}</p>
-              </Steps.CompletedContent>
-            </Steps.Panels>
-          </Steps>
-        </div>
-      </VariantGroup>
-    </VariantContainer>
   ),
 }
 
@@ -722,4 +722,3 @@ export const Trigger: Story = {
     </div>
   ),
 }
-
