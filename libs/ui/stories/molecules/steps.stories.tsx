@@ -677,62 +677,6 @@ export const Lines: Story = {
   ),
 }
 
-export const Store: Story = {
-  render: () => {
-    const stepStore = useSteps({
-      count: demoSteps.length,
-      defaultStep: 1,
-      orientation: 'horizontal',
-    })
-
-    return (
-      <div className="w-5xl">
-        <div className="mb-200 flex flex-wrap items-center gap-100">
-          <Badge variant={stepStore.isCompleted ? 'success' : 'info'}>
-            {stepStore.isCompleted
-              ? 'Complete'
-              : `Step ${stepStore.value + 1} of ${stepStore.count}`}
-          </Badge>
-          <p className="text-sm text-fg-secondary">
-            This story uses the exposed Zag-connected store and `RootProvider`.
-          </p>
-        </div>
-
-        <Steps.RootProvider size="md" value={stepStore} variant="subtle">
-          <Steps.List>
-            {demoSteps.map((item, index) => (
-              <Steps.Item index={index} key={item.title}>
-                <Steps.Trigger>
-                  <Steps.Indicator />
-                  <Steps.ItemText>
-                    <Steps.Title>{item.title}</Steps.Title>
-                  </Steps.ItemText>
-                </Steps.Trigger>
-                <Steps.Separator />
-              </Steps.Item>
-            ))}
-          </Steps.List>
-
-          <Steps.Panels>
-            {demoSteps.map((item, index) => (
-              <Steps.Content index={index} key={item.title}>
-                <p className="text-sm text-fg-secondary">{item.content}</p>
-              </Steps.Content>
-            ))}
-            <Steps.CompletedContent>
-              <p className="text-sm text-fg-secondary">{completedText}</p>
-            </Steps.CompletedContent>
-            <Steps.Navigation>
-              <Steps.PrevTrigger>Back</Steps.PrevTrigger>
-              <Steps.NextTrigger>Continue</Steps.NextTrigger>
-            </Steps.Navigation>
-          </Steps.Panels>
-        </Steps.RootProvider>
-      </div>
-    )
-  },
-}
-
 export const Trigger: Story = {
   render: () => (
     <div className="w-5xl">
@@ -779,34 +723,3 @@ export const Trigger: Story = {
   ),
 }
 
-export const NumberOnly: Story = {
-  render: () => (
-    <div className="w-5xl">
-      <Steps count={demoSteps.length} defaultStep={1} size="sm" variant="subtle">
-        <Steps.List>
-          {demoSteps.map((item, index) => (
-            <Steps.Item index={index} key={item.title}>
-              <Steps.Indicator />
-              <Steps.Separator />
-            </Steps.Item>
-          ))}
-        </Steps.List>
-
-        <Steps.Panels>
-          {demoSteps.map((item, index) => (
-            <Steps.Content index={index} key={item.title}>
-              <p className="text-sm text-fg-secondary">{item.content}</p>
-            </Steps.Content>
-          ))}
-          <Steps.CompletedContent>
-            <p className="text-sm text-fg-secondary">{completedText}</p>
-          </Steps.CompletedContent>
-          <Steps.Navigation>
-            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
-            <Steps.NextTrigger>Continue</Steps.NextTrigger>
-          </Steps.Navigation>
-        </Steps.Panels>
-      </Steps>
-    </div>
-  ),
-}
