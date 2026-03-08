@@ -726,15 +726,17 @@ Steps.CompletedContent = function StepsCompletedContent({
   ...props
 }: StepsCompletedContentProps) {
   const { api, styles } = useStepsContext()
+  const contentProps = mergeProps(
+    props,
+    api.getContentProps({ index: api.count })
+  )
 
   return (
     <div
       className={styles.completedContent({ className })}
       ref={ref}
-      {...props}
+      {...contentProps}
       data-complete={api.isCompleted || undefined}
-      data-state={api.isCompleted ? "open" : "closed"}
-      hidden={!api.isCompleted}
     >
       {children}
     </div>
