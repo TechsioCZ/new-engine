@@ -5,7 +5,7 @@ import { Badge } from '../../src/atoms/badge'
 import { Button } from '../../src/atoms/button'
 import { Icon, type IconType } from '../../src/atoms/icon'
 import { Input } from '../../src/atoms/input'
-import { Steps, useSteps } from '../../src/molecules/steps'
+import { Steps } from '../../src/molecules/steps'
 
 type DemoStep = {
   actionLabel: string
