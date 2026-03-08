@@ -1,218 +1,812 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useEffect, useState } from 'react'
+import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
+import { Badge } from '../../src/atoms/badge'
 import { Button } from '../../src/atoms/button'
-import { Select } from '../../src/molecules/select'
-import { Steps } from '../../src/molecules/steps'
+import { Icon, type IconType } from '../../src/atoms/icon'
+import { Input } from '../../src/atoms/input'
+import { Steps, useSteps } from '../../src/molecules/steps'
+
+type DemoStep = {
+  actionLabel: string
+  badge: string
+  content: string
+  description: string
+  icon: IconType
+  title: string
+}
+
+const demoSteps: DemoStep[] = [
+  {
+    actionLabel: 'Assign owner',
+    badge: 'Planning',
+    content:
+      'Set the initial structure, clarify intent, and gather the small decisions that should not leak into later steps.',
+    description: 'Define scope and ownership.',
+    icon: 'token-icon-folder',
+    title: 'Brief',
+  },
+  {
+    actionLabel: 'Capture details',
+    badge: 'Execution',
+    content:
+      'Move from outline to implementation details. This is where the stepper starts benefiting from a richer compound composition.',
+    description: 'Collect the important inputs.',
+    icon: 'token-icon-clipboard',
+    title: 'Inputs',
+  },
+  {
+    actionLabel: 'Confirm release',
+    badge: 'Approval',
+    content:
+      'Review the result, check open questions, and prepare the final handoff. Completion should feel visually distinct from the in-progress state.',
+    description: 'Review and publish.',
+    icon: 'token-icon-save',
+    title: 'Review',
+  },
+]
+
+const completedText = 'All steps are complete. This content lives outside the indexed step panels.'
 
 const meta: Meta<typeof Steps> = {
   title: 'Molecules/Steps',
   component: Steps,
   parameters: {
     layout: 'centered',
+    docs: {
+      description: {
+        component:
+          'Computed/compound stepper built on Zag.js. This version keeps the machine API close to Zag while exposing composable subcomponents similar to our other computed molecules.',
+      },
+    },
   },
   tags: ['autodocs'],
   argTypes: {
-    orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical'],
-      description: 'Steps orientation',
-      table: { defaultValue: { summary: 'horizontal' } },
-    },
     linear: {
       control: 'boolean',
-      description: 'Enforce linear progression (must complete steps in order)',
-      table: { defaultValue: { summary: 'false' } },
+      description: 'Whether users must progress sequentially.',
+      table: { category: 'Behavior', defaultValue: { summary: 'false' } },
     },
-    currentStep: {
-      control: { type: 'number', min: 0 },
-      description: 'Current active step (0-indexed). If currentStep === steps.length, completion screen is shown',
-      table: { defaultValue: { summary: '0' } },
+    orientation: {
+      control: 'radio',
+      options: ['horizontal', 'vertical'],
+      description: 'Stepper orientation.',
+      table: {
+        category: 'Layout',
+        defaultValue: { summary: 'horizontal' },
+      },
     },
-    showControls: {
-      control: 'boolean',
-      description: 'Show navigation buttons (Back/Next)',
-      table: { defaultValue: { summary: 'true' } },
+    size: {
+      control: 'select',
+      options: ['sm', 'md', 'lg'],
+      description: 'Visual size scale for indicators and content.',
+      table: { category: 'Appearance', defaultValue: { summary: 'md' } },
     },
-    completeText: {
-      control: 'text',
-      description: 'Text or content shown when all steps are completed',
+    step: {
+      control: { type: 'number', min: 0, max: demoSteps.length },
+      description: 'Controlled active step index.',
+      table: { category: 'Behavior', defaultValue: { summary: '0' } },
+    },
+    variant: {
+      control: 'radio',
+      options: ['subtle', 'solid'],
+      description: 'Visual emphasis style.',
+      table: {
+        category: 'Appearance',
+        defaultValue: { summary: 'subtle' },
+      },
+    },
+    children: {
+      table: { disable: true },
+    },
+    count: {
+      table: { disable: true },
+    },
+    defaultStep: {
+      table: { disable: true },
+    },
+    dir: {
+      table: { disable: true },
+    },
+    id: {
+      table: { disable: true },
+    },
+    onStepChange: {
+      table: { disable: true },
+    },
+    onStepComplete: {
+      table: { disable: true },
     },
   },
   args: {
-    orientation: 'horizontal',
     linear: false,
-    currentStep: 0,
-    showControls: true,
+    orientation: 'horizontal',
+    size: 'md',
+    step: 0,
+    variant: 'subtle',
   },
 }
 
 export default meta
-type Story = StoryObj<typeof Steps>
-
-const basicSteps = [
-  {
-    value: 0,
-    title: 'Account',
-    content: <p>Create your account</p>,
-  },
-  {
-    value: 1,
-    title: 'Profile',
-    content: <p>Complete your profile</p>,
-  },
-  {
-    value: 2,
-    title: 'Settings',
-    content: <p>Configure settings</p>,
-  },
-  {
-    value: 3,
-    title: 'Review',
-    content: <p>Review and confirm</p>,
-  },
-]
-
-const completeText = 'Steps Complete - Thank you for filling out the form! You can now proceed, because you have finished.'
+type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
   render: (args) => {
-    const [currentStep, setCurrentStep] = useState(args.currentStep ?? 0)
+    const [step, setStep] = useState(args.step ?? 0)
+
     useEffect(() => {
-      setCurrentStep(args.currentStep ?? 0)
-    }, [args.currentStep])
+      setStep(args.step ?? 0)
+    }, [args.step])
 
     return (
-      <div className="w-xl space-y-400">
+      <div className="w-5xl">
         <Steps
-          {...args}
-          currentStep={currentStep}
-          onStepChange={setCurrentStep}
-          onStepComplete={() => alert('Finished!')}
-        />
+          count={demoSteps.length}
+          linear={args.linear}
+          onStepChange={(details) => setStep(details.step)}
+          orientation={args.orientation}
+          size={args.size}
+          step={step}
+          variant={args.variant}
+        >
+          <Steps.List>
+            {demoSteps.map((item, index) => (
+              <Steps.Item index={index} key={item.title}>
+                <Steps.Trigger>
+                  <Steps.Indicator />
+                  <Steps.ItemText>
+                    <Steps.Title>{item.title}</Steps.Title>
+                  </Steps.ItemText>
+                </Steps.Trigger>
+                <Steps.Separator />
+              </Steps.Item>
+            ))}
+          </Steps.List>
+
+          <Steps.Panels>
+            {demoSteps.map((item, index) => (
+              <Steps.Content index={index} key={item.title}>
+                <div className="flex flex-col gap-200">
+                  <Badge variant="outline">{item.badge}</Badge>
+                  <div className="flex flex-col gap-100">
+                    <p className="text-md font-semibold text-fg-primary">
+                      {item.title}
+                    </p>
+                    <p className="text-sm text-fg-secondary">{item.content}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-150">
+                    <Button size="sm" theme="solid" variant="primary">
+                      {item.actionLabel}
+                    </Button>
+                    <Button size="sm" theme="borderless" variant="secondary">
+                      View notes
+                    </Button>
+                  </div>
+                </div>
+              </Steps.Content>
+            ))}
+            <Steps.CompletedContent>
+              <div className="flex flex-col gap-150">
+                <Badge variant="success">Complete</Badge>
+                <p className="text-md font-semibold text-fg-primary">
+                  Ready for handoff
+                </p>
+                <p className="text-sm text-fg-secondary">{completedText}</p>
+              </div>
+            </Steps.CompletedContent>
+            <Steps.Navigation>
+              <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+              <Steps.NextTrigger>Continue</Steps.NextTrigger>
+            </Steps.Navigation>
+          </Steps.Panels>
+        </Steps>
       </div>
     )
-  },
-  args: {
-    items: basicSteps,
-    completeText,
   },
 }
 
-export const VerticalOrientation: Story = {
+export const Basic: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+        <Steps.List>
+          {demoSteps.map((item, index) => (
+            <Steps.Item index={index} key={item.title}>
+              <Steps.Trigger>
+                <Steps.Indicator />
+                <Steps.ItemText>
+                  <Steps.Title>{item.title}</Steps.Title>
+                </Steps.ItemText>
+              </Steps.Trigger>
+              <Steps.Separator />
+            </Steps.Item>
+          ))}
+        </Steps.List>
+
+        <Steps.Panels>
+          {demoSteps.map((item, index) => (
+            <Steps.Content index={index} key={item.title}>
+              <p className="text-sm text-fg-secondary">{item.content}</p>
+            </Steps.Content>
+          ))}
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
+}
+
+export const Controlled: Story = {
   render: () => {
-    const [currentStep, setCurrentStep] = useState(1)
+    const [step, setStep] = useState(1)
 
     return (
-      <div className="flex h-[600px] w-xl">
+      <div className="w-5xl">
         <Steps
-          items={basicSteps}
-          currentStep={currentStep}
-          orientation="vertical"
-          onStepChange={setCurrentStep}
-          completeText={completeText}
-        />
+          count={demoSteps.length}
+          onStepChange={(details) => setStep(details.step)}
+          size="md"
+          step={step}
+          variant="subtle"
+        >
+          <Steps.List>
+            {demoSteps.map((item, index) => (
+              <Steps.Item index={index} key={item.title}>
+                <Steps.Trigger>
+                  <Steps.Indicator />
+                  <Steps.ItemText>
+                    <Steps.Title>{item.title}</Steps.Title>
+                  </Steps.ItemText>
+                </Steps.Trigger>
+                <Steps.Separator />
+              </Steps.Item>
+            ))}
+          </Steps.List>
+
+          <Steps.Panels>
+            {demoSteps.map((item, index) => (
+              <Steps.Content index={index} key={item.title}>
+                <p className="text-sm text-fg-secondary">{item.content}</p>
+              </Steps.Content>
+            ))}
+            <Steps.CompletedContent>
+              <p className="text-sm text-fg-secondary">{completedText}</p>
+            </Steps.CompletedContent>
+            <Steps.Navigation>
+              <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+              <Steps.NextTrigger>Continue</Steps.NextTrigger>
+            </Steps.Navigation>
+          </Steps.Panels>
+        </Steps>
       </div>
     )
   },
 }
 
-export const ResponsiveOrientation: Story = {
+export const Sizes: Story = {
+  render: () => (
+    <VariantContainer>
+      <VariantGroup fullWidth title="Small">
+        <div className="w-5xl">
+          <Steps count={demoSteps.length} defaultStep={1} size="sm" variant="subtle">
+            <Steps.List>
+              {demoSteps.map((item, index) => (
+                <Steps.Item index={index} key={item.title}>
+                  <Steps.Trigger>
+                    <Steps.Indicator />
+                    <Steps.ItemText>
+                      <Steps.Title>{item.title}</Steps.Title>
+                    </Steps.ItemText>
+                  </Steps.Trigger>
+                  <Steps.Separator />
+                </Steps.Item>
+              ))}
+            </Steps.List>
+            <Steps.Panels>
+              {demoSteps.map((item, index) => (
+                <Steps.Content index={index} key={item.title}>
+                  <p className="text-sm text-fg-secondary">{item.content}</p>
+                </Steps.Content>
+              ))}
+              <Steps.CompletedContent>
+                <p className="text-sm text-fg-secondary">{completedText}</p>
+              </Steps.CompletedContent>
+            </Steps.Panels>
+          </Steps>
+        </div>
+      </VariantGroup>
+
+      <VariantGroup fullWidth title="Medium">
+        <div className="w-5xl">
+          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+            <Steps.List>
+              {demoSteps.map((item, index) => (
+                <Steps.Item index={index} key={item.title}>
+                  <Steps.Trigger>
+                    <Steps.Indicator />
+                    <Steps.ItemText>
+                      <Steps.Title>{item.title}</Steps.Title>
+                    </Steps.ItemText>
+                  </Steps.Trigger>
+                  <Steps.Separator />
+                </Steps.Item>
+              ))}
+            </Steps.List>
+            <Steps.Panels>
+              {demoSteps.map((item, index) => (
+                <Steps.Content index={index} key={item.title}>
+                  <p className="text-sm text-fg-secondary">{item.content}</p>
+                </Steps.Content>
+              ))}
+              <Steps.CompletedContent>
+                <p className="text-sm text-fg-secondary">{completedText}</p>
+              </Steps.CompletedContent>
+            </Steps.Panels>
+          </Steps>
+        </div>
+      </VariantGroup>
+
+      <VariantGroup fullWidth title="Large">
+        <div className="w-5xl">
+          <Steps count={demoSteps.length} defaultStep={1} size="lg" variant="subtle">
+            <Steps.List>
+              {demoSteps.map((item, index) => (
+                <Steps.Item index={index} key={item.title}>
+                  <Steps.Trigger>
+                    <Steps.Indicator />
+                    <Steps.ItemText>
+                      <Steps.Title>{item.title}</Steps.Title>
+                    </Steps.ItemText>
+                  </Steps.Trigger>
+                  <Steps.Separator />
+                </Steps.Item>
+              ))}
+            </Steps.List>
+            <Steps.Panels>
+              {demoSteps.map((item, index) => (
+                <Steps.Content index={index} key={item.title}>
+                  <p className="text-sm text-fg-secondary">{item.content}</p>
+                </Steps.Content>
+              ))}
+              <Steps.CompletedContent>
+                <p className="text-sm text-fg-secondary">{completedText}</p>
+              </Steps.CompletedContent>
+            </Steps.Panels>
+          </Steps>
+        </div>
+      </VariantGroup>
+    </VariantContainer>
+  ),
+}
+
+export const Validation: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <Steps count={demoSteps.length} defaultStep={1} linear size="md" variant="subtle">
+        <Steps.List>
+          {demoSteps.map((item, index) => (
+            <Steps.Item index={index} key={item.title}>
+              <Steps.Trigger>
+                <Steps.Indicator />
+                <Steps.ItemText>
+                  <Steps.Title>{item.title}</Steps.Title>
+                </Steps.ItemText>
+              </Steps.Trigger>
+              <Steps.Separator />
+            </Steps.Item>
+          ))}
+        </Steps.List>
+
+        <Steps.Panels>
+          <Steps.Content index={0}>
+            <div className="flex flex-col gap-150">
+              <Badge variant="success">Looks good</Badge>
+              <Input defaultValue="Ada Lovelace" readOnly variant="success" />
+              <p className="text-sm text-fg-secondary">
+                Validation UI can live inside the panel content without adding a
+                dedicated validation API to the stepper itself.
+              </p>
+            </div>
+          </Steps.Content>
+
+          <Steps.Content index={1}>
+            <div className="flex flex-col gap-150">
+              <Badge variant="warning">Needs attention</Badge>
+              <Input defaultValue="team@" readOnly variant="error" />
+              <p className="text-sm text-danger">
+                Example only: this panel shows how an invalid state can be composed.
+              </p>
+            </div>
+          </Steps.Content>
+
+          <Steps.Content index={2}>
+            <div className="flex flex-col gap-150">
+              <Badge variant="outline">Review</Badge>
+              <p className="text-sm text-fg-secondary">
+                The final step can summarize the previous panels or show any review UI.
+              </p>
+            </div>
+          </Steps.Content>
+
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
+}
+
+export const Variants: Story = {
+  render: () => (
+    <VariantContainer>
+      <VariantGroup fullWidth title="Subtle">
+        <div className="w-5xl">
+          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+            <Steps.List>
+              {demoSteps.map((item, index) => (
+                <Steps.Item index={index} key={item.title}>
+                  <Steps.Trigger>
+                    <Steps.Indicator />
+                    <Steps.ItemText>
+                      <Steps.Title>{item.title}</Steps.Title>
+                    </Steps.ItemText>
+                  </Steps.Trigger>
+                  <Steps.Separator />
+                </Steps.Item>
+              ))}
+            </Steps.List>
+            <Steps.Panels>
+              {demoSteps.map((item, index) => (
+                <Steps.Content index={index} key={item.title}>
+                  <p className="text-sm text-fg-secondary">{item.content}</p>
+                </Steps.Content>
+              ))}
+              <Steps.CompletedContent>
+                <p className="text-sm text-fg-secondary">{completedText}</p>
+              </Steps.CompletedContent>
+            </Steps.Panels>
+          </Steps>
+        </div>
+      </VariantGroup>
+
+      <VariantGroup fullWidth title="Solid">
+        <div className="w-5xl">
+          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="solid">
+            <Steps.List>
+              {demoSteps.map((item, index) => (
+                <Steps.Item index={index} key={item.title}>
+                  <Steps.Trigger>
+                    <Steps.Indicator />
+                    <Steps.ItemText>
+                      <Steps.Title>{item.title}</Steps.Title>
+                    </Steps.ItemText>
+                  </Steps.Trigger>
+                  <Steps.Separator />
+                </Steps.Item>
+              ))}
+            </Steps.List>
+            <Steps.Panels>
+              {demoSteps.map((item, index) => (
+                <Steps.Content index={index} key={item.title}>
+                  <p className="text-sm text-fg-secondary">{item.content}</p>
+                </Steps.Content>
+              ))}
+              <Steps.CompletedContent>
+                <p className="text-sm text-fg-secondary">{completedText}</p>
+              </Steps.CompletedContent>
+            </Steps.Panels>
+          </Steps>
+        </div>
+      </VariantGroup>
+    </VariantContainer>
+  ),
+}
+
+export const Vertical: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <Steps
+        count={demoSteps.length}
+        defaultStep={1}
+        orientation="vertical"
+        size="md"
+        variant="subtle"
+      >
+        <Steps.List>
+          {demoSteps.map((item, index) => (
+            <Steps.Item index={index} key={item.title}>
+              <Steps.Trigger>
+                <Steps.Indicator />
+                <Steps.ItemText>
+                  <Steps.Title>{item.title}</Steps.Title>
+                </Steps.ItemText>
+              </Steps.Trigger>
+              <Steps.Separator />
+            </Steps.Item>
+          ))}
+        </Steps.List>
+
+        <Steps.Panels>
+          {demoSteps.map((item, index) => (
+            <Steps.Content index={index} key={item.title}>
+              <p className="text-sm text-fg-secondary">{item.content}</p>
+            </Steps.Content>
+          ))}
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
+}
+
+export const Description: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+        <Steps.List>
+          {demoSteps.map((item, index) => (
+            <Steps.Item index={index} key={item.title}>
+              <Steps.Trigger>
+                <Steps.Indicator />
+                <Steps.ItemText>
+                  <Steps.Title>{item.title}</Steps.Title>
+                  <Steps.Description>{item.description}</Steps.Description>
+                </Steps.ItemText>
+              </Steps.Trigger>
+              <Steps.Separator />
+            </Steps.Item>
+          ))}
+        </Steps.List>
+
+        <Steps.Panels>
+          {demoSteps.map((item, index) => (
+            <Steps.Content index={index} key={item.title}>
+              <p className="text-sm text-fg-secondary">{item.content}</p>
+            </Steps.Content>
+          ))}
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
+}
+
+export const WithIcon: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+        <Steps.List>
+          {demoSteps.map((item, index) => (
+            <Steps.Item index={index} key={item.title}>
+              <Steps.Trigger>
+                <Steps.Indicator>
+                  <Steps.Status
+                    complete={<Icon icon="token-icon-steps-check" />}
+                    current={<Icon icon={item.icon} />}
+                    incomplete={<Icon icon={item.icon} />}
+                  />
+                </Steps.Indicator>
+                <Steps.ItemText>
+                  <Steps.Title>{item.title}</Steps.Title>
+                </Steps.ItemText>
+              </Steps.Trigger>
+              <Steps.Separator />
+            </Steps.Item>
+          ))}
+        </Steps.List>
+
+        <Steps.Panels>
+          {demoSteps.map((item, index) => (
+            <Steps.Content index={index} key={item.title}>
+              <p className="text-sm text-fg-secondary">{item.content}</p>
+            </Steps.Content>
+          ))}
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
+}
+
+export const Lines: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+        <Steps.List className="gap-200">
+          {demoSteps.map((item, index) => (
+            <Steps.Item
+              className="flex-col items-start gap-100"
+              index={index}
+              key={item.title}
+            >
+              <Steps.Separator className="data-last:block data-[orientation=horizontal]:w-full data-[orientation=horizontal]:flex-none" />
+              <Steps.Trigger>
+                <Steps.ItemText>
+                  <Steps.Title>{item.title}</Steps.Title>
+                </Steps.ItemText>
+              </Steps.Trigger>
+            </Steps.Item>
+          ))}
+        </Steps.List>
+
+        <Steps.Panels>
+          {demoSteps.map((item, index) => (
+            <Steps.Content index={index} key={item.title}>
+              <p className="text-sm text-fg-secondary">{item.title} panel content.</p>
+            </Steps.Content>
+          ))}
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
+}
+
+export const Store: Story = {
   render: () => {
-    const [currentStep, setCurrentStep] = useState(1)
+    const stepStore = useSteps({
+      count: demoSteps.length,
+      defaultStep: 1,
+      orientation: 'horizontal',
+    })
 
     return (
-      <div className="w-full">
-        <div className="md:hidden">
-          <Steps
-            items={basicSteps}
-            currentStep={currentStep}
-            orientation="vertical"
-            onStepChange={setCurrentStep}
-            completeText={completeText}
-          />
+      <div className="w-5xl">
+        <div className="mb-200 flex flex-wrap items-center gap-100">
+          <Badge variant={stepStore.isCompleted ? 'success' : 'info'}>
+            {stepStore.isCompleted
+              ? 'Complete'
+              : `Step ${stepStore.value + 1} of ${stepStore.count}`}
+          </Badge>
+          <p className="text-sm text-fg-secondary">
+            This story uses the exposed Zag-connected store and `RootProvider`.
+          </p>
         </div>
-        <div className="hidden md:block">
-          <Steps
-            items={basicSteps}
-            currentStep={currentStep}
-            orientation="horizontal"
-            onStepChange={setCurrentStep}
-            completeText={completeText}
-          />
-        </div>
+
+        <Steps.RootProvider size="md" value={stepStore} variant="subtle">
+          <Steps.List>
+            {demoSteps.map((item, index) => (
+              <Steps.Item index={index} key={item.title}>
+                <Steps.Trigger>
+                  <Steps.Indicator />
+                  <Steps.ItemText>
+                    <Steps.Title>{item.title}</Steps.Title>
+                  </Steps.ItemText>
+                </Steps.Trigger>
+                <Steps.Separator />
+              </Steps.Item>
+            ))}
+          </Steps.List>
+
+          <Steps.Panels>
+            {demoSteps.map((item, index) => (
+              <Steps.Content index={index} key={item.title}>
+                <p className="text-sm text-fg-secondary">{item.content}</p>
+              </Steps.Content>
+            ))}
+            <Steps.CompletedContent>
+              <p className="text-sm text-fg-secondary">{completedText}</p>
+            </Steps.CompletedContent>
+            <Steps.Navigation>
+              <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+              <Steps.NextTrigger>Continue</Steps.NextTrigger>
+            </Steps.Navigation>
+          </Steps.Panels>
+        </Steps.RootProvider>
       </div>
     )
   },
 }
 
-const selectItems = [
-  { label: 'First option', value: 'first' },
-  { label: 'Second option', value: 'second' },
-]
+export const Trigger: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <p className="mb-150 text-sm text-fg-secondary">
+        Step headers are read-only in this example. Navigate only with Back/Continue.
+      </p>
+      <Steps
+        count={demoSteps.length}
+        defaultStep={1}
+        linear
+        size="md"
+        variant="subtle"
+      >
+        <Steps.List>
+          {demoSteps.map((item, index) => (
+            <Steps.Item index={index} key={item.title}>
+              <Steps.Trigger className="w-full" disabled>
+                <Steps.Indicator />
+                <Steps.ItemText>
+                  <Steps.Title>{item.title}</Steps.Title>
+                </Steps.ItemText>
+              </Steps.Trigger>
+              <Steps.Separator />
+            </Steps.Item>
+          ))}
+        </Steps.List>
 
-const stepsWithCustomContent = [
-  {
-    value: 0,
-    title: 'Account',
-    content: (
-      <div className="rounded-lg p-200">
-        <h3 className="mb-100 font-semibold text-lg">Create your account</h3>
-        <p>This is custom content for the account step.</p>
-        <Button className="mt-200" size="sm">
-          Custom Action
-        </Button>
-      </div>
-    ),
-  },
-  {
-    value: 1,
-    title: 'Profile',
-    content: <p>Complete your profile information to continue</p>,
-  },
-  {
-    value: 2,
-    title: 'Settings',
-    content: (
-      <div className="rounded border border-border p-200">
-        <h3 className="font-semibold">Custom Settings Form</h3>
-        <div className="mt-100">
-          <Select items={selectItems} size="xs">
-            <Select.Label>Preference</Select.Label>
-            <Select.Control>
-              <Select.Trigger>
-                <Select.ValueText placeholder="Select option..." />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content>
-                {selectItems.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    <Select.ItemText />
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select>
-        </div>
-      </div>
-    ),
-  },
-]
+        <Steps.Panels>
+          {demoSteps.map((item, index) => (
+            <Steps.Content index={index} key={item.title}>
+              <p className="text-sm text-fg-secondary">{item.content}</p>
+            </Steps.Content>
+          ))}
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
+}
 
-export const WithCustomContent: Story = {
-  render: () => {
-    const [currentStep, setCurrentStep] = useState(0)
+export const NumberOnly: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <Steps count={demoSteps.length} defaultStep={1} size="sm" variant="subtle">
+        <Steps.List>
+          {demoSteps.map((item, index) => (
+            <Steps.Item index={index} key={item.title}>
+              <Steps.Indicator />
+              <Steps.Separator />
+            </Steps.Item>
+          ))}
+        </Steps.List>
 
-    return (
-      <div className="w-2xl">
-        <Steps
-          items={stepsWithCustomContent}
-          currentStep={currentStep}
-          onStepChange={setCurrentStep}
-          completeText="All steps completed!"
-        />
-      </div>
-    )
-  },
+        <Steps.Panels>
+          {demoSteps.map((item, index) => (
+            <Steps.Content index={index} key={item.title}>
+              <p className="text-sm text-fg-secondary">{item.content}</p>
+            </Steps.Content>
+          ))}
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
 }
