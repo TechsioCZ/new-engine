@@ -86,6 +86,17 @@ const stepsVariants = tv({
       "data-[orientation=vertical]:ms-steps-separator-offset data-[orientation=vertical]:min-h-steps-separator-vertical data-[orientation=vertical]:w-steps-separator data-[orientation=vertical]:flex-1",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
+    progress: [
+      "relative overflow-hidden rounded-steps-progress bg-steps-progress-bg",
+      "data-[orientation=horizontal]:h-steps-progress data-[orientation=horizontal]:w-full",
+      "data-[orientation=vertical]:w-steps-progress data-[orientation=vertical]:self-stretch",
+    ],
+    progressRange: [
+      "absolute rounded-steps-progress bg-steps-progress-fill",
+      "transition-[width,height] duration-200 motion-reduce:transition-none",
+      "data-[orientation=horizontal]:inset-y-0 data-[orientation=horizontal]:start-0",
+      "data-[orientation=vertical]:inset-x-0 data-[orientation=vertical]:top-0",
+    ],
     content: [
       "border-(length:--border-width-steps-content) w-full rounded-steps-content",
       "border-steps-content-border bg-steps-content-bg",
@@ -665,6 +676,41 @@ Steps.Content = function StepsContent({
   return (
     <div className={styles.content({ className })} ref={ref} {...contentProps}>
       {children}
+    </div>
+  )
+}
+
+type StepsProgressProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
+  ref?: Ref<HTMLDivElement>
+}
+
+Steps.Progress = function StepsProgress({
+  className,
+  ref,
+  style,
+  ...props
+}: StepsProgressProps) {
+  const { api, orientation, styles } = useStepsContext()
+  const progressProps = mergeProps(props, api.getProgressProps())
+  const progressRangeStyle =
+    orientation === "horizontal"
+      ? { width: "var(--percent)" }
+      : { height: "var(--percent)" }
+
+  return (
+    <div
+      className={styles.progress({ className })}
+      ref={ref}
+      {...progressProps}
+      data-orientation={orientation}
+      style={style}
+    >
+      <span
+        aria-hidden="true"
+        className={styles.progressRange()}
+        data-orientation={orientation}
+        style={progressRangeStyle}
+      />
     </div>
   )
 }

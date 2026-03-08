@@ -556,6 +556,89 @@ export const Vertical: Story = {
   ),
 }
 
+export const ProgressHorizontal: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <Steps count={demoSteps.length} defaultStep={2} size="md">
+        <Steps.List>
+          {demoSteps.map((item, index) => (
+            <Steps.Item index={index} key={item.title}>
+              <Steps.Trigger>
+                <Steps.Indicator />
+                <Steps.ItemText>
+                  <Steps.Title>{item.title}</Steps.Title>
+                  <Steps.Description>{item.description}</Steps.Description>
+                </Steps.ItemText>
+              </Steps.Trigger>
+            </Steps.Item>
+          ))}
+        </Steps.List>
+
+        <Steps.Progress />
+
+        <Steps.Panels>
+          {demoSteps.map((item, index) => (
+            <Steps.Content index={index} key={item.title}>
+              <p className="text-sm text-fg-secondary">{item.content}</p>
+            </Steps.Content>
+          ))}
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
+}
+
+export const ProgressVertical: Story = {
+  render: () => (
+    <div className="w-5xl">
+      <Steps
+        count={demoSteps.length}
+        defaultStep={2}
+        orientation="vertical"
+        size="md"
+      >
+        <Steps.List>
+          {demoSteps.map((item, index) => (
+            <Steps.Item index={index} key={item.title}>
+              <Steps.Trigger>
+                <Steps.Indicator />
+                <Steps.ItemText>
+                  <Steps.Title>{item.title}</Steps.Title>
+                  <Steps.Description>{item.description}</Steps.Description>
+                </Steps.ItemText>
+              </Steps.Trigger>
+            </Steps.Item>
+          ))}
+        </Steps.List>
+
+        <Steps.Progress />
+
+        <Steps.Panels>
+          {demoSteps.map((item, index) => (
+            <Steps.Content index={index} key={item.title}>
+              <p className="text-sm text-fg-secondary">{item.content}</p>
+            </Steps.Content>
+          ))}
+          <Steps.CompletedContent>
+            <p className="text-sm text-fg-secondary">{completedText}</p>
+          </Steps.CompletedContent>
+          <Steps.Navigation>
+            <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+            <Steps.NextTrigger>Continue</Steps.NextTrigger>
+          </Steps.Navigation>
+        </Steps.Panels>
+      </Steps>
+    </div>
+  ),
+}
+
 export const Description: Story = {
   render: () => (
     <div className="w-5xl">

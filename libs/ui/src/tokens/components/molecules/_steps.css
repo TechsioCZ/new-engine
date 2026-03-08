@@ -55,7 +55,10 @@
   --color-steps-separator-bg-current: var(--color-primary-light);
   --color-steps-separator-bg-complete: var(--color-success);
 
-  --color-steps-content-bg: var(--color-surface);
+  --color-steps-progress-bg: var(--color-border-primary);
+  --color-steps-progress-fill: var(--color-steps-accent);
+
+  --color-steps-content-bg: var(--color-steps-base);
   --color-steps-content-bg-complete: var(--color-surface-secondary);
   --color-steps-content-border: var(--color-border-primary);
   --color-steps-content-border-complete: var(--color-success);
@@ -116,8 +119,11 @@
   --radius-steps-indicator: 999px;
   --radius-steps-trigger: var(--radius-sm);
   --radius-steps-content: var(--radius-md);
+  --radius-steps-progress: 999px;
   --radius-steps-separator: 999px;
+  --height-steps-progress: 4px;
   --height-steps-separator: 2px;
+  --width-steps-progress: 4px;
   --width-steps-separator: 2px;
 
   /* === FOCUS RINGS === */
