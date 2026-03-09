@@ -23,6 +23,19 @@ export type MedusaCompleteCartResult =
 const defaultIsNotFoundError = (error: unknown): boolean =>
   getErrorStatus(error) === 404
 
+const sanitizeCartWriteParams = <TParams extends Record<string, unknown>>(
+  params: TParams
+): TParams => {
+  if (!("country_code" in params)) {
+    return params
+  }
+
+  const { country_code: _countryCode, ...rest } = params as TParams & {
+    country_code?: unknown
+  }
+  return rest as TParams
+}
+
 /**
  * Creates a CartService for Medusa SDK
  *
@@ -79,7 +92,12 @@ export function createMedusaCartService(
     async createCart(
       params: MedusaCartCreateParams
     ): Promise<HttpTypes.StoreCart> {
-      const { cart } = await sdk.store.cart.create(params)
+      const sanitizedParams = sanitizeCartWriteParams(
+        params as Record<string, unknown>
+      )
+      const { cart } = await sdk.store.cart.create(
+        sanitizedParams as MedusaCartCreateParams
+      )
       if (!cart) {
         throw new Error("Failed to create cart")
       }
@@ -90,7 +108,13 @@ export function createMedusaCartService(
       cartId: string,
       params: MedusaCartUpdateParams
     ): Promise<HttpTypes.StoreCart> {
-      const { cart } = await sdk.store.cart.update(cartId, params)
+      const sanitizedParams = sanitizeCartWriteParams(
+        params as Record<string, unknown>
+      )
+      const { cart } = await sdk.store.cart.update(
+        cartId,
+        sanitizedParams as MedusaCartUpdateParams
+      )
       if (!cart) {
         throw new Error("Failed to update cart")
       }
