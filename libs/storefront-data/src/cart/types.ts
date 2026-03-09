@@ -17,10 +17,20 @@ export type CartLike = {
   items?: CartLineItemLike[]
 }
 
+export type CartStorageListener = () => void
+
 export type CartStorage = {
   getCartId: () => string | null
   setCartId: (cartId: string) => void
   clearCartId: () => void
+  subscribe?: (listener: CartStorageListener) => () => void
+  getSnapshot?: () => string | null
+  getServerSnapshot?: () => string | null
+}
+
+export type ObservableCartStorage = CartStorage & {
+  subscribe: (listener: CartStorageListener) => () => void
+  getSnapshot: () => string | null
 }
 
 export type CartCreateInputBase = RegionInfo & {
