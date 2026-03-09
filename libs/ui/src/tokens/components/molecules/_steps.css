@@ -1,17 +1,17 @@
 @theme static {
   /* === REFERENCE LAYER === */
   --color-steps-base: var(--color-surface);
-  --color-steps-muted: var(--color-surface-secondary);
-  --color-steps-emphasis: var(--color-surface-tertiary);
+  --color-steps-overlay: var(--color-overlay);
+  --color-steps-float: var(--color-float);
   --color-steps-accent: var(--color-primary);
   --color-steps-success: var(--color-success);
-  --color-steps-contrast: var(--color-fg-reverse);
+  --color-steps-fg-reverse: var(--color-fg-reverse);
 
   /* === DERIVED COLORS === */
   --color-steps-fg: var(--color-fg-primary);
 
   --color-steps-trigger-bg-hover: oklch(
-    from var(--color-steps-muted) calc(l - var(--surface-increment)) c h
+    from var(--color-steps-overlay) calc(l - var(--surface-increment)) c h
   );
   --color-steps-trigger-bg-current: oklch(
     from var(--color-steps-accent) l c h /
@@ -22,8 +22,8 @@
     0.12
   );
 
-  --color-steps-indicator-bg: var(--color-steps-muted);
-  --color-steps-indicator-bg-hover: var(--color-steps-emphasis);
+  --color-steps-indicator-bg: var(--color-steps-overlay);
+  --color-steps-indicator-bg-hover: var(--color-steps-float);
   --color-steps-indicator-bg-current: var(--color-steps-accent);
   --color-steps-indicator-bg-complete: var(--color-steps-success);
   --color-steps-indicator-border: var(--color-border-primary);
@@ -31,18 +31,18 @@
   --color-steps-indicator-border-current: var(--color-steps-accent);
   --color-steps-indicator-border-complete: var(--color-steps-success);
   --color-steps-indicator-fg: var(--color-fg-secondary);
-  --color-steps-indicator-fg-current: var(--color-steps-contrast);
-  --color-steps-indicator-fg-complete: var(--color-steps-contrast);
+  --color-steps-indicator-fg-current: var(--color-steps-fg-reverse);
+  --color-steps-indicator-fg-complete: var(--color-steps-fg-reverse);
 
-  --color-steps-indicator-bg-solid: var(--color-steps-emphasis);
+  --color-steps-indicator-bg-solid: var(--color-steps-float);
   --color-steps-indicator-bg-solid-hover: oklch(
-    from var(--color-steps-emphasis) calc(l - var(--surface-increment)) c h
+    from var(--color-steps-float) calc(l - var(--surface-increment)) c h
   );
   --color-steps-indicator-bg-solid-current: var(--color-steps-accent);
   --color-steps-indicator-bg-solid-complete: var(--color-steps-success);
   --color-steps-indicator-fg-solid: var(--color-fg-primary);
-  --color-steps-indicator-fg-solid-current: var(--color-steps-contrast);
-  --color-steps-indicator-fg-solid-complete: var(--color-steps-contrast);
+  --color-steps-indicator-fg-solid-current: var(--color-steps-fg-reverse);
+  --color-steps-indicator-fg-solid-complete: var(--color-steps-fg-reverse);
 
   --color-steps-title-fg: var(--color-fg-primary);
   --color-steps-title-fg-current: var(--color-primary);
@@ -56,10 +56,10 @@
   --color-steps-separator-bg-complete: var(--color-success);
 
   --color-steps-progress-bg: var(--color-border-primary);
-  --color-steps-progress-fill: var(--color-steps-accent);
+  --color-steps-progress-range-bg: var(--color-steps-accent);
 
   --color-steps-content-bg: var(--color-steps-base);
-  --color-steps-content-bg-complete: var(--color-surface-secondary);
+  --color-steps-content-bg-complete: var(--color-steps-overlay);
   --color-steps-content-border: var(--color-border-primary);
   --color-steps-content-border-complete: var(--color-success);
   --color-steps-content-fg: var(--color-fg-primary);

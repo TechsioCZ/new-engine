@@ -92,7 +92,7 @@ const stepsVariants = tv({
       "data-[orientation=vertical]:w-steps-progress data-[orientation=vertical]:self-stretch",
     ],
     progressRange: [
-      "absolute rounded-steps-progress bg-steps-progress-fill",
+      "absolute rounded-steps-progress bg-steps-progress-range-bg",
       "transition-[width,height] duration-200 motion-reduce:transition-none",
       "data-[orientation=horizontal]:inset-y-0 data-[orientation=horizontal]:start-0",
       "data-[orientation=vertical]:inset-x-0 data-[orientation=vertical]:top-0",
