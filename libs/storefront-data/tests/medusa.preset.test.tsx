@@ -1,4 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
+import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
@@ -220,5 +221,82 @@ describe("createMedusaStorefrontPreset", () => {
         id: "cart_1",
       })
     )
+  })
+
+  it("supports overriding auth/order/customer services through preset config", async () => {
+    const { sdk } = createSdkMock()
+
+    const customAuthService = {
+      getCustomer: vi.fn(async () => null),
+      login: vi.fn(async () => "token"),
+      logout: vi.fn(async () => {}),
+      register: vi.fn(async () => "token"),
+    }
+
+    const customOrderService = {
+      getOrders: vi.fn(
+        async (): Promise<{ orders: HttpTypes.StoreOrder[]; count: number }> => ({
+          orders: [],
+          count: 0,
+        })
+      ),
+      getOrder: vi.fn(async () => null),
+    }
+
+    const customCustomerService = {
+      getAddresses: vi.fn(
+        async (): Promise<{
+          addresses: HttpTypes.StoreCustomerAddress[]
+        }> => ({
+          addresses: [],
+        })
+      ),
+      createAddress: vi.fn(async () => ({ id: "addr_1" })),
+      updateAddress: vi.fn(async () => ({ id: "addr_1" })),
+      deleteAddress: vi.fn(async () => {}),
+      updateCustomer: vi.fn(async () => ({ id: "cus_1" })),
+    }
+
+    const preset = createMedusaStorefrontPreset({
+      sdk,
+      auth: {
+        service: customAuthService,
+      },
+      orders: {
+        service: customOrderService,
+      },
+      customers: {
+        service: customCustomerService,
+      },
+    })
+
+    expect(preset.services.auth).toBe(customAuthService)
+    expect(preset.services.orders).toBe(customOrderService)
+    expect(preset.services.customers).toBe(customCustomerService)
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    renderHook(() => preset.hooks.auth.useAuth(), { wrapper })
+    renderHook(() => preset.hooks.orders.useOrders({ limit: 5, offset: 0 }), {
+      wrapper,
+    })
+    renderHook(() => preset.hooks.customers.useCustomerAddresses({}), {
+      wrapper,
+    })
+
+    await waitFor(() => {
+      expect(customAuthService.getCustomer).toHaveBeenCalled()
+      expect(customOrderService.getOrders).toHaveBeenCalledWith(
+        { limit: 5, offset: 0 },
+        expect.any(Object)
+      )
+      expect(customCustomerService.getAddresses).toHaveBeenCalledWith(
+        {},
+        expect.any(Object)
+      )
+    })
   })
 })

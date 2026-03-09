@@ -7,6 +7,11 @@ import {
   useSuspenseQueries,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+import {
+  getCachedCartById,
+  patchCartCaches,
+  syncCartCaches,
+} from "../cart/cache-sync"
 import type { CartQueryKeys } from "../cart/types"
 import {
   type CacheConfig,
@@ -186,13 +191,7 @@ export function createCheckoutHooks<
         : undefined,
       onSuccess: (cart, variables, context) => {
         if (cartQueryKeys) {
-          queryClient.setQueryData(
-            cartQueryKeys.active({
-              cartId: cart.id,
-              regionId: cart.region_id ?? null,
-            }),
-            cart
-          )
+          syncCartCaches(queryClient, cartQueryKeys, cart)
         }
         options?.onSuccess?.(cart, variables, context)
       },
@@ -223,7 +222,14 @@ export function createCheckoutHooks<
         ? async (variables) => onMutate(variables)
         : undefined,
       onSuccess: (data, variables, context) => {
-        if (cartQueryKeys) {
+        if (cartQueryKeys && cartId) {
+          patchCartCaches<TCart>(queryClient, cartQueryKeys, cartId, (cached) =>
+            ({
+              ...cached,
+              payment_collection:
+                data as unknown as TCart["payment_collection"],
+            }) as TCart
+          )
           queryClient.invalidateQueries({
             queryKey: cartQueryKeys.all(),
           })
@@ -461,8 +467,14 @@ export function createCheckoutHooks<
     input: CheckoutPaymentHookInput<TCart>,
     options?: CheckoutMutationOptions<TPaymentCollection, string, TPaymentContext>
   ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
+    const queryClient = useQueryClient()
     const cartId = input.cartId
-    const regionId = input.regionId ?? input.cart?.region_id
+    const effectiveCart =
+      input.cart ??
+      (cartId && cartQueryKeys
+        ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId)
+        : null)
+    const regionId = input.regionId ?? effectiveCart?.region_id
     const enabled = input.enabled ?? Boolean(regionId)
 
     const paymentProvidersQueryOptions = regionId
@@ -487,7 +499,7 @@ export function createCheckoutHooks<
       mutateAsync: initiatePaymentAsync,
       isPending: isInitiatingPayment,
     } = usePaymentMutation(cartId, options)
-    const paymentState = resolvePaymentState(input.cart)
+    const paymentState = resolvePaymentState(effectiveCart)
     const canInitiatePayment = Boolean(cartId && paymentState.hasShippingMethod)
 
     return {
@@ -511,8 +523,14 @@ export function createCheckoutHooks<
       TSuspensePaymentContext
     >
   ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
+    const queryClient = useQueryClient()
     const cartId = input.cartId
-    const regionId = input.regionId ?? input.cart?.region_id
+    const effectiveCart =
+      input.cart ??
+      (cartId && cartQueryKeys
+        ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId)
+        : null)
+    const regionId = input.regionId ?? effectiveCart?.region_id
     if (!regionId) {
       throw new Error("Region id is required for checkout payment")
     }
@@ -526,7 +544,7 @@ export function createCheckoutHooks<
       mutateAsync: initiatePaymentAsync,
       isPending: isInitiatingPayment,
     } = usePaymentMutation(cartId, options)
-    const paymentState = resolvePaymentState(input.cart)
+    const paymentState = resolvePaymentState(effectiveCart)
     const canInitiatePayment = Boolean(cartId && paymentState.hasShippingMethod)
 
     return {
