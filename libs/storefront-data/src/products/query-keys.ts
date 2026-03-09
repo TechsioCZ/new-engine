@@ -10,6 +10,7 @@ export function createProductQueryKeys<
   TDetailParams
 > {
   return {
+    all: () => createQueryKey(namespace, "products"),
     list: (params) =>
       createQueryKey(
         namespace,
