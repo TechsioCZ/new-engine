@@ -145,6 +145,10 @@ import { sdk } from "@/lib/medusa-client"
 export const storefront = createMedusaStorefrontPreset({
   sdk,
   queryKeyNamespace: "my-app",
+  auth: {
+    // Optional: override only when customer needs custom auth behavior.
+    service: customAuthService,
+  },
   cart: {
     hooks: {
       cartStorage: {
@@ -291,6 +295,7 @@ const cacheConfig = createCacheConfig({
 - `enabled` is stripped from list/detail inputs before building query params/keys.
 - Prefer plain objects for list/detail params in custom builders. Primitive detail params are supported and preserved in keys.
 - Cart payloads are normalized by default (Medusa-friendly field names).
+- Preset supports per-domain `service` overrides (`auth`, `orders`, `customers`) while keeping shared hook wiring.
 - Prefetch default is `skipMode: "fresh"` with `skipIfCached: true`; use `skipMode: "any"` to skip whenever any cache entry exists.
 - Prefetch respects `skipIfCached`; pass `false` to force prefetch regardless of cache.
 - Some service methods accept `signal` for aborting in-flight requests.

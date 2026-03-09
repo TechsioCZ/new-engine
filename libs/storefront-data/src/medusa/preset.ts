@@ -9,7 +9,7 @@ import {
   type MedusaUpdateCustomerData,
 } from "../auth/medusa-service"
 import { createAuthQueryKeys } from "../auth/query-keys"
-import type { AuthQueryKeys } from "../auth/types"
+import type { AuthQueryKeys, AuthService } from "../auth/types"
 import { createCartHooks, type CreateCartHooksConfig } from "../cart/hooks"
 import {
   createMedusaCartService,
@@ -79,7 +79,7 @@ import {
   type MedusaCustomerProfileUpdateInput,
 } from "../customers/medusa-service"
 import { createCustomerQueryKeys } from "../customers/query-keys"
-import type { CustomerQueryKeys } from "../customers/types"
+import type { CustomerQueryKeys, CustomerService } from "../customers/types"
 import { createOrderHooks, type CreateOrderHooksConfig } from "../orders/hooks"
 import {
   createMedusaOrderService,
@@ -88,7 +88,7 @@ import {
   type MedusaOrderServiceConfig,
 } from "../orders/medusa-service"
 import { createOrderQueryKeys } from "../orders/query-keys"
-import type { OrderQueryKeys } from "../orders/types"
+import type { OrderQueryKeys, OrderService } from "../orders/types"
 import { createProductHooks, type CreateProductHooksConfig } from "../products/hooks"
 import {
   createMedusaProductService,
@@ -124,6 +124,16 @@ type MedusaAuthHooksConfig = OmitFactoryConfig<
     string,
     string
   >
+>
+
+type MedusaAuthService = AuthService<
+  HttpTypes.StoreCustomer,
+  MedusaAuthCredentials,
+  MedusaRegisterData,
+  MedusaUpdateCustomerData,
+  unknown,
+  string,
+  string
 >
 
 type MedusaCartHooksConfig<
@@ -184,6 +194,17 @@ type MedusaOrderHooksConfig = OmitFactoryConfig<
   >
 >
 
+type MedusaOrderService = OrderService<
+  HttpTypes.StoreOrder,
+  MedusaOrderListInput,
+  MedusaOrderDetailInput
+>
+
+type MedusaCustomerAddressUpdateHookInput =
+  MedusaCustomerAddressUpdateInput & {
+    addressId?: string
+  }
+
 type MedusaCustomerHooksConfig = OmitFactoryConfig<
   CreateCustomerHooksConfig<
     HttpTypes.StoreCustomer,
@@ -192,11 +213,20 @@ type MedusaCustomerHooksConfig = OmitFactoryConfig<
     MedusaCustomerListInput,
     MedusaCustomerAddressCreateInput,
     MedusaCustomerAddressCreateInput,
-    MedusaCustomerAddressUpdateInput,
+    MedusaCustomerAddressUpdateHookInput,
     MedusaCustomerAddressUpdateInput,
     MedusaCustomerProfileUpdateInput,
     MedusaCustomerProfileUpdateInput
   >
+>
+
+type MedusaCustomerService = CustomerService<
+  HttpTypes.StoreCustomer,
+  HttpTypes.StoreCustomerAddress,
+  MedusaCustomerListInput,
+  MedusaCustomerAddressCreateInput,
+  MedusaCustomerAddressUpdateInput,
+  MedusaCustomerProfileUpdateInput
 >
 
 type MedusaRegionHooksConfig = OmitFactoryConfig<
@@ -271,6 +301,7 @@ export type CreateMedusaStorefrontPresetConfig<
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
   auth?: {
+    service?: MedusaAuthService
     serviceConfig?: MedusaAuthServiceConfig
     hooks?: MedusaAuthHooksConfig
     queryKeys?: AuthQueryKeys
@@ -295,11 +326,13 @@ export type CreateMedusaStorefrontPresetConfig<
     queryKeys?: ProductQueryKeys<MedusaProductListInput, MedusaProductDetailInput>
   }
   orders?: {
+    service?: MedusaOrderService
     serviceConfig?: MedusaOrderServiceConfig
     hooks?: MedusaOrderHooksConfig
     queryKeys?: OrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>
   }
   customers?: {
+    service?: MedusaCustomerService
     hooks?: MedusaCustomerHooksConfig
     queryKeys?: CustomerQueryKeys<MedusaCustomerListInput>
   }
@@ -427,7 +460,9 @@ export function createMedusaStorefrontPreset<
   }
 
   const services = {
-    auth: createMedusaAuthService(config.sdk, config.auth?.serviceConfig),
+    auth:
+      config.auth?.service ??
+      createMedusaAuthService(config.sdk, config.auth?.serviceConfig),
     cart: createMedusaCartService(config.sdk, config.cart?.serviceConfig),
     checkout: createMedusaCheckoutService(config.sdk, config.checkout?.serviceConfig),
     products: createMedusaProductService<
@@ -435,8 +470,11 @@ export function createMedusaStorefrontPreset<
       MedusaProductListInput,
       MedusaProductDetailInput
     >(config.sdk, config.products?.serviceConfig),
-    orders: createMedusaOrderService(config.sdk, config.orders?.serviceConfig),
-    customers: createMedusaCustomerService(config.sdk),
+    orders:
+      config.orders?.service ??
+      createMedusaOrderService(config.sdk, config.orders?.serviceConfig),
+    customers:
+      config.customers?.service ?? createMedusaCustomerService(config.sdk),
     regions: createMedusaRegionService(config.sdk),
     categories: createMedusaCategoryService<
       TCategory,
@@ -533,7 +571,18 @@ export function createMedusaStorefrontPreset<
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
-    customers: createCustomerHooks({
+    customers: createCustomerHooks<
+      HttpTypes.StoreCustomer,
+      HttpTypes.StoreCustomerAddress,
+      MedusaCustomerListInput,
+      MedusaCustomerListInput,
+      MedusaCustomerAddressCreateInput,
+      MedusaCustomerAddressCreateInput,
+      MedusaCustomerAddressUpdateHookInput,
+      MedusaCustomerAddressUpdateInput,
+      MedusaCustomerProfileUpdateInput,
+      MedusaCustomerProfileUpdateInput
+    >({
       ...(customerHookOverrides ?? {}),
       service: services.customers,
       queryKeys: queryKeys.customers,
@@ -580,3 +629,7 @@ export function createMedusaStorefrontPreset<
     hooks,
   }
 }
+
+export type MedusaStorefrontPreset = ReturnType<
+  typeof createMedusaStorefrontPreset
+>

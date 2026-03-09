@@ -5,6 +5,9 @@ type QueryKey = readonly unknown[]
 type CartLike = {
   id: string
 }
+type CartWithRegion = CartLike & {
+  region_id?: string | null
+}
 
 export type ActiveCartQueryKeyMatcher = (
   queryKey: QueryKey,
@@ -80,6 +83,15 @@ const resolveActiveCartQueryMatcher = (
 ): ActiveCartQueryKeyMatcher =>
   options?.isActiveCartQueryKey ?? createDefaultActiveCartQueryMatcher(queryKeys)
 
+const getCartRegionId = (cart: CartLike): string | null => {
+  if (!("region_id" in cart)) {
+    return null
+  }
+
+  const regionId = (cart as CartWithRegion).region_id
+  return typeof regionId === "string" ? regionId : null
+}
+
 export function syncCartCaches<TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
@@ -87,6 +99,10 @@ export function syncCartCaches<TCart extends CartLike>(
   options?: CartCacheSyncOptions
 ): void {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
+  const activeKey = queryKeys.active({
+    cartId: cart.id,
+    regionId: getCartRegionId(cart),
+  })
 
   queryClient.setQueriesData<TCart>(
     {
@@ -95,6 +111,7 @@ export function syncCartCaches<TCart extends CartLike>(
     cart
   )
 
+  queryClient.setQueryData(activeKey, cart)
   queryClient.setQueryData(queryKeys.detail(cart.id), cart)
 }
 
