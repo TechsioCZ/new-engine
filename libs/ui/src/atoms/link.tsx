@@ -33,10 +33,15 @@ export function Link<T extends ElementType = "a">({
   ...props
 }: LinkProps<T>) {
   const Component = (as || "a") as ElementType
+  const target = "target" in props ? props.target : undefined
+  const rel = "rel" in props ? props.rel : undefined
 
   const externalProps =
-    external && (!as || as === "a")
-      ? { target: "_blank", rel: "noopener noreferrer" }
+    external
+      ? {
+          target: target ?? "_blank",
+          rel: rel ?? "noopener noreferrer",
+        }
       : {}
 
   return (
