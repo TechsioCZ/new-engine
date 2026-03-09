@@ -175,6 +175,7 @@ export function createAuthHooks<
     const queryClient = useQueryClient()
     return useMutation<TLoginResult, unknown, TLoginInput, TContext>({
       mutationFn: (input: TLoginInput) => service.login(input),
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
@@ -198,6 +199,7 @@ export function createAuthHooks<
     const queryClient = useQueryClient()
     return useMutation<TRegisterResult, unknown, TRegisterInput, TContext>({
       mutationFn: (input: TRegisterInput) => service.register(input),
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
@@ -226,6 +228,7 @@ export function createAuthHooks<
         }
         return service.createCustomer(input)
       },
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
@@ -249,6 +252,7 @@ export function createAuthHooks<
     const queryClient = useQueryClient()
     return useMutation<void, unknown, void, TContext>({
       mutationFn: () => service.logout(),
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (_data, _variables, context) => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), null)
@@ -278,6 +282,7 @@ export function createAuthHooks<
         }
         return service.updateCustomer(input)
       },
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), data)
@@ -303,6 +308,7 @@ export function createAuthHooks<
         }
         return service.refresh()
       },
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({

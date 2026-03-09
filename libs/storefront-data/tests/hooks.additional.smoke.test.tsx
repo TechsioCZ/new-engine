@@ -305,6 +305,43 @@ describe("storefront-data missing hook coverage", () => {
     })
   })
 
+  it("does not retry failed login mutation even when QueryClient retries mutations", async () => {
+    const login = vi
+      .fn()
+      .mockRejectedValue(new Error("Invalid email or password"))
+    const service = {
+      getCustomer: async () => ({ id: "cus_1" }),
+      login,
+      register: async () => ({ ok: true }),
+      logout: async () => undefined,
+    }
+
+    const { useLogin } = createAuthHooks({
+      service,
+      queryKeyNamespace: "test-auth-login-no-retry",
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: 3, retryDelay: 1 },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(() => useLogin(), { wrapper })
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          email: "qa@example.com",
+          password: "bad-password",
+        })
+      ).rejects.toThrow("Invalid email or password")
+    })
+
+    expect(login).toHaveBeenCalledTimes(1)
+  })
+
   it("calculates checkout shipping prices and writes cart updates", async () => {
     type Cart = {
       id: string
@@ -401,9 +438,15 @@ describe("storefront-data missing hook coverage", () => {
         shipping_methods: [{ shipping_option_id: "opt_calc" }],
       })
     })
+
+    expect(queryClient.getQueryData(cartQueryKeys.detail(cart.id))).toEqual({
+      id: cart.id,
+      region_id: "reg_1",
+      shipping_methods: [{ shipping_option_id: "opt_calc" }],
+    })
   })
 
-  it("lists checkout payment providers and invalidates cart on payment", async () => {
+  it("lists checkout payment providers and patches then invalidates cart on payment", async () => {
     type Cart = {
       id: string
       region_id?: string | null
@@ -455,6 +498,11 @@ describe("storefront-data missing hook coverage", () => {
       region_id: "reg_1",
       shipping_methods: [{ shipping_option_id: "opt_fixed" }],
     }
+    queryClient.setQueryData(
+      cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" }),
+      cart
+    )
+    queryClient.setQueryData(cartQueryKeys.detail(cart.id), cart)
 
     const { result } = renderHook(
       () =>
@@ -477,10 +525,99 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     await waitFor(() => {
+      expect(
+        queryClient.getQueryData<Cart>(
+          cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" })
+        )
+      ).toEqual({
+        ...cart,
+        payment_collection: { id: "pay_col_1" },
+      })
+      expect(queryClient.getQueryData<Cart>(cartQueryKeys.detail(cart.id))).toEqual({
+        ...cart,
+        payment_collection: { id: "pay_col_1" },
+      })
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: cartQueryKeys.all(),
       })
     })
+  })
+
+  it("derives checkout payment state from cached cart when render-time cart is missing", async () => {
+    type Cart = {
+      id: string
+      region_id?: string | null
+      shipping_methods?: { shipping_option_id?: string }[]
+      payment_collection?: { id?: string; payment_sessions?: unknown[] }
+    }
+
+    type ShippingOption = {
+      id: string
+      price_type?: string | null
+      amount?: number | null
+    }
+
+    type PaymentProvider = { id: string }
+    type PaymentCollection = { id: string }
+
+    const service = {
+      listShippingOptions: async () => [] as ShippingOption[],
+      addShippingMethod: async (cartId: string) => ({
+        id: cartId,
+        region_id: "reg_1",
+        shipping_methods: [],
+      }),
+      listPaymentProviders: async () => [{ id: "provider_1" }],
+      initiatePaymentSession: async () => ({ id: "pay_col_1" }),
+    }
+
+    const cartQueryKeys = createCartQueryKeys("test-checkout-payment-cached-cart")
+    const { useCheckoutPayment } = createCheckoutHooks<
+      Cart,
+      ShippingOption,
+      PaymentProvider,
+      PaymentCollection,
+      unknown
+    >({
+      service,
+      queryKeyNamespace: "test-checkout-payment-cached-cart",
+      cartQueryKeys,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    queryClient.setQueryData(
+      cartQueryKeys.active({ cartId: "cart_1", regionId: "reg_1" }),
+      {
+        id: "cart_1",
+        region_id: "reg_1",
+        shipping_methods: [{ shipping_option_id: "opt_fixed" }],
+        payment_collection: {
+          id: "pay_col_cached",
+          payment_sessions: [{ id: "session_1" }],
+        },
+      } satisfies Cart
+    )
+
+    const { result } = renderHook(
+      () =>
+        useCheckoutPayment({
+          cartId: "cart_1",
+          regionId: "reg_1",
+        }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.paymentProviders).toHaveLength(1)
+    })
+
+    expect(result.current.canInitiatePayment).toBe(true)
+    expect(result.current.hasPaymentCollection).toBe(true)
+    expect(result.current.hasPaymentSessions).toBe(true)
   })
 
   it("initiates checkout payment without forwarding render-time cart", async () => {
