@@ -13,12 +13,21 @@ Usage:
 Modes:
   preview-prepare
   main-prepare
+  preview-deploy
+  main-deploy
+  preview-verify
+  main-verify
   preview-teardown
 
 Behavior:
   - fails fast when required workflow env vars are missing
   - masks secret env values in GitHub Actions logs before downstream steps run
 EOF
+}
+
+require_zane_project_slug() {
+  ci::require_env ZANE_CANONICAL_PROJECT_SLUG "canonical Zane project slug"
+  ci::mask_env_if_present ZANE_CANONICAL_PROJECT_SLUG
 }
 
 mode="${1:-}"
@@ -51,9 +60,28 @@ case "$mode" in
       ci::mask_env_if_present MEILISEARCH_MASTER_KEY
     fi
     ;;
+  preview-deploy|preview-verify)
+    ci::require_env ZANE_OPERATOR_BASE_URL "Zane operator base URL"
+    ci::require_env ZANE_OPERATOR_API_TOKEN "Zane operator API token"
+    require_zane_project_slug
+    ci::mask_env_if_present ZANE_OPERATOR_BASE_URL
+    ci::mask_env_if_present ZANE_OPERATOR_API_TOKEN
+    ci::mask_env_if_present PREVIEW_DB_PASSWORD
+    ci::mask_env_if_present MEILI_FRONTEND_KEY
+    ;;
+  main-deploy|main-verify)
+    ci::require_env ZANE_OPERATOR_BASE_URL "Zane operator base URL"
+    ci::require_env ZANE_OPERATOR_API_TOKEN "Zane operator API token"
+    require_zane_project_slug
+    ci::require_env ZANE_PRODUCTION_ENVIRONMENT_NAME "production Zane environment name"
+    ci::mask_env_if_present ZANE_OPERATOR_BASE_URL
+    ci::mask_env_if_present ZANE_OPERATOR_API_TOKEN
+    ci::mask_env_if_present ZANE_PRODUCTION_ENVIRONMENT_NAME
+    ;;
   preview-teardown)
     ci::require_env ZANE_OPERATOR_BASE_URL "preview DB operator base URL"
     ci::require_env ZANE_OPERATOR_API_TOKEN "preview DB operator API token"
+    require_zane_project_slug
     ci::mask_env_if_present ZANE_OPERATOR_BASE_URL
     ci::mask_env_if_present ZANE_OPERATOR_API_TOKEN
     ;;

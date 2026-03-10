@@ -64,6 +64,23 @@
       * `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
       * `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`
       * `DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET=<replace-with-long-random-secret>`
+    * To exercise the deploy-wrapper endpoints locally as well, also set:
+      * `DC_ZANE_OPERATOR_ZANE_BASE_URL=<upstream-zane-url>`
+      * `DC_ZANE_OPERATOR_ZANE_USERNAME=<upstream-zane-username>`
+      * `DC_ZANE_OPERATOR_ZANE_PASSWORD=<upstream-zane-password>`
+    * First-time upstream ZaneOps setup assumptions for local deploy testing:
+      * `DC_ZANE_OPERATOR_ZANE_BASE_URL` must point at the upstream ZaneOps UI/API root you actually log into, for example `http://localhost:3000`
+      * `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` are the login credentials for that ZaneOps instance; `zane-operator` uses session + CSRF login upstream, not a direct Zane token
+      * create one canonical Zane project and note its slug; local CI-style deploy tests use that slug as `ZANE_CANONICAL_PROJECT_SLUG`
+      * each Zane project gets a protected `production` environment by default; preview clones in this repo always use that environment as the base
+      * service names in that Zane project must match `config/stack-manifest.yaml` currently: `medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`, `medusa-be`, `n1`
+      * preview environments are derived in CI script space as `pr-<number>` by default
+      * preview teardown is explicit in this repo's CI flow; do not rely on built-in Zane preview auto-teardown for these cloned environments
+    * When you run the deploy scripts manually later, export:
+      * `ZANE_OPERATOR_BASE_URL=http://localhost:8082`
+      * `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
+      * `ZANE_CANONICAL_PROJECT_SLUG=<your-zane-project-slug>`
+      * `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
     * If your Postgres volume already existed before this change, run bootstrap migration once:
 
     ```shell
@@ -196,6 +213,10 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
             * frontend key: `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` (read-only search key, never master)
             * (optional) if plugin was disabled before adding products:
                 * `make medusa-meilisearch-reseed`
+    * zane-operator should be available at:
+        * <a href="http://localhost:8082/healthz">localhost:8082/healthz</a>
+        * optional local-stack Caddy route: <a href="https://admin.zane-operator.localhost/healthz">https://admin.zane-operator.localhost/healthz</a>
+            * bearer token: `DC_ZANE_OPERATOR_API_AUTH_TOKEN`
     * Redis compatible ValKey storage can be connected at `localhost:6379`
         * password: `DC_VALKEY_PASSWORD` (default in `.env`: `valkey_dev_change_me`)
     * Postgres DB can be connected at `localhost:5432`

@@ -1,9 +1,15 @@
 import { enforceBearerToken } from "./auth"
 import { loadConfig } from "./config"
 import { createDbClient, inspectFileCopyMethod } from "./db"
+import { handleApplyZaneEnvOverrides } from "./handlers/apply-zane-env-overrides"
+import { handleArchiveZaneEnvironment } from "./handlers/archive-zane-environment"
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
+import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
+import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
 import { handleTeardownPreviewDb } from "./handlers/teardown-preview-db"
+import { handleTriggerZaneDeploy } from "./handlers/trigger-zane-deploy"
+import { handleVerifyZaneDeploy } from "./handlers/verify-zane-deploy"
 import { jsonError, jsonResponse } from "./http"
 
 const config = loadConfig()
@@ -61,6 +67,64 @@ const server = Bun.serve({
     }
 
     if (url.pathname.startsWith("/v1/preview-db/")) {
+      return jsonError(405, "method_not_allowed", "Method not allowed for this endpoint")
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/environments/resolve") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleResolveZaneEnvironment(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/environments/archive") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleArchiveZaneEnvironment(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/resolve-targets") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleResolveZaneTargets(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/apply-env-overrides") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleApplyZaneEnvOverrides(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/trigger") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleTriggerZaneDeploy(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/verify") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleVerifyZaneDeploy(request, { config })
+    }
+
+    if (url.pathname.startsWith("/v1/zane/")) {
       return jsonError(405, "method_not_allowed", "Method not allowed for this endpoint")
     }
 

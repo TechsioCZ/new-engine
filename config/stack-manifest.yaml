@@ -41,6 +41,14 @@ services:
       prepare:
         preview_db: false
         meili_keys: false
+      zane:
+        service_name: "medusa-db"
+        deploy_lanes: ["preview", "main"]
+        consumes:
+          preview_db: false
+          meili_frontend_key: false
+          meili_backend_key: false
+        coupled_service_ids: []
 
   - id: "medusa-valkey"
     compose_service: "medusa-valkey"
@@ -57,6 +65,14 @@ services:
       prepare:
         preview_db: false
         meili_keys: false
+      zane:
+        service_name: "medusa-valkey"
+        deploy_lanes: ["preview", "main"]
+        consumes:
+          preview_db: false
+          meili_frontend_key: false
+          meili_backend_key: false
+        coupled_service_ids: []
 
   - id: "medusa-minio"
     compose_service: "medusa-minio"
@@ -73,6 +89,14 @@ services:
       prepare:
         preview_db: false
         meili_keys: false
+      zane:
+        service_name: "medusa-minio"
+        deploy_lanes: ["preview", "main"]
+        consumes:
+          preview_db: false
+          meili_frontend_key: false
+          meili_backend_key: false
+        coupled_service_ids: []
 
   - id: "medusa-meilisearch"
     compose_service: "medusa-meilisearch"
@@ -89,6 +113,14 @@ services:
       prepare:
         preview_db: false
         meili_keys: true
+      zane:
+        service_name: "medusa-meilisearch"
+        deploy_lanes: ["preview", "main"]
+        consumes:
+          preview_db: false
+          meili_frontend_key: false
+          meili_backend_key: false
+        coupled_service_ids: []
 
   - id: "medusa-be"
     compose_service: "medusa-be"
@@ -108,6 +140,14 @@ services:
       prepare:
         preview_db: true
         meili_keys: true
+      zane:
+        service_name: "medusa-be"
+        deploy_lanes: ["preview", "main"]
+        consumes:
+          preview_db: true
+          meili_frontend_key: false
+          meili_backend_key: false
+        coupled_service_ids: []
 
   - id: "n1"
     compose_service: "n1"
@@ -126,6 +166,14 @@ services:
       prepare:
         preview_db: false
         meili_keys: true
+      zane:
+        service_name: "n1"
+        deploy_lanes: ["preview", "main"]
+        consumes:
+          preview_db: false
+          meili_frontend_key: true
+          meili_backend_key: false
+        coupled_service_ids: []
 
   - id: "zane-operator"
     compose_service: "zane-operator"

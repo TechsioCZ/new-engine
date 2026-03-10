@@ -1,6 +1,6 @@
 # zane-operator
 
-Internal Bun service for preview PostgreSQL database lifecycle operations.
+Internal Bun service for preview PostgreSQL database lifecycle operations and thin CI-facing ZaneOps deploy orchestration.
 
 Minimum supported PostgreSQL version: `18`.
 
@@ -9,6 +9,12 @@ Minimum supported PostgreSQL version: `18`.
 - `GET /healthz`
 - `POST /v1/preview-db/ensure`
 - `DELETE /v1/preview-db/{pr_number}`
+- `POST /v1/zane/environments/resolve`
+- `POST /v1/zane/environments/archive`
+- `POST /v1/zane/deploy/resolve-targets`
+- `POST /v1/zane/deploy/apply-env-overrides`
+- `POST /v1/zane/deploy/trigger`
+- `POST /v1/zane/deploy/verify`
 
 All `/v1/*` endpoints require:
 
@@ -69,6 +75,16 @@ Teardown response includes role cleanup result:
 - `DB_PREVIEW_DEV_ROLE` (default: `medusa_dev`)
 - `DB_APP_SCHEMA` (default: `medusa`)
 - `DB_PROTECTED_NAMES` (extra protected DB names, comma-separated)
+- `ZANE_BASE_URL` (required only for deploy orchestration endpoints)
+- `ZANE_USERNAME` (required only for deploy orchestration endpoints)
+- `ZANE_PASSWORD` (required only for deploy orchestration endpoints)
+
+## Deploy endpoint notes
+
+- The deploy wrapper requires `project_slug` in requests and returns `project_slug` in responses.
+- Preview environment resolution clones from the protected `production` environment only when the requested preview environment does not already exist.
+- Env override application performs client-side upsert logic against ZaneOps itemized env-variable changes: unchanged keys are skipped, existing keys use `UPDATE`, and missing keys use `ADD`.
+- Deploy trigger uses per-service deploy webhook tokens resolved through authenticated ZaneOps control-plane APIs.
 
 ## Onboarding
 
@@ -176,14 +192,16 @@ bun run start
 Healthcheck:
 
 ```bash
-curl -fsS http://localhost:8080/healthz
+curl -fsS http://localhost:8082/healthz
 ```
+
+Optional local-stack Caddy route: `https://admin.zane-operator.localhost/healthz` with `curl -kfsS`.
 
 Ensure preview DB:
 
 ```bash
 curl --fail --show-error --silent \
-  -X POST "http://localhost:8080/v1/preview-db/ensure" \
+  -X POST "http://localhost:8082/v1/preview-db/ensure" \
   -H "Authorization: Bearer ${API_AUTH_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"pr_number":123}'
@@ -193,7 +211,7 @@ Teardown preview DB:
 
 ```bash
 curl --fail --show-error --silent \
-  -X DELETE "http://localhost:8080/v1/preview-db/123" \
+  -X DELETE "http://localhost:8082/v1/preview-db/123" \
   -H "Authorization: Bearer ${API_AUTH_TOKEN}"
 ```
 
@@ -263,19 +281,49 @@ If `medusa-db` is in Docker Compose, set `PGHOST` in `.env` to the Compose servi
 Smoke test:
 
 ```bash
-curl -fsS http://localhost:8080/healthz
+curl -fsS http://localhost:8082/healthz
 ```
 
-### 6. Prepare GitHub Actions integration
+### 6. First-time ZaneOps setup for deploy orchestration
 
-Set repository secrets:
-- `ZANEOPS_ZANE_OPERATOR_BASE_URL`
-- `ZANEOPS_ZANE_OPERATOR_API_TOKEN`
+Use this checklist before your first local or CI-backed deploy orchestration test.
 
-Preview workflow template is present in:
-- `.github/workflows/deploy-zaneops-preview.yml`
+In upstream ZaneOps:
+- log into the ZaneOps instance with a normal username/password account; `zane-operator` authenticates upstream with session + CSRF login, not a direct Zane token
+- create one canonical project and note its slug; that slug is the deploy identity used by CI and local script runs
+- each project already has a protected `production` environment; `zane-operator` always clones preview environments from it
+- ensure the environment contains services matching the manifest mapping in `config/stack-manifest.yaml`:
+  - `medusa-db`
+  - `medusa-valkey`
+  - `medusa-minio`
+  - `medusa-meilisearch`
+  - `medusa-be`
+  - `n1`
 
-zane-operator calls are intentionally commented out for now. Uncomment them when you are ready to enable preview DB lifecycle from PR events.
+In the local `new-engine` operator env:
+- set `DC_ZANE_OPERATOR_ZANE_BASE_URL` to the upstream ZaneOps base URL you actually browse, for example `http://localhost:3000`
+- set `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` to the upstream ZaneOps login account
+
+For local script-driven smoke runs against `zane-operator`:
+- export `ZANE_OPERATOR_BASE_URL=http://localhost:8082`
+- export `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
+- export `ZANE_CANONICAL_PROJECT_SLUG=<your-zane-project-slug>`
+- export `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
+
+Operational note:
+- preview environments are derived outside Zane as `pr-<number>` by default
+- this repo archives preview environments explicitly during teardown; built-in Zane preview auto-teardown does not cover these cloned environments
+
+Active GitHub Actions contract:
+- workflows:
+  - `.github/workflows/zaneops-preview-after-ci.yml`
+  - `.github/workflows/zaneops-main-after-ci.yml`
+  - `.github/workflows/zaneops-preview-teardown.yml`
+- required repository secrets:
+  - `ZANEOPS_ZANE_OPERATOR_BASE_URL`
+  - `ZANEOPS_ZANE_OPERATOR_API_TOKEN`
+  - `ZANEOPS_ZANE_PROJECT_SLUG`
+  - `ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME`
 
 ### 7. Create or update dev role via CLI (no HTTP route)
 
@@ -426,7 +474,7 @@ PGPASSWORD="$POSTGRES_PASSWORD" psql \
 - run one ensure/teardown smoke test against a throwaway PR number:
 
 ```bash
-export ZANE_OPERATOR_BASE_URL="http://localhost:8080"
+export ZANE_OPERATOR_BASE_URL="http://localhost:8082"
 
 curl --fail --show-error --silent \
   -X POST "${ZANE_OPERATOR_BASE_URL}/v1/preview-db/ensure" \
