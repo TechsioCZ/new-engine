@@ -46,12 +46,12 @@ const searchFormVariants = tv({
       sm: {
         root: "gap-search-form-sm",
         control:
-          "h-form-control-sm rounded-form-control-sm",
+          "h-form-control-sm rounded-search-form-sm",
       },
       md: {
         root: "gap-search-form-md",
         control:
-          "h-form-control-md rounded-form-control-md",
+          "h-form-control-md rounded-search-form-md",
       },
       lg: {
         root: "gap-search-form-lg",

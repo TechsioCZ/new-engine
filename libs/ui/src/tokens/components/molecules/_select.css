@@ -87,6 +87,8 @@
   /* === BORDERS & RADIUS === */
   --border-width-select: var(--border-width-form-control);
   --radius-select: var(--radius-form-control);
+  --radius-select-sm: var(--radius-form-control-sm);
+  --radius-select-md: var(--radius-form-control-md);
 
   /* === Z-INDEX === */
   --z-content: 50;

@@ -37,7 +37,7 @@
 
   /* Border states */
   --color-textarea-border-hover: var(--color-form-control-border-hover);
-  --color-textarea-border-focus: var(--color-form-control-border-focus);
+  --color-textarea-border-focus: var(--color-textarea-accent);
 
   /* === VALIDATION STATES === */
   /* Success variant */
@@ -83,6 +83,8 @@
   /* === BORDERS & RADIUS === */
   --border-textarea-width: var(--border-width-form-control);
   --radius-textarea: var(--radius-form-control);
+  --radius-textarea-sm: var(--radius-form-control-sm);
+  --radius-textarea-md: var(--radius-form-control-md);
 
   /* === FOCUS RING === */
   --color-textarea-ring: var(--color-form-control-ring);

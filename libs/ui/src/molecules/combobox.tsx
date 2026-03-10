@@ -15,6 +15,7 @@ const comboboxVariants = tv({
     label: ["block font-label text-label-md"],
     control: [
       "form-control-base relative flex w-full items-center overflow-hidden",
+      "bg-combobox-bg",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
       "data-focus:border-combobox-border-focus data-focus:bg-combobox-bg-focus",
@@ -88,21 +89,24 @@ const comboboxVariants = tv({
       sm: {
         root: "gap-combobox-root-sm",
         control:
-          "h-form-control-sm text-input-sm rounded-form-control-sm",
+          "h-form-control-sm rounded-combobox-sm text-combobox-control-sm",
         item: "p-combobox-item-sm",
+        input: "p-combobox-input-sm",
         content: "text-combobox-content-sm",
       },
       md: {
         root: "gap-combobox-root-md",
         control:
-          "h-form-control-md text-input-md rounded-form-control-md",
+          "h-form-control-md rounded-combobox-md text-combobox-control-md",
         item: "p-combobox-item-md",
+        input: "p-combobox-input-md",
         content: "text-combobox-content-md",
       },
       lg: {
         root: "gap-combobox-root-lg",
         control: "text-input-lg",
         item: "p-combobox-item-lg",
+        input: "p-combobox-input-lg",
         content: "text-combobox-content-lg",
       },
     },

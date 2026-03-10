@@ -18,6 +18,7 @@ const numericInputVariants = tv({
     root: ["relative flex"],
     container: [
       "group form-control-base relative flex",
+      "border-numeric-input-border",
       "items-center overflow-hidden",
       "hover:border-numeric-input-border-hover",
       "focus-within:border-numeric-input-border-focus",
@@ -46,11 +47,11 @@ const numericInputVariants = tv({
       "duration-0 data-invalid:focus:border-input-border-danger-focus",
     ],
     triggerContainer: [
-      "flex flex-col gap-px self-stretch bg-numeric-input-border",
+      "flex flex-col gap-px self-stretch bg-numeric-input-trigger-container-bg",
     ],
     trigger: [
       "flex flex-1 place-items-center",
-      "px-numeric-input-trigger-x py-0",
+      "px-numeric-input-trigger-x py-numeric-input-trigger-y",
       "bg-numeric-input-trigger-bg hover:bg-numeric-input-trigger-bg-hover",
       "text-numeric-input-trigger-fg hover:text-numeric-input-trigger-fg-hover",
       "cursor-pointer",
@@ -62,21 +63,19 @@ const numericInputVariants = tv({
   variants: {
     size: {
       sm: {
-        root: "text-numeric-input-sm",
-        container:
-          "h-form-control-sm rounded-form-control-sm",
+        root: "gap-numeric-input-root-sm text-numeric-input-sm",
+        container: "h-form-control-sm rounded-numeric-input-sm",
         trigger: "text-numeric-input-sm",
         input: "pl-numeric-input-input-sm text-numeric-input-sm",
       },
       md: {
-        root: "text-numeric-input-md",
-        container:
-          "h-form-control-md rounded-form-control-md",
+        root: "gap-numeric-input-root-md text-numeric-input-md",
+        container: "h-form-control-md rounded-numeric-input-md",
         trigger: "text-numeric-input-md",
         input: "pl-numeric-input-input-md text-numeric-input-md",
       },
       lg: {
-        root: "text-numeric-input-lg",
+        root: "gap-numeric-input-root-lg text-numeric-input-lg",
         trigger: "text-numeric-input-lg",
         input: "pl-numeric-input-input-md text-numeric-input-lg",
       },

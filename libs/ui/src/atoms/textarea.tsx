@@ -50,8 +50,8 @@ const textareaVariants = tv({
       ],
     },
     size: {
-      sm: "p-textarea-sm text-textarea-sm [--radius-textarea:var(--radius-form-control-sm)]",
-      md: "p-textarea-md text-textarea-md [--radius-textarea:var(--radius-form-control-md)]",
+      sm: "rounded-textarea-sm p-textarea-sm text-textarea-sm",
+      md: "rounded-textarea-md p-textarea-md text-textarea-md",
       lg: "p-textarea-lg text-textarea-lg",
     },
     resize: {

@@ -31,6 +31,7 @@ const selectVariants = tv({
     positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
     trigger: [
       "form-control-base w-full",
+      "border-select-trigger-border",
       "group",
       "flex items-center justify-between gap-0",
       "font-normal",
@@ -113,14 +114,14 @@ const selectVariants = tv({
       },
       sm: {
         trigger:
-          "h-form-control-sm p-select-trigger-sm text-select-trigger-sm rounded-form-control-sm",
+          "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-sm",
         item: "text-select-item-sm",
         valueText: "text-select-value-sm",
         itemGroupLabel: "text-select-item-group-label-sm",
       },
       md: {
         trigger:
-          "h-form-control-md p-select-trigger-md text-select-trigger-md rounded-form-control-md",
+          "h-form-control-md rounded-select-md p-select-trigger-md text-select-trigger-md",
         item: "text-select-item-md",
         valueText: "text-select-value-md",
         itemGroupLabel: "text-select-item-group-label-md",

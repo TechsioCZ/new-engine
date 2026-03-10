@@ -82,6 +82,8 @@
   /* === BORDERS & RADIUS === */
   /* Border widths and radius values */
   --radius-combobox: var(--radius-form-control);
+  --radius-combobox-sm: var(--radius-form-control-sm);
+  --radius-combobox-md: var(--radius-form-control-md);
   --border-width-combobox: var(--border-width-input);
 
   /* === SHADOWS === */

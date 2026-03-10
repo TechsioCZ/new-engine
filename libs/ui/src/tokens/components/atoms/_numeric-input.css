@@ -43,6 +43,10 @@
   --padding-numeric-input-trigger-x: var(--spacing-150);
 
   /* === INCREMENT BUTTON === */
+
+  --radius-numeric-input: var(--radius-form-control);
+  --radius-numeric-input-sm: var(--radius-form-control-sm);
+  --radius-numeric-input-md: var(--radius-form-control-md);
   --border-width-numeric-input: var(--border-width-input);
 
   /* === FOCUS RING === */
