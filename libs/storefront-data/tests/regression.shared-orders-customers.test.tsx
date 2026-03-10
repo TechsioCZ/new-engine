@@ -178,12 +178,14 @@ describe("phase 3 regressions", () => {
     type ListInput = {
       page?: number
       limit?: number
+      offset?: number
       region_id?: string
       enabled?: boolean
     }
     type ListParams = {
       page?: number
       limit?: number
+      offset?: number
       region_id?: string
     }
     type DetailInput = {
@@ -225,11 +227,13 @@ describe("phase 3 regressions", () => {
       buildListParams: (input) => ({
         page: input.page,
         limit: input.limit,
+        offset: input.offset,
         region_id: input.region_id,
       }),
       buildPrefetchParams: (input) => ({
-        page: 1,
+        page: input.page,
         limit: input.limit,
+        offset: input.offset,
         region_id: input.region_id,
       }),
       buildDetailParams: (input) => ({
@@ -246,6 +250,7 @@ describe("phase 3 regressions", () => {
       createProductsListPrefetchQueryOptions({
         page: 3,
         limit: 4,
+        offset: 8,
         region_id: "reg_1",
       })
     )
@@ -269,17 +274,99 @@ describe("phase 3 regressions", () => {
     )
 
     expect(service.getProducts).toHaveBeenCalledWith(
-      { page: 3, limit: 4, region_id: "reg_1" },
+      { page: 3, limit: 4, offset: 8, region_id: "reg_1" },
       expect.any(AbortSignal)
     )
     expect(service.getProductsGlobal).toHaveBeenCalledWith(
-      { page: 1, limit: 4, region_id: "reg_1" },
+      { page: 1, limit: 4, offset: 0, region_id: "reg_1" },
       expect.any(AbortSignal)
     )
     expect(service.getProductByHandle).toHaveBeenCalledWith(
       { handle: "hoodie", region_id: "reg_1" },
       expect.any(AbortSignal)
     )
+  })
+
+  it("excludes enabled from suspense product inputs at type level", () => {
+    type Product = { handle: string }
+    type ListInput = {
+      page?: number
+      limit?: number
+      region_id?: string
+      enabled?: boolean
+    }
+    type ListParams = {
+      page?: number
+      limit?: number
+      region_id?: string
+    }
+    type DetailInput = {
+      handle: string
+      region_id?: string
+      enabled?: boolean
+    }
+    type DetailParams = {
+      handle: string
+      region_id?: string
+    }
+
+    const service = {
+      getProducts: vi.fn(async () => ({
+        products: [] as Product[],
+        count: 0,
+        limit: 20,
+        offset: 0,
+      })),
+      getProductByHandle: vi.fn(async () => null as Product | null),
+    }
+
+    const { useSuspenseProducts, useSuspenseProduct } = createProductHooks<
+      Product,
+      ListInput,
+      ListParams,
+      DetailInput,
+      DetailParams
+    >({
+      service,
+      queryKeyNamespace: "phase3-suspense-input-types",
+      requireRegion: false,
+      buildListParams: (input) => ({
+        page: input.page,
+        limit: input.limit,
+        region_id: input.region_id,
+      }),
+      buildDetailParams: (input) => ({
+        handle: input.handle,
+        region_id: input.region_id,
+      }),
+    })
+
+    type SuspenseListInput = Parameters<typeof useSuspenseProducts>[0]
+    type SuspenseDetailInput = Parameters<typeof useSuspenseProduct>[0]
+
+    const validListInput: SuspenseListInput = {
+      page: 1,
+      limit: 10,
+      region_id: "reg_1",
+    }
+    const validDetailInput: SuspenseDetailInput = {
+      handle: "hoodie",
+      region_id: "reg_1",
+    }
+    void validListInput
+    void validDetailInput
+
+    // @ts-expect-error suspense product list input must not expose enabled
+    const invalidListInput: SuspenseListInput = { page: 1, enabled: false }
+    // @ts-expect-error suspense product detail input must not expose enabled
+    const invalidDetailInput: SuspenseDetailInput = {
+      handle: "hoodie",
+      enabled: false,
+    }
+    void invalidListInput
+    void invalidDetailInput
+
+    expect(true).toBe(true)
   })
 
   it("keeps runtime guard for delete address mutation while requiring addressId", async () => {

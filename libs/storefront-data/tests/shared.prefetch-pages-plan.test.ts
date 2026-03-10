@@ -62,4 +62,32 @@ describe("createPrefetchPagesPlan", () => {
       low: [3, 1],
     })
   })
+
+  it("keeps priority buckets mutually exclusive near the tail", () => {
+    const nearTailPlan = createPrefetchPagesPlan({
+      mode: "priority",
+      currentPage: 9,
+      totalPages: 10,
+      hasNextPage: true,
+      hasPrevPage: true,
+    })
+    const twoAwayPlan = createPrefetchPagesPlan({
+      mode: "priority",
+      currentPage: 8,
+      totalPages: 10,
+      hasNextPage: true,
+      hasPrevPage: true,
+    })
+
+    expect(nearTailPlan).toEqual({
+      immediate: [10],
+      medium: [],
+      low: [8, 1],
+    })
+    expect(twoAwayPlan).toEqual({
+      immediate: [9],
+      medium: [10],
+      low: [7, 1],
+    })
+  })
 })

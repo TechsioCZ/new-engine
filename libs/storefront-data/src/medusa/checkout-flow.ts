@@ -380,25 +380,9 @@ export function createMedusaCheckoutFlow({
           input.cart?.payment_collection?.payment_sessions?.[0]?.provider_id
 
         let paymentProviders = payment.paymentProviders
-        let paymentProviderId =
-          options?.resolvePaymentProviderId?.({
-            cart: input.cart,
-            existingPaymentProviderId,
-            paymentProviders,
-            requestedPaymentProviderId: request?.paymentProviderId,
-          }) ??
-          defaultResolvePaymentProviderId({
-            cart: input.cart,
-            existingPaymentProviderId,
-            paymentProviders,
-            requestedPaymentProviderId: request?.paymentProviderId,
-          })
+        let paymentProviderId: string | null | undefined
 
-        if (!paymentProviderId && effectiveRegionId) {
-          paymentProviders = await checkoutHooks.fetchPaymentProviders(
-            queryClient,
-            effectiveRegionId
-          )
+        try {
           paymentProviderId =
             options?.resolvePaymentProviderId?.({
               cart: input.cart,
@@ -412,6 +396,32 @@ export function createMedusaCheckoutFlow({
               paymentProviders,
               requestedPaymentProviderId: request?.paymentProviderId,
             })
+
+          if (!paymentProviderId && effectiveRegionId) {
+            paymentProviders = await checkoutHooks.fetchPaymentProviders(
+              queryClient,
+              effectiveRegionId
+            )
+            paymentProviderId =
+              options?.resolvePaymentProviderId?.({
+                cart: input.cart,
+                existingPaymentProviderId,
+                paymentProviders,
+                requestedPaymentProviderId: request?.paymentProviderId,
+              }) ??
+              defaultResolvePaymentProviderId({
+                cart: input.cart,
+                existingPaymentProviderId,
+                paymentProviders,
+                requestedPaymentProviderId: request?.paymentProviderId,
+              })
+          }
+        } catch (error) {
+          throw createCompleteCheckoutError(
+            "payment_provider",
+            error,
+            "Failed to resolve payment provider"
+          )
         }
 
         if (!paymentProviderId) {

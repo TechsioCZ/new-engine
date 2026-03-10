@@ -9,6 +9,7 @@ import {
   type CreateMedusaStorefrontPresetConfig,
 } from "../src/medusa/preset"
 import type { CartQueryKeys } from "../src/cart/types"
+import { createQueryKey } from "../src/shared/query-keys"
 
 const createWrapper = (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
@@ -167,10 +168,11 @@ describe("createMedusaStorefrontPreset", () => {
 
   it("uses preset cart query keys as default checkout cart sync target", async () => {
     const { sdk } = createSdkMock()
+    const customCartNamespace = ["custom", "cart"] as const
     const customCartQueryKeys: CartQueryKeys = {
-      all: () => ["custom", "cart"],
-      active: (params) => ["custom", "cart", "active", params],
-      detail: (cartId) => ["custom", "cart", "detail", cartId],
+      all: () => createQueryKey(customCartNamespace),
+      active: (params) => createQueryKey(customCartNamespace, "active", params),
+      detail: (cartId) => createQueryKey(customCartNamespace, "detail", cartId),
     }
 
     const preset = createMedusaStorefrontPreset({

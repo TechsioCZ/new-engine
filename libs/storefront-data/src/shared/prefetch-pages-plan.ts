@@ -72,10 +72,19 @@ export const createPrefetchPagesPlan = (
       ? input.totalPages
       : null,
   ].filter((page): page is number => page !== null)
+  const immediate = uniquePages(high)
+  const immediateSet = new Set(immediate)
+  const mediumPages = uniquePages(medium).filter(
+    (page) => !immediateSet.has(page)
+  )
+  const mediumSet = new Set(mediumPages)
+  const lowPages = uniquePages(lowCandidates).filter(
+    (page) => !immediateSet.has(page) && !mediumSet.has(page)
+  )
 
   return {
-    immediate: uniquePages(high),
-    medium: uniquePages(medium),
-    low: uniquePages(lowCandidates),
+    immediate,
+    medium: mediumPages,
+    low: lowPages,
   }
 }
