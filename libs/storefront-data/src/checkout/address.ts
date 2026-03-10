@@ -10,14 +10,27 @@ export type CheckoutAddressInput = {
   phone?: string | null
 }
 
+export type NormalizedCheckoutAddress<
+  TAddress extends CheckoutAddressInput = CheckoutAddressInput,
+> = Omit<TAddress, keyof CheckoutAddressInput> & {
+  [K in keyof CheckoutAddressInput]?: string
+}
+
 export type CheckoutAddressData<
   TAddress extends CheckoutAddressInput = CheckoutAddressInput,
-> = {
-  shipping: TAddress
-  billing: TAddress
-  useSameAddress?: boolean
-  email?: string | null
-}
+> =
+  | {
+      shipping: TAddress
+      billing?: TAddress
+      useSameAddress?: true
+      email?: string | null
+    }
+  | {
+      shipping: TAddress
+      billing: TAddress
+      useSameAddress: false
+      email?: string | null
+    }
 
 export type CheckoutAddressValidationOptions = {
   requireEmail?: boolean
@@ -112,7 +125,7 @@ export const normalizeCheckoutAddressInput = <
   TAddress extends CheckoutAddressInput,
 >(
   address: TAddress
-): TAddress => {
+): NormalizedCheckoutAddress<TAddress> => {
   const normalized = {
     ...address,
     firstName: normalizeOptionalString(address.firstName),
@@ -124,9 +137,9 @@ export const normalizeCheckoutAddressInput = <
     province: normalizeOptionalString(address.province),
     company: normalizeOptionalString(address.company),
     phone: normalizeOptionalString(address.phone),
-  }
+  } satisfies NormalizedCheckoutAddress<TAddress>
 
-  return normalized as TAddress
+  return normalized
 }
 
 export const getMissingCheckoutAddressFields = <
@@ -152,14 +165,12 @@ export const getCheckoutAddressValidationIssues = <
 ): CheckoutAddressValidationIssue[] => {
   const issues: CheckoutAddressValidationIssue[] = []
   const requireEmail = options?.requireEmail ?? true
-  const useSameAddress = data.useSameAddress ?? true
   const shippingRequiredFields =
     options?.shippingRequiredFields ?? defaultRequiredFields
   const billingRequiredFields =
     options?.billingRequiredFields ?? defaultRequiredFields
 
   const normalizedShipping = normalizeCheckoutAddressInput(data.shipping)
-  const normalizedBilling = normalizeCheckoutAddressInput(data.billing)
 
   for (const field of getMissingCheckoutAddressFields(
     normalizedShipping,
@@ -172,7 +183,9 @@ export const getCheckoutAddressValidationIssues = <
     })
   }
 
-  if (!useSameAddress) {
+  if (data.useSameAddress === false) {
+    const normalizedBilling = normalizeCheckoutAddressInput(data.billing)
+
     for (const field of getMissingCheckoutAddressFields(
       normalizedBilling,
       billingRequiredFields
@@ -243,14 +256,15 @@ export const buildCheckoutCartAddressInput = <
   data: CheckoutAddressData<TAddress>,
   options?: BuildCheckoutCartAddressInputOptions
 ): CheckoutCartAddressInput => {
-  const useSameAddress = data.useSameAddress ?? true
+  const useSameAddress = data.useSameAddress !== false
   const shippingAddress = mapCheckoutAddressToMedusaCartAddress(
     data.shipping,
     options
   )
-  const billingAddress = useSameAddress
-    ? shippingAddress
-    : mapCheckoutAddressToMedusaCartAddress(data.billing, options)
+  const billingAddress =
+    data.useSameAddress === false
+      ? mapCheckoutAddressToMedusaCartAddress(data.billing, options)
+      : shippingAddress
 
   const normalizedEmail = normalizeOptionalString(data.email)
 

@@ -13,6 +13,17 @@ const createWrapper = (client: QueryClient) =>
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
 
+type MedusaFlowSdkSubset = {
+  client: Pick<Medusa["client"], "fetch">
+  store: {
+    cart: Pick<
+      Medusa["store"]["cart"],
+      "create" | "createLineItem" | "complete" | "addShippingMethod" | "retrieve"
+    >
+    payment: Pick<Medusa["store"]["payment"], "initiatePaymentSession">
+  }
+}
+
 const createSdkMock = () => {
   const paymentProviders = [{ id: "pp_system_default" }]
   const canonicalCart = {
@@ -90,30 +101,32 @@ const createSdkMock = () => {
     })
   )
 
+  const sdkSubset = {
+    client: {
+      fetch: clientFetch,
+    },
+    store: {
+      cart: {
+        create: vi.fn(async () => ({
+          cart: {
+            id: "cart_1",
+            region_id: "reg_1",
+            items: [],
+          },
+        })),
+        createLineItem,
+        complete,
+        addShippingMethod,
+        retrieve,
+      },
+      payment: {
+        initiatePaymentSession,
+      },
+    },
+  } satisfies MedusaFlowSdkSubset
+
   return {
-    sdk: {
-      client: {
-        fetch: clientFetch,
-      },
-      store: {
-        cart: {
-          create: vi.fn(async () => ({
-            cart: {
-              id: "cart_1",
-              region_id: "reg_1",
-              items: [],
-            },
-          })),
-          createLineItem,
-          complete,
-          addShippingMethod,
-          retrieve,
-        },
-        payment: {
-          initiatePaymentSession,
-        },
-      },
-    } as unknown as Medusa,
+    sdk: sdkSubset as Medusa,
     spies: {
       addShippingMethod,
       clientFetch,
