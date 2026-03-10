@@ -289,6 +289,9 @@ describe("createMedusaStorefrontPreset", () => {
       },
     })
     queryClient.setQueryData(customCustomerQueryKeys.profile(), { id: "cus_old" })
+    queryClient.setQueryData(customCustomerQueryKeys.addresses({}), [
+      { id: "addr_old" },
+    ])
     queryClient.setQueryData(customOrderQueryKeys.all(), [{ id: "order_old" }])
     const wrapper = createWrapper(queryClient)
 
@@ -305,6 +308,9 @@ describe("createMedusaStorefrontPreset", () => {
 
     expect(
       queryClient.getQueryState(customCustomerQueryKeys.profile())?.isInvalidated
+    ).toBe(true)
+    expect(
+      queryClient.getQueryState(customCustomerQueryKeys.addresses({}))?.isInvalidated
     ).toBe(true)
     expect(queryClient.getQueryState(customOrderQueryKeys.all())?.isInvalidated).toBe(
       true

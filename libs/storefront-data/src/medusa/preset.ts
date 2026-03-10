@@ -496,7 +496,7 @@ export function createMedusaStorefrontPreset<
   const authHookOverrides = config.auth?.hooks
   const authInvalidationOverrides = authHookOverrides?.invalidateOnAuthChange
   const presetAuthInvalidateKeys = [
-    queryKeys.customers.profile(),
+    queryKeys.customers.all(),
     queryKeys.orders.all(),
   ]
   const presetAuthRemoveOnLogoutKeys = [
