@@ -1,8 +1,5 @@
-import { PRODUCT_LIMIT, PRODUCT_LIST_FIELDS } from "./constants"
+import { PRODUCT_LIMIT } from "./constants"
 
-/**
- * Product query parameters (no `page` - only `offset` for cache consistency)
- */
 export type ProductQueryParams = {
   category_id?: string[]
   region_id?: string
@@ -12,35 +9,43 @@ export type ProductQueryParams = {
   fields?: string
 }
 
-/**
- * Builder params (includes `page` for convenience)
- */
-interface BuilderParams extends Partial<ProductQueryParams> {
+type BuilderParams = Omit<Partial<ProductQueryParams>, "category_id"> & {
   page?: number
+  category_id?: string[] | string
+}
+
+const normalizeCategoryId = (
+  categoryId: BuilderParams["category_id"]
+): string[] | undefined => {
+  if (Array.isArray(categoryId)) {
+    return categoryId
+  }
+
+  if (typeof categoryId === "string") {
+    return [categoryId]
+  }
+
+  return undefined
 }
 
 export function buildProductQueryParams(
   params: BuilderParams
 ): ProductQueryParams {
-  const { page = 1, limit = PRODUCT_LIMIT, ...rest } = params
+  const { page, limit, offset, category_id, ...rest } = params
+  const resolvedLimit =
+    typeof limit === "number" && limit > 0 ? limit : PRODUCT_LIMIT
+  const resolvedOffset =
+    typeof offset === "number"
+      ? offset
+      : typeof page === "number"
+        ? (page - 1) * resolvedLimit
+        : undefined
+  const normalizedCategoryId = normalizeCategoryId(category_id)
 
   return {
-    fields: PRODUCT_LIST_FIELDS,
-    country_code: "cz", // default, can be overridden
     ...rest,
-    limit,
-    offset: (page - 1) * limit,
+    ...(normalizedCategoryId ? { category_id: normalizedCategoryId } : {}),
+    limit: resolvedLimit,
+    ...(resolvedOffset == null ? {} : { offset: resolvedOffset }),
   }
-}
-
-/**
- * Always prefetches page 1
- */
-export function buildPrefetchParams(
-  params: Pick<BuilderParams, "category_id" | "region_id" | "country_code">
-): ProductQueryParams {
-  return buildProductQueryParams({
-    ...params,
-    page: 1,
-  })
 }

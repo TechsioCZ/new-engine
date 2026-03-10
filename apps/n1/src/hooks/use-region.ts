@@ -1,13 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
-import { createRegionHooks } from "@techsio/storefront-data/regions/hooks"
-import {
-  createMedusaRegionService,
-  type MedusaRegionDetailInput,
-  type MedusaRegionListInput,
-} from "@techsio/storefront-data/regions/medusa-service"
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
-import { sdk } from "@/lib/medusa-client"
-import { queryKeys } from "@/lib/query-keys"
+import { storefront } from "./storefront-preset"
 
 const REGION_STALE_TIME = 5 * 60 * 1000
 const REGION_GC_TIME = 30 * 60 * 1000
@@ -15,8 +8,6 @@ const REGION_RETRY_CAP = 10_000
 const REGION_RETRY_ATTEMPTS = 5
 
 type Region = HttpTypes.StoreRegion
-type RegionListInput = { enabled?: boolean }
-type RegionDetailInput = { id?: string; enabled?: boolean }
 
 const DEFAULT_CURRENCY_CODE = "czk"
 
@@ -30,34 +21,7 @@ const regionQueryOptions = {
   refetchOnWindowFocus: false,
 }
 
-function buildListParams(_input: RegionListInput): MedusaRegionListInput {
-  return {}
-}
-
-function buildDetailParams(input: RegionDetailInput): MedusaRegionDetailInput {
-  return { id: input.id }
-}
-
-const regionQueryKeys = {
-  all: () => [...queryKeys.all, "regions"] as const,
-  list: (_params: MedusaRegionListInput) => queryKeys.regions(),
-  detail: (params: MedusaRegionDetailInput) =>
-    [...queryKeys.regions(), "detail", params.id] as const,
-}
-
-const regionHooks = createRegionHooks<
-  Region,
-  RegionListInput,
-  MedusaRegionListInput,
-  RegionDetailInput,
-  MedusaRegionDetailInput
->({
-  service: createMedusaRegionService(sdk),
-  buildListParams,
-  buildDetailParams,
-  queryKeys: regionQueryKeys,
-  queryKeyNamespace: "n1",
-})
+const regionHooks = storefront.hooks.regions
 
 function findPreferredRegion(regions: Region[]): Region | undefined {
   return (

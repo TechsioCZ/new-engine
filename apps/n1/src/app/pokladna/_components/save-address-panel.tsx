@@ -63,7 +63,7 @@ export function SaveAddressPanel() {
     try {
       await updateAddressAsync({
         addressId: selectedAddressId,
-        data: currentValues,
+        ...currentValues,
       })
       // Reset with current values to clear isDirty without losing data
       form.reset({ ...form.state.values, billingAddress: currentValues })

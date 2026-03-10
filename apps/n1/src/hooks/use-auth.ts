@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { authHooks } from "./auth-hooks-base"
+import { storefront } from "./storefront-preset"
 import {
   getTokenFromStorage,
   isTokenExpired,
@@ -9,6 +9,7 @@ export type UseAuthReturn = {
   customer: HttpTypes.StoreCustomer | null
   isAuthenticated: boolean
   isLoading: boolean
+  isFetching: boolean
   error: Error | null
   isTokenExpired: boolean
 }
@@ -28,6 +29,8 @@ const getTokenState = () => {
   }
 }
 
+const authHooks = storefront.hooks.auth
+
 export function useAuth(): UseAuthReturn {
   const { tokenExpired } = getTokenState()
   const auth = authHooks.useAuth()
@@ -36,6 +39,7 @@ export function useAuth(): UseAuthReturn {
     customer: auth.customer,
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading,
+    isFetching: auth.isFetching,
     error: auth.error ? new Error(auth.error) : null,
     isTokenExpired: tokenExpired,
   }

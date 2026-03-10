@@ -1,8 +1,5 @@
-import type { HttpTypes } from "@medusajs/types"
-import {
-  createOrdersListPrefetchQuery,
-  orderHooks,
-} from "./order-hooks-base"
+import { cacheConfig as appCacheConfig } from "@/lib/cache-config"
+import { storefront } from "./storefront-preset"
 import { useSuspenseAuth } from "./use-auth"
 
 export type UseOrdersOptions = {
@@ -10,26 +7,31 @@ export type UseOrdersOptions = {
   offset?: number
 }
 
-type SuspenseOrdersData = {
-  orders: HttpTypes.StoreOrder[]
-  count: number
-  offset: number
-  limit: number
+type OrderListInput = {
+  page?: number
+  limit?: number
+  offset?: number
+  enabled?: boolean
 }
 
-type SuspenseOrderData = HttpTypes.StoreOrder
+type OrderDetailInput = {
+  id?: string
+  enabled?: boolean
+}
 
 type UseOrderInput = {
   id?: string | null
   enabled?: boolean
 }
 
+const AUTH_REQUIRED_ERROR = "Uživatel není přihlášen"
+const ORDER_ID_REQUIRED_ERROR = "Order ID je povinný"
+
+const orderHooks = storefront.hooks.orders
+
 type UseOrderHookOptions = Parameters<typeof orderHooks.useOrder>[1]
 type UseSuspenseOrderHookOptions =
   Parameters<typeof orderHooks.useSuspenseOrder>[1]
-
-const AUTH_REQUIRED_ERROR = "Uživatel není přihlášen"
-const ORDER_ID_REQUIRED_ERROR = "Order ID je povinný"
 
 const assertAuthenticated = (isAuthenticated: boolean) => {
   if (!isAuthenticated) {
@@ -44,14 +46,6 @@ const assertOrderId = (orderId: string | null): string => {
   return orderId
 }
 
-const mapSuspenseOrderResult = (
-  result: ReturnType<typeof orderHooks.useSuspenseOrder>
-) => ({
-  // Keep `data` as a legacy alias for existing call-sites that expect query-style naming.
-  data: result.order as SuspenseOrderData | null,
-  order: result.order,
-})
-
 export function useSuspenseOrders(options?: UseOrdersOptions) {
   const { isAuthenticated } = useSuspenseAuth()
 
@@ -65,15 +59,7 @@ export function useSuspenseOrders(options?: UseOrdersOptions) {
     offset,
   })
 
-  const data: SuspenseOrdersData = {
-    orders: orders.orders,
-    count: orders.totalCount,
-    offset,
-    limit,
-  }
-
   return {
-    data,
     orders: orders.orders,
     totalCount: orders.totalCount,
     currentPage: orders.currentPage,
@@ -81,23 +67,6 @@ export function useSuspenseOrders(options?: UseOrdersOptions) {
     hasNextPage: orders.hasNextPage,
     hasPrevPage: orders.hasPrevPage,
   }
-}
-
-export function useSuspenseOrder(
-  orderId: string | null,
-  options?: UseSuspenseOrderHookOptions
-) {
-  const { isAuthenticated } = useSuspenseAuth()
-  assertAuthenticated(isAuthenticated)
-  const requiredOrderId = assertOrderId(orderId)
-
-  const order = orderHooks.useSuspenseOrder(
-    {
-      id: requiredOrderId,
-    },
-    options
-  )
-  return mapSuspenseOrderResult(order)
 }
 
 export function useOrder(input: UseOrderInput, options?: UseOrderHookOptions) {
@@ -108,7 +77,7 @@ export function useOrder(input: UseOrderInput, options?: UseOrderHookOptions) {
     {
       id,
       enabled,
-    },
+    } as OrderDetailInput,
     options
   )
 }
@@ -125,7 +94,16 @@ export function useSuspensePublicOrder(
     },
     options
   )
-  return mapSuspenseOrderResult(order)
+  return order
 }
 
-export { createOrdersListPrefetchQuery }
+export function createOrdersListPrefetchQuery(
+  input: OrderListInput = {
+    page: 1,
+    limit: 20,
+  }
+) {
+  return orderHooks.createOrdersListQueryOptions(input, {
+    queryOptions: appCacheConfig.userData,
+  })
+}

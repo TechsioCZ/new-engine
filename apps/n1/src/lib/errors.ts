@@ -83,6 +83,36 @@ export function isNotFoundError(error: unknown): boolean {
   return status === 404
 }
 
+export function isAbortLikeError(error: unknown): boolean {
+  if (
+    typeof DOMException !== "undefined" &&
+    error instanceof DOMException &&
+    error.name === "AbortError"
+  ) {
+    return true
+  }
+
+  if (!(error && typeof error === "object")) {
+    return false
+  }
+
+  const name = "name" in error ? (error as { name?: unknown }).name : undefined
+  const message =
+    "message" in error
+      ? (error as { message?: unknown }).message
+      : undefined
+
+  if (name === "AbortError") {
+    return true
+  }
+
+  return (
+    typeof message === "string" &&
+    (message.includes("signal is aborted without reason") ||
+      message.includes("This operation was aborted"))
+  )
+}
+
 export function logError(context: string, error: unknown): void {
   if (process.env.NODE_ENV === "development") {
     console.error(`[${context}]`, error)

@@ -23,7 +23,6 @@ import { usePrefetchCategoryChildren } from "@/hooks/use-prefetch-category-child
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { usePrefetchRootCategories } from "@/hooks/use-prefetch-root-categories"
 import { useProducts } from "@/hooks/use-products"
-import { useSuspenseRegion } from "@/hooks/use-region"
 import {
   ALL_CATEGORIES_MAP,
   PRODUCT_LIMIT,
@@ -37,7 +36,6 @@ export default function CategoryPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const handle = params.handle as string
-  const { regionId, countryCode } = useSuspenseRegion()
   const analytics = useAnalytics()
 
   // Track which category we've already tracked to prevent duplicates
@@ -126,8 +124,6 @@ export default function CategoryPage() {
     totalPages,
     pageSize: PRODUCT_LIMIT,
     category_id: categoryIds,
-    regionId,
-    countryCode,
   })
 
   usePrefetchCategoryChildren({

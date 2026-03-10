@@ -1,6 +1,6 @@
 import type { StoreProduct } from "@medusajs/types"
 import { PRODUCT_LIMIT } from "@/lib/constants"
-import { productHooks } from "./product-hooks-base"
+import { storefront } from "./storefront-preset"
 
 type UseProductsProps = {
   category_id?: string[]
@@ -34,18 +34,22 @@ type UseSuspenseProductsReturn = {
   hasPrevPage: boolean
 }
 
+const productHooks = storefront.hooks.products
+
 export function useProducts({
   category_id = [],
   page = 1,
   limit = PRODUCT_LIMIT,
   enabled,
 }: UseProductsProps): UseProductsReturn {
-  const result = productHooks.useProducts({
+  const listParams = {
     category_id,
-    page,
     limit,
-    enabled,
-  })
+    offset: (page - 1) * limit,
+  }
+  const productInput =
+    enabled === undefined ? listParams : { ...listParams, enabled }
+  const result = productHooks.useProducts(productInput)
 
   return {
     products: result.products,
@@ -66,11 +70,12 @@ export function useSuspenseProducts({
   page = 1,
   limit = PRODUCT_LIMIT,
 }: UseSuspenseProductsProps): UseSuspenseProductsReturn {
-  const result = productHooks.useSuspenseProducts({
+  const listParams = {
     category_id,
-    page,
     limit,
-  })
+    offset: (page - 1) * limit,
+  }
+  const result = productHooks.useSuspenseProducts(listParams)
 
   return {
     products: result.products,

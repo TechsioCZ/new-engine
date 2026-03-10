@@ -1,15 +1,15 @@
 "use client"
 
-import { useQueryClient } from "@tanstack/react-query"
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
-import { queryKeys } from "@/lib/query-keys"
 import { runLoggedPrefetch } from "./prefetch-utils"
-import { productHooks } from "./product-hooks-base"
-import { useRegion } from "./use-region"
+import { storefront } from "./storefront-preset"
 
 export function usePrefetchProduct() {
-  const { regionId, countryCode } = useRegion()
-  const queryClient = useQueryClient()
+  const region = useRegionContext()
+  const regionId = region?.region_id
+  const countryCode = region?.country_code
+  const productHooks = storefront.hooks.products
   const {
     prefetchProduct: prefetchProductBase,
     delayedPrefetch: delayedPrefetchBase,
@@ -25,26 +25,17 @@ export function usePrefetchProduct() {
       return
     }
 
-    const queryKey = queryKeys.products.detail(handle, regionId, countryCode)
+    const queryInput = {
+      handle,
+      fields,
+      region_id: regionId,
+      country_code: countryCode,
+    }
 
     await runLoggedPrefetch({
-      queryClient,
-      queryKey,
       type: "Product",
       label: handle,
-      prefetch: () =>
-        prefetchProductBase(
-          {
-            handle,
-            fields,
-            region_id: regionId,
-            country_code: countryCode,
-          },
-          {
-            skipIfCached: true,
-            skipMode: "any",
-          }
-        ),
+      prefetch: () => prefetchProductBase(queryInput),
     })
   }
 
@@ -56,13 +47,14 @@ export function usePrefetchProduct() {
     if (!(regionId && handle)) {
       return handle
     }
+    const queryInput = {
+      handle,
+      fields,
+      region_id: regionId,
+      country_code: countryCode,
+    }
     return delayedPrefetchBase(
-      {
-        handle,
-        fields,
-        region_id: regionId,
-        country_code: countryCode,
-      },
+      queryInput,
       delay,
       handle
     )

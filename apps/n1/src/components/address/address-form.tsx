@@ -45,7 +45,7 @@ export function AddressForm({
         if (address) {
           await updateAddress.mutateAsync({
             addressId: address.id,
-            data: value,
+            ...value,
           })
           toaster.create({ title: "Adresa upravena", type: "success" })
         } else {

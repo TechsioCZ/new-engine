@@ -1,14 +1,13 @@
-import { useQueryClient } from "@tanstack/react-query"
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
-import { buildPrefetchParams } from "@/lib/product-query-params"
-import { queryKeys } from "@/lib/query-keys"
 import { buildCategoryPrefetchLabels, runLoggedPrefetch } from "./prefetch-utils"
-import { productHooks } from "./product-hooks-base"
-import { useRegion } from "./use-region"
+import { storefront } from "./storefront-preset"
 
 export function usePrefetchProducts() {
-  const { regionId, countryCode } = useRegion()
-  const queryClient = useQueryClient()
+  const region = useRegionContext()
+  const regionId = region?.region_id
+  const countryCode = region?.country_code
+  const productHooks = storefront.hooks.products
   const {
     prefetchProducts: prefetchProductsBase,
     prefetchFirstPage,
@@ -32,32 +31,19 @@ export function usePrefetchProducts() {
       return
     }
 
-    const queryParams = buildPrefetchParams({
+    const queryInput = {
       category_id: categoryId,
       region_id: regionId,
       country_code: countryCode,
-    })
-
-    const queryKey = queryKeys.products.list(queryParams)
+    }
 
     await runLoggedPrefetch({
-      queryClient,
-      queryKey,
       type: "Categories",
       label: labels.requestLabel,
-      cacheHitLabel: labels.cacheHitLabel,
       prefetch: () =>
-        prefetchProductsBase(
-          {
-            category_id: categoryId,
-            page: 1,
-            region_id: regionId,
-            country_code: countryCode,
-          },
-          {
-            prefetchedBy,
-          }
-        ),
+        prefetchProductsBase(queryInput, {
+          prefetchedBy,
+        }),
     })
   }
 
@@ -70,31 +56,19 @@ export function usePrefetchProducts() {
       return
     }
 
-    const queryParams = buildPrefetchParams({
+    const queryInput = {
       category_id: categoryId,
       region_id: regionId,
       country_code: countryCode,
-    })
-
-    const queryKey = queryKeys.products.list(queryParams)
+    }
 
     await runLoggedPrefetch({
-      queryClient,
-      queryKey,
       type: "Root",
       label: labels.requestLabel,
-      cacheHitLabel: labels.cacheHitLabel,
       prefetch: () =>
-        prefetchFirstPage(
-          {
-            category_id: categoryId,
-            region_id: regionId,
-            country_code: countryCode,
-          },
-          {
-            useGlobalFetcher: true,
-          }
-        ),
+        prefetchFirstPage(queryInput, {
+          useGlobalFetcher: true,
+        }),
     })
   }
 
@@ -107,13 +81,13 @@ export function usePrefetchProducts() {
     }
 
     const id = categoryId.join("-")
+    const queryInput = {
+      category_id: categoryId,
+      region_id: regionId,
+      country_code: countryCode,
+    }
     delayedPrefetchBase(
-      {
-        category_id: categoryId,
-        page: 1,
-        region_id: regionId,
-        country_code: countryCode,
-      },
+      queryInput,
       delay,
       id
     )

@@ -11,7 +11,11 @@ import {
   useState,
 } from "react"
 import { useSuspenseAuth } from "@/hooks/use-auth"
-import { useCompleteCart, useSuspenseCart } from "@/hooks/use-cart"
+import {
+  type CompleteCheckoutError,
+  useCompleteCheckout,
+} from "@/hooks/use-complete-checkout"
+import { useSuspenseCart } from "@/hooks/use-cart"
 import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
 import { useCheckoutShipping } from "@/hooks/use-checkout-shipping"
 import { useSuspenseRegion } from "@/hooks/use-region"
@@ -40,6 +44,44 @@ type CheckoutForm = ReturnType<typeof _formTypeHelper>
 type InitialCheckoutState = {
   defaultValues: CheckoutFormData
   selectedAddressId: string | null
+}
+
+const includesMessagePart = (message: string, parts: string[]): boolean => {
+  const normalizedMessage = message.toLowerCase()
+  return parts.some((part) => normalizedMessage.includes(part))
+}
+
+const toCheckoutCompletionErrorMessage = (error: unknown): string => {
+  if (!(error && typeof error === "object" && "stage" in error)) {
+    return "Nepodařilo se dokončit objednávku"
+  }
+
+  const completeCheckoutError = error as CompleteCheckoutError
+
+  switch (completeCheckoutError.stage) {
+    case "cart":
+      return "Košík nebyl nalezen"
+    case "payment_provider":
+      return "Není dostupný způsob platby"
+    case "payment":
+      return completeCheckoutError.message
+        ? `Chyba platby: ${completeCheckoutError.message}`
+        : "Nepodařilo se inicializovat platbu"
+    case "complete":
+      if (
+        includesMessagePart(completeCheckoutError.message, ["payment", "platb"])
+      ) {
+        return `Chyba platby: ${completeCheckoutError.message}`
+      }
+
+      if (includesMessagePart(completeCheckoutError.message, ["stock", "sklad"])) {
+        return `Některé produkty nejsou skladem: ${completeCheckoutError.message}`
+      }
+
+      return completeCheckoutError.message
+        ? `Nepodařilo se dokončit objednávku: ${completeCheckoutError.message}`
+        : "Nepodařilo se dokončit objednávku"
+  }
 }
 
 const resolveInitialCheckoutState = (
@@ -119,12 +161,20 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
 
   const { mutateAsync: updateCartAddressAsync, isPending: isSavingAddress } =
     useUpdateCartAddress()
-  const { mutateAsync: completeCartAsync, isPending: isCompletingCart } =
-    useCompleteCart({
-      onSuccess: (order) => {
-        router.push(`/orders/${order.id}?success=true`)
+  const { mutateAsync: completeCheckoutAsync, isPending: isCompletingCheckout } =
+    useCompleteCheckout(
+      {
+        cartId: cart?.id,
+        cart,
+        regionId,
+        enabled: Boolean(cart?.id),
       },
-    })
+      {
+        onSuccess: ({ order }) => {
+          router.push(`/orders/${order.id}?success=true`)
+        },
+      }
+    )
 
   const initialStateRef = useRef<InitialCheckoutState | null>(null)
   if (!initialStateRef.current) {
@@ -215,60 +265,13 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const existingPaymentProviderId =
-        cart.payment_collection?.payment_sessions?.[0]?.provider_id
-      const isLoadingPaymentProviders =
-        !existingPaymentProviderId &&
-        (payment.isLoadingPaymentProviders ||
-          payment.isFetchingPaymentProviders)
-
-      if (isLoadingPaymentProviders) {
-        setError("Načítám dostupné způsoby platby")
-        return
-      }
-
-      const selectedPaymentProviderId =
-        existingPaymentProviderId ?? payment.paymentProviders?.[0]?.id
-
-      if (!selectedPaymentProviderId) {
-        setError("Není dostupný způsob platby")
-        return
-      }
-
-      // Address updates can invalidate existing payment sessions on backend.
-      // Re-initiate the selected provider right before completion.
       try {
-        await payment.initiatePaymentAsync(selectedPaymentProviderId)
+        await completeCheckoutAsync({
+          paymentProviderId:
+            cart.payment_collection?.payment_sessions?.[0]?.provider_id,
+        })
       } catch (err) {
-        if (err instanceof Error) {
-          setError(`Chyba platby: ${err.message}`)
-        } else {
-          setError("Nepodařilo se inicializovat platbu")
-        }
-        return
-      }
-
-      // Complete the cart
-      try {
-        await completeCartAsync({ cartId: cart.id })
-      } catch (err) {
-        if (err instanceof Error) {
-          if (
-            err.message.includes("payment") ||
-            err.message.includes("platb")
-          ) {
-            setError(`Chyba platby: ${err.message}`)
-          } else if (
-            err.message.includes("stock") ||
-            err.message.includes("sklad")
-          ) {
-            setError(`Některé produkty nejsou skladem: ${err.message}`)
-          } else {
-            setError(`Nepodařilo se dokončit objednávku: ${err.message}`)
-          }
-        } else {
-          setError("Nepodařilo se dokončit objednávku")
-        }
+        setError(toCheckoutCompletionErrorMessage(err))
       }
     },
   })
@@ -347,7 +350,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     selectedAddressId,
     setSelectedAddressId,
     completeCheckout,
-    isCompleting: isSavingAddress || isCompletingCart,
+    isCompleting: isSavingAddress || isCompletingCheckout,
     error,
     isReady,
     // PPL Parcel state

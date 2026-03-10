@@ -103,7 +103,7 @@ function AddressCard({
   const toaster = useToast()
 
   const handleDelete = () => {
-    deleteAddress.mutate(address.id, {
+    deleteAddress.mutate({ addressId: address.id }, {
       onSuccess: () => {
         toaster.create({ title: "Adresa smazána", type: "success" })
         setIsDeleteDialogOpen(false)

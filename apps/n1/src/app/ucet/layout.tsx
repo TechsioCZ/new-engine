@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { useSuspenseAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth"
 import { AccountProvider } from "./context/account-context"
 
 export default function AccountLayout({
@@ -11,8 +11,14 @@ export default function AccountLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { customer, isAuthenticated, isTokenExpired } = useSuspenseAuth()
+  const { customer, isAuthenticated, isFetching, isLoading, isTokenExpired } =
+    useAuth()
+  const [isHydrated, setIsHydrated] = useState(false)
   const [showExpiredMessage, setShowExpiredMessage] = useState(false)
+
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   useEffect(() => {
     if (!isTokenExpired) {
@@ -27,10 +33,18 @@ export default function AccountLayout({
   }, [isTokenExpired, router])
 
   useEffect(() => {
+    if (!isHydrated) {
+      return
+    }
+
     if (!(isAuthenticated || isTokenExpired)) {
       router.push("/prihlaseni")
     }
-  }, [isAuthenticated, isTokenExpired, router])
+  }, [isAuthenticated, isHydrated, isTokenExpired, router])
+
+  if (!(isHydrated && !isLoading && !isFetching)) {
+    return <main className="mx-auto w-full max-w-5xl px-400 py-400" />
+  }
 
   if (showExpiredMessage) {
     return (

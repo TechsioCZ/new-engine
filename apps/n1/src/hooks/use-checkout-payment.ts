@@ -1,14 +1,14 @@
 import type { HttpTypes } from "@medusajs/types"
-import { useQueryClient } from "@tanstack/react-query"
-import { getCachedCartById, patchCartCaches } from "./cart-cache-sync"
-import { checkoutHooks } from "./checkout-hooks-base"
+import { checkoutFlow } from "./storefront-preset"
 import { useCartToast } from "@/hooks/use-toast"
 import type { Cart } from "@/types/cart"
 
 export type UseCheckoutPaymentReturn = {
   paymentProviders?: HttpTypes.StorePaymentProvider[]
   initiatePayment: (providerId: string) => void
-  initiatePaymentAsync: (providerId: string) => Promise<HttpTypes.StorePaymentCollection>
+  initiatePaymentAsync: (
+    providerId: string
+  ) => Promise<HttpTypes.StorePaymentCollection>
   isInitiatingPayment: boolean
   isLoadingPaymentProviders: boolean
   isFetchingPaymentProviders: boolean
@@ -22,42 +22,13 @@ export function useCheckoutPayment(
   regionId?: string,
   cart?: Cart | null
 ): UseCheckoutPaymentReturn {
-  const queryClient = useQueryClient()
   const toast = useCartToast()
-  const cachedCart = cartId ? getCachedCartById(queryClient, cartId) : null
-  const effectiveCart = cart ?? cachedCart
-  const resolvedRegionId = regionId ?? effectiveCart?.region_id ?? undefined
 
-  const payment = checkoutHooks.useCheckoutPayment(
-    {
-      cartId,
-      regionId: resolvedRegionId,
-      cart: effectiveCart,
-      enabled: Boolean(resolvedRegionId),
+  const payment = checkoutFlow.useCheckoutPayment(cartId, regionId, cart, {
+    onError: () => {
+      toast.paymentInitiatedError()
     },
-    {
-      // Keep cart UI in sync immediately after payment session init.
-      onSuccess: (paymentCollection) => {
-        if (!cartId) {
-          return
-        }
-        patchCartCaches(queryClient, cartId, (cached) => ({
-          ...cached,
-          payment_collection: paymentCollection,
-        }))
-      },
-      onError: () => {
-        toast.paymentInitiatedError()
-      },
-    }
-  )
-
-  const canInitiatePayment = Boolean(
-    cartId && (effectiveCart?.shipping_methods?.length ?? 0) > 0
-  )
-  const hasPaymentCollection = Boolean(effectiveCart?.payment_collection)
-  const hasPaymentSessions =
-    (effectiveCart?.payment_collection?.payment_sessions?.length ?? 0) > 0
+  })
 
   return {
     paymentProviders: payment.paymentProviders,
@@ -66,8 +37,8 @@ export function useCheckoutPayment(
     isInitiatingPayment: payment.isInitiatingPayment,
     isLoadingPaymentProviders: payment.isLoading,
     isFetchingPaymentProviders: payment.isFetching,
-    canInitiatePayment,
-    hasPaymentCollection,
-    hasPaymentSessions,
+    canInitiatePayment: payment.canInitiatePayment,
+    hasPaymentCollection: payment.hasPaymentCollection,
+    hasPaymentSessions: payment.hasPaymentSessions,
   }
 }

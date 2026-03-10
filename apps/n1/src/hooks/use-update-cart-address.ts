@@ -1,7 +1,6 @@
-import { cartHooks } from "./cart-hooks-base"
+import { storefront } from "./storefront-preset"
 import { toError } from "@/lib/errors"
 import type { Cart } from "@/types/cart"
-import type { AddressFormData } from "@/utils/address-validation"
 
 type UpdateCartAddressOptions = {
   onSuccess?: (cart: Cart) => void
@@ -9,6 +8,7 @@ type UpdateCartAddressOptions = {
 }
 
 export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
+  const cartHooks = storefront.hooks.cart
   return cartHooks.useUpdateCartAddress({
     onSuccess: (cart) => {
       options?.onSuccess?.(cart)
@@ -18,5 +18,3 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
     },
   })
 }
-
-export type { AddressFormData }
