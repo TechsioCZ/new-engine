@@ -316,6 +316,7 @@ The helper:
 - prefixes shared Zane project variables by service/domain to avoid collisions across inherited service environments
 - upserts the per-service env blocks using `{{env.VAR}}` references
 - upserts the expected per-service healthchecks in Zane so reruns also converge probe configuration
+- upserts conservative per-service CPU/memory caps for a local 4-core / 12 GB class machine
 - does not create public Zane URL routes; keep those explicit because hostnames/TLS choices are environment-specific
 - uses the DB service `global_network_alias` for `MEDUSA_DB_HOST`
 - defaults `MINIO_FILE_URL` to the deployed MinIO alias rather than a compose-only hostname; override it once you have a public MinIO route
