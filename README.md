@@ -237,9 +237,9 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
 
 ## Local Postgres 18 Upgrade (Safe Path)
 
-Postgres Docker image `18+` changed its default `PGDATA` layout. This repo now pins Postgres to
-`postgres:18.1-alpine` and stores cluster files in `./.docker_data/db18` (mounted to `/var/lib/postgresql`,
-with `PGDATA=/var/lib/postgresql/18/docker`).
+Postgres Docker image `18+` changed its default `PGDATA` layout. This repo now pins Postgres via
+`docker/development/postgres/Dockerfile` (currently `postgres:18.1-alpine`) and stores cluster files in
+`./.docker_data/db18` (mounted to `/var/lib/postgresql`, with `PGDATA=/var/lib/postgresql/18/docker`).
 
 If you already have local data in `./.docker_data/db` from Postgres `<18`, run:
 
@@ -294,29 +294,19 @@ Note: `make prod` now starts `medusa-be`, waits for health, regenerates `apps/n1
 
 ---
 
-## Docker Swarm Compose (ZaneOps-friendly)
+## ZaneOps Deploy Setup
 
-For Docker Swarm / ZaneOps preview clones, use:
+Active Zane deployment for this repo is no longer driven by a checked-in swarm compose file.
+The supported setup is:
 
-```shell
-docker-compose.swarm.yaml
-```
+* create one canonical Zane project with the service names from `config/stack-manifest.yaml`
+* configure the shared production-environment variables and per-service env blocks described in `apps/zane-operator/README.md`
+* let CI orchestrate preview/main deploys through `zane-operator`
 
-Design goals of this file:
-* image-only services (no `build:` and no one-shot bootstrap containers)
-* MinIO and Meilisearch are self-bootstrapping via their image entrypoints (idempotent)
-* MinIO and Meilisearch inherit the same runtime env block as `medusa-be`
-* no fixed host `ports:` in stack services (avoids collisions across preview environments)
-
-Required env vars before deploy:
-* `DC_MEDUSA_BE_IMAGE`
-* `DC_N1_IMAGE`
-
-Deploy example:
+For first-time local Zane setup, follow:
 
 ```shell
-set -a; . ./.env; set +a
-docker stack deploy --with-registry-auth -c docker-compose.swarm.yaml medusa
+apps/zane-operator/README.md
 ```
 
 ---

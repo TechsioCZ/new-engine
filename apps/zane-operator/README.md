@@ -286,33 +286,110 @@ curl -fsS http://localhost:8082/healthz
 
 ### 6. First-time ZaneOps setup for deploy orchestration
 
-Use this checklist before your first local or CI-backed deploy orchestration test.
+Use this guide to create the canonical Zane project that CI and `zane-operator` expect.
 
-In upstream ZaneOps:
-- log into the ZaneOps instance with a normal username/password account; `zane-operator` authenticates upstream with session + CSRF login, not a direct Zane token
-- create one canonical project and note its slug; that slug is the deploy identity used by CI and local script runs
-- each project already has a protected `production` environment; `zane-operator` always clones preview environments from it
-- ensure the environment contains services matching the manifest mapping in `config/stack-manifest.yaml`:
-  - `medusa-db`
-  - `medusa-valkey`
-  - `medusa-minio`
-  - `medusa-meilisearch`
-  - `medusa-be`
-  - `n1`
+Important model constraints:
+- `zane-operator` authenticates upstream with username/password session + CSRF login, not a direct Zane token
+- CI resolves services by exact Zane service name from `config/stack-manifest.yaml`
+- preview environments are cloned from the protected `production` environment
+- shared variables should live on the `production` environment in Zane; services inherit them and preview clones copy them
+- do not add `zane-operator` itself to the canonical deploy project; the canonical project contains only the app/resource services below
 
-In the local `new-engine` operator env:
-- set `DC_ZANE_OPERATOR_ZANE_BASE_URL` to the upstream ZaneOps base URL you actually browse, for example `http://localhost:3000`
-- set `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` to the upstream ZaneOps login account
+#### 6.1 Bootstrap the canonical project with the helper script
 
-For local script-driven smoke runs against `zane-operator`:
-- export `ZANE_OPERATOR_BASE_URL=http://localhost:8082`
-- export `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
-- export `ZANE_CANONICAL_PROJECT_SLUG=<your-zane-project-slug>`
-- export `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
+Preferred path: use the local bootstrap helper instead of creating the project and service envs by hand.
 
-Operational note:
+The helper:
+- creates or reuses the canonical project
+- expects the protected `production` environment and fails if it is missing
+- creates or reuses the six required services as Git services with Dockerfile builders
+- aligns them with these repo Dockerfiles:
+  - `docker/development/postgres/Dockerfile`
+  - `docker/development/medusa-valkey/Dockerfile`
+  - `docker/development/medusa-minio/Dockerfile`
+  - `docker/development/medusa-meilisearch/Dockerfile`
+  - `docker/development/medusa-be/Dockerfile`
+  - `docker/development/n1/Dockerfile`
+- auto-resolves internal service network aliases after service creation
+- upserts the shared `production` environment variables
+- upserts the per-service env blocks using `{{env.VAR}}` references
+- does not create public Zane URL routes; keep those explicit because hostnames/TLS choices are environment-specific
+
+Run it from the repo root:
+
+```bash
+scripts/dev/setup-zane-project.sh \
+  --env-file .env.docker \
+  --zane-base-url http://localhost \
+  --zane-username admin \
+  --zane-password 'replace-me' \
+  --project-slug new-engine
+```
+
+Optional overrides worth knowing:
+- `--repository-url https://github.com/<org>/<repo>.git`
+- `--branch <branch>`
+- `--git-app-id <id>` if the repository is private and Zane must use an installed git app
+- `--medusa-backend-url <url>`
+- `--n1-site-url <url>`
+- `--meilisearch-url <url>`
+- `--minio-file-url <url>`
+- `--store-cors <csv-or-url>`
+- `--admin-cors <csv-or-url>`
+- `--auth-cors <csv-or-url>`
+
+The helper reads `.env.docker` by default and maps those values into Zane's shared `production` env. It forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
+
+If your repo is private:
+1. install/configure the git app in Zane first
+2. rerun the helper with `--git-app-id <id>`
+
+If you want to inspect or patch values manually, the script source of truth is:
+- `scripts/dev/setup-zane-project.sh`
+
+#### 6.2 Post-bootstrap manual checks
+
+After the helper finishes:
+1. Open the `new-engine` project in Zane.
+2. Confirm these exact service names exist:
+   - `medusa-db`
+   - `medusa-valkey`
+   - `medusa-minio`
+   - `medusa-meilisearch`
+   - `medusa-be`
+   - `n1`
+3. Confirm the service type for all six is Git-backed, not direct Docker image pull.
+4. Confirm the project `production` environment now contains the shared env variables.
+5. Confirm each service has pending changes in Zane; that is expected until you deploy.
+
+Public route follow-up remains manual on purpose:
+- add a public route for `medusa-be` if you need browser/API access
+- add a public route for `n1` if you need storefront access
+- add a public route for `medusa-meilisearch` only if the storefront should query Meilisearch directly from the browser
+- add a public route for `medusa-minio` if browser-facing file URLs should be served directly from MinIO
+
+Notes:
+- `MINIO_FILE_URL` should eventually be a public URL when browsers need direct asset access
+- `NEXT_PUBLIC_MEILISEARCH_URL` should eventually be a public URL if the storefront searches directly from the browser
+- `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` is usually not known on day one; set it after the first Medusa bootstrap, then redeploy `n1`
+
+#### 6.3 First deploy notes
+
+Before the first real preview/main smoke:
+- set local operator env:
+  - `DC_ZANE_OPERATOR_ZANE_BASE_URL`
+  - `DC_ZANE_OPERATOR_ZANE_USERNAME`
+  - `DC_ZANE_OPERATOR_ZANE_PASSWORD`
+- set local smoke env:
+  - `ZANE_OPERATOR_BASE_URL=http://localhost:8082`
+  - `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
+  - `ZANE_CANONICAL_PROJECT_SLUG=<your-zane-project-slug>`
+  - `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
+
+Operational notes:
 - preview environments are derived outside Zane as `pr-<number>` by default
 - this repo archives preview environments explicitly during teardown; built-in Zane preview auto-teardown does not cover these cloned environments
+- `n1` consumes `NEXT_PUBLIC_*` variables in the frontend build. If your Zane service builds the image from source, make those values available before the first build. If your Zane service runs a prebuilt image, changing those values later requires rebuilding and redeploying `n1`
 
 Active GitHub Actions contract:
 - workflows:

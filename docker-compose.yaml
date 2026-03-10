@@ -230,7 +230,9 @@ services:
     environment:
       <<: [*medusa-env, *meilisearch-env]
   medusa-db:
-    image: postgres:18.1-alpine
+    build:
+      context: ./docker/development/postgres
+      dockerfile: Dockerfile
     restart: unless-stopped
     command:
       [
@@ -244,7 +246,6 @@ services:
       - "127.0.0.1:${DC_POSTGRES_PUBLIC_PORT:-5432}:5432"
     volumes:
       - ${DC_POSTGRES_VOLUME_DATA:-./.docker_data/db18}:/var/lib/postgresql
-      - ./docker/development/postgres/initdb:/docker-entrypoint-initdb.d:ro
     networks:
       - internal
     healthcheck:
