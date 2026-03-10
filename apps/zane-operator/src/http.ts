@@ -1,4 +1,5 @@
 import { BadRequestError } from "./db"
+import { UpstreamHttpError } from "./zane"
 
 interface ErrorBody {
   error: string
@@ -15,6 +16,20 @@ export function jsonError(status: number, error: string, message: string): Respo
 }
 
 export function mapHandlerError(error: unknown, context: string): Response {
+  if (error instanceof UpstreamHttpError) {
+    const logLevel = error.status >= 500 ? console.error : console.warn
+    logLevel(
+      JSON.stringify({
+        event: "handler.upstream_error",
+        context,
+        status: error.status,
+        error_code: error.errorCode,
+        message: error.message,
+      }),
+    )
+    return jsonError(error.status, error.errorCode, error.message)
+  }
+
   if (error instanceof BadRequestError) {
     console.warn(
       JSON.stringify({

@@ -160,24 +160,135 @@ jobs:
 
   deploy:
     needs: [scope, prepare]
-    if: needs.scope.outputs.should_prepare == 'true'
+    if: >-
+      always() &&
+      needs.scope.outputs.services_csv != '' &&
+      (needs.prepare.result == 'success' || needs.prepare.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
       group: zaneops-preview-deploy-pr-${{ needs.scope.outputs.pr_number }}
       cancel-in-progress: true
+    outputs:
+      environment_name: ${{ steps.run_deploy.outputs.environment_name }}
+      environment_id: ${{ steps.run_deploy.outputs.environment_id }}
+      environment_created: ${{ steps.run_deploy.outputs.environment_created }}
+      requested_services_csv: ${{ steps.run_deploy.outputs.requested_services_csv }}
+      deploy_services_csv: ${{ steps.run_deploy.outputs.deploy_services_csv }}
+      env_override_service_ids_csv: ${{ steps.run_deploy.outputs.env_override_service_ids_csv }}
+      triggered_services_csv: ${{ steps.run_deploy.outputs.triggered_services_csv }}
     steps:
-      - name: Deploy lane placeholder
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: jdx/mise-action@v3
+        with:
+          install: true
+
+      - name: Validate deploy inputs
+        env:
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
+          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
+        run: bash ./scripts/ci/check-workflow-inputs.sh preview-deploy
+
+      - name: Run preview deploy
+        id: run_deploy
+        env:
+          PR_NUMBER: ${{ needs.scope.outputs.pr_number }}
+          SERVICES_CSV: ${{ needs.scope.outputs.services_csv }}
+          PREVIEW_DB_NAME: ${{ needs.prepare.outputs.preview_db_name }}
+          PREVIEW_DB_USER: ${{ needs.prepare.outputs.preview_db_user }}
+          PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
+          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
+          MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
         run: |
-          echo "Preview deploy stage is intentionally deferred until prepare/guardrail work lands."
-          echo "Prepared preview DB env inputs are available to this job when required."
+          bash ./scripts/ci/zane-deploy.sh run-preview \
+            --pr-number "$PR_NUMBER" \
+            --services-csv "$SERVICES_CSV" \
+            --preview-db-name "${PREVIEW_DB_NAME:-}" \
+            --preview-db-user "${PREVIEW_DB_USER:-}" \
+            --preview-db-password "${PREVIEW_DB_PASSWORD:-}" \
+            --meili-frontend-key "${MEILI_FRONTEND_KEY:-}" \
+            --meili-frontend-env-var "${MEILI_FRONTEND_ENV_VAR:-}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Preview Deploy"
+            echo "- PR: #${{ needs.scope.outputs.pr_number }}"
+            echo "- Environment: ${{ steps.run_deploy.outputs.environment_name || 'n/a' }}"
+            echo "- Environment created: ${{ steps.run_deploy.outputs.environment_created || 'n/a' }}"
+            echo "- Requested services: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}"
+            echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
+            echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   verify:
-    needs: [scope, deploy]
-    if: needs.scope.outputs.should_prepare == 'true'
+    needs: [scope, prepare, deploy]
+    if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Verify lane placeholder
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: jdx/mise-action@v3
+        with:
+          install: true
+
+      - name: Validate verify inputs
+        env:
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
+          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
+        run: bash ./scripts/ci/check-workflow-inputs.sh preview-verify
+
+      - name: Run preview verify
+        env:
+          ENVIRONMENT_NAME: ${{ needs.deploy.outputs.environment_name }}
+          REQUESTED_SERVICES_CSV: ${{ needs.deploy.outputs.requested_services_csv }}
+          DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv }}
+          TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv }}
+          PREVIEW_DB_NAME: ${{ needs.prepare.outputs.preview_db_name }}
+          PREVIEW_DB_USER: ${{ needs.prepare.outputs.preview_db_user }}
+          PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
+          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
+          MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
         run: |
-          echo "Preview verify stage will be wired in Roadmap Step 4.4."
+          bash ./scripts/ci/zane-deploy.sh verify \
+            --lane preview \
+            --environment-name "$ENVIRONMENT_NAME" \
+            --requested-services-csv "${REQUESTED_SERVICES_CSV:-}" \
+            --deploy-services-csv "${DEPLOY_SERVICES_CSV:-}" \
+            --triggered-services-csv "${TRIGGERED_SERVICES_CSV:-}" \
+            --preview-db-name "${PREVIEW_DB_NAME:-}" \
+            --preview-db-user "${PREVIEW_DB_USER:-}" \
+            --preview-db-password "${PREVIEW_DB_PASSWORD:-}" \
+            --meili-frontend-key "${MEILI_FRONTEND_KEY:-}" \
+            --meili-frontend-env-var "${MEILI_FRONTEND_ENV_VAR:-}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Preview Verify"
+            echo "- PR: #${{ needs.scope.outputs.pr_number }}"
+            echo "- Environment: ${{ needs.deploy.outputs.environment_name || 'n/a' }}"
+            echo "- Requested services: ${{ needs.deploy.outputs.requested_services_csv || 'n/a' }}"
+            echo "- Deploy services: ${{ needs.deploy.outputs.deploy_services_csv || 'n/a' }}"
+            echo "- Triggered services: ${{ needs.deploy.outputs.triggered_services_csv || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"

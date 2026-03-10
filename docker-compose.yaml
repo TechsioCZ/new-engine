@@ -84,6 +84,9 @@ x-zane-operator-env: &zane-operator-env
   PORT: ${DC_ZANE_OPERATOR_PORT:-8080}
   NODE_ENV: ${DC_NODE_ENV:-development}
   API_AUTH_TOKEN: ${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-}
+  ZANE_BASE_URL: ${DC_ZANE_OPERATOR_ZANE_BASE_URL:-}
+  ZANE_USERNAME: ${DC_ZANE_OPERATOR_ZANE_USERNAME:-}
+  ZANE_PASSWORD: ${DC_ZANE_OPERATOR_ZANE_PASSWORD:-}
   <<: *zane-operator-db-env
 
 x-medusa-base: &medusa-base

@@ -23,6 +23,9 @@ export interface AppConfig {
   appSchema: string
   previewAppPasswordSecret: string
   protectedDbNames: Set<string>
+  zaneBaseUrl: string | null
+  zaneUsername: string | null
+  zanePassword: string | null
 }
 
 type Environment = Record<string, string | undefined>
@@ -47,6 +50,11 @@ function readRequiredEnv(env: Environment, name: string): string {
     throw new Error(`${name} is required`)
   }
   return value
+}
+
+function readOptionalEnv(env: Environment, name: string): string | null {
+  const value = env[name]?.trim()
+  return value ? value : null
 }
 
 function assertSafeIdentifier(value: string, label: string): void {
@@ -113,6 +121,9 @@ export function loadConfig(env: Environment = process.env): AppConfig {
   const apiAuthToken = readRequiredEnv(env, "API_AUTH_TOKEN")
   const previewAppPasswordSecret = readRequiredEnv(env, "DB_PREVIEW_APP_PASSWORD_SECRET")
   const connectionDatabase = env.PGDATABASE?.trim() || DEFAULT_PG_DATABASE
+  const zaneBaseUrl = readOptionalEnv(env, "ZANE_BASE_URL")
+  const zaneUsername = readOptionalEnv(env, "ZANE_USERNAME")
+  const zanePassword = readOptionalEnv(env, "ZANE_PASSWORD")
 
   assertSafeIdentifier(connectionUser, "PGUSER")
   assertSafeIdentifier(previewPrefix, "DB_PREVIEW_PREFIX")
@@ -133,5 +144,8 @@ export function loadConfig(env: Environment = process.env): AppConfig {
     appSchema,
     previewAppPasswordSecret,
     protectedDbNames: parseProtectedDatabaseNames(env.DB_PROTECTED_NAMES, [connectionDatabase, defaultTemplateName]),
+    zaneBaseUrl,
+    zaneUsername,
+    zanePassword,
   }
 }

@@ -93,6 +93,72 @@ ci_prepare_service_ids() {
     '
 }
 
+ci_deployable_service_ids() {
+  manifest_eval -r '
+    .services[]
+    | select(.ci.deployable == true)
+    | .id
+  '
+}
+
+ci_zane_service_json() {
+  local service_id="$1"
+
+  manifest_eval -c \
+    --arg id "$service_id" \
+    '
+      .services[]
+      | select(.id == $id)
+      | select(.ci.deployable == true)
+      | {
+          id,
+          service_name: .ci.zane.service_name,
+          deploy_lanes: (.ci.zane.deploy_lanes // []),
+          consumes: (.ci.zane.consumes // {}),
+          coupled_service_ids: (.ci.zane.coupled_service_ids // [])
+        }
+    '
+}
+
+ci_zane_service_name() {
+  local service_id="$1"
+
+  manifest_eval -r \
+    --arg id "$service_id" \
+    '
+      .services[]
+      | select(.id == $id)
+      | select(.ci.deployable == true)
+      | .ci.zane.service_name // empty
+    '
+}
+
+ci_zane_lane_service_ids() {
+  local lane="$1"
+
+  manifest_eval -r \
+    --arg lane "$lane" \
+    '
+      .services[]
+      | select(.ci.deployable == true)
+      | select(((.ci.zane.deploy_lanes // []) | index($lane)) != null)
+      | .id
+    '
+}
+
+ci_zane_coupled_service_ids() {
+  local service_id="$1"
+
+  manifest_eval -r \
+    --arg id "$service_id" \
+    '
+      .services[]
+      | select(.id == $id)
+      | select(.ci.deployable == true)
+      | .ci.zane.coupled_service_ids[]?
+    '
+}
+
 usage() {
   cat <<'EOF'
 Usage: scripts/lib/stack-manifest.sh <command> [options]
@@ -105,6 +171,11 @@ Commands:
   ci-global-runtime-globs
   ci-global-runtime-service-ids
   ci-prepare-service-ids --requirement <preview_db|meili_keys>
+  ci-deployable-service-ids
+  ci-zane-service --id <service-id>
+  ci-zane-service-name --id <service-id>
+  ci-zane-lane-service-ids --lane <preview|main>
+  ci-zane-coupled-service-ids --id <service-id>
 EOF
 }
 
@@ -175,6 +246,53 @@ main() {
         exit 1
       }
       ci_prepare_service_ids "$2"
+      ;;
+    ci-deployable-service-ids)
+      ci_deployable_service_ids
+      ;;
+    ci-zane-service)
+      [[ "${1:-}" == "--id" ]] || {
+        echo "ci-zane-service requires --id <service-id>" >&2
+        exit 1
+      }
+      [[ -n "${2:-}" ]] || {
+        echo "ci-zane-service requires --id <service-id>" >&2
+        exit 1
+      }
+      ci_zane_service_json "$2"
+      ;;
+    ci-zane-service-name)
+      [[ "${1:-}" == "--id" ]] || {
+        echo "ci-zane-service-name requires --id <service-id>" >&2
+        exit 1
+      }
+      [[ -n "${2:-}" ]] || {
+        echo "ci-zane-service-name requires --id <service-id>" >&2
+        exit 1
+      }
+      ci_zane_service_name "$2"
+      ;;
+    ci-zane-lane-service-ids)
+      [[ "${1:-}" == "--lane" ]] || {
+        echo "ci-zane-lane-service-ids requires --lane <preview|main>" >&2
+        exit 1
+      }
+      [[ -n "${2:-}" ]] || {
+        echo "ci-zane-lane-service-ids requires --lane <preview|main>" >&2
+        exit 1
+      }
+      ci_zane_lane_service_ids "$2"
+      ;;
+    ci-zane-coupled-service-ids)
+      [[ "${1:-}" == "--id" ]] || {
+        echo "ci-zane-coupled-service-ids requires --id <service-id>" >&2
+        exit 1
+      }
+      [[ -n "${2:-}" ]] || {
+        echo "ci-zane-coupled-service-ids requires --id <service-id>" >&2
+        exit 1
+      }
+      ci_zane_coupled_service_ids "$2"
       ;;
     -h|--help|help|"")
       usage

@@ -60,3 +60,12 @@ admin.db.localhost:443 {
 admin.db.localhost {
     redir https://{host}{uri}
 }
+
+admin.zane-operator.localhost:443 {
+    reverse_proxy zane-operator:8080
+    tls internal
+}
+
+admin.zane-operator.localhost {
+    redir https://{host}{uri}
+}
