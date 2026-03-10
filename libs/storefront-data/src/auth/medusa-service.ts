@@ -138,6 +138,10 @@ export function createMedusaAuthService(
         await sdk.auth.logout()
       } catch (error) {
         reportLogoutError(error, "logout")
+        if (isAuthError(error)) {
+          return
+        }
+        throw error
       }
     },
 

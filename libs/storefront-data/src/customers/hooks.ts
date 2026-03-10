@@ -225,6 +225,9 @@ export function createCustomerHooks<
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
+        })
         options?.onSuccess?.(address, variables, context)
       },
       onError: (error, variables, context) => {
@@ -260,6 +263,9 @@ export function createCustomerHooks<
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
+        })
         options?.onSuccess?.(address, variables, context)
       },
       onError: (error, variables, context) => {
@@ -286,6 +292,9 @@ export function createCustomerHooks<
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(data, variables, context)
       },

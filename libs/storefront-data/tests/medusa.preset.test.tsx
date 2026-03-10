@@ -3,11 +3,24 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import type {
+  MedusaAuthCredentials,
+  MedusaRegisterData,
+  MedusaUpdateCustomerData,
+} from "../src/auth/medusa-service"
+import type { AuthService } from "../src/auth/types"
 import { StorefrontDataProvider } from "../src/client/provider"
+import type { MedusaCustomerListInput } from "../src/customers/medusa-service"
+import type { CustomerQueryKeys } from "../src/customers/types"
 import {
   createMedusaStorefrontPreset,
   type CreateMedusaStorefrontPresetConfig,
 } from "../src/medusa/preset"
+import type {
+  MedusaOrderDetailInput,
+  MedusaOrderListInput,
+} from "../src/orders/medusa-service"
+import type { OrderQueryKeys } from "../src/orders/types"
 import type { CartQueryKeys } from "../src/cart/types"
 import { createQueryKey } from "../src/shared/query-keys"
 
@@ -222,6 +235,85 @@ describe("createMedusaStorefrontPreset", () => {
       expect.objectContaining({
         id: "cart_1",
       })
+    )
+  })
+
+  it("uses custom customer/order query keys for auth cross-domain invalidation", async () => {
+    const { sdk } = createSdkMock()
+    const customAuthService: AuthService<
+      HttpTypes.StoreCustomer,
+      MedusaAuthCredentials,
+      MedusaRegisterData,
+      MedusaUpdateCustomerData,
+      unknown,
+      string,
+      string
+    > = {
+      getCustomer: async () => null,
+      login: async () => "token",
+      logout: async () => {},
+      register: async () => "token",
+      updateCustomer: async () => ({ id: "cus_1" } as HttpTypes.StoreCustomer),
+    }
+    const customCustomerQueryKeys: CustomerQueryKeys<MedusaCustomerListInput> = {
+      all: () => ["custom", "customers"],
+      profile: () => ["custom", "customers", "profile"],
+      addresses: (params) => ["custom", "customers", "addresses", params ?? {}],
+    }
+    const customOrderQueryKeys: OrderQueryKeys<
+      MedusaOrderListInput,
+      MedusaOrderDetailInput
+    > = {
+      all: () => ["custom", "orders"],
+      list: (params) => ["custom", "orders", "list", params ?? {}],
+      detail: (params) => ["custom", "orders", "detail", params ?? {}],
+    }
+
+    const preset = createMedusaStorefrontPreset({
+      sdk,
+      auth: {
+        service: customAuthService,
+      },
+      customers: {
+        queryKeys: customCustomerQueryKeys,
+      },
+      orders: {
+        queryKeys: customOrderQueryKeys,
+      },
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    queryClient.setQueryData(customCustomerQueryKeys.profile(), { id: "cus_old" })
+    queryClient.setQueryData(customCustomerQueryKeys.addresses({}), [
+      { id: "addr_old" },
+    ])
+    queryClient.setQueryData(customOrderQueryKeys.all(), [{ id: "order_old" }])
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(() => preset.hooks.auth.useLogin(), {
+      wrapper,
+    })
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        email: "john@example.com",
+        password: "secret123",
+      })
+    })
+
+    expect(
+      queryClient.getQueryState(customCustomerQueryKeys.profile())?.isInvalidated
+    ).toBe(true)
+    expect(
+      queryClient.getQueryState(customCustomerQueryKeys.addresses({}))?.isInvalidated
+    ).toBe(true)
+    expect(queryClient.getQueryState(customOrderQueryKeys.all())?.isInvalidated).toBe(
+      true
     )
   })
 

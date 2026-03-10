@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useQueryClient } from "@tanstack/react-query"
 import {
+  type ActiveCartQueryKeyMatcher,
   createDefaultActiveCartQueryMatcher,
   invalidateCartCaches,
   syncCartCaches,
@@ -77,6 +78,7 @@ export type UseMedusaCompleteCartOptions = {
 export type CreateMedusaCartFlowConfig = {
   storefront: MedusaCartFlowStorefront
   cartStorage?: CartStorage
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
 }
 
 export type UseMedusaCartInput = Omit<CartInputBase, "cartId"> & {
@@ -124,12 +126,15 @@ const isRenderableCart = (cart: HttpTypes.StoreCart): boolean => {
 export function createMedusaCartFlow({
   storefront,
   cartStorage,
+  isActiveCartQueryKey: customActiveCartQueryKeyMatcher,
 }: CreateMedusaCartFlowConfig) {
   const cartHooks = storefront.hooks.cart
   const cartQueryKeys = storefront.queryKeys.cart
   const checkoutQueryKeys = storefront.queryKeys.checkout
   const orderQueryKeys = storefront.queryKeys.orders
-  const isActiveCartQueryKey = createDefaultActiveCartQueryMatcher(cartQueryKeys)
+  const isActiveCartQueryKey =
+    customActiveCartQueryKeyMatcher ??
+    createDefaultActiveCartQueryMatcher(cartQueryKeys)
 
   const retrieveCartById = (cartId: string, signal?: AbortSignal) =>
     storefront.services.cart.retrieveCart(cartId, signal)
@@ -189,8 +194,12 @@ export function createMedusaCartFlow({
     onSuccess: async (cart: HttpTypes.StoreCart) => {
       const resolvedCart = await resolveRenderableCart(cart)
       if (resolvedCart !== cart) {
-        syncCartCaches(queryClient, cartQueryKeys, resolvedCart)
-        invalidateCartCaches(queryClient, cartQueryKeys, resolvedCart.id)
+        syncCartCaches(queryClient, cartQueryKeys, resolvedCart, {
+          isActiveCartQueryKey,
+        })
+        invalidateCartCaches(queryClient, cartQueryKeys, resolvedCart.id, {
+          isActiveCartQueryKey,
+        })
       }
       options?.onSuccess?.(resolvedCart)
     },
@@ -295,7 +304,9 @@ export function createMedusaCartFlow({
           return
         }
 
-        syncCartCaches(queryClient, cartQueryKeys, result.cart)
+        syncCartCaches(queryClient, cartQueryKeys, result.cart, {
+          isActiveCartQueryKey,
+        })
         options?.onError?.(result.error, result.cart)
       },
       onError: (error) => {
