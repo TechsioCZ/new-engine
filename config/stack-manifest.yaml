@@ -1,0 +1,124 @@
+ci:
+  ignore_path_globs:
+    - "*.md"
+    - "*/README.md"
+    - "*/AGENTS.md"
+    - "*/CLAUDE.md"
+    - "plans/**"
+    - ".github/workflows/**"
+  global_runtime_path_globs:
+    - ".dockerignore"
+    - ".env.docker"
+    - "docker-compose.swarm.yaml"
+    - "nx.json"
+    - "package.json"
+    - "pnpm-lock.yaml"
+    - "pnpm-workspace.yaml"
+    - "tsconfig.base.json"
+    - "tsconfig.json"
+  global_runtime_service_ids:
+    - "medusa-be"
+    - "n1"
+    - "medusa-db"
+    - "medusa-minio"
+    - "medusa-meilisearch"
+    - "medusa-valkey"
+
+services:
+  - id: "medusa-db"
+    compose_service: "medusa-db"
+    kind: "infra"
+    nx_projects: []
+    local:
+      phase: "resources"
+      enabled_by_default: true
+      wait_healthy: true
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/postgres/**"
+        - "scripts/apply-postgres-role-bootstrap.sh"
+
+  - id: "medusa-valkey"
+    compose_service: "medusa-valkey"
+    kind: "infra"
+    nx_projects: []
+    local:
+      phase: "resources"
+      enabled_by_default: true
+      wait_healthy: true
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/medusa-valkey/**"
+
+  - id: "medusa-minio"
+    compose_service: "medusa-minio"
+    kind: "infra"
+    nx_projects: []
+    local:
+      phase: "resources"
+      enabled_by_default: true
+      wait_healthy: true
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/medusa-minio/**"
+
+  - id: "medusa-meilisearch"
+    compose_service: "medusa-meilisearch"
+    kind: "infra"
+    nx_projects: []
+    local:
+      phase: "resources"
+      enabled_by_default: true
+      wait_healthy: true
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/medusa-meilisearch/**"
+
+  - id: "medusa-be"
+    compose_service: "medusa-be"
+    kind: "backend"
+    nx_projects:
+      - "medusa-be"
+    local:
+      phase: "backend"
+      enabled_by_default: true
+      wait_healthy: true
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/medusa-be/**"
+        - "scripts/build-medusa.sh"
+        - "scripts/dev/**"
+
+  - id: "n1"
+    compose_service: "n1"
+    kind: "frontend"
+    nx_projects:
+      - "n1"
+    local:
+      phase: "frontend"
+      enabled_by_default: true
+      wait_healthy: true
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/n1/**"
+        - "scripts/dev/**"
+
+  - id: "zane-operator"
+    compose_service: "zane-operator"
+    kind: "operator"
+    nx_projects:
+      - "zane-operator"
+    local:
+      phase: "operator"
+      enabled_by_default: false
+      wait_healthy: true
+    ci:
+      deployable: false
+      affected_path_globs:
+        - "docker/development/zane-operator/**"

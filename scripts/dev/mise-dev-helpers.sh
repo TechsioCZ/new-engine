@@ -7,6 +7,7 @@ PROJECT_NAME="${PROJECT_NAME:-new-engine}"
 HEALTH_TIMEOUT_SECONDS="${MISE_DEV_HEALTH_TIMEOUT_SECONDS:-180}"
 KEY_CONFLICT_POLICY="${MISE_DEV_MEILI_KEY_CONFLICT:-prompt}" # prompt|override|keep
 MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-http://127.0.0.1:7700}"
+STACK_MANIFEST_HELPER="${ROOT_DIR}/scripts/lib/stack-manifest.sh"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -56,6 +57,17 @@ wait_for_service_healthy() {
 
     sleep 2
   done
+}
+
+services_for_phase() {
+  local phase="$1"
+  local default_only="${2:-true}"
+
+  if [[ "$default_only" == "true" ]]; then
+    bash "$STACK_MANIFEST_HELPER" compose-services --phase "$phase" --default-only
+  else
+    bash "$STACK_MANIFEST_HELPER" compose-services --phase "$phase"
+  fi
 }
 
 get_env_value() {
@@ -210,13 +222,41 @@ sync_meili_env() {
   sync_env_key "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY" "$frontend_key"
 }
 
+require_operator_bootstrap() {
+  local role_name db_name container_id
+
+  role_name="$(get_env_value "DC_ZANE_OPERATOR_PGUSER")"
+  db_name="$(get_env_value "DC_MEDUSA_APP_DB_NAME")"
+  role_name="${role_name:-zane_operator}"
+  db_name="${db_name:-medusa}"
+  container_id="$(compose ps -q medusa-db 2>/dev/null | head -n1 || true)"
+
+  if [[ -z "$container_id" ]]; then
+    echo "medusa-db is not running. Start the core stack first with 'mise run dev' or 'mise run dev:resources'." >&2
+    exit 1
+  fi
+
+  if compose exec -T -e TARGET_ROLE="$role_name" medusa-db sh -lc '
+    psql -U "$POSTGRES_USER" -d "'"$db_name"'" -Atqc "SELECT 1 FROM pg_roles WHERE rolname = '\''$TARGET_ROLE'\''" | grep -qx 1
+  ' >/dev/null 2>&1; then
+    echo "zane-operator bootstrap detected for role ${role_name}"
+    return 0
+  fi
+
+  echo "zane-operator bootstrap has not been applied for role ${role_name}." >&2
+  echo "Run 'mise run dev:operator:bootstrap' first, or 'mise run dev:operator:init' to bootstrap and start the operator." >&2
+  exit 1
+}
+
 usage() {
   cat <<'USAGE'
 Usage: scripts/dev/mise-dev-helpers.sh <command> [args]
 
 Commands:
   wait-healthy <service...>   Wait until each docker compose service is healthy
+  services-for-phase <phase>  Print compose services for a local-dev phase from stack manifest
   sync-meili-env              Provision Meili keys and sync .env values
+  require-operator-bootstrap  Fail unless zane-operator bootstrap has already been applied
 
 Environment options:
   PROJECT_NAME                         docker compose project name (default: new-engine)
@@ -242,8 +282,18 @@ main() {
         wait_for_service_healthy "$service"
       done
       ;;
+    services-for-phase)
+      [[ "$#" -eq 1 ]] || {
+        echo "services-for-phase requires exactly one phase name" >&2
+        exit 1
+      }
+      services_for_phase "$1"
+      ;;
     sync-meili-env)
       sync_meili_env
+      ;;
+    require-operator-bootstrap)
+      require_operator_bootstrap
       ;;
     -h|--help|help)
       usage
