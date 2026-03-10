@@ -178,7 +178,7 @@ services:
     build:
       context: ./docker/development/medusa-valkey
       dockerfile: Dockerfile
-    command: ["valkey-server", "--requirepass", "${DC_VALKEY_PASSWORD:-valkey_dev_change_me}", "--appendonly", "yes"]
+    command: ["sh", "-lc", "exec valkey-server --requirepass \"$$VALKEY_PASSWORD\" --appendonly yes"]
     container_name: wr_medusa_valkey
     healthcheck:
       test: ["CMD-SHELL", "valkey-cli -a \"$${VALKEY_PASSWORD}\" --no-auth-warning ping | grep -q PONG"]
