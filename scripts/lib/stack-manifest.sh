@@ -81,6 +81,18 @@ ci_global_runtime_service_ids() {
   manifest_eval -r '.ci.global_runtime_service_ids[]'
 }
 
+ci_prepare_service_ids() {
+  local requirement="$1"
+
+  manifest_eval -r \
+    --arg requirement "$requirement" \
+    '
+      .services[]
+      | select(.ci.prepare[$requirement] == true)
+      | .id
+    '
+}
+
 usage() {
   cat <<'EOF'
 Usage: scripts/lib/stack-manifest.sh <command> [options]
@@ -92,6 +104,7 @@ Commands:
   ci-ignore-globs
   ci-global-runtime-globs
   ci-global-runtime-service-ids
+  ci-prepare-service-ids --requirement <preview_db|meili_keys>
 EOF
 }
 
@@ -151,6 +164,17 @@ main() {
       ;;
     ci-global-runtime-service-ids)
       ci_global_runtime_service_ids
+      ;;
+    ci-prepare-service-ids)
+      [[ "${1:-}" == "--requirement" ]] || {
+        echo "ci-prepare-service-ids requires --requirement <preview_db|meili_keys>" >&2
+        exit 1
+      }
+      [[ -n "${2:-}" ]] || {
+        echo "ci-prepare-service-ids requires --requirement <preview_db|meili_keys>" >&2
+        exit 1
+      }
+      ci_prepare_service_ids "$2"
       ;;
     -h|--help|help|"")
       usage

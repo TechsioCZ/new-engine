@@ -28,6 +28,20 @@ ci::gha_mask() {
   fi
 }
 
+ci::require_env() {
+  local var_name="$1"
+  local human_name="${2:-$1}"
+
+  if [[ -z "${!var_name:-}" ]]; then
+    ci::die "Missing required environment variable: ${var_name} (${human_name})."
+  fi
+}
+
+ci::mask_env_if_present() {
+  local var_name="$1"
+  ci::gha_mask "${!var_name:-}"
+}
+
 ci::normalize_csv() {
   local value="${1-}"
   awk -F',' '

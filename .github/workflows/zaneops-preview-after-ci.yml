@@ -1,0 +1,183 @@
+name: ZaneOps Preview After CI
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  NX_NO_CLOUD: "true"
+
+jobs:
+  scope:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.pull_requests[0] != null
+    runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ steps.pr.outputs.number }}
+      projects_csv: ${{ steps.affected.outputs.projects_csv }}
+      services_csv: ${{ steps.affected.outputs.services_csv }}
+      nx_status: ${{ steps.affected.outputs.nx_status }}
+      should_prepare: ${{ steps.prepare_needs.outputs.should_prepare }}
+      requires_preview_db: ${{ steps.prepare_needs.outputs.requires_preview_db }}
+      requires_meili_keys: ${{ steps.prepare_needs.outputs.requires_meili_keys }}
+      preview_db_service_ids: ${{ steps.prepare_needs.outputs.preview_db_service_ids }}
+      meili_key_service_ids: ${{ steps.prepare_needs.outputs.meili_key_service_ids }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: jdx/mise-action@v3
+        with:
+          install: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve PR number
+        id: pr
+        run: echo "number=${{ github.event.workflow_run.pull_requests[0].number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve affected deployables
+        id: affected
+        env:
+          BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: bash ./scripts/ci/resolve-affected-services.sh
+
+      - name: Resolve prepare needs
+        id: prepare_needs
+        run: bash ./scripts/ci/resolve-prepare-needs.sh --services-csv "${{ steps.affected.outputs.services_csv }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Preview Scope"
+            echo "- PR: #${{ steps.pr.outputs.number }}"
+            echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
+            echo "- Affected projects: ${{ steps.affected.outputs.projects_csv || 'n/a' }}"
+            echo "- Affected services: ${{ steps.affected.outputs.services_csv || 'n/a' }}"
+            echo "- Nx status: ${{ steps.affected.outputs.nx_status || 'n/a' }}"
+            echo "- Should prepare: ${{ steps.prepare_needs.outputs.should_prepare || 'false' }}"
+            echo "- Requires preview DB: ${{ steps.prepare_needs.outputs.requires_preview_db || 'false' }}"
+            echo "- Requires Meili keys: ${{ steps.prepare_needs.outputs.requires_meili_keys || 'false' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  prepare:
+    needs: scope
+    if: needs.scope.outputs.should_prepare == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: zaneops-preview-prepare-pr-${{ needs.scope.outputs.pr_number }}
+      cancel-in-progress: true
+    outputs:
+      preview_db_created: ${{ steps.ensure_db.outputs.created }}
+      preview_db_name: ${{ steps.ensure_db.outputs.db_name }}
+      preview_db_user: ${{ steps.ensure_db.outputs.app_user }}
+      preview_db_password: ${{ steps.ensure_db.outputs.app_password }}
+      meili_frontend_key: ${{ steps.provision_meili.outputs.frontend_key }}
+      meili_frontend_env_var: ${{ steps.provision_meili.outputs.frontend_env_var }}
+      meili_frontend_uid: ${{ steps.provision_meili.outputs.frontend_uid }}
+      meili_frontend_created: ${{ steps.provision_meili.outputs.frontend_created }}
+      meili_frontend_updated: ${{ steps.provision_meili.outputs.frontend_updated }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: jdx/mise-action@v3
+        with:
+          install: true
+
+      - name: Validate prepare inputs
+        env:
+          REQUIRES_PREVIEW_DB: ${{ needs.scope.outputs.requires_preview_db }}
+          REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
+          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
+        run: bash ./scripts/ci/check-workflow-inputs.sh preview-prepare
+
+      - name: Ensure preview DB
+        id: ensure_db
+        if: needs.scope.outputs.requires_preview_db == 'true'
+        env:
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+        run: bash ./scripts/ci/preview-db.sh ensure "${{ needs.scope.outputs.pr_number }}"
+
+      - name: Provision Meilisearch keys
+        id: provision_meili
+        if: needs.scope.outputs.requires_meili_keys == 'true'
+        env:
+          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
+          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
+        run: bash ./scripts/ci/provision-meili-keys.sh
+
+      - name: Verify Meilisearch keys
+        if: needs.scope.outputs.requires_meili_keys == 'true'
+        env:
+          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
+          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
+          MEILISEARCH_BACKEND_API_KEY: ${{ steps.provision_meili.outputs.backend_key }}
+          NEXT_PUBLIC_MEILISEARCH_API_KEY: ${{ steps.provision_meili.outputs.frontend_key }}
+        run: bash ./scripts/ci/verify-meili-keys.sh
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Preview Prepare"
+            echo "- PR: #${{ needs.scope.outputs.pr_number }}"
+            echo "- Requires preview DB: ${{ needs.scope.outputs.requires_preview_db }}"
+            echo "- Preview DB created: ${{ steps.ensure_db.outputs.created || 'n/a' }}"
+            echo "- Preview DB name: ${{ steps.ensure_db.outputs.db_name || 'n/a' }}"
+            echo "- Requires Meili keys: ${{ needs.scope.outputs.requires_meili_keys }}"
+            echo "- Meili frontend env var: ${{ steps.provision_meili.outputs.frontend_env_var || 'n/a' }}"
+            echo "- Meili frontend UID: ${{ steps.provision_meili.outputs.frontend_uid || 'n/a' }}"
+            echo "- Meili frontend created: ${{ steps.provision_meili.outputs.frontend_created || 'n/a' }}"
+            echo "- Meili frontend updated: ${{ steps.provision_meili.outputs.frontend_updated || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: [scope, prepare]
+    if: needs.scope.outputs.should_prepare == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: zaneops-preview-deploy-pr-${{ needs.scope.outputs.pr_number }}
+      cancel-in-progress: true
+    steps:
+      - name: Deploy lane placeholder
+        run: |
+          echo "Preview deploy stage is intentionally deferred until prepare/guardrail work lands."
+          echo "Prepared preview DB env inputs are available to this job when required."
+
+  verify:
+    needs: [scope, deploy]
+    if: needs.scope.outputs.should_prepare == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify lane placeholder
+        run: |
+          echo "Preview verify stage will be wired in Roadmap Step 4.4."

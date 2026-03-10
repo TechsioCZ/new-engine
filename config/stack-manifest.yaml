@@ -38,6 +38,9 @@ services:
       affected_path_globs:
         - "docker/development/postgres/**"
         - "scripts/apply-postgres-role-bootstrap.sh"
+      prepare:
+        preview_db: false
+        meili_keys: false
 
   - id: "medusa-valkey"
     compose_service: "medusa-valkey"
@@ -51,6 +54,9 @@ services:
       deployable: true
       affected_path_globs:
         - "docker/development/medusa-valkey/**"
+      prepare:
+        preview_db: false
+        meili_keys: false
 
   - id: "medusa-minio"
     compose_service: "medusa-minio"
@@ -64,6 +70,9 @@ services:
       deployable: true
       affected_path_globs:
         - "docker/development/medusa-minio/**"
+      prepare:
+        preview_db: false
+        meili_keys: false
 
   - id: "medusa-meilisearch"
     compose_service: "medusa-meilisearch"
@@ -77,6 +86,9 @@ services:
       deployable: true
       affected_path_globs:
         - "docker/development/medusa-meilisearch/**"
+      prepare:
+        preview_db: false
+        meili_keys: true
 
   - id: "medusa-be"
     compose_service: "medusa-be"
@@ -93,6 +105,9 @@ services:
         - "docker/development/medusa-be/**"
         - "scripts/build-medusa.sh"
         - "scripts/dev/**"
+      prepare:
+        preview_db: true
+        meili_keys: true
 
   - id: "n1"
     compose_service: "n1"
@@ -108,6 +123,9 @@ services:
       affected_path_globs:
         - "docker/development/n1/**"
         - "scripts/dev/**"
+      prepare:
+        preview_db: false
+        meili_keys: true
 
   - id: "zane-operator"
     compose_service: "zane-operator"
@@ -122,3 +140,6 @@ services:
       deployable: false
       affected_path_globs:
         - "docker/development/zane-operator/**"
+      prepare:
+        preview_db: false
+        meili_keys: false
