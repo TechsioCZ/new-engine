@@ -176,28 +176,32 @@ import {
   getCheckoutAddressValidationIssues,
 } from "@techsio/storefront-data/checkout/address"
 
-const issues = getCheckoutAddressValidationIssues({
-  shipping,
-  billing,
-  useSameAddress,
-  email,
-})
+const updateCartAddress = cartHooks.useUpdateCartAddress()
 
-if (issues.length === 0) {
-  const payload = buildCheckoutCartAddressInput({
+const submitAddress = async () => {
+  const issues = getCheckoutAddressValidationIssues({
     shipping,
     billing,
     useSameAddress,
     email,
   })
 
-  await cartHooks.useUpdateCartAddress().mutateAsync({
-    cartId,
-    email: payload.email,
-    shippingAddress: payload.shippingAddress,
-    billingAddress: payload.billingAddress,
-    useSameAddress: payload.useSameAddress,
-  })
+  if (issues.length === 0) {
+    const payload = buildCheckoutCartAddressInput({
+      shipping,
+      billing,
+      useSameAddress,
+      email,
+    })
+
+    await updateCartAddress.mutateAsync({
+      cartId,
+      email: payload.email,
+      shippingAddress: payload.shippingAddress,
+      billingAddress: payload.billingAddress,
+      useSameAddress: payload.useSameAddress,
+    })
+  }
 }
 ```
 

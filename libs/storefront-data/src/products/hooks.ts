@@ -43,6 +43,7 @@ import type {
 } from "./types"
 
 type CacheStrategy = keyof CacheConfig
+type SuspenseInput<TInput> = Omit<TInput, "enabled">
 
 export type PrefetchListOptions = {
   cacheStrategy?: CacheStrategy
@@ -157,7 +158,7 @@ export type ProductHooks<
     }
   ) => UseInfiniteProductsResult<TProduct>
   useSuspenseProducts: (
-    input: TListInput,
+    input: SuspenseInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductListResponse<TProduct>>
     }
@@ -167,7 +168,7 @@ export type ProductHooks<
     options?: { queryOptions?: ReadQueryOptions<TProduct | null> }
   ) => UseProductResult<TProduct>
   useSuspenseProduct: (
-    input: TDetailInput,
+    input: SuspenseInput<TDetailInput>,
     options?: { queryOptions?: SuspenseQueryOptions<TProduct | null> }
   ) => UseSuspenseProductResult<TProduct>
   usePrefetchProducts: (options?: {
@@ -335,7 +336,12 @@ export function createProductHooks<
     }
   ) => {
     const resolvedInput = resolveListInput(input, options?.region)
-    const listParams = buildPrefetch(resolvedInput)
+    const firstPageInput = {
+      ...resolvedInput,
+      page: 1,
+      offset: 0,
+    } as TListInput
+    const listParams = buildPrefetch(firstPageInput)
     const useGlobalFetcher =
       options?.useGlobalFetcher && service.getProductsGlobal
     const prefetchCacheOptions = getPrefetchCacheOptions(
@@ -582,13 +588,13 @@ export function createProductHooks<
   }
 
   function useSuspenseProducts(
-    input: TListInput,
+    input: SuspenseInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductListResponse<TProduct>>
     }
   ): UseSuspenseProductsResult<TProduct> {
     const contextRegion = useRegionContext()
-    const resolvedInput = resolveListInput(input, contextRegion)
+    const resolvedInput = resolveListInput(input as TListInput, contextRegion)
 
     if (requireRegion && !resolvedInput.region_id) {
       throw new Error("Region is required for product queries")
@@ -596,7 +602,7 @@ export function createProductHooks<
 
     const listParams = buildList(resolvedInput)
     const query = useSuspenseQuery(
-      createProductsListQueryOptions(input, {
+      createProductsListQueryOptions(input as TListInput, {
         queryOptions: options?.queryOptions,
         region: contextRegion,
       })
@@ -668,11 +674,11 @@ export function createProductHooks<
   }
 
   function useSuspenseProduct(
-    input: TDetailInput,
+    input: SuspenseInput<TDetailInput>,
     options?: { queryOptions?: SuspenseQueryOptions<TProduct | null> }
   ): UseSuspenseProductResult<TProduct> {
     const contextRegion = useRegionContext()
-    const resolvedInput = resolveDetailInput(input, contextRegion)
+    const resolvedInput = resolveDetailInput(input as TDetailInput, contextRegion)
 
     if (requireRegion && !resolvedInput.region_id) {
       throw new Error("Region is required for product queries")
@@ -683,7 +689,7 @@ export function createProductHooks<
     }
 
     const query = useSuspenseQuery(
-      createProductQueryOptions(input, {
+      createProductQueryOptions(input as TDetailInput, {
         queryOptions: options?.queryOptions,
         region: contextRegion,
       })

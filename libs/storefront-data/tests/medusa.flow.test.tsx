@@ -325,6 +325,110 @@ describe("Medusa flow helpers", () => {
     )
   })
 
+  it("does not clear a newly switched cart id when complete-cart finishes", async () => {
+    const { sdk } = createSdkMock()
+    let storedCartId: string | null = "cart_1"
+    const clearCartId = vi.fn(() => {
+      storedCartId = null
+    })
+    const complete = sdk.store.cart.complete as unknown as ReturnType<typeof vi.fn>
+    let resolveComplete:
+      | ((value: {
+          type: "order"
+          order: {
+            id: string
+            region_id: string
+          }
+        }) => void)
+      | null = null
+    const completeDeferred = new Promise<{
+      type: "order"
+      order: {
+        id: string
+        region_id: string
+      }
+    }>((resolve) => {
+      resolveComplete = resolve
+    })
+
+    complete.mockImplementation(() => completeDeferred)
+
+    const cartStorage = {
+      getCartId: () => storedCartId,
+      setCartId: vi.fn((cartId: string) => {
+        storedCartId = cartId
+      }),
+      clearCartId,
+    }
+
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+      cart: {
+        hooks: {
+          cartStorage,
+        },
+      },
+    })
+    const cartFlow = createMedusaCartFlow({
+      storefront,
+      cartStorage,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    queryClient.setQueryData(storefront.queryKeys.cart.detail("cart_1"), { id: "cart_1" })
+    queryClient.setQueryData(storefront.queryKeys.cart.detail("cart_2"), { id: "cart_2" })
+    queryClient.setQueryData(
+      storefront.queryKeys.checkout.shippingOptions("cart_1"),
+      []
+    )
+    queryClient.setQueryData(
+      storefront.queryKeys.cart.active({
+        cartId: "cart_1",
+        regionId: "reg_1",
+      }),
+      { id: "cart_1", region_id: "reg_1" }
+    )
+
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(() => cartFlow.useCompleteCart(), { wrapper })
+
+    let mutationPromise: Promise<unknown> | undefined
+    act(() => {
+      mutationPromise = result.current.mutateAsync({})
+    })
+
+    await waitFor(() => {
+      expect(complete).toHaveBeenCalledTimes(1)
+    })
+
+    storedCartId = "cart_2"
+    resolveComplete?.({
+      type: "order",
+      order: {
+        id: "order_1",
+        region_id: "reg_1",
+      },
+    })
+
+    await act(async () => {
+      await mutationPromise
+    })
+
+    expect(clearCartId).not.toHaveBeenCalled()
+    expect(storedCartId).toBe("cart_2")
+    expect(
+      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_1"))
+    ).toBeUndefined()
+    expect(
+      queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_2"))
+    ).toEqual({ id: "cart_2" })
+  })
+
   it("skips duplicate shipping selection with equivalent data", async () => {
     const { sdk, spies } = createSdkMock()
     const storefront = createMedusaStorefrontPreset({
@@ -495,6 +599,112 @@ describe("Medusa flow helpers", () => {
     await expect(result.current.mutateAsync()).rejects.toMatchObject({
       stage: "payment_provider",
       message: "No payment provider available",
+    })
+  })
+
+  it("returns stage-coded payment provider error when resolver throws", async () => {
+    const { sdk } = createSdkMock()
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+    })
+    const checkoutFlow = createMedusaCheckoutFlow({
+      storefront,
+    })
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(
+      () =>
+        checkoutFlow.useCompleteCheckout(
+          {
+            cartId: "cart_1",
+            regionId: "reg_1",
+            cart: {
+              id: "cart_1",
+              region_id: "reg_1",
+              items: [{ id: "item_1", quantity: 1 }],
+              shipping_methods: [{ shipping_option_id: "ship_1" }],
+            },
+          },
+          {
+            resolvePaymentProviderId: () => {
+              throw new Error("Resolver crashed")
+            },
+          }
+        ),
+      { wrapper }
+    )
+
+    await expect(result.current.mutateAsync()).rejects.toMatchObject({
+      stage: "payment_provider",
+      message: "Resolver crashed",
+    })
+  })
+
+  it("returns stage-coded payment provider error when provider refetch fails", async () => {
+    const { sdk } = createSdkMock()
+    const clientFetch = vi.fn(
+      async (path: string): Promise<Record<string, unknown>> => {
+        if (path === "/store/payment-providers") {
+          throw new Error("Payment providers fetch failed")
+        }
+
+        if (path === "/store/shipping-options") {
+          return {
+            shipping_options: [{ id: "ship_1", amount: 150, price_type: "flat" }],
+          }
+        }
+
+        return {}
+      }
+    )
+
+    ;(sdk.client.fetch as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      clientFetch
+    )
+
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+    })
+    const checkoutFlow = createMedusaCheckoutFlow({
+      storefront,
+    })
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(
+      () =>
+        checkoutFlow.useCompleteCheckout(
+          {
+            cartId: "cart_1",
+            regionId: "reg_1",
+            cart: {
+              id: "cart_1",
+              region_id: "reg_1",
+              items: [{ id: "item_1", quantity: 1 }],
+              shipping_methods: [{ shipping_option_id: "ship_1" }],
+            },
+          },
+          {
+            resolvePaymentProviderId: () => null,
+          }
+        ),
+      { wrapper }
+    )
+
+    await expect(result.current.mutateAsync()).rejects.toMatchObject({
+      stage: "payment_provider",
+      message: "Payment providers fetch failed",
     })
   })
 

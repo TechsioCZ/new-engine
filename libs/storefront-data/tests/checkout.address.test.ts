@@ -223,4 +223,43 @@ describe("checkout address helpers", () => {
       phone: undefined,
     })
   })
+
+  it("trims transformed country code and falls back to default for whitespace values", () => {
+    expect(
+      mapCheckoutAddressToMedusaCartAddress(
+        {
+          firstName: "Jan",
+          lastName: "Novak",
+          street: "Main 1",
+          city: "Prague",
+          postalCode: "11000",
+          country: " CZ ",
+        },
+        {
+          countryCodeTransform: (countryCode) => ` ${countryCode} `,
+          defaultCountryCode: " SK ",
+        }
+      )
+    ).toMatchObject({
+      country_code: "cz",
+    })
+
+    expect(
+      mapCheckoutAddressToMedusaCartAddress(
+        {
+          firstName: "Jan",
+          lastName: "Novak",
+          street: "Main 1",
+          city: "Prague",
+          postalCode: "11000",
+          country: "   ",
+        },
+        {
+          defaultCountryCode: " SK ",
+        }
+      )
+    ).toMatchObject({
+      country_code: "sk",
+    })
+  })
 })

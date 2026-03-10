@@ -163,10 +163,12 @@ export function createMedusaCartFlow({
     queryClient: ReturnType<typeof useQueryClient>,
     cartId: string | null
   ) => {
-    cartStorage?.clearCartId()
-
     if (!cartId) {
       return
+    }
+
+    if (cartStorage?.getCartId() === cartId) {
+      cartStorage.clearCartId()
     }
 
     queryClient.removeQueries({
@@ -252,12 +254,26 @@ export function createMedusaCartFlow({
     const queryClient = useQueryClient()
 
     return cartHooks.useCompleteCart({
+      onMutate: (variables: { cartId?: string }) => ({
+        completedCartId: variables.cartId ?? cartStorage?.getCartId() ?? null,
+      }),
       onSuccess: (
         result: MedusaCompleteCartResult,
-        variables: { cartId?: string }
+        variables: { cartId?: string },
+        context: unknown
       ) => {
         if (result.type === "order") {
-          const completedCartId = variables.cartId ?? cartStorage?.getCartId() ?? null
+          const contextCompletedCartId =
+            context && typeof context === "object" && "completedCartId" in context
+              ? (context as { completedCartId?: unknown }).completedCartId
+              : undefined
+          const completedCartIdFromContext =
+            typeof contextCompletedCartId === "string" ||
+            contextCompletedCartId === null
+              ? contextCompletedCartId
+              : undefined
+          const completedCartId =
+            completedCartIdFromContext ?? variables.cartId ?? null
 
           clearCompletedCart(queryClient, completedCartId)
           queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() })

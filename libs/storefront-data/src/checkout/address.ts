@@ -88,17 +88,21 @@ const normalizeCountryCode = (
   countryCode: string | null | undefined,
   options?: BuildCheckoutCartAddressInputOptions
 ): string | undefined => {
-  const transformed =
-    countryCode && options?.countryCodeTransform
-      ? options.countryCodeTransform(countryCode)
-      : countryCode
+  const trimmedCountryCode = countryCode?.trim()
+  const transformed = trimmedCountryCode
+    ? options?.countryCodeTransform
+      ? options.countryCodeTransform(trimmedCountryCode)
+      : trimmedCountryCode
+    : undefined
+  const normalized = transformed?.trim()
 
-  if (transformed) {
-    return transformed.toLowerCase()
+  if (normalized) {
+    return normalized.toLowerCase()
   }
 
-  if (options?.defaultCountryCode) {
-    return options.defaultCountryCode.toLowerCase()
+  const defaultCountryCode = options?.defaultCountryCode?.trim()
+  if (defaultCountryCode) {
+    return defaultCountryCode.toLowerCase()
   }
 
   return

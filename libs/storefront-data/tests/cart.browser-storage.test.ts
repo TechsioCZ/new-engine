@@ -47,4 +47,35 @@ describe("createLocalStorageCartStorage", () => {
 
     expect(storage.getServerSnapshot?.()).toBe("server_cart")
   })
+
+  it("degrades gracefully when storage read/write/remove throws", () => {
+    const failingStorage = {
+      getItem: vi.fn(() => {
+        throw new Error("read failed")
+      }),
+      setItem: vi.fn(() => {
+        throw new Error("write failed")
+      }),
+      removeItem: vi.fn(() => {
+        throw new Error("remove failed")
+      }),
+      clear: vi.fn(),
+      key: vi.fn(() => null),
+      length: 0,
+    } as unknown as Storage
+
+    const storage = createLocalStorageCartStorage({
+      key,
+      storage: failingStorage,
+    })
+    const listener = vi.fn()
+    const unsubscribe = storage.subscribe(listener)
+
+    expect(storage.getCartId()).toBeNull()
+    expect(() => storage.setCartId("cart_1")).not.toThrow()
+    expect(() => storage.clearCartId()).not.toThrow()
+    expect(listener).not.toHaveBeenCalled()
+
+    unsubscribe()
+  })
 })
