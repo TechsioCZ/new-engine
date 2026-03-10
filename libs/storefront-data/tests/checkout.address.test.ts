@@ -3,6 +3,7 @@ import {
   getCheckoutAddressValidationIssues,
   hasCartShippingAddress,
   hasCheckoutAddressData,
+  type CheckoutAddressInput,
   mapCheckoutAddressToMedusaCartAddress,
   normalizeCheckoutAddressInput,
 } from "../src/checkout/address"
@@ -32,6 +33,32 @@ describe("checkout address helpers", () => {
       company: "ACME",
       phone: "+420123456789",
     })
+  })
+
+  it("widens normalized address fields at type level", () => {
+    type StrictAddress = CheckoutAddressInput & {
+      firstName: string
+      lastName: string
+      loyaltyCode: string
+    }
+
+    const normalized = normalizeCheckoutAddressInput<StrictAddress>({
+      firstName: " Jan ",
+      lastName: " Novak ",
+      loyaltyCode: "vip-123",
+    })
+
+    const loyaltyCode: string = normalized.loyaltyCode
+    const firstName: string | undefined = normalized.firstName
+    void loyaltyCode
+    void firstName
+
+    // @ts-expect-error normalized firstName may be undefined
+    const invalidRequiredName: string = normalized.firstName
+    void invalidRequiredName
+
+    expect(normalized.firstName).toBe("Jan")
+    expect(normalized.loyaltyCode).toBe("vip-123")
   })
 
   it("returns validation issues for missing shipping, billing, and email", () => {
@@ -103,6 +130,24 @@ describe("checkout address helpers", () => {
         message: "Missing checkout email",
       },
     ])
+  })
+
+  it("skips billing validation in same-address mode when billing input is missing", () => {
+    const issues = getCheckoutAddressValidationIssues({
+      shipping: {
+        firstName: "Jan",
+        lastName: "Novak",
+        street: "Main 1",
+        city: "Prague",
+        postalCode: "11000",
+        country: "CZ",
+      },
+      billing: undefined as never,
+      useSameAddress: true,
+      email: "jan@example.com",
+    })
+
+    expect(issues).toEqual([])
   })
 
   it("maps checkout address data to cart update payload", () => {
@@ -197,6 +242,48 @@ describe("checkout address helpers", () => {
 
     expect(validCheckoutData).toBe(true)
     expect(completeCartAddress).toBe(true)
+  })
+
+  it("builds same-address checkout payload without billing input", () => {
+    const payload = buildCheckoutCartAddressInput({
+      shipping: {
+        firstName: "Jan",
+        lastName: "Novak",
+        street: "Main 1",
+        city: "Prague",
+        postalCode: "11000",
+        country: "CZ",
+      },
+      useSameAddress: true,
+      email: "jan@example.com",
+    })
+
+    expect(payload).toEqual({
+      email: "jan@example.com",
+      shippingAddress: {
+        first_name: "Jan",
+        last_name: "Novak",
+        address_1: "Main 1",
+        city: "Prague",
+        postal_code: "11000",
+        country_code: "cz",
+        province: undefined,
+        company: undefined,
+        phone: undefined,
+      },
+      billingAddress: {
+        first_name: "Jan",
+        last_name: "Novak",
+        address_1: "Main 1",
+        city: "Prague",
+        postal_code: "11000",
+        country_code: "cz",
+        province: undefined,
+        company: undefined,
+        phone: undefined,
+      },
+      useSameAddress: true,
+    })
   })
 
   it("applies fallback country when mapping single address", () => {
