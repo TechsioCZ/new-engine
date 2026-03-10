@@ -236,11 +236,10 @@ services:
     restart: unless-stopped
     command:
       [
+        "su",
+        "-c",
+        "/usr/local/bin/docker-entrypoint.sh -c file_copy_method=clone",
         "postgres",
-        "-c",
-        "shared_preload_libraries=pg_stat_statements",
-        "-c",
-        "file_copy_method=clone",
       ]
     ports:
       - "127.0.0.1:${DC_POSTGRES_PUBLIC_PORT:-5432}:5432"

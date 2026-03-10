@@ -293,7 +293,7 @@ Important model constraints:
 - CI resolves services by exact Zane service name from `config/stack-manifest.yaml`
 - preview environments are cloned from the protected `production` environment
 - shared variables should live on the `production` environment in Zane; services inherit them and preview clones copy them
-- do not add `zane-operator` itself to the canonical deploy project; the canonical project contains only the app/resource services below
+- the canonical project should also include `zane-operator` so the deployed stack exposes the same control-plane wrapper used by CI
 
 #### 6.1 Bootstrap the canonical project with the helper script
 
@@ -302,7 +302,7 @@ Preferred path: use the local bootstrap helper instead of creating the project a
 The helper:
 - creates or reuses the canonical project
 - expects the protected `production` environment and fails if it is missing
-- creates or reuses the six required services as Git services with Dockerfile builders
+- creates or reuses the required services as Git services with Dockerfile builders
 - aligns them with these repo Dockerfiles:
   - `docker/development/postgres/Dockerfile`
   - `docker/development/medusa-valkey/Dockerfile`
@@ -310,10 +310,15 @@ The helper:
   - `docker/development/medusa-meilisearch/Dockerfile`
   - `docker/development/medusa-be/Dockerfile`
   - `docker/development/n1/Dockerfile`
+  - `docker/development/zane-operator/Dockerfile`
 - auto-resolves internal service network aliases after service creation
-- upserts the shared `production` environment variables
+- upserts only the curated shared `production` environment contract needed by the deployed stack, not a full copy of `.env.docker`
+- prefixes shared Zane project variables by service/domain to avoid collisions across inherited service environments
 - upserts the per-service env blocks using `{{env.VAR}}` references
+- upserts the expected per-service healthchecks in Zane so reruns also converge probe configuration
 - does not create public Zane URL routes; keep those explicit because hostnames/TLS choices are environment-specific
+- uses the DB service `global_network_alias` for `MEDUSA_DB_HOST`
+- defaults `MINIO_FILE_URL` to the deployed MinIO alias rather than a compose-only hostname; override it once you have a public MinIO route
 
 Run it from the repo root:
 
@@ -328,7 +333,7 @@ scripts/dev/setup-zane-project.sh \
 
 Optional overrides worth knowing:
 - `--repository-url https://github.com/<org>/<repo>.git`
-- `--branch <branch>`
+- `--branch <branch>` when you intentionally want a non-`master` deployment source
 - `--git-app-id <id>` if the repository is private and Zane must use an installed git app
 - `--medusa-backend-url <url>`
 - `--n1-site-url <url>`
@@ -337,8 +342,11 @@ Optional overrides worth knowing:
 - `--store-cors <csv-or-url>`
 - `--admin-cors <csv-or-url>`
 - `--auth-cors <csv-or-url>`
+- `--operator-upstream-zane-base-url <url>`
+- `--operator-upstream-zane-username <user>`
+- `--operator-upstream-zane-password <password>`
 
-The helper reads `.env.docker` by default and maps those values into Zane's shared `production` env. It forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
+The helper reads `.env.docker` by default, but it only maps the values that are part of the deployed stack contract. It forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
 
 If your repo is private:
 1. install/configure the git app in Zane first
@@ -358,9 +366,11 @@ After the helper finishes:
    - `medusa-meilisearch`
    - `medusa-be`
    - `n1`
-3. Confirm the service type for all six is Git-backed, not direct Docker image pull.
+   - `zane-operator`
+3. Confirm the service type for all seven is Git-backed, not direct Docker image pull.
 4. Confirm the project `production` environment now contains the shared env variables.
-5. Confirm each service has pending changes in Zane; that is expected until you deploy.
+5. Confirm each service has the expected healthcheck configured in Zane.
+6. Confirm each service has pending changes in Zane; that is expected until you deploy.
 
 Public route follow-up remains manual on purpose:
 - add a public route for `medusa-be` if you need browser/API access
