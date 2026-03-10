@@ -1,22 +1,34 @@
+[tools]
+"aqua:mikefarah/yq" = "4.45.4"
+"aqua:jqlang/jq" = "1.8.1"
+
 [tasks.dev]
-description = "Stepped local startup from clean state: down -> resources -> meili provisioning -> medusa-be -> n1"
+description = "Incremental local startup: resources -> meili provisioning -> backend phase -> frontend phase"
+run = "mise run dev:resources && mise run dev:internal:meili:sync-env && mise run dev:backend && mise run dev:frontend"
+
+[tasks."dev:fresh"]
+description = "Fresh local startup from clean state: down -> resources -> meili provisioning -> backend phase -> frontend phase"
 run = "mise run dev:internal:down && mise run dev:resources && mise run dev:internal:meili:sync-env && mise run dev:backend && mise run dev:frontend"
 
 [tasks."dev:resources"]
-description = "Start and wait for shared resources"
+description = "Start and wait for manifest-defined shared resources"
 run = "mise run dev:internal:resources:up && mise run dev:internal:resources:wait"
 
 [tasks."dev:backend"]
-description = "Start and wait for medusa-be"
+description = "Start and wait for manifest-defined backend phase services"
 run = "mise run dev:internal:backend:up && mise run dev:internal:backend:wait"
 
 [tasks."dev:frontend"]
-description = "Start and wait for n1"
+description = "Start and wait for manifest-defined frontend phase services"
 run = "mise run dev:internal:frontend:up && mise run dev:internal:frontend:wait"
 
 [tasks."dev:operator"]
-description = "Start and wait for zane-operator (opt-in operator profile)"
-run = "mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
+description = "Start and wait for operator runtime services after explicit bootstrap"
+run = "bash ./scripts/dev/mise-dev-helpers.sh require-operator-bootstrap && mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
+
+[tasks."dev:operator:init"]
+description = "Run explicit operator bootstrap, then start and wait for operator runtime services"
+run = "mise run dev:operator:bootstrap && mise run dev:operator"
 
 [tasks."dev:operator:bootstrap"]
 description = "Run one-shot zane-operator role bootstrap (opt-in operator profile)"
@@ -35,9 +47,9 @@ description = "Verify Meilisearch backend/frontend API key scopes"
 run = "bash ./scripts/ci/verify-meili-keys.sh"
 
 [tasks."dev:internal:resources:up"]
-description = "Start shared resource services"
+description = "Start manifest-defined shared resource services"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build medusa-db medusa-valkey medusa-minio medusa-meilisearch"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase resources)"
 
 [tasks."dev:internal:down"]
 description = "Gracefully stop and remove compose services before stepped startup"
@@ -45,9 +57,9 @@ hide = true
 run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} down --remove-orphans --timeout ${COMPOSE_STOP_TIMEOUT:-60}"
 
 [tasks."dev:internal:resources:wait"]
-description = "Wait for shared resource services to become healthy"
+description = "Wait for manifest-defined shared resource services to become healthy"
 hide = true
-run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy medusa-db medusa-valkey medusa-minio medusa-meilisearch"
+run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase resources)"
 
 [tasks."dev:internal:meili:sync-env"]
 description = "Provision Meilisearch keys and sync .env with conflict prompts"
@@ -55,31 +67,31 @@ hide = true
 run = "bash ./scripts/dev/mise-dev-helpers.sh sync-meili-env"
 
 [tasks."dev:internal:backend:up"]
-description = "Start medusa-be"
+description = "Start manifest-defined backend phase services"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build --no-deps medusa-be"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase backend)"
 
 [tasks."dev:internal:backend:wait"]
-description = "Wait for medusa-be to become healthy"
+description = "Wait for manifest-defined backend phase services to become healthy"
 hide = true
-run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy medusa-be"
+run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase backend)"
 
 [tasks."dev:internal:frontend:up"]
-description = "Start n1 frontend"
+description = "Start manifest-defined frontend phase services"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build --no-deps n1"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase frontend)"
 
 [tasks."dev:internal:frontend:wait"]
-description = "Wait for n1 to become healthy"
+description = "Wait for manifest-defined frontend phase services to become healthy"
 hide = true
-run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy n1"
+run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase frontend)"
 
 [tasks."dev:internal:operator:up"]
-description = "Start zane-operator (opt-in operator profile)"
+description = "Start manifest-defined operator phase services"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator up -d --build zane-operator"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator up -d --build $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase operator)"
 
 [tasks."dev:internal:operator:wait"]
-description = "Wait for zane-operator to become healthy"
+description = "Wait for manifest-defined operator phase services to become healthy"
 hide = true
-run = "COMPOSE_PROFILES=operator bash ./scripts/dev/mise-dev-helpers.sh wait-healthy zane-operator"
+run = "COMPOSE_PROFILES=operator bash ./scripts/dev/mise-dev-helpers.sh wait-healthy $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase operator)"
