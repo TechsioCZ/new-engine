@@ -161,7 +161,7 @@ describe("createMedusaAuthService", () => {
     expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
   })
 
-  it("logs logout errors by default and keeps logout as best effort", async () => {
+  it("logs logout errors by default and rethrows logout failures", async () => {
     const logoutError = new Error("logout failed")
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
     const sdk = createSdkMock({
@@ -169,7 +169,7 @@ describe("createMedusaAuthService", () => {
     })
     const service = createMedusaAuthService(sdk as never)
 
-    await expect(service.logout()).resolves.toBeUndefined()
+    await expect(service.logout()).rejects.toBe(logoutError)
 
     expect(warnSpy).toHaveBeenCalledWith(
       "[storefront-data/auth] Failed to logout customer session.",
@@ -177,7 +177,7 @@ describe("createMedusaAuthService", () => {
     )
   })
 
-  it("calls custom logout reporter instead of default logging", async () => {
+  it("calls custom logout reporter and rethrows logout failures", async () => {
     const logoutError = new Error("logout failed")
     const onLogoutError = vi.fn()
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
@@ -186,10 +186,20 @@ describe("createMedusaAuthService", () => {
     })
     const service = createMedusaAuthService(sdk as never, { onLogoutError })
 
-    await expect(service.logout()).resolves.toBeUndefined()
+    await expect(service.logout()).rejects.toBe(logoutError)
 
     expect(onLogoutError).toHaveBeenCalledWith(logoutError, "logout")
     expect(warnSpy).not.toHaveBeenCalled()
+  })
+
+  it("keeps logout as best effort for auth errors (already logged out)", async () => {
+    const logoutError = { status: 401 }
+    const sdk = createSdkMock({
+      logout: vi.fn().mockRejectedValue(logoutError),
+    })
+    const service = createMedusaAuthService(sdk as never)
+
+    await expect(service.logout()).resolves.toBeUndefined()
   })
 
   it("reports cleanup logout errors and rethrows original register failure", async () => {

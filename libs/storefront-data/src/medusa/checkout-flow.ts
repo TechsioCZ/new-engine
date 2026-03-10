@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
+import type { ActiveCartQueryKeyMatcher } from "../cart/cache-sync"
 import type { CartStorage } from "../cart/types"
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import { createMedusaCartFlow } from "./cart-flow"
@@ -86,6 +87,7 @@ export type UseMedusaCheckoutPaymentReturn = {
 export type CreateMedusaCheckoutFlowConfig = {
   storefront: MedusaCheckoutFlowStorefront
   cartStorage?: CartStorage
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
 }
 
 export type UseMedusaCompleteCheckoutInput = {
@@ -233,11 +235,13 @@ const defaultResolvePaymentProviderId = ({
 export function createMedusaCheckoutFlow({
   storefront,
   cartStorage,
+  isActiveCartQueryKey,
 }: CreateMedusaCheckoutFlowConfig) {
   const checkoutHooks = storefront.hooks.checkout
   const cartFlow = createMedusaCartFlow({
     storefront,
     cartStorage,
+    isActiveCartQueryKey,
   })
 
   function useCheckoutShipping(

@@ -493,6 +493,27 @@ export function createMedusaStorefrontPreset<
     >(config.sdk, config.catalog?.serviceConfig),
   }
 
+  const authHookOverrides = config.auth?.hooks
+  const authInvalidationOverrides = authHookOverrides?.invalidateOnAuthChange
+  const presetAuthInvalidateKeys = [
+    queryKeys.customers.profile(),
+    queryKeys.orders.all(),
+  ]
+  const presetAuthRemoveOnLogoutKeys = [
+    queryKeys.customers.all(),
+    queryKeys.orders.all(),
+  ]
+  const resolvedAuthInvalidateOnAuthChange = {
+    includeDefaults: authInvalidationOverrides?.includeDefaults ?? false,
+    invalidate: [
+      ...presetAuthInvalidateKeys,
+      ...(authInvalidationOverrides?.invalidate ?? []),
+    ],
+    removeOnLogout: [
+      ...presetAuthRemoveOnLogoutKeys,
+      ...(authInvalidationOverrides?.removeOnLogout ?? []),
+    ],
+  }
   const cartHookOverrides = config.cart?.hooks
   const checkoutHookOverrides = config.checkout?.hooks
   const customerHookOverrides = config.customers?.hooks
@@ -509,11 +530,12 @@ export function createMedusaStorefrontPreset<
 
   const hooks = {
     auth: createAuthHooks({
-      ...(config.auth?.hooks ?? {}),
+      ...(authHookOverrides ?? {}),
       service: services.auth,
       queryKeys: queryKeys.auth,
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      invalidateOnAuthChange: resolvedAuthInvalidateOnAuthChange,
     }),
     cart: createCartHooks<
       HttpTypes.StoreCart,

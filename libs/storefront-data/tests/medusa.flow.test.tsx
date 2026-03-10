@@ -3,6 +3,7 @@ import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { StorefrontDataProvider } from "../src/client/provider"
+import type { CartQueryKeys } from "../src/cart/types"
 import { createMedusaCartFlow } from "../src/medusa/cart-flow"
 import { createMedusaCheckoutFlow } from "../src/medusa/checkout-flow"
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
@@ -323,6 +324,79 @@ describe("Medusa flow helpers", () => {
         id: "order_1",
       })
     )
+  })
+
+  it("supports custom active cart query matcher in cart flow", async () => {
+    const { sdk } = createSdkMock()
+    const cartStorage = {
+      getCartId: () => "cart_1",
+      setCartId: vi.fn(),
+      clearCartId: vi.fn(),
+    }
+    const customCartQueryKeys: CartQueryKeys = {
+      all: () => ["custom", "cart"],
+      active: (params) => ["custom", "cart", params.cartId ?? "__none__"],
+      detail: (cartId) => ["custom", "cart", "detail", cartId],
+    }
+
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+      cart: {
+        queryKeys: customCartQueryKeys,
+        hooks: {
+          cartStorage,
+        },
+      },
+    })
+    const cartFlow = createMedusaCartFlow({
+      storefront,
+      cartStorage,
+      isActiveCartQueryKey: (queryKey, cartId) =>
+        queryKey[0] === "custom" &&
+        queryKey[1] === "cart" &&
+        queryKey[2] === cartId,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    queryClient.setQueryData(
+      customCartQueryKeys.active({
+        cartId: "cart_1",
+      }),
+      {
+        id: "cart_1",
+        region_id: "reg_1",
+      }
+    )
+    queryClient.setQueryData(customCartQueryKeys.detail("cart_1"), {
+      id: "cart_1",
+      region_id: "reg_1",
+    })
+    queryClient.setQueryData(
+      storefront.queryKeys.checkout.shippingOptions("cart_1"),
+      []
+    )
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(() => cartFlow.useCompleteCart(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        cartId: "cart_1",
+      })
+    })
+
+    expect(
+      queryClient.getQueryData(
+        customCartQueryKeys.active({
+          cartId: "cart_1",
+        })
+      )
+    ).toBeUndefined()
   })
 
   it("does not clear a newly switched cart id when complete-cart finishes", async () => {
