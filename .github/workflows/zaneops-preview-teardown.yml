@@ -1,0 +1,53 @@
+name: ZaneOps Preview Teardown
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  teardown:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: zaneops-preview-teardown-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate teardown inputs
+        env:
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+        run: bash ./scripts/ci/check-workflow-inputs.sh preview-teardown
+
+      - name: Teardown preview DB
+        id: teardown_db
+        continue-on-error: true
+        env:
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+        run: bash ./scripts/ci/preview-db.sh delete "${{ github.event.pull_request.number }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Preview DB Teardown"
+            echo "- PR: #${{ github.event.pull_request.number }}"
+            echo "- Outcome: ${{ steps.teardown_db.outcome }}"
+            echo "- HTTP: ${{ steps.teardown_db.outputs.http_code || 'n/a' }}"
+            echo "- Status: ${{ steps.teardown_db.outputs.status || 'n/a' }}"
+            echo "- DB: ${{ steps.teardown_db.outputs.db_name || 'n/a' }}"
+            echo "- Noop: ${{ steps.teardown_db.outputs.noop || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail when teardown failed
+        if: steps.teardown_db.outcome != 'success'
+        run: |
+          echo "Preview DB teardown failed and requires manual retry." >&2
+          exit 1
