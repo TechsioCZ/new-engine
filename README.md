@@ -55,7 +55,7 @@
     * `mise run dev` calls provisioning against host URL `http://127.0.0.1:7700` by default (override via `MISE_DEV_MEILI_URL`) so `DC_MEILISEARCH_HOST` can remain container-internal (`http://medusa-meilisearch:7700`)
 
     * Postgres role bootstrap (`medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
-    * MinIO bootstrap now runs inside `medusa-minio` startup (idempotent): it ensures `DC_MINIO_BUCKET` exists, enforces public object reads, and provisions a non-root Medusa runtime key with object-scoped permissions
+    * MinIO bootstrap now runs inside `medusa-minio` startup (idempotent): it ensures `DC_MINIO_BUCKET` exists, enforces public object reads, and provisions a non-root Medusa runtime key with bucket-scoped permissions limited to the Medusa bucket
     * Meilisearch now starts through an in-image bootstrap wrapper (idempotent, swarm-safe) before serving traffic
     * `medusa-minio` uses dedicated MinIO bootstrap env (`MINIO_ROOT_*` + `MINIO_MEDUSA_*`) to avoid deprecated MinIO server env collisions
     * `medusa-meilisearch` continues to use shared Medusa env plus service-specific Meili env
