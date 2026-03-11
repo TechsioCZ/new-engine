@@ -322,6 +322,8 @@ export class UpstreamHttpError extends Error {
 
 function requireZaneDeployConfig(config: AppConfig): {
   baseUrl: string
+  connectBaseUrl: string
+  connectHostHeader: string | null
   username: string
   password: string
 } {
@@ -337,19 +339,23 @@ function requireZaneDeployConfig(config: AppConfig): {
 
   return {
     baseUrl: config.zaneBaseUrl.replace(/\/+$/, ""),
+    connectBaseUrl: (config.zaneConnectBaseUrl ?? config.zaneBaseUrl).replace(/\/+$/, ""),
+    connectHostHeader: config.zaneConnectHostHeader,
     username: config.zaneUsername,
     password: config.zanePassword,
   }
 }
 
 export class ZaneClient {
-  readonly #baseUrl: string
+  readonly #connectBaseUrl: string
+  readonly #connectHostHeader: string | null
   readonly #username: string
   readonly #password: string
 
   constructor(config: AppConfig) {
     const deployConfig = requireZaneDeployConfig(config)
-    this.#baseUrl = deployConfig.baseUrl
+    this.#connectBaseUrl = deployConfig.connectBaseUrl
+    this.#connectHostHeader = deployConfig.connectHostHeader
     this.#username = deployConfig.username
     this.#password = deployConfig.password
   }
@@ -454,11 +460,9 @@ export class ZaneClient {
       cookies: new Map<string, string>(),
     }
 
-    const csrfResponse = await fetch(`${this.#baseUrl}/api/csrf/`, {
+    const csrfResponse = await fetch(`${this.#connectBaseUrl}/api/csrf/`, {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: this.buildUpstreamHeaders(session, "GET"),
     })
 
     updateCookiesFromHeaders(session.cookies, csrfResponse.headers)
@@ -475,14 +479,9 @@ export class ZaneClient {
       throw new UpstreamHttpError(502, "zane_csrf_missing", "ZaneOps did not issue a csrftoken cookie")
     }
 
-    const loginResponse = await fetch(`${this.#baseUrl}/api/auth/login/`, {
+    const loginResponse = await fetch(`${this.#connectBaseUrl}/api/auth/login/`, {
       method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Cookie: buildCookieHeader(session.cookies),
-        "X-CSRFToken": csrfToken,
-      },
+      headers: this.buildUpstreamHeaders(session, "POST"),
       body: JSON.stringify({
         username: this.#username,
         password: this.#password,
@@ -516,15 +515,9 @@ export class ZaneClient {
       allowNotFound?: boolean
     },
   ): Promise<T | null> {
-    const csrfToken = session.cookies.get("csrftoken")
-    const response = await fetch(`${this.#baseUrl}${path}`, {
+    const response = await fetch(`${this.#connectBaseUrl}${path}`, {
       method,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Cookie: buildCookieHeader(session.cookies),
-        ...(method === "GET" || !csrfToken ? {} : { "X-CSRFToken": csrfToken }),
-      },
+      headers: this.buildUpstreamHeaders(session, method),
       body: payload == null ? undefined : JSON.stringify(payload),
     })
 
@@ -618,17 +611,11 @@ export class ZaneClient {
     noop_reason: string | null
   }> {
     const session = await this.authenticate()
-    const csrfToken = session.cookies.get("csrftoken")
     const response = await fetch(
-      `${this.#baseUrl}/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(input.environmentName)}/`,
+      `${this.#connectBaseUrl}/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(input.environmentName)}/`,
       {
         method: "DELETE",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          Cookie: buildCookieHeader(session.cookies),
-          ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
-        },
+        headers: this.buildUpstreamHeaders(session, "DELETE"),
       },
     )
 
@@ -948,12 +935,9 @@ export class ZaneClient {
   }
 
   private async triggerDeployment(target: ZaneResolvedTarget, body: JsonRecord): Promise<ZaneDeployment> {
-    const response = await fetch(`${this.#baseUrl}${target.deploy_url}`, {
+    const response = await fetch(`${this.#connectBaseUrl}${target.deploy_url}`, {
       method: "PUT",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
+      headers: this.buildUpstreamHeaders(undefined, "PUT"),
       body: JSON.stringify(body),
     })
 
@@ -982,6 +966,31 @@ export class ZaneClient {
       undefined,
       { allowNotFound: true },
     )
+  }
+
+  private buildUpstreamHeaders(session: ZaneSession | undefined, method: HttpMethod): Record<string, string> {
+    const csrfToken = session?.cookies.get("csrftoken")
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    }
+
+    if (session) {
+      const cookieHeader = buildCookieHeader(session.cookies)
+      if (cookieHeader) {
+        headers.Cookie = cookieHeader
+      }
+    }
+
+    if (method !== "GET" && csrfToken) {
+      headers["X-CSRFToken"] = csrfToken
+    }
+
+    if (this.#connectHostHeader) {
+      headers.Host = this.#connectHostHeader
+    }
+
+    return headers
   }
 
   private async getServiceDetails(

@@ -76,6 +76,8 @@ Teardown response includes role cleanup result:
 - `DB_APP_SCHEMA` (default: `medusa`)
 - `DB_PROTECTED_NAMES` (extra protected DB names, comma-separated)
 - `ZANE_BASE_URL` (required only for deploy orchestration endpoints)
+- `ZANE_CONNECT_BASE_URL` (optional; defaults empty and falls back to `ZANE_BASE_URL`)
+- `ZANE_CONNECT_HOST_HEADER` (optional; local-only host override when `ZANE_CONNECT_BASE_URL` is used)
 - `ZANE_USERNAME` (required only for deploy orchestration endpoints)
 - `ZANE_PASSWORD` (required only for deploy orchestration endpoints)
 
@@ -389,6 +391,8 @@ Notes:
 Before the first real preview/main smoke:
 - set local operator env:
   - `DC_ZANE_OPERATOR_ZANE_BASE_URL`
+  - `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL` only if the deployed operator cannot reach the public Zane hostname directly
+  - `DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER` only with the connect-base override above
   - `DC_ZANE_OPERATOR_ZANE_USERNAME`
   - `DC_ZANE_OPERATOR_ZANE_PASSWORD`
 - set local smoke env:

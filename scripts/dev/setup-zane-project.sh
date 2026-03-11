@@ -27,6 +27,8 @@ ADMIN_CORS_OVERRIDE="${ZANE_ADMIN_CORS:-}"
 AUTH_CORS_OVERRIDE="${ZANE_AUTH_CORS:-}"
 
 OPERATOR_UPSTREAM_ZANE_BASE_URL="${ZANE_OPERATOR_UPSTREAM_ZANE_BASE_URL:-}"
+OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL="${ZANE_OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL:-}"
+OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER="${ZANE_OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER:-}"
 OPERATOR_UPSTREAM_ZANE_USERNAME="${ZANE_OPERATOR_UPSTREAM_ZANE_USERNAME:-}"
 OPERATOR_UPSTREAM_ZANE_PASSWORD="${ZANE_OPERATOR_UPSTREAM_ZANE_PASSWORD:-}"
 ZANE_ROOT_DOMAIN=""
@@ -74,6 +76,10 @@ Options:
   --auth-cors VALUE              AUTH_CORS override
   --operator-upstream-zane-base-url URL
                                  Upstream Zane URL for the deployed zane-operator
+  --operator-upstream-zane-connect-base-url URL
+                                 Optional container-reachable upstream Zane URL for the deployed zane-operator
+  --operator-upstream-zane-connect-host-header VALUE
+                                 Optional Host header override used with the connect base URL
   --operator-upstream-zane-username USER
                                  Upstream Zane username for the deployed zane-operator
   --operator-upstream-zane-password PASS
@@ -165,6 +171,14 @@ setup::parse_args() {
         OPERATOR_UPSTREAM_ZANE_BASE_URL="$2"
         shift 2
         ;;
+      --operator-upstream-zane-connect-base-url)
+        OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL="$2"
+        shift 2
+        ;;
+      --operator-upstream-zane-connect-host-header)
+        OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER="$2"
+        shift 2
+        ;;
       --operator-upstream-zane-username)
         OPERATOR_UPSTREAM_ZANE_USERNAME="$2"
         shift 2
@@ -200,6 +214,8 @@ setup::normalize_base_url() {
   ZANE_BASE_URL="${ZANE_BASE_URL%/}"
 
   OPERATOR_UPSTREAM_ZANE_BASE_URL="${OPERATOR_UPSTREAM_ZANE_BASE_URL:-${DC_ZANE_OPERATOR_ZANE_BASE_URL:-}}"
+  OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL="${OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL:-${DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL:-}}"
+  OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER="${OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER:-${DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER:-}}"
   OPERATOR_UPSTREAM_ZANE_USERNAME="${OPERATOR_UPSTREAM_ZANE_USERNAME:-${DC_ZANE_OPERATOR_ZANE_USERNAME:-}}"
   OPERATOR_UPSTREAM_ZANE_PASSWORD="${OPERATOR_UPSTREAM_ZANE_PASSWORD:-${DC_ZANE_OPERATOR_ZANE_PASSWORD:-}}"
 }
@@ -546,6 +562,16 @@ setup::capture_zane_settings() {
   if [[ -z "$OPERATOR_UPSTREAM_ZANE_BASE_URL" ]] || setup::is_loopback_url "$OPERATOR_UPSTREAM_ZANE_BASE_URL"; then
     [[ -n "$ZANE_APP_DOMAIN" ]] || ci::die "Unable to determine Zane app domain from Zane settings."
     OPERATOR_UPSTREAM_ZANE_BASE_URL="https://${ZANE_APP_DOMAIN}"
+  fi
+
+  # Local Zane-on-Docker needs a container-reachable upstream path; the public
+  # sslip host resolves to loopback from inside the deployed operator container.
+  if [[ -z "$OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL" ]] && [[ "$ZANE_ROOT_DOMAIN" == "127-0-0-1.sslip.io" ]]; then
+    OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL="http://zane-app"
+  fi
+
+  if [[ -z "$OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER" ]] && [[ -n "$OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL" ]] && [[ -n "$ZANE_APP_DOMAIN" ]]; then
+    OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER="$ZANE_APP_DOMAIN"
   fi
 }
 
@@ -976,6 +1002,8 @@ setup::service_envs_json() {
         --arg db_preview_app_user_prefix "${DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX:-medusa_pr_app_}" \
         --arg db_protected_names "$protected_names" \
         --arg zane_base_url "${OPERATOR_UPSTREAM_ZANE_BASE_URL:-}" \
+        --arg zane_connect_base_url "${OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL:-}" \
+        --arg zane_connect_host_header "${OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER:-}" \
         --arg zane_username "${OPERATOR_UPSTREAM_ZANE_USERNAME:-}" \
         --arg zane_password "${OPERATOR_UPSTREAM_ZANE_PASSWORD:-}" \
         '{
@@ -995,6 +1023,8 @@ setup::service_envs_json() {
           DB_PREVIEW_APP_PASSWORD_SECRET: $db_preview_app_password_secret,
           DB_PROTECTED_NAMES: $db_protected_names,
           ZANE_BASE_URL: $zane_base_url,
+          ZANE_CONNECT_BASE_URL: $zane_connect_base_url,
+          ZANE_CONNECT_HOST_HEADER: $zane_connect_host_header,
           ZANE_USERNAME: $zane_username,
           ZANE_PASSWORD: $zane_password
         }'
@@ -1508,13 +1538,12 @@ setup::ensure_service_urls() {
   local service_json="$2"
   local desired_json="$3"
   local effective_json
+  local pending_urls_reset="false"
 
   if [[ "$(jq 'length' <<<"$desired_json")" == "0" ]]; then
     return 0
   fi
 
-  setup::cancel_pending_changes_for_field "$service_slug" "$service_json" "urls"
-  service_json="$(zane::get_service "$service_slug")"
   effective_json="$(setup::effective_urls_json "$service_json")"
 
   while IFS= read -r desired_row; do
@@ -1537,13 +1566,72 @@ setup::ensure_service_urls() {
         )
       ' <<<"$effective_json")"
 
-    desired_compact="$(jq -cS . <<<"$desired_row")"
+    desired_compact="$(
+      jq -cS '
+        {
+          domain,
+          base_path,
+          strip_prefix,
+          redirect_to: (.redirect_to // null),
+          associated_port: (.associated_port // null)
+        }
+      ' <<<"$desired_row"
+    )"
     if [[ -n "$current_row" && "$current_row" != "null" ]]; then
-      current_compact="$(jq -cS 'del(.id)' <<<"$current_row")"
+      current_compact="$(
+        jq -cS '
+          {
+            domain,
+            base_path,
+            strip_prefix,
+            redirect_to: (.redirect_to // null),
+            associated_port: (.associated_port // null)
+          }
+        ' <<<"$current_row"
+      )"
       if [[ "$current_compact" == "$desired_compact" ]]; then
         continue
       fi
+    fi
 
+    if [[ "$pending_urls_reset" != "true" ]]; then
+      setup::cancel_pending_changes_for_field "$service_slug" "$service_json" "urls"
+      service_json="$(zane::get_service "$service_slug")"
+      effective_json="$(setup::effective_urls_json "$service_json")"
+      pending_urls_reset="true"
+
+      current_row="$(jq -c \
+        --arg domain "$domain" \
+        --arg base_path "$base_path" \
+        --argjson associated_port "$associated_port" '
+          first(
+            .[]
+            | select(.domain == $domain and .base_path == $base_path)
+          ) // first(
+            .[]
+            | select(.associated_port == $associated_port and .redirect_to == null)
+          )
+        ' <<<"$effective_json")"
+
+      if [[ -n "$current_row" && "$current_row" != "null" ]]; then
+        current_compact="$(
+          jq -cS '
+            {
+              domain,
+              base_path,
+              strip_prefix,
+              redirect_to: (.redirect_to // null),
+              associated_port: (.associated_port // null)
+            }
+          ' <<<"$current_row"
+        )"
+        if [[ "$current_compact" == "$desired_compact" ]]; then
+          continue
+        fi
+      fi
+    fi
+
+    if [[ -n "$current_row" && "$current_row" != "null" ]]; then
       item_id="$(jq -r '.id' <<<"$current_row")"
       payload="$(
         jq -n \

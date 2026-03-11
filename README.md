@@ -66,10 +66,13 @@
       * `DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET=<replace-with-long-random-secret>`
     * To exercise the deploy-wrapper endpoints locally as well, also set:
       * `DC_ZANE_OPERATOR_ZANE_BASE_URL=<upstream-zane-url>`
+      * `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL=<optional-container-reachable-upstream-url>`
+      * `DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER=<optional-host-header-for-connect-url>`
       * `DC_ZANE_OPERATOR_ZANE_USERNAME=<upstream-zane-username>`
       * `DC_ZANE_OPERATOR_ZANE_PASSWORD=<upstream-zane-password>`
     * First-time upstream ZaneOps setup assumptions for local deploy testing:
       * `DC_ZANE_OPERATOR_ZANE_BASE_URL` must point at the upstream ZaneOps UI/API root you actually log into, for example `http://localhost:3000`
+      * `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL` / `...HOST_HEADER` should stay empty by default; they are only needed when the deployed `zane-operator` cannot reach the public Zane hostname directly, such as this local Docker-based Zane stack
       * `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` are the login credentials for that ZaneOps instance; `zane-operator` uses session + CSRF login upstream, not a direct Zane token
       * create one canonical Zane project and note its slug; local CI-style deploy tests use that slug as `ZANE_CANONICAL_PROJECT_SLUG`
       * each Zane project gets a protected `production` environment by default; preview clones in this repo always use that environment as the base
