@@ -162,6 +162,7 @@ jobs:
       deploy_services_csv: ${{ steps.run_deploy.outputs.deploy_services_csv }}
       env_override_service_ids_csv: ${{ steps.run_deploy.outputs.env_override_service_ids_csv }}
       triggered_services_csv: ${{ steps.run_deploy.outputs.triggered_services_csv }}
+      skipped_services_csv: ${{ steps.run_deploy.outputs.skipped_services_csv }}
       deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
     steps:
       - uses: actions/checkout@v4
@@ -195,6 +196,7 @@ jobs:
         run: |
           bash ./scripts/ci/zane-deploy.sh run-main \
             --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
+            --git-commit-sha "${{ github.event.workflow_run.head_sha }}" \
             --meili-url "$MEILISEARCH_URL" \
             --meili-master-key "$MEILISEARCH_MASTER_KEY" \
             --services-csv "$SERVICES_CSV"
@@ -208,6 +210,7 @@ jobs:
             echo "- Requested services: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}"
             echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
             echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"
+            echo "- Skipped services: ${{ steps.run_deploy.outputs.skipped_services_csv || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify:
