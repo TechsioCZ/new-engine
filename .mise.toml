@@ -97,7 +97,7 @@ run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy $(bash ./scripts/dev/
 [tasks."dev:internal:operator:up"]
 description = "Start manifest-defined operator phase services"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator up -d --build $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase operator)"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase operator)"
 
 [tasks."dev:internal:operator:wait"]
 description = "Wait for manifest-defined operator phase services to become healthy"
