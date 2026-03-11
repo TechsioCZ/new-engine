@@ -152,10 +152,12 @@ describe("storefront-data cache/query consistency", () => {
     const { useUpdateCustomer } = createCustomerHooks({
       service,
       buildListParams: (input: ListParams) => input,
-      buildCreateParams: (input: CreateParams) => input,
-      buildUpdateParams: (input: UpdateParams & { addressId?: string }) => {
-        const { addressId: _addressId, ...rest } = input
-        return rest
+      addressAdapter: {
+        toCreateParams: (input: CreateParams) => input,
+        toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
+          const { addressId: _addressId, ...rest } = input
+          return rest
+        },
       },
       buildUpdateCustomerParams: (input: UpdateCustomerParams) => input,
       queryKeyNamespace,
@@ -236,10 +238,12 @@ describe("storefront-data cache/query consistency", () => {
       createCustomerHooks({
         service,
         buildListParams: (input: ListParams) => input,
-        buildCreateParams: (input: CreateParams) => input,
-        buildUpdateParams: (input: UpdateParams & { addressId?: string }) => {
-          const { addressId: _addressId, ...rest } = input
-          return rest
+        addressAdapter: {
+          toCreateParams: (input: CreateParams) => input,
+          toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
+            const { addressId: _addressId, ...rest } = input
+            return rest
+          },
         },
         buildUpdateCustomerParams: (input: UpdateCustomerParams) => input,
         queryKeyNamespace,

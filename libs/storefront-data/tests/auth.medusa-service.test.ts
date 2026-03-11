@@ -97,7 +97,7 @@ describe("createMedusaAuthService", () => {
     await expect(service.getCustomer()).resolves.toBeNull()
   })
 
-  it("returns refreshed session token from register flow", async () => {
+  it("returns refreshed token from register flow and forwards login token to refresh", async () => {
     const sdk = createSdkMock()
     sdk.auth.register.mockResolvedValue("registration_token")
     sdk.auth.login.mockResolvedValue("login_token")
@@ -114,7 +114,9 @@ describe("createMedusaAuthService", () => {
     expect(sdk.auth.register).toHaveBeenCalledTimes(1)
     expect(sdk.auth.login).toHaveBeenCalledTimes(1)
     expect(sdk.store.customer.create).toHaveBeenCalledTimes(1)
-    expect(sdk.auth.refresh).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.refresh).toHaveBeenCalledWith({
+      Authorization: "Bearer login_token",
+    })
     expect(sdk.auth.register.mock.invocationCallOrder[0]!).toBeLessThan(
       sdk.auth.login.mock.invocationCallOrder[0]!
     )

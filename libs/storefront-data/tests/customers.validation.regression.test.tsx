@@ -3,6 +3,10 @@ import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
+import {
+  StorefrontAddressValidationError,
+  type StorefrontAddressValidationIssue,
+} from "../src/shared/address"
 
 const createWrapper = (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
@@ -31,7 +35,7 @@ describe("customer validation regression", () => {
     updateCustomer: vi.fn(async () => ({ id: "cus_1" } as Customer)),
   })
 
-  it("throws joined validation errors and skips createAddress call", async () => {
+  it("throws structured validation errors and skips createAddress call", async () => {
     const service = createService()
     const { useCreateCustomerAddress } = createCustomerHooks<
       Customer,
@@ -48,15 +52,27 @@ describe("customer validation regression", () => {
       service,
       buildListParams: () => ({}),
       queryKeyNamespace: "customers-validation-errors",
-      validateCreateAddressInput: (input) => {
-        const errors: string[] = []
-        if (!input.address_1) {
-          errors.push("address_1 is required")
-        }
-        if (!input.city) {
-          errors.push("city is required")
-        }
-        return errors.length ? errors : null
+      addressAdapter: {
+        validateCreate: (input) => {
+          const issues: StorefrontAddressValidationIssue[] = []
+          if (!input.address_1) {
+            issues.push({
+              scope: "customer",
+              field: "address_1",
+              code: "required",
+              message: "address_1 is required",
+            })
+          }
+          if (!input.city) {
+            issues.push({
+              scope: "customer",
+              field: "city",
+              code: "required",
+              message: "city is required",
+            })
+          }
+          return issues.length ? issues : null
+        },
       },
     })
 
@@ -69,7 +85,7 @@ describe("customer validation regression", () => {
     await act(async () => {
       await expect(
         result.current.mutateAsync({ address_1: "Main street" })
-      ).rejects.toThrow("city is required")
+      ).rejects.toBeInstanceOf(StorefrontAddressValidationError)
     })
 
     expect(service.createAddress).not.toHaveBeenCalled()
@@ -92,7 +108,9 @@ describe("customer validation regression", () => {
       service,
       buildListParams: () => ({}),
       queryKeyNamespace: "customers-validation-ok",
-      validateCreateAddressInput: () => null,
+      addressAdapter: {
+        validateCreate: () => null,
+      },
     })
 
     const queryClient = new QueryClient({
@@ -112,4 +130,3 @@ describe("customer validation regression", () => {
     expect(service.createAddress).toHaveBeenCalledTimes(1)
   })
 })
-

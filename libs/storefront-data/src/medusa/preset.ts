@@ -79,7 +79,12 @@ import {
   type MedusaCustomerProfileUpdateInput,
 } from "../customers/medusa-service"
 import { createCustomerQueryKeys } from "../customers/query-keys"
-import type { CustomerQueryKeys, CustomerService } from "../customers/types"
+import type {
+  CustomerAddressCreateInputBase,
+  CustomerAddressUpdateInputBase,
+  CustomerQueryKeys,
+  CustomerService,
+} from "../customers/types"
 import { createOrderHooks, type CreateOrderHooksConfig } from "../orders/hooks"
 import {
   createMedusaOrderService,
@@ -205,15 +210,18 @@ type MedusaCustomerAddressUpdateHookInput =
     addressId?: string
   }
 
-type MedusaCustomerHooksConfig = OmitFactoryConfig<
+type MedusaCustomerHooksConfig<
+  TCreateInput extends CustomerAddressCreateInputBase,
+  TUpdateInput extends CustomerAddressUpdateInputBase,
+> = OmitFactoryConfig<
   CreateCustomerHooksConfig<
     HttpTypes.StoreCustomer,
     HttpTypes.StoreCustomerAddress,
     MedusaCustomerListInput,
     MedusaCustomerListInput,
+    TCreateInput,
     MedusaCustomerAddressCreateInput,
-    MedusaCustomerAddressCreateInput,
-    MedusaCustomerAddressUpdateHookInput,
+    TUpdateInput,
     MedusaCustomerAddressUpdateInput,
     MedusaCustomerProfileUpdateInput,
     MedusaCustomerProfileUpdateInput
@@ -296,6 +304,8 @@ export type CreateMedusaStorefrontPresetConfig<
   TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
 > = {
   sdk: Medusa
   queryKeyNamespace?: QueryNamespace
@@ -333,7 +343,10 @@ export type CreateMedusaStorefrontPresetConfig<
   }
   customers?: {
     service?: MedusaCustomerService
-    hooks?: MedusaCustomerHooksConfig
+    hooks?: MedusaCustomerHooksConfig<
+      TCustomerAddressCreateInput,
+      TCustomerAddressUpdateInput
+    >
     queryKeys?: CustomerQueryKeys<MedusaCustomerListInput>
   }
   regions?: {
@@ -431,6 +444,8 @@ export function createMedusaStorefrontPreset<
   TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
 >(
   config: CreateMedusaStorefrontPresetConfig<
     TProduct,
@@ -439,7 +454,9 @@ export function createMedusaStorefrontPreset<
     TCatalogProduct,
     TCatalogFacets,
     TCartAddressInput,
-    TCartAddressPayload
+    TCartAddressPayload,
+    TCustomerAddressCreateInput,
+    TCustomerAddressUpdateInput
   >
 ) {
   const namespace = config.queryKeyNamespace ?? "storefront-data"
@@ -598,9 +615,9 @@ export function createMedusaStorefrontPreset<
       HttpTypes.StoreCustomerAddress,
       MedusaCustomerListInput,
       MedusaCustomerListInput,
+      TCustomerAddressCreateInput,
       MedusaCustomerAddressCreateInput,
-      MedusaCustomerAddressCreateInput,
-      MedusaCustomerAddressUpdateHookInput,
+      TCustomerAddressUpdateInput,
       MedusaCustomerAddressUpdateInput,
       MedusaCustomerProfileUpdateInput,
       MedusaCustomerProfileUpdateInput

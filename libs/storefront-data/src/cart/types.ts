@@ -6,6 +6,10 @@ import type {
   SuspenseQueryResult,
   SuspenseResultBase,
 } from "../shared/hook-types"
+import type {
+  StorefrontCartAddressAdapter,
+  StorefrontAddressValidationResult,
+} from "../shared/address"
 
 export type CartLineItemLike = {
   quantity?: number
@@ -75,12 +79,17 @@ export type CartAddressInputBase<TAddressInput = Record<string, unknown>> =
     useSameAddress?: boolean
   }
 
-export type CartAddressValidationResult =
-  | string
-  | string[]
-  | Error
-  | null
-  | undefined
+export type CartAddressValidationResult = StorefrontAddressValidationResult
+
+export type CartAddressAdapter<
+  TAddressInput = Record<string, unknown>,
+  TAddressPayload = TAddressInput,
+  TStoredAddress = unknown,
+> = StorefrontCartAddressAdapter<
+  TAddressInput,
+  TAddressPayload,
+  TStoredAddress
+>
 
 export type TransferCartInputBase = {
   cartId?: string

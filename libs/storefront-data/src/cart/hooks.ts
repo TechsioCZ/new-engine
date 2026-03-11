@@ -10,6 +10,7 @@ import {
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
+import { assertStorefrontAddressValidation } from "../shared/address"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   MutationOptions,
@@ -25,8 +26,8 @@ import { invalidateCartCaches, syncCartCaches } from "./cache-sync"
 import { createCartQueryKeys } from "./query-keys"
 import type {
   AddLineItemInputBase,
+  CartAddressAdapter,
   CartAddressInputBase,
-  CartAddressValidationResult,
   CartCreateInputBase,
   CartInputBase,
   CartLike,
@@ -202,21 +203,6 @@ const getItemCount = (cart: CartLike | null): number => {
   return cart.items.reduce((acc, item) => acc + (item.quantity ?? 0), 0)
 }
 
-const handleAddressValidation = (result: CartAddressValidationResult) => {
-  if (!result) {
-    return
-  }
-  if (result instanceof Error) {
-    throw result
-  }
-  if (Array.isArray(result)) {
-    throw new Error(result.filter(Boolean).join(", "))
-  }
-  if (typeof result === "string") {
-    throw new Error(result)
-  }
-}
-
 type BuildCreateParamsOption<
   TCreateInput extends CartCreateInputBase,
   TCreateParams,
@@ -276,16 +262,7 @@ type CreateCartHooksBaseConfig<
   requireRegion?: boolean
   cartStorage?: CartStorage
   isNotFoundError?: (error: unknown) => boolean
-  normalizeShippingAddressInput?: (input: TAddressInput) => TAddressInput
-  normalizeBillingAddressInput?: (input: TAddressInput) => TAddressInput
-  validateShippingAddressInput?: (
-    input: TAddressInput
-  ) => CartAddressValidationResult
-  validateBillingAddressInput?: (
-    input: TAddressInput
-  ) => CartAddressValidationResult
-  buildShippingAddress?: (input: TAddressInput) => TAddressPayload
-  buildBillingAddress?: (input: TAddressInput) => TAddressPayload
+  addressAdapter?: CartAddressAdapter<TAddressInput, TAddressPayload>
   invalidateOnSuccess?: boolean
 }
 
@@ -355,12 +332,7 @@ export function createCartHooks<
   requireRegion = true,
   cartStorage,
   isNotFoundError,
-  normalizeShippingAddressInput,
-  normalizeBillingAddressInput,
-  validateShippingAddressInput,
-  validateBillingAddressInput,
-  buildShippingAddress,
-  buildBillingAddress,
+  addressAdapter,
   invalidateOnSuccess = false,
 }: CreateCartHooksConfig<
   TCart,
@@ -398,11 +370,31 @@ export function createCartHooks<
     buildUpdateItemParams ??
     ((input: TUpdateItemInput) =>
       normalizeUpdateLineItemPayload(input) as TUpdateItemParams)
-  const buildShipping: ParamBuilder<TAddressInput, TAddressPayload> =
-    buildShippingAddress ??
-    ((input: TAddressInput) => input as TAddressInput & TAddressPayload)
-  const buildBilling =
-    buildBillingAddress ?? ((input: TAddressInput) => buildShipping(input))
+
+  const normalizeAddressInput = (
+    input: TAddressInput,
+    scope: "shipping" | "billing"
+  ): TAddressInput =>
+    addressAdapter?.normalize
+      ? addressAdapter.normalize(input, { scope })
+      : input
+
+  const validateAddressInput = (
+    input: TAddressInput,
+    scope: "shipping" | "billing"
+  ) => {
+    assertStorefrontAddressValidation(
+      addressAdapter?.validate?.(input, { scope })
+    )
+  }
+
+  const buildAddressPayload = (
+    input: TAddressInput,
+    scope: "shipping" | "billing"
+  ): TAddressPayload =>
+    addressAdapter?.toPayload
+      ? addressAdapter.toPayload(input, { scope })
+      : (input as TAddressInput & TAddressPayload)
 
   const readStoredCartId = (): string | null => {
     if (!cartStorage) {
@@ -455,9 +447,7 @@ export function createCartHooks<
     if (useSameAddress || !billingAddress) {
       return normalizedShipping
     }
-    return normalizeBillingAddressInput
-      ? normalizeBillingAddressInput(billingAddress)
-      : billingAddress
+    return normalizeAddressInput(billingAddress, "billing")
   }
 
   const resolveAddressMutationInput = (
@@ -469,9 +459,7 @@ export function createCartHooks<
       useSameAddress,
       ...restInput
     } = input as AddressMutationInput<TAddressInput>
-    const normalizedShipping = normalizeShippingAddressInput
-      ? normalizeShippingAddressInput(shippingAddress)
-      : shippingAddress
+    const normalizedShipping = normalizeAddressInput(shippingAddress, "shipping")
     const resolvedBillingInput = resolveBillingAddressInput(
       useSameAddress,
       billingAddress,
@@ -489,11 +477,11 @@ export function createCartHooks<
     shippingInput: TAddressInput,
     billingInput: TAddressInput | undefined
   ) => {
-    handleAddressValidation(validateShippingAddressInput?.(shippingInput))
+    validateAddressInput(shippingInput, "shipping")
     if (!billingInput) {
       return
     }
-    handleAddressValidation(validateBillingAddressInput?.(billingInput))
+    validateAddressInput(billingInput, "billing")
   }
 
   const buildAddressUpdateInput = (
@@ -503,9 +491,9 @@ export function createCartHooks<
   ) =>
     ({
       ...(restInput as TUpdateInput),
-      shipping_address: buildShipping(normalizedShipping),
+      shipping_address: buildAddressPayload(normalizedShipping, "shipping"),
       billing_address: resolvedBillingInput
-        ? buildBilling(resolvedBillingInput)
+        ? buildAddressPayload(resolvedBillingInput, "billing")
         : undefined,
     }) as TUpdateInput & {
       shipping_address?: TAddressPayload

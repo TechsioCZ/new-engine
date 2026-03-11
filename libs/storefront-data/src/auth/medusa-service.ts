@@ -44,9 +44,10 @@ const defaultReportLogoutError = (
  *
  * Includes multi-step registration flow:
  * 1. Register auth identity
- * 2. Login to establish session
+ * 2. Login to establish customer auth state
  * 3. Create customer profile
- * 4. Refresh token for proper permissions
+ * 4. Refresh auth state so subsequent requests use a token/session that
+ *    includes the created customer actor.
  *
  * @example
  * ```typescript
@@ -160,10 +161,9 @@ export function createMedusaAuthService(
           throw new Error("Multi-step authentication not supported")
         }
 
-        // Step 2: Login to establish a standard customer session.
-        // Medusa docs show register token usage directly for customer.create, but
-        // we intentionally keep this login step so the flow consistently returns
-        // a refreshed session token after create+refresh.
+        // Step 2: Login to establish the standard customer auth state before
+        // creating the customer profile. This works for both JWT and session
+        // auth modes through the SDK.
         const loginToken = await sdk.auth.login("customer", "emailpass", {
           email: data.email,
           password: data.password,
@@ -179,8 +179,13 @@ export function createMedusaAuthService(
           last_name: data.last_name,
         })
 
-        // Step 4: Refresh token for proper permissions (REQUIRED!)
-        const sessionToken = await sdk.auth.refresh()
+        // Step 4: Refresh auth state after customer creation so the JWT/session
+        // reflects the newly created customer actor. In session mode the SDK
+        // does not keep a bearer token around, so we forward the login token
+        // explicitly to the refresh endpoint.
+        const sessionToken = await sdk.auth.refresh({
+          Authorization: `Bearer ${loginToken}`,
+        })
         if (typeof sessionToken !== "string") {
           throw new Error("Multi-step authentication not supported")
         }

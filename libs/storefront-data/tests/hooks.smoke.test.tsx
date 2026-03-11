@@ -6,6 +6,7 @@ import { StorefrontDataProvider } from "../src/client/provider"
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import type { CartService, UpdateCartInputBase } from "../src/cart/types"
+import type { StorefrontAddressValidationIssue } from "../src/shared/address"
 import {
   createCustomerHooks,
 } from "../src/customers/hooks"
@@ -174,24 +175,35 @@ describe("storefront-data hook smoke tests", () => {
         service: cartService,
         buildUpdateParams,
         queryKeys: cartQueryKeys,
-        normalizeShippingAddressInput: (input) => ({
-          ...input,
-          firstName: input.firstName.trim(),
-          lastName: input.lastName.trim(),
-          address1: input.address1.trim(),
-        }),
-        validateShippingAddressInput: (input) => {
-          const errors: string[] = []
-          if (!input.firstName) {
-            errors.push("first name required")
-          }
-          if (!input.lastName) {
-            errors.push("last name required")
-          }
-          return errors.length ? errors : null
+        addressAdapter: {
+          normalize: (input) => ({
+            ...input,
+            firstName: input.firstName.trim(),
+            lastName: input.lastName.trim(),
+            address1: input.address1.trim(),
+          }),
+          validate: (input, context) => {
+            const issues: StorefrontAddressValidationIssue[] = []
+            if (!input.firstName) {
+              issues.push({
+                scope: context.scope,
+                field: "firstName",
+                code: "required",
+                message: "first name required",
+              })
+            }
+            if (!input.lastName) {
+              issues.push({
+                scope: context.scope,
+                field: "lastName",
+                code: "required",
+                message: "last name required",
+              })
+            }
+            return issues.length ? issues : null
+          },
+          toPayload: (input) => buildAddressPayload(input),
         },
-        buildShippingAddress: buildAddressPayload,
-        buildBillingAddress: buildAddressPayload,
       })
 
       const queryClient = createTestClient({
