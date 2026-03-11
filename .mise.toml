@@ -38,6 +38,10 @@ run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --pr
 description = "Run zane-operator bootstrap with in-command idempotency verification"
 run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator run --rm --build -e BOOTSTRAP_VERIFY_IDEMPOTENT=1 zane-operator-bootstrap"
 
+[tasks."dev:zane:main"]
+description = "Simulate the active CI main lane locally against a deployed Zane target"
+run = "bash ./scripts/dev/run-zane-main-lane.sh"
+
 [tasks."ci:meili:provision"]
 description = "Provision Meilisearch backend/frontend API keys (idempotent)"
 run = "bash ./scripts/ci/provision-meili-keys.sh"

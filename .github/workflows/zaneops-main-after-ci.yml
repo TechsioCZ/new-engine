@@ -66,7 +66,7 @@ jobs:
 
       - name: Resolve prepare needs
         id: prepare_needs
-        run: bash ./scripts/ci/resolve-prepare-needs.sh --services-csv "${{ steps.affected.outputs.services_csv }}"
+        run: bash ./scripts/ci/resolve-prepare-needs.sh --lane main --services-csv "${{ steps.affected.outputs.services_csv }}"
 
       - name: Summary
         if: always()
@@ -177,6 +177,8 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
+          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
+          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
         run: bash ./scripts/ci/check-workflow-inputs.sh main-deploy
 
       - name: Run main deploy
@@ -187,9 +189,13 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
+          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
+          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
         run: |
           bash ./scripts/ci/zane-deploy.sh run-main \
             --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
+            --meili-url "$MEILISEARCH_URL" \
+            --meili-master-key "$MEILISEARCH_MASTER_KEY" \
             --services-csv "$SERVICES_CSV"
 
       - name: Summary

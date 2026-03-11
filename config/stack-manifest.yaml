@@ -28,99 +28,61 @@ services:
   - id: "medusa-db"
     compose_service: "medusa-db"
     kind: "infra"
-    nx_projects: []
     local:
       phase: "resources"
-      enabled_by_default: true
-      wait_healthy: true
     ci:
       deployable: true
       affected_path_globs:
         - "docker/development/postgres/**"
         - "scripts/apply-postgres-role-bootstrap.sh"
-      prepare:
-        preview_db: false
-        meili_keys: false
       zane:
         service_name: "medusa-db"
         deploy_lanes: ["preview", "main"]
-        consumes:
-          preview_db: false
-          meili_frontend_key: false
-          meili_backend_key: false
-        coupled_service_ids: []
+        deploy_stage: 10
 
   - id: "medusa-valkey"
     compose_service: "medusa-valkey"
     kind: "infra"
-    nx_projects: []
     local:
       phase: "resources"
-      enabled_by_default: true
-      wait_healthy: true
     ci:
       deployable: true
       affected_path_globs:
         - "docker/development/medusa-valkey/**"
-      prepare:
-        preview_db: false
-        meili_keys: false
       zane:
         service_name: "medusa-valkey"
         deploy_lanes: ["preview", "main"]
-        consumes:
-          preview_db: false
-          meili_frontend_key: false
-          meili_backend_key: false
-        coupled_service_ids: []
+        deploy_stage: 10
 
   - id: "medusa-minio"
     compose_service: "medusa-minio"
     kind: "infra"
-    nx_projects: []
     local:
       phase: "resources"
-      enabled_by_default: true
-      wait_healthy: true
     ci:
       deployable: true
       affected_path_globs:
         - "docker/development/medusa-minio/**"
-      prepare:
-        preview_db: false
-        meili_keys: false
       zane:
         service_name: "medusa-minio"
         deploy_lanes: ["preview", "main"]
-        consumes:
-          preview_db: false
-          meili_frontend_key: false
-          meili_backend_key: false
-        coupled_service_ids: []
+        deploy_stage: 10
 
   - id: "medusa-meilisearch"
     compose_service: "medusa-meilisearch"
     kind: "infra"
-    nx_projects: []
     local:
       phase: "resources"
-      enabled_by_default: true
-      wait_healthy: true
     ci:
       deployable: true
       affected_path_globs:
         - "docker/development/medusa-meilisearch/**"
       prepare:
-        preview_db: false
         meili_keys: true
       zane:
         service_name: "medusa-meilisearch"
         deploy_lanes: ["preview", "main"]
-        consumes:
-          preview_db: false
-          meili_frontend_key: false
-          meili_backend_key: false
-        coupled_service_ids: []
+        deploy_stage: 10
 
   - id: "medusa-be"
     compose_service: "medusa-be"
@@ -129,8 +91,6 @@ services:
       - "medusa-be"
     local:
       phase: "backend"
-      enabled_by_default: true
-      wait_healthy: true
     ci:
       deployable: true
       affected_path_globs:
@@ -143,11 +103,10 @@ services:
       zane:
         service_name: "medusa-be"
         deploy_lanes: ["preview", "main"]
+        deploy_stage: 20
         consumes:
           preview_db: true
-          meili_frontend_key: false
-          meili_backend_key: false
-        coupled_service_ids: []
+          meili_backend_key: true
 
   - id: "n1"
     compose_service: "n1"
@@ -156,24 +115,19 @@ services:
       - "n1"
     local:
       phase: "frontend"
-      enabled_by_default: true
-      wait_healthy: true
     ci:
       deployable: true
       affected_path_globs:
         - "docker/development/n1/**"
         - "scripts/dev/**"
       prepare:
-        preview_db: false
         meili_keys: true
       zane:
         service_name: "n1"
         deploy_lanes: ["preview", "main"]
+        deploy_stage: 20
         consumes:
-          preview_db: false
           meili_frontend_key: true
-          meili_backend_key: false
-        coupled_service_ids: []
 
   - id: "zane-operator"
     compose_service: "zane-operator"
@@ -183,11 +137,11 @@ services:
     local:
       phase: "operator"
       enabled_by_default: false
-      wait_healthy: true
     ci:
-      deployable: false
+      deployable: true
       affected_path_globs:
         - "docker/development/zane-operator/**"
-      prepare:
-        preview_db: false
-        meili_keys: false
+      zane:
+        service_name: "zane-operator"
+        deploy_lanes: ["main"]
+        deploy_stage: 30

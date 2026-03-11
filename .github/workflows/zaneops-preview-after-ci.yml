@@ -63,7 +63,7 @@ jobs:
 
       - name: Resolve prepare needs
         id: prepare_needs
-        run: bash ./scripts/ci/resolve-prepare-needs.sh --services-csv "${{ steps.affected.outputs.services_csv }}"
+        run: bash ./scripts/ci/resolve-prepare-needs.sh --lane preview --services-csv "${{ steps.affected.outputs.services_csv }}"
 
       - name: Summary
         if: always()

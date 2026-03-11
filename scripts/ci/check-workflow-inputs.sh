@@ -77,6 +77,8 @@ case "$mode" in
     ci::mask_env_if_present ZANE_OPERATOR_BASE_URL
     ci::mask_env_if_present ZANE_OPERATOR_API_TOKEN
     ci::mask_env_if_present ZANE_PRODUCTION_ENVIRONMENT_NAME
+    ci::mask_env_if_present MEILISEARCH_URL
+    ci::mask_env_if_present MEILISEARCH_MASTER_KEY
     ;;
   preview-teardown)
     ci::require_env ZANE_OPERATOR_BASE_URL "preview DB operator base URL"
