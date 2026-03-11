@@ -31,6 +31,9 @@ Global notes:
 EOF
 }
 
+ZANE_DEPLOYMENT_POLL_INTERVAL_SECONDS_DEFAULT="${ZANE_DEPLOYMENT_POLL_INTERVAL_SECONDS_DEFAULT:-10}"
+ZANE_DEPLOYMENT_WAIT_TIMEOUT_SECONDS_DEFAULT="${ZANE_DEPLOYMENT_WAIT_TIMEOUT_SECONDS_DEFAULT:-900}"
+
 zane::require_common_commands() {
   ci::require_command jq
   ci::require_command curl
@@ -181,6 +184,23 @@ zane::stage_has_meili_consumers() {
   ' "$plan_json" >/dev/null
 }
 
+zane::merge_deployments_json_file() {
+  local source_json="$1"
+  local dest_json="$2"
+  local merged_json
+
+  zane::require_file "$source_json"
+  zane::require_file "$dest_json"
+
+  merged_json="$(jq -cn \
+    --argjson existing "$(jq -c '.services // []' "$dest_json")" \
+    --argjson current "$(jq -c '.services // []' "$source_json")" \
+    '{
+      services: (($existing + $current) | unique_by(.service_id + ":" + .deployment_hash))
+    }')"
+  zane::write_json_file "$dest_json" "$merged_json"
+}
+
 zane::stage_plan_json() {
   local plan_json="$1"
   local stage="$2"
@@ -319,6 +339,211 @@ zane::api_request() {
   fi
 
   jq -c . <"$tmp_body"
+}
+
+zane::cmd_wait_deployments() {
+  zane::require_common_commands
+
+  local lane=""
+  local project_slug="${ZANE_CANONICAL_PROJECT_SLUG:-}"
+  local environment_name=""
+  local requested_services_csv=""
+  local deploy_services_csv=""
+  local triggered_services_csv=""
+  local preview_db_name=""
+  local preview_db_user=""
+  local preview_db_password=""
+  local meili_frontend_key=""
+  local meili_frontend_env_var=""
+  local meili_backend_key=""
+  local deployments_json=""
+  local output_json=""
+  local base_url="${ZANE_OPERATOR_BASE_URL:-}"
+  local api_token="${ZANE_OPERATOR_API_TOKEN:-}"
+  local dry_run="false"
+  local poll_interval_seconds="$ZANE_DEPLOYMENT_POLL_INTERVAL_SECONDS_DEFAULT"
+  local wait_timeout_seconds="$ZANE_DEPLOYMENT_WAIT_TIMEOUT_SECONDS_DEFAULT"
+  local started_at
+  local response_json
+  local failed_services
+  local in_progress_count
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --lane)
+        lane="${2-}"
+        shift 2
+        ;;
+      --project-slug)
+        project_slug="${2-}"
+        shift 2
+        ;;
+      --environment-name)
+        environment_name="${2-}"
+        shift 2
+        ;;
+      --requested-services-csv)
+        requested_services_csv="${2-}"
+        shift 2
+        ;;
+      --deploy-services-csv)
+        deploy_services_csv="${2-}"
+        shift 2
+        ;;
+      --triggered-services-csv)
+        triggered_services_csv="${2-}"
+        shift 2
+        ;;
+      --preview-db-name)
+        preview_db_name="${2-}"
+        shift 2
+        ;;
+      --preview-db-user)
+        preview_db_user="${2-}"
+        shift 2
+        ;;
+      --preview-db-password)
+        preview_db_password="${2-}"
+        shift 2
+        ;;
+      --meili-frontend-key)
+        meili_frontend_key="${2-}"
+        shift 2
+        ;;
+      --meili-frontend-env-var)
+        meili_frontend_env_var="${2-}"
+        shift 2
+        ;;
+      --meili-backend-key)
+        meili_backend_key="${2-}"
+        shift 2
+        ;;
+      --deployments-json)
+        deployments_json="${2-}"
+        shift 2
+        ;;
+      --output-json)
+        output_json="${2-}"
+        shift 2
+        ;;
+      --base-url)
+        base_url="${2-}"
+        shift 2
+        ;;
+      --api-token)
+        api_token="${2-}"
+        shift 2
+        ;;
+      --dry-run)
+        dry_run="true"
+        shift
+        ;;
+      --poll-interval-seconds)
+        poll_interval_seconds="${2-}"
+        shift 2
+        ;;
+      --wait-timeout-seconds)
+        wait_timeout_seconds="${2-}"
+        shift 2
+        ;;
+      *)
+        ci::die "Unknown argument for wait-deployments: $1"
+        ;;
+    esac
+  done
+
+  zane::require_lane "$lane"
+  [[ -n "$project_slug" ]] || ci::die "Zane canonical project slug is required."
+  [[ -n "$environment_name" ]] || ci::die "Environment name is required."
+  [[ -n "$deployments_json" ]] || ci::die "--deployments-json is required."
+  zane::require_file "$deployments_json"
+  zane::require_numeric "$poll_interval_seconds" "Poll interval seconds"
+  zane::require_numeric "$wait_timeout_seconds" "Wait timeout seconds"
+
+  started_at="$(date +%s)"
+
+  while true; do
+    if [[ "$dry_run" == "true" ]]; then
+      response_json="$(
+        zane::cmd_verify \
+          --lane "$lane" \
+          --project-slug "$project_slug" \
+          --environment-name "$environment_name" \
+          --requested-services-csv "$requested_services_csv" \
+          --deploy-services-csv "$deploy_services_csv" \
+          --triggered-services-csv "$triggered_services_csv" \
+          --preview-db-name "$preview_db_name" \
+          --preview-db-user "$preview_db_user" \
+          --preview-db-password "$preview_db_password" \
+          --meili-frontend-key "$meili_frontend_key" \
+          --meili-frontend-env-var "$meili_frontend_env_var" \
+          --meili-backend-key "$meili_backend_key" \
+          --deployments-json "$deployments_json" \
+          --dry-run \
+          --base-url "$base_url" \
+          --api-token "$api_token"
+      )"
+    else
+      response_json="$(
+        zane::cmd_verify \
+          --lane "$lane" \
+          --project-slug "$project_slug" \
+          --environment-name "$environment_name" \
+          --requested-services-csv "$requested_services_csv" \
+          --deploy-services-csv "$deploy_services_csv" \
+          --triggered-services-csv "$triggered_services_csv" \
+          --preview-db-name "$preview_db_name" \
+          --preview-db-user "$preview_db_user" \
+          --preview-db-password "$preview_db_password" \
+          --meili-frontend-key "$meili_frontend_key" \
+          --meili-frontend-env-var "$meili_frontend_env_var" \
+          --meili-backend-key "$meili_backend_key" \
+          --deployments-json "$deployments_json" \
+          --base-url "$base_url" \
+          --api-token "$api_token"
+      )"
+    fi
+
+    failed_services="$(jq -r '
+      [
+        (.checked_deployments // [])[]
+        | select((.status | ascii_upcase) == "FAILED" or (.status | ascii_upcase) == "UNHEALTHY" or (.status | ascii_upcase) == "CANCELLED" or (.status | ascii_upcase) == "REMOVED")
+        | "\(.service_name)=\(.status)\(if (.status_reason // "") != "" then " (" + .status_reason + ")" else "" end)"
+      ]
+      | join("; ")
+    ' <<<"$response_json")"
+    if [[ -n "$failed_services" ]]; then
+      ci::die "Deploy wait failed for triggered deployments: ${failed_services}"
+    fi
+
+    in_progress_count="$(jq -r '
+      [
+        (.checked_deployments // [])[]
+        | select((.status | ascii_upcase) != "HEALTHY")
+      ]
+      | length
+    ' <<<"$response_json")"
+    if [[ "$in_progress_count" == "0" ]]; then
+      if [[ -n "$output_json" ]]; then
+        zane::write_json_file "$output_json" "$response_json"
+      fi
+      printf '%s\n' "$response_json"
+      return 0
+    fi
+
+    if (( $(date +%s) - started_at >= wait_timeout_seconds )); then
+      ci::die "Timed out after ${wait_timeout_seconds}s waiting for deployments to become HEALTHY: $(jq -r '
+        [
+          (.checked_deployments // [])[]
+          | select((.status | ascii_upcase) != "HEALTHY")
+          | "\(.service_name)=\(.status)\(if (.status_reason // "") != "" then " (" + .status_reason + ")" else "" end)"
+        ]
+        | join("; ")
+      ' <<<"$response_json")"
+    fi
+
+    sleep "$poll_interval_seconds"
+  done
 }
 
 zane::cmd_plan() {
@@ -1018,7 +1243,7 @@ EOF
         project_slug: $project_slug,
         environment_name: $environment_name,
         triggered_service_ids: ($services | map(.service_id)),
-        services: ($services | map({service_id, service_name, deploy_id: ("dry-run:deploy:" + .service_name)}))
+        services: ($services | map({service_id, service_name, service_slug, service_type, deployment_hash: ("dry-run:deploy:" + .service_name), status: "HEALTHY"}))
       }')"
   else
     local payload
@@ -1054,12 +1279,11 @@ zane::cmd_verify() {
   local meili_frontend_env_var=""
   local meili_backend_key=""
   local deployments_json=""
+  local deployments_json_inline=""
   local output_json=""
   local base_url="${ZANE_OPERATOR_BASE_URL:-}"
   local api_token="${ZANE_OPERATOR_API_TOKEN:-}"
   local dry_run="false"
-  local wait_for_healthy="false"
-  local wait_timeout_seconds="600"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -1115,6 +1339,10 @@ zane::cmd_verify() {
         deployments_json="${2-}"
         shift 2
         ;;
+      --deployments-json-inline)
+        deployments_json_inline="${2-}"
+        shift 2
+        ;;
       --output-json)
         output_json="${2-}"
         shift 2
@@ -1130,14 +1358,6 @@ zane::cmd_verify() {
       --dry-run)
         dry_run="true"
         shift
-        ;;
-      --wait)
-        wait_for_healthy="true"
-        shift
-        ;;
-      --wait-timeout-seconds)
-        wait_timeout_seconds="${2-}"
-        shift 2
         ;;
       -h|--help)
         cat <<'EOF'
@@ -1155,6 +1375,9 @@ EOF
   zane::require_lane "$lane"
   [[ -n "$project_slug" ]] || ci::die "Zane canonical project slug is required."
   [[ -n "$environment_name" ]] || ci::die "Environment name is required."
+  if [[ -n "$deployments_json" && -n "$deployments_json_inline" ]]; then
+    ci::die "Pass only one of --deployments-json or --deployments-json-inline."
+  fi
 
   local env_overrides_json_file
   env_overrides_json_file="$(mktemp)"
@@ -1181,6 +1404,8 @@ EOF
   if [[ -n "$deployments_json" ]]; then
     zane::require_file "$deployments_json"
     deployments_json_payload="$(jq -c '.services // []' "$deployments_json")"
+  elif [[ -n "$deployments_json_inline" ]]; then
+    deployments_json_payload="$(jq -c '.services // []' <<<"$deployments_json_inline")"
   fi
 
   local response_json
@@ -1203,7 +1428,14 @@ EOF
         deploy_service_ids: $deploy_service_ids,
         triggered_service_ids: $triggered_service_ids,
         checked_env_override_service_ids: ($expected_env_overrides | map(.service_id)),
-        checked_deployment_service_ids: ($deployments | map(.service_id))
+        checked_deployment_service_ids: ($deployments | map(.service_id)),
+        checked_deployments: ($deployments | map({
+          service_id,
+          service_name,
+          deployment_hash,
+          status: (.status // "HEALTHY"),
+          status_reason: null
+        }))
       }')"
   else
     local payload
@@ -1216,8 +1448,6 @@ EOF
       --argjson triggered_service_ids "$triggered_services_json" \
       --argjson expected_env_overrides "$(jq -c '.services // []' "$env_overrides_json_file")" \
       --argjson deployments "$deployments_json_payload" \
-      --argjson wait_for_healthy "$(jq -n --arg value "$wait_for_healthy" '$value == "true"')" \
-      --argjson wait_timeout_seconds "$wait_timeout_seconds" \
       '{
         lane: $lane,
         project_slug: $project_slug,
@@ -1226,9 +1456,7 @@ EOF
         deploy_service_ids: $deploy_service_ids,
         triggered_service_ids: $triggered_service_ids,
         expected_env_overrides: $expected_env_overrides,
-        deployments: $deployments,
-        wait_for_healthy: $wait_for_healthy,
-        wait_timeout_seconds: $wait_timeout_seconds
+        deployments: $deployments
       }')"
     response_json="$(zane::api_request POST "/v1/zane/deploy/verify" "$payload" "$base_url" "$api_token")"
   fi
@@ -1331,13 +1559,16 @@ EOF
   local targets_json_file
   local apply_json_file
   local trigger_json_file
+  local all_deployments_json_file
   plan_json_file="$(mktemp)"
   env_overrides_json_file="$(mktemp)"
   environment_json_file="$(mktemp)"
   targets_json_file="$(mktemp)"
   apply_json_file="$(mktemp)"
   trigger_json_file="$(mktemp)"
-  trap "rm -f '$plan_json_file' '$env_overrides_json_file' '$environment_json_file' '$targets_json_file' '$apply_json_file' '$trigger_json_file'" RETURN
+  all_deployments_json_file="$(mktemp)"
+  trap "rm -f '$plan_json_file' '$env_overrides_json_file' '$environment_json_file' '$targets_json_file' '$apply_json_file' '$trigger_json_file' '$all_deployments_json_file'" RETURN
+  printf '%s\n' '{"services":[]}' >"$all_deployments_json_file"
 
   zane::cmd_plan --lane preview --services-csv "$services_csv" --pr-number "$pr_number" --output-json "$plan_json_file" >/dev/null
   zane::cmd_render_env_overrides \
@@ -1384,6 +1615,7 @@ EOF
     "${dry_run_flags[@]}" \
     --base-url "$base_url" \
     --api-token "$api_token" >/dev/null
+  zane::merge_deployments_json_file "$trigger_json_file" "$all_deployments_json_file"
 
   ci::gha_output lane "preview"
   ci::gha_output environment_name "$(jq -r '.environment_name' "$environment_json_file")"
@@ -1393,6 +1625,7 @@ EOF
   ci::gha_output deploy_services_csv "$(jq -r '.deploy_services_csv' "$plan_json_file")"
   ci::gha_output env_override_service_ids_csv "$(jq -r '[.services[].service_id] | join(",")' "$env_overrides_json_file")"
   ci::gha_output triggered_services_csv "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")"
+  ci::gha_output deployments_json "$(jq -c '.' "$all_deployments_json_file")"
 
   jq -cn \
     --arg lane "preview" \
@@ -1404,6 +1637,7 @@ EOF
     --arg deploy_services_csv "$(jq -r '.deploy_services_csv' "$plan_json_file")" \
     --arg env_override_service_ids_csv "$(jq -r '[.services[].service_id] | join(",")' "$env_overrides_json_file")" \
     --arg triggered_services_csv "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")" \
+    --argjson deployments "$(jq -c '.services // []' "$all_deployments_json_file")" \
     '{
       lane: $lane,
       project_slug: $project_slug,
@@ -1413,7 +1647,8 @@ EOF
       requested_services_csv: $requested_services_csv,
       deploy_services_csv: $deploy_services_csv,
       env_override_service_ids_csv: $env_override_service_ids_csv,
-      triggered_services_csv: $triggered_services_csv
+      triggered_services_csv: $triggered_services_csv,
+      deployments: $deployments
     }'
 }
 
@@ -1492,6 +1727,7 @@ EOF
   local apply_json_file
   local trigger_json_file
   local verify_json_file
+  local all_deployments_json_file
   plan_json_file="$(mktemp)"
   environment_json_file="$(mktemp)"
   prepare_needs_json_file="$(mktemp)"
@@ -1501,7 +1737,9 @@ EOF
   apply_json_file="$(mktemp)"
   trigger_json_file="$(mktemp)"
   verify_json_file="$(mktemp)"
-  trap "rm -f '$plan_json_file' '$environment_json_file' '$prepare_needs_json_file' '$stage_plan_json_file' '$env_overrides_json_file' '$targets_json_file' '$apply_json_file' '$trigger_json_file' '$verify_json_file'" RETURN
+  all_deployments_json_file="$(mktemp)"
+  trap "rm -f '$plan_json_file' '$environment_json_file' '$prepare_needs_json_file' '$stage_plan_json_file' '$env_overrides_json_file' '$targets_json_file' '$apply_json_file' '$trigger_json_file' '$verify_json_file' '$all_deployments_json_file'" RETURN
+  printf '%s\n' '{"services":[]}' >"$all_deployments_json_file"
 
   zane::cmd_plan --lane main --services-csv "$services_csv" --output-json "$plan_json_file" >/dev/null
   bash "${ROOT_DIR}/scripts/ci/resolve-prepare-needs.sh" --lane main --services-csv "$(jq -r '.deploy_services_csv' "$plan_json_file")" >"$prepare_needs_json_file"
@@ -1576,7 +1814,8 @@ EOF
       "${dry_run_flags[@]}" \
       --base-url "$base_url" \
       --api-token "$api_token" >/dev/null
-    zane::cmd_verify \
+    zane::merge_deployments_json_file "$trigger_json_file" "$all_deployments_json_file"
+    zane::cmd_wait_deployments \
       --lane main \
       --project-slug "$project_slug" \
       --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
@@ -1587,7 +1826,6 @@ EOF
       --meili-frontend-env-var "$meili_frontend_env_var" \
       --meili-backend-key "$meili_backend_key" \
       --deployments-json "$trigger_json_file" \
-      --wait \
       --output-json "$verify_json_file" \
       "${dry_run_flags[@]}" \
       --base-url "$base_url" \
@@ -1622,6 +1860,7 @@ EOF
   ci::gha_output deploy_services_csv "$(jq -r '.deploy_services_csv' "$plan_json_file")"
   ci::gha_output env_override_service_ids_csv "$env_override_service_ids_csv"
   ci::gha_output triggered_services_csv "$triggered_services_csv"
+  ci::gha_output deployments_json "$(jq -c '.' "$all_deployments_json_file")"
 
   jq -cn \
     --arg lane "main" \
@@ -1633,6 +1872,7 @@ EOF
     --arg deploy_services_csv "$(jq -r '.deploy_services_csv' "$plan_json_file")" \
     --arg env_override_service_ids_csv "$env_override_service_ids_csv" \
     --arg triggered_services_csv "$triggered_services_csv" \
+    --argjson deployments "$(jq -c '.services // []' "$all_deployments_json_file")" \
     '{
       lane: $lane,
       project_slug: $project_slug,
@@ -1642,7 +1882,8 @@ EOF
       requested_services_csv: $requested_services_csv,
       deploy_services_csv: $deploy_services_csv,
       env_override_service_ids_csv: $env_override_service_ids_csv,
-      triggered_services_csv: $triggered_services_csv
+      triggered_services_csv: $triggered_services_csv,
+      deployments: $deployments
     }'
 }
 
