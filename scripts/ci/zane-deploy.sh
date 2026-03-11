@@ -1277,6 +1277,7 @@ zane::cmd_trigger() {
   local project_slug="${ZANE_CANONICAL_PROJECT_SLUG:-}"
   local environment_name=""
   local targets_json=""
+  local git_commit_sha=""
   local output_json=""
   local base_url="${ZANE_OPERATOR_BASE_URL:-}"
   local api_token="${ZANE_OPERATOR_API_TOKEN:-}"
@@ -1294,6 +1295,10 @@ zane::cmd_trigger() {
         ;;
       --targets-json)
         targets_json="${2-}"
+        shift 2
+        ;;
+      --git-commit-sha)
+        git_commit_sha="${2-}"
         shift 2
         ;;
       --output-json)
@@ -1335,10 +1340,12 @@ EOF
     response_json="$(jq -cn \
       --arg project_slug "$project_slug" \
       --arg environment_name "$environment_name" \
+      --arg git_commit_sha "$git_commit_sha" \
       --argjson services "$(jq -c '.services // []' "$targets_json")" \
       '{
         project_slug: $project_slug,
         environment_name: $environment_name,
+        git_commit_sha: (if $git_commit_sha == "" then null else $git_commit_sha end),
         triggered_service_ids: ($services | map(.service_id)),
         services: ($services | map({service_id, service_name, service_slug, service_type, deployment_hash: ("dry-run:deploy:" + .service_name), status: "HEALTHY"}))
       }')"
@@ -1347,8 +1354,14 @@ EOF
     payload="$(jq -cn \
       --arg project_slug "$project_slug" \
       --arg environment_name "$environment_name" \
+      --arg git_commit_sha "$git_commit_sha" \
       --argjson targets "$(jq -c '.services // []' "$targets_json")" \
-      '{project_slug:$project_slug, environment_name:$environment_name, targets:$targets}')"
+      '{
+        project_slug:$project_slug,
+        environment_name:$environment_name,
+        targets:$targets,
+        git_commit_sha:(if $git_commit_sha == "" then null else $git_commit_sha end)
+      }')"
     response_json="$(zane::api_request POST "/v1/zane/deploy/trigger" "$payload" "$base_url" "$api_token")"
   fi
 
@@ -1934,13 +1947,14 @@ EOF
         "${dry_run_flags[@]}" \
         --base-url "$base_url" \
         --api-token "$api_token" >/dev/null
-      zane::cmd_trigger \
-        --project-slug "$project_slug" \
-        --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
-        --targets-json "$filtered_targets_json_file" \
-        --output-json "$trigger_json_file" \
-        "${dry_run_flags[@]}" \
-        --base-url "$base_url" \
+    zane::cmd_trigger \
+      --project-slug "$project_slug" \
+      --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
+      --targets-json "$filtered_targets_json_file" \
+      --git-commit-sha "$git_commit_sha" \
+      --output-json "$trigger_json_file" \
+      "${dry_run_flags[@]}" \
+      --base-url "$base_url" \
         --api-token "$api_token" >/dev/null
       zane::merge_deployments_json_file "$trigger_json_file" "$all_deployments_json_file"
     else
