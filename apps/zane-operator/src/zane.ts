@@ -94,6 +94,7 @@ export interface ZaneResolvedTarget {
   details_url: string
   has_unapplied_changes?: boolean
   current_production_deployment?: ZaneResolvedCurrentDeployment | null
+  active_deployment?: ZaneResolvedCurrentDeployment | null
 }
 
 export interface TriggeredDeployment {
@@ -778,6 +779,21 @@ export class ZaneClient {
               currentProductionDeploymentSummary.hash,
             )
           : null
+        const activeDeploymentSummary =
+          deployments.find((deployment) =>
+            ["QUEUED", "PREPARING", "BUILDING", "STARTING", "RESTARTING"].includes(
+              deployment.status.toUpperCase(),
+            ),
+          ) ?? null
+        const activeDeployment = activeDeploymentSummary
+          ? await this.getDeployment(
+              session,
+              input.projectSlug,
+              input.environmentName,
+              details.slug,
+              activeDeploymentSummary.hash,
+            )
+          : null
 
         return {
           service_id: service.service_id,
@@ -807,6 +823,16 @@ export class ZaneClient {
                     envVar.key,
                     envVar.value,
                   ]),
+                ),
+              }
+            : null,
+          active_deployment: activeDeployment
+            ? {
+                deployment_hash: activeDeployment.hash,
+                status: activeDeployment.status,
+                commit_sha: activeDeployment.commit_sha ?? null,
+                env: Object.fromEntries(
+                  (activeDeployment.service_snapshot?.env_variables ?? []).map((envVar) => [envVar.key, envVar.value]),
                 ),
               }
             : null,
