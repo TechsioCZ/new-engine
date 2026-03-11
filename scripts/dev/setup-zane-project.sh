@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 source "${REPO_ROOT}/scripts/ci/lib.sh"
 
-ENV_FILE="${REPO_ROOT}/.env.docker"
+ENV_FILE="${REPO_ROOT}/.env.zane"
 ZANE_BASE_URL="${ZANE_BASE_URL:-}"
 ZANE_USERNAME="${ZANE_USERNAME:-}"
 ZANE_PASSWORD="${ZANE_PASSWORD:-}"
@@ -44,6 +44,7 @@ COMPUTED_MEILISEARCH_PUBLIC_URL=""
 
 COOKIE_JAR=""
 CSRF_TOKEN=""
+ASSUME_YES="false"
 
 setup::usage() {
   cat <<'EOF'
@@ -54,7 +55,7 @@ Creates or reuses a Zane project, creates the required Git-backed services, and
 upserts the shared/service environment contract used by the deployed stack.
 
 Options:
-  --env-file PATH                Source local values from PATH (default: .env.docker)
+  --env-file PATH                Source local values from PATH (default: .env.zane)
   --zane-base-url URL            Zane base URL used by this setup script
   --zane-username USER           Zane username used by this setup script
   --zane-password PASS           Zane password used by this setup script
@@ -84,6 +85,7 @@ Options:
                                  Upstream Zane username for the deployed zane-operator
   --operator-upstream-zane-password PASS
                                  Upstream Zane password for the deployed zane-operator
+  --yes                          Skip the interactive confirmation prompt
   --help                         Show this help
 
 Notes:
@@ -187,6 +189,10 @@ setup::parse_args() {
         OPERATOR_UPSTREAM_ZANE_PASSWORD="$2"
         shift 2
         ;;
+      --yes)
+        ASSUME_YES="true"
+        shift
+        ;;
       --help)
         setup::usage
         exit 0
@@ -212,6 +218,8 @@ setup::load_env_file() {
 setup::normalize_base_url() {
   ZANE_BASE_URL="${ZANE_BASE_URL:-${DC_ZANE_OPERATOR_ZANE_BASE_URL:-http://localhost}}"
   ZANE_BASE_URL="${ZANE_BASE_URL%/}"
+  ZANE_USERNAME="${ZANE_USERNAME:-${DC_ZANE_OPERATOR_ZANE_USERNAME:-}}"
+  ZANE_PASSWORD="${ZANE_PASSWORD:-${DC_ZANE_OPERATOR_ZANE_PASSWORD:-}}"
 
   OPERATOR_UPSTREAM_ZANE_BASE_URL="${OPERATOR_UPSTREAM_ZANE_BASE_URL:-${DC_ZANE_OPERATOR_ZANE_BASE_URL:-}}"
   OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL="${OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL:-${DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL:-}}"
@@ -645,7 +653,7 @@ setup::service_spec_json() {
       printf '%s\n' '{"dockerfile_path":"./docker/development/n1/Dockerfile","build_context_dir":"./","command":null,"volumes":[],"envs":{"MEDUSA_BACKEND_URL_INTERNAL":"http://{{env.MEDUSA_BE_HOST}}:9000","NEXT_PUBLIC_MEDUSA_BACKEND_URL":"{{env.N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL}}","NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY":"{{env.N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}}","NEXT_PUBLIC_MEILISEARCH_URL":"{{env.N1_NEXT_PUBLIC_MEILISEARCH_URL}}","NEXT_PUBLIC_MEILISEARCH_API_KEY":"{{env.N1_NEXT_PUBLIC_MEILISEARCH_API_KEY}}","NEXT_PUBLIC_SITE_URL":"{{env.N1_NEXT_PUBLIC_SITE_URL}}"}}'
       ;;
     zane-operator)
-      printf '%s\n' '{"dockerfile_path":"./docker/development/zane-operator/Dockerfile","build_context_dir":"./","command":null,"volumes":[],"envs":{"PORT":"8080","API_AUTH_TOKEN":"{{env.ZANE_OPERATOR_API_AUTH_TOKEN}}","PGHOST":"{{env.MEDUSA_DB_HOST}}","PGPORT":"5432","PGUSER":"{{env.MEDUSA_DB_POSTGRES_SUPERUSER}}","PGPASSWORD":"{{env.MEDUSA_DB_POSTGRES_SUPERUSER_PASSWORD}}","PGDATABASE":"postgres","PGSSLMODE":"disable","DB_TEMPLATE_NAME":"{{env.ZANE_OPERATOR_DB_TEMPLATE_NAME}}","DB_PREVIEW_PREFIX":"{{env.ZANE_OPERATOR_DB_PREVIEW_PREFIX}}","DB_PREVIEW_APP_USER_PREFIX":"{{env.ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX}}","DB_PREVIEW_DEV_ROLE":"{{env.MEDUSA_DEV_DB_USER}}","DB_APP_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","DB_PREVIEW_APP_PASSWORD_SECRET":"{{env.ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET}}","DB_PROTECTED_NAMES":"{{env.ZANE_OPERATOR_DB_PROTECTED_NAMES}}","ZANE_BASE_URL":"{{env.ZANE_OPERATOR_UPSTREAM_BASE_URL}}","ZANE_USERNAME":"{{env.ZANE_OPERATOR_UPSTREAM_USERNAME}}","ZANE_PASSWORD":"{{env.ZANE_OPERATOR_UPSTREAM_PASSWORD}}"}}'
+      printf '%s\n' '{"dockerfile_path":"./docker/development/zane-operator/Dockerfile","build_context_dir":"./","command":null,"volumes":[],"envs":{"PORT":"8080","API_AUTH_TOKEN":"{{env.ZANE_OPERATOR_API_AUTH_TOKEN}}","PGHOST":"{{env.MEDUSA_DB_HOST}}","PGPORT":"5432","PGUSER":"{{env.ZANE_OPERATOR_PGUSER}}","PGPASSWORD":"{{env.ZANE_OPERATOR_PGPASSWORD}}","PGDATABASE":"postgres","PGSSLMODE":"disable","DB_TEMPLATE_NAME":"{{env.ZANE_OPERATOR_DB_TEMPLATE_NAME}}","DB_PREVIEW_PREFIX":"{{env.ZANE_OPERATOR_DB_PREVIEW_PREFIX}}","DB_PREVIEW_APP_USER_PREFIX":"{{env.ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX}}","DB_PREVIEW_DEV_ROLE":"{{env.MEDUSA_DEV_DB_USER}}","DB_APP_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","DB_PREVIEW_APP_PASSWORD_SECRET":"{{env.ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET}}","DB_PROTECTED_NAMES":"{{env.ZANE_OPERATOR_DB_PROTECTED_NAMES}}","ZANE_BASE_URL":"{{env.ZANE_OPERATOR_UPSTREAM_BASE_URL}}","ZANE_USERNAME":"{{env.ZANE_OPERATOR_UPSTREAM_USERNAME}}","ZANE_PASSWORD":"{{env.ZANE_OPERATOR_UPSTREAM_PASSWORD}}"}}'
       ;;
     *)
       ci::die "Unsupported service slug: $service_slug"
@@ -993,8 +1001,8 @@ setup::service_envs_json() {
     zane-operator)
       jq -n \
         --arg api_auth_token "${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-}" \
-        --arg postgres_superuser "${DC_POSTGRES_SUPERUSER:-root}" \
-        --arg postgres_superuser_password "${DC_POSTGRES_SUPERUSER_PASSWORD:-root}" \
+        --arg operator_pguser "${DC_ZANE_OPERATOR_PGUSER:-zane_operator}" \
+        --arg operator_pgpassword "${DC_ZANE_OPERATOR_PGPASSWORD:-}" \
         --arg medusa_dev_db_user "${DC_MEDUSA_DEV_DB_USER:-medusa_dev}" \
         --arg db_preview_app_password_secret "${DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET:-}" \
         --arg db_template_name "${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-template_medusa}" \
@@ -1011,8 +1019,8 @@ setup::service_envs_json() {
           API_AUTH_TOKEN: $api_auth_token,
           PGHOST: "{{env.MEDUSA_DB_HOST}}",
           PGPORT: "5432",
-          PGUSER: $postgres_superuser,
-          PGPASSWORD: $postgres_superuser_password,
+          PGUSER: $operator_pguser,
+          PGPASSWORD: $operator_pgpassword,
           PGDATABASE: "postgres",
           PGSSLMODE: "disable",
           DB_TEMPLATE_NAME: $db_template_name,
@@ -1871,6 +1879,27 @@ setup::upsert_service_envs() {
     "$(setup::service_env_cleanup_keys_json "$service_slug")"
 }
 
+setup::confirm_execution() {
+  local prompt
+
+  if [[ "$ASSUME_YES" == "true" ]]; then
+    return 0
+  fi
+
+  cat >&2 <<EOF
+About to sync the canonical Zane project on the deployed stack:
+  zane_base_url: ${ZANE_BASE_URL}
+  project_slug: ${PROJECT_SLUG}
+  environment_name: ${ENVIRONMENT_NAME}
+  repository: ${REPOSITORY_URL}
+  branch: ${BRANCH_NAME}
+  public_domain: ${PUBLIC_DOMAIN:-<auto-discover>}
+EOF
+  printf 'Type "sync %s/%s" to continue: ' "${PROJECT_SLUG}" "${ENVIRONMENT_NAME}" >&2
+  read -r prompt
+  [[ "$prompt" == "sync ${PROJECT_SLUG}/${ENVIRONMENT_NAME}" ]] || ci::die "Confirmation rejected."
+}
+
 setup::main() {
   local services=(
     medusa-db
@@ -1894,6 +1923,8 @@ setup::main() {
 
   ci::require_env ZANE_USERNAME "Zane username"
   ci::require_env ZANE_PASSWORD "Zane password"
+
+  setup::confirm_execution
 
   echo "Logging into Zane at ${ZANE_BASE_URL}..."
   zane::login
