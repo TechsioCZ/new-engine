@@ -14,4 +14,9 @@ export const sdk = createMedusaSdk({
   baseUrl: BACKEND_URL,
   publishableKey: PUBLISHABLE_KEY,
   debug: process.env.NODE_ENV === "development",
+  auth: {
+    type: "session",
+    fetchCredentials: "include",
+    jwtTokenStorageMethod: "nostore",
+  },
 })

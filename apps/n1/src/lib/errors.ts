@@ -1,3 +1,9 @@
+import { StorefrontAddressValidationError } from "@techsio/storefront-data/shared/address"
+import type {
+  AddressErrors,
+  AddressFieldKey,
+} from "@/utils/address-validation"
+
 type ErrorWithMessage = {
   message: unknown
 }
@@ -191,8 +197,6 @@ export class CartServiceError extends Error {
 // Address Validation Error
 // ============================================================================
 
-import type { AddressErrors } from "@/utils/address-validation"
-
 /**
  * Error thrown when address validation fails
  * Used as a safety net in useCreateAddress/useUpdateAddress hooks
@@ -222,12 +226,29 @@ export class AddressValidationError extends Error {
     return Object.values(this.errors).filter(Boolean).join(", ")
   }
 
-  /**
-   * Check if error is AddressValidationError
-   */
-  static isAddressValidationError(
-    error: unknown
-  ): error is AddressValidationError {
-    return error instanceof AddressValidationError
+}
+
+export function toAddressValidationError(
+  error: unknown
+): AddressValidationError | null {
+  if (error instanceof AddressValidationError) {
+    return error
   }
+
+  if (error instanceof StorefrontAddressValidationError) {
+    const mappedErrors: AddressErrors = {}
+
+    for (const issue of error.issues) {
+      const field = issue.field as AddressFieldKey
+      if (!mappedErrors[field] && issue.message) {
+        mappedErrors[field] = issue.message
+      }
+    }
+
+    if (Object.keys(mappedErrors).length > 0) {
+      return new AddressValidationError(mappedErrors)
+    }
+  }
+
+  return null
 }

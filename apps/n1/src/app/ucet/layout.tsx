@@ -11,55 +11,25 @@ export default function AccountLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { customer, isAuthenticated, isFetching, isLoading, isTokenExpired } =
-    useAuth()
+  const { customer, isAuthenticated, isFetching, isLoading } = useAuth()
   const [isHydrated, setIsHydrated] = useState(false)
-  const [showExpiredMessage, setShowExpiredMessage] = useState(false)
 
   useEffect(() => {
     setIsHydrated(true)
   }, [])
 
   useEffect(() => {
-    if (!isTokenExpired) {
+    if (!(isHydrated && !isLoading && !isFetching)) {
       return
     }
 
-    setShowExpiredMessage(true)
-    const timeout = setTimeout(() => {
-      router.push("/prihlaseni")
-    }, 3000)
-    return () => clearTimeout(timeout)
-  }, [isTokenExpired, router])
-
-  useEffect(() => {
-    if (!isHydrated) {
-      return
-    }
-
-    if (!(isAuthenticated || isTokenExpired)) {
+    if (!isAuthenticated) {
       router.push("/prihlaseni")
     }
-  }, [isAuthenticated, isHydrated, isTokenExpired, router])
+  }, [isAuthenticated, isFetching, isHydrated, isLoading, router])
 
   if (!(isHydrated && !isLoading && !isFetching)) {
     return <main className="mx-auto w-full max-w-5xl px-400 py-400" />
-  }
-
-  if (showExpiredMessage) {
-    return (
-      <main className="mx-auto w-2xl max-w-full py-300">
-        <div className="rounded bg-warning-light p-250">
-          <div className="mb-100 font-semibold text-md text-warning">
-            Platnost relace vypršela
-          </div>
-          <p className="text-sm text-warning">
-            Vaše přihlášení vypršelo. Za chvíli budete přesměrováni na
-            přihlašovací stránku...
-          </p>
-        </div>
-      </main>
-    )
   }
 
   if (!customer) {

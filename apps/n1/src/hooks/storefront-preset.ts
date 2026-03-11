@@ -23,6 +23,7 @@ import {
 } from "@techsio/storefront-data/medusa/checkout-flow"
 import {
   createMedusaStorefrontPreset,
+  type CreateMedusaStorefrontPresetConfig,
   createMedusaStorefrontQueryKeys,
 } from "@techsio/storefront-data/medusa/preset"
 import {
@@ -34,6 +35,7 @@ import type {
   MedusaProductDetailInput,
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
+import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config"
 import {
   PRODUCT_DETAILED_FIELDS,
@@ -44,29 +46,17 @@ import { cacheConfig as appCacheConfig } from "@/lib/cache-config"
 import { buildProductQueryParams } from "@/lib/product-query-params"
 import { mapAuthError } from "@/lib/auth-messages"
 import {
-  AddressValidationError,
   isAbortLikeError,
   isNotFoundError,
   logError,
 } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
 import {
-  clearToken,
-  getTokenFromStorage,
-  isTokenExpired,
-} from "@/lib/token-utils"
-import {
-  type AddressFormData,
-  validateAddressForm,
-} from "@/utils/address-validation"
-import {
-  cleanPhoneNumber,
-  formatPhoneNumber,
-} from "@/utils/format/format-phone-number"
-import {
-  cleanPostalCode,
-  formatPostalCode,
-} from "@/utils/format/format-postal-code"
+  type CustomerAddressUpdateHookInput,
+  cartAddressAdapter,
+  customerAddressAdapter,
+} from "@/lib/storefront-address-adapter"
+import type { AddressFormData } from "@/utils/address-validation"
 
 const CART_ID_KEY = "n1_cart_id"
 const storefrontQueryKeys = createMedusaStorefrontQueryKeys("n1")
@@ -96,59 +86,6 @@ const storefrontCacheConfig = createCacheConfig({
   userData: appCacheConfig.userData,
 })
 
-const isExpectedAuthError = (error: unknown): boolean => {
-  if (!(error && typeof error === "object")) {
-    return false
-  }
-
-  const directStatus =
-    "status" in error ? (error as { status?: unknown }).status : null
-  if (directStatus === 401 || directStatus === 403) {
-    return true
-  }
-
-  const responseStatus =
-    "response" in error
-      ? (error as { response?: { status?: unknown } }).response?.status
-      : null
-
-  return responseStatus === 401 || responseStatus === 403
-}
-
-const cleanCheckoutAddress = (
-  address: AddressFormData
-): HttpTypes.StoreAddAddress => {
-  const cleaned: HttpTypes.StoreAddAddress = {
-    first_name: address.first_name,
-    last_name: address.last_name,
-    address_1: address.address_1,
-    city: address.city,
-    postal_code: address.postal_code,
-    country_code: address.country_code,
-  }
-
-  if (address.address_2?.trim()) {
-    cleaned.address_2 = address.address_2
-  }
-  if (address.company?.trim()) {
-    cleaned.company = address.company
-  }
-  if (address.province?.trim()) {
-    cleaned.province = address.province
-  }
-  if (address.phone?.trim()) {
-    cleaned.phone = address.phone
-  }
-
-  return cleaned
-}
-
-const validateCheckoutAddressInput = (input: AddressFormData) => {
-  const errors = validateAddressForm(input)
-  const messages = Object.values(errors).filter(Boolean)
-  return messages.length ? messages : null
-}
-
 export class OrderNotFoundError extends Error {
   constructor(message = "Objednávka nenalezena") {
     super(message)
@@ -162,114 +99,32 @@ const baseOrderService = createMedusaOrderService(sdk, {
 })
 const baseCustomerService = createMedusaCustomerService(sdk)
 
-const normalizeAddressData = <T extends Record<string, unknown>>(data: T): T => {
-  const postalCode =
-    typeof data.postal_code === "string"
-      ? cleanPostalCode(data.postal_code)
-      : data.postal_code
-  const phone =
-    typeof data.phone === "string" ? cleanPhoneNumber(data.phone) : data.phone
+type N1StorefrontConfig = CreateMedusaStorefrontPresetConfig<
+  HttpTypes.StoreProduct,
+  HttpTypes.StoreProductCategory,
+  HttpTypes.StoreCollection,
+  HttpTypes.StoreProduct,
+  CatalogFacets,
+  AddressFormData,
+  HttpTypes.StoreAddAddress,
+  AddressFormData,
+  CustomerAddressUpdateHookInput
+>
 
-  return {
-    ...data,
-    postal_code: postalCode,
-    phone,
-  }
-}
-
-const hasCompleteAddressFields = (
-  data: MedusaCustomerAddressUpdateInput
-): boolean =>
-  "first_name" in data && "last_name" in data && "address_1" in data
-
-const validateCreateCustomerAddressInput = (
-  input: MedusaCustomerAddressCreateInput
-) => {
-  const validationInput: AddressFormData = {
-    ...(input as AddressFormData),
-    postal_code: formatPostalCode(input.postal_code ?? ""),
-    phone: input.phone ? formatPhoneNumber(input.phone) : "",
-  }
-
-  const errors = validateAddressForm(validationInput)
-  if (Object.keys(errors).length > 0) {
-    throw new AddressValidationError(errors)
-  }
-
-  return null
-}
-
-const validateUpdateCustomerAddressInput = (
-  input: MedusaCustomerAddressUpdateInput
-) => {
-  if (!hasCompleteAddressFields(input)) {
-    return null
-  }
-
-  const validationInput: AddressFormData = {
-    ...(input as AddressFormData),
-    postal_code: formatPostalCode(input.postal_code ?? ""),
-    phone: input.phone ? formatPhoneNumber(input.phone) : "",
-    country_code: input.country_code ?? "cz",
-    first_name: input.first_name ?? "",
-    last_name: input.last_name ?? "",
-    address_1: input.address_1 ?? "",
-    city: input.city ?? "",
-  }
-
-  const errors = validateAddressForm(validationInput)
-  if (Object.keys(errors).length > 0) {
-    throw new AddressValidationError(errors)
-  }
-
-  return null
-}
-
-type CustomerAddressUpdateHookInput = MedusaCustomerAddressUpdateInput & {
-  addressId?: string
-}
-
-const buildCustomerUpdateParams = (
-  input: CustomerAddressUpdateHookInput
-): MedusaCustomerAddressUpdateInput => {
-  const { addressId: _addressId, ...rest } = input
-  return rest
-}
-
-const normalizeCreateCustomerAddressInput = (
-  input: MedusaCustomerAddressCreateInput
-): MedusaCustomerAddressCreateInput => normalizeAddressData(input)
-
-const normalizeUpdateCustomerAddressInput = (
-  input: CustomerAddressUpdateHookInput
-): CustomerAddressUpdateHookInput => normalizeAddressData(input)
-
-export const storefront = createMedusaStorefrontPreset({
+const storefrontConfig = {
   sdk,
   queryKeyNamespace: "n1",
   cacheConfig: storefrontCacheConfig,
   auth: {
     service: {
       async getCustomer(signal?: AbortSignal) {
-        const token = getTokenFromStorage()
-        if (!token) {
-          return null
-        }
-
-        if (isTokenExpired(token)) {
-          clearToken()
-          return null
-        }
-
         try {
           return await baseAuthService.getCustomer(signal)
         } catch (error) {
           if (isAbortLikeError(error)) {
             throw error
           }
-          if (!isExpectedAuthError(error)) {
-            logError("AuthService.getCustomer", error)
-          }
+          logError("AuthService.getCustomer", error)
           return null
         }
       },
@@ -312,10 +167,7 @@ export const storefront = createMedusaStorefrontPreset({
       cartStorage,
       isNotFoundError,
       invalidateOnSuccess: true,
-      validateShippingAddressInput: validateCheckoutAddressInput,
-      validateBillingAddressInput: validateCheckoutAddressInput,
-      buildShippingAddress: cleanCheckoutAddress,
-      buildBillingAddress: cleanCheckoutAddress,
+      addressAdapter: cartAddressAdapter,
     },
   },
   checkout: {},
@@ -442,20 +294,18 @@ export const storefront = createMedusaStorefrontPreset({
       },
     },
     hooks: {
-      buildUpdateParams: buildCustomerUpdateParams,
+      addressAdapter: customerAddressAdapter,
       buildUpdateCustomerParams: (
         input: MedusaCustomerProfileUpdateInput & { password?: string }
       ) => {
         const { password: _password, ...rest } = input
         return rest
       },
-      normalizeCreateAddressInput: normalizeCreateCustomerAddressInput,
-      normalizeUpdateAddressInput: normalizeUpdateCustomerAddressInput,
-      validateCreateAddressInput: validateCreateCustomerAddressInput,
-      validateUpdateAddressInput: validateUpdateCustomerAddressInput,
     },
   },
-})
+} satisfies N1StorefrontConfig
+
+export const storefront = createMedusaStorefrontPreset(storefrontConfig)
 
 export const cartFlow = createMedusaCartFlow({
   storefront,

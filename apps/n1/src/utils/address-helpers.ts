@@ -1,59 +1,15 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { PplAccessPointData } from "@/app/pokladna/_components/ppl-widget"
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
+import {
+  addressToFormData,
+  DEFAULT_ADDRESS,
+} from "@/lib/storefront-address-adapter"
 import type { ShippingMethodData } from "@/types/cart"
 import type { AddressFormData } from "./address-validation"
-import { formatPhoneNumber } from "./format/format-phone-number"
-import { formatPostalCode } from "./format/format-postal-code"
 
 export type { PplAccessPointData } from "@/app/pokladna/_components/ppl-widget"
-
-export const DEFAULT_ADDRESS: AddressFormData = {
-  first_name: "",
-  last_name: "",
-  company: "",
-  address_1: "",
-  address_2: "",
-  city: "",
-  province: "",
-  postal_code: "",
-  country_code: DEFAULT_COUNTRY_CODE,
-  phone: "",
-}
-
-/**
- * generic conversion of address to AddressFormData
- * works for customer address, cart address or any compatible address object
- */
-function addressToFormData(
-  address?:
-    | Partial<HttpTypes.StoreCartAddress>
-    | HttpTypes.StoreCustomerAddress
-    | null
-): AddressFormData {
-  // Return empty form if no address provided
-  if (!address) {
-    return {
-      ...DEFAULT_ADDRESS,
-    }
-  }
-
-  // Convert address to form data (format phone/postal for display and validation)
-  return {
-    first_name: address.first_name || "",
-    last_name: address.last_name || "",
-    company: address.company || "",
-    address_1: address.address_1 || "",
-    address_2: address.address_2 || "",
-    city: address.city || "",
-    province: address.province || "",
-    postal_code: formatPostalCode(address.postal_code || ""),
-    country_code: address.country_code || DEFAULT_COUNTRY_CODE,
-    phone: formatPhoneNumber(address.phone || ""),
-  }
-}
-
-export { addressToFormData }
+export { addressToFormData, DEFAULT_ADDRESS }
 
 /**
  * get default address from customer addresses

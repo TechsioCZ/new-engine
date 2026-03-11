@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { StorefrontAddressValidationError } from "@techsio/storefront-data/shared/address"
 import { useSuspenseAuth } from "@/hooks/use-auth"
 import {
   type CompleteCheckoutError,
@@ -89,9 +90,7 @@ const resolveInitialCheckoutState = (
   customer: ReturnType<typeof useSuspenseAuth>["customer"]
 ): InitialCheckoutState => {
   if (cart?.billing_address?.first_name) {
-    const addressData = addressToFormData(
-      cart.billing_address
-    ) as AddressFormData
+    const addressData = addressToFormData(cart.billing_address)
 
     return {
       defaultValues: {
@@ -105,7 +104,7 @@ const resolveInitialCheckoutState = (
   if (customer?.addresses && customer.addresses.length > 0) {
     const defaultAddress = getDefaultAddress(customer.addresses)
     if (defaultAddress) {
-      const addressData = addressToFormData(defaultAddress) as AddressFormData
+      const addressData = addressToFormData(defaultAddress)
       return {
         defaultValues: {
           email: customer?.email ?? "",
@@ -243,7 +242,20 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
           email: cartEmail,
         })
       } catch (err) {
-        if (err instanceof Error) {
+        if (err instanceof StorefrontAddressValidationError) {
+          const firstIssue = err.issues[0]
+          if (firstIssue?.scope === "billing") {
+            setError(
+              `Chyba fakturační adresy: ${firstIssue.message ?? err.message}`
+            )
+          } else if (firstIssue?.scope === "shipping") {
+            setError(
+              `Chyba doručovací adresy: ${firstIssue.message ?? err.message}`
+            )
+          } else {
+            setError(`Neplatná adresa: ${firstIssue?.message ?? err.message}`)
+          }
+        } else if (err instanceof Error) {
           if (
             err.message.includes("billing") ||
             err.message.includes("faktur")

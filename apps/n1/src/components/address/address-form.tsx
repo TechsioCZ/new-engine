@@ -5,7 +5,7 @@ import { useForm } from "@tanstack/react-form"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { Button } from "@ui/atoms/button"
 import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
-import { AddressValidationError } from "@/lib/errors"
+import { toAddressValidationError } from "@/lib/errors"
 import { addressToFormData, DEFAULT_ADDRESS } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"
 import { AddressFormFields } from "./address-form-fields"
@@ -54,9 +54,10 @@ export function AddressForm({
         }
         onSuccess()
       } catch (error) {
-        if (AddressValidationError.isAddressValidationError(error)) {
+        const validationError = toAddressValidationError(error)
+        if (validationError) {
           toaster.create({
-            title: error.firstError,
+            title: validationError.firstError,
             type: "error",
           })
         } else {

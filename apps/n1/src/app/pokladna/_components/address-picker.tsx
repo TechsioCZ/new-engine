@@ -64,7 +64,7 @@ export function AddressPicker({
         if (!address) {
           return
         }
-        const formData = addressToFormData(address) as AddressFormData
+        const formData = addressToFormData(address)
         onSelect(formData, address.id)
       }}
       placeholder="Vyberte adresu"
