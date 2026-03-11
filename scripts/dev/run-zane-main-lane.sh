@@ -21,6 +21,7 @@ ZANE_OPERATOR_API_TOKEN=""
 MEILISEARCH_URL=""
 MEILISEARCH_MASTER_KEY=""
 SKIP_VERIFY="false"
+APPROVE_DOWNTIME_RISK="false"
 
 usage() {
   cat <<'EOF'
@@ -44,6 +45,7 @@ Options:
   --operator-api-token <token>  deployed zane-operator API token override
   --meili-url <url>             deployed Meilisearch public URL override
   --meili-master-key <key>      Meilisearch master key override
+  --approve-downtime-risk       allow local run to continue when downtime-risk services are in scope
   --skip-verify                 skip the final verify stage
   -h, --help                    show this help
 
@@ -107,6 +109,10 @@ parse_args() {
       --meili-master-key)
         MEILISEARCH_MASTER_KEY="$2"
         shift 2
+        ;;
+      --approve-downtime-risk)
+        APPROVE_DOWNTIME_RISK="true"
+        shift
         ;;
       --skip-verify)
         SKIP_VERIFY="true"
@@ -258,6 +264,15 @@ resolve_prepare() {
   printf '%s\n' "$prepare_json"
 }
 
+resolve_downtime_risk() {
+  local downtime_json
+
+  downtime_json="$(
+    bash "${ROOT_DIR}/scripts/ci/resolve-downtime-risk.sh" --lane main --services-csv "$SERVICES_CSV"
+  )"
+  printf '%s\n' "$downtime_json"
+}
+
 run_prepare_stage() {
   local requires_meili_keys="$1"
   local provision_output
@@ -389,6 +404,7 @@ run_verify_stage() {
 main() {
   local scope_json
   local prepare_needs_json
+  local downtime_json
   local prepare_json
   local deploy_json
   local verify_json='{}'
@@ -423,6 +439,11 @@ main() {
 
   prepare_needs_json="$(resolve_prepare)"
   jq -e . >/dev/null <<<"$prepare_needs_json" || ci::die "Prepare-needs stage did not return valid JSON."
+  downtime_json="$(resolve_downtime_risk)"
+  jq -e . >/dev/null <<<"$downtime_json" || ci::die "Downtime-risk stage did not return valid JSON."
+  if [[ "$(jq -r '.requires_downtime_approval' <<<"$downtime_json")" == "true" && "$APPROVE_DOWNTIME_RISK" != "true" ]]; then
+    ci::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(\",\")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
+  fi
   requires_meili_keys="$(jq -r '.requires_meili_keys' <<<"$prepare_needs_json")"
   prepare_json="$(run_prepare_stage "$requires_meili_keys")"
   jq -e . >/dev/null <<<"$prepare_json" || ci::die "Prepare stage did not return valid JSON."
@@ -445,6 +466,7 @@ main() {
     --arg meili_url "$MEILISEARCH_URL" \
     --argjson scope "$scope_json" \
     --argjson prepare_needs "$prepare_needs_json" \
+    --argjson downtime_risk "$downtime_json" \
     --argjson prepare "$prepare_json" \
     --argjson deploy "$deploy_json" \
     --argjson verify "$verify_json" \
@@ -456,6 +478,7 @@ main() {
       meili_url: $meili_url,
       scope: $scope,
       prepare_needs: $prepare_needs,
+      downtime_risk: $downtime_risk,
       prepare: $prepare,
       deploy: $deploy,
       verify: $verify,

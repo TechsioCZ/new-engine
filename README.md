@@ -63,6 +63,7 @@
     * `medusa-meilisearch` continues to use shared Medusa env plus service-specific Meili env
     * `medusa-db` now owns `zane_operator` role/template bootstrap and derives that target from the canonical `DC_ZANE_OPERATOR_*` DB settings
     * `medusa-db` health now means both Postgres readiness and completed role/template bootstrap; operator startup waits on that full convergence
+    * `mise run dev:operator` reruns Postgres bootstrap in the running `medusa-db` container with the current `DC_ZANE_OPERATOR_*` values before starting `zane-operator`, so enabling or rotating operator DB creds does not require a DB restart
     * Default `mise run dev` does not require operator credentials; operator flow is explicit opt-in and requires:
       * `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
       * `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`

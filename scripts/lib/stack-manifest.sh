@@ -86,6 +86,7 @@ service_by_id() {
                   .zane
                   | .deploy_lanes = (.deploy_lanes // [])
                   | .deploy_stage = (.deploy_stage // 100)
+                  | .downtime_risk = (.downtime_risk // false)
                   | .consumes = (.consumes // {})
                   | .coupled_service_ids = (.coupled_service_ids // [])
                 )
@@ -111,6 +112,7 @@ schema_template() {
 # - ci.zane.consumes.preview_db: false
 # - ci.zane.consumes.meili_frontend_key: false
 # - ci.zane.consumes.meili_backend_key: false
+# - ci.zane.downtime_risk: false
 # - ci.zane.coupled_service_ids: []
 # - ci.zane.deploy_stage: 100
 #
@@ -157,6 +159,7 @@ services:
           # preview_db: true            # optional; default false
           # meili_frontend_key: true    # optional; default false
           # meili_backend_key: true     # optional; default false
+        # downtime_risk: true           # optional; default false
         # coupled_service_ids:          # optional; default []
         #   - "another-service"
 EOF
@@ -237,6 +240,7 @@ ci_zane_service_json() {
           service_name: .ci.zane.service_name,
           deploy_lanes: (.ci.zane.deploy_lanes // []),
           deploy_stage: (.ci.zane.deploy_stage // 100),
+          downtime_risk: (.ci.zane.downtime_risk // false),
           consumes: (.ci.zane.consumes // {}),
           coupled_service_ids: (.ci.zane.coupled_service_ids // [])
         }
@@ -265,6 +269,20 @@ ci_zane_lane_service_ids() {
       .services[]
       | select(.ci.deployable == true)
       | select(((.ci.zane.deploy_lanes // []) | index($lane)) != null)
+      | .id
+    '
+}
+
+ci_zane_downtime_risk_service_ids() {
+  local lane="$1"
+
+  manifest_eval -r \
+    --arg lane "$lane" \
+    '
+      .services[]
+      | select(.ci.deployable == true)
+      | select(((.ci.zane.deploy_lanes // []) | index($lane)) != null)
+      | select((.ci.zane.downtime_risk // false) == true)
       | .id
     '
 }
@@ -300,6 +318,7 @@ Commands:
   ci-zane-service --id <service-id>
   ci-zane-service-name --id <service-id>
   ci-zane-lane-service-ids --lane <preview|main>
+  ci-zane-downtime-risk-service-ids --lane <preview|main>
   ci-zane-coupled-service-ids --id <service-id>
 EOF
 }
@@ -413,6 +432,17 @@ main() {
         exit 1
       }
       ci_zane_lane_service_ids "$2"
+      ;;
+    ci-zane-downtime-risk-service-ids)
+      [[ "${1:-}" == "--lane" ]] || {
+        echo "ci-zane-downtime-risk-service-ids requires --lane <preview|main>" >&2
+        exit 1
+      }
+      [[ -n "${2:-}" ]] || {
+        echo "ci-zane-downtime-risk-service-ids requires --lane <preview|main>" >&2
+        exit 1
+      }
+      ci_zane_downtime_risk_service_ids "$2"
       ;;
     ci-zane-coupled-service-ids)
       [[ "${1:-}" == "--id" ]] || {

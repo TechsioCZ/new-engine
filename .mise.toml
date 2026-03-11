@@ -23,20 +23,16 @@ description = "Start and wait for manifest-defined frontend phase services"
 run = "mise run dev:internal:frontend:up && mise run dev:internal:frontend:wait"
 
 [tasks."dev:operator"]
-description = "Start and wait for operator runtime services after explicit bootstrap"
-run = "bash ./scripts/dev/mise-dev-helpers.sh require-operator-bootstrap && mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
+description = "Converge medusa-db bootstrap state for current operator envs, then start operator runtime services"
+run = "bash ./scripts/dev/mise-dev-helpers.sh ensure-operator-db-convergence && mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
 
-[tasks."dev:operator:init"]
-description = "Run explicit operator bootstrap, then start and wait for operator runtime services"
-run = "mise run dev:operator:bootstrap && mise run dev:operator"
+[tasks."dev:postgres:bootstrap"]
+description = "Rerun medusa-db role bootstrap against the running local stack"
+run = "bash ./scripts/apply-postgres-role-bootstrap.sh"
 
-[tasks."dev:operator:bootstrap"]
-description = "Run one-shot zane-operator role bootstrap (opt-in operator profile)"
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator run --rm --build zane-operator-bootstrap"
-
-[tasks."dev:operator:bootstrap:verify"]
-description = "Run zane-operator bootstrap with in-command idempotency verification"
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator run --rm --build -e BOOTSTRAP_VERIFY_IDEMPOTENT=1 zane-operator-bootstrap"
+[tasks."dev:postgres:bootstrap:verify"]
+description = "Rerun medusa-db role bootstrap twice to verify idempotency"
+run = "bash ./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent"
 
 [tasks."dev:zane:main"]
 description = "Simulate the active CI main lane locally against a deployed Zane target"

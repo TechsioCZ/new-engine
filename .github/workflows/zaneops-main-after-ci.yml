@@ -28,6 +28,8 @@ jobs:
       requires_meili_keys: ${{ steps.prepare_needs.outputs.requires_meili_keys }}
       preview_db_service_ids: ${{ steps.prepare_needs.outputs.preview_db_service_ids }}
       meili_key_service_ids: ${{ steps.prepare_needs.outputs.meili_key_service_ids }}
+      requires_downtime_approval: ${{ steps.downtime.outputs.requires_downtime_approval }}
+      downtime_service_ids: ${{ steps.downtime.outputs.downtime_service_ids }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,6 +70,10 @@ jobs:
         id: prepare_needs
         run: bash ./scripts/ci/resolve-prepare-needs.sh --lane main --services-csv "${{ steps.affected.outputs.services_csv }}"
 
+      - name: Resolve downtime risk
+        id: downtime
+        run: bash ./scripts/ci/resolve-downtime-risk.sh --lane main --services-csv "${{ steps.affected.outputs.services_csv }}"
+
       - name: Summary
         if: always()
         run: |
@@ -81,6 +87,22 @@ jobs:
             echo "- Should prepare: ${{ steps.prepare_needs.outputs.should_prepare || 'false' }}"
             echo "- Requires preview DB: ${{ steps.prepare_needs.outputs.requires_preview_db || 'false' }}"
             echo "- Requires Meili keys: ${{ steps.prepare_needs.outputs.requires_meili_keys || 'false' }}"
+            echo "- Requires downtime approval: ${{ steps.downtime.outputs.requires_downtime_approval || 'false' }}"
+            echo "- Downtime-risk services: ${{ steps.downtime.outputs.downtime_service_ids || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  approval:
+    needs: scope
+    if: needs.scope.outputs.requires_downtime_approval == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: zaneops-main-downtime
+    steps:
+      - name: Summary
+        run: |
+          {
+            echo "## Main Downtime Approval"
+            echo "- Approved downtime-risk services: ${{ needs.scope.outputs.downtime_service_ids || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   prepare:
@@ -144,11 +166,12 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
-    needs: [scope, prepare]
+    needs: [scope, prepare, approval]
     if: >-
       always() &&
       needs.scope.outputs.services_csv != '' &&
-      (needs.prepare.result == 'success' || needs.prepare.result == 'skipped')
+      (needs.prepare.result == 'success' || needs.prepare.result == 'skipped') &&
+      (needs.approval.result == 'success' || needs.approval.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
