@@ -320,6 +320,49 @@ describe("checkout address helpers", () => {
     })
 
     expect(
+      customerAdapter.validateUpdate?.(
+        {
+          addressId: "addr_1",
+          phone: " +420123456789 ",
+        },
+        {
+          mode: "update",
+        }
+      )
+    ).toEqual([])
+
+    expect(
+      customerAdapter.validateUpdate?.(
+        {
+          addressId: "addr_1",
+          isDefaultShipping: true,
+        },
+        {
+          mode: "update",
+        }
+      )
+    ).toEqual([])
+
+    expect(
+      customerAdapter.validateUpdate?.(
+        {
+          addressId: "addr_1",
+          country: "   ",
+        },
+        {
+          mode: "update",
+        }
+      )
+    ).toEqual([
+      {
+        scope: "customer",
+        field: "country",
+        code: "required",
+        message: "Missing customer field: country",
+      },
+    ])
+
+    expect(
       mapCheckoutAddressToMedusaCustomerAddress(
         {
           firstName: "Jan",

@@ -90,11 +90,9 @@ export type CustomerAddressAdapter<
   TCreateParams = TCreateInput,
   TUpdateInput = TCreateInput,
   TUpdateParams = TCreateParams,
-  TStoredAddress = unknown,
 > = StorefrontCustomerAddressAdapter<
   TCreateInput,
   TCreateParams,
   TUpdateInput,
-  TUpdateParams,
-  TStoredAddress
+  TUpdateParams
 >
