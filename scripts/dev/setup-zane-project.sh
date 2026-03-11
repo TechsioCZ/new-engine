@@ -704,7 +704,7 @@ setup::service_healthcheck_json() {
       jq -cS -n '{
         type: "PATH",
         value: "/api/health",
-        timeout_seconds: 30,
+        timeout_seconds: 120,
         interval_seconds: 30,
         associated_port: 3000
       }'
