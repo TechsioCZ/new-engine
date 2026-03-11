@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 source "${REPO_ROOT}/scripts/ci/lib.sh"
+source "${REPO_ROOT}/scripts/dev/lib/zane.sh"
 
 ENV_FILE="${REPO_ROOT}/.env.zane"
 ZANE_BASE_URL="${ZANE_BASE_URL:-}"
@@ -188,13 +189,6 @@ parse_args() {
   done
 }
 
-load_env_file() {
-  if [[ -f "$ENV_FILE" ]]; then
-    # shellcheck disable=SC1090
-    set -a && source "$ENV_FILE" && set +a
-  fi
-}
-
 require_tools() {
   ci::require_command curl
   ci::require_command docker
@@ -208,151 +202,35 @@ assert_non_empty() {
   [[ -n "$value" ]] || ci::die "${label} is required."
 }
 
-first_non_empty() {
-  local value
-  for value in "$@"; do
-    if [[ -n "${value:-}" ]]; then
-      printf '%s\n' "$value"
-      return 0
-    fi
-  done
-  printf '\n'
-}
-
-zane::request() {
-  local method="$1"
-  local path="$2"
-  local body="${3-}"
-  local response_file status
-  local url="${ZANE_BASE_URL%/}/api/${path#/}"
-  local curl_args=()
-
-  response_file="$(mktemp)"
-  curl_args=(
-    --silent
-    --show-error
-    --location
-    --request "$method"
-    --cookie "$COOKIE_JAR"
-    --cookie-jar "$COOKIE_JAR"
-    --header 'Accept: application/json'
-    --output "$response_file"
-    --write-out '%{http_code}'
-  )
-
-  if [[ "$method" != "GET" ]]; then
-    curl_args+=(--header "X-CSRFToken: ${CSRF_TOKEN}")
-  fi
-
-  if [[ -n "$body" ]]; then
-    curl_args+=(
-      --header 'Content-Type: application/json'
-      --data "$body"
-    )
-  fi
-
-  curl_args+=("$url")
-  status="$(curl "${curl_args[@]}")"
-  printf '%s\t%s\n' "$status" "$response_file"
-}
-
-zane::api() {
-  local method="$1"
-  local path="$2"
-  local body="${3-}"
-  local status response_file
-
-  read -r status response_file < <(zane::request "$method" "$path" "$body")
-  if [[ ! "$status" =~ ^2 ]]; then
-    {
-      echo "Zane API request failed:"
-      echo "  ${method} ${path}"
-      echo "  HTTP ${status}"
-      echo "  response: $(cat "$response_file")"
-    } >&2
-    rm -f "$response_file"
-    exit 1
-  fi
-
-  cat "$response_file"
-  rm -f "$response_file"
-}
-
-zane::refresh_csrf_token() {
-  CSRF_TOKEN="$(
-    awk '
-      $6 == "csrftoken" {
-        token = $7
-      }
-      END {
-        print token
-      }
-    ' "$COOKIE_JAR"
-  )"
-}
-
-zane::login() {
-  local login_payload
-
-  COOKIE_JAR="$(mktemp)"
-
-  zane::api GET "csrf/" >/dev/null
-  zane::refresh_csrf_token
-  [[ -n "$CSRF_TOKEN" ]] || ci::die "Unable to obtain CSRF token from Zane."
-
-  login_payload="$(
-    jq -n \
-      --arg username "$ZANE_USERNAME" \
-      --arg password "$ZANE_PASSWORD" \
-      '{username: $username, password: $password}'
-  )"
-
-  zane::api POST "auth/login/" "$login_payload" >/dev/null
-  zane::refresh_csrf_token
-}
-
-zane::get_service() {
-  local service_slug="$1"
-  zane::api GET "projects/${PROJECT_SLUG}/${ENVIRONMENT_NAME}/service-details/${service_slug}/"
-}
-
-zane::service_env_value() {
-  local service_json="$1"
-  local key="$2"
-  jq -r --arg key "$key" '
-    [.env_variables[]? | select(.key == $key) | .value] | last // empty
-  ' <<<"$service_json"
-}
-
 resolve_live_defaults() {
   local db_service_json operator_service_json
 
   db_service_json="$(zane::get_service "$DB_SERVICE_SLUG")"
   operator_service_json="$(zane::get_service "$OPERATOR_SERVICE_SLUG")"
 
-  DB_HOST="$(first_non_empty \
+  DB_HOST="$(dev::first_non_empty \
     "$DB_HOST" \
     "$(jq -r '.global_network_alias // empty' <<<"$db_service_json")" \
     "$(jq -r '.network_alias // empty' <<<"$db_service_json")")"
-  DB_PORT="$(first_non_empty "$DB_PORT" "$(zane::service_env_value "$operator_service_json" "PGPORT")" "5432")"
-  DB_USER="$(first_non_empty \
+  DB_PORT="$(dev::first_non_empty "$DB_PORT" "$(zane::service_env_value "$operator_service_json" "PGPORT")" "5432")"
+  DB_USER="$(dev::first_non_empty \
     "$DB_USER" \
     "$(zane::service_env_value "$operator_service_json" "PGUSER")" \
     "${DC_ZANE_OPERATOR_PGUSER:-}" \
     "${DC_POSTGRES_SUPERUSER:-}")"
-  DB_PASSWORD="$(first_non_empty \
+  DB_PASSWORD="$(dev::first_non_empty \
     "$DB_PASSWORD" \
     "$(zane::service_env_value "$operator_service_json" "PGPASSWORD")" \
     "${DC_ZANE_OPERATOR_PGPASSWORD:-}" \
     "${DC_POSTGRES_SUPERUSER_PASSWORD:-}")"
-  DB_ADMIN_NAME="$(first_non_empty "$DB_ADMIN_NAME" "$(zane::service_env_value "$operator_service_json" "PGDATABASE")" "postgres")"
-  DB_SSLMODE="$(first_non_empty "$DB_SSLMODE" "$(zane::service_env_value "$operator_service_json" "PGSSLMODE")" "disable")"
-  TEMPLATE_DB_NAME="$(first_non_empty \
+  DB_ADMIN_NAME="$(dev::first_non_empty "$DB_ADMIN_NAME" "$(zane::service_env_value "$operator_service_json" "PGDATABASE")" "postgres")"
+  DB_SSLMODE="$(dev::first_non_empty "$DB_SSLMODE" "$(zane::service_env_value "$operator_service_json" "PGSSLMODE")" "disable")"
+  TEMPLATE_DB_NAME="$(dev::first_non_empty \
     "$TEMPLATE_DB_NAME" \
     "$(zane::service_env_value "$operator_service_json" "DB_TEMPLATE_NAME")" \
     "${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-}" \
     "template_medusa")"
-  TEMPLATE_OWNER="$(first_non_empty "$TEMPLATE_OWNER" "$DB_USER")"
+  TEMPLATE_OWNER="$(dev::first_non_empty "$TEMPLATE_OWNER" "$DB_USER")"
 
   if [[ -z "$STAGING_DB_NAME" ]]; then
     STAGING_DB_NAME="${TEMPLATE_DB_NAME}_staging_$(date +%Y%m%d%H%M%S)"
@@ -523,13 +401,13 @@ print_plan() {
 }
 
 confirm_execution() {
-  local prompt
+  local summary
 
-  if [[ "$DRY_RUN" == "true" || "$ASSUME_YES" == "true" ]]; then
+  if [[ "$DRY_RUN" == "true" ]]; then
     return 0
   fi
 
-  cat >&2 <<EOF
+  summary="$(cat <<EOF
 About to refresh the live preview template DB on the deployed Zane stack:
   zane_base_url: ${ZANE_BASE_URL}
   project_slug: ${PROJECT_SLUG}
@@ -539,9 +417,8 @@ About to refresh the live preview template DB on the deployed Zane stack:
   template_db_name: ${TEMPLATE_DB_NAME}
   template_owner: ${TEMPLATE_OWNER}
 EOF
-  printf 'Type "refresh %s/%s" to continue: ' "${PROJECT_SLUG}" "${ENVIRONMENT_NAME}" >&2
-  read -r prompt
-  [[ "$prompt" == "refresh ${PROJECT_SLUG}/${ENVIRONMENT_NAME}" ]] || ci::die "Confirmation rejected."
+)"
+  dev::confirm_or_die "refresh ${PROJECT_SLUG}/${ENVIRONMENT_NAME}" "$summary"
 }
 
 cleanup() {
@@ -556,26 +433,26 @@ cleanup() {
 
 main() {
   parse_args "$@"
-  load_env_file
+  dev::load_env_file "$ENV_FILE" optional
   require_tools
 
-  ZANE_BASE_URL="$(first_non_empty \
+  ZANE_BASE_URL="$(dev::first_non_empty \
     "$ZANE_BASE_URL" \
     "${ZANEOPS_URL:-}" \
     "${DC_ZANE_OPERATOR_ZANE_BASE_URL:-}")"
-  ZANE_USERNAME="$(first_non_empty \
+  ZANE_USERNAME="$(dev::first_non_empty \
     "$ZANE_USERNAME" \
     "${ZANEOPS_USERNAME:-}" \
     "${DC_ZANE_OPERATOR_ZANE_USERNAME:-}")"
-  ZANE_PASSWORD="$(first_non_empty \
+  ZANE_PASSWORD="$(dev::first_non_empty \
     "$ZANE_PASSWORD" \
     "${ZANEOPS_PASSWORD:-}" \
     "${DC_ZANE_OPERATOR_ZANE_PASSWORD:-}")"
-  PROJECT_SLUG="$(first_non_empty \
+  PROJECT_SLUG="$(dev::first_non_empty \
     "$PROJECT_SLUG" \
     "${ZANE_PROJECT_SLUG:-}" \
     "${ZANE_CANONICAL_PROJECT_SLUG:-}")"
-  ENVIRONMENT_NAME="$(first_non_empty \
+  ENVIRONMENT_NAME="$(dev::first_non_empty \
     "$ENVIRONMENT_NAME" \
     "${ZANE_ENVIRONMENT_NAME:-}" \
     "${ZANE_PRODUCTION_ENVIRONMENT_NAME:-}" \
