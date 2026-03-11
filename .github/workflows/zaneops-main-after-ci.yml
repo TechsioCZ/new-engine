@@ -162,6 +162,7 @@ jobs:
       deploy_services_csv: ${{ steps.run_deploy.outputs.deploy_services_csv }}
       env_override_service_ids_csv: ${{ steps.run_deploy.outputs.env_override_service_ids_csv }}
       triggered_services_csv: ${{ steps.run_deploy.outputs.triggered_services_csv }}
+      deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -237,6 +238,7 @@ jobs:
           REQUESTED_SERVICES_CSV: ${{ needs.deploy.outputs.requested_services_csv }}
           DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv }}
           TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv }}
+          DEPLOYMENTS_JSON: ${{ needs.deploy.outputs.deployments_json }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
@@ -247,7 +249,8 @@ jobs:
             --environment-name "$ENVIRONMENT_NAME" \
             --requested-services-csv "${REQUESTED_SERVICES_CSV:-}" \
             --deploy-services-csv "${DEPLOY_SERVICES_CSV:-}" \
-            --triggered-services-csv "${TRIGGERED_SERVICES_CSV:-}"
+            --triggered-services-csv "${TRIGGERED_SERVICES_CSV:-}" \
+            --deployments-json-inline "${DEPLOYMENTS_JSON:-}"
 
       - name: Summary
         if: always()

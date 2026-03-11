@@ -177,6 +177,7 @@ jobs:
       deploy_services_csv: ${{ steps.run_deploy.outputs.deploy_services_csv }}
       env_override_service_ids_csv: ${{ steps.run_deploy.outputs.env_override_service_ids_csv }}
       triggered_services_csv: ${{ steps.run_deploy.outputs.triggered_services_csv }}
+      deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -260,6 +261,7 @@ jobs:
           REQUESTED_SERVICES_CSV: ${{ needs.deploy.outputs.requested_services_csv }}
           DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv }}
           TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv }}
+          DEPLOYMENTS_JSON: ${{ needs.deploy.outputs.deployments_json }}
           PREVIEW_DB_NAME: ${{ needs.prepare.outputs.preview_db_name }}
           PREVIEW_DB_USER: ${{ needs.prepare.outputs.preview_db_user }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
@@ -275,6 +277,7 @@ jobs:
             --requested-services-csv "${REQUESTED_SERVICES_CSV:-}" \
             --deploy-services-csv "${DEPLOY_SERVICES_CSV:-}" \
             --triggered-services-csv "${TRIGGERED_SERVICES_CSV:-}" \
+            --deployments-json-inline "${DEPLOYMENTS_JSON:-}" \
             --preview-db-name "${PREVIEW_DB_NAME:-}" \
             --preview-db-user "${PREVIEW_DB_USER:-}" \
             --preview-db-password "${PREVIEW_DB_PASSWORD:-}" \

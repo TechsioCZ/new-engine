@@ -350,6 +350,10 @@ run_deploy_stage() {
 run_verify_stage() {
   local deploy_json="$1"
   local verify_json
+  local deployments_json_inline
+
+  jq -e . >/dev/null <<<"$deploy_json" || ci::die "Deploy stage did not return valid JSON."
+  deployments_json_inline="$(jq -c '{services: (.deployments // [])}' <<<"$deploy_json")"
 
   (
     export ZANE_OPERATOR_BASE_URL="$ZANE_OPERATOR_BASE_URL"
@@ -367,6 +371,7 @@ run_verify_stage() {
       --requested-services-csv "$(jq -r '.requested_services_csv' <<<"$deploy_json")" \
       --deploy-services-csv "$(jq -r '.deploy_services_csv' <<<"$deploy_json")" \
       --triggered-services-csv "$(jq -r '.triggered_services_csv' <<<"$deploy_json")" \
+      --deployments-json-inline "$deployments_json_inline" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
       --api-token "$ZANE_OPERATOR_API_TOKEN"
   )"
@@ -409,16 +414,20 @@ main() {
   fi
 
   prepare_needs_json="$(resolve_prepare)"
+  jq -e . >/dev/null <<<"$prepare_needs_json" || ci::die "Prepare-needs stage did not return valid JSON."
   requires_meili_keys="$(jq -r '.requires_meili_keys' <<<"$prepare_needs_json")"
   prepare_json="$(run_prepare_stage "$requires_meili_keys")"
+  jq -e . >/dev/null <<<"$prepare_json" || ci::die "Prepare stage did not return valid JSON."
   if ! deploy_json="$(run_deploy_stage)"; then
     exit 1
   fi
+  jq -e . >/dev/null <<<"$deploy_json" || ci::die "Deploy stage did not return valid JSON."
 
   if [[ "$SKIP_VERIFY" == "false" ]]; then
     if ! verify_json="$(run_verify_stage "$deploy_json")"; then
       exit 1
     fi
+    jq -e . >/dev/null <<<"$verify_json" || ci::die "Verify stage did not return valid JSON."
   fi
 
   jq -cn \
