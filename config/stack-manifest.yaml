@@ -125,7 +125,7 @@ services:
       zane:
         service_name: "n1"
         deploy_lanes: ["preview", "main"]
-        deploy_stage: 20
+        deploy_stage: 30
         consumes:
           meili_frontend_key: true
 
@@ -144,4 +144,4 @@ services:
       zane:
         service_name: "zane-operator"
         deploy_lanes: ["main"]
-        deploy_stage: 30
+        deploy_stage: 20
