@@ -44,6 +44,8 @@ export interface VerifyDeployInput {
   triggeredServiceIds: string[]
   expectedEnvOverrides: EnvOverrideInput[]
   deployments: VerifyDeploymentRef[]
+  waitForHealthy: boolean
+  waitTimeoutSeconds: number
 }
 
 export interface ZaneEnvironment {
@@ -106,6 +108,7 @@ interface CachedZaneSession {
 interface ZaneDeployment {
   hash: string
   status: string
+  status_reason?: string | null
   service_snapshot?: {
     env_variables?: ZaneEnvVariable[]
   }
@@ -116,6 +119,7 @@ interface ZaneDeploymentListResponse {
 }
 
 const SESSION_CACHE_TTL_MS = 10 * 60 * 1000
+const DEFAULT_VERIFY_WAIT_TIMEOUT_SECONDS = 600
 const cachedSessions = new Map<string, CachedZaneSession>()
 const pendingSessionInitializations = new Map<string, Promise<ZaneSession>>()
 
@@ -189,6 +193,26 @@ function assertStringMap(value: unknown, label: string): Record<string, string> 
   }
 
   return result
+}
+
+function assertOptionalBoolean(value: unknown, label: string): boolean | undefined {
+  if (value == null) {
+    return undefined
+  }
+  if (typeof value !== "boolean") {
+    throw new BadRequestError(`${label} must be a boolean`)
+  }
+  return value
+}
+
+function assertOptionalPositiveInteger(value: unknown, label: string): number | undefined {
+  if (value == null) {
+    return undefined
+  }
+  if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
+    throw new BadRequestError(`${label} must be a positive integer`)
+  }
+  return value
 }
 
 function normalizeProjectSlugFromPayload(payload: JsonRecord): string {
@@ -458,6 +482,10 @@ export class ZaneClient {
       triggeredServiceIds: assertStringArray(payload.triggered_service_ids, "triggered_service_ids"),
       expectedEnvOverrides: normalizeEnvOverrides(payload.expected_env_overrides ?? [], "expected_env_overrides"),
       deployments: normalizeDeployments(payload.deployments, "deployments"),
+      waitForHealthy: assertOptionalBoolean(payload.wait_for_healthy, "wait_for_healthy") ?? false,
+      waitTimeoutSeconds:
+        assertOptionalPositiveInteger(payload.wait_timeout_seconds, "wait_timeout_seconds") ??
+        DEFAULT_VERIFY_WAIT_TIMEOUT_SECONDS,
     }
   }
 
@@ -943,10 +971,6 @@ export class ZaneClient {
     triggered_service_ids: string[]
     checked_env_override_service_ids: string[]
   }> {
-    if (input.lane === "main" && input.expectedEnvOverrides.length > 0) {
-      throw new UpstreamHttpError(409, "zane_verify_preview_only_override", "Main deploy must not apply preview-only env overrides")
-    }
-
     const session = await this.authenticate()
     const environment = await this.getEnvironment(session, input.projectSlug, input.environmentName)
     if (!environment) {
@@ -976,13 +1000,22 @@ export class ZaneClient {
     }
 
     for (const deploymentRef of input.deployments) {
-      const deployment = await this.getDeployment(
-        session,
-        input.projectSlug,
-        input.environmentName,
-        deploymentRef.service_name,
-        deploymentRef.deployment_hash,
-      )
+      const deployment = input.waitForHealthy
+        ? await this.waitForDeploymentHealthy(
+            session,
+            input.projectSlug,
+            input.environmentName,
+            deploymentRef.service_name,
+            deploymentRef.deployment_hash,
+            input.waitTimeoutSeconds,
+          )
+        : await this.getDeployment(
+            session,
+            input.projectSlug,
+            input.environmentName,
+            deploymentRef.service_name,
+            deploymentRef.deployment_hash,
+          )
 
       const envVariables = new Map(
         (deployment.service_snapshot?.env_variables ?? []).map((envVar) => [envVar.key, envVar.value]),
@@ -1015,6 +1048,44 @@ export class ZaneClient {
       deploy_service_ids: input.deployServiceIds,
       triggered_service_ids: input.triggeredServiceIds,
       checked_env_override_service_ids: input.expectedEnvOverrides.map((item) => item.service_id),
+    }
+  }
+
+  private async waitForDeploymentHealthy(
+    session: ZaneSession,
+    projectSlug: string,
+    environmentName: string,
+    serviceSlug: string,
+    deploymentHash: string,
+    timeoutSeconds: number,
+  ): Promise<ZaneDeployment> {
+    const startedAt = Date.now()
+
+    while (true) {
+      const deployment = await this.getDeployment(session, projectSlug, environmentName, serviceSlug, deploymentHash)
+      const status = deployment.status.toUpperCase()
+
+      if (status === "HEALTHY") {
+        return deployment
+      }
+
+      if (status === "FAILED" || status === "UNHEALTHY" || status === "CANCELLED" || status === "REMOVED") {
+        throw new UpstreamHttpError(
+          409,
+          "zane_deployment_not_healthy",
+          `Deployment ${deploymentHash} for ${serviceSlug} finished with status ${deployment.status}${deployment.status_reason ? `: ${deployment.status_reason}` : ""}`,
+        )
+      }
+
+      if (Date.now() - startedAt >= timeoutSeconds * 1000) {
+        throw new UpstreamHttpError(
+          504,
+          "zane_deployment_wait_timeout",
+          `Timed out waiting for deployment ${deploymentHash} of ${serviceSlug} to become HEALTHY`,
+        )
+      }
+
+      await sleep(5000)
     }
   }
 

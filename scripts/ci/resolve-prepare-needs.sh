@@ -11,7 +11,7 @@ source "${ROOT_DIR}/scripts/lib/stack-manifest.sh"
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/ci/resolve-prepare-needs.sh --services-csv <csv>
+  scripts/ci/resolve-prepare-needs.sh --lane <preview|main> --services-csv <csv>
 
 Outputs:
   - should_prepare
@@ -28,9 +28,14 @@ EOF
 }
 
 services_csv=""
+lane="preview"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --lane)
+      lane="${2-}"
+      shift 2
+      ;;
     --services-csv)
       services_csv="${2-}"
       shift 2
@@ -49,6 +54,13 @@ done
 MANIFEST_PATH="$STACK_MANIFEST_PATH"
 manifest_exists
 manifest_require_parser
+
+case "$lane" in
+  preview|main) ;;
+  *)
+    ci::die "Lane must be preview or main."
+    ;;
+esac
 
 preview_db_service_ids=""
 meili_key_service_ids=""
@@ -79,6 +91,10 @@ while IFS= read -r service_id; do
     fi
   fi
 done < <(ci_prepare_service_ids preview_db)
+
+if [[ "$lane" == "main" ]]; then
+  preview_db_service_ids=""
+fi
 
 while IFS= read -r service_id; do
   [[ -n "$service_id" ]] || continue

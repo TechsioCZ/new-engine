@@ -174,7 +174,7 @@ if [[ "$nx_status" == "fallback" ]]; then
   while IFS= read -r fallback_service_id; do
     [[ -n "$fallback_service_id" ]] || continue
     service_flags["$fallback_service_id"]=true
-  done < <(manifest_eval -r '.services[] | select((.nx_projects | length) > 0) | .id')
+  done < <(manifest_eval -r '.services[] | select(((.nx_projects // []) | length) > 0) | .id')
 fi
 
 while IFS= read -r service_json; do

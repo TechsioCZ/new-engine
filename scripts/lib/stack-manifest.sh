@@ -53,7 +53,7 @@ compose_services_for_phase() {
         .services[]
         | select(.compose_service != null)
         | select(.local.phase == $phase)
-        | select(($default_only | not) or (.local.enabled_by_default == true))
+        | select(($default_only | not) or ((.local.enabled_by_default // true) == true))
         | .compose_service
       ] | join(" ")
     '
@@ -62,7 +62,102 @@ compose_services_for_phase() {
 service_by_id() {
   local service_id="$1"
 
-  manifest_eval -c --arg id "$service_id" '.services[] | select(.id == $id)'
+  manifest_eval -c \
+    --arg id "$service_id" \
+    '
+      .services[]
+      | select(.id == $id)
+      | . as $service
+      | {
+          id,
+          compose_service,
+          kind,
+          nx_projects: (.nx_projects // []),
+          local: {
+            phase: $service.local.phase,
+            enabled_by_default: (if ($service.local | has("enabled_by_default")) then $service.local.enabled_by_default else true end),
+            wait_healthy: (if ($service.local | has("wait_healthy")) then $service.local.wait_healthy else true end)
+          },
+          ci: (
+            ($service.ci // {})
+            | .prepare = (.prepare // {})
+            | if .zane != null then
+                .zane = (
+                  .zane
+                  | .deploy_lanes = (.deploy_lanes // [])
+                  | .deploy_stage = (.deploy_stage // 100)
+                  | .consumes = (.consumes // {})
+                  | .coupled_service_ids = (.coupled_service_ids // [])
+                )
+              else
+                .
+              end
+          )
+        }
+    '
+}
+
+schema_template() {
+  cat <<'EOF'
+# Sparse stack manifest schema template.
+# Omit optional keys when the default value is correct.
+#
+# Omission defaults:
+# - local.enabled_by_default: true
+# - local.wait_healthy: true
+# - nx_projects: []
+# - ci.prepare.preview_db: false
+# - ci.prepare.meili_keys: false
+# - ci.zane.consumes.preview_db: false
+# - ci.zane.consumes.meili_frontend_key: false
+# - ci.zane.consumes.meili_backend_key: false
+# - ci.zane.coupled_service_ids: []
+# - ci.zane.deploy_stage: 100
+#
+# Keep explicit:
+# - local.phase
+# - ci.deployable
+# - ci.affected_path_globs
+# - ci.zane.service_name
+# - ci.zane.deploy_lanes
+
+ci:
+  ignore_path_globs:
+    - "plans/**"
+  global_runtime_path_globs:
+    - ".env.docker"
+  global_runtime_service_ids:
+    - "medusa-be"
+
+services:
+  - id: "example-service"
+    compose_service: "example-service"
+    kind: "backend" # example: infra|backend|frontend|operator
+    # optional when not backed by Nx:
+    # nx_projects:
+    #   - "example-service"
+    local:
+      phase: "backend" # required: resources|backend|frontend|operator
+      # enabled_by_default: false   # optional; default true
+      # wait_healthy: false         # optional; default true
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/example-service/**"
+      prepare:
+        # preview_db: true          # optional; default false
+        # meili_keys: true          # optional; default false
+      zane:
+        service_name: "example-service"
+        deploy_lanes: ["preview", "main"]
+        # deploy_stage: 20              # optional; default 100
+        consumes:
+          # preview_db: true            # optional; default false
+          # meili_frontend_key: true    # optional; default false
+          # meili_backend_key: true     # optional; default false
+        # coupled_service_ids:          # optional; default []
+        #   - "another-service"
+EOF
 }
 
 ci_services_json() {
@@ -114,6 +209,7 @@ ci_zane_service_json() {
           id,
           service_name: .ci.zane.service_name,
           deploy_lanes: (.ci.zane.deploy_lanes // []),
+          deploy_stage: (.ci.zane.deploy_stage // 100),
           consumes: (.ci.zane.consumes // {}),
           coupled_service_ids: (.ci.zane.coupled_service_ids // [])
         }
@@ -166,6 +262,7 @@ Usage: scripts/lib/stack-manifest.sh <command> [options]
 Commands:
   compose-services --phase <phase> [--default-only]
   service --id <service-id>
+  schema-template
   ci-services-json
   ci-ignore-globs
   ci-global-runtime-globs
@@ -223,6 +320,9 @@ main() {
         exit 1
       }
       service_by_id "$2"
+      ;;
+    schema-template)
+      schema_template
       ;;
     ci-services-json)
       ci_services_json
