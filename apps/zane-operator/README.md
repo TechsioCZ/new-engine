@@ -314,7 +314,7 @@ The helper:
   - `docker/development/n1/Dockerfile`
   - `docker/development/zane-operator/Dockerfile`
 - auto-resolves internal service network aliases after service creation
-- upserts only the curated shared `production` environment contract needed by the deployed stack, not a full copy of `.env.docker`
+- upserts only the curated shared `production` environment contract needed by the deployed stack, not a full copy of `.env.zane`
 - prefixes shared Zane project variables by service/domain to avoid collisions across inherited service environments
 - upserts the per-service env blocks using `{{env.VAR}}` references
 - upserts the expected per-service healthchecks in Zane so reruns also converge probe configuration
@@ -327,12 +327,14 @@ Run it from the repo root:
 
 ```bash
 scripts/dev/setup-zane-project.sh \
-  --env-file .env.docker \
+  --env-file .env.zane \
   --zane-base-url http://localhost \
   --zane-username admin \
   --zane-password 'replace-me' \
   --project-slug new-engine
 ```
+
+The helper is intentionally interactive for real runs and asks you to confirm the target host/project before mutating a live Zane stack. Use `--yes` only when you deliberately want to bypass that prompt.
 
 Optional overrides worth knowing:
 - `--repository-url https://github.com/<org>/<repo>.git`
@@ -349,7 +351,9 @@ Optional overrides worth knowing:
 - `--operator-upstream-zane-username <user>`
 - `--operator-upstream-zane-password <password>`
 
-The helper reads `.env.docker` by default, but it only maps the values that are part of the deployed stack contract. It forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
+The helper reads `.env.zane` by default, but it only maps the values that are part of the deployed stack contract. Keep compose/local runtime values in `.env`; use `.env.zane` for Zane-targeted helper runs. The helper forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
+
+The image still ships the one-shot bootstrap CLI at `/app/zane-operator-bootstrap-role`, but a normal `zane-operator` service deploy does not execute it automatically. Use the explicit bootstrap path when you need that behavior in Zane.
 
 If your repo is private:
 1. install/configure the git app in Zane first

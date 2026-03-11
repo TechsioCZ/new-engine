@@ -12,6 +12,7 @@
 1. <b>Create .env file</b>
     * copy .env.docker => .env
     * optionally update config as needed
+    * if you also use the Zane-targeted helper scripts, copy .env => .env.zane once and keep Zane-specific values there
 
 2. <b>Install dependencies</b>
 
@@ -311,6 +312,12 @@ For first-time local Zane setup, follow:
 ```shell
 apps/zane-operator/README.md
 ```
+
+Use `.env` for local compose/runtime and `.env.zane` for Zane-targeted helper scripts such as:
+- `scripts/dev/setup-zane-project.sh`
+- `scripts/dev/refresh-zane-template-db.sh`
+- `mise run dev:zane:project:sync`
+- `mise run dev:zane:template-db:sync`
 
 ---
 

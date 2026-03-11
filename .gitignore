@@ -49,6 +49,7 @@ test-output
 playwright-report
 test-results
 .env
+.env.zane
 
 # Local Netlify folder
 .netlify

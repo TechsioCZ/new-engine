@@ -50,6 +50,14 @@ run = "bash ./scripts/ci/provision-meili-keys.sh"
 description = "Verify Meilisearch backend/frontend API key scopes"
 run = "bash ./scripts/ci/verify-meili-keys.sh"
 
+[tasks."dev:zane:project:sync"]
+description = "Rare-use Zane helper: create or sync the canonical project/services on a deployed Zane stack"
+run = "bash ./scripts/dev/setup-zane-project.sh"
+
+[tasks."dev:zane:template-db:sync"]
+description = "Rare-use Zane helper: refresh the live preview template DB on a deployed Zane stack"
+run = "bash ./scripts/dev/refresh-zane-template-db.sh"
+
 [tasks."dev:internal:resources:up"]
 description = "Start manifest-defined shared resource services"
 hide = true
