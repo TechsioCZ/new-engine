@@ -765,10 +765,19 @@ export class ZaneClient {
 
         const details = await this.getServiceDetails(session, input.projectSlug, input.environmentName, service.service_name)
         const deployments = await this.listDeployments(session, input.projectSlug, input.environmentName, details.slug)
-        const currentProductionDeployment =
+        const currentProductionDeploymentSummary =
           deployments.find(
             (deployment) => deployment.is_current_production === true && deployment.status.toUpperCase() === "HEALTHY",
           ) ?? null
+        const currentProductionDeployment = currentProductionDeploymentSummary
+          ? await this.getDeployment(
+              session,
+              input.projectSlug,
+              input.environmentName,
+              details.slug,
+              currentProductionDeploymentSummary.hash,
+            )
+          : null
 
         return {
           service_id: service.service_id,
