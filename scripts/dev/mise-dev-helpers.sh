@@ -222,30 +222,35 @@ sync_meili_env() {
   sync_env_key "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY" "$frontend_key"
 }
 
-require_operator_bootstrap() {
-  local role_name db_name container_id
+ensure_operator_db_convergence() {
+  local operator_user operator_password operator_template_db container_id
 
-  role_name="$(get_env_value "DC_ZANE_OPERATOR_PGUSER")"
-  db_name="$(get_env_value "DC_MEDUSA_APP_DB_NAME")"
-  role_name="${role_name:-zane_operator}"
-  db_name="${db_name:-medusa}"
-  container_id="$(compose ps -q medusa-db 2>/dev/null | head -n1 || true)"
+  operator_user="${DC_ZANE_OPERATOR_PGUSER:-$(get_env_value "DC_ZANE_OPERATOR_PGUSER")}"
+  operator_password="${DC_ZANE_OPERATOR_PGPASSWORD:-$(get_env_value "DC_ZANE_OPERATOR_PGPASSWORD")}"
+  operator_template_db="${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-$(get_env_value "DC_ZANE_OPERATOR_DB_TEMPLATE_NAME")}"
 
-  if [[ -z "$container_id" ]]; then
-    echo "medusa-db is not running. Start the core stack first with 'mise run dev' or 'mise run dev:resources'." >&2
+  operator_user="${operator_user:-zane_operator}"
+  operator_template_db="${operator_template_db:-template_medusa}"
+
+  if [[ -z "$operator_password" ]]; then
+    echo "DC_ZANE_OPERATOR_PGPASSWORD is required before starting the operator." >&2
     exit 1
   fi
 
-  if compose exec -T -e TARGET_ROLE="$role_name" medusa-db sh -lc '
-    psql -U "$POSTGRES_USER" -d "'"$db_name"'" -Atqc "SELECT 1 FROM pg_roles WHERE rolname = '\''$TARGET_ROLE'\''" | grep -qx 1
-  ' >/dev/null 2>&1; then
-    echo "zane-operator bootstrap detected for role ${role_name}"
-    return 0
+  container_id="$(compose ps -q medusa-db 2>/dev/null | head -n1 || true)"
+  if [[ -z "$container_id" ]]; then
+    echo "medusa-db is not running; starting it before operator bootstrap convergence."
+    compose up -d --build medusa-db
   fi
 
-  echo "zane-operator bootstrap has not been applied for role ${role_name}." >&2
-  echo "Run 'mise run dev:operator:bootstrap' first, or 'mise run dev:operator:init' to bootstrap and start the operator." >&2
-  exit 1
+  wait_for_service_healthy medusa-db
+
+  echo "Converging medusa-db bootstrap state for zane-operator..."
+  compose exec -T \
+    -e MEDUSA_DB_ZANE_OPERATOR_USER="$operator_user" \
+    -e MEDUSA_DB_ZANE_OPERATOR_PASSWORD="$operator_password" \
+    -e MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME="$operator_template_db" \
+    medusa-db sh /usr/local/bin/postgres-role-bootstrap
 }
 
 usage() {
@@ -256,7 +261,8 @@ Commands:
   wait-healthy <service...>   Wait until each docker compose service is healthy
   services-for-phase <phase>  Print compose services for a local-dev phase from stack manifest
   sync-meili-env              Provision Meili keys and sync .env values
-  require-operator-bootstrap  Fail unless zane-operator bootstrap has already been applied
+  ensure-operator-db-convergence
+                              Ensure medusa-db has converged zane-operator bootstrap state for current local envs
 
 Environment options:
   PROJECT_NAME                         docker compose project name (default: new-engine)
@@ -292,8 +298,8 @@ main() {
     sync-meili-env)
       sync_meili_env
       ;;
-    require-operator-bootstrap)
-      require_operator_bootstrap
+    ensure-operator-db-convergence)
+      ensure_operator_db_convergence
       ;;
     -h|--help|help)
       usage

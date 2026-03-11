@@ -7,7 +7,6 @@ COMPOSE_PROD=docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -
 
 .PHONY: dev down down-with-volumes prod prod-no-cache prod-run \
 	postgres-role-bootstrap postgres-role-bootstrap-verify \
-	postgres-zane-operator-bootstrap postgres-zane-operator-bootstrap-verify \
 	postgres-grants-verify
 
 # Global commands
@@ -112,21 +111,13 @@ medusa-seed-dev-data:
 medusa-seed-n1:
 	docker exec wr_medusa_be pnpm --filter medusa-be run seedN1
 
-# Postgres role bootstrap for existing DB volumes (migrates pre-strict grants; ensures medusa_app DB CREATE)
+# Postgres role bootstrap for existing DB volumes (migrates pre-strict grants; ensures medusa_app/medusa_dev/zane_operator)
 postgres-role-bootstrap:
 	bash ./scripts/apply-postgres-role-bootstrap.sh
 
 # Run bootstrap twice to verify idempotency
 postgres-role-bootstrap-verify:
 	bash ./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent
-
-# zane-operator role bootstrap (CREATEDB/CREATEROLE + pg_signal_backend + template owner)
-postgres-zane-operator-bootstrap:
-	bash ./scripts/apply-zane-operator-role-bootstrap.sh
-
-# Run zane-operator bootstrap twice to verify idempotency
-postgres-zane-operator-bootstrap-verify:
-	bash ./scripts/apply-zane-operator-role-bootstrap.sh --verify-idempotent
 
 # Verify hardened grants/search_path for app role after bootstrap/migration
 postgres-grants-verify:

@@ -43,6 +43,7 @@ services:
         service_name: "medusa-db"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 10
+        downtime_risk: true
 
   - id: "medusa-valkey"
     compose_service: "medusa-valkey"
@@ -57,6 +58,7 @@ services:
         service_name: "medusa-valkey"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 10
+        downtime_risk: true
 
   - id: "medusa-minio"
     compose_service: "medusa-minio"
@@ -71,6 +73,7 @@ services:
         service_name: "medusa-minio"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 10
+        downtime_risk: true
 
   - id: "medusa-meilisearch"
     compose_service: "medusa-meilisearch"
@@ -87,6 +90,7 @@ services:
         service_name: "medusa-meilisearch"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 10
+        downtime_risk: true
 
   - id: "medusa-be"
     compose_service: "medusa-be"
