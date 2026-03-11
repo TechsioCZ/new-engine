@@ -24,6 +24,8 @@ export interface AppConfig {
   previewAppPasswordSecret: string
   protectedDbNames: Set<string>
   zaneBaseUrl: string | null
+  zaneConnectBaseUrl: string | null
+  zaneConnectHostHeader: string | null
   zaneUsername: string | null
   zanePassword: string | null
 }
@@ -122,6 +124,8 @@ export function loadConfig(env: Environment = process.env): AppConfig {
   const previewAppPasswordSecret = readRequiredEnv(env, "DB_PREVIEW_APP_PASSWORD_SECRET")
   const connectionDatabase = env.PGDATABASE?.trim() || DEFAULT_PG_DATABASE
   const zaneBaseUrl = readOptionalEnv(env, "ZANE_BASE_URL")
+  const zaneConnectBaseUrl = readOptionalEnv(env, "ZANE_CONNECT_BASE_URL")
+  const zaneConnectHostHeader = readOptionalEnv(env, "ZANE_CONNECT_HOST_HEADER")
   const zaneUsername = readOptionalEnv(env, "ZANE_USERNAME")
   const zanePassword = readOptionalEnv(env, "ZANE_PASSWORD")
 
@@ -145,6 +149,8 @@ export function loadConfig(env: Environment = process.env): AppConfig {
     previewAppPasswordSecret,
     protectedDbNames: parseProtectedDatabaseNames(env.DB_PROTECTED_NAMES, [connectionDatabase, defaultTemplateName]),
     zaneBaseUrl,
+    zaneConnectBaseUrl,
+    zaneConnectHostHeader,
     zaneUsername,
     zanePassword,
   }
