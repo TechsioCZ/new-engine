@@ -6,6 +6,10 @@ import type {
   SuspenseQueryResult,
   SuspenseResultBase,
 } from "../shared/hook-types"
+import type {
+  StorefrontAddressValidationResult,
+  StorefrontCustomerAddressAdapter,
+} from "../shared/address"
 
 export type CustomerAddressListInputBase = {
   enabled?: boolean
@@ -79,4 +83,18 @@ export type UseSuspenseCustomerAddressesResult<TAddress> =
 export type CustomerMutationOptions<TData, TVariables, TContext = unknown> =
   MutationOptions<TData, TVariables, TContext>
 
-export type CustomerAddressValidationResult = string[] | null
+export type CustomerAddressValidationResult = StorefrontAddressValidationResult
+
+export type CustomerAddressAdapter<
+  TCreateInput = CustomerAddressCreateInputBase,
+  TCreateParams = TCreateInput,
+  TUpdateInput = TCreateInput,
+  TUpdateParams = TCreateParams,
+  TStoredAddress = unknown,
+> = StorefrontCustomerAddressAdapter<
+  TCreateInput,
+  TCreateParams,
+  TUpdateInput,
+  TUpdateParams,
+  TStoredAddress
+>

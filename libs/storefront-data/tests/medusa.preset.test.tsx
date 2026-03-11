@@ -10,6 +10,13 @@ import type {
 } from "../src/auth/medusa-service"
 import type { AuthService } from "../src/auth/types"
 import { StorefrontDataProvider } from "../src/client/provider"
+import {
+  createCheckoutCartAddressAdapter,
+  createCheckoutCustomerAddressAdapter,
+  type CheckoutAddressInput,
+  type MedusaCartAddressPayload,
+  type CheckoutCustomerAddressUpdateInput,
+} from "../src/checkout/address"
 import type { MedusaCustomerListInput } from "../src/customers/medusa-service"
 import type { CustomerQueryKeys } from "../src/customers/types"
 import {
@@ -117,6 +124,40 @@ describe("createMedusaStorefrontPreset", () => {
 
     const preset = createMedusaStorefrontPreset(config)
     expect(preset.hooks.cart).toBeDefined()
+  })
+
+  it("accepts shared checkout address adapters for both cart and customer hooks", () => {
+    const { sdk } = createSdkMock()
+
+    const preset = createMedusaStorefrontPreset<
+      HttpTypes.StoreProduct,
+      HttpTypes.StoreProductCategory,
+      HttpTypes.StoreCollection,
+      HttpTypes.StoreProduct,
+      Record<string, never>,
+      CheckoutAddressInput,
+      MedusaCartAddressPayload,
+      CheckoutAddressInput,
+      CheckoutCustomerAddressUpdateInput<CheckoutAddressInput>
+    >({
+      sdk,
+      cart: {
+        hooks: {
+          addressAdapter: createCheckoutCartAddressAdapter(),
+        },
+      },
+      customers: {
+        hooks: {
+          addressAdapter: createCheckoutCustomerAddressAdapter(),
+        },
+      },
+      catalog: {
+        fallbackFacets: {} as Record<string, never>,
+      },
+    })
+
+    expect(preset.hooks.cart).toBeDefined()
+    expect(preset.hooks.customers).toBeDefined()
   })
 
   it("builds namespaced query keys", () => {
