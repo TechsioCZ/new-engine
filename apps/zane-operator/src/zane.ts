@@ -800,10 +800,10 @@ export class ZaneClient {
           service_name: service.service_name,
           target_id: card.id,
           service_slug: details.slug,
-          service_type: details.type,
+          service_type: assertServiceType(details.type, `${service.service_name}.service_type`),
           deploy_token: details.deploy_token,
           deploy_url:
-            details.type === "docker"
+            assertServiceType(details.type, `${service.service_name}.service_type`) === "docker"
               ? `/api/deploy-service/docker/${details.deploy_token}/`
               : `/api/deploy-service/git/${details.deploy_token}/`,
           env_change_url: `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
