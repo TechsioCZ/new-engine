@@ -508,7 +508,7 @@ zane::cmd_wait_deployments() {
       [
         (.checked_deployments // [])[]
         | select((.status | ascii_upcase) == "FAILED" or (.status | ascii_upcase) == "UNHEALTHY" or (.status | ascii_upcase) == "CANCELLED" or (.status | ascii_upcase) == "REMOVED")
-        | "\(.service_name)=\(.status)\(if (.status_reason // "") != "" then " (" + .status_reason + ")" else "" end)"
+        | "\(.service_name)#\(.deployment_hash)=\(.status)\(if (.status_reason // "") != "" then ": " + .status_reason else "" end)"
       ]
       | join("; ")
     ' <<<"$response_json")"
@@ -536,7 +536,7 @@ zane::cmd_wait_deployments() {
         [
           (.checked_deployments // [])[]
           | select((.status | ascii_upcase) != "HEALTHY")
-          | "\(.service_name)=\(.status)\(if (.status_reason // "") != "" then " (" + .status_reason + ")" else "" end)"
+          | "\(.service_name)#\(.deployment_hash)=\(.status)\(if (.status_reason // "") != "" then ": " + .status_reason else "" end)"
         ]
         | join("; ")
       ' <<<"$response_json")"
@@ -1815,7 +1815,7 @@ EOF
       --base-url "$base_url" \
       --api-token "$api_token" >/dev/null
     zane::merge_deployments_json_file "$trigger_json_file" "$all_deployments_json_file"
-    zane::cmd_wait_deployments \
+    if ! zane::cmd_wait_deployments \
       --lane main \
       --project-slug "$project_slug" \
       --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
@@ -1829,7 +1829,9 @@ EOF
       --output-json "$verify_json_file" \
       "${dry_run_flags[@]}" \
       --base-url "$base_url" \
-      --api-token "$api_token" >/dev/null
+      --api-token "$api_token" >/dev/null; then
+      ci::die "Main deploy stage ${stage} failed for services: ${stage_services_csv}"
+    fi
 
     triggered_services_csv="$(jq -r --arg existing "$triggered_services_csv" --arg current "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")" '
       [($existing | split(",")[]? | select(length > 0)), ($current | split(",")[]? | select(length > 0))]

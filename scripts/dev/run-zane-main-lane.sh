@@ -334,7 +334,7 @@ run_deploy_stage() {
     bash "${ROOT_DIR}/scripts/ci/check-workflow-inputs.sh" main-deploy
   ) >/dev/null
 
-  deploy_json="$(
+  if ! deploy_json="$(
     bash "${ROOT_DIR}/scripts/ci/zane-deploy.sh" run-main \
       --project-slug "$PROJECT_SLUG" \
       --environment-name "$ENVIRONMENT_NAME" \
@@ -343,7 +343,9 @@ run_deploy_stage() {
       --meili-master-key "$MEILISEARCH_MASTER_KEY" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
       --api-token "$ZANE_OPERATOR_API_TOKEN"
-  )"
+  )"; then
+    return 1
+  fi
   printf '%s\n' "$deploy_json"
 }
 
@@ -363,7 +365,7 @@ run_verify_stage() {
     bash "${ROOT_DIR}/scripts/ci/check-workflow-inputs.sh" main-verify
   ) >/dev/null
 
-  verify_json="$(
+  if ! verify_json="$(
     bash "${ROOT_DIR}/scripts/ci/zane-deploy.sh" verify \
       --lane main \
       --project-slug "$PROJECT_SLUG" \
@@ -374,7 +376,9 @@ run_verify_stage() {
       --deployments-json-inline "$deployments_json_inline" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
       --api-token "$ZANE_OPERATOR_API_TOKEN"
-  )"
+  )"; then
+    return 1
+  fi
   printf '%s\n' "$verify_json"
 }
 
@@ -419,13 +423,13 @@ main() {
   prepare_json="$(run_prepare_stage "$requires_meili_keys")"
   jq -e . >/dev/null <<<"$prepare_json" || ci::die "Prepare stage did not return valid JSON."
   if ! deploy_json="$(run_deploy_stage)"; then
-    exit 1
+    ci::die "Main deploy stage failed. See the deployment error above for the failing stage and deployment hash."
   fi
   jq -e . >/dev/null <<<"$deploy_json" || ci::die "Deploy stage did not return valid JSON."
 
   if [[ "$SKIP_VERIFY" == "false" ]]; then
     if ! verify_json="$(run_verify_stage "$deploy_json")"; then
-      exit 1
+      ci::die "Main verify stage failed. See the verification error above."
     fi
     jq -e . >/dev/null <<<"$verify_json" || ci::die "Verify stage did not return valid JSON."
   fi
