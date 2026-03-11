@@ -207,6 +207,7 @@ zane::filter_targets_for_git_commit() {
   local desired_commit_sha="${3-}"
   local filtered_targets_json="$4"
   local filtered_env_overrides_json="$5"
+  local adopted_deployments_json="$6"
 
   zane::require_file "$targets_json"
   zane::require_file "$env_overrides_json"
@@ -214,6 +215,7 @@ zane::filter_targets_for_git_commit() {
   if [[ -z "$desired_commit_sha" ]]; then
     cp "$targets_json" "$filtered_targets_json"
     cp "$env_overrides_json" "$filtered_env_overrides_json"
+    printf '%s\n' '{"services":[]}' >"$adopted_deployments_json"
     return 0
   fi
 
@@ -229,11 +231,21 @@ zane::filter_targets_for_git_commit() {
       def skip_reason($target; $expected_env):
         if ($target.service_type != "git") then null
         elif ($target.has_unapplied_changes // false) then "pending_changes"
-        elif (($target.current_production_deployment // null) == null) then "no_current_healthy_deployment"
+        elif (
+          (($target.current_production_deployment // null) != null)
+          and (($target.current_production_deployment.status // "" | ascii_upcase) == "HEALTHY")
+          and (($target.current_production_deployment.commit_sha // "") == $desired_commit_sha)
+          and overrides_match(($target.current_production_deployment.env // {}); $expected_env)
+        ) then "already_current_commit"
+        elif (
+          (($target.active_deployment // null) != null)
+          and (($target.active_deployment.commit_sha // "") == $desired_commit_sha)
+          and overrides_match(($target.active_deployment.env // {}); $expected_env)
+        ) then "reuse_in_progress_deployment"
         elif (($target.current_production_deployment.status // "" | ascii_upcase) != "HEALTHY") then "current_deployment_not_healthy"
         elif (($target.current_production_deployment.commit_sha // "") != $desired_commit_sha) then "commit_sha_mismatch"
         elif (overrides_match(($target.current_production_deployment.env // {}); $expected_env) | not) then "env_override_drift"
-        else "already_current_commit"
+        else "no_current_healthy_deployment"
         end;
       (env_override_map) as $expected
       | ($targets | map(
@@ -242,13 +254,19 @@ zane::filter_targets_for_git_commit() {
           | . + {skip_reason: skip_reason($target; $service_env)}
         )) as $classified
       | {
-          services: [$classified[] | select(.skip_reason != "already_current_commit") | del(.skip_reason)],
+          services: [$classified[] | select(.skip_reason != "already_current_commit" and .skip_reason != "reuse_in_progress_deployment") | del(.skip_reason)],
           skipped_services: [$classified[] | select(.skip_reason == "already_current_commit") | {
             service_id,
             service_name,
             reason: .skip_reason,
             deployment_hash: (.current_production_deployment.deployment_hash // null),
             commit_sha: (.current_production_deployment.commit_sha // null)
+          }],
+          adopted_deployments: [$classified[] | select(.skip_reason == "reuse_in_progress_deployment") | {
+            service_id,
+            service_name,
+            deployment_hash: (.active_deployment.deployment_hash // null),
+            status: (.active_deployment.status // null)
           }]
         }
     ' >"$filtered_targets_json"
@@ -262,6 +280,10 @@ zane::filter_targets_for_git_commit() {
           services: [$env_overrides[] | select(.service_id as $id | $allowed | index($id))]
         }
     ' >"$filtered_env_overrides_json"
+
+  jq -cn \
+    --argjson adopted "$(jq -c '.adopted_deployments // []' "$filtered_targets_json")" \
+    '{services: $adopted}' >"$adopted_deployments_json"
 }
 
 zane::stage_plan_json() {
@@ -1806,8 +1828,10 @@ EOF
   local filtered_env_overrides_json_file
   local targets_json_file
   local filtered_targets_json_file
+  local adopted_deployments_json_file
   local apply_json_file
   local trigger_json_file
+  local stage_deployments_json_file
   local verify_json_file
   local all_deployments_json_file
   plan_json_file="$(mktemp)"
@@ -1818,11 +1842,13 @@ EOF
   filtered_env_overrides_json_file="$(mktemp)"
   targets_json_file="$(mktemp)"
   filtered_targets_json_file="$(mktemp)"
+  adopted_deployments_json_file="$(mktemp)"
   apply_json_file="$(mktemp)"
   trigger_json_file="$(mktemp)"
+  stage_deployments_json_file="$(mktemp)"
   verify_json_file="$(mktemp)"
   all_deployments_json_file="$(mktemp)"
-  trap "rm -f '$plan_json_file' '$environment_json_file' '$prepare_needs_json_file' '$stage_plan_json_file' '$env_overrides_json_file' '$filtered_env_overrides_json_file' '$targets_json_file' '$filtered_targets_json_file' '$apply_json_file' '$trigger_json_file' '$verify_json_file' '$all_deployments_json_file'" RETURN
+  trap "rm -f '$plan_json_file' '$environment_json_file' '$prepare_needs_json_file' '$stage_plan_json_file' '$env_overrides_json_file' '$filtered_env_overrides_json_file' '$targets_json_file' '$filtered_targets_json_file' '$adopted_deployments_json_file' '$apply_json_file' '$trigger_json_file' '$stage_deployments_json_file' '$verify_json_file' '$all_deployments_json_file'" RETURN
   printf '%s\n' '{"services":[]}' >"$all_deployments_json_file"
 
   zane::cmd_plan --lane main --services-csv "$services_csv" --output-json "$plan_json_file" >/dev/null
@@ -1887,33 +1913,42 @@ EOF
       "$env_overrides_json_file" \
       "$git_commit_sha" \
       "$filtered_targets_json_file" \
-      "$filtered_env_overrides_json_file"
+      "$filtered_env_overrides_json_file" \
+      "$adopted_deployments_json_file"
     skipped_services_csv="$(jq -r --arg existing "$skipped_services_csv" --arg current "$(jq -r '.skipped_services | map(.service_id) | join(",")' "$filtered_targets_json_file")" '
       [($existing | split(",")[]? | select(length > 0)), ($current | split(",")[]? | select(length > 0))]
       | unique
       | join(",")
     ' <<<"{}")"
-    if [[ "$(jq -r '.services | length' "$filtered_targets_json_file")" == "0" ]]; then
+    zane::merge_deployments_json_file "$adopted_deployments_json_file" "$all_deployments_json_file"
+    if [[ "$(jq -r '.services | length' "$filtered_targets_json_file")" == "0" && "$(jq -r '.services | length' "$adopted_deployments_json_file")" == "0" ]]; then
       continue
     fi
-    zane::cmd_apply_env_overrides \
-      --project-slug "$project_slug" \
-      --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
-      --targets-json "$filtered_targets_json_file" \
-      --env-overrides-json "$filtered_env_overrides_json_file" \
-      --output-json "$apply_json_file" \
-      "${dry_run_flags[@]}" \
-      --base-url "$base_url" \
-      --api-token "$api_token" >/dev/null
-    zane::cmd_trigger \
-      --project-slug "$project_slug" \
-      --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
-      --targets-json "$filtered_targets_json_file" \
-      --output-json "$trigger_json_file" \
-      "${dry_run_flags[@]}" \
-      --base-url "$base_url" \
-      --api-token "$api_token" >/dev/null
-    zane::merge_deployments_json_file "$trigger_json_file" "$all_deployments_json_file"
+    if [[ "$(jq -r '.services | length' "$filtered_targets_json_file")" != "0" ]]; then
+      zane::cmd_apply_env_overrides \
+        --project-slug "$project_slug" \
+        --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
+        --targets-json "$filtered_targets_json_file" \
+        --env-overrides-json "$filtered_env_overrides_json_file" \
+        --output-json "$apply_json_file" \
+        "${dry_run_flags[@]}" \
+        --base-url "$base_url" \
+        --api-token "$api_token" >/dev/null
+      zane::cmd_trigger \
+        --project-slug "$project_slug" \
+        --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
+        --targets-json "$filtered_targets_json_file" \
+        --output-json "$trigger_json_file" \
+        "${dry_run_flags[@]}" \
+        --base-url "$base_url" \
+        --api-token "$api_token" >/dev/null
+      zane::merge_deployments_json_file "$trigger_json_file" "$all_deployments_json_file"
+    else
+      printf '%s\n' '{"triggered_service_ids":[],"services":[]}' >"$trigger_json_file"
+    fi
+    printf '%s\n' '{"services":[]}' >"$stage_deployments_json_file"
+    zane::merge_deployments_json_file "$adopted_deployments_json_file" "$stage_deployments_json_file"
+    zane::merge_deployments_json_file "$trigger_json_file" "$stage_deployments_json_file"
     if ! zane::cmd_wait_deployments \
       --lane main \
       --project-slug "$project_slug" \
@@ -1924,7 +1959,7 @@ EOF
       --meili-frontend-key "$meili_frontend_key" \
       --meili-frontend-env-var "$meili_frontend_env_var" \
       --meili-backend-key "$meili_backend_key" \
-      --deployments-json "$trigger_json_file" \
+      --deployments-json "$stage_deployments_json_file" \
       --output-json "$verify_json_file" \
       "${dry_run_flags[@]}" \
       --base-url "$base_url" \
