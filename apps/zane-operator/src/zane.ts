@@ -69,8 +69,17 @@ export interface ZaneServiceDetails {
   id: string
   slug: string
   type: ServiceType
+  commit_sha?: string | null
   deploy_token: string
   env_variables: ZaneEnvVariable[]
+  unapplied_changes?: Array<{ id: string }>
+}
+
+export interface ZaneResolvedCurrentDeployment {
+  deployment_hash: string
+  status: string
+  commit_sha: string | null
+  env: Record<string, string>
 }
 
 export interface ZaneResolvedTarget {
@@ -83,6 +92,8 @@ export interface ZaneResolvedTarget {
   deploy_url: string
   env_change_url: string
   details_url: string
+  has_unapplied_changes?: boolean
+  current_production_deployment?: ZaneResolvedCurrentDeployment | null
 }
 
 export interface TriggeredDeployment {
@@ -105,6 +116,8 @@ interface CachedZaneSession {
 
 interface ZaneDeployment {
   hash: string
+  is_current_production?: boolean
+  commit_sha?: string | null
   status: string
   status_reason?: string | null
   service_snapshot?: {
@@ -751,6 +764,12 @@ export class ZaneClient {
         }
 
         const details = await this.getServiceDetails(session, input.projectSlug, input.environmentName, service.service_name)
+        const deployments = await this.listDeployments(session, input.projectSlug, input.environmentName, details.slug)
+        const currentProductionDeployment =
+          deployments.find(
+            (deployment) => deployment.is_current_production === true && deployment.status.toUpperCase() === "HEALTHY",
+          ) ?? null
+
         return {
           service_id: service.service_id,
           service_name: service.service_name,
@@ -768,6 +787,20 @@ export class ZaneClient {
           details_url: `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
             input.environmentName,
           )}/service-details/${encodeURIComponent(details.slug)}/`,
+          has_unapplied_changes: Array.isArray(details.unapplied_changes) && details.unapplied_changes.length > 0,
+          current_production_deployment: currentProductionDeployment
+            ? {
+                deployment_hash: currentProductionDeployment.hash,
+                status: currentProductionDeployment.status,
+                commit_sha: currentProductionDeployment.commit_sha ?? null,
+                env: Object.fromEntries(
+                  (currentProductionDeployment.service_snapshot?.env_variables ?? []).map((envVar) => [
+                    envVar.key,
+                    envVar.value,
+                  ]),
+                ),
+              }
+            : null,
         } satisfies ZaneResolvedTarget
       }),
     )

@@ -325,6 +325,9 @@ run_prepare_stage() {
 
 run_deploy_stage() {
   local deploy_json
+  local git_commit_sha
+
+  git_commit_sha="$(git -C "$ROOT_DIR" rev-parse "$HEAD_SHA")"
 
   (
     export ZANE_OPERATOR_BASE_URL="$ZANE_OPERATOR_BASE_URL"
@@ -339,6 +342,7 @@ run_deploy_stage() {
       --project-slug "$PROJECT_SLUG" \
       --environment-name "$ENVIRONMENT_NAME" \
       --services-csv "$SERVICES_CSV" \
+      --git-commit-sha "$git_commit_sha" \
       --meili-url "$MEILISEARCH_URL" \
       --meili-master-key "$MEILISEARCH_MASTER_KEY" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
