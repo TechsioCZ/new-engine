@@ -661,7 +661,7 @@ setup::service_healthcheck_json() {
       jq -cS -n '{
         type: "COMMAND",
         value: "sh -lc '\''pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\"'\''",
-        timeout_seconds: 30,
+        timeout_seconds: 60,
         interval_seconds: 30
       }'
       ;;
@@ -669,7 +669,7 @@ setup::service_healthcheck_json() {
       jq -cS -n '{
         type: "COMMAND",
         value: "sh -lc '\''valkey-cli -a \"$VALKEY_PASSWORD\" --no-auth-warning ping | grep -q PONG'\''",
-        timeout_seconds: 30,
+        timeout_seconds: 60,
         interval_seconds: 5
       }'
       ;;
@@ -677,7 +677,7 @@ setup::service_healthcheck_json() {
       jq -cS -n '{
         type: "PATH",
         value: "/minio/health/live",
-        timeout_seconds: 30,
+        timeout_seconds: 60,
         interval_seconds: 10,
         associated_port: 9004
       }'
@@ -686,7 +686,7 @@ setup::service_healthcheck_json() {
       jq -cS -n '{
         type: "PATH",
         value: "/health",
-        timeout_seconds: 30,
+        timeout_seconds: 60,
         interval_seconds: 10,
         associated_port: 7700
       }'
@@ -713,7 +713,7 @@ setup::service_healthcheck_json() {
       jq -cS -n '{
         type: "PATH",
         value: "/healthz",
-        timeout_seconds: 30,
+        timeout_seconds: 60,
         interval_seconds: 30,
         associated_port: 8080
       }'
