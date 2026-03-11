@@ -102,18 +102,6 @@ while IFS= read -r pattern; do
   ignore_globs+=("$pattern")
 done < <(manifest_eval -r '.ci.ignore_path_globs[]')
 
-global_runtime_globs=()
-while IFS= read -r pattern; do
-  [[ -n "$pattern" ]] || continue
-  global_runtime_globs+=("$pattern")
-done < <(manifest_eval -r '.ci.global_runtime_path_globs[]')
-
-global_runtime_service_ids=()
-while IFS= read -r service_id; do
-  [[ -n "$service_id" ]] || continue
-  global_runtime_service_ids+=("$service_id")
-done < <(manifest_eval -r '.ci.global_runtime_service_ids[]')
-
 relevant_changed_files=()
 for path in "${changed_files[@]}"; do
   if matches_any_glob "$path" "${ignore_globs[@]}"; then
@@ -151,24 +139,41 @@ while IFS= read -r service_id; do
   services_in_order+=("$service_id")
 done < <(manifest_eval -r '.services[].id')
 
-declare -A global_runtime_lookup=()
-for service_id in "${global_runtime_service_ids[@]}"; do
-  global_runtime_lookup["$service_id"]=true
-done
+while IFS= read -r runtime_rule_json; do
+  [[ -n "$runtime_rule_json" ]] || continue
 
-global_runtime_triggered=false
-for path in "${relevant_changed_files[@]}"; do
-  if matches_any_glob "$path" "${global_runtime_globs[@]}"; then
-    global_runtime_triggered=true
-    break
-  fi
-done
+  runtime_rule_triggered=false
+  runtime_rule_globs=()
+  while IFS= read -r pattern; do
+    [[ -n "$pattern" ]] || continue
+    runtime_rule_globs+=("$pattern")
+  done < <(jq -r '.path_globs[]?' <<<"$runtime_rule_json")
 
-if [[ "$global_runtime_triggered" == "true" ]]; then
-  for service_id in "${global_runtime_service_ids[@]}"; do
-    service_flags["$service_id"]=true
+  for path in "${relevant_changed_files[@]}"; do
+    if matches_any_glob "$path" "${runtime_rule_globs[@]}"; then
+      runtime_rule_triggered=true
+      break
+    fi
   done
-fi
+
+  if [[ "$runtime_rule_triggered" != "true" ]]; then
+    continue
+  fi
+
+  while IFS= read -r service_id; do
+    [[ -n "$service_id" ]] || continue
+    service_flags["$service_id"]=true
+  done < <(jq -r '.service_ids[]?' <<<"$runtime_rule_json")
+done < <(manifest_eval -c '
+  if (.ci.global_runtime_rules // [] | length) > 0 then
+    (.ci.global_runtime_rules // [])[]
+  else
+    {
+      path_globs: (.ci.global_runtime_path_globs // []),
+      service_ids: (.ci.global_runtime_service_ids // [])
+    }
+  end
+')
 
 if [[ "$nx_status" == "fallback" ]]; then
   while IFS= read -r fallback_service_id; do

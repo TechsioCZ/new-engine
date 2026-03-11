@@ -88,6 +88,7 @@ export interface ZaneResolvedTarget {
   target_id: string
   service_slug: string
   service_type: ServiceType
+  configured_commit_sha?: string | null
   deploy_token: string
   deploy_url: string
   env_change_url: string
@@ -499,6 +500,10 @@ export class ZaneClient {
         target_id: assertString(object.target_id, `targets[${index}].target_id`),
         service_slug: assertString(object.service_slug, `targets[${index}].service_slug`),
         service_type: assertServiceType(object.service_type, `targets[${index}].service_type`),
+        configured_commit_sha: assertOptionalString(
+          object.configured_commit_sha,
+          `targets[${index}].configured_commit_sha`,
+        ),
         deploy_token: assertString(object.deploy_token, `targets[${index}].deploy_token`),
         deploy_url: assertString(object.deploy_url, `targets[${index}].deploy_url`),
         env_change_url: assertString(object.env_change_url, `targets[${index}].env_change_url`),
@@ -811,6 +816,7 @@ export class ZaneClient {
           target_id: card.id,
           service_slug: details.slug,
           service_type: assertServiceType(details.type, `${service.service_name}.service_type`),
+          configured_commit_sha: details.commit_sha ?? null,
           deploy_token: details.deploy_token,
           deploy_url:
             assertServiceType(details.type, `${service.service_name}.service_type`) === "docker"
