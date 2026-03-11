@@ -98,6 +98,11 @@ interface ZaneSession {
   cookies: Map<string, string>
 }
 
+interface CachedZaneSession {
+  session: ZaneSession
+  expiresAt: number
+}
+
 interface ZaneDeployment {
   hash: string
   status: string
@@ -109,6 +114,10 @@ interface ZaneDeployment {
 interface ZaneDeploymentListResponse {
   results?: ZaneDeployment[]
 }
+
+const SESSION_CACHE_TTL_MS = 10 * 60 * 1000
+const cachedSessions = new Map<string, CachedZaneSession>()
+const pendingSessionInitializations = new Map<string, Promise<ZaneSession>>()
 
 interface ZaneEnvironmentWithVariables extends ZaneEnvironment {
   variables: Array<{
@@ -367,6 +376,7 @@ export class ZaneClient {
   readonly #connectHostHeader: string | null
   readonly #username: string
   readonly #password: string
+  readonly #sessionCacheKey: string
 
   constructor(config: AppConfig) {
     const deployConfig = requireZaneDeployConfig(config)
@@ -374,6 +384,7 @@ export class ZaneClient {
     this.#connectHostHeader = deployConfig.connectHostHeader
     this.#username = deployConfig.username
     this.#password = deployConfig.password
+    this.#sessionCacheKey = `${this.#connectBaseUrl}\n${this.#username}`
   }
 
   static parseResolveEnvironmentInput(rawPayload: unknown): ResolveEnvironmentInput {
@@ -471,7 +482,35 @@ export class ZaneClient {
     })
   }
 
-  private async authenticate(): Promise<ZaneSession> {
+  private async authenticate(forceRefresh = false): Promise<ZaneSession> {
+    if (!forceRefresh) {
+      const cached = cachedSessions.get(this.#sessionCacheKey)
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.session
+      }
+
+      const pending = pendingSessionInitializations.get(this.#sessionCacheKey)
+      if (pending) {
+        return await pending
+      }
+    }
+
+    const initialization = this.initializeSession()
+    pendingSessionInitializations.set(this.#sessionCacheKey, initialization)
+
+    try {
+      const session = await initialization
+      cachedSessions.set(this.#sessionCacheKey, {
+        session,
+        expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+      })
+      return session
+    } finally {
+      pendingSessionInitializations.delete(this.#sessionCacheKey)
+    }
+  }
+
+  private async initializeSession(): Promise<ZaneSession> {
     const session: ZaneSession = {
       cookies: new Map<string, string>(),
     }
@@ -522,6 +561,11 @@ export class ZaneClient {
     return session
   }
 
+  private invalidateSessionCache(): void {
+    cachedSessions.delete(this.#sessionCacheKey)
+    pendingSessionInitializations.delete(this.#sessionCacheKey)
+  }
+
   private async request<T>(
     session: ZaneSession,
     method: HttpMethod,
@@ -529,6 +573,7 @@ export class ZaneClient {
     payload?: unknown,
     options?: {
       allowNotFound?: boolean
+      retryOnAuthFailure?: boolean
     },
   ): Promise<T | null> {
     const response = await fetch(`${this.#connectBaseUrl}${path}`, {
@@ -541,6 +586,15 @@ export class ZaneClient {
 
     if (options?.allowNotFound && response.status === 404) {
       return null
+    }
+
+    if ((response.status === 401 || response.status === 403) && options?.retryOnAuthFailure !== false) {
+      this.invalidateSessionCache()
+      const freshSession = await this.authenticate(true)
+      return await this.request(freshSession, method, path, payload, {
+        ...options,
+        retryOnAuthFailure: false,
+      })
     }
 
     if (!response.ok) {
