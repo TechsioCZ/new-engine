@@ -6,23 +6,27 @@ ci:
     - "*/CLAUDE.md"
     - "plans/**"
     - ".github/workflows/**"
-  global_runtime_path_globs:
-    - ".dockerignore"
-    - ".env.docker"
-    - "docker-compose.swarm.yaml"
-    - "nx.json"
-    - "package.json"
-    - "pnpm-lock.yaml"
-    - "pnpm-workspace.yaml"
-    - "tsconfig.base.json"
-    - "tsconfig.json"
-  global_runtime_service_ids:
-    - "medusa-be"
-    - "n1"
-    - "medusa-db"
-    - "medusa-minio"
-    - "medusa-meilisearch"
-    - "medusa-valkey"
+  global_runtime_rules:
+    - path_globs:
+        - ".dockerignore"
+      service_ids:
+        - "medusa-be"
+        - "n1"
+        - "zane-operator"
+        - "medusa-db"
+        - "medusa-minio"
+        - "medusa-meilisearch"
+        - "medusa-valkey"
+    - path_globs:
+        - "nx.json"
+        - "package.json"
+        - "pnpm-lock.yaml"
+        - "pnpm-workspace.yaml"
+        - "tsconfig.base.json"
+        - "tsconfig.json"
+      service_ids:
+        - "medusa-be"
+        - "n1"
 
 services:
   - id: "medusa-db"
@@ -96,7 +100,6 @@ services:
       affected_path_globs:
         - "docker/development/medusa-be/**"
         - "scripts/build-medusa.sh"
-        - "scripts/dev/**"
       prepare:
         preview_db: true
         meili_keys: true
@@ -119,7 +122,6 @@ services:
       deployable: true
       affected_path_globs:
         - "docker/development/n1/**"
-        - "scripts/dev/**"
       prepare:
         meili_keys: true
       zane:
@@ -144,4 +146,4 @@ services:
       zane:
         service_name: "zane-operator"
         deploy_lanes: ["main"]
-        deploy_stage: 20
+        deploy_stage: 5

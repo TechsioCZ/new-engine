@@ -124,10 +124,12 @@ schema_template() {
 ci:
   ignore_path_globs:
     - "plans/**"
-  global_runtime_path_globs:
-    - ".env.docker"
-  global_runtime_service_ids:
-    - "medusa-be"
+  global_runtime_rules:
+    - path_globs:
+        - ".dockerignore"
+      service_ids:
+        - "medusa-be"
+        - "n1"
 
 services:
   - id: "example-service"
@@ -169,11 +171,36 @@ ci_ignore_globs() {
 }
 
 ci_global_runtime_globs() {
-  manifest_eval -r '.ci.global_runtime_path_globs[]'
+  manifest_eval -r '
+    if (.ci.global_runtime_rules // [] | length) > 0 then
+      .ci.global_runtime_rules[].path_globs[]
+    else
+      .ci.global_runtime_path_globs[]
+    end
+  '
 }
 
 ci_global_runtime_service_ids() {
-  manifest_eval -r '.ci.global_runtime_service_ids[]'
+  manifest_eval -r '
+    if (.ci.global_runtime_rules // [] | length) > 0 then
+      .ci.global_runtime_rules[].service_ids[]
+    else
+      .ci.global_runtime_service_ids[]
+    end
+  '
+}
+
+ci_global_runtime_rules_json() {
+  manifest_eval -c '
+    if (.ci.global_runtime_rules // [] | length) > 0 then
+      (.ci.global_runtime_rules // [])
+    else
+      [{
+        path_globs: (.ci.global_runtime_path_globs // []),
+        service_ids: (.ci.global_runtime_service_ids // [])
+      }]
+    end
+  '
 }
 
 ci_prepare_service_ids() {
@@ -267,6 +294,7 @@ Commands:
   ci-ignore-globs
   ci-global-runtime-globs
   ci-global-runtime-service-ids
+  ci-global-runtime-rules
   ci-prepare-service-ids --requirement <preview_db|meili_keys>
   ci-deployable-service-ids
   ci-zane-service --id <service-id>
@@ -335,6 +363,9 @@ main() {
       ;;
     ci-global-runtime-service-ids)
       ci_global_runtime_service_ids
+      ;;
+    ci-global-runtime-rules)
+      ci_global_runtime_rules_json
       ;;
     ci-prepare-service-ids)
       [[ "${1:-}" == "--requirement" ]] || {

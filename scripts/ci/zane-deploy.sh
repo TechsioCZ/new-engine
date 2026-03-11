@@ -231,6 +231,7 @@ zane::filter_targets_for_git_commit() {
       def skip_reason($target; $expected_env):
         if ($target.service_type != "git") then null
         elif ($target.has_unapplied_changes // false) then "pending_changes"
+        elif (($target.configured_commit_sha // "") != $desired_commit_sha) then "configured_commit_sha_mismatch"
         elif (
           (($target.current_production_deployment // null) != null)
           and (($target.current_production_deployment.status // "" | ascii_upcase) == "HEALTHY")
@@ -346,6 +347,16 @@ zane::write_json_file() {
   printf '%s\n' "$payload" >"$path"
 }
 
+zane::is_transient_operator_unavailability_error() {
+  local error_text="${1-}"
+  [[ "$error_text" == *"zane-operator request failed before a successful HTTP response"* ]] && return 0
+  [[ "$error_text" == *"zane-operator returned non-JSON response"* ]] && return 0
+  [[ "$error_text" == *"zane-operator request returned HTTP 502"* ]] && return 0
+  [[ "$error_text" == *"zane-operator request returned HTTP 503"* ]] && return 0
+  [[ "$error_text" == *"zane-operator request returned HTTP 504"* ]] && return 0
+  return 1
+}
+
 zane::api_request() {
   local method="$1"
   local path="$2"
@@ -448,10 +459,12 @@ zane::cmd_wait_deployments() {
   local dry_run="false"
   local poll_interval_seconds="$ZANE_DEPLOYMENT_POLL_INTERVAL_SECONDS_DEFAULT"
   local wait_timeout_seconds="$ZANE_DEPLOYMENT_WAIT_TIMEOUT_SECONDS_DEFAULT"
+  local tolerate_base_url_unavailable="false"
   local started_at
   local response_json
   local failed_services
   local in_progress_count
+  local verify_error_file
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -531,6 +544,10 @@ zane::cmd_wait_deployments() {
         wait_timeout_seconds="${2-}"
         shift 2
         ;;
+      --tolerate-base-url-unavailable)
+        tolerate_base_url_unavailable="true"
+        shift
+        ;;
       *)
         ci::die "Unknown argument for wait-deployments: $1"
         ;;
@@ -546,10 +563,13 @@ zane::cmd_wait_deployments() {
   zane::require_numeric "$wait_timeout_seconds" "Wait timeout seconds"
 
   started_at="$(date +%s)"
+  verify_error_file="$(mktemp)"
+  trap "rm -f '$verify_error_file'" RETURN
 
   while true; do
+    : >"$verify_error_file"
     if [[ "$dry_run" == "true" ]]; then
-      response_json="$(
+      if ! response_json="$(
         zane::cmd_verify \
           --lane "$lane" \
           --project-slug "$project_slug" \
@@ -566,10 +586,14 @@ zane::cmd_wait_deployments() {
           --deployments-json "$deployments_json" \
           --dry-run \
           --base-url "$base_url" \
-          --api-token "$api_token"
-      )"
+          --api-token "$api_token" \
+          2>"$verify_error_file"
+      )"; then
+        printf '%s\n' "$(cat "$verify_error_file")" >&2
+        return 1
+      fi
     else
-      response_json="$(
+      if ! response_json="$(
         zane::cmd_verify \
           --lane "$lane" \
           --project-slug "$project_slug" \
@@ -585,8 +609,22 @@ zane::cmd_wait_deployments() {
           --meili-backend-key "$meili_backend_key" \
           --deployments-json "$deployments_json" \
           --base-url "$base_url" \
-          --api-token "$api_token"
-      )"
+          --api-token "$api_token" \
+          2>"$verify_error_file"
+      )"; then
+        local verify_error_text
+        verify_error_text="$(cat "$verify_error_file")"
+        if [[ "$tolerate_base_url_unavailable" == "true" ]] && zane::is_transient_operator_unavailability_error "$verify_error_text"; then
+          if (( $(date +%s) - started_at >= wait_timeout_seconds )); then
+            printf '%s\n' "$verify_error_text" >&2
+            ci::die "Timed out after ${wait_timeout_seconds}s waiting for zane-operator to become reachable again."
+          fi
+          sleep "$poll_interval_seconds"
+          continue
+        fi
+        printf '%s\n' "$verify_error_text" >&2
+        return 1
+      fi
     fi
 
     failed_services="$(jq -r '
@@ -1882,6 +1920,7 @@ EOF
   local meili_frontend_env_var=""
   local stage
   local stage_services_csv
+  local wait_flags=()
   local triggered_services_csv=""
   local env_override_service_ids_csv=""
   local skipped_services_csv=""
@@ -1963,6 +2002,10 @@ EOF
     printf '%s\n' '{"services":[]}' >"$stage_deployments_json_file"
     zane::merge_deployments_json_file "$adopted_deployments_json_file" "$stage_deployments_json_file"
     zane::merge_deployments_json_file "$trigger_json_file" "$stage_deployments_json_file"
+    wait_flags=()
+    if zane::stage_has_service "$plan_json_file" "$stage" "zane-operator"; then
+      wait_flags+=(--tolerate-base-url-unavailable)
+    fi
     if ! zane::cmd_wait_deployments \
       --lane main \
       --project-slug "$project_slug" \
@@ -1975,6 +2018,7 @@ EOF
       --meili-backend-key "$meili_backend_key" \
       --deployments-json "$stage_deployments_json_file" \
       --output-json "$verify_json_file" \
+      "${wait_flags[@]}" \
       "${dry_run_flags[@]}" \
       --base-url "$base_url" \
       --api-token "$api_token" >/dev/null; then
