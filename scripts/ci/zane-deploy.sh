@@ -228,10 +228,12 @@ zane::filter_targets_for_git_commit() {
         reduce $env_overrides[]? as $item ({}; .[$item.service_id] = ($item.env // {}));
       def overrides_match($current_env; $expected_env):
         all(($expected_env | to_entries)[]; (($current_env[.key] // null) == .value));
+      def tracks_branch_head($configured_commit_sha):
+        (($configured_commit_sha // "" | ascii_upcase) == "" or ($configured_commit_sha // "" | ascii_upcase) == "HEAD");
       def skip_reason($target; $expected_env):
         if ($target.service_type != "git") then null
         elif ($target.has_unapplied_changes // false) then "pending_changes"
-        elif (($target.configured_commit_sha // "") != $desired_commit_sha) then "configured_commit_sha_mismatch"
+        elif ((tracks_branch_head($target.configured_commit_sha) | not) and (($target.configured_commit_sha // "") != $desired_commit_sha)) then "configured_commit_sha_mismatch"
         elif (
           (($target.current_production_deployment // null) != null)
           and (($target.current_production_deployment.status // "" | ascii_upcase) == "HEALTHY")
