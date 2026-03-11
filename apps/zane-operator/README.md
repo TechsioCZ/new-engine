@@ -90,17 +90,16 @@ Teardown response includes role cleanup result:
 
 ## Onboarding
 
-### 1. Create database role with required permissions
+### 1. Ensure database bootstrap is owned by `medusa-db`
 
 For local Docker Compose environments:
-- `medusa_app` and `medusa_dev` are bootstrapped by `docker/development/postgres/initdb/01-zane-role-bootstrap.sh` (first DB init)
-- `zane_operator` is bootstrapped by one-shot compose service `zane-operator-bootstrap` before `zane-operator` starts (every run, idempotent)
+- `medusa_app`, `medusa_dev`, and `zane_operator` are bootstrapped by the Postgres-side role bootstrap script baked into `medusa-db`
+- every `medusa-db` start reruns the same bootstrap through `/usr/local/bin/run-postgres-with-bootstrap.sh`
 
 For existing Postgres volumes (already initialized before bootstrap scripts were added), apply once:
 
 ```bash
 bash ./scripts/apply-postgres-role-bootstrap.sh
-bash ./scripts/apply-zane-operator-role-bootstrap.sh
 ```
 
 The Postgres bootstrap migration is idempotent and includes legacy object migration from `public` schema into the configured app schema (`DB_APP_SCHEMA`, default `medusa`).
@@ -110,17 +109,8 @@ Idempotency verification for existing databases:
 
 ```bash
 bash ./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent
-bash ./scripts/apply-zane-operator-role-bootstrap.sh --verify-idempotent
 ```
-
-If you need a manual/admin bootstrap (for cloud predeploy hooks), run:
-
-```bash
-cd apps/zane-operator
-bun run bootstrap:role
-```
-
-This command is idempotent and enforces role attributes:
+This bootstrap path is idempotent and enforces role attributes for `zane_operator`:
 - `LOGIN`
 - `NOSUPERUSER`
 - `CREATEDB`
@@ -152,8 +142,7 @@ Preferred setup is ownership transfer of the template DB:
 ALTER DATABASE template_medusa OWNER TO zane_operator;
 ```
 
-The bootstrap command can enforce this ownership transfer automatically (`BOOTSTRAP_SET_TEMPLATE_OWNER=1`, default).
-If you cannot transfer ownership, disable it with `BOOTSTRAP_SET_TEMPLATE_OWNER=0` and run the operator with a role that can clone from `template_medusa`.
+The DB-owned bootstrap path on `medusa-db` enforces this ownership transfer automatically whenever the canonical `ZANE_OPERATOR_PG*` / `ZANE_OPERATOR_DB_TEMPLATE_NAME` values are configured and the template DB exists.
 
 Important runtime assumption:
 - preview grant/ownership sync expects cloned objects to be owned by the executing role for zane-operator (normally `zane_operator` when following this guide)
@@ -173,14 +162,9 @@ Required production values:
 - `DB_APP_SCHEMA=medusa`
 - `DB_PREVIEW_APP_PASSWORD_SECRET=<long-random-secret>`
 
-Optional bootstrap-only values (for one-shot predeploy/init command):
-- Reuses operator `PG*` and `DB_*` values above for target role/template behavior.
-- Bootstrap always applies to role `PGUSER` with password `PGPASSWORD`.
-- `BOOTSTRAP_ADMIN_PGUSER`, `BOOTSTRAP_ADMIN_PGPASSWORD` (admin credentials for role bootstrap)
-- Optional admin endpoint overrides: `BOOTSTRAP_ADMIN_PGHOST`, `BOOTSTRAP_ADMIN_PGPORT`, `BOOTSTRAP_ADMIN_PGDATABASE`, `BOOTSTRAP_ADMIN_PGSSLMODE`
-- `BOOTSTRAP_SET_TEMPLATE_OWNER=1` (default)
-- `BOOTSTRAP_FAIL_IF_TEMPLATE_MISSING=0` (set `1` to fail hard when template DB is missing)
-- `BOOTSTRAP_VERIFY_IDEMPOTENT=0` (set `1` to run the bootstrap twice)
+Postgres-side bootstrap values now live on `medusa-db`, not on `zane-operator`:
+- local compose: `medusa-db` derives its bootstrap target from `DC_ZANE_OPERATOR_PGUSER`, `DC_ZANE_OPERATOR_PGPASSWORD`, and `DC_ZANE_OPERATOR_DB_TEMPLATE_NAME`
+- deployed Zane service: `medusa-db` derives its bootstrap target from `ZANE_OPERATOR_PGUSER`, `ZANE_OPERATOR_PGPASSWORD`, and `ZANE_OPERATOR_DB_TEMPLATE_NAME`
 
 ### 3. Smoke test before deployment
 
@@ -234,16 +218,7 @@ docker build -f docker/development/zane-operator/Dockerfile -t zane-operator:lat
 
 ### 5. Run Docker image
 
-Run one-shot role bootstrap first (admin credentials required):
-
-```bash
-docker run --rm --name zane-operator-bootstrap \
-  --env-file .env \
-  --entrypoint /app/zane-operator-bootstrap-role \
-  zane-operator:latest
-```
-
-Then run the service container:
+Run the service container:
 
 ```bash
 docker run --rm --name zane-operator \
@@ -266,17 +241,6 @@ Required values in `.env` for this container:
 - `DB_PREVIEW_DEV_ROLE` (optional)
 - `DB_APP_SCHEMA` (optional, default `medusa`)
 - `DB_PREVIEW_APP_PASSWORD_SECRET` (required)
-
-Required extra values for bootstrap container:
-- Reuses runtime `PG*` + `DB_TEMPLATE_NAME` values
-- `BOOTSTRAP_ADMIN_PGUSER`
-- `BOOTSTRAP_ADMIN_PGPASSWORD`
-
-Optional bootstrap hardening values:
-- `BOOTSTRAP_SET_TEMPLATE_OWNER` (default `1`)
-- `BOOTSTRAP_FAIL_IF_TEMPLATE_MISSING` (default `0`)
-- `BOOTSTRAP_VERIFY_IDEMPOTENT` (default `0`)
-- Optional admin endpoint overrides: `BOOTSTRAP_ADMIN_PGHOST`, `BOOTSTRAP_ADMIN_PGPORT`, `BOOTSTRAP_ADMIN_PGDATABASE`, `BOOTSTRAP_ADMIN_PGSSLMODE`
 
 If `medusa-db` is in Docker Compose, set `PGHOST` in `.env` to the Compose service name (usually `medusa-db`) and run this container on the same Docker network.
 
@@ -353,7 +317,7 @@ Optional overrides worth knowing:
 
 The helper reads `.env.zane` by default, but it only maps the values that are part of the deployed stack contract. Keep compose/local runtime values in `.env`; use `.env.zane` for Zane-targeted helper runs. The helper forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
 
-The image still ships the one-shot bootstrap CLI at `/app/zane-operator-bootstrap-role`, but a normal `zane-operator` service deploy does not execute it automatically. Use the explicit bootstrap path when you need that behavior in Zane.
+`zane-operator` no longer ships a separate bootstrap CLI. Role/template bootstrap is owned by `medusa-db`, so Zane-targeted maintenance should sync `medusa-db` bootstrap envs and redeploy `medusa-db` before redeploying `zane-operator` when those credentials change.
 
 If your repo is private:
 1. install/configure the git app in Zane first
@@ -378,6 +342,18 @@ After the helper finishes:
 4. Confirm the project `production` environment now contains the shared env variables.
 5. Confirm each service has the expected healthcheck configured in Zane.
 6. Confirm each service has pending changes in Zane; that is expected until you deploy.
+
+#### 6.3 GitHub downtime approval requirement
+
+Main-lane deploys now resolve downtime risk once after affected services are filtered.
+
+If any selected service is marked `ci.zane.downtime_risk: true`, GitHub Actions expects an environment named `zaneops-main-downtime`.
+
+To require a human approval before downtime-risk deploys:
+1. create the `zaneops-main-downtime` environment in GitHub
+2. add required reviewers to that environment
+
+If the environment exists without required reviewers, the job still succeeds but will not pause for manual approval by itself.
 
 Public route follow-up remains manual on purpose:
 - add a public route for `medusa-be` if you need browser/API access
