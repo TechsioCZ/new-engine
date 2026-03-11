@@ -32,11 +32,11 @@
     mise run dev
     ```
     This runs in order:
-    1. graceful stop/removal of existing compose services for this project
-    2. resources (`medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`)
-    3. Meilisearch key provisioning
-    4. `medusa-be`
-    5. `n1`
+    1. resources (`medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`)
+    2. Meilisearch key provisioning
+    3. `medusa-be`
+    4. `n1`
+    Use `mise run dev:fresh` when you want the explicit `down --remove-orphans` reset first.
     Internal sub-steps are hidden from `mise tasks ls` and can still be run manually when needed:
     * `mise run dev:internal:down`
     * `mise run dev:internal:resources:up`
@@ -46,8 +46,9 @@
     * `mise run dev:internal:backend:wait`
     * `mise run dev:internal:frontend:up`
     * `mise run dev:internal:frontend:wait`
-    * (optional operator profile) `mise run dev:operator:bootstrap`
     * (optional operator profile) `mise run dev:operator`
+    * (optional rerun) `mise run dev:postgres:bootstrap`
+    * (optional rerun) `mise run dev:postgres:bootstrap:verify`
 
     During step 3, `.env` handling is opinionated:
     * if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written
@@ -55,12 +56,13 @@
     * provisioning itself stays in `scripts/ci/*`; only `mise run dev` performs `.env` sync logic
     * `mise run dev` calls provisioning against host URL `http://127.0.0.1:7700` by default (override via `MISE_DEV_MEILI_URL`) so `DC_MEILISEARCH_HOST` can remain container-internal (`http://medusa-meilisearch:7700`)
 
-    * Postgres role bootstrap (`medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
+    * Postgres role bootstrap (`medusa_app`, `medusa_dev`, `zane_operator`) runs automatically from `medusa-db` startup via `/usr/local/bin/run-postgres-with-bootstrap.sh`
     * MinIO bootstrap now runs inside `medusa-minio` startup (idempotent): it ensures `DC_MINIO_BUCKET` exists, enforces public object reads, and provisions a non-root Medusa runtime key with bucket-scoped permissions limited to the Medusa bucket
     * Meilisearch now starts through an in-image bootstrap wrapper (idempotent, swarm-safe) before serving traffic
     * `medusa-minio` uses dedicated MinIO bootstrap env (`MINIO_ROOT_*` + `MINIO_MEDUSA_*`) to avoid deprecated MinIO server env collisions
     * `medusa-meilisearch` continues to use shared Medusa env plus service-specific Meili env
-    * `zane_operator` role bootstrap runs as one-shot service `zane-operator-bootstrap` before `zane-operator` starts (idempotent) when `operator` profile is enabled
+    * `medusa-db` now owns `zane_operator` role/template bootstrap and derives that target from the canonical `DC_ZANE_OPERATOR_*` DB settings
+    * `medusa-db` health now means both Postgres readiness and completed role/template bootstrap; operator startup waits on that full convergence
     * Default `mise run dev` does not require operator credentials; operator flow is explicit opt-in and requires:
       * `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
       * `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`
@@ -85,18 +87,18 @@
       * `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
       * `ZANE_CANONICAL_PROJECT_SLUG=<your-zane-project-slug>`
       * `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
-    * If your Postgres volume already existed before this change, run bootstrap migration once:
+    * If your Postgres volume already existed before this change, rerun Postgres bootstrap once after setting the operator password:
 
     ```shell
     make postgres-role-bootstrap
-    mise run dev:operator:bootstrap
+    mise run dev:postgres:bootstrap
     ```
 
     * Optional idempotency check (runs bootstrap twice):
 
     ```shell
     make postgres-role-bootstrap-verify
-    mise run dev:operator:bootstrap:verify
+    mise run dev:postgres:bootstrap:verify
     ```
 
     * Optional grant hardening check (read-only verification):
@@ -110,24 +112,27 @@
     * `MEDUSA_DATABASE_SCHEMA` / `DATABASE_SCHEMA` are derived from `DC_MEDUSA_APP_DB_SCHEMA` and must stay aligned with app schema grants
     * `medusa-db` starts with `-c file_copy_method=clone`; zane-operator preview cloning uses `CREATE DATABASE ... STRATEGY=FILE_COPY`
 
-### Cloud predeploy hook (idempotent)
+### Cloud predeploy note
 
-If you deploy `zane-operator` separately in cloud, run role bootstrap once before service start:
+`zane_operator` role/template bootstrap is now owned by `medusa-db`, not `zane-operator`.
 
-```shell
-/app/zane-operator-bootstrap-role
-```
+Operational consequence:
+* rotating `zane-operator` DB credentials requires updating both:
+  * `medusa-db` bootstrap envs
+  * `zane-operator` runtime envs
+* then redeploy `medusa-db` first so it can reconcile the role/template state before redeploying `zane-operator`
 
-Required env vars for this hook:
-* Reuses operator envs (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE`, `DB_TEMPLATE_NAME`)
-* Bootstrap target role/password are derived from runtime operator credentials (`PGUSER`/`PGPASSWORD`)
-* Add admin override credentials: `BOOTSTRAP_ADMIN_PGUSER`, `BOOTSTRAP_ADMIN_PGPASSWORD`
+### GitHub approval requirement
 
-Optional hardening toggles:
-* `BOOTSTRAP_SET_TEMPLATE_OWNER=1` (default)
-* `BOOTSTRAP_FAIL_IF_TEMPLATE_MISSING=0` (set to `1` to fail hard if template DB does not exist yet)
-* `BOOTSTRAP_VERIFY_IDEMPOTENT=1` (runs bootstrap twice in the same hook)
-* Optional admin endpoint overrides (if admin connects to different DB endpoint): `BOOTSTRAP_ADMIN_PGHOST`, `BOOTSTRAP_ADMIN_PGPORT`, `BOOTSTRAP_ADMIN_PGDATABASE`, `BOOTSTRAP_ADMIN_PGSSLMODE`
+Main-lane deploys now resolve downtime risk once after affected-service filtering.
+
+If any affected service is marked with `ci.zane.downtime_risk: true` in `config/stack-manifest.yaml`, the workflow expects a GitHub environment named `zaneops-main-downtime`.
+
+To make the workflow actually pause for human approval:
+* create the `zaneops-main-downtime` environment in GitHub
+* configure required reviewers on that environment
+
+Without required reviewers, the approval job still runs, but it will not enforce a real manual pause on its own.
 
 ### Manual live `.env` updates (not automated)
 

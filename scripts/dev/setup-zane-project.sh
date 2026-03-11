@@ -503,7 +503,7 @@ setup::service_spec_json() {
 
   case "$service_slug" in
     medusa-db)
-      printf '%s\n' '{"dockerfile_path":"./docker/development/postgres/Dockerfile","build_context_dir":"./docker/development/postgres","command":"su -c \"/usr/local/bin/docker-entrypoint.sh -c file_copy_method=clone\" postgres","volumes":[{"name":"pgdata","container_path":"/var/lib/postgresql","host_path":null,"mode":"READ_WRITE"}],"envs":{"POSTGRES_USER":"{{env.MEDUSA_DB_POSTGRES_SUPERUSER}}","POSTGRES_PASSWORD":"{{env.MEDUSA_DB_POSTGRES_SUPERUSER_PASSWORD}}","POSTGRES_DB":"{{env.MEDUSA_APP_DB_NAME}}","PGDATA":"/var/lib/postgresql/18/docker","MEDUSA_APP_DB_USER":"{{env.MEDUSA_APP_DB_USER}}","MEDUSA_APP_DB_PASSWORD":"{{env.MEDUSA_APP_DB_PASSWORD}}","MEDUSA_APP_DB_NAME":"{{env.MEDUSA_APP_DB_NAME}}","MEDUSA_APP_DB_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","MEDUSA_DEV_DB_USER":"{{env.MEDUSA_DEV_DB_USER}}","MEDUSA_DEV_DB_PASSWORD":"{{env.MEDUSA_DEV_DB_PASSWORD}}"}}'
+      printf '%s\n' '{"dockerfile_path":"./docker/development/postgres/Dockerfile","build_context_dir":"./docker/development/postgres","command":"sh -lc '\''exec /usr/local/bin/run-postgres-with-bootstrap.sh'\''","volumes":[{"name":"pgdata","container_path":"/var/lib/postgresql","host_path":null,"mode":"READ_WRITE"}],"envs":{"POSTGRES_USER":"{{env.MEDUSA_DB_POSTGRES_SUPERUSER}}","POSTGRES_PASSWORD":"{{env.MEDUSA_DB_POSTGRES_SUPERUSER_PASSWORD}}","POSTGRES_DB":"{{env.MEDUSA_APP_DB_NAME}}","PGDATA":"/var/lib/postgresql/18/docker","MEDUSA_APP_DB_USER":"{{env.MEDUSA_APP_DB_USER}}","MEDUSA_APP_DB_PASSWORD":"{{env.MEDUSA_APP_DB_PASSWORD}}","MEDUSA_APP_DB_NAME":"{{env.MEDUSA_APP_DB_NAME}}","MEDUSA_APP_DB_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","MEDUSA_DEV_DB_USER":"{{env.MEDUSA_DEV_DB_USER}}","MEDUSA_DEV_DB_PASSWORD":"{{env.MEDUSA_DEV_DB_PASSWORD}}","MEDUSA_DB_ZANE_OPERATOR_USER":"{{env.ZANE_OPERATOR_PGUSER}}","MEDUSA_DB_ZANE_OPERATOR_PASSWORD":"{{env.ZANE_OPERATOR_PGPASSWORD}}","MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME":"{{env.ZANE_OPERATOR_DB_TEMPLATE_NAME}}"}}'
       ;;
     medusa-valkey)
       printf '%s\n' '{"dockerfile_path":"./docker/development/medusa-valkey/Dockerfile","build_context_dir":"./docker/development/medusa-valkey","command":"sh -lc '\''exec valkey-server --requirepass \"$VALKEY_PASSWORD\" --appendonly yes'\''","volumes":[{"name":"data","container_path":"/data","host_path":null,"mode":"READ_WRITE"}],"envs":{"VALKEY_PASSWORD":"{{env.MEDUSA_VALKEY_PASSWORD}}"}}'
@@ -536,7 +536,7 @@ setup::service_healthcheck_json() {
     medusa-db)
       jq -cS -n '{
         type: "COMMAND",
-        value: "sh -lc '\''pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\"'\''",
+        value: "sh -lc '\''exec /usr/local/bin/postgres-ready-with-bootstrap.sh'\''",
         timeout_seconds: 60,
         interval_seconds: 30
       }'
@@ -763,6 +763,9 @@ setup::service_envs_json() {
         --arg postgres_superuser_password "${DC_POSTGRES_SUPERUSER_PASSWORD:-root}" \
         --arg medusa_dev_db_user "${DC_MEDUSA_DEV_DB_USER:-medusa_dev}" \
         --arg medusa_dev_db_password "${DC_MEDUSA_DEV_DB_PASSWORD:-medusa_dev_change_me}" \
+        --arg operator_pguser "${DC_ZANE_OPERATOR_PGUSER:-zane_operator}" \
+        --arg operator_pgpassword "${DC_ZANE_OPERATOR_PGPASSWORD:-}" \
+        --arg operator_template_db "${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-template_medusa}" \
         '{
           POSTGRES_USER: $postgres_superuser,
           POSTGRES_PASSWORD: $postgres_superuser_password,
@@ -773,7 +776,10 @@ setup::service_envs_json() {
           MEDUSA_APP_DB_NAME: "{{env.MEDUSA_APP_DB_NAME}}",
           MEDUSA_APP_DB_SCHEMA: "{{env.MEDUSA_APP_DB_SCHEMA}}",
           MEDUSA_DEV_DB_USER: $medusa_dev_db_user,
-          MEDUSA_DEV_DB_PASSWORD: $medusa_dev_db_password
+          MEDUSA_DEV_DB_PASSWORD: $medusa_dev_db_password,
+          MEDUSA_DB_ZANE_OPERATOR_USER: $operator_pguser,
+          MEDUSA_DB_ZANE_OPERATOR_PASSWORD: $operator_pgpassword,
+          MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME: $operator_template_db
         }'
       ;;
     medusa-valkey)

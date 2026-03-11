@@ -8,6 +8,9 @@ x-medusa-bootstrap-db-env: &medusa-bootstrap-db-env
   <<: *medusa-app-db-env
   MEDUSA_DEV_DB_USER: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
   MEDUSA_DEV_DB_PASSWORD: ${DC_MEDUSA_DEV_DB_PASSWORD:-medusa_dev_change_me}
+  MEDUSA_DB_ZANE_OPERATOR_USER: ${DC_ZANE_OPERATOR_PGUSER:-zane_operator}
+  MEDUSA_DB_ZANE_OPERATOR_PASSWORD: ${DC_ZANE_OPERATOR_PGPASSWORD:-}
+  MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME: ${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-template_medusa}
 
 x-medusa-env: &medusa-env
   # Medusa BE: core runtime
@@ -236,13 +239,7 @@ services:
       context: ./docker/development/postgres
       dockerfile: Dockerfile
     restart: unless-stopped
-    command:
-      [
-        "su",
-        "-c",
-        "/usr/local/bin/docker-entrypoint.sh -c file_copy_method=clone",
-        "postgres",
-      ]
+    command: ["/usr/local/bin/run-postgres-with-bootstrap.sh"]
     ports:
       - "127.0.0.1:${DC_POSTGRES_PUBLIC_PORT:-5432}:5432"
     volumes:
@@ -250,7 +247,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${DC_POSTGRES_SUPERUSER:-root}", "-d", "${DC_MEDUSA_APP_DB_NAME:-medusa}"]
+      test: ["CMD", "/usr/local/bin/postgres-ready-with-bootstrap.sh"]
       start_period: 10s
       interval: 30s
       timeout: 60s
@@ -261,29 +258,6 @@ services:
       POSTGRES_USER: ${DC_POSTGRES_SUPERUSER:-root}
       POSTGRES_DB: ${DC_MEDUSA_APP_DB_NAME:-medusa}
       PGDATA: /var/lib/postgresql/18/docker
-  zane-operator-bootstrap:
-    profiles: ["operator"]
-    restart: "no"
-    build:
-      context: .
-      dockerfile: docker/development/zane-operator/Dockerfile
-    entrypoint:
-      - /bin/sh
-      - -ec
-      - |
-        [ -n "$$PGUSER" ] || { echo "Missing required env: PGUSER. Set DC_ZANE_OPERATOR_PGUSER." >&2; exit 1; }
-        [ -n "$$PGPASSWORD" ] || { echo "Missing required env: PGPASSWORD. Set DC_ZANE_OPERATOR_PGPASSWORD." >&2; exit 1; }
-        [ -n "$$DB_PREVIEW_APP_PASSWORD_SECRET" ] || { echo "Missing required env: DB_PREVIEW_APP_PASSWORD_SECRET. Set DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET." >&2; exit 1; }
-        exec /app/zane-operator-bootstrap-role
-    depends_on:
-      medusa-db:
-        condition: service_healthy
-    networks:
-      - internal
-    environment:
-      <<: *zane-operator-db-env
-      BOOTSTRAP_ADMIN_PGUSER: ${DC_POSTGRES_SUPERUSER:-root}
-      BOOTSTRAP_ADMIN_PGPASSWORD: ${DC_POSTGRES_SUPERUSER_PASSWORD:-root}
   zane-operator:
     profiles: ["operator"]
     restart: unless-stopped

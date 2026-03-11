@@ -6,9 +6,10 @@ Agent guide for database-role orchestration and preview DB lifecycle.
 
 This file is the source of truth for AI agents changing:
 - `apps/zane-operator/src/*`
-- `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
+- `docker/development/postgres/postgres-role-bootstrap.sh`
+- `docker/development/postgres/postgres-ready-with-bootstrap.sh`
+- `docker/development/postgres/run-postgres-with-bootstrap.sh`
 - `scripts/apply-postgres-role-bootstrap.sh`
-- `scripts/apply-zane-operator-role-bootstrap.sh`
 - `docker-compose.yaml` Postgres and zane-operator wiring
 
 ## Business Rules (Non-Negotiable)
@@ -38,7 +39,7 @@ This file is the source of truth for AI agents changing:
   - DB server starts with `-c file_copy_method=clone`
   - Preview create uses `CREATE DATABASE ... STRATEGY = FILE_COPY`
 - Operator should warn (not fail) when `file_copy_method` is not `clone`.
-- Missing template DB is non-fatal by default in bootstrap flows and should remain configurable via `BOOTSTRAP_FAIL_IF_TEMPLATE_MISSING`.
+- Missing template DB is non-fatal by default in bootstrap flows.
 
 ## Role Model
 
@@ -69,24 +70,23 @@ This file is the source of truth for AI agents changing:
 
 - Docker stack is source of truth for local wiring (`.env.docker` -> `.env`).
 - Avoid duplicate envs for same concept.
-- Reuse shared `DC_` values across services to avoid drift.
+- Reuse shared `DC_` values across services to avoid drift, but keep DB-owned bootstrap envs on `medusa-db`.
 - Key variables:
   - `DC_MEDUSA_APP_DB_NAME`: app database name
   - `DC_MEDUSA_APP_DB_SCHEMA`: app schema name
-  - `DC_ZANE_OPERATOR_*`: operator runtime credentials/config
+  - `DC_ZANE_OPERATOR_*`: repo-facing operator credentials/config; `medusa-db` derives its DB-owned bootstrap envs from these values
+  - `MEDUSA_DB_ZANE_OPERATOR_*`: container env contract consumed by the Postgres bootstrap scripts on `medusa-db`
   - `DC_POSTGRES_SSLMODE`: shared sslmode
-- Bootstrap should reuse runtime operator DB envs and only add minimal admin overrides.
+- `zane-operator` keeps runtime DB envs; `medusa-db` owns the superuser-side convergence of that role/template state.
 
 ## Migration/Bootstrap Rules
 
-- Fresh DB init path:
-  - `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
+- Canonical startup/bootstrap path:
+  - `docker/development/postgres/run-postgres-with-bootstrap.sh`
 - Existing DB path:
   - `make postgres-role-bootstrap`
-  - `make postgres-zane-operator-bootstrap`
 - Idempotency checks:
   - `make postgres-role-bootstrap-verify`
-  - `make postgres-zane-operator-bootstrap-verify`
 
 ## Change Rules for Agents
 
@@ -108,7 +108,7 @@ This file is the source of truth for AI agents changing:
   - `docker compose -f docker-compose.yaml config`
 - If role/grant logic changed, run (when docker access available):
   - `make postgres-role-bootstrap-verify`
-  - `make postgres-zane-operator-bootstrap-verify`
+- If bootstrap gating changed, verify `medusa-db` only becomes healthy after `/usr/local/bin/postgres-ready-with-bootstrap.sh` succeeds.
 - Confirm operator startup log includes clone-path status:
   - `file_copy_method`
   - `clone_optimized`

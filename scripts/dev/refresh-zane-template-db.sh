@@ -57,7 +57,7 @@ Options:
   --source-db-name NAME          Source DB to snapshot (default: MEDUSA_APP_DB_NAME or medusa)
   --template-db-name NAME        Template DB to replace (default: resolved from operator env)
   --staging-db-name NAME         Explicit staging DB name (default: generated)
-  --template-owner ROLE          Owner for the final template DB (default: operator PGUSER)
+  --template-owner ROLE          Owner for the final template DB (default: medusa-db bootstrap operator user)
   --db-host HOST                 Explicit internal DB host override
   --db-port PORT                 Explicit DB port override
   --db-user USER                 Explicit DB admin user override
@@ -74,7 +74,7 @@ Options:
 
 Notes:
   - This is a one-time dev helper for the Zane-deployed stack, not local docker-compose.
-  - The script discovers the live medusa-db alias and zane-operator PG* settings from Zane.
+  - The script discovers the live medusa-db alias, DB admin credentials, and zane-operator template owner settings from Zane.
 EOF
 }
 
@@ -215,22 +215,28 @@ resolve_live_defaults() {
   DB_PORT="$(dev::first_non_empty "$DB_PORT" "$(zane::service_env_value "$operator_service_json" "PGPORT")" "5432")"
   DB_USER="$(dev::first_non_empty \
     "$DB_USER" \
-    "$(zane::service_env_value "$operator_service_json" "PGUSER")" \
-    "${DC_ZANE_OPERATOR_PGUSER:-}" \
+    "$(zane::service_env_value "$db_service_json" "POSTGRES_USER")" \
+    "${DC_POSTGRES_SUPERUSER:-}" \
     "${DC_POSTGRES_SUPERUSER:-}")"
   DB_PASSWORD="$(dev::first_non_empty \
     "$DB_PASSWORD" \
-    "$(zane::service_env_value "$operator_service_json" "PGPASSWORD")" \
-    "${DC_ZANE_OPERATOR_PGPASSWORD:-}" \
+    "$(zane::service_env_value "$db_service_json" "POSTGRES_PASSWORD")" \
+    "${DC_POSTGRES_SUPERUSER_PASSWORD:-}" \
     "${DC_POSTGRES_SUPERUSER_PASSWORD:-}")"
-  DB_ADMIN_NAME="$(dev::first_non_empty "$DB_ADMIN_NAME" "$(zane::service_env_value "$operator_service_json" "PGDATABASE")" "postgres")"
+  DB_ADMIN_NAME="$(dev::first_non_empty "$DB_ADMIN_NAME" "postgres")"
   DB_SSLMODE="$(dev::first_non_empty "$DB_SSLMODE" "$(zane::service_env_value "$operator_service_json" "PGSSLMODE")" "disable")"
   TEMPLATE_DB_NAME="$(dev::first_non_empty \
     "$TEMPLATE_DB_NAME" \
+    "$(zane::service_env_value "$db_service_json" "MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME")" \
     "$(zane::service_env_value "$operator_service_json" "DB_TEMPLATE_NAME")" \
     "${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-}" \
     "template_medusa")"
-  TEMPLATE_OWNER="$(dev::first_non_empty "$TEMPLATE_OWNER" "$DB_USER")"
+  TEMPLATE_OWNER="$(dev::first_non_empty \
+    "$TEMPLATE_OWNER" \
+    "$(zane::service_env_value "$db_service_json" "MEDUSA_DB_ZANE_OPERATOR_USER")" \
+    "$(zane::service_env_value "$operator_service_json" "PGUSER")" \
+    "${DC_ZANE_OPERATOR_PGUSER:-}" \
+    "zane_operator")"
 
   if [[ -z "$STAGING_DB_NAME" ]]; then
     STAGING_DB_NAME="${TEMPLATE_DB_NAME}_staging_$(date +%Y%m%d%H%M%S)"
