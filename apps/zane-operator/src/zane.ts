@@ -163,6 +163,14 @@ function assertString(value: unknown, label: string): string {
   return trimmed
 }
 
+function assertOptionalString(value: unknown, label: string): string | undefined {
+  if (value == null) {
+    return undefined
+  }
+
+  return assertString(value, label)
+}
+
 function assertLane(value: unknown, label: string): Lane {
   const lane = assertString(value, label)
   if (lane !== "preview" && lane !== "main") {
@@ -453,12 +461,14 @@ export class ZaneClient {
     projectSlug: string
     environmentName: string
     targets: ZaneResolvedTarget[]
+    gitCommitSha?: string
   } {
     const payload = assertObject(rawPayload, "request body")
     return {
       projectSlug: normalizeProjectSlugFromPayload(payload),
       environmentName: assertString(payload.environment_name, "environment_name"),
       targets: ZaneClient.parseResolvedTargets(payload.targets),
+      gitCommitSha: assertOptionalString(payload.git_commit_sha, "git_commit_sha"),
     }
   }
 
@@ -955,6 +965,7 @@ export class ZaneClient {
     projectSlug: string
     environmentName: string
     targets: ZaneResolvedTarget[]
+    gitCommitSha?: string
   }): Promise<{
     project_slug: string
     environment_name: string
@@ -967,7 +978,11 @@ export class ZaneClient {
         const body =
           target.service_type === "docker"
             ? { cleanup_queue: false, commit_message: "CI selective deploy" }
-            : { cleanup_queue: false, ignore_build_cache: false }
+            : {
+                cleanup_queue: false,
+                ignore_build_cache: false,
+                ...(input.gitCommitSha ? { commit_sha: input.gitCommitSha } : {}),
+              }
 
         const previousDeploymentHashes = new Set(
           (await this.listDeployments(session, input.projectSlug, input.environmentName, target.service_slug)).map(
