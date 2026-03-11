@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 source "${REPO_ROOT}/scripts/ci/lib.sh"
+source "${REPO_ROOT}/scripts/dev/lib/zane.sh"
 
 ENV_FILE="${REPO_ROOT}/.env.zane"
 ZANE_BASE_URL="${ZANE_BASE_URL:-}"
@@ -204,17 +205,6 @@ setup::parse_args() {
   done
 }
 
-setup::load_env_file() {
-  [[ -f "$ENV_FILE" ]] || ci::die "Env file not found: $ENV_FILE"
-
-  set +u
-  set -a
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-  set +a
-  set -u
-}
-
 setup::normalize_base_url() {
   ZANE_BASE_URL="${ZANE_BASE_URL:-${DC_ZANE_OPERATOR_ZANE_BASE_URL:-http://localhost}}"
   ZANE_BASE_URL="${ZANE_BASE_URL%/}"
@@ -330,123 +320,6 @@ setup::require_tools() {
   ci::require_command mktemp
 }
 
-zane::request() {
-  local method="$1"
-  local path="$2"
-  local body="${3-}"
-  local response_file status
-  local url="${ZANE_BASE_URL}/api/${path#/}"
-  local curl_args=()
-
-  response_file="$(mktemp)"
-  curl_args=(
-    --silent
-    --show-error
-    --location
-    --request "$method"
-    --cookie "$COOKIE_JAR"
-    --cookie-jar "$COOKIE_JAR"
-    --header 'Accept: application/json'
-    --output "$response_file"
-    --write-out '%{http_code}'
-  )
-
-  if [[ "$method" != "GET" ]]; then
-    curl_args+=(--header "X-CSRFToken: ${CSRF_TOKEN}")
-  fi
-
-  if [[ -n "$body" ]]; then
-    curl_args+=(
-      --header 'Content-Type: application/json'
-      --data "$body"
-    )
-  fi
-
-  curl_args+=("$url")
-  status="$(curl "${curl_args[@]}")"
-  printf '%s\t%s\n' "$status" "$response_file"
-}
-
-zane::api() {
-  local method="$1"
-  local path="$2"
-  local body="${3-}"
-  local status response_file
-
-  read -r status response_file < <(zane::request "$method" "$path" "$body")
-  if [[ ! "$status" =~ ^2 ]]; then
-    {
-      echo "Zane API request failed:"
-      echo "  ${method} ${path}"
-      echo "  HTTP ${status}"
-      echo "  response: $(cat "$response_file")"
-    } >&2
-    rm -f "$response_file"
-    exit 1
-  fi
-
-  cat "$response_file"
-  rm -f "$response_file"
-}
-
-zane::api_optional_get() {
-  local path="$1"
-  local status response_file
-
-  read -r status response_file < <(zane::request GET "$path")
-  if [[ "$status" == "404" ]]; then
-    rm -f "$response_file"
-    return 1
-  fi
-  if [[ ! "$status" =~ ^2 ]]; then
-    {
-      echo "Zane API request failed:"
-      echo "  GET ${path}"
-      echo "  HTTP ${status}"
-      echo "  response: $(cat "$response_file")"
-    } >&2
-    rm -f "$response_file"
-    exit 1
-  fi
-
-  cat "$response_file"
-  rm -f "$response_file"
-}
-
-zane::refresh_csrf_token() {
-  CSRF_TOKEN="$(
-    awk '
-      $6 == "csrftoken" {
-        token = $7
-      }
-      END {
-        print token
-      }
-    ' "$COOKIE_JAR"
-  )"
-}
-
-zane::login() {
-  local login_payload
-
-  COOKIE_JAR="$(mktemp)"
-  trap 'rm -f "$COOKIE_JAR"' EXIT
-
-  zane::api GET "csrf/" >/dev/null
-  zane::refresh_csrf_token
-  [[ -n "$CSRF_TOKEN" ]] || ci::die "Unable to obtain CSRF token from Zane."
-
-  login_payload="$(
-    jq -n \
-      --arg username "$ZANE_USERNAME" \
-      --arg password "$ZANE_PASSWORD" \
-      '{username: $username, password: $password}'
-  )"
-
-  zane::api POST "auth/login/" "$login_payload" >/dev/null
-  zane::refresh_csrf_token
-}
-
 zane::settings() {
   zane::api GET "settings/"
 }
@@ -466,11 +339,6 @@ zane::ensure_project() {
       '{slug: $slug, description: $description}'
   )"
   zane::api POST "projects/" "$create_payload" >/dev/null
-}
-
-zane::get_service() {
-  local service_slug="$1"
-  zane::api_optional_get "projects/${PROJECT_SLUG}/${ENVIRONMENT_NAME}/service-details/${service_slug}/"
 }
 
 zane::create_git_service() {
@@ -1880,13 +1748,9 @@ setup::upsert_service_envs() {
 }
 
 setup::confirm_execution() {
-  local prompt
+  local summary
 
-  if [[ "$ASSUME_YES" == "true" ]]; then
-    return 0
-  fi
-
-  cat >&2 <<EOF
+  summary="$(cat <<EOF
 About to sync the canonical Zane project on the deployed stack:
   zane_base_url: ${ZANE_BASE_URL}
   project_slug: ${PROJECT_SLUG}
@@ -1895,9 +1759,8 @@ About to sync the canonical Zane project on the deployed stack:
   branch: ${BRANCH_NAME}
   public_domain: ${PUBLIC_DOMAIN:-<auto-discover>}
 EOF
-  printf 'Type "sync %s/%s" to continue: ' "${PROJECT_SLUG}" "${ENVIRONMENT_NAME}" >&2
-  read -r prompt
-  [[ "$prompt" == "sync ${PROJECT_SLUG}/${ENVIRONMENT_NAME}" ]] || ci::die "Confirmation rejected."
+)"
+  dev::confirm_or_die "sync ${PROJECT_SLUG}/${ENVIRONMENT_NAME}" "$summary"
 }
 
 setup::main() {
@@ -1915,7 +1778,7 @@ setup::main() {
   local medusa_be_public_url n1_public_url meilisearch_public_url
 
   setup::parse_args "$@"
-  setup::load_env_file
+  dev::load_env_file "$ENV_FILE" required
   setup::normalize_base_url
   setup::derive_repository_url
   setup::derive_branch_name
