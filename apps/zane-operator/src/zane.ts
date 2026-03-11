@@ -145,12 +145,18 @@ function assertLane(value: unknown, label: string): Lane {
 }
 
 function assertServiceType(value: unknown, label: string): ServiceType {
-  const serviceType = assertString(value, label)
-  if (serviceType !== "docker" && serviceType !== "git") {
-    throw new BadRequestError(`${label} must be docker or git`)
-  }
+  const rawServiceType = assertString(value, label)
 
-  return serviceType
+  switch (rawServiceType.toUpperCase()) {
+    case "DOCKER":
+    case "DOCKER_REGISTRY":
+      return "docker"
+    case "GIT":
+    case "GIT_REPOSITORY":
+      return "git"
+    default:
+      throw new BadRequestError(`${label} must be docker or git`)
+  }
 }
 
 function assertStringArray(value: unknown, label: string): string[] {
