@@ -170,9 +170,6 @@ zane::api_request() {
     --show-error
     --output "$tmp_body"
     --write-out '%{http_code}'
-    --retry 3
-    --retry-all-errors
-    --retry-delay 2
     --connect-timeout 20
     --max-time 20
     -H "Authorization: Bearer ${api_token}"
@@ -180,6 +177,14 @@ zane::api_request() {
     -H 'Content-Type: application/json'
     -X "$method"
   )
+
+  if [[ "$method" == "GET" ]]; then
+    curl_args+=(
+      --retry 3
+      --retry-all-errors
+      --retry-delay 2
+    )
+  fi
 
   if [[ -n "$payload" ]]; then
     curl_args+=(--data "$payload")

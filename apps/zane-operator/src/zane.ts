@@ -106,6 +106,10 @@ interface ZaneDeployment {
   }
 }
 
+interface ZaneDeploymentListResponse {
+  results?: ZaneDeployment[]
+}
+
 interface ZaneEnvironmentWithVariables extends ZaneEnvironment {
   variables: Array<{
     id: string
@@ -312,6 +316,12 @@ function parseErrorMessage(payload: unknown, fallback: string): string {
   }
 
   return fallback
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
 }
 
 export class UpstreamHttpError extends Error {
@@ -828,6 +838,7 @@ export class ZaneClient {
     triggered_service_ids: string[]
     services: TriggeredDeployment[]
   }> {
+    const session = await this.authenticate()
     const deployments = await Promise.all(
       input.targets.map(async (target) => {
         const body =
@@ -835,7 +846,20 @@ export class ZaneClient {
             ? { cleanup_queue: false, commit_message: "CI selective deploy" }
             : { cleanup_queue: false, ignore_build_cache: false }
 
-        const deployment = await this.triggerDeployment(target, body)
+        const previousDeploymentHashes = new Set(
+          (await this.listDeployments(session, input.projectSlug, input.environmentName, target.service_slug)).map(
+            (deployment) => deployment.hash,
+          ),
+        )
+
+        await this.triggerDeployment(target, body)
+        const deployment = await this.findTriggeredDeployment(
+          session,
+          input.projectSlug,
+          input.environmentName,
+          target.service_slug,
+          previousDeploymentHashes,
+        )
         return {
           service_id: target.service_id,
           service_name: target.service_name,
@@ -940,7 +964,7 @@ export class ZaneClient {
     }
   }
 
-  private async triggerDeployment(target: ZaneResolvedTarget, body: JsonRecord): Promise<ZaneDeployment> {
+  private async triggerDeployment(target: ZaneResolvedTarget, body: JsonRecord): Promise<void> {
     const response = await fetch(`${this.#connectBaseUrl}${target.deploy_url}`, {
       method: "PUT",
       headers: this.buildUpstreamHeaders(undefined, "PUT"),
@@ -956,8 +980,6 @@ export class ZaneClient {
       }
       throw new UpstreamHttpError(response.status, "zane_deploy_failed", errorMessage)
     }
-
-    return (await response.json()) as ZaneDeployment
   }
 
   private async getEnvironment(
@@ -1048,5 +1070,46 @@ export class ZaneClient {
     }
 
     return deployment
+  }
+
+  private async listDeployments(
+    session: ZaneSession,
+    projectSlug: string,
+    environmentName: string,
+    serviceSlug: string,
+  ): Promise<ZaneDeployment[]> {
+    const payload = await this.request<ZaneDeploymentListResponse>(
+      session,
+      "GET",
+      `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
+        environmentName,
+      )}/service-details/${encodeURIComponent(serviceSlug)}/deployments/`,
+    )
+
+    return Array.isArray(payload?.results) ? payload.results : []
+  }
+
+  private async findTriggeredDeployment(
+    session: ZaneSession,
+    projectSlug: string,
+    environmentName: string,
+    serviceSlug: string,
+    previousDeploymentHashes: Set<string>,
+  ): Promise<ZaneDeployment> {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const deployments = await this.listDeployments(session, projectSlug, environmentName, serviceSlug)
+      const triggered = deployments.find((deployment) => !previousDeploymentHashes.has(deployment.hash))
+      if (triggered) {
+        return triggered
+      }
+
+      await sleep(500)
+    }
+
+    throw new UpstreamHttpError(
+      502,
+      "zane_deploy_not_observed",
+      `Triggered deployment for ${serviceSlug} was not visible in deployment history`,
+    )
   }
 }
