@@ -1,4 +1,5 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { PRODUCT_LIMIT } from "@/lib/constants"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import { buildCategoryPrefetchLabels, runLoggedPrefetch } from "./prefetch-utils"
 import { storefront } from "./storefront-preset"
@@ -35,6 +36,8 @@ export function usePrefetchProducts() {
       category_id: categoryId,
       region_id: regionId,
       country_code: countryCode,
+      limit: PRODUCT_LIMIT,
+      offset: 0,
     }
 
     await runLoggedPrefetch({

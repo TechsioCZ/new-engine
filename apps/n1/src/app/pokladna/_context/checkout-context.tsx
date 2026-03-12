@@ -288,8 +288,9 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     },
   })
 
-  // Auto-select PPL Private as default (PPL Parcel requires dialog)
-  // NOTE: Options 0-6 use manual_manual provider which is disabled on backend
+  // Auto-select PPL Private as default.
+  // Other manual_manual options are currently exposed by backend config,
+  // but fail when applied to the cart.
   useEffect(() => {
     hasAutoSelectedShippingRef.current = false
   }, [cart?.id])
@@ -304,7 +305,6 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
       shipping.shippingOptions.length > 0 &&
       !shipping.selectedShippingMethodId
     ) {
-      // Find PPL Private option (doesn't require access point selection)
       const pplPrivate = shipping.shippingOptions.find((opt) =>
         opt.name.toLowerCase().includes("ppl private")
       )
@@ -312,7 +312,6 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
         hasAutoSelectedShippingRef.current = true
         shipping.setShipping(pplPrivate.id)
       }
-      // Don't auto-select if no PPL Private found - let user choose manually
     }
 
     if (shipping.selectedShippingMethodId) {

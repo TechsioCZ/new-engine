@@ -8,15 +8,19 @@ import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
 import type {
   AddressErrors,
   AddressFieldKey,
+  AddressPatchData,
   AddressFormData,
 } from "@/utils/address-validation"
-import { validateAddressForm } from "@/utils/address-validation"
+import {
+  validateAddressForm,
+  validateAddressPatch,
+} from "@/utils/address-validation"
 import { cleanPhoneNumber } from "@/utils/format/format-phone-number"
 import { formatPhoneNumber } from "@/utils/format/format-phone-number"
 import { cleanPostalCode } from "@/utils/format/format-postal-code"
 import { formatPostalCode } from "@/utils/format/format-postal-code"
 
-export type CustomerAddressUpdateHookInput = AddressFormData & {
+export type CustomerAddressUpdateHookInput = AddressPatchData & {
   addressId?: string
 }
 
@@ -45,6 +49,64 @@ const trimString = (value: unknown): string | undefined => {
 const normalizeCountryCode = (value: unknown): string => {
   const normalized = trimString(value)?.toLowerCase()
   return normalized || DEFAULT_COUNTRY_CODE
+}
+
+const hasOwnAddressField = (
+  input: Record<string, unknown>,
+  field: AddressFieldKey
+): boolean => Object.prototype.hasOwnProperty.call(input, field)
+
+const normalizeAddressPatch = <
+  T extends Partial<AddressFormData> & Record<string, unknown>,
+>(
+  input: T
+): T => {
+  const normalized: Record<string, unknown> = {
+    ...input,
+  }
+
+  if (hasOwnAddressField(input, "first_name")) {
+    normalized.first_name =
+      typeof input.first_name === "string" ? input.first_name.trim() : input.first_name
+  }
+  if (hasOwnAddressField(input, "last_name")) {
+    normalized.last_name =
+      typeof input.last_name === "string" ? input.last_name.trim() : input.last_name
+  }
+  if (hasOwnAddressField(input, "company")) {
+    normalized.company = trimString(input.company)
+  }
+  if (hasOwnAddressField(input, "address_1")) {
+    normalized.address_1 =
+      typeof input.address_1 === "string" ? input.address_1.trim() : input.address_1
+  }
+  if (hasOwnAddressField(input, "address_2")) {
+    normalized.address_2 = trimString(input.address_2)
+  }
+  if (hasOwnAddressField(input, "city")) {
+    normalized.city = typeof input.city === "string" ? input.city.trim() : input.city
+  }
+  if (hasOwnAddressField(input, "province")) {
+    normalized.province = trimString(input.province)
+  }
+  if (hasOwnAddressField(input, "postal_code")) {
+    normalized.postal_code =
+      typeof input.postal_code === "string"
+        ? cleanPostalCode(input.postal_code)
+        : input.postal_code
+  }
+  if (hasOwnAddressField(input, "country_code")) {
+    normalized.country_code =
+      typeof input.country_code === "string"
+        ? normalizeCountryCode(input.country_code)
+        : input.country_code
+  }
+  if (hasOwnAddressField(input, "phone")) {
+    normalized.phone =
+      typeof input.phone === "string" ? cleanPhoneNumber(input.phone) : input.phone
+  }
+
+  return normalized as T
 }
 
 const normalizeAddressCore = <
@@ -87,6 +149,27 @@ const toValidationInput = (input: AddressFormData): AddressFormData => {
     postal_code: formatPostalCode(normalized.postal_code),
     phone: normalized.phone ? formatPhoneNumber(normalized.phone) : "",
     country_code: normalized.country_code || DEFAULT_COUNTRY_CODE,
+  }
+}
+
+const toValidationPatchInput = (
+  input: AddressPatchData
+): AddressPatchData => {
+  const normalized = normalizeAddressPatch(input)
+
+  return {
+    ...normalized,
+    postal_code: hasOwnAddressField(normalized, "postal_code")
+      ? formatPostalCode(normalized.postal_code ?? "")
+      : normalized.postal_code,
+    phone: hasOwnAddressField(normalized, "phone")
+      ? normalized.phone
+        ? formatPhoneNumber(normalized.phone)
+        : ""
+      : normalized.phone,
+    country_code: hasOwnAddressField(normalized, "country_code")
+      ? normalized.country_code || DEFAULT_COUNTRY_CODE
+      : normalized.country_code,
   }
 }
 
@@ -137,6 +220,21 @@ const validateAddressInput = (
   return issues.length > 0 ? issues : null
 }
 
+const validateAddressPatchInput = (
+  input: AddressPatchData,
+  scope: "shipping" | "billing" | "customer"
+): StorefrontAddressValidationIssue[] | null => {
+  const validationInput = toValidationPatchInput(input)
+  const errors = validateAddressPatch(validationInput)
+  const issues = toValidationIssues(
+    errors,
+    validationInput as AddressFormData,
+    scope
+  )
+
+  return issues.length > 0 ? issues : null
+}
+
 const toMedusaAddressPayload = (
   input: AddressFormData
 ): HttpTypes.StoreAddAddress => {
@@ -175,6 +273,46 @@ const toMedusaCustomerAddressPayload = (
     ...payload,
     metadata: undefined,
   }
+}
+
+const toMedusaCustomerAddressUpdatePayload = (
+  input: AddressPatchData
+): MedusaCustomerAddressCreateInput => {
+  const normalized = normalizeAddressPatch(input)
+  const payload: MedusaCustomerAddressCreateInput = {}
+
+  if (hasOwnAddressField(normalized, "first_name")) {
+    payload.first_name = normalized.first_name
+  }
+  if (hasOwnAddressField(normalized, "last_name")) {
+    payload.last_name = normalized.last_name
+  }
+  if (hasOwnAddressField(normalized, "company")) {
+    payload.company = normalized.company
+  }
+  if (hasOwnAddressField(normalized, "address_1")) {
+    payload.address_1 = normalized.address_1
+  }
+  if (hasOwnAddressField(normalized, "address_2")) {
+    payload.address_2 = normalized.address_2
+  }
+  if (hasOwnAddressField(normalized, "city")) {
+    payload.city = normalized.city
+  }
+  if (hasOwnAddressField(normalized, "province")) {
+    payload.province = normalized.province
+  }
+  if (hasOwnAddressField(normalized, "postal_code")) {
+    payload.postal_code = normalized.postal_code
+  }
+  if (hasOwnAddressField(normalized, "country_code")) {
+    payload.country_code = normalized.country_code
+  }
+  if (hasOwnAddressField(normalized, "phone")) {
+    payload.phone = normalized.phone
+  }
+
+  return payload
 }
 
 export const addressToFormData = (
@@ -217,16 +355,15 @@ export const customerAddressAdapter: CustomerAddressAdapter<
   AddressFormData,
   MedusaCustomerAddressCreateInput,
   CustomerAddressUpdateHookInput,
-  MedusaCustomerAddressCreateInput,
-  HttpTypes.StoreCustomerAddress
+  MedusaCustomerAddressCreateInput
 > = {
   normalizeCreate: (input) => normalizeAddressCore(input),
   validateCreate: (input) => validateAddressInput(input, "customer"),
   toCreateParams: (input) => toMedusaCustomerAddressPayload(input),
-  normalizeUpdate: (input) => normalizeAddressCore(input),
-  validateUpdate: (input) => validateAddressInput(input, "customer"),
+  normalizeUpdate: (input) => normalizeAddressPatch(input),
+  validateUpdate: (input) => validateAddressPatchInput(input, "customer"),
   toUpdateParams: (input) => {
     const { addressId: _addressId, ...rest } = input
-    return toMedusaCustomerAddressPayload(rest)
+    return toMedusaCustomerAddressUpdatePayload(rest)
   },
 }

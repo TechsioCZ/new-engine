@@ -1,6 +1,7 @@
 "use client"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { StorefrontDataProvider } from "@techsio/storefront-data/client/provider"
+import { getQueryClient } from "@techsio/storefront-data/shared/query-client"
 import { RegionProvider } from "@techsio/storefront-data/shared/region-context"
 import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { Suspense, type ReactNode } from "react"
@@ -19,6 +20,8 @@ const queryClientConfig = {
   },
 }
 
+const storefrontQueryClient = getQueryClient(queryClientConfig)
+
 function StorefrontRegionBridge({ children }: { children: ReactNode }) {
   const { regionId, countryCode } = useSuspenseRegion()
 
@@ -35,7 +38,7 @@ function StorefrontRegionBridge({ children }: { children: ReactNode }) {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <StorefrontDataProvider clientConfig={queryClientConfig}>
+    <StorefrontDataProvider client={storefrontQueryClient}>
       <Suspense fallback={null}>
         <StorefrontRegionBridge>
           <Suspense fallback={null}>
