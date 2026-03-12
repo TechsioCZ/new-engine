@@ -18,35 +18,40 @@ const searchFormVariants = tv({
   slots: {
     root: ["relative grid"],
     control: [
-      "relative flex items-center",
-      "rounded-search-form",
-      "border border-input-border bg-input-bg",
+      "relative flex items-center overflow-hidden",
+      "form-control-base",
+      "hover:border-input-border-hover",
       "focus-within:border-input-border-focus",
       "focus-within:outline-(style:--default-ring-style) focus-within:outline-(length:--default-ring-width)",
       "focus-within:outline-input-ring",
       "focus-within:outline-offset-(length:--default-ring-offset)",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     input: [
       "peer",
       "min-w-0 flex-1",
-      "rounded-r-search-form-input border-none bg-transparent",
+      "border-none bg-transparent",
       "focus-visible:outline-none",
     ],
     button: [
-      "h-full shrink-0 items-center rounded-r-search-form rounded-l-none",
+      "h-full shrink-0 items-center rounded-l-none",
     ],
     clearButton: [
       "h-full shrink-0 rounded-none p-search-form-clear-button",
-      "bg-input-bg peer-hover:bg-input-hover peer-focus:bg-input-focus",
+      "peer-hover:bg-input-hover peer-focus:bg-input-focus",
     ],
   },
   variants: {
     size: {
       sm: {
         root: "gap-search-form-sm",
+        control:
+          "h-form-control-sm rounded-search-form-sm",
       },
       md: {
         root: "gap-search-form-md",
+        control:
+          "h-form-control-md rounded-search-form-md",
       },
       lg: {
         root: "gap-search-form-lg",

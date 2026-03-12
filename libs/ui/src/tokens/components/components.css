@@ -1,3 +1,5 @@
+@import "./_form-control.css";
+
 @import "./atoms/_badge.css";
 @import "./atoms/_button.css";
 @import "./atoms/_status-text.css";

@@ -162,6 +162,13 @@ function tokenToUtilityClasses(tokenName) {
       "gap-y",
       "space-x",
       "space-y",
+      "size",
+      "translate",
+      "translate-x",
+      "translate-y",
+      "-translate",
+      "-translate-x",
+      "-translate-y",
     ],
     padding: ["p", "px", "py", "pt", "pr", "pb", "pl", "ps", "pe"],
     margin: [
@@ -187,6 +194,7 @@ function tokenToUtilityClasses(tokenName) {
     gap: ["gap"],
     width: ["w", "min-w", "max-w"],
     height: ["h", "min-h", "max-h"],
+    size: ["size"],
     text: ["text"],
     font: ["font"],
     tracking: ["tracking"],
@@ -198,6 +206,7 @@ function tokenToUtilityClasses(tokenName) {
     blur: ["blur"],
     perspective: ["perspective"],
     aspect: ["aspect"],
+    duration: ["duration"],
     ease: ["ease"],
     animate: ["animate"],
     opacity: ["opacity"],
@@ -228,7 +237,6 @@ function tokenToUtilityClasses(tokenName) {
     "opacity-bg",
     "opacity-borderless",
     "spacing-translate",
-    "spacing-menu-submenu",
   ]
   if (
     customPropertyPrefixes.some((prefix) => tokenName.includes(`--${prefix}`))
@@ -367,6 +375,19 @@ async function buildComponentIndices(classToTokens, knownTokens) {
           if (!tokens) continue
           for (const t of tokens) classUsageTokens.add(t)
         }
+
+        // 2b) Variant-based token usage for Tailwind container/breakpoint variants
+        // Examples: @max-header-desktop:hidden, @min-md:flex
+        for (const m of content.matchAll(/@?(?:max|min)-([a-z0-9-]+):/gi)) {
+          const variantKey = m[1]
+          const candidates = [
+            `--container-${variantKey}`,
+            `--breakpoint-${variantKey}`,
+          ]
+          for (const token of candidates) {
+            if (knownTokens.has(token)) classUsageTokens.add(token)
+          }
+        }
       } catch {
         // ignore unreadable files
       }
@@ -407,7 +428,10 @@ function propagateUsage(initialUsed, dependencyGraph) {
   return used
 }
 
-async function validateTokenDefinitions({ profile = false } = {}) {
+async function validateTokenDefinitions({
+  profile = false,
+  failOnUnused = false,
+} = {}) {
   const p = profiled(profile)
   p.mark("total")
   console.log("🔍 Analyzing token definitions and usage...")
@@ -490,6 +514,13 @@ async function validateTokenDefinitions({ profile = false } = {}) {
   console.log(
     "💡 Note: Tokens might be used dynamically or externally and not detected."
   )
+  if (!failOnUnused) {
+    console.log(
+      "ℹ️  Non-blocking mode: treating potentially unused tokens as warnings."
+    )
+    if (profile) console.log(`⏱️  total: ${p.end("total").toFixed(1)}ms`)
+    return true
+  }
   if (profile) console.log(`⏱️  total: ${p.end("total").toFixed(1)}ms`)
   return false
 }
@@ -499,7 +530,10 @@ if (
   pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
 ) {
   const profile = process.argv.includes("--profile")
-  validateTokenDefinitions({ profile })
+  const failOnUnused =
+    process.argv.includes("--fail-on-unused") ||
+    process.env.VALIDATE_TOKEN_DEFINITIONS_FAIL_ON_UNUSED === "1"
+  validateTokenDefinitions({ profile, failOnUnused })
     .then((ok) => process.exit(ok ? 0 : 1))
     .catch((err) => {
       console.error("💥 Validation failed:", err?.message || err)

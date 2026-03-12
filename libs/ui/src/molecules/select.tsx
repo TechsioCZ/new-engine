@@ -30,31 +30,34 @@ const selectVariants = tv({
     control: ["relative flex items-center justify-between", "w-full"],
     positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
     trigger: [
-      "w-full",
-      "p-select-trigger",
-      "rounded-select border border-select-trigger-border",
+      "form-control-base w-full",
+      "border-select-trigger-border",
+      "group",
+      "flex items-center justify-between gap-0",
+      "font-normal",
       "text-left",
       "hover:bg-select-trigger-bg-hover",
+      "hover:border-select-trigger-border-hover",
       "focus:border-select-trigger-border-focus",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-ring",
+      "focus-visible:outline-select-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[disabled]:cursor-not-allowed",
       "data-[disabled]:bg-select-bg-disabled",
       "data-[disabled]:text-select-fg-disabled",
       "data-[disabled]:border-select-border-disabled",
-      "data-[invalid]:border-(length:--border-width-validation)",
-      "data-[invalid]:border-select-danger data-[invalid]:outline-select-danger",
-      "data-[invalid]:outline-(style:--default-ring-style) data-[invalid]:outline-(length:--default-ring-width)",
-      "data-[invalid]:outline-offset-(length:--default-ring-offset)",
-      "data-[success]:border-(length:--border-width-validation)",
-      "data-[success]:border-select-success data-[success]:outline-select-success",
-      "data-[success]:outline-(style:--default-ring-style) data-[success]:outline-(length:--default-ring-width)",
-      "data-[success]:outline-offset-(length:--default-ring-offset)",
-      "data-[warning]:border-(length:--border-width-validation)",
-      "data-[warning]:border-select-warning data-[warning]:outline-select-warning",
-      "data-[warning]:outline-(style:--default-ring-style) data-[warning]:outline-(length:--default-ring-width)",
-      "data-[warning]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=error]:border-(length:--border-width-validation)",
+      "data-[validation=error]:border-select-danger data-[validation=error]:outline-select-danger",
+      "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
+      "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=success]:border-(length:--border-width-validation)",
+      "data-[validation=success]:border-select-success data-[validation=success]:outline-select-success",
+      "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
+      "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
+      "data-[validation=warning]:border-(length:--border-width-validation)",
+      "data-[validation=warning]:border-select-warning data-[validation=warning]:outline-select-warning",
+      "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
+      "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     clearTrigger: [
@@ -73,12 +76,12 @@ const selectVariants = tv({
       "max-h-fit rounded-select shadow-select-content",
       "h-[calc(var(--available-height)-var(--spacing-content))]",
       "z-(--z-content) overflow-auto",
-      "motion-safe:transition-[opacity,display,translate] duration-200 ease-out",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
       "transition-discrete",
-      "starting:opacity-0 starting:-translate-y-2",
-      "data-[state=open]:starting:opacity-0 data-[state=open]:starting:-translate-y-2",
-      "data-[state=open]:opacity-100 data-[state=open]:translate-y-0",
-      "data-[state=closed]:opacity-0 data-[state=closed]:-translate-y-2",
+      "starting:-translate-y-2 starting:opacity-0",
+      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
+      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
+      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
     ],
     item: [
       "flex items-center justify-between",
@@ -95,36 +98,36 @@ const selectVariants = tv({
     itemIndicator: ["text-select-indicator"],
     itemText: ["flex-grow"],
     itemGroup: [""],
-    itemGroupLabel: [
-      "px-select-item",
-      "font-medium text-select-fg-disabled",
-    ],
+    itemGroupLabel: ["px-select-item", "font-medium text-select-fg-disabled"],
     valueText: [
-      "flex-grow truncate data-[placeholder]:text-select-placeholder",
+      "flex-grow truncate font-normal",
+      "data-[placeholder]:font-normal data-[placeholder]:text-select-placeholder",
     ],
   },
   variants: {
     size: {
       xs: {
-        trigger: "text-select-trigger-xs",
+        trigger: "p-select-trigger-sm text-select-trigger-xs",
         item: "text-select-item-xs",
         valueText: "text-select-value-xs",
         itemGroupLabel: "text-select-item-group-label-xs",
       },
       sm: {
-        trigger: "text-select-trigger-sm",
+        trigger:
+          "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-sm",
         item: "text-select-item-sm",
         valueText: "text-select-value-sm",
         itemGroupLabel: "text-select-item-group-label-sm",
       },
       md: {
-        trigger: "text-select-trigger-md",
+        trigger:
+          "h-form-control-md rounded-select-md p-select-trigger-md text-select-trigger-md",
         item: "text-select-item-md",
         valueText: "text-select-value-md",
         itemGroupLabel: "text-select-item-group-label-md",
       },
       lg: {
-        trigger: "text-select-trigger-lg",
+        trigger: "p-select-trigger-md text-select-trigger-lg",
         item: "text-select-item-lg",
         valueText: "text-select-value-lg",
         itemGroupLabel: "text-select-item-group-label-lg",
@@ -199,7 +202,7 @@ export function Select({
   onValueChange,
   onOpenChange,
   onHighlightChange,
-  
+
   className,
   children,
   ref,
@@ -265,10 +268,7 @@ interface SelectLabelProps extends ComponentPropsWithoutRef<"label"> {
   ref?: Ref<HTMLLabelElement>
 }
 
-Select.Label = function SelectLabel({
-  children,
-  ...props
-}: SelectLabelProps) {
+Select.Label = function SelectLabel({ children, ...props }: SelectLabelProps) {
   const { api } = useSelectContext()
 
   return (
@@ -318,13 +318,11 @@ Select.Trigger = function SelectTrigger({
   const { api, size: contextSize, validateStatus } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
+  const chevronIconSize = effectiveSize === "sm" ? "sm" : "md"
 
-  // Map validateStatus to data attributes for consistent visual styling
-  const validationDataAttrs = {
-    ...(validateStatus === "error" && { "data-invalid": true }),
-    ...(validateStatus === "success" && { "data-success": true }),
-    ...(validateStatus === "warning" && { "data-warning": true }),
-  }
+  // Map validateStatus to unified data-validation attribute
+  const validationDataAttrs =
+    validateStatus !== "default" ? { "data-validation": validateStatus } : {}
 
   return (
     <Button
@@ -334,15 +332,16 @@ Select.Trigger = function SelectTrigger({
       theme="unstyled"
       {...api.getTriggerProps()}
       {...validationDataAttrs}
-      icon={
-        api.open
-          ? "token-icon-select-indicator-open"
-          : "token-icon-select-indicator"
-      }
-      iconPosition="right"
       {...props}
     >
       {children}
+      <Icon
+        className={`text-select-trigger group-hover:text-select-trigger-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+          api.open ? "rotate-180" : "rotate-0"
+        }`}
+        icon="token-icon-select-indicator"
+        size={chevronIconSize}
+      />
     </Button>
   )
 }
@@ -625,7 +624,8 @@ Select.StatusText = function SelectStatusText({
   children,
   ...props
 }: SelectStatusTextProps) {
-  const { size: contextSize, validateStatus: contextValidateStatus } = useSelectContext()
+  const { size: contextSize, validateStatus: contextValidateStatus } =
+    useSelectContext()
 
   const effectiveSize = sizeProp ?? contextSize
 
@@ -633,9 +633,9 @@ Select.StatusText = function SelectStatusText({
 
   return (
     <StatusText
-      status={effectiveStatus}
-      size={effectiveSize === "xs" ? "sm" : effectiveSize}
       showIcon={showIcon}
+      size={effectiveSize === "xs" ? "sm" : effectiveSize}
+      status={effectiveStatus}
       {...props}
     >
       {children}

@@ -66,7 +66,7 @@ const colorSelectVariants = tv({
         group: "h-full w-full gap-color-select-group-md",
         cell: "h-full w-full",
         atom: "h-full",
-        icon: "h-color-select-icon w-color-select-icon",
+        icon: "size-color-select-icon",
       },
     },
     layout: {

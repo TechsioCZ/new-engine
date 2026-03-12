@@ -2,7 +2,6 @@
   /* === BASE COLOR MAPPING === */
   --color-accordion-base: var(--color-surface);
   --color-accordion-border: var(--color-border-primary);
-  --color-accordion-accent: var(--color-primary);
 
   /* === DERIVED COLORS === */
   /* Background colors */
@@ -30,9 +29,6 @@
 
   /* === VALIDATION STATES === */
   /* Validation states will be added here when needed */
-
-  /* === DISABLED STATES === */
-  --color-accordion-fg-disabled: var(--color-fg-disabled);
 
   /* === SPACING === */
   --padding-accordion-title-sm: var(--spacing-100) var(--spacing-150);
@@ -71,9 +67,6 @@
   --shadow-accordion-root-md: var(--shadow-xl);
   --shadow-accordion-content-sm: var(--shadow-sm);
   --shadow-accordion-content-md: var(--shadow-primary);
-
-  /* === FOCUS RINGS === */
-  --color-accordion-ring: var(--color-ring);
 }
 
 /* Semantic tokens for accordion icons */
