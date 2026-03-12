@@ -41,6 +41,7 @@ services:
         - "scripts/apply-postgres-role-bootstrap.sh"
       zane:
         service_slug: "medusa-db"
+        clone_to_preview: false
         deploy_lanes: ["preview", "main"]
         deploy_stage: 5
         downtime_risk: true
@@ -149,5 +150,6 @@ services:
         - "docker/development/zane-operator/**"
       zane:
         service_slug: "zane-operator"
+        clone_to_preview: false
         deploy_lanes: ["main"]
         deploy_stage: 10
