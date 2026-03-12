@@ -1,4 +1,7 @@
-import type { QueryKey } from "../shared/query-keys"
+import type {
+  StorefrontAddressValidationResult,
+  StorefrontCustomerAddressAdapter,
+} from "../shared/address"
 import type {
   MutationOptions,
   QueryResult,
@@ -6,10 +9,7 @@ import type {
   SuspenseQueryResult,
   SuspenseResultBase,
 } from "../shared/hook-types"
-import type {
-  StorefrontAddressValidationResult,
-  StorefrontCustomerAddressAdapter,
-} from "../shared/address"
+import type { QueryKey } from "../shared/query-keys"
 
 export type CustomerAddressListInputBase = {
   enabled?: boolean
@@ -88,7 +88,7 @@ export type CustomerAddressValidationResult = StorefrontAddressValidationResult
 export type CustomerAddressAdapter<
   TCreateInput = CustomerAddressCreateInputBase,
   TCreateParams = TCreateInput,
-  TUpdateInput = TCreateInput,
+  TUpdateInput = TCreateInput & { addressId?: string },
   TUpdateParams = TCreateParams,
 > = StorefrontCustomerAddressAdapter<
   TCreateInput,

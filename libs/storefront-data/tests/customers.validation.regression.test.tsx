@@ -1,9 +1,10 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
-import type { ReactNode } from "react"
-import { StorefrontDataProvider } from "../src/client/provider"
 import { createCheckoutCustomerAddressAdapter } from "../src/checkout/address"
+import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
+import type { CustomerAddressAdapter } from "../src/customers/types"
+import type { ReactNode } from "react"
 import {
   StorefrontAddressValidationError,
   type StorefrontAddressValidationIssue,
@@ -13,6 +14,14 @@ const createWrapper = (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
+
+type DefaultCustomerAddressAdapter = CustomerAddressAdapter<{
+  city?: string
+}>
+
+type DefaultCustomerUpdateInput = Parameters<
+  NonNullable<DefaultCustomerAddressAdapter["validateUpdate"]>
+>[0]
 
 describe("customer validation regression", () => {
   type Customer = { id: string }
@@ -34,6 +43,15 @@ describe("customer validation regression", () => {
     })),
     deleteAddress: vi.fn(async () => {}),
     updateCustomer: vi.fn(async () => ({ id: "cus_1" } as Customer)),
+  })
+
+  it("keeps addressId in the default customer adapter update input type", () => {
+    const updateInput: DefaultCustomerUpdateInput = {
+      addressId: "addr_1",
+      city: "Prague",
+    }
+
+    expect(updateInput.addressId).toBe("addr_1")
   })
 
   it("throws structured validation errors and skips createAddress call", async () => {
