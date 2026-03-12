@@ -19,19 +19,25 @@ export interface ArchiveEnvironmentInput {
 }
 
 export interface ResolveTargetInput {
+  // Stable repo/manifest service identity used across CI payloads.
   service_id: string
-  service_name: string
+  // Upstream Zane service slug used to resolve the actual target.
+  service_slug: string
 }
 
 export interface EnvOverrideInput {
+  // Stable repo/manifest service identity used across CI payloads.
   service_id: string
-  service_name: string
+  // Upstream Zane service slug used for diagnostics.
+  service_slug: string
   env: Record<string, string>
 }
 
 export interface VerifyDeploymentRef {
+  // Stable repo/manifest service identity used across CI payloads.
   service_id: string
-  service_name: string
+  // Upstream Zane service slug associated with the deployment ref.
+  service_slug: string
   deployment_hash: string
 }
 
@@ -48,7 +54,7 @@ export interface VerifyDeployInput {
 
 interface CheckedDeploymentResult {
   service_id: string
-  service_name: string
+  service_slug: string
   deployment_hash: string
   status: string
   status_reason: string | null
@@ -91,9 +97,9 @@ export interface ZaneResolvedCurrentDeployment {
 }
 
 export interface ZaneResolvedTarget {
+  // Stable repo/manifest service identity used across CI payloads.
   service_id: string
-  service_name: string
-  target_id: string
+  // Upstream Zane service slug used to resolve the actual target.
   service_slug: string
   service_type: ServiceType
   configured_commit_sha?: string | null
@@ -108,7 +114,6 @@ export interface ZaneResolvedTarget {
 
 export interface TriggeredDeployment {
   service_id: string
-  service_name: string
   service_slug: string
   service_type: ServiceType
   deployment_hash: string
@@ -253,8 +258,8 @@ function normalizeResolveTargets(value: unknown, label: string): ResolveTargetIn
   return value.map((item, index) => {
     const object = assertObject(item, `${label}[${index}]`)
     return {
-      service_id: assertString(object.service_id ?? object.id, `${label}[${index}].service_id`),
-      service_name: assertString(object.service_name, `${label}[${index}].service_name`),
+      service_id: assertString(object.service_id, `${label}[${index}].service_id`),
+      service_slug: assertString(object.service_slug, `${label}[${index}].service_slug`),
     }
   })
 }
@@ -268,7 +273,7 @@ function normalizeEnvOverrides(value: unknown, label: string): EnvOverrideInput[
     const object = assertObject(item, `${label}[${index}]`)
     return {
       service_id: assertString(object.service_id, `${label}[${index}].service_id`),
-      service_name: assertString(object.service_name, `${label}[${index}].service_name`),
+      service_slug: assertString(object.service_slug, `${label}[${index}].service_slug`),
       env: assertStringMap(object.env, `${label}[${index}].env`),
     }
   })
@@ -287,13 +292,13 @@ function normalizeDeployments(value: unknown, label: string): VerifyDeploymentRe
     const object = assertObject(item, `${label}[${index}]`)
     return {
       service_id: assertString(object.service_id, `${label}[${index}].service_id`),
-      service_name: assertString(object.service_name, `${label}[${index}].service_name`),
+      service_slug: assertString(object.service_slug, `${label}[${index}].service_slug`),
       deployment_hash: assertString(object.deployment_hash, `${label}[${index}].deployment_hash`),
     }
   })
 }
 
-function assertServiceIdSubset(
+function assertRepoServiceIdSubset(
   values: string[],
   allowed: Set<string>,
   label: string,
@@ -304,6 +309,32 @@ function assertServiceIdSubset(
       throw new BadRequestError(`${parentLabel} contains ${label} outside deploy_service_ids: ${value}`)
     }
   }
+}
+
+function buildVerifyServiceSlugByRepoId(
+  expectedEnvOverrides: EnvOverrideInput[],
+  deployments: VerifyDeploymentRef[],
+): Map<string, string> {
+  const mapping = new Map<string, string>()
+  const register = (repoServiceId: string, upstreamServiceSlug: string, label: string): void => {
+    const existing = mapping.get(repoServiceId)
+    if (existing && existing !== upstreamServiceSlug) {
+      throw new BadRequestError(
+        `${label} maps repo service_id ${repoServiceId} to conflicting service_slug values: ${existing} vs ${upstreamServiceSlug}`,
+      )
+    }
+    mapping.set(repoServiceId, upstreamServiceSlug)
+  }
+
+  for (const override of expectedEnvOverrides) {
+    register(override.service_id, override.service_slug, "expected_env_overrides")
+  }
+
+  for (const deployment of deployments) {
+    register(deployment.service_id, deployment.service_slug, "deployments")
+  }
+
+  return mapping
 }
 
 function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
@@ -535,8 +566,6 @@ export class ZaneClient {
       const object = assertObject(item, `targets[${index}]`)
       return {
         service_id: assertString(object.service_id, `targets[${index}].service_id`),
-        service_name: assertString(object.service_name, `targets[${index}].service_name`),
-        target_id: assertString(object.target_id, `targets[${index}].target_id`),
         service_slug: assertString(object.service_slug, `targets[${index}].service_slug`),
         service_type: assertServiceType(object.service_type, `targets[${index}].service_type`),
         configured_commit_sha: assertOptionalString(
@@ -810,16 +839,16 @@ export class ZaneClient {
 
     const services = await Promise.all(
       input.services.map(async (service) => {
-        const card = cardBySlug.get(service.service_name)
+        const card = cardBySlug.get(service.service_slug)
         if (!card) {
           throw new UpstreamHttpError(
             404,
             "zane_service_not_found",
-            `Service ${service.service_name} was not found in ${input.projectSlug}/${input.environmentName}`,
+            `Service ${service.service_slug} was not found in ${input.projectSlug}/${input.environmentName}`,
           )
         }
 
-        const details = await this.getServiceDetails(session, input.projectSlug, input.environmentName, service.service_name)
+        const details = await this.getServiceDetails(session, input.projectSlug, input.environmentName, service.service_slug)
         const deployments = await this.listDeployments(session, input.projectSlug, input.environmentName, details.slug)
         const currentProductionDeploymentSummary =
           deployments.find(
@@ -852,14 +881,12 @@ export class ZaneClient {
 
         return {
           service_id: service.service_id,
-          service_name: service.service_name,
-          target_id: card.id,
           service_slug: details.slug,
-          service_type: assertServiceType(details.type, `${service.service_name}.service_type`),
+          service_type: assertServiceType(details.type, `${service.service_slug}.service_type`),
           configured_commit_sha: details.commit_sha ?? null,
           deploy_token: details.deploy_token,
           deploy_url:
-            assertServiceType(details.type, `${service.service_name}.service_type`) === "docker"
+            assertServiceType(details.type, `${service.service_slug}.service_type`) === "docker"
               ? `/api/deploy-service/docker/${details.deploy_token}/`
               : `/api/deploy-service/git/${details.deploy_token}/`,
           env_change_url: `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
@@ -915,7 +942,7 @@ export class ZaneClient {
     applied_service_ids: string[]
     applied_changes: Array<{
       service_id: string
-      service_name: string
+      service_slug: string
       key: string
       change_type: "ADD" | "UPDATE" | "SKIP"
     }>
@@ -935,7 +962,7 @@ export class ZaneClient {
     const appliedServiceIds = new Set<string>()
     const appliedChanges: Array<{
       service_id: string
-      service_name: string
+      service_slug: string
       key: string
       change_type: "ADD" | "UPDATE" | "SKIP"
     }> = []
@@ -946,7 +973,7 @@ export class ZaneClient {
         throw new UpstreamHttpError(
           404,
           "zane_target_missing",
-          `No resolved target found for service ${override.service_name} (${override.service_id})`,
+          `No resolved target found for service ${override.service_slug} (${override.service_id})`,
         )
       }
 
@@ -958,7 +985,7 @@ export class ZaneClient {
         if (current?.value === value) {
           appliedChanges.push({
             service_id: override.service_id,
-            service_name: override.service_name,
+            service_slug: override.service_slug,
             key,
             change_type: "SKIP",
           })
@@ -991,7 +1018,7 @@ export class ZaneClient {
         appliedServiceIds.add(override.service_id)
         appliedChanges.push({
           service_id: override.service_id,
-          service_name: override.service_name,
+          service_slug: override.service_slug,
           key,
           change_type: changeType,
         })
@@ -1046,7 +1073,6 @@ export class ZaneClient {
         )
         return {
           service_id: target.service_id,
-          service_name: target.service_name,
           service_slug: target.service_slug,
           service_type: target.service_type,
           deployment_hash: deployment.hash,
@@ -1075,7 +1101,7 @@ export class ZaneClient {
     checked_deployment_service_ids: string[]
     checked_deployments: Array<{
       service_id: string
-      service_name: string
+      service_slug: string
       deployment_hash: string
       status: string
       status_reason: string | null
@@ -1098,20 +1124,31 @@ export class ZaneClient {
       `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(input.environmentName)}/service-list/`,
     )
     const services = normalizeServiceCards(cardsPayload ?? [])
-    const serviceCardById = new Map(services.map((service) => [service.id, service]))
-    const deployServiceIdSet = new Set(input.deployServiceIds)
+    const serviceCardBySlug = new Map(services.map((service) => [service.slug, service]))
+    const deployRepoServiceIdSet = new Set(input.deployServiceIds)
+    const verifyServiceSlugByRepoId = buildVerifyServiceSlugByRepoId(input.expectedEnvOverrides, input.deployments)
 
-    assertServiceIdSubset(input.requestedServiceIds, deployServiceIdSet, "requested_service_id", "requested_service_ids")
-    assertServiceIdSubset(input.triggeredServiceIds, deployServiceIdSet, "triggered_service_id", "triggered_service_ids")
-    assertServiceIdSubset(
+    assertRepoServiceIdSubset(
+      input.requestedServiceIds,
+      deployRepoServiceIdSet,
+      "requested_service_id",
+      "requested_service_ids",
+    )
+    assertRepoServiceIdSubset(
+      input.triggeredServiceIds,
+      deployRepoServiceIdSet,
+      "triggered_service_id",
+      "triggered_service_ids",
+    )
+    assertRepoServiceIdSubset(
       input.expectedEnvOverrides.map((item) => item.service_id),
-      deployServiceIdSet,
+      deployRepoServiceIdSet,
       "expected_env_override.service_id",
       "expected_env_overrides",
     )
-    assertServiceIdSubset(
+    assertRepoServiceIdSubset(
       input.deployments.map((item) => item.service_id),
-      deployServiceIdSet,
+      deployRepoServiceIdSet,
       "deployment.service_id",
       "deployments",
     )
@@ -1125,12 +1162,13 @@ export class ZaneClient {
       deploymentRefByServiceId.set(deploymentRef.service_id, deploymentRef)
     }
 
-    for (const serviceId of input.deployServiceIds) {
-      if (!serviceCardById.has(serviceId)) {
+    for (const repoServiceId of input.deployServiceIds) {
+      const upstreamServiceSlug = verifyServiceSlugByRepoId.get(repoServiceId) ?? repoServiceId
+      if (!serviceCardBySlug.has(upstreamServiceSlug)) {
         throw new UpstreamHttpError(
           404,
           "zane_service_not_found",
-          `Expected deploy target ${serviceId} was not found in ${input.projectSlug}/${input.environmentName}`,
+          `Expected deploy target ${repoServiceId} (resolved as ${upstreamServiceSlug}) was not found in ${input.projectSlug}/${input.environmentName}`,
         )
       }
     }
@@ -1138,17 +1176,18 @@ export class ZaneClient {
     const checkedDeployments: CheckedDeploymentResult[] = []
     const checkedServiceIds = new Set<string>()
 
-    for (const serviceId of input.deployServiceIds) {
-      const serviceCard = serviceCardById.get(serviceId)
+    for (const repoServiceId of input.deployServiceIds) {
+      const upstreamServiceSlug = verifyServiceSlugByRepoId.get(repoServiceId) ?? repoServiceId
+      const serviceCard = serviceCardBySlug.get(upstreamServiceSlug)
       if (!serviceCard) {
         continue
       }
 
-      const expectedOverride = expectedOverrideByServiceId.get(serviceId)
-      const deploymentRef = deploymentRefByServiceId.get(serviceId)
+      const expectedOverride = expectedOverrideByServiceId.get(repoServiceId)
+      const deploymentRef = deploymentRefByServiceId.get(repoServiceId)
 
       let deployment: ZaneDeployment
-      let checkedServiceName = serviceCard.slug
+      let checkedServiceSlug = serviceCard.slug
 
       if (deploymentRef) {
         deployment = await this.getDeployment(
@@ -1158,7 +1197,7 @@ export class ZaneClient {
           serviceCard.slug,
           deploymentRef.deployment_hash,
         )
-        checkedServiceName = deploymentRef.service_name
+        checkedServiceSlug = deploymentRef.service_slug
       } else if (input.lane === "main") {
         const deployments = await this.listDeployments(session, input.projectSlug, input.environmentName, serviceCard.slug)
         const currentHealthy = deployments.find(
@@ -1181,10 +1220,10 @@ export class ZaneClient {
         )
       }
 
-      checkedServiceIds.add(serviceId)
+      checkedServiceIds.add(repoServiceId)
       checkedDeployments.push({
-        service_id: serviceId,
-        service_name: checkedServiceName,
+        service_id: repoServiceId,
+        service_slug: checkedServiceSlug,
         deployment_hash: deployment.hash,
         status: deployment.status,
         status_reason: deployment.status_reason ?? null,
@@ -1203,7 +1242,7 @@ export class ZaneClient {
           throw new UpstreamHttpError(
             409,
             "zane_verify_env_mismatch",
-            `Deployment ${deployment.hash} for ${checkedServiceName} is missing expected ${key} value`,
+            `Deployment ${deployment.hash} for ${checkedServiceSlug} is missing expected ${key} value`,
           )
         }
       }
@@ -1217,7 +1256,7 @@ export class ZaneClient {
       )
     }
 
-    if (checkedServiceIds.size !== deployServiceIdSet.size) {
+    if (checkedServiceIds.size !== deployRepoServiceIdSet.size) {
       const uncheckedServiceIds = input.deployServiceIds.filter((serviceId) => !checkedServiceIds.has(serviceId))
       throw new UpstreamHttpError(
         409,
@@ -1248,7 +1287,7 @@ export class ZaneClient {
     })
 
     if (!response.ok) {
-      let errorMessage = `ZaneOps deploy trigger failed for ${target.service_name} (HTTP ${response.status})`
+      let errorMessage = `ZaneOps deploy trigger failed for ${target.service_slug} (HTTP ${response.status})`
       try {
         errorMessage = parseErrorMessage(await response.json(), errorMessage)
       } catch {

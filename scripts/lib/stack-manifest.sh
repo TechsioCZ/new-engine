@@ -120,7 +120,7 @@ schema_template() {
 # - local.phase
 # - ci.deployable
 # - ci.affected_path_globs
-# - ci.zane.service_name
+# - ci.zane.service_slug
 # - ci.zane.deploy_lanes
 
 ci:
@@ -152,7 +152,7 @@ services:
         # preview_db: true          # optional; default false
         # meili_keys: true          # optional; default false
       zane:
-        service_name: "example-service"
+        service_slug: "example-service"
         deploy_lanes: ["preview", "main"]
         # deploy_stage: 20              # optional; default 100
         consumes:
@@ -237,7 +237,7 @@ ci_zane_service_json() {
       | select(.ci.deployable == true)
       | {
           id,
-          service_name: .ci.zane.service_name,
+          service_slug: .ci.zane.service_slug,
           deploy_lanes: (.ci.zane.deploy_lanes // []),
           deploy_stage: (.ci.zane.deploy_stage // 100),
           downtime_risk: (.ci.zane.downtime_risk // false),
@@ -247,7 +247,7 @@ ci_zane_service_json() {
     '
 }
 
-ci_zane_service_name() {
+ci_zane_service_slug() {
   local service_id="$1"
 
   manifest_eval -r \
@@ -256,7 +256,7 @@ ci_zane_service_name() {
       .services[]
       | select(.id == $id)
       | select(.ci.deployable == true)
-      | .ci.zane.service_name // empty
+      | .ci.zane.service_slug // empty
     '
 }
 
@@ -316,7 +316,7 @@ Commands:
   ci-prepare-service-ids --requirement <preview_db|meili_keys>
   ci-deployable-service-ids
   ci-zane-service --id <service-id>
-  ci-zane-service-name --id <service-id>
+  ci-zane-service-slug --id <service-id>
   ci-zane-lane-service-ids --lane <preview|main>
   ci-zane-downtime-risk-service-ids --lane <preview|main>
   ci-zane-coupled-service-ids --id <service-id>
@@ -411,16 +411,16 @@ main() {
       }
       ci_zane_service_json "$2"
       ;;
-    ci-zane-service-name)
+    ci-zane-service-slug)
       [[ "${1:-}" == "--id" ]] || {
-        echo "ci-zane-service-name requires --id <service-id>" >&2
+        echo "ci-zane-service-slug requires --id <service-id>" >&2
         exit 1
       }
       [[ -n "${2:-}" ]] || {
-        echo "ci-zane-service-name requires --id <service-id>" >&2
+        echo "ci-zane-service-slug requires --id <service-id>" >&2
         exit 1
       }
-      ci_zane_service_name "$2"
+      ci_zane_service_slug "$2"
       ;;
     ci-zane-lane-service-ids)
       [[ "${1:-}" == "--lane" ]] || {

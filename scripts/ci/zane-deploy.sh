@@ -260,14 +260,14 @@ zane::filter_targets_for_git_commit() {
           services: [$classified[] | select(.skip_reason != "already_current_commit" and .skip_reason != "reuse_in_progress_deployment") | del(.skip_reason)],
           skipped_services: [$classified[] | select(.skip_reason == "already_current_commit") | {
             service_id,
-            service_name,
+            service_slug,
             reason: .skip_reason,
             deployment_hash: (.current_production_deployment.deployment_hash // null),
             commit_sha: (.current_production_deployment.commit_sha // null)
           }],
           adopted_deployments: [$classified[] | select(.skip_reason == "reuse_in_progress_deployment") | {
             service_id,
-            service_name,
+            service_slug,
             deployment_hash: (.active_deployment.deployment_hash // null),
             status: (.active_deployment.status // null)
           }]
@@ -633,7 +633,7 @@ zane::cmd_wait_deployments() {
       [
         (.checked_deployments // [])[]
         | select((.status | ascii_upcase) == "FAILED" or (.status | ascii_upcase) == "UNHEALTHY" or (.status | ascii_upcase) == "CANCELLED" or (.status | ascii_upcase) == "REMOVED")
-        | "\(.service_name)#\(.deployment_hash)=\(.status)\(if (.status_reason // "") != "" then ": " + .status_reason else "" end)"
+        | "\(.service_slug)#\(.deployment_hash)=\(.status)\(if (.status_reason // "") != "" then ": " + .status_reason else "" end)"
       ]
       | join("; ")
     ' <<<"$response_json")"
@@ -661,7 +661,7 @@ zane::cmd_wait_deployments() {
         [
           (.checked_deployments // [])[]
           | select((.status | ascii_upcase) != "HEALTHY")
-          | "\(.service_name)#\(.deployment_hash)=\(.status)\(if (.status_reason // "") != "" then ": " + .status_reason else "" end)"
+          | "\(.service_slug)#\(.deployment_hash)=\(.status)\(if (.status_reason // "") != "" then ": " + .status_reason else "" end)"
         ]
         | join("; ")
       ' <<<"$response_json")"
@@ -824,7 +824,7 @@ zane::cmd_render_env_overrides() {
   local output_json=""
   local service_id
   local service_json
-  local service_name
+  local service_slug
   local env_json
   local item_json
   local tmp_items
@@ -907,7 +907,7 @@ EOF
   while IFS= read -r service_id; do
     [[ -n "$service_id" ]] || continue
     service_json="$(zane::service_json "$service_id")"
-    service_name="$(jq -r '.service_name' <<<"$service_json")"
+    service_slug="$(jq -r '.service_slug' <<<"$service_json")"
     env_json='{}'
 
     if [[ "$lane" == "preview" ]] && jq -e '.consumes.preview_db == true' <<<"$service_json" >/dev/null; then
@@ -941,9 +941,9 @@ EOF
     if [[ "$(jq 'length' <<<"$env_json")" -gt 0 ]]; then
       item_json="$(jq -cn \
         --arg service_id "$service_id" \
-        --arg service_name "$service_name" \
+        --arg service_slug "$service_slug" \
         --argjson env "$env_json" \
-        '{service_id:$service_id, service_name:$service_name, env:$env}')"
+        '{service_id:$service_id, service_slug:$service_slug, env:$env}')"
       printf '%s\n' "$item_json" >>"$tmp_items"
     fi
   done < <(zane::csv_to_lines "$services_csv")
@@ -1168,9 +1168,7 @@ EOF
         environment_name: $environment_name,
         services: ($services | map({
           service_id: .id,
-          service_name: .service_name,
-          target_id: ("dry-run:" + .service_name),
-          deploy_key_ref: ("dry-run:key:" + .service_name)
+          service_slug: .service_slug
         }))
       }')"
   else
@@ -1190,6 +1188,8 @@ EOF
     zane::write_json_file "$output_json" "$response_json"
   fi
 
+  # service_id is the stable repo/manifest identity; service_slug is the upstream Zane identity.
+  ci::gha_output resolved_service_ids_csv "$(jq -r '[.services[].service_id] | join(",")' <<<"$response_json")"
   ci::gha_output target_service_ids_csv "$(jq -r '[.services[].service_id] | join(",")' <<<"$response_json")"
   jq -c '
     walk(
@@ -1387,7 +1387,7 @@ EOF
         environment_name: $environment_name,
         git_commit_sha: (if $git_commit_sha == "" then null else $git_commit_sha end),
         triggered_service_ids: ($services | map(.service_id)),
-        services: ($services | map({service_id, service_name, service_slug, service_type, deployment_hash: ("dry-run:deploy:" + .service_name), status: "HEALTHY"}))
+        services: ($services | map({service_id, service_slug, service_type, deployment_hash: ("dry-run:deploy:" + .service_slug), status: "HEALTHY"}))
       }')"
   else
     local payload
@@ -1581,7 +1581,7 @@ EOF
         checked_deployment_service_ids: ($deployments | map(.service_id)),
         checked_deployments: ($deployments | map({
           service_id,
-          service_name,
+          service_slug,
           deployment_hash,
           status: (.status // "HEALTHY"),
           status_reason: null
