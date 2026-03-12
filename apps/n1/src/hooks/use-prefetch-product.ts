@@ -1,70 +1,67 @@
 "use client"
 
-import { useQueryClient } from "@tanstack/react-query"
-import { useRef } from "react"
-import { cacheConfig } from "@/lib/cache-config"
-import { prefetchLogger } from "@/lib/loggers/prefetch"
-import { queryKeys } from "@/lib/query-keys"
-import { getProductByHandle } from "@/services/product-service"
-import { useRegion } from "./use-region"
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
+import { runLoggedPrefetch } from "./prefetch-utils"
+import { storefront } from "./storefront-preset"
 
-const PREFETCH_DELAY = 400
 export function usePrefetchProduct() {
-  const { regionId, countryCode } = useRegion()
-  const queryClient = useQueryClient()
-  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const region = useRegionContext()
+  const regionId = region?.region_id
+  const countryCode = region?.country_code
+  const productHooks = storefront.hooks.products
+  const {
+    prefetchProduct: prefetchProductBase,
+    delayedPrefetch: delayedPrefetchBase,
+    cancelPrefetch: cancelPrefetchBase,
+  } = productHooks.usePrefetchProduct({
+    cacheStrategy: "semiStatic",
+    skipIfCached: true,
+    skipMode: "any",
+  })
 
   const prefetchProduct = async (handle: string, fields?: string) => {
     if (!(regionId && handle)) {
       return
     }
 
-    const queryKey = queryKeys.products.detail(handle, regionId, countryCode)
-    const cached = queryClient.getQueryData(queryKey)
-
-    if (cached) {
-      prefetchLogger.cacheHit("Product", handle)
-    } else {
-      prefetchLogger.start("Product", handle)
-      await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () =>
-          getProductByHandle({
-            handle,
-            region_id: regionId,
-            country_code: countryCode,
-            fields,
-          }),
-        ...cacheConfig.semiStatic,
-      })
+    const queryInput = {
+      handle,
+      fields,
+      region_id: regionId,
+      country_code: countryCode,
     }
+
+    await runLoggedPrefetch({
+      type: "Product",
+      label: handle,
+      prefetch: () => prefetchProductBase(queryInput),
+    })
   }
 
   const delayedPrefetch = (
     handle: string,
-    delay = PREFETCH_DELAY,
+    delay: number = PREFETCH_DELAYS.PRODUCT_DETAIL,
     fields?: string
   ) => {
-    const existing = timeoutsRef.current.get(handle)
-    if (existing) {
-      clearTimeout(existing)
+    if (!(regionId && handle)) {
+      return handle
     }
-
-    const timeoutId = setTimeout(() => {
-      prefetchProduct(handle, fields)
-      timeoutsRef.current.delete(handle)
-    }, delay)
-
-    timeoutsRef.current.set(handle, timeoutId)
-    return handle
+    const queryInput = {
+      handle,
+      fields,
+      region_id: regionId,
+      country_code: countryCode,
+    }
+    return delayedPrefetchBase(
+      queryInput,
+      delay,
+      handle
+    )
   }
 
   const cancelPrefetch = (handle: string) => {
-    const timeout = timeoutsRef.current.get(handle)
-    if (timeout) {
-      clearTimeout(timeout)
-      timeoutsRef.current.delete(handle)
-    }
+    cancelPrefetchBase(handle)
   }
 
   return {

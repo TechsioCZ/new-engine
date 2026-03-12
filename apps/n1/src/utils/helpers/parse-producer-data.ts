@@ -3,8 +3,13 @@ import type { ParsedProducerInfo, ProducerEntity } from "@/types/product-page"
 
 const TAX_ID_REGEX = /TAX ID:\s*/i
 const PHONE_PREFIX_REGEX = /Tel:\s*/i
-const MANUFACTURER_PREFIX_REGEX = /^.*Výrobce:\s*/
+const MANUFACTURER_PREFIX_REGEX = /^.*výrobce:\s*/i
 const DISTRIBUTOR_PREFIX_REGEX = /^.*Distributor do ČR:\s*/i
+const RESPONSIBLE_PERSON_REGEX = /osoba zodpovědná|zodpovědná osoba/i
+const MANUFACTURER_REGEX = /výrobce:/i
+const PARAGRAPH_REGEX = /<p\b[^>]*>([\s\S]*?)<\/p>/gi
+const ANCHOR_HREF_REGEX = /<a\b[^>]*href=["']([^"']+)["'][^>]*>/i
+const HTML_TAG_REGEX = /<[^>]+>/g
 
 const getSectionEndIndex = (
   primaryIndex: number,
@@ -21,10 +26,10 @@ const getSectionEndIndex = (
 }
 
 const parseSection = (
-  paragraphs: Element[],
+  paragraphs: string[],
   startIndex: number,
   endIndex: number,
-  parser: (sectionParagraphs: Element[]) => ProducerEntity | undefined
+  parser: (sectionParagraphs: string[]) => ProducerEntity | undefined
 ): ProducerEntity | undefined => {
   if (startIndex < 0) {
     return
@@ -33,7 +38,7 @@ const parseSection = (
 }
 
 const extractDistributorAtIndex = (
-  paragraphs: Element[],
+  paragraphs: string[],
   index: number
 ): string | undefined => {
   if (index < 0) {
@@ -61,29 +66,18 @@ export const parseProducerData = (
   }
 
   try {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(sizingAttr.value, "text/html")
-
-    // Check for parsing errors
-    const parserError = doc.querySelector("parsererror")
-    if (parserError) {
-      console.error("[parseProducerData] HTML parsing failed")
-      return null
-    }
-
-    const firstLink = doc.querySelector("a")
-    const sizingGuideUrl = firstLink?.href || undefined
-    const paragraphs = Array.from(doc.querySelectorAll("p"))
-    const manufacturerIndex = paragraphs.findIndex((p) =>
-      p.textContent?.includes("Výrobce:")
+    const sizingGuideUrl = extractFirstHref(sizingAttr.value)
+    const paragraphs = extractParagraphs(sizingAttr.value)
+    const manufacturerIndex = paragraphs.findIndex((paragraph) =>
+      MANUFACTURER_REGEX.test(paragraph)
     )
 
-    const responsibleIndex = paragraphs.findIndex((p) =>
-      p.textContent?.includes("Osoba zodpovědná")
+    const responsibleIndex = paragraphs.findIndex((paragraph) =>
+      RESPONSIBLE_PERSON_REGEX.test(paragraph)
     )
 
-    const distributorIndex = paragraphs.findIndex((p) =>
-      p.textContent?.includes("Distributor do ČR:")
+    const distributorIndex = paragraphs.findIndex((paragraph) =>
+      paragraph.includes("Distributor do ČR:")
     )
 
     const manufacturerEndIndex = getSectionEndIndex(
@@ -124,94 +118,103 @@ export const parseProducerData = (
   }
 }
 
-function findTaxId(paragraphs: Element[]): string | undefined {
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replaceAll("&nbsp;", " ")
+    .replaceAll("&amp;", "&")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+}
+
+function normalizeText(value: string): string {
+  return decodeHtmlEntities(value).replace(/\s+/g, " ").trim()
+}
+
+function stripHtml(value: string): string {
+  return normalizeText(value.replace(HTML_TAG_REGEX, " "))
+}
+
+function extractFirstHref(html: string): string | undefined {
+  const match = html.match(ANCHOR_HREF_REGEX)
+  return match?.[1] ? decodeHtmlEntities(match[1]) : undefined
+}
+
+function extractParagraphs(html: string): string[] {
+  const matches = Array.from(html.matchAll(PARAGRAPH_REGEX))
+  return matches
+    .map(([, paragraph = ""]) => stripHtml(paragraph))
+    .filter(Boolean)
+}
+
+function findTaxId(paragraphs: string[]): string | undefined {
   return paragraphs
-    .find((p) => p.textContent?.includes("TAX ID:"))
-    ?.textContent?.replace(TAX_ID_REGEX, "")
+    .find((paragraph) => paragraph.includes("TAX ID:"))
+    ?.replace(TAX_ID_REGEX, "")
     .trim()
 }
 
-function findEmail(paragraphs: Element[]): string | undefined {
-  const emailElement = paragraphs.find((p) => p.querySelector("a"))
-  return (
-    emailElement?.querySelector("a")?.textContent?.trim() ||
-    paragraphs.find((p) => p.textContent?.includes("@"))?.textContent?.trim()
+function findEmail(paragraphs: string[]): string | undefined {
+  return paragraphs.find((paragraph) => paragraph.includes("@"))?.trim()
+}
+
+function findPhone(paragraphs: string[]): string | undefined {
+  return paragraphs
+    .find((paragraph) => paragraph.includes("Tel:"))
+    ?.replace(PHONE_PREFIX_REGEX, "")
+    .trim()
+}
+
+function parseEntitySection(paragraphs: string[], labelRegex: RegExp) {
+  const content = paragraphs
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .filter((paragraph) => !labelRegex.test(paragraph))
+
+  if (content.length === 0) {
+    return
+  }
+
+  const primaryContent = content.filter(
+    (paragraph) =>
+      !paragraph.includes("@") &&
+      !paragraph.includes("TAX ID:") &&
+      !paragraph.includes("Tel:")
   )
-}
-
-function findPhone(paragraphs: Element[]): string | undefined {
-  return paragraphs
-    .find((p) => p.textContent?.includes("Tel:"))
-    ?.textContent?.replace(PHONE_PREFIX_REGEX, "")
-    .trim()
-}
-
-function parseManufacturerSection(
-  paragraphs: Element[]
-): ProducerEntity | undefined {
-  if (paragraphs.length === 0) {
-    return
-  }
-
-  const name =
-    paragraphs[0]?.textContent?.replace(MANUFACTURER_PREFIX_REGEX, "").trim() ||
-    ""
-
-  if (!name) {
-    return
-  }
-
-  const addressParts = [
-    paragraphs[1]?.textContent?.trim(),
-    paragraphs[2]?.textContent?.trim(),
-  ].filter(Boolean)
-
-  const address = addressParts.join(", ")
-
-  const taxId = findTaxId(paragraphs)
-  const email = findEmail(paragraphs)
-  const phone = findPhone(paragraphs)
+  const [name = "", ...addressLines] = primaryContent
 
   return {
     name,
-    address,
-    taxId,
-    email,
-    phone,
+    address: addressLines.join(", "),
+    taxId: findTaxId(content),
+    email: findEmail(content),
+    phone: findPhone(content),
   }
 }
 
 function parseResponsibleSection(
-  paragraphs: Element[]
+  paragraphs: string[]
 ): ProducerEntity | undefined {
-  if (paragraphs.length < 2) {
+  return parseEntitySection(paragraphs, RESPONSIBLE_PERSON_REGEX)
+}
+
+function parseManufacturerSection(
+  paragraphs: string[]
+): ProducerEntity | undefined {
+  const info = parseEntitySection(paragraphs, MANUFACTURER_REGEX)
+  if (!info?.name) {
     return
   }
-
-  const name = paragraphs[1]?.textContent?.trim() || ""
-
-  if (!name) {
-    return
-  }
-
-  const address = paragraphs[2]?.textContent?.trim() || ""
-
-  // Use helper functions to extract contact details
-  const taxId = findTaxId(paragraphs)
-  const email = findEmail(paragraphs)
-  const phone = findPhone(paragraphs)
 
   return {
-    name,
-    address,
-    taxId,
-    email,
-    phone,
+    ...info,
+    name: info.name.replace(MANUFACTURER_PREFIX_REGEX, "").trim(),
   }
 }
 
-function extractDistributor(paragraph: Element): string | undefined {
-  const text = paragraph.textContent?.trim()
+function extractDistributor(paragraph: string): string | undefined {
+  const text = paragraph.trim()
   if (!text) {
     return
   }
