@@ -57,7 +57,7 @@ export const AddToCartSection = ({
       {
         variantId: selectedVariant.id,
         quantity,
-        autoCreateCart: true,
+        autoCreate: true,
         metadata: {
           inventory_quantity: selectedVariant.inventory_quantity || 0,
         },
@@ -136,6 +136,7 @@ export const AddToCartSection = ({
         disabled={isPending || !selectedVariant?.id || !regionId}
         onClick={handleAddToCart}
         variant="secondary"
+        className="items-center"
       >
         {isPending ? "Přidávám..." : "Přidat do košíku"}
       </Button>
