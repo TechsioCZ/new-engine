@@ -46,6 +46,14 @@ export interface VerifyDeployInput {
   deployments: VerifyDeploymentRef[]
 }
 
+interface CheckedDeploymentResult {
+  service_id: string
+  service_name: string
+  deployment_hash: string
+  status: string
+  status_reason: string | null
+}
+
 export interface ZaneEnvironment {
   id: string
   is_preview: boolean
@@ -181,6 +189,24 @@ function assertLane(value: unknown, label: string): Lane {
   return lane
 }
 
+function assertEnvironmentMatchesLane(environment: Pick<ZaneEnvironment, "name" | "is_preview">, lane: Lane): void {
+  if (lane === "main" && environment.is_preview) {
+    throw new UpstreamHttpError(
+      409,
+      "zane_environment_lane_mismatch",
+      `Environment ${environment.name} is a preview environment and cannot be used for main lane operations`,
+    )
+  }
+
+  if (lane === "preview" && !environment.is_preview) {
+    throw new UpstreamHttpError(
+      409,
+      "zane_environment_lane_mismatch",
+      `Environment ${environment.name} is not a preview environment and cannot be used for preview lane operations`,
+    )
+  }
+}
+
 function assertServiceType(value: unknown, label: string): ServiceType {
   const rawServiceType = assertString(value, label)
 
@@ -265,6 +291,19 @@ function normalizeDeployments(value: unknown, label: string): VerifyDeploymentRe
       deployment_hash: assertString(object.deployment_hash, `${label}[${index}].deployment_hash`),
     }
   })
+}
+
+function assertServiceIdSubset(
+  values: string[],
+  allowed: Set<string>,
+  label: string,
+  parentLabel: string,
+): void {
+  for (const value of values) {
+    if (!allowed.has(value)) {
+      throw new BadRequestError(`${parentLabel} contains ${label} outside deploy_service_ids: ${value}`)
+    }
+  }
 }
 
 function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
@@ -657,6 +696,7 @@ export class ZaneClient {
     const existing = await this.getEnvironment(session, input.projectSlug, input.environmentName)
 
     if (existing) {
+      assertEnvironmentMatchesLane(existing, input.lane)
       return {
         lane: input.lane,
         project_slug: input.projectSlug,
@@ -1050,6 +1090,7 @@ export class ZaneClient {
         `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`,
       )
     }
+    assertEnvironmentMatchesLane(environment, input.lane)
 
     const cardsPayload = await this.request<unknown>(
       session,
@@ -1057,57 +1098,132 @@ export class ZaneClient {
       `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(input.environmentName)}/service-list/`,
     )
     const services = normalizeServiceCards(cardsPayload ?? [])
-    const availableServiceSlugs = new Set(services.map((service) => service.slug))
+    const serviceCardById = new Map(services.map((service) => [service.id, service]))
+    const deployServiceIdSet = new Set(input.deployServiceIds)
 
-    for (const expectedOverride of input.expectedEnvOverrides) {
-      if (!availableServiceSlugs.has(expectedOverride.service_name)) {
+    assertServiceIdSubset(input.requestedServiceIds, deployServiceIdSet, "requested_service_id", "requested_service_ids")
+    assertServiceIdSubset(input.triggeredServiceIds, deployServiceIdSet, "triggered_service_id", "triggered_service_ids")
+    assertServiceIdSubset(
+      input.expectedEnvOverrides.map((item) => item.service_id),
+      deployServiceIdSet,
+      "expected_env_override.service_id",
+      "expected_env_overrides",
+    )
+    assertServiceIdSubset(
+      input.deployments.map((item) => item.service_id),
+      deployServiceIdSet,
+      "deployment.service_id",
+      "deployments",
+    )
+
+    const expectedOverrideByServiceId = new Map(input.expectedEnvOverrides.map((item) => [item.service_id, item]))
+    const deploymentRefByServiceId = new Map<string, VerifyDeploymentRef>()
+    for (const deploymentRef of input.deployments) {
+      if (deploymentRefByServiceId.has(deploymentRef.service_id)) {
+        throw new BadRequestError(`deployments contains duplicate service_id: ${deploymentRef.service_id}`)
+      }
+      deploymentRefByServiceId.set(deploymentRef.service_id, deploymentRef)
+    }
+
+    for (const serviceId of input.deployServiceIds) {
+      if (!serviceCardById.has(serviceId)) {
         throw new UpstreamHttpError(
           404,
           "zane_service_not_found",
-          `Expected override target ${expectedOverride.service_name} was not found in ${input.projectSlug}/${input.environmentName}`,
+          `Expected deploy target ${serviceId} was not found in ${input.projectSlug}/${input.environmentName}`,
         )
       }
     }
 
-    const checkedDeployments = []
+    const checkedDeployments: CheckedDeploymentResult[] = []
+    const checkedServiceIds = new Set<string>()
 
-    for (const deploymentRef of input.deployments) {
-      const deployment = await this.getDeployment(
-        session,
-        input.projectSlug,
-        input.environmentName,
-        deploymentRef.service_name,
-        deploymentRef.deployment_hash,
-      )
+    for (const serviceId of input.deployServiceIds) {
+      const serviceCard = serviceCardById.get(serviceId)
+      if (!serviceCard) {
+        continue
+      }
 
+      const expectedOverride = expectedOverrideByServiceId.get(serviceId)
+      const deploymentRef = deploymentRefByServiceId.get(serviceId)
+
+      let deployment: ZaneDeployment
+      let checkedServiceName = serviceCard.slug
+
+      if (deploymentRef) {
+        deployment = await this.getDeployment(
+          session,
+          input.projectSlug,
+          input.environmentName,
+          serviceCard.slug,
+          deploymentRef.deployment_hash,
+        )
+        checkedServiceName = deploymentRef.service_name
+      } else if (input.lane === "main") {
+        const deployments = await this.listDeployments(session, input.projectSlug, input.environmentName, serviceCard.slug)
+        const currentHealthy = deployments.find(
+          (candidate) =>
+            candidate.is_current_production === true && (candidate.status ?? "").toUpperCase() === "HEALTHY",
+        )
+        if (!currentHealthy) {
+          throw new UpstreamHttpError(
+            409,
+            "zane_verify_deployment_missing",
+            `No checked deployment or current healthy production deployment was found for ${serviceCard.slug}`,
+          )
+        }
+        deployment = currentHealthy
+      } else {
+        throw new UpstreamHttpError(
+          409,
+          "zane_verify_deployment_missing",
+          `No checked deployment was provided for ${serviceCard.slug}`,
+        )
+      }
+
+      checkedServiceIds.add(serviceId)
       checkedDeployments.push({
-        service_id: deploymentRef.service_id,
-        service_name: deploymentRef.service_name,
+        service_id: serviceId,
+        service_name: checkedServiceName,
         deployment_hash: deployment.hash,
         status: deployment.status,
         status_reason: deployment.status_reason ?? null,
       })
 
-      const envVariables = new Map(
-        (deployment.service_snapshot?.env_variables ?? []).map((envVar) => [envVar.key, envVar.value]),
-      )
-
-      const expectedOverride = input.expectedEnvOverrides.find(
-        (candidate) => candidate.service_id === deploymentRef.service_id,
-      )
       if (!expectedOverride) {
         continue
       }
+
+      const envVariables = new Map(
+        (deployment.service_snapshot?.env_variables ?? []).map((envVar) => [envVar.key, envVar.value]),
+      )
 
       for (const [key, value] of Object.entries(expectedOverride.env)) {
         if (envVariables.get(key) !== value) {
           throw new UpstreamHttpError(
             409,
             "zane_verify_env_mismatch",
-            `Deployment ${deployment.hash} for ${deploymentRef.service_name} is missing expected ${key} value`,
+            `Deployment ${deployment.hash} for ${checkedServiceName} is missing expected ${key} value`,
           )
         }
       }
+    }
+
+    if (input.deployServiceIds.length > 0 && checkedDeployments.length === 0) {
+      throw new UpstreamHttpError(
+        409,
+        "zane_verify_no_deployments_checked",
+        "Deploy verification did not check any deployments for the requested deploy_service_ids",
+      )
+    }
+
+    if (checkedServiceIds.size !== deployServiceIdSet.size) {
+      const uncheckedServiceIds = input.deployServiceIds.filter((serviceId) => !checkedServiceIds.has(serviceId))
+      throw new UpstreamHttpError(
+        409,
+        "zane_verify_service_coverage_incomplete",
+        `Deploy verification did not cover all deploy_service_ids: ${uncheckedServiceIds.join(", ")}`,
+      )
     }
 
     return {

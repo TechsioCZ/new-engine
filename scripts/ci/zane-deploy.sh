@@ -1810,8 +1810,9 @@ zane::cmd_run_main() {
   local services_csv=""
   local base_url="${ZANE_OPERATOR_BASE_URL:-}"
   local api_token="${ZANE_OPERATOR_API_TOKEN:-}"
-  local meili_url="${MEILISEARCH_URL:-}"
-  local meili_master_key="${MEILISEARCH_MASTER_KEY:-}"
+  local meili_backend_key="${MEILI_BACKEND_KEY:-}"
+  local meili_frontend_key="${MEILI_FRONTEND_KEY:-}"
+  local meili_frontend_env_var="${MEILI_FRONTEND_ENV_VAR:-}"
   local git_commit_sha=""
   local dry_run="false"
   local dry_run_flags=()
@@ -1838,12 +1839,16 @@ zane::cmd_run_main() {
         api_token="${2-}"
         shift 2
         ;;
-      --meili-url)
-        meili_url="${2-}"
+      --meili-backend-key)
+        meili_backend_key="${2-}"
         shift 2
         ;;
-      --meili-master-key)
-        meili_master_key="${2-}"
+      --meili-frontend-key)
+        meili_frontend_key="${2-}"
+        shift 2
+        ;;
+      --meili-frontend-env-var)
+        meili_frontend_env_var="${2-}"
         shift 2
         ;;
       --git-commit-sha)
@@ -1875,7 +1880,6 @@ EOF
 
   local plan_json_file
   local environment_json_file
-  local prepare_needs_json_file
   local stage_plan_json_file
   local env_overrides_json_file
   local filtered_env_overrides_json_file
@@ -1889,7 +1893,6 @@ EOF
   local all_deployments_json_file
   plan_json_file="$(mktemp)"
   environment_json_file="$(mktemp)"
-  prepare_needs_json_file="$(mktemp)"
   stage_plan_json_file="$(mktemp)"
   env_overrides_json_file="$(mktemp)"
   filtered_env_overrides_json_file="$(mktemp)"
@@ -1901,11 +1904,10 @@ EOF
   stage_deployments_json_file="$(mktemp)"
   verify_json_file="$(mktemp)"
   all_deployments_json_file="$(mktemp)"
-  trap "rm -f '$plan_json_file' '$environment_json_file' '$prepare_needs_json_file' '$stage_plan_json_file' '$env_overrides_json_file' '$filtered_env_overrides_json_file' '$targets_json_file' '$filtered_targets_json_file' '$adopted_deployments_json_file' '$apply_json_file' '$trigger_json_file' '$stage_deployments_json_file' '$verify_json_file' '$all_deployments_json_file'" RETURN
+  trap "rm -f '$plan_json_file' '$environment_json_file' '$stage_plan_json_file' '$env_overrides_json_file' '$filtered_env_overrides_json_file' '$targets_json_file' '$filtered_targets_json_file' '$adopted_deployments_json_file' '$apply_json_file' '$trigger_json_file' '$stage_deployments_json_file' '$verify_json_file' '$all_deployments_json_file'" RETURN
   printf '%s\n' '{"services":[]}' >"$all_deployments_json_file"
 
   zane::cmd_plan --lane main --services-csv "$services_csv" --output-json "$plan_json_file" >/dev/null
-  bash "${ROOT_DIR}/scripts/ci/resolve-prepare-needs.sh" --lane main --services-csv "$(jq -r '.deploy_services_csv' "$plan_json_file")" >"$prepare_needs_json_file"
   zane::cmd_resolve_environment \
     --lane main \
     --project-slug "$project_slug" \
@@ -1915,11 +1917,6 @@ EOF
     --base-url "$base_url" \
     --api-token "$api_token" >/dev/null
 
-  local meili_required
-  local meili_keys_ready="false"
-  local meili_backend_key=""
-  local meili_frontend_key=""
-  local meili_frontend_env_var=""
   local stage
   local stage_services_csv
   local wait_flags=()
@@ -1927,23 +1924,10 @@ EOF
   local env_override_service_ids_csv=""
   local skipped_services_csv=""
 
-  meili_required="$(jq -r '.requires_meili_keys' "$prepare_needs_json_file")"
-
   while IFS= read -r stage; do
     [[ -n "$stage" ]] || continue
     stage_services_csv="$(zane::stage_services_csv_from_plan "$plan_json_file" "$stage")"
     [[ -n "$stage_services_csv" ]] || continue
-
-    if [[ "$meili_required" == "true" ]] && [[ "$meili_keys_ready" != "true" ]]; then
-      if zane::stage_has_meili_consumers "$plan_json_file" "$stage"; then
-        local meili_json
-        meili_json="$(zane::provision_meili_keys "$meili_url" "$meili_master_key")"
-        meili_backend_key="$(jq -r '.backend_key' <<<"$meili_json")"
-        meili_frontend_key="$(jq -r '.frontend_key' <<<"$meili_json")"
-        meili_frontend_env_var="$(jq -r '.frontend_env_var' <<<"$meili_json")"
-        meili_keys_ready="true"
-      fi
-    fi
 
     zane::stage_plan_json "$plan_json_file" "$stage" >"$stage_plan_json_file"
     zane::cmd_render_env_overrides \
@@ -2037,15 +2021,6 @@ EOF
       | unique
       | join(",")
     ' <<<"{}")"
-
-    if [[ "$meili_required" == "true" ]] && zane::stage_has_service "$plan_json_file" "$stage" "medusa-meilisearch"; then
-      local post_meili_json
-      post_meili_json="$(zane::provision_meili_keys "$meili_url" "$meili_master_key")"
-      meili_backend_key="$(jq -r '.backend_key' <<<"$post_meili_json")"
-      meili_frontend_key="$(jq -r '.frontend_key' <<<"$post_meili_json")"
-      meili_frontend_env_var="$(jq -r '.frontend_env_var' <<<"$post_meili_json")"
-      meili_keys_ready="true"
-    fi
   done < <(zane::plan_stage_numbers "$plan_json_file")
 
   ci::gha_output lane "main"
