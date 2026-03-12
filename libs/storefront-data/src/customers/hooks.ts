@@ -57,8 +57,7 @@ export type CreateCustomerHooksConfig<
     TCreateInput,
     TCreateParams,
     TUpdateInput,
-    TUpdateParams,
-    TAddress
+    TUpdateParams
   >
   buildUpdateCustomerParams?: (
     input: TUpdateCustomerInput
@@ -126,7 +125,7 @@ export function createCustomerHooks<
     ((input: TCreateInput) => input as unknown as TCreateParams)
   const buildUpdate: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext<TAddress>
+    context: StorefrontCustomerUpdateAddressContext
   ) => TUpdateParams =
     addressAdapter?.toUpdateParams ??
     ((input: TUpdateInput) => input as unknown as TUpdateParams)

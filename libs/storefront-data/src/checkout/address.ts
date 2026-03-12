@@ -155,6 +155,11 @@ const defaultRequiredFields: readonly (keyof CheckoutAddressInput)[] = [
 const hasValue = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
 
+const hasOwnField = (
+  input: Record<string, unknown>,
+  field: keyof CheckoutAddressInput
+): boolean => Object.prototype.hasOwnProperty.call(input, field)
+
 const normalizeOptionalString = (value: unknown): string | undefined => {
   if (!hasValue(value)) {
     return
@@ -250,6 +255,28 @@ export const getCheckoutAddressFieldIssues = <
     normalizedAddress,
     requiredFields
   ).map((field) => createRequiredIssue(scope, field))
+}
+
+export const getCheckoutAddressPatchFieldIssues = <
+  TAddress extends CheckoutAddressInput,
+>(
+  address: TAddress,
+  options?: {
+    scope?: "shipping" | "billing" | "customer"
+    requiredFields?: readonly (keyof CheckoutAddressInput)[]
+  }
+): CheckoutAddressValidationIssue[] => {
+  const scope = options?.scope ?? "shipping"
+  const requiredFields = options?.requiredFields ?? defaultRequiredFields
+  const normalizedAddress = normalizeCheckoutAddressInput(address)
+
+  return requiredFields
+    .filter(
+      (field) =>
+        hasOwnField(address as Record<string, unknown>, field) &&
+        !hasValue(normalizedAddress[field])
+    )
+    .map((field) => createRequiredIssue(scope, field))
 }
 
 export const getCheckoutAddressValidationIssues = <
@@ -413,8 +440,7 @@ export const createCheckoutCustomerAddressAdapter = <
   TAddress,
   MedusaCustomerAddressCreateInput,
   TUpdateInput,
-  MedusaCustomerAddressUpdateInput,
-  MedusaAddressLike
+  MedusaCustomerAddressUpdateInput
 > => ({
   validateCreate: (input) =>
     getCheckoutAddressFieldIssues(input, {
@@ -424,7 +450,7 @@ export const createCheckoutCustomerAddressAdapter = <
   toCreateParams: (input) =>
     mapCheckoutAddressToMedusaCustomerAddress(input, options),
   validateUpdate: (input) =>
-    getCheckoutAddressFieldIssues(input, {
+    getCheckoutAddressPatchFieldIssues(input, {
       scope: "customer",
       requiredFields: options?.requiredFields,
     }),
@@ -444,8 +470,7 @@ export const createCheckoutMedusaAddressAdapters = <
     TAddress,
     MedusaCustomerAddressCreateInput,
     TUpdateInput,
-    MedusaCustomerAddressUpdateInput,
-    MedusaAddressLike
+    MedusaCustomerAddressUpdateInput
   >
 } => ({
   cart: createCheckoutCartAddressAdapter<TAddress>({

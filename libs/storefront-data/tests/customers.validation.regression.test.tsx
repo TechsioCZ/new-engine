@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { StorefrontDataProvider } from "../src/client/provider"
+import { createCheckoutCustomerAddressAdapter } from "../src/checkout/address"
 import { createCustomerHooks } from "../src/customers/hooks"
 import {
   StorefrontAddressValidationError,
@@ -128,5 +129,83 @@ describe("customer validation regression", () => {
     })
 
     expect(service.createAddress).toHaveBeenCalledTimes(1)
+  })
+
+  it("allows partial update payloads for shared checkout customer adapters", async () => {
+    type CheckoutAddress = {
+      firstName?: string
+      lastName?: string
+      street?: string
+      city?: string
+      postalCode?: string
+      country?: string
+      phone?: string
+      isDefaultShipping?: boolean
+    }
+    type UpdateInput = CheckoutAddress & { addressId?: string }
+    type SharedUpdateParams = {
+      first_name?: string
+      last_name?: string
+      address_1?: string
+      city?: string
+      postal_code?: string
+      country_code?: string
+      phone?: string
+      is_default_shipping?: boolean
+    }
+
+    const service = createService()
+    const updateAddress = vi.fn(async (id: string, params: SharedUpdateParams) => ({
+      id,
+      address_1: params.address_1,
+      city: params.city,
+    }))
+    const { useUpdateCustomerAddress } = createCustomerHooks<
+      Customer,
+      Address,
+      { enabled?: boolean },
+      ListParams,
+      CheckoutAddress,
+      CheckoutAddress,
+      UpdateInput,
+      SharedUpdateParams,
+      UpdateCustomerParams,
+      UpdateCustomerParams
+    >({
+      service: {
+        ...service,
+        updateAddress,
+      },
+      buildListParams: () => ({}),
+      queryKeyNamespace: "customers-validation-partial-update",
+      addressAdapter: createCheckoutCustomerAddressAdapter<
+        CheckoutAddress,
+        UpdateInput
+      >({
+        defaultCountryCode: "CZ",
+      }),
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(() => useUpdateCustomerAddress(), { wrapper })
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          addressId: "addr_1",
+          phone: " +420123456789 ",
+        })
+      ).resolves.toMatchObject({ id: "addr_1" })
+    })
+
+    expect(updateAddress).toHaveBeenCalledWith(
+      "addr_1",
+      expect.objectContaining({
+        phone: "+420123456789",
+      })
+    )
   })
 })

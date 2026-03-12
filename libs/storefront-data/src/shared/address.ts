@@ -109,9 +109,8 @@ export type StorefrontCustomerCreateAddressContext = {
   mode: "create"
 }
 
-export type StorefrontCustomerUpdateAddressContext<TStoredAddress = unknown> = {
+export type StorefrontCustomerUpdateAddressContext = {
   mode: "update"
-  address?: TStoredAddress | null
 }
 
 export type StorefrontCustomerAddressAdapter<
@@ -119,7 +118,6 @@ export type StorefrontCustomerAddressAdapter<
   TCreateParams = TCreateInput,
   TUpdateInput = TCreateInput,
   TUpdateParams = TCreateParams,
-  TStoredAddress = unknown,
 > = {
   normalizeCreate?: (
     input: TCreateInput,
@@ -135,15 +133,14 @@ export type StorefrontCustomerAddressAdapter<
   ) => TCreateParams
   normalizeUpdate?: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext<TStoredAddress>
+    context: StorefrontCustomerUpdateAddressContext
   ) => TUpdateInput
   validateUpdate?: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext<TStoredAddress>
+    context: StorefrontCustomerUpdateAddressContext
   ) => StorefrontAddressValidationResult
   toUpdateParams?: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext<TStoredAddress>
+    context: StorefrontCustomerUpdateAddressContext
   ) => TUpdateParams
-  fromAddress?: (input?: TStoredAddress | null) => TCreateInput
 }
