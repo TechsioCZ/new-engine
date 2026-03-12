@@ -6,7 +6,7 @@ import { Icon, type IconType } from "./icon"
 export const buttonVariants = tv({
   base: [
     "relative",
-    "inline-flex cursor-pointer items-baseline justify-center",
+    "inline-flex cursor-pointer items-center justify-center",
     "font-medium",
     "transition-all duration-200 motion-reduce:transition-none",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
@@ -35,8 +35,8 @@ export const buttonVariants = tv({
       true: "uppercase",
     },
     size: {
-      sm: "gap-button-sm rounded-button-sm p-button-sm text-button-sm",
-      md: "gap-button-md rounded-button-md p-button-md text-button-md",
+      sm: "h-form-control-sm gap-button-sm rounded-button-sm p-button-sm text-button-sm",
+      md: "h-form-control-md gap-button-md rounded-button-md p-button-md text-button-md",
       lg: "gap-button-lg rounded-button-lg p-button-lg text-button-lg",
       current: "gap-button-md text-inherit",
     },
@@ -249,6 +249,7 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   icon?: IconType
   iconPosition?: "left" | "right"
+  iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
   uppercase?: boolean
   isLoading?: boolean
   loadingText?: string
@@ -264,6 +265,7 @@ export function Button({
   loadingText,
   icon,
   iconPosition = "left",
+  iconSize,
   uppercase = false,
   children,
   className,
@@ -292,9 +294,9 @@ export function Button({
         </>
       ) : (
         <>
-          {icon && iconPosition === "left" && <Icon icon={icon} />}
+          {icon && iconPosition === "left" && <Icon icon={icon} size={iconSize} />}
           {children}
-          {icon && iconPosition === "right" && <Icon icon={icon} />}
+          {icon && iconPosition === "right" && <Icon icon={icon} size={iconSize} />}
         </>
       )}
     </button>

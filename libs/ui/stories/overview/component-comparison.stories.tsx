@@ -358,6 +358,91 @@ function ComponentComparison() {
         </Section>
 
         <Section
+          title="Inputs"
+          description="All box-style form controls side-by-side with their button counterpart at sm and md sizes. Heights should be visually identical."
+          gridClassName="grid grid-cols-1 gap-300"
+        >
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={size}
+              title={`Size: ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <Input placeholder="Input" size={size} className="w-40" />
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`numeric-${size}`}
+              title={`NumericInput — ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <NumericInput defaultValue={1} size={size}>
+                <NumericInput.Control>
+                  <NumericInput.Input />
+                  <NumericInput.TriggerContainer>
+                    <NumericInput.IncrementTrigger />
+                    <NumericInput.DecrementTrigger />
+                  </NumericInput.TriggerContainer>
+                </NumericInput.Control>
+              </NumericInput>
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`combobox-${size}`}
+              title={`Combobox — ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <div className="w-48">
+                <Combobox items={comboboxItems} placeholder="Pick fruit" size={size} />
+              </div>
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`select-${size}`}
+              title={`Select — ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <div className="w-48">
+                <Select items={selectItems} size={size}>
+                  <Select.Control>
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Choose country" />
+                    </Select.Trigger>
+                  </Select.Control>
+                  <Select.Positioner>
+                    <Select.Content>
+                      {selectItems.map((item) => (
+                        <Select.Item item={item} key={item.value}>
+                          <Select.ItemText />
+                          <Select.ItemIndicator />
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select>
+              </div>
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`textarea-${size}`}
+              title={`Textarea — ${size}`}
+              bodyClassName="flex flex-wrap items-start gap-50"
+            >
+              <Textarea placeholder="Notes..." size={size} className="w-56" />
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+        </Section>
+
+        <Section
           title="Molecules"
           gridClassName="grid grid-cols-1 gap-300 md:grid-cols-2 2xl:grid-cols-3"
         >

@@ -1,10 +1,14 @@
 @theme static {
+  --border-width-search-form: var(--border-width-form-control);
+
   /* Spacing for stacked layout */
   --spacing-search-form-sm: var(--spacing-150);
   --spacing-search-form-md: var(--spacing-200);
   --spacing-search-form-lg: var(--spacing-250);
 
-  --radius-search-form: var(--radius-md);
+  --radius-search-form: var(--radius-form-control);
+  --radius-search-form-sm: var(--radius-form-control-sm);
+  --radius-search-form-md: var(--radius-form-control-md);
   --radius-search-form-input: 0;
   --padding-search-form-clear-button: var(--spacing-200);
 }
