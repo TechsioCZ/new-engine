@@ -173,8 +173,12 @@ jobs:
       environment_name: ${{ steps.run_deploy.outputs.environment_name }}
       environment_id: ${{ steps.run_deploy.outputs.environment_id }}
       environment_created: ${{ steps.run_deploy.outputs.environment_created }}
+      environment_ready: ${{ steps.run_deploy.outputs.environment_ready }}
+      environment_warning_count: ${{ steps.run_deploy.outputs.environment_warning_count }}
       requested_services_csv: ${{ steps.run_deploy.outputs.requested_services_csv }}
       deploy_services_csv: ${{ steps.run_deploy.outputs.deploy_services_csv }}
+      preview_cloned_service_ids_csv: ${{ steps.run_deploy.outputs.preview_cloned_service_ids_csv }}
+      preview_excluded_service_ids_csv: ${{ steps.run_deploy.outputs.preview_excluded_service_ids_csv }}
       env_override_service_ids_csv: ${{ steps.run_deploy.outputs.env_override_service_ids_csv }}
       triggered_services_csv: ${{ steps.run_deploy.outputs.triggered_services_csv }}
       deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
@@ -227,6 +231,8 @@ jobs:
             echo "- PR: #${{ needs.scope.outputs.pr_number }}"
             echo "- Environment: ${{ steps.run_deploy.outputs.environment_name || 'n/a' }}"
             echo "- Environment created: ${{ steps.run_deploy.outputs.environment_created || 'n/a' }}"
+            echo "- Environment ready: ${{ steps.run_deploy.outputs.environment_ready || 'n/a' }}"
+            echo "- Environment warnings: ${{ steps.run_deploy.outputs.environment_warning_count || '0' }}"
             echo "- Requested services: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}"
             echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
             echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"

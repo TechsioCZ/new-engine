@@ -290,6 +290,24 @@ ci_zane_downtime_risk_service_ids() {
     '
 }
 
+ci_zane_preview_cloned_service_ids() {
+  manifest_eval -r '
+    .services[]
+    | select((.ci.zane.service_slug // "") != "")
+    | select(if (.ci.zane | has("clone_to_preview")) then .ci.zane.clone_to_preview else true end)
+    | .id
+  '
+}
+
+ci_zane_preview_excluded_service_ids() {
+  manifest_eval -r '
+    .services[]
+    | select((.ci.zane.service_slug // "") != "")
+    | select(if (.ci.zane | has("clone_to_preview")) then .ci.zane.clone_to_preview == false else false end)
+    | .id
+  '
+}
+
 ci_zane_coupled_service_ids() {
   local service_id="$1"
 
@@ -322,6 +340,8 @@ Commands:
   ci-zane-service-slug --id <service-id>
   ci-zane-lane-service-ids --lane <preview|main>
   ci-zane-downtime-risk-service-ids --lane <preview|main>
+  ci-zane-preview-cloned-service-ids
+  ci-zane-preview-excluded-service-ids
   ci-zane-coupled-service-ids --id <service-id>
 EOF
 }
@@ -446,6 +466,12 @@ main() {
         exit 1
       }
       ci_zane_downtime_risk_service_ids "$2"
+      ;;
+    ci-zane-preview-cloned-service-ids)
+      ci_zane_preview_cloned_service_ids
+      ;;
+    ci-zane-preview-excluded-service-ids)
+      ci_zane_preview_excluded_service_ids
       ;;
     ci-zane-coupled-service-ids)
       [[ "${1:-}" == "--id" ]] || {

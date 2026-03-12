@@ -69,6 +69,12 @@ zane::normalize_csv_or_empty() {
   ci::normalize_csv "$value"
 }
 
+zane::merge_csv_values() {
+  local existing="${1-}"
+  local current="${2-}"
+  zane::normalize_csv_or_empty "${existing},${current}"
+}
+
 zane::csv_to_lines() {
   local csv="${1-}"
   if [[ -n "$csv" ]]; then
@@ -139,6 +145,75 @@ zane::services_json_from_csv() {
   fi
 
   jq -sc '.' "$tmp_file"
+}
+
+zane::service_slugs_json_from_csv() {
+  local csv="$1"
+  local services_json
+  services_json="$(zane::services_json_from_csv "$csv")"
+  jq -c '[.[].service_slug]' <<<"$services_json"
+}
+
+zane::preview_service_sets_json() {
+  local cloned_ids_csv=""
+  local excluded_ids_csv=""
+  local cloned_services_json='[]'
+  local excluded_services_json='[]'
+
+  cloned_ids_csv="$(paste -sd, < <(ci_zane_preview_cloned_service_ids) || true)"
+  excluded_ids_csv="$(paste -sd, < <(ci_zane_preview_excluded_service_ids) || true)"
+  cloned_ids_csv="$(zane::normalize_csv_or_empty "$cloned_ids_csv")"
+  excluded_ids_csv="$(zane::normalize_csv_or_empty "$excluded_ids_csv")"
+  cloned_services_json="$(zane::services_json_from_csv "$cloned_ids_csv")"
+  excluded_services_json="$(zane::services_json_from_csv "$excluded_ids_csv")"
+
+  jq -cn \
+    --arg preview_cloned_service_ids_csv "$cloned_ids_csv" \
+    --arg preview_excluded_service_ids_csv "$excluded_ids_csv" \
+    --argjson preview_cloned_services "$cloned_services_json" \
+    --argjson preview_excluded_services "$excluded_services_json" \
+    '{
+      preview_cloned_service_ids_csv: $preview_cloned_service_ids_csv,
+      preview_excluded_service_ids_csv: $preview_excluded_service_ids_csv,
+      preview_cloned_services: $preview_cloned_services,
+      preview_excluded_services: $preview_excluded_services
+    }'
+}
+
+zane::preview_service_slug_sets_json() {
+  local preview_cloned_service_ids_csv="$1"
+  local preview_excluded_service_ids_csv="$2"
+
+  jq -cn \
+    --argjson expected_preview_service_slugs "$(zane::service_slugs_json_from_csv "$preview_cloned_service_ids_csv")" \
+    --argjson excluded_preview_service_slugs "$(zane::service_slugs_json_from_csv "$preview_excluded_service_ids_csv")" \
+    '{
+      expected_preview_service_slugs: $expected_preview_service_slugs,
+      excluded_preview_service_slugs: $excluded_preview_service_slugs
+    }'
+}
+
+zane::service_ids_json_from_csv() {
+  local csv="$1"
+  jq -c -Rn --arg csv "$(zane::normalize_csv_or_empty "$csv")" 'if $csv == "" then [] else ($csv | split(",")) end'
+}
+
+zane::deployment_refs_json() {
+  local deployments_json_path="${1-}"
+  local deployments_json_inline="${2-}"
+
+  if [[ -n "$deployments_json_path" ]]; then
+    zane::require_file "$deployments_json_path"
+    jq -c '.services // []' "$deployments_json_path"
+    return 0
+  fi
+
+  if [[ -n "$deployments_json_inline" ]]; then
+    jq -c '.services // []' <<<"$deployments_json_inline"
+    return 0
+  fi
+
+  printf '[]\n'
 }
 
 zane::plan_stage_numbers() {
@@ -459,6 +534,7 @@ zane::cmd_wait_deployments() {
   local base_url="${ZANE_OPERATOR_BASE_URL:-}"
   local api_token="${ZANE_OPERATOR_API_TOKEN:-}"
   local dry_run="false"
+  local preview_service_slug_sets_json='{}'
   local poll_interval_seconds="$ZANE_DEPLOYMENT_POLL_INTERVAL_SECONDS_DEFAULT"
   local wait_timeout_seconds="$ZANE_DEPLOYMENT_WAIT_TIMEOUT_SECONDS_DEFAULT"
   local tolerate_base_url_unavailable="false"
@@ -766,6 +842,7 @@ EOF
   local requested_services_json
   local deploy_services_json
   local environment_name=""
+  local preview_service_sets_json='{}'
 
   requested_services_csv="$(zane::csv_from_lookup_in_manifest_order "$lane" requested_lookup)"
   deploy_services_csv="$(zane::csv_from_lookup_in_manifest_order "$lane" deploy_lookup)"
@@ -774,6 +851,7 @@ EOF
 
   if [[ "$lane" == "preview" ]]; then
     environment_name="$(zane::preview_environment_name "$pr_number")"
+    preview_service_sets_json="$(zane::preview_service_sets_json)"
   fi
 
   local plan_json
@@ -787,15 +865,20 @@ EOF
       --arg pr_number "$pr_number" \
       --argjson requested_services "$requested_services_json" \
       --argjson deploy_services "$deploy_services_json" \
+      --argjson preview_service_sets "$preview_service_sets_json" \
       '{
         lane: $lane,
         source_services_csv: $services_csv,
         requested_services_csv: $requested_services_csv,
         deploy_services_csv: $deploy_services_csv,
         preview_environment_name: $environment_name,
+        preview_cloned_service_ids_csv: ($preview_service_sets.preview_cloned_service_ids_csv // ""),
+        preview_excluded_service_ids_csv: ($preview_service_sets.preview_excluded_service_ids_csv // ""),
         pr_number: (if $pr_number == "" then null else ($pr_number | tonumber) end),
         requested_services: $requested_services,
-        deploy_services: $deploy_services
+        deploy_services: $deploy_services,
+        preview_cloned_services: ($preview_service_sets.preview_cloned_services // []),
+        preview_excluded_services: ($preview_service_sets.preview_excluded_services // [])
       }'
   )"
 
@@ -806,6 +889,8 @@ EOF
   ci::gha_output requested_services_csv "$requested_services_csv"
   ci::gha_output deploy_services_csv "$deploy_services_csv"
   ci::gha_output preview_environment_name "$environment_name"
+  ci::gha_output preview_cloned_service_ids_csv "$(jq -r '.preview_cloned_service_ids_csv // empty' <<<"$preview_service_sets_json")"
+  ci::gha_output preview_excluded_service_ids_csv "$(jq -r '.preview_excluded_service_ids_csv // empty' <<<"$preview_service_sets_json")"
   printf '%s\n' "$plan_json"
 }
 
@@ -979,6 +1064,8 @@ zane::cmd_resolve_environment() {
   local project_slug="${ZANE_CANONICAL_PROJECT_SLUG:-}"
   local pr_number=""
   local environment_name="${ZANE_PRODUCTION_ENVIRONMENT_NAME:-}"
+  local preview_cloned_service_ids_csv=""
+  local preview_excluded_service_ids_csv=""
   local output_json=""
   local base_url="${ZANE_OPERATOR_BASE_URL:-}"
   local api_token="${ZANE_OPERATOR_API_TOKEN:-}"
@@ -1000,6 +1087,14 @@ zane::cmd_resolve_environment() {
         ;;
       --environment-name)
         environment_name="${2-}"
+        shift 2
+        ;;
+      --preview-cloned-service-ids-csv)
+        preview_cloned_service_ids_csv="${2-}"
+        shift 2
+        ;;
+      --preview-excluded-service-ids-csv)
+        preview_excluded_service_ids_csv="${2-}"
         shift 2
         ;;
       --output-json)
@@ -1027,6 +1122,8 @@ Options:
   --project-slug <slug>      default: $ZANE_CANONICAL_PROJECT_SLUG
   --pr-number <n>            required for preview lane unless --environment-name supplied
   --environment-name <name>  preview default: derived from PR number; main default: $ZANE_PRODUCTION_ENVIRONMENT_NAME
+  --preview-cloned-service-ids-csv <csv>
+  --preview-excluded-service-ids-csv <csv>
   --base-url <url>
   --api-token <token>
   --output-json <path>
@@ -1049,6 +1146,13 @@ EOF
       zane::require_numeric "$pr_number" "PR number"
       environment_name="$(zane::preview_environment_name "$pr_number")"
     fi
+    preview_cloned_service_ids_csv="$(zane::normalize_csv_or_empty "$preview_cloned_service_ids_csv")"
+    preview_excluded_service_ids_csv="$(zane::normalize_csv_or_empty "$preview_excluded_service_ids_csv")"
+    preview_service_slug_sets_json="$(
+      zane::preview_service_slug_sets_json \
+        "$preview_cloned_service_ids_csv" \
+        "$preview_excluded_service_ids_csv"
+    )"
   else
     [[ -n "$environment_name" ]] || ci::die "Main lane requires --environment-name or ZANE_PRODUCTION_ENVIRONMENT_NAME."
   fi
@@ -1059,7 +1163,8 @@ EOF
       --arg lane "$lane" \
       --arg project_slug "$project_slug" \
       --arg environment_name "$environment_name" \
-      '{lane:$lane, project_slug:$project_slug, environment_name:$environment_name, environment_id:("dry-run:" + $environment_name), created:false}')"
+      --argjson preview_service_slug_sets "$preview_service_slug_sets_json" \
+      '{lane:$lane, project_slug:$project_slug, environment_name:$environment_name, environment_id:("dry-run:" + $environment_name), created:false, ready:true, expected_preview_service_slugs:($preview_service_slug_sets.expected_preview_service_slugs // []), excluded_preview_service_slugs:($preview_service_slug_sets.excluded_preview_service_slugs // []), present_service_slugs:($preview_service_slug_sets.expected_preview_service_slugs // []), missing_preview_service_slugs:[], warnings:[]}')"
   else
     local payload
     payload="$(jq -cn \
@@ -1067,17 +1172,31 @@ EOF
       --arg project_slug "$project_slug" \
       --arg environment_name "$environment_name" \
       --arg pr_number "$pr_number" \
+      --argjson preview_service_slug_sets "$preview_service_slug_sets_json" \
       '{
         lane: $lane,
         project_slug: $project_slug,
         environment_name: $environment_name,
-        pr_number: (if $pr_number == "" then null else ($pr_number | tonumber) end)
+        pr_number: (if $pr_number == "" then null else ($pr_number | tonumber) end),
+        expected_preview_service_slugs: ($preview_service_slug_sets.expected_preview_service_slugs // []),
+        excluded_preview_service_slugs: ($preview_service_slug_sets.excluded_preview_service_slugs // [])
       }')"
     response_json="$(zane::api_request POST "/v1/zane/environments/resolve" "$payload" "$base_url" "$api_token")"
   fi
 
   [[ -n "$(jq -r '.environment_name // empty' <<<"$response_json")" ]] || ci::die "Environment response missing environment_name."
   [[ -n "$(jq -r '.project_slug // empty' <<<"$response_json")" ]] || ci::die "Environment response missing project_slug."
+
+  if [[ "$(jq -r '.warnings | length // 0' <<<"$response_json")" != "0" ]]; then
+    while IFS= read -r warning_message; do
+      [[ -n "$warning_message" ]] || continue
+      ci::warn "$warning_message"
+    done < <(jq -r '.warnings[]?.message // empty' <<<"$response_json")
+  fi
+
+  if [[ "$lane" == "preview" && "$(jq -r '.ready // false' <<<"$response_json")" != "true" ]]; then
+    ci::die "Preview environment ${environment_name} is missing required cloned services: $(jq -r '(.missing_preview_service_slugs // []) | join(",")' <<<"$response_json")"
+  fi
 
   if [[ -n "$output_json" ]]; then
     zane::write_json_file "$output_json" "$response_json"
@@ -1086,6 +1205,9 @@ EOF
   ci::gha_output environment_name "$(jq -r '.environment_name' <<<"$response_json")"
   ci::gha_output environment_id "$(jq -r '.environment_id // empty' <<<"$response_json")"
   ci::gha_output environment_created "$(jq -r '.created // false' <<<"$response_json")"
+  ci::gha_output environment_ready "$(jq -r '.ready // true' <<<"$response_json")"
+  ci::gha_output missing_preview_service_slugs_csv "$(jq -r '(.missing_preview_service_slugs // []) | join(",")' <<<"$response_json")"
+  ci::gha_output environment_warning_count "$(jq -r '.warnings | length // 0' <<<"$response_json")"
   printf '%s\n' "$response_json"
 }
 
@@ -1546,17 +1668,12 @@ EOF
   local requested_services_json
   local deploy_services_json
   local triggered_services_json
-  requested_services_json="$(jq -c -Rn --arg csv "$(zane::normalize_csv_or_empty "$requested_services_csv")" 'if $csv == "" then [] else ($csv | split(",")) end')"
-  deploy_services_json="$(jq -c -Rn --arg csv "$(zane::normalize_csv_or_empty "$deploy_services_csv")" 'if $csv == "" then [] else ($csv | split(",")) end')"
-  triggered_services_json="$(jq -c -Rn --arg csv "$(zane::normalize_csv_or_empty "$triggered_services_csv")" 'if $csv == "" then [] else ($csv | split(",")) end')"
+  requested_services_json="$(zane::service_ids_json_from_csv "$requested_services_csv")"
+  deploy_services_json="$(zane::service_ids_json_from_csv "$deploy_services_csv")"
+  triggered_services_json="$(zane::service_ids_json_from_csv "$triggered_services_csv")"
 
-  local deployments_json_payload='[]'
-  if [[ -n "$deployments_json" ]]; then
-    zane::require_file "$deployments_json"
-    deployments_json_payload="$(jq -c '.services // []' "$deployments_json")"
-  elif [[ -n "$deployments_json_inline" ]]; then
-    deployments_json_payload="$(jq -c '.services // []' <<<"$deployments_json_inline")"
-  fi
+  local deployments_json_payload
+  deployments_json_payload="$(zane::deployment_refs_json "$deployments_json" "$deployments_json_inline")"
 
   local response_json
   if [[ "$dry_run" == "true" ]]; then
@@ -1735,6 +1852,8 @@ EOF
     --project-slug "$project_slug" \
     --pr-number "$pr_number" \
     --environment-name "$(jq -r '.preview_environment_name' "$plan_json_file")" \
+    --preview-cloned-service-ids-csv "$(jq -r '.preview_cloned_service_ids_csv' "$plan_json_file")" \
+    --preview-excluded-service-ids-csv "$(jq -r '.preview_excluded_service_ids_csv' "$plan_json_file")" \
     --output-json "$environment_json_file" \
     "${dry_run_flags[@]}" \
     --base-url "$base_url" \
@@ -1771,8 +1890,12 @@ EOF
   ci::gha_output environment_name "$(jq -r '.environment_name' "$environment_json_file")"
   ci::gha_output environment_id "$(jq -r '.environment_id // empty' "$environment_json_file")"
   ci::gha_output environment_created "$(jq -r '.created // false' "$environment_json_file")"
+  ci::gha_output environment_ready "$(jq -r '.ready // true' "$environment_json_file")"
+  ci::gha_output environment_warning_count "$(jq -r '.warnings | length // 0' "$environment_json_file")"
   ci::gha_output requested_services_csv "$(jq -r '.requested_services_csv' "$plan_json_file")"
   ci::gha_output deploy_services_csv "$(jq -r '.deploy_services_csv' "$plan_json_file")"
+  ci::gha_output preview_cloned_service_ids_csv "$(jq -r '.preview_cloned_service_ids_csv' "$plan_json_file")"
+  ci::gha_output preview_excluded_service_ids_csv "$(jq -r '.preview_excluded_service_ids_csv' "$plan_json_file")"
   ci::gha_output env_override_service_ids_csv "$(jq -r '[.services[].service_id] | join(",")' "$env_overrides_json_file")"
   ci::gha_output triggered_services_csv "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")"
   ci::gha_output deployments_json "$(jq -c '.' "$all_deployments_json_file")"
@@ -1783,6 +1906,10 @@ EOF
     --arg environment_name "$(jq -r '.environment_name' "$environment_json_file")" \
     --arg environment_id "$(jq -r '.environment_id // empty' "$environment_json_file")" \
     --argjson environment_created "$(jq -r '.created // false' "$environment_json_file")" \
+    --argjson environment_ready "$(jq -r '.ready // true' "$environment_json_file")" \
+    --arg preview_cloned_service_ids_csv "$(jq -r '.preview_cloned_service_ids_csv' "$plan_json_file")" \
+    --arg preview_excluded_service_ids_csv "$(jq -r '.preview_excluded_service_ids_csv' "$plan_json_file")" \
+    --argjson environment_warnings "$(jq -c '.warnings // []' "$environment_json_file")" \
     --arg requested_services_csv "$(jq -r '.requested_services_csv' "$plan_json_file")" \
     --arg deploy_services_csv "$(jq -r '.deploy_services_csv' "$plan_json_file")" \
     --arg env_override_service_ids_csv "$(jq -r '[.services[].service_id] | join(",")' "$env_overrides_json_file")" \
@@ -1794,6 +1921,10 @@ EOF
       environment_name: $environment_name,
       environment_id: $environment_id,
       environment_created: $environment_created,
+      environment_ready: $environment_ready,
+      preview_cloned_service_ids_csv: $preview_cloned_service_ids_csv,
+      preview_excluded_service_ids_csv: $preview_excluded_service_ids_csv,
+      environment_warnings: $environment_warnings,
       requested_services_csv: $requested_services_csv,
       deploy_services_csv: $deploy_services_csv,
       env_override_service_ids_csv: $env_override_service_ids_csv,
@@ -1953,11 +2084,11 @@ EOF
       "$filtered_targets_json_file" \
       "$filtered_env_overrides_json_file" \
       "$adopted_deployments_json_file"
-    skipped_services_csv="$(jq -r --arg existing "$skipped_services_csv" --arg current "$(jq -r '.skipped_services | map(.service_id) | join(",")' "$filtered_targets_json_file")" '
-      [($existing | split(",")[]? | select(length > 0)), ($current | split(",")[]? | select(length > 0))]
-      | unique
-      | join(",")
-    ' <<<"{}")"
+    skipped_services_csv="$(
+      zane::merge_csv_values \
+        "$skipped_services_csv" \
+        "$(jq -r '.skipped_services | map(.service_id) | join(",")' "$filtered_targets_json_file")"
+    )"
     zane::merge_deployments_json_file "$adopted_deployments_json_file" "$all_deployments_json_file"
     if [[ "$(jq -r '.services | length' "$filtered_targets_json_file")" == "0" && "$(jq -r '.services | length' "$adopted_deployments_json_file")" == "0" ]]; then
       continue
@@ -2011,16 +2142,16 @@ EOF
       ci::die "Main deploy stage ${stage} failed for services: ${stage_services_csv}"
     fi
 
-    triggered_services_csv="$(jq -r --arg existing "$triggered_services_csv" --arg current "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")" '
-      [($existing | split(",")[]? | select(length > 0)), ($current | split(",")[]? | select(length > 0))]
-      | unique
-      | join(",")
-    ' <<<"{}")"
-    env_override_service_ids_csv="$(jq -r --arg existing "$env_override_service_ids_csv" --arg current "$(jq -r '[.services[].service_id] | join(",")' "$filtered_env_overrides_json_file")" '
-      [($existing | split(",")[]? | select(length > 0)), ($current | split(",")[]? | select(length > 0))]
-      | unique
-      | join(",")
-    ' <<<"{}")"
+    triggered_services_csv="$(
+      zane::merge_csv_values \
+        "$triggered_services_csv" \
+        "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")"
+    )"
+    env_override_service_ids_csv="$(
+      zane::merge_csv_values \
+        "$env_override_service_ids_csv" \
+        "$(jq -r '[.services[].service_id] | join(",")' "$filtered_env_overrides_json_file")"
+    )"
   done < <(zane::plan_stage_numbers "$plan_json_file")
 
   ci::gha_output lane "main"
