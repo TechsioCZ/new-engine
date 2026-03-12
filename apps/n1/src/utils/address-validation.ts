@@ -15,6 +15,7 @@ export type AddressFormData = {
 
 export type AddressFieldKey = keyof AddressFormData
 export type AddressErrors = Partial<Record<AddressFieldKey, string>>
+export type AddressPatchData = Partial<AddressFormData>
 
 const ADDRESS_VALIDATION_RULES = {
   first_name: {
@@ -148,6 +149,31 @@ export function validateAddressForm(data: AddressFormData): AddressErrors {
 
   if (data.phone) {
     const phoneError = validateAddressField("phone", data.phone)
+    if (phoneError) {
+      errors.phone = phoneError
+    }
+  }
+
+  return errors
+}
+
+export function validateAddressPatch(data: AddressPatchData): AddressErrors {
+  const errors: AddressErrors = {}
+
+  for (const field of REQUIRED_ADDRESS_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(data, field)) {
+      continue
+    }
+
+    const fieldValue = data[field] || ""
+    const error = validateAddressField(field, fieldValue, data.country_code)
+    if (error) {
+      errors[field] = error
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(data, "phone")) {
+    const phoneError = validateAddressField("phone", data.phone || "")
     if (phoneError) {
       errors.phone = phoneError
     }

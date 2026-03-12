@@ -1,3 +1,9 @@
+import { StorefrontAddressValidationError } from "@techsio/storefront-data/shared/address"
+import type {
+  AddressErrors,
+  AddressFieldKey,
+} from "@/utils/address-validation"
+
 type ErrorWithMessage = {
   message: unknown
 }
@@ -9,6 +15,8 @@ type ErrorWithStatus = {
 type ErrorWithResponse = {
   response: unknown
 }
+
+const UNKNOWN_ERROR_MESSAGE = "An unknown error occurred"
 
 function isError(error: unknown): error is Error {
   return error instanceof Error
@@ -31,7 +39,7 @@ function getErrorMessage(error: unknown): string {
     }
   }
 
-  return "An unknown error occurred"
+  return UNKNOWN_ERROR_MESSAGE
 }
 
 function getErrorStatus(error: unknown): number | null {
@@ -60,9 +68,55 @@ function getErrorStatus(error: unknown): number | null {
   return null
 }
 
+export function toError(
+  error: unknown,
+  fallbackMessage = UNKNOWN_ERROR_MESSAGE
+): Error {
+  if (error instanceof Error) {
+    return error
+  }
+
+  const message = getErrorMessage(error)
+  if (message === UNKNOWN_ERROR_MESSAGE) {
+    return new Error(fallbackMessage)
+  }
+
+  return new Error(message)
+}
+
 export function isNotFoundError(error: unknown): boolean {
   const status = getErrorStatus(error)
   return status === 404
+}
+
+export function isAbortLikeError(error: unknown): boolean {
+  if (
+    typeof DOMException !== "undefined" &&
+    error instanceof DOMException &&
+    error.name === "AbortError"
+  ) {
+    return true
+  }
+
+  if (!(error && typeof error === "object")) {
+    return false
+  }
+
+  const name = "name" in error ? (error as { name?: unknown }).name : undefined
+  const message =
+    "message" in error
+      ? (error as { message?: unknown }).message
+      : undefined
+
+  if (name === "AbortError") {
+    return true
+  }
+
+  return (
+    typeof message === "string" &&
+    (message.includes("signal is aborted without reason") ||
+      message.includes("This operation was aborted"))
+  )
 }
 
 export function logError(context: string, error: unknown): void {
@@ -143,8 +197,6 @@ export class CartServiceError extends Error {
 // Address Validation Error
 // ============================================================================
 
-import type { AddressErrors } from "@/utils/address-validation"
-
 /**
  * Error thrown when address validation fails
  * Used as a safety net in useCreateAddress/useUpdateAddress hooks
@@ -174,12 +226,29 @@ export class AddressValidationError extends Error {
     return Object.values(this.errors).filter(Boolean).join(", ")
   }
 
-  /**
-   * Check if error is AddressValidationError
-   */
-  static isAddressValidationError(
-    error: unknown
-  ): error is AddressValidationError {
-    return error instanceof AddressValidationError
+}
+
+export function toAddressValidationError(
+  error: unknown
+): AddressValidationError | null {
+  if (error instanceof AddressValidationError) {
+    return error
   }
+
+  if (error instanceof StorefrontAddressValidationError) {
+    const mappedErrors: AddressErrors = {}
+
+    for (const issue of error.issues) {
+      const field = issue.field as AddressFieldKey
+      if (!mappedErrors[field] && issue.message) {
+        mappedErrors[field] = issue.message
+      }
+    }
+
+    if (Object.keys(mappedErrors).length > 0) {
+      return new AddressValidationError(mappedErrors)
+    }
+  }
+
+  return null
 }
