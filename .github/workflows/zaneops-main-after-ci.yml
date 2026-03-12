@@ -114,6 +114,7 @@ jobs:
       group: zaneops-main-prepare
       cancel-in-progress: true
     outputs:
+      meili_backend_key: ${{ steps.provision_meili.outputs.backend_key }}
       meili_frontend_key: ${{ steps.provision_meili.outputs.frontend_key }}
       meili_frontend_env_var: ${{ steps.provision_meili.outputs.frontend_env_var }}
       meili_frontend_uid: ${{ steps.provision_meili.outputs.frontend_uid }}
@@ -202,8 +203,8 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
+          MEILI_BACKEND_KEY: ${{ needs.prepare.outputs.meili_backend_key }}
+          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
         run: bash ./scripts/ci/check-workflow-inputs.sh main-deploy
 
       - name: Run main deploy
@@ -214,14 +215,16 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
+          MEILI_BACKEND_KEY: ${{ needs.prepare.outputs.meili_backend_key }}
+          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
+          MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
         run: |
           bash ./scripts/ci/zane-deploy.sh run-main \
             --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
             --git-commit-sha "${{ github.event.workflow_run.head_sha }}" \
-            --meili-url "$MEILISEARCH_URL" \
-            --meili-master-key "$MEILISEARCH_MASTER_KEY" \
+            --meili-backend-key "${MEILI_BACKEND_KEY:-}" \
+            --meili-frontend-key "${MEILI_FRONTEND_KEY:-}" \
+            --meili-frontend-env-var "${MEILI_FRONTEND_ENV_VAR:-}" \
             --services-csv "$SERVICES_CSV"
 
       - name: Summary
@@ -265,6 +268,9 @@ jobs:
           DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv }}
           TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv }}
           DEPLOYMENTS_JSON: ${{ needs.deploy.outputs.deployments_json }}
+          MEILI_BACKEND_KEY: ${{ needs.prepare.outputs.meili_backend_key }}
+          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
+          MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
@@ -276,7 +282,10 @@ jobs:
             --requested-services-csv "${REQUESTED_SERVICES_CSV:-}" \
             --deploy-services-csv "${DEPLOY_SERVICES_CSV:-}" \
             --triggered-services-csv "${TRIGGERED_SERVICES_CSV:-}" \
-            --deployments-json-inline "${DEPLOYMENTS_JSON:-}"
+            --deployments-json-inline "${DEPLOYMENTS_JSON:-}" \
+            --meili-backend-key "${MEILI_BACKEND_KEY:-}" \
+            --meili-frontend-key "${MEILI_FRONTEND_KEY:-}" \
+            --meili-frontend-env-var "${MEILI_FRONTEND_ENV_VAR:-}"
 
       - name: Summary
         if: always()
