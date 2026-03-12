@@ -114,6 +114,7 @@ schema_template() {
 # - ci.zane.consumes.meili_backend_key: false
 # - ci.zane.downtime_risk: false
 # - ci.zane.coupled_service_ids: []
+# - ci.zane.clone_to_preview: true
 # - ci.zane.deploy_stage: 100
 #
 # Keep explicit:
@@ -153,6 +154,7 @@ services:
         # meili_keys: true          # optional; default false
       zane:
         service_slug: "example-service"
+        # clone_to_preview: false        # optional; default true
         deploy_lanes: ["preview", "main"]
         # deploy_stage: 20              # optional; default 100
         consumes:
@@ -238,6 +240,7 @@ ci_zane_service_json() {
       | {
           id,
           service_slug: .ci.zane.service_slug,
+          clone_to_preview: (if (.ci.zane | has("clone_to_preview")) then .ci.zane.clone_to_preview else true end),
           deploy_lanes: (.ci.zane.deploy_lanes // []),
           deploy_stage: (.ci.zane.deploy_stage // 100),
           downtime_risk: (.ci.zane.downtime_risk // false),

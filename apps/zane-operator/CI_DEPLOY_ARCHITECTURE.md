@@ -22,6 +22,8 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 - One canonical Zane project tracks the default branch / production lane.
 - PR CI creates or reuses a preview environment derived from that canonical project.
+- Preview environments clone the canonical service set except services explicitly marked as non-cloned in `config/stack-manifest.yaml`.
+- `medusa-db` and `zane-operator` are not cloned into preview environments.
 - CI updates only the affected services in that preview environment.
 - CI injects env overrides produced by `prepare` only where required by the affected services.
 
@@ -30,12 +32,20 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 1. Resolve the canonical Zane project identity from CI secrets/config, not from hardcoded workflow literals.
 2. Discover whether the preview environment for `pr_number` already exists.
 3. If it does not exist, create it through the approved control-plane path.
-4. If it exists, reuse it and reconcile only changed service/env state.
-5. Resolve deploy targets for affected services inside that preview environment.
-6. Obtain the per-service deploy key/webhook/token required to trigger deploys for those services.
-7. Apply env overrides derived from `prepare` before or as part of the deploy trigger.
-8. Trigger deploy only for affected services plus any explicitly coupled dependents defined in the manifest.
-9. Persist enough metadata in job outputs for downstream verification, but do not emit secrets to summaries/logs.
+4. Initial preview creation must be idempotent:
+   - if the environment already exists and all required preview-cloned services are defined, creation passes without redeploying
+   - preview DB ensure and credential generation must also be idempotent
+5. On initial preview creation, deploy services in manifest stack order.
+6. Provisioning that depends on preview service runtime may only run after the relevant preview service is deployed and healthy.
+7. Meilisearch preview key provisioning happens only after preview `medusa-meilisearch` is up on first environment creation.
+8. After first successful preview creation, subsequent PR updates are redeploy-only in manifest stack order.
+9. Subsequent PR updates should reuse existing preview env values held in Zane; automatic reprovisioning is not required.
+10. If a contract or env shape change requires reprovisioning beyond normal redeploy behavior, that is a manual intervention path unless explicitly automated later.
+11. Resolve deploy targets for affected services inside that preview environment.
+12. Obtain the per-service deploy key/webhook/token required to trigger deploys for those services.
+13. Apply env overrides derived from `prepare` or first-creation runtime provisioning before or as part of the deploy trigger.
+14. Trigger deploy only for affected services plus any explicitly coupled dependents defined in the manifest.
+15. Persist enough metadata in job outputs for downstream verification, but do not emit secrets to summaries/logs.
 
 ## Main Deploy Contract
 
@@ -66,6 +76,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Each deployable service must declare the metadata needed to map `service_id` -> `service_slug`.
 - Minimum required Zane metadata per deployable:
   - `service_slug`
+  - optional `clone_to_preview` marker; omitted means cloned into preview by default
   - deploy lane eligibility (`preview`, `main`, or both)
   - whether main-lane deploy of the service carries downtime risk and therefore requires manual approval
   - whether the service consumes preview DB outputs
@@ -111,9 +122,11 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 Preview verification must prove:
 - the target preview environment exists
+- the preview environment contains the expected cloned service set and excludes non-cloned services
 - affected services were the ones targeted for deploy
 - `medusa-be` preview received the preview DB credentials when required
 - frontend preview received the Meili browser key when required
+- first-creation-only provisioning ran only after its prerequisite preview service was healthy
 - deploy trigger completed without leaking secrets
 
 Main verification must prove:
