@@ -1,5 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
-import { createMedusaAuthService } from "../src/auth/medusa-service"
+import {
+  createMedusaAuthService,
+  MedusaRegistrationSignInError,
+} from "../src/auth/medusa-service"
 
 type SdkLike = {
   client: {
@@ -225,6 +228,36 @@ describe("createMedusaAuthService", () => {
       cleanupLogoutError,
       "register-cleanup"
     )
+    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
+  })
+
+  it("surfaces refresh failures after customer creation as sign-in errors", async () => {
+    const refreshError = new Error("refresh failed")
+    const sdk = createSdkMock()
+    sdk.auth.register.mockResolvedValue("registration_token")
+    sdk.auth.login.mockResolvedValue("login_token")
+    sdk.auth.refresh.mockRejectedValue(refreshError)
+    const service = createMedusaAuthService(sdk as never)
+    const registration = service.register({
+      email: "john@example.com",
+      password: "secret123",
+    })
+
+    await expect(
+      registration
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: "MedusaRegistrationSignInError",
+        code: "registration_sign_in_failed",
+        email: "john@example.com",
+        reason: refreshError,
+      })
+    )
+
+    await expect(registration).rejects.toBeInstanceOf(
+      MedusaRegistrationSignInError
+    )
+    expect(sdk.store.customer.create).toHaveBeenCalledTimes(1)
     expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
   })
 })

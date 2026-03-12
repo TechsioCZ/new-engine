@@ -116,7 +116,7 @@ export type StorefrontCustomerUpdateAddressContext = {
 export type StorefrontCustomerAddressAdapter<
   TCreateInput,
   TCreateParams = TCreateInput,
-  TUpdateInput = TCreateInput,
+  TUpdateInput = TCreateInput & { addressId?: string },
   TUpdateParams = TCreateParams,
 > = {
   normalizeCreate?: (

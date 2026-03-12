@@ -143,7 +143,7 @@ export type CheckoutMedusaAddressAdapterOptions =
     customerRequiredFields?: readonly (keyof CheckoutAddressInput)[]
   }
 
-const defaultRequiredFields: readonly (keyof CheckoutAddressInput)[] = [
+export const defaultCheckoutAddressRequiredFields: readonly (keyof CheckoutAddressInput)[] = [
   "firstName",
   "lastName",
   "street",
@@ -227,7 +227,7 @@ export const getMissingCheckoutAddressFields = <
   TAddress extends CheckoutAddressInput,
 >(
   address: TAddress,
-  requiredFields: readonly (keyof CheckoutAddressInput)[] = defaultRequiredFields
+  requiredFields: readonly (keyof CheckoutAddressInput)[] = defaultCheckoutAddressRequiredFields
 ): (keyof CheckoutAddressInput)[] =>
   requiredFields.filter((field) => !hasValue(address[field]))
 
@@ -235,7 +235,7 @@ export const hasCheckoutAddressCoreFields = <
   TAddress extends CheckoutAddressInput,
 >(
   address: TAddress,
-  requiredFields: readonly (keyof CheckoutAddressInput)[] = defaultRequiredFields
+  requiredFields: readonly (keyof CheckoutAddressInput)[] = defaultCheckoutAddressRequiredFields
 ): boolean => getMissingCheckoutAddressFields(address, requiredFields).length === 0
 
 export const getCheckoutAddressFieldIssues = <
@@ -248,7 +248,8 @@ export const getCheckoutAddressFieldIssues = <
   }
 ): CheckoutAddressValidationIssue[] => {
   const scope = options?.scope ?? "shipping"
-  const requiredFields = options?.requiredFields ?? defaultRequiredFields
+  const requiredFields =
+    options?.requiredFields ?? defaultCheckoutAddressRequiredFields
   const normalizedAddress = normalizeCheckoutAddressInput(address)
 
   return getMissingCheckoutAddressFields(
@@ -267,7 +268,8 @@ export const getCheckoutAddressPatchFieldIssues = <
   }
 ): CheckoutAddressValidationIssue[] => {
   const scope = options?.scope ?? "shipping"
-  const requiredFields = options?.requiredFields ?? defaultRequiredFields
+  const requiredFields =
+    options?.requiredFields ?? defaultCheckoutAddressRequiredFields
   const normalizedAddress = normalizeCheckoutAddressInput(address)
 
   return requiredFields
@@ -288,9 +290,9 @@ export const getCheckoutAddressValidationIssues = <
   const issues: CheckoutAddressValidationIssue[] = []
   const requireEmail = options?.requireEmail ?? true
   const shippingRequiredFields =
-    options?.shippingRequiredFields ?? defaultRequiredFields
+    options?.shippingRequiredFields ?? defaultCheckoutAddressRequiredFields
   const billingRequiredFields =
-    options?.billingRequiredFields ?? defaultRequiredFields
+    options?.billingRequiredFields ?? defaultCheckoutAddressRequiredFields
 
   issues.push(
     ...getCheckoutAddressFieldIssues(data.shipping, {
