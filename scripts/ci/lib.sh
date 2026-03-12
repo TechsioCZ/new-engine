@@ -6,6 +6,15 @@ ci::die() {
   exit 1
 }
 
+ci::warn() {
+  local message="$*"
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    printf '::warning::%s\n' "$message" >&2
+  else
+    printf 'warning: %s\n' "$message" >&2
+  fi
+}
+
 ci::require_command() {
   local cmd="$1"
   command -v "$cmd" >/dev/null 2>&1 || ci::die "Required command not found: $cmd"

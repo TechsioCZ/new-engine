@@ -11,6 +11,8 @@ export interface ResolveEnvironmentInput {
   lane: Lane
   projectSlug: string
   environmentName: string
+  expectedPreviewServiceSlugs: string[]
+  excludedPreviewServiceSlugs: string[]
 }
 
 export interface ArchiveEnvironmentInput {
@@ -58,6 +60,12 @@ interface CheckedDeploymentResult {
   deployment_hash: string
   status: string
   status_reason: string | null
+}
+
+interface ResolveEnvironmentWarning {
+  code: "preview_excluded_services_present" | "preview_extra_services_present"
+  message: string
+  service_slugs: string[]
 }
 
 export interface ZaneEnvironment {
@@ -487,6 +495,14 @@ export class ZaneClient {
       lane: assertLane(payload.lane, "lane"),
       projectSlug: normalizeProjectSlugFromPayload(payload),
       environmentName: assertString(payload.environment_name, "environment_name"),
+      expectedPreviewServiceSlugs: assertStringArray(
+        payload.expected_preview_service_slugs ?? [],
+        "expected_preview_service_slugs",
+      ),
+      excludedPreviewServiceSlugs: assertStringArray(
+        payload.excluded_preview_service_slugs ?? [],
+        "excluded_preview_service_slugs",
+      ),
     }
   }
 
@@ -720,21 +736,19 @@ export class ZaneClient {
     is_preview: boolean
     created: boolean
     cloned_from_environment: string | null
+    ready: boolean
+    expected_preview_service_slugs: string[]
+    excluded_preview_service_slugs: string[]
+    present_service_slugs: string[]
+    missing_preview_service_slugs: string[]
+    warnings: ResolveEnvironmentWarning[]
   }> {
     const session = await this.authenticate()
     const existing = await this.getEnvironment(session, input.projectSlug, input.environmentName)
 
     if (existing) {
       assertEnvironmentMatchesLane(existing, input.lane)
-      return {
-        lane: input.lane,
-        project_slug: input.projectSlug,
-        environment_id: existing.id,
-        environment_name: existing.name,
-        is_preview: existing.is_preview,
-        created: false,
-        cloned_from_environment: null,
-      }
+      return await this.buildResolvedEnvironmentState(session, input, existing, false, null)
     }
 
     if (input.lane !== "preview") {
@@ -761,14 +775,85 @@ export class ZaneClient {
       throw new UpstreamHttpError(502, "zane_clone_empty", "ZaneOps clone response was empty")
     }
 
+    return await this.buildResolvedEnvironmentState(
+      session,
+      input,
+      cloned,
+      true,
+      ZANE_PRODUCTION_ENVIRONMENT_NAME,
+    )
+  }
+
+  private async buildResolvedEnvironmentState(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    environment: ZaneEnvironment,
+    created: boolean,
+    clonedFromEnvironment: string | null,
+  ): Promise<{
+    lane: Lane
+    project_slug: string
+    environment_id: string
+    environment_name: string
+    is_preview: boolean
+    created: boolean
+    cloned_from_environment: string | null
+    ready: boolean
+    expected_preview_service_slugs: string[]
+    excluded_preview_service_slugs: string[]
+    present_service_slugs: string[]
+    missing_preview_service_slugs: string[]
+    warnings: ResolveEnvironmentWarning[]
+  }> {
+    const cardsPayload = await this.request<unknown>(
+      session,
+      "GET",
+      `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(environment.name)}/service-list/`,
+    )
+    const cards = normalizeServiceCards(cardsPayload ?? [])
+    const presentServiceSlugs = [...new Set(cards.map((service) => service.slug))].sort()
+    const expectedPreviewServiceSlugs = [...new Set(input.expectedPreviewServiceSlugs)].sort()
+    const excludedPreviewServiceSlugs = [...new Set(input.excludedPreviewServiceSlugs)].sort()
+    const presentSet = new Set(presentServiceSlugs)
+    const expectedSet = new Set(expectedPreviewServiceSlugs)
+    const excludedSet = new Set(excludedPreviewServiceSlugs)
+    const missingPreviewServiceSlugs = expectedPreviewServiceSlugs.filter((slug) => !presentSet.has(slug))
+    const warnings: ResolveEnvironmentWarning[] = []
+
+    if (input.lane === "preview") {
+      const excludedPresent = excludedPreviewServiceSlugs.filter((slug) => presentSet.has(slug))
+      if (excludedPresent.length > 0) {
+        warnings.push({
+          code: "preview_excluded_services_present",
+          message: `Preview environment ${environment.name} still contains non-cloned services: ${excludedPresent.join(", ")}`,
+          service_slugs: excludedPresent,
+        })
+      }
+
+      const extraPresent = presentServiceSlugs.filter((slug) => !expectedSet.has(slug) && !excludedSet.has(slug))
+      if (extraPresent.length > 0) {
+        warnings.push({
+          code: "preview_extra_services_present",
+          message: `Preview environment ${environment.name} contains additional services outside the managed preview clone set: ${extraPresent.join(", ")}`,
+          service_slugs: extraPresent,
+        })
+      }
+    }
+
     return {
       lane: input.lane,
       project_slug: input.projectSlug,
-      environment_id: cloned.id,
-      environment_name: cloned.name,
-      is_preview: cloned.is_preview,
-      created: true,
-      cloned_from_environment: ZANE_PRODUCTION_ENVIRONMENT_NAME,
+      environment_id: environment.id,
+      environment_name: environment.name,
+      is_preview: environment.is_preview,
+      created,
+      cloned_from_environment: clonedFromEnvironment,
+      ready: missingPreviewServiceSlugs.length === 0,
+      expected_preview_service_slugs: expectedPreviewServiceSlugs,
+      excluded_preview_service_slugs: excludedPreviewServiceSlugs,
+      present_service_slugs: presentServiceSlugs,
+      missing_preview_service_slugs: missingPreviewServiceSlugs,
+      warnings,
     }
   }
 

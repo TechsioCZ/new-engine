@@ -24,6 +24,8 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - PR CI creates or reuses a preview environment derived from that canonical project.
 - Preview environments clone the canonical service set except services explicitly marked as non-cloned in `config/stack-manifest.yaml`.
 - `medusa-db` and `zane-operator` are not cloned into preview environments.
+- Services marked as non-cloned are not part of preview readiness requirements and may still remain in the preview environment.
+- User-created helper/debug services may exist in preview environments and must not fail preview readiness.
 - CI updates only the affected services in that preview environment.
 - CI injects env overrides produced by `prepare` only where required by the affected services.
 
@@ -35,6 +37,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 4. Initial preview creation must be idempotent:
    - if the environment already exists and all required preview-cloned services are defined, creation passes without redeploying
    - preview DB ensure and credential generation must also be idempotent
+   - services excluded from preview cloning and user-created helper/debug services do not block reuse
 5. On initial preview creation, deploy services in manifest stack order.
 6. Provisioning that depends on preview service runtime may only run after the relevant preview service is deployed and healthy.
 7. Meilisearch preview key provisioning happens only after preview `medusa-meilisearch` is up on first environment creation.
@@ -68,6 +71,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Preview environments are keyed by PR number and must be discoverable idempotently.
 - Re-running the same PR workflow must not create duplicate preview environments.
 - Closing the PR should eventually tear down the preview environment and its preview DB.
+- Teardown closes the whole preview environment created for the PR; it does not selectively archive services inside it.
 - The preview environment naming/lookup rule must live in active scripts, not inline in workflow YAML.
 
 ## Service Identity Contract
@@ -122,12 +126,13 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 Preview verification must prove:
 - the target preview environment exists
-- the preview environment contains the expected cloned service set and excludes non-cloned services
+- the preview environment contains the expected cloned service set
 - affected services were the ones targeted for deploy
 - `medusa-be` preview received the preview DB credentials when required
 - frontend preview received the Meili browser key when required
 - first-creation-only provisioning ran only after its prerequisite preview service was healthy
 - deploy trigger completed without leaking secrets
+- non-cloned services and user-created helper/debug services are warning-only and must not fail verification
 
 Main verification must prove:
 - only intended services were targeted
