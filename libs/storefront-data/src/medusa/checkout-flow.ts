@@ -134,6 +134,23 @@ export type UseMedusaCompleteCheckoutOptions = {
   onError?: (error: MedusaCompleteCheckoutError) => void
 }
 
+const resolveExistingPaymentCollection = (
+  cart: HttpTypes.StoreCart | null | undefined,
+  paymentProviderId: string
+): HttpTypes.StorePaymentCollection | null => {
+  const paymentCollection = cart?.payment_collection
+  const paymentSessions = paymentCollection?.payment_sessions
+  if (!paymentCollection || !paymentSessions?.length) {
+    return null
+  }
+
+  const matchingSession = paymentSessions.find(
+    (session) => session.provider_id === paymentProviderId
+  )
+
+  return matchingSession ? paymentCollection : null
+}
+
 const defaultNormalizeShippingData = (
   data?: MedusaShippingMethodData
 ): Record<string, unknown> | undefined => {
@@ -436,9 +453,12 @@ export function createMedusaCheckoutFlow({
           )
         }
 
-        let paymentCollection: HttpTypes.StorePaymentCollection
+        let paymentCollection =
+          resolveExistingPaymentCollection(input.cart, paymentProviderId)
         try {
-          paymentCollection = await payment.initiatePaymentAsync(paymentProviderId)
+          if (!paymentCollection) {
+            paymentCollection = await payment.initiatePaymentAsync(paymentProviderId)
+          }
         } catch (error) {
           throw createCompleteCheckoutError(
             "payment",
