@@ -40,7 +40,7 @@ services:
         - "docker/development/postgres/**"
         - "scripts/apply-postgres-role-bootstrap.sh"
       zane:
-        service_name: "medusa-db"
+        service_slug: "medusa-db"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 5
         downtime_risk: true
@@ -55,7 +55,7 @@ services:
       affected_path_globs:
         - "docker/development/medusa-valkey/**"
       zane:
-        service_name: "medusa-valkey"
+        service_slug: "medusa-valkey"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 15
         downtime_risk: true
@@ -70,7 +70,7 @@ services:
       affected_path_globs:
         - "docker/development/medusa-minio/**"
       zane:
-        service_name: "medusa-minio"
+        service_slug: "medusa-minio"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 15
         downtime_risk: true
@@ -87,7 +87,7 @@ services:
       prepare:
         meili_keys: true
       zane:
-        service_name: "medusa-meilisearch"
+        service_slug: "medusa-meilisearch"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 15
         downtime_risk: true
@@ -108,7 +108,7 @@ services:
         preview_db: true
         meili_keys: true
       zane:
-        service_name: "medusa-be"
+        service_slug: "medusa-be"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 20
         consumes:
@@ -129,7 +129,7 @@ services:
       prepare:
         meili_keys: true
       zane:
-        service_name: "n1"
+        service_slug: "n1"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 25
         consumes:
@@ -148,6 +148,6 @@ services:
       affected_path_globs:
         - "docker/development/zane-operator/**"
       zane:
-        service_name: "zane-operator"
+        service_slug: "zane-operator"
         deploy_lanes: ["main"]
         deploy_stage: 10
