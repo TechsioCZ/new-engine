@@ -54,6 +54,12 @@ const comboboxVariants = tv({
       "rounded-combobox shadow-md",
       "bg-combobox-content-bg",
       "z-(--z-combobox-content) border border-combobox-border",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
+      "transition-discrete",
+      "starting:-translate-y-2 starting:opacity-0",
+      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
+      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
+      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
     ],
     item: [
       "flex items-center",
@@ -88,24 +94,22 @@ const comboboxVariants = tv({
     size: {
       sm: {
         root: "gap-combobox-root-sm",
-        control:
-          "h-form-control-sm rounded-combobox-sm text-combobox-control-sm",
-        item: "p-combobox-item-sm",
+        control: "h-form-control-sm rounded-combobox-sm text-input-sm",
+        item: "p-combobox-item-sm text-combobox-item-sm",
         input: "p-combobox-input-sm",
         content: "text-combobox-content-sm",
       },
       md: {
         root: "gap-combobox-root-md",
-        control:
-          "h-form-control-md rounded-combobox-md text-combobox-control-md",
-        item: "p-combobox-item-md",
+        control: "h-form-control-md rounded-combobox-md text-input-md",
+        item: "p-combobox-item-md text-combobox-item-md",
         input: "p-combobox-input-md",
         content: "text-combobox-content-md",
       },
       lg: {
         root: "gap-combobox-root-lg",
-        control: "text-input-lg",
-        item: "p-combobox-item-lg",
+        control: "rounded-combobox text-input-lg",
+        item: "p-combobox-item-lg text-combobox-item-lg",
         input: "p-combobox-input-lg",
         content: "text-combobox-content-lg",
       },
@@ -255,6 +259,8 @@ export function Combobox<T = unknown>({
     item: itemSlot,
   } = comboboxVariants({ size })
 
+  const hasPopupContent = options.length > 0 || Boolean(api.inputValue)
+
   return (
     <div className={root()}>
       {label && (
@@ -310,7 +316,7 @@ export function Combobox<T = unknown>({
 
       <Portal>
         <div {...api.getPositionerProps()} className={positioner()}>
-          {api.open && options.length > 0 && (
+          {hasPopupContent && options.length > 0 && (
             <ul {...api.getContentProps()} className={content()}>
               {options.map((item) => (
                 <li
@@ -323,8 +329,8 @@ export function Combobox<T = unknown>({
               ))}
             </ul>
           )}
-          {api.open && api.inputValue && options.length === 0 && (
-            <div className={content()}>
+          {hasPopupContent && options.length === 0 && (
+            <div {...api.getContentProps()} className={content()}>
               {noResultsMessage.replace("{inputValue}", api.inputValue)}
             </div>
           )}
