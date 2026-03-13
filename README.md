@@ -321,6 +321,8 @@ Use `.env` for local compose/runtime and `.env.zane` for Zane-targeted helper sc
 - `mise run dev:zane:project:sync`
 - `mise run dev:zane:template-db:sync`
 
+For Zane-targeted helpers, managed public service URLs are derived from the route contract rather than copied from ambient `.env.zane` frontend URL values.
+
 ---
 
 # WrSearch
