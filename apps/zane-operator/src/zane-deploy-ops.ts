@@ -375,9 +375,9 @@ export class ZaneDeployOps {
       input.targets.map(async (target) => {
         const body =
           target.service_type === "docker"
-            ? { cleanup_queue: false, commit_message: "CI selective deploy" }
+            ? { cleanup_queue: true, commit_message: "CI selective deploy" }
             : {
-                cleanup_queue: false,
+                cleanup_queue: true,
                 ignore_build_cache: false,
                 ...(input.gitCommitSha ? { commit_sha: input.gitCommitSha } : {}),
               }
