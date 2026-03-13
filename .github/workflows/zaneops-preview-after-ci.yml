@@ -116,7 +116,7 @@ jobs:
           REQUIRES_PREVIEW_DB: ${{ needs.scope.outputs.requires_preview_db }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-        run: bash ./scripts/ci/check-workflow-inputs.sh preview-prepare
+        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode preview-prepare
 
       - name: Run preview prepare
         id: run_prepare
@@ -194,8 +194,9 @@ jobs:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
-        run: bash ./scripts/ci/check-workflow-inputs.sh preview-deploy
+        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode preview-deploy
 
       - name: Run preview deploy
         id: run_deploy
@@ -208,10 +209,12 @@ jobs:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
         run: |
           node apps/new-engine-ctl/dist/cli.js deploy-preview \
             --pr-number "$PR_NUMBER" \
             --services-csv "$SERVICES_CSV" \
+            --source-environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
             --preview-db-name "${PREVIEW_DB_NAME:-}" \
             --preview-db-user "${PREVIEW_DB_USER:-}" \
             --preview-db-password "${PREVIEW_DB_PASSWORD:-}"
@@ -260,7 +263,7 @@ jobs:
           MEILI_BACKEND_KEY: ${{ needs.deploy.outputs.meili_backend_key }}
           MEILI_FRONTEND_KEY: ${{ needs.deploy.outputs.meili_frontend_key }}
           PREVIEW_RANDOM_ONCE_SECRETS_JSON: ${{ needs.deploy.outputs.preview_random_once_secrets_json }}
-        run: bash ./scripts/ci/check-workflow-inputs.sh preview-verify
+        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode preview-verify
 
       - name: Run preview verify
         env:
@@ -268,6 +271,8 @@ jobs:
           REQUESTED_SERVICES_CSV: ${{ needs.deploy.outputs.requested_services_csv }}
           DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv }}
           TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv }}
+          PREVIEW_CLONED_SERVICE_IDS_CSV: ${{ needs.deploy.outputs.preview_cloned_service_ids_csv }}
+          PREVIEW_EXCLUDED_SERVICE_IDS_CSV: ${{ needs.deploy.outputs.preview_excluded_service_ids_csv }}
           DEPLOYMENTS_JSON: ${{ needs.deploy.outputs.deployments_json }}
           PREVIEW_DB_NAME: ${{ needs.prepare.outputs.preview_db_name }}
           PREVIEW_DB_USER: ${{ needs.prepare.outputs.preview_db_user }}
@@ -286,6 +291,8 @@ jobs:
             --requested-services-csv "${REQUESTED_SERVICES_CSV:-}" \
             --deploy-services-csv "${DEPLOY_SERVICES_CSV:-}" \
             --triggered-services-csv "${TRIGGERED_SERVICES_CSV:-}" \
+            --preview-cloned-service-ids-csv "${PREVIEW_CLONED_SERVICE_IDS_CSV:-}" \
+            --preview-excluded-service-ids-csv "${PREVIEW_EXCLUDED_SERVICE_IDS_CSV:-}" \
             --deployments-json-inline "${DEPLOYMENTS_JSON:-}" \
             --preview-db-name "${PREVIEW_DB_NAME:-}" \
             --preview-db-user "${PREVIEW_DB_USER:-}" \

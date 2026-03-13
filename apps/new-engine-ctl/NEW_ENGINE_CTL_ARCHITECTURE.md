@@ -1,24 +1,18 @@
 # New Engine CTL Architecture
 
 Last updated: 2026-03-13
-Scope: active replacement of shell-heavy CI/local orchestration with a repo-owned typed CLI application.
+Scope: repo-owned typed orchestration CLI for CI and local deploy-related flows.
 
 ## Authority
 
 - `plans/architecture.md` remains the top-level architecture contract.
 - This file is the scoped committed contract for `apps/new-engine-ctl`.
-- `apps/zane-operator/CI_DEPLOY_ARCHITECTURE.md` remains the committed deploy contract that current behavior must continue to satisfy during the migration.
-- Any change to the migration direction in this file requires explicit user approval before implementation continues.
-
-## Activation
-
-- This migration is active.
-- The execution tracker decides which migration slice is currently in progress.
-- Do not overlap this migration with unrelated architecture changes.
+- `apps/zane-operator/CI_DEPLOY_ARCHITECTURE.md` remains the committed deploy contract that current behavior must satisfy.
+- Any change to the boundary or command-surface contract in this file requires explicit user approval before implementation continues.
 
 ## Goal
 
-Replace shell-heavy orchestration with a repo-owned typed CLI while keeping:
+Keep orchestration in a repo-owned typed CLI while keeping:
 - workflow YAML thin
 - shared config as the source of truth
 - `zane-operator` as the authenticated execution backend for Zane/runtime operations
@@ -42,7 +36,7 @@ Implementation notes:
 Initial implementation must not use:
 - `Bun` as the primary CI runtime for this CLI
 - `EffectTS`
-- a compatibility wrapper strategy that keeps old shell orchestration alive after equivalent CLI commands are verified
+- a compatibility wrapper strategy that keeps superseded shell orchestration alive once equivalent CLI behavior is verified
 
 ## Ownership Boundaries
 
@@ -64,11 +58,12 @@ Initial implementation must not use:
 - deploy verification
 - runtime provisioning that requires authenticated Zane inspection or live service access
 
-Preferred boundary after cutover:
+Required boundary:
 - `apps/new-engine-ctl` remains the only consumer of repo-wide orchestration config
 - `apps/new-engine-ctl` passes explicit typed requests to `zane-operator`
-- `zane-operator` should not keep a standing dependency on repo-wide orchestration config once the CLI owns orchestration end-to-end
-- if `zane-operator` still needs an internal typed provider contract after cutover, that must be justified by a concrete operational need rather than convenience
+- `zane-operator` must not keep a standing dependency on repo-wide orchestration config
+- if `zane-operator` still needs an internal typed provider contract, that must be justified by a concrete operational need rather than convenience
+- shell files may exist only as narrow transport, validation, or local convenience helpers; they must not own deploy policy, config interpretation, or multi-phase orchestration logic
 
 Workflow YAML owns:
 - coarse job/stage orchestration only
@@ -83,13 +78,14 @@ The CLI must consume:
 
 The CLI must not re-encode deploy policy in code when that policy already belongs in shared config.
 
-Current boundary state:
+Boundary state:
 - those files now live under `apps/new-engine-ctl/config/`
 - `apps/new-engine-ctl` owns their loading and validation as part of the active orchestration boundary
 
 ## Command Surface
 
 Initial command surface should be explicit and phase-oriented:
+- `check-workflow-inputs`
 - `plan`
 - `prepare`
 - `deploy-preview`
@@ -114,14 +110,12 @@ Recommended initial layout:
 
 Keep config parsing, orchestration, operator client code, and build/runtime packaging concerns separate.
 
-## Migration Policy
-
-This is a direct replacement migration.
+## Boundary Rules
 
 Rules:
 - do not keep legacy shell compatibility wrappers once equivalent CLI behavior is verified
-- replace command ownership directly
-- remove superseded shell entrypoints in the same migration slice that proves CLI parity
+- do not reintroduce deploy-policy ownership into shell scripts, workflow YAML, or `zane-operator`
+- remove superseded shell entrypoints when their behavior has no remaining justified surface
 - do not run two long-term orchestration implementations in parallel
 
 ## Verification Gates
@@ -144,7 +138,7 @@ Before removing any replaced shell entrypoint, the CLI must prove parity for the
 
 ## Generalization Rule
 
-Keep the orchestration app repo-specific on first implementation.
+Keep the orchestration app repo-specific.
 Only extract reusable lower-level pieces later if they prove obviously generic.
 
 Examples of potentially reusable lower-level pieces later:

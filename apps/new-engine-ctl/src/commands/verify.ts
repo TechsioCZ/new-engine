@@ -19,6 +19,8 @@ export function createVerifyCommand(): Command {
     .option("--requested-services-csv <csv>", "", "")
     .option("--deploy-services-csv <csv>", "", "")
     .option("--triggered-services-csv <csv>", "", "")
+    .option("--preview-cloned-service-ids-csv <csv>", "", "")
+    .option("--preview-excluded-service-ids-csv <csv>", "", "")
     .option("--preview-db-name <name>", "", "")
     .option("--preview-db-user <user>", "", "")
     .option("--preview-db-password <password>", "", "")
@@ -62,6 +64,8 @@ export function createVerifyCommand(): Command {
         requestedServicesCsv: options.requestedServicesCsv,
         deployServicesCsv: options.deployServicesCsv,
         triggeredServicesCsv: options.triggeredServicesCsv,
+        previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
+        previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
         previewDbName: options.previewDbName,
         previewDbUser: options.previewDbUser,
         previewDbPassword: options.previewDbPassword,

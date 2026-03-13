@@ -142,7 +142,7 @@ jobs:
           REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
           MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
           MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
-        run: bash ./scripts/ci/check-workflow-inputs.sh main-prepare
+        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-prepare
 
       - name: Run main prepare
         id: run_prepare
@@ -216,7 +216,7 @@ jobs:
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
           MEILI_BACKEND_KEY: ${{ needs.prepare.outputs.meili_backend_key }}
           MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
-        run: bash ./scripts/ci/check-workflow-inputs.sh main-deploy
+        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-deploy
 
       - name: Run main deploy
         id: run_deploy
@@ -251,7 +251,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify:
-    needs: [scope, deploy]
+    needs: [scope, prepare, deploy]
     if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -275,7 +275,7 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
-        run: bash ./scripts/ci/check-workflow-inputs.sh main-verify
+        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-verify
 
       - name: Run main verify
         env:

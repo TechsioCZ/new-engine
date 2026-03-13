@@ -17,6 +17,7 @@ import {
 } from "../contracts/stack-manifest.js"
 import type {
   EnvOverride,
+  ForbiddenEnvRequirement,
   PreviewRandomOnceSecretInput,
   RequiredPersistedEnv,
 } from "../contracts/verify.js"
@@ -308,6 +309,52 @@ export function buildRequiredPersistedEnv(
       contracts,
       searchCredentialEnvVars
     )
+
+    if (envKeys.length === 0) {
+      return []
+    }
+
+    return [
+      {
+        service_id: service.id,
+        service_slug: service.serviceSlug,
+        env_keys: envKeys,
+      },
+    ]
+  })
+}
+
+export function buildForbiddenPreviewOnlyEnv(
+  lane: Lane,
+  deployServiceIds: string[],
+  contracts: DeployContracts
+): ForbiddenEnvRequirement[] {
+  if (lane !== "main") {
+    return []
+  }
+
+  const randomOnceDefinitions = getPreviewRandomOnceSecretDefinitions(
+    contracts.stackInputs
+  )
+
+  return deployServiceIds.flatMap((serviceId) => {
+    const service = getDeployableService(contracts.manifest, serviceId)
+    const envKeys: string[] = []
+    const seen = new Set<string>()
+
+    if (service.consumes.preview_db) {
+      addPersistedEnvKey(envKeys, seen, "DC_MEDUSA_APP_DB_NAME")
+      addPersistedEnvKey(envKeys, seen, "DC_MEDUSA_APP_DB_USER")
+      addPersistedEnvKey(envKeys, seen, "DC_MEDUSA_APP_DB_PASSWORD")
+    }
+
+    for (const secret of randomOnceDefinitions) {
+      for (const target of secret.targets) {
+        if (target.service_id === service.id) {
+          addPersistedEnvKey(envKeys, seen, target.env_var)
+        }
+      }
+    }
 
     if (envKeys.length === 0) {
       return []

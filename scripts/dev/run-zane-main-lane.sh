@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 
-# shellcheck source=scripts/ci/lib.sh
-source "${ROOT_DIR}/scripts/ci/lib.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "${ROOT_DIR}/scripts/dev/lib/common.sh"
 
 PROJECT_SLUG="new-engine"
 ENVIRONMENT_NAME="production"
@@ -122,14 +122,14 @@ parse_args() {
         exit 0
         ;;
       *)
-        ci::die "Unknown argument: $1"
+        common::die "Unknown argument: $1"
         ;;
     esac
   done
 }
 
 load_env_file() {
-  [[ -f "$ENV_FILE" ]] || ci::die "Env file not found: $ENV_FILE"
+  [[ -f "$ENV_FILE" ]] || common::die "Env file not found: $ENV_FILE"
 
   set +u
   set -a
@@ -140,9 +140,9 @@ load_env_file() {
 }
 
 require_tools() {
-  ci::require_command bash
-  ci::require_command git
-  ci::require_command jq
+  common::require_command bash
+  common::require_command git
+  common::require_command jq
 }
 
 normalize_csv() {
@@ -162,7 +162,7 @@ derive_public_domain() {
     return
   fi
 
-  [[ -n "$ZANE_BASE_URL" ]] || ci::die "Unable to derive public domain without --zane-base-url or DC_ZANE_OPERATOR_ZANE_BASE_URL."
+  [[ -n "$ZANE_BASE_URL" ]] || common::die "Unable to derive public domain without --zane-base-url or DC_ZANE_OPERATOR_ZANE_BASE_URL."
   host="${ZANE_BASE_URL#http://}"
   host="${host#https://}"
   host="${host%%/*}"
@@ -173,7 +173,7 @@ derive_public_domain() {
     return
   fi
 
-  ci::die "Unable to derive public domain from ${ZANE_BASE_URL}. Pass --public-domain explicitly."
+  common::die "Unable to derive public domain from ${ZANE_BASE_URL}. Pass --public-domain explicitly."
 }
 
 derive_defaults() {
@@ -241,7 +241,7 @@ run_prepare_stage() {
     export REQUIRES_MEILI_KEYS="$requires_meili_keys"
     export MEILISEARCH_URL="$MEILISEARCH_URL"
     export MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY"
-    bash "${ROOT_DIR}/scripts/ci/check-workflow-inputs.sh" main-prepare
+    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts check-workflow-inputs --mode main-prepare
   ) >/dev/null
 
   output_file="$(mktemp)"
@@ -289,7 +289,7 @@ run_deploy_stage() {
     export ZANE_OPERATOR_API_TOKEN="$ZANE_OPERATOR_API_TOKEN"
     export ZANE_CANONICAL_PROJECT_SLUG="$PROJECT_SLUG"
     export ZANE_PRODUCTION_ENVIRONMENT_NAME="$ENVIRONMENT_NAME"
-    bash "${ROOT_DIR}/scripts/ci/check-workflow-inputs.sh" main-deploy
+    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts check-workflow-inputs --mode main-deploy
   ) >/dev/null
 
   if ! deploy_json="$(
@@ -315,7 +315,7 @@ run_verify_stage() {
   local verify_json
   local deployments_json_inline
 
-  jq -e . >/dev/null <<<"$deploy_json" || ci::die "Deploy stage did not return valid JSON."
+  jq -e . >/dev/null <<<"$deploy_json" || common::die "Deploy stage did not return valid JSON."
   deployments_json_inline="$(jq -c '{services: (.deployments // [])}' <<<"$deploy_json")"
 
   (
@@ -323,7 +323,7 @@ run_verify_stage() {
     export ZANE_OPERATOR_API_TOKEN="$ZANE_OPERATOR_API_TOKEN"
     export ZANE_CANONICAL_PROJECT_SLUG="$PROJECT_SLUG"
     export ZANE_PRODUCTION_ENVIRONMENT_NAME="$ENVIRONMENT_NAME"
-    bash "${ROOT_DIR}/scripts/ci/check-workflow-inputs.sh" main-verify
+    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts check-workflow-inputs --mode main-verify
   ) >/dev/null
 
   if ! verify_json="$(
@@ -390,30 +390,30 @@ main() {
     preview_db_service_ids: (if .preview_db_service_ids == "" then [] else (.preview_db_service_ids | split(",")) end),
     meili_key_service_ids: (if .meili_key_service_ids == "" then [] else (.meili_key_service_ids | split(",")) end)
   }' <<<"$scope_json")"
-  jq -e . >/dev/null <<<"$prepare_needs_json" || ci::die "Prepare-needs stage did not return valid JSON."
+  jq -e . >/dev/null <<<"$prepare_needs_json" || common::die "Prepare-needs stage did not return valid JSON."
   downtime_json="$(jq -c '{
     lane,
     services_csv,
     requires_downtime_approval,
     downtime_service_ids: (if .downtime_service_ids == "" then [] else (.downtime_service_ids | split(",")) end)
   }' <<<"$scope_json")"
-  jq -e . >/dev/null <<<"$downtime_json" || ci::die "Downtime-risk stage did not return valid JSON."
+  jq -e . >/dev/null <<<"$downtime_json" || common::die "Downtime-risk stage did not return valid JSON."
   if [[ "$(jq -r '.requires_downtime_approval' <<<"$downtime_json")" == "true" && "$APPROVE_DOWNTIME_RISK" != "true" ]]; then
-    ci::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(\",\")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
+    common::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(\",\")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
   fi
   requires_meili_keys="$(jq -r '.requires_meili_keys' <<<"$prepare_needs_json")"
   prepare_json="$(run_prepare_stage "$requires_meili_keys")"
-  jq -e . >/dev/null <<<"$prepare_json" || ci::die "Prepare stage did not return valid JSON."
+  jq -e . >/dev/null <<<"$prepare_json" || common::die "Prepare stage did not return valid JSON."
   if ! deploy_json="$(run_deploy_stage "$prepare_json")"; then
-    ci::die "Main deploy stage failed. See the deployment error above for the failing stage and deployment hash."
+    common::die "Main deploy stage failed. See the deployment error above for the failing stage and deployment hash."
   fi
-  jq -e . >/dev/null <<<"$deploy_json" || ci::die "Deploy stage did not return valid JSON."
+  jq -e . >/dev/null <<<"$deploy_json" || common::die "Deploy stage did not return valid JSON."
 
   if [[ "$SKIP_VERIFY" == "false" ]]; then
     if ! verify_json="$(run_verify_stage "$deploy_json" "$prepare_json")"; then
-      ci::die "Main verify stage failed. See the verification error above."
+      common::die "Main verify stage failed. See the verification error above."
     fi
-    jq -e . >/dev/null <<<"$verify_json" || ci::die "Verify stage did not return valid JSON."
+    jq -e . >/dev/null <<<"$verify_json" || common::die "Verify stage did not return valid JSON."
   fi
 
   jq -cn \

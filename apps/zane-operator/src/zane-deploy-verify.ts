@@ -14,6 +14,12 @@ interface VerifyPersistedEnvRequirement {
   env_keys: string[]
 }
 
+interface VerifyForbiddenEnvRequirement {
+  service_id: string
+  service_slug: string
+  env_keys: string[]
+}
+
 interface VerifyDeploymentRefInput {
   service_id: string
   service_slug: string
@@ -27,8 +33,11 @@ interface VerifyDeployRequest {
   requestedServiceIds: string[]
   deployServiceIds: string[]
   triggeredServiceIds: string[]
+  expectedPreviewServiceSlugs: string[]
+  excludedPreviewServiceSlugs: string[]
   expectedEnvOverrides: VerifyEnvOverrideInput[]
   requiredPersistedEnv: VerifyPersistedEnvRequirement[]
+  forbiddenEnv: VerifyForbiddenEnvRequirement[]
   deployments: VerifyDeploymentRefInput[]
 }
 
@@ -91,6 +100,10 @@ interface CheckedDeploymentResult {
   status_reason: string | null
 }
 
+function sortUnique(values: string[]): string[] {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right))
+}
+
 function assertRepoServiceIdSubset(
   values: string[],
   allowed: Set<string>,
@@ -107,6 +120,7 @@ function assertRepoServiceIdSubset(
 function buildVerifyServiceSlugByRepoId(
   expectedEnvOverrides: VerifyEnvOverrideInput[],
   requiredPersistedEnv: VerifyPersistedEnvRequirement[],
+  forbiddenEnv: VerifyForbiddenEnvRequirement[],
   deployments: VerifyDeploymentRefInput[],
 ): Map<string, string> {
   const mapping = new Map<string, string>()
@@ -126,6 +140,10 @@ function buildVerifyServiceSlugByRepoId(
 
   for (const requirement of requiredPersistedEnv) {
     register(requirement.service_id, requirement.service_slug, "required_persisted_env")
+  }
+
+  for (const requirement of forbiddenEnv) {
+    register(requirement.service_id, requirement.service_slug, "forbidden_env")
   }
 
   for (const deployment of deployments) {
@@ -153,6 +171,50 @@ function assertEnvironmentMatchesLane(environment: VerifyEnvironmentLookup, lane
   }
 }
 
+function verifyPreviewServiceSet(input: {
+  expectedPreviewServiceSlugs: string[]
+  excludedPreviewServiceSlugs: string[]
+  presentServiceSlugs: string[]
+  projectSlug: string
+  environmentName: string
+}): {
+  checkedPreviewClonedServiceSlugs: string[]
+  warningOnlyPreviewServiceSlugs: string[]
+} {
+  const expectedPreviewServiceSlugs = sortUnique(input.expectedPreviewServiceSlugs)
+  const excludedPreviewServiceSlugs = sortUnique(input.excludedPreviewServiceSlugs)
+  const presentServiceSlugs = sortUnique(input.presentServiceSlugs)
+  const presentSet = new Set(presentServiceSlugs)
+  const expectedSet = new Set(expectedPreviewServiceSlugs)
+  const excludedSet = new Set(excludedPreviewServiceSlugs)
+  const missingPreviewServiceSlugs = expectedPreviewServiceSlugs.filter(
+    (slug) => !presentSet.has(slug)
+  )
+
+  if (missingPreviewServiceSlugs.length > 0) {
+    throw new UpstreamHttpError(
+      409,
+      "zane_verify_preview_service_missing",
+      `Preview environment ${input.projectSlug}/${input.environmentName} is missing expected cloned services: ${missingPreviewServiceSlugs.join(", ")}`,
+    )
+  }
+
+  const excludedPresentServiceSlugs = excludedPreviewServiceSlugs.filter((slug) =>
+    presentSet.has(slug)
+  )
+  const extraPresentServiceSlugs = presentServiceSlugs.filter(
+    (slug) => !expectedSet.has(slug) && !excludedSet.has(slug)
+  )
+
+  return {
+    checkedPreviewClonedServiceSlugs: expectedPreviewServiceSlugs,
+    warningOnlyPreviewServiceSlugs: sortUnique([
+      ...excludedPresentServiceSlugs,
+      ...extraPresentServiceSlugs,
+    ]),
+  }
+}
+
 export class ZaneDeployVerifier {
   readonly #deps: VerifyDeps
 
@@ -168,8 +230,11 @@ export class ZaneDeployVerifier {
     requested_service_ids: string[]
     deploy_service_ids: string[]
     triggered_service_ids: string[]
+    checked_preview_cloned_service_slugs: string[]
+    warning_only_preview_service_slugs: string[]
     checked_env_override_service_ids: string[]
     checked_persisted_env_service_ids: string[]
+    checked_forbidden_env_service_ids: string[]
     checked_deployment_service_ids: string[]
     checked_deployments: CheckedDeploymentResult[]
   }> {
@@ -185,11 +250,25 @@ export class ZaneDeployVerifier {
     assertEnvironmentMatchesLane(environment, input.lane)
 
     const services = await this.#deps.listServiceCards(session, input.projectSlug, input.environmentName)
+    const previewServiceVerification =
+      input.lane === "preview"
+        ? verifyPreviewServiceSet({
+      expectedPreviewServiceSlugs: input.expectedPreviewServiceSlugs,
+      excludedPreviewServiceSlugs: input.excludedPreviewServiceSlugs,
+      presentServiceSlugs: services.map((service) => service.slug),
+            projectSlug: input.projectSlug,
+            environmentName: input.environmentName,
+          })
+        : {
+            checkedPreviewClonedServiceSlugs: [] as string[],
+            warningOnlyPreviewServiceSlugs: [] as string[],
+          }
     const serviceCardBySlug = new Map(services.map((service) => [service.slug, service]))
     const deployRepoServiceIdSet = new Set(input.deployServiceIds)
     const verifyServiceSlugByRepoId = buildVerifyServiceSlugByRepoId(
       input.expectedEnvOverrides,
       input.requiredPersistedEnv,
+      input.forbiddenEnv,
       input.deployments,
     )
 
@@ -223,9 +302,16 @@ export class ZaneDeployVerifier {
       "deployment.service_id",
       "deployments",
     )
+    assertRepoServiceIdSubset(
+      input.forbiddenEnv.map((item) => item.service_id),
+      deployRepoServiceIdSet,
+      "forbidden_env.service_id",
+      "forbidden_env",
+    )
 
     const expectedOverrideByServiceId = new Map(input.expectedEnvOverrides.map((item) => [item.service_id, item]))
     const requiredPersistedEnvByServiceId = new Map(input.requiredPersistedEnv.map((item) => [item.service_id, item]))
+    const forbiddenEnvByServiceId = new Map(input.forbiddenEnv.map((item) => [item.service_id, item]))
     const deploymentRefByServiceId = new Map<string, VerifyDeploymentRefInput>()
     for (const deploymentRef of input.deployments) {
       if (deploymentRefByServiceId.has(deploymentRef.service_id)) {
@@ -257,6 +343,7 @@ export class ZaneDeployVerifier {
 
       const expectedOverride = expectedOverrideByServiceId.get(repoServiceId)
       const persistedEnvRequirement = requiredPersistedEnvByServiceId.get(repoServiceId)
+      const forbiddenEnvRequirement = forbiddenEnvByServiceId.get(repoServiceId)
       const deploymentRef = deploymentRefByServiceId.get(repoServiceId)
 
       let deployment: VerifyDeployment
@@ -307,7 +394,7 @@ export class ZaneDeployVerifier {
         status_reason: deployment.status_reason ?? null,
       })
 
-      if (!expectedOverride && !persistedEnvRequirement) {
+      if (!expectedOverride && !persistedEnvRequirement && !forbiddenEnvRequirement) {
         continue
       }
 
@@ -339,6 +426,18 @@ export class ZaneDeployVerifier {
           }
         }
       }
+
+      if (forbiddenEnvRequirement) {
+        for (const key of forbiddenEnvRequirement.env_keys) {
+          if (envVariables.has(key)) {
+            throw new UpstreamHttpError(
+              409,
+              "zane_verify_forbidden_env_present",
+              `Deployment ${deployment.hash} for ${checkedServiceSlug} still contains preview-only env key ${key}`,
+            )
+          }
+        }
+      }
     }
 
     if (input.deployServiceIds.length > 0 && checkedDeployments.length === 0) {
@@ -366,8 +465,13 @@ export class ZaneDeployVerifier {
       requested_service_ids: input.requestedServiceIds,
       deploy_service_ids: input.deployServiceIds,
       triggered_service_ids: input.triggeredServiceIds,
+      checked_preview_cloned_service_slugs:
+        previewServiceVerification.checkedPreviewClonedServiceSlugs,
+      warning_only_preview_service_slugs:
+        previewServiceVerification.warningOnlyPreviewServiceSlugs,
       checked_env_override_service_ids: input.expectedEnvOverrides.map((item) => item.service_id),
       checked_persisted_env_service_ids: input.requiredPersistedEnv.map((item) => item.service_id),
+      checked_forbidden_env_service_ids: input.forbiddenEnv.map((item) => item.service_id),
       checked_deployment_service_ids: checkedDeployments.map((item) => item.service_id),
       checked_deployments: checkedDeployments,
     }

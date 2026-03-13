@@ -1,6 +1,7 @@
 import { Command } from "commander"
 import { ZodError } from "zod"
 
+import { createCheckWorkflowInputsCommand } from "./commands/check-workflow-inputs.js"
 import { createDeployMainCommand } from "./commands/deploy-main.js"
 import { createDeployPreviewCommand } from "./commands/deploy-preview.js"
 import { createManifestCommand } from "./commands/manifest.js"
@@ -18,6 +19,7 @@ async function main(): Promise<void> {
     )
     .showHelpAfterError()
 
+  program.addCommand(createCheckWorkflowInputsCommand())
   program.addCommand(createDeployMainCommand())
   program.addCommand(createDeployPreviewCommand())
   program.addCommand(createManifestCommand())

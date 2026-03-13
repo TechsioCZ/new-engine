@@ -146,6 +146,7 @@ export class ZaneOperatorClient {
     lane: "preview" | "main"
     project_slug: string
     environment_name: string
+    source_environment_name: string
     expected_preview_service_slugs: string[]
     excluded_preview_service_slugs: string[]
   }): Promise<ResolveEnvironmentResponse> {

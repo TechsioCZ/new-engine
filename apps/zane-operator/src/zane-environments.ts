@@ -1,5 +1,17 @@
 import { UpstreamHttpError } from "./zane-errors"
-import { parseErrorMessage, updateCookiesFromHeaders, type HttpMethod, type ZaneSession } from "./zane-upstream"
+import {
+  parseErrorMessage,
+  updateCookiesFromHeaders,
+  type HttpMethod,
+  type ZaneSession,
+} from "./zane-upstream"
+import type {
+  ZaneServiceDetails,
+  ZaneServiceHealthcheck,
+  ZaneServiceResourceLimits,
+  ZaneServiceUrl,
+  ZaneServiceVolume,
+} from "./zane-contract"
 
 interface ResolveEnvironmentWarning {
   code: "preview_excluded_services_present" | "preview_extra_services_present"
@@ -11,6 +23,7 @@ interface ResolveEnvironmentInput {
   lane: "preview" | "main"
   projectSlug: string
   environmentName: string
+  sourceEnvironmentName: string
   expectedPreviewServiceSlugs: string[]
   excludedPreviewServiceSlugs: string[]
 }
@@ -41,17 +54,26 @@ interface ZaneServiceCard {
 interface ZaneEnvironmentDeps {
   baseUrl: string
   authenticate(): Promise<ZaneSession>
-  buildHeaders(session: ZaneSession | undefined, method: HttpMethod): Record<string, string>
+  buildHeaders(
+    session: ZaneSession | undefined,
+    method: HttpMethod
+  ): Record<string, string>
   getEnvironment(
     session: ZaneSession,
     projectSlug: string,
-    environmentName: string,
+    environmentName: string
   ): Promise<ZaneEnvironmentWithVariables | null>
   listServiceCards(
     session: ZaneSession,
     projectSlug: string,
-    environmentName: string,
+    environmentName: string
   ): Promise<ZaneServiceCard[]>
+  getServiceDetails(
+    session: ZaneSession,
+    projectSlug: string,
+    environmentName: string,
+    serviceSlug: string
+  ): Promise<ZaneServiceDetails>
   request<T>(
     session: ZaneSession,
     method: HttpMethod,
@@ -60,18 +82,45 @@ interface ZaneEnvironmentDeps {
     options?: {
       allowNotFound?: boolean
       retryOnAuthFailure?: boolean
-    },
+    }
   ): Promise<T | null>
 }
 
-const ZANE_PRODUCTION_ENVIRONMENT_NAME = "production"
+type ResolvedEnvironmentState = {
+  lane: "preview" | "main"
+  project_slug: string
+  environment_id: string
+  environment_name: string
+  is_preview: boolean
+  created: boolean
+  cloned_from_environment: string | null
+  ready: boolean
+  expected_preview_service_slugs: string[]
+  excluded_preview_service_slugs: string[]
+  present_service_slugs: string[]
+  missing_preview_service_slugs: string[]
+  warnings: ResolveEnvironmentWarning[]
+}
 
-function assertEnvironmentMatchesLane(environment: Pick<ZaneEnvironment, "name" | "is_preview">, lane: "preview" | "main"): void {
+type CreateGitServicePayload = {
+  slug: string
+  repository_url: string
+  branch_name: string
+  builder: "DOCKERFILE"
+  dockerfile_path: string
+  build_context_dir: string
+  git_app_id?: string
+}
+
+function assertEnvironmentMatchesLane(
+  environment: Pick<ZaneEnvironment, "name" | "is_preview">,
+  lane: "preview" | "main"
+): void {
   if (lane === "main" && environment.is_preview) {
     throw new UpstreamHttpError(
       409,
       "zane_environment_lane_mismatch",
-      `Environment ${environment.name} is a preview environment and cannot be used for main lane operations`,
+      `Environment ${environment.name} is a preview environment and cannot be used for main lane operations`
     )
   }
 
@@ -79,8 +128,47 @@ function assertEnvironmentMatchesLane(environment: Pick<ZaneEnvironment, "name" 
     throw new UpstreamHttpError(
       409,
       "zane_environment_lane_mismatch",
-      `Environment ${environment.name} is not a preview environment and cannot be used for preview lane operations`,
+      `Environment ${environment.name} is not a preview environment and cannot be used for preview lane operations`
     )
+  }
+}
+
+function buildCreateGitServicePayload(
+  source: ZaneServiceDetails,
+  projectSlug: string,
+  environmentName: string
+): CreateGitServicePayload {
+  if (source.type !== "git") {
+    throw new UpstreamHttpError(
+      409,
+      "zane_preview_service_reconcile_unsupported",
+      `Preview safe-drift reconcile supports only Git services; ${projectSlug}/${environmentName}/${source.slug} is ${source.type}`
+    )
+  }
+
+  const dockerfilePath =
+    source.dockerfile_builder_options?.dockerfile_path?.trim() ?? ""
+  const buildContextDir =
+    source.dockerfile_builder_options?.build_context_dir?.trim() ?? ""
+  const repositoryUrl = source.repository_url?.trim() ?? ""
+  const branchName = source.branch_name?.trim() ?? ""
+
+  if (!repositoryUrl || !branchName || !dockerfilePath || !buildContextDir) {
+    throw new UpstreamHttpError(
+      409,
+      "zane_preview_service_reconcile_invalid_source",
+      `Source service ${projectSlug}/${environmentName}/${source.slug} is missing Git clone metadata`
+    )
+  }
+
+  return {
+    slug: source.slug,
+    repository_url: repositoryUrl,
+    branch_name: branchName,
+    builder: "DOCKERFILE",
+    dockerfile_path: dockerfilePath,
+    build_context_dir: buildContextDir,
+    ...(source.git_app?.id ? { git_app_id: source.git_app.id } : {}),
   }
 }
 
@@ -91,34 +179,24 @@ export class ZaneEnvironmentManager {
     this.#deps = deps
   }
 
-  async resolveEnvironment(input: ResolveEnvironmentInput): Promise<{
-    lane: "preview" | "main"
-    project_slug: string
-    environment_id: string
-    environment_name: string
-    is_preview: boolean
-    created: boolean
-    cloned_from_environment: string | null
-    ready: boolean
-    expected_preview_service_slugs: string[]
-    excluded_preview_service_slugs: string[]
-    present_service_slugs: string[]
-    missing_preview_service_slugs: string[]
-    warnings: ResolveEnvironmentWarning[]
-  }> {
+  async resolveEnvironment(input: ResolveEnvironmentInput): Promise<ResolvedEnvironmentState> {
     const session = await this.#deps.authenticate()
-    const existing = await this.#deps.getEnvironment(session, input.projectSlug, input.environmentName)
+    const existing = await this.#deps.getEnvironment(
+      session,
+      input.projectSlug,
+      input.environmentName
+    )
 
     if (existing) {
       assertEnvironmentMatchesLane(existing, input.lane)
-      return await this.buildResolvedEnvironmentState(session, input, existing, false, null)
+      return await this.resolveExistingEnvironment(session, input, existing)
     }
 
     if (input.lane !== "preview") {
       throw new UpstreamHttpError(
         404,
         "zane_environment_not_found",
-        `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`,
+        `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`
       )
     }
 
@@ -126,19 +204,29 @@ export class ZaneEnvironmentManager {
       session,
       "POST",
       `/api/projects/${encodeURIComponent(input.projectSlug)}/clone-environment/${encodeURIComponent(
-        ZANE_PRODUCTION_ENVIRONMENT_NAME,
+        input.sourceEnvironmentName
       )}/`,
       {
         name: input.environmentName,
         deploy_after_clone: false,
-      },
+      }
     )
 
     if (!cloned) {
-      throw new UpstreamHttpError(502, "zane_clone_empty", "ZaneOps clone response was empty")
+      throw new UpstreamHttpError(
+        502,
+        "zane_clone_empty",
+        "ZaneOps clone response was empty"
+      )
     }
 
-    return await this.buildResolvedEnvironmentState(session, input, cloned, true, ZANE_PRODUCTION_ENVIRONMENT_NAME)
+    return await this.buildResolvedEnvironmentState(
+      session,
+      input,
+      cloned,
+      true,
+      input.sourceEnvironmentName
+    )
   }
 
   async archiveEnvironment(input: ArchiveEnvironmentInput): Promise<{
@@ -154,7 +242,7 @@ export class ZaneEnvironmentManager {
       {
         method: "DELETE",
         headers: this.#deps.buildHeaders(session, "DELETE"),
-      },
+      }
     )
 
     updateCookiesFromHeaders(session.cookies, response.headers)
@@ -176,7 +264,11 @@ export class ZaneEnvironmentManager {
       } catch {
         // keep fallback message when upstream response is not JSON
       }
-      throw new UpstreamHttpError(response.status, "zane_environment_archive_failed", errorMessage)
+      throw new UpstreamHttpError(
+        response.status,
+        "zane_environment_archive_failed",
+        errorMessage
+      )
     }
 
     return {
@@ -188,39 +280,238 @@ export class ZaneEnvironmentManager {
     }
   }
 
+  private async resolveExistingEnvironment(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    environment: ZaneEnvironment
+  ): Promise<ResolvedEnvironmentState> {
+    let state = await this.buildResolvedEnvironmentState(
+      session,
+      input,
+      environment,
+      false,
+      null
+    )
+
+    if (input.lane !== "preview" || state.ready) {
+      return state
+    }
+
+    await this.reconcileMissingPreviewServices(
+      session,
+      input,
+      state.missing_preview_service_slugs
+    )
+
+    state = await this.buildResolvedEnvironmentState(
+      session,
+      input,
+      environment,
+      false,
+      null
+    )
+
+    return state
+  }
+
+  private async reconcileMissingPreviewServices(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    missingServiceSlugs: string[]
+  ): Promise<void> {
+    if (missingServiceSlugs.length === 0) {
+      return
+    }
+
+    for (const serviceSlug of missingServiceSlugs) {
+      const sourceDetails = await this.#deps.getServiceDetails(
+        session,
+        input.projectSlug,
+        input.sourceEnvironmentName,
+        serviceSlug
+      )
+      await this.cloneMissingPreviewService(session, input, sourceDetails)
+    }
+  }
+
+  private async cloneMissingPreviewService(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    sourceDetails: ZaneServiceDetails
+  ): Promise<void> {
+    const createPayload = buildCreateGitServicePayload(
+      sourceDetails,
+      input.projectSlug,
+      input.sourceEnvironmentName
+    )
+
+    await this.#deps.request(
+      session,
+      "POST",
+      `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
+        input.environmentName
+      )}/create-service/git/`,
+      createPayload
+    )
+
+    if (sourceDetails.command) {
+      await this.requestServiceChange(session, input, sourceDetails.slug, {
+        field: "command",
+        type: "UPDATE",
+        new_value: sourceDetails.command,
+      })
+    }
+
+    for (const volume of sourceDetails.volumes ?? []) {
+      await this.addVolume(session, input, sourceDetails.slug, volume)
+    }
+
+    for (const url of sourceDetails.urls ?? []) {
+      await this.addUrl(session, input, sourceDetails.slug, url)
+    }
+
+    if (sourceDetails.healthcheck) {
+      await this.updateHealthcheck(
+        session,
+        input,
+        sourceDetails.slug,
+        sourceDetails.healthcheck
+      )
+    }
+
+    if (sourceDetails.resource_limits) {
+      await this.updateResourceLimits(
+        session,
+        input,
+        sourceDetails.slug,
+        sourceDetails.resource_limits
+      )
+    }
+
+    for (const envVar of sourceDetails.env_variables ?? []) {
+      await this.requestServiceChange(session, input, sourceDetails.slug, {
+        field: "env_variables",
+        type: "ADD",
+        new_value: {
+          key: envVar.key,
+          value: envVar.value,
+        },
+      })
+    }
+  }
+
+  private async addVolume(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    volume: ZaneServiceVolume
+  ): Promise<void> {
+    await this.requestServiceChange(session, input, serviceSlug, {
+      field: "volumes",
+      type: "ADD",
+      new_value: {
+        name: volume.name,
+        container_path: volume.container_path,
+        host_path: volume.host_path ?? null,
+        mode: volume.mode,
+      },
+    })
+  }
+
+  private async addUrl(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    url: ZaneServiceUrl
+  ): Promise<void> {
+    await this.requestServiceChange(session, input, serviceSlug, {
+      field: "urls",
+      type: "ADD",
+      new_value: {
+        domain: url.domain,
+        base_path: url.base_path,
+        strip_prefix: url.strip_prefix ?? true,
+        redirect_to: url.redirect_to ?? null,
+        associated_port: url.associated_port ?? null,
+      },
+    })
+  }
+
+  private async updateHealthcheck(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    healthcheck: ZaneServiceHealthcheck
+  ): Promise<void> {
+    await this.requestServiceChange(session, input, serviceSlug, {
+      field: "healthcheck",
+      type: "UPDATE",
+      new_value: {
+        type: healthcheck.type,
+        value: healthcheck.value,
+        timeout_seconds: healthcheck.timeout_seconds,
+        interval_seconds: healthcheck.interval_seconds,
+        associated_port: healthcheck.associated_port ?? null,
+      },
+    })
+  }
+
+  private async updateResourceLimits(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    resourceLimits: ZaneServiceResourceLimits
+  ): Promise<void> {
+    await this.requestServiceChange(session, input, serviceSlug, {
+      field: "resource_limits",
+      type: "UPDATE",
+      new_value: resourceLimits,
+    })
+  }
+
+  private async requestServiceChange(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    payload: unknown
+  ): Promise<void> {
+    await this.#deps.request(
+      session,
+      "PUT",
+      `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
+        input.environmentName
+      )}/request-service-changes/${encodeURIComponent(serviceSlug)}/`,
+      payload
+    )
+  }
+
   private async buildResolvedEnvironmentState(
     session: ZaneSession,
     input: ResolveEnvironmentInput,
     environment: ZaneEnvironment,
     created: boolean,
-    clonedFromEnvironment: string | null,
-  ): Promise<{
-    lane: "preview" | "main"
-    project_slug: string
-    environment_id: string
-    environment_name: string
-    is_preview: boolean
-    created: boolean
-    cloned_from_environment: string | null
-    ready: boolean
-    expected_preview_service_slugs: string[]
-    excluded_preview_service_slugs: string[]
-    present_service_slugs: string[]
-    missing_preview_service_slugs: string[]
-    warnings: ResolveEnvironmentWarning[]
-  }> {
-    const cards = await this.#deps.listServiceCards(session, input.projectSlug, environment.name)
+    clonedFromEnvironment: string | null
+  ): Promise<ResolvedEnvironmentState> {
+    const cards = await this.#deps.listServiceCards(
+      session,
+      input.projectSlug,
+      environment.name
+    )
     const presentServiceSlugs = [...new Set(cards.map((service) => service.slug))].sort()
     const expectedPreviewServiceSlugs = [...new Set(input.expectedPreviewServiceSlugs)].sort()
     const excludedPreviewServiceSlugs = [...new Set(input.excludedPreviewServiceSlugs)].sort()
     const presentSet = new Set(presentServiceSlugs)
     const expectedSet = new Set(expectedPreviewServiceSlugs)
     const excludedSet = new Set(excludedPreviewServiceSlugs)
-    const missingPreviewServiceSlugs = expectedPreviewServiceSlugs.filter((slug) => !presentSet.has(slug))
+    const missingPreviewServiceSlugs = expectedPreviewServiceSlugs.filter(
+      (slug) => !presentSet.has(slug)
+    )
     const warnings: ResolveEnvironmentWarning[] = []
 
     if (input.lane === "preview") {
-      const excludedPresent = excludedPreviewServiceSlugs.filter((slug) => presentSet.has(slug))
+      const excludedPresent = excludedPreviewServiceSlugs.filter((slug) =>
+        presentSet.has(slug)
+      )
       if (excludedPresent.length > 0) {
         warnings.push({
           code: "preview_excluded_services_present",
@@ -229,7 +520,9 @@ export class ZaneEnvironmentManager {
         })
       }
 
-      const extraPresent = presentServiceSlugs.filter((slug) => !expectedSet.has(slug) && !excludedSet.has(slug))
+      const extraPresent = presentServiceSlugs.filter(
+        (slug) => !expectedSet.has(slug) && !excludedSet.has(slug)
+      )
       if (extraPresent.length > 0) {
         warnings.push({
           code: "preview_extra_services_present",

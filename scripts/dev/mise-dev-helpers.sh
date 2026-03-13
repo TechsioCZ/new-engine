@@ -191,9 +191,10 @@ sync_env_key() {
 }
 
 sync_meili_env() {
-  local output backend_key frontend_key backend_created backend_updated frontend_created frontend_updated
+  local output backend_key frontend_key backend_env_var frontend_env_var backend_created backend_updated frontend_created frontend_updated
 
   require_cmd bash
+  require_cmd awk
   require_cmd sed
 
   if [[ ! -f "$ENV_FILE" ]]; then
@@ -202,13 +203,15 @@ sync_meili_env() {
   fi
 
   echo "Provisioning Meilisearch keys against ${MISE_DEV_MEILI_URL}"
-  output="$(cd "$ROOT_DIR" && bash -lc 'set -a; source ./.env; set +a; bash ./scripts/ci/provision-meili-keys.sh --meili-url "'"${MISE_DEV_MEILI_URL}"'"')"
+  output="$(cd "$ROOT_DIR" && bash -lc 'set -a; source ./.env; set +a; bash ./scripts/dev/provision-meili-keys.sh --meili-url "'"${MISE_DEV_MEILI_URL}"'"')"
 
-  backend_key="$(printf '%s\n' "$output" | sed -n 's/^DC_MEILISEARCH_BACKEND_API_KEY=//p' | tail -n1)"
-  frontend_key="$(printf '%s\n' "$output" | sed -n 's/^DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY=//p' | tail -n1)"
+  backend_env_var="$(printf '%s\n' "$output" | sed -n 's/^backend_env_var=//p' | tail -n1)"
+  frontend_env_var="$(printf '%s\n' "$output" | sed -n 's/^frontend_env_var=//p' | tail -n1)"
+  backend_key="$(printf '%s\n' "$output" | awk -F= -v expected_key="$backend_env_var" '$1 == expected_key {print substr($0, length($1) + 2)}' | tail -n1)"
+  frontend_key="$(printf '%s\n' "$output" | awk -F= -v expected_key="$frontend_env_var" '$1 == expected_key {print substr($0, length($1) + 2)}' | tail -n1)"
 
-  if [[ -z "$backend_key" || -z "$frontend_key" ]]; then
-    echo "Failed to parse provisioned keys from scripts/ci/provision-meili-keys.sh output." >&2
+  if [[ -z "$backend_env_var" || -z "$frontend_env_var" || -z "$backend_key" || -z "$frontend_key" ]]; then
+    echo "Failed to parse provisioned keys from scripts/dev/provision-meili-keys.sh output." >&2
     exit 1
   fi
 
@@ -219,8 +222,8 @@ sync_meili_env() {
 
   echo "Provision status: backend(created=${backend_created:-unknown},updated=${backend_updated:-unknown}), frontend(created=${frontend_created:-unknown},updated=${frontend_updated:-unknown})"
 
-  sync_env_key "DC_MEILISEARCH_BACKEND_API_KEY" "$backend_key"
-  sync_env_key "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY" "$frontend_key"
+  sync_env_key "$backend_env_var" "$backend_key"
+  sync_env_key "$frontend_env_var" "$frontend_key"
 }
 
 ensure_operator_db_convergence() {

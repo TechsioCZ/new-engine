@@ -16,6 +16,10 @@ function buildDeployPreviewInput(options: Record<string, unknown>) {
       options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
     prNumber: parsedPrNumber,
     servicesCsv: options.servicesCsv,
+    sourceEnvironmentName:
+      options.sourceEnvironmentName ??
+      process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
+      "",
     previewDbName: options.previewDbName,
     previewDbUser: options.previewDbUser,
     previewDbPassword: options.previewDbPassword,
@@ -121,6 +125,7 @@ export function createDeployPreviewCommand(): Command {
     .option("--project-slug <slug>")
     .requiredOption("--pr-number <n>")
     .option("--services-csv <csv>", "", "")
+    .option("--source-environment-name <name>")
     .option("--preview-db-name <name>", "", "")
     .option("--preview-db-user <user>", "", "")
     .option("--preview-db-password <password>", "", "")

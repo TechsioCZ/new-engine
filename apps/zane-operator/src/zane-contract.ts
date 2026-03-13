@@ -5,6 +5,7 @@ export interface ResolveEnvironmentInput {
   lane: Lane
   projectSlug: string
   environmentName: string
+  sourceEnvironmentName: string
   expectedPreviewServiceSlugs: string[]
   excludedPreviewServiceSlugs: string[]
 }
@@ -64,6 +65,12 @@ export interface PersistedEnvRequirement {
   env_keys: string[]
 }
 
+export interface ForbiddenEnvRequirement {
+  service_id: string
+  service_slug: string
+  env_keys: string[]
+}
+
 export interface VerifyDeployInput {
   lane: Lane
   projectSlug: string
@@ -71,8 +78,11 @@ export interface VerifyDeployInput {
   requestedServiceIds: string[]
   deployServiceIds: string[]
   triggeredServiceIds: string[]
+  expectedPreviewServiceSlugs: string[]
+  excludedPreviewServiceSlugs: string[]
   expectedEnvOverrides: EnvOverrideInput[]
   requiredPersistedEnv: PersistedEnvRequirement[]
+  forbiddenEnv: ForbiddenEnvRequirement[]
   deployments: VerifyDeploymentRef[]
 }
 
@@ -96,9 +106,40 @@ export interface ZaneEnvVariable {
 }
 
 export interface ZaneServiceUrl {
-  id: string
+  id?: string
   domain: string
   base_path: string
+  strip_prefix?: boolean
+  redirect_to?: string | null
+  associated_port?: number | null
+}
+
+export interface ZaneGitAppRef {
+  id: string
+}
+
+export interface ZaneServiceVolume {
+  id?: string
+  name: string
+  container_path: string
+  host_path?: string | null
+  mode: string
+}
+
+export interface ZaneServiceHealthcheck {
+  type: string
+  value: string
+  timeout_seconds: number
+  interval_seconds: number
+  associated_port?: number | null
+}
+
+export interface ZaneServiceResourceLimits {
+  cpus?: number | string | null
+  memory?: {
+    unit?: string
+    value?: number | string
+  } | null
 }
 
 export interface ZaneServiceDetails {
@@ -107,8 +148,21 @@ export interface ZaneServiceDetails {
   type: ServiceType
   commit_sha?: string | null
   deploy_token: string
+  repository_url?: string
+  branch_name?: string
+  builder?: string
+  dockerfile_builder_options?: {
+    dockerfile_path?: string | null
+    build_context_dir?: string | null
+    build_stage_target?: string | null
+  }
+  git_app?: ZaneGitAppRef | null
+  command?: string | null
   env_variables: ZaneEnvVariable[]
   urls: ZaneServiceUrl[]
+  volumes?: ZaneServiceVolume[]
+  healthcheck?: ZaneServiceHealthcheck | null
+  resource_limits?: ZaneServiceResourceLimits | null
   unapplied_changes?: Array<{ id: string }>
 }
 

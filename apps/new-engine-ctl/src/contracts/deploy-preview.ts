@@ -4,6 +4,7 @@ const deployPreviewCommandInputSchemaBase = z.object({
   projectSlug: z.string().min(1, "Zane canonical project slug is required."),
   prNumber: z.number().int().positive(),
   servicesCsv: z.string().default(""),
+  sourceEnvironmentName: z.string().default(""),
   previewDbName: z.string().default(""),
   previewDbUser: z.string().default(""),
   previewDbPassword: z.string().default(""),
@@ -25,6 +26,14 @@ const deployPreviewCommandInputSchemaBase = z.object({
 
 export const deployPreviewCommandInputSchema =
   deployPreviewCommandInputSchemaBase.superRefine((value, ctx) => {
+    if (!(value.dryRun || value.sourceEnvironmentName)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sourceEnvironmentName"],
+        message: "Canonical source environment name is required.",
+      })
+    }
+
     if (!(value.dryRun || value.baseUrl)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ci::die() {
+common::die() {
   echo "$*" >&2
   exit 1
 }
 
-ci::warn() {
+common::warn() {
   local message="$*"
   if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
     printf '::warning::%s\n' "$message" >&2
@@ -15,12 +15,12 @@ ci::warn() {
   fi
 }
 
-ci::require_command() {
+common::require_command() {
   local cmd="$1"
-  command -v "$cmd" >/dev/null 2>&1 || ci::die "Required command not found: $cmd"
+  command -v "$cmd" >/dev/null 2>&1 || common::die "Required command not found: $cmd"
 }
 
-ci::gha_output() {
+common::gha_output() {
   local key="$1"
   local value="${2-}"
 
@@ -29,7 +29,7 @@ ci::gha_output() {
   fi
 }
 
-ci::gha_mask() {
+common::gha_mask() {
   local value="${1-}"
 
   if [[ -n "$value" && "${GITHUB_ACTIONS:-}" == "true" ]]; then
@@ -37,21 +37,21 @@ ci::gha_mask() {
   fi
 }
 
-ci::require_env() {
+common::require_env() {
   local var_name="$1"
   local human_name="${2:-$1}"
 
   if [[ -z "${!var_name:-}" ]]; then
-    ci::die "Missing required environment variable: ${var_name} (${human_name})."
+    common::die "Missing required environment variable: ${var_name} (${human_name})."
   fi
 }
 
-ci::mask_env_if_present() {
+common::mask_env_if_present() {
   local var_name="$1"
-  ci::gha_mask "${!var_name:-}"
+  common::gha_mask "${!var_name:-}"
 }
 
-ci::normalize_csv() {
+common::normalize_csv() {
   local value="${1-}"
   awk -F',' '
     {
@@ -72,7 +72,7 @@ ci::normalize_csv() {
   ' <<<"$value"
 }
 
-ci::json_compact() {
-  ci::require_command jq
+common::json_compact() {
+  common::require_command jq
   jq -c . <<<"${1:-null}"
 }

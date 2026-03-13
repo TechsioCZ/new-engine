@@ -8,6 +8,7 @@ export const resolveEnvironmentCommandInputSchema = z
     projectSlug: z.string().min(1, "Zane canonical project slug is required."),
     prNumber: z.number().int().positive().optional(),
     environmentName: z.string().default(""),
+    sourceEnvironmentName: z.string().default(""),
     previewClonedServiceIdsCsv: z.string().default(""),
     previewExcludedServiceIdsCsv: z.string().default(""),
     outputJson: z.string().min(1).optional(),
@@ -27,6 +28,14 @@ export const resolveEnvironmentCommandInputSchema = z
         code: z.ZodIssueCode.custom,
         path: ["prNumber"],
         message: "Preview lane requires PR number or environment name.",
+      })
+    }
+
+    if (value.lane === "preview" && !(value.dryRun || value.sourceEnvironmentName)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["sourceEnvironmentName"],
+        message: "Preview lane requires canonical source environment name.",
       })
     }
 
