@@ -15,7 +15,7 @@ export interface ArchiveEnvironmentInput {
   environmentName: string
 }
 
-export interface SearchCredentialsPolicy {
+export interface MeiliApiCredentialsPolicy {
   uid: string
   description: string
   actions: string[]
@@ -24,7 +24,7 @@ export interface SearchCredentialsPolicy {
 
 export interface ProvisionPreviewMeiliKeysOutputInput {
   envVar: string
-  policy: SearchCredentialsPolicy
+  policy: MeiliApiCredentialsPolicy
 }
 
 export interface ProvisionPreviewMeiliKeysInput {

@@ -133,6 +133,21 @@ require_tools() {
   common::require_command bash
   common::require_command git
   common::require_command jq
+  common::require_command node
+  common::require_command pnpm
+}
+
+ensure_ctl_built() {
+  local build_output
+
+  common::info "Building new-engine-ctl CLI..."
+  (
+    cd "$ROOT_DIR/apps/new-engine-ctl"
+    if ! build_output="$(pnpm run build 2>&1)"; then
+      printf '%s\n' "$build_output" >&2
+      return 1
+    fi
+  ) || common::die "Failed to build new-engine-ctl CLI."
 }
 
 normalize_csv() {
@@ -194,117 +209,127 @@ default_base_sha() {
 resolve_scope() {
   local scope_json
 
+  common::info "Resolving affected services for the main lane..."
   SERVICES_CSV="$(normalize_csv "$SERVICES_CSV")"
   if [[ -n "$SERVICES_CSV" ]]; then
     scope_json="$(
-      pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts scope \
+      node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" scope \
         --lane main \
         --services-csv "$SERVICES_CSV"
     )"
     SERVICES_CSV="$(jq -r '.services_csv' <<<"$scope_json")"
+    common::info "Scope resolved from explicit services: ${SERVICES_CSV:-<none>}."
     printf '%s\n' "$scope_json"
     return
   fi
 
   [[ -n "$BASE_SHA" ]] || BASE_SHA="$(default_base_sha)"
   scope_json="$(
-    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts scope \
+    node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" scope \
       --lane main \
       --base-sha "$BASE_SHA" \
       --head-sha "$HEAD_SHA"
   )"
   SERVICES_CSV="$(jq -r '.services_csv' <<<"$scope_json")"
+  common::info "Scope resolved from git diff: ${SERVICES_CSV:-<none>}."
   printf '%s\n' "$scope_json"
 }
 
-run_prepare_stage() {
+run_deploy_stage() {
   local requires_meili_keys="$1"
-  local prepare_json
+  local deploy_json
+  local git_commit_sha
   local output_file
   local backend_key=""
   local frontend_key=""
-  local prepare_args=(
-    --lane main
-  )
+  local frontend_env_var=""
+  local backend_created="false"
+  local backend_updated="false"
+  local frontend_created="false"
+  local frontend_updated="false"
+  local keys_reconciled="false"
+  local meili_verified="false"
 
-  (
-    export REQUIRES_MEILI_KEYS="$requires_meili_keys"
-    export MEILISEARCH_URL="$MEILISEARCH_URL"
-    export MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY"
-    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts check-workflow-inputs --mode main-prepare
-  ) >/dev/null
-
-  output_file="$(mktemp)"
-  trap 'rm -f "$output_file"' RETURN
-
-  if [[ "$requires_meili_keys" == "true" ]]; then
-    prepare_args+=(--requires-meili-keys)
-  fi
-
-  prepare_json="$(
-    GITHUB_OUTPUT="$output_file" \
-    MEILISEARCH_URL="$MEILISEARCH_URL" \
-    MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY" \
-    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts prepare \
-      "${prepare_args[@]}"
-  )"
-
-  backend_key="$(sed -n 's/^meili_backend_key=//p' "$output_file" | tail -n1)"
-  frontend_key="$(sed -n 's/^meili_frontend_key=//p' "$output_file" | tail -n1)"
-
-  jq -cn \
-    --argjson response "$prepare_json" \
-    --arg meili_backend_key "$backend_key" \
-    --arg meili_frontend_key "$frontend_key" \
-    '($response + {
-      meili_backend_key: $meili_backend_key,
-      meili_frontend_key: $meili_frontend_key,
-      frontend_env_var: ($response.meili_frontend_env_var // ""),
-      backend_created: false,
-      backend_updated: false,
-      frontend_created: ($response.meili_frontend_created // false),
-      frontend_updated: ($response.meili_frontend_updated // false)
-    })'
-}
-
-run_deploy_stage() {
-  local prepare_json="$1"
-  local deploy_json
-  local git_commit_sha
-
+  common::info "Running main deploy stage..."
   git_commit_sha="$(git -C "$ROOT_DIR" rev-parse "$HEAD_SHA")"
 
   (
+    export REQUIRES_MEILI_KEYS="$requires_meili_keys"
     export ZANE_OPERATOR_BASE_URL="$ZANE_OPERATOR_BASE_URL"
     export ZANE_OPERATOR_API_TOKEN="$ZANE_OPERATOR_API_TOKEN"
     export ZANE_CANONICAL_PROJECT_SLUG="$PROJECT_SLUG"
     export ZANE_PRODUCTION_ENVIRONMENT_NAME="$ENVIRONMENT_NAME"
-    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts check-workflow-inputs --mode main-deploy
+    export MEILISEARCH_URL="$MEILISEARCH_URL"
+    export MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY"
+    node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode main-deploy
   ) >/dev/null
 
+  if [[ "$requires_meili_keys" == "true" ]]; then
+    common::info "Main deploy will reconcile Meili API credentials when the source service is healthy."
+  else
+    common::info "Main deploy does not need Meili API credential reconciliation for this scope."
+  fi
+
+  output_file="$(mktemp)"
+  trap 'rm -f "$output_file"' RETURN
+
   if ! deploy_json="$(
-    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts deploy-main \
+    GITHUB_OUTPUT="$output_file" \
+    MEILISEARCH_URL="$MEILISEARCH_URL" \
+    MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY" \
+    node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" deploy-main \
       --project-slug "$PROJECT_SLUG" \
       --environment-name "$ENVIRONMENT_NAME" \
       --services-csv "$SERVICES_CSV" \
       --git-commit-sha "$git_commit_sha" \
-      --meili-backend-key "$(jq -r '.meili_backend_key // ""' <<<"$prepare_json")" \
-      --meili-frontend-key "$(jq -r '.meili_frontend_key // ""' <<<"$prepare_json")" \
-      --meili-frontend-env-var "$(jq -r '.frontend_env_var // ""' <<<"$prepare_json")" \
+      --meili-url "$MEILISEARCH_URL" \
+      --meili-master-key "$MEILISEARCH_MASTER_KEY" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
       --api-token "$ZANE_OPERATOR_API_TOKEN"
   )"; then
     return 1
   fi
-  printf '%s\n' "$deploy_json"
+
+  backend_key="$(sed -n 's/^meili_backend_key=//p' "$output_file" | tail -n1)"
+  frontend_key="$(sed -n 's/^meili_frontend_key=//p' "$output_file" | tail -n1)"
+  frontend_env_var="$(sed -n 's/^meili_frontend_env_var=//p' "$output_file" | tail -n1)"
+  backend_created="$(sed -n 's/^meili_backend_created=//p' "$output_file" | tail -n1)"
+  backend_updated="$(sed -n 's/^meili_backend_updated=//p' "$output_file" | tail -n1)"
+  frontend_created="$(sed -n 's/^meili_frontend_created=//p' "$output_file" | tail -n1)"
+  frontend_updated="$(sed -n 's/^meili_frontend_updated=//p' "$output_file" | tail -n1)"
+  keys_reconciled="$(sed -n 's/^meili_keys_reconciled=//p' "$output_file" | tail -n1)"
+  meili_verified="$(sed -n 's/^meili_verified=//p' "$output_file" | tail -n1)"
+
+  jq -cn \
+    --argjson response "$deploy_json" \
+    --arg meili_backend_key "$backend_key" \
+    --arg meili_frontend_key "$frontend_key" \
+    --arg meili_frontend_env_var "$frontend_env_var" \
+    --argjson meili_backend_created "$(jq -n --arg value "${backend_created:-false}" '$value == "true"')" \
+    --argjson meili_backend_updated "$(jq -n --arg value "${backend_updated:-false}" '$value == "true"')" \
+    --argjson meili_frontend_created "$(jq -n --arg value "${frontend_created:-false}" '$value == "true"')" \
+    --argjson meili_frontend_updated "$(jq -n --arg value "${frontend_updated:-false}" '$value == "true"')" \
+    --argjson meili_keys_reconciled "$(jq -n --arg value "${keys_reconciled:-false}" '$value == "true"')" \
+    --argjson meili_verified "$(jq -n --arg value "${meili_verified:-false}" '$value == "true"')" \
+    '($response + {
+      meili_backend_key: $meili_backend_key,
+      meili_frontend_key: $meili_frontend_key,
+      meili_frontend_env_var: $meili_frontend_env_var,
+      meili_backend_created: $meili_backend_created,
+      meili_backend_updated: $meili_backend_updated,
+      meili_frontend_created: $meili_frontend_created,
+      meili_frontend_updated: $meili_frontend_updated,
+      meili_keys_reconciled: $meili_keys_reconciled,
+      meili_verified: $meili_verified
+    })'
 }
 
 run_verify_stage() {
   local deploy_json="$1"
-  local prepare_json="$2"
   local verify_json
   local deployments_json_inline
 
+  common::info "Running main verify stage..."
   jq -e . >/dev/null <<<"$deploy_json" || common::die "Deploy stage did not return valid JSON."
   deployments_json_inline="$(jq -c '{services: (.deployments // [])}' <<<"$deploy_json")"
 
@@ -313,11 +338,11 @@ run_verify_stage() {
     export ZANE_OPERATOR_API_TOKEN="$ZANE_OPERATOR_API_TOKEN"
     export ZANE_CANONICAL_PROJECT_SLUG="$PROJECT_SLUG"
     export ZANE_PRODUCTION_ENVIRONMENT_NAME="$ENVIRONMENT_NAME"
-    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts check-workflow-inputs --mode main-verify
+    node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode main-verify
   ) >/dev/null
 
   if ! verify_json="$(
-    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts verify \
+    node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" verify \
       --lane main \
       --project-slug "$PROJECT_SLUG" \
       --environment-name "$(jq -r '.environment_name' <<<"$deploy_json")" \
@@ -325,9 +350,9 @@ run_verify_stage() {
       --deploy-services-csv "$(jq -r '.deploy_services_csv' <<<"$deploy_json")" \
       --triggered-services-csv "$(jq -r '.triggered_services_csv' <<<"$deploy_json")" \
       --deployments-json-inline "$deployments_json_inline" \
-      --meili-backend-key "$(jq -r '.meili_backend_key // ""' <<<"$prepare_json")" \
-      --meili-frontend-key "$(jq -r '.meili_frontend_key // ""' <<<"$prepare_json")" \
-      --meili-frontend-env-var "$(jq -r '.frontend_env_var // ""' <<<"$prepare_json")" \
+      --meili-backend-key "$(jq -r '.meili_backend_key // ""' <<<"$deploy_json")" \
+      --meili-frontend-key "$(jq -r '.meili_frontend_key // ""' <<<"$deploy_json")" \
+      --meili-frontend-env-var "$(jq -r '.meili_frontend_env_var // ""' <<<"$deploy_json")" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
       --api-token "$ZANE_OPERATOR_API_TOKEN"
   )"; then
@@ -340,7 +365,7 @@ main() {
   local scope_json
   local prepare_needs_json
   local downtime_json
-  local prepare_json
+  local prepare_json='{"skipped":true,"reason":"main_prepare_not_used"}'
   local deploy_json
   local verify_json='{}'
   local requires_meili_keys
@@ -348,12 +373,18 @@ main() {
   parse_args "$@"
   load_env_file
   require_tools
+  ensure_ctl_built
   derive_defaults
+  common::configure_node_extra_ca_certs_from_local_caddy "$ZANE_OPERATOR_BASE_URL" "$MEILISEARCH_URL"
+  trap 'common::cleanup_node_extra_ca_certs_temp' EXIT
 
   scope_json="$(resolve_scope)"
   SERVICES_CSV="$(jq -r '.services_csv' <<<"$scope_json")"
+  common::info "Using operator URL: ${ZANE_OPERATOR_BASE_URL}"
+  common::info "Using Meilisearch URL: ${MEILISEARCH_URL}"
 
   if [[ -z "$SERVICES_CSV" ]]; then
+    common::info "No affected services detected. Skipping main lane."
     jq -cn \
       --arg project_slug "$PROJECT_SLUG" \
       --arg environment_name "$ENVIRONMENT_NAME" \
@@ -392,20 +423,22 @@ main() {
     common::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(\",\")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
   fi
   requires_meili_keys="$(jq -r '.requires_meili_keys' <<<"$prepare_needs_json")"
-  prepare_json="$(run_prepare_stage "$requires_meili_keys")"
-  jq -e . >/dev/null <<<"$prepare_json" || common::die "Prepare stage did not return valid JSON."
-  if ! deploy_json="$(run_deploy_stage "$prepare_json")"; then
+  common::info "Skipping main prepare stage: main lane has no active shared-resource prepare work."
+  if ! deploy_json="$(run_deploy_stage "$requires_meili_keys")"; then
     common::die "Main deploy stage failed. See the deployment error above for the failing stage and deployment hash."
   fi
   jq -e . >/dev/null <<<"$deploy_json" || common::die "Deploy stage did not return valid JSON."
 
   if [[ "$SKIP_VERIFY" == "false" ]]; then
-    if ! verify_json="$(run_verify_stage "$deploy_json" "$prepare_json")"; then
+    if ! verify_json="$(run_verify_stage "$deploy_json")"; then
       common::die "Main verify stage failed. See the verification error above."
     fi
     jq -e . >/dev/null <<<"$verify_json" || common::die "Verify stage did not return valid JSON."
+  else
+    common::info "Skipping main verify stage by request."
   fi
 
+  common::info "Main lane completed successfully."
   jq -cn \
     --arg project_slug "$PROJECT_SLUG" \
     --arg environment_name "$ENVIRONMENT_NAME" \

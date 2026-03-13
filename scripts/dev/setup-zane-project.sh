@@ -61,7 +61,7 @@ Options:
   --project-slug SLUG            Canonical Zane project slug (default: new-engine)
   --project-description TEXT     Project description when creating the project
   --repository-url URL           Git repository URL (default: origin remote as https)
-  --branch NAME                  Git branch to configure (default: master)
+  --branch NAME                  Git branch to configure (default: current checked-out branch, fallback: master)
   --git-app-id ID                Optional Zane git app id for private repositories
   --public-domain DOMAIN         Public root domain for managed service URLs
                                  (default: auto-discovered from Zane API settings)
@@ -86,7 +86,7 @@ Options:
 
 Notes:
   - The helper manages public routes for medusa-be, n1, medusa-meilisearch, and zane-operator.
-  - The default branch is intentionally master. Use --branch for non-master runs.
+  - The default branch is the current checked-out branch. Use --branch to target a different branch explicitly.
 EOF
 }
 
@@ -293,6 +293,11 @@ setup::derive_repository_url() {
 }
 
 setup::derive_branch_name() {
+  if [[ -n "$BRANCH_NAME" ]]; then
+    return
+  fi
+
+  BRANCH_NAME="$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null || true)"
   [[ -n "$BRANCH_NAME" ]] || BRANCH_NAME="master"
 }
 

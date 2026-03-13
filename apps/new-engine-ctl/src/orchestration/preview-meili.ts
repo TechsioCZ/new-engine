@@ -10,7 +10,7 @@ import type { StackManifest } from "../contracts/stack-manifest.js"
 import { listDeployableServices } from "../contracts/stack-manifest.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
-export function getSearchCredentialsProviderSourceService(
+export function getMeiliApiCredentialsProviderSourceService(
   manifest: StackManifest,
   stackInputs: StackInputs,
   providerId: string

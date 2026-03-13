@@ -78,7 +78,7 @@ function assertStringArray(value: unknown, label: string): string[] {
   return value.map((item, index) => assertString(item, `${label}[${index}]`))
 }
 
-function normalizeSearchCredentialsOutput(
+function normalizeMeiliApiCredentialsOutput(
   value: unknown,
   label: string
 ): ProvisionPreviewMeiliKeysOutputInput {
@@ -259,11 +259,11 @@ export function parseProvisionPreviewMeiliKeysInput(rawPayload: unknown): Provis
     environmentName: assertString(payload.environment_name, "environment_name"),
     serviceSlug: assertString(payload.service_slug, "service_slug"),
     readinessPath: assertString(payload.readiness_path, "readiness_path"),
-    backendOutput: normalizeSearchCredentialsOutput(
+    backendOutput: normalizeMeiliApiCredentialsOutput(
       payload.backend_output,
       "backend_output"
     ),
-    frontendOutput: normalizeSearchCredentialsOutput(
+    frontendOutput: normalizeMeiliApiCredentialsOutput(
       payload.frontend_output,
       "frontend_output"
     ),

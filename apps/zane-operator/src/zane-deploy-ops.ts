@@ -366,6 +366,7 @@ export class ZaneDeployOps {
   }): Promise<{
     project_slug: string
     environment_name: string
+    git_commit_sha: string | null
     triggered_service_ids: string[]
     services: TriggeredDeployment[]
   }> {
@@ -408,6 +409,7 @@ export class ZaneDeployOps {
     return {
       project_slug: input.projectSlug,
       environment_name: input.environmentName,
+      git_commit_sha: input.gitCommitSha ?? null,
       triggered_service_ids: deployments.map((deployment) => deployment.service_id),
       services: deployments,
     }

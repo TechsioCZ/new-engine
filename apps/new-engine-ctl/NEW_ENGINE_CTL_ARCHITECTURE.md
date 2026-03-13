@@ -48,6 +48,8 @@ Initial implementation must not use:
 - provider invocation decisions
 - deploy input shaping
 - local/CI parity for orchestration behavior
+- CI affected-service resolution from `nx affected` plus manifest path-glob/runtime rules
+- approval decisions derived from the final affected main-lane service set
 
 `apps/zane-operator` owns:
 - authenticated Zane access
@@ -97,6 +99,12 @@ Initial command surface should be explicit and phase-oriented:
 Do not collapse the whole system into one giant command.
 Do not spread orchestration across many tiny workflow-specific commands.
 
+Phase intent:
+- `scope`/`plan` determine the affected service set and manifest-ordered deploy plan.
+- `prepare` is for shared-resource prerequisites and input validation only.
+- runtime-provider execution belongs in deploy orchestration after the provider source service is deployed and healthy.
+- `verify` proves contract-owned env/application results after deploy completes.
+
 ## App Structure
 
 Recommended initial layout:
@@ -117,6 +125,8 @@ Rules:
 - do not reintroduce deploy-policy ownership into shell scripts, workflow YAML, or `zane-operator`
 - remove superseded shell entrypoints when their behavior has no remaining justified surface
 - do not run two long-term orchestration implementations in parallel
+- do not execute runtime providers in `prepare` when their contract depends on a deployed and healthy source service
+- local manual helpers may stay override-driven when no explicit per-service desired-revision contract exists; do not guess a branch-wide deterministic remote state
 
 ## Verification Gates
 

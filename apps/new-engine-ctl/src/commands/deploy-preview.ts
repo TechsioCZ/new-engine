@@ -45,8 +45,9 @@ function buildDeployPreviewInput(options: Record<string, unknown>) {
     stackManifestPath: options.stackManifestPath,
     stackInputsPath: options.stackInputsPath,
     previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
-    searchCredentialsProviderId:
-      process.env.ZANE_SEARCH_CREDENTIALS_PROVIDER_ID ?? "search_credentials",
+    meiliApiCredentialsProviderId:
+      process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
+      "meili_api_credentials",
   })
 }
 

@@ -23,7 +23,7 @@ interface SearchProvisionServiceDetails {
   }>
 }
 
-interface ProvisionPreviewSearchCredentialsDeps {
+interface ProvisionPreviewMeiliApiCredentialsDeps {
   authenticate(): Promise<ZaneSession>
   getEnvironment(
     session: ZaneSession,
@@ -113,10 +113,10 @@ function sleep(ms: number): Promise<void> {
   })
 }
 
-export class ZaneSearchCredentialsProvisioner {
-  readonly #deps: ProvisionPreviewSearchCredentialsDeps
+export class ZaneMeiliApiCredentialsProvisioner {
+  readonly #deps: ProvisionPreviewMeiliApiCredentialsDeps
 
-  constructor(deps: ProvisionPreviewSearchCredentialsDeps) {
+  constructor(deps: ProvisionPreviewMeiliApiCredentialsDeps) {
     this.#deps = deps
   }
 

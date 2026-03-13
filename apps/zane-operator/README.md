@@ -302,7 +302,7 @@ The helper is intentionally interactive for real runs and asks you to confirm th
 
 Optional overrides worth knowing:
 - `--repository-url https://github.com/<org>/<repo>.git`
-- `--branch <branch>` when you intentionally want a non-`master` deployment source
+- `--branch <branch>` when you intentionally want a different deployment source than the current checked-out branch
 - `--git-app-id <id>` if the repository is private and Zane must use an installed git app
 - `--minio-file-url <url>`
 - `--store-cors <csv-or-url>`
