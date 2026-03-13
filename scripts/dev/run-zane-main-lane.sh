@@ -40,9 +40,7 @@ Options:
   --public-domain <domain>      public root domain for derived service URLs
   --public-url-affix <suffix>   service URL affix (default: -zane)
   --zane-base-url <url>         upstream Zane base URL used for domain derivation
-  --operator-base-url <url>     deployed zane-operator public URL override
   --operator-api-token <token>  deployed zane-operator API token override
-  --meili-url <url>             deployed Meilisearch public URL override
   --meili-master-key <key>      Meilisearch master key override
   --approve-downtime-risk       allow local run to continue when downtime-risk services are in scope
   --skip-verify                 skip the final verify stage
@@ -93,16 +91,8 @@ parse_args() {
         ZANE_BASE_URL="$2"
         shift 2
         ;;
-      --operator-base-url)
-        ZANE_OPERATOR_BASE_URL="$2"
-        shift 2
-        ;;
       --operator-api-token)
         ZANE_OPERATOR_API_TOKEN="$2"
-        shift 2
-        ;;
-      --meili-url)
-        MEILISEARCH_URL="$2"
         shift 2
         ;;
       --meili-master-key)

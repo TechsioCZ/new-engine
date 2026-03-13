@@ -20,9 +20,6 @@ GIT_APP_ID="${ZANE_GIT_APP_ID:-}"
 PUBLIC_DOMAIN="${ZANE_PUBLIC_DOMAIN:-}"
 PUBLIC_URL_AFFIX="${ZANE_PUBLIC_URL_AFFIX:--zane}"
 
-MEDUSA_BACKEND_URL_OVERRIDE="${ZANE_PUBLIC_MEDUSA_BACKEND_URL:-}"
-N1_SITE_URL_OVERRIDE="${ZANE_PUBLIC_N1_URL:-}"
-MEILISEARCH_URL_OVERRIDE="${ZANE_PUBLIC_MEILISEARCH_URL:-}"
 MINIO_FILE_URL_OVERRIDE="${ZANE_PUBLIC_MINIO_FILE_URL:-}"
 STORE_CORS_OVERRIDE="${ZANE_STORE_CORS:-}"
 ADMIN_CORS_OVERRIDE="${ZANE_ADMIN_CORS:-}"
@@ -70,9 +67,6 @@ Options:
                                  (default: auto-discovered from Zane API settings)
   --public-url-affix SUFFIX      Service URL suffix between service slug and domain
                                  (default: -zane)
-  --medusa-backend-url URL       Public Medusa backend URL override
-  --n1-site-url URL              Public N1 site URL override
-  --meilisearch-url URL          Public Meilisearch URL override
   --minio-file-url URL           Public MinIO file URL override
   --store-cors VALUE             STORE_CORS override
   --admin-cors VALUE             ADMIN_CORS override
@@ -141,18 +135,6 @@ setup::parse_args() {
         ;;
       --public-url-affix)
         PUBLIC_URL_AFFIX="$2"
-        shift 2
-        ;;
-      --medusa-backend-url)
-        MEDUSA_BACKEND_URL_OVERRIDE="$2"
-        shift 2
-        ;;
-      --n1-site-url)
-        N1_SITE_URL_OVERRIDE="$2"
-        shift 2
-        ;;
-      --meilisearch-url)
-        MEILISEARCH_URL_OVERRIDE="$2"
         shift 2
         ;;
       --minio-file-url)
@@ -695,24 +677,15 @@ setup::shared_env_cleanup_keys_json() {
 }
 
 setup::computed_medusa_backend_url() {
-  setup::prefer_public_url \
-    "$MEDUSA_BACKEND_URL_OVERRIDE" \
-    "${DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL:-}" \
-    "$COMPUTED_MEDUSA_BE_PUBLIC_URL"
+  printf '%s\n' "$COMPUTED_MEDUSA_BE_PUBLIC_URL"
 }
 
 setup::computed_n1_site_url() {
-  setup::prefer_public_url \
-    "$N1_SITE_URL_OVERRIDE" \
-    "${DC_N1_NEXT_PUBLIC_SITE_URL:-}" \
-    "$COMPUTED_N1_PUBLIC_URL"
+  printf '%s\n' "$COMPUTED_N1_PUBLIC_URL"
 }
 
 setup::computed_meilisearch_public_url() {
-  setup::prefer_public_url \
-    "$MEILISEARCH_URL_OVERRIDE" \
-    "${DC_N1_NEXT_PUBLIC_MEILISEARCH_URL:-}" \
-    "$COMPUTED_MEILISEARCH_PUBLIC_URL"
+  printf '%s\n' "$COMPUTED_MEILISEARCH_PUBLIC_URL"
 }
 
 setup::computed_minio_file_url() {

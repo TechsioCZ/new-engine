@@ -304,9 +304,6 @@ Optional overrides worth knowing:
 - `--repository-url https://github.com/<org>/<repo>.git`
 - `--branch <branch>` when you intentionally want a non-`master` deployment source
 - `--git-app-id <id>` if the repository is private and Zane must use an installed git app
-- `--medusa-backend-url <url>`
-- `--n1-site-url <url>`
-- `--meilisearch-url <url>`
 - `--minio-file-url <url>`
 - `--store-cors <csv-or-url>`
 - `--admin-cors <csv-or-url>`
@@ -316,6 +313,8 @@ Optional overrides worth knowing:
 - `--operator-upstream-zane-password <password>`
 
 The helper reads `.env.zane` by default, but it only maps the values that are part of the deployed stack contract. Keep compose/local runtime values in `.env`; use `.env.zane` for Zane-targeted helper runs. The helper forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
+
+Managed public service URLs are derived from the project slug plus the Zane root-domain route contract. Ambient `.env.zane` frontend URL values do not override those deployed URLs.
 
 `zane-operator` no longer ships a separate bootstrap CLI. Role/template bootstrap is owned by `medusa-db`, so Zane-targeted maintenance should sync `medusa-db` bootstrap envs and redeploy `medusa-db` before redeploying `zane-operator` when those credentials change.
 
