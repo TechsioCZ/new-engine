@@ -1,20 +1,7 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { queryKeys } from "@/lib/query-keys"
-import {
-  type UpdateCustomerData,
-  updateCustomer,
-} from "@/services/customer-service"
+import { storefront } from "./storefront-preset"
+
+const customerHooks = storefront.hooks.customers
 
 export function useUpdateCustomer() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (data: UpdateCustomerData) => updateCustomer(data),
-    onSuccess: () => {
-      // Invalidate customer cache to refetch
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.customer.profile(),
-      })
-    },
-  })
+  return customerHooks.useUpdateCustomer()
 }

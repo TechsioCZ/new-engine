@@ -1,100 +1,38 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import {
-  clearToken,
-  getTokenFromStorage,
-  isTokenExpired,
-} from "@/lib/token-utils"
-import { getCustomer } from "@/services/auth-service"
+import type { HttpTypes } from "@medusajs/types"
+import { storefront } from "./storefront-preset"
 
 export type UseAuthReturn = {
-  customer: Awaited<ReturnType<typeof getCustomer>>
+  customer: HttpTypes.StoreCustomer | null
   isAuthenticated: boolean
   isLoading: boolean
+  isFetching: boolean
   error: Error | null
-  isTokenExpired: boolean
 }
 
 export type UseSuspenseAuthReturn = {
-  customer: Awaited<ReturnType<typeof getCustomer>>
+  customer: HttpTypes.StoreCustomer | null
   isAuthenticated: boolean
-  isTokenExpired: boolean
 }
 
-/**
- * Get current authenticated customer
- * Checks token expiration before making API request
- * Uses userData cache - invalidated explicitly on login/logout/register
- */
+const authHooks = storefront.hooks.auth
+
 export function useAuth(): UseAuthReturn {
-  const {
-    data: customer = null,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: queryKeys.customer.profile(),
-    queryFn: () => {
-      // Check token expiration BEFORE making request
-      const token = getTokenFromStorage()
-
-      if (!token) {
-        return null // No token = not authenticated
-      }
-
-      if (isTokenExpired(token)) {
-        // Token expired - clear it and don't make request
-        clearToken()
-        return null
-      }
-
-      // Token valid - fetch customer data
-      return getCustomer()
-    },
-    retry: false, // Don't retry auth failures
-    ...cacheConfig.userData, // 5min stale, invalidated on auth actions
-  })
-
-  // Check current token expiration status for UI
-  const token = getTokenFromStorage()
-  const tokenExpired = token ? isTokenExpired(token) : false
+  const auth = authHooks.useAuth()
 
   return {
-    customer,
-    isAuthenticated: customer !== null,
-    isLoading,
-    error: error as Error | null,
-    isTokenExpired: tokenExpired,
+    customer: auth.customer,
+    isAuthenticated: auth.isAuthenticated,
+    isLoading: auth.isLoading,
+    isFetching: auth.isFetching,
+    error: auth.error ? new Error(auth.error) : null,
   }
 }
 
 export function useSuspenseAuth(): UseSuspenseAuthReturn {
-  const { data: customer = null } = useSuspenseQuery({
-    queryKey: queryKeys.customer.profile(),
-    queryFn: () => {
-      const token = getTokenFromStorage()
-
-      if (!token) {
-        return null
-      }
-
-      if (isTokenExpired(token)) {
-        clearToken()
-        return null
-      }
-
-      return getCustomer()
-    },
-    retry: false,
-    ...cacheConfig.userData,
-  })
-
-  const token = getTokenFromStorage()
-  const tokenExpired = token ? isTokenExpired(token) : false
+  const auth = authHooks.useSuspenseAuth()
 
   return {
-    customer,
-    isAuthenticated: customer !== null,
-    isTokenExpired: tokenExpired,
+    customer: auth.customer,
+    isAuthenticated: auth.isAuthenticated,
   }
 }
