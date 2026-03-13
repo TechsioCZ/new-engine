@@ -23,7 +23,6 @@ import { usePrefetchCategoryChildren } from "@/hooks/use-prefetch-category-child
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { usePrefetchRootCategories } from "@/hooks/use-prefetch-root-categories"
 import { useSuspenseProducts } from "@/hooks/use-products"
-import { useSuspenseRegion } from "@/hooks/use-region"
 import {
   ALL_CATEGORIES_MAP,
   PRODUCT_LIMIT,
@@ -32,12 +31,13 @@ import {
 import { useAnalytics } from "@/providers/analytics-provider"
 import { transformProduct } from "@/utils/transform/transform-product"
 
+type StaticCategory = (typeof allCategories)[number]
+
 export default function CategoryPage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
   const handle = params.handle as string
-  const { regionId, countryCode } = useSuspenseRegion()
   const analytics = useAnalytics()
 
   // Track which category we've already tracked to prevent duplicates
@@ -82,11 +82,70 @@ export default function CategoryPage() {
     }
   }, [currentCategory, analytics, buildCategoryPath])
 
-  // Get current page from URL or default to 1
-  const currentPage = Number(searchParams.get("page")) || 1
+  const handlePageChange = (page: number) => {
+    const newSearchParams = new URLSearchParams(searchParams.toString())
+    newSearchParams.set("page", page.toString())
+    router.push(`/kategorie/${handle}?${newSearchParams.toString()}`, {
+      scroll: true,
+    })
+  }
 
+  if (
+    !(VALID_CATEGORY_ROUTES.includes(handle) && currentCategory && rootCategory)
+  ) {
+    notFound()
+  }
+
+  const rootCategoryTree = categoryTree.find(
+    (cat) => cat.id === rootCategory?.id
+  )
+
+  const breadcrumbItems: { label: string; href: string; icon?: IconType }[] = [
+    { label: "Home", href: "/", icon: "icon-[mdi--home]" },
+    { label: rootCategory?.handle || handle, href: `/kategorie/${handle}` },
+  ]
+
+  const currentPage = Number(searchParams.get("page")) || 1
   const categoryIds = ALL_CATEGORIES_MAP[handle] ?? []
 
+  return (
+    <CategoryPageContent
+      breadcrumbItems={breadcrumbItems}
+      categoryIds={categoryIds}
+      currentCategory={currentCategory}
+      currentCategoryChildren={currentCategoryChildren}
+      currentPage={currentPage}
+      handle={handle}
+      onPageChange={handlePageChange}
+      rootCategory={rootCategory}
+      rootCategoryTree={rootCategoryTree}
+    />
+  )
+}
+
+type CategoryPageContentProps = {
+  breadcrumbItems: { label: string; href: string; icon?: IconType }[]
+  categoryIds: string[]
+  currentCategory: StaticCategory
+  currentCategoryChildren: StaticCategory[]
+  currentPage: number
+  handle: string
+  onPageChange: (page: number) => void
+  rootCategory: StaticCategory
+  rootCategoryTree?: (typeof categoryTree)[number]
+}
+
+function CategoryPageContent({
+  breadcrumbItems,
+  categoryIds,
+  currentCategory,
+  currentCategoryChildren,
+  currentPage,
+  handle,
+  onPageChange,
+  rootCategory,
+  rootCategoryTree,
+}: CategoryPageContentProps) {
   const {
     products: rawProducts,
     isFetching,
@@ -117,8 +176,6 @@ export default function CategoryPage() {
     totalPages,
     pageSize: PRODUCT_LIMIT,
     category_id: categoryIds,
-    regionId,
-    countryCode,
   })
 
   usePrefetchCategoryChildren({
@@ -127,27 +184,6 @@ export default function CategoryPage() {
   })
 
   const products = rawProducts.map(transformProduct)
-
-  const handlePageChange = (page: number) => {
-    const newSearchParams = new URLSearchParams(searchParams.toString())
-    newSearchParams.set("page", page.toString())
-    router.push(`/kategorie/${handle}?${newSearchParams.toString()}`, {
-      scroll: true,
-    })
-  }
-
-  if (!VALID_CATEGORY_ROUTES.includes(handle)) {
-    notFound()
-  }
-
-  const rootCategoryTree = categoryTree.find(
-    (cat) => cat.id === rootCategory?.id
-  )
-
-  const breadcrumbItems: { label: string; href: string; icon?: IconType }[] = [
-    { label: "Home", href: "/", icon: "icon-[mdi--home]" },
-    { label: rootCategory?.handle || handle, href: `/kategorie/${handle}` },
-  ]
 
   return (
     <div className="relative grid grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] p-400">
@@ -185,7 +221,7 @@ export default function CategoryPage() {
         <section>
           <ProductGrid
             currentPage={responsePage}
-            onPageChange={handlePageChange}
+            onPageChange={onPageChange}
             pageSize={PRODUCT_LIMIT}
             products={products}
             skeletonCount={24}
