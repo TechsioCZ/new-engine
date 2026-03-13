@@ -3,6 +3,21 @@ import type {
   ApplyEnvOverridesResponse,
 } from "../contracts/apply-env-overrides.js"
 import { applyEnvOverridesResponseSchema } from "../contracts/apply-env-overrides.js"
+import type { ArchiveEnvironmentResponse } from "../contracts/archive-environment.js"
+import { archiveEnvironmentResponseSchema } from "../contracts/archive-environment.js"
+import type {
+  EnsurePreviewDbResponse,
+  TeardownPreviewDbResponse,
+} from "../contracts/preview-db.js"
+import {
+  ensurePreviewDbResponseSchema,
+  teardownPreviewDbResponseSchema,
+} from "../contracts/preview-db.js"
+import type { ProvisionPreviewMeiliKeysResponse } from "../contracts/provision-preview-meili-keys.js"
+import {
+  type ProvisionPreviewMeiliKeysPayload,
+  provisionPreviewMeiliKeysResponseSchema,
+} from "../contracts/provision-preview-meili-keys.js"
 import type { ResolveEnvironmentResponse } from "../contracts/resolve-environment.js"
 import { resolveEnvironmentResponseSchema } from "../contracts/resolve-environment.js"
 import type {
@@ -10,6 +25,8 @@ import type {
   ResolveTargetsResponse,
 } from "../contracts/resolve-targets.js"
 import { resolveTargetsResponseSchema } from "../contracts/resolve-targets.js"
+import type { TriggerResponse } from "../contracts/trigger.js"
+import { triggerResponseSchema } from "../contracts/trigger.js"
 import type {
   VerifyDeployPayload,
   VerifyResponse,
@@ -53,21 +70,23 @@ export class ZaneOperatorClient {
     this.#apiToken = apiToken
   }
 
-  async #postJson<T>(
+  async #requestJson<T>(
     path: string,
-    payload: unknown,
+    init: RequestInit,
     parseResponse: (value: unknown) => T
-  ): Promise<T> {
+  ): Promise<{
+    httpCode: number
+    body: T
+  }> {
     let response: Response
 
     try {
       response = await fetch(`${this.#baseUrl}${path}`, {
-        method: "POST",
+        ...init,
         headers: {
-          "content-type": "application/json",
           authorization: `Bearer ${this.#apiToken}`,
+          ...(init.headers ?? {}),
         },
-        body: JSON.stringify(payload),
       })
     } catch {
       throw new Error(
@@ -97,7 +116,30 @@ export class ZaneOperatorClient {
       )
     }
 
-    return parseResponse(responseBody)
+    return {
+      httpCode: response.status,
+      body: parseResponse(responseBody),
+    }
+  }
+
+  async #postJson<T>(
+    path: string,
+    payload: unknown,
+    parseResponse: (value: unknown) => T
+  ): Promise<T> {
+    const response = await this.#requestJson(
+      path,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      parseResponse
+    )
+
+    return response.body
   }
 
   resolveEnvironment(payload: {
@@ -134,11 +176,87 @@ export class ZaneOperatorClient {
     )
   }
 
+  triggerDeploys(payload: {
+    project_slug: string
+    environment_name: string
+    targets: ResolveTargetsResponse["services"]
+    git_commit_sha?: string
+  }): Promise<TriggerResponse> {
+    return this.#postJson(
+      "/v1/zane/deploy/trigger",
+      payload,
+      triggerResponseSchema.parse
+    )
+  }
+
+  provisionPreviewMeiliKeys(
+    payload: ProvisionPreviewMeiliKeysPayload
+  ): Promise<ProvisionPreviewMeiliKeysResponse> {
+    return this.#postJson(
+      "/v1/zane/meilisearch/provision-keys",
+      payload,
+      provisionPreviewMeiliKeysResponseSchema.parse
+    )
+  }
+
   verifyDeploy(payload: VerifyDeployPayload): Promise<VerifyResponse> {
     return this.#postJson(
       "/v1/zane/deploy/verify",
       payload,
       verifyResponseSchema.parse
+    )
+  }
+
+  async ensurePreviewDb(prNumber: number): Promise<{
+    httpCode: number
+    body: EnsurePreviewDbResponse
+  }> {
+    return await this.#requestJson(
+      "/v1/preview-db/ensure",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ pr_number: prNumber }),
+      },
+      ensurePreviewDbResponseSchema.parse
+    )
+  }
+
+  async teardownPreviewDb(prNumber: number): Promise<{
+    httpCode: number
+    body: TeardownPreviewDbResponse
+  }> {
+    return await this.#requestJson(
+      `/v1/preview-db/${prNumber}`,
+      {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+      teardownPreviewDbResponseSchema.parse
+    )
+  }
+
+  async archiveEnvironment(payload: {
+    project_slug: string
+    environment_name: string
+  }): Promise<{
+    httpCode: number
+    body: ArchiveEnvironmentResponse
+  }> {
+    return await this.#requestJson(
+      "/v1/zane/environments/archive",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      archiveEnvironmentResponseSchema.parse
     )
   }
 }

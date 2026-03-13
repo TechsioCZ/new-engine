@@ -1,13 +1,11 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import type { StackInputsConfig } from "../stack-inputs"
 import { parseProvisionPreviewMeiliKeysInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
 
 interface ProvisionPreviewMeiliKeysDeps {
   config: AppConfig
-  stackInputs: StackInputsConfig
 }
 
 export async function handleProvisionPreviewMeiliKeys(
@@ -19,7 +17,7 @@ export async function handleProvisionPreviewMeiliKeys(
       throw new BadRequestError("request body must be valid JSON")
     })
 
-    const client = new ZaneClient(deps.config, deps.stackInputs)
+    const client = new ZaneClient(deps.config)
     const payload = parseProvisionPreviewMeiliKeysInput(rawBody)
     const result = await client.provisionPreviewMeiliKeys(payload)
     return jsonResponse(200, result)

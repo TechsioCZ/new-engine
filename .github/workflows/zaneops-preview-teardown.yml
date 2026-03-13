@@ -9,7 +9,38 @@ permissions:
   pull-requests: write
 
 jobs:
+  build_cli:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: jdx/mise-action@v3
+        with:
+          install: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build new-engine-ctl
+        run: NX_ISOLATE_PLUGINS=false pnpm exec nx run new-engine-ctl:build
+
+      - name: Upload new-engine-ctl artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist/cli.js
+          if-no-files-found: error
+
   teardown:
+    needs: build_cli
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -19,6 +50,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       - name: Validate teardown inputs
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
@@ -26,22 +66,17 @@ jobs:
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
         run: bash ./scripts/ci/check-workflow-inputs.sh preview-teardown
 
-      - name: Teardown preview environment
-        id: teardown_env
+      - name: Run preview teardown
+        id: run_teardown
         continue-on-error: true
         env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
-        run: bash ./scripts/ci/preview-environment.sh delete "${{ github.event.pull_request.number }}"
-
-      - name: Teardown preview DB
-        id: teardown_db
-        continue-on-error: true
-        env:
-          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
-          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-        run: bash ./scripts/ci/preview-db.sh delete "${{ github.event.pull_request.number }}"
+        run: |
+          node apps/new-engine-ctl/dist/cli.js teardown-preview \
+            --pr-number "$PR_NUMBER"
 
       - name: Summary
         if: always()
@@ -49,19 +84,19 @@ jobs:
           {
             echo "## Preview Teardown"
             echo "- PR: #${{ github.event.pull_request.number }}"
-            echo "- Environment outcome: ${{ steps.teardown_env.outcome }}"
-            echo "- Environment HTTP: ${{ steps.teardown_env.outputs.http_code || 'n/a' }}"
-            echo "- Environment name: ${{ steps.teardown_env.outputs.environment_name || 'n/a' }}"
-            echo "- Environment noop: ${{ steps.teardown_env.outputs.noop || 'n/a' }}"
-            echo "- Outcome: ${{ steps.teardown_db.outcome }}"
-            echo "- DB HTTP: ${{ steps.teardown_db.outputs.http_code || 'n/a' }}"
-            echo "- DB status: ${{ steps.teardown_db.outputs.status || 'n/a' }}"
-            echo "- DB name: ${{ steps.teardown_db.outputs.db_name || 'n/a' }}"
-            echo "- DB noop: ${{ steps.teardown_db.outputs.noop || 'n/a' }}"
+            echo "- Environment outcome: ${{ steps.run_teardown.outputs.environment_outcome || 'n/a' }}"
+            echo "- Environment HTTP: ${{ steps.run_teardown.outputs.environment_http_code || 'n/a' }}"
+            echo "- Environment name: ${{ steps.run_teardown.outputs.environment_name || 'n/a' }}"
+            echo "- Environment noop: ${{ steps.run_teardown.outputs.environment_noop || 'n/a' }}"
+            echo "- DB outcome: ${{ steps.run_teardown.outputs.preview_db_outcome || 'n/a' }}"
+            echo "- DB HTTP: ${{ steps.run_teardown.outputs.preview_db_http_code || 'n/a' }}"
+            echo "- DB status: ${{ steps.run_teardown.outputs.preview_db_status || 'n/a' }}"
+            echo "- DB name: ${{ steps.run_teardown.outputs.preview_db_name || 'n/a' }}"
+            echo "- DB noop: ${{ steps.run_teardown.outputs.preview_db_noop || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail when teardown failed
-        if: steps.teardown_env.outcome != 'success' || steps.teardown_db.outcome != 'success'
+        if: steps.run_teardown.outcome != 'success'
         run: |
           echo "Preview teardown failed and requires manual retry." >&2
           exit 1

@@ -14,10 +14,25 @@ export interface ArchiveEnvironmentInput {
   environmentName: string
 }
 
+export interface SearchCredentialsPolicy {
+  uid: string
+  description: string
+  actions: string[]
+  indexes: string[]
+}
+
+export interface ProvisionPreviewMeiliKeysOutputInput {
+  envVar: string
+  policy: SearchCredentialsPolicy
+}
+
 export interface ProvisionPreviewMeiliKeysInput {
   projectSlug: string
   environmentName: string
   serviceSlug: string
+  readinessPath: string
+  backendOutput: ProvisionPreviewMeiliKeysOutputInput
+  frontendOutput: ProvisionPreviewMeiliKeysOutputInput
 }
 
 export interface ResolveTargetInput {

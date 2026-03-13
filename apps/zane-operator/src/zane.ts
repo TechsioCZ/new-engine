@@ -1,5 +1,4 @@
 import type { AppConfig } from "./config"
-import type { StackInputsConfig } from "./stack-inputs"
 import type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
@@ -119,11 +118,9 @@ function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
 
 export class ZaneClient {
   readonly #upstream: ZaneUpstreamClient
-  readonly #stackInputs: StackInputsConfig
 
-  constructor(config: AppConfig, stackInputs: StackInputsConfig) {
+  constructor(config: AppConfig) {
     this.#upstream = new ZaneUpstreamClient(config)
-    this.#stackInputs = stackInputs
   }
 
   private async authenticate(forceRefresh = false): Promise<ZaneSession> {
@@ -176,7 +173,7 @@ export class ZaneClient {
   }
 
   private createSearchCredentialsProvisioner(): ZaneSearchCredentialsProvisioner {
-    return new ZaneSearchCredentialsProvisioner(this.#stackInputs, {
+    return new ZaneSearchCredentialsProvisioner({
       authenticate: async () => await this.authenticate(),
       getEnvironment: async (session, projectSlug, environmentName) =>
         await this.getEnvironment(session, projectSlug, environmentName),

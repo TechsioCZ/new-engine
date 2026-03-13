@@ -5,6 +5,7 @@ import type {
   Lane,
   PersistedEnvRequirement,
   ProvisionPreviewMeiliKeysInput,
+  ProvisionPreviewMeiliKeysOutputInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
   ServiceType,
@@ -74,6 +75,27 @@ function assertStringArray(value: unknown, label: string): string[] {
   }
 
   return value.map((item, index) => assertString(item, `${label}[${index}]`))
+}
+
+function normalizeSearchCredentialsOutput(
+  value: unknown,
+  label: string
+): ProvisionPreviewMeiliKeysOutputInput {
+  const object = assertObject(value, label)
+  const policy = assertObject(object.policy, `${label}.policy`)
+
+  return {
+    envVar: assertString(object.env_var, `${label}.env_var`),
+    policy: {
+      uid: assertString(policy.uid, `${label}.policy.uid`),
+      description: assertString(
+        policy.description,
+        `${label}.policy.description`
+      ),
+      actions: assertStringArray(policy.actions, `${label}.policy.actions`),
+      indexes: assertStringArray(policy.indexes, `${label}.policy.indexes`),
+    },
+  }
 }
 
 function assertStringMap(value: unknown, label: string): Record<string, string> {
@@ -212,6 +234,15 @@ export function parseProvisionPreviewMeiliKeysInput(rawPayload: unknown): Provis
     projectSlug: normalizeProjectSlugFromPayload(payload),
     environmentName: assertString(payload.environment_name, "environment_name"),
     serviceSlug: assertString(payload.service_slug, "service_slug"),
+    readinessPath: assertString(payload.readiness_path, "readiness_path"),
+    backendOutput: normalizeSearchCredentialsOutput(
+      payload.backend_output,
+      "backend_output"
+    ),
+    frontendOutput: normalizeSearchCredentialsOutput(
+      payload.frontend_output,
+      "frontend_output"
+    ),
   }
 }
 

@@ -1,13 +1,10 @@
 import { BadRequestError } from "./db"
-import type { SearchCredentialsOutput, StackInputsConfig } from "./stack-inputs"
 import { UpstreamHttpError } from "./zane-errors"
+import type {
+  ProvisionPreviewMeiliKeysInput,
+  ProvisionPreviewMeiliKeysOutputInput,
+} from "./zane-contract"
 import { parseErrorMessage, type ZaneSession } from "./zane-upstream"
-
-interface ProvisionPreviewSearchCredentialsInput {
-  projectSlug: string
-  environmentName: string
-  serviceSlug: string
-}
 
 interface PreviewEnvironmentLookup {
   is_preview: boolean
@@ -100,14 +97,6 @@ function meiliKeyMatchesPolicy(
   )
 }
 
-function requireTargetEnvVar(output: SearchCredentialsOutput, serviceId: string, outputLabel: string): string {
-  const target = output.targetEnvs.find((entry) => entry.serviceId === serviceId)
-  if (!target) {
-    throw new BadRequestError(`search_credentials.${outputLabel} is missing a target env for ${serviceId}`)
-  }
-  return target.envVar
-}
-
 function assertPreviewEnvironment(environment: PreviewEnvironmentLookup): void {
   if (!environment.is_preview) {
     throw new UpstreamHttpError(
@@ -125,15 +114,13 @@ function sleep(ms: number): Promise<void> {
 }
 
 export class ZaneSearchCredentialsProvisioner {
-  readonly #stackInputs: StackInputsConfig
   readonly #deps: ProvisionPreviewSearchCredentialsDeps
 
-  constructor(stackInputs: StackInputsConfig, deps: ProvisionPreviewSearchCredentialsDeps) {
-    this.#stackInputs = stackInputs
+  constructor(deps: ProvisionPreviewSearchCredentialsDeps) {
     this.#deps = deps
   }
 
-  async provisionPreviewMeiliKeys(input: ProvisionPreviewSearchCredentialsInput): Promise<{
+  async provisionPreviewMeiliKeys(input: ProvisionPreviewMeiliKeysInput): Promise<{
     project_slug: string
     environment_name: string
     service_slug: string
@@ -147,11 +134,10 @@ export class ZaneSearchCredentialsProvisioner {
     frontend_created: boolean
     frontend_updated: boolean
   }> {
-    const provider = this.#stackInputs.searchCredentialsProvider
-    const backendOutput = provider.outputs.backend
-    const frontendOutput = provider.outputs.frontend
-    const backendEnvVar = requireTargetEnvVar(backendOutput, "medusa-be", "backend_key")
-    const frontendEnvVar = requireTargetEnvVar(frontendOutput, "n1", "frontend_key")
+    const backendOutput = input.backendOutput
+    const frontendOutput = input.frontendOutput
+    const backendEnvVar = this.requireOutputEnvVar(backendOutput, "backend_output")
+    const frontendEnvVar = this.requireOutputEnvVar(frontendOutput, "frontend_output")
     const session = await this.#deps.authenticate()
     const environment = await this.#deps.getEnvironment(session, input.projectSlug, input.environmentName)
     if (!environment) {
@@ -188,7 +174,7 @@ export class ZaneSearchCredentialsProvisioner {
       )
     }
 
-    await this.waitForMeiliHealth(meiliUrl, provider.readinessPath)
+    await this.waitForMeiliHealth(meiliUrl, input.readinessPath)
 
     let backendKeyObj = await this.getMeiliKeyByUid(meiliUrl, meiliMasterKey, backendOutput.policy.uid)
     let backendCreated = false
@@ -276,6 +262,17 @@ export class ZaneSearchCredentialsProvisioner {
       frontend_created: frontendCreated,
       frontend_updated: frontendUpdated,
     }
+  }
+
+  private requireOutputEnvVar(
+    output: ProvisionPreviewMeiliKeysOutputInput,
+    label: string
+  ): string {
+    if (!output.envVar.trim()) {
+      throw new BadRequestError(`${label}.envVar must be provided`)
+    }
+
+    return output.envVar.trim()
   }
 
   private async waitForMeiliHealth(meiliUrl: string, healthPath: string): Promise<void> {

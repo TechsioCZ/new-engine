@@ -7,7 +7,6 @@ PROJECT_NAME="${PROJECT_NAME:-new-engine}"
 HEALTH_TIMEOUT_SECONDS="${MISE_DEV_HEALTH_TIMEOUT_SECONDS:-180}"
 KEY_CONFLICT_POLICY="${MISE_DEV_MEILI_KEY_CONFLICT:-prompt}" # prompt|override|keep
 MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-http://127.0.0.1:7700}"
-STACK_MANIFEST_HELPER="${ROOT_DIR}/scripts/lib/stack-manifest.sh"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -63,10 +62,12 @@ services_for_phase() {
   local phase="$1"
   local default_only="${2:-true}"
 
+  require_cmd pnpm
+
   if [[ "$default_only" == "true" ]]; then
-    bash "$STACK_MANIFEST_HELPER" compose-services --phase "$phase" --default-only
+    pnpm --dir "$ROOT_DIR" exec tsx apps/new-engine-ctl/src/cli.ts manifest compose-services --phase "$phase" --default-only
   else
-    bash "$STACK_MANIFEST_HELPER" compose-services --phase "$phase"
+    pnpm --dir "$ROOT_DIR" exec tsx apps/new-engine-ctl/src/cli.ts manifest compose-services --phase "$phase"
   fi
 }
 
