@@ -14,10 +14,25 @@ type ShippingOptionWithProvider = HttpTypes.StoreCartShippingOption & {
 const getCurrencyCode = (currencyCode?: string | null) =>
   currencyCode ?? DEFAULT_CURRENCY
 
+const isAmount = (amount?: number | null): amount is number =>
+  typeof amount === "number" && Number.isFinite(amount)
+
 const hasPositiveAmount = (amount?: number | null) =>
   typeof amount === "number" && amount > 0
 
 const hasTaxLines = (lines?: unknown[] | null) => (lines?.length ?? 0) > 0
+
+const getTaxRate = (lines?: { rate?: number | null }[] | null) =>
+  lines?.reduce((sum, line) => sum + (line.rate ?? 0), 0) ?? 0
+
+const getLineItemQuantity = (quantity?: number | null) =>
+  typeof quantity === "number" && quantity > 0 ? quantity : 1
+
+const getPerUnitAmount = (amount: number, quantity: number) =>
+  Math.round(amount / quantity)
+
+const getTaxInclusiveUnitAmount = (unitAmount: number, taxRate: number) =>
+  Math.round(unitAmount * (1 + taxRate / 100))
 
 const getItemsSubtotalAmount = (cart: Cart) =>
   cart.original_item_subtotal ?? cart.item_subtotal ?? cart.subtotal ?? 0
@@ -105,8 +120,49 @@ export const getOrderPriceView = (order: HttpTypes.StoreOrder) => {
 export const formatCartLineItemUnitPrice = (
   item: CartLineItem,
   currencyCode?: string | null
-) =>
-  formatAmount(item.unit_price ?? 0, true, getCurrencyCode(currencyCode))
+) => {
+  const quantity = getLineItemQuantity(item.quantity)
+  const grossTotalAmount =
+    item.total ?? item.item_total ?? item.original_total ?? null
+
+  if (isAmount(grossTotalAmount)) {
+    return formatAmount(
+      getPerUnitAmount(grossTotalAmount, quantity),
+      true,
+      getCurrencyCode(currencyCode)
+    )
+  }
+
+  const subtotalAmount =
+    item.subtotal ?? item.item_subtotal ?? item.original_subtotal ?? null
+  const taxAmount =
+    item.tax_total ?? item.item_tax_total ?? item.original_tax_total ?? 0
+
+  if (isAmount(subtotalAmount)) {
+    return formatAmount(
+      getPerUnitAmount(
+        subtotalAmount + (isAmount(taxAmount) ? taxAmount : 0),
+        quantity
+      ),
+      true,
+      getCurrencyCode(currencyCode)
+    )
+  }
+
+  if (isAmount(item.unit_price)) {
+    const taxInclusiveUnitAmount = item.is_tax_inclusive
+      ? item.unit_price
+      : getTaxInclusiveUnitAmount(item.unit_price, getTaxRate(item.tax_lines))
+
+    return formatAmount(
+      taxInclusiveUnitAmount,
+      true,
+      getCurrencyCode(currencyCode)
+    )
+  }
+
+  return formatAmount(0, true, getCurrencyCode(currencyCode))
+}
 
 export const getShippingOptionDisplayAmount = (
   option: HttpTypes.StoreCartShippingOption,

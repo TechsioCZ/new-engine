@@ -133,7 +133,6 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
         <LinkButton
           as={Link}
           className="w-full justify-center"
-          disabled={isPending}
           href="/pokladna"
           onClick={onClose}
           size="md"
