@@ -2,6 +2,7 @@ import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
 import type { StackInputsConfig } from "../stack-inputs"
+import { parseProvisionPreviewMeiliKeysInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
 
 interface ProvisionPreviewMeiliKeysDeps {
@@ -19,7 +20,7 @@ export async function handleProvisionPreviewMeiliKeys(
     })
 
     const client = new ZaneClient(deps.config, deps.stackInputs)
-    const payload = ZaneClient.parseProvisionPreviewMeiliKeysInput(rawBody)
+    const payload = parseProvisionPreviewMeiliKeysInput(rawBody)
     const result = await client.provisionPreviewMeiliKeys(payload)
     return jsonResponse(200, result)
   } catch (error: unknown) {

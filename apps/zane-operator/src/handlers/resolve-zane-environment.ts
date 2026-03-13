@@ -2,6 +2,7 @@ import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
 import type { StackInputsConfig } from "../stack-inputs"
+import { parseResolveEnvironmentInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
 
 interface ResolveZaneEnvironmentDeps {
@@ -19,7 +20,7 @@ export async function handleResolveZaneEnvironment(
     })
 
     const client = new ZaneClient(deps.config, deps.stackInputs)
-    const payload = ZaneClient.parseResolveEnvironmentInput(rawBody)
+    const payload = parseResolveEnvironmentInput(rawBody)
     const result = await client.resolveEnvironment(payload)
     return jsonResponse(200, result)
   } catch (error: unknown) {

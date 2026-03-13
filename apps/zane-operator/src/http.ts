@@ -1,5 +1,5 @@
 import { BadRequestError } from "./db"
-import { UpstreamHttpError } from "./zane"
+import { UpstreamHttpError } from "./zane-errors"
 
 interface ErrorBody {
   error: string
