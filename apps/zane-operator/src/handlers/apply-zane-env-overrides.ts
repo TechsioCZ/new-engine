@@ -2,6 +2,7 @@ import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
 import type { StackInputsConfig } from "../stack-inputs"
+import { parseApplyEnvOverridesInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
 
 interface ApplyZaneEnvOverridesDeps {
@@ -19,7 +20,7 @@ export async function handleApplyZaneEnvOverrides(
     })
 
     const client = new ZaneClient(deps.config, deps.stackInputs)
-    const payload = ZaneClient.parseApplyEnvOverridesInput(rawBody)
+    const payload = parseApplyEnvOverridesInput(rawBody)
     const result = await client.applyEnvOverrides({
       projectSlug: payload.projectSlug,
       environmentName: payload.environmentName,

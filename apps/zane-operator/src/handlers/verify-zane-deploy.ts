@@ -2,6 +2,7 @@ import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
 import type { StackInputsConfig } from "../stack-inputs"
+import { parseVerifyInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
 
 interface VerifyZaneDeployDeps {
@@ -16,7 +17,7 @@ export async function handleVerifyZaneDeploy(request: Request, deps: VerifyZaneD
     })
 
     const client = new ZaneClient(deps.config, deps.stackInputs)
-    const payload = ZaneClient.parseVerifyInput(rawBody)
+    const payload = parseVerifyInput(rawBody)
     const result = await client.verifyDeploy(payload)
     return jsonResponse(200, result)
   } catch (error: unknown) {

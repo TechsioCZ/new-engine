@@ -2,6 +2,7 @@ import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
 import type { StackInputsConfig } from "../stack-inputs"
+import { parseArchiveEnvironmentInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
 
 interface ArchiveZaneEnvironmentDeps {
@@ -19,7 +20,7 @@ export async function handleArchiveZaneEnvironment(
     })
 
     const client = new ZaneClient(deps.config, deps.stackInputs)
-    const payload = ZaneClient.parseArchiveEnvironmentInput(rawBody)
+    const payload = parseArchiveEnvironmentInput(rawBody)
     const result = await client.archiveEnvironment(payload)
     return jsonResponse(200, result)
   } catch (error: unknown) {
