@@ -140,7 +140,8 @@ require_tools() {
 ensure_ctl_built() {
   local build_output
 
-  common::info "Building new-engine-ctl CLI..."
+  common::stage "Build"
+  common::step "Building new-engine-ctl CLI..."
   (
     cd "$ROOT_DIR/apps/new-engine-ctl"
     if ! build_output="$(pnpm run build 2>&1)"; then
@@ -209,7 +210,8 @@ default_base_sha() {
 resolve_scope() {
   local scope_json
 
-  common::info "Resolving affected services for the main lane..."
+  common::stage "Scope"
+  common::step "Resolving affected services for the main lane..."
   SERVICES_CSV="$(normalize_csv "$SERVICES_CSV")"
   if [[ -n "$SERVICES_CSV" ]]; then
     scope_json="$(
@@ -218,7 +220,7 @@ resolve_scope() {
         --services-csv "$SERVICES_CSV"
     )"
     SERVICES_CSV="$(jq -r '.services_csv' <<<"$scope_json")"
-    common::info "Scope resolved from explicit services: ${SERVICES_CSV:-<none>}."
+    common::success "Scope resolved from explicit services: ${SERVICES_CSV:-<none>}."
     printf '%s\n' "$scope_json"
     return
   fi
@@ -231,7 +233,7 @@ resolve_scope() {
       --head-sha "$HEAD_SHA"
   )"
   SERVICES_CSV="$(jq -r '.services_csv' <<<"$scope_json")"
-  common::info "Scope resolved from git diff: ${SERVICES_CSV:-<none>}."
+  common::success "Scope resolved from git diff: ${SERVICES_CSV:-<none>}."
   printf '%s\n' "$scope_json"
 }
 
@@ -250,7 +252,8 @@ run_deploy_stage() {
   local keys_reconciled="false"
   local meili_verified="false"
 
-  common::info "Running main deploy stage..."
+  common::stage "Deploy"
+  common::step "Running main deploy stage..."
   git_commit_sha="$(git -C "$ROOT_DIR" rev-parse "$HEAD_SHA")"
 
   (
@@ -265,9 +268,9 @@ run_deploy_stage() {
   ) >/dev/null
 
   if [[ "$requires_meili_keys" == "true" ]]; then
-    common::info "Main deploy will reconcile Meili API credentials when the source service is healthy."
+    common::step "Main deploy will reconcile Meili API credentials when the source service is healthy."
   else
-    common::info "Main deploy does not need Meili API credential reconciliation for this scope."
+    common::step "Main deploy does not need Meili API credential reconciliation for this scope."
   fi
 
   output_file="$(mktemp)"
@@ -329,7 +332,8 @@ run_verify_stage() {
   local verify_json
   local deployments_json_inline
 
-  common::info "Running main verify stage..."
+  common::stage "Verify"
+  common::step "Running main verify stage..."
   jq -e . >/dev/null <<<"$deploy_json" || common::die "Deploy stage did not return valid JSON."
   deployments_json_inline="$(jq -c '{services: (.deployments // [])}' <<<"$deploy_json")"
 
@@ -380,11 +384,11 @@ main() {
 
   scope_json="$(resolve_scope)"
   SERVICES_CSV="$(jq -r '.services_csv' <<<"$scope_json")"
-  common::info "Using operator URL: ${ZANE_OPERATOR_BASE_URL}"
-  common::info "Using Meilisearch URL: ${MEILISEARCH_URL}"
+  common::step "Using operator URL: ${ZANE_OPERATOR_BASE_URL}"
+  common::step "Using Meilisearch URL: ${MEILISEARCH_URL}"
 
   if [[ -z "$SERVICES_CSV" ]]; then
-    common::info "No affected services detected. Skipping main lane."
+    common::success "No affected services detected. Skipping main lane."
     jq -cn \
       --arg project_slug "$PROJECT_SLUG" \
       --arg environment_name "$ENVIRONMENT_NAME" \
@@ -423,7 +427,8 @@ main() {
     common::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(\",\")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
   fi
   requires_meili_keys="$(jq -r '.requires_meili_keys' <<<"$prepare_needs_json")"
-  common::info "Skipping main prepare stage: main lane has no active shared-resource prepare work."
+  common::stage "Prepare"
+  common::step "Skipping main prepare stage: main lane has no active shared-resource prepare work."
   if ! deploy_json="$(run_deploy_stage "$requires_meili_keys")"; then
     common::die "Main deploy stage failed. See the deployment error above for the failing stage and deployment hash."
   fi
@@ -435,10 +440,10 @@ main() {
     fi
     jq -e . >/dev/null <<<"$verify_json" || common::die "Verify stage did not return valid JSON."
   else
-    common::info "Skipping main verify stage by request."
+    common::step "Skipping main verify stage by request."
   fi
 
-  common::info "Main lane completed successfully."
+  common::success "Main lane completed successfully."
   jq -cn \
     --arg project_slug "$PROJECT_SLUG" \
     --arg environment_name "$ENVIRONMENT_NAME" \
