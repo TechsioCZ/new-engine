@@ -254,7 +254,13 @@ run_deploy_stage() {
 
   common::stage "Deploy"
   common::step "Running main deploy stage..."
-  git_commit_sha="$(git -C "$ROOT_DIR" rev-parse "$HEAD_SHA")"
+  if [[ "$HEAD_SHA" == "HEAD" ]]; then
+    git_commit_sha="HEAD"
+    common::step "Local deploy target commit: HEAD (branch-head mode)."
+  else
+    git_commit_sha="$(git -C "$ROOT_DIR" rev-parse "$HEAD_SHA")"
+    common::step "Local deploy target commit: ${git_commit_sha}."
+  fi
 
   (
     export REQUIRES_MEILI_KEYS="$requires_meili_keys"
