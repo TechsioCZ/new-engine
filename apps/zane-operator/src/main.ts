@@ -12,10 +12,8 @@ import { handleTeardownPreviewDb } from "./handlers/teardown-preview-db"
 import { handleTriggerZaneDeploy } from "./handlers/trigger-zane-deploy"
 import { handleVerifyZaneDeploy } from "./handlers/verify-zane-deploy"
 import { jsonError, jsonResponse } from "./http"
-import { loadStackInputs } from "./stack-inputs"
 
 const config = loadConfig()
-const stackInputs = await loadStackInputs()
 const sql = createDbClient(config)
 
 await sql.connect()
@@ -79,7 +77,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleResolveZaneEnvironment(request, { config, stackInputs })
+      return await handleResolveZaneEnvironment(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/environments/archive") {
@@ -88,7 +86,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleArchiveZaneEnvironment(request, { config, stackInputs })
+      return await handleArchiveZaneEnvironment(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/meilisearch/provision-keys") {
@@ -97,7 +95,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleProvisionPreviewMeiliKeys(request, { config, stackInputs })
+      return await handleProvisionPreviewMeiliKeys(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/deploy/resolve-targets") {
@@ -106,7 +104,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleResolveZaneTargets(request, { config, stackInputs })
+      return await handleResolveZaneTargets(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/deploy/apply-env-overrides") {
@@ -115,7 +113,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleApplyZaneEnvOverrides(request, { config, stackInputs })
+      return await handleApplyZaneEnvOverrides(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/deploy/trigger") {
@@ -124,7 +122,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleTriggerZaneDeploy(request, { config, stackInputs })
+      return await handleTriggerZaneDeploy(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/deploy/verify") {
@@ -133,7 +131,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleVerifyZaneDeploy(request, { config, stackInputs })
+      return await handleVerifyZaneDeploy(request, { config })
     }
 
     if (url.pathname.startsWith("/v1/zane/")) {

@@ -1,11 +1,13 @@
 import { Command } from "commander"
 import { ZodError } from "zod"
 
-import { createApplyEnvOverridesCommand } from "./commands/apply-env-overrides.js"
+import { createDeployMainCommand } from "./commands/deploy-main.js"
+import { createDeployPreviewCommand } from "./commands/deploy-preview.js"
+import { createManifestCommand } from "./commands/manifest.js"
 import { createPlanCommand } from "./commands/plan.js"
-import { createRenderEnvOverridesCommand } from "./commands/render-env-overrides.js"
-import { createResolveEnvironmentCommand } from "./commands/resolve-environment.js"
-import { createResolveTargetsCommand } from "./commands/resolve-targets.js"
+import { createPrepareCommand } from "./commands/prepare.js"
+import { createScopeCommand } from "./commands/scope.js"
+import { createTeardownPreviewCommand } from "./commands/teardown-preview.js"
 import { createVerifyCommand } from "./commands/verify.js"
 
 async function main(): Promise<void> {
@@ -16,11 +18,13 @@ async function main(): Promise<void> {
     )
     .showHelpAfterError()
 
-  program.addCommand(createApplyEnvOverridesCommand())
+  program.addCommand(createDeployMainCommand())
+  program.addCommand(createDeployPreviewCommand())
+  program.addCommand(createManifestCommand())
   program.addCommand(createPlanCommand())
-  program.addCommand(createRenderEnvOverridesCommand())
-  program.addCommand(createResolveEnvironmentCommand())
-  program.addCommand(createResolveTargetsCommand())
+  program.addCommand(createPrepareCommand())
+  program.addCommand(createScopeCommand())
+  program.addCommand(createTeardownPreviewCommand())
   program.addCommand(createVerifyCommand())
   await program.parseAsync(process.argv)
 }

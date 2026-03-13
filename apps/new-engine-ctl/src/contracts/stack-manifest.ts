@@ -1,6 +1,12 @@
 import { z } from "zod"
 
 export const laneSchema = z.enum(["preview", "main"])
+export const localPhaseSchema = z.enum([
+  "resources",
+  "backend",
+  "frontend",
+  "operator",
+])
 
 const defaultConsumes = {
   preview_db: false,
@@ -10,6 +16,11 @@ const defaultConsumes = {
 
 const defaultCiConfig = {
   deployable: false,
+  affected_path_globs: [],
+  prepare: {
+    preview_db: false,
+    meili_keys: false,
+  },
 }
 
 const consumesSchema = z
@@ -19,6 +30,13 @@ const consumesSchema = z
     meili_backend_key: z.boolean().optional().default(false),
   })
   .default(defaultConsumes)
+
+const prepareSchema = z
+  .object({
+    preview_db: z.boolean().optional().default(false),
+    meili_keys: z.boolean().optional().default(false),
+  })
+  .default(defaultCiConfig.prepare)
 
 const zaneServiceSchema = z.looseObject({
   service_slug: z.string().min(1),
@@ -30,11 +48,28 @@ const zaneServiceSchema = z.looseObject({
   coupled_service_ids: z.array(z.string().min(1)).optional().default([]),
 })
 
+const localConfigSchema = z.looseObject({
+  phase: localPhaseSchema,
+  enabled_by_default: z.boolean().optional().default(true),
+  wait_healthy: z.boolean().optional().default(true),
+})
+
+const globalRuntimeRuleSchema = z.looseObject({
+  path_globs: z.array(z.string().min(1)).default([]),
+  service_ids: z.array(z.string().min(1)).default([]),
+})
+
 const serviceSchema = z.looseObject({
   id: z.string().min(1),
+  compose_service: z.string().min(1).optional(),
+  kind: z.string().min(1).optional(),
+  nx_projects: z.array(z.string().min(1)).default([]),
+  local: localConfigSchema.optional(),
   ci: z
     .looseObject({
       deployable: z.boolean().optional().default(false),
+      affected_path_globs: z.array(z.string().min(1)).optional().default([]),
+      prepare: prepareSchema.optional().default(defaultCiConfig.prepare),
       zane: zaneServiceSchema.optional(),
     })
     .optional()
@@ -42,10 +77,20 @@ const serviceSchema = z.looseObject({
 })
 
 export const stackManifestSchema = z.object({
+  ci: z
+    .object({
+      ignore_path_globs: z.array(z.string().min(1)).default([]),
+      global_runtime_rules: z.array(globalRuntimeRuleSchema).default([]),
+    })
+    .default({
+      ignore_path_globs: [],
+      global_runtime_rules: [],
+    }),
   services: z.array(serviceSchema),
 })
 
 export type Lane = z.infer<typeof laneSchema>
+export type LocalPhase = z.infer<typeof localPhaseSchema>
 export type StackManifest = z.infer<typeof stackManifestSchema>
 export type DeployableService = {
   id: string
@@ -60,6 +105,10 @@ export type DeployableService = {
     meili_backend_key: boolean
   }
   coupledServiceIds: string[]
+}
+export type GlobalRuntimeRule = {
+  pathGlobs: string[]
+  serviceIds: string[]
 }
 
 function toDeployableService(
@@ -111,4 +160,69 @@ export function getDeployableService(
   }
 
   return toDeployableService(service)
+}
+
+export function listComposeServicesForPhase(
+  manifest: StackManifest,
+  phase: LocalPhase,
+  defaultOnly: boolean
+): string[] {
+  return manifest.services.flatMap((service) => {
+    if (!(service.compose_service && service.local)) {
+      return []
+    }
+
+    if (service.local.phase !== phase) {
+      return []
+    }
+
+    if (defaultOnly && service.local.enabled_by_default !== true) {
+      return []
+    }
+
+    return [service.compose_service]
+  })
+}
+
+export function listPrepareServiceIds(
+  manifest: StackManifest,
+  requirement: "preview_db" | "meili_keys"
+): string[] {
+  return manifest.services.flatMap((service) =>
+    service.ci.prepare[requirement] === true ? [service.id] : []
+  )
+}
+
+export function listLaneServiceIds(
+  manifest: StackManifest,
+  lane: Lane
+): string[] {
+  return listDeployableServices(manifest)
+    .filter((service) => service.deployLanes.includes(lane))
+    .map((service) => service.id)
+}
+
+export function listDowntimeRiskServiceIds(
+  manifest: StackManifest,
+  lane: Lane
+): string[] {
+  return listDeployableServices(manifest)
+    .filter(
+      (service) =>
+        service.deployLanes.includes(lane) && service.downtimeRisk === true
+    )
+    .map((service) => service.id)
+}
+
+export function getIgnorePathGlobs(manifest: StackManifest): string[] {
+  return manifest.ci.ignore_path_globs
+}
+
+export function getGlobalRuntimeRules(
+  manifest: StackManifest
+): GlobalRuntimeRule[] {
+  return manifest.ci.global_runtime_rules.map((rule) => ({
+    pathGlobs: rule.path_globs,
+    serviceIds: rule.service_ids,
+  }))
 }

@@ -20,16 +20,16 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       base_sha: ${{ steps.base.outputs.base_sha }}
-      projects_csv: ${{ steps.affected.outputs.projects_csv }}
-      services_csv: ${{ steps.affected.outputs.services_csv }}
-      nx_status: ${{ steps.affected.outputs.nx_status }}
-      should_prepare: ${{ steps.prepare_needs.outputs.should_prepare }}
-      requires_preview_db: ${{ steps.prepare_needs.outputs.requires_preview_db }}
-      requires_meili_keys: ${{ steps.prepare_needs.outputs.requires_meili_keys }}
-      preview_db_service_ids: ${{ steps.prepare_needs.outputs.preview_db_service_ids }}
-      meili_key_service_ids: ${{ steps.prepare_needs.outputs.meili_key_service_ids }}
-      requires_downtime_approval: ${{ steps.downtime.outputs.requires_downtime_approval }}
-      downtime_service_ids: ${{ steps.downtime.outputs.downtime_service_ids }}
+      projects_csv: ${{ steps.scope_data.outputs.projects_csv }}
+      services_csv: ${{ steps.scope_data.outputs.services_csv }}
+      nx_status: ${{ steps.scope_data.outputs.nx_status }}
+      should_prepare: ${{ steps.scope_data.outputs.should_prepare }}
+      requires_preview_db: ${{ steps.scope_data.outputs.requires_preview_db }}
+      requires_meili_keys: ${{ steps.scope_data.outputs.requires_meili_keys }}
+      preview_db_service_ids: ${{ steps.scope_data.outputs.preview_db_service_ids }}
+      meili_key_service_ids: ${{ steps.scope_data.outputs.meili_key_service_ids }}
+      requires_downtime_approval: ${{ steps.scope_data.outputs.requires_downtime_approval }}
+      downtime_service_ids: ${{ steps.scope_data.outputs.downtime_service_ids }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,20 +62,13 @@ jobs:
           fi
           echo "base_sha=${base_sha}" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve affected deployables
-        id: affected
-        env:
-          BASE_SHA: ${{ steps.base.outputs.base_sha }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: bash ./scripts/ci/resolve-affected-services.sh
-
-      - name: Resolve prepare needs
-        id: prepare_needs
-        run: bash ./scripts/ci/resolve-prepare-needs.sh --lane main --services-csv "${{ steps.affected.outputs.services_csv }}"
-
-      - name: Resolve downtime risk
-        id: downtime
-        run: bash ./scripts/ci/resolve-downtime-risk.sh --lane main --services-csv "${{ steps.affected.outputs.services_csv }}"
+      - name: Resolve main scope
+        id: scope_data
+        run: |
+          node apps/new-engine-ctl/dist/cli.js scope \
+            --lane main \
+            --base-sha "${{ steps.base.outputs.base_sha }}" \
+            --head-sha "${{ github.event.workflow_run.head_sha }}"
 
       - name: Upload new-engine-ctl artifact
         uses: actions/upload-artifact@v4
@@ -91,14 +84,14 @@ jobs:
             echo "## Main Scope"
             echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
             echo "- Base SHA: ${{ steps.base.outputs.base_sha || 'n/a' }}"
-            echo "- Affected projects: ${{ steps.affected.outputs.projects_csv || 'n/a' }}"
-            echo "- Affected services: ${{ steps.affected.outputs.services_csv || 'n/a' }}"
-            echo "- Nx status: ${{ steps.affected.outputs.nx_status || 'n/a' }}"
-            echo "- Should prepare: ${{ steps.prepare_needs.outputs.should_prepare || 'false' }}"
-            echo "- Requires preview DB: ${{ steps.prepare_needs.outputs.requires_preview_db || 'false' }}"
-            echo "- Requires Meili keys: ${{ steps.prepare_needs.outputs.requires_meili_keys || 'false' }}"
-            echo "- Requires downtime approval: ${{ steps.downtime.outputs.requires_downtime_approval || 'false' }}"
-            echo "- Downtime-risk services: ${{ steps.downtime.outputs.downtime_service_ids || 'n/a' }}"
+            echo "- Affected projects: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}"
+            echo "- Affected services: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}"
+            echo "- Nx status: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}"
+            echo "- Should prepare: ${{ steps.scope_data.outputs.should_prepare || 'false' }}"
+            echo "- Requires preview DB: ${{ steps.scope_data.outputs.requires_preview_db || 'false' }}"
+            echo "- Requires Meili keys: ${{ steps.scope_data.outputs.requires_meili_keys || 'false' }}"
+            echo "- Requires downtime approval: ${{ steps.scope_data.outputs.requires_downtime_approval || 'false' }}"
+            echo "- Downtime-risk services: ${{ steps.scope_data.outputs.downtime_service_ids || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   approval:
@@ -124,20 +117,25 @@ jobs:
       group: zaneops-main-prepare
       cancel-in-progress: true
     outputs:
-      meili_backend_key: ${{ steps.provision_meili.outputs.backend_key }}
-      meili_frontend_key: ${{ steps.provision_meili.outputs.frontend_key }}
-      meili_frontend_env_var: ${{ steps.provision_meili.outputs.frontend_env_var }}
-      meili_frontend_uid: ${{ steps.provision_meili.outputs.frontend_uid }}
-      meili_frontend_created: ${{ steps.provision_meili.outputs.frontend_created }}
-      meili_frontend_updated: ${{ steps.provision_meili.outputs.frontend_updated }}
+      meili_backend_key: ${{ steps.run_prepare.outputs.meili_backend_key }}
+      meili_frontend_key: ${{ steps.run_prepare.outputs.meili_frontend_key }}
+      meili_frontend_env_var: ${{ steps.run_prepare.outputs.meili_frontend_env_var }}
+      meili_frontend_uid: ${{ steps.run_prepare.outputs.meili_frontend_uid }}
+      meili_frontend_created: ${{ steps.run_prepare.outputs.meili_frontend_created }}
+      meili_frontend_updated: ${{ steps.run_prepare.outputs.meili_frontend_updated }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: jdx/mise-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          install: true
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Validate prepare inputs
         env:
@@ -146,22 +144,16 @@ jobs:
           MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
         run: bash ./scripts/ci/check-workflow-inputs.sh main-prepare
 
-      - name: Provision Meilisearch keys
-        id: provision_meili
-        if: needs.scope.outputs.requires_meili_keys == 'true'
+      - name: Run main prepare
+        id: run_prepare
         env:
+          REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
           MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
           MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
-        run: bash ./scripts/ci/provision-meili-keys.sh
-
-      - name: Verify Meilisearch keys
-        if: needs.scope.outputs.requires_meili_keys == 'true'
-        env:
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
-          MEILISEARCH_BACKEND_API_KEY: ${{ steps.provision_meili.outputs.backend_key }}
-          NEXT_PUBLIC_MEILISEARCH_API_KEY: ${{ steps.provision_meili.outputs.frontend_key }}
-        run: bash ./scripts/ci/verify-meili-keys.sh
+        run: |
+          node apps/new-engine-ctl/dist/cli.js prepare \
+            --lane main \
+            --requires-meili-keys
 
       - name: Summary
         if: always()
@@ -170,10 +162,10 @@ jobs:
             echo "## Main Prepare"
             echo "- Base SHA: ${{ needs.scope.outputs.base_sha }}"
             echo "- Requires Meili keys: ${{ needs.scope.outputs.requires_meili_keys }}"
-            echo "- Meili frontend env var: ${{ steps.provision_meili.outputs.frontend_env_var || 'n/a' }}"
-            echo "- Meili frontend UID: ${{ steps.provision_meili.outputs.frontend_uid || 'n/a' }}"
-            echo "- Meili frontend created: ${{ steps.provision_meili.outputs.frontend_created || 'n/a' }}"
-            echo "- Meili frontend updated: ${{ steps.provision_meili.outputs.frontend_updated || 'n/a' }}"
+            echo "- Meili frontend env var: ${{ steps.run_prepare.outputs.meili_frontend_env_var || 'n/a' }}"
+            echo "- Meili frontend UID: ${{ steps.run_prepare.outputs.meili_frontend_uid || 'n/a' }}"
+            echo "- Meili frontend created: ${{ steps.run_prepare.outputs.meili_frontend_created || 'n/a' }}"
+            echo "- Meili frontend updated: ${{ steps.run_prepare.outputs.meili_frontend_updated || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -237,9 +229,8 @@ jobs:
           MEILI_BACKEND_KEY: ${{ needs.prepare.outputs.meili_backend_key }}
           MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
           MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
-          NEW_ENGINE_CTL_BIN: apps/new-engine-ctl/dist/cli.js
         run: |
-          bash ./scripts/ci/zane-deploy.sh run-main \
+          node apps/new-engine-ctl/dist/cli.js deploy-main \
             --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
             --git-commit-sha "${{ github.event.workflow_run.head_sha }}" \
             --meili-backend-key "${MEILI_BACKEND_KEY:-}" \

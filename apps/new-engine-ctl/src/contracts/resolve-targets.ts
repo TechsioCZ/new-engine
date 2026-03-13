@@ -70,6 +70,18 @@ export type ResolveTargetsResponse = z.infer<
 >
 export type ResolvedTarget = z.infer<typeof resolvedTargetSchema>
 
+export function extractPlanServices(
+  plan: z.infer<typeof planResponseSchema>
+): Array<{
+  service_id: string
+  service_slug: string
+}> {
+  return plan.deploy_services.map((service) => ({
+    service_id: service.id,
+    service_slug: service.service_slug,
+  }))
+}
+
 export async function resolvePlanServices(planJsonPath: string): Promise<
   Array<{
     service_id: string
@@ -79,10 +91,7 @@ export async function resolvePlanServices(planJsonPath: string): Promise<
   const raw = await readFile(planJsonPath, "utf8")
   const plan = planResponseSchema.parse(JSON.parse(raw))
 
-  return plan.deploy_services.map((service) => ({
-    service_id: service.id,
-    service_slug: service.service_slug,
-  }))
+  return extractPlanServices(plan)
 }
 
 export type ResolveTargetsPayload = {

@@ -18,12 +18,15 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Zane is the deployment target, not the orchestration owner for previews in this repository.
 - `zane-operator` is the default CI-facing control-plane wrapper for Zane API calls.
 - Direct CI -> Zane deploy webhook calls are allowed only as an implementation detail or narrow exception that has been explicitly approved in this architecture.
+- `apps/new-engine-ctl` is the active repo-owned orchestration surface for prepare, preview/main deploy, verify, and preview teardown flows.
+- shell files may remain only as narrow helpers for non-deploy tasks; they are not the active deploy contract surface once the CLI cutover is verified.
 
 ## Required Inputs
 
-- required repo config: `config/stack-manifest.yaml`, `config/stack-inputs.yaml`
+- required repo config: `apps/new-engine-ctl/config/stack-manifest.yaml`, `apps/new-engine-ctl/config/stack-inputs.yaml`
 - required workflow surfaces: `.github/workflows/zaneops-preview-after-ci.yml`, `.github/workflows/zaneops-main-after-ci.yml`, `.github/workflows/zaneops-preview-teardown.yml`
-- required active scripts: `scripts/ci/check-workflow-inputs.sh`, `scripts/ci/lib.sh`, `scripts/ci/preview-db.sh`, `scripts/ci/preview-environment.sh`, `scripts/ci/provision-meili-keys.sh`, `scripts/ci/resolve-affected-services.sh`, `scripts/ci/resolve-downtime-risk.sh`, `scripts/ci/resolve-prepare-needs.sh`, `scripts/ci/verify-meili-keys.sh`, `scripts/ci/zane-deploy.sh`
+- required active orchestration app: `apps/new-engine-ctl/**`
+- required active scripts: `scripts/ci/check-workflow-inputs.sh`, `scripts/ci/lib.sh`
 - required operator/runtime surface: active `apps/zane-operator/**` endpoints used for environment resolution, env mutation, deploy trigger, verify, and runtime provisioning
 - required secrets/config must be validated before deploy starts: canonical Zane project/environment identity, authenticated Zane API credentials, and any lane-specific deploy secrets consumed by `prepare` or `deploy`
 
@@ -31,7 +34,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 - One canonical Zane project tracks the default branch / production lane.
 - PR CI creates or reuses a preview environment derived from that canonical project.
-- Preview environments clone the canonical service set except services explicitly marked as non-cloned in `config/stack-manifest.yaml`.
+- Preview environments clone the canonical service set except services explicitly marked as non-cloned in `apps/new-engine-ctl/config/stack-manifest.yaml`.
 - Current examples of non-cloned services are `medusa-db` and `zane-operator`.
 - Services marked as non-cloned are not part of preview readiness requirements and may still remain in the preview environment.
 - User-created helper/debug services may exist in preview environments and must not fail preview readiness.
@@ -90,11 +93,11 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Re-running the same PR workflow must not create duplicate preview environments.
 - Closing the PR should eventually tear down the preview environment and its preview DB.
 - Teardown closes the whole preview environment created for the PR; it does not selectively archive services inside it.
-- The preview environment naming/lookup rule must live in active scripts, not inline in workflow YAML.
+- The preview environment naming/lookup rule must live in the active orchestration surface, not inline in workflow YAML.
 
 ## Service Identity Contract
 
-- `config/stack-manifest.yaml` is the source of truth for CI service mapping metadata.
+- `apps/new-engine-ctl/config/stack-manifest.yaml` is the source of truth for CI service mapping metadata.
 - Each deployable service must declare the metadata needed to map `service_id` -> `service_slug`.
 - Minimum required Zane metadata per deployable:
   - `service_slug`
@@ -110,7 +113,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 ## Deploy Input Contract
 
-- The shared deploy-input contract lives in `config/stack-inputs.yaml`.
+- The shared deploy-input contract lives in `apps/new-engine-ctl/config/stack-inputs.yaml`.
 - Preview first-creation random-once secrets are CI-generated from that contract and persisted into preview service env through the deploy path.
 - Those generated preview secrets must be created exactly once per preview environment creation and reused through the same deploy/verify run; later PR updates do not regenerate them automatically.
 - The deploy path must support prepared inputs produced before deploy starts.
@@ -120,7 +123,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Public client-facing outputs must flow through manifest-defined target env vars, not hardcoded workflow YAML.
 - Subsequent preview redeploys should reuse existing preview env values held in Zane and do not require automatic reprovisioning.
 - Main lane continues to consume prepared inputs from `prepare`.
-- The active deploy script owns the mapping from prepared or runtime-provisioned outputs to Zane env var updates.
+- The active deploy orchestration surface owns the mapping from prepared or runtime-provisioned outputs to Zane env var updates.
 - On redeploy-only preview runs, verification must still prove that required persisted contract-owned inputs are present on affected consumers even when those inputs were not regenerated in the current run.
 
 ## Secret And Output Contract
@@ -135,7 +138,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 - `scope` failure: stop immediately; do not guess affected services or deploy targets
 - `prepare` failure: stop before deploy; partial prepare outputs may be discarded and must not trigger deploy
-- preview environment create/reconcile failure: stop; retry is allowed only if the active scripts are designed to converge safely
+- preview environment create/reconcile failure: stop; retry is allowed only if the active orchestration surface is designed to converge safely
 - deploy trigger failure after partial service deploys: stop and verify actual remote state before any retry; retries must remain idempotent and must not silently regenerate random-once or runtime-provisioned secrets
 - runtime provider failure: stop the affected lane unless the provider is explicitly optional in the active contract; do not continue with incomplete required env mutation
 - verification failure: treat deploy as incomplete; require investigation of remote state before retry or manual intervention
@@ -144,7 +147,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 ## Runtime Provisioning Contract
 
 - Runtime-dependent provisioning must not be ad hoc inside workflow YAML.
-- Runtime-dependent provisioning must be driven by `config/stack-inputs.yaml`, consumed by CI/local tooling, and enforced by active scripts and `zane-operator`.
+- Runtime-dependent provisioning must be driven by `apps/new-engine-ctl/config/stack-inputs.yaml`, consumed by `apps/new-engine-ctl`, and enforced by the active orchestration surface and `zane-operator`.
 - `zane-operator` is responsible only for provisioners that require authenticated Zane inspection or access to a running service.
 - The contract must remain provider-oriented rather than product-name-oriented.
   - Current example: a search credential provider for browser/backend consumers.
@@ -154,7 +157,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 ## Required Active Surface
 
-- Keep workflow YAML thin; active logic belongs in `scripts/ci/*` or `apps/zane-operator/**`.
+- Keep workflow YAML thin; active logic belongs in `apps/new-engine-ctl/**`, narrow `scripts/ci/*` helpers, or `apps/zane-operator/**`.
 - Deploy responsibilities must stay explicit and testable:
   - Zane environment discovery/create/update
   - deploy-target/deploy-key resolution
@@ -183,7 +186,7 @@ Main verification must prove:
 
 ## Do Not Assume
 
-- Preview deploy and verify are active workflow paths; validate active scripts and `zane-operator` behavior before changing the contract.
+- Preview deploy and verify are active workflow paths; validate the active orchestration surface and `zane-operator` behavior before changing the contract.
 - `zane-operator` actively owns authenticated Zane gateway behavior implemented in active code, including preview DB lifecycle, environment resolution/archive, target resolution, env mutation, deploy trigger, deploy verify, and preview Meili provisioning.
 - Local `mise` orchestration is not the CI decision engine.
 - `nx affected` is CI-only and must not drive local runtime behavior.
@@ -191,23 +194,16 @@ Main verification must prove:
 ## Required Read Set
 
 - `apps/zane-operator/CI_DEPLOY_ARCHITECTURE.md`
-- `config/stack-inputs.yaml`
-- `config/stack-manifest.yaml`
+- `apps/new-engine-ctl/NEW_ENGINE_CTL_ARCHITECTURE.md`
+- `apps/new-engine-ctl/config/stack-inputs.yaml`
+- `apps/new-engine-ctl/config/stack-manifest.yaml`
 - `.github/workflows/zaneops-preview-after-ci.yml`
 - `.github/workflows/zaneops-main-after-ci.yml`
 - `.github/workflows/zaneops-preview-teardown.yml`
+- active `apps/new-engine-ctl/**` prepare/deploy/verify/teardown command and orchestration surface
+- active `apps/new-engine-ctl/**` scope/manifest command and config-loading surface
 - `scripts/ci/lib.sh`
 - `scripts/ci/check-workflow-inputs.sh`
-- `scripts/ci/preview-db.sh`
-- `scripts/ci/preview-environment.sh`
-- `scripts/ci/provision-meili-keys.sh`
-- `scripts/ci/resolve-affected-services.sh`
-- `scripts/ci/resolve-downtime-risk.sh`
-- `scripts/ci/resolve-prepare-needs.sh`
-- `scripts/ci/verify-meili-keys.sh`
-- `scripts/ci/zane-deploy.sh`
-- `scripts/lib/stack-inputs.sh`
-- `scripts/lib/stack-manifest.sh`
 - active `apps/zane-operator/**` API surface if `zane-operator` is extended for deploy orchestration
 
 ## Non-Goals
@@ -219,7 +215,7 @@ Main verification must prove:
 ## Completion Gate
 
 Do not treat CI deploy implementation as complete until:
-- the preview/main deploy contract above is implemented in active scripts
-- active workflows call those scripts
+- the preview/main deploy contract above is implemented in the active orchestration surface (`apps/new-engine-ctl` plus any remaining narrow helper scripts)
+- active workflows call that orchestration surface directly, without a superseded shell deploy wrapper
 - obsolete placeholder deploy/verify jobs are removed
 - this file and active workflow behavior match exactly

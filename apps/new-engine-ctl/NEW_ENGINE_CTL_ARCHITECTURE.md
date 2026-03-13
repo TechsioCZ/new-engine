@@ -78,14 +78,14 @@ Workflow YAML owns:
 ## Source Of Truth
 
 The CLI must consume:
-- `config/stack-manifest.yaml`
-- `config/stack-inputs.yaml`
+- `apps/new-engine-ctl/config/stack-manifest.yaml`
+- `apps/new-engine-ctl/config/stack-inputs.yaml`
 
 The CLI must not re-encode deploy policy in code when that policy already belongs in shared config.
 
-During the initial cutover:
-- keep those files in `config/`
-- do not move them under `apps/new-engine-ctl/` until the boundary above is stable
+Current boundary state:
+- those files now live under `apps/new-engine-ctl/config/`
+- `apps/new-engine-ctl` owns their loading and validation as part of the active orchestration boundary
 
 ## Command Surface
 

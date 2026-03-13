@@ -256,7 +256,7 @@ Use this guide to create the canonical Zane project that CI and `zane-operator` 
 
 Important model constraints:
 - `zane-operator` authenticates upstream with username/password session + CSRF login, not a direct Zane token
-- CI resolves services by exact Zane service name from `config/stack-manifest.yaml`
+- CI resolves services by exact Zane service name from `apps/new-engine-ctl/config/stack-manifest.yaml`
 - preview environments are cloned from the protected `production` environment
 - shared variables should live on the `production` environment in Zane; services inherit them and preview clones copy them
 - the canonical project should also include `zane-operator` so the deployed stack exposes the same control-plane wrapper used by CI

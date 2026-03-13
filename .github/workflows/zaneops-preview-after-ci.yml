@@ -22,12 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       pr_number: ${{ steps.pr.outputs.number }}
-      projects_csv: ${{ steps.affected.outputs.projects_csv }}
-      services_csv: ${{ steps.affected.outputs.services_csv }}
-      nx_status: ${{ steps.affected.outputs.nx_status }}
-      should_prepare: ${{ steps.prepare_needs.outputs.should_prepare }}
-      requires_preview_db: ${{ steps.prepare_needs.outputs.requires_preview_db }}
-      preview_db_service_ids: ${{ steps.prepare_needs.outputs.preview_db_service_ids }}
+      projects_csv: ${{ steps.scope_data.outputs.projects_csv }}
+      services_csv: ${{ steps.scope_data.outputs.services_csv }}
+      nx_status: ${{ steps.scope_data.outputs.nx_status }}
+      should_prepare: ${{ steps.scope_data.outputs.should_prepare }}
+      requires_preview_db: ${{ steps.scope_data.outputs.requires_preview_db }}
+      preview_db_service_ids: ${{ steps.scope_data.outputs.preview_db_service_ids }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,16 +55,13 @@ jobs:
         id: pr
         run: echo "number=${{ github.event.workflow_run.pull_requests[0].number }}" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve affected deployables
-        id: affected
-        env:
-          BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: bash ./scripts/ci/resolve-affected-services.sh
-
-      - name: Resolve prepare needs
-        id: prepare_needs
-        run: bash ./scripts/ci/resolve-prepare-needs.sh --lane preview --services-csv "${{ steps.affected.outputs.services_csv }}"
+      - name: Resolve preview scope
+        id: scope_data
+        run: |
+          node apps/new-engine-ctl/dist/cli.js scope \
+            --lane preview \
+            --base-sha "${{ github.event.workflow_run.pull_requests[0].base.sha }}" \
+            --head-sha "${{ github.event.workflow_run.head_sha }}"
 
       - name: Upload new-engine-ctl artifact
         uses: actions/upload-artifact@v4
@@ -80,11 +77,11 @@ jobs:
             echo "## Preview Scope"
             echo "- PR: #${{ steps.pr.outputs.number }}"
             echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
-            echo "- Affected projects: ${{ steps.affected.outputs.projects_csv || 'n/a' }}"
-            echo "- Affected services: ${{ steps.affected.outputs.services_csv || 'n/a' }}"
-            echo "- Nx status: ${{ steps.affected.outputs.nx_status || 'n/a' }}"
-            echo "- Should prepare: ${{ steps.prepare_needs.outputs.should_prepare || 'false' }}"
-            echo "- Requires preview DB: ${{ steps.prepare_needs.outputs.requires_preview_db || 'false' }}"
+            echo "- Affected projects: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}"
+            echo "- Affected services: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}"
+            echo "- Nx status: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}"
+            echo "- Should prepare: ${{ steps.scope_data.outputs.should_prepare || 'false' }}"
+            echo "- Requires preview DB: ${{ steps.scope_data.outputs.requires_preview_db || 'false' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   prepare:
@@ -96,18 +93,23 @@ jobs:
       group: zaneops-preview-prepare-pr-${{ needs.scope.outputs.pr_number }}
       cancel-in-progress: true
     outputs:
-      preview_db_created: ${{ steps.ensure_db.outputs.created }}
-      preview_db_name: ${{ steps.ensure_db.outputs.db_name }}
-      preview_db_user: ${{ steps.ensure_db.outputs.app_user }}
-      preview_db_password: ${{ steps.ensure_db.outputs.app_password }}
+      preview_db_created: ${{ steps.run_prepare.outputs.preview_db_created }}
+      preview_db_name: ${{ steps.run_prepare.outputs.preview_db_name }}
+      preview_db_user: ${{ steps.run_prepare.outputs.preview_db_user }}
+      preview_db_password: ${{ steps.run_prepare.outputs.preview_db_password }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: jdx/mise-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          install: true
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Validate prepare inputs
         env:
@@ -116,13 +118,18 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
         run: bash ./scripts/ci/check-workflow-inputs.sh preview-prepare
 
-      - name: Ensure preview DB
-        id: ensure_db
-        if: needs.scope.outputs.requires_preview_db == 'true'
+      - name: Run preview prepare
+        id: run_prepare
         env:
+          PR_NUMBER: ${{ needs.scope.outputs.pr_number }}
+          REQUIRES_PREVIEW_DB: ${{ needs.scope.outputs.requires_preview_db }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-        run: bash ./scripts/ci/preview-db.sh ensure "${{ needs.scope.outputs.pr_number }}"
+        run: |
+          node apps/new-engine-ctl/dist/cli.js prepare \
+            --lane preview \
+            --pr-number "$PR_NUMBER" \
+            --requires-preview-db
 
       - name: Summary
         if: always()
@@ -131,8 +138,8 @@ jobs:
             echo "## Preview Prepare"
             echo "- PR: #${{ needs.scope.outputs.pr_number }}"
             echo "- Requires preview DB: ${{ needs.scope.outputs.requires_preview_db }}"
-            echo "- Preview DB created: ${{ steps.ensure_db.outputs.created || 'n/a' }}"
-            echo "- Preview DB name: ${{ steps.ensure_db.outputs.db_name || 'n/a' }}"
+            echo "- Preview DB created: ${{ steps.run_prepare.outputs.preview_db_created || 'n/a' }}"
+            echo "- Preview DB name: ${{ steps.run_prepare.outputs.preview_db_name || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -201,9 +208,8 @@ jobs:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
-          NEW_ENGINE_CTL_BIN: apps/new-engine-ctl/dist/cli.js
         run: |
-          bash ./scripts/ci/zane-deploy.sh run-preview \
+          node apps/new-engine-ctl/dist/cli.js deploy-preview \
             --pr-number "$PR_NUMBER" \
             --services-csv "$SERVICES_CSV" \
             --preview-db-name "${PREVIEW_DB_NAME:-}" \

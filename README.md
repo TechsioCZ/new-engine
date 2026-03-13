@@ -80,7 +80,7 @@
       * `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` are the login credentials for that ZaneOps instance; `zane-operator` uses session + CSRF login upstream, not a direct Zane token
       * create one canonical Zane project and note its slug; local CI-style deploy tests use that slug as `ZANE_CANONICAL_PROJECT_SLUG`
       * each Zane project gets a protected `production` environment by default; preview clones in this repo always use that environment as the base
-      * service names in that Zane project must match `config/stack-manifest.yaml` currently: `medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`, `medusa-be`, `n1`
+      * service names in that Zane project must match `apps/new-engine-ctl/config/stack-manifest.yaml` currently: `medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`, `medusa-be`, `n1`
       * preview environments are derived in CI script space as `pr-<number>` by default
       * preview teardown is explicit in this repo's CI flow; do not rely on built-in Zane preview auto-teardown for these cloned environments
     * When you run the deploy scripts manually later, export:
@@ -127,7 +127,7 @@ Operational consequence:
 
 Main-lane deploys now resolve downtime risk once after affected-service filtering.
 
-If any affected service is marked with `ci.zane.downtime_risk: true` in `config/stack-manifest.yaml`, the workflow expects a GitHub environment named `zaneops-main-downtime`.
+If any affected service is marked with `ci.zane.downtime_risk: true` in `apps/new-engine-ctl/config/stack-manifest.yaml`, the workflow expects a GitHub environment named `zaneops-main-downtime`.
 
 To make the workflow actually pause for human approval:
 * create the `zaneops-main-downtime` environment in GitHub
@@ -309,7 +309,7 @@ Note: `make prod` now starts `medusa-be`, waits for health, regenerates `apps/n1
 Active Zane deployment for this repo is no longer driven by a checked-in swarm compose file.
 The supported setup is:
 
-* create one canonical Zane project with the service names from `config/stack-manifest.yaml`
+* create one canonical Zane project with the service names from `apps/new-engine-ctl/config/stack-manifest.yaml`
 * configure the shared production-environment variables and per-service env blocks described in `apps/zane-operator/README.md`
 * let CI orchestrate preview/main deploys through `zane-operator`
 
