@@ -23,7 +23,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 - required repo config: `config/stack-manifest.yaml`, `config/stack-inputs.yaml`
 - required workflow surfaces: `.github/workflows/zaneops-preview-after-ci.yml`, `.github/workflows/zaneops-main-after-ci.yml`, `.github/workflows/zaneops-preview-teardown.yml`
-- required active scripts: `scripts/ci/check-workflow-inputs.sh`, `scripts/ci/preview-db.sh`, `scripts/ci/resolve-affected-services.sh`, `scripts/ci/resolve-prepare-needs.sh`, `scripts/ci/lib.sh`
+- required active scripts: `scripts/ci/check-workflow-inputs.sh`, `scripts/ci/lib.sh`, `scripts/ci/preview-db.sh`, `scripts/ci/preview-environment.sh`, `scripts/ci/provision-meili-keys.sh`, `scripts/ci/resolve-affected-services.sh`, `scripts/ci/resolve-downtime-risk.sh`, `scripts/ci/resolve-prepare-needs.sh`, `scripts/ci/verify-meili-keys.sh`, `scripts/ci/zane-deploy.sh`
 - required operator/runtime surface: active `apps/zane-operator/**` endpoints used for environment resolution, env mutation, deploy trigger, verify, and runtime provisioning
 - required secrets/config must be validated before deploy starts: canonical Zane project/environment identity, authenticated Zane API credentials, and any lane-specific deploy secrets consumed by `prepare` or `deploy`
 
@@ -199,8 +199,13 @@ Main verification must prove:
 - `scripts/ci/lib.sh`
 - `scripts/ci/check-workflow-inputs.sh`
 - `scripts/ci/preview-db.sh`
+- `scripts/ci/preview-environment.sh`
+- `scripts/ci/provision-meili-keys.sh`
 - `scripts/ci/resolve-affected-services.sh`
+- `scripts/ci/resolve-downtime-risk.sh`
 - `scripts/ci/resolve-prepare-needs.sh`
+- `scripts/ci/verify-meili-keys.sh`
+- `scripts/ci/zane-deploy.sh`
 - `scripts/lib/stack-inputs.sh`
 - `scripts/lib/stack-manifest.sh`
 - active `apps/zane-operator/**` API surface if `zane-operator` is extended for deploy orchestration
