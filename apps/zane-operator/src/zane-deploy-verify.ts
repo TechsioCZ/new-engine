@@ -391,7 +391,10 @@ export class ZaneDeployVerifier {
         service_slug: checkedServiceSlug,
         deployment_hash: deployment.hash,
         status: deployment.status,
-        status_reason: deployment.status_reason ?? null,
+        status_reason:
+          deployment.status.toUpperCase() === "HEALTHY"
+            ? null
+            : (deployment.status_reason ?? null),
       })
 
       if (!expectedOverride && !persistedEnvRequirement && !forbiddenEnvRequirement) {
