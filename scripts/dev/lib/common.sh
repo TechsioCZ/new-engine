@@ -1,8 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+common::supports_color() {
+  [[ -t 2 && "${NO_COLOR:-}" == "" && "${TERM:-}" != "dumb" ]]
+}
+
+common::color() {
+  local code="$1"
+  if common::supports_color; then
+    printf '\033[%sm' "$code"
+  fi
+}
+
+common::color_reset() {
+  if common::supports_color; then
+    printf '\033[0m'
+  fi
+}
+
+common::format_label() {
+  local label="$1"
+  local color_code="$2"
+  local color_prefix=""
+  local color_reset=""
+
+  color_prefix="$(common::color "$color_code")"
+  color_reset="$(common::color_reset)"
+  printf '%s[%s]%s' "$color_prefix" "$label" "$color_reset"
+}
+
 common::die() {
-  echo "$*" >&2
+  local label
+  label="$(common::format_label "error" "31;1")"
+  printf '%s %s\n' "$label" "$*" >&2
   exit 1
 }
 
@@ -11,7 +41,7 @@ common::warn() {
   if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
     printf '::warning::%s\n' "$message" >&2
   else
-    printf 'warning: %s\n' "$message" >&2
+    printf '%s %s\n' "$(common::format_label "warn" "33;1")" "$message" >&2
   fi
 }
 
@@ -20,8 +50,20 @@ common::info() {
   if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
     printf '::notice::%s\n' "$message" >&2
   else
-    printf '%s\n' "$message" >&2
+    printf '%s %s\n' "$(common::format_label "info" "36;1")" "$message" >&2
   fi
+}
+
+common::stage() {
+  printf '%s %s\n' "$(common::format_label "stage" "34;1")" "$*" >&2
+}
+
+common::step() {
+  printf '%s %s\n' "$(common::format_label "step" "36")" "$*" >&2
+}
+
+common::success() {
+  printf '%s %s\n' "$(common::format_label "ok" "32;1")" "$*" >&2
 }
 
 common::require_command() {

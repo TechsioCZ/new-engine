@@ -33,8 +33,35 @@ export type DeployMainExecutionResult = {
   meiliFrontendKey: string
 }
 
+function supportsPrettyLogs(): boolean {
+  return Boolean(
+    process.stderr.isTTY &&
+      !process.env.GITHUB_ACTIONS &&
+      !process.env.NO_COLOR &&
+      process.env.TERM !== "dumb"
+  )
+}
+
+function colorize(text: string, code: string): string {
+  return supportsPrettyLogs() ? `\u001b[${code}m${text}\u001b[0m` : text
+}
+
 function logDeployProgress(message: string): void {
-  process.stderr.write(`${message}\n`)
+  let label = "[deploy]"
+  let colorCode = "36;1"
+
+  if (message.includes("Meili")) {
+    label = "[meili]"
+    colorCode = "35;1"
+  } else if (
+    message.startsWith("Waiting for deployments") ||
+    message.startsWith("Deployments are healthy")
+  ) {
+    label = "[wait]"
+    colorCode = message.startsWith("Deployments are healthy") ? "32;1" : "34;1"
+  }
+
+  process.stderr.write(`${colorize(label, colorCode)} ${message}\n`)
 }
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
