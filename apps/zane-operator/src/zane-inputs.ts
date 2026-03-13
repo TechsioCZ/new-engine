@@ -2,6 +2,7 @@ import { BadRequestError } from "./db"
 import type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
+  ForbiddenEnvRequirement,
   Lane,
   PersistedEnvRequirement,
   ProvisionPreviewMeiliKeysInput,
@@ -180,6 +181,25 @@ function normalizePersistedEnvRequirements(value: unknown, label: string): Persi
   })
 }
 
+function normalizeForbiddenEnvRequirements(value: unknown, label: string): ForbiddenEnvRequirement[] {
+  if (value == null) {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    throw new BadRequestError(`${label} must be an array`)
+  }
+
+  return value.map((item, index) => {
+    const object = assertObject(item, `${label}[${index}]`)
+    return {
+      service_id: assertString(object.service_id, `${label}[${index}].service_id`),
+      service_slug: assertString(object.service_slug, `${label}[${index}].service_slug`),
+      env_keys: assertStringArray(object.env_keys, `${label}[${index}].env_keys`),
+    }
+  })
+}
+
 function parseResolvedTargets(value: unknown): ZaneResolvedTarget[] {
   if (!Array.isArray(value)) {
     throw new BadRequestError("targets must be an array")
@@ -209,6 +229,10 @@ export function parseResolveEnvironmentInput(rawPayload: unknown): ResolveEnviro
     lane: assertLane(payload.lane, "lane"),
     projectSlug: normalizeProjectSlugFromPayload(payload),
     environmentName: assertString(payload.environment_name, "environment_name"),
+    sourceEnvironmentName: assertString(
+      payload.source_environment_name,
+      "source_environment_name",
+    ),
     expectedPreviewServiceSlugs: assertStringArray(
       payload.expected_preview_service_slugs ?? [],
       "expected_preview_service_slugs",
@@ -300,10 +324,22 @@ export function parseVerifyInput(rawPayload: unknown): VerifyDeployInput {
     requestedServiceIds: assertStringArray(payload.requested_service_ids, "requested_service_ids"),
     deployServiceIds: assertStringArray(payload.deploy_service_ids, "deploy_service_ids"),
     triggeredServiceIds: assertStringArray(payload.triggered_service_ids, "triggered_service_ids"),
+    expectedPreviewServiceSlugs: assertStringArray(
+      payload.expected_preview_service_slugs ?? [],
+      "expected_preview_service_slugs"
+    ),
+    excludedPreviewServiceSlugs: assertStringArray(
+      payload.excluded_preview_service_slugs ?? [],
+      "excluded_preview_service_slugs"
+    ),
     expectedEnvOverrides: normalizeEnvOverrides(payload.expected_env_overrides ?? [], "expected_env_overrides"),
     requiredPersistedEnv: normalizePersistedEnvRequirements(
       payload.required_persisted_env ?? [],
       "required_persisted_env",
+    ),
+    forbiddenEnv: normalizeForbiddenEnvRequirements(
+      payload.forbidden_env ?? [],
+      "forbidden_env",
     ),
     deployments: normalizeDeployments(payload.deployments, "deployments"),
   }

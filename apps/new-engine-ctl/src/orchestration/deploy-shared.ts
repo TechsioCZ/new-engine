@@ -39,6 +39,8 @@ type WaitForDeploymentsInput = {
   requestedServicesCsv: string
   deployServicesCsv: string
   triggeredServicesCsv: string
+  previewClonedServiceIdsCsv: string
+  previewExcludedServiceIdsCsv: string
   previewDbName: string
   previewDbUser: string
   previewDbPassword: string
@@ -330,6 +332,8 @@ function verifyDeploymentsOnce(
     requestedServicesCsv: input.requestedServicesCsv,
     deployServicesCsv: input.deployServicesCsv,
     triggeredServicesCsv: input.triggeredServicesCsv,
+    previewClonedServiceIdsCsv: input.previewClonedServiceIdsCsv,
+    previewExcludedServiceIdsCsv: input.previewExcludedServiceIdsCsv,
     previewDbName: input.previewDbName,
     previewDbUser: input.previewDbUser,
     previewDbPassword: input.previewDbPassword,

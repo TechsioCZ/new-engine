@@ -323,7 +323,7 @@ If your repo is private:
 1. install/configure the git app in Zane first
 2. rerun the helper with `--git-app-id <id>`
 
-If you want to inspect or patch values manually, the script source of truth is:
+If you want to inspect or patch values manually, the helper entrypoint is:
 - `scripts/dev/setup-zane-project.sh`
 
 #### 6.2 Post-bootstrap manual checks

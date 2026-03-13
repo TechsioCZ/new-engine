@@ -2,14 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# shellcheck source=scripts/ci/lib.sh
-source "${ROOT_DIR}/scripts/ci/lib.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "${ROOT_DIR}/scripts/dev/lib/common.sh"
 
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/ci/preview-db.sh ensure <pr-number> [options]
-  scripts/ci/preview-db.sh delete <pr-number> [options]
+  scripts/dev/preview-db.sh ensure <pr-number> [options]
+  scripts/dev/preview-db.sh delete <pr-number> [options]
 
 Options:
   --base-url <url>       zane-operator base URL (default: $ZANE_OPERATOR_BASE_URL)
@@ -25,8 +25,8 @@ Behavior:
 EOF
 }
 
-ci::require_command curl
-ci::require_command jq
+common::require_command curl
+common::require_command jq
 
 if [[ $# -lt 2 ]]; then
   usage
@@ -45,7 +45,7 @@ case "$operation" in
     ;;
   *)
     usage
-    ci::die "Unsupported operation: $operation"
+    common::die "Unsupported operation: $operation"
     ;;
 esac
 
@@ -53,7 +53,7 @@ pr_number="$1"
 shift
 
 if [[ ! "$pr_number" =~ ^[0-9]+$ ]]; then
-  ci::die "PR number must be numeric."
+  common::die "PR number must be numeric."
 fi
 
 base_url="${ZANE_OPERATOR_BASE_URL:-}"
@@ -90,16 +90,16 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       usage
-      ci::die "Unknown argument: $1"
+      common::die "Unknown argument: $1"
       ;;
   esac
 done
 
-[[ -n "$base_url" ]] || ci::die "zane-operator base URL is required (use --base-url or ZANE_OPERATOR_BASE_URL)."
-[[ -n "$api_token" ]] || ci::die "zane-operator API token is required (use --api-token or ZANE_OPERATOR_API_TOKEN)."
-[[ "$timeout_seconds" =~ ^[0-9]+$ ]] || ci::die "--timeout must be an integer."
-[[ "$retry_count" =~ ^[0-9]+$ ]] || ci::die "--retries must be an integer."
-[[ "$retry_delay" =~ ^[0-9]+$ ]] || ci::die "--retry-delay must be an integer."
+[[ -n "$base_url" ]] || common::die "zane-operator base URL is required (use --base-url or ZANE_OPERATOR_BASE_URL)."
+[[ -n "$api_token" ]] || common::die "zane-operator API token is required (use --api-token or ZANE_OPERATOR_API_TOKEN)."
+[[ "$timeout_seconds" =~ ^[0-9]+$ ]] || common::die "--timeout must be an integer."
+[[ "$retry_count" =~ ^[0-9]+$ ]] || common::die "--retries must be an integer."
+[[ "$retry_delay" =~ ^[0-9]+$ ]] || common::die "--retry-delay must be an integer."
 
 base_url="${base_url%/}"
 tmp_body="$(mktemp)"
@@ -139,42 +139,41 @@ fi
 
 http_code="$(curl "${curl_args[@]}" "$endpoint")" || {
   status=$?
-  ci::die "zane-operator ${operation} request failed before receiving a successful HTTP response (curl exit ${status})."
+  common::die "zane-operator ${operation} request failed before receiving a successful HTTP response (curl exit ${status})."
 }
 
 if ! jq -e . >/dev/null 2>&1 <"$tmp_body"; then
-  ci::die "zane-operator returned non-JSON response (HTTP ${http_code})."
+  common::die "zane-operator returned non-JSON response (HTTP ${http_code})."
 fi
 
-body_json="$(jq -c . <"$tmp_body")"
 safe_body_json="$(jq -c 'if has("app_password") then .app_password = "***redacted***" else . end' <"$tmp_body")"
 
-ci::gha_output http_code "$http_code"
-ci::gha_output operation "$operation"
+common::gha_output http_code "$http_code"
+common::gha_output operation "$operation"
 
 if [[ "$http_code" -lt 200 || "$http_code" -ge 300 ]]; then
   status_value="$(jq -r '.error // .status // "http_error"' <"$tmp_body")"
-  ci::gha_output status "$status_value"
-  ci::die "zane-operator ${operation} returned HTTP ${http_code}: ${safe_body_json}"
+  common::gha_output status "$status_value"
+  common::die "zane-operator ${operation} returned HTTP ${http_code}: ${safe_body_json}"
 fi
 
 if [[ "$operation" == "ensure" ]]; then
   app_password="$(jq -r '.app_password // empty' <"$tmp_body")"
-  ci::gha_mask "$app_password"
-  ci::gha_output created "$(jq -r '.created // false' <"$tmp_body")"
-  ci::gha_output db_name "$(jq -r '.db_name // empty' <"$tmp_body")"
-  ci::gha_output app_user "$(jq -r '.app_user // empty' <"$tmp_body")"
-  ci::gha_output app_password "$app_password"
+  common::gha_mask "$app_password"
+  common::gha_output created "$(jq -r '.created // false' <"$tmp_body")"
+  common::gha_output db_name "$(jq -r '.db_name // empty' <"$tmp_body")"
+  common::gha_output app_user "$(jq -r '.app_user // empty' <"$tmp_body")"
+  common::gha_output app_password "$app_password"
 else
-  ci::gha_output deleted "$(jq -r '.deleted // false' <"$tmp_body")"
-  ci::gha_output db_name "$(jq -r '.db_name // empty' <"$tmp_body")"
-  ci::gha_output app_user "$(jq -r '.app_user // empty' <"$tmp_body")"
-  ci::gha_output role_deleted "$(jq -r '.role_deleted // false' <"$tmp_body")"
-  ci::gha_output dev_grants_cleaned "$(jq -r '.dev_grants_cleaned // false' <"$tmp_body")"
-  ci::gha_output noop "$(jq -r '.noop // false' <"$tmp_body")"
-  ci::gha_output noop_reason "$(jq -r '.noop_reason // empty' <"$tmp_body")"
+  common::gha_output deleted "$(jq -r '.deleted // false' <"$tmp_body")"
+  common::gha_output db_name "$(jq -r '.db_name // empty' <"$tmp_body")"
+  common::gha_output app_user "$(jq -r '.app_user // empty' <"$tmp_body")"
+  common::gha_output role_deleted "$(jq -r '.role_deleted // false' <"$tmp_body")"
+  common::gha_output dev_grants_cleaned "$(jq -r '.dev_grants_cleaned // false' <"$tmp_body")"
+  common::gha_output noop "$(jq -r '.noop // false' <"$tmp_body")"
+  common::gha_output noop_reason "$(jq -r '.noop_reason // empty' <"$tmp_body")"
 fi
 
-ci::gha_output status "success"
+common::gha_output status "success"
 
 printf '%s\n' "$safe_body_json"

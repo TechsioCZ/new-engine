@@ -39,12 +39,12 @@ description = "Simulate the active CI main lane locally against a deployed Zane 
 run = "bash ./scripts/dev/run-zane-main-lane.sh"
 
 [tasks."ci:meili:provision"]
-description = "Provision Meilisearch backend/frontend API keys (idempotent)"
-run = "bash ./scripts/ci/provision-meili-keys.sh"
+description = "Build and run the CLI-owned Meilisearch key prepare surface"
+run = "pnpm -C apps/new-engine-ctl run build && node apps/new-engine-ctl/dist/cli.js prepare --lane main --requires-meili-keys"
 
 [tasks."ci:meili:verify"]
-description = "Verify Meilisearch backend/frontend API key scopes"
-run = "bash ./scripts/ci/verify-meili-keys.sh"
+description = "Thin helper that checks provided Meili keys against the active CLI-managed contract"
+run = "bash ./scripts/dev/verify-meili-keys.sh"
 
 [tasks."dev:zane:project:sync"]
 description = "Rare-use Zane helper: create or sync the canonical project/services on a deployed Zane stack"

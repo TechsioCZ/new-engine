@@ -19,14 +19,13 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - `zane-operator` is the default CI-facing control-plane wrapper for Zane API calls.
 - Direct CI -> Zane deploy webhook calls are allowed only as an implementation detail or narrow exception that has been explicitly approved in this architecture.
 - `apps/new-engine-ctl` is the active repo-owned orchestration surface for prepare, preview/main deploy, verify, and preview teardown flows.
-- shell files may remain only as narrow helpers for non-deploy tasks; they are not the active deploy contract surface once the CLI cutover is verified.
+- shell files may remain only as narrow helpers for validation, transport, or local convenience tasks; they are not the active deploy contract surface.
 
 ## Required Inputs
 
 - required repo config: `apps/new-engine-ctl/config/stack-manifest.yaml`, `apps/new-engine-ctl/config/stack-inputs.yaml`
 - required workflow surfaces: `.github/workflows/zaneops-preview-after-ci.yml`, `.github/workflows/zaneops-main-after-ci.yml`, `.github/workflows/zaneops-preview-teardown.yml`
 - required active orchestration app: `apps/new-engine-ctl/**`
-- required active scripts: `scripts/ci/check-workflow-inputs.sh`, `scripts/ci/lib.sh`
 - required operator/runtime surface: active `apps/zane-operator/**` endpoints used for environment resolution, env mutation, deploy trigger, verify, and runtime provisioning
 - required secrets/config must be validated before deploy starts: canonical Zane project/environment identity, authenticated Zane API credentials, and any lane-specific deploy secrets consumed by `prepare` or `deploy`
 
@@ -157,7 +156,8 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 ## Required Active Surface
 
-- Keep workflow YAML thin; active logic belongs in `apps/new-engine-ctl/**`, narrow `scripts/ci/*` helpers, or `apps/zane-operator/**`.
+- Keep workflow YAML thin; active deploy logic belongs in `apps/new-engine-ctl/**` and `apps/zane-operator/**`.
+- Local/manual shell helpers may exist under `scripts/dev/*`, but they are not part of the active CI deploy contract surface.
 - Deploy responsibilities must stay explicit and testable:
   - Zane environment discovery/create/update
   - deploy-target/deploy-key resolution
@@ -202,8 +202,7 @@ Main verification must prove:
 - `.github/workflows/zaneops-preview-teardown.yml`
 - active `apps/new-engine-ctl/**` prepare/deploy/verify/teardown command and orchestration surface
 - active `apps/new-engine-ctl/**` scope/manifest command and config-loading surface
-- `scripts/ci/lib.sh`
-- `scripts/ci/check-workflow-inputs.sh`
+- active `apps/new-engine-ctl/**` `check-workflow-inputs` command surface
 - active `apps/zane-operator/**` API surface if `zane-operator` is extended for deploy orchestration
 
 ## Non-Goals
@@ -215,7 +214,7 @@ Main verification must prove:
 ## Completion Gate
 
 Do not treat CI deploy implementation as complete until:
-- the preview/main deploy contract above is implemented in the active orchestration surface (`apps/new-engine-ctl` plus any remaining narrow helper scripts)
+- the preview/main deploy contract above is implemented in the active orchestration surface (`apps/new-engine-ctl` plus `apps/zane-operator` where authenticated execution is required)
 - active workflows call that orchestration surface directly, without a superseded shell deploy wrapper
 - obsolete placeholder deploy/verify jobs are removed
 - this file and active workflow behavior match exactly

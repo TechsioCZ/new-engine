@@ -3,7 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-source "${REPO_ROOT}/scripts/ci/lib.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "${REPO_ROOT}/scripts/dev/lib/common.sh"
 source "${REPO_ROOT}/scripts/dev/lib/zane.sh"
 
 ENV_FILE="${REPO_ROOT}/.env.zane"
@@ -183,23 +184,23 @@ parse_args() {
         ;;
       *)
         usage >&2
-        ci::die "Unknown argument: $1"
+        common::die "Unknown argument: $1"
         ;;
     esac
   done
 }
 
 require_tools() {
-  ci::require_command curl
-  ci::require_command docker
-  ci::require_command jq
-  ci::require_command mktemp
+  common::require_command curl
+  common::require_command docker
+  common::require_command jq
+  common::require_command mktemp
 }
 
 assert_non_empty() {
   local value="${1-}"
   local label="$2"
-  [[ -n "$value" ]] || ci::die "${label} is required."
+  [[ -n "$value" ]] || common::die "${label} is required."
 }
 
 resolve_live_defaults() {

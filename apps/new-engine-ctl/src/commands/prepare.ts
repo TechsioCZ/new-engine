@@ -56,6 +56,22 @@ async function writePrepareOutputs(
   maskGitHubValue(result.meiliBackendKey)
   maskGitHubValue(result.meiliFrontendKey)
   await appendGitHubOutput("meili_backend_key", result.meiliBackendKey)
+  await appendGitHubOutput(
+    "meili_backend_env_var",
+    result.response.meili_backend_env_var
+  )
+  await appendGitHubOutput(
+    "meili_backend_uid",
+    result.response.meili_backend_uid
+  )
+  await appendGitHubOutput(
+    "meili_backend_created",
+    String(result.response.meili_backend_created)
+  )
+  await appendGitHubOutput(
+    "meili_backend_updated",
+    String(result.response.meili_backend_updated)
+  )
   await appendGitHubOutput("meili_frontend_key", result.meiliFrontendKey)
   await appendGitHubOutput(
     "meili_frontend_env_var",

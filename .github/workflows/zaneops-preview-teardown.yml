@@ -64,7 +64,7 @@ jobs:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
-        run: bash ./scripts/ci/check-workflow-inputs.sh preview-teardown
+        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode preview-teardown
 
       - name: Run preview teardown
         id: run_teardown

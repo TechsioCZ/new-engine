@@ -89,6 +89,7 @@ export async function executeResolveEnvironment(
         lane: input.lane,
         project_slug: input.projectSlug,
         environment_name: environmentName,
+        source_environment_name: input.sourceEnvironmentName || environmentName,
         expected_preview_service_slugs:
           previewServiceSlugSets.expectedPreviewServiceSlugs,
         excluded_preview_service_slugs:

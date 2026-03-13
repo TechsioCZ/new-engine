@@ -13,6 +13,7 @@ export function createResolveEnvironmentCommand(): Command {
     .option("--project-slug <slug>")
     .option("--pr-number <n>")
     .option("--environment-name <name>")
+    .option("--source-environment-name <name>")
     .option("--preview-cloned-service-ids-csv <csv>", "", "")
     .option("--preview-excluded-service-ids-csv <csv>", "", "")
     .option("--output-json <path>")
@@ -36,6 +37,10 @@ export function createResolveEnvironmentCommand(): Command {
           options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
         prNumber: parsedPrNumber,
         environmentName: options.environmentName ?? "",
+        sourceEnvironmentName:
+          options.sourceEnvironmentName ??
+          process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
+          "",
         previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
         previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
         outputJson: options.outputJson,

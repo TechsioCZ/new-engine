@@ -28,6 +28,7 @@ import { ZaneSearchCredentialsProvisioner } from "./zane-search-credentials"
 export type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
+  ForbiddenEnvRequirement,
   Lane,
   PersistedEnvRequirement,
   ProvisionPreviewMeiliKeysInput,
@@ -149,6 +150,8 @@ export class ZaneClient {
         await this.getEnvironment(session, projectSlug, environmentName),
       listServiceCards: async (session, projectSlug, environmentName) =>
         await this.listServiceCards(session, projectSlug, environmentName),
+      getServiceDetails: async (session, projectSlug, environmentName, serviceSlug) =>
+        await this.getServiceDetails(session, projectSlug, environmentName, serviceSlug),
       request: async (session, method, path, payload, options) =>
         await this.request(session, method, path, payload, options),
     })
@@ -311,6 +314,8 @@ export class ZaneClient {
     requested_service_ids: string[]
     deploy_service_ids: string[]
     triggered_service_ids: string[]
+    checked_preview_cloned_service_slugs: string[]
+    warning_only_preview_service_slugs: string[]
     checked_env_override_service_ids: string[]
     checked_persisted_env_service_ids: string[]
     checked_deployment_service_ids: string[]

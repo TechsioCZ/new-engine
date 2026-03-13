@@ -53,7 +53,7 @@
     During step 3, `.env` handling is opinionated:
     * if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written
     * if existing values differ, you are prompted to `override` or `keep`
-    * provisioning itself stays in `scripts/ci/*`; only `mise run dev` performs `.env` sync logic
+    * Meilisearch key policy/provisioning is owned by `apps/new-engine-ctl prepare`; only `mise run dev` performs `.env` sync logic
     * `mise run dev` calls provisioning against host URL `http://127.0.0.1:7700` by default (override via `MISE_DEV_MEILI_URL`) so `DC_MEILISEARCH_HOST` can remain container-internal (`http://medusa-meilisearch:7700`)
 
     * Postgres role bootstrap (`medusa_app`, `medusa_dev`, `zane_operator`) runs automatically from `medusa-db` startup via `/usr/local/bin/run-postgres-with-bootstrap.sh`
@@ -184,24 +184,20 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
     ```
 
 8b. <b>Provision and verify scoped Meilisearch keys</b> (recommended before frontend production builds)
-    * local via `mise` wrappers (no `.env` writes; outputs are printed):
+    * local via `mise`:
     ```shell
    mise run ci:meili:provision
    mise run ci:meili:verify
     ```
-    * CI can call the same scripts directly (source of truth):
+    * `ci:meili:provision` now calls the CLI directly
+    * `ci:meili:verify` remains a thin helper because the current contract check is “compare provided key values to the active CLI-managed outputs”
+    * direct CLI source of truth:
     ```shell
-   bash ./scripts/ci/provision-meili-keys.sh
-   bash ./scripts/ci/verify-meili-keys.sh
+   pnpm -C apps/new-engine-ctl run build
+   node apps/new-engine-ctl/dist/cli.js prepare --lane main --requires-meili-keys
     ```
-    * `provision-meili-keys.sh` acts as a reconcile step: missing keys are created and drifted fixed-UID keys are patched back to policy.
-    * script policy is fixed (hardcoded):
-        * backend uid/description: `2f2e1f59-7b5a-4f2f-9f28-7a9137f7e6c1` / `backend-medusa`
-        * frontend uid/description: `3a6b6d2c-1e2f-4b8c-8d4f-0f7c2b9a1d55` / `frontend-medusa`
-        * backend actions: `search`, `documents.add`, `documents.delete`, `indexes.get`, `indexes.create`, `settings.update`
-        * backend indexes: `products`, `categories`, `producers`
-        * frontend actions: `search`
-        * frontend indexes: `products`, `categories`, `producers`
+    * the remaining `scripts/dev/*` Meili commands are helper surfaces, not policy owners
+    * provider policy lives in `apps/new-engine-ctl/config/stack-inputs.yaml`, not in shell scripts
 
 9. <b>Explore local envs</b>
     * N1 FE should be available at:

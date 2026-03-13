@@ -7,25 +7,12 @@ import {
   meiliVerifyResponseSchema,
 } from "../contracts/meilisearch-keys.js"
 import {
+  getRuntimeProviderOutputPolicy,
   getRuntimeProviderTargetEnvVar,
+  type RuntimeProviderPolicy,
   type StackInputs,
 } from "../contracts/stack-inputs.js"
 
-const BACKEND_UID = "2f2e1f59-7b5a-4f2f-9f28-7a9137f7e6c1"
-const FRONTEND_UID = "3a6b6d2c-1e2f-4b8c-8d4f-0f7c2b9a1d55"
-const BACKEND_DESCRIPTION = "backend-medusa"
-const FRONTEND_DESCRIPTION = "frontend-medusa"
-const BACKEND_ACTIONS = [
-  "search",
-  "documents.add",
-  "documents.delete",
-  "indexes.get",
-  "indexes.create",
-  "settings.update",
-]
-const FRONTEND_ACTIONS = ["search"]
-const BACKEND_INDEXES = ["products", "categories", "producers"]
-const FRONTEND_INDEXES = ["products", "categories", "producers"]
 const trailingSlashesPattern = /\/+$/
 
 type RequestOptions = {
@@ -40,6 +27,13 @@ type PolicyDefinition = {
   description: string
   actions: string[]
   indexes: string[]
+}
+
+type SearchCredentialPolicies = {
+  backendPolicy: RuntimeProviderPolicy
+  frontendPolicy: RuntimeProviderPolicy
+  backendEnvVar: string
+  frontendEnvVar: string
 }
 
 type RequestJsonOptions<T> = {
@@ -58,6 +52,36 @@ function sleep(seconds: number): Promise<void> {
 
 function normalizeBaseUrl(url: string): string {
   return url.replace(trailingSlashesPattern, "")
+}
+
+function resolveSearchCredentialPolicies(
+  stackInputs: StackInputs,
+  providerId: string
+): SearchCredentialPolicies {
+  return {
+    backendPolicy: getRuntimeProviderOutputPolicy(
+      stackInputs,
+      providerId,
+      "backend_key"
+    ),
+    frontendPolicy: getRuntimeProviderOutputPolicy(
+      stackInputs,
+      providerId,
+      "frontend_key"
+    ),
+    backendEnvVar: getRuntimeProviderTargetEnvVar(
+      stackInputs,
+      providerId,
+      "backend_key",
+      "medusa-be"
+    ),
+    frontendEnvVar: getRuntimeProviderTargetEnvVar(
+      stackInputs,
+      providerId,
+      "frontend_key",
+      "n1"
+    ),
+  }
 }
 
 function parseResponseBody(text: string, status: number): unknown {
@@ -299,6 +323,13 @@ export async function provisionMeiliKeys(input: {
   stackInputs: StackInputs
   providerId: string
 }): Promise<MeiliProvisionResponse> {
+  const {
+    backendPolicy,
+    frontendPolicy,
+    backendEnvVar,
+    frontendEnvVar,
+  } = resolveSearchCredentialPolicies(input.stackInputs, input.providerId)
+
   await waitForHealth({
     meiliUrl: input.meiliUrl,
     waitSeconds: input.waitSeconds,
@@ -309,20 +340,20 @@ export async function provisionMeiliKeys(input: {
   const backend = await createOrUpdateKey({
     meiliUrl: input.meiliUrl,
     masterKey: input.masterKey,
-    uid: BACKEND_UID,
-    description: BACKEND_DESCRIPTION,
-    actions: BACKEND_ACTIONS,
-    indexes: BACKEND_INDEXES,
+    uid: backendPolicy.uid,
+    description: backendPolicy.description,
+    actions: backendPolicy.actions,
+    indexes: backendPolicy.indexes,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
   })
   const frontend = await createOrUpdateKey({
     meiliUrl: input.meiliUrl,
     masterKey: input.masterKey,
-    uid: FRONTEND_UID,
-    description: FRONTEND_DESCRIPTION,
-    actions: FRONTEND_ACTIONS,
-    indexes: FRONTEND_INDEXES,
+    uid: frontendPolicy.uid,
+    description: frontendPolicy.description,
+    actions: frontendPolicy.actions,
+    indexes: frontendPolicy.indexes,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
   })
@@ -331,24 +362,14 @@ export async function provisionMeiliKeys(input: {
     meili_url: normalizeBaseUrl(input.meiliUrl),
     backend_key: String(backend.keyObject.key ?? ""),
     frontend_key: String(frontend.keyObject.key ?? ""),
-    backend_uid: String(backend.keyObject.uid ?? BACKEND_UID),
-    frontend_uid: String(frontend.keyObject.uid ?? FRONTEND_UID),
+    backend_uid: String(backend.keyObject.uid ?? backendPolicy.uid),
+    frontend_uid: String(frontend.keyObject.uid ?? frontendPolicy.uid),
     backend_created: backend.created,
     frontend_created: frontend.created,
     backend_updated: backend.updated,
     frontend_updated: frontend.updated,
-    backend_env_var: getRuntimeProviderTargetEnvVar(
-      input.stackInputs,
-      input.providerId,
-      "backend_key",
-      "medusa-be"
-    ),
-    frontend_env_var: getRuntimeProviderTargetEnvVar(
-      input.stackInputs,
-      input.providerId,
-      "frontend_key",
-      "n1"
-    ),
+    backend_env_var: backendEnvVar,
+    frontend_env_var: frontendEnvVar,
   })
 }
 
@@ -360,7 +381,14 @@ export async function verifyMeiliKeys(input: {
   waitSeconds: number
   retryCount: number
   retryDelaySeconds: number
+  stackInputs: StackInputs
+  providerId: string
 }): Promise<MeiliVerifyResponse> {
+  const { backendPolicy, frontendPolicy } = resolveSearchCredentialPolicies(
+    input.stackInputs,
+    input.providerId
+  )
+
   if (input.backendKey === input.masterKey) {
     throw new Error(
       "Backend key equals master key. This violates scoped-key policy."
@@ -389,7 +417,7 @@ export async function verifyMeiliKeys(input: {
   const backend = await getKeyByUid({
     meiliUrl: input.meiliUrl,
     masterKey: input.masterKey,
-    uid: BACKEND_UID,
+    uid: backendPolicy.uid,
     waitSeconds: input.waitSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
@@ -397,7 +425,7 @@ export async function verifyMeiliKeys(input: {
   const frontend = await getKeyByUid({
     meiliUrl: input.meiliUrl,
     masterKey: input.masterKey,
-    uid: FRONTEND_UID,
+    uid: frontendPolicy.uid,
     waitSeconds: input.waitSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
@@ -405,64 +433,54 @@ export async function verifyMeiliKeys(input: {
 
   if (!backend) {
     throw new Error(
-      `Backend key with expected uid=${BACKEND_UID} not found in Meilisearch.`
+      `Backend key with expected uid=${backendPolicy.uid} not found in Meilisearch.`
     )
   }
 
   if (!frontend) {
     throw new Error(
-      `Frontend key with expected uid=${FRONTEND_UID} not found in Meilisearch.`
+      `Frontend key with expected uid=${frontendPolicy.uid} not found in Meilisearch.`
     )
   }
 
   if (
-    !matchesPolicy(backend, {
-      uid: BACKEND_UID,
-      description: BACKEND_DESCRIPTION,
-      actions: BACKEND_ACTIONS,
-      indexes: BACKEND_INDEXES,
-    })
+    !matchesPolicy(backend, backendPolicy)
   ) {
     throw new Error(
-      `Backend key uid=${BACKEND_UID} does not match expected fixed policy.`
+      `Backend key uid=${backendPolicy.uid} does not match the contract-owned policy.`
     )
   }
 
   if (
-    !matchesPolicy(frontend, {
-      uid: FRONTEND_UID,
-      description: FRONTEND_DESCRIPTION,
-      actions: FRONTEND_ACTIONS,
-      indexes: FRONTEND_INDEXES,
-    })
+    !matchesPolicy(frontend, frontendPolicy)
   ) {
     throw new Error(
-      `Frontend key uid=${FRONTEND_UID} does not match expected fixed policy.`
+      `Frontend key uid=${frontendPolicy.uid} does not match the contract-owned policy.`
     )
   }
 
   if (String(backend.key ?? "") !== input.backendKey) {
     throw new Error(
-      `Provided backend key does not match key stored under uid=${BACKEND_UID}.`
+      `Provided backend key does not match key stored under uid=${backendPolicy.uid}.`
     )
   }
 
   if (String(frontend.key ?? "") !== input.frontendKey) {
     throw new Error(
-      `Provided frontend key does not match key stored under uid=${FRONTEND_UID}.`
+      `Provided frontend key does not match key stored under uid=${frontendPolicy.uid}.`
     )
   }
 
   return meiliVerifyResponseSchema.parse({
     meili_url: normalizeBaseUrl(input.meiliUrl),
-    backend_uid: BACKEND_UID,
-    frontend_uid: FRONTEND_UID,
-    backend_description: BACKEND_DESCRIPTION,
-    frontend_description: FRONTEND_DESCRIPTION,
-    backend_policy_actions: BACKEND_ACTIONS,
-    backend_policy_indexes: BACKEND_INDEXES,
-    frontend_policy_actions: FRONTEND_ACTIONS,
-    frontend_policy_indexes: FRONTEND_INDEXES,
+    backend_uid: backendPolicy.uid,
+    frontend_uid: frontendPolicy.uid,
+    backend_description: backendPolicy.description,
+    frontend_description: frontendPolicy.description,
+    backend_policy_actions: backendPolicy.actions,
+    backend_policy_indexes: backendPolicy.indexes,
+    frontend_policy_actions: frontendPolicy.actions,
+    frontend_policy_indexes: frontendPolicy.indexes,
     result: "ok",
   })
 }

@@ -62,6 +62,7 @@ export async function executeDeployPreview(
     projectSlug: input.projectSlug,
     prNumber: input.prNumber,
     environmentName: plan.preview_environment_name,
+    sourceEnvironmentName: input.sourceEnvironmentName,
     previewClonedServiceIdsCsv: plan.preview_cloned_service_ids_csv,
     previewExcludedServiceIdsCsv: plan.preview_excluded_service_ids_csv,
     outputJson: undefined,
@@ -164,6 +165,9 @@ export async function executeDeployPreview(
       requestedServicesCsv: stageServicesCsv,
       deployServicesCsv: stageServicesCsv,
       triggeredServicesCsv: trigger.triggered_service_ids.join(","),
+      previewClonedServiceIdsCsv: runtimePlan.preview_cloned_service_ids_csv,
+      previewExcludedServiceIdsCsv:
+        runtimePlan.preview_excluded_service_ids_csv,
       previewDbName: input.previewDbName,
       previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,

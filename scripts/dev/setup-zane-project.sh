@@ -3,7 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-source "${REPO_ROOT}/scripts/ci/lib.sh"
+# shellcheck source=scripts/dev/lib/common.sh
+source "${REPO_ROOT}/scripts/dev/lib/common.sh"
 source "${REPO_ROOT}/scripts/dev/lib/zane.sh"
 
 ENV_FILE="${REPO_ROOT}/.env.zane"
@@ -199,7 +200,7 @@ setup::parse_args() {
         exit 0
         ;;
       *)
-        ci::die "Unknown argument: $1"
+        common::die "Unknown argument: $1"
         ;;
     esac
   done
@@ -291,7 +292,7 @@ setup::derive_repository_url() {
   [[ -n "$REPOSITORY_URL" ]] && return
 
   remote_url="$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || true)"
-  [[ -n "$remote_url" ]] || ci::die "Unable to determine repository URL from origin."
+  [[ -n "$remote_url" ]] || common::die "Unable to determine repository URL from origin."
 
   case "$remote_url" in
     git@github.com:*)
@@ -304,7 +305,7 @@ setup::derive_repository_url() {
       REPOSITORY_URL="$remote_url"
       ;;
     *)
-      ci::die "Unsupported git remote for bootstrap: $remote_url"
+      common::die "Unsupported git remote for bootstrap: $remote_url"
       ;;
   esac
 }
@@ -314,10 +315,10 @@ setup::derive_branch_name() {
 }
 
 setup::require_tools() {
-  ci::require_command curl
-  ci::require_command git
-  ci::require_command jq
-  ci::require_command mktemp
+  common::require_command curl
+  common::require_command git
+  common::require_command jq
+  common::require_command mktemp
 }
 
 zane::settings() {
@@ -433,10 +434,10 @@ setup::capture_zane_settings() {
   OPERATOR_UPSTREAM_ZANE_BASE_URL="$(setup::normalize_origin_url "$OPERATOR_UPSTREAM_ZANE_BASE_URL")"
 
   PUBLIC_DOMAIN="${PUBLIC_DOMAIN:-$ZANE_ROOT_DOMAIN}"
-  [[ -n "$PUBLIC_DOMAIN" ]] || ci::die "Unable to determine public root domain from Zane. Pass --public-domain."
+  [[ -n "$PUBLIC_DOMAIN" ]] || common::die "Unable to determine public root domain from Zane. Pass --public-domain."
 
   if [[ -z "$OPERATOR_UPSTREAM_ZANE_BASE_URL" ]] || setup::is_loopback_url "$OPERATOR_UPSTREAM_ZANE_BASE_URL"; then
-    [[ -n "$ZANE_APP_DOMAIN" ]] || ci::die "Unable to determine Zane app domain from Zane settings."
+    [[ -n "$ZANE_APP_DOMAIN" ]] || common::die "Unable to determine Zane app domain from Zane settings."
     OPERATOR_UPSTREAM_ZANE_BASE_URL="https://${ZANE_APP_DOMAIN}"
   fi
 
@@ -524,7 +525,7 @@ setup::service_spec_json() {
       printf '%s\n' '{"dockerfile_path":"./docker/development/zane-operator/Dockerfile","build_context_dir":"./","command":null,"volumes":[],"envs":{"PORT":"8080","API_AUTH_TOKEN":"{{env.ZANE_OPERATOR_API_AUTH_TOKEN}}","PGHOST":"{{env.MEDUSA_DB_HOST}}","PGPORT":"5432","PGUSER":"{{env.ZANE_OPERATOR_PGUSER}}","PGPASSWORD":"{{env.ZANE_OPERATOR_PGPASSWORD}}","PGDATABASE":"postgres","PGSSLMODE":"disable","DB_TEMPLATE_NAME":"{{env.ZANE_OPERATOR_DB_TEMPLATE_NAME}}","DB_PREVIEW_PREFIX":"{{env.ZANE_OPERATOR_DB_PREVIEW_PREFIX}}","DB_PREVIEW_APP_USER_PREFIX":"{{env.ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX}}","DB_PREVIEW_DEV_ROLE":"{{env.MEDUSA_DEV_DB_USER}}","DB_APP_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","DB_PREVIEW_APP_PASSWORD_SECRET":"{{env.ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET}}","DB_PROTECTED_NAMES":"{{env.ZANE_OPERATOR_DB_PROTECTED_NAMES}}","ZANE_BASE_URL":"{{env.ZANE_OPERATOR_UPSTREAM_BASE_URL}}","ZANE_USERNAME":"{{env.ZANE_OPERATOR_UPSTREAM_USERNAME}}","ZANE_PASSWORD":"{{env.ZANE_OPERATOR_UPSTREAM_PASSWORD}}"}}'
       ;;
     *)
-      ci::die "Unsupported service slug: $service_slug"
+      common::die "Unsupported service slug: $service_slug"
       ;;
   esac
 }
@@ -595,7 +596,7 @@ setup::service_healthcheck_json() {
       }'
       ;;
     *)
-      ci::die "Unsupported service slug: $service_slug"
+      common::die "Unsupported service slug: $service_slug"
       ;;
   esac
 }
@@ -668,7 +669,7 @@ setup::service_resource_limits_json() {
       }'
       ;;
     *)
-      ci::die "Unsupported service slug: $service_slug"
+      common::die "Unsupported service slug: $service_slug"
       ;;
   esac
 }
@@ -912,7 +913,7 @@ setup::service_envs_json() {
         }'
       ;;
     *)
-      ci::die "Unsupported service slug for env sync: $service_slug"
+      common::die "Unsupported service slug for env sync: $service_slug"
       ;;
   esac
 }
@@ -1363,7 +1364,7 @@ setup::ensure_service_volumes() {
 
       pending_count="$(jq '[.unapplied_changes[] | select(.field == "volumes")] | length' <<<"$service_json")"
       if [[ "$pending_count" != "0" ]]; then
-        ci::die "Service ${service_slug} has pending volume changes that differ from the desired spec."
+        common::die "Service ${service_slug} has pending volume changes that differ from the desired spec."
       fi
 
       item_id="$(jq -r '.id' <<<"$current_row")"
@@ -1647,7 +1648,7 @@ setup::ensure_service() {
   fi
 
   service_type="$(jq -r '.type' <<<"$service_json")"
-  [[ "$service_type" == "GIT_REPOSITORY" ]] || ci::die "Service ${service_slug} already exists but is not a Git service."
+  [[ "$service_type" == "GIT_REPOSITORY" ]] || common::die "Service ${service_slug} already exists but is not a Git service."
 
   setup::ensure_service_source_and_builder "$service_slug" "$service_json" "$spec_json"
   service_json="$(zane::get_service "$service_slug")"
@@ -1727,7 +1728,7 @@ setup::service_network_alias() {
 
   service_json="$(zane::get_service "$service_slug")"
   alias="$(jq -r '.network_alias // empty' <<<"$service_json")"
-  [[ -n "$alias" ]] || ci::die "Service ${service_slug} does not have a network alias yet."
+  [[ -n "$alias" ]] || common::die "Service ${service_slug} does not have a network alias yet."
   printf '%s\n' "$alias"
 }
 
@@ -1737,7 +1738,7 @@ setup::service_global_network_alias() {
 
   service_json="$(zane::get_service "$service_slug")"
   alias="$(jq -r '.global_network_alias // empty' <<<"$service_json")"
-  [[ -n "$alias" ]] || ci::die "Service ${service_slug} does not have a global network alias yet."
+  [[ -n "$alias" ]] || common::die "Service ${service_slug} does not have a global network alias yet."
   printf '%s\n' "$alias"
 }
 
@@ -1790,8 +1791,8 @@ setup::main() {
   setup::derive_branch_name
   setup::require_tools
 
-  ci::require_env ZANE_USERNAME "Zane username"
-  ci::require_env ZANE_PASSWORD "Zane password"
+  common::require_env ZANE_USERNAME "Zane username"
+  common::require_env ZANE_PASSWORD "Zane password"
 
   setup::confirm_execution
 

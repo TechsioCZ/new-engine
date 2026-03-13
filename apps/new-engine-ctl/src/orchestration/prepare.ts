@@ -1,6 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
 
+import {
+  getRuntimeProviderOutputPolicy,
+  getRuntimeProviderTargetEnvVar,
+} from "../contracts/stack-inputs.js"
 import type {
   PrepareCommandInput,
   PrepareResponse,
@@ -106,6 +110,10 @@ async function executeMainPrepare(
       prepared: false,
       requires_meili_keys: false,
       meili_url: normalizeUrl(input.meiliUrl),
+      meili_backend_env_var: "",
+      meili_backend_uid: "",
+      meili_backend_created: false,
+      meili_backend_updated: false,
       meili_frontend_env_var: "",
       meili_frontend_uid: "",
       meili_frontend_created: false,
@@ -129,19 +137,41 @@ async function executeMainPrepare(
     input.stackManifestPath,
     input.stackInputsPath
   )
+  const backendPolicy = getRuntimeProviderOutputPolicy(
+    contracts.stackInputs,
+    input.searchCredentialsProviderId,
+    "backend_key"
+  )
+  const frontendPolicy = getRuntimeProviderOutputPolicy(
+    contracts.stackInputs,
+    input.searchCredentialsProviderId,
+    "frontend_key"
+  )
+  const backendEnvVar = getRuntimeProviderTargetEnvVar(
+    contracts.stackInputs,
+    input.searchCredentialsProviderId,
+    "backend_key",
+    "medusa-be"
+  )
+  const frontendEnvVar = getRuntimeProviderTargetEnvVar(
+    contracts.stackInputs,
+    input.searchCredentialsProviderId,
+    "frontend_key",
+    "n1"
+  )
   const provisioned = input.dryRun
     ? {
         meili_url: normalizeUrl(input.meiliUrl),
         backend_key: "dry-run:main:backend",
         frontend_key: "dry-run:main:frontend",
-        backend_uid: "2f2e1f59-7b5a-4f2f-9f28-7a9137f7e6c1",
-        frontend_uid: "3a6b6d2c-1e2f-4b8c-8d4f-0f7c2b9a1d55",
+        backend_uid: backendPolicy.uid,
+        frontend_uid: frontendPolicy.uid,
         backend_created: false,
         frontend_created: true,
         backend_updated: false,
         frontend_updated: false,
-        backend_env_var: "DC_MEILISEARCH_BACKEND_API_KEY",
-        frontend_env_var: "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY",
+        backend_env_var: backendEnvVar,
+        frontend_env_var: frontendEnvVar,
       }
     : await provisionMeiliKeys({
         meiliUrl: input.meiliUrl,
@@ -163,6 +193,8 @@ async function executeMainPrepare(
         waitSeconds: input.meiliWaitSeconds,
         retryCount: input.retryCount,
         retryDelaySeconds: input.retryDelaySeconds,
+        stackInputs: contracts.stackInputs,
+        providerId: input.searchCredentialsProviderId,
       })
 
   const response = prepareResponseSchema.parse({
@@ -170,6 +202,10 @@ async function executeMainPrepare(
     prepared: true,
     requires_meili_keys: true,
     meili_url: provisioned.meili_url,
+    meili_backend_env_var: provisioned.backend_env_var,
+    meili_backend_uid: provisioned.backend_uid,
+    meili_backend_created: provisioned.backend_created,
+    meili_backend_updated: provisioned.backend_updated,
     meili_frontend_env_var: provisioned.frontend_env_var,
     meili_frontend_uid: provisioned.frontend_uid,
     meili_frontend_created: provisioned.frontend_created,

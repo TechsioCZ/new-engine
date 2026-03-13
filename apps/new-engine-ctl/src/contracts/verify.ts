@@ -16,6 +16,12 @@ const requiredPersistedEnvSchema = z.object({
   env_keys: z.array(z.string().min(1)),
 })
 
+export const forbiddenEnvSchema = z.object({
+  service_id: z.string().min(1),
+  service_slug: z.string().min(1),
+  env_keys: z.array(z.string().min(1)),
+})
+
 const deploymentRefSchema = z.looseObject({
   service_id: z.string().min(1),
   service_slug: z.string().min(1),
@@ -47,6 +53,8 @@ export const verifyCommandInputSchema = z
     requestedServicesCsv: z.string().default(""),
     deployServicesCsv: z.string().default(""),
     triggeredServicesCsv: z.string().default(""),
+    previewClonedServiceIdsCsv: z.string().default(""),
+    previewExcludedServiceIdsCsv: z.string().default(""),
     previewDbName: z.string().default(""),
     previewDbUser: z.string().default(""),
     previewDbPassword: z.string().default(""),
@@ -90,8 +98,11 @@ export const verifyResponseSchema = z.object({
   requested_service_ids: z.array(z.string()),
   deploy_service_ids: z.array(z.string()),
   triggered_service_ids: z.array(z.string()),
+  checked_preview_cloned_service_slugs: z.array(z.string()).default([]),
+  warning_only_preview_service_slugs: z.array(z.string()).default([]),
   checked_env_override_service_ids: z.array(z.string()),
   checked_persisted_env_service_ids: z.array(z.string()),
+  checked_forbidden_env_service_ids: z.array(z.string()),
   checked_deployment_service_ids: z.array(z.string()),
   checked_deployments: z.array(
     z.object({
@@ -107,6 +118,7 @@ export const verifyResponseSchema = z.object({
 export type VerifyCommandInput = z.infer<typeof verifyCommandInputSchema>
 export type EnvOverride = z.infer<typeof envOverrideSchema>
 export type RequiredPersistedEnv = z.infer<typeof requiredPersistedEnvSchema>
+export type ForbiddenEnvRequirement = z.infer<typeof forbiddenEnvSchema>
 export type DeploymentRef = z.infer<typeof deploymentRefSchema>
 export type PreviewRandomOnceSecretInput = z.infer<
   typeof previewRandomOnceSecretInputSchema
@@ -124,8 +136,11 @@ export type VerifyDeployPayload = {
   requested_service_ids: string[]
   deploy_service_ids: string[]
   triggered_service_ids: string[]
+  expected_preview_service_slugs: string[]
+  excluded_preview_service_slugs: string[]
   expected_env_overrides: EnvOverride[]
   required_persisted_env: RequiredPersistedEnv[]
+  forbidden_env: ForbiddenEnvRequirement[]
   deployments: DeploymentVerifyRef[]
 }
 

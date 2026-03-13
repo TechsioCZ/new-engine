@@ -8,7 +8,7 @@ dev::load_env_file() {
     if [[ "$require_mode" == "optional" ]]; then
       return 0
     fi
-    ci::die "Env file not found: $env_file"
+    common::die "Env file not found: $env_file"
   fi
 
   set +u
@@ -42,7 +42,7 @@ dev::confirm_or_die() {
   printf '%s\n' "$summary" >&2
   printf 'Type "%s" to continue: ' "$expected_phrase" >&2
   read -r prompt
-  [[ "$prompt" == "$expected_phrase" ]] || ci::die "Confirmation rejected."
+  [[ "$prompt" == "$expected_phrase" ]] || common::die "Confirmation rejected."
 }
 
 zane::request() {
@@ -149,7 +149,7 @@ zane::login() {
 
   zane::api GET "csrf/" >/dev/null
   zane::refresh_csrf_token
-  [[ -n "$CSRF_TOKEN" ]] || ci::die "Unable to obtain CSRF token from Zane."
+  [[ -n "$CSRF_TOKEN" ]] || common::die "Unable to obtain CSRF token from Zane."
 
   login_payload="$(
     jq -n \
