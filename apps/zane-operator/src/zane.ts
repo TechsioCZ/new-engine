@@ -1,5 +1,6 @@
 import type { AppConfig } from "./config"
 import { BadRequestError } from "./db"
+import type { SearchCredentialsOutput, StackInputsConfig } from "./stack-inputs"
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
 type Lane = "preview" | "main"
@@ -18,6 +19,12 @@ export interface ResolveEnvironmentInput {
 export interface ArchiveEnvironmentInput {
   projectSlug: string
   environmentName: string
+}
+
+export interface ProvisionPreviewMeiliKeysInput {
+  projectSlug: string
+  environmentName: string
+  serviceSlug: string
 }
 
 export interface ResolveTargetInput {
@@ -43,6 +50,12 @@ export interface VerifyDeploymentRef {
   deployment_hash: string
 }
 
+export interface PersistedEnvRequirement {
+  service_id: string
+  service_slug: string
+  env_keys: string[]
+}
+
 export interface VerifyDeployInput {
   lane: Lane
   projectSlug: string
@@ -51,6 +64,7 @@ export interface VerifyDeployInput {
   deployServiceIds: string[]
   triggeredServiceIds: string[]
   expectedEnvOverrides: EnvOverrideInput[]
+  requiredPersistedEnv: PersistedEnvRequirement[]
   deployments: VerifyDeploymentRef[]
 }
 
@@ -87,6 +101,12 @@ export interface ZaneEnvVariable {
   value: string
 }
 
+export interface ZaneServiceUrl {
+  id: string
+  domain: string
+  base_path: string
+}
+
 export interface ZaneServiceDetails {
   id: string
   slug: string
@@ -94,6 +114,7 @@ export interface ZaneServiceDetails {
   commit_sha?: string | null
   deploy_token: string
   env_variables: ZaneEnvVariable[]
+  urls: ZaneServiceUrl[]
   unapplied_changes?: Array<{ id: string }>
 }
 
@@ -306,6 +327,25 @@ function normalizeDeployments(value: unknown, label: string): VerifyDeploymentRe
   })
 }
 
+function normalizePersistedEnvRequirements(value: unknown, label: string): PersistedEnvRequirement[] {
+  if (value == null) {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    throw new BadRequestError(`${label} must be an array`)
+  }
+
+  return value.map((item, index) => {
+    const object = assertObject(item, `${label}[${index}]`)
+    return {
+      service_id: assertString(object.service_id, `${label}[${index}].service_id`),
+      service_slug: assertString(object.service_slug, `${label}[${index}].service_slug`),
+      env_keys: assertStringArray(object.env_keys, `${label}[${index}].env_keys`),
+    }
+  })
+}
+
 function assertRepoServiceIdSubset(
   values: string[],
   allowed: Set<string>,
@@ -321,6 +361,7 @@ function assertRepoServiceIdSubset(
 
 function buildVerifyServiceSlugByRepoId(
   expectedEnvOverrides: EnvOverrideInput[],
+  requiredPersistedEnv: PersistedEnvRequirement[],
   deployments: VerifyDeploymentRef[],
 ): Map<string, string> {
   const mapping = new Map<string, string>()
@@ -336,6 +377,10 @@ function buildVerifyServiceSlugByRepoId(
 
   for (const override of expectedEnvOverrides) {
     register(override.service_id, override.service_slug, "expected_env_overrides")
+  }
+
+  for (const requirement of requiredPersistedEnv) {
+    register(requirement.service_id, requirement.service_slug, "required_persisted_env")
   }
 
   for (const deployment of deployments) {
@@ -359,6 +404,60 @@ function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
       status: typeof object.status === "string" ? object.status : undefined,
     }
   })
+}
+
+function buildServicePublicUrls(serviceDetails: ZaneServiceDetails): string[] {
+  if (!Array.isArray(serviceDetails.urls)) {
+    return []
+  }
+
+  return serviceDetails.urls
+    .map((url, index) => {
+      const domain = assertString(url.domain, `service.urls[${index}].domain`)
+      const basePath = typeof url.base_path === "string" && url.base_path.trim() ? url.base_path.trim() : "/"
+      return new URL(basePath.startsWith("/") ? basePath : `/${basePath}`, `https://${domain}`).toString()
+    })
+    .filter((value, index, array) => array.indexOf(value) === index)
+}
+
+function getServiceEnvValue(serviceDetails: ZaneServiceDetails, keys: string[]): string | null {
+  const envVariables = Array.isArray(serviceDetails.env_variables) ? serviceDetails.env_variables : []
+  const envByKey = new Map(envVariables.map((envVar) => [envVar.key, envVar.value]))
+  for (const key of keys) {
+    const value = envByKey.get(key)
+    if (typeof value === "string" && value.trim()) {
+      return value
+    }
+  }
+  return null
+}
+
+function meiliKeyMatchesPolicy(
+  keyObj: Record<string, unknown>,
+  uid: string,
+  description: string,
+  actions: string[],
+  indexes: string[],
+): boolean {
+  const keyUid = typeof keyObj.uid === "string" ? keyObj.uid : null
+  const keyDescription = typeof keyObj.description === "string" ? keyObj.description : null
+  const keyActions = Array.isArray(keyObj.actions) ? keyObj.actions.filter((item): item is string => typeof item === "string") : []
+  const keyIndexes = Array.isArray(keyObj.indexes) ? keyObj.indexes.filter((item): item is string => typeof item === "string") : []
+
+  return (
+    keyUid === uid &&
+    keyDescription === description &&
+    JSON.stringify([...keyActions].sort()) === JSON.stringify([...actions].sort()) &&
+    JSON.stringify([...keyIndexes].sort()) === JSON.stringify([...indexes].sort())
+  )
+}
+
+function requireTargetEnvVar(output: SearchCredentialsOutput, serviceId: string, outputLabel: string): string {
+  const target = output.targetEnvs.find((entry) => entry.serviceId === serviceId)
+  if (!target) {
+    throw new BadRequestError(`search_credentials.${outputLabel} is missing a target env for ${serviceId}`)
+  }
+  return target.envVar
 }
 
 function buildCookieHeader(cookies: Map<string, string>): string {
@@ -479,14 +578,16 @@ export class ZaneClient {
   readonly #username: string
   readonly #password: string
   readonly #sessionCacheKey: string
+  readonly #stackInputs: StackInputsConfig
 
-  constructor(config: AppConfig) {
+  constructor(config: AppConfig, stackInputs: StackInputsConfig) {
     const deployConfig = requireZaneDeployConfig(config)
     this.#connectBaseUrl = deployConfig.connectBaseUrl
     this.#connectHostHeader = deployConfig.connectHostHeader
     this.#username = deployConfig.username
     this.#password = deployConfig.password
     this.#sessionCacheKey = `${this.#connectBaseUrl}\n${this.#username}`
+    this.#stackInputs = stackInputs
   }
 
   static parseResolveEnvironmentInput(rawPayload: unknown): ResolveEnvironmentInput {
@@ -511,6 +612,15 @@ export class ZaneClient {
     return {
       projectSlug: normalizeProjectSlugFromPayload(payload),
       environmentName: assertString(payload.environment_name, "environment_name"),
+    }
+  }
+
+  static parseProvisionPreviewMeiliKeysInput(rawPayload: unknown): ProvisionPreviewMeiliKeysInput {
+    const payload = assertObject(rawPayload, "request body")
+    return {
+      projectSlug: normalizeProjectSlugFromPayload(payload),
+      environmentName: assertString(payload.environment_name, "environment_name"),
+      serviceSlug: assertString(payload.service_slug, "service_slug"),
     }
   }
 
@@ -569,6 +679,10 @@ export class ZaneClient {
       deployServiceIds: assertStringArray(payload.deploy_service_ids, "deploy_service_ids"),
       triggeredServiceIds: assertStringArray(payload.triggered_service_ids, "triggered_service_ids"),
       expectedEnvOverrides: normalizeEnvOverrides(payload.expected_env_overrides ?? [], "expected_env_overrides"),
+      requiredPersistedEnv: normalizePersistedEnvRequirements(
+        payload.required_persisted_env ?? [],
+        "required_persisted_env",
+      ),
       deployments: normalizeDeployments(payload.deployments, "deployments"),
     }
   }
@@ -1174,6 +1288,146 @@ export class ZaneClient {
     }
   }
 
+  async provisionPreviewMeiliKeys(input: ProvisionPreviewMeiliKeysInput): Promise<{
+    project_slug: string
+    environment_name: string
+    service_slug: string
+    meili_url: string
+    backend_key: string
+    backend_env_var: string
+    backend_created: boolean
+    backend_updated: boolean
+    frontend_key: string
+    frontend_env_var: string
+    frontend_created: boolean
+    frontend_updated: boolean
+  }> {
+    const provider = this.#stackInputs.searchCredentialsProvider
+    const backendOutput = provider.outputs.backend
+    const frontendOutput = provider.outputs.frontend
+    const backendEnvVar = requireTargetEnvVar(backendOutput, "medusa-be", "backend_key")
+    const frontendEnvVar = requireTargetEnvVar(frontendOutput, "n1", "frontend_key")
+    const session = await this.authenticate()
+    const environment = await this.getEnvironment(session, input.projectSlug, input.environmentName)
+    if (!environment) {
+      throw new UpstreamHttpError(
+        404,
+        "zane_environment_not_found",
+        `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`,
+      )
+    }
+    assertEnvironmentMatchesLane(environment, "preview")
+
+    const serviceDetails = await this.getServiceDetails(session, input.projectSlug, input.environmentName, input.serviceSlug)
+    const serviceUrls = buildServicePublicUrls(serviceDetails)
+    const meiliUrl = serviceUrls[0]
+    if (!meiliUrl) {
+      throw new UpstreamHttpError(
+        409,
+        "zane_meili_url_missing",
+        `Service ${input.serviceSlug} does not expose a public URL in ${input.projectSlug}/${input.environmentName}`,
+      )
+    }
+
+    const meiliMasterKey = getServiceEnvValue(serviceDetails, ["MEILI_MASTER_KEY", "MEILISEARCH_API_KEY"])
+    if (!meiliMasterKey) {
+      throw new UpstreamHttpError(
+        409,
+        "zane_meili_master_key_missing",
+        `Service ${input.serviceSlug} does not expose a Meilisearch master key in ${input.projectSlug}/${input.environmentName}`,
+      )
+    }
+
+    await this.waitForMeiliHealth(meiliUrl, provider.readinessPath)
+
+    let backendKeyObj = await this.getMeiliKeyByUid(meiliUrl, meiliMasterKey, backendOutput.policy.uid)
+    let backendCreated = false
+    let backendUpdated = false
+    if (!backendKeyObj) {
+      backendKeyObj = await this.createMeiliKey(
+        meiliUrl,
+        meiliMasterKey,
+        backendOutput.policy.uid,
+        backendOutput.policy.description,
+        backendOutput.policy.actions,
+        backendOutput.policy.indexes,
+      )
+      backendCreated = true
+    } else if (
+      !meiliKeyMatchesPolicy(
+        backendKeyObj,
+        backendOutput.policy.uid,
+        backendOutput.policy.description,
+        backendOutput.policy.actions,
+        backendOutput.policy.indexes,
+      )
+    ) {
+      backendKeyObj = await this.updateMeiliKey(
+        meiliUrl,
+        meiliMasterKey,
+        backendOutput.policy.uid,
+        backendOutput.policy.description,
+        backendOutput.policy.actions,
+        backendOutput.policy.indexes,
+      )
+      backendUpdated = true
+    }
+
+    let frontendKeyObj = await this.getMeiliKeyByUid(meiliUrl, meiliMasterKey, frontendOutput.policy.uid)
+    let frontendCreated = false
+    let frontendUpdated = false
+    if (!frontendKeyObj) {
+      frontendKeyObj = await this.createMeiliKey(
+        meiliUrl,
+        meiliMasterKey,
+        frontendOutput.policy.uid,
+        frontendOutput.policy.description,
+        frontendOutput.policy.actions,
+        frontendOutput.policy.indexes,
+      )
+      frontendCreated = true
+    } else if (
+      !meiliKeyMatchesPolicy(
+        frontendKeyObj,
+        frontendOutput.policy.uid,
+        frontendOutput.policy.description,
+        frontendOutput.policy.actions,
+        frontendOutput.policy.indexes,
+      )
+    ) {
+      frontendKeyObj = await this.updateMeiliKey(
+        meiliUrl,
+        meiliMasterKey,
+        frontendOutput.policy.uid,
+        frontendOutput.policy.description,
+        frontendOutput.policy.actions,
+        frontendOutput.policy.indexes,
+      )
+      frontendUpdated = true
+    }
+
+    const backendKey = typeof backendKeyObj.key === "string" ? backendKeyObj.key : ""
+    const frontendKey = typeof frontendKeyObj.key === "string" ? frontendKeyObj.key : ""
+    if (!backendKey || !frontendKey) {
+      throw new UpstreamHttpError(502, "zane_meili_key_missing", "Provisioned Meilisearch keys were missing key values")
+    }
+
+    return {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slug: input.serviceSlug,
+      meili_url: meiliUrl,
+      backend_key: backendKey,
+      backend_env_var: backendEnvVar,
+      backend_created: backendCreated,
+      backend_updated: backendUpdated,
+      frontend_key: frontendKey,
+      frontend_env_var: frontendEnvVar,
+      frontend_created: frontendCreated,
+      frontend_updated: frontendUpdated,
+    }
+  }
+
   async verifyDeploy(input: VerifyDeployInput): Promise<{
     lane: Lane
     project_slug: string
@@ -1183,6 +1437,7 @@ export class ZaneClient {
     deploy_service_ids: string[]
     triggered_service_ids: string[]
     checked_env_override_service_ids: string[]
+    checked_persisted_env_service_ids: string[]
     checked_deployment_service_ids: string[]
     checked_deployments: Array<{
       service_id: string
@@ -1211,7 +1466,11 @@ export class ZaneClient {
     const services = normalizeServiceCards(cardsPayload ?? [])
     const serviceCardBySlug = new Map(services.map((service) => [service.slug, service]))
     const deployRepoServiceIdSet = new Set(input.deployServiceIds)
-    const verifyServiceSlugByRepoId = buildVerifyServiceSlugByRepoId(input.expectedEnvOverrides, input.deployments)
+    const verifyServiceSlugByRepoId = buildVerifyServiceSlugByRepoId(
+      input.expectedEnvOverrides,
+      input.requiredPersistedEnv,
+      input.deployments,
+    )
 
     assertRepoServiceIdSubset(
       input.requestedServiceIds,
@@ -1232,6 +1491,12 @@ export class ZaneClient {
       "expected_env_overrides",
     )
     assertRepoServiceIdSubset(
+      input.requiredPersistedEnv.map((item) => item.service_id),
+      deployRepoServiceIdSet,
+      "required_persisted_env.service_id",
+      "required_persisted_env",
+    )
+    assertRepoServiceIdSubset(
       input.deployments.map((item) => item.service_id),
       deployRepoServiceIdSet,
       "deployment.service_id",
@@ -1239,6 +1504,7 @@ export class ZaneClient {
     )
 
     const expectedOverrideByServiceId = new Map(input.expectedEnvOverrides.map((item) => [item.service_id, item]))
+    const requiredPersistedEnvByServiceId = new Map(input.requiredPersistedEnv.map((item) => [item.service_id, item]))
     const deploymentRefByServiceId = new Map<string, VerifyDeploymentRef>()
     for (const deploymentRef of input.deployments) {
       if (deploymentRefByServiceId.has(deploymentRef.service_id)) {
@@ -1269,6 +1535,7 @@ export class ZaneClient {
       }
 
       const expectedOverride = expectedOverrideByServiceId.get(repoServiceId)
+      const persistedEnvRequirement = requiredPersistedEnvByServiceId.get(repoServiceId)
       const deploymentRef = deploymentRefByServiceId.get(repoServiceId)
 
       let deployment: ZaneDeployment
@@ -1315,20 +1582,37 @@ export class ZaneClient {
       })
 
       if (!expectedOverride) {
-        continue
+        if (!persistedEnvRequirement) {
+          continue
+        }
       }
 
       const envVariables = new Map(
         (deployment.service_snapshot?.env_variables ?? []).map((envVar) => [envVar.key, envVar.value]),
       )
 
-      for (const [key, value] of Object.entries(expectedOverride.env)) {
-        if (envVariables.get(key) !== value) {
-          throw new UpstreamHttpError(
-            409,
-            "zane_verify_env_mismatch",
-            `Deployment ${deployment.hash} for ${checkedServiceSlug} is missing expected ${key} value`,
-          )
+      if (expectedOverride) {
+        for (const [key, value] of Object.entries(expectedOverride.env)) {
+          if (envVariables.get(key) !== value) {
+            throw new UpstreamHttpError(
+              409,
+              "zane_verify_env_mismatch",
+              `Deployment ${deployment.hash} for ${checkedServiceSlug} is missing expected ${key} value`,
+            )
+          }
+        }
+      }
+
+      if (persistedEnvRequirement) {
+        for (const key of persistedEnvRequirement.env_keys) {
+          const value = envVariables.get(key)
+          if (typeof value !== "string" || value.length === 0) {
+            throw new UpstreamHttpError(
+              409,
+              "zane_verify_persisted_env_missing",
+              `Deployment ${deployment.hash} for ${checkedServiceSlug} is missing required persisted env key ${key}`,
+            )
+          }
         }
       }
     }
@@ -1359,6 +1643,7 @@ export class ZaneClient {
       deploy_service_ids: input.deployServiceIds,
       triggered_service_ids: input.triggeredServiceIds,
       checked_env_override_service_ids: input.expectedEnvOverrides.map((item) => item.service_id),
+      checked_persisted_env_service_ids: input.requiredPersistedEnv.map((item) => item.service_id),
       checked_deployment_service_ids: checkedDeployments.map((item) => item.service_id),
       checked_deployments: checkedDeployments,
     }
@@ -1444,6 +1729,123 @@ export class ZaneClient {
     }
 
     return details
+  }
+
+  private async waitForMeiliHealth(meiliUrl: string, healthPath: string): Promise<void> {
+    const normalizedHealthPath = healthPath.startsWith("/") ? healthPath : `/${healthPath}`
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const response = await fetch(`${meiliUrl.replace(/\/+$/, "")}${normalizedHealthPath}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      }).catch(() => null)
+
+      if (response?.ok) {
+        return
+      }
+
+      await sleep(2_000)
+    }
+
+    throw new UpstreamHttpError(
+      504,
+      "zane_meili_unhealthy",
+      `Timed out waiting for Meilisearch health at ${meiliUrl}${normalizedHealthPath}`,
+    )
+  }
+
+  private async getMeiliKeyByUid(
+    meiliUrl: string,
+    masterKey: string,
+    uid: string,
+  ): Promise<Record<string, unknown> | null> {
+    const response = await fetch(`${meiliUrl.replace(/\/+$/, "")}/keys/${encodeURIComponent(uid)}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${masterKey}`,
+      },
+    })
+
+    if (response.status === 404) {
+      return null
+    }
+
+    if (!response.ok) {
+      let errorMessage = `Meilisearch key lookup failed for ${uid} (HTTP ${response.status})`
+      try {
+        errorMessage = parseErrorMessage(await response.json(), errorMessage)
+      } catch {
+        // keep fallback
+      }
+      throw new UpstreamHttpError(response.status, "zane_meili_key_lookup_failed", errorMessage)
+    }
+
+    return assertObject(await response.json(), `meili key ${uid}`)
+  }
+
+  private async createMeiliKey(
+    meiliUrl: string,
+    masterKey: string,
+    uid: string,
+    description: string,
+    actions: string[],
+    indexes: string[],
+  ): Promise<Record<string, unknown>> {
+    return await this.writeMeiliKey(meiliUrl, masterKey, "POST", "/keys", {
+      uid,
+      description,
+      actions,
+      indexes,
+      expiresAt: null,
+    })
+  }
+
+  private async updateMeiliKey(
+    meiliUrl: string,
+    masterKey: string,
+    uid: string,
+    description: string,
+    actions: string[],
+    indexes: string[],
+  ): Promise<Record<string, unknown>> {
+    return await this.writeMeiliKey(meiliUrl, masterKey, "PATCH", `/keys/${encodeURIComponent(uid)}`, {
+      description,
+      actions,
+      indexes,
+      expiresAt: null,
+    })
+  }
+
+  private async writeMeiliKey(
+    meiliUrl: string,
+    masterKey: string,
+    method: "POST" | "PATCH",
+    path: string,
+    payload: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const response = await fetch(`${meiliUrl.replace(/\/+$/, "")}${path}`, {
+      method,
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${masterKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      let errorMessage = `Meilisearch key ${method === "POST" ? "create" : "update"} failed (HTTP ${response.status})`
+      try {
+        errorMessage = parseErrorMessage(await response.json(), errorMessage)
+      } catch {
+        // keep fallback
+      }
+      throw new UpstreamHttpError(response.status, "zane_meili_key_write_failed", errorMessage)
+    }
+
+    return assertObject(await response.json(), "meili key response")
   }
 
   private async getDeployment(

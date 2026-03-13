@@ -1,10 +1,12 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
+import type { StackInputsConfig } from "../stack-inputs"
 import { ZaneClient } from "../zane"
 
 interface TriggerZaneDeployDeps {
   config: AppConfig
+  stackInputs: StackInputsConfig
 }
 
 export async function handleTriggerZaneDeploy(request: Request, deps: TriggerZaneDeployDeps): Promise<Response> {
@@ -13,7 +15,7 @@ export async function handleTriggerZaneDeploy(request: Request, deps: TriggerZan
       throw new BadRequestError("request body must be valid JSON")
     })
 
-    const client = new ZaneClient(deps.config)
+    const client = new ZaneClient(deps.config, deps.stackInputs)
     const payload = ZaneClient.parseTriggerInput(rawBody)
     const result = await client.triggerDeploys({
       projectSlug: payload.projectSlug,

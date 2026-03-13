@@ -44,13 +44,6 @@ case "$mode" in
       ci::mask_env_if_present ZANE_OPERATOR_BASE_URL
       ci::mask_env_if_present ZANE_OPERATOR_API_TOKEN
     fi
-
-    if [[ "${REQUIRES_MEILI_KEYS:-false}" == "true" ]]; then
-      ci::require_env MEILISEARCH_URL "Meilisearch base URL"
-      ci::require_env MEILISEARCH_MASTER_KEY "Meilisearch master key"
-      ci::mask_env_if_present MEILISEARCH_URL
-      ci::mask_env_if_present MEILISEARCH_MASTER_KEY
-    fi
     ;;
   main-prepare)
     if [[ "${REQUIRES_MEILI_KEYS:-false}" == "true" ]]; then
@@ -67,6 +60,8 @@ case "$mode" in
     ci::mask_env_if_present ZANE_OPERATOR_BASE_URL
     ci::mask_env_if_present ZANE_OPERATOR_API_TOKEN
     ci::mask_env_if_present PREVIEW_DB_PASSWORD
+    ci::mask_env_if_present PREVIEW_RANDOM_ONCE_SECRETS_JSON
+    ci::mask_env_if_present MEILI_BACKEND_KEY
     ci::mask_env_if_present MEILI_FRONTEND_KEY
     ;;
   main-deploy|main-verify)

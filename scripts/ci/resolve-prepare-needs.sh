@@ -113,6 +113,11 @@ requires_meili_keys="false"
 [[ -n "$preview_db_service_ids" ]] && requires_preview_db="true"
 [[ -n "$meili_key_service_ids" ]] && requires_meili_keys="true"
 
+if [[ "$lane" == "preview" ]]; then
+  meili_key_service_ids=""
+  requires_meili_keys="false"
+fi
+
 should_prepare="false"
 if [[ "$requires_preview_db" == "true" || "$requires_meili_keys" == "true" ]]; then
   should_prepare="true"

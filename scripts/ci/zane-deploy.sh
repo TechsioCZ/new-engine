@@ -3,10 +3,13 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STACK_MANIFEST_PATH="${STACK_MANIFEST_PATH:-${ROOT_DIR}/config/stack-manifest.yaml}"
+STACK_INPUTS_PATH="${STACK_INPUTS_PATH:-${ROOT_DIR}/config/stack-inputs.yaml}"
 # shellcheck source=scripts/ci/lib.sh
 source "${ROOT_DIR}/scripts/ci/lib.sh"
 # shellcheck source=scripts/lib/stack-manifest.sh
 source "${ROOT_DIR}/scripts/lib/stack-manifest.sh"
+# shellcheck source=scripts/lib/stack-inputs.sh
+source "${ROOT_DIR}/scripts/lib/stack-inputs.sh"
 
 zane::usage() {
   cat <<'EOF'
@@ -33,16 +36,30 @@ EOF
 
 ZANE_DEPLOYMENT_POLL_INTERVAL_SECONDS_DEFAULT="${ZANE_DEPLOYMENT_POLL_INTERVAL_SECONDS_DEFAULT:-10}"
 ZANE_DEPLOYMENT_WAIT_TIMEOUT_SECONDS_DEFAULT="${ZANE_DEPLOYMENT_WAIT_TIMEOUT_SECONDS_DEFAULT:-900}"
+ZANE_SEARCH_CREDENTIALS_PROVIDER_ID="${ZANE_SEARCH_CREDENTIALS_PROVIDER_ID:-search_credentials}"
 
 zane::require_common_commands() {
   ci::require_command jq
   ci::require_command curl
+  stack_inputs_exists
+  stack_inputs_require_parser
+}
+
+zane::require_secret_generation_commands() {
+  ci::require_command openssl
+  ci::require_command tr
+  ci::require_command head
 }
 
 zane::require_manifest() {
   MANIFEST_PATH="$STACK_MANIFEST_PATH"
   manifest_exists
   manifest_require_parser
+}
+
+zane::require_stack_inputs() {
+  stack_inputs_exists
+  stack_inputs_require_parser
 }
 
 zane::require_file() {
@@ -73,6 +90,145 @@ zane::merge_csv_values() {
   local existing="${1-}"
   local current="${2-}"
   zane::normalize_csv_or_empty "${existing},${current}"
+}
+
+zane::generate_secret_value() {
+  local generator_json="$1"
+  local kind=""
+  kind="$(jq -r '.kind // empty' <<<"$generator_json")"
+
+  case "$kind" in
+    random_hex)
+      local bytes=""
+      bytes="$(jq -r '.bytes // empty' <<<"$generator_json")"
+      [[ "$bytes" =~ ^[0-9]+$ ]] || ci::die "random_hex generator requires numeric bytes."
+      openssl rand -hex "$bytes"
+      ;;
+    random_base64url)
+      local bytes=""
+      bytes="$(jq -r '.bytes // empty' <<<"$generator_json")"
+      [[ "$bytes" =~ ^[0-9]+$ ]] || ci::die "random_base64url generator requires numeric bytes."
+      openssl rand -base64 "$bytes" | tr '+/' '-_' | tr -d '=\n'
+      ;;
+    random_alnum)
+      local length=""
+      local value=""
+      local remaining=""
+      local chunk=""
+      length="$(jq -r '.length // empty' <<<"$generator_json")"
+      [[ "$length" =~ ^[0-9]+$ ]] || ci::die "random_alnum generator requires numeric length."
+      while [[ "${#value}" -lt "$length" ]]; do
+        remaining="$((length - ${#value}))"
+        chunk="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c "$remaining" || true)"
+        value+="$chunk"
+      done
+      printf '%s' "$value"
+      ;;
+    *)
+      ci::die "Unsupported secret generator kind: ${kind:-<empty>}"
+      ;;
+  esac
+}
+
+zane::generate_preview_random_once_secrets_json() {
+  zane::require_stack_inputs
+  zane::require_secret_generation_commands
+
+  local definitions_json=""
+  definitions_json="$(stack_inputs_preview_random_once_secrets_json)"
+
+  jq -c '.[]' <<<"$definitions_json" | while IFS= read -r secret_json; do
+    [[ -n "$secret_json" ]] || continue
+    local value=""
+    value="$(zane::generate_secret_value "$(jq -c '.generator // {}' <<<"$secret_json")")"
+    ci::gha_mask "$value"
+    jq -cn \
+      --argjson secret "$secret_json" \
+      --arg value "$value" \
+      '$secret + {value: $value}'
+  done | jq -sc '.'
+}
+
+zane::required_persisted_env_json() {
+  local lane="$1"
+  local services_csv="$2"
+  local meili_frontend_env_var=""
+  local meili_backend_env_var=""
+  local random_once_secrets_json='[]'
+  local tmp_items=""
+
+  zane::require_lane "$lane"
+  zane::require_stack_inputs
+  services_csv="$(zane::normalize_csv_or_empty "$services_csv")"
+  meili_frontend_env_var="$(stack_inputs_runtime_provider_target_env_var "$ZANE_SEARCH_CREDENTIALS_PROVIDER_ID" frontend_key n1)"
+  meili_backend_env_var="$(stack_inputs_runtime_provider_target_env_var "$ZANE_SEARCH_CREDENTIALS_PROVIDER_ID" backend_key medusa-be)"
+  random_once_secrets_json="$(stack_inputs_preview_random_once_secrets_json)"
+
+  tmp_items="$(mktemp)"
+  trap "rm -f '$tmp_items'" RETURN
+
+  while IFS= read -r service_id; do
+    [[ -n "$service_id" ]] || continue
+
+    local service_json=""
+    local service_slug=""
+    local env_keys_json='[]'
+    service_json="$(zane::service_json "$service_id")"
+    service_slug="$(jq -r '.service_slug' <<<"$service_json")"
+
+    if [[ "$lane" == "preview" ]] && jq -e '.consumes.preview_db == true' <<<"$service_json" >/dev/null; then
+      env_keys_json="$(jq -cn \
+        --argjson current "$env_keys_json" \
+        '$current + ["DC_MEDUSA_APP_DB_NAME", "DC_MEDUSA_APP_DB_USER", "DC_MEDUSA_APP_DB_PASSWORD"]')"
+    fi
+
+    if jq -e '.consumes.meili_frontend_key == true' <<<"$service_json" >/dev/null; then
+      [[ -n "$meili_frontend_env_var" ]] || ci::die "Missing frontend_key target env var for provider ${ZANE_SEARCH_CREDENTIALS_PROVIDER_ID}."
+      env_keys_json="$(jq -cn \
+        --argjson current "$env_keys_json" \
+        --arg key "$meili_frontend_env_var" \
+        '$current + [$key]')"
+    fi
+
+    if jq -e '.consumes.meili_backend_key == true' <<<"$service_json" >/dev/null; then
+      [[ -n "$meili_backend_env_var" ]] || ci::die "Missing backend_key target env var for provider ${ZANE_SEARCH_CREDENTIALS_PROVIDER_ID}."
+      env_keys_json="$(jq -cn \
+        --argjson current "$env_keys_json" \
+        --arg key "$meili_backend_env_var" \
+        '$current + [$key]')"
+    fi
+
+    if [[ "$lane" == "preview" ]]; then
+      env_keys_json="$(jq -cn \
+        --arg service_id "$service_id" \
+        --argjson current "$env_keys_json" \
+        --argjson preview_secrets "$random_once_secrets_json" \
+        '
+          $current + [
+            $preview_secrets[]?
+            | .targets[]?
+            | select(.service_id == $service_id)
+            | .env_var
+          ]
+        ')"
+    fi
+
+    env_keys_json="$(jq -c 'map(select(length > 0)) | unique' <<<"$env_keys_json")"
+    if [[ "$(jq 'length' <<<"$env_keys_json")" -gt 0 ]]; then
+      jq -cn \
+        --arg service_id "$service_id" \
+        --arg service_slug "$service_slug" \
+        --argjson env_keys "$env_keys_json" \
+        '{service_id:$service_id, service_slug:$service_slug, env_keys:$env_keys}' >>"$tmp_items"
+      printf '\n' >>"$tmp_items"
+    fi
+  done < <(zane::csv_to_lines "$services_csv")
+
+  if [[ -s "$tmp_items" ]]; then
+    jq -sc '.' "$tmp_items"
+  else
+    printf '%s\n' '[]'
+  fi
 }
 
 zane::csv_to_lines() {
@@ -376,46 +532,56 @@ zane::stage_plan_json() {
   ' "$plan_json"
 }
 
-zane::provision_meili_keys() {
-  local meili_url="${1-}"
-  local meili_master_key="${2-}"
+zane::provision_preview_meili_keys() {
+  local project_slug="$1"
+  local environment_name="$2"
+  local service_slug="$3"
+  local base_url="$4"
+  local api_token="$5"
+  local dry_run="${6:-false}"
 
-  [[ -n "$meili_url" ]] || ci::die "Meilisearch URL is required for main-lane Meili provisioning."
-  [[ -n "$meili_master_key" ]] || ci::die "Meilisearch master key is required for main-lane Meili provisioning."
+  [[ -n "$project_slug" ]] || ci::die "Project slug is required for preview Meili provisioning."
+  [[ -n "$environment_name" ]] || ci::die "Environment name is required for preview Meili provisioning."
+  [[ -n "$service_slug" ]] || ci::die "Service slug is required for preview Meili provisioning."
 
-  local output
-  output="$(
-    MEILISEARCH_URL="$meili_url" \
-    MEILISEARCH_MASTER_KEY="$meili_master_key" \
-    bash "${ROOT_DIR}/scripts/ci/provision-meili-keys.sh"
-  )"
+  local backend_env_var=""
+  local frontend_env_var=""
+  backend_env_var="$(stack_inputs_runtime_provider_target_env_var "$ZANE_SEARCH_CREDENTIALS_PROVIDER_ID" backend_key medusa-be)"
+  frontend_env_var="$(stack_inputs_runtime_provider_target_env_var "$ZANE_SEARCH_CREDENTIALS_PROVIDER_ID" frontend_key n1)"
+  [[ -n "$backend_env_var" ]] || ci::die "Missing backend_key target env var for provider ${ZANE_SEARCH_CREDENTIALS_PROVIDER_ID}."
+  [[ -n "$frontend_env_var" ]] || ci::die "Missing frontend_key target env var for provider ${ZANE_SEARCH_CREDENTIALS_PROVIDER_ID}."
 
-  local backend_key
-  local frontend_key
-  local frontend_env_var
-  backend_key="$(sed -n 's/^DC_MEILISEARCH_BACKEND_API_KEY=//p' <<<"$output" | tail -n1)"
-  frontend_key="$(sed -n 's/^DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY=//p' <<<"$output" | tail -n1)"
-  frontend_env_var="$(sed -n 's/^frontend_env_var=//p' <<<"$output" | tail -n1)"
+  if [[ "$dry_run" == "true" ]]; then
+    jq -cn \
+      --arg project_slug "$project_slug" \
+      --arg environment_name "$environment_name" \
+      --arg service_slug "$service_slug" \
+      --arg backend_env_var "$backend_env_var" \
+      --arg frontend_env_var "$frontend_env_var" \
+      '{
+        project_slug: $project_slug,
+        environment_name: $environment_name,
+        service_slug: $service_slug,
+        meili_url: ("https://" + $service_slug + ".dry-run.invalid"),
+        backend_key: "dry-run:preview:backend",
+        backend_env_var: $backend_env_var,
+        backend_created: true,
+        backend_updated: false,
+        frontend_key: "dry-run:preview:frontend",
+        frontend_env_var: $frontend_env_var,
+        frontend_created: true,
+        frontend_updated: false
+      }'
+    return 0
+  fi
 
-  [[ -n "$backend_key" ]] || ci::die "Failed to parse backend Meili key from provision output."
-  [[ -n "$frontend_key" ]] || ci::die "Failed to parse frontend Meili key from provision output."
-  [[ -n "$frontend_env_var" ]] || ci::die "Failed to parse frontend Meili env var from provision output."
-
-  MEILISEARCH_URL="$meili_url" \
-  MEILISEARCH_MASTER_KEY="$meili_master_key" \
-  MEILISEARCH_BACKEND_API_KEY="$backend_key" \
-  NEXT_PUBLIC_MEILISEARCH_API_KEY="$frontend_key" \
-  bash "${ROOT_DIR}/scripts/ci/verify-meili-keys.sh" >/dev/null
-
-  jq -cn \
-    --arg backend_key "$backend_key" \
-    --arg frontend_key "$frontend_key" \
-    --arg frontend_env_var "$frontend_env_var" \
-    '{
-      backend_key: $backend_key,
-      frontend_key: $frontend_key,
-      frontend_env_var: $frontend_env_var
-    }'
+  local payload
+  payload="$(jq -cn \
+    --arg project_slug "$project_slug" \
+    --arg environment_name "$environment_name" \
+    --arg service_slug "$service_slug" \
+    '{project_slug:$project_slug, environment_name:$environment_name, service_slug:$service_slug}')"
+  zane::api_request POST "/v1/zane/meilisearch/provision-keys" "$payload" "$base_url" "$api_token"
 }
 
 zane::write_json_file() {
@@ -526,6 +692,7 @@ zane::cmd_wait_deployments() {
   local preview_db_name=""
   local preview_db_user=""
   local preview_db_password=""
+  local preview_random_once_secrets_json=""
   local meili_frontend_key=""
   local meili_frontend_env_var=""
   local meili_backend_key=""
@@ -580,6 +747,10 @@ zane::cmd_wait_deployments() {
         ;;
       --preview-db-password)
         preview_db_password="${2-}"
+        shift 2
+        ;;
+      --preview-random-once-secrets-json)
+        preview_random_once_secrets_json="${2-}"
         shift 2
         ;;
       --meili-frontend-key)
@@ -658,6 +829,7 @@ zane::cmd_wait_deployments() {
           --preview-db-name "$preview_db_name" \
           --preview-db-user "$preview_db_user" \
           --preview-db-password "$preview_db_password" \
+          --preview-random-once-secrets-json "$preview_random_once_secrets_json" \
           --meili-frontend-key "$meili_frontend_key" \
           --meili-frontend-env-var "$meili_frontend_env_var" \
           --meili-backend-key "$meili_backend_key" \
@@ -682,6 +854,7 @@ zane::cmd_wait_deployments() {
           --preview-db-name "$preview_db_name" \
           --preview-db-user "$preview_db_user" \
           --preview-db-password "$preview_db_password" \
+          --preview-random-once-secrets-json "$preview_random_once_secrets_json" \
           --meili-frontend-key "$meili_frontend_key" \
           --meili-frontend-env-var "$meili_frontend_env_var" \
           --meili-backend-key "$meili_backend_key" \
@@ -903,6 +1076,7 @@ zane::cmd_render_env_overrides() {
   local preview_db_name=""
   local preview_db_user=""
   local preview_db_password=""
+  local preview_random_once_secrets_json=""
   local meili_frontend_key=""
   local meili_frontend_env_var=""
   local meili_backend_key=""
@@ -936,6 +1110,10 @@ zane::cmd_render_env_overrides() {
         preview_db_password="${2-}"
         shift 2
         ;;
+      --preview-random-once-secrets-json)
+        preview_random_once_secrets_json="${2-}"
+        shift 2
+        ;;
       --meili-frontend-key)
         meili_frontend_key="${2-}"
         shift 2
@@ -961,8 +1139,9 @@ Options:
   --preview-db-name <name>
   --preview-db-user <user>
   --preview-db-password <password>
+  --preview-random-once-secrets-json <json>
   --meili-frontend-key <key>
-  --meili-frontend-env-var <env-var>   default: DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY
+  --meili-frontend-env-var <env-var>   default: resolved from stack-inputs provider contract
   --meili-backend-key <key>
   --output-json <path>                 write full JSON with sensitive values to path
 
@@ -979,8 +1158,14 @@ EOF
   done
 
   zane::require_lane "$lane"
+  zane::require_stack_inputs
   services_csv="$(zane::normalize_csv_or_empty "$services_csv")"
-  meili_frontend_env_var="${meili_frontend_env_var:-DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY}"
+  preview_random_once_secrets_json="${preview_random_once_secrets_json:-[]}"
+  meili_frontend_env_var="${meili_frontend_env_var:-$(stack_inputs_runtime_provider_target_env_var "$ZANE_SEARCH_CREDENTIALS_PROVIDER_ID" frontend_key n1)}"
+  local meili_backend_env_var=""
+  meili_backend_env_var="$(stack_inputs_runtime_provider_target_env_var "$ZANE_SEARCH_CREDENTIALS_PROVIDER_ID" backend_key medusa-be)"
+  [[ -n "$meili_frontend_env_var" ]] || ci::die "Missing frontend_key target env var for provider ${ZANE_SEARCH_CREDENTIALS_PROVIDER_ID}."
+  [[ -n "$meili_backend_env_var" ]] || ci::die "Missing backend_key target env var for provider ${ZANE_SEARCH_CREDENTIALS_PROVIDER_ID}."
 
   ci::gha_mask "$preview_db_password"
   ci::gha_mask "$meili_frontend_key"
@@ -1010,17 +1195,41 @@ EOF
         }' <<<"$env_json")"
     fi
 
+    if [[ "$lane" == "preview" ]]; then
+      env_json="$(jq -cn \
+        --arg service_id "$service_id" \
+        --argjson current_env "$env_json" \
+        --argjson preview_secrets "$preview_random_once_secrets_json" \
+        '
+          $current_env + (
+            reduce (
+              $preview_secrets[]? as $secret
+              | $secret.targets[]?
+              | select(.service_id == $service_id)
+              | {env_var, value: $secret.value}
+            ) as $item
+            ({};
+              . + {($item.env_var): $item.value}
+            )
+          )
+        ')"
+    fi
+
     if jq -e '.consumes.meili_frontend_key == true' <<<"$service_json" >/dev/null; then
-      [[ -n "$meili_frontend_key" ]] || ci::die "Frontend Meili key is required for service ${service_id}."
-      env_json="$(jq -c \
-        --arg env_var "$meili_frontend_env_var" \
-        --arg value "$meili_frontend_key" \
-        '. + {($env_var): $value}' <<<"$env_json")"
+      if [[ "$lane" == "main" || -n "$meili_frontend_key" ]]; then
+        [[ -n "$meili_frontend_key" ]] || ci::die "Frontend Meili key is required for service ${service_id}."
+        env_json="$(jq -c \
+          --arg env_var "$meili_frontend_env_var" \
+          --arg value "$meili_frontend_key" \
+          '. + {($env_var): $value}' <<<"$env_json")"
+      fi
     fi
 
     if jq -e '.consumes.meili_backend_key == true' <<<"$service_json" >/dev/null; then
-      [[ -n "$meili_backend_key" ]] || ci::die "Backend Meili key is required for service ${service_id}."
-      env_json="$(jq -c --arg value "$meili_backend_key" '. + {DC_MEILISEARCH_BACKEND_API_KEY: $value}' <<<"$env_json")"
+      if [[ "$lane" == "main" || -n "$meili_backend_key" ]]; then
+        [[ -n "$meili_backend_key" ]] || ci::die "Backend Meili key is required for service ${service_id}."
+        env_json="$(jq -c --arg env_var "$meili_backend_env_var" --arg value "$meili_backend_key" '. + {($env_var): $value}' <<<"$env_json")"
+      fi
     fi
 
     if [[ "$(jq 'length' <<<"$env_json")" -gt 0 ]]; then
@@ -1070,6 +1279,7 @@ zane::cmd_resolve_environment() {
   local base_url="${ZANE_OPERATOR_BASE_URL:-}"
   local api_token="${ZANE_OPERATOR_API_TOKEN:-}"
   local dry_run="false"
+  local dry_run_created="false"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -1113,6 +1323,10 @@ zane::cmd_resolve_environment() {
         dry_run="true"
         shift
         ;;
+      --dry-run-created)
+        dry_run_created="true"
+        shift
+        ;;
       -h|--help)
         cat <<'EOF'
 Usage:
@@ -1128,6 +1342,7 @@ Options:
   --api-token <token>
   --output-json <path>
   --dry-run
+  --dry-run-created
 EOF
         return 0
         ;;
@@ -1163,8 +1378,9 @@ EOF
       --arg lane "$lane" \
       --arg project_slug "$project_slug" \
       --arg environment_name "$environment_name" \
+      --arg dry_run_created "$dry_run_created" \
       --argjson preview_service_slug_sets "$preview_service_slug_sets_json" \
-      '{lane:$lane, project_slug:$project_slug, environment_name:$environment_name, environment_id:("dry-run:" + $environment_name), created:false, ready:true, expected_preview_service_slugs:($preview_service_slug_sets.expected_preview_service_slugs // []), excluded_preview_service_slugs:($preview_service_slug_sets.excluded_preview_service_slugs // []), present_service_slugs:($preview_service_slug_sets.expected_preview_service_slugs // []), missing_preview_service_slugs:[], warnings:[]}')"
+      '{lane:$lane, project_slug:$project_slug, environment_name:$environment_name, environment_id:("dry-run:" + $environment_name), created:($dry_run_created == "true"), ready:true, expected_preview_service_slugs:($preview_service_slug_sets.expected_preview_service_slugs // []), excluded_preview_service_slugs:($preview_service_slug_sets.excluded_preview_service_slugs // []), present_service_slugs:($preview_service_slug_sets.expected_preview_service_slugs // []), missing_preview_service_slugs:[], warnings:[]}')"
   else
     local payload
     payload="$(jq -cn \
@@ -1547,6 +1763,7 @@ zane::cmd_verify() {
   local preview_db_name=""
   local preview_db_user=""
   local preview_db_password=""
+  local preview_random_once_secrets_json=""
   local meili_frontend_key=""
   local meili_frontend_env_var=""
   local meili_backend_key=""
@@ -1593,6 +1810,10 @@ zane::cmd_verify() {
         ;;
       --preview-db-password)
         preview_db_password="${2-}"
+        shift 2
+        ;;
+      --preview-random-once-secrets-json)
+        preview_random_once_secrets_json="${2-}"
         shift 2
         ;;
       --meili-frontend-key)
@@ -1660,6 +1881,7 @@ EOF
     --preview-db-name "$preview_db_name" \
     --preview-db-user "$preview_db_user" \
     --preview-db-password "$preview_db_password" \
+    --preview-random-once-secrets-json "$preview_random_once_secrets_json" \
     --meili-frontend-key "$meili_frontend_key" \
     --meili-frontend-env-var "$meili_frontend_env_var" \
     --meili-backend-key "$meili_backend_key" \
@@ -1668,9 +1890,11 @@ EOF
   local requested_services_json
   local deploy_services_json
   local triggered_services_json
+  local required_persisted_env_json
   requested_services_json="$(zane::service_ids_json_from_csv "$requested_services_csv")"
   deploy_services_json="$(zane::service_ids_json_from_csv "$deploy_services_csv")"
   triggered_services_json="$(zane::service_ids_json_from_csv "$triggered_services_csv")"
+  required_persisted_env_json="$(zane::required_persisted_env_json "$lane" "$deploy_services_csv")"
 
   local deployments_json_payload
   deployments_json_payload="$(zane::deployment_refs_json "$deployments_json" "$deployments_json_inline")"
@@ -1685,6 +1909,7 @@ EOF
       --argjson deploy_service_ids "$deploy_services_json" \
       --argjson triggered_service_ids "$triggered_services_json" \
       --argjson expected_env_overrides "$(jq -c '.services // []' "$env_overrides_json_file")" \
+      --argjson required_persisted_env "$required_persisted_env_json" \
       --argjson deployments "$deployments_json_payload" \
       '{
         lane: $lane,
@@ -1695,6 +1920,7 @@ EOF
         deploy_service_ids: $deploy_service_ids,
         triggered_service_ids: $triggered_service_ids,
         checked_env_override_service_ids: ($expected_env_overrides | map(.service_id)),
+        checked_persisted_env_service_ids: ($required_persisted_env | map(.service_id)),
         checked_deployment_service_ids: ($deployments | map(.service_id)),
         checked_deployments: ($deployments | map({
           service_id,
@@ -1714,6 +1940,7 @@ EOF
       --argjson deploy_service_ids "$deploy_services_json" \
       --argjson triggered_service_ids "$triggered_services_json" \
       --argjson expected_env_overrides "$(jq -c '.services // []' "$env_overrides_json_file")" \
+      --argjson required_persisted_env "$required_persisted_env_json" \
       --argjson deployments "$deployments_json_payload" \
       '{
         lane: $lane,
@@ -1723,6 +1950,7 @@ EOF
         deploy_service_ids: $deploy_service_ids,
         triggered_service_ids: $triggered_service_ids,
         expected_env_overrides: $expected_env_overrides,
+        required_persisted_env: $required_persisted_env,
         deployments: $deployments
       }')"
     response_json="$(zane::api_request POST "/v1/zane/deploy/verify" "$payload" "$base_url" "$api_token")"
@@ -1740,6 +1968,7 @@ EOF
 
 zane::cmd_run_preview() {
   zane::require_common_commands
+  zane::require_stack_inputs
 
   local project_slug="${ZANE_CANONICAL_PROJECT_SLUG:-}"
   local pr_number=""
@@ -1747,12 +1976,16 @@ zane::cmd_run_preview() {
   local preview_db_name=""
   local preview_db_user=""
   local preview_db_password=""
+  local meili_backend_key="${MEILI_BACKEND_KEY:-}"
   local meili_frontend_key=""
   local meili_frontend_env_var=""
+  local preview_random_once_secrets_json=""
   local base_url="${ZANE_OPERATOR_BASE_URL:-}"
   local api_token="${ZANE_OPERATOR_API_TOKEN:-}"
   local dry_run="false"
+  local dry_run_created="false"
   local dry_run_flags=()
+  local resolve_environment_flags=()
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -1780,6 +2013,10 @@ zane::cmd_run_preview() {
         preview_db_password="${2-}"
         shift 2
         ;;
+      --meili-backend-key)
+        meili_backend_key="${2-}"
+        shift 2
+        ;;
       --meili-frontend-key)
         meili_frontend_key="${2-}"
         shift 2
@@ -1798,6 +2035,10 @@ zane::cmd_run_preview() {
         ;;
       --dry-run)
         dry_run="true"
+        shift
+        ;;
+      --dry-run-created)
+        dry_run_created="true"
         shift
         ;;
       -h|--help)
@@ -1819,34 +2060,39 @@ EOF
   if [[ "$dry_run" == "true" ]]; then
     dry_run_flags=(--dry-run)
   fi
+  if [[ "$dry_run_created" == "true" ]]; then
+    resolve_environment_flags=(--dry-run-created)
+  fi
 
   local plan_json_file
+  local runtime_plan_json_file
+  local stage_plan_json_file
   local env_overrides_json_file
   local environment_json_file
   local targets_json_file
   local apply_json_file
   local trigger_json_file
+  local stage_deployments_json_file
+  local verify_json_file
   local all_deployments_json_file
+  local meili_provision_json_file
   plan_json_file="$(mktemp)"
+  runtime_plan_json_file="$(mktemp)"
+  stage_plan_json_file="$(mktemp)"
   env_overrides_json_file="$(mktemp)"
   environment_json_file="$(mktemp)"
   targets_json_file="$(mktemp)"
   apply_json_file="$(mktemp)"
   trigger_json_file="$(mktemp)"
+  stage_deployments_json_file="$(mktemp)"
+  verify_json_file="$(mktemp)"
   all_deployments_json_file="$(mktemp)"
-  trap "rm -f '$plan_json_file' '$env_overrides_json_file' '$environment_json_file' '$targets_json_file' '$apply_json_file' '$trigger_json_file' '$all_deployments_json_file'" RETURN
+  meili_provision_json_file="$(mktemp)"
+  trap "rm -f '$plan_json_file' '$runtime_plan_json_file' '$stage_plan_json_file' '$env_overrides_json_file' '$environment_json_file' '$targets_json_file' '$apply_json_file' '$trigger_json_file' '$stage_deployments_json_file' '$verify_json_file' '$all_deployments_json_file' '$meili_provision_json_file'" RETURN
   printf '%s\n' '{"services":[]}' >"$all_deployments_json_file"
+  printf '%s\n' '{"meili_keys_provisioned":false}' >"$meili_provision_json_file"
 
   zane::cmd_plan --lane preview --services-csv "$services_csv" --pr-number "$pr_number" --output-json "$plan_json_file" >/dev/null
-  zane::cmd_render_env_overrides \
-    --lane preview \
-    --services-csv "$(jq -r '.deploy_services_csv' "$plan_json_file")" \
-    --preview-db-name "$preview_db_name" \
-    --preview-db-user "$preview_db_user" \
-    --preview-db-password "$preview_db_password" \
-    --meili-frontend-key "$meili_frontend_key" \
-    --meili-frontend-env-var "$meili_frontend_env_var" \
-    --output-json "$env_overrides_json_file" >/dev/null
   zane::cmd_resolve_environment \
     --lane preview \
     --project-slug "$project_slug" \
@@ -1854,50 +2100,149 @@ EOF
     --environment-name "$(jq -r '.preview_environment_name' "$plan_json_file")" \
     --preview-cloned-service-ids-csv "$(jq -r '.preview_cloned_service_ids_csv' "$plan_json_file")" \
     --preview-excluded-service-ids-csv "$(jq -r '.preview_excluded_service_ids_csv' "$plan_json_file")" \
+    "${resolve_environment_flags[@]}" \
     --output-json "$environment_json_file" \
     "${dry_run_flags[@]}" \
     --base-url "$base_url" \
     --api-token "$api_token" >/dev/null
-  zane::cmd_resolve_targets \
-    --lane preview \
-    --project-slug "$project_slug" \
-    --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
-    --plan-json "$plan_json_file" \
-    --output-json "$targets_json_file" \
-    "${dry_run_flags[@]}" \
-    --base-url "$base_url" \
-    --api-token "$api_token" >/dev/null
-  zane::cmd_apply_env_overrides \
-    --project-slug "$project_slug" \
-    --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
-    --targets-json "$targets_json_file" \
-    --env-overrides-json "$env_overrides_json_file" \
-    --output-json "$apply_json_file" \
-    "${dry_run_flags[@]}" \
-    --base-url "$base_url" \
-    --api-token "$api_token" >/dev/null
-  zane::cmd_trigger \
-    --project-slug "$project_slug" \
-    --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
-    --targets-json "$targets_json_file" \
-    --output-json "$trigger_json_file" \
-    "${dry_run_flags[@]}" \
-    --base-url "$base_url" \
-    --api-token "$api_token" >/dev/null
-  zane::merge_deployments_json_file "$trigger_json_file" "$all_deployments_json_file"
+
+  if [[ "$(jq -r '.created // false' "$environment_json_file")" == "true" ]]; then
+    jq -c '
+      .deploy_services = (.preview_cloned_services // [])
+      | .deploy_services_csv = (.preview_cloned_service_ids_csv // "")
+    ' "$plan_json_file" >"$runtime_plan_json_file"
+    preview_random_once_secrets_json="$(zane::generate_preview_random_once_secrets_json)"
+    ci::gha_mask "$preview_random_once_secrets_json"
+  else
+    cp "$plan_json_file" "$runtime_plan_json_file"
+  fi
+
+  local stage
+  local stage_services_csv
+  local env_override_service_ids_csv=""
+  local triggered_services_csv=""
+  local meili_keys_provisioned="false"
+  local meili_service_id=""
+  local meili_service_slug=""
+  meili_service_id="$(stack_inputs_runtime_provider_source_service_id "$ZANE_SEARCH_CREDENTIALS_PROVIDER_ID")"
+  [[ -n "$meili_service_id" ]] || ci::die "Missing source_service_id for provider ${ZANE_SEARCH_CREDENTIALS_PROVIDER_ID}."
+  meili_service_slug="$(ci_zane_service_slug "$meili_service_id")"
+  [[ -n "$meili_service_slug" ]] || ci::die "Missing service_slug for provider source service ${meili_service_id}."
+
+  while IFS= read -r stage; do
+    [[ -n "$stage" ]] || continue
+    stage_services_csv="$(zane::stage_services_csv_from_plan "$runtime_plan_json_file" "$stage")"
+    [[ -n "$stage_services_csv" ]] || continue
+
+    zane::stage_plan_json "$runtime_plan_json_file" "$stage" >"$stage_plan_json_file"
+    zane::cmd_render_env_overrides \
+      --lane preview \
+      --services-csv "$stage_services_csv" \
+      --preview-db-name "$preview_db_name" \
+      --preview-db-user "$preview_db_user" \
+      --preview-db-password "$preview_db_password" \
+      --preview-random-once-secrets-json "$preview_random_once_secrets_json" \
+      --meili-backend-key "$meili_backend_key" \
+      --meili-frontend-key "$meili_frontend_key" \
+      --meili-frontend-env-var "$meili_frontend_env_var" \
+      --output-json "$env_overrides_json_file" >/dev/null
+    zane::cmd_resolve_targets \
+      --lane preview \
+      --project-slug "$project_slug" \
+      --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
+      --plan-json "$stage_plan_json_file" \
+      --output-json "$targets_json_file" \
+      "${dry_run_flags[@]}" \
+      --base-url "$base_url" \
+      --api-token "$api_token" >/dev/null
+    zane::cmd_apply_env_overrides \
+      --project-slug "$project_slug" \
+      --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
+      --targets-json "$targets_json_file" \
+      --env-overrides-json "$env_overrides_json_file" \
+      --output-json "$apply_json_file" \
+      "${dry_run_flags[@]}" \
+      --base-url "$base_url" \
+      --api-token "$api_token" >/dev/null
+    zane::cmd_trigger \
+      --project-slug "$project_slug" \
+      --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
+      --targets-json "$targets_json_file" \
+      --output-json "$trigger_json_file" \
+      "${dry_run_flags[@]}" \
+      --base-url "$base_url" \
+      --api-token "$api_token" >/dev/null
+    printf '%s\n' '{"services":[]}' >"$stage_deployments_json_file"
+    zane::merge_deployments_json_file "$trigger_json_file" "$stage_deployments_json_file"
+    zane::merge_deployments_json_file "$trigger_json_file" "$all_deployments_json_file"
+
+    if ! zane::cmd_wait_deployments \
+      --lane preview \
+      --project-slug "$project_slug" \
+      --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
+      --requested-services-csv "$stage_services_csv" \
+      --deploy-services-csv "$stage_services_csv" \
+      --triggered-services-csv "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")" \
+      --preview-db-name "$preview_db_name" \
+      --preview-db-user "$preview_db_user" \
+      --preview-db-password "$preview_db_password" \
+      --preview-random-once-secrets-json "$preview_random_once_secrets_json" \
+      --meili-backend-key "$meili_backend_key" \
+      --meili-frontend-key "$meili_frontend_key" \
+      --meili-frontend-env-var "$meili_frontend_env_var" \
+      --deployments-json "$stage_deployments_json_file" \
+      --output-json "$verify_json_file" \
+      "${dry_run_flags[@]}" \
+      --base-url "$base_url" \
+      --api-token "$api_token" >/dev/null; then
+      ci::die "Preview deploy stage ${stage} failed for services: ${stage_services_csv}"
+    fi
+
+    triggered_services_csv="$(
+      zane::merge_csv_values \
+        "$triggered_services_csv" \
+        "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")"
+    )"
+    env_override_service_ids_csv="$(
+      zane::merge_csv_values \
+        "$env_override_service_ids_csv" \
+        "$(jq -r '[.services[].service_id] | join(",")' "$env_overrides_json_file")"
+    )"
+
+    if [[ "$(jq -r '.created // false' "$environment_json_file")" == "true" ]] && zane::stage_has_service "$runtime_plan_json_file" "$stage" "$meili_service_id"; then
+      zane::provision_preview_meili_keys \
+        "$project_slug" \
+        "$(jq -r '.environment_name' "$environment_json_file")" \
+        "$meili_service_slug" \
+        "$base_url" \
+        "$api_token" \
+        "$dry_run" >"$meili_provision_json_file"
+      meili_backend_key="$(jq -r '.backend_key' "$meili_provision_json_file")"
+      meili_frontend_key="$(jq -r '.frontend_key' "$meili_provision_json_file")"
+      meili_frontend_env_var="$(jq -r '.frontend_env_var' "$meili_provision_json_file")"
+      meili_keys_provisioned="true"
+    fi
+  done < <(zane::plan_stage_numbers "$runtime_plan_json_file")
 
   ci::gha_output lane "preview"
+  ci::gha_mask "$meili_backend_key"
+  ci::gha_mask "$meili_frontend_key"
   ci::gha_output environment_name "$(jq -r '.environment_name' "$environment_json_file")"
   ci::gha_output environment_id "$(jq -r '.environment_id // empty' "$environment_json_file")"
   ci::gha_output environment_created "$(jq -r '.created // false' "$environment_json_file")"
   ci::gha_output environment_ready "$(jq -r '.ready // true' "$environment_json_file")"
   ci::gha_output environment_warning_count "$(jq -r '.warnings | length // 0' "$environment_json_file")"
   ci::gha_output requested_services_csv "$(jq -r '.requested_services_csv' "$plan_json_file")"
-  ci::gha_output deploy_services_csv "$(jq -r '.deploy_services_csv' "$plan_json_file")"
-  ci::gha_output preview_cloned_service_ids_csv "$(jq -r '.preview_cloned_service_ids_csv' "$plan_json_file")"
-  ci::gha_output preview_excluded_service_ids_csv "$(jq -r '.preview_excluded_service_ids_csv' "$plan_json_file")"
-  ci::gha_output env_override_service_ids_csv "$(jq -r '[.services[].service_id] | join(",")' "$env_overrides_json_file")"
-  ci::gha_output triggered_services_csv "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")"
+  ci::gha_output deploy_services_csv "$(jq -r '.deploy_services_csv' "$runtime_plan_json_file")"
+  ci::gha_output preview_cloned_service_ids_csv "$(jq -r '.preview_cloned_service_ids_csv' "$runtime_plan_json_file")"
+  ci::gha_output preview_excluded_service_ids_csv "$(jq -r '.preview_excluded_service_ids_csv' "$runtime_plan_json_file")"
+  ci::gha_output env_override_service_ids_csv "$env_override_service_ids_csv"
+  ci::gha_output triggered_services_csv "$triggered_services_csv"
+  ci::gha_output preview_random_once_secrets_json "$preview_random_once_secrets_json"
+  ci::gha_output meili_backend_key "$meili_backend_key"
+  ci::gha_output meili_frontend_key "$meili_frontend_key"
+  ci::gha_output meili_frontend_env_var "$meili_frontend_env_var"
+  ci::gha_output meili_keys_provisioned "$meili_keys_provisioned"
   ci::gha_output deployments_json "$(jq -c '.' "$all_deployments_json_file")"
 
   jq -cn \
@@ -1907,13 +2252,15 @@ EOF
     --arg environment_id "$(jq -r '.environment_id // empty' "$environment_json_file")" \
     --argjson environment_created "$(jq -r '.created // false' "$environment_json_file")" \
     --argjson environment_ready "$(jq -r '.ready // true' "$environment_json_file")" \
-    --arg preview_cloned_service_ids_csv "$(jq -r '.preview_cloned_service_ids_csv' "$plan_json_file")" \
-    --arg preview_excluded_service_ids_csv "$(jq -r '.preview_excluded_service_ids_csv' "$plan_json_file")" \
+    --arg preview_cloned_service_ids_csv "$(jq -r '.preview_cloned_service_ids_csv' "$runtime_plan_json_file")" \
+    --arg preview_excluded_service_ids_csv "$(jq -r '.preview_excluded_service_ids_csv' "$runtime_plan_json_file")" \
     --argjson environment_warnings "$(jq -c '.warnings // []' "$environment_json_file")" \
     --arg requested_services_csv "$(jq -r '.requested_services_csv' "$plan_json_file")" \
-    --arg deploy_services_csv "$(jq -r '.deploy_services_csv' "$plan_json_file")" \
-    --arg env_override_service_ids_csv "$(jq -r '[.services[].service_id] | join(",")' "$env_overrides_json_file")" \
-    --arg triggered_services_csv "$(jq -r '.triggered_service_ids | join(",")' "$trigger_json_file")" \
+    --arg deploy_services_csv "$(jq -r '.deploy_services_csv' "$runtime_plan_json_file")" \
+    --arg env_override_service_ids_csv "$env_override_service_ids_csv" \
+    --arg triggered_services_csv "$triggered_services_csv" \
+    --arg meili_frontend_env_var "$meili_frontend_env_var" \
+    --arg meili_keys_provisioned "$meili_keys_provisioned" \
     --argjson deployments "$(jq -c '.services // []' "$all_deployments_json_file")" \
     '{
       lane: $lane,
@@ -1929,6 +2276,8 @@ EOF
       deploy_services_csv: $deploy_services_csv,
       env_override_service_ids_csv: $env_override_service_ids_csv,
       triggered_services_csv: $triggered_services_csv,
+      meili_frontend_env_var: $meili_frontend_env_var,
+      meili_keys_provisioned: ($meili_keys_provisioned == "true"),
       deployments: $deployments
     }'
 }

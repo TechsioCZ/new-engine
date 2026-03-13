@@ -5,14 +5,17 @@ import { handleApplyZaneEnvOverrides } from "./handlers/apply-zane-env-overrides
 import { handleArchiveZaneEnvironment } from "./handlers/archive-zane-environment"
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
+import { handleProvisionPreviewMeiliKeys } from "./handlers/provision-preview-meili-keys"
 import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
 import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
 import { handleTeardownPreviewDb } from "./handlers/teardown-preview-db"
 import { handleTriggerZaneDeploy } from "./handlers/trigger-zane-deploy"
 import { handleVerifyZaneDeploy } from "./handlers/verify-zane-deploy"
 import { jsonError, jsonResponse } from "./http"
+import { loadStackInputs } from "./stack-inputs"
 
 const config = loadConfig()
+const stackInputs = await loadStackInputs()
 const sql = createDbClient(config)
 
 await sql.connect()
@@ -76,7 +79,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleResolveZaneEnvironment(request, { config })
+      return await handleResolveZaneEnvironment(request, { config, stackInputs })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/environments/archive") {
@@ -85,7 +88,16 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleArchiveZaneEnvironment(request, { config })
+      return await handleArchiveZaneEnvironment(request, { config, stackInputs })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/meilisearch/provision-keys") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleProvisionPreviewMeiliKeys(request, { config, stackInputs })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/deploy/resolve-targets") {
@@ -94,7 +106,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleResolveZaneTargets(request, { config })
+      return await handleResolveZaneTargets(request, { config, stackInputs })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/deploy/apply-env-overrides") {
@@ -103,7 +115,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleApplyZaneEnvOverrides(request, { config })
+      return await handleApplyZaneEnvOverrides(request, { config, stackInputs })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/deploy/trigger") {
@@ -112,7 +124,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleTriggerZaneDeploy(request, { config })
+      return await handleTriggerZaneDeploy(request, { config, stackInputs })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/deploy/verify") {
@@ -121,7 +133,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleVerifyZaneDeploy(request, { config })
+      return await handleVerifyZaneDeploy(request, { config, stackInputs })
     }
 
     if (url.pathname.startsWith("/v1/zane/")) {

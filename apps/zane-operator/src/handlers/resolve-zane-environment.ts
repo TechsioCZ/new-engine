@@ -1,10 +1,12 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
+import type { StackInputsConfig } from "../stack-inputs"
 import { ZaneClient } from "../zane"
 
 interface ResolveZaneEnvironmentDeps {
   config: AppConfig
+  stackInputs: StackInputsConfig
 }
 
 export async function handleResolveZaneEnvironment(
@@ -16,7 +18,7 @@ export async function handleResolveZaneEnvironment(
       throw new BadRequestError("request body must be valid JSON")
     })
 
-    const client = new ZaneClient(deps.config)
+    const client = new ZaneClient(deps.config, deps.stackInputs)
     const payload = ZaneClient.parseResolveEnvironmentInput(rawBody)
     const result = await client.resolveEnvironment(payload)
     return jsonResponse(200, result)

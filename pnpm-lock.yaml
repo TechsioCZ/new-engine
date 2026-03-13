@@ -70,6 +70,9 @@ importers:
       ultracite:
         specifier: 6.3.6
         version: 6.3.6(typescript@5.9.3)
+      yaml:
+        specifier: ^2.7.1
+        version: 2.7.1
 
   apps/frontend-demo:
     dependencies:
@@ -367,6 +370,8 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  apps/zane-operator: {}
 
   libs/analytics:
     dependencies:
