@@ -27,9 +27,7 @@ jobs:
       nx_status: ${{ steps.affected.outputs.nx_status }}
       should_prepare: ${{ steps.prepare_needs.outputs.should_prepare }}
       requires_preview_db: ${{ steps.prepare_needs.outputs.requires_preview_db }}
-      requires_meili_keys: ${{ steps.prepare_needs.outputs.requires_meili_keys }}
       preview_db_service_ids: ${{ steps.prepare_needs.outputs.preview_db_service_ids }}
-      meili_key_service_ids: ${{ steps.prepare_needs.outputs.meili_key_service_ids }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,7 +75,6 @@ jobs:
             echo "- Nx status: ${{ steps.affected.outputs.nx_status || 'n/a' }}"
             echo "- Should prepare: ${{ steps.prepare_needs.outputs.should_prepare || 'false' }}"
             echo "- Requires preview DB: ${{ steps.prepare_needs.outputs.requires_preview_db || 'false' }}"
-            echo "- Requires Meili keys: ${{ steps.prepare_needs.outputs.requires_meili_keys || 'false' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   prepare:
@@ -93,11 +90,6 @@ jobs:
       preview_db_name: ${{ steps.ensure_db.outputs.db_name }}
       preview_db_user: ${{ steps.ensure_db.outputs.app_user }}
       preview_db_password: ${{ steps.ensure_db.outputs.app_password }}
-      meili_frontend_key: ${{ steps.provision_meili.outputs.frontend_key }}
-      meili_frontend_env_var: ${{ steps.provision_meili.outputs.frontend_env_var }}
-      meili_frontend_uid: ${{ steps.provision_meili.outputs.frontend_uid }}
-      meili_frontend_created: ${{ steps.provision_meili.outputs.frontend_created }}
-      meili_frontend_updated: ${{ steps.provision_meili.outputs.frontend_updated }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -110,11 +102,8 @@ jobs:
       - name: Validate prepare inputs
         env:
           REQUIRES_PREVIEW_DB: ${{ needs.scope.outputs.requires_preview_db }}
-          REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
         run: bash ./scripts/ci/check-workflow-inputs.sh preview-prepare
 
       - name: Ensure preview DB
@@ -125,23 +114,6 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
         run: bash ./scripts/ci/preview-db.sh ensure "${{ needs.scope.outputs.pr_number }}"
 
-      - name: Provision Meilisearch keys
-        id: provision_meili
-        if: needs.scope.outputs.requires_meili_keys == 'true'
-        env:
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
-        run: bash ./scripts/ci/provision-meili-keys.sh
-
-      - name: Verify Meilisearch keys
-        if: needs.scope.outputs.requires_meili_keys == 'true'
-        env:
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
-          MEILISEARCH_BACKEND_API_KEY: ${{ steps.provision_meili.outputs.backend_key }}
-          NEXT_PUBLIC_MEILISEARCH_API_KEY: ${{ steps.provision_meili.outputs.frontend_key }}
-        run: bash ./scripts/ci/verify-meili-keys.sh
-
       - name: Summary
         if: always()
         run: |
@@ -151,11 +123,6 @@ jobs:
             echo "- Requires preview DB: ${{ needs.scope.outputs.requires_preview_db }}"
             echo "- Preview DB created: ${{ steps.ensure_db.outputs.created || 'n/a' }}"
             echo "- Preview DB name: ${{ steps.ensure_db.outputs.db_name || 'n/a' }}"
-            echo "- Requires Meili keys: ${{ needs.scope.outputs.requires_meili_keys }}"
-            echo "- Meili frontend env var: ${{ steps.provision_meili.outputs.frontend_env_var || 'n/a' }}"
-            echo "- Meili frontend UID: ${{ steps.provision_meili.outputs.frontend_uid || 'n/a' }}"
-            echo "- Meili frontend created: ${{ steps.provision_meili.outputs.frontend_created || 'n/a' }}"
-            echo "- Meili frontend updated: ${{ steps.provision_meili.outputs.frontend_updated || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -175,12 +142,17 @@ jobs:
       environment_created: ${{ steps.run_deploy.outputs.environment_created }}
       environment_ready: ${{ steps.run_deploy.outputs.environment_ready }}
       environment_warning_count: ${{ steps.run_deploy.outputs.environment_warning_count }}
+      meili_backend_key: ${{ steps.run_deploy.outputs.meili_backend_key }}
+      meili_frontend_key: ${{ steps.run_deploy.outputs.meili_frontend_key }}
+      meili_frontend_env_var: ${{ steps.run_deploy.outputs.meili_frontend_env_var }}
+      meili_keys_provisioned: ${{ steps.run_deploy.outputs.meili_keys_provisioned }}
       requested_services_csv: ${{ steps.run_deploy.outputs.requested_services_csv }}
       deploy_services_csv: ${{ steps.run_deploy.outputs.deploy_services_csv }}
       preview_cloned_service_ids_csv: ${{ steps.run_deploy.outputs.preview_cloned_service_ids_csv }}
       preview_excluded_service_ids_csv: ${{ steps.run_deploy.outputs.preview_excluded_service_ids_csv }}
       env_override_service_ids_csv: ${{ steps.run_deploy.outputs.env_override_service_ids_csv }}
       triggered_services_csv: ${{ steps.run_deploy.outputs.triggered_services_csv }}
+      preview_random_once_secrets_json: ${{ steps.run_deploy.outputs.preview_random_once_secrets_json }}
       deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
     steps:
       - uses: actions/checkout@v4
@@ -197,7 +169,6 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
-          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
         run: bash ./scripts/ci/check-workflow-inputs.sh preview-deploy
 
       - name: Run preview deploy
@@ -208,8 +179,6 @@ jobs:
           PREVIEW_DB_NAME: ${{ needs.prepare.outputs.preview_db_name }}
           PREVIEW_DB_USER: ${{ needs.prepare.outputs.preview_db_user }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
-          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
-          MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
@@ -219,9 +188,7 @@ jobs:
             --services-csv "$SERVICES_CSV" \
             --preview-db-name "${PREVIEW_DB_NAME:-}" \
             --preview-db-user "${PREVIEW_DB_USER:-}" \
-            --preview-db-password "${PREVIEW_DB_PASSWORD:-}" \
-            --meili-frontend-key "${MEILI_FRONTEND_KEY:-}" \
-            --meili-frontend-env-var "${MEILI_FRONTEND_ENV_VAR:-}"
+            --preview-db-password "${PREVIEW_DB_PASSWORD:-}"
 
       - name: Summary
         if: always()
@@ -233,6 +200,7 @@ jobs:
             echo "- Environment created: ${{ steps.run_deploy.outputs.environment_created || 'n/a' }}"
             echo "- Environment ready: ${{ steps.run_deploy.outputs.environment_ready || 'n/a' }}"
             echo "- Environment warnings: ${{ steps.run_deploy.outputs.environment_warning_count || '0' }}"
+            echo "- Meili keys provisioned: ${{ steps.run_deploy.outputs.meili_keys_provisioned || 'false' }}"
             echo "- Requested services: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}"
             echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
             echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"
@@ -258,7 +226,9 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
-          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
+          MEILI_BACKEND_KEY: ${{ needs.deploy.outputs.meili_backend_key }}
+          MEILI_FRONTEND_KEY: ${{ needs.deploy.outputs.meili_frontend_key }}
+          PREVIEW_RANDOM_ONCE_SECRETS_JSON: ${{ needs.deploy.outputs.preview_random_once_secrets_json }}
         run: bash ./scripts/ci/check-workflow-inputs.sh preview-verify
 
       - name: Run preview verify
@@ -271,8 +241,10 @@ jobs:
           PREVIEW_DB_NAME: ${{ needs.prepare.outputs.preview_db_name }}
           PREVIEW_DB_USER: ${{ needs.prepare.outputs.preview_db_user }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
-          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
-          MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
+          PREVIEW_RANDOM_ONCE_SECRETS_JSON: ${{ needs.deploy.outputs.preview_random_once_secrets_json }}
+          MEILI_BACKEND_KEY: ${{ needs.deploy.outputs.meili_backend_key }}
+          MEILI_FRONTEND_KEY: ${{ needs.deploy.outputs.meili_frontend_key }}
+          MEILI_FRONTEND_ENV_VAR: ${{ needs.deploy.outputs.meili_frontend_env_var }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
@@ -287,6 +259,8 @@ jobs:
             --preview-db-name "${PREVIEW_DB_NAME:-}" \
             --preview-db-user "${PREVIEW_DB_USER:-}" \
             --preview-db-password "${PREVIEW_DB_PASSWORD:-}" \
+            --preview-random-once-secrets-json "${PREVIEW_RANDOM_ONCE_SECRETS_JSON:-}" \
+            --meili-backend-key "${MEILI_BACKEND_KEY:-}" \
             --meili-frontend-key "${MEILI_FRONTEND_KEY:-}" \
             --meili-frontend-env-var "${MEILI_FRONTEND_ENV_VAR:-}"
 

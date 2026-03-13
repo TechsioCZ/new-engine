@@ -1,10 +1,12 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
+import type { StackInputsConfig } from "../stack-inputs"
 import { ZaneClient } from "../zane"
 
 interface ArchiveZaneEnvironmentDeps {
   config: AppConfig
+  stackInputs: StackInputsConfig
 }
 
 export async function handleArchiveZaneEnvironment(
@@ -16,7 +18,7 @@ export async function handleArchiveZaneEnvironment(
       throw new BadRequestError("request body must be valid JSON")
     })
 
-    const client = new ZaneClient(deps.config)
+    const client = new ZaneClient(deps.config, deps.stackInputs)
     const payload = ZaneClient.parseArchiveEnvironmentInput(rawBody)
     const result = await client.archiveEnvironment(payload)
     return jsonResponse(200, result)

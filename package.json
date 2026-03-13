@@ -37,7 +37,8 @@
     "nx": "22.4.2",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3",
-    "ultracite": "6.3.6"
+    "ultracite": "6.3.6",
+    "yaml": "^2.7.1"
   },
   "packageManager": "pnpm@10.30.0",
   "pnpm": {
