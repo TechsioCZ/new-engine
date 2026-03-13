@@ -33,6 +33,10 @@ export type DeployMainExecutionResult = {
   meiliFrontendKey: string
 }
 
+function logDeployProgress(message: string): void {
+  process.stderr.write(`${message}\n`)
+}
+
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
@@ -97,6 +101,10 @@ export async function executeDeployMain(
     previewEnvPrefix: "pr-",
   })
 
+  logDeployProgress(
+    `Resolved main environment ${environment.environment_name} (${environment.environment_id}).`
+  )
+
   let envOverrideServiceIdsCsv = ""
   let triggeredServicesCsv = ""
   let skippedServicesCsv = ""
@@ -122,6 +130,10 @@ export async function executeDeployMain(
       )
     }
 
+    logDeployProgress(
+      `Reconciling Meili API credentials from source service ${meiliApiCredentialsSource.serviceId}.`
+    )
+
     const reconciled = await reconcileMainMeiliApiCredentials({
       meiliUrl: input.meiliUrl,
       masterKey: input.meiliMasterKey,
@@ -142,9 +154,13 @@ export async function executeDeployMain(
     meiliFrontendUpdated = reconciled.frontendUpdated
     meiliVerified = reconciled.verified
     meiliKeysReconciled = true
+    logDeployProgress("Meili API credentials reconciled and verified.")
   }
 
   if (needsMeiliApiCredentials && !sourceServiceInPlan) {
+    logDeployProgress(
+      `Meili source service ${meiliApiCredentialsSource.serviceId} is not in this deploy plan; reconciling credentials before deploy stages.`
+    )
     await reconcileMeiliApiCredentials()
   }
 
@@ -154,6 +170,10 @@ export async function executeDeployMain(
     if (!stageServicesCsv) {
       continue
     }
+
+    logDeployProgress(
+      `Starting deploy stage ${stage} for services: ${stageServicesCsv}.`
+    )
 
     if (
       needsMeiliApiCredentials &&
@@ -165,9 +185,15 @@ export async function executeDeployMain(
           `Meili API credential source service ${meiliApiCredentialsSource.serviceId} must be healthy before consumer stage ${stage}.`
         )
       }
+      logDeployProgress(
+        `Stage ${stage} consumes Meili API credentials; reconciling before env overrides.`
+      )
       await reconcileMeiliApiCredentials()
     }
 
+    logDeployProgress(
+      `Rendering env overrides for stage ${stage}: ${stageServicesCsv}.`
+    )
     const envOverrides = await executeRenderEnvOverrides({
       lane: "main",
       servicesCsv: stageServicesCsv,
@@ -182,6 +208,9 @@ export async function executeDeployMain(
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
     })
+    logDeployProgress(
+      `Resolving deploy targets for stage ${stage}: ${stageServicesCsv}.`
+    )
     const resolveTargetsPayload: ResolveTargetsPayload = {
       lane: "main",
       project_slug: input.projectSlug,
@@ -208,10 +237,24 @@ export async function executeDeployMain(
       filtered.adoptedDeployments
     )
 
+    if (filtered.adoptedDeployments.length > 0) {
+      logDeployProgress(
+        `Reusing active deployments for stage ${stage}: ${filtered.adoptedDeployments
+          .map(
+            (deployment) =>
+              `${deployment.service_slug}#${deployment.deployment_hash}`
+          )
+          .join(", ")}.`
+      )
+    }
+
     if (
       filtered.services.length === 0 &&
       filtered.adoptedDeployments.length === 0
     ) {
+      logDeployProgress(
+        `No trigger required for stage ${stage}; all services were skipped by current-state checks.`
+      )
       skippedServicesCsv = mergeCsvValues(
         skippedServicesCsv,
         filtered.skippedServices.map((service) => service.service_id).join(",")
@@ -223,6 +266,11 @@ export async function executeDeployMain(
     let stageTriggeredServicesCsv = ""
 
     if (filtered.services.length > 0) {
+      logDeployProgress(
+        `Applying env overrides for stage ${stage}: ${filtered.services
+          .map((service) => service.service_slug)
+          .join(", ")}.`
+      )
       await executeApplyEnvOverridesPayload({
         payload: {
           project_slug: input.projectSlug,
@@ -234,6 +282,11 @@ export async function executeDeployMain(
         apiToken: input.apiToken,
         dryRun: input.dryRun,
       })
+      logDeployProgress(
+        `Triggering deploys for stage ${stage}: ${filtered.services
+          .map((service) => service.service_slug)
+          .join(", ")}.`
+      )
       const trigger = await executeTriggerPayload({
         projectSlug: input.projectSlug,
         environmentName: environment.environment_name,
@@ -250,6 +303,14 @@ export async function executeDeployMain(
         triggeredServicesCsv,
         stageTriggeredServicesCsv
       )
+      logDeployProgress(
+        `Triggered stage ${stage} deployments: ${trigger.services
+          .map(
+            (deployment) =>
+              `${deployment.service_slug}#${deployment.deployment_hash}`
+          )
+          .join(", ")}.`
+      )
     }
 
     skippedServicesCsv = mergeCsvValues(
@@ -263,6 +324,9 @@ export async function executeDeployMain(
         .join(",")
     )
 
+    logDeployProgress(
+      `Waiting for stage ${stage} deployments to become healthy.`
+    )
     await waitForDeployments({
       lane: "main",
       projectSlug: input.projectSlug,
@@ -288,12 +352,16 @@ export async function executeDeployMain(
       tolerateBaseUrlUnavailable: stageHasService(plan, stage, "zane-operator"),
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
+      onProgress: logDeployProgress,
     })
 
     if (
       needsMeiliApiCredentials &&
       stageHasService(plan, stage, meiliApiCredentialsSource.serviceId)
     ) {
+      logDeployProgress(
+        `Stage ${stage} included Meili source service ${meiliApiCredentialsSource.serviceId}; reconciling credentials after the source became healthy.`
+      )
       await reconcileMeiliApiCredentials()
     }
   }

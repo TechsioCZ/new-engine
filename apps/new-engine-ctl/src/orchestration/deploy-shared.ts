@@ -57,6 +57,7 @@ type WaitForDeploymentsInput = {
   tolerateBaseUrlUnavailable: boolean
   stackManifestPath: string
   stackInputsPath: string
+  onProgress?: (message: string) => void
 }
 
 export function mergeCsvValues(existing: string, current: string): string {
@@ -322,6 +323,17 @@ function checkedDeploymentNonHealthySummary(response: VerifyResponse): string {
     .join("; ")
 }
 
+function checkedDeploymentSummary(response: VerifyResponse): string {
+  return response.checked_deployments
+    .map(
+      (deployment) =>
+        `${deployment.service_slug}#${deployment.deployment_hash}=${deployment.status}${
+          deployment.status_reason ? `: ${deployment.status_reason}` : ""
+        }`
+    )
+    .join("; ")
+}
+
 function verifyDeploymentsOnce(
   input: WaitForDeploymentsInput
 ): Promise<VerifyResponse> {
@@ -410,10 +422,29 @@ export async function waitForDeployments(
   input: WaitForDeploymentsInput
 ): Promise<VerifyResponse> {
   const startedAt = Date.now()
+  let lastProgressMessage = ""
 
   while (true) {
     try {
       const response = await verifyDeploymentsOnce(input)
+      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000)
+
+      if (checkedDeploymentInProgressCount(response) === 0) {
+        input.onProgress?.(
+          `Deployments are healthy after ${elapsedSeconds}s: ${checkedDeploymentSummary(
+            response
+          )}`
+        )
+      } else {
+        const progressMessage = `Waiting for deployments (${elapsedSeconds}s elapsed): ${checkedDeploymentNonHealthySummary(
+          response
+        )}`
+        if (progressMessage !== lastProgressMessage) {
+          input.onProgress?.(progressMessage)
+          lastProgressMessage = progressMessage
+        }
+      }
+
       if (ensureDeploymentsHealthy(response, input, startedAt)) {
         return response
       }
