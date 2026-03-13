@@ -79,9 +79,10 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 3. Obtain the per-service deploy key/webhook/token required for those services.
 4. Main currently has no active shared-resource `prepare` phase. Runtime-provider work belongs inside deploy orchestration, not before it.
 5. Trigger deploys without preview-only env mutation logic.
-6. Preserve the same masking and no-summary secret policy used in preview.
-7. Resolve downtime-risk once after affected-service filtering and require explicit manual approval before any main-lane deploy that includes downtime-risk shared services.
-8. Shared-resource bootstrap ordering must be preserved inside the deploy plan. Current example: if bootstrap-relevant `medusa-db` changes are in scope, `medusa-db` must converge before `zane-operator`.
+6. Each deploy trigger must request cleanup of any queued or currently building deployment for the same service before starting the new deployment, so newer desired state replaces stale in-flight work for that service.
+7. Preserve the same masking and no-summary secret policy used in preview.
+8. Resolve downtime-risk once after affected-service filtering and require explicit manual approval before any main-lane deploy that includes downtime-risk shared services.
+9. Shared-resource bootstrap ordering must be preserved inside the deploy plan. Current example: if bootstrap-relevant `medusa-db` changes are in scope, `medusa-db` must converge before `zane-operator`.
 
 ## Git Resolution Contract
 
