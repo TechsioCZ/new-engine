@@ -38,7 +38,9 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Services marked as non-cloned are not part of preview readiness requirements and may still remain in the preview environment.
 - User-created helper/debug services may exist in preview environments and must not fail preview readiness.
 - CI updates only the affected services in that preview environment.
+- CI affected-service resolution is driven by `nx affected` plus manifest path-glob/runtime rules exposed through `apps/new-engine-ctl`.
 - CI injects env overrides produced by `prepare` or first-creation runtime provisioning only where required by the affected services.
+- Preview-cloned services must not receive shared Zane admin/operator credentials in their runtime env.
 
 ## Preview Deploy Contract
 
@@ -75,14 +77,17 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 1. Resolve the canonical production Zane project/environment from CI secrets/config.
 2. Resolve deploy targets only for affected services.
 3. Obtain the per-service deploy key/webhook/token required for those services.
-4. Trigger deploys without preview-only env mutation logic.
-5. Preserve the same masking and no-summary secret policy used in preview.
-6. Resolve downtime-risk once after affected-service filtering and require explicit manual approval before any main-lane deploy that includes downtime-risk services.
+4. Main currently has no active shared-resource `prepare` phase. Runtime-provider work belongs inside deploy orchestration, not before it.
+5. Trigger deploys without preview-only env mutation logic.
+6. Preserve the same masking and no-summary secret policy used in preview.
+7. Resolve downtime-risk once after affected-service filtering and require explicit manual approval before any main-lane deploy that includes downtime-risk shared services.
+8. Shared-resource bootstrap ordering must be preserved inside the deploy plan. Current example: if bootstrap-relevant `medusa-db` changes are in scope, `medusa-db` must converge before `zane-operator`.
 
 ## Git Resolution Contract
 
 - Main-lane Git deploys must be pinned to the exact CI commit SHA being promoted.
 - Preview-lane Git deploys remain branch-based by default so manual reruns in Zane can continue to pull the latest PR-branch state unless a later explicit override contract is added.
+- Subsequent preview updates remain redeploy-only against the PR branch head by default.
 - When no explicit Git commit SHA is passed to preview deploy orchestration, skip/reuse logic must not guess; it may stay conservative unless the active implementation can resolve the exact branch-head commit SHA that Zane would pull for that preview redeploy.
 - Closing that preview-lane gap requires active code to resolve the effective branch-head commit SHA for each Git service before applying same-commit skip/reuse decisions.
 
@@ -118,10 +123,10 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - The deploy path must support prepared inputs produced before deploy starts.
   - Current example: preview DB credentials returned by `prepare`.
 - The deploy path must support runtime-provisioned inputs produced only after a prerequisite service is healthy.
-  - Current example: scoped search credentials produced after the preview search service is healthy.
+  - Current example: scoped Meili API credentials produced after the search service is healthy.
 - Public client-facing outputs must flow through manifest-defined target env vars, not hardcoded workflow YAML.
 - Subsequent preview redeploys should reuse existing preview env values held in Zane and do not require automatic reprovisioning.
-- Main lane continues to consume prepared inputs from `prepare`.
+- Main lane must not model runtime-provider outputs as unconditional `prepare` outputs.
 - The active deploy orchestration surface owns the mapping from prepared or runtime-provisioned outputs to Zane env var updates.
 - On redeploy-only preview runs, verification must still prove that required persisted contract-owned inputs are present on affected consumers even when those inputs were not regenerated in the current run.
 
@@ -148,8 +153,9 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Runtime-dependent provisioning must not be ad hoc inside workflow YAML.
 - Runtime-dependent provisioning must be driven by `apps/new-engine-ctl/config/stack-inputs.yaml`, consumed by `apps/new-engine-ctl`, and enforced by the active orchestration surface and `zane-operator`.
 - `zane-operator` is responsible only for provisioners that require authenticated Zane inspection or access to a running service.
+- `prepare` is not a runtime-provider phase. Runtime providers must run only when their source service is already deployed and healthy in the current target environment.
 - The contract must remain provider-oriented rather than product-name-oriented.
-  - Current example: a search credential provider for browser/backend consumers.
+  - Current example: a Meili API credentials provider for browser/backend consumers.
   - Reserved future example: an application publishable-key provider once its upstream service contract is stable.
 - Provider definitions may be prepared ahead of implementation, but inactive providers must stay explicitly non-runnable until their upstream service contract exists.
   - Current reserved inactive provider: Medusa publishable-key provisioning for frontend consumers.
@@ -165,6 +171,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
   - deploy trigger
   - deploy verification
 - Route authenticated Zane API interactions through `zane-operator` by default.
+- Local/manual helper flows may remain override-driven. Without an explicit per-service desired-revision snapshot contract, local branch-based deploy/verify logic must stay conservative and must not guess a single deterministic desired remote state for all services.
 
 ## Verification Contract
 

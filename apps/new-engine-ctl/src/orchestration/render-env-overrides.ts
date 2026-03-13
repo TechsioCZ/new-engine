@@ -8,7 +8,7 @@ import {
 } from "../contracts/render-env-overrides.js"
 import {
   buildExpectedEnvOverrides,
-  getSearchCredentialEnvVars,
+  getMeiliApiCredentialEnvVars,
   loadDeployContracts,
   normalizeCsvToArray,
 } from "./deploy-inputs.js"
@@ -26,7 +26,7 @@ export async function executeRenderEnvOverrides(
     input.stackInputsPath
   )
   const deployServiceIds = normalizeCsvToArray(input.servicesCsv)
-  const searchCredentialEnvVars = getSearchCredentialEnvVars(
+  const meiliApiCredentialEnvVars = getMeiliApiCredentialEnvVars(
     contracts.stackInputs
   )
   const response = renderEnvOverridesResponseSchema.parse({
@@ -39,9 +39,9 @@ export async function executeRenderEnvOverrides(
       previewRandomOnceSecrets: input.previewRandomOnceSecrets,
       meiliFrontendKey: input.meiliFrontendKey,
       meiliFrontendEnvVar:
-        input.meiliFrontendEnvVar || searchCredentialEnvVars.frontend,
+        input.meiliFrontendEnvVar || meiliApiCredentialEnvVars.frontend,
       meiliBackendKey: input.meiliBackendKey,
-      searchCredentialEnvVars,
+      meiliApiCredentialEnvVars,
     }),
   })
 

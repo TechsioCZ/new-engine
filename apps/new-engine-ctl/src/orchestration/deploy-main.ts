@@ -8,6 +8,7 @@ import type {
 import { deployMainResponseSchema } from "../contracts/deploy-main.js"
 import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
 import { executeApplyEnvOverridesPayload } from "./apply-env-overrides.js"
+import { loadDeployContracts } from "./deploy-inputs.js"
 import {
   buildStagePlan,
   collectStageNumbers,
@@ -18,20 +19,41 @@ import {
   stageHasService,
   waitForDeployments,
 } from "./deploy-shared.js"
+import { reconcileMainMeiliApiCredentials } from "./meili-api-credentials.js"
 import { executePlan } from "./plan.js"
+import { getMeiliApiCredentialsProviderSourceService } from "./preview-meili.js"
 import { executeRenderEnvOverrides } from "./render-env-overrides.js"
 import { executeResolveEnvironment } from "./resolve-environment.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
 import { executeTriggerPayload } from "./trigger.js"
+
+export type DeployMainExecutionResult = {
+  response: DeployMainResponse
+  meiliBackendKey: string
+  meiliFrontendKey: string
+}
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
 }
 
+function stageConsumesMeiliApiCredentials(
+  stagePlan: Awaited<ReturnType<typeof executePlan>>
+): boolean {
+  return stagePlan.deploy_services.some(
+    (service) =>
+      service.consumes.meili_backend_key || service.consumes.meili_frontend_key
+  )
+}
+
 export async function executeDeployMain(
   input: DeployMainCommandInput
-): Promise<DeployMainResponse> {
+): Promise<DeployMainExecutionResult> {
+  const contracts = await loadDeployContracts(
+    input.stackManifestPath,
+    input.stackInputsPath
+  )
   const plan = await executePlan({
     lane: "main",
     servicesCsv: input.servicesCsv,
@@ -40,6 +62,24 @@ export async function executeDeployMain(
     stackManifestPath: input.stackManifestPath,
     previewEnvPrefix: "pr-",
   })
+  const meiliApiCredentialsSource = getMeiliApiCredentialsProviderSourceService(
+    contracts.manifest,
+    contracts.stackInputs,
+    input.meiliApiCredentialsProviderId
+  )
+  const sourceServiceInPlan = plan.deploy_services.some(
+    (service) => service.id === meiliApiCredentialsSource.serviceId
+  )
+  const sourceServiceStage =
+    plan.deploy_services.find(
+      (service) => service.id === meiliApiCredentialsSource.serviceId
+    )?.deploy_stage ?? null
+  const needsMeiliApiCredentials = plan.deploy_services.some(
+    (service) =>
+      service.id === meiliApiCredentialsSource.serviceId ||
+      service.consumes.meili_backend_key ||
+      service.consumes.meili_frontend_key
+  )
   const environment = await executeResolveEnvironment({
     lane: "main",
     projectSlug: input.projectSlug,
@@ -61,12 +101,71 @@ export async function executeDeployMain(
   let triggeredServicesCsv = ""
   let skippedServicesCsv = ""
   let allDeployments: DeploymentLike[] = []
+  let meiliBackendKey = ""
+  let meiliFrontendKey = ""
+  let meiliFrontendEnvVar = ""
+  let meiliBackendCreated = false
+  let meiliBackendUpdated = false
+  let meiliFrontendCreated = false
+  let meiliFrontendUpdated = false
+  let meiliKeysReconciled = false
+  let meiliVerified = false
+
+  const reconcileMeiliApiCredentials = async (): Promise<void> => {
+    if (meiliKeysReconciled) {
+      return
+    }
+
+    if (!input.dryRun && (!input.meiliUrl || !input.meiliMasterKey)) {
+      throw new Error(
+        "Meilisearch URL and master key are required when main deploy needs Meili API credential reconciliation."
+      )
+    }
+
+    const reconciled = await reconcileMainMeiliApiCredentials({
+      meiliUrl: input.meiliUrl,
+      masterKey: input.meiliMasterKey,
+      waitSeconds: input.meiliWaitSeconds,
+      retryCount: input.retryCount,
+      retryDelaySeconds: input.retryDelaySeconds,
+      stackInputs: contracts.stackInputs,
+      providerId: input.meiliApiCredentialsProviderId,
+      dryRun: input.dryRun,
+    })
+
+    meiliBackendKey = reconciled.backendKey
+    meiliFrontendKey = reconciled.frontendKey
+    meiliFrontendEnvVar = reconciled.frontendEnvVar
+    meiliBackendCreated = reconciled.backendCreated
+    meiliBackendUpdated = reconciled.backendUpdated
+    meiliFrontendCreated = reconciled.frontendCreated
+    meiliFrontendUpdated = reconciled.frontendUpdated
+    meiliVerified = reconciled.verified
+    meiliKeysReconciled = true
+  }
+
+  if (needsMeiliApiCredentials && !sourceServiceInPlan) {
+    await reconcileMeiliApiCredentials()
+  }
 
   for (const stage of collectStageNumbers(plan)) {
     const stagePlan = buildStagePlan(plan, stage)
     const stageServicesCsv = stagePlan.deploy_services_csv
     if (!stageServicesCsv) {
       continue
+    }
+
+    if (
+      needsMeiliApiCredentials &&
+      stageConsumesMeiliApiCredentials(stagePlan) &&
+      !meiliKeysReconciled
+    ) {
+      if (sourceServiceStage !== null && sourceServiceStage >= stage) {
+        throw new Error(
+          `Meili API credential source service ${meiliApiCredentialsSource.serviceId} must be healthy before consumer stage ${stage}.`
+        )
+      }
+      await reconcileMeiliApiCredentials()
     }
 
     const envOverrides = await executeRenderEnvOverrides({
@@ -76,9 +175,9 @@ export async function executeDeployMain(
       previewDbUser: "",
       previewDbPassword: "",
       previewRandomOnceSecrets: [],
-      meiliFrontendKey: input.meiliFrontendKey,
-      meiliFrontendEnvVar: input.meiliFrontendEnvVar,
-      meiliBackendKey: input.meiliBackendKey,
+      meiliFrontendKey,
+      meiliFrontendEnvVar,
+      meiliBackendKey,
       outputJson: undefined,
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
@@ -177,9 +276,9 @@ export async function executeDeployMain(
       previewDbUser: "",
       previewDbPassword: "",
       previewRandomOnceSecrets: [],
-      meiliFrontendKey: input.meiliFrontendKey,
-      meiliFrontendEnvVar: input.meiliFrontendEnvVar,
-      meiliBackendKey: input.meiliBackendKey,
+      meiliFrontendKey,
+      meiliFrontendEnvVar,
+      meiliBackendKey,
       deployments: stageDeployments,
       baseUrl: input.baseUrl,
       apiToken: input.apiToken,
@@ -190,6 +289,13 @@ export async function executeDeployMain(
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
     })
+
+    if (
+      needsMeiliApiCredentials &&
+      stageHasService(plan, stage, meiliApiCredentialsSource.serviceId)
+    ) {
+      await reconcileMeiliApiCredentials()
+    }
   }
 
   const response = deployMainResponseSchema.parse({
@@ -203,6 +309,13 @@ export async function executeDeployMain(
     env_override_service_ids_csv: envOverrideServiceIdsCsv,
     triggered_services_csv: triggeredServicesCsv,
     skipped_services_csv: skippedServicesCsv,
+    meili_frontend_env_var: meiliFrontendEnvVar,
+    meili_backend_created: meiliBackendCreated,
+    meili_backend_updated: meiliBackendUpdated,
+    meili_frontend_created: meiliFrontendCreated,
+    meili_frontend_updated: meiliFrontendUpdated,
+    meili_keys_reconciled: meiliKeysReconciled,
+    meili_verified: meiliVerified,
     deployments: allDeployments,
   })
 
@@ -210,5 +323,9 @@ export async function executeDeployMain(
     await writeJsonFile(input.outputJson, response)
   }
 
-  return response
+  return {
+    response,
+    meiliBackendKey,
+    meiliFrontendKey,
+  }
 }

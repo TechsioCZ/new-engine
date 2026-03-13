@@ -20,7 +20,7 @@ import {
 } from "./deploy-shared.js"
 import { executePlan } from "./plan.js"
 import {
-  getSearchCredentialsProviderSourceService,
+  getMeiliApiCredentialsProviderSourceService,
   provisionPreviewMeiliKeys,
 } from "./preview-meili.js"
 import { generatePreviewRandomOnceSecrets } from "./preview-random-secrets.js"
@@ -87,10 +87,10 @@ export async function executeDeployPreview(
     previewRandomOnceSecrets.length > 0
       ? JSON.stringify(previewRandomOnceSecrets)
       : ""
-  const meiliSourceService = getSearchCredentialsProviderSourceService(
+  const meiliSourceService = getMeiliApiCredentialsProviderSourceService(
     contracts.manifest,
     contracts.stackInputs,
-    input.searchCredentialsProviderId
+    input.meiliApiCredentialsProviderId
   )
 
   let meiliBackendKey = input.meiliBackendKey
@@ -204,7 +204,7 @@ export async function executeDeployPreview(
         environmentName: environment.environment_name,
         serviceSlug: meiliSourceService.serviceSlug,
         stackInputs: contracts.stackInputs,
-        providerId: input.searchCredentialsProviderId,
+        providerId: input.meiliApiCredentialsProviderId,
         baseUrl: input.baseUrl,
         apiToken: input.apiToken,
         dryRun: input.dryRun,

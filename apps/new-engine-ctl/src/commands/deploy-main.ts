@@ -1,7 +1,7 @@
 import { Command } from "commander"
 
 import { deployMainCommandInputSchema } from "../contracts/deploy-main.js"
-import { appendGitHubOutput } from "../github-actions.js"
+import { appendGitHubOutput, maskGitHubValue } from "../github-actions.js"
 import { executeDeployMain } from "../orchestration/deploy-main.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
@@ -13,14 +13,16 @@ export function createDeployMainCommand(): Command {
     .option("--project-slug <slug>")
     .requiredOption("--environment-name <name>")
     .option("--services-csv <csv>", "", "")
-    .option("--meili-backend-key <key>", "", "")
-    .option("--meili-frontend-key <key>", "", "")
-    .option("--meili-frontend-env-var <env-var>", "", "")
+    .option("--meili-url <url>")
+    .option("--meili-master-key <key>")
     .option("--git-commit-sha <sha>")
     .option("--output-json <path>")
     .option("--base-url <url>")
     .option("--api-token <token>")
     .option("--dry-run", "", false)
+    .option("--meili-wait-seconds <n>")
+    .option("--retry-count <n>")
+    .option("--retry-delay-seconds <n>")
     .option("--poll-interval-seconds <n>")
     .option("--wait-timeout-seconds <n>")
     .option(
@@ -39,19 +41,34 @@ export function createDeployMainCommand(): Command {
           options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
         environmentName: options.environmentName,
         servicesCsv: options.servicesCsv,
-        meiliBackendKey:
-          options.meiliBackendKey ?? process.env.MEILI_BACKEND_KEY ?? "",
-        meiliFrontendKey:
-          options.meiliFrontendKey ?? process.env.MEILI_FRONTEND_KEY ?? "",
-        meiliFrontendEnvVar:
-          options.meiliFrontendEnvVar ??
-          process.env.MEILI_FRONTEND_ENV_VAR ??
+        meiliUrl: options.meiliUrl ?? process.env.MEILISEARCH_URL ?? "",
+        meiliMasterKey:
+          options.meiliMasterKey ??
+          process.env.MEILISEARCH_MASTER_KEY ??
+          process.env.DC_MEILISEARCH_MASTER_KEY ??
           "",
         gitCommitSha: options.gitCommitSha,
         outputJson: options.outputJson,
         baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
         apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
         dryRun: Boolean(options.dryRun),
+        meiliApiCredentialsProviderId:
+          process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
+          "meili_api_credentials",
+        meiliWaitSeconds:
+          typeof options.meiliWaitSeconds === "string" &&
+          options.meiliWaitSeconds.trim()
+            ? Number(options.meiliWaitSeconds)
+            : undefined,
+        retryCount:
+          typeof options.retryCount === "string" && options.retryCount.trim()
+            ? Number(options.retryCount)
+            : undefined,
+        retryDelaySeconds:
+          typeof options.retryDelaySeconds === "string" &&
+          options.retryDelaySeconds.trim()
+            ? Number(options.retryDelaySeconds)
+            : undefined,
         pollIntervalSeconds:
           typeof options.pollIntervalSeconds === "string" &&
           options.pollIntervalSeconds.trim()
@@ -66,38 +83,72 @@ export function createDeployMainCommand(): Command {
         stackInputsPath: options.stackInputsPath,
       })
       const result = await executeDeployMain(input)
-      const deploymentsJson = JSON.stringify({ services: result.deployments })
+      const deploymentsJson = JSON.stringify({
+        services: result.response.deployments,
+      })
+      maskGitHubValue(result.meiliBackendKey)
+      maskGitHubValue(result.meiliFrontendKey)
 
       await appendGitHubOutput("lane", "main")
-      await appendGitHubOutput("environment_name", result.environment_name)
-      await appendGitHubOutput("environment_id", result.environment_id)
+      await appendGitHubOutput("environment_name", result.response.environment_name)
+      await appendGitHubOutput("environment_id", result.response.environment_id)
       await appendGitHubOutput(
         "environment_created",
-        String(result.environment_created)
+        String(result.response.environment_created)
       )
       await appendGitHubOutput(
         "requested_services_csv",
-        result.requested_services_csv
+        result.response.requested_services_csv
       )
       await appendGitHubOutput(
         "deploy_services_csv",
-        result.deploy_services_csv
+        result.response.deploy_services_csv
       )
       await appendGitHubOutput(
         "env_override_service_ids_csv",
-        result.env_override_service_ids_csv
+        result.response.env_override_service_ids_csv
       )
       await appendGitHubOutput(
         "triggered_services_csv",
-        result.triggered_services_csv
+        result.response.triggered_services_csv
       )
       await appendGitHubOutput(
         "skipped_services_csv",
-        result.skipped_services_csv
+        result.response.skipped_services_csv
+      )
+      await appendGitHubOutput("meili_backend_key", result.meiliBackendKey)
+      await appendGitHubOutput("meili_frontend_key", result.meiliFrontendKey)
+      await appendGitHubOutput(
+        "meili_frontend_env_var",
+        result.response.meili_frontend_env_var
+      )
+      await appendGitHubOutput(
+        "meili_backend_created",
+        String(result.response.meili_backend_created)
+      )
+      await appendGitHubOutput(
+        "meili_backend_updated",
+        String(result.response.meili_backend_updated)
+      )
+      await appendGitHubOutput(
+        "meili_frontend_created",
+        String(result.response.meili_frontend_created)
+      )
+      await appendGitHubOutput(
+        "meili_frontend_updated",
+        String(result.response.meili_frontend_updated)
+      )
+      await appendGitHubOutput(
+        "meili_keys_reconciled",
+        String(result.response.meili_keys_reconciled)
+      )
+      await appendGitHubOutput(
+        "meili_verified",
+        String(result.response.meili_verified)
       )
       await appendGitHubOutput("deployments_json", deploymentsJson)
 
-      process.stdout.write(`${JSON.stringify(result)}\n`)
+      process.stdout.write(`${JSON.stringify(result.response)}\n`)
     })
 
   return command

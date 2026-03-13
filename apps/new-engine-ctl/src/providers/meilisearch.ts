@@ -29,7 +29,7 @@ type PolicyDefinition = {
   indexes: string[]
 }
 
-type SearchCredentialPolicies = {
+type MeiliApiCredentialPolicies = {
   backendPolicy: RuntimeProviderPolicy
   frontendPolicy: RuntimeProviderPolicy
   backendEnvVar: string
@@ -54,10 +54,10 @@ function normalizeBaseUrl(url: string): string {
   return url.replace(trailingSlashesPattern, "")
 }
 
-function resolveSearchCredentialPolicies(
+function resolveMeiliApiCredentialPolicies(
   stackInputs: StackInputs,
   providerId: string
-): SearchCredentialPolicies {
+): MeiliApiCredentialPolicies {
   return {
     backendPolicy: getRuntimeProviderOutputPolicy(
       stackInputs,
@@ -96,6 +96,25 @@ function parseResponseBody(text: string, status: number): unknown {
   }
 }
 
+function parseErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== "object") {
+    return fallback
+  }
+
+  const object = payload as Record<string, unknown>
+  if (typeof object.detail === "string" && object.detail.trim()) {
+    return object.detail
+  }
+  if (typeof object.message === "string" && object.message.trim()) {
+    return object.message
+  }
+  if (typeof object.code === "string" && object.code.trim()) {
+    return `${fallback} (${object.code})`
+  }
+
+  return fallback
+}
+
 async function requestJson<T>(options: RequestJsonOptions<T>): Promise<T> {
   let attempt = 0
 
@@ -110,7 +129,12 @@ async function requestJson<T>(options: RequestJsonOptions<T>): Promise<T> {
           return options.parse(null)
         }
 
-        throw new Error(`Meilisearch request failed (HTTP ${response.status})`)
+        throw new Error(
+          parseErrorMessage(
+            body,
+            `Meilisearch request failed (HTTP ${response.status})`
+          )
+        )
       }
 
       return options.parse(body)
@@ -328,7 +352,7 @@ export async function provisionMeiliKeys(input: {
     frontendPolicy,
     backendEnvVar,
     frontendEnvVar,
-  } = resolveSearchCredentialPolicies(input.stackInputs, input.providerId)
+  } = resolveMeiliApiCredentialPolicies(input.stackInputs, input.providerId)
 
   await waitForHealth({
     meiliUrl: input.meiliUrl,
@@ -384,7 +408,7 @@ export async function verifyMeiliKeys(input: {
   stackInputs: StackInputs
   providerId: string
 }): Promise<MeiliVerifyResponse> {
-  const { backendPolicy, frontendPolicy } = resolveSearchCredentialPolicies(
+  const { backendPolicy, frontendPolicy } = resolveMeiliApiCredentialPolicies(
     input.stackInputs,
     input.providerId
   )

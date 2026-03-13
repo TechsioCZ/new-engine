@@ -15,7 +15,7 @@ import {
   buildExpectedEnvOverrides,
   buildForbiddenPreviewOnlyEnv,
   buildRequiredPersistedEnv,
-  getSearchCredentialEnvVars,
+  getMeiliApiCredentialEnvVars,
   loadDeployContracts,
   normalizeCsvToArray,
 } from "./deploy-inputs.js"
@@ -135,7 +135,7 @@ export async function executeVerify(
   const triggeredServiceIds = normalizeCsvToArray(input.triggeredServicesCsv)
   const { expectedPreviewServiceSlugs, excludedPreviewServiceSlugs } =
     resolvePreviewServiceSlugs(input, contracts)
-  const searchCredentialEnvVars = getSearchCredentialEnvVars(
+  const meiliApiCredentialEnvVars = getMeiliApiCredentialEnvVars(
     contracts.stackInputs
   )
   const expectedEnvOverrides = buildExpectedEnvOverrides(
@@ -149,9 +149,9 @@ export async function executeVerify(
       previewRandomOnceSecrets: input.previewRandomOnceSecrets,
       meiliFrontendKey: input.meiliFrontendKey,
       meiliFrontendEnvVar:
-        input.meiliFrontendEnvVar || searchCredentialEnvVars.frontend,
+        input.meiliFrontendEnvVar || meiliApiCredentialEnvVars.frontend,
       meiliBackendKey: input.meiliBackendKey,
-      searchCredentialEnvVars,
+      meiliApiCredentialEnvVars,
     }
   )
   const requiredPersistedEnv = buildRequiredPersistedEnv(

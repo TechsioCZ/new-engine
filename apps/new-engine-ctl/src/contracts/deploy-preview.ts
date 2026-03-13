@@ -19,7 +19,10 @@ const deployPreviewCommandInputSchemaBase = z.object({
   stackManifestPath: z.string().min(1),
   stackInputsPath: z.string().min(1),
   previewEnvPrefix: z.string().min(1).default("pr-"),
-  searchCredentialsProviderId: z.string().min(1).default("search_credentials"),
+  meiliApiCredentialsProviderId: z
+    .string()
+    .min(1)
+    .default("meili_api_credentials"),
   pollIntervalSeconds: z.number().int().positive().default(10),
   waitTimeoutSeconds: z.number().int().positive().default(900),
 })

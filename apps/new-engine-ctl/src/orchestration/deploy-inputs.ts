@@ -22,7 +22,7 @@ import type {
   RequiredPersistedEnv,
 } from "../contracts/verify.js"
 
-export type SearchCredentialEnvVars = {
+export type MeiliApiCredentialEnvVars = {
   backend: string
   frontend: string
 }
@@ -41,7 +41,7 @@ export type DeployEnvContext = {
   meiliFrontendKey: string
   meiliFrontendEnvVar: string
   meiliBackendKey: string
-  searchCredentialEnvVars: SearchCredentialEnvVars
+  meiliApiCredentialEnvVars: MeiliApiCredentialEnvVars
 }
 
 export function normalizeCsvToArray(csv: string): string[] {
@@ -107,19 +107,19 @@ export async function loadDeployContracts(
   }
 }
 
-export function getSearchCredentialEnvVars(
+export function getMeiliApiCredentialEnvVars(
   stackInputs: StackInputs
-): SearchCredentialEnvVars {
+): MeiliApiCredentialEnvVars {
   return {
     backend: getRuntimeProviderTargetEnvVar(
       stackInputs,
-      "search_credentials",
+      "meili_api_credentials",
       "backend_key",
       "medusa-be"
     ),
     frontend: getRuntimeProviderTargetEnvVar(
       stackInputs,
-      "search_credentials",
+      "meili_api_credentials",
       "frontend_key",
       "n1"
     ),
@@ -192,7 +192,7 @@ function appendMeiliBackendEnv(
   }
 
   if (context.meiliBackendKey) {
-    env[context.searchCredentialEnvVars.backend] = context.meiliBackendKey
+    env[context.meiliApiCredentialEnvVars.backend] = context.meiliBackendKey
   }
 }
 
@@ -257,7 +257,7 @@ function buildPersistedEnvKeysForService(
   service: DeployableService,
   lane: Lane,
   contracts: DeployContracts,
-  searchCredentialEnvVars: SearchCredentialEnvVars
+  meiliApiCredentialEnvVars: MeiliApiCredentialEnvVars
 ): string[] {
   const envKeys: string[] = []
   const seen = new Set<string>()
@@ -272,11 +272,11 @@ function buildPersistedEnvKeysForService(
   }
 
   if (service.consumes.meili_frontend_key) {
-    addPersistedEnvKey(envKeys, seen, searchCredentialEnvVars.frontend)
+    addPersistedEnvKey(envKeys, seen, meiliApiCredentialEnvVars.frontend)
   }
 
   if (service.consumes.meili_backend_key) {
-    addPersistedEnvKey(envKeys, seen, searchCredentialEnvVars.backend)
+    addPersistedEnvKey(envKeys, seen, meiliApiCredentialEnvVars.backend)
   }
 
   if (lane === "preview") {
@@ -297,7 +297,7 @@ export function buildRequiredPersistedEnv(
   deployServiceIds: string[],
   contracts: DeployContracts
 ): RequiredPersistedEnv[] {
-  const searchCredentialEnvVars = getSearchCredentialEnvVars(
+  const meiliApiCredentialEnvVars = getMeiliApiCredentialEnvVars(
     contracts.stackInputs
   )
 
@@ -307,7 +307,7 @@ export function buildRequiredPersistedEnv(
       service,
       lane,
       contracts,
-      searchCredentialEnvVars
+      meiliApiCredentialEnvVars
     )
 
     if (envKeys.length === 0) {

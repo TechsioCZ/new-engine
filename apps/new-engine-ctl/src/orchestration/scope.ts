@@ -201,8 +201,7 @@ function applyPrepareAndDowntimeState(input: {
       : []
 
   return {
-    should_prepare:
-      previewDbServiceIds.length > 0 || meiliKeyServiceIds.length > 0,
+    should_prepare: previewDbServiceIds.length > 0,
     requires_preview_db: previewDbServiceIds.length > 0,
     requires_meili_keys: meiliKeyServiceIds.length > 0,
     preview_db_service_ids: previewDbServiceIds.join(","),

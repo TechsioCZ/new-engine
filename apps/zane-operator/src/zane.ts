@@ -24,7 +24,7 @@ import {
 import { ZaneDeployOps } from "./zane-deploy-ops"
 import { ZaneDeployVerifier } from "./zane-deploy-verify"
 import { ZaneEnvironmentManager } from "./zane-environments"
-import { ZaneSearchCredentialsProvisioner } from "./zane-search-credentials"
+import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 export type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
@@ -175,8 +175,8 @@ export class ZaneClient {
     })
   }
 
-  private createSearchCredentialsProvisioner(): ZaneSearchCredentialsProvisioner {
-    return new ZaneSearchCredentialsProvisioner({
+  private createMeiliApiCredentialsProvisioner(): ZaneMeiliApiCredentialsProvisioner {
+    return new ZaneMeiliApiCredentialsProvisioner({
       authenticate: async () => await this.authenticate(),
       getEnvironment: async (session, projectSlug, environmentName) =>
         await this.getEnvironment(session, projectSlug, environmentName),
@@ -301,7 +301,7 @@ export class ZaneClient {
     frontend_created: boolean
     frontend_updated: boolean
   }> {
-    const provider = this.createSearchCredentialsProvisioner()
+    const provider = this.createMeiliApiCredentialsProvisioner()
 
     return await provider.provisionPreviewMeiliKeys(input)
   }

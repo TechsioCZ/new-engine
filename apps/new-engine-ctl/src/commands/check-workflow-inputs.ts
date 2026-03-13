@@ -49,18 +49,6 @@ function validateMode(mode: WorkflowInputMode): void {
       }
       return
     case "main-prepare":
-      if (process.env.REQUIRES_MEILI_KEYS === "true") {
-        requireEnv({
-          name: "MEILISEARCH_URL",
-          description: "Meilisearch base URL",
-        })
-        requireEnv({
-          name: "MEILISEARCH_MASTER_KEY",
-          description: "Meilisearch master key",
-        })
-        maskEnv("MEILISEARCH_URL")
-        maskEnv("MEILISEARCH_MASTER_KEY")
-      }
       return
     case "preview-deploy":
     case "preview-verify":
@@ -107,8 +95,18 @@ function validateMode(mode: WorkflowInputMode): void {
       maskEnv("ZANE_PRODUCTION_ENVIRONMENT_NAME")
       maskEnv("MEILI_BACKEND_KEY")
       maskEnv("MEILI_FRONTEND_KEY")
-      maskEnv("MEILISEARCH_URL")
-      maskEnv("MEILISEARCH_MASTER_KEY")
+      if (mode === "main-deploy" && process.env.REQUIRES_MEILI_KEYS === "true") {
+        requireEnv({
+          name: "MEILISEARCH_URL",
+          description: "Meilisearch base URL",
+        })
+        requireEnv({
+          name: "MEILISEARCH_MASTER_KEY",
+          description: "Meilisearch master key",
+        })
+        maskEnv("MEILISEARCH_URL")
+        maskEnv("MEILISEARCH_MASTER_KEY")
+      }
       return
     case "preview-teardown":
       requireEnv({

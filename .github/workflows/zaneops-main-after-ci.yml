@@ -108,72 +108,11 @@ jobs:
             echo "- Approved downtime-risk services: ${{ needs.scope.outputs.downtime_service_ids || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  prepare:
-    needs: scope
-    if: needs.scope.outputs.should_prepare == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    concurrency:
-      group: zaneops-main-prepare
-      cancel-in-progress: true
-    outputs:
-      meili_backend_key: ${{ steps.run_prepare.outputs.meili_backend_key }}
-      meili_frontend_key: ${{ steps.run_prepare.outputs.meili_frontend_key }}
-      meili_frontend_env_var: ${{ steps.run_prepare.outputs.meili_frontend_env_var }}
-      meili_frontend_uid: ${{ steps.run_prepare.outputs.meili_frontend_uid }}
-      meili_frontend_created: ${{ steps.run_prepare.outputs.meili_frontend_created }}
-      meili_frontend_updated: ${{ steps.run_prepare.outputs.meili_frontend_updated }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: new-engine-ctl-dist
-          path: apps/new-engine-ctl/dist
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - name: Validate prepare inputs
-        env:
-          REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
-        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-prepare
-
-      - name: Run main prepare
-        id: run_prepare
-        env:
-          REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
-        run: |
-          node apps/new-engine-ctl/dist/cli.js prepare \
-            --lane main \
-            --requires-meili-keys
-
-      - name: Summary
-        if: always()
-        run: |
-          {
-            echo "## Main Prepare"
-            echo "- Base SHA: ${{ needs.scope.outputs.base_sha }}"
-            echo "- Requires Meili keys: ${{ needs.scope.outputs.requires_meili_keys }}"
-            echo "- Meili frontend env var: ${{ steps.run_prepare.outputs.meili_frontend_env_var || 'n/a' }}"
-            echo "- Meili frontend UID: ${{ steps.run_prepare.outputs.meili_frontend_uid || 'n/a' }}"
-            echo "- Meili frontend created: ${{ steps.run_prepare.outputs.meili_frontend_created || 'n/a' }}"
-            echo "- Meili frontend updated: ${{ steps.run_prepare.outputs.meili_frontend_updated || 'n/a' }}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
   deploy:
-    needs: [scope, prepare, approval]
+    needs: [scope, approval]
     if: >-
       always() &&
       needs.scope.outputs.services_csv != '' &&
-      (needs.prepare.result == 'success' || needs.prepare.result == 'skipped') &&
       (needs.approval.result == 'success' || needs.approval.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -189,6 +128,15 @@ jobs:
       env_override_service_ids_csv: ${{ steps.run_deploy.outputs.env_override_service_ids_csv }}
       triggered_services_csv: ${{ steps.run_deploy.outputs.triggered_services_csv }}
       skipped_services_csv: ${{ steps.run_deploy.outputs.skipped_services_csv }}
+      meili_backend_key: ${{ steps.run_deploy.outputs.meili_backend_key }}
+      meili_frontend_key: ${{ steps.run_deploy.outputs.meili_frontend_key }}
+      meili_frontend_env_var: ${{ steps.run_deploy.outputs.meili_frontend_env_var }}
+      meili_backend_created: ${{ steps.run_deploy.outputs.meili_backend_created }}
+      meili_backend_updated: ${{ steps.run_deploy.outputs.meili_backend_updated }}
+      meili_frontend_created: ${{ steps.run_deploy.outputs.meili_frontend_created }}
+      meili_frontend_updated: ${{ steps.run_deploy.outputs.meili_frontend_updated }}
+      meili_keys_reconciled: ${{ steps.run_deploy.outputs.meili_keys_reconciled }}
+      meili_verified: ${{ steps.run_deploy.outputs.meili_verified }}
       deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
     steps:
       - uses: actions/checkout@v4
@@ -210,32 +158,32 @@ jobs:
 
       - name: Validate deploy inputs
         env:
+          REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
-          MEILI_BACKEND_KEY: ${{ needs.prepare.outputs.meili_backend_key }}
-          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
+          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
+          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
         run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-deploy
 
       - name: Run main deploy
         id: run_deploy
         env:
           SERVICES_CSV: ${{ needs.scope.outputs.services_csv }}
+          REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
-          MEILI_BACKEND_KEY: ${{ needs.prepare.outputs.meili_backend_key }}
-          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
-          MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
+          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
+          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
         run: |
           node apps/new-engine-ctl/dist/cli.js deploy-main \
             --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
             --git-commit-sha "${{ github.event.workflow_run.head_sha }}" \
-            --meili-backend-key "${MEILI_BACKEND_KEY:-}" \
-            --meili-frontend-key "${MEILI_FRONTEND_KEY:-}" \
-            --meili-frontend-env-var "${MEILI_FRONTEND_ENV_VAR:-}" \
+            --meili-url "$MEILISEARCH_URL" \
+            --meili-master-key "$MEILISEARCH_MASTER_KEY" \
             --services-csv "$SERVICES_CSV"
 
       - name: Summary
@@ -248,10 +196,12 @@ jobs:
             echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
             echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"
             echo "- Skipped services: ${{ steps.run_deploy.outputs.skipped_services_csv || 'n/a' }}"
+            echo "- Meili keys reconciled: ${{ steps.run_deploy.outputs.meili_keys_reconciled || 'false' }}"
+            echo "- Meili verified: ${{ steps.run_deploy.outputs.meili_verified || 'false' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify:
-    needs: [scope, prepare, deploy]
+    needs: [scope, deploy]
     if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -284,9 +234,9 @@ jobs:
           DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv }}
           TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv }}
           DEPLOYMENTS_JSON: ${{ needs.deploy.outputs.deployments_json }}
-          MEILI_BACKEND_KEY: ${{ needs.prepare.outputs.meili_backend_key }}
-          MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
-          MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
+          MEILI_BACKEND_KEY: ${{ needs.deploy.outputs.meili_backend_key }}
+          MEILI_FRONTEND_KEY: ${{ needs.deploy.outputs.meili_frontend_key }}
+          MEILI_FRONTEND_ENV_VAR: ${{ needs.deploy.outputs.meili_frontend_env_var }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}

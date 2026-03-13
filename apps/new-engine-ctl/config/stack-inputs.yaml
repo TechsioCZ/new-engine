@@ -123,7 +123,7 @@ secret_materialization:
 
 runtime_providers:
   providers:
-    - provider_id: search_credentials
+    - provider_id: meili_api_credentials
       status: active
       materializer: zane_operator
       source_service_id: medusa-meilisearch
@@ -138,13 +138,12 @@ runtime_providers:
               env_var: DC_MEILISEARCH_BACKEND_API_KEY
           policy:
             kind: meilisearch_key
-            uid: medusa-backend
+            uid: 14f4c9c4-1a80-4e2f-8e79-19511d2c5ba5
             description: Backend API key for server-side search operations
             actions:
               - search
               - documents.get
               - documents.add
-              - documents.update
               - documents.delete
               - indexes.create
               - indexes.get
@@ -163,7 +162,7 @@ runtime_providers:
               env_var: DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY
           policy:
             kind: meilisearch_key
-            uid: n1-search
+            uid: 4b7f7f7e-8798-4b3f-8e73-c0f76f8b35d6
             description: Browser search key for frontend consumers
             actions:
               - search
