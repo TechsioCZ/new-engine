@@ -12,19 +12,19 @@ COMPOSE_PROD=docker compose -f docker-compose.yaml -f docker-compose.prod.yaml -
 # Global commands
 corepack-update:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
-	docker run -v .:/var/www pnpm-env corepack up
+	docker run -e CI=true -v .:/var/www pnpm-env corepack up
 install:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
-	docker run -v .:/var/www pnpm-env pnpm install --frozen-lockfile
+	docker run -e CI=true -v .:/var/www pnpm-env pnpm install --frozen-lockfile
 install-fix-lock:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
-	docker run -v .:/var/www pnpm-env pnpm install --fix-lockfile
+	docker run -e CI=true -v .:/var/www pnpm-env pnpm install --fix-lockfile
 update-medusa:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
-	docker run -v .:/var/www pnpm-env pnpm --filter medusa-be update "@medusajs/*" --latest
+	docker run -e CI=true -v .:/var/www pnpm-env pnpm --filter medusa-be update "@medusajs/*" --latest
 update:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
-	docker run -v .:/var/www pnpm-env pnpm --filter medusa-be update --latest
+	docker run -e CI=true -v .:/var/www pnpm-env pnpm --filter medusa-be update --latest
 npkill:
 	docker build -f docker/development/pnpm/Dockerfile -t pnpm-env . && \
 	docker run -it -v .:/var/www pnpm-env pnpx npkill -x -D -y

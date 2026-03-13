@@ -371,6 +371,31 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  apps/new-engine-ctl:
+    dependencies:
+      commander:
+        specifier: ^14.0.2
+        version: 14.0.2
+      yaml:
+        specifier: ^2.7.1
+        version: 2.7.1
+      zod:
+        specifier: ^4.1.13
+        version: 4.1.13
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^2.3.7
+        version: 2.3.8
+      '@types/node':
+        specifier: ^24.10.1
+        version: 24.10.1
+      esbuild:
+        specifier: ^0.27.3
+        version: 0.27.3
+      tsx:
+        specifier: ^4.19.4
+        version: 4.19.4
+
   apps/zane-operator: {}
 
   libs/analytics:
@@ -24588,7 +24613,6 @@ snapshots:
   get-tsconfig@4.13.0:
     dependencies:
       resolve-pkg-maps: 1.0.0
-    optional: true
 
   getopts@2.3.0: {}
 
@@ -27912,8 +27936,7 @@ snapshots:
 
   resolve-from@5.0.0: {}
 
-  resolve-pkg-maps@1.0.0:
-    optional: true
+  resolve-pkg-maps@1.0.0: {}
 
   resolve.exports@2.0.3: {}
 
@@ -28426,7 +28449,7 @@ snapshots:
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
       '@vitest/expect': 3.2.4
       '@vitest/spy': 3.2.4
-      esbuild: 0.25.12
+      esbuild: 0.27.3
       open: 10.2.0
       recast: 0.23.11
       semver: 7.7.3
@@ -28884,7 +28907,6 @@ snapshots:
       get-tsconfig: 4.13.0
     optionalDependencies:
       fsevents: 2.3.3
-    optional: true
 
   tunnel@0.0.6: {}
 

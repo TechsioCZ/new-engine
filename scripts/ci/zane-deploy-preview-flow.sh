@@ -29,7 +29,8 @@ zane::run_preview_stage_core() {
   [[ -n "$stage_services_csv" ]] || return 0
 
   zane::stage_plan_json "$runtime_plan_json_file" "$stage" >"$stage_plan_json_file"
-  zane::cmd_render_env_overrides \
+  zane::new_engine_ctl \
+    render-env-overrides \
     --lane preview \
     --services-csv "$stage_services_csv" \
     --preview-db-name "$preview_db_name" \
@@ -40,7 +41,8 @@ zane::run_preview_stage_core() {
     --meili-frontend-key "$meili_frontend_key" \
     --meili-frontend-env-var "$meili_frontend_env_var" \
     --output-json "$env_overrides_json_file" >/dev/null
-  zane::cmd_resolve_targets \
+  zane::new_engine_ctl \
+    resolve-targets \
     --lane preview \
     --project-slug "$project_slug" \
     --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
@@ -49,7 +51,8 @@ zane::run_preview_stage_core() {
     "${dry_run_flags_ref[@]}" \
     --base-url "$base_url" \
     --api-token "$api_token" >/dev/null
-  zane::cmd_apply_env_overrides \
+  zane::new_engine_ctl \
+    apply-env-overrides \
     --project-slug "$project_slug" \
     --environment-name "$(jq -r '.environment_name' "$environment_json_file")" \
     --targets-json "$targets_json_file" \
@@ -304,8 +307,14 @@ EOF
   zane::write_empty_deployments_json_file "$all_deployments_json_file"
   zane::write_default_meili_provision_json_file "$meili_provision_json_file"
 
-  zane::cmd_plan --lane preview --services-csv "$services_csv" --pr-number "$pr_number" --output-json "$plan_json_file" >/dev/null
-  zane::cmd_resolve_environment \
+  zane::new_engine_ctl \
+    plan \
+    --lane preview \
+    --services-csv "$services_csv" \
+    --pr-number "$pr_number" \
+    --output-json "$plan_json_file" >/dev/null
+  zane::new_engine_ctl \
+    resolve-environment \
     --lane preview \
     --project-slug "$project_slug" \
     --pr-number "$pr_number" \
