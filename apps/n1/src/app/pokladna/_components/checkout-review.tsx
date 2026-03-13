@@ -1,11 +1,12 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@ui/atoms/badge"
 import { Button } from "@ui/atoms/button"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import type { StoreOrder } from "@/services/order-service"
+import { getOrderPriceView } from "@/lib/pricing/cart-pricing"
 import { formatDateString } from "@/utils/format/format-date"
 import {
   getOrderStatusColor,
@@ -15,7 +16,7 @@ import { formatAmount } from "@/utils/format/format-product"
 import { PriceSummaryRow } from "./price-summary-row"
 
 type CheckoutReviewProps = {
-  order: StoreOrder
+  order: HttpTypes.StoreOrder
 }
 
 export function CheckoutReview({ order }: CheckoutReviewProps) {
@@ -25,12 +26,8 @@ export function CheckoutReview({ order }: CheckoutReviewProps) {
     label: getOrderStatusLabel(order.status),
     variant: getOrderStatusColor(order.status),
   }
-
-  // Format amounts
-  const itemsSubtotal = formatAmount(order.item_subtotal || 0)
-  const itemsTax = formatAmount(order.item_tax_total || 0)
-  const shippingTotal = formatAmount(order.shipping_total || 0)
-  const total = formatAmount(order.total || 0)
+  const pricing = getOrderPriceView(order)
+  const subtotalLabel = pricing.showTax ? "Cena bez DPH" : "Mezisoučet"
   const primaryShippingMethod = order.shipping_methods?.[0]
 
   return (
@@ -153,12 +150,14 @@ export function CheckoutReview({ order }: CheckoutReviewProps) {
           Souhrn ceny
         </h2>
         <div className="border-border-secondary border-b pb-400 [&>*+*]:mt-200">
-          <PriceSummaryRow label="Cena bez DPH" value={itemsSubtotal} />
-          <PriceSummaryRow label="DPH" value={itemsTax} />
-          <PriceSummaryRow label="Doprava" value={shippingTotal} />
+          <PriceSummaryRow label={subtotalLabel} value={pricing.itemsSubtotal} />
+          {pricing.showTax && <PriceSummaryRow label="DPH" value={pricing.tax} />}
+          {pricing.hasShipping && (
+            <PriceSummaryRow label="Doprava" value={pricing.shipping} />
+          )}
         </div>
         <div className="mt-400">
-          <PriceSummaryRow label="Celkem" value={total} variant="bold" />
+          <PriceSummaryRow label="Celkem" value={pricing.total} variant="bold" />
         </div>
 
         {/* Action Buttons */}

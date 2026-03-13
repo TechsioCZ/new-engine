@@ -1,5 +1,5 @@
 import type { StoreProduct } from "@medusajs/types"
-import { CURRENCY_SYMBOL, DEFAULT_CURRENCY, TAX_RATE } from "@/lib/constants"
+import { CURRENCY_SYMBOL, DEFAULT_CURRENCY } from "@/lib/constants"
 
 export const formatPrice = ({
   variants,
@@ -33,28 +33,6 @@ export const formatAmount = (
     maximumFractionDigits: 0,
     useGrouping,
   }).format(amount)
-}
-
-export const formatToTaxIncluded = ({
-  amount,
-  tax,
-  currency,
-}: {
-  amount?: number
-  tax?: number
-  currency?: string
-}) => {
-  if (!amount) {
-    return `0 ${CURRENCY_SYMBOL}`
-  }
-  const taxRate = tax || TAX_RATE
-  const taxAmount = amount * taxRate
-  const totalAmount = amount + taxAmount
-  let currencyMap = CURRENCY_SYMBOL
-  if (currency) {
-    currencyMap = currency === "czk" ? CURRENCY_SYMBOL : currency
-  }
-  return `${Math.round(totalAmount)} ${currencyMap}`
 }
 
 export const formatVariants = (

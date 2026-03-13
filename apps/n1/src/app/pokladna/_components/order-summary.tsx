@@ -1,7 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@ui/atoms/button"
-import type { Cart } from "@/services/cart-service"
-import { formatAmount } from "@/utils/format/format-product"
+import { getCartPriceView } from "@/lib/pricing/cart-pricing"
+import type { Cart } from "@/types/cart"
 import { CartItemRow } from "./cart-item-row"
 import { PriceSummaryRow } from "./price-summary-row"
 
@@ -24,11 +24,8 @@ export function OrderSummary({
   onBack,
   onComplete,
 }: OrderSummaryProps) {
-  const itemsSubtotal = formatAmount(cart.original_item_subtotal)
-  const delivery = formatAmount(cart.shipping_total)
-  const discount = formatAmount(cart.discount_total)
-  const itemsTax = formatAmount(cart.item_tax_total)
-  const total = formatAmount(cart.total)
+  const pricing = getCartPriceView(cart)
+  const subtotalLabel = pricing.showTax ? "Cena bez DPH" : "Mezisoučet"
 
   return (
     <div className="rounded border border-border-secondary bg-surface p-400 lg:sticky lg:top-4">
@@ -47,25 +44,28 @@ export function OrderSummary({
       </div>
 
       <div className="border-border-secondary border-b pb-400 [&>*+*]:mt-200">
-        <PriceSummaryRow label="Cena bez DPH" value={itemsSubtotal} />
+        <PriceSummaryRow label={subtotalLabel} value={pricing.itemsSubtotal} />
 
-        {cart.discount_total > 0 && (
+        {pricing.discountAmount > 0 && (
           <PriceSummaryRow
             label="Discount"
-            value={`-${discount}`}
+            value={`-${pricing.discount}`}
             variant="success"
           />
         )}
 
-        <PriceSummaryRow label="DPH" value={itemsTax} />
+        {pricing.showTax && <PriceSummaryRow label="DPH" value={pricing.tax} />}
 
         {selectedShipping && (
-          <PriceSummaryRow label="Doprava" value={delivery || "Zdarma"} />
+          <PriceSummaryRow
+            label="Doprava"
+            value={pricing.hasShipping ? pricing.shipping : "Zdarma"}
+          />
         )}
       </div>
 
       <div className="mt-400 mb-400">
-        <PriceSummaryRow label="Celkem" value={total} variant="bold" />
+        <PriceSummaryRow label="Celkem" value={pricing.total} variant="bold" />
       </div>
 
       {errorMessage && (

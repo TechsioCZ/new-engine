@@ -4,7 +4,8 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
 import { useRemoveLineItem, useUpdateLineItem } from "@/hooks/use-cart"
 import { useCartToast } from "@/hooks/use-toast"
-import type { Cart } from "@/services/cart-service"
+import { getCartPriceView } from "@/lib/pricing/cart-pricing"
+import type { Cart } from "@/types/cart"
 import { getOptimisticFlag } from "@/utils/cart/cart-helpers"
 import { formatAmount } from "@/utils/format/format-product"
 import { CartEmptyState } from "./cart-empty-state"
@@ -66,6 +67,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
 
   const isPending = isUpdating || isRemoving
   const isOptimistic = getOptimisticFlag(cart)
+  const pricing = getCartPriceView(cart)
 
   return (
     <div className="flex flex-col gap-400">
@@ -91,38 +93,37 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
         <div className="space-y-200">
           <div className="flex justify-between text-sm">
             <span className="text-fg-secondary">Mezisoučet:</span>
-            <span>{formatAmount(cart.subtotal)}</span>
+            <span>{pricing.itemsSubtotal}</span>
           </div>
-          {cart.shipping_total !== undefined && cart.shipping_total > 0 && (
+          {pricing.hasShipping && (
             <div className="flex justify-between text-sm">
               <span className="text-fg-secondary">Doprava:</span>
-              <span>{formatAmount(cart.shipping_total)}</span>
+              <span>{pricing.shipping}</span>
             </div>
           )}
 
-          {cart.tax_total !== undefined && cart.tax_total > 0 && (
+          {pricing.showTax && (
             <div className="flex justify-between text-sm">
               <span className="text-fg-secondary">DPH:</span>
-              <span>{formatAmount(cart.tax_total)}</span>
+              <span>{pricing.tax}</span>
             </div>
           )}
 
-          {cart.discount_total !== undefined && cart.discount_total > 0 && (
+          {pricing.discountAmount > 0 && (
             <div className="flex justify-between text-sm text-success-light">
               <span>Sleva:</span>
-              <span>-{formatAmount(cart.discount_total)}</span>
+              <span>-{pricing.discount}</span>
             </div>
           )}
 
           <div className="flex justify-between border-border-secondary border-t pt-200 font-semibold text-md">
             <span>Celkem:</span>
-            <span>{formatAmount(cart.total)}</span>
+            <span>{pricing.total}</span>
           </div>
 
-          {cart.subtotal && cart.subtotal < 1500 && (
+          {pricing.itemsSubtotalAmount > 0 && pricing.itemsSubtotalAmount < 1500 && (
             <p className="pt-200 text-center text-fg-secondary text-xs">
-              Doprava zdarma od 1 500 Kč (zbývá{" "}
-              {formatAmount(1500 - cart.subtotal)})
+              Doprava zdarma od 1 500 Kč (zbývá {formatAmount(1500 - pricing.itemsSubtotalAmount)})
             </p>
           )}
         </div>
