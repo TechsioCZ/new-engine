@@ -59,41 +59,31 @@ zane::preview_environment_name() {
   printf '%s%s\n' "$prefix" "$pr_number"
 }
 
+zane::require_new_engine_ctl_runtime() {
+  ci::require_command node
+}
+
+zane::new_engine_ctl() {
+  local subcommand="$1"
+  shift
+
+  zane::require_new_engine_ctl_runtime
+
+  if [[ -n "${NEW_ENGINE_CTL_BIN:-}" ]]; then
+    node "$NEW_ENGINE_CTL_BIN" "$subcommand" "$@"
+    return
+  fi
+
+  ci::require_command pnpm
+  pnpm --dir "$ROOT_DIR" exec tsx apps/new-engine-ctl/src/cli.ts "$subcommand" "$@"
+}
+
 zane::service_json() {
   local service_id="$1"
   local service_json
   service_json="$(ci_zane_service_json "$service_id")"
   [[ -n "$service_json" ]] || ci::die "Service is not deployable or missing Zane metadata: ${service_id}"
   printf '%s\n' "$service_json"
-}
-
-zane::service_allowed_in_lane() {
-  local service_json="$1"
-  local lane="$2"
-  jq -e --arg lane "$lane" '(.deploy_lanes | index($lane)) != null' <<<"$service_json" >/dev/null
-}
-
-zane::csv_from_lookup_in_manifest_order() {
-  local lane="$1"
-  local lookup_name="$2"
-  local service_id
-  local out=""
-
-  # shellcheck disable=SC2178,SC1083
-  declare -n lookup_ref="$lookup_name"
-
-  while IFS= read -r service_id; do
-    [[ -n "$service_id" ]] || continue
-    if [[ "${lookup_ref[$service_id]:-false}" == "true" ]]; then
-      if [[ -n "$out" ]]; then
-        out+=",${service_id}"
-      else
-        out="${service_id}"
-      fi
-    fi
-  done < <(ci_zane_lane_service_ids "$lane")
-
-  printf '%s\n' "$out"
 }
 
 zane::services_json_from_csv() {
@@ -123,45 +113,6 @@ zane::service_slugs_json_from_csv() {
   local services_json
   services_json="$(zane::services_json_from_csv "$csv")"
   jq -c '[.[].service_slug]' <<<"$services_json"
-}
-
-zane::preview_service_sets_json() {
-  local cloned_ids_csv=""
-  local excluded_ids_csv=""
-  local cloned_services_json='[]'
-  local excluded_services_json='[]'
-
-  cloned_ids_csv="$(paste -sd, < <(ci_zane_preview_cloned_service_ids) || true)"
-  excluded_ids_csv="$(paste -sd, < <(ci_zane_preview_excluded_service_ids) || true)"
-  cloned_ids_csv="$(zane::normalize_csv_or_empty "$cloned_ids_csv")"
-  excluded_ids_csv="$(zane::normalize_csv_or_empty "$excluded_ids_csv")"
-  cloned_services_json="$(zane::services_json_from_csv "$cloned_ids_csv")"
-  excluded_services_json="$(zane::services_json_from_csv "$excluded_ids_csv")"
-
-  jq -cn \
-    --arg preview_cloned_service_ids_csv "$cloned_ids_csv" \
-    --arg preview_excluded_service_ids_csv "$excluded_ids_csv" \
-    --argjson preview_cloned_services "$cloned_services_json" \
-    --argjson preview_excluded_services "$excluded_services_json" \
-    '{
-      preview_cloned_service_ids_csv: $preview_cloned_service_ids_csv,
-      preview_excluded_service_ids_csv: $preview_excluded_service_ids_csv,
-      preview_cloned_services: $preview_cloned_services,
-      preview_excluded_services: $preview_excluded_services
-    }'
-}
-
-zane::preview_service_slug_sets_json() {
-  local preview_cloned_service_ids_csv="$1"
-  local preview_excluded_service_ids_csv="$2"
-
-  jq -cn \
-    --argjson expected_preview_service_slugs "$(zane::service_slugs_json_from_csv "$preview_cloned_service_ids_csv")" \
-    --argjson excluded_preview_service_slugs "$(zane::service_slugs_json_from_csv "$preview_excluded_service_ids_csv")" \
-    '{
-      expected_preview_service_slugs: $expected_preview_service_slugs,
-      excluded_preview_service_slugs: $excluded_preview_service_slugs
-    }'
 }
 
 zane::service_ids_json_from_csv() {

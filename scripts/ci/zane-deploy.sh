@@ -27,15 +27,9 @@ Usage:
   scripts/ci/zane-deploy.sh <command> [options]
 
 Commands:
-  plan                   Resolve requested + coupled deploy services from the manifest
-  render-env-overrides   Render preview env override payload from prepare outputs
-  resolve-environment    Resolve preview/main Zane environment through zane-operator
-  resolve-targets        Resolve per-service Zane deploy targets for the environment
-  apply-env-overrides    Apply rendered env overrides to target services
   trigger                Trigger deploys for resolved target services
   run-preview            Run preview deploy orchestration end-to-end
   run-main               Run main deploy orchestration end-to-end
-  verify                 Verify preview/main deploy contract through zane-operator
 
 Global notes:
   - networked commands use ZANE_OPERATOR_BASE_URL + ZANE_OPERATOR_API_TOKEN unless flags override them
@@ -53,21 +47,6 @@ main() {
   shift || true
 
   case "$command" in
-    plan)
-      zane::cmd_plan "$@"
-      ;;
-    render-env-overrides)
-      zane::cmd_render_env_overrides "$@"
-      ;;
-    resolve-environment)
-      zane::cmd_resolve_environment "$@"
-      ;;
-    resolve-targets)
-      zane::cmd_resolve_targets "$@"
-      ;;
-    apply-env-overrides)
-      zane::cmd_apply_env_overrides "$@"
-      ;;
     trigger)
       zane::cmd_trigger "$@"
       ;;
@@ -76,9 +55,6 @@ main() {
       ;;
     run-main)
       zane::cmd_run_main "$@"
-      ;;
-    verify)
-      zane::cmd_verify "$@"
       ;;
     -h|--help|help|"")
       zane::usage

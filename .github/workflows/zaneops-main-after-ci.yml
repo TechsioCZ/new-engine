@@ -44,11 +44,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build new-engine-ctl
+        run: pnpm exec nx run new-engine-ctl:build
 
       - name: Resolve base SHA
         id: base
@@ -73,6 +76,13 @@ jobs:
       - name: Resolve downtime risk
         id: downtime
         run: bash ./scripts/ci/resolve-downtime-risk.sh --lane main --services-csv "${{ steps.affected.outputs.services_csv }}"
+
+      - name: Upload new-engine-ctl artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist/cli.js
+          if-no-files-found: error
 
       - name: Summary
         if: always()
@@ -197,6 +207,15 @@ jobs:
         with:
           install: true
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       - name: Validate deploy inputs
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
@@ -218,6 +237,7 @@ jobs:
           MEILI_BACKEND_KEY: ${{ needs.prepare.outputs.meili_backend_key }}
           MEILI_FRONTEND_KEY: ${{ needs.prepare.outputs.meili_frontend_key }}
           MEILI_FRONTEND_ENV_VAR: ${{ needs.prepare.outputs.meili_frontend_env_var }}
+          NEW_ENGINE_CTL_BIN: apps/new-engine-ctl/dist/cli.js
         run: |
           bash ./scripts/ci/zane-deploy.sh run-main \
             --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
@@ -249,9 +269,14 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: jdx/mise-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          install: true
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Validate verify inputs
         env:
@@ -276,7 +301,7 @@ jobs:
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
         run: |
-          bash ./scripts/ci/zane-deploy.sh verify \
+          node apps/new-engine-ctl/dist/cli.js verify \
             --lane main \
             --environment-name "$ENVIRONMENT_NAME" \
             --requested-services-csv "${REQUESTED_SERVICES_CSV:-}" \

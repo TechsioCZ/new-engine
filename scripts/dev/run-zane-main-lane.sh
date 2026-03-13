@@ -385,7 +385,7 @@ run_verify_stage() {
   ) >/dev/null
 
   if ! verify_json="$(
-    bash "${ROOT_DIR}/scripts/ci/zane-deploy.sh" verify \
+    pnpm --dir "${ROOT_DIR}" exec tsx apps/new-engine-ctl/src/cli.ts verify \
       --lane main \
       --project-slug "$PROJECT_SLUG" \
       --environment-name "$(jq -r '.environment_name' <<<"$deploy_json")" \

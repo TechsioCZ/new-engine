@@ -1,0 +1,33 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "new-engine-ctl",
+  "projectType": "application",
+  "sourceRoot": "apps/new-engine-ctl/src",
+  "tags": ["type:app", "platform:backend", "framework:agnostic"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["typecheck"],
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "cwd": "apps/new-engine-ctl",
+        "command": "pnpm run build"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/new-engine-ctl",
+        "command": "pnpm run typecheck"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "cwd": "apps/new-engine-ctl",
+        "command": "pnpm run dev"
+      }
+    }
+  }
+}
