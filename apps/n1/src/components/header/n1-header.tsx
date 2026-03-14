@@ -7,6 +7,7 @@ import { Header } from "@techsio/ui-kit/organisms/header"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import NextLink from "next/link"
+import { Suspense } from "react"
 import logo from "@/assets/logo-n1.webp"
 import { CartPopover } from "./cart-popover"
 import { DesktopSubmenu } from "./desktop-submenu"
@@ -99,8 +100,12 @@ export const N1Header = () => {
         </Header.Actions>
       </Header.Container>
 
-      <DesktopSubmenu />
-      <MobileMenu />
+      <Suspense fallback={null}>
+        <DesktopSubmenu />
+      </Suspense>
+      <Suspense fallback={null}>
+        <MobileMenu />
+      </Suspense>
     </Header>
   )
 }

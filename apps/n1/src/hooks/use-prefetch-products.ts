@@ -1,3 +1,5 @@
+"use client"
+
 import { PRODUCT_LIMIT } from "@/lib/constants"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import {
@@ -6,6 +8,11 @@ import {
 } from "./prefetch-utils"
 import { storefront } from "./storefront-preset"
 import { useRegion } from "./use-region"
+
+type CategoryInput = string | string[]
+
+const normalizeCategoryInput = (categoryInput: CategoryInput): string[] =>
+  Array.isArray(categoryInput) ? categoryInput : [categoryInput]
 
 export function usePrefetchProducts() {
   const { regionId, countryCode } = useRegion()
@@ -22,12 +29,14 @@ export function usePrefetchProducts() {
   })
 
   const prefetchCategoryProducts = async (
-    categoryId: string[],
+    categoryInput: CategoryInput,
     prefetchedBy?: string
   ) => {
     if (!regionId) {
       return
     }
+
+    const categoryId = normalizeCategoryInput(categoryInput)
     const labels = buildCategoryPrefetchLabels(categoryId)
     if (!labels) {
       return
@@ -51,10 +60,12 @@ export function usePrefetchProducts() {
     })
   }
 
-  const prefetchRootCategories = async (categoryId: string[]) => {
+  const prefetchRootCategories = async (categoryInput: CategoryInput) => {
     if (!regionId) {
       return
     }
+
+    const categoryId = normalizeCategoryInput(categoryInput)
     const labels = buildCategoryPrefetchLabels(categoryId)
     if (!labels) {
       return
@@ -77,9 +88,11 @@ export function usePrefetchProducts() {
   }
 
   const delayedPrefetch = (
-    categoryId: string[],
+    categoryInput: CategoryInput,
     delay: number = PREFETCH_DELAYS.CATEGORY_LIST
   ) => {
+    const categoryId = normalizeCategoryInput(categoryInput)
+
     if (!regionId) {
       return categoryId.join("-")
     }
