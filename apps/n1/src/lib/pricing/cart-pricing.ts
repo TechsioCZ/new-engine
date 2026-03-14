@@ -100,7 +100,9 @@ export const getOrderPriceView = (order: HttpTypes.StoreOrder) => {
   const currencyCode = getCurrencyCode(order.currency_code)
   const itemsSubtotalAmount = getOrderItemsSubtotalAmount(order)
   const shippingAmount = order.shipping_total ?? 0
-  const taxAmount = order.tax_total ?? order.item_tax_total ?? 0
+  const taxAmount =
+    order.tax_total ??
+    ((order.item_tax_total ?? 0) + (order.shipping_tax_total ?? 0))
   const totalAmount = order.total ?? order.summary?.original_order_total ?? 0
 
   return {

@@ -27,15 +27,17 @@ const normalizeInteger = (value: number | undefined): number | undefined => {
 const normalizeCategoryId = (
   categoryId: BuilderParams["category_id"]
 ): string[] | undefined => {
-  if (Array.isArray(categoryId)) {
-    return categoryId
-  }
+  const values = Array.isArray(categoryId)
+    ? categoryId
+    : typeof categoryId === "string"
+      ? [categoryId]
+      : []
 
-  if (typeof categoryId === "string") {
-    return [categoryId]
-  }
+  const normalized = values
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0)
 
-  return
+  return normalized.length > 0 ? normalized : undefined
 }
 
 export function resolveProductPagination({

@@ -1,7 +1,9 @@
 "use client"
-import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import {
+  Breadcrumb,
+  type BreadcrumbItemType,
+} from "@techsio/ui-kit/molecules/breadcrumb"
 import NextLink from "next/link"
 import {
   notFound,
@@ -29,6 +31,7 @@ import {
   VALID_CATEGORY_ROUTES,
 } from "@/lib/constants"
 import { useAnalytics } from "@/providers/analytics-provider"
+import { buildBreadcrumbs } from "@/utils/helpers/build-breadcrumb"
 import { transformProduct } from "@/utils/transform/transform-product"
 
 type StaticCategory = (typeof allCategories)[number]
@@ -113,10 +116,12 @@ export default function CategoryPage() {
     (cat) => cat.id === rootCategory?.id
   )
 
-  const breadcrumbItems: { label: string; href: string; icon?: IconType }[] = [
-    { label: "Home", href: "/", icon: "icon-[mdi--home]" },
-    { label: rootCategory?.handle || handle, href: `/kategorie/${handle}` },
-  ]
+  const breadcrumbItems: BreadcrumbItemType[] = buildBreadcrumbs(
+    currentCategory?.id,
+    categoryMap
+  ).map((item, index) =>
+    index === 0 ? { ...item, icon: "icon-[mdi--home]" } : item
+  )
 
   const currentPage = parsePageParam(searchParams.get("page"))
   const categoryIds = ALL_CATEGORIES_MAP[handle] ?? []
@@ -137,7 +142,7 @@ export default function CategoryPage() {
 }
 
 type CategoryPageContentProps = {
-  breadcrumbItems: { label: string; href: string; icon?: IconType }[]
+  breadcrumbItems: BreadcrumbItemType[]
   categoryIds: string[]
   currentCategory: StaticCategory
   currentCategoryChildren: StaticCategory[]

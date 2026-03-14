@@ -15,10 +15,14 @@ import {
   validateAddressForm,
   validateAddressPatch,
 } from "@/utils/address-validation"
-import { cleanPhoneNumber } from "@/utils/format/format-phone-number"
-import { formatPhoneNumber } from "@/utils/format/format-phone-number"
-import { cleanPostalCode } from "@/utils/format/format-postal-code"
-import { formatPostalCode } from "@/utils/format/format-postal-code"
+import {
+  cleanPhoneNumber,
+  formatPhoneNumber,
+} from "@/utils/format/format-phone-number"
+import {
+  cleanPostalCode,
+  formatPostalCode,
+} from "@/utils/format/format-postal-code"
 
 export type CustomerAddressUpdateHookInput = AddressPatchData & {
   addressId?: string

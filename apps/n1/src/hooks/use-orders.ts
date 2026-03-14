@@ -14,11 +14,6 @@ type OrderListInput = {
   enabled?: boolean
 }
 
-type OrderDetailInput = {
-  id?: string
-  enabled?: boolean
-}
-
 type UseOrderInput = {
   id?: string | null
   enabled?: boolean
@@ -73,14 +68,9 @@ export function useSuspenseOrders(options?: UseOrdersOptions) {
 export function useOrder(input: UseOrderInput, options?: UseOrderHookOptions) {
   const id = input.id ?? undefined
   const enabled = Boolean(id) && (input.enabled ?? true)
+  const orderInput = { id, enabled }
 
-  return orderHooks.useOrder(
-    {
-      id,
-      enabled,
-    } as OrderDetailInput,
-    options
-  )
+  return orderHooks.useOrder(orderInput, options)
 }
 
 export function useSuspensePublicOrder(
