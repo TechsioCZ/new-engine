@@ -1,5 +1,6 @@
 import type { StoreProduct } from "@medusajs/types"
 import { PRODUCT_LIMIT } from "@/lib/constants"
+import { buildProductQueryParams } from "@/lib/product-query-params"
 import { storefront } from "./storefront-preset"
 
 type UseProductsProps = {
@@ -42,11 +43,11 @@ export function useProducts({
   limit = PRODUCT_LIMIT,
   enabled,
 }: UseProductsProps): UseProductsReturn {
-  const listParams = {
+  const listParams = buildProductQueryParams({
     category_id,
+    page,
     limit,
-    offset: (page - 1) * limit,
-  }
+  })
   const productInput =
     enabled === undefined ? listParams : { ...listParams, enabled }
   const result = productHooks.useProducts(productInput)
@@ -70,11 +71,11 @@ export function useSuspenseProducts({
   page = 1,
   limit = PRODUCT_LIMIT,
 }: UseSuspenseProductsProps): UseSuspenseProductsReturn {
-  const listParams = {
+  const listParams = buildProductQueryParams({
     category_id,
+    page,
     limit,
-    offset: (page - 1) * limit,
-  }
+  })
   const result = productHooks.useSuspenseProducts(listParams)
 
   return {

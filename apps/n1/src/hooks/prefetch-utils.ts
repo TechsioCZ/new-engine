@@ -36,7 +36,14 @@ export async function runLoggedPrefetch({
 }: RunLoggedPrefetchOptions): Promise<void> {
   const start = performance.now()
   prefetchLogger.start(type, label)
-  await prefetch()
-  const duration = performance.now() - start
-  prefetchLogger.complete(type, label, duration)
+
+  try {
+    await prefetch()
+    const duration = performance.now() - start
+    prefetchLogger.complete(type, label, duration)
+  } catch (error) {
+    const duration = performance.now() - start
+    prefetchLogger.fail(type, label, duration, error)
+    throw error
+  }
 }

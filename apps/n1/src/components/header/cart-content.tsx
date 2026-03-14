@@ -16,6 +16,8 @@ type CartContentProps = {
   onClose?: () => void
 }
 
+const FREE_SHIPPING_THRESHOLD = 1500
+
 export const CartContent = ({ cart, onClose }: CartContentProps) => {
   const { mutate: updateQuantity, isPending: isUpdating } = useUpdateLineItem()
   const { mutate: removeItem, isPending: isRemoving } = useRemoveLineItem()
@@ -121,11 +123,15 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
             <span>{pricing.total}</span>
           </div>
 
-          {pricing.itemsSubtotalAmount > 0 && pricing.itemsSubtotalAmount < 1500 && (
-            <p className="pt-200 text-center text-fg-secondary text-xs">
-              Doprava zdarma od 1 500 Kč (zbývá {formatAmount(1500 - pricing.itemsSubtotalAmount)})
-            </p>
-          )}
+          {pricing.itemsSubtotalAmount > 0 &&
+            pricing.itemsSubtotalAmount < FREE_SHIPPING_THRESHOLD && (
+              <p className="pt-200 text-center text-fg-secondary text-xs">
+                Doprava zdarma od 1 500 Kč (zbývá{" "}
+                {formatAmount(
+                  FREE_SHIPPING_THRESHOLD - pricing.itemsSubtotalAmount
+                )}
+              </p>
+            )}
         </div>
       </div>
 

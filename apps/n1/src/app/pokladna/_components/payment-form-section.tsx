@@ -17,12 +17,12 @@ export function PaymentFormSection() {
   } = payment
 
   const [selectedProvider, setSelectedProvider] = useState<string>("")
+  const currentProviderId =
+    cart?.payment_collection?.payment_sessions?.[0]?.provider_id ?? ""
 
   useEffect(() => {
-    const currentProvider =
-      cart?.payment_collection?.payment_sessions?.[0]?.provider_id ?? ""
-    setSelectedProvider(currentProvider)
-  }, [cart?.payment_collection?.payment_sessions])
+    setSelectedProvider(currentProviderId)
+  }, [currentProviderId])
 
   async function handleProviderSelect(providerId: string) {
     if (!(canInitiatePayment && selectedProvider !== providerId)) {

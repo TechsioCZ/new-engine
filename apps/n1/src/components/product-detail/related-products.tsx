@@ -13,12 +13,18 @@ export const RelatedProducts = ({ categories }: RelatedProductsProps) => {
     limit: 4,
     enabled: hasCategories,
   })
+
+  if (!hasCategories || rawProducts.length === 0) {
+    return null
+  }
+
   const products = rawProducts.map(transformProduct)
+
   return (
     <div>
       <h3 className="font-bold text-lg">PODOBNÉ PRODUKTY</h3>
       <div className="flex max-w-max-w justify-around">
-        {products && <ProductGrid products={products} />}
+        <ProductGrid products={products} />
       </div>
     </div>
   )

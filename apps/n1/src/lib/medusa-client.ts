@@ -17,6 +17,5 @@ export const sdk = createMedusaSdk({
   auth: {
     type: "session",
     fetchCredentials: "include",
-    jwtTokenStorageMethod: "nostore",
   },
 })

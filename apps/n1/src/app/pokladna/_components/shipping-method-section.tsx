@@ -59,7 +59,7 @@ function ShippingOptionCard({
   return (
     <Button
       aria-checked={selected}
-      aria-label={`${option.name}, ${formattedPrice || "zdarma"}`}
+      aria-label={`${option.name}, ${formattedPrice}`}
       className="flex w-full p-100 px-200 items-center gap-300 text-left border border-border-secondary hover:bg-overlay data-[selected=true]:border-border-primary/30 data-[selected=true]:bg-overlay-light"
       data-selected={selected}
       disabled={isUpdating}
@@ -73,7 +73,7 @@ function ShippingOptionCard({
         <p className="font-medium text-fg-primary text-sm">{option.name}</p>
         <StatusText size="sm">Dodání 2-3 dny</StatusText>
       </div>
-      <span>{formattedPrice || "Zdarma"}</span>
+      <span>{formattedPrice}</span>
     </Button>
   )
 }

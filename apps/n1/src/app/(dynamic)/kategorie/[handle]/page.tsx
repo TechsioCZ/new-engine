@@ -33,6 +33,19 @@ import { transformProduct } from "@/utils/transform/transform-product"
 
 type StaticCategory = (typeof allCategories)[number]
 
+const parsePageParam = (value: string | null): number => {
+  if (value == null) {
+    return 1
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return 1
+  }
+
+  return Math.max(1, Math.floor(parsed))
+}
+
 export default function CategoryPage() {
   const params = useParams()
   const router = useRouter()
@@ -105,7 +118,7 @@ export default function CategoryPage() {
     { label: rootCategory?.handle || handle, href: `/kategorie/${handle}` },
   ]
 
-  const currentPage = Number(searchParams.get("page")) || 1
+  const currentPage = parsePageParam(searchParams.get("page"))
   const categoryIds = ALL_CATEGORIES_MAP[handle] ?? []
 
   return (

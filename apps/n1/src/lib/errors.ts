@@ -14,6 +14,22 @@ type ErrorWithResponse = {
 }
 
 const UNKNOWN_ERROR_MESSAGE = "An unknown error occurred"
+const ADDRESS_FIELD_KEYS = [
+  "first_name",
+  "last_name",
+  "company",
+  "address_1",
+  "address_2",
+  "city",
+  "province",
+  "postal_code",
+  "country_code",
+  "phone",
+] as const satisfies readonly AddressFieldKey[]
+
+function isAddressFieldKey(field: string): field is AddressFieldKey {
+  return ADDRESS_FIELD_KEYS.includes(field as AddressFieldKey)
+}
 
 function isError(error: unknown): error is Error {
   return error instanceof Error
@@ -165,8 +181,12 @@ export function toAddressValidationError(
     const mappedErrors: AddressErrors = {}
 
     for (const issue of error.issues) {
-      const field = issue.field as AddressFieldKey
-      if (!mappedErrors[field] && issue.message) {
+      if (!(issue.message && isAddressFieldKey(issue.field))) {
+        continue
+      }
+
+      const field = issue.field
+      if (!mappedErrors[field]) {
         mappedErrors[field] = issue.message
       }
     }

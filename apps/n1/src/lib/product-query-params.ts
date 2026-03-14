@@ -14,6 +14,16 @@ type BuilderParams = Omit<Partial<ProductQueryParams>, "category_id"> & {
   category_id?: string[] | string
 }
 
+type PaginationInput = Pick<BuilderParams, "page" | "limit" | "offset">
+
+const normalizeInteger = (value: number | undefined): number | undefined => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return
+  }
+
+  return Math.floor(value)
+}
+
 const normalizeCategoryId = (
   categoryId: BuilderParams["category_id"]
 ): string[] | undefined => {
@@ -28,16 +38,51 @@ const normalizeCategoryId = (
   return
 }
 
+export function resolveProductPagination({
+  page,
+  limit,
+  offset,
+}: PaginationInput): Pick<ProductQueryParams, "limit" | "offset"> {
+  const normalizedLimit = normalizeInteger(limit)
+  const resolvedLimit =
+    typeof normalizedLimit === "number" && normalizedLimit > 0
+      ? normalizedLimit
+      : PRODUCT_LIMIT
+
+  const normalizedOffset = normalizeInteger(offset)
+  if (typeof normalizedOffset === "number") {
+    return {
+      limit: resolvedLimit,
+      offset: Math.max(0, normalizedOffset),
+    }
+  }
+
+  if (page !== undefined) {
+    const normalizedPage = normalizeInteger(page)
+    const resolvedPage =
+      typeof normalizedPage === "number" && normalizedPage > 0
+        ? normalizedPage
+        : 1
+
+    return {
+      limit: resolvedLimit,
+      offset: (resolvedPage - 1) * resolvedLimit,
+    }
+  }
+
+  return { limit: resolvedLimit }
+}
+
 export function buildProductQueryParams(
   params: BuilderParams
 ): ProductQueryParams {
   const { page, limit, offset, category_id, ...rest } = params
-  const resolvedLimit =
-    typeof limit === "number" && limit > 0 ? limit : PRODUCT_LIMIT
-  let resolvedOffset = offset
-  if (typeof resolvedOffset !== "number" && typeof page === "number") {
-    resolvedOffset = (page - 1) * resolvedLimit
-  }
+  const { limit: resolvedLimit, offset: resolvedOffset } =
+    resolveProductPagination({
+      page,
+      limit,
+      offset,
+    })
   const normalizedCategoryId = normalizeCategoryId(category_id)
 
   return {

@@ -9,6 +9,7 @@ type OrderDetailProps = {
 
 export const OrderDetail = ({ order }: OrderDetailProps) => {
   const pricing = getOrderPriceView(order)
+  const shippingMethodName = order.shipping_methods?.[0]?.name
   const subtotalLabel = pricing.showTax ? "Cena bez DPH" : "Mezisoučet"
 
   return (
@@ -47,10 +48,12 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                 </span>
               </div>
             )}
-            {order.shipping_methods?.[0] && pricing.hasShipping && (
+            {pricing.hasShipping && (
               <div className="flex justify-between">
                 <span className="text-fg-secondary">
-                  Doprava ({order.shipping_methods[0].name})
+                  {shippingMethodName
+                    ? `Doprava (${shippingMethodName})`
+                    : "Doprava"}
                 </span>
                 <span className="font-medium text-fg-primary">
                   {pricing.shipping}
