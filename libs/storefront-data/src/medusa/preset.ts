@@ -88,7 +88,9 @@ import type {
 import { createOrderHooks, type CreateOrderHooksConfig } from "../orders/hooks"
 import {
   createMedusaOrderService,
+  type MedusaOrderDetailHookInput,
   type MedusaOrderDetailInput,
+  type MedusaOrderListHookInput,
   type MedusaOrderListInput,
   type MedusaOrderServiceConfig,
 } from "../orders/medusa-service"
@@ -192,9 +194,9 @@ type MedusaProductHooksConfig<TProduct> = OmitFactoryConfig<
 type MedusaOrderHooksConfig = OmitFactoryConfig<
   CreateOrderHooksConfig<
     HttpTypes.StoreOrder,
+    MedusaOrderListHookInput,
     MedusaOrderListInput,
-    MedusaOrderListInput,
-    MedusaOrderDetailInput,
+    MedusaOrderDetailHookInput,
     MedusaOrderDetailInput
   >
 >
@@ -599,9 +601,9 @@ export function createMedusaStorefrontPreset<
     }),
     orders: createOrderHooks<
       HttpTypes.StoreOrder,
+      MedusaOrderListHookInput,
       MedusaOrderListInput,
-      MedusaOrderListInput,
-      MedusaOrderDetailInput,
+      MedusaOrderDetailHookInput,
       MedusaOrderDetailInput
     >({
       ...(config.orders?.hooks ?? {}),
