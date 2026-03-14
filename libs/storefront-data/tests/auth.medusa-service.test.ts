@@ -1,5 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
-import { createMedusaAuthService } from "../src/auth/medusa-service"
+import {
+  createMedusaAuthService,
+  MedusaRegistrationSignInError,
+} from "../src/auth/medusa-service"
 
 type SdkLike = {
   client: {
@@ -97,7 +100,7 @@ describe("createMedusaAuthService", () => {
     await expect(service.getCustomer()).resolves.toBeNull()
   })
 
-  it("returns refreshed session token from register flow", async () => {
+  it("returns refreshed token from register flow and forwards login token to refresh", async () => {
     const sdk = createSdkMock()
     sdk.auth.register.mockResolvedValue("registration_token")
     sdk.auth.login.mockResolvedValue("login_token")
@@ -114,7 +117,9 @@ describe("createMedusaAuthService", () => {
     expect(sdk.auth.register).toHaveBeenCalledTimes(1)
     expect(sdk.auth.login).toHaveBeenCalledTimes(1)
     expect(sdk.store.customer.create).toHaveBeenCalledTimes(1)
-    expect(sdk.auth.refresh).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.refresh).toHaveBeenCalledWith({
+      Authorization: "Bearer login_token",
+    })
     expect(sdk.auth.register.mock.invocationCallOrder[0]!).toBeLessThan(
       sdk.auth.login.mock.invocationCallOrder[0]!
     )
@@ -161,7 +166,7 @@ describe("createMedusaAuthService", () => {
     expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
   })
 
-  it("logs logout errors by default and keeps logout as best effort", async () => {
+  it("logs logout errors by default and rethrows logout failures", async () => {
     const logoutError = new Error("logout failed")
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
     const sdk = createSdkMock({
@@ -169,7 +174,7 @@ describe("createMedusaAuthService", () => {
     })
     const service = createMedusaAuthService(sdk as never)
 
-    await expect(service.logout()).resolves.toBeUndefined()
+    await expect(service.logout()).rejects.toBe(logoutError)
 
     expect(warnSpy).toHaveBeenCalledWith(
       "[storefront-data/auth] Failed to logout customer session.",
@@ -177,7 +182,7 @@ describe("createMedusaAuthService", () => {
     )
   })
 
-  it("calls custom logout reporter instead of default logging", async () => {
+  it("calls custom logout reporter and rethrows logout failures", async () => {
     const logoutError = new Error("logout failed")
     const onLogoutError = vi.fn()
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
@@ -186,10 +191,20 @@ describe("createMedusaAuthService", () => {
     })
     const service = createMedusaAuthService(sdk as never, { onLogoutError })
 
-    await expect(service.logout()).resolves.toBeUndefined()
+    await expect(service.logout()).rejects.toBe(logoutError)
 
     expect(onLogoutError).toHaveBeenCalledWith(logoutError, "logout")
     expect(warnSpy).not.toHaveBeenCalled()
+  })
+
+  it("keeps logout as best effort for auth errors (already logged out)", async () => {
+    const logoutError = { status: 401 }
+    const sdk = createSdkMock({
+      logout: vi.fn().mockRejectedValue(logoutError),
+    })
+    const service = createMedusaAuthService(sdk as never)
+
+    await expect(service.logout()).resolves.toBeUndefined()
   })
 
   it("reports cleanup logout errors and rethrows original register failure", async () => {
@@ -213,6 +228,36 @@ describe("createMedusaAuthService", () => {
       cleanupLogoutError,
       "register-cleanup"
     )
+    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
+  })
+
+  it("surfaces refresh failures after customer creation as sign-in errors", async () => {
+    const refreshError = new Error("refresh failed")
+    const sdk = createSdkMock()
+    sdk.auth.register.mockResolvedValue("registration_token")
+    sdk.auth.login.mockResolvedValue("login_token")
+    sdk.auth.refresh.mockRejectedValue(refreshError)
+    const service = createMedusaAuthService(sdk as never)
+    const registration = service.register({
+      email: "john@example.com",
+      password: "secret123",
+    })
+
+    await expect(
+      registration
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: "MedusaRegistrationSignInError",
+        code: "registration_sign_in_failed",
+        email: "john@example.com",
+        reason: refreshError,
+      })
+    )
+
+    await expect(registration).rejects.toBeInstanceOf(
+      MedusaRegistrationSignInError
+    )
+    expect(sdk.store.customer.create).toHaveBeenCalledTimes(1)
     expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
   })
 })

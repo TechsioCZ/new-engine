@@ -1,5 +1,6 @@
 import type {
   DefaultError,
+  QueryFunctionContext,
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
   UseQueryOptions,
@@ -45,6 +46,16 @@ export type InfiniteQueryOptions<
   >,
   "queryKey" | "queryFn" | "getNextPageParam" | "initialPageParam"
 >
+
+export type QueryFactoryOptions<
+  TQueryFnData,
+  TError = DefaultError,
+  TData = TQueryFnData,
+  TQueryKey extends QueryKey = QueryKey,
+> = {
+  queryKey: TQueryKey
+  queryFn: (context: QueryFunctionContext<TQueryKey>) => Promise<TQueryFnData>
+} & ReadQueryOptions<TQueryFnData, TError, TData, TQueryKey>
 
 export type QueryResult<TData, TError = DefaultError> = UseQueryResult<
   TData,

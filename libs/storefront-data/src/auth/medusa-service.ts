@@ -22,7 +22,25 @@ export type MedusaUpdateCustomerData = Partial<{
   phone: string
 }>
 
-export type MedusaLogoutErrorContext = "logout" | "register-cleanup"
+export class MedusaRegistrationSignInError extends Error {
+  readonly code = "registration_sign_in_failed"
+  readonly email: string
+  readonly reason: unknown
+
+  constructor(email: string, reason: unknown) {
+    super(
+      "Customer account was created, but automatic sign-in failed. Please sign in again."
+    )
+    this.name = "MedusaRegistrationSignInError"
+    this.email = email
+    this.reason = reason
+  }
+}
+
+export type MedusaLogoutErrorContext =
+  | "logout"
+  | "register-cleanup"
+  | "register-signin-recovery"
 
 export type MedusaAuthServiceConfig = {
   onLogoutError?: (error: unknown, context: MedusaLogoutErrorContext) => void
@@ -32,10 +50,15 @@ const defaultReportLogoutError = (
   error: unknown,
   context: MedusaLogoutErrorContext
 ) => {
-  const message =
-    context === "logout"
-      ? "[storefront-data/auth] Failed to logout customer session."
-      : "[storefront-data/auth] Failed to cleanup auth session after register error."
+  let message = "[storefront-data/auth] Failed to cleanup auth session after register error."
+
+  if (context === "logout") {
+    message = "[storefront-data/auth] Failed to logout customer session."
+  } else if (context === "register-signin-recovery") {
+    message =
+      "[storefront-data/auth] Failed to cleanup auth session after registration sign-in recovery error."
+  }
+
   console.warn(message, error)
 }
 
@@ -44,9 +67,10 @@ const defaultReportLogoutError = (
  *
  * Includes multi-step registration flow:
  * 1. Register auth identity
- * 2. Login to establish session
+ * 2. Login to establish customer auth state
  * 3. Create customer profile
- * 4. Refresh token for proper permissions
+ * 4. Refresh auth state so subsequent requests use a token/session that
+ *    includes the created customer actor.
  *
  * @example
  * ```typescript
@@ -91,6 +115,26 @@ export function createMedusaAuthService(
     } catch {
       // Keep logout best-effort: reporting must never break auth flow.
     }
+  }
+
+  const cleanupRegisterSession = async (context: MedusaLogoutErrorContext) => {
+    try {
+      await sdk.auth.logout()
+    } catch (logoutError) {
+      reportLogoutError(logoutError, context)
+    }
+  }
+
+  const refreshRegisterSession = async (loginToken: string) => {
+    const sessionToken = await sdk.auth.refresh({
+      Authorization: `Bearer ${loginToken}`,
+    })
+
+    if (typeof sessionToken !== "string") {
+      throw new Error("Multi-step authentication not supported")
+    }
+
+    return sessionToken
   }
 
   return {
@@ -138,6 +182,10 @@ export function createMedusaAuthService(
         await sdk.auth.logout()
       } catch (error) {
         reportLogoutError(error, "logout")
+        if (isAuthError(error)) {
+          return
+        }
+        throw error
       }
     },
 
@@ -147,6 +195,7 @@ export function createMedusaAuthService(
         email: data.email,
         password: data.password,
       })
+      let customerCreated = false
 
       try {
         // Handle OAuth redirects.
@@ -156,10 +205,9 @@ export function createMedusaAuthService(
           throw new Error("Multi-step authentication not supported")
         }
 
-        // Step 2: Login to establish a standard customer session.
-        // Medusa docs show register token usage directly for customer.create, but
-        // we intentionally keep this login step so the flow consistently returns
-        // a refreshed session token after create+refresh.
+        // Step 2: Login to establish the standard customer auth state before
+        // creating the customer profile. This works for both JWT and session
+        // auth modes through the SDK.
         const loginToken = await sdk.auth.login("customer", "emailpass", {
           email: data.email,
           password: data.password,
@@ -174,22 +222,24 @@ export function createMedusaAuthService(
           first_name: data.first_name,
           last_name: data.last_name,
         })
+        customerCreated = true
 
-        // Step 4: Refresh token for proper permissions (REQUIRED!)
-        const sessionToken = await sdk.auth.refresh()
-        if (typeof sessionToken !== "string") {
-          throw new Error("Multi-step authentication not supported")
-        }
-
-        return sessionToken
+        // Step 4: Refresh auth state after customer creation so the JWT/session
+        // reflects the newly created customer actor. In session mode the SDK
+        // does not keep a bearer token around, so we forward the login token
+        // explicitly to the refresh endpoint.
+        return await refreshRegisterSession(loginToken)
       } catch (err) {
-        // CRITICAL: Clean up orphaned token if customer.create() failed
-        // If register() succeeded but create() failed, we have token without customer
-        try {
-          await sdk.auth.logout()
-        } catch (logoutError) {
-          reportLogoutError(logoutError, "register-cleanup")
+        const logoutContext: MedusaLogoutErrorContext = customerCreated
+          ? "register-signin-recovery"
+          : "register-cleanup"
+
+        await cleanupRegisterSession(logoutContext)
+
+        if (customerCreated) {
+          throw new MedusaRegistrationSignInError(data.email, err)
         }
+
         throw err
       }
     },

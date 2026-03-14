@@ -6,6 +6,11 @@ import {
 } from "@tanstack/react-query"
 import type { AuthQueryKeys } from "../auth/types"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import { assertStorefrontAddressValidation } from "../shared/address"
+import type {
+  StorefrontCustomerCreateAddressContext,
+  StorefrontCustomerUpdateAddressContext,
+} from "../shared/address"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
@@ -14,11 +19,11 @@ import type {
 import { createQueryKey, type QueryNamespace } from "../shared/query-keys"
 import { createCustomerQueryKeys } from "./query-keys"
 import type {
+  CustomerAddressAdapter,
   CustomerAddressCreateInputBase,
   CustomerAddressListInputBase,
   CustomerAddressListResponse,
   CustomerAddressUpdateInputBase,
-  CustomerAddressValidationResult,
   CustomerMutationOptions,
   CustomerProfileUpdateInputBase,
   CustomerQueryKeys,
@@ -26,19 +31,6 @@ import type {
   UseCustomerAddressesResult,
   UseSuspenseCustomerAddressesResult,
 } from "./types"
-
-const handleAddressValidation = (
-  result: CustomerAddressValidationResult | undefined
-) => {
-  if (!result || result.length === 0) {
-    return
-  }
-
-  const message = result.filter(Boolean).join(", ")
-  if (message) {
-    throw new Error(message)
-  }
-}
 
 export type CreateCustomerHooksConfig<
   TCustomer,
@@ -61,19 +53,15 @@ export type CreateCustomerHooksConfig<
     TUpdateCustomerParams
   >
   buildListParams?: (input: TListInput) => TListParams
-  buildCreateParams?: (input: TCreateInput) => TCreateParams
-  buildUpdateParams?: (input: TUpdateInput) => TUpdateParams
+  addressAdapter?: CustomerAddressAdapter<
+    TCreateInput,
+    TCreateParams,
+    TUpdateInput,
+    TUpdateParams
+  >
   buildUpdateCustomerParams?: (
     input: TUpdateCustomerInput
   ) => TUpdateCustomerParams
-  normalizeCreateAddressInput?: (input: TCreateInput) => TCreateInput
-  normalizeUpdateAddressInput?: (input: TUpdateInput) => TUpdateInput
-  validateCreateAddressInput?: (
-    input: TCreateInput
-  ) => CustomerAddressValidationResult
-  validateUpdateAddressInput?: (
-    input: TUpdateInput
-  ) => CustomerAddressValidationResult
   queryKeys?: CustomerQueryKeys<TListParams>
   authQueryKeys?: Pick<AuthQueryKeys, "customer">
   queryKeyNamespace?: QueryNamespace
@@ -103,13 +91,8 @@ export function createCustomerHooks<
 >({
   service,
   buildListParams,
-  buildCreateParams,
-  buildUpdateParams,
+  addressAdapter,
   buildUpdateCustomerParams,
-  normalizeCreateAddressInput,
-  normalizeUpdateAddressInput,
-  validateCreateAddressInput,
-  validateUpdateAddressInput,
   queryKeys,
   authQueryKeys,
   queryKeyNamespace = "storefront-data",
@@ -134,11 +117,17 @@ export function createCustomerHooks<
   }
   const buildList =
     buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
-  const buildCreate =
-    buildCreateParams ??
+  const buildCreate: (
+    input: TCreateInput,
+    context: StorefrontCustomerCreateAddressContext
+  ) => TCreateParams =
+    addressAdapter?.toCreateParams ??
     ((input: TCreateInput) => input as unknown as TCreateParams)
-  const buildUpdate =
-    buildUpdateParams ??
+  const buildUpdate: (
+    input: TUpdateInput,
+    context: StorefrontCustomerUpdateAddressContext
+  ) => TUpdateParams =
+    addressAdapter?.toUpdateParams ??
     ((input: TUpdateInput) => input as unknown as TUpdateParams)
   const buildUpdateCustomer =
     buildUpdateCustomerParams ??
@@ -214,16 +203,21 @@ export function createCustomerHooks<
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TCreateInput, TContext>({
       mutationFn: (input: TCreateInput) => {
-        const normalized = normalizeCreateAddressInput
-          ? normalizeCreateAddressInput(input)
+        const normalized = addressAdapter?.normalizeCreate
+          ? addressAdapter.normalizeCreate(input, { mode: "create" })
           : input
-        handleAddressValidation(validateCreateAddressInput?.(normalized))
-        return service.createAddress(buildCreate(normalized))
+        assertStorefrontAddressValidation(
+          addressAdapter?.validateCreate?.(normalized, { mode: "create" })
+        )
+        return service.createAddress(buildCreate(normalized, { mode: "create" }))
       },
       onMutate: options?.onMutate,
       onSuccess: (address, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(address, variables, context)
       },
@@ -246,19 +240,33 @@ export function createCustomerHooks<
         if (!addressId) {
           throw new Error("Address id is required")
         }
-        const normalized = normalizeUpdateAddressInput
-          ? normalizeUpdateAddressInput(input)
+        const normalized = addressAdapter?.normalizeUpdate
+          ? addressAdapter.normalizeUpdate(input, {
+              mode: "update",
+            })
           : input
         const { addressId: _addressId, ...restUpdateInput } =
           normalized as TUpdateInput & { addressId?: string }
         const updateInput = restUpdateInput as TUpdateInput
-        handleAddressValidation(validateUpdateAddressInput?.(normalized))
-        return service.updateAddress(addressId, buildUpdate(updateInput))
+        assertStorefrontAddressValidation(
+          addressAdapter?.validateUpdate?.(normalized, {
+            mode: "update",
+          })
+        )
+        return service.updateAddress(
+          addressId,
+          buildUpdate(updateInput, {
+            mode: "update",
+          })
+        )
       },
       onMutate: options?.onMutate,
       onSuccess: (address, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(address, variables, context)
       },
@@ -286,6 +294,9 @@ export function createCustomerHooks<
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(data, variables, context)
       },

@@ -52,6 +52,10 @@
       "types": "./dist/src/products/*.d.ts",
       "import": "./dist/products/*.js"
     },
+    "./medusa/*": {
+      "types": "./dist/src/medusa/*.d.ts",
+      "import": "./dist/medusa/*.js"
+    },
     "./regions/*": {
       "types": "./dist/src/regions/*.d.ts",
       "import": "./dist/regions/*.js"
@@ -68,7 +72,8 @@
     "build": "rslib build",
     "dev": "rslib build --watch",
     "lint": "pnpm -w exec biome lint libs/storefront-data/src --diagnostic-level=error",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts --typecheck",
+    "test:runtime": "vitest run --config vitest.config.ts"
   },
   "nx": {
     "targets": {

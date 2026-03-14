@@ -6,6 +6,9 @@ Shared data fetching library for Medusa.js e-commerce storefronts using TanStack
 
 This library provides a unified data fetching layer with:
 - **Factory pattern hooks** for products, collections, categories, regions, auth, cart, checkout, orders, and customers
+- **Medusa preset composer** to wire services, query keys, and hooks in one place
+- **Shared checkout address helpers** for validation and cart payload mapping
+- **Shared prefetch planning** utility for deterministic page prefetch orchestration
 - **Smart caching** with configurable cache strategies
 - **Prefetching utilities** for optimized navigation
 - **SSR support** with hydration helpers
@@ -133,6 +136,75 @@ function ProductList() {
 }
 ```
 
+### 2b. Compose a Medusa Preset (Optional)
+
+```tsx
+import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
+import { sdk } from "@/lib/medusa-client"
+
+export const storefront = createMedusaStorefrontPreset({
+  sdk,
+  queryKeyNamespace: "my-app",
+  auth: {
+    // Optional: override only when customer needs custom auth behavior.
+    service: customAuthService,
+  },
+  cart: {
+    hooks: {
+      cartStorage: {
+        getCartId: () => localStorage.getItem("cart_id"),
+        setCartId: (id) => localStorage.setItem("cart_id", id),
+        clearCartId: () => localStorage.removeItem("cart_id"),
+      },
+    },
+  },
+})
+
+export const {
+  auth: authHooks,
+  cart: cartHooks,
+  checkout: checkoutHooks,
+  products: productHooks,
+} = storefront.hooks
+```
+
+### 2c. Checkout Address Validation + Mapping (Optional)
+
+```tsx
+import {
+  buildCheckoutCartAddressInput,
+  getCheckoutAddressValidationIssues,
+} from "@techsio/storefront-data/checkout/address"
+
+const updateCartAddress = cartHooks.useUpdateCartAddress()
+
+const submitAddress = async () => {
+  const issues = getCheckoutAddressValidationIssues({
+    shipping,
+    billing,
+    useSameAddress,
+    email,
+  })
+
+  if (issues.length === 0) {
+    const payload = buildCheckoutCartAddressInput({
+      shipping,
+      billing,
+      useSameAddress,
+      email,
+    })
+
+    await updateCartAddress.mutateAsync({
+      cartId,
+      email: payload.email,
+      shippingAddress: payload.shippingAddress,
+      billingAddress: payload.billingAddress,
+      useSameAddress: payload.useSameAddress,
+    })
+  }
+}
+```
+
 ### 4. Server-Side Prefetching (SSR)
 
 ```tsx
@@ -191,13 +263,17 @@ Use explicit file-level subpaths (no barrel entrypoints), for example:
 - `@techsio/storefront-data/cart/hooks`
 - `@techsio/storefront-data/catalog/hooks`
 - `@techsio/storefront-data/checkout/hooks`
+- `@techsio/storefront-data/checkout/address`
+- `@techsio/storefront-data/cart/cache-sync`
 - `@techsio/storefront-data/customers/hooks`
+- `@techsio/storefront-data/medusa/preset`
 - `@techsio/storefront-data/orders/hooks`
 - `@techsio/storefront-data/products/hooks`
 - `@techsio/storefront-data/products/types`
 - `@techsio/storefront-data/client/provider`
 - `@techsio/storefront-data/server/get-query-client`
 - `@techsio/storefront-data/shared/cache-config`
+- `@techsio/storefront-data/shared/prefetch-pages-plan`
 - `@techsio/storefront-data/shared/query-keys`
 
 ## Cache Strategies
@@ -223,10 +299,27 @@ const cacheConfig = createCacheConfig({
 - `enabled` is stripped from list/detail inputs before building query params/keys.
 - Prefer plain objects for list/detail params in custom builders. Primitive detail params are supported and preserved in keys.
 - Cart payloads are normalized by default (Medusa-friendly field names).
+- Preset supports per-domain `service` overrides (`auth`, `orders`, `customers`) while keeping shared hook wiring.
 - Prefetch default is `skipMode: "fresh"` with `skipIfCached: true`; use `skipMode: "any"` to skip whenever any cache entry exists.
 - Prefetch respects `skipIfCached`; pass `false` to force prefetch regardless of cache.
 - Some service methods accept `signal` for aborting in-flight requests.
 - SSR: use `getServerQueryClient` + `dehydrate` on server, `StorefrontDataProvider` + `HydrationBoundary` on client.
+
+## App Boundary Contract
+
+To keep `fix once -> propagate everywhere` viable, keep app boundaries thin:
+
+- Allowed in apps:
+  - UI state, i18n, toasts, routing, analytics
+  - Customer-specific feature flags and endpoint switches
+  - Small composition wrappers around preset hooks
+- Should stay in `libs/storefront-data`:
+  - Query key shapes and cache invalidation strategy
+  - Prefetch ordering/scheduling strategy
+  - Cart cache sync + cart/checkout payload mapping + validation helpers
+  - Core Medusa service adapters and hook factories
+
+If a customer needs a special flow, isolate it as an explicit override around the preset instead of copying full domain hook logic into app folders.
 
 ## Peer Dependencies
 
