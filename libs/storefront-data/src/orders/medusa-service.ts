@@ -11,8 +11,17 @@ export type MedusaOrderListInput = {
   offset?: number
 }
 
+export type MedusaOrderListHookInput = MedusaOrderListInput & {
+  page?: number
+  enabled?: boolean
+}
+
 export type MedusaOrderDetailInput = {
   id?: string
+}
+
+export type MedusaOrderDetailHookInput = MedusaOrderDetailInput & {
+  enabled?: boolean
 }
 
 /**
