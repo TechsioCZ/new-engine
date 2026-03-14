@@ -5,9 +5,10 @@ import {
   shouldResetPrefetchForRegion,
   shouldRunPrefetchManager,
 } from "@/hooks/prefetch-region"
+import { useSuspenseCategoryRegistry } from "@/hooks/use-category-registry"
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 import { useRegion } from "@/hooks/use-region"
-import { CATEGORY_MAP } from "@/lib/constants"
+import { getCategoryDescendantIds } from "@/lib/categories/selectors"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 
@@ -18,6 +19,8 @@ import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 export function PrefetchManager() {
   const { prefetchRootCategories } = usePrefetchProducts()
   const { regionId } = useRegion()
+  const categoryRegistry = useSuspenseCategoryRegistry()
+  const { rootCategories } = categoryRegistry
   const pathname = usePathname() ?? "/"
   const hasPrefetched = useRef(false)
   const prefetchedRegionId = useRef<string | undefined>(undefined)
@@ -46,13 +49,21 @@ export function PrefetchManager() {
       prefetchLogger.info("Root", `Manager started from ${pathname}`)
 
       // Prefetch ALL root categories (without AbortSignal)
-      for (const categoryIds of Object.values(CATEGORY_MAP)) {
-        prefetchRootCategories(categoryIds)
+      for (const category of rootCategories) {
+        prefetchRootCategories(
+          getCategoryDescendantIds(categoryRegistry, category.id)
+        )
       }
     }, PREFETCH_DELAYS.ROOT_CATEGORIES)
 
     return () => clearTimeout(timer)
-  }, [regionId, pathname, prefetchRootCategories])
+  }, [
+    regionId,
+    pathname,
+    categoryRegistry,
+    prefetchRootCategories,
+    rootCategories,
+  ])
 
   return null
 }

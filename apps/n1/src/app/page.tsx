@@ -5,7 +5,7 @@ import { HeroCarousel } from "@/components/hero-carousel"
 import { ProductGrid } from "@/components/molecules/product-grid"
 import { TopProduct } from "@/components/top-product"
 import { featureBlocks, heroCarouselSlides, topCategory } from "@/data/home"
-import { leafCategories } from "@/data/static/categories"
+import { useSuspenseCategoryRegistry } from "@/hooks/use-category-registry"
 import { useSuspenseProducts } from "@/hooks/use-products"
 import { transformProduct } from "@/utils/transform/transform-product"
 
@@ -56,6 +56,7 @@ export default function Home() {
 }
 
 function HomeProductGrid() {
+  const { leafCategories } = useSuspenseCategoryRegistry()
   const featuredCategoryIds = leafCategories.length
     ? leafCategories.slice(0, 2).map((category) => category.id)
     : undefined
