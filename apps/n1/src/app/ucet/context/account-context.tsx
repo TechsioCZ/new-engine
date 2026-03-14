@@ -4,9 +4,7 @@ import type { StoreCustomer } from "@medusajs/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { createContext, type ReactNode, useContext, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import { getOrders } from "@/services/order-service"
+import { createOrdersListPrefetchQuery } from "@/hooks/use-orders"
 
 type AccountContextType = {
   customer: StoreCustomer | null
@@ -30,12 +28,13 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
     if (!customer) {
       return
     }
-    // Prefetch orders for order-list
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.orders.list({ limit: 20, offset: 0 }),
-      queryFn: () => getOrders({ limit: 20, offset: 0 }),
-      ...cacheConfig.userData,
-    })
+
+    queryClient.prefetchQuery(
+      createOrdersListPrefetchQuery({
+        limit: 20,
+        offset: 0,
+      })
+    )
   }, [customer, queryClient])
 
   const contextValue = {

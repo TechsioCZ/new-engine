@@ -4,7 +4,7 @@ import { useStore } from "@tanstack/react-form"
 import { Button } from "@ui/atoms/button"
 import { useState } from "react"
 import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
-import { AddressValidationError } from "@/lib/errors"
+import { toAddressValidationError } from "@/lib/errors"
 import {
   useCheckoutContext,
   useCheckoutForm,
@@ -40,8 +40,9 @@ export function SaveAddressPanel() {
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 2000)
     } catch (error) {
-      if (AddressValidationError.isAddressValidationError(error)) {
-        setErrorMessage(error.firstError)
+      const validationError = toAddressValidationError(error)
+      if (validationError) {
+        setErrorMessage(validationError.firstError)
       } else {
         setErrorMessage("Nepodařilo se uložit adresu")
       }
@@ -63,15 +64,16 @@ export function SaveAddressPanel() {
     try {
       await updateAddressAsync({
         addressId: selectedAddressId,
-        data: currentValues,
+        ...currentValues,
       })
       // Reset with current values to clear isDirty without losing data
       form.reset({ ...form.state.values, billingAddress: currentValues })
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 2000)
     } catch (error) {
-      if (AddressValidationError.isAddressValidationError(error)) {
-        setErrorMessage(error.firstError)
+      const validationError = toAddressValidationError(error)
+      if (validationError) {
+        setErrorMessage(validationError.firstError)
       } else {
         setErrorMessage("Nepodařilo se aktualizovat adresu")
       }

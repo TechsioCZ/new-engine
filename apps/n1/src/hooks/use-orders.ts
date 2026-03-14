@@ -1,7 +1,5 @@
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import { getOrderById, getOrders } from "@/services/order-service"
+import { cacheConfig as appCacheConfig } from "@/lib/cache-config"
+import { storefront } from "./storefront-preset"
 import { useSuspenseAuth } from "./use-auth"
 
 export type UseOrdersOptions = {
@@ -9,36 +7,94 @@ export type UseOrdersOptions = {
   offset?: number
 }
 
-export function useSuspenseOrders(options?: UseOrdersOptions) {
-  const { isAuthenticated } = useSuspenseAuth()
-  const limit = options?.limit || 20
-  const offset = options?.offset || 0
-
-  if (!isAuthenticated) {
-    throw new Error("Uživatel není přihlášen")
-  }
-
-  return useSuspenseQuery({
-    queryKey: queryKeys.orders.list({ limit, offset }),
-    queryFn: () => getOrders({ limit, offset }),
-    ...cacheConfig.userData,
-  })
+type OrderListInput = {
+  page?: number
+  limit?: number
+  offset?: number
+  enabled?: boolean
 }
 
-export function useSuspenseOrder(orderId: string | null) {
+type UseOrderInput = {
+  id?: string | null
+  enabled?: boolean
+}
+
+const AUTH_REQUIRED_ERROR = "Uživatel není přihlášen"
+const ORDER_ID_REQUIRED_ERROR = "Order ID je povinný"
+
+const orderHooks = storefront.hooks.orders
+
+type UseOrderHookOptions = Parameters<typeof orderHooks.useOrder>[1]
+type UseSuspenseOrderHookOptions = Parameters<
+  typeof orderHooks.useSuspenseOrder
+>[1]
+
+const assertAuthenticated = (isAuthenticated: boolean) => {
+  if (!isAuthenticated) {
+    throw new Error(AUTH_REQUIRED_ERROR)
+  }
+}
+
+const assertOrderId = (orderId: string | null): string => {
+  if (!orderId) {
+    throw new Error(ORDER_ID_REQUIRED_ERROR)
+  }
+  return orderId
+}
+
+export function useSuspenseOrders(options?: UseOrdersOptions) {
   const { isAuthenticated } = useSuspenseAuth()
 
-  if (!isAuthenticated) {
-    throw new Error("Uživatel není přihlášen")
-  }
+  assertAuthenticated(isAuthenticated)
 
-  if (!orderId) {
-    throw new Error("Order ID je povinné")
-  }
+  const limit = options?.limit ?? 20
+  const offset = options?.offset ?? 0
 
-  return useSuspenseQuery({
-    queryKey: queryKeys.orders.detail(orderId),
-    queryFn: () => getOrderById(orderId),
-    ...cacheConfig.userData,
+  const orders = orderHooks.useSuspenseOrders({
+    limit,
+    offset,
+  })
+
+  return {
+    orders: orders.orders,
+    totalCount: orders.totalCount,
+    currentPage: orders.currentPage,
+    totalPages: orders.totalPages,
+    hasNextPage: orders.hasNextPage,
+    hasPrevPage: orders.hasPrevPage,
+  }
+}
+
+export function useOrder(input: UseOrderInput, options?: UseOrderHookOptions) {
+  const id = input.id ?? undefined
+  const enabled = Boolean(id) && (input.enabled ?? true)
+  const orderInput = { id, enabled }
+
+  return orderHooks.useOrder(orderInput, options)
+}
+
+export function useSuspensePublicOrder(
+  orderId: string | null,
+  options?: UseSuspenseOrderHookOptions
+) {
+  const requiredOrderId = assertOrderId(orderId)
+
+  const order = orderHooks.useSuspenseOrder(
+    {
+      id: requiredOrderId,
+    },
+    options
+  )
+  return order
+}
+
+export function createOrdersListPrefetchQuery(
+  input: OrderListInput = {
+    page: 1,
+    limit: 20,
+  }
+) {
+  return orderHooks.createOrdersListQueryOptions(input, {
+    queryOptions: appCacheConfig.userData,
   })
 }

@@ -57,7 +57,7 @@ export const AddToCartSection = ({
       {
         variantId: selectedVariant.id,
         quantity,
-        autoCreateCart: true,
+        autoCreate: true,
         metadata: {
           inventory_quantity: selectedVariant.inventory_quantity || 0,
         },
@@ -133,6 +133,7 @@ export const AddToCartSection = ({
         <NumericInput.IncrementTrigger />
       </NumericInput>
       <Button
+        className="items-center"
         disabled={isPending || !selectedVariant?.id || !regionId}
         onClick={handleAddToCart}
         variant="secondary"

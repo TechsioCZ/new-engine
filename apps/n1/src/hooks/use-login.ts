@@ -1,24 +1,20 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { queryKeys } from "@/lib/query-keys"
-import { type LoginCredentials, login } from "@/services/auth-service"
+import { toError } from "@/lib/errors"
+import { storefront } from "./storefront-preset"
 
 export type UseLoginOptions = {
   onSuccess?: () => void
   onError?: (error: Error) => void
 }
 
-export function useLogin(options?: UseLoginOptions) {
-  const queryClient = useQueryClient()
+const authHooks = storefront.hooks.auth
 
-  return useMutation({
-    mutationFn: (credentials: LoginCredentials) => login(credentials),
+export function useLogin(options?: UseLoginOptions) {
+  return authHooks.useLogin({
     onSuccess: () => {
-      // Invalidate auth cache to refetch customer data
-      queryClient.invalidateQueries({ queryKey: queryKeys.customer.profile() })
       options?.onSuccess?.()
     },
-    onError: (error: Error) => {
-      options?.onError?.(error)
+    onError: (error) => {
+      options?.onError?.(toError(error, "Login failed"))
     },
   })
 }

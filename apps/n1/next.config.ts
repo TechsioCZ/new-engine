@@ -5,7 +5,11 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["n1.medusa.localhost"],
   reactStrictMode: true,
   output: "standalone",
-  transpilePackages: ["@new-engine/ui", "@techsio/analytics"],
+  transpilePackages: [
+    "@new-engine/ui",
+    "@techsio/analytics",
+    "@techsio/storefront-data",
+  ],
   reactCompiler: true,
   cacheComponents: true,
   outputFileTracingRoot: join(__dirname, "../../"),

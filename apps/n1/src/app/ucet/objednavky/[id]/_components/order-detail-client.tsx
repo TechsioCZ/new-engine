@@ -4,8 +4,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import { getOrderById, type StoreOrder } from "@/services/order-service"
+import { useOrder } from "@/hooks/use-orders"
 import { formatDateString } from "@/utils/format/format-date"
 import {
   getOrderStatusColor,
@@ -13,41 +12,30 @@ import {
 } from "@/utils/format/format-order-status"
 import { OrderDetail } from "./order-detail"
 
+function getOrderErrorMessage(error: unknown): string {
+  if (!error) {
+    return "Objednávka nebyla nalezena"
+  }
+
+  if (error instanceof Error) {
+    return error.message || "Objednávka nebyla nalezena"
+  }
+
+  if (typeof error === "string") {
+    return error
+  }
+
+  return "Objednávka nebyla nalezena"
+}
+
 export function OrderDetailClient() {
   const { id } = useParams<{ id: string }>()
-  const [order, setOrder] = useState<StoreOrder | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    let active = true
-    setIsLoading(true)
-    setError(null)
+  const order = useOrder({
+    id,
+  })
 
-    getOrderById(id)
-      .then((data) => {
-        if (active) {
-          setOrder(data)
-        }
-      })
-      .catch((err) => {
-        if (!active) {
-          return
-        }
-        setError(err instanceof Error ? err.message : "Chyba při načítání")
-      })
-      .finally(() => {
-        if (active) {
-          setIsLoading(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [id])
-
-  if (isLoading) {
+  if (order.isLoading) {
     return (
       <div className="mx-auto max-w-max-w px-400">
         <p className="text-fg-secondary">Načítám objednávku...</p>
@@ -55,12 +43,10 @@ export function OrderDetailClient() {
     )
   }
 
-  if (error || !order) {
+  if (!order.order) {
     return (
       <div className="mx-auto max-w-max-w px-400">
-        <p className="text-fg-secondary">
-          {error || "Objednávka nebyla nalezena"}
-        </p>
+        <p className="text-fg-secondary">{getOrderErrorMessage(order.error)}</p>
         <LinkButton
           as={Link}
           className="mt-300"
@@ -74,7 +60,7 @@ export function OrderDetailClient() {
     )
   }
 
-  const statusVariant = getOrderStatusColor(order.status || "pending")
+  const statusVariant = getOrderStatusColor(order.order.status || "pending")
 
   return (
     <div className="mx-auto max-w-max-w px-400">
@@ -92,10 +78,10 @@ export function OrderDetailClient() {
         <div className="flex flex-col gap-200 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="font-bold text-fg-primary text-xl">
-              Objednávka #{order.display_id}
+              Objednávka #{order.order.display_id}
             </h1>
             <p className="text-fg-secondary">
-              {formatDateString(order.created_at as string, {
+              {formatDateString(order.order.created_at as string, {
                 month: "long",
                 year: "numeric",
                 day: "numeric",
@@ -104,13 +90,13 @@ export function OrderDetailClient() {
           </div>
           <div className="flex flex-wrap gap-200">
             <Badge variant={statusVariant}>
-              {getOrderStatusLabel(order.status)}
+              {getOrderStatusLabel(order.order.status)}
             </Badge>
           </div>
         </div>
       </div>
 
-      <OrderDetail order={order} />
+      <OrderDetail order={order.order} />
     </div>
   )
 }

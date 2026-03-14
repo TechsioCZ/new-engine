@@ -3,13 +3,13 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { ReactNode } from "react"
 import type { UseCheckoutShippingReturn } from "@/hooks/use-checkout-shipping"
-import type { ShippingMethodData } from "@/services/cart-service"
+import { formatShippingOptionDisplayPrice } from "@/lib/pricing/cart-pricing"
+import type { ShippingMethodData } from "@/types/cart"
 import {
   accessPointToShippingData,
   isPPLParcelOption,
   type PplAccessPointData,
 } from "@/utils/address-helpers"
-import { formatToTaxIncluded } from "@/utils/format/format-product"
 import { SelectedParcelCard } from "./selected-parcel-card"
 
 type ShippingMethodSectionProps = {
@@ -20,6 +20,7 @@ type ShippingMethodSectionProps = {
 
 type ShippingOptionCardProps = {
   option: HttpTypes.StoreCartShippingOption
+  shippingPrices?: Record<string, number>
   selected: boolean
   isUpdating?: boolean
   selectedAccessPoint: PplAccessPointData | null
@@ -29,16 +30,15 @@ type ShippingOptionCardProps = {
 
 function ShippingOptionCard({
   option,
+  shippingPrices,
   selected,
   isUpdating,
   selectedAccessPoint,
   onSelect,
   onOpenPickupDialog,
 }: ShippingOptionCardProps) {
-  const formattedPrice = formatToTaxIncluded({
-    amount: option.amount,
-    currency: option.calculated_price.currency_code ?? "czk",
-  })
+  const formattedPrice =
+    formatShippingOptionDisplayPrice(option, shippingPrices) ?? "Zdarma"
 
   const isPPLParcel = isPPLParcelOption(option.name)
 
@@ -59,21 +59,21 @@ function ShippingOptionCard({
   return (
     <Button
       aria-checked={selected}
-      aria-label={`${option.name}, ${formattedPrice || "zdarma"}`}
-      className="flex w-full items-center gap-300 text-left data-[selected=true]:border-border-primary/30 data-[selected=true]:bg-overlay-light"
+      aria-label={`${option.name}, ${formattedPrice}`}
+      className="flex w-full p-100 px-200 items-center gap-300 text-left border border-border-secondary hover:bg-overlay data-[selected=true]:border-border-primary/30 data-[selected=true]:bg-overlay-light"
       data-selected={selected}
       disabled={isUpdating}
       onClick={handleClick}
       role="radio"
-      theme="outlined"
+      theme="unstyled"
       type="button"
-      variant="secondary"
+      size="current"
     >
       <div className="flex-1 text-left">
         <p className="font-medium text-fg-primary text-sm">{option.name}</p>
         <StatusText size="sm">Dodání 2-3 dny</StatusText>
       </div>
-      <span>{formattedPrice || "Zdarma"}</span>
+      <span>{formattedPrice}</span>
     </Button>
   )
 }
@@ -107,6 +107,7 @@ export function ShippingMethodSection({
             onOpenPickupDialog={onOpenPickupDialog}
             onSelect={shipping.setShipping}
             option={option}
+            shippingPrices={shipping.shippingPrices}
             selected={shipping.selectedShippingMethodId === option.id}
             selectedAccessPoint={selectedAccessPoint}
           />
