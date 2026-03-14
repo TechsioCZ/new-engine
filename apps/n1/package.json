@@ -15,7 +15,6 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
-    "generate:categories": "node scripts/generate-categories.mjs",
     "validate:token-usage": "node scripts/validate-token-usage.mjs"
   },
   "dependencies": {
