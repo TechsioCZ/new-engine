@@ -34,6 +34,7 @@ import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config"
 import { mapAuthError } from "@/lib/auth-messages"
 import { cacheConfig as appCacheConfig } from "@/lib/cache-config"
 import {
+  DEFAULT_COUNTRY_CODE,
   PRODUCT_DETAILED_FIELDS,
   PRODUCT_LIMIT,
   PRODUCT_LIST_FIELDS,
@@ -64,7 +65,7 @@ const normalizeProductListParams = (
 
   return {
     ...normalizedInput,
-    country_code: normalizedInput.country_code ?? "cz",
+    country_code: normalizedInput.country_code ?? DEFAULT_COUNTRY_CODE,
     fields: normalizedInput.fields ?? PRODUCT_LIST_FIELDS,
   } as MedusaProductListQuery
 }
@@ -162,7 +163,7 @@ const storefrontConfig = {
       normalizeDetailQuery: (params: MedusaProductDetailInput) => ({
         handle: params.handle,
         region_id: params.region_id,
-        country_code: params.country_code ?? "cz",
+        country_code: params.country_code ?? DEFAULT_COUNTRY_CODE,
         province: params.province,
         cart_id: params.cart_id,
         locale: params.locale,

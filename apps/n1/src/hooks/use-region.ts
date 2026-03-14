@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
+import { DEFAULT_COUNTRY_CODE, DEFAULT_CURRENCY } from "@/lib/constants"
 import { storefront } from "./storefront-preset"
 
 const REGION_STALE_TIME = 5 * 60 * 1000
@@ -8,8 +8,6 @@ const REGION_RETRY_CAP = 10_000
 const REGION_RETRY_ATTEMPTS = 5
 
 type Region = HttpTypes.StoreRegion
-
-const DEFAULT_CURRENCY_CODE = "czk"
 
 const regionQueryOptions = {
   staleTime: REGION_STALE_TIME,
@@ -42,7 +40,7 @@ function getRegionValues(region: Region | undefined) {
       preferredCountry?.iso_2 ??
       region?.countries?.[0]?.iso_2 ??
       DEFAULT_COUNTRY_CODE,
-    currencyCode: region?.currency_code || DEFAULT_CURRENCY_CODE,
+    currencyCode: region?.currency_code || DEFAULT_CURRENCY,
   }
 }
 
