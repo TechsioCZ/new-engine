@@ -52,6 +52,8 @@ export interface ReducedShippingMethod {
   id: string
   name: string
   calculated_price: HttpTypes.StoreCalculatedPrice
+  provider_id?: string
+  type_code?: string
 }
 
 // UseCheckout hook return type
@@ -63,8 +65,8 @@ export interface UseCheckoutReturn {
   addressData: CheckoutAddressData | null
   isProcessingPayment: boolean
   shippingMethods: ReducedShippingMethod[] | undefined
+  paymentMethods: PaymentMethod[]
   isLoadingShipping: boolean
-  shippingError: Error | null
 
   // Actions
   setCurrentStep: (step: number) => void

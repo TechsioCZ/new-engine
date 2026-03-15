@@ -1,6 +1,12 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { useCallback, useState } from "react"
-import { getProducts } from "@/services"
+import { resolveRegionCountryCode } from "@/lib/region-utils"
 import type { Product } from "@/types/product"
+import {
+  buildStorefrontProductListParams,
+  fetchStorefrontProducts,
+  storefrontProductQueryKeys,
+} from "./storefront-products"
 import { useRegions } from "./use-region"
 
 interface UseSearchProductsOptions {
@@ -9,6 +15,7 @@ interface UseSearchProductsOptions {
 }
 
 export function useSearchProducts(options?: UseSearchProductsOptions) {
+  const queryClient = useQueryClient()
   const { selectedRegion } = useRegions()
   const [searchResults, setSearchResults] = useState<Product[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -27,12 +34,22 @@ export function useSearchProducts(options?: UseSearchProductsOptions) {
       setError(null)
 
       try {
-        const response = await getProducts({
+        const countryCode = resolveRegionCountryCode(selectedRegion)
+        const listInput = {
           q: query,
           fields: options?.fields || "id, handle, title",
           limit: options?.limit || 10,
           sort: "newest",
           region_id: selectedRegion?.id,
+          country_code: countryCode,
+        }
+
+        const listParams = buildStorefrontProductListParams(listInput)
+
+        const response = await queryClient.fetchQuery({
+          queryKey: storefrontProductQueryKeys.list(listParams),
+          queryFn: () => fetchStorefrontProducts(listInput),
+          staleTime: 30 * 1000,
         })
 
         setSearchResults(response.products)
@@ -47,7 +64,7 @@ export function useSearchProducts(options?: UseSearchProductsOptions) {
         setIsSearching(false)
       }
     },
-    [options?.fields, options?.limit]
+    [options?.fields, options?.limit, queryClient, selectedRegion]
   )
 
   const clearResults = useCallback(() => {

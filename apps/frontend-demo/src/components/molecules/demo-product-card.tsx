@@ -12,21 +12,22 @@ const productCard = tv({
   slots: {
     base: [
       "h-full rounded-pc p-pc-padding",
+      "content-start grid-rows-pc-card",
       "border-(length:--border-pc-width) max-w-pc-max border-pc-border bg-pc shadow-sm",
     ],
     imageSlot: "aspect-pc-image h-full rounded-pc-image object-cover",
     nameSlot: "truncate text-pc-name-fg text-pc-name-size",
     priceSlot: "text-pc-price-fg text-pc-price-size",
     stockStatusSlot: "text-pc-stock-fg text-pc-stock-size",
-    badgesSlot: "flex flex-wrap gap-pc-box",
+    badgesSlot: "flex flex-wrap gap-pc-box min-h-pc-badges-min",
     ratingSlot: "flex items-center",
-    buttonsSlot: "flex w-fit flex-wrap",
+    buttonsSlot: "flex w-fit flex-wrap self-end",
     cartButton:
-      "w-max items-center bg-btn-cart text-btn-cart-fg hover:bg-btn-cart-hover",
+      "w-max items-center bg-button-cart text-button-cart-fg hover:bg-button-cart-hover",
     detailButton:
-      "w-max bg-btn-detail text-btn-detail-fg hover:bg-btn-detail-hover",
+      "w-max bg-button-detail text-button-detail-fg hover:bg-button-detail-hover",
     wishlistButton:
-      "w-max bg-btn-wishlist text-btn-wishlist-fg hover:bg-btn-wishlist-hover",
+      "w-max bg-button-wishlist text-button-wishlist-fg hover:bg-button-wishlist-hover",
   },
   variants: {
     // variant for layout of the card
@@ -100,6 +101,7 @@ export interface ProductCardProps
   wishlistButtonText?: string
   numericInput?: boolean
   customButtons?: ReactNode
+  imageLoading?: "lazy" | "eager"
 }
 
 export function DemoProductCard({
@@ -123,6 +125,7 @@ export function DemoProductCard({
   layout,
   buttonLayout,
   customButtons,
+  imageLoading = "lazy",
   ...props
 }: ProductCardProps) {
   const productCardId = useId()
@@ -148,8 +151,9 @@ export function DemoProductCard({
         <Image
           alt={name}
           className="object-cover"
+          fetchPriority={imageLoading === "eager" ? "high" : undefined}
           fill
-          loading="lazy"
+          loading={imageLoading}
           placeholder="empty"
           quality={20}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1536px) 20vw, 15vw"
@@ -166,7 +170,7 @@ export function DemoProductCard({
         </div>
       )}
 
-      {badges.length > 0 && (
+      {badges.length > 0 ? (
         <div className={badgesSlot({ layout })}>
           {badges.map((badge) => (
             <Badge
@@ -179,7 +183,8 @@ export function DemoProductCard({
             </Badge>
           ))}
         </div>
-      )}
+      ) : <div className={badgesSlot({ layout })} aria-hidden="true">
+        </div>}
 
       {stockStatus && (
         <p className={stockStatusSlot({ layout })}>{stockStatus}</p>

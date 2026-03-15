@@ -1,14 +1,12 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import {
-  getProduct,
-  getProducts,
-  type ProductListParams,
-} from "@/services/product-service"
 import type { Product } from "@/types/product"
+import type { ProductListParams } from "@/types/product-query"
+import {
+  useStorefrontProduct,
+  useStorefrontProducts,
+} from "./storefront-products"
+import { useRegions } from "./use-region"
 
 interface UseProductsParams extends ProductListParams {
   page?: number
@@ -30,6 +28,7 @@ interface UseProductsReturn {
  * Hook for fetching product lists with pagination and filtering
  */
 export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
+  const { selectedRegion } = useRegions()
   const {
     page = 1,
     limit = 20,
@@ -41,46 +40,49 @@ export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
     region_id,
     enabled,
   } = params
-  const offset = (page - 1) * limit
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: queryKeys.products.list({
+  const resolvedRegionId = region_id ?? selectedRegion?.id
+  const isQueryEnabled =
+    enabled !== undefined ? enabled : Boolean(resolvedRegionId)
+  const hasSizeFilters = Boolean(filters?.sizes?.length)
+  const {
+    products,
+    isLoading,
+    error,
+    totalCount,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+  } = useStorefrontProducts(
+    {
       page,
       limit,
       filters,
       sort,
-      region_id,
+      fields,
       q,
       category,
-    }),
-    queryFn: () =>
-      getProducts({
-        limit,
-        offset,
-        filters,
-        sort,
-        fields,
-        q,
-        category,
-        region_id,
-      }),
-    enabled: enabled !== undefined ? enabled : !!region_id,
-    ...cacheConfig.semiStatic,
-  })
-
-  const totalCount = data?.count || 0
-  const totalPages = Math.ceil(totalCount / limit)
+      region_id: resolvedRegionId,
+      enabled: isQueryEnabled,
+    },
+    hasSizeFilters
+      ? {
+          queryOptions: {
+            retry: false,
+          },
+        }
+      : undefined
+  )
 
   return {
-    products: data?.products || [],
+    products,
     isLoading,
-    error:
-      error instanceof Error ? error.message : error ? String(error) : null,
+    error,
     totalCount,
-    currentPage: page,
+    currentPage,
     totalPages,
-    hasNextPage: page < totalPages,
-    hasPrevPage: page > 1,
+    hasNextPage,
+    hasPrevPage,
   }
 }
 
@@ -88,21 +90,17 @@ export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
  * Hook for fetching a single product by handle
  */
 export function useProduct(handle: string, regionId?: string) {
-  const {
-    data: product,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: queryKeys.product(handle, regionId),
-    queryFn: () => getProduct(handle, regionId),
-    enabled: !!handle,
-    ...cacheConfig.semiStatic,
+  const { selectedRegion } = useRegions()
+  const resolvedRegionId = regionId ?? selectedRegion?.id
+  const { product, isLoading, error } = useStorefrontProduct({
+    handle,
+    region_id: resolvedRegionId,
+    enabled: !!handle && !!resolvedRegionId,
   })
 
   return {
     product,
     isLoading,
-    error:
-      error instanceof Error ? error.message : error ? String(error) : null,
+    error,
   }
 }

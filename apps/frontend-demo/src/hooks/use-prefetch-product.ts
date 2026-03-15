@@ -1,30 +1,25 @@
-import { useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
 import { useRegions } from "@/hooks/use-region"
-import { queryKeys } from "@/lib/query-keys"
-import { getProduct } from "@/services/product-service"
+import { useStorefrontPrefetchProduct } from "./storefront-products"
 
 export function usePrefetchProduct(enabled?: boolean) {
   const { selectedRegion } = useRegions()
-  const queryClient = useQueryClient()
   const enabledPrefetch = enabled ?? true
+  const { prefetchProduct } = useStorefrontPrefetchProduct({
+    cacheStrategy: "semiStatic",
+  })
 
-  const prefetchProduct = useCallback(
+  return useCallback(
     (handle: string) => {
       if (!enabledPrefetch) {
         return
       }
-      queryClient.prefetchQuery({
-        queryKey: queryKeys.product(handle, selectedRegion?.id),
-        queryFn: async () => {
-          const product = await getProduct(handle, selectedRegion?.id)
-          return product
-        },
-        staleTime: 60 * 60 * 1000,
+
+      void prefetchProduct({
+        handle,
+        region_id: selectedRegion?.id,
       })
     },
-    [queryClient, selectedRegion?.id, enabledPrefetch]
+    [selectedRegion?.id, enabledPrefetch, prefetchProduct]
   )
-
-  return prefetchProduct
 }

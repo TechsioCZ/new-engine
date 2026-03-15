@@ -1,7 +1,7 @@
 "use client"
 import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormInputRaw as FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import { useState } from "react"
@@ -108,7 +108,11 @@ export function ProfileForm({ initialAddress, user }: ProfileFormProps) {
           </div>
           <FormInput
             disabled
-            helpText={<ExtraText size="sm">E-mail nelze změnit</ExtraText>}
+            helpText={
+              <StatusText align="start" size="sm">
+                E-mail nelze změnit
+              </StatusText>
+            }
             id="email"
             label="E-mail"
             size="sm"

@@ -1,64 +1,43 @@
 "use client"
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { StorefrontDataProvider } from "@techsio/storefront-data/client/provider"
+import { RegionProvider } from "@techsio/storefront-data/shared/region-context"
+import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { ThemeProvider } from "next-themes"
 import type { PropsWithChildren } from "react"
-import { useState } from "react"
+import { useRegions } from "@/hooks/use-region"
+import { resolveRegionCountryCode } from "@/lib/region-utils"
 import { CartPrefetch } from "./cart-prefetch"
 
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000, // 1 minute
-        gcTime: 5 * 60 * 1000, // 5 minutes
-        retry: (failureCount, error: any) => {
-          // Don't retry on 4xx errors
-          if (error?.status >= 400 && error?.status < 500) {
-            return false
-          }
-          // Retry up to 3 times for other errors
-          return failureCount < 3
-        },
-        retryDelay: (attemptIndex) =>
-          Math.min(1000 * 2 ** attemptIndex, 30_000),
-      },
-      mutations: {
-        retry: 1,
-        retryDelay: 1000,
-      },
-    },
-  })
-}
+function StorefrontRegionBoundary({ children }: PropsWithChildren) {
+  const { selectedRegion } = useRegions()
 
-let browserQueryClient: QueryClient | undefined
+  const region: RegionInfo | null = selectedRegion?.id
+    ? {
+        region_id: selectedRegion.id,
+        country_code: resolveRegionCountryCode(selectedRegion),
+      }
+    : null
 
-function getQueryClient() {
-  if (typeof window === "undefined") {
-    // Server: always make a new query client
-    return makeQueryClient()
-  }
-  // Browser: make client if we don't already have one
-  if (!browserQueryClient) browserQueryClient = makeQueryClient()
-  return browserQueryClient
+  return <RegionProvider region={region}>{children}</RegionProvider>
 }
 
 export function Providers({ children }: PropsWithChildren) {
-  const [queryClient] = useState(() => getQueryClient())
-
   return (
-    <QueryClientProvider client={queryClient}>
+    <StorefrontDataProvider>
       <ThemeProvider
         attribute="class"
         defaultTheme="system"
         disableTransitionOnChange
         enableSystem
       >
-        <CartPrefetch />
-        {children}
+        <StorefrontRegionBoundary>
+          <CartPrefetch />
+          {children}
+        </StorefrontRegionBoundary>
         <Toaster />
       </ThemeProvider>
-    </QueryClientProvider>
+    </StorefrontDataProvider>
   )
 }

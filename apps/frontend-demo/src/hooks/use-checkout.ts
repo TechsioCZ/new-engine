@@ -1,19 +1,164 @@
 "use client"
 
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import type { HttpTypes } from "@medusajs/types"
+import { useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { useState } from "react"
-import { cacheConfig } from "@/lib/cache-config"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { resolveCheckoutPaymentMethods } from "@/lib/checkout-payment-policy"
+import { isCheckoutShippingOptionSupported } from "@/lib/checkout-shipping-policy"
 import { STORAGE_KEYS } from "@/lib/constants"
-import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 import { orderHelpers } from "@/stores/order-store"
 import type { CheckoutAddressData, UseCheckoutReturn } from "@/types/checkout"
+import {
+  useStorefrontCompleteCart,
+  useStorefrontUpdateCartAddress,
+} from "./storefront-cart"
+import {
+  useStorefrontCheckoutPayment,
+  useStorefrontCheckoutShipping,
+} from "./storefront-checkout"
 import { useCart } from "./use-cart"
 import { useCustomer } from "./use-customer"
 
+type CheckoutShippingOption = HttpTypes.StoreCartShippingOption & {
+  provider_id?: string | null
+  type?: {
+    code?: string | null
+  } | null
+}
+
+type ErrorResponse = {
+  status?: number
+  message?: string
+  response?: {
+    status?: number
+    data?: {
+      message?: string
+    }
+  }
+}
+
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (!error || typeof error !== "object") {
+    return undefined
+  }
+
+  const err = error as ErrorResponse
+  return err.status ?? err.response?.status
+}
+
+const getErrorMessage = (error: unknown): string => {
+  if (!error || typeof error !== "object") {
+    return ""
+  }
+
+  const err = error as ErrorResponse
+  return (err.message ?? err.response?.data?.message ?? "").toLowerCase()
+}
+
+const isStaleCartError = (error: unknown): boolean => {
+  const status = getErrorStatus(error)
+  const message = getErrorMessage(error)
+  return status === 404 || (message.includes("cart") && message.includes("not found"))
+}
+
+const hasValue = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0
+
+// TODO(frontend-demo): Replace these manual presence checks with shared
+// schema-based validation (Zod/Effect) to keep UI, domain, and API mapping
+// validation rules consistent in one place.
+const hasAddressCoreFields = (address: {
+  firstName?: string
+  lastName?: string
+  street?: string
+  city?: string
+  postalCode?: string
+  country?: string
+}) =>
+  hasValue(address.firstName) &&
+  hasValue(address.lastName) &&
+  hasValue(address.street) &&
+  hasValue(address.city) &&
+  hasValue(address.postalCode) &&
+  hasValue(address.country)
+
+const hasCheckoutAddressData = (
+  data: CheckoutAddressData | null | undefined
+): boolean => {
+  if (!data) {
+    return false
+  }
+
+  const hasShippingAddress =
+    hasAddressCoreFields({
+      firstName: data.shipping.firstName,
+      lastName: data.shipping.lastName,
+      street: data.shipping.street,
+      city: data.shipping.city,
+      postalCode: data.shipping.postalCode,
+      country: data.shipping.country,
+    }) && hasValue(data.shipping.email)
+
+  if (!hasShippingAddress) {
+    return false
+  }
+
+  if (data.useSameAddress) {
+    return true
+  }
+
+  return hasAddressCoreFields({
+    firstName: data.billing.firstName,
+    lastName: data.billing.lastName,
+    street: data.billing.street,
+    city: data.billing.city,
+    postalCode: data.billing.postalCode,
+    country: data.billing.country,
+  })
+}
+
+const hasCartShippingAddress = (
+  address: HttpTypes.StoreCart["shipping_address"] | undefined,
+  email?: string | null
+): boolean => {
+  if (!address) {
+    return false
+  }
+
+  return (
+    hasValue(address.first_name) &&
+    hasValue(address.last_name) &&
+    hasValue(address.address_1) &&
+    hasValue(address.city) &&
+    hasValue(address.postal_code) &&
+    hasValue(address.country_code) &&
+    hasValue(email)
+  )
+}
+
+const hasCustomerAddress = (
+  address:
+    | {
+        street?: string
+        city?: string
+        postalCode?: string
+        country?: string
+      }
+    | null
+    | undefined
+): boolean =>
+  Boolean(
+    address &&
+      hasValue(address.street) &&
+      hasValue(address.city) &&
+      hasValue(address.postalCode) &&
+      hasValue(address.country)
+  )
+
 export function useCheckout(): UseCheckoutReturn {
-  const { cart, refetch, clearCart } = useCart()
+  const { cart, refetch } = useCart()
   const { address } = useCustomer()
   const toast = useToast()
   const queryClient = useQueryClient()
@@ -25,15 +170,138 @@ export function useCheckout(): UseCheckoutReturn {
     null
   )
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const previousCartIdRef = useRef<string | undefined>(cart?.id)
+  const shippingCacheKey =
+    typeof cart?.updated_at === "string"
+      ? cart.updated_at
+      : cart?.updated_at
+        ? new Date(cart.updated_at).toISOString()
+        : undefined
+
+  const {
+    shippingOptions,
+    isLoading: isLoadingShippingOptions,
+    isFetching: isFetchingShippingOptions,
+    setShippingMethodAsync,
+  } = useStorefrontCheckoutShipping({
+    cart,
+    cartId: cart?.id,
+    cacheKey: shippingCacheKey,
+    enabled: !!cart?.id,
+    calculatePrices: false,
+  })
+
+  const {
+    paymentProviders,
+    initiatePaymentAsync,
+  } = useStorefrontCheckoutPayment({
+    cart,
+    cartId: cart?.id,
+    regionId: cart?.region_id ?? undefined,
+    enabled: Boolean(cart?.id && cart?.region_id),
+  })
+
+  const completeCartMutation = useStorefrontCompleteCart()
+  const updateCartAddressMutation = useStorefrontUpdateCartAddress()
+
+  const supportedShippingOptions = useMemo(
+    () => shippingOptions.filter(isCheckoutShippingOptionSupported),
+    [shippingOptions]
+  )
+
+  const shippingMethods = supportedShippingOptions.map((option) => {
+    const normalizedOption = option as CheckoutShippingOption
+
+    return {
+      id: option.id,
+      name: option.name,
+      calculated_price: option.calculated_price,
+      provider_id: normalizedOption.provider_id ?? undefined,
+      type_code: normalizedOption.type?.code ?? undefined,
+    }
+  })
+  const paymentMethods = resolveCheckoutPaymentMethods(paymentProviders)
+  const hasAddress =
+    hasCheckoutAddressData(addressData) ||
+    hasCartShippingAddress(cart?.shipping_address, cart?.email) ||
+    hasCustomerAddress(address)
+
+  const isLoadingShipping = isLoadingShippingOptions || isFetchingShippingOptions
+
+  const recoverFromStaleCart = async () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEYS.CART_ID)
+    }
+
+    await queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
+    await refetch()
+
+    setAddressData(null)
+    setSelectedShipping("")
+    setSelectedPayment("")
+    setCurrentStep(0)
+
+    toast.create({
+      title: "Košík vypršel",
+      description: "Vytvořili jsme nový košík. Prosím zadejte adresu znovu.",
+      type: "warning",
+    })
+  }
+
+  useEffect(() => {
+    if (!selectedShipping) {
+      return
+    }
+
+    const selectedMethodStillAvailable = supportedShippingOptions.some(
+      (option) => option.id === selectedShipping
+    )
+
+    if (!selectedMethodStillAvailable) {
+      setSelectedShipping("")
+    }
+  }, [selectedShipping, supportedShippingOptions])
+
+  useEffect(() => {
+    if (!paymentMethods.length) {
+      if (selectedPayment) {
+        setSelectedPayment("")
+      }
+      return
+    }
+
+    const selectedMethodAvailable = paymentMethods.some(
+      (method) => method.id === selectedPayment
+    )
+
+    if (!selectedMethodAvailable) {
+      setSelectedPayment(paymentMethods[0].id)
+    }
+  }, [paymentMethods, selectedPayment])
+
+  useEffect(() => {
+    const previousCartId = previousCartIdRef.current
+    const currentCartId = cart?.id
+
+    if (previousCartId && currentCartId && previousCartId !== currentCartId) {
+      setAddressData(null)
+      setSelectedShipping("")
+      setSelectedPayment("")
+      setCurrentStep(0)
+    }
+
+    previousCartIdRef.current = currentCartId
+  }, [cart?.id])
 
   // Update addresses in cart
   const updateAddresses = async (data: CheckoutAddressData) => {
     if (!cart?.id) return
 
     try {
-      await sdk.store.cart.update(cart.id, {
+      await updateCartAddressMutation.mutateAsync({
+        cartId: cart.id,
         email: data.shipping.email,
-        shipping_address: {
+        shippingAddress: {
           first_name: data.shipping.firstName,
           last_name: data.shipping.lastName,
           address_1: data.shipping.street,
@@ -43,17 +311,9 @@ export function useCheckout(): UseCheckoutReturn {
           country_code: (data.shipping.country || "CZ").toLowerCase(),
           company: data.shipping.company,
         },
-        billing_address: data.useSameAddress
-          ? {
-              first_name: data.shipping.firstName,
-              last_name: data.shipping.lastName,
-              address_1: data.shipping.street,
-              city: data.shipping.city,
-              postal_code: data.shipping.postalCode,
-              phone: data.shipping.phone,
-              country_code: (data.shipping.country || "CZ").toLowerCase(),
-              company: data.shipping.company,
-            }
+        useSameAddress: data.useSameAddress,
+        billingAddress: data.useSameAddress
+          ? undefined
           : {
               first_name: data.billing.firstName,
               last_name: data.billing.lastName,
@@ -66,6 +326,11 @@ export function useCheckout(): UseCheckoutReturn {
       })
       setAddressData(data)
     } catch (err) {
+      if (isStaleCartError(err)) {
+        await recoverFromStaleCart()
+        throw err
+      }
+
       console.error("Failed to update cart with addresses:", err)
       toast.create({
         title: "Chyba při ukládání adresy",
@@ -76,39 +341,32 @@ export function useCheckout(): UseCheckoutReturn {
     }
   }
 
-  const {
-    data: shippingMethods,
-    isLoading: isLoadingShipping,
-    error: shippingError,
-  } = useQuery({
-    queryKey: queryKeys.fulfillment.cartOptions(cart?.id || ""),
-    queryFn: async () => {
-      if (!cart?.id) throw new Error("No cart ID available")
-      const response = await sdk.store.fulfillment.listCartOptions({
-        cart_id: cart.id,
-      })
-
-      const reducedShippingMethods = response.shipping_options.map((o) => ({
-        id: o.id,
-        name: o.name,
-        calculated_price: o.calculated_price,
-      }))
-      return reducedShippingMethods
-    },
-    enabled: !!cart?.id,
-    ...cacheConfig.semiStatic,
-  })
-
   // Add shipping method to cart
   const addShippingMethod = async (methodId: string) => {
     if (!cart?.id) return
 
-    try {
-      await sdk.store.cart.addShippingMethod(cart.id, {
-        option_id: methodId,
+    const methodAvailable = supportedShippingOptions.some(
+      (option) => option.id === methodId
+    )
+
+    if (!methodAvailable) {
+      toast.create({
+        title: "Neplatný způsob dopravy",
+        description: "Tento způsob dopravy není momentálně dostupný.",
+        type: "error",
       })
+      return
+    }
+
+    try {
+      await setShippingMethodAsync(methodId)
       await refetch()
     } catch (error) {
+      if (isStaleCartError(error)) {
+        await recoverFromStaleCart()
+        throw error
+      }
+
       console.error("Failed to add shipping method:", error)
       toast.create({
         title: "Chyba při výběru dopravy",
@@ -126,10 +384,11 @@ export function useCheckout(): UseCheckoutReturn {
     setIsProcessingPayment(true)
 
     try {
-      // Get fresh cart state
-      const { cart: currentCart } = await sdk.store.cart.retrieve(cart.id)
+      await refetch()
+      const currentCart =
+        queryClient.getQueryData<HttpTypes.StoreCart>(queryKeys.cart(cart.id)) ??
+        cart
 
-      // Check shipping method
       if (
         !currentCart.shipping_methods ||
         currentCart.shipping_methods.length === 0
@@ -143,69 +402,76 @@ export function useCheckout(): UseCheckoutReturn {
         return
       }
 
-      // Initialize payment if needed
-      if (!currentCart.payment_collection) {
-        if (!currentCart.region_id) {
-          toast.create({
-            title: "Chyba",
-            description: "Košík nemá nastavenou region",
-            type: "error",
-          })
-          return
-        }
-
-        const providers = await sdk.store.payment.listPaymentProviders({
-          region_id: currentCart.region_id,
+      if (!currentCart.region_id) {
+        toast.create({
+          title: "Chyba",
+          description: "Košík nemá nastavený region",
+          type: "error",
         })
-
-        if (providers.payment_providers?.length > 0) {
-          const providerId = providers.payment_providers[0].id
-          await sdk.store.payment.initiatePaymentSession(currentCart, {
-            provider_id: providerId,
-          })
-        }
+        return
       }
 
-      // Refresh cart to get payment collection
-      const { cart: latestCart } = await sdk.store.cart.retrieve(cart.id)
-
-      // Create payment session if needed
-      if (
-        !latestCart.payment_collection?.payment_sessions ||
-        latestCart.payment_collection.payment_sessions.length === 0
-      ) {
-        await sdk.store.payment.initiatePaymentSession(latestCart, {
-          provider_id: "pp_system_default",
+      if (!paymentMethods.length) {
+        toast.create({
+          title: "Chyba",
+          description: "Pro tento region není dostupná žádná platební metoda",
+          type: "error",
         })
+        return
       }
 
-      // Complete order
-      const result = await sdk.store.cart.complete(cart.id)
+      const hasPaymentSessions =
+        (currentCart.payment_collection?.payment_sessions?.length ?? 0) > 0
+
+      if (!hasPaymentSessions) {
+        const preferredProviderId =
+          paymentMethods.find((provider) => provider.id === selectedPayment)
+            ?.id ??
+          paymentMethods[0]?.id ??
+          "pp_system_default"
+
+        await initiatePaymentAsync(preferredProviderId)
+        await refetch()
+      }
+
+      const latestCart =
+        queryClient.getQueryData<HttpTypes.StoreCart>(
+          queryKeys.cart(currentCart.id)
+        ) ?? currentCart
+
+      const result = await completeCartMutation.mutateAsync({
+        cartId: currentCart.id,
+      })
 
       if (result.type === "order") {
-        const order = result.order
+        orderHelpers.saveCompletedOrder(latestCart)
 
-        // Save completed order data
-        if (currentCart) {
-          orderHelpers.saveCompletedOrder(currentCart)
-        }
-
-        // Clear cart from localStorage
         if (typeof window !== "undefined") {
           localStorage.removeItem(STORAGE_KEYS.CART_ID)
         }
 
-        clearCart()
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.cart(),
+        })
 
-        // Invalidate orders cache to refresh the list
         await queryClient.invalidateQueries({
           queryKey: queryKeys.orders.all(),
         })
 
-        // Return success with order data
-        return order
+        return result.order
       }
+
+      if (result.type === "cart" && result.error?.message) {
+        throw new Error(result.error.message)
+      }
+
+      return undefined
     } catch (error) {
+      if (isStaleCartError(error)) {
+        await recoverFromStaleCart()
+        throw error
+      }
+
       console.error("Order creation error:", error)
       toast.create({
         title: "Chyba při vytváření objednávky",
@@ -225,11 +491,11 @@ export function useCheckout(): UseCheckoutReturn {
   const canProceedToStep = (step: number) => {
     switch (step) {
       case 1: // Shipping
-        return !!address
+        return hasAddress
       case 2: // Payment
-        return !!address && !!selectedShipping
+        return hasAddress && !!selectedShipping
       case 3: // Summary
-        return !!address && !!selectedShipping && !!selectedPayment
+        return hasAddress && !!selectedShipping && !!selectedPayment
       default:
         return true
     }
@@ -243,8 +509,8 @@ export function useCheckout(): UseCheckoutReturn {
     addressData,
     isProcessingPayment,
     shippingMethods,
+    paymentMethods,
     isLoadingShipping,
-    shippingError,
 
     // Actions
     setCurrentStep,
