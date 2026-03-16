@@ -360,7 +360,7 @@ Gallery.Thumbnail = function GalleryThumbnail<
   const resolvedImageAs = (imageAs ||
     thumbnailImageAs ||
     Image) as GalleryImageComponent<T>
-  const hasCustomThumbnailComponent = resolvedImageAs && resolvedImageAs !== Image
+  const hasCustomThumbnailComponent = resolvedImageAs !== Image
   const CustomThumbnailComponent = hasCustomThumbnailComponent
     ? (resolvedImageAs as ElementType)
     : Image
