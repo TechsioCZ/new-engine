@@ -1,7 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
-import { useCallback } from "react"
 import {
   type ActiveCartQueryKeyMatcher,
   createDefaultActiveCartQueryMatcher,
@@ -261,37 +260,31 @@ export function createMedusaCartFlow({
   ) {
     const queryClient = useQueryClient()
     const mutation = hook(buildMutationHandlers(queryClient, options))
-    const mutate = useCallback(
-      (
-        input: TInput,
-        mutateOptions?: {
-          onSuccess?: (cart: HttpTypes.StoreCart) => void
-          onError?: (error: MedusaCartMutationError) => void
-        }
-      ) => {
-        mutation.mutate(input, {
-          onSuccess: async (cart: HttpTypes.StoreCart) => {
-            const resolvedCart = await resolveRenderableCart(cart)
-            mutateOptions?.onSuccess?.(resolvedCart)
-          },
-          onError: (error: unknown) => {
-            mutateOptions?.onError?.(toCartMutationError(error))
-          },
-        })
-      },
-      [mutation]
-    )
-    const mutateAsync = useCallback(
-      async (input: TInput) => {
-        try {
-          const cart = await mutation.mutateAsync(input)
-          return await resolveRenderableCart(cart)
-        } catch (error) {
-          throw toCartMutationError(error)
-        }
-      },
-      [mutation]
-    )
+    const mutate = (
+      input: TInput,
+      mutateOptions?: {
+        onSuccess?: (cart: HttpTypes.StoreCart) => void
+        onError?: (error: MedusaCartMutationError) => void
+      }
+    ) => {
+      mutation.mutate(input, {
+        onSuccess: async (cart: HttpTypes.StoreCart) => {
+          const resolvedCart = await resolveRenderableCart(cart)
+          mutateOptions?.onSuccess?.(resolvedCart)
+        },
+        onError: (error: unknown) => {
+          mutateOptions?.onError?.(toCartMutationError(error))
+        },
+      })
+    }
+    const mutateAsync = async (input: TInput) => {
+      try {
+        const cart = await mutation.mutateAsync(input)
+        return await resolveRenderableCart(cart)
+      } catch (error) {
+        throw toCartMutationError(error)
+      }
+    }
 
     return {
       ...mutation,

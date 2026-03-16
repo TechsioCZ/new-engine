@@ -4,7 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { useCallback, useEffect, useSyncExternalStore } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 import { assertStorefrontAddressValidation } from "../shared/address"
 import type { StorageValueStore } from "../shared/browser-storage"
 import {
@@ -996,53 +996,43 @@ export function createCartHooks<
       cacheStrategy
     )
 
-    const prefetchCart = useCallback(
-      async (input: CartInputBase) => {
-        const resolvedInput = applyRegion(input, contextRegion ?? undefined)
-        const cartId = resolveCartId(resolvedInput.cartId)
-        const autoCreate = resolvedInput.autoCreate ?? true
-        const canCreate =
-          autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
+    const prefetchCart = async (input: CartInputBase) => {
+      const resolvedInput = applyRegion(input, contextRegion ?? undefined)
+      const cartId = resolveCartId(resolvedInput.cartId)
+      const autoCreate = resolvedInput.autoCreate ?? true
+      const canCreate =
+        autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
 
-        const queryKey = resolvedQueryKeys.active({
-          cartId,
-          regionId: resolvedInput.region_id ?? null,
-        })
+      const queryKey = resolvedQueryKeys.active({
+        cartId,
+        regionId: resolvedInput.region_id ?? null,
+      })
 
-        if (
-          shouldSkipPrefetch({
-            queryClient,
-            queryKey,
-            cacheOptions: prefetchCacheOptions,
-            skipIfCached,
-            skipMode,
-          })
-        ) {
-          return
-        }
-
-        await queryClient.prefetchQuery({
+      if (
+        shouldSkipPrefetch({
+          queryClient,
           queryKey,
-          queryFn: ({ signal }) =>
-            loadCart({
-              input: resolvedInput,
-              cartId,
-              canCreate,
-              autoUpdateRegion: resolvedInput.autoUpdateRegion ?? true,
-              signal,
-            }),
-          ...prefetchCacheOptions,
+          cacheOptions: prefetchCacheOptions,
+          skipIfCached,
+          skipMode,
         })
-      },
-      [
-        contextRegion,
-        prefetchCacheOptions,
-        queryClient,
-        requireRegion,
-        skipIfCached,
-        skipMode,
-      ]
-    )
+      ) {
+        return
+      }
+
+      await queryClient.prefetchQuery({
+        queryKey,
+        queryFn: ({ signal }) =>
+          loadCart({
+            input: resolvedInput,
+            cartId,
+            canCreate,
+            autoUpdateRegion: resolvedInput.autoUpdateRegion ?? true,
+            signal,
+          }),
+        ...prefetchCacheOptions,
+      })
+    }
 
     return { prefetchCart }
   }

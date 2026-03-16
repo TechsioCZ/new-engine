@@ -277,10 +277,7 @@ export function createCheckoutHooks<
         canSubscribeToCart && cartId && cartQueryKeys
           ? cartQueryKeys.detail(cartId)
           : fallbackReactiveCartKey,
-      queryFn: () =>
-        canSubscribeToCart && cartId && cartQueryKeys
-          ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId)
-          : null,
+      queryFn: async () => null,
       enabled: canSubscribeToCart,
       initialData: initialCart,
       staleTime: Number.POSITIVE_INFINITY,

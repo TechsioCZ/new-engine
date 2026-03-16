@@ -107,15 +107,15 @@ describe("cart cache sync helpers", () => {
   it("supports custom active cart query matchers for non-standard key shapes", () => {
     const queryClient = new QueryClient()
     const queryKeys: CartQueryKeys = {
-      all: () => ["custom", "cart"],
-      active: ({ cartId, regionId }) => [
-        "custom",
-        "cart",
-        "active",
-        cartId ?? null,
-        regionId ?? null,
-      ],
-      detail: (cartId) => ["custom", "cart", "detail", cartId],
+      all: () => createQueryKey(["custom", "cart"]),
+      active: ({ cartId, regionId }) =>
+        createQueryKey(
+          ["custom", "cart"],
+          "active",
+          cartId ?? null,
+          regionId ?? null
+        ),
+      detail: (cartId) => createQueryKey(["custom", "cart"], "detail", cartId),
     }
 
     const activeKey = queryKeys.active({

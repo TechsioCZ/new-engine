@@ -21,7 +21,7 @@ import type {
 import { resolvePagination } from "../shared/pagination"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import { createPrefetchPagesPlan } from "../shared/prefetch-pages-plan"
-import type { QueryNamespace } from "../shared/query-keys"
+import { appendQueryKey, type QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
@@ -240,6 +240,20 @@ export function createProductHooks<
     return applyRegion(baseInput as TDetailInput, region ?? undefined)
   }
 
+  const resolveUseGlobalFetcher = (useGlobalFetcher?: boolean): boolean =>
+    Boolean(useGlobalFetcher && service.getProductsGlobal)
+
+  const createListQueryKey = (
+    listParams: TListParams,
+    useGlobalFetcher: boolean
+  ) =>
+    useGlobalFetcher
+      ? appendQueryKey(resolvedQueryKeys.list(listParams), {
+          fetcher: "global",
+        })
+      : resolvedQueryKeys.list(listParams)
+
+
   const getListQueryOptions = (
     input: TListInput,
     options?: {
@@ -250,11 +264,10 @@ export function createProductHooks<
   ) => {
     const resolvedInput = resolveListInput(input, options?.region)
     const listParams = buildList(resolvedInput)
-    const useGlobalFetcher =
-      options?.useGlobalFetcher && service.getProductsGlobal
+    const useGlobalFetcher = resolveUseGlobalFetcher(options?.useGlobalFetcher)
 
     return {
-      queryKey: resolvedQueryKeys.list(listParams),
+      queryKey: createListQueryKey(listParams, useGlobalFetcher),
       queryFn: ({ signal }: { signal?: AbortSignal }) =>
         useGlobalFetcher
           ? (service.getProductsGlobal?.(listParams, signal) ??
@@ -276,15 +289,14 @@ export function createProductHooks<
   ) => {
     const resolvedInput = resolveListInput(input, options?.region)
     const listParams = buildList(resolvedInput)
-    const useGlobalFetcher =
-      options?.useGlobalFetcher && service.getProductsGlobal
+    const useGlobalFetcher = resolveUseGlobalFetcher(options?.useGlobalFetcher)
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
       options?.cacheStrategy ?? "semiStatic"
     )
 
     return {
-      queryKey: resolvedQueryKeys.list(listParams),
+      queryKey: createListQueryKey(listParams, useGlobalFetcher),
       queryFn: ({ signal }: { signal?: AbortSignal }) =>
         useGlobalFetcher
           ? (service.getProductsGlobal?.(listParams, signal) ??
@@ -313,15 +325,14 @@ export function createProductHooks<
       offset: 0,
     } as TListInput
     const listParams = buildPrefetch(firstPageInput)
-    const useGlobalFetcher =
-      options?.useGlobalFetcher && service.getProductsGlobal
+    const useGlobalFetcher = resolveUseGlobalFetcher(options?.useGlobalFetcher)
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
       options?.cacheStrategy ?? "semiStatic"
     )
 
     return {
-      queryKey: resolvedQueryKeys.list(listParams),
+      queryKey: createListQueryKey(listParams, useGlobalFetcher),
       queryFn: ({ signal }: { signal?: AbortSignal }) =>
         useGlobalFetcher
           ? (service.getProductsGlobal?.(listParams, signal) ??
@@ -494,20 +505,17 @@ export function createProductHooks<
     baseListParams: TListParams,
     resolvedInitialLimit: number | undefined
   ): readonly unknown[] => {
-    const baseQueryKey = resolvedQueryKeys.infinite
+    const infiniteBaseQueryKey = resolvedQueryKeys.infinite
       ? resolvedQueryKeys.infinite(baseListParams)
-      : resolvedQueryKeys.list(baseListParams)
-    const isInfiniteKey =
-      Boolean(resolvedQueryKeys.infinite) || baseQueryKey.at(-1) === "__infinite"
-    const queryKey = isInfiniteKey
-      ? baseQueryKey
-      : [...baseQueryKey, "__infinite"]
-    const initialLimitKey =
-      typeof resolvedInitialLimit === "number"
-        ? ["__initialLimit", resolvedInitialLimit]
-        : []
+      : appendQueryKey(resolvedQueryKeys.list(baseListParams), "infinite")
 
-    return initialLimitKey.length > 0 ? [...queryKey, ...initialLimitKey] : queryKey
+    if (typeof resolvedInitialLimit !== "number") {
+      return infiniteBaseQueryKey
+    }
+
+    return appendQueryKey(infiniteBaseQueryKey, {
+      initialLimit: resolvedInitialLimit,
+    })
   }
 
   function useInfiniteProducts(

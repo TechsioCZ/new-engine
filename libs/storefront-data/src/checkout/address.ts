@@ -7,6 +7,7 @@ import type {
   MedusaCustomerAddressCreateInput,
   MedusaCustomerAddressUpdateInput,
 } from "../customers/medusa-service"
+import { hasTrimmedString, normalizeTrimmedString } from "../shared/string-utils"
 
 export type CheckoutAddressInput = {
   firstName?: string | null
@@ -130,30 +131,14 @@ export const defaultCheckoutAddressRequiredFields: readonly CheckoutAddressStrin
   "country",
 ]
 
-const hasValue = (value: unknown): value is string =>
-  typeof value === "string" && value.trim().length > 0
 
-const hasOwnField = (input: object, field: PropertyKey): boolean =>
-  Object.hasOwn(input, field)
-
-const normalizeOptionalString = (value: unknown): string | undefined => {
-  if (!hasValue(value)) {
-    return
-  }
-
-  return value.trim()
-}
-
-const normalizePresentString = (value: unknown): string | null | undefined => {
+const normalizePresentString = (value: unknown): string | undefined => {
   if (typeof value === "string") {
     return value.trim()
   }
 
-  if (value == null) {
-    return value
-  }
-
-  return 
+  // Non-string values are treated as absent in patch payloads.
+  return
 }
 
 const createRequiredIssue = (
@@ -216,16 +201,16 @@ const normalizeCheckoutAddressInput = <TAddress extends CheckoutAddressInput>(
   address: TAddress
 ): NormalizedCheckoutAddress<TAddress> => ({
   ...address,
-  firstName: normalizeOptionalString(address.firstName),
-  lastName: normalizeOptionalString(address.lastName),
-  street: normalizeOptionalString(address.street),
-  street2: normalizeOptionalString(address.street2),
-  city: normalizeOptionalString(address.city),
-  postalCode: normalizeOptionalString(address.postalCode),
-  country: normalizeOptionalString(address.country),
-  province: normalizeOptionalString(address.province),
-  company: normalizeOptionalString(address.company),
-  phone: normalizeOptionalString(address.phone),
+  firstName: normalizeTrimmedString(address.firstName),
+  lastName: normalizeTrimmedString(address.lastName),
+  street: normalizeTrimmedString(address.street),
+  street2: normalizeTrimmedString(address.street2),
+  city: normalizeTrimmedString(address.city),
+  postalCode: normalizeTrimmedString(address.postalCode),
+  country: normalizeTrimmedString(address.country),
+  province: normalizeTrimmedString(address.province),
+  company: normalizeTrimmedString(address.company),
+  phone: normalizeTrimmedString(address.phone),
 })
 
 const normalizeCheckoutAddressPatch = <
@@ -249,7 +234,7 @@ const normalizeCheckoutAddressPatch = <
     "company",
     "phone",
   ] as const) {
-    if (hasOwnField(address, field)) {
+    if (Object.hasOwn(address, field)) {
       normalized[field] = normalizePresentString(address[field])
     }
   }
@@ -262,7 +247,7 @@ const getMissingCheckoutAddressFields = (
   requiredFields: readonly CheckoutAddressStringField[] =
     defaultCheckoutAddressRequiredFields
 ): CheckoutAddressStringField[] =>
-  requiredFields.filter((field) => !hasValue(address[field]))
+  requiredFields.filter((field) => !hasTrimmedString(address[field]))
 
 const getCheckoutAddressFieldIssues = <TAddress extends CheckoutAddressInput>(
   address: TAddress,
@@ -298,7 +283,8 @@ const getCheckoutAddressPatchFieldIssues = <
 
   return requiredFields
     .filter(
-      (field) => hasOwnField(address, field) && !hasValue(normalizedAddress[field])
+      (field) =>
+        Object.hasOwn(address, field) && !hasTrimmedString(normalizedAddress[field])
     )
     .map((field) => createRequiredIssue(scope, field))
 }
@@ -332,7 +318,7 @@ export const getCheckoutAddressValidationIssues = <
     )
   }
 
-  const normalizedEmail = normalizeOptionalString(data.email)
+  const normalizedEmail = normalizeTrimmedString(data.email)
   if (requireEmail && !normalizedEmail) {
     issues.push({
       scope: "root",
@@ -410,22 +396,22 @@ const mapCheckoutAddressPatchToMedusaCustomerAddress = (
   const payload: MedusaCustomerAddressUpdateInput = {}
 
   for (const [sourceField, targetField] of checkoutAddressPatchStringFieldMap) {
-    if (!hasOwnField(normalized, sourceField)) {
+    if (!Object.hasOwn(normalized, sourceField)) {
       continue
     }
     payload[targetField] = resolvePatchedString(normalized[sourceField])
   }
 
-  if (hasOwnField(normalized, "country")) {
+  if (Object.hasOwn(normalized, "country")) {
     payload.country_code = normalizePatchCountryCode(normalized.country, options)
   }
-  if (hasOwnField(normalized, "isDefaultShipping")) {
+  if (Object.hasOwn(normalized, "isDefaultShipping")) {
     payload.is_default_shipping = address.isDefaultShipping
   }
-  if (hasOwnField(normalized, "isDefaultBilling")) {
+  if (Object.hasOwn(normalized, "isDefaultBilling")) {
     payload.is_default_billing = address.isDefaultBilling
   }
-  if (hasOwnField(normalized, "metadata")) {
+  if (Object.hasOwn(normalized, "metadata")) {
     payload.metadata = address.metadata ?? undefined
   }
 
@@ -437,16 +423,16 @@ export const mapMedusaAddressToCheckoutAddress = <
 >(
   address?: MedusaAddressLike | null
 ): NormalizedCheckoutAddress<TAddress> => ({
-  firstName: normalizeOptionalString(address?.first_name),
-  lastName: normalizeOptionalString(address?.last_name),
-  street: normalizeOptionalString(address?.address_1),
-  street2: normalizeOptionalString(address?.address_2),
-  city: normalizeOptionalString(address?.city),
-  postalCode: normalizeOptionalString(address?.postal_code),
-  country: normalizeOptionalString(address?.country_code),
-  province: normalizeOptionalString(address?.province),
-  company: normalizeOptionalString(address?.company),
-  phone: normalizeOptionalString(address?.phone),
+  firstName: normalizeTrimmedString(address?.first_name),
+  lastName: normalizeTrimmedString(address?.last_name),
+  street: normalizeTrimmedString(address?.address_1),
+  street2: normalizeTrimmedString(address?.address_2),
+  city: normalizeTrimmedString(address?.city),
+  postalCode: normalizeTrimmedString(address?.postal_code),
+  country: normalizeTrimmedString(address?.country_code),
+  province: normalizeTrimmedString(address?.province),
+  company: normalizeTrimmedString(address?.company),
+  phone: normalizeTrimmedString(address?.phone),
   isDefaultShipping:
     typeof address?.is_default_shipping === "boolean"
       ? address.is_default_shipping
@@ -524,7 +510,7 @@ export const buildCheckoutCartAddressInput = <
       : shippingAddress
 
   return {
-    email: normalizeOptionalString(data.email),
+    email: normalizeTrimmedString(data.email),
     shippingAddress,
     billingAddress,
     useSameAddress,

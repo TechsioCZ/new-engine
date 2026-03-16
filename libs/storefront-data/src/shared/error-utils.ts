@@ -57,3 +57,19 @@ export const toErrorWithCode = (
 
   return { message: message ?? fallback }
 }
+
+export type ErrorWithStage<TStage extends string> = {
+  stage: TStage
+  message: string
+  cause?: unknown
+}
+
+export const createErrorWithStage = <TStage extends string>(
+  stage: TStage,
+  fallback: string,
+  cause?: unknown
+): ErrorWithStage<TStage> => ({
+  stage,
+  message: toErrorMessageWithFallback(cause, fallback),
+  cause,
+})

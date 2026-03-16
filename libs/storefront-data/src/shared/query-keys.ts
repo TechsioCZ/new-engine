@@ -127,6 +127,14 @@ export function createQueryKey(
   return [...scope, ...parts.map((part) => walkValue(part, visited))]
 }
 
+export function appendQueryKey(
+  base: QueryKey,
+  ...parts: readonly unknown[]
+): QueryKey {
+  const visited = new WeakSet<object>()
+  return [...base, ...parts.map((part) => walkValue(part, visited))]
+}
+
 export function createDomainQueryKeys<TListParams, TDetailParams>(
   namespace: QueryNamespace,
   domain: string

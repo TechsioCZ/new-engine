@@ -41,12 +41,21 @@ describe("createLocalStorageValueStore", () => {
     expect(listener).toHaveBeenCalledTimes(1)
 
     backingStorage.setItem(key, "cart_2")
-    const storageEvent = new StorageEvent("storage")
+    const storageEvent = new Event("storage")
     Object.defineProperties(storageEvent, {
       key: { value: key },
       newValue: { value: "cart_2" },
+      storageArea: { value: backingStorage },
     })
     window.dispatchEvent(storageEvent)
+    expect(listener).toHaveBeenCalledTimes(2)
+
+    const unrelatedStorageEvent = new Event("storage")
+    Object.defineProperties(unrelatedStorageEvent, {
+      key: { value: key },
+      storageArea: { value: createMemoryStorage() },
+    })
+    window.dispatchEvent(unrelatedStorageEvent)
     expect(listener).toHaveBeenCalledTimes(2)
 
     storage.clear()
@@ -54,7 +63,12 @@ describe("createLocalStorageValueStore", () => {
     expect(listener).toHaveBeenCalledTimes(3)
 
     backingStorage.setItem(key, "cart_3")
-    window.dispatchEvent(new StorageEvent("storage"))
+    const clearEvent = new Event("storage")
+    Object.defineProperties(clearEvent, {
+      key: { value: null },
+      storageArea: { value: backingStorage },
+    })
+    window.dispatchEvent(clearEvent)
     expect(listener).toHaveBeenCalledTimes(4)
     unsubscribe()
   })
