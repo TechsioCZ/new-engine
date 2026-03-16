@@ -94,21 +94,23 @@ const IGNORE_PATTERNS = [
   /^(p|m|gap|w|h|max-w|min-w|max-h|min-h|top|right|bottom|left|inset|space)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit|end)$/,
 
   // Margin/padding with directional prefixes
-  /^(ml|mr|mt|mb|mx|my|pl|pr|pt|pb|px|py)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit)$/,
+  /^(ml|mr|mt|mb|mx|my|ms|me|pl|pr|pt|pb|px|py|ps|pe)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit)$/,
 
   // Standard colors including transparent
   /^(bg|text|border)-(transparent|current|black|white|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-\d{1,3})?(?:\/\d{1,3})?$/,
   /^(bg|text|border)-(transparent|current|black|white|inherit)$/,
 
   // Standard typography
-  /^text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl|left|center|right|justify)$/,
+  /^text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl|left|center|right|justify|start|end)$/,
   /^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/,
   /^font-(sans|serif|mono)$/,
   /^(leading|tracking)-(none|tight|snug|normal|relaxed|loose|wide|wider|widest)$/,
 
   // Standard borders & effects
   /^(border|rounded)-(none|sm|md|lg|xl|2xl|3xl|full)$/,
-  /^border-(0|2|4|8|t|r|b|l|x|y|color)$/,
+  /^rounded-(s|e|t|r|b|l|ss|se|ee|es|tl|tr|br|bl)-(none|sm|md|lg|xl|2xl|3xl|full)$/,
+  /^border-(0|2|4|8|t|r|b|l|s|e|x|y|color)$/,
+  /^border-(collapse|separate)$/,
   /^shadow-(sm|md|lg|xl|2xl|inner|none)$/,
   /^opacity-(0|5|10|20|25|30|40|50|60|70|75|80|90|95|100)$/,
 
@@ -123,7 +125,6 @@ const IGNORE_PATTERNS = [
   /^(transform|rotate|scale|translate|skew|transition|duration|ease|delay|animate)-.+$/,
 
   // Special edge cases
-  /^w-\(--reference-width\)$/, // Dynamic width references
   /^max-h-\(--available-height\)$/, // Dynamic height references
   /^\*:max-h-\(--available-height\)$/, // Selector prefixes
   /^left-(1\/2)$/, // Fractional positioning
@@ -348,7 +349,7 @@ function mapClassToPossibleTokens(className) {
     possibleTokens.push(`--spacing-${value}`)
   }
 
-  return possibleTokens
+  return [...new Set(possibleTokens)]
 }
 
 /**
@@ -441,8 +442,7 @@ function validateTokenUsage() {
       if (arbitraryTokens.length > 0) {
         // Allow some external CSS vars not governed by design tokens
         const externalAllow = new Set([
-          // Keep truly external/runtime-provided vars here; we now require
-          // --reference-width and --z-index to exist somewhere, per request.
+          // Keep truly external/runtime-provided vars here.
           "--available-height",
           "--height",
           "--border-width-badge-dynamic",

@@ -1,6 +1,7 @@
 import type { StoreProduct } from "@medusajs/types"
 import { PRODUCT_DETAILED_FIELDS } from "@/lib/constants"
 import { fetchLogger } from "@/lib/loggers/fetch"
+import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
 import { sdk } from "@/lib/medusa-client"
 import {
   buildQueryString,
@@ -39,8 +40,7 @@ export async function getProducts(
     })
 
     // Use native fetch with Medusa headers for AbortSignal support
-    const baseUrl =
-      process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+    const baseUrl = getMedusaBackendUrl()
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
     const response = await fetch(`${baseUrl}/store/products?${queryString}`, {
@@ -64,13 +64,27 @@ export async function getProducts(
       offset: offset || 0,
     }
   } catch (err) {
-    // AbortError is expected when request is cancelled
-    if (err instanceof Error && err.name === "AbortError") {
+    const isAbortError = err instanceof Error && err.name === "AbortError"
+    const isPrerenderAbortError =
+      err instanceof Error &&
+      err.message.includes(
+        "During prerendering, fetch() rejects when the prerender is complete"
+      )
+
+    // Request cancellations are expected (navigation, Suspense/prerender completion).
+    // Return empty data so the UI can continue and client queries can refetch.
+    if (signal?.aborted || isAbortError || isPrerenderAbortError) {
       if (process.env.NODE_ENV === "development") {
         const categoryLabel = category_id?.[0]?.slice(-6) || "all"
         fetchLogger.cancelled(categoryLabel, offset)
       }
-      throw err // Let React Query handle it
+
+      return {
+        products: [],
+        count: 0,
+        limit: limit || 0,
+        offset: offset || 0,
+      }
     }
 
     if (process.env.NODE_ENV === "development") {

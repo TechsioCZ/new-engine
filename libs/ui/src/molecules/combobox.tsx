@@ -1,4 +1,8 @@
-import * as combobox from "@zag-js/combobox"
+import {
+  machine as comboboxMachine,
+  connect as connectCombobox,
+  collection as createComboboxCollection,
+} from "@zag-js/combobox"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { useEffect, useId, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -14,8 +18,8 @@ const comboboxVariants = tv({
     root: ["relative flex w-full flex-col"],
     label: ["block font-label text-label-md"],
     control: [
-      "relative flex w-full items-center",
-      "border-(length:--border-width-combobox) rounded-combobox border-combobox-border bg-combobox-bg",
+      "form-control-base relative flex w-full items-center overflow-hidden",
+      "bg-combobox-bg",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
       "data-focus:border-combobox-border-focus data-focus:bg-combobox-bg-focus",
@@ -31,19 +35,20 @@ const comboboxVariants = tv({
       "data-[validation=warning]:border-combobox-warning-fg",
     ],
     input: [
-      "relative w-full border-none bg-combobox-input-bg",
+      "relative h-full w-full border-none bg-combobox-input-bg",
       "hover:bg-combobox-input-bg-hover focus-visible:outline-none",
       "focus:bg-combobox-input-bg-focused",
       "placeholder:text-combobox-placeholder",
       "data-disabled:text-combobox-fg-disabled",
       "data-disabled:bg-combobox-bg-disabled",
     ],
-    clearTrigger: ["absolute right-combobox-clear-right"],
+    clearTrigger: [
+      "absolute right-combobox-clear-right h-full p-combobox-trigger",
+    ],
     trigger: [
-      'flex items-center justify-center',
-      'p-combobox-trigger',
-      'transition-transform duration-200 motion-reduce:transition-none',
-      'data-[state=open]:rotate-180',
+      "group flex h-full shrink-0 items-center justify-center",
+      "font-normal",
+      "p-combobox-trigger",
     ],
     positioner: [
       "z-(--z-index) w-full *:max-h-(--available-height) *:overflow-y-auto",
@@ -53,7 +58,14 @@ const comboboxVariants = tv({
       "rounded-combobox shadow-md",
       "bg-combobox-content-bg",
       "z-(--z-combobox-content) border border-combobox-border",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
+      "transition-discrete",
+      "starting:-translate-y-2 starting:opacity-0",
+      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
+      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
+      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
     ],
+    list: ["m-0 flex list-none flex-col"],
     item: [
       "flex items-center",
       "text-combobox-item-fg",
@@ -62,6 +74,7 @@ const comboboxVariants = tv({
       "data-[state=checked]:bg-combobox-item-bg-selected",
       "data-disabled:cursor-not-allowed data-disabled:text-combobox-fg-disabled",
     ],
+    emptyState: ["text-combobox-placeholder"],
     helper: [
       "data-[validation=success]:text-combobox-success-fg",
       "data-[validation=warning]:text-combobox-warning-fg",
@@ -77,7 +90,7 @@ const comboboxVariants = tv({
         "focus-visible:outline-offset-(length:--default-ring-offset)",
         "text-combobox-trigger text-combobox-trigger-size",
         "hover:text-combobox-trigger-hover",
-        "px-combobox-trigger",
+        "motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none",
         "hover:bg-combobox-trigger-bg-hover",
         "active:bg-combobox-trigger-bg-active",
       ],
@@ -87,20 +100,26 @@ const comboboxVariants = tv({
     size: {
       sm: {
         root: "gap-combobox-root-sm",
-        item: "p-combobox-item-sm",
-        input: "py-combobox-input-sm",
+        control: "h-form-control-sm rounded-combobox-sm text-input-sm",
+        item: "p-combobox-item-sm text-combobox-item-sm",
+        emptyState: "p-combobox-item-sm text-combobox-item-sm",
+        input: "p-combobox-input-sm",
         content: "text-combobox-content-sm",
       },
       md: {
         root: "gap-combobox-root-md",
-        item: "p-combobox-item-md",
-        input: "py-combobox-input-md",
+        control: "h-form-control-md rounded-combobox-md text-input-md",
+        item: "p-combobox-item-md text-combobox-item-md",
+        emptyState: "p-combobox-item-md text-combobox-item-md",
+        input: "p-combobox-input-md",
         content: "text-combobox-content-md",
       },
       lg: {
         root: "gap-combobox-root-lg",
-        item: "p-combobox-item-lg",
-        input: "py-combobox-input-lg",
+        control: "rounded-combobox text-input-lg",
+        item: "p-combobox-item-lg text-combobox-item-lg",
+        emptyState: "p-combobox-item-lg text-combobox-item-lg",
+        input: "p-combobox-input-lg",
         content: "text-combobox-content-lg",
       },
     },
@@ -179,6 +198,8 @@ export function Combobox<T = unknown>({
   onInputValueChange,
   onOpenChange,
 }: ComboboxProps<T>) {
+  const resolvedChevronIconSize = size === "sm" ? "sm" : "md"
+
   const generatedId = useId()
   const uniqueId = id || generatedId
 
@@ -186,14 +207,14 @@ export function Combobox<T = unknown>({
   useEffect(() => {
     setOptions(items)
   }, [items])
-  const collection = combobox.collection({
+  const collection = createComboboxCollection({
     items: options,
     itemToString: (item) => item.label,
     itemToValue: (item) => item.value,
     isItemDisabled: (item) => !!item.disabled,
   })
 
-  const service = useMachine(combobox.machine, {
+  const service = useMachine(comboboxMachine, {
     id: uniqueId,
     name,
     collection,
@@ -230,7 +251,7 @@ export function Combobox<T = unknown>({
     },
   })
 
-  const api = combobox.connect(service, normalizeProps)
+  const api = connectCombobox(service, normalizeProps)
 
   const inputProps = api.getInputProps()
   const { ...restInputProps } = inputProps
@@ -243,9 +264,14 @@ export function Combobox<T = unknown>({
     trigger,
     positioner,
     content,
+    list,
     clearTrigger,
     item: itemSlot,
+    emptyState,
   } = comboboxVariants({ size })
+
+  const hasOptions = api.collection.size > 0
+  const showEmptyState = !hasOptions && Boolean(api.inputValue)
 
   return (
     <div className={root()}>
@@ -276,8 +302,8 @@ export function Combobox<T = unknown>({
         {clearable && api.value.length > 0 && (
           <Button
             className={clearTrigger()}
-            size={size}
-            theme="borderless"
+            size="current"
+            theme="unstyled"
             {...api.getClearTriggerProps()}
           >
             <Icon icon={"token-icon-combobox-clear"} size="current" />
@@ -287,33 +313,41 @@ export function Combobox<T = unknown>({
         <Button
           {...api.getTriggerProps()}
           className={trigger()}
-          size={size}
-          theme="borderless"
+          size="current"
+          theme="unstyled"
         >
-          <Icon icon="token-icon-combobox-chevron" />
+          <Icon
+            className={`text-combobox-trigger group-hover:text-combobox-trigger-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+              api.open ? "rotate-180" : "rotate-0"
+            }`}
+            icon="token-icon-combobox-chevron"
+            size={resolvedChevronIconSize}
+          />
         </Button>
       </div>
 
       <Portal>
         <div {...api.getPositionerProps()} className={positioner()}>
-          {api.open && options.length > 0 && (
-            <ul {...api.getContentProps()} className={content()}>
-              {options.map((item) => (
-                <li
-                  key={item.value}
-                  {...api.getItemProps({ item })}
-                  className={itemSlot()}
-                >
-                  <span className="flex-1">{item.label}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {api.open && api.inputValue && options.length === 0 && (
-            <div className={content()}>
-              {noResultsMessage.replace("{inputValue}", api.inputValue)}
-            </div>
-          )}
+          <div {...api.getContentProps()} className={content()}>
+            {hasOptions && (
+              <ul {...api.getListProps()} className={list()}>
+                {options.map((item) => (
+                  <li
+                    key={item.value}
+                    {...api.getItemProps({ item })}
+                    className={itemSlot()}
+                  >
+                    <span className="flex-1">{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {showEmptyState && (
+              <div className={emptyState()}>
+                {noResultsMessage.replace("{inputValue}", api.inputValue)}
+              </div>
+            )}
+          </div>
         </div>
       </Portal>
 

@@ -5,8 +5,10 @@ import { tv } from "../utils"
 const inputVariants = tv({
   base: [
     "block w-full",
+    "font-normal",
     "bg-input",
     "text-input-fg",
+    "placeholder:font-normal",
     "placeholder:text-input-fg-placeholder",
     "border-(length:--border-width-input) border-input-border",
     "rounded-input",
@@ -20,8 +22,8 @@ const inputVariants = tv({
   ],
   variants: {
     size: {
-      sm: "p-input-sm text-input-sm",
-      md: "p-input-md text-input-md",
+      sm: "h-form-control-sm rounded-input-sm p-input-sm text-input-sm",
+      md: "h-form-control-md rounded-input-md p-input-md text-input-md",
       lg: "p-input-lg text-input-lg",
     },
     variant: {

@@ -47,7 +47,7 @@ zerops:
         # initial setup, happens once in service lifetime
         - zsc execOnce createInitialSuperadmin -- npm run createInitialSuperadmin
         # - zsc execOnce seedInitialData -- npm run seedInitialData
-        - zsc execOnce setInitialPublishableKey -- npm run setInitialPublishableKey
+        - zsc execOnce setInitialPublishableKey -- npm run setInitialPublishableKeyZerops
         #- zsc execOnce addInitialSearchDocuments -- npm run addInitialSearchDocuments
       ports:
         - port: 9000

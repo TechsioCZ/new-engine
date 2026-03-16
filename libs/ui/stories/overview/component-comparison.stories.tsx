@@ -31,7 +31,7 @@ import { ProductCard } from '../../src/molecules/product-card'
 import { SearchForm } from '../../src/molecules/search-form'
 import { Select, type SelectItem } from '../../src/molecules/select'
 import { Slider } from '../../src/molecules/slider'
-import { Steps, type StepItem } from '../../src/molecules/steps'
+import { Steps } from '../../src/molecules/steps'
 import { Switch } from '../../src/molecules/switch'
 import { Tabs } from '../../src/molecules/tabs'
 import { Toaster, useToast } from '../../src/molecules/toast'
@@ -175,11 +175,27 @@ const carouselSlides = [
   },
 ]
 
-const stepsItems: StepItem[] = [
-  { value: 0, title: 'Account', content: <p>Create your account</p> },
-  { value: 1, title: 'Profile', content: <p>Complete your profile</p> },
-  { value: 2, title: 'Settings', content: <p>Configure settings</p> },
-  { value: 3, title: 'Review', content: <p>Review and confirm</p> },
+const stepsItems = [
+  {
+    title: 'Account',
+    description: 'Create your account',
+    content: 'Create your account',
+  },
+  {
+    title: 'Profile',
+    description: 'Complete your profile',
+    content: 'Complete your profile',
+  },
+  {
+    title: 'Settings',
+    description: 'Configure settings',
+    content: 'Configure settings',
+  },
+  {
+    title: 'Review',
+    description: 'Review and confirm',
+    content: 'Review and confirm',
+  },
 ]
 
 const tabsItems = [
@@ -339,6 +355,91 @@ function ComponentComparison() {
               </Button>
             </Tooltip>
           </ComponentCard>
+        </Section>
+
+        <Section
+          title="Inputs"
+          description="All box-style form controls side-by-side with their button counterpart at sm and md sizes. Heights should be visually identical."
+          gridClassName="grid grid-cols-1 gap-300"
+        >
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={size}
+              title={`Size: ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <Input placeholder="Input" size={size} className="w-40" />
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`numeric-${size}`}
+              title={`NumericInput — ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <NumericInput defaultValue={1} size={size}>
+                <NumericInput.Control>
+                  <NumericInput.Input />
+                  <NumericInput.TriggerContainer>
+                    <NumericInput.IncrementTrigger />
+                    <NumericInput.DecrementTrigger />
+                  </NumericInput.TriggerContainer>
+                </NumericInput.Control>
+              </NumericInput>
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`combobox-${size}`}
+              title={`Combobox — ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <div className="w-48">
+                <Combobox items={comboboxItems} placeholder="Pick fruit" size={size} />
+              </div>
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`select-${size}`}
+              title={`Select — ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <div className="w-48">
+                <Select items={selectItems} size={size}>
+                  <Select.Control>
+                    <Select.Trigger>
+                      <Select.ValueText placeholder="Choose country" />
+                    </Select.Trigger>
+                  </Select.Control>
+                  <Select.Positioner>
+                    <Select.Content>
+                      {selectItems.map((item) => (
+                        <Select.Item item={item} key={item.value}>
+                          <Select.ItemText />
+                          <Select.ItemIndicator />
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Select>
+              </div>
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`textarea-${size}`}
+              title={`Textarea — ${size}`}
+              bodyClassName="flex flex-wrap items-start gap-50"
+            >
+              <Textarea placeholder="Notes..." size={size} className="w-56" />
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
         </Section>
 
         <Section
@@ -551,12 +652,40 @@ function ComponentComparison() {
           >
             <div className="w-full max-w-xl">
               <Steps
-                completeText="All steps complete."
-                currentStep={currentStep}
-                items={stepsItems}
-                onStepChange={setCurrentStep}
-                showControls
-              />
+                count={stepsItems.length}
+                onStepChange={(details) => setCurrentStep(details.step)}
+                size="md"
+                step={currentStep}
+                variant="subtle"
+              >
+                <Steps.List>
+                  {stepsItems.map((item, index) => (
+                    <Steps.Item index={index} key={item.title}>
+                      <Steps.Trigger>
+                        <Steps.Indicator />
+                        <Steps.ItemText>
+                          <Steps.Title>{item.title}</Steps.Title>
+                        </Steps.ItemText>
+                      </Steps.Trigger>
+                      <Steps.Separator />
+                    </Steps.Item>
+                  ))}
+                </Steps.List>
+                <Steps.Panels>
+                  {stepsItems.map((item, index) => (
+                    <Steps.Content index={index} key={item.title}>
+                      <p className="text-sm text-fg-secondary">{item.content}</p>
+                    </Steps.Content>
+                  ))}
+                  <Steps.CompletedContent>
+                    <p className="text-sm text-fg-secondary">All steps complete.</p>
+                  </Steps.CompletedContent>
+                  <Steps.Navigation>
+                    <Steps.PrevTrigger>Back</Steps.PrevTrigger>
+                    <Steps.NextTrigger>Continue</Steps.NextTrigger>
+                  </Steps.Navigation>
+                </Steps.Panels>
+              </Steps>
             </div>
           </ComponentCard>
           <ComponentCard title="Switch">

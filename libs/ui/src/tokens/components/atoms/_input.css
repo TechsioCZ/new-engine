@@ -67,7 +67,9 @@
 
   /* Border */
   --border-width-input: 2px;
-  --radius-input: var(--radius-md);
+  --radius-input: var(--radius-form-control);
+  --radius-input-sm: var(--radius-form-control-sm);
+  --radius-input-md: var(--radius-form-control-md);
 
   /* Form field spacing */
   --spacing-form-field-gap: var(--spacing-50);

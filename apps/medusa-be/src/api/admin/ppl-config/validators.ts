@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
 /** Zod schema for validating PPL config update requests */
 export const PostAdminPplConfigSchema = z.object({

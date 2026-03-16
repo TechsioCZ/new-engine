@@ -41,8 +41,6 @@
   --font-weight-footer-link: var(--font-weight-normal);
 
   /* === SIZES === */
-  --container-footer-sm: var(--container-sm);
-  --container-footer-md: var(--container-md);
   --container-footer-max: var(--container-max-w);
 
   /* === SPACING === */
@@ -80,11 +78,8 @@
 
   /* === BORDERS & EFFECTS === */
   --border-width-footer: var(--border-width-md);
-  --color-footer-border: var(--color-red-600);
+  --color-footer-border: var(--color-border-primary);
   --height-footer-divider: 2px;
 
   --radius-footer: 0;
-
-  /* === BREAKPOINTS === */
-  --breakpoint-footer-mobile: 768px;
 }
