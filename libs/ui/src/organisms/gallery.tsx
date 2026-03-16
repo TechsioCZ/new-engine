@@ -356,7 +356,7 @@ Gallery.Thumbnail = function GalleryThumbnail<
   const isActive = page === index
   const thumbnailSource = item.thumbnailSrc || item.src || ""
   const thumbnailAlt =
-    item.thumbnailAlt || item.alt || `Product image ${index + 1}`
+    item.thumbnailAlt ?? item.alt ?? `Product image ${index + 1}`
   const resolvedImageAs = (imageAs ||
     thumbnailImageAs ||
     Image) as GalleryImageComponent<T>
@@ -391,8 +391,8 @@ Gallery.Thumbnail = function GalleryThumbnail<
       type="button"
       {...props}
     >
-      {children ||
-        item.thumbnailContent ||
+      {children ??
+        item.thumbnailContent ??
         (thumbnailSource ? (
           hasCustomThumbnailComponent ? (
             <CustomThumbnailComponent
