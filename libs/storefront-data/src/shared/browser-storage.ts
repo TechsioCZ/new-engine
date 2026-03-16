@@ -1,23 +1,15 @@
-export type StorageValueStoreListener = () => void
+type ObservableStorageValueStore = StorageValueStore & {
+  subscribe: (listener: () => void) => () => void
+  getSnapshot: () => string | null
+}
 
 export type StorageValueStore = {
   get: () => string | null
   set: (value: string) => void
   clear: () => void
-  subscribe?: (listener: StorageValueStoreListener) => () => void
+  subscribe?: (listener: () => void) => () => void
   getSnapshot?: () => string | null
   getServerSnapshot?: () => string | null
-}
-
-export type ObservableStorageValueStore = StorageValueStore & {
-  subscribe: (listener: StorageValueStoreListener) => () => void
-  getSnapshot: () => string | null
-}
-
-export type CreateLocalStorageValueStoreOptions = {
-  key: string
-  storage?: Storage | null
-  serverSnapshot?: string | null
 }
 
 const resolveStorage = (storage?: Storage | null): Storage | null => {
@@ -85,8 +77,12 @@ export function createLocalStorageValueStore({
   key,
   storage,
   serverSnapshot = null,
-}: CreateLocalStorageValueStoreOptions): ObservableStorageValueStore {
-  const listeners = new Set<StorageValueStoreListener>()
+}: {
+  key: string
+  storage?: Storage | null
+  serverSnapshot?: string | null
+}): ObservableStorageValueStore {
+  const listeners = new Set<() => void>()
 
   const readValue = (): string | null =>
     getStorageItem(resolveStorage(storage), key) ?? null
@@ -127,7 +123,7 @@ export function createLocalStorageValueStore({
         notifyListeners()
       }
     },
-    subscribe(listener: StorageValueStoreListener) {
+    subscribe(listener: () => void) {
       listeners.add(listener)
 
       if (typeof window === "undefined") {

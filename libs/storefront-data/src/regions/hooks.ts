@@ -4,14 +4,17 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import {
+  type CacheConfig,
   createCacheConfig,
   getPrefetchCacheOptions,
-  type CacheConfig,
 } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
-import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import type {
+  ReadQueryOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
 import { resolvePagination } from "../shared/pagination"
-import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
+import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createRegionQueryKeys } from "./query-keys"
@@ -129,7 +132,9 @@ export function createRegionHooks<
 
   function useSuspenseRegions(
     input: TListInput,
-    options?: { queryOptions?: SuspenseQueryOptions<RegionListResponse<TRegion>> }
+    options?: {
+      queryOptions?: SuspenseQueryOptions<RegionListResponse<TRegion>>
+    }
   ): UseSuspenseRegionsResult<TRegion> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
@@ -288,9 +293,13 @@ export function createRegionHooks<
       const listParams = buildList(listInput as TListInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(() => {
-        void prefetchRegions(input)
-      }, id, delay)
+      return schedulePrefetch(
+        () => {
+          void prefetchRegions(input)
+        },
+        id,
+        delay
+      )
     }
 
     return {
@@ -321,9 +330,10 @@ export function createRegionHooks<
       if (!input.id) {
         return
       }
-      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
+      const { enabled: _inputEnabled, ...detailInput } =
+        input as TDetailInput & {
+          enabled?: boolean
+        }
       const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       if (
@@ -350,15 +360,20 @@ export function createRegionHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
+      const { enabled: _inputEnabled, ...detailInput } =
+        input as TDetailInput & {
+          enabled?: boolean
+        }
       const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(() => {
-        void prefetchRegion(input)
-      }, id, delay)
+      return schedulePrefetch(
+        () => {
+          void prefetchRegion(input)
+        },
+        id,
+        delay
+      )
     }
 
     return {
@@ -377,3 +392,19 @@ export function createRegionHooks<
     usePrefetchRegion,
   }
 }
+
+export type RegionHooks<
+  TRegion,
+  TListInput extends RegionListInputBase,
+  TListParams,
+  TDetailInput extends RegionDetailInputBase,
+  TDetailParams,
+> = ReturnType<
+  typeof createRegionHooks<
+    TRegion,
+    TListInput,
+    TListParams,
+    TDetailInput,
+    TDetailParams
+  >
+>

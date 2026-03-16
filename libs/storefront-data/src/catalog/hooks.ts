@@ -1,19 +1,25 @@
 import type { QueryClient } from "@tanstack/react-query"
-import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import {
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query"
+import {
+  type CacheConfig,
   createCacheConfig,
   getPrefetchCacheOptions,
-  type CacheConfig,
 } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
-import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
-import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
+import type {
+  ReadQueryOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
+import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createCatalogQueryKeys } from "./query-keys"
-import { resolvePositiveInteger } from "./utils"
 import type {
   CatalogListInputBase,
   CatalogListResponse,
@@ -23,6 +29,7 @@ import type {
   UseCatalogProductsResult,
   UseSuspenseCatalogProductsResult,
 } from "./types"
+import { resolvePositiveInteger } from "./utils"
 
 type CacheStrategy = keyof CacheConfig
 
@@ -74,7 +81,10 @@ export function createCatalogHooks<
     const { enabled: inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
-    const resolvedInput = applyRegion(listInput as TListInput, contextRegion ?? undefined)
+    const resolvedInput = applyRegion(
+      listInput as TListInput,
+      contextRegion ?? undefined
+    )
     const listParams = buildList(resolvedInput)
     const queryKey = resolvedQueryKeys.list(listParams)
     const enabled =
@@ -91,7 +101,10 @@ export function createCatalogHooks<
     const { data, isLoading, isFetching, isSuccess, error } = query
 
     const inputPage = resolvePositiveInteger(resolvedInput.page, 1)
-    const inputLimit = resolvePositiveInteger(resolvedInput.limit, defaultPageSize)
+    const inputLimit = resolvePositiveInteger(
+      resolvedInput.limit,
+      defaultPageSize
+    )
     const currentPage = resolvePositiveInteger(data?.page, inputPage)
     const responseLimit = resolvePositiveInteger(data?.limit, inputLimit)
     const totalCount = data?.count ?? 0
@@ -119,14 +132,19 @@ export function createCatalogHooks<
     input: TListInput,
     options?: {
       cacheStrategy?: CacheStrategy
-      queryOptions?: SuspenseQueryOptions<CatalogListResponse<TProduct, TFacets>>
+      queryOptions?: SuspenseQueryOptions<
+        CatalogListResponse<TProduct, TFacets>
+      >
     }
   ): UseSuspenseCatalogProductsResult<TProduct, TFacets> {
     const contextRegion = useRegionContext()
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
-    const resolvedInput = applyRegion(listInput as TListInput, contextRegion ?? undefined)
+    const resolvedInput = applyRegion(
+      listInput as TListInput,
+      contextRegion ?? undefined
+    )
     if (requireRegion && !resolvedInput.region_id) {
       throw new Error("Region is required for catalog queries")
     }
@@ -142,7 +160,10 @@ export function createCatalogHooks<
     const { data, isFetching } = query
 
     const inputPage = resolvePositiveInteger(resolvedInput.page, 1)
-    const inputLimit = resolvePositiveInteger(resolvedInput.limit, defaultPageSize)
+    const inputLimit = resolvePositiveInteger(
+      resolvedInput.limit,
+      defaultPageSize
+    )
     const currentPage = resolvePositiveInteger(data?.page, inputPage)
     const responseLimit = resolvePositiveInteger(data?.limit, inputLimit)
     const totalCount = data?.count ?? 0
@@ -235,9 +256,13 @@ export function createCatalogHooks<
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(() => {
-        void prefetchCatalogProducts(input)
-      }, id, delay)
+      return schedulePrefetch(
+        () => {
+          void prefetchCatalogProducts(input)
+        },
+        id,
+        delay
+      )
     }
 
     return {
@@ -280,3 +305,12 @@ export function createCatalogHooks<
     prefetchCatalogProducts,
   }
 }
+
+export type CatalogHooks<
+  TProduct,
+  TListInput extends CatalogListInputBase,
+  TListParams,
+  TFacets,
+> = ReturnType<
+  typeof createCatalogHooks<TProduct, TListInput, TListParams, TFacets>
+>

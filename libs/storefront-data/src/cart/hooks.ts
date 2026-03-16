@@ -5,24 +5,21 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { useCallback, useEffect, useSyncExternalStore } from "react"
+import { assertStorefrontAddressValidation } from "../shared/address"
+import type { StorageValueStore } from "../shared/browser-storage"
 import {
   type CacheConfig,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
-import { assertStorefrontAddressValidation } from "../shared/address"
 import { toErrorMessage } from "../shared/error-utils"
-import type {
-  ObservableStorageValueStore,
-  StorageValueStore,
-} from "../shared/browser-storage"
 import type {
   MutationOptions,
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
 import { omitKeys } from "../shared/object-utils"
-import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
+import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
@@ -131,15 +128,19 @@ type NormalizedAddLineItemPayload<TInput extends AddLineItemInputBase> = Omit<
   (typeof addLineItemPayloadOmitKeys)[number]
 >
 
-type NormalizedUpdateLineItemPayload<
-  TInput extends UpdateLineItemInputBase,
-> = Omit<
-  TInput & UpdateLineItemTransientInput,
-  (typeof updateLineItemPayloadOmitKeys)[number]
->
+type NormalizedUpdateLineItemPayload<TInput extends UpdateLineItemInputBase> =
+  Omit<
+    TInput & UpdateLineItemTransientInput,
+    (typeof updateLineItemPayloadOmitKeys)[number]
+  >
 
-const noopUnsubscribe = () => {}
+const noopUnsubscribe = () => undefined
 const noopCartStorageSubscribe = (_listener: () => void) => noopUnsubscribe
+
+type ObservableStorageValueStore = StorageValueStore & {
+  subscribe: NonNullable<StorageValueStore["subscribe"]>
+  getSnapshot: NonNullable<StorageValueStore["getSnapshot"]>
+}
 
 const hasObservableCartStorage = (
   storage?: StorageValueStore
@@ -235,7 +236,9 @@ type BuildCreateInputFromAddInputOption<
 type BuildUpdateItemParamsOption<
   TUpdateItemInput extends UpdateLineItemInputBase,
   TUpdateItemParams,
-> = [NormalizedUpdateLineItemPayload<TUpdateItemInput>] extends [TUpdateItemParams]
+> = [NormalizedUpdateLineItemPayload<TUpdateItemInput>] extends [
+  TUpdateItemParams,
+]
   ? { buildUpdateItemParams?: (input: TUpdateItemInput) => TUpdateItemParams }
   : { buildUpdateItemParams: (input: TUpdateItemInput) => TUpdateItemParams }
 
@@ -304,8 +307,11 @@ export type CreateCartHooksConfig<
   BuildCreateInputFromAddInputOption<TAddInput, TCreateInput> &
   BuildUpdateItemParamsOption<TUpdateItemInput, TUpdateItemParams>
 
-export type CartMutationOptions<TData, TVariables, TContext = unknown> =
-  MutationOptions<TData, TVariables, TContext>
+export type CartMutationOptions<
+  TData,
+  TVariables,
+  TContext = unknown,
+> = MutationOptions<TData, TVariables, TContext>
 
 export function createCartHooks<
   TCart extends CartLike,
@@ -454,13 +460,12 @@ export function createCartHooks<
   const resolveAddressMutationInput = (
     input: CartAddressInputBase<TAddressInput>
   ) => {
-    const {
+    const { shippingAddress, billingAddress, useSameAddress, ...restInput } =
+      input as AddressMutationInput<TAddressInput>
+    const normalizedShipping = normalizeAddressInput(
       shippingAddress,
-      billingAddress,
-      useSameAddress,
-      ...restInput
-    } = input as AddressMutationInput<TAddressInput>
-    const normalizedShipping = normalizeAddressInput(shippingAddress, "shipping")
+      "shipping"
+    )
     const resolvedBillingInput = resolveBillingAddressInput(
       useSameAddress,
       billingAddress,
@@ -486,7 +491,10 @@ export function createCartHooks<
   }
 
   const buildAddressUpdateInput = (
-    restInput: Omit<AddressMutationInput<TAddressInput>, "shippingAddress" | "billingAddress" | "useSameAddress">,
+    restInput: Omit<
+      AddressMutationInput<TAddressInput>,
+      "shippingAddress" | "billingAddress" | "useSameAddress"
+    >,
     normalizedShipping: TAddressInput,
     resolvedBillingInput: TAddressInput | undefined
   ) =>
@@ -506,7 +514,7 @@ export function createCartHooks<
     cart: CartLike | null
   ) => {
     const cartId = cart?.id
-    if (!invalidateOnSuccess || !cartId) {
+    if (!(invalidateOnSuccess && cartId)) {
       return
     }
 
@@ -651,12 +659,7 @@ export function createCartHooks<
     const itemCount = getItemCount(cart)
 
     useEffect(() => {
-      syncCartCache(
-        queryClient,
-        cart,
-        cartId,
-        resolvedInput.region_id ?? null
-      )
+      syncCartCache(queryClient, cart, cartId, resolvedInput.region_id ?? null)
     }, [cart, cartId, queryClient, resolvedInput.region_id])
 
     return {
@@ -708,12 +711,7 @@ export function createCartHooks<
     const itemCount = getItemCount(cart)
 
     useEffect(() => {
-      syncCartCache(
-        queryClient,
-        cart,
-        cartId,
-        resolvedInput.region_id ?? null
-      )
+      syncCartCache(queryClient, cart, cartId, resolvedInput.region_id ?? null)
     }, [cart, cartId, queryClient, resolvedInput.region_id])
 
     return {
@@ -1054,3 +1052,33 @@ export function createCartHooks<
     usePrefetchCart,
   }
 }
+
+export type CartHooks<
+  TCart extends CartLike,
+  TCreateInput extends CartCreateInputBase,
+  TCreateParams = NormalizedCartCreatePayload<TCreateInput>,
+  TUpdateInput extends UpdateCartInputBase = UpdateCartInputBase,
+  TUpdateParams = NormalizedCartUpdatePayload<TUpdateInput>,
+  TAddInput extends AddLineItemInputBase = AddLineItemInputBase,
+  TAddParams = NormalizedAddLineItemPayload<TAddInput>,
+  TUpdateItemInput extends UpdateLineItemInputBase = UpdateLineItemInputBase,
+  TUpdateItemParams = NormalizedUpdateLineItemPayload<TUpdateItemInput>,
+  TCompleteResult = unknown,
+  TAddressInput = Record<string, unknown>,
+  TAddressPayload = Record<string, unknown>,
+> = ReturnType<
+  typeof createCartHooks<
+    TCart,
+    TCreateInput,
+    TCreateParams,
+    TUpdateInput,
+    TUpdateParams,
+    TAddInput,
+    TAddParams,
+    TUpdateItemInput,
+    TUpdateItemParams,
+    TCompleteResult,
+    TAddressInput,
+    TAddressPayload
+  >
+>

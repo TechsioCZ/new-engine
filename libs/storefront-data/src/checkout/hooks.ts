@@ -1,9 +1,9 @@
 import {
+  type QueryClient,
   useMutation,
   useQueries,
   useQuery,
   useQueryClient,
-  type QueryClient,
   useSuspenseQueries,
   useSuspenseQuery,
 } from "@tanstack/react-query"
@@ -31,8 +31,7 @@ import type {
   UseCheckoutPaymentResult,
   UseCheckoutShippingResult,
 } from "./types"
-
-export type { CheckoutMutationOptions }
+export type { CheckoutMutationOptions } from "./types"
 
 export type CheckoutShippingHookInput<
   TCart extends CheckoutCartLike,
@@ -51,7 +50,10 @@ export type CheckoutPaymentHookInput<TCart extends CheckoutCartLike> =
 type CheckoutShippingSuspenseHookInput<
   TCart extends CheckoutCartLike,
   TShippingOption extends ShippingOptionLike,
-> = Omit<CheckoutShippingHookInput<TCart, TShippingOption>, "enabled" | "cartId"> & {
+> = Omit<
+  CheckoutShippingHookInput<TCart, TShippingOption>,
+  "enabled" | "cartId"
+> & {
   cartId: string
 }
 
@@ -110,10 +112,7 @@ export function createCheckoutHooks<
     ...resolvedCacheConfig.semiStatic,
   })
 
-  function fetchPaymentProviders(
-    queryClient: QueryClient,
-    regionId: string
-  ) {
+  function fetchPaymentProviders(queryClient: QueryClient, regionId: string) {
     const queryOptions = getPaymentProvidersQueryOptions(regionId)
     return queryClient.fetchQuery({
       queryKey: queryOptions.queryKey,
@@ -195,9 +194,7 @@ export function createCheckoutHooks<
         }
         return service.addShippingMethod(cartId, optionId, data)
       },
-      onMutate: onMutate
-        ? async (variables) => onMutate(variables)
-        : undefined,
+      onMutate: onMutate ? async (variables) => onMutate(variables) : undefined,
       onSuccess: (cart, variables, context) => {
         if (cartQueryKeys) {
           syncCartCaches(queryClient, cartQueryKeys, cart)
@@ -227,9 +224,7 @@ export function createCheckoutHooks<
         }
         return service.initiatePaymentSession(cartId, providerId)
       },
-      onMutate: onMutate
-        ? async (variables) => onMutate(variables)
-        : undefined,
+      onMutate: onMutate ? async (variables) => onMutate(variables) : undefined,
       onSuccess: (data, variables, context) => {
         if (cartQueryKeys && cartId) {
           patchCartCaches<TCart>(queryClient, cartQueryKeys, cartId, (cached) =>
@@ -332,7 +327,10 @@ export function createCheckoutHooks<
         : [],
     })
 
-    const calculatedById = buildCalculatedById(calculatedOptions, calculatedQueries)
+    const calculatedById = buildCalculatedById(
+      calculatedOptions,
+      calculatedQueries
+    )
     const shippingPrices = buildShippingPrices(shippingOptions, calculatedById)
 
     const {
@@ -427,7 +425,10 @@ export function createCheckoutHooks<
         : [],
     })
 
-    const calculatedById = buildCalculatedById(calculatedOptions, calculatedQueries)
+    const calculatedById = buildCalculatedById(
+      calculatedOptions,
+      calculatedQueries
+    )
     const shippingPrices = buildShippingPrices(shippingOptions, calculatedById)
 
     const {
@@ -470,7 +471,11 @@ export function createCheckoutHooks<
 
   function useCheckoutPayment<TPaymentContext = unknown>(
     input: CheckoutPaymentHookInput<TCart>,
-    options?: CheckoutMutationOptions<TPaymentCollection, string, TPaymentContext>
+    options?: CheckoutMutationOptions<
+      TPaymentCollection,
+      string,
+      TPaymentContext
+    >
   ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
     const queryClient = useQueryClient()
     const cartId = input.cartId
@@ -574,3 +579,19 @@ export function createCheckoutHooks<
     fetchPaymentProviders,
   }
 }
+
+export type CheckoutHooks<
+  TCart extends CheckoutCartLike,
+  TShippingOption extends ShippingOptionLike,
+  TPaymentProvider,
+  TPaymentCollection,
+  TCompleteResult,
+> = ReturnType<
+  typeof createCheckoutHooks<
+    TCart,
+    TShippingOption,
+    TPaymentProvider,
+    TPaymentCollection,
+    TCompleteResult
+  >
+>

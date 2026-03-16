@@ -1,6 +1,10 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import { createAuthHooks, type CreateAuthHooksConfig } from "../auth/hooks"
+import {
+  type AuthHooks,
+  type CreateAuthHooksConfig,
+  createAuthHooks,
+} from "../auth/hooks"
 import {
   createMedusaAuthService,
   type MedusaAuthCredentials,
@@ -10,7 +14,12 @@ import {
 } from "../auth/medusa-service"
 import { createAuthQueryKeys } from "../auth/query-keys"
 import type { AuthQueryKeys, AuthService } from "../auth/types"
-import { createCartHooks, type CreateCartHooksConfig } from "../cart/hooks"
+import type { ActiveCartQueryKeyMatcher } from "../cart/cache-sync"
+import {
+  type CartHooks,
+  type CreateCartHooksConfig,
+  createCartHooks,
+} from "../cart/hooks"
 import {
   createMedusaCartService,
   type MedusaCartAddItemParams,
@@ -28,7 +37,11 @@ import type {
   UpdateCartInputBase,
   UpdateLineItemInputBase,
 } from "../cart/types"
-import { createCatalogHooks, type CreateCatalogHooksConfig } from "../catalog/hooks"
+import {
+  type CatalogHooks,
+  type CreateCatalogHooksConfig,
+  createCatalogHooks,
+} from "../catalog/hooks"
 import {
   createMedusaCatalogService,
   type MedusaCatalogListInput,
@@ -37,8 +50,9 @@ import {
 import { createCatalogQueryKeys } from "../catalog/query-keys"
 import type { CatalogFacets, CatalogQueryKeys } from "../catalog/types"
 import {
-  createCategoryHooks,
+  type CategoryHooks,
   type CreateCategoryHooksConfig,
+  createCategoryHooks,
 } from "../categories/hooks"
 import {
   createMedusaCategoryService,
@@ -48,7 +62,11 @@ import {
 } from "../categories/medusa-service"
 import { createCategoryQueryKeys } from "../categories/query-keys"
 import type { CategoryQueryKeys } from "../categories/types"
-import { createCheckoutHooks, type CreateCheckoutHooksConfig } from "../checkout/hooks"
+import {
+  type CheckoutHooks,
+  type CreateCheckoutHooksConfig,
+  createCheckoutHooks,
+} from "../checkout/hooks"
 import {
   createMedusaCheckoutService,
   type MedusaCheckoutServiceConfig,
@@ -56,8 +74,9 @@ import {
 import { createCheckoutQueryKeys } from "../checkout/query-keys"
 import type { CheckoutQueryKeys } from "../checkout/types"
 import {
-  createCollectionHooks,
+  type CollectionHooks,
   type CreateCollectionHooksConfig,
+  createCollectionHooks,
 } from "../collections/hooks"
 import {
   createMedusaCollectionService,
@@ -68,8 +87,9 @@ import {
 import { createCollectionQueryKeys } from "../collections/query-keys"
 import type { CollectionQueryKeys } from "../collections/types"
 import {
-  createCustomerHooks,
   type CreateCustomerHooksConfig,
+  type CustomerHooks,
+  createCustomerHooks,
 } from "../customers/hooks"
 import {
   createMedusaCustomerService,
@@ -85,7 +105,11 @@ import type {
   CustomerQueryKeys,
   CustomerService,
 } from "../customers/types"
-import { createOrderHooks, type CreateOrderHooksConfig } from "../orders/hooks"
+import {
+  type CreateOrderHooksConfig,
+  createOrderHooks,
+  type OrderHooks,
+} from "../orders/hooks"
 import {
   createMedusaOrderService,
   type MedusaOrderDetailHookInput,
@@ -96,7 +120,11 @@ import {
 } from "../orders/medusa-service"
 import { createOrderQueryKeys } from "../orders/query-keys"
 import type { OrderQueryKeys, OrderService } from "../orders/types"
-import { createProductHooks, type CreateProductHooksConfig } from "../products/hooks"
+import {
+  type CreateProductHooksConfig,
+  createProductHooks,
+  type ProductHooks,
+} from "../products/hooks"
 import {
   createMedusaProductService,
   type MedusaProductDetailInput,
@@ -105,7 +133,11 @@ import {
 } from "../products/medusa-service"
 import { createProductQueryKeys } from "../products/query-keys"
 import type { ProductQueryKeys } from "../products/types"
-import { createRegionHooks, type CreateRegionHooksConfig } from "../regions/hooks"
+import {
+  type CreateRegionHooksConfig,
+  createRegionHooks,
+  type RegionHooks,
+} from "../regions/hooks"
 import {
   createMedusaRegionService,
   type MedusaRegionDetailInput,
@@ -113,9 +145,8 @@ import {
 } from "../regions/medusa-service"
 import { createRegionQueryKeys } from "../regions/query-keys"
 import type { RegionQueryKeys } from "../regions/types"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
-import type { ActiveCartQueryKeyMatcher } from "../cart/cache-sync"
 import { createMedusaCartFlow } from "./cart-flow"
 import { createMedusaCheckoutFlow } from "./checkout-flow"
 
@@ -146,10 +177,7 @@ type MedusaAuthService = AuthService<
   string
 >
 
-type MedusaCartHooksConfig<
-  TAddressInput,
-  TAddressPayload,
-> = Omit<
+type MedusaCartHooksConfig<TAddressInput, TAddressPayload> = Omit<
   OmitFactoryConfig<
     CreateCartHooksConfig<
       HttpTypes.StoreCart,
@@ -214,10 +242,9 @@ type MedusaOrderService = OrderService<
   MedusaOrderDetailInput
 >
 
-type MedusaCustomerAddressUpdateHookInput =
-  MedusaCustomerAddressUpdateInput & {
-    addressId?: string
-  }
+type MedusaCustomerAddressUpdateHookInput = MedusaCustomerAddressUpdateInput & {
+  addressId?: string
+}
 
 type MedusaCustomerHooksConfig<
   TCreateInput extends CustomerAddressCreateInputBase,
@@ -283,7 +310,11 @@ type MedusaCatalogHooksConfig<TProduct, TFacets> = Omit<
     MedusaCatalogListInput,
     TFacets
   >,
-  "service" | "queryKeys" | "queryKeyNamespace" | "cacheConfig" | "fallbackFacets"
+  | "service"
+  | "queryKeys"
+  | "queryKeyNamespace"
+  | "cacheConfig"
+  | "fallbackFacets"
 >
 
 type IsExactly<TLeft, TRight> = [TLeft] extends [TRight]
@@ -315,7 +346,7 @@ type MedusaCatalogPresetOption<TProduct, TFacets> =
         }
       }
 
-export type MedusaStorefrontQueryKeys = {
+type MedusaStorefrontQueryKeys = {
   auth: AuthQueryKeys
   cart: CartQueryKeys
   checkout: CheckoutQueryKeys
@@ -342,8 +373,10 @@ type CreateMedusaStorefrontPresetConfigBase<
   TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
-  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
-  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+  TCustomerAddressCreateInput extends
+    CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends
+    CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
 > = {
   sdk: Medusa
   queryKeyNamespace?: QueryNamespace
@@ -372,7 +405,10 @@ type CreateMedusaStorefrontPresetConfigBase<
       MedusaProductDetailInput
     >
     hooks?: MedusaProductHooksConfig<TProduct>
-    queryKeys?: ProductQueryKeys<MedusaProductListInput, MedusaProductDetailInput>
+    queryKeys?: ProductQueryKeys<
+      MedusaProductListInput,
+      MedusaProductDetailInput
+    >
   }
   orders?: {
     service?: MedusaOrderService
@@ -426,8 +462,10 @@ export type CreateMedusaStorefrontPresetConfig<
   TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
-  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
-  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+  TCustomerAddressCreateInput extends
+    CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends
+    CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
 > = CreateMedusaStorefrontPresetConfigBase<
   TProduct,
   TCategory,
@@ -440,6 +478,179 @@ export type CreateMedusaStorefrontPresetConfig<
   TCustomerAddressUpdateInput
 > &
   MedusaCatalogPresetOption<TCatalogProduct, TCatalogFacets>
+
+type MedusaStorefrontServices<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets,
+> = {
+  auth: MedusaAuthService
+  cart: ReturnType<typeof createMedusaCartService>
+  checkout: ReturnType<typeof createMedusaCheckoutService>
+  products: ReturnType<
+    typeof createMedusaProductService<
+      TProduct,
+      MedusaProductListInput,
+      MedusaProductDetailInput
+    >
+  >
+  orders: MedusaOrderService
+  customers: MedusaCustomerService
+  regions: ReturnType<typeof createMedusaRegionService>
+  categories: ReturnType<
+    typeof createMedusaCategoryService<
+      TCategory,
+      MedusaCategoryListInput,
+      MedusaCategoryDetailInput
+    >
+  >
+  collections: ReturnType<
+    typeof createMedusaCollectionService<
+      TCollection,
+      MedusaCollectionListInput,
+      MedusaCollectionDetailInput
+    >
+  >
+  catalog: ReturnType<
+    typeof createMedusaCatalogService<
+      TCatalogProduct,
+      MedusaCatalogListInput,
+      TCatalogFacets
+    >
+  >
+}
+
+type MedusaStorefrontHooks<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets,
+  TCartAddressInput,
+  TCartAddressPayload,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase,
+> = {
+  auth: AuthHooks<
+    HttpTypes.StoreCustomer,
+    MedusaAuthCredentials,
+    MedusaRegisterData,
+    MedusaUpdateCustomerData,
+    unknown,
+    string,
+    string
+  >
+  cart: CartHooks<
+    HttpTypes.StoreCart,
+    CartCreateInputBase,
+    MedusaCartCreateParams,
+    UpdateCartInputBase,
+    MedusaCartUpdateParams,
+    AddLineItemInputBase,
+    MedusaCartAddItemParams,
+    UpdateLineItemInputBase,
+    MedusaCartUpdateItemParams,
+    MedusaCompleteCartResult,
+    TCartAddressInput,
+    TCartAddressPayload
+  >
+  checkout: CheckoutHooks<
+    HttpTypes.StoreCart,
+    HttpTypes.StoreCartShippingOption,
+    HttpTypes.StorePaymentProvider,
+    HttpTypes.StorePaymentCollection,
+    HttpTypes.StoreCompleteCartResponse
+  >
+  products: ProductHooks<
+    TProduct,
+    MedusaProductListInput,
+    MedusaProductDetailInput
+  >
+  orders: OrderHooks<
+    HttpTypes.StoreOrder,
+    MedusaOrderListHookInput,
+    MedusaOrderDetailHookInput
+  >
+  customers: CustomerHooks<
+    HttpTypes.StoreCustomer,
+    HttpTypes.StoreCustomerAddress,
+    MedusaCustomerListInput,
+    MedusaCustomerListInput,
+    TCustomerAddressCreateInput,
+    MedusaCustomerAddressCreateInput,
+    TCustomerAddressUpdateInput,
+    MedusaCustomerAddressUpdateInput,
+    MedusaCustomerProfileUpdateInput,
+    MedusaCustomerProfileUpdateInput
+  >
+  regions: RegionHooks<
+    HttpTypes.StoreRegion,
+    MedusaRegionListInput,
+    MedusaRegionListInput,
+    MedusaRegionDetailInput,
+    MedusaRegionDetailInput
+  >
+  categories: CategoryHooks<
+    TCategory,
+    MedusaCategoryListInput,
+    MedusaCategoryListInput,
+    MedusaCategoryDetailInput,
+    MedusaCategoryDetailInput
+  >
+  collections: CollectionHooks<
+    TCollection,
+    MedusaCollectionListInput,
+    MedusaCollectionListInput,
+    MedusaCollectionDetailInput,
+    MedusaCollectionDetailInput
+  >
+  catalog: CatalogHooks<
+    TCatalogProduct,
+    MedusaCatalogListInput,
+    MedusaCatalogListInput,
+    TCatalogFacets
+  >
+}
+
+type MedusaStorefrontPresetResult<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets,
+  TCartAddressInput,
+  TCartAddressPayload,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase,
+> = {
+  namespace: QueryNamespace
+  cacheConfig: CacheConfig
+  queryKeys: MedusaStorefrontQueryKeys
+  services: MedusaStorefrontServices<
+    TProduct,
+    TCategory,
+    TCollection,
+    TCatalogProduct,
+    TCatalogFacets
+  >
+  hooks: MedusaStorefrontHooks<
+    TProduct,
+    TCategory,
+    TCollection,
+    TCatalogProduct,
+    TCatalogFacets,
+    TCartAddressInput,
+    TCartAddressPayload,
+    TCustomerAddressCreateInput,
+    TCustomerAddressUpdateInput
+  >
+  flows: {
+    cart: ReturnType<typeof createMedusaCartFlow>
+    checkout: ReturnType<typeof createMedusaCheckoutFlow>
+  }
+}
 
 const createDefaultCatalogFacets = (): CatalogFacets => ({
   status: [],
@@ -467,9 +678,10 @@ export function createMedusaStorefrontQueryKeys(
       namespace
     ),
     customers: createCustomerQueryKeys<MedusaCustomerListInput>(namespace),
-    regions: createRegionQueryKeys<MedusaRegionListInput, MedusaRegionDetailInput>(
-      namespace
-    ),
+    regions: createRegionQueryKeys<
+      MedusaRegionListInput,
+      MedusaRegionDetailInput
+    >(namespace),
     categories: createCategoryQueryKeys<
       MedusaCategoryListInput,
       MedusaCategoryDetailInput
@@ -496,8 +708,10 @@ export function createMedusaStorefrontPreset<
   TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
-  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
-  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+  TCustomerAddressCreateInput extends
+    CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends
+    CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
 >(
   config: CreateMedusaStorefrontPresetConfig<
     TProduct,
@@ -510,7 +724,17 @@ export function createMedusaStorefrontPreset<
     TCustomerAddressCreateInput,
     TCustomerAddressUpdateInput
   >
-) {
+): MedusaStorefrontPresetResult<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets,
+  TCartAddressInput,
+  TCartAddressPayload,
+  TCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput
+> {
   const namespace = config.queryKeyNamespace ?? "storefront-data"
   const resolvedCacheConfig = config.cacheConfig ?? createCacheConfig()
   const defaultQueryKeys = createMedusaStorefrontQueryKeys(namespace)
@@ -533,7 +757,10 @@ export function createMedusaStorefrontPreset<
       config.auth?.service ??
       createMedusaAuthService(config.sdk, config.auth?.serviceConfig),
     cart: createMedusaCartService(config.sdk, config.cart?.serviceConfig),
-    checkout: createMedusaCheckoutService(config.sdk, config.checkout?.serviceConfig),
+    checkout: createMedusaCheckoutService(
+      config.sdk,
+      config.checkout?.serviceConfig
+    ),
     products: createMedusaProductService<
       TProduct,
       MedusaProductListInput,
@@ -590,9 +817,8 @@ export function createMedusaStorefrontPreset<
   // Safe: non-default facet shapes must provide catalog.fallbackFacets via
   // CreateMedusaStorefrontPresetConfig, so the default fallback is only used
   // for the built-in CatalogFacets shape.
-  const fallbackCatalogFacets =
-    (config.catalog?.fallbackFacets ??
-      createDefaultCatalogFacets()) as TCatalogFacets
+  const fallbackCatalogFacets = (config.catalog?.fallbackFacets ??
+    createDefaultCatalogFacets()) as TCatalogFacets
   const buildMedusaAddLineItemParams = (
     input: AddLineItemInputBase
   ): MedusaCartAddItemParams => ({
@@ -742,7 +968,3 @@ export function createMedusaStorefrontPreset<
     flows,
   }
 }
-
-export type MedusaStorefrontPreset = ReturnType<
-  typeof createMedusaStorefrontPreset
->

@@ -4,14 +4,17 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import {
+  type CacheConfig,
   createCacheConfig,
   getPrefetchCacheOptions,
-  type CacheConfig,
 } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
-import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import type {
+  ReadQueryOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
 import { resolvePagination } from "../shared/pagination"
-import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
+import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createCollectionQueryKeys } from "./query-keys"
@@ -292,9 +295,13 @@ export function createCollectionHooks<
       const listParams = buildList(listInput as TListInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(() => {
-        void prefetchCollections(input)
-      }, id, delay)
+      return schedulePrefetch(
+        () => {
+          void prefetchCollections(input)
+        },
+        id,
+        delay
+      )
     }
 
     return {
@@ -325,9 +332,10 @@ export function createCollectionHooks<
       if (!input.id) {
         return
       }
-      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
+      const { enabled: _inputEnabled, ...detailInput } =
+        input as TDetailInput & {
+          enabled?: boolean
+        }
       const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       if (
@@ -354,15 +362,20 @@ export function createCollectionHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
+      const { enabled: _inputEnabled, ...detailInput } =
+        input as TDetailInput & {
+          enabled?: boolean
+        }
       const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(() => {
-        void prefetchCollection(input)
-      }, id, delay)
+      return schedulePrefetch(
+        () => {
+          void prefetchCollection(input)
+        },
+        id,
+        delay
+      )
     }
 
     return {
@@ -381,3 +394,19 @@ export function createCollectionHooks<
     usePrefetchCollection,
   }
 }
+
+export type CollectionHooks<
+  TCollection,
+  TListInput extends CollectionListInputBase,
+  TListParams,
+  TDetailInput extends CollectionDetailInputBase,
+  TDetailParams,
+> = ReturnType<
+  typeof createCollectionHooks<
+    TCollection,
+    TListInput,
+    TListParams,
+    TDetailInput,
+    TDetailParams
+  >
+>
