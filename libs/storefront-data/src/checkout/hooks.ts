@@ -11,7 +11,7 @@ import {
   getCachedCartById,
   patchCartCaches,
   syncCartCaches,
-} from "../cart/cache-sync"
+} from "../shared/cart-cache-sync"
 import type { CartQueryKeys } from "../cart/types"
 import {
   type CacheConfig,
@@ -66,7 +66,7 @@ export type CreateCheckoutHooksConfig<
   TCart extends CheckoutCartLike,
   TShippingOption extends ShippingOptionLike,
   TPaymentProvider,
-  TPaymentCollection,
+  TPaymentCollection extends TCart["payment_collection"],
   TCompleteResult,
 > = {
   service: CheckoutService<
@@ -86,7 +86,7 @@ export function createCheckoutHooks<
   TCart extends CheckoutCartLike,
   TShippingOption extends ShippingOptionLike,
   TPaymentProvider,
-  TPaymentCollection,
+  TPaymentCollection extends TCart["payment_collection"],
   TCompleteResult,
 >({
   service,
@@ -159,12 +159,10 @@ export function createCheckoutHooks<
   const patchPaymentCollection = (
     cart: TCart,
     paymentCollection: TPaymentCollection
-  ): TCart =>
-    ({
-      ...cart,
-      payment_collection: paymentCollection,
-    }) as TCart
-
+  ): TCart => ({
+    ...cart,
+    payment_collection: paymentCollection,
+  })
   function useShippingMethodMutation<TContext = unknown>(
     cartId: string | undefined,
     options?: CheckoutMutationOptions<
@@ -227,9 +225,9 @@ export function createCheckoutHooks<
       onMutate: onMutate ? async (variables) => onMutate(variables) : undefined,
       onSuccess: (data, variables, context) => {
         if (cartQueryKeys && cartId) {
-          patchCartCaches<TCart>(queryClient, cartQueryKeys, cartId, (cached) =>
-            patchPaymentCollection(cached, data)
-          )
+          patchCartCaches<TCart>(queryClient, cartQueryKeys, cartId, {
+            patch: (cached) => patchPaymentCollection(cached, data),
+          })
           queryClient.invalidateQueries({
             queryKey: cartQueryKeys.all(),
           })
@@ -256,6 +254,43 @@ export function createCheckoutHooks<
       hasPaymentCollection,
       hasPaymentSessions,
     }
+  }
+
+  function useReactiveCart(
+    inputCart: TCart | null | undefined,
+    cartId: string | undefined
+  ): TCart | null {
+    const queryClient = useQueryClient()
+    const canSubscribeToCart = Boolean(!inputCart && cartId && cartQueryKeys)
+    const fallbackReactiveCartKey: readonly unknown[] = [
+      ...resolvedQueryKeys.all(),
+      "reactive-cart",
+      cartId ?? "unknown",
+    ]
+    const initialCart =
+      canSubscribeToCart && cartId && cartQueryKeys
+        ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId)
+        : null
+
+    const { data: cachedCart = initialCart } = useQuery({
+      queryKey:
+        canSubscribeToCart && cartId && cartQueryKeys
+          ? cartQueryKeys.detail(cartId)
+          : fallbackReactiveCartKey,
+      queryFn: () =>
+        canSubscribeToCart && cartId && cartQueryKeys
+          ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId)
+          : null,
+      enabled: canSubscribeToCart,
+      initialData: initialCart,
+      staleTime: Number.POSITIVE_INFINITY,
+      gcTime: Number.POSITIVE_INFINITY,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    })
+
+    return inputCart ?? cachedCart ?? null
   }
 
   function useCheckoutShipping<TContext = unknown>(
@@ -477,13 +512,9 @@ export function createCheckoutHooks<
       TPaymentContext
     >
   ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
-    const queryClient = useQueryClient()
     const cartId = input.cartId
-    const effectiveCart =
-      input.cart ??
-      (cartId && cartQueryKeys
-        ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId)
-        : null)
+    const effectiveCart = useReactiveCart(input.cart, cartId)
+    const resolvedCartId = cartId ?? effectiveCart?.id
     const regionId = input.regionId ?? effectiveCart?.region_id
     const enabled = input.enabled ?? Boolean(regionId)
 
@@ -508,9 +539,11 @@ export function createCheckoutHooks<
       mutate: initiatePayment,
       mutateAsync: initiatePaymentAsync,
       isPending: isInitiatingPayment,
-    } = usePaymentMutation(cartId, options)
+    } = usePaymentMutation(resolvedCartId, options)
     const paymentState = resolvePaymentState(effectiveCart)
-    const canInitiatePayment = Boolean(cartId && paymentState.hasShippingMethod)
+    const canInitiatePayment = Boolean(
+      resolvedCartId && paymentState.hasShippingMethod
+    )
 
     return {
       paymentProviders,
@@ -533,29 +566,31 @@ export function createCheckoutHooks<
       TSuspensePaymentContext
     >
   ): UseCheckoutPaymentResult<TPaymentProvider, TPaymentCollection> {
-    const queryClient = useQueryClient()
     const cartId = input.cartId
-    const effectiveCart =
-      input.cart ??
-      (cartId && cartQueryKeys
-        ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId)
-        : null)
+    const effectiveCart = useReactiveCart(input.cart, cartId)
+    const resolvedCartId = cartId ?? effectiveCart?.id
     const regionId = input.regionId ?? effectiveCart?.region_id
-    if (!regionId) {
-      throw new Error("Region id is required for checkout payment")
-    }
 
+    const paymentProvidersQueryOptions = regionId
+      ? getPaymentProvidersQueryOptions(regionId)
+      : {
+          queryKey: resolvedQueryKeys.paymentProviders("unknown"),
+          queryFn: async () => [] as TPaymentProvider[],
+          ...resolvedCacheConfig.semiStatic,
+        }
     const { data: paymentProviders, isFetching } = useSuspenseQuery(
-      getPaymentProvidersQueryOptions(regionId)
+      paymentProvidersQueryOptions
     )
 
     const {
       mutate: initiatePayment,
       mutateAsync: initiatePaymentAsync,
       isPending: isInitiatingPayment,
-    } = usePaymentMutation(cartId, options)
+    } = usePaymentMutation(resolvedCartId, options)
     const paymentState = resolvePaymentState(effectiveCart)
-    const canInitiatePayment = Boolean(cartId && paymentState.hasShippingMethod)
+    const canInitiatePayment = Boolean(
+      resolvedCartId && paymentState.hasShippingMethod
+    )
 
     return {
       paymentProviders,
@@ -584,7 +619,7 @@ export type CheckoutHooks<
   TCart extends CheckoutCartLike,
   TShippingOption extends ShippingOptionLike,
   TPaymentProvider,
-  TPaymentCollection,
+  TPaymentCollection extends TCart["payment_collection"],
   TCompleteResult,
 > = ReturnType<
   typeof createCheckoutHooks<

@@ -297,7 +297,7 @@ export function createCollectionHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          void prefetchCollections(input)
+          prefetchCollections(input)
         },
         id,
         delay
@@ -371,7 +371,7 @@ export function createCollectionHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          void prefetchCollection(input)
+          prefetchCollection(input)
         },
         id,
         delay

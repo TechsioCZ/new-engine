@@ -41,18 +41,21 @@ describe("createLocalStorageValueStore", () => {
     expect(listener).toHaveBeenCalledTimes(1)
 
     backingStorage.setItem(key, "cart_2")
-    window.dispatchEvent(
-      new StorageEvent("storage", {
-        key,
-        newValue: "cart_2",
-      })
-    )
+    const storageEvent = new StorageEvent("storage")
+    Object.defineProperties(storageEvent, {
+      key: { value: key },
+      newValue: { value: "cart_2" },
+    })
+    window.dispatchEvent(storageEvent)
     expect(listener).toHaveBeenCalledTimes(2)
 
     storage.clear()
     expect(storage.get()).toBeNull()
     expect(listener).toHaveBeenCalledTimes(3)
 
+    backingStorage.setItem(key, "cart_3")
+    window.dispatchEvent(new StorageEvent("storage"))
+    expect(listener).toHaveBeenCalledTimes(4)
     unsubscribe()
   })
 

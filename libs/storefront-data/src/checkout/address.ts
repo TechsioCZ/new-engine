@@ -134,7 +134,7 @@ const hasValue = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
 
 const hasOwnField = (input: object, field: PropertyKey): boolean =>
-  Object.prototype.hasOwnProperty.call(input, field)
+  Object.hasOwn(input, field)
 
 const normalizeOptionalString = (value: unknown): string | undefined => {
   if (!hasValue(value)) {
@@ -153,7 +153,7 @@ const normalizePresentString = (value: unknown): string | null | undefined => {
     return value
   }
 
-  return undefined
+  return 
 }
 
 const createRequiredIssue = (
@@ -171,11 +171,12 @@ const normalizeCountryCode = (
   options?: BuildCheckoutCartAddressInputOptions
 ): string | undefined => {
   const trimmedCountryCode = countryCode?.trim()
-  const transformed = trimmedCountryCode
-    ? options?.countryCodeTransform
+  let transformed: string | undefined
+  if (trimmedCountryCode) {
+    transformed = options?.countryCodeTransform
       ? options.countryCodeTransform(trimmedCountryCode)
       : trimmedCountryCode
-    : undefined
+  }
   const normalized = transformed?.trim()
 
   if (normalized) {
@@ -378,6 +379,29 @@ const mapCheckoutAddressToMedusaCustomerAddress = <
   metadata: address.metadata ?? undefined,
 })
 
+type CheckoutAddressPatchStringField = Exclude<
+  CheckoutAddressStringField,
+  "country"
+>
+
+const checkoutAddressPatchStringFieldMap = [
+  ["firstName", "first_name"],
+  ["lastName", "last_name"],
+  ["street", "address_1"],
+  ["street2", "address_2"],
+  ["city", "city"],
+  ["postalCode", "postal_code"],
+  ["province", "province"],
+  ["company", "company"],
+  ["phone", "phone"],
+] as const satisfies readonly [
+  CheckoutAddressPatchStringField,
+  keyof MedusaCustomerAddressUpdateInput,
+][]
+
+const resolvePatchedString = (value: unknown): string =>
+  typeof value === "string" ? value : ""
+
 const mapCheckoutAddressPatchToMedusaCustomerAddress = (
   address: Partial<CheckoutAddressInput> & Record<string, unknown>,
   options?: BuildCheckoutCartAddressInputOptions
@@ -385,36 +409,15 @@ const mapCheckoutAddressPatchToMedusaCustomerAddress = (
   const normalized = normalizeCheckoutAddressPatch(address)
   const payload: MedusaCustomerAddressUpdateInput = {}
 
-  if (hasOwnField(normalized, "firstName")) {
-    payload.first_name = typeof normalized.firstName === "string" ? normalized.firstName : ""
+  for (const [sourceField, targetField] of checkoutAddressPatchStringFieldMap) {
+    if (!hasOwnField(normalized, sourceField)) {
+      continue
+    }
+    payload[targetField] = resolvePatchedString(normalized[sourceField])
   }
-  if (hasOwnField(normalized, "lastName")) {
-    payload.last_name = typeof normalized.lastName === "string" ? normalized.lastName : ""
-  }
-  if (hasOwnField(normalized, "street")) {
-    payload.address_1 = typeof normalized.street === "string" ? normalized.street : ""
-  }
-  if (hasOwnField(normalized, "street2")) {
-    payload.address_2 = typeof normalized.street2 === "string" ? normalized.street2 : ""
-  }
-  if (hasOwnField(normalized, "city")) {
-    payload.city = typeof normalized.city === "string" ? normalized.city : ""
-  }
-  if (hasOwnField(normalized, "postalCode")) {
-    payload.postal_code =
-      typeof normalized.postalCode === "string" ? normalized.postalCode : ""
-  }
+
   if (hasOwnField(normalized, "country")) {
     payload.country_code = normalizePatchCountryCode(normalized.country, options)
-  }
-  if (hasOwnField(normalized, "province")) {
-    payload.province = typeof normalized.province === "string" ? normalized.province : ""
-  }
-  if (hasOwnField(normalized, "company")) {
-    payload.company = typeof normalized.company === "string" ? normalized.company : ""
-  }
-  if (hasOwnField(normalized, "phone")) {
-    payload.phone = typeof normalized.phone === "string" ? normalized.phone : ""
   }
   if (hasOwnField(normalized, "isDefaultShipping")) {
     payload.is_default_shipping = address.isDefaultShipping

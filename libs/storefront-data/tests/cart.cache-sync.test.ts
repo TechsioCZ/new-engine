@@ -5,7 +5,7 @@ import {
   invalidateCartCaches,
   patchCartCaches,
   syncCartCaches,
-} from "../src/cart/cache-sync"
+} from "../src/shared/cart-cache-sync"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import type { CartQueryKeys } from "../src/cart/types"
 import { createQueryKey } from "../src/shared/query-keys"
@@ -75,10 +75,12 @@ describe("cart cache sync helpers", () => {
       item_count: 1,
     } satisfies Cart)
 
-    patchCartCaches<Cart>(queryClient, queryKeys, "cart_2", (existing) => ({
-      ...existing,
-      item_count: (existing.item_count ?? 0) + 2,
-    }))
+    patchCartCaches<Cart>(queryClient, queryKeys, "cart_2", {
+      patch: (existing) => ({
+        ...existing,
+        item_count: (existing.item_count ?? 0) + 2,
+      }),
+    })
 
     expect(queryClient.getQueryData<Cart>(activeKey)?.item_count).toBe(3)
     expect(queryClient.getQueryData<Cart>(detailKey)?.item_count).toBe(3)

@@ -295,7 +295,7 @@ export function createRegionHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          void prefetchRegions(input)
+          prefetchRegions(input)
         },
         id,
         delay
@@ -369,7 +369,7 @@ export function createRegionHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          void prefetchRegion(input)
+          prefetchRegion(input)
         },
         id,
         delay

@@ -132,8 +132,16 @@ export function createLocalStorageValueStore({
         }
       }
 
+      const resolvedStorage = resolveStorage(storage)
       const handleStorage = (event: StorageEvent) => {
-        if (event.key === key) {
+        if (
+          resolvedStorage &&
+          event.storageArea &&
+          event.storageArea !== resolvedStorage
+        ) {
+          return
+        }
+        if (event.key === key || event.key === null) {
           listener()
         }
       }

@@ -9,12 +9,12 @@ const normalizeComparableString = (
   lowercase = false
 ): string | undefined => {
   if (typeof value !== "string") {
-    return undefined
+    return 
   }
 
   const normalized = value.trim()
   if (!normalized) {
-    return undefined
+    return 
   }
 
   return lowercase ? normalized.toLowerCase() : normalized
@@ -24,7 +24,7 @@ const pickNewestAddress = <T extends HttpTypes.StoreCustomerAddress>(
   addresses: T[]
 ): T | undefined => {
   if (addresses.length === 0) {
-    return undefined
+    return 
   }
 
   return [...addresses].sort((left, right) => {
@@ -106,6 +106,60 @@ const addressMatchesCreateInput = (
   }
 
   return true
+}
+
+const getAddressIdSet = (
+  addresses: HttpTypes.StoreCustomerAddress[]
+): Set<string> =>
+  new Set(
+    addresses
+      .map((address) => address.id)
+      .filter((id): id is string => Boolean(id))
+  )
+
+const pickSingleOrNewestAddress = (
+  addresses: HttpTypes.StoreCustomerAddress[]
+): HttpTypes.StoreCustomerAddress | undefined => {
+  if (addresses.length === 1) {
+    return addresses[0]
+  }
+  if (addresses.length > 1) {
+    return pickNewestAddress(addresses)
+  }
+  return
+}
+
+const getNewlyCreatedAddresses = (
+  addresses: HttpTypes.StoreCustomerAddress[],
+  existingAddressIds: Set<string>
+): HttpTypes.StoreCustomerAddress[] =>
+  addresses.filter(
+    (address) =>
+      typeof address.id === "string" && !existingAddressIds.has(address.id)
+  )
+
+const resolveCreatedAddress = (
+  addresses: HttpTypes.StoreCustomerAddress[],
+  params: MedusaCustomerAddressCreateInput,
+  existingAddressIds: Set<string> | null
+): HttpTypes.StoreCustomerAddress | undefined => {
+  if (existingAddressIds) {
+    const newlyCreatedAddress = pickSingleOrNewestAddress(
+      getNewlyCreatedAddresses(addresses, existingAddressIds)
+    )
+    if (newlyCreatedAddress) {
+      return newlyCreatedAddress
+    }
+  }
+
+  const matchingAddress = pickSingleOrNewestAddress(
+    addresses.filter((address) => addressMatchesCreateInput(address, params))
+  )
+  if (matchingAddress) {
+    return matchingAddress
+  }
+
+  return pickNewestAddress(addresses)
 }
 
 export type MedusaCustomerListInput = {
@@ -224,60 +278,23 @@ export function createMedusaCustomerService(
       let existingAddressIds: Set<string> | null = null
 
       try {
-        const existingAddresses = await fetchAllCustomerAddresses()
-        existingAddressIds = new Set(
-          existingAddresses
-            .map((address) => address.id)
-            .filter((id): id is string => Boolean(id))
-        )
+        existingAddressIds = getAddressIdSet(await fetchAllCustomerAddresses())
       } catch {
         // If address listing fails, continue with response-only heuristics.
       }
 
       const { customer } = await sdk.store.customer.createAddress(params)
       const addresses = customer.addresses ?? []
-
-      if (existingAddressIds) {
-        const newlyCreatedAddresses = addresses.filter(
-          (address) =>
-            typeof address.id === "string" && !existingAddressIds.has(address.id)
-        )
-
-        if (newlyCreatedAddresses.length === 1) {
-          return newlyCreatedAddresses[0]!
-        }
-
-        if (newlyCreatedAddresses.length > 1) {
-          const newestCreatedAddress = pickNewestAddress(newlyCreatedAddresses)
-          if (newestCreatedAddress) {
-            return newestCreatedAddress
-          }
-        }
-      }
-
-      const matchingAddresses = addresses.filter((address) =>
-        addressMatchesCreateInput(address, params)
+      const createdAddress = resolveCreatedAddress(
+        addresses,
+        params,
+        existingAddressIds
       )
-      if (matchingAddresses.length === 1) {
-        return matchingAddresses[0]!
-      }
-      if (matchingAddresses.length > 1) {
-        const newestMatchingAddress = pickNewestAddress(matchingAddresses)
-        if (newestMatchingAddress) {
-          return newestMatchingAddress
-        }
+      if (createdAddress) {
+        return createdAddress
       }
 
-      const newestAddress = pickNewestAddress(addresses)
-      if (newestAddress) {
-        return newestAddress
-      }
-
-      if (addresses.length === 0) {
-        throw new Error("Failed to create address")
-      }
-
-      return addresses[0]!
+      throw new Error("Failed to create address")
     },
 
     async updateAddress(

@@ -7,7 +7,7 @@ import {
   createDefaultActiveCartQueryMatcher,
   invalidateCartCaches,
   syncCartCaches,
-} from "../cart/cache-sync"
+} from "../shared/cart-cache-sync"
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import type {
   AddLineItemInputBase,
@@ -24,6 +24,7 @@ import type {
   SuspenseQueryOptions,
 } from "../shared/hook-types"
 
+import { toErrorWithCode } from "../shared/error-utils"
 type MedusaCartMutationHook<TInput> = (options?: {
   onSuccess?: (cart: HttpTypes.StoreCart) => void | Promise<void>
   onError?: (error: unknown) => void
@@ -147,25 +148,8 @@ export type UseMedusaCartInput = Omit<CartInputBase, "cartId"> & {
   cartId?: string
 }
 
-const toCartMutationError = (error: unknown): MedusaCartMutationError => {
-  if (error && typeof error === "object") {
-    const withMessage = error as { message?: unknown; code?: unknown }
-
-    if (typeof withMessage.message === "string") {
-      return {
-        message: withMessage.message,
-        code:
-          typeof withMessage.code === "string" ? withMessage.code : undefined,
-      }
-    }
-  }
-
-  if (typeof error === "string") {
-    return { message: error }
-  }
-
-  return { message: "An unknown error occurred" }
-}
+const toCartMutationError = (error: unknown): MedusaCartMutationError =>
+  toErrorWithCode(error, "An unknown error occurred")
 
 const isRenderableCartItem = (item: unknown): boolean => {
   if (!item || typeof item !== "object") {
@@ -295,7 +279,7 @@ export function createMedusaCartFlow({
           },
         })
       },
-      [mutation, resolveRenderableCart]
+      [mutation]
     )
     const mutateAsync = useCallback(
       async (input: TInput) => {
@@ -306,7 +290,7 @@ export function createMedusaCartFlow({
           throw toCartMutationError(error)
         }
       },
-      [mutation, resolveRenderableCart]
+      [mutation]
     )
 
     return {
@@ -364,6 +348,50 @@ export function createMedusaCartFlow({
     return useNormalizedCartMutation(cartHooks.useRemoveLineItem, options)
   }
 
+  const getCompletedCartIdFromContext = (
+    context: unknown
+  ): string | null | undefined => {
+    if (!(context && typeof context === "object" && "completedCartId" in context)) {
+      return
+    }
+    const completedCartId = (context as { completedCartId?: unknown })
+      .completedCartId
+    if (typeof completedCartId === "string" || completedCartId === null) {
+      return completedCartId
+    }
+    return
+  }
+
+  const handleOrderCompletionSuccess = ({
+    queryClient,
+    order,
+    variables,
+    context,
+    onSuccess,
+  }: {
+    queryClient: QueryClient
+    order: HttpTypes.StoreOrder
+    variables: { cartId?: string }
+    context: unknown
+    onSuccess?: (order: HttpTypes.StoreOrder) => void
+  }) => {
+    const completedCartId =
+      getCompletedCartIdFromContext(context) ?? variables.cartId ?? null
+
+    clearCompletedCart(queryClient, completedCartId)
+    queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() })
+    queryClient.invalidateQueries({ queryKey: checkoutQueryKeys.all() })
+    if (order.region_id) {
+      queryClient.invalidateQueries({
+        queryKey: checkoutQueryKeys.paymentProviders(order.region_id),
+      })
+    }
+
+    queryClient.setQueryData(orderQueryKeys.detail({ id: order.id }), order)
+    queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() })
+    onSuccess?.(order)
+  }
+
   function useCompleteCart(options?: UseMedusaCompleteCartOptions) {
     const queryClient = useQueryClient()
 
@@ -376,47 +404,21 @@ export function createMedusaCartFlow({
         variables: { cartId?: string },
         context: unknown
       ) => {
-        if (result.type === "order") {
-          const contextCompletedCartId =
-            context &&
-            typeof context === "object" &&
-            "completedCartId" in context
-              ? (context as { completedCartId?: unknown }).completedCartId
-              : undefined
-          const completedCartIdFromContext =
-            typeof contextCompletedCartId === "string" ||
-            contextCompletedCartId === null
-              ? contextCompletedCartId
-              : undefined
-          const completedCartId =
-            completedCartIdFromContext ?? variables.cartId ?? null
-
-          clearCompletedCart(queryClient, completedCartId)
-          queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() })
-          queryClient.invalidateQueries({ queryKey: checkoutQueryKeys.all() })
-
-          if (result.order.region_id) {
-            queryClient.invalidateQueries({
-              queryKey: checkoutQueryKeys.paymentProviders(
-                result.order.region_id
-              ),
-            })
-          }
-
-          queryClient.setQueryData(
-            orderQueryKeys.detail({ id: result.order.id }),
-            result.order
-          )
-          queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() })
-
-          options?.onSuccess?.(result.order)
+        if (result.type !== "order") {
+          syncCartCaches(queryClient, cartQueryKeys, result.cart, {
+            isActiveCartQueryKey,
+          })
+          options?.onError?.(result.error, result.cart)
           return
         }
 
-        syncCartCaches(queryClient, cartQueryKeys, result.cart, {
-          isActiveCartQueryKey,
+        handleOrderCompletionSuccess({
+          queryClient,
+          order: result.order,
+          variables,
+          context,
+          onSuccess: options?.onSuccess,
         })
-        options?.onError?.(result.error, result.cart)
       },
       onError: (error: unknown) => {
         options?.onRequestError?.(error)

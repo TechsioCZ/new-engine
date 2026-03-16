@@ -297,7 +297,7 @@ export function createCategoryHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          void prefetchCategories(input)
+          prefetchCategories(input)
         },
         id,
         delay
@@ -371,7 +371,7 @@ export function createCategoryHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          void prefetchCategory(input)
+          prefetchCategory(input)
         },
         id,
         delay

@@ -371,7 +371,7 @@ describe("createMedusaStorefrontPreset", () => {
     queryClient.setQueryData(customCustomerQueryKeys.addresses({}), [
       { id: "addr_old" },
     ])
-    queryClient.setQueryData(customOrderQueryKeys.all(), [{ id: "order_old" }])
+    queryClient.setQueryData(customOrderQueryKeys.list({}), [{ id: "order_old" }])
     const wrapper = createWrapper(queryClient)
 
     const { result } = renderHook(() => preset.hooks.auth.useLogin(), {
@@ -391,7 +391,7 @@ describe("createMedusaStorefrontPreset", () => {
     expect(
       queryClient.getQueryState(customCustomerQueryKeys.addresses({}))?.isInvalidated
     ).toBe(true)
-    expect(queryClient.getQueryState(customOrderQueryKeys.all())?.isInvalidated).toBe(
+    expect(queryClient.getQueryState(customOrderQueryKeys.list({}))?.isInvalidated).toBe(
       true
     )
   })

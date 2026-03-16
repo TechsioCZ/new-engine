@@ -23,7 +23,7 @@ import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
-import { invalidateCartCaches, syncCartCaches } from "./cache-sync"
+import { invalidateCartCaches, syncCartCaches } from "../shared/cart-cache-sync"
 import { createCartQueryKeys } from "./query-keys"
 import type {
   AddLineItemInputBase,
@@ -134,7 +134,9 @@ type NormalizedUpdateLineItemPayload<TInput extends UpdateLineItemInputBase> =
     (typeof updateLineItemPayloadOmitKeys)[number]
   >
 
-const noopUnsubscribe = () => undefined
+const noopUnsubscribe = () => {
+  // Intentionally empty unsubscribe callback.
+}
 const noopCartStorageSubscribe = (_listener: () => void) => noopUnsubscribe
 
 type ObservableStorageValueStore = StorageValueStore & {
@@ -1032,7 +1034,14 @@ export function createCartHooks<
           ...prefetchCacheOptions,
         })
       },
-      [contextRegion, prefetchCacheOptions, queryClient, skipIfCached, skipMode]
+      [
+        contextRegion,
+        prefetchCacheOptions,
+        queryClient,
+        requireRegion,
+        skipIfCached,
+        skipMode,
+      ]
     )
 
     return { prefetchCart }

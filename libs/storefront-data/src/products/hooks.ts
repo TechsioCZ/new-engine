@@ -444,17 +444,10 @@ export function createProductHooks<
     }
   }
 
-  function useInfiniteProducts(
+  const resolveInfiniteProductsInput = (
     input: TListInput & ProductInfiniteInputBase,
-    options?: {
-      queryOptions?: InfiniteQueryOptions<
-        ProductListResponse<TProduct>,
-        DefaultError,
-        ProductInfiniteData<TProduct>
-      >
-    }
-  ): UseInfiniteProductsResult<TProduct> {
-    const contextRegion = useRegionContext()
+    contextRegion: RegionInfo | null
+  ) => {
     const {
       enabled: inputEnabled,
       initialLimit,
@@ -487,13 +480,25 @@ export function createProductHooks<
         ? offsetFromInput
         : (pageFromInput - 1) * resolvedLimit
 
-    const baseListParams = buildList(resolvedInput)
+    return {
+      enabled,
+      resolvedInput,
+      resolvedLimit,
+      resolvedInitialLimit,
+      initialPageLimit,
+      baseOffset,
+    }
+  }
+
+  const buildInfiniteProductsQueryKey = (
+    baseListParams: TListParams,
+    resolvedInitialLimit: number | undefined
+  ): readonly unknown[] => {
     const baseQueryKey = resolvedQueryKeys.infinite
       ? resolvedQueryKeys.infinite(baseListParams)
       : resolvedQueryKeys.list(baseListParams)
     const isInfiniteKey =
-      Boolean(resolvedQueryKeys.infinite) ||
-      baseQueryKey[baseQueryKey.length - 1] === "__infinite"
+      Boolean(resolvedQueryKeys.infinite) || baseQueryKey.at(-1) === "__infinite"
     const queryKey = isInfiniteKey
       ? baseQueryKey
       : [...baseQueryKey, "__infinite"]
@@ -501,9 +506,35 @@ export function createProductHooks<
       typeof resolvedInitialLimit === "number"
         ? ["__initialLimit", resolvedInitialLimit]
         : []
-    const resolvedQueryKey =
-      initialLimitKey.length > 0 ? [...queryKey, ...initialLimitKey] : queryKey
 
+    return initialLimitKey.length > 0 ? [...queryKey, ...initialLimitKey] : queryKey
+  }
+
+  function useInfiniteProducts(
+    input: TListInput & ProductInfiniteInputBase,
+    options?: {
+      queryOptions?: InfiniteQueryOptions<
+        ProductListResponse<TProduct>,
+        DefaultError,
+        ProductInfiniteData<TProduct>
+      >
+    }
+  ): UseInfiniteProductsResult<TProduct> {
+    const contextRegion = useRegionContext()
+    const {
+      enabled,
+      resolvedInput,
+      resolvedLimit,
+      resolvedInitialLimit,
+      initialPageLimit,
+      baseOffset,
+    } = resolveInfiniteProductsInput(input, contextRegion)
+
+    const baseListParams = buildList(resolvedInput)
+    const resolvedQueryKey = buildInfiniteProductsQueryKey(
+      baseListParams,
+      resolvedInitialLimit
+    )
     const query = useInfiniteQuery<
       ProductListResponse<TProduct>,
       DefaultError,
@@ -818,7 +849,7 @@ export function createProductHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          void prefetchProducts(input)
+          prefetchProducts(input)
         },
         id,
         delay
@@ -914,7 +945,7 @@ export function createProductHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          void prefetchProduct(input)
+          prefetchProduct(input)
         },
         id,
         delay
@@ -931,20 +962,18 @@ export function createProductHooks<
   function usePrefetchPages(params: UsePrefetchPagesParams<TListInput>) {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
-    const { enabled: _inputEnabled, ...baseInput } =
-      params.baseInput as TListInput & {
-        enabled?: boolean
-      }
-    const resolvedBaseInput = useMemo(
-      () => applyRegion(baseInput as TListInput, contextRegion ?? undefined),
-      [params.baseInput, contextRegion]
-    )
+    const resolvedBaseInput = useMemo(() => {
+      const { enabled: _inputEnabled, ...baseInput } =
+        params.baseInput as TListInput & {
+          enabled?: boolean
+        }
+      return applyRegion(baseInput as TListInput, contextRegion ?? undefined)
+    }, [params.baseInput, contextRegion])
 
     useEffect(() => {
       if (params.enabled === false || params.shouldPrefetch === false) {
         return
       }
-
       if (requireRegion && !resolvedBaseInput.region_id) {
         return
       }
@@ -969,6 +998,19 @@ export function createProductHooks<
         )
       }
 
+      const scheduleDelayedPrefetch = (pages: number[], delay: number) => {
+        if (pages.length === 0) {
+          return
+        }
+        timers.push(
+          setTimeout(() => {
+            for (const page of pages) {
+              prefetchPage(page)
+            }
+          }, delay)
+        )
+      }
+
       const plan = createPrefetchPagesPlan({
         mode,
         currentPage: params.currentPage,
@@ -980,26 +1022,8 @@ export function createProductHooks<
       for (const page of plan.immediate) {
         prefetchPage(page)
       }
-
-      if (plan.medium.length > 0) {
-        timers.push(
-          setTimeout(() => {
-            for (const page of plan.medium) {
-              prefetchPage(page)
-            }
-          }, mediumDelay)
-        )
-      }
-
-      if (plan.low.length > 0) {
-        timers.push(
-          setTimeout(() => {
-            for (const page of plan.low) {
-              prefetchPage(page)
-            }
-          }, lowDelay)
-        )
-      }
+      scheduleDelayedPrefetch(plan.medium, mediumDelay)
+      scheduleDelayedPrefetch(plan.low, lowDelay)
 
       return () => {
         for (const timer of timers) {
@@ -1020,6 +1044,7 @@ export function createProductHooks<
       params.delays?.medium,
       params.delays?.low,
       queryClient,
+      requireRegion,
     ])
   }
 

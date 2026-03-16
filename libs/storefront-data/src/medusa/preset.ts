@@ -14,7 +14,7 @@ import {
 } from "../auth/medusa-service"
 import { createAuthQueryKeys } from "../auth/query-keys"
 import type { AuthQueryKeys, AuthService } from "../auth/types"
-import type { ActiveCartQueryKeyMatcher } from "../cart/cache-sync"
+import type { ActiveCartQueryKeyMatcher } from "../shared/cart-cache-sync"
 import {
   type CartHooks,
   type CreateCartHooksConfig,
@@ -206,14 +206,17 @@ type MedusaCartFlowConfig = {
   isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
 }
 
-type MedusaCheckoutHooksConfig = OmitFactoryConfig<
-  CreateCheckoutHooksConfig<
-    HttpTypes.StoreCart,
-    HttpTypes.StoreCartShippingOption,
-    HttpTypes.StorePaymentProvider,
-    HttpTypes.StorePaymentCollection,
-    HttpTypes.StoreCompleteCartResponse
-  >
+type MedusaCheckoutHooksConfig = Omit<
+  OmitFactoryConfig<
+    CreateCheckoutHooksConfig<
+      HttpTypes.StoreCart,
+      HttpTypes.StoreCartShippingOption,
+      HttpTypes.StorePaymentProvider,
+      HttpTypes.StorePaymentCollection,
+      HttpTypes.StoreCompleteCartResponse
+    >
+  >,
+  "cartQueryKeys"
 >
 
 type MedusaProductHooksConfig<TProduct> = OmitFactoryConfig<
@@ -369,8 +372,6 @@ type CreateMedusaStorefrontPresetConfigBase<
   TProduct = HttpTypes.StoreProduct,
   TCategory = HttpTypes.StoreProductCategory,
   TCollection = HttpTypes.StoreCollection,
-  TCatalogProduct = HttpTypes.StoreProduct,
-  TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
   TCustomerAddressCreateInput extends
@@ -470,8 +471,6 @@ export type CreateMedusaStorefrontPresetConfig<
   TProduct,
   TCategory,
   TCollection,
-  TCatalogProduct,
-  TCatalogFacets,
   TCartAddressInput,
   TCartAddressPayload,
   TCustomerAddressCreateInput,
@@ -739,7 +738,7 @@ export function createMedusaStorefrontPreset<
   const resolvedCacheConfig = config.cacheConfig ?? createCacheConfig()
   const defaultQueryKeys = createMedusaStorefrontQueryKeys(namespace)
 
-  const queryKeys = {
+  const resolveQueryKeys = () => ({
     auth: config.auth?.queryKeys ?? defaultQueryKeys.auth,
     cart: config.cart?.queryKeys ?? defaultQueryKeys.cart,
     checkout: config.checkout?.queryKeys ?? defaultQueryKeys.checkout,
@@ -750,9 +749,10 @@ export function createMedusaStorefrontPreset<
     categories: config.categories?.queryKeys ?? defaultQueryKeys.categories,
     collections: config.collections?.queryKeys ?? defaultQueryKeys.collections,
     catalog: config.catalog?.queryKeys ?? defaultQueryKeys.catalog,
-  }
+  })
+  const queryKeys = resolveQueryKeys()
 
-  const services = {
+  const resolveServices = () => ({
     auth:
       config.auth?.service ??
       createMedusaAuthService(config.sdk, config.auth?.serviceConfig),
@@ -787,33 +787,40 @@ export function createMedusaStorefrontPreset<
       MedusaCatalogListInput,
       TCatalogFacets
     >(config.sdk, config.catalog?.serviceConfig),
-  }
+  })
+  const services = resolveServices()
 
   const authHookOverrides = config.auth?.hooks
   const authInvalidationOverrides = authHookOverrides?.invalidateOnAuthChange
-  const presetAuthInvalidateKeys = [
-    queryKeys.customers.all(),
-    queryKeys.orders.all(),
-  ]
-  const presetAuthRemoveOnLogoutKeys = [
-    queryKeys.customers.all(),
-    queryKeys.orders.all(),
-  ]
-  const resolvedAuthInvalidateOnAuthChange = {
-    includeDefaults: authInvalidationOverrides?.includeDefaults ?? false,
-    invalidate: [
-      ...presetAuthInvalidateKeys,
-      ...(authInvalidationOverrides?.invalidate ?? []),
-    ],
-    removeOnLogout: [
-      ...presetAuthRemoveOnLogoutKeys,
-      ...(authInvalidationOverrides?.removeOnLogout ?? []),
-    ],
-  }
   const cartHookOverrides = config.cart?.hooks
   const cartFlowOverrides = config.cart?.flow
   const checkoutHookOverrides = config.checkout?.hooks
   const customerHookOverrides = config.customers?.hooks
+
+  const resolveAuthInvalidateOnAuthChange = () => {
+    const presetAuthInvalidateKeys = [
+      queryKeys.customers.all(),
+      queryKeys.orders.all(),
+    ]
+    const presetAuthRemoveOnLogoutKeys = [
+      queryKeys.customers.all(),
+      queryKeys.orders.all(),
+    ]
+    return {
+      includeDefaults: authInvalidationOverrides?.includeDefaults ?? false,
+      invalidate: [
+        ...presetAuthInvalidateKeys,
+        ...(authInvalidationOverrides?.invalidate ?? []),
+      ],
+      removeOnLogout: [
+        ...presetAuthRemoveOnLogoutKeys,
+        ...(authInvalidationOverrides?.removeOnLogout ?? []),
+      ],
+    }
+  }
+  const resolvedAuthInvalidateOnAuthChange =
+    resolveAuthInvalidateOnAuthChange()
+
   // Safe: non-default facet shapes must provide catalog.fallbackFacets via
   // CreateMedusaStorefrontPresetConfig, so the default fallback is only used
   // for the built-in CatalogFacets shape.
@@ -827,7 +834,7 @@ export function createMedusaStorefrontPreset<
     ...(input.metadata ? { metadata: input.metadata } : {}),
   })
 
-  const hooks = {
+  const createHooks = () => ({
     auth: createAuthHooks({
       ...(authHookOverrides ?? {}),
       service: services.auth,
@@ -862,7 +869,7 @@ export function createMedusaStorefrontPreset<
       ...(checkoutHookOverrides ?? {}),
       service: services.checkout,
       queryKeys: queryKeys.checkout,
-      cartQueryKeys: checkoutHookOverrides?.cartQueryKeys ?? queryKeys.cart,
+      cartQueryKeys: queryKeys.cart,
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
@@ -940,7 +947,8 @@ export function createMedusaStorefrontPreset<
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
-  }
+  })
+  const hooks = createHooks()
 
   const storefront = {
     namespace,
@@ -950,7 +958,7 @@ export function createMedusaStorefrontPreset<
     hooks,
   }
 
-  const flows = {
+  const createFlows = () => ({
     cart: createMedusaCartFlow({
       storefront,
       cartStorage: cartHookOverrides?.cartStorage,
@@ -961,7 +969,8 @@ export function createMedusaStorefrontPreset<
       cartStorage: cartHookOverrides?.cartStorage,
       isActiveCartQueryKey: cartFlowOverrides?.isActiveCartQueryKey,
     }),
-  }
+  })
+  const flows = createFlows()
 
   return {
     ...storefront,
