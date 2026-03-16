@@ -330,18 +330,22 @@ describe("createMedusaStorefrontPreset", () => {
       register: async () => "token",
       updateCustomer: async () => ({ id: "cus_1" } as HttpTypes.StoreCustomer),
     }
+    const customCustomerNamespace = ["custom", "customers"] as const
     const customCustomerQueryKeys: CustomerQueryKeys<MedusaCustomerListInput> = {
-      all: () => ["custom", "customers"],
-      profile: () => ["custom", "customers", "profile"],
-      addresses: (params) => ["custom", "customers", "addresses", params ?? {}],
+      all: () => createQueryKey(customCustomerNamespace),
+      profile: () => createQueryKey(customCustomerNamespace, "profile"),
+      addresses: (params) =>
+        createQueryKey(customCustomerNamespace, "addresses", params ?? {}),
     }
+    const customOrderNamespace = ["custom", "orders"] as const
     const customOrderQueryKeys: OrderQueryKeys<
       MedusaOrderListInput,
       MedusaOrderDetailInput
     > = {
-      all: () => ["custom", "orders"],
-      list: (params) => ["custom", "orders", "list", params ?? {}],
-      detail: (params) => ["custom", "orders", "detail", params ?? {}],
+      all: () => createQueryKey(customOrderNamespace),
+      list: (params) => createQueryKey(customOrderNamespace, "list", params ?? {}),
+      detail: (params) =>
+        createQueryKey(customOrderNamespace, "detail", params ?? {}),
     }
 
     const preset = createMedusaStorefrontPreset({

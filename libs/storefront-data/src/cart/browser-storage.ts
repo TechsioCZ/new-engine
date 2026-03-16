@@ -74,8 +74,7 @@ export function createLocalStorageCartStorage({
 }: CreateLocalStorageCartStorageOptions): ObservableCartStorage {
   const listeners = new Set<CartStorageListener>()
 
-  const readCartId = (): string | null =>
-    getStorageItem(resolveStorage(storage), key) ?? null
+  const readCartId = (): string | null => getStorageItem(resolveStorage(storage), key)
 
   const notifyListeners = () => {
     for (const listener of listeners) {

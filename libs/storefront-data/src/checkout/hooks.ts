@@ -157,6 +157,15 @@ export function createCheckoutHooks<
     return shippingPrices
   }
 
+  const patchPaymentCollection = (
+    cart: TCart,
+    paymentCollection: TPaymentCollection
+  ): TCart =>
+    ({
+      ...cart,
+      payment_collection: paymentCollection,
+    }) as TCart
+
   function useShippingMethodMutation<TContext = unknown>(
     cartId: string | undefined,
     options?: CheckoutMutationOptions<
@@ -224,11 +233,7 @@ export function createCheckoutHooks<
       onSuccess: (data, variables, context) => {
         if (cartQueryKeys && cartId) {
           patchCartCaches<TCart>(queryClient, cartQueryKeys, cartId, (cached) =>
-            ({
-              ...cached,
-              payment_collection:
-                data as unknown as TCart["payment_collection"],
-            }) as TCart
+            patchPaymentCollection(cached, data)
           )
           queryClient.invalidateQueries({
             queryKey: cartQueryKeys.all(),

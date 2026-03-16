@@ -5,6 +5,7 @@ import type { ReactNode } from "react"
 import { StorefrontDataProvider } from "../src/client/provider"
 import type { CartQueryKeys } from "../src/cart/types"
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
+import { createQueryKey } from "../src/shared/query-keys"
 
 const createWrapper = (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
@@ -437,10 +438,12 @@ describe("Medusa flow helpers", () => {
       setCartId: vi.fn(),
       clearCartId: vi.fn(),
     }
+    const customCartNamespace = ["custom", "cart"] as const
     const customCartQueryKeys: CartQueryKeys = {
-      all: () => ["custom", "cart"],
-      active: (params) => ["custom", "cart", params.cartId ?? "__none__"],
-      detail: (cartId) => ["custom", "cart", "detail", cartId],
+      all: () => createQueryKey(customCartNamespace),
+      active: (params) =>
+        createQueryKey(customCartNamespace, params.cartId ?? "__none__"),
+      detail: (cartId) => createQueryKey(customCartNamespace, "detail", cartId),
     }
 
     const storefront = createMedusaStorefrontPreset({
