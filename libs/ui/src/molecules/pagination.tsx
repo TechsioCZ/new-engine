@@ -3,7 +3,6 @@ import { normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ElementType,
   type HTMLAttributes,
-  type ReactElement,
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -27,9 +26,9 @@ const paginationVariants = tv({
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "border-(length:--border-pagination-width) rounded-pagination border-pagination-border",
       "aspect-square",
-      "data-[disabled]:text-pagination-fg-disabled data-[disabled]:hover:bg-pagination-bg-disabled",
-      "data-[disabled]:bg-pagination-bg-disabled",
-      "data-[disabled]:cursor-not-allowed data-[disabled]:border-pagination-border-disabled",
+      "data-disabled:text-pagination-fg-disabled data-disabled:hover:bg-pagination-bg-disabled",
+      "data-disabled:bg-pagination-bg-disabled",
+      "data-disabled:cursor-not-allowed data-disabled:border-pagination-border-disabled",
     ],
     ellipsis: "",
     compactText: "",
@@ -101,7 +100,7 @@ export interface PaginationProps
   showPrevNext?: boolean
   onPageChange?: (page: number) => void
   dir?: "ltr" | "rtl"
-  linkAs?: ElementType | ReactElement<HTMLAnchorElement>
+  linkAs?: ElementType
   compact?: boolean
 }
 
