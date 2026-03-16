@@ -26,7 +26,7 @@
   --height-gallery: min(60svh, 36rem);
 
   /* === EFFECTS === */
-  --brightness-gallery-trigger: 82%;
+  --brightness-gallery-trigger: 70%;
   --brightness-gallery-trigger-active: 100%;
   --shadow-gallery-trigger: var(--shadow-sm);
 
