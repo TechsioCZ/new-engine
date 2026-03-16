@@ -1,11 +1,13 @@
 import {
   createContext,
+  type ComponentPropsWithoutRef,
+  type ElementType,
   type HTMLAttributes,
   type ReactNode,
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Link } from "../atoms/link"
+import { Link, type LinkProps } from "../atoms/link"
 import { tv } from "../utils"
 
 const footerVariants = tv({
@@ -117,11 +119,29 @@ interface FooterTitleProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode
 }
 
-interface FooterLinkProps extends HTMLAttributes<HTMLAnchorElement> {
+type FooterLinkBaseProps = {
   children: ReactNode
-  href: string
   external?: boolean
+  className?: string
 }
+
+type FooterNativeLinkProps = FooterLinkBaseProps &
+  Omit<
+    ComponentPropsWithoutRef<"a">,
+    keyof FooterLinkBaseProps | "as" | "href"
+  > & {
+    as?: never
+    href: NonNullable<ComponentPropsWithoutRef<"a">["href"]>
+  }
+
+type FooterCustomLinkProps<T extends ElementType> = FooterLinkBaseProps &
+  Omit<ComponentPropsWithoutRef<T>, keyof FooterLinkBaseProps | "as"> & {
+    as: Exclude<T, "a">
+  }
+
+type FooterLinkProps<T extends ElementType = "a"> = T extends "a"
+  ? FooterNativeLinkProps
+  : FooterCustomLinkProps<T>
 
 interface FooterTextProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode
@@ -181,27 +201,24 @@ Footer.Title = function FooterTitle({ children, className }: FooterTitleProps) {
   return <h3 className={title({ className })}>{children}</h3>
 }
 
-Footer.Link = function FooterLink({
+function FooterLink(props: FooterNativeLinkProps): ReactNode
+function FooterLink<T extends ElementType>(props: FooterCustomLinkProps<T>): ReactNode
+function FooterLink<T extends ElementType = "a">({
   children,
   className,
-  href,
-  external,
-  ...props
-}: FooterLinkProps) {
+  ...linkProps
+}: FooterLinkProps<T>) {
   const { size } = useContext(FooterContext)
   const { link } = footerVariants({ size })
+
   return (
-    <Link
-      className={link({ className })}
-      href={href}
-      rel={external ? "noopener noreferrer" : undefined}
-      target={external ? "_blank" : undefined}
-      {...props}
-    >
+    <Link className={link({ className })} {...(linkProps as LinkProps<T>)}>
       {children}
     </Link>
   )
 }
+
+Footer.Link = FooterLink
 
 Footer.Text = function FooterText({ children, className }: FooterTextProps) {
   const { size } = useContext(FooterContext)

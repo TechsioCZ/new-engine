@@ -86,7 +86,7 @@ export function ProductCardTemplate({
       {(price || originalPrice) && (
         <div className="flex items-baseline gap-100">
           {originalPrice && (
-            <span className="text-fg-muted line-through">{originalPrice}</span>
+            <span className="line-through">{originalPrice}</span>
           )}
           {price && <ProductCard.Price>{price}</ProductCard.Price>}
         </div>
@@ -101,7 +101,7 @@ export function ProductCardTemplate({
             }}
           />
           {rating.reviewCount && (
-            <span className="text-fg-muted text-sm">
+            <span className="text-sm">
               ({rating.reviewCount})
             </span>
           )}

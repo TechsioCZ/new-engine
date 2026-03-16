@@ -1,21 +1,16 @@
 @theme static {
   /* === BASE COLOR MAPPING === */
   /* Reference layer - single source of truth for theming */
-  --color-combobox: var(--color-surface);
+  --color-combobox: var(--color-form-control-bg);
+  --color-combobox-accent: var(--color-primary);
   --color-combobox-success-fg: var(--color-success);
   --color-combobox-warning-fg: var(--color-warning);
   --color-combobox-danger-fg: var(--color-danger);
 
   /* === DERIVED COLORS === */
-  /* Background colors - using reference layer */
-  --color-combobox-bg: var(--color-combobox);
-
   /* Foreground colors */
   --color-combobox-fg: var(--color-fg-primary);
-  --color-combobox-placeholder: --alpha(
-    var(--color-combobox-fg) /
-    var(--opacity-placeholder)
-  );
+  --color-combobox-placeholder: var(--color-form-control-placeholder);
 
   /* Border colors */
   --color-combobox-border: var(--color-border-primary);
@@ -40,16 +35,14 @@
 
   /* Trigger button states */
   --color-combobox-trigger: var(--color-combobox-fg);
-  --color-combobox-trigger-hover: oklch(
-    from var(--color-combobox) min(l - 0.4, 1) c h
-  );
+  --color-combobox-trigger-hover: var(--color-combobox-accent);
   --color-combobox-trigger-bg: transparent;
   --color-combobox-trigger-bg-hover: var(--color-combobox-trigger-bg);
   --color-combobox-trigger-bg-active: var(--color-combobox-trigger-bg);
 
   /* === COMPONENT VARIANTS === */
   /* Dropdown content */
-  --color-combobox-content-bg: var(--color-combobox);
+  --color-combobox-content-bg: var(--color-surface);
 
   /* Dropdown items */
   --color-combobox-item-fg: var(--color-combobox-fg);
@@ -71,12 +64,8 @@
   --spacing-combobox-root-md: var(--spacing-150);
   --spacing-combobox-root-lg: var(--spacing-200);
 
-  --padding-combobox-input-sm: var(--spacing-50);
-  --padding-combobox-input-md: var(--spacing-100);
-  --padding-combobox-input-lg: var(--spacing-150);
-
-  --padding-combobox-item-sm: var(--spacing-50) var(--spacing-150);
-  --padding-combobox-item-md: var(--spacing-50) var(--spacing-200);
+  --padding-combobox-item-sm: var(--spacing-150) var(--spacing-250);
+  --padding-combobox-item-md: var(--spacing-150) var(--spacing-250);
   --padding-combobox-item-lg: var(--spacing-50) var(--spacing-250);
 
   --padding-combobox-trigger: 0 var(--spacing-100);
@@ -86,13 +75,18 @@
   /* === TYPOGRAPHY === */
   /* Font sizes and weights */
   --text-combobox-trigger-size: var(--text-lg);
+  --text-combobox-item-sm: var(--text-sm);
+  --text-combobox-item-md: var(--text-md);
+  --text-combobox-item-lg: var(--text-lg);
   --text-combobox-content-sm: var(--text-sm);
   --text-combobox-content-md: var(--text-md);
   --text-combobox-content-lg: var(--text-lg);
 
   /* === BORDERS & RADIUS === */
   /* Border widths and radius values */
-  --radius-combobox: var(--radius-sm);
+  --radius-combobox: var(--radius-form-control);
+  --radius-combobox-sm: var(--radius-form-control-sm);
+  --radius-combobox-md: var(--radius-form-control-md);
   --border-width-combobox: var(--border-width-input);
 
   /* === SHADOWS === */

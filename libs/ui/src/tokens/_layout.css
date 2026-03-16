@@ -1,4 +1,8 @@
 @theme static {
+  /* === RUNTIME POSITIONING FALLBACKS (Zag.js) === */
+  --reference-width: 100%;
+  --z-index: 1;
+
   /* === BREAKPOINTS === */
   --breakpoint-xs: 30rem;
   --breakpoint-sm: 40rem;

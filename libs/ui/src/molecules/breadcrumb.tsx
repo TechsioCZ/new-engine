@@ -1,4 +1,4 @@
-import type { ElementType, ReactElement } from "react"
+import type { ElementType} from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { Icon, type IconType } from "../atoms/icon"
 import { Link } from "../atoms/link"
@@ -94,7 +94,7 @@ function BreadcrumbItem({
   separator?: IconType
   lastItem: boolean
   isCurrentPage?: boolean
-  linkAs?: ElementType | ReactElement<HTMLAnchorElement>
+  linkAs?: ElementType
 }) {
   const {
     item,
@@ -110,7 +110,7 @@ function BreadcrumbItem({
           {label}
         </span>
       ) : (
-        <Link as={linkAs as ElementType} className={link()} href={href || "#"}>
+        <Link as={linkAs} className={link()} href={href || "#"}>
           {label}
         </Link>
       )}
@@ -144,7 +144,7 @@ interface BreadcrumbProps extends VariantProps<typeof breadcrumbsVariants> {
   maxItems?: number
   className?: string
   "aria-label"?: string
-  linkAs?: ElementType | ReactElement<HTMLAnchorElement>
+  linkAs?: ElementType
 }
 
 export function Breadcrumb({

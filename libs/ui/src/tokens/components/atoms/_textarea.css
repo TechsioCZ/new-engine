@@ -1,8 +1,7 @@
 @theme static {
   --opacity-borderless: 60%;
   /* === BASE COLOR MAPPING === */
-  --color-textarea-base: var(--color-fill-base);
-  --color-textarea-accent: var(--color-primary);
+  --color-textarea-base: var(--color-form-control-bg);
   --color-textarea-success: var(--color-success);
   --color-textarea-warning: var(--color-warning);
   --color-textarea-danger: var(--color-danger);
@@ -17,18 +16,15 @@
 
   /* Foreground colors */
   --color-textarea-fg: var(--color-fg-primary);
-  --color-textarea-placeholder: --alpha(
-    var(--color-fg-primary) /
-    var(--opacity-placeholder)
-  );
-  --color-textarea-fg-disabled: var(--color-fg-disabled);
+  --color-textarea-placeholder: var(--color-form-control-placeholder);
+  --color-textarea-fg-disabled: var(--color-form-control-fg-disabled);
 
   /* Border colors */
-  --color-textarea-border: var(--color-border-primary);
+  --color-textarea-border: var(--color-form-control-border);
   --color-textarea-border-success: var(--color-textarea-success);
   --color-textarea-border-warning: var(--color-textarea-warning);
   --color-textarea-border-danger: var(--color-textarea-danger);
-  --color-textarea-border-disabled: var(--color-border-disabled);
+  --color-textarea-border-disabled: var(--color-form-control-border-disabled);
 
   /* === STATE VARIATIONS === */
   /* Default hover/focus states */
@@ -40,7 +36,7 @@
   );
 
   /* Border states */
-  --color-textarea-border-hover: var(--color-textarea-accent);
+  --color-textarea-border-hover: var(--color-form-control-border-hover);
   --color-textarea-border-focus: var(--color-textarea-accent);
 
   /* === VALIDATION STATES === */
@@ -72,12 +68,12 @@
   --color-textarea-bg-borderless-focus: var(--color-textarea-base);
 
   /* === DISABLED STATES === */
-  --color-textarea-bg-disabled: var(--color-bg-disabled);
+  --color-textarea-bg-disabled: var(--color-form-control-bg-disabled);
 
   /* === SPACING === */
-  --padding-textarea-sm: var(--spacing-100) var(--spacing-150);
-  --padding-textarea-md: var(--spacing-150) var(--spacing-200);
-  --padding-textarea-lg: var(--spacing-150) var(--spacing-250);
+  --padding-textarea-sm: var(--padding-input-sm);
+  --padding-textarea-md: var(--padding-input-md);
+  --padding-textarea-lg: var(--padding-input-lg);
 
   /* === TYPOGRAPHY === */
   --text-textarea-sm: var(--text-sm);
@@ -85,9 +81,11 @@
   --text-textarea-lg: var(--text-lg);
 
   /* === BORDERS & RADIUS === */
-  --border-textarea-width: 1px;
-  --radius-textarea: var(--radius-md);
+  --border-textarea-width: var(--border-width-form-control);
+  --radius-textarea: var(--radius-form-control);
+  --radius-textarea-sm: var(--radius-form-control-sm);
+  --radius-textarea-md: var(--radius-form-control-md);
 
   /* === FOCUS RING === */
-  --color-textarea-ring: var(--color-ring);
+  --color-textarea-ring: var(--color-form-control-ring);
 }
