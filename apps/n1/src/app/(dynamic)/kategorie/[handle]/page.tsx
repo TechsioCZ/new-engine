@@ -16,25 +16,23 @@ import { Banner } from "@/components/atoms/banner"
 import { Heading } from "@/components/heading"
 import { ProductGrid } from "@/components/molecules/product-grid"
 import { N1Aside } from "@/components/n1-aside"
-import {
-  allCategories,
-  categoryMap,
-  categoryTree,
-} from "@/data/static/categories"
+import { useSuspenseCategoryRegistry } from "@/hooks/use-category-registry"
 import { usePrefetchCategoryChildren } from "@/hooks/use-prefetch-category-children"
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { usePrefetchRootCategories } from "@/hooks/use-prefetch-root-categories"
 import { useSuspenseProducts } from "@/hooks/use-products"
 import {
-  ALL_CATEGORIES_MAP,
-  PRODUCT_LIMIT,
-  VALID_CATEGORY_ROUTES,
-} from "@/lib/constants"
+  buildCategoryPath as buildCategoryPathLabel,
+  getCategoryByHandle,
+  getCategoryChildren,
+  getCategoryDescendantIds,
+  getRootCategory,
+  getRootCategoryTree,
+} from "@/lib/categories/selectors"
+import type { Category, CategoryTreeNode } from "@/lib/categories/types"
+import { PRODUCT_LIMIT } from "@/lib/constants"
 import { useAnalytics } from "@/providers/analytics-provider"
-import { buildBreadcrumbs } from "@/utils/helpers/build-breadcrumb"
 import { transformProduct } from "@/utils/transform/transform-product"
-
-type StaticCategory = (typeof allCategories)[number]
 
 const parsePageParam = (value: string | null): number => {
   if (value == null) {
@@ -55,33 +53,26 @@ export default function CategoryPage() {
   const searchParams = useSearchParams()
   const handle = params.handle as string
   const analytics = useAnalytics()
+  const categoryRegistry = useSuspenseCategoryRegistry()
 
-  // Track which category we've already tracked to prevent duplicates
   const trackedCategoryId = useRef<string | null>(null)
 
-  const currentCategory = allCategories.find((cat) => cat.handle === handle)
-  const currentCategoryChildren = allCategories.filter(
-    (cat) => cat.parent_category_id === currentCategory?.id
+  const currentCategory = getCategoryByHandle(categoryRegistry, handle)
+  const currentCategoryChildren = getCategoryChildren(
+    categoryRegistry,
+    currentCategory?.id
   )
-  const rootCategory =
-    allCategories.find((cat) => cat.id === currentCategory?.root_category_id) ??
-    currentCategory
+  const rootCategory = getRootCategory(categoryRegistry, currentCategory)
+  const currentCategoryIds = getCategoryDescendantIds(
+    categoryRegistry,
+    currentCategory?.id
+  )
 
-  const buildCategoryPath = useCallback((): string | null => {
-    if (!currentCategory) {
-      return null
-    }
-
-    const path: string[] = []
-    let current: typeof currentCategory | undefined = currentCategory
-
-    while (current) {
-      path.unshift(current.name)
-      current = allCategories.find((c) => c.id === current?.parent_category_id)
-    }
-
-    return path.join(" > ")
-  }, [currentCategory])
+  const resolveCategoryPath = useCallback(
+    (): string | null =>
+      buildCategoryPathLabel(categoryRegistry, currentCategory),
+    [categoryRegistry, currentCategory]
+  )
 
   useEffect(() => {
     if (!currentCategory) {
@@ -91,12 +82,12 @@ export default function CategoryPage() {
       return
     }
 
-    const categoryPath = buildCategoryPath()
+    const categoryPath = resolveCategoryPath()
     if (categoryPath) {
       trackedCategoryId.current = currentCategory.id
       analytics.trackViewCategory({ category: categoryPath })
     }
-  }, [currentCategory, analytics, buildCategoryPath])
+  }, [currentCategory, analytics, resolveCategoryPath])
 
   const handlePageChange = (page: number) => {
     const newSearchParams = new URLSearchParams(searchParams.toString())
@@ -106,32 +97,27 @@ export default function CategoryPage() {
     })
   }
 
-  if (
-    !(VALID_CATEGORY_ROUTES.includes(handle) && currentCategory && rootCategory)
-  ) {
+  if (!(currentCategory && rootCategory)) {
     notFound()
   }
 
-  const rootCategoryTree = categoryTree.find(
-    (cat) => cat.id === rootCategory?.id
-  )
-
-  const breadcrumbItems: BreadcrumbItemType[] = buildBreadcrumbs(
-    currentCategory?.id,
-    categoryMap
-  ).map((item, index) =>
-    index === 0 ? { ...item, icon: "icon-[mdi--home]" } : item
-  )
-
+  const rootCategoryTree = getRootCategoryTree(categoryRegistry, rootCategory)
+  const breadcrumbItems: BreadcrumbItemType[] = [
+    { label: "Home", href: "/", icon: "icon-[mdi--home]" },
+    {
+      label: rootCategory.name,
+      href: `/kategorie/${rootCategory.handle}`,
+    },
+  ]
   const currentPage = parsePageParam(searchParams.get("page"))
-  const categoryIds = ALL_CATEGORIES_MAP[handle] ?? []
 
   return (
     <CategoryPageContent
       breadcrumbItems={breadcrumbItems}
-      categoryIds={categoryIds}
+      categoryMap={categoryRegistry.categoryMapById}
       currentCategory={currentCategory}
       currentCategoryChildren={currentCategoryChildren}
+      currentCategoryIds={currentCategoryIds}
       currentPage={currentPage}
       handle={handle}
       onPageChange={handlePageChange}
@@ -143,19 +129,21 @@ export default function CategoryPage() {
 
 type CategoryPageContentProps = {
   breadcrumbItems: BreadcrumbItemType[]
-  categoryIds: string[]
-  currentCategory: StaticCategory
-  currentCategoryChildren: StaticCategory[]
+  categoryMap: Record<string, Category>
+  currentCategoryIds: string[]
+  currentCategory: Category
+  currentCategoryChildren: Category[]
   currentPage: number
   handle: string
   onPageChange: (page: number) => void
-  rootCategory: StaticCategory
-  rootCategoryTree?: (typeof categoryTree)[number]
+  rootCategory: Category
+  rootCategoryTree?: CategoryTreeNode
 }
 
 function CategoryPageContent({
   breadcrumbItems,
-  categoryIds,
+  categoryMap,
+  currentCategoryIds,
   currentCategory,
   currentCategoryChildren,
   currentPage,
@@ -173,7 +161,7 @@ function CategoryPageContent({
     hasNextPage,
     hasPrevPage,
   } = useSuspenseProducts({
-    category_id: categoryIds,
+    category_id: currentCategoryIds,
     page: currentPage,
     limit: PRODUCT_LIMIT,
   })
@@ -193,7 +181,7 @@ function CategoryPageContent({
     hasPrevPage,
     totalPages,
     pageSize: PRODUCT_LIMIT,
-    category_id: categoryIds,
+    category_id: currentCategoryIds,
   })
 
   usePrefetchCategoryChildren({
@@ -212,13 +200,13 @@ function CategoryPageContent({
         categories={rootCategoryTree?.children || []}
         categoryMap={categoryMap}
         currentCategory={currentCategory}
-        label={rootCategory?.handle}
+        label={rootCategory.name}
       />
       <main className="px-300">
         <header className="space-y-300">
-          <Heading as="h1">{currentCategory?.handle}</Heading>
+          <Heading as="h1">{currentCategory.name}</Heading>
           <div className="grid grid-cols-4 gap-100">
-            {currentCategoryChildren?.map((child) => (
+            {currentCategoryChildren.map((child) => (
               <LinkButton
                 className="border border-overlay bg-surface py-200 text-fg-primary hover:bg-base"
                 href={`/kategorie/${child.handle}`}

@@ -6,13 +6,14 @@ import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header"
 import NextLink from "next/link"
 import { usePathname } from "next/navigation"
 import { useContext, useEffect } from "react"
-import { links, submenuItems } from "@/data/header"
+import { useHeaderNavigation } from "@/hooks/use-header-navigation"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
 export const MobileMenu = () => {
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useContext(HeaderContext)
   const pathname = usePathname()
   const isDesktop = useMediaQuery("header")
+  const { links, submenuItems } = useHeaderNavigation()
 
   useEffect(() => {
     if (isDesktop && isMobileMenuOpen) {

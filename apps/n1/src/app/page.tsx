@@ -5,8 +5,9 @@ import { HeroCarousel } from "@/components/hero-carousel"
 import { ProductGrid } from "@/components/molecules/product-grid"
 import { TopProduct } from "@/components/top-product"
 import { featureBlocks, heroCarouselSlides, topCategory } from "@/data/home"
-import { leafCategories } from "@/data/static/categories"
+import { useSuspenseCategoryRegistry } from "@/hooks/use-category-registry"
 import { useSuspenseProducts } from "@/hooks/use-products"
+import { featuredHomeCategoryHandles } from "@/lib/categories/config"
 import { transformProduct } from "@/utils/transform/transform-product"
 
 export default function Home() {
@@ -56,11 +57,21 @@ export default function Home() {
 }
 
 function HomeProductGrid() {
-  const featuredCategoryIds = leafCategories.length
-    ? leafCategories.slice(0, 2).map((category) => category.id)
-    : undefined
+  const categoryRegistry = useSuspenseCategoryRegistry()
+  const configuredFeaturedCategories = featuredHomeCategoryHandles
+    .map((handle) => categoryRegistry.categoryMapByHandle[handle])
+    .filter((category): category is NonNullable<typeof category> =>
+      Boolean(category)
+    )
 
-  if (!featuredCategoryIds) {
+  const featuredCategoryIds =
+    configuredFeaturedCategories.length > 0
+      ? configuredFeaturedCategories.map((category) => category.id)
+      : categoryRegistry.rootCategories
+          .slice(0, 2)
+          .map((category) => category.id)
+
+  if (featuredCategoryIds.length === 0) {
     return <ProductGrid products={[]} skeletonCount={8} />
   }
 

@@ -12,8 +12,8 @@ import { ProductSizes } from "@/components/product-detail/product-sizes"
 import { ProductTable } from "@/components/product-detail/product-table"
 import { ProductTabs } from "@/components/product-detail/product-tabs"
 import { RelatedProducts } from "@/components/product-detail/related-products"
+import { useSuspenseCategoryRegistry } from "@/hooks/use-category-registry"
 import { useSuspenseProduct } from "@/hooks/use-product"
-import { CATEGORY_MAP_BY_ID } from "@/lib/constants"
 import { useAnalytics } from "@/providers/analytics-provider"
 import {
   buildBreadcrumbs,
@@ -29,6 +29,7 @@ export default function ProductPage() {
   const variantParam = searchParams.get("variant")
 
   const { product: rawProduct } = useSuspenseProduct({ handle })
+  const { categoryMapById } = useSuspenseCategoryRegistry()
   const analytics = useAnalytics()
 
   // Track which variant we've already tracked to prevent duplicates
@@ -82,14 +83,14 @@ export default function ProductPage() {
 
   const breadcrumbPath = buildProductBreadcrumbs(
     rawProduct.categories?.[0]?.id,
-    CATEGORY_MAP_BY_ID,
+    categoryMapById,
     rawProduct.title,
     rawProduct.handle
   )
 
   const breadcrumbPathMobile = buildBreadcrumbs(
     rawProduct.categories?.[0]?.id,
-    CATEGORY_MAP_BY_ID
+    categoryMapById
   )
 
   const productTableRows = [
