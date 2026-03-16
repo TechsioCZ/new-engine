@@ -2,25 +2,30 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { type ReactNode } from 'react'
 import { GalleryTemplate } from '../../src/templates/gallery'
 
+const shoes1 = new URL('../../assets/gallery/shoes-1.avif', import.meta.url).href
+const shoes2 = new URL('../../assets/gallery/shoes-2.avif', import.meta.url).href
+const shoes3 = new URL('../../assets/gallery/shoes-3.avif', import.meta.url).href
+const shoes4 = new URL('../../assets/gallery/shoes-4.avif', import.meta.url).href
+
 const baseItems = [
   {
     id: 'gallery-1',
-    src: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1200',
+    src: shoes1,
     alt: 'Product hero image',
   },
   {
     id: 'gallery-2',
-    src: 'https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?w=1200',
+    src: shoes2,
     alt: 'Product detail image',
   },
   {
     id: 'gallery-3',
-    src: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200',
+    src: shoes3,
     alt: 'Product color variant',
   },
   {
     id: 'gallery-4',
-    src: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=1200',
+    src: shoes4,
     alt: 'Product lifestyle image',
   },
 ]

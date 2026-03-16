@@ -454,7 +454,7 @@ Gallery.Carousel = function GalleryCarousel<
       page={page}
       slideCount={items.length}
     >
-      {children || <Gallery.Slides />}
+      {children ?? <Gallery.Slides />}
     </Carousel>
   )
 }
