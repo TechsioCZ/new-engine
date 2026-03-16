@@ -4,8 +4,6 @@ import type { CartQueryKeys } from "./types"
 type QueryKey = readonly unknown[]
 type CartLike = {
   id: string
-}
-type CartWithRegion = CartLike & {
   region_id?: string | null
 }
 
@@ -61,19 +59,11 @@ export const createDefaultActiveCartQueryMatcher = (
     }
 
     const activeKeyInput = queryKey[cartPrefix.length + 1]
-    if (activeKeyInput === cartId) {
-      return true
-    }
-
-    if (
+    return (
       isRecord(activeKeyInput) &&
       typeof activeKeyInput.cartId === "string" &&
       activeKeyInput.cartId === cartId
-    ) {
-      return true
-    }
-
-    return false
+    )
   }
 }
 
@@ -83,14 +73,6 @@ const resolveActiveCartQueryMatcher = (
 ): ActiveCartQueryKeyMatcher =>
   options?.isActiveCartQueryKey ?? createDefaultActiveCartQueryMatcher(queryKeys)
 
-const getCartRegionId = (cart: CartLike): string | null => {
-  if (!("region_id" in cart)) {
-    return null
-  }
-
-  const regionId = (cart as CartWithRegion).region_id
-  return typeof regionId === "string" ? regionId : null
-}
 
 export function syncCartCaches<TCart extends CartLike>(
   queryClient: QueryClient,
@@ -101,7 +83,7 @@ export function syncCartCaches<TCart extends CartLike>(
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
   const activeKey = queryKeys.active({
     cartId: cart.id,
-    regionId: getCartRegionId(cart),
+    regionId: typeof cart.region_id === "string" ? cart.region_id : null,
   })
 
   queryClient.setQueriesData<TCart>(

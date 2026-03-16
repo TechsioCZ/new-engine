@@ -100,7 +100,7 @@ export type ProductHooks<
   TListInput extends ProductListInputBase,
   TDetailInput extends ProductDetailInputBase,
 > = {
-  createProductsListQueryOptions: (
+  getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListResponse<TProduct>>
@@ -108,36 +108,10 @@ export type ProductHooks<
       useGlobalFetcher?: boolean
     }
   ) => QueryFactoryOptions<ProductListResponse<TProduct>>
-  createProductsListPrefetchQueryOptions: (
-    input: TListInput,
-    options?: {
-      cacheStrategy?: CacheStrategy
-      prefetchedBy?: string
-      region?: RegionInfo | null
-      useGlobalFetcher?: boolean
-    }
-  ) => QueryFactoryOptions<ProductListResponse<TProduct>>
-  createProductsFirstPagePrefetchQueryOptions: (
-    input: TListInput,
-    options?: {
-      cacheStrategy?: CacheStrategy
-      prefetchedBy?: string
-      region?: RegionInfo | null
-      useGlobalFetcher?: boolean
-    }
-  ) => QueryFactoryOptions<ProductListResponse<TProduct>>
-  createProductQueryOptions: (
+  getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProduct | null>
-      region?: RegionInfo | null
-    }
-  ) => QueryFactoryOptions<TProduct | null>
-  createProductPrefetchQueryOptions: (
-    input: TDetailInput,
-    options?: {
-      cacheStrategy?: CacheStrategy
-      prefetchedBy?: string
       region?: RegionInfo | null
     }
   ) => QueryFactoryOptions<TProduct | null>
@@ -269,7 +243,7 @@ export function createProductHooks<
     return applyRegion(baseInput as TDetailInput, region ?? undefined)
   }
 
-  const createProductsListQueryOptions = (
+  const getListQueryOptions = (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListResponse<TProduct>>
@@ -363,7 +337,7 @@ export function createProductHooks<
     }
   }
 
-  const createProductQueryOptions = (
+  const getDetailQueryOptions = (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProduct | null>
@@ -435,7 +409,7 @@ export function createProductHooks<
       (!requireRegion || Boolean(resolvedInput.region_id))
 
     const query = useQuery({
-      ...createProductsListQueryOptions(input, {
+      ...getListQueryOptions(input, {
         queryOptions: options?.queryOptions,
         region: contextRegion,
       }),
@@ -602,7 +576,7 @@ export function createProductHooks<
 
     const listParams = buildList(resolvedInput)
     const query = useSuspenseQuery(
-      createProductsListQueryOptions(input as TListInput, {
+      getListQueryOptions(input as TListInput, {
         queryOptions: options?.queryOptions,
         region: contextRegion,
       })
@@ -655,7 +629,7 @@ export function createProductHooks<
         (!requireRegion || Boolean(resolvedInput.region_id)))
 
     const query = useQuery({
-      ...createProductQueryOptions(input, {
+      ...getDetailQueryOptions(input, {
         queryOptions: options?.queryOptions,
         region: contextRegion,
       }),
@@ -689,7 +663,7 @@ export function createProductHooks<
     }
 
     const query = useSuspenseQuery(
-      createProductQueryOptions(input as TDetailInput, {
+      getDetailQueryOptions(input as TDetailInput, {
         queryOptions: options?.queryOptions,
         region: contextRegion,
       })
@@ -1025,11 +999,8 @@ export function createProductHooks<
   }
 
   return {
-    createProductsListQueryOptions,
-    createProductsListPrefetchQueryOptions,
-    createProductsFirstPagePrefetchQueryOptions,
-    createProductQueryOptions,
-    createProductPrefetchQueryOptions,
+    getListQueryOptions,
+    getDetailQueryOptions,
     useProducts,
     useInfiniteProducts,
     useSuspenseProducts,

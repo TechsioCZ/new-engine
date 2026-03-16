@@ -12,6 +12,27 @@ type Cart = {
   items?: Array<{ quantity?: number }>
 }
 
+const createMemoryStorage = (): Storage => {
+  const store = new Map<string, string>()
+
+  return {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, value) => {
+      store.set(key, value)
+    },
+    removeItem: (key) => {
+      store.delete(key)
+    },
+    clear: () => {
+      store.clear()
+    },
+    key: (index) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size
+    },
+  } as Storage
+}
+
 const createWrapper = (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
@@ -20,15 +41,21 @@ const createWrapper = (client: QueryClient) =>
 describe("createCartHooks reactive storage and cache sync", () => {
   it("reacts to observable cartStorage changes", async () => {
     const key = "test_reactive_cart_id"
-    window.localStorage.removeItem(key)
-    const cartStorage = createLocalStorageCartStorage({ key })
+    const cartStorage = createLocalStorageCartStorage({
+      key,
+      storage: createMemoryStorage(),
+    })
     const retrieveCart = vi.fn(async (cartId: string) => ({
       id: cartId,
       region_id: "reg_1",
       items: [{ quantity: 2 }],
     }))
 
-    const { useCart } = createCartHooks<Cart, { region_id?: string }, { region_id?: string }>({
+    const { useCart } = createCartHooks<
+      Cart,
+      { region_id?: string },
+      { region_id?: string }
+    >({
       service: {
         retrieveCart,
         createCart: async () => ({ id: "cart_created", region_id: "reg_1" }),
@@ -58,7 +85,6 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
 
     expect(retrieveCart.mock.calls.at(-1)?.[0]).toBe("cart_1")
-    window.localStorage.removeItem(key)
   })
 
   it("syncs active and detail caches for line item mutations", async () => {

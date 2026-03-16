@@ -1,36 +1,72 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import type { QueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
 import type { ActiveCartQueryKeyMatcher } from "../cart/cache-sync"
 import type { CartStorage } from "../cart/types"
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
-import { createMedusaCartFlow } from "./cart-flow"
-import type { MedusaStorefrontPreset } from "./preset"
+import {
+  createMedusaCartFlow,
+  type MedusaCartFlowStorefront,
+} from "./cart-flow"
 
-type MedusaCheckoutFlowStorefront = {
-  hooks: {
-    cart: {
-      useCart: MedusaStorefrontPreset["hooks"]["cart"]["useCart"]
-      useSuspenseCart: MedusaStorefrontPreset["hooks"]["cart"]["useSuspenseCart"]
-      useAddLineItem: MedusaStorefrontPreset["hooks"]["cart"]["useAddLineItem"]
-      useUpdateLineItem: MedusaStorefrontPreset["hooks"]["cart"]["useUpdateLineItem"]
-      useRemoveLineItem: MedusaStorefrontPreset["hooks"]["cart"]["useRemoveLineItem"]
-      useCompleteCart: MedusaStorefrontPreset["hooks"]["cart"]["useCompleteCart"]
-    }
+type MedusaCheckoutShippingHook = (
+  input: {
+    cartId?: string
+    cart?: HttpTypes.StoreCart | null
+    enabled?: boolean
+    calculatePrices?: boolean
+  },
+  options?: {
+    onSuccess?: (cart: HttpTypes.StoreCart) => void
+    onError?: (error: unknown) => void
+  }
+ ) => {
+  shippingOptions: HttpTypes.StoreCartShippingOption[]
+  shippingPrices: Record<string, number>
+  isLoading: boolean
+  isFetching: boolean
+  isCalculating: boolean
+  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
+  isSettingShipping: boolean
+  selectedShippingMethodId?: string
+  selectedOption?: HttpTypes.StoreCartShippingOption
+}
+
+type MedusaCheckoutPaymentHook = (
+  input: {
+    cartId?: string
+    regionId?: string
+    cart?: HttpTypes.StoreCart | null
+    enabled?: boolean
+  },
+  options?: {
+    onSuccess?: (paymentCollection: HttpTypes.StorePaymentCollection) => void
+    onError?: (error: unknown) => void
+  }
+ ) => {
+  paymentProviders: HttpTypes.StorePaymentProvider[]
+  initiatePayment: (providerId: string) => void
+  initiatePaymentAsync: (
+    providerId: string
+  ) => Promise<HttpTypes.StorePaymentCollection>
+  isInitiatingPayment: boolean
+  isLoading: boolean
+  isFetching: boolean
+  canInitiatePayment: boolean
+  hasPaymentCollection: boolean
+  hasPaymentSessions: boolean
+}
+
+export type MedusaCheckoutFlowStorefront = MedusaCartFlowStorefront & {
+  hooks: MedusaCartFlowStorefront["hooks"] & {
     checkout: {
-      useCheckoutShipping: MedusaStorefrontPreset["hooks"]["checkout"]["useCheckoutShipping"]
-      useCheckoutPayment: MedusaStorefrontPreset["hooks"]["checkout"]["useCheckoutPayment"]
-      fetchPaymentProviders: MedusaStorefrontPreset["hooks"]["checkout"]["fetchPaymentProviders"]
-    }
-  }
-  queryKeys: {
-    cart: MedusaStorefrontPreset["queryKeys"]["cart"]
-    checkout: MedusaStorefrontPreset["queryKeys"]["checkout"]
-    orders: MedusaStorefrontPreset["queryKeys"]["orders"]
-  }
-  services: {
-    cart: {
-      retrieveCart: MedusaStorefrontPreset["services"]["cart"]["retrieveCart"]
+      useCheckoutShipping: MedusaCheckoutShippingHook
+      useCheckoutPayment: MedusaCheckoutPaymentHook
+      fetchPaymentProviders: (
+        queryClient: QueryClient,
+        regionId: string
+      ) => Promise<HttpTypes.StorePaymentProvider[]>
     }
   }
 }
@@ -278,10 +314,10 @@ export function createMedusaCheckoutFlow({
         calculatePrices: options?.calculatePrices,
       },
       {
-        onSuccess: (updatedCart) => {
+        onSuccess: (updatedCart: HttpTypes.StoreCart) => {
           options?.onSuccess?.(updatedCart)
         },
-        onError: (error) => {
+        onError: (error: unknown) => {
           options?.onError?.(error)
         },
       }
@@ -344,10 +380,10 @@ export function createMedusaCheckoutFlow({
         enabled: options?.enabled ?? Boolean(regionId ?? cart?.region_id),
       },
       {
-        onSuccess: (paymentCollection) => {
+        onSuccess: (paymentCollection: HttpTypes.StorePaymentCollection) => {
           options?.onSuccess?.(paymentCollection)
         },
-        onError: (error) => {
+        onError: (error: unknown) => {
           options?.onError?.(error)
         },
       }

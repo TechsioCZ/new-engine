@@ -279,7 +279,8 @@ describe("phase 1 regressions", () => {
     }
 
     expect(packageJson.exports).toBeTruthy()
-    expect(packageJson.exports?.["."]).toEqual({
+    expect(packageJson.exports?.["."]).toBeNull()
+    expect(packageJson.exports?.["./client/provider"]).toEqual({
       types: "./dist/src/client/provider.d.ts",
       import: "./dist/client/provider.js",
     })
@@ -287,7 +288,8 @@ describe("phase 1 regressions", () => {
       types: "./dist/src/server/get-query-client.d.ts",
       import: "./dist/server/get-query-client.js",
     })
-    expect(packageJson.exports?.["./get-query-client"]).toBeNull()
+    expect(packageJson.exports?.["./get-query-client"]).toBeUndefined()
+    expect(packageJson.exports?.["./medusa/cart-flow"]).toBeUndefined()
     expect(packageJson.exports?.["./*"]).toBeUndefined()
   })
 })

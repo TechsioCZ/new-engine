@@ -4,8 +4,6 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { StorefrontDataProvider } from "../src/client/provider"
 import type { CartQueryKeys } from "../src/cart/types"
-import { createMedusaCartFlow } from "../src/medusa/cart-flow"
-import { createMedusaCheckoutFlow } from "../src/medusa/checkout-flow"
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
 
 const createWrapper = (client: QueryClient) =>
@@ -155,10 +153,7 @@ describe("Medusa flow helpers", () => {
         },
       },
     })
-    const cartFlow = createMedusaCartFlow({
-      storefront,
-      cartStorage,
-    })
+    const cartFlow = storefront.flows.cart
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -225,10 +220,7 @@ describe("Medusa flow helpers", () => {
         },
       },
     })
-    const cartFlow = createMedusaCartFlow({
-      storefront,
-      cartStorage,
-    })
+    const cartFlow = storefront.flows.cart
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -271,10 +263,7 @@ describe("Medusa flow helpers", () => {
         },
       },
     })
-    const cartFlow = createMedusaCartFlow({
-      storefront,
-      cartStorage,
-    })
+    const cartFlow = storefront.flows.cart
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -359,16 +348,15 @@ describe("Medusa flow helpers", () => {
         hooks: {
           cartStorage,
         },
+        flow: {
+          isActiveCartQueryKey: (queryKey, cartId) =>
+            queryKey[0] === "custom" &&
+            queryKey[1] === "cart" &&
+            queryKey[2] === cartId,
+        },
       },
     })
-    const cartFlow = createMedusaCartFlow({
-      storefront,
-      cartStorage,
-      isActiveCartQueryKey: (queryKey, cartId) =>
-        queryKey[0] === "custom" &&
-        queryKey[1] === "cart" &&
-        queryKey[2] === cartId,
-    })
+    const cartFlow = storefront.flows.cart
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -456,10 +444,7 @@ describe("Medusa flow helpers", () => {
         },
       },
     })
-    const cartFlow = createMedusaCartFlow({
-      storefront,
-      cartStorage,
-    })
+    const cartFlow = storefront.flows.cart
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -521,9 +506,7 @@ describe("Medusa flow helpers", () => {
     const storefront = createMedusaStorefrontPreset({
       sdk,
     })
-    const checkoutFlow = createMedusaCheckoutFlow({
-      storefront,
-    })
+    const checkoutFlow = storefront.flows.checkout
 
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -579,10 +562,7 @@ describe("Medusa flow helpers", () => {
         },
       },
     })
-    const checkoutFlow = createMedusaCheckoutFlow({
-      storefront,
-      cartStorage,
-    })
+    const checkoutFlow = storefront.flows.checkout
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -635,9 +615,7 @@ describe("Medusa flow helpers", () => {
     const storefront = createMedusaStorefrontPreset({
       sdk,
     })
-    const checkoutFlow = createMedusaCheckoutFlow({
-      storefront,
-    })
+    const checkoutFlow = storefront.flows.checkout
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -713,9 +691,7 @@ describe("Medusa flow helpers", () => {
     const storefront = createMedusaStorefrontPreset({
       sdk,
     })
-    const checkoutFlow = createMedusaCheckoutFlow({
-      storefront,
-    })
+    const checkoutFlow = storefront.flows.checkout
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -750,9 +726,7 @@ describe("Medusa flow helpers", () => {
     const storefront = createMedusaStorefrontPreset({
       sdk,
     })
-    const checkoutFlow = createMedusaCheckoutFlow({
-      storefront,
-    })
+    const checkoutFlow = storefront.flows.checkout
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -814,9 +788,7 @@ describe("Medusa flow helpers", () => {
     const storefront = createMedusaStorefrontPreset({
       sdk,
     })
-    const checkoutFlow = createMedusaCheckoutFlow({
-      storefront,
-    })
+    const checkoutFlow = storefront.flows.checkout
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -874,9 +846,7 @@ describe("Medusa flow helpers", () => {
     const storefront = createMedusaStorefrontPreset({
       sdk,
     })
-    const checkoutFlow = createMedusaCheckoutFlow({
-      storefront,
-    })
+    const checkoutFlow = storefront.flows.checkout
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },

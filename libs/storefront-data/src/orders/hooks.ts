@@ -51,13 +51,13 @@ export type OrderHooks<
   TListInput extends OrderListInputBase,
   TDetailInput extends OrderDetailInputBase,
 > = {
-  createOrdersListQueryOptions: (
+  getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
     }
   ) => QueryFactoryOptions<OrderListResponse<TOrder>>
-  createOrderQueryOptions: (
+  getDetailQueryOptions: (
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
   ) => QueryFactoryOptions<TOrder | null>
@@ -114,7 +114,7 @@ export function createOrderHooks<
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  const createOrdersListQueryOptions = (
+  const getListQueryOptions = (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
@@ -134,7 +134,7 @@ export function createOrderHooks<
     }
   }
 
-  const createOrderQueryOptions = (
+  const getDetailQueryOptions = (
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
   ) => {
@@ -169,7 +169,7 @@ export function createOrderHooks<
     const enabled = inputEnabled ?? true
 
     const query = useQuery({
-      ...createOrdersListQueryOptions(input, options),
+      ...getListQueryOptions(input, options),
       enabled,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
@@ -213,7 +213,7 @@ export function createOrderHooks<
   ): UseSuspenseOrdersResult<TOrder> {
     const listParams = buildList(input as TListInput)
     const query = useSuspenseQuery(
-      createOrdersListQueryOptions(input as TListInput, {
+      getListQueryOptions(input as TListInput, {
         queryOptions: options?.queryOptions,
       })
     )
@@ -260,7 +260,7 @@ export function createOrderHooks<
     const enabled = inputEnabled ?? Boolean(input.id)
 
     const query = useQuery({
-      ...createOrderQueryOptions(input, options),
+      ...getDetailQueryOptions(input, options),
       enabled,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
@@ -280,7 +280,7 @@ export function createOrderHooks<
     options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
   ): UseSuspenseOrderResult<TOrder> {
     const query = useSuspenseQuery(
-      createOrderQueryOptions(input as TDetailInput, {
+      getDetailQueryOptions(input as TDetailInput, {
         queryOptions: options?.queryOptions,
       })
     )
@@ -297,8 +297,8 @@ export function createOrderHooks<
   }
 
   return {
-    createOrdersListQueryOptions,
-    createOrderQueryOptions,
+    getListQueryOptions,
+    getDetailQueryOptions,
     useOrders,
     useSuspenseOrders,
     useOrder,

@@ -1,18 +1,35 @@
 import { createLocalStorageCartStorage } from "../src/cart/browser-storage"
 
+const createMemoryStorage = (): Storage => {
+  const store = new Map<string, string>()
+
+  return {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, value) => {
+      store.set(key, value)
+    },
+    removeItem: (key) => {
+      store.delete(key)
+    },
+    clear: () => {
+      store.clear()
+    },
+    key: (index) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size
+    },
+  } as Storage
+}
+
 describe("createLocalStorageCartStorage", () => {
   const key = "test_cart_storage_key"
 
-  beforeEach(() => {
-    window.localStorage.removeItem(key)
-  })
-
-  afterEach(() => {
-    window.localStorage.removeItem(key)
-  })
-
   it("notifies listeners for same-tab and storage-event updates", () => {
-    const storage = createLocalStorageCartStorage({ key })
+    const backingStorage = createMemoryStorage()
+    const storage = createLocalStorageCartStorage({
+      key,
+      storage: backingStorage,
+    })
     const listener = vi.fn()
     const unsubscribe = storage.subscribe(listener)
 
@@ -23,7 +40,7 @@ describe("createLocalStorageCartStorage", () => {
     expect(storage.getCartId()).toBe("cart_1")
     expect(listener).toHaveBeenCalledTimes(1)
 
-    window.localStorage.setItem(key, "cart_2")
+    backingStorage.setItem(key, "cart_2")
     window.dispatchEvent(
       new StorageEvent("storage", {
         key,
@@ -42,6 +59,7 @@ describe("createLocalStorageCartStorage", () => {
   it("exposes the configured server snapshot", () => {
     const storage = createLocalStorageCartStorage({
       key,
+      storage: createMemoryStorage(),
       serverSnapshot: "server_cart",
     })
 

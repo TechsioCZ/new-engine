@@ -100,7 +100,7 @@ describe("cart cache sync helpers", () => {
     expect(queryClient.getQueryState(detailKey)?.isInvalidated).toBe(true)
   })
 
-  it("supports active keys that store cartId as direct segment", () => {
+  it("supports custom active cart query matchers for non-standard key shapes", () => {
     const queryClient = new QueryClient()
     const queryKeys: CartQueryKeys = {
       all: () => ["custom", "cart"],
@@ -120,7 +120,13 @@ describe("cart cache sync helpers", () => {
     })
     queryClient.setQueryData(activeKey, { id: "cart_custom" } satisfies Cart)
 
-    const cached = getCachedCartById<Cart>(queryClient, queryKeys, "cart_custom")
+    const cached = getCachedCartById<Cart>(queryClient, queryKeys, "cart_custom", {
+      isActiveCartQueryKey: (queryKey, cartId) =>
+        queryKey[0] === "custom" &&
+        queryKey[1] === "cart" &&
+        queryKey[2] === "active" &&
+        queryKey[3] === cartId,
+    })
     expect(cached).toEqual({ id: "cart_custom" })
   })
 })

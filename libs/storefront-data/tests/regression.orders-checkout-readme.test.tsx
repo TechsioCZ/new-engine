@@ -235,11 +235,12 @@ describe("phase 2 regressions", () => {
     expect(result.current.shippingPrices).toEqual({ opt_fixed: 500 })
   })
 
-  it("documents SSR prefetch with query-key factory instead of hardcoded key", () => {
+  it("documents preset-first SSR prefetch without hardcoded query keys", () => {
     const readme = readFileSync(join(process.cwd(), "README.md"), "utf8")
 
-    expect(readme).toContain("createProductQueryKeys")
-    expect(readme).toContain("productQueryKeys.list(listParams)")
+    expect(readme).toContain("createMedusaStorefrontPreset")
+    expect(readme).toContain("productHooks.getListQueryOptions")
+    expect(readme).toContain("There is no supported package-root import")
     expect(readme).not.toContain('queryKey: ["my-app", "products", "list", {}]')
   })
 })

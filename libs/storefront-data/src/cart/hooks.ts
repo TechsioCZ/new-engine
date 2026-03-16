@@ -84,7 +84,6 @@ const cartPayloadOmitKeys = [
   "autoCreate",
   "autoUpdateRegion",
   "enabled",
-  "country_code",
   "variantId",
   "quantity",
   "useSameAddress",

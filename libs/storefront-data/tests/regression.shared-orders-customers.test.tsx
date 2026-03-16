@@ -132,7 +132,7 @@ describe("phase 3 regressions", () => {
       })),
     }
 
-    const { createOrdersListQueryOptions, createOrderQueryOptions } =
+    const { getListQueryOptions, getDetailQueryOptions } =
       createOrderHooks<Order, ListInput, ListParams, DetailInput, DetailParams>({
         service,
         queryKeyNamespace: "phase3-order-query-options",
@@ -150,14 +150,14 @@ describe("phase 3 regressions", () => {
     })
 
     await queryClient.prefetchQuery(
-      createOrdersListQueryOptions({
+      getListQueryOptions({
         page: 2,
         limit: 5,
         enabled: true,
       })
     )
     await queryClient.prefetchQuery(
-      createOrderQueryOptions({
+      getDetailQueryOptions({
         id: "order_1",
         enabled: true,
       })
@@ -173,7 +173,7 @@ describe("phase 3 regressions", () => {
     )
   })
 
-  it("exposes reusable product prefetch query options with list/detail specializations", async () => {
+  it("exposes reusable product query options for list and detail reads", async () => {
     type Product = { handle: string }
     type ListInput = {
       page?: number
@@ -216,50 +216,41 @@ describe("phase 3 regressions", () => {
       })),
     }
 
-    const {
-      createProductsListPrefetchQueryOptions,
-      createProductsFirstPagePrefetchQueryOptions,
-      createProductPrefetchQueryOptions,
-    } = createProductHooks<Product, ListInput, ListParams, DetailInput, DetailParams>({
-      service,
-      queryKeyNamespace: "phase3-product-query-options",
-      requireRegion: false,
-      buildListParams: (input) => ({
-        page: input.page,
-        limit: input.limit,
-        offset: input.offset,
-        region_id: input.region_id,
-      }),
-      buildPrefetchParams: (input) => ({
-        page: input.page,
-        limit: input.limit,
-        offset: input.offset,
-        region_id: input.region_id,
-      }),
-      buildDetailParams: (input) => ({
-        handle: input.handle,
-        region_id: input.region_id,
-      }),
-    })
+    const { getListQueryOptions, getDetailQueryOptions } =
+      createProductHooks<Product, ListInput, ListParams, DetailInput, DetailParams>({
+        service,
+        queryKeyNamespace: "phase3-product-query-options",
+        requireRegion: false,
+        buildListParams: (input) => ({
+          page: input.page,
+          limit: input.limit,
+          offset: input.offset,
+          region_id: input.region_id,
+        }),
+        buildPrefetchParams: (input) => ({
+          page: input.page,
+          limit: input.limit,
+          offset: input.offset,
+          region_id: input.region_id,
+        }),
+        buildDetailParams: (input) => ({
+          handle: input.handle,
+          region_id: input.region_id,
+        }),
+      })
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
 
     await queryClient.prefetchQuery(
-      createProductsListPrefetchQueryOptions({
-        page: 3,
-        limit: 4,
-        offset: 8,
-        region_id: "reg_1",
-      })
-    )
-    await queryClient.prefetchQuery(
-      createProductsFirstPagePrefetchQueryOptions(
+      getListQueryOptions(
         {
-          page: 9,
+          page: 3,
           limit: 4,
+          offset: 8,
           region_id: "reg_1",
+          enabled: true,
         },
         {
           useGlobalFetcher: true,
@@ -267,18 +258,15 @@ describe("phase 3 regressions", () => {
       )
     )
     await queryClient.prefetchQuery(
-      createProductPrefetchQueryOptions({
+      getDetailQueryOptions({
         handle: "hoodie",
         region_id: "reg_1",
+        enabled: true,
       })
     )
 
-    expect(service.getProducts).toHaveBeenCalledWith(
-      { page: 3, limit: 4, offset: 8, region_id: "reg_1" },
-      expect.any(AbortSignal)
-    )
     expect(service.getProductsGlobal).toHaveBeenCalledWith(
-      { page: 1, limit: 4, offset: 0, region_id: "reg_1" },
+      { page: 3, limit: 4, offset: 8, region_id: "reg_1" },
       expect.any(AbortSignal)
     )
     expect(service.getProductByHandle).toHaveBeenCalledWith(

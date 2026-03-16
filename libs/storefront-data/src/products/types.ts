@@ -61,7 +61,6 @@ export type ProductService<TProduct, TListParams, TDetailParams> = {
 }
 
 export type ProductQueryKeys<TListParams, TDetailParams> = {
-  all: () => QueryKey
   list: (params: TListParams) => QueryKey
   infinite?: (params: TListParams) => QueryKey
   detail: (params: TDetailParams) => QueryKey

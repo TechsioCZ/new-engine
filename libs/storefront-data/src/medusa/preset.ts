@@ -115,6 +115,9 @@ import { createRegionQueryKeys } from "../regions/query-keys"
 import type { RegionQueryKeys } from "../regions/types"
 import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
+import type { ActiveCartQueryKeyMatcher } from "../cart/cache-sync"
+import { createMedusaCartFlow } from "./cart-flow"
+import { createMedusaCheckoutFlow } from "./checkout-flow"
 
 type OmitFactoryConfig<TConfig> = Omit<
   TConfig,
@@ -169,6 +172,10 @@ type MedusaCartHooksConfig<
    * Optional in preset config: Medusa default mapper is provided internally.
    */
   buildAddParams?: (input: AddLineItemInputBase) => MedusaCartAddItemParams
+}
+
+type MedusaCartFlowConfig = {
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
 }
 
 type MedusaCheckoutHooksConfig = OmitFactoryConfig<
@@ -322,6 +329,7 @@ export type CreateMedusaStorefrontPresetConfig<
     serviceConfig?: MedusaCartServiceConfig
     hooks?: MedusaCartHooksConfig<TCartAddressInput, TCartAddressPayload>
     queryKeys?: CartQueryKeys
+    flow?: MedusaCartFlowConfig
   }
   checkout?: {
     serviceConfig?: MedusaCheckoutServiceConfig
@@ -534,6 +542,7 @@ export function createMedusaStorefrontPreset<
     ],
   }
   const cartHookOverrides = config.cart?.hooks
+  const cartFlowOverrides = config.cart?.flow
   const checkoutHookOverrides = config.checkout?.hooks
   const customerHookOverrides = config.customers?.hooks
   const fallbackCatalogFacets =
@@ -662,12 +671,30 @@ export function createMedusaStorefrontPreset<
     }),
   }
 
-  return {
+  const storefront = {
     namespace,
     cacheConfig: resolvedCacheConfig,
     queryKeys,
     services,
     hooks,
+  }
+
+  const flows = {
+    cart: createMedusaCartFlow({
+      storefront,
+      cartStorage: cartHookOverrides?.cartStorage,
+      isActiveCartQueryKey: cartFlowOverrides?.isActiveCartQueryKey,
+    }),
+    checkout: createMedusaCheckoutFlow({
+      storefront,
+      cartStorage: cartHookOverrides?.cartStorage,
+      isActiveCartQueryKey: cartFlowOverrides?.isActiveCartQueryKey,
+    }),
+  }
+
+  return {
+    ...storefront,
+    flows,
   }
 }
 

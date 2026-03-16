@@ -1,7 +1,4 @@
-import type {
-  StorefrontAddressValidationResult,
-  StorefrontCustomerAddressAdapter,
-} from "../shared/address"
+import type { StorefrontCustomerAddressAdapter } from "../shared/address"
 import type {
   MutationOptions,
   QueryResult,
@@ -83,7 +80,6 @@ export type UseSuspenseCustomerAddressesResult<TAddress> =
 export type CustomerMutationOptions<TData, TVariables, TContext = unknown> =
   MutationOptions<TData, TVariables, TContext>
 
-export type CustomerAddressValidationResult = StorefrontAddressValidationResult
 
 export type CustomerAddressAdapter<
   TCreateInput = CustomerAddressCreateInputBase,

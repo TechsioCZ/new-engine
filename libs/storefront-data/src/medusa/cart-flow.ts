@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useQueryClient } from "@tanstack/react-query"
+import type { QueryClient } from "@tanstack/react-query"
 import {
   type ActiveCartQueryKeyMatcher,
   createDefaultActiveCartQueryMatcher,
@@ -7,28 +8,83 @@ import {
   syncCartCaches,
 } from "../cart/cache-sync"
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
-import type { CartInputBase, CartStorage } from "../cart/types"
-import type { MedusaStorefrontPreset } from "./preset"
+import type {
+  AddLineItemInputBase,
+  CartInputBase,
+  CartQueryKeys,
+  CartStorage,
+  RemoveLineItemInputBase,
+  UpdateLineItemInputBase,
+  UseCartResult,
+  UseSuspenseCartResult,
+} from "../cart/types"
+import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
 
-type MedusaCartFlowStorefront = {
+type MedusaCartMutationHook<TInput> = (options?: {
+  onSuccess?: (cart: HttpTypes.StoreCart) => void | Promise<void>
+  onError?: (error: unknown) => void
+}) => {
+  mutate: (
+    input: TInput,
+    options?: {
+      onSuccess?: (cart: HttpTypes.StoreCart) => void
+      onError?: (error: MedusaCartMutationError) => void
+    }
+  ) => void
+  mutateAsync: (input: TInput) => Promise<HttpTypes.StoreCart>
+  isPending: boolean
+}
+
+type MedusaCompleteCartHook = (options?: {
+  onMutate?: (variables: { cartId?: string }) => unknown
+  onSuccess?: (
+    result: MedusaCompleteCartResult,
+    variables: { cartId?: string },
+    context: unknown
+  ) => void
+  onError?: (error: unknown) => void
+}) => {
+  mutateAsync: (input: { cartId?: string }) => Promise<MedusaCompleteCartResult>
+  isPending: boolean
+}
+
+export type MedusaCartFlowStorefront = {
   hooks: {
     cart: {
-      useCart: MedusaStorefrontPreset["hooks"]["cart"]["useCart"]
-      useSuspenseCart: MedusaStorefrontPreset["hooks"]["cart"]["useSuspenseCart"]
-      useAddLineItem: MedusaStorefrontPreset["hooks"]["cart"]["useAddLineItem"]
-      useUpdateLineItem: MedusaStorefrontPreset["hooks"]["cart"]["useUpdateLineItem"]
-      useRemoveLineItem: MedusaStorefrontPreset["hooks"]["cart"]["useRemoveLineItem"]
-      useCompleteCart: MedusaStorefrontPreset["hooks"]["cart"]["useCompleteCart"]
+      useCart: (
+        input: CartInputBase,
+        options?: { queryOptions?: ReadQueryOptions<HttpTypes.StoreCart | null> }
+      ) => UseCartResult<HttpTypes.StoreCart>
+      useSuspenseCart: (
+        input: CartInputBase,
+        options?: {
+          queryOptions?: SuspenseQueryOptions<HttpTypes.StoreCart | null>
+        }
+      ) => UseSuspenseCartResult<HttpTypes.StoreCart>
+      useAddLineItem: MedusaCartMutationHook<AddLineItemInputBase>
+      useUpdateLineItem: MedusaCartMutationHook<UpdateLineItemInputBase>
+      useRemoveLineItem: MedusaCartMutationHook<RemoveLineItemInputBase>
+      useCompleteCart: MedusaCompleteCartHook
     }
   }
   queryKeys: {
-    cart: MedusaStorefrontPreset["queryKeys"]["cart"]
-    checkout: MedusaStorefrontPreset["queryKeys"]["checkout"]
-    orders: MedusaStorefrontPreset["queryKeys"]["orders"]
+    cart: CartQueryKeys
+    checkout: {
+      all: () => readonly unknown[]
+      shippingOptions: (cartId: string) => readonly unknown[]
+      paymentProviders: (regionId: string) => readonly unknown[]
+    }
+    orders: {
+      all: () => readonly unknown[]
+      detail: (params: { id: string }) => readonly unknown[]
+    }
   }
   services: {
     cart: {
-      retrieveCart: MedusaStorefrontPreset["services"]["cart"]["retrieveCart"]
+      retrieveCart: (
+        cartId: string,
+        signal?: AbortSignal
+      ) => Promise<HttpTypes.StoreCart | null>
     }
   }
 }
@@ -165,7 +221,7 @@ export function createMedusaCartFlow({
   }
 
   const clearCompletedCart = (
-    queryClient: ReturnType<typeof useQueryClient>,
+    queryClient: QueryClient,
     cartId: string | null
   ) => {
     if (!cartId) {
@@ -188,7 +244,7 @@ export function createMedusaCartFlow({
   }
 
   const buildMutationHandlers = (
-    queryClient: ReturnType<typeof useQueryClient>,
+    queryClient: QueryClient,
     options?: UseMedusaCartMutationOptions
   ) => ({
     onSuccess: async (cart: HttpTypes.StoreCart) => {
@@ -309,9 +365,9 @@ export function createMedusaCartFlow({
         })
         options?.onError?.(result.error, result.cart)
       },
-      onError: (error) => {
+      onError: (error: unknown) => {
         options?.onRequestError?.(error)
-      },
+      }
     })
   }
 
