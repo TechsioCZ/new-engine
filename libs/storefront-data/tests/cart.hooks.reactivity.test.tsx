@@ -1,10 +1,10 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { StorefrontDataProvider } from "../src/client/provider"
-import { createLocalStorageCartStorage } from "../src/cart/browser-storage"
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
+import { StorefrontDataProvider } from "../src/client/provider"
+import { createLocalStorageValueStore } from "../src/shared/browser-storage"
 
 type Cart = {
   id: string
@@ -33,7 +33,8 @@ const createMemoryStorage = (): Storage => {
   } as Storage
 }
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -41,7 +42,7 @@ const createWrapper = (client: QueryClient) =>
 describe("createCartHooks reactive storage and cache sync", () => {
   it("reacts to observable cartStorage changes", async () => {
     const key = "test_reactive_cart_id"
-    const cartStorage = createLocalStorageCartStorage({
+    const cartStorage = createLocalStorageValueStore({
       key,
       storage: createMemoryStorage(),
     })
@@ -65,7 +66,10 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 
@@ -77,7 +81,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
     expect(retrieveCart).not.toHaveBeenCalled()
 
     act(() => {
-      cartStorage.setCartId("cart_1")
+      cartStorage.set("cart_1")
     })
 
     await waitFor(() => {
@@ -91,14 +95,14 @@ describe("createCartHooks reactive storage and cache sync", () => {
     const listeners = new Set<() => void>()
     const cartStorage = {
       currentCartId: null as string | null,
-      getCartId() {
+      get() {
         return this.currentCartId
       },
-      setCartId(cartId: string) {
+      set(cartId: string) {
         this.currentCartId = cartId
         this.listeners.forEach((listener) => listener())
       },
-      clearCartId() {
+      clear() {
         this.currentCartId = null
         this.listeners.forEach((listener) => listener())
       },
@@ -145,7 +149,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
 
     act(() => {
-      cartStorage.setCartId("cart_ctx")
+      cartStorage.set("cart_ctx")
     })
 
     await waitFor(() => {
@@ -178,7 +182,10 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
     const activeKey = queryKeys.active({ cartId: "cart_1", regionId: "reg_1" })

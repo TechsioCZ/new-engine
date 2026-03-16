@@ -1,6 +1,20 @@
-import type { CartStorageListener, ObservableCartStorage } from "./types"
+export type StorageValueStoreListener = () => void
 
-export type CreateLocalStorageCartStorageOptions = {
+export type StorageValueStore = {
+  get: () => string | null
+  set: (value: string) => void
+  clear: () => void
+  subscribe?: (listener: StorageValueStoreListener) => () => void
+  getSnapshot?: () => string | null
+  getServerSnapshot?: () => string | null
+}
+
+export type ObservableStorageValueStore = StorageValueStore & {
+  subscribe: (listener: StorageValueStoreListener) => () => void
+  getSnapshot: () => string | null
+}
+
+export type CreateLocalStorageValueStoreOptions = {
   key: string
   storage?: Storage | null
   serverSnapshot?: string | null
@@ -67,14 +81,15 @@ const removeStorageItem = (storage: Storage | null, key: string): boolean => {
   }
 }
 
-export function createLocalStorageCartStorage({
+export function createLocalStorageValueStore({
   key,
   storage,
   serverSnapshot = null,
-}: CreateLocalStorageCartStorageOptions): ObservableCartStorage {
-  const listeners = new Set<CartStorageListener>()
+}: CreateLocalStorageValueStoreOptions): ObservableStorageValueStore {
+  const listeners = new Set<StorageValueStoreListener>()
 
-  const readCartId = (): string | null => getStorageItem(resolveStorage(storage), key)
+  const readValue = (): string | null =>
+    getStorageItem(resolveStorage(storage), key) ?? null
 
   const notifyListeners = () => {
     for (const listener of listeners) {
@@ -83,22 +98,22 @@ export function createLocalStorageCartStorage({
   }
 
   return {
-    getCartId: readCartId,
-    setCartId(cartId: string) {
+    get: readValue,
+    set(value: string) {
       const resolvedStorage = resolveStorage(storage)
       if (!resolvedStorage) {
         return
       }
 
-      if (getStorageItem(resolvedStorage, key) === cartId) {
+      if (getStorageItem(resolvedStorage, key) === value) {
         return
       }
 
-      if (setStorageItem(resolvedStorage, key, cartId)) {
+      if (setStorageItem(resolvedStorage, key, value)) {
         notifyListeners()
       }
     },
-    clearCartId() {
+    clear() {
       const resolvedStorage = resolveStorage(storage)
       if (!resolvedStorage) {
         return
@@ -112,7 +127,7 @@ export function createLocalStorageCartStorage({
         notifyListeners()
       }
     },
-    subscribe(listener: CartStorageListener) {
+    subscribe(listener: StorageValueStoreListener) {
       listeners.add(listener)
 
       if (typeof window === "undefined") {
@@ -134,7 +149,7 @@ export function createLocalStorageCartStorage({
         window.removeEventListener("storage", handleStorage)
       }
     },
-    getSnapshot: readCartId,
+    getSnapshot: readValue,
     getServerSnapshot: () => serverSnapshot,
   }
 }

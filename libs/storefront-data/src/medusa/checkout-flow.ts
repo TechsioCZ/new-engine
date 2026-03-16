@@ -3,8 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
 import type { ActiveCartQueryKeyMatcher } from "../cart/cache-sync"
-import type { CartStorage } from "../cart/types"
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
+import type { StorageValueStore } from "../shared/browser-storage"
 import {
   createMedusaCartFlow,
   type MedusaCartFlowStorefront,
@@ -122,7 +122,7 @@ export type UseMedusaCheckoutPaymentReturn = {
 
 export type CreateMedusaCheckoutFlowConfig = {
   storefront: MedusaCheckoutFlowStorefront
-  cartStorage?: CartStorage
+  cartStorage?: StorageValueStore
   isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
 }
 

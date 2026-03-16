@@ -141,9 +141,9 @@ describe("Medusa flow helpers", () => {
   it("refreshes cart caches with canonical cart payload after add-to-cart", async () => {
     const { sdk, spies } = createSdkMock()
     const cartStorage = {
-      getCartId: () => "cart_1",
-      setCartId: vi.fn(),
-      clearCartId: vi.fn(),
+      get: () => "cart_1",
+      set: vi.fn(),
+      clear: vi.fn(),
     }
 
     const storefront = createMedusaStorefrontPreset({
@@ -310,9 +310,9 @@ describe("Medusa flow helpers", () => {
   it("passes cart query input through to low-level hooks for region auto-create flows", async () => {
     const { sdk } = createSdkMock()
     const cartStorage = {
-      getCartId: () => null,
-      setCartId: vi.fn(),
-      clearCartId: vi.fn(),
+      get: () => null,
+      set: vi.fn(),
+      clear: vi.fn(),
     }
 
     const storefront = createMedusaStorefrontPreset({
@@ -353,9 +353,9 @@ describe("Medusa flow helpers", () => {
     const { sdk } = createSdkMock()
     const clearCartId = vi.fn()
     const cartStorage = {
-      getCartId: () => "cart_1",
-      setCartId: vi.fn(),
-      clearCartId,
+      get: () => "cart_1",
+      set: vi.fn(),
+      clear: clearCartId,
     }
 
     const storefront = createMedusaStorefrontPreset({
@@ -434,9 +434,9 @@ describe("Medusa flow helpers", () => {
   it("supports custom active cart query matcher in cart flow", async () => {
     const { sdk } = createSdkMock()
     const cartStorage = {
-      getCartId: () => "cart_1",
-      setCartId: vi.fn(),
-      clearCartId: vi.fn(),
+      get: () => "cart_1",
+      set: vi.fn(),
+      clear: vi.fn(),
     }
     const customCartNamespace = ["custom", "cart"] as const
     const customCartQueryKeys: CartQueryKeys = {
@@ -534,11 +534,11 @@ describe("Medusa flow helpers", () => {
     complete.mockImplementation(() => completeDeferred)
 
     const cartStorage = {
-      getCartId: () => storedCartId,
-      setCartId: vi.fn((cartId: string) => {
+      get: () => storedCartId,
+      set: vi.fn((cartId: string) => {
         storedCartId = cartId
       }),
-      clearCartId,
+      clear: clearCartId,
     }
 
     const storefront = createMedusaStorefrontPreset({
@@ -655,9 +655,9 @@ describe("Medusa flow helpers", () => {
   it("completes checkout with fallback payment provider and returns order", async () => {
     const { sdk, spies } = createSdkMock()
     const cartStorage = {
-      getCartId: () => "cart_1",
-      setCartId: vi.fn(),
-      clearCartId: vi.fn(),
+      get: () => "cart_1",
+      set: vi.fn(),
+      clear: vi.fn(),
     }
     const storefront = createMedusaStorefrontPreset({
       sdk,

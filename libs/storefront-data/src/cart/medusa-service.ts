@@ -50,9 +50,9 @@ const sanitizeCartWriteParams = <TParams extends MedusaCartWriteParams>(
  *   service: createMedusaCartService(sdk),
  *   queryKeys: cartQueryKeys,
  *   cartStorage: {
- *     getCartId: () => localStorage.getItem("cart_id"),
- *     setCartId: (id) => localStorage.setItem("cart_id", id),
- *     clearCartId: () => localStorage.removeItem("cart_id"),
+ *     get: () => localStorage.getItem("cart_id"),
+ *     set: (id) => localStorage.setItem("cart_id", id),
+ *     clear: () => localStorage.removeItem("cart_id"),
  *   },
  * })
  * ```

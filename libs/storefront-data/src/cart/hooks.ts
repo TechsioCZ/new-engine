@@ -13,6 +13,10 @@ import {
 import { assertStorefrontAddressValidation } from "../shared/address"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
+  ObservableStorageValueStore,
+  StorageValueStore,
+} from "../shared/browser-storage"
+import type {
   MutationOptions,
   ReadQueryOptions,
   SuspenseQueryOptions,
@@ -33,8 +37,6 @@ import type {
   CartLike,
   CartQueryKeys,
   CartService,
-  CartStorage,
-  ObservableCartStorage,
   RemoveLineItemInputBase,
   TransferCartInputBase,
   UpdateCartInputBase,
@@ -140,8 +142,8 @@ const noopUnsubscribe = () => {}
 const noopCartStorageSubscribe = (_listener: () => void) => noopUnsubscribe
 
 const hasObservableCartStorage = (
-  storage?: CartStorage
-): storage is ObservableCartStorage =>
+  storage?: StorageValueStore
+): storage is ObservableStorageValueStore =>
   Boolean(storage?.subscribe && storage.getSnapshot)
 
 const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
@@ -259,7 +261,7 @@ type CreateCartHooksBaseConfig<
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
   requireRegion?: boolean
-  cartStorage?: CartStorage
+  cartStorage?: StorageValueStore
   isNotFoundError?: (error: unknown) => boolean
   addressAdapter?: CartAddressAdapter<TAddressInput, TAddressPayload>
   invalidateOnSuccess?: boolean
@@ -400,7 +402,7 @@ export function createCartHooks<
       return null
     }
 
-    return cartStorage.getSnapshot?.() ?? cartStorage.getCartId()
+    return cartStorage.getSnapshot?.() ?? cartStorage.get()
   }
 
   const useStoredCartId = (): string | null =>
@@ -416,11 +418,11 @@ export function createCartHooks<
     inputCartId ?? readStoredCartId()
 
   const persistCartId = (cartId: string) => {
-    cartStorage?.setCartId(cartId)
+    cartStorage?.set(cartId)
   }
 
   const clearCartId = () => {
-    cartStorage?.clearCartId()
+    cartStorage?.clear()
   }
 
   const callUpdateCart = (cartId: string, params: TUpdateParams) => {

@@ -1,6 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
-import { useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
 import {
   type ActiveCartQueryKeyMatcher,
@@ -13,13 +13,16 @@ import type {
   AddLineItemInputBase,
   CartInputBase,
   CartQueryKeys,
-  CartStorage,
   RemoveLineItemInputBase,
   UpdateLineItemInputBase,
   UseCartResult,
   UseSuspenseCartResult,
 } from "../cart/types"
-import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import type { StorageValueStore } from "../shared/browser-storage"
+import type {
+  ReadQueryOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
 
 type MedusaCartMutationHook<TInput> = (options?: {
   onSuccess?: (cart: HttpTypes.StoreCart) => void | Promise<void>
@@ -54,7 +57,9 @@ export type MedusaCartFlowStorefront = {
     cart: {
       useCart: (
         input: CartInputBase,
-        options?: { queryOptions?: ReadQueryOptions<HttpTypes.StoreCart | null> }
+        options?: {
+          queryOptions?: ReadQueryOptions<HttpTypes.StoreCart | null>
+        }
       ) => UseCartResult<HttpTypes.StoreCart>
       useSuspenseCart: (
         input: CartInputBase,
@@ -134,7 +139,7 @@ export type UseMedusaCompleteCartOptions = {
 
 export type CreateMedusaCartFlowConfig = {
   storefront: MedusaCartFlowStorefront
-  cartStorage?: CartStorage
+  cartStorage?: StorageValueStore
   isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
 }
 
@@ -149,7 +154,8 @@ const toCartMutationError = (error: unknown): MedusaCartMutationError => {
     if (typeof withMessage.message === "string") {
       return {
         message: withMessage.message,
-        code: typeof withMessage.code === "string" ? withMessage.code : undefined,
+        code:
+          typeof withMessage.code === "string" ? withMessage.code : undefined,
       }
     }
   }
@@ -229,8 +235,8 @@ export function createMedusaCartFlow({
       return
     }
 
-    if (cartStorage?.getCartId() === cartId) {
-      cartStorage.clearCartId()
+    if (cartStorage?.get() === cartId) {
+      cartStorage.clear()
     }
 
     queryClient.removeQueries({
@@ -363,7 +369,7 @@ export function createMedusaCartFlow({
 
     return cartHooks.useCompleteCart({
       onMutate: (variables: { cartId?: string }) => ({
-        completedCartId: variables.cartId ?? cartStorage?.getCartId() ?? null,
+        completedCartId: variables.cartId ?? cartStorage?.get() ?? null,
       }),
       onSuccess: (
         result: MedusaCompleteCartResult,
@@ -372,7 +378,9 @@ export function createMedusaCartFlow({
       ) => {
         if (result.type === "order") {
           const contextCompletedCartId =
-            context && typeof context === "object" && "completedCartId" in context
+            context &&
+            typeof context === "object" &&
+            "completedCartId" in context
               ? (context as { completedCartId?: unknown }).completedCartId
               : undefined
           const completedCartIdFromContext =
@@ -389,7 +397,9 @@ export function createMedusaCartFlow({
 
           if (result.order.region_id) {
             queryClient.invalidateQueries({
-              queryKey: checkoutQueryKeys.paymentProviders(result.order.region_id),
+              queryKey: checkoutQueryKeys.paymentProviders(
+                result.order.region_id
+              ),
             })
           }
 
@@ -410,7 +420,7 @@ export function createMedusaCartFlow({
       },
       onError: (error: unknown) => {
         options?.onRequestError?.(error)
-      }
+      },
     })
   }
 

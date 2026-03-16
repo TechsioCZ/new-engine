@@ -115,9 +115,9 @@ describe("createMedusaStorefrontPreset", () => {
       cart: {
         hooks: {
           cartStorage: {
-            getCartId: () => null,
-            setCartId: () => {},
-            clearCartId: () => {},
+            get: () => null,
+            set: () => undefined,
+            clear: () => undefined,
           },
         },
       },

@@ -1,12 +1,12 @@
-import type { QueryKey } from "../shared/query-keys"
-import type { RegionInfo } from "../shared/region"
+import type { StorefrontCartAddressAdapter } from "../shared/address"
 import type {
   QueryResult,
   ReadResultBase,
   SuspenseQueryResult,
   SuspenseResultBase,
 } from "../shared/hook-types"
-import type { StorefrontCartAddressAdapter } from "../shared/address"
+import type { QueryKey } from "../shared/query-keys"
+import type { RegionInfo } from "../shared/region"
 
 export type CartLineItemLike = {
   quantity?: number
@@ -16,22 +16,6 @@ export type CartLike = {
   id: string
   region_id?: string | null
   items?: CartLineItemLike[]
-}
-
-export type CartStorageListener = () => void
-
-export type CartStorage = {
-  getCartId: () => string | null
-  setCartId: (cartId: string) => void
-  clearCartId: () => void
-  subscribe?: (listener: CartStorageListener) => () => void
-  getSnapshot?: () => string | null
-  getServerSnapshot?: () => string | null
-}
-
-export type ObservableCartStorage = CartStorage & {
-  subscribe: (listener: CartStorageListener) => () => void
-  getSnapshot: () => string | null
 }
 
 export type CartCreateInputBase = RegionInfo & {
@@ -76,16 +60,11 @@ export type CartAddressInputBase<TAddressInput = Record<string, unknown>> =
     useSameAddress?: boolean
   }
 
-
 export type CartAddressAdapter<
   TAddressInput = Record<string, unknown>,
   TAddressPayload = TAddressInput,
   TStoredAddress = unknown,
-> = StorefrontCartAddressAdapter<
-  TAddressInput,
-  TAddressPayload,
-  TStoredAddress
->
+> = StorefrontCartAddressAdapter<TAddressInput, TAddressPayload, TStoredAddress>
 
 export type TransferCartInputBase = {
   cartId?: string
@@ -99,10 +78,7 @@ export type CartService<
   TUpdateItemParams,
   TCompleteResult,
 > = {
-  retrieveCart: (
-    cartId: string,
-    signal?: AbortSignal
-  ) => Promise<TCart | null>
+  retrieveCart: (cartId: string, signal?: AbortSignal) => Promise<TCart | null>
   createCart: (params: TCreateParams) => Promise<TCart>
   updateCart?: (cartId: string, params: TUpdateParams) => Promise<TCart>
   addLineItem?: (cartId: string, params: TAddItemParams) => Promise<TCart>
