@@ -52,42 +52,12 @@ export function ProductSection() {
           <p className="font-semibold text-md">Délka 40 - 420 mm, ø 4 - 22 mm</p>
 
           <ProductCard.Actions>
-            <ProductCard.Button buttonVariant="cart" className="w-full">
+            <ProductCard.Button buttonVariant="cart" className="w-full text-button-md">
               VYBRAT VARIANTU
             </ProductCard.Button>
           </ProductCard.Actions>
         </ProductCard>
 
-        <ProductCard layout="column">
-          <ProductCard.Image as={NextImage}
-            width={200}
-            height={200} alt="Lehátko Akros" src="/tshirt.webp" />
-          <ProductCard.Name>Lehátko Akros Classic 140 x 70 cm</ProductCard.Name>
-          <ProductCard.Stock status="in-stock">Skladem 12 ks</ProductCard.Stock>
-          <ProductCard.Price>1 490 Kč bez DPH</ProductCard.Price>
-          <ProductCard.Actions>
-            <ProductCard.Button buttonVariant="detail" icon="token-icon-detail-button">
-              Detail
-            </ProductCard.Button>
-          </ProductCard.Actions>
-        </ProductCard>
-
-        <ProductCard layout="column">
-          <ProductCard.Image as={NextImage}
-            width={200}
-            height={200} alt="Lehátko Akros" src="/tshirt.webp" />
-          <ProductCard.Name>Lehátko Akros Soft 100 x 50 cm</ProductCard.Name>
-          <ProductCard.Stock status="out-of-stock">Momentálně nedostupné</ProductCard.Stock>
-          <ProductCard.Price>1 050 Kč bez DPH</ProductCard.Price>
-          <ProductCard.Actions>
-            <ProductCard.Button
-              buttonVariant="wishlist"
-              icon="token-icon-wishlist-button"
-            >
-              Do wishlistu
-            </ProductCard.Button>
-          </ProductCard.Actions>
-        </ProductCard>
       </div>
 
       <div className="mt-300 grid grid-cols-1 gap-200 md:grid-cols-2">

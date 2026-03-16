@@ -12,5 +12,7 @@
   --padding-button-md: var(--spacing-150) var(--spacing-350);
   --padding-button-lg: var(--spacing-200) var(--spacing-400);
 
+  --text-button-md: var(--text-lg);
+
   --radius-button-lg: var(--radius-md);
 }

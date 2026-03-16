@@ -38,6 +38,6 @@
     "../../libs/storefront-data/src/**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
-  ],
+, "../../libs/ui/local/old/steps/steps.tsx"  ],
   "exclude": ["node_modules", "local", "local/**/*", ".next", "dist"]
 }

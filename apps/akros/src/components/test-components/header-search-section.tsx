@@ -13,8 +13,10 @@ export function HeaderSearchSection() {
       description="Header `size=md`, search input + primary CTA, unstyled icon akce a košíkové tlačítko."
     >
       <div className="flex flex-col gap-200">
-        <Header size="md">
-          <Header.Desktop className="items-center gap-300 grid grid-cols-[auto_1fr_auto]">
+        
+        <Header size="md" className="grid grid-rows-[1fr_auto] grid-cols-[390px_1fr_auto]">
+        <span className="col-start-2 place-start">Aktuálě 12 345 produktů</span>
+          <Header.Desktop className="row-2 col-span-3 items-center gap-300 grid grid-cols-[auto_1fr_auto]">
             <Header.Container>
               <Link href="/">
                 <Image src="/logo.avif" alt="Logo" width={380} height={60} />
@@ -24,10 +26,8 @@ export function HeaderSearchSection() {
             <Header.Container className="w-full">
               <SearchForm size="md" className="w-full">
                 <SearchForm.Control>
-                  <SearchForm.Input placeholder="Hledat produkt" />
-                  <SearchForm.Button showSearchIcon theme="solid" variant="primary">
-                    Hledat
-                  </SearchForm.Button>
+                  <SearchForm.Input placeholder="Hledat na stránce..." />
+                  <SearchForm.Button showSearchIcon theme="solid" className="text-xl" variant="primary" />
                 </SearchForm.Control>
               </SearchForm>
             </Header.Container>

@@ -1,17 +1,34 @@
 @theme static {
-  --color-steps-root-bg: transparent;
-  --color-steps-list-bg: transparent;
+  --color-steps-title-fg: var(--color-fg-placeholder);
+  --color-steps-title-fg-current: var(--color-fg-primary);
+  --color-steps-title-fg-complete: var(--color-fg-primary);
 
-  --color-steps-indicator-bg: var(--color-overlay);
-  --color-steps-indicator-bg-complete: var(--color-fg-primary);
+  --color-steps-indicator-bg: var(--color-fg-placeholder);
   --color-steps-indicator-bg-current: var(--color-fg-primary);
+  --color-steps-indicator-bg-complete: var(--color-fg-primary);
+  --color-steps-indicator-border: var(--color-bg-disabled);
+  --color-steps-indicator-border-current: var(--color-bg-disabled);
+  --color-steps-indicator-border-complete: var(--color-bg-disabled);
+  --color-steps-indicator-fg: var(--color-fg-reverse);
 
-  --color-steps-separator-bg: var(--color-border-secondary);
+  --color-steps-separator-bg: var(--color-fg-placeholder);
+  --color-steps-separator-bg-current: var(--color-fg-placeholder);
   --color-steps-separator-bg-complete: var(--color-fg-primary);
+  --color-steps-content-border: var(--color-border-secondary);
 
-  --color-steps-fg: var(--color-fg-secondary);
+  --gap-steps-root: var(--spacing-550);
+  --gap-steps-list: 0;
+  --gap-steps-panels: var(--spacing-550);
+  --gap-steps-item: var(--spacing-200);
 
-  --height-steps-indicator: var(--spacing-400);
+  --padding-steps-content-md: var(--spacing-650);
 
-  --padding-steps-btn: var(--spacing-150) var(--spacing-300);
+  --spacing-steps-indicator-md: var(--spacing-700);
+
+  --font-weight-steps-number: var(--font-weight-medium);
+  --text-steps-number-md: var(--text-lg);
+  --text-steps-title-md: var(--text-lg);
+
+  --border-width-steps-indicator: 10px;
+  --height-steps-separator: 1px;
 }
