@@ -15,4 +15,5 @@
   --radius-carousel: var(--radius-md);
 
   --spacing-carousel-root-md: 100%;
+  --aspect-carousel-indicator: 1;
 }
