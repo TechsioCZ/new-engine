@@ -3,6 +3,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import type { CatalogFacets } from "../src/catalog/types"
 import type {
   MedusaAuthCredentials,
   MedusaRegisterData,
@@ -128,13 +129,16 @@ describe("createMedusaStorefrontPreset", () => {
 
   it("accepts shared checkout address adapters for both cart and customer hooks", () => {
     const { sdk } = createSdkMock()
+    type ExtendedCatalogFacets = CatalogFacets & {
+      dosage: CatalogFacets["brand"]
+    }
 
     const preset = createMedusaStorefrontPreset<
       HttpTypes.StoreProduct,
       HttpTypes.StoreProductCategory,
       HttpTypes.StoreCollection,
       HttpTypes.StoreProduct,
-      Record<string, never>,
+      ExtendedCatalogFacets,
       CheckoutAddressInput,
       MedusaCartAddressPayload,
       CheckoutAddressInput,
@@ -152,12 +156,42 @@ describe("createMedusaStorefrontPreset", () => {
         },
       },
       catalog: {
-        fallbackFacets: {} as Record<string, never>,
+        fallbackFacets: {
+          status: [],
+          form: [],
+          brand: [],
+          ingredient: [],
+          price: {
+            min: null,
+            max: null,
+          },
+          dosage: [],
+        },
       },
     })
 
     expect(preset.hooks.cart).toBeDefined()
     expect(preset.hooks.customers).toBeDefined()
+  })
+
+  it("requires explicit fallback facets for custom catalog facet shapes", () => {
+    const { sdk } = createSdkMock()
+    type ExtendedCatalogFacets = CatalogFacets & {
+      dosage: CatalogFacets["brand"]
+    }
+
+    // @ts-expect-error custom facet shapes must provide catalog.fallbackFacets
+    const invalidConfig = {
+      sdk,
+    } satisfies CreateMedusaStorefrontPresetConfig<
+      HttpTypes.StoreProduct,
+      HttpTypes.StoreProductCategory,
+      HttpTypes.StoreCollection,
+      HttpTypes.StoreProduct,
+      ExtendedCatalogFacets
+    >
+
+    expect(invalidConfig).toBeDefined()
   })
 
   it("builds namespaced query keys", () => {

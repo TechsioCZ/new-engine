@@ -87,6 +87,74 @@ describe("createCartHooks reactive storage and cache sync", () => {
     expect(retrieveCart.mock.calls.at(-1)?.[0]).toBe("cart_1")
   })
 
+  it("reacts to observable cartStorage implementations that use method context", async () => {
+    const listeners = new Set<() => void>()
+    const cartStorage = {
+      currentCartId: null as string | null,
+      getCartId() {
+        return this.currentCartId
+      },
+      setCartId(cartId: string) {
+        this.currentCartId = cartId
+        this.listeners.forEach((listener) => listener())
+      },
+      clearCartId() {
+        this.currentCartId = null
+        this.listeners.forEach((listener) => listener())
+      },
+      subscribe(listener: () => void) {
+        this.listeners.add(listener)
+        return () => {
+          this.listeners.delete(listener)
+        }
+      },
+      getSnapshot() {
+        return this.currentCartId
+      },
+      getServerSnapshot() {
+        return this.currentCartId
+      },
+      listeners,
+    }
+    const retrieveCart = vi.fn(async (cartId: string) => ({
+      id: cartId,
+      region_id: "reg_1",
+      items: [{ quantity: 1 }],
+    }))
+
+    const { useCart } = createCartHooks<
+      Cart,
+      { region_id?: string },
+      { region_id?: string }
+    >({
+      service: {
+        retrieveCart,
+        createCart: async () => ({ id: "cart_created", region_id: "reg_1" }),
+      },
+      cartStorage,
+      requireRegion: false,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(() => useCart({ autoCreate: false }), {
+      wrapper,
+    })
+
+    act(() => {
+      cartStorage.setCartId("cart_ctx")
+    })
+
+    await waitFor(() => {
+      expect(result.current.cart?.id).toBe("cart_ctx")
+    })
+
+    expect(retrieveCart.mock.calls.at(-1)?.[0]).toBe("cart_ctx")
+  })
+
   it("syncs active and detail caches for line item mutations", async () => {
     const updatedCart: Cart = {
       id: "cart_1",

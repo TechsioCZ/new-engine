@@ -285,6 +285,29 @@ const defaultResolvePaymentProviderId = ({
   paymentProviders[0]?.id ??
   null
 
+const resolvePaymentProviderSelection = (
+  context: ResolvePaymentProviderContext,
+  resolvePaymentProviderId?: (
+    context: ResolvePaymentProviderContext
+  ) => string | null | undefined
+): {
+  paymentProviderId: string | null
+  wasExplicit: boolean
+} => {
+  const resolvedPaymentProviderId = resolvePaymentProviderId?.(context)
+  if (resolvedPaymentProviderId !== undefined) {
+    return {
+      paymentProviderId: resolvedPaymentProviderId,
+      wasExplicit: true,
+    }
+  }
+
+  return {
+    paymentProviderId: defaultResolvePaymentProviderId(context),
+    wasExplicit: false,
+  }
+}
+
 export function createMedusaCheckoutFlow({
   storefront,
   cartStorage,
@@ -438,40 +461,36 @@ export function createMedusaCheckoutFlow({
 
         let paymentProviders = payment.paymentProviders
         let paymentProviderId: string | null | undefined
+        let wasExplicitResolverSelection = false
 
         try {
-          paymentProviderId =
-            options?.resolvePaymentProviderId?.({
+          const initialSelection = resolvePaymentProviderSelection(
+            {
               cart: input.cart,
               existingPaymentProviderId,
               paymentProviders,
               requestedPaymentProviderId: request?.paymentProviderId,
-            }) ??
-            defaultResolvePaymentProviderId({
-              cart: input.cart,
-              existingPaymentProviderId,
-              paymentProviders,
-              requestedPaymentProviderId: request?.paymentProviderId,
-            })
+            },
+            options?.resolvePaymentProviderId
+          )
+          paymentProviderId = initialSelection.paymentProviderId
+          wasExplicitResolverSelection = initialSelection.wasExplicit
 
-          if (!paymentProviderId && effectiveRegionId) {
+          if (paymentProviderId == null && effectiveRegionId && !wasExplicitResolverSelection) {
             paymentProviders = await checkoutHooks.fetchPaymentProviders(
               queryClient,
               effectiveRegionId
             )
-            paymentProviderId =
-              options?.resolvePaymentProviderId?.({
+            const refetchedSelection = resolvePaymentProviderSelection(
+              {
                 cart: input.cart,
                 existingPaymentProviderId,
                 paymentProviders,
                 requestedPaymentProviderId: request?.paymentProviderId,
-              }) ??
-              defaultResolvePaymentProviderId({
-                cart: input.cart,
-                existingPaymentProviderId,
-                paymentProviders,
-                requestedPaymentProviderId: request?.paymentProviderId,
-              })
+              },
+              options?.resolvePaymentProviderId
+            )
+            paymentProviderId = refetchedSelection.paymentProviderId
           }
         } catch (error) {
           throw createCompleteCheckoutError(

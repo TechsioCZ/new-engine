@@ -128,7 +128,12 @@ export function createCustomerHooks<
     context: StorefrontCustomerUpdateAddressContext
   ) => TUpdateParams =
     addressAdapter?.toUpdateParams ??
-    ((input: TUpdateInput) => input as unknown as TUpdateParams)
+    ((input: TUpdateInput) => {
+      const { addressId: _addressId, ...restUpdateInput } = input as TUpdateInput & {
+        addressId?: string
+      }
+      return restUpdateInput as unknown as TUpdateParams
+    })
   const buildUpdateCustomer =
     buildUpdateCustomerParams ??
     ((input: TUpdateCustomerInput) => input as unknown as TUpdateCustomerParams)
@@ -245,9 +250,6 @@ export function createCustomerHooks<
               mode: "update",
             })
           : input
-        const { addressId: _addressId, ...restUpdateInput } =
-          normalized as TUpdateInput & { addressId?: string }
-        const updateInput = restUpdateInput as TUpdateInput
         assertStorefrontAddressValidation(
           addressAdapter?.validateUpdate?.(normalized, {
             mode: "update",
@@ -255,7 +257,7 @@ export function createCustomerHooks<
         )
         return service.updateAddress(
           addressId,
-          buildUpdate(updateInput, {
+          buildUpdate(normalized, {
             mode: "update",
           })
         )

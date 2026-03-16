@@ -165,8 +165,15 @@ describe("Medusa flow helpers", () => {
 
     const { result } = renderHook(() => cartFlow.useAddToCart(), { wrapper })
 
+    let returnedCart:
+      | {
+          id: string
+          items?: Array<{ id?: string; quantity?: number }>
+        }
+      | undefined
+
     await act(async () => {
-      await result.current.mutateAsync({
+      returnedCart = await result.current.mutateAsync({
         cartId: "cart_1",
         variantId: "variant_1",
         quantity: 1,
@@ -202,6 +209,101 @@ describe("Medusa flow helpers", () => {
         items: [{ id: "item_1", quantity: 1 }],
       })
     )
+    expect(returnedCart).toMatchObject({
+      id: "cart_1",
+      items: [{ id: "item_1", quantity: 1 }],
+    })
+  })
+
+  it("normalizes per-call add-to-cart success callbacks to canonical carts", async () => {
+    const { sdk } = createSdkMock()
+    const storefront = createMedusaStorefrontPreset({ sdk })
+    const cartFlow = storefront.flows.cart
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+    const onSuccess = vi.fn()
+
+    const { result } = renderHook(() => cartFlow.useAddToCart(), { wrapper })
+
+    act(() => {
+      result.current.mutate(
+        {
+          cartId: "cart_1",
+          variantId: "variant_1",
+          quantity: 1,
+        },
+        {
+          onSuccess,
+        }
+      )
+    })
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "cart_1",
+          items: [{ id: "item_1", quantity: 1 }],
+        })
+      )
+    })
+  })
+
+  it("normalizes per-call add-to-cart errors for callbacks and mutateAsync", async () => {
+    const { sdk } = createSdkMock()
+    ;(
+      sdk.store.cart.createLineItem as unknown as ReturnType<typeof vi.fn>
+    ).mockRejectedValue({
+      message: "Out of stock",
+      code: "out_of_stock",
+    })
+    const storefront = createMedusaStorefrontPreset({ sdk })
+    const cartFlow = storefront.flows.cart
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+    const onError = vi.fn()
+
+    const { result } = renderHook(() => cartFlow.useAddToCart(), { wrapper })
+
+    act(() => {
+      result.current.mutate(
+        {
+          cartId: "cart_1",
+          variantId: "variant_1",
+          quantity: 1,
+        },
+        {
+          onError,
+        }
+      )
+    })
+
+    await waitFor(() => {
+      expect(onError).toHaveBeenCalledWith({
+        message: "Out of stock",
+        code: "out_of_stock",
+      })
+    })
+
+    await expect(
+      result.current.mutateAsync({
+        cartId: "cart_1",
+        variantId: "variant_1",
+        quantity: 1,
+      })
+    ).rejects.toMatchObject({
+      message: "Out of stock",
+      code: "out_of_stock",
+    })
   })
 
   it("passes cart query input through to low-level hooks for region auto-create flows", async () => {
@@ -799,6 +901,41 @@ describe("Medusa flow helpers", () => {
 
     const { result } = renderHook(
       () =>
+        checkoutFlow.useCompleteCheckout({
+          cartId: "cart_1",
+          regionId: "reg_1",
+          cart: {
+            id: "cart_1",
+            region_id: "reg_1",
+            items: [{ id: "item_1", quantity: 1 }],
+            shipping_methods: [{ shipping_option_id: "ship_1" }],
+          },
+        }),
+      { wrapper }
+    )
+
+    await expect(result.current.mutateAsync()).rejects.toMatchObject({
+      stage: "payment_provider",
+      message: "Payment providers fetch failed",
+    })
+  })
+
+  it("treats null resolver result as an explicit opt-out from auto-selecting payment", async () => {
+    const { sdk, spies } = createSdkMock()
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+    })
+    const checkoutFlow = storefront.flows.checkout
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(
+      () =>
         checkoutFlow.useCompleteCheckout(
           {
             cartId: "cart_1",
@@ -819,8 +956,11 @@ describe("Medusa flow helpers", () => {
 
     await expect(result.current.mutateAsync()).rejects.toMatchObject({
       stage: "payment_provider",
-      message: "Payment providers fetch failed",
+      message: "No payment provider available",
     })
+
+    expect(spies.initiatePaymentSession).not.toHaveBeenCalled()
+    expect(spies.complete).not.toHaveBeenCalled()
   })
 
   it("returns stage-coded complete error when complete cart returns cart payload", async () => {

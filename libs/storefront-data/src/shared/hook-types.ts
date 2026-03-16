@@ -1,6 +1,6 @@
 import type {
   DefaultError,
-  QueryFunctionContext,
+  QueryFunction,
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
   UseQueryOptions,
@@ -54,7 +54,7 @@ export type QueryFactoryOptions<
   TQueryKey extends QueryKey = QueryKey,
 > = {
   queryKey: TQueryKey
-  queryFn: (context: QueryFunctionContext<TQueryKey>) => Promise<TQueryFnData>
+  queryFn: QueryFunction<TQueryFnData, TQueryKey>
 } & ReadQueryOptions<TQueryFnData, TError, TData, TQueryKey>
 
 export type QueryResult<TData, TError = DefaultError> = UseQueryResult<

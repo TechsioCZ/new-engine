@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query"
 import {
+  createDefaultActiveCartQueryMatcher,
   getCachedCartById,
   invalidateCartCaches,
   patchCartCaches,
@@ -7,6 +8,7 @@ import {
 } from "../src/cart/cache-sync"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import type { CartQueryKeys } from "../src/cart/types"
+import { createQueryKey } from "../src/shared/query-keys"
 
 type Cart = {
   id: string
@@ -128,5 +130,49 @@ describe("cart cache sync helpers", () => {
         queryKey[3] === cartId,
     })
     expect(cached).toEqual({ id: "cart_custom" })
+  })
+
+  it("derives the default active cart matcher from custom query key factories", () => {
+    const queryClient = new QueryClient()
+    const queryKeys: CartQueryKeys = {
+      all: () => createQueryKey(["custom", "cart"]),
+      active: ({ cartId, regionId }) =>
+        createQueryKey(
+          ["custom", "cart"],
+          cartId ?? "__none__",
+          { regionId: regionId ?? null }
+        ),
+      detail: (cartId) => createQueryKey(["custom", "cart"], "detail", cartId),
+    }
+    const activeKey = queryKeys.active({
+      cartId: "cart_derived",
+      regionId: "reg_1",
+    })
+
+    queryClient.setQueryData(activeKey, {
+      id: "cart_derived",
+      region_id: "reg_1",
+      item_count: 1,
+    } satisfies Cart)
+
+    const matcher = createDefaultActiveCartQueryMatcher(queryKeys)
+    expect(matcher(activeKey, "cart_derived")).toBe(true)
+    expect(matcher(activeKey, "cart_other")).toBe(false)
+
+    syncCartCaches(
+      queryClient,
+      queryKeys,
+      {
+        id: "cart_derived",
+        region_id: "reg_1",
+        item_count: 9,
+      } satisfies Cart
+    )
+
+    expect(queryClient.getQueryData(activeKey)).toEqual({
+      id: "cart_derived",
+      region_id: "reg_1",
+      item_count: 9,
+    })
   })
 })

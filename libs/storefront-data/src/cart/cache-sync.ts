@@ -21,6 +21,35 @@ export type CartUpdater<TCart extends CartLike> = (cart: TCart) => TCart
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object" && !Array.isArray(value))
 
+const areEqual = (left: unknown, right: unknown): boolean => {
+  if (Object.is(left, right)) {
+    return true
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return (
+      left.length === right.length &&
+      left.every((entry, index) => areEqual(entry, right[index]))
+    )
+  }
+
+  if (isRecord(left) && isRecord(right)) {
+    const leftKeys = Object.keys(left)
+    const rightKeys = Object.keys(right)
+    return (
+      leftKeys.length === rightKeys.length &&
+      leftKeys.every((key) => areEqual(left[key], right[key]))
+    )
+  }
+
+  return false
+}
+
+const getRecordKeys = (
+  ...records: ReadonlyArray<Record<string, unknown>>
+): string[] =>
+  Array.from(new Set(records.flatMap((record) => Object.keys(record)))).sort()
+
 const hasQueryKeyPrefix = (queryKey: QueryKey, prefix: QueryKey): boolean =>
   prefix.every((segment, index) => queryKey[index] === segment)
 
@@ -48,21 +77,94 @@ export const createDefaultActiveCartQueryMatcher = (
   queryKeys: CartQueryKeys
 ): ActiveCartQueryKeyMatcher => {
   const cartPrefix = queryKeys.all()
+  const baseActiveKey = queryKeys.active({
+    cartId: "__storefront_data_cart__",
+    regionId: "__storefront_data_region__",
+  })
+  const cartVariantActiveKey = queryKeys.active({
+    cartId: "__storefront_data_other_cart__",
+    regionId: "__storefront_data_region__",
+  })
+  const regionVariantActiveKey = queryKeys.active({
+    cartId: "__storefront_data_cart__",
+    regionId: "__storefront_data_other_region__",
+  })
+
+  const matchesActiveKeySegment = (
+    candidate: unknown,
+    base: unknown,
+    cartVariant: unknown,
+    regionVariant: unknown,
+    cartId: string
+  ): boolean => {
+    if (
+      Array.isArray(base) &&
+      Array.isArray(cartVariant) &&
+      Array.isArray(regionVariant)
+    ) {
+      return (
+        Array.isArray(candidate) &&
+        candidate.length === base.length &&
+        cartVariant.length === base.length &&
+        regionVariant.length === base.length &&
+        base.every((_, index) =>
+          matchesActiveKeySegment(
+            candidate[index],
+            base[index],
+            cartVariant[index],
+            regionVariant[index],
+            cartId
+          )
+        )
+      )
+    }
+
+    if (
+      isRecord(base) &&
+      isRecord(cartVariant) &&
+      isRecord(regionVariant) &&
+      isRecord(candidate)
+    ) {
+      return getRecordKeys(base, cartVariant, regionVariant).every((key) =>
+        matchesActiveKeySegment(
+          candidate[key],
+          base[key],
+          cartVariant[key],
+          regionVariant[key],
+          cartId
+        )
+      )
+    }
+
+    const changesWithCart = !areEqual(base, cartVariant)
+    const changesWithRegion = !areEqual(base, regionVariant)
+
+    if (!changesWithCart && !changesWithRegion) {
+      return areEqual(candidate, base)
+    }
+
+    if (changesWithCart && !changesWithRegion) {
+      return candidate === cartId
+    }
+
+    if (!changesWithCart && changesWithRegion) {
+      return true
+    }
+
+    return false
+  }
 
   return (queryKey, cartId) => {
     if (!hasQueryKeyPrefix(queryKey, cartPrefix)) {
       return false
     }
 
-    if (queryKey[cartPrefix.length] !== "active") {
-      return false
-    }
-
-    const activeKeyInput = queryKey[cartPrefix.length + 1]
-    return (
-      isRecord(activeKeyInput) &&
-      typeof activeKeyInput.cartId === "string" &&
-      activeKeyInput.cartId === cartId
+    return matchesActiveKeySegment(
+      queryKey,
+      baseActiveKey,
+      cartVariantActiveKey,
+      regionVariantActiveKey,
+      cartId
     )
   }
 }

@@ -54,6 +54,60 @@ describe("customer validation regression", () => {
     expect(updateInput.addressId).toBe("addr_1")
   })
 
+  it("passes addressId through to custom update adapters", async () => {
+    type UpdateInput = { addressId?: string; city?: string }
+
+    const service = createService()
+    const toUpdateParams = vi.fn((input: UpdateInput) => ({
+      city: input.city,
+    }))
+    const { useUpdateCustomerAddress } = createCustomerHooks<
+      Customer,
+      Address,
+      { enabled?: boolean },
+      ListParams,
+      CreateParams,
+      CreateParams,
+      UpdateInput,
+      UpdateParams,
+      UpdateCustomerParams,
+      UpdateCustomerParams
+    >({
+      service,
+      buildListParams: () => ({}),
+      queryKeyNamespace: "customers-update-address-id",
+      addressAdapter: {
+        toUpdateParams,
+      },
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(() => useUpdateCustomerAddress(), { wrapper })
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          addressId: "addr_1",
+          city: "Prague",
+        })
+      ).resolves.toMatchObject({ id: "addr_1", city: "Prague" })
+    })
+
+    expect(toUpdateParams).toHaveBeenCalledWith(
+      expect.objectContaining({
+        addressId: "addr_1",
+        city: "Prague",
+      }),
+      { mode: "update" }
+    )
+    expect(service.updateAddress).toHaveBeenCalledWith("addr_1", {
+      city: "Prague",
+    })
+  })
+
   it("throws structured validation errors and skips createAddress call", async () => {
     const service = createService()
     const { useCreateCustomerAddress } = createCustomerHooks<

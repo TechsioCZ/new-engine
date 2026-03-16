@@ -406,10 +406,10 @@ export function createCartHooks<
   const useStoredCartId = (): string | null =>
     useSyncExternalStore(
       hasObservableCartStorage(cartStorage)
-        ? cartStorage.subscribe
+        ? (listener) => cartStorage.subscribe(listener)
         : noopCartStorageSubscribe,
       readStoredCartId,
-      cartStorage?.getServerSnapshot ?? (() => null)
+      () => cartStorage?.getServerSnapshot?.() ?? null
     )
 
   const resolveCartId = (inputCartId?: string | null): string | null =>

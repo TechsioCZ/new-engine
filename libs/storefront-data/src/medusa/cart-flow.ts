@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
+import { useCallback } from "react"
 import {
   type ActiveCartQueryKeyMatcher,
   createDefaultActiveCartQueryMatcher,
@@ -264,6 +265,51 @@ export function createMedusaCartFlow({
     },
   })
 
+  function useNormalizedCartMutation<TInput>(
+    hook: MedusaCartMutationHook<TInput>,
+    options?: UseMedusaCartMutationOptions
+  ) {
+    const queryClient = useQueryClient()
+    const mutation = hook(buildMutationHandlers(queryClient, options))
+    const mutate = useCallback(
+      (
+        input: TInput,
+        mutateOptions?: {
+          onSuccess?: (cart: HttpTypes.StoreCart) => void
+          onError?: (error: MedusaCartMutationError) => void
+        }
+      ) => {
+        mutation.mutate(input, {
+          onSuccess: async (cart: HttpTypes.StoreCart) => {
+            const resolvedCart = await resolveRenderableCart(cart)
+            mutateOptions?.onSuccess?.(resolvedCart)
+          },
+          onError: (error: unknown) => {
+            mutateOptions?.onError?.(toCartMutationError(error))
+          },
+        })
+      },
+      [mutation, resolveRenderableCart]
+    )
+    const mutateAsync = useCallback(
+      async (input: TInput) => {
+        try {
+          const cart = await mutation.mutateAsync(input)
+          return await resolveRenderableCart(cart)
+        } catch (error) {
+          throw toCartMutationError(error)
+        }
+      },
+      [mutation, resolveRenderableCart]
+    )
+
+    return {
+      ...mutation,
+      mutate,
+      mutateAsync,
+    }
+  }
+
   function useCart(input?: UseMedusaCartInput): UseMedusaCartReturn {
     const { cart, isLoading, error, itemCount, isEmpty, hasItems } =
       cartHooks.useCart({
@@ -301,18 +347,15 @@ export function createMedusaCartFlow({
   }
 
   function useAddToCart(options?: UseMedusaCartMutationOptions) {
-    const queryClient = useQueryClient()
-    return cartHooks.useAddLineItem(buildMutationHandlers(queryClient, options))
+    return useNormalizedCartMutation(cartHooks.useAddLineItem, options)
   }
 
   function useUpdateLineItem(options?: UseMedusaCartMutationOptions) {
-    const queryClient = useQueryClient()
-    return cartHooks.useUpdateLineItem(buildMutationHandlers(queryClient, options))
+    return useNormalizedCartMutation(cartHooks.useUpdateLineItem, options)
   }
 
   function useRemoveLineItem(options?: UseMedusaCartMutationOptions) {
-    const queryClient = useQueryClient()
-    return cartHooks.useRemoveLineItem(buildMutationHandlers(queryClient, options))
+    return useNormalizedCartMutation(cartHooks.useRemoveLineItem, options)
   }
 
   function useCompleteCart(options?: UseMedusaCompleteCartOptions) {

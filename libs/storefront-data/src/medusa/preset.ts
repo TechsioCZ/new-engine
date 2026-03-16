@@ -286,6 +286,35 @@ type MedusaCatalogHooksConfig<TProduct, TFacets> = Omit<
   "service" | "queryKeys" | "queryKeyNamespace" | "cacheConfig" | "fallbackFacets"
 >
 
+type IsExactly<TLeft, TRight> = [TLeft] extends [TRight]
+  ? [TRight] extends [TLeft]
+    ? true
+    : false
+  : false
+
+type MedusaCatalogPresetConfig<TProduct, TFacets> = {
+  serviceConfig?: MedusaCatalogServiceConfig<
+    TProduct,
+    MedusaCatalogListInput,
+    TFacets
+  >
+  hooks?: MedusaCatalogHooksConfig<TProduct, TFacets>
+  queryKeys?: CatalogQueryKeys<MedusaCatalogListInput>
+}
+
+type MedusaCatalogPresetOption<TProduct, TFacets> =
+  IsExactly<TFacets, CatalogFacets> extends true
+    ? {
+        catalog?: MedusaCatalogPresetConfig<TProduct, TFacets> & {
+          fallbackFacets?: TFacets
+        }
+      }
+    : {
+        catalog: MedusaCatalogPresetConfig<TProduct, TFacets> & {
+          fallbackFacets: TFacets
+        }
+      }
+
 export type MedusaStorefrontQueryKeys = {
   auth: AuthQueryKeys
   cart: CartQueryKeys
@@ -305,7 +334,7 @@ export type MedusaStorefrontQueryKeys = {
   catalog: CatalogQueryKeys<MedusaCatalogListInput>
 }
 
-export type CreateMedusaStorefrontPresetConfig<
+type CreateMedusaStorefrontPresetConfigBase<
   TProduct = HttpTypes.StoreProduct,
   TCategory = HttpTypes.StoreProductCategory,
   TCollection = HttpTypes.StoreCollection,
@@ -387,17 +416,30 @@ export type CreateMedusaStorefrontPresetConfig<
       MedusaCollectionDetailInput
     >
   }
-  catalog?: {
-    serviceConfig?: MedusaCatalogServiceConfig<
-      TCatalogProduct,
-      MedusaCatalogListInput,
-      TCatalogFacets
-    >
-    hooks?: MedusaCatalogHooksConfig<TCatalogProduct, TCatalogFacets>
-    queryKeys?: CatalogQueryKeys<MedusaCatalogListInput>
-    fallbackFacets?: TCatalogFacets
-  }
 }
+
+export type CreateMedusaStorefrontPresetConfig<
+  TProduct = HttpTypes.StoreProduct,
+  TCategory = HttpTypes.StoreProductCategory,
+  TCollection = HttpTypes.StoreCollection,
+  TCatalogProduct = HttpTypes.StoreProduct,
+  TCatalogFacets = CatalogFacets,
+  TCartAddressInput = Record<string, unknown>,
+  TCartAddressPayload = Record<string, unknown>,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+> = CreateMedusaStorefrontPresetConfigBase<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets,
+  TCartAddressInput,
+  TCartAddressPayload,
+  TCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput
+> &
+  MedusaCatalogPresetOption<TCatalogProduct, TCatalogFacets>
 
 const createDefaultCatalogFacets = (): CatalogFacets => ({
   status: [],
@@ -545,9 +587,12 @@ export function createMedusaStorefrontPreset<
   const cartFlowOverrides = config.cart?.flow
   const checkoutHookOverrides = config.checkout?.hooks
   const customerHookOverrides = config.customers?.hooks
+  // Safe: non-default facet shapes must provide catalog.fallbackFacets via
+  // CreateMedusaStorefrontPresetConfig, so the default fallback is only used
+  // for the built-in CatalogFacets shape.
   const fallbackCatalogFacets =
-    config.catalog?.fallbackFacets ??
-    (createDefaultCatalogFacets() as unknown as TCatalogFacets)
+    (config.catalog?.fallbackFacets ??
+      createDefaultCatalogFacets()) as TCatalogFacets
   const buildMedusaAddLineItemParams = (
     input: AddLineItemInputBase
   ): MedusaCartAddItemParams => ({
