@@ -28,7 +28,7 @@ export default function ProductPage() {
   const handle = params.handle as string
   const variantParam = searchParams.get("variant")
 
-  const { data: rawProduct } = useSuspenseProduct({ handle })
+  const { product: rawProduct } = useSuspenseProduct({ handle })
   const analytics = useAnalytics()
 
   // Track which variant we've already tracked to prevent duplicates

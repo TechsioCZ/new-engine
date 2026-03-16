@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { useSuspenseAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth"
 import { AccountProvider } from "./context/account-context"
 
 export default function AccountLayout({
@@ -11,41 +11,25 @@ export default function AccountLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { customer, isAuthenticated, isTokenExpired } = useSuspenseAuth()
-  const [showExpiredMessage, setShowExpiredMessage] = useState(false)
+  const { customer, isAuthenticated, isFetching, isLoading } = useAuth()
+  const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    if (!isTokenExpired) {
+    setIsHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!(isHydrated && !isLoading && !isFetching)) {
       return
     }
 
-    setShowExpiredMessage(true)
-    const timeout = setTimeout(() => {
-      router.push("/prihlaseni")
-    }, 3000)
-    return () => clearTimeout(timeout)
-  }, [isTokenExpired, router])
-
-  useEffect(() => {
-    if (!(isAuthenticated || isTokenExpired)) {
+    if (!isAuthenticated) {
       router.push("/prihlaseni")
     }
-  }, [isAuthenticated, isTokenExpired, router])
+  }, [isAuthenticated, isFetching, isHydrated, isLoading, router])
 
-  if (showExpiredMessage) {
-    return (
-      <main className="mx-auto w-2xl max-w-full py-300">
-        <div className="rounded bg-warning-light p-250">
-          <div className="mb-100 font-semibold text-md text-warning">
-            Platnost relace vypršela
-          </div>
-          <p className="text-sm text-warning">
-            Vaše přihlášení vypršelo. Za chvíli budete přesměrováni na
-            přihlašovací stránku...
-          </p>
-        </div>
-      </main>
-    )
+  if (!(isHydrated && !isLoading && !isFetching)) {
+    return <main className="mx-auto w-full max-w-5xl px-400 py-400" />
   }
 
   if (!customer) {

@@ -1,9 +1,6 @@
 "use client"
 
-import {
-  type Analytics,
-  useAnalytics as useUnifiedAnalytics,
-} from "@techsio/analytics"
+import { useAnalytics as useUnifiedAnalytics } from "@techsio/analytics"
 import { useGoogleAdapter } from "@techsio/analytics/google"
 import {
   type LeadhubIdentifyParams,
@@ -17,7 +14,7 @@ import { createContext, type ReactNode, useContext, useMemo } from "react"
 /**
  * Extended analytics interface with Leadhub-specific methods
  */
-interface AnalyticsContextValue extends Analytics {
+type AnalyticsContextValue = ReturnType<typeof useUnifiedAnalytics> & {
   /** Track category page view (Leadhub only) */
   trackViewCategory: (params: LeadhubViewCategoryParams) => boolean
   /** Track user identification on login/register (Leadhub only) */

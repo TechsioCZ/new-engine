@@ -21,7 +21,11 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@ui/*": ["../../libs/ui/src/*"]
+      "@ui/*": ["../../libs/ui/src/*"],
+      "@techsio/analytics": ["../../libs/analytics/src/index.ts"],
+      "@techsio/analytics/*": ["../../libs/analytics/src/*"],
+      "@techsio/storefront-data/*": ["../../libs/storefront-data/src/*"],
+      "@techsio/ui-kit/*": ["../../libs/ui/src/*"]
     }
   },
   "include": [
@@ -30,6 +34,10 @@
     "src/**/*.tsx",
     "../../libs/ui/src/**/*.ts",
     "../../libs/ui/src/**/*.tsx",
+    "../../libs/storefront-data/src/**/*.ts",
+    "../../libs/storefront-data/src/**/*.tsx",
+    "../../libs/analytics/src/**/*.ts",
+    "../../libs/analytics/src/**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],

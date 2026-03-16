@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
-import type { CartLineItem } from "@/services/cart-service"
-import { formatToTaxIncluded } from "@/utils/format/format-product"
+import { formatCartLineItemUnitPrice } from "@/lib/pricing/cart-pricing"
+import type { CartLineItem } from "@/types/cart"
 
 type CartItemRowProps = {
   item: CartLineItem
@@ -9,13 +9,7 @@ type CartItemRowProps = {
 }
 
 export function CartItemRow({ item, currencyCode }: CartItemRowProps) {
-  const taxRate = item.tax_lines?.[0]?.rate
-  const tax = taxRate ? taxRate * 0.01 : 0
-  const price = formatToTaxIncluded({
-    amount: item.unit_price,
-    tax,
-    currency: currencyCode,
-  })
+  const price = formatCartLineItemUnitPrice(item, currencyCode)
   return (
     <div className="flex gap-200">
       {item.thumbnail && (

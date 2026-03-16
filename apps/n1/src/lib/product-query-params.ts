@@ -1,8 +1,5 @@
-import { PRODUCT_LIMIT, PRODUCT_LIST_FIELDS } from "./constants"
+import { PRODUCT_LIMIT } from "./constants"
 
-/**
- * Product query parameters (no `page` - only `offset` for cache consistency)
- */
 export type ProductQueryParams = {
   category_id?: string[]
   region_id?: string
@@ -12,43 +9,95 @@ export type ProductQueryParams = {
   fields?: string
 }
 
-/**
- * Builder params (includes `page` for convenience)
- */
-interface BuilderParams extends Partial<ProductQueryParams> {
+type BuilderParams = Omit<Partial<ProductQueryParams>, "category_id"> & {
   page?: number
+  category_id?: string[] | string
+}
+
+type PaginationInput = Pick<BuilderParams, "page" | "limit" | "offset">
+
+const normalizeInteger = (value: number | undefined): number | undefined => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return
+  }
+
+  return Math.floor(value)
+}
+
+const normalizeCategoryId = (
+  categoryId: BuilderParams["category_id"]
+): string[] | undefined => {
+  let values: string[]
+  if (Array.isArray(categoryId)) {
+    values = categoryId
+  } else if (typeof categoryId === "string") {
+    values = [categoryId]
+  } else {
+    values = []
+  }
+
+  const normalized = values
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0)
+
+  return normalized.length > 0 ? normalized : undefined
+}
+
+export function resolveProductPagination({
+  page,
+  limit,
+  offset,
+}: PaginationInput): Pick<ProductQueryParams, "limit" | "offset"> {
+  const normalizedLimit = normalizeInteger(limit)
+  const resolvedLimit =
+    typeof normalizedLimit === "number" && normalizedLimit > 0
+      ? normalizedLimit
+      : PRODUCT_LIMIT
+
+  const normalizedOffset = normalizeInteger(offset)
+  if (typeof normalizedOffset === "number") {
+    return {
+      limit: resolvedLimit,
+      offset: Math.max(0, normalizedOffset),
+    }
+  }
+
+  if (page !== undefined) {
+    const normalizedPage = normalizeInteger(page)
+    const resolvedPage =
+      typeof normalizedPage === "number" && normalizedPage > 0
+        ? normalizedPage
+        : 1
+
+    return {
+      limit: resolvedLimit,
+      offset: (resolvedPage - 1) * resolvedLimit,
+    }
+  }
+
+  return { limit: resolvedLimit }
 }
 
 export function buildProductQueryParams(
   params: BuilderParams
 ): ProductQueryParams {
-  const { page = 1, limit = PRODUCT_LIMIT, ...rest } = params
+  const { page, limit, offset, category_id, ...rest } = params
+  const { limit: resolvedLimit, offset: resolvedOffset } =
+    resolveProductPagination({
+      page,
+      limit,
+      offset,
+    })
+  const normalizedCategoryId = normalizeCategoryId(category_id)
 
   return {
-    fields: PRODUCT_LIST_FIELDS,
-    country_code: "cz", // default, can be overridden
     ...rest,
-    limit,
-    offset: (page - 1) * limit,
+    ...(normalizedCategoryId ? { category_id: normalizedCategoryId } : {}),
+    limit: resolvedLimit,
+    ...(resolvedOffset == null ? {} : { offset: resolvedOffset }),
   }
 }
 
-/**
- * Always prefetches page 1
- */
-export function buildPrefetchParams(
-  params: Pick<BuilderParams, "category_id" | "region_id" | "country_code">
-): ProductQueryParams {
-  return buildProductQueryParams({
-    ...params,
-    page: 1,
-  })
-}
-
-/**
- * Converts query params to URL query string
- * Handles arrays (category_id) with indexed notation
- */
 type QueryParamValue =
   | string
   | number
@@ -63,18 +112,18 @@ export function buildQueryString(
   const searchParams = new URLSearchParams()
 
   for (const [key, value] of Object.entries(params)) {
-    if (value === undefined || value === null) {
+    if (value == null) {
       continue
     }
 
     if (Array.isArray(value)) {
-      // category_id[0]=xxx&category_id[1]=yyy
-      value.forEach((v, i) => {
-        searchParams.append(`${key}[${i}]`, String(v))
+      value.forEach((item, index) => {
+        searchParams.append(`${key}[${index}]`, String(item))
       })
-    } else {
-      searchParams.append(key, String(value))
+      continue
     }
+
+    searchParams.append(key, String(value))
   }
 
   return searchParams.toString()

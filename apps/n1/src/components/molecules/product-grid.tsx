@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Fragment } from "react"
 import { usePrefetchProduct } from "@/hooks/use-prefetch-product"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import type { Product } from "@/types/product"
 import { ProductCardSkeleton } from "../skeletons/product-card-skeleton"
 import { VariantsBox } from "./variants-box"
@@ -28,7 +29,7 @@ export const ProductGrid = ({
   isLoading = false,
   skeletonCount = 12,
 }: ProductGridProps) => {
-  const { delayedPrefetch } = usePrefetchProduct()
+  const { delayedPrefetch, cancelPrefetch } = usePrefetchProduct()
   const totalPages = Math.ceil((totalCount || products.length) / pageSize)
   const skeletonKeys = Array.from(
     { length: skeletonCount },
@@ -75,7 +76,10 @@ export const ProductGrid = ({
               className="contents"
               href={`/produkt/${product.handle}`}
               onMouseEnter={() => {
-                delayedPrefetch(product.handle, 200)
+                delayedPrefetch(product.handle, PREFETCH_DELAYS.PRODUCT_DETAIL)
+              }}
+              onMouseLeave={() => {
+                cancelPrefetch(product.handle)
               }}
             >
               <ProductCard className="row-span-5 grid h-full max-w-3xs cursor-pointer grid-rows-subgrid place-items-center gap-y-100 hover:shadow-lg">

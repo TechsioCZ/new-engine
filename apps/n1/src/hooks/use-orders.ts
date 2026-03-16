@@ -1,7 +1,5 @@
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import { getOrderById, getOrders } from "@/services/order-service"
+import { cacheConfig as appCacheConfig } from "@/lib/cache-config"
+import { storefront } from "./storefront-preset"
 import { useSuspenseAuth } from "./use-auth"
 
 export type UseOrdersOptions = {
@@ -9,36 +7,90 @@ export type UseOrdersOptions = {
   offset?: number
 }
 
-export function useSuspenseOrders(options?: UseOrdersOptions) {
-  const { isAuthenticated } = useSuspenseAuth()
-  const limit = options?.limit || 20
-  const offset = options?.offset || 0
+type OrderListInput = {
+  page?: number
+  limit?: number
+  offset?: number
+  enabled?: boolean
+}
 
+type UseOrderInput = {
+  id?: string | null
+  enabled?: boolean
+}
+
+const AUTH_REQUIRED_ERROR = "Uživatel není přihlášen"
+const ORDER_ID_REQUIRED_ERROR = "Order ID je povinný"
+
+type OrderHooks = typeof storefront.hooks.orders
+type UseOrderHookOptions = Parameters<OrderHooks["useOrder"]>[1]
+type UseSuspenseOrderHookOptions = Parameters<OrderHooks["useSuspenseOrder"]>[1]
+type UseSuspenseOrdersResult = ReturnType<OrderHooks["useSuspenseOrders"]>
+type UseOrderResult = ReturnType<OrderHooks["useOrder"]>
+type UseSuspenseOrderResult = ReturnType<OrderHooks["useSuspenseOrder"]>
+type OrdersListPrefetchQuery = ReturnType<OrderHooks["getListQueryOptions"]>
+
+const assertAuthenticated = (isAuthenticated: boolean) => {
   if (!isAuthenticated) {
-    throw new Error("Uživatel není přihlášen")
+    throw new Error(AUTH_REQUIRED_ERROR)
   }
+}
 
-  return useSuspenseQuery({
-    queryKey: queryKeys.orders.list({ limit, offset }),
-    queryFn: () => getOrders({ limit, offset }),
-    ...cacheConfig.userData,
+const assertOrderId = (orderId: string | null): string => {
+  if (!orderId) {
+    throw new Error(ORDER_ID_REQUIRED_ERROR)
+  }
+  return orderId
+}
+
+export function useSuspenseOrders(
+  options?: UseOrdersOptions
+): UseSuspenseOrdersResult {
+  const { isAuthenticated } = useSuspenseAuth()
+
+  assertAuthenticated(isAuthenticated)
+
+  const limit = options?.limit ?? 20
+  const offset = options?.offset ?? 0
+
+  return storefront.hooks.orders.useSuspenseOrders({
+    limit,
+    offset,
   })
 }
 
-export function useSuspenseOrder(orderId: string | null) {
-  const { isAuthenticated } = useSuspenseAuth()
+export function useOrder(
+  input: UseOrderInput,
+  options?: UseOrderHookOptions
+): UseOrderResult {
+  const id = input.id ?? undefined
+  const enabled = Boolean(id) && (input.enabled ?? true)
+  const orderInput = { id, enabled }
 
-  if (!isAuthenticated) {
-    throw new Error("Uživatel není přihlášen")
+  return storefront.hooks.orders.useOrder(orderInput, options)
+}
+
+export function useSuspensePublicOrder(
+  orderId: string | null,
+  options?: UseSuspenseOrderHookOptions
+): UseSuspenseOrderResult {
+  const requiredOrderId = assertOrderId(orderId)
+
+  return storefront.hooks.orders.useSuspenseOrder(
+    {
+      id: requiredOrderId,
+    },
+    options
+  )
+}
+
+export function createOrdersListPrefetchQuery(
+  input: OrderListInput = {
+    page: 1,
+    limit: 20,
   }
-
-  if (!orderId) {
-    throw new Error("Order ID je povinné")
-  }
-
-  return useSuspenseQuery({
-    queryKey: queryKeys.orders.detail(orderId),
-    queryFn: () => getOrderById(orderId),
-    ...cacheConfig.userData,
+): OrdersListPrefetchQuery {
+  return storefront.hooks.orders.getListQueryOptions(input, {
+    queryOptions: appCacheConfig.userData,
   })
 }

@@ -64,8 +64,8 @@
   --spacing-combobox-root-md: var(--spacing-150);
   --spacing-combobox-root-lg: var(--spacing-200);
 
-  --padding-combobox-item-sm: var(--spacing-150) var(--spacing-250);
-  --padding-combobox-item-md: var(--spacing-150) var(--spacing-250);
+  --padding-combobox-item-sm: var(--spacing-50) var(--spacing-150);
+  --padding-combobox-item-md: var(--spacing-50) var(--spacing-200);
   --padding-combobox-item-lg: var(--spacing-50) var(--spacing-250);
 
   --padding-combobox-trigger: 0 var(--spacing-100);
@@ -75,9 +75,6 @@
   /* === TYPOGRAPHY === */
   /* Font sizes and weights */
   --text-combobox-trigger-size: var(--text-lg);
-  --text-combobox-item-sm: var(--text-sm);
-  --text-combobox-item-md: var(--text-md);
-  --text-combobox-item-lg: var(--text-lg);
   --text-combobox-content-sm: var(--text-sm);
   --text-combobox-content-md: var(--text-md);
   --text-combobox-content-lg: var(--text-lg);
