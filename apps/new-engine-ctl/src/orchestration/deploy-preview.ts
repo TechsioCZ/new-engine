@@ -38,6 +38,40 @@ export type DeployPreviewExecutionResult = {
   meiliFrontendEnvVar: string
 }
 
+function supportsPrettyLogs(): boolean {
+  return Boolean(
+    process.stderr.isTTY &&
+      !process.env.GITHUB_ACTIONS &&
+      !process.env.NO_COLOR &&
+      process.env.TERM !== "dumb"
+  )
+}
+
+function colorize(text: string, code: string): string {
+  return supportsPrettyLogs() ? `\u001b[${code}m${text}\u001b[0m` : text
+}
+
+function logDeployProgress(message: string): void {
+  let label = "[preview]"
+  let colorCode = "36;1"
+
+  if (message.includes("Meili")) {
+    label = "[meili]"
+    colorCode = "35;1"
+  } else if (
+    message.startsWith("Waiting for deployments") ||
+    message.startsWith("Deployments are healthy")
+  ) {
+    label = "[wait]"
+    colorCode = message.startsWith("Deployments are healthy") ? "32;1" : "34;1"
+  } else if (message.startsWith("Resolved preview environment")) {
+    label = "[env]"
+    colorCode = "33;1"
+  }
+
+  process.stderr.write(`${colorize(label, colorCode)} ${message}\n`)
+}
+
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
@@ -102,6 +136,9 @@ export async function executeDeployPreview(
     previewEnvPrefix: input.previewEnvPrefix,
   })
   const baselineDeploy = environment.created || !environment.baseline_complete
+  logDeployProgress(
+    `Resolved preview environment ${environment.environment_name} (${environment.environment_id}); baseline mode: ${baselineDeploy ? "replay" : "redeploy-only"}.`
+  )
   const runtimePlan = baselineDeploy
     ? {
         ...plan,
@@ -137,6 +174,9 @@ export async function executeDeployPreview(
       : new ZaneOperatorClient(input.baseUrl, input.apiToken)
 
   if (zaneOperatorClient && input.targetCommitSha) {
+    logDeployProgress(
+      `Persisting preview target commit metadata before deploy stages: ${input.targetCommitSha}.`
+    )
     const previewCommitState = await zaneOperatorClient.writePreviewCommitState({
       project_slug: input.projectSlug,
       environment_name: environment.environment_name,
@@ -155,6 +195,10 @@ export async function executeDeployPreview(
       continue
     }
 
+    logDeployProgress(
+      `Starting preview deploy stage ${stage} for services: ${stageServicesCsv}.`
+    )
+
     if (
       stageNeedsPreviewMeiliKeys(stagePlan) &&
       !stageHasResolvedPreviewMeiliKeys(
@@ -163,6 +207,9 @@ export async function executeDeployPreview(
         meiliFrontendKey
       )
     ) {
+      logDeployProgress(
+        `Stage ${stage} consumes Meili API credentials; provisioning or reusing them before env overrides.`
+      )
       const provisionedKeys = await provisionPreviewMeiliKeys({
         projectSlug: input.projectSlug,
         environmentName: environment.environment_name,
@@ -177,8 +224,12 @@ export async function executeDeployPreview(
       meiliFrontendKey = provisionedKeys.frontend_key
       meiliFrontendEnvVar = provisionedKeys.frontend_env_var
       meiliKeysProvisioned = true
+      logDeployProgress("Meili API credentials resolved for preview consumers.")
     }
 
+    logDeployProgress(
+      `Rendering env overrides for preview stage ${stage}: ${stageServicesCsv}.`
+    )
     const envOverrides = await executeRenderEnvOverrides({
       lane: "preview",
       servicesCsv: stageServicesCsv,
@@ -193,6 +244,9 @@ export async function executeDeployPreview(
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
     })
+    logDeployProgress(
+      `Resolving deploy targets for preview stage ${stage}: ${stageServicesCsv}.`
+    )
     const resolveTargetsPayload: ResolveTargetsPayload = {
       lane: "preview",
       project_slug: input.projectSlug,
@@ -227,10 +281,24 @@ export async function executeDeployPreview(
       filtered.adoptedDeployments
     )
 
+    if (filtered.adoptedDeployments.length > 0) {
+      logDeployProgress(
+        `Reusing active deployments for preview stage ${stage}: ${filtered.adoptedDeployments
+          .map(
+            (deployment) =>
+              `${deployment.service_slug}#${deployment.deployment_hash}`
+          )
+          .join(", ")}.`
+      )
+    }
+
     if (
       filtered.services.length === 0 &&
       filtered.adoptedDeployments.length === 0
     ) {
+      logDeployProgress(
+        `No trigger required for preview stage ${stage}; all services were skipped by current-state checks.`
+      )
       continue
     }
 
@@ -238,6 +306,11 @@ export async function executeDeployPreview(
     let stageTriggeredServicesCsv = ""
 
     if (filtered.services.length > 0) {
+      logDeployProgress(
+        `Applying env overrides for preview stage ${stage}: ${filtered.services
+          .map((service) => service.service_slug)
+          .join(", ")}.`
+      )
       await executeApplyEnvOverridesPayload({
         payload: {
           project_slug: input.projectSlug,
@@ -249,6 +322,11 @@ export async function executeDeployPreview(
         apiToken: input.apiToken,
         dryRun: input.dryRun,
       })
+      logDeployProgress(
+        `Triggering deploys for preview stage ${stage}: ${filtered.services
+          .map((service) => service.service_slug)
+          .join(", ")}.`
+      )
       const trigger = await executeTriggerPayload({
         projectSlug: input.projectSlug,
         environmentName: environment.environment_name,
@@ -266,8 +344,19 @@ export async function executeDeployPreview(
         triggeredServicesCsv,
         stageTriggeredServicesCsv
       )
+      logDeployProgress(
+        `Triggered preview stage ${stage} deployments: ${trigger.services
+          .map(
+            (deployment) =>
+              `${deployment.service_slug}#${deployment.deployment_hash}`
+          )
+          .join(", ")}.`
+      )
     }
 
+    logDeployProgress(
+      `Waiting for preview stage ${stage} deployments to become healthy.`
+    )
     await waitForDeployments({
       lane: "preview",
       projectSlug: input.projectSlug,
@@ -294,6 +383,7 @@ export async function executeDeployPreview(
       tolerateBaseUrlUnavailable: false,
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
+      onProgress: logDeployProgress,
     })
 
     envOverrideServiceIdsCsv = mergeCsvValues(
@@ -305,6 +395,9 @@ export async function executeDeployPreview(
   }
 
   if (zaneOperatorClient && input.targetCommitSha) {
+    logDeployProgress(
+      `Persisting preview last-deployed commit metadata after successful deploy: ${input.targetCommitSha}.`
+    )
     const previewCommitState = await zaneOperatorClient.writePreviewCommitState({
       project_slug: input.projectSlug,
       environment_name: environment.environment_name,

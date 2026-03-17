@@ -104,6 +104,15 @@ function sleep(ms: number): Promise<void> {
   })
 }
 
+function resolveMeiliUrl(meiliUrl: string, path: string): string {
+  const baseUrl = new URL(meiliUrl)
+  const normalizedBasePath = baseUrl.pathname.replace(/\/+$/, "")
+  baseUrl.pathname = normalizedBasePath
+    ? `${normalizedBasePath}/`
+    : "/"
+  return new URL(path.replace(/^\/+/, ""), baseUrl).toString()
+}
+
 export class ZaneMeiliApiCredentialsProvisioner {
   readonly #deps: ProvisionPreviewMeiliApiCredentialsDeps
 
@@ -267,9 +276,9 @@ export class ZaneMeiliApiCredentialsProvisioner {
   }
 
   private async waitForMeiliHealth(meiliUrl: string, healthPath: string): Promise<void> {
-    const normalizedHealthPath = healthPath.startsWith("/") ? healthPath : `/${healthPath}`
+    const healthUrl = resolveMeiliUrl(meiliUrl, healthPath)
     for (let attempt = 0; attempt < 30; attempt += 1) {
-      const response = await fetch(`${meiliUrl.replace(/\/+$/, "")}${normalizedHealthPath}`, {
+      const response = await fetch(healthUrl, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -286,7 +295,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
     throw new UpstreamHttpError(
       504,
       "zane_meili_unhealthy",
-      `Timed out waiting for Meilisearch health at ${meiliUrl}${normalizedHealthPath}`,
+      `Timed out waiting for Meilisearch health at ${healthUrl}`,
     )
   }
 
@@ -295,7 +304,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
     masterKey: string,
     uid: string,
   ): Promise<Record<string, unknown> | null> {
-    const response = await fetch(`${meiliUrl.replace(/\/+$/, "")}/keys/${encodeURIComponent(uid)}`, {
+    const response = await fetch(resolveMeiliUrl(meiliUrl, `/keys/${encodeURIComponent(uid)}`), {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -364,7 +373,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
     path: string,
     payload: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    const response = await fetch(`${meiliUrl.replace(/\/+$/, "")}${path}`, {
+    const response = await fetch(resolveMeiliUrl(meiliUrl, path), {
       method,
       headers: {
         Accept: "application/json",
