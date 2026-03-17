@@ -1,4 +1,5 @@
 import { UpstreamHttpError } from "./zane-errors"
+import { assertEnvironmentMatchesLane } from "./zane-lane-environment"
 import {
   parseErrorMessage,
   updateCookiesFromHeaders,
@@ -110,27 +111,6 @@ type CreateGitServicePayload = {
   dockerfile_path: string
   build_context_dir: string
   git_app_id?: string
-}
-
-function assertEnvironmentMatchesLane(
-  environment: Pick<ZaneEnvironment, "name" | "is_preview">,
-  lane: "preview" | "main"
-): void {
-  if (lane === "main" && environment.is_preview) {
-    throw new UpstreamHttpError(
-      409,
-      "zane_environment_lane_mismatch",
-      `Environment ${environment.name} is a preview environment and cannot be used for main lane operations`
-    )
-  }
-
-  if (lane === "preview" && !environment.is_preview) {
-    throw new UpstreamHttpError(
-      409,
-      "zane_environment_lane_mismatch",
-      `Environment ${environment.name} is not a preview environment and cannot be used for preview lane operations`
-    )
-  }
 }
 
 function buildCreateGitServicePayload(
