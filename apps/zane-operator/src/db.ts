@@ -515,7 +515,7 @@ async function ensurePreviewAppRole(
   }
 
   await sql.unsafe(
-    `ALTER ROLE ${quoteIdentifier(appRoleName)} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS INHERIT PASSWORD ${quoteLiteral(appPassword)};`,
+    `ALTER ROLE ${quoteIdentifier(appRoleName)} WITH LOGIN NOCREATEDB NOCREATEROLE INHERIT PASSWORD ${quoteLiteral(appPassword)};`,
   )
 
   // Allow preview owner to manage default privileges for app role objects.

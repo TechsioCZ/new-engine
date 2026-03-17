@@ -13,6 +13,7 @@ import {
   buildStagePlan,
   collectStageNumbers,
   type DeploymentLike,
+  filterTargetsForGitCommit,
   mergeCsvValues,
   mergeDeployments,
   stageHasService,
@@ -155,35 +156,73 @@ export async function executeDeployPreview(
       apiToken: input.apiToken,
       dryRun: input.dryRun,
     })
-    await executeApplyEnvOverridesPayload({
-      payload: {
-        project_slug: input.projectSlug,
-        environment_name: environment.environment_name,
-        targets: targets.services,
-        env_overrides: envOverrides.services,
-      },
-      baseUrl: input.baseUrl,
-      apiToken: input.apiToken,
-      dryRun: input.dryRun,
-    })
-    const trigger = await executeTriggerPayload({
-      projectSlug: input.projectSlug,
-      environmentName: environment.environment_name,
-      targets: targets.services,
-      gitCommitSha: input.targetCommitSha,
-      baseUrl: input.baseUrl,
-      apiToken: input.apiToken,
-      dryRun: input.dryRun,
-    })
+    const filtered =
+      environment.created || !input.targetCommitSha
+        ? {
+            services: targets.services,
+            skippedServices: [],
+            adoptedDeployments: [] as DeploymentLike[],
+            filteredEnvOverrides: envOverrides.services,
+          }
+        : filterTargetsForGitCommit(
+            targets.services,
+            envOverrides.services,
+            input.targetCommitSha
+          )
 
-    allDeployments = mergeDeployments(allDeployments, trigger.services)
+    allDeployments = mergeDeployments(
+      allDeployments,
+      filtered.adoptedDeployments
+    )
+
+    if (
+      filtered.services.length === 0 &&
+      filtered.adoptedDeployments.length === 0
+    ) {
+      continue
+    }
+
+    let stageDeployments = filtered.adoptedDeployments
+    let stageTriggeredServicesCsv = ""
+
+    if (filtered.services.length > 0) {
+      await executeApplyEnvOverridesPayload({
+        payload: {
+          project_slug: input.projectSlug,
+          environment_name: environment.environment_name,
+          targets: filtered.services,
+          env_overrides: filtered.filteredEnvOverrides,
+        },
+        baseUrl: input.baseUrl,
+        apiToken: input.apiToken,
+        dryRun: input.dryRun,
+      })
+      const trigger = await executeTriggerPayload({
+        projectSlug: input.projectSlug,
+        environmentName: environment.environment_name,
+        targets: filtered.services,
+        gitCommitSha: input.targetCommitSha,
+        baseUrl: input.baseUrl,
+        apiToken: input.apiToken,
+        dryRun: input.dryRun,
+      })
+
+      stageDeployments = mergeDeployments(stageDeployments, trigger.services)
+      allDeployments = mergeDeployments(allDeployments, trigger.services)
+      stageTriggeredServicesCsv = trigger.triggered_service_ids.join(",")
+      triggeredServicesCsv = mergeCsvValues(
+        triggeredServicesCsv,
+        stageTriggeredServicesCsv
+      )
+    }
+
     await waitForDeployments({
       lane: "preview",
       projectSlug: input.projectSlug,
       environmentName: environment.environment_name,
       requestedServicesCsv: stageServicesCsv,
       deployServicesCsv: stageServicesCsv,
-      triggeredServicesCsv: trigger.triggered_service_ids.join(","),
+      triggeredServicesCsv: stageTriggeredServicesCsv,
       previewClonedServiceIdsCsv: runtimePlan.preview_cloned_service_ids_csv,
       previewExcludedServiceIdsCsv:
         runtimePlan.preview_excluded_service_ids_csv,
@@ -194,7 +233,7 @@ export async function executeDeployPreview(
       meiliFrontendKey,
       meiliFrontendEnvVar,
       meiliBackendKey,
-      deployments: trigger.services,
+      deployments: stageDeployments,
       baseUrl: input.baseUrl,
       apiToken: input.apiToken,
       dryRun: input.dryRun,
@@ -205,13 +244,11 @@ export async function executeDeployPreview(
       stackInputsPath: input.stackInputsPath,
     })
 
-    triggeredServicesCsv = mergeCsvValues(
-      triggeredServicesCsv,
-      trigger.triggered_service_ids.join(",")
-    )
     envOverrideServiceIdsCsv = mergeCsvValues(
       envOverrideServiceIdsCsv,
-      envOverrides.services.map((service) => service.service_id).join(",")
+      filtered.filteredEnvOverrides
+        .map((service) => service.service_id)
+        .join(",")
     )
 
     if (
