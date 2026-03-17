@@ -867,6 +867,9 @@ export function createMedusaStorefrontPreset<
     }),
     checkout: createCheckoutHooks({
       ...(checkoutHookOverrides ?? {}),
+      isActiveCartQueryKey:
+        checkoutHookOverrides?.isActiveCartQueryKey ??
+        cartFlowOverrides?.isActiveCartQueryKey,
       service: services.checkout,
       queryKeys: queryKeys.checkout,
       cartQueryKeys: queryKeys.cart,

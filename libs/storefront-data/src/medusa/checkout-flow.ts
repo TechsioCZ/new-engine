@@ -39,6 +39,7 @@ type MedusaCheckoutShippingHook = (
   setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
   isSettingShipping: boolean
   selectedShippingMethodId?: string
+  selectedShippingMethodData?: Record<string, unknown>
   selectedOption?: HttpTypes.StoreCartShippingOption
 }
 
@@ -306,7 +307,6 @@ export function createMedusaCheckoutFlow({
     cart?: HttpTypes.StoreCart | null,
     options?: UseMedusaCheckoutShippingOptions
   ): UseMedusaCheckoutShippingReturn {
-    const queryClient = useQueryClient()
     const { resolvedCartId, normalizedCart } = resolveCheckoutCartInput({
       cartId,
       cart,
@@ -314,17 +314,10 @@ export function createMedusaCheckoutFlow({
     const normalizeShippingData =
       options?.normalizeShippingData ?? defaultNormalizeShippingData
     const canLoadShipping = Boolean(resolvedCartId)
-    const effectiveCart = resolvedCartId
-      ? resolveEffectiveCart({
-          queryClient,
-          cartId: resolvedCartId,
-          cart: normalizedCart,
-        })
-      : normalizedCart ?? null
     const shipping = checkoutHooks.useCheckoutShipping(
       {
         cartId: resolvedCartId,
-        cart: effectiveCart,
+        cart: normalizedCart,
         enabled: options?.enabled ?? canLoadShipping,
         calculatePrices: options?.calculatePrices,
       },
@@ -340,9 +333,10 @@ export function createMedusaCheckoutFlow({
 
     const setShipping = (optionId: string, data?: MedusaShippingMethodData) => {
       const cleanedData = normalizeShippingData(data)
-      const currentData = effectiveCart?.shipping_methods?.find(
-        (method) => method.shipping_option_id === optionId
-      )?.data
+      const currentData =
+        shipping.selectedShippingMethodId === optionId
+          ? shipping.selectedShippingMethodData
+          : undefined
 
       if (
         isSameShippingSelection({

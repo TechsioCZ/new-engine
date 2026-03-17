@@ -505,6 +505,65 @@ describe("Medusa flow helpers", () => {
     ).toBeUndefined()
   })
 
+  it("supports custom active cart query matcher in checkout payment flow", async () => {
+    const { sdk } = createSdkMock()
+    const customCartNamespace = ["custom", "cart"] as const
+    const customCartQueryKeys: CartQueryKeys = {
+      all: () => createQueryKey(customCartNamespace),
+      active: (params) =>
+        createQueryKey(customCartNamespace, params.cartId ?? "__none__"),
+      detail: (cartId) => createQueryKey(customCartNamespace, "detail", cartId),
+    }
+
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+      cart: {
+        queryKeys: customCartQueryKeys,
+        flow: {
+          isActiveCartQueryKey: (queryKey, cartId) =>
+            queryKey[0] === "custom" &&
+            queryKey[1] === "cart" &&
+            queryKey[2] === cartId,
+        },
+      },
+    })
+    const checkoutFlow = storefront.flows.checkout
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+
+    queryClient.setQueryData(
+      customCartQueryKeys.active({ cartId: "cart_1" }),
+      {
+        id: "cart_1",
+        region_id: "reg_1",
+        items: [{ id: "item_1", quantity: 1 }],
+        shipping_methods: [{ shipping_option_id: "ship_1" }],
+        payment_collection: {
+          id: "payment_collection_1",
+          payment_sessions: [{ provider_id: "pp_system_default" }],
+        },
+      }
+    )
+
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(
+      () => checkoutFlow.useCheckoutPayment("cart_1"),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.paymentProviders).toHaveLength(1)
+    })
+
+    expect(result.current.canInitiatePayment).toBe(true)
+    expect(result.current.hasPaymentCollection).toBe(true)
+    expect(result.current.hasPaymentSessions).toBe(true)
+  })
+
   it("does not clear a newly switched cart id when complete-cart finishes", async () => {
     const { sdk } = createSdkMock()
     let storedCartId: string | null = "cart_1"
@@ -640,6 +699,57 @@ describe("Medusa flow helpers", () => {
 
     await waitFor(() => {
       expect(result.current.shippingOptions.length).toBe(1)
+    })
+
+    act(() => {
+      result.current.setShipping("ship_1", {
+        pickup_point_id: "pickup-1",
+        empty: "",
+      })
+    })
+
+    expect(spies.addShippingMethod).not.toHaveBeenCalled()
+  })
+
+  it("skips duplicate shipping selection after cart hydrates post-mount", async () => {
+    const { sdk, spies } = createSdkMock()
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+    })
+    const checkoutFlow = storefront.flows.checkout
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(
+      () => checkoutFlow.useCheckoutShipping("cart_1"),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.shippingOptions.length).toBe(1)
+    })
+
+    act(() => {
+      queryClient.setQueryData(storefront.queryKeys.cart.detail("cart_1"), {
+        id: "cart_1",
+        region_id: "reg_1",
+        items: [{ id: "item_1", quantity: 1 }],
+        shipping_methods: [
+          {
+            shipping_option_id: "ship_1",
+            data: { pickup_point_id: "pickup-1" },
+          },
+        ],
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.selectedShippingMethodId).toBe("ship_1")
     })
 
     act(() => {

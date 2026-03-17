@@ -8,6 +8,7 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import {
+  type ActiveCartQueryKeyMatcher,
   getCachedCartById,
   patchCartCaches,
   syncCartCaches,
@@ -80,6 +81,8 @@ export type CreateCheckoutHooksConfig<
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
   cartQueryKeys?: CartQueryKeys
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+
 }
 
 export function createCheckoutHooks<
@@ -94,6 +97,7 @@ export function createCheckoutHooks<
   queryKeyNamespace = "storefront-data",
   cacheConfig,
   cartQueryKeys,
+  isActiveCartQueryKey,
 }: CreateCheckoutHooksConfig<
   TCart,
   TShippingOption,
@@ -104,6 +108,10 @@ export function createCheckoutHooks<
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createCheckoutQueryKeys(queryKeyNamespace)
+
+  const cartCacheOptions = isActiveCartQueryKey
+    ? { isActiveCartQueryKey }
+    : undefined
 
   const getPaymentProvidersQueryOptions = (regionId: string) => ({
     queryKey: resolvedQueryKeys.paymentProviders(regionId),
@@ -261,26 +269,24 @@ export function createCheckoutHooks<
     cartId: string | undefined
   ): TCart | null {
     const queryClient = useQueryClient()
-    const canSubscribeToCart = Boolean(!inputCart && cartId && cartQueryKeys)
+    const canSubscribeToCart = Boolean(cartId && cartQueryKeys)
     const fallbackReactiveCartKey: readonly unknown[] = [
       ...resolvedQueryKeys.all(),
       "reactive-cart",
       cartId ?? "unknown",
     ]
-    const initialCart =
+    const readCachedCart = () =>
       canSubscribeToCart && cartId && cartQueryKeys
-        ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId)
+        ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId, cartCacheOptions)
         : null
+    const initialCart = readCachedCart() ?? inputCart ?? null
 
     const { data: cachedCart = initialCart } = useQuery({
       queryKey:
         canSubscribeToCart && cartId && cartQueryKeys
           ? cartQueryKeys.detail(cartId)
           : fallbackReactiveCartKey,
-      queryFn: () =>
-        canSubscribeToCart && cartId && cartQueryKeys
-          ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId)
-          : null,
+      queryFn: readCachedCart,
       enabled: canSubscribeToCart,
       initialData: initialCart,
       staleTime: Number.POSITIVE_INFINITY,
@@ -290,7 +296,7 @@ export function createCheckoutHooks<
       refetchOnReconnect: false,
     })
 
-    return inputCart ?? cachedCart ?? null
+    return cachedCart ?? inputCart ?? null
   }
 
   function useCheckoutShipping<TContext = unknown>(
@@ -305,6 +311,8 @@ export function createCheckoutHooks<
     const enabled = input.enabled ?? Boolean(cartId)
     const calculatePrices = input.calculatePrices ?? true
     const cacheKey = input.cacheKey
+
+    const effectiveCart = useReactiveCart(input.cart, cartId)
 
     const {
       data: shippingOptions = [],
@@ -387,7 +395,9 @@ export function createCheckoutHooks<
     ) => mutateShippingMethodAsync({ optionId, data })
 
     const selectedShippingMethodId =
-      input.cart?.shipping_methods?.[0]?.shipping_option_id
+      effectiveCart?.shipping_methods?.[0]?.shipping_option_id
+    const selectedShippingMethodData =
+      effectiveCart?.shipping_methods?.[0]?.data
     const selectedOption = shippingOptions.find(
       (option) => option.id === selectedShippingMethodId
     )
@@ -402,6 +412,7 @@ export function createCheckoutHooks<
       setShippingMethodAsync,
       isSettingShipping,
       selectedShippingMethodId,
+      selectedShippingMethodData,
       selectedOption,
     }
   }
@@ -420,6 +431,8 @@ export function createCheckoutHooks<
     }
     const calculatePrices = input.calculatePrices ?? true
     const cacheKey = input.cacheKey
+    const effectiveCart = useReactiveCart(input.cart, cartId)
+
 
     const { data: shippingOptions, isFetching } = useSuspenseQuery({
       queryKey: resolvedQueryKeys.shippingOptions(cartId, cacheKey),
@@ -485,7 +498,9 @@ export function createCheckoutHooks<
     ) => mutateShippingMethodAsync({ optionId, data })
 
     const selectedShippingMethodId =
-      input.cart?.shipping_methods?.[0]?.shipping_option_id
+      effectiveCart?.shipping_methods?.[0]?.shipping_option_id
+    const selectedShippingMethodData =
+      effectiveCart?.shipping_methods?.[0]?.data
     const selectedOption = shippingOptions.find(
       (option) => option.id === selectedShippingMethodId
     )
@@ -500,6 +515,7 @@ export function createCheckoutHooks<
       setShippingMethodAsync,
       isSettingShipping,
       selectedShippingMethodId,
+      selectedShippingMethodData,
       selectedOption,
     }
   }
