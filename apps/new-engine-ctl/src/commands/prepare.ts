@@ -46,7 +46,7 @@ export function createPrepareCommand(): Command {
   const command = new Command("prepare")
 
   command
-    .description("Run preview/main prepare orchestration")
+    .description("Run preview shared-resource prepare orchestration")
     .requiredOption("--lane <preview|main>")
     .option("--project-slug <slug>")
     .option("--pr-number <n>")

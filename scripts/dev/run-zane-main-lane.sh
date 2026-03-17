@@ -28,7 +28,7 @@ Usage:
   scripts/dev/run-zane-main-lane.sh [options]
 
 Simulates the active CI main lane locally in the same stage order:
-  scope -> prepare -> deploy -> verify
+  scope -> deploy -> verify
 
 Options:
   --env-file <path>             source local defaults from file (default: .env)
@@ -433,8 +433,7 @@ main() {
     common::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(\",\")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
   fi
   requires_meili_keys="$(jq -r '.requires_meili_keys' <<<"$prepare_needs_json")"
-  common::stage "Prepare"
-  common::step "Skipping main prepare stage: main lane has no active shared-resource prepare work."
+  common::step "Main lane has no active shared-resource pre-deploy phase."
   if ! deploy_json="$(run_deploy_stage "$requires_meili_keys")"; then
     common::die "Main deploy stage failed. See the deployment error above for the failing stage and deployment hash."
   fi

@@ -9,7 +9,7 @@ usage() {
   cat <<'EOF'
 Usage: scripts/dev/provision-meili-keys.sh [options]
 
-Thin helper around `apps/new-engine-ctl prepare --lane main --requires-meili-keys`.
+Thin helper around `apps/new-engine-ctl meili-api-credentials`.
 
 Options:
   --meili-url <url>             Meilisearch base URL
@@ -91,20 +91,17 @@ done
 temp_output="$(mktemp)"
 trap 'rm -f "$temp_output"' EXIT
 caller_github_output="${GITHUB_OUTPUT:-}"
-
-prepare_args=(
-  --lane main
-  --requires-meili-keys
+command_args=(
+  meili-api-credentials
   --meili-url "$meili_url"
-  --meili-master-key "$master_key"
-  --meili-wait-seconds "$wait_seconds"
-  --timeout-seconds "$timeout_seconds"
+  --master-key "$master_key"
+  --wait-seconds "$wait_seconds"
   --retry-count "$retry_count"
   --retry-delay-seconds "$retry_delay_seconds"
 )
 
 if [[ "$dry_run" == "true" ]]; then
-  prepare_args+=(--dry-run)
+  command_args+=(--dry-run)
 fi
 
 (
@@ -112,10 +109,10 @@ fi
   pnpm run build >/dev/null
 )
 
-prepare_json="$(
+meili_json="$(
   cd "$ROOT_DIR" &&
     GITHUB_OUTPUT="$temp_output" \
-    node apps/new-engine-ctl/dist/cli.js prepare "${prepare_args[@]}"
+    node apps/new-engine-ctl/dist/cli.js "${command_args[@]}"
 )"
 
 if [[ -n "$caller_github_output" ]]; then
@@ -138,11 +135,11 @@ frontend_created="$(read_output meili_frontend_created)"
 backend_updated="$(read_output meili_backend_updated)"
 frontend_updated="$(read_output meili_frontend_updated)"
 
-[[ -n "$backend_key" ]] || common::die "Failed to resolve backend key from CLI prepare outputs."
-[[ -n "$frontend_key" ]] || common::die "Failed to resolve frontend key from CLI prepare outputs."
+[[ -n "$backend_key" ]] || common::die "Failed to resolve backend key from CLI Meili API credential outputs."
+[[ -n "$frontend_key" ]] || common::die "Failed to resolve frontend key from CLI Meili API credential outputs."
 
-printf '%s\n' "$prepare_json" | jq -e . >/dev/null 2>&1 || common::die "CLI prepare did not return valid JSON."
-meili_url_json="$(printf '%s\n' "$prepare_json" | jq -r '.meili_url // empty')"
+printf '%s\n' "$meili_json" | jq -e . >/dev/null 2>&1 || common::die "CLI Meili API credential command did not return valid JSON."
+meili_url_json="$(printf '%s\n' "$meili_json" | jq -r '.meili_url // empty')"
 
 printf 'meili_url=%s\n' "$meili_url_json"
 printf 'backend_env_var=%s\n' "$backend_env_var"

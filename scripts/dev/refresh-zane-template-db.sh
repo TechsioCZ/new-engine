@@ -41,7 +41,7 @@ usage() {
 Usage:
   scripts/dev/refresh-zane-template-db.sh [options]
 
-Refreshes the live preview template database on the Zane-deployed stack by:
+Creates or refreshes the live preview template database on the Zane-deployed stack by:
 1. dumping the source Medusa DB
 2. restoring into a staging DB
 3. swapping staging into the configured template DB
