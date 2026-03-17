@@ -37,6 +37,8 @@ That lets each storefront keep a thin local composition module for:
 }
 ```
 
+If you use an AI agent, run `npx @tanstack/intent@latest install`.
+
 If you use Next.js, transpile the package:
 
 ```js

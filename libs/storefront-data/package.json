@@ -1,256 +1,262 @@
 {
-  "name": "@techsio/storefront-data",
-  "version": "0.1.0",
-  "type": "module",
-  "exports": {
-    ".": null,
-    "./package.json": "./package.json",
-    "./client/provider": {
-      "types": "./dist/src/client/provider.d.ts",
-      "import": "./dist/client/provider.js"
-    },
-    "./server/get-query-client": {
-      "types": "./dist/src/server/get-query-client.d.ts",
-      "import": "./dist/server/get-query-client.js"
-    },
-    "./shared/address": {
-      "types": "./dist/src/shared/address.d.ts",
-      "import": "./dist/shared/address.js"
-    },
-    "./shared/cache-config": {
-      "types": "./dist/src/shared/cache-config.d.ts",
-      "import": "./dist/shared/cache-config.js"
-    },
-    "./shared/medusa-client": {
-      "types": "./dist/src/shared/medusa-client.d.ts",
-      "import": "./dist/shared/medusa-client.js"
-    },
-    "./shared/query-client": {
-      "types": "./dist/src/shared/query-client.d.ts",
-      "import": "./dist/shared/query-client.js"
-    },
-    "./shared/region-context": {
-      "types": "./dist/src/shared/region-context.d.ts",
-      "import": "./dist/shared/region-context.js"
-    },
-    "./shared/query-keys": {
-      "types": "./dist/src/shared/query-keys.d.ts",
-      "import": "./dist/shared/query-keys.js"
-    },
-    "./auth/hooks": {
-      "types": "./dist/src/auth/hooks.d.ts",
-      "import": "./dist/auth/hooks.js"
-    },
-    "./auth/medusa-service": {
-      "types": "./dist/src/auth/medusa-service.d.ts",
-      "import": "./dist/auth/medusa-service.js"
-    },
-    "./auth/query-keys": {
-      "types": "./dist/src/auth/query-keys.d.ts",
-      "import": "./dist/auth/query-keys.js"
-    },
-    "./auth/types": {
-      "types": "./dist/src/auth/types.d.ts",
-      "import": "./dist/auth/types.js"
-    },
-    "./shared/browser-storage": {
-      "types": "./dist/src/shared/browser-storage.d.ts",
-      "import": "./dist/shared/browser-storage.js"
-    },
-    "./cart/hooks": {
-      "types": "./dist/src/cart/hooks.d.ts",
-      "import": "./dist/cart/hooks.js"
-    },
-    "./cart/medusa-service": {
-      "types": "./dist/src/cart/medusa-service.d.ts",
-      "import": "./dist/cart/medusa-service.js"
-    },
-    "./cart/query-keys": {
-      "types": "./dist/src/cart/query-keys.d.ts",
-      "import": "./dist/cart/query-keys.js"
-    },
-    "./cart/types": {
-      "types": "./dist/src/cart/types.d.ts",
-      "import": "./dist/cart/types.js"
-    },
-    "./catalog/hooks": {
-      "types": "./dist/src/catalog/hooks.d.ts",
-      "import": "./dist/catalog/hooks.js"
-    },
-    "./catalog/medusa-service": {
-      "types": "./dist/src/catalog/medusa-service.d.ts",
-      "import": "./dist/catalog/medusa-service.js"
-    },
-    "./catalog/query-keys": {
-      "types": "./dist/src/catalog/query-keys.d.ts",
-      "import": "./dist/catalog/query-keys.js"
-    },
-    "./catalog/types": {
-      "types": "./dist/src/catalog/types.d.ts",
-      "import": "./dist/catalog/types.js"
-    },
-    "./categories/hooks": {
-      "types": "./dist/src/categories/hooks.d.ts",
-      "import": "./dist/categories/hooks.js"
-    },
-    "./categories/medusa-service": {
-      "types": "./dist/src/categories/medusa-service.d.ts",
-      "import": "./dist/categories/medusa-service.js"
-    },
-    "./categories/query-keys": {
-      "types": "./dist/src/categories/query-keys.d.ts",
-      "import": "./dist/categories/query-keys.js"
-    },
-    "./categories/types": {
-      "types": "./dist/src/categories/types.d.ts",
-      "import": "./dist/categories/types.js"
-    },
-    "./checkout/address": {
-      "types": "./dist/src/checkout/address.d.ts",
-      "import": "./dist/checkout/address.js"
-    },
-    "./checkout/hooks": {
-      "types": "./dist/src/checkout/hooks.d.ts",
-      "import": "./dist/checkout/hooks.js"
-    },
-    "./checkout/medusa-service": {
-      "types": "./dist/src/checkout/medusa-service.d.ts",
-      "import": "./dist/checkout/medusa-service.js"
-    },
-    "./checkout/query-keys": {
-      "types": "./dist/src/checkout/query-keys.d.ts",
-      "import": "./dist/checkout/query-keys.js"
-    },
-    "./checkout/types": {
-      "types": "./dist/src/checkout/types.d.ts",
-      "import": "./dist/checkout/types.js"
-    },
-    "./collections/hooks": {
-      "types": "./dist/src/collections/hooks.d.ts",
-      "import": "./dist/collections/hooks.js"
-    },
-    "./collections/medusa-service": {
-      "types": "./dist/src/collections/medusa-service.d.ts",
-      "import": "./dist/collections/medusa-service.js"
-    },
-    "./collections/query-keys": {
-      "types": "./dist/src/collections/query-keys.d.ts",
-      "import": "./dist/collections/query-keys.js"
-    },
-    "./collections/types": {
-      "types": "./dist/src/collections/types.d.ts",
-      "import": "./dist/collections/types.js"
-    },
-    "./customers/hooks": {
-      "types": "./dist/src/customers/hooks.d.ts",
-      "import": "./dist/customers/hooks.js"
-    },
-    "./customers/medusa-service": {
-      "types": "./dist/src/customers/medusa-service.d.ts",
-      "import": "./dist/customers/medusa-service.js"
-    },
-    "./customers/query-keys": {
-      "types": "./dist/src/customers/query-keys.d.ts",
-      "import": "./dist/customers/query-keys.js"
-    },
-    "./customers/types": {
-      "types": "./dist/src/customers/types.d.ts",
-      "import": "./dist/customers/types.js"
-    },
-    "./medusa/preset": {
-      "types": "./dist/src/medusa/preset.d.ts",
-      "import": "./dist/medusa/preset.js"
-    },
-    "./orders/hooks": {
-      "types": "./dist/src/orders/hooks.d.ts",
-      "import": "./dist/orders/hooks.js"
-    },
-    "./orders/medusa-service": {
-      "types": "./dist/src/orders/medusa-service.d.ts",
-      "import": "./dist/orders/medusa-service.js"
-    },
-    "./orders/query-keys": {
-      "types": "./dist/src/orders/query-keys.d.ts",
-      "import": "./dist/orders/query-keys.js"
-    },
-    "./orders/types": {
-      "types": "./dist/src/orders/types.d.ts",
-      "import": "./dist/orders/types.js"
-    },
-    "./products/hooks": {
-      "types": "./dist/src/products/hooks.d.ts",
-      "import": "./dist/products/hooks.js"
-    },
-    "./products/medusa-service": {
-      "types": "./dist/src/products/medusa-service.d.ts",
-      "import": "./dist/products/medusa-service.js"
-    },
-    "./products/query-keys": {
-      "types": "./dist/src/products/query-keys.d.ts",
-      "import": "./dist/products/query-keys.js"
-    },
-    "./products/types": {
-      "types": "./dist/src/products/types.d.ts",
-      "import": "./dist/products/types.js"
-    },
-    "./regions/hooks": {
-      "types": "./dist/src/regions/hooks.d.ts",
-      "import": "./dist/regions/hooks.js"
-    },
-    "./regions/medusa-service": {
-      "types": "./dist/src/regions/medusa-service.d.ts",
-      "import": "./dist/regions/medusa-service.js"
-    },
-    "./regions/query-keys": {
-      "types": "./dist/src/regions/query-keys.d.ts",
-      "import": "./dist/regions/query-keys.js"
-    },
-    "./regions/types": {
-      "types": "./dist/src/regions/types.d.ts",
-      "import": "./dist/regions/types.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "rslib build",
-    "dev": "rslib build --watch",
-    "lint": "pnpm -w exec biome lint libs/storefront-data/src --diagnostic-level=error",
-    "test": "vitest run --config vitest.config.ts --typecheck",
-    "test:runtime": "vitest run --config vitest.config.ts"
-  },
-  "nx": {
-    "targets": {
-      "test": {
-        "executor": "nx:run-commands",
-        "options": {
-          "command": "pnpm test",
-          "cwd": "libs/storefront-data"
-        },
-        "cache": true
+   "name": "@techsio/storefront-data",
+   "version": "0.1.0",
+   "type": "module",
+   "exports": {
+      ".": null,
+      "./package.json": "./package.json",
+      "./client/provider": {
+         "types": "./dist/src/client/provider.d.ts",
+         "import": "./dist/client/provider.js"
+      },
+      "./server/get-query-client": {
+         "types": "./dist/src/server/get-query-client.d.ts",
+         "import": "./dist/server/get-query-client.js"
+      },
+      "./shared/address": {
+         "types": "./dist/src/shared/address.d.ts",
+         "import": "./dist/shared/address.js"
+      },
+      "./shared/cache-config": {
+         "types": "./dist/src/shared/cache-config.d.ts",
+         "import": "./dist/shared/cache-config.js"
+      },
+      "./shared/medusa-client": {
+         "types": "./dist/src/shared/medusa-client.d.ts",
+         "import": "./dist/shared/medusa-client.js"
+      },
+      "./shared/query-client": {
+         "types": "./dist/src/shared/query-client.d.ts",
+         "import": "./dist/shared/query-client.js"
+      },
+      "./shared/region-context": {
+         "types": "./dist/src/shared/region-context.d.ts",
+         "import": "./dist/shared/region-context.js"
+      },
+      "./shared/query-keys": {
+         "types": "./dist/src/shared/query-keys.d.ts",
+         "import": "./dist/shared/query-keys.js"
+      },
+      "./auth/hooks": {
+         "types": "./dist/src/auth/hooks.d.ts",
+         "import": "./dist/auth/hooks.js"
+      },
+      "./auth/medusa-service": {
+         "types": "./dist/src/auth/medusa-service.d.ts",
+         "import": "./dist/auth/medusa-service.js"
+      },
+      "./auth/query-keys": {
+         "types": "./dist/src/auth/query-keys.d.ts",
+         "import": "./dist/auth/query-keys.js"
+      },
+      "./auth/types": {
+         "types": "./dist/src/auth/types.d.ts",
+         "import": "./dist/auth/types.js"
+      },
+      "./shared/browser-storage": {
+         "types": "./dist/src/shared/browser-storage.d.ts",
+         "import": "./dist/shared/browser-storage.js"
+      },
+      "./cart/hooks": {
+         "types": "./dist/src/cart/hooks.d.ts",
+         "import": "./dist/cart/hooks.js"
+      },
+      "./cart/medusa-service": {
+         "types": "./dist/src/cart/medusa-service.d.ts",
+         "import": "./dist/cart/medusa-service.js"
+      },
+      "./cart/query-keys": {
+         "types": "./dist/src/cart/query-keys.d.ts",
+         "import": "./dist/cart/query-keys.js"
+      },
+      "./cart/types": {
+         "types": "./dist/src/cart/types.d.ts",
+         "import": "./dist/cart/types.js"
+      },
+      "./catalog/hooks": {
+         "types": "./dist/src/catalog/hooks.d.ts",
+         "import": "./dist/catalog/hooks.js"
+      },
+      "./catalog/medusa-service": {
+         "types": "./dist/src/catalog/medusa-service.d.ts",
+         "import": "./dist/catalog/medusa-service.js"
+      },
+      "./catalog/query-keys": {
+         "types": "./dist/src/catalog/query-keys.d.ts",
+         "import": "./dist/catalog/query-keys.js"
+      },
+      "./catalog/types": {
+         "types": "./dist/src/catalog/types.d.ts",
+         "import": "./dist/catalog/types.js"
+      },
+      "./categories/hooks": {
+         "types": "./dist/src/categories/hooks.d.ts",
+         "import": "./dist/categories/hooks.js"
+      },
+      "./categories/medusa-service": {
+         "types": "./dist/src/categories/medusa-service.d.ts",
+         "import": "./dist/categories/medusa-service.js"
+      },
+      "./categories/query-keys": {
+         "types": "./dist/src/categories/query-keys.d.ts",
+         "import": "./dist/categories/query-keys.js"
+      },
+      "./categories/types": {
+         "types": "./dist/src/categories/types.d.ts",
+         "import": "./dist/categories/types.js"
+      },
+      "./checkout/address": {
+         "types": "./dist/src/checkout/address.d.ts",
+         "import": "./dist/checkout/address.js"
+      },
+      "./checkout/hooks": {
+         "types": "./dist/src/checkout/hooks.d.ts",
+         "import": "./dist/checkout/hooks.js"
+      },
+      "./checkout/medusa-service": {
+         "types": "./dist/src/checkout/medusa-service.d.ts",
+         "import": "./dist/checkout/medusa-service.js"
+      },
+      "./checkout/query-keys": {
+         "types": "./dist/src/checkout/query-keys.d.ts",
+         "import": "./dist/checkout/query-keys.js"
+      },
+      "./checkout/types": {
+         "types": "./dist/src/checkout/types.d.ts",
+         "import": "./dist/checkout/types.js"
+      },
+      "./collections/hooks": {
+         "types": "./dist/src/collections/hooks.d.ts",
+         "import": "./dist/collections/hooks.js"
+      },
+      "./collections/medusa-service": {
+         "types": "./dist/src/collections/medusa-service.d.ts",
+         "import": "./dist/collections/medusa-service.js"
+      },
+      "./collections/query-keys": {
+         "types": "./dist/src/collections/query-keys.d.ts",
+         "import": "./dist/collections/query-keys.js"
+      },
+      "./collections/types": {
+         "types": "./dist/src/collections/types.d.ts",
+         "import": "./dist/collections/types.js"
+      },
+      "./customers/hooks": {
+         "types": "./dist/src/customers/hooks.d.ts",
+         "import": "./dist/customers/hooks.js"
+      },
+      "./customers/medusa-service": {
+         "types": "./dist/src/customers/medusa-service.d.ts",
+         "import": "./dist/customers/medusa-service.js"
+      },
+      "./customers/query-keys": {
+         "types": "./dist/src/customers/query-keys.d.ts",
+         "import": "./dist/customers/query-keys.js"
+      },
+      "./customers/types": {
+         "types": "./dist/src/customers/types.d.ts",
+         "import": "./dist/customers/types.js"
+      },
+      "./medusa/preset": {
+         "types": "./dist/src/medusa/preset.d.ts",
+         "import": "./dist/medusa/preset.js"
+      },
+      "./orders/hooks": {
+         "types": "./dist/src/orders/hooks.d.ts",
+         "import": "./dist/orders/hooks.js"
+      },
+      "./orders/medusa-service": {
+         "types": "./dist/src/orders/medusa-service.d.ts",
+         "import": "./dist/orders/medusa-service.js"
+      },
+      "./orders/query-keys": {
+         "types": "./dist/src/orders/query-keys.d.ts",
+         "import": "./dist/orders/query-keys.js"
+      },
+      "./orders/types": {
+         "types": "./dist/src/orders/types.d.ts",
+         "import": "./dist/orders/types.js"
+      },
+      "./products/hooks": {
+         "types": "./dist/src/products/hooks.d.ts",
+         "import": "./dist/products/hooks.js"
+      },
+      "./products/medusa-service": {
+         "types": "./dist/src/products/medusa-service.d.ts",
+         "import": "./dist/products/medusa-service.js"
+      },
+      "./products/query-keys": {
+         "types": "./dist/src/products/query-keys.d.ts",
+         "import": "./dist/products/query-keys.js"
+      },
+      "./products/types": {
+         "types": "./dist/src/products/types.d.ts",
+         "import": "./dist/products/types.js"
+      },
+      "./regions/hooks": {
+         "types": "./dist/src/regions/hooks.d.ts",
+         "import": "./dist/regions/hooks.js"
+      },
+      "./regions/medusa-service": {
+         "types": "./dist/src/regions/medusa-service.d.ts",
+         "import": "./dist/regions/medusa-service.js"
+      },
+      "./regions/query-keys": {
+         "types": "./dist/src/regions/query-keys.d.ts",
+         "import": "./dist/regions/query-keys.js"
+      },
+      "./regions/types": {
+         "types": "./dist/src/regions/types.d.ts",
+         "import": "./dist/regions/types.js"
       }
-    }
-  },
-  "devDependencies": {
-    "@rsbuild/plugin-react": "^1.4.1",
-    "@rslib/core": "^0.18.0",
-    "@testing-library/react": "^16.3.1",
-    "@types/react": "^19.2.3",
-    "@types/react-dom": "^19.2.3",
-    "jsdom": "^27.4.0",
-    "msw": "^2.8.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.17"
-  },
-  "peerDependencies": {
-    "@medusajs/js-sdk": ">=2.12.0",
-    "@medusajs/types": ">=2.12.0",
-    "@tanstack/react-query": ">=5.0.0",
-    "react": ">=19.2.0",
-    "react-dom": ">=19.2.0"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+   },
+   "files": [
+      "dist",
+      "skills",
+      "!skills/_artifacts"
+   ],
+   "scripts": {
+      "build": "rslib build",
+      "dev": "rslib build --watch",
+      "lint": "pnpm -w exec biome lint libs/storefront-data/src --diagnostic-level=error",
+      "test": "vitest run --config vitest.config.ts --typecheck",
+      "test:runtime": "vitest run --config vitest.config.ts"
+   },
+   "nx": {
+      "targets": {
+         "test": {
+            "executor": "nx:run-commands",
+            "options": {
+               "command": "pnpm test",
+               "cwd": "libs/storefront-data"
+            },
+            "cache": true
+         }
+      }
+   },
+   "devDependencies": {
+      "@rsbuild/plugin-react": "^1.4.1",
+      "@rslib/core": "^0.18.0",
+      "@tanstack/intent": "0.0.21",
+      "@testing-library/react": "^16.3.1",
+      "@types/react": "^19.2.3",
+      "@types/react-dom": "^19.2.3",
+      "jsdom": "^27.4.0",
+      "msw": "^2.8.0",
+      "typescript": "^5.9.3",
+      "vitest": "^4.0.17"
+   },
+   "peerDependencies": {
+      "@medusajs/js-sdk": ">=2.12.0",
+      "@medusajs/types": ">=2.12.0",
+      "@tanstack/react-query": ">=5.0.0",
+      "react": ">=19.2.0",
+      "react-dom": ">=19.2.0"
+   },
+   "publishConfig": {
+      "access": "public"
+   },
+   "keywords": [
+      "tanstack-intent"
+   ]
 }
