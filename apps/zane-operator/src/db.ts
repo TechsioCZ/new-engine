@@ -407,6 +407,37 @@ async function grantAppRoleOnSchema(databaseSql: Bun.SQL, schemaName: string, ap
   await databaseSql.unsafe(`GRANT EXECUTE ON ALL ROUTINES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`)
 }
 
+async function grantAppRoleDefaultPrivilegesOnSchema(
+  databaseSql: Bun.SQL,
+  schemaName: string,
+  appRoleName: string,
+  devRoleName: string,
+): Promise<void> {
+  const reservedSql = await databaseSql.reserve()
+  const quotedSchemaName = quoteCatalogIdentifier(schemaName)
+  const quotedAppRoleName = quoteIdentifier(appRoleName)
+  const quotedDevRoleName = quoteIdentifier(devRoleName)
+
+  try {
+    await reservedSql.unsafe(`SET ROLE ${quotedAppRoleName};`)
+    await reservedSql.unsafe(
+      `ALTER DEFAULT PRIVILEGES IN SCHEMA ${quotedSchemaName} GRANT ALL PRIVILEGES ON TABLES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
+    )
+    await reservedSql.unsafe(
+      `ALTER DEFAULT PRIVILEGES IN SCHEMA ${quotedSchemaName} GRANT ALL PRIVILEGES ON SEQUENCES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
+    )
+    await reservedSql.unsafe(
+      `ALTER DEFAULT PRIVILEGES IN SCHEMA ${quotedSchemaName} GRANT EXECUTE ON ROUTINES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
+    )
+  } finally {
+    try {
+      await reservedSql.unsafe("RESET ROLE;")
+    } finally {
+      reservedSql.release()
+    }
+  }
+}
+
 async function transferOwnedObjectsInSchemaToRole(
   databaseSql: Bun.SQL,
   schemaName: string,
@@ -557,18 +588,7 @@ async function syncPreviewDatabaseGrants(
     await transferSchemaOwnershipToRole(dbSql, config.appSchema, appRoleName)
     await revokeAppRoleOutsideSchema(dbSql, appRoleName, config.previewOwner, config.appSchema)
 
-    const quotedSchemaName = quoteCatalogIdentifier(config.appSchema)
-    const quotedAppRoleName = quoteIdentifier(appRoleName)
-    const quotedDevRoleName = quoteIdentifier(devRole)
-    await dbSql.unsafe(
-      `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedAppRoleName} IN SCHEMA ${quotedSchemaName} GRANT ALL PRIVILEGES ON TABLES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
-    )
-    await dbSql.unsafe(
-      `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedAppRoleName} IN SCHEMA ${quotedSchemaName} GRANT ALL PRIVILEGES ON SEQUENCES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
-    )
-    await dbSql.unsafe(
-      `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedAppRoleName} IN SCHEMA ${quotedSchemaName} GRANT EXECUTE ON ROUTINES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
-    )
+    await grantAppRoleDefaultPrivilegesOnSchema(dbSql, config.appSchema, appRoleName, devRole)
   })
 }
 
