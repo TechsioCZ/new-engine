@@ -124,6 +124,24 @@ function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
   })
 }
 
+function normalizeServiceDetails(payload: unknown, label: string): ZaneServiceDetails {
+  const object = assertObject(payload, label)
+
+  return {
+    ...(object as unknown as ZaneServiceDetails),
+    id: assertString(object.id, `${label}.id`),
+    slug: assertString(object.slug, `${label}.slug`),
+    type: assertServiceType(object.type, `${label}.type`),
+    deploy_token: assertString(object.deploy_token, `${label}.deploy_token`),
+    env_variables: Array.isArray(object.env_variables)
+      ? (object.env_variables as ZaneEnvVariable[])
+      : [],
+    urls: Array.isArray(object.urls)
+      ? (object.urls as ZaneServiceDetails["urls"])
+      : [],
+  }
+}
+
 export class ZaneClient {
   readonly #upstream: ZaneUpstreamClient
 
@@ -564,7 +582,7 @@ export class ZaneClient {
     environmentName: string,
     serviceSlug: string,
   ): Promise<ZaneServiceDetails> {
-    const details = await this.request<ZaneServiceDetails>(
+    const detailsPayload = await this.request<unknown>(
       session,
       "GET",
       `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
@@ -572,7 +590,7 @@ export class ZaneClient {
       )}/service-details/${encodeURIComponent(serviceSlug)}/`,
     )
 
-    if (!details) {
+    if (!detailsPayload) {
       throw new UpstreamHttpError(
         404,
         "zane_service_not_found",
@@ -580,7 +598,10 @@ export class ZaneClient {
       )
     }
 
-    return details
+    return normalizeServiceDetails(
+      detailsPayload,
+      `${projectSlug}/${environmentName}/${serviceSlug}.service_details`,
+    )
   }
 
   private async getDeployment(
