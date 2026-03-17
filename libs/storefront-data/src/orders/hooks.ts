@@ -1,5 +1,5 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   QueryFactoryOptions,
@@ -17,8 +17,8 @@ import type {
   OrderService,
   UseOrderResult,
   UseOrdersResult,
-  UseSuspenseOrdersResult,
   UseSuspenseOrderResult,
+  UseSuspenseOrdersResult,
 } from "./types"
 
 type SuspenseListInput<TInput extends OrderListInputBase> = Omit<

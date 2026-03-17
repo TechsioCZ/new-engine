@@ -4,13 +4,14 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { useCallback, useEffect, useSyncExternalStore } from "react"
+import { useEffect, useSyncExternalStore } from "react"
+import { assertStorefrontAddressValidation } from "../shared/address"
+import type { StorageValueStore } from "../shared/browser-storage"
 import {
   type CacheConfig,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
-import { assertStorefrontAddressValidation } from "../shared/address"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   MutationOptions,
@@ -18,11 +19,11 @@ import type {
   SuspenseQueryOptions,
 } from "../shared/hook-types"
 import { omitKeys } from "../shared/object-utils"
-import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
+import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
-import { invalidateCartCaches, syncCartCaches } from "./cache-sync"
+import { invalidateCartCaches, syncCartCaches } from "../shared/cart-cache-sync"
 import { createCartQueryKeys } from "./query-keys"
 import type {
   AddLineItemInputBase,
@@ -33,8 +34,6 @@ import type {
   CartLike,
   CartQueryKeys,
   CartService,
-  CartStorage,
-  ObservableCartStorage,
   RemoveLineItemInputBase,
   TransferCartInputBase,
   UpdateCartInputBase,
@@ -129,19 +128,25 @@ type NormalizedAddLineItemPayload<TInput extends AddLineItemInputBase> = Omit<
   (typeof addLineItemPayloadOmitKeys)[number]
 >
 
-type NormalizedUpdateLineItemPayload<
-  TInput extends UpdateLineItemInputBase,
-> = Omit<
-  TInput & UpdateLineItemTransientInput,
-  (typeof updateLineItemPayloadOmitKeys)[number]
->
+type NormalizedUpdateLineItemPayload<TInput extends UpdateLineItemInputBase> =
+  Omit<
+    TInput & UpdateLineItemTransientInput,
+    (typeof updateLineItemPayloadOmitKeys)[number]
+  >
 
-const noopUnsubscribe = () => {}
+const noopUnsubscribe = () => {
+  // Intentionally empty unsubscribe callback.
+}
 const noopCartStorageSubscribe = (_listener: () => void) => noopUnsubscribe
 
+type ObservableStorageValueStore = StorageValueStore & {
+  subscribe: NonNullable<StorageValueStore["subscribe"]>
+  getSnapshot: NonNullable<StorageValueStore["getSnapshot"]>
+}
+
 const hasObservableCartStorage = (
-  storage?: CartStorage
-): storage is ObservableCartStorage =>
+  storage?: StorageValueStore
+): storage is ObservableStorageValueStore =>
   Boolean(storage?.subscribe && storage.getSnapshot)
 
 const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
@@ -233,7 +238,9 @@ type BuildCreateInputFromAddInputOption<
 type BuildUpdateItemParamsOption<
   TUpdateItemInput extends UpdateLineItemInputBase,
   TUpdateItemParams,
-> = [NormalizedUpdateLineItemPayload<TUpdateItemInput>] extends [TUpdateItemParams]
+> = [NormalizedUpdateLineItemPayload<TUpdateItemInput>] extends [
+  TUpdateItemParams,
+]
   ? { buildUpdateItemParams?: (input: TUpdateItemInput) => TUpdateItemParams }
   : { buildUpdateItemParams: (input: TUpdateItemInput) => TUpdateItemParams }
 
@@ -259,7 +266,7 @@ type CreateCartHooksBaseConfig<
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
   requireRegion?: boolean
-  cartStorage?: CartStorage
+  cartStorage?: StorageValueStore
   isNotFoundError?: (error: unknown) => boolean
   addressAdapter?: CartAddressAdapter<TAddressInput, TAddressPayload>
   invalidateOnSuccess?: boolean
@@ -302,8 +309,11 @@ export type CreateCartHooksConfig<
   BuildCreateInputFromAddInputOption<TAddInput, TCreateInput> &
   BuildUpdateItemParamsOption<TUpdateItemInput, TUpdateItemParams>
 
-export type CartMutationOptions<TData, TVariables, TContext = unknown> =
-  MutationOptions<TData, TVariables, TContext>
+export type CartMutationOptions<
+  TData,
+  TVariables,
+  TContext = unknown,
+> = MutationOptions<TData, TVariables, TContext>
 
 export function createCartHooks<
   TCart extends CartLike,
@@ -400,27 +410,27 @@ export function createCartHooks<
       return null
     }
 
-    return cartStorage.getSnapshot?.() ?? cartStorage.getCartId()
+    return cartStorage.getSnapshot?.() ?? cartStorage.get()
   }
 
   const useStoredCartId = (): string | null =>
     useSyncExternalStore(
       hasObservableCartStorage(cartStorage)
-        ? cartStorage.subscribe
+        ? (listener) => cartStorage.subscribe(listener)
         : noopCartStorageSubscribe,
       readStoredCartId,
-      cartStorage?.getServerSnapshot ?? (() => null)
+      () => cartStorage?.getServerSnapshot?.() ?? null
     )
 
   const resolveCartId = (inputCartId?: string | null): string | null =>
     inputCartId ?? readStoredCartId()
 
   const persistCartId = (cartId: string) => {
-    cartStorage?.setCartId(cartId)
+    cartStorage?.set(cartId)
   }
 
   const clearCartId = () => {
-    cartStorage?.clearCartId()
+    cartStorage?.clear()
   }
 
   const callUpdateCart = (cartId: string, params: TUpdateParams) => {
@@ -452,13 +462,12 @@ export function createCartHooks<
   const resolveAddressMutationInput = (
     input: CartAddressInputBase<TAddressInput>
   ) => {
-    const {
+    const { shippingAddress, billingAddress, useSameAddress, ...restInput } =
+      input as AddressMutationInput<TAddressInput>
+    const normalizedShipping = normalizeAddressInput(
       shippingAddress,
-      billingAddress,
-      useSameAddress,
-      ...restInput
-    } = input as AddressMutationInput<TAddressInput>
-    const normalizedShipping = normalizeAddressInput(shippingAddress, "shipping")
+      "shipping"
+    )
     const resolvedBillingInput = resolveBillingAddressInput(
       useSameAddress,
       billingAddress,
@@ -484,7 +493,10 @@ export function createCartHooks<
   }
 
   const buildAddressUpdateInput = (
-    restInput: Omit<AddressMutationInput<TAddressInput>, "shippingAddress" | "billingAddress" | "useSameAddress">,
+    restInput: Omit<
+      AddressMutationInput<TAddressInput>,
+      "shippingAddress" | "billingAddress" | "useSameAddress"
+    >,
     normalizedShipping: TAddressInput,
     resolvedBillingInput: TAddressInput | undefined
   ) =>
@@ -504,7 +516,7 @@ export function createCartHooks<
     cart: CartLike | null
   ) => {
     const cartId = cart?.id
-    if (!invalidateOnSuccess || !cartId) {
+    if (!(invalidateOnSuccess && cartId)) {
       return
     }
 
@@ -649,12 +661,7 @@ export function createCartHooks<
     const itemCount = getItemCount(cart)
 
     useEffect(() => {
-      syncCartCache(
-        queryClient,
-        cart,
-        cartId,
-        resolvedInput.region_id ?? null
-      )
+      syncCartCache(queryClient, cart, cartId, resolvedInput.region_id ?? null)
     }, [cart, cartId, queryClient, resolvedInput.region_id])
 
     return {
@@ -706,12 +713,7 @@ export function createCartHooks<
     const itemCount = getItemCount(cart)
 
     useEffect(() => {
-      syncCartCache(
-        queryClient,
-        cart,
-        cartId,
-        resolvedInput.region_id ?? null
-      )
+      syncCartCache(queryClient, cart, cartId, resolvedInput.region_id ?? null)
     }, [cart, cartId, queryClient, resolvedInput.region_id])
 
     return {
@@ -994,46 +996,43 @@ export function createCartHooks<
       cacheStrategy
     )
 
-    const prefetchCart = useCallback(
-      async (input: CartInputBase) => {
-        const resolvedInput = applyRegion(input, contextRegion ?? undefined)
-        const cartId = resolveCartId(resolvedInput.cartId)
-        const autoCreate = resolvedInput.autoCreate ?? true
-        const canCreate =
-          autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
+    const prefetchCart = async (input: CartInputBase) => {
+      const resolvedInput = applyRegion(input, contextRegion ?? undefined)
+      const cartId = resolveCartId(resolvedInput.cartId)
+      const autoCreate = resolvedInput.autoCreate ?? true
+      const canCreate =
+        autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
 
-        const queryKey = resolvedQueryKeys.active({
-          cartId,
-          regionId: resolvedInput.region_id ?? null,
-        })
+      const queryKey = resolvedQueryKeys.active({
+        cartId,
+        regionId: resolvedInput.region_id ?? null,
+      })
 
-        if (
-          shouldSkipPrefetch({
-            queryClient,
-            queryKey,
-            cacheOptions: prefetchCacheOptions,
-            skipIfCached,
-            skipMode,
-          })
-        ) {
-          return
-        }
-
-        await queryClient.prefetchQuery({
+      if (
+        shouldSkipPrefetch({
+          queryClient,
           queryKey,
-          queryFn: ({ signal }) =>
-            loadCart({
-              input: resolvedInput,
-              cartId,
-              canCreate,
-              autoUpdateRegion: resolvedInput.autoUpdateRegion ?? true,
-              signal,
-            }),
-          ...prefetchCacheOptions,
+          cacheOptions: prefetchCacheOptions,
+          skipIfCached,
+          skipMode,
         })
-      },
-      [contextRegion, prefetchCacheOptions, queryClient, skipIfCached, skipMode]
-    )
+      ) {
+        return
+      }
+
+      await queryClient.prefetchQuery({
+        queryKey,
+        queryFn: ({ signal }) =>
+          loadCart({
+            input: resolvedInput,
+            cartId,
+            canCreate,
+            autoUpdateRegion: resolvedInput.autoUpdateRegion ?? true,
+            signal,
+          }),
+        ...prefetchCacheOptions,
+      })
+    }
 
     return { prefetchCart }
   }
@@ -1052,3 +1051,33 @@ export function createCartHooks<
     usePrefetchCart,
   }
 }
+
+export type CartHooks<
+  TCart extends CartLike,
+  TCreateInput extends CartCreateInputBase,
+  TCreateParams = NormalizedCartCreatePayload<TCreateInput>,
+  TUpdateInput extends UpdateCartInputBase = UpdateCartInputBase,
+  TUpdateParams = NormalizedCartUpdatePayload<TUpdateInput>,
+  TAddInput extends AddLineItemInputBase = AddLineItemInputBase,
+  TAddParams = NormalizedAddLineItemPayload<TAddInput>,
+  TUpdateItemInput extends UpdateLineItemInputBase = UpdateLineItemInputBase,
+  TUpdateItemParams = NormalizedUpdateLineItemPayload<TUpdateItemInput>,
+  TCompleteResult = unknown,
+  TAddressInput = Record<string, unknown>,
+  TAddressPayload = Record<string, unknown>,
+> = ReturnType<
+  typeof createCartHooks<
+    TCart,
+    TCreateInput,
+    TCreateParams,
+    TUpdateInput,
+    TUpdateParams,
+    TAddInput,
+    TAddParams,
+    TUpdateItemInput,
+    TUpdateItemParams,
+    TCompleteResult,
+    TAddressInput,
+    TAddressPayload
+  >
+>

@@ -3,6 +3,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import type { CatalogFacets } from "../src/catalog/types"
 import type {
   MedusaAuthCredentials,
   MedusaRegisterData,
@@ -114,9 +115,9 @@ describe("createMedusaStorefrontPreset", () => {
       cart: {
         hooks: {
           cartStorage: {
-            getCartId: () => null,
-            setCartId: () => {},
-            clearCartId: () => {},
+            get: () => null,
+            set: () => undefined,
+            clear: () => undefined,
           },
         },
       },
@@ -128,13 +129,16 @@ describe("createMedusaStorefrontPreset", () => {
 
   it("accepts shared checkout address adapters for both cart and customer hooks", () => {
     const { sdk } = createSdkMock()
+    type ExtendedCatalogFacets = CatalogFacets & {
+      dosage: CatalogFacets["brand"]
+    }
 
     const preset = createMedusaStorefrontPreset<
       HttpTypes.StoreProduct,
       HttpTypes.StoreProductCategory,
       HttpTypes.StoreCollection,
       HttpTypes.StoreProduct,
-      Record<string, never>,
+      ExtendedCatalogFacets,
       CheckoutAddressInput,
       MedusaCartAddressPayload,
       CheckoutAddressInput,
@@ -152,12 +156,42 @@ describe("createMedusaStorefrontPreset", () => {
         },
       },
       catalog: {
-        fallbackFacets: {} as Record<string, never>,
+        fallbackFacets: {
+          status: [],
+          form: [],
+          brand: [],
+          ingredient: [],
+          price: {
+            min: null,
+            max: null,
+          },
+          dosage: [],
+        },
       },
     })
 
     expect(preset.hooks.cart).toBeDefined()
     expect(preset.hooks.customers).toBeDefined()
+  })
+
+  it("requires explicit fallback facets for custom catalog facet shapes", () => {
+    const { sdk } = createSdkMock()
+    type ExtendedCatalogFacets = CatalogFacets & {
+      dosage: CatalogFacets["brand"]
+    }
+
+    // @ts-expect-error custom facet shapes must provide catalog.fallbackFacets
+    const invalidConfig = {
+      sdk,
+    } satisfies CreateMedusaStorefrontPresetConfig<
+      HttpTypes.StoreProduct,
+      HttpTypes.StoreProductCategory,
+      HttpTypes.StoreCollection,
+      HttpTypes.StoreProduct,
+      ExtendedCatalogFacets
+    >
+
+    expect(invalidConfig).toBeDefined()
   })
 
   it("builds namespaced query keys", () => {
@@ -296,18 +330,22 @@ describe("createMedusaStorefrontPreset", () => {
       register: async () => "token",
       updateCustomer: async () => ({ id: "cus_1" } as HttpTypes.StoreCustomer),
     }
+    const customCustomerNamespace = ["custom", "customers"] as const
     const customCustomerQueryKeys: CustomerQueryKeys<MedusaCustomerListInput> = {
-      all: () => ["custom", "customers"],
-      profile: () => ["custom", "customers", "profile"],
-      addresses: (params) => ["custom", "customers", "addresses", params ?? {}],
+      all: () => createQueryKey(customCustomerNamespace),
+      profile: () => createQueryKey(customCustomerNamespace, "profile"),
+      addresses: (params) =>
+        createQueryKey(customCustomerNamespace, "addresses", params ?? {}),
     }
+    const customOrderNamespace = ["custom", "orders"] as const
     const customOrderQueryKeys: OrderQueryKeys<
       MedusaOrderListInput,
       MedusaOrderDetailInput
     > = {
-      all: () => ["custom", "orders"],
-      list: (params) => ["custom", "orders", "list", params ?? {}],
-      detail: (params) => ["custom", "orders", "detail", params ?? {}],
+      all: () => createQueryKey(customOrderNamespace),
+      list: (params) => createQueryKey(customOrderNamespace, "list", params ?? {}),
+      detail: (params) =>
+        createQueryKey(customOrderNamespace, "detail", params ?? {}),
     }
 
     const preset = createMedusaStorefrontPreset({
@@ -333,7 +371,7 @@ describe("createMedusaStorefrontPreset", () => {
     queryClient.setQueryData(customCustomerQueryKeys.addresses({}), [
       { id: "addr_old" },
     ])
-    queryClient.setQueryData(customOrderQueryKeys.all(), [{ id: "order_old" }])
+    queryClient.setQueryData(customOrderQueryKeys.list({}), [{ id: "order_old" }])
     const wrapper = createWrapper(queryClient)
 
     const { result } = renderHook(() => preset.hooks.auth.useLogin(), {
@@ -353,7 +391,7 @@ describe("createMedusaStorefrontPreset", () => {
     expect(
       queryClient.getQueryState(customCustomerQueryKeys.addresses({}))?.isInvalidated
     ).toBe(true)
-    expect(queryClient.getQueryState(customOrderQueryKeys.all())?.isInvalidated).toBe(
+    expect(queryClient.getQueryState(customOrderQueryKeys.list({}))?.isInvalidated).toBe(
       true
     )
   })

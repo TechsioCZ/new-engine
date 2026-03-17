@@ -1,7 +1,13 @@
 import type { QueryClient } from "@tanstack/react-query"
-import type { CartQueryKeys } from "./types"
+import type { CartQueryKeys } from "../cart/types"
+import {
+  areQueryKeySegmentsEqual,
+  getSortedRecordKeys,
+  hasQueryKeyPrefix,
+  isPlainRecord,
+} from "./query-key-match-utils"
+import type { QueryKey } from "./query-keys"
 
-type QueryKey = readonly unknown[]
 type CartLike = {
   id: string
   region_id?: string | null
@@ -18,17 +24,96 @@ export type CartCacheSyncOptions = {
 
 export type CartUpdater<TCart extends CartLike> = (cart: TCart) => TCart
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === "object" && !Array.isArray(value))
+type ActiveKeySegmentMatchInput = {
+  candidate: unknown
+  base: unknown
+  cartVariant: unknown
+  regionVariant: unknown
+  cartId: string
+}
 
-const hasQueryKeyPrefix = (queryKey: QueryKey, prefix: QueryKey): boolean =>
-  prefix.every((segment, index) => queryKey[index] === segment)
+const matchActiveLeafSegment = ({
+  candidate,
+  base,
+  cartVariant,
+  regionVariant,
+  cartId,
+}: ActiveKeySegmentMatchInput): boolean => {
+  const changesWithCart = !areQueryKeySegmentsEqual(base, cartVariant)
+  const changesWithRegion = !areQueryKeySegmentsEqual(base, regionVariant)
+
+  if (!(changesWithCart || changesWithRegion)) {
+    return areQueryKeySegmentsEqual(candidate, base)
+  }
+  if (changesWithCart && !changesWithRegion) {
+    return candidate === cartId
+  }
+  if (!changesWithCart && changesWithRegion) {
+    return true
+  }
+  return false
+}
+
+const matchesActiveKeySegment = ({
+  candidate,
+  base,
+  cartVariant,
+  regionVariant,
+  cartId,
+}: ActiveKeySegmentMatchInput): boolean => {
+  if (
+    Array.isArray(base) &&
+    Array.isArray(cartVariant) &&
+    Array.isArray(regionVariant)
+  ) {
+    return (
+      Array.isArray(candidate) &&
+      candidate.length === base.length &&
+      cartVariant.length === base.length &&
+      regionVariant.length === base.length &&
+      base.every((_, index) =>
+        matchesActiveKeySegment({
+          candidate: candidate[index],
+          base: base[index],
+          cartVariant: cartVariant[index],
+          regionVariant: regionVariant[index],
+          cartId,
+        })
+      )
+    )
+  }
+
+  if (
+    isPlainRecord(base) &&
+    isPlainRecord(cartVariant) &&
+    isPlainRecord(regionVariant) &&
+    isPlainRecord(candidate)
+  ) {
+    return getSortedRecordKeys(base, cartVariant, regionVariant).every((key) =>
+      matchesActiveKeySegment({
+        candidate: candidate[key],
+        base: base[key],
+        cartVariant: cartVariant[key],
+        regionVariant: regionVariant[key],
+        cartId,
+      })
+    )
+  }
+
+  return matchActiveLeafSegment({
+    candidate,
+    base,
+    cartVariant,
+    regionVariant,
+    cartId,
+  })
+}
 
 const hasCartId = <TCart extends CartLike>(
   value: unknown,
   cartId?: string
 ): value is TCart => {
-  if (!isRecord(value)) {
+  if (!isPlainRecord(value)) {
     return false
   }
 
@@ -48,22 +133,31 @@ export const createDefaultActiveCartQueryMatcher = (
   queryKeys: CartQueryKeys
 ): ActiveCartQueryKeyMatcher => {
   const cartPrefix = queryKeys.all()
+  const baseActiveKey = queryKeys.active({
+    cartId: "__storefront_data_cart__",
+    regionId: "__storefront_data_region__",
+  })
+  const cartVariantActiveKey = queryKeys.active({
+    cartId: "__storefront_data_other_cart__",
+    regionId: "__storefront_data_region__",
+  })
+  const regionVariantActiveKey = queryKeys.active({
+    cartId: "__storefront_data_cart__",
+    regionId: "__storefront_data_other_region__",
+  })
 
   return (queryKey, cartId) => {
     if (!hasQueryKeyPrefix(queryKey, cartPrefix)) {
       return false
     }
 
-    if (queryKey[cartPrefix.length] !== "active") {
-      return false
-    }
-
-    const activeKeyInput = queryKey[cartPrefix.length + 1]
-    return (
-      isRecord(activeKeyInput) &&
-      typeof activeKeyInput.cartId === "string" &&
-      activeKeyInput.cartId === cartId
-    )
+    return matchesActiveKeySegment({
+      candidate: queryKey,
+      base: baseActiveKey,
+      cartVariant: cartVariantActiveKey,
+      regionVariant: regionVariantActiveKey,
+      cartId,
+    })
   }
 }
 
@@ -111,25 +205,34 @@ export function invalidateCartCaches(
   queryClient.invalidateQueries({ queryKey: queryKeys.detail(cartId) })
 }
 
+export type PatchCartCachesParams<TCart extends CartLike> = {
+  patch: CartUpdater<TCart>
+  options?: CartCacheSyncOptions
+}
+
 export function patchCartCaches<TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  patch: CartUpdater<TCart>,
-  options?: CartCacheSyncOptions
+  params: PatchCartCachesParams<TCart>
 ): void {
-  const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
+  const isActiveCartQueryKey = resolveActiveCartQueryMatcher(
+    queryKeys,
+    params.options
+  )
 
   queryClient.setQueriesData<TCart>(
     {
       predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
     },
-    (existing) => (hasCartId<TCart>(existing, cartId) ? patch(existing) : existing)
+    (existing) =>
+      hasCartId<TCart>(existing, cartId) ? params.patch(existing) : existing
   )
 
   queryClient.setQueryData<TCart | undefined>(
     queryKeys.detail(cartId),
-    (existing) => (hasCartId<TCart>(existing, cartId) ? patch(existing) : existing)
+    (existing) =>
+      hasCartId<TCart>(existing, cartId) ? params.patch(existing) : existing
   )
 }
 

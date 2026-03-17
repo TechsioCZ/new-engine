@@ -2,9 +2,7 @@ import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import type { CheckoutService } from "./types"
 
-export type MedusaCheckoutServiceConfig = {
-  // Reserved for future options
-}
+export type MedusaCheckoutServiceConfig = Record<string, never>
 
 /**
  * Creates a CheckoutService for Medusa SDK
@@ -122,9 +120,7 @@ export function createMedusaCheckoutService(
       return response.payment_collection
     },
 
-    async completeCart(
-      cartId: string
-    ): Promise<HttpTypes.StoreCompleteCartResponse> {
+    completeCart(cartId: string): Promise<HttpTypes.StoreCompleteCartResponse> {
       return sdk.store.cart.complete(cartId)
     },
   }

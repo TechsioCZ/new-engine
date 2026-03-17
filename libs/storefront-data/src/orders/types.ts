@@ -3,7 +3,7 @@ import type {
   ReadResultBase,
   SuspenseQueryResult,
   SuspenseResultBase,
-} from "../shared/hook-types"
+} from "../shared/hook-result-types"
 import type { QueryKey } from "../shared/query-keys"
 
 export type OrderListInputBase = {

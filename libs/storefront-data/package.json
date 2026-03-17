@@ -53,9 +53,9 @@
       "types": "./dist/src/auth/types.d.ts",
       "import": "./dist/auth/types.js"
     },
-    "./cart/browser-storage": {
-      "types": "./dist/src/cart/browser-storage.d.ts",
-      "import": "./dist/cart/browser-storage.js"
+    "./shared/browser-storage": {
+      "types": "./dist/src/shared/browser-storage.d.ts",
+      "import": "./dist/shared/browser-storage.js"
     },
     "./cart/hooks": {
       "types": "./dist/src/cart/hooks.d.ts",

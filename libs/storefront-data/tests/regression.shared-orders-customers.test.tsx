@@ -14,9 +14,10 @@ const createWrapper = (client: QueryClient) =>
   )
 
 describe("phase 3 regressions", () => {
-  it("keeps pagination behavior via shared helper and products re-export", () => {
-    expect(resolveSharedPagination).toBe(resolveProductPagination)
-
+  it("keeps pagination behavior aligned between shared and products helpers", () => {
+    expect(resolveSharedPagination({ page: 3, limit: 5 }, 20)).toEqual(
+      resolveProductPagination({ page: 3, limit: 5 }, 20)
+    )
     expect(resolveSharedPagination({ page: 3, limit: 5 }, 20)).toEqual({
       page: 3,
       limit: 5,

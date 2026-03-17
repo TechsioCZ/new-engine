@@ -1,12 +1,13 @@
-import type { QueryKey } from "../shared/query-keys"
-import type { RegionInfo } from "../shared/region"
 import type {
   InfiniteQueryResult,
   QueryResult,
   ReadResultBase,
   SuspenseQueryResult,
   SuspenseResultBase,
-} from "../shared/hook-types"
+} from "../shared/hook-result-types"
+import type { QueryKey } from "../shared/query-keys"
+import type { RegionInfo } from "../shared/region"
+
 export type { RegionInfo } from "../shared/region"
 
 export type ProductListInputBase = RegionInfo & {

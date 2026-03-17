@@ -199,12 +199,17 @@ describe("createMedusaAuthService", () => {
 
   it("keeps logout as best effort for auth errors (already logged out)", async () => {
     const logoutError = { status: 401 }
+    const onLogoutError = vi.fn()
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
     const sdk = createSdkMock({
       logout: vi.fn().mockRejectedValue(logoutError),
     })
-    const service = createMedusaAuthService(sdk as never)
+    const service = createMedusaAuthService(sdk as never, { onLogoutError })
 
     await expect(service.logout()).resolves.toBeUndefined()
+
+    expect(onLogoutError).not.toHaveBeenCalled()
+    expect(warnSpy).not.toHaveBeenCalled()
   })
 
   it("reports cleanup logout errors and rethrows original register failure", async () => {
@@ -228,6 +233,28 @@ describe("createMedusaAuthService", () => {
       cleanupLogoutError,
       "register-cleanup"
     )
+    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not report benign auth errors during register cleanup logout", async () => {
+    const logoutError = { status: 401 }
+    const onLogoutError = vi.fn()
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const sdk = createSdkMock({
+      logout: vi.fn().mockRejectedValue(logoutError),
+    })
+    sdk.auth.login.mockResolvedValue({ location: "https://idp.example.test" })
+    const service = createMedusaAuthService(sdk as never, { onLogoutError })
+
+    await expect(
+      service.register({
+        email: "john@example.com",
+        password: "secret123",
+      })
+    ).rejects.toThrow("Multi-step authentication not supported")
+
+    expect(onLogoutError).not.toHaveBeenCalled()
+    expect(warnSpy).not.toHaveBeenCalled()
     expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
   })
 

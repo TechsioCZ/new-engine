@@ -1,11 +1,11 @@
-import type { QueryKey } from "../shared/query-keys"
 import type {
   QueryResult,
-  ReadQueryOptions,
   ReadResultBase,
   SuspenseQueryResult,
   SuspenseResultBase,
-} from "../shared/hook-types"
+} from "../shared/hook-result-types"
+import type { ReadQueryOptions } from "../shared/hook-types"
+import type { QueryKey } from "../shared/query-keys"
 
 export type AuthQueryKeys = {
   all: () => QueryKey
