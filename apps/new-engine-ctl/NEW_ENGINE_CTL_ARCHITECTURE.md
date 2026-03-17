@@ -107,7 +107,7 @@ Phase intent:
 - preview deploy owns preview commit metadata sequencing: write `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` before deploy stages start, set `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=false` while a baseline run is in progress, and advance `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` plus `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true` only as the final successful deploy-stage metadata update
 - `verify` proves contract-owned env/application results after deploy completes.
 - preview deploy, not workflow YAML, decides whether a run is baseline replay or redeploy-only by combining environment existence with `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`.
-- preview route identity is repo-owned. When a preview environment is cloned or reused, authenticated URL reconciliation belongs in `zane-operator` and deploy/baseline policy stays in `apps/new-engine-ctl`.
+- preview route identity is repo-owned. When a preview environment is cloned or reused, authenticated URL reconciliation and preview-excluded service cleanup belong in `zane-operator` and deploy/baseline policy stays in `apps/new-engine-ctl`.
 
 ## App Structure
 

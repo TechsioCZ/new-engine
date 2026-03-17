@@ -287,6 +287,11 @@ export class ZaneEnvironmentManager {
       )
     }
 
+    await this.reconcileExcludedPreviewServices(
+      session,
+      input,
+      input.excludedPreviewServiceSlugs
+    )
     await this.reconcilePreviewServiceUrls(
       session,
       input,
@@ -374,6 +379,13 @@ export class ZaneEnvironmentManager {
       return state
     }
 
+    await this.reconcileExcludedPreviewServices(
+      session,
+      input,
+      state.excluded_preview_service_slugs.filter((serviceSlug) =>
+        state.present_service_slugs.includes(serviceSlug)
+      )
+    )
     await this.reconcileMissingPreviewServices(
       session,
       input,
@@ -477,6 +489,40 @@ export class ZaneEnvironmentManager {
           value: envVar.value,
         },
       })
+    }
+  }
+
+  private async reconcileExcludedPreviewServices(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlugs: string[]
+  ): Promise<void> {
+    if (input.lane !== "preview" || serviceSlugs.length === 0) {
+      return
+    }
+
+    for (const serviceSlug of [...new Set(serviceSlugs)]) {
+      let currentDetails: ZaneServiceDetails
+      try {
+        currentDetails = await this.#deps.getServiceDetails(
+          session,
+          input.projectSlug,
+          input.environmentName,
+          serviceSlug
+        )
+      } catch (error) {
+        if (error instanceof UpstreamHttpError && error.status === 404) {
+          continue
+        }
+
+        throw error
+      }
+      await this.archiveService(
+        session,
+        input,
+        serviceSlug,
+        currentDetails.type
+      )
     }
   }
 
@@ -640,6 +686,26 @@ export class ZaneEnvironmentManager {
       )}/request-service-changes/${encodeURIComponent(serviceSlug)}/`,
       payload
     )
+  }
+
+  private async archiveService(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    serviceType: "docker" | "git"
+  ): Promise<void> {
+    const path =
+      serviceType === "git"
+        ? `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
+            input.environmentName
+          )}/archive-service/git/${encodeURIComponent(serviceSlug)}/`
+        : `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
+            input.environmentName
+          )}/archive-service/docker/${encodeURIComponent(serviceSlug)}/`
+
+    await this.#deps.request(session, "DELETE", path, undefined, {
+      allowNotFound: true,
+    })
   }
 
   private async buildResolvedEnvironmentState(

@@ -36,7 +36,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Preview environments clone the canonical service set except services explicitly marked as non-cloned in `apps/new-engine-ctl/config/stack-manifest.yaml`.
 - Preview baseline completeness is repo-owned metadata on the preview environment, not a guess from environment existence alone. The active key is `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`.
 - Current examples of non-cloned services are `medusa-db` and `zane-operator`.
-- Services marked as non-cloned are not part of preview readiness requirements and may still remain in the preview environment.
+- Generic environment clone may initially copy non-cloned services, but preview baseline reconcile must archive them before preview deploy starts.
 - User-created helper/debug services may exist in preview environments and must not fail preview readiness.
 - CI updates only the affected services in that preview environment.
 - CI affected-service resolution is driven by `nx affected` plus manifest path-glob/runtime rules exposed through `apps/new-engine-ctl`.
@@ -53,7 +53,8 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
    - environment existence alone does not mean preview creation is complete; the active orchestration surface must consult `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`
    - if the environment already exists and `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true`, preview creation passes without redeploying
    - preview DB ensure and credential generation must also be idempotent
-   - services excluded from preview cloning and user-created helper/debug services do not block reuse
+   - services excluded from preview cloning must be archived from the preview environment before baseline deploy starts
+   - user-created helper/debug services do not block reuse
 5. On initial preview creation or baseline replay, deploy services in manifest stack order.
 6. Provisioning that depends on preview service runtime may only run after the relevant preview service is deployed and healthy.
 7. Runtime-dependent provisioning on first preview creation or baseline replay is allowed only through an explicit contract-owned provider path.
@@ -72,12 +73,12 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 ## Preview Decision Table
 
-- environment missing: create preview environment, reconcile baseline cloned services, run first-creation deploy flow in manifest stack order, allow contract-owned runtime provisioning after prerequisite services are healthy
-- environment exists and baseline incomplete: reconcile missing preview-cloned services and repo-owned preview URLs, rerun the first-creation deploy flow in manifest stack order, and mark baseline complete only after success
+- environment missing: create preview environment with deploy disabled, archive preview-excluded services, reconcile baseline cloned services, run first-creation deploy flow in manifest stack order, allow contract-owned runtime provisioning after prerequisite services are healthy
+- environment exists and baseline incomplete: archive preview-excluded services, reconcile missing preview-cloned services and repo-owned preview URLs, rerun the first-creation deploy flow in manifest stack order, and mark baseline complete only after success
 - environment exists and baseline complete: treat as redeploy-only flow, reuse existing preview env values in Zane, do not automatically reprovision random-once or runtime-generated values
 - environment exists with safe drift: auto-reconcile only missing preview-cloned services, repo-owned preview URLs, missing contract-owned persisted inputs, or missing deploy-target metadata required for normal deploy flow, then continue with the appropriate first-creation or redeploy path
 - environment exists with manual-only drift: stop and require manual intervention for reprovisioning caused by contract/key-scope changes, structural env changes requiring rotation, or state migration
-- preview-excluded services and user-created helper/debug services: warning-only for readiness and verification unless a later explicit contract changes that behavior
+- preview-excluded services must be removed during baseline create/replay; user-created helper/debug services remain warning-only for readiness and verification unless a later explicit contract changes that behavior
 
 ## Main Deploy Contract
 
@@ -108,6 +109,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Closing the PR should eventually tear down the preview environment and its preview DB.
 - Teardown closes the whole preview environment created for the PR; it does not selectively archive services inside it.
 - The preview environment naming/lookup rule must live in the active orchestration surface, not inline in workflow YAML.
+- Preview environment clone must remain non-deploying on creation; baseline deploy ownership stays with the repo orchestration surface rather than the generic Zane clone step.
 
 ## Preview Route Identity
 
@@ -194,13 +196,14 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 Preview verification must prove:
 - the target preview environment exists
 - the preview environment contains the expected cloned service set
+- preview-excluded services are absent after baseline create/replay
 - affected services were the ones targeted for deploy
 - required prepared inputs reached the services that consume them
 - required runtime-provisioned inputs reached the services that consume them
 - on redeploy-only preview runs, required persisted contract-owned env inputs are still present on affected consumers even when the current run did not regenerate them
 - first-creation-only runtime provisioning ran only after its prerequisite service was healthy
 - deploy trigger completed without leaking secrets
-- non-cloned services and user-created helper/debug services are warning-only and must not fail verification
+- user-created helper/debug services are warning-only and must not fail verification
 
 Main verification must prove:
 - only intended services were targeted
