@@ -11,6 +11,7 @@ import type {
   ResolveEnvironmentInput,
   ResolveTargetInput,
   ServiceType,
+  SyncPreviewRandomOnceSecretsInput,
   VerifyDeployInput,
   VerifyDeploymentRef,
   WritePreviewCommitStateInput,
@@ -299,6 +300,28 @@ export function parseWritePreviewCommitStateInput(
     targetCommitSha,
     lastDeployedCommitSha,
     baselineComplete,
+  }
+}
+
+export function parseSyncPreviewRandomOnceSecretsInput(
+  rawPayload: unknown
+): SyncPreviewRandomOnceSecretsInput {
+  const payload = assertObject(rawPayload, "request body")
+  const secrets = payload.secrets
+  if (!Array.isArray(secrets) || secrets.length === 0) {
+    throw new BadRequestError("secrets must be a non-empty array")
+  }
+
+  return {
+    projectSlug: normalizeProjectSlugFromPayload(payload),
+    environmentName: assertString(payload.environment_name, "environment_name"),
+    secrets: secrets.map((item, index) => {
+      const object = assertObject(item, `secrets[${index}]`)
+      return {
+        secretId: assertString(object.secret_id, `secrets[${index}].secret_id`),
+        value: assertOptionalString(object.value, `secrets[${index}].value`),
+      }
+    }),
   }
 }
 
