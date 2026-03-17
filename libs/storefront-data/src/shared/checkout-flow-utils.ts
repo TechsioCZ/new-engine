@@ -39,22 +39,35 @@ export const resolveEffectiveCheckoutCart = <TCart>({
   getCachedCart: (cartId: string) => TCart | null
 }): TCart | null => cart ?? getCachedCart(cartId)
 
+const resolveSelectedPaymentSession = (
+  cart: HttpTypes.StoreCart | null | undefined
+) => {
+  const paymentSessions = cart?.payment_collection?.payment_sessions
+  if (!paymentSessions?.length) {
+    return
+  }
+
+  return (
+    paymentSessions.find(
+      (session) => (session as { is_selected?: unknown }).is_selected === true
+    ) ?? paymentSessions[0]
+  )
+}
+
+export const resolveSelectedPaymentProviderId = (
+  cart: HttpTypes.StoreCart | null | undefined
+): string | undefined => resolveSelectedPaymentSession(cart)?.provider_id
+
 export const resolveExistingPaymentCollection = (
   cart: HttpTypes.StoreCart | null | undefined,
   paymentProviderId: string
 ): HttpTypes.StorePaymentCollection | null => {
   const paymentCollection = cart?.payment_collection
-  const paymentSessions = paymentCollection?.payment_sessions
-  if (!(paymentCollection && paymentSessions?.length)) {
+  if (!paymentCollection) {
     return null
   }
 
-  const selectedSession =
-    paymentSessions.find(
-      (session) => (session as { is_selected?: unknown }).is_selected === true
-    ) ?? paymentSessions[0]
-
-  return selectedSession?.provider_id === paymentProviderId
+  return resolveSelectedPaymentProviderId(cart) === paymentProviderId
     ? paymentCollection
     : null
 }

@@ -11,6 +11,7 @@ import {
   resolveCheckoutCartInput,
   resolveEffectiveCheckoutCart,
   resolveExistingPaymentCollection,
+  resolveSelectedPaymentProviderId,
 } from "../shared/checkout-flow-utils"
 import { createErrorWithStage } from "../shared/error-utils"
 import {
@@ -421,7 +422,7 @@ export function createMedusaCheckoutFlow({
     queryClient: QueryClient
   }): Promise<string> => {
     const existingPaymentProviderId =
-      effectiveCart?.payment_collection?.payment_sessions?.[0]?.provider_id
+      resolveSelectedPaymentProviderId(effectiveCart)
     const initialSelection = resolvePaymentProviderSelection(
       {
         cart: effectiveCart,

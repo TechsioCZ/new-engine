@@ -818,6 +818,63 @@ describe("Medusa flow helpers", () => {
     expect(spies.complete).toHaveBeenCalledWith("cart_1")
   })
 
+  it("derives default provider from selected payment session when not first", async () => {
+    const { sdk, spies } = createSdkMock()
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+    })
+    const checkoutFlow = storefront.flows.checkout
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(
+      () =>
+        checkoutFlow.useCompleteCheckout({
+          cartId: "cart_1",
+          regionId: "reg_1",
+          cart: {
+            id: "cart_1",
+            region_id: "reg_1",
+            items: [{ id: "item_1", quantity: 1 }],
+            shipping_methods: [{ shipping_option_id: "ship_1" }],
+            payment_collection: {
+              id: "payment_collection_1",
+              payment_sessions: [
+                { provider_id: "pp_other" },
+                { provider_id: "pp_system_default", is_selected: true },
+              ],
+            },
+          },
+        }),
+      { wrapper }
+    )
+
+    let checkoutResult:
+      | {
+          order: { id: string }
+          paymentCollection: { id: string }
+          paymentProviderId: string
+        }
+      | undefined
+
+    await act(async () => {
+      checkoutResult = await result.current.mutateAsync()
+    })
+
+    expect(checkoutResult).toMatchObject({
+      order: { id: "order_1" },
+      paymentCollection: { id: "payment_collection_1" },
+      paymentProviderId: "pp_system_default",
+    })
+    expect(spies.initiatePaymentSession).not.toHaveBeenCalled()
+    expect(spies.complete).toHaveBeenCalledWith("cart_1")
+  })
+
   it("returns stage-coded payment provider error when no provider is available", async () => {
     const { sdk } = createSdkMock()
     const clientFetch = vi.fn(
