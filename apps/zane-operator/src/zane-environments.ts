@@ -658,12 +658,32 @@ export class ZaneEnvironmentManager {
         serviceSlug,
         currentDetails.type
       )
-      logResolveEnvironmentEvent("resolve-environment.preview.cleanup.archived", {
-        project_slug: input.projectSlug,
-        environment_name: input.environmentName,
-        service_slug: serviceSlug,
-        service_type: currentDetails.type,
-      })
+      try {
+        await this.#deps.getServiceDetails(
+          session,
+          input.projectSlug,
+          input.environmentName,
+          serviceSlug
+        )
+      } catch (error) {
+        if (error instanceof UpstreamHttpError && error.status === 404) {
+          logResolveEnvironmentEvent("resolve-environment.preview.cleanup.archived", {
+            project_slug: input.projectSlug,
+            environment_name: input.environmentName,
+            service_slug: serviceSlug,
+            service_type: currentDetails.type,
+          })
+          continue
+        }
+
+        throw error
+      }
+
+      throw new UpstreamHttpError(
+        409,
+        "preview_cleanup_service_still_present",
+        `Preview cleanup did not remove excluded service ${serviceSlug} from ${input.projectSlug}/${input.environmentName}`,
+      )
     }
   }
 
@@ -853,9 +873,7 @@ export class ZaneEnvironmentManager {
             input.environmentName
           )}/archive-service/docker/${encodeURIComponent(serviceSlug)}/`
 
-    await this.#deps.request(session, "DELETE", path, undefined, {
-      allowNotFound: true,
-    })
+    await this.#deps.request(session, "DELETE", path)
   }
 
   private async buildResolvedEnvironmentState(
