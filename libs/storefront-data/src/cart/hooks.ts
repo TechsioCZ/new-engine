@@ -137,7 +137,6 @@ type NormalizedUpdateLineItemPayload<TInput extends UpdateLineItemInputBase> =
 const noopUnsubscribe = () => {
   // Intentionally empty unsubscribe callback.
 }
-const noopCartStorageSubscribe = (_listener: () => void) => noopUnsubscribe
 
 type ObservableStorageValueStore = StorageValueStore & {
   subscribe: NonNullable<StorageValueStore["subscribe"]>
@@ -413,13 +412,22 @@ export function createCartHooks<
     return cartStorage.getSnapshot?.() ?? cartStorage.get()
   }
 
+  const subscribeToStoredCart = (listener: () => void) => {
+    if (!hasObservableCartStorage(cartStorage)) {
+      return noopUnsubscribe
+    }
+
+    return cartStorage.subscribe(listener)
+  }
+
+  const getStoredCartServerSnapshot = (): string | null =>
+    cartStorage?.getServerSnapshot?.() ?? null
+
   const useStoredCartId = (): string | null =>
     useSyncExternalStore(
-      hasObservableCartStorage(cartStorage)
-        ? (listener) => cartStorage.subscribe(listener)
-        : noopCartStorageSubscribe,
+      subscribeToStoredCart,
       readStoredCartId,
-      () => cartStorage?.getServerSnapshot?.() ?? null
+      getStoredCartServerSnapshot
     )
 
   const resolveCartId = (inputCartId?: string | null): string | null =>
