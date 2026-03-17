@@ -1,6 +1,6 @@
 # CI Deploy Architecture
 
-Last updated: 2026-03-13
+Last updated: 2026-03-17
 Scope: CI-driven preview and main deployment orchestration through `zane-operator`.
 
 ## Authority
@@ -34,6 +34,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - One canonical Zane project tracks the default branch / production lane.
 - PR CI creates or reuses a preview environment derived from that canonical project.
 - Preview environments clone the canonical service set except services explicitly marked as non-cloned in `apps/new-engine-ctl/config/stack-manifest.yaml`.
+- Preview baseline completeness is repo-owned metadata on the preview environment, not a guess from environment existence alone. The active key is `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`.
 - Current examples of non-cloned services are `medusa-db` and `zane-operator`.
 - Services marked as non-cloned are not part of preview readiness requirements and may still remain in the preview environment.
 - User-created helper/debug services may exist in preview environments and must not fail preview readiness.
@@ -41,6 +42,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - CI affected-service resolution is driven by `nx affected` plus manifest path-glob/runtime rules exposed through `apps/new-engine-ctl`.
 - CI injects env overrides produced by `prepare` or first-creation runtime provisioning only where required by the affected services.
 - Preview-cloned services must not receive shared Zane admin/operator credentials in their runtime env.
+- Preview-cloned service public URLs are repo-owned. Generic Zane clone/default URLs are drift and must be reconciled to the repo preview route contract before preview deploy proceeds.
 
 ## Preview Deploy Contract
 
@@ -48,29 +50,32 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 2. Discover whether the preview environment for `pr_number` already exists.
 3. If it does not exist, create it through the approved control-plane path.
 4. Initial preview creation must be idempotent:
-   - if the environment already exists and all required preview-cloned services are defined, creation passes without redeploying
+   - environment existence alone does not mean preview creation is complete; the active orchestration surface must consult `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`
+   - if the environment already exists and `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true`, preview creation passes without redeploying
    - preview DB ensure and credential generation must also be idempotent
    - services excluded from preview cloning and user-created helper/debug services do not block reuse
-5. On initial preview creation, deploy services in manifest stack order.
+5. On initial preview creation or baseline replay, deploy services in manifest stack order.
 6. Provisioning that depends on preview service runtime may only run after the relevant preview service is deployed and healthy.
-7. Runtime-dependent provisioning on first preview creation is allowed only through an explicit contract-owned provider path.
+7. Runtime-dependent provisioning on first preview creation or baseline replay is allowed only through an explicit contract-owned provider path.
    - Current example: scoped Meilisearch keys are provisioned only after the preview search service is healthy.
-8. After first successful preview creation, subsequent PR updates are redeploy-only in manifest stack order.
+8. After first successful preview creation or baseline replay, subsequent PR updates are redeploy-only in manifest stack order.
 9. Subsequent PR updates should reuse existing preview env values held in Zane; automatic reprovisioning is not required.
 10. If a contract or env shape change requires reprovisioning beyond normal redeploy behavior, that is a manual intervention path unless explicitly automated later.
 11. Resolve deploy targets for affected services inside that preview environment.
 12. Obtain the per-service deploy key/webhook/token required to trigger deploys for those services.
 13. Apply env overrides derived from `prepare` or first-creation runtime provisioning before or as part of the deploy trigger.
 14. For preview, write `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` to the preview environment before deploy stages start.
-15. Trigger deploy only for affected services plus any explicitly coupled dependents defined in the manifest.
-16. After successful preview deploy completion, update `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` to the target commit SHA; verification remains read-only.
-17. Persist enough metadata in job outputs for downstream verification, but do not emit secrets to summaries/logs.
+15. For preview baseline runs, write `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=false` before deploy stages start and advance it to `true` only after successful baseline completion.
+16. Trigger deploy only for affected services plus any explicitly coupled dependents defined in the manifest, except that baseline runs must target the full manifest-allowed preview clone set in manifest stack order.
+17. After successful preview deploy completion, update `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` to the target commit SHA; verification remains read-only.
+18. Persist enough metadata in job outputs for downstream verification, but do not emit secrets to summaries/logs.
 
 ## Preview Decision Table
 
 - environment missing: create preview environment, reconcile baseline cloned services, run first-creation deploy flow in manifest stack order, allow contract-owned runtime provisioning after prerequisite services are healthy
+- environment exists and baseline incomplete: reconcile missing preview-cloned services and repo-owned preview URLs, rerun the first-creation deploy flow in manifest stack order, and mark baseline complete only after success
 - environment exists and baseline complete: treat as redeploy-only flow, reuse existing preview env values in Zane, do not automatically reprovision random-once or runtime-generated values
-- environment exists with safe drift: auto-reconcile only missing preview-cloned services, missing contract-owned persisted inputs, or missing deploy-target metadata required for normal deploy flow, then continue with the appropriate first-creation or redeploy path
+- environment exists with safe drift: auto-reconcile only missing preview-cloned services, repo-owned preview URLs, missing contract-owned persisted inputs, or missing deploy-target metadata required for normal deploy flow, then continue with the appropriate first-creation or redeploy path
 - environment exists with manual-only drift: stop and require manual intervention for reprovisioning caused by contract/key-scope changes, structural env changes requiring rotation, or state migration
 - preview-excluded services and user-created helper/debug services: warning-only for readiness and verification unless a later explicit contract changes that behavior
 
@@ -91,6 +96,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Main-lane Git deploys must be pinned to the exact CI commit SHA being promoted.
 - Preview CI deploys must target the exact workflow head commit SHA and persist that intent on the preview environment as `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA`.
 - Preview scope must diff from `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` when that metadata exists; if it is missing or empty, fall back to the PR base SHA.
+- `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE` is the active repo-owned marker for preview baseline completion. A preview environment may exist while still requiring baseline replay.
 - After a successful preview deploy stage completes, the preview environment must advance `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` to the target commit SHA.
 - Preview verification is read-only and must not persist preview commit metadata.
 - Out-of-band manual reruns in Zane are drift relative to the CI-owned preview commit metadata unless a later explicit contract changes that ownership.
@@ -102,6 +108,12 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Closing the PR should eventually tear down the preview environment and its preview DB.
 - Teardown closes the whole preview environment created for the PR; it does not selectively archive services inside it.
 - The preview environment naming/lookup rule must live in the active orchestration surface, not inline in workflow YAML.
+
+## Preview Route Identity
+
+- Preview public service URLs are repo-owned, not Zane-generated.
+- The preview route contract is `[preview-environment]-[project]-[service][affix].[domain]`, where `[affix]` is the same optional suffix already used by the canonical environment route contract.
+- Preview environment reconcile must upsert those URLs after clone/reuse before preview deploy depends on them.
 
 ## Service Identity Contract
 

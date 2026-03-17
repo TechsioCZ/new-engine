@@ -76,6 +76,7 @@ export const resolveEnvironmentResponseSchema = z.object({
   environment_name: z.string().min(1),
   is_preview: z.boolean().optional(),
   created: z.boolean().default(false),
+  baseline_complete: z.boolean().default(false),
   cloned_from_environment: z.string().nullable().optional(),
   ready: z.boolean().default(true),
   expected_preview_service_slugs: z.array(z.string()).default([]),

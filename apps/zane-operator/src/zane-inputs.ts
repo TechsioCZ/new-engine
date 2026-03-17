@@ -276,10 +276,20 @@ export function parseWritePreviewCommitStateInput(
     payload.last_deployed_commit_sha,
     "last_deployed_commit_sha"
   )
+  const baselineComplete =
+    typeof payload.baseline_complete === "boolean"
+      ? payload.baseline_complete
+      : undefined
 
-  if (!(targetCommitSha || lastDeployedCommitSha)) {
+  if (
+    !(
+      targetCommitSha ||
+      lastDeployedCommitSha ||
+      typeof baselineComplete === "boolean"
+    )
+  ) {
     throw new BadRequestError(
-      "target_commit_sha or last_deployed_commit_sha is required"
+      "target_commit_sha, last_deployed_commit_sha, or baseline_complete is required"
     )
   }
 
@@ -288,6 +298,7 @@ export function parseWritePreviewCommitStateInput(
     environmentName: assertString(payload.environment_name, "environment_name"),
     targetCommitSha,
     lastDeployedCommitSha,
+    baselineComplete,
   }
 }
 

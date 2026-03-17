@@ -25,6 +25,7 @@ export interface WritePreviewCommitStateInput {
   environmentName: string
   targetCommitSha?: string
   lastDeployedCommitSha?: string
+  baselineComplete?: boolean
 }
 
 export interface MeiliApiCredentialsPolicy {

@@ -16,7 +16,6 @@ import {
   filterTargetsForGitCommit,
   mergeCsvValues,
   mergeDeployments,
-  stageHasService,
   waitForDeployments,
 } from "./deploy-shared.js"
 import { executePlan } from "./plan.js"
@@ -42,6 +41,33 @@ export type DeployPreviewExecutionResult = {
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+}
+
+function stageNeedsPreviewMeiliKeys(
+  stagePlan: Awaited<ReturnType<typeof executePlan>>
+): boolean {
+  return stagePlan.deploy_services.some(
+    (service) =>
+      service.consumes.meili_backend_key || service.consumes.meili_frontend_key
+  )
+}
+
+function stageHasResolvedPreviewMeiliKeys(
+  stagePlan: Awaited<ReturnType<typeof executePlan>>,
+  meiliBackendKey: string,
+  meiliFrontendKey: string
+): boolean {
+  return stagePlan.deploy_services.every((service) => {
+    if (service.consumes.meili_backend_key && !meiliBackendKey) {
+      return false
+    }
+
+    if (service.consumes.meili_frontend_key && !meiliFrontendKey) {
+      return false
+    }
+
+    return true
+  })
 }
 
 export async function executeDeployPreview(
@@ -75,14 +101,15 @@ export async function executeDeployPreview(
     stackManifestPath: input.stackManifestPath,
     previewEnvPrefix: input.previewEnvPrefix,
   })
-  const runtimePlan = environment.created
+  const baselineDeploy = environment.created || !environment.baseline_complete
+  const runtimePlan = baselineDeploy
     ? {
         ...plan,
         deploy_services: plan.preview_cloned_services,
         deploy_services_csv: plan.preview_cloned_service_ids_csv,
       }
     : plan
-  const previewRandomOnceSecrets = environment.created
+  const previewRandomOnceSecrets = baselineDeploy
     ? generatePreviewRandomOnceSecrets(contracts.stackInputs)
     : []
   const previewRandomOnceSecretsJson =
@@ -114,6 +141,7 @@ export async function executeDeployPreview(
       project_slug: input.projectSlug,
       environment_name: environment.environment_name,
       target_commit_sha: input.targetCommitSha,
+      ...(baselineDeploy ? { baseline_complete: false } : {}),
     })
     targetCommitSha = previewCommitState.target_commit_sha
   } else if (input.targetCommitSha) {
@@ -125,6 +153,30 @@ export async function executeDeployPreview(
     const stageServicesCsv = stagePlan.deploy_services_csv
     if (!stageServicesCsv) {
       continue
+    }
+
+    if (
+      stageNeedsPreviewMeiliKeys(stagePlan) &&
+      !stageHasResolvedPreviewMeiliKeys(
+        stagePlan,
+        meiliBackendKey,
+        meiliFrontendKey
+      )
+    ) {
+      const provisionedKeys = await provisionPreviewMeiliKeys({
+        projectSlug: input.projectSlug,
+        environmentName: environment.environment_name,
+        serviceSlug: meiliSourceService.serviceSlug,
+        stackInputs: contracts.stackInputs,
+        providerId: input.meiliApiCredentialsProviderId,
+        baseUrl: input.baseUrl,
+        apiToken: input.apiToken,
+        dryRun: input.dryRun,
+      })
+      meiliBackendKey = provisionedKeys.backend_key
+      meiliFrontendKey = provisionedKeys.frontend_key
+      meiliFrontendEnvVar = provisionedKeys.frontend_env_var
+      meiliKeysProvisioned = true
     }
 
     const envOverrides = await executeRenderEnvOverrides({
@@ -157,7 +209,7 @@ export async function executeDeployPreview(
       dryRun: input.dryRun,
     })
     const filtered =
-      environment.created || !input.targetCommitSha
+      baselineDeploy || !input.targetCommitSha
         ? {
             services: targets.services,
             skippedServices: [],
@@ -250,26 +302,6 @@ export async function executeDeployPreview(
         .map((service) => service.service_id)
         .join(",")
     )
-
-    if (
-      environment.created &&
-      stageHasService(runtimePlan, stage, meiliSourceService.serviceId)
-    ) {
-      const provisionedKeys = await provisionPreviewMeiliKeys({
-        projectSlug: input.projectSlug,
-        environmentName: environment.environment_name,
-        serviceSlug: meiliSourceService.serviceSlug,
-        stackInputs: contracts.stackInputs,
-        providerId: input.meiliApiCredentialsProviderId,
-        baseUrl: input.baseUrl,
-        apiToken: input.apiToken,
-        dryRun: input.dryRun,
-      })
-      meiliBackendKey = provisionedKeys.backend_key
-      meiliFrontendKey = provisionedKeys.frontend_key
-      meiliFrontendEnvVar = provisionedKeys.frontend_env_var
-      meiliKeysProvisioned = true
-    }
   }
 
   if (zaneOperatorClient && input.targetCommitSha) {
@@ -277,6 +309,7 @@ export async function executeDeployPreview(
       project_slug: input.projectSlug,
       environment_name: environment.environment_name,
       last_deployed_commit_sha: input.targetCommitSha,
+      ...(baselineDeploy ? { baseline_complete: true } : {}),
     })
     targetCommitSha = previewCommitState.target_commit_sha
     lastDeployedCommitSha = previewCommitState.last_deployed_commit_sha

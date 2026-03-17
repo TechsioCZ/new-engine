@@ -41,6 +41,7 @@ export const previewCommitStateResponseSchema = z.object({
   project_slug: z.string().min(1),
   environment_name: z.string().min(1),
   environment_exists: z.boolean(),
+  baseline_complete: z.boolean().default(false),
   target_commit_sha: z.string().nullable(),
   last_deployed_commit_sha: z.string().nullable(),
 })

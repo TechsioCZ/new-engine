@@ -177,6 +177,7 @@ export class ZaneOperatorClient {
     environment_name: string
     target_commit_sha?: string
     last_deployed_commit_sha?: string
+    baseline_complete?: boolean
   }): Promise<PreviewCommitStateResponse> {
     return this.#postJson(
       "/v1/zane/preview-commit-state/write",
