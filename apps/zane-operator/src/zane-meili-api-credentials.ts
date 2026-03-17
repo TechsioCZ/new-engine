@@ -21,6 +21,7 @@ interface SearchProvisionServiceDetails {
   urls: Array<{
     domain: string
     base_path: string
+    associated_port?: number | null
   }>
 }
 
@@ -76,6 +77,51 @@ function getServiceEnvValue(serviceDetails: SearchProvisionServiceDetails, keys:
     }
   }
   return null
+}
+
+function parseHttpPortFromListenAddress(value: string | null): number | null {
+  if (!value) {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  const match = /:(\d+)$/.exec(trimmed)
+  if (!match) {
+    return null
+  }
+
+  const port = Number(match[1])
+  return Number.isInteger(port) && port > 0 ? port : null
+}
+
+function resolveServicePort(serviceDetails: SearchProvisionServiceDetails): number {
+  const listenPort = parseHttpPortFromListenAddress(
+    getServiceEnvValue(serviceDetails, ["MEILI_HTTP_ADDR"])
+  )
+  if (listenPort !== null) {
+    return listenPort
+  }
+
+  const urlPort = serviceDetails.urls.find((url) => typeof url.associated_port === "number")
+    ?.associated_port
+  if (typeof urlPort === "number" && urlPort > 0) {
+    return urlPort
+  }
+
+  return 7700
+}
+
+function buildServicePrivateUrl(serviceDetails: SearchProvisionServiceDetails): string | null {
+  const privateDomain = getServiceEnvValue(serviceDetails, ["ZANE_PRIVATE_DOMAIN"])
+  if (!privateDomain) {
+    return null
+  }
+
+  return new URL("/", `http://${privateDomain}:${resolveServicePort(serviceDetails)}`).toString()
 }
 
 function meiliKeyMatchesPolicy(
@@ -156,12 +202,13 @@ export class ZaneMeiliApiCredentialsProvisioner {
       input.serviceSlug,
     )
     const serviceUrls = buildServicePublicUrls(serviceDetails)
-    const meiliUrl = serviceUrls[0]
+    const publicMeiliUrl = serviceUrls[0]
+    const meiliUrl = buildServicePrivateUrl(serviceDetails) ?? publicMeiliUrl
     if (!meiliUrl) {
       throw new UpstreamHttpError(
         409,
         "zane_meili_url_missing",
-        `Service ${input.serviceSlug} does not expose a public URL in ${input.projectSlug}/${input.environmentName}`,
+        `Service ${input.serviceSlug} does not expose an operator-reachable URL in ${input.projectSlug}/${input.environmentName}`,
       )
     }
 
