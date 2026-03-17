@@ -333,7 +333,6 @@ DECLARE
   routine RECORD;
   custom_type RECORD;
 BEGIN
-${schemaOwnerBlock}
   FOR rel IN
     SELECT c.oid, c.relkind, n.nspname, c.relname
     FROM pg_class c
@@ -387,6 +386,7 @@ ${schemaOwnerBlock}
   LOOP
     EXECUTE format('ALTER TYPE %s OWNER TO %I', custom_type.identity, ${quoteLiteral(targetRole)});
   END LOOP;
+${schemaOwnerBlock}
 END
 $do$;
 `,
@@ -539,22 +539,23 @@ async function syncPreviewDatabaseGrants(
 
   await sql.unsafe(`REVOKE ALL PRIVILEGES ON DATABASE ${quoteIdentifier(dbName)} FROM ${quoteIdentifier(appRoleName)};`)
   await sql.unsafe(`REVOKE CONNECT, TEMPORARY ON DATABASE ${quoteIdentifier(dbName)} FROM PUBLIC;`)
-  await sql.unsafe(`GRANT CONNECT ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(appRoleName)};`)
+  await sql.unsafe(`GRANT CONNECT, CREATE ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(appRoleName)};`)
   await sql.unsafe(`GRANT CONNECT ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(devRole)};`)
   await setRoleSearchPath(sql, appRoleName, dbName, config.appSchema)
 
   await withDatabaseClient(config, dbName, async (dbSql) => {
     await lockDownPublicSchema(dbSql)
     await ensureSchemaExists(dbSql, config.appSchema, appRoleName)
-    await transferSchemaOwnershipToRole(dbSql, config.appSchema, appRoleName)
     await grantAppRoleOnSchema(dbSql, config.appSchema, appRoleName)
-    await revokeAppRoleOutsideSchema(dbSql, appRoleName, config.previewOwner, config.appSchema)
 
     const schemas = await listNonSystemSchemas(dbSql)
     for (const schemaName of schemas) {
       await grantReadWriteOnSchema(dbSql, schemaName, devRole, true)
       await grantReadWriteDefaultPrivilegesOnSchema(dbSql, schemaName, devRole)
     }
+
+    await transferSchemaOwnershipToRole(dbSql, config.appSchema, appRoleName)
+    await revokeAppRoleOutsideSchema(dbSql, appRoleName, config.previewOwner, config.appSchema)
 
     const quotedSchemaName = quoteCatalogIdentifier(config.appSchema)
     const quotedAppRoleName = quoteIdentifier(appRoleName)
