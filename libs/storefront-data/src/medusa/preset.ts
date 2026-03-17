@@ -796,6 +796,9 @@ export function createMedusaStorefrontPreset<
   const cartFlowOverrides = config.cart?.flow
   const checkoutHookOverrides = config.checkout?.hooks
   const customerHookOverrides = config.customers?.hooks
+  const resolvedCheckoutActiveCartQueryKey =
+    checkoutHookOverrides?.isActiveCartQueryKey ??
+    cartFlowOverrides?.isActiveCartQueryKey
 
   const resolveAuthInvalidateOnAuthChange = () => {
     const presetAuthInvalidateKeys = [
@@ -867,9 +870,7 @@ export function createMedusaStorefrontPreset<
     }),
     checkout: createCheckoutHooks({
       ...(checkoutHookOverrides ?? {}),
-      isActiveCartQueryKey:
-        checkoutHookOverrides?.isActiveCartQueryKey ??
-        cartFlowOverrides?.isActiveCartQueryKey,
+      isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
       service: services.checkout,
       queryKeys: queryKeys.checkout,
       cartQueryKeys: queryKeys.cart,
@@ -970,7 +971,7 @@ export function createMedusaStorefrontPreset<
     checkout: createMedusaCheckoutFlow({
       storefront,
       cartStorage: cartHookOverrides?.cartStorage,
-      isActiveCartQueryKey: cartFlowOverrides?.isActiveCartQueryKey,
+      isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
     }),
   })
   const flows = createFlows()
