@@ -176,7 +176,14 @@ export interface ZaneServiceDetails {
   volumes?: ZaneServiceVolume[]
   healthcheck?: ZaneServiceHealthcheck | null
   resource_limits?: ZaneServiceResourceLimits | null
-  unapplied_changes?: Array<{ id: string }>
+  unapplied_changes?: Array<{
+    id: string
+    type?: "ADD" | "UPDATE" | "DELETE" | string
+    field?: string
+    item_id?: string | null
+    new_value?: Record<string, unknown> | null
+    old_value?: Record<string, unknown> | null
+  }>
 }
 
 export interface ZaneResolvedCurrentDeployment {
