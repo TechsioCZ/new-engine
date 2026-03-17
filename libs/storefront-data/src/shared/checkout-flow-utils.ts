@@ -49,9 +49,12 @@ export const resolveExistingPaymentCollection = (
     return null
   }
 
-  const matchingSession = paymentSessions.find(
-    (session) => session.provider_id === paymentProviderId
-  )
+  const selectedSession =
+    paymentSessions.find(
+      (session) => (session as { is_selected?: unknown }).is_selected === true
+    ) ?? paymentSessions[0]
 
-  return matchingSession ? paymentCollection : null
+  return selectedSession?.provider_id === paymentProviderId
+    ? paymentCollection
+    : null
 }

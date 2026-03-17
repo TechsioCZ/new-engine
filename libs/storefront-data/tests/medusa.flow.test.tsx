@@ -769,6 +769,55 @@ describe("Medusa flow helpers", () => {
     expect(spies.complete).toHaveBeenCalledWith("cart_1")
   })
 
+  it("initiates payment when matching provider session is not selected", async () => {
+    const { sdk, spies } = createSdkMock()
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+    })
+    const checkoutFlow = storefront.flows.checkout
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(
+      () =>
+        checkoutFlow.useCompleteCheckout({
+          cartId: "cart_1",
+          regionId: "reg_1",
+          cart: {
+            id: "cart_1",
+            region_id: "reg_1",
+            items: [{ id: "item_1", quantity: 1 }],
+            shipping_methods: [{ shipping_option_id: "ship_1" }],
+            payment_collection: {
+              id: "payment_collection_1",
+              payment_sessions: [
+                { provider_id: "pp_other", is_selected: true },
+                { provider_id: "pp_system_default" },
+              ],
+            },
+          },
+        }),
+      { wrapper }
+    )
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        paymentProviderId: "pp_system_default",
+      })
+    })
+
+    expect(spies.initiatePaymentSession).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "cart_1" }),
+      { provider_id: "pp_system_default" }
+    )
+    expect(spies.complete).toHaveBeenCalledWith("cart_1")
+  })
+
   it("returns stage-coded payment provider error when no provider is available", async () => {
     const { sdk } = createSdkMock()
     const clientFetch = vi.fn(
