@@ -498,7 +498,45 @@ export function createProductHooks<
       resolvedInitialLimit,
       initialPageLimit,
       baseOffset,
+      basePage: pageFromInput,
     }
+  }
+
+  type InfiniteProductsPageParam = {
+    offset: number
+    page: number
+  }
+
+  const isInfiniteProductsPageParam = (
+    pageParam: unknown
+  ): pageParam is InfiniteProductsPageParam =>
+    typeof pageParam === "object" &&
+    pageParam !== null &&
+    typeof (pageParam as { offset?: unknown }).offset === "number" &&
+    typeof (pageParam as { page?: unknown }).page === "number"
+
+  const resolveInfiniteProductsPageParam = ({
+    pageParam,
+    baseOffset,
+    basePage,
+    resolvedLimit,
+  }: {
+    pageParam: unknown
+    baseOffset: number
+    basePage: number
+    resolvedLimit: number
+  }): InfiniteProductsPageParam => {
+    if (isInfiniteProductsPageParam(pageParam)) {
+      return pageParam
+    }
+
+    const offset = typeof pageParam === "number" ? pageParam : baseOffset
+    const page =
+      resolvedLimit > 0
+        ? basePage + Math.max(Math.floor((offset - baseOffset) / resolvedLimit), 0)
+        : basePage
+
+    return { offset, page }
   }
 
   const buildInfiniteProductsQueryKey = (
@@ -536,6 +574,7 @@ export function createProductHooks<
       resolvedInitialLimit,
       initialPageLimit,
       baseOffset,
+      basePage,
     } = resolveInfiniteProductsInput(input, contextRegion)
 
     const baseListParams = buildList(resolvedInput)
@@ -549,12 +588,14 @@ export function createProductHooks<
       ProductInfiniteData<TProduct>
     >({
       queryKey: resolvedQueryKey,
-      queryFn: ({ pageParam = baseOffset, signal }) => {
-        const offset = typeof pageParam === "number" ? pageParam : baseOffset
-        const limitForPage =
-          offset === baseOffset ? initialPageLimit : resolvedLimit
-        const page =
-          limitForPage > 0 ? Math.floor(offset / limitForPage) + 1 : 1
+      queryFn: ({ pageParam, signal }) => {
+        const { offset, page } = resolveInfiniteProductsPageParam({
+          pageParam,
+          baseOffset,
+          basePage,
+          resolvedLimit,
+        })
+        const limitForPage = page === basePage ? initialPageLimit : resolvedLimit
         const pageInput = {
           ...resolvedInput,
           page,
@@ -564,12 +605,26 @@ export function createProductHooks<
         const listParams = buildList(pageInput)
         return service.getProducts(listParams, signal)
       },
-      initialPageParam: baseOffset,
-      getNextPageParam: (lastPage) => {
+      initialPageParam: {
+        offset: baseOffset,
+        page: basePage,
+      },
+      getNextPageParam: (lastPage, _pages, lastPageParam) => {
+        const { page } = resolveInfiniteProductsPageParam({
+          pageParam: lastPageParam,
+          baseOffset,
+          basePage,
+          resolvedLimit,
+        })
         const limit = lastPage.limit ?? resolvedLimit
         const offset = lastPage.offset ?? 0
         const moreItemsExist = lastPage.count > offset + limit
-        return moreItemsExist ? offset + limit : undefined
+        return moreItemsExist
+          ? {
+              offset: offset + limit,
+              page: page + 1,
+            }
+          : undefined
       },
       enabled,
       ...resolvedCacheConfig.semiStatic,
