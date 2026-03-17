@@ -138,18 +138,14 @@ function assertSafeTargetDatabaseName(dbName: string, config: AppConfig): void {
   }
 }
 
-function buildDatabaseUrl(databaseUrl: string, databaseName: string): string {
-  const parsedUrl = new URL(databaseUrl)
-  parsedUrl.pathname = `/${databaseName}`
-  return parsedUrl.toString()
-}
-
 async function withDatabaseClientByUrl<T>(
   databaseUrl: string,
   databaseName: string,
   operation: (databaseSql: Bun.SQL) => Promise<T>,
 ): Promise<T> {
-  const databaseSql = new SQL(buildDatabaseUrl(databaseUrl, databaseName), {
+  const databaseSql = new SQL({
+    url: databaseUrl,
+    database: databaseName,
     max: 4,
     idleTimeout: 10,
     connectionTimeout: 10,

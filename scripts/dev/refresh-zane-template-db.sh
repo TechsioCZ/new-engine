@@ -306,6 +306,7 @@ execute_refresh() {
       --port "$PGPORT" \
       --username "$PGUSER" \
       --dbname "$STAGING_DB_NAME" \
+      --role "$TEMPLATE_OWNER" \
       --clean \
       --if-exists \
       --no-owner \
