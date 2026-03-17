@@ -18,6 +18,7 @@ import {
   mergeDeployments,
   waitForDeployments,
 } from "./deploy-shared.js"
+import { getPreviewRandomOnceSecretDefinitions } from "../contracts/stack-inputs.js"
 import { executePlan } from "./plan.js"
 import {
   getMeiliApiCredentialsProviderSourceService,
@@ -29,6 +30,7 @@ import { executeResolveEnvironment } from "./resolve-environment.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
 import { executeTriggerPayload } from "./trigger.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
+import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
 
 export type DeployPreviewExecutionResult = {
   response: DeployPreviewResponse
@@ -104,6 +106,66 @@ function stageHasResolvedPreviewMeiliKeys(
   })
 }
 
+async function resolvePreviewRandomOnceSecrets(input: {
+  stackInputs: Awaited<ReturnType<typeof loadDeployContracts>>["stackInputs"]
+  projectSlug: string
+  environmentName: string
+  baselineDeploy: boolean
+  dryRun: boolean
+  zaneOperatorClient: ZaneOperatorClient | null
+}): Promise<PreviewRandomOnceSecretInput[]> {
+  const definitions = getPreviewRandomOnceSecretDefinitions(input.stackInputs)
+  if (definitions.length === 0) {
+    return []
+  }
+
+  if (input.dryRun || !input.zaneOperatorClient) {
+    return generatePreviewRandomOnceSecrets(input.stackInputs)
+  }
+
+  const generatedValuesBySecretId = input.baselineDeploy
+    ? new Map(
+        generatePreviewRandomOnceSecrets(input.stackInputs).map((secret) => [
+          secret.secret_id,
+          secret.value,
+        ])
+      )
+    : new Map<string, string>()
+
+  const synced = await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
+    project_slug: input.projectSlug,
+    environment_name: input.environmentName,
+    secrets: definitions.map((definition) => ({
+      secret_id: definition.secret_id,
+      value: generatedValuesBySecretId.get(definition.secret_id),
+    })),
+  })
+
+  if (synced.missing_secret_ids.length > 0) {
+    throw new Error(
+      `Preview random-once secrets are missing in ${input.environmentName}: ${synced.missing_secret_ids.join(", ")}`
+    )
+  }
+
+  const resolvedValueBySecretId = new Map(
+    synced.secrets.map((secret) => [secret.secret_id, secret.value])
+  )
+
+  return definitions.map((definition) => {
+    const value = resolvedValueBySecretId.get(definition.secret_id)
+    if (!value) {
+      throw new Error(
+        `Preview random-once secret ${definition.secret_id} was not returned for ${input.environmentName}.`
+      )
+    }
+
+    return {
+      ...definition,
+      value,
+    }
+  })
+}
+
 export async function executeDeployPreview(
   input: DeployPreviewCommandInput
 ): Promise<DeployPreviewExecutionResult> {
@@ -146,9 +208,18 @@ export async function executeDeployPreview(
         deploy_services_csv: plan.preview_cloned_service_ids_csv,
       }
     : plan
-  const previewRandomOnceSecrets = baselineDeploy
-    ? generatePreviewRandomOnceSecrets(contracts.stackInputs)
-    : []
+  const zaneOperatorClient =
+    input.dryRun || !input.baseUrl || !input.apiToken
+      ? null
+      : new ZaneOperatorClient(input.baseUrl, input.apiToken)
+  const previewRandomOnceSecrets = await resolvePreviewRandomOnceSecrets({
+    stackInputs: contracts.stackInputs,
+    projectSlug: input.projectSlug,
+    environmentName: environment.environment_name,
+    baselineDeploy,
+    dryRun: input.dryRun,
+    zaneOperatorClient,
+  })
   const previewRandomOnceSecretsJson =
     previewRandomOnceSecrets.length > 0
       ? JSON.stringify(previewRandomOnceSecrets)
@@ -168,10 +239,76 @@ export async function executeDeployPreview(
   let envOverrideServiceIdsCsv = ""
   let triggeredServicesCsv = ""
   let allDeployments: DeploymentLike[] = []
-  const zaneOperatorClient =
-    input.dryRun || !input.baseUrl || !input.apiToken
-      ? null
-      : new ZaneOperatorClient(input.baseUrl, input.apiToken)
+
+  if (baselineDeploy && runtimePlan.deploy_services_csv) {
+    logDeployProgress(
+      `Applying baseline preview-owned env materialization before staged deploys.`
+    )
+    const baselineEnvOverrides = await executeRenderEnvOverrides({
+      lane: "preview",
+      servicesCsv: runtimePlan.deploy_services_csv,
+      previewDbName: input.previewDbName,
+      previewDbUser: input.previewDbUser,
+      previewDbPassword: input.previewDbPassword,
+      previewRandomOnceSecrets,
+      meiliFrontendKey,
+      meiliFrontendEnvVar,
+      meiliBackendKey,
+      outputJson: undefined,
+      stackManifestPath: input.stackManifestPath,
+      stackInputsPath: input.stackInputsPath,
+    })
+
+    if (baselineEnvOverrides.services.length > 0) {
+      const baselineEnvOverrideServiceIds = new Set(
+        baselineEnvOverrides.services.map((service) => service.service_id)
+      )
+      const baselineTargetServices = runtimePlan.deploy_services.filter((service) =>
+        baselineEnvOverrideServiceIds.has(service.id)
+      )
+
+      if (baselineTargetServices.length > 0) {
+        logDeployProgress(
+          `Persisting preview-owned env values for baseline services: ${baselineTargetServices
+            .map((service) => service.service_slug)
+            .join(", ")}.`
+        )
+        const baselineTargets = await executeResolveTargetsPayload({
+          payload: {
+            lane: "preview",
+            project_slug: input.projectSlug,
+            environment_name: environment.environment_name,
+            services: baselineTargetServices.map((service) => ({
+              service_id: service.id,
+              service_slug: service.service_slug,
+            })),
+          },
+          baseUrl: input.baseUrl,
+          apiToken: input.apiToken,
+          dryRun: input.dryRun,
+        })
+
+        await executeApplyEnvOverridesPayload({
+          payload: {
+            project_slug: input.projectSlug,
+            environment_name: environment.environment_name,
+            targets: baselineTargets.services,
+            env_overrides: baselineEnvOverrides.services,
+          },
+          baseUrl: input.baseUrl,
+          apiToken: input.apiToken,
+          dryRun: input.dryRun,
+        })
+
+        envOverrideServiceIdsCsv = mergeCsvValues(
+          envOverrideServiceIdsCsv,
+          baselineEnvOverrides.services
+            .map((service) => service.service_id)
+            .join(",")
+        )
+      }
+    }
+  }
 
   if (zaneOperatorClient && input.targetCommitSha) {
     logDeployProgress(

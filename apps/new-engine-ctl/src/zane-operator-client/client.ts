@@ -24,6 +24,8 @@ import type { PreviewCommitStateResponse } from "../contracts/preview-commit-sta
 import {
   previewCommitStateResponseSchema,
 } from "../contracts/preview-commit-state.js"
+import type { PreviewRandomOnceSecretsResponse } from "../contracts/preview-random-once-secrets.js"
+import { previewRandomOnceSecretsResponseSchema } from "../contracts/preview-random-once-secrets.js"
 import type {
   ResolveTargetsPayload,
   ResolveTargetsResponse,
@@ -183,6 +185,21 @@ export class ZaneOperatorClient {
       "/v1/zane/preview-commit-state/write",
       payload,
       previewCommitStateResponseSchema.parse
+    )
+  }
+
+  syncPreviewRandomOnceSecrets(payload: {
+    project_slug: string
+    environment_name: string
+    secrets: Array<{
+      secret_id: string
+      value?: string
+    }>
+  }): Promise<PreviewRandomOnceSecretsResponse> {
+    return this.#postJson(
+      "/v1/zane/preview-random-once-secrets/sync",
+      payload,
+      previewRandomOnceSecretsResponseSchema.parse
     )
   }
 

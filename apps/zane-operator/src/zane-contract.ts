@@ -28,6 +28,17 @@ export interface WritePreviewCommitStateInput {
   baselineComplete?: boolean
 }
 
+export interface PreviewRandomOnceSecretValueInput {
+  secretId: string
+  value?: string
+}
+
+export interface SyncPreviewRandomOnceSecretsInput {
+  projectSlug: string
+  environmentName: string
+  secrets: PreviewRandomOnceSecretValueInput[]
+}
+
 export interface MeiliApiCredentialsPolicy {
   uid: string
   description: string
@@ -118,6 +129,12 @@ export interface ZaneEnvVariable {
   value: string
 }
 
+export interface ZaneEnvironmentReference {
+  id: string
+  name: string
+  variables?: ZaneEnvVariable[]
+}
+
 export interface ZaneServiceUrl {
   id?: string
   domain: string
@@ -159,6 +176,7 @@ export interface ZaneServiceDetails {
   id: string
   slug: string
   type: ServiceType
+  network_alias?: string | null
   commit_sha?: string | null
   deploy_token: string
   repository_url?: string
@@ -172,6 +190,8 @@ export interface ZaneServiceDetails {
   git_app?: ZaneGitAppRef | null
   command?: string | null
   env_variables: ZaneEnvVariable[]
+  system_env_variables?: ZaneEnvVariable[]
+  environment?: ZaneEnvironmentReference | null
   urls: ZaneServiceUrl[]
   volumes?: ZaneServiceVolume[]
   healthcheck?: ZaneServiceHealthcheck | null

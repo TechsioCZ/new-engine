@@ -9,6 +9,7 @@ import { handleProvisionPreviewMeiliKeys } from "./handlers/provision-preview-me
 import { handleReadPreviewCommitState } from "./handlers/read-preview-commit-state"
 import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
 import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
+import { handleSyncPreviewRandomOnceSecrets } from "./handlers/sync-preview-random-once-secrets"
 import { handleTeardownPreviewDb } from "./handlers/teardown-preview-db"
 import { handleTriggerZaneDeploy } from "./handlers/trigger-zane-deploy"
 import { handleVerifyZaneDeploy } from "./handlers/verify-zane-deploy"
@@ -107,6 +108,15 @@ const server = Bun.serve({
       }
 
       return await handleWritePreviewCommitState(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/preview-random-once-secrets/sync") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleSyncPreviewRandomOnceSecrets(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/meilisearch/provision-keys") {

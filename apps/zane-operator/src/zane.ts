@@ -8,6 +8,7 @@ import type {
   ResolveEnvironmentInput,
   ResolveTargetInput,
   ServiceType,
+  SyncPreviewRandomOnceSecretsInput,
   TriggeredDeployment,
   VerifyDeployInput,
   WritePreviewCommitStateInput,
@@ -76,6 +77,8 @@ const previewTargetCommitEnvKey = "ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA"
 const previewLastDeployedCommitEnvKey =
   "ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA"
 const previewBaselineCompleteEnvKey = "ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE"
+const previewRandomOnceSecretEnvKeyPrefix =
+  "ZANE_OPERATOR_PREVIEW_RANDOM_ONCE_SECRET_"
 
 function assertString(value: unknown, label: string): string {
   if (typeof value !== "string" || !value.trim()) {
@@ -140,6 +143,19 @@ function normalizeServiceDetails(payload: unknown, label: string): ZaneServiceDe
       ? (object.urls as ZaneServiceDetails["urls"])
       : [],
   }
+}
+
+function buildPreviewRandomOnceSecretEnvKey(secretId: string): string {
+  const normalized = secretId.trim().replace(/[^A-Za-z0-9_]+/g, "_").toUpperCase()
+  if (!normalized) {
+    throw new UpstreamHttpError(
+      400,
+      "preview_secret_id_invalid",
+      "preview random-once secret id cannot be empty",
+    )
+  }
+
+  return `${previewRandomOnceSecretEnvKeyPrefix}${normalized}`
 }
 
 export class ZaneClient {
@@ -375,6 +391,86 @@ export class ZaneClient {
           previewLastDeployedCommitEnvKey
         ) ??
         null,
+    }
+  }
+
+  async syncPreviewRandomOnceSecrets(input: SyncPreviewRandomOnceSecretsInput): Promise<{
+    project_slug: string
+    environment_name: string
+    environment_exists: boolean
+    secrets: Array<{
+      secret_id: string
+      value: string
+    }>
+    missing_secret_ids: string[]
+  }> {
+    const session = await this.authenticate()
+    const environment = await this.getEnvironment(
+      session,
+      input.projectSlug,
+      input.environmentName,
+    )
+
+    if (!environment) {
+      throw new UpstreamHttpError(
+        404,
+        "zane_environment_not_found",
+        `Environment ${input.projectSlug}/${input.environmentName} was not found`,
+      )
+    }
+
+    const envByKey = new Map(
+      environment.variables.map((variable) => [variable.key, variable]),
+    )
+    const secrets: Array<{ secret_id: string; value: string }> = []
+    const missingSecretIds: string[] = []
+
+    for (const secret of input.secrets) {
+      const envKey = buildPreviewRandomOnceSecretEnvKey(secret.secretId)
+      const existingValue = this.getSharedEnvironmentVariable(environment, envKey)
+
+      if (existingValue) {
+        secrets.push({
+          secret_id: secret.secretId,
+          value: existingValue,
+        })
+        continue
+      }
+
+      if (!secret.value) {
+        missingSecretIds.push(secret.secretId)
+        continue
+      }
+
+      const value = await this.upsertSharedEnvironmentVariable({
+        session,
+        projectSlug: input.projectSlug,
+        environmentName: input.environmentName,
+        envByKey,
+        key: envKey,
+        value: secret.value,
+      })
+
+      if (!value) {
+        throw new UpstreamHttpError(
+          500,
+          "preview_secret_write_failed",
+          `Failed to persist preview random-once secret ${secret.secretId}`,
+        )
+      }
+
+      secrets.push({
+        secret_id: secret.secretId,
+        value,
+      })
+    }
+
+    return {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      environment_exists: true,
+      secrets,
+      missing_secret_ids: missingSecretIds,
     }
   }
 

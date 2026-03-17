@@ -14,11 +14,21 @@ interface PreviewEnvironmentLookup {
 
 interface SearchProvisionServiceDetails {
   slug: string
-  network_alias?: string
+  network_alias?: string | null
   env_variables: Array<{
     key: string
     value: string
   }>
+  system_env_variables?: Array<{
+    key: string
+    value: string
+  }>
+  environment?: {
+    variables?: Array<{
+      key: string
+      value: string
+    }>
+  } | null
   urls: Array<{
     domain: string
     base_path: string
@@ -68,9 +78,25 @@ function buildServicePublicUrls(serviceDetails: SearchProvisionServiceDetails): 
     .filter((value, index, array) => array.indexOf(value) === index)
 }
 
+function resolveTemplateEnvValue(serviceDetails: SearchProvisionServiceDetails, value: string): string {
+  const match = /^\{\{\s*env\.([A-Z0-9_]+)\s*\}\}$/.exec(value.trim())
+  if (!match) {
+    return value
+  }
+
+  const environmentVariables = Array.isArray(serviceDetails.environment?.variables)
+    ? serviceDetails.environment.variables
+    : []
+  const resolved = environmentVariables.find((envVar) => envVar.key === match[1])?.value
+  return typeof resolved === "string" && resolved.trim() ? resolved : value
+}
+
 function getServiceEnvValue(serviceDetails: SearchProvisionServiceDetails, keys: string[]): string | null {
-  const envVariables = Array.isArray(serviceDetails.env_variables) ? serviceDetails.env_variables : []
-  const envByKey = new Map(envVariables.map((envVar) => [envVar.key, envVar.value]))
+  const envVariables = [
+    ...(Array.isArray(serviceDetails.env_variables) ? serviceDetails.env_variables : []),
+    ...(Array.isArray(serviceDetails.system_env_variables) ? serviceDetails.system_env_variables : []),
+  ]
+  const envByKey = new Map(envVariables.map((envVar) => [envVar.key, resolveTemplateEnvValue(serviceDetails, envVar.value)]))
   for (const key of keys) {
     const value = envByKey.get(key)
     if (typeof value === "string" && value.trim()) {
