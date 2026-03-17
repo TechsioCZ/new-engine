@@ -280,11 +280,33 @@ export function createMedusaCheckoutFlow({
     isActiveCartQueryKey,
   })
 
+  const resolveEffectiveCart = ({
+    queryClient,
+    cartId,
+    cart,
+  }: {
+    queryClient: QueryClient
+    cartId: string
+    cart?: HttpTypes.StoreCart | null
+  }): HttpTypes.StoreCart | null =>
+    resolveEffectiveCheckoutCart({
+      cartId,
+      cart,
+      getCachedCart: (effectiveCartId) =>
+        getCachedCartById<HttpTypes.StoreCart>(
+          queryClient,
+          storefront.queryKeys.cart,
+          effectiveCartId,
+          { isActiveCartQueryKey }
+        ),
+    })
+
   function useCheckoutShipping(
     cartId?: string,
     cart?: HttpTypes.StoreCart | null,
     options?: UseMedusaCheckoutShippingOptions
   ): UseMedusaCheckoutShippingReturn {
+    const queryClient = useQueryClient()
     const { resolvedCartId, normalizedCart } = resolveCheckoutCartInput({
       cartId,
       cart,
@@ -292,11 +314,17 @@ export function createMedusaCheckoutFlow({
     const normalizeShippingData =
       options?.normalizeShippingData ?? defaultNormalizeShippingData
     const canLoadShipping = Boolean(resolvedCartId)
-
+    const effectiveCart = resolvedCartId
+      ? resolveEffectiveCart({
+          queryClient,
+          cartId: resolvedCartId,
+          cart: normalizedCart,
+        })
+      : normalizedCart ?? null
     const shipping = checkoutHooks.useCheckoutShipping(
       {
         cartId: resolvedCartId,
-        cart: normalizedCart,
+        cart: effectiveCart,
         enabled: options?.enabled ?? canLoadShipping,
         calculatePrices: options?.calculatePrices,
       },
@@ -312,7 +340,7 @@ export function createMedusaCheckoutFlow({
 
     const setShipping = (optionId: string, data?: MedusaShippingMethodData) => {
       const cleanedData = normalizeShippingData(data)
-      const currentData = normalizedCart?.shipping_methods?.find(
+      const currentData = effectiveCart?.shipping_methods?.find(
         (method) => method.shipping_option_id === optionId
       )?.data
 
@@ -535,16 +563,10 @@ export function createMedusaCheckoutFlow({
           )
         }
 
-        const effectiveCart = resolveEffectiveCheckoutCart({
+        const effectiveCart = resolveEffectiveCart({
+          queryClient,
           cartId: mutationCartId,
           cart: mutationCart,
-          getCachedCart: (cartId) =>
-            getCachedCartById<HttpTypes.StoreCart>(
-              queryClient,
-              storefront.queryKeys.cart,
-              cartId,
-              { isActiveCartQueryKey }
-            ),
         })
         const effectiveRegionId =
           input.regionId ?? effectiveCart?.region_id ?? undefined

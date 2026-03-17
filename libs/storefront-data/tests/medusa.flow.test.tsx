@@ -652,6 +652,53 @@ describe("Medusa flow helpers", () => {
     expect(spies.addShippingMethod).not.toHaveBeenCalled()
   })
 
+  it("skips duplicate shipping selection in cartId-only flow", async () => {
+    const { sdk, spies } = createSdkMock()
+    const storefront = createMedusaStorefrontPreset({
+      sdk,
+    })
+    const checkoutFlow = storefront.flows.checkout
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    queryClient.setQueryData(storefront.queryKeys.cart.detail("cart_1"), {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ id: "item_1", quantity: 1 }],
+      shipping_methods: [
+        {
+          shipping_option_id: "ship_1",
+          data: { pickup_point_id: "pickup-1" },
+        },
+      ],
+    })
+
+    const { result } = renderHook(
+      () => checkoutFlow.useCheckoutShipping("cart_1"),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.shippingOptions.length).toBe(1)
+      expect(result.current.selectedShippingMethodId).toBe("ship_1")
+    })
+
+    act(() => {
+      result.current.setShipping("ship_1", {
+        pickup_point_id: "pickup-1",
+        empty: "",
+      })
+    })
+
+    expect(spies.addShippingMethod).not.toHaveBeenCalled()
+  })
+
   it("completes checkout with fallback payment provider and returns order", async () => {
     const { sdk, spies } = createSdkMock()
     const cartStorage = {
