@@ -4,6 +4,7 @@ import type {
   EnvOverrideInput,
   ForbiddenEnvRequirement,
   Lane,
+  ReadPreviewCommitStateInput,
   PersistedEnvRequirement,
   ProvisionPreviewMeiliKeysInput,
   ProvisionPreviewMeiliKeysOutputInput,
@@ -12,6 +13,7 @@ import type {
   ServiceType,
   VerifyDeployInput,
   VerifyDeploymentRef,
+  WritePreviewCommitStateInput,
   ZaneResolvedTarget,
 } from "./zane-contract"
 
@@ -249,6 +251,43 @@ export function parseArchiveEnvironmentInput(rawPayload: unknown): ArchiveEnviro
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
     environmentName: assertString(payload.environment_name, "environment_name"),
+  }
+}
+
+export function parseReadPreviewCommitStateInput(
+  rawPayload: unknown
+): ReadPreviewCommitStateInput {
+  const payload = assertObject(rawPayload, "request body")
+  return {
+    projectSlug: normalizeProjectSlugFromPayload(payload),
+    environmentName: assertString(payload.environment_name, "environment_name"),
+  }
+}
+
+export function parseWritePreviewCommitStateInput(
+  rawPayload: unknown
+): WritePreviewCommitStateInput {
+  const payload = assertObject(rawPayload, "request body")
+  const targetCommitSha = assertOptionalString(
+    payload.target_commit_sha,
+    "target_commit_sha"
+  )
+  const lastDeployedCommitSha = assertOptionalString(
+    payload.last_deployed_commit_sha,
+    "last_deployed_commit_sha"
+  )
+
+  if (!(targetCommitSha || lastDeployedCommitSha)) {
+    throw new BadRequestError(
+      "target_commit_sha or last_deployed_commit_sha is required"
+    )
+  }
+
+  return {
+    projectSlug: normalizeProjectSlugFromPayload(payload),
+    environmentName: assertString(payload.environment_name, "environment_name"),
+    targetCommitSha,
+    lastDeployedCommitSha,
   }
 }
 

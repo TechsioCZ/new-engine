@@ -4,11 +4,13 @@ import type {
   EnvOverrideInput,
   Lane,
   ProvisionPreviewMeiliKeysInput,
+  ReadPreviewCommitStateInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
   ServiceType,
   TriggeredDeployment,
   VerifyDeployInput,
+  WritePreviewCommitStateInput,
   ZaneEnvironment,
   ZaneEnvVariable,
   ZaneResolvedTarget,
@@ -69,6 +71,10 @@ interface ZaneEnvironmentWithVariables extends ZaneEnvironment {
     value: string
   }>
 }
+
+const previewTargetCommitEnvKey = "ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA"
+const previewLastDeployedCommitEnvKey =
+  "ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA"
 
 function assertString(value: unknown, label: string): string {
   if (typeof value !== "string" || !value.trim()) {
@@ -235,6 +241,99 @@ export class ZaneClient {
     return await manager.archiveEnvironment(input)
   }
 
+  async readPreviewCommitState(input: ReadPreviewCommitStateInput): Promise<{
+    project_slug: string
+    environment_name: string
+    environment_exists: boolean
+    target_commit_sha: string | null
+    last_deployed_commit_sha: string | null
+  }> {
+    const session = await this.authenticate()
+    const environment = await this.getEnvironment(
+      session,
+      input.projectSlug,
+      input.environmentName
+    )
+
+    return {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      environment_exists: environment !== null,
+      target_commit_sha:
+        this.getSharedEnvironmentVariable(
+          environment,
+          previewTargetCommitEnvKey
+        ) ?? null,
+      last_deployed_commit_sha:
+        this.getSharedEnvironmentVariable(
+          environment,
+          previewLastDeployedCommitEnvKey
+        ) ?? null,
+    }
+  }
+
+  async writePreviewCommitState(input: WritePreviewCommitStateInput): Promise<{
+    project_slug: string
+    environment_name: string
+    environment_exists: boolean
+    target_commit_sha: string | null
+    last_deployed_commit_sha: string | null
+  }> {
+    const session = await this.authenticate()
+    const environment = await this.getEnvironment(
+      session,
+      input.projectSlug,
+      input.environmentName
+    )
+
+    if (!environment) {
+      throw new UpstreamHttpError(
+        404,
+        "zane_environment_not_found",
+        `Environment ${input.projectSlug}/${input.environmentName} was not found`
+      )
+    }
+
+    const envByKey = new Map(
+      environment.variables.map((variable) => [variable.key, variable])
+    )
+
+    const targetCommitSha = await this.upsertSharedEnvironmentVariable({
+      session,
+      projectSlug: input.projectSlug,
+      environmentName: input.environmentName,
+      envByKey,
+      key: previewTargetCommitEnvKey,
+      value: input.targetCommitSha,
+    })
+    const lastDeployedCommitSha =
+      await this.upsertSharedEnvironmentVariable({
+        session,
+        projectSlug: input.projectSlug,
+        environmentName: input.environmentName,
+        envByKey,
+        key: previewLastDeployedCommitEnvKey,
+        value: input.lastDeployedCommitSha,
+      })
+
+    return {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      environment_exists: true,
+      target_commit_sha:
+        targetCommitSha ??
+        this.getSharedEnvironmentVariable(environment, previewTargetCommitEnvKey) ??
+        null,
+      last_deployed_commit_sha:
+        lastDeployedCommitSha ??
+        this.getSharedEnvironmentVariable(
+          environment,
+          previewLastDeployedCommitEnvKey
+        ) ??
+        null,
+    }
+  }
+
   async resolveTargets(input: {
     projectSlug: string
     environmentName: string
@@ -344,6 +443,75 @@ export class ZaneClient {
       undefined,
       { allowNotFound: true },
     )
+  }
+
+  private getSharedEnvironmentVariable(
+    environment: ZaneEnvironmentWithVariables | null,
+    key: string
+  ): string | undefined {
+    return environment?.variables.find((variable) => variable.key === key)?.value
+  }
+
+  private async upsertSharedEnvironmentVariable(input: {
+    session: ZaneSession
+    projectSlug: string
+    environmentName: string
+    envByKey: Map<string, { id: string; key: string; value: string }>
+    key: string
+    value: string | undefined
+  }): Promise<string | undefined> {
+    if (input.value == null) {
+      return undefined
+    }
+
+    const existing = input.envByKey.get(input.key)
+    if (existing?.value === input.value) {
+      return existing.value
+    }
+
+    const payload = {
+      key: input.key,
+      value: input.value,
+    }
+
+    if (existing) {
+      await this.request(
+        input.session,
+        "PATCH",
+        `/api/projects/${encodeURIComponent(
+          input.projectSlug
+        )}/${encodeURIComponent(input.environmentName)}/variables/${encodeURIComponent(existing.id)}/`,
+        payload
+      )
+      input.envByKey.set(input.key, {
+        ...existing,
+        value: input.value,
+      })
+      return input.value
+    }
+
+    const created = await this.request<{
+      id?: string
+      key?: string
+      value?: string
+    }>(
+      input.session,
+      "POST",
+      `/api/projects/${encodeURIComponent(
+        input.projectSlug
+      )}/${encodeURIComponent(input.environmentName)}/variables/`,
+      payload
+    )
+
+    if (created?.id) {
+      input.envByKey.set(input.key, {
+        id: created.id,
+        key: input.key,
+        value: input.value,
+      })
+    }
+
+    return input.value
   }
 
   private buildUpstreamHeaders(session: ZaneSession | undefined, method: HttpMethod): Record<string, string> {

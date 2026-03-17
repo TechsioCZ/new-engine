@@ -3,6 +3,7 @@ import { z } from "zod"
 const deployPreviewCommandInputSchemaBase = z.object({
   projectSlug: z.string().min(1, "Zane canonical project slug is required."),
   prNumber: z.number().int().positive(),
+  targetCommitSha: z.string().default(""),
   servicesCsv: z.string().default(""),
   sourceEnvironmentName: z.string().default(""),
   previewDbName: z.string().default(""),
@@ -52,6 +53,14 @@ export const deployPreviewCommandInputSchema =
         message: "Zane operator API token is required.",
       })
     }
+
+    if (!(value.dryRun || value.targetCommitSha)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["targetCommitSha"],
+        message: "Preview target commit SHA is required.",
+      })
+    }
   })
 
 export const deployPreviewResponseSchema = z.object({
@@ -66,6 +75,8 @@ export const deployPreviewResponseSchema = z.object({
   environment_warnings: z.array(z.unknown()),
   requested_services_csv: z.string(),
   deploy_services_csv: z.string(),
+  target_commit_sha: z.string().nullable().optional(),
+  last_deployed_commit_sha: z.string().nullable().optional(),
   env_override_service_ids_csv: z.string(),
   triggered_services_csv: z.string(),
   meili_frontend_env_var: z.string(),

@@ -15,6 +15,18 @@ export interface ArchiveEnvironmentInput {
   environmentName: string
 }
 
+export interface ReadPreviewCommitStateInput {
+  projectSlug: string
+  environmentName: string
+}
+
+export interface WritePreviewCommitStateInput {
+  projectSlug: string
+  environmentName: string
+  targetCommitSha?: string
+  lastDeployedCommitSha?: string
+}
+
 export interface MeiliApiCredentialsPolicy {
   uid: string
   description: string

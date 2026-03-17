@@ -7,6 +7,7 @@ import { createDeployPreviewCommand } from "./commands/deploy-preview.js"
 import { createManifestCommand } from "./commands/manifest.js"
 import { createPlanCommand } from "./commands/plan.js"
 import { createPrepareCommand } from "./commands/prepare.js"
+import { createPreviewCommitStateCommand } from "./commands/preview-commit-state.js"
 import { createScopeCommand } from "./commands/scope.js"
 import { createTeardownPreviewCommand } from "./commands/teardown-preview.js"
 import { createVerifyCommand } from "./commands/verify.js"
@@ -25,6 +26,7 @@ async function main(): Promise<void> {
   program.addCommand(createManifestCommand())
   program.addCommand(createPlanCommand())
   program.addCommand(createPrepareCommand())
+  program.addCommand(createPreviewCommitStateCommand())
   program.addCommand(createScopeCommand())
   program.addCommand(createTeardownPreviewCommand())
   program.addCommand(createVerifyCommand())

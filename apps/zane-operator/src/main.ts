@@ -6,11 +6,13 @@ import { handleArchiveZaneEnvironment } from "./handlers/archive-zane-environmen
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
 import { handleProvisionPreviewMeiliKeys } from "./handlers/provision-preview-meili-keys"
+import { handleReadPreviewCommitState } from "./handlers/read-preview-commit-state"
 import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
 import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
 import { handleTeardownPreviewDb } from "./handlers/teardown-preview-db"
 import { handleTriggerZaneDeploy } from "./handlers/trigger-zane-deploy"
 import { handleVerifyZaneDeploy } from "./handlers/verify-zane-deploy"
+import { handleWritePreviewCommitState } from "./handlers/write-preview-commit-state"
 import { jsonError, jsonResponse } from "./http"
 
 const config = loadConfig()
@@ -87,6 +89,24 @@ const server = Bun.serve({
       }
 
       return await handleArchiveZaneEnvironment(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/preview-commit-state/read") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleReadPreviewCommitState(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/preview-commit-state/write") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleWritePreviewCommitState(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/meilisearch/provision-keys") {

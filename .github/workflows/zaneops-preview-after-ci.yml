@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       pr_number: ${{ steps.pr.outputs.number }}
+      baseline_sha: ${{ steps.scope_base.outputs.base_sha }}
       projects_csv: ${{ steps.scope_data.outputs.projects_csv }}
       services_csv: ${{ steps.scope_data.outputs.services_csv }}
       nx_status: ${{ steps.scope_data.outputs.nx_status }}
@@ -55,12 +56,31 @@ jobs:
         id: pr
         run: echo "number=${{ github.event.workflow_run.pull_requests[0].number }}" >> "$GITHUB_OUTPUT"
 
+      - name: Read preview commit state
+        id: preview_commit_state
+        env:
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+        run: |
+          node apps/new-engine-ctl/dist/cli.js preview-commit-state \
+            --pr-number "${{ steps.pr.outputs.number }}"
+
+      - name: Resolve preview scope base SHA
+        id: scope_base
+        run: |
+          BASE_SHA="${{ steps.preview_commit_state.outputs.last_deployed_commit_sha }}"
+          if [[ -z "$BASE_SHA" ]]; then
+            BASE_SHA="${{ github.event.workflow_run.pull_requests[0].base.sha }}"
+          fi
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+
       - name: Resolve preview scope
         id: scope_data
         run: |
           node apps/new-engine-ctl/dist/cli.js scope \
             --lane preview \
-            --base-sha "${{ github.event.workflow_run.pull_requests[0].base.sha }}" \
+            --base-sha "${{ steps.scope_base.outputs.base_sha }}" \
             --head-sha "${{ github.event.workflow_run.head_sha }}"
 
       - name: Upload new-engine-ctl artifact
@@ -77,6 +97,7 @@ jobs:
             echo "## Preview Scope"
             echo "- PR: #${{ steps.pr.outputs.number }}"
             echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
+            echo "- Baseline SHA: ${{ steps.scope_base.outputs.base_sha }}"
             echo "- Affected projects: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}"
             echo "- Affected services: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}"
             echo "- Nx status: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}"
@@ -159,6 +180,8 @@ jobs:
       environment_created: ${{ steps.run_deploy.outputs.environment_created }}
       environment_ready: ${{ steps.run_deploy.outputs.environment_ready }}
       environment_warning_count: ${{ steps.run_deploy.outputs.environment_warning_count }}
+      target_commit_sha: ${{ steps.run_deploy.outputs.target_commit_sha }}
+      last_deployed_commit_sha: ${{ steps.run_deploy.outputs.last_deployed_commit_sha }}
       meili_backend_key: ${{ steps.run_deploy.outputs.meili_backend_key }}
       meili_frontend_key: ${{ steps.run_deploy.outputs.meili_frontend_key }}
       meili_frontend_env_var: ${{ steps.run_deploy.outputs.meili_frontend_env_var }}
@@ -202,6 +225,7 @@ jobs:
         id: run_deploy
         env:
           PR_NUMBER: ${{ needs.scope.outputs.pr_number }}
+          TARGET_COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
           SERVICES_CSV: ${{ needs.scope.outputs.services_csv }}
           PREVIEW_DB_NAME: ${{ needs.prepare.outputs.preview_db_name }}
           PREVIEW_DB_USER: ${{ needs.prepare.outputs.preview_db_user }}
@@ -213,6 +237,7 @@ jobs:
         run: |
           node apps/new-engine-ctl/dist/cli.js deploy-preview \
             --pr-number "$PR_NUMBER" \
+            --target-commit-sha "$TARGET_COMMIT_SHA" \
             --services-csv "$SERVICES_CSV" \
             --source-environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
             --preview-db-name "${PREVIEW_DB_NAME:-}" \
@@ -229,6 +254,8 @@ jobs:
             echo "- Environment created: ${{ steps.run_deploy.outputs.environment_created || 'n/a' }}"
             echo "- Environment ready: ${{ steps.run_deploy.outputs.environment_ready || 'n/a' }}"
             echo "- Environment warnings: ${{ steps.run_deploy.outputs.environment_warning_count || '0' }}"
+            echo "- Target SHA: ${{ steps.run_deploy.outputs.target_commit_sha || 'n/a' }}"
+            echo "- Last deployed SHA: ${{ steps.run_deploy.outputs.last_deployed_commit_sha || 'n/a' }}"
             echo "- Meili keys provisioned: ${{ steps.run_deploy.outputs.meili_keys_provisioned || 'false' }}"
             echo "- Requested services: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}"
             echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
