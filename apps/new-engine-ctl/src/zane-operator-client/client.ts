@@ -194,6 +194,10 @@ export class ZaneOperatorClient {
     secrets: Array<{
       secret_id: string
       value?: string
+      targets: Array<{
+        service_slug: string
+        env_var: string
+      }>
     }>
   }): Promise<PreviewRandomOnceSecretsResponse> {
     return this.#postJson(

@@ -317,9 +317,31 @@ export function parseSyncPreviewRandomOnceSecretsInput(
     environmentName: assertString(payload.environment_name, "environment_name"),
     secrets: secrets.map((item, index) => {
       const object = assertObject(item, `secrets[${index}]`)
+      const targets = object.targets
+      if (!Array.isArray(targets)) {
+        throw new BadRequestError(`secrets[${index}].targets must be an array`)
+      }
+
       return {
         secretId: assertString(object.secret_id, `secrets[${index}].secret_id`),
         value: assertOptionalString(object.value, `secrets[${index}].value`),
+        targets: targets.map((target, targetIndex) => {
+          const targetObject = assertObject(
+            target,
+            `secrets[${index}].targets[${targetIndex}]`
+          )
+
+          return {
+            serviceSlug: assertString(
+              targetObject.service_slug,
+              `secrets[${index}].targets[${targetIndex}].service_slug`
+            ),
+            envVar: assertString(
+              targetObject.env_var,
+              `secrets[${index}].targets[${targetIndex}].env_var`
+            ),
+          }
+        }),
       }
     }),
   }

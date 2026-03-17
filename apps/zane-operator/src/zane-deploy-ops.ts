@@ -1,5 +1,6 @@
 import { UpstreamHttpError } from "./zane-errors"
 import { parseErrorMessage, type ZaneSession } from "./zane-upstream"
+import { computeEffectiveEnvVariables } from "./zane-effective-service-state"
 
 interface ResolveTargetInput {
   service_id: string
@@ -31,7 +32,14 @@ interface ZaneServiceDetails {
   commit_sha?: string | null
   deploy_token: string
   env_variables: ZaneEnvVariable[]
-  unapplied_changes?: Array<{ id: string }>
+  unapplied_changes?: Array<{
+    id: string
+    type?: "ADD" | "UPDATE" | "DELETE" | string
+    field?: string
+    item_id?: string | null
+    new_value?: Record<string, unknown> | null
+    old_value?: Record<string, unknown> | null
+  }>
 }
 
 interface ZaneResolvedCurrentDeployment {
@@ -302,7 +310,9 @@ export class ZaneDeployOps {
         input.environmentName,
         target.service_slug,
       )
-      const envByKey = new Map(serviceDetails.env_variables.map((envVar) => [envVar.key, envVar]))
+      const envByKey = new Map(
+        computeEffectiveEnvVariables(serviceDetails).map((envVar) => [envVar.key, envVar])
+      )
 
       for (const [key, value] of Object.entries(override.env)) {
         const current = envByKey.get(key)
