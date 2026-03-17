@@ -1,12 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
-import {
-  type ActiveCartQueryKeyMatcher,
-  createDefaultActiveCartQueryMatcher,
-  invalidateCartCaches,
-  syncCartCaches,
-} from "../shared/cart-cache-sync"
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import type {
   AddLineItemInputBase,
@@ -18,12 +12,18 @@ import type {
   UseSuspenseCartResult,
 } from "../cart/types"
 import type { StorageValueStore } from "../shared/browser-storage"
+import {
+  type ActiveCartQueryKeyMatcher,
+  createDefaultActiveCartQueryMatcher,
+  invalidateCartCaches,
+  syncCartCaches,
+} from "../shared/cart-cache-sync"
+import { toErrorWithCode } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
 
-import { toErrorWithCode } from "../shared/error-utils"
 type MedusaCartMutationHook<TInput> = (options?: {
   onSuccess?: (cart: HttpTypes.StoreCart) => void | Promise<void>
   onError?: (error: unknown) => void
@@ -254,12 +254,9 @@ export function createMedusaCartFlow({
     },
   })
 
-  function useNormalizedCartMutation<TInput>(
-    hook: MedusaCartMutationHook<TInput>,
-    options?: UseMedusaCartMutationOptions
-  ) {
-    const queryClient = useQueryClient()
-    const mutation = hook(buildMutationHandlers(queryClient, options))
+  const normalizeCartMutation = <TInput>(
+    mutation: ReturnType<MedusaCartMutationHook<TInput>>
+  ) => {
     const mutate = (
       input: TInput,
       mutateOptions?: {
@@ -330,21 +327,38 @@ export function createMedusaCartFlow({
   }
 
   function useAddToCart(options?: UseMedusaCartMutationOptions) {
-    return useNormalizedCartMutation(cartHooks.useAddLineItem, options)
+    const queryClient = useQueryClient()
+    const mutation = cartHooks.useAddLineItem(
+      buildMutationHandlers(queryClient, options)
+    )
+
+    return normalizeCartMutation(mutation)
   }
 
   function useUpdateLineItem(options?: UseMedusaCartMutationOptions) {
-    return useNormalizedCartMutation(cartHooks.useUpdateLineItem, options)
+    const queryClient = useQueryClient()
+    const mutation = cartHooks.useUpdateLineItem(
+      buildMutationHandlers(queryClient, options)
+    )
+
+    return normalizeCartMutation(mutation)
   }
 
   function useRemoveLineItem(options?: UseMedusaCartMutationOptions) {
-    return useNormalizedCartMutation(cartHooks.useRemoveLineItem, options)
+    const queryClient = useQueryClient()
+    const mutation = cartHooks.useRemoveLineItem(
+      buildMutationHandlers(queryClient, options)
+    )
+
+    return normalizeCartMutation(mutation)
   }
 
   const getCompletedCartIdFromContext = (
     context: unknown
   ): string | null | undefined => {
-    if (!(context && typeof context === "object" && "completedCartId" in context)) {
+    if (
+      !(context && typeof context === "object" && "completedCartId" in context)
+    ) {
       return
     }
     const completedCartId = (context as { completedCartId?: unknown })
