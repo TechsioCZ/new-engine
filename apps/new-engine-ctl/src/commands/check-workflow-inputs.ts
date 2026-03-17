@@ -48,8 +48,6 @@ function validateMode(mode: WorkflowInputMode): void {
         maskEnv("ZANE_OPERATOR_API_TOKEN")
       }
       return
-    case "main-prepare":
-      return
     case "preview-deploy":
     case "preview-verify":
       requireEnv({

@@ -23,11 +23,7 @@ jobs:
       projects_csv: ${{ steps.scope_data.outputs.projects_csv }}
       services_csv: ${{ steps.scope_data.outputs.services_csv }}
       nx_status: ${{ steps.scope_data.outputs.nx_status }}
-      should_prepare: ${{ steps.scope_data.outputs.should_prepare }}
-      requires_preview_db: ${{ steps.scope_data.outputs.requires_preview_db }}
       requires_meili_keys: ${{ steps.scope_data.outputs.requires_meili_keys }}
-      preview_db_service_ids: ${{ steps.scope_data.outputs.preview_db_service_ids }}
-      meili_key_service_ids: ${{ steps.scope_data.outputs.meili_key_service_ids }}
       requires_downtime_approval: ${{ steps.scope_data.outputs.requires_downtime_approval }}
       downtime_service_ids: ${{ steps.scope_data.outputs.downtime_service_ids }}
     steps:
@@ -37,10 +33,6 @@ jobs:
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
-
-      - uses: jdx/mise-action@v3
-        with:
-          install: true
 
       - uses: actions/setup-node@v4
         with:
@@ -87,8 +79,6 @@ jobs:
             echo "- Affected projects: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}"
             echo "- Affected services: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}"
             echo "- Nx status: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}"
-            echo "- Should prepare: ${{ steps.scope_data.outputs.should_prepare || 'false' }}"
-            echo "- Requires preview DB: ${{ steps.scope_data.outputs.requires_preview_db || 'false' }}"
             echo "- Requires Meili keys: ${{ steps.scope_data.outputs.requires_meili_keys || 'false' }}"
             echo "- Requires downtime approval: ${{ steps.scope_data.outputs.requires_downtime_approval || 'false' }}"
             echo "- Downtime-risk services: ${{ steps.scope_data.outputs.downtime_service_ids || 'n/a' }}"
@@ -142,10 +132,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-
-      - uses: jdx/mise-action@v3
-        with:
-          install: true
 
       - uses: actions/download-artifact@v4
         with:

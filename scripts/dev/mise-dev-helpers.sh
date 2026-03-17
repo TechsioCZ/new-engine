@@ -61,13 +61,22 @@ wait_for_service_healthy() {
 services_for_phase() {
   local phase="$1"
   local default_only="${2:-true}"
+  local ctl_dist="$ROOT_DIR/apps/new-engine-ctl/dist/cli.js"
 
   require_cmd pnpm
+  require_cmd node
+
+  if [[ ! -f "$ctl_dist" ]] || find "$ROOT_DIR/apps/new-engine-ctl/src" "$ROOT_DIR/apps/new-engine-ctl/config" -type f -newer "$ctl_dist" -print -quit | grep -q .; then
+    (
+      cd "$ROOT_DIR/apps/new-engine-ctl"
+      pnpm run build >/dev/null
+    )
+  fi
 
   if [[ "$default_only" == "true" ]]; then
-    pnpm --dir "$ROOT_DIR" exec tsx apps/new-engine-ctl/src/cli.ts manifest compose-services --phase "$phase" --default-only
+    node "$ctl_dist" manifest compose-services --phase "$phase" --default-only
   else
-    pnpm --dir "$ROOT_DIR" exec tsx apps/new-engine-ctl/src/cli.ts manifest compose-services --phase "$phase"
+    node "$ctl_dist" manifest compose-services --phase "$phase"
   fi
 }
 

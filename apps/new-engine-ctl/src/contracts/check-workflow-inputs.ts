@@ -2,7 +2,6 @@ import { z } from "zod"
 
 export const workflowInputModeSchema = z.enum([
   "preview-prepare",
-  "main-prepare",
   "preview-deploy",
   "main-deploy",
   "preview-verify",

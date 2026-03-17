@@ -430,9 +430,17 @@ Required env vars for CLI run:
 - `PGDATABASE` (optional, default `postgres`)
 - `PGSSLMODE` (optional, default `disable`)
 
-### 8. Manually refresh `template_medusa` from a different source DB
+### 8. Create or refresh `template_medusa` from a source DB
 
-Use this flow when you want preview DBs to be cloned from a new upstream data snapshot.
+Use this flow when you want preview DBs to be cloned from a new upstream data snapshot or when the configured preview template DB does not exist yet.
+
+For the normal helper path, run:
+
+```bash
+mise run dev:zane:template-db:sync
+```
+
+That helper creates the configured preview template DB on first run and refreshes it from the chosen source DB on later runs.
 
 Prerequisites:
 - PostgreSQL client tools available (`pg_dump`, `pg_restore`, `psql`)

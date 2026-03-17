@@ -53,7 +53,7 @@
     During step 3, `.env` handling is opinionated:
     * if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written
     * if existing values differ, you are prompted to `override` or `keep`
-    * Meilisearch key policy/provisioning is owned by `apps/new-engine-ctl prepare`; only `mise run dev` performs `.env` sync logic
+    * Meilisearch key policy/provisioning is owned by `apps/new-engine-ctl meili-api-credentials`; only `mise run dev` performs `.env` sync logic
     * `mise run dev` calls provisioning against host URL `http://127.0.0.1:7700` by default (override via `MISE_DEV_MEILI_URL`) so `DC_MEILISEARCH_HOST` can remain container-internal (`http://medusa-meilisearch:7700`)
 
     * Postgres role bootstrap (`medusa_app`, `medusa_dev`, `zane_operator`) runs automatically from `medusa-db` startup via `/usr/local/bin/run-postgres-with-bootstrap.sh`
@@ -183,19 +183,14 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
    make dev
     ```
 
-8b. <b>Provision and verify scoped Meilisearch keys</b> (recommended before frontend production builds)
+8b. <b>Verify scoped Meilisearch keys</b> (manual helper only)
     * local via `mise`:
     ```shell
-   mise run ci:meili:provision
-   mise run ci:meili:verify
+   mise run dev:meili:verify
     ```
-    * `ci:meili:provision` now calls the CLI directly
-    * `ci:meili:verify` remains a thin helper because the current contract check is “compare provided key values to the active CLI-managed outputs”
-    * direct CLI source of truth:
-    ```shell
-   pnpm -C apps/new-engine-ctl run build
-   node apps/new-engine-ctl/dist/cli.js prepare --lane main --requires-meili-keys
-    ```
+    * `dev:meili:verify` remains a thin helper because the current contract check is “compare provided key values to the active CLI-managed outputs”
+    * local `.env` sync still uses `scripts/dev/provision-meili-keys.sh`, but that helper is now just a thin wrapper over `apps/new-engine-ctl meili-api-credentials`
+    * main-lane Meili API credential reconciliation now happens inside deploy orchestration, not in a standalone main `prepare` phase
     * the remaining `scripts/dev/*` Meili commands are helper surfaces, not policy owners
     * provider policy lives in `apps/new-engine-ctl/config/stack-inputs.yaml`, not in shell scripts
 
@@ -322,6 +317,7 @@ Use `.env` for local compose/runtime and `.env.zane` for Zane-targeted helper sc
 - `mise run dev:zane:template-db:sync`
 
 For Zane-targeted helpers, managed public service URLs are derived from the route contract rather than copied from ambient `.env.zane` frontend URL values.
+`mise run dev:zane:template-db:sync` is also the first-time setup path for the preview template DB: it creates the configured template DB when missing and refreshes it from the chosen source DB when it already exists.
 
 ---
 

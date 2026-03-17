@@ -5,6 +5,7 @@ import { createCheckWorkflowInputsCommand } from "./commands/check-workflow-inpu
 import { createDeployMainCommand } from "./commands/deploy-main.js"
 import { createDeployPreviewCommand } from "./commands/deploy-preview.js"
 import { createManifestCommand } from "./commands/manifest.js"
+import { createMeiliApiCredentialsCommand } from "./commands/meili-api-credentials.js"
 import { createPlanCommand } from "./commands/plan.js"
 import { createPrepareCommand } from "./commands/prepare.js"
 import { createPreviewCommitStateCommand } from "./commands/preview-commit-state.js"
@@ -24,6 +25,7 @@ async function main(): Promise<void> {
   program.addCommand(createDeployMainCommand())
   program.addCommand(createDeployPreviewCommand())
   program.addCommand(createManifestCommand())
+  program.addCommand(createMeiliApiCredentialsCommand())
   program.addCommand(createPlanCommand())
   program.addCommand(createPrepareCommand())
   program.addCommand(createPreviewCommitStateCommand())
