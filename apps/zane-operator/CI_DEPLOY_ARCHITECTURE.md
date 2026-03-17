@@ -136,9 +136,9 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 ## Deploy Input Contract
 
 - The shared deploy-input contract lives in `apps/new-engine-ctl/config/stack-inputs.yaml`.
-- Preview first-creation random-once secrets are CI-generated from that contract, materialized into preview-owned shared env state, and then applied to preview services through the deploy path.
+- Preview first-creation random-once secrets are CI-generated from that contract, discovered from existing preview service env when present, and otherwise materialized onto the actual preview service env vars they target through the deploy path.
 - Those generated preview secrets must be created exactly once per preview environment creation/baseline materialization and reused for all later preview deploy/verify runs unless the preview environment is recreated.
-- Baseline deploy must persist preview-owned random-once values before staged deploy begins so cloned main values are overwritten before preview services are deployed.
+- Baseline deploy must persist preview-owned random-once values onto the actual preview service env vars before staged deploy begins so cloned main values are overwritten before preview services are deployed.
 - The deploy path must support prepared inputs produced before deploy starts.
   - Current example: preview DB credentials returned by `prepare`.
 - The deploy path must support runtime-provisioned inputs produced only after a prerequisite service is healthy.

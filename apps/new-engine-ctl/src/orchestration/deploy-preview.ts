@@ -138,6 +138,10 @@ async function resolvePreviewRandomOnceSecrets(input: {
     secrets: definitions.map((definition) => ({
       secret_id: definition.secret_id,
       value: generatedValuesBySecretId.get(definition.secret_id),
+      targets: definition.targets.map((target) => ({
+        service_slug: target.service_id,
+        env_var: target.env_var,
+      })),
     })),
   })
 

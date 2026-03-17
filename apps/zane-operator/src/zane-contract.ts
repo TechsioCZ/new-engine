@@ -31,6 +31,10 @@ export interface WritePreviewCommitStateInput {
 export interface PreviewRandomOnceSecretValueInput {
   secretId: string
   value?: string
+  targets: Array<{
+    serviceSlug: string
+    envVar: string
+  }>
 }
 
 export interface SyncPreviewRandomOnceSecretsInput {

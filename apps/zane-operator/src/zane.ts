@@ -27,6 +27,7 @@ import {
 import { ZaneDeployOps } from "./zane-deploy-ops"
 import { ZaneDeployVerifier } from "./zane-deploy-verify"
 import { ZaneEnvironmentManager } from "./zane-environments"
+import { computeEffectiveEnvVariables } from "./zane-effective-service-state"
 import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 export type {
   ArchiveEnvironmentInput,
@@ -77,8 +78,6 @@ const previewTargetCommitEnvKey = "ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA"
 const previewLastDeployedCommitEnvKey =
   "ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA"
 const previewBaselineCompleteEnvKey = "ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE"
-const previewRandomOnceSecretEnvKeyPrefix =
-  "ZANE_OPERATOR_PREVIEW_RANDOM_ONCE_SECRET_"
 
 function assertString(value: unknown, label: string): string {
   if (typeof value !== "string" || !value.trim()) {
@@ -143,19 +142,6 @@ function normalizeServiceDetails(payload: unknown, label: string): ZaneServiceDe
       ? (object.urls as ZaneServiceDetails["urls"])
       : [],
   }
-}
-
-function buildPreviewRandomOnceSecretEnvKey(secretId: string): string {
-  const normalized = secretId.trim().replace(/[^A-Za-z0-9_]+/g, "_").toUpperCase()
-  if (!normalized) {
-    throw new UpstreamHttpError(
-      400,
-      "preview_secret_id_invalid",
-      "preview random-once secret id cannot be empty",
-    )
-  }
-
-  return `${previewRandomOnceSecretEnvKeyPrefix}${normalized}`
 }
 
 export class ZaneClient {
@@ -419,16 +405,43 @@ export class ZaneClient {
       )
     }
 
-    const envByKey = new Map(
-      environment.variables.map((variable) => [variable.key, variable]),
-    )
+    const serviceDetailsBySlug = new Map<string, ZaneServiceDetails>()
     const secrets: Array<{ secret_id: string; value: string }> = []
     const missingSecretIds: string[] = []
 
     for (const secret of input.secrets) {
-      const envKey = buildPreviewRandomOnceSecretEnvKey(secret.secretId)
-      const existingValue = this.getSharedEnvironmentVariable(environment, envKey)
+      const resolvedValues = new Set<string>()
 
+      for (const target of secret.targets) {
+        let serviceDetails = serviceDetailsBySlug.get(target.serviceSlug)
+        if (!serviceDetails) {
+          serviceDetails = await this.getServiceDetails(
+            session,
+            input.projectSlug,
+            input.environmentName,
+            target.serviceSlug,
+          )
+          serviceDetailsBySlug.set(target.serviceSlug, serviceDetails)
+        }
+
+        const existingValue = computeEffectiveEnvVariables(serviceDetails).find(
+          (envVar) => envVar.key === target.envVar
+        )?.value
+
+        if (existingValue) {
+          resolvedValues.add(existingValue)
+        }
+      }
+
+      if (resolvedValues.size > 1) {
+        throw new UpstreamHttpError(
+          409,
+          "preview_secret_conflict",
+          `Preview secret ${secret.secretId} has conflicting persisted target values in ${input.environmentName}`,
+        )
+      }
+
+      const existingValue = resolvedValues.values().next().value
       if (existingValue) {
         secrets.push({
           secret_id: secret.secretId,
@@ -442,26 +455,9 @@ export class ZaneClient {
         continue
       }
 
-      const value = await this.upsertSharedEnvironmentVariable({
-        session,
-        projectSlug: input.projectSlug,
-        environmentName: input.environmentName,
-        envByKey,
-        key: envKey,
-        value: secret.value,
-      })
-
-      if (!value) {
-        throw new UpstreamHttpError(
-          500,
-          "preview_secret_write_failed",
-          `Failed to persist preview random-once secret ${secret.secretId}`,
-        )
-      }
-
       secrets.push({
         secret_id: secret.secretId,
-        value,
+        value: secret.value,
       })
     }
 
