@@ -20,6 +20,10 @@ import {
 } from "../contracts/provision-preview-meili-keys.js"
 import type { ResolveEnvironmentResponse } from "../contracts/resolve-environment.js"
 import { resolveEnvironmentResponseSchema } from "../contracts/resolve-environment.js"
+import type { PreviewCommitStateResponse } from "../contracts/preview-commit-state.js"
+import {
+  previewCommitStateResponseSchema,
+} from "../contracts/preview-commit-state.js"
 import type {
   ResolveTargetsPayload,
   ResolveTargetsResponse,
@@ -154,6 +158,30 @@ export class ZaneOperatorClient {
       "/v1/zane/environments/resolve",
       payload,
       resolveEnvironmentResponseSchema.parse
+    )
+  }
+
+  readPreviewCommitState(payload: {
+    project_slug: string
+    environment_name: string
+  }): Promise<PreviewCommitStateResponse> {
+    return this.#postJson(
+      "/v1/zane/preview-commit-state/read",
+      payload,
+      previewCommitStateResponseSchema.parse
+    )
+  }
+
+  writePreviewCommitState(payload: {
+    project_slug: string
+    environment_name: string
+    target_commit_sha?: string
+    last_deployed_commit_sha?: string
+  }): Promise<PreviewCommitStateResponse> {
+    return this.#postJson(
+      "/v1/zane/preview-commit-state/write",
+      payload,
+      previewCommitStateResponseSchema.parse
     )
   }
 

@@ -28,6 +28,7 @@ import { executeRenderEnvOverrides } from "./render-env-overrides.js"
 import { executeResolveEnvironment } from "./resolve-environment.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
 import { executeTriggerPayload } from "./trigger.js"
+import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
 export type DeployPreviewExecutionResult = {
   response: DeployPreviewResponse
@@ -97,9 +98,26 @@ export async function executeDeployPreview(
   let meiliFrontendKey = input.meiliFrontendKey
   let meiliFrontendEnvVar = input.meiliFrontendEnvVar
   let meiliKeysProvisioned = false
+  let targetCommitSha: string | null = null
+  let lastDeployedCommitSha: string | null = null
   let envOverrideServiceIdsCsv = ""
   let triggeredServicesCsv = ""
   let allDeployments: DeploymentLike[] = []
+  const zaneOperatorClient =
+    input.dryRun || !input.baseUrl || !input.apiToken
+      ? null
+      : new ZaneOperatorClient(input.baseUrl, input.apiToken)
+
+  if (zaneOperatorClient && input.targetCommitSha) {
+    const previewCommitState = await zaneOperatorClient.writePreviewCommitState({
+      project_slug: input.projectSlug,
+      environment_name: environment.environment_name,
+      target_commit_sha: input.targetCommitSha,
+    })
+    targetCommitSha = previewCommitState.target_commit_sha
+  } else if (input.targetCommitSha) {
+    targetCommitSha = input.targetCommitSha
+  }
 
   for (const stage of collectStageNumbers(runtimePlan)) {
     const stagePlan = buildStagePlan(runtimePlan, stage)
@@ -152,6 +170,7 @@ export async function executeDeployPreview(
       projectSlug: input.projectSlug,
       environmentName: environment.environment_name,
       targets: targets.services,
+      gitCommitSha: input.targetCommitSha,
       baseUrl: input.baseUrl,
       apiToken: input.apiToken,
       dryRun: input.dryRun,
@@ -216,6 +235,18 @@ export async function executeDeployPreview(
     }
   }
 
+  if (zaneOperatorClient && input.targetCommitSha) {
+    const previewCommitState = await zaneOperatorClient.writePreviewCommitState({
+      project_slug: input.projectSlug,
+      environment_name: environment.environment_name,
+      last_deployed_commit_sha: input.targetCommitSha,
+    })
+    targetCommitSha = previewCommitState.target_commit_sha
+    lastDeployedCommitSha = previewCommitState.last_deployed_commit_sha
+  } else if (input.targetCommitSha) {
+    lastDeployedCommitSha = input.targetCommitSha
+  }
+
   const response = deployPreviewResponseSchema.parse({
     lane: "preview",
     project_slug: input.projectSlug,
@@ -229,6 +260,8 @@ export async function executeDeployPreview(
     environment_warnings: environment.warnings,
     requested_services_csv: plan.requested_services_csv,
     deploy_services_csv: runtimePlan.deploy_services_csv,
+    target_commit_sha: targetCommitSha,
+    last_deployed_commit_sha: lastDeployedCommitSha,
     env_override_service_ids_csv: envOverrideServiceIdsCsv,
     triggered_services_csv: triggeredServicesCsv,
     meili_frontend_env_var: meiliFrontendEnvVar,

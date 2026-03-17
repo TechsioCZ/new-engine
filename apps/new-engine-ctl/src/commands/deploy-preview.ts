@@ -15,6 +15,8 @@ function buildDeployPreviewInput(options: Record<string, unknown>) {
     projectSlug:
       options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
     prNumber: parsedPrNumber,
+    targetCommitSha:
+      options.targetCommitSha ?? process.env.TARGET_COMMIT_SHA ?? "",
     servicesCsv: options.servicesCsv,
     sourceEnvironmentName:
       options.sourceEnvironmentName ??
@@ -86,6 +88,14 @@ async function writeDeployPreviewOutputs(
     result.response.deploy_services_csv
   )
   await appendGitHubOutput(
+    "target_commit_sha",
+    result.response.target_commit_sha ?? ""
+  )
+  await appendGitHubOutput(
+    "last_deployed_commit_sha",
+    result.response.last_deployed_commit_sha ?? ""
+  )
+  await appendGitHubOutput(
     "preview_cloned_service_ids_csv",
     result.response.preview_cloned_service_ids_csv
   )
@@ -125,6 +135,7 @@ export function createDeployPreviewCommand(): Command {
     .description("Run preview deploy orchestration end-to-end")
     .option("--project-slug <slug>")
     .requiredOption("--pr-number <n>")
+    .option("--target-commit-sha <sha>")
     .option("--services-csv <csv>", "", "")
     .option("--source-environment-name <name>")
     .option("--preview-db-name <name>", "", "")

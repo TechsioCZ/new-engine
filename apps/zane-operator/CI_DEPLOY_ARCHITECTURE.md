@@ -61,8 +61,10 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 11. Resolve deploy targets for affected services inside that preview environment.
 12. Obtain the per-service deploy key/webhook/token required to trigger deploys for those services.
 13. Apply env overrides derived from `prepare` or first-creation runtime provisioning before or as part of the deploy trigger.
-14. Trigger deploy only for affected services plus any explicitly coupled dependents defined in the manifest.
-15. Persist enough metadata in job outputs for downstream verification, but do not emit secrets to summaries/logs.
+14. For preview, write `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` to the preview environment before deploy stages start.
+15. Trigger deploy only for affected services plus any explicitly coupled dependents defined in the manifest.
+16. After successful preview deploy completion, update `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` to the target commit SHA; verification remains read-only.
+17. Persist enough metadata in job outputs for downstream verification, but do not emit secrets to summaries/logs.
 
 ## Preview Decision Table
 
@@ -87,10 +89,11 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 ## Git Resolution Contract
 
 - Main-lane Git deploys must be pinned to the exact CI commit SHA being promoted.
-- Preview-lane Git deploys remain branch-based by default so manual reruns in Zane can continue to pull the latest PR-branch state unless a later explicit override contract is added.
-- Subsequent preview updates remain redeploy-only against the PR branch head by default.
-- When no explicit Git commit SHA is passed to preview deploy orchestration, skip/reuse logic must not guess; it may stay conservative unless the active implementation can resolve the exact branch-head commit SHA that Zane would pull for that preview redeploy.
-- Closing that preview-lane gap requires active code to resolve the effective branch-head commit SHA for each Git service before applying same-commit skip/reuse decisions.
+- Preview CI deploys must target the exact workflow head commit SHA and persist that intent on the preview environment as `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA`.
+- Preview scope must diff from `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` when that metadata exists; if it is missing or empty, fall back to the PR base SHA.
+- After a successful preview deploy stage completes, the preview environment must advance `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` to the target commit SHA.
+- Preview verification is read-only and must not persist preview commit metadata.
+- Out-of-band manual reruns in Zane are drift relative to the CI-owned preview commit metadata unless a later explicit contract changes that ownership.
 
 ## Preview Environment Identity
 

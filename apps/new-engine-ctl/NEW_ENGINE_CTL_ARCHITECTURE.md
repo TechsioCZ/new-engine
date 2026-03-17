@@ -101,8 +101,10 @@ Do not spread orchestration across many tiny workflow-specific commands.
 
 Phase intent:
 - `scope`/`plan` determine the affected service set and manifest-ordered deploy plan.
+- preview scope may read preview-environment metadata to resolve the baseline commit; the active keys are `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` and `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA`
 - `prepare` is for shared-resource prerequisites and input validation only.
 - runtime-provider execution belongs in deploy orchestration after the provider source service is deployed and healthy.
+- preview deploy owns preview commit metadata sequencing: write `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` before deploy stages start and advance `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` only as the final successful deploy-stage metadata update
 - `verify` proves contract-owned env/application results after deploy completes.
 
 ## App Structure
