@@ -1,5 +1,6 @@
 import { BadRequestError } from "./db"
 import { UpstreamHttpError } from "./zane-errors"
+import { assertPreviewLaneEnvironment } from "./zane-lane-environment"
 import type {
   ProvisionPreviewMeiliKeysInput,
   ProvisionPreviewMeiliKeysOutputInput,
@@ -97,16 +98,6 @@ function meiliKeyMatchesPolicy(
   )
 }
 
-function assertPreviewEnvironment(environment: PreviewEnvironmentLookup): void {
-  if (!environment.is_preview) {
-    throw new UpstreamHttpError(
-      409,
-      "zane_environment_lane_mismatch",
-      `Environment ${environment.name} is not a preview environment and cannot be used for preview lane operations`,
-    )
-  }
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
@@ -147,7 +138,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
         `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`,
       )
     }
-    assertPreviewEnvironment(environment)
+    assertPreviewLaneEnvironment(environment)
 
     const serviceDetails = await this.#deps.getServiceDetails(
       session,

@@ -1,5 +1,6 @@
 import { BadRequestError } from "./db"
 import { UpstreamHttpError } from "./zane-errors"
+import { assertEnvironmentMatchesLane } from "./zane-lane-environment"
 import type { ZaneSession } from "./zane-upstream"
 
 interface VerifyEnvOverrideInput {
@@ -151,24 +152,6 @@ function buildVerifyServiceSlugByRepoId(
   }
 
   return mapping
-}
-
-function assertEnvironmentMatchesLane(environment: VerifyEnvironmentLookup, lane: "preview" | "main"): void {
-  if (lane === "main" && environment.is_preview) {
-    throw new UpstreamHttpError(
-      409,
-      "zane_environment_lane_mismatch",
-      `Environment ${environment.name} is a preview environment and cannot be used for main lane operations`,
-    )
-  }
-
-  if (lane === "preview" && !environment.is_preview) {
-    throw new UpstreamHttpError(
-      409,
-      "zane_environment_lane_mismatch",
-      `Environment ${environment.name} is not a preview environment and cannot be used for preview lane operations`,
-    )
-  }
 }
 
 function verifyPreviewServiceSet(input: {
