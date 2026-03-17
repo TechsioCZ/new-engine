@@ -38,6 +38,10 @@ run = "bash ./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent"
 description = "Simulate the active CI main lane locally against a deployed Zane target"
 run = "bash ./scripts/dev/run-zane-main-lane.sh"
 
+[tasks."dev:zane:preview"]
+description = "Simulate the active CI preview lane locally against a deployed Zane target"
+run = "bash ./scripts/dev/run-zane-preview-lane.sh"
+
 [tasks."dev:meili:verify"]
 description = "Thin local helper that checks provided Meili keys against the active CLI-managed contract"
 run = "bash ./scripts/dev/verify-meili-keys.sh"
