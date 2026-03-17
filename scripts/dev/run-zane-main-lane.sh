@@ -255,8 +255,8 @@ run_deploy_stage() {
   common::stage "Deploy"
   common::step "Running main deploy stage..."
   if [[ "$HEAD_SHA" == "HEAD" ]]; then
-    git_commit_sha="HEAD"
-    common::step "Local deploy target commit: HEAD (branch-head mode)."
+    git_commit_sha="$(git -C "$ROOT_DIR" rev-parse HEAD)"
+    common::step "Local deploy target commit: ${git_commit_sha} (resolved from HEAD at run start)."
   else
     git_commit_sha="$(git -C "$ROOT_DIR" rev-parse "$HEAD_SHA")"
     common::step "Local deploy target commit: ${git_commit_sha}."
