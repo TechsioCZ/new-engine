@@ -149,8 +149,7 @@ async function withDatabaseClientByUrl<T>(
   databaseName: string,
   operation: (databaseSql: Bun.SQL) => Promise<T>,
 ): Promise<T> {
-  const databaseSql = new SQL({
-    url: buildDatabaseUrl(databaseUrl, databaseName),
+  const databaseSql = new SQL(buildDatabaseUrl(databaseUrl, databaseName), {
     max: 4,
     idleTimeout: 10,
     connectionTimeout: 10,
