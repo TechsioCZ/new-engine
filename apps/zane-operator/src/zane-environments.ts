@@ -183,6 +183,18 @@ function normalizeUrlShape(url: ZaneServiceUrl): {
   }
 }
 
+function buildUrlChangeValue(url: ZaneServiceUrl): Record<string, unknown> {
+  return {
+    domain: url.domain,
+    base_path: url.base_path,
+    strip_prefix: url.strip_prefix ?? true,
+    ...(url.redirect_to ? { redirect_to: url.redirect_to } : {}),
+    ...(typeof url.associated_port === "number"
+      ? { associated_port: url.associated_port }
+      : {}),
+  }
+}
+
 function buildPreviewUrlDomain(
   projectSlug: string,
   serviceSlug: string,
@@ -609,13 +621,7 @@ export class ZaneEnvironmentManager {
     await this.requestServiceChange(session, input, serviceSlug, {
       field: "urls",
       type: "ADD",
-      new_value: {
-        domain: url.domain,
-        base_path: url.base_path,
-        strip_prefix: url.strip_prefix ?? true,
-        redirect_to: url.redirect_to ?? null,
-        associated_port: url.associated_port ?? null,
-      },
+      new_value: buildUrlChangeValue(url),
     })
   }
 
@@ -630,13 +636,7 @@ export class ZaneEnvironmentManager {
       field: "urls",
       type: "UPDATE",
       item_id: itemId,
-      new_value: {
-        domain: url.domain,
-        base_path: url.base_path,
-        strip_prefix: url.strip_prefix ?? true,
-        redirect_to: url.redirect_to ?? null,
-        associated_port: url.associated_port ?? null,
-      },
+      new_value: buildUrlChangeValue(url),
     })
   }
 
