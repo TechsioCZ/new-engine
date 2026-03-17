@@ -374,11 +374,10 @@ Before the first real preview/main smoke:
   - `DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER` only with the connect-base override above
   - `DC_ZANE_OPERATOR_ZANE_USERNAME`
   - `DC_ZANE_OPERATOR_ZANE_PASSWORD`
-- set local smoke env:
-  - `ZANE_OPERATOR_BASE_URL=http://localhost:8082`
-  - `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
-  - `ZANE_CANONICAL_PROJECT_SLUG=<your-zane-project-slug>`
-  - `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
+- use `.env.zane` for local helper runs.
+  - the local main helper derives the deployed operator and Meilisearch URLs from the canonical route contract plus `DC_ZANE_OPERATOR_ZANE_BASE_URL`
+  - the local main helper reads the operator API token from `DC_ZANE_OPERATOR_API_AUTH_TOKEN`
+  - the local main helper snapshots `HEAD` to the concrete current commit SHA at run start unless `--head-sha <sha>` is passed explicitly
 
 Operational notes:
 - preview environments are derived outside Zane as `pr-<number>` by default
