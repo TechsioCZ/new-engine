@@ -75,6 +75,7 @@ interface ZaneEnvironmentWithVariables extends ZaneEnvironment {
 const previewTargetCommitEnvKey = "ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA"
 const previewLastDeployedCommitEnvKey =
   "ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA"
+const previewBaselineCompleteEnvKey = "ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE"
 
 function assertString(value: unknown, label: string): string {
   if (typeof value !== "string" || !value.trim()) {
@@ -212,6 +213,7 @@ export class ZaneClient {
     environment_name: string
     is_preview: boolean
     created: boolean
+    baseline_complete: boolean
     cloned_from_environment: string | null
     ready: boolean
     expected_preview_service_slugs: string[]
@@ -245,6 +247,7 @@ export class ZaneClient {
     project_slug: string
     environment_name: string
     environment_exists: boolean
+    baseline_complete: boolean
     target_commit_sha: string | null
     last_deployed_commit_sha: string | null
   }> {
@@ -259,6 +262,11 @@ export class ZaneClient {
       project_slug: input.projectSlug,
       environment_name: input.environmentName,
       environment_exists: environment !== null,
+      baseline_complete:
+        this.getSharedEnvironmentVariable(
+          environment,
+          previewBaselineCompleteEnvKey
+        ) === "true",
       target_commit_sha:
         this.getSharedEnvironmentVariable(
           environment,
@@ -276,6 +284,7 @@ export class ZaneClient {
     project_slug: string
     environment_name: string
     environment_exists: boolean
+    baseline_complete: boolean
     target_commit_sha: string | null
     last_deployed_commit_sha: string | null
   }> {
@@ -315,11 +324,28 @@ export class ZaneClient {
         key: previewLastDeployedCommitEnvKey,
         value: input.lastDeployedCommitSha,
       })
+    const baselineComplete = await this.upsertSharedEnvironmentVariable({
+      session,
+      projectSlug: input.projectSlug,
+      environmentName: input.environmentName,
+      envByKey,
+      key: previewBaselineCompleteEnvKey,
+      value:
+        typeof input.baselineComplete === "boolean"
+          ? String(input.baselineComplete)
+          : undefined,
+    })
 
     return {
       project_slug: input.projectSlug,
       environment_name: input.environmentName,
       environment_exists: true,
+      baseline_complete:
+        (baselineComplete ??
+          this.getSharedEnvironmentVariable(
+            environment,
+            previewBaselineCompleteEnvKey
+          )) === "true",
       target_commit_sha:
         targetCommitSha ??
         this.getSharedEnvironmentVariable(environment, previewTargetCommitEnvKey) ??

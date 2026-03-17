@@ -20,6 +20,8 @@ interface ResolveEnvironmentWarning {
   service_slugs: string[]
 }
 
+const previewBaselineCompleteEnvKey = "ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE"
+
 interface ResolveEnvironmentInput {
   lane: "preview" | "main"
   projectSlug: string
@@ -94,6 +96,7 @@ type ResolvedEnvironmentState = {
   environment_name: string
   is_preview: boolean
   created: boolean
+  baseline_complete: boolean
   cloned_from_environment: string | null
   ready: boolean
   expected_preview_service_slugs: string[]
@@ -152,6 +155,90 @@ function buildCreateGitServicePayload(
   }
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function getSharedEnvironmentVariable(
+  environment: ZaneEnvironmentWithVariables,
+  key: string
+): string | null {
+  const variable = environment.variables.find((item) => item.key === key)
+  return variable?.value ?? null
+}
+
+function normalizeUrlShape(url: ZaneServiceUrl): {
+  domain: string
+  base_path: string
+  strip_prefix: boolean
+  redirect_to: string | null
+  associated_port: number | null
+} {
+  return {
+    domain: url.domain,
+    base_path: url.base_path,
+    strip_prefix: url.strip_prefix ?? true,
+    redirect_to: url.redirect_to ?? null,
+    associated_port: url.associated_port ?? null,
+  }
+}
+
+function buildPreviewUrlDomain(
+  projectSlug: string,
+  serviceSlug: string,
+  environmentName: string,
+  sourceDomain: string
+): string {
+  const servicePrefix = `${projectSlug}-${serviceSlug}`
+  const match = new RegExp(
+    `^${escapeRegExp(servicePrefix)}(?<affix>[^.]*)\\.(?<root>.+)$`
+  ).exec(sourceDomain)
+
+  if (!match?.groups?.root) {
+    throw new UpstreamHttpError(
+      409,
+      "zane_preview_service_url_contract_invalid",
+      `Source service URL ${sourceDomain} does not match the repo-managed route contract for ${servicePrefix}`
+    )
+  }
+
+  return `${environmentName}-${servicePrefix}${match.groups.affix ?? ""}.${match.groups.root}`
+}
+
+function buildDesiredPreviewUrls(
+  input: ResolveEnvironmentInput,
+  sourceDetails: ZaneServiceDetails
+): ZaneServiceUrl[] {
+  return (sourceDetails.urls ?? []).map((url) => ({
+    ...url,
+    domain: buildPreviewUrlDomain(
+      input.projectSlug,
+      sourceDetails.slug,
+      input.environmentName,
+      url.domain
+    ),
+  }))
+}
+
+function findMatchingUrl(
+  currentUrls: ZaneServiceUrl[],
+  desiredUrl: ZaneServiceUrl
+): ZaneServiceUrl | undefined {
+  return (
+    currentUrls.find(
+      (currentUrl) =>
+        currentUrl.domain === desiredUrl.domain &&
+        currentUrl.base_path === desiredUrl.base_path
+    ) ??
+    currentUrls.find(
+      (currentUrl) =>
+        (currentUrl.associated_port ?? null) ===
+          (desiredUrl.associated_port ?? null) &&
+        (currentUrl.redirect_to ?? null) === (desiredUrl.redirect_to ?? null)
+    )
+  )
+}
+
 export class ZaneEnvironmentManager {
   readonly #deps: ZaneEnvironmentDeps
 
@@ -199,6 +286,12 @@ export class ZaneEnvironmentManager {
         "ZaneOps clone response was empty"
       )
     }
+
+    await this.reconcilePreviewServiceUrls(
+      session,
+      input,
+      input.expectedPreviewServiceSlugs
+    )
 
     return await this.buildResolvedEnvironmentState(
       session,
@@ -263,7 +356,7 @@ export class ZaneEnvironmentManager {
   private async resolveExistingEnvironment(
     session: ZaneSession,
     input: ResolveEnvironmentInput,
-    environment: ZaneEnvironment
+    environment: ZaneEnvironmentWithVariables
   ): Promise<ResolvedEnvironmentState> {
     let state = await this.buildResolvedEnvironmentState(
       session,
@@ -273,7 +366,11 @@ export class ZaneEnvironmentManager {
       null
     )
 
-    if (input.lane !== "preview" || state.ready) {
+    if (input.lane !== "preview") {
+      return state
+    }
+
+    if (state.ready && state.baseline_complete) {
       return state
     }
 
@@ -281,6 +378,11 @@ export class ZaneEnvironmentManager {
       session,
       input,
       state.missing_preview_service_slugs
+    )
+    await this.reconcilePreviewServiceUrls(
+      session,
+      input,
+      state.expected_preview_service_slugs
     )
 
     state = await this.buildResolvedEnvironmentState(
@@ -346,9 +448,7 @@ export class ZaneEnvironmentManager {
       await this.addVolume(session, input, sourceDetails.slug, volume)
     }
 
-    for (const url of sourceDetails.urls ?? []) {
-      await this.addUrl(session, input, sourceDetails.slug, url)
-    }
+    await this.reconcilePreviewServiceUrls(session, input, [sourceDetails.slug])
 
     if (sourceDetails.healthcheck) {
       await this.updateHealthcheck(
@@ -380,6 +480,62 @@ export class ZaneEnvironmentManager {
     }
   }
 
+  private async reconcilePreviewServiceUrls(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlugs: string[]
+  ): Promise<void> {
+    if (input.lane !== "preview" || serviceSlugs.length === 0) {
+      return
+    }
+
+    for (const serviceSlug of [...new Set(serviceSlugs)]) {
+      const sourceDetails = await this.#deps.getServiceDetails(
+        session,
+        input.projectSlug,
+        input.sourceEnvironmentName,
+        serviceSlug
+      )
+      const currentDetails = await this.#deps.getServiceDetails(
+        session,
+        input.projectSlug,
+        input.environmentName,
+        serviceSlug
+      )
+      const desiredUrls = buildDesiredPreviewUrls(input, sourceDetails)
+
+      for (const desiredUrl of desiredUrls) {
+        const currentUrl = findMatchingUrl(currentDetails.urls ?? [], desiredUrl)
+        if (currentUrl) {
+          const currentShape = normalizeUrlShape(currentUrl)
+          const desiredShape = normalizeUrlShape(desiredUrl)
+          if (
+            currentShape.domain === desiredShape.domain &&
+            currentShape.base_path === desiredShape.base_path &&
+            currentShape.strip_prefix === desiredShape.strip_prefix &&
+            currentShape.redirect_to === desiredShape.redirect_to &&
+            currentShape.associated_port === desiredShape.associated_port
+          ) {
+            continue
+          }
+
+          if (currentUrl.id) {
+            await this.updateUrl(
+              session,
+              input,
+              serviceSlug,
+              currentUrl.id,
+              desiredUrl
+            )
+            continue
+          }
+        }
+
+        await this.addUrl(session, input, serviceSlug, desiredUrl)
+      }
+    }
+  }
+
   private async addVolume(
     session: ZaneSession,
     input: ResolveEnvironmentInput,
@@ -407,6 +563,27 @@ export class ZaneEnvironmentManager {
     await this.requestServiceChange(session, input, serviceSlug, {
       field: "urls",
       type: "ADD",
+      new_value: {
+        domain: url.domain,
+        base_path: url.base_path,
+        strip_prefix: url.strip_prefix ?? true,
+        redirect_to: url.redirect_to ?? null,
+        associated_port: url.associated_port ?? null,
+      },
+    })
+  }
+
+  private async updateUrl(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    itemId: string,
+    url: ZaneServiceUrl
+  ): Promise<void> {
+    await this.requestServiceChange(session, input, serviceSlug, {
+      field: "urls",
+      type: "UPDATE",
+      item_id: itemId,
       new_value: {
         domain: url.domain,
         base_path: url.base_path,
@@ -468,7 +645,7 @@ export class ZaneEnvironmentManager {
   private async buildResolvedEnvironmentState(
     session: ZaneSession,
     input: ResolveEnvironmentInput,
-    environment: ZaneEnvironment,
+    environment: ZaneEnvironmentWithVariables,
     created: boolean,
     clonedFromEnvironment: string | null
   ): Promise<ResolvedEnvironmentState> {
@@ -519,6 +696,9 @@ export class ZaneEnvironmentManager {
       environment_name: environment.name,
       is_preview: environment.is_preview,
       created,
+      baseline_complete:
+        getSharedEnvironmentVariable(environment, previewBaselineCompleteEnvKey) ===
+        "true",
       cloned_from_environment: clonedFromEnvironment,
       ready: missingPreviewServiceSlugs.length === 0,
       expected_preview_service_slugs: expectedPreviewServiceSlugs,

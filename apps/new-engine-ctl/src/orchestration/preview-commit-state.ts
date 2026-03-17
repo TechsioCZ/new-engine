@@ -33,6 +33,7 @@ export async function executePreviewCommitState(
         project_slug: input.projectSlug,
         environment_name: environmentName,
         environment_exists: false,
+        baseline_complete: false,
         target_commit_sha: null,
         last_deployed_commit_sha: null,
       })

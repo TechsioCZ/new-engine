@@ -60,6 +60,10 @@ export function createResolveEnvironmentCommand(): Command {
       await appendGitHubOutput("environment_name", result.environment_name)
       await appendGitHubOutput("environment_id", result.environment_id)
       await appendGitHubOutput("environment_created", String(result.created))
+      await appendGitHubOutput(
+        "environment_baseline_complete",
+        String(result.baseline_complete)
+      )
       await appendGitHubOutput("environment_ready", String(result.ready))
       await appendGitHubOutput(
         "missing_preview_service_slugs_csv",

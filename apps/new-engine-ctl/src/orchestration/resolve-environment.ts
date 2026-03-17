@@ -72,6 +72,7 @@ export async function executeResolveEnvironment(
         environment_name: environmentName,
         environment_id: `dry-run:${environmentName}`,
         created: input.dryRunCreated,
+        baseline_complete: !input.dryRunCreated,
         ready: true,
         expected_preview_service_slugs:
           previewServiceSlugSets.expectedPreviewServiceSlugs,

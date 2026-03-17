@@ -44,6 +44,10 @@ export function createPreviewCommitStateCommand(): Command {
         String(result.environment_exists)
       )
       await appendGitHubOutput(
+        "baseline_complete",
+        String(result.baseline_complete)
+      )
+      await appendGitHubOutput(
         "target_commit_sha",
         result.target_commit_sha ?? ""
       )
