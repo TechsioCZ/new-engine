@@ -251,6 +251,13 @@ function findMatchingUrl(
   )
 }
 
+function logResolveEnvironmentEvent(
+  event: string,
+  payload: Record<string, unknown>
+): void {
+  console.info(JSON.stringify({ event, ...payload }))
+}
+
 export class ZaneEnvironmentManager {
   readonly #deps: ZaneEnvironmentDeps
 
@@ -267,6 +274,11 @@ export class ZaneEnvironmentManager {
     )
 
     if (existing) {
+      logResolveEnvironmentEvent("resolve-environment.found", {
+        lane: input.lane,
+        project_slug: input.projectSlug,
+        environment_name: input.environmentName,
+      })
       assertEnvironmentMatchesLane(existing, input.lane)
       return await this.resolveExistingEnvironment(session, input, existing)
     }
@@ -298,6 +310,13 @@ export class ZaneEnvironmentManager {
         "ZaneOps clone response was empty"
       )
     }
+
+    logResolveEnvironmentEvent("resolve-environment.preview.cloned", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      source_environment_name: input.sourceEnvironmentName,
+      deploy_after_clone: false,
+    })
 
     await this.reconcileExcludedPreviewServices(
       session,
@@ -388,8 +407,26 @@ export class ZaneEnvironmentManager {
     }
 
     if (state.ready && state.baseline_complete) {
+      logResolveEnvironmentEvent("resolve-environment.preview.reuse", {
+        project_slug: input.projectSlug,
+        environment_name: input.environmentName,
+        baseline_complete: state.baseline_complete,
+        ready: state.ready,
+      })
       return state
     }
+
+    logResolveEnvironmentEvent("resolve-environment.preview.reconcile", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      baseline_complete: state.baseline_complete,
+      ready: state.ready,
+      missing_preview_service_slugs: state.missing_preview_service_slugs,
+      present_excluded_preview_service_slugs:
+        state.excluded_preview_service_slugs.filter((serviceSlug) =>
+          state.present_service_slugs.includes(serviceSlug)
+        ),
+    })
 
     await this.reconcileExcludedPreviewServices(
       session,
@@ -429,6 +466,12 @@ export class ZaneEnvironmentManager {
       return
     }
 
+    logResolveEnvironmentEvent("resolve-environment.preview.clone-missing.start", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slugs: [...new Set(missingServiceSlugs)],
+    })
+
     for (const serviceSlug of missingServiceSlugs) {
       const sourceDetails = await this.#deps.getServiceDetails(
         session,
@@ -459,6 +502,12 @@ export class ZaneEnvironmentManager {
       )}/create-service/git/`,
       createPayload
     )
+
+    logResolveEnvironmentEvent("resolve-environment.preview.clone-missing.service", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slug: sourceDetails.slug,
+    })
 
     if (sourceDetails.command) {
       await this.requestServiceChange(session, input, sourceDetails.slug, {
@@ -513,6 +562,12 @@ export class ZaneEnvironmentManager {
       return
     }
 
+    logResolveEnvironmentEvent("resolve-environment.preview.cleanup.start", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slugs: [...new Set(serviceSlugs)],
+    })
+
     for (const serviceSlug of [...new Set(serviceSlugs)]) {
       let currentDetails: ZaneServiceDetails
       try {
@@ -535,6 +590,12 @@ export class ZaneEnvironmentManager {
         serviceSlug,
         currentDetails.type
       )
+      logResolveEnvironmentEvent("resolve-environment.preview.cleanup.archived", {
+        project_slug: input.projectSlug,
+        environment_name: input.environmentName,
+        service_slug: serviceSlug,
+        service_type: currentDetails.type,
+      })
     }
   }
 
@@ -546,6 +607,12 @@ export class ZaneEnvironmentManager {
     if (input.lane !== "preview" || serviceSlugs.length === 0) {
       return
     }
+
+    logResolveEnvironmentEvent("resolve-environment.preview.urls.start", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slugs: [...new Set(serviceSlugs)],
+    })
 
     for (const serviceSlug of [...new Set(serviceSlugs)]) {
       const sourceDetails = await this.#deps.getServiceDetails(
@@ -585,11 +652,25 @@ export class ZaneEnvironmentManager {
               currentUrl.id,
               desiredUrl
             )
+            logResolveEnvironmentEvent("resolve-environment.preview.urls.updated", {
+              project_slug: input.projectSlug,
+              environment_name: input.environmentName,
+              service_slug: serviceSlug,
+              domain: desiredUrl.domain,
+              base_path: desiredUrl.base_path,
+            })
             continue
           }
         }
 
         await this.addUrl(session, input, serviceSlug, desiredUrl)
+        logResolveEnvironmentEvent("resolve-environment.preview.urls.added", {
+          project_slug: input.projectSlug,
+          environment_name: input.environmentName,
+          service_slug: serviceSlug,
+          domain: desiredUrl.domain,
+          base_path: desiredUrl.base_path,
+        })
       }
     }
   }
@@ -755,7 +836,7 @@ export class ZaneEnvironmentManager {
       }
     }
 
-    return {
+    const state = {
       lane: input.lane,
       project_slug: input.projectSlug,
       environment_id: environment.id,
@@ -773,5 +854,19 @@ export class ZaneEnvironmentManager {
       missing_preview_service_slugs: missingPreviewServiceSlugs,
       warnings,
     }
+
+    logResolveEnvironmentEvent("resolve-environment.state", {
+      lane: state.lane,
+      project_slug: state.project_slug,
+      environment_name: state.environment_name,
+      environment_id: state.environment_id,
+      created: state.created,
+      baseline_complete: state.baseline_complete,
+      ready: state.ready,
+      missing_preview_service_slugs: state.missing_preview_service_slugs,
+      warning_count: state.warnings.length,
+    })
+
+    return state
   }
 }
