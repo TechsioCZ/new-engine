@@ -4,7 +4,6 @@ import type { ReactNode } from "react"
 import { createCustomerHooks } from "../src/customers/hooks"
 import { createOrderHooks } from "../src/orders/hooks"
 import { createProductHooks } from "../src/products/hooks"
-import { resolvePagination as resolveProductPagination } from "../src/products/pagination"
 import { resolvePagination as resolveSharedPagination } from "../src/shared/pagination"
 import { StorefrontDataProvider } from "../src/client/provider"
 
@@ -14,17 +13,14 @@ const createWrapper = (client: QueryClient) =>
   )
 
 describe("phase 3 regressions", () => {
-  it("keeps pagination behavior aligned between shared and products helpers", () => {
-    expect(resolveSharedPagination({ page: 3, limit: 5 }, 20)).toEqual(
-      resolveProductPagination({ page: 3, limit: 5 }, 20)
-    )
+  it("resolves shared pagination behavior for page and offset inputs", () => {
     expect(resolveSharedPagination({ page: 3, limit: 5 }, 20)).toEqual({
       page: 3,
       limit: 5,
       offset: 10,
     })
 
-    expect(resolveProductPagination({ offset: 9, limit: 3 }, 20)).toEqual({
+    expect(resolveSharedPagination({ offset: 9, limit: 3 }, 20)).toEqual({
       page: 4,
       limit: 3,
       offset: 9,

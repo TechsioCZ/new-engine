@@ -7,7 +7,11 @@ import type {
   MedusaCustomerAddressCreateInput,
   MedusaCustomerAddressUpdateInput,
 } from "../customers/medusa-service"
-import { hasTrimmedString, normalizeTrimmedString } from "../shared/string-utils"
+import {
+  hasTrimmedString,
+  normalizePresentTrimmedString,
+  normalizeTrimmedString,
+} from "../shared/string-utils"
 
 export type CheckoutAddressInput = {
   firstName?: string | null
@@ -131,16 +135,6 @@ export const defaultCheckoutAddressRequiredFields: readonly CheckoutAddressStrin
   "country",
 ]
 
-
-const normalizePresentString = (value: unknown): string | undefined => {
-  if (typeof value === "string") {
-    return value.trim()
-  }
-
-  // Non-string values are treated as absent in patch payloads.
-  return
-}
-
 const createRequiredIssue = (
   scope: CheckoutAddressValidationScope,
   field: CheckoutAddressStringField
@@ -235,7 +229,7 @@ const normalizeCheckoutAddressPatch = <
     "phone",
   ] as const) {
     if (Object.hasOwn(address, field)) {
-      normalized[field] = normalizePresentString(address[field])
+      normalized[field] = normalizePresentTrimmedString(address[field])
     }
   }
 
@@ -385,9 +379,6 @@ const checkoutAddressPatchStringFieldMap = [
   keyof MedusaCustomerAddressUpdateInput,
 ][]
 
-const resolvePatchedString = (value: unknown): string =>
-  typeof value === "string" ? value : ""
-
 const mapCheckoutAddressPatchToMedusaCustomerAddress = (
   address: Partial<CheckoutAddressInput> & Record<string, unknown>,
   options?: BuildCheckoutCartAddressInputOptions
@@ -399,7 +390,8 @@ const mapCheckoutAddressPatchToMedusaCustomerAddress = (
     if (!Object.hasOwn(normalized, sourceField)) {
       continue
     }
-    payload[targetField] = resolvePatchedString(normalized[sourceField])
+    const value = normalized[sourceField]
+    payload[targetField] = typeof value === "string" ? value : ""
   }
 
   if (Object.hasOwn(normalized, "country")) {

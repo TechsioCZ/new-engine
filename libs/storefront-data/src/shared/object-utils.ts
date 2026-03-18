@@ -1,3 +1,18 @@
+export const isPlainRecord = (
+  value: unknown
+): value is Record<string, unknown> =>
+  Boolean(value && typeof value === "object" && !Array.isArray(value))
+
+export const toPlainRecord = (
+  value: unknown
+): Record<string, unknown> | undefined => {
+  if (!isPlainRecord(value)) {
+    return
+  }
+
+  return value
+}
+
 export function omitKeys<
   TObject extends object,
   const TKeys extends readonly (keyof TObject)[],

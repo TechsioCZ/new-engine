@@ -8,3 +8,13 @@ export const normalizeTrimmedString = (value: unknown): string | undefined => {
 
   return value.trim()
 }
+
+export const normalizePresentTrimmedString = (
+  value: unknown
+): string | undefined => {
+  if (typeof value !== "string") {
+    return
+  }
+
+  return value.trim()
+}

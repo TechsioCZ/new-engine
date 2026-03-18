@@ -1,10 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query"
 import type { CartQueryKeys } from "../cart/types"
+import { isPlainRecord } from "./object-utils"
 import {
   areQueryKeySegmentsEqual,
   getSortedRecordKeys,
   hasQueryKeyPrefix,
-  isPlainRecord,
 } from "./query-key-match-utils"
 import type { QueryKey } from "./query-keys"
 
