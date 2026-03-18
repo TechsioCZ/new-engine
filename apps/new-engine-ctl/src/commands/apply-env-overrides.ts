@@ -18,8 +18,7 @@ export function createApplyEnvOverridesCommand(): Command {
     .option("--dry-run", "", false)
     .action(async (options) => {
       const input = applyEnvOverridesCommandInputSchema.parse({
-        projectSlug:
-          options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
         environmentName: options.environmentName,
         targetsJsonPath: options.targetsJson,
         envOverridesJsonPath: options.envOverridesJson,

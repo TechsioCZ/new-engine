@@ -78,7 +78,7 @@
       * `DC_ZANE_OPERATOR_ZANE_BASE_URL` must point at the upstream ZaneOps UI/API root you actually log into, for example `http://localhost:3000`
       * `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL` / `...HOST_HEADER` should stay empty by default; they are only needed when the deployed `zane-operator` cannot reach the public Zane hostname directly, such as this local Docker-based Zane stack
       * `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` are the login credentials for that ZaneOps instance; `zane-operator` uses session + CSRF login upstream, not a direct Zane token
-      * create one canonical Zane project and note its slug; local CI-style deploy tests use that slug as `ZANE_CANONICAL_PROJECT_SLUG`
+      * create one canonical Zane project and note its slug; local CI-style deploy tests use that slug as `ZANE_PROJECT_SLUG`
       * each Zane project gets a protected `production` environment by default; preview clones in this repo always use that environment as the base
       * service names in that Zane project must match `apps/new-engine-ctl/config/stack-manifest.yaml` currently: `medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`, `medusa-be`, `n1`
       * preview environments are derived in CI script space as `pr-<number>` by default
@@ -86,7 +86,7 @@
     * When you run the deploy scripts manually later, export:
       * `ZANE_OPERATOR_BASE_URL=http://localhost:8082`
       * `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
-      * `ZANE_CANONICAL_PROJECT_SLUG=<your-zane-project-slug>`
+      * `ZANE_PROJECT_SLUG=<your-zane-project-slug>`
       * `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
     * If your Postgres volume already existed before this change, rerun Postgres bootstrap once after setting the operator password:
 
@@ -311,6 +311,8 @@ apps/zane-operator/README.md
 ```
 
 Use `.env` for local compose/runtime and `.env.zane` for Zane-targeted helper scripts such as:
+- `mise run dev:zane:main`
+- `mise run dev:zane:preview`
 - `scripts/dev/setup-zane-project.sh`
 - `scripts/dev/refresh-zane-template-db.sh`
 - `mise run dev:zane:project:sync`

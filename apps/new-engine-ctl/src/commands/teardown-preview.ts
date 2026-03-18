@@ -9,8 +9,7 @@ function parseOptionalNumber(value: unknown): number | undefined {
 
 function buildTeardownPreviewInput(options: Record<string, unknown>) {
   return teardownPreviewCommandInputSchema.parse({
-    projectSlug:
-      options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
+    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
     prNumber: Number(options.prNumber),
     baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
     apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",

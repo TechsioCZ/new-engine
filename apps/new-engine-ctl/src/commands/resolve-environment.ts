@@ -39,8 +39,7 @@ export function createResolveEnvironmentCommand(): Command {
           : undefined
       const input = resolveEnvironmentCommandInputSchema.parse({
         lane: options.lane,
-        projectSlug:
-          options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
         prNumber: parsedPrNumber,
         environmentName: options.environmentName ?? "",
         sourceEnvironmentName:

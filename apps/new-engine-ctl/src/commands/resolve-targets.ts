@@ -42,8 +42,7 @@ export function createResolveTargetsCommand(): Command {
     .action(async (options) => {
       const input = resolveTargetsCommandInputSchema.parse({
         lane: options.lane,
-        projectSlug:
-          options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
         environmentName: options.environmentName,
         planJsonPath: options.planJson,
         outputJson: options.outputJson,

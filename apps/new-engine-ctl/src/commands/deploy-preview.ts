@@ -12,8 +12,7 @@ function buildDeployPreviewInput(options: Record<string, unknown>) {
       : undefined
 
   return deployPreviewCommandInputSchema.parse({
-    projectSlug:
-      options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
+    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
     prNumber: parsedPrNumber,
     targetCommitSha:
       options.targetCommitSha ?? process.env.TARGET_COMMIT_SHA ?? "",

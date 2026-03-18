@@ -7,7 +7,7 @@ ENV_FILE="${ROOT_DIR}/.env.zane"
 # shellcheck source=scripts/dev/lib/common.sh
 source "${ROOT_DIR}/scripts/dev/lib/common.sh"
 
-PROJECT_SLUG="new-engine"
+PROJECT_SLUG=""
 PRODUCTION_ENVIRONMENT_NAME="production"
 PUBLIC_DOMAIN=""
 PUBLIC_URL_AFFIX="-zane"
@@ -32,7 +32,7 @@ Options:
   --pr-number <n>                preview PR number to create or reuse
   --services-csv <csv>           explicit affected services for preview validation
   --target-commit-sha <sha>      target commit SHA (default: current HEAD)
-  --project-slug <slug>          canonical Zane project slug (default: new-engine)
+  --project-slug <slug>          canonical Zane project slug (required; no default)
   --production-env <name>        source production environment name (default: production)
   --public-domain <domain>       public root domain for derived service URLs
   --public-url-affix <suffix>    service URL affix (default: -zane)
@@ -169,8 +169,10 @@ derive_public_domain() {
 derive_defaults() {
   ZANE_BASE_URL="${ZANE_BASE_URL:-${ZANEOPS_URL:-${DC_ZANE_OPERATOR_ZANE_BASE_URL:-}}}"
   ZANE_OPERATOR_API_TOKEN="${ZANE_OPERATOR_API_TOKEN:-${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-}}"
-  PROJECT_SLUG="${PROJECT_SLUG:-${ZANE_PROJECT_SLUG:-${ZANE_CANONICAL_PROJECT_SLUG:-new-engine}}}"
+  PROJECT_SLUG="${PROJECT_SLUG:-${ZANE_PROJECT_SLUG:-}}"
   PRODUCTION_ENVIRONMENT_NAME="${PRODUCTION_ENVIRONMENT_NAME:-${ZANE_ENVIRONMENT_NAME:-${ZANE_PRODUCTION_ENVIRONMENT_NAME:-production}}}"
+
+  [[ -n "$PROJECT_SLUG" ]] || common::die "Unable to resolve project slug. Pass --project-slug or export ZANE_PROJECT_SLUG."
 
   derive_public_domain
 
@@ -294,7 +296,7 @@ run_deploy_stage() {
   (
     export ZANE_OPERATOR_BASE_URL="$ZANE_OPERATOR_BASE_URL"
     export ZANE_OPERATOR_API_TOKEN="$ZANE_OPERATOR_API_TOKEN"
-    export ZANE_CANONICAL_PROJECT_SLUG="$PROJECT_SLUG"
+    export ZANE_PROJECT_SLUG="$PROJECT_SLUG"
     export ZANE_PRODUCTION_ENVIRONMENT_NAME="$PRODUCTION_ENVIRONMENT_NAME"
     export PREVIEW_DB_PASSWORD="$(jq -r '.preview_db_password // ""' <<<"$prepare_json")"
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode preview-deploy
@@ -355,7 +357,7 @@ run_verify_stage() {
   (
     export ZANE_OPERATOR_BASE_URL="$ZANE_OPERATOR_BASE_URL"
     export ZANE_OPERATOR_API_TOKEN="$ZANE_OPERATOR_API_TOKEN"
-    export ZANE_CANONICAL_PROJECT_SLUG="$PROJECT_SLUG"
+    export ZANE_PROJECT_SLUG="$PROJECT_SLUG"
     export PREVIEW_DB_PASSWORD="$(jq -r '.preview_db_password // ""' <<<"$prepare_json")"
     export PREVIEW_RANDOM_ONCE_SECRETS_JSON="$(jq -r '.preview_random_once_secrets_json // ""' <<<"$deploy_json")"
     export MEILI_BACKEND_KEY="$(jq -r '.meili_backend_key // ""' <<<"$deploy_json")"

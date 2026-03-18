@@ -2,12 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ENV_FILE="${ROOT_DIR}/.env"
+ENV_FILE="${ROOT_DIR}/.env.zane"
 
 # shellcheck source=scripts/dev/lib/common.sh
 source "${ROOT_DIR}/scripts/dev/lib/common.sh"
 
-PROJECT_SLUG="new-engine"
+PROJECT_SLUG=""
 ENVIRONMENT_NAME="production"
 PUBLIC_DOMAIN=""
 PUBLIC_URL_AFFIX="-zane"
@@ -31,11 +31,11 @@ Simulates the active CI main lane locally in the same stage order:
   scope -> deploy -> verify
 
 Options:
-  --env-file <path>             source local defaults from file (default: .env)
+  --env-file <path>             source local defaults from file (default: .env.zane)
   --services-csv <csv>          explicit affected services; skips git scope resolution
   --base-sha <sha>              base revision for scope resolution (default: HEAD^ or repo root)
   --head-sha <sha>              head revision for scope resolution (default: HEAD)
-  --project-slug <slug>         canonical Zane project slug (default: new-engine)
+  --project-slug <slug>         canonical Zane project slug (required; no default)
   --environment-name <name>     main environment name (default: production)
   --public-domain <domain>      public root domain for derived service URLs
   --public-url-affix <suffix>   service URL affix (default: -zane)
@@ -47,7 +47,7 @@ Options:
   -h, --help                    show this help
 
 Notes:
-  - Local defaults are sourced from .env, but test-specific overrides should be passed explicitly.
+  - Local defaults are sourced from .env.zane.
   - Derived service URLs follow the same route contract used by setup-zane-project.sh.
 EOF
 }
@@ -186,6 +186,9 @@ derive_defaults() {
   ZANE_BASE_URL="${ZANE_BASE_URL:-${DC_ZANE_OPERATOR_ZANE_BASE_URL:-}}"
   ZANE_OPERATOR_API_TOKEN="${ZANE_OPERATOR_API_TOKEN:-${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-}}"
   MEILISEARCH_MASTER_KEY="${MEILISEARCH_MASTER_KEY:-${DC_MEILISEARCH_MASTER_KEY:-}}"
+  PROJECT_SLUG="${PROJECT_SLUG:-${ZANE_PROJECT_SLUG:-}}"
+
+  [[ -n "$PROJECT_SLUG" ]] || common::die "Unable to resolve project slug. Pass --project-slug or export ZANE_PROJECT_SLUG."
 
   derive_public_domain
 
@@ -267,7 +270,7 @@ run_deploy_stage() {
     export REQUIRES_MEILI_KEYS="$requires_meili_keys"
     export ZANE_OPERATOR_BASE_URL="$ZANE_OPERATOR_BASE_URL"
     export ZANE_OPERATOR_API_TOKEN="$ZANE_OPERATOR_API_TOKEN"
-    export ZANE_CANONICAL_PROJECT_SLUG="$PROJECT_SLUG"
+    export ZANE_PROJECT_SLUG="$PROJECT_SLUG"
     export ZANE_PRODUCTION_ENVIRONMENT_NAME="$ENVIRONMENT_NAME"
     export MEILISEARCH_URL="$MEILISEARCH_URL"
     export MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY"
@@ -355,7 +358,7 @@ run_verify_stage() {
   (
     export ZANE_OPERATOR_BASE_URL="$ZANE_OPERATOR_BASE_URL"
     export ZANE_OPERATOR_API_TOKEN="$ZANE_OPERATOR_API_TOKEN"
-    export ZANE_CANONICAL_PROJECT_SLUG="$PROJECT_SLUG"
+    export ZANE_PROJECT_SLUG="$PROJECT_SLUG"
     export ZANE_PRODUCTION_ENVIRONMENT_NAME="$ENVIRONMENT_NAME"
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode main-verify
   ) >/dev/null
