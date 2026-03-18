@@ -140,16 +140,23 @@ function resolveLaneBuildStageTarget(
 export function buildPreviewSharedEnvSyncVariables(input: {
   stackInputs: StackInputs
   manifest: StackManifest
+  deployServiceIds: string[]
   context: PreviewRuntimeContext
 }): PreviewSharedEnvVariableInput[] {
-  return getPreviewSharedEnvDefinitions(input.stackInputs).map((definition) => ({
-    key: definition.key,
-    source: buildResolvedSource({
-      manifest: input.manifest,
-      source: definition.source,
-      context: input.context,
-    }),
-  }))
+  return getPreviewSharedEnvDefinitions(input.stackInputs)
+    .filter((definition) =>
+      definition.consumed_by_service_ids.some((serviceId) =>
+        input.deployServiceIds.includes(serviceId)
+      )
+    )
+    .map((definition) => ({
+      key: definition.key,
+      source: buildResolvedSource({
+        manifest: input.manifest,
+        source: definition.source,
+        context: input.context,
+      }),
+    }))
 }
 
 export function buildPreviewRequiredSharedEnvKeys(input: {

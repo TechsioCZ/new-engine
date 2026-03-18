@@ -218,6 +218,7 @@ async function syncPreviewSharedEnv(input: {
   environmentName: string
   sourceEnvironmentName: string
   contracts: Awaited<ReturnType<typeof loadDeployContracts>>
+  deployServiceIds: string[]
   previewDbName: string
   previewDbUser: string
   previewDbPassword: string
@@ -229,6 +230,7 @@ async function syncPreviewSharedEnv(input: {
   const variables = buildPreviewSharedEnvSyncVariables({
     stackInputs: input.contracts.stackInputs,
     manifest: input.contracts.manifest,
+    deployServiceIds: input.deployServiceIds,
     context: {
       sourceEnvironmentName: input.sourceEnvironmentName,
       previewDbName: input.previewDbName,
@@ -340,6 +342,7 @@ export async function executeDeployPreview(
     environmentName: environment.environment_name,
     sourceEnvironmentName: input.sourceEnvironmentName,
     contracts,
+    deployServiceIds: runtimePlan.deploy_services.map((service) => service.id),
     previewDbName: input.previewDbName,
     previewDbUser: input.previewDbUser,
     previewDbPassword: input.previewDbPassword,

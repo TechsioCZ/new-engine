@@ -25,7 +25,7 @@ export const prepareCommandInputSchema = z
         })
       }
 
-      if (value.requiresPreviewDb && !value.dryRun && !value.baseUrl) {
+      if (!value.dryRun && !value.baseUrl) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["baseUrl"],
@@ -33,7 +33,7 @@ export const prepareCommandInputSchema = z
         })
       }
 
-      if (value.requiresPreviewDb && !value.dryRun && !value.apiToken) {
+      if (!value.dryRun && !value.apiToken) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["apiToken"],

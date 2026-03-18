@@ -6,7 +6,12 @@ import type {
   PrepareResponse,
 } from "../contracts/prepare.js"
 import { prepareResponseSchema } from "../contracts/prepare.js"
+import {
+  listDeployableServices,
+  listPrepareServiceIds,
+} from "../contracts/stack-manifest.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
+import { loadManifest } from "./deploy-inputs.js"
 
 const DEFAULT_PREVIEW_DB_PREFIX = "medusa_pr_"
 const DEFAULT_PREVIEW_DB_APP_USER_PREFIX = "medusa_pr_app_"
@@ -23,12 +28,62 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
 }
 
+function buildPreviewEnvironmentName(input: PrepareCommandInput): string {
+  return `${input.previewEnvPrefix}${input.prNumber ?? 0}`
+}
+
+async function resolveRequiresPreviewDb(
+  input: PrepareCommandInput
+): Promise<boolean> {
+  if (input.requiresPreviewDb) {
+    return true
+  }
+
+  if (input.lane !== "preview" || input.dryRun) {
+    return false
+  }
+
+  const manifest = await loadManifest(input.stackManifestPath)
+  const previewBaselineServiceIds = new Set(
+    listDeployableServices(manifest)
+      .filter(
+        (service) =>
+          service.cloneToPreview && service.deployLanes.includes("preview")
+      )
+      .map((service) => service.id)
+  )
+  const previewDbPrepareServiceIds = listPrepareServiceIds(
+    manifest,
+    "preview_db"
+  )
+  const baselineNeedsPreviewDb = previewDbPrepareServiceIds.some((serviceId) =>
+    previewBaselineServiceIds.has(serviceId)
+  )
+
+  if (!baselineNeedsPreviewDb) {
+    return false
+  }
+
+  const previewCommitState = await new ZaneOperatorClient(
+    input.baseUrl,
+    input.apiToken
+  ).readPreviewCommitState({
+    project_slug: input.projectSlug,
+    environment_name: buildPreviewEnvironmentName(input),
+  })
+
+  return (
+    !previewCommitState.environment_exists || !previewCommitState.baseline_complete
+  )
+}
+
 async function executePreviewPrepare(
   input: PrepareCommandInput
 ): Promise<PrepareExecutionResult> {
   const prNumber = input.prNumber ?? 0
+  const requiresPreviewDb = await resolveRequiresPreviewDb(input)
 
-  if (!input.requiresPreviewDb) {
+  if (!requiresPreviewDb) {
     const response = prepareResponseSchema.parse({
       lane: "preview",
       prepared: false,
