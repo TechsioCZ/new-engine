@@ -449,7 +449,7 @@ main() {
   }' <<<"$scope_json")"
   jq -e . >/dev/null <<<"$downtime_json" || common::die "Downtime-risk stage did not return valid JSON."
   if [[ "$(jq -r '.requires_downtime_approval' <<<"$downtime_json")" == "true" && "$APPROVE_DOWNTIME_RISK" != "true" ]]; then
-    common::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(\",\")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
+    common::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(",")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
   fi
   requires_meili_keys="$(jq -r '.requires_meili_keys' <<<"$prepare_needs_json")"
   common::step "Main lane has no active shared-resource pre-deploy phase."

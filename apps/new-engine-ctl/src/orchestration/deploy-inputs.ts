@@ -16,16 +16,16 @@ import {
   type StackManifest,
   stackManifestSchema,
 } from "../contracts/stack-manifest.js"
-import {
-  buildPreviewRequiredServiceEnvKeys,
-  buildPreviewRequiredSharedEnvKeys,
-} from "./preview-runtime-reconciliation.js"
 import type {
   EnvOverride,
   ForbiddenEnvRequirement,
   PreviewRandomOnceSecretInput,
   RequiredPersistedEnv,
 } from "../contracts/verify.js"
+import {
+  buildPreviewRequiredServiceEnvKeys,
+  buildPreviewRequiredSharedEnvKeys,
+} from "./preview-runtime-reconciliation.js"
 
 export type MeiliApiCredentialEnvVars = {
   backend: string
@@ -377,51 +377,9 @@ export function buildRequiredSharedEnv(
 }
 
 export function buildForbiddenPreviewOnlyEnv(
-  lane: Lane,
-  deployServiceIds: string[],
-  contracts: DeployContracts
+  _lane: Lane,
+  _deployServiceIds: string[],
+  _contracts: DeployContracts
 ): ForbiddenEnvRequirement[] {
-  if (lane !== "main") {
-    return []
-  }
-
-  const randomOnceDefinitions = getPreviewRandomOnceSecretDefinitions(
-    contracts.stackInputs
-  )
-
-  return deployServiceIds.flatMap((serviceId) => {
-    const service = getDeployableService(contracts.manifest, serviceId)
-    const envKeys: string[] = []
-    const seen = new Set<string>()
-
-    if (service.consumes.preview_db) {
-      addPersistedEnvKey(envKeys, seen, "DC_MEDUSA_APP_DB_NAME")
-      addPersistedEnvKey(envKeys, seen, "DC_MEDUSA_APP_DB_USER")
-      addPersistedEnvKey(envKeys, seen, "DC_MEDUSA_APP_DB_PASSWORD")
-    }
-
-    for (const secret of randomOnceDefinitions) {
-      if (previewRandomOnceSecretPersistsToZaneEnv(secret)) {
-        continue
-      }
-
-      for (const target of secret.targets) {
-        if (target.service_id === service.id) {
-          addPersistedEnvKey(envKeys, seen, target.env_var)
-        }
-      }
-    }
-
-    if (envKeys.length === 0) {
-      return []
-    }
-
-    return [
-      {
-        service_id: service.id,
-        service_slug: service.serviceSlug,
-        env_keys: envKeys,
-      },
-    ]
-  })
+  return []
 }
