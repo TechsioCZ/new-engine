@@ -6,7 +6,6 @@ import {
   MedusaRegistrationSignInError,
   type MedusaUpdateCustomerData,
 } from "@techsio/storefront-data/auth/medusa-service"
-import { createLocalStorageCartStorage } from "@techsio/storefront-data/cart/browser-storage"
 import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import {
   createMedusaCustomerService,
@@ -29,6 +28,7 @@ import type {
   MedusaProductDetailInput,
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
+import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/browser-storage"
 import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config"
 import { mapAuthError } from "@/lib/auth-messages"
 import { cacheConfig as appCacheConfig } from "@/lib/cache-config"
@@ -53,7 +53,7 @@ const CART_ID_KEY = "n1_cart_id"
 const storefrontQueryKeys = createMedusaStorefrontQueryKeys("n1")
 type MedusaProductListQuery = MedusaProductListInput & Record<string, unknown>
 
-const cartStorage = createLocalStorageCartStorage({
+export const cartStorage = createLocalStorageValueStore({
   key: CART_ID_KEY,
 })
 
