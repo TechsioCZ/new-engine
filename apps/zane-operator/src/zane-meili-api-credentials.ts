@@ -1,14 +1,13 @@
 import { BadRequestError } from "./db"
-import { buildServicePublicUrls } from "./zane-effective-service-urls"
-import { UpstreamHttpError } from "./zane-errors"
-import { assertPreviewLaneEnvironment } from "./zane-lane-environment"
 import type {
   ProvisionPreviewMeiliKeysInput,
   ProvisionPreviewMeiliKeysOutputInput,
 } from "./zane-contract"
+import { buildServicePublicUrls } from "./zane-effective-service-urls"
+import { UpstreamHttpError } from "./zane-errors"
 import { parseErrorMessage, type ZaneSession } from "./zane-upstream"
 
-interface PreviewEnvironmentLookup {
+interface ProvisionEnvironmentLookup {
   is_preview: boolean
   name: string
 }
@@ -43,35 +42,54 @@ interface ProvisionPreviewMeiliApiCredentialsDeps {
   getEnvironment(
     session: ZaneSession,
     projectSlug: string,
-    environmentName: string,
-  ): Promise<PreviewEnvironmentLookup | null>
+    environmentName: string
+  ): Promise<ProvisionEnvironmentLookup | null>
   getServiceDetails(
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
-    serviceSlug: string,
+    serviceSlug: string
   ): Promise<SearchProvisionServiceDetails>
 }
 
-function resolveTemplateEnvValue(serviceDetails: SearchProvisionServiceDetails, value: string): string {
+function resolveTemplateEnvValue(
+  serviceDetails: SearchProvisionServiceDetails,
+  value: string
+): string {
   const match = /^\{\{\s*env\.([A-Z0-9_]+)\s*\}\}$/.exec(value.trim())
   if (!match) {
     return value
   }
 
-  const environmentVariables = Array.isArray(serviceDetails.environment?.variables)
+  const environmentVariables = Array.isArray(
+    serviceDetails.environment?.variables
+  )
     ? serviceDetails.environment.variables
     : []
-  const resolved = environmentVariables.find((envVar) => envVar.key === match[1])?.value
+  const resolved = environmentVariables.find(
+    (envVar) => envVar.key === match[1]
+  )?.value
   return typeof resolved === "string" && resolved.trim() ? resolved : value
 }
 
-function getServiceEnvValue(serviceDetails: SearchProvisionServiceDetails, keys: string[]): string | null {
+function getServiceEnvValue(
+  serviceDetails: SearchProvisionServiceDetails,
+  keys: string[]
+): string | null {
   const envVariables = [
-    ...(Array.isArray(serviceDetails.env_variables) ? serviceDetails.env_variables : []),
-    ...(Array.isArray(serviceDetails.system_env_variables) ? serviceDetails.system_env_variables : []),
+    ...(Array.isArray(serviceDetails.env_variables)
+      ? serviceDetails.env_variables
+      : []),
+    ...(Array.isArray(serviceDetails.system_env_variables)
+      ? serviceDetails.system_env_variables
+      : []),
   ]
-  const envByKey = new Map(envVariables.map((envVar) => [envVar.key, resolveTemplateEnvValue(serviceDetails, envVar.value)]))
+  const envByKey = new Map(
+    envVariables.map((envVar) => [
+      envVar.key,
+      resolveTemplateEnvValue(serviceDetails, envVar.value),
+    ])
+  )
   for (const key of keys) {
     const value = envByKey.get(key)
     if (typeof value === "string" && value.trim()) {
@@ -100,7 +118,9 @@ function parseHttpPortFromListenAddress(value: string | null): number | null {
   return Number.isInteger(port) && port > 0 ? port : null
 }
 
-function resolveServicePort(serviceDetails: SearchProvisionServiceDetails): number {
+function resolveServicePort(
+  serviceDetails: SearchProvisionServiceDetails
+): number {
   const listenPort = parseHttpPortFromListenAddress(
     getServiceEnvValue(serviceDetails, ["MEILI_HTTP_ADDR"])
   )
@@ -108,8 +128,9 @@ function resolveServicePort(serviceDetails: SearchProvisionServiceDetails): numb
     return listenPort
   }
 
-  const urlPort = serviceDetails.urls.find((url) => typeof url.associated_port === "number")
-    ?.associated_port
+  const urlPort = serviceDetails.urls.find(
+    (url) => typeof url.associated_port === "number"
+  )?.associated_port
   if (typeof urlPort === "number" && urlPort > 0) {
     return urlPort
   }
@@ -117,7 +138,9 @@ function resolveServicePort(serviceDetails: SearchProvisionServiceDetails): numb
   return 7700
 }
 
-function buildServicePrivateUrl(serviceDetails: SearchProvisionServiceDetails): string | null {
+function buildServicePrivateUrl(
+  serviceDetails: SearchProvisionServiceDetails
+): string | null {
   const privateDomain =
     getServiceEnvValue(serviceDetails, ["ZANE_GLOBAL_PRIVATE_DOMAIN"]) ??
     (typeof serviceDetails.global_network_alias === "string" &&
@@ -125,14 +148,18 @@ function buildServicePrivateUrl(serviceDetails: SearchProvisionServiceDetails): 
       ? serviceDetails.global_network_alias.trim()
       : null) ??
     getServiceEnvValue(serviceDetails, ["ZANE_PRIVATE_DOMAIN"]) ??
-    (typeof serviceDetails.network_alias === "string" && serviceDetails.network_alias.trim()
+    (typeof serviceDetails.network_alias === "string" &&
+    serviceDetails.network_alias.trim()
       ? `${serviceDetails.network_alias.trim()}.zaneops.internal`
       : null)
   if (!privateDomain) {
     return null
   }
 
-  return new URL("/", `http://${privateDomain}:${resolveServicePort(serviceDetails)}`).toString()
+  return new URL(
+    "/",
+    `http://${privateDomain}:${resolveServicePort(serviceDetails)}`
+  ).toString()
 }
 
 function meiliKeyMatchesPolicy(
@@ -140,18 +167,25 @@ function meiliKeyMatchesPolicy(
   uid: string,
   description: string,
   actions: string[],
-  indexes: string[],
+  indexes: string[]
 ): boolean {
   const keyUid = typeof keyObj.uid === "string" ? keyObj.uid : null
-  const keyDescription = typeof keyObj.description === "string" ? keyObj.description : null
-  const keyActions = Array.isArray(keyObj.actions) ? keyObj.actions.filter((item): item is string => typeof item === "string") : []
-  const keyIndexes = Array.isArray(keyObj.indexes) ? keyObj.indexes.filter((item): item is string => typeof item === "string") : []
+  const keyDescription =
+    typeof keyObj.description === "string" ? keyObj.description : null
+  const keyActions = Array.isArray(keyObj.actions)
+    ? keyObj.actions.filter((item): item is string => typeof item === "string")
+    : []
+  const keyIndexes = Array.isArray(keyObj.indexes)
+    ? keyObj.indexes.filter((item): item is string => typeof item === "string")
+    : []
 
   return (
     keyUid === uid &&
     keyDescription === description &&
-    JSON.stringify([...keyActions].sort()) === JSON.stringify([...actions].sort()) &&
-    JSON.stringify([...keyIndexes].sort()) === JSON.stringify([...indexes].sort())
+    JSON.stringify([...keyActions].sort()) ===
+      JSON.stringify([...actions].sort()) &&
+    JSON.stringify([...keyIndexes].sort()) ===
+      JSON.stringify([...indexes].sort())
   )
 }
 
@@ -164,9 +198,7 @@ function sleep(ms: number): Promise<void> {
 function resolveMeiliUrl(meiliUrl: string, path: string): string {
   const baseUrl = new URL(meiliUrl)
   const normalizedBasePath = baseUrl.pathname.replace(/\/+$/, "")
-  baseUrl.pathname = normalizedBasePath
-    ? `${normalizedBasePath}/`
-    : "/"
+  baseUrl.pathname = normalizedBasePath ? `${normalizedBasePath}/` : "/"
   return new URL(path.replace(/^\/+/, ""), baseUrl).toString()
 }
 
@@ -177,7 +209,9 @@ export class ZaneMeiliApiCredentialsProvisioner {
     this.#deps = deps
   }
 
-  async provisionPreviewMeiliKeys(input: ProvisionPreviewMeiliKeysInput): Promise<{
+  async provisionPreviewMeiliKeys(
+    input: ProvisionPreviewMeiliKeysInput
+  ): Promise<{
     project_slug: string
     environment_name: string
     service_slug: string
@@ -193,24 +227,33 @@ export class ZaneMeiliApiCredentialsProvisioner {
   }> {
     const backendOutput = input.backendOutput
     const frontendOutput = input.frontendOutput
-    const backendEnvVar = this.requireOutputEnvVar(backendOutput, "backend_output")
-    const frontendEnvVar = this.requireOutputEnvVar(frontendOutput, "frontend_output")
+    const backendEnvVar = this.requireOutputEnvVar(
+      backendOutput,
+      "backend_output"
+    )
+    const frontendEnvVar = this.requireOutputEnvVar(
+      frontendOutput,
+      "frontend_output"
+    )
     const session = await this.#deps.authenticate()
-    const environment = await this.#deps.getEnvironment(session, input.projectSlug, input.environmentName)
+    const environment = await this.#deps.getEnvironment(
+      session,
+      input.projectSlug,
+      input.environmentName
+    )
     if (!environment) {
       throw new UpstreamHttpError(
         404,
         "zane_environment_not_found",
-        `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`,
+        `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`
       )
     }
-    assertPreviewLaneEnvironment(environment)
 
     const serviceDetails = await this.#deps.getServiceDetails(
       session,
       input.projectSlug,
       input.environmentName,
-      input.serviceSlug,
+      input.serviceSlug
     )
     const serviceUrls = buildServicePublicUrls(serviceDetails)
     const publicMeiliUrl = serviceUrls[0]
@@ -219,22 +262,28 @@ export class ZaneMeiliApiCredentialsProvisioner {
       throw new UpstreamHttpError(
         409,
         "zane_meili_url_missing",
-        `Service ${input.serviceSlug} does not expose an operator-reachable URL in ${input.projectSlug}/${input.environmentName}`,
+        `Service ${input.serviceSlug} does not expose an operator-reachable URL in ${input.projectSlug}/${input.environmentName}`
       )
     }
 
-    const meiliMasterKey = getServiceEnvValue(serviceDetails, ["MEILI_MASTER_KEY"])
+    const meiliMasterKey = getServiceEnvValue(serviceDetails, [
+      "MEILI_MASTER_KEY",
+    ])
     if (!meiliMasterKey) {
       throw new UpstreamHttpError(
         409,
         "zane_meili_master_key_missing",
-        `Service ${input.serviceSlug} does not expose a Meilisearch master key in ${input.projectSlug}/${input.environmentName}`,
+        `Service ${input.serviceSlug} does not expose a Meilisearch master key in ${input.projectSlug}/${input.environmentName}`
       )
     }
 
     await this.waitForMeiliHealth(meiliUrl, input.readinessPath)
 
-    let backendKeyObj = await this.getMeiliKeyByUid(meiliUrl, meiliMasterKey, backendOutput.policy.uid)
+    let backendKeyObj = await this.getMeiliKeyByUid(
+      meiliUrl,
+      meiliMasterKey,
+      backendOutput.policy.uid
+    )
     let backendCreated = false
     let backendUpdated = false
     if (!backendKeyObj) {
@@ -244,7 +293,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
         backendOutput.policy.uid,
         backendOutput.policy.description,
         backendOutput.policy.actions,
-        backendOutput.policy.indexes,
+        backendOutput.policy.indexes
       )
       backendCreated = true
     } else if (
@@ -253,7 +302,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
         backendOutput.policy.uid,
         backendOutput.policy.description,
         backendOutput.policy.actions,
-        backendOutput.policy.indexes,
+        backendOutput.policy.indexes
       )
     ) {
       backendKeyObj = await this.updateMeiliKey(
@@ -262,12 +311,16 @@ export class ZaneMeiliApiCredentialsProvisioner {
         backendOutput.policy.uid,
         backendOutput.policy.description,
         backendOutput.policy.actions,
-        backendOutput.policy.indexes,
+        backendOutput.policy.indexes
       )
       backendUpdated = true
     }
 
-    let frontendKeyObj = await this.getMeiliKeyByUid(meiliUrl, meiliMasterKey, frontendOutput.policy.uid)
+    let frontendKeyObj = await this.getMeiliKeyByUid(
+      meiliUrl,
+      meiliMasterKey,
+      frontendOutput.policy.uid
+    )
     let frontendCreated = false
     let frontendUpdated = false
     if (!frontendKeyObj) {
@@ -277,7 +330,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
         frontendOutput.policy.uid,
         frontendOutput.policy.description,
         frontendOutput.policy.actions,
-        frontendOutput.policy.indexes,
+        frontendOutput.policy.indexes
       )
       frontendCreated = true
     } else if (
@@ -286,7 +339,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
         frontendOutput.policy.uid,
         frontendOutput.policy.description,
         frontendOutput.policy.actions,
-        frontendOutput.policy.indexes,
+        frontendOutput.policy.indexes
       )
     ) {
       frontendKeyObj = await this.updateMeiliKey(
@@ -295,15 +348,21 @@ export class ZaneMeiliApiCredentialsProvisioner {
         frontendOutput.policy.uid,
         frontendOutput.policy.description,
         frontendOutput.policy.actions,
-        frontendOutput.policy.indexes,
+        frontendOutput.policy.indexes
       )
       frontendUpdated = true
     }
 
-    const backendKey = typeof backendKeyObj.key === "string" ? backendKeyObj.key : ""
-    const frontendKey = typeof frontendKeyObj.key === "string" ? frontendKeyObj.key : ""
-    if (!backendKey || !frontendKey) {
-      throw new UpstreamHttpError(502, "zane_meili_key_missing", "Provisioned Meilisearch keys were missing key values")
+    const backendKey =
+      typeof backendKeyObj.key === "string" ? backendKeyObj.key : ""
+    const frontendKey =
+      typeof frontendKeyObj.key === "string" ? frontendKeyObj.key : ""
+    if (!(backendKey && frontendKey)) {
+      throw new UpstreamHttpError(
+        502,
+        "zane_meili_key_missing",
+        "Provisioned Meilisearch keys were missing key values"
+      )
     }
 
     return {
@@ -333,7 +392,10 @@ export class ZaneMeiliApiCredentialsProvisioner {
     return output.envVar.trim()
   }
 
-  private async waitForMeiliHealth(meiliUrl: string, healthPath: string): Promise<void> {
+  private async waitForMeiliHealth(
+    meiliUrl: string,
+    healthPath: string
+  ): Promise<void> {
     const healthUrl = resolveMeiliUrl(meiliUrl, healthPath)
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const response = await fetch(healthUrl, {
@@ -347,28 +409,31 @@ export class ZaneMeiliApiCredentialsProvisioner {
         return
       }
 
-      await sleep(2_000)
+      await sleep(2000)
     }
 
     throw new UpstreamHttpError(
       504,
       "zane_meili_unhealthy",
-      `Timed out waiting for Meilisearch health at ${healthUrl}`,
+      `Timed out waiting for Meilisearch health at ${healthUrl}`
     )
   }
 
   private async getMeiliKeyByUid(
     meiliUrl: string,
     masterKey: string,
-    uid: string,
+    uid: string
   ): Promise<Record<string, unknown> | null> {
-    const response = await fetch(resolveMeiliUrl(meiliUrl, `/keys/${encodeURIComponent(uid)}`), {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${masterKey}`,
-      },
-    })
+    const response = await fetch(
+      resolveMeiliUrl(meiliUrl, `/keys/${encodeURIComponent(uid)}`),
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${masterKey}`,
+        },
+      }
+    )
 
     if (response.status === 404) {
       return null
@@ -381,7 +446,11 @@ export class ZaneMeiliApiCredentialsProvisioner {
       } catch {
         // keep fallback
       }
-      throw new UpstreamHttpError(response.status, "zane_meili_key_lookup_failed", errorMessage)
+      throw new UpstreamHttpError(
+        response.status,
+        "zane_meili_key_lookup_failed",
+        errorMessage
+      )
     }
 
     const payload = await response.json()
@@ -397,7 +466,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
     uid: string,
     description: string,
     actions: string[],
-    indexes: string[],
+    indexes: string[]
   ): Promise<Record<string, unknown>> {
     return await this.writeMeiliKey(meiliUrl, masterKey, "POST", "/keys", {
       uid,
@@ -414,14 +483,20 @@ export class ZaneMeiliApiCredentialsProvisioner {
     uid: string,
     description: string,
     actions: string[],
-    indexes: string[],
+    indexes: string[]
   ): Promise<Record<string, unknown>> {
-    return await this.writeMeiliKey(meiliUrl, masterKey, "PATCH", `/keys/${encodeURIComponent(uid)}`, {
-      description,
-      actions,
-      indexes,
-      expiresAt: null,
-    })
+    return await this.writeMeiliKey(
+      meiliUrl,
+      masterKey,
+      "PATCH",
+      `/keys/${encodeURIComponent(uid)}`,
+      {
+        description,
+        actions,
+        indexes,
+        expiresAt: null,
+      }
+    )
   }
 
   private async writeMeiliKey(
@@ -429,7 +504,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
     masterKey: string,
     method: "POST" | "PATCH",
     path: string,
-    payload: Record<string, unknown>,
+    payload: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     const response = await fetch(resolveMeiliUrl(meiliUrl, path), {
       method,
@@ -448,11 +523,19 @@ export class ZaneMeiliApiCredentialsProvisioner {
       } catch {
         // keep fallback
       }
-      throw new UpstreamHttpError(response.status, "zane_meili_key_write_failed", errorMessage)
+      throw new UpstreamHttpError(
+        response.status,
+        "zane_meili_key_write_failed",
+        errorMessage
+      )
     }
 
     const responsePayload = await response.json()
-    if (!responsePayload || typeof responsePayload !== "object" || Array.isArray(responsePayload)) {
+    if (
+      !responsePayload ||
+      typeof responsePayload !== "object" ||
+      Array.isArray(responsePayload)
+    ) {
       throw new BadRequestError("meili key response must be a JSON object")
     }
     return responsePayload as Record<string, unknown>

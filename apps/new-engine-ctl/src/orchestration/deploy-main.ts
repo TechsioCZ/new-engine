@@ -19,9 +19,11 @@ import {
   stageHasService,
   waitForDeployments,
 } from "./deploy-shared.js"
-import { reconcileMainMeiliApiCredentials } from "./meili-api-credentials.js"
 import { executePlan } from "./plan.js"
-import { getMeiliApiCredentialsProviderSourceService } from "./preview-meili.js"
+import {
+  getMeiliApiCredentialsProviderSourceService,
+  provisionPreviewMeiliKeys,
+} from "./preview-meili.js"
 import { executeRenderEnvOverrides } from "./render-env-overrides.js"
 import { executeResolveEnvironment } from "./resolve-environment.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
@@ -156,35 +158,29 @@ export async function executeDeployMain(
       return
     }
 
-    if (!input.dryRun && (!input.meiliUrl || !input.meiliMasterKey)) {
-      throw new Error(
-        "Meilisearch URL and master key are required when main deploy needs Meili API credential reconciliation."
-      )
-    }
-
     logDeployProgress(
       `Reconciling Meili API credentials from source service ${meiliApiCredentialsSource.serviceId}.`
     )
 
-    const reconciled = await reconcileMainMeiliApiCredentials({
-      meiliUrl: input.meiliUrl,
-      masterKey: input.meiliMasterKey,
-      waitSeconds: input.meiliWaitSeconds,
-      retryCount: input.retryCount,
-      retryDelaySeconds: input.retryDelaySeconds,
+    const reconciled = await provisionPreviewMeiliKeys({
+      projectSlug: input.projectSlug,
+      environmentName: environment.environment_name,
+      serviceSlug: meiliApiCredentialsSource.serviceSlug,
       stackInputs: contracts.stackInputs,
       providerId: input.meiliApiCredentialsProviderId,
+      baseUrl: input.baseUrl,
+      apiToken: input.apiToken,
       dryRun: input.dryRun,
     })
 
-    meiliBackendKey = reconciled.backendKey
-    meiliFrontendKey = reconciled.frontendKey
-    meiliFrontendEnvVar = reconciled.frontendEnvVar
-    meiliBackendCreated = reconciled.backendCreated
-    meiliBackendUpdated = reconciled.backendUpdated
-    meiliFrontendCreated = reconciled.frontendCreated
-    meiliFrontendUpdated = reconciled.frontendUpdated
-    meiliVerified = reconciled.verified
+    meiliBackendKey = reconciled.backend_key
+    meiliFrontendKey = reconciled.frontend_key
+    meiliFrontendEnvVar = reconciled.frontend_env_var
+    meiliBackendCreated = reconciled.backend_created
+    meiliBackendUpdated = reconciled.backend_updated
+    meiliFrontendCreated = reconciled.frontend_created
+    meiliFrontendUpdated = reconciled.frontend_updated
+    meiliVerified = true
     meiliKeysReconciled = true
     logDeployProgress("Meili API credentials reconciled and verified.")
   }
