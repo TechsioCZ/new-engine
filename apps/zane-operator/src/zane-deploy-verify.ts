@@ -340,6 +340,7 @@ export class ZaneDeployVerifier {
 
     const checkedDeployments: CheckedDeploymentResult[] = []
     const checkedServiceIds = new Set<string>()
+    const triggeredRepoServiceIdSet = new Set(input.triggeredServiceIds)
 
     for (const repoServiceId of input.deployServiceIds) {
       const upstreamServiceSlug = verifyServiceSlugByRepoId.get(repoServiceId) ?? repoServiceId
@@ -365,7 +366,10 @@ export class ZaneDeployVerifier {
           deploymentRef.deployment_hash,
         )
         checkedServiceSlug = deploymentRef.service_slug
-      } else if (input.lane === "main") {
+      } else if (
+        input.lane === "main" ||
+        !triggeredRepoServiceIdSet.has(repoServiceId)
+      ) {
         const deployments = await this.#deps.listDeployments(
           session,
           input.projectSlug,
@@ -380,7 +384,9 @@ export class ZaneDeployVerifier {
           throw new UpstreamHttpError(
             409,
             "zane_verify_deployment_missing",
-            `No checked deployment or current healthy production deployment was found for ${serviceCard.slug}`,
+            input.lane === "main"
+              ? `No checked deployment or current healthy production deployment was found for ${serviceCard.slug}`
+              : `No checked deployment or current healthy deployment was found for ${serviceCard.slug}`,
           )
         }
         deployment = currentHealthy
