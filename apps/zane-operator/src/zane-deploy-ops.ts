@@ -22,6 +22,15 @@ interface ZaneEnvVariable {
   value: string
 }
 
+interface ZanePendingChange {
+  id: string
+  type?: "ADD" | "UPDATE" | "DELETE" | string
+  field?: string
+  item_id?: string | null
+  new_value?: Record<string, unknown> | null
+  old_value?: Record<string, unknown> | null
+}
+
 interface ZaneServiceCard {
   slug: string
 }
@@ -32,14 +41,7 @@ interface ZaneServiceDetails {
   commit_sha?: string | null
   deploy_token: string
   env_variables: ZaneEnvVariable[]
-  unapplied_changes?: Array<{
-    id: string
-    type?: "ADD" | "UPDATE" | "DELETE" | string
-    field?: string
-    item_id?: string | null
-    new_value?: Record<string, unknown> | null
-    old_value?: Record<string, unknown> | null
-  }>
+  unapplied_changes?: ZanePendingChange[]
 }
 
 interface ZaneResolvedCurrentDeployment {
@@ -111,7 +113,7 @@ interface ZaneDeployOpsDeps {
   ): Promise<ZaneDeployment[]>
   request<T>(
     session: ZaneSession,
-    method: "PUT",
+    method: "PUT" | "DELETE",
     path: string,
     payload?: unknown,
     options?: {
@@ -119,6 +121,41 @@ interface ZaneDeployOpsDeps {
       retryOnAuthFailure?: boolean
     },
   ): Promise<T | null>
+}
+
+function coercePendingEnvVariable(
+  value: Record<string, unknown> | null | undefined
+): { key: string; value: string } | null {
+  if (!value || typeof value.key !== "string" || typeof value.value !== "string") {
+    return null
+  }
+
+  return {
+    key: value.key,
+    value: value.value,
+  }
+}
+
+function findPendingEnvChangeByKey(
+  serviceDetails: ZaneServiceDetails,
+  key: string
+): ZanePendingChange | null {
+  for (const change of serviceDetails.unapplied_changes ?? []) {
+    if (change.field !== "env_variables") {
+      continue
+    }
+
+    if (change.type === "DELETE") {
+      continue
+    }
+
+    const pendingEnv = coercePendingEnvVariable(change.new_value)
+    if (pendingEnv?.key === key) {
+      return change
+    }
+  }
+
+  return null
 }
 
 function assertServiceType(value: unknown, label: string): ServiceType {
@@ -310,13 +347,16 @@ export class ZaneDeployOps {
         input.environmentName,
         target.service_slug,
       )
-      const envByKey = new Map(
+      const effectiveEnvByKey = new Map(
         computeEffectiveEnvVariables(serviceDetails).map((envVar) => [envVar.key, envVar])
+      )
+      const persistedEnvByKey = new Map(
+        (serviceDetails.env_variables ?? []).map((envVar) => [envVar.key, envVar])
       )
 
       for (const [key, value] of Object.entries(override.env)) {
-        const current = envByKey.get(key)
-        if (current?.value === value) {
+        const effectiveCurrent = effectiveEnvByKey.get(key)
+        if (effectiveCurrent?.value === value) {
           appliedChanges.push({
             service_id: override.service_id,
             service_slug: override.service_slug,
@@ -326,7 +366,19 @@ export class ZaneDeployOps {
           continue
         }
 
-        const changeType: "ADD" | "UPDATE" = current ? "UPDATE" : "ADD"
+        const pendingChange = findPendingEnvChangeByKey(serviceDetails, key)
+        if (pendingChange) {
+          await this.cancelServiceChange(
+            session,
+            input.projectSlug,
+            input.environmentName,
+            target.service_slug,
+            pendingChange.id,
+          )
+        }
+
+        const persistedCurrent = persistedEnvByKey.get(key)
+        const changeType: "ADD" | "UPDATE" = persistedCurrent ? "UPDATE" : "ADD"
         const requestBody: JsonRecord = {
           field: "env_variables",
           type: changeType,
@@ -336,8 +388,8 @@ export class ZaneDeployOps {
           },
         }
 
-        if (current) {
-          requestBody.item_id = current.id
+        if (persistedCurrent?.id) {
+          requestBody.item_id = persistedCurrent.id
         }
 
         await this.#deps.request(
@@ -366,6 +418,22 @@ export class ZaneDeployOps {
       applied_service_ids: Array.from(appliedServiceIds),
       applied_changes: appliedChanges,
     }
+  }
+
+  private async cancelServiceChange(
+    session: ZaneSession,
+    projectSlug: string,
+    environmentName: string,
+    serviceSlug: string,
+    changeId: string,
+  ): Promise<void> {
+    await this.#deps.request(
+      session,
+      "DELETE",
+      `/api/projects/${encodeURIComponent(projectSlug)}/${encodeURIComponent(
+        environmentName,
+      )}/cancel-service-changes/${encodeURIComponent(serviceSlug)}/${encodeURIComponent(changeId)}/`,
+    )
   }
 
   async triggerDeploys(input: {
