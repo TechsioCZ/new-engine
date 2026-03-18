@@ -8,6 +8,26 @@ export interface ResolveEnvironmentInput {
   sourceEnvironmentName: string
   expectedPreviewServiceSlugs: string[]
   excludedPreviewServiceSlugs: string[]
+  serviceSpecs: ZaneServiceReconciliationSpec[]
+}
+
+export interface ZaneServiceReconciliationSpec {
+  service_id: string
+  service_slug: string
+  git_source?: {
+    sync_from_source: boolean
+    commit_sha: string
+  }
+  builder?: {
+    sync_from_source: boolean
+    build_stage_target?: string | null
+  }
+  healthcheck?: {
+    sync_from_source: boolean
+  }
+  resource_limits?: {
+    sync_from_source: boolean
+  }
 }
 
 export interface ArchiveEnvironmentInput {

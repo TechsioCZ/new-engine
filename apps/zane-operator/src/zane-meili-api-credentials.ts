@@ -16,6 +16,7 @@ interface PreviewEnvironmentLookup {
 interface SearchProvisionServiceDetails {
   slug: string
   network_alias?: string | null
+  global_network_alias?: string | null
   env_variables: Array<{
     key: string
     value: string
@@ -118,6 +119,11 @@ function resolveServicePort(serviceDetails: SearchProvisionServiceDetails): numb
 
 function buildServicePrivateUrl(serviceDetails: SearchProvisionServiceDetails): string | null {
   const privateDomain =
+    getServiceEnvValue(serviceDetails, ["ZANE_GLOBAL_PRIVATE_DOMAIN"]) ??
+    (typeof serviceDetails.global_network_alias === "string" &&
+    serviceDetails.global_network_alias.trim()
+      ? serviceDetails.global_network_alias.trim()
+      : null) ??
     getServiceEnvValue(serviceDetails, ["ZANE_PRIVATE_DOMAIN"]) ??
     (typeof serviceDetails.network_alias === "string" && serviceDetails.network_alias.trim()
       ? `${serviceDetails.network_alias.trim()}.zaneops.internal`

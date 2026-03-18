@@ -43,6 +43,8 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - CI injects env overrides produced by `prepare` or first-creation runtime provisioning only where required by the affected services.
 - Preview-cloned services must not receive shared Zane admin/operator credentials in their runtime env.
 - Preview-cloned service public URLs are repo-owned. Generic Zane clone/default URLs are drift and must be reconciled to the repo preview route contract before preview deploy proceeds.
+- Preview URL reconcile must be set-based: undesired cloned/default URLs are removed, and only the repo-owned preview URL set may remain before preview deploy proceeds.
+- Preview service spec drift is also repo-owned. Git source, builder, healthcheck, and resource limits for preview-cloned services must be reconciled from `apps/new-engine-ctl/config/stack-inputs.yaml` before baseline deploy proceeds.
 
 ## Preview Deploy Contract
 
@@ -54,6 +56,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
    - if the environment already exists and `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true`, preview creation passes without redeploying
    - preview DB ensure and credential generation must also be idempotent
    - services excluded from preview cloning must be archived from the preview environment before baseline deploy starts
+   - preview-cloned service spec drift (Git source, builder, healthcheck, resource limits, and repo-owned preview URLs) must be converged before baseline deploy starts
    - user-created helper/debug services do not block reuse
 5. On initial preview creation or baseline replay, deploy services in manifest stack order.
 6. Provisioning that depends on preview service runtime may only run after the relevant preview service is deployed and healthy.
@@ -142,6 +145,9 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Those generated preview secrets must be created exactly once per preview environment creation/baseline materialization and reused for all later preview deploy/verify runs unless the preview environment is recreated.
 - Baseline deploy must not invent new preview env variable names beyond explicit `ZANE_OPERATOR_PREVIEW_*` metadata keys. It must only overwrite the existing shared preview env keys and existing service env keys defined by the contract.
 - The contract for those preview shared/service env rewrites is repo-owned in `apps/new-engine-ctl/config/stack-inputs.yaml` under `preview_runtime_reconciliation`; `zane-operator` executes typed source resolution from CTL payloads and must not grow a second hardcoded mapping table.
+- The contract for lane-specific service-spec normalization is also repo-owned in `apps/new-engine-ctl/config/stack-inputs.yaml` under `service_reconciliation`; preview environment resolve consumes the preview lane slice, while the same file remains the source of truth for main-lane build-stage policy.
+- That section should stay lean: source-sync behavior is the default for preview-cloned services, and YAML entries should only be needed for non-default policy such as lane-specific build-stage targets.
+- Current lane-specific build-stage policy in that contract: `medusa-be` and `n1` use `ci-dev` for preview and `prod` for main.
 - Preview DB credentials produced by `prepare`/preview DB ensure are part of that shared-env plane and must overwrite the existing `MEDUSA_APP_DB_*` preview env keys before preview deploy depends on them.
 - Preview shared host keys are part of that same plane. The active preview contract keys are `MEDUSA_DB_HOST`, `MEDUSA_VALKEY_HOST`, and `MEDUSA_MEILISEARCH_HOST`; preview deploy must reconcile them from the canonical source/preview service topology before deploy or verify depends on them.
 - The deploy path must support prepared inputs produced before deploy starts.
@@ -176,6 +182,8 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 - Runtime-dependent provisioning must not be ad hoc inside workflow YAML.
 - Runtime-dependent provisioning must be driven by `apps/new-engine-ctl/config/stack-inputs.yaml`, consumed by `apps/new-engine-ctl`, and enforced by the active orchestration surface and `zane-operator`.
+- Operator-side runtime provisioning must use a target-environment-reachable service address. For preview services this means a preview-scoped internal/global private address, not the canonical environment service alias and not the public preview route.
+- The only intended local-scope exception is service-to-service runtime inside the same target environment. Preview shared/service env values consumed by preview services may still use the stable local private alias (`service_network_alias` / `ZANE_PRIVATE_DOMAIN`) when the consumer and provider are on the same preview environment network.
 - `zane-operator` is responsible only for provisioners that require authenticated Zane inspection or access to a running service.
 - `prepare` is not a runtime-provider phase. Runtime providers must run only when their source service is already deployed and healthy in the current target environment.
 - The contract must remain provider-oriented rather than product-name-oriented.

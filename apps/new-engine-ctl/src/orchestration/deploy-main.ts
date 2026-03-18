@@ -117,6 +117,7 @@ export async function executeDeployMain(
     prNumber: undefined,
     environmentName: input.environmentName,
     sourceEnvironmentName: input.environmentName,
+    reconcileServiceIdsCsv: plan.deploy_services_csv,
     previewClonedServiceIdsCsv: "",
     previewExcludedServiceIdsCsv: "",
     outputJson: undefined,
@@ -125,6 +126,7 @@ export async function executeDeployMain(
     dryRun: input.dryRun,
     dryRunCreated: false,
     stackManifestPath: input.stackManifestPath,
+    stackInputsPath: input.stackInputsPath,
     previewEnvPrefix: "pr-",
   })
 

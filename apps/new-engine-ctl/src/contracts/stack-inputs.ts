@@ -76,6 +76,59 @@ const previewServiceEnvDefinitionSchema = z.looseObject({
   source: previewRuntimeSourceSchema,
 })
 
+const laneBuildStageTargetsSchema = z
+  .object({
+    preview: z.string().nullable().optional(),
+    main: z.string().nullable().optional(),
+  })
+  .default({})
+
+const serviceGitSourceReconciliationSchema = z
+  .object({
+    sync_from_source: z.boolean().optional().default(true),
+    commit_sha: z.string().min(1).optional().default("HEAD"),
+  })
+  .default({
+    sync_from_source: true,
+    commit_sha: "HEAD",
+  })
+
+const serviceBuilderReconciliationSchema = z
+  .object({
+    sync_from_source: z.boolean().optional().default(true),
+    build_stage_target_by_lane: laneBuildStageTargetsSchema.optional().default({}),
+  })
+  .default({
+    sync_from_source: true,
+    build_stage_target_by_lane: {},
+  })
+
+const serviceFieldReconciliationSchema = z
+  .object({
+    sync_from_source: z.boolean().optional().default(true),
+  })
+  .default({
+    sync_from_source: true,
+  })
+
+const serviceReconciliationDefinitionSchema = z.looseObject({
+  service_id: z.string().min(1),
+  git_source: serviceGitSourceReconciliationSchema.optional().default({
+    sync_from_source: true,
+    commit_sha: "HEAD",
+  }),
+  builder: serviceBuilderReconciliationSchema.optional().default({
+    sync_from_source: true,
+    build_stage_target_by_lane: {},
+  }),
+  healthcheck: serviceFieldReconciliationSchema.optional().default({
+    sync_from_source: true,
+  }),
+  resource_limits: serviceFieldReconciliationSchema.optional().default({
+    sync_from_source: true,
+  }),
+})
+
 export const stackInputsSchema = z.object({
   secret_materialization: z
     .object({
@@ -93,6 +146,11 @@ export const stackInputsSchema = z.object({
       service_env: z.array(previewServiceEnvDefinitionSchema).default([]),
     })
     .default({ shared_env: [], service_env: [] }),
+  service_reconciliation: z
+    .object({
+      services: z.array(serviceReconciliationDefinitionSchema).default([]),
+    })
+    .default({ services: [] }),
 })
 
 export type StackInputs = z.infer<typeof stackInputsSchema>
@@ -107,6 +165,9 @@ export type PreviewSharedEnvDefinition = z.infer<
 >
 export type PreviewServiceEnvDefinition = z.infer<
   typeof previewServiceEnvDefinitionSchema
+>
+export type ServiceReconciliationDefinition = z.infer<
+  typeof serviceReconciliationDefinitionSchema
 >
 export type RuntimeProviderOutput = z.infer<typeof providerOutputSchema>
 export type RuntimeProviderPolicy = NonNullable<RuntimeProviderOutput["policy"]>
@@ -135,6 +196,12 @@ export function getPreviewServiceEnvDefinitions(
   inputs: StackInputs
 ): PreviewServiceEnvDefinition[] {
   return inputs.preview_runtime_reconciliation.service_env
+}
+
+export function getServiceReconciliationDefinitions(
+  inputs: StackInputs
+): ServiceReconciliationDefinition[] {
+  return inputs.service_reconciliation.services
 }
 
 export function getRuntimeProviderTargetEnvVar(

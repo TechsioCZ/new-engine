@@ -2,7 +2,7 @@ import { Command } from "commander"
 import { resolveEnvironmentCommandInputSchema } from "../contracts/resolve-environment.js"
 import { appendGitHubOutput, warnGitHub } from "../github-actions.js"
 import { executeResolveEnvironment } from "../orchestration/resolve-environment.js"
-import { defaultStackManifestPath } from "../paths.js"
+import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
 export function createResolveEnvironmentCommand(): Command {
   const command = new Command("resolve-environment")
@@ -14,6 +14,7 @@ export function createResolveEnvironmentCommand(): Command {
     .option("--pr-number <n>")
     .option("--environment-name <name>")
     .option("--source-environment-name <name>")
+    .option("--reconcile-service-ids-csv <csv>", "", "")
     .option("--preview-cloned-service-ids-csv <csv>", "", "")
     .option("--preview-excluded-service-ids-csv <csv>", "", "")
     .option("--output-json <path>")
@@ -23,6 +24,11 @@ export function createResolveEnvironmentCommand(): Command {
       "--stack-manifest-path <path>",
       "",
       process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+    )
+    .option(
+      "--stack-inputs-path <path>",
+      "",
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
     )
     .option("--dry-run", "", false)
     .option("--dry-run-created", "", false)
@@ -41,6 +47,7 @@ export function createResolveEnvironmentCommand(): Command {
           options.sourceEnvironmentName ??
           process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
           "",
+        reconcileServiceIdsCsv: options.reconcileServiceIdsCsv,
         previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
         previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
         outputJson: options.outputJson,
@@ -49,6 +56,7 @@ export function createResolveEnvironmentCommand(): Command {
         dryRun: Boolean(options.dryRun),
         dryRunCreated: Boolean(options.dryRunCreated),
         stackManifestPath: options.stackManifestPath,
+        stackInputsPath: options.stackInputsPath,
         previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
       })
 

@@ -28,6 +28,33 @@ CMD ["sh", "-lc", "\
 "]
 
 # ============================================
+# CI DEV TARGET - non-interactive preview runtime
+# ============================================
+FROM base AS ci-dev
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
+    corepack install && \
+    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+
+COPY . .
+RUN mkdir -p apps/n1/public
+
+RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
+    npm_config_store_dir=/pnpm/store \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
+    pnpm --filter=@techsio/ui-kit build && \
+    pnpm --filter=@techsio/analytics build
+
+WORKDIR /var/www/apps/n1
+
+CMD ["npm", "run", "start:ci-dev"]
+
+# ============================================
 # PROD BUILD STAGE - compiles everything
 # ============================================
 FROM base AS build

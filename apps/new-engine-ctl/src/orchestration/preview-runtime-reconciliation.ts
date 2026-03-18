@@ -1,10 +1,12 @@
 import type {
   PreviewRuntimeSourceDefinition,
+  ServiceReconciliationDefinition,
   StackInputs,
 } from "../contracts/stack-inputs.js"
 import {
   getPreviewServiceEnvDefinitions,
   getPreviewSharedEnvDefinitions,
+  getServiceReconciliationDefinitions,
 } from "../contracts/stack-inputs.js"
 import type { StackManifest } from "../contracts/stack-manifest.js"
 import { getDeployableService } from "../contracts/stack-manifest.js"
@@ -24,6 +26,27 @@ export type PreviewServiceEnvSyncService = {
     env_var: string
     source: PreviewSharedEnvVariableInput["source"]
   }>
+}
+
+export type ServiceReconciliationLane = "preview" | "main"
+
+export type PreviewServiceSpecSyncService = {
+  service_id: string
+  service_slug: string
+  git_source?: {
+    sync_from_source: boolean
+    commit_sha: string
+  }
+  builder?: {
+    sync_from_source: boolean
+    build_stage_target?: string | null
+  }
+  healthcheck?: {
+    sync_from_source: boolean
+  }
+  resource_limits?: {
+    sync_from_source: boolean
+  }
 }
 
 function resolveSourceEnvironmentName(
@@ -105,6 +128,14 @@ function buildResolvedSource(input: {
     default:
       throw new Error(`Unsupported preview runtime source kind: ${source.kind}`)
   }
+}
+
+function resolveLaneBuildStageTarget(
+  definition: ServiceReconciliationDefinition,
+  lane: ServiceReconciliationLane
+): string | null | undefined {
+  const buildStageTargets = definition.builder.build_stage_target_by_lane
+  return lane === "preview" ? buildStageTargets.preview : buildStageTargets.main
 }
 
 export function buildPreviewSharedEnvSyncVariables(input: {
@@ -225,4 +256,84 @@ export function buildPreviewRequiredServiceEnvKeys(input: {
   }
 
   return [...grouped.values()].map(({ seen: _seen, ...value }) => value)
+}
+
+export function buildServiceReconciliationSpecs(input: {
+  stackInputs: StackInputs
+  manifest: StackManifest
+  lane: ServiceReconciliationLane
+  serviceIds: string[]
+}): PreviewServiceSpecSyncService[] {
+  const definitionByServiceId = new Map(
+    getServiceReconciliationDefinitions(input.stackInputs).map((definition) => [
+      definition.service_id,
+      definition,
+    ])
+  )
+
+  return [...new Set(input.serviceIds)].map((serviceId) => {
+    const definition =
+      definitionByServiceId.get(serviceId) ?? {
+        service_id: serviceId,
+        git_source: {
+          sync_from_source: true,
+          commit_sha: "HEAD",
+        },
+        builder: {
+          sync_from_source: true,
+          build_stage_target_by_lane: {},
+        },
+        healthcheck: {
+          sync_from_source: true,
+        },
+        resource_limits: {
+          sync_from_source: true,
+        },
+      }
+    const serviceSpec: PreviewServiceSpecSyncService = {
+      service_id: serviceId,
+      service_slug: requireServiceSlug(
+        input.manifest,
+        serviceId,
+        `service reconciliation ${serviceId}`
+      ),
+    }
+
+    if (definition.git_source.sync_from_source) {
+      serviceSpec.git_source = {
+        sync_from_source: true,
+        commit_sha: definition.git_source.commit_sha,
+      }
+    }
+
+    if (definition.builder.sync_from_source) {
+      const buildStageTarget = resolveLaneBuildStageTarget(
+        definition,
+        input.lane
+      )
+      serviceSpec.builder =
+        typeof buildStageTarget !== "undefined"
+          ? {
+              sync_from_source: true,
+              build_stage_target: buildStageTarget,
+            }
+          : {
+              sync_from_source: true,
+            }
+    }
+
+    if (definition.healthcheck.sync_from_source) {
+      serviceSpec.healthcheck = {
+        sync_from_source: true,
+      }
+    }
+
+    if (definition.resource_limits.sync_from_source) {
+      serviceSpec.resource_limits = {
+        sync_from_source: true,
+      }
+    }
+
+    return serviceSpec
+  })
 }

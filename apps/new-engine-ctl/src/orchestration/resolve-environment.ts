@@ -5,9 +5,13 @@ import {
   type ResolveEnvironmentResponse,
   resolveEnvironmentResponseSchema,
 } from "../contracts/resolve-environment.js"
-import { listDeployableServices } from "../contracts/stack-manifest.js"
+import {
+  type StackManifest,
+  listDeployableServices,
+} from "../contracts/stack-manifest.js"
+import { buildServiceReconciliationSpecs } from "./preview-runtime-reconciliation.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
-import { loadManifest, normalizeCsvToArray } from "./deploy-inputs.js"
+import { loadDeployContracts, normalizeCsvToArray } from "./deploy-inputs.js"
 
 function buildPreviewEnvironmentName(
   input: ResolveEnvironmentCommandInput
@@ -21,7 +25,7 @@ function buildPreviewEnvironmentName(
 
 function buildPreviewServiceSlugSets(
   input: ResolveEnvironmentCommandInput,
-  manifest: Awaited<ReturnType<typeof loadManifest>>
+  manifest: StackManifest
 ): {
   expectedPreviewServiceSlugs: string[]
   excludedPreviewServiceSlugs: string[]
@@ -55,7 +59,11 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
 export async function executeResolveEnvironment(
   input: ResolveEnvironmentCommandInput
 ): Promise<ResolveEnvironmentResponse> {
-  const manifest = await loadManifest(input.stackManifestPath)
+  const contracts = await loadDeployContracts(
+    input.stackManifestPath,
+    input.stackInputsPath
+  )
+  const manifest = contracts.manifest
   const environmentName = buildPreviewEnvironmentName(input)
   const previewServiceSlugSets =
     input.lane === "preview"
@@ -64,6 +72,18 @@ export async function executeResolveEnvironment(
           expectedPreviewServiceSlugs: [],
           excludedPreviewServiceSlugs: [],
         }
+  const serviceSpecs =
+    input.lane === "preview" || input.reconcileServiceIdsCsv
+      ? buildServiceReconciliationSpecs({
+          stackInputs: contracts.stackInputs,
+          manifest,
+          lane: input.lane,
+          serviceIds:
+            input.lane === "preview"
+              ? normalizeCsvToArray(input.previewClonedServiceIdsCsv)
+              : normalizeCsvToArray(input.reconcileServiceIdsCsv),
+        })
+      : []
 
   const response = input.dryRun
     ? resolveEnvironmentResponseSchema.parse({
@@ -95,6 +115,7 @@ export async function executeResolveEnvironment(
           previewServiceSlugSets.expectedPreviewServiceSlugs,
         excluded_preview_service_slugs:
           previewServiceSlugSets.excludedPreviewServiceSlugs,
+        service_specs: serviceSpecs,
       })
 
   if (input.lane === "preview" && !response.ready) {

@@ -25,6 +25,28 @@ CMD ["pnpm", "--filter", "medusa-be", "dev"]
 #CMD ["tail", "-f", "/dev/null"]
 
 # ============================================
+# CI DEV TARGET - non-interactive preview runtime
+# ============================================
+FROM base AS ci-dev
+ENV NODE_ENV=development
+ENV DATABASE_TYPE=postgres
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
+    corepack install && \
+    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+
+COPY . .
+
+RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
+    npm_config_store_dir=/pnpm/store \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=medusa-be...
+
+WORKDIR /var/www/apps/medusa-be
+
+CMD ["npm", "run", "start:ci-dev"]
+
+# ============================================
 # PROD BUILD STAGE - compiles everything
 # ============================================
 FROM base AS build
