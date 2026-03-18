@@ -1,6 +1,6 @@
 # New Engine CTL Architecture
 
-Last updated: 2026-03-17
+Last updated: 2026-03-18
 Scope: repo-owned typed orchestration CLI for CI and local deploy-related flows.
 
 ## Authority
@@ -103,6 +103,7 @@ Phase intent:
 - `scope`/`plan` determine the affected service set and manifest-ordered deploy plan.
 - preview scope may read preview-environment metadata to resolve the baseline commit; the active keys are `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA`, `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA`, and `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`
 - `prepare` is for shared-resource prerequisites and input validation only.
+- preview `prepare` owns baseline-aware shared-resource ensure decisions. It must not rely only on the originally requested service set when a baseline replay will expand deploy scope to the full preview clone set.
 - runtime-provider execution belongs in deploy orchestration after the provider source service is deployed and healthy.
 - preview deploy owns preview commit metadata sequencing: write `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` before deploy stages start, set `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=false` while a baseline run is in progress, and advance `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` plus `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true` only as the final successful deploy-stage metadata update
 - preview deploy owns preview random-once secret materialization policy: baseline runs materialize missing preview-owned random-once values onto the existing shared preview env keys and existing service env keys those services actually consume before staged deploy begins; later preview runs reuse those stored values rather than regenerating them
