@@ -602,6 +602,9 @@ async function syncPreviewDatabaseGrants(
   await withDatabaseClient(config, dbName, async (dbSql) => {
     await lockDownPublicSchema(dbSql)
     await ensureSchemaExists(dbSql, config.appSchema, appRoleName)
+    await dbSql.unsafe(
+      `GRANT USAGE, CREATE ON SCHEMA ${quoteCatalogIdentifier(config.appSchema)} TO ${quoteIdentifier(appRoleName)};`,
+    )
     await transferOwnedObjectsInSchemaToRole(
       dbSql,
       config.appSchema,
