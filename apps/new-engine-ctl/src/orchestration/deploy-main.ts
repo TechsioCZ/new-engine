@@ -382,6 +382,7 @@ export async function executeDeployMain(
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
       onProgress: logDeployProgress,
+      cancelOnInterrupt: true,
     })
 
     if (

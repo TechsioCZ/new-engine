@@ -108,6 +108,7 @@ Phase intent:
 - preview deploy owns preview random-once secret materialization policy: baseline runs materialize missing preview-owned random-once values onto the existing shared preview env keys and existing service env keys those services actually consume before staged deploy begins; later preview runs reuse those stored values rather than regenerating them
 - preview runtime reconciliation is data-driven from `apps/new-engine-ctl/config/stack-inputs.yaml`; `preview_runtime_reconciliation` is the single source of truth for preview shared-env and service-env rewrites, and `service_reconciliation` is the single source of truth for lane-specific service-spec normalization such as Git source cleanup, builder targets, healthchecks, and resource limits
 - preview deploy remains the only owner of deployment target commit selection. `service_reconciliation` may normalize Git source shape (repository, branch, git app) but must not reset preview services to `HEAD` or otherwise take ownership of commit pinning.
+- shared staged wait behavior is lane-agnostic: both lanes adopt matching in-flight deployments before treating pending changes as blocking drift, and on interrupt only cancel the deployments the current stage itself triggered while waiting.
 - preview deploy also persists preview DB credentials returned by `prepare`/preview DB ensure onto the existing `MEDUSA_APP_DB_*` preview env keys once the preview environment exists
 - `verify` proves contract-owned env/application results after deploy completes.
 - preview deploy, not workflow YAML, decides whether a run is baseline replay or redeploy-only by combining environment existence with `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`.
@@ -115,6 +116,7 @@ Phase intent:
 - preview shared-env reconciliation is also repo-owned and typed: preview deploy syncs the existing shared host/DB keys from the preview environment topology plus prepared DB credentials before service deploy stages consume them.
 - `service_reconciliation` should stay lean: source-sync behavior is the default for preview-cloned services, and the YAML should only encode non-default policy such as lane-specific build-stage targets.
 - Current lane-specific builder-stage policy in `service_reconciliation`: `medusa-be` and `n1` use `ci-dev` for preview and `prod` for main.
+- workflow YAML may use workflow-safe concurrency groups to cancel superseded runs, but workflow cancellation complements rather than replaces lane-owned deployment adoption/cancel rules.
 - Preview runtime address policy has two scopes: operator-side provisioners must use preview-scoped global/private identities, while shared/service env values consumed by services inside the preview environment may keep local private aliases from `preview_runtime_reconciliation` when those consumers run on the same preview environment network.
 
 ## App Structure
