@@ -12,6 +12,8 @@ import type {
   ResolveTargetInput,
   ServiceType,
   SyncPreviewRandomOnceSecretsInput,
+  SyncPreviewServiceEnvInput,
+  SyncPreviewSharedEnvInput,
   VerifyDeployInput,
   VerifyDeploymentRef,
   WritePreviewCommitStateInput,
@@ -184,6 +186,83 @@ function normalizePersistedEnvRequirements(value: unknown, label: string): Persi
   })
 }
 
+function normalizeSharedEnvRequirements(value: unknown, label: string): Array<{ key: string }> {
+  if (value == null) {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    throw new BadRequestError(`${label} must be an array`)
+  }
+
+  return value.map((item, index) => {
+    const object = assertObject(item, `${label}[${index}]`)
+    return {
+      key: assertString(object.key, `${label}[${index}].key`),
+    }
+  })
+}
+
+function assertPreviewRuntimeValueSourceKind(
+  value: unknown,
+  label: string
+):
+  | "literal"
+  | "service_network_alias"
+  | "service_global_network_alias"
+  | "service_public_origin"
+  | "service_internal_origin"
+  | "service_internal_bucket_url" {
+  const normalized = assertString(value, label)
+
+  if (
+    normalized !== "literal" &&
+    normalized !== "service_network_alias" &&
+    normalized !== "service_global_network_alias" &&
+    normalized !== "service_public_origin" &&
+    normalized !== "service_internal_origin" &&
+    normalized !== "service_internal_bucket_url"
+  ) {
+    throw new BadRequestError(
+      `${label} has unsupported preview runtime source kind`
+    )
+  }
+
+  return normalized
+}
+
+function parsePreviewRuntimeValueSource(
+  rawValue: unknown,
+  label: string
+) {
+  const object = assertObject(rawValue, label)
+
+  return {
+    kind: assertPreviewRuntimeValueSourceKind(object.kind, `${label}.kind`),
+    value: assertOptionalString(object.value, `${label}.value`),
+    serviceSlug: assertOptionalString(
+      object.service_slug,
+      `${label}.service_slug`
+    ),
+    sourceEnvironmentName: assertOptionalString(
+      object.source_environment_name,
+      `${label}.source_environment_name`
+    ),
+    port:
+      typeof object.port === "number" && Number.isInteger(object.port)
+        ? object.port
+        : undefined,
+    trailingSlash:
+      typeof object.trailing_slash === "boolean"
+        ? object.trailing_slash
+        : undefined,
+    bucketSharedEnvKey: assertOptionalString(
+      object.bucket_shared_env_key,
+      `${label}.bucket_shared_env_key`
+    ),
+  }
+}
+
 function normalizeForbiddenEnvRequirements(value: unknown, label: string): ForbiddenEnvRequirement[] {
   if (value == null) {
     return []
@@ -325,6 +404,14 @@ export function parseSyncPreviewRandomOnceSecretsInput(
       return {
         secretId: assertString(object.secret_id, `secrets[${index}].secret_id`),
         value: assertOptionalString(object.value, `secrets[${index}].value`),
+        persistTo: assertOptionalString(
+          object.persist_to,
+          `secrets[${index}].persist_to`
+        ),
+        persistedEnvVar: assertOptionalString(
+          object.persisted_env_var,
+          `secrets[${index}].persisted_env_var`
+        ),
         targets: targets.map((target, targetIndex) => {
           const targetObject = assertObject(
             target,
@@ -339,6 +426,75 @@ export function parseSyncPreviewRandomOnceSecretsInput(
             envVar: assertString(
               targetObject.env_var,
               `secrets[${index}].targets[${targetIndex}].env_var`
+            ),
+          }
+        }),
+      }
+    }),
+  }
+}
+
+export function parseSyncPreviewSharedEnvInput(
+  rawPayload: unknown
+): SyncPreviewSharedEnvInput {
+  const payload = assertObject(rawPayload, "request body")
+  const variables = payload.variables
+  if (!Array.isArray(variables) || variables.length === 0) {
+    throw new BadRequestError("variables must be a non-empty array")
+  }
+
+  return {
+    projectSlug: normalizeProjectSlugFromPayload(payload),
+    environmentName: assertString(payload.environment_name, "environment_name"),
+    variables: variables.map((item, index) => {
+      const object = assertObject(item, `variables[${index}]`)
+      return {
+        key: assertString(object.key, `variables[${index}].key`),
+        source: parsePreviewRuntimeValueSource(
+          object.source,
+          `variables[${index}].source`
+        ),
+      }
+    }),
+  }
+}
+
+export function parseSyncPreviewServiceEnvInput(
+  rawPayload: unknown
+): SyncPreviewServiceEnvInput {
+  const payload = assertObject(rawPayload, "request body")
+  const services = payload.services
+  if (!Array.isArray(services) || services.length === 0) {
+    throw new BadRequestError("services must be a non-empty array")
+  }
+
+  return {
+    projectSlug: normalizeProjectSlugFromPayload(payload),
+    environmentName: assertString(payload.environment_name, "environment_name"),
+    services: services.map((item, index) => {
+      const object = assertObject(item, `services[${index}]`)
+      const env = object.env
+      if (!Array.isArray(env) || env.length === 0) {
+        throw new BadRequestError(`services[${index}].env must be a non-empty array`)
+      }
+
+      return {
+        service_id: assertString(object.service_id, `services[${index}].service_id`),
+        service_slug: assertString(object.service_slug, `services[${index}].service_slug`),
+        env: env.map((envItem, envIndex) => {
+          const envObject = assertObject(
+            envItem,
+            `services[${index}].env[${envIndex}]`
+          )
+
+          return {
+            env_var: assertString(
+              envObject.env_var,
+              `services[${index}].env[${envIndex}].env_var`
+            ),
+            source: parsePreviewRuntimeValueSource(
+              envObject.source,
+              `services[${index}].env[${envIndex}].source`
             ),
           }
         }),
@@ -431,6 +587,10 @@ export function parseVerifyInput(rawPayload: unknown): VerifyDeployInput {
     requiredPersistedEnv: normalizePersistedEnvRequirements(
       payload.required_persisted_env ?? [],
       "required_persisted_env",
+    ),
+    requiredSharedEnv: normalizeSharedEnvRequirements(
+      payload.required_shared_env ?? [],
+      "required_shared_env",
     ),
     forbiddenEnv: normalizeForbiddenEnvRequirements(
       payload.forbidden_env ?? [],

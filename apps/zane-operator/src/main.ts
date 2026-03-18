@@ -10,6 +10,8 @@ import { handleReadPreviewCommitState } from "./handlers/read-preview-commit-sta
 import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
 import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
 import { handleSyncPreviewRandomOnceSecrets } from "./handlers/sync-preview-random-once-secrets"
+import { handleSyncPreviewServiceEnv } from "./handlers/sync-preview-service-env"
+import { handleSyncPreviewSharedEnv } from "./handlers/sync-preview-shared-env"
 import { handleTeardownPreviewDb } from "./handlers/teardown-preview-db"
 import { handleTriggerZaneDeploy } from "./handlers/trigger-zane-deploy"
 import { handleVerifyZaneDeploy } from "./handlers/verify-zane-deploy"
@@ -117,6 +119,24 @@ const server = Bun.serve({
       }
 
       return await handleSyncPreviewRandomOnceSecrets(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/preview-shared-env/sync") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleSyncPreviewSharedEnv(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/preview-service-env/sync") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleSyncPreviewServiceEnv(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/meilisearch/provision-keys") {

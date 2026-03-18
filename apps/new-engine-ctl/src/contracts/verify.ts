@@ -16,6 +16,10 @@ const requiredPersistedEnvSchema = z.object({
   env_keys: z.array(z.string().min(1)),
 })
 
+const requiredSharedEnvSchema = z.object({
+  key: z.string().min(1),
+})
+
 export const forbiddenEnvSchema = z.object({
   service_id: z.string().min(1),
   service_slug: z.string().min(1),
@@ -34,6 +38,8 @@ const deploymentEnvelopeSchema = z.looseObject({
 })
 
 export const previewRandomOnceSecretInputSchema = z.looseObject({
+  persist_to: z.string().optional(),
+  persisted_env_var: z.string().optional(),
   targets: z
     .array(
       z.looseObject({
@@ -102,6 +108,7 @@ export const verifyResponseSchema = z.object({
   warning_only_preview_service_slugs: z.array(z.string()).default([]),
   checked_env_override_service_ids: z.array(z.string()),
   checked_persisted_env_service_ids: z.array(z.string()),
+  checked_shared_env_keys: z.array(z.string()),
   checked_forbidden_env_service_ids: z.array(z.string()),
   checked_deployment_service_ids: z.array(z.string()),
   checked_deployments: z.array(
@@ -118,6 +125,7 @@ export const verifyResponseSchema = z.object({
 export type VerifyCommandInput = z.infer<typeof verifyCommandInputSchema>
 export type EnvOverride = z.infer<typeof envOverrideSchema>
 export type RequiredPersistedEnv = z.infer<typeof requiredPersistedEnvSchema>
+export type RequiredSharedEnv = z.infer<typeof requiredSharedEnvSchema>
 export type ForbiddenEnvRequirement = z.infer<typeof forbiddenEnvSchema>
 export type DeploymentRef = z.infer<typeof deploymentRefSchema>
 export type PreviewRandomOnceSecretInput = z.infer<
@@ -140,6 +148,7 @@ export type VerifyDeployPayload = {
   excluded_preview_service_slugs: string[]
   expected_env_overrides: EnvOverride[]
   required_persisted_env: RequiredPersistedEnv[]
+  required_shared_env: RequiredSharedEnv[]
   forbidden_env: ForbiddenEnvRequirement[]
   deployments: DeploymentVerifyRef[]
 }
