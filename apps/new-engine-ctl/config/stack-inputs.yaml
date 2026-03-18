@@ -304,3 +304,17 @@ preview_runtime_reconciliation:
       source:
         kind: service_public_origin
         service_id: n1
+
+service_reconciliation:
+  services:
+    - service_id: medusa-be
+      builder:
+        build_stage_target_by_lane:
+          preview: ci-dev
+          main: prod
+
+    - service_id: n1
+      builder:
+        build_stage_target_by_lane:
+          preview: ci-dev
+          main: prod

@@ -160,6 +160,24 @@ export class ZaneOperatorClient {
     source_environment_name: string
     expected_preview_service_slugs: string[]
     excluded_preview_service_slugs: string[]
+    service_specs: Array<{
+      service_id: string
+      service_slug: string
+      git_source?: {
+        sync_from_source: boolean
+        commit_sha: string
+      }
+      builder?: {
+        sync_from_source: boolean
+        build_stage_target?: string | null
+      }
+      healthcheck?: {
+        sync_from_source: boolean
+      }
+      resource_limits?: {
+        sync_from_source: boolean
+      }
+    }>
   }): Promise<ResolveEnvironmentResponse> {
     return this.#postJson(
       "/v1/zane/environments/resolve",

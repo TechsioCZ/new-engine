@@ -17,6 +17,7 @@ import type {
   VerifyDeployInput,
   VerifyDeploymentRef,
   WritePreviewCommitStateInput,
+  ZaneServiceReconciliationSpec,
   ZaneResolvedTarget,
 } from "./zane-contract"
 
@@ -305,6 +306,98 @@ function parseResolvedTargets(value: unknown): ZaneResolvedTarget[] {
   })
 }
 
+function parseServiceReconciliationSpecs(
+  value: unknown,
+  label: string
+): ZaneServiceReconciliationSpec[] {
+  if (value == null) {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    throw new BadRequestError(`${label} must be an array`)
+  }
+
+  return value.map((item, index) => {
+    const object = assertObject(item, `${label}[${index}]`)
+    const gitSource =
+      object.git_source == null
+        ? undefined
+        : (() => {
+            const gitSourceObject = assertObject(
+              object.git_source,
+              `${label}[${index}].git_source`
+            )
+            return {
+              sync_from_source:
+                gitSourceObject.sync_from_source === true,
+              commit_sha:
+                assertOptionalString(
+                  gitSourceObject.commit_sha,
+                  `${label}[${index}].git_source.commit_sha`
+                ) ?? "HEAD",
+            }
+          })()
+    const builder =
+      object.builder == null
+        ? undefined
+        : (() => {
+            const builderObject = assertObject(
+              object.builder,
+              `${label}[${index}].builder`
+            )
+            return {
+              sync_from_source: builderObject.sync_from_source === true,
+              build_stage_target:
+                typeof builderObject.build_stage_target === "string"
+                  ? assertString(
+                      builderObject.build_stage_target,
+                      `${label}[${index}].builder.build_stage_target`
+                    )
+                  : builderObject.build_stage_target === null
+                    ? null
+                    : undefined,
+            }
+          })()
+    const healthcheck =
+      object.healthcheck == null
+        ? undefined
+        : (() => {
+            const healthcheckObject = assertObject(
+              object.healthcheck,
+              `${label}[${index}].healthcheck`
+            )
+            return {
+              sync_from_source: healthcheckObject.sync_from_source === true,
+            }
+          })()
+    const resourceLimits =
+      object.resource_limits == null
+        ? undefined
+        : (() => {
+            const resourceLimitsObject = assertObject(
+              object.resource_limits,
+              `${label}[${index}].resource_limits`
+            )
+            return {
+              sync_from_source: resourceLimitsObject.sync_from_source === true,
+            }
+          })()
+
+    return {
+      service_id: assertString(object.service_id, `${label}[${index}].service_id`),
+      service_slug: assertString(
+        object.service_slug,
+        `${label}[${index}].service_slug`
+      ),
+      ...(gitSource ? { git_source: gitSource } : {}),
+      ...(builder ? { builder } : {}),
+      ...(healthcheck ? { healthcheck } : {}),
+      ...(resourceLimits ? { resource_limits: resourceLimits } : {}),
+    }
+  })
+}
+
 export function parseResolveEnvironmentInput(rawPayload: unknown): ResolveEnvironmentInput {
   const payload = assertObject(rawPayload, "request body")
   return {
@@ -322,6 +415,10 @@ export function parseResolveEnvironmentInput(rawPayload: unknown): ResolveEnviro
     excludedPreviewServiceSlugs: assertStringArray(
       payload.excluded_preview_service_slugs ?? [],
       "excluded_preview_service_slugs",
+    ),
+    serviceSpecs: parseServiceReconciliationSpecs(
+      payload.service_specs,
+      "service_specs"
     ),
   }
 }

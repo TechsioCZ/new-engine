@@ -1,4 +1,10 @@
 import { UpstreamHttpError } from "./zane-errors"
+import {
+  computeEffectiveBuilder,
+  computeEffectiveGitSource,
+  computeEffectiveHealthcheck,
+  computeEffectiveResourceLimits,
+} from "./zane-effective-service-config"
 import { assertEnvironmentMatchesLane } from "./zane-lane-environment"
 import { computeEffectiveUrls } from "./zane-effective-service-urls"
 import {
@@ -8,6 +14,7 @@ import {
   type ZaneSession,
 } from "./zane-upstream"
 import type {
+  ZaneServiceReconciliationSpec,
   ZaneServiceDetails,
   ZaneServiceHealthcheck,
   ZaneServiceResourceLimits,
@@ -30,6 +37,7 @@ interface ResolveEnvironmentInput {
   sourceEnvironmentName: string
   expectedPreviewServiceSlugs: string[]
   excludedPreviewServiceSlugs: string[]
+  serviceSpecs: ZaneServiceReconciliationSpec[]
 }
 
 interface ArchiveEnvironmentInput {
@@ -153,6 +161,167 @@ function buildCreateGitServicePayload(
     dockerfile_path: dockerfilePath,
     build_context_dir: buildContextDir,
     ...(source.git_app?.id ? { git_app_id: source.git_app.id } : {}),
+  }
+}
+
+function buildDesiredGitSource(
+  sourceDetails: ZaneServiceDetails,
+  spec: ZaneServiceReconciliationSpec
+): {
+  repository_url: string
+  branch_name: string
+  commit_sha: string
+  git_app_id: string | null
+} {
+  if (sourceDetails.type !== "git") {
+    throw new UpstreamHttpError(
+      409,
+      "zane_preview_service_reconcile_unsupported",
+      `Preview service-spec reconcile supports only Git services; ${sourceDetails.slug} is ${sourceDetails.type}`
+    )
+  }
+
+  const repositoryUrl = sourceDetails.repository_url?.trim() ?? ""
+  const branchName = sourceDetails.branch_name?.trim() ?? ""
+  if (!repositoryUrl || !branchName) {
+    throw new UpstreamHttpError(
+      409,
+      "zane_preview_service_reconcile_invalid_source",
+      `Source service ${sourceDetails.slug} is missing Git source metadata`
+    )
+  }
+
+  return {
+    repository_url: repositoryUrl,
+    branch_name: branchName,
+    commit_sha: spec.git_source?.commit_sha?.trim() || "HEAD",
+    git_app_id: sourceDetails.git_app?.id?.trim() ?? null,
+  }
+}
+
+function buildDesiredBuilder(
+  sourceDetails: ZaneServiceDetails,
+  spec: ZaneServiceReconciliationSpec
+): {
+  builder: "DOCKERFILE"
+  dockerfile_path: string
+  build_context_dir: string
+  build_stage_target: string | null
+} {
+  if (sourceDetails.type !== "git") {
+    throw new UpstreamHttpError(
+      409,
+      "zane_preview_service_reconcile_unsupported",
+      `Preview service-spec reconcile supports only Git services; ${sourceDetails.slug} is ${sourceDetails.type}`
+    )
+  }
+
+  const dockerfilePath =
+    sourceDetails.dockerfile_builder_options?.dockerfile_path?.trim() ?? ""
+  const buildContextDir =
+    sourceDetails.dockerfile_builder_options?.build_context_dir?.trim() ?? ""
+  if (!dockerfilePath || !buildContextDir) {
+    throw new UpstreamHttpError(
+      409,
+      "zane_preview_service_reconcile_invalid_source",
+      `Source service ${sourceDetails.slug} is missing Dockerfile builder metadata`
+    )
+  }
+
+  return {
+    builder: "DOCKERFILE",
+    dockerfile_path: dockerfilePath,
+    build_context_dir: buildContextDir,
+    build_stage_target:
+      typeof spec.builder?.build_stage_target !== "undefined"
+        ? (spec.builder.build_stage_target ?? null)
+        : (sourceDetails.dockerfile_builder_options?.build_stage_target?.trim() ??
+          null),
+  }
+}
+
+function normalizeGitSourceShape(value: {
+  repository_url: string | null
+  branch_name: string | null
+  commit_sha: string | null
+  git_app_id: string | null
+}): {
+  repository_url: string | null
+  branch_name: string | null
+  commit_sha: string | null
+  git_app_id: string | null
+} {
+  return {
+    repository_url: value.repository_url,
+    branch_name: value.branch_name,
+    commit_sha: value.commit_sha,
+    git_app_id: value.git_app_id,
+  }
+}
+
+function normalizeBuilderShape(value: {
+  builder: string | null
+  dockerfile_path: string | null
+  build_context_dir: string | null
+  build_stage_target: string | null
+}): {
+  builder: string | null
+  dockerfile_path: string | null
+  build_context_dir: string | null
+  build_stage_target: string | null
+} {
+  return {
+    builder: value.builder,
+    dockerfile_path: value.dockerfile_path,
+    build_context_dir: value.build_context_dir,
+    build_stage_target: value.build_stage_target,
+  }
+}
+
+function normalizeHealthcheckShape(
+  healthcheck: ZaneServiceHealthcheck | null
+): {
+  type: string
+  value: string
+  timeout_seconds: number
+  interval_seconds: number
+  associated_port: number | null
+} | null {
+  if (!healthcheck) {
+    return null
+  }
+
+  return {
+    type: healthcheck.type,
+    value: healthcheck.value,
+    timeout_seconds: healthcheck.timeout_seconds,
+    interval_seconds: healthcheck.interval_seconds,
+    associated_port: healthcheck.associated_port ?? null,
+  }
+}
+
+function normalizeResourceLimitsShape(
+  resourceLimits: ZaneServiceResourceLimits | null
+): {
+  cpus: number | string | null
+  memory: { unit?: string; value?: number | string } | null
+} | null {
+  if (!resourceLimits) {
+    return null
+  }
+
+  return {
+    cpus: resourceLimits.cpus ?? null,
+    memory: resourceLimits.memory
+      ? {
+          ...(resourceLimits.memory.unit
+            ? { unit: resourceLimits.memory.unit }
+            : {}),
+          ...(typeof resourceLimits.memory.value !== "undefined"
+            ? { value: resourceLimits.memory.value }
+            : {}),
+        }
+      : null,
   }
 }
 
@@ -324,6 +493,11 @@ export class ZaneEnvironmentManager {
       input,
       input.excludedPreviewServiceSlugs
     )
+    await this.reconcilePreviewServiceSpecs(
+      session,
+      input,
+      input.serviceSpecs
+    )
     await this.reconcilePreviewServiceUrls(
       session,
       input,
@@ -404,6 +578,16 @@ export class ZaneEnvironmentManager {
     )
 
     if (input.lane !== "preview") {
+      if (input.serviceSpecs.length > 0) {
+        await this.reconcilePreviewServiceSpecs(session, input, input.serviceSpecs)
+        state = await this.buildResolvedEnvironmentState(
+          session,
+          input,
+          environment,
+          false,
+          null
+        )
+      }
       return state
     }
 
@@ -440,6 +624,11 @@ export class ZaneEnvironmentManager {
       session,
       input,
       state.missing_preview_service_slugs
+    )
+    await this.reconcilePreviewServiceSpecs(
+      session,
+      input,
+      input.serviceSpecs
     )
     await this.reconcilePreviewServiceUrls(
       session,
@@ -620,6 +809,260 @@ export class ZaneEnvironmentManager {
     }
   }
 
+  private async reconcilePreviewServiceSpecs(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSpecs: ZaneServiceReconciliationSpec[]
+  ): Promise<void> {
+    if (input.lane !== "preview" || serviceSpecs.length === 0) {
+      return
+    }
+
+    logResolveEnvironmentEvent("resolve-environment.preview.spec.start", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slugs: [...new Set(serviceSpecs.map((spec) => spec.service_slug))],
+    })
+
+    for (const spec of serviceSpecs) {
+      const sourceDetails = await this.#deps.getServiceDetails(
+        session,
+        input.projectSlug,
+        input.sourceEnvironmentName,
+        spec.service_slug
+      )
+      let currentDetails = await this.#deps.getServiceDetails(
+        session,
+        input.projectSlug,
+        input.environmentName,
+        spec.service_slug
+      )
+
+      if (spec.git_source?.sync_from_source) {
+        currentDetails = await this.reconcilePreviewGitSource(
+          session,
+          input,
+          spec,
+          sourceDetails,
+          currentDetails
+        )
+      }
+
+      if (spec.builder?.sync_from_source) {
+        currentDetails = await this.reconcilePreviewBuilder(
+          session,
+          input,
+          spec,
+          sourceDetails,
+          currentDetails
+        )
+      }
+
+      if (spec.healthcheck?.sync_from_source) {
+        currentDetails = await this.reconcilePreviewHealthcheck(
+          session,
+          input,
+          spec,
+          sourceDetails,
+          currentDetails
+        )
+      }
+
+      if (spec.resource_limits?.sync_from_source) {
+        currentDetails = await this.reconcilePreviewResourceLimits(
+          session,
+          input,
+          spec,
+          sourceDetails,
+          currentDetails
+        )
+      }
+    }
+  }
+
+  private async reconcilePreviewGitSource(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    spec: ZaneServiceReconciliationSpec,
+    sourceDetails: ZaneServiceDetails,
+    currentDetails: ZaneServiceDetails
+  ): Promise<ZaneServiceDetails> {
+    const desiredGitSource = buildDesiredGitSource(sourceDetails, spec)
+    const ensureCurrentDetails = await this.cancelPendingFieldChangesIfPresent(
+      session,
+      input,
+      spec.service_slug,
+      currentDetails,
+      "git_source"
+    )
+    const currentGitSource = normalizeGitSourceShape(
+      computeEffectiveGitSource(ensureCurrentDetails)
+    )
+
+    if (
+      JSON.stringify(currentGitSource) ===
+      JSON.stringify(normalizeGitSourceShape(desiredGitSource))
+    ) {
+      return ensureCurrentDetails
+    }
+
+    await this.requestServiceChange(session, input, spec.service_slug, {
+      field: "git_source",
+      type: "UPDATE",
+      new_value: {
+        repository_url: desiredGitSource.repository_url,
+        branch_name: desiredGitSource.branch_name,
+        commit_sha: desiredGitSource.commit_sha,
+        git_app_id: desiredGitSource.git_app_id,
+      },
+    })
+    logResolveEnvironmentEvent("resolve-environment.preview.spec.git-source", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slug: spec.service_slug,
+      commit_sha: desiredGitSource.commit_sha,
+    })
+
+    return await this.getCurrentServiceDetails(session, input, spec.service_slug)
+  }
+
+  private async reconcilePreviewBuilder(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    spec: ZaneServiceReconciliationSpec,
+    sourceDetails: ZaneServiceDetails,
+    currentDetails: ZaneServiceDetails
+  ): Promise<ZaneServiceDetails> {
+    const desiredBuilder = buildDesiredBuilder(sourceDetails, spec)
+    const ensuredCurrentDetails = await this.cancelPendingFieldChangesIfPresent(
+      session,
+      input,
+      spec.service_slug,
+      currentDetails,
+      "builder"
+    )
+    const currentBuilder = normalizeBuilderShape(
+      computeEffectiveBuilder(ensuredCurrentDetails)
+    )
+
+    if (
+      JSON.stringify(currentBuilder) ===
+      JSON.stringify(normalizeBuilderShape(desiredBuilder))
+    ) {
+      return ensuredCurrentDetails
+    }
+
+    await this.requestServiceChange(session, input, spec.service_slug, {
+      field: "builder",
+      type: "UPDATE",
+      new_value: {
+        builder: desiredBuilder.builder,
+        dockerfile_path: desiredBuilder.dockerfile_path,
+        build_context_dir: desiredBuilder.build_context_dir,
+        build_stage_target: desiredBuilder.build_stage_target,
+      },
+    })
+    logResolveEnvironmentEvent("resolve-environment.preview.spec.builder", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slug: spec.service_slug,
+      build_stage_target: desiredBuilder.build_stage_target,
+    })
+
+    return await this.getCurrentServiceDetails(session, input, spec.service_slug)
+  }
+
+  private async reconcilePreviewHealthcheck(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    spec: ZaneServiceReconciliationSpec,
+    sourceDetails: ZaneServiceDetails,
+    currentDetails: ZaneServiceDetails
+  ): Promise<ZaneServiceDetails> {
+    const desiredHealthcheck = normalizeHealthcheckShape(
+      sourceDetails.healthcheck ?? null
+    )
+    if (!desiredHealthcheck) {
+      return currentDetails
+    }
+
+    const ensuredCurrentDetails = await this.cancelPendingFieldChangesIfPresent(
+      session,
+      input,
+      spec.service_slug,
+      currentDetails,
+      "healthcheck"
+    )
+    const currentHealthcheck = normalizeHealthcheckShape(
+      computeEffectiveHealthcheck(ensuredCurrentDetails)
+    )
+
+    if (JSON.stringify(currentHealthcheck) === JSON.stringify(desiredHealthcheck)) {
+      return ensuredCurrentDetails
+    }
+
+    await this.updateHealthcheck(
+      session,
+      input,
+      spec.service_slug,
+      desiredHealthcheck
+    )
+    logResolveEnvironmentEvent("resolve-environment.preview.spec.healthcheck", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slug: spec.service_slug,
+    })
+
+    return await this.getCurrentServiceDetails(session, input, spec.service_slug)
+  }
+
+  private async reconcilePreviewResourceLimits(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    spec: ZaneServiceReconciliationSpec,
+    sourceDetails: ZaneServiceDetails,
+    currentDetails: ZaneServiceDetails
+  ): Promise<ZaneServiceDetails> {
+    const desiredResourceLimits = normalizeResourceLimitsShape(
+      sourceDetails.resource_limits ?? null
+    )
+    if (!desiredResourceLimits) {
+      return currentDetails
+    }
+
+    const ensuredCurrentDetails = await this.cancelPendingFieldChangesIfPresent(
+      session,
+      input,
+      spec.service_slug,
+      currentDetails,
+      "resource_limits"
+    )
+    const currentResourceLimits = normalizeResourceLimitsShape(
+      computeEffectiveResourceLimits(ensuredCurrentDetails)
+    )
+
+    if (
+      JSON.stringify(currentResourceLimits) ===
+      JSON.stringify(desiredResourceLimits)
+    ) {
+      return ensuredCurrentDetails
+    }
+
+    await this.updateResourceLimits(
+      session,
+      input,
+      spec.service_slug,
+      desiredResourceLimits
+    )
+    logResolveEnvironmentEvent("resolve-environment.preview.spec.resource-limits", {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slug: spec.service_slug,
+    })
+
+    return await this.getCurrentServiceDetails(session, input, spec.service_slug)
+  }
+
   private async reconcilePreviewServiceUrls(
     session: ZaneSession,
     input: ResolveEnvironmentInput,
@@ -642,14 +1085,46 @@ export class ZaneEnvironmentManager {
         input.sourceEnvironmentName,
         serviceSlug
       )
-      const currentDetails = await this.#deps.getServiceDetails(
+      let currentDetails = await this.getCurrentServiceDetails(
         session,
-        input.projectSlug,
-        input.environmentName,
+        input,
         serviceSlug
       )
+      currentDetails = await this.cancelPendingFieldChangesIfPresent(
+        session,
+        input,
+        serviceSlug,
+        currentDetails,
+        "urls"
+      )
       const desiredUrls = buildDesiredPreviewUrls(input, sourceDetails)
-      const effectiveCurrentUrls = computeEffectiveUrls(currentDetails)
+      const desiredShapes = new Set(
+        desiredUrls.map((url) => JSON.stringify(normalizeUrlShape(url)))
+      )
+      for (const currentUrl of currentDetails.urls ?? []) {
+        if (desiredShapes.has(JSON.stringify(normalizeUrlShape(currentUrl)))) {
+          continue
+        }
+        if (!currentUrl.id) {
+          throw new UpstreamHttpError(
+            409,
+            "zane_preview_service_url_missing_id",
+            `Cannot remove unexpected preview URL for ${input.projectSlug}/${input.environmentName}/${serviceSlug} because the URL id is missing`
+          )
+        }
+
+        await this.deleteUrl(session, input, serviceSlug, currentUrl.id)
+        logResolveEnvironmentEvent("resolve-environment.preview.urls.deleted", {
+          project_slug: input.projectSlug,
+          environment_name: input.environmentName,
+          service_slug: serviceSlug,
+          domain: currentUrl.domain,
+          base_path: currentUrl.base_path,
+        })
+      }
+
+      currentDetails = await this.getCurrentServiceDetails(session, input, serviceSlug)
+      let effectiveCurrentUrls = computeEffectiveUrls(currentDetails)
 
       for (const desiredUrl of desiredUrls) {
         const currentUrl = findMatchingUrl(effectiveCurrentUrls, desiredUrl)
@@ -681,6 +1156,12 @@ export class ZaneEnvironmentManager {
               domain: desiredUrl.domain,
               base_path: desiredUrl.base_path,
             })
+            currentDetails = await this.getCurrentServiceDetails(
+              session,
+              input,
+              serviceSlug
+            )
+            effectiveCurrentUrls = computeEffectiveUrls(currentDetails)
             continue
           }
         }
@@ -693,6 +1174,12 @@ export class ZaneEnvironmentManager {
           domain: desiredUrl.domain,
           base_path: desiredUrl.base_path,
         })
+        currentDetails = await this.getCurrentServiceDetails(
+          session,
+          input,
+          serviceSlug
+        )
+        effectiveCurrentUrls = computeEffectiveUrls(currentDetails)
       }
     }
   }
@@ -725,6 +1212,19 @@ export class ZaneEnvironmentManager {
       field: "urls",
       type: "ADD",
       new_value: buildUrlChangeValue(url),
+    })
+  }
+
+  private async deleteUrl(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    itemId: string
+  ): Promise<void> {
+    await this.requestServiceChange(session, input, serviceSlug, {
+      field: "urls",
+      type: "DELETE",
+      item_id: itemId,
     })
   }
 
@@ -775,6 +1275,59 @@ export class ZaneEnvironmentManager {
     })
   }
 
+  private async getCurrentServiceDetails(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string
+  ): Promise<ZaneServiceDetails> {
+    return await this.#deps.getServiceDetails(
+      session,
+      input.projectSlug,
+      input.environmentName,
+      serviceSlug
+    )
+  }
+
+  private listPendingFieldChanges(
+    serviceDetails: ZaneServiceDetails,
+    field:
+      | "git_source"
+      | "builder"
+      | "healthcheck"
+      | "resource_limits"
+      | "urls"
+  ): Array<{ id: string }> {
+    return (serviceDetails.unapplied_changes ?? []).flatMap((change) =>
+      change.field === field && typeof change.id === "string"
+        ? [{ id: change.id }]
+        : []
+    )
+  }
+
+  private async cancelPendingFieldChangesIfPresent(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    serviceDetails: ZaneServiceDetails,
+    field:
+      | "git_source"
+      | "builder"
+      | "healthcheck"
+      | "resource_limits"
+      | "urls"
+  ): Promise<ZaneServiceDetails> {
+    const pendingChanges = this.listPendingFieldChanges(serviceDetails, field)
+    if (pendingChanges.length === 0) {
+      return serviceDetails
+    }
+
+    for (const change of pendingChanges) {
+      await this.cancelServiceChange(session, input, serviceSlug, change.id)
+    }
+
+    return await this.getCurrentServiceDetails(session, input, serviceSlug)
+  }
+
   private async requestServiceChange(
     session: ZaneSession,
     input: ResolveEnvironmentInput,
@@ -788,6 +1341,23 @@ export class ZaneEnvironmentManager {
         input.environmentName
       )}/request-service-changes/${encodeURIComponent(serviceSlug)}/`,
       payload
+    )
+  }
+
+  private async cancelServiceChange(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    changeId: string
+  ): Promise<void> {
+    await this.#deps.request(
+      session,
+      "DELETE",
+      `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
+        input.environmentName
+      )}/cancel-service-changes/${encodeURIComponent(serviceSlug)}/${encodeURIComponent(
+        changeId
+      )}/`
     )
   }
 

@@ -17,6 +17,7 @@
     "start": "medusa start",
     "entrypoint": "bash -euo pipefail -c 'npm run createInitialSuperadmin; : \"setInitialPublishableKey runs for side-effects only; setInitialPublishableKeyZerops persists the token\"; if [ \"${EXPOSE_INITIAL_PUBLISHABLE_KEY:-0}\" = \"1\" ]; then npm run -s setInitialPublishableKey; else npm run -s setInitialPublishableKey > /dev/null; fi'",
     "start:dev": "cross-env NODE_ENV=development medusa start",
+    "start:ci-dev": "bash -euo pipefail -c 'npm run migrateProd && npm run entrypoint && exec npm run start:dev'",
     "develop": "medusa develop",
     "dev": "medusa develop",
     "test:integration:http": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",

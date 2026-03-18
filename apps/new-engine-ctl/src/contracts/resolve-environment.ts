@@ -9,6 +9,7 @@ export const resolveEnvironmentCommandInputSchema = z
     prNumber: z.number().int().positive().optional(),
     environmentName: z.string().default(""),
     sourceEnvironmentName: z.string().default(""),
+    reconcileServiceIdsCsv: z.string().default(""),
     previewClonedServiceIdsCsv: z.string().default(""),
     previewExcludedServiceIdsCsv: z.string().default(""),
     outputJson: z.string().min(1).optional(),
@@ -17,6 +18,7 @@ export const resolveEnvironmentCommandInputSchema = z
     dryRun: z.boolean().default(false),
     dryRunCreated: z.boolean().default(false),
     stackManifestPath: z.string().min(1),
+    stackInputsPath: z.string().min(1),
     previewEnvPrefix: z.string().min(1).default("pr-"),
   })
   .superRefine((value, ctx) => {

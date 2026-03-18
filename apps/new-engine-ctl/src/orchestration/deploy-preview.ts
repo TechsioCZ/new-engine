@@ -271,6 +271,7 @@ export async function executeDeployPreview(
     prNumber: input.prNumber,
     environmentName: plan.preview_environment_name,
     sourceEnvironmentName: input.sourceEnvironmentName,
+    reconcileServiceIdsCsv: "",
     previewClonedServiceIdsCsv: plan.preview_cloned_service_ids_csv,
     previewExcludedServiceIdsCsv: plan.preview_excluded_service_ids_csv,
     outputJson: undefined,
@@ -279,6 +280,7 @@ export async function executeDeployPreview(
     dryRun: input.dryRun,
     dryRunCreated: input.dryRunCreated,
     stackManifestPath: input.stackManifestPath,
+    stackInputsPath: input.stackInputsPath,
     previewEnvPrefix: input.previewEnvPrefix,
   })
   const baselineDeploy = environment.created || !environment.baseline_complete
