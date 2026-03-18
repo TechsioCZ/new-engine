@@ -1,6 +1,6 @@
 # CI Deploy Architecture
 
-Last updated: 2026-03-17
+Last updated: 2026-03-18
 Scope: CI-driven preview and main deployment orchestration through `zane-operator`.
 
 ## Authority
@@ -53,6 +53,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 3. If it does not exist, create it through the approved control-plane path.
 4. Initial preview creation must be idempotent:
    - environment existence alone does not mean preview creation is complete; the active orchestration surface must consult `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`
+   - preview `prepare` must also be baseline-aware: narrow requested-service reruns against an incomplete preview environment must still ensure shared prerequisites needed by the expanded baseline deploy set
    - if the environment already exists and `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true`, preview creation passes without redeploying
    - preview DB ensure and credential generation must also be idempotent
    - services excluded from preview cloning must be archived from the preview environment before baseline deploy starts
