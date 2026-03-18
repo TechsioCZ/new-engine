@@ -364,12 +364,6 @@ function verifyDeploymentsOnce(
   })
 }
 
-async function sleepSeconds(seconds: number): Promise<void> {
-  await new Promise((resolve) => {
-    setTimeout(resolve, seconds * 1000)
-  })
-}
-
 async function cancelTriggeredDeployments(
   input: WaitForDeploymentsInput
 ): Promise<void> {
@@ -479,9 +473,39 @@ export async function waitForDeployments(
   const startedAt = Date.now()
   let lastProgressMessage = ""
   let interrupted = false
+  const interruptListeners = new Set<() => void>()
 
   const handleInterrupt = (): void => {
+    if (interrupted) {
+      return
+    }
+
     interrupted = true
+    for (const listener of interruptListeners) {
+      listener()
+    }
+    interruptListeners.clear()
+  }
+
+  const waitForSleepOrInterrupt = async (): Promise<void> => {
+    if (interrupted) {
+      return
+    }
+
+    await new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        interruptListeners.delete(onInterrupt)
+        resolve()
+      }, input.pollIntervalSeconds * 1000)
+
+      const onInterrupt = (): void => {
+        clearTimeout(timeout)
+        interruptListeners.delete(onInterrupt)
+        resolve()
+      }
+
+      interruptListeners.add(onInterrupt)
+    })
   }
 
   process.once("SIGINT", handleInterrupt)
@@ -522,16 +546,17 @@ export async function waitForDeployments(
         }
       } catch (error) {
         if (shouldRetryTransientError(input, startedAt, error)) {
-          await sleepSeconds(input.pollIntervalSeconds)
+          await waitForSleepOrInterrupt()
           continue
         }
 
         throw error
       }
 
-      await sleepSeconds(input.pollIntervalSeconds)
+      await waitForSleepOrInterrupt()
     }
   } finally {
+    interruptListeners.clear()
     process.off("SIGINT", handleInterrupt)
     process.off("SIGTERM", handleInterrupt)
   }

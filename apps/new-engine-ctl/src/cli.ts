@@ -36,12 +36,19 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error)
+
+  if (message === "Deployment wait interrupted.") {
+    console.error(message)
+    process.exit(130)
+  }
+
   if (error instanceof ZodError) {
     const [issue] = error.issues
     console.error(issue?.message ?? error.message)
     process.exit(1)
   }
 
-  console.error(error instanceof Error ? error.message : String(error))
+  console.error(message)
   process.exit(1)
 })

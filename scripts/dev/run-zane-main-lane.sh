@@ -240,8 +240,10 @@ resolve_scope() {
 run_deploy_stage() {
   local requires_meili_keys="$1"
   local deploy_json
+  local deploy_stderr=""
   local git_commit_sha
   local output_file
+  local status=0
   local backend_key=""
   local frontend_key=""
   local frontend_env_var=""
@@ -282,8 +284,8 @@ run_deploy_stage() {
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' RETURN
 
-  if ! deploy_json="$(
-    GITHUB_OUTPUT="$output_file" \
+  if ! common::capture_command_output deploy_json deploy_stderr \
+    env GITHUB_OUTPUT="$output_file" \
     MEILISEARCH_URL="$MEILISEARCH_URL" \
     MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY" \
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" deploy-main \
@@ -294,9 +296,12 @@ run_deploy_stage() {
       --meili-url "$MEILISEARCH_URL" \
       --meili-master-key "$MEILISEARCH_MASTER_KEY" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
-      --api-token "$ZANE_OPERATOR_API_TOKEN"
-  )"; then
-    return 1
+      --api-token "$ZANE_OPERATOR_API_TOKEN"; then
+    status=$?
+    if [[ "$status" -eq 130 ]] || common::output_indicates_interrupt "$deploy_stderr"; then
+      common::interrupt "Main deploy interrupted; current stage deployments were canceled."
+    fi
+    return "$status"
   fi
 
   backend_key="$(sed -n 's/^meili_backend_key=//p' "$output_file" | tail -n1)"
@@ -336,7 +341,9 @@ run_deploy_stage() {
 run_verify_stage() {
   local deploy_json="$1"
   local verify_json
+  local verify_stderr=""
   local deployments_json_inline
+  local status=0
 
   common::stage "Verify"
   common::step "Running main verify stage..."
@@ -351,7 +358,7 @@ run_verify_stage() {
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode main-verify
   ) >/dev/null
 
-  if ! verify_json="$(
+  if ! common::capture_command_output verify_json verify_stderr \
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" verify \
       --lane main \
       --project-slug "$PROJECT_SLUG" \
@@ -364,9 +371,12 @@ run_verify_stage() {
       --meili-frontend-key "$(jq -r '.meili_frontend_key // ""' <<<"$deploy_json")" \
       --meili-frontend-env-var "$(jq -r '.meili_frontend_env_var // ""' <<<"$deploy_json")" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
-      --api-token "$ZANE_OPERATOR_API_TOKEN"
-  )"; then
-    return 1
+      --api-token "$ZANE_OPERATOR_API_TOKEN"; then
+    status=$?
+    if [[ "$status" -eq 130 ]] || common::output_indicates_interrupt "$verify_stderr"; then
+      common::interrupt "Main verify interrupted."
+    fi
+    return "$status"
   fi
   printf '%s\n' "$verify_json"
 }
