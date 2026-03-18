@@ -53,7 +53,7 @@ const CART_ID_KEY = "n1_cart_id"
 const storefrontQueryKeys = createMedusaStorefrontQueryKeys("n1")
 type MedusaProductListQuery = MedusaProductListInput & Record<string, unknown>
 
-export const cartStorage = createLocalStorageValueStore({
+const cartStorage = createLocalStorageValueStore({
   key: CART_ID_KEY,
 })
 
@@ -122,7 +122,7 @@ const storefrontConfig = {
             throw error
           }
           logError("AuthService.getCustomer", error)
-          return null
+          throw new Error("Nepodařilo se ověřit přihlášení")
         }
       },
       async login(credentials: MedusaAuthCredentials) {
@@ -253,7 +253,7 @@ const storefrontConfig = {
             throw error
           }
           logError("CustomerService.getAddresses", error)
-          return { addresses: [] }
+          throw new Error("Nepodařilo se načíst adresy")
         }
       },
       async createAddress(params: MedusaCustomerAddressCreateInput) {

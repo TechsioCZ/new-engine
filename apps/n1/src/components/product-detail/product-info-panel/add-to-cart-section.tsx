@@ -1,15 +1,12 @@
 "use client"
-import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { slugify } from "@techsio/ui-kit/utils"
 import { useState } from "react"
-import { cartStorage, storefront } from "@/hooks/storefront-preset"
-import { useAddToCart } from "@/hooks/use-cart"
+import { useAddToCart, useCart } from "@/hooks/use-cart"
 import { useRegion } from "@/hooks/use-region"
 import { useCartToast } from "@/hooks/use-toast"
 import { useAnalytics } from "@/providers/analytics-provider"
-import type { Cart } from "@/types/cart"
 import type { ProductDetail, ProductVariantDetail } from "@/types/product"
 import { validateAddToCart } from "@/utils/cart/cart-validation"
 
@@ -22,31 +19,10 @@ export const AddToCartSection = ({
 }) => {
   const [quantity, setQuantity] = useState(1)
   const { mutate: addToCart, isPending } = useAddToCart()
-  const queryClient = useQueryClient()
+  const { cart } = useCart()
   const { regionId } = useRegion()
   const toast = useCartToast()
   const analytics = useAnalytics()
-
-  const getCachedCart = (): Cart | null => {
-    const cartId = cartStorage.getSnapshot?.() ?? cartStorage.get()
-
-    if (!(cartId && regionId)) {
-      return null
-    }
-
-    return (
-      queryClient.getQueryData<Cart>(
-        storefront.queryKeys.cart.active({
-          cartId,
-          regionId,
-        })
-      ) ??
-      queryClient.getQueryData<Cart>(
-        storefront.queryKeys.cart.detail(cartId)
-      ) ??
-      null
-    )
-  }
 
   const handleAddToCart = () => {
     // Validate region context
@@ -63,7 +39,7 @@ export const AddToCartSection = ({
 
     // Validate stock availability (checks current cart + new quantity)
     const validation = validateAddToCart({
-      cart: getCachedCart(),
+      cart,
       variantId: selectedVariant.id,
       quantity,
       inventoryQuantity: selectedVariant.inventory_quantity,

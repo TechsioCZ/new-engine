@@ -11,7 +11,7 @@ export default function AccountLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { customer, isAuthenticated, isFetching, isLoading } = useAuth()
+  const { customer, isAuthenticated, isFetching, isLoading, error } = useAuth()
   const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
@@ -23,10 +23,10 @@ export default function AccountLayout({
       return
     }
 
-    if (!isAuthenticated) {
+    if (!(error || isAuthenticated)) {
       router.push("/prihlaseni")
     }
-  }, [isAuthenticated, isFetching, isHydrated, isLoading, router])
+  }, [error, isAuthenticated, isFetching, isHydrated, isLoading, router])
 
   if (!(isHydrated && !isLoading && !isFetching)) {
     return <main className="mx-auto w-full max-w-5xl px-400 py-400" />
