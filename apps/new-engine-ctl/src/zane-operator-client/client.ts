@@ -5,6 +5,8 @@ import type {
 import { applyEnvOverridesResponseSchema } from "../contracts/apply-env-overrides.js"
 import type { ArchiveEnvironmentResponse } from "../contracts/archive-environment.js"
 import { archiveEnvironmentResponseSchema } from "../contracts/archive-environment.js"
+import type { PreviewCommitStateResponse } from "../contracts/preview-commit-state.js"
+import { previewCommitStateResponseSchema } from "../contracts/preview-commit-state.js"
 import type {
   EnsurePreviewDbResponse,
   TeardownPreviewDbResponse,
@@ -13,17 +15,6 @@ import {
   ensurePreviewDbResponseSchema,
   teardownPreviewDbResponseSchema,
 } from "../contracts/preview-db.js"
-import type { ProvisionPreviewMeiliKeysResponse } from "../contracts/provision-preview-meili-keys.js"
-import {
-  type ProvisionPreviewMeiliKeysPayload,
-  provisionPreviewMeiliKeysResponseSchema,
-} from "../contracts/provision-preview-meili-keys.js"
-import type { ResolveEnvironmentResponse } from "../contracts/resolve-environment.js"
-import { resolveEnvironmentResponseSchema } from "../contracts/resolve-environment.js"
-import type { PreviewCommitStateResponse } from "../contracts/preview-commit-state.js"
-import {
-  previewCommitStateResponseSchema,
-} from "../contracts/preview-commit-state.js"
 import type { PreviewRandomOnceSecretsResponse } from "../contracts/preview-random-once-secrets.js"
 import { previewRandomOnceSecretsResponseSchema } from "../contracts/preview-random-once-secrets.js"
 import type {
@@ -31,6 +22,13 @@ import type {
   PreviewSharedEnvVariableInput,
 } from "../contracts/preview-shared-env.js"
 import { previewSharedEnvSyncResponseSchema } from "../contracts/preview-shared-env.js"
+import type { ProvisionPreviewMeiliKeysResponse } from "../contracts/provision-preview-meili-keys.js"
+import {
+  type ProvisionPreviewMeiliKeysPayload,
+  provisionPreviewMeiliKeysResponseSchema,
+} from "../contracts/provision-preview-meili-keys.js"
+import type { ResolveEnvironmentResponse } from "../contracts/resolve-environment.js"
+import { resolveEnvironmentResponseSchema } from "../contracts/resolve-environment.js"
 import type {
   ResolveTargetsPayload,
   ResolveTargetsResponse,
@@ -301,11 +299,7 @@ export class ZaneOperatorClient {
     service_slug: string
     deployment_hash: string
   }): Promise<void> {
-    await this.#postJson(
-      "/v1/zane/deploy/cancel",
-      payload,
-      () => null
-    )
+    await this.#postJson("/v1/zane/deploy/cancel", payload, () => null)
   }
 
   provisionPreviewMeiliKeys(

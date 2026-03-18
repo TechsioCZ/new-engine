@@ -11,7 +11,7 @@ ENV_FILE="${REPO_ROOT}/.env.zane"
 ZANE_BASE_URL="${ZANE_BASE_URL:-}"
 ZANE_USERNAME="${ZANE_USERNAME:-}"
 ZANE_PASSWORD="${ZANE_PASSWORD:-}"
-PROJECT_SLUG="${ZANE_PROJECT_SLUG:-${ZANE_CANONICAL_PROJECT_SLUG:-new-engine}}"
+PROJECT_SLUG="${ZANE_PROJECT_SLUG:-}"
 ENVIRONMENT_NAME="${ZANE_ENVIRONMENT_NAME:-${ZANE_PRODUCTION_ENVIRONMENT_NAME:-production}}"
 
 DB_SERVICE_SLUG="medusa-db"
@@ -35,6 +35,8 @@ ASSUME_YES="false"
 
 COOKIE_JAR=""
 CSRF_TOKEN=""
+INSPECT_JSON_FILE=""
+PLAN_JSON_FILE=""
 
 usage() {
   cat <<'EOF'
@@ -51,7 +53,7 @@ Options:
   --zane-base-url URL            Zane base URL used for discovery/auth
   --zane-username USER           Zane username used for discovery/auth
   --zane-password PASS           Zane password used for discovery/auth
-  --project-slug SLUG            Zane project slug (default: new-engine)
+  --project-slug SLUG            Zane project slug (required; no default)
   --environment-name NAME        Zane environment name (default: production)
   --db-service-slug SLUG         Zane DB service slug (default: medusa-db)
   --operator-service-slug SLUG   Zane operator service slug (default: zane-operator)
@@ -197,51 +199,60 @@ require_tools() {
   common::require_command mktemp
 }
 
+require_bootstrap_inputs() {
+  common::require_env PROJECT_SLUG "ZANE project slug"
+}
+
 assert_non_empty() {
   local value="${1-}"
   local label="$2"
   [[ -n "$value" ]] || common::die "${label} is required."
 }
 
-resolve_live_defaults() {
-  local db_service_json operator_service_json
+resolve_ctl_plan() {
+  local ctl_args=()
 
-  db_service_json="$(zane::get_service "$DB_SERVICE_SLUG")"
-  operator_service_json="$(zane::get_service "$OPERATOR_SERVICE_SLUG")"
+  INSPECT_JSON_FILE="$(mktemp)"
+  PLAN_JSON_FILE="$(mktemp)"
 
-  DB_HOST="$(dev::first_non_empty \
-    "$DB_HOST" \
-    "$(jq -r '.global_network_alias // empty' <<<"$db_service_json")" \
-    "$(jq -r '.network_alias // empty' <<<"$db_service_json")")"
-  DB_PORT="$(dev::first_non_empty "$DB_PORT" "$(zane::service_env_value "$operator_service_json" "PGPORT")" "5432")"
-  DB_USER="$(dev::first_non_empty \
-    "$DB_USER" \
-    "$(zane::service_env_value "$db_service_json" "POSTGRES_USER")" \
-    "${DC_POSTGRES_SUPERUSER:-}" \
-    "${DC_POSTGRES_SUPERUSER:-}")"
-  DB_PASSWORD="$(dev::first_non_empty \
-    "$DB_PASSWORD" \
-    "$(zane::service_env_value "$db_service_json" "POSTGRES_PASSWORD")" \
-    "${DC_POSTGRES_SUPERUSER_PASSWORD:-}" \
-    "${DC_POSTGRES_SUPERUSER_PASSWORD:-}")"
-  DB_ADMIN_NAME="$(dev::first_non_empty "$DB_ADMIN_NAME" "postgres")"
-  DB_SSLMODE="$(dev::first_non_empty "$DB_SSLMODE" "$(zane::service_env_value "$operator_service_json" "PGSSLMODE")" "disable")"
-  TEMPLATE_DB_NAME="$(dev::first_non_empty \
-    "$TEMPLATE_DB_NAME" \
-    "$(zane::service_env_value "$db_service_json" "MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME")" \
-    "$(zane::service_env_value "$operator_service_json" "DB_TEMPLATE_NAME")" \
-    "${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-}" \
-    "template_medusa")"
-  TEMPLATE_OWNER="$(dev::first_non_empty \
-    "$TEMPLATE_OWNER" \
-    "$(zane::service_env_value "$db_service_json" "MEDUSA_DB_ZANE_OPERATOR_USER")" \
-    "$(zane::service_env_value "$operator_service_json" "PGUSER")" \
-    "${DC_ZANE_OPERATOR_PGUSER:-}" \
-    "zane_operator")"
+  zane::bootstrap_preview_template_db_inspect_json \
+    "$DB_SERVICE_SLUG" \
+    "$OPERATOR_SERVICE_SLUG" >"$INSPECT_JSON_FILE"
 
-  if [[ -z "$STAGING_DB_NAME" ]]; then
-    STAGING_DB_NAME="${TEMPLATE_DB_NAME}_staging_$(date +%Y%m%d%H%M%S)"
-  fi
+  ctl_args=(
+    bootstrap preview-template-db plan
+    --project-slug "$PROJECT_SLUG"
+    --environment-name "$ENVIRONMENT_NAME"
+    --inspect-json "$INSPECT_JSON_FILE"
+    --db-service-slug "$DB_SERVICE_SLUG"
+    --operator-service-slug "$OPERATOR_SERVICE_SLUG"
+    --source-db-name "$SOURCE_DB_NAME"
+    --docker-network "$DOCKER_NETWORK"
+    --postgres-client-image "$POSTGRES_CLIENT_IMAGE"
+    --include-secrets
+  )
+  [[ -n "$TEMPLATE_DB_NAME" ]] && ctl_args+=(--template-db-name "$TEMPLATE_DB_NAME")
+  [[ -n "$STAGING_DB_NAME" ]] && ctl_args+=(--staging-db-name "$STAGING_DB_NAME")
+  [[ -n "$TEMPLATE_OWNER" ]] && ctl_args+=(--template-owner "$TEMPLATE_OWNER")
+  [[ -n "$DB_HOST" ]] && ctl_args+=(--db-host "$DB_HOST")
+  [[ -n "$DB_PORT" ]] && ctl_args+=(--db-port "$DB_PORT")
+  [[ -n "$DB_USER" ]] && ctl_args+=(--db-user "$DB_USER")
+  [[ -n "$DB_PASSWORD" ]] && ctl_args+=(--db-password "$DB_PASSWORD")
+  [[ -n "$DB_ADMIN_NAME" ]] && ctl_args+=(--db-admin-name "$DB_ADMIN_NAME")
+  [[ -n "$DB_SSLMODE" ]] && ctl_args+=(--db-sslmode "$DB_SSLMODE")
+  [[ -n "$DUMP_FILE" ]] && ctl_args+=(--dump-file "$DUMP_FILE")
+
+  dev::run_ctl "${ctl_args[@]}" >"$PLAN_JSON_FILE"
+
+  DB_HOST="$(jq -r '.db_host // empty' <"$PLAN_JSON_FILE")"
+  DB_PORT="$(jq -r '.db_port // empty' <"$PLAN_JSON_FILE")"
+  DB_USER="$(jq -r '.db_user // empty' <"$PLAN_JSON_FILE")"
+  DB_PASSWORD="$(jq -r '.db_password // empty' <"$PLAN_JSON_FILE")"
+  DB_ADMIN_NAME="$(jq -r '.db_admin_name // empty' <"$PLAN_JSON_FILE")"
+  DB_SSLMODE="$(jq -r '.db_sslmode // empty' <"$PLAN_JSON_FILE")"
+  TEMPLATE_DB_NAME="$(jq -r '.template_db_name // empty' <"$PLAN_JSON_FILE")"
+  STAGING_DB_NAME="$(jq -r '.staging_db_name // empty' <"$PLAN_JSON_FILE")"
+  TEMPLATE_OWNER="$(jq -r '.template_owner // empty' <"$PLAN_JSON_FILE")"
 }
 
 prepare_dump_paths() {
@@ -251,7 +262,7 @@ prepare_dump_paths() {
     return
   fi
 
-  DUMP_FILE="$(mktemp "/tmp/${TEMPLATE_DB_NAME}.XXXXXX.dump")"
+  DUMP_FILE="$(mktemp "/tmp/zane-template-db.XXXXXX.dump")"
 }
 
 postgres::docker() {
@@ -369,43 +380,11 @@ SQL
 }
 
 print_plan() {
-  jq -cn \
-    --arg project_slug "$PROJECT_SLUG" \
-    --arg environment_name "$ENVIRONMENT_NAME" \
-    --arg db_service_slug "$DB_SERVICE_SLUG" \
-    --arg operator_service_slug "$OPERATOR_SERVICE_SLUG" \
-    --arg source_db_name "$SOURCE_DB_NAME" \
-    --arg template_db_name "$TEMPLATE_DB_NAME" \
-    --arg staging_db_name "$STAGING_DB_NAME" \
-    --arg template_owner "$TEMPLATE_OWNER" \
-    --arg db_host "$DB_HOST" \
-    --arg db_port "$DB_PORT" \
-    --arg db_user "$DB_USER" \
-    --arg db_admin_name "$DB_ADMIN_NAME" \
-    --arg db_sslmode "$DB_SSLMODE" \
-    --arg docker_network "$DOCKER_NETWORK" \
-    --arg postgres_client_image "$POSTGRES_CLIENT_IMAGE" \
-    --arg dump_file "$DUMP_FILE" \
-    --argjson dry_run "$( [[ "$DRY_RUN" == "true" ]] && printf 'true' || printf 'false' )" \
-    '{
-      project_slug: $project_slug,
-      environment_name: $environment_name,
-      db_service_slug: $db_service_slug,
-      operator_service_slug: $operator_service_slug,
-      source_db_name: $source_db_name,
-      template_db_name: $template_db_name,
-      staging_db_name: $staging_db_name,
-      template_owner: $template_owner,
-      db_host: $db_host,
-      db_port: $db_port,
-      db_user: $db_user,
-      db_admin_name: $db_admin_name,
-      db_sslmode: $db_sslmode,
-      docker_network: $docker_network,
-      postgres_client_image: $postgres_client_image,
-      dump_file: $dump_file,
-      dry_run: $dry_run
-    }'
+  jq 'del(.db_password)' <"$PLAN_JSON_FILE"
+}
+
+print_plan_block_summary() {
+  jq '{status, blocking_reasons}' <"$PLAN_JSON_FILE" >&2
 }
 
 confirm_execution() {
@@ -434,6 +413,14 @@ cleanup() {
     rm -f "$COOKIE_JAR"
   fi
 
+  if [[ -n "$INSPECT_JSON_FILE" && -f "$INSPECT_JSON_FILE" ]]; then
+    rm -f "$INSPECT_JSON_FILE"
+  fi
+
+  if [[ -n "$PLAN_JSON_FILE" && -f "$PLAN_JSON_FILE" ]]; then
+    rm -f "$PLAN_JSON_FILE"
+  fi
+
   if [[ "$KEEP_DUMP" != "true" && -n "$DUMP_FILE" && -f "$DUMP_FILE" ]]; then
     rm -f "$DUMP_FILE"
   fi
@@ -458,8 +445,7 @@ main() {
     "${DC_ZANE_OPERATOR_ZANE_PASSWORD:-}")"
   PROJECT_SLUG="$(dev::first_non_empty \
     "$PROJECT_SLUG" \
-    "${ZANE_PROJECT_SLUG:-}" \
-    "${ZANE_CANONICAL_PROJECT_SLUG:-}")"
+    "${ZANE_PROJECT_SLUG:-}")"
   ENVIRONMENT_NAME="$(dev::first_non_empty \
     "$ENVIRONMENT_NAME" \
     "${ZANE_ENVIRONMENT_NAME:-}" \
@@ -469,15 +455,20 @@ main() {
   assert_non_empty "$ZANE_BASE_URL" "Zane base URL"
   assert_non_empty "$ZANE_USERNAME" "Zane username"
   assert_non_empty "$ZANE_PASSWORD" "Zane password"
-  assert_non_empty "$PROJECT_SLUG" "Zane project slug"
+  require_bootstrap_inputs
   assert_non_empty "$ENVIRONMENT_NAME" "Zane environment name"
   assert_non_empty "$SOURCE_DB_NAME" "Source DB name"
 
   trap cleanup EXIT
 
   zane::login
-  resolve_live_defaults
   prepare_dump_paths
+  resolve_ctl_plan
+
+  if [[ "$(jq -r '.status' <"$PLAN_JSON_FILE")" != "ready" ]]; then
+    print_plan_block_summary
+    common::die "CTL preview-template-db plan is blocked."
+  fi
 
   assert_non_empty "$DB_HOST" "DB host"
   assert_non_empty "$DB_PORT" "DB port"

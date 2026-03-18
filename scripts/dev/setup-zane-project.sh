@@ -11,8 +11,8 @@ ENV_FILE="${REPO_ROOT}/.env.zane"
 ZANE_BASE_URL="${ZANE_BASE_URL:-}"
 ZANE_USERNAME="${ZANE_USERNAME:-}"
 ZANE_PASSWORD="${ZANE_PASSWORD:-}"
-PROJECT_SLUG="${ZANE_PROJECT_SLUG:-new-engine}"
-PROJECT_DESCRIPTION="${ZANE_PROJECT_DESCRIPTION:-new-engine local bootstrap}"
+PROJECT_SLUG="${ZANE_PROJECT_SLUG:-}"
+PROJECT_DESCRIPTION="${ZANE_PROJECT_DESCRIPTION:-}"
 ENVIRONMENT_NAME="production"
 REPOSITORY_URL="${ZANE_REPOSITORY_URL:-}"
 BRANCH_NAME="${ZANE_BRANCH_NAME:-}"
@@ -32,18 +32,12 @@ OPERATOR_UPSTREAM_ZANE_USERNAME="${ZANE_OPERATOR_UPSTREAM_ZANE_USERNAME:-}"
 OPERATOR_UPSTREAM_ZANE_PASSWORD="${ZANE_OPERATOR_UPSTREAM_ZANE_PASSWORD:-}"
 ZANE_ROOT_DOMAIN=""
 ZANE_APP_DOMAIN=""
-COMPUTED_MEDUSA_DB_HOST=""
-COMPUTED_VALKEY_HOST=""
-COMPUTED_MINIO_HOST=""
-COMPUTED_MEILI_HOST=""
-COMPUTED_MEDUSA_BE_HOST=""
-COMPUTED_MEDUSA_BE_PUBLIC_URL=""
-COMPUTED_N1_PUBLIC_URL=""
-COMPUTED_MEILISEARCH_PUBLIC_URL=""
 
 COOKIE_JAR=""
 CSRF_TOKEN=""
 ASSUME_YES="false"
+INSPECT_JSON_FILE=""
+PLAN_JSON_FILE=""
 
 setup::usage() {
   cat <<'EOF'
@@ -58,7 +52,7 @@ Options:
   --zane-base-url URL            Zane base URL used by this setup script
   --zane-username USER           Zane username used by this setup script
   --zane-password PASS           Zane password used by this setup script
-  --project-slug SLUG            Canonical Zane project slug (default: new-engine)
+  --project-slug SLUG            Canonical Zane project slug (required; no default)
   --project-description TEXT     Project description when creating the project
   --repository-url URL           Git repository URL (default: origin remote as https)
   --branch NAME                  Git branch to configure (default: current checked-out branch, fallback: master)
@@ -223,51 +217,6 @@ setup::normalize_origin_url() {
   printf 'https://%s\n' "$value"
 }
 
-setup::prefer_public_url() {
-  local explicit_value="${1:-}"
-  local env_value="${2:-}"
-  local fallback_value="${3:-}"
-
-  if [[ -n "$explicit_value" ]]; then
-    printf '%s\n' "$explicit_value"
-    return
-  fi
-
-  if [[ -n "$env_value" ]] && ! setup::is_loopback_url "$env_value"; then
-    printf '%s\n' "$env_value"
-    return
-  fi
-
-  printf '%s\n' "$fallback_value"
-}
-
-setup::prefer_public_csv_or_url() {
-  local explicit_value="${1:-}"
-  local env_value="${2:-}"
-  local fallback_value="${3:-}"
-
-  if [[ -n "$explicit_value" ]]; then
-    printf '%s\n' "$explicit_value"
-    return
-  fi
-
-  jq -rRn \
-    --arg env_value "$env_value" \
-    --arg fallback_value "$fallback_value" '
-      def trim: sub("^\\s+"; "") | sub("\\s+$"; "");
-      def strip_slash: if . == "/" then . else sub("/+$"; "") end;
-      def is_loopback:
-        test("^(https?://)?(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$");
-      (
-        ($env_value | split(",") | map(trim | select(length > 0) | strip_slash | select(is_loopback | not)))
-        + [($fallback_value | trim | strip_slash)]
-      )
-      | map(select(length > 0))
-      | unique
-      | join(",")
-    '
-}
-
 setup::derive_repository_url() {
   local remote_url
 
@@ -306,6 +255,50 @@ setup::require_tools() {
   common::require_command git
   common::require_command jq
   common::require_command mktemp
+}
+
+setup::require_bootstrap_inputs() {
+  common::require_env PROJECT_SLUG "ZANE project slug"
+  if [[ -z "$PROJECT_DESCRIPTION" ]]; then
+    PROJECT_DESCRIPTION="${PROJECT_SLUG} local bootstrap"
+  fi
+}
+
+setup::resolve_ctl_plan() {
+  local phase="$1"
+  local services=("${@:2}")
+  local ctl_args=()
+
+  INSPECT_JSON_FILE="$(mktemp)"
+  PLAN_JSON_FILE="$(mktemp)"
+
+  zane::bootstrap_zane_project_inspect_json "${services[@]}" >"$INSPECT_JSON_FILE"
+
+  ctl_args=(
+    bootstrap zane-project plan
+    --project-slug "$PROJECT_SLUG"
+    --project-description "$PROJECT_DESCRIPTION"
+    --environment-name "$ENVIRONMENT_NAME"
+    --inspect-json "$INSPECT_JSON_FILE"
+    --phase "$phase"
+    --repository-url "$REPOSITORY_URL"
+    --branch "$BRANCH_NAME"
+    --public-url-affix "$PUBLIC_URL_AFFIX"
+    --stack-manifest-path "$REPO_ROOT/apps/new-engine-ctl/config/stack-manifest.yaml"
+  )
+  [[ -n "$GIT_APP_ID" ]] && ctl_args+=(--git-app-id "$GIT_APP_ID")
+  [[ -n "$PUBLIC_DOMAIN" ]] && ctl_args+=(--public-domain "$PUBLIC_DOMAIN")
+  [[ -n "$MINIO_FILE_URL_OVERRIDE" ]] && ctl_args+=(--minio-file-url "$MINIO_FILE_URL_OVERRIDE")
+  [[ -n "$STORE_CORS_OVERRIDE" ]] && ctl_args+=(--store-cors "$STORE_CORS_OVERRIDE")
+  [[ -n "$ADMIN_CORS_OVERRIDE" ]] && ctl_args+=(--admin-cors "$ADMIN_CORS_OVERRIDE")
+  [[ -n "$AUTH_CORS_OVERRIDE" ]] && ctl_args+=(--auth-cors "$AUTH_CORS_OVERRIDE")
+  [[ -n "$OPERATOR_UPSTREAM_ZANE_BASE_URL" ]] && ctl_args+=(--operator-upstream-zane-base-url "$OPERATOR_UPSTREAM_ZANE_BASE_URL")
+  [[ -n "$OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL" ]] && ctl_args+=(--operator-upstream-zane-connect-base-url "$OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL")
+  [[ -n "$OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER" ]] && ctl_args+=(--operator-upstream-zane-connect-host-header "$OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER")
+  [[ -n "$OPERATOR_UPSTREAM_ZANE_USERNAME" ]] && ctl_args+=(--operator-upstream-zane-username "$OPERATOR_UPSTREAM_ZANE_USERNAME")
+  [[ -n "$OPERATOR_UPSTREAM_ZANE_PASSWORD" ]] && ctl_args+=(--operator-upstream-zane-password "$OPERATOR_UPSTREAM_ZANE_PASSWORD")
+
+  dev::run_ctl "${ctl_args[@]}" >"$PLAN_JSON_FILE"
 }
 
 zane::settings() {
@@ -437,464 +430,6 @@ setup::capture_zane_settings() {
   if [[ -z "$OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER" ]] && [[ -n "$OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL" ]] && [[ -n "$ZANE_APP_DOMAIN" ]]; then
     OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER="$ZANE_APP_DOMAIN"
   fi
-}
-
-setup::public_service_domain() {
-  local service_slug="$1"
-  printf '%s\n' "${PROJECT_SLUG}-${service_slug}${PUBLIC_URL_AFFIX}.${PUBLIC_DOMAIN}"
-}
-
-setup::public_service_origin() {
-  local service_slug="$1"
-  printf 'https://%s\n' "$(setup::public_service_domain "$service_slug")"
-}
-
-setup::service_public_urls_json() {
-  local service_slug="$1"
-  local domain port
-
-  case "$service_slug" in
-    medusa-be)
-      port=9000
-      ;;
-    n1)
-      port=3000
-      ;;
-    medusa-meilisearch)
-      port=7700
-      ;;
-    zane-operator)
-      port=8080
-      ;;
-    *)
-      printf '%s\n' '[]'
-      return 0
-      ;;
-  esac
-
-  domain="$(setup::public_service_domain "$service_slug")"
-  jq -cS -n \
-    --arg domain "$domain" \
-    --argjson port "$port" \
-    '[
-      {
-        domain: $domain,
-        base_path: "/",
-        strip_prefix: true,
-        associated_port: $port
-      }
-    ]'
-}
-
-setup::service_spec_json() {
-  local service_slug="$1"
-
-  case "$service_slug" in
-    medusa-db)
-      printf '%s\n' '{"dockerfile_path":"./docker/development/postgres/Dockerfile","build_context_dir":"./docker/development/postgres","command":"sh -lc '\''exec /usr/local/bin/run-postgres-with-bootstrap.sh'\''","volumes":[{"name":"pgdata","container_path":"/var/lib/postgresql","host_path":null,"mode":"READ_WRITE"}],"envs":{"POSTGRES_USER":"{{env.MEDUSA_DB_POSTGRES_SUPERUSER}}","POSTGRES_PASSWORD":"{{env.MEDUSA_DB_POSTGRES_SUPERUSER_PASSWORD}}","POSTGRES_DB":"{{env.MEDUSA_APP_DB_NAME}}","PGDATA":"/var/lib/postgresql/18/docker","MEDUSA_APP_DB_USER":"{{env.MEDUSA_APP_DB_USER}}","MEDUSA_APP_DB_PASSWORD":"{{env.MEDUSA_APP_DB_PASSWORD}}","MEDUSA_APP_DB_NAME":"{{env.MEDUSA_APP_DB_NAME}}","MEDUSA_APP_DB_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","MEDUSA_DEV_DB_USER":"{{env.MEDUSA_DEV_DB_USER}}","MEDUSA_DEV_DB_PASSWORD":"{{env.MEDUSA_DEV_DB_PASSWORD}}","MEDUSA_DB_ZANE_OPERATOR_USER":"{{env.ZANE_OPERATOR_PGUSER}}","MEDUSA_DB_ZANE_OPERATOR_PASSWORD":"{{env.ZANE_OPERATOR_PGPASSWORD}}","MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME":"{{env.ZANE_OPERATOR_DB_TEMPLATE_NAME}}"}}'
-      ;;
-    medusa-valkey)
-      printf '%s\n' '{"dockerfile_path":"./docker/development/medusa-valkey/Dockerfile","build_context_dir":"./docker/development/medusa-valkey","command":"sh -lc '\''exec valkey-server --requirepass \"$VALKEY_PASSWORD\" --appendonly yes'\''","volumes":[{"name":"data","container_path":"/data","host_path":null,"mode":"READ_WRITE"}],"envs":{"VALKEY_PASSWORD":"{{env.MEDUSA_VALKEY_PASSWORD}}"}}'
-      ;;
-    medusa-minio)
-      printf '%s\n' '{"dockerfile_path":"./docker/development/medusa-minio/Dockerfile","build_context_dir":"./docker/development/medusa-minio","command":null,"volumes":[{"name":"data","container_path":"/data","host_path":null,"mode":"READ_WRITE"}],"envs":{"MINIO_ROOT_USER":"{{env.MEDUSA_MINIO_ROOT_USER}}","MINIO_ROOT_PASSWORD":"{{env.MEDUSA_MINIO_ROOT_PASSWORD}}","MINIO_MEDUSA_ACCESS_KEY":"{{env.MEDUSA_MINIO_ACCESS_KEY}}","MINIO_MEDUSA_SECRET_KEY":"{{env.MEDUSA_MINIO_SECRET_KEY}}","MINIO_MEDUSA_BUCKET":"{{env.MEDUSA_MINIO_BUCKET}}"}}'
-      ;;
-    medusa-meilisearch)
-      printf '%s\n' '{"dockerfile_path":"./docker/development/medusa-meilisearch/Dockerfile","build_context_dir":"./docker/development/medusa-meilisearch","command":null,"volumes":[{"name":"data","container_path":"/meili_data","host_path":null,"mode":"READ_WRITE"}],"envs":{"MEILI_MASTER_KEY":"{{env.MEDUSA_MEILISEARCH_MASTER_KEY}}","MEILI_NO_ANALYTICS":"true"}}'
-      ;;
-    medusa-be)
-      printf '%s\n' '{"dockerfile_path":"./docker/development/medusa-be/Dockerfile","build_context_dir":"./","command":null,"volumes":[],"envs":{"NODE_ENV":"{{env.MEDUSA_BE_NODE_ENV}}","JWT_SECRET":"{{env.MEDUSA_BE_JWT_SECRET}}","COOKIE_SECRET":"{{env.MEDUSA_BE_COOKIE_SECRET}}","MEDUSA_BACKEND_URL":"{{env.MEDUSA_BE_BACKEND_URL}}","STORE_CORS":"{{env.MEDUSA_BE_STORE_CORS}}","ADMIN_CORS":"{{env.MEDUSA_BE_ADMIN_CORS}}","AUTH_CORS":"{{env.MEDUSA_BE_AUTH_CORS}}","SUPERADMIN_EMAIL":"{{env.MEDUSA_BE_SUPERADMIN_EMAIL}}","SUPERADMIN_PASSWORD":"{{env.MEDUSA_BE_SUPERADMIN_PASSWORD}}","INITIAL_PUBLISHABLE_KEY_NAME":"{{env.MEDUSA_BE_INITIAL_PUBLISHABLE_KEY_NAME}}","SETTINGS_ENCRYPTION_KEY":"{{env.MEDUSA_BE_SETTINGS_ENCRYPTION_KEY}}","FEATURE_PPL_ENABLED":"{{env.MEDUSA_BE_FEATURE_PPL_ENABLED}}","PPL_ENVIRONMENT":"{{env.MEDUSA_BE_PPL_ENVIRONMENT}}","DATABASE_TYPE":"postgres","MEDUSA_APP_DB_USER":"{{env.MEDUSA_APP_DB_USER}}","MEDUSA_APP_DB_PASSWORD":"{{env.MEDUSA_APP_DB_PASSWORD}}","MEDUSA_APP_DB_NAME":"{{env.MEDUSA_APP_DB_NAME}}","MEDUSA_APP_DB_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","MEDUSA_DATABASE_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","DATABASE_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","DATABASE_URL":"postgresql://{{env.MEDUSA_APP_DB_USER}}:{{env.MEDUSA_APP_DB_PASSWORD}}@{{env.MEDUSA_DB_HOST}}:5432/{{env.MEDUSA_APP_DB_NAME}}?sslmode=disable&options=-csearch_path%3D{{env.MEDUSA_APP_DB_SCHEMA}}%2Cpg_catalog","REDIS_URL":"redis://:{{env.MEDUSA_VALKEY_PASSWORD}}@{{env.MEDUSA_VALKEY_HOST}}:6379","MEILISEARCH_HOST":"http://{{env.MEDUSA_MEILISEARCH_HOST}}:7700","MINIO_FILE_URL":"{{env.MEDUSA_MINIO_FILE_URL}}","MINIO_REGION":"{{env.MEDUSA_MINIO_REGION}}","MINIO_ENDPOINT":"{{env.MEDUSA_MINIO_ENDPOINT}}","MINIO_BUCKET":"{{env.MEDUSA_MINIO_BUCKET}}","MINIO_ACCESS_KEY":"{{env.MEDUSA_MINIO_ACCESS_KEY}}","MINIO_SECRET_KEY":"{{env.MEDUSA_MINIO_SECRET_KEY}}"}}'
-      ;;
-    n1)
-      printf '%s\n' '{"dockerfile_path":"./docker/development/n1/Dockerfile","build_context_dir":"./","command":null,"volumes":[],"envs":{"MEDUSA_BACKEND_URL_INTERNAL":"http://{{env.MEDUSA_BE_HOST}}:9000","NEXT_PUBLIC_MEDUSA_BACKEND_URL":"{{env.N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL}}","NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY":"{{env.N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}}","NEXT_PUBLIC_MEILISEARCH_URL":"{{env.N1_NEXT_PUBLIC_MEILISEARCH_URL}}","NEXT_PUBLIC_MEILISEARCH_API_KEY":"{{env.N1_NEXT_PUBLIC_MEILISEARCH_API_KEY}}","NEXT_PUBLIC_SITE_URL":"{{env.N1_NEXT_PUBLIC_SITE_URL}}"}}'
-      ;;
-    zane-operator)
-      printf '%s\n' '{"dockerfile_path":"./docker/development/zane-operator/Dockerfile","build_context_dir":"./","command":null,"volumes":[],"envs":{"PORT":"8080","API_AUTH_TOKEN":"{{env.ZANE_OPERATOR_API_AUTH_TOKEN}}","PGHOST":"{{env.MEDUSA_DB_HOST}}","PGPORT":"5432","PGUSER":"{{env.ZANE_OPERATOR_PGUSER}}","PGPASSWORD":"{{env.ZANE_OPERATOR_PGPASSWORD}}","PGDATABASE":"postgres","PGSSLMODE":"disable","DB_TEMPLATE_NAME":"{{env.ZANE_OPERATOR_DB_TEMPLATE_NAME}}","DB_PREVIEW_PREFIX":"{{env.ZANE_OPERATOR_DB_PREVIEW_PREFIX}}","DB_PREVIEW_APP_USER_PREFIX":"{{env.ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX}}","DB_PREVIEW_DEV_ROLE":"{{env.MEDUSA_DEV_DB_USER}}","DB_APP_SCHEMA":"{{env.MEDUSA_APP_DB_SCHEMA}}","DB_PREVIEW_APP_PASSWORD_SECRET":"{{env.ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET}}","DB_PROTECTED_NAMES":"{{env.ZANE_OPERATOR_DB_PROTECTED_NAMES}}","ZANE_BASE_URL":"{{env.ZANE_OPERATOR_UPSTREAM_BASE_URL}}","ZANE_USERNAME":"{{env.ZANE_OPERATOR_UPSTREAM_USERNAME}}","ZANE_PASSWORD":"{{env.ZANE_OPERATOR_UPSTREAM_PASSWORD}}"}}'
-      ;;
-    *)
-      common::die "Unsupported service slug: $service_slug"
-      ;;
-  esac
-}
-
-setup::service_healthcheck_json() {
-  local service_slug="$1"
-
-  case "$service_slug" in
-    medusa-db)
-      jq -cS -n '{
-        type: "COMMAND",
-        value: "sh -lc '\''exec /usr/local/bin/postgres-ready-with-bootstrap.sh'\''",
-        timeout_seconds: 60,
-        interval_seconds: 30
-      }'
-      ;;
-    medusa-valkey)
-      jq -cS -n '{
-        type: "COMMAND",
-        value: "sh -lc '\''valkey-cli -a \"$VALKEY_PASSWORD\" --no-auth-warning ping | grep -q PONG'\''",
-        timeout_seconds: 60,
-        interval_seconds: 5
-      }'
-      ;;
-    medusa-minio)
-      jq -cS -n '{
-        type: "PATH",
-        value: "/minio/health/live",
-        timeout_seconds: 60,
-        interval_seconds: 10,
-        associated_port: 9004
-      }'
-      ;;
-    medusa-meilisearch)
-      jq -cS -n '{
-        type: "PATH",
-        value: "/health",
-        timeout_seconds: 60,
-        interval_seconds: 10,
-        associated_port: 7700
-      }'
-      ;;
-    medusa-be)
-      jq -cS -n '{
-        type: "PATH",
-        value: "/app",
-        timeout_seconds: 120,
-        interval_seconds: 10,
-        associated_port: 9000
-      }'
-      ;;
-    n1)
-      jq -cS -n '{
-        type: "PATH",
-        value: "/api/health",
-        timeout_seconds: 120,
-        interval_seconds: 30,
-        associated_port: 3000
-      }'
-      ;;
-    zane-operator)
-      jq -cS -n '{
-        type: "PATH",
-        value: "/healthz",
-        timeout_seconds: 60,
-        interval_seconds: 30,
-        associated_port: 8080
-      }'
-      ;;
-    *)
-      common::die "Unsupported service slug: $service_slug"
-      ;;
-  esac
-}
-
-setup::service_resource_limits_json() {
-  local service_slug="$1"
-
-  case "$service_slug" in
-    medusa-db)
-      jq -cS -n '{
-        cpus: 0.5,
-        memory: {
-          unit: "MEGABYTES",
-          value: 768
-        }
-      }'
-      ;;
-    medusa-valkey)
-      jq -cS -n '{
-        cpus: 0.25,
-        memory: {
-          unit: "MEGABYTES",
-          value: 256
-        }
-      }'
-      ;;
-    medusa-minio)
-      jq -cS -n '{
-        cpus: 0.25,
-        memory: {
-          unit: "MEGABYTES",
-          value: 512
-        }
-      }'
-      ;;
-    medusa-meilisearch)
-      jq -cS -n '{
-        cpus: 0.5,
-        memory: {
-          unit: "MEGABYTES",
-          value: 1024
-        }
-      }'
-      ;;
-    medusa-be)
-      jq -cS -n '{
-        cpus: 1,
-        memory: {
-          unit: "MEGABYTES",
-          value: 2048
-        }
-      }'
-      ;;
-    n1)
-      jq -cS -n '{
-        cpus: 0.75,
-        memory: {
-          unit: "MEGABYTES",
-          value: 1536
-        }
-      }'
-      ;;
-    zane-operator)
-      jq -cS -n '{
-        cpus: 0.25,
-        memory: {
-          unit: "MEGABYTES",
-          value: 256
-        }
-      }'
-      ;;
-    *)
-      common::die "Unsupported service slug: $service_slug"
-      ;;
-  esac
-}
-
-setup::service_env_cleanup_keys_json() {
-  local service_slug="$1"
-
-  case "$service_slug" in
-    medusa-be)
-      printf '%s\n' '["LEGACY_DATABASE_URL"]'
-      ;;
-    n1)
-      printf '%s\n' '["NEXT_PUBLIC_META_PIXEL_ID","NEXT_PUBLIC_GOOGLE_ADS_ID","NEXT_PUBLIC_HEUREKA_API_KEY","NEXT_PUBLIC_LEADHUB_TRACKING_ID","RESEND_API_KEY","CONTACT_EMAIL","RESEND_FROM_EMAIL"]'
-      ;;
-    *)
-      printf '%s\n' '[]'
-      ;;
-  esac
-}
-
-setup::shared_env_cleanup_keys_json() {
-  printf '%s\n' '["LEGACY_DATABASE_URL","SENTRY_NAME","SENTRY_DSN","NEXT_PUBLIC_META_PIXEL_ID","NEXT_PUBLIC_GOOGLE_ADS_ID","NEXT_PUBLIC_HEUREKA_API_KEY","NEXT_PUBLIC_LEADHUB_TRACKING_ID","RESEND_API_KEY","CONTACT_EMAIL","RESEND_FROM_EMAIL","NODE_ENV","MEDUSA_BACKEND_URL","STORE_CORS","ADMIN_CORS","AUTH_CORS","NEXT_PUBLIC_SITE_URL","NEXT_PUBLIC_MEDUSA_BACKEND_URL","NEXT_PUBLIC_MEILISEARCH_URL","NEXT_PUBLIC_MEILISEARCH_API_KEY","NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY","MINIO_FILE_URL","VALKEY_HOST","MINIO_HOST","MEILI_HOST","POSTGRES_SUPERUSER","POSTGRES_SUPERUSER_PASSWORD","VALKEY_PASSWORD","MINIO_ROOT_USER","MINIO_ROOT_PASSWORD","MINIO_ACCESS_KEY","MINIO_SECRET_KEY","MINIO_BUCKET","MINIO_REGION","MINIO_ENDPOINT","MEILI_MASTER_KEY","JWT_SECRET","COOKIE_SECRET","SETTINGS_ENCRYPTION_KEY","SUPERADMIN_EMAIL","SUPERADMIN_PASSWORD","INITIAL_PUBLISHABLE_KEY_NAME","FEATURE_PPL_ENABLED","PPL_ENVIRONMENT","MEDUSA_BE_NODE_ENV","MEDUSA_BE_BACKEND_URL","MEDUSA_BE_STORE_CORS","MEDUSA_BE_ADMIN_CORS","MEDUSA_BE_AUTH_CORS","N1_NEXT_PUBLIC_SITE_URL","N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL","N1_NEXT_PUBLIC_MEILISEARCH_URL","N1_NEXT_PUBLIC_MEILISEARCH_API_KEY","N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY","MEDUSA_BE_HOST","MEDUSA_DB_POSTGRES_SUPERUSER","MEDUSA_DB_POSTGRES_SUPERUSER_PASSWORD","MEDUSA_DEV_DB_USER","MEDUSA_DEV_DB_PASSWORD","MEDUSA_MINIO_ROOT_USER","MEDUSA_MINIO_ROOT_PASSWORD","MEDUSA_MINIO_REGION","MEDUSA_MINIO_ENDPOINT","MEDUSA_MINIO_FILE_URL","MEDUSA_MINIO_HOST","MEDUSA_BE_JWT_SECRET","MEDUSA_BE_COOKIE_SECRET","MEDUSA_BE_SETTINGS_ENCRYPTION_KEY","MEDUSA_BE_SUPERADMIN_EMAIL","MEDUSA_BE_SUPERADMIN_PASSWORD","MEDUSA_BE_INITIAL_PUBLISHABLE_KEY_NAME","MEDUSA_BE_FEATURE_PPL_ENABLED","MEDUSA_BE_PPL_ENVIRONMENT","ZANE_OPERATOR_API_AUTH_TOKEN","ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET","ZANE_OPERATOR_DB_TEMPLATE_NAME","ZANE_OPERATOR_DB_PREVIEW_PREFIX","ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX","ZANE_OPERATOR_DB_PROTECTED_NAMES","ZANE_OPERATOR_UPSTREAM_BASE_URL","ZANE_OPERATOR_UPSTREAM_USERNAME","ZANE_OPERATOR_UPSTREAM_PASSWORD"]'
-}
-
-setup::computed_medusa_backend_url() {
-  printf '%s\n' "$COMPUTED_MEDUSA_BE_PUBLIC_URL"
-}
-
-setup::computed_n1_site_url() {
-  printf '%s\n' "$COMPUTED_N1_PUBLIC_URL"
-}
-
-setup::computed_meilisearch_public_url() {
-  printf '%s\n' "$COMPUTED_MEILISEARCH_PUBLIC_URL"
-}
-
-setup::computed_minio_file_url() {
-  printf '%s\n' "${MINIO_FILE_URL_OVERRIDE:-http://${COMPUTED_MINIO_HOST}:9004/${DC_MINIO_BUCKET:-medusa-bucket}}"
-}
-
-setup::computed_store_cors() {
-  setup::prefer_public_csv_or_url \
-    "$STORE_CORS_OVERRIDE" \
-    "${DC_STORE_CORS:-}" \
-    "$(setup::computed_n1_site_url)"
-}
-
-setup::computed_admin_cors() {
-  setup::prefer_public_csv_or_url \
-    "$ADMIN_CORS_OVERRIDE" \
-    "${DC_ADMIN_CORS:-}" \
-    "$(setup::computed_medusa_backend_url)"
-}
-
-setup::computed_auth_cors() {
-  setup::prefer_public_csv_or_url \
-    "$AUTH_CORS_OVERRIDE" \
-    "${DC_AUTH_CORS:-}" \
-    "$(setup::computed_medusa_backend_url)"
-}
-
-setup::service_envs_json() {
-  local service_slug="$1"
-  local medusa_backend_url next_public_site_url next_public_meilisearch_url minio_file_url
-  local store_cors admin_cors auth_cors protected_names
-
-  medusa_backend_url="$(setup::computed_medusa_backend_url)"
-  next_public_site_url="$(setup::computed_n1_site_url)"
-  next_public_meilisearch_url="$(setup::computed_meilisearch_public_url)"
-  minio_file_url="$(setup::computed_minio_file_url)"
-  store_cors="$(setup::computed_store_cors)"
-  admin_cors="$(setup::computed_admin_cors)"
-  auth_cors="$(setup::computed_auth_cors)"
-  protected_names="${DC_ZANE_OPERATOR_DB_PROTECTED_NAMES:-postgres,template0,template1}"
-  if [[ "$protected_names" != *template_medusa* ]]; then
-    protected_names="${protected_names},template_medusa"
-  fi
-
-  case "$service_slug" in
-    medusa-db)
-      jq -n \
-        --arg postgres_superuser "${DC_POSTGRES_SUPERUSER:-root}" \
-        --arg postgres_superuser_password "${DC_POSTGRES_SUPERUSER_PASSWORD:-root}" \
-        --arg medusa_dev_db_user "${DC_MEDUSA_DEV_DB_USER:-medusa_dev}" \
-        --arg medusa_dev_db_password "${DC_MEDUSA_DEV_DB_PASSWORD:-medusa_dev_change_me}" \
-        --arg operator_pguser "${DC_ZANE_OPERATOR_PGUSER:-zane_operator}" \
-        --arg operator_pgpassword "${DC_ZANE_OPERATOR_PGPASSWORD:-}" \
-        --arg operator_template_db "${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-template_medusa}" \
-        '{
-          POSTGRES_USER: $postgres_superuser,
-          POSTGRES_PASSWORD: $postgres_superuser_password,
-          POSTGRES_DB: "{{env.MEDUSA_APP_DB_NAME}}",
-          PGDATA: "/var/lib/postgresql/18/docker",
-          MEDUSA_APP_DB_USER: "{{env.MEDUSA_APP_DB_USER}}",
-          MEDUSA_APP_DB_PASSWORD: "{{env.MEDUSA_APP_DB_PASSWORD}}",
-          MEDUSA_APP_DB_NAME: "{{env.MEDUSA_APP_DB_NAME}}",
-          MEDUSA_APP_DB_SCHEMA: "{{env.MEDUSA_APP_DB_SCHEMA}}",
-          MEDUSA_DEV_DB_USER: $medusa_dev_db_user,
-          MEDUSA_DEV_DB_PASSWORD: $medusa_dev_db_password,
-          MEDUSA_DB_ZANE_OPERATOR_USER: $operator_pguser,
-          MEDUSA_DB_ZANE_OPERATOR_PASSWORD: $operator_pgpassword,
-          MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME: $operator_template_db
-        }'
-      ;;
-    medusa-valkey)
-      jq -n '{
-        VALKEY_PASSWORD: "{{env.MEDUSA_VALKEY_PASSWORD}}"
-      }'
-      ;;
-    medusa-minio)
-      jq -n \
-        --arg minio_root_user "${DC_MINIO_ROOT_USER:-minioadmin}" \
-        --arg minio_root_password "${DC_MINIO_ROOT_PASSWORD:-minioadmin}" \
-        '{
-          MINIO_ROOT_USER: $minio_root_user,
-          MINIO_ROOT_PASSWORD: $minio_root_password,
-          MINIO_MEDUSA_ACCESS_KEY: "{{env.MEDUSA_MINIO_ACCESS_KEY}}",
-          MINIO_MEDUSA_SECRET_KEY: "{{env.MEDUSA_MINIO_SECRET_KEY}}",
-          MINIO_MEDUSA_BUCKET: "{{env.MEDUSA_MINIO_BUCKET}}"
-        }'
-      ;;
-    medusa-meilisearch)
-      jq -n '{
-        MEILI_MASTER_KEY: "{{env.MEDUSA_MEILISEARCH_MASTER_KEY}}",
-        MEILI_NO_ANALYTICS: "true"
-      }'
-      ;;
-    medusa-be)
-      jq -n \
-        --arg medusa_backend_url "$medusa_backend_url" \
-        --arg store_cors "$store_cors" \
-        --arg admin_cors "$admin_cors" \
-        --arg auth_cors "$auth_cors" \
-        --arg jwt_secret "${DC_JWT_SECRET:-supersecret}" \
-        --arg cookie_secret "${DC_COOKIE_SECRET:-supersecret}" \
-        --arg settings_encryption_key "${DC_SETTINGS_ENCRYPTION_KEY:-}" \
-        --arg superadmin_email "${DC_SUPERADMIN_EMAIL:-}" \
-        --arg superadmin_password "${DC_SUPERADMIN_PASSWORD:-}" \
-        --arg initial_publishable_key_name "${DC_INITIAL_PUBLISHABLE_KEY_NAME:-Storefront Publishable Key}" \
-        --arg feature_ppl_enabled "${DC_FEATURE_PPL_ENABLED:-0}" \
-        --arg ppl_environment "${DC_PPL_ENVIRONMENT:-testing}" \
-        --arg meilisearch_api_key "${DC_MEILISEARCH_BACKEND_API_KEY:-}" \
-        --arg minio_file_url "$minio_file_url" \
-        --arg minio_region "${DC_MINIO_REGION:-us-east-1}" \
-        --arg minio_endpoint "http://${COMPUTED_MINIO_HOST}:9004/" \
-        '{
-          NODE_ENV: "production",
-          JWT_SECRET: $jwt_secret,
-          COOKIE_SECRET: $cookie_secret,
-          MEDUSA_BACKEND_URL: $medusa_backend_url,
-          STORE_CORS: $store_cors,
-          ADMIN_CORS: $admin_cors,
-          AUTH_CORS: $auth_cors,
-          SUPERADMIN_EMAIL: $superadmin_email,
-          SUPERADMIN_PASSWORD: $superadmin_password,
-          INITIAL_PUBLISHABLE_KEY_NAME: $initial_publishable_key_name,
-          SETTINGS_ENCRYPTION_KEY: $settings_encryption_key,
-          FEATURE_PPL_ENABLED: $feature_ppl_enabled,
-          PPL_ENVIRONMENT: $ppl_environment,
-          DATABASE_TYPE: "postgres",
-          MEDUSA_APP_DB_USER: "{{env.MEDUSA_APP_DB_USER}}",
-          MEDUSA_APP_DB_PASSWORD: "{{env.MEDUSA_APP_DB_PASSWORD}}",
-          MEDUSA_APP_DB_NAME: "{{env.MEDUSA_APP_DB_NAME}}",
-          MEDUSA_APP_DB_SCHEMA: "{{env.MEDUSA_APP_DB_SCHEMA}}",
-          MEDUSA_DATABASE_SCHEMA: "{{env.MEDUSA_APP_DB_SCHEMA}}",
-          DATABASE_SCHEMA: "{{env.MEDUSA_APP_DB_SCHEMA}}",
-          DATABASE_URL: "postgresql://{{env.MEDUSA_APP_DB_USER}}:{{env.MEDUSA_APP_DB_PASSWORD}}@{{env.MEDUSA_DB_HOST}}:5432/{{env.MEDUSA_APP_DB_NAME}}?sslmode=disable&options=-csearch_path%3D{{env.MEDUSA_APP_DB_SCHEMA}}%2Cpg_catalog",
-          REDIS_URL: "redis://:{{env.MEDUSA_VALKEY_PASSWORD}}@{{env.MEDUSA_VALKEY_HOST}}:6379",
-          MEILISEARCH_HOST: "http://{{env.MEDUSA_MEILISEARCH_HOST}}:7700",
-          MEILISEARCH_API_KEY: $meilisearch_api_key,
-          MINIO_FILE_URL: $minio_file_url,
-          MINIO_REGION: $minio_region,
-          MINIO_ENDPOINT: $minio_endpoint,
-          MINIO_BUCKET: "{{env.MEDUSA_MINIO_BUCKET}}",
-          MINIO_ACCESS_KEY: "{{env.MEDUSA_MINIO_ACCESS_KEY}}",
-          MINIO_SECRET_KEY: "{{env.MEDUSA_MINIO_SECRET_KEY}}"
-        }'
-      ;;
-    n1)
-      jq -n \
-        --arg medusa_be_host "$COMPUTED_MEDUSA_BE_HOST" \
-        --arg medusa_backend_url "$medusa_backend_url" \
-        --arg next_public_site_url "$next_public_site_url" \
-        --arg next_public_meilisearch_url "$next_public_meilisearch_url" \
-        --arg next_public_meilisearch_api_key "${DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY:-}" \
-        --arg next_public_medusa_publishable_key "${DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:-}" \
-        '{
-          MEDUSA_BACKEND_URL_INTERNAL: ("http://" + $medusa_be_host + ":9000"),
-          NEXT_PUBLIC_MEDUSA_BACKEND_URL: $medusa_backend_url,
-          NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: $next_public_medusa_publishable_key,
-          NEXT_PUBLIC_MEILISEARCH_URL: $next_public_meilisearch_url,
-          NEXT_PUBLIC_MEILISEARCH_API_KEY: $next_public_meilisearch_api_key,
-          NEXT_PUBLIC_SITE_URL: $next_public_site_url
-        }'
-      ;;
-    zane-operator)
-      jq -n \
-        --arg api_auth_token "${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-}" \
-        --arg operator_pguser "${DC_ZANE_OPERATOR_PGUSER:-zane_operator}" \
-        --arg operator_pgpassword "${DC_ZANE_OPERATOR_PGPASSWORD:-}" \
-        --arg medusa_dev_db_user "${DC_MEDUSA_DEV_DB_USER:-medusa_dev}" \
-        --arg db_preview_app_password_secret "${DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET:-}" \
-        --arg db_template_name "${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-template_medusa}" \
-        --arg db_preview_prefix "${DC_ZANE_OPERATOR_DB_PREVIEW_PREFIX:-medusa_pr_}" \
-        --arg db_preview_app_user_prefix "${DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX:-medusa_pr_app_}" \
-        --arg db_protected_names "$protected_names" \
-        --arg zane_base_url "${OPERATOR_UPSTREAM_ZANE_BASE_URL:-}" \
-        --arg zane_connect_base_url "${OPERATOR_UPSTREAM_ZANE_CONNECT_BASE_URL:-}" \
-        --arg zane_connect_host_header "${OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER:-}" \
-        --arg zane_username "${OPERATOR_UPSTREAM_ZANE_USERNAME:-}" \
-        --arg zane_password "${OPERATOR_UPSTREAM_ZANE_PASSWORD:-}" \
-        '{
-          PORT: "8080",
-          API_AUTH_TOKEN: $api_auth_token,
-          PGHOST: "{{env.MEDUSA_DB_HOST}}",
-          PGPORT: "5432",
-          PGUSER: $operator_pguser,
-          PGPASSWORD: $operator_pgpassword,
-          PGDATABASE: "postgres",
-          PGSSLMODE: "disable",
-          DB_TEMPLATE_NAME: $db_template_name,
-          DB_PREVIEW_PREFIX: $db_preview_prefix,
-          DB_PREVIEW_APP_USER_PREFIX: $db_preview_app_user_prefix,
-          DB_PREVIEW_DEV_ROLE: $medusa_dev_db_user,
-          DB_APP_SCHEMA: "{{env.MEDUSA_APP_DB_SCHEMA}}",
-          DB_PREVIEW_APP_PASSWORD_SECRET: $db_preview_app_password_secret,
-          DB_PROTECTED_NAMES: $db_protected_names,
-          ZANE_BASE_URL: $zane_base_url,
-          ZANE_CONNECT_BASE_URL: $zane_connect_base_url,
-          ZANE_CONNECT_HOST_HEADER: $zane_connect_host_header,
-          ZANE_USERNAME: $zane_username,
-          ZANE_PASSWORD: $zane_password
-        }'
-      ;;
-    *)
-      common::die "Unsupported service slug for env sync: $service_slug"
-      ;;
-  esac
 }
 
 setup::effective_git_source_json() {
@@ -1612,127 +1147,6 @@ setup::ensure_service_envs() {
   done < <(jq -r '.[]' <<<"$cleanup_keys_json")
 }
 
-setup::ensure_service() {
-  local service_slug="$1"
-  local service_json spec_json dockerfile_path build_context_dir service_type command_json healthcheck_json resource_limits_json public_urls_json
-
-  spec_json="$(setup::service_spec_json "$service_slug")"
-  dockerfile_path="$(jq -r '.dockerfile_path' <<<"$spec_json")"
-  build_context_dir="$(jq -r '.build_context_dir' <<<"$spec_json")"
-
-  if ! service_json="$(zane::get_service "$service_slug")"; then
-    echo "Creating service ${service_slug}..."
-    zane::create_git_service "$service_slug" "$dockerfile_path" "$build_context_dir"
-    service_json="$(zane::get_service "$service_slug")"
-  fi
-
-  service_type="$(jq -r '.type' <<<"$service_json")"
-  [[ "$service_type" == "GIT_REPOSITORY" ]] || common::die "Service ${service_slug} already exists but is not a Git service."
-
-  setup::ensure_service_source_and_builder "$service_slug" "$service_json" "$spec_json"
-  service_json="$(zane::get_service "$service_slug")"
-
-  command_json="$(jq -r '.command' <<<"$spec_json")"
-  setup::ensure_service_command "$service_slug" "$service_json" "$command_json"
-  service_json="$(zane::get_service "$service_slug")"
-
-  setup::ensure_service_volumes "$service_slug" "$service_json" "$(jq -c '.volumes' <<<"$spec_json")"
-  service_json="$(zane::get_service "$service_slug")"
-
-  public_urls_json="$(setup::service_public_urls_json "$service_slug")"
-  setup::ensure_service_urls "$service_slug" "$service_json" "$public_urls_json"
-  service_json="$(zane::get_service "$service_slug")"
-
-  healthcheck_json="$(setup::service_healthcheck_json "$service_slug")"
-  setup::ensure_service_healthcheck "$service_slug" "$service_json" "$healthcheck_json"
-  service_json="$(zane::get_service "$service_slug")"
-
-  resource_limits_json="$(setup::service_resource_limits_json "$service_slug")"
-  setup::ensure_service_resource_limits "$service_slug" "$service_json" "$resource_limits_json"
-}
-
-setup::shared_env_json() {
-  local medusa_db_host="$1"
-  local valkey_host="$2"
-  local minio_host="$3"
-  local meili_host="$4"
-  jq -n \
-    --arg medusa_db_host "$medusa_db_host" \
-    --arg valkey_host "$valkey_host" \
-    --arg meili_host "$meili_host" \
-    --arg medusa_app_db_user "${DC_MEDUSA_APP_DB_USER:-medusa_app}" \
-    --arg medusa_app_db_password "${DC_MEDUSA_APP_DB_PASSWORD:-medusa_app_change_me}" \
-    --arg medusa_app_db_name "${DC_MEDUSA_APP_DB_NAME:-medusa}" \
-    --arg medusa_app_db_schema "${DC_MEDUSA_APP_DB_SCHEMA:-medusa}" \
-    --arg valkey_password "${DC_VALKEY_PASSWORD:-valkey_dev_change_me}" \
-    --arg minio_access_key "${DC_MINIO_ACCESS_KEY:-medusaappkey}" \
-    --arg minio_secret_key "${DC_MINIO_SECRET_KEY:-medusaappsecret_change_me}" \
-    --arg minio_bucket "${DC_MINIO_BUCKET:-medusa-bucket}" \
-    --arg meili_master_key "${DC_MEILISEARCH_MASTER_KEY:-}" \
-    '
-      {
-        MEDUSA_DB_HOST: $medusa_db_host,
-        MEDUSA_VALKEY_HOST: $valkey_host,
-        MEDUSA_MEILISEARCH_HOST: $meili_host,
-        MEDUSA_APP_DB_USER: $medusa_app_db_user,
-        MEDUSA_APP_DB_PASSWORD: $medusa_app_db_password,
-        MEDUSA_APP_DB_NAME: $medusa_app_db_name,
-        MEDUSA_APP_DB_SCHEMA: $medusa_app_db_schema,
-        MEDUSA_VALKEY_PASSWORD: $valkey_password,
-        MEDUSA_MINIO_ACCESS_KEY: $minio_access_key,
-        MEDUSA_MINIO_SECRET_KEY: $minio_secret_key,
-        MEDUSA_MINIO_BUCKET: $minio_bucket,
-        MEDUSA_MEILISEARCH_MASTER_KEY: $meili_master_key
-      }
-    '
-}
-
-setup::upsert_shared_envs() {
-  local shared_json="$1"
-  local cleanup_key
-
-  while IFS=$'\t' read -r key value; do
-    zane::ensure_shared_env_var "$key" "$value"
-  done < <(jq -r 'to_entries[] | [.key, .value] | @tsv' <<<"$shared_json")
-
-  while IFS= read -r cleanup_key; do
-    [[ -n "$cleanup_key" ]] || continue
-    zane::delete_shared_env_var "$cleanup_key"
-  done < <(setup::shared_env_cleanup_keys_json | jq -r '.[]')
-}
-
-setup::service_network_alias() {
-  local service_slug="$1"
-  local service_json alias
-
-  service_json="$(zane::get_service "$service_slug")"
-  alias="$(jq -r '.network_alias // empty' <<<"$service_json")"
-  [[ -n "$alias" ]] || common::die "Service ${service_slug} does not have a network alias yet."
-  printf '%s\n' "$alias"
-}
-
-setup::service_global_network_alias() {
-  local service_slug="$1"
-  local service_json alias
-
-  service_json="$(zane::get_service "$service_slug")"
-  alias="$(jq -r '.global_network_alias // empty' <<<"$service_json")"
-  [[ -n "$alias" ]] || common::die "Service ${service_slug} does not have a global network alias yet."
-  printf '%s\n' "$alias"
-}
-
-setup::upsert_service_envs() {
-  local service_slug="$1"
-  local service_json
-
-  service_json="$(zane::get_service "$service_slug")"
-  setup::ensure_service_envs \
-    "$service_slug" \
-    "$service_json" \
-    "$(setup::service_envs_json "$service_slug")" \
-    "$(setup::service_env_cleanup_keys_json "$service_slug")"
-}
-
 setup::confirm_execution() {
   local summary
 
@@ -1749,6 +1163,85 @@ EOF
   dev::confirm_or_die "sync ${PROJECT_SLUG}/${ENVIRONMENT_NAME}" "$summary"
 }
 
+setup::print_plan_block_summary() {
+  jq '{phase, status, blocking_reasons}' <"$PLAN_JSON_FILE" >&2
+}
+
+setup::cleanup() {
+  if [[ -n "$COOKIE_JAR" && -f "$COOKIE_JAR" ]]; then
+    rm -f "$COOKIE_JAR"
+  fi
+
+  if [[ -n "$INSPECT_JSON_FILE" && -f "$INSPECT_JSON_FILE" ]]; then
+    rm -f "$INSPECT_JSON_FILE"
+  fi
+
+  if [[ -n "$PLAN_JSON_FILE" && -f "$PLAN_JSON_FILE" ]]; then
+    rm -f "$PLAN_JSON_FILE"
+  fi
+}
+
+setup::apply_service_from_plan() {
+  local service_plan_json="$1"
+  local service_slug service_json service_type spec_json
+
+  service_slug="$(jq -r '.service_slug' <<<"$service_plan_json")"
+  if ! service_json="$(zane::get_service "$service_slug")"; then
+    zane::create_git_service \
+      "$service_slug" \
+      "$(jq -r '.desired_builder.dockerfile_path' <<<"$service_plan_json")" \
+      "$(jq -r '.desired_builder.build_context_dir' <<<"$service_plan_json")"
+    service_json="$(zane::get_service "$service_slug")"
+  fi
+
+  service_type="$(jq -r '.type' <<<"$service_json")"
+  [[ "$service_type" == "GIT_REPOSITORY" ]] || common::die "Service ${service_slug} already exists but is not a Git service."
+
+  REPOSITORY_URL="$(jq -r '.desired_git_source.repository_url' <<<"$service_plan_json")"
+  BRANCH_NAME="$(jq -r '.desired_git_source.branch_name' <<<"$service_plan_json")"
+  GIT_APP_ID="$(jq -r '.desired_git_source.git_app_id // empty' <<<"$service_plan_json")"
+  spec_json="$(jq -c '{dockerfile_path: .desired_builder.dockerfile_path, build_context_dir: .desired_builder.build_context_dir}' <<<"$service_plan_json")"
+
+  setup::ensure_service_source_and_builder "$service_slug" "$service_json" "$spec_json"
+  service_json="$(zane::get_service "$service_slug")"
+  setup::ensure_service_command "$service_slug" "$service_json" "$(jq -r '.desired_command' <<<"$service_plan_json")"
+  service_json="$(zane::get_service "$service_slug")"
+  setup::ensure_service_volumes "$service_slug" "$service_json" "$(jq -c '.desired_volumes' <<<"$service_plan_json")"
+  service_json="$(zane::get_service "$service_slug")"
+  setup::ensure_service_urls "$service_slug" "$service_json" "$(jq -c '.desired_urls' <<<"$service_plan_json")"
+  service_json="$(zane::get_service "$service_slug")"
+  setup::ensure_service_healthcheck "$service_slug" "$service_json" "$(jq -c '.desired_healthcheck' <<<"$service_plan_json")"
+  service_json="$(zane::get_service "$service_slug")"
+  setup::ensure_service_resource_limits "$service_slug" "$service_json" "$(jq -c '.desired_resource_limits' <<<"$service_plan_json")"
+}
+
+setup::upsert_shared_envs_from_plan() {
+  local plan_json="$1"
+  local cleanup_key
+
+  while IFS=$'\t' read -r key value; do
+    zane::ensure_shared_env_var "$key" "$value"
+  done < <(jq -r '.shared_env | to_entries[] | [.key, .value] | @tsv' <<<"$plan_json")
+
+  while IFS= read -r cleanup_key; do
+    [[ -n "$cleanup_key" ]] || continue
+    zane::delete_shared_env_var "$cleanup_key"
+  done < <(jq -r '.shared_env_cleanup_keys[]' <<<"$plan_json")
+}
+
+setup::upsert_service_envs_from_plan() {
+  local service_plan_json="$1"
+  local service_slug service_json
+
+  service_slug="$(jq -r '.service_slug' <<<"$service_plan_json")"
+  service_json="$(zane::get_service "$service_slug")"
+  setup::ensure_service_envs \
+    "$service_slug" \
+    "$service_json" \
+    "$(jq -c '.desired_env' <<<"$service_plan_json")" \
+    "$(jq -c '.cleanup_env_keys' <<<"$service_plan_json")"
+}
+
 setup::main() {
   local services=(
     medusa-db
@@ -1759,9 +1252,7 @@ setup::main() {
     n1
     zane-operator
   )
-  local service_slug
-  local medusa_db_host valkey_host minio_host meili_host medusa_be_host shared_envs_json
-  local medusa_be_public_url n1_public_url meilisearch_public_url
+  local service_plan
 
   setup::parse_args "$@"
   dev::load_env_file "$ENV_FILE" required
@@ -1769,6 +1260,8 @@ setup::main() {
   setup::derive_repository_url
   setup::derive_branch_name
   setup::require_tools
+  setup::require_bootstrap_inputs
+  trap setup::cleanup EXIT
 
   common::require_env ZANE_USERNAME "Zane username"
   common::require_env ZANE_PASSWORD "Zane password"
@@ -1778,48 +1271,36 @@ setup::main() {
   echo "Logging into Zane at ${ZANE_BASE_URL}..."
   zane::login
   setup::capture_zane_settings
+  setup::resolve_ctl_plan services "${services[@]}"
+  if [[ "$(jq -r '.status' <"$PLAN_JSON_FILE")" != "ready" ]]; then
+    setup::print_plan_block_summary
+    common::die "CTL bootstrap zane-project services plan is blocked."
+  fi
 
-  echo "Ensuring project ${PROJECT_SLUG}..."
-  zane::ensure_project
+  if [[ "$(jq -r '.ensure_project' <"$PLAN_JSON_FILE")" == "true" ]]; then
+    echo "Ensuring project ${PROJECT_SLUG}..."
+    zane::ensure_project
+  fi
   zane::api GET "projects/${PROJECT_SLUG}/environment-details/${ENVIRONMENT_NAME}/" >/dev/null
 
-  for service_slug in "${services[@]}"; do
-    setup::ensure_service "$service_slug"
-  done
+  while IFS= read -r service_plan; do
+    setup::apply_service_from_plan "$service_plan"
+  done < <(jq -c '.services[]' <"$PLAN_JSON_FILE")
 
-  medusa_db_host="$(setup::service_global_network_alias medusa-db)"
-  valkey_host="$(setup::service_network_alias medusa-valkey)"
-  minio_host="$(setup::service_network_alias medusa-minio)"
-  meili_host="$(setup::service_network_alias medusa-meilisearch)"
-  medusa_be_host="$(setup::service_network_alias medusa-be)"
-  medusa_be_public_url="$(setup::public_service_origin medusa-be)"
-  n1_public_url="$(setup::public_service_origin n1)"
-  meilisearch_public_url="$(setup::public_service_origin medusa-meilisearch)"
-  COMPUTED_MEDUSA_DB_HOST="$medusa_db_host"
-  COMPUTED_VALKEY_HOST="$valkey_host"
-  COMPUTED_MINIO_HOST="$minio_host"
-  COMPUTED_MEILI_HOST="$meili_host"
-  COMPUTED_MEDUSA_BE_HOST="$medusa_be_host"
-  COMPUTED_MEDUSA_BE_PUBLIC_URL="$medusa_be_public_url"
-  COMPUTED_N1_PUBLIC_URL="$n1_public_url"
-  COMPUTED_MEILISEARCH_PUBLIC_URL="$meilisearch_public_url"
+  rm -f "$INSPECT_JSON_FILE" "$PLAN_JSON_FILE"
+  INSPECT_JSON_FILE=""
+  PLAN_JSON_FILE=""
 
-  shared_envs_json="$(
-    setup::shared_env_json \
-      "$medusa_db_host" \
-      "$valkey_host" \
-      "$minio_host" \
-      "$meili_host" \
-      "$medusa_be_host" \
-      "$medusa_be_public_url" \
-      "$n1_public_url" \
-      "$meilisearch_public_url"
-  )"
-  setup::upsert_shared_envs "$shared_envs_json"
+  setup::resolve_ctl_plan env "${services[@]}"
+  if [[ "$(jq -r '.status' <"$PLAN_JSON_FILE")" != "ready" ]]; then
+    setup::print_plan_block_summary
+    common::die "CTL bootstrap zane-project env plan is blocked."
+  fi
 
-  for service_slug in "${services[@]}"; do
-    setup::upsert_service_envs "$service_slug"
-  done
+  setup::upsert_shared_envs_from_plan "$(cat "$PLAN_JSON_FILE")"
+  while IFS= read -r service_plan; do
+    setup::upsert_service_envs_from_plan "$service_plan"
+  done < <(jq -c '.services[]' <"$PLAN_JSON_FILE")
 
   cat <<EOF
 Bootstrap complete.

@@ -316,6 +316,16 @@ Use `.env` for local compose/runtime and `.env.zane` for Zane-targeted helper sc
 - `mise run dev:zane:project:sync`
 - `mise run dev:zane:template-db:sync`
 
+Those `mise` tasks are now just discovery/convenience entrypoints over the narrowed shell wrappers; the wrappers authenticate to upstream Zane, call the CTL bootstrap plan surface, and execute only the local/manual transport.
+
+Planning for those rare-use local Zane helpers now also exists in CTL:
+- `node apps/new-engine-ctl/dist/cli.js bootstrap zane-project plan --inspect-json /tmp/zane-project-inspect.json`
+- `node apps/new-engine-ctl/dist/cli.js bootstrap preview-template-db plan --inspect-json /tmp/zane-template-db-inspect.json`
+
+Those planning commands are read-only and intentionally separate from the active CI deploy surface. For the manual local Zane plane, shell remains the runtime entrypoint for upstream Zane auth/session handling and raw API reads; CTL consumes normalized inspect JSON so the repo-owned plan stays centralized without teaching CI-oriented CTL paths to talk to upstream Zane directly.
+
+The checked-in helper scripts now follow that contract: they authenticate to upstream Zane in shell, capture normalized inspect JSON, call the CTL bootstrap plan surface, and only execute the resulting generic shell/runtime transport locally.
+
 For Zane-targeted helpers, managed public service URLs are derived from the route contract rather than copied from ambient `.env.zane` frontend URL values.
 `mise run dev:zane:template-db:sync` is also the first-time setup path for the preview template DB: it creates the configured template DB when missing and refreshes it from the chosen source DB when it already exists.
 

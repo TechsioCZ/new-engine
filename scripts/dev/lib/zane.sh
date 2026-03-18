@@ -45,6 +45,24 @@ dev::confirm_or_die() {
   [[ "$prompt" == "$expected_phrase" ]] || common::die "Confirmation rejected."
 }
 
+dev::run_ctl() {
+  local ctl_dist ctl_root
+
+  ctl_root="${REPO_ROOT}/apps/new-engine-ctl"
+  ctl_dist="${ctl_root}/dist/cli.js"
+  common::require_command node
+  common::require_command pnpm
+
+  if [[ ! -f "$ctl_dist" ]] || find "$ctl_root/src" "$ctl_root/config" -type f -newer "$ctl_dist" -print -quit | grep -q .; then
+    (
+      cd "$ctl_root"
+      pnpm run build >/dev/null
+    )
+  fi
+
+  node "$ctl_dist" "$@"
+}
+
 zane::request() {
   local method="$1"
   local path="$2"
@@ -145,7 +163,6 @@ zane::login() {
   local login_payload
 
   COOKIE_JAR="$(mktemp)"
-  trap 'rm -f "$COOKIE_JAR"' EXIT
 
   zane::api GET "csrf/" >/dev/null
   zane::refresh_csrf_token
@@ -165,6 +182,98 @@ zane::login() {
 zane::get_service() {
   local service_slug="$1"
   zane::api_optional_get "projects/${PROJECT_SLUG}/${ENVIRONMENT_NAME}/service-details/${service_slug}/"
+}
+
+zane::bootstrap_zane_project_inspect_json() {
+  local service_slugs=("$@")
+  local settings_json projects_json environment_json services_json
+
+  settings_json="$(zane::api GET "settings/")"
+  projects_json="$(zane::api GET "projects/")"
+  environment_json="$(zane::api_optional_get "projects/${PROJECT_SLUG}/environment-details/${ENVIRONMENT_NAME}/" || true)"
+
+  services_json="$({
+    local service_slug service_json
+    for service_slug in "${service_slugs[@]}"; do
+      if [[ -n "$environment_json" ]]; then
+        service_json="$(zane::get_service "$service_slug" || true)"
+      else
+        service_json=""
+      fi
+
+      jq -cn \
+        --arg service_slug "$service_slug" \
+        --argjson details "${service_json:-null}" \
+        '{
+          service_slug: $service_slug,
+          exists: ($details != null),
+          details: $details
+        }'
+    done
+  } | jq -cs '.' )"
+
+  jq -cn \
+    --arg project_slug "$PROJECT_SLUG" \
+    --arg environment_name "$ENVIRONMENT_NAME" \
+    --argjson settings "$settings_json" \
+    --argjson projects "$projects_json" \
+    --argjson environment "${environment_json:-null}" \
+    --argjson services "$services_json" \
+    '{
+      project_slug: $project_slug,
+      environment_name: $environment_name,
+      project_exists: any($projects[]?; .slug == $project_slug),
+      environment_exists: ($environment != null),
+      settings: {
+        root_domain: ($settings.root_domain // null),
+        app_domain: ($settings.app_domain // null)
+      },
+      shared_variables: [($environment.variables // [])[] | {key, value}],
+      services: $services
+    }'
+}
+
+zane::bootstrap_preview_template_db_inspect_json() {
+  local db_service_slug="$1"
+  local operator_service_slug="$2"
+  local projects_json environment_json db_service_json operator_service_json
+
+  projects_json="$(zane::api GET "projects/")"
+  environment_json="$(zane::api_optional_get "projects/${PROJECT_SLUG}/environment-details/${ENVIRONMENT_NAME}/" || true)"
+
+  if [[ -n "$environment_json" ]]; then
+    db_service_json="$(zane::get_service "$db_service_slug" || true)"
+    operator_service_json="$(zane::get_service "$operator_service_slug" || true)"
+  else
+    db_service_json=""
+    operator_service_json=""
+  fi
+
+  jq -cn \
+    --arg project_slug "$PROJECT_SLUG" \
+    --arg environment_name "$ENVIRONMENT_NAME" \
+    --arg db_service_slug "$db_service_slug" \
+    --arg operator_service_slug "$operator_service_slug" \
+    --argjson projects "$projects_json" \
+    --argjson environment "${environment_json:-null}" \
+    --argjson db_service "${db_service_json:-null}" \
+    --argjson operator_service "${operator_service_json:-null}" \
+    '{
+      project_slug: $project_slug,
+      environment_name: $environment_name,
+      project_exists: any($projects[]?; .slug == $project_slug),
+      environment_exists: ($environment != null),
+      db_service: {
+        service_slug: $db_service_slug,
+        exists: ($db_service != null),
+        details: $db_service
+      },
+      operator_service: {
+        service_slug: $operator_service_slug,
+        exists: ($operator_service != null),
+        details: $operator_service
+      }
+    }'
 }
 
 zane::service_env_value() {
