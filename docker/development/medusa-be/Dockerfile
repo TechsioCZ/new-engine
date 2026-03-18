@@ -36,7 +36,8 @@ RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
 
-COPY . .
+COPY tsconfig.base.json ./
+COPY apps/medusa-be ./apps/medusa-be
 
 RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
     npm_config_store_dir=/pnpm/store \
