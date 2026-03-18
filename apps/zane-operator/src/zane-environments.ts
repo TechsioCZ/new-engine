@@ -888,22 +888,15 @@ export class ZaneEnvironmentManager {
     currentDetails: ZaneServiceDetails
   ): Promise<ZaneServiceDetails> {
     const desiredGitSource = buildDesiredGitSource(sourceDetails, spec)
-    const ensureCurrentDetails = await this.cancelPendingFieldChangesIfPresent(
-      session,
-      input,
-      spec.service_slug,
-      currentDetails,
-      "git_source"
-    )
     const currentGitSource = normalizeGitSourceShape(
-      computeEffectiveGitSource(ensureCurrentDetails)
+      computeEffectiveGitSource(currentDetails)
     )
 
     if (
       JSON.stringify(currentGitSource) ===
       JSON.stringify(normalizeGitSourceShape(desiredGitSource))
     ) {
-      return ensureCurrentDetails
+      return currentDetails
     }
 
     await this.requestServiceChange(session, input, spec.service_slug, {
@@ -934,22 +927,15 @@ export class ZaneEnvironmentManager {
     currentDetails: ZaneServiceDetails
   ): Promise<ZaneServiceDetails> {
     const desiredBuilder = buildDesiredBuilder(sourceDetails, spec)
-    const ensuredCurrentDetails = await this.cancelPendingFieldChangesIfPresent(
-      session,
-      input,
-      spec.service_slug,
-      currentDetails,
-      "builder"
-    )
     const currentBuilder = normalizeBuilderShape(
-      computeEffectiveBuilder(ensuredCurrentDetails)
+      computeEffectiveBuilder(currentDetails)
     )
 
     if (
       JSON.stringify(currentBuilder) ===
       JSON.stringify(normalizeBuilderShape(desiredBuilder))
     ) {
-      return ensuredCurrentDetails
+      return currentDetails
     }
 
     await this.requestServiceChange(session, input, spec.service_slug, {
