@@ -86,11 +86,9 @@ const laneBuildStageTargetsSchema = z
 const serviceGitSourceReconciliationSchema = z
   .object({
     sync_from_source: z.boolean().optional().default(true),
-    commit_sha: z.string().min(1).optional().default("HEAD"),
   })
   .default({
     sync_from_source: true,
-    commit_sha: "HEAD",
   })
 
 const serviceBuilderReconciliationSchema = z
@@ -115,7 +113,6 @@ const serviceReconciliationDefinitionSchema = z.looseObject({
   service_id: z.string().min(1),
   git_source: serviceGitSourceReconciliationSchema.optional().default({
     sync_from_source: true,
-    commit_sha: "HEAD",
   }),
   builder: serviceBuilderReconciliationSchema.optional().default({
     sync_from_source: true,

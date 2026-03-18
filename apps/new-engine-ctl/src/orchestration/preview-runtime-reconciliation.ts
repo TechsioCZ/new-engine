@@ -35,7 +35,6 @@ export type PreviewServiceSpecSyncService = {
   service_slug: string
   git_source?: {
     sync_from_source: boolean
-    commit_sha: string
   }
   builder?: {
     sync_from_source: boolean
@@ -277,7 +276,6 @@ export function buildServiceReconciliationSpecs(input: {
         service_id: serviceId,
         git_source: {
           sync_from_source: true,
-          commit_sha: "HEAD",
         },
         builder: {
           sync_from_source: true,
@@ -302,7 +300,6 @@ export function buildServiceReconciliationSpecs(input: {
     if (definition.git_source.sync_from_source) {
       serviceSpec.git_source = {
         sync_from_source: true,
-        commit_sha: definition.git_source.commit_sha,
       }
     }
 
