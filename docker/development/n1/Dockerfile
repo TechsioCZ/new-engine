@@ -51,7 +51,8 @@ RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
     npm_config_store_dir=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
     pnpm --filter=@techsio/ui-kit build && \
-    pnpm --filter=@techsio/analytics build
+    pnpm --filter=@techsio/analytics build && \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1...
 
 WORKDIR /var/www/apps/n1
 
