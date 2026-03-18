@@ -17,6 +17,7 @@ import { createProductQueryKeys } from "../src/products/query-keys"
 import type { ProductListInputBase } from "../src/products/types"
 import { createRegionHooks } from "../src/regions/hooks"
 import { createCacheConfig } from "../src/shared/cache-config"
+import { shouldSkipPrefetch } from "../src/shared/prefetch"
 import { createQueryKey } from "../src/shared/query-keys"
 
 const createWrapper = (client: QueryClient) =>
@@ -954,5 +955,61 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     expect(fetchCount).toBe(2)
+  })
+
+  it("skips prefetch when the same query is already in flight", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const queryKey = createQueryKey("test-prefetch-inflight", "products", {
+      page: 1,
+      limit: 2,
+    })
+
+    let resolveFetch: (() => void) | undefined
+    const fetchPromise = queryClient.fetchQuery({
+      queryKey,
+      queryFn: async () => {
+        await new Promise<void>((resolve) => {
+          resolveFetch = resolve
+        })
+
+        return {
+          products: [],
+          count: 0,
+          limit: 2,
+          offset: 0,
+        }
+      },
+    })
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(queryKey)?.fetchStatus).toBe("fetching")
+    })
+
+    expect(queryClient.getQueryData(queryKey)).toBeUndefined()
+
+    expect(
+      shouldSkipPrefetch({
+        queryClient,
+        queryKey,
+        cacheOptions: { staleTime: 0 },
+        skipIfCached: true,
+        skipMode: "fresh",
+      })
+    ).toBe(true)
+
+    expect(
+      shouldSkipPrefetch({
+        queryClient,
+        queryKey,
+        cacheOptions: { staleTime: 0 },
+        skipIfCached: true,
+        skipMode: "any",
+      })
+    ).toBe(true)
+
+    resolveFetch?.()
+    await fetchPromise
   })
 })
