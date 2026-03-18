@@ -41,7 +41,10 @@ RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
 
-COPY . .
+COPY tsconfig.base.json ./
+COPY apps/n1 ./apps/n1
+COPY libs/ui ./libs/ui
+COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
 RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
