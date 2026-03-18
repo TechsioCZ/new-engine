@@ -60,6 +60,10 @@ export const parseProducerData = (
     return null
   }
 
+  if (typeof DOMParser === "undefined") {
+    return null
+  }
+
   try {
     const parser = new DOMParser()
     const doc = parser.parseFromString(sizingAttr.value, "text/html")
