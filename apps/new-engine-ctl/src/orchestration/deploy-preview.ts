@@ -61,7 +61,10 @@ function logDeployProgress(message: string): void {
   let label = "[preview]"
   let colorCode = "36;1"
 
-  if (message.includes("Meili")) {
+  if (message.startsWith("Interrupt received")) {
+    label = "[interrupt]"
+    colorCode = "33;1"
+  } else if (message.includes("Meili")) {
     label = "[meili]"
     colorCode = "35;1"
   } else if (
