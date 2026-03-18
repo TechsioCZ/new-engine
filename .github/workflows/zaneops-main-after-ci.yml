@@ -22,6 +22,7 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'master'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     outputs:
       base_sha: ${{ steps.base.outputs.base_sha }}
       projects_csv: ${{ steps.scope_data.outputs.projects_csv }}
@@ -109,7 +110,7 @@ jobs:
       needs.scope.outputs.services_csv != '' &&
       (needs.approval.result == 'success' || needs.approval.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     concurrency:
       group: zaneops-main-deploy
       cancel-in-progress: true
@@ -194,7 +195,7 @@ jobs:
     needs: [scope, deploy]
     if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
