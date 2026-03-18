@@ -11,8 +11,7 @@ function parseOptionalNumber(value: unknown): number | undefined {
 function buildPrepareInput(options: Record<string, unknown>) {
   return prepareCommandInputSchema.parse({
     lane: options.lane,
-    projectSlug:
-      options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
+    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
     prNumber: parseOptionalNumber(options.prNumber),
     requiresPreviewDb: Boolean(options.requiresPreviewDb),
     outputJson: options.outputJson,

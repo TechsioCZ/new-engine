@@ -37,8 +37,7 @@ export function createDeployMainCommand(): Command {
     )
     .action(async (options) => {
       const input = deployMainCommandInputSchema.parse({
-        projectSlug:
-          options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
         environmentName: options.environmentName,
         servicesCsv: options.servicesCsv,
         meiliUrl: options.meiliUrl ?? process.env.MEILISEARCH_URL ?? "",
@@ -90,7 +89,10 @@ export function createDeployMainCommand(): Command {
       maskGitHubValue(result.meiliFrontendKey)
 
       await appendGitHubOutput("lane", "main")
-      await appendGitHubOutput("environment_name", result.response.environment_name)
+      await appendGitHubOutput(
+        "environment_name",
+        result.response.environment_name
+      )
       await appendGitHubOutput("environment_id", result.response.environment_id)
       await appendGitHubOutput(
         "environment_created",

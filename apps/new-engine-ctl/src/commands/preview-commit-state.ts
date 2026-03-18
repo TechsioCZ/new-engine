@@ -11,8 +11,7 @@ function buildPreviewCommitStateInput(options: Record<string, unknown>) {
       : undefined
 
   return previewCommitStateCommandInputSchema.parse({
-    projectSlug:
-      options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
+    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
     prNumber: parsedPrNumber,
     environmentName: options.environmentName,
     outputJson: options.outputJson,

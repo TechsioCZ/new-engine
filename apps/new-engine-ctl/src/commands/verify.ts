@@ -58,8 +58,7 @@ export function createVerifyCommand(): Command {
       )
       const input = verifyCommandInputSchema.parse({
         lane: options.lane,
-        projectSlug:
-          options.projectSlug ?? process.env.ZANE_CANONICAL_PROJECT_SLUG ?? "",
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
         environmentName: options.environmentName,
         requestedServicesCsv: options.requestedServicesCsv,
         deployServicesCsv: options.deployServicesCsv,

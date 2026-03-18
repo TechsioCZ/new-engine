@@ -26,10 +26,10 @@ function maskEnv(name: string): void {
 
 function requireAndMaskZaneProjectSlug(): void {
   requireEnv({
-    name: "ZANE_CANONICAL_PROJECT_SLUG",
-    description: "canonical Zane project slug",
+    name: "ZANE_PROJECT_SLUG",
+    description: "Zane project slug",
   })
-  maskEnv("ZANE_CANONICAL_PROJECT_SLUG")
+  maskEnv("ZANE_PROJECT_SLUG")
 }
 
 function validateMode(mode: WorkflowInputMode): void {
@@ -93,7 +93,10 @@ function validateMode(mode: WorkflowInputMode): void {
       maskEnv("ZANE_PRODUCTION_ENVIRONMENT_NAME")
       maskEnv("MEILI_BACKEND_KEY")
       maskEnv("MEILI_FRONTEND_KEY")
-      if (mode === "main-deploy" && process.env.REQUIRES_MEILI_KEYS === "true") {
+      if (
+        mode === "main-deploy" &&
+        process.env.REQUIRES_MEILI_KEYS === "true"
+      ) {
         requireEnv({
           name: "MEILISEARCH_URL",
           description: "Meilisearch base URL",
