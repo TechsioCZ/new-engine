@@ -301,18 +301,9 @@ export class ZaneOperatorClient {
     service_slug: string
     deployment_hash: string
   }): Promise<void> {
-    await this.#requestJson(
-      `/api/projects/${encodeURIComponent(payload.project_slug)}/${encodeURIComponent(
-        payload.environment_name
-      )}/cancel-deployment/${encodeURIComponent(payload.service_slug)}/${encodeURIComponent(
-        payload.deployment_hash
-      )}/`,
-      {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-        },
-      },
+    await this.#postJson(
+      "/v1/zane/deploy/cancel",
+      payload,
       () => null
     )
   }

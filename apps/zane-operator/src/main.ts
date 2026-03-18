@@ -3,6 +3,7 @@ import { loadConfig } from "./config"
 import { createDbClient, inspectFileCopyMethod } from "./db"
 import { handleApplyZaneEnvOverrides } from "./handlers/apply-zane-env-overrides"
 import { handleArchiveZaneEnvironment } from "./handlers/archive-zane-environment"
+import { handleCancelZaneDeploy } from "./handlers/cancel-zane-deploy"
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
 import { handleProvisionPreviewMeiliKeys } from "./handlers/provision-preview-meili-keys"
@@ -173,6 +174,15 @@ const server = Bun.serve({
       }
 
       return await handleTriggerZaneDeploy(request, { config })
+    }
+
+    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/cancel") {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleCancelZaneDeploy(request, { config })
     }
 
     if (request.method === "POST" && url.pathname === "/v1/zane/deploy/verify") {

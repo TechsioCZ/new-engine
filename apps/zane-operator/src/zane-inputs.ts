@@ -663,6 +663,21 @@ export function parseTriggerInput(rawPayload: unknown): {
   }
 }
 
+export function parseCancelDeployInput(rawPayload: unknown): {
+  projectSlug: string
+  environmentName: string
+  serviceSlug: string
+  deploymentHash: string
+} {
+  const payload = assertObject(rawPayload, "request body")
+  return {
+    projectSlug: normalizeProjectSlugFromPayload(payload),
+    environmentName: assertString(payload.environment_name, "environment_name"),
+    serviceSlug: assertString(payload.service_slug, "service_slug"),
+    deploymentHash: assertString(payload.deployment_hash, "deployment_hash"),
+  }
+}
+
 export function parseVerifyInput(rawPayload: unknown): VerifyDeployInput {
   const payload = assertObject(rawPayload, "request body")
   return {
