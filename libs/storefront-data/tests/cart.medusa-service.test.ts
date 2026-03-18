@@ -204,6 +204,38 @@ describe("createMedusaCartService", () => {
     expect(sdk.store.cart.complete).toHaveBeenCalledWith("cart_1")
   })
 
+  it("strips unsupported top-level country_code from cart create/update params", async () => {
+    const sdk = createSdkMock()
+    sdk.store.cart.create.mockResolvedValue({
+      cart: { id: "cart_created" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.update.mockResolvedValue({
+      cart: { id: "cart_updated" } as HttpTypes.StoreCart,
+    })
+
+    const service = createMedusaCartService(sdk as never)
+
+    await service.createCart({
+      region_id: "reg_1",
+      country_code: "cz",
+    } as never)
+    await service.updateCart("cart_1", {
+      country_code: "cz",
+      shipping_address: {
+        country_code: "cz",
+      },
+    } as never)
+
+    expect(sdk.store.cart.create).toHaveBeenCalledWith({
+      region_id: "reg_1",
+    })
+    expect(sdk.store.cart.update).toHaveBeenCalledWith("cart_1", {
+      shipping_address: {
+        country_code: "cz",
+      },
+    })
+  })
+
   it("throws clear errors when mutation responses miss cart payloads", async () => {
     const sdk = createSdkMock()
     sdk.store.cart.create.mockResolvedValue({})
@@ -246,4 +278,3 @@ describe("createMedusaCartService", () => {
     expect(sdk.store.cart.complete).toHaveBeenCalledWith("cart_1")
   })
 })
-

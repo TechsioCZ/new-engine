@@ -1,11 +1,12 @@
-import type { QueryKey } from "../shared/query-keys"
+import type { StorefrontCustomerAddressAdapter } from "../shared/address"
 import type {
-  MutationOptions,
   QueryResult,
   ReadResultBase,
   SuspenseQueryResult,
   SuspenseResultBase,
-} from "../shared/hook-types"
+} from "../shared/hook-result-types"
+import type { MutationOptions } from "../shared/hook-types"
+import type { QueryKey } from "../shared/query-keys"
 
 export type CustomerAddressListInputBase = {
   enabled?: boolean
@@ -71,12 +72,26 @@ export type UseCustomerAddressesResult<TAddress> = ReadResultBase<
   addresses: TAddress[]
 }
 
-export type UseSuspenseCustomerAddressesResult<TAddress> =
-  SuspenseResultBase<SuspenseQueryResult<CustomerAddressListResponse<TAddress>>> & {
-    addresses: TAddress[]
-  }
+export type UseSuspenseCustomerAddressesResult<TAddress> = SuspenseResultBase<
+  SuspenseQueryResult<CustomerAddressListResponse<TAddress>>
+> & {
+  addresses: TAddress[]
+}
 
-export type CustomerMutationOptions<TData, TVariables, TContext = unknown> =
-  MutationOptions<TData, TVariables, TContext>
+export type CustomerMutationOptions<
+  TData,
+  TVariables,
+  TContext = unknown,
+> = MutationOptions<TData, TVariables, TContext>
 
-export type CustomerAddressValidationResult = string[] | null
+export type CustomerAddressAdapter<
+  TCreateInput = CustomerAddressCreateInputBase,
+  TCreateParams = TCreateInput,
+  TUpdateInput = TCreateInput & { addressId?: string },
+  TUpdateParams = TCreateParams,
+> = StorefrontCustomerAddressAdapter<
+  TCreateInput,
+  TCreateParams,
+  TUpdateInput,
+  TUpdateParams
+>

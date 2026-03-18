@@ -83,6 +83,7 @@ describe("createCartHooks payload normalization", () => {
       await result.current.mutateAsync({
         cartId: "cart_1",
         region_id: "reg_1",
+        country_code: "cz",
         salesChannelId: "sc_2",
       })
     })
@@ -90,6 +91,7 @@ describe("createCartHooks payload normalization", () => {
     expect(receivedCartId).toBe("cart_1")
     expect(updatePayload).toMatchObject({
       region_id: "reg_1",
+      country_code: "cz",
       sales_channel_id: "sc_2",
     })
     expect(updatePayload).not.toHaveProperty("cartId")
