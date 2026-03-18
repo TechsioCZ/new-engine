@@ -360,6 +360,37 @@ function buildUrlChangeValue(url: ZaneServiceUrl): Record<string, unknown> {
   }
 }
 
+function buildBuilderChangeValue(value: {
+  builder: string
+  dockerfile_path: string
+  build_context_dir: string
+  build_stage_target: string | null
+}): Record<string, unknown> {
+  return {
+    builder: value.builder,
+    dockerfile_path: value.dockerfile_path,
+    build_context_dir: value.build_context_dir,
+    ...(typeof value.build_stage_target === "string" &&
+    value.build_stage_target.trim()
+      ? { build_stage_target: value.build_stage_target }
+      : {}),
+  }
+}
+
+function buildHealthcheckChangeValue(
+  healthcheck: ZaneServiceHealthcheck
+): Record<string, unknown> {
+  return {
+    type: healthcheck.type,
+    value: healthcheck.value,
+    timeout_seconds: healthcheck.timeout_seconds,
+    interval_seconds: healthcheck.interval_seconds,
+    ...(typeof healthcheck.associated_port === "number"
+      ? { associated_port: healthcheck.associated_port }
+      : {}),
+  }
+}
+
 function buildPreviewUrlDomain(
   projectSlug: string,
   serviceSlug: string,
@@ -934,12 +965,7 @@ export class ZaneEnvironmentManager {
     await this.requestServiceChange(session, input, spec.service_slug, {
       field: "builder",
       type: "UPDATE",
-      new_value: {
-        builder: desiredBuilder.builder,
-        dockerfile_path: desiredBuilder.dockerfile_path,
-        build_context_dir: desiredBuilder.build_context_dir,
-        build_stage_target: desiredBuilder.build_stage_target,
-      },
+      new_value: buildBuilderChangeValue(desiredBuilder),
     })
     logResolveEnvironmentEvent("resolve-environment.preview.spec.builder", {
       project_slug: input.projectSlug,
@@ -1231,13 +1257,7 @@ export class ZaneEnvironmentManager {
     await this.requestServiceChange(session, input, serviceSlug, {
       field: "healthcheck",
       type: "UPDATE",
-      new_value: {
-        type: healthcheck.type,
-        value: healthcheck.value,
-        timeout_seconds: healthcheck.timeout_seconds,
-        interval_seconds: healthcheck.interval_seconds,
-        associated_port: healthcheck.associated_port ?? null,
-      },
+      new_value: buildHealthcheckChangeValue(healthcheck),
     })
   }
 
