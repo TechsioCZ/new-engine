@@ -728,6 +728,23 @@ export class ZaneClient {
     return await ops.triggerDeploys(input)
   }
 
+  async cancelDeployment(input: {
+    projectSlug: string
+    environmentName: string
+    serviceSlug: string
+    deploymentHash: string
+  }): Promise<{
+    project_slug: string
+    environment_name: string
+    service_slug: string
+    deployment_hash: string
+    cancelled: boolean
+  }> {
+    const ops = this.createDeployOps()
+
+    return await ops.cancelDeployment(input)
+  }
+
   async provisionPreviewMeiliKeys(input: ProvisionPreviewMeiliKeysInput): Promise<{
     project_slug: string
     environment_name: string

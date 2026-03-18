@@ -493,6 +493,39 @@ export class ZaneDeployOps {
     }
   }
 
+  async cancelDeployment(input: {
+    projectSlug: string
+    environmentName: string
+    serviceSlug: string
+    deploymentHash: string
+  }): Promise<{
+    project_slug: string
+    environment_name: string
+    service_slug: string
+    deployment_hash: string
+    cancelled: boolean
+  }> {
+    const session = await this.#deps.authenticate()
+    await this.#deps.request(
+      session,
+      "PUT",
+      `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
+        input.environmentName
+      )}/cancel-deployment/${encodeURIComponent(input.serviceSlug)}/${encodeURIComponent(
+        input.deploymentHash
+      )}/`,
+      {}
+    )
+
+    return {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      service_slug: input.serviceSlug,
+      deployment_hash: input.deploymentHash,
+      cancelled: true,
+    }
+  }
+
   private async triggerDeployment(target: ZaneResolvedTarget, body: JsonRecord): Promise<void> {
     const response = await fetch(`${this.#deps.baseUrl}${target.deploy_url}`, {
       method: "PUT",
