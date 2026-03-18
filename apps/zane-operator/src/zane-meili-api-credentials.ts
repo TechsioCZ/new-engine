@@ -1,4 +1,5 @@
 import { BadRequestError } from "./db"
+import { buildServicePublicUrls } from "./zane-effective-service-urls"
 import { UpstreamHttpError } from "./zane-errors"
 import { assertPreviewLaneEnvironment } from "./zane-lane-environment"
 import type {
@@ -49,33 +50,6 @@ interface ProvisionPreviewMeiliApiCredentialsDeps {
     environmentName: string,
     serviceSlug: string,
   ): Promise<SearchProvisionServiceDetails>
-}
-
-function assertString(value: unknown, label: string): string {
-  if (typeof value !== "string") {
-    throw new BadRequestError(`${label} must be a string`)
-  }
-
-  const trimmed = value.trim()
-  if (!trimmed) {
-    throw new BadRequestError(`${label} cannot be empty`)
-  }
-
-  return trimmed
-}
-
-function buildServicePublicUrls(serviceDetails: SearchProvisionServiceDetails): string[] {
-  if (!Array.isArray(serviceDetails.urls)) {
-    return []
-  }
-
-  return serviceDetails.urls
-    .map((url, index) => {
-      const domain = assertString(url.domain, `service.urls[${index}].domain`)
-      const basePath = typeof url.base_path === "string" && url.base_path.trim() ? url.base_path.trim() : "/"
-      return new URL(basePath.startsWith("/") ? basePath : `/${basePath}`, `https://${domain}`).toString()
-    })
-    .filter((value, index, array) => array.indexOf(value) === index)
 }
 
 function resolveTemplateEnvValue(serviceDetails: SearchProvisionServiceDetails, value: string): string {
@@ -243,7 +217,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
       )
     }
 
-    const meiliMasterKey = getServiceEnvValue(serviceDetails, ["MEILI_MASTER_KEY", "MEILISEARCH_API_KEY"])
+    const meiliMasterKey = getServiceEnvValue(serviceDetails, ["MEILI_MASTER_KEY"])
     if (!meiliMasterKey) {
       throw new UpstreamHttpError(
         409,

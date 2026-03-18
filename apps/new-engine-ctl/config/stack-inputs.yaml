@@ -20,50 +20,56 @@ secret_materialization:
       scope: preview
       lifecycle: random_once
       materializer: ci
+      persist_to: service_env
       generator:
         kind: random_hex
         bytes: 32
       targets:
         - service_id: medusa-be
-          env_var: DC_JWT_SECRET
+          env_var: JWT_SECRET
 
     - secret_id: preview_cookie_secret
       scope: preview
       lifecycle: random_once
       materializer: ci
+      persist_to: service_env
       generator:
         kind: random_hex
         bytes: 32
       targets:
         - service_id: medusa-be
-          env_var: DC_COOKIE_SECRET
+          env_var: COOKIE_SECRET
 
     - secret_id: preview_settings_encryption_key
       scope: preview
       lifecycle: random_once
       materializer: ci
+      persist_to: service_env
       generator:
         kind: random_hex
         bytes: 32
       targets:
         - service_id: medusa-be
-          env_var: DC_SETTINGS_ENCRYPTION_KEY
+          env_var: SETTINGS_ENCRYPTION_KEY
 
     - secret_id: preview_superadmin_password
       scope: preview
       lifecycle: random_once
       materializer: ci
+      persist_to: service_env
       generator:
         kind: random_base64url
         bytes: 24
       targets:
         - service_id: medusa-be
-          env_var: DC_SUPERADMIN_PASSWORD
+          env_var: SUPERADMIN_PASSWORD
 
     - secret_id: preview_valkey_password
       scope: preview
       lifecycle: random_once
       materializer: ci
+      persist_to: zane_env
+      persisted_env_var: MEDUSA_VALKEY_PASSWORD
       generator:
         kind: random_base64url
         bytes: 24
@@ -77,28 +83,32 @@ secret_materialization:
       scope: preview
       lifecycle: random_once
       materializer: ci
+      persist_to: service_env
       generator:
         kind: random_alnum
         length: 16
       targets:
         - service_id: medusa-minio
-          env_var: DC_MINIO_ROOT_USER
+          env_var: MINIO_ROOT_USER
 
     - secret_id: preview_minio_root_password
       scope: preview
       lifecycle: random_once
       materializer: ci
+      persist_to: service_env
       generator:
         kind: random_base64url
         bytes: 24
       targets:
         - service_id: medusa-minio
-          env_var: DC_MINIO_ROOT_PASSWORD
+          env_var: MINIO_ROOT_PASSWORD
 
     - secret_id: preview_minio_access_key
       scope: preview
       lifecycle: random_once
       materializer: ci
+      persist_to: zane_env
+      persisted_env_var: MEDUSA_MINIO_ACCESS_KEY
       generator:
         kind: random_alnum
         length: 20
@@ -112,6 +122,8 @@ secret_materialization:
       scope: preview
       lifecycle: random_once
       materializer: ci
+      persist_to: zane_env
+      persisted_env_var: MEDUSA_MINIO_SECRET_KEY
       generator:
         kind: random_base64url
         bytes: 32
@@ -120,6 +132,19 @@ secret_materialization:
           env_var: DC_MINIO_SECRET_KEY
         - service_id: medusa-be
           env_var: DC_MINIO_SECRET_KEY
+
+    - secret_id: preview_meilisearch_master_key
+      scope: preview
+      lifecycle: random_once
+      materializer: ci
+      persist_to: zane_env
+      persisted_env_var: MEDUSA_MEILISEARCH_MASTER_KEY
+      generator:
+        kind: random_base64url
+        bytes: 32
+      targets:
+        - service_id: medusa-meilisearch
+          env_var: MEILI_MASTER_KEY
 
 runtime_providers:
   providers:
@@ -177,3 +202,105 @@ runtime_providers:
         - Target contract intentionally inactive until medusa-be exposes a stable runtime provisioning API.
         - Do not infer output shape or consumer mapping before the upstream contract exists.
       outputs: []
+
+preview_runtime_reconciliation:
+  shared_env:
+    - key: MEDUSA_DB_HOST
+      consumed_by_service_ids: [medusa-be]
+      source:
+        kind: service_global_network_alias
+        service_id: medusa-db
+        environment_scope: source
+
+    - key: MEDUSA_VALKEY_HOST
+      consumed_by_service_ids: [medusa-be]
+      source:
+        kind: service_network_alias
+        service_id: medusa-valkey
+
+    - key: MEDUSA_MEILISEARCH_HOST
+      consumed_by_service_ids: [medusa-be]
+      source:
+        kind: service_network_alias
+        service_id: medusa-meilisearch
+
+    - key: MEDUSA_APP_DB_NAME
+      consumed_by_service_ids: [medusa-be]
+      source:
+        kind: prepare_preview_db_name
+
+    - key: MEDUSA_APP_DB_USER
+      consumed_by_service_ids: [medusa-be]
+      source:
+        kind: prepare_preview_db_user
+
+    - key: MEDUSA_APP_DB_PASSWORD
+      consumed_by_service_ids: [medusa-be]
+      source:
+        kind: prepare_preview_db_password
+
+  service_env:
+    - service_id: medusa-be
+      env_var: MEDUSA_BACKEND_URL
+      source:
+        kind: service_public_origin
+        service_id: medusa-be
+
+    - service_id: medusa-be
+      env_var: STORE_CORS
+      source:
+        kind: service_public_origin
+        service_id: n1
+
+    - service_id: medusa-be
+      env_var: ADMIN_CORS
+      source:
+        kind: service_public_origin
+        service_id: medusa-be
+
+    - service_id: medusa-be
+      env_var: AUTH_CORS
+      source:
+        kind: service_public_origin
+        service_id: medusa-be
+
+    - service_id: medusa-be
+      env_var: MINIO_ENDPOINT
+      source:
+        kind: service_internal_origin
+        service_id: medusa-minio
+        port: 9004
+        trailing_slash: true
+
+    - service_id: medusa-be
+      env_var: MINIO_FILE_URL
+      source:
+        kind: service_internal_bucket_url
+        service_id: medusa-minio
+        port: 9004
+        bucket_shared_env_key: MEDUSA_MINIO_BUCKET
+
+    - service_id: n1
+      env_var: MEDUSA_BACKEND_URL_INTERNAL
+      source:
+        kind: service_internal_origin
+        service_id: medusa-be
+        port: 9000
+
+    - service_id: n1
+      env_var: NEXT_PUBLIC_MEDUSA_BACKEND_URL
+      source:
+        kind: service_public_origin
+        service_id: medusa-be
+
+    - service_id: n1
+      env_var: NEXT_PUBLIC_MEILISEARCH_URL
+      source:
+        kind: service_public_origin
+        service_id: medusa-meilisearch
+
+    - service_id: n1
+      env_var: NEXT_PUBLIC_SITE_URL
+      source:
+        kind: service_public_origin
+        service_id: n1

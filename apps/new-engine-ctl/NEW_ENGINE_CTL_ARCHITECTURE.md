@@ -105,10 +105,13 @@ Phase intent:
 - `prepare` is for shared-resource prerequisites and input validation only.
 - runtime-provider execution belongs in deploy orchestration after the provider source service is deployed and healthy.
 - preview deploy owns preview commit metadata sequencing: write `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` before deploy stages start, set `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=false` while a baseline run is in progress, and advance `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` plus `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true` only as the final successful deploy-stage metadata update
-- preview deploy owns preview random-once secret materialization policy: baseline runs materialize missing preview-owned random-once values onto the actual preview service env vars they target before staged deploy begins; later preview runs reuse those stored service-env values rather than regenerating them
+- preview deploy owns preview random-once secret materialization policy: baseline runs materialize missing preview-owned random-once values onto the existing shared preview env keys and existing service env keys those services actually consume before staged deploy begins; later preview runs reuse those stored values rather than regenerating them
+- preview runtime reconciliation is data-driven from `apps/new-engine-ctl/config/stack-inputs.yaml` under `preview_runtime_reconciliation`; that YAML is the single source of truth for preview shared-env and service-env rewrites, and command code should interpret it rather than re-encode those mappings
+- preview deploy also persists preview DB credentials returned by `prepare`/preview DB ensure onto the existing `MEDUSA_APP_DB_*` preview env keys once the preview environment exists
 - `verify` proves contract-owned env/application results after deploy completes.
 - preview deploy, not workflow YAML, decides whether a run is baseline replay or redeploy-only by combining environment existence with `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`.
 - preview route identity is repo-owned. When a preview environment is cloned or reused, authenticated URL reconciliation and preview-excluded service cleanup belong in `zane-operator` and deploy/baseline policy stays in `apps/new-engine-ctl`.
+- preview shared-env reconciliation is also repo-owned and typed: preview deploy syncs the existing shared host/DB keys from the preview environment topology plus prepared DB credentials before service deploy stages consume them.
 
 ## App Structure
 
@@ -162,3 +165,6 @@ Examples of potentially reusable lower-level pieces later:
 - provider execution primitives
 
 The orchestration model itself remains repo-owned unless a later explicit decision changes that.
+- Preview and main deploys treat `MEDUSA_MEILISEARCH_MASTER_KEY` as infrastructure state for `medusa-meilisearch` plus operator provisioning only.
+- `medusa-be` consumes the scoped backend key materialized onto `MEILISEARCH_API_KEY`; `n1` consumes the scoped frontend key materialized onto `NEXT_PUBLIC_MEILISEARCH_API_KEY`.
+- Runtime Meilisearch fallback is intentionally absent. Only helper/operator input surfaces may fall back from `MEILISEARCH_MASTER_KEY` to `DC_MEILISEARCH_MASTER_KEY` when accepting local/operator CLI inputs.

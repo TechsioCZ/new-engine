@@ -31,6 +31,8 @@ export interface WritePreviewCommitStateInput {
 export interface PreviewRandomOnceSecretValueInput {
   secretId: string
   value?: string
+  persistTo?: string
+  persistedEnvVar?: string
   targets: Array<{
     serviceSlug: string
     envVar: string
@@ -41,6 +43,44 @@ export interface SyncPreviewRandomOnceSecretsInput {
   projectSlug: string
   environmentName: string
   secrets: PreviewRandomOnceSecretValueInput[]
+}
+
+export interface SyncPreviewSharedEnvInput {
+  projectSlug: string
+  environmentName: string
+  variables: Array<{
+    key: string
+    source: PreviewRuntimeValueSourceInput
+  }>
+}
+
+export interface PreviewRuntimeValueSourceInput {
+  kind:
+    | "literal"
+    | "service_network_alias"
+    | "service_global_network_alias"
+    | "service_public_origin"
+    | "service_internal_origin"
+    | "service_internal_bucket_url"
+  value?: string
+  serviceSlug?: string
+  sourceEnvironmentName?: string
+  port?: number
+  trailingSlash?: boolean
+  bucketSharedEnvKey?: string
+}
+
+export interface SyncPreviewServiceEnvInput {
+  projectSlug: string
+  environmentName: string
+  services: Array<{
+    service_id: string
+    service_slug: string
+    env: Array<{
+      env_var: string
+      source: PreviewRuntimeValueSourceInput
+    }>
+  }>
 }
 
 export interface MeiliApiCredentialsPolicy {
@@ -93,6 +133,10 @@ export interface PersistedEnvRequirement {
   env_keys: string[]
 }
 
+export interface SharedEnvRequirement {
+  key: string
+}
+
 export interface ForbiddenEnvRequirement {
   service_id: string
   service_slug: string
@@ -110,6 +154,7 @@ export interface VerifyDeployInput {
   excludedPreviewServiceSlugs: string[]
   expectedEnvOverrides: EnvOverrideInput[]
   requiredPersistedEnv: PersistedEnvRequirement[]
+  requiredSharedEnv: SharedEnvRequirement[]
   forbiddenEnv: ForbiddenEnvRequirement[]
   deployments: VerifyDeploymentRef[]
 }
@@ -181,6 +226,7 @@ export interface ZaneServiceDetails {
   slug: string
   type: ServiceType
   network_alias?: string | null
+  global_network_alias?: string | null
   commit_sha?: string | null
   deploy_token: string
   repository_url?: string

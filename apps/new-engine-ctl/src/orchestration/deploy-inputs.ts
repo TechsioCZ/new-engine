@@ -5,6 +5,7 @@ import { parse as parseYaml } from "yaml"
 import {
   getPreviewRandomOnceSecretDefinitions,
   getRuntimeProviderTargetEnvVar,
+  previewRandomOnceSecretPersistsToZaneEnv,
   type StackInputs,
   stackInputsSchema,
 } from "../contracts/stack-inputs.js"
@@ -15,6 +16,10 @@ import {
   type StackManifest,
   stackManifestSchema,
 } from "../contracts/stack-manifest.js"
+import {
+  buildPreviewRequiredServiceEnvKeys,
+  buildPreviewRequiredSharedEnvKeys,
+} from "./preview-runtime-reconciliation.js"
 import type {
   EnvOverride,
   ForbiddenEnvRequirement,
@@ -42,6 +47,10 @@ export type DeployEnvContext = {
   meiliFrontendEnvVar: string
   meiliBackendKey: string
   meiliApiCredentialEnvVars: MeiliApiCredentialEnvVars
+}
+
+export type RequiredSharedEnv = {
+  key: string
 }
 
 export function normalizeCsvToArray(csv: string): string[] {
@@ -126,40 +135,16 @@ export function getMeiliApiCredentialEnvVars(
   }
 }
 
-function requirePreviewDbInputs(
-  context: DeployEnvContext,
-  serviceId: string
-): void {
-  if (!context.previewDbName) {
-    throw new Error(`Preview DB name is required for service ${serviceId}.`)
-  }
-
-  if (!context.previewDbUser) {
-    throw new Error(`Preview DB user is required for service ${serviceId}.`)
-  }
-
-  if (!context.previewDbPassword) {
-    throw new Error(`Preview DB password is required for service ${serviceId}.`)
-  }
-}
-
-function appendPreviewDbEnv(
-  env: Record<string, string>,
-  context: DeployEnvContext,
-  serviceId: string
-): void {
-  requirePreviewDbInputs(context, serviceId)
-  env.DC_MEDUSA_APP_DB_NAME = context.previewDbName
-  env.DC_MEDUSA_APP_DB_USER = context.previewDbUser
-  env.DC_MEDUSA_APP_DB_PASSWORD = context.previewDbPassword
-}
-
 function appendPreviewRandomOnceEnv(
   env: Record<string, string>,
   context: DeployEnvContext,
   serviceId: string
 ): void {
   for (const secret of context.previewRandomOnceSecrets) {
+    if (previewRandomOnceSecretPersistsToZaneEnv(secret)) {
+      continue
+    }
+
     for (const target of secret.targets) {
       if (target.service_id === serviceId) {
         env[target.env_var] = secret.value
@@ -201,10 +186,6 @@ function buildServiceEnvOverride(
   context: DeployEnvContext
 ): EnvOverride | null {
   const env: Record<string, string> = {}
-
-  if (context.lane === "preview" && service.consumes.preview_db) {
-    appendPreviewDbEnv(env, context, service.id)
-  }
 
   if (context.lane === "preview") {
     appendPreviewRandomOnceEnv(env, context, service.id)
@@ -265,12 +246,6 @@ function buildPersistedEnvKeysForService(
     contracts.stackInputs
   )
 
-  if (lane === "preview" && service.consumes.preview_db) {
-    addPersistedEnvKey(envKeys, seen, "DC_MEDUSA_APP_DB_NAME")
-    addPersistedEnvKey(envKeys, seen, "DC_MEDUSA_APP_DB_USER")
-    addPersistedEnvKey(envKeys, seen, "DC_MEDUSA_APP_DB_PASSWORD")
-  }
-
   if (service.consumes.meili_frontend_key) {
     addPersistedEnvKey(envKeys, seen, meiliApiCredentialEnvVars.frontend)
   }
@@ -281,6 +256,10 @@ function buildPersistedEnvKeysForService(
 
   if (lane === "preview") {
     for (const secret of definitions) {
+      if (previewRandomOnceSecretPersistsToZaneEnv(secret)) {
+        continue
+      }
+
       for (const target of secret.targets) {
         if (target.service_id === service.id) {
           addPersistedEnvKey(envKeys, seen, target.env_var)
@@ -301,7 +280,7 @@ export function buildRequiredPersistedEnv(
     contracts.stackInputs
   )
 
-  return deployServiceIds.flatMap((serviceId) => {
+  const persisted = deployServiceIds.flatMap((serviceId) => {
     const service = getDeployableService(contracts.manifest, serviceId)
     const envKeys = buildPersistedEnvKeysForService(
       service,
@@ -322,6 +301,79 @@ export function buildRequiredPersistedEnv(
       },
     ]
   })
+
+  if (lane !== "preview") {
+    return persisted
+  }
+
+  const runtimeEnvRequirements = buildPreviewRequiredServiceEnvKeys({
+    stackInputs: contracts.stackInputs,
+    manifest: contracts.manifest,
+    deployServiceIds,
+  })
+  const byServiceId = new Map(
+    persisted.map((requirement) => [requirement.service_id, requirement])
+  )
+
+  for (const runtimeRequirement of runtimeEnvRequirements) {
+    const existing = byServiceId.get(runtimeRequirement.service_id)
+    if (!existing) {
+      persisted.push(runtimeRequirement)
+      byServiceId.set(runtimeRequirement.service_id, runtimeRequirement)
+      continue
+    }
+
+    existing.env_keys = normalizeCsvToArray(
+      [...existing.env_keys, ...runtimeRequirement.env_keys].join(",")
+    )
+  }
+
+  return persisted
+}
+
+export function buildRequiredSharedEnv(
+  lane: Lane,
+  deployServiceIds: string[],
+  contracts: DeployContracts
+): RequiredSharedEnv[] {
+  if (lane !== "preview") {
+    return []
+  }
+
+  const envKeys: string[] = []
+  const seen = new Set<string>()
+  const randomOnceDefinitions = getPreviewRandomOnceSecretDefinitions(
+    contracts.stackInputs
+  )
+
+  for (const key of buildPreviewRequiredSharedEnvKeys({
+    stackInputs: contracts.stackInputs,
+    deployServiceIds,
+  })) {
+    addPersistedEnvKey(envKeys, seen, key)
+  }
+
+  for (const secret of randomOnceDefinitions) {
+    if (!previewRandomOnceSecretPersistsToZaneEnv(secret)) {
+      continue
+    }
+
+    if (!secret.persisted_env_var) {
+      throw new Error(
+        `Preview secret ${secret.secret_id} persists to zane_env but missing persisted_env_var.`
+      )
+    }
+
+    const isConsumedByDeploy = secret.targets.some((target) =>
+      deployServiceIds.includes(target.service_id)
+    )
+
+    if (isConsumedByDeploy) {
+      addPersistedEnvKey(envKeys, seen, secret.persisted_env_var)
+    }
+  }
+
+  return envKeys.map((key) => ({ key }))
 }
 
 export function buildForbiddenPreviewOnlyEnv(
@@ -349,6 +401,10 @@ export function buildForbiddenPreviewOnlyEnv(
     }
 
     for (const secret of randomOnceDefinitions) {
+      if (previewRandomOnceSecretPersistsToZaneEnv(secret)) {
+        continue
+      }
+
       for (const target of secret.targets) {
         if (target.service_id === service.id) {
           addPersistedEnvKey(envKeys, seen, target.env_var)

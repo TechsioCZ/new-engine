@@ -3,12 +3,15 @@ import type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
   Lane,
+  PreviewRuntimeValueSourceInput,
   ProvisionPreviewMeiliKeysInput,
   ReadPreviewCommitStateInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
   ServiceType,
   SyncPreviewRandomOnceSecretsInput,
+  SyncPreviewServiceEnvInput,
+  SyncPreviewSharedEnvInput,
   TriggeredDeployment,
   VerifyDeployInput,
   WritePreviewCommitStateInput,
@@ -28,6 +31,7 @@ import { ZaneDeployOps } from "./zane-deploy-ops"
 import { ZaneDeployVerifier } from "./zane-deploy-verify"
 import { ZaneEnvironmentManager } from "./zane-environments"
 import { computeEffectiveEnvVariables } from "./zane-effective-service-state"
+import { buildServicePublicUrls } from "./zane-effective-service-urls"
 import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 export type {
   ArchiveEnvironmentInput,
@@ -72,6 +76,17 @@ interface ZaneEnvironmentWithVariables extends ZaneEnvironment {
     key: string
     value: string
   }>
+}
+
+interface PreviewRuntimeSourceContext {
+  session: ZaneSession
+  projectSlug: string
+  environmentName: string
+  environment: ZaneEnvironmentWithVariables
+  envByKey: Map<string, { id: string; key: string; value: string }>
+  source: PreviewRuntimeValueSourceInput
+  label: string
+  serviceDetailsByRef: Map<string, ZaneServiceDetails>
 }
 
 const previewTargetCommitEnvKey = "ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA"
@@ -134,6 +149,10 @@ function normalizeServiceDetails(payload: unknown, label: string): ZaneServiceDe
     id: assertString(object.id, `${label}.id`),
     slug: assertString(object.slug, `${label}.slug`),
     type: assertServiceType(object.type, `${label}.type`),
+    global_network_alias:
+      typeof object.global_network_alias === "string"
+        ? object.global_network_alias
+        : null,
     deploy_token: assertString(object.deploy_token, `${label}.deploy_token`),
     env_variables: Array.isArray(object.env_variables)
       ? (object.env_variables as ZaneEnvVariable[])
@@ -142,6 +161,12 @@ function normalizeServiceDetails(payload: unknown, label: string): ZaneServiceDe
       ? (object.urls as ZaneServiceDetails["urls"])
       : [],
   }
+}
+
+function previewRandomOnceSecretPersistsToZaneEnv(secret: {
+  persistTo?: string
+}): boolean {
+  return (secret.persistTo ?? "zane_env") === "zane_env"
 }
 
 export class ZaneClient {
@@ -405,11 +430,78 @@ export class ZaneClient {
       )
     }
 
+    const envByKey = new Map(
+      environment.variables.map((variable) => [variable.key, variable]),
+    )
     const serviceDetailsBySlug = new Map<string, ZaneServiceDetails>()
     const secrets: Array<{ secret_id: string; value: string }> = []
     const missingSecretIds: string[] = []
 
     for (const secret of input.secrets) {
+      if (previewRandomOnceSecretPersistsToZaneEnv(secret)) {
+        if (!secret.persistedEnvVar) {
+          throw new UpstreamHttpError(
+            400,
+            "preview_secret_persisted_env_missing",
+            `Preview secret ${secret.secretId} is missing persisted_env_var`,
+          )
+        }
+
+        if (secret.value) {
+          const persisted = await this.syncResolvedPreviewSharedVariables({
+            session,
+            projectSlug: input.projectSlug,
+            environmentName: input.environmentName,
+            environment,
+            envByKey,
+            variables: [
+              {
+                key: secret.persistedEnvVar,
+                source: {
+                  kind: "literal",
+                  value: secret.value,
+                },
+              },
+            ],
+          })
+          const persistedValue = persisted[0]?.value
+
+          if (!persistedValue) {
+            throw new UpstreamHttpError(
+              500,
+              "preview_secret_write_failed",
+              `Failed to persist preview random-once secret ${secret.secretId} to ${secret.persistedEnvVar}`,
+            )
+          }
+
+          secrets.push({
+            secret_id: secret.secretId,
+            value: persistedValue,
+          })
+          continue
+        }
+
+        const existingSharedValue = envByKey.get(secret.persistedEnvVar)?.value
+        if (existingSharedValue) {
+          secrets.push({
+            secret_id: secret.secretId,
+            value: existingSharedValue,
+          })
+          continue
+        }
+
+        missingSecretIds.push(secret.secretId)
+        continue
+      }
+
+      if (secret.value) {
+        secrets.push({
+          secret_id: secret.secretId,
+          value: secret.value,
+        })
+        continue
+      }
+
       const resolvedValues = new Set<string>()
 
       for (const target of secret.targets) {
@@ -455,10 +547,7 @@ export class ZaneClient {
         continue
       }
 
-      secrets.push({
-        secret_id: secret.secretId,
-        value: secret.value,
-      })
+      missingSecretIds.push(secret.secretId)
     }
 
     return {
@@ -468,6 +557,123 @@ export class ZaneClient {
       secrets,
       missing_secret_ids: missingSecretIds,
     }
+  }
+
+  async syncPreviewSharedEnv(input: SyncPreviewSharedEnvInput): Promise<{
+    project_slug: string
+    environment_name: string
+    environment_exists: boolean
+    variables: Array<{
+      key: string
+      value: string
+    }>
+  }> {
+    const session = await this.authenticate()
+    const environment = await this.getEnvironment(
+      session,
+      input.projectSlug,
+      input.environmentName,
+    )
+
+    if (!environment) {
+      throw new UpstreamHttpError(
+        404,
+        "zane_environment_not_found",
+        `Environment ${input.projectSlug}/${input.environmentName} was not found`,
+      )
+    }
+
+    const envByKey = new Map(
+      environment.variables.map((variable) => [variable.key, variable]),
+    )
+    const variables = await this.syncResolvedPreviewSharedVariables({
+      session,
+      projectSlug: input.projectSlug,
+      environmentName: input.environmentName,
+      environment,
+      envByKey,
+      variables: input.variables,
+    })
+
+    return {
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      environment_exists: true,
+      variables,
+    }
+  }
+
+  async syncPreviewServiceEnv(input: SyncPreviewServiceEnvInput): Promise<{
+    project_slug: string
+    environment_name: string
+    noop: boolean
+    applied_service_ids: string[]
+    applied_changes: Array<{
+      service_id: string
+      service_slug: string
+      key: string
+      change_type: "ADD" | "UPDATE" | "SKIP"
+    }>
+  }> {
+    const session = await this.authenticate()
+    const environment = await this.getEnvironment(
+      session,
+      input.projectSlug,
+      input.environmentName,
+    )
+
+    if (!environment) {
+      throw new UpstreamHttpError(
+        404,
+        "zane_environment_not_found",
+        `Environment ${input.projectSlug}/${input.environmentName} was not found`,
+      )
+    }
+
+    const envByKey = new Map(
+      environment.variables.map((variable) => [variable.key, variable]),
+    )
+    const serviceDetailsByRef = new Map<string, ZaneServiceDetails>()
+    const envOverrides = await Promise.all(
+      input.services.map(async (service) => ({
+        service_id: service.service_id,
+        service_slug: service.service_slug,
+        env: Object.fromEntries(
+          await Promise.all(
+            service.env.map(async (envVar) => [
+              envVar.env_var,
+              await this.resolvePreviewRuntimeValueSource({
+                session,
+                projectSlug: input.projectSlug,
+                environmentName: input.environmentName,
+                environment,
+                envByKey,
+                source: envVar.source,
+                label: `${service.service_slug}.${envVar.env_var}`,
+                serviceDetailsByRef,
+              }),
+            ]),
+          ),
+        ),
+      })),
+    )
+
+    const ops = this.createDeployOps()
+    const targets = await ops.resolveTargets({
+      projectSlug: input.projectSlug,
+      environmentName: input.environmentName,
+      services: input.services.map((service) => ({
+        service_id: service.service_id,
+        service_slug: service.service_slug,
+      })),
+    })
+
+    return await ops.applyEnvOverrides({
+      projectSlug: input.projectSlug,
+      environmentName: input.environmentName,
+      targets: targets.services,
+      envOverrides,
+    })
   }
 
   async resolveTargets(input: {
@@ -648,6 +854,191 @@ export class ZaneClient {
     }
 
     return input.value
+  }
+
+  private async syncResolvedPreviewSharedVariables(input: {
+    session: ZaneSession
+    projectSlug: string
+    environmentName: string
+    environment: ZaneEnvironmentWithVariables
+    envByKey: Map<string, { id: string; key: string; value: string }>
+    variables: SyncPreviewSharedEnvInput["variables"]
+  }): Promise<Array<{ key: string; value: string }>> {
+    const serviceDetailsByRef = new Map<string, ZaneServiceDetails>()
+    const variables: Array<{ key: string; value: string }> = []
+
+    for (const variable of input.variables) {
+      const resolvedValue = await this.resolvePreviewSharedVariableValue({
+        session: input.session,
+        projectSlug: input.projectSlug,
+        environmentName: input.environmentName,
+        environment: input.environment,
+        envByKey: input.envByKey,
+        source: variable.source,
+        label: variable.key,
+        serviceDetailsByRef,
+      })
+
+      const persistedValue = await this.upsertSharedEnvironmentVariable({
+        session: input.session,
+        projectSlug: input.projectSlug,
+        environmentName: input.environmentName,
+        envByKey: input.envByKey,
+        key: variable.key,
+        value: resolvedValue,
+      })
+
+      if (!persistedValue) {
+        throw new UpstreamHttpError(
+          500,
+          "preview_shared_env_write_failed",
+          `Failed to persist preview shared env ${variable.key}`,
+        )
+      }
+
+      variables.push({
+        key: variable.key,
+        value: persistedValue,
+      })
+    }
+
+    return variables
+  }
+
+  private async resolvePreviewSharedVariableValue(input: {
+    session: ZaneSession
+    projectSlug: string
+    environmentName: string
+    environment: ZaneEnvironmentWithVariables
+    envByKey: Map<string, { id: string; key: string; value: string }>
+    source: PreviewRuntimeValueSourceInput
+    label: string
+    serviceDetailsByRef: Map<string, ZaneServiceDetails>
+  }): Promise<string> {
+    return await this.resolvePreviewRuntimeValueSource(input)
+  }
+
+  private async resolvePreviewRuntimeValueSource(
+    input: PreviewRuntimeSourceContext
+  ): Promise<string> {
+    switch (input.source.kind) {
+      case "literal": {
+        if (!input.source.value) {
+          throw new UpstreamHttpError(
+            400,
+            "preview_runtime_value_missing",
+            `Preview runtime source ${input.label} requires an explicit value`,
+          )
+        }
+
+        return input.source.value
+      }
+      case "service_network_alias": {
+        const serviceDetails = await this.getCachedPreviewRuntimeServiceDetails(input)
+        const value = serviceDetails.network_alias?.trim()
+        if (!value) {
+          throw this.createPreviewRuntimeSourceMissingError(input, serviceDetails.slug)
+        }
+
+        return value
+      }
+      case "service_global_network_alias": {
+        const serviceDetails = await this.getCachedPreviewRuntimeServiceDetails(input)
+        const value = serviceDetails.global_network_alias?.trim()
+        if (!value) {
+          throw this.createPreviewRuntimeSourceMissingError(input, serviceDetails.slug)
+        }
+
+        return value
+      }
+      case "service_public_origin": {
+        const serviceDetails = await this.getCachedPreviewRuntimeServiceDetails(input)
+        const publicUrl = buildServicePublicUrls(serviceDetails)[0]
+        if (!publicUrl) {
+          throw this.createPreviewRuntimeSourceMissingError(input, serviceDetails.slug)
+        }
+
+        return new URL(publicUrl).origin
+      }
+      case "service_internal_origin": {
+        const serviceDetails = await this.getCachedPreviewRuntimeServiceDetails(input)
+        const alias = serviceDetails.network_alias?.trim()
+        const port = input.source.port
+        if (!alias || !port) {
+          throw this.createPreviewRuntimeSourceMissingError(input, serviceDetails.slug)
+        }
+
+        const origin = new URL(`http://${alias}:${port}`).toString().replace(/\/$/, "")
+        return input.source.trailingSlash ? `${origin}/` : origin
+      }
+      case "service_internal_bucket_url": {
+        const serviceDetails = await this.getCachedPreviewRuntimeServiceDetails(input)
+        const alias = serviceDetails.network_alias?.trim()
+        const port = input.source.port
+        const bucketSharedEnvKey = input.source.bucketSharedEnvKey?.trim()
+        if (!alias || !port || !bucketSharedEnvKey) {
+          throw this.createPreviewRuntimeSourceMissingError(input, serviceDetails.slug)
+        }
+
+        const bucketName = input.envByKey.get(bucketSharedEnvKey)?.value?.trim()
+        if (!bucketName) {
+          throw new UpstreamHttpError(
+            409,
+            "preview_runtime_bucket_missing",
+            `Could not resolve ${input.label} because ${bucketSharedEnvKey} is missing in ${input.projectSlug}/${input.environment.name}`,
+          )
+        }
+
+        return new URL(
+          `/${encodeURIComponent(bucketName)}`,
+          `http://${alias}:${port}`,
+        ).toString()
+      }
+    }
+  }
+
+  private async getCachedPreviewRuntimeServiceDetails(
+    input: PreviewRuntimeSourceContext
+  ): Promise<ZaneServiceDetails> {
+    const serviceSlug = input.source.serviceSlug?.trim()
+    if (!serviceSlug) {
+      throw new UpstreamHttpError(
+        400,
+        "preview_runtime_service_missing",
+        `Preview runtime source ${input.label} requires service_slug`,
+      )
+    }
+
+    const sourceEnvironmentName =
+      input.source.sourceEnvironmentName ?? input.environmentName
+    const cacheKey = `${sourceEnvironmentName}/${serviceSlug}`
+    const cached = input.serviceDetailsByRef.get(cacheKey)
+    if (cached) {
+      return cached
+    }
+
+    const serviceDetails = await this.getServiceDetails(
+      input.session,
+      input.projectSlug,
+      sourceEnvironmentName,
+      serviceSlug,
+    )
+    input.serviceDetailsByRef.set(cacheKey, serviceDetails)
+    return serviceDetails
+  }
+
+  private createPreviewRuntimeSourceMissingError(
+    input: PreviewRuntimeSourceContext,
+    serviceSlug: string,
+  ): UpstreamHttpError {
+    const sourceEnvironmentName =
+      input.source.sourceEnvironmentName ?? input.environmentName
+
+    return new UpstreamHttpError(
+      409,
+      "preview_runtime_source_missing",
+      `Could not resolve ${input.label} from ${input.projectSlug}/${sourceEnvironmentName}/${serviceSlug} using ${input.source.kind}`,
+    )
   }
 
   private buildUpstreamHeaders(session: ZaneSession | undefined, method: HttpMethod): Record<string, string> {

@@ -6,6 +6,7 @@ import type {
   EnvOverride,
   ForbiddenEnvRequirement,
   RequiredPersistedEnv,
+  RequiredSharedEnv,
   VerifyCommandInput,
   VerifyDeployPayload,
   VerifyResponse,
@@ -15,6 +16,7 @@ import {
   buildExpectedEnvOverrides,
   buildForbiddenPreviewOnlyEnv,
   buildRequiredPersistedEnv,
+  buildRequiredSharedEnv,
   getMeiliApiCredentialEnvVars,
   loadDeployContracts,
   normalizeCsvToArray,
@@ -28,6 +30,7 @@ type DryRunResponseOptions = {
   expectedPreviewServiceSlugs: string[]
   expectedEnvOverrides: EnvOverride[]
   requiredPersistedEnv: RequiredPersistedEnv[]
+  requiredSharedEnv: RequiredSharedEnv[]
   forbiddenEnv: ForbiddenEnvRequirement[]
 }
 
@@ -44,6 +47,7 @@ function buildDryRunResponse({
   expectedPreviewServiceSlugs,
   expectedEnvOverrides,
   requiredPersistedEnv,
+  requiredSharedEnv,
   forbiddenEnv,
 }: DryRunResponseOptions): VerifyResponse {
   return {
@@ -62,6 +66,7 @@ function buildDryRunResponse({
     checked_persisted_env_service_ids: requiredPersistedEnv.map(
       (requirement) => requirement.service_id
     ),
+    checked_shared_env_keys: requiredSharedEnv.map((requirement) => requirement.key),
     checked_forbidden_env_service_ids: forbiddenEnv.map(
       (requirement) => requirement.service_id
     ),
@@ -159,6 +164,11 @@ export async function executeVerify(
     deployServiceIds,
     contracts
   )
+  const requiredSharedEnv = buildRequiredSharedEnv(
+    input.lane,
+    deployServiceIds,
+    contracts
+  )
   const forbiddenEnv = buildForbiddenPreviewOnlyEnv(
     input.lane,
     deployServiceIds,
@@ -175,6 +185,7 @@ export async function executeVerify(
     excluded_preview_service_slugs: excludedPreviewServiceSlugs,
     expected_env_overrides: expectedEnvOverrides,
     required_persisted_env: requiredPersistedEnv,
+    required_shared_env: requiredSharedEnv,
     forbidden_env: forbiddenEnv,
     deployments: input.deployments.map(
       ({ deployment_hash, service_id, service_slug }: DeploymentRef) => ({
@@ -194,6 +205,7 @@ export async function executeVerify(
         expectedPreviewServiceSlugs,
         expectedEnvOverrides,
         requiredPersistedEnv,
+        requiredSharedEnv,
         forbiddenEnv,
       })
     : await new ZaneOperatorClient(input.baseUrl, input.apiToken).verifyDeploy(

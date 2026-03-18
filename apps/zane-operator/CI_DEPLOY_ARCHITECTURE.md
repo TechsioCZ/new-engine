@@ -136,9 +136,14 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 ## Deploy Input Contract
 
 - The shared deploy-input contract lives in `apps/new-engine-ctl/config/stack-inputs.yaml`.
-- Preview first-creation random-once secrets are CI-generated from that contract, discovered from existing preview service env when present, and otherwise materialized onto the actual preview service env vars they target through the deploy path.
+- Preview first-creation random-once secrets are CI-generated from that contract and land on exactly two planes only:
+  service-shared secrets overwrite the existing preview environment shared env keys already defined by the project/env contract
+  service-specific secrets overwrite the existing service env keys those services actually consume
 - Those generated preview secrets must be created exactly once per preview environment creation/baseline materialization and reused for all later preview deploy/verify runs unless the preview environment is recreated.
-- Baseline deploy must persist preview-owned random-once values onto the actual preview service env vars before staged deploy begins so cloned main values are overwritten before preview services are deployed.
+- Baseline deploy must not invent new preview env variable names beyond explicit `ZANE_OPERATOR_PREVIEW_*` metadata keys. It must only overwrite the existing shared preview env keys and existing service env keys defined by the contract.
+- The contract for those preview shared/service env rewrites is repo-owned in `apps/new-engine-ctl/config/stack-inputs.yaml` under `preview_runtime_reconciliation`; `zane-operator` executes typed source resolution from CTL payloads and must not grow a second hardcoded mapping table.
+- Preview DB credentials produced by `prepare`/preview DB ensure are part of that shared-env plane and must overwrite the existing `MEDUSA_APP_DB_*` preview env keys before preview deploy depends on them.
+- Preview shared host keys are part of that same plane. The active preview contract keys are `MEDUSA_DB_HOST`, `MEDUSA_VALKEY_HOST`, and `MEDUSA_MEILISEARCH_HOST`; preview deploy must reconcile them from the canonical source/preview service topology before deploy or verify depends on them.
 - The deploy path must support prepared inputs produced before deploy starts.
   - Current example: preview DB credentials returned by `prepare`.
 - The deploy path must support runtime-provisioned inputs produced only after a prerequisite service is healthy.
@@ -245,3 +250,6 @@ Do not treat CI deploy implementation as complete until:
 - active workflows call that orchestration surface directly, without a superseded shell deploy wrapper
 - obsolete placeholder deploy/verify jobs are removed
 - this file and active workflow behavior match exactly
+- `MEDUSA_MEILISEARCH_MASTER_KEY` remains shared infrastructure state for the preview Meilisearch service and operator-side key provisioning only.
+- Application consumers do not read the master key directly: `medusa-be` gets the provisioned backend key on `MEILISEARCH_API_KEY`, and `n1` gets the provisioned frontend key on `NEXT_PUBLIC_MEILISEARCH_API_KEY`.
+- Runtime service config must not fall back from scoped keys to the Meilisearch master key.

@@ -21,6 +21,10 @@ interface VerifyForbiddenEnvRequirement {
   env_keys: string[]
 }
 
+interface VerifySharedEnvRequirement {
+  key: string
+}
+
 interface VerifyDeploymentRefInput {
   service_id: string
   service_slug: string
@@ -38,6 +42,7 @@ interface VerifyDeployRequest {
   excludedPreviewServiceSlugs: string[]
   expectedEnvOverrides: VerifyEnvOverrideInput[]
   requiredPersistedEnv: VerifyPersistedEnvRequirement[]
+  requiredSharedEnv: VerifySharedEnvRequirement[]
   forbiddenEnv: VerifyForbiddenEnvRequirement[]
   deployments: VerifyDeploymentRefInput[]
 }
@@ -45,6 +50,10 @@ interface VerifyDeployRequest {
 interface VerifyEnvironmentLookup {
   is_preview: boolean
   name: string
+  variables?: Array<{
+    key: string
+    value: string
+  }>
 }
 
 interface VerifyServiceCard {
@@ -217,6 +226,7 @@ export class ZaneDeployVerifier {
     warning_only_preview_service_slugs: string[]
     checked_env_override_service_ids: string[]
     checked_persisted_env_service_ids: string[]
+    checked_shared_env_keys: string[]
     checked_forbidden_env_service_ids: string[]
     checked_deployment_service_ids: string[]
     checked_deployments: CheckedDeploymentResult[]
@@ -231,6 +241,20 @@ export class ZaneDeployVerifier {
       )
     }
     assertEnvironmentMatchesLane(environment, input.lane)
+    const sharedEnvVariables = new Map(
+      (environment.variables ?? []).map((envVar) => [envVar.key, envVar.value]),
+    )
+
+    for (const requirement of input.requiredSharedEnv) {
+      const value = sharedEnvVariables.get(requirement.key)
+      if (typeof value !== "string" || value.length === 0) {
+        throw new UpstreamHttpError(
+          409,
+          "zane_verify_shared_env_missing",
+          `Environment ${input.projectSlug}/${input.environmentName} is missing required shared env key ${requirement.key}`,
+        )
+      }
+    }
 
     const services = await this.#deps.listServiceCards(session, input.projectSlug, input.environmentName)
     const previewServiceVerification =
@@ -457,6 +481,7 @@ export class ZaneDeployVerifier {
         previewServiceVerification.warningOnlyPreviewServiceSlugs,
       checked_env_override_service_ids: input.expectedEnvOverrides.map((item) => item.service_id),
       checked_persisted_env_service_ids: input.requiredPersistedEnv.map((item) => item.service_id),
+      checked_shared_env_keys: input.requiredSharedEnv.map((item) => item.key),
       checked_forbidden_env_service_ids: input.forbiddenEnv.map((item) => item.service_id),
       checked_deployment_service_ids: checkedDeployments.map((item) => item.service_id),
       checked_deployments: checkedDeployments,

@@ -11,6 +11,7 @@ const previewRandomOnceSecretSchema = z.looseObject({
   lifecycle: z.string().optional(),
   materializer: z.string().optional(),
   persist_to: z.string().optional(),
+  persisted_env_var: z.string().optional(),
   generator: z
     .looseObject({
       kind: z.string().optional(),
@@ -54,6 +55,27 @@ const runtimeProviderSchema = z.looseObject({
   outputs: z.array(providerOutputSchema).default([]),
 })
 
+const previewRuntimeSourceSchema = z.looseObject({
+  kind: z.string().min(1),
+  service_id: z.string().min(1).optional(),
+  environment_scope: z.enum(["current", "source"]).optional().default("current"),
+  port: z.number().int().positive().optional(),
+  trailing_slash: z.boolean().optional().default(false),
+  bucket_shared_env_key: z.string().min(1).optional(),
+})
+
+const previewSharedEnvDefinitionSchema = z.looseObject({
+  key: z.string().min(1),
+  consumed_by_service_ids: z.array(z.string().min(1)).default([]),
+  source: previewRuntimeSourceSchema,
+})
+
+const previewServiceEnvDefinitionSchema = z.looseObject({
+  service_id: z.string().min(1),
+  env_var: z.string().min(1),
+  source: previewRuntimeSourceSchema,
+})
+
 export const stackInputsSchema = z.object({
   secret_materialization: z
     .object({
@@ -65,11 +87,26 @@ export const stackInputsSchema = z.object({
       providers: z.array(runtimeProviderSchema).default([]),
     })
     .default({ providers: [] }),
+  preview_runtime_reconciliation: z
+    .object({
+      shared_env: z.array(previewSharedEnvDefinitionSchema).default([]),
+      service_env: z.array(previewServiceEnvDefinitionSchema).default([]),
+    })
+    .default({ shared_env: [], service_env: [] }),
 })
 
 export type StackInputs = z.infer<typeof stackInputsSchema>
 export type PreviewRandomOnceSecretDefinition = z.infer<
   typeof previewRandomOnceSecretSchema
+>
+export type PreviewRuntimeSourceDefinition = z.infer<
+  typeof previewRuntimeSourceSchema
+>
+export type PreviewSharedEnvDefinition = z.infer<
+  typeof previewSharedEnvDefinitionSchema
+>
+export type PreviewServiceEnvDefinition = z.infer<
+  typeof previewServiceEnvDefinitionSchema
 >
 export type RuntimeProviderOutput = z.infer<typeof providerOutputSchema>
 export type RuntimeProviderPolicy = NonNullable<RuntimeProviderOutput["policy"]>
@@ -80,6 +117,24 @@ export function getPreviewRandomOnceSecretDefinitions(
   return inputs.secret_materialization.secrets.filter(
     (secret) => secret.scope === "preview" && secret.lifecycle === "random_once"
   )
+}
+
+export function previewRandomOnceSecretPersistsToZaneEnv(
+  secret: { persist_to?: string }
+): boolean {
+  return (secret.persist_to ?? "zane_env") === "zane_env"
+}
+
+export function getPreviewSharedEnvDefinitions(
+  inputs: StackInputs
+): PreviewSharedEnvDefinition[] {
+  return inputs.preview_runtime_reconciliation.shared_env
+}
+
+export function getPreviewServiceEnvDefinitions(
+  inputs: StackInputs
+): PreviewServiceEnvDefinition[] {
+  return inputs.preview_runtime_reconciliation.service_env
 }
 
 export function getRuntimeProviderTargetEnvVar(

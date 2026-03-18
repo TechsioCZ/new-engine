@@ -31,6 +31,10 @@ import { executeResolveTargetsPayload } from "./resolve-targets.js"
 import { executeTriggerPayload } from "./trigger.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
+import {
+  buildPreviewServiceEnvSyncServices,
+  buildPreviewSharedEnvSyncVariables,
+} from "./preview-runtime-reconciliation.js"
 
 export type DeployPreviewExecutionResult = {
   response: DeployPreviewResponse
@@ -138,6 +142,8 @@ async function resolvePreviewRandomOnceSecrets(input: {
     secrets: definitions.map((definition) => ({
       secret_id: definition.secret_id,
       value: generatedValuesBySecretId.get(definition.secret_id),
+      persist_to: definition.persist_to,
+      persisted_env_var: definition.persisted_env_var,
       targets: definition.targets.map((target) => ({
         service_slug: target.service_id,
         env_var: target.env_var,
@@ -167,6 +173,80 @@ async function resolvePreviewRandomOnceSecrets(input: {
       ...definition,
       value,
     }
+  })
+}
+
+async function syncPreviewSharedEnv(input: {
+  zaneOperatorClient: ZaneOperatorClient | null
+  projectSlug: string
+  environmentName: string
+  sourceEnvironmentName: string
+  contracts: Awaited<ReturnType<typeof loadDeployContracts>>
+  previewDbName: string
+  previewDbUser: string
+  previewDbPassword: string
+}): Promise<void> {
+  if (!input.zaneOperatorClient) {
+    return
+  }
+
+  const variables = buildPreviewSharedEnvSyncVariables({
+    stackInputs: input.contracts.stackInputs,
+    manifest: input.contracts.manifest,
+    context: {
+      sourceEnvironmentName: input.sourceEnvironmentName,
+      previewDbName: input.previewDbName,
+      previewDbUser: input.previewDbUser,
+      previewDbPassword: input.previewDbPassword,
+    },
+  })
+
+  if (variables.length === 0) {
+    return
+  }
+
+  await input.zaneOperatorClient.syncPreviewSharedEnv({
+    project_slug: input.projectSlug,
+    environment_name: input.environmentName,
+    variables,
+  })
+}
+
+async function syncPreviewServiceEnv(input: {
+  zaneOperatorClient: ZaneOperatorClient | null
+  projectSlug: string
+  environmentName: string
+  sourceEnvironmentName: string
+  contracts: Awaited<ReturnType<typeof loadDeployContracts>>
+  deployServiceIds: string[]
+  previewDbName: string
+  previewDbUser: string
+  previewDbPassword: string
+}): Promise<void> {
+  if (!input.zaneOperatorClient) {
+    return
+  }
+
+  const services = buildPreviewServiceEnvSyncServices({
+    stackInputs: input.contracts.stackInputs,
+    manifest: input.contracts.manifest,
+    deployServiceIds: input.deployServiceIds,
+    context: {
+      sourceEnvironmentName: input.sourceEnvironmentName,
+      previewDbName: input.previewDbName,
+      previewDbUser: input.previewDbUser,
+      previewDbPassword: input.previewDbPassword,
+    },
+  })
+
+  if (services.length === 0) {
+    return
+  }
+
+  await input.zaneOperatorClient.syncPreviewServiceEnv({
+    project_slug: input.projectSlug,
+    environment_name: input.environmentName,
+    services,
   })
 }
 
@@ -216,6 +296,27 @@ export async function executeDeployPreview(
     input.dryRun || !input.baseUrl || !input.apiToken
       ? null
       : new ZaneOperatorClient(input.baseUrl, input.apiToken)
+  await syncPreviewSharedEnv({
+    zaneOperatorClient,
+    projectSlug: input.projectSlug,
+    environmentName: environment.environment_name,
+    sourceEnvironmentName: input.sourceEnvironmentName,
+    contracts,
+    previewDbName: input.previewDbName,
+    previewDbUser: input.previewDbUser,
+    previewDbPassword: input.previewDbPassword,
+  })
+  await syncPreviewServiceEnv({
+    zaneOperatorClient,
+    projectSlug: input.projectSlug,
+    environmentName: environment.environment_name,
+    sourceEnvironmentName: input.sourceEnvironmentName,
+    contracts,
+    deployServiceIds: runtimePlan.deploy_services.map((service) => service.id),
+    previewDbName: input.previewDbName,
+    previewDbUser: input.previewDbUser,
+    previewDbPassword: input.previewDbPassword,
+  })
   const previewRandomOnceSecrets = await resolvePreviewRandomOnceSecrets({
     stackInputs: contracts.stackInputs,
     projectSlug: input.projectSlug,

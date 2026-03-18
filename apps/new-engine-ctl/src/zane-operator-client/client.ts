@@ -27,6 +27,11 @@ import {
 import type { PreviewRandomOnceSecretsResponse } from "../contracts/preview-random-once-secrets.js"
 import { previewRandomOnceSecretsResponseSchema } from "../contracts/preview-random-once-secrets.js"
 import type {
+  PreviewSharedEnvSyncResponse,
+  PreviewSharedEnvVariableInput,
+} from "../contracts/preview-shared-env.js"
+import { previewSharedEnvSyncResponseSchema } from "../contracts/preview-shared-env.js"
+import type {
   ResolveTargetsPayload,
   ResolveTargetsResponse,
 } from "../contracts/resolve-targets.js"
@@ -194,6 +199,8 @@ export class ZaneOperatorClient {
     secrets: Array<{
       secret_id: string
       value?: string
+      persist_to?: string
+      persisted_env_var?: string
       targets: Array<{
         service_slug: string
         env_var: string
@@ -204,6 +211,37 @@ export class ZaneOperatorClient {
       "/v1/zane/preview-random-once-secrets/sync",
       payload,
       previewRandomOnceSecretsResponseSchema.parse
+    )
+  }
+
+  syncPreviewSharedEnv(payload: {
+    project_slug: string
+    environment_name: string
+    variables: PreviewSharedEnvVariableInput[]
+  }): Promise<PreviewSharedEnvSyncResponse> {
+    return this.#postJson(
+      "/v1/zane/preview-shared-env/sync",
+      payload,
+      previewSharedEnvSyncResponseSchema.parse
+    )
+  }
+
+  syncPreviewServiceEnv(payload: {
+    project_slug: string
+    environment_name: string
+    services: Array<{
+      service_id: string
+      service_slug: string
+      env: Array<{
+        env_var: string
+        source: PreviewSharedEnvVariableInput["source"]
+      }>
+    }>
+  }): Promise<ApplyEnvOverridesResponse> {
+    return this.#postJson(
+      "/v1/zane/preview-service-env/sync",
+      payload,
+      applyEnvOverridesResponseSchema.parse
     )
   }
 
