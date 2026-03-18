@@ -73,35 +73,6 @@ common::success() {
   printf '%s %s\n' "$(common::format_label "ok" "32;1")" "$*" >&2
 }
 
-common::output_indicates_interrupt() {
-  local text="${1-}"
-  [[ "$text" == *"Interrupt received while waiting"* || "$text" == *"Deployment wait interrupted."* ]]
-}
-
-common::capture_command_output() {
-  local -n stdout_ref="$1"
-  local -n stderr_ref="$2"
-  shift 2
-
-  local stdout_file
-  local stderr_file
-  local status
-
-  stdout_file="$(mktemp)"
-  stderr_file="$(mktemp)"
-
-  if "$@" >"$stdout_file" 2> >(tee "$stderr_file" >&2); then
-    status=0
-  else
-    status=$?
-  fi
-
-  stdout_ref="$(cat "$stdout_file")"
-  stderr_ref="$(cat "$stderr_file")"
-  rm -f "$stdout_file" "$stderr_file"
-  return "$status"
-}
-
 common::require_command() {
   local cmd="$1"
   command -v "$cmd" >/dev/null 2>&1 || common::die "Required command not found: $cmd"

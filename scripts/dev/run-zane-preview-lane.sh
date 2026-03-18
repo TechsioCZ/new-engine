@@ -285,7 +285,6 @@ run_prepare_stage() {
 run_deploy_stage() {
   local prepare_json="$1"
   local deploy_json
-  local deploy_stderr=""
   local output_file
   local status=0
 
@@ -304,8 +303,9 @@ run_deploy_stage() {
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' RETURN
 
-  if ! common::capture_command_output deploy_json deploy_stderr \
-    env GITHUB_OUTPUT="$output_file" \
+  set +e
+  deploy_json="$(
+    GITHUB_OUTPUT="$output_file" \
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" deploy-preview \
       --project-slug "$PROJECT_SLUG" \
       --pr-number "$PR_NUMBER" \
@@ -316,9 +316,12 @@ run_deploy_stage() {
       --preview-db-user "$(jq -r '.preview_db_user // ""' <<<"$prepare_json")" \
       --preview-db-password "$(jq -r '.preview_db_password // ""' <<<"$prepare_json")" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
-      --api-token "$ZANE_OPERATOR_API_TOKEN"; then
-    status=$?
-    if [[ "$status" -eq 130 ]] || common::output_indicates_interrupt "$deploy_stderr"; then
+      --api-token "$ZANE_OPERATOR_API_TOKEN"
+  )"
+  status=$?
+  set -e
+  if [[ "$status" -ne 0 ]]; then
+    if [[ "$status" -eq 130 ]]; then
       common::interrupt "Preview deploy interrupted; current stage deployments were canceled."
     fi
     return "$status"
@@ -344,7 +347,6 @@ run_verify_stage() {
   local prepare_json="$1"
   local deploy_json="$2"
   local verify_json
-  local verify_stderr=""
   local status=0
 
   common::stage "Verify"
@@ -361,7 +363,8 @@ run_verify_stage() {
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode preview-verify
   ) >/dev/null
 
-  if ! common::capture_command_output verify_json verify_stderr \
+  set +e
+  verify_json="$(
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" verify \
       --lane preview \
       --project-slug "$PROJECT_SLUG" \
@@ -380,9 +383,12 @@ run_verify_stage() {
       --meili-frontend-key "$(jq -r '.meili_frontend_key // ""' <<<"$deploy_json")" \
       --meili-frontend-env-var "$(jq -r '.meili_frontend_env_var // ""' <<<"$deploy_json")" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
-      --api-token "$ZANE_OPERATOR_API_TOKEN"; then
-    status=$?
-    if [[ "$status" -eq 130 ]] || common::output_indicates_interrupt "$verify_stderr"; then
+      --api-token "$ZANE_OPERATOR_API_TOKEN"
+  )"
+  status=$?
+  set -e
+  if [[ "$status" -ne 0 ]]; then
+    if [[ "$status" -eq 130 ]]; then
       common::interrupt "Preview verify interrupted."
     fi
     return "$status"

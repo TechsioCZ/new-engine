@@ -240,7 +240,6 @@ resolve_scope() {
 run_deploy_stage() {
   local requires_meili_keys="$1"
   local deploy_json
-  local deploy_stderr=""
   local git_commit_sha
   local output_file
   local status=0
@@ -284,8 +283,9 @@ run_deploy_stage() {
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' RETURN
 
-  if ! common::capture_command_output deploy_json deploy_stderr \
-    env GITHUB_OUTPUT="$output_file" \
+  set +e
+  deploy_json="$(
+    GITHUB_OUTPUT="$output_file" \
     MEILISEARCH_URL="$MEILISEARCH_URL" \
     MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY" \
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" deploy-main \
@@ -296,9 +296,12 @@ run_deploy_stage() {
       --meili-url "$MEILISEARCH_URL" \
       --meili-master-key "$MEILISEARCH_MASTER_KEY" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
-      --api-token "$ZANE_OPERATOR_API_TOKEN"; then
-    status=$?
-    if [[ "$status" -eq 130 ]] || common::output_indicates_interrupt "$deploy_stderr"; then
+      --api-token "$ZANE_OPERATOR_API_TOKEN"
+  )"
+  status=$?
+  set -e
+  if [[ "$status" -ne 0 ]]; then
+    if [[ "$status" -eq 130 ]]; then
       common::interrupt "Main deploy interrupted; current stage deployments were canceled."
     fi
     return "$status"
@@ -341,7 +344,6 @@ run_deploy_stage() {
 run_verify_stage() {
   local deploy_json="$1"
   local verify_json
-  local verify_stderr=""
   local deployments_json_inline
   local status=0
 
@@ -358,7 +360,8 @@ run_verify_stage() {
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode main-verify
   ) >/dev/null
 
-  if ! common::capture_command_output verify_json verify_stderr \
+  set +e
+  verify_json="$(
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" verify \
       --lane main \
       --project-slug "$PROJECT_SLUG" \
@@ -371,9 +374,12 @@ run_verify_stage() {
       --meili-frontend-key "$(jq -r '.meili_frontend_key // ""' <<<"$deploy_json")" \
       --meili-frontend-env-var "$(jq -r '.meili_frontend_env_var // ""' <<<"$deploy_json")" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
-      --api-token "$ZANE_OPERATOR_API_TOKEN"; then
-    status=$?
-    if [[ "$status" -eq 130 ]] || common::output_indicates_interrupt "$verify_stderr"; then
+      --api-token "$ZANE_OPERATOR_API_TOKEN"
+  )"
+  status=$?
+  set -e
+  if [[ "$status" -ne 0 ]]; then
+    if [[ "$status" -eq 130 ]]; then
       common::interrupt "Main verify interrupted."
     fi
     return "$status"
