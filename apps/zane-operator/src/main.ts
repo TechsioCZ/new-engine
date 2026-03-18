@@ -32,7 +32,7 @@ if (fileCopyMethod.warning) {
       warning: fileCopyMethod.warning,
       file_copy_method: fileCopyMethod.method,
       clone_optimized: fileCopyMethod.cloneOptimized,
-    }),
+    })
   )
 } else {
   console.info(
@@ -40,7 +40,7 @@ if (fileCopyMethod.warning) {
       event: "server.startup.file_copy_method",
       file_copy_method: fileCopyMethod.method,
       clone_optimized: fileCopyMethod.cloneOptimized,
-    }),
+    })
   )
 }
 
@@ -74,10 +74,17 @@ const server = Bun.serve({
     }
 
     if (url.pathname.startsWith("/v1/preview-db/")) {
-      return jsonError(405, "method_not_allowed", "Method not allowed for this endpoint")
+      return jsonError(
+        405,
+        "method_not_allowed",
+        "Method not allowed for this endpoint"
+      )
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/environments/resolve") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/environments/resolve"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -86,7 +93,10 @@ const server = Bun.serve({
       return await handleResolveZaneEnvironment(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/environments/archive") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/environments/archive"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -95,7 +105,10 @@ const server = Bun.serve({
       return await handleArchiveZaneEnvironment(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/preview-commit-state/read") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-commit-state/read"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -104,7 +117,10 @@ const server = Bun.serve({
       return await handleReadPreviewCommitState(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/preview-commit-state/write") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-commit-state/write"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -113,7 +129,10 @@ const server = Bun.serve({
       return await handleWritePreviewCommitState(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/preview-random-once-secrets/sync") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-random-once-secrets/sync"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -122,7 +141,10 @@ const server = Bun.serve({
       return await handleSyncPreviewRandomOnceSecrets(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/preview-shared-env/sync") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-shared-env/sync"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -131,7 +153,10 @@ const server = Bun.serve({
       return await handleSyncPreviewSharedEnv(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/preview-service-env/sync") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-service-env/sync"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -140,7 +165,10 @@ const server = Bun.serve({
       return await handleSyncPreviewServiceEnv(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/meilisearch/provision-keys") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/meilisearch/provision-keys"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -149,7 +177,10 @@ const server = Bun.serve({
       return await handleProvisionPreviewMeiliKeys(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/resolve-targets") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/resolve-targets"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -158,7 +189,10 @@ const server = Bun.serve({
       return await handleResolveZaneTargets(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/apply-env-overrides") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/apply-env-overrides"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -167,7 +201,10 @@ const server = Bun.serve({
       return await handleApplyZaneEnvOverrides(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/trigger") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/trigger"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -176,7 +213,10 @@ const server = Bun.serve({
       return await handleTriggerZaneDeploy(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/cancel") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/cancel"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -185,7 +225,10 @@ const server = Bun.serve({
       return await handleCancelZaneDeploy(request, { config })
     }
 
-    if (request.method === "POST" && url.pathname === "/v1/zane/deploy/verify") {
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/verify"
+    ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
@@ -195,7 +238,11 @@ const server = Bun.serve({
     }
 
     if (url.pathname.startsWith("/v1/zane/")) {
-      return jsonError(405, "method_not_allowed", "Method not allowed for this endpoint")
+      return jsonError(
+        405,
+        "method_not_allowed",
+        "Method not allowed for this endpoint"
+      )
     }
 
     return jsonResponse(404, {
@@ -208,7 +255,7 @@ const server = Bun.serve({
       JSON.stringify({
         event: "server.error",
         message: error.message,
-      }),
+      })
     )
     return jsonError(500, "internal_error", "Internal server error")
   },
@@ -218,7 +265,7 @@ console.info(
   JSON.stringify({
     event: "server.started",
     port: config.port,
-  }),
+  })
 )
 
 let shuttingDown = false
@@ -244,7 +291,7 @@ const handleShutdown = async (signal: string): Promise<void> => {
         event: "server.shutdown.error",
         signal,
         error: message,
-      }),
+      })
     )
   } finally {
     process.exit(exitCode)

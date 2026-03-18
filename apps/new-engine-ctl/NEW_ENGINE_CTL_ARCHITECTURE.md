@@ -96,6 +96,14 @@ Initial command surface should be explicit and phase-oriented:
 - `teardown-preview`
 - optional later command: `providers run`
 
+Bootstrap namespace:
+- bootstrap stays separate from active CI deploy commands
+- current local-Zane bootstrap planning surface may grow under:
+  - `bootstrap zane-project plan`
+  - `bootstrap preview-template-db plan`
+- wrappers may execute directly from the machine-readable bootstrap plan output when that is simpler than adding a separate apply command; the key rule is that shell must not re-derive repo-owned desired state
+- manual local-Zane bootstrap remains shell-entered: shell owns upstream Zane auth/session and raw API transport, then hands normalized inspect/apply inputs into CTL; CTL must not become an alternate upstream-Zane deploy client for CI paths
+
 Do not collapse the whole system into one giant command.
 Do not spread orchestration across many tiny workflow-specific commands.
 

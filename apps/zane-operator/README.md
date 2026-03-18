@@ -314,6 +314,15 @@ Optional overrides worth knowing:
 
 The helper reads `.env.zane` by default, but it only maps the values that are part of the deployed stack contract. Keep compose/local runtime values in `.env`; use `.env.zane` for Zane-targeted helper runs. The helper forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
 
+Read-only planning for this helper now also lives in CTL:
+
+```bash
+node apps/new-engine-ctl/dist/cli.js bootstrap zane-project plan \
+  --inspect-json /tmp/zane-project-inspect.json
+```
+
+That planning surface is fed by shell-owned upstream Zane inspection, and the checked-in helper wrapper now executes only the resulting CTL-owned desired state plus manual transport.
+
 Managed public service URLs are derived from the project slug plus the Zane root-domain route contract. Ambient `.env.zane` frontend URL values do not override those deployed URLs.
 
 `zane-operator` no longer ships a separate bootstrap CLI. Role/template bootstrap is owned by `medusa-db`, so Zane-targeted maintenance should sync `medusa-db` bootstrap envs and redeploy `medusa-db` before redeploying `zane-operator` when those credentials change.
@@ -441,6 +450,13 @@ mise run dev:zane:template-db:sync
 ```
 
 That helper creates the configured preview template DB on first run and refreshes it from the chosen source DB on later runs.
+
+Read-only planning for that flow now also exists in CTL:
+
+```bash
+node apps/new-engine-ctl/dist/cli.js bootstrap preview-template-db plan \
+  --inspect-json /tmp/zane-template-db-inspect.json
+```
 
 Prerequisites:
 - PostgreSQL client tools available (`pg_dump`, `pg_restore`, `psql`)
