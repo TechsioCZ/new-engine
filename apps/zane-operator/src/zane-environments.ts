@@ -170,7 +170,6 @@ function buildDesiredGitSource(
 ): {
   repository_url: string
   branch_name: string
-  commit_sha: string
   git_app_id: string | null
 } {
   if (sourceDetails.type !== "git") {
@@ -194,7 +193,6 @@ function buildDesiredGitSource(
   return {
     repository_url: repositoryUrl,
     branch_name: branchName,
-    commit_sha: spec.git_source?.commit_sha?.trim() || "HEAD",
     git_app_id: sourceDetails.git_app?.id?.trim() ?? null,
   }
 }
@@ -243,18 +241,15 @@ function buildDesiredBuilder(
 function normalizeGitSourceShape(value: {
   repository_url: string | null
   branch_name: string | null
-  commit_sha: string | null
   git_app_id: string | null
 }): {
   repository_url: string | null
   branch_name: string | null
-  commit_sha: string | null
   git_app_id: string | null
 } {
   return {
     repository_url: value.repository_url,
     branch_name: value.branch_name,
-    commit_sha: value.commit_sha,
     git_app_id: value.git_app_id,
   }
 }
@@ -905,7 +900,6 @@ export class ZaneEnvironmentManager {
       new_value: {
         repository_url: desiredGitSource.repository_url,
         branch_name: desiredGitSource.branch_name,
-        commit_sha: desiredGitSource.commit_sha,
         git_app_id: desiredGitSource.git_app_id,
       },
     })
@@ -913,7 +907,6 @@ export class ZaneEnvironmentManager {
       project_slug: input.projectSlug,
       environment_name: input.environmentName,
       service_slug: spec.service_slug,
-      commit_sha: desiredGitSource.commit_sha,
     })
 
     return await this.getCurrentServiceDetails(session, input, spec.service_slug)
