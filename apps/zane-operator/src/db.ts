@@ -210,6 +210,20 @@ interface SchemaOwnerRole {
   owner: string
 }
 
+async function getSchemaOwnerRole(
+  databaseSql: Bun.SQL,
+  schemaName: string,
+): Promise<string | null> {
+  const rows = await databaseSql<SchemaOwnerRole[]>`
+    SELECT pg_get_userbyid(n.nspowner) AS owner
+    FROM pg_namespace n
+    WHERE n.nspname = ${schemaName}
+    LIMIT 1
+  `
+
+  return rows[0]?.owner ?? null
+}
+
 async function listSchemaOwnerRoles(databaseSql: Bun.SQL, schemaName: string): Promise<string[]> {
   const rows = await databaseSql<SchemaOwnerRole[]>`
     SELECT DISTINCT owner
@@ -602,9 +616,12 @@ async function syncPreviewDatabaseGrants(
   await withDatabaseClient(config, dbName, async (dbSql) => {
     await lockDownPublicSchema(dbSql)
     await ensureSchemaExists(dbSql, config.appSchema, appRoleName)
-    await dbSql.unsafe(
-      `GRANT USAGE, CREATE ON SCHEMA ${quoteCatalogIdentifier(config.appSchema)} TO ${quoteIdentifier(appRoleName)};`,
-    )
+    const currentSchemaOwner = await getSchemaOwnerRole(dbSql, config.appSchema)
+    if (currentSchemaOwner === config.previewOwner) {
+      await dbSql.unsafe(
+        `GRANT USAGE, CREATE ON SCHEMA ${quoteCatalogIdentifier(config.appSchema)} TO ${quoteIdentifier(appRoleName)};`,
+      )
+    }
     await transferOwnedObjectsInSchemaToRole(
       dbSql,
       config.appSchema,
