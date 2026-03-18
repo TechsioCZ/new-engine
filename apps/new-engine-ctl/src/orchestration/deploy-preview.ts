@@ -127,21 +127,11 @@ async function resolvePreviewRandomOnceSecrets(input: {
     return generatePreviewRandomOnceSecrets(input.stackInputs)
   }
 
-  const generatedValuesBySecretId = input.baselineDeploy
-    ? new Map(
-        generatePreviewRandomOnceSecrets(input.stackInputs).map((secret) => [
-          secret.secret_id,
-          secret.value,
-        ])
-      )
-    : new Map<string, string>()
-
   const synced = await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
     project_slug: input.projectSlug,
     environment_name: input.environmentName,
     secrets: definitions.map((definition) => ({
       secret_id: definition.secret_id,
-      value: generatedValuesBySecretId.get(definition.secret_id),
       persist_to: definition.persist_to,
       persisted_env_var: definition.persisted_env_var,
       targets: definition.targets.map((target) => ({
@@ -151,14 +141,57 @@ async function resolvePreviewRandomOnceSecrets(input: {
     })),
   })
 
+  let resolvedSecrets = synced.secrets
   if (synced.missing_secret_ids.length > 0) {
+    if (!input.baselineDeploy) {
+      throw new Error(
+        `Preview random-once secrets are missing in ${input.environmentName}: ${synced.missing_secret_ids.join(", ")}`
+      )
+    }
+
+    const generatedValuesBySecretId = new Map(
+      generatePreviewRandomOnceSecrets(input.stackInputs).map((secret) => [
+        secret.secret_id,
+        secret.value,
+      ])
+    )
+
+    const syncedMissing = await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      secrets: definitions
+        .filter((definition) =>
+          synced.missing_secret_ids.includes(definition.secret_id)
+        )
+        .map((definition) => ({
+          secret_id: definition.secret_id,
+          value: generatedValuesBySecretId.get(definition.secret_id),
+          persist_to: definition.persist_to,
+          persisted_env_var: definition.persisted_env_var,
+          targets: definition.targets.map((target) => ({
+            service_slug: target.service_id,
+            env_var: target.env_var,
+          })),
+        })),
+    })
+
+    if (syncedMissing.missing_secret_ids.length > 0) {
+      throw new Error(
+        `Preview random-once secrets are missing in ${input.environmentName}: ${syncedMissing.missing_secret_ids.join(", ")}`
+      )
+    }
+
+    resolvedSecrets = [...resolvedSecrets, ...syncedMissing.secrets]
+  }
+
+  if (resolvedSecrets.length < definitions.length) {
     throw new Error(
-      `Preview random-once secrets are missing in ${input.environmentName}: ${synced.missing_secret_ids.join(", ")}`
+      `Preview random-once secret resolution is incomplete in ${input.environmentName}.`
     )
   }
 
   const resolvedValueBySecretId = new Map(
-    synced.secrets.map((secret) => [secret.secret_id, secret.value])
+    resolvedSecrets.map((secret) => [secret.secret_id, secret.value])
   )
 
   return definitions.map((definition) => {
