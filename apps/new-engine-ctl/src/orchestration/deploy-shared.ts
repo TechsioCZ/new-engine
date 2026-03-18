@@ -8,6 +8,7 @@ import type {
 } from "../contracts/verify.js"
 import { normalizeCsvToArray } from "./deploy-inputs.js"
 import { executeVerify } from "./verify.js"
+import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
 export type DeploymentLike = {
   service_id: string
@@ -58,6 +59,7 @@ type WaitForDeploymentsInput = {
   stackManifestPath: string
   stackInputsPath: string
   onProgress?: (message: string) => void
+  cancelOnInterrupt?: boolean
 }
 
 export function mergeCsvValues(existing: string, current: string): string {
@@ -169,6 +171,14 @@ function resolveSkipReason(
     return null
   }
 
+  if (isReusableActiveDeployment(target, expectedEnv, desiredCommitSha)) {
+    return "reuse_in_progress_deployment"
+  }
+
+  if (isHealthyCurrentCommitMatch(target, expectedEnv, desiredCommitSha)) {
+    return "already_current_commit"
+  }
+
   if (target.has_unapplied_changes ?? false) {
     return "pending_changes"
   }
@@ -178,14 +188,6 @@ function resolveSkipReason(
     (target.configured_commit_sha ?? "") !== desiredCommitSha
   ) {
     return "configured_commit_sha_mismatch"
-  }
-
-  if (isHealthyCurrentCommitMatch(target, expectedEnv, desiredCommitSha)) {
-    return "already_current_commit"
-  }
-
-  if (isReusableActiveDeployment(target, expectedEnv, desiredCommitSha)) {
-    return "reuse_in_progress_deployment"
   }
 
   if (
@@ -368,6 +370,59 @@ async function sleepSeconds(seconds: number): Promise<void> {
   })
 }
 
+async function cancelTriggeredDeployments(
+  input: WaitForDeploymentsInput
+): Promise<void> {
+  if (
+    input.dryRun ||
+    !input.cancelOnInterrupt ||
+    !input.triggeredServicesCsv.trim() ||
+    input.deployments.length === 0
+  ) {
+    return
+  }
+
+  const triggeredServiceIds = new Set(
+    normalizeCsvToArray(input.triggeredServicesCsv)
+  )
+  const deploymentsToCancel = input.deployments.filter(
+    (deployment) =>
+      triggeredServiceIds.has(deployment.service_id) &&
+      deployment.deployment_hash &&
+      !deployment.deployment_hash.startsWith("dry-run:")
+  )
+
+  if (deploymentsToCancel.length === 0) {
+    return
+  }
+
+  const client = new ZaneOperatorClient(input.baseUrl, input.apiToken)
+  const errors: string[] = []
+
+  for (const deployment of deploymentsToCancel) {
+    try {
+      await client.cancelDeployment({
+        project_slug: input.projectSlug,
+        environment_name: input.environmentName,
+        service_slug: deployment.service_slug,
+        deployment_hash: deployment.deployment_hash,
+      })
+    } catch (error) {
+      errors.push(
+        `${deployment.service_slug}#${deployment.deployment_hash}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      )
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(
+      `Failed to cancel interrupted deployments: ${errors.join("; ")}`
+    )
+  }
+}
+
 function shouldRetryTransientError(
   input: WaitForDeploymentsInput,
   startedAt: number,
@@ -423,40 +478,61 @@ export async function waitForDeployments(
 ): Promise<VerifyResponse> {
   const startedAt = Date.now()
   let lastProgressMessage = ""
+  let interrupted = false
 
-  while (true) {
-    try {
-      const response = await verifyDeploymentsOnce(input)
-      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000)
+  const handleInterrupt = (): void => {
+    interrupted = true
+  }
 
-      if (checkedDeploymentInProgressCount(response) === 0) {
+  process.once("SIGINT", handleInterrupt)
+  process.once("SIGTERM", handleInterrupt)
+
+  try {
+    while (true) {
+      if (interrupted) {
         input.onProgress?.(
-          `Deployments are healthy after ${elapsedSeconds}s: ${checkedDeploymentSummary(
+          `Interrupt received while waiting; cancelling currently waited triggered deployments.`
+        )
+        await cancelTriggeredDeployments(input)
+        throw new Error("Deployment wait interrupted.")
+      }
+
+      try {
+        const response = await verifyDeploymentsOnce(input)
+        const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000)
+
+        if (checkedDeploymentInProgressCount(response) === 0) {
+          input.onProgress?.(
+            `Deployments are healthy after ${elapsedSeconds}s: ${checkedDeploymentSummary(
+              response
+            )}`
+          )
+        } else {
+          const progressMessage = `Waiting for deployments (${elapsedSeconds}s elapsed): ${checkedDeploymentNonHealthySummary(
             response
           )}`
-        )
-      } else {
-        const progressMessage = `Waiting for deployments (${elapsedSeconds}s elapsed): ${checkedDeploymentNonHealthySummary(
-          response
-        )}`
-        if (progressMessage !== lastProgressMessage) {
-          input.onProgress?.(progressMessage)
-          lastProgressMessage = progressMessage
+          if (progressMessage !== lastProgressMessage) {
+            input.onProgress?.(progressMessage)
+            lastProgressMessage = progressMessage
+          }
         }
+
+        if (ensureDeploymentsHealthy(response, input, startedAt)) {
+          return response
+        }
+      } catch (error) {
+        if (shouldRetryTransientError(input, startedAt, error)) {
+          await sleepSeconds(input.pollIntervalSeconds)
+          continue
+        }
+
+        throw error
       }
 
-      if (ensureDeploymentsHealthy(response, input, startedAt)) {
-        return response
-      }
-    } catch (error) {
-      if (shouldRetryTransientError(input, startedAt, error)) {
-        await sleepSeconds(input.pollIntervalSeconds)
-        continue
-      }
-
-      throw error
+      await sleepSeconds(input.pollIntervalSeconds)
     }
-
-    await sleepSeconds(input.pollIntervalSeconds)
+  } finally {
+    process.off("SIGINT", handleInterrupt)
+    process.off("SIGTERM", handleInterrupt)
   }
 }

@@ -669,6 +669,7 @@ export async function executeDeployPreview(
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
       onProgress: logDeployProgress,
+      cancelOnInterrupt: true,
     })
 
     envOverrideServiceIdsCsv = mergeCsvValues(

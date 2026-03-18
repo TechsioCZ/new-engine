@@ -149,6 +149,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - That service-spec contract does not own deployment target commit pinning. Preview target commit selection remains deploy metadata owned by `apps/new-engine-ctl`, while preview Git source reconcile may normalize only repository/branch/git-app shape.
 - That section should stay lean: source-sync behavior is the default for preview-cloned services, and YAML entries should only be needed for non-default policy such as lane-specific build-stage targets.
 - Current lane-specific build-stage policy in that contract: `medusa-be` and `n1` use `ci-dev` for preview and `prod` for main.
+- Workflow-level concurrency may cancel superseded CI runs, but deployment ownership still lives in CTL: when a wait is interrupted, only the currently waited deployments that the interrupted stage actually triggered should be canceled.
 - Preview DB credentials produced by `prepare`/preview DB ensure are part of that shared-env plane and must overwrite the existing `MEDUSA_APP_DB_*` preview env keys before preview deploy depends on them.
 - Preview shared host keys are part of that same plane. The active preview contract keys are `MEDUSA_DB_HOST`, `MEDUSA_VALKEY_HOST`, and `MEDUSA_MEILISEARCH_HOST`; preview deploy must reconcile them from the canonical source/preview service topology before deploy or verify depends on them.
 - The deploy path must support prepared inputs produced before deploy starts.
