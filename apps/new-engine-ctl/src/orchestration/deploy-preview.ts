@@ -506,24 +506,32 @@ export async function executeDeployPreview(
       apiToken: input.apiToken,
       dryRun: input.dryRun,
     })
-    const filtered =
-      baselineDeploy || !input.targetCommitSha
-        ? {
-            services: targets.services,
-            skippedServices: [],
-            adoptedDeployments: [] as DeploymentLike[],
-            filteredEnvOverrides: envOverrides.services,
-          }
-        : filterTargetsForGitCommit(
-            targets.services,
-            envOverrides.services,
-            input.targetCommitSha
-          )
+    const desiredCommitSha = input.targetCommitSha || targetCommitSha || ""
+    const filtered = desiredCommitSha
+      ? filterTargetsForGitCommit(
+          targets.services,
+          envOverrides.services,
+          desiredCommitSha
+        )
+      : {
+          services: targets.services,
+          skippedServices: [],
+          adoptedDeployments: [] as DeploymentLike[],
+          filteredEnvOverrides: envOverrides.services,
+        }
 
     allDeployments = mergeDeployments(
       allDeployments,
       filtered.adoptedDeployments
     )
+
+    if (filtered.skippedServices.length > 0) {
+      logDeployProgress(
+        `Skipping current preview services for stage ${stage}: ${filtered.skippedServices
+          .map((service) => `${service.service_slug} (${service.reason})`)
+          .join(", ")}.`
+      )
+    }
 
     if (filtered.adoptedDeployments.length > 0) {
       logDeployProgress(
