@@ -13,7 +13,8 @@ import {
   listPrepareServiceIds,
   type StackManifest,
 } from "../contracts/stack-manifest.js"
-import { loadManifest, normalizeCsvToArray } from "./deploy-inputs.js"
+import { listRuntimeProviderServiceIds } from "../contracts/stack-inputs.js"
+import { loadDeployContracts, normalizeCsvToArray } from "./deploy-inputs.js"
 
 const execFileAsync = promisify(execFile)
 
@@ -173,9 +174,7 @@ function applyPrepareAndDowntimeState(input: {
   ScopeResponse,
   | "should_prepare"
   | "requires_preview_db"
-  | "requires_meili_keys"
   | "preview_db_service_ids"
-  | "meili_key_service_ids"
   | "requires_downtime_approval"
   | "downtime_service_ids"
 > {
@@ -184,12 +183,6 @@ function applyPrepareAndDowntimeState(input: {
   const previewDbServiceIds =
     input.lane === "preview"
       ? listPrepareServiceIds(input.manifest, "preview_db").filter(
-          (serviceId) => selected.has(serviceId)
-        )
-      : []
-  const meiliKeyServiceIds =
-    input.lane === "main"
-      ? listPrepareServiceIds(input.manifest, "meili_keys").filter(
           (serviceId) => selected.has(serviceId)
         )
       : []
@@ -203,11 +196,26 @@ function applyPrepareAndDowntimeState(input: {
   return {
     should_prepare: previewDbServiceIds.length > 0,
     requires_preview_db: previewDbServiceIds.length > 0,
-    requires_meili_keys: meiliKeyServiceIds.length > 0,
     preview_db_service_ids: previewDbServiceIds.join(","),
-    meili_key_service_ids: meiliKeyServiceIds.join(","),
     requires_downtime_approval: downtimeServiceIds.length > 0,
     downtime_service_ids: downtimeServiceIds.join(","),
+  }
+}
+
+function logMainRuntimeProviderScope(input: {
+  servicesCsv: string
+  stackInputs: Awaited<ReturnType<typeof loadDeployContracts>>["stackInputs"]
+}): void {
+  const selected = new Set(normalizeCsvToArray(input.servicesCsv))
+  const serviceIds = listRuntimeProviderServiceIds(
+    input.stackInputs,
+    "meili_api_credentials"
+  ).filter((serviceId) => selected.has(serviceId))
+
+  if (serviceIds.length > 0) {
+    process.stderr.write(
+      `[scope] Main runtime provider meili_api_credentials is relevant for: ${serviceIds.join(",")}.\n`
+    )
   }
 }
 
@@ -331,7 +339,11 @@ function resolveServicesFromGitDiff(input: {
 export async function executeScope(
   input: ScopeCommandInput
 ): Promise<ScopeResponse> {
-  const manifest = await loadManifest(input.stackManifestPath)
+  const contracts = await loadDeployContracts(
+    input.stackManifestPath,
+    input.stackInputsPath
+  )
+  const manifest = contracts.manifest
 
   let mode: ScopeResponse["mode"] = "git"
   let baseSha: string | null = input.baseSha ?? null
@@ -382,6 +394,13 @@ export async function executeScope(
     servicesCsv,
     manifest,
   })
+
+  if (input.lane === "main" && servicesCsv) {
+    logMainRuntimeProviderScope({
+      servicesCsv,
+      stackInputs: contracts.stackInputs,
+    })
+  }
 
   const response = scopeResponseSchema.parse({
     lane: input.lane,

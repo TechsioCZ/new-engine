@@ -5,11 +5,11 @@ import type {
   ForbiddenEnvRequirement,
   Lane,
   PersistedEnvRequirement,
-  ProvisionMeiliKeysInput,
-  ProvisionMeiliKeysOutputInput,
   ReadPreviewCommitStateInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
+  RuntimeProviderOutputInput,
+  RuntimeProviderRunInput,
   ServiceType,
   SyncPreviewRandomOnceSecretsInput,
   SyncPreviewServiceEnvInput,
@@ -87,23 +87,20 @@ function assertStringArray(value: unknown, label: string): string[] {
   return value.map((item, index) => assertString(item, `${label}[${index}]`))
 }
 
-function normalizeMeiliApiCredentialsOutput(
+function normalizeRuntimeProviderOutput(
   value: unknown,
   label: string
-): ProvisionMeiliKeysOutputInput {
+ ): RuntimeProviderOutputInput {
   const object = assertObject(value, label)
   const policy = assertObject(object.policy, `${label}.policy`)
+  const kind = assertString(policy.kind, `${label}.policy.kind`)
 
   return {
+    outputId: assertString(object.output_id, `${label}.output_id`),
     envVar: assertString(object.env_var, `${label}.env_var`),
     policy: {
-      uid: assertString(policy.uid, `${label}.policy.uid`),
-      description: assertString(
-        policy.description,
-        `${label}.policy.description`
-      ),
-      actions: assertStringArray(policy.actions, `${label}.policy.actions`),
-      indexes: assertStringArray(policy.indexes, `${label}.policy.indexes`),
+      ...policy,
+      kind,
     },
   }
 }
@@ -698,22 +695,23 @@ export function parseSyncPreviewServiceEnvInput(
   }
 }
 
-export function parseProvisionMeiliKeysInput(
+export function parseRuntimeProviderRunInput(
   rawPayload: unknown
-): ProvisionMeiliKeysInput {
+ ): RuntimeProviderRunInput {
   const payload = assertObject(rawPayload, "request body")
+  const rawOutputs = payload.outputs
+  if (!Array.isArray(rawOutputs) || rawOutputs.length === 0) {
+    throw new BadRequestError("outputs must be a non-empty array")
+  }
+
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
     environmentName: assertString(payload.environment_name, "environment_name"),
+    providerId: assertString(payload.provider_id, "provider_id"),
     serviceSlug: assertString(payload.service_slug, "service_slug"),
     readinessPath: assertString(payload.readiness_path, "readiness_path"),
-    backendOutput: normalizeMeiliApiCredentialsOutput(
-      payload.backend_output,
-      "backend_output"
-    ),
-    frontendOutput: normalizeMeiliApiCredentialsOutput(
-      payload.frontend_output,
-      "frontend_output"
+    outputs: rawOutputs.map((output, index) =>
+      normalizeRuntimeProviderOutput(output, `outputs[${index}]`)
     ),
   }
 }

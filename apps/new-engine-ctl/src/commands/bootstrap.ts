@@ -133,8 +133,8 @@ export function createBootstrapCommand(): Command {
         "production"
     )
     .requiredOption("--inspect-json <path>")
-    .option("--db-service-slug <slug>", "", "medusa-db")
-    .option("--operator-service-slug <slug>", "", "zane-operator")
+    .option("--db-service-slug <slug>")
+    .option("--operator-service-slug <slug>")
     .option(
       "--source-db-name <name>",
       "",

@@ -5,8 +5,6 @@ export const deployMainCommandInputSchema = z
     projectSlug: z.string().min(1, "Zane canonical project slug is required."),
     environmentName: z.string().min(1, "Environment name is required."),
     servicesCsv: z.string().default(""),
-    meiliUrl: z.string().default(""),
-    meiliMasterKey: z.string().default(""),
     gitCommitSha: z.string().min(1).optional(),
     outputJson: z.string().min(1).optional(),
     baseUrl: z.string().default(""),

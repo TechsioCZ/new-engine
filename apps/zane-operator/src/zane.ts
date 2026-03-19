@@ -1,4 +1,5 @@
 import type { AppConfig } from "./config"
+import { BadRequestError } from "./db"
 import type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
@@ -8,6 +9,9 @@ import type {
   ReadPreviewCommitStateInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
+  RuntimeProviderOutputInput,
+  RuntimeProviderRunInput,
+  RuntimeProviderRunResult,
   ServiceType,
   SyncPreviewRandomOnceSecretsInput,
   SyncPreviewServiceEnvInput,
@@ -136,6 +140,66 @@ function assertObject(value: unknown, label: string): Record<string, unknown> {
   }
 
   return value as Record<string, unknown>
+}
+
+function assertStringArrayInput(value: unknown, label: string): string[] {
+  if (!Array.isArray(value)) {
+    throw new BadRequestError(`${label} must be an array`)
+  }
+
+  return value.map((item, index) => {
+    if (typeof item !== "string" || !item.trim()) {
+      throw new BadRequestError(`${label}[${index}] must be a non-empty string`)
+    }
+
+    return item.trim()
+  })
+}
+
+function requireRuntimeProviderOutput(
+  input: RuntimeProviderRunInput,
+  outputId: string
+ ): RuntimeProviderOutputInput {
+  const output = input.outputs.find((candidate) => candidate.outputId === outputId)
+  if (!output) {
+    throw new BadRequestError(
+      `Runtime provider ${input.providerId} is missing required output ${outputId}`
+    )
+  }
+
+  return output
+}
+
+function toMeiliProvisionOutputInput(
+  output: RuntimeProviderOutputInput,
+  label: string
+ ): ProvisionMeiliKeysInput["backendOutput"] {
+  if (output.policy.kind !== "meilisearch_key") {
+    throw new BadRequestError(
+      `${label}.policy.kind must be meilisearch_key for meili_api_credentials`
+    )
+  }
+
+  const uid = output.policy.uid
+  const description = output.policy.description
+  if (typeof uid !== "string" || !uid.trim()) {
+    throw new BadRequestError(`${label}.policy.uid must be a non-empty string`)
+  }
+  if (typeof description !== "string" || !description.trim()) {
+    throw new BadRequestError(
+      `${label}.policy.description must be a non-empty string`
+    )
+  }
+
+  return {
+    envVar: output.envVar,
+    policy: {
+      uid: uid.trim(),
+      description: description.trim(),
+      actions: assertStringArrayInput(output.policy.actions, `${label}.policy.actions`),
+      indexes: assertStringArrayInput(output.policy.indexes, `${label}.policy.indexes`),
+    },
+  }
 }
 
 function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
@@ -847,23 +911,59 @@ export class ZaneClient {
     return await ops.cancelDeployment(input)
   }
 
-  async provisionMeiliKeys(input: ProvisionMeiliKeysInput): Promise<{
-    project_slug: string
-    environment_name: string
-    service_slug: string
-    meili_url: string
-    backend_key: string
-    backend_env_var: string
-    backend_created: boolean
-    backend_updated: boolean
-    frontend_key: string
-    frontend_env_var: string
-    frontend_created: boolean
-    frontend_updated: boolean
-  }> {
-    const provider = this.createMeiliApiCredentialsProvisioner()
+  async runRuntimeProvider(
+    input: RuntimeProviderRunInput
+  ): Promise<RuntimeProviderRunResult> {
+    switch (input.providerId) {
+      case "meili_api_credentials": {
+        const provider = this.createMeiliApiCredentialsProvisioner()
+        const backendOutput = requireRuntimeProviderOutput(input, "backend_key")
+        const frontendOutput = requireRuntimeProviderOutput(input, "frontend_key")
 
-    return await provider.provisionMeiliKeys(input)
+        const result = await provider.provisionMeiliKeys({
+          projectSlug: input.projectSlug,
+          environmentName: input.environmentName,
+          serviceSlug: input.serviceSlug,
+          readinessPath: input.readinessPath,
+          backendOutput: toMeiliProvisionOutputInput(
+            backendOutput,
+            "outputs[backend_key]"
+          ),
+          frontendOutput: toMeiliProvisionOutputInput(
+            frontendOutput,
+            "outputs[frontend_key]"
+          ),
+        })
+
+        return {
+          project_slug: result.project_slug,
+          environment_name: result.environment_name,
+          provider_id: input.providerId,
+          service_slug: result.service_slug,
+          source_url: result.meili_url,
+          outputs: [
+            {
+              output_id: "backend_key",
+              env_var: result.backend_env_var,
+              value: result.backend_key,
+              created: result.backend_created,
+              updated: result.backend_updated,
+            },
+            {
+              output_id: "frontend_key",
+              env_var: result.frontend_env_var,
+              value: result.frontend_key,
+              created: result.frontend_created,
+              updated: result.frontend_updated,
+            },
+          ],
+        }
+      }
+      default:
+        throw new BadRequestError(
+          `Unsupported runtime provider: ${input.providerId}`
+        )
+    }
   }
 
   async verifyDeploy(input: VerifyDeployInput): Promise<{

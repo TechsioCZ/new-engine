@@ -63,6 +63,7 @@ export const bootstrapZaneProjectPlanResponseSchema = z.object({
   phase: z.enum(["services", "env", "all"]),
   status: bootstrapPlanStatusSchema,
   blocking_reasons: z.array(z.string()).default([]),
+  warnings: z.array(z.string()).default([]),
   ensure_project: z.boolean(),
   project_exists: z.boolean(),
   environment_exists: z.boolean(),

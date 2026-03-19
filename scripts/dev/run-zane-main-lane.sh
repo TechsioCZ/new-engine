@@ -17,8 +17,6 @@ HEAD_SHA="HEAD"
 ZANE_BASE_URL=""
 ZANE_OPERATOR_BASE_URL=""
 ZANE_OPERATOR_API_TOKEN=""
-MEILISEARCH_URL=""
-MEILISEARCH_MASTER_KEY=""
 SKIP_VERIFY="false"
 APPROVE_DOWNTIME_RISK="false"
 
@@ -41,7 +39,6 @@ Options:
   --public-url-affix <suffix>   service URL affix (default: -zane)
   --zane-base-url <url>         upstream Zane base URL used for domain derivation
   --operator-api-token <token>  deployed zane-operator API token override
-  --meili-master-key <key>      Meilisearch master key override
   --approve-downtime-risk       allow local run to continue when downtime-risk services are in scope
   --skip-verify                 skip the final verify stage
   -h, --help                    show this help
@@ -93,10 +90,6 @@ parse_args() {
         ;;
       --operator-api-token)
         ZANE_OPERATOR_API_TOKEN="$2"
-        shift 2
-        ;;
-      --meili-master-key)
-        MEILISEARCH_MASTER_KEY="$2"
         shift 2
         ;;
       --approve-downtime-risk)
@@ -185,7 +178,6 @@ derive_public_domain() {
 derive_defaults() {
   ZANE_BASE_URL="${ZANE_BASE_URL:-${DC_ZANE_OPERATOR_ZANE_BASE_URL:-}}"
   ZANE_OPERATOR_API_TOKEN="${ZANE_OPERATOR_API_TOKEN:-${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-}}"
-  MEILISEARCH_MASTER_KEY="${MEILISEARCH_MASTER_KEY:-${DC_MEILISEARCH_MASTER_KEY:-}}"
   PROJECT_SLUG="${PROJECT_SLUG:-${ZANE_PROJECT_SLUG:-}}"
 
   [[ -n "$PROJECT_SLUG" ]] || common::die "Unable to resolve project slug. Pass --project-slug or export ZANE_PROJECT_SLUG."
@@ -194,9 +186,6 @@ derive_defaults() {
 
   if [[ -z "$ZANE_OPERATOR_BASE_URL" ]]; then
     ZANE_OPERATOR_BASE_URL="https://${PROJECT_SLUG}-zane-operator${PUBLIC_URL_AFFIX}.${PUBLIC_DOMAIN}"
-  fi
-  if [[ -z "$MEILISEARCH_URL" ]]; then
-    MEILISEARCH_URL="https://${PROJECT_SLUG}-medusa-meilisearch${PUBLIC_URL_AFFIX}.${PUBLIC_DOMAIN}"
   fi
 }
 
@@ -241,7 +230,6 @@ resolve_scope() {
 }
 
 run_deploy_stage() {
-  local requires_meili_keys="$1"
   local deploy_json
   local -a ctl_args
   local git_commit_sha
@@ -268,21 +256,14 @@ run_deploy_stage() {
   fi
 
   (
-    export REQUIRES_MEILI_KEYS="$requires_meili_keys"
     export ZANE_OPERATOR_BASE_URL="$ZANE_OPERATOR_BASE_URL"
     export ZANE_OPERATOR_API_TOKEN="$ZANE_OPERATOR_API_TOKEN"
     export ZANE_PROJECT_SLUG="$PROJECT_SLUG"
     export ZANE_PRODUCTION_ENVIRONMENT_NAME="$ENVIRONMENT_NAME"
-    export MEILISEARCH_URL="$MEILISEARCH_URL"
-    export MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY"
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode main-deploy
   ) >/dev/null
 
-  if [[ "$requires_meili_keys" == "true" ]]; then
-    common::step "Main deploy will reconcile Meili API credentials when the source service is healthy."
-  else
-    common::step "Main deploy does not need Meili API credential reconciliation for this scope."
-  fi
+  common::step "Main deploy will reconcile runtime-provider outputs inside deploy orchestration when required by the selected services."
 
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' RETURN
@@ -293,8 +274,6 @@ run_deploy_stage() {
     --environment-name "$ENVIRONMENT_NAME"
     --services-csv "$SERVICES_CSV"
     --git-commit-sha "$git_commit_sha"
-    --meili-url "$MEILISEARCH_URL"
-    --meili-master-key "$MEILISEARCH_MASTER_KEY"
     --base-url "$ZANE_OPERATOR_BASE_URL"
     --api-token "$ZANE_OPERATOR_API_TOKEN"
   )
@@ -303,12 +282,7 @@ run_deploy_stage() {
   fi
 
   set +e
-  deploy_json="$(
-    GITHUB_OUTPUT="$output_file" \
-    MEILISEARCH_URL="$MEILISEARCH_URL" \
-    MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY" \
-    node "${ctl_args[@]}"
-  )"
+  deploy_json="$(GITHUB_OUTPUT="$output_file" node "${ctl_args[@]}")"
   status=$?
   set -e
   if [[ "$status" -ne 0 ]]; then
@@ -405,20 +379,18 @@ main() {
   local prepare_json='{"skipped":true,"reason":"main_prepare_not_used"}'
   local deploy_json
   local verify_json='{}'
-  local requires_meili_keys
 
   parse_args "$@"
   load_env_file
   require_tools
   ensure_ctl_built
   derive_defaults
-  common::configure_node_extra_ca_certs_from_local_caddy "$ZANE_OPERATOR_BASE_URL" "$MEILISEARCH_URL"
+  common::configure_node_extra_ca_certs_from_local_caddy "$ZANE_OPERATOR_BASE_URL"
   trap 'common::cleanup_node_extra_ca_certs_temp' EXIT
 
   scope_json="$(resolve_scope)"
   SERVICES_CSV="$(jq -r '.services_csv' <<<"$scope_json")"
   common::step "Using operator URL: ${ZANE_OPERATOR_BASE_URL}"
-  common::step "Using Meilisearch URL: ${MEILISEARCH_URL}"
 
   if [[ -z "$SERVICES_CSV" ]]; then
     common::success "No affected services detected. Skipping main lane."
@@ -426,13 +398,11 @@ main() {
       --arg project_slug "$PROJECT_SLUG" \
       --arg environment_name "$ENVIRONMENT_NAME" \
       --arg operator_base_url "$ZANE_OPERATOR_BASE_URL" \
-      --arg meili_url "$MEILISEARCH_URL" \
       --argjson scope "$scope_json" \
       '{
         project_slug: $project_slug,
         environment_name: $environment_name,
         operator_base_url: $operator_base_url,
-        meili_url: $meili_url,
         scope: $scope,
         skipped: true,
         reason: "no_affected_services"
@@ -444,9 +414,7 @@ main() {
     services_csv,
     should_prepare,
     requires_preview_db,
-    requires_meili_keys,
-    preview_db_service_ids: (if .preview_db_service_ids == "" then [] else (.preview_db_service_ids | split(",")) end),
-    meili_key_service_ids: (if .meili_key_service_ids == "" then [] else (.meili_key_service_ids | split(",")) end)
+    preview_db_service_ids: (if .preview_db_service_ids == "" then [] else (.preview_db_service_ids | split(",")) end)
   }' <<<"$scope_json")"
   jq -e . >/dev/null <<<"$prepare_needs_json" || common::die "Prepare-needs stage did not return valid JSON."
   downtime_json="$(jq -c '{
@@ -459,9 +427,8 @@ main() {
   if [[ "$(jq -r '.requires_downtime_approval' <<<"$downtime_json")" == "true" && "$APPROVE_DOWNTIME_RISK" != "true" ]]; then
     common::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(",")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
   fi
-  requires_meili_keys="$(jq -r '.requires_meili_keys' <<<"$prepare_needs_json")"
   common::step "Main lane has no active shared-resource pre-deploy phase."
-  if ! deploy_json="$(run_deploy_stage "$requires_meili_keys")"; then
+  if ! deploy_json="$(run_deploy_stage)"; then
     common::die "Main deploy stage failed. See the deployment error above for the failing stage and deployment hash."
   fi
   jq -e . >/dev/null <<<"$deploy_json" || common::die "Deploy stage did not return valid JSON."
@@ -480,19 +447,17 @@ main() {
     --arg project_slug "$PROJECT_SLUG" \
     --arg environment_name "$ENVIRONMENT_NAME" \
     --arg operator_base_url "$ZANE_OPERATOR_BASE_URL" \
-    --arg meili_url "$MEILISEARCH_URL" \
     --argjson scope "$scope_json" \
     --argjson prepare_needs "$prepare_needs_json" \
     --argjson downtime_risk "$downtime_json" \
     --argjson prepare "$prepare_json" \
-    --argjson deploy "$deploy_json" \
+    --argjson deploy "$(jq 'del(.meili_backend_key, .meili_frontend_key)' <<<"$deploy_json")" \
     --argjson verify "$verify_json" \
     --argjson skipped_verify "$(jq -n --arg value "$SKIP_VERIFY" '$value == "true"')" \
     '{
       project_slug: $project_slug,
       environment_name: $environment_name,
       operator_base_url: $operator_base_url,
-      meili_url: $meili_url,
       scope: $scope,
       prepare_needs: $prepare_needs,
       downtime_risk: $downtime_risk,

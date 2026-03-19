@@ -124,13 +124,11 @@ export async function executeBootstrapPreviewTemplateDbPlan(
   )
   const dbUser = firstNonEmpty(
     input.dbUser,
-    serviceEnvValue(dbDetails, "POSTGRES_USER"),
-    process.env.DC_POSTGRES_SUPERUSER
+    serviceEnvValue(dbDetails, "POSTGRES_USER")
   )
   const dbPassword = firstNonEmpty(
     input.dbPassword,
-    serviceEnvValue(dbDetails, "POSTGRES_PASSWORD"),
-    process.env.DC_POSTGRES_SUPERUSER_PASSWORD
+    serviceEnvValue(dbDetails, "POSTGRES_PASSWORD")
   )
   const dbAdminName = firstNonEmpty(input.dbAdminName, "postgres")
   const dbSslmode = firstNonEmpty(
@@ -141,16 +139,12 @@ export async function executeBootstrapPreviewTemplateDbPlan(
   const templateDbName = firstNonEmpty(
     input.templateDbName,
     serviceEnvValue(dbDetails, "MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME"),
-    serviceEnvValue(operatorDetails, "DB_TEMPLATE_NAME"),
-    process.env.DC_ZANE_OPERATOR_DB_TEMPLATE_NAME,
-    "template_medusa"
+    serviceEnvValue(operatorDetails, "DB_TEMPLATE_NAME")
   )
   const templateOwner = firstNonEmpty(
     input.templateOwner,
     serviceEnvValue(dbDetails, "MEDUSA_DB_ZANE_OPERATOR_USER"),
-    serviceEnvValue(operatorDetails, "PGUSER"),
-    process.env.DC_ZANE_OPERATOR_PGUSER,
-    "zane_operator"
+    serviceEnvValue(operatorDetails, "PGUSER")
   )
   const stagingDbName = buildStagingDbName(input.stagingDbName, templateDbName)
   const blockingReasons = buildBlockingReasons({

@@ -13,8 +13,6 @@ export function createDeployMainCommand(): Command {
     .option("--project-slug <slug>")
     .requiredOption("--environment-name <name>")
     .option("--services-csv <csv>", "", "")
-    .option("--meili-url <url>")
-    .option("--meili-master-key <key>")
     .option("--git-commit-sha <sha>")
     .option("--output-json <path>")
     .option("--base-url <url>")
@@ -41,12 +39,6 @@ export function createDeployMainCommand(): Command {
         projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
         environmentName: options.environmentName,
         servicesCsv: options.servicesCsv,
-        meiliUrl: options.meiliUrl ?? process.env.MEILISEARCH_URL ?? "",
-        meiliMasterKey:
-          options.meiliMasterKey ??
-          process.env.MEILISEARCH_MASTER_KEY ??
-          process.env.DC_MEILISEARCH_MASTER_KEY ??
-          "",
         gitCommitSha: options.gitCommitSha,
         outputJson: options.outputJson,
         baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",

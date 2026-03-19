@@ -3,7 +3,7 @@ import { Command } from "commander"
 import { scopeCommandInputSchema } from "../contracts/scope.js"
 import { appendGitHubOutput } from "../github-actions.js"
 import { executeScope } from "../orchestration/scope.js"
-import { defaultStackManifestPath } from "../paths.js"
+import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
 function parseBooleanOption(value: string | boolean | undefined): boolean {
   if (typeof value === "boolean") {
@@ -40,6 +40,11 @@ export function createScopeCommand(): Command {
       "",
       process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
+    .option(
+      "--stack-inputs-path <path>",
+      "",
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+    )
     .action(async (options) => {
       const input = scopeCommandInputSchema.parse({
         lane: options.lane,
@@ -48,6 +53,7 @@ export function createScopeCommand(): Command {
         headSha: options.headSha,
         outputJson: options.outputJson,
         stackManifestPath: options.stackManifestPath,
+        stackInputsPath: options.stackInputsPath,
         nxIsolatePlugins: parseBooleanOption(options.nxIsolatePlugins),
       })
       const result = await executeScope(input)
@@ -64,16 +70,8 @@ export function createScopeCommand(): Command {
         String(result.requires_preview_db)
       )
       await appendGitHubOutput(
-        "requires_meili_keys",
-        String(result.requires_meili_keys)
-      )
-      await appendGitHubOutput(
         "preview_db_service_ids",
         result.preview_db_service_ids
-      )
-      await appendGitHubOutput(
-        "meili_key_service_ids",
-        result.meili_key_service_ids
       )
       await appendGitHubOutput(
         "requires_downtime_approval",

@@ -19,7 +19,6 @@ const defaultCiConfig = {
   affected_path_globs: [],
   prepare: {
     preview_db: false,
-    meili_keys: false,
   },
 }
 
@@ -34,7 +33,6 @@ const consumesSchema = z
 const prepareSchema = z
   .object({
     preview_db: z.boolean().optional().default(false),
-    meili_keys: z.boolean().optional().default(false),
   })
   .default(defaultCiConfig.prepare)
 
@@ -186,8 +184,8 @@ export function listComposeServicesForPhase(
 
 export function listPrepareServiceIds(
   manifest: StackManifest,
-  requirement: "preview_db" | "meili_keys"
-): string[] {
+  requirement: "preview_db"
+ ): string[] {
   return manifest.services.flatMap((service) =>
     service.ci.prepare[requirement] === true ? [service.id] : []
   )

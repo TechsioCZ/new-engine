@@ -22,11 +22,11 @@ import type {
   PreviewSharedEnvVariableInput,
 } from "../contracts/preview-shared-env.js"
 import { previewSharedEnvSyncResponseSchema } from "../contracts/preview-shared-env.js"
-import type { ProvisionMeiliKeysResponse } from "../contracts/provision-meili-keys.js"
+import type { RuntimeProviderRunResponse } from "../contracts/runtime-provider-run.js"
 import {
-  type ProvisionMeiliKeysPayload,
-  provisionMeiliKeysResponseSchema,
-} from "../contracts/provision-meili-keys.js"
+  type RuntimeProviderRunPayload,
+  runtimeProviderRunResponseSchema,
+} from "../contracts/runtime-provider-run.js"
 import type { ResolveEnvironmentResponse } from "../contracts/resolve-environment.js"
 import { resolveEnvironmentResponseSchema } from "../contracts/resolve-environment.js"
 import type {
@@ -302,13 +302,13 @@ export class ZaneOperatorClient {
     await this.#postJson("/v1/zane/deploy/cancel", payload, () => null)
   }
 
-  provisionMeiliKeys(
-    payload: ProvisionMeiliKeysPayload
-  ): Promise<ProvisionMeiliKeysResponse> {
+  runRuntimeProvider(
+    payload: RuntimeProviderRunPayload
+  ): Promise<RuntimeProviderRunResponse> {
     return this.#postJson(
-      "/v1/zane/meilisearch/provision-keys",
+      "/v1/zane/runtime-providers/run",
       payload,
-      provisionMeiliKeysResponseSchema.parse
+      runtimeProviderRunResponseSchema.parse
     )
   }
 
