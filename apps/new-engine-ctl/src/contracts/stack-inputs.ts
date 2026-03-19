@@ -58,7 +58,10 @@ const runtimeProviderSchema = z.looseObject({
 const previewRuntimeSourceSchema = z.looseObject({
   kind: z.string().min(1),
   service_id: z.string().min(1).optional(),
-  environment_scope: z.enum(["current", "source"]).optional().default("current"),
+  environment_scope: z
+    .enum(["current", "source"])
+    .optional()
+    .default("current"),
   port: z.number().int().positive().optional(),
   trailing_slash: z.boolean().optional().default(false),
   bucket_shared_env_key: z.string().min(1).optional(),
@@ -74,6 +77,11 @@ const previewServiceEnvDefinitionSchema = z.looseObject({
   service_id: z.string().min(1),
   env_var: z.string().min(1),
   source: previewRuntimeSourceSchema,
+})
+
+const previewForbiddenServiceEnvDefinitionSchema = z.looseObject({
+  service_id: z.string().min(1),
+  env_keys: z.array(z.string().min(1)).default([]),
 })
 
 const laneBuildStageTargetsSchema = z
@@ -94,7 +102,9 @@ const serviceGitSourceReconciliationSchema = z
 const serviceBuilderReconciliationSchema = z
   .object({
     sync_from_source: z.boolean().optional().default(true),
-    build_stage_target_by_lane: laneBuildStageTargetsSchema.optional().default({}),
+    build_stage_target_by_lane: laneBuildStageTargetsSchema
+      .optional()
+      .default({}),
   })
   .default({
     sync_from_source: true,
@@ -143,6 +153,13 @@ export const stackInputsSchema = z.object({
       service_env: z.array(previewServiceEnvDefinitionSchema).default([]),
     })
     .default({ shared_env: [], service_env: [] }),
+  preview_verification: z
+    .object({
+      forbidden_service_env: z
+        .array(previewForbiddenServiceEnvDefinitionSchema)
+        .default([]),
+    })
+    .default({ forbidden_service_env: [] }),
   service_reconciliation: z
     .object({
       services: z.array(serviceReconciliationDefinitionSchema).default([]),
@@ -163,6 +180,9 @@ export type PreviewSharedEnvDefinition = z.infer<
 export type PreviewServiceEnvDefinition = z.infer<
   typeof previewServiceEnvDefinitionSchema
 >
+export type PreviewForbiddenServiceEnvDefinition = z.infer<
+  typeof previewForbiddenServiceEnvDefinitionSchema
+>
 export type ServiceReconciliationDefinition = z.infer<
   typeof serviceReconciliationDefinitionSchema
 >
@@ -177,9 +197,9 @@ export function getPreviewRandomOnceSecretDefinitions(
   )
 }
 
-export function previewRandomOnceSecretPersistsToZaneEnv(
-  secret: { persist_to?: string }
-): boolean {
+export function previewRandomOnceSecretPersistsToZaneEnv(secret: {
+  persist_to?: string
+}): boolean {
   return (secret.persist_to ?? "zane_env") === "zane_env"
 }
 
@@ -193,6 +213,12 @@ export function getPreviewServiceEnvDefinitions(
   inputs: StackInputs
 ): PreviewServiceEnvDefinition[] {
   return inputs.preview_runtime_reconciliation.service_env
+}
+
+export function getPreviewForbiddenServiceEnvDefinitions(
+  inputs: StackInputs
+): PreviewForbiddenServiceEnvDefinition[] {
+  return inputs.preview_verification.forbidden_service_env
 }
 
 export function getServiceReconciliationDefinitions(

@@ -4,7 +4,7 @@ import type {
   EnvOverrideInput,
   Lane,
   PreviewRuntimeValueSourceInput,
-  ProvisionPreviewMeiliKeysInput,
+  ProvisionMeiliKeysInput,
   ReadPreviewCommitStateInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
@@ -40,7 +40,7 @@ export type {
   ForbiddenEnvRequirement,
   Lane,
   PersistedEnvRequirement,
-  ProvisionPreviewMeiliKeysInput,
+  ProvisionMeiliKeysInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
   ServiceType,
@@ -847,9 +847,7 @@ export class ZaneClient {
     return await ops.cancelDeployment(input)
   }
 
-  async provisionPreviewMeiliKeys(
-    input: ProvisionPreviewMeiliKeysInput
-  ): Promise<{
+  async provisionMeiliKeys(input: ProvisionMeiliKeysInput): Promise<{
     project_slug: string
     environment_name: string
     service_slug: string
@@ -865,7 +863,7 @@ export class ZaneClient {
   }> {
     const provider = this.createMeiliApiCredentialsProvisioner()
 
-    return await provider.provisionPreviewMeiliKeys(input)
+    return await provider.provisionMeiliKeys(input)
   }
 
   async verifyDeploy(input: VerifyDeployInput): Promise<{

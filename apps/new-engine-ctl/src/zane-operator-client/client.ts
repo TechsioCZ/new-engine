@@ -22,11 +22,11 @@ import type {
   PreviewSharedEnvVariableInput,
 } from "../contracts/preview-shared-env.js"
 import { previewSharedEnvSyncResponseSchema } from "../contracts/preview-shared-env.js"
-import type { ProvisionPreviewMeiliKeysResponse } from "../contracts/provision-preview-meili-keys.js"
+import type { ProvisionMeiliKeysResponse } from "../contracts/provision-meili-keys.js"
 import {
-  type ProvisionPreviewMeiliKeysPayload,
-  provisionPreviewMeiliKeysResponseSchema,
-} from "../contracts/provision-preview-meili-keys.js"
+  type ProvisionMeiliKeysPayload,
+  provisionMeiliKeysResponseSchema,
+} from "../contracts/provision-meili-keys.js"
 import type { ResolveEnvironmentResponse } from "../contracts/resolve-environment.js"
 import { resolveEnvironmentResponseSchema } from "../contracts/resolve-environment.js"
 import type {
@@ -302,13 +302,13 @@ export class ZaneOperatorClient {
     await this.#postJson("/v1/zane/deploy/cancel", payload, () => null)
   }
 
-  provisionPreviewMeiliKeys(
-    payload: ProvisionPreviewMeiliKeysPayload
-  ): Promise<ProvisionPreviewMeiliKeysResponse> {
+  provisionMeiliKeys(
+    payload: ProvisionMeiliKeysPayload
+  ): Promise<ProvisionMeiliKeysResponse> {
     return this.#postJson(
       "/v1/zane/meilisearch/provision-keys",
       payload,
-      provisionPreviewMeiliKeysResponseSchema.parse
+      provisionMeiliKeysResponseSchema.parse
     )
   }
 

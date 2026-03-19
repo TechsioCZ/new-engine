@@ -6,7 +6,7 @@ import { handleArchiveZaneEnvironment } from "./handlers/archive-zane-environmen
 import { handleCancelZaneDeploy } from "./handlers/cancel-zane-deploy"
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
-import { handleProvisionPreviewMeiliKeys } from "./handlers/provision-preview-meili-keys"
+import { handleProvisionMeiliKeys } from "./handlers/provision-meili-keys"
 import { handleReadPreviewCommitState } from "./handlers/read-preview-commit-state"
 import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
 import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
@@ -174,7 +174,7 @@ const server = Bun.serve({
         return authResponse
       }
 
-      return await handleProvisionPreviewMeiliKeys(request, { config })
+      return await handleProvisionMeiliKeys(request, { config })
     }
 
     if (

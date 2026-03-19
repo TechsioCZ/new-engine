@@ -305,6 +305,118 @@ preview_runtime_reconciliation:
         kind: service_public_origin
         service_id: n1
 
+preview_verification:
+  forbidden_service_env:
+    - service_id: medusa-valkey
+      env_keys:
+        - API_AUTH_TOKEN
+        - PGHOST
+        - PGPORT
+        - PGUSER
+        - PGPASSWORD
+        - PGDATABASE
+        - PGSSLMODE
+        - DB_TEMPLATE_NAME
+        - DB_PREVIEW_PREFIX
+        - DB_PREVIEW_APP_USER_PREFIX
+        - DB_PREVIEW_DEV_ROLE
+        - DB_APP_SCHEMA
+        - DB_PREVIEW_APP_PASSWORD_SECRET
+        - DB_PROTECTED_NAMES
+        - ZANE_BASE_URL
+        - ZANE_CONNECT_BASE_URL
+        - ZANE_CONNECT_HOST_HEADER
+        - ZANE_USERNAME
+        - ZANE_PASSWORD
+
+    - service_id: medusa-minio
+      env_keys:
+        - API_AUTH_TOKEN
+        - PGHOST
+        - PGPORT
+        - PGUSER
+        - PGPASSWORD
+        - PGDATABASE
+        - PGSSLMODE
+        - DB_TEMPLATE_NAME
+        - DB_PREVIEW_PREFIX
+        - DB_PREVIEW_APP_USER_PREFIX
+        - DB_PREVIEW_DEV_ROLE
+        - DB_APP_SCHEMA
+        - DB_PREVIEW_APP_PASSWORD_SECRET
+        - DB_PROTECTED_NAMES
+        - ZANE_BASE_URL
+        - ZANE_CONNECT_BASE_URL
+        - ZANE_CONNECT_HOST_HEADER
+        - ZANE_USERNAME
+        - ZANE_PASSWORD
+
+    - service_id: medusa-meilisearch
+      env_keys:
+        - API_AUTH_TOKEN
+        - PGHOST
+        - PGPORT
+        - PGUSER
+        - PGPASSWORD
+        - PGDATABASE
+        - PGSSLMODE
+        - DB_TEMPLATE_NAME
+        - DB_PREVIEW_PREFIX
+        - DB_PREVIEW_APP_USER_PREFIX
+        - DB_PREVIEW_DEV_ROLE
+        - DB_APP_SCHEMA
+        - DB_PREVIEW_APP_PASSWORD_SECRET
+        - DB_PROTECTED_NAMES
+        - ZANE_BASE_URL
+        - ZANE_CONNECT_BASE_URL
+        - ZANE_CONNECT_HOST_HEADER
+        - ZANE_USERNAME
+        - ZANE_PASSWORD
+
+    - service_id: medusa-be
+      env_keys:
+        - API_AUTH_TOKEN
+        - PGHOST
+        - PGPORT
+        - PGUSER
+        - PGPASSWORD
+        - PGDATABASE
+        - PGSSLMODE
+        - DB_TEMPLATE_NAME
+        - DB_PREVIEW_PREFIX
+        - DB_PREVIEW_APP_USER_PREFIX
+        - DB_PREVIEW_DEV_ROLE
+        - DB_APP_SCHEMA
+        - DB_PREVIEW_APP_PASSWORD_SECRET
+        - DB_PROTECTED_NAMES
+        - ZANE_BASE_URL
+        - ZANE_CONNECT_BASE_URL
+        - ZANE_CONNECT_HOST_HEADER
+        - ZANE_USERNAME
+        - ZANE_PASSWORD
+
+    - service_id: n1
+      env_keys:
+        - API_AUTH_TOKEN
+        - PGHOST
+        - PGPORT
+        - PGUSER
+        - PGPASSWORD
+        - PGDATABASE
+        - PGSSLMODE
+        - DB_TEMPLATE_NAME
+        - DB_PREVIEW_PREFIX
+        - DB_PREVIEW_APP_USER_PREFIX
+        - DB_PREVIEW_DEV_ROLE
+        - DB_APP_SCHEMA
+        - DB_PREVIEW_APP_PASSWORD_SECRET
+        - DB_PROTECTED_NAMES
+        - ZANE_BASE_URL
+        - ZANE_CONNECT_BASE_URL
+        - ZANE_CONNECT_HOST_HEADER
+        - ZANE_USERNAME
+        - ZANE_PASSWORD
+
 service_reconciliation:
   services:
     - service_id: medusa-be

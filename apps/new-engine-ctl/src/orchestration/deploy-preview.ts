@@ -7,6 +7,9 @@ import type {
 } from "../contracts/deploy-preview.js"
 import { deployPreviewResponseSchema } from "../contracts/deploy-preview.js"
 import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
+import { getPreviewRandomOnceSecretDefinitions } from "../contracts/stack-inputs.js"
+import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
+import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import { executeApplyEnvOverridesPayload } from "./apply-env-overrides.js"
 import { loadDeployContracts } from "./deploy-inputs.js"
 import {
@@ -18,23 +21,20 @@ import {
   mergeDeployments,
   waitForDeployments,
 } from "./deploy-shared.js"
-import { getPreviewRandomOnceSecretDefinitions } from "../contracts/stack-inputs.js"
 import { executePlan } from "./plan.js"
 import {
   getMeiliApiCredentialsProviderSourceService,
-  provisionPreviewMeiliKeys,
+  provisionMeiliKeys,
 } from "./preview-meili.js"
 import { generatePreviewRandomOnceSecrets } from "./preview-random-secrets.js"
-import { executeRenderEnvOverrides } from "./render-env-overrides.js"
-import { executeResolveEnvironment } from "./resolve-environment.js"
-import { executeResolveTargetsPayload } from "./resolve-targets.js"
-import { executeTriggerPayload } from "./trigger.js"
-import { ZaneOperatorClient } from "../zane-operator-client/client.js"
-import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
 import {
   buildPreviewServiceEnvSyncServices,
   buildPreviewSharedEnvSyncVariables,
 } from "./preview-runtime-reconciliation.js"
+import { executeRenderEnvOverrides } from "./render-env-overrides.js"
+import { executeResolveEnvironment } from "./resolve-environment.js"
+import { executeResolveTargetsPayload } from "./resolve-targets.js"
+import { executeTriggerPayload } from "./trigger.js"
 
 export type DeployPreviewExecutionResult = {
   response: DeployPreviewResponse
@@ -159,24 +159,25 @@ async function resolvePreviewRandomOnceSecrets(input: {
       ])
     )
 
-    const syncedMissing = await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
-      secrets: definitions
-        .filter((definition) =>
-          synced.missing_secret_ids.includes(definition.secret_id)
-        )
-        .map((definition) => ({
-          secret_id: definition.secret_id,
-          value: generatedValuesBySecretId.get(definition.secret_id),
-          persist_to: definition.persist_to,
-          persisted_env_var: definition.persisted_env_var,
-          targets: definition.targets.map((target) => ({
-            service_slug: target.service_id,
-            env_var: target.env_var,
+    const syncedMissing =
+      await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
+        project_slug: input.projectSlug,
+        environment_name: input.environmentName,
+        secrets: definitions
+          .filter((definition) =>
+            synced.missing_secret_ids.includes(definition.secret_id)
+          )
+          .map((definition) => ({
+            secret_id: definition.secret_id,
+            value: generatedValuesBySecretId.get(definition.secret_id),
+            persist_to: definition.persist_to,
+            persisted_env_var: definition.persisted_env_var,
+            targets: definition.targets.map((target) => ({
+              service_slug: target.service_id,
+              env_var: target.env_var,
+            })),
           })),
-        })),
-    })
+      })
 
     if (syncedMissing.missing_secret_ids.length > 0) {
       throw new Error(
@@ -388,7 +389,7 @@ export async function executeDeployPreview(
 
   if (baselineDeploy && runtimePlan.deploy_services_csv) {
     logDeployProgress(
-      `Applying baseline preview-owned env materialization before staged deploys.`
+      "Applying baseline preview-owned env materialization before staged deploys."
     )
     const baselineEnvOverrides = await executeRenderEnvOverrides({
       lane: "preview",
@@ -409,8 +410,8 @@ export async function executeDeployPreview(
       const baselineEnvOverrideServiceIds = new Set(
         baselineEnvOverrides.services.map((service) => service.service_id)
       )
-      const baselineTargetServices = runtimePlan.deploy_services.filter((service) =>
-        baselineEnvOverrideServiceIds.has(service.id)
+      const baselineTargetServices = runtimePlan.deploy_services.filter(
+        (service) => baselineEnvOverrideServiceIds.has(service.id)
       )
 
       if (baselineTargetServices.length > 0) {
@@ -460,12 +461,14 @@ export async function executeDeployPreview(
     logDeployProgress(
       `Persisting preview target commit metadata before deploy stages: ${input.targetCommitSha}.`
     )
-    const previewCommitState = await zaneOperatorClient.writePreviewCommitState({
-      project_slug: input.projectSlug,
-      environment_name: environment.environment_name,
-      target_commit_sha: input.targetCommitSha,
-      ...(baselineDeploy ? { baseline_complete: false } : {}),
-    })
+    const previewCommitState = await zaneOperatorClient.writePreviewCommitState(
+      {
+        project_slug: input.projectSlug,
+        environment_name: environment.environment_name,
+        target_commit_sha: input.targetCommitSha,
+        ...(baselineDeploy ? { baseline_complete: false } : {}),
+      }
+    )
     targetCommitSha = previewCommitState.target_commit_sha
   } else if (input.targetCommitSha) {
     targetCommitSha = input.targetCommitSha
@@ -493,7 +496,7 @@ export async function executeDeployPreview(
       logDeployProgress(
         `Stage ${stage} consumes Meili API credentials; provisioning or reusing them before env overrides.`
       )
-      const provisionedKeys = await provisionPreviewMeiliKeys({
+      const provisionedKeys = await provisionMeiliKeys({
         projectSlug: input.projectSlug,
         environmentName: environment.environment_name,
         serviceSlug: meiliSourceService.serviceSlug,
@@ -690,12 +693,14 @@ export async function executeDeployPreview(
     logDeployProgress(
       `Persisting preview last-deployed commit metadata after successful deploy: ${input.targetCommitSha}.`
     )
-    const previewCommitState = await zaneOperatorClient.writePreviewCommitState({
-      project_slug: input.projectSlug,
-      environment_name: environment.environment_name,
-      last_deployed_commit_sha: input.targetCommitSha,
-      ...(baselineDeploy ? { baseline_complete: true } : {}),
-    })
+    const previewCommitState = await zaneOperatorClient.writePreviewCommitState(
+      {
+        project_slug: input.projectSlug,
+        environment_name: environment.environment_name,
+        last_deployed_commit_sha: input.targetCommitSha,
+        ...(baselineDeploy ? { baseline_complete: true } : {}),
+      }
+    )
     targetCommitSha = previewCommitState.target_commit_sha
     lastDeployedCommitSha = previewCommitState.last_deployed_commit_sha
   } else if (input.targetCommitSha) {

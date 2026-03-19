@@ -13,7 +13,7 @@ export function isRepoPreviewEnvironmentName(environmentName: string): boolean {
 
 export function assertEnvironmentMatchesLane(
   environment: LaneEnvironment,
-  lane: "preview" | "main",
+  lane: "preview" | "main"
 ): void {
   const isRepoPreview = isRepoPreviewEnvironmentName(environment.name)
 
@@ -21,7 +21,7 @@ export function assertEnvironmentMatchesLane(
     throw new UpstreamHttpError(
       409,
       "zane_environment_lane_mismatch",
-      `Environment ${environment.name} is reserved for preview lane operations and cannot be used for main lane operations`,
+      `Environment ${environment.name} is reserved for preview lane operations and cannot be used for main lane operations`
     )
   }
 
@@ -29,11 +29,7 @@ export function assertEnvironmentMatchesLane(
     throw new UpstreamHttpError(
       409,
       "zane_environment_lane_mismatch",
-      `Environment ${environment.name} does not match the required preview environment naming rule pr-<number>`,
+      `Environment ${environment.name} does not match the required preview environment naming rule pr-<number>`
     )
   }
-}
-
-export function assertPreviewLaneEnvironment(environment: LaneEnvironment): void {
-  assertEnvironmentMatchesLane(environment, "preview")
 }

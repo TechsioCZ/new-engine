@@ -1,16 +1,16 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseProvisionPreviewMeiliKeysInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseProvisionMeiliKeysInput } from "../zane-inputs"
 
-interface ProvisionPreviewMeiliKeysDeps {
+type ProvisionMeiliKeysDeps = {
   config: AppConfig
 }
 
-export async function handleProvisionPreviewMeiliKeys(
+export async function handleProvisionMeiliKeys(
   request: Request,
-  deps: ProvisionPreviewMeiliKeysDeps,
+  deps: ProvisionMeiliKeysDeps
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {
@@ -18,10 +18,10 @@ export async function handleProvisionPreviewMeiliKeys(
     })
 
     const client = new ZaneClient(deps.config)
-    const payload = parseProvisionPreviewMeiliKeysInput(rawBody)
-    const result = await client.provisionPreviewMeiliKeys(payload)
+    const payload = parseProvisionMeiliKeysInput(rawBody)
+    const result = await client.provisionMeiliKeys(payload)
     return jsonResponse(200, result)
   } catch (error: unknown) {
-    return mapHandlerError(error, "provision-preview-meili-keys")
+    return mapHandlerError(error, "provision-meili-keys")
   }
 }

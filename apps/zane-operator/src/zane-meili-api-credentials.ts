@@ -1,7 +1,7 @@
 import { BadRequestError } from "./db"
 import type {
-  ProvisionPreviewMeiliKeysInput,
-  ProvisionPreviewMeiliKeysOutputInput,
+  ProvisionMeiliKeysInput,
+  ProvisionMeiliKeysOutputInput,
 } from "./zane-contract"
 import { buildServicePublicUrls } from "./zane-effective-service-urls"
 import { UpstreamHttpError } from "./zane-errors"
@@ -37,7 +37,7 @@ interface SearchProvisionServiceDetails {
   }>
 }
 
-interface ProvisionPreviewMeiliApiCredentialsDeps {
+interface ProvisionMeiliApiCredentialsDeps {
   authenticate(): Promise<ZaneSession>
   getEnvironment(
     session: ZaneSession,
@@ -203,15 +203,13 @@ function resolveMeiliUrl(meiliUrl: string, path: string): string {
 }
 
 export class ZaneMeiliApiCredentialsProvisioner {
-  readonly #deps: ProvisionPreviewMeiliApiCredentialsDeps
+  readonly #deps: ProvisionMeiliApiCredentialsDeps
 
-  constructor(deps: ProvisionPreviewMeiliApiCredentialsDeps) {
+  constructor(deps: ProvisionMeiliApiCredentialsDeps) {
     this.#deps = deps
   }
 
-  async provisionPreviewMeiliKeys(
-    input: ProvisionPreviewMeiliKeysInput
-  ): Promise<{
+  async provisionMeiliKeys(input: ProvisionMeiliKeysInput): Promise<{
     project_slug: string
     environment_name: string
     service_slug: string
@@ -382,7 +380,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
   }
 
   private requireOutputEnvVar(
-    output: ProvisionPreviewMeiliKeysOutputInput,
+    output: ProvisionMeiliKeysOutputInput,
     label: string
   ): string {
     if (!output.envVar.trim()) {
