@@ -69,7 +69,12 @@ RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
 
-COPY . .
+# Reuse the same narrowed copy boundary as ci-dev so unrelated repo changes don't
+# invalidate the production dependency and build layers.
+COPY tsconfig.base.json ./
+COPY apps/n1 ./apps/n1
+COPY libs/ui ./libs/ui
+COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
