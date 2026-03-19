@@ -151,41 +151,97 @@ common::host_uses_local_caddy_ca() {
   [[ "$host" == *.127-0-0-1.sslip.io || "$host" == *.localhost ]]
 }
 
-common::configure_node_extra_ca_certs_from_local_caddy() {
-  local needs_local_ca="false"
+common::needs_local_caddy_ca() {
   local url
   local host
+
+  for url in "$@"; do
+    [[ -n "$url" ]] || continue
+    host="$(common::url_host "$url")"
+    if common::host_uses_local_caddy_ca "$host"; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+common::resolve_local_caddy_container() {
+  local container_name=""
+
+  if docker ps --format '{{.Names}}' | grep -Fxq 'zane-local-caddy'; then
+    printf '%s\n' 'zane-local-caddy'
+    return 0
+  fi
+
+  container_name="$({
+    docker ps --format '{{.Names}} {{.Image}}'
+  } | awk '/ghcr\.io\/zane-ops\/proxy:| caddy($|:)/ { print $1; exit }')"
+
+  if [[ -n "$container_name" ]]; then
+    printf '%s\n' "$container_name"
+    return 0
+  fi
+
+  return 1
+}
+
+common::copy_local_caddy_root_ca() {
+  local destination="$1"
+  local container_name=""
+
+  command -v docker >/dev/null 2>&1 || common::die "Local sslip routes require docker so the helper can trust the local Caddy CA."
+  container_name="$(common::resolve_local_caddy_container || true)"
+  [[ -n "$container_name" ]] || common::die "Unable to locate the local Caddy/proxy container. Start the local proxy container or set the CA bundle explicitly."
+
+  if ! docker cp "${container_name}:/data/caddy/pki/authorities/local/root.crt" "$destination" >/dev/null 2>&1; then
+    rm -f "$destination"
+    common::die "Unable to read the local Caddy root CA from ${container_name}. Set NODE_EXTRA_CA_CERTS or CURL_CA_BUNDLE explicitly if needed."
+  fi
+}
+
+common::configure_node_extra_ca_certs_from_local_caddy() {
   local temp_cert
 
   if [[ -n "${NODE_EXTRA_CA_CERTS:-}" ]]; then
     return 0
   fi
 
-  for url in "$@"; do
-    [[ -n "$url" ]] || continue
-    host="$(common::url_host "$url")"
-    if common::host_uses_local_caddy_ca "$host"; then
-      needs_local_ca="true"
-      break
-    fi
-  done
-
-  [[ "$needs_local_ca" == "true" ]] || return 0
-  command -v docker >/dev/null 2>&1 || common::die "Local sslip routes require docker so the helper can trust the zane-local-caddy CA."
-
+  common::needs_local_caddy_ca "$@" || return 0
   temp_cert="$(mktemp "${TMPDIR:-/tmp}/new-engine-caddy-root.XXXXXX.crt")"
-  if ! docker cp zane-local-caddy:/data/caddy/pki/authorities/local/root.crt "$temp_cert" >/dev/null 2>&1; then
-    rm -f "$temp_cert"
-    common::die "Unable to read the local Caddy root CA from zane-local-caddy. Start the local Caddy container or set NODE_EXTRA_CA_CERTS explicitly."
-  fi
+  common::copy_local_caddy_root_ca "$temp_cert"
 
   export NODE_EXTRA_CA_CERTS="$temp_cert"
   export NEW_ENGINE_NODE_EXTRA_CA_CERTS_TEMP="$temp_cert"
   common::info "Using local Caddy root CA for Node TLS trust."
 }
 
+common::configure_curl_ca_bundle_from_local_caddy() {
+  local temp_cert
+
+  if [[ -n "${CURL_CA_BUNDLE:-}" ]]; then
+    return 0
+  fi
+
+  common::needs_local_caddy_ca "$@" || return 0
+  temp_cert="$(mktemp "${TMPDIR:-/tmp}/new-engine-caddy-root.XXXXXX.crt")"
+  common::copy_local_caddy_root_ca "$temp_cert"
+
+  export CURL_CA_BUNDLE="$temp_cert"
+  export NEW_ENGINE_CURL_CA_BUNDLE_TEMP="$temp_cert"
+  common::info "Using local Caddy root CA for curl TLS trust."
+}
+
 common::cleanup_node_extra_ca_certs_temp() {
   local temp_cert="${NEW_ENGINE_NODE_EXTRA_CA_CERTS_TEMP:-}"
+
+  if [[ -n "$temp_cert" && -f "$temp_cert" ]]; then
+    rm -f "$temp_cert"
+  fi
+}
+
+common::cleanup_curl_ca_bundle_temp() {
+  local temp_cert="${NEW_ENGINE_CURL_CA_BUNDLE_TEMP:-}"
 
   if [[ -n "$temp_cert" && -f "$temp_cert" ]]; then
     rm -f "$temp_cert"

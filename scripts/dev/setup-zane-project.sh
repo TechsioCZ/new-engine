@@ -258,6 +258,8 @@ setup::require_tools() {
 }
 
 setup::require_bootstrap_inputs() {
+  PROJECT_SLUG="${PROJECT_SLUG:-${ZANE_PROJECT_SLUG:-}}"
+  PROJECT_DESCRIPTION="${PROJECT_DESCRIPTION:-${ZANE_PROJECT_DESCRIPTION:-}}"
   common::require_env PROJECT_SLUG "ZANE project slug"
   if [[ -z "$PROJECT_DESCRIPTION" ]]; then
     PROJECT_DESCRIPTION="${PROJECT_SLUG} local bootstrap"
@@ -1168,6 +1170,8 @@ setup::print_plan_block_summary() {
 }
 
 setup::cleanup() {
+  common::cleanup_curl_ca_bundle_temp
+
   if [[ -n "$COOKIE_JAR" && -f "$COOKIE_JAR" ]]; then
     rm -f "$COOKIE_JAR"
   fi
@@ -1261,6 +1265,7 @@ setup::main() {
   setup::derive_branch_name
   setup::require_tools
   setup::require_bootstrap_inputs
+  common::configure_curl_ca_bundle_from_local_caddy "$ZANE_BASE_URL"
   trap setup::cleanup EXIT
 
   common::require_env ZANE_USERNAME "Zane username"
