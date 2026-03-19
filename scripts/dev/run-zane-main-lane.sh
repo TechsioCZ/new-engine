@@ -243,6 +243,7 @@ resolve_scope() {
 run_deploy_stage() {
   local requires_meili_keys="$1"
   local deploy_json
+  local -a ctl_args
   local git_commit_sha
   local output_file
   local status=0
@@ -285,21 +286,28 @@ run_deploy_stage() {
 
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' RETURN
+  ctl_args=(
+    "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js"
+    deploy-main
+    --project-slug "$PROJECT_SLUG"
+    --environment-name "$ENVIRONMENT_NAME"
+    --services-csv "$SERVICES_CSV"
+    --git-commit-sha "$git_commit_sha"
+    --meili-url "$MEILISEARCH_URL"
+    --meili-master-key "$MEILISEARCH_MASTER_KEY"
+    --base-url "$ZANE_OPERATOR_BASE_URL"
+    --api-token "$ZANE_OPERATOR_API_TOKEN"
+  )
+  if [[ "$APPROVE_DOWNTIME_RISK" == "true" ]]; then
+    ctl_args+=(--approve-downtime-risk)
+  fi
 
   set +e
   deploy_json="$(
     GITHUB_OUTPUT="$output_file" \
     MEILISEARCH_URL="$MEILISEARCH_URL" \
     MEILISEARCH_MASTER_KEY="$MEILISEARCH_MASTER_KEY" \
-    node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" deploy-main \
-      --project-slug "$PROJECT_SLUG" \
-      --environment-name "$ENVIRONMENT_NAME" \
-      --services-csv "$SERVICES_CSV" \
-      --git-commit-sha "$git_commit_sha" \
-      --meili-url "$MEILISEARCH_URL" \
-      --meili-master-key "$MEILISEARCH_MASTER_KEY" \
-      --base-url "$ZANE_OPERATOR_BASE_URL" \
-      --api-token "$ZANE_OPERATOR_API_TOKEN"
+    node "${ctl_args[@]}"
   )"
   status=$?
   set -e

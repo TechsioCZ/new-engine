@@ -20,6 +20,7 @@ export function createDeployMainCommand(): Command {
     .option("--base-url <url>")
     .option("--api-token <token>")
     .option("--dry-run", "", false)
+    .option("--approve-downtime-risk", "", false)
     .option("--meili-wait-seconds <n>")
     .option("--retry-count <n>")
     .option("--retry-delay-seconds <n>")
@@ -51,6 +52,7 @@ export function createDeployMainCommand(): Command {
         baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
         apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
         dryRun: Boolean(options.dryRun),
+        approveDowntimeRisk: Boolean(options.approveDowntimeRisk),
         meiliApiCredentialsProviderId:
           process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
           "meili_api_credentials",

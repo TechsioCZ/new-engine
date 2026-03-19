@@ -34,6 +34,7 @@ import {
 import { executeRenderEnvOverrides } from "./render-env-overrides.js"
 import { executeResolveEnvironment } from "./resolve-environment.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
+import { expandPlanForRuntimeProviderPrerequisites } from "./runtime-provider-prerequisites.js"
 import { executeTriggerPayload } from "./trigger.js"
 
 export type DeployPreviewExecutionResult = {
@@ -333,6 +334,24 @@ export async function executeDeployPreview(
         deploy_services_csv: plan.preview_cloned_service_ids_csv,
       }
     : plan
+  const prerequisitePlan = await expandPlanForRuntimeProviderPrerequisites({
+    lane: "preview",
+    plan: runtimePlan,
+    manifest: contracts.manifest,
+    stackInputs: contracts.stackInputs,
+    projectSlug: input.projectSlug,
+    environmentName: environment.environment_name,
+    baseUrl: input.baseUrl,
+    apiToken: input.apiToken,
+    dryRun: input.dryRun,
+    meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+  })
+  const effectiveRuntimePlan = prerequisitePlan.plan
+  if (prerequisitePlan.transientServiceIds.length > 0) {
+    logDeployProgress(
+      `Adding transient provider prerequisite services to the preview deploy plan: ${prerequisitePlan.transientServiceIds.join(",")}.`
+    )
+  }
   const zaneOperatorClient =
     input.dryRun || !input.baseUrl || !input.apiToken
       ? null
@@ -343,7 +362,9 @@ export async function executeDeployPreview(
     environmentName: environment.environment_name,
     sourceEnvironmentName: input.sourceEnvironmentName,
     contracts,
-    deployServiceIds: runtimePlan.deploy_services.map((service) => service.id),
+    deployServiceIds: effectiveRuntimePlan.deploy_services.map(
+      (service) => service.id
+    ),
     previewDbName: input.previewDbName,
     previewDbUser: input.previewDbUser,
     previewDbPassword: input.previewDbPassword,
@@ -354,7 +375,9 @@ export async function executeDeployPreview(
     environmentName: environment.environment_name,
     sourceEnvironmentName: input.sourceEnvironmentName,
     contracts,
-    deployServiceIds: runtimePlan.deploy_services.map((service) => service.id),
+    deployServiceIds: effectiveRuntimePlan.deploy_services.map(
+      (service) => service.id
+    ),
     previewDbName: input.previewDbName,
     previewDbUser: input.previewDbUser,
     previewDbPassword: input.previewDbPassword,
@@ -387,13 +410,13 @@ export async function executeDeployPreview(
   let triggeredServicesCsv = ""
   let allDeployments: DeploymentLike[] = []
 
-  if (baselineDeploy && runtimePlan.deploy_services_csv) {
+  if (baselineDeploy && effectiveRuntimePlan.deploy_services_csv) {
     logDeployProgress(
       "Applying baseline preview-owned env materialization before staged deploys."
     )
     const baselineEnvOverrides = await executeRenderEnvOverrides({
       lane: "preview",
-      servicesCsv: runtimePlan.deploy_services_csv,
+      servicesCsv: effectiveRuntimePlan.deploy_services_csv,
       previewDbName: input.previewDbName,
       previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
@@ -410,9 +433,10 @@ export async function executeDeployPreview(
       const baselineEnvOverrideServiceIds = new Set(
         baselineEnvOverrides.services.map((service) => service.service_id)
       )
-      const baselineTargetServices = runtimePlan.deploy_services.filter(
-        (service) => baselineEnvOverrideServiceIds.has(service.id)
-      )
+      const baselineTargetServices =
+        effectiveRuntimePlan.deploy_services.filter((service) =>
+          baselineEnvOverrideServiceIds.has(service.id)
+        )
 
       if (baselineTargetServices.length > 0) {
         logDeployProgress(
@@ -474,8 +498,8 @@ export async function executeDeployPreview(
     targetCommitSha = input.targetCommitSha
   }
 
-  for (const stage of collectStageNumbers(runtimePlan)) {
-    const stagePlan = buildStagePlan(runtimePlan, stage)
+  for (const stage of collectStageNumbers(effectiveRuntimePlan)) {
+    const stagePlan = buildStagePlan(effectiveRuntimePlan, stage)
     const stageServicesCsv = stagePlan.deploy_services_csv
     if (!stageServicesCsv) {
       continue
@@ -658,9 +682,10 @@ export async function executeDeployPreview(
       requestedServicesCsv: stageServicesCsv,
       deployServicesCsv: stageServicesCsv,
       triggeredServicesCsv: stageTriggeredServicesCsv,
-      previewClonedServiceIdsCsv: runtimePlan.preview_cloned_service_ids_csv,
+      previewClonedServiceIdsCsv:
+        effectiveRuntimePlan.preview_cloned_service_ids_csv,
       previewExcludedServiceIdsCsv:
-        runtimePlan.preview_excluded_service_ids_csv,
+        effectiveRuntimePlan.preview_excluded_service_ids_csv,
       previewDbName: input.previewDbName,
       previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
@@ -714,12 +739,13 @@ export async function executeDeployPreview(
     environment_id: environment.environment_id,
     environment_created: environment.created,
     environment_ready: environment.ready,
-    preview_cloned_service_ids_csv: runtimePlan.preview_cloned_service_ids_csv,
+    preview_cloned_service_ids_csv:
+      effectiveRuntimePlan.preview_cloned_service_ids_csv,
     preview_excluded_service_ids_csv:
-      runtimePlan.preview_excluded_service_ids_csv,
+      effectiveRuntimePlan.preview_excluded_service_ids_csv,
     environment_warnings: environment.warnings,
     requested_services_csv: plan.requested_services_csv,
-    deploy_services_csv: runtimePlan.deploy_services_csv,
+    deploy_services_csv: effectiveRuntimePlan.deploy_services_csv,
     target_commit_sha: targetCommitSha,
     last_deployed_commit_sha: lastDeployedCommitSha,
     env_override_service_ids_csv: envOverrideServiceIdsCsv,
