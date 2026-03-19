@@ -14,7 +14,7 @@ export function useRegister(options?: UseRegisterOptions) {
       options?.onSuccess?.()
     },
     onError: (error) => {
-      options?.onError?.(toError(error, "Registration failed"))
+      options?.onError?.(toError(error, "Registrace se nepodařila"))
     },
   })
 }

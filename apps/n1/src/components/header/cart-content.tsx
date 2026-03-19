@@ -130,6 +130,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
                 {formatAmount(
                   FREE_SHIPPING_THRESHOLD - pricing.itemsSubtotalAmount
                 )}
+                )
               </p>
             )}
         </div>

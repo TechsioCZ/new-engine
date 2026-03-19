@@ -28,6 +28,7 @@ import type {
   MedusaProductDetailInput,
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
+import { StorefrontAddressValidationError } from "@techsio/storefront-data/shared/address"
 import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/browser-storage"
 import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config"
 import { mapAuthError } from "@/lib/auth-messages"
@@ -260,6 +261,9 @@ const storefrontConfig = {
         try {
           return await baseCustomerService.createAddress(params)
         } catch (error) {
+          if (error instanceof StorefrontAddressValidationError) {
+            throw error
+          }
           logError("CustomerService.createAddress", error)
           throw new Error("Nepodařilo se vytvořit adresu")
         }
@@ -271,6 +275,9 @@ const storefrontConfig = {
         try {
           return await baseCustomerService.updateAddress(addressId, params)
         } catch (error) {
+          if (error instanceof StorefrontAddressValidationError) {
+            throw error
+          }
           logError("CustomerService.updateAddress", error)
           throw new Error("Nepodařilo se aktualizovat adresu")
         }
