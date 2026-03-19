@@ -74,7 +74,7 @@ function buildPlanService(
     deploy_stage: service.deployStage,
     downtime_risk: service.downtimeRisk,
     consumes: service.consumes,
-    coupled_service_ids: service.coupledServiceIds,
+    service_dependencies: service.serviceDependencies,
   }
 }
 
@@ -97,36 +97,12 @@ function buildRequestedAndDeploySets(
 } {
   const requestedServiceIds = new Set<string>()
   const deployServiceIds = new Set<string>()
-  const queuedServiceIds = new Set<string>()
-  const queue: string[] = []
 
   for (const serviceId of sourceServiceIds) {
     const service = getDeployableService(manifest, serviceId)
     assertServiceAllowedInLane(service, lane, "Service")
     requestedServiceIds.add(serviceId)
-    if (!queuedServiceIds.has(serviceId)) {
-      queuedServiceIds.add(serviceId)
-      queue.push(serviceId)
-    }
-  }
-
-  while (queue.length > 0) {
-    const serviceId = queue.shift()
-    if (!serviceId || deployServiceIds.has(serviceId)) {
-      continue
-    }
-
-    const service = getDeployableService(manifest, serviceId)
-    assertServiceAllowedInLane(service, lane, "Coupled service")
     deployServiceIds.add(serviceId)
-
-    for (const coupledServiceId of service.coupledServiceIds) {
-      getDeployableService(manifest, coupledServiceId)
-      if (!queuedServiceIds.has(coupledServiceId)) {
-        queuedServiceIds.add(coupledServiceId)
-        queue.push(coupledServiceId)
-      }
-    }
   }
 
   return {

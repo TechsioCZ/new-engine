@@ -112,6 +112,7 @@ services:
         service_slug: "medusa-be"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 20
+        service_dependencies: ["medusa-db", "medusa-valkey", "medusa-minio", "medusa-meilisearch"]
         consumes:
           preview_db: true
           meili_backend_key: true
@@ -133,6 +134,7 @@ services:
         service_slug: "n1"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 25
+        service_dependencies: ["medusa-be"]
         consumes:
           meili_frontend_key: true
 

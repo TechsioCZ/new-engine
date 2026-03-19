@@ -10,6 +10,34 @@ import {
 import { getMeiliApiCredentialsProviderSourceService } from "./preview-meili.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
 
+function collectDependencyServiceIds(
+  manifest: StackManifest,
+  rootServiceIds: string[]
+): string[] {
+  const rootSet = new Set(rootServiceIds)
+  const dependencyIds = new Set<string>()
+  const queue = [...rootServiceIds]
+
+  while (queue.length > 0) {
+    const serviceId = queue.shift()
+    if (!serviceId) {
+      continue
+    }
+
+    const service = getDeployableService(manifest, serviceId)
+    for (const dependencyId of service.serviceDependencies) {
+      if (rootSet.has(dependencyId) || dependencyIds.has(dependencyId)) {
+        continue
+      }
+
+      dependencyIds.add(dependencyId)
+      queue.push(dependencyId)
+    }
+  }
+
+  return [...dependencyIds]
+}
+
 function buildPlanService(
   manifest: StackManifest,
   serviceId: string
@@ -24,7 +52,7 @@ function buildPlanService(
     deploy_stage: service.deployStage,
     downtime_risk: service.downtimeRisk,
     consumes: service.consumes,
-    coupled_service_ids: service.coupledServiceIds,
+    service_dependencies: service.serviceDependencies,
   }
 }
 
@@ -53,14 +81,26 @@ function expandPlanWithServices(input: {
 }
 
 function isMeiliSourceProvisionable(
-  target: ResolveTargetsResponse["services"][number]
+  target: ResolveTargetsResponse["services"][number] | undefined
 ): boolean {
+  if (!target) {
+    return false
+  }
+
   const deployment = target.current_production_deployment
   if (!deployment || deployment.status.toUpperCase() !== "HEALTHY") {
     return false
   }
 
   return Boolean((deployment.env?.MEILI_MASTER_KEY ?? "").trim())
+}
+
+function isHealthyTarget(
+  target: ResolveTargetsResponse["services"][number] | undefined
+): boolean {
+  return Boolean(
+    target?.current_production_deployment?.status.toUpperCase() === "HEALTHY"
+  )
 }
 
 export async function expandPlanForRuntimeProviderPrerequisites(input: {
@@ -91,13 +131,7 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
       service.consumes.meili_frontend_key
   )
 
-  if (
-    !needsMeiliApiCredentials ||
-    input.plan.deploy_services.some(
-      (service) => service.id === meiliSource.serviceId
-    ) ||
-    input.dryRun
-  ) {
+  if (input.dryRun) {
     return {
       plan: input.plan,
       transientServiceIds: [],
@@ -105,38 +139,59 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
     }
   }
 
-  const sourceService = getDeployableService(
-    input.manifest,
-    meiliSource.serviceId
+  const requestedServiceIds = input.plan.deploy_services.map(
+    (service) => service.id
   )
-  const prerequisiteServiceIds = [
-    sourceService.id,
-    ...sourceService.coupledServiceIds,
-  ]
-  let sourceTarget: ResolveTargetsResponse["services"][number] | undefined
+  const dependencyServiceIds = collectDependencyServiceIds(
+    input.manifest,
+    requestedServiceIds
+  )
+  const prerequisiteIds = new Set<string>()
+  const dependencyServices = dependencyServiceIds.map((serviceId) =>
+    getDeployableService(input.manifest, serviceId)
+  )
+  let targetByServiceId = new Map<
+    string,
+    ResolveTargetsResponse["services"][number]
+  >()
   try {
-    const sourceTargetResponse = await executeResolveTargetsPayload({
+    const targetsResponse = await executeResolveTargetsPayload({
       payload: {
         lane: input.lane,
         project_slug: input.projectSlug,
         environment_name: input.environmentName,
-        services: [
-          {
-            service_id: sourceService.id,
-            service_slug: sourceService.serviceSlug,
-          },
-        ],
+        services: dependencyServices.map((service) => ({
+          service_id: service.id,
+          service_slug: service.serviceSlug,
+        })),
       },
       baseUrl: input.baseUrl,
       apiToken: input.apiToken,
       dryRun: false,
     })
-    sourceTarget = sourceTargetResponse.services[0]
+    targetByServiceId = new Map(
+      targetsResponse.services.map((service) => [service.service_id, service])
+    )
   } catch {
-    sourceTarget = undefined
+    targetByServiceId = new Map()
   }
 
-  if (sourceTarget && isMeiliSourceProvisionable(sourceTarget)) {
+  for (const dependencyService of dependencyServices) {
+    const target = targetByServiceId.get(dependencyService.id)
+    if (!isHealthyTarget(target)) {
+      prerequisiteIds.add(dependencyService.id)
+    }
+  }
+
+  if (
+    needsMeiliApiCredentials &&
+    !requestedServiceIds.includes(meiliSource.serviceId) &&
+    !isMeiliSourceProvisionable(targetByServiceId.get(meiliSource.serviceId))
+  ) {
+    prerequisiteIds.add(meiliSource.serviceId)
+  }
+
+  if (prerequisiteIds.size === 0) {
     return {
       plan: input.plan,
       transientServiceIds: [],
@@ -148,10 +203,10 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
     plan: expandPlanWithServices({
       plan: input.plan,
       manifest: input.manifest,
-      serviceIds: prerequisiteServiceIds,
+      serviceIds: [...prerequisiteIds],
     }),
-    transientServiceIds: prerequisiteServiceIds,
-    transientDowntimeServiceIds: prerequisiteServiceIds.filter(
+    transientServiceIds: [...prerequisiteIds],
+    transientDowntimeServiceIds: [...prerequisiteIds].filter(
       (serviceId) =>
         getDeployableService(input.manifest, serviceId).downtimeRisk
     ),
