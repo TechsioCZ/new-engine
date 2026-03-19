@@ -27,7 +27,12 @@ export function HeaderSearchSection() {
               <SearchForm size="md" className="w-full">
                 <SearchForm.Control>
                   <SearchForm.Input placeholder="Hledat na stránce..." />
-                  <SearchForm.Button showSearchIcon theme="solid" className="text-xl" variant="primary" />
+                  <SearchForm.Button
+                    showSearchIcon
+                    iconSize="xl"
+                    theme="solid"
+                    variant="primary"
+                  />
                 </SearchForm.Control>
               </SearchForm>
             </Header.Container>
@@ -35,10 +40,20 @@ export function HeaderSearchSection() {
             <Header.Container position="end">
               <Header.Actions>
                 <Header.ActionItem>
-                  <Button icon="token-icon-user" className="text-xl" size="current" theme="unstyled" />
+                  <Button
+                    icon="token-icon-user"
+                    iconSize="xl"
+                    size="current"
+                    theme="unstyled"
+                  />
                 </Header.ActionItem>
                 <Header.ActionItem>
-                  <Button icon="token-icon-heart" className="text-xl" size="current" theme="unstyled" />
+                  <Button
+                    icon="token-icon-heart"
+                    iconSize="xl"
+                    size="current"
+                    theme="unstyled"
+                  />
                 </Header.ActionItem>
                 <Header.ActionItem>
                   <Button
