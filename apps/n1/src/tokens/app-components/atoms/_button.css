@@ -1,0 +1,3 @@
+@theme static {
+  --color-button-fg: var(--color-fg-reverse);
+}

@@ -3,6 +3,11 @@
 import { useEffect, useRef } from "react"
 import { CATEGORY_MAP } from "@/lib/constants"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
+import {
+  shouldResetPrefetchForRegion,
+  shouldRunRootPrefetch,
+} from "./prefetch-region"
 import { usePrefetchProducts } from "./use-prefetch-products"
 import { useRegion } from "./use-region"
 
@@ -15,14 +20,28 @@ type UsePrefetchRootCategoriesParams = {
 export function usePrefetchRootCategories({
   enabled = true,
   currentHandle,
-  delay = 200,
+  delay = PREFETCH_DELAYS.ROOT_CATEGORIES,
 }: UsePrefetchRootCategoriesParams) {
   const { regionId } = useRegion()
   const { prefetchRootCategories } = usePrefetchProducts()
   const hasPrefetched = useRef(false)
+  const prefetchedRegionId = useRef<string | undefined>(undefined)
 
   useEffect(() => {
-    if (!(enabled && regionId) || hasPrefetched.current) {
+    if (shouldResetPrefetchForRegion(prefetchedRegionId.current, regionId)) {
+      hasPrefetched.current = false
+      prefetchedRegionId.current = regionId
+    }
+  }, [regionId])
+
+  useEffect(() => {
+    if (
+      !shouldRunRootPrefetch({
+        enabled,
+        regionId,
+        hasPrefetched: hasPrefetched.current,
+      })
+    ) {
       return
     }
 

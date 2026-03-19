@@ -1,24 +1,20 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { queryKeys } from "@/lib/query-keys"
-import { type RegisterData, register } from "@/services/auth-service"
+import { toError } from "@/lib/errors"
+import { storefront } from "./storefront-preset"
 
 export type UseRegisterOptions = {
   onSuccess?: () => void
   onError?: (error: Error) => void
 }
 
-export function useRegister(options?: UseRegisterOptions) {
-  const queryClient = useQueryClient()
+const authHooks = storefront.hooks.auth
 
-  return useMutation({
-    mutationFn: (data: RegisterData) => register(data),
+export function useRegister(options?: UseRegisterOptions) {
+  return authHooks.useRegister({
     onSuccess: () => {
-      // Invalidate auth cache to refetch customer data
-      queryClient.invalidateQueries({ queryKey: queryKeys.customer.profile() })
       options?.onSuccess?.()
     },
-    onError: (error: Error) => {
-      options?.onError?.(error)
+    onError: (error) => {
+      options?.onError?.(toError(error, "Registrace se nepodařila"))
     },
   })
 }

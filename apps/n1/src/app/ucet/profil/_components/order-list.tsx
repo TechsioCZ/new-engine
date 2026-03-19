@@ -25,9 +25,7 @@ export function OrderList() {
 
 function OrderListContent() {
   const [page, setPage] = useState(1)
-  const { data: ordersData } = useSuspenseOrders()
-
-  const orders = ordersData?.orders || []
+  const { orders } = useSuspenseOrders()
 
   // Calculate summary stats (from all orders, not just current page)
   const totalAmount = orders.reduce(
