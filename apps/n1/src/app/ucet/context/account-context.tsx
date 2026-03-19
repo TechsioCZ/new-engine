@@ -29,12 +29,7 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
       return
     }
 
-    queryClient.prefetchQuery(
-      createOrdersListPrefetchQuery({
-        limit: 20,
-        offset: 0,
-      })
-    )
+    queryClient.prefetchQuery(createOrdersListPrefetchQuery())
   }, [customer, queryClient])
 
   const contextValue = {

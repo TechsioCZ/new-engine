@@ -60,7 +60,8 @@ export function OrderDetailClient() {
     )
   }
 
-  const statusVariant = getOrderStatusColor(order.order.status || "pending")
+  const status = order.order.status || "pending"
+  const statusVariant = getOrderStatusColor(status)
 
   return (
     <div className="mx-auto max-w-max-w px-400">
@@ -89,9 +90,7 @@ export function OrderDetailClient() {
             </p>
           </div>
           <div className="flex flex-wrap gap-200">
-            <Badge variant={statusVariant}>
-              {getOrderStatusLabel(order.order.status)}
-            </Badge>
+            <Badge variant={statusVariant}>{getOrderStatusLabel(status)}</Badge>
           </div>
         </div>
       </div>

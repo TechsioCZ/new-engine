@@ -16,6 +16,8 @@ export const PRODUCT_LIST_FIELDS =
 
 export const PRODUCT_LIMIT = 24 as const
 
+export const FREE_SHIPPING_THRESHOLD = 1500
+
 /**
  * Default country code for addresses and regions
  */

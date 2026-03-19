@@ -198,14 +198,16 @@ const toValidationPatchInput = (input: AddressPatchData): AddressPatchData => {
 
 const getValidationCode = (
   field: AddressFieldKey,
-  input: AddressFormData
+  input: Partial<Record<AddressFieldKey, string | undefined>>
 ): string => {
   if (field === "phone") {
     return "invalid"
   }
 
   if (field === "postal_code") {
-    return input.postal_code.trim() ? "invalid" : "required"
+    return typeof input.postal_code === "string" && input.postal_code.trim()
+      ? "invalid"
+      : "required"
   }
 
   const value = input[field]
@@ -214,7 +216,7 @@ const getValidationCode = (
 
 const toValidationIssues = (
   errors: AddressErrors,
-  input: AddressFormData,
+  input: Partial<Record<AddressFieldKey, string | undefined>>,
   scope: "shipping" | "billing" | "customer"
 ): StorefrontAddressValidationIssue[] =>
   Object.entries(errors).flatMap(([field, message]) => {
@@ -249,11 +251,7 @@ const validateAddressPatchInput = (
 ): StorefrontAddressValidationIssue[] | null => {
   const validationInput = toValidationPatchInput(input)
   const errors = validateAddressPatch(validationInput)
-  const issues = toValidationIssues(
-    errors,
-    validationInput as AddressFormData,
-    scope
-  )
+  const issues = toValidationIssues(errors, validationInput, scope)
 
   return issues.length > 0 ? issues : null
 }

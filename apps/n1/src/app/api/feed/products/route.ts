@@ -7,9 +7,11 @@ import { NextResponse } from "next/server"
 import { sdk } from "@/lib/medusa-client"
 
 const BATCH_SIZE = 100
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
-const DEFAULT_REGION_ID =
-  process.env.NEXT_PUBLIC_DEFAULT_REGION_ID || "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
+
+type FeedConfig = {
+  siteUrl: string
+  defaultRegionId: string
+}
 
 type FeedVariant = {
   id: string
@@ -41,7 +43,26 @@ const productService = createMedusaProductService<
   MedusaProductDetailInput
 >(sdk)
 
-async function fetchAllProducts(): Promise<FeedProduct[]> {
+function resolveFeedConfig(): FeedConfig | null {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+  const defaultRegionId = process.env.NEXT_PUBLIC_DEFAULT_REGION_ID?.trim()
+
+  if (!(siteUrl && defaultRegionId)) {
+    console.warn(
+      "[ProductFeed] Missing NEXT_PUBLIC_SITE_URL or NEXT_PUBLIC_DEFAULT_REGION_ID"
+    )
+    return null
+  }
+
+  return {
+    siteUrl,
+    defaultRegionId,
+  }
+}
+
+async function fetchAllProducts(
+  defaultRegionId: string
+): Promise<FeedProduct[]> {
   const allProducts: FeedProduct[] = []
   let offset = 0
   let total = 0
@@ -50,7 +71,7 @@ async function fetchAllProducts(): Promise<FeedProduct[]> {
     const response = await productService.getProducts({
       limit: BATCH_SIZE,
       offset,
-      region_id: DEFAULT_REGION_ID,
+      region_id: defaultRegionId,
       fields: "*variants.calculated_price",
     })
 
@@ -76,9 +97,13 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;")
 }
 
-function buildShopItem(product: FeedProduct, variant: FeedVariant): string {
+function buildShopItem(
+  product: FeedProduct,
+  variant: FeedVariant,
+  siteUrl: string
+): string {
   const variantTitle = variant.title || "Default"
-  const url = `${SITE_URL}/produkt/${product.handle}?variant=${encodeURIComponent(variantTitle)}`
+  const url = `${siteUrl}/produkt/${product.handle}?variant=${encodeURIComponent(variantTitle)}`
 
   const attributes = variant.metadata?.attributes || []
   const manufacturer =
@@ -112,12 +137,12 @@ function buildShopItem(product: FeedProduct, variant: FeedVariant): string {
     </SHOPITEM>`
 }
 
-function generateXmlFeed(products: FeedProduct[]): string {
+function generateXmlFeed(products: FeedProduct[], siteUrl: string): string {
   const items: string[] = []
 
   for (const product of products) {
     for (const variant of product.variants || []) {
-      items.push(buildShopItem(product, variant))
+      items.push(buildShopItem(product, variant, siteUrl))
     }
   }
 
@@ -128,9 +153,21 @@ function generateXmlFeed(products: FeedProduct[]): string {
 }
 
 export async function GET() {
+  const config = resolveFeedConfig()
+
+  if (!config) {
+    return new NextResponse("Product feed is not configured", {
+      status: 500,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    })
+  }
+
   try {
-    const products = await fetchAllProducts()
-    const xml = generateXmlFeed(products)
+    const products = await fetchAllProducts(config.defaultRegionId)
+    const xml = generateXmlFeed(products, config.siteUrl)
 
     return new NextResponse(xml, {
       headers: {
@@ -140,7 +177,7 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Feed generation error:", error)
-    const xml = generateXmlFeed([])
+    const xml = generateXmlFeed([], config.siteUrl)
     return new NextResponse(xml, {
       headers: {
         "Content-Type": "application/xml; charset=utf-8",

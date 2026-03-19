@@ -58,11 +58,11 @@ export function Providers({ children }) {
 ## Preset-first example
 
 ```ts
-import { createLocalStorageCartStorage } from "@techsio/storefront-data/cart/browser-storage"
+import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/browser-storage"
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
 import { sdk } from "@/lib/medusa-client"
 
-const cartStorage = createLocalStorageCartStorage({
+const cartStorage = createLocalStorageValueStore({
   key: "shop-cart-id",
 })
 
@@ -164,7 +164,7 @@ Core subpaths:
 - `@techsio/storefront-data/shared/query-keys`
 - `@techsio/storefront-data/shared/region-context`
 - `@techsio/storefront-data/medusa/preset`
-- `@techsio/storefront-data/cart/browser-storage`
+- `@techsio/storefront-data/shared/browser-storage`
 
 Domain subpaths:
 - `@techsio/storefront-data/<domain>/hooks`

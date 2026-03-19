@@ -5,12 +5,12 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import type { AuthQueryKeys } from "../auth/types"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
-import { assertStorefrontAddressValidation } from "../shared/address"
 import type {
   StorefrontCustomerCreateAddressContext,
   StorefrontCustomerUpdateAddressContext,
 } from "../shared/address"
+import { assertStorefrontAddressValidation } from "../shared/address"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
@@ -82,11 +82,14 @@ export function createCustomerHooks<
   TAddress,
   TListInput extends CustomerAddressListInputBase,
   TListParams = TListInput,
-  TCreateInput extends CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateInput extends
+    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
   TCreateParams = TCreateInput,
-  TUpdateInput extends CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateInput extends
+    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
   TUpdateParams = TUpdateInput,
-  TUpdateCustomerInput extends CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerInput extends
+    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
   TUpdateCustomerParams = TUpdateCustomerInput,
 >({
   service,
@@ -128,7 +131,13 @@ export function createCustomerHooks<
     context: StorefrontCustomerUpdateAddressContext
   ) => TUpdateParams =
     addressAdapter?.toUpdateParams ??
-    ((input: TUpdateInput) => input as unknown as TUpdateParams)
+    ((input: TUpdateInput) => {
+      const { addressId: _addressId, ...restUpdateInput } =
+        input as TUpdateInput & {
+          addressId?: string
+        }
+      return restUpdateInput as unknown as TUpdateParams
+    })
   const buildUpdateCustomer =
     buildUpdateCustomerParams ??
     ((input: TUpdateCustomerInput) => input as unknown as TUpdateCustomerParams)
@@ -136,9 +145,7 @@ export function createCustomerHooks<
   function useCustomerAddresses(
     input: TListInput,
     options?: {
-      queryOptions?: ReadQueryOptions<
-        CustomerAddressListResponse<TAddress>
-      >
+      queryOptions?: ReadQueryOptions<CustomerAddressListResponse<TAddress>>
     }
   ): UseCustomerAddressesResult<TAddress> {
     const { enabled: inputEnabled, ...listInput } = input as TListInput & {
@@ -170,9 +177,7 @@ export function createCustomerHooks<
   function useSuspenseCustomerAddresses(
     input: TListInput,
     options?: {
-      queryOptions?: SuspenseQueryOptions<
-        CustomerAddressListResponse<TAddress>
-      >
+      queryOptions?: SuspenseQueryOptions<CustomerAddressListResponse<TAddress>>
     }
   ): UseSuspenseCustomerAddressesResult<TAddress> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
@@ -209,7 +214,9 @@ export function createCustomerHooks<
         assertStorefrontAddressValidation(
           addressAdapter?.validateCreate?.(normalized, { mode: "create" })
         )
-        return service.createAddress(buildCreate(normalized, { mode: "create" }))
+        return service.createAddress(
+          buildCreate(normalized, { mode: "create" })
+        )
       },
       onMutate: options?.onMutate,
       onSuccess: (address, variables, context) => {
@@ -245,9 +252,6 @@ export function createCustomerHooks<
               mode: "update",
             })
           : input
-        const { addressId: _addressId, ...restUpdateInput } =
-          normalized as TUpdateInput & { addressId?: string }
-        const updateInput = restUpdateInput as TUpdateInput
         assertStorefrontAddressValidation(
           addressAdapter?.validateUpdate?.(normalized, {
             mode: "update",
@@ -255,7 +259,7 @@ export function createCustomerHooks<
         )
         return service.updateAddress(
           addressId,
-          buildUpdate(updateInput, {
+          buildUpdate(normalized, {
             mode: "update",
           })
         )
@@ -348,3 +352,32 @@ export function createCustomerHooks<
     useUpdateCustomer,
   }
 }
+
+export type CustomerHooks<
+  TCustomer,
+  TAddress,
+  TListInput extends CustomerAddressListInputBase,
+  TListParams = TListInput,
+  TCreateInput extends
+    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateParams = TCreateInput,
+  TUpdateInput extends
+    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateParams = TUpdateInput,
+  TUpdateCustomerInput extends
+    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerParams = TUpdateCustomerInput,
+> = ReturnType<
+  typeof createCustomerHooks<
+    TCustomer,
+    TAddress,
+    TListInput,
+    TListParams,
+    TCreateInput,
+    TCreateParams,
+    TUpdateInput,
+    TUpdateParams,
+    TUpdateCustomerInput,
+    TUpdateCustomerParams
+  >
+>

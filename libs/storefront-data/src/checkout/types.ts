@@ -20,7 +20,10 @@ export type ShippingOptionLike = {
 export type CheckoutCartLike = {
   id: string
   region_id?: string | null
-  shipping_methods?: { shipping_option_id?: string }[]
+  shipping_methods?: {
+    shipping_option_id?: string
+    data?: Record<string, unknown>
+  }[]
   payment_collection?: { payment_sessions?: unknown[] }
 }
 
@@ -93,9 +96,9 @@ export type UseCheckoutShippingResult<TShippingOption, TCart = unknown> = {
   ) => Promise<TCart>
   isSettingShipping: boolean
   selectedShippingMethodId?: string
+  selectedShippingMethodData?: Record<string, unknown>
   selectedOption?: TShippingOption
 }
-
 export type UseCheckoutPaymentResult<
   TPaymentProvider,
   TPaymentCollection = unknown,

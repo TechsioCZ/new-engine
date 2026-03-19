@@ -43,7 +43,7 @@ export const formatAmount = (
   useGrouping = true,
   currency = DEFAULT_CURRENCY
 ) => {
-  if (!amount) {
+  if (amount == null) {
     return `0 ${CURRENCY_SYMBOL}`
   }
   return new Intl.NumberFormat("cs-CZ", {

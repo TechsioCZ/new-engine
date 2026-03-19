@@ -1,13 +1,16 @@
 import {
+  type QueryClient,
   useMutation,
   useQuery,
   useQueryClient,
-  type QueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
-import type { MutationOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import type {
+  MutationOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
 import {
   createQueryKey,
   type QueryKey,
@@ -56,8 +59,11 @@ export type CreateAuthHooksConfig<
   }
 }
 
-export type AuthMutationOptions<TData, TVariables, TContext = unknown> =
-  MutationOptions<TData, TVariables, TContext>
+export type AuthMutationOptions<
+  TData,
+  TVariables,
+  TContext = unknown,
+> = MutationOptions<TData, TVariables, TContext>
 
 export function createAuthHooks<
   TCustomer,
@@ -67,14 +73,13 @@ export function createAuthHooks<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
->(
-  {
-    service,
-    queryKeys,
-    queryKeyNamespace = "storefront-data",
-    cacheConfig,
-    invalidateOnAuthChange,
-  }: CreateAuthHooksConfig<
+>({
+  service,
+  queryKeys,
+  queryKeyNamespace = "storefront-data",
+  cacheConfig,
+  invalidateOnAuthChange,
+}: CreateAuthHooksConfig<
   TCustomer,
   TLoginInput,
   TRegisterInput,
@@ -82,11 +87,9 @@ export function createAuthHooks<
   TCreateCustomerInput,
   TLoginResult,
   TRegisterResult
->
-) {
+>) {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
-  const resolvedQueryKeys =
-    queryKeys ?? createAuthQueryKeys(queryKeyNamespace)
+  const resolvedQueryKeys = queryKeys ?? createAuthQueryKeys(queryKeyNamespace)
   const includeDefaultInvalidation =
     invalidateOnAuthChange?.includeDefaults ?? true
   const defaultInvalidateKeys = includeDefaultInvalidation
@@ -110,9 +113,7 @@ export function createAuthHooks<
     }
   }
 
-  const removeCrossDomainOnLogout = (
-    queryClient: QueryClient
-  ) => {
+  const removeCrossDomainOnLogout = (queryClient: QueryClient) => {
     for (const queryKey of removeOnLogoutKeys) {
       queryClient.removeQueries({ queryKey })
     }
@@ -337,3 +338,23 @@ export function createAuthHooks<
     useRefreshAuth,
   }
 }
+
+export type AuthHooks<
+  TCustomer,
+  TLoginInput,
+  TRegisterInput,
+  TUpdateInput,
+  TCreateCustomerInput = unknown,
+  TLoginResult = unknown,
+  TRegisterResult = unknown,
+> = ReturnType<
+  typeof createAuthHooks<
+    TCustomer,
+    TLoginInput,
+    TRegisterInput,
+    TUpdateInput,
+    TCreateCustomerInput,
+    TLoginResult,
+    TRegisterResult
+  >
+>

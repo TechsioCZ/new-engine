@@ -1,10 +1,10 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { StorefrontDataProvider } from "../src/client/provider"
-import { createLocalStorageCartStorage } from "../src/cart/browser-storage"
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
+import { StorefrontDataProvider } from "../src/client/provider"
+import { createLocalStorageValueStore } from "../src/shared/browser-storage"
 
 type Cart = {
   id: string
@@ -33,7 +33,8 @@ const createMemoryStorage = (): Storage => {
   } as Storage
 }
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -41,7 +42,7 @@ const createWrapper = (client: QueryClient) =>
 describe("createCartHooks reactive storage and cache sync", () => {
   it("reacts to observable cartStorage changes", async () => {
     const key = "test_reactive_cart_id"
-    const cartStorage = createLocalStorageCartStorage({
+    const cartStorage = createLocalStorageValueStore({
       key,
       storage: createMemoryStorage(),
     })
@@ -49,6 +50,80 @@ describe("createCartHooks reactive storage and cache sync", () => {
       id: cartId,
       region_id: "reg_1",
       items: [{ quantity: 2 }],
+    }))
+
+    const { useCart } = createCartHooks<
+      Cart,
+      { region_id?: string },
+      { region_id?: string }
+    >({
+      service: {
+        retrieveCart,
+        createCart: async () => ({ id: "cart_created", region_id: "reg_1" }),
+      },
+      cartStorage,
+      requireRegion: false,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(() => useCart({ autoCreate: false }), {
+      wrapper,
+    })
+
+    expect(result.current.cart).toBeNull()
+    expect(retrieveCart).not.toHaveBeenCalled()
+
+    act(() => {
+      cartStorage.set("cart_1")
+    })
+
+    await waitFor(() => {
+      expect(result.current.cart?.id).toBe("cart_1")
+    })
+
+    expect(retrieveCart.mock.calls.at(-1)?.[0]).toBe("cart_1")
+  })
+
+  it("reacts to observable cartStorage implementations that use method context", async () => {
+    const listeners = new Set<() => void>()
+    const cartStorage = {
+      currentCartId: null as string | null,
+      get() {
+        return this.currentCartId
+      },
+      set(cartId: string) {
+        this.currentCartId = cartId
+        this.listeners.forEach((listener) => listener())
+      },
+      clear() {
+        this.currentCartId = null
+        this.listeners.forEach((listener) => listener())
+      },
+      subscribe(listener: () => void) {
+        this.listeners.add(listener)
+        return () => {
+          this.listeners.delete(listener)
+        }
+      },
+      getSnapshot() {
+        return this.currentCartId
+      },
+      getServerSnapshot() {
+        return this.currentCartId
+      },
+      listeners,
+    }
+    const retrieveCart = vi.fn(async (cartId: string) => ({
+      id: cartId,
+      region_id: "reg_1",
+      items: [{ quantity: 1 }],
     }))
 
     const { useCart } = createCartHooks<
@@ -73,18 +148,15 @@ describe("createCartHooks reactive storage and cache sync", () => {
       wrapper,
     })
 
-    expect(result.current.cart).toBeNull()
-    expect(retrieveCart).not.toHaveBeenCalled()
-
     act(() => {
-      cartStorage.setCartId("cart_1")
+      cartStorage.set("cart_ctx")
     })
 
     await waitFor(() => {
-      expect(result.current.cart?.id).toBe("cart_1")
+      expect(result.current.cart?.id).toBe("cart_ctx")
     })
 
-    expect(retrieveCart.mock.calls.at(-1)?.[0]).toBe("cart_1")
+    expect(retrieveCart.mock.calls.at(-1)?.[0]).toBe("cart_ctx")
   })
 
   it("syncs active and detail caches for line item mutations", async () => {
@@ -110,7 +182,10 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
     const activeKey = queryKeys.active({ cartId: "cart_1", regionId: "reg_1" })

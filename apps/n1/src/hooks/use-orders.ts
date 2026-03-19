@@ -7,6 +7,8 @@ export type UseOrdersOptions = {
   offset?: number
 }
 
+const ACCOUNT_ORDERS_LIMIT = 1000
+
 type OrderListInput = {
   page?: number
   limit?: number
@@ -50,7 +52,7 @@ export function useSuspenseOrders(
 
   assertAuthenticated(isAuthenticated)
 
-  const limit = options?.limit ?? 20
+  const limit = options?.limit ?? ACCOUNT_ORDERS_LIMIT
   const offset = options?.offset ?? 0
 
   return storefront.hooks.orders.useSuspenseOrders({
@@ -87,7 +89,7 @@ export function useSuspensePublicOrder(
 export function createOrdersListPrefetchQuery(
   input: OrderListInput = {
     page: 1,
-    limit: 20,
+    limit: ACCOUNT_ORDERS_LIMIT,
   }
 ): OrdersListPrefetchQuery {
   return storefront.hooks.orders.getListQueryOptions(input, {
