@@ -734,9 +734,26 @@ setup::ensure_service_command() {
   zane::request_service_change "$service_slug" "$payload"
 }
 
+setup::normalize_healthcheck_json() {
+  jq -cS '
+    def normalized(item):
+      if item == null then
+        null
+      else
+        {
+          type: item.type,
+          value: item.value,
+          timeout_seconds: item.timeout_seconds,
+          interval_seconds: item.interval_seconds,
+          associated_port: (item.associated_port // null)
+        }
+      end;
+    normalized(.)
+  '
+}
+
 setup::effective_healthcheck_json() {
   local service_json="$1"
-
   jq -cS '
     def normalized(item):
       if item == null then
@@ -764,8 +781,7 @@ setup::ensure_service_healthcheck() {
   local service_json="$2"
   local desired_healthcheck_json="$3"
   local desired_compact effective_compact payload
-
-  desired_compact="$(jq -cS . <<<"$desired_healthcheck_json")"
+  desired_compact="$(setup::normalize_healthcheck_json <<<"$desired_healthcheck_json")"
   effective_compact="$(setup::effective_healthcheck_json "$service_json")"
   [[ "$effective_compact" == "$desired_compact" ]] && return 0
 
@@ -774,35 +790,66 @@ setup::ensure_service_healthcheck() {
   effective_compact="$(setup::effective_healthcheck_json "$service_json")"
   [[ "$effective_compact" == "$desired_compact" ]] && return 0
 
-  payload="$(
-    jq -n \
-      --argjson new_value "$desired_healthcheck_json" \
-      '{
-        field: "healthcheck",
-        type: "UPDATE",
-        new_value: $new_value
-      }'
-  )"
+  payload="$(jq -n --argjson new_value "$desired_healthcheck_json" '{field: "healthcheck", type: "UPDATE", new_value: $new_value}')"
   zane::request_service_change "$service_slug" "$payload"
 }
 
-setup::effective_resource_limits_json() {
-  local service_json="$1"
-
+setup::normalize_resource_limits_json() {
   jq -cS '
+    def normalize_number(value):
+      if value == null then
+        null
+      elif (value | type) == "string" then
+        (value | tonumber)
+      else
+        value
+      end;
     def normalized(item):
       if item == null then
         null
       else
         {
-          cpus: (item.cpus // null),
+          cpus: normalize_number(item.cpus),
           memory: (
             if item.memory == null then
               null
             else
               {
                 unit: item.memory.unit,
-                value: item.memory.value
+                value: normalize_number(item.memory.value)
+              }
+            end
+          )
+        }
+      end;
+    normalized(.)
+  '
+}
+
+setup::effective_resource_limits_json() {
+  local service_json="$1"
+  jq -cS '
+    def normalize_number(value):
+      if value == null then
+        null
+      elif (value | type) == "string" then
+        (value | tonumber)
+      else
+        value
+      end;
+    def normalized(item):
+      if item == null then
+        null
+      else
+        {
+          cpus: normalize_number(item.cpus),
+          memory: (
+            if item.memory == null then
+              null
+            else
+              {
+                unit: item.memory.unit,
+                value: normalize_number(item.memory.value)
               }
             end
           )
@@ -822,8 +869,7 @@ setup::ensure_service_resource_limits() {
   local service_json="$2"
   local desired_resource_limits_json="$3"
   local desired_compact effective_compact payload
-
-  desired_compact="$(jq -cS . <<<"$desired_resource_limits_json")"
+  desired_compact="$(setup::normalize_resource_limits_json <<<"$desired_resource_limits_json")"
   effective_compact="$(setup::effective_resource_limits_json "$service_json")"
   [[ "$effective_compact" == "$desired_compact" ]] && return 0
 
@@ -832,15 +878,7 @@ setup::ensure_service_resource_limits() {
   effective_compact="$(setup::effective_resource_limits_json "$service_json")"
   [[ "$effective_compact" == "$desired_compact" ]] && return 0
 
-  payload="$(
-    jq -n \
-      --argjson new_value "$desired_resource_limits_json" \
-      '{
-        field: "resource_limits",
-        type: "UPDATE",
-        new_value: $new_value
-      }'
-  )"
+  payload="$(jq -n --argjson new_value "$desired_resource_limits_json" '{field: "resource_limits", type: "UPDATE", new_value: $new_value}')"
   zane::request_service_change "$service_slug" "$payload"
 }
 
