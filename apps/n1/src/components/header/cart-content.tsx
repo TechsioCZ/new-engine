@@ -4,6 +4,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
 import { useRemoveLineItem, useUpdateLineItem } from "@/hooks/use-cart"
 import { useCartToast } from "@/hooks/use-toast"
+import { FREE_SHIPPING_THRESHOLD } from "@/lib/constants"
 import { getCartPriceView } from "@/lib/pricing/cart-pricing"
 import type { Cart } from "@/types/cart"
 import { getOptimisticFlag } from "@/utils/cart/cart-helpers"
@@ -15,8 +16,6 @@ type CartContentProps = {
   cart: Cart | null | undefined
   onClose?: () => void
 }
-
-const FREE_SHIPPING_THRESHOLD = 1500
 
 export const CartContent = ({ cart, onClose }: CartContentProps) => {
   const { mutate: updateQuantity, isPending: isUpdating } = useUpdateLineItem()
