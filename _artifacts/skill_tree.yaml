@@ -1,4 +1,4 @@
-# skills/_artifacts/skill_tree.yaml
+# _artifacts/skill_tree.yaml
 library:
   name: '@techsio/ui-kit'
   version: '0.3.2'

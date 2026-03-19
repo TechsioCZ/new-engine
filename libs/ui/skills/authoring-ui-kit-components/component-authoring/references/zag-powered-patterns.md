@@ -36,4 +36,4 @@ The common shape in this repo is:
 
 - Runtime variables such as `--reference-width` or `--available-height` can be legitimate.
 - Do not "clean up" those values away just because they are not defined in component token CSS.
-- When a control needs hidden native form participation, keep it because the widget API requires it.
+- When a control needs a hidden native form element for participation, keep it because the widget API depends on it.
