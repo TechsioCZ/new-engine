@@ -12,6 +12,7 @@ export const deployMainCommandInputSchema = z
     baseUrl: z.string().default(""),
     apiToken: z.string().default(""),
     dryRun: z.boolean().default(false),
+    approveDowntimeRisk: z.boolean().default(false),
     stackManifestPath: z.string().min(1),
     stackInputsPath: z.string().min(1),
     meiliApiCredentialsProviderId: z

@@ -27,6 +27,7 @@ import {
 import { executeRenderEnvOverrides } from "./render-env-overrides.js"
 import { executeResolveEnvironment } from "./resolve-environment.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
+import { expandPlanForRuntimeProviderPrerequisites } from "./runtime-provider-prerequisites.js"
 import { executeTriggerPayload } from "./trigger.js"
 
 export type DeployMainExecutionResult = {
@@ -103,19 +104,7 @@ export async function executeDeployMain(
     contracts.stackInputs,
     input.meiliApiCredentialsProviderId
   )
-  const sourceServiceInPlan = plan.deploy_services.some(
-    (service) => service.id === meiliApiCredentialsSource.serviceId
-  )
-  const sourceServiceStage =
-    plan.deploy_services.find(
-      (service) => service.id === meiliApiCredentialsSource.serviceId
-    )?.deploy_stage ?? null
-  const needsMeiliApiCredentials = plan.deploy_services.some(
-    (service) =>
-      service.id === meiliApiCredentialsSource.serviceId ||
-      service.consumes.meili_backend_key ||
-      service.consumes.meili_frontend_key
-  )
+  let effectivePlan = plan
   const environment = await executeResolveEnvironment({
     lane: "main",
     projectSlug: input.projectSlug,
@@ -134,6 +123,48 @@ export async function executeDeployMain(
     stackInputsPath: input.stackInputsPath,
     previewEnvPrefix: "pr-",
   })
+  const prerequisitePlan = await expandPlanForRuntimeProviderPrerequisites({
+    lane: "main",
+    plan,
+    manifest: contracts.manifest,
+    stackInputs: contracts.stackInputs,
+    projectSlug: input.projectSlug,
+    environmentName: environment.environment_name,
+    baseUrl: input.baseUrl,
+    apiToken: input.apiToken,
+    dryRun: input.dryRun,
+    meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+  })
+
+  if (
+    prerequisitePlan.transientDowntimeServiceIds.length > 0 &&
+    !input.approveDowntimeRisk
+  ) {
+    throw new Error(
+      `Main deploy requires transient downtime-risk prerequisite services: ${prerequisitePlan.transientDowntimeServiceIds.join(",")}. Re-run with --approve-downtime-risk.`
+    )
+  }
+
+  if (prerequisitePlan.transientServiceIds.length > 0) {
+    effectivePlan = prerequisitePlan.plan
+    logDeployProgress(
+      `Adding transient provider prerequisite services to the deploy plan: ${prerequisitePlan.transientServiceIds.join(",")}.`
+    )
+  }
+
+  const sourceServiceInPlan = effectivePlan.deploy_services.some(
+    (service) => service.id === meiliApiCredentialsSource.serviceId
+  )
+  const sourceServiceStage =
+    effectivePlan.deploy_services.find(
+      (service) => service.id === meiliApiCredentialsSource.serviceId
+    )?.deploy_stage ?? null
+  const needsMeiliApiCredentials = effectivePlan.deploy_services.some(
+    (service) =>
+      service.id === meiliApiCredentialsSource.serviceId ||
+      service.consumes.meili_backend_key ||
+      service.consumes.meili_frontend_key
+  )
 
   logDeployProgress(
     `Resolved main environment ${environment.environment_name} (${environment.environment_id}).`
@@ -192,8 +223,8 @@ export async function executeDeployMain(
     await reconcileMeiliApiCredentials()
   }
 
-  for (const stage of collectStageNumbers(plan)) {
-    const stagePlan = buildStagePlan(plan, stage)
+  for (const stage of collectStageNumbers(effectivePlan)) {
+    const stagePlan = buildStagePlan(effectivePlan, stage)
     const stageServicesCsv = stagePlan.deploy_services_csv
     if (!stageServicesCsv) {
       continue
@@ -402,7 +433,7 @@ export async function executeDeployMain(
     environment_id: environment.environment_id,
     environment_created: environment.created,
     requested_services_csv: plan.requested_services_csv,
-    deploy_services_csv: plan.deploy_services_csv,
+    deploy_services_csv: effectivePlan.deploy_services_csv,
     env_override_service_ids_csv: envOverrideServiceIdsCsv,
     triggered_services_csv: triggeredServicesCsv,
     skipped_services_csv: skippedServicesCsv,
