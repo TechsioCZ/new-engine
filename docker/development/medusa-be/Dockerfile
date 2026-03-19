@@ -58,7 +58,11 @@ RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
 
-COPY . .
+# Copy only the files needed for the Medusa production build so unrelated repo changes
+# don't invalidate the expensive install/build layers.
+COPY nx.json tsconfig.base.json ./
+COPY scripts/build-medusa.sh ./scripts/build-medusa.sh
+COPY apps/medusa-be ./apps/medusa-be
 
 # Build using shared script (cleanup, install, build, validate, prod deploy)
 ARG FEATURE_PPL_ENABLED=0
