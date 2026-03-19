@@ -1,0 +1,19 @@
+@theme static {
+  --spacing-50: 0.125rem;    /* 2px - micro spacing (11× used) */
+  --spacing-150: 0.25rem;    /* 4px - badge gaps (15× used) */
+  --spacing-200: 0.3125rem;  /* 5px - small spacing (22× used) */
+  --spacing-250: 0.375rem;   /* 6px - list spacing (10× used) */
+  --spacing-300: 0.5rem;     /* 8px - buttons/reviews (30×+ merged) */
+  --spacing-350: 0.625rem;   /* 10px - MOST COMMON gap (50× used) */
+  --spacing-400: 0.75rem;    /* 12px - cards (4× used) */
+  --spacing-450: 0.875rem;   /* 14px - menu items (17× used) */
+  --spacing-500: 1rem;       /* 16px - card padding (14× used) */
+  --spacing-550: 1.125rem;   /* 18px - sections (17× used) */
+  --spacing-600: 1.25rem;    /* 20px - COMMON padding (29× used) */
+  --spacing-650: 1.75rem;    /* 28px - card padding (4× used) */
+  --spacing-700: 1.875rem;   /* 30px - large sections (3× used) */
+  --spacing-750: 2.5rem;     /* 40px - major sections (2× used) */
+  --spacing-800: 4.75rem;    /* 76px - footer top (2× used) */
+  --spacing-850: 6.25rem;    /* 100px - footer gap (2× used) */
+  --spacing-950: 15.625rem;  /* 250px - container padding (2× used) */
+}

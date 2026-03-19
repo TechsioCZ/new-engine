@@ -1,0 +1,78 @@
+@theme static {
+  --color-herbatica-white: #ffffff;
+  --color-herbatica-white-2: #f8f8f8;
+  --color-herbatica-white-3: #dddddd;
+  --color-herbatica-black: #000000;
+  --color-herbatica-black-2: #4d4d4d;
+  --color-herbatica-black-3: #767676;
+  --color-herbatica-black-4: #333333;
+  --color-herbatica-black-5: #3b3a3c;
+  --color-herbatica-black-6: #dadada;
+  --color-herbatica-teal: #009869;
+  --color-herbatica-teal-2: #00a376;
+  --color-herbatica-teal-3: #62ba46;
+  --color-herbatica-teal-4: #c3cbcc;
+
+  /* ============================================
+   * Primary Colors - Herbatica Teal
+   * ============================================ */
+  --color-primary: var(--color-herbatica-teal);
+  --color-primary-hover: oklch(
+    from var(--color-primary) calc(l + var(--state-hover)) c h
+  );
+  --color-primary-active: oklch(
+    from var(--color-primary) calc(l + var(--state-active)) c h
+  );
+  --color-primary-disabled: oklch(
+    from var(--color-primary) l calc(c * var(--state-disabled-chroma)) h
+  );
+
+  /* ============================================
+   * Secondary Colors - Herbatica Green
+   * ============================================ */
+  --color-secondary: var(--color-herbatica-teal-3);
+  --color-secondary-hover: oklch(
+    from var(--color-secondary) calc(l + var(--state-hover)) c h
+  );
+  --color-secondary-active: oklch(
+    from var(--color-secondary) calc(l + var(--state-active)) c h
+  );
+  --color-secondary-disabled: oklch(
+    from var(--color-secondary) l calc(c * var(--state-disabled-chroma)) h
+  );
+
+  /* ============================================
+   * Foreground Colors
+   * ============================================ */
+  --color-fg-light: var(--color-herbatica-black);
+  --color-fg-dark: var(--color-herbatica-white);
+  --color-fg-primary: light-dark(var(--color-fg-light), var(--color-fg-light));
+  --color-fg-secondary: var(--color-herbatica-black-2);
+  --color-fg-tertiary: var(--color-herbatica-black-3);
+  --color-fg-4: var(--color-herbatica-black-4);
+  --color-fg-accent-primary: var(--color-herbatica-teal);
+  --color-fg-accent-secondary: var(--color-herbatica-teal-2);
+  --color-fg-reverse: light-dark(var(--color-fg-dark), var(--color-fg-dark));
+
+  /* ============================================
+   * Background Colors
+   * ============================================ */
+  --color-base-light: var(--color-herbatica-white-2);
+  --color-base-dark: var(--color-herbatica-black-4);
+  --color-base: light-dark(var(--color-base-light), var(--color-base-light));
+  --color-surface: var(--color-herbatica-white);
+
+  /* ============================================
+   * Border Colors - Herbatica Light Gray
+   * ============================================ */
+  --color-border-primary: var(--color-herbatica-black-5);
+  --color-border-secondary: var(--color-herbatica-white-3);
+  --color-border-tertiary: var(--color-herbatica-black-6);
+  --color-border-accent-primary: var(--color-herbatica-teal);
+  --color-border-accent-secondary: var(--color-herbatica-teal-2);
+
+  /* ============================================
+   * Link Colors
+   * ============================================ */
+  --color-link: var(--color-herbatica-black);
+}
