@@ -160,7 +160,7 @@ runtime_providers:
           output_kind: secret
           target_envs:
             - service_id: medusa-be
-              env_var: DC_MEILISEARCH_BACKEND_API_KEY
+              env_var: MEILISEARCH_API_KEY
           policy:
             kind: meilisearch_key
             uid: 14f4c9c4-1a80-4e2f-8e79-19511d2c5ba5
@@ -184,7 +184,7 @@ runtime_providers:
           output_kind: secret
           target_envs:
             - service_id: n1
-              env_var: DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY
+              env_var: NEXT_PUBLIC_MEILISEARCH_API_KEY
           policy:
             kind: meilisearch_key
             uid: 4b7f7f7e-8798-4b3f-8e73-c0f76f8b35d6
