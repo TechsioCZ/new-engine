@@ -1,0 +1,4 @@
+interface:
+  display_name: "Component Audit"
+  short_description: "Help with Component Audit tasks"
+  default_prompt: "Use $verifying-component-contracts/component-audit to audit one libs/ui component end-to-end across source, token CSS, stories, changelog context, and token validation output."

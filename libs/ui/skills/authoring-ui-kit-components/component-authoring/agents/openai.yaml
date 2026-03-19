@@ -1,0 +1,4 @@
+interface:
+  display_name: "Component Authoring"
+  short_description: "Help with Component Authoring tasks"
+  default_prompt: "Use $authoring-ui-kit-components/component-authoring to create or update a shared libs/ui component with tv(), component token CSS, Storybook coverage, canonical type aliases, and Zag-powered interaction when needed."
