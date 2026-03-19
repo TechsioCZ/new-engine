@@ -200,6 +200,7 @@ require_tools() {
 }
 
 require_bootstrap_inputs() {
+  PROJECT_SLUG="${PROJECT_SLUG:-${ZANE_PROJECT_SLUG:-}}"
   common::require_env PROJECT_SLUG "ZANE project slug"
 }
 
@@ -409,6 +410,8 @@ EOF
 }
 
 cleanup() {
+  common::cleanup_curl_ca_bundle_temp
+
   if [[ -n "$COOKIE_JAR" && -f "$COOKIE_JAR" ]]; then
     rm -f "$COOKIE_JAR"
   fi
@@ -458,6 +461,7 @@ main() {
   require_bootstrap_inputs
   assert_non_empty "$ENVIRONMENT_NAME" "Zane environment name"
   assert_non_empty "$SOURCE_DB_NAME" "Source DB name"
+  common::configure_curl_ca_bundle_from_local_caddy "$ZANE_BASE_URL"
 
   trap cleanup EXIT
 
