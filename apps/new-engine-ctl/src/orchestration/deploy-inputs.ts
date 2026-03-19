@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises"
 import { parse as parseYaml } from "yaml"
 
 import {
+  getPreviewForbiddenServiceEnvDefinitions,
   getPreviewRandomOnceSecretDefinitions,
   getRuntimeProviderTargetEnvVar,
   previewRandomOnceSecretPersistsToZaneEnv,
@@ -377,9 +378,36 @@ export function buildRequiredSharedEnv(
 }
 
 export function buildForbiddenPreviewOnlyEnv(
-  _lane: Lane,
-  _deployServiceIds: string[],
-  _contracts: DeployContracts
+  lane: Lane,
+  deployServiceIds: string[],
+  contracts: DeployContracts
 ): ForbiddenEnvRequirement[] {
-  return []
+  if (lane !== "preview") {
+    return []
+  }
+
+  return getPreviewForbiddenServiceEnvDefinitions(
+    contracts.stackInputs
+  ).flatMap((definition) => {
+    if (!deployServiceIds.includes(definition.service_id)) {
+      return []
+    }
+
+    const service = getDeployableService(
+      contracts.manifest,
+      definition.service_id
+    )
+    const envKeys = normalizeCsvToArray(definition.env_keys.join(","))
+    if (envKeys.length === 0) {
+      return []
+    }
+
+    return [
+      {
+        service_id: service.id,
+        service_slug: service.serviceSlug,
+        env_keys: envKeys,
+      },
+    ]
+  })
 }

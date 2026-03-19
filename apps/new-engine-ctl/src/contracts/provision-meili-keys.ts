@@ -7,21 +7,21 @@ const meiliKeyPolicySchema = z.object({
   indexes: z.array(z.string().min(1)),
 })
 
-const previewMeiliOutputSchema = z.object({
+const meiliOutputSchema = z.object({
   env_var: z.string().min(1),
   policy: meiliKeyPolicySchema,
 })
 
-export const provisionPreviewMeiliKeysPayloadSchema = z.object({
+export const provisionMeiliKeysPayloadSchema = z.object({
   project_slug: z.string().min(1),
   environment_name: z.string().min(1),
   service_slug: z.string().min(1),
   readiness_path: z.string().min(1),
-  backend_output: previewMeiliOutputSchema,
-  frontend_output: previewMeiliOutputSchema,
+  backend_output: meiliOutputSchema,
+  frontend_output: meiliOutputSchema,
 })
 
-export const provisionPreviewMeiliKeysResponseSchema = z.object({
+export const provisionMeiliKeysResponseSchema = z.object({
   project_slug: z.string().min(1),
   environment_name: z.string().min(1),
   service_slug: z.string().min(1),
@@ -36,9 +36,9 @@ export const provisionPreviewMeiliKeysResponseSchema = z.object({
   frontend_updated: z.boolean(),
 })
 
-export type ProvisionPreviewMeiliKeysResponse = z.infer<
-  typeof provisionPreviewMeiliKeysResponseSchema
+export type ProvisionMeiliKeysResponse = z.infer<
+  typeof provisionMeiliKeysResponseSchema
 >
-export type ProvisionPreviewMeiliKeysPayload = z.infer<
-  typeof provisionPreviewMeiliKeysPayloadSchema
+export type ProvisionMeiliKeysPayload = z.infer<
+  typeof provisionMeiliKeysPayloadSchema
 >

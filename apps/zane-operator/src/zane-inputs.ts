@@ -5,8 +5,8 @@ import type {
   ForbiddenEnvRequirement,
   Lane,
   PersistedEnvRequirement,
-  ProvisionPreviewMeiliKeysInput,
-  ProvisionPreviewMeiliKeysOutputInput,
+  ProvisionMeiliKeysInput,
+  ProvisionMeiliKeysOutputInput,
   ReadPreviewCommitStateInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
@@ -90,7 +90,7 @@ function assertStringArray(value: unknown, label: string): string[] {
 function normalizeMeiliApiCredentialsOutput(
   value: unknown,
   label: string
-): ProvisionPreviewMeiliKeysOutputInput {
+): ProvisionMeiliKeysOutputInput {
   const object = assertObject(value, label)
   const policy = assertObject(object.policy, `${label}.policy`)
 
@@ -698,9 +698,9 @@ export function parseSyncPreviewServiceEnvInput(
   }
 }
 
-export function parseProvisionPreviewMeiliKeysInput(
+export function parseProvisionMeiliKeysInput(
   rawPayload: unknown
-): ProvisionPreviewMeiliKeysInput {
+): ProvisionMeiliKeysInput {
   const payload = assertObject(rawPayload, "request body")
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),

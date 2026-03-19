@@ -109,18 +109,18 @@ export interface MeiliApiCredentialsPolicy {
   indexes: string[]
 }
 
-export interface ProvisionPreviewMeiliKeysOutputInput {
+export interface ProvisionMeiliKeysOutputInput {
   envVar: string
   policy: MeiliApiCredentialsPolicy
 }
 
-export interface ProvisionPreviewMeiliKeysInput {
+export interface ProvisionMeiliKeysInput {
   projectSlug: string
   environmentName: string
   serviceSlug: string
   readinessPath: string
-  backendOutput: ProvisionPreviewMeiliKeysOutputInput
-  frontendOutput: ProvisionPreviewMeiliKeysOutputInput
+  backendOutput: ProvisionMeiliKeysOutputInput
+  frontendOutput: ProvisionMeiliKeysOutputInput
 }
 
 export interface ResolveTargetInput {

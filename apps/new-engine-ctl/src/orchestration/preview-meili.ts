@@ -1,4 +1,4 @@
-import type { ProvisionPreviewMeiliKeysResponse } from "../contracts/provision-preview-meili-keys.js"
+import type { ProvisionMeiliKeysResponse } from "../contracts/provision-meili-keys.js"
 import {
   getRuntimeProviderOutputPolicy,
   getRuntimeProviderReadinessPath,
@@ -34,7 +34,7 @@ export function getMeiliApiCredentialsProviderSourceService(
   }
 }
 
-export function provisionPreviewMeiliKeys(input: {
+export function provisionMeiliKeys(input: {
   projectSlug: string
   environmentName: string
   serviceSlug: string
@@ -43,7 +43,7 @@ export function provisionPreviewMeiliKeys(input: {
   baseUrl: string
   apiToken: string
   dryRun: boolean
-}): Promise<ProvisionPreviewMeiliKeysResponse> {
+}): Promise<ProvisionMeiliKeysResponse> {
   const backendEnvVar = getRuntimeProviderTargetEnvVar(
     input.stackInputs,
     input.providerId,
@@ -91,7 +91,7 @@ export function provisionPreviewMeiliKeys(input: {
   return new ZaneOperatorClient(
     input.baseUrl,
     input.apiToken
-  ).provisionPreviewMeiliKeys({
+  ).provisionMeiliKeys({
     project_slug: input.projectSlug,
     environment_name: input.environmentName,
     service_slug: input.serviceSlug,

@@ -22,7 +22,7 @@ import {
 import { executePlan } from "./plan.js"
 import {
   getMeiliApiCredentialsProviderSourceService,
-  provisionPreviewMeiliKeys,
+  provisionMeiliKeys,
 } from "./preview-meili.js"
 import { executeRenderEnvOverrides } from "./render-env-overrides.js"
 import { executeResolveEnvironment } from "./resolve-environment.js"
@@ -162,7 +162,7 @@ export async function executeDeployMain(
       `Reconciling Meili API credentials from source service ${meiliApiCredentialsSource.serviceId}.`
     )
 
-    const reconciled = await provisionPreviewMeiliKeys({
+    const reconciled = await provisionMeiliKeys({
       projectSlug: input.projectSlug,
       environmentName: environment.environment_name,
       serviceSlug: meiliApiCredentialsSource.serviceSlug,
