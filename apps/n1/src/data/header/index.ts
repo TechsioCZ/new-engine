@@ -166,6 +166,12 @@ const STATIC_ROOT_CATEGORY_LINKS = [
   },
 ] as const
 
+export const headerLinks = [
+  { href: "/novinky", label: "Novinky" },
+  ...STATIC_ROOT_CATEGORY_LINKS.map(({ href, label }) => ({ href, label })),
+  { href: "/vyprodej", label: "Výprodej" },
+]
+
 // ============================================
 // DYNAMICALLY GENERATED VERSIONS
 // ============================================
@@ -230,11 +236,18 @@ const getImageForCategory = (
 }
 
 export function buildHeaderNavigation(
-  registry: Pick<CategoryRegistry, "allCategories" | "rootCategories">
+  registry?: Pick<CategoryRegistry, "allCategories" | "rootCategories">
 ): {
   links: Array<{ href: string; label: string }>
   submenuItems: SubmenuCategory[]
 } {
+  if (!registry) {
+    return {
+      links: headerLinks,
+      submenuItems: [],
+    }
+  }
+
   const submenuItems: SubmenuCategory[] = STATIC_ROOT_CATEGORY_LINKS.flatMap(
     ({ handle, href, label }) => {
       const rootCat = registry.rootCategories.find(
@@ -264,19 +277,8 @@ export function buildHeaderNavigation(
     }
   )
 
-  const visibleRootLinks = STATIC_ROOT_CATEGORY_LINKS.filter(({ handle }) =>
-    registry.rootCategories.some((category) => category.handle === handle)
-  ).map(({ href, label }) => ({
-    href,
-    label,
-  }))
-
   return {
-    links: [
-      { href: "/novinky", label: "Novinky" },
-      ...visibleRootLinks,
-      { href: "/vyprodej", label: "Výprodej" },
-    ],
+    links: headerLinks,
     submenuItems,
   }
 }
