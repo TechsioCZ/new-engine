@@ -20,6 +20,14 @@ export const isQueryFresh = (
   return Date.now() - state.dataUpdatedAt < staleTime
 }
 
+export const isQueryInFlight = (
+  queryClient: QueryClient,
+  queryKey: QueryKey
+) => {
+  const state = queryClient.getQueryState(queryKey)
+  return state?.fetchStatus === "fetching"
+}
+
 export const shouldSkipPrefetch = (params: {
   queryClient: QueryClient
   queryKey: QueryKey
@@ -29,6 +37,10 @@ export const shouldSkipPrefetch = (params: {
 }) => {
   if (!params.skipIfCached) {
     return false
+  }
+
+  if (isQueryInFlight(params.queryClient, params.queryKey)) {
+    return true
   }
 
   switch (params.skipMode) {

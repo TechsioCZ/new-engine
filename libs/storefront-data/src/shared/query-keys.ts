@@ -1,7 +1,7 @@
 export type QueryKey = readonly unknown[]
 
 export type QueryNamespace = string | readonly string[]
-export type NormalizeQueryKeyParamsOptions = {
+type NormalizeQueryKeyParamsOptions = {
   omitKeys?: readonly string[]
 }
 
@@ -47,9 +47,7 @@ const walkValue = (
       throw new Error("QueryKey contains a circular reference")
     }
     visited.add(value)
-    const entries = Object.entries(value).sort(([a], [b]) =>
-      a.localeCompare(b)
-    )
+    const entries = Object.entries(value).sort(([a], [b]) => a.localeCompare(b))
     const result: Record<string, unknown> = {}
     for (const [key, entryValue] of entries) {
       if (options?.omitKeys?.has(key)) {
@@ -77,7 +75,9 @@ const walkValue = (
  * - Removes keys listed in `omitKeys` (for non-cache-affecting flags like `enabled`)
  * - Sorts object keys for stable hashing
  */
-export function normalizeQueryKeyParams<TParams extends Record<string, unknown>>(
+export function normalizeQueryKeyParams<
+  TParams extends Record<string, unknown>,
+>(
   params: TParams,
   options?: NormalizeQueryKeyParamsOptions
 ): Record<string, unknown> {
@@ -125,6 +125,14 @@ export function createQueryKey(
   const scope = normalizeNamespace(namespace)
   const visited = new WeakSet<object>()
   return [...scope, ...parts.map((part) => walkValue(part, visited))]
+}
+
+export function appendQueryKey(
+  base: QueryKey,
+  ...parts: readonly unknown[]
+): QueryKey {
+  const visited = new WeakSet<object>()
+  return [...base, ...parts.map((part) => walkValue(part, visited))]
 }
 
 export function createDomainQueryKeys<TListParams, TDetailParams>(

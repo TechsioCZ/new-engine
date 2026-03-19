@@ -3,7 +3,7 @@ import type {
   ReadResultBase,
   SuspenseQueryResult,
   SuspenseResultBase,
-} from "../shared/hook-types"
+} from "../shared/hook-result-types"
 import type { QueryKey } from "../shared/query-keys"
 
 export type RegionListInputBase = {
@@ -23,16 +23,15 @@ export type RegionListResponse<TRegion> = {
   count?: number
 }
 
-export type RegionService<
-  TRegion,
-  TListParams,
-  TDetailParams,
-> = {
+export type RegionService<TRegion, TListParams, TDetailParams> = {
   getRegions: (
     params: TListParams,
     signal?: AbortSignal
   ) => Promise<RegionListResponse<TRegion>>
-  getRegion: (params: TDetailParams, signal?: AbortSignal) => Promise<TRegion | null>
+  getRegion: (
+    params: TDetailParams,
+    signal?: AbortSignal
+  ) => Promise<TRegion | null>
 }
 
 export type RegionQueryKeys<TListParams, TDetailParams> = {

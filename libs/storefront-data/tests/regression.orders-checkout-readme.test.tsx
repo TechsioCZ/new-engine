@@ -2,7 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { readFileSync } from "node:fs"
-import { join } from "node:path"
+import { fileURLToPath } from "node:url"
 import type { ReactNode } from "react"
 import { createCheckoutHooks } from "../src/checkout/hooks"
 import { createMedusaCheckoutService } from "../src/checkout/medusa-service"
@@ -14,6 +14,20 @@ const createWrapper = (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
+
+const resolveTestRelativePath = (relativePath: string): string => {
+  const resolvedUrl = new URL(relativePath, import.meta.url)
+  if (resolvedUrl.protocol === "file:") {
+    return fileURLToPath(resolvedUrl)
+  }
+
+  const decodedPathname = decodeURIComponent(resolvedUrl.pathname)
+  if (decodedPathname.startsWith("/@fs/")) {
+    return decodedPathname.slice("/@fs/".length)
+  }
+
+  return decodedPathname.replace(/^\/([A-Za-z]:)/, "$1")
+}
 
 describe("phase 2 regressions", () => {
   it("forwards AbortSignal in order list and detail requests", async () => {
@@ -235,11 +249,15 @@ describe("phase 2 regressions", () => {
     expect(result.current.shippingPrices).toEqual({ opt_fixed: 500 })
   })
 
-  it("documents SSR prefetch with query-key factory instead of hardcoded key", () => {
-    const readme = readFileSync(join(process.cwd(), "README.md"), "utf8")
+  it("documents preset-first SSR prefetch without hardcoded query keys", () => {
+    const readme = readFileSync(
+      resolveTestRelativePath("../README.md"),
+      "utf8"
+    )
 
-    expect(readme).toContain("createProductQueryKeys")
-    expect(readme).toContain("productQueryKeys.list(listParams)")
+    expect(readme).toContain("createMedusaStorefrontPreset")
+    expect(readme).toContain("productHooks.getListQueryOptions")
+    expect(readme).toContain("There is no supported package-root import")
     expect(readme).not.toContain('queryKey: ["my-app", "products", "list", {}]')
   })
 })

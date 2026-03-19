@@ -1,10 +1,10 @@
-import type { QueryKey } from "../shared/query-keys"
 import type {
   QueryResult,
   ReadResultBase,
   SuspenseQueryResult,
   SuspenseResultBase,
-} from "../shared/hook-types"
+} from "../shared/hook-result-types"
+import type { QueryKey } from "../shared/query-keys"
 
 export type CategoryListInputBase = {
   page?: number
@@ -23,16 +23,15 @@ export type CategoryListResponse<TCategory> = {
   count?: number
 }
 
-export type CategoryService<
-  TCategory,
-  TListParams,
-  TDetailParams,
-> = {
+export type CategoryService<TCategory, TListParams, TDetailParams> = {
   getCategories: (
     params: TListParams,
     signal?: AbortSignal
   ) => Promise<CategoryListResponse<TCategory>>
-  getCategory: (params: TDetailParams, signal?: AbortSignal) => Promise<TCategory | null>
+  getCategory: (
+    params: TDetailParams,
+    signal?: AbortSignal
+  ) => Promise<TCategory | null>
 }
 
 export type CategoryQueryKeys<TListParams, TDetailParams> = {
