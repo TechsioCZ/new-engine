@@ -1,0 +1,4 @@
+interface:
+  display_name: "Existing App Refactor Review"
+  short_description: "Help with Existing App Refactor Review tasks"
+  default_prompt: "Use $adopting-ui-kit-in-apps/existing-app-refactor-review to audit an existing app that uses @techsio/ui-kit, classify adoption problems, and propose a phased refactor plan."

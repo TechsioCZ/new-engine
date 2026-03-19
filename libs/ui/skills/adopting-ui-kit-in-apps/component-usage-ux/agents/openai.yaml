@@ -1,0 +1,4 @@
+interface:
+  display_name: "Component Usage UX"
+  short_description: "Help with Component Usage UX tasks"
+  default_prompt: "Use $adopting-ui-kit-in-apps/component-usage-ux to choose the right @techsio/ui-kit component, variant, theme, size, and props for a UX need before adding inline className workarounds."

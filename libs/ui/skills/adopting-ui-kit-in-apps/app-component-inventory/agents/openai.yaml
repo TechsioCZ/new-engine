@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Component Inventory"
+  short_description: "Help with App Component Inventory tasks"
+  default_prompt: "Use $adopting-ui-kit-in-apps/app-component-inventory to map a new app design onto existing @techsio/ui-kit components, variants, themes, sizes, and props before implementation."

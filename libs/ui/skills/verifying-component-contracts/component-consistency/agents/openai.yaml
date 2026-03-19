@@ -1,0 +1,4 @@
+interface:
+  display_name: "Component Consistency"
+  short_description: "Help with Component Consistency tasks"
+  default_prompt: "Use $verifying-component-contracts/component-consistency to keep a libs/ui component aligned across TSX, token CSS, token imports, and Storybook stories."
