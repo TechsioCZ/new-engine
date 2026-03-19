@@ -32,6 +32,16 @@ export default function AccountLayout({
     return <main className="mx-auto w-full max-w-5xl px-400 py-400" />
   }
 
+  if (error) {
+    return (
+      <main className="mx-auto w-full max-w-5xl px-400 py-400">
+        <p className="text-fg-secondary">
+          Nepodařilo se načíst účet. Zkuste prosím obnovit stránku.
+        </p>
+      </main>
+    )
+  }
+
   if (!customer) {
     return null
   }
