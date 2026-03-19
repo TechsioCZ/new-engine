@@ -1,9 +1,5 @@
+import { isPlainRecord } from "./object-utils"
 import type { QueryKey } from "./query-keys"
-
-export const isPlainRecord = (
-  value: unknown
-): value is Record<string, unknown> =>
-  Boolean(value && typeof value === "object" && !Array.isArray(value))
 
 export const areQueryKeySegmentsEqual = (left: unknown, right: unknown): boolean => {
   if (Object.is(left, right)) {

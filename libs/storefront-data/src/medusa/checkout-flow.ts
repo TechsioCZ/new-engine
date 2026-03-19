@@ -14,6 +14,7 @@ import {
   resolveSelectedPaymentProviderId,
 } from "../shared/checkout-flow-utils"
 import { createErrorWithStage } from "../shared/error-utils"
+import { toPlainRecord } from "../shared/object-utils"
 import {
   createMedusaCartFlow,
   type MedusaCartFlowStorefront,
@@ -199,14 +200,6 @@ const defaultNormalizeShippingData = (
   return Object.fromEntries(entries)
 }
 
-const toRecord = (value: unknown): Record<string, unknown> | undefined => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return 
-  }
-
-  return value as Record<string, unknown>
-}
-
 const toComparableShippingData = (data?: Record<string, unknown>): string =>
   JSON.stringify(
     Object.entries(data ?? {})
@@ -231,7 +224,7 @@ const isSameShippingSelection = ({
 
   return (
     toComparableShippingData(nextData) ===
-    toComparableShippingData(toRecord(currentData))
+    toComparableShippingData(toPlainRecord(currentData))
   )
 }
 
@@ -269,6 +262,58 @@ const resolvePaymentProviderSelection = (
   }
 }
 
+const resolveCheckoutEffectiveCart = ({
+  cartId,
+  cart,
+  getCachedCart,
+}: {
+  cartId: string
+  cart?: HttpTypes.StoreCart | null
+  getCachedCart: (effectiveCartId: string) => HttpTypes.StoreCart | null
+}): HttpTypes.StoreCart | null =>
+  resolveEffectiveCheckoutCart({
+    cartId,
+    cart,
+    getCachedCart,
+  })
+
+const ensureCheckoutPaymentCollection = ({
+  effectiveCart,
+  paymentProviderId,
+  initiatePaymentAsync,
+}: {
+  effectiveCart: HttpTypes.StoreCart | null
+  paymentProviderId: string
+  initiatePaymentAsync: (
+    providerId: string
+  ) => Promise<HttpTypes.StorePaymentCollection>
+}): Promise<HttpTypes.StorePaymentCollection> => {
+  const existingPaymentCollection = resolveExistingPaymentCollection(
+    effectiveCart,
+    paymentProviderId
+  )
+  if (existingPaymentCollection) {
+    return Promise.resolve(existingPaymentCollection)
+  }
+  return initiatePaymentAsync(paymentProviderId)
+}
+
+const completeCheckoutOrder = async ({
+  cartId,
+  completeCartMutation,
+}: {
+  cartId: string
+  completeCartMutation: (
+    input: { cartId?: string }
+  ) => Promise<MedusaCompleteCartResult>
+}): Promise<HttpTypes.StoreOrder> => {
+  const result = await completeCartMutation({ cartId })
+  if (result.type !== "order") {
+    throw result.error
+  }
+  return result.order
+}
+
 export function createMedusaCheckoutFlow({
   storefront,
   cartStorage,
@@ -280,27 +325,6 @@ export function createMedusaCheckoutFlow({
     cartStorage,
     isActiveCartQueryKey,
   })
-
-  const resolveEffectiveCart = ({
-    queryClient,
-    cartId,
-    cart,
-  }: {
-    queryClient: QueryClient
-    cartId: string
-    cart?: HttpTypes.StoreCart | null
-  }): HttpTypes.StoreCart | null =>
-    resolveEffectiveCheckoutCart({
-      cartId,
-      cart,
-      getCachedCart: (effectiveCartId) =>
-        getCachedCartById<HttpTypes.StoreCart>(
-          queryClient,
-          storefront.queryKeys.cart,
-          effectiveCartId,
-          { isActiveCartQueryKey }
-        ),
-    })
 
   function useCheckoutShipping(
     cartId?: string,
@@ -480,43 +504,6 @@ export function createMedusaCheckoutFlow({
     return refreshedSelection.paymentProviderId
   }
 
-  const ensureCheckoutPaymentCollection = ({
-    effectiveCart,
-    paymentProviderId,
-    initiatePaymentAsync,
-  }: {
-    effectiveCart: HttpTypes.StoreCart | null
-    paymentProviderId: string
-    initiatePaymentAsync: (
-      providerId: string
-    ) => Promise<HttpTypes.StorePaymentCollection>
-  }): Promise<HttpTypes.StorePaymentCollection> => {
-    const existingPaymentCollection = resolveExistingPaymentCollection(
-      effectiveCart,
-      paymentProviderId
-    )
-    if (existingPaymentCollection) {
-      return Promise.resolve(existingPaymentCollection)
-    }
-    return initiatePaymentAsync(paymentProviderId)
-  }
-
-  const completeCheckoutOrder = async ({
-    cartId,
-    completeCartMutation,
-  }: {
-    cartId: string
-    completeCartMutation: (
-      input: { cartId?: string }
-    ) => Promise<MedusaCompleteCartResult>
-  }): Promise<HttpTypes.StoreOrder> => {
-    const result = await completeCartMutation({ cartId })
-    if (result.type !== "order") {
-      throw result.error
-    }
-    return result.order
-  }
-
   function useCompleteCheckout(
     input: UseMedusaCompleteCheckoutInput,
     options?: UseMedusaCompleteCheckoutOptions
@@ -557,10 +544,16 @@ export function createMedusaCheckoutFlow({
           )
         }
 
-        const effectiveCart = resolveEffectiveCart({
-          queryClient,
+        const effectiveCart = resolveCheckoutEffectiveCart({
           cartId: mutationCartId,
           cart: mutationCart,
+          getCachedCart: (effectiveCartId) =>
+            getCachedCartById<HttpTypes.StoreCart>(
+              queryClient,
+              storefront.queryKeys.cart,
+              effectiveCartId,
+              { isActiveCartQueryKey }
+            ) ?? null,
         })
         const effectiveRegionId =
           input.regionId ?? effectiveCart?.region_id ?? undefined

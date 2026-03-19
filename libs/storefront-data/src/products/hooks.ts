@@ -45,6 +45,55 @@ import type {
 type CacheStrategy = keyof CacheConfig
 type SuspenseInput<TInput> = Omit<TInput, "enabled">
 
+type InfiniteProductsPageParam = {
+  offset: number
+  page: number
+}
+
+type ProductQueryInput = RegionInfo & {
+  enabled?: boolean
+}
+
+const isInfiniteProductsPageParam = (
+  pageParam: unknown
+): pageParam is InfiniteProductsPageParam =>
+  typeof pageParam === "object" &&
+  pageParam !== null &&
+  typeof (pageParam as { offset?: unknown }).offset === "number" &&
+  typeof (pageParam as { page?: unknown }).page === "number"
+
+const resolveProductQueryInput = <TInput extends ProductQueryInput>(
+  input: TInput,
+  region?: RegionInfo | null
+): TInput => {
+  const { enabled: _inputEnabled, ...baseInput } = input
+  return applyRegion(baseInput as TInput, region ?? undefined)
+}
+
+const resolveInfiniteProductsPageParam = ({
+  pageParam,
+  baseOffset,
+  basePage,
+  resolvedLimit,
+}: {
+  pageParam: unknown
+  baseOffset: number
+  basePage: number
+  resolvedLimit: number
+}): InfiniteProductsPageParam => {
+  if (isInfiniteProductsPageParam(pageParam)) {
+    return pageParam
+  }
+
+  const offset = typeof pageParam === "number" ? pageParam : baseOffset
+  const page =
+    resolvedLimit > 0
+      ? basePage + Math.max(Math.floor((offset - baseOffset) / resolvedLimit), 0)
+      : basePage
+
+  return { offset, page }
+}
+
 export type PrefetchListOptions = {
   cacheStrategy?: CacheStrategy
   prefetchedBy?: string
@@ -221,25 +270,6 @@ export function createProductHooks<
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  const resolveListInput = (input: TListInput, region?: RegionInfo | null) => {
-    const { enabled: _inputEnabled, ...baseInput } = input as TListInput & {
-      enabled?: boolean
-    }
-
-    return applyRegion(baseInput as TListInput, region ?? undefined)
-  }
-
-  const resolveDetailInput = (
-    input: TDetailInput,
-    region?: RegionInfo | null
-  ) => {
-    const { enabled: _inputEnabled, ...baseInput } = input as TDetailInput & {
-      enabled?: boolean
-    }
-
-    return applyRegion(baseInput as TDetailInput, region ?? undefined)
-  }
-
   const resolveUseGlobalFetcher = (useGlobalFetcher?: boolean): boolean =>
     Boolean(useGlobalFetcher && service.getProductsGlobal)
 
@@ -262,7 +292,7 @@ export function createProductHooks<
       useGlobalFetcher?: boolean
     }
   ) => {
-    const resolvedInput = resolveListInput(input, options?.region)
+    const resolvedInput = resolveProductQueryInput(input, options?.region)
     const listParams = buildList(resolvedInput)
     const useGlobalFetcher = resolveUseGlobalFetcher(options?.useGlobalFetcher)
 
@@ -287,7 +317,7 @@ export function createProductHooks<
       useGlobalFetcher?: boolean
     }
   ) => {
-    const resolvedInput = resolveListInput(input, options?.region)
+    const resolvedInput = resolveProductQueryInput(input, options?.region)
     const listParams = buildList(resolvedInput)
     const useGlobalFetcher = resolveUseGlobalFetcher(options?.useGlobalFetcher)
     const prefetchCacheOptions = getPrefetchCacheOptions(
@@ -318,7 +348,7 @@ export function createProductHooks<
       useGlobalFetcher?: boolean
     }
   ) => {
-    const resolvedInput = resolveListInput(input, options?.region)
+    const resolvedInput = resolveProductQueryInput(input, options?.region)
     const firstPageInput = {
       ...resolvedInput,
       page: 1,
@@ -352,7 +382,7 @@ export function createProductHooks<
       region?: RegionInfo | null
     }
   ) => {
-    const resolvedInput = resolveDetailInput(input, options?.region)
+    const resolvedInput = resolveProductQueryInput(input, options?.region)
     const detailParams = buildDetail(resolvedInput)
 
     return {
@@ -377,7 +407,7 @@ export function createProductHooks<
       region?: RegionInfo | null
     }
   ) => {
-    const resolvedInput = resolveDetailInput(input, options?.region)
+    const resolvedInput = resolveProductQueryInput(input, options?.region)
     const detailParams = buildDetail(resolvedInput)
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
@@ -410,7 +440,7 @@ export function createProductHooks<
     const { enabled: inputEnabled } = input as TListInput & {
       enabled?: boolean
     }
-    const resolvedInput = resolveListInput(input, contextRegion)
+    const resolvedInput = resolveProductQueryInput(input, contextRegion)
     const listParams = buildList(resolvedInput)
     const enabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
@@ -467,9 +497,9 @@ export function createProductHooks<
       enabled?: boolean
       initialLimit?: number
     }
-    const resolvedInput = applyRegion(
-      baseInput as TListInput,
-      contextRegion ?? undefined
+    const resolvedInput = resolveProductQueryInput(
+      { ...baseInput } as TListInput,
+      contextRegion
     )
     const enabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
@@ -500,43 +530,6 @@ export function createProductHooks<
       baseOffset,
       basePage: pageFromInput,
     }
-  }
-
-  type InfiniteProductsPageParam = {
-    offset: number
-    page: number
-  }
-
-  const isInfiniteProductsPageParam = (
-    pageParam: unknown
-  ): pageParam is InfiniteProductsPageParam =>
-    typeof pageParam === "object" &&
-    pageParam !== null &&
-    typeof (pageParam as { offset?: unknown }).offset === "number" &&
-    typeof (pageParam as { page?: unknown }).page === "number"
-
-  const resolveInfiniteProductsPageParam = ({
-    pageParam,
-    baseOffset,
-    basePage,
-    resolvedLimit,
-  }: {
-    pageParam: unknown
-    baseOffset: number
-    basePage: number
-    resolvedLimit: number
-  }): InfiniteProductsPageParam => {
-    if (isInfiniteProductsPageParam(pageParam)) {
-      return pageParam
-    }
-
-    const offset = typeof pageParam === "number" ? pageParam : baseOffset
-    const page =
-      resolvedLimit > 0
-        ? basePage + Math.max(Math.floor((offset - baseOffset) / resolvedLimit), 0)
-        : basePage
-
-    return { offset, page }
   }
 
   const buildInfiniteProductsQueryKey = (
@@ -664,7 +657,10 @@ export function createProductHooks<
     }
   ): UseSuspenseProductsResult<TProduct> {
     const contextRegion = useRegionContext()
-    const resolvedInput = resolveListInput(input as TListInput, contextRegion)
+    const resolvedInput = resolveProductQueryInput(
+      input as TListInput,
+      contextRegion
+    )
 
     if (requireRegion && !resolvedInput.region_id) {
       throw new Error("Region is required for product queries")
@@ -718,7 +714,7 @@ export function createProductHooks<
     const { enabled: inputEnabled } = input as TDetailInput & {
       enabled?: boolean
     }
-    const resolvedInput = resolveDetailInput(input, contextRegion)
+    const resolvedInput = resolveProductQueryInput(input, contextRegion)
     const enabled =
       inputEnabled ??
       (Boolean(resolvedInput.handle) &&
@@ -748,7 +744,7 @@ export function createProductHooks<
     options?: { queryOptions?: SuspenseQueryOptions<TProduct | null> }
   ): UseSuspenseProductResult<TProduct> {
     const contextRegion = useRegionContext()
-    const resolvedInput = resolveDetailInput(
+    const resolvedInput = resolveProductQueryInput(
       input as TDetailInput,
       contextRegion
     )
@@ -797,13 +793,7 @@ export function createProductHooks<
       input: TListInput,
       prefetchOptions?: PrefetchListOptions
     ) => {
-      const { enabled: _inputEnabled, ...baseInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        baseInput as TListInput,
-        contextRegion ?? undefined
-      )
+      const resolvedInput = resolveProductQueryInput(input, contextRegion)
       if (requireRegion && !resolvedInput.region_id) {
         return
       }
@@ -848,13 +838,7 @@ export function createProductHooks<
       input: TListInput,
       prefetchOptions?: PrefetchListOptions
     ) => {
-      const { enabled: _inputEnabled, ...baseInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        baseInput as TListInput,
-        contextRegion ?? undefined
-      )
+      const resolvedInput = resolveProductQueryInput(input, contextRegion)
       if (requireRegion && !resolvedInput.region_id) {
         return
       }
@@ -900,13 +884,7 @@ export function createProductHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const { enabled: _inputEnabled, ...baseInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        baseInput as TListInput,
-        contextRegion ?? undefined
-      )
+      const resolvedInput = resolveProductQueryInput(input, contextRegion)
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
@@ -945,13 +923,7 @@ export function createProductHooks<
       input: TDetailInput,
       prefetchOptions?: PrefetchProductOptions
     ) => {
-      const { enabled: _inputEnabled, ...baseInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        baseInput as TDetailInput,
-        contextRegion ?? undefined
-      )
+      const resolvedInput = resolveProductQueryInput(input, contextRegion)
       if (requireRegion && !resolvedInput.region_id) {
         return
       }
@@ -996,13 +968,7 @@ export function createProductHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const { enabled: _inputEnabled, ...baseInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        baseInput as TDetailInput,
-        contextRegion ?? undefined
-      )
+      const resolvedInput = resolveProductQueryInput(input, contextRegion)
       const detailParams = buildDetail(resolvedInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
@@ -1025,13 +991,10 @@ export function createProductHooks<
   function usePrefetchPages(params: UsePrefetchPagesParams<TListInput>) {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
-    const resolvedBaseInput = useMemo(() => {
-      const { enabled: _inputEnabled, ...baseInput } =
-        params.baseInput as TListInput & {
-          enabled?: boolean
-        }
-      return applyRegion(baseInput as TListInput, contextRegion ?? undefined)
-    }, [params.baseInput, contextRegion])
+    const resolvedBaseInput = useMemo(
+      () => resolveProductQueryInput(params.baseInput, contextRegion),
+      [params.baseInput, contextRegion]
+    )
 
     useEffect(() => {
       if (params.enabled === false || params.shouldPrefetch === false) {
