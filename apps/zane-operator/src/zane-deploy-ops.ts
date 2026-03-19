@@ -125,7 +125,7 @@ interface ZaneDeployOpsDeps {
 
 function coercePendingEnvVariable(
   value: Record<string, unknown> | null | undefined
-): { key: string; value: string } | null {
+ ): { key: string; value: string } | null {
   if (!value || typeof value.key !== "string" || typeof value.value !== "string") {
     return null
   }
@@ -139,19 +139,28 @@ function coercePendingEnvVariable(
 function findPendingEnvChangeByKey(
   serviceDetails: ZaneServiceDetails,
   key: string
-): ZanePendingChange | null {
+ ): ZanePendingChange | null {
+  const persistedEnvById = new Map(
+    (serviceDetails.env_variables ?? []).map((envVar) => [envVar.id, envVar])
+  )
+
   for (const change of serviceDetails.unapplied_changes ?? []) {
     if (change.field !== "env_variables") {
       continue
     }
 
-    if (change.type === "DELETE") {
-      continue
-    }
-
-    const pendingEnv = coercePendingEnvVariable(change.new_value)
+    const pendingEnv = coercePendingEnvVariable(
+      change.type === "DELETE" ? change.old_value : change.new_value
+    )
     if (pendingEnv?.key === key) {
       return change
+    }
+
+    if (change.item_id) {
+      const persistedEnv = persistedEnvById.get(change.item_id)
+      if (persistedEnv?.key === key) {
+        return change
+      }
     }
   }
 
