@@ -6,8 +6,8 @@ import { handleArchiveZaneEnvironment } from "./handlers/archive-zane-environmen
 import { handleCancelZaneDeploy } from "./handlers/cancel-zane-deploy"
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
-import { handleProvisionMeiliKeys } from "./handlers/provision-meili-keys"
 import { handleReadPreviewCommitState } from "./handlers/read-preview-commit-state"
+import { handleRunRuntimeProvider } from "./handlers/run-runtime-provider"
 import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
 import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
 import { handleSyncPreviewRandomOnceSecrets } from "./handlers/sync-preview-random-once-secrets"
@@ -167,14 +167,14 @@ const server = Bun.serve({
 
     if (
       request.method === "POST" &&
-      url.pathname === "/v1/zane/meilisearch/provision-keys"
+      url.pathname === "/v1/zane/runtime-providers/run"
     ) {
       const authResponse = enforceBearerToken(request, config.apiAuthToken)
       if (authResponse) {
         return authResponse
       }
 
-      return await handleProvisionMeiliKeys(request, { config })
+      return await handleRunRuntimeProvider(request, { config })
     }
 
     if (

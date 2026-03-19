@@ -136,19 +136,20 @@ export async function executeDeployMain(
     meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
   })
 
-  if (
-    prerequisitePlan.transientDowntimeServiceIds.length > 0 &&
-    !input.approveDowntimeRisk
-  ) {
-    throw new Error(
-      `Main deploy requires transient downtime-risk prerequisite services: ${prerequisitePlan.transientDowntimeServiceIds.join(",")}. Re-run with --approve-downtime-risk.`
-    )
-  }
-
   if (prerequisitePlan.transientServiceIds.length > 0) {
     effectivePlan = prerequisitePlan.plan
     logDeployProgress(
       `Adding transient provider prerequisite services to the deploy plan: ${prerequisitePlan.transientServiceIds.join(",")}.`
+    )
+  }
+
+  const downtimeRiskServiceIds = effectivePlan.deploy_services
+    .filter((service) => service.downtime_risk)
+    .map((service) => service.id)
+
+  if (downtimeRiskServiceIds.length > 0 && !input.approveDowntimeRisk) {
+    throw new Error(
+      `Main deploy includes downtime-risk services: ${downtimeRiskServiceIds.join(",")}. Re-run with --approve-downtime-risk.`
     )
   }
 

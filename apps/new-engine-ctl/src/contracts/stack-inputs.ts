@@ -300,3 +300,29 @@ export function getRuntimeProviderOutputPolicy(
 
   return output.policy
 }
+
+export function listRuntimeProviderConsumerServiceIds(
+  inputs: StackInputs,
+  providerId: string
+ ): string[] {
+  const provider = inputs.runtime_providers.providers.find(
+    (candidate) => candidate.provider_id === providerId
+  )
+  if (!provider) {
+    throw new Error(`Missing runtime provider ${providerId}.`)
+  }
+
+  return [...new Set(
+    provider.outputs.flatMap((output) =>
+      output.target_envs.map((target) => target.service_id)
+    )
+  )]
+}
+
+export function listRuntimeProviderServiceIds(
+  inputs: StackInputs,
+  providerId: string
+ ): string[] {
+  const sourceServiceId = getRuntimeProviderSourceServiceId(inputs, providerId)
+  return [...new Set([sourceServiceId, ...listRuntimeProviderConsumerServiceIds(inputs, providerId)])]
+}

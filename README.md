@@ -311,22 +311,26 @@ apps/zane-operator/README.md
 ```
 
 Use `.env` for local compose/runtime and `.env.zane` for Zane-targeted helper scripts such as:
-- `mise run dev:zane:main`
-- `mise run dev:zane:preview`
-- `scripts/dev/setup-zane-project.sh`
-- `scripts/dev/refresh-zane-template-db.sh`
-- `mise run dev:zane:project:sync`
-- `mise run dev:zane:template-db:sync`
+- local CI-parity lane helpers over CTL + deployed `zane-operator`:
+  - `mise run dev:zane:main`
+  - `mise run dev:zane:preview`
+- manual bootstrap helpers for the local Zane plane:
+  - `scripts/dev/setup-zane-project.sh`
+  - `scripts/dev/refresh-zane-template-db.sh`
+  - `mise run dev:zane:project:sync`
+  - `mise run dev:zane:template-db:sync`
 
-Those `mise` tasks are now just discovery/convenience entrypoints over the narrowed shell wrappers; the wrappers authenticate to upstream Zane, call the CTL bootstrap plan surface, and execute only the local/manual transport.
+The lane helpers and bootstrap helpers are different surfaces:
+- `dev:zane:main` / `dev:zane:preview` are staged local wrappers that build CTL and call the active lane commands against a running deployed `zane-operator`; they do not authenticate directly to upstream Zane
+- the bootstrap helpers authenticate to upstream Zane in shell, capture normalized inspect JSON, call the CTL bootstrap plan surface, and execute only the resulting local/manual transport
 
-Planning for those rare-use local Zane helpers now also exists in CTL:
+Planning for those rare-use local Zane bootstrap helpers exists in CTL:
 - `node apps/new-engine-ctl/dist/cli.js bootstrap zane-project plan --inspect-json /tmp/zane-project-inspect.json`
 - `node apps/new-engine-ctl/dist/cli.js bootstrap preview-template-db plan --inspect-json /tmp/zane-template-db-inspect.json`
 
 Those planning commands are read-only and intentionally separate from the active CI deploy surface. For the manual local Zane plane, shell remains the runtime entrypoint for upstream Zane auth/session handling and raw API reads; CTL consumes normalized inspect JSON so the repo-owned plan stays centralized without teaching CI-oriented CTL paths to talk to upstream Zane directly.
 
-The checked-in helper scripts now follow that contract: they authenticate to upstream Zane in shell, capture normalized inspect JSON, call the CTL bootstrap plan surface, and only execute the resulting generic shell/runtime transport locally.
+For lane helpers, prefer `.env.zane` or explicit script flags over ad hoc exported shell vars. The scripts derive or validate the operator endpoint and token from their own inputs rather than treating exported `ZANE_OPERATOR_BASE_URL` alone as the documented contract.
 
 For Zane-targeted helpers, managed public service URLs are derived from the route contract rather than copied from ambient `.env.zane` frontend URL values.
 `mise run dev:zane:template-db:sync` is also the first-time setup path for the preview template DB: it creates the configured template DB when missing and refreshes it from the chosen source DB when it already exists.

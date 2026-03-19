@@ -1,7 +1,12 @@
 import { Command } from "commander"
-
-import { manifestComposeServicesCommandInputSchema } from "../contracts/manifest.js"
-import { executeManifestComposeServices } from "../orchestration/manifest.js"
+import {
+  manifestComposeServicesCommandInputSchema,
+  manifestServiceSlugsCommandInputSchema,
+} from "../contracts/manifest.js"
+import {
+  executeManifestComposeServices,
+  executeManifestServiceSlugs,
+} from "../orchestration/manifest.js"
 import { defaultStackManifestPath } from "../paths.js"
 
 export function createManifestCommand(): Command {
@@ -27,6 +32,24 @@ export function createManifestCommand(): Command {
       })
       const result = await executeManifestComposeServices(input)
       process.stdout.write(`${result.compose_services_shell}\n`)
+    })
+
+  command
+    .command("service-slugs")
+    .description("Resolve deployable service slugs from manifest service ids")
+    .requiredOption("--service-ids-csv <csv>")
+    .option(
+      "--stack-manifest-path <path>",
+      "",
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+    )
+    .action(async (options) => {
+      const input = manifestServiceSlugsCommandInputSchema.parse({
+        serviceIdsCsv: options.serviceIdsCsv,
+        stackManifestPath: options.stackManifestPath,
+      })
+      const result = await executeManifestServiceSlugs(input)
+      process.stdout.write(`${JSON.stringify(result)}\n`)
     })
 
   return command

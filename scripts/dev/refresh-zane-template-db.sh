@@ -14,8 +14,10 @@ ZANE_PASSWORD="${ZANE_PASSWORD:-}"
 PROJECT_SLUG="${ZANE_PROJECT_SLUG:-}"
 ENVIRONMENT_NAME="${ZANE_ENVIRONMENT_NAME:-${ZANE_PRODUCTION_ENVIRONMENT_NAME:-production}}"
 
-DB_SERVICE_SLUG="medusa-db"
-OPERATOR_SERVICE_SLUG="zane-operator"
+DB_SERVICE_ID="medusa-db"
+OPERATOR_SERVICE_ID="zane-operator"
+DB_SERVICE_SLUG=""
+OPERATOR_SERVICE_SLUG=""
 SOURCE_DB_NAME="${MEDUSA_APP_DB_NAME:-${DC_MEDUSA_APP_DB_NAME:-medusa}}"
 TEMPLATE_DB_NAME=""
 STAGING_DB_NAME=""
@@ -55,12 +57,12 @@ Options:
   --zane-password PASS           Zane password used for discovery/auth
   --project-slug SLUG            Zane project slug (required; no default)
   --environment-name NAME        Zane environment name (default: production)
-  --db-service-slug SLUG         Zane DB service slug (default: medusa-db)
-  --operator-service-slug SLUG   Zane operator service slug (default: zane-operator)
+  --db-service-slug SLUG         Zane DB service slug (default: resolved from manifest)
+  --operator-service-slug SLUG   Zane operator service slug (default: resolved from manifest)
   --source-db-name NAME          Source DB to snapshot (default: MEDUSA_APP_DB_NAME or medusa)
   --template-db-name NAME        Template DB to replace (default: resolved from operator env)
   --staging-db-name NAME         Explicit staging DB name (default: generated)
-  --template-owner ROLE          Owner for the final template DB (default: medusa-db bootstrap operator user)
+  --template-owner ROLE          Owner for the final template DB (default: resolved from live bootstrap/operator env)
   --db-host HOST                 Explicit internal DB host override
   --db-port PORT                 Explicit DB port override
   --db-user USER                 Explicit DB admin user override
@@ -210,12 +212,38 @@ assert_non_empty() {
   [[ -n "$value" ]] || common::die "${label} is required."
 }
 
+resolve_default_service_slugs() {
+  local resolved_json
+  local service_id
+  local service_slug
+
+  if [[ -n "$DB_SERVICE_SLUG" && -n "$OPERATOR_SERVICE_SLUG" ]]; then
+    return
+  fi
+
+  resolved_json="$(dev::run_ctl manifest service-slugs --service-ids-csv "${DB_SERVICE_ID},${OPERATOR_SERVICE_ID}")"
+  while IFS=$'\t' read -r service_id service_slug; do
+    case "$service_id" in
+      "$DB_SERVICE_ID")
+        DB_SERVICE_SLUG="${DB_SERVICE_SLUG:-$service_slug}"
+        ;;
+      "$OPERATOR_SERVICE_ID")
+        OPERATOR_SERVICE_SLUG="${OPERATOR_SERVICE_SLUG:-$service_slug}"
+        ;;
+    esac
+  done < <(jq -r '.services[] | [.service_id, .service_slug] | @tsv' <<<"$resolved_json")
+
+  assert_non_empty "$DB_SERVICE_SLUG" "DB service slug"
+  assert_non_empty "$OPERATOR_SERVICE_SLUG" "operator service slug"
+}
+
 resolve_ctl_plan() {
   local ctl_args=()
 
+  resolve_default_service_slugs()
+
   INSPECT_JSON_FILE="$(mktemp)"
   PLAN_JSON_FILE="$(mktemp)"
-
   zane::bootstrap_preview_template_db_inspect_json \
     "$DB_SERVICE_SLUG" \
     "$OPERATOR_SERVICE_SLUG" >"$INSPECT_JSON_FILE"

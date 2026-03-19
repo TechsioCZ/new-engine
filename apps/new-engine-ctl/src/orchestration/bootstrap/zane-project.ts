@@ -253,9 +253,7 @@ function buildSharedEnvVariables(
     },
     {
       key: "MEDUSA_APP_DB_PASSWORD",
-      source: literalSource(
-        process.env.DC_MEDUSA_APP_DB_PASSWORD ?? "medusa_app_change_me"
-      ),
+      source: literalSource(process.env.DC_MEDUSA_APP_DB_PASSWORD ?? ""),
     },
     {
       key: "MEDUSA_APP_DB_NAME",
@@ -267,19 +265,15 @@ function buildSharedEnvVariables(
     },
     {
       key: "MEDUSA_VALKEY_PASSWORD",
-      source: literalSource(
-        process.env.DC_VALKEY_PASSWORD ?? "valkey_dev_change_me"
-      ),
+      source: literalSource(process.env.DC_VALKEY_PASSWORD ?? ""),
     },
     {
       key: "MEDUSA_MINIO_ACCESS_KEY",
-      source: literalSource(process.env.DC_MINIO_ACCESS_KEY ?? "medusaappkey"),
+      source: literalSource(process.env.DC_MINIO_ACCESS_KEY ?? ""),
     },
     {
       key: "MEDUSA_MINIO_SECRET_KEY",
-      source: literalSource(
-        process.env.DC_MINIO_SECRET_KEY ?? "medusaappsecret_change_me"
-      ),
+      source: literalSource(process.env.DC_MINIO_SECRET_KEY ?? ""),
     },
     {
       key: "MEDUSA_MINIO_BUCKET",
@@ -390,9 +384,7 @@ function buildZaneProjectServices(
         },
         {
           envVar: "MEDUSA_DEV_DB_PASSWORD",
-          source: literalSource(
-            process.env.DC_MEDUSA_DEV_DB_PASSWORD ?? "medusa_dev_change_me"
-          ),
+          source: literalSource(process.env.DC_MEDUSA_DEV_DB_PASSWORD ?? ""),
         },
         {
           envVar: "MEDUSA_DB_ZANE_OPERATOR_USER",
@@ -469,13 +461,11 @@ function buildZaneProjectServices(
       env: [
         {
           envVar: "MINIO_ROOT_USER",
-          source: literalSource(process.env.DC_MINIO_ROOT_USER ?? "minioadmin"),
+          source: literalSource(process.env.DC_MINIO_ROOT_USER ?? ""),
         },
         {
           envVar: "MINIO_ROOT_PASSWORD",
-          source: literalSource(
-            process.env.DC_MINIO_ROOT_PASSWORD ?? "minioadmin"
-          ),
+          source: literalSource(process.env.DC_MINIO_ROOT_PASSWORD ?? ""),
         },
         {
           envVar: "MINIO_MEDUSA_ACCESS_KEY",
@@ -572,11 +562,11 @@ function buildZaneProjectServices(
         { envVar: "NODE_ENV", source: literalSource("production") },
         {
           envVar: "JWT_SECRET",
-          source: literalSource(process.env.DC_JWT_SECRET ?? "supersecret"),
+          source: literalSource(process.env.DC_JWT_SECRET ?? ""),
         },
         {
           envVar: "COOKIE_SECRET",
-          source: literalSource(process.env.DC_COOKIE_SECRET ?? "supersecret"),
+          source: literalSource(process.env.DC_COOKIE_SECRET ?? ""),
         },
         { envVar: "MEDUSA_BACKEND_URL", source: servicePublicOrigins.medusaBe },
         { envVar: "STORE_CORS", source: literalSource(context.storeCors) },
@@ -962,6 +952,33 @@ function buildContext(input: {
   }
 }
 
+type BootstrapRequiredValueCheck = {
+  label: string
+  value: string | null | undefined
+  placeholderValues?: string[]
+}
+
+function buildValueIssueReasons(input: {
+  checks: BootstrapRequiredValueCheck[]
+  placeholderMessage: string
+  missingMessage: string
+}): string[] {
+  const reasons: string[] = []
+
+  for (const check of input.checks) {
+    const normalizedValue = check.value?.trim() ?? ""
+    if (!normalizedValue) {
+      reasons.push(`${check.label} ${input.missingMessage}`)
+      continue
+    }
+    if (check.placeholderValues?.includes(normalizedValue)) {
+      reasons.push(`${check.label} ${input.placeholderMessage}`)
+    }
+  }
+
+  return reasons
+}
+
 function buildBlockingReasons(input: {
   context: ZaneProjectContext
   phase: BootstrapZaneProjectPlanCommandInput["phase"]
@@ -983,12 +1000,6 @@ function buildBlockingReasons(input: {
     )
   }
 
-  if (!input.context.operatorUpstreamBaseUrl) {
-    reasons.push(
-      "zane-operator upstream Zane base URL could not be derived from input or Zane settings."
-    )
-  }
-
   for (const [serviceId, serviceState] of Object.entries(
     input.inspectedServices
   )) {
@@ -1002,28 +1013,135 @@ function buildBlockingReasons(input: {
     }
   }
 
-  if (input.phase !== "services") {
-    const aliasChecks: Array<{
-      serviceId: string
-      field: "network_alias" | "global_network_alias"
-    }> = [
-      { serviceId: "medusa-db", field: "global_network_alias" },
-      { serviceId: "medusa-valkey", field: "network_alias" },
-      { serviceId: "medusa-meilisearch", field: "network_alias" },
-      { serviceId: "medusa-minio", field: "network_alias" },
-      { serviceId: "medusa-be", field: "network_alias" },
-    ]
-    for (const aliasCheck of aliasChecks) {
-      const details = input.inspectedServices[aliasCheck.serviceId]?.details
-      if (!details?.[aliasCheck.field]) {
-        reasons.push(
-          `Service ${aliasCheck.serviceId} is missing ${aliasCheck.field} required for bootstrap env resolution.`
-        )
-      }
+  if (input.phase === "services") {
+    return reasons
+  }
+
+  if (!input.context.operatorUpstreamBaseUrl) {
+    reasons.push(
+      "zane-operator upstream Zane base URL could not be derived from input or Zane settings."
+    )
+  }
+
+  reasons.push(
+    ...buildValueIssueReasons({
+      checks: [
+        {
+          label: "zane-operator upstream Zane username",
+          value: input.context.operatorUpstreamUsername,
+        },
+        {
+          label: "zane-operator upstream Zane password",
+          value: input.context.operatorUpstreamPassword,
+        },
+        {
+          label: "DC_ZANE_OPERATOR_API_AUTH_TOKEN",
+          value: process.env.DC_ZANE_OPERATOR_API_AUTH_TOKEN,
+        },
+        {
+          label: "DC_ZANE_OPERATOR_PGPASSWORD",
+          value: process.env.DC_ZANE_OPERATOR_PGPASSWORD,
+        },
+        {
+          label: "DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET",
+          value: process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET,
+        },
+      ],
+      placeholderMessage: "is still set to a placeholder value and must be replaced before bootstrap.",
+      missingMessage: "could not be resolved for bootstrap.",
+    })
+  )
+
+  const aliasChecks: Array<{
+    serviceId: string
+    field: "network_alias" | "global_network_alias"
+  }> = [
+    { serviceId: "medusa-db", field: "global_network_alias" },
+    { serviceId: "medusa-valkey", field: "network_alias" },
+    { serviceId: "medusa-meilisearch", field: "network_alias" },
+    { serviceId: "medusa-minio", field: "network_alias" },
+    { serviceId: "medusa-be", field: "network_alias" },
+  ]
+  for (const aliasCheck of aliasChecks) {
+    const details = input.inspectedServices[aliasCheck.serviceId]?.details
+    if (!details?.[aliasCheck.field]) {
+      reasons.push(
+        `Service ${aliasCheck.serviceId} is missing ${aliasCheck.field} required for bootstrap env resolution.`
+      )
     }
   }
 
   return reasons
+}
+
+function buildWarningReasons(): string[] {
+  return buildValueIssueReasons({
+    checks: [
+      {
+        label: "DC_MEDUSA_APP_DB_PASSWORD",
+        value: process.env.DC_MEDUSA_APP_DB_PASSWORD,
+        placeholderValues: ["medusa_app_change_me"],
+      },
+      {
+        label: "DC_VALKEY_PASSWORD",
+        value: process.env.DC_VALKEY_PASSWORD,
+        placeholderValues: ["valkey_dev_change_me"],
+      },
+      {
+        label: "DC_MINIO_ACCESS_KEY",
+        value: process.env.DC_MINIO_ACCESS_KEY,
+        placeholderValues: ["medusaappkey"],
+      },
+      {
+        label: "DC_MINIO_SECRET_KEY",
+        value: process.env.DC_MINIO_SECRET_KEY,
+        placeholderValues: ["medusaappsecret_change_me"],
+      },
+      {
+        label: "DC_MEILISEARCH_MASTER_KEY",
+        value: process.env.DC_MEILISEARCH_MASTER_KEY,
+      },
+      {
+        label: "DC_MEDUSA_DEV_DB_PASSWORD",
+        value: process.env.DC_MEDUSA_DEV_DB_PASSWORD,
+        placeholderValues: ["medusa_dev_change_me"],
+      },
+      {
+        label: "DC_MINIO_ROOT_USER",
+        value: process.env.DC_MINIO_ROOT_USER,
+        placeholderValues: ["minioadmin"],
+      },
+      {
+        label: "DC_MINIO_ROOT_PASSWORD",
+        value: process.env.DC_MINIO_ROOT_PASSWORD,
+        placeholderValues: ["minioadmin"],
+      },
+      {
+        label: "DC_JWT_SECRET",
+        value: process.env.DC_JWT_SECRET,
+        placeholderValues: ["supersecret"],
+      },
+      {
+        label: "DC_COOKIE_SECRET",
+        value: process.env.DC_COOKIE_SECRET,
+        placeholderValues: ["supersecret"],
+      },
+      {
+        label: "DC_SUPERADMIN_EMAIL",
+        value: process.env.DC_SUPERADMIN_EMAIL,
+      },
+      {
+        label: "DC_SUPERADMIN_PASSWORD",
+        value: process.env.DC_SUPERADMIN_PASSWORD,
+      },
+      {
+        label: "DC_SETTINGS_ENCRYPTION_KEY",
+        value: process.env.DC_SETTINGS_ENCRYPTION_KEY,
+      },
+    ],
+    placeholderMessage: "is still set to a placeholder value; bootstrap will continue, but the value should be replaced.",
+    missingMessage: "is empty; bootstrap will continue, but the value should be filled before relying on the deployed service.",
+  })
 }
 
 function interpolateSharedValues(
@@ -1167,6 +1285,7 @@ export async function executeBootstrapZaneProjectPlan(
     environmentExists: inspectResponse.environment_exists,
     inspectedServices,
   })
+  const warnings = buildWarningReasons()
   const sharedEnvVariables = buildSharedEnvVariables(serviceSlugById)
   const resolvedSharedEnv =
     input.phase === "services"
@@ -1180,6 +1299,7 @@ export async function executeBootstrapZaneProjectPlan(
     phase: input.phase,
     status: blockingReasons.length === 0 ? "ready" : "blocked",
     blocking_reasons: blockingReasons,
+    warnings,
     ensure_project: !inspectResponse.project_exists,
     project_exists: inspectResponse.project_exists,
     environment_exists: inspectResponse.environment_exists,

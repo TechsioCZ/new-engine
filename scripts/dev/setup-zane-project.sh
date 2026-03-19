@@ -1165,8 +1165,8 @@ EOF
   dev::confirm_or_die "sync ${PROJECT_SLUG}/${ENVIRONMENT_NAME}" "$summary"
 }
 
-setup::print_plan_block_summary() {
-  jq '{phase, status, blocking_reasons}' <"$PLAN_JSON_FILE" >&2
+setup::print_plan_summary() {
+  jq '{phase, status, blocking_reasons, warnings}' <"$PLAN_JSON_FILE" >&2
 }
 
 setup::cleanup() {
@@ -1277,8 +1277,11 @@ setup::main() {
   zane::login
   setup::capture_zane_settings
   setup::resolve_ctl_plan services "${services[@]}"
+  if [[ "$(jq -r '.warnings | length' <"$PLAN_JSON_FILE")" != "0" ]]; then
+    setup::print_plan_summary
+  fi
   if [[ "$(jq -r '.status' <"$PLAN_JSON_FILE")" != "ready" ]]; then
-    setup::print_plan_block_summary
+    setup::print_plan_summary
     common::die "CTL bootstrap zane-project services plan is blocked."
   fi
 
@@ -1297,8 +1300,11 @@ setup::main() {
   PLAN_JSON_FILE=""
 
   setup::resolve_ctl_plan env "${services[@]}"
+  if [[ "$(jq -r '.warnings | length' <"$PLAN_JSON_FILE")" != "0" ]]; then
+    setup::print_plan_summary
+  fi
   if [[ "$(jq -r '.status' <"$PLAN_JSON_FILE")" != "ready" ]]; then
-    setup::print_plan_block_summary
+    setup::print_plan_summary
     common::die "CTL bootstrap zane-project env plan is blocked."
   fi
 

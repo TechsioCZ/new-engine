@@ -28,7 +28,6 @@ jobs:
       projects_csv: ${{ steps.scope_data.outputs.projects_csv }}
       services_csv: ${{ steps.scope_data.outputs.services_csv }}
       nx_status: ${{ steps.scope_data.outputs.nx_status }}
-      requires_meili_keys: ${{ steps.scope_data.outputs.requires_meili_keys }}
       requires_downtime_approval: ${{ steps.scope_data.outputs.requires_downtime_approval }}
       downtime_service_ids: ${{ steps.scope_data.outputs.downtime_service_ids }}
     steps:
@@ -84,7 +83,6 @@ jobs:
             echo "- Affected projects: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}"
             echo "- Affected services: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}"
             echo "- Nx status: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}"
-            echo "- Requires Meili keys: ${{ steps.scope_data.outputs.requires_meili_keys || 'false' }}"
             echo "- Requires downtime approval: ${{ steps.scope_data.outputs.requires_downtime_approval || 'false' }}"
             echo "- Downtime-risk services: ${{ steps.scope_data.outputs.downtime_service_ids || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -149,32 +147,24 @@ jobs:
 
       - name: Validate deploy inputs
         env:
-          REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
         run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-deploy
 
       - name: Run main deploy
         id: run_deploy
         env:
           SERVICES_CSV: ${{ needs.scope.outputs.services_csv }}
-          REQUIRES_MEILI_KEYS: ${{ needs.scope.outputs.requires_meili_keys }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
-          MEILISEARCH_URL: ${{ secrets.ZANEOPS_MEILISEARCH_URL }}
-          MEILISEARCH_MASTER_KEY: ${{ secrets.ZANEOPS_MEILISEARCH_MASTER_KEY }}
         run: |
           node apps/new-engine-ctl/dist/cli.js deploy-main \
             --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
             --git-commit-sha "${{ github.event.workflow_run.head_sha }}" \
-            --meili-url "$MEILISEARCH_URL" \
-            --meili-master-key "$MEILISEARCH_MASTER_KEY" \
             --services-csv "$SERVICES_CSV"
 
       - name: Summary

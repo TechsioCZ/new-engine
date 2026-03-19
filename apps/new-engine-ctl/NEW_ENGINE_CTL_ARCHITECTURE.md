@@ -103,6 +103,7 @@ Bootstrap namespace:
   - `bootstrap preview-template-db plan`
 - wrappers may execute directly from the machine-readable bootstrap plan output when that is simpler than adding a separate apply command; the key rule is that shell must not re-derive repo-owned desired state
 - manual local-Zane bootstrap remains shell-entered: shell owns upstream Zane auth/session and raw API transport, then hands normalized inspect/apply inputs into CTL; CTL must not become an alternate upstream-Zane deploy client for CI paths
+- staged local lane wrappers such as `dev:zane:main` and `dev:zane:preview` are also an accepted long-term local surface when they stay wrapper-only: local env/TLS setup and phase sequencing around CTL plus `zane-operator`, without taking ownership of deploy policy
 
 Do not collapse the whole system into one giant command.
 Do not spread orchestration across many tiny workflow-specific commands.

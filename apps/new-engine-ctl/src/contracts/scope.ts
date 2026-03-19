@@ -13,6 +13,7 @@ export const scopeCommandInputSchema = z
     headSha: z.string().min(1).default("HEAD"),
     outputJson: z.string().min(1).optional(),
     stackManifestPath: z.string().min(1),
+    stackInputsPath: z.string().min(1),
     nxIsolatePlugins: z.boolean().default(true),
   })
   .superRefine((value, ctx) => {
@@ -39,9 +40,7 @@ export const scopeResponseSchema = z.object({
   relevant_changed_files: z.array(z.string()),
   should_prepare: z.boolean(),
   requires_preview_db: z.boolean(),
-  requires_meili_keys: z.boolean(),
   preview_db_service_ids: z.string(),
-  meili_key_service_ids: z.string(),
   requires_downtime_approval: z.boolean(),
   downtime_service_ids: z.string(),
 })

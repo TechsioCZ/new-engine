@@ -60,7 +60,6 @@ const previewPrepareResponseSchema = z.object({
 const mainPrepareResponseSchema = z.object({
   lane: z.literal("main"),
   prepared: z.boolean(),
-  requires_meili_keys: z.boolean(),
   note: z.string(),
 })
 

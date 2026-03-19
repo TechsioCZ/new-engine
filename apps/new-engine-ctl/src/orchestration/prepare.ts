@@ -148,7 +148,6 @@ async function executeMainPrepare(
   const response = prepareResponseSchema.parse({
     lane: "main",
     prepared: false,
-    requires_meili_keys: false,
     note: "main_prepare_not_used",
   })
 

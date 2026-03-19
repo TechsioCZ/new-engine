@@ -174,9 +174,8 @@ derive_defaults() {
 
   [[ -n "$PROJECT_SLUG" ]] || common::die "Unable to resolve project slug. Pass --project-slug or export ZANE_PROJECT_SLUG."
 
-  derive_public_domain
-
   if [[ -z "$ZANE_OPERATOR_BASE_URL" ]]; then
+    derive_public_domain
     ZANE_OPERATOR_BASE_URL="https://${PROJECT_SLUG}-zane-operator${PUBLIC_URL_AFFIX}.${PUBLIC_DOMAIN}"
   fi
 
@@ -463,8 +462,8 @@ main() {
     --arg target_commit_sha "$TARGET_COMMIT_SHA" \
     --argjson scope "$scope_json" \
     --argjson preview_commit_state "$preview_commit_state_json" \
-    --argjson prepare "$prepare_json" \
-    --argjson deploy "$deploy_json" \
+    --argjson prepare "$(jq 'del(.preview_db_password)' <<<"$prepare_json")" \
+    --argjson deploy "$(jq 'del(.meili_backend_key, .meili_frontend_key, .preview_random_once_secrets_json)' <<<"$deploy_json")" \
     --argjson verify "$verify_json" \
     --argjson skipped_verify "$(jq -n --arg value "$SKIP_VERIFY" '$value == "true"')" \
     '{

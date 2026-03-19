@@ -123,6 +123,42 @@ export interface ProvisionMeiliKeysInput {
   frontendOutput: ProvisionMeiliKeysOutputInput
 }
 
+export type RuntimeProviderOutputPolicyInput = Record<string, unknown> & {
+  kind: string
+}
+
+export interface RuntimeProviderOutputInput {
+  outputId: string
+  envVar: string
+  policy: RuntimeProviderOutputPolicyInput
+}
+
+export interface RuntimeProviderRunInput {
+  projectSlug: string
+  environmentName: string
+  providerId: string
+  serviceSlug: string
+  readinessPath: string
+  outputs: RuntimeProviderOutputInput[]
+}
+
+export interface RuntimeProviderOutputResult {
+  output_id: string
+  env_var: string
+  value: string
+  created: boolean
+  updated: boolean
+}
+
+export interface RuntimeProviderRunResult {
+  project_slug: string
+  environment_name: string
+  provider_id: string
+  service_slug: string
+  source_url: string
+  outputs: RuntimeProviderOutputResult[]
+}
+
 export interface ResolveTargetInput {
   // Stable repo/manifest service identity used across CI payloads.
   service_id: string
