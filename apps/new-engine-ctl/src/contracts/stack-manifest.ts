@@ -45,7 +45,7 @@ const zaneServiceSchema = z.looseObject({
   deploy_stage: z.number().int().optional().default(100),
   downtime_risk: z.boolean().optional().default(false),
   consumes: consumesSchema.optional().default(defaultConsumes),
-  coupled_service_ids: z.array(z.string().min(1)).optional().default([]),
+  service_dependencies: z.array(z.string().min(1)).optional().default([]),
 })
 
 const localConfigSchema = z.looseObject({
@@ -104,7 +104,7 @@ export type DeployableService = {
     meili_frontend_key: boolean
     meili_backend_key: boolean
   }
-  coupledServiceIds: string[]
+  serviceDependencies: string[]
 }
 export type GlobalRuntimeRule = {
   pathGlobs: string[]
@@ -132,7 +132,7 @@ function toDeployableService(
       meili_frontend_key: service.ci.zane.consumes.meili_frontend_key,
       meili_backend_key: service.ci.zane.consumes.meili_backend_key,
     },
-    coupledServiceIds: service.ci.zane.coupled_service_ids,
+    serviceDependencies: service.ci.zane.service_dependencies,
   }
 }
 

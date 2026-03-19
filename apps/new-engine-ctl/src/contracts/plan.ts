@@ -14,7 +14,7 @@ const planServiceSchema = z.object({
     meili_frontend_key: z.boolean(),
     meili_backend_key: z.boolean(),
   }),
-  coupled_service_ids: z.array(z.string().min(1)),
+  service_dependencies: z.array(z.string().min(1)),
 })
 
 export const planCommandInputSchema = z
