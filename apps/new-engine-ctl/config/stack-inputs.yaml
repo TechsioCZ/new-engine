@@ -179,6 +179,8 @@ runtime_providers:
               - settings.update
             indexes:
               - products
+              - categories
+              - producers
 
         - output_id: frontend_key
           output_kind: secret
@@ -193,6 +195,8 @@ runtime_providers:
               - search
             indexes:
               - products
+              - categories
+              - producers
 
     - provider_id: medusa_publishable_key
       status: reserved
