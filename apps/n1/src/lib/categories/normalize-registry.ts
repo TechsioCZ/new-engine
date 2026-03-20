@@ -88,9 +88,10 @@ const resolveRootCategoryId = (
 
 const buildCategoryTree = (
   category: Category,
-  childrenByParentId: Map<string, Category[]>
+  categoryMapById: Record<string, Category>,
+  childCategoryIdsByParentId: Record<string, string[]>
 ): CategoryTreeNode => {
-  const children = childrenByParentId.get(category.id) ?? []
+  const childIds = childCategoryIdsByParentId[category.id] ?? []
 
   return {
     id: category.id,
@@ -99,9 +100,12 @@ const buildCategoryTree = (
     description: category.description,
     metadata: category.metadata ?? null,
     parent_category_id: category.parent_category_id ?? null,
-    children: children.map((child) =>
-      buildCategoryTree(child, childrenByParentId)
-    ),
+    children: childIds.flatMap((childId) => {
+      const child = categoryMapById[childId]
+      return child
+        ? [buildCategoryTree(child, categoryMapById, childCategoryIdsByParentId)]
+        : []
+    }),
   }
 }
 
@@ -150,6 +154,19 @@ export function normalizeCategoryRegistry(
     childrenByParentId.set(parentId, children)
   }
 
+  const categoryMapById = Object.fromEntries(
+    categories.map((category) => [category.id, category])
+  )
+  const categoryMapByHandle = Object.fromEntries(
+    categories.map((category) => [category.handle, category])
+  )
+  const childCategoryIdsByParentId = Object.fromEntries(
+    Array.from(childrenByParentId.entries(), ([parentId, children]) => [
+      parentId,
+      children.map((child) => child.id),
+    ])
+  )
+
   const rootCategories = categories.filter(
     (category) =>
       !(
@@ -159,23 +176,15 @@ export function normalizeCategoryRegistry(
   )
 
   const categoryTree = rootCategories.map((category) =>
-    buildCategoryTree(category, childrenByParentId)
-  )
-
-  const leafCategories = categories.filter(
-    (category) => (childrenByParentId.get(category.id) ?? []).length === 0
+    buildCategoryTree(category, categoryMapById, childCategoryIdsByParentId)
   )
 
   return {
     allCategories: categories,
     categoryTree,
     rootCategories,
-    categoryMapById: Object.fromEntries(
-      categories.map((category) => [category.id, category])
-    ),
-    categoryMapByHandle: Object.fromEntries(
-      categories.map((category) => [category.handle, category])
-    ),
-    leafCategories,
+    categoryMapById,
+    categoryMapByHandle,
+    childCategoryIdsByParentId,
   }
 }

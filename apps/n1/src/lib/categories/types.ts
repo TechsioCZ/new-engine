@@ -35,7 +35,7 @@ export type CategoryRegistry = {
   rootCategories: Category[]
   categoryMapById: Record<string, Category>
   categoryMapByHandle: Record<string, Category>
-  leafCategories: Category[]
+  childCategoryIdsByParentId: Record<string, string[]>
 }
 
 export const emptyCategoryRegistry: CategoryRegistry = {
@@ -44,5 +44,5 @@ export const emptyCategoryRegistry: CategoryRegistry = {
   rootCategories: [],
   categoryMapById: {},
   categoryMapByHandle: {},
-  leafCategories: [],
+  childCategoryIdsByParentId: {},
 }

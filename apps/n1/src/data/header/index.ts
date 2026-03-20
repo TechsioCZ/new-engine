@@ -50,6 +50,7 @@ import skiObleceni from "@/assets/header/ski-obleceni.webp"
 import snbBrusle from "@/assets/header/snb-brusle.webp"
 import snbSkate from "@/assets/header/snb-skate.webp"
 import snbSnowboard from "@/assets/header/snb-snowboard.webp"
+import { getCategoryChildren } from "@/lib/categories/selectors"
 import type { CategoryRegistry } from "@/lib/categories/types"
 
 const headerImgs = {
@@ -236,7 +237,7 @@ const getImageForCategory = (
 }
 
 export function buildHeaderNavigation(
-  registry?: Pick<CategoryRegistry, "allCategories" | "rootCategories">
+  registry?: CategoryRegistry
 ): {
   links: Array<{ href: string; label: string }>
   submenuItems: SubmenuCategory[]
@@ -258,9 +259,7 @@ export function buildHeaderNavigation(
         return []
       }
 
-      const directChildren = registry.allCategories.filter(
-        (cat) => cat.parent_category_id === rootCat.id
-      )
+      const directChildren = getCategoryChildren(registry, rootCat.id)
 
       return [
         {

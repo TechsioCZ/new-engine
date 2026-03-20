@@ -13,9 +13,9 @@ export const getCategoryChildren = (
     return []
   }
 
-  return registry.allCategories.filter(
-    (category) => category.parent_category_id === categoryId
-  )
+  return (registry.childCategoryIdsByParentId[categoryId] ?? [])
+    .map((childId) => registry.categoryMapById[childId])
+    .filter((category): category is Category => Boolean(category))
 }
 
 export const getCategoryDescendantIds = (
@@ -28,20 +28,8 @@ export const getCategoryDescendantIds = (
   }
 
   const includeSelf = options?.includeSelf ?? true
-  const childrenByParentId = new Map<string, string[]>()
-
-  for (const category of registry.allCategories) {
-    if (!category.parent_category_id) {
-      continue
-    }
-
-    const children = childrenByParentId.get(category.parent_category_id) ?? []
-    children.push(category.id)
-    childrenByParentId.set(category.parent_category_id, children)
-  }
-
   const result: string[] = includeSelf ? [categoryId] : []
-  const queue = [...(childrenByParentId.get(categoryId) ?? [])]
+  const queue = [...(registry.childCategoryIdsByParentId[categoryId] ?? [])]
   const visited = new Set(result)
 
   while (queue.length > 0) {
@@ -52,7 +40,7 @@ export const getCategoryDescendantIds = (
 
     visited.add(currentId)
     result.push(currentId)
-    queue.push(...(childrenByParentId.get(currentId) ?? []))
+    queue.push(...(registry.childCategoryIdsByParentId[currentId] ?? []))
   }
 
   return result

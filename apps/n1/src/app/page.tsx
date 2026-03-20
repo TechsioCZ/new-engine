@@ -8,6 +8,7 @@ import { featureBlocks, heroCarouselSlides, topCategory } from "@/data/home"
 import { useSuspenseCategoryRegistry } from "@/hooks/use-category-registry"
 import { useSuspenseProducts } from "@/hooks/use-products"
 import { featuredHomeCategoryHandles } from "@/lib/categories/config"
+import { getCategoryDescendantIds } from "@/lib/categories/selectors"
 import { transformProduct } from "@/utils/transform/transform-product"
 
 export default function Home() {
@@ -64,12 +65,21 @@ function HomeProductGrid() {
       Boolean(category)
     )
 
-  const featuredCategoryIds =
+  const featuredCategories =
     configuredFeaturedCategories.length > 0
-      ? configuredFeaturedCategories.map((category) => category.id)
-      : categoryRegistry.rootCategories
-          .slice(0, 2)
-          .map((category) => category.id)
+      ? configuredFeaturedCategories
+      : categoryRegistry.rootCategories.slice(0, 2)
+
+  const featuredCategoryIds =
+    featuredCategories.length > 0
+      ? Array.from(
+          new Set(
+            featuredCategories.flatMap((category) =>
+              getCategoryDescendantIds(categoryRegistry, category.id)
+            )
+          )
+        )
+      : []
 
   if (featuredCategoryIds.length === 0) {
     return <ProductGrid products={[]} skeletonCount={8} />

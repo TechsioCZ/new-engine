@@ -32,6 +32,7 @@ import {
 import type { Category, CategoryTreeNode } from "@/lib/categories/types"
 import { PRODUCT_LIMIT } from "@/lib/constants"
 import { useAnalytics } from "@/providers/analytics-provider"
+import { buildBreadcrumbs } from "@/utils/helpers/build-breadcrumb"
 import { transformProduct } from "@/utils/transform/transform-product"
 
 const parsePageParam = (value: string | null): number => {
@@ -102,13 +103,12 @@ export default function CategoryPage() {
   }
 
   const rootCategoryTree = getRootCategoryTree(categoryRegistry, rootCategory)
-  const breadcrumbItems: BreadcrumbItemType[] = [
-    { label: "Home", href: "/", icon: "icon-[mdi--home]" },
-    {
-      label: rootCategory.name,
-      href: `/kategorie/${rootCategory.handle}`,
-    },
-  ]
+  const breadcrumbItems: BreadcrumbItemType[] = buildBreadcrumbs(
+    currentCategory.id,
+    categoryRegistry.categoryMapById
+  ).map((item, index) =>
+    index === 0 ? { ...item, icon: "icon-[mdi--home]" } : item
+  )
   const currentPage = parsePageParam(searchParams.get("page"))
 
   return (

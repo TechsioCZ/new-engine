@@ -15,9 +15,8 @@ const fetchAllCategories = async (
 ): Promise<RawCategory[]> => {
   const categories: RawCategory[] = []
   let offset = 0
-  let total = 0
 
-  do {
+  while (true) {
     const response = await storefront.services.categories.getCategories(
       {
         limit: CATEGORY_PAGE_SIZE,
@@ -33,9 +32,14 @@ const fetchAllCategories = async (
     }
 
     categories.push(...page)
-    total = response.count ?? categories.length
     offset += page.length
-  } while (offset < total)
+
+    // Continue paging based on page size because the category service falls back
+    // count to the current page length when the backend omits a total count.
+    if (page.length < CATEGORY_PAGE_SIZE) {
+      break
+    }
+  }
 
   return categories
 }
