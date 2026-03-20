@@ -1,21 +1,26 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
+import { storefront } from "@/lib/storefront"
 import {
-  getProduct,
-  getProducts,
-  type ProductListParams,
+  buildProductDetailQuery,
+  buildProductListQuery,
+  type ProductFilters,
 } from "@/services/product-service"
 import type { Product } from "@/types/product"
 
-interface UseProductsParams extends ProductListParams {
+type UseProductsParams = {
   page?: number
+  limit?: number
+  filters?: ProductFilters
+  sort?: string
+  fields?: string
+  q?: string
+  category?: string | string[]
+  region_id?: string
   enabled?: boolean
 }
 
-interface UseProductsReturn {
+type UseProductsReturn = {
   products: Product[]
   isLoading: boolean
   error: string | null
@@ -26,10 +31,16 @@ interface UseProductsReturn {
   hasPrevPage: boolean
 }
 
-/**
- * Hook for fetching product lists with pagination and filtering
- */
-export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
+type StorefrontProductsInput = Parameters<
+  typeof storefront.hooks.products.useProducts
+>[0]
+type StorefrontProductInput = Parameters<
+  typeof storefront.hooks.products.useProduct
+>[0]
+
+const toStorefrontProductsInput = (
+  params: UseProductsParams
+): StorefrontProductsInput => {
   const {
     page = 1,
     limit = 20,
@@ -41,68 +52,62 @@ export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
     region_id,
     enabled,
   } = params
-  const offset = (page - 1) * limit
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: queryKeys.products.list({
-      page,
-      limit,
-      filters,
-      sort,
-      region_id,
-      q,
-      category,
-    }),
-    queryFn: () =>
-      getProducts({
-        limit,
-        offset,
-        filters,
-        sort,
-        fields,
-        q,
-        category,
-        region_id,
-      }),
-    enabled: enabled !== undefined ? enabled : !!region_id,
-    ...cacheConfig.semiStatic,
+  const offset = (page - 1) * limit
+  const query = buildProductListQuery({
+    limit,
+    offset,
+    filters,
+    sort,
+    fields,
+    q,
+    category,
+    region_id,
   })
 
-  const totalCount = data?.count || 0
-  const totalPages = Math.ceil(totalCount / limit)
+  return {
+    ...query,
+    page,
+    limit,
+    enabled: enabled !== undefined ? enabled : !!region_id,
+  } as StorefrontProductsInput
+}
+
+export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
+  const {
+    products,
+    isLoading,
+    error,
+    totalCount,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+  } = storefront.hooks.products.useProducts(toStorefrontProductsInput(params))
 
   return {
-    products: data?.products || [],
+    products,
     isLoading,
-    error:
-      error instanceof Error ? error.message : error ? String(error) : null,
+    error,
     totalCount,
-    currentPage: page,
+    currentPage,
     totalPages,
-    hasNextPage: page < totalPages,
-    hasPrevPage: page > 1,
+    hasNextPage,
+    hasPrevPage,
   }
 }
 
-/**
- * Hook for fetching a single product by handle
- */
 export function useProduct(handle: string, regionId?: string) {
-  const {
-    data: product,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: queryKeys.product(handle, regionId),
-    queryFn: () => getProduct(handle, regionId),
-    enabled: !!handle,
-    ...cacheConfig.semiStatic,
-  })
+  const input = buildProductDetailQuery(
+    handle,
+    regionId
+  ) as StorefrontProductInput
+  const { product, isLoading, error } =
+    storefront.hooks.products.useProduct(input)
 
   return {
     product,
     isLoading,
-    error:
-      error instanceof Error ? error.message : error ? String(error) : null,
+    error,
   }
 }

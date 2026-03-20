@@ -19,6 +19,7 @@
     "@react-email/components": "^0.3.2",
     "@tanstack/react-query": "^5.90.10",
     "@tanstack/react-store": "^0.8.0",
+    "@techsio/storefront-data": "workspace:*",
     "@techsio/ui-kit": "workspace:*",
     "dompurify": "^3.3.0",
     "next": "^16.1.1",
