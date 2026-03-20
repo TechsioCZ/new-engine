@@ -1,4 +1,4 @@
-import type { Category } from "@/data/static/type"
+import type { Category } from "@/lib/categories/types"
 
 /**
  * Gets the full path of category IDs from root to the given category

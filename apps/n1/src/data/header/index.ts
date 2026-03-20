@@ -50,8 +50,8 @@ import skiObleceni from "@/assets/header/ski-obleceni.webp"
 import snbBrusle from "@/assets/header/snb-brusle.webp"
 import snbSkate from "@/assets/header/snb-skate.webp"
 import snbSnowboard from "@/assets/header/snb-snowboard.webp"
-import { allCategories, rootCategories } from "@/data/static/categories"
-import { ALL_CATEGORIES_MAP } from "@/lib/constants"
+import { getCategoryChildren } from "@/lib/categories/selectors"
+import type { CategoryRegistry } from "@/lib/categories/types"
 
 const headerImgs = {
   panske: {
@@ -127,7 +127,7 @@ export type SubMenuItem = {
   name: string
   href: string
   image?: StaticImageData
-  categoryIds?: string[] // Optional for backward compatibility
+  categoryId?: string
 }
 
 export type SubmenuCategory = {
@@ -135,6 +135,43 @@ export type SubmenuCategory = {
   href: string
   items: SubMenuItem[]
 }
+
+const STATIC_ROOT_CATEGORY_LINKS = [
+  { handle: "panske", href: "/kategorie/panske", label: "Pánské" },
+  { handle: "damske", href: "/kategorie/damske", label: "Dámské" },
+  { handle: "detske", href: "/kategorie/detske", label: "Dětské" },
+  {
+    handle: "obleceni-category-347",
+    href: "/kategorie/obleceni-category-347",
+    label: "Oblečení",
+  },
+  {
+    handle: "cyklo-category-378",
+    href: "/kategorie/cyklo-category-378",
+    label: "Cyklo",
+  },
+  {
+    handle: "moto-category-424",
+    href: "/kategorie/moto-category-424",
+    label: "Moto",
+  },
+  {
+    handle: "snb-skate-category-448",
+    href: "/kategorie/snb-skate-category-448",
+    label: "Snb-Skate",
+  },
+  {
+    handle: "ski-category-466",
+    href: "/kategorie/ski-category-466",
+    label: "Ski",
+  },
+] as const
+
+export const headerLinks = [
+  { href: "/novinky", label: "Novinky" },
+  ...STATIC_ROOT_CATEGORY_LINKS.map(({ href, label }) => ({ href, label })),
+  { href: "/vyprodej", label: "Výprodej" },
+]
 
 // ============================================
 // DYNAMICALLY GENERATED VERSIONS
@@ -199,37 +236,48 @@ const getImageForCategory = (
   return image
 }
 
-// Generate navigation links from rootCategories
-export const links = [
-  {
-    href: "/novinky",
-    label: "Novinky",
-  },
-  ...rootCategories.map((category) => ({
-    href: `/kategorie/${category.handle}`,
-    label: category.name,
-  })),
-  {
-    href: "/vyprodej",
-    label: "Výprodej",
-  },
-]
+export function buildHeaderNavigation(
+  registry?: CategoryRegistry
+): {
+  links: Array<{ href: string; label: string }>
+  submenuItems: SubmenuCategory[]
+} {
+  if (!registry) {
+    return {
+      links: headerLinks,
+      submenuItems: [],
+    }
+  }
 
-// Generate submenu items from categories
-export const submenuItems: SubmenuCategory[] = rootCategories.map((rootCat) => {
-  // Find all direct children of this root category
-  const directChildren = allCategories.filter(
-    (cat) => cat.parent_category_id === rootCat.id
+  const submenuItems: SubmenuCategory[] = STATIC_ROOT_CATEGORY_LINKS.flatMap(
+    ({ handle, href, label }) => {
+      const rootCat = registry.rootCategories.find(
+        (category) => category.handle === handle
+      )
+
+      if (!rootCat) {
+        return []
+      }
+
+      const directChildren = getCategoryChildren(registry, rootCat.id)
+
+      return [
+        {
+          name: label,
+          href,
+          items: directChildren.map((child) => ({
+            name: child.name,
+            href: `/kategorie/${child.handle}`,
+            image: getImageForCategory(rootCat.handle, child.handle),
+            categoryId: child.id,
+          })),
+        },
+      ]
+    }
   )
 
   return {
-    name: rootCat.name,
-    href: `/kategorie/${rootCat.handle}`,
-    items: directChildren.map((child) => ({
-      name: child.name,
-      href: `/kategorie/${child.handle}`,
-      image: getImageForCategory(rootCat.handle, child.handle),
-      categoryIds: ALL_CATEGORIES_MAP[child.handle] || [],
-    })),
+    links: headerLinks,
+    submenuItems,
   }
-})
+}

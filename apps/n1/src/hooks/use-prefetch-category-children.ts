@@ -2,9 +2,12 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
-import { allCategories } from "@/data/static/categories"
-import { ALL_CATEGORIES_MAP } from "@/lib/constants"
+import {
+  getCategoryChildren,
+  getCategoryDescendantIds,
+} from "@/lib/categories/selectors"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
+import { useSuspenseCategoryRegistry } from "./use-category-registry"
 import { usePrefetchProducts } from "./use-prefetch-products"
 import { useRegion } from "./use-region"
 
@@ -18,9 +21,8 @@ export function usePrefetchCategoryChildren({
   categoryHandle,
 }: UsePrefetchCategoryChildrenParams) {
   const queryClient = useQueryClient()
-  const currentCategory = allCategories.find(
-    (cat) => cat.handle === categoryHandle
-  )
+  const categoryRegistry = useSuspenseCategoryRegistry()
+  const currentCategory = categoryRegistry.categoryMapByHandle[categoryHandle]
   const { regionId } = useRegion()
   const { prefetchCategoryProducts } = usePrefetchProducts()
 
@@ -32,9 +34,7 @@ export function usePrefetchCategoryChildren({
     let isCancelled = false
 
     // Collect all category IDs that will be prefetched
-    const children = allCategories.filter(
-      (cat) => cat.parent_category_id === currentCategory.id
-    )
+    const children = getCategoryChildren(categoryRegistry, currentCategory.id)
     ;(async () => {
       // PHASE 1: Direct children - wait for completion
       if (children.length > 0) {
@@ -43,8 +43,12 @@ export function usePrefetchCategoryChildren({
 
         await Promise.all(
           children.map((child) => {
-            const categoryIds = ALL_CATEGORIES_MAP[child.handle]
-            if (categoryIds?.length) {
+            const categoryIds = getCategoryDescendantIds(
+              categoryRegistry,
+              child.id
+            )
+
+            if (categoryIds.length > 0) {
               return prefetchCategoryProducts(categoryIds, categoryHandle)
             }
             return Promise.resolve()
@@ -79,6 +83,7 @@ export function usePrefetchCategoryChildren({
     enabled,
     categoryHandle,
     regionId,
+    categoryRegistry,
     currentCategory,
     prefetchCategoryProducts,
     queryClient,

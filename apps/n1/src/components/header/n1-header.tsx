@@ -98,7 +98,6 @@ export const N1Header = () => {
           <CartPopover />
         </Header.Actions>
       </Header.Container>
-
       <DesktopSubmenu />
       <MobileMenu />
     </Header>

@@ -3,12 +3,15 @@ import { Header } from "@techsio/ui-kit/organisms/header"
 import Image from "next/image"
 import NextLink from "next/link"
 import { useRef, useState } from "react"
-import { links, type SubmenuCategory, submenuItems } from "@/data/header"
+import type { SubmenuCategory } from "@/data/header"
+import { useHeaderNavigation } from "@/hooks/use-header-navigation"
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
+import { getCategoryDescendantIds } from "@/lib/categories/selectors"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 
 export const DesktopSubmenu = () => {
   const { delayedPrefetch, cancelPrefetch } = usePrefetchProducts()
+  const { categoryRegistry, links, submenuItems } = useHeaderNavigation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const hoverPrefetchIdsRef = useRef<Record<string, string | null>>({})
 
@@ -75,13 +78,22 @@ export const DesktopSubmenu = () => {
                   href={item.href}
                   key={item.name}
                   onMouseEnter={() => {
-                    if (!item.categoryIds?.length) {
+                    if (!item.categoryId) {
+                      hoverPrefetchIdsRef.current[item.href] = null
+                      return
+                    }
+
+                    const categoryIds = getCategoryDescendantIds(
+                      categoryRegistry,
+                      item.categoryId
+                    )
+                    if (categoryIds.length === 0) {
                       hoverPrefetchIdsRef.current[item.href] = null
                       return
                     }
 
                     const prefetchId = delayedPrefetch(
-                      item.categoryIds,
+                      categoryIds,
                       PREFETCH_DELAYS.CATEGORY_HOVER
                     )
                     hoverPrefetchIdsRef.current[item.href] = prefetchId

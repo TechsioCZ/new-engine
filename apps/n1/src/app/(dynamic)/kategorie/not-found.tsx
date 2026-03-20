@@ -1,8 +1,12 @@
+"use client"
+
 import Link from "next/link"
 import { Heading } from "@/components/heading"
-import { rootCategories } from "@/data/static/categories"
+import { useSuspenseCategoryRegistry } from "@/hooks/use-category-registry"
 
 export default function CategoryNotFound() {
+  const { rootCategories } = useSuspenseCategoryRegistry()
+
   return (
     <main className="mx-auto grid w-max-w max-w-screen">
       <article className="mt-900 space-y-400 px-500">

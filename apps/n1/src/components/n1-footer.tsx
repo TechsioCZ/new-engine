@@ -64,7 +64,7 @@ export function N1Footer() {
         <Footer.Section className="">
           <Footer.Title>Obchodní podmínky</Footer.Title>
           <Footer.List>
-            <Footer.Link href="/zasady-ochrany">
+            <Footer.Link href="/zasady-ochrany-osobnich-udaju">
               Zásady ochrany osobních údajů
             </Footer.Link>
             <Footer.Link href="/zpusoby-platby">Způsoby platby</Footer.Link>

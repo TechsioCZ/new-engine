@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { CATEGORY_MAP } from "@/lib/constants"
+import { getCategoryDescendantIds } from "@/lib/categories/selectors"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import {
   shouldResetPrefetchForRegion,
   shouldRunRootPrefetch,
 } from "./prefetch-region"
+import { useSuspenseCategoryRegistry } from "./use-category-registry"
 import { usePrefetchProducts } from "./use-prefetch-products"
 import { useRegion } from "./use-region"
 
@@ -24,6 +25,8 @@ export function usePrefetchRootCategories({
 }: UsePrefetchRootCategoriesParams) {
   const { regionId } = useRegion()
   const { prefetchRootCategories } = usePrefetchProducts()
+  const categoryRegistry = useSuspenseCategoryRegistry()
+  const { rootCategories } = categoryRegistry
   const hasPrefetched = useRef(false)
   const prefetchedRegionId = useRef<string | undefined>(undefined)
 
@@ -53,13 +56,23 @@ export function usePrefetchRootCategories({
         `Prefetching other root from /kategorie/${currentHandle}`
       )
 
-      for (const [handle, categoryIds] of Object.entries(CATEGORY_MAP)) {
-        if (handle !== currentHandle) {
-          prefetchRootCategories(categoryIds)
+      for (const category of rootCategories) {
+        if (category.handle !== currentHandle) {
+          prefetchRootCategories(
+            getCategoryDescendantIds(categoryRegistry, category.id)
+          )
         }
       }
     }, delay)
 
     return () => clearTimeout(timer)
-  }, [enabled, regionId, currentHandle, delay, prefetchRootCategories])
+  }, [
+    enabled,
+    regionId,
+    currentHandle,
+    delay,
+    categoryRegistry,
+    prefetchRootCategories,
+    rootCategories,
+  ])
 }
