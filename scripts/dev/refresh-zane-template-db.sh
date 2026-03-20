@@ -240,7 +240,7 @@ resolve_default_service_slugs() {
 resolve_ctl_plan() {
   local ctl_args=()
 
-  resolve_default_service_slugs()
+  resolve_default_service_slugs
 
   INSPECT_JSON_FILE="$(mktemp)"
   PLAN_JSON_FILE="$(mktemp)"
