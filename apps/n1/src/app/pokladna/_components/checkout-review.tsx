@@ -180,7 +180,7 @@ export function CheckoutReview({ order }: CheckoutReviewProps) {
           </Button>
           <Button
             className="flex-1"
-            onClick={() => router.push("/orders")}
+            onClick={() => router.push("/ucet/profil?tab=orders")}
             variant="primary"
           >
             Moje objednávky

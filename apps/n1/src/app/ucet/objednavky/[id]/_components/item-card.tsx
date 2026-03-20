@@ -44,7 +44,7 @@ export const ItemCard = ({ item }: { item: StoreOrderLineItem }) => {
       <div className="flex flex-col bg-surface-light p-200">
         <Link
           className="block underline transition-colors hover:text-primary hover:no-underline"
-          href={`/produkty/${item.product_handle}?variant=${item.subtitle?.trim()}`}
+          href={`/produkt/${item.product_handle}?variant=${item.subtitle?.trim()}`}
         >
           <ProductCard.Name>
             {truncateText(item.product_title || item.title || "")}
