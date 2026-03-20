@@ -119,8 +119,8 @@ export interface ProvisionMeiliKeysInput {
   environmentName: string
   serviceSlug: string
   readinessPath: string
-  backendOutput: ProvisionMeiliKeysOutputInput
-  frontendOutput: ProvisionMeiliKeysOutputInput
+  backendOutput?: ProvisionMeiliKeysOutputInput
+  frontendOutput?: ProvisionMeiliKeysOutputInput
 }
 
 export type RuntimeProviderOutputPolicyInput = Record<string, unknown> & {
