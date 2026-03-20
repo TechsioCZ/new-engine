@@ -146,9 +146,9 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
     requestedServiceIds
   )
   const prerequisiteIds = new Set<string>()
-  const dependencyServices = dependencyServiceIds.map((serviceId) =>
-    getDeployableService(input.manifest, serviceId)
-  )
+  const dependencyServices = dependencyServiceIds
+    .map((serviceId) => getDeployableService(input.manifest, serviceId))
+    .filter((service) => input.lane !== "preview" || service.cloneToPreview)
   let targetByServiceId = new Map<
     string,
     ResolveTargetsResponse["services"][number]
