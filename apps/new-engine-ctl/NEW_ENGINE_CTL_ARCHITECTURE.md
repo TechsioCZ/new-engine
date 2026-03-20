@@ -113,7 +113,7 @@ Phase intent:
 - preview scope may read preview-environment metadata to resolve the baseline commit; the active keys are `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA`, `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA`, and `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`
 - `prepare` is for shared-resource prerequisites and input validation only.
 - preview `prepare` owns baseline-aware shared-resource ensure decisions. It must not rely only on the originally requested service set when a baseline replay will expand deploy scope to the full preview clone set.
-- runtime-provider execution belongs in deploy orchestration after the provider source service is deployed and healthy.
+- runtime-provider execution belongs in deploy orchestration after the provider source service is deployed and healthy, except that consumer-only deploys may reuse already-persisted contract-owned provider outputs from healthy target deployments when the source service is not in the current plan.
 - preview deploy owns preview commit metadata sequencing: write `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` before deploy stages start, set `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=false` while a baseline run is in progress, and advance `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` plus `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true` only as the final successful deploy-stage metadata update
 - preview deploy owns preview random-once secret materialization policy: baseline runs materialize missing preview-owned random-once values onto the existing shared preview env keys and existing service env keys those services actually consume before staged deploy begins; later preview runs reuse those stored values rather than regenerating them
 - preview runtime reconciliation is data-driven from `apps/new-engine-ctl/config/stack-inputs.yaml`; `preview_runtime_reconciliation` is the single source of truth for preview shared-env and service-env rewrites, and `service_reconciliation` is the single source of truth for lane-specific service-spec normalization such as Git source cleanup, builder targets, healthchecks, and resource limits
@@ -128,6 +128,7 @@ Phase intent:
 - Current lane-specific builder-stage policy in `service_reconciliation`: `medusa-be` and `n1` use `ci-dev` for preview and `prod` for main.
 - workflow YAML may use workflow-safe concurrency groups to cancel superseded runs, but workflow cancellation complements rather than replaces lane-owned deployment adoption/cancel rules.
 - Preview runtime address policy has two scopes: operator-side provisioners must use preview-scoped global/private identities, while shared/service env values consumed by services inside the preview environment may keep local private aliases from `preview_runtime_reconciliation` when those consumers run on the same preview environment network.
+- main deploys and redeploy-only preview runs should not reprovision unrelated runtime-provider outputs just because the provider source service is healthy; when required persisted env values already exist on in-scope consumers, CTL may reuse them instead of forcing a fresh provider run.
 
 ## App Structure
 
@@ -181,6 +182,6 @@ Examples of potentially reusable lower-level pieces later:
 - provider execution primitives
 
 The orchestration model itself remains repo-owned unless a later explicit decision changes that.
-- Preview and main deploys treat `MEDUSA_MEILISEARCH_MASTER_KEY` as infrastructure state for `medusa-meilisearch` plus operator provisioning only.
-- `medusa-be` consumes the scoped backend key materialized onto `MEILISEARCH_API_KEY`; `n1` consumes the scoped frontend key materialized onto `NEXT_PUBLIC_MEILISEARCH_API_KEY`.
+- Preview and main deploys treat `MEDUSA_MEILISEARCH_MASTER_KEY` as infrastructure state for `medusa-meilisearch` plus operator-side key provisioning only.
+- `medusa-be` consumes the provisioned backend key materialized onto `MEILISEARCH_API_KEY`; `n1` consumes the provisioned frontend key materialized onto `NEXT_PUBLIC_MEILISEARCH_API_KEY`. Compose-local `DC_*` key names remain local source-input aliases rather than deployed runtime contract keys.
 - Runtime Meilisearch fallback is intentionally absent. Only helper/operator input surfaces may fall back from `MEILISEARCH_MASTER_KEY` to `DC_MEILISEARCH_MASTER_KEY` when accepting local/operator CLI inputs.

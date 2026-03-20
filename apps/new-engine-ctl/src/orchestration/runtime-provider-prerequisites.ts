@@ -126,7 +126,6 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
   )
   const needsMeiliApiCredentials = input.plan.deploy_services.some(
     (service) =>
-      service.id === meiliSource.serviceId ||
       service.consumes.meili_backend_key ||
       service.consumes.meili_frontend_key
   )

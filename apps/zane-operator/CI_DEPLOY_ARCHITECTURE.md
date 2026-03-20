@@ -66,6 +66,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 8. After first successful preview creation or baseline replay, subsequent PR updates are redeploy-only in manifest stack order.
 9. Subsequent PR updates should reuse existing preview env values held in Zane; automatic reprovisioning is not required.
 10. If a contract or env shape change requires reprovisioning beyond normal redeploy behavior, that is a manual intervention path unless explicitly automated later.
+   - Consumer-only redeploys may reuse already-persisted contract-owned provider outputs from healthy target deployments instead of rerunning the provider when those outputs are already present on the affected consumers.
 11. Resolve deploy targets for affected services inside that preview environment.
 12. Obtain the per-service deploy key/webhook/token required to trigger deploys for those services.
 13. Apply env overrides derived from `prepare` or first-creation runtime provisioning before or as part of the deploy trigger.
@@ -90,11 +91,12 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 2. Resolve deploy targets only for affected services.
 3. Obtain the per-service deploy key/webhook/token required for those services.
 4. Main currently has no active shared-resource `prepare` phase. Runtime-provider work belongs inside deploy orchestration, not before it.
-5. Trigger deploys without preview-only env mutation logic.
-6. Each deploy trigger must request cleanup of any queued or currently building deployment for the same service before starting the new deployment, so newer desired state replaces stale in-flight work for that service.
-7. Preserve the same masking and no-summary secret policy used in preview.
-8. Resolve downtime-risk once after affected-service filtering and require explicit manual approval before any main-lane deploy that includes downtime-risk shared services.
-9. Shared-resource bootstrap ordering must be preserved inside the deploy plan. Current example: if bootstrap-relevant `medusa-db` changes are in scope, `medusa-db` must converge before `zane-operator`.
+5. Consumer-only main deploys may reuse already-persisted contract-owned provider outputs from healthy target deployments when those outputs are already present on the affected consumers; source-service deploys or missing persisted values still drive reconciliation.
+6. Trigger deploys without preview-only env mutation logic.
+7. Each deploy trigger must request cleanup of any queued or currently building deployment for the same service before starting the new deployment, so newer desired state replaces stale in-flight work for that service.
+8. Preserve the same masking and no-summary secret policy used in preview.
+9. Resolve downtime-risk once after affected-service filtering and require explicit manual approval before any main-lane deploy that includes downtime-risk shared services.
+10. Shared-resource bootstrap ordering must be preserved inside the deploy plan. Current example: if bootstrap-relevant `medusa-db` changes are in scope, `medusa-db` must converge before `zane-operator`.
 
 ## Git Resolution Contract
 
@@ -162,6 +164,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - Main lane must not model runtime-provider outputs as unconditional `prepare` outputs.
 - The active deploy orchestration surface owns the mapping from prepared or runtime-provisioned outputs to Zane env var updates.
 - On redeploy-only preview runs, verification must still prove that required persisted contract-owned inputs are present on affected consumers even when those inputs were not regenerated in the current run.
+- Main and preview consumer-only deploys should prefer reuse of persisted contract-owned provider outputs already present on healthy affected consumers; provider reruns are required only when the source service is in scope or those persisted values are missing.
 
 ## Secret And Output Contract
 
