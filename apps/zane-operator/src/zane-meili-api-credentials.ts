@@ -303,7 +303,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
         backendOutput.policy.indexes
       )
     ) {
-      backendKeyObj = await this.updateMeiliKey(
+      backendKeyObj = await this.replaceMeiliKey(
         meiliUrl,
         meiliMasterKey,
         backendOutput.policy.uid,
@@ -340,7 +340,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
         frontendOutput.policy.indexes
       )
     ) {
-      frontendKeyObj = await this.updateMeiliKey(
+      frontendKeyObj = await this.replaceMeiliKey(
         meiliUrl,
         meiliMasterKey,
         frontendOutput.policy.uid,
@@ -475,7 +475,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
     })
   }
 
-  private async updateMeiliKey(
+  private async replaceMeiliKey(
     meiliUrl: string,
     masterKey: string,
     uid: string,
@@ -483,24 +483,52 @@ export class ZaneMeiliApiCredentialsProvisioner {
     actions: string[],
     indexes: string[]
   ): Promise<Record<string, unknown>> {
-    return await this.writeMeiliKey(
+    await this.deleteMeiliKey(meiliUrl, masterKey, uid)
+    return await this.createMeiliKey(
       meiliUrl,
       masterKey,
-      "PATCH",
-      `/keys/${encodeURIComponent(uid)}`,
+      uid,
+      description,
+      actions,
+      indexes
+    )
+  }
+
+  private async deleteMeiliKey(
+    meiliUrl: string,
+    masterKey: string,
+    uid: string
+  ): Promise<void> {
+    const response = await fetch(
+      resolveMeiliUrl(meiliUrl, `/keys/${encodeURIComponent(uid)}`),
       {
-        description,
-        actions,
-        indexes,
-        expiresAt: null,
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${masterKey}`,
+        },
       }
     )
+
+    if (!(response.ok || response.status === 404)) {
+      let errorMessage = `Meilisearch key delete failed (HTTP ${response.status})`
+      try {
+        errorMessage = parseErrorMessage(await response.json(), errorMessage)
+      } catch {
+        // keep fallback
+      }
+      throw new UpstreamHttpError(
+        response.status,
+        "zane_meili_key_delete_failed",
+        errorMessage
+      )
+    }
   }
 
   private async writeMeiliKey(
     meiliUrl: string,
     masterKey: string,
-    method: "POST" | "PATCH",
+    method: "POST",
     path: string,
     payload: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
@@ -515,7 +543,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
     })
 
     if (!response.ok) {
-      let errorMessage = `Meilisearch key ${method === "POST" ? "create" : "update"} failed (HTTP ${response.status})`
+      let errorMessage = `Meilisearch key create failed (HTTP ${response.status})`
       try {
         errorMessage = parseErrorMessage(await response.json(), errorMessage)
       } catch {

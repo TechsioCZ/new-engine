@@ -23,8 +23,10 @@ import {
 } from "./deploy-shared.js"
 import { executePlan } from "./plan.js"
 import {
+  collectMeiliOutputNeeds,
   getMeiliApiCredentialsProviderSourceService,
   provisionMeiliKeys,
+  reusePersistedMeiliKeysFromTargets,
 } from "./preview-meili.js"
 import { generatePreviewRandomOnceSecrets } from "./preview-random-secrets.js"
 import {
@@ -399,6 +401,9 @@ export async function executeDeployPreview(
     contracts.stackInputs,
     input.meiliApiCredentialsProviderId
   )
+  const runtimeMeiliNeeds = collectMeiliOutputNeeds(
+    effectiveRuntimePlan.deploy_services
+  )
 
   let meiliBackendKey = input.meiliBackendKey
   let meiliFrontendKey = input.meiliFrontendKey
@@ -498,6 +503,55 @@ export async function executeDeployPreview(
     targetCommitSha = input.targetCommitSha
   }
 
+  if (
+    !baselineDeploy &&
+    (runtimeMeiliNeeds.needBackendKey || runtimeMeiliNeeds.needFrontendKey) &&
+    !effectiveRuntimePlan.deploy_services.some(
+      (service) => service.id === meiliSourceService.serviceId
+    ) &&
+    !input.dryRun
+  ) {
+    const meiliConsumerTargets = await executeResolveTargetsPayload({
+      payload: {
+        lane: "preview",
+        project_slug: input.projectSlug,
+        environment_name: environment.environment_name,
+        services: effectiveRuntimePlan.deploy_services
+          .filter(
+            (service) =>
+              service.consumes.meili_backend_key ||
+              service.consumes.meili_frontend_key
+          )
+          .map((service) => ({
+            service_id: service.id,
+            service_slug: service.service_slug,
+          })),
+      },
+      baseUrl: input.baseUrl,
+      apiToken: input.apiToken,
+      dryRun: false,
+    })
+    const reusedKeys = reusePersistedMeiliKeysFromTargets({
+      targets: meiliConsumerTargets.services,
+      stackInputs: contracts.stackInputs,
+      providerId: input.meiliApiCredentialsProviderId,
+      backendConsumerIds: runtimeMeiliNeeds.backendConsumerIds,
+      frontendConsumerIds: runtimeMeiliNeeds.frontendConsumerIds,
+    })
+    meiliBackendKey = reusedKeys.backendKey
+    meiliFrontendKey = reusedKeys.frontendKey
+    meiliFrontendEnvVar = reusedKeys.frontendEnvVar
+
+    if (
+      (!runtimeMeiliNeeds.needBackendKey || meiliBackendKey) &&
+      (!runtimeMeiliNeeds.needFrontendKey || meiliFrontendKey)
+    ) {
+      logDeployProgress(
+        "Reusing persisted Meili API credentials from current healthy preview consumer deployments."
+      )
+    }
+  }
+
   for (const stage of collectStageNumbers(effectiveRuntimePlan)) {
     const stagePlan = buildStagePlan(effectiveRuntimePlan, stage)
     const stageServicesCsv = stagePlan.deploy_services_csv
@@ -517,8 +571,9 @@ export async function executeDeployPreview(
         meiliFrontendKey
       )
     ) {
+      const stageMeiliNeeds = collectMeiliOutputNeeds(stagePlan.deploy_services)
       logDeployProgress(
-        `Stage ${stage} consumes Meili API credentials; provisioning or reusing them before env overrides.`
+        `Stage ${stage} consumes Meili API credentials; provisioning or reusing only the required outputs before env overrides.`
       )
       const provisionedKeys = await provisionMeiliKeys({
         projectSlug: input.projectSlug,
@@ -529,11 +584,18 @@ export async function executeDeployPreview(
         baseUrl: input.baseUrl,
         apiToken: input.apiToken,
         dryRun: input.dryRun,
+        needBackendKey: stageMeiliNeeds.needBackendKey && !meiliBackendKey,
+        needFrontendKey: stageMeiliNeeds.needFrontendKey && !meiliFrontendKey,
       })
-      meiliBackendKey = provisionedKeys.backend_key
-      meiliFrontendKey = provisionedKeys.frontend_key
+      if (provisionedKeys.backend_key) {
+        meiliBackendKey = provisionedKeys.backend_key
+      }
+      if (provisionedKeys.frontend_key) {
+        meiliFrontendKey = provisionedKeys.frontend_key
+      }
       meiliFrontendEnvVar = provisionedKeys.frontend_env_var
-      meiliKeysProvisioned = true
+      meiliKeysProvisioned =
+        meiliKeysProvisioned || Boolean(provisionedKeys.backend_key || provisionedKeys.frontend_key)
       logDeployProgress("Meili API credentials resolved for preview consumers.")
     }
 

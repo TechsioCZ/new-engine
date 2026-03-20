@@ -21,8 +21,10 @@ import {
 } from "./deploy-shared.js"
 import { executePlan } from "./plan.js"
 import {
+  collectMeiliOutputNeeds,
   getMeiliApiCredentialsProviderSourceService,
   provisionMeiliKeys,
+  reusePersistedMeiliKeysFromTargets,
 } from "./preview-meili.js"
 import { executeRenderEnvOverrides } from "./render-env-overrides.js"
 import { executeResolveEnvironment } from "./resolve-environment.js"
@@ -77,11 +79,29 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
 
 function stageConsumesMeiliApiCredentials(
   stagePlan: Awaited<ReturnType<typeof executePlan>>
-): boolean {
+ ): boolean {
   return stagePlan.deploy_services.some(
     (service) =>
       service.consumes.meili_backend_key || service.consumes.meili_frontend_key
   )
+}
+
+function stageHasResolvedMainMeiliKeys(
+  stagePlan: Awaited<ReturnType<typeof executePlan>>,
+  meiliBackendKey: string,
+  meiliFrontendKey: string
+): boolean {
+  return stagePlan.deploy_services.every((service) => {
+    if (service.consumes.meili_backend_key && !meiliBackendKey) {
+      return false
+    }
+
+    if (service.consumes.meili_frontend_key && !meiliFrontendKey) {
+      return false
+    }
+
+    return true
+  })
 }
 
 export async function executeDeployMain(
@@ -160,12 +180,9 @@ export async function executeDeployMain(
     effectivePlan.deploy_services.find(
       (service) => service.id === meiliApiCredentialsSource.serviceId
     )?.deploy_stage ?? null
-  const needsMeiliApiCredentials = effectivePlan.deploy_services.some(
-    (service) =>
-      service.id === meiliApiCredentialsSource.serviceId ||
-      service.consumes.meili_backend_key ||
-      service.consumes.meili_frontend_key
-  )
+  const meiliNeeds = collectMeiliOutputNeeds(effectivePlan.deploy_services)
+  const needsMeiliApiCredentials =
+    meiliNeeds.needBackendKey || meiliNeeds.needFrontendKey
 
   logDeployProgress(
     `Resolved main environment ${environment.environment_name} (${environment.environment_id}).`
@@ -182,11 +199,13 @@ export async function executeDeployMain(
   let meiliBackendUpdated = false
   let meiliFrontendCreated = false
   let meiliFrontendUpdated = false
-  let meiliKeysReconciled = false
   let meiliVerified = false
 
-  const reconcileMeiliApiCredentials = async (): Promise<void> => {
-    if (meiliKeysReconciled) {
+  const reconcileMeiliApiCredentials = async (needs: {
+    needBackendKey: boolean
+    needFrontendKey: boolean
+  }): Promise<void> => {
+    if (!(needs.needBackendKey || needs.needFrontendKey)) {
       return
     }
 
@@ -203,25 +222,73 @@ export async function executeDeployMain(
       baseUrl: input.baseUrl,
       apiToken: input.apiToken,
       dryRun: input.dryRun,
+      needBackendKey: needs.needBackendKey,
+      needFrontendKey: needs.needFrontendKey,
     })
 
-    meiliBackendKey = reconciled.backend_key
-    meiliFrontendKey = reconciled.frontend_key
+    if (reconciled.backend_key) {
+      meiliBackendKey = reconciled.backend_key
+      meiliBackendCreated = reconciled.backend_created
+      meiliBackendUpdated = reconciled.backend_updated
+    }
+    if (reconciled.frontend_key) {
+      meiliFrontendKey = reconciled.frontend_key
+      meiliFrontendCreated = reconciled.frontend_created
+      meiliFrontendUpdated = reconciled.frontend_updated
+    }
     meiliFrontendEnvVar = reconciled.frontend_env_var
-    meiliBackendCreated = reconciled.backend_created
-    meiliBackendUpdated = reconciled.backend_updated
-    meiliFrontendCreated = reconciled.frontend_created
-    meiliFrontendUpdated = reconciled.frontend_updated
     meiliVerified = true
-    meiliKeysReconciled = true
     logDeployProgress("Meili API credentials reconciled and verified.")
   }
 
-  if (needsMeiliApiCredentials && !sourceServiceInPlan) {
-    logDeployProgress(
-      `Meili source service ${meiliApiCredentialsSource.serviceId} is not in this deploy plan; reconciling credentials before deploy stages.`
-    )
-    await reconcileMeiliApiCredentials()
+  if (needsMeiliApiCredentials && !sourceServiceInPlan && !input.dryRun) {
+    const meiliConsumerTargets = await executeResolveTargetsPayload({
+      payload: {
+        lane: "main",
+        project_slug: input.projectSlug,
+        environment_name: environment.environment_name,
+        services: effectivePlan.deploy_services
+          .filter(
+            (service) =>
+              service.consumes.meili_backend_key ||
+              service.consumes.meili_frontend_key
+          )
+          .map((service) => ({
+            service_id: service.id,
+            service_slug: service.service_slug,
+          })),
+      },
+      baseUrl: input.baseUrl,
+      apiToken: input.apiToken,
+      dryRun: false,
+    })
+    const reusedKeys = reusePersistedMeiliKeysFromTargets({
+      targets: meiliConsumerTargets.services,
+      stackInputs: contracts.stackInputs,
+      providerId: input.meiliApiCredentialsProviderId,
+      backendConsumerIds: meiliNeeds.backendConsumerIds,
+      frontendConsumerIds: meiliNeeds.frontendConsumerIds,
+    })
+    meiliBackendKey = reusedKeys.backendKey
+    meiliFrontendKey = reusedKeys.frontendKey
+    meiliFrontendEnvVar = reusedKeys.frontendEnvVar
+
+    if (
+      (!meiliNeeds.needBackendKey || meiliBackendKey) &&
+      (!meiliNeeds.needFrontendKey || meiliFrontendKey)
+    ) {
+      logDeployProgress(
+        "Reusing persisted Meili API credentials from current healthy consumer deployments."
+      )
+    } else {
+      logDeployProgress(
+        `Meili source service ${meiliApiCredentialsSource.serviceId} is not in this deploy plan and persisted consumer envs are incomplete; reconciling required credentials before deploy stages.`
+      )
+      await reconcileMeiliApiCredentials({
+        needBackendKey: meiliNeeds.needBackendKey && !meiliBackendKey,
+        needFrontendKey: meiliNeeds.needFrontendKey && !meiliFrontendKey,
+      })
+    }
   }
 
   for (const stage of collectStageNumbers(effectivePlan)) {
@@ -238,17 +305,25 @@ export async function executeDeployMain(
     if (
       needsMeiliApiCredentials &&
       stageConsumesMeiliApiCredentials(stagePlan) &&
-      !meiliKeysReconciled
+      !stageHasResolvedMainMeiliKeys(
+        stagePlan,
+        meiliBackendKey,
+        meiliFrontendKey
+      )
     ) {
+      const stageMeiliNeeds = collectMeiliOutputNeeds(stagePlan.deploy_services)
       if (sourceServiceStage !== null && sourceServiceStage >= stage) {
         throw new Error(
           `Meili API credential source service ${meiliApiCredentialsSource.serviceId} must be healthy before consumer stage ${stage}.`
         )
       }
       logDeployProgress(
-        `Stage ${stage} consumes Meili API credentials; reconciling before env overrides.`
+        `Stage ${stage} consumes Meili API credentials; reconciling only the required outputs before env overrides.`
       )
-      await reconcileMeiliApiCredentials()
+      await reconcileMeiliApiCredentials({
+        needBackendKey: stageMeiliNeeds.needBackendKey && !meiliBackendKey,
+        needFrontendKey: stageMeiliNeeds.needFrontendKey && !meiliFrontendKey,
+      })
     }
 
     logDeployProgress(
@@ -423,7 +498,10 @@ export async function executeDeployMain(
       logDeployProgress(
         `Stage ${stage} included Meili source service ${meiliApiCredentialsSource.serviceId}; reconciling credentials after the source became healthy.`
       )
-      await reconcileMeiliApiCredentials()
+      await reconcileMeiliApiCredentials({
+        needBackendKey: meiliNeeds.needBackendKey && !meiliBackendKey,
+        needFrontendKey: meiliNeeds.needFrontendKey && !meiliFrontendKey,
+      })
     }
   }
 
@@ -443,7 +521,7 @@ export async function executeDeployMain(
     meili_backend_updated: meiliBackendUpdated,
     meili_frontend_created: meiliFrontendCreated,
     meili_frontend_updated: meiliFrontendUpdated,
-    meili_keys_reconciled: meiliKeysReconciled,
+    meili_keys_reconciled: meiliVerified,
     meili_verified: meiliVerified,
     deployments: allDeployments,
   })
