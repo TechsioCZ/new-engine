@@ -225,14 +225,12 @@ export class ZaneMeiliApiCredentialsProvisioner {
   }> {
     const backendOutput = input.backendOutput
     const frontendOutput = input.frontendOutput
-    const backendEnvVar = this.requireOutputEnvVar(
-      backendOutput,
-      "backend_output"
-    )
-    const frontendEnvVar = this.requireOutputEnvVar(
-      frontendOutput,
-      "frontend_output"
-    )
+    const backendEnvVar = backendOutput
+      ? this.requireOutputEnvVar(backendOutput, "backend_output")
+      : ""
+    const frontendEnvVar = frontendOutput
+      ? this.requireOutputEnvVar(frontendOutput, "frontend_output")
+      : ""
     const session = await this.#deps.authenticate()
     const environment = await this.#deps.getEnvironment(
       session,
@@ -277,89 +275,105 @@ export class ZaneMeiliApiCredentialsProvisioner {
 
     await this.waitForMeiliHealth(meiliUrl, input.readinessPath)
 
-    let backendKeyObj = await this.getMeiliKeyByUid(
-      meiliUrl,
-      meiliMasterKey,
-      backendOutput.policy.uid
-    )
+    let backendKeyObj: Record<string, unknown> | null = null
     let backendCreated = false
     let backendUpdated = false
-    if (!backendKeyObj) {
-      backendKeyObj = await this.createMeiliKey(
+    if (backendOutput) {
+      backendKeyObj = await this.getMeiliKeyByUid(
         meiliUrl,
         meiliMasterKey,
-        backendOutput.policy.uid,
-        backendOutput.policy.description,
-        backendOutput.policy.actions,
-        backendOutput.policy.indexes
+        backendOutput.policy.uid
       )
-      backendCreated = true
-    } else if (
-      !meiliKeyMatchesPolicy(
-        backendKeyObj,
-        backendOutput.policy.uid,
-        backendOutput.policy.description,
-        backendOutput.policy.actions,
-        backendOutput.policy.indexes
-      )
-    ) {
-      backendKeyObj = await this.replaceMeiliKey(
-        meiliUrl,
-        meiliMasterKey,
-        backendOutput.policy.uid,
-        backendOutput.policy.description,
-        backendOutput.policy.actions,
-        backendOutput.policy.indexes
-      )
-      backendUpdated = true
+      if (!backendKeyObj) {
+        backendKeyObj = await this.createMeiliKey(
+          meiliUrl,
+          meiliMasterKey,
+          backendOutput.policy.uid,
+          backendOutput.policy.description,
+          backendOutput.policy.actions,
+          backendOutput.policy.indexes
+        )
+        backendCreated = true
+      } else if (
+        !meiliKeyMatchesPolicy(
+          backendKeyObj,
+          backendOutput.policy.uid,
+          backendOutput.policy.description,
+          backendOutput.policy.actions,
+          backendOutput.policy.indexes
+        )
+      ) {
+        backendKeyObj = await this.replaceMeiliKey(
+          meiliUrl,
+          meiliMasterKey,
+          backendOutput.policy.uid,
+          backendOutput.policy.description,
+          backendOutput.policy.actions,
+          backendOutput.policy.indexes
+        )
+        backendUpdated = true
+      }
     }
 
-    let frontendKeyObj = await this.getMeiliKeyByUid(
-      meiliUrl,
-      meiliMasterKey,
-      frontendOutput.policy.uid
-    )
+    let frontendKeyObj: Record<string, unknown> | null = null
     let frontendCreated = false
     let frontendUpdated = false
-    if (!frontendKeyObj) {
-      frontendKeyObj = await this.createMeiliKey(
+    if (frontendOutput) {
+      frontendKeyObj = await this.getMeiliKeyByUid(
         meiliUrl,
         meiliMasterKey,
-        frontendOutput.policy.uid,
-        frontendOutput.policy.description,
-        frontendOutput.policy.actions,
-        frontendOutput.policy.indexes
+        frontendOutput.policy.uid
       )
-      frontendCreated = true
-    } else if (
-      !meiliKeyMatchesPolicy(
-        frontendKeyObj,
-        frontendOutput.policy.uid,
-        frontendOutput.policy.description,
-        frontendOutput.policy.actions,
-        frontendOutput.policy.indexes
-      )
-    ) {
-      frontendKeyObj = await this.replaceMeiliKey(
-        meiliUrl,
-        meiliMasterKey,
-        frontendOutput.policy.uid,
-        frontendOutput.policy.description,
-        frontendOutput.policy.actions,
-        frontendOutput.policy.indexes
-      )
-      frontendUpdated = true
+      if (!frontendKeyObj) {
+        frontendKeyObj = await this.createMeiliKey(
+          meiliUrl,
+          meiliMasterKey,
+          frontendOutput.policy.uid,
+          frontendOutput.policy.description,
+          frontendOutput.policy.actions,
+          frontendOutput.policy.indexes
+        )
+        frontendCreated = true
+      } else if (
+        !meiliKeyMatchesPolicy(
+          frontendKeyObj,
+          frontendOutput.policy.uid,
+          frontendOutput.policy.description,
+          frontendOutput.policy.actions,
+          frontendOutput.policy.indexes
+        )
+      ) {
+        frontendKeyObj = await this.replaceMeiliKey(
+          meiliUrl,
+          meiliMasterKey,
+          frontendOutput.policy.uid,
+          frontendOutput.policy.description,
+          frontendOutput.policy.actions,
+          frontendOutput.policy.indexes
+        )
+        frontendUpdated = true
+      }
     }
 
+
     const backendKey =
-      typeof backendKeyObj.key === "string" ? backendKeyObj.key : ""
+      backendKeyObj && typeof backendKeyObj.key === "string" ? backendKeyObj.key : ""
     const frontendKey =
-      typeof frontendKeyObj.key === "string" ? frontendKeyObj.key : ""
-    if (!(backendKey && frontendKey)) {
+      frontendKeyObj && typeof frontendKeyObj.key === "string"
+        ? frontendKeyObj.key
+        : ""
+    if (backendOutput && !backendKey) {
       throw new UpstreamHttpError(
         502,
         "zane_meili_key_missing",
-        "Provisioned Meilisearch keys were missing key values"
+        "Provisioned backend Meilisearch key was missing key value"
+      )
+    }
+    if (frontendOutput && !frontendKey) {
+      throw new UpstreamHttpError(
+        502,
+        "zane_meili_key_missing",
+        "Provisioned frontend Meilisearch key was missing key value"
       )
     }
 

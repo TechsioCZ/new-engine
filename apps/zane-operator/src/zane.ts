@@ -156,19 +156,6 @@ function assertStringArrayInput(value: unknown, label: string): string[] {
   })
 }
 
-function requireRuntimeProviderOutput(
-  input: RuntimeProviderRunInput,
-  outputId: string
- ): RuntimeProviderOutputInput {
-  const output = input.outputs.find((candidate) => candidate.outputId === outputId)
-  if (!output) {
-    throw new BadRequestError(
-      `Runtime provider ${input.providerId} is missing required output ${outputId}`
-    )
-  }
-
-  return output
-}
 
 function toMeiliProvisionOutputInput(
   output: RuntimeProviderOutputInput,
@@ -917,22 +904,39 @@ export class ZaneClient {
     switch (input.providerId) {
       case "meili_api_credentials": {
         const provider = this.createMeiliApiCredentialsProvisioner()
-        const backendOutput = requireRuntimeProviderOutput(input, "backend_key")
-        const frontendOutput = requireRuntimeProviderOutput(input, "frontend_key")
+        const backendOutput = input.outputs.find(
+          (candidate) => candidate.outputId === "backend_key"
+        )
+        const frontendOutput = input.outputs.find(
+          (candidate) => candidate.outputId === "frontend_key"
+        )
+        if (!(backendOutput || frontendOutput)) {
+          throw new BadRequestError(
+            "Runtime provider meili_api_credentials requires at least one requested output."
+          )
+        }
 
         const result = await provider.provisionMeiliKeys({
           projectSlug: input.projectSlug,
           environmentName: input.environmentName,
           serviceSlug: input.serviceSlug,
           readinessPath: input.readinessPath,
-          backendOutput: toMeiliProvisionOutputInput(
-            backendOutput,
-            "outputs[backend_key]"
-          ),
-          frontendOutput: toMeiliProvisionOutputInput(
-            frontendOutput,
-            "outputs[frontend_key]"
-          ),
+          ...(backendOutput
+            ? {
+                backendOutput: toMeiliProvisionOutputInput(
+                  backendOutput,
+                  "outputs[backend_key]"
+                ),
+              }
+            : {}),
+          ...(frontendOutput
+            ? {
+                frontendOutput: toMeiliProvisionOutputInput(
+                  frontendOutput,
+                  "outputs[frontend_key]"
+                ),
+              }
+            : {}),
         })
 
         return {
@@ -942,20 +946,28 @@ export class ZaneClient {
           service_slug: result.service_slug,
           source_url: result.meili_url,
           outputs: [
-            {
-              output_id: "backend_key",
-              env_var: result.backend_env_var,
-              value: result.backend_key,
-              created: result.backend_created,
-              updated: result.backend_updated,
-            },
-            {
-              output_id: "frontend_key",
-              env_var: result.frontend_env_var,
-              value: result.frontend_key,
-              created: result.frontend_created,
-              updated: result.frontend_updated,
-            },
+            ...(backendOutput
+              ? [
+                  {
+                    output_id: "backend_key",
+                    env_var: result.backend_env_var,
+                    value: result.backend_key,
+                    created: result.backend_created,
+                    updated: result.backend_updated,
+                  },
+                ]
+              : []),
+            ...(frontendOutput
+              ? [
+                  {
+                    output_id: "frontend_key",
+                    env_var: result.frontend_env_var,
+                    value: result.frontend_key,
+                    created: result.frontend_created,
+                    updated: result.frontend_updated,
+                  },
+                ]
+              : []),
           ],
         }
       }

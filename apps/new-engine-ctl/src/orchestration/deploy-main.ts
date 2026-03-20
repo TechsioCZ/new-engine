@@ -495,13 +495,23 @@ export async function executeDeployMain(
       needsMeiliApiCredentials &&
       stageHasService(plan, stage, meiliApiCredentialsSource.serviceId)
     ) {
-      logDeployProgress(
-        `Stage ${stage} included Meili source service ${meiliApiCredentialsSource.serviceId}; reconciling credentials after the source became healthy.`
+      const postSourceMeiliNeeds = collectMeiliOutputNeeds(
+        effectivePlan.deploy_services.filter(
+          (service) =>
+            service.deploy_stage > stage &&
+            (service.consumes.meili_backend_key ||
+              service.consumes.meili_frontend_key)
+        )
       )
-      await reconcileMeiliApiCredentials({
-        needBackendKey: meiliNeeds.needBackendKey && !meiliBackendKey,
-        needFrontendKey: meiliNeeds.needFrontendKey && !meiliFrontendKey,
-      })
+      if (postSourceMeiliNeeds.needBackendKey || postSourceMeiliNeeds.needFrontendKey) {
+        logDeployProgress(
+          `Stage ${stage} included Meili source service ${meiliApiCredentialsSource.serviceId}; reconciling credentials after the source became healthy.`
+        )
+        await reconcileMeiliApiCredentials({
+          needBackendKey: postSourceMeiliNeeds.needBackendKey && !meiliBackendKey,
+          needFrontendKey: postSourceMeiliNeeds.needFrontendKey && !meiliFrontendKey,
+        })
+      }
     }
   }
 
