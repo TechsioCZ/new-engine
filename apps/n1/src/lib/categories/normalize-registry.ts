@@ -4,17 +4,9 @@ import {
   type CategoryMetadata,
   type CategoryRegistry,
   type CategoryTreeNode,
+  type RawCategory,
   emptyCategoryRegistry,
 } from "./types"
-
-type RawCategory = {
-  id?: string | null
-  name?: string | null
-  handle?: string | null
-  description?: string | null
-  metadata?: Record<string, unknown> | null
-  parent_category_id?: string | null
-}
 
 type NormalizeCategoryRegistryOptions = {
   hiddenHandles?: readonly string[]

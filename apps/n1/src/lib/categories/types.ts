@@ -1,5 +1,14 @@
 export type CategoryMetadata = Record<string, unknown> | null
 
+export type RawCategory = {
+  id?: string | null
+  name?: string | null
+  handle?: string | null
+  description?: string | null
+  metadata?: Record<string, unknown> | null
+  parent_category_id?: string | null
+}
+
 export type Category = {
   id: string
   name: string

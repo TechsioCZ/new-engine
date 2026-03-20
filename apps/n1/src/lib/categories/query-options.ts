@@ -3,19 +3,10 @@ import type { MedusaCategoryListInput } from "@techsio/storefront-data/categorie
 import { storefront } from "@/hooks/storefront-preset"
 import { cacheConfig } from "@/lib/cache-config"
 import { normalizeCategoryRegistry } from "./normalize-registry"
-import type { CategoryRegistry } from "./types"
+import type { CategoryRegistry, RawCategory } from "./types"
 
 const CATEGORY_FIELDS = "id,name,handle,description,parent_category_id,metadata"
 const CATEGORY_PAGE_SIZE = 100
-
-type RawCategory = {
-  id?: string | null
-  name?: string | null
-  handle?: string | null
-  description?: string | null
-  metadata?: Record<string, unknown> | null
-  parent_category_id?: string | null
-}
 
 export const categoryRegistryQueryKey = ["n1", "category-registry"] as const
 
