@@ -1,59 +1,43 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useStore } from "@tanstack/react-store"
+import { useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect } from "react"
+import { useCallback, useState } from "react"
 import { AUTH_MESSAGES } from "@/lib/auth/constants"
+import { getAuthErrorMessage } from "@/lib/auth/error-handler"
+import type { ValidationError } from "@/lib/auth/validation"
 import { queryKeys } from "@/lib/query-keys"
-import { authHelpers, authStore } from "@/stores/auth-store"
+import { storefront } from "@/lib/storefront"
+
+const toUpdateCustomerInput = (data: Partial<HttpTypes.StoreCustomer>) => ({
+  first_name: data.first_name,
+  last_name: data.last_name,
+  phone: data.phone ?? undefined,
+})
 
 export function useAuth() {
-  const authState = useStore(authStore)
   const router = useRouter()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  )
+  const [mutationError, setMutationError] = useState<string | null>(null)
 
-  // Use React Query for initial auth check
-  const { data: currentUser } = useQuery({
-    queryKey: queryKeys.auth.customer(),
-    queryFn: authHelpers.fetchUser,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: false,
-  })
+  const auth = storefront.hooks.auth.useAuth()
 
-  // Update store when query data changes
-  useEffect(() => {
-    if (currentUser !== undefined) {
-      authStore.setState((state) => ({
-        ...state,
-        user: currentUser,
-        isInitialized: true,
-        isLoading: false,
-      }))
-    }
-  }, [currentUser])
+  const invalidateLegacyMedusaQueries = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: queryKeys.all }),
+    [queryClient]
+  )
 
-  // Login mutation
-  const loginMutation = useMutation({
-    mutationFn: async ({
-      email,
-      password,
-      firstName,
-      lastName,
-    }: {
-      email: string
-      password: string
-      firstName?: string
-      lastName?: string
-    }) => authHelpers.login(email, password, firstName, lastName),
-    onSuccess: () => {
-      // Invalidate auth queries to refetch user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+  const loginMutation = storefront.hooks.auth.useLogin({
+    onSuccess: async () => {
+      setMutationError(null)
+      await invalidateLegacyMedusaQueries()
 
-      // Only redirect if not on test page
       if (!window.location.pathname.includes("/test-auth")) {
         router.push("/")
       }
@@ -63,33 +47,21 @@ export function useAuth() {
         type: "success",
       })
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      setMutationError(getAuthErrorMessage(error))
       toast.create({
         ...AUTH_MESSAGES.LOGIN_ERROR,
-        description: error.message,
+        description: getAuthErrorMessage(error),
         type: "error",
       })
     },
   })
 
-  // Register mutation
-  const registerMutation = useMutation({
-    mutationFn: async ({
-      email,
-      password,
-      firstName,
-      lastName,
-    }: {
-      email: string
-      password: string
-      firstName?: string
-      lastName?: string
-    }) => authHelpers.register(email, password, firstName, lastName),
-    onSuccess: () => {
-      // Invalidate auth queries to refetch user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+  const registerMutation = storefront.hooks.auth.useRegister({
+    onSuccess: async () => {
+      setMutationError(null)
+      await invalidateLegacyMedusaQueries()
 
-      // Only redirect if not on test page
       if (!window.location.pathname.includes("/test-auth")) {
         router.push("/")
       }
@@ -99,21 +71,21 @@ export function useAuth() {
         type: "success",
       })
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      setMutationError(getAuthErrorMessage(error))
       toast.create({
         ...AUTH_MESSAGES.REGISTER_ERROR,
-        description: error.message,
+        description: getAuthErrorMessage(error),
         type: "error",
       })
     },
   })
 
-  // Logout mutation
-  const logoutMutation = useMutation({
-    mutationFn: authHelpers.logout,
-    onSuccess: () => {
-      // Invalidate all queries since user context changed
-      queryClient.invalidateQueries()
+  const logoutMutation = storefront.hooks.auth.useLogout({
+    onSuccess: async () => {
+      setMutationError(null)
+      setValidationErrors([])
+      await invalidateLegacyMedusaQueries()
       router.push("/")
 
       toast.create({
@@ -123,80 +95,98 @@ export function useAuth() {
     },
   })
 
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: (data: Partial<HttpTypes.StoreCustomer>) =>
-      authHelpers.updateProfile(data),
+  const updateProfileMutation = storefront.hooks.auth.useUpdateCustomer({
     onSuccess: () => {
-      // Invalidate auth queries to refetch updated user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
-
+      setMutationError(null)
       toast.create({
         ...AUTH_MESSAGES.UPDATE_SUCCESS,
         type: "success",
       })
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      setMutationError(getAuthErrorMessage(error))
       toast.create({
         ...AUTH_MESSAGES.UPDATE_ERROR,
-        description: error.message,
+        description: getAuthErrorMessage(error),
         type: "error",
       })
     },
   })
 
-  // Get field error
   const getFieldError = useCallback(
     (field: string): string | undefined =>
-      authState.validationErrors.find((e) => e.field === field)?.message,
-    [authState.validationErrors]
+      validationErrors.find((error) => error.field === field)?.message,
+    [validationErrors]
   )
 
+  const setFieldError = useCallback((field: string, message: string) => {
+    setValidationErrors((current) => [
+      ...current.filter((error) => error.field !== field),
+      { field, message },
+    ])
+  }, [])
+
+  const clearErrors = useCallback(() => {
+    setMutationError(null)
+    setValidationErrors([])
+  }, [])
+
+  const clearFieldError = useCallback((field: string) => {
+    setValidationErrors((current) =>
+      current.filter((error) => error.field !== field)
+    )
+  }, [])
+
   return {
-    // Auth state
-    user: authState.user,
+    user: auth.customer,
     isLoading:
-      authState.isLoading ||
+      auth.isLoading ||
       loginMutation.isPending ||
       registerMutation.isPending ||
       updateProfileMutation.isPending,
-    isInitialized: authState.isInitialized,
-    error: authState.error,
-
-    // Auth actions with mutations
+    isInitialized: auth.query.isFetched || auth.query.isError,
+    error: mutationError ?? auth.error,
     login: (
       email: string,
       password: string,
       firstName?: string,
       lastName?: string
-    ) => loginMutation.mutate({ email, password, firstName, lastName }),
+    ) =>
+      loginMutation.mutateAsync({
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+      }),
     register: (
       email: string,
       password: string,
       firstName?: string,
       lastName?: string
-    ) => registerMutation.mutate({ email, password, firstName, lastName }),
-    logout: () => logoutMutation.mutate(),
+    ) =>
+      registerMutation.mutateAsync({
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+      }),
+    logout: () => logoutMutation.mutateAsync(),
     updateProfile: (data: Partial<HttpTypes.StoreCustomer>) =>
-      updateProfileMutation.mutate(data),
+      updateProfileMutation.mutateAsync(toUpdateCustomerInput(data)),
     refetch: () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() }),
-
-    // Mutation states
+      queryClient.invalidateQueries({
+        queryKey: storefront.queryKeys.auth.customer(),
+      }),
     loginMutation,
     registerMutation,
     logoutMutation,
     updateProfileMutation,
-
-    // Form state
     isFormLoading: loginMutation.isPending || registerMutation.isPending,
-    validationErrors: authState.validationErrors,
-
-    // Form actions
-    setFieldError: authHelpers.setFieldError,
-    setValidationErrors: authHelpers.setValidationErrors,
-    clearErrors: authHelpers.clearErrors,
-    clearFieldError: authHelpers.clearFieldError,
+    validationErrors,
+    setFieldError,
+    setValidationErrors,
+    clearErrors,
+    clearFieldError,
     getFieldError,
   }
 }
