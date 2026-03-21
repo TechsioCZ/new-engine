@@ -67,8 +67,6 @@ const toStorefrontProductsInput = (
 
   return {
     ...query,
-    page,
-    limit,
     enabled: enabled !== undefined ? enabled : !!region_id,
   } as StorefrontProductsInput
 }

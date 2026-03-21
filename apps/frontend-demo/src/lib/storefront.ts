@@ -1,4 +1,5 @@
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
+import type { MedusaProductListInput } from "@techsio/storefront-data/products/medusa-service"
 import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/browser-storage"
 import { STORAGE_KEYS } from "@/lib/constants"
 import { sdk } from "@/lib/medusa-client"
@@ -14,6 +15,32 @@ const cartStorage = createLocalStorageValueStore({
   key: STORAGE_KEYS.CART_ID,
 })
 
+const DEFAULT_PRODUCT_PAGE_SIZE = 20
+
+type StorefrontProductHookInput = MedusaProductListInput & {
+  enabled?: boolean
+  page?: number
+}
+
+const buildStorefrontProductListParams = (
+  input: StorefrontProductHookInput
+): MedusaProductListInput => {
+  const { enabled: _enabled, page, offset, limit, ...query } = input
+  const resolvedLimit =
+    typeof limit === "number" && limit > 0 ? limit : DEFAULT_PRODUCT_PAGE_SIZE
+  let resolvedOffset = offset
+
+  if (typeof resolvedOffset !== "number" && typeof page === "number") {
+    resolvedOffset = (page - 1) * resolvedLimit
+  }
+
+  return {
+    ...query,
+    ...(typeof limit === "number" ? { limit } : {}),
+    ...(typeof resolvedOffset === "number" ? { offset: resolvedOffset } : {}),
+  }
+}
+
 export const storefront = createMedusaStorefrontPreset<Product>({
   sdk,
   queryKeyNamespace: "frontend-demo",
@@ -24,6 +51,7 @@ export const storefront = createMedusaStorefrontPreset<Product>({
   },
   products: {
     hooks: {
+      buildListParams: buildStorefrontProductListParams,
       requireRegion: false,
     },
     serviceConfig: {

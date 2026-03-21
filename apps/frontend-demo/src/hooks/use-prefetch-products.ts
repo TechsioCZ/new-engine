@@ -24,7 +24,6 @@ const toStorefrontProductsInput = (
 ): StorefrontProductsInput => {
   const limit = params.limit ?? DEFAULT_LIMIT
   const offset = params.offset ?? 0
-  const page = Math.floor(offset / limit) + 1
 
   return {
     ...buildProductListQuery({
@@ -32,8 +31,6 @@ const toStorefrontProductsInput = (
       limit,
       offset,
     }),
-    page,
-    limit,
   } as StorefrontProductsInput
 }
 
