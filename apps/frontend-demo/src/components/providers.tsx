@@ -6,7 +6,6 @@ import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { ThemeProvider } from "next-themes"
 import type { PropsWithChildren } from "react"
 import { useRegions } from "@/hooks/use-region"
-import { CartPrefetch } from "./cart-prefetch"
 
 function StorefrontRegionBoundary({ children }: PropsWithChildren) {
   const { selectedRegion } = useRegions()
@@ -29,10 +28,7 @@ export function Providers({ children }: PropsWithChildren) {
         disableTransitionOnChange
         enableSystem
       >
-        <StorefrontRegionBoundary>
-          <CartPrefetch />
-          {children}
-        </StorefrontRegionBoundary>
+        <StorefrontRegionBoundary>{children}</StorefrontRegionBoundary>
         <Toaster />
       </ThemeProvider>
     </StorefrontDataProvider>

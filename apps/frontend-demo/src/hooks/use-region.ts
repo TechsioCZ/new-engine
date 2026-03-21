@@ -48,9 +48,8 @@ export function useRegions() {
       queryClient.invalidateQueries({
         queryKey: storefront.queryKeys.cart.all(),
       })
-      // Keep legacy queries coherent until cart/search/categories are migrated.
+      // Keep legacy product queries coherent until search/categories are migrated.
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all() })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
     },
     [queryClient, selectedRegionId]
   )
