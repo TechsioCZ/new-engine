@@ -128,6 +128,7 @@
   --color-steps-fg-current: white;
   --color-steps-indicator-current: var(--color-secondary);
   --padding-content: var(--spacing-200) 0;
+  --spacing-steps-list-vertical: 0;
 
   /* === TREE VIEW === */
   --color-tree-node-selected: transparent;
