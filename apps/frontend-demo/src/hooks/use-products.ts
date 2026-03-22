@@ -38,6 +38,15 @@ type StorefrontProductInput = Parameters<
   typeof storefront.hooks.products.useProduct
 >[0]
 
+const toStorefrontProductInput = (
+  handle: string,
+  regionId?: string
+): StorefrontProductInput =>
+  ({
+    ...buildProductDetailQuery(handle, regionId),
+    enabled: Boolean(regionId),
+  }) as StorefrontProductInput
+
 const toStorefrontProductsInput = (
   params: UseProductsParams
 ): StorefrontProductsInput => {
@@ -96,10 +105,7 @@ export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
 }
 
 export function useProduct(handle: string, regionId?: string) {
-  const input = buildProductDetailQuery(
-    handle,
-    regionId
-  ) as StorefrontProductInput
+  const input = toStorefrontProductInput(handle, regionId)
   const { product, isLoading, error } =
     storefront.hooks.products.useProduct(input)
 
