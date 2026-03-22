@@ -1,11 +1,17 @@
-﻿import {
+import {
   useMutation,
   useQuery,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import type { AuthQueryKeys } from "../auth/types"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
+import type {
+  StorefrontCustomerCreateAddressContext,
+  StorefrontCustomerUpdateAddressContext,
+} from "../shared/address"
+import { assertStorefrontAddressValidation } from "../shared/address"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
@@ -13,11 +19,11 @@ import type {
 import { createQueryKey, type QueryNamespace } from "../shared/query-keys"
 import { createCustomerQueryKeys } from "./query-keys"
 import type {
+  CustomerAddressAdapter,
   CustomerAddressCreateInputBase,
   CustomerAddressListInputBase,
   CustomerAddressListResponse,
   CustomerAddressUpdateInputBase,
-  CustomerAddressValidationResult,
   CustomerMutationOptions,
   CustomerProfileUpdateInputBase,
   CustomerQueryKeys,
@@ -25,21 +31,6 @@ import type {
   UseCustomerAddressesResult,
   UseSuspenseCustomerAddressesResult,
 } from "./types"
-
-const handleAddressValidation = (result: CustomerAddressValidationResult) => {
-  if (!result) {
-    return
-  }
-  if (result instanceof Error) {
-    throw result
-  }
-  if (Array.isArray(result)) {
-    throw new Error(result.filter(Boolean).join(", "))
-  }
-  if (typeof result === "string") {
-    throw new Error(result)
-  }
-}
 
 export type CreateCustomerHooksConfig<
   TCustomer,
@@ -62,19 +53,15 @@ export type CreateCustomerHooksConfig<
     TUpdateCustomerParams
   >
   buildListParams?: (input: TListInput) => TListParams
-  buildCreateParams?: (input: TCreateInput) => TCreateParams
-  buildUpdateParams?: (input: TUpdateInput) => TUpdateParams
+  addressAdapter?: CustomerAddressAdapter<
+    TCreateInput,
+    TCreateParams,
+    TUpdateInput,
+    TUpdateParams
+  >
   buildUpdateCustomerParams?: (
     input: TUpdateCustomerInput
   ) => TUpdateCustomerParams
-  normalizeCreateAddressInput?: (input: TCreateInput) => TCreateInput
-  normalizeUpdateAddressInput?: (input: TUpdateInput) => TUpdateInput
-  validateCreateAddressInput?: (
-    input: TCreateInput
-  ) => CustomerAddressValidationResult
-  validateUpdateAddressInput?: (
-    input: TUpdateInput
-  ) => CustomerAddressValidationResult
   queryKeys?: CustomerQueryKeys<TListParams>
   authQueryKeys?: Pick<AuthQueryKeys, "customer">
   queryKeyNamespace?: QueryNamespace
@@ -95,22 +82,20 @@ export function createCustomerHooks<
   TAddress,
   TListInput extends CustomerAddressListInputBase,
   TListParams = TListInput,
-  TCreateInput extends CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateInput extends
+    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
   TCreateParams = TCreateInput,
-  TUpdateInput extends CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateInput extends
+    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
   TUpdateParams = TUpdateInput,
-  TUpdateCustomerInput extends CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerInput extends
+    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
   TUpdateCustomerParams = TUpdateCustomerInput,
 >({
   service,
   buildListParams,
-  buildCreateParams,
-  buildUpdateParams,
+  addressAdapter,
   buildUpdateCustomerParams,
-  normalizeCreateAddressInput,
-  normalizeUpdateAddressInput,
-  validateCreateAddressInput,
-  validateUpdateAddressInput,
   queryKeys,
   authQueryKeys,
   queryKeyNamespace = "storefront-data",
@@ -135,12 +120,24 @@ export function createCustomerHooks<
   }
   const buildList =
     buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
-  const buildCreate =
-    buildCreateParams ??
+  const buildCreate: (
+    input: TCreateInput,
+    context: StorefrontCustomerCreateAddressContext
+  ) => TCreateParams =
+    addressAdapter?.toCreateParams ??
     ((input: TCreateInput) => input as unknown as TCreateParams)
-  const buildUpdate =
-    buildUpdateParams ??
-    ((input: TUpdateInput) => input as unknown as TUpdateParams)
+  const buildUpdate: (
+    input: TUpdateInput,
+    context: StorefrontCustomerUpdateAddressContext
+  ) => TUpdateParams =
+    addressAdapter?.toUpdateParams ??
+    ((input: TUpdateInput) => {
+      const { addressId: _addressId, ...restUpdateInput } =
+        input as TUpdateInput & {
+          addressId?: string
+        }
+      return restUpdateInput as unknown as TUpdateParams
+    })
   const buildUpdateCustomer =
     buildUpdateCustomerParams ??
     ((input: TUpdateCustomerInput) => input as unknown as TUpdateCustomerParams)
@@ -148,9 +145,7 @@ export function createCustomerHooks<
   function useCustomerAddresses(
     input: TListInput,
     options?: {
-      queryOptions?: ReadQueryOptions<
-        CustomerAddressListResponse<TAddress>
-      >
+      queryOptions?: ReadQueryOptions<CustomerAddressListResponse<TAddress>>
     }
   ): UseCustomerAddressesResult<TAddress> {
     const { enabled: inputEnabled, ...listInput } = input as TListInput & {
@@ -174,8 +169,7 @@ export function createCustomerHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }
@@ -183,9 +177,7 @@ export function createCustomerHooks<
   function useSuspenseCustomerAddresses(
     input: TListInput,
     options?: {
-      queryOptions?: SuspenseQueryOptions<
-        CustomerAddressListResponse<TAddress>
-      >
+      queryOptions?: SuspenseQueryOptions<CustomerAddressListResponse<TAddress>>
     }
   ): UseSuspenseCustomerAddressesResult<TAddress> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
@@ -216,16 +208,23 @@ export function createCustomerHooks<
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TCreateInput, TContext>({
       mutationFn: (input: TCreateInput) => {
-        const normalized = normalizeCreateAddressInput
-          ? normalizeCreateAddressInput(input)
+        const normalized = addressAdapter?.normalizeCreate
+          ? addressAdapter.normalizeCreate(input, { mode: "create" })
           : input
-        handleAddressValidation(validateCreateAddressInput?.(normalized))
-        return service.createAddress(buildCreate(normalized))
+        assertStorefrontAddressValidation(
+          addressAdapter?.validateCreate?.(normalized, { mode: "create" })
+        )
+        return service.createAddress(
+          buildCreate(normalized, { mode: "create" })
+        )
       },
       onMutate: options?.onMutate,
       onSuccess: (address, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(address, variables, context)
       },
@@ -248,20 +247,30 @@ export function createCustomerHooks<
         if (!addressId) {
           throw new Error("Address id is required")
         }
-        const normalized = normalizeUpdateAddressInput
-          ? normalizeUpdateAddressInput(input)
+        const normalized = addressAdapter?.normalizeUpdate
+          ? addressAdapter.normalizeUpdate(input, {
+              mode: "update",
+            })
           : input
-        const updateInput = {
-          ...(normalized as TUpdateInput & { addressId?: string }),
-        }
-        delete updateInput.addressId
-        handleAddressValidation(validateUpdateAddressInput?.(normalized))
-        return service.updateAddress(addressId, buildUpdate(updateInput))
+        assertStorefrontAddressValidation(
+          addressAdapter?.validateUpdate?.(normalized, {
+            mode: "update",
+          })
+        )
+        return service.updateAddress(
+          addressId,
+          buildUpdate(normalized, {
+            mode: "update",
+          })
+        )
       },
       onMutate: options?.onMutate,
       onSuccess: (address, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(address, variables, context)
       },
@@ -275,10 +284,10 @@ export function createCustomerHooks<
   }
 
   function useDeleteCustomerAddress<TContext = unknown>(
-    options?: CustomerMutationOptions<void, { addressId?: string }, TContext>
+    options?: CustomerMutationOptions<void, { addressId: string }, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation<void, unknown, { addressId?: string }, TContext>({
+    return useMutation<void, unknown, { addressId: string }, TContext>({
       mutationFn: ({ addressId }) => {
         if (!addressId) {
           throw new Error("Address id is required")
@@ -289,6 +298,9 @@ export function createCustomerHooks<
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(data, variables, context)
       },
@@ -340,3 +352,32 @@ export function createCustomerHooks<
     useUpdateCustomer,
   }
 }
+
+export type CustomerHooks<
+  TCustomer,
+  TAddress,
+  TListInput extends CustomerAddressListInputBase,
+  TListParams = TListInput,
+  TCreateInput extends
+    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateParams = TCreateInput,
+  TUpdateInput extends
+    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateParams = TUpdateInput,
+  TUpdateCustomerInput extends
+    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerParams = TUpdateCustomerInput,
+> = ReturnType<
+  typeof createCustomerHooks<
+    TCustomer,
+    TAddress,
+    TListInput,
+    TListParams,
+    TCreateInput,
+    TCreateParams,
+    TUpdateInput,
+    TUpdateParams,
+    TUpdateCustomerInput,
+    TUpdateCustomerParams
+  >
+>

@@ -1,22 +1,24 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { createAuthHooks, createAuthQueryKeys } from "../src/auth"
-import { createCartQueryKeys } from "../src/cart"
-import { createCategoryHooks, createCategoryQueryKeys } from "../src/categories"
-import { createCheckoutHooks } from "../src/checkout"
-import {
-  createCollectionHooks,
-  createCollectionQueryKeys,
-} from "../src/collections"
+import { StorefrontDataProvider } from "../src/client/provider"
+import { createAuthHooks } from "../src/auth/hooks"
+import { createAuthQueryKeys } from "../src/auth/query-keys"
+import { createCartQueryKeys } from "../src/cart/query-keys"
+import { createCategoryHooks } from "../src/categories/hooks"
+import { createCategoryQueryKeys } from "../src/categories/query-keys"
+import { createCheckoutHooks } from "../src/checkout/hooks"
+import { createCollectionHooks } from "../src/collections/hooks"
+import { createCollectionQueryKeys } from "../src/collections/query-keys"
 import {
   createProductHooks,
-  createProductQueryKeys,
-  type ProductListInputBase,
-} from "../src/products"
-import { createRegionHooks } from "../src/regions"
-import { createCacheConfig, createQueryKey } from "../src/shared"
-import { StorefrontDataProvider } from "../src/client"
+} from "../src/products/hooks"
+import { createProductQueryKeys } from "../src/products/query-keys"
+import type { ProductListInputBase } from "../src/products/types"
+import { createRegionHooks } from "../src/regions/hooks"
+import { createCacheConfig } from "../src/shared/cache-config"
+import { shouldSkipPrefetch } from "../src/shared/prefetch"
+import { createQueryKey } from "../src/shared/query-keys"
 
 const createWrapper = (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
@@ -24,184 +26,178 @@ const createWrapper = (client: QueryClient) =>
   )
 
 describe("storefront-data missing hook coverage", () => {
-  it("strips enabled from categories list/detail params", async () => {
-    type Category = { id: string }
-
-    let listSawEnabled = false
-    let detailSawEnabled = false
-
-    const service = {
-      getCategories: async () => ({
-        categories: [{ id: "cat_1" }],
-        count: 1,
-      }),
-      getCategory: async () => ({ id: "cat_1" }),
-    }
-
-    const { useCategories, useCategory } = createCategoryHooks({
-      service,
-      buildListParams: (input: {
-        page?: number
-        limit?: number
-        offset?: number
-        enabled?: boolean
+  describe.each([
+    {
+      domain: "categories",
+      namespace: "test-categories",
+      listInput: { page: 1, limit: 2, enabled: true },
+      detailInput: { id: "cat_1", enabled: true },
+      createHooks: (args: {
+        service: {
+          getList: () => Promise<{ items: { id: string }[]; count: number }>
+          getDetail: () => Promise<{ id: string }>
+        }
+        onListInput: (input: {
+          page?: number
+          limit?: number
+          offset?: number
+          enabled?: boolean
+        }) => void
+        onDetailInput: (input: { id: string; enabled?: boolean }) => void
       }) => {
-        listSawEnabled = "enabled" in input
-        return input
+        const mappedService = {
+          getCategories: async () => {
+            const response = await args.service.getList()
+            return { categories: response.items, count: response.count }
+          },
+          getCategory: args.service.getDetail,
+        }
+        const { useCategories, useCategory } = createCategoryHooks({
+          service: mappedService,
+          buildListParams: (input) => {
+            args.onListInput(input)
+            return input
+          },
+          buildDetailParams: (input) => {
+            args.onDetailInput(input)
+            return input
+          },
+          queryKeyNamespace: "test-categories",
+        })
+        return {
+          useListHook: () => useCategories({ page: 1, limit: 2, enabled: true }),
+          useDetailHook: () => useCategory({ id: "cat_1", enabled: true }),
+        }
       },
-      buildDetailParams: (input: { id: string; enabled?: boolean }) => {
-        detailSawEnabled = "enabled" in input
-        return input
-      },
-      queryKeyNamespace: "test-categories",
-    })
-
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    const wrapper = createWrapper(queryClient)
-
-    const { result: listResult } = renderHook(
-      () => useCategories({ page: 1, limit: 2, enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(listResult.current.isSuccess).toBe(true)
-    })
-
-    expect(listSawEnabled).toBe(false)
-
-    const { result: detailResult } = renderHook(
-      () => useCategory({ id: "cat_1", enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(detailResult.current.isSuccess).toBe(true)
-    })
-
-    expect(detailSawEnabled).toBe(false)
-  })
-
-  it("strips enabled from collections list/detail params", async () => {
-    type Collection = { id: string }
-
-    let listSawEnabled = false
-    let detailSawEnabled = false
-
-    const service = {
-      getCollections: async () => ({
-        collections: [{ id: "col_1" }],
-        count: 1,
-      }),
-      getCollection: async () => ({ id: "col_1" }),
-    }
-
-    const { useCollections, useCollection } = createCollectionHooks({
-      service,
-      buildListParams: (input: {
-        page?: number
-        limit?: number
-        offset?: number
-        enabled?: boolean
+    },
+    {
+      domain: "collections",
+      namespace: "test-collections",
+      listInput: { page: 1, limit: 1, enabled: true },
+      detailInput: { id: "col_1", enabled: true },
+      createHooks: (args: {
+        service: {
+          getList: () => Promise<{ items: { id: string }[]; count: number }>
+          getDetail: () => Promise<{ id: string }>
+        }
+        onListInput: (input: {
+          page?: number
+          limit?: number
+          offset?: number
+          enabled?: boolean
+        }) => void
+        onDetailInput: (input: { id: string; enabled?: boolean }) => void
       }) => {
-        listSawEnabled = "enabled" in input
-        return input
+        const mappedService = {
+          getCollections: async () => {
+            const response = await args.service.getList()
+            return { collections: response.items, count: response.count }
+          },
+          getCollection: args.service.getDetail,
+        }
+        const { useCollections, useCollection } = createCollectionHooks({
+          service: mappedService,
+          buildListParams: (input) => {
+            args.onListInput(input)
+            return input
+          },
+          buildDetailParams: (input) => {
+            args.onDetailInput(input)
+            return input
+          },
+          queryKeyNamespace: "test-collections",
+        })
+        return {
+          useListHook: () => useCollections({ page: 1, limit: 1, enabled: true }),
+          useDetailHook: () => useCollection({ id: "col_1", enabled: true }),
+        }
       },
-      buildDetailParams: (input: { id: string; enabled?: boolean }) => {
-        detailSawEnabled = "enabled" in input
-        return input
-      },
-      queryKeyNamespace: "test-collections",
-    })
-
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    const wrapper = createWrapper(queryClient)
-
-    const { result: listResult } = renderHook(
-      () => useCollections({ page: 1, limit: 1, enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(listResult.current.isSuccess).toBe(true)
-    })
-
-    expect(listSawEnabled).toBe(false)
-
-    const { result: detailResult } = renderHook(
-      () => useCollection({ id: "col_1", enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(detailResult.current.isSuccess).toBe(true)
-    })
-
-    expect(detailSawEnabled).toBe(false)
-  })
-
-  it("strips enabled from regions list/detail params", async () => {
-    type Region = { id: string }
-
-    let listSawEnabled = false
-    let detailSawEnabled = false
-
-    const service = {
-      getRegions: async () => ({
-        regions: [{ id: "reg_1" }],
-        count: 1,
-      }),
-      getRegion: async () => ({ id: "reg_1" }),
-    }
-
-    const { useRegions, useRegion } = createRegionHooks({
-      service,
-      buildListParams: (input: {
-        page?: number
-        limit?: number
-        offset?: number
-        enabled?: boolean
+    },
+    {
+      domain: "regions",
+      namespace: "test-regions",
+      listInput: { page: 1, limit: 1, enabled: true },
+      detailInput: { id: "reg_1", enabled: true },
+      createHooks: (args: {
+        service: {
+          getList: () => Promise<{ items: { id: string }[]; count: number }>
+          getDetail: () => Promise<{ id: string }>
+        }
+        onListInput: (input: {
+          page?: number
+          limit?: number
+          offset?: number
+          enabled?: boolean
+        }) => void
+        onDetailInput: (input: { id: string; enabled?: boolean }) => void
       }) => {
-        listSawEnabled = "enabled" in input
-        return input
+        const mappedService = {
+          getRegions: async () => {
+            const response = await args.service.getList()
+            return { regions: response.items, count: response.count }
+          },
+          getRegion: args.service.getDetail,
+        }
+        const { useRegions, useRegion } = createRegionHooks({
+          service: mappedService,
+          buildListParams: (input) => {
+            args.onListInput(input)
+            return input
+          },
+          buildDetailParams: (input) => {
+            args.onDetailInput(input)
+            return input
+          },
+          queryKeyNamespace: "test-regions",
+        })
+        return {
+          useListHook: () => useRegions({ page: 1, limit: 1, enabled: true }),
+          useDetailHook: () => useRegion({ id: "reg_1", enabled: true }),
+        }
       },
-      buildDetailParams: (input: { id: string; enabled?: boolean }) => {
-        detailSawEnabled = "enabled" in input
-        return input
-      },
-      queryKeyNamespace: "test-regions",
+    },
+  ])("enabled stripping ($domain)", ({ domain, createHooks }) => {
+    it(`strips enabled from ${domain} list/detail params`, async () => {
+      let listSawEnabled = false
+      let detailSawEnabled = false
+
+      const service = {
+        getList: async () => ({
+          items: [{ id: `${domain}_1` }],
+          count: 1,
+        }),
+        getDetail: async () => ({ id: `${domain}_1` }),
+      }
+
+      const { useListHook, useDetailHook } = createHooks({
+        service,
+        onListInput: (input) => {
+          listSawEnabled = "enabled" in input
+        },
+        onDetailInput: (input) => {
+          detailSawEnabled = "enabled" in input
+        },
+      })
+
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      })
+      const wrapper = createWrapper(queryClient)
+
+      const { result: listResult } = renderHook(() => useListHook(), { wrapper })
+      await waitFor(() => {
+        expect(listResult.current.isSuccess).toBe(true)
+      })
+      expect(listSawEnabled).toBe(false)
+
+      const { result: detailResult } = renderHook(() => useDetailHook(), {
+        wrapper,
+      })
+      await waitFor(() => {
+        expect(detailResult.current.isSuccess).toBe(true)
+      })
+      expect(detailSawEnabled).toBe(false)
     })
-
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    const wrapper = createWrapper(queryClient)
-
-    const { result: listResult } = renderHook(
-      () => useRegions({ page: 1, limit: 1, enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(listResult.current.isSuccess).toBe(true)
-    })
-
-    expect(listSawEnabled).toBe(false)
-
-    const { result: detailResult } = renderHook(
-      () => useRegion({ id: "reg_1", enabled: true }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(detailResult.current.isSuccess).toBe(true)
-    })
-
-    expect(detailSawEnabled).toBe(false)
   })
 
   it("exposes auth state", async () => {
@@ -271,7 +267,7 @@ describe("storefront-data missing hook coverage", () => {
   it("invalidates customer and order domains on login", async () => {
     const service = {
       getCustomer: async () => ({ id: "cus_1" }),
-      login: async () => ({ ok: true }),
+      login: async (_input: { email: string; password: string }) => ({ ok: true }),
       register: async () => ({ ok: true }),
       logout: async () => undefined,
     }
@@ -293,7 +289,10 @@ describe("storefront-data missing hook coverage", () => {
     const { result } = renderHook(() => useLogin(), { wrapper })
 
     await act(async () => {
-      await result.current.mutateAsync({} as never)
+      await result.current.mutateAsync({
+        email: "qa@example.com",
+        password: "password",
+      })
     })
 
     expect(invalidateSpy).toHaveBeenCalledWith({
@@ -305,6 +304,43 @@ describe("storefront-data missing hook coverage", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ordersDomainKey,
     })
+  })
+
+  it("does not retry failed login mutation even when QueryClient retries mutations", async () => {
+    const login = vi
+      .fn()
+      .mockRejectedValue(new Error("Invalid email or password"))
+    const service = {
+      getCustomer: async () => ({ id: "cus_1" }),
+      login,
+      register: async () => ({ ok: true }),
+      logout: async () => undefined,
+    }
+
+    const { useLogin } = createAuthHooks({
+      service,
+      queryKeyNamespace: "test-auth-login-no-retry",
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: 3, retryDelay: 1 },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(() => useLogin(), { wrapper })
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          email: "qa@example.com",
+          password: "bad-password",
+        })
+      ).rejects.toThrow("Invalid email or password")
+    })
+
+    expect(login).toHaveBeenCalledTimes(1)
   })
 
   it("calculates checkout shipping prices and writes cart updates", async () => {
@@ -403,9 +439,15 @@ describe("storefront-data missing hook coverage", () => {
         shipping_methods: [{ shipping_option_id: "opt_calc" }],
       })
     })
+
+    expect(queryClient.getQueryData(cartQueryKeys.detail(cart.id))).toEqual({
+      id: cart.id,
+      region_id: "reg_1",
+      shipping_methods: [{ shipping_option_id: "opt_calc" }],
+    })
   })
 
-  it("lists checkout payment providers and invalidates cart on payment", async () => {
+  it("lists checkout payment providers and patches then invalidates cart on payment", async () => {
     type Cart = {
       id: string
       region_id?: string | null
@@ -457,6 +499,11 @@ describe("storefront-data missing hook coverage", () => {
       region_id: "reg_1",
       shipping_methods: [{ shipping_option_id: "opt_fixed" }],
     }
+    queryClient.setQueryData(
+      cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" }),
+      cart
+    )
+    queryClient.setQueryData(cartQueryKeys.detail(cart.id), cart)
 
     const { result } = renderHook(
       () =>
@@ -479,10 +526,99 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     await waitFor(() => {
+      expect(
+        queryClient.getQueryData<Cart>(
+          cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" })
+        )
+      ).toEqual({
+        ...cart,
+        payment_collection: { id: "pay_col_1" },
+      })
+      expect(queryClient.getQueryData<Cart>(cartQueryKeys.detail(cart.id))).toEqual({
+        ...cart,
+        payment_collection: { id: "pay_col_1" },
+      })
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: cartQueryKeys.all(),
       })
     })
+  })
+
+  it("derives checkout payment state from cached cart when render-time cart is missing", async () => {
+    type Cart = {
+      id: string
+      region_id?: string | null
+      shipping_methods?: { shipping_option_id?: string }[]
+      payment_collection?: { id?: string; payment_sessions?: unknown[] }
+    }
+
+    type ShippingOption = {
+      id: string
+      price_type?: string | null
+      amount?: number | null
+    }
+
+    type PaymentProvider = { id: string }
+    type PaymentCollection = { id: string }
+
+    const service = {
+      listShippingOptions: async () => [] as ShippingOption[],
+      addShippingMethod: async (cartId: string) => ({
+        id: cartId,
+        region_id: "reg_1",
+        shipping_methods: [],
+      }),
+      listPaymentProviders: async () => [{ id: "provider_1" }],
+      initiatePaymentSession: async () => ({ id: "pay_col_1" }),
+    }
+
+    const cartQueryKeys = createCartQueryKeys("test-checkout-payment-cached-cart")
+    const { useCheckoutPayment } = createCheckoutHooks<
+      Cart,
+      ShippingOption,
+      PaymentProvider,
+      PaymentCollection,
+      unknown
+    >({
+      service,
+      queryKeyNamespace: "test-checkout-payment-cached-cart",
+      cartQueryKeys,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    queryClient.setQueryData(
+      cartQueryKeys.active({ cartId: "cart_1", regionId: "reg_1" }),
+      {
+        id: "cart_1",
+        region_id: "reg_1",
+        shipping_methods: [{ shipping_option_id: "opt_fixed" }],
+        payment_collection: {
+          id: "pay_col_cached",
+          payment_sessions: [{ id: "session_1" }],
+        },
+      } satisfies Cart
+    )
+
+    const { result } = renderHook(
+      () =>
+        useCheckoutPayment({
+          cartId: "cart_1",
+          regionId: "reg_1",
+        }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.paymentProviders).toHaveLength(1)
+    })
+
+    expect(result.current.canInitiatePayment).toBe(true)
+    expect(result.current.hasPaymentCollection).toBe(true)
+    expect(result.current.hasPaymentSessions).toBe(true)
   })
 
   it("initiates checkout payment without forwarding render-time cart", async () => {
@@ -819,5 +955,61 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     expect(fetchCount).toBe(2)
+  })
+
+  it("skips prefetch when the same query is already in flight", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const queryKey = createQueryKey("test-prefetch-inflight", "products", {
+      page: 1,
+      limit: 2,
+    })
+
+    let resolveFetch: (() => void) | undefined
+    const fetchPromise = queryClient.fetchQuery({
+      queryKey,
+      queryFn: async () => {
+        await new Promise<void>((resolve) => {
+          resolveFetch = resolve
+        })
+
+        return {
+          products: [],
+          count: 0,
+          limit: 2,
+          offset: 0,
+        }
+      },
+    })
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(queryKey)?.fetchStatus).toBe("fetching")
+    })
+
+    expect(queryClient.getQueryData(queryKey)).toBeUndefined()
+
+    expect(
+      shouldSkipPrefetch({
+        queryClient,
+        queryKey,
+        cacheOptions: { staleTime: 0 },
+        skipIfCached: true,
+        skipMode: "fresh",
+      })
+    ).toBe(true)
+
+    expect(
+      shouldSkipPrefetch({
+        queryClient,
+        queryKey,
+        cacheOptions: { staleTime: 0 },
+        skipIfCached: true,
+        skipMode: "any",
+      })
+    ).toBe(true)
+
+    resolveFetch?.()
+    await fetchPromise
   })
 })

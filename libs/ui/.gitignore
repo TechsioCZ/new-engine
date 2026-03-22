@@ -13,3 +13,6 @@ node-compile-cache
 !.vscode/extensions.json
 .idea
 .vercel
+
+# Ignore generated accessibility reports from storybook (a11y)
+a11y-report/

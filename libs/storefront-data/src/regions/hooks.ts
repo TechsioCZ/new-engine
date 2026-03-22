@@ -3,16 +3,20 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { useEffect, useRef } from "react"
 import {
+  type CacheConfig,
   createCacheConfig,
   getPrefetchCacheOptions,
-  type CacheConfig,
 } from "../shared/cache-config"
-import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
-import { shouldSkipPrefetch, type PrefetchSkipMode } from "../shared/prefetch"
+import { toErrorMessage } from "../shared/error-utils"
+import type {
+  ReadQueryOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
+import { resolvePagination } from "../shared/pagination"
+import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
-import { resolvePagination } from "../products/pagination"
+import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createRegionQueryKeys } from "./query-keys"
 import type {
   RegionDetailInputBase,
@@ -116,8 +120,7 @@ export function createRegionHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       totalCount,
       currentPage: pagination.page,
       totalPages,
@@ -129,7 +132,9 @@ export function createRegionHooks<
 
   function useSuspenseRegions(
     input: TListInput,
-    options?: { queryOptions?: SuspenseQueryOptions<RegionListResponse<TRegion>> }
+    options?: {
+      queryOptions?: SuspenseQueryOptions<RegionListResponse<TRegion>>
+    }
   ): UseSuspenseRegionsResult<TRegion> {
     const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
@@ -199,8 +204,7 @@ export function createRegionHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }
@@ -212,13 +216,15 @@ export function createRegionHooks<
     const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
       enabled?: boolean
     }
-    if (!input.id) {
-      throw new Error("Region id is required for region queries")
-    }
     const detailParams = buildDetail(detailInput as TDetailInput)
     const query = useSuspenseQuery({
       queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => service.getRegion(detailParams, signal),
+      queryFn: ({ signal }) => {
+        if (!input.id) {
+          throw new Error("Region id is required for region queries")
+        }
+        return service.getRegion(detailParams, signal)
+      },
       ...resolvedCacheConfig.static,
       ...(options?.queryOptions ?? {}),
     })
@@ -241,18 +247,7 @@ export function createRegionHooks<
     skipMode?: PrefetchSkipMode
   }) {
     const queryClient = useQueryClient()
-    const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-      new Map()
-    )
-    useEffect(() => {
-      const timeouts = timeoutsRef.current
-      return () => {
-        for (const timeout of timeouts.values()) {
-          clearTimeout(timeout)
-        }
-        timeouts.clear()
-      }
-    }, [])
+    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? "static"
     const defaultDelay = options?.defaultDelay ?? 800
     const skipIfCached = options?.skipIfCached ?? true
@@ -298,26 +293,11 @@ export function createRegionHooks<
       const listParams = buildList(listInput as TListInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      const existing = timeoutsRef.current.get(id)
-      if (existing) {
-        clearTimeout(existing)
-      }
-
-      const timeoutId = setTimeout(() => {
-        prefetchRegions(input)
-        timeoutsRef.current.delete(id)
-      }, delay)
-
-      timeoutsRef.current.set(id, timeoutId)
-      return id
-    }
-
-    const cancelPrefetch = (prefetchId: string) => {
-      const timeout = timeoutsRef.current.get(prefetchId)
-      if (timeout) {
-        clearTimeout(timeout)
-        timeoutsRef.current.delete(prefetchId)
-      }
+      return schedulePrefetch(
+        () => prefetchRegions(input),
+        id,
+        delay
+      )
     }
 
     return {
@@ -334,18 +314,7 @@ export function createRegionHooks<
     skipMode?: PrefetchSkipMode
   }) {
     const queryClient = useQueryClient()
-    const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-      new Map()
-    )
-    useEffect(() => {
-      const timeouts = timeoutsRef.current
-      return () => {
-        for (const timeout of timeouts.values()) {
-          clearTimeout(timeout)
-        }
-        timeouts.clear()
-      }
-    }, [])
+    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? "static"
     const defaultDelay = options?.defaultDelay ?? 400
     const skipIfCached = options?.skipIfCached ?? true
@@ -359,9 +328,10 @@ export function createRegionHooks<
       if (!input.id) {
         return
       }
-      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
+      const { enabled: _inputEnabled, ...detailInput } =
+        input as TDetailInput & {
+          enabled?: boolean
+        }
       const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       if (
@@ -388,32 +358,18 @@ export function createRegionHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
+      const { enabled: _inputEnabled, ...detailInput } =
+        input as TDetailInput & {
+          enabled?: boolean
+        }
       const detailParams = buildDetail(detailInput as TDetailInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      const existing = timeoutsRef.current.get(id)
-      if (existing) {
-        clearTimeout(existing)
-      }
-
-      const timeoutId = setTimeout(() => {
-        prefetchRegion(input)
-        timeoutsRef.current.delete(id)
-      }, delay)
-
-      timeoutsRef.current.set(id, timeoutId)
-      return id
-    }
-
-    const cancelPrefetch = (prefetchId: string) => {
-      const timeout = timeoutsRef.current.get(prefetchId)
-      if (timeout) {
-        clearTimeout(timeout)
-        timeoutsRef.current.delete(prefetchId)
-      }
+      return schedulePrefetch(
+        () => prefetchRegion(input),
+        id,
+        delay
+      )
     }
 
     return {
@@ -432,3 +388,19 @@ export function createRegionHooks<
     usePrefetchRegion,
   }
 }
+
+export type RegionHooks<
+  TRegion,
+  TListInput extends RegionListInputBase,
+  TListParams,
+  TDetailInput extends RegionDetailInputBase,
+  TDetailParams,
+> = ReturnType<
+  typeof createRegionHooks<
+    TRegion,
+    TListInput,
+    TListParams,
+    TDetailInput,
+    TDetailParams
+  >
+>

@@ -24,11 +24,9 @@ export function normalizeError(throwable: unknown): Error {
 }
 
 export function shouldCaptureException(error: unknown): boolean {
-  if (error === null || typeof error !== "object") {
-    return true
+  if (error instanceof MedusaError) {
+    return !CLIENT_ERROR_TYPES.has(error.type)
   }
 
-  const errorObj = error as { type?: string }
-
-  return !(errorObj.type && CLIENT_ERROR_TYPES.has(errorObj.type))
+  return true
 }

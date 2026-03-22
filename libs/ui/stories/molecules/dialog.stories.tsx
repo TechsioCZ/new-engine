@@ -2,8 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { Button } from '../../src/atoms/button'
-import { Input } from '../../src/atoms/input'
-import { Label } from '../../src/atoms/label'
 import { Link } from '../../src/atoms/link'
 import { Dialog } from '../../src/molecules/dialog'
 
@@ -21,84 +19,110 @@ const meta: Meta<typeof Dialog> = {
   },
   tags: ['autodocs'],
   argTypes: {
-    role: {
-      control: { type: 'select' },
-      options: ['dialog', 'alertdialog'],
-      description: 'The semantic role of the dialog',
-    },
-    open: {
-      control: { type: 'boolean' },
-      description: 'Controlled open state of the dialog',
-    },
-    closeOnEscape: {
-      control: { type: 'boolean' },
-      description: 'Whether to close dialog on Escape key',
-    },
-    closeOnInteractOutside: {
-      control: { type: 'boolean' },
-      description: 'Whether to close dialog when clicking outside',
-    },
-    preventScroll: {
-      control: { type: 'boolean' },
-      description: 'Whether to prevent body scroll when open',
-    },
-    trapFocus: {
-      control: { type: 'boolean' },
-      description: 'Whether to trap focus inside dialog',
-    },
-    hideCloseButton: {
-      control: { type: 'boolean' },
-      description: 'Whether to hide the close button',
-    },
+    // Text inputs
     triggerText: {
-      control: { type: 'text' },
-      description: 'Text for default trigger button',
+      control: 'text',
+      description: 'Text for trigger button',
     },
     title: {
-      control: { type: 'text' },
+      control: 'text',
       description: 'Dialog title',
     },
     description: {
-      control: { type: 'text' },
+      control: 'text',
       description: 'Dialog description/subtitle',
     },
+
+    // Appearance variants
+    placement: {
+      control: 'select',
+      options: ['center', 'left', 'right', 'top', 'bottom'],
+      description: 'Dialog/drawer placement',
+      table: { defaultValue: { summary: 'center' } },
+    },
+    size: {
+      control: 'select',
+      options: ['xs', 'sm', 'md', 'lg', 'xl', 'full'],
+      description: 'Dialog size',
+      table: { defaultValue: { summary: 'md' } },
+    },
+    behavior: {
+      control: 'select',
+      options: ['modal', 'modeless'],
+      description: 'Modal blocks background, modeless allows interaction',
+      table: { defaultValue: { summary: 'modal' } },
+    },
+    position: {
+      control: 'select',
+      options: ['fixed', 'absolute', 'sticky', 'relative'],
+      description: 'CSS position type',
+      table: { defaultValue: { summary: 'fixed' } },
+    },
+    role: {
+      control: 'select',
+      options: ['dialog', 'alertdialog'],
+      description: 'Semantic role (alertdialog for destructive actions)',
+      table: { defaultValue: { summary: 'dialog' } },
+    },
+
+    // Behavior toggles
+    closeOnEscape: {
+      control: 'boolean',
+      description: 'Close on Escape key',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    closeOnInteractOutside: {
+      control: 'boolean',
+      description: 'Close when clicking outside',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    preventScroll: {
+      control: 'boolean',
+      description: 'Prevent body scroll when open',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    trapFocus: {
+      control: 'boolean',
+      description: 'Trap focus inside dialog',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    portal: {
+      control: 'boolean',
+      description: 'Render in portal (escapes container)',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    hideCloseButton: {
+      control: 'boolean',
+      description: 'Hide the X close button',
+      table: { defaultValue: { summary: 'false' } },
+    },
+  },
+  args: {
+    triggerText: 'Open Dialog',
+    title: 'Edit Profile',
+    description:
+      `This dialog includes both a title and a description for additional context. 
+      The description provides more context about the dialog's purpose.`,
+    placement: 'center',
+    size: 'md',
+    behavior: 'modal',
+    position: 'fixed',
+    role: 'dialog',
+    closeOnEscape: true,
+    closeOnInteractOutside: true,
+    preventScroll: true,
+    trapFocus: true,
+    portal: true,
+    hideCloseButton: false,
   },
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-// Basic dialog example
-export const Default: Story = {
+export const Playground: Story = {
   args: {
-    triggerText: 'Open Dialog',
-    title: 'Edit Profile',
-    description:
-      'Make changes to your profile here. Click save when you are done.',
-    children: (
-      <div className="space-y-200">
-        <div className="flex flex-col">
-          <Label htmlFor="name" size="sm">
-            Name
-          </Label>
-          <Input size="sm" id="name" defaultValue="John Doe" />
-        </div>
-        <div className="flex flex-col">
-          <Label htmlFor="username" size="sm">
-            Username
-          </Label>
-          <Input size="sm" id="username" defaultValue="@johndoe" />
-        </div>
-      </div>
-    ),
-    actions: (
-      <>
-        <Button variant="secondary" theme="outlined">
-          Cancel
-        </Button>
-        <Button variant="primary">Save Changes</Button>
-      </>
-    ),
+    title: 'Playground Dialog',
   },
 }
 
@@ -271,22 +295,40 @@ export const AllVariants: Story = {
 
 // Alert dialog for destructive actions
 export const AlertDialog: Story = {
-  args: {
-    role: 'alertdialog',
-    triggerText: 'Delete Account',
-    title: 'Are you absolutely sure?',
-    description:
-      'This action cannot be undone. This will permanently delete your account and remove your data from our servers.',
-    closeOnEscape: false,
-    closeOnInteractOutside: false,
-    actions: (
+  render: () => {
+    const [open, setOpen] = useState(false)
+
+    return (
       <>
-        <Button variant="secondary" theme="outlined">
-          Cancel
+        <Button onClick={() => setOpen(true)} variant="danger">
+          Delete Account
         </Button>
-        <Button variant="danger">Yes, delete account</Button>
+        <Dialog
+          open={open}
+          onOpenChange={({ open }) => setOpen(open)}
+          customTrigger
+          role="alertdialog"
+          title="Are you absolutely sure?"
+          description="This action cannot be undone. This will permanently delete your account and remove your data from our servers."
+          closeOnEscape={false}
+          closeOnInteractOutside={false}
+          actions={
+            <>
+              <Button
+                variant="secondary"
+                theme="outlined"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={() => setOpen(false)}>
+                Yes, delete account
+              </Button>
+            </>
+          }
+        />
       </>
-    ),
+    )
   },
 }
 

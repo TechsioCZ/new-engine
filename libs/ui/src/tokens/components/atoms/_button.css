@@ -22,8 +22,8 @@
   --color-button-bg-danger: var(--color-button-danger);
 
   /* Foreground colors */
-  --color-button-fg: var(--color-fg-reverse);
-  --color-button-fg-light: var(--color-fg-reverse);
+  --color-button-fg: var(--color-fg-light);
+  --color-button-fg-light: var(--color-fg-light);
   --color-button-fg-outlined: var(--color-fg-primary);
   --color-button-fg-primary: var(--color-button-fg);
   --color-button-fg-secondary: var(--color-button-fg);
@@ -40,11 +40,11 @@
   --color-button-fg-outlined-tertiary: var(--color-button-fg-outlined);
   --color-button-fg-outlined-warning: var(--color-button-fg-outlined);
   --color-button-fg-outlined-danger: var(--color-button-fg-outlined);
-  --color-button-fg-primary-borderless: var(--color-button-primary);
-  --color-button-fg-secondary-borderless: var(--color-button-secondary);
-  --color-button-fg-tertiary-borderless: var(--color-button-tertiary);
-  --color-button-fg-warning-borderless: var(--color-button-warning);
-  --color-button-fg-danger-borderless: var(--color-button-danger);
+  --color-button-fg-primary-borderless: var(--color-primary-accent-fg);
+  --color-button-fg-secondary-borderless: var(--color-secondary-accent-fg);
+  --color-button-fg-tertiary-borderless: var(--color-tertiary-accent-fg);
+  --color-button-fg-warning-borderless: var(--color-warning-fg);
+  --color-button-fg-danger-borderless: var(--color-danger-fg);
 
   /* Border colors */
   --color-button-border-primary: var(--color-button-primary);
@@ -141,6 +141,7 @@
   );
 
   /* Outlined variants */
+  --color-button-bg-outlined: transparent;
   --color-button-bg-outlined-primary-hover: --alpha(
     var(--color-button-primary) /
     var(--opacity-outlined-hover)
@@ -192,9 +193,9 @@
   --spacing-button-md: var(--spacing-200);
   --spacing-button-lg: var(--spacing-250);
 
-  --padding-button-sm: var(--spacing-150) var(--spacing-250);
-  --padding-button-md: var(--spacing-200) var(--spacing-350);
-  --padding-button-lg: var(--spacing-250) var(--spacing-450);
+  --padding-button-sm: var(--spacing-50) var(--spacing-200);
+  --padding-button-md: var(--spacing-100) var(--spacing-250);
+  --padding-button-lg: var(--spacing-150) var(--spacing-400);
 
   /* === TYPOGRAPHY === */
   --text-button-sm: var(--text-sm);

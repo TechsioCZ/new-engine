@@ -4,7 +4,7 @@
   --color-status-text-fg-success: var(--color-success);
   --color-status-text-fg-warning: var(--color-warning);
   --color-status-text-fg-default: var(--color-fg-secondary);
-  
+
   /* Text sizes - inherit from input sizing */
   --text-status-text-sm: var(--text-input-sm);
   --text-status-text-md: var(--text-input-md);
@@ -15,9 +15,8 @@
   --spacing-status-text-icon-gap-md: var(--spacing-100);
   --spacing-status-text-icon-gap-lg: var(--spacing-200);
 
-  --spacing-status-text-icon-sm: var(--spacing-50);
-  --spacing-status-text-icon-md: var(--spacing-100);
-  --spacing-status-text-icon-lg: var(--spacing-200);
+  --spacing-status-text-icon: var(--spacing-50);
+  --spacing-status-text-icon-long-text: var(--spacing-100);
 }
 
 @utility token-icon-status-text-success {

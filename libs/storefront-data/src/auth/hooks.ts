@@ -1,12 +1,16 @@
-﻿import {
+import {
+  type QueryClient,
   useMutation,
   useQuery,
   useQueryClient,
-  type QueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
-import type { MutationOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
+import type {
+  MutationOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
 import {
   createQueryKey,
   type QueryKey,
@@ -55,8 +59,11 @@ export type CreateAuthHooksConfig<
   }
 }
 
-export type AuthMutationOptions<TData, TVariables, TContext = unknown> =
-  MutationOptions<TData, TVariables, TContext>
+export type AuthMutationOptions<
+  TData,
+  TVariables,
+  TContext = unknown,
+> = MutationOptions<TData, TVariables, TContext>
 
 export function createAuthHooks<
   TCustomer,
@@ -66,14 +73,13 @@ export function createAuthHooks<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
->(
-  {
-    service,
-    queryKeys,
-    queryKeyNamespace = "storefront-data",
-    cacheConfig,
-    invalidateOnAuthChange,
-  }: CreateAuthHooksConfig<
+>({
+  service,
+  queryKeys,
+  queryKeyNamespace = "storefront-data",
+  cacheConfig,
+  invalidateOnAuthChange,
+}: CreateAuthHooksConfig<
   TCustomer,
   TLoginInput,
   TRegisterInput,
@@ -81,11 +87,9 @@ export function createAuthHooks<
   TCreateCustomerInput,
   TLoginResult,
   TRegisterResult
->
-) {
+>) {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
-  const resolvedQueryKeys =
-    queryKeys ?? createAuthQueryKeys(queryKeyNamespace)
+  const resolvedQueryKeys = queryKeys ?? createAuthQueryKeys(queryKeyNamespace)
   const includeDefaultInvalidation =
     invalidateOnAuthChange?.includeDefaults ?? true
   const defaultInvalidateKeys = includeDefaultInvalidation
@@ -109,9 +113,7 @@ export function createAuthHooks<
     }
   }
 
-  const removeCrossDomainOnLogout = (
-    queryClient: QueryClient
-  ) => {
+  const removeCrossDomainOnLogout = (queryClient: QueryClient) => {
     for (const queryKey of removeOnLogoutKeys) {
       queryClient.removeQueries({ queryKey })
     }
@@ -138,8 +140,7 @@ export function createAuthHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }
@@ -147,7 +148,8 @@ export function createAuthHooks<
   function useSuspenseAuth(options?: {
     queryOptions?: SuspenseQueryOptions<TCustomer | null>
   }): UseSuspenseAuthResult<TCustomer> {
-    // TanStack Query limitation: suspense hooks don't support cancellation.
+    // TanStack Query limitation: cancellation does not work with Suspense hooks.
+    // Source: https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation#limitations
     const query = useSuspenseQuery<TCustomer | null>({
       queryKey: resolvedQueryKeys.customer(),
       queryFn: ({ signal }) => service.getCustomer(signal),
@@ -174,6 +176,7 @@ export function createAuthHooks<
     const queryClient = useQueryClient()
     return useMutation<TLoginResult, unknown, TLoginInput, TContext>({
       mutationFn: (input: TLoginInput) => service.login(input),
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
@@ -197,6 +200,7 @@ export function createAuthHooks<
     const queryClient = useQueryClient()
     return useMutation<TRegisterResult, unknown, TRegisterInput, TContext>({
       mutationFn: (input: TRegisterInput) => service.register(input),
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
@@ -225,6 +229,7 @@ export function createAuthHooks<
         }
         return service.createCustomer(input)
       },
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
@@ -248,6 +253,7 @@ export function createAuthHooks<
     const queryClient = useQueryClient()
     return useMutation<void, unknown, void, TContext>({
       mutationFn: () => service.logout(),
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (_data, _variables, context) => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), null)
@@ -277,6 +283,7 @@ export function createAuthHooks<
         }
         return service.updateCustomer(input)
       },
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), data)
@@ -302,6 +309,7 @@ export function createAuthHooks<
         }
         return service.refresh()
       },
+      retry: false,
       onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
@@ -330,3 +338,23 @@ export function createAuthHooks<
     useRefreshAuth,
   }
 }
+
+export type AuthHooks<
+  TCustomer,
+  TLoginInput,
+  TRegisterInput,
+  TUpdateInput,
+  TCreateCustomerInput = unknown,
+  TLoginResult = unknown,
+  TRegisterResult = unknown,
+> = ReturnType<
+  typeof createAuthHooks<
+    TCustomer,
+    TLoginInput,
+    TRegisterInput,
+    TUpdateInput,
+    TCreateCustomerInput,
+    TLoginResult,
+    TRegisterResult
+  >
+>

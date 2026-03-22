@@ -11,21 +11,19 @@ const rating = tv({
     control: ["flex"],
     itemWrapper: [
       "flex items-center",
-      "has-[:focus-visible]:outline-none",
-      "has-[:focus-visible]:ring",
-      "has-[:focus-visible]:ring-rating-ring",
+      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
+      "has-focus-visible:outline-rating-ring",
+      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
     item: [
       "cursor-pointer transition-colors duration-200",
       "cursor-pointer transition-colors duration-200 motion-reduce:transition-none",
       "text-rating-fg",
-      // States
-      "data-[checked]:text-rating-fg-active",
-      "data-[highlighted]:text-rating-fg-active",
-      "data-[disabled]:cursor-not-allowed",
-      "data-[disabled]:data-[highlighted]:text-rating-fg-disabled",
+      "data-highlighted:text-rating-fg-active",
+      "data-disabled:cursor-not-allowed",
+      "data-disabled:data-highlighted:text-rating-fg-disabled",
       "token-icon-rating",
-      "data-[half]:token-icon-rating-half",
+      "data-half:token-icon-rating-half",
     ],
   },
   variants: {
@@ -58,9 +56,11 @@ const rating = tv({
   },
 })
 
+type RatingVariants = Omit<VariantProps<typeof rating>, "isInteractive">
+
 export interface RatingProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "onChange">,
-    VariantProps<typeof rating> {
+    RatingVariants {
   value?: number
   defaultValue?: number
   count?: number
@@ -106,8 +106,8 @@ export function Rating({
     name,
     dir,
     translations,
-    onValueChange: ({ value }) => {
-      onChange?.(value)
+    onValueChange: ({ value: newValue }) => {
+      onChange?.(newValue)
     },
     onHoverChange: ({ hoveredValue }) => {
       onHoverChange?.(hoveredValue)

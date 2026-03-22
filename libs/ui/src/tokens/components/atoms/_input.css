@@ -55,9 +55,9 @@
   --color-input-ring: var(--color-ring);
 
   /* Spacing - keeping your existing values */
-  --padding-input-sm: var(--spacing-250) var(--spacing-250);
-  --padding-input-md: var(--spacing-350) var(--spacing-250);
-  --padding-input-lg: var(--spacing-450) var(--spacing-350);
+  --padding-input-sm: var(--spacing-100) var(--spacing-100);
+  --padding-input-md: var(--spacing-150) var(--spacing-150);
+  --padding-input-lg: var(--spacing-200) var(--spacing-200);
   --padding-with-button: var(--spacing-950);
 
   /* Typography */
@@ -66,8 +66,10 @@
   --text-input-lg: var(--text-lg);
 
   /* Border */
-  --border-width-input: 1px;
-  --radius-input: var(--radius-md);
+  --border-width-input: 2px;
+  --radius-input: var(--radius-form-control);
+  --radius-input-sm: var(--radius-form-control-sm);
+  --radius-input-md: var(--radius-form-control-md);
 
   /* Form field spacing */
   --spacing-form-field-gap: var(--spacing-50);

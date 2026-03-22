@@ -56,7 +56,7 @@ const meta: Meta<typeof Rating> = {
 export default meta
 type Story = StoryObj<typeof Rating>
 
-export const Default: Story = {
+export const Playground: Story = {
   args: {
     defaultValue: 3,
     count: 5,

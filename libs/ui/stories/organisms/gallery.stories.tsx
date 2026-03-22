@@ -5,25 +5,34 @@ import { StatusText } from '../../src/atoms/status-text'
 import { Gallery, type GalleryItem } from '../../src/organisms/gallery'
 import { GalleryTemplate } from '../../src/templates/gallery'
 
+const shoes1 = new URL('../../assets/gallery/shoes-1.avif', import.meta.url).href
+const shoes2 = new URL('../../assets/gallery/shoes-2.avif', import.meta.url).href
+const shoes3 = new URL('../../assets/gallery/shoes-3.avif', import.meta.url).href
+const shoes4 = new URL('../../assets/gallery/shoes-4.avif', import.meta.url).href
+const watch1 = new URL('../../assets/gallery/watch-1.avif', import.meta.url).href
+const watch2 = new URL('../../assets/gallery/watch-2.avif', import.meta.url).href
+const watch3 = new URL('../../assets/gallery/watch-3.avif', import.meta.url).href
+const watch4 = new URL('../../assets/gallery/watch-4.avif', import.meta.url).href
+
 const sneakerItems: GalleryItem[] = [
   {
     id: 'sneaker-1',
-    src: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1200',
+    src: shoes1,
     alt: 'Pastel sneaker hero shot',
   },
   {
     id: 'sneaker-2',
-    src: 'https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?w=1200',
+    src: shoes2,
     alt: 'Sneaker detail side profile',
   },
   {
     id: 'sneaker-3',
-    src: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200',
+    src: shoes3,
     alt: 'Red sneaker product variant',
   },
   {
     id: 'sneaker-4',
-    src: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=1200',
+    src: shoes4,
     alt: 'Sneaker lifestyle frame',
   },
 ]
@@ -31,22 +40,22 @@ const sneakerItems: GalleryItem[] = [
 const watchItems: GalleryItem[] = [
   {
     id: 'watch-1',
-    src: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200',
+    src: watch1,
     alt: 'Watch front product shot',
   },
   {
     id: 'watch-2',
-    src: 'https://images.unsplash.com/photo-1539874754764-5a96559165b0?w=1200',
+    src: watch2,
     alt: 'Watch on wrist',
   },
   {
     id: 'watch-3',
-    src: 'https://images.unsplash.com/photo-1508057198894-247b23fe5ade?w=1200',
+    src: watch3,
     alt: 'Macro watch close-up',
   },
   {
     id: 'watch-4',
-    src: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?w=1200',
+    src: watch4,
     alt: 'Watch flatlay',
   },
 ]
@@ -56,12 +65,12 @@ const chakraItems: GalleryItem[] = [
   ...watchItems,
   {
     id: 'chakra-9',
-    src: 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=1200',
+    src: shoes2,
     alt: 'Sneaker sole detail',
   },
   {
     id: 'chakra-10',
-    src: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=1200',
+    src: shoes3,
     alt: 'Sneaker side detail',
   },
 ]

@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createFindParams } from "@medusajs/medusa/api/utils/validators"
-import type z from "zod"
+import type { z } from "@medusajs/framework/zod"
 import { ProductProducerLink } from "../../../../../links/product-producer"
 
 export const StoreProducersDetailProductsSchema = createFindParams()

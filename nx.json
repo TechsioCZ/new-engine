@@ -19,12 +19,6 @@
           "configName": "tsconfig.lib.json"
         }
       }
-    },
-    {
-      "plugin": "@nx/playwright/plugin",
-      "options": {
-        "targetName": "e2e"
-      }
     }
   ],
   "targetDefaults": {

@@ -36,7 +36,7 @@ stories/
 - `bunx nx run ui:storybook`   # Component preview
 - `bunx nx run ui:build`       # Build library
 - `pnpm validate:tokens`       # Token validation
-- `bunx biome check --write <file>`   # Lint specific file (never ".")
+- `bunx biome check --write <file>`   # Lint-specific file (never ".")
 
 ## PR Descriptions (CLI)
 

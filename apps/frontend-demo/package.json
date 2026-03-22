@@ -32,7 +32,7 @@
   "devDependencies": {
     "@iconify/json": "^2.2.409",
     "@iconify/tailwind4": "^1.1.0",
-    "@playwright/test": "^1.56.1",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/node": "^20.17.47",
     "@types/react": "^19.2.3",

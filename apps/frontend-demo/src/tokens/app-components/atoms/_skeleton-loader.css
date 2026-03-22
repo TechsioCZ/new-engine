@@ -30,3 +30,8 @@
     transform: translateX(100%);
   }
 }
+
+@utility animate-skeleton-shimmer {
+  animation: skeleton-shimmer var(--skeleton-shimmer-duration) ease-in-out
+    infinite;
+}

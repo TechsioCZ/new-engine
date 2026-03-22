@@ -45,10 +45,18 @@ const meta: Meta<typeof Accordion> = {
 export default meta
 type Story = StoryObj<typeof Accordion>
 
-export const Default: Story = {
-  render: () => (
-    <div className="w-md">
-      <Accordion collapsible multiple={false}>
+export const Playground: Story = {
+  args: {
+    size: 'md',
+    shadow: 'none',
+    variant: 'default',
+    multiple: false,
+    collapsible: true,
+    disabled: false,
+  },
+  render: (args) => (
+    <div className="w-md h-96">
+      <Accordion {...args}>
         <Accordion.Item value="item-1">
           <Accordion.Header>
             <Accordion.Title>
@@ -307,41 +315,92 @@ export const CustomContent: Story = {
   ),
 }
 
- export const BorderlessVariant: Story = {
-    render: () => (
-      <div className="w-md flex flex-col gap-300">
-        <div>
-          <h3 className="mb-150 text-sm font-medium">Variant: default</h3>
-          <Accordion variant="default">
-            <Accordion.Item value="item-1">
+export const AllVariants: Story = {
+  render: () => (
+    <div className="w-md flex flex-col gap-300">
+      <div>
+        <h3 className="mb-150 text-sm font-medium">Variant: default</h3>
+        <Accordion variant="default" collapsible>
+          <Accordion.Item value="item-1">
+            <Accordion.Header>
+              <Accordion.Title>Default Accordion</Accordion.Title>
+              <Accordion.Indicator />
+            </Accordion.Header>
+            <Accordion.Content>
+              Default accordion with borders and standard styling.
+            </Accordion.Content>
+          </Accordion.Item>
+        </Accordion>
+      </div>
+
+      <div>
+        <h3 className="mb-150 text-sm font-medium">Variant: borderless</h3>
+        <Accordion variant="borderless" collapsible>
+          <Accordion.Item value="item-1">
+            <Accordion.Header>
+              <Accordion.Title>Borderless Accordion</Accordion.Title>
+              <Accordion.Indicator />
+            </Accordion.Header>
+            <Accordion.Content>
+              Borderless accordion for a cleaner, minimalist look.
+            </Accordion.Content>
+          </Accordion.Item>
+        </Accordion>
+      </div>
+
+      <div>
+        <h3 className="mb-150 text-sm font-medium">Nested comparison: default vs child</h3>
+        <div className="flex flex-col gap-200">
+          {/* Nested with default - has own styling */}
+          <Accordion variant="default" collapsible defaultValue={['parent-default']} className="flex-1">
+            <Accordion.Item value="parent-default">
               <Accordion.Header>
-                <Accordion.Title>Default Accordion</Accordion.Title>
+                <Accordion.Title>variant="default"</Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
               <Accordion.Content>
-                Default accordion with borders and standard styling.
+                <Accordion variant="default" collapsible defaultValue={['nested-default']}>
+                  <Accordion.Item value="nested-default">
+                    <Accordion.Header>
+                      <Accordion.Title>Nested (default)</Accordion.Title>
+                      <Accordion.Indicator />
+                    </Accordion.Header>
+                    <Accordion.Content>
+                      ← Own padding & background
+                    </Accordion.Content>
+                  </Accordion.Item>
+                </Accordion>
               </Accordion.Content>
             </Accordion.Item>
           </Accordion>
-        </div>
 
-        <div>
-          <h3 className="mb-150 text-sm font-medium">Variant: borderless</h3>
-          <Accordion variant="borderless">
-            <Accordion.Item value="item-1">
+          {/* Nested with child - inherits parent */}
+          <Accordion variant="default" collapsible defaultValue={['parent-child']} className="flex-1">
+            <Accordion.Item value="parent-child">
               <Accordion.Header>
-                <Accordion.Title>Borderless Accordion</Accordion.Title>
+                <Accordion.Title>variant="child"</Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
               <Accordion.Content>
-                Borderless accordion for a cleaner, minimalist look.
+                <Accordion variant="child" collapsible defaultValue={['nested-child']}>
+                  <Accordion.Item value="nested-child">
+                    <Accordion.Header>
+                      <Accordion.Title>Nested (child)</Accordion.Title>
+                      <Accordion.Indicator />
+                    </Accordion.Header>
+                    <Accordion.Content>
+                      ← Inherits (bg-inherit, py-0)
+                    </Accordion.Content>
+                  </Accordion.Item>
+                </Accordion>
               </Accordion.Content>
             </Accordion.Item>
           </Accordion>
         </div>
       </div>
-    ),
-  }
+    </div>
+  ),
+}
 
 export const ControlledAccordion: Story = {
   render: () => {

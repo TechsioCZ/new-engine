@@ -11,6 +11,25 @@ import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 
 export type Cart = HttpTypes.StoreCart | undefined
+
+type ErrorResponse = {
+  status?: number
+  message?: string
+  response?: { status?: number; data?: { message?: string } }
+}
+
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (!error || typeof error !== "object") return undefined
+  const err = error as ErrorResponse
+  return err.status ?? err.response?.status
+}
+
+const getErrorMessage = (error: unknown): string | undefined => {
+  if (!error || typeof error !== "object") return undefined
+  const err = error as ErrorResponse
+  return err.message ?? err.response?.data?.message
+}
+
 // Cart hook using React Query
 export function useCart() {
   const { selectedRegion } = useRegions()
@@ -48,10 +67,10 @@ export function useCart() {
           }
 
           return cart
-        } catch (err: any) {
+        } catch (err) {
           console.error("[Cart Hook] Failed to retrieve cart:", err)
           // Only remove cart ID if it's a 404 (cart not found)
-          if (err?.status === 404 || err?.response?.status === 404) {
+          if (getErrorStatus(err) === 404) {
             if (typeof window !== "undefined") {
               localStorage.removeItem(STORAGE_KEYS.CART_ID)
             }
@@ -78,9 +97,9 @@ export function useCart() {
     },
     enabled: !!selectedRegion,
     ...cacheConfig.realtime, // 30s stale, 5m gc, refetch on focus
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error) => {
       // Don't retry if cart was not found
-      if (error?.status === 404) return false
+      if (getErrorStatus(error) === 404) return false
       // Retry up to 3 times for other errors
       return failureCount < 3
     },
@@ -114,12 +133,11 @@ export function useCart() {
         type: "success",
       })
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error("[Cart Hook] Add item error:", error)
 
       // Parse error message for specific inventory issue
-      const errorMessage =
-        error?.message || error?.response?.data?.message || "Unknown error"
+      const errorMessage = getErrorMessage(error) || "Unknown error"
 
       if (errorMessage.toLowerCase().includes("inventory")) {
         toast.create({

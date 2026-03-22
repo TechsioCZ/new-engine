@@ -8,7 +8,6 @@
 
   /* === STATE VARIATIONS === */
   --color-tree-node-bg-hover: var(--color-primary-hover);
-  --color-tree-node-bg-selected: transparent;
   --color-tree-fg-hover: var(--color-fg-reverse);
   --color-tree-fg-selected: var(--color-tree-accent);
 

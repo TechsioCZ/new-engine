@@ -32,7 +32,6 @@ src/
   checkout/           # createCheckoutHooks factory + checkout flow
   orders/             # createOrderHooks factory
   customers/          # createCustomerHooks factory
-  index.ts            # Re-exports all modules
 ```
 
 ## Commands
@@ -48,19 +47,20 @@ src/
 - Use `any` type - use proper generics
 - Hardcode query keys - use `createQueryKey()` utility
 - Mix server/client code in same file
-- Create barrel files except at module boundaries
+- Create barrel files (`index.ts` re-exports)
 
 **ALWAYS:**
 - Use factory pattern (`createProductHooks`, etc.)
 - Type service interfaces with generics
 - Use cache strategies from `CacheConfig` (static, semiStatic, realtime, userData)
 - Keep `"use client"` directive only in client components
-- Use `getServerQueryClient` from `server/` entry for Server Components
+- Use `getServerQueryClient` from `server/get-query-client` for Server Components
 
 ## Hook Factory Pattern
 
 ```typescript
-import { createProductHooks, type ProductService } from "@techsio/storefront-data"
+import { createProductHooks } from "@techsio/storefront-data/products/hooks"
+import type { ProductService } from "@techsio/storefront-data/products/types"
 
 const productService: ProductService<Product, ListParams, DetailParams> = {
   getProducts: (params, signal) => api.getProducts(params, signal),
@@ -95,7 +95,8 @@ export const {
 
 ```typescript
 // Server Component
-import { getServerQueryClient, dehydrate, HydrationBoundary } from "@techsio/storefront-data/server"
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
+import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
 
 export default async function Page() {
   const queryClient = getServerQueryClient()

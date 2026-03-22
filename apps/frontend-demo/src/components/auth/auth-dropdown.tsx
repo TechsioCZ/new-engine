@@ -27,7 +27,7 @@ export function AuthDropdown() {
         trigger={
           <span className="text-nowrap text-white text-xs">Přihlásit se</span>
         }
-        triggerClassName="data-[state=open]:ring-0 data-[state=open]:ring-offset-0 rounded-sm bg-tertiary hover:bg-tertiary/60 mr-150"
+        triggerClassName="data-[state=open]:outline-none rounded-sm bg-tertiary hover:bg-tertiary/60 mr-150"
       >
         <QuickLoginForm />
       </Popover>
@@ -80,7 +80,7 @@ export function AuthDropdown() {
           </span>
         </span>
       }
-      triggerClassName="hover:bg-transparent active:bg-transparent data-[state=open]:ring-0 data-[state=open]:ring-offset-0"
+      triggerClassName="hover:bg-transparent active:bg-transparent data-[state=open]:outline-none"
     >
       <ul className="space-y-1">
         {menuItems.map((item) => (

@@ -1,5 +1,9 @@
 @theme static {
-  --product-card-layout-row-grid: auto 1fr;
+  --product-card-layout-row-grid: minmax(
+      var(--width-product-card-image-min),
+      var(--width-product-card-image-max)
+    )
+    minmax(0, 1fr);
   --product-card-layout-column-grid: 1fr;
   /* === BASE COLORS === */
   --color-product-card-bg: var(--color-surface);
@@ -44,6 +48,10 @@
   --spacing-product-card-box: var(--spacing-150);
   --spacing-product-card-max: 100%;
   --spacing-product-card-buttons: var(--spacing-150);
+
+  /* === SIZING === */
+  --width-product-card-image-min: 8rem;
+  --width-product-card-image-max: 12rem;
 
   /* === TYPOGRAPHY === */
   --text-product-card-name-size: var(--text-md);

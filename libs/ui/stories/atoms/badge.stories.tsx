@@ -12,10 +12,26 @@ const meta: Meta<typeof Badge> = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['info', 'outline', 'dynamic'],
+      options: [
+        'primary',
+        'secondary',
+        'tertiary',
+        'discount',
+        'info',
+        'success',
+        'warning',
+        'danger',
+        'outline',
+        'dynamic',
+      ],
+      description: 'Visual style variant of the badge',
+      table: {
+        defaultValue: { summary: 'info' },
+      },
     },
     children: {
       control: 'text',
+      description: 'Text content of the badge',
     },
     bgColor: {
       control: 'color',
@@ -42,16 +58,20 @@ const meta: Meta<typeof Badge> = {
       },
     },
   },
+  args: {
+    variant: 'info',
+    children: 'Badge',
+  },
 }
 
 export default meta
 // ! Storybook can't infer dynamic badge props, we need to enforce manually
 type Story = Omit<StoryObj<typeof meta>, 'args'> & { args: BadgeProps }
 
-export const Info: Story = {
+export const Playground: Story = {
   args: {
     variant: 'info',
-    children: 'Info',
+    children: 'Badge Text',
   },
 }
 
@@ -65,26 +85,29 @@ export const Outline: Story = {
 export const Dynamic: Story = {
   args: {
     variant: 'dynamic',
-    bgColor: '#f00',
+    bgColor: '#8A0002',
     fgColor: '#fff',
     borderColor: '#fff500',
     children: 'Dynamic Badge',
   },
 }
 
-export const AllVariants: Story = {
+export const Variants: Story = {
   args: {} as BadgeProps,
   render: () => (
     <VariantContainer>
       <VariantGroup title="Solid themes">
         <Badge variant="primary">Primary</Badge>
         <Badge variant="secondary">Secondary</Badge>
-        <Badge variant="tertiary">Tertirary</Badge>
+        <Badge variant="tertiary">Tertiary</Badge>
         <Badge variant="discount">Sleva 30%</Badge>
         <Badge variant="info">Odesíláme do 24h</Badge>
         <Badge variant="success">Doručeno</Badge>
         <Badge variant="warning">Poslední kusy</Badge>
         <Badge variant="danger">Nedostupné</Badge>
+      </VariantGroup>
+      <VariantGroup title="Outline">
+        <Badge variant="outline">Outline Badge</Badge>
       </VariantGroup>
     </VariantContainer>
   ),

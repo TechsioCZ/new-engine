@@ -4,10 +4,12 @@ import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
 import {
   createProductHooks,
-  type ProductListInputBase,
-  type ProductService,
-} from "../src/products"
-import { StorefrontDataProvider } from "../src/client"
+} from "../src/products/hooks"
+import type {
+  ProductListInputBase,
+  ProductService,
+} from "../src/products/types"
+import { StorefrontDataProvider } from "../src/client/provider"
 import { server } from "./msw-server"
 
 type TestProduct = {

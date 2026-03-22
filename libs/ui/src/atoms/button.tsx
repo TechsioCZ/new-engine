@@ -6,13 +6,13 @@ import { Icon, type IconType } from "./icon"
 export const buttonVariants = tv({
   base: [
     "relative",
-    "inline-flex cursor-pointer items-baseline justify-center",
+    "inline-flex cursor-pointer items-center justify-center",
     "font-medium",
     "transition-all duration-200 motion-reduce:transition-none",
-    "focus:outline-none",
-    "focus-visible:ring",
-    "focus-visible:ring-button-ring",
-    "disabled:pointer-events-none disabled:text-button-fg-disabled",
+    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+    "focus-visible:outline-button-ring",
+    "focus-visible:outline-offset-(length:--default-ring-offset)",
+    "disabled:cursor-not-allowed disabled:text-button-fg-disabled",
   ],
   variants: {
     variant: {
@@ -26,16 +26,17 @@ export const buttonVariants = tv({
       solid: "disabled:bg-button-bg-disabled",
       light: "disabled:bg-button-bg-disabled",
       borderless:
-        "bg-button-bg-borderless hover:bg-button-bg-borderless-hover active:bg-button-bg-borderless-active",
-      outlined: "border disabled:border-button-border-disabled",
+        "bg-button-bg-borderless hover:bg-button-bg-borderless-hover active:bg-button-bg-borderless-active disabled:hover:bg-button-bg-borderless",
+      outlined:
+        "border bg-button-bg-outlined disabled:border-button-border-disabled disabled:hover:bg-button-bg-outlined",
       unstyled: "",
     },
     uppercase: {
       true: "uppercase",
     },
     size: {
-      sm: "gap-button-sm rounded-button-sm p-button-sm text-button-sm",
-      md: "gap-button-md rounded-button-md p-button-md text-button-md",
+      sm: "h-form-control-sm gap-button-sm rounded-button-sm p-button-sm text-button-sm",
+      md: "h-form-control-md gap-button-md rounded-button-md p-button-md text-button-md",
       lg: "gap-button-lg rounded-button-lg p-button-lg text-button-lg",
       current: "gap-button-md text-inherit",
     },
@@ -248,6 +249,7 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   icon?: IconType
   iconPosition?: "left" | "right"
+  iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
   uppercase?: boolean
   isLoading?: boolean
   loadingText?: string
@@ -263,6 +265,7 @@ export function Button({
   loadingText,
   icon,
   iconPosition = "left",
+  iconSize,
   uppercase = false,
   children,
   className,
@@ -291,9 +294,9 @@ export function Button({
         </>
       ) : (
         <>
-          {icon && iconPosition === "left" && <Icon icon={icon} />}
+          {icon && iconPosition === "left" && <Icon icon={icon} size={iconSize} />}
           {children}
-          {icon && iconPosition === "right" && <Icon icon={icon} />}
+          {icon && iconPosition === "right" && <Icon icon={icon} size={iconSize} />}
         </>
       )}
     </button>

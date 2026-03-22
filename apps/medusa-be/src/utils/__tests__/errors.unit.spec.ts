@@ -58,7 +58,7 @@ describe("shouldCaptureException", () => {
       ["INVALID_DATA", MedusaError.Types.INVALID_DATA],
       ["NOT_FOUND", MedusaError.Types.NOT_FOUND],
     ])("skips %s errors", (_, errorType) => {
-      const error = { type: errorType, message: "test" }
+      const error = new MedusaError(errorType, "test")
       expect(shouldCaptureException(error)).toBe(false)
     })
   })
@@ -74,7 +74,7 @@ describe("shouldCaptureException", () => {
       ["DB_ERROR", MedusaError.Types.DB_ERROR],
       ["UNEXPECTED_STATE", MedusaError.Types.UNEXPECTED_STATE],
     ])("captures %s errors", (_, errorType) => {
-      const error = { type: errorType, message: "test" }
+      const error = new MedusaError(errorType, "test")
       expect(shouldCaptureException(error)).toBe(true)
     })
   })

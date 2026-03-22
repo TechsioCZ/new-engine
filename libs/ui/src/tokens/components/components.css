@@ -1,10 +1,11 @@
+@import "./_form-control.css";
+
 @import "./atoms/_badge.css";
 @import "./atoms/_button.css";
-@import "./atoms/_error-text.css";
-@import "./atoms/_extra-text.css";
 @import "./atoms/_status-text.css";
 @import "./atoms/_checkbox.css";
 @import "./atoms/_icon.css";
+@import "./atoms/_image.css";
 @import "./atoms/_input.css";
 @import "./atoms/_label.css";
 @import "./atoms/_numeric-input.css";

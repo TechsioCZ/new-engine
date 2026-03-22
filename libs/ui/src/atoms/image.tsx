@@ -1,6 +1,23 @@
 import type { ComponentPropsWithoutRef, ElementType } from "react"
+import type { VariantProps } from "tailwind-variants"
+import { tv } from "../utils"
 
-export interface BaseImageProps {
+const imageVariants = tv({
+  variants: {
+    size: {
+      sm: "size-image-sm",
+      md: "size-image-md",
+      lg: "size-image-lg",
+      full: "w-full",
+      custom: "",
+    },
+  },
+  defaultVariants: {
+    size: "full",
+  },
+})
+
+export type BaseImageProps = {
   src: string
   alt: string
   className?: string
@@ -14,10 +31,18 @@ type HasImageProps<T extends ElementType> =
     : never
 
 type NativeImageProps = BaseImageProps &
-  Omit<ComponentPropsWithoutRef<"img">, keyof BaseImageProps>
+  VariantProps<typeof imageVariants> &
+  Omit<
+    ComponentPropsWithoutRef<"img">,
+    keyof BaseImageProps | keyof VariantProps<typeof imageVariants>
+  >
 
 type CustomImageProps<T extends ElementType> = BaseImageProps &
-  Omit<ComponentPropsWithoutRef<HasImageProps<T>>, keyof BaseImageProps> & {
+  VariantProps<typeof imageVariants> &
+  Omit<
+    ComponentPropsWithoutRef<HasImageProps<T>>,
+    keyof BaseImageProps | keyof VariantProps<typeof imageVariants>
+  > & {
     as: HasImageProps<T>
   }
 
@@ -29,10 +54,18 @@ export function Image<T extends ElementType = "img">({
   as,
   src,
   alt,
+  size,
   className,
   ...props
 }: ImageProps<T>) {
   const Component = (as || "img") as ElementType
 
-  return <Component alt={alt} className={className} src={src} {...props} />
+  return (
+    <Component
+      alt={alt}
+      className={imageVariants({ size, className })}
+      src={src}
+      {...props}
+    />
+  )
 }

@@ -1,7 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { Label } from '../../src/atoms/label'
-import { NumericInput } from '../../src/atoms/numeric-input'
+import { NumericInput, type NumericInputProps } from '../../src/atoms/numeric-input'
+
+type PlaygroundArgs = NumericInputProps & {
+  showLabel?: boolean
+  label?: string
+  showControls?: boolean
+  showScrubber?: boolean
+}
 
 const meta: Meta<typeof NumericInput> = {
   title: 'Atoms/NumericInput',
@@ -19,30 +26,83 @@ const meta: Meta<typeof NumericInput> = {
 }
 
 export default meta
-type Story = StoryObj<typeof NumericInput>
+type Story = StoryObj<PlaygroundArgs>
 
-// Default - Basic usage without label
-export const Default: Story = {
-  render: () => {
-    const [value, setValue] = useState(0)
-
+export const Playground: Story = {
+  args: {
+    min: 0,
+    max: 10000,
+    step: 0.1,
+    disabled: false,
+    invalid: false,
+    size: 'md',
+    locale: 'en-US',
+    allowMouseWheel: true,
+    clampValueOnBlur: true,
+    precision: 1,
+    showLabel: false,
+    label: 'Quantity',
+    showControls: true,
+    showScrubber: false,
+  },
+  argTypes: {
+    size: {
+      control: 'select',
+      options: ['sm', 'md', 'lg'],
+      description: 'Size of the numeric input',
+    },
+    locale: {
+      control: 'select',
+      options: ['en-US', 'cs-CZ', 'de-DE', 'fr-FR'],
+      description: 'Locale for number formatting (decimal separator)',
+    },
+    min: { control: 'number', description: 'Minimum allowed value' },
+    max: { control: 'number', description: 'Maximum allowed value' },
+    step: { control: 'number', description: 'Step increment/decrement value' },
+    disabled: { control: 'boolean', description: 'Disable the input' },
+    invalid: { control: 'boolean', description: 'Show invalid/error state' },
+    allowMouseWheel: { control: 'boolean', description: 'Allow mouse wheel to change value' },
+    clampValueOnBlur: { control: 'boolean', description: 'Clamp value to min/max on blur' },
+    showLabel: { control: 'boolean', description: 'Show label above the input' },
+    label: { control: 'text', description: 'Label text' },
+    showControls: { control: 'boolean', description: 'Show increment/decrement buttons' },
+    showScrubber: { control: 'boolean', description: 'Enable scrubber overlay' },
+  },
+  render: function Render(args) {
+    const [value, setValue] = useState(50.5)
+    const {
+      showLabel,
+      label,
+      showControls,
+      showScrubber,
+      ...numericArgs
+    } = args
     return (
-      <div className="w-md">
-        <NumericInput value={value} onChange={setValue} min={0} max={100}>
+      <div className="w-md flex flex-col gap-50">
+        {showLabel && <Label htmlFor="numeric-playground">{label}</Label>}
+        <NumericInput
+          {...numericArgs}
+          id="numeric-playground"
+          value={value}
+          onChange={setValue}
+        >
           <NumericInput.Control>
+            {showScrubber && <NumericInput.Scrubber />}
             <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
+            {showControls && (
+              <NumericInput.TriggerContainer>
+                <NumericInput.IncrementTrigger />
+                <NumericInput.DecrementTrigger />
+              </NumericInput.TriggerContainer>
+            )}
           </NumericInput.Control>
         </NumericInput>
+        <p className="text-fg-muted text-sm mt-100">Current value: {value}</p>
       </div>
     )
   },
 }
 
-// With Label - Shows label usage
 export const WithLabel: Story = {
   render: () => {
     const [value, setValue] = useState(42)
@@ -70,7 +130,6 @@ export const WithLabel: Story = {
   },
 }
 
-// All Sizes - Shows all size variants
 export const AllSizes: Story = {
   render: () => {
     return (
@@ -124,7 +183,6 @@ export const AllSizes: Story = {
   },
 }
 
-// Without Controls - Clean input without visible buttons
 export const WithoutControls: Story = {
   render: () => {
     const [value, setValue] = useState(50)
@@ -141,6 +199,7 @@ export const WithoutControls: Story = {
           min={0}
           max={100}
           allowMouseWheel
+          size='md'
         >
           <NumericInput.Control>
             <NumericInput.Input />
@@ -154,7 +213,6 @@ export const WithoutControls: Story = {
   },
 }
 
-// With Scrubber - Drag to change value
 export const WithScrubber: Story = {
   render: () => {
     const [value, setValue] = useState(50)
@@ -189,7 +247,6 @@ export const WithScrubber: Story = {
   },
 }
 
-// Min Max - Shows value constraints
 export const MinMax: Story = {
   render: () => {
     const [value, setValue] = useState(5)
@@ -224,7 +281,6 @@ export const MinMax: Story = {
   },
 }
 
-// Invalid State - Shows error state
 export const InvalidState: Story = {
   render: () => {
     const [value, setValue] = useState(150)
@@ -241,6 +297,7 @@ export const InvalidState: Story = {
           max={100}
           invalid={isInvalid}
           allowOverflow
+          clampValueOnBlur={false}
         >
           <NumericInput.Control>
             <NumericInput.Input />
@@ -260,13 +317,12 @@ export const InvalidState: Story = {
   },
 }
 
-// Precision - Decimal values
 export const WithPrecision: Story = {
   render: () => {
     const [value, setValue] = useState(3.14)
 
     return (
-      <div className="w-md flex flex-col gap-50">
+      <div lang='cs' className="w-md flex flex-col gap-50">
         <Label htmlFor="numeric-precision">
           Pi approximation (2 decimals)
         </Label>
@@ -276,7 +332,7 @@ export const WithPrecision: Story = {
           onChange={setValue}
           min={0}
           max={10}
-          step={0.1}
+          step={0.01}
           precision={2}
         >
           <NumericInput.Control>
@@ -295,7 +351,6 @@ export const WithPrecision: Story = {
   },
 }
 
-// Custom Layout - Horizontal triggers
 export const CustomLayoutHorizontal: Story = {
   render: () => {
     const [value, setValue] = useState(50)
@@ -323,8 +378,6 @@ export const CustomLayoutHorizontal: Story = {
   },
 }
 
-
-// Disabled State
 export const Disabled: Story = {
   render: () => {
     return (
@@ -344,7 +397,6 @@ export const Disabled: Story = {
   },
 }
 
-// Custom Button Props - Shows Button customization options
 export const CustomButtonProps: Story = {
   render: () => {
     const [value1, setValue1] = useState(10)
@@ -352,7 +404,6 @@ export const CustomButtonProps: Story = {
 
     return (
       <div className="flex flex-col gap-300">
-        {/* Variant customization */}
         <div className="w-md flex flex-col gap-50">
           <Label htmlFor="numeric-variant">Different Variants</Label>
           <NumericInput
@@ -372,7 +423,6 @@ export const CustomButtonProps: Story = {
           </NumericInput>
         </div>
 
-        {/* Size customization */}
         <div className="w-md flex flex-col gap-50">
           <Label htmlFor="numeric-size">Different Themes</Label>
           <NumericInput
@@ -396,59 +446,3 @@ export const CustomButtonProps: Story = {
   },
 }
 
-// Interactive Demo - Full featured
-export const InteractiveDemo: Story = {
-  render: () => {
-    const [value, setValue] = useState(50)
-    const [min] = useState(0)
-    const [max] = useState(100)
-    const [step] = useState(5)
-
-    return (
-      <div className="flex flex-col gap-200 w-lg">
-        <div className="flex flex-col gap-50">
-          <Label htmlFor="numeric-interactive">
-            Interactive Numeric Input
-          </Label>
-          <NumericInput
-            id="numeric-interactive"
-            value={value}
-            onChange={setValue}
-            min={min}
-            max={max}
-            step={step}
-            clampValueOnBlur={true}
-            allowMouseWheel={true}
-          >
-            <NumericInput.Control>
-              <NumericInput.Input />
-              <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger />
-                <NumericInput.DecrementTrigger />
-              </NumericInput.TriggerContainer>
-            </NumericInput.Control>
-          </NumericInput>
-        </div>
-
-        <div className="bg-surface-secondary p-200 rounded-md">
-          <h3 className="text-fg-primary font-semibold mb-100">Info</h3>
-          <ul className="text-fg-muted text-sm space-y-50">
-            <li>
-              Current value: <strong>{value}</strong>
-            </li>
-            <li>
-              Min: {min}, Max: {max}
-            </li>
-            <li>Step: {step}</li>
-            <li>Features:</li>
-            <ul className="ml-200 space-y-50">
-              <li>✓ Arrow keys (↑/↓)</li>
-              <li>✓ Button controls</li>
-              <li>✓ Keyboard shortcuts (Home/End, Page Up/Down)</li>
-            </ul>
-          </ul>
-        </div>
-      </div>
-    )
-  },
-}

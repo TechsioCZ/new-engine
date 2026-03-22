@@ -37,7 +37,10 @@ export const queryKeys = {
   regions: () => [...queryKeys.all, "regions"] as const,
 
   // Cart queries
-  cart: (id?: string) => [...queryKeys.all, "cart", id] as const,
+  cart: (id?: string) => {
+    const base = [...queryKeys.all, "cart"] as const
+    return id ? ([...base, id] as const) : base
+  },
 
   // Authentication queries
   auth: {

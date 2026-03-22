@@ -2,9 +2,16 @@
   "name": "n1",
   "version": "0.1.0",
   "private": true,
+  "nx": {
+    "tags": [
+      "type:app",
+      "platform:web",
+      "framework:next"
+    ]
+  },
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",

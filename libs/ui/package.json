@@ -56,6 +56,8 @@
     "storybook": "storybook dev",
     "test-storybook": "test-storybook",
     "storybook:a11y": "bash scripts/storybook-a11y.sh",
+    "test:components": "node scripts/run-component-tests.mjs",
+    "test:components:update": "node scripts/run-component-tests.mjs --update-snapshots",
     "lint:tailwind": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js",
     "lint:tailwind:fix": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js --fix",
     "prepare": "pnpm build && pnpm build:storybook",
@@ -71,6 +73,7 @@
     "@zag-js/checkbox": "^1.31.1",
     "@zag-js/combobox": "^1.31.1",
     "@zag-js/dialog": "^1.31.1",
+    "@zag-js/i18n-utils": "^1.31.1",
     "@zag-js/menu": "^1.31.1",
     "@zag-js/number-input": "^1.31.1",
     "@zag-js/pagination": "^1.31.1",
@@ -88,6 +91,7 @@
     "tailwind-variants": "^3.1.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@iconify/json": "^2.2.409",
     "@iconify/tailwind4": "^1.1.0",
     "@rsbuild/core": "1.6.7",
@@ -99,6 +103,7 @@
     "@semantic-release/github": "^12.0.2",
     "@semantic-release/npm": "^13.1.2",
     "@semantic-release/release-notes-generator": "^14.1.0",
+    "@storybook/addon-a11y": "^10.0.3",
     "@storybook/addon-links": "^10.0.2",
     "@storybook/addon-onboarding": "^10.0.2",
     "@storybook/addon-themes": "^10.0.2",

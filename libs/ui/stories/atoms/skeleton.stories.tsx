@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import type { ComponentPropsWithoutRef } from 'react'
 import { useState } from 'react'
 import { Skeleton } from '../../src/atoms/skeleton'
 import { Button } from '../../src/atoms/button'
@@ -19,11 +20,104 @@ const meta: Meta<typeof Skeleton> = {
 
 export default meta
 type Story = StoryObj<typeof Skeleton>
+type PlaygroundArgs = ComponentPropsWithoutRef<typeof Skeleton> & {
+  showRectangle?: boolean
+  showText?: boolean
+  showCircle?: boolean
+  circleSize?: 'sm' | 'md' | 'lg' | 'xl'
+  textSize?: 'sm' | 'md' | 'lg' | 'xl'
+  textLines?: number
+  textLastLineWidth?: string
+}
 
 // ===== BASIC USAGE =====
 
-export const Basic: Story = {
-  render: () => <Skeleton.Rectangle className="h-20 w-64" />,
+export const Playground: StoryObj<PlaygroundArgs> = {
+  args: {
+    variant: 'primary',
+    speed: 'normal',
+    showRectangle: true,
+    showText: true,
+    showCircle: true,
+    circleSize: 'lg',
+    textSize: 'md',
+    textLines: 3,
+    textLastLineWidth: '80%',
+  },
+  argTypes: {
+    variant: {
+      control: 'select',
+      options: ['primary', 'secondary'],
+      description: 'Visual variant of the skeleton',
+    },
+    speed: {
+      control: 'select',
+      options: ['slow', 'normal', 'fast'],
+      description: 'Animation speed',
+    },
+    showRectangle: {
+      control: 'boolean',
+      description: 'Show rectangle skeleton',
+    },
+    showText: {
+      control: 'boolean',
+      description: 'Show text skeleton',
+    },
+    showCircle: {
+      control: 'boolean',
+      description: 'Show circle skeleton',
+    },
+    circleSize: {
+      control: 'select',
+      options: ['sm', 'md', 'lg', 'xl'],
+      description: 'Circle size',
+    },
+    textSize: {
+      control: 'select',
+      options: ['sm', 'md', 'lg', 'xl'],
+      description: 'Text spacing size',
+    },
+    textLines: {
+      control: { type: 'number', min: 1, max: 6, step: 1 },
+      description: 'Number of text lines',
+    },
+    textLastLineWidth: {
+      control: 'select',
+      options: ['60%', '80%', '90%'],
+      description: 'Last line width for text skeleton',
+    },
+  },
+  render: (args) => {
+    const {
+      showRectangle,
+      showText,
+      showCircle,
+      circleSize,
+      textSize,
+      textLines,
+      textLastLineWidth,
+      ...skeletonArgs
+    } = args
+
+    return (
+      <div className="space-y-250 w-md">
+        {showRectangle && (
+          <Skeleton.Rectangle {...skeletonArgs} className="h-20 w-xs" />
+        )}
+        {showText && (
+          <Skeleton.Text
+            {...skeletonArgs}
+            size={textSize}
+            noOfLines={textLines}
+            lastLineWidth={textLastLineWidth}
+          />
+        )}
+        {showCircle && (
+          <Skeleton.Circle {...skeletonArgs} size={circleSize} />
+        )}
+      </div>
+    )
+  },
 }
 
 export const WithContent: Story = {
@@ -38,8 +132,8 @@ export const WithContent: Story = {
         >
           Toggle Loaded State
         </Button>
-        <Skeleton isLoaded={isLoaded} className="h-20 w-64">
-          <div className="h-20 w-64 bg-primary text-white flex items-center justify-center rounded">
+        <Skeleton isLoaded={isLoaded} className="h-20 w-xs">
+          <div className="h-20 w-xs bg-primary text-white flex items-center justify-center rounded">
             ✨ Content loaded!
           </div>
         </Skeleton>
@@ -53,11 +147,11 @@ export const Variants: Story = {
     <div className="space-y-250">
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Primary (default)</p>
-        <Skeleton.Rectangle variant="primary" className="h-20 w-64" />
+        <Skeleton.Rectangle variant="primary" className="h-20 w-xs" />
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Secondary</p>
-        <Skeleton.Rectangle variant="secondary" className="h-20 w-64" />
+        <Skeleton.Rectangle variant="secondary" className="h-20 w-xs" />
       </div>
     </div>
   ),
@@ -68,15 +162,15 @@ export const AnimationSpeed: Story = {
     <div className="space-y-300">
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Slow (3s)</p>
-        <Skeleton.Rectangle speed="slow" className="h-16 w-64" />
+        <Skeleton.Rectangle speed="slow" className="h-16 w-xs" />
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Normal (2s) - default</p>
-        <Skeleton.Rectangle speed="normal" className="h-16 w-64" />
+        <Skeleton.Rectangle speed="normal" className="h-16 w-xs" />
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Fast (1s)</p>
-        <Skeleton.Rectangle speed="fast" className="h-16 w-64" />
+        <Skeleton.Rectangle speed="fast" className="h-16 w-xs" />
       </div>
     </div>
   ),
@@ -124,8 +218,6 @@ export const SpeedInheritance: Story = {
     </div>
   ),
 }
-
-// ===== CIRCLE VARIANTS =====
 
 export const CircleSizes: Story = {
   render: () => (
@@ -256,8 +348,6 @@ export const TextNumberOfLines: Story = {
   ),
 }
 
-// ===== RECTANGLE VARIANTS =====
-
 export const RectangleAspectRatios: Story = {
   render: () => (
     <div className="grid grid-cols-3 gap-250">
@@ -286,18 +376,16 @@ export const RectangleFixedDimensions: Story = {
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">Fixed width + height</p>
-        <Skeleton.Rectangle className="w-64 h-16" />
+        <Skeleton.Rectangle className="w-xs h-16" />
       </div>
     </div>
   ),
 }
 
-// ===== COMPOSITION EXAMPLES =====
-
 export const ProductCardSkeleton: Story = {
   name: '🛍️ Product Card',
   render: () => (
-    <div className="w-80 border p-250 rounded-lg">
+    <div className="w-md border p-250 rounded-lg">
       <Skeleton.Rectangle className="mb-250 h-64" />
       <Skeleton.Text noOfLines={2} size="sm" />
       <div className="flex gap-150 mt-250">
@@ -344,8 +432,6 @@ export const FeedSkeleton: Story = {
   ),
 }
 
-// ===== ACCESSIBILITY =====
-
 export const ReducedMotion: Story = {
   name: '♿ Reduced Motion',
   parameters: {
@@ -364,7 +450,7 @@ export const ReducedMotion: Story = {
             in their OS, animations automatically switch to the static state shown below.
         </p>
       </div>
-      <Skeleton.Rectangle className="h-20 w-64 force-reduced-motion" />
+      <Skeleton.Rectangle className="h-20 w-xs force-reduced-motion" />
       <Skeleton.Text noOfLines={3} className="force-reduced-motion" />
       <Skeleton.Circle size="lg" className="force-reduced-motion" />
     </div>

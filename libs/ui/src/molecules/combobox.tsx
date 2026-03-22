@@ -1,4 +1,8 @@
-import * as combobox from "@zag-js/combobox"
+import {
+  machine as comboboxMachine,
+  connect as connectCombobox,
+  collection as createComboboxCollection,
+} from "@zag-js/combobox"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { useEffect, useId, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
@@ -14,32 +18,37 @@ const comboboxVariants = tv({
     root: ["relative flex w-full flex-col"],
     label: ["block font-label text-label-md"],
     control: [
-      'flex items-center w-full relative',
-      'bg-combobox-bg border-(length:--border-width-combobox) border-combobox-border rounded-combobox',
-      'transition-colors duration-200 ease-in-out motion-reduce:transition-none',
-      'hover:bg-combobox-bg-hover hover:border-combobox-border-hover',
-      'data-[focus]:bg-combobox-bg-focus data-[focus]:border-combobox-border-focus',
-      'data-[focus]:ring',
-      'data-[focus]:ring-combobox-ring',
-      'data-[disabled]:bg-combobox-bg-disabled data-[disabled]:border-combobox-border-disabled',
-      'data-[validation=error]:border-combobox-danger-fg',
-      'data-[validation=success]:border-combobox-success-fg',
-      'data-[validation=warning]:border-combobox-warning-fg',
+      "form-control-base relative flex w-full items-center overflow-hidden",
+      "bg-combobox-bg",
+      "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
+      "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
+      "data-focus:border-combobox-border-focus data-focus:bg-combobox-bg-focus",
+      "data-focus-visible:outline-(style:--default-ring-style) data-focus-visible:outline-(length:--default-ring-width)",
+      "data-focus-visible:outline-combobox-ring",
+      "data-focus-visible:outline-offset-(length:--default-ring-offset)",
+      "data-disabled:border-combobox-border-disabled data-disabled:bg-combobox-bg-disabled",
+      "data-[validation=error]:border-(length:--border-width-validation)",
+      "data-[validation=error]:border-combobox-danger-fg",
+      "data-[validation=success]:border-(length:--border-width-validation)",
+      "data-[validation=success]:border-combobox-success-fg",
+      "data-[validation=warning]:border-(length:--border-width-validation)",
+      "data-[validation=warning]:border-combobox-warning-fg",
     ],
     input: [
-      "relative w-full border-none bg-combobox-input-bg",
-      "hover:bg-combobox-input-bg-hover focus-visible:ring-0",
+      "relative h-full w-full border-none bg-combobox-input-bg",
+      "hover:bg-combobox-input-bg-hover focus-visible:outline-none",
       "focus:bg-combobox-input-bg-focused",
       "placeholder:text-combobox-placeholder",
-      "data-[disabled]:text-combobox-fg-disabled",
-      "data-[disabled]:bg-combobox-bg-disabled",
+      "data-disabled:text-combobox-fg-disabled",
+      "data-disabled:bg-combobox-bg-disabled",
     ],
-    clearTrigger: ["absolute right-combobox-clear-right"],
+    clearTrigger: [
+      "absolute right-combobox-clear-right h-full p-combobox-trigger",
+    ],
     trigger: [
-      'flex items-center justify-center',
-      'p-combobox-trigger',
-      'transition-transform duration-200 motion-reduce:transition-none',
-      'data-[state=open]:rotate-180',
+      "group flex h-full shrink-0 items-center justify-center",
+      "font-normal",
+      "p-combobox-trigger",
     ],
     positioner: [
       "z-(--z-index) w-full *:max-h-(--available-height) *:overflow-y-auto",
@@ -49,16 +58,23 @@ const comboboxVariants = tv({
       "rounded-combobox shadow-md",
       "bg-combobox-content-bg",
       "z-(--z-combobox-content) border border-combobox-border",
+      "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
+      "transition-discrete",
+      "starting:-translate-y-2 starting:opacity-0",
+      "data-[state=open]:starting:-translate-y-2 data-[state=open]:starting:opacity-0",
+      "data-[state=open]:translate-y-0 data-[state=open]:opacity-100",
+      "data-[state=closed]:-translate-y-2 data-[state=closed]:opacity-0",
     ],
+    list: ["m-0 flex list-none flex-col"],
     item: [
-      'flex items-center',
-      'text-combobox-item-fg',
-      'cursor-pointer',
-      'data-[highlighted]:bg-combobox-item-bg-hover',
-      'data-[state=checked]:bg-combobox-item-bg-selected',
-      'data-[disabled]:text-combobox-fg-disabled data-[disabled]:cursor-not-allowed',
-      'transition-colors duration-200 motion-reduce:transition-none',
+      "flex items-center",
+      "text-combobox-item-fg",
+      "cursor-pointer",
+      "data-highlighted:bg-combobox-item-bg-hover",
+      "data-[state=checked]:bg-combobox-item-bg-selected",
+      "data-disabled:cursor-not-allowed data-disabled:text-combobox-fg-disabled",
     ],
+    emptyState: ["text-combobox-placeholder"],
     helper: [
       "data-[validation=success]:text-combobox-success-fg",
       "data-[validation=warning]:text-combobox-warning-fg",
@@ -69,12 +85,13 @@ const comboboxVariants = tv({
     {
       slots: ["clearTrigger", "trigger"],
       class: [
-        "focus-visible:ring-0",
+        "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+        "focus-visible:outline-combobox-ring",
+        "focus-visible:outline-offset-(length:--default-ring-offset)",
         "text-combobox-trigger text-combobox-trigger-size",
         "hover:text-combobox-trigger-hover",
-        "px-combobox-trigger",
+        "motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none",
         "hover:bg-combobox-trigger-bg-hover",
-        "focus-visible:outline-none",
         "active:bg-combobox-trigger-bg-active",
       ],
     },
@@ -83,20 +100,26 @@ const comboboxVariants = tv({
     size: {
       sm: {
         root: "gap-combobox-root-sm",
-        item: "p-combobox-item-sm",
-        input: "py-combobox-input-sm",
+        control: "h-form-control-sm rounded-combobox-sm text-input-sm",
+        item: "p-combobox-item-sm text-combobox-item-sm",
+        emptyState: "p-combobox-item-sm text-combobox-item-sm",
+        input: "p-combobox-input-sm",
         content: "text-combobox-content-sm",
       },
       md: {
         root: "gap-combobox-root-md",
-        item: "p-combobox-item-md",
-        input: "py-combobox-input-md",
+        control: "h-form-control-md rounded-combobox-md text-input-md",
+        item: "p-combobox-item-md text-combobox-item-md",
+        emptyState: "p-combobox-item-md text-combobox-item-md",
+        input: "p-combobox-input-md",
         content: "text-combobox-content-md",
       },
       lg: {
         root: "gap-combobox-root-lg",
-        item: "p-combobox-item-lg",
-        input: "py-combobox-input-lg",
+        control: "rounded-combobox text-input-lg",
+        item: "p-combobox-item-lg text-combobox-item-lg",
+        emptyState: "p-combobox-item-lg text-combobox-item-lg",
+        input: "p-combobox-input-lg",
         content: "text-combobox-content-lg",
       },
     },
@@ -166,7 +189,7 @@ export function Combobox<T = unknown>({
   noResultsMessage = 'No results found for "{inputValue}"',
   clearable = true,
   selectionBehavior = "replace",
-  closeOnSelect = false,
+  closeOnSelect = true,
   allowCustomValue = false,
   loopFocus = true,
   autoFocus = false,
@@ -175,6 +198,8 @@ export function Combobox<T = unknown>({
   onInputValueChange,
   onOpenChange,
 }: ComboboxProps<T>) {
+  const resolvedChevronIconSize = size === "sm" ? "sm" : "md"
+
   const generatedId = useId()
   const uniqueId = id || generatedId
 
@@ -182,14 +207,14 @@ export function Combobox<T = unknown>({
   useEffect(() => {
     setOptions(items)
   }, [items])
-  const collection = combobox.collection({
+  const collection = createComboboxCollection({
     items: options,
     itemToString: (item) => item.label,
     itemToValue: (item) => item.value,
     isItemDisabled: (item) => !!item.disabled,
   })
 
-  const service = useMachine(combobox.machine, {
+  const service = useMachine(comboboxMachine, {
     id: uniqueId,
     name,
     collection,
@@ -213,12 +238,12 @@ export function Combobox<T = unknown>({
     onValueChange: ({ value: selectedValue }) => {
       onChange?.(selectedValue)
     },
-    onInputValueChange: ({ inputValue }) => {
+    onInputValueChange: ({ inputValue: newItemInputValue }) => {
       const filtered = items.filter((item) =>
-        item.label.toLowerCase().includes(inputValue.toLowerCase())
+        item.label.toLowerCase().includes(newItemInputValue.toLowerCase())
       )
       setOptions(filtered)
-      onInputValueChange?.(inputValue)
+      onInputValueChange?.(newItemInputValue)
     },
     onOpenChange: ({ open }) => {
       setOptions(items)
@@ -226,7 +251,7 @@ export function Combobox<T = unknown>({
     },
   })
 
-  const api = combobox.connect(service, normalizeProps)
+  const api = connectCombobox(service, normalizeProps)
 
   const inputProps = api.getInputProps()
   const { ...restInputProps } = inputProps
@@ -239,9 +264,14 @@ export function Combobox<T = unknown>({
     trigger,
     positioner,
     content,
+    list,
     clearTrigger,
     item: itemSlot,
+    emptyState,
   } = comboboxVariants({ size })
+
+  const hasOptions = api.collection.size > 0
+  const showEmptyState = !hasOptions && Boolean(api.inputValue)
 
   return (
     <div className={root()}>
@@ -272,8 +302,8 @@ export function Combobox<T = unknown>({
         {clearable && api.value.length > 0 && (
           <Button
             className={clearTrigger()}
-            size={size}
-            theme="borderless"
+            size="current"
+            theme="unstyled"
             {...api.getClearTriggerProps()}
           >
             <Icon icon={"token-icon-combobox-clear"} size="current" />
@@ -283,41 +313,49 @@ export function Combobox<T = unknown>({
         <Button
           {...api.getTriggerProps()}
           className={trigger()}
-          size={size}
-          theme="borderless"
+          size="current"
+          theme="unstyled"
         >
-          <Icon icon="token-icon-combobox-chevron" />
+          <Icon
+            className={`text-combobox-trigger group-hover:text-combobox-trigger-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+              api.open ? "rotate-180" : "rotate-0"
+            }`}
+            icon="token-icon-combobox-chevron"
+            size={resolvedChevronIconSize}
+          />
         </Button>
       </div>
 
       <Portal>
         <div {...api.getPositionerProps()} className={positioner()}>
-          {api.open && options.length > 0 && (
-            <ul {...api.getContentProps()} className={content()}>
-              {options.map((item) => (
-                <li
-                  key={item.value}
-                  {...api.getItemProps({ item })}
-                  className={itemSlot()}
-                >
-                  <span className="flex-1">{item.label}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {api.open && api.inputValue && options.length === 0 && (
-            <div className={content()}>
-              {noResultsMessage.replace("{inputValue}", api.inputValue)}
-            </div>
-          )}
+          <div {...api.getContentProps()} className={content()}>
+            {hasOptions && (
+              <ul {...api.getListProps()} className={list()}>
+                {options.map((item) => (
+                  <li
+                    key={item.value}
+                    {...api.getItemProps({ item })}
+                    className={itemSlot()}
+                  >
+                    <span className="flex-1">{item.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {showEmptyState && (
+              <div className={emptyState()}>
+                {noResultsMessage.replace("{inputValue}", api.inputValue)}
+              </div>
+            )}
+          </div>
         </div>
       </Portal>
 
       {helpText && (
         <StatusText
-          status={validateStatus}
           showIcon={showHelpTextIcon}
           size={size}
+          status={validateStatus}
         >
           {helpText}
         </StatusText>

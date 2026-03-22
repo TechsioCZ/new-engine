@@ -32,6 +32,7 @@ export const defaultCacheConfig: CacheConfig = {
     gcTime: 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchOnReconnect: true,
   },
   realtime: {
     staleTime: 30 * 1000,
@@ -45,6 +46,7 @@ export const defaultCacheConfig: CacheConfig = {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    refetchOnReconnect: true,
   },
 }
 

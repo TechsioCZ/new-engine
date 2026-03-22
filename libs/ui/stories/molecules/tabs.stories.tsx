@@ -23,39 +23,47 @@ const meta: Meta<typeof Tabs> = {
       control: 'select',
       options: ['default', 'line', 'solid', 'outline'],
       description: 'Visual style variant',
+      table: { defaultValue: { summary: 'default' }, category: 'Appearance' },
     },
     size: {
       control: 'select',
       options: ['sm', 'md', 'lg'],
       description: 'Size of the tabs',
+      table: { defaultValue: { summary: 'md' }, category: 'Appearance' },
     },
     orientation: {
       control: 'radio',
       options: ['horizontal', 'vertical'],
       description: 'Tabs orientation',
-    },
-    dir: {
-      control: 'radio',
-      options: ['ltr', 'rtl'],
-      description: 'Text direction',
-    },
-    activationMode: {
-      control: 'radio',
-      options: ['automatic', 'manual'],
-      description: 'Tab activation behavior',
+      table: { defaultValue: { summary: 'horizontal' }, category: 'Layout' },
     },
     fitted: {
       control: 'boolean',
       description: 'Tabs fill full width',
+      table: { defaultValue: { summary: 'false' }, category: 'Layout' },
     },
     justify: {
       control: 'select',
       options: ['start', 'center', 'end'],
       description: 'Tab list justification',
+      table: { defaultValue: { summary: 'start' }, category: 'Layout' },
+    },
+    dir: {
+      control: 'radio',
+      options: ['ltr', 'rtl'],
+      description: 'Text direction',
+      table: { defaultValue: { summary: 'ltr' }, category: 'Behavior' },
+    },
+    activationMode: {
+      control: 'radio',
+      options: ['automatic', 'manual'],
+      description: 'Tab activation behavior',
+      table: { defaultValue: { summary: 'automatic' }, category: 'Behavior' },
     },
     loopFocus: {
       control: 'boolean',
       description: 'Loop keyboard focus',
+      table: { defaultValue: { summary: 'true' }, category: 'Behavior' },
     },
   },
 }
@@ -63,41 +71,41 @@ const meta: Meta<typeof Tabs> = {
 export default meta
 type Story = StoryObj<typeof Tabs>
 
-// Default story
-export const Default: Story = {
-  render: () => (
-    <Tabs defaultValue="tab1">
+// Playground with interactive controls
+export const Playground: Story = {
+  args: {
+    variant: 'line',
+    size: 'md',
+    orientation: 'horizontal',
+    fitted: false,
+    justify: 'start',
+    dir: 'ltr',
+    activationMode: 'automatic',
+    loopFocus: true,
+    defaultValue: 'tab1',
+  },
+  render: (args) => (
+    <Tabs {...args} className="w-md">
       <Tabs.List>
-        <Tabs.Trigger value="tab1">Tab One</Tabs.Trigger>
-        <Tabs.Trigger value="tab2">Tab Two</Tabs.Trigger>
-        <Tabs.Trigger value="tab3">Tab Three</Tabs.Trigger>
+        <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
+        <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
+        <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
         <Tabs.Indicator />
       </Tabs.List>
       <Tabs.Content value="tab1">
-        <div className="p-200">
-          <h3 className="text-lg font-semibold mb-50">Tab One Content</h3>
-          <p className="text-fg-secondary">
-            This is the content for the first tab. It can contain any React
-            components or elements.
-          </p>
-        </div>
+        <p className="text-fg-secondary">
+          Overview tab content. Try changing the controls to see different variants and sizes.
+        </p>
       </Tabs.Content>
       <Tabs.Content value="tab2">
-        <div className="p-200">
-          <h3 className="text-lg font-semibold mb-50">Tab Two Content</h3>
-          <p className="text-fg-secondary">
-            Second tab content goes here. You can put forms, images, or any
-            custom components.
-          </p>
-        </div>
+        <p className="text-fg-secondary">
+          Details tab content with more information.
+        </p>
       </Tabs.Content>
       <Tabs.Content value="tab3">
-        <div className="p-200">
-          <h3 className="text-lg font-semibold mb-50">Tab Three Content</h3>
-          <p className="text-fg-secondary">
-            The third tab demonstrates the flexibility of compound components.
-          </p>
-        </div>
+        <p className="text-fg-secondary">
+          Settings tab for configuration options.
+        </p>
       </Tabs.Content>
     </Tabs>
   ),

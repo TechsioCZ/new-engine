@@ -12,7 +12,7 @@
 
 @theme static {
   /* === DERIVED COLORS === */
-  --color-color-select-accent: var(--color-primary);
+  --color-color-select-accent: var(--color-fg-primary);
   --color-color-select-border: var(--color-highlight);
   --color-color-select-border-hover: var(--color-color-select-accent);
   --color-color-select-selected: var(--color-color-select-accent);
@@ -25,7 +25,7 @@
   --spacing-color-select-group-sm: var(--spacing-100);
   --spacing-color-select-group-md: var(--spacing-200);
   --spacing-color-select-group-lg: var(--spacing-300);
-
+  
   --spacing-color-select-sm: var(--spacing-250);
   --spacing-color-select-md: var(--spacing-350);
   --spacing-color-select-lg: var(--spacing-450);

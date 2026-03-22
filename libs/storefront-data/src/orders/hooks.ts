@@ -1,8 +1,13 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { createCacheConfig, type CacheConfig } from "../shared/cache-config"
-import type { ReadQueryOptions, SuspenseQueryOptions } from "../shared/hook-types"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import { toErrorMessage } from "../shared/error-utils"
+import type {
+  QueryFactoryOptions,
+  ReadQueryOptions,
+  SuspenseQueryOptions,
+} from "../shared/hook-types"
+import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
-import { resolvePagination } from "../products/pagination"
 import { createOrderQueryKeys } from "./query-keys"
 import type {
   OrderDetailInputBase,
@@ -12,8 +17,8 @@ import type {
   OrderService,
   UseOrderResult,
   UseOrdersResult,
-  UseSuspenseOrdersResult,
   UseSuspenseOrderResult,
+  UseSuspenseOrdersResult,
 } from "./types"
 
 type SuspenseListInput<TInput extends OrderListInputBase> = Omit<
@@ -41,6 +46,43 @@ export type CreateOrderHooksConfig<
   defaultPageSize?: number
 }
 
+export type OrderHooks<
+  TOrder,
+  TListInput extends OrderListInputBase,
+  TDetailInput extends OrderDetailInputBase,
+> = {
+  getListQueryOptions: (
+    input: TListInput,
+    options?: {
+      queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
+    }
+  ) => QueryFactoryOptions<OrderListResponse<TOrder>>
+  getDetailQueryOptions: (
+    input: TDetailInput,
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
+  ) => QueryFactoryOptions<TOrder | null>
+  useOrders: (
+    input: TListInput,
+    options?: {
+      queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
+    }
+  ) => UseOrdersResult<TOrder>
+  useSuspenseOrders: (
+    input: SuspenseListInput<TListInput>,
+    options?: {
+      queryOptions?: SuspenseQueryOptions<OrderListResponse<TOrder>>
+    }
+  ) => UseSuspenseOrdersResult<TOrder>
+  useOrder: (
+    input: TDetailInput,
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
+  ) => UseOrderResult<TOrder>
+  useSuspenseOrder: (
+    input: SuspenseDetailInput<TDetailInput>,
+    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
+  ) => UseSuspenseOrderResult<TOrder>
+}
+
 export function createOrderHooks<
   TOrder,
   TListInput extends OrderListInputBase,
@@ -61,7 +103,7 @@ export function createOrderHooks<
   TListParams,
   TDetailInput,
   TDetailParams
->) {
+>): OrderHooks<TOrder, TListInput, TDetailInput> {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
@@ -72,25 +114,63 @@ export function createOrderHooks<
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
+  const getListQueryOptions = (
+    input: TListInput,
+    options?: {
+      queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
+    }
+  ) => {
+    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+      enabled?: boolean
+    }
+    const listParams = buildList(listInput as TListInput)
+
+    return {
+      queryKey: resolvedQueryKeys.list(listParams),
+      queryFn: ({ signal }: { signal?: AbortSignal }) =>
+        service.getOrders(listParams, signal),
+      ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
+    }
+  }
+
+  const getDetailQueryOptions = (
+    input: TDetailInput,
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
+  ) => {
+    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+      enabled?: boolean
+    }
+    const detailParams = buildDetail(detailInput as TDetailInput)
+
+    return {
+      queryKey: resolvedQueryKeys.detail(detailParams),
+      queryFn: ({ signal }: { signal?: AbortSignal }) => {
+        if (!input.id) {
+          throw new Error("Order id is required for order queries")
+        }
+        return service.getOrder(detailParams, signal)
+      },
+      ...resolvedCacheConfig.userData,
+      ...(options?.queryOptions ?? {}),
+    }
+  }
+
   function useOrders(
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
     }
   ): UseOrdersResult<TOrder> {
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
+    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
       enabled?: boolean
     }
     const listParams = buildList(listInput as TListInput)
-    const queryKey = resolvedQueryKeys.list(listParams)
-    const enabled = input.enabled ?? true
+    const enabled = inputEnabled ?? true
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getOrders(listParams, signal),
+      ...getListQueryOptions(input, options),
       enabled,
-      ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -115,8 +195,7 @@ export function createOrderHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       totalCount,
       currentPage: pagination.page,
       totalPages,
@@ -133,12 +212,11 @@ export function createOrderHooks<
     }
   ): UseSuspenseOrdersResult<TOrder> {
     const listParams = buildList(input as TListInput)
-    const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.list(listParams),
-      queryFn: ({ signal }) => service.getOrders(listParams, signal),
-      ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    })
+    const query = useSuspenseQuery(
+      getListQueryOptions(input as TListInput, {
+        queryOptions: options?.queryOptions,
+      })
+    )
     const { data, isFetching } = query
 
     const limitFromParams = (listParams as { limit?: number }).limit
@@ -176,19 +254,14 @@ export function createOrderHooks<
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
   ): UseOrderResult<TOrder> {
-    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+    const { enabled: inputEnabled } = input as TDetailInput & {
       enabled?: boolean
     }
-    const detailParams = buildDetail(detailInput as TDetailInput)
-    const queryKey = resolvedQueryKeys.detail(detailParams)
-    const enabled = input.enabled ?? Boolean(input.id)
+    const enabled = inputEnabled ?? Boolean(input.id)
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getOrder(detailParams, signal),
+      ...getDetailQueryOptions(input, options),
       enabled,
-      ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -197,8 +270,7 @@ export function createOrderHooks<
       isLoading,
       isFetching,
       isSuccess,
-      error:
-        error instanceof Error ? error.message : error ? String(error) : null,
+      error: toErrorMessage(error),
       query,
     }
   }
@@ -207,17 +279,11 @@ export function createOrderHooks<
     input: SuspenseDetailInput<TDetailInput>,
     options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
   ): UseSuspenseOrderResult<TOrder> {
-    if (!input.id) {
-      throw new Error("Order id is required for order queries")
-    }
-    const detailParams = buildDetail(input as TDetailInput)
-
-    const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => service.getOrder(detailParams, signal),
-      ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    })
+    const query = useSuspenseQuery(
+      getDetailQueryOptions(input as TDetailInput, {
+        queryOptions: options?.queryOptions,
+      })
+    )
     const { data, isFetching } = query
 
     return {
@@ -231,6 +297,8 @@ export function createOrderHooks<
   }
 
   return {
+    getListQueryOptions,
+    getDetailQueryOptions,
     useOrders,
     useSuspenseOrders,
     useOrder,

@@ -41,7 +41,19 @@ export type MedusaProductServiceConfig<
   listPath?: string
   defaultListFields?: string
   defaultDetailFields?: string
+  /**
+   * Custom list query builder.
+   *
+   * When provided, `defaultListFields` is not applied automatically.
+   * Include desired `fields` directly in the returned query object.
+   */
   normalizeListQuery?: (params: TListParams) => MedusaProductListQuery
+  /**
+   * Custom detail query builder.
+   *
+   * When provided, `defaultDetailFields` is not applied automatically.
+   * Include desired `fields` directly in the returned query object.
+   */
   normalizeDetailQuery?: (params: TDetailParams) => MedusaProductListQuery
   transformProduct?: (product: HttpTypes.StoreProduct) => TProduct
   transformListProduct?: (
@@ -95,7 +107,8 @@ const toListResponse = <TProduct>(
  *
  * @example
  * ```typescript
- * import { createMedusaProductService, createProductHooks } from "@techsio/storefront-data"
+ * import { createProductHooks } from "@techsio/storefront-data/products/hooks"
+ * import { createMedusaProductService } from "@techsio/storefront-data/products/medusa-service"
  * import { sdk } from "@/lib/medusa-client"
  *
  * const service = createMedusaProductService(sdk, {
@@ -196,6 +209,8 @@ export function createMedusaProductService<
   }
 
   const getProductsGlobal = createGlobalFetcher
+    // Global fetcher intentionally bypasses per-call cancellation.
+    // It is meant for shared deduped prefetch usage.
     ? async (params: TListParams) => getProducts(params, undefined)
     : undefined
 

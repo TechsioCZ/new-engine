@@ -10,49 +10,93 @@ const meta: Meta<typeof FormCheckbox> = {
 	},
 	tags: ["autodocs"],
 	argTypes: {
-		validateStatus: {
-			control: { type: 'select' },
-			options: ['default', 'error', 'success', 'warning'],
-			description: 'Validation status of the checkbox',
+		// Text inputs
+		label: {
+			control: 'text',
+			description: 'Label text for the checkbox',
 		},
 		helpText: {
 			control: 'text',
 			description: 'Help text displayed below the checkbox',
 		},
+
+		// Appearance
+		size: {
+			control: 'select',
+			options: ['sm', 'md', 'lg'],
+			description: 'Size of the checkbox and label',
+			table: { defaultValue: { summary: 'md' } },
+		},
+		validateStatus: {
+			control: 'select',
+			options: ['default', 'error', 'success', 'warning'],
+			description: 'Validation status',
+			table: { defaultValue: { summary: 'default' } },
+		},
 		showHelpTextIcon: {
 			control: 'boolean',
-			description: 'Whether to show an icon with the help text',
+			description: 'Show icon with help text',
+			table: { defaultValue: { summary: 'false' } },
 		},
-		size: {
-			control: { type: 'select' },
-			options: ['sm', 'md', 'lg'],
-			description: 'Size of the checkbox label',
+
+		// States
+		disabled: {
+			control: 'boolean',
+			description: 'Disable the checkbox',
+			table: { defaultValue: { summary: 'false' } },
 		},
+		required: {
+			control: 'boolean',
+			description: 'Mark as required field',
+			table: { defaultValue: { summary: 'false' } },
+		},
+		readOnly: {
+			control: 'boolean',
+			description: 'Make checkbox read-only',
+			table: { defaultValue: { summary: 'false' } },
+		},
+		indeterminate: {
+			control: 'boolean',
+			description: 'Show indeterminate state',
+			table: { defaultValue: { summary: 'false' } },
+		},
+		defaultChecked: {
+			control: 'boolean',
+			description: 'Initial checked state (uncontrolled)',
+			table: { defaultValue: { summary: 'false' } },
+		},
+	},
+	args: {
+		label: 'Accept terms and conditions',
+		size: 'md',
+		validateStatus: 'default',
+		showHelpTextIcon: false,
+		disabled: false,
+		required: false,
+		readOnly: false,
+		indeterminate: false,
+		defaultChecked: false,
 	},
 }
 
 export default meta
 type Story = StoryObj<typeof FormCheckbox>
 
-export const Default: Story = {
+export const Playground: Story = {
 	args: {
-		id: "default-checkbox",
-		label: "Accept terms and conditions",
+		label: 'Playground Checkbox',
+		helpText: 'Helper text',
 	},
 }
 
 export const Checked: Story = {
 	args: {
-		...Default.args,
-		id: "checked-checkbox",
 		defaultChecked: true,
 	},
 }
 
 export const Indeterminate: Story = {
 	args: {
-		id: "indeterminate-checkbox",
-		label: "Indeterminate state",
 		indeterminate: true,
 	},
 }
@@ -89,16 +133,12 @@ export const WithValidation: Story = {
 
 export const Disabled: Story = {
 	args: {
-		...Default.args,
-		id: "disabled-checkbox",
 		disabled: true,
 	},
 }
 
 export const DisabledChecked: Story = {
 	args: {
-		...Default.args,
-		id: "disabled-checked-checkbox",
 		disabled: true,
 		defaultChecked: true,
 	},
@@ -106,8 +146,6 @@ export const DisabledChecked: Story = {
 
 export const Required: Story = {
 	args: {
-		...Default.args,
-		id: "required-checkbox",
 		required: true,
 	},
 }

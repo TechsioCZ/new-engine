@@ -47,13 +47,13 @@ const galleryVariants = tv({
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-gallery-trigger-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "data-[active=true]:border-gallery-trigger-active",
-      "data-[active=true]:bg-gallery-trigger-bg-active",
+      "data-active:border-gallery-trigger-border-active",
+      "data-active:bg-gallery-trigger-bg-active",
       "shadow-gallery-trigger",
       "brightness-gallery-trigger",
-      "hover:brightness-gallery-trigger-active data-[active=true]:brightness-gallery-trigger-active",
+      "hover:brightness-gallery-trigger-active data-active:brightness-gallery-trigger-active",
       "transition-all duration-200 motion-reduce:transition-none",
-      "*:h-full *:w-full *:rounded-[calc(var(--radius-gallery-trigger)-1px)] *:object-cover",
+      "*:h-full *:w-full *:object-cover",
     ],
   },
   variants: {
@@ -356,14 +356,14 @@ Gallery.Thumbnail = function GalleryThumbnail<
   const isActive = page === index
   const thumbnailSource = item.thumbnailSrc || item.src || ""
   const thumbnailAlt =
-    item.thumbnailAlt || item.alt || `Product image ${index + 1}`
+    item.thumbnailAlt ?? item.alt ?? `Product image ${index + 1}`
   const resolvedImageAs = (imageAs ||
     thumbnailImageAs ||
     Image) as GalleryImageComponent<T>
-  const hasCustomThumbnailComponent = resolvedImageAs && resolvedImageAs !== Image
+  const hasCustomThumbnailComponent = resolvedImageAs !== Image
   const CustomThumbnailComponent = hasCustomThumbnailComponent
     ? (resolvedImageAs as ElementType)
-    : null
+    : Image
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     onClick?.(event)
@@ -391,10 +391,10 @@ Gallery.Thumbnail = function GalleryThumbnail<
       type="button"
       {...props}
     >
-      {children ||
-        item.thumbnailContent ||
+      {children ??
+        item.thumbnailContent ??
         (thumbnailSource ? (
-          hasCustomThumbnailComponent && CustomThumbnailComponent ? (
+          hasCustomThumbnailComponent ? (
             <CustomThumbnailComponent
               alt={thumbnailAlt}
               className={imageClassName}
@@ -438,6 +438,7 @@ Gallery.Carousel = function GalleryCarousel<
     pageSnapPoint: number
   }) => {
     setPage(details.page)
+    // Avoid double-calling when the same callback is passed via carouselProps and direct prop.
     if (inheritedOnPageChange === onPageChange) {
       inheritedOnPageChange?.(details)
       return
@@ -453,7 +454,7 @@ Gallery.Carousel = function GalleryCarousel<
       page={page}
       slideCount={items.length}
     >
-      {children || <Gallery.Slides />}
+      {children ?? <Gallery.Slides />}
     </Carousel>
   )
 }

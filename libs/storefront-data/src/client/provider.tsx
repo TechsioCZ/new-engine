@@ -6,6 +6,10 @@ import { getQueryClient, type QueryClientConfig } from "../shared/query-client"
 
 export type StorefrontDataProviderProps = PropsWithChildren<{
   client?: QueryClient
+  /**
+   * Applied only when creating the internal singleton QueryClient for the first time.
+   * Later renders will reuse the existing singleton.
+   */
   clientConfig?: QueryClientConfig
 }>
 

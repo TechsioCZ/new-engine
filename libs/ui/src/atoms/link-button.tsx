@@ -2,7 +2,6 @@ import type {
   ComponentPropsWithoutRef,
   ElementType,
   MouseEvent,
-  ReactElement,
   ReactNode,
   Ref,
 } from "react"
@@ -14,27 +13,25 @@ import { Link } from "./link"
 
 const linkButton = tv({
   extend: buttonVariants,
-  base: "cursor-pointer",
-  variants: {
-    size: {
-      current: "",
-    },
-  },
+  base: "data-disabled:cursor-not-allowed",
   defaultVariants: {
     size: "current",
   },
 })
 
+type LinkButtonHref<T extends ElementType> =
+  ComponentPropsWithoutRef<T> extends { href?: infer H } ? H : string
+
 export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
   typeof linkButton
 > & {
-  href?: string
+  href?: LinkButtonHref<T>
   icon?: IconType
   iconPosition?: "left" | "right"
   children?: ReactNode
   disabled?: boolean
   uppercase?: boolean
-  as?: T | ReactElement<HTMLAnchorElement>
+  as?: T
   ref?: Ref<HTMLAnchorElement>
 } & Omit<
     ComponentPropsWithoutRef<T>,
@@ -55,12 +52,20 @@ export function LinkButton<T extends ElementType = "a">({
   className,
   disabled,
   ref,
+  onClick,
+  tabIndex,
   ...props
 }: LinkButtonProps<T>) {
+  const handleClick = onClick as ((event: MouseEvent<Element>) => void) | undefined
+
   return (
     <Link
+      {...props}
+      href={href}
       aria-disabled={disabled}
+      data-disabled={disabled || undefined}
       as={as as ElementType}
+      tabIndex={disabled ? -1 : tabIndex}
       className={linkButton({
         variant,
         theme,
@@ -69,16 +74,16 @@ export function LinkButton<T extends ElementType = "a">({
         uppercase,
         className,
       })}
-      data-disabled={disabled || undefined}
-      href={disabled ? undefined : href}
       onClick={(e: MouseEvent) => {
         if (disabled) {
           e.preventDefault()
+          e.stopPropagation()
+          return
         }
+
+        handleClick?.(e)
       }}
       ref={ref}
-      tabIndex={disabled ? -1 : 0}
-      {...props}
     >
       {icon && iconPosition === "left" && <Icon icon={icon} size={size} />}
       {children}

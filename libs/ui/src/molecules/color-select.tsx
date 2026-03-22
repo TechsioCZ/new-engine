@@ -11,9 +11,9 @@ const colorSelectVariants = tv({
       "aspect-square overflow-hidden",
       "border-2 transition-all duration-200 motion-reduce:transition-none",
       "border-color-select-border shadow-color-select hover:border-color-select-border-hover",
-      "focus-visible:outline-none",
-      "focus-visible:ring",
-      "focus-visible:ring-color-select-ring",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-color-select-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[selected=true]:border-color-select-selected data-[selected=true]:shadow-none",
     ],
     color: [
@@ -63,10 +63,10 @@ const colorSelectVariants = tv({
         icon: "text-color-select-lg",
       },
       full: {
-        group: "h-full",
-        cell: "h-full",
+        group: "h-full w-full gap-color-select-group-md",
+        cell: "h-full w-full",
         atom: "h-full",
-        icon: "h-color-select-icon w-color-select-icon",
+        icon: "size-color-select-icon",
       },
     },
     layout: {

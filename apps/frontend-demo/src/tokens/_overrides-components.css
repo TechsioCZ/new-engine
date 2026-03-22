@@ -14,34 +14,19 @@
   --border-width-accordion: 1px;
 
   /* === BUTTON === */
-  /* Change from --alpha-ring to --opacity-ring for all focus rings */
-  --color-button-ring-primary: --alpha(
-    var(--color-button-primary) /
-    var(--opacity-ring)
-  );
-  --color-button-ring-secondary: --alpha(
-    var(--color-button-secondary) /
-    var(--opacity-ring)
-  );
-  --color-button-ring-tertiary: --alpha(
-    var(--color-button-tertiary) /
-    var(--opacity-ring)
-  );
-  --color-button-ring-warning: --alpha(
-    var(--color-button-warning) /
-    var(--opacity-ring)
-  );
-  --color-button-ring-danger: --alpha(
-    var(--color-button-danger) /
-    var(--opacity-ring)
-  );
+  /* Solid focus ring colors */
+  --color-button-ring-primary: var(--color-button-primary);
+  --color-button-ring-secondary: var(--color-button-secondary);
+  --color-button-ring-tertiary: var(--color-button-tertiary);
+  --color-button-ring-warning: var(--color-button-warning);
+  --color-button-ring-danger: var(--color-button-danger);
   --color-button-text-secondary: var(--color-fg-dark);
 
   /* === INPUT === */
   /* Different padding for small inputs */
   --padding-input-sm: var(--spacing-3xs) var(--spacing-2xs);
   --padding-input-md: var(--spacing-2xs) var(--spacing-xs);
-  --color-input-ring: --alpha(var(--color-tertiary) / 50%);
+  --color-input-ring: var(--color-tertiary);
   /* Font weight token name change */
   --font-label: var(--font-weight-bold);
 

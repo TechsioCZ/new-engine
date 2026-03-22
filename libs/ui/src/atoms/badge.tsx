@@ -8,7 +8,7 @@ const badgeVariants = tv({
     "p-badge",
     "rounded-badge border-badge-border",
     "font-badge text-badge-size",
-    "border-(length:--border-width-badge-dynamic)",
+    "border-(length:--border-width-badge)",
   ],
   variants: {
     variant: {

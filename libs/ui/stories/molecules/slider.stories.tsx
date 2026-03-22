@@ -17,51 +17,58 @@ const meta: Meta<typeof Slider> = {
   argTypes: {
     value: {
       control: 'object',
-      description:
-        'Current values of the slider (for controlled component). Example: [20, 80]',
+      description: 'Current values of the slider (for controlled component). Example: [20, 80]',
     },
     defaultValue: {
       control: 'object',
-      description:
-        'Default values of the slider (for uncontrolled component). Example: [25, 75]',
+      description: 'Default values of the slider (for uncontrolled component). Example: [25, 75]',
     },
     min: {
       control: 'number',
       description: 'Minimum value of the slider.',
+      table: { defaultValue: { summary: '0' } },
     },
     max: {
       control: 'number',
       description: 'Maximum value of the slider.',
+      table: { defaultValue: { summary: '100' } },
     },
     step: {
       control: 'number',
       description: 'Step value for incrementing/decrementing.',
+      table: { defaultValue: { summary: '1' } },
     },
     minStepsBetweenThumbs: {
       control: 'number',
       description: 'Minimum steps required between thumbs.',
+      table: { defaultValue: { summary: '0' } },
     },
     orientation: {
-      control: 'radio',
+      control: 'select',
       options: ['horizontal', 'vertical'],
       description: 'Orientation of the slider.',
+      table: { defaultValue: { summary: 'horizontal' } },
     },
     size: {
-      control: 'radio',
+      control: 'select',
       options: ['sm', 'md', 'lg'],
       description: 'Size of the slider.',
+      table: { defaultValue: { summary: 'md' } },
     },
     disabled: {
       control: 'boolean',
       description: 'Whether the slider is disabled.',
+      table: { defaultValue: { summary: 'false' } },
     },
     readOnly: {
       control: 'boolean',
       description: 'Whether the slider is read-only.',
+      table: { defaultValue: { summary: 'false' } },
     },
     showValueText: {
       control: 'boolean',
       description: 'Show the current values alongside the slider.',
+      table: { defaultValue: { summary: 'false' } },
     },
     formatValue: {
       control: false,
@@ -70,10 +77,12 @@ const meta: Meta<typeof Slider> = {
     showMarkers: {
       control: 'boolean',
       description: 'Show step markers on the track.',
+      table: { defaultValue: { summary: 'false' } },
     },
     markerCount: {
       control: 'number',
       description: 'Number of markers to display (if showMarkers is true).',
+      table: { defaultValue: { summary: '5' } },
     },
     label: {
       control: 'text',
@@ -83,25 +92,29 @@ const meta: Meta<typeof Slider> = {
       control: 'select',
       options: ['default', 'error', 'success', 'warning'],
       description: 'Validation status that affects slider styling and help text display.',
+      table: { defaultValue: { summary: 'default' } },
     },
     helpText: {
       control: 'text',
       description: 'Help text displayed below the slider.',
     },
     origin: {
-      control: 'radio',
+      control: 'select',
       options: ['start', 'center', 'end'],
       description: 'Origin point for the slider range.',
+      table: { defaultValue: { summary: 'start' } },
     },
     thumbAlignment: {
-      control: 'radio',
+      control: 'select',
       options: ['center', 'contain'],
       description: 'Alignment of slider thumbs relative to the track.',
+      table: { defaultValue: { summary: 'center' } },
     },
     dir: {
-      control: 'radio',
+      control: 'select',
       options: ['ltr', 'rtl'],
       description: 'Text direction of the slider.',
+      table: { defaultValue: { summary: 'ltr' } },
     },
     formatRangeText: {
       control: false,
@@ -116,6 +129,21 @@ const meta: Meta<typeof Slider> = {
       description: 'Callback when the value change is committed.',
     },
   },
+  args: {
+    min: 0,
+    max: 100,
+    step: 1,
+    orientation: 'horizontal',
+    size: 'md',
+    disabled: false,
+    readOnly: false,
+    showValueText: true,
+    showMarkers: false,
+    validateStatus: 'default',
+    origin: 'start',
+    thumbAlignment: 'center',
+    dir: 'ltr',
+  },
 }
 
 export default meta
@@ -128,16 +156,15 @@ const baseSliderProps: Partial<SliderProps> = {
   showValueText: true,
 }
 
-export const Default: Story = {
+export const Playground: Story = {
   args: {
-    ...baseSliderProps,
-    id: 'default-slider',
+    id: 'playground-slider',
     label: 'Price Range',
     defaultValue: [20, 80],
     helpText: 'Select your desired price range.',
   },
   render: (args) => (
-    <div className="min-w-sm">
+    <div className="min-w-sm h-96">
       <Slider {...args} />
     </div>
   ),
@@ -145,7 +172,7 @@ export const Default: Story = {
 
 export const Disabled: Story = {
   args: {
-    ...Default.args,
+    ...Playground.args,
     id: 'disabled-slider',
     disabled: true,
   },
@@ -153,7 +180,7 @@ export const Disabled: Story = {
 
 export const WithValidation: Story = {
   args: {
-    ...Default.args,
+    ...Playground.args,
     id: 'validation-slider',
     label: 'Quantity',
   },
@@ -162,7 +189,7 @@ export const WithValidation: Story = {
     const currentValue = value[0] ?? 0
 
     return (
-      <div className="max-w-96">
+      <div className="max-w-sm">
         <Slider
           {...args}
           value={value}

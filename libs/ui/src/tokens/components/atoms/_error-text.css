@@ -1,8 +1,0 @@
-@theme {
-  --color-error-text-fg: var(--color-danger);
-  /* Error message */
-  --text-error-text-sm: var(--text-input-sm);
-  --text-error-text-md: var(--text-input-md);
-  --text-error-text-lg: var(--text-input-lg);
-  --spacing-error-text-icon-gap: var(--spacing-50);
-}

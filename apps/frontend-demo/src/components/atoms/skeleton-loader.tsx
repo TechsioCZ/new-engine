@@ -1,6 +1,7 @@
 import { tv } from "@techsio/ui-kit/utils"
 import type * as React from "react"
 import type { VariantProps } from "tailwind-variants"
+import "../../tokens/app-components/atoms/_skeleton-loader.css"
 
 const skeletonVariants = tv({
   base: [
@@ -10,7 +11,7 @@ const skeletonVariants = tv({
     "before:absolute",
     "before:inset-0",
     "before:-translate-x-full",
-    "before:animate-[skeleton-shimmer_var(--skeleton-shimmer-duration)_ease-in-out_infinite]",
+    "before:animate-skeleton-shimmer",
     "before:bg-gradient-to-r",
     "before:from-transparent",
     "before:via-skeleton-shimmer",

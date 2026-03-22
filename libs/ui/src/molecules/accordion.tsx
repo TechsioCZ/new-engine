@@ -27,14 +27,8 @@ const accordionVariants = tv({
       "rounded-none",
       "font-accordion-title",
       "bg-accordion-title-bg text-accordion-title-fg",
-      "focus-visible:outline-none",
-      "focus-visible:ring",
-      "focus-visible:ring-accordion-ring",
-      "focus-visible:bg-accordion-bg-hover",
-      "data-[disabled]:text-accordion-fg-disabled",
       "hover:bg-accordion-title-bg-hover",
-      // reset button padding
-      "px-0 py-0 pr-accordion-icon",
+      "pr-accordion-icon",
       "data-[disabled=true]:cursor-not-allowed",
     ],
     subtitle: ["text-accordion-subtitle-fg"],
@@ -179,8 +173,8 @@ export function Accordion({
     dir,
     orientation: "vertical",
     disabled,
-    onValueChange: ({ value }) => {
-      onChange?.(value)
+    onValueChange: ({ value: newValue }) => {
+      onChange?.(newValue)
     },
   })
 
@@ -250,7 +244,8 @@ Accordion.Header = function AccordionHeader({
     <header className={className} ref={ref} {...props}>
       <Button
         className={styles.titleTrigger()}
-        theme="borderless"
+        size="current"
+        theme="unstyled"
         type="button"
         {...api.getItemTriggerProps({ value, disabled })}
         data-disabled={disabled}

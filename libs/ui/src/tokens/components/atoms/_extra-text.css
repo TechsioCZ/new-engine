@@ -1,8 +1,0 @@
-@theme {
-  --color-extra-text-fg: var(--color-input-fg);
-
-  --text-extra-text-sm: var(--text-input-sm);
-  --text-extra-text-md: var(--text-input-md);
-  --text-extra-text-lg: var(--text-input-lg);
-  --color-extra-text-fg: var(--color-fg-secondary);
-}

@@ -102,6 +102,45 @@ A compound pattern Select component built with Zag.js that provides maximum flex
 		},
 	},
 	tags: ['autodocs'],
+	argTypes: {
+		size: {
+			control: { type: 'select' },
+			options: ['xs', 'sm', 'md', 'lg'],
+			description: 'Size of the select',
+			table: { defaultValue: { summary: 'md' } },
+		},
+		validateStatus: {
+			control: { type: 'select' },
+			options: ['default', 'error', 'success', 'warning'],
+			description: 'Validation status of the select',
+			table: { defaultValue: { summary: 'default' } },
+		},
+		disabled: {
+			control: 'boolean',
+			description: 'Whether the select is disabled',
+			table: { defaultValue: { summary: 'false' } },
+		},
+		readOnly: {
+			control: 'boolean',
+			description: 'Whether the select is read-only',
+			table: { defaultValue: { summary: 'false' } },
+		},
+		multiple: {
+			control: 'boolean',
+			description: 'Whether multiple options can be selected',
+			table: { defaultValue: { summary: 'false' } },
+		},
+		closeOnSelect: {
+			control: 'boolean',
+			description: 'Whether the dropdown closes on selection',
+			table: { defaultValue: { summary: 'true' } },
+		},
+		loopFocus: {
+			control: 'boolean',
+			description: 'Whether keyboard navigation should loop',
+			table: { defaultValue: { summary: 'true' } },
+		},
+	},
 	decorators: [
 		(Story, context) => {
 			const { title, description } = context.parameters
@@ -124,11 +163,19 @@ A compound pattern Select component built with Zag.js that provides maximum flex
 export default meta
 type Story = StoryObj<typeof meta>
 
-// === BASIC EXAMPLES ===
-
-export const Default: Story = {
-	render: () => (
-		<Select items={countries}>
+export const Playground: Story = {
+	args: {
+		items: countries,
+		size: 'md',
+		validateStatus: 'default',
+		disabled: false,
+		readOnly: false,
+		multiple: false,
+		closeOnSelect: true,
+		loopFocus: true,
+	},
+	render: (args) => (
+		<Select {...args}>
 			<Select.Label>Select a country</Select.Label>
 			<Select.Control>
 				<Select.Trigger>
@@ -138,7 +185,7 @@ export const Default: Story = {
 			</Select.Control>
 			<Select.Positioner>
 				<Select.Content>
-					{countries.map((item) => (
+					{args.items?.map((item) => (
 						<Select.Item key={item.value} item={item}>
 							<Select.ItemText />
 							<Select.ItemIndicator />
@@ -146,6 +193,7 @@ export const Default: Story = {
 					))}
 				</Select.Content>
 			</Select.Positioner>
+			<Select.StatusText>Helper text goes here</Select.StatusText>
 		</Select>
 	),
 }
@@ -173,8 +221,6 @@ export const WithDefaultValue: Story = {
 		</Select>
 	),
 }
-
-// === SIZE VARIANTS ===
 
 export const Sizes: Story = {
 	render: () => (
@@ -257,8 +303,6 @@ export const Sizes: Story = {
 		</>
 	),
 }
-
-// === STATES ===
 
 export const States: Story = {
 	render: () => (
@@ -343,8 +387,6 @@ export const States: Story = {
 		</>
 	),
 }
-
-// === VALIDATION STATES ===
 
 export const ValidationStates: Story = {
 	name: 'Validation States (error, success, warning)',
@@ -432,8 +474,6 @@ export const ValidationStates: Story = {
 		</>
 	),
 }
-
-// === COMPOUND PATTERN BENEFITS ===
 
 export const WithIcons: Story = {
 	name: 'With Icons (Compound Benefit)',
@@ -653,8 +693,6 @@ export const CustomItemContent: Story = {
 	},
 }
 
-// === CONTROLLED ===
-
 export const Controlled: Story = {
 	render: () => {
 		const [value, setValue] = useState<string[]>(['fr'])
@@ -702,8 +740,6 @@ export const Controlled: Story = {
 	},
 }
 
-// === MULTIPLE SELECTION ===
-
 export const Multiple: Story = {
 	render: () => (
 		<Select items={languages} multiple closeOnSelect={false}>
@@ -735,8 +771,6 @@ export const Multiple: Story = {
 		</Select>
 	),
 }
-
-// === FORM INTEGRATION ===
 
 export const WithinForm: Story = {
 	render: () => {
@@ -845,8 +879,6 @@ export const WithinForm: Story = {
 		)
 	},
 }
-
-// === CONDITIONAL RENDERING ===
 
 export const ConditionalRendering: Story = {
 	name: 'Conditional Rendering (Compound Benefit)',

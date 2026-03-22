@@ -1,10 +1,10 @@
-import type { QueryKey } from "../shared/query-keys"
 import type {
   QueryResult,
   ReadResultBase,
   SuspenseQueryResult,
   SuspenseResultBase,
-} from "../shared/hook-types"
+} from "../shared/hook-result-types"
+import type { QueryKey } from "../shared/query-keys"
 
 export type CollectionListInputBase = {
   page?: number
@@ -23,11 +23,7 @@ export type CollectionListResponse<TCollection> = {
   count?: number
 }
 
-export type CollectionService<
-  TCollection,
-  TListParams,
-  TDetailParams,
-> = {
+export type CollectionService<TCollection, TListParams, TDetailParams> = {
   getCollections: (
     params: TListParams,
     signal?: AbortSignal

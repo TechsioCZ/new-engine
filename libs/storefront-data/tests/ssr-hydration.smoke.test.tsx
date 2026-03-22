@@ -1,19 +1,17 @@
-import { QueryClient } from "@tanstack/react-query"
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import {
   createProductHooks,
-  createProductQueryKeys,
-  type ProductListInputBase,
-  type ProductService,
-} from "../src/products"
-import { createCacheConfig } from "../src/shared"
-import { StorefrontDataProvider } from "../src/client"
-import {
-  dehydrate,
-  HydrationBoundary,
-  getServerQueryClient,
-} from "../src/server"
+} from "../src/products/hooks"
+import { createProductQueryKeys } from "../src/products/query-keys"
+import type {
+  ProductListInputBase,
+  ProductService,
+} from "../src/products/types"
+import { StorefrontDataProvider } from "../src/client/provider"
+import { getServerQueryClient } from "../src/server/get-query-client"
+import { createCacheConfig } from "../src/shared/cache-config"
 
 type TestProduct = {
   id: string

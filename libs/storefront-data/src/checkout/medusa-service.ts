@@ -1,17 +1,16 @@
-﻿import type Medusa from "@medusajs/js-sdk"
+import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import type { CheckoutService } from "./types"
 
-export type MedusaCheckoutServiceConfig = {
-  // Reserved for future options
-}
+export type MedusaCheckoutServiceConfig = Record<string, never>
 
 /**
  * Creates a CheckoutService for Medusa SDK
  *
  * @example
  * ```typescript
- * import { createCheckoutHooks, createMedusaCheckoutService } from "@techsio/storefront-data"
+ * import { createCheckoutHooks } from "@techsio/storefront-data/checkout/hooks"
+ * import { createMedusaCheckoutService } from "@techsio/storefront-data/checkout/medusa-service"
  * import { sdk } from "@/lib/medusa-client"
  *
  * const checkoutHooks = createCheckoutHooks({
@@ -33,23 +32,37 @@ export function createMedusaCheckoutService(
   return {
     async listShippingOptions(
       cartId: string,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StoreCartShippingOption[]> {
-      const response = await sdk.store.fulfillment.listCartOptions({
-        cart_id: cartId,
-      })
+      const response =
+        await sdk.client.fetch<HttpTypes.StoreShippingOptionListResponse>(
+          "/store/shipping-options",
+          {
+            query: {
+              cart_id: cartId,
+            },
+            signal,
+          }
+        )
       return response.shipping_options ?? []
     },
 
     async calculateShippingOption(
       optionId: string,
       input: { cart_id: string; data?: Record<string, unknown> },
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StoreCartShippingOption> {
-      const response = await sdk.store.fulfillment.calculate(optionId, {
-        cart_id: input.cart_id,
-        data: input.data,
-      })
+      const response = await sdk.client.fetch<HttpTypes.StoreShippingOptionResponse>(
+        `/store/shipping-options/${optionId}/calculate`,
+        {
+          method: "POST",
+          body: {
+            cart_id: input.cart_id,
+            data: input.data,
+          },
+          signal,
+        }
+      )
       return response.shipping_option
     },
 
@@ -70,11 +83,18 @@ export function createMedusaCheckoutService(
 
     async listPaymentProviders(
       regionId: string,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StorePaymentProvider[]> {
-      const response = await sdk.store.payment.listPaymentProviders({
-        region_id: regionId,
-      })
+      const response =
+        await sdk.client.fetch<HttpTypes.StorePaymentProviderListResponse>(
+          "/store/payment-providers",
+          {
+            query: {
+              region_id: regionId,
+            },
+            signal,
+          }
+        )
       return response.payment_providers ?? []
     },
 
@@ -100,9 +120,7 @@ export function createMedusaCheckoutService(
       return response.payment_collection
     },
 
-    async completeCart(
-      cartId: string
-    ): Promise<HttpTypes.StoreCompleteCartResponse> {
+    completeCart(cartId: string): Promise<HttpTypes.StoreCompleteCartResponse> {
       return sdk.store.cart.complete(cartId)
     },
   }

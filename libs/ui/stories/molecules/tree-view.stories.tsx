@@ -28,6 +28,42 @@ TreeView is fully keyboard accessible following WAI-ARIA tree pattern:
     },
   },
   tags: ['autodocs'],
+  argTypes: {
+    size: {
+      control: 'select',
+      options: ['sm', 'md', 'lg'],
+      description: 'Size of the tree view',
+      table: { defaultValue: { summary: 'md' }, category: 'Appearance' },
+    },
+    selectionMode: {
+      control: 'select',
+      options: ['single', 'multiple'],
+      description: 'Selection mode',
+      table: { defaultValue: { summary: 'single' }, category: 'Selection' },
+    },
+    selectionBehavior: {
+      control: 'select',
+      options: ['all', 'leaf-only', 'custom'],
+      description: 'Which nodes can be selected',
+      table: { defaultValue: { summary: 'all' }, category: 'Selection' },
+    },
+    expandOnClick: {
+      control: 'boolean',
+      description: 'Expand branches on click',
+      table: { defaultValue: { summary: 'true' }, category: 'Behavior' },
+    },
+    typeahead: {
+      control: 'boolean',
+      description: 'Enable typeahead navigation',
+      table: { defaultValue: { summary: 'true' }, category: 'Behavior' },
+    },
+    dir: {
+      control: 'radio',
+      options: ['ltr', 'rtl'],
+      description: 'Text direction',
+      table: { defaultValue: { summary: 'ltr' }, category: 'Behavior' },
+    },
+  },
 }
 
 export default meta
@@ -136,34 +172,49 @@ const navigationData: TreeNode[] = [
   },
 ]
 
-// Basic usage with helper component
-export const Default: Story = {
-  render: () => (
-      <TreeView data={fileSystemData} className='w-md' selectionMode="multiple">
-        <TreeView.Label>File Explorer</TreeView.Label>
-        <TreeView.Tree>
-          {fileSystemData.map((node, index) => (
-            <TreeView.Node
-              key={node.id}
-              node={node}
-              indexPath={[index]}
-              showIndentGuides
-              showNodeIcons
-            />
-          ))}
-        </TreeView.Tree>
-      </TreeView>
+export const Playground: Story = {
+  args: {
+    size: 'md',
+    selectionMode: 'single',
+    selectionBehavior: 'all',
+    expandOnClick: true,
+    typeahead: true,
+    dir: 'ltr',
+  },
+  render: (args) => (
+    <TreeView
+      data={fileSystemData}
+      className="w-md"
+      size={args.size}
+      selectionMode={args.selectionMode}
+      selectionBehavior={args.selectionBehavior}
+      expandOnClick={args.expandOnClick}
+      typeahead={args.typeahead}
+      dir={args.dir}
+    >
+      <TreeView.Label>File Explorer</TreeView.Label>
+      <TreeView.Tree>
+        {fileSystemData.map((node, index) => (
+          <TreeView.Node
+            key={node.id}
+            node={node}
+            indexPath={[index]}
+            showIndentGuides
+            showNodeIcons
+          />
+        ))}
+      </TreeView.Tree>
+    </TreeView>
   ),
   parameters: {
     docs: {
       description: {
-        story: 'Basic TreeView with all visual features enabled: icons, indent guides, and multiple selection. Use TreeView.Node helper for quick setup.',
+        story: 'Interactive TreeView with all controls. Try different sizes, selection modes, and behaviors.',
       },
     },
   },
 }
 
-// Full compound pattern with custom composition
 export const CustomComposition: Story = {
   render: () => (
       <TreeView data={fileSystemData} className='w-md' selectionMode="multiple">
@@ -230,7 +281,6 @@ export const CustomComposition: Story = {
   },
 }
 
-// Without indent guides and icons
 export const Minimal: Story = {
   render: () => (
       <TreeView data={navigationData} selectionMode="single" className='w-xs'>
@@ -256,7 +306,6 @@ export const Minimal: Story = {
   },
 }
 
-// Different sizes
 export const Sizes: Story = {
   render: () => (
     <div className="flex flex-col gap-300">
@@ -295,7 +344,6 @@ export const Sizes: Story = {
   },
 }
 
-// Selection behaviors
 export const SelectionBehaviors: Story = {
   render: () => (
     <div className="flex flex-col gap-300">
@@ -349,7 +397,6 @@ export const SelectionBehaviors: Story = {
   },
 }
 
-// Controlled state
 export const Controlled: Story = {
   render: () => {
     const ControlledExample = () => {
@@ -443,7 +490,6 @@ export const Controlled: Story = {
   },
 }
 
-// Advanced custom styling
 export const CustomStyling: Story = {
   render: () => (
       <TreeView data={fileSystemData} selectionMode="single" className="w-lg bg-gradient-to-br from-surface to-surface-secondary rounded-lg">
@@ -455,7 +501,7 @@ export const CustomStyling: Story = {
             const CustomNode = ({ node, indexPath }: { node: TreeNode; indexPath: number[] }) => (
               <TreeView.NodeProvider node={node} indexPath={indexPath}>
                 {node.children ? (
-                  <TreeView.Branch>
+                  <TreeView.Branch className='data-disabled:opacity-40'>
                     <TreeView.BranchTrigger className="hover:bg-primary/10 rounded-sm transition-colors">
                       <TreeView.BranchControl>
                         <span className="text-primary">
@@ -502,7 +548,6 @@ export const CustomStyling: Story = {
   },
 }
 
-// With default expanded items
 export const DefaultExpanded: Story = {
   render: () => (
       <TreeView
@@ -529,7 +574,6 @@ export const DefaultExpanded: Story = {
   },
 }
 
-// Single vs Multiple selection modes
 export const SelectionModes: Story = {
   render: () => {
     const SelectionModesExample = () => {
@@ -606,7 +650,6 @@ export const SelectionModes: Story = {
   },
 }
 
-// Interactive test showing expand vs selection behavior
 export const ExpandVsSelectionTest: Story = {
   render: () => {
     const InteractiveTest = () => {
@@ -719,7 +762,6 @@ export const ExpandVsSelectionTest: Story = {
     },
   },
 }
-
 
 export const WithHoverEvents: Story = {
   render: () => {

@@ -11,7 +11,7 @@
     from var(--color-gallery) calc(l - var(--surface-increment) * 3) c h
   );
   --color-gallery-trigger-border: var(--color-border-primary);
-  --color-gallery-trigger-active: var(--color-gallery-accent);
+  --color-gallery-trigger-border-active: var(--color-gallery-accent);
   --color-gallery-trigger-ring: var(--color-ring);
 
   /* === SPACING === */
@@ -26,7 +26,7 @@
   --height-gallery: min(60svh, 36rem);
 
   /* === EFFECTS === */
-  --brightness-gallery-trigger: 82%;
+  --brightness-gallery-trigger: 70%;
   --brightness-gallery-trigger-active: 100%;
   --shadow-gallery-trigger: var(--shadow-sm);
 

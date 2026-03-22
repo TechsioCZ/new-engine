@@ -15,13 +15,13 @@
   --state-border: 15%;
   --state-placeholder: 0.25;
   --max-lightness: 0.97;
-  --opacity-ring: 80%;
   --opacity-disabled: 60%;
   --opacity-placeholder: 60%;
   --opacity-text-secondary: 70%;
   --opacity-disabled-placeholder: 30%;
   --fill-increment: 5%;
   --surface-increment: 0.05;
+  --state-fg-lightness: 0.42; /* Accent color lightness for text - WCAG AAA on light bg */
 }
 
 /* Explicit Dark class(es) */
@@ -31,6 +31,7 @@
   --state-secondary-text: -0.15;
   --state-placeholder: -0.25;
   --surface-increment: -0.05;
+  --state-fg-lightness: 0.85;
 }
 
 /* System Dark preference (when no explicit class forces light) */
@@ -41,6 +42,7 @@
     --state-secondary-text: -0.15;
     --state-placeholder: -0.25;
     --surface-increment: -0.05;
+    --state-fg-lightness: 0.85;
   }
 }
 
@@ -51,6 +53,7 @@
   --state-secondary-text: -0.15;
   --state-placeholder: -0.25;
   --surface-increment: -0.05;
+  --state-fg-lightness: 0.85;
 }
 
 :is(.dark, .always-dark) .reverse {
@@ -59,6 +62,7 @@
   --state-secondary-text: 0.15;
   --state-placeholder: 0.25;
   --surface-increment: 0.05;
+  --state-fg-lightness: 0.42;
 }
 
 /* Reverse on System Light/Dark preference (when no explicit theme class is present) */
@@ -69,6 +73,7 @@
     --state-secondary-text: -0.15;
     --state-placeholder: -0.25;
     --surface-increment: -0.05;
+    --state-fg-lightness: 0.85;
   }
 }
 
@@ -79,6 +84,7 @@
     --state-secondary-text: 0.15;
     --state-placeholder: 0.25;
     --surface-increment: 0.05;
+    --state-fg-lightness: 0.42;
   }
 }
 
@@ -86,7 +92,7 @@
 @theme static {
   /* Colors */
   /* User interface main tone and interactive colors, usually used for main operation button, etc */
-  --color-primary: light-dark(var(--color-blue-500), var(--color-sky-300));
+  --color-primary: light-dark(var(--color-blue-300), var(--color-sky-300));
   --color-primary-hover: oklch(
     from var(--color-primary) calc(l + var(--state-hover)) c h
   );
@@ -141,7 +147,7 @@
   );
 
   /* In the user interface, non emphasis color and interactive color are usually used for general and non emphasis function operation buttons */
-  --color-tertiary: light-dark(var(--color-pink-500), var(--color-rose-400));
+  --color-tertiary: light-dark(var(--color-pink-300), var(--color-rose-400));
   --color-tertiary-hover: oklch(
     from var(--color-tertiary) calc(l + var(--state-hover)) c h
   );
@@ -248,7 +254,7 @@
   );
 
   /* It is usually used to express the dangerous state, and is used in the scene with the above semantics */
-  --color-danger: light-dark(var(--color-red-500), var(--color-red-400));
+  --color-danger: light-dark(var(--color-red-400), var(--color-red-300));
   --color-danger-hover: oklch(
     from var(--color-danger) calc(l + var(--state-hover)) c h
   );
@@ -273,9 +279,30 @@
     from var(--color-danger-light) l var(--state-disabled-chroma) h
   );
 
-  /* Text colors and Icon colors*/
+  /* Text colors and Icon colors */
+  /* semantic text color for better contrast WCAG AAA - uses absolute lightness */
+  --color-primary-accent-fg: oklch(
+    from var(--color-primary) var(--state-fg-lightness) c h
+  );
+  --color-secondary-accent-fg: oklch(
+    from var(--color-secondary) var(--state-fg-lightness) c h
+  );
+  --color-tertiary-accent-fg: oklch(
+    from var(--color-tertiary) var(--state-fg-lightness) c h
+  );
+  --color-success-fg: oklch(
+    from var(--color-success) var(--state-fg-lightness) c h
+  );
+  --color-info-fg: oklch(from var(--color-info) var(--state-fg-lightness) c h);
+  --color-warning-fg: oklch(
+    from var(--color-warning) var(--state-fg-lightness) c h
+  );
+  --color-danger-fg: oklch(
+    from var(--color-danger) var(--state-fg-lightness) c h
+  );
+
   /* Four different levels of text / icon colors represent the most important, secondary, minor and minor contents in the product interface */
-  --color-fg-light: var(--color-slate-800); /* Light mode */
+  --color-fg-light: var(--color-slate-950); /* Light mode */
   --color-fg-dark: var(--color-white); /* Dark mode */
   --color-fg-primary: light-dark(var(--color-fg-light), var(--color-fg-dark));
 
@@ -325,6 +352,7 @@
   --border-width-sm: 1px;
   --border-width-md: 2px;
   --border-width-lg: 3px;
+  --border-width-validation: var(--border-width-lg);
 
   /* Links */
   --color-link: light-dark(var(--color-blue-500), var(--color-sky-300));
@@ -370,5 +398,7 @@
   /* Focus ring */
   --default-ring-color: light-dark(var(--color-black), var(--color-white));
   --color-ring: var(--default-ring-color);
-  --default-ring-width: 3px;
+  --default-ring-width: 2px;
+  --default-ring-offset: 2px;
+  --default-ring-style: solid;
 }

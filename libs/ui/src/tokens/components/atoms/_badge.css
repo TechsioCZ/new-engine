@@ -21,7 +21,7 @@
   --color-badge-bg-discount: var(--color-badge-danger); /* Alias for discount */
 
   /* Foreground colors */
-  --color-badge-fg: var(--color-fg-reverse);
+  --color-badge-fg: var(--color-fg-light);
   --color-badge-fg-primary: var(--color-badge-fg);
   --color-badge-fg-secondary: var(--color-badge-fg);
   --color-badge-fg-tertiary: var(--color-badge-fg);
@@ -30,7 +30,7 @@
   --color-badge-fg-warning: var(--color-badge-fg);
   --color-badge-fg-danger: var(--color-badge-fg);
   --color-badge-fg-discount: var(
-    --color-fg-dark
+    --color-badge-fg
   ); /* Keep original for discount */
 
   /* Border colors */

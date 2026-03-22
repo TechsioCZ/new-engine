@@ -17,45 +17,131 @@ const meta: Meta<typeof FormNumericInput> = {
   },
   tags: ['autodocs'],
   argTypes: {
-    validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status of the numeric input',
+    // Text inputs
+    label: {
+      control: 'text',
+      description: 'Label for the numeric input',
     },
     helpText: {
       control: 'text',
       description: 'Help text displayed below the input',
     },
-    showHelpTextIcon: {
-      control: 'boolean',
-      description: 'Whether to show an icon with the help text',
-    },
+
+    // Appearance
     size: {
       control: 'select',
       options: ['sm', 'md', 'lg'],
       description: 'Size of the numeric input',
+      table: { defaultValue: { summary: 'md' } },
     },
+    validateStatus: {
+      control: 'select',
+      options: ['default', 'error', 'success', 'warning'],
+      description: 'Validation status of the numeric input',
+      table: { defaultValue: { summary: 'default' } },
+    },
+    showHelpTextIcon: {
+      control: 'boolean',
+      description:
+        'Whether to show an icon with the help text. Defaults to true when validateStatus is not "default".',
+      table: { defaultValue: { summary: 'auto (true when validated)' } },
+    },
+
+    // States
+    disabled: {
+      control: 'boolean',
+      description: 'Disable the numeric input',
+      table: { defaultValue: { summary: 'false' } },
+    },
+    required: {
+      control: 'boolean',
+      description: 'Mark as required field',
+      table: { defaultValue: { summary: 'false' } },
+    },
+
+    // Numeric options
+    min: {
+      control: 'number',
+      description: 'Minimum allowed value',
+    },
+    max: {
+      control: 'number',
+      description: 'Maximum allowed value',
+    },
+    step: {
+      control: 'number',
+      description: 'Step increment value',
+      table: { defaultValue: { summary: '1' } },
+    },
+    precision: {
+      control: 'number',
+      description: 'Number of decimal places',
+    },
+
+    // Behavior
+    allowMouseWheel: {
+      control: 'boolean',
+      description: 'Allow changing value with mouse wheel',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    allowOverflow: {
+      control: 'boolean',
+      description: 'Allow values outside min/max range',
+      table: { defaultValue: { summary: 'false' } },
+    },
+    clampValueOnBlur: {
+      control: 'boolean',
+      description: 'Clamp value to min/max when input loses focus',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    spinOnPress: {
+      control: 'boolean',
+      description: 'Continue incrementing/decrementing while button is held',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    readOnly: {
+      control: 'boolean',
+      description: 'Make input read-only',
+      table: { defaultValue: { summary: 'false' } },
+    },
+    locale: {
+      control: 'text',
+      description: 'Locale for number formatting',
+      table: { defaultValue: { summary: 'cs-CZ' } },
+    },
+  },
+  args: {
+    label: 'Quantity',
+    helpText: 'Enter a value between 0 and 100',
+    size: 'md',
+    validateStatus: 'default',
+    showHelpTextIcon: false,
+    disabled: false,
+    required: false,
+    readOnly: false,
+    min: 0,
+    max: 100,
+    step: 1,
+    allowMouseWheel: true,
+    allowOverflow: false,
+    clampValueOnBlur: true,
+    spinOnPress: true,
+    locale: 'cs-CZ',
   },
 }
 
 export default meta
 type Story = StoryObj<typeof FormNumericInput>
 
-// Default - Basic usage with vertical triggers
-export const Default: Story = {
-  render: () => {
-    const [value, setValue] = useState(0)
-
+// Playground - Interactive with Controls
+export const Playground: Story = {
+  args: {
+    label: 'Playground NumericInput',
+  },
+  render: (args) => {
     return (
       <div className="w-md">
-        <FormNumericInput
-          id="quantity"
-          label="Quantity"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-        >
+        <FormNumericInput defaultValue={50} {...args}>
           <NumericInput.Control>
             <NumericInput.Input />
             <NumericInput.TriggerContainer>
@@ -101,35 +187,6 @@ export const WithError: Story = {
   },
 }
 
-// With Help Text - Shows help text without error
-export const WithHelpText: Story = {
-  render: () => {
-    const [value, setValue] = useState(50)
-
-    return (
-      <div className="w-md">
-        <FormNumericInput
-          id="quantity-help"
-          label="Quantity"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          helpText="Enter a value between 0 and 100"
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
-  },
-}
-
 // Validation States - Shows all validation states
 export const ValidationStates: Story = {
   render: () => {
@@ -139,7 +196,7 @@ export const ValidationStates: Story = {
     const [value4, setValue4] = useState(100)
 
     return (
-      <div className="flex flex-col gap-lg">
+      <div className="flex flex-col gap-300">
         <div className="w-md">
           <FormNumericInput
             id="quantity-default"
@@ -298,7 +355,7 @@ export const HorizontalLayout: Story = {
           max={100}
           helpText="Horizontal layout example"
         >
-          <div className="flex gap-xs">
+          <div className="flex gap-100">
             <NumericInput.DecrementTrigger
               className="bg-overlay"
               icon="icon-[mdi--minus]"
@@ -374,41 +431,6 @@ export const WithScrubber: Story = {
   },
 }
 
-// Custom Button Props - Shows Button customization
-export const CustomButtonProps: Story = {
-  render: () => {
-    const [value, setValue] = useState(50)
-
-    return (
-      <div className="w-md">
-        <FormNumericInput
-          id="quantity-custom"
-          label="Quantity"
-          value={value}
-          onChange={setValue}
-          min={0}
-          max={100}
-          helpText="Custom styled increment/decrement buttons"
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger
-                variant="secondary"
-                theme="solid"
-              />
-              <NumericInput.DecrementTrigger
-                variant="danger"
-                theme="outlined"
-              />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
-  },
-}
-
 // All Sizes - Shows all size variants
 export const AllSizes: Story = {
   render: () => {
@@ -417,7 +439,7 @@ export const AllSizes: Story = {
     const [value3, setValue3] = useState(30)
 
     return (
-      <div className="flex flex-col gap-lg">
+      <div className="flex flex-col gap-300">
         <div className="w-md">
           <FormNumericInput
             id="quantity-sm"
@@ -520,8 +542,8 @@ export const ComplexDemo: Story = {
     const isInvalid = value < 0 || value > 100
 
     return (
-      <div className="flex flex-col gap-md w-lg">
-        <div className="w-md">
+      <div className="flex flex-col">
+        <div>
           <FormNumericInput
             id="quantity-complex"
             label="Product Quantity"
@@ -550,15 +572,15 @@ export const ComplexDemo: Story = {
           </FormNumericInput>
         </div>
 
-        <div className="bg-surface-secondary p-md rounded-md">
-          <h3 className="text-fg-primary font-semibold mb-sm">Current State</h3>
-          <ul className="text-fg-muted text-sm space-y-xs">
+        <div className="bg-surface-secondary rounded-md">
+          <h3 className="text-fg-primary font-semibold mb-100">Current State</h3>
+          <ul className="text-fg-muted text-sm space-y-050">
             <li>
               Value: <strong>{value}</strong>
             </li>
             <li>
               Status:{' '}
-              <strong className={isInvalid ? 'text-fg-danger' : 'text-fg-success'}>
+              <strong className={isInvalid ? 'text-danger' : 'text-success'}>
                 {isInvalid ? 'Invalid' : 'Valid'}
               </strong>
             </li>

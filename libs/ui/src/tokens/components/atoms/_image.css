@@ -1,0 +1,5 @@
+@theme static {
+  --size-image-sm: 5rem;
+  --size-image-md: 10rem;
+  --size-image-lg: 15rem;
+}

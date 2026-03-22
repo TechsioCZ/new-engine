@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { getErrorStatus } from "../shared/medusa-errors"
 import type { CartService } from "./types"
 
 export type MedusaCartServiceConfig = {
@@ -10,6 +11,7 @@ export type MedusaCartCreateParams = HttpTypes.StoreCreateCart
 export type MedusaCartUpdateParams = HttpTypes.StoreUpdateCart
 export type MedusaCartAddItemParams = HttpTypes.StoreAddCartLineItem
 export type MedusaCartUpdateItemParams = HttpTypes.StoreUpdateCartLineItem
+type MedusaCartWriteParams = MedusaCartCreateParams | MedusaCartUpdateParams
 
 export type MedusaCompleteCartResult =
   | { type: "order"; order: HttpTypes.StoreOrder }
@@ -19,28 +21,42 @@ export type MedusaCompleteCartResult =
       error: { message: string; name: string; type: string }
     }
 
+const defaultIsNotFoundError = (error: unknown): boolean =>
+  getErrorStatus(error) === 404
+
+const sanitizeCartWriteParams = <TParams extends MedusaCartWriteParams>(
+  params: TParams
+): TParams => {
+  if (!("country_code" in params)) {
+    return params
+  }
+
+  const { country_code: _countryCode, ...rest } = params as TParams & {
+    country_code?: unknown
+  }
+  return rest as TParams
+}
+
 /**
  * Creates a CartService for Medusa SDK
  *
  * @example
  * ```typescript
- * import { createCartHooks, createMedusaCartService } from "@techsio/storefront-data"
+ * import { createCartHooks } from "@techsio/storefront-data/cart/hooks"
+ * import { createMedusaCartService } from "@techsio/storefront-data/cart/medusa-service"
+ * import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/browser-storage"
  * import { sdk } from "@/lib/medusa-client"
  *
  * const cartHooks = createCartHooks({
  *   service: createMedusaCartService(sdk),
  *   queryKeys: cartQueryKeys,
- *   cartStorage: {
- *     getCartId: () => localStorage.getItem("cart_id"),
- *     setCartId: (id) => localStorage.setItem("cart_id", id),
- *     clearCartId: () => localStorage.removeItem("cart_id"),
- *   },
+ *   cartStorage: createLocalStorageValueStore({ key: "cart_id" }),
  * })
  * ```
  */
 export function createMedusaCartService(
   sdk: Medusa,
-  _config?: MedusaCartServiceConfig
+  config?: MedusaCartServiceConfig
 ): CartService<
   HttpTypes.StoreCart,
   MedusaCartCreateParams,
@@ -49,22 +65,22 @@ export function createMedusaCartService(
   MedusaCartUpdateItemParams,
   MedusaCompleteCartResult
 > {
+  const isNotFoundError = (error: unknown): boolean =>
+    defaultIsNotFoundError(error) || Boolean(config?.isNotFoundError?.(error))
+
   return {
     async retrieveCart(
       cartId: string,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<HttpTypes.StoreCart | null> {
       try {
-        const { cart } = await sdk.store.cart.retrieve(cartId)
+        const { cart } = await sdk.client.fetch<HttpTypes.StoreCartResponse>(
+          `/store/carts/${cartId}`,
+          { signal }
+        )
         return cart ?? null
       } catch (error: unknown) {
-        // Handle 404 as null (cart not found)
-        if (
-          error &&
-          typeof error === "object" &&
-          "status" in error &&
-          (error as { status: number }).status === 404
-        ) {
+        if (isNotFoundError(error)) {
           return null
         }
         throw error
@@ -74,7 +90,8 @@ export function createMedusaCartService(
     async createCart(
       params: MedusaCartCreateParams
     ): Promise<HttpTypes.StoreCart> {
-      const { cart } = await sdk.store.cart.create(params)
+      const sanitizedParams = sanitizeCartWriteParams(params)
+      const { cart } = await sdk.store.cart.create(sanitizedParams)
       if (!cart) {
         throw new Error("Failed to create cart")
       }
@@ -85,7 +102,8 @@ export function createMedusaCartService(
       cartId: string,
       params: MedusaCartUpdateParams
     ): Promise<HttpTypes.StoreCart> {
-      const { cart } = await sdk.store.cart.update(cartId, params)
+      const sanitizedParams = sanitizeCartWriteParams(params)
+      const { cart } = await sdk.store.cart.update(cartId, sanitizedParams)
       if (!cart) {
         throw new Error("Failed to update cart")
       }

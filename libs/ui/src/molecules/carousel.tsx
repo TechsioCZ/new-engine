@@ -356,14 +356,14 @@ Carousel.Slides = function CarouselSlides({
   const hasCustomImageComponent = imageAs && imageAs !== Image
   const CustomImageComponent = hasCustomImageComponent
     ? (imageAs as ElementType)
-    : null
+    : Image
 
   return (
     <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
       {slides.map((slide, index) => (
         <Carousel.Slide index={index} key={slide.id}>
           {slide.content || (
-            hasCustomImageComponent && CustomImageComponent ? (
+            hasCustomImageComponent ? (
               <CustomImageComponent
                 alt={slide.alt || ""}
                 src={slide.src || ""}

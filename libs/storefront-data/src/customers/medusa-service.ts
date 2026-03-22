@@ -1,22 +1,165 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { toComparableTimestamp } from "../shared/date-utils"
+import { isAuthError } from "../shared/medusa-errors"
 import type { CustomerAddressListResponse, CustomerService } from "./types"
 
-const getErrorStatus = (error: unknown): number | undefined => {
-  if (!error || typeof error !== "object") {
-    return undefined
+const normalizeComparableString = (
+  value: unknown,
+  lowercase = false
+): string | undefined => {
+  if (typeof value !== "string") {
+    return 
   }
 
-  const err = error as {
-    status?: number
-    response?: { status?: number }
+  const normalized = value.trim()
+  if (!normalized) {
+    return 
   }
-  return err.status ?? err.response?.status
+
+  return lowercase ? normalized.toLowerCase() : normalized
 }
 
-const isAuthError = (error: unknown) => {
-  const status = getErrorStatus(error)
-  return status === 401 || status === 403
+const pickNewestAddress = <T extends HttpTypes.StoreCustomerAddress>(
+  addresses: T[]
+): T | undefined => {
+  if (addresses.length === 0) {
+    return 
+  }
+
+  return [...addresses].sort((left, right) => {
+    const rightCreatedAt = toComparableTimestamp(right.created_at)
+    const leftCreatedAt = toComparableTimestamp(left.created_at)
+    if (rightCreatedAt !== leftCreatedAt) {
+      return rightCreatedAt - leftCreatedAt
+    }
+
+    const rightUpdatedAt = toComparableTimestamp(right.updated_at)
+    const leftUpdatedAt = toComparableTimestamp(left.updated_at)
+    return rightUpdatedAt - leftUpdatedAt
+  })[0]
+}
+
+const addressMatchesCreateInput = (
+  address: HttpTypes.StoreCustomerAddress,
+  input: MedusaCustomerAddressCreateInput
+) => {
+  const stringComparisons: Array<{
+    key:
+      | "first_name"
+      | "last_name"
+      | "company"
+      | "address_1"
+      | "address_2"
+      | "city"
+      | "province"
+      | "postal_code"
+      | "country_code"
+      | "phone"
+    lowercase?: boolean
+  }> = [
+    { key: "first_name" },
+    { key: "last_name" },
+    { key: "company" },
+    { key: "address_1" },
+    { key: "address_2" },
+    { key: "city" },
+    { key: "province" },
+    { key: "postal_code" },
+    { key: "country_code", lowercase: true },
+    { key: "phone" },
+  ]
+
+  for (const comparison of stringComparisons) {
+    const expected = normalizeComparableString(
+      input[comparison.key],
+      comparison.lowercase
+    )
+    if (expected === undefined) {
+      continue
+    }
+
+    const actual = normalizeComparableString(
+      address[comparison.key],
+      comparison.lowercase
+    )
+    if (actual !== expected) {
+      return false
+    }
+  }
+
+  const booleanComparisons: Array<"is_default_shipping" | "is_default_billing"> = [
+    "is_default_shipping",
+    "is_default_billing",
+  ]
+
+  for (const key of booleanComparisons) {
+    const expected = input[key]
+    if (typeof expected !== "boolean") {
+      continue
+    }
+
+    const actual = address[key]
+    if (actual !== expected) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const getAddressIdSet = (
+  addresses: HttpTypes.StoreCustomerAddress[]
+): Set<string> =>
+  new Set(
+    addresses
+      .map((address) => address.id)
+      .filter((id): id is string => Boolean(id))
+  )
+
+const pickSingleOrNewestAddress = (
+  addresses: HttpTypes.StoreCustomerAddress[]
+): HttpTypes.StoreCustomerAddress | undefined => {
+  if (addresses.length === 1) {
+    return addresses[0]
+  }
+  if (addresses.length > 1) {
+    return pickNewestAddress(addresses)
+  }
+  return
+}
+
+const getNewlyCreatedAddresses = (
+  addresses: HttpTypes.StoreCustomerAddress[],
+  existingAddressIds: Set<string>
+): HttpTypes.StoreCustomerAddress[] =>
+  addresses.filter(
+    (address) =>
+      typeof address.id === "string" && !existingAddressIds.has(address.id)
+  )
+
+const resolveCreatedAddress = (
+  addresses: HttpTypes.StoreCustomerAddress[],
+  params: MedusaCustomerAddressCreateInput,
+  existingAddressIds: Set<string> | null
+): HttpTypes.StoreCustomerAddress | undefined => {
+  if (existingAddressIds) {
+    const newlyCreatedAddress = pickSingleOrNewestAddress(
+      getNewlyCreatedAddresses(addresses, existingAddressIds)
+    )
+    if (newlyCreatedAddress) {
+      return newlyCreatedAddress
+    }
+  }
+
+  const matchingAddress = pickSingleOrNewestAddress(
+    addresses.filter((address) => addressMatchesCreateInput(address, params))
+  )
+  if (matchingAddress) {
+    return matchingAddress
+  }
+
+  return pickNewestAddress(addresses)
 }
 
 export type MedusaCustomerListInput = {
@@ -54,7 +197,8 @@ export type MedusaCustomerProfileUpdateInput = {
  *
  * @example
  * ```typescript
- * import { createCustomerHooks, createMedusaCustomerService } from "@techsio/storefront-data"
+ * import { createCustomerHooks } from "@techsio/storefront-data/customers/hooks"
+ * import { createMedusaCustomerService } from "@techsio/storefront-data/customers/medusa-service"
  * import { sdk } from "@/lib/medusa-client"
  *
  * const customerHooks = createCustomerHooks({
@@ -73,13 +217,52 @@ export function createMedusaCustomerService(
   MedusaCustomerAddressUpdateInput,
   MedusaCustomerProfileUpdateInput
 > {
+  const fetchAllCustomerAddresses = async (): Promise<
+    HttpTypes.StoreCustomerAddress[]
+  > => {
+    const pageSize = 100
+    const addresses: HttpTypes.StoreCustomerAddress[] = []
+    let offset = 0
+
+    while (true) {
+      const response = await sdk.store.customer.listAddress({
+        limit: pageSize,
+        offset,
+      })
+      const page = response.addresses ?? []
+      addresses.push(...page)
+
+      if (page.length === 0) {
+        break
+      }
+
+      offset += page.length
+
+      if (typeof response.count === "number" && offset >= response.count) {
+        break
+      }
+
+      if (typeof response.count !== "number" && page.length < pageSize) {
+        break
+      }
+    }
+
+    return addresses
+  }
+
   return {
     async getAddresses(
       _params: MedusaCustomerListInput,
-      _signal?: AbortSignal
+      signal?: AbortSignal
     ): Promise<CustomerAddressListResponse<HttpTypes.StoreCustomerAddress>> {
       try {
-        const response = await sdk.store.customer.listAddress()
+        const response =
+          await sdk.client.fetch<HttpTypes.StoreCustomerAddressListResponse>(
+            "/store/customers/me/addresses",
+            {
+              signal,
+            }
+          )
         return { addresses: response.addresses ?? [] }
       } catch (error) {
         if (isAuthError(error)) {
@@ -92,15 +275,26 @@ export function createMedusaCustomerService(
     async createAddress(
       params: MedusaCustomerAddressCreateInput
     ): Promise<HttpTypes.StoreCustomerAddress> {
-      const { customer } = await sdk.store.customer.createAddress(params)
-      // The response returns the customer with their addresses
-      // Find the newly created address (last one) or return a placeholder
-      const addresses = customer.addresses ?? []
-      const address = addresses.at(-1)
-      if (!address) {
-        throw new Error("Failed to create address")
+      let existingAddressIds: Set<string> | null = null
+
+      try {
+        existingAddressIds = getAddressIdSet(await fetchAllCustomerAddresses())
+      } catch {
+        // If address listing fails, continue with response-only heuristics.
       }
-      return address
+
+      const { customer } = await sdk.store.customer.createAddress(params)
+      const addresses = customer.addresses ?? []
+      const createdAddress = resolveCreatedAddress(
+        addresses,
+        params,
+        existingAddressIds
+      )
+      if (createdAddress) {
+        return createdAddress
+      }
+
+      throw new Error("Failed to create address")
     },
 
     async updateAddress(

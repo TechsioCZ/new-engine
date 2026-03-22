@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import {
   Breadcrumb,
   type BreadcrumbItemType,
@@ -70,7 +71,7 @@ Provides users with links to previous levels in the hierarchy and their current 
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <div className="max-w-screen-lg bg-surface p-4">
+      <div className="max-w-xl bg-surface p-4">
         <Story />
       </div>
     ),
@@ -84,23 +85,38 @@ Provides users with links to previous levels in the hierarchy and their current 
       control: { type: 'number', min: 0 },
       description:
         'Maximum number of items to display before truncating (0 = show all)',
+      table: {
+        defaultValue: { summary: '0' },
+      },
     },
     size: {
-      control: { type: 'select' },
+      control: 'select',
       options: ['sm', 'md', 'lg'],
       description: 'Size of the breadcrumbs',
+      table: {
+        defaultValue: { summary: 'md' },
+      },
     },
     'aria-label': {
       control: 'text',
       description: 'Accessibility label for the breadcrumb navigation',
+      table: {
+        defaultValue: { summary: 'breadcrumb' },
+      },
     },
+  },
+  args: {
+    items: simplePath,
+    maxItems: 0,
+    size: 'md',
+    'aria-label': 'breadcrumb',
   },
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {
+export const Playground: Story = {
   args: {
     items: simplePath,
   },
@@ -108,27 +124,18 @@ export const Default: Story = {
 
 export const Sizes: Story = {
   render: () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="mb-2 font-medium text-lg">Small</h3>
+    <VariantContainer>
+      <VariantGroup title="Sizes">
         <Breadcrumb items={simplePath} size="sm" />
-      </div>
-
-      <div>
-        <h3 className="mb-2 font-medium text-lg">Medium (Default)</h3>
         <Breadcrumb items={simplePath} size="md" />
-      </div>
-
-      <div>
-        <h3 className="mb-2 font-medium text-lg">Large</h3>
         <Breadcrumb items={simplePath} size="lg" />
-      </div>
-    </div>
+      </VariantGroup>
+    </VariantContainer>
   ),
   parameters: {
     docs: {
       description: {
-        story: 'Story with different sizes of breadcrumbs.',
+        story: 'Breadcrumbs in different sizes: small, medium, and large.',
       },
     },
   },
@@ -272,6 +279,59 @@ export const EllipsisWithCustomIcons: Story = {
       description: {
         story:
           'Ellipsis functionality combined with custom icons and separators for each breadcrumb item.',
+      },
+    },
+  },
+}
+
+export const AllVariants: Story = {
+  render: () => (
+    <VariantContainer>
+      <VariantGroup title="Sizes">
+        <Breadcrumb items={simplePath} size="sm" />
+        <Breadcrumb items={simplePath} size="md" />
+        <Breadcrumb items={simplePath} size="lg" />
+      </VariantGroup>
+
+      <VariantGroup title="With Icons">
+        <Breadcrumb
+          items={[
+            { label: 'Home', href: '/', icon: 'icon-[mdi--home]' },
+            { label: 'Products', href: '/products', icon: 'icon-[mdi--shopping]' },
+            { label: 'Electronics', href: '/electronics', icon: 'icon-[mdi--cpu]' },
+          ]}
+        />
+      </VariantGroup>
+
+      <VariantGroup title="With Ellipsis (maxItems=3)">
+        <Breadcrumb items={veryLongPath} maxItems={3} />
+      </VariantGroup>
+
+      <VariantGroup title="Custom Separators">
+        <Breadcrumb
+          items={[
+            { label: 'Home', href: '/', separator: 'icon-[mdi--chevron-double-right]' },
+            { label: 'Products', href: '/products', separator: 'icon-[mdi--arrow-right]' },
+            { label: 'Detail', href: '/detail' },
+          ]}
+        />
+      </VariantGroup>
+
+      <VariantGroup title="With Explicit Current (middle item)">
+        <Breadcrumb
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Products', href: '/products', isCurrent: true },
+            { label: 'Electronics', href: '/electronics' },
+          ]}
+        />
+      </VariantGroup>
+    </VariantContainer>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: 'Comprehensive view of all breadcrumb variations.',
       },
     },
   },

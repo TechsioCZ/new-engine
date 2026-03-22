@@ -4,6 +4,10 @@ import type { QueryKey } from "./query-keys"
 
 export type PrefetchSkipMode = "fresh" | "any"
 
+const assertNever = (value: never): never => {
+  throw new Error(`Unsupported prefetch skip mode: ${String(value)}`)
+}
+
 export const isQueryFresh = (
   queryClient: QueryClient,
   queryKey: QueryKey,
@@ -14,6 +18,14 @@ export const isQueryFresh = (
     return false
   }
   return Date.now() - state.dataUpdatedAt < staleTime
+}
+
+export const isQueryInFlight = (
+  queryClient: QueryClient,
+  queryKey: QueryKey
+) => {
+  const state = queryClient.getQueryState(queryKey)
+  return state?.fetchStatus === "fetching"
 }
 
 export const shouldSkipPrefetch = (params: {
@@ -27,13 +39,20 @@ export const shouldSkipPrefetch = (params: {
     return false
   }
 
-  if (params.skipMode === "any") {
-    return params.queryClient.getQueryData(params.queryKey) !== undefined
+  if (isQueryInFlight(params.queryClient, params.queryKey)) {
+    return true
   }
 
-  return isQueryFresh(
-    params.queryClient,
-    params.queryKey,
-    params.cacheOptions.staleTime
-  )
+  switch (params.skipMode) {
+    case "any":
+      return params.queryClient.getQueryData(params.queryKey) !== undefined
+    case "fresh":
+      return isQueryFresh(
+        params.queryClient,
+        params.queryKey,
+        params.cacheOptions.staleTime
+      )
+    default:
+      return assertNever(params.skipMode)
+  }
 }

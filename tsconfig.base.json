@@ -13,7 +13,7 @@
     "importHelpers": true,
     "incremental": true,
     "isolatedModules": true,
-    "lib": ["es2022"],
+    "lib": ["ES2024"],
     "module": "NodeNext",
     "moduleDetection": "force",
     "moduleResolution": "NodeNext",
@@ -31,7 +31,7 @@
     "sourceMap": true,
     "strict": true,
     "strictNullChecks": true,
-    "target": "es2022",
+    "target": "esnext",
     "useDefineForClassFields": true,
     "verbatimModuleSyntax": true,
     "paths": {}

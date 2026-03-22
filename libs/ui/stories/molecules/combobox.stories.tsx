@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { VariantContainer } from '../../.storybook/decorator'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
+import { Button } from '../../src/atoms/button'
+import { Icon } from '../../src/atoms/icon'
 
 const countries: ComboboxItem[] = [
   { id: '1', label: 'Czech Republic', value: 'cz' },
@@ -24,34 +26,68 @@ const meta: Meta<typeof Combobox> = {
   },
   tags: ['autodocs'],
   argTypes: {
-    validateStatus: {
-      control: { type: 'select' },
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status of the combobox',
+    // Text inputs
+    label: { control: 'text', description: 'Label text' },
+    placeholder: { control: 'text', description: 'Placeholder text' },
+    helpText: { control: 'text', description: 'Help text below combobox' },
+
+    // Size and appearance
+    size: {
+      control: 'select',
+      options: ['sm', 'md', 'lg'],
+      description: 'Size variant',
+      table: { defaultValue: { summary: 'md' } },
     },
-    helpText: {
-      control: 'text',
-      description: 'Help text displayed below the combobox',
+    validateStatus: {
+      control: 'select',
+      options: ['default', 'error', 'success', 'warning'],
+      description: 'Validation status',
+      table: { defaultValue: { summary: 'default' } },
     },
     showHelpTextIcon: {
       control: 'boolean',
-      description: 'Whether to show an icon with the help text',
+      description: 'Show icon with help text',
+      table: { defaultValue: { summary: 'true' } },
     },
-    multiple: {
-      control: 'boolean',
-      description: 'Allows selection of multiple values',
-    },
+
+    // States
     disabled: {
       control: 'boolean',
-      description: 'Disables interaction with the combobox',
+      description: 'Disable the combobox',
+      table: { defaultValue: { summary: 'false' } },
+    },
+    readOnly: {
+      control: 'boolean',
+      description: 'Make combobox read-only',
+      table: { defaultValue: { summary: 'false' } },
+    },
+    required: {
+      control: 'boolean',
+      description: 'Mark as required field',
+      table: { defaultValue: { summary: 'false' } },
+    },
+
+    // Behavior
+    multiple: {
+      control: 'boolean',
+      description: 'Allow multiple selection',
+      table: { defaultValue: { summary: 'false' } },
     },
     clearable: {
       control: 'boolean',
-      description: 'Allows clearing the selection',
+      description: 'Show clear button',
+      table: { defaultValue: { summary: 'true' } },
     },
     closeOnSelect: {
       control: 'boolean',
-      description: 'Closes the dropdown when an option is selected',
+      description: 'Close dropdown on selection',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    selectionBehavior: {
+      control: 'select',
+      options: ['replace', 'clear', 'preserve'],
+      description: 'Selection behavior mode',
+      table: { defaultValue: { summary: 'replace' } },
     },
   },
 }
@@ -59,12 +95,22 @@ const meta: Meta<typeof Combobox> = {
 export default meta
 type Story = StoryObj<typeof Combobox>
 
-export const Default: Story = {
+export const Playground: Story = {
   args: {
     label: 'Select Country',
     placeholder: 'Choose a country...',
     items: countries,
     helpText: 'Select your country of residence',
+    size: 'md',
+    validateStatus: 'default',
+    showHelpTextIcon: true,
+    disabled: false,
+    readOnly: false,
+    required: false,
+    multiple: false,
+    clearable: true,
+    closeOnSelect: true,
+    selectionBehavior: 'replace',
   },
 }
 
@@ -75,6 +121,7 @@ export const ValidationStates: Story = {
         label="Default State"
         placeholder="Select country"
         items={countries}
+        closeOnSelect
         helpText="Default state without validation"
       />
       <Combobox
@@ -103,13 +150,55 @@ export const ValidationStates: Story = {
 }
 
 export const MultipleSelection: Story = {
-  args: {
-    label: 'Select Countries',
-    placeholder: 'Choose countries...',
-    items: countries,
-    helpText: 'Select the countries you have visited',
-    multiple: true,
-    closeOnSelect: false,
+  render: () => {
+    const [selectedValues, setSelectedValues] = useState<string[]>([])
+
+    const selectedCountries = countries.filter((c) =>
+      selectedValues.includes(c.value)
+    )
+
+    const removeCountry = (valueToRemove: string) => {
+      setSelectedValues((prev) => prev.filter((v) => v !== valueToRemove))
+    }
+
+    return (
+      <div className="w-80 space-y-4">
+        {selectedCountries.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {selectedCountries.map((country) => (
+              <span
+                key={country.value}
+                className="inline-flex items-center gap-50 rounded-full bg-surface p-150 py-50 text-sm"
+              >
+                {country.label}
+                <Button
+                  type="button"
+                  size="current"
+                  theme="unstyled"
+                  onClick={() => removeCountry(country.value)}
+                  className="bg-surface"
+                  aria-label={`Remove ${country.label}`}
+                >
+                  <Icon icon="icon-[mdi--close]"/>
+                </Button>
+              </span>
+            ))}
+          </div>
+        )}
+        <Combobox
+          label="Select Countries"
+          placeholder="Choose countries..."
+          items={countries}
+          value={selectedValues}
+          multiple
+          selectionBehavior="clear"
+          closeOnSelect={false}
+          onChange={(value) => {
+            setSelectedValues(Array.isArray(value) ? value : [value])
+          }}
+        />
+      </div>
+    )
   },
 }
 
@@ -167,7 +256,6 @@ export const ComplexStory: Story = {
 
     return (
       <div className="w-72 space-y-8">
-        {' '}
         <Combobox
           label="Select Country (Dynamic Validation)"
           placeholder="Choose a country..."

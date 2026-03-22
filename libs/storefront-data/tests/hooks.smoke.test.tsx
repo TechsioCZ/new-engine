@@ -2,30 +2,34 @@ import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
-import {
-  createCartHooks,
-  createCartQueryKeys,
-  type CartService,
-  type UpdateCartInputBase,
-} from "../src/cart"
+import { StorefrontDataProvider } from "../src/client/provider"
+import { createCartHooks } from "../src/cart/hooks"
+import { createCartQueryKeys } from "../src/cart/query-keys"
+import type { CartService, UpdateCartInputBase } from "../src/cart/types"
+import type { StorefrontAddressValidationIssue } from "../src/shared/address"
 import {
   createCustomerHooks,
-  type CustomerAddressListInputBase,
-  type CustomerService,
-} from "../src/customers"
+} from "../src/customers/hooks"
+import type {
+  CustomerAddressListInputBase,
+  CustomerService,
+} from "../src/customers/types"
 import {
   createOrderHooks,
-  type OrderDetailInputBase,
-  type OrderListInputBase,
-  type OrderService,
-} from "../src/orders"
+} from "../src/orders/hooks"
+import type {
+  OrderDetailInputBase,
+  OrderListInputBase,
+  OrderService,
+} from "../src/orders/types"
 import {
   createProductHooks,
-  createProductQueryKeys,
-  type ProductListInputBase,
-  type ProductService,
-} from "../src/products"
-import { StorefrontDataProvider } from "../src/client"
+} from "../src/products/hooks"
+import { createProductQueryKeys } from "../src/products/query-keys"
+import type {
+  ProductListInputBase,
+  ProductService,
+} from "../src/products/types"
 import { server } from "./msw-server"
 
 const createWrapper = (client: QueryClient) =>
@@ -171,24 +175,35 @@ describe("storefront-data hook smoke tests", () => {
         service: cartService,
         buildUpdateParams,
         queryKeys: cartQueryKeys,
-        normalizeShippingAddressInput: (input) => ({
-          ...input,
-          firstName: input.firstName.trim(),
-          lastName: input.lastName.trim(),
-          address1: input.address1.trim(),
-        }),
-        validateShippingAddressInput: (input) => {
-          const errors: string[] = []
-          if (!input.firstName) {
-            errors.push("first name required")
-          }
-          if (!input.lastName) {
-            errors.push("last name required")
-          }
-          return errors.length ? errors : null
+        addressAdapter: {
+          normalize: (input) => ({
+            ...input,
+            firstName: input.firstName.trim(),
+            lastName: input.lastName.trim(),
+            address1: input.address1.trim(),
+          }),
+          validate: (input, context) => {
+            const issues: StorefrontAddressValidationIssue[] = []
+            if (!input.firstName) {
+              issues.push({
+                scope: context.scope,
+                field: "firstName",
+                code: "required",
+                message: "first name required",
+              })
+            }
+            if (!input.lastName) {
+              issues.push({
+                scope: context.scope,
+                field: "lastName",
+                code: "required",
+                message: "last name required",
+              })
+            }
+            return issues.length ? issues : null
+          },
+          toPayload: (input) => buildAddressPayload(input),
         },
-        buildShippingAddress: buildAddressPayload,
-        buildBillingAddress: buildAddressPayload,
       })
 
       const queryClient = createTestClient({
@@ -358,6 +373,82 @@ describe("storefront-data hook smoke tests", () => {
 
       expect(offsets).toEqual([0, 2])
     })
+    it("advances page index when initial limit differs", async () => {
+      const offsets: number[] = []
+
+      server.use(
+        http.get(`${baseUrl}/products`, ({ request }) => {
+          const url = new URL(request.url)
+          const limit = Number(url.searchParams.get("limit") ?? "0")
+          const offset = Number(url.searchParams.get("offset") ?? "0")
+          offsets.push(offset)
+
+          const products = Array.from({ length: limit }).map((_, index) => ({
+            id: `prod_${offset + index}`,
+            title: `Product ${offset + index}`,
+          }))
+
+          return HttpResponse.json({
+            products,
+            count: 12,
+            limit,
+            offset,
+          })
+        })
+      )
+
+      const service: ProductService<Product, ProductListParams, ProductDetailParams> = {
+        getProducts: async (params) => {
+          const query = new URLSearchParams({
+            limit: String(params.limit),
+            offset: String(params.offset),
+            region_id: params.region_id ?? "",
+          })
+          const response = await fetch(`${baseUrl}/products?${query}`)
+          return response.json()
+        },
+        getProductByHandle: async () => null,
+      }
+
+      const { useInfiniteProducts } = createProductHooks({
+        service,
+        buildListParams,
+        queryKeyNamespace: "smoke-products-initial-limit",
+      })
+
+      const queryClient = createTestClient({
+        defaultOptions: {
+          queries: { retry: false },
+        },
+      })
+
+      const wrapper = createWrapper(queryClient)
+      const { result } = renderHook(
+        () =>
+          useInfiniteProducts({
+            page: 1,
+            limit: 4,
+            initialLimit: 2,
+            region_id: "reg_infinite",
+          }),
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.products.length).toBe(2)
+      })
+
+      await act(async () => {
+        await result.current.fetchNextPage()
+      })
+
+      await waitFor(() => {
+        expect(result.current.products.length).toBe(6)
+      })
+
+      expect(offsets).toEqual([0, 4])
+    })
+
   })
 
   describe("orders", () => {
@@ -381,7 +472,12 @@ describe("storefront-data hook smoke tests", () => {
 
     const buildDetailParams = (
       input: OrderDetailInputBase
-    ): OrderDetailParams => ({ id: input.id })
+    ): OrderDetailParams => {
+      if (!input.id) {
+        throw new Error("Order id is required for order queries")
+      }
+      return { id: input.id }
+    }
 
     it("fetches order list and detail", async () => {
       server.use(
@@ -591,6 +687,7 @@ describe("storefront-data hook smoke tests", () => {
       await act(async () => {
         await deleteHook.result.current.mutateAsync({ addressId: "addr_1" })
       })
+      expect(deleteHook.result.current.isSuccess).toBe(true)
 
       const updateCustomerHook = renderHook(() => useUpdateCustomer(), { wrapper })
 

@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
 import { Carousel, type CarouselSlide } from '../../src/molecules/carousel'
-import { Select } from '../../src/molecules/select'
 
-// Sample images using src approach (simpler)
 const sampleImages: CarouselSlide[] = [
   {
     id: 'slide-1',
@@ -47,7 +44,6 @@ const sampleImages: CarouselSlide[] = [
   },
 ]
 
-// Mixed approach - some images, some custom content
 const mixedSlides: CarouselSlide[] = [
   {
     id: 'image-1',
@@ -74,7 +70,6 @@ const mixedSlides: CarouselSlide[] = [
   },
 ]
 
-// Content slides with text
 const contentSlides: CarouselSlide[] = [
   {
     id: 'content-1',
@@ -134,7 +129,7 @@ A flexible carousel component using compound component pattern, built with Zag.j
 ### Basic Usage
 \`\`\`tsx
 <Carousel.Root slideCount={slides.length}>
-  <Carousel.Items slides={slides} />
+  <Carousel.Slides slides={slides} />
   <Carousel.Control>
     <Carousel.Previous />
     <Carousel.Indicators />
@@ -147,7 +142,7 @@ A flexible carousel component using compound component pattern, built with Zag.j
 \`\`\`tsx
 <Carousel.Root slideCount={slides.length} autoplay>
   <Carousel.Autoplay />
-  <Carousel.Items slides={slides} />
+  <Carousel.Slides slides={slides} />
   <Carousel.Control>
     <Carousel.Previous />
     <Carousel.Indicators />
@@ -159,7 +154,7 @@ A flexible carousel component using compound component pattern, built with Zag.j
 ### Custom Indicators
 \`\`\`tsx
 <Carousel.Root slideCount={slides.length}>
-  <Carousel.Items slides={slides} />
+  <Carousel.Slides slides={slides} />
   <Carousel.Control>
     <Carousel.Previous />
     <Carousel.Indicators>
@@ -183,15 +178,88 @@ A flexible carousel component using compound component pattern, built with Zag.j
       </div>
     ),
   ],
+  argTypes: {
+    size: {
+      control: 'select',
+      options: ['sm', 'md', 'lg', 'full'],
+      description: 'Size of the carousel',
+      table: { defaultValue: { summary: 'md' } },
+    },
+    objectFit: {
+      control: 'select',
+      options: ['cover', 'contain', 'fill', 'none'],
+      description: 'How images fit within slides',
+      table: { defaultValue: { summary: 'cover' } },
+    },
+    aspectRatio: {
+      control: 'select',
+      options: ['square', 'landscape', 'portrait', 'wide', 'none'],
+      description: 'Aspect ratio of slides',
+      table: { defaultValue: { summary: 'square' } },
+    },
+    orientation: {
+      control: 'radio',
+      options: ['horizontal', 'vertical'],
+      description: 'Direction of carousel movement',
+      table: { defaultValue: { summary: 'horizontal' } },
+    },
+    loop: {
+      control: 'boolean',
+      description: 'Whether carousel loops infinitely',
+      table: { defaultValue: { summary: 'true' } },
+    },
+    autoplay: {
+      control: 'boolean',
+      description: 'Whether carousel auto-advances',
+      table: { defaultValue: { summary: 'false' } },
+    },
+    slidesPerPage: {
+      control: { type: 'number', min: 1, max: 5 },
+      description: 'Number of slides visible at once',
+      table: { defaultValue: { summary: '1' } },
+    },
+    slidesPerMove: {
+      control: { type: 'number', min: 1, max: 5 },
+      description: 'Number of slides to move per navigation',
+      table: { defaultValue: { summary: '1' } },
+    },
+    allowMouseDrag: {
+      control: 'boolean',
+      description: 'Allow mouse/touch drag to navigate',
+      table: { defaultValue: { summary: 'true' } },
+    },
+  },
+  args: {
+    size: 'md',
+    objectFit: 'cover',
+    aspectRatio: 'square',
+    orientation: 'horizontal',
+    loop: true,
+    autoplay: false,
+    slidesPerPage: 1,
+    slidesPerMove: 1,
+    allowMouseDrag: true,
+  },
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-// Basic carousel with compound components
-export const Default: Story = {
-  render: () => (
-    <Carousel.Root slideCount={sampleImages.length} loop>
+export const Playground: Story = {
+  render: (args) => (
+    <Carousel.Root
+      slideCount={sampleImages.length}
+      size={args.size}
+      objectFit={args.objectFit}
+      aspectRatio={args.aspectRatio}
+      orientation={args.orientation}
+      loop={args.loop}
+      autoplay={args.autoplay}
+      slidesPerPage={args.slidesPerPage}
+      slidesPerMove={args.slidesPerMove}
+      allowMouseDrag={args.allowMouseDrag}
+    >
+      {args.autoplay && <Carousel.Autoplay />}
       <Carousel.Slides slides={sampleImages} />
       <Carousel.Control>
         <Carousel.Previous />
@@ -202,12 +270,10 @@ export const Default: Story = {
   ),
 }
 
-// Custom control layout
 export const CustomControlLayout: Story = {
   render: () => (
     <Carousel.Root slideCount={sampleImages.length} size='md' loop>
       <Carousel.Slides slides={sampleImages} />
-      {/* Custom control with different arrangement */}
       <div className="flex justify-between w-full items-center">
         <Carousel.Previous />
         <Carousel.Indicators />
@@ -224,12 +290,10 @@ export const CustomControlLayout: Story = {
   },
 }
 
-// Minimal controls
 export const MinimalControls: Story = {
   render: () => (
     <Carousel.Root slideCount={sampleImages.length} loop className='relative'>
       <Carousel.Slides slides={sampleImages} />
-      {/* Perfectly centered navigation arrows using CSS-only solution */}
       <Carousel.Previous className="absolute top-1/2 left-0 -translate-y-1/2 translate-x-1/2 bg-transparent text-xl hover:bg-transparent hover:text-primary"/>
       <Carousel.Next className="absolute top-1/2 right-0 -translate-y-1/2 -translate-x-1/2 bg-transparent text-xl hover:bg-transparent hover:text-primary"/>
     </Carousel.Root>
@@ -243,35 +307,6 @@ export const MinimalControls: Story = {
   },
 }
 
-// Multiple slides per page
-export const MultipleSlides: Story = {
-  render: () => (
-    <Carousel.Root
-      slideCount={sampleImages.length}
-      slidesPerPage={2}
-      slidesPerMove={2}
-      loop
-      size="lg"
-      className='gap-x-0'
-    >
-      <Carousel.Slides slides={sampleImages} />
-      <Carousel.Control>
-        <Carousel.Previous />
-        <Carousel.Indicators />
-        <Carousel.Next />
-      </Carousel.Control>
-    </Carousel.Root>
-  ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Carousel showing multiple slides at once with custom spacing.',
-      },
-    },
-  },
-}
-
-// Custom Indicators with compound pattern
 export const CustomIndicators: Story = {
   render: () => (
     <Carousel.Root slideCount={sampleImages.length} loop>
@@ -300,7 +335,6 @@ export const CustomIndicators: Story = {
   },
 }
 
-// Numbered Indicators
 export const NumberedIndicators: Story = {
   render: () => (
     <div className="space-y-md">
@@ -313,7 +347,7 @@ export const NumberedIndicators: Story = {
               <Carousel.Indicator
                 key={index}
                 index={index}
-                className="bg-transparent focus:ring-0 focus:ring-offset-0 text-fg-primary hover:bg-transparent hover:text-primary data-[current]:bg-transparent data-[current]:text-primary text-sm font-medium"
+                className="bg-transparent text-fg-primary hover:bg-transparent hover:text-primary data-[current]:bg-transparent data-[current]:text-primary text-sm font-medium"
               >
                 {index + 1}
               </Carousel.Indicator>
@@ -333,7 +367,6 @@ export const NumberedIndicators: Story = {
   },
 }
 
-// Mixed content with images and custom JSX
 export const MixedContent: Story = {
   render: () => (
     <Carousel.Root slideCount={mixedSlides.length} size="md" loop>
@@ -354,7 +387,6 @@ export const MixedContent: Story = {
   },
 }
 
-// Different sizes
 export const Sizes: Story = {
   render: () => (
     <div className="space-y-lg">
@@ -404,7 +436,6 @@ export const Sizes: Story = {
   },
 }
 
-// Object Fit Demo
 export const ObjectFitDemo: Story = {
   render: () => {
     const testImage = {
@@ -423,7 +454,6 @@ export const ObjectFitDemo: Story = {
         </div>
 
         <div className="grid grid-cols-2 gap-lg">
-          {/* Cover */}
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Cover</h4>
             <p className="mb-md text-fg-muted text-xs">
@@ -440,7 +470,6 @@ export const ObjectFitDemo: Story = {
             </Carousel.Root>
           </div>
 
-          {/* Contain */}
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Contain</h4>
             <p className="mb-md text-fg-muted text-xs">
@@ -457,7 +486,6 @@ export const ObjectFitDemo: Story = {
             </Carousel.Root>
           </div>
 
-          {/* Fill */}
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Fill</h4>
             <p className="mb-md text-fg-muted text-xs">
@@ -474,7 +502,6 @@ export const ObjectFitDemo: Story = {
             </Carousel.Root>
           </div>
 
-          {/* None */}
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">None</h4>
             <p className="mb-md text-fg-muted text-xs">
@@ -496,7 +523,6 @@ export const ObjectFitDemo: Story = {
   },
 }
 
-// Aspect Ratio Demo
 export const AspectRatioDemo: Story = {
   render: () => {
     const landscapeImage = {
@@ -515,7 +541,6 @@ export const AspectRatioDemo: Story = {
         </div>
 
         <div className="space-y-md">
-          {/* Square */}
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Square (1:1)</h4>
             <Carousel.Root
@@ -529,7 +554,6 @@ export const AspectRatioDemo: Story = {
             </Carousel.Root>
           </div>
 
-          {/* Landscape */}
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Landscape (16:9)</h4>
             <Carousel.Root
@@ -543,7 +567,6 @@ export const AspectRatioDemo: Story = {
             </Carousel.Root>
           </div>
 
-          {/* Portrait */}
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Portrait (3:4)</h4>
             <Carousel.Root
@@ -557,7 +580,6 @@ export const AspectRatioDemo: Story = {
             </Carousel.Root>
           </div>
 
-          {/* Wide */}
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">Wide (21:9)</h4>
             <Carousel.Root
@@ -571,7 +593,6 @@ export const AspectRatioDemo: Story = {
             </Carousel.Root>
           </div>
 
-          {/* None */}
           <div>
             <h4 className="mb-sm font-medium text-sm text-fg-primary">None (natural height)</h4>
             <Carousel.Root
@@ -590,191 +611,27 @@ export const AspectRatioDemo: Story = {
   },
 }
 
-// Interactive Combined Demo
-export const CombinedDemo: Story = {
-  render: () => {
-    const [objectFit, setObjectFit] = useState<
-      'cover' | 'contain' | 'fill' | 'none'
-    >('cover')
-    const [aspectRatio, setAspectRatio] = useState<
-      'square' | 'landscape' | 'portrait' | 'wide' | 'none'
-    >('square')
-    const [size, setSize] = useState<'sm' | 'md' | 'lg' | 'full'>('md')
-
-    const testImages: CarouselSlide[] = [
-      {
-        id: 'portrait',
-        src: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
-        alt: 'Portrait',
-      },
-      {
-        id: 'landscape',
-        src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
-        alt: 'Landscape',
-      },
-      {
-        id: 'square',
-        src: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600',
-        alt: 'Square',
-      },
-    ]
-
-    const objectFitItems = [
-      { value: 'cover', label: 'Cover' },
-      { value: 'contain', label: 'Contain' },
-      { value: 'fill', label: 'Fill' },
-      { value: 'none', label: 'None' },
-    ]
-
-    const aspectRatioItems = [
-      { value: 'square', label: 'Square' },
-      { value: 'landscape', label: 'Landscape' },
-      { value: 'portrait', label: 'Portrait' },
-      { value: 'wide', label: 'Wide' },
-      { value: 'none', label: 'None' },
-    ]
-
-    const sizeItems = [
-      { value: 'sm', label: 'Small' },
-      { value: 'md', label: 'Medium' },
-      { value: 'lg', label: 'Large' },
-      { value: 'full', label: 'Full' },
-    ]
-
-    return (
-      <div className="space-y-md">
-        <div className="flex gap-md">
-          <Select
-            items={objectFitItems}
-            value={[objectFit]}
-            onValueChange={(details) => setObjectFit(details.value[0] as typeof objectFit)}
-            size="sm"
-          >
-            <Select.Label>Object Fit</Select.Label>
-            <Select.Control>
-              <Select.Trigger>
-                <Select.ValueText placeholder="Select..." />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content>
-                {objectFitItems.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    <Select.ItemText />
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select>
-
-          <Select
-            items={aspectRatioItems}
-            value={[aspectRatio]}
-            onValueChange={(details) => setAspectRatio(details.value[0] as typeof aspectRatio)}
-            size="sm"
-          >
-            <Select.Label>Aspect Ratio</Select.Label>
-            <Select.Control>
-              <Select.Trigger>
-                <Select.ValueText placeholder="Select..." />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content>
-                {aspectRatioItems.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    <Select.ItemText />
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select>
-
-          <Select
-            items={sizeItems}
-            value={[size]}
-            onValueChange={(details) => setSize(details.value[0] as typeof size)}
-            size="sm"
-          >
-            <Select.Label>Size</Select.Label>
-            <Select.Control>
-              <Select.Trigger>
-                <Select.ValueText placeholder="Select..." />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content>
-                {sizeItems.map((item) => (
-                  <Select.Item key={item.value} item={item}>
-                    <Select.ItemText />
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select>
-        </div>
-
-        <Carousel.Root
-          slideCount={testImages.length}
-          objectFit={objectFit}
-          aspectRatio={aspectRatio}
-          size={size}
-        >
-          <Carousel.Slides slides={testImages} />
-          <Carousel.Control>
-            <Carousel.Previous />
-            <Carousel.Indicators />
-            <Carousel.Next />
-          </Carousel.Control>
-        </Carousel.Root>
-
-        <div className="text-fg-muted text-xs">
-          Try different combinations to see how images adapt
-        </div>
-      </div>
-    )
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Interactive demo allowing you to test different combinations of object-fit, aspect-ratio, and size options.',
-      },
-    },
-  },
-}
-
-// Vertical orientation
 export const Vertical: Story = {
   render: () => (
-    <div className="h-96 w-sm">
+    <div className="w-md">
       <Carousel.Root
         orientation="vertical"
         slideCount={4}
         size="md"
         loop
+        className="flex flex-row h-96 overflow-visible"
       >
         <Carousel.Slides slides={sampleImages.slice(0, 4)} />
-        <Carousel.Control>
-          <Carousel.Previous />
-          <Carousel.Indicators />
-          <Carousel.Next />
+        <Carousel.Control controlPosition="side" className="bg-transparent">
+          <Carousel.Previous icon="icon-[mdi--keyboard-arrow-up]" />
+          <Carousel.Indicators className="flex-col" />
+          <Carousel.Next icon="icon-[mdi--keyboard-arrow-down]" />
         </Carousel.Control>
       </Carousel.Root>
     </div>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Carousel in vertical orientation mode.',
-      },
-    },
-  },
 }
 
-// With Autoplay
 export const Autoplay: Story = {
   render: () => (
     <Carousel.Root slideCount={contentSlides.length} autoplay loop>
@@ -787,22 +644,33 @@ export const Autoplay: Story = {
       </Carousel.Control>
     </Carousel.Root>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Carousel with autoplay enabled and pause/play controls.',
-      },
-    },
-  },
 }
 
-// With Spacing
-export const WithSpacing: Story = {
+export const SlidesPerPage: Story = {
   render: () => (
     <Carousel.Root
       slideCount={sampleImages.length}
       slidesPerPage={3}
-      spacing="16px"
+      size="lg"
+      loop
+      spacing="var(--spacing-200)"
+    >
+      <Carousel.Slides slides={sampleImages} />
+      <Carousel.Control>
+        <Carousel.Previous />
+        <Carousel.Indicators />
+        <Carousel.Next />
+      </Carousel.Control>
+    </Carousel.Root>
+  ),
+}
+
+export const SlidesPerMove: Story = {
+  render: () => (
+    <Carousel.Root
+      slideCount={sampleImages.length}
+      slidesPerPage={2}
+      slidesPerMove={2}
       size="lg"
       loop
     >
@@ -814,11 +682,4 @@ export const WithSpacing: Story = {
       </Carousel.Control>
     </Carousel.Root>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Carousel with custom spacing between slides.',
-      },
-    },
-  },
 }

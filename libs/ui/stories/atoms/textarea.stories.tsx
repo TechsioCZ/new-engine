@@ -14,9 +14,46 @@ const meta: Meta<typeof Textarea> = {
 export default meta
 type Story = StoryObj<typeof Textarea>
 
-/**
- * Displays the available sizes for the textarea component.
- */
+export const Playground: Story = {
+  args: {
+    placeholder: 'Enter your text...',
+    size: 'md',
+    variant: 'default',
+    resize: 'y',
+    disabled: false,
+    readonly: false,
+  },
+  argTypes: {
+    size: {
+      control: 'select',
+      options: ['sm', 'md', 'lg'],
+      description: 'Size of the textarea',
+    },
+    variant: {
+      control: 'select',
+      options: ['default', 'error', 'success', 'warning', 'borderless'],
+      description: 'Visual variant for validation states',
+    },
+    resize: {
+      control: 'select',
+      options: ['none', 'y', 'x', 'both', 'auto'],
+      description: 'Resize behavior (auto = grows with content)',
+    },
+    disabled: {
+      control: 'boolean',
+      description: 'Disable the textarea',
+    },
+    readonly: {
+      control: 'boolean',
+      description: 'Make textarea read-only (still focusable, sent on submit)',
+    },
+    placeholder: {
+      control: 'text',
+      description: 'Placeholder text',
+    },
+  },
+}
+
 export const Sizes: Story = {
   render: () => (
     <VariantContainer>
@@ -29,9 +66,6 @@ export const Sizes: Story = {
   ),
 }
 
-/**
- * Shows the various validation states for visual feedback.
- */
 export const ValidationStates: Story = {
   render: () => (
     <VariantContainer>
@@ -46,10 +80,6 @@ export const ValidationStates: Story = {
   ),
 }
 
-
-/**
- * Comprehensive overview of all key variants.
- */
 export const AllVariants: Story = {
   render: () => (
     <VariantContainer>
@@ -84,9 +114,6 @@ export const AllVariants: Story = {
   ),
 }
 
-/**
- * Demonstrates auto-sizing textarea that grows with content.
- */
 export const AutoSizing: Story = {
   render: () => (
     <VariantContainer>
@@ -105,41 +132,29 @@ export const AutoSizing: Story = {
   ),
 }
 
-/**
- * Practical combinations for real-world use cases.
- */
 export const UseCaseCombinations: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Real-world Use Cases">
-        {/* Use Case 1: Product description for admins */}
         <Textarea
           size="lg"
           resize="y"
           placeholder="Product description - admin interface"
         />
-
-        {/* Use Case 2: Order notes with validation */}
         <Textarea
           variant="error"
           size="md"
           placeholder="Order notes with validation error"
         />
-
-        {/* Use Case 3: Read-only display of database content */}
         <Textarea
           readonly
           variant="borderless"
           defaultValue="This is a read-only display of database content that maintains the same visual structure as editable fields."
         />
-
-        {/* Use Case 4: Product reviews with submission status */}
         <Textarea
           variant="success"
           placeholder="Successfully submitted product review"
         />
-
-        {/* Use Case 5: Compact notepad */}
         <Textarea
           size="sm"
           resize="both"

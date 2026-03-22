@@ -35,6 +35,7 @@ const meta: Meta<typeof ProductCard> = {
       control: { type: 'select' },
       options: ['column', 'row'],
       description: 'Card layout orientation',
+      table: { defaultValue: { summary: 'column' } },
     },
   },
 }
@@ -42,28 +43,157 @@ const meta: Meta<typeof ProductCard> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-// Basic usage with minimal configuration
-export const Default: Story = {
-  render: () => (
-    <ProductCard>
-      <ProductCard.Image
-        src={productImages.tshirt}
-        alt="Premium Cotton T-Shirt"
-      />
-      <ProductCard.Name>Premium Cotton T-Shirt</ProductCard.Name>
-      <ProductCard.Price>$29.99</ProductCard.Price>
-      <ProductCard.Actions>
-        <ProductCard.Button buttonVariant="cart" icon="token-icon-cart-button">
-          Add to Cart
-        </ProductCard.Button>
-      </ProductCard.Actions>
-    </ProductCard>
-  ),
+// Image options for select control
+const imageOptions = Object.keys(productImages) as (keyof typeof productImages)[]
+
+// Custom args type for Playground (compound component pattern)
+interface PlaygroundArgs {
+  layout: 'column' | 'row'
+  productName: string
+  price: string
+  imageSrc: keyof typeof productImages
+  showRating: boolean
+  showStock: boolean
+  showBadges: boolean
+  rating: number
+  stockStatus: 'in-stock' | 'limited-stock' | 'out-of-stock'
+  stockText: string
+  buttonVariant: 'cart' | 'detail' | 'wishlist'
+  buttonText: string
+}
+
+// Playground with controls for interactive testing
+export const Playground: StoryObj<PlaygroundArgs> = {
+  argTypes: {
+    // Layout
+    layout: {
+      control: 'select',
+      options: ['column', 'row'],
+      description: 'Card layout orientation',
+      table: { defaultValue: { summary: 'column' }, category: 'Layout' },
+    },
+
+    // Content
+    productName: {
+      control: 'text',
+      description: 'Product name',
+      table: { category: 'Content' },
+    },
+    price: {
+      control: 'text',
+      description: 'Product price',
+      table: { category: 'Content' },
+    },
+    imageSrc: {
+      control: 'select',
+      options: imageOptions,
+      description: 'Product image',
+      table: { category: 'Content' },
+    },
+
+    // Visibility
+    showRating: {
+      control: 'boolean',
+      description: 'Show rating stars',
+      table: { defaultValue: { summary: 'true' }, category: 'Visibility' },
+    },
+    showStock: {
+      control: 'boolean',
+      description: 'Show stock status',
+      table: { defaultValue: { summary: 'true' }, category: 'Visibility' },
+    },
+    showBadges: {
+      control: 'boolean',
+      description: 'Show product badges',
+      table: { defaultValue: { summary: 'false' }, category: 'Visibility' },
+    },
+    rating: {
+      control: { type: 'number', min: 0, max: 5, step: 0.5 },
+      description: 'Rating value (0-5)',
+      table: { defaultValue: { summary: '4' }, category: 'Rating' },
+    },
+    stockStatus: {
+      control: 'select',
+      options: ['in-stock', 'limited-stock', 'out-of-stock'],
+      description: 'Stock availability status',
+      table: { defaultValue: { summary: 'in-stock' }, category: 'Stock' },
+    },
+    stockText: {
+      control: 'text',
+      description: 'Stock status text',
+      table: { category: 'Stock' },
+    },
+    buttonVariant: {
+      control: 'select',
+      options: ['cart', 'detail', 'wishlist'],
+      description: 'Primary button variant',
+      table: { defaultValue: { summary: 'cart' }, category: 'Button' },
+    },
+    buttonText: {
+      control: 'text',
+      description: 'Button label text',
+      table: { category: 'Button' },
+    },
+  },
+  args: {
+    layout: 'column',
+    productName: 'Premium Cotton T-Shirt',
+    price: '$29.99',
+    imageSrc: 'tshirt',
+    showRating: true,
+    showStock: true,
+    showBadges: false,
+    rating: 4,
+    stockStatus: 'in-stock',
+    stockText: 'In Stock',
+    buttonVariant: 'cart',
+    buttonText: 'Add to Cart',
+  },
+  render: (args) => {
+    const buttonIcons = {
+      cart: 'token-icon-cart-button',
+      detail: 'token-icon-detail-button',
+      wishlist: 'token-icon-wishlist-button',
+    } as const
+
+    return (
+      <ProductCard layout={args.layout} className={args.layout === 'row' ? 'w-lg' : ''}>
+        <ProductCard.Image
+          src={productImages[args.imageSrc]}
+          alt={args.productName}
+          className={args.layout === 'row' ? 'row-span-6' : ''}
+        />
+        {args.showBadges && (
+          <ProductCard.Badges>
+            <Badge variant="success">New</Badge>
+            <Badge variant="danger">Sale</Badge>
+          </ProductCard.Badges>
+        )}
+        <ProductCard.Name>{args.productName}</ProductCard.Name>
+        {args.showRating && (
+          <ProductCard.Rating rating={{ value: args.rating, readOnly: true }} />
+        )}
+        {args.showStock && (
+          <ProductCard.Stock status={args.stockStatus}>
+            {args.stockText}
+          </ProductCard.Stock>
+        )}
+        <ProductCard.Price>{args.price}</ProductCard.Price>
+        <ProductCard.Actions>
+          <ProductCard.Button
+            buttonVariant={args.buttonVariant}
+            icon={buttonIcons[args.buttonVariant]}
+          >
+            {args.buttonText}
+          </ProductCard.Button>
+        </ProductCard.Actions>
+      </ProductCard>
+    )
+  },
 }
 
 export const Badges: Story = {
   render: () => {
-    // Using Badge component variants directly
     const badges = [
       { variant: 'success' as const, label: 'New' },
       { variant: 'warning' as const, label: 'Limited Stock' },
@@ -95,7 +225,6 @@ export const Badges: Story = {
   },
 }
 
-// Showcase Badge flexibility with custom colors
 export const BadgesWithCustomColors: Story = {
   name: 'Badges - Custom Colors',
   render: () => {
@@ -107,11 +236,9 @@ export const BadgesWithCustomColors: Story = {
       />
       <ProductCard.Name>Limited Edition Running Shoes</ProductCard.Name>
       <ProductCard.Badges>
-        {/* Standard Badge variants */}
         <Badge variant="success">New Arrival</Badge>
         <Badge variant="dynamic" bgColor="#fff" fgColor="#000" borderColor="#eee">50% OFF</Badge>
 
-        {/* Custom badges using dynamic variant */}
         <Badge
           variant="dynamic"
           bgColor="#7f22fe"
@@ -142,7 +269,6 @@ export const BadgesWithCustomColors: Story = {
   },
 }
 
-// Showcase all stock states
 export const StockStates: Story = {
   name: 'Stock Status Variants',
   render: () => (
@@ -201,7 +327,6 @@ export const StockStates: Story = {
   ),
 }
 
-// Showcase all button variants
 export const AllButtonVariants: Story = {
   name: 'Button Variants',
   render: () => (
@@ -278,7 +403,6 @@ export const AllButtonVariants: Story = {
   ),
 }
 
-// Column vs Row layouts
 export const LayoutVariants: Story = {
   render: () => (
     <VariantContainer>
@@ -286,7 +410,7 @@ export const LayoutVariants: Story = {
         <ProductCard layout="column">
           <ProductCard.Image src={productImages.tshirt} alt="T-Shirt" />
           <ProductCard.Name>Cotton T-Shirt</ProductCard.Name>
-          <ProductCard.Rating rating={{value: 4}} />
+          <ProductCard.Rating rating={{defaultValue: 4}} />
           <ProductCard.Stock status="in-stock">In Stock</ProductCard.Stock>
           <ProductCard.Price>$24.99</ProductCard.Price>
           <ProductCard.Actions>
@@ -308,7 +432,7 @@ export const LayoutVariants: Story = {
             className="row-span-6"
           />
           <ProductCard.Name>Running Shoes</ProductCard.Name>
-          <ProductCard.Rating rating={{value: 5}} />
+          <ProductCard.Rating rating={{defaultValue: 5}} />
           <ProductCard.Stock status="limited-stock">Limited Stock</ProductCard.Stock>
           <ProductCard.Price>$89.99</ProductCard.Price>
           <ProductCard.Actions>
@@ -325,13 +449,11 @@ export const LayoutVariants: Story = {
   ),
 }
 
-// Custom composition example
 export const CustomComposition: Story = {
   render: () => (
     <ProductCard>
       <ProductCard.Image src={productImages.camera} alt="DSLR Camera" />
 
-      {/* Custom badge placement */}
       <div className="mb-100 flex gap-100">
         <Badge variant="info">-30%</Badge>
         <Badge variant="success">Free Shipping</Badge>
@@ -339,21 +461,18 @@ export const CustomComposition: Story = {
 
       <ProductCard.Name>Professional DSLR Camera</ProductCard.Name>
 
-      {/* Custom price display with original price */}
       <div className="flex items-baseline gap-100">
         <span className="text-100 text-fg-primary line-through">$1,899</span>
         <ProductCard.Price>$1,329</ProductCard.Price>
       </div>
 
-      {/* Custom rating with review count */}
       <div className="flex items-center gap-100">
-        <ProductCard.Rating rating={{value: 4.5}} />
+        <ProductCard.Rating rating={{defaultValue: 4.5}} />
         <span className="text-100 text-fg-muted">(245 reviews)</span>
       </div>
 
       <ProductCard.Stock status="limited-stock">Only 3 left in stock</ProductCard.Stock>
 
-      {/* Custom actions layout */}
       <ProductCard.Actions>
         <div className="flex w-full gap-200">
           <ProductCard.Button
@@ -375,7 +494,6 @@ export const CustomComposition: Story = {
   ),
 }
 
-// With quantity input
 export const WithQuantityInput: Story = {
   render: () => (
     <ProductCard className="max-w-sm">
@@ -392,7 +510,7 @@ export const WithQuantityInput: Story = {
         </ProductCard.Stock>
       </div>
       <ProductCard.Actions>
-        <NumericInput id="product-quantity" defaultValue={1}>
+        <NumericInput id="product-quantity" defaultValue={1} min={1} max={5}>
           <NumericInput.Control>
             <NumericInput.Input />
             <NumericInput.TriggerContainer>
@@ -422,7 +540,6 @@ export const WithQuantityInput: Story = {
   ),
 }
 
-// Minimal card - only essential elements
 export const MinimalCard: Story = {
   render: () => (
     <ProductCard>
@@ -435,11 +552,9 @@ export const MinimalCard: Story = {
   ),
 }
 
-// Complex card with everything
 export const ComplexCard: Story = {
   render: () => (
     <ProductCard className="w-md">
-      {/* Image with overlay badge */}
       <div className="relative">
         <ProductCard.Image src={productImages.camera} alt="Camera Kit" className="w-full"/>
         <Badge variant="danger" className="absolute top-100 right-100">
@@ -447,7 +562,6 @@ export const ComplexCard: Story = {
         </Badge>
       </div>
 
-      {/* Multiple badge types */}
       <ProductCard.Badges>
         <Badge variant="info">New Arrival</Badge>
         <Badge variant="success">Eco-Friendly</Badge>
@@ -458,13 +572,11 @@ export const ComplexCard: Story = {
         Professional Camera Kit with Accessories
       </ProductCard.Name>
 
-      {/* Rating with reviews */}
       <div className="mb-100 flex items-center gap-100">
-        <ProductCard.Rating rating={{ value: 4.9 }} />
+        <ProductCard.Rating rating={{ defaultValue: 4.9 }} />
         <span className="text-50 text-fg-muted">(512 reviews)</span>
       </div>
 
-      {/* Price with savings */}
       <div className="mb-200 flex flex-col gap-100">
         <div className="flex items-baseline gap-100">
           <span className="text-fg-muted line-through">$3,499</span>
@@ -478,7 +590,6 @@ export const ComplexCard: Story = {
 
       <ProductCard.Stock status="limited-stock">Only 2 units left - Order soon!</ProductCard.Stock>
 
-      {/* Complex actions */}
       <ProductCard.Actions>
         <div className="mb-100 flex items-center gap-100">
           <NumericInput id="product-quantity" defaultValue={1} min={1} max={10}>
@@ -528,7 +639,6 @@ export const ComplexCard: Story = {
         </Button>
       </ProductCard.Actions>
 
-      {/* Additional info */}
       <div className="border-border-primary border-t pt-100">
         <span className="text-50 text-fg-muted">
           ✓ 2-year warranty • ✓ 30-day returns • ✓ Expert support
@@ -538,7 +648,6 @@ export const ComplexCard: Story = {
   ),
 }
 
-// Multiple action layouts
 export const ActionLayouts: Story = {
   name: 'Action Button Layouts',
   render: () => (
@@ -635,7 +744,6 @@ export const ActionLayouts: Story = {
   ),
 }
 
-// Custom Layout Overrides
 export const CustomRowSpan: Story = {
   name: 'Custom Row Span Override',
   render: () => (
@@ -650,7 +758,7 @@ export const CustomRowSpan: Story = {
       </div>
       <div className="col-2 row-3 place-self-end">
       <ProductCard.Price>$1,299.99</ProductCard.Price>
-      <ProductCard.Rating rating={{ value: 4.5 }} />
+      <ProductCard.Rating rating={{ defaultValue: 4.5 }} />
       <ProductCard.Actions>
         <ProductCard.Button
           buttonVariant="cart"
@@ -689,7 +797,7 @@ export const CustomGridLayout: Story = {
           <Badge variant="info">Noise Cancelling</Badge>
         </ProductCard.Badges>
         <ProductCard.Price>$349.99</ProductCard.Price>
-        <ProductCard.Rating rating={{ value: 4.9 }} />
+        <ProductCard.Rating rating={{ defaultValue: 4.9 }} />
         <ProductCard.Stock status="limited-stock">
           Only 5 left in stock!
         </ProductCard.Stock>

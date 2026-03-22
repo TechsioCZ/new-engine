@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import { FormTextarea } from '../../src/molecules/form-textarea'
+import { FormInput } from '../../src/molecules/form-input'
 import { Button } from '../../src/atoms/button'
 
 const meta: Meta<typeof FormTextarea> = {
@@ -10,56 +11,107 @@ const meta: Meta<typeof FormTextarea> = {
   parameters: {
     layout: 'centered',
   },
-  args: {
-    id: 'storybook-form-textarea',
-  },
   tags: ['autodocs'],
   argTypes: {
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of the form textarea and all its child elements',
-    },
+    // Text inputs
     label: {
       control: 'text',
       description: 'Textarea label',
     },
+    placeholder: {
+      control: 'text',
+      description: 'Placeholder text',
+    },
     helpText: {
       control: 'text',
-      description:
-        'Helper text, validation message, or other supporting text shown below the textarea',
+      description: 'Helper text or validation message below textarea',
+    },
+
+    // Appearance
+    size: {
+      control: 'select',
+      options: ['sm', 'md', 'lg'],
+      description: 'Size of the textarea and label',
+      table: { defaultValue: { summary: 'md' } },
     },
     validateStatus: {
       control: 'select',
       options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation state that affects textarea style and helper text',
+      description: 'Validation state',
+      table: { defaultValue: { summary: 'default' } },
     },
     showHelpTextIcon: {
       control: 'boolean',
-      description: 'Whether to show an icon with the help text',
+      description: 'Show icon with help text',
+      table: { defaultValue: { summary: 'false' } },
     },
     resize: {
       control: 'select',
-      options: ['none', 'both', 'x', 'y'],
+      options: ['none', 'y', 'x', 'both', 'auto'],
       description: 'Resize behavior of the textarea',
+      table: { defaultValue: { summary: 'y' } },
     },
     rows: {
       control: 'number',
       description: 'Number of visible text rows',
     },
+    maxLength: {
+      control: 'number',
+      description: 'Maximum number of characters allowed',
+    },
+    minLength: {
+      control: 'number',
+      description: 'Minimum number of characters required',
+    },
+
+    // States
+    disabled: {
+      control: 'boolean',
+      description: 'Disable the textarea',
+      table: { defaultValue: { summary: 'false' } },
+    },
+    required: {
+      control: 'boolean',
+      description: 'Mark as required field',
+      table: { defaultValue: { summary: 'false' } },
+    },
+    readOnly: {
+      control: 'boolean',
+      description: 'Make textarea read-only',
+      table: { defaultValue: { summary: 'false' } },
+    },
+    spellCheck: {
+      control: 'boolean',
+      description: 'Enable browser spell checking',
+    },
+    autoFocus: {
+      control: 'boolean',
+      description: 'Automatically focus on mount',
+      table: { defaultValue: { summary: 'false' } },
+    },
+  },
+  args: {
+    label: 'Description',
+    placeholder: 'Enter description...',
+    helpText: 'Provide a detailed description',
+    size: 'md',
+    validateStatus: 'default',
+    showHelpTextIcon: false,
+    resize: 'y',
+    rows: 4,
+    disabled: false,
+    required: false,
+    readOnly: false,
+    autoFocus: false,
   },
 }
 
 export default meta
 type Story = StoryObj<typeof FormTextarea>
 
-// Basic usage
-export const Basic: Story = {
+export const Playground: Story = {
   args: {
-    label: 'Description',
-    placeholder: 'Enter description...',
-    helpText: 'Provide a detailed description',
-    rows: 4,
+    label: 'Playground Textarea',
   },
 }
 
@@ -68,15 +120,15 @@ export const AllVariants: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Requirement States">
-        <div className="w-80">
-          <FormTextarea 
-            id="default-textarea" 
-            label="Default" 
-            placeholder="Enter text..." 
+        <div className="w-md">
+          <FormTextarea
+            id="default-textarea"
+            label="Default"
+            placeholder="Enter text..."
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="required-textarea"
             label="Required"
@@ -85,20 +137,20 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
-          <FormTextarea 
-            id="optional-textarea" 
-            label="Optional" 
-            placeholder="Enter text..." 
+        <div className="w-md">
+          <FormTextarea
+            id="optional-textarea"
+            label="Optional"
+            placeholder="Enter text..."
             rows={3}
           />
         </div>
       </VariantGroup>
 
       <VariantGroup title="Validation States">
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
-            id="default-textarea"
+            id="default-state-textarea"
             label="Default state"
             placeholder="Enter text..."
             validateStatus="default"
@@ -106,7 +158,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="success-textarea"
             label="Success state"
@@ -116,7 +168,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="error-textarea"
             label="Error state"
@@ -126,7 +178,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="warning-textarea"
             label="Warning state"
@@ -139,7 +191,7 @@ export const AllVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Supporting Text">
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="helper-textarea"
             label="With helper text"
@@ -148,7 +200,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="extra-textarea"
             label="With validation message"
@@ -161,7 +213,7 @@ export const AllVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Sizes">
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="sm-textarea"
             label="Small textarea"
@@ -171,7 +223,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="md-textarea"
             label="Default textarea"
@@ -181,7 +233,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="lg-textarea"
             label="Large textarea"
@@ -194,7 +246,7 @@ export const AllVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Special States">
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="disabled-textarea"
             label="Disabled textarea"
@@ -203,7 +255,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="readonly-textarea"
             label="Read-only textarea"
@@ -212,7 +264,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="prefilled-textarea"
             label="With default value"
@@ -223,7 +275,7 @@ export const AllVariants: Story = {
       </VariantGroup>
 
       <VariantGroup title="Resize Behaviors" fullWidth>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="resize-none"
             label="No resize"
@@ -232,7 +284,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="resize-vertical"
             label="Vertical resize only"
@@ -241,7 +293,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="resize-horizontal"
             label="Horizontal resize only"
@@ -250,7 +302,7 @@ export const AllVariants: Story = {
             rows={3}
           />
         </div>
-        <div className="w-80">
+        <div className="w-md">
           <FormTextarea
             id="resize-both"
             label="Resize both directions"
@@ -267,7 +319,7 @@ export const AllVariants: Story = {
 // Validation States - Dedicated story showing all 4 validation states
 export const ValidationStates: Story = {
   render: () => (
-    <div className="flex flex-col gap-4 w-80">
+    <div className="flex flex-col gap-200 w-md">
       <FormTextarea
         id="default-validation"
         label="Default State"
@@ -307,7 +359,7 @@ export const ValidationStates: Story = {
 // Sizes - Dedicated story showing all size variants
 export const Sizes: Story = {
   render: () => (
-    <div className="flex flex-col gap-4 w-80">
+    <div className="flex flex-col gap-200 w-md">
       <FormTextarea
         id="small-size"
         label="Small Size"
@@ -350,10 +402,10 @@ function CharacterCountExample() {
   const isOverLimit = remaining < 0
   const isNearLimit = remaining <= 20 && remaining >= 0
 
-  const validateStatus = isOverLimit 
-    ? 'error' 
-    : isNearLimit 
-      ? 'warning' 
+  const validateStatus = isOverLimit
+    ? 'error'
+    : isNearLimit
+      ? 'warning'
       : 'default'
 
   const helpText = isOverLimit
@@ -363,8 +415,8 @@ function CharacterCountExample() {
       : `${remaining}/${maxLength} characters`
 
   return (
-    <div className="w-96">
-      <h3 className="mb-4 font-medium text-lg">Character Count Validation</h3>
+    <div className="w-lg">
+      <h3 className="mb-200 font-medium text-lg">Character Count Validation</h3>
       <FormTextarea
         id="character-count"
         label="Tweet"
@@ -376,10 +428,10 @@ function CharacterCountExample() {
         helpText={helpText}
         rows={4}
       />
-      <div className="mt-4 text-sm">
-        <div className="flex gap-4">
+      <div className="mt-200 text-sm">
+        <div className="flex gap-200">
           <span>Characters: {text.length}</span>
-          <span className={isOverLimit ? 'text-red-500' : ''}>
+          <span className={isOverLimit ? 'text-danger' : ''}>
             Remaining: {remaining}
           </span>
         </div>
@@ -390,89 +442,76 @@ function CharacterCountExample() {
 
 // Contact form example
 export const ContactForm: Story = {
-  render: () => {
-    const [formData, setFormData] = useState({
-      name: '',
-      email: '',
-      subject: '',
-      message: '',
-    })
+  render: () => <ContactFormExample />,
+}
 
-    return (
-      <div className="w-[480px] rounded-lg border border-gray-200 p-6 shadow-sm">
-        <h2 className="mb-6 font-semibold text-xl">Contact Us</h2>
+function ContactFormExample() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: '',
+  })
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block font-medium text-sm">Name</label>
-              <input
-                type="text"
-                className="w-full rounded border px-3 py-2"
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block font-medium text-sm">Email</label>
-              <input
-                type="email"
-                className="w-full rounded border px-3 py-2"
-                placeholder="john@example.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-          </div>
+  return (
+    <div className="w-lg rounded-md border border-border-primary p-300 shadow-sm">
+      <h2 className="mb-300 font-semibold text-xl">Contact Us</h2>
 
-          <div>
-            <label className="mb-1 block font-medium text-sm">Subject</label>
-            <input
-              type="text"
-              className="w-full rounded border px-3 py-2"
-              placeholder="How can we help?"
-              value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-            />
-          </div>
-
-          <FormTextarea
-            id="contact-message"
-            label="Message"
-            placeholder="Tell us more about your inquiry..."
-            required
-            value={formData.message}
-            onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-            rows={6}
-            helpText="Please provide as much detail as possible"
+      <div className="space-y-200">
+        <div className="grid grid-cols-2 gap-200">
+          <FormInput
+            id="contact-name"
+            label="Name"
+            placeholder="John Doe"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
-
-          <FormTextarea
-            id="additional-info"
-            label="Additional Information (Optional)"
-            placeholder="Any other details you'd like to share..."
-            rows={3}
-            helpText="Include any relevant links, references, or context"
+          <FormInput
+            id="contact-email"
+            label="Email"
+            type="email"
+            placeholder="john@example.com"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           />
         </div>
 
-        <div className="mt-6 flex gap-3">
-          <Button
-          size='sm'
-          type="submit"
-          >
-            Send Message
-          </Button>
-          <Button
-          size='sm'
-          variant='danger'
-          type="button"
-          >
-            Cancel
-          </Button>
-        </div>
+        <FormInput
+          id="contact-subject"
+          label="Subject"
+          placeholder="How can we help?"
+          value={formData.subject}
+          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+        />
+
+        <FormTextarea
+          id="contact-message"
+          label="Message"
+          placeholder="Tell us more about your inquiry..."
+          required
+          value={formData.message}
+          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+          rows={6}
+          helpText="Please provide as much detail as possible"
+        />
+
+        <FormTextarea
+          id="additional-info"
+          label="Additional Information (Optional)"
+          placeholder="Any other details you'd like to share..."
+          rows={3}
+          helpText="Include any relevant links, references, or context"
+        />
       </div>
-    )
-  },
+
+      <div className="mt-300 flex gap-150">
+        <Button size="sm" type="submit">
+          Send Message
+        </Button>
+        <Button size="sm" variant="danger" type="button">
+          Cancel
+        </Button>
+      </div>
+    </div>
+  )
 }

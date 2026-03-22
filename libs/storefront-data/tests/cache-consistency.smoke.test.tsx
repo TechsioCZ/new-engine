@@ -1,16 +1,20 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { StorefrontDataProvider } from "../src/client"
-import { createCustomerHooks, type CustomerService } from "../src/customers"
-import { createOrderQueryKeys } from "../src/orders"
+import { StorefrontDataProvider } from "../src/client/provider"
+import { createCustomerHooks } from "../src/customers/hooks"
+import { createOrderQueryKeys } from "../src/orders/query-keys"
 import {
   createProductHooks,
-  createProductQueryKeys,
-  type ProductListInputBase,
-  type ProductService,
-} from "../src/products"
-import { createQueryKey, RegionProvider } from "../src/shared"
+} from "../src/products/hooks"
+import { createProductQueryKeys } from "../src/products/query-keys"
+import type {
+  ProductListInputBase,
+  ProductService,
+} from "../src/products/types"
+import { createQueryKey } from "../src/shared/query-keys"
+import { RegionProvider } from "../src/shared/region-context"
+import type { CustomerService } from "../src/customers/types"
 
 describe("storefront-data cache/query consistency", () => {
   it("keeps separate product cache entries when region context changes", async () => {
@@ -148,10 +152,12 @@ describe("storefront-data cache/query consistency", () => {
     const { useUpdateCustomer } = createCustomerHooks({
       service,
       buildListParams: (input: ListParams) => input,
-      buildCreateParams: (input: CreateParams) => input,
-      buildUpdateParams: (input: UpdateParams & { addressId?: string }) => {
-        const { addressId: _addressId, ...rest } = input
-        return rest
+      addressAdapter: {
+        toCreateParams: (input: CreateParams) => input,
+        toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
+          const { addressId: _addressId, ...rest } = input
+          return rest
+        },
       },
       buildUpdateCustomerParams: (input: UpdateCustomerParams) => input,
       queryKeyNamespace,
@@ -201,6 +207,99 @@ describe("storefront-data cache/query consistency", () => {
     expect(queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated).toBe(
       true
     )
+  })
+
+  it("invalidates auth customer cache after address mutations", async () => {
+    type Address = { id: string }
+    type Customer = { id: string }
+
+    type ListParams = { enabled?: boolean }
+    type CreateParams = { address_1?: string }
+    type UpdateParams = { address_1?: string }
+    type UpdateCustomerParams = { metadata?: Record<string, unknown> }
+
+    const service: CustomerService<
+      Customer,
+      Address,
+      ListParams,
+      CreateParams,
+      UpdateParams,
+      UpdateCustomerParams
+    > = {
+      getAddresses: async () => ({ addresses: [] }),
+      createAddress: async () => ({ id: "addr_1" }),
+      updateAddress: async () => ({ id: "addr_1" }),
+      deleteAddress: async () => undefined,
+      updateCustomer: async () => ({ id: "cust_1" }),
+    }
+
+    const queryKeyNamespace = "cache-consistency-customer-address-mutations"
+    const { useCreateCustomerAddress, useUpdateCustomerAddress, useDeleteCustomerAddress } =
+      createCustomerHooks({
+        service,
+        buildListParams: (input: ListParams) => input,
+        addressAdapter: {
+          toCreateParams: (input: CreateParams) => input,
+          toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
+            const { addressId: _addressId, ...rest } = input
+            return rest
+          },
+        },
+        buildUpdateCustomerParams: (input: UpdateCustomerParams) => input,
+        queryKeyNamespace,
+      })
+
+    const authCustomerQueryKey = createQueryKey(
+      queryKeyNamespace,
+      "auth",
+      "customer"
+    )
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+
+    queryClient.setQueryData(authCustomerQueryKey, { id: "cust_old" })
+
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <StorefrontDataProvider client={queryClient}>{children}</StorefrontDataProvider>
+    )
+
+    const createHook = renderHook(() => useCreateCustomerAddress(), { wrapper })
+    const updateHook = renderHook(() => useUpdateCustomerAddress(), { wrapper })
+    const deleteHook = renderHook(() => useDeleteCustomerAddress(), { wrapper })
+
+    await act(async () => {
+      await createHook.result.current.mutateAsync({ address_1: "Main 1" })
+    })
+    await act(async () => {
+      await updateHook.result.current.mutateAsync({
+        addressId: "addr_1",
+        address_1: "Main 2",
+      })
+    })
+    await act(async () => {
+      await deleteHook.result.current.mutateAsync({ addressId: "addr_1" })
+    })
+
+    const authInvalidationCalls = invalidateSpy.mock.calls.filter(
+      ([arg]) =>
+        Boolean(
+          arg &&
+            typeof arg === "object" &&
+            "queryKey" in (arg as Record<string, unknown>) &&
+            JSON.stringify((arg as { queryKey?: unknown }).queryKey) ===
+              JSON.stringify(authCustomerQueryKey)
+        )
+    )
+
+    expect(authInvalidationCalls.length).toBe(3)
+    expect(queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated).toBe(true)
   })
 
   it("normalizes order list keys and separates cache by list params", () => {

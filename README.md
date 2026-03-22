@@ -24,9 +24,73 @@
   ```
 
 3. <b>Run docker compose</b>
+
+    Before running `make dev`, populate required zane-operator secrets in `.env` (you can copy `.env.docker` as a template), otherwise compose will fail fast on required variable expansion:
+    * `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
+    * `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`
+    * `DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET=<replace-with-long-random-secret>`
+
     ```shell
     make dev
     ```
+
+    * Postgres role bootstrap (`medusa_app`, `medusa_dev`) runs automatically on first DB initialization via `docker/development/postgres/initdb/01-zane-role-bootstrap.sh`
+    * MinIO bootstrap (`medusa-minio-bootstrap`) now runs automatically and ensures the configured Medusa access key exists and bucket metadata is imported
+    * `zane_operator` role bootstrap runs as one-shot service `zane-operator-bootstrap` before `zane-operator` starts (idempotent)
+    * If your Postgres volume already existed before this change, run bootstrap migration once:
+
+    ```shell
+    make postgres-role-bootstrap
+    make postgres-zane-operator-bootstrap
+    ```
+
+    * Optional idempotency check (runs bootstrap twice):
+
+    ```shell
+    make postgres-role-bootstrap-verify
+    make postgres-zane-operator-bootstrap-verify
+    ```
+
+    * Optional grant hardening check (read-only verification):
+
+    ```shell
+    make postgres-grants-verify
+    ```
+
+    * Existing DB migration note: bootstrap includes idempotent legacy-object migration from `public` schema into `DC_MEDUSA_APP_DB_SCHEMA` (default `medusa`), with conflict fail-fast if same object already exists in target schema.
+    * Medusa BE DB connection is derived from `DC_MEDUSA_APP_DB_*`; keep those on app credentials (`medusa_app`), not superuser credentials
+    * `MEDUSA_DATABASE_SCHEMA` / `DATABASE_SCHEMA` are derived from `DC_MEDUSA_APP_DB_SCHEMA` and must stay aligned with app schema grants
+    * `medusa-db` starts with `-c file_copy_method=clone`; zane-operator preview cloning uses `CREATE DATABASE ... STRATEGY=FILE_COPY`
+
+### Cloud predeploy hook (idempotent)
+
+If you deploy `zane-operator` separately in cloud, run role bootstrap once before service start:
+
+```shell
+/app/zane-operator-bootstrap-role
+```
+
+Required env vars for this hook:
+* Reuses operator envs (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE`, `DB_TEMPLATE_NAME`)
+* Bootstrap target role/password are derived from runtime operator credentials (`PGUSER`/`PGPASSWORD`)
+* Add admin override credentials: `BOOTSTRAP_ADMIN_PGUSER`, `BOOTSTRAP_ADMIN_PGPASSWORD`
+
+Optional hardening toggles:
+* `BOOTSTRAP_SET_TEMPLATE_OWNER=1` (default)
+* `BOOTSTRAP_FAIL_IF_TEMPLATE_MISSING=0` (set to `1` to fail hard if template DB does not exist yet)
+* `BOOTSTRAP_VERIFY_IDEMPOTENT=1` (runs bootstrap twice in the same hook)
+* Optional admin endpoint overrides (if admin connects to different DB endpoint): `BOOTSTRAP_ADMIN_PGHOST`, `BOOTSTRAP_ADMIN_PGPORT`, `BOOTSTRAP_ADMIN_PGDATABASE`, `BOOTSTRAP_ADMIN_PGSSLMODE`
+
+### Manual live `.env` updates (not automated)
+
+When DB env wiring changes, apply these actions manually on the live `.env` file:
+
+1. Open live `.env`.
+2. Set medusa-be DB connection values to APP credentials (`medusa_app`-style account), not superuser credentials.
+3. Ensure DB host, port, and database match the compose service defaults used in your environment.
+4. Keep operator-only credentials separate from app credentials.
+5. Restart services that consume `.env`.
+6. Validate with one read and one write operation from medusa-be.
 
 4. <b>Migrate database</b> (if needed)
     * <i>(optional)</i> `medusa` schema needs to exist, which it should, unless it was manually dropped
@@ -39,7 +103,7 @@
     make medusa-create-user EMAIL=[some@email.com] PASSWORD=[PASSWORD]
     ```
 
-6. <b>Prepare file storage</b> (only first time setup)
+6. <b>Prepare file storage</b> (automatic in compose; manual fallback only if needed)
     ```shell
     make medusa-minio-init
     ```
@@ -58,7 +122,7 @@
     * Login via user created in previous step
     * Go to settings -> Publishable API Keys
     * Create or copy existing key
-    * Update NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY in .env
+    * Update DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY in .env
     * Restart services
     ```shell
    make down
@@ -66,16 +130,16 @@
     ```
 
 9. <b>Explore local envs</b>
-    * Medusa FE should be available at:
+    * N1 FE should be available at:
         * <a href="http://localhost:8000">localhost:8000</a>
-        * <a href="https://front.medusa.localhost">https://front.medusa.localhost</a>
+        * <a href="https://n1.medusa.localhost">https://n1.medusa.localhost</a>
     * Medusa BE should be available at:
         * <a href="http://localhost:9000/app">localhost:9000/app</a>
         * <sup>(1)</sup><a href="https://admin.medusa.localhost/app">https://admin.medusa.localhost/app</a>
     * Minio console should be available at:
         * <a href="http://localhost:9003">localhost:9003</a>
         * <a href="https://admin.minio.localhost">https://admin.minio.localhost</a>
-            * credentials: `minioadmin`/`minioadmin`
+            * credentials: `DC_MINIO_ROOT_USER`/`DC_MINIO_ROOT_PASSWORD` (defaults: `minioadmin`/`minioadmin`)
     * Meilisearch console should be available at:
         * <a href="http://localhost:7700">localhost:7700</a>
         * <a href="https://admin.meilisearch.localhost">https://admin.meilisearch.localhost</a>
@@ -99,6 +163,49 @@
 
 ---
 
+## Local Postgres 18 Upgrade (Safe Path)
+
+Postgres Docker image `18+` changed its default `PGDATA` layout. This repo now pins Postgres to
+`postgres:18.1-alpine` and stores cluster files in `./.docker_data/db18` (mounted to `/var/lib/postgresql`,
+with `PGDATA=/var/lib/postgresql/18/docker`).
+
+If you already have local data in `./.docker_data/db` from Postgres `<18`, run:
+
+```shell
+make postgres18-migrate-local
+```
+
+What the migration script does:
+* stops `medusa-db` (if running)
+* creates a physical backup archive of `./.docker_data/db`
+* creates a logical SQL backup using `pg_dumpall`
+* restores into a fresh Postgres 18 data dir at `./.docker_data/db18`
+* leaves old data untouched for rollback
+
+After migration:
+
+```shell
+make dev
+```
+
+Rollback path:
+* keep using `./.docker_data/db` with a Postgres 17 image
+* restore from the generated SQL/tar backups in `./.docker_data/backups/postgres18-migration`
+
+When migration looks good and you want to keep only the PG18 state:
+
+```shell
+make postgres18-verify
+make postgres18-finalize
+```
+
+`make postgres18-verify` checks that old cluster DBs/roles exist in the new cluster and compares structure, sequence values, and per-table row counts.
+If old `./.docker_data/db` cannot be started, it falls back to verifying against the newest
+`./.docker_data/backups/postgres18-migration/pg_dumpall_*.sql` backup.
+`make postgres18-finalize` runs the same verification and then deletes `./.docker_data/db` and `./.docker_data/backups/postgres18-migration`.
+
+---
+
 ## Testing Production Build Locally
 
 To test the production Docker build locally:
@@ -111,6 +218,7 @@ This builds a production-optimized image and starts the container. Access the ad
 * <a href="https://admin.medusa.localhost/app">https://admin.medusa.localhost/app</a> (requires HTTPS for session cookies)
 
 Note: Production mode uses secure cookies, so you must access via HTTPS (Caddy) rather than `http://localhost:9000`.
+Note: `make prod` now starts `medusa-be`, waits for health, regenerates `apps/n1/src/data/static/categories.ts` from Medusa data, then builds the `n1` prod image.
 
 ---
 

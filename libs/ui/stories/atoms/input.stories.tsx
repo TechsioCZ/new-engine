@@ -32,8 +32,8 @@ const meta: Meta<typeof Input> = {
 export default meta
 type Story = StoryObj<typeof Input>
 
-// Basic input
-export const Basic: Story = {
+// Interactive playground
+export const Playground: Story = {
   args: {
     placeholder: 'Enter text...',
   },

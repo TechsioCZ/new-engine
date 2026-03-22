@@ -330,7 +330,7 @@
   --spacing: 0.25rem;
 
   /* Focus ring */
-  --color-ring-primary: --alpha(var(--color-primary) / var(--opacity-ring));
+  --color-ring-primary: var(--color-primary);
 
   /* Aspect ratio */
   --aspect-ratio-square: 1 / 1;

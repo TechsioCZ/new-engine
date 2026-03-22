@@ -26,31 +26,26 @@ const meta = {
       control: 'boolean',
       description: 'Disabled state of the checkbox',
     },
-    'aria-invalid': {
+    invalid: {
       control: 'boolean',
-      description: 'Shows invalid state styling',
+      description: 'Shows invalid state styling (sets aria-invalid)',
     },
-    'aria-required': {
+    required: {
       control: 'boolean',
-      description: 'Marks checkbox as required for accessibility',
+      description: 'Marks checkbox as required for form validation',
     },
     onChange: { action: 'changed' },
   },
   args: {
-    /*checked: undefined,
-    defaultChecked: false,
-    indeterminate: false,
-    disabled: false,*/
-    'aria-invalid': false,
-    'aria-required': false,
+    invalid: false,
+    required: false,
   },
 } satisfies Meta<typeof Checkbox>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-// Basic stories
-export const Default: Story = {
+export const Playground: Story = {
   args: {},
 }
 
@@ -96,11 +91,6 @@ export const InvalidState: Story = {
   },
 }
 
-export const RequiredState: Story = {
-  args: {
-    'aria-required': true,
-  },
-}
 
 // Advanced stories with custom renders
 export const WithLabel: Story = {
@@ -159,13 +149,6 @@ export const AllStates: Story = {
           <Checkbox id="invalid" invalid />
           <label htmlFor="invalid" className="text-sm">
             Invalid
-          </label>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Checkbox id="required" aria-required />
-          <label htmlFor="required" className="text-sm">
-            Required
           </label>
         </div>
       </div>

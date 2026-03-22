@@ -94,7 +94,7 @@ export function Header({
                     )}
                   </div>
                 }
-                triggerClassName="data-[state=open]:ring-0 data-[state=open]:ring-offset-0"
+                triggerClassName="data-[state=open]:outline-none"
               >
                 <CartPreview />
               </Popover>
@@ -109,7 +109,7 @@ export function Header({
               {/* Mobile menu button */}
               {showMobileMenu && (
                 <Button
-                  className="inline-flex items-center justify-center rounded-header-mobile-menu p-header-mobile-menu-padding text-header-icon-size text-header-mobile-menu-text hover:bg-header-mobile-menu-hover hover:text-header-mobile-menu-text-hover focus:outline-none focus:ring-header-mobile-menu-color focus:ring-header-mobile-menu-width focus:ring-inset lg:hidden"
+                  className="inline-flex items-center justify-center rounded-header-mobile-menu p-header-mobile-menu-padding text-header-icon-size text-header-mobile-menu-text hover:bg-header-mobile-menu-hover hover:text-header-mobile-menu-text-hover focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) lg:hidden"
                   icon="token-icon-menu"
                   onClick={() => setIsMobileMenuOpen(true)}
                   size="sm"

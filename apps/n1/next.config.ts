@@ -1,10 +1,14 @@
+import { join } from "node:path"
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["n1.medusa.localhost"],
   reactStrictMode: true,
+  output: "standalone",
   transpilePackages: ["@new-engine/ui", "@techsio/analytics"],
   reactCompiler: true,
   cacheComponents: true,
+  outputFileTracingRoot: join(__dirname, "../../"),
   outputFileTracingExcludes: {
     "*": [
       "node_modules/@swc/core-linux-x64-gnu",

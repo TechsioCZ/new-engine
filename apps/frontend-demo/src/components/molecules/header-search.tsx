@@ -109,7 +109,7 @@ export function HeaderSearch() {
           icon="token-icon-search"
         />
       }
-      triggerClassName="data-[state=open]:ring-0 data-[state=open]:ring-offset-0"
+      triggerClassName="data-[state=open]:outline-none"
     >
       <form
         onSubmit={(e) => {

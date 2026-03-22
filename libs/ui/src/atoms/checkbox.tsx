@@ -25,11 +25,14 @@ const checkboxVariants = tv({
     "disabled:checked:text-checkbox-fg-disabled",
     "disabled:checked:border-checkbox-border-disabled",
     "transition-all duration-200 motion-reduce:transition-none",
-    "focus:outline-none",
-    "focus-visible:ring",
-    "focus-visible:ring-checkbox-ring-focus",
-    "aria-invalid:border-checkbox-border-error",
-    "aria-invalid:ring-checkbox-ring-error",
+    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+    "focus-visible:outline-checkbox-ring-focus",
+    "focus-visible:outline-offset-(length:--default-ring-offset)",
+    "data-invalid:border-(length:--border-width-validation)",
+    "data-invalid:border-checkbox-border-error",
+    "data-invalid:outline-(style:--default-ring-style) data-invalid:outline-(length:--default-ring-width)",
+    "data-invalid:outline-checkbox-ring-error",
+    "data-invalid:outline-offset-(length:--default-ring-offset)",
   ],
 })
 
@@ -61,6 +64,7 @@ export function Checkbox({
     <input
       aria-invalid={invalid || undefined}
       className={checkboxVariants({ className })}
+      data-invalid={invalid || undefined}
       ref={setIndeterminate}
       type="checkbox"
       {...props}

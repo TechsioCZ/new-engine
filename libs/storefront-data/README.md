@@ -1,26 +1,33 @@
-# Storefront Data Library (`@techsio/storefront-data`)
+# Storefront Data (`@techsio/storefront-data`)
 
-Shared data fetching library for Medusa.js e-commerce storefronts using TanStack Query.
+Medusa-first storefront data layer built on TanStack Query.
 
-## Overview
+The library is intentionally opinionated:
+- use explicit file-level imports, not package-root barrels
+- compose one preset per storefront
+- keep Medusa quirks inside Medusa services and preset wiring
+- keep app DTOs and read models in the app unless reused by a second storefront
 
-This library provides a unified data fetching layer with:
-- **Factory pattern hooks** for products, collections, categories, regions, auth, cart, checkout, orders, and customers
-- **Smart caching** with configurable cache strategies
-- **Prefetching utilities** for optimized navigation
-- **SSR support** with hydration helpers
-- **Type-safe** generics for custom product/entity types
+## Recommended integration path
 
-Behavior notes:
-- Prefetch helpers default to skipping only **fresh** cache entries (`skipMode: "fresh"`), not merely existing entries.
-- TanStack Query cancellation does not apply to Suspense hooks (`useSuspenseQuery` / `useSuspenseQueries`).
-- Query-key factories normalize plain-object params and keep primitive detail params (for example `id: string`) as-is.
+For Medusa storefronts, the primary entrypoint is `createMedusaStorefrontPreset`.
 
-## Installation
+A preset owns:
+- query keys
+- services
+- hooks
+- flows
+- shared cache semantics
+- cart persistence wiring
 
-### In Nx Monorepo Applications
+That lets each storefront keep a thin local composition module for:
+- SDK instance
+- localized error mapping
+- product field defaults
+- address adapters
+- customer-specific policy
 
-Add to your app's `package.json`:
+## Install
 
 ```json
 {
@@ -30,212 +37,165 @@ Add to your app's `package.json`:
 }
 ```
 
-Then run:
+If you use Next.js, transpile the package:
 
-```bash
-pnpm install
-```
-
-### Next.js Configuration
-
-Add to `next.config.js` transpilePackages:
-
-```javascript
+```js
 const nextConfig = {
-  transpilePackages: ['@techsio/storefront-data'],
+  transpilePackages: ["@techsio/storefront-data"],
 }
 ```
 
-## Quick Start
-
-### 1. Setup Provider (Client-Side)
+## Client provider
 
 ```tsx
-// app/layout.tsx or providers.tsx
-import { StorefrontDataProvider } from "@techsio/storefront-data/client"
+import { StorefrontDataProvider } from "@techsio/storefront-data/client/provider"
 
 export function Providers({ children }) {
-  return (
-    <StorefrontDataProvider>
-      {children}
-    </StorefrontDataProvider>
-  )
+  return <StorefrontDataProvider>{children}</StorefrontDataProvider>
 }
 ```
 
-### 2. Create Domain Hooks
+## Preset-first example
 
-```tsx
-// hooks/storefront-products.ts
-import { createProductHooks, type ProductService } from "@techsio/storefront-data"
-import type { Product } from "@/types/product"
-import { getProducts, getProduct } from "@/services/product-service"
+```ts
+import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/browser-storage"
+import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
+import { sdk } from "@/lib/medusa-client"
 
-const productService: ProductService<Product, ListParams, DetailParams> = {
-  getProducts: (params) => getProducts(params),
-  getProductByHandle: (params) => getProduct(params.handle, params.region_id),
-}
+const cartStorage = createLocalStorageValueStore({
+  key: "shop-cart-id",
+})
 
-export const {
-  useProducts,
-  useProduct,
-  useSuspenseProducts,
-  useSuspenseProduct,
-  usePrefetchProducts,
-  usePrefetchProduct,
-  usePrefetchPages,
-} = createProductHooks({
-  service: productService,
-  queryKeyNamespace: "my-app",
+export const storefront = createMedusaStorefrontPreset({
+  sdk,
+  queryKeyNamespace: "shop",
+  cart: {
+    hooks: {
+      cartStorage,
+    },
+  },
 })
 ```
 
-### 3. Use in Components
+Use the preset from thin app wrappers or directly in app code:
 
-```tsx
-// Client component
-"use client"
-import { useProducts } from "@/hooks/storefront-products"
-
-function ProductList() {
-  const { products, isLoading, totalPages, currentPage } = useProducts({
-    page: 1,
-    limit: 20,
-    region_id: "reg_123",
-  })
-
-  if (isLoading) return <Skeleton />
-  return <Grid items={products} />
-}
+```ts
+const { products, cart, checkout } = storefront.hooks
+const { cart: cartFlow, checkout: checkoutFlow } = storefront.flows
 ```
 
-### 4. Server-Side Prefetching (SSR)
+## Sane defaults vs custom adapters
+
+The library exports shared address contracts from `shared/address` and a small opinionated default in `checkout/address`.
+
+Use the default when your storefront shape is close to the built-in checkout address model:
+
+```ts
+import {
+  createCheckoutCartAddressAdapter,
+  createCheckoutCustomerAddressAdapter,
+} from "@techsio/storefront-data/checkout/address"
+```
+
+If your storefront has its own form DTO, formatting, localization, or patch semantics, keep the adapter local to the app and implement the shared adapter contract instead.
+
+## Query options
+
+The stable public query-options surface is intentionally small.
+
+Use domain hooks for most reads, and use query-option helpers when you need SSR, loader, or manual prefetch integration.
+
+```ts
+import { createOrderHooks } from "@techsio/storefront-data/orders/hooks"
+
+const orderHooks = createOrderHooks({
+  service,
+  buildListParams: (input) => ({ ...input }),
+})
+
+const listQuery = orderHooks.getListQueryOptions({ limit: 20, offset: 0 })
+const detailQuery = orderHooks.getDetailQueryOptions({ id: "order_1" })
+```
+
+```ts
+import { createProductHooks } from "@techsio/storefront-data/products/hooks"
+
+const productHooks = createProductHooks({
+  service,
+  buildListParams: (input) => ({ ...input }),
+  buildDetailParams: (input) => ({ ...input }),
+})
+
+const listQuery = productHooks.getListQueryOptions({
+  limit: 20,
+  region_id: "reg_1",
+})
+```
+
+## SSR example
 
 ```tsx
-// app/products/page.tsx
-import { getServerQueryClient, dehydrate, HydrationBoundary } from "@techsio/storefront-data/server"
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
+import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
 
-export default async function ProductsPage() {
+export default async function Page() {
   const queryClient = getServerQueryClient()
-
-  await queryClient.prefetchQuery({
-    queryKey: ["my-app", "products", "list", {}],
-    queryFn: () => fetchProducts(),
-  })
+  await queryClient.prefetchQuery(productHooks.getListQueryOptions({ limit: 20 }))
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <ProductList />
+      <ProductsPage />
     </HydrationBoundary>
   )
 }
 ```
 
-## Package Structure
+## Stable public subpaths
 
-```text
-src/
-├── index.ts              # Main exports
-├── client/               # Client-side utilities
-│   ├── provider.tsx      # StorefrontDataProvider
-│   └── index.ts
-├── server/               # Server-side utilities
-│   ├── get-query-client.ts  # Per-request QueryClient
-│   └── index.ts
-├── shared/               # Shared utilities
-│   ├── cache-config.ts   # Cache strategy configs
-│   ├── medusa-client.ts  # Medusa SDK factory
-│   ├── query-client.ts   # QueryClient factory
-│   └── query-keys.ts     # Query key utilities
-├── products/             # Product hooks factory
-│   ├── hooks.ts          # createProductHooks
-│   ├── types.ts          # Product types
-│   └── query-keys.ts
-├── collections/          # Collection hooks factory
-├── categories/           # Category hooks factory
-└── regions/              # Region hooks factory
-```
+Use explicit file-level imports. There is no supported package-root import.
 
-## Exports
+Core subpaths:
+- `@techsio/storefront-data/client/provider`
+- `@techsio/storefront-data/server/get-query-client`
+- `@techsio/storefront-data/shared/address`
+- `@techsio/storefront-data/shared/cache-config`
+- `@techsio/storefront-data/shared/medusa-client`
+- `@techsio/storefront-data/shared/query-client`
+- `@techsio/storefront-data/shared/query-keys`
+- `@techsio/storefront-data/shared/region-context`
+- `@techsio/storefront-data/medusa/preset`
+- `@techsio/storefront-data/shared/browser-storage`
 
-### Main Entry (`@techsio/storefront-data`)
+Domain subpaths:
+- `@techsio/storefront-data/<domain>/hooks`
+- `@techsio/storefront-data/<domain>/medusa-service`
+- `@techsio/storefront-data/<domain>/query-keys`
+- `@techsio/storefront-data/<domain>/types`
 
-All domain hooks factories and shared utilities.
+Supported domains:
+- `auth`
+- `cart`
+- `catalog`
+- `categories`
+- `checkout`
+- `collections`
+- `customers`
+- `orders`
+- `products`
+- `regions`
 
-### Client Entry (`@techsio/storefront-data/client`)
+## Notes
 
-- `StorefrontDataProvider` - React Query provider wrapper
-- `getQueryClient` - Browser singleton QueryClient
-
-### Server Entry (`@techsio/storefront-data/server`)
-
-- `getServerQueryClient` - Per-request QueryClient with React.cache()
-- `dehydrate`, `HydrationBoundary` - SSR hydration helpers
-
-### Shared Entry (`@techsio/storefront-data/shared`)
-
-- `createCacheConfig` - Cache strategy factory
-- `createMedusaSdk` - Medusa SDK factory
-- `createQueryKey`, `createQueryKeyFactory` - Query key utilities
-- `normalizeQueryKeyParams` - Stable params normalization for query keys
-- `normalizeQueryKeyPart` - Safe query-key part normalization (object normalize + primitive passthrough)
-
-## Cache Strategies
-
-```typescript
-import { createCacheConfig } from "@techsio/storefront-data/shared"
-
-const cacheConfig = createCacheConfig({
-  // Override defaults as needed
-  semiStatic: { staleTime: 30 * 60 * 1000 },
-})
-```
-
-| Strategy | Stale Time | Use Case |
-|----------|------------|----------|
-| `static` | 24 hours | Regions, rarely-changing data |
-| `semiStatic` | 1 hour | Products, collections |
-| `realtime` | 30 seconds | Cart, inventory |
-| `userData` | 5 minutes | User profile, orders |
-
-## Notes (Short)
-
-- `enabled` is stripped from list/detail inputs before building query params/keys.
-- Prefer plain objects for list/detail params in custom builders. Primitive detail params are supported and preserved in keys.
-- Cart payloads are normalized by default (Medusa-friendly field names).
-- Prefetch default is `skipMode: "fresh"` with `skipIfCached: true`; use `skipMode: "any"` to skip whenever any cache entry exists.
-- Prefetch respects `skipIfCached`; pass `false` to force prefetch regardless of cache.
-- Some service methods accept `signal` for aborting in-flight requests.
-- SSR: use `getServerQueryClient` + `dehydrate` on server, `StorefrontDataProvider` + `HydrationBoundary` on client.
-
-## Peer Dependencies
-
-```json
-{
-  "@medusajs/js-sdk": ">=2.12.0",
-  "@tanstack/react-query": ">=5.0.0",
-  "react": ">=19.0.0",
-  "react-dom": ">=19.0.0"
-}
-```
+- Prefetch helpers default to skipping only fresh cache entries (`skipMode: "fresh"`).
+- Suspense queries are not cancellable through TanStack Query.
+- Query keys normalize plain-object params and strip `enabled` from query-key inputs.
+- The default checkout helpers are optional. The shared contract is the stable part.
+- App-level read models such as category registries should stay in the app until reused by another storefront.
 
 ## Development
 
 ```bash
-# Build library
 pnpm -C libs/storefront-data build
-
-# Watch mode
-pnpm -C libs/storefront-data dev
-
-# Lint
 pnpm -C libs/storefront-data lint
-
-# Tests
 pnpm -C libs/storefront-data test
 ```
-
-## Related Documentation
-
-- [TanStack Query Docs](https://tanstack.com/query/latest)
-- [Medusa.js SDK Docs](https://docs.medusajs.com/js-sdk)

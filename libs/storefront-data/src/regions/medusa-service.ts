@@ -17,7 +17,8 @@ export type MedusaRegionDetailInput = SelectParams & {
  *
  * @example
  * ```typescript
- * import { createRegionHooks, createMedusaRegionService } from "@techsio/storefront-data"
+ * import { createRegionHooks } from "@techsio/storefront-data/regions/hooks"
+ * import { createMedusaRegionService } from "@techsio/storefront-data/regions/medusa-service"
  * import { sdk } from "@/lib/medusa-client"
  *
  * const regionHooks = createRegionHooks({

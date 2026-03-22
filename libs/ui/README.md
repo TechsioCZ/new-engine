@@ -149,7 +149,60 @@ When overriding, create a file in the brand folder and map the semantic tokens t
     - Keep overrides in dedicated brand folders.
     - Basic components (e.g., Button) belong only in atoms/molecules.
 
-## 7. Publishing and releases
+## 7. Visual Regression Tests (Playwright + Docker)
+
+To keep screenshots stable across machines, run component tests inside Docker.
+
+1. Run Playwright tests in a consistent Linux environment (builds Storybook static output by default):
+
+```bash
+pnpm -C libs/ui test:components
+```
+
+1. Update snapshots (inside Docker):
+
+```bash
+pnpm -C libs/ui test:components:update
+```
+
+Docker image is defined in `docker/development/playwright/Dockerfile`.
+These tests are intentionally Docker-only; running them directly on the host is blocked to keep snapshots reproducible.
+Make sure Storybook is served at `TEST_BASE_URL` (default `http://127.0.0.1:6006` inside the container).
+You can run `pnpm -C libs/ui storybook` on the host and set `TEST_BASE_URL=http://host.docker.internal:6006`,
+or let Playwright start its own `http-server` inside Docker from `storybook-static`.
+For visual stability, stories used in regression tests should rely on local assets (avoid external image URLs).
+
+Optional environment overrides:
+- `TEST_BASE_URL` (default: `http://127.0.0.1:6006` inside the container)
+- `PLAYWRIGHT_STORYBOOK_REBUILD` (default: `1`, rebuilds `storybook-static`; set to `0` to reuse an existing build)
+- `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
+- `PLAYWRIGHT_WORKERS` (override worker count for parallel runs)
+- `PLAYWRIGHT_PAGE_RESET` (default: `1`, resets cookies/storage between stories; set to `0` for max speed if stable)
+- `DOCKER_PLATFORM` (default: `linux/amd64`)
+- `PLAYWRIGHT_DOCKER_IMAGE` (default: `new-engine-ui-playwright`)
+- `PLAYWRIGHT_DOCKER_SHM_SIZE` (default: `2g`, improves Playwright stability in Docker)
+- `PLAYWRIGHT_DOCKER_IPC` (default: `host`, improves Playwright stability in Docker)
+- `PLAYWRIGHT_DOCKER_SEQUENTIAL` (default: `0`, runs projects in parallel; set to `1` to reduce memory spikes)
+- `PLAYWRIGHT_DOCKER_PROJECTS` (comma-separated Playwright project names to run sequentially; default: `desktop,mobile`)
+
+### Recommendation for `PLAYWRIGHT_WORKERS` and parallelism
+
+- If `PLAYWRIGHT_WORKERS` is not set, the Playwright config defaults to
+    using (CPU cores - 1) workers. This balances parallelism with leaving one
+    core for system processes. You can override it in CI with `PLAYWRIGHT_WORKERS=4` (or
+    another suitable value) depending on your runner size.
+- The test suite enables `fullyParallel` in Playwright config, so tests can run
+    concurrently across files and workers — ensure tests are isolated and use
+    unique snapshot names (the visual tests already include `story.id` in the
+    screenshot filename, which is good).
+
+Example with parallel workers:
+
+```bash
+TEST_BASE_URL=http://127.0.0.1:6006 PLAYWRIGHT_WORKERS=6 pnpm -C libs/ui test:components
+```
+
+## 8. Publishing and releases
 
 - Build + publint: `pnpm -C libs/ui build` runs `rsbuild-plugin-publint` after the build; if exports/entrypoints are wrong, this command fails.
 - Exports only, no barrel: import from explicit subpaths (e.g. `@techsio/ui-kit/atoms/button`, `@techsio/ui-kit/templates/accordion`, `@techsio/ui-kit/utils`). The package root is intentionally not exported.
@@ -160,6 +213,6 @@ When overriding, create a file in the brand folder and map the semantic tokens t
 - Commit format: follow Conventional Commits (`feat:`, `fix:`, `chore:`, `BREAKING CHANGE:`) so semantic-release can infer the correct version bump.
 - Required CI secrets: `GH_TOKEN` (repo write) and `NPM_TOKEN` (publish).
 
-## 8. Conclusion
+## 9. Conclusion
 
 This README serves as the single source of truth for building and maintaining our design system. By adhering to these guidelines, you ensure that our UI remains consistent, flexible, and scalable across multiple brands. If you have any questions or suggestions, please reach out to the design system team.

@@ -56,7 +56,7 @@ export function FormTextarea({
   return (
     <FormTextareaRaw
       helpText={
-        helpText && 
+        helpText && (
           <StatusText
             status={validateStatus}
             showIcon={showHelpTextIcon}
@@ -64,9 +64,11 @@ export function FormTextarea({
           >
             {helpText}
           </StatusText>
+        )
       }
       id={id}
       size={size}
+      validateStatus={validateStatus}
       {...props}
     />
   )
