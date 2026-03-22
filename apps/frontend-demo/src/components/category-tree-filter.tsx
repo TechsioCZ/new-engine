@@ -130,16 +130,11 @@ export function CategoryTreeFilter({
   }, [categories, leafCategoryIds, leafParentIds])
 
   const handleSelectionChange = (details: { selectedValue: string[] }) => {
-    // In single mode, selectedValue is still an array but with max 1 item
     const selectedCategoryId = details.selectedValue?.[0]
 
     if (selectedCategoryId) {
-      // Cancel all pending prefetches since user made a selection
-      // cancelAllPrefetches()
-
       setSelectedCategory(selectedCategoryId)
 
-      // Get leaf IDs and notify parent
       const leafIds = getLeafIdsForCategory(
         selectedCategoryId,
         leafCategoryIds,

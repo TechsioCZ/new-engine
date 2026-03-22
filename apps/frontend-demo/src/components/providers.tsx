@@ -1,5 +1,6 @@
 "use client"
 
+import { type DehydratedState, HydrationBoundary } from "@tanstack/react-query"
 import { StorefrontDataProvider } from "@techsio/storefront-data/client/provider"
 import { RegionProvider } from "@techsio/storefront-data/shared/region-context"
 import { Toaster } from "@techsio/ui-kit/molecules/toast"
@@ -19,18 +20,24 @@ function StorefrontRegionBoundary({ children }: PropsWithChildren) {
   return <RegionProvider region={region}>{children}</RegionProvider>
 }
 
-export function Providers({ children }: PropsWithChildren) {
+type ProvidersProps = PropsWithChildren<{
+  hydrationState?: DehydratedState
+}>
+
+export function Providers({ children, hydrationState }: ProvidersProps) {
   return (
     <StorefrontDataProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        disableTransitionOnChange
-        enableSystem
-      >
-        <StorefrontRegionBoundary>{children}</StorefrontRegionBoundary>
-        <Toaster />
-      </ThemeProvider>
+      <HydrationBoundary state={hydrationState}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          disableTransitionOnChange
+          enableSystem
+        >
+          <StorefrontRegionBoundary>{children}</StorefrontRegionBoundary>
+          <Toaster />
+        </ThemeProvider>
+      </HydrationBoundary>
     </StorefrontDataProvider>
   )
 }

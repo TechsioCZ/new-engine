@@ -54,30 +54,7 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
     [prefetchCategoryProducts]
   )
 
-  // Cancel specific prefetch by ID
-  const cancelPrefetch = useCallback((prefetchId: string) => {
-    const timeout = timeoutsRef.current.get(prefetchId)
-    if (timeout) {
-      clearTimeout(timeout)
-      timeoutsRef.current.delete(prefetchId)
-      return true
-    }
-    return false
-  }, [])
-
-  // Cancel all pending prefetches
-  const cancelAllPrefetches = useCallback(() => {
-    const timeouts = Array.from(timeoutsRef.current.values())
-    for (const timeout of timeouts) {
-      clearTimeout(timeout)
-    }
-    timeoutsRef.current.clear()
-  }, [])
-
   return {
-    prefetchCategoryProducts,
     delayedPrefetch,
-    cancelPrefetch,
-    cancelAllPrefetches,
   }
 }
