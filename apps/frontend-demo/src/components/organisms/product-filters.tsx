@@ -3,7 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { useState } from "react"
-import data, { categoryTree } from "@/lib/static-data/categories"
+import { useCategoryRegistry } from "@/hooks/use-category-registry"
 import { CategoryTreeFilter } from "../category-tree-filter"
 import { FilterSection } from "../molecules/filter-section"
 
@@ -26,6 +26,8 @@ export function ProductFilters({
   hideCategories = false,
 }: ProductFiltersProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const { categoryRegistry } = useCategoryRegistry()
+  const { categoryTree, leafCategories, leafParents } = categoryRegistry
 
   const handleCategoryChange = (newCategoryIds: string[]) => {
     updateFilters({ categories: new Set(newCategoryIds) })
@@ -61,8 +63,8 @@ export function ProductFilters({
           </div>
           <CategoryTreeFilter
             categories={categoryTree}
-            leafCategories={data.leafCategories}
-            leafParents={data.leafParents}
+            leafCategories={leafCategories}
+            leafParents={leafParents}
             onSelectionChange={handleCategoryChange}
           />
         </>

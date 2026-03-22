@@ -10,7 +10,6 @@ A modern e-commerce demo built with Next.js 16 and @techsio/ui-kit (Zag.js + Tai
   - NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
   - RESEND_API_KEY, CONTACT_EMAIL, RESEND_FROM_EMAIL
   - NEXT_PUBLIC_MEILISEARCH_URL, NEXT_PUBLIC_MEILISEARCH_API_KEY (optional, for search)
-- Run `pnpm generate:categories` (required before dev; build runs it via prebuild)
 - Start dev server: `pnpm dev`
 
 ## Live demo

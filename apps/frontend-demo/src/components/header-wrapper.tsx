@@ -3,9 +3,10 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Header } from "@/components/header"
 import type { NavItem } from "@/components/molecules/navigation"
-import { getCategoryIdsByHandles } from "@/utils/category-helpers"
+import { useCategoryRegistry } from "@/hooks/use-category-registry"
+import { getCategoryIdsByHandles } from "@/lib/categories/selectors"
 
-interface HeaderWrapperProps {
+type HeaderWrapperProps = {
   logo: {
     text?: string
     icon?: IconType
@@ -13,16 +14,24 @@ interface HeaderWrapperProps {
 }
 
 export function HeaderWrapper({ logo }: HeaderWrapperProps) {
+  const { categoryRegistry } = useCategoryRegistry()
   const headerCategories = {
-    Město: getCategoryIdsByHandles(["kosile", "svetry", "street"]),
-    Zimní: getCategoryIdsByHandles([
+    Město: getCategoryIdsByHandles(categoryRegistry, [
+      "kosile",
+      "svetry",
+      "street",
+    ]),
+    Zimní: getCategoryIdsByHandles(categoryRegistry, [
       "zimni",
       "kalhoty-category-469",
       "rukavice",
       "kulichy",
     ]),
-    Obuv: getCategoryIdsByHandles(["street-category-22", "zabky"]),
-    Sport: getCategoryIdsByHandles([
+    Obuv: getCategoryIdsByHandles(categoryRegistry, [
+      "street-category-22",
+      "zabky",
+    ]),
+    Sport: getCategoryIdsByHandles(categoryRegistry, [
       "plavky",
       "silnicni-gravel-category-412",
       "snowboardy-category-450",
@@ -34,7 +43,10 @@ export function HeaderWrapper({ logo }: HeaderWrapperProps) {
   const categoryItems: NavItem[] = Object.entries(headerCategories).map(
     ([title, categoryIds]) => ({
       title,
-      href: `/products?categories=${categoryIds.join(",")}`,
+      href:
+        categoryIds.length > 0
+          ? `/products?categories=${categoryIds.join(",")}`
+          : "/products",
     })
   )
 

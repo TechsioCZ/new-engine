@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react"
-import type { CategoryTreeNode } from "@/lib/server/categories"
+import type { CategoryTreeNode } from "@/lib/categories/types"
 import { isChildOf, isTopLevelNode } from "@/utils/category-tree-helpers"
 
 export function useAccordionTree<T extends CategoryTreeNode>(
