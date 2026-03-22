@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { findPreferredVariant } from "@/lib/inventory"
 import { sdk } from "@/lib/medusa-client"
 import type { Product } from "@/types/product"
 import { buildMedusaQuery } from "@/utils/server-filters"
@@ -141,8 +142,7 @@ export const transformProduct = (
     throw new Error("Cannot transform null product")
   }
 
-  // Get primary variant (first one)
-  const primaryVariant = product.variants?.[0]
+  const primaryVariant = findPreferredVariant(product.variants)
 
   // Get price from primary variant
   const price = primaryVariant?.calculated_price?.calculated_amount

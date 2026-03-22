@@ -8,10 +8,11 @@ import { NumericInputTemplate } from "@ui/templates/numeric-input"
 import { useState } from "react"
 import { SafeHtmlContent } from "@/components/safe-html-content"
 import { useCart } from "@/hooks/use-cart"
+import { getVariantInventory, isQuantityAvailable } from "@/lib/inventory"
 import type { Product, ProductVariant } from "@/types/product"
 import { sortVariantsBySize } from "@/utils/variant-utils"
 
-interface ProductInfoProps {
+type ProductInfoProps = {
   product: Product
   selectedVariant: ProductVariant | null
   badges: BadgeProps[]
@@ -32,6 +33,13 @@ export function ProductInfo({
   const { addItem } = useCart()
   const toast = useToast()
   const productVariants = product.variants || []
+  const validQuantity =
+    typeof quantity === "number" && !Number.isNaN(quantity) ? quantity : 1
+  const selectedVariantInventory = getVariantInventory(selectedVariant)
+  const canAddSelectedVariant = isQuantityAvailable(
+    selectedVariant,
+    validQuantity
+  )
 
   const handleAddToCart = () => {
     if (!selectedVariant) {
@@ -43,11 +51,19 @@ export function ProductInfo({
       })
       return
     }
+
+    if (!canAddSelectedVariant) {
+      toast.create({
+        title: "Vyprodáno",
+        description:
+          "Vybraná varianta není dostupná v požadovaném množství. Zvolte jinou variantu nebo nižší počet kusů.",
+        type: "error",
+      })
+      return
+    }
+
     addItem(selectedVariant.id, validQuantity)
   }
-
-  const validQuantity =
-    typeof quantity === "number" && !Number.isNaN(quantity) ? quantity : 1
 
   return (
     <div className="flex flex-col">
@@ -124,12 +140,15 @@ export function ProductInfo({
       <div className="mb-product-info-action-margin flex gap-product-info-action-gap">
         <Button
           className="items-center"
+          disabled={!(selectedVariant && canAddSelectedVariant)}
           icon="icon-[mdi--cart-plus]"
           onClick={handleAddToCart}
           size="sm"
           variant="primary"
         >
-          Přidat do košíku
+          {selectedVariant && selectedVariantInventory.status === "out-of-stock"
+            ? "Vyprodáno"
+            : "Přidat do košíku"}
         </Button>{" "}
         <NumericInputTemplate
           className="h-fit w-24 py-0"

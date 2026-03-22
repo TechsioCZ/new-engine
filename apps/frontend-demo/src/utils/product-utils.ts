@@ -1,17 +1,18 @@
 import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import { getVariantInventory } from "@/lib/inventory"
 import type { Product } from "@/types/product"
 
 /**
  * Extract all common product display data
  */
-interface ProductDisplayData {
+type ProductDisplayData = {
   badges: BadgeProps[]
   displayBadges: BadgeProps[]
 }
 
 export function extractProductData(
   product: Product,
-  currencyCode?: string
+  _currencyCode?: string
 ): ProductDisplayData {
   // For API products, find the price that matches the current currency
   const primaryVariant = product.primaryVariant
@@ -30,19 +31,21 @@ export function extractProductData(
   }
 
   if (primaryVariant) {
-    if (!primaryVariant.manage_inventory) {
-      badges.push({ variant: "success" as const, children: "Skladem" })
-    } else if (typeof primaryVariant.inventory_quantity === "number") {
-      if (primaryVariant.inventory_quantity > 0) {
-        badges.push({ variant: "success" as const, children: "Skladem" })
-      }
-    } else if (primaryVariant.allow_backorder) {
+    const inventory = getVariantInventory(primaryVariant)
+
+    if (inventory.status === "out-of-stock") {
+      badges.push({ variant: "danger" as const, children: "Vyprodáno" })
+    } else if (
+      primaryVariant.manage_inventory &&
+      primaryVariant.allow_backorder &&
+      typeof primaryVariant.inventory_quantity === "number" &&
+      primaryVariant.inventory_quantity <= 0
+    ) {
       badges.push({ variant: "warning" as const, children: "Na objednávku" })
     } else {
-      badges.push({ variant: "danger" as const, children: "Vyprodáno" })
+      badges.push({ variant: "success" as const, children: "Skladem" })
     }
-  }
-  if (!primaryVariant) {
+  } else {
     badges.push({ variant: "danger" as const, children: "Vyprodáno" })
   }
   return {
