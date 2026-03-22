@@ -1,9 +1,12 @@
 "use client"
 
-import { useInfiniteQuery } from "@tanstack/react-query"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import { getProducts, type ProductListParams } from "@/services/product-service"
+import { keepPreviousData } from "@tanstack/react-query"
+import { appendQueryKey } from "@techsio/storefront-data/shared/query-keys"
+import { buildStorefrontProductListParams, storefront } from "@/lib/storefront"
+import {
+  buildProductListQuery,
+  type ProductListParams,
+} from "@/services/product-service"
 import type { Product } from "@/types/product"
 import type { PageRange } from "./use-url-filters"
 
@@ -12,24 +15,26 @@ interface UseInfiniteProductsParams extends Omit<ProductListParams, "offset"> {
   enabled?: boolean
 }
 
-interface UseInfiniteProductsReturn {
+type UseInfiniteProductsReturn = {
   products: Product[]
   isLoading: boolean
   error: string | null
   totalCount: number
   currentPageRange: PageRange
+  queryKey: readonly unknown[]
   hasNextPage: boolean
   isFetchingNextPage: boolean
-  fetchNextPage: () => void
-  refetch: () => void
+  fetchNextPage: () => Promise<unknown>
+  refetch: () => Promise<unknown>
 }
 
-/**
- * Hook for fetching infinite product lists with "load more" functionality
- */
-export function useInfiniteProducts(
+type StorefrontInfiniteProductsInput = Parameters<
+  typeof storefront.hooks.products.useInfiniteProducts
+>[0]
+
+const toStorefrontInfiniteProductsInput = (
   params: UseInfiniteProductsParams
-): UseInfiniteProductsReturn {
+): StorefrontInfiniteProductsInput => {
   const {
     pageRange,
     limit = 12,
@@ -42,82 +47,86 @@ export function useInfiniteProducts(
     enabled,
   } = params
 
-  const baseOffset = (pageRange.start - 1) * limit
   const totalPagesNeeded = pageRange.end - pageRange.start + 1
+  const initialLimit =
+    pageRange.isRange && totalPagesNeeded > 1
+      ? totalPagesNeeded * limit
+      : undefined
 
-  // For range queries, we need to load all pages in the range at once
-  const rangeLimit = totalPagesNeeded * limit
+  const { offset: _offset, ...query } = buildProductListQuery({
+    limit,
+    filters,
+    sort,
+    fields,
+    q,
+    category,
+    region_id,
+  })
 
+  return {
+    ...query,
+    page: pageRange.start,
+    limit,
+    ...(typeof initialLimit === "number" ? { initialLimit } : {}),
+    enabled: enabled !== undefined ? enabled : !!region_id,
+  } as StorefrontInfiniteProductsInput
+}
+
+export const buildInfiniteProductsQueryKey = (
+  params: UseInfiniteProductsParams
+): readonly unknown[] => {
   const {
-    data,
+    enabled: _enabled,
+    initialLimit,
+    ...input
+  } = toStorefrontInfiniteProductsInput(
+    params
+  ) as StorefrontInfiniteProductsInput & {
+    initialLimit?: number
+  }
+  const baseListParams = buildStorefrontProductListParams(input)
+  const baseQueryKey = storefront.queryKeys.products.infinite(baseListParams)
+
+  return typeof initialLimit === "number"
+    ? appendQueryKey(baseQueryKey, { initialLimit })
+    : baseQueryKey
+}
+
+/**
+ * Hook for fetching infinite product lists with "load more" functionality
+ */
+export function useInfiniteProducts(
+  params: UseInfiniteProductsParams
+): UseInfiniteProductsReturn {
+  const queryKey = buildInfiniteProductsQueryKey(params)
+  const {
+    products,
     isLoading,
     error,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
     refetch,
-  } = useInfiniteQuery({
-    queryKey: queryKeys.products.infinite({
-      pageRangeStart: pageRange.start, // Use only start to keep key stable when extending
-      limit,
-      filters,
-      sort,
-      region_id,
-      q,
-      category,
-    }),
-    queryFn: ({ pageParam = baseOffset }) => {
-      // For the initial load, use rangeLimit to load all pages in range at once
-      // For subsequent "load more" calls, use normal limit
-      const isInitialLoad = pageParam === baseOffset
-      const requestLimit = isInitialLoad ? rangeLimit : limit
-
-      return getProducts({
-        limit: requestLimit,
-        offset: pageParam,
-        filters,
-        sort,
-        fields,
-        q,
-        category,
-        region_id,
-      })
-    },
-    initialPageParam: baseOffset,
-    getNextPageParam: (lastPage, allPages, lastPageParam) => {
-      // Since we load the full range in the first request,
-      // subsequent calls are just "load more" beyond the range
-      const totalFetched = allPages.reduce(
-        (sum, page) => sum + page.products.length,
-        0
-      )
-
-      // Check if there are more products to load
-      const hasMore = totalFetched < lastPage.count
-      if (!hasMore) return
-
-      // Calculate offset for the next batch (beyond current range)
-      const nextOffset = baseOffset + totalFetched
-      return nextOffset
-    },
-    enabled: enabled !== undefined ? enabled : !!region_id,
-    ...cacheConfig.semiStatic,
-  })
-
-  // Flatten all pages into a single array
-  const products = data?.pages.flatMap((page) => page.products) || []
-  const totalCount = data?.pages[0]?.count || 0
+    totalCount,
+  } = storefront.hooks.products.useInfiniteProducts(
+    toStorefrontInfiniteProductsInput(params),
+    {
+      queryOptions: {
+        placeholderData: keepPreviousData,
+      },
+    }
+  )
 
   return {
     products,
     isLoading,
-    error:
-      error instanceof Error ? error.message : error ? String(error) : null,
+    error,
     totalCount,
-    currentPageRange: pageRange,
+    currentPageRange: params.pageRange,
+    queryKey,
     hasNextPage,
     isFetchingNextPage,
-    fetchNextPage: () => fetchNextPage(),
+    fetchNextPage,
     refetch,
   }
 }

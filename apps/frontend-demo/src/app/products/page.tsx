@@ -1,4 +1,6 @@
 "use client"
+
+import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
@@ -7,12 +9,15 @@ import { Suspense, useEffect, useRef } from "react"
 import { ProductGridSkeleton } from "@/components/molecules/product-grid-skeleton"
 import { ProductFilters } from "@/components/organisms/product-filters"
 import { ProductGrid } from "@/components/organisms/product-grid"
-import { useInfiniteProducts } from "@/hooks/use-infinite-products"
+import {
+  buildInfiniteProductsQueryKey,
+  useInfiniteProducts,
+} from "@/hooks/use-infinite-products"
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
-import { useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
 import {
   type ExtendedSortOption,
+  type PageRange,
   useUrlFilters,
 } from "@/hooks/use-url-filters"
 
@@ -22,27 +27,53 @@ const SORT_OPTIONS: Array<{ value: ExtendedSortOption; label: string }> = [
   { value: "name-desc", label: "Název: Z-A" },
 ]
 
-function ProductsContent() {
-  const { selectedRegion } = useRegions()
-  const pageSize = 12
-  const previousPageRef = useRef(1)
+const cloneQueryData = <T,>(value: T): T => {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value)
+  }
 
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+const isProductInfiniteQueryKey = (value: readonly unknown[]): boolean =>
+  value[0] === "frontend-demo" &&
+  value[1] === "products" &&
+  value[2] === "infinite"
+
+type PendingCacheCleanup =
+  | {
+      mode: "remove"
+      queryKey: readonly unknown[]
+    }
+  | {
+      mode: "restore"
+      queryKey: readonly unknown[]
+      snapshot: unknown
+    }
+
+function ProductsContent() {
+  const queryClient = useQueryClient()
+  const { selectedRegion } = useRegions()
+  const selectedCountryCode = selectedRegion
+    ? (selectedRegion.countries?.[0]?.iso_2 ?? "cz")
+    : undefined
+  const pageSize = 12
   const urlFilters = useUrlFilters()
+  const pendingCleanupRef = useRef<PendingCacheCleanup | null>(null)
 
   const productFilters = {
     categories: Array.from(urlFilters.filters.categories) as string[],
     sizes: Array.from(urlFilters.filters.sizes) as string[],
   }
 
-  // Use infinite products for load more functionality
   const {
-    products: infiniteProducts,
-    isLoading: infiniteLoading,
-    totalCount: infiniteTotalCount,
-    hasNextPage: infiniteHasNextPage,
+    products,
+    isLoading,
+    totalCount,
+    queryKey,
+    hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-    refetch: refetchInfinite,
   } = useInfiniteProducts({
     pageRange: urlFilters.pageRange,
     limit: pageSize,
@@ -50,77 +81,138 @@ function ProductsContent() {
     sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
     q: urlFilters.searchQuery || undefined,
     region_id: selectedRegion?.id,
+    country_code: selectedCountryCode,
   })
 
-  // Fallback to regular products hook for pagination compatibility
-  // Only enable when NOT in range mode to avoid duplicate queries
-  const {
-    products: regularProducts,
-    isLoading: regularLoading,
-    totalCount: regularTotalCount,
-    currentPage: regularCurrentPage,
-    totalPages,
-    hasNextPage,
-    hasPrevPage,
-  } = useProducts({
-    page: urlFilters.page,
-    limit: pageSize,
-    filters: productFilters,
-    sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
-    q: urlFilters.searchQuery || undefined,
-    region_id: selectedRegion?.id,
-    enabled: !urlFilters.pageRange.isRange, // Disable when in range mode
-  })
+  const currentPage = urlFilters.pageRange.end
+  const totalPages = Math.ceil(totalCount / pageSize)
+  const hasPrevPage = urlFilters.pageRange.start > 1
 
-  // Detect page range change and reset infinite query when switching between single/range modes
   useEffect(() => {
-    const currentPageStart = urlFilters.pageRange.start
-    if (currentPageStart !== previousPageRef.current) {
-      refetchInfinite()
-      previousPageRef.current = currentPageStart
+    const pendingCleanup = pendingCleanupRef.current
+    if (!pendingCleanup) {
+      return
     }
-  }, [urlFilters.pageRange.start, refetchInfinite])
 
-  // Use infinite products if we have a range or loaded additional pages
-  const shouldUseInfiniteData =
-    urlFilters.pageRange.isRange ||
-    (urlFilters.pageRange.start === 1 && infiniteProducts.length > pageSize)
-  const products = shouldUseInfiniteData ? infiniteProducts : regularProducts
-  const isLoading = shouldUseInfiniteData ? infiniteLoading : regularLoading
-  const totalCount = shouldUseInfiniteData
-    ? infiniteTotalCount
-    : regularTotalCount
+    if (JSON.stringify(queryKey) === JSON.stringify(pendingCleanup.queryKey)) {
+      return
+    }
 
-  // Fix: Use the end of the range for current page when using infinite data
-  const currentPage = shouldUseInfiniteData
-    ? urlFilters.pageRange.end
-    : regularCurrentPage
+    if (pendingCleanup.mode === "restore") {
+      queryClient.setQueryData(pendingCleanup.queryKey, pendingCleanup.snapshot)
+    } else {
+      queryClient.removeQueries({
+        queryKey: pendingCleanup.queryKey,
+        exact: true,
+      })
+    }
 
-  // Calculate pagination values based on active data source
-  const calculatedTotalPages = Math.ceil(totalCount / pageSize)
-  const effectiveTotalPages = shouldUseInfiniteData
-    ? calculatedTotalPages
-    : totalPages
-  const effectiveHasNextPage = shouldUseInfiniteData
-    ? infiniteHasNextPage
-    : hasNextPage
-  const effectiveHasPrevPage = shouldUseInfiniteData
-    ? urlFilters.pageRange.start > 1
-    : hasPrevPage
+    pendingCleanupRef.current = null
+  }, [queryClient, queryKey])
 
-  // Use prefetch hook for page prefetching
+  const handleLoadMore = async () => {
+    const nextPageRange: PageRange = {
+      start: urlFilters.pageRange.start,
+      end: urlFilters.pageRange.end + 1,
+      isRange: true,
+    }
+    const activeQueryKey =
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .find(
+          (query) =>
+            query.getObserversCount() > 0 &&
+            isProductInfiniteQueryKey(query.queryKey)
+        )?.queryKey ?? queryKey
+    const sourceQueryData = queryClient.getQueryData(activeQueryKey)
+    const sourceQuerySnapshot =
+      sourceQueryData !== undefined
+        ? cloneQueryData(sourceQueryData)
+        : undefined
+
+    await fetchNextPage()
+
+    const expandedQueryData = queryClient.getQueryData(activeQueryKey)
+    if (expandedQueryData !== undefined) {
+      const targetQueryKey = buildInfiniteProductsQueryKey({
+        pageRange: nextPageRange,
+        limit: pageSize,
+        filters: productFilters,
+        sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
+        q: urlFilters.searchQuery || undefined,
+        region_id: selectedRegion?.id,
+        country_code: selectedCountryCode,
+      })
+
+      queryClient.setQueryData(
+        targetQueryKey,
+        cloneQueryData(expandedQueryData)
+      )
+    }
+
+    if (urlFilters.pageRange.isRange && sourceQuerySnapshot !== undefined) {
+      pendingCleanupRef.current = {
+        mode: "restore",
+        queryKey: activeQueryKey,
+        snapshot: sourceQuerySnapshot,
+      }
+    } else if (!urlFilters.pageRange.isRange) {
+      pendingCleanupRef.current = {
+        mode: "remove",
+        queryKey: activeQueryKey,
+      }
+    }
+
+    urlFilters.extendPageRange()
+  }
+
   usePrefetchPages({
     currentPage,
-    hasNextPage: effectiveHasNextPage,
-    hasPrevPage: effectiveHasPrevPage,
+    hasNextPage,
+    hasPrevPage,
     productsLength: products.length,
     pageSize,
     sortBy: urlFilters.sortBy,
-    totalPages: effectiveTotalPages,
+    totalPages,
     regionId: selectedRegion?.id,
     searchQuery: urlFilters.searchQuery,
     filters: productFilters,
   })
+
+  let productsContent = (
+    <div className="py-12 text-center">
+      <p className="text-gray-500">Žádné produkty nenalezeny</p>
+    </div>
+  )
+
+  if (isLoading) {
+    productsContent = <ProductGridSkeleton numberOfItems={12} />
+  } else if (products.length > 0) {
+    productsContent = (
+      <div>
+        <ProductGrid
+          currentPage={currentPage}
+          onPageChange={urlFilters.setPage}
+          pageSize={pageSize}
+          products={products}
+          totalCount={totalCount}
+        />
+        <div className="mt-8 flex justify-center">
+          <Button
+            disabled={!hasNextPage || isFetchingNextPage}
+            onClick={handleLoadMore}
+            size="sm"
+            variant="primary"
+          >
+            {isFetchingNextPage
+              ? `Načítání dalších ${pageSize}...`
+              : `Načíst dalších ${pageSize} produktů`}
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -165,48 +257,13 @@ function ProductsContent() {
                   urlFilters.setSortBy(value)
                 }
               }}
-              placeholder="Vybrat Řazení"
+              placeholder="Vybrat řazení"
               size="sm"
               value={[urlFilters.sortBy || "newest"]}
             />
           </div>
 
-          {isLoading ? (
-            <ProductGridSkeleton numberOfItems={12} />
-          ) : products.length > 0 ? (
-            <div>
-              <ProductGrid
-                currentPage={currentPage}
-                onPageChange={urlFilters.setPage}
-                pageSize={pageSize}
-                products={products}
-                totalCount={totalCount}
-              />
-              {
-                <div className="mt-8 flex justify-center">
-                  <Button
-                    disabled={!infiniteHasNextPage || isFetchingNextPage}
-                    onClick={async () => {
-                      // First fetch the next page data
-                      await fetchNextPage()
-                      // Then update URL without navigation
-                      urlFilters.extendPageRange()
-                    }}
-                    size="sm"
-                    variant="primary"
-                  >
-                    {isFetchingNextPage
-                      ? `Načítání dalších ${pageSize}...`
-                      : `Načíst dalších ${pageSize} produktů`}
-                  </Button>
-                </div>
-              }
-            </div>
-          ) : (
-            <div className="py-12 text-center">
-              <p className="text-gray-500">Žádné produkty nenalezeny</p>
-            </div>
-          )}
+          {productsContent}
         </main>
       </div>
     </div>

@@ -22,7 +22,7 @@ type StorefrontProductHookInput = MedusaProductListInput & {
   page?: number
 }
 
-const buildStorefrontProductListParams = (
+export const buildStorefrontProductListParams = (
   input: StorefrontProductHookInput
 ): MedusaProductListInput => {
   const { enabled: _enabled, page, offset, limit, ...query } = input
