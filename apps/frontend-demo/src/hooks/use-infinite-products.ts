@@ -20,12 +20,10 @@ type UseInfiniteProductsReturn = {
   isLoading: boolean
   error: string | null
   totalCount: number
-  currentPageRange: PageRange
   queryKey: readonly unknown[]
   hasNextPage: boolean
   isFetchingNextPage: boolean
   fetchNextPage: () => Promise<unknown>
-  refetch: () => Promise<unknown>
 }
 
 type StorefrontInfiniteProductsInput = Parameters<
@@ -106,7 +104,6 @@ export function useInfiniteProducts(
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-    refetch,
     totalCount,
   } = storefront.hooks.products.useInfiniteProducts(
     toStorefrontInfiniteProductsInput(params),
@@ -122,11 +119,9 @@ export function useInfiniteProducts(
     isLoading,
     error,
     totalCount,
-    currentPageRange: params.pageRange,
     queryKey,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-    refetch,
   }
 }
