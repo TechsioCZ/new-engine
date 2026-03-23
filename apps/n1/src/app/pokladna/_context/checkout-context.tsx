@@ -1,6 +1,7 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
+import type { MedusaCompleteCheckoutError } from "@techsio/storefront-data/medusa/checkout-flow"
 import { StorefrontAddressValidationError } from "@techsio/storefront-data/shared/address"
 import { useRouter } from "next/navigation"
 import {
@@ -11,16 +12,12 @@ import {
   useRef,
   useState,
 } from "react"
+import { checkoutFlow, storefront } from "@/hooks/storefront-preset"
 import { useSuspenseAuth } from "@/hooks/use-auth"
 import { useSuspenseCart } from "@/hooks/use-cart"
 import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
 import { useCheckoutShipping } from "@/hooks/use-checkout-shipping"
-import {
-  type CompleteCheckoutError,
-  useCompleteCheckout,
-} from "@/hooks/use-complete-checkout"
 import { useSuspenseRegion } from "@/hooks/use-region"
-import { useUpdateCartAddress } from "@/hooks/use-update-cart-address"
 import {
   accessPointToAddress,
   addressToFormData,
@@ -57,7 +54,7 @@ const toCheckoutCompletionErrorMessage = (error: unknown): string => {
     return "Nepodařilo se dokončit objednávku"
   }
 
-  const completeCheckoutError = error as CompleteCheckoutError
+  const completeCheckoutError = error as MedusaCompleteCheckoutError
 
   switch (completeCheckoutError.stage) {
     case "cart":
@@ -70,7 +67,10 @@ const toCheckoutCompletionErrorMessage = (error: unknown): string => {
         : "Nepodařilo se inicializovat platbu"
     case "complete":
       if (
-        includesMessagePart(completeCheckoutError.message, ["payment", "platba"])
+        includesMessagePart(completeCheckoutError.message, [
+          "payment",
+          "platba",
+        ])
       ) {
         return `Chyba platby: ${completeCheckoutError.message}`
       }
@@ -163,11 +163,11 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
   const payment = useCheckoutPayment(cart?.id, regionId, cart)
 
   const { mutateAsync: updateCartAddressAsync, isPending: isSavingAddress } =
-    useUpdateCartAddress()
+    storefront.hooks.cart.useUpdateCartAddress()
   const {
     mutateAsync: completeCheckoutAsync,
     isPending: isCompletingCheckout,
-  } = useCompleteCheckout(
+  } = checkoutFlow.useCompleteCheckout(
     {
       cartId: cart?.id,
       cart,

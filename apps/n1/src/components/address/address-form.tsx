@@ -4,7 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useForm } from "@tanstack/react-form"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { Button } from "@ui/atoms/button"
-import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
+import { storefront } from "@/hooks/storefront-preset"
 import { toAddressValidationError } from "@/lib/errors"
 import { addressToFormData, DEFAULT_ADDRESS } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"
@@ -21,8 +21,8 @@ export function AddressForm({
   onCancel,
   onSuccess,
 }: AddressFormProps) {
-  const createAddress = useCreateAddress()
-  const updateAddress = useUpdateAddress()
+  const createAddress = storefront.hooks.customers.useCreateCustomerAddress()
+  const updateAddress = storefront.hooks.customers.useUpdateCustomerAddress()
   const toaster = useToast()
 
   const isEditingExistingAddress = Boolean(address)

@@ -6,7 +6,7 @@ import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useState } from "react"
 import { AddressForm } from "@/components/address/address-form"
 import { ConfirmDialog } from "@/components/molecules/confirm-dialog"
-import { useDeleteAddress } from "@/hooks/use-addresses"
+import { storefront } from "@/hooks/storefront-preset"
 import { formatPhoneNumber } from "@/utils/format/format-phone-number"
 import { formatPostalCode } from "@/utils/format/format-postal-code"
 import { useAccountContext } from "../../context/account-context"
@@ -99,7 +99,7 @@ function AddressCard({
   onEdit: () => void
 }) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const deleteAddress = useDeleteAddress()
+  const deleteAddress = storefront.hooks.customers.useDeleteCustomerAddress()
   const toaster = useToast()
 
   const handleDelete = () => {
