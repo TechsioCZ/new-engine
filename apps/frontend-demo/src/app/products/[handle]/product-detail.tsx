@@ -1,6 +1,7 @@
 "use client"
 
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text"
+import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -11,10 +12,11 @@ import { ProductInfo } from "@/components/organisms/product-info"
 import { ProductTabs } from "@/components/organisms/product-tabs"
 import { useProduct, useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
+import { findPreferredVariant } from "@/lib/inventory"
 import { truncateProductTitle } from "@/lib/order-utils"
 import { formatPrice } from "@/utils/price-utils"
 
-interface ProductDetailProps {
+type ProductDetailProps = {
   handle: string
 }
 
@@ -22,24 +24,21 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
   const { selectedRegion } = useRegions()
   const { product, isLoading, error } = useProduct(handle, selectedRegion?.id)
   const [selectedVariant, setSelectedVariant] = useState(
-    product?.variants?.[0] || null
+    findPreferredVariant(product?.variants)
   )
   const titleQuery = product?.title.split(" ").slice(0, 2).join(" ") || ""
   // Update selected variant when product loads or changes
   useEffect(() => {
-    if (product?.variants?.[0]) {
-      setSelectedVariant(product.variants[0])
-    }
+    setSelectedVariant(findPreferredVariant(product?.variants))
   }, [product])
 
-  const { products: relatedProducts, isLoading: isLoadingRelated } =
-    useProducts({
-      q: titleQuery,
-      region_id: selectedRegion?.id,
-      limit: 5,
-      sort: "newest",
-      enabled: !!titleQuery && !!selectedRegion?.id,
-    })
+  const { products: relatedProducts } = useProducts({
+    q: titleQuery,
+    region_id: selectedRegion?.id,
+    limit: 5,
+    sort: "newest",
+    enabled: !!titleQuery && !!selectedRegion?.id,
+  })
 
   // Filter out the current product from related products
   const filteredRelatedProducts = relatedProducts
@@ -72,9 +71,9 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
       <div className="min-h-screen bg-product-detail-bg">
         <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y text-center">
           <h1 className="mb-4 font-semibold text-2xl">Product not found</h1>
-          <ErrorText showIcon>
+          <StatusText showIcon status="error">
             {error || "The product you are looking for does not exist."}
-          </ErrorText>
+          </StatusText>
         </div>
       </div>
     )
@@ -82,7 +81,7 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
 
   // Get price for selected variant and region
   // Find the price that matches the current currency
-  let variantPrice = null
+  let variantPrice: typeof selectedVariant.calculated_price | null = null
   if (selectedVariant?.calculated_price && selectedRegion?.currency_code) {
     variantPrice = selectedVariant.calculated_price
   }
@@ -99,7 +98,7 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
       selectedRegion?.currency_code
     )
   // Get badges for the product
-  const badges = []
+  const badges: BadgeProps[] = []
   if (product.metadata?.isNew) {
     badges.push({ children: "New", variant: "info" as const })
   }

@@ -1,23 +1,18 @@
 "use client"
 
-import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { useState } from "react"
-import { useRegions } from "@/hooks/use-region"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import data, { categoryTree } from "@/lib/static-data/categories"
-import { getProducts } from "@/services/product-service"
+import { useCategoryRegistry } from "@/hooks/use-category-registry"
 import { CategoryTreeFilter } from "../category-tree-filter"
 import { FilterSection } from "../molecules/filter-section"
 
-export interface FilterState {
+export type FilterState = {
   categories: Set<string>
   sizes: Set<string>
 }
 
-interface ProductFiltersProps {
+type ProductFiltersProps = {
   className?: string
   filters: FilterState
   onFiltersChange: (filters: FilterState) => void
@@ -30,56 +25,12 @@ export function ProductFilters({
   onFiltersChange,
   hideCategories = false,
 }: ProductFiltersProps) {
-  const { selectedRegion } = useRegions()
-  const [categoryIds, setCategoryIds] = useState<string[]>([])
-
   const [isOpen, setIsOpen] = useState(false)
-  const queryClient = useQueryClient()
+  const { categoryRegistry } = useCategoryRegistry()
+  const { categoryTree, leafCategories, leafParents } = categoryRegistry
 
   const handleCategoryChange = (newCategoryIds: string[]) => {
-    setCategoryIds(newCategoryIds)
     updateFilters({ categories: new Set(newCategoryIds) })
-  }
-
-  // Prefetch products with specific filters
-  const prefetchFilteredProducts = (newFilters: Partial<FilterState>) => {
-    const updatedFilters = {
-      categories: newFilters.categories || filters.categories,
-      sizes: newFilters.sizes || filters.sizes,
-    }
-
-    const productFilters = {
-      categories: Array.from(updatedFilters.categories),
-      sizes: Array.from(updatedFilters.sizes),
-    }
-
-    const queryKey = queryKeys.products.list({
-      page: 1,
-      limit: 12,
-      filters: productFilters,
-      sort: "newest", // Add default sort to match products page
-      region_id: selectedRegion?.id,
-    })
-
-    // Check if data is already in cache and fresh
-    const cachedData = queryClient.getQueryData(queryKey)
-    const queryState = queryClient.getQueryState(queryKey)
-
-    // Only prefetch if data is not in cache or is stale
-    if (!cachedData || queryState?.isInvalidated) {
-      queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () =>
-          getProducts({
-            limit: 12,
-            offset: 0,
-            filters: productFilters,
-            sort: "newest",
-            region_id: selectedRegion?.id,
-          }),
-        ...cacheConfig.semiStatic, // Use consistent cache config
-      })
-    }
   }
 
   const updateFilters = (updates: Partial<FilterState>) => {
@@ -112,8 +63,8 @@ export function ProductFilters({
           </div>
           <CategoryTreeFilter
             categories={categoryTree}
-            leafCategories={data.leafCategories}
-            leafParents={data.leafParents}
+            leafCategories={leafCategories}
+            leafParents={leafParents}
             onSelectionChange={handleCategoryChange}
           />
         </>
@@ -146,12 +97,6 @@ export function ProductFilters({
                     newSizes.add(size)
                   }
                   updateFilters({ sizes: newSizes })
-                }}
-                onMouseEnter={() => {
-                  // Prefetch products with this size filter
-                  if (!isSelected) {
-                    prefetchFilteredProducts({ sizes: new Set([size]) })
-                  }
                 }}
                 size="sm"
                 theme={isSelected ? "solid" : "borderless"}

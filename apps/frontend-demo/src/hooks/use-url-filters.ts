@@ -1,11 +1,5 @@
 "use client"
 
-// Default filter state
-const DEFAULT_FILTER_STATE = {
-  categories: new Set<string>(),
-  sizes: new Set<string>(),
-}
-
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useMemo } from "react"
 import type { FilterState } from "@/components/organisms/product-filters"
@@ -13,7 +7,7 @@ import type { SortOption } from "@/utils/product-filters"
 
 export type ExtendedSortOption = SortOption | "relevance"
 
-export interface PageRange {
+export type PageRange = {
   start: number
   end: number
   isRange: boolean
@@ -23,6 +17,7 @@ export function useUrlFilters() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
+  // TODO: Refactor this listing URL-state seam to nuqs in a follow-up PR.
   // Parse page from URL (supports both single page and range syntax)
   const pageRange: PageRange = useMemo(() => {
     const pageParam = searchParams.get("page") || "1"

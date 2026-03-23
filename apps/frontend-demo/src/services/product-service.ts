@@ -1,14 +1,16 @@
+import type { HttpTypes } from "@medusajs/types"
+import { findPreferredVariant } from "@/lib/inventory"
 import { sdk } from "@/lib/medusa-client"
 import type { Product } from "@/types/product"
 import { buildMedusaQuery } from "@/utils/server-filters"
 
-export interface ProductFilters {
+export type ProductFilters = {
   categories?: string[]
   sizes?: string[]
   // search removed - use 'q' parameter directly
 }
 
-export interface ProductListParams {
+export type ProductListParams = {
   limit?: number
   offset?: number
   fields?: string
@@ -20,7 +22,7 @@ export interface ProductListParams {
   country_code?: string
 }
 
-export interface ProductListResponse {
+export type ProductListResponse = {
   products: Product[]
   count: number
   limit: number
@@ -28,7 +30,7 @@ export interface ProductListResponse {
 }
 
 // Fields for product list views (minimal data)
-const LIST_FIELDS = [
+export const LIST_FIELDS = [
   "id",
   "title",
   "handle",
@@ -40,7 +42,7 @@ const LIST_FIELDS = [
 ].join(",")
 
 // Fields for product detail views (all data)
-const DETAIL_FIELDS = [
+export const DETAIL_FIELDS = [
   "id",
   "title",
   "handle",
@@ -71,9 +73,7 @@ const DETAIL_FIELDS = [
 /**
  * Fetch products with filtering, pagination and sorting
  */
-export const getProducts = async (
-  params: ProductListParams = {}
-): Promise<ProductListResponse> => {
+export const buildProductListQuery = (params: ProductListParams = {}) => {
   const {
     limit = 20,
     offset = 0,
@@ -91,14 +91,14 @@ export const getProducts = async (
   const categoryIds = category || filters?.categories
 
   // Build base query
-  const baseQuery: Record<string, any> = {
+  const baseQuery: Record<string, unknown> = {
     limit,
     offset,
     q,
     category_id: categoryIds,
     fields,
     ...(region_id && { region_id }),
-    country_code: country_code ?? "cz",
+    ...(country_code ? { country_code } : {}),
   }
 
   // Add sorting
@@ -116,38 +116,33 @@ export const getProducts = async (
   // Build query with server-side filters
   const queryParams = buildMedusaQuery(filters, baseQuery)
 
-  try {
-    const response = await sdk.store.product.list(queryParams)
-
-    if (!response.products) {
-      console.error("[ProductService] Invalid response structure:", response)
-      return { products: [], count: 0, limit, offset }
-    }
-
-    const products = response.products.map((p) => transformProduct(p, true))
-
-    return {
-      products,
-      count: response.count || products.length,
-      limit,
-      offset,
-    }
-  } catch (error) {
-    console.error("[ProductService] Error fetching products:", error)
-    throw error
-  }
+  return queryParams
 }
+
+export const buildProductDetailQuery = (
+  handle: string,
+  region_id?: string,
+  country_code?: string
+) => ({
+  handle,
+  fields: DETAIL_FIELDS,
+  limit: 1,
+  ...(region_id ? { region_id } : {}),
+  ...(country_code ? { country_code } : {}),
+})
 
 /**
  * Transform raw product data from API
  */
-const transformProduct = (product: any, withVariants?: boolean): Product => {
+export const transformProduct = (
+  product: HttpTypes.StoreProduct,
+  withVariants = true
+): Product => {
   if (!product) {
     throw new Error("Cannot transform null product")
   }
 
-  // Get primary variant (first one)
-  const primaryVariant = product.variants?.[0]
+  const primaryVariant = findPreferredVariant(product.variants)
 
   // Get price from primary variant
   const price = primaryVariant?.calculated_price?.calculated_amount
@@ -162,7 +157,8 @@ const transformProduct = (product: any, withVariants?: boolean): Product => {
     product.images && product.images.length > 2 && product.images.slice(0, 2)
 
   // Remove variants array from the result to reduce payload size
-  const { variants, ...productWithoutVariants } = product
+  const productWithoutVariants = { ...product }
+  productWithoutVariants.variants = undefined
 
   const result = withVariants ? product : productWithoutVariants
 
@@ -177,22 +173,39 @@ const transformProduct = (product: any, withVariants?: boolean): Product => {
   } as Product
 }
 
-export async function getProduct(
-  handle: string,
-  region_id?: string,
-  country_code?: string
-): Promise<Product> {
-  const response = await sdk.store.product.list({
-    handle,
-    fields: DETAIL_FIELDS, // Use full fields for detail views
-    limit: 1,
-    region_id,
-    country_code: country_code ?? "cz",
-  })
-
-  if (!response.products?.length) {
-    throw new Error("Product not found")
+/**
+ * Fetch products with filtering, pagination and sorting
+ */
+export const getProducts = async (
+  params: ProductListParams = {}
+): Promise<ProductListResponse> => {
+  const queryParams = {
+    ...buildProductListQuery(params),
+    country_code: params.country_code ?? "cz",
   }
+  const limit = queryParams.limit ?? 20
+  const offset = queryParams.offset ?? 0
 
-  return transformProduct(response.products[0], true)
+  try {
+    const response = await sdk.store.product.list(queryParams)
+
+    if (!response.products) {
+      console.error("[ProductService] Invalid response structure:", response)
+      return { products: [], count: 0, limit, offset }
+    }
+
+    const products = response.products.map((product) =>
+      transformProduct(product, true)
+    )
+
+    return {
+      products,
+      count: response.count || products.length,
+      limit,
+      offset,
+    }
+  } catch (error) {
+    console.error("[ProductService] Error fetching products:", error)
+    throw error
+  }
 }

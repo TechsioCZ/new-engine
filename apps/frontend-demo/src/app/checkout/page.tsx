@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { LoadingPage } from "@/components/loading-page"
 import { OrderSummary } from "@/components/order-summary"
 import { useCart } from "@/hooks/use-cart"
@@ -16,6 +16,12 @@ import { PaymentSelection } from "../../components/molecules/payment-selection"
 import { ShippingSelection } from "../../components/molecules/shipping-selection"
 import { AddressForm } from "../../components/organisms/address-form"
 import { OrderPreview } from "../../components/organisms/order-preview"
+
+type CheckoutStep = {
+  content: ReactNode
+  title: string
+  value: number
+}
 
 export default function CheckoutPage() {
   const { cart, isLoading } = useCart()
@@ -41,46 +47,41 @@ export default function CheckoutPage() {
   const [orderNumber, setOrderNumber] = useState<string>("")
   const [showOrderSummary, setShowOrderSummary] = useState(false)
 
-  // Redirect if cart is empty and no completed order
   useEffect(() => {
-    // Wait for cart to load before checking
     if (!isLoading) {
       const hasCompletedOrder = orderHelpers.getOrderData(null) !== null
 
-      // Only redirect if cart is empty AND no completed order exists
       if (
         (!cart || cart.items?.length === 0) &&
         !hasCompletedOrder &&
         !isOrderComplete
       ) {
-        //  router.push('/cart')
+        // router.push("/cart")
       }
     }
   }, [cart, isLoading, isOrderComplete])
 
-  // Show loading state while cart is loading
-  if (isLoading) return <LoadingPage />
+  if (isLoading) {
+    return <LoadingPage />
+  }
 
-  // Get order data (either from cart or saved completed order)
   const orderData = orderHelpers.getOrderData(cart)
 
-  if (!(orderData && orderData.items) || orderData.items.length === 0) {
+  if (!orderData?.items?.length) {
     return null
   }
 
   const selectedShippingMethod = shippingMethods?.find(
-    (m) => m.id === selectedShipping
+    (method) => method.id === selectedShipping
   )
   const selectedPaymentMethod = PAYMENT_METHODS.find(
-    (m) => m.id === selectedPayment
+    (method) => method.id === selectedPayment
   )
   const shippingPrice =
     selectedShippingMethod?.calculated_price.calculated_amount || 0
-
   const paymentFee = selectedPaymentMethod?.fee || 0
 
   const handleComplete = async () => {
-    // For other payment methods, process directly
     try {
       const order = await processOrder()
       if (order) {
@@ -90,12 +91,12 @@ export default function CheckoutPage() {
         setIsOrderComplete(true)
         setCurrentStep(3)
       }
-    } catch (error) {
+    } catch {
       // Error already handled in hook
     }
   }
 
-  const steps = [
+  const steps: CheckoutStep[] = [
     {
       value: 0,
       title: "Adresa",
@@ -105,7 +106,7 @@ export default function CheckoutPage() {
             try {
               await updateAddresses(data)
               setCurrentStep(1)
-            } catch (err) {
+            } catch {
               // Error already handled in hook
             }
           }}
@@ -123,7 +124,7 @@ export default function CheckoutPage() {
             setSelectedShipping(method)
             try {
               await addShippingMethod(method)
-            } catch (error) {
+            } catch {
               // Error already handled in hook
             }
           }}
@@ -167,13 +168,11 @@ export default function CheckoutPage() {
   ]
 
   const handleStepChange = (step: number) => {
-    // Allow backward navigation
     if (step < currentStep) {
       setCurrentStep(step)
       return
     }
 
-    // Only allow forward movement if current step is completed
     if (step > currentStep && !canProceedToStep(step)) {
       return
     }
@@ -181,9 +180,40 @@ export default function CheckoutPage() {
     setCurrentStep(step)
   }
 
+  const renderSteps = (orientation: "horizontal" | "vertical") => (
+    <Steps
+      count={steps.length}
+      linear={false}
+      onStepChange={(details) => handleStepChange(details.step)}
+      orientation={orientation}
+      step={currentStep}
+    >
+      <Steps.List>
+        {steps.map((step) => (
+          <Steps.Item index={step.value} key={step.value}>
+            <Steps.Trigger>
+              <Steps.Indicator />
+              <Steps.ItemText>
+                <Steps.Title>{step.title}</Steps.Title>
+              </Steps.ItemText>
+            </Steps.Trigger>
+            <Steps.Separator />
+          </Steps.Item>
+        ))}
+      </Steps.List>
+
+      <Steps.Panels>
+        {steps.map((step) => (
+          <Steps.Content index={step.value} key={step.value}>
+            {step.content}
+          </Steps.Content>
+        ))}
+      </Steps.Panels>
+    </Steps>
+  )
+
   return (
     <div className="container mx-auto max-w-[80rem] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-      {/* Mobile/Tablet: Sticky progress bar */}
       <div
         className="-mx-4 sm:-mx-6 sticky top-0 z-2 mb-4 border-border border-b-2 bg-base px-4 pb-4 shadow-sm sm:px-6 lg:relative lg:mx-0 lg:border-b-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:shadow-none"
         id="payment-header"
@@ -203,7 +233,6 @@ export default function CheckoutPage() {
           </h1>
         </div>
 
-        {/* Mobile: Collapsible order summary */}
         <Button
           className="bg-surface text-fg-primary hover:bg-surface-hover active:bg-surface-hover lg:hidden"
           icon={
@@ -223,7 +252,7 @@ export default function CheckoutPage() {
             {formatPrice(orderData?.total || 0 + shippingPrice + paymentFee)}
           </span>
         </Button>
-        {/* Mobile: Collapsible order summary content */}
+
         {showOrderSummary && (
           <div className="-mx-4 sm:-mx-6 mb-6 py-4 sm:px-6 lg:hidden">
             <OrderPreview
@@ -235,30 +264,9 @@ export default function CheckoutPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-8">
-        <div className="hidden sm:block">
-          <Steps
-            currentStep={currentStep}
-            items={steps}
-            linear={false}
-            onStepChange={handleStepChange}
-            onStepComplete={handleComplete}
-            orientation="horizontal"
-            showControls={false}
-          />
-        </div>
-        <div className="sm:hidden">
-          <Steps
-            currentStep={currentStep}
-            items={steps}
-            linear={false}
-            onStepChange={handleStepChange}
-            onStepComplete={handleComplete}
-            orientation="vertical"
-            showControls={false}
-          />
-        </div>
+        <div className="hidden sm:block">{renderSteps("horizontal")}</div>
+        <div className="sm:hidden">{renderSteps("vertical")}</div>
 
-        {/* Desktop: Sticky sidebar */}
         <div className="hidden lg:block lg:pl-8">
           <div className="sticky top-8">
             <OrderPreview
