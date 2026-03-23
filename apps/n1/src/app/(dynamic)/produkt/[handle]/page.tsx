@@ -12,7 +12,7 @@ import { ProductSizes } from "@/components/product-detail/product-sizes"
 import { ProductTable } from "@/components/product-detail/product-table"
 import { ProductTabs } from "@/components/product-detail/product-tabs"
 import { RelatedProducts } from "@/components/product-detail/related-products"
-import { useSuspenseProduct } from "@/hooks/use-product"
+import { storefront } from "@/hooks/storefront-preset"
 import { CATEGORY_MAP_BY_ID } from "@/lib/constants"
 import { useAnalytics } from "@/providers/analytics-provider"
 import {
@@ -28,7 +28,9 @@ export default function ProductPage() {
   const handle = params.handle as string
   const variantParam = searchParams.get("variant")
 
-  const { product: rawProduct } = useSuspenseProduct({ handle })
+  const { product: rawProduct } = storefront.hooks.products.useSuspenseProduct({
+    handle,
+  })
   const analytics = useAnalytics()
 
   // Track which variant we've already tracked to prevent duplicates

@@ -12,9 +12,8 @@ import {
   useRef,
   useState,
 } from "react"
-import { checkoutFlow, storefront } from "@/hooks/storefront-preset"
+import { cartFlow, checkoutFlow, storefront } from "@/hooks/storefront-preset"
 import { useSuspenseAuth } from "@/hooks/use-auth"
-import { useSuspenseCart } from "@/hooks/use-cart"
 import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
 import { useCheckoutShipping } from "@/hooks/use-checkout-shipping"
 import { useSuspenseRegion } from "@/hooks/use-region"
@@ -43,6 +42,8 @@ type InitialCheckoutState = {
   defaultValues: CheckoutFormData
   selectedAddressId: string | null
 }
+
+type SuspenseCartResult = ReturnType<typeof cartFlow.useSuspenseCart>
 
 const includesMessagePart = (message: string, parts: string[]): boolean => {
   const normalizedMessage = message.toLowerCase()
@@ -90,7 +91,7 @@ const toCheckoutCompletionErrorMessage = (error: unknown): string => {
 }
 
 const resolveInitialCheckoutState = (
-  cart: ReturnType<typeof useSuspenseCart>["cart"],
+  cart: SuspenseCartResult["cart"],
   customer: ReturnType<typeof useSuspenseAuth>["customer"]
 ): InitialCheckoutState => {
   if (cart?.billing_address?.first_name) {
@@ -130,7 +131,7 @@ const resolveInitialCheckoutState = (
 
 type CheckoutContextValue = {
   form: CheckoutForm
-  cart: ReturnType<typeof useSuspenseCart>["cart"]
+  cart: SuspenseCartResult["cart"]
   hasItems: boolean
   shipping: ReturnType<typeof useCheckoutShipping>
   payment: ReturnType<typeof useCheckoutPayment>
@@ -156,7 +157,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   const { customer } = useSuspenseAuth()
-  const { cart, hasItems } = useSuspenseCart()
+  const { cart, hasItems } = cartFlow.useSuspenseCart()
   const { regionId } = useSuspenseRegion()
 
   const shipping = useCheckoutShipping(cart?.id, cart)

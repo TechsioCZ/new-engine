@@ -21,15 +21,16 @@ import {
   categoryMap,
   categoryTree,
 } from "@/data/static/categories"
+import { storefront } from "@/hooks/storefront-preset"
 import { usePrefetchCategoryChildren } from "@/hooks/use-prefetch-category-children"
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { usePrefetchRootCategories } from "@/hooks/use-prefetch-root-categories"
-import { useSuspenseProducts } from "@/hooks/use-products"
 import {
   ALL_CATEGORIES_MAP,
   PRODUCT_LIMIT,
   VALID_CATEGORY_ROUTES,
 } from "@/lib/constants"
+import { buildProductQueryParams } from "@/lib/product-query-params"
 import { useAnalytics } from "@/providers/analytics-provider"
 import { buildBreadcrumbs } from "@/utils/helpers/build-breadcrumb"
 import { transformProduct } from "@/utils/transform/transform-product"
@@ -164,6 +165,11 @@ function CategoryPageContent({
   rootCategory,
   rootCategoryTree,
 }: CategoryPageContentProps) {
+  const productQuery = buildProductQueryParams({
+    category_id: categoryIds,
+    page: currentPage,
+    limit: PRODUCT_LIMIT,
+  })
   const {
     products: rawProducts,
     isFetching,
@@ -172,11 +178,7 @@ function CategoryPageContent({
     totalPages,
     hasNextPage,
     hasPrevPage,
-  } = useSuspenseProducts({
-    category_id: categoryIds,
-    page: currentPage,
-    limit: PRODUCT_LIMIT,
-  })
+  } = storefront.hooks.products.useSuspenseProducts(productQuery)
 
   const isCurrentPageReady = !isFetching
 

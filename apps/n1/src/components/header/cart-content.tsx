@@ -2,7 +2,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
-import { useRemoveLineItem, useUpdateLineItem } from "@/hooks/use-cart"
+import { cartFlow } from "@/hooks/storefront-preset"
 import { useCartToast } from "@/hooks/use-toast"
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/constants"
 import { getCartPriceView } from "@/lib/pricing/cart-pricing"
@@ -18,8 +18,10 @@ type CartContentProps = {
 }
 
 export const CartContent = ({ cart, onClose }: CartContentProps) => {
-  const { mutate: updateQuantity, isPending: isUpdating } = useUpdateLineItem()
-  const { mutate: removeItem, isPending: isRemoving } = useRemoveLineItem()
+  const { mutate: updateQuantity, isPending: isUpdating } =
+    cartFlow.useUpdateLineItem()
+  const { mutate: removeItem, isPending: isRemoving } =
+    cartFlow.useRemoveLineItem()
   const toast = useCartToast()
 
   const handleUpdateQuantity = (itemId: string) => (quantity: number) => {

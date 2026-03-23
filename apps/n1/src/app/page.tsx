@@ -6,7 +6,7 @@ import { ProductGrid } from "@/components/molecules/product-grid"
 import { TopProduct } from "@/components/top-product"
 import { featureBlocks, heroCarouselSlides, topCategory } from "@/data/home"
 import { leafCategories } from "@/data/static/categories"
-import { useSuspenseProducts } from "@/hooks/use-products"
+import { storefront } from "@/hooks/storefront-preset"
 import { transformProduct } from "@/utils/transform/transform-product"
 
 export default function Home() {
@@ -74,10 +74,11 @@ type FeaturedHomeProductGridProps = {
 function FeaturedHomeProductGrid({
   featuredCategoryIds,
 }: FeaturedHomeProductGridProps) {
-  const { products: rawProducts } = useSuspenseProducts({
-    category_id: featuredCategoryIds,
-    limit: 8,
-  })
+  const { products: rawProducts } =
+    storefront.hooks.products.useSuspenseProducts({
+      category_id: featuredCategoryIds,
+      limit: 8,
+    })
 
   const products = rawProducts.map(transformProduct)
 

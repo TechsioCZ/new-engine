@@ -1,4 +1,5 @@
-import { useProducts } from "@/hooks/use-products"
+import { storefront } from "@/hooks/storefront-preset"
+import { buildProductQueryParams } from "@/lib/product-query-params"
 import { transformProduct } from "@/utils/transform/transform-product"
 import { ProductGrid } from "../molecules/product-grid"
 
@@ -8,13 +9,23 @@ type RelatedProductsProps = {
 
 export const RelatedProducts = ({ categories }: RelatedProductsProps) => {
   const hasCategories = Boolean(categories?.length)
-  const { products: rawProducts } = useProducts({
-    category_id: categories ?? [],
-    limit: 4,
-    enabled: hasCategories,
-  })
 
-  if (!hasCategories || rawProducts.length === 0) {
+  if (!(hasCategories && categories)) {
+    return null
+  }
+
+  return <RelatedProductsContent categories={categories} />
+}
+
+function RelatedProductsContent({ categories }: { categories: string[] }) {
+  const { products: rawProducts } = storefront.hooks.products.useProducts(
+    buildProductQueryParams({
+      category_id: categories,
+      limit: 4,
+    })
+  )
+
+  if (rawProducts.length === 0) {
     return null
   }
 
