@@ -70,7 +70,7 @@ const toCheckoutCompletionErrorMessage = (error: unknown): string => {
         : "Nepodařilo se inicializovat platbu"
     case "complete":
       if (
-        includesMessagePart(completeCheckoutError.message, ["payment", "platb"])
+        includesMessagePart(completeCheckoutError.message, ["payment", "platba"])
       ) {
         return `Chyba platby: ${completeCheckoutError.message}`
       }

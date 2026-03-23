@@ -1,8 +1,9 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
+import { buildLoginHref } from "@/lib/auth-redirect"
 import { AccountProvider } from "./context/account-context"
 
 export default function AccountLayout({
@@ -11,8 +12,11 @@ export default function AccountLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { customer, isAuthenticated, isFetching, isLoading, error } = useAuth()
   const [isHydrated, setIsHydrated] = useState(false)
+  const loginHref = buildLoginHref(pathname ?? "/ucet", searchParams.toString())
 
   useEffect(() => {
     setIsHydrated(true)
@@ -24,9 +28,17 @@ export default function AccountLayout({
     }
 
     if (!(error || isAuthenticated)) {
-      router.push("/prihlaseni")
+      router.push(loginHref)
     }
-  }, [error, isAuthenticated, isFetching, isHydrated, isLoading, router])
+  }, [
+    error,
+    isAuthenticated,
+    isFetching,
+    isHydrated,
+    isLoading,
+    loginHref,
+    router,
+  ])
 
   if (!(isHydrated && !isLoading && !isFetching)) {
     return <main className="mx-auto w-full max-w-5xl px-400 py-400" />

@@ -1,9 +1,6 @@
-"use client"
-
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Table } from "@techsio/ui-kit/organisms/table"
 import Link from "next/link"
-import { useEffect, useState } from "react"
 import type { Producer } from "@/types/product"
 import type { ParsedProducerInfo } from "@/types/product-page"
 import { parseProducerData } from "@/utils/helpers/parse-producer-data"
@@ -13,11 +10,7 @@ type ProductSizesProps = {
 }
 
 export function ProductSizes({ attributes }: ProductSizesProps) {
-  const [info, setInfo] = useState<ParsedProducerInfo | null>(null)
-
-  useEffect(() => {
-    setInfo(parseProducerData(attributes))
-  }, [attributes])
+  const info: ParsedProducerInfo | null = parseProducerData(attributes)
 
   if (!info) {
     return (

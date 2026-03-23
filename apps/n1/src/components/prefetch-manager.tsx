@@ -1,10 +1,6 @@
 "use client"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
-import {
-  shouldResetPrefetchForRegion,
-  shouldRunPrefetchManager,
-} from "@/hooks/prefetch-region"
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 import { useRegion } from "@/hooks/use-region"
 import { CATEGORY_MAP } from "@/lib/constants"
@@ -23,20 +19,14 @@ export function PrefetchManager() {
   const prefetchedRegionId = useRef<string | undefined>(undefined)
 
   useEffect(() => {
-    if (shouldResetPrefetchForRegion(prefetchedRegionId.current, regionId)) {
+    if (prefetchedRegionId.current !== regionId) {
       hasPrefetched.current = false
       prefetchedRegionId.current = regionId
     }
   }, [regionId])
 
   useEffect(() => {
-    if (
-      !shouldRunPrefetchManager({
-        pathname,
-        regionId,
-        hasPrefetched: hasPrefetched.current,
-      })
-    ) {
+    if (pathname !== "/" || !regionId || hasPrefetched.current) {
       return
     }
 
