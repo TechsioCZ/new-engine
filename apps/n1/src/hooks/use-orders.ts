@@ -20,12 +20,11 @@ type OrderListInput = {
 }
 
 type UseOrderInput = {
-  id?: string | null
+  id?: string
   enabled?: boolean
 }
 
 const AUTH_REQUIRED_ERROR = "Uživatel není přihlášen"
-const ORDER_ID_REQUIRED_ERROR = "Order ID je povinný"
 
 type OrderHooks = typeof storefront.hooks.orders
 type UseOrderHookOptions = Parameters<OrderHooks["useOrder"]>[1]
@@ -39,13 +38,6 @@ const assertAuthenticated = (isAuthenticated: boolean) => {
   if (!isAuthenticated) {
     throw new Error(AUTH_REQUIRED_ERROR)
   }
-}
-
-const assertOrderId = (orderId: string | null): string => {
-  if (!orderId) {
-    throw new Error(ORDER_ID_REQUIRED_ERROR)
-  }
-  return orderId
 }
 
 const sortOrders = <T extends { created_at?: string | Date | null }>(
@@ -110,14 +102,12 @@ export function useOrder(
 }
 
 export function useSuspensePublicOrder(
-  orderId: string | null,
+  orderId: string,
   options?: UseSuspenseOrderHookOptions
 ): UseSuspenseOrderResult {
-  const requiredOrderId = assertOrderId(orderId)
-
   return storefront.hooks.orders.useSuspenseOrder(
     {
-      id: requiredOrderId,
+      id: orderId,
     },
     options
   )
