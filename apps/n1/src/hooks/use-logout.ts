@@ -14,7 +14,7 @@ export function useLogout(options?: UseLogoutOptions) {
       options?.onSuccess?.()
     },
     onError: (error) => {
-      options?.onError?.(toError(error, "Logout failed"))
+      options?.onError?.(toError(error, "Nepodařilo se odhlásit"))
     },
   })
 }

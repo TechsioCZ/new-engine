@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react"
 import { CheckoutReview } from "@/app/pokladna/_components/checkout-review"
 import { useSuspensePublicOrder } from "@/hooks/use-orders"
 import { cacheConfig } from "@/lib/cache-config"
-import { OrderNotFoundError } from "@/lib/orders/errors"
+import { isNotFoundError } from "@/lib/errors"
 import { useAnalytics } from "@/providers/analytics-provider"
 
 export default function OrderPage() {
@@ -25,7 +25,7 @@ export default function OrderPage() {
   const orderResult = useSuspensePublicOrder(orderId, {
     queryOptions: {
       retry: (failureCount, error) => {
-        if (error instanceof OrderNotFoundError) {
+        if (isNotFoundError(error)) {
           return false
         }
         return failureCount < 2

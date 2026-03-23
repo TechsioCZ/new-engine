@@ -1,4 +1,4 @@
-import { toError } from "@/lib/errors"
+import { mapAuthError } from "@/lib/auth-messages"
 import { storefront } from "./storefront-preset"
 
 export type UseLoginOptions = {
@@ -14,7 +14,7 @@ export function useLogin(options?: UseLoginOptions) {
       options?.onSuccess?.()
     },
     onError: (error) => {
-      options?.onError?.(toError(error, "Login failed"))
+      options?.onError?.(new Error(mapAuthError(error)))
     },
   })
 }

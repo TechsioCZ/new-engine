@@ -1,4 +1,5 @@
-import { toError } from "@/lib/errors"
+import { MedusaRegistrationSignInError } from "@techsio/storefront-data/auth/medusa-service"
+import { mapAuthError } from "@/lib/auth-messages"
 import { storefront } from "./storefront-preset"
 
 export type UseRegisterOptions = {
@@ -14,7 +15,12 @@ export function useRegister(options?: UseRegisterOptions) {
       options?.onSuccess?.()
     },
     onError: (error) => {
-      options?.onError?.(toError(error, "Registrace se nepodařila"))
+      if (error instanceof MedusaRegistrationSignInError) {
+        options?.onError?.(error)
+        return
+      }
+
+      options?.onError?.(new Error(mapAuthError(error)))
     },
   })
 }

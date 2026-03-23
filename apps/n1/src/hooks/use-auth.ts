@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { toError } from "@/lib/errors"
 import { storefront } from "./storefront-preset"
 
 export type UseAuthReturn = {
@@ -24,7 +25,9 @@ export function useAuth(): UseAuthReturn {
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading,
     isFetching: auth.isFetching,
-    error: auth.error ? new Error(auth.error) : null,
+    error: auth.error
+      ? toError(auth.error, "Nepodařilo se ověřit přihlášení")
+      : null,
   }
 }
 
