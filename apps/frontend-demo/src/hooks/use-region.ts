@@ -4,7 +4,6 @@ import type { StoreRegion } from "@medusajs/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { useStore } from "@tanstack/react-store"
 import { useCallback, useEffect } from "react"
-import { queryKeys } from "@/lib/query-keys"
 import { storefront } from "@/lib/storefront"
 import { regionStore, setSelectedRegionId } from "@/stores/region-store"
 
@@ -48,8 +47,6 @@ export function useRegions() {
       queryClient.invalidateQueries({
         queryKey: storefront.queryKeys.cart.all(),
       })
-      // Keep legacy product queries coherent until search/categories are migrated.
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.all() })
     },
     [queryClient, selectedRegionId]
   )

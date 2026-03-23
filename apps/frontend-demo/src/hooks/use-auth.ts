@@ -8,7 +8,6 @@ import { useCallback, useState } from "react"
 import { AUTH_MESSAGES } from "@/lib/auth/constants"
 import { getAuthErrorMessage } from "@/lib/auth/error-handler"
 import type { ValidationError } from "@/lib/auth/validation"
-import { queryKeys } from "@/lib/query-keys"
 import { storefront } from "@/lib/storefront"
 
 const toUpdateCustomerInput = (data: Partial<HttpTypes.StoreCustomer>) => ({
@@ -28,15 +27,9 @@ export function useAuth() {
 
   const auth = storefront.hooks.auth.useAuth()
 
-  const invalidateLegacyMedusaQueries = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: queryKeys.all }),
-    [queryClient]
-  )
-
   const loginMutation = storefront.hooks.auth.useLogin({
-    onSuccess: async () => {
+    onSuccess: () => {
       setMutationError(null)
-      await invalidateLegacyMedusaQueries()
 
       if (!window.location.pathname.includes("/test-auth")) {
         router.push("/")
@@ -58,9 +51,8 @@ export function useAuth() {
   })
 
   const registerMutation = storefront.hooks.auth.useRegister({
-    onSuccess: async () => {
+    onSuccess: () => {
       setMutationError(null)
-      await invalidateLegacyMedusaQueries()
 
       if (!window.location.pathname.includes("/test-auth")) {
         router.push("/")
@@ -82,10 +74,9 @@ export function useAuth() {
   })
 
   const logoutMutation = storefront.hooks.auth.useLogout({
-    onSuccess: async () => {
+    onSuccess: () => {
       setMutationError(null)
       setValidationErrors([])
-      await invalidateLegacyMedusaQueries()
       router.push("/")
 
       toast.create({
