@@ -1,4 +1,4 @@
-import { createCacheConfig } from "@techsio/storefront-data/shared";
+import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config";
 
 export const storefrontCacheConfig = createCacheConfig({
   static: {

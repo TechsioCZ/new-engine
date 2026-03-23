@@ -1,7 +1,7 @@
 import {
   createMedusaSdk,
   type MedusaClientConfig,
-} from "@techsio/storefront-data";
+} from "@techsio/storefront-data/shared/medusa-client";
 
 export const AUTH_TOKEN_STORAGE_KEY = "herbatika_auth_token";
 export type StorefrontAuthMode = "jwt_localstorage" | "session_proxy";

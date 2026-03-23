@@ -1,7 +1,7 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
-import { useRegionContext } from "@techsio/storefront-data/shared";
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useQueryStates } from "nuqs";
 import { useEffect, useState } from "react";
 import { useCategoryListingQueries } from "@/components/category/use-category-listing-queries";

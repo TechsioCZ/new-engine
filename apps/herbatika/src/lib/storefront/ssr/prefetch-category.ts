@@ -1,16 +1,15 @@
 import "server-only";
 
-import { dehydrate } from "@techsio/storefront-data/server";
+import { dehydrate } from "@tanstack/react-query";
 import { buildCatalogProductsParams } from "../catalog-query-state";
 import { collectDescendantCategoryIds } from "../category-tree";
 import { buildCategoryListParams } from "../category-query-config";
 import { PLP_PAGE_SIZE } from "../plp-config";
 import type { PlpQueryState } from "../plp-query-state";
 import { storefrontCacheConfig } from "../cache";
+import { storefront } from "../storefront";
 import { CATEGORY_LIST_LIMIT } from "./constants";
 import { getRegionServerContext } from "./context";
-import { fetchCatalogProducts, fetchCategories } from "./fetch";
-import { buildListQueryKey } from "./query";
 
 export const prefetchCategoryPageStorefrontData = async (
   slug: string,
@@ -25,8 +24,9 @@ export const prefetchCategoryPageStorefrontData = async (
   });
 
   const categoryResponse = await queryClient.fetchQuery({
-    queryKey: buildListQueryKey("categories", categoryListParams),
-    queryFn: ({ signal }) => fetchCategories(categoryListParams, signal),
+    queryKey: storefront.queryKeys.categories.list(categoryListParams),
+    queryFn: ({ signal }) =>
+      storefront.services.categories.getCategories(categoryListParams, signal),
     ...storefrontCacheConfig.static,
   });
 
@@ -47,8 +47,9 @@ export const prefetchCategoryPageStorefrontData = async (
     });
 
     await queryClient.prefetchQuery({
-      queryKey: buildListQueryKey("catalog", catalogListParams),
-      queryFn: ({ signal }) => fetchCatalogProducts(catalogListParams, signal),
+      queryKey: storefront.queryKeys.catalog.list(catalogListParams),
+      queryFn: ({ signal }) =>
+        storefront.services.catalog.getCatalogProducts(catalogListParams, signal),
       ...storefrontCacheConfig.semiStatic,
     });
   }

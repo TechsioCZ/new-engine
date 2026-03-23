@@ -1,6 +1,6 @@
 "use client";
 
-import { useRegionContext } from "@techsio/storefront-data/shared";
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";

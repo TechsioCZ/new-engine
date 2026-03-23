@@ -1,7 +1,10 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
-import { createQueryKey, normalizeQueryKeyPart } from "@techsio/storefront-data/shared";
+import {
+  createQueryKey,
+  normalizeQueryKeyPart,
+} from "@techsio/storefront-data/shared/query-keys";
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { storefrontCacheConfig } from "./cache";
 import type { StorefrontSearchResult } from "./meili-search";

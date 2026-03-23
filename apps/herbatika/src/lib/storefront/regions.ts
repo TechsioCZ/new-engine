@@ -1,34 +1,18 @@
 "use client";
 
-import type { HttpTypes } from "@medusajs/types";
-import {
-  createRegionHooks,
-  type RegionInfo,
-} from "@techsio/storefront-data";
+import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 import { useEffect, useMemo, useState } from "react";
-import { storefrontCacheConfig } from "./cache";
+import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "./region-query-config";
 import {
   getStoredRegionPreference,
   persistRegionPreference,
 } from "./region-preferences";
-import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "./region-query-config";
-import { regionService } from "./region-service";
 import { resolveRegionByIdOrDefault, toRegionInfo } from "./region-selection";
-import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
+import { storefront } from "./storefront";
 
-export const regionHooks = createRegionHooks<
-  HttpTypes.StoreRegion,
-  HttpTypes.StoreRegionFilters,
-  HttpTypes.StoreRegionFilters,
-  { id?: string },
-  { id?: string }
->({
-  service: regionService,
-  queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
-  cacheConfig: storefrontCacheConfig,
-  buildListParams: (input) => input,
-  buildDetailParams: (input) => input,
-});
+export const regionService = storefront.services.regions;
+export const regionQueryKeys = storefront.queryKeys.regions;
+export const regionHooks = storefront.hooks.regions;
 
 export const {
   useRegions,

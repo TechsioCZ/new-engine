@@ -1,4 +1,4 @@
-import type { CatalogFacetItem } from "@techsio/storefront-data";
+import type { CatalogFacetItem } from "@techsio/storefront-data/catalog/types";
 
 export type CategoryFacetChipItem = {
   id: string;

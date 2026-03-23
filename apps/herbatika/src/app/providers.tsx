@@ -1,7 +1,8 @@
 "use client";
 
-import { StorefrontDataProvider } from "@techsio/storefront-data/client";
-import { RegionProvider, type RegionInfo } from "@techsio/storefront-data/shared";
+import { StorefrontDataProvider } from "@techsio/storefront-data/client/provider";
+import { RegionProvider } from "@techsio/storefront-data/shared/region-context";
+import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { PropsWithChildren } from "react";
 import { useEffect } from "react";

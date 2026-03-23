@@ -13,11 +13,9 @@ import {
   StorefrontAccountSkeletonSurface,
   StorefrontAccountSurface,
 } from "@/components/account/storefront-account-surface";
-import { storefrontCacheConfig } from "@/lib/storefront/cache";
 import { useAuth } from "@/lib/storefront/auth";
 import {
-  orderQueryKeys,
-  orderService,
+  getOrderDetailQueryOptions,
   useOrders,
 } from "@/lib/storefront/orders";
 
@@ -60,11 +58,7 @@ export function StorefrontAccountOrdersList() {
 
   const prefetchOrderDetail = useCallback(
     (orderId: string) => {
-      void queryClient.prefetchQuery({
-        queryKey: orderQueryKeys.detail({ id: orderId }),
-        queryFn: ({ signal }) => orderService.getOrder({ id: orderId }, signal),
-        ...storefrontCacheConfig.userData,
-      });
+      void queryClient.prefetchQuery(getOrderDetailQueryOptions({ id: orderId }));
     },
     [queryClient],
   );

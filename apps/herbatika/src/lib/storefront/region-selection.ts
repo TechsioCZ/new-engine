@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
-import type { RegionInfo } from "@techsio/storefront-data/shared";
+import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 
 const DEFAULT_COUNTRY_CODE = "sk";
 const PREFERRED_COUNTRY_CODES = ["sk", "at", "cz"] as const;

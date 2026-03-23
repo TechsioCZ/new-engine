@@ -1,6 +1,6 @@
 import "server-only";
 
-import { dehydrate } from "@techsio/storefront-data/server";
+import { dehydrate } from "@tanstack/react-query";
 import { resolveRelatedCategoryIds } from "../category-tree";
 import {
   STOREFRONT_PRODUCT_CARD_FIELDS,

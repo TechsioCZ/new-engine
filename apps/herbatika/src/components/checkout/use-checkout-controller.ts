@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useRegionContext } from "@techsio/storefront-data/shared";
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/storefront/auth";
 import {
@@ -10,12 +10,12 @@ import {
 } from "@/lib/storefront/cart-calculations";
 import {
   fetchPaymentProviders,
+  useCompleteCheckout,
   useCheckoutPayment,
   useCheckoutShipping,
 } from "@/lib/storefront/checkout";
 import {
   useCart,
-  useCompleteCart,
   useUpdateCartAddress,
 } from "@/lib/storefront/cart";
 import { CHECKOUT_STEPS } from "./checkout.constants";
@@ -38,9 +38,15 @@ export function useCheckoutController() {
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
   });
+  const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id;
 
   const updateCartAddressMutation = useUpdateCartAddress();
-  const completeCartMutation = useCompleteCart({ clearCartOnSuccess: true });
+  const completeCheckoutMutation = useCompleteCheckout({
+    cartId: cartQuery.cart?.id,
+    cart: cartQuery.cart,
+    regionId: activeRegionId,
+    enabled: Boolean(activeRegionId),
+  });
   const isUpdatingCartAddress = updateCartAddressMutation.isPending;
   const mutateCartAddress = updateCartAddressMutation.mutate;
 
@@ -49,8 +55,6 @@ export function useCheckoutController() {
     cart: cartQuery.cart,
     enabled: Boolean(cartQuery.cart?.id),
   });
-
-  const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id;
 
   const checkoutPaymentQuery = useCheckoutPayment({
     cartId: cartQuery.cart?.id,
@@ -109,7 +113,7 @@ export function useCheckoutController() {
     addressForm: formState.addressForm,
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
-    completeCart: completeCartMutation.mutateAsync,
+    completeCart: async () => completeCheckoutMutation.mutateAsync(undefined),
     hasPaymentSessions: checkoutPaymentQuery.hasPaymentSessions,
     initiatePayment: checkoutPaymentQuery.initiatePaymentAsync,
     isCompanyPurchase: formState.isCompanyPurchase,
@@ -166,7 +170,7 @@ export function useCheckoutController() {
     updateCartAddressMutation.isPending ||
     checkoutShippingQuery.isSettingShipping ||
     checkoutPaymentQuery.isInitiatingPayment ||
-    completeCartMutation.isPending;
+    completeCheckoutMutation.isPending;
 
   return {
     ...actions,
@@ -179,7 +183,8 @@ export function useCheckoutController() {
     checkoutPaymentQuery,
     checkoutShippingQuery,
     checkoutStepIndex,
-    completeCartMutation,
+    completeCartMutation: completeCheckoutMutation,
+    completeCheckoutMutation,
     currencyCode,
     hasItems,
     hasPayment,

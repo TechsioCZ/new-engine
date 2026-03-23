@@ -1,50 +1,28 @@
 "use client";
 
-import type { HttpTypes } from "@medusajs/types";
-import {
-  createCustomerHooks,
-  createMedusaCustomerService,
-  type MedusaCustomerAddressCreateInput,
-  type MedusaCustomerAddressUpdateInput,
-  type MedusaCustomerListInput,
-  type MedusaCustomerProfileUpdateInput,
-} from "@techsio/storefront-data";
-import { storefrontCacheConfig } from "./cache";
-import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
-import { storefrontSdk } from "./sdk";
+import type {
+  MedusaCustomerAddressCreateInput,
+  MedusaCustomerAddressUpdateInput,
+  MedusaCustomerListInput,
+  MedusaCustomerProfileUpdateInput,
+} from "@techsio/storefront-data/customers/medusa-service";
+import { storefront } from "./storefront";
 
-type CustomerAddressListInput = MedusaCustomerListInput & {
+export type CustomerAddressListInput = MedusaCustomerListInput & {
   enabled?: boolean;
 };
 
-type CustomerAddressCreateInput = MedusaCustomerAddressCreateInput;
-type CustomerAddressUpdateInput = MedusaCustomerAddressUpdateInput & {
+export type CustomerAddressCreateInput = MedusaCustomerAddressCreateInput;
+
+export type CustomerAddressUpdateInput = MedusaCustomerAddressUpdateInput & {
   addressId?: string;
 };
-type CustomerProfileUpdateInput = MedusaCustomerProfileUpdateInput;
 
-export const customerService = createMedusaCustomerService(storefrontSdk);
+export type CustomerProfileUpdateInput = MedusaCustomerProfileUpdateInput;
 
-export const customerHooks = createCustomerHooks<
-  HttpTypes.StoreCustomer,
-  HttpTypes.StoreCustomerAddress,
-  CustomerAddressListInput,
-  MedusaCustomerListInput,
-  CustomerAddressCreateInput,
-  MedusaCustomerAddressCreateInput,
-  CustomerAddressUpdateInput,
-  MedusaCustomerAddressUpdateInput,
-  CustomerProfileUpdateInput,
-  MedusaCustomerProfileUpdateInput
->({
-  service: customerService,
-  queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
-  cacheConfig: storefrontCacheConfig,
-  buildListParams: (input) => input,
-  buildCreateParams: (input) => input,
-  buildUpdateParams: (input) => input,
-  buildUpdateCustomerParams: (input) => input,
-});
+export const customerService = storefront.services.customers;
+export const customerQueryKeys = storefront.queryKeys.customers;
+export const customerHooks = storefront.hooks.customers;
 
 export const {
   useCustomerAddresses,
@@ -54,10 +32,3 @@ export const {
   useDeleteCustomerAddress,
   useUpdateCustomer,
 } = customerHooks;
-
-export type {
-  CustomerAddressListInput,
-  CustomerAddressCreateInput,
-  CustomerAddressUpdateInput,
-  CustomerProfileUpdateInput,
-};

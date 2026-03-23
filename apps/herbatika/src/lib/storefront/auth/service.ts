@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
-import { createMedusaAuthService } from "@techsio/storefront-data";
+import { createMedusaAuthService } from "@techsio/storefront-data/auth/medusa-service";
 import {
   authTokenStorage,
   isSessionProxyAuthMode,

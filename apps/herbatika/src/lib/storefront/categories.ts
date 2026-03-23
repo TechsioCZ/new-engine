@@ -1,58 +1,87 @@
 "use client";
 
-import type { HttpTypes } from "@medusajs/types";
-import type { FindParams } from "@medusajs/types";
-import {
-  createCategoryHooks,
-  createMedusaCategoryService,
-  type MedusaCategoryDetailInput,
-} from "@techsio/storefront-data";
+import type { FindParams, HttpTypes } from "@medusajs/types";
+import type { MedusaCategoryDetailInput } from "@techsio/storefront-data/categories/medusa-service";
+import type { StorefrontCategoryListInput } from "./category-query-config";
 import {
   buildCategoryListParams,
   DEFAULT_CATEGORY_PAGE_SIZE,
-  type StorefrontCategoryListInput,
 } from "./category-query-config";
-import { storefrontCacheConfig } from "./cache";
-import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
-import { storefrontSdk } from "./sdk";
+import { storefront } from "./storefront";
+
+type CategoryHooks = typeof storefront.hooks.categories;
 
 type CategoryListInput = StorefrontCategoryListInput & {
   page?: number;
 };
 
-export const categoryService = createMedusaCategoryService<
-  HttpTypes.StoreProductCategory,
-  FindParams & HttpTypes.StoreProductCategoryListParams,
-  MedusaCategoryDetailInput
->(storefrontSdk, {
-  defaultListFields:
-    "id,name,handle,parent_category_id,rank,is_active,category_children",
-  defaultDetailFields:
-    "id,name,handle,parent_category_id,rank,is_active,category_children",
-});
+export const categoryService = storefront.services.categories;
+export const categoryQueryKeys = storefront.queryKeys.categories;
+export const categoryHooks = storefront.hooks.categories;
 
-export const categoryHooks = createCategoryHooks<
-  HttpTypes.StoreProductCategory,
+export const useCategories = (
+  input: CategoryListInput,
+  options?: Parameters<CategoryHooks["useCategories"]>[1],
+) => {
+  return categoryHooks.useCategories(
+    input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams,
+    options,
+  );
+};
+
+export const useSuspenseCategories = (
+  input: CategoryListInput,
+  options?: Parameters<CategoryHooks["useSuspenseCategories"]>[1],
+) => {
+  return categoryHooks.useSuspenseCategories(
+    input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams,
+    options,
+  );
+};
+
+export const useCategory = categoryHooks.useCategory;
+export const useSuspenseCategory = categoryHooks.useSuspenseCategory;
+export const usePrefetchCategory = categoryHooks.usePrefetchCategory;
+
+export const usePrefetchCategories = (
+  ...args: Parameters<CategoryHooks["usePrefetchCategories"]>
+) => {
+  const prefetch = categoryHooks.usePrefetchCategories(...args);
+
+  return {
+    ...prefetch,
+    prefetchCategories: (
+      input: CategoryListInput,
+      ...prefetchArgs: Parameters<typeof prefetch.prefetchCategories> extends [
+        unknown,
+      ]
+        ? []
+        : never
+    ) =>
+      prefetch.prefetchCategories(
+        input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams,
+        ...prefetchArgs,
+      ),
+    delayedPrefetch: (
+      input: CategoryListInput,
+      ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
+        unknown,
+        ...infer TRest,
+      ]
+        ? TRest
+        : never
+    ) =>
+      prefetch.delayedPrefetch(
+        input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams,
+        ...prefetchArgs,
+      ),
+  };
+};
+
+export type {
   CategoryListInput,
-  FindParams & HttpTypes.StoreProductCategoryListParams,
   MedusaCategoryDetailInput,
-  MedusaCategoryDetailInput
->({
-  service: categoryService,
-  queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
-  cacheConfig: storefrontCacheConfig,
-  buildListParams: buildCategoryListParams,
-  buildDetailParams: (input) => input,
-  defaultPageSize: DEFAULT_CATEGORY_PAGE_SIZE,
-});
+  StorefrontCategoryListInput,
+};
 
-export const {
-  useCategories,
-  useSuspenseCategories,
-  useCategory,
-  useSuspenseCategory,
-  usePrefetchCategories,
-  usePrefetchCategory,
-} = categoryHooks;
-
-export type { CategoryListInput };
+export { buildCategoryListParams, DEFAULT_CATEGORY_PAGE_SIZE };

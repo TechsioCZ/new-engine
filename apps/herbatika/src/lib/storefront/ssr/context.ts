@@ -1,10 +1,14 @@
 import "server-only";
 
-import type { RegionInfo } from "@techsio/storefront-data/shared";
-import { getServerQueryClient } from "@techsio/storefront-data/server";
+import type { RegionInfo } from "@techsio/storefront-data/shared/region";
+import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client";
 import type { QueryClient } from "@tanstack/react-query";
 import { cookies } from "next/headers";
 import { storefrontCacheConfig } from "../cache";
+import {
+  getProductDetailQueryOptions,
+  getProductListQueryOptions,
+} from "../products";
 import {
   REGION_COUNTRY_CODE_STORAGE_KEY,
   REGION_STORAGE_KEY,
@@ -12,8 +16,7 @@ import {
 } from "../region-preferences";
 import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "../region-query-config";
 import { resolveRegionByIdOrDefault, toRegionInfo } from "../region-selection";
-import { fetchProductByHandle, fetchProducts, fetchRegions } from "./fetch";
-import { buildDetailQueryKey, buildListQueryKey } from "./query";
+import { storefront } from "../storefront";
 import type {
   ProductDetailParams,
   ProductListParams,
@@ -39,8 +42,8 @@ export const getRegionServerContext = async () => {
   };
 
   const regionListResponse = await queryClient.fetchQuery({
-    queryKey: buildListQueryKey("regions", listParams),
-    queryFn: ({ signal }) => fetchRegions(listParams, signal),
+    queryKey: storefront.queryKeys.regions.list(listParams),
+    queryFn: ({ signal }) => storefront.services.regions.getRegions(listParams, signal),
     ...storefrontCacheConfig.static,
   });
 
@@ -62,20 +65,20 @@ export const prefetchProductList = async (
   queryClient: QueryClient,
   listParams: ProductListParams,
 ) => {
-  await queryClient.prefetchQuery({
-    queryKey: buildListQueryKey("products", listParams),
-    queryFn: ({ signal }) => fetchProducts(listParams, signal),
-    ...storefrontCacheConfig.semiStatic,
-  });
+  await queryClient.prefetchQuery(
+    getProductListQueryOptions(listParams, {
+      queryOptions: storefrontCacheConfig.semiStatic,
+    }),
+  );
 };
 
 export const prefetchProductDetail = async (
   queryClient: QueryClient,
   detailParams: ProductDetailParams,
 ) => {
-  return queryClient.fetchQuery({
-    queryKey: buildDetailQueryKey("products", detailParams),
-    queryFn: ({ signal }) => fetchProductByHandle(detailParams, signal),
-    ...storefrontCacheConfig.semiStatic,
-  });
+  return queryClient.fetchQuery(
+    getProductDetailQueryOptions(detailParams, {
+      queryOptions: storefrontCacheConfig.semiStatic,
+    }),
+  );
 };

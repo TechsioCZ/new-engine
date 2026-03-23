@@ -1,6 +1,6 @@
 "use client";
 
-import type { CatalogFacets } from "@techsio/storefront-data";
+import type { CatalogFacets } from "@techsio/storefront-data/catalog/types";
 import { useMemo } from "react";
 import type { NuqsPlpQueryState } from "@/lib/storefront/plp-query-state";
 import { buildFacetChipItems } from "./category-selection-utils";

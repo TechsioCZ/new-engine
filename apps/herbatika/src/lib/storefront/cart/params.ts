@@ -1,11 +1,13 @@
 import type {
   AddLineItemInputBase,
   CartCreateInputBase,
+  UpdateCartInputBase,
+} from "@techsio/storefront-data/cart/types";
+import type {
   MedusaCartAddItemParams,
   MedusaCartCreateParams,
   MedusaCartUpdateParams,
-  UpdateCartInputBase,
-} from "@techsio/storefront-data";
+} from "@techsio/storefront-data/cart/medusa-service";
 
 type CartPayloadInput = Record<string, unknown> & { salesChannelId?: string };
 

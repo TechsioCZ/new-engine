@@ -1,22 +1,11 @@
 "use client";
 
-import {
-  createCheckoutHooks,
-  createMedusaCheckoutService,
-} from "@techsio/storefront-data";
-import { cartQueryKeys } from "./cart";
-import { storefrontCacheConfig } from "./cache";
-import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
-import { storefrontSdk } from "./sdk";
+import { storefront } from "./storefront";
 
-export const checkoutService = createMedusaCheckoutService(storefrontSdk);
-
-export const checkoutHooks = createCheckoutHooks({
-  service: checkoutService,
-  queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
-  cacheConfig: storefrontCacheConfig,
-  cartQueryKeys,
-});
+export const checkoutService = storefront.services.checkout;
+export const checkoutQueryKeys = storefront.queryKeys.checkout;
+export const checkoutHooks = storefront.hooks.checkout;
+export const checkoutFlow = storefront.flows.checkout;
 
 export const {
   useCheckoutShipping,
@@ -26,3 +15,5 @@ export const {
   getPaymentProvidersQueryOptions,
   fetchPaymentProviders,
 } = checkoutHooks;
+
+export const useCompleteCheckout = checkoutFlow.useCompleteCheckout;

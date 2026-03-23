@@ -1,4 +1,4 @@
-import type { RegionInfo } from "@techsio/storefront-data/shared";
+import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 
 export const REGION_STORAGE_KEY = "herbatika_region_id";
 export const REGION_COUNTRY_CODE_STORAGE_KEY = "herbatika_region_country_code";

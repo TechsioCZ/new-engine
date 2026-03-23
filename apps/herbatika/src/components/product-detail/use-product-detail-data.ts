@@ -1,7 +1,7 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
-import { useRegionContext } from "@techsio/storefront-data/shared";
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import { useEffect, useMemo, useState } from "react";

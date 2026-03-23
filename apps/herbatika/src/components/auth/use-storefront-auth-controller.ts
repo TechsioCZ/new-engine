@@ -1,6 +1,6 @@
 "use client";
 
-import { useRegionContext } from "@techsio/storefront-data/shared";
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {

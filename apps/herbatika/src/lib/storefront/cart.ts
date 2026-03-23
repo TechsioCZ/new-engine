@@ -1,24 +1,12 @@
 "use client";
 
-import {
-  createCartHooks,
-  createCartQueryKeys,
-} from "@techsio/storefront-data";
-import { cartStorage } from "./cart-storage";
+import { storefront } from "./storefront";
 import { storefrontCacheConfig } from "./cache";
-import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
-import {
-  buildAddLineItemParams,
-  buildCreateCartParams,
-  buildUpdateCartParams,
-} from "./cart/params";
-import { cartService } from "./cart/service";
 
-export const cartQueryKeys = createCartQueryKeys(
-  STOREFRONT_QUERY_KEY_NAMESPACE,
-);
-
-export { cartService };
+export const cartQueryKeys = storefront.queryKeys.cart;
+export const cartService = storefront.services.cart;
+export const cartHooks = storefront.hooks.cart;
+export const cartFlow = storefront.flows.cart;
 
 export const storefrontCartReadQueryOptions = {
   staleTime: 60 * 1000,
@@ -28,27 +16,17 @@ export const storefrontCartReadQueryOptions = {
   refetchOnReconnect: true,
 } as const;
 
-export const cartHooks = createCartHooks({
-  service: cartService,
-  queryKeys: cartQueryKeys,
-  cacheConfig: storefrontCacheConfig,
-  cartStorage,
-  requireRegion: true,
-  buildCreateParams: buildCreateCartParams,
-  buildUpdateParams: buildUpdateCartParams,
-  buildAddParams: buildAddLineItemParams,
-});
-
 export const {
   useCart,
   useSuspenseCart,
   useCreateCart,
   useUpdateCart,
   useUpdateCartAddress,
-  useAddLineItem,
-  useUpdateLineItem,
-  useRemoveLineItem,
   useTransferCart,
-  useCompleteCart,
   usePrefetchCart,
 } = cartHooks;
+
+export const useAddLineItem = cartFlow.useAddToCart;
+export const useUpdateLineItem = cartFlow.useUpdateLineItem;
+export const useRemoveLineItem = cartFlow.useRemoveLineItem;
+export const useCompleteCart = cartFlow.useCompleteCart;

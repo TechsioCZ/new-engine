@@ -1,79 +1,39 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
-import {
-  createCatalogHooks,
-  createCatalogQueryKeys,
-  createMedusaCatalogService,
-  type CatalogFacets,
-  type CatalogListResponse,
-} from "@techsio/storefront-data";
-import { storefrontCacheConfig } from "./cache";
+import type {
+  CatalogFacets,
+  CatalogListResponse,
+} from "@techsio/storefront-data/catalog/types";
 import {
   PLP_PAGE_SIZE,
   type CatalogProductsParams,
   type CatalogQueryState,
 } from "./catalog-query-state";
-import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
-import { storefrontSdk } from "./sdk";
+import { storefront } from "./storefront";
 
 export type CatalogProductsInput = CatalogProductsParams & {
   sort?: CatalogQueryState["sort"];
   enabled?: boolean;
 };
 
-const EMPTY_CATALOG_FACETS: CatalogFacets = {
-  status: [],
-  form: [],
-  brand: [],
-  ingredient: [],
-  price: {
-    min: null,
-    max: null,
-  },
-};
-
-export const catalogService = createMedusaCatalogService<
+export type CatalogProductsResponse = CatalogListResponse<
   HttpTypes.StoreProduct,
-  CatalogProductsInput,
   CatalogFacets
->(storefrontSdk, {
-  defaultLimit: PLP_PAGE_SIZE,
-  defaultSort: "recommended",
-});
+>;
 
-export const catalogQueryKeys = createCatalogQueryKeys<CatalogProductsInput>(
-  STOREFRONT_QUERY_KEY_NAMESPACE,
-);
+export const catalogService = storefront.services.catalog;
+export const catalogQueryKeys = storefront.queryKeys.catalog;
+export const catalogHooks = storefront.hooks.catalog;
 
-export const catalogHooks = createCatalogHooks<
-  HttpTypes.StoreProduct,
-  CatalogProductsInput,
-  CatalogProductsInput,
-  CatalogFacets
->({
-  service: catalogService,
-  queryKeys: catalogQueryKeys,
-  queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
-  cacheConfig: storefrontCacheConfig,
-  defaultPageSize: PLP_PAGE_SIZE,
-  requireRegion: true,
-  fallbackFacets: EMPTY_CATALOG_FACETS,
-});
-
-export const {
-  useCatalogProducts,
-  useSuspenseCatalogProducts,
-  usePrefetchCatalogProducts,
-  prefetchCatalogProducts,
-} = catalogHooks;
+export const useCatalogProducts = catalogHooks.useCatalogProducts;
+export const useSuspenseCatalogProducts = catalogHooks.useSuspenseCatalogProducts;
+export const usePrefetchCatalogProducts = catalogHooks.usePrefetchCatalogProducts;
+export const prefetchCatalogProducts = catalogHooks.prefetchCatalogProducts;
 
 export const fetchCatalogProducts = (
   input: CatalogProductsInput,
   signal?: AbortSignal,
 ) => catalogService.getCatalogProducts(input, signal);
 
-export type CatalogProductsResponse = CatalogListResponse<
-  HttpTypes.StoreProduct,
-  CatalogFacets
->;
+export { PLP_PAGE_SIZE };
