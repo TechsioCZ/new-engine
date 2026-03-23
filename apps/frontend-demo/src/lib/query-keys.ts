@@ -11,7 +11,7 @@ export const queryKeys = {
     list: (params?: {
       page?: number
       limit?: number
-      filters?: any // Flexible to accommodate various filter types
+      filters?: unknown
       sort?: string
       fields?: string
       q?: string
@@ -23,7 +23,7 @@ export const queryKeys = {
       pageRange?: string
       pageRangeStart?: number
       limit?: number
-      filters?: any
+      filters?: unknown
       sort?: string
       q?: string
       category?: string | string[]
@@ -51,7 +51,6 @@ export const queryKeys = {
   // Category queries
   categories: () => [...queryKeys.all, "categories"] as const,
   category: (handle: string) => [...queryKeys.categories(), handle] as const,
-  allCategories: () => [...queryKeys.all, "all-categories"] as const,
 
   // Order queries
   orders: {

@@ -9,7 +9,7 @@ export type InventoryInfo = {
   message: string
 }
 
-export function isVariantPurchasable(
+function isVariantPurchasable(
   variant: ProductVariant | StoreProductVariant | undefined | null
 ): boolean {
   return getVariantInventory(variant).status !== "out-of-stock"

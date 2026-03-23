@@ -209,20 +209,3 @@ export const getProducts = async (
     throw error
   }
 }
-
-export async function getProduct(
-  handle: string,
-  region_id?: string,
-  country_code?: string
-): Promise<Product> {
-  const response = await sdk.store.product.list({
-    ...buildProductDetailQuery(handle, region_id, country_code),
-    country_code: country_code ?? "cz",
-  })
-
-  if (!response.products?.length) {
-    throw new Error("Product not found")
-  }
-
-  return transformProduct(response.products[0], true)
-}

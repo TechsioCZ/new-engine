@@ -1,11 +1,15 @@
 "use client"
 
-import { keepPreviousData } from "@tanstack/react-query"
-import { appendQueryKey } from "@techsio/storefront-data/shared/query-keys"
+import {
+  useIsFetching,
+  useQueries,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { buildStorefrontProductListParams, storefront } from "@/lib/storefront"
 import {
   buildProductListQuery,
   type ProductListParams,
+  type ProductListResponse,
 } from "@/services/product-service"
 import type { Product } from "@/types/product"
 import type { PageRange } from "./use-url-filters"
@@ -20,75 +24,49 @@ type UseInfiniteProductsReturn = {
   isLoading: boolean
   error: string | null
   totalCount: number
-  queryKey: readonly unknown[]
   hasNextPage: boolean
   isFetchingNextPage: boolean
   fetchNextPage: () => Promise<unknown>
 }
 
-type StorefrontInfiniteProductsInput = Parameters<
-  typeof storefront.hooks.products.useInfiniteProducts
->[0]
+type ProductsPageFragmentParams = Omit<
+  UseInfiniteProductsParams,
+  "pageRange" | "enabled"
+>
 
-const toStorefrontInfiniteProductsInput = (
-  params: UseInfiniteProductsParams
-): StorefrontInfiniteProductsInput => {
-  const {
-    pageRange,
-    limit = 12,
-    filters,
-    sort,
-    fields,
-    q,
-    category,
-    region_id,
-    enabled,
-  } = params
-
-  const totalPagesNeeded = pageRange.end - pageRange.start + 1
-  const initialLimit =
-    pageRange.isRange && totalPagesNeeded > 1
-      ? totalPagesNeeded * limit
-      : undefined
-
-  const { offset: _offset, ...query } = buildProductListQuery({
-    limit,
-    filters,
-    sort,
-    fields,
-    q,
-    category,
-    region_id,
-  })
+const toProductsPageFragmentParams = (
+  params: ProductsPageFragmentParams,
+  page: number
+): ProductListParams => {
+  const limit = params.limit ?? 12
 
   return {
-    ...query,
-    page: pageRange.start,
     limit,
-    ...(typeof initialLimit === "number" ? { initialLimit } : {}),
-    enabled: enabled !== undefined ? enabled : !!region_id,
-  } as StorefrontInfiniteProductsInput
-}
-
-export const buildInfiniteProductsQueryKey = (
-  params: UseInfiniteProductsParams
-): readonly unknown[] => {
-  const {
-    enabled: _enabled,
-    initialLimit,
-    ...input
-  } = toStorefrontInfiniteProductsInput(
-    params
-  ) as StorefrontInfiniteProductsInput & {
-    initialLimit?: number
+    offset: (page - 1) * limit,
+    filters: params.filters,
+    sort: params.sort,
+    fields: params.fields,
+    q: params.q,
+    category: params.category,
+    region_id: params.region_id,
+    country_code: params.country_code,
   }
-  const baseListParams = buildStorefrontProductListParams(input)
-  const baseQueryKey = storefront.queryKeys.products.infinite(baseListParams)
-
-  return typeof initialLimit === "number"
-    ? appendQueryKey(baseQueryKey, { initialLimit })
-    : baseQueryKey
 }
+
+export const buildProductsPageFragmentInput = (
+  params: ProductsPageFragmentParams,
+  page: number
+): ProductListParams => toProductsPageFragmentParams(params, page)
+
+const buildProductsPageFragmentQueryKey = (
+  params: ProductsPageFragmentParams,
+  page: number
+): readonly unknown[] =>
+  storefront.queryKeys.products.list(
+    buildStorefrontProductListParams(
+      buildProductListQuery(toProductsPageFragmentParams(params, page))
+    )
+  )
 
 /**
  * Hook for fetching infinite product lists with "load more" functionality
@@ -96,30 +74,69 @@ export const buildInfiniteProductsQueryKey = (
 export function useInfiniteProducts(
   params: UseInfiniteProductsParams
 ): UseInfiniteProductsReturn {
-  const queryKey = buildInfiniteProductsQueryKey(params)
-  const {
-    products,
-    isLoading,
-    error,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    totalCount,
-  } = storefront.hooks.products.useInfiniteProducts(
-    toStorefrontInfiniteProductsInput(params),
-    {
-      queryOptions: {
-        placeholderData: keepPreviousData,
-      },
-    }
+  const queryClient = useQueryClient()
+  const enabled =
+    params.enabled !== undefined ? params.enabled : !!params.region_id
+  const limit = params.limit ?? 12
+  const pages = Array.from(
+    { length: params.pageRange.end - params.pageRange.start + 1 },
+    (_, index) => params.pageRange.start + index
   )
 
+  const queries = useQueries({
+    queries: pages.map((page) => {
+      const fragmentInput = buildProductListQuery(
+        buildProductsPageFragmentInput(params, page)
+      )
+
+      return {
+        ...storefront.hooks.products.getListQueryOptions(fragmentInput),
+        enabled,
+      }
+    }),
+  })
+
+  const firstResolvedPage = queries.find(
+    (query): query is typeof query & { data: ProductListResponse } =>
+      Boolean(query.data)
+  )
+  const totalCount = firstResolvedPage?.data.count ?? 0
+  const totalPages = limit > 0 ? Math.ceil(totalCount / limit) : 0
+  const nextPage = params.pageRange.end + 1
+  const nextPageQueryKey = buildProductsPageFragmentQueryKey(params, nextPage)
+  const isFetchingNextPage =
+    useIsFetching({
+      queryKey: nextPageQueryKey,
+      exact: true,
+    }) > 0
+  const hasNextPage = params.pageRange.end < totalPages
+  const firstError = queries.find((query) => query.error)?.error
+  let error: string | null = null
+  if (firstError instanceof Error) {
+    error = firstError.message
+  } else if (firstError) {
+    error = "An unknown error occurred."
+  }
+
+  const fetchNextPage = async () => {
+    if (!(enabled && hasNextPage)) {
+      return
+    }
+
+    const fragmentInput = buildProductListQuery(
+      buildProductsPageFragmentInput(params, nextPage)
+    )
+
+    await queryClient.prefetchQuery(
+      storefront.hooks.products.getListQueryOptions(fragmentInput)
+    )
+  }
+
   return {
-    products,
-    isLoading,
+    products: queries.flatMap((query) => query.data?.products ?? []),
+    isLoading: queries.some((query) => query.isLoading),
     error,
     totalCount,
-    queryKey,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,

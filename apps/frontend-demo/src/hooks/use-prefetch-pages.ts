@@ -1,60 +1,92 @@
 "use client"
 
-import { storefront } from "@/lib/storefront"
-import {
-  buildProductListQuery,
-  type ProductFilters,
-} from "@/services/product-service"
+import { useEffect } from "react"
+import { buildProductsPageFragmentInput } from "@/hooks/use-infinite-products"
+import type { ProductFilters } from "@/services/product-service"
+import { usePrefetchProducts } from "./use-prefetch-products"
 
 type UsePrefetchPagesParams = {
+  enabled?: boolean
   currentPage: number
-  hasNextPage: boolean
-  hasPrevPage: boolean
-  productsLength: number
-  pageSize: number
-  sortBy: string | undefined
   totalPages: number
-  regionId: string | undefined
-  searchQuery: string | undefined
-  filters: ProductFilters
+  limit: number
+  filters?: ProductFilters
+  sort?: string
+  q?: string
+  category?: string | string[]
+  region_id?: string
+  country_code?: string
 }
 
-type StorefrontProductsInput = Parameters<
-  typeof storefront.hooks.products.useProducts
->[0]
-
 export function usePrefetchPages({
+  enabled = true,
   currentPage,
-  hasNextPage,
-  hasPrevPage,
-  productsLength,
-  pageSize,
-  sortBy,
   totalPages,
-  regionId,
-  searchQuery,
+  limit,
   filters,
+  sort,
+  q,
+  category,
+  region_id,
+  country_code,
 }: UsePrefetchPagesParams) {
-  const { offset: _offset, ...baseInput } = buildProductListQuery({
-    limit: pageSize,
-    filters,
-    sort: sortBy === "relevance" ? undefined : sortBy,
-    q: searchQuery || undefined,
-    region_id: regionId,
-  })
-
-  storefront.hooks.products.usePrefetchPages({
-    enabled: productsLength > 0,
-    shouldPrefetch: !!regionId && productsLength > 0,
-    baseInput: {
-      ...baseInput,
-      limit: pageSize,
-    } as StorefrontProductsInput,
-    currentPage,
-    hasNextPage,
-    hasPrevPage,
-    totalPages,
-    pageSize,
+  const { prefetchProducts } = usePrefetchProducts({
+    enabled,
     cacheStrategy: "semiStatic",
   })
+
+  useEffect(() => {
+    if (!(enabled && totalPages > 0)) {
+      return
+    }
+
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const baseParams = {
+      limit,
+      filters,
+      sort,
+      q,
+      category,
+      region_id,
+      country_code,
+    }
+
+    const schedulePrefetch = (page: number, delay = 0) => {
+      if (page < 1 || page > totalPages || page === currentPage) {
+        return
+      }
+
+      const run = () =>
+        prefetchProducts(buildProductsPageFragmentInput(baseParams, page))
+
+      if (delay <= 0) {
+        run().catch(() => {
+          // Ignore prefetch errors; the interactive fetch remains authoritative.
+        })
+        return
+      }
+
+      timers.push(setTimeout(run, delay))
+    }
+
+    schedulePrefetch(currentPage + 1)
+
+    return () => {
+      for (const timer of timers) {
+        clearTimeout(timer)
+      }
+    }
+  }, [
+    enabled,
+    currentPage,
+    totalPages,
+    limit,
+    filters,
+    sort,
+    q,
+    category,
+    region_id,
+    country_code,
+    prefetchProducts,
+  ])
 }

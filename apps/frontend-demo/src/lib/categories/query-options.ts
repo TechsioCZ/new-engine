@@ -16,10 +16,7 @@ type RawCategory = {
   parent_category_id?: string | null
 }
 
-export const categoryRegistryQueryKey = [
-  "frontend-demo",
-  "category-registry",
-] as const
+const categoryRegistryQueryKey = ["frontend-demo", "category-registry"] as const
 
 const fetchAllCategories = async (
   signal?: AbortSignal

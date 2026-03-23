@@ -68,4 +68,3 @@ export const storefront = createMedusaStorefrontPreset<Product>({
 })
 
 export const { flows: storefrontFlows } = storefront
-export { cartStorage }
