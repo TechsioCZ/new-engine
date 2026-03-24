@@ -3,7 +3,6 @@
 import type { HttpTypes } from "@medusajs/types";
 import {
   createMedusaStorefrontPreset,
-  createMedusaStorefrontQueryKeys,
 } from "@techsio/storefront-data/medusa/preset";
 import { authService } from "./auth/service";
 import { storefrontCacheConfig } from "./cache";
@@ -27,14 +26,12 @@ import {
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
 import {
+  storefrontCatalogServiceConfig,
+  storefrontCategoryServiceConfig,
+  storefrontProductServiceConfig,
+  storefrontQueryKeys,
   STOREFRONT_CATALOG_DEFAULT_LIMIT,
-  STOREFRONT_CATALOG_DEFAULT_SORT,
-  STOREFRONT_CATEGORY_FIELDS,
 } from "./storefront-config";
-
-const presetQueryKeys = createMedusaStorefrontQueryKeys(
-  STOREFRONT_QUERY_KEY_NAMESPACE,
-);
 
 export const storefront = createMedusaStorefrontPreset<
   HttpTypes.StoreProduct,
@@ -45,15 +42,17 @@ export const storefront = createMedusaStorefrontPreset<
   cacheConfig: storefrontCacheConfig,
   auth: {
     service: authService,
+    queryKeys: storefrontQueryKeys.auth,
     hooks: {
       invalidateOnAuthChange: {
         includeDefaults: true,
-        invalidate: [presetQueryKeys.cart.all()],
-        removeOnLogout: [presetQueryKeys.cart.all()],
+        invalidate: [storefrontQueryKeys.cart.all()],
+        removeOnLogout: [storefrontQueryKeys.cart.all()],
       },
     },
   },
   cart: {
+    queryKeys: storefrontQueryKeys.cart,
     hooks: {
       cartStorage,
       requireRegion: true,
@@ -63,10 +62,8 @@ export const storefront = createMedusaStorefrontPreset<
     },
   },
   products: {
-    serviceConfig: {
-      defaultListFields: STOREFRONT_PRODUCT_CARD_FIELDS,
-      defaultDetailFields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
-    },
+    queryKeys: storefrontQueryKeys.products,
+    serviceConfig: storefrontProductServiceConfig,
     hooks: {
       buildListParams: buildProductListParams,
       buildPrefetchParams: buildProductListParams,
@@ -76,16 +73,21 @@ export const storefront = createMedusaStorefrontPreset<
   },
   orders: {
     service: herbatikaOrderService,
+    queryKeys: storefrontQueryKeys.orders,
     hooks: {
       buildListParams: buildHerbatikaOrderListParams,
       buildDetailParams: (input) => input,
     },
   },
+  customers: {
+    queryKeys: storefrontQueryKeys.customers,
+  },
+  regions: {
+    queryKeys: storefrontQueryKeys.regions,
+  },
   categories: {
-    serviceConfig: {
-      defaultListFields: STOREFRONT_CATEGORY_FIELDS,
-      defaultDetailFields: STOREFRONT_CATEGORY_FIELDS,
-    },
+    queryKeys: storefrontQueryKeys.categories,
+    serviceConfig: storefrontCategoryServiceConfig,
     hooks: {
       buildListParams: buildCategoryListParams,
       buildDetailParams: (input) => input,
@@ -93,10 +95,8 @@ export const storefront = createMedusaStorefrontPreset<
     },
   },
   catalog: {
-    serviceConfig: {
-      defaultLimit: STOREFRONT_CATALOG_DEFAULT_LIMIT,
-      defaultSort: STOREFRONT_CATALOG_DEFAULT_SORT,
-    },
+    queryKeys: storefrontQueryKeys.catalog,
+    serviceConfig: storefrontCatalogServiceConfig,
     hooks: {
       requireRegion: true,
       defaultPageSize: STOREFRONT_CATALOG_DEFAULT_LIMIT,

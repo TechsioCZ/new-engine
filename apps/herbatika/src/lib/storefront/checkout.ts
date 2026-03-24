@@ -58,7 +58,7 @@ export const useCheckoutShipping = (
 
   const shipping = checkoutFlow.useCheckoutShipping(
     input.cartId,
-    input.cart,
+    undefined,
     {
       enabled: input.enabled,
       calculatePrices: input.calculatePrices,
@@ -117,7 +117,7 @@ export const useCheckoutPayment = (
   return checkoutFlow.useCheckoutPayment(
     input.cartId,
     input.regionId,
-    input.cart,
+    undefined,
     {
       enabled: input.enabled,
       onSuccess: options?.onSuccess,
@@ -128,4 +128,16 @@ export const useCheckoutPayment = (
 
 export const useSuspenseCheckoutPayment = checkoutHooks.useSuspenseCheckoutPayment;
 
-export const useCompleteCheckout = checkoutFlow.useCompleteCheckout;
+type CompleteCheckoutInput = {
+  cartId?: string;
+  regionId?: string;
+  enabled?: boolean;
+};
+
+export const useCompleteCheckout = (input: CompleteCheckoutInput) => {
+  return checkoutFlow.useCompleteCheckout({
+    cartId: input.cartId,
+    regionId: input.regionId,
+    enabled: input.enabled,
+  });
+};

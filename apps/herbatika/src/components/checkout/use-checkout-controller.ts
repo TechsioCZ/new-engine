@@ -43,7 +43,6 @@ export function useCheckoutController() {
   const updateCartAddressMutation = useUpdateCartAddress();
   const completeCheckoutMutation = useCompleteCheckout({
     cartId: cartQuery.cart?.id,
-    cart: cartQuery.cart,
     regionId: activeRegionId,
     enabled: Boolean(activeRegionId),
   });
@@ -52,13 +51,11 @@ export function useCheckoutController() {
 
   const checkoutShippingQuery = useCheckoutShipping({
     cartId: cartQuery.cart?.id,
-    cart: cartQuery.cart,
     enabled: Boolean(cartQuery.cart?.id),
   });
 
   const checkoutPaymentQuery = useCheckoutPayment({
     cartId: cartQuery.cart?.id,
-    cart: cartQuery.cart,
     regionId: activeRegionId,
     enabled: Boolean(activeRegionId),
   });

@@ -140,14 +140,20 @@ export const herbatikaOrderService: OrderService<
 > = {
   async getOrders(
     params: MedusaOrderListInput,
-    _signal?: AbortSignal,
+    signal?: AbortSignal,
   ): Promise<OrderListResponse<HttpTypes.StoreOrder>> {
-    const response = await storefrontSdk.store.order.list({
-      fields: ORDER_LIST_FIELDS,
-      order: ORDER_SORT,
-      limit: params.limit,
-      offset: params.offset,
-    });
+    const response = await storefrontSdk.client.fetch<HttpTypes.StoreOrderListResponse>(
+      "/store/orders",
+      {
+        query: {
+          fields: ORDER_LIST_FIELDS,
+          order: ORDER_SORT,
+          limit: params.limit,
+          offset: params.offset,
+        },
+        signal,
+      },
+    );
 
     return {
       orders: (response.orders ?? []).map(normalizeOrderListItem),
@@ -157,15 +163,20 @@ export const herbatikaOrderService: OrderService<
 
   async getOrder(
     params: MedusaOrderDetailInput,
-    _signal?: AbortSignal,
+    signal?: AbortSignal,
   ): Promise<HttpTypes.StoreOrder | null> {
     if (!params.id) {
       return null;
     }
 
     try {
-      const response = await storefrontSdk.store.order.retrieve(params.id, {
-        fields: ORDER_DETAIL_FIELDS,
+      const response = await storefrontSdk.client.fetch<{
+        order?: HttpTypes.StoreOrder;
+      }>(`/store/orders/${params.id}`, {
+        query: {
+          fields: ORDER_DETAIL_FIELDS,
+        },
+        signal,
       });
 
       if (!response.order) {
