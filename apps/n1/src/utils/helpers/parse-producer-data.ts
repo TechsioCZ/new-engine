@@ -9,6 +9,9 @@ const TAG_REGEX = /<[^>]+>/g
 const PARAGRAPH_REGEX = /<p\b[^>]*>([\s\S]*?)<\/p>/gi
 const LINK_HREF_REGEX = /<a\b[^>]*href=(["'])(.*?)\1/i
 const SEARCH_NORMALIZATION_REGEX = /[\u0300-\u036f]/g
+const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
+const LATIN_NAMED_ENTITY_REGEX =
+  /^([A-Za-z]{1,2})(acute|caron|cedil|circ|grave|macr|ring|tilde|uml)$/
 
 const HTML_ENTITY_MAP: Record<string, string> = {
   amp: "&",
@@ -17,6 +20,18 @@ const HTML_ENTITY_MAP: Record<string, string> = {
   lt: "<",
   nbsp: " ",
   quot: '"',
+}
+
+const HTML_ENTITY_DIACRITIC_MAP: Record<string, string> = {
+  acute: "\u0301",
+  caron: "\u030C",
+  cedil: "\u0327",
+  circ: "\u0302",
+  grave: "\u0300",
+  macr: "\u0304",
+  ring: "\u030A",
+  tilde: "\u0303",
+  uml: "\u0308",
 }
 
 const getSectionEndIndex = (
@@ -36,21 +51,50 @@ const getSectionEndIndex = (
 const normalizeForSearch = (value: string): string =>
   value.normalize("NFD").replace(SEARCH_NORMALIZATION_REGEX, "").toLowerCase()
 
+const isValidCodePoint = (value: number): boolean =>
+  Number.isInteger(value) &&
+  value >= 0 &&
+  value <= 0x10_ff_ff &&
+  !(value >= 0xd8_00 && value <= 0xdf_ff)
+
+const decodeNumericHtmlEntity = (
+  entity: string,
+  token: string,
+  base: 10 | 16
+): string => {
+  const codePoint = Number.parseInt(token, base)
+
+  return isValidCodePoint(codePoint) ? String.fromCodePoint(codePoint) : entity
+}
+
+const decodeLatinNamedEntity = (token: string): string | undefined => {
+  const match = token.match(LATIN_NAMED_ENTITY_REGEX)
+
+  if (!match) {
+    return
+  }
+
+  const [, baseLetter, diacriticName = ""] = match
+  const diacritic = HTML_ENTITY_DIACRITIC_MAP[diacriticName.toLowerCase()]
+
+  return diacritic ? `${baseLetter}${diacritic}`.normalize("NFC") : undefined
+}
+
 const decodeHtmlEntities = (value: string): string =>
   value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (entity, token: string) => {
     const lowerToken = token.toLowerCase()
 
     if (lowerToken.startsWith("#x")) {
-      const codePoint = Number.parseInt(lowerToken.slice(2), 16)
-      return Number.isNaN(codePoint) ? entity : String.fromCodePoint(codePoint)
+      return decodeNumericHtmlEntity(entity, lowerToken.slice(2), 16)
     }
 
     if (lowerToken.startsWith("#")) {
-      const codePoint = Number.parseInt(lowerToken.slice(1), 10)
-      return Number.isNaN(codePoint) ? entity : String.fromCodePoint(codePoint)
+      return decodeNumericHtmlEntity(entity, lowerToken.slice(1), 10)
     }
 
-    return HTML_ENTITY_MAP[lowerToken] ?? entity
+    return (
+      HTML_ENTITY_MAP[lowerToken] ?? decodeLatinNamedEntity(token) ?? entity
+    )
   })
 
 const stripTags = (value: string): string =>
@@ -184,7 +228,9 @@ function findTaxId(paragraphs: string[]): string | undefined {
 }
 
 function findEmail(paragraphs: string[]): string | undefined {
-  return paragraphs.find((paragraph) => paragraph.includes("@"))?.trim()
+  return paragraphs
+    .map((paragraph) => paragraph.match(EMAIL_REGEX)?.[0])
+    .find(Boolean)
 }
 
 function findPhone(paragraphs: string[]): string | undefined {
