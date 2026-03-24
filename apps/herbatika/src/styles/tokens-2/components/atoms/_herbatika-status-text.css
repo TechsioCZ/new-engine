@@ -1,0 +1,16 @@
+@theme static {
+  --color-status-text-fg-default: var(--color-fg-secondary);
+  --color-status-text-fg-error: var(--color-danger);
+  --color-status-text-fg-success: var(--color-success);
+  --color-status-text-fg-warning: oklch(
+    from var(--color-warning) calc(l - 0.3) c h
+  );
+
+  --text-status-text-sm: var(--text-sm);
+  --text-status-text-md: var(--text-md);
+  --text-status-text-lg: var(--text-lg);
+
+  --spacing-status-text-icon-gap-sm: var(--spacing-100);
+  --spacing-status-text-icon-gap-md: var(--spacing-150);
+  --spacing-status-text-icon-gap-lg: var(--spacing-200);
+}

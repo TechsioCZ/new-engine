@@ -1,11 +1,11 @@
 import type { HttpTypes } from "@medusajs/types";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { Image } from "@techsio/ui-kit/atoms/image";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import {
   resolveCartItemName,
   resolveLineItemTotalAmount,
 } from "@/components/checkout/checkout.utils";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type CheckoutOrderSummarySectionProps = {
   cartItems: HttpTypes.StoreCartLineItem[];
@@ -67,16 +67,16 @@ export function CheckoutOrderSummarySection({
                 />
                 <div className="min-w-0 flex-1 space-y-100">
                   <p className="line-clamp-2 text-md font-medium text-fg-primary">{itemName}</p>
-                  <ExtraText className="text-fg-secondary">{`× ${itemQuantity}`}</ExtraText>
+                  <SupportingText className="text-fg-secondary">{`× ${itemQuantity}`}</SupportingText>
                 </div>
                 <p className="shrink-0 text-lg font-semibold text-fg-primary">{itemPrice}</p>
               </article>
             );
           })
         ) : (
-          <ExtraText className="text-fg-secondary">
+          <SupportingText className="text-fg-secondary">
             Košík je zatiaľ prázdny.
-          </ExtraText>
+          </SupportingText>
         )}
       </div>
 

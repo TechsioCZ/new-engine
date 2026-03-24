@@ -3,8 +3,8 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { useState } from "react";
 import { StorefrontAuthControls } from "@/components/storefront-auth-controls";
 import { StorefrontQueryMonitorPanel } from "@/components/storefront-query-monitor-panel";
@@ -201,16 +201,36 @@ export function StorefrontDataSmokePanel() {
         </Badge>
       </div>
 
-      {mutationError && <ErrorText showIcon>{mutationError}</ErrorText>}
+      {mutationError && (
+        <StatusText showIcon status="error">
+          {mutationError}
+        </StatusText>
+      )}
       {productsQuery.error && (
-        <ErrorText showIcon>{productsQuery.error}</ErrorText>
+        <StatusText showIcon status="error">
+          {productsQuery.error}
+        </StatusText>
       )}
-      {cartQuery.error && <ErrorText showIcon>{cartQuery.error}</ErrorText>}
-      {authQuery.error && <ErrorText showIcon>{authQuery.error}</ErrorText>}
+      {cartQuery.error && (
+        <StatusText showIcon status="error">
+          {cartQuery.error}
+        </StatusText>
+      )}
+      {authQuery.error && (
+        <StatusText showIcon status="error">
+          {authQuery.error}
+        </StatusText>
+      )}
       {customerAddressesQuery.error && (
-        <ErrorText showIcon>{customerAddressesQuery.error}</ErrorText>
+        <StatusText showIcon status="error">
+          {customerAddressesQuery.error}
+        </StatusText>
       )}
-      {ordersQuery.error && <ErrorText showIcon>{ordersQuery.error}</ErrorText>}
+      {ordersQuery.error && (
+        <StatusText showIcon status="error">
+          {ordersQuery.error}
+        </StatusText>
+      )}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className={sectionClassName}>

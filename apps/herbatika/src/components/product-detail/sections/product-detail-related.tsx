@@ -1,11 +1,11 @@
 "use client";
 
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { ProductCollectionSection } from "@/components/product/product-collection-section";
 import type {
   RelatedProductsSection,
   StorefrontProduct,
 } from "@/components/product-detail/product-detail.types";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type ProductDetailRelatedProps = {
   isProductAdding: (productId: string) => boolean;
@@ -31,7 +31,9 @@ export function ProductDetailRelated({
       {sections.map((section) => (
         <ProductCollectionSection
           headerAction={
-            <ExtraText className="text-fg-tertiary">{`Nájdené: ${section.products.length}`}</ExtraText>
+            <SupportingText className="text-fg-tertiary">
+              {`Nájdené: ${section.products.length}`}
+            </SupportingText>
           }
           headerClassName="items-center gap-200"
           isProductAdding={(product) => isProductAdding(product.id)}

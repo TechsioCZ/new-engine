@@ -1,0 +1,33 @@
+@theme static {
+  --color-carousel-trigger-bg: color-mix(
+    in srgb,
+    var(--color-surface) 88%,
+    transparent
+  );
+  --color-carousel-trigger-bg-hover: var(--color-surface);
+  --color-carousel-trigger-fg: var(--color-fg-primary);
+  --color-carousel-trigger-fg-hover: var(--color-primary);
+  --color-carousel-control-bg: color-mix(
+    in srgb,
+    var(--color-surface) 88%,
+    transparent
+  );
+  --color-carousel-indicator-bg: color-mix(
+    in srgb,
+    var(--color-border-primary) 100%,
+    transparent
+  );
+  --color-carousel-indicator-bg-active: var(--color-primary);
+  --color-carousel-indicator-border: transparent;
+  --color-carousel-indicator-border-active: transparent;
+
+  --padding-carousel-control: var(--spacing-200);
+  --gap-carousel-control: var(--spacing-150);
+  --padding-carousel-trigger: 0 0;
+  --gap-carousel-indicator: var(--spacing-150);
+  --width-carousel-indicator: var(--spacing-200);
+
+  --text-carousel-trigger-size: var(--text-xl);
+  --radius-carousel: var(--radius-md);
+  --radius-carousel-indicator: 999px;
+}

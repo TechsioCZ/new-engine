@@ -1,6 +1,6 @@
 import type { HttpTypes } from "@medusajs/types";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state";
 import { CategoryProductsGrid } from "./category-products-grid";
 import { CategorySortTabs } from "./category-sort-tabs";
@@ -60,14 +60,26 @@ export function CategoryResultsSection({
         totalProducts={totalProducts}
       />
 
-      {addToCartError && <ErrorText showIcon>{addToCartError}</ErrorText>}
-      {categoriesError && <ErrorText showIcon>{categoriesError}</ErrorText>}
-      {catalogError && <ErrorText showIcon>{catalogError}</ErrorText>}
+      {addToCartError && (
+        <StatusText showIcon status="error">
+          {addToCartError}
+        </StatusText>
+      )}
+      {categoriesError && (
+        <StatusText showIcon status="error">
+          {categoriesError}
+        </StatusText>
+      )}
+      {catalogError && (
+        <StatusText showIcon status="error">
+          {catalogError}
+        </StatusText>
+      )}
       {showCategoryNotFound && (
-        <ErrorText showIcon>
+        <StatusText showIcon status="error">
           Kategóriu sa nepodarilo nájsť. Skontrolujte URL alebo vyberte inú
           kategóriu.
-        </ErrorText>
+        </StatusText>
       )}
 
       {isLoading && <ProductGridSkeleton />}

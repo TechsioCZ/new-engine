@@ -1,10 +1,10 @@
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import NextLink from "next/link";
 import type { AddressFormState } from "@/components/checkout/checkout.constants";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type CheckoutCompleteSectionProps = {
   addressForm: AddressFormState;
@@ -81,9 +81,9 @@ export function CheckoutCompleteSection({
             <p className="text-2xl font-bold text-fg-primary">
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
             </p>
-            <ExtraText className="text-fg-secondary">
+            <SupportingText className="text-fg-secondary">
               {`bez DPH: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
-            </ExtraText>
+            </SupportingText>
           </div>
         </div>
 
@@ -117,9 +117,9 @@ export function CheckoutCompleteSection({
           >
             Dokončiť objednávku
           </Button>
-          <ExtraText className="text-fg-secondary">
+          <SupportingText className="text-fg-secondary">
             Potvrdzujem, že som sa oboznámil s obchodnými podmienkami a ochranou osobných údajov.
-          </ExtraText>
+          </SupportingText>
         </div>
       </div>
 
@@ -136,9 +136,9 @@ export function CheckoutCompleteSection({
             Upraviť
           </LinkButton>
         </div>
-        <ExtraText className={hasShipping ? "text-fg-primary" : "text-warning"}>
+        <SupportingText className={hasShipping ? "text-fg-primary" : "text-warning"}>
           {hasShipping ? shippingLabel ?? "Zvolená doprava" : "Doprava nie je vybraná"}
-        </ExtraText>
+        </SupportingText>
       </div>
 
       <div className="space-y-150 rounded-sm border border-border-primary bg-surface p-250">
@@ -154,9 +154,9 @@ export function CheckoutCompleteSection({
             Upraviť
           </LinkButton>
         </div>
-        <ExtraText className={hasPayment ? "text-fg-primary" : "text-warning"}>
+        <SupportingText className={hasPayment ? "text-fg-primary" : "text-warning"}>
           {hasPayment ? paymentLabel ?? "Zvolená platba" : "Platba nie je vybraná"}
-        </ExtraText>
+        </SupportingText>
       </div>
 
       <div className="space-y-200 rounded-sm border border-border-primary bg-surface p-250">
@@ -175,15 +175,15 @@ export function CheckoutCompleteSection({
         <div className="grid gap-150 sm:grid-cols-2">
           {addressRows.map((row) => (
             <div className="space-y-50" key={row.label}>
-              <ExtraText className="text-fg-secondary">{row.label}</ExtraText>
+              <SupportingText className="text-fg-secondary">{row.label}</SupportingText>
               <p className="text-sm text-fg-primary">{resolveValue(row.value)}</p>
             </div>
           ))}
         </div>
         {!hasStoredAddress ? (
-          <ExtraText className="text-warning">
+          <SupportingText className="text-warning">
             Niektoré povinné údaje ešte nie sú uložené.
-          </ExtraText>
+          </SupportingText>
         ) : null}
       </div>
 

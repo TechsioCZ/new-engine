@@ -1,7 +1,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type ShippingOption = {
   id: string;
@@ -66,9 +66,9 @@ export function CheckoutShippingSection({
     <section className="space-y-250 rounded-sm p-550 font-rubik">
       <header className="space-y-50">
         <h2 className="text-xl font-medium text-fg-primary">Doprava</h2>
-        <ExtraText className="text-fg-secondary">
+        <SupportingText className="text-fg-secondary">
           {hasShipping ? "Doprava je zvolená." : "Vyberte spôsob dopravy."}
-        </ExtraText>
+        </SupportingText>
       </header>
       <div className="grid gap-150">
         {shippingOptions.length > 0 ? (
@@ -117,13 +117,15 @@ export function CheckoutShippingSection({
                       {resolveShippingPriceLabel(optionPrice)}
                     </p>
                   </div>
-                  <ExtraText className="pl-700 text-fg-secondary">{optionStatusLabel}</ExtraText>
+                  <SupportingText className="pl-700 text-fg-secondary">
+                    {optionStatusLabel}
+                  </SupportingText>
                 </div>
               </Button>
             );
           })
         ) : (
-          <ExtraText>Nie sú dostupné žiadne možnosti dopravy.</ExtraText>
+          <SupportingText>Nie sú dostupné žiadne možnosti dopravy.</SupportingText>
         )}
       </div>
     </section>

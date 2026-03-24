@@ -1,12 +1,12 @@
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
+import { SupportingText } from "@/components/text/supporting-text";
 
 export function CheckoutEmptyCartSection() {
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-350">
       <h2 className="text-xl font-semibold text-fg-primary">Košík je prázdny</h2>
-      <ExtraText>Pred checkoutom pridajte aspoň jeden produkt.</ExtraText>
+      <SupportingText>Pred checkoutom pridajte aspoň jeden produkt.</SupportingText>
       <div className="flex flex-wrap gap-200">
         <LinkButton as={NextLink} href="/" variant="secondary">
           Ísť na domovskú stránku

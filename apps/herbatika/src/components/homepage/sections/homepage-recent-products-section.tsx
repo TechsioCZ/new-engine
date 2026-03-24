@@ -1,11 +1,11 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { useMemo, useState } from "react";
 import { HerbatikaProductCard } from "@/components/herbatika-product-card";
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton";
 import { RECENT_PRODUCT_SKELETON_KEYS } from "@/components/homepage/homepage.data";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type HomepageRecentProductsSectionProps = {
   products: HttpTypes.StoreProduct[];
@@ -71,9 +71,9 @@ export function HomepageRecentProductsSection({
           ))}
         </div>
       ) : (
-        <ExtraText className="text-sm text-fg-secondary">
+        <SupportingText className="text-sm text-fg-secondary">
           Zatiaľ nemáte žiadne naposledy navštívené produkty.
-        </ExtraText>
+        </SupportingText>
       )}
     </section>
   );

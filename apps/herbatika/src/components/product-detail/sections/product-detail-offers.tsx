@@ -1,9 +1,9 @@
 "use client";
 
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import type { VolumeDiscountOption } from "@/components/product-detail/product-detail.types";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type ProductDetailOffersProps = {
   isAdding: boolean;
@@ -58,15 +58,17 @@ export function ProductDetailOffers({
 
                 <div className="space-y-150">
                   <p className="text-md font-medium text-fg-primary">{option.title}</p>
-                  <ExtraText className="text-sm text-fg-tertiary">{option.perUnitLabel}</ExtraText>
+                  <SupportingText className="text-sm text-fg-tertiary">
+                    {option.perUnitLabel}
+                  </SupportingText>
                 </div>
 
                 <div className="ml-auto space-y-200 text-right">
                   <p className="text-md font-medium text-fg-primary">{option.totalAmountLabel}</p>
                   {option.oldTotalAmountLabel ? (
-                    <ExtraText className="text-sm text-fg-tertiary line-through">
+                    <SupportingText className="text-sm text-fg-tertiary line-through">
                       {option.oldTotalAmountLabel}
-                    </ExtraText>
+                    </SupportingText>
                   ) : null}
                 </div>
               </div>

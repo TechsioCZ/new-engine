@@ -1,13 +1,13 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import type { ReactNode } from "react";
 import {
   HerbatikaProductGrid,
   type HerbatikaProductGridLayout,
 } from "@/components/product/herbatika-product-grid";
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type ProductCollectionSectionProps = {
   title: string;
@@ -90,7 +90,9 @@ export function ProductCollectionSection({
           products={products}
         />
       ) : (
-        <ExtraText className="text-sm text-fg-secondary">{emptyText}</ExtraText>
+        <SupportingText className="text-sm text-fg-secondary">
+          {emptyText}
+        </SupportingText>
       )}
     </section>
   );

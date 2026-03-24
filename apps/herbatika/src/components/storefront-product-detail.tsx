@@ -1,9 +1,9 @@
 "use client";
 
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import { ProductDetailMetrics } from "@/components/product-detail/sections/product-detail-metrics";
 import { ProductDetailOffers } from "@/components/product-detail/sections/product-detail-offers";
@@ -29,7 +29,9 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
 
       {!controller.isBootstrappingRegion && controller.productQuery.error ? (
         <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
-          <ErrorText showIcon>{controller.productQuery.error}</ErrorText>
+          <StatusText showIcon status="error">
+            {controller.productQuery.error}
+          </StatusText>
           <Button
             onClick={() => {
               void controller.productQuery.query.refetch();
@@ -46,7 +48,9 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
       !controller.productQuery.error &&
       !controller.product ? (
         <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
-          <ErrorText showIcon>Produkt sa nepodarilo nájsť.</ErrorText>
+          <StatusText showIcon status="error">
+            Produkt sa nepodarilo nájsť.
+          </StatusText>
           <LinkButton as={NextLink} href="/" variant="secondary">
             Späť na domovskú stránku
           </LinkButton>
@@ -88,7 +92,9 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
             />
 
             {controller.addToCartError ? (
-              <ErrorText showIcon>{controller.addToCartError}</ErrorText>
+              <StatusText showIcon status="error">
+                {controller.addToCartError}
+              </StatusText>
             ) : null}
           </ProductDetailHero>
 

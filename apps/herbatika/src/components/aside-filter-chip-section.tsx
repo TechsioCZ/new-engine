@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { useMemo, useState } from "react";
+import { SupportingText } from "@/components/text/supporting-text";
 
 export type AsideFilterChipItem = {
   id: string;
@@ -52,9 +52,9 @@ export function AsideFilterChipSection({
       <h3 className="text-2xl font-bold leading-tight">{title}</h3>
 
       {items.length === 0 && (
-        <ExtraText className="text-fg-secondary text-sm">
+        <SupportingText className="text-fg-secondary text-sm">
           {emptyMessage}
-        </ExtraText>
+        </SupportingText>
       )}
 
       {items.length > 0 && (

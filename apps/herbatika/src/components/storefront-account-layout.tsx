@@ -2,9 +2,9 @@
 
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
@@ -139,7 +139,11 @@ export function StorefrontAccountLayout({
             })}
           </nav>
 
-          {logoutError && <ErrorText showIcon>{logoutError}</ErrorText>}
+          {logoutError && (
+            <StatusText showIcon status="error">
+              {logoutError}
+            </StatusText>
+          )}
 
           <Button
             block

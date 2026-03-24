@@ -2,8 +2,8 @@
 
 import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import { useState } from "react";
 import { AuthTextField } from "@/components/auth/auth-text-field";
@@ -60,7 +60,9 @@ export const StorefrontRegisterForm = ({
     >
       {submitError && (
         <div className="md:col-span-2">
-          <ErrorText showIcon>{submitError}</ErrorText>
+          <StatusText showIcon status="error">
+            {submitError}
+          </StatusText>
         </div>
       )}
 

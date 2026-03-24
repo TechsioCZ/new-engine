@@ -1,0 +1,21 @@
+@theme static {
+  --spacing-50: 0.125rem;
+  --spacing-100: 0.25rem;
+  --spacing-150: 0.375rem;
+  --spacing-200: 0.5rem;
+  --spacing-250: 0.625rem;
+  --spacing-300: 0.75rem;
+  --spacing-350: 0.875rem;
+  --spacing-400: 1rem;
+  --spacing-450: 1.125rem;
+  --spacing-500: 1.25rem;
+  --spacing-550: 1.5rem;
+  --spacing-600: 1.75rem;
+  --spacing-650: 1.875rem;
+  --spacing-700: 2rem;
+  --spacing-750: 2.5rem;
+  --spacing-800: 3.5rem;
+  --spacing-850: 4.75rem;
+  --spacing-900: 6.25rem;
+  --spacing-950: 15.625rem;
+}

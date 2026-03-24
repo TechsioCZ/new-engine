@@ -1,0 +1,11 @@
+@theme static {
+  --radius-search-form-sm: var(--radius-xl);
+  --radius-search-form-md: var(--radius-xl);
+  --padding-search-form-clear-button: var(--spacing-200);
+
+  --color-form-control-bg: var(--color-surface);
+  --color-form-control-border: var(--color-border-secondary);
+  --color-form-control-border-hover: var(--color-border-primary);
+  --color-form-control-border-focus: var(--color-primary);
+  --color-form-control-placeholder: var(--color-fg-placeholder);
+}

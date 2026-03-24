@@ -1,8 +1,8 @@
 "use client";
 
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import type { ProductOfferState } from "@/components/product-detail/product-detail.types";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type ProductDetailDeliveryInfoProps = {
   freeShippingThresholdLabel: string;
@@ -24,7 +24,7 @@ export function ProductDetailDeliveryInfo({
             className={offerState.isInStock ? "text-xl text-primary" : "text-xl text-warning"}
             icon={offerState.isInStock ? "token-icon-check" : "icon-[mdi--alert-circle-outline]"}
           />
-          <ExtraText className="text-md leading-snug text-fg-primary">
+          <SupportingText className="text-md leading-snug text-fg-primary">
             <span className={`font-semibold ${availabilityToneClass}`}>
               {offerState.availabilityLabel}
             </span>
@@ -36,14 +36,14 @@ export function ProductDetailDeliveryInfo({
             ) : (
               <span className="font-normal text-fg-secondary">{`, ${offerState.deliveryLabel}`}</span>
             )}
-          </ExtraText>
+          </SupportingText>
         </div>
 
         <div className="flex items-center gap-200">
           <Icon className="text-xl text-primary" icon="icon-[mdi--truck-delivery-outline]" />
-          <ExtraText className="text-md leading-snug text-fg-secondary">
+          <SupportingText className="text-md leading-snug text-fg-secondary">
             Doručenie zdarma nad <span className="font-semibold text-primary">{freeShippingThresholdLabel}</span>
-          </ExtraText>
+          </SupportingText>
         </div>
       </div>
     </div>

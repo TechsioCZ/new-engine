@@ -2,8 +2,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
 import NextLink from "next/link";
 import { parseAsInteger, useQueryState } from "nuqs";
@@ -70,7 +70,9 @@ export function StorefrontAccountOrdersList() {
   if (ordersQuery.error) {
     return (
       <StorefrontAccountSurface className="space-y-400">
-        <ErrorText showIcon>{ordersQuery.error}</ErrorText>
+        <StatusText showIcon status="error">
+          {ordersQuery.error}
+        </StatusText>
         <Button
           onClick={() => {
             void ordersQuery.query.refetch();

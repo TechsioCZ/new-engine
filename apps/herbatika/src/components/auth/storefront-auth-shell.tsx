@@ -1,7 +1,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import type { ReactNode } from "react";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type StorefrontAuthShellProps = {
   isDiagnosticsMode: boolean;
@@ -46,9 +46,9 @@ export const StorefrontAuthShell = ({
                 {`transfer: ${isTransferPending ? "running" : "idle"}`}
               </Badge>
             </div>
-            <ExtraText className="text-xs text-fg-secondary">
+            <SupportingText className="text-xs text-fg-secondary">
               {`customer: ${customerEmail ?? "-"}`}
-            </ExtraText>
+            </SupportingText>
           </>
         ) : (
           <p className="text-sm text-fg-secondary">{description}</p>
@@ -64,7 +64,11 @@ export const StorefrontAuthShell = ({
         </Badge>
       )}
 
-      {error && <ErrorText showIcon>{error}</ErrorText>}
+      {error && (
+        <StatusText showIcon status="error">
+          {error}
+        </StatusText>
+      )}
 
       {children}
     </section>

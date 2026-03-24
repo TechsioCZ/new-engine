@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import {
   BENEFITS,
   BLOG_POSTS,
@@ -39,15 +39,15 @@ export function HerbatikaHomepage() {
       ) : null}
 
       {controller.mutationError ? (
-        <ErrorText className="text-sm" showIcon>
+        <StatusText className="text-sm" showIcon status="error">
           {controller.mutationError}
-        </ErrorText>
+        </StatusText>
       ) : null}
 
       {controller.productsError ? (
-        <ErrorText className="text-sm" showIcon>
+        <StatusText className="text-sm" showIcon status="error">
           {controller.productsError}
-        </ErrorText>
+        </StatusText>
       ) : null}
 
       {controller.leadingSections.map((section) => (

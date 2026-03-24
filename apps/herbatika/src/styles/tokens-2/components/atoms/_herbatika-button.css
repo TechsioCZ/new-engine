@@ -1,0 +1,29 @@
+@theme static {
+  --text-button-sm: var(--text-sm);
+  --text-button-md: var(--text-sm);
+  --text-button-lg: var(--text-md);
+
+  --padding-button-sm: var(--spacing-100) var(--spacing-250);
+  --padding-button-md: var(--spacing-100) var(--spacing-300);
+  --padding-button-lg: var(--spacing-150) var(--spacing-400);
+
+  --radius-button-sm: var(--radius-sm);
+  --radius-button-md: var(--radius-xl);
+  --radius-button-lg: var(--radius-xl);
+
+  --color-button-fg-primary: var(--color-fg-reverse);
+  --color-button-fg-secondary: var(--color-fg-reverse);
+  --color-button-fg-tertiary: var(--color-fg-reverse);
+  --color-button-fg-outlined-primary: var(--color-primary);
+  --color-button-fg-outlined-secondary: var(--color-fg-primary);
+  --color-button-border-secondary: var(--color-border-secondary);
+  --color-button-border-tertiary: var(--color-tertiary);
+
+  --color-button-bg-tertiary: var(--color-tertiary);
+  --color-button-bg-tertiary-hover: var(--color-tertiary-hover);
+  --color-button-bg-tertiary-active: var(--color-tertiary-active);
+
+  --color-button-fg-primary-borderless: var(--color-primary);
+  --color-button-fg-secondary-borderless: var(--color-fg-primary);
+  --color-button-fg-tertiary-borderless: var(--color-tertiary);
+}

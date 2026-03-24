@@ -1,0 +1,7 @@
+@theme static {
+  --container-max-w: 88.75rem;
+  --container-header-search: 30.625rem;
+  --container-footer-intro: 24rem;
+  --container-auth-content: 48rem;
+  --container-account-content: 80rem;
+}

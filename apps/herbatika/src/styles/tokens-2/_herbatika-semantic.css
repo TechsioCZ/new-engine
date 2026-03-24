@@ -1,0 +1,105 @@
+@theme static {
+  /* Herbatika palette */
+  --color-herbatika-white: oklch(1 0 0);
+  --color-herbatika-base: oklch(0.9791 0 0);
+  --color-herbatika-overlay: oklch(0.9846 0.0017 247.84);
+  --color-herbatika-highlight: oklch(0.9553 0.0079 177.32);
+  --color-herbatika-fg: oklch(0.2423 0.0212 276.66);
+  --color-herbatika-fg-strong: oklch(0 0 0);
+  --color-herbatika-fg-secondary: oklch(0.4202 0 0);
+  --color-herbatika-fg-muted: oklch(0.5658 0 0);
+  --color-herbatika-border: oklch(0.9039 0.0087 205.89);
+  --color-herbatika-border-soft: oklch(0.9426 0.0055 211.04);
+  --color-herbatika-primary: oklch(0.601 0.1305 162.66);
+  --color-herbatika-primary-strong: oklch(0.5313 0.1124 164.54);
+  --color-herbatika-secondary: oklch(0.7092 0.1749 138.92);
+  --color-herbatika-secondary-strong: oklch(0.6392 0.158 138.92);
+  --color-herbatika-tertiary: oklch(0.6251 0.2133 351.08);
+  --color-herbatika-tertiary-soft: oklch(0.784 0.109 22.2);
+  --color-herbatika-success: oklch(0.634 0.1331 165.09);
+  --color-herbatika-info: oklch(0.6885 0.1197 226.99);
+  --color-herbatika-warning: oklch(0.8321 0.1354 80.84);
+  --color-herbatika-danger: oklch(0.5782 0.2193 26.15);
+
+  /* Brand semantics */
+  --color-primary: var(--color-herbatika-primary);
+  --color-primary-hover: var(--color-herbatika-primary-strong);
+  --color-primary-active: oklch(
+    from var(--color-herbatika-primary-strong) calc(l - 0.04) c h
+  );
+  --color-primary-light: oklch(
+    from var(--color-herbatika-primary) 0.96 calc(c * 0.22) h
+  );
+
+  --color-secondary: var(--color-herbatika-secondary);
+  --color-secondary-hover: var(--color-herbatika-secondary-strong);
+  --color-secondary-active: oklch(
+    from var(--color-herbatika-secondary-strong) calc(l - 0.04) c h
+  );
+  --color-secondary-light: oklch(
+    from var(--color-herbatika-secondary) 0.97 calc(c * 0.18) h
+  );
+
+  --color-tertiary: var(--color-herbatika-tertiary);
+  --color-tertiary-hover: oklch(
+    from var(--color-herbatika-tertiary) calc(l - 0.05) c h
+  );
+  --color-tertiary-active: oklch(
+    from var(--color-herbatika-tertiary) calc(l - 0.1) c h
+  );
+  --color-tertiary-light: var(--color-herbatika-tertiary-soft);
+
+  --color-success: var(--color-herbatika-success);
+  --color-info: var(--color-herbatika-info);
+  --color-warning: var(--color-herbatika-warning);
+  --color-danger: var(--color-herbatika-danger);
+
+  /* Foreground */
+  --color-fg-light: var(--color-herbatika-fg);
+  --color-fg-dark: var(--color-herbatika-white);
+  --color-fg-primary: var(--color-herbatika-fg);
+  --color-fg-secondary: var(--color-herbatika-fg-secondary);
+  --color-fg-tertiary: var(--color-herbatika-fg-muted);
+  --color-fg-strong: var(--color-herbatika-fg-strong);
+  --color-fg-placeholder: oklch(
+    from var(--color-herbatika-fg-muted) calc(l + 0.06) c h
+  );
+  --color-fg-reverse: var(--color-herbatika-white);
+
+  /* Surfaces */
+  --color-base-light: var(--color-herbatika-base);
+  --color-base-dark: var(--color-herbatika-fg-strong);
+  --color-base: var(--color-herbatika-base);
+  --color-surface: var(--color-herbatika-white);
+  --color-overlay: var(--color-herbatika-overlay);
+  --color-float: var(--color-herbatika-white);
+  --color-highlight: var(--color-herbatika-highlight);
+  --color-fill-base: var(--color-herbatika-white);
+  --color-fill-hover: var(--color-herbatika-highlight);
+  --color-fill-active: oklch(
+    from var(--color-herbatika-highlight) calc(l - 0.04) c h
+  );
+
+  /* Borders */
+  --color-border-primary: var(--color-herbatika-border);
+  --color-border-secondary: var(--color-herbatika-border-soft);
+  --color-border-tertiary: var(--color-herbatika-fg);
+
+  /* Links and rings */
+  --color-link: var(--color-herbatika-primary);
+  --color-ring: oklch(from var(--color-herbatika-primary) calc(l + 0.08) c h);
+
+  /* Accent foregrounds used by shared component tokens */
+  --color-primary-accent-fg: var(--color-herbatika-primary);
+  --color-secondary-accent-fg: var(--color-herbatika-secondary-strong);
+  --color-tertiary-accent-fg: var(--color-herbatika-tertiary);
+  --color-warning-fg: oklch(
+    from var(--color-herbatika-warning) calc(l - 0.32) c h
+  );
+  --color-danger-fg: var(--color-herbatika-danger);
+
+  /* Disabled */
+  --color-bg-disabled: oklch(0.967 0.0029 264.54);
+  --color-fg-disabled: oklch(0.7137 0.0192 261.32);
+  --color-border-disabled: var(--color-herbatika-border);
+}

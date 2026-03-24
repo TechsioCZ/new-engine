@@ -1,0 +1,30 @@
+@theme static {
+  --padding-badge: var(--spacing-100) var(--spacing-200);
+  --text-badge-size: var(--text-2xs);
+  --font-weight-badge: var(--font-weight-semibold);
+  --radius-badge: var(--radius-md);
+
+  --color-badge-bg-primary: var(--color-primary);
+  --color-badge-fg-primary: var(--color-fg-reverse);
+
+  --color-badge-bg-secondary: var(--color-success);
+  --color-badge-fg-secondary: var(--color-fg-reverse);
+
+  --color-badge-bg-tertiary: var(--color-tertiary);
+  --color-badge-fg-tertiary: var(--color-fg-reverse);
+
+  --color-badge-bg-info: var(--color-highlight);
+  --color-badge-fg-info: var(--color-fg-primary);
+
+  --color-badge-bg-success: var(--color-success);
+  --color-badge-fg-success: var(--color-fg-reverse);
+
+  --color-badge-bg-warning: var(--color-warning);
+  --color-badge-fg-warning: var(--color-fg-primary);
+
+  --color-badge-bg-danger: var(--color-danger);
+  --color-badge-fg-danger: var(--color-fg-reverse);
+
+  --color-badge-bg-discount: var(--color-tertiary);
+  --color-badge-fg-discount: var(--color-fg-reverse);
+}

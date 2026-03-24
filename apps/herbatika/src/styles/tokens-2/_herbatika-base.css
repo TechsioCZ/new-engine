@@ -1,0 +1,15 @@
+@theme static {
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 999px;
+
+  --border-width-sm: 1px;
+  --border-width-md: 2px;
+  --border-width-lg: 3px;
+
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 2px 6px rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 8px 20px rgb(0 0 0 / 0.12);
+}

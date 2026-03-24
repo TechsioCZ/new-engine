@@ -2,7 +2,6 @@
 
 import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import { useEffect, useRef, useState } from "react";
@@ -115,7 +114,9 @@ export function StorefrontAccountSettings() {
       >
         {submitError && (
           <div className="md:col-span-2">
-            <ErrorText showIcon>{submitError}</ErrorText>
+            <StatusText showIcon status="error">
+              {submitError}
+            </StatusText>
           </div>
         )}
 

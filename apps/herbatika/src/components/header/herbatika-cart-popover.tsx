@@ -3,10 +3,10 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Popover } from "@techsio/ui-kit/molecules/popover";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import { useState } from "react";
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart";
@@ -137,7 +137,11 @@ export function HerbatikaCartPopover({
             <p className="text-fg-secondary text-xs">{`+ ${hiddenItemCount} dalších položek v košíku`}</p>
           ) : null}
 
-          {errorMessage ? <ErrorText showIcon>{errorMessage}</ErrorText> : null}
+          {errorMessage ? (
+            <StatusText showIcon status="error">
+              {errorMessage}
+            </StatusText>
+          ) : null}
 
           <div className="space-y-150 border-border-secondary border-t pt-250">
             <div className="flex items-center justify-between gap-200">

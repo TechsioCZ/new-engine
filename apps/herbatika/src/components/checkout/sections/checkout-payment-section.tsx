@@ -1,7 +1,7 @@
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { resolveProviderLabel } from "@/components/checkout/checkout.utils";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type PaymentProvider = {
   id?: string | null;
@@ -116,13 +116,15 @@ export function CheckoutPaymentSection({
                       Zadarmo
                     </p>
                   </div>
-                  <ExtraText className="pl-700 text-fg-secondary">{optionStatusLabel}</ExtraText>
+                  <SupportingText className="pl-700 text-fg-secondary">
+                    {optionStatusLabel}
+                  </SupportingText>
                 </div>
               </Button>
             );
           })
         ) : (
-          <ExtraText>Nie sú dostupné žiadne platobné metódy.</ExtraText>
+          <SupportingText>Nie sú dostupné žiadne platobné metódy.</SupportingText>
         )}
       </div>
     </section>

@@ -1,0 +1,16 @@
+@theme static {
+  --gap-select-root: var(--spacing-100);
+  --radius-select-sm: var(--radius-sm);
+  --radius-select-md: var(--radius-sm);
+
+  --color-select-content-bg: var(--color-surface);
+  --color-select-content-border: var(--color-border-primary);
+  --color-select-trigger-border-hover: var(--color-border-primary);
+  --color-select-trigger-border-focus: var(--color-primary);
+  --color-select-item-bg-hover: var(--color-highlight);
+  --color-select-item-bg-selected: oklch(
+    from var(--color-highlight) calc(l - 0.03) c h
+  );
+  --color-select-item-selected-fg: var(--color-primary);
+  --color-select-indicator: var(--color-primary);
+}

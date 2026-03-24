@@ -1,9 +1,9 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { useState } from "react";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { CheckoutCartItemRow } from "./checkout-cart-item-row";
 import {
   useRemoveLineItem,
@@ -143,7 +143,11 @@ export function CheckoutCartStepSection({
         ))}
       </div>
 
-      {lineItemError ? <ErrorText showIcon>{lineItemError}</ErrorText> : null}
+      {lineItemError ? (
+        <StatusText showIcon status="error">
+          {lineItemError}
+        </StatusText>
+      ) : null}
     </section>
   );
 }

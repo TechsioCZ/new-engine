@@ -1,6 +1,5 @@
 "use client";
 
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
@@ -11,6 +10,7 @@ import type {
   ProductMediaFact,
   ProductOfferState,
 } from "@/components/product-detail/product-detail.types";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type ProductDetailMediaColumnProps = {
   galleryItems: GalleryItem[];
@@ -55,10 +55,10 @@ export function ProductDetailMediaColumn({
                   <span className="flex h-600 w-600 items-center justify-center rounded-md bg-highlight">
                     <Icon className="text-lg text-primary" icon={fact.icon} />
                   </span>
-                  <ExtraText className="text-md leading-snug text-fg-secondary">
+                  <SupportingText className="text-md leading-snug text-fg-secondary">
                     <span className="font-semibold text-primary">{`${fact.value} `}</span>
                     <span>{fact.label}</span>
-                  </ExtraText>
+                  </SupportingText>
                 </div>
               ))}
             </div>
@@ -77,9 +77,9 @@ export function ProductDetailMediaColumn({
             <p className="whitespace-nowrap text-md font-bold leading-tight text-fg-strong">
               Potrebujete poradiť?
             </p>
-            <ExtraText className="whitespace-nowrap text-2xs leading-tight text-fg-secondary">
+            <SupportingText className="whitespace-nowrap text-2xs leading-tight text-fg-secondary">
               Kontaktujte nás, radi vám pomôžeme
-            </ExtraText>
+            </SupportingText>
           </div>
         </div>
 

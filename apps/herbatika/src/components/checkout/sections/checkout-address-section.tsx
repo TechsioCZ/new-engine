@@ -1,6 +1,5 @@
 import type { FormEvent } from "react";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { ExtraText } from "@techsio/ui-kit/atoms/extra-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
@@ -8,6 +7,7 @@ import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea";
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import NextLink from "next/link";
 import type { AddressFormState } from "@/components/checkout/checkout.constants";
+import { SupportingText } from "@/components/text/supporting-text";
 
 type CheckoutAddressSectionProps = {
   addressForm: AddressFormState;
@@ -111,9 +111,9 @@ export function CheckoutAddressSection({
       <div className="flex flex-wrap items-center justify-between gap-250 rounded-sm bg-highlight p-300">
         <div className="space-y-50">
           <p className="text-base font-medium text-fg-primary">Už máte v Herbatica účet?</p>
-          <ExtraText className="text-fg-secondary">
+          <SupportingText className="text-fg-secondary">
             Prihláste sa pre rýchly nákup a zľavu na ďalšie nákupy
-          </ExtraText>
+          </SupportingText>
         </div>
         <LinkButton
           as={NextLink}
@@ -137,7 +137,9 @@ export function CheckoutAddressSection({
             isCompanyPurchase={isCompanyPurchase}
             onChange={onIsCompanyPurchaseChange}
           />
-          <ExtraText className="font-rubik text-fg-secondary">* povinné</ExtraText>
+          <SupportingText className="font-rubik text-fg-secondary">
+            * povinné
+          </SupportingText>
         </div>
 
         <div className="grid gap-250 md:grid-cols-2">
@@ -320,7 +322,9 @@ export function CheckoutAddressSection({
 
           <div className="flex flex-wrap items-center justify-end gap-200 md:col-span-2">
             {hasStoredAddress ? (
-              <ExtraText className="text-success">Údaje sú uložené.</ExtraText>
+              <SupportingText className="text-success">
+                Údaje sú uložené.
+              </SupportingText>
             ) : null}
             <Button
               disabled={isBusy || !ready}

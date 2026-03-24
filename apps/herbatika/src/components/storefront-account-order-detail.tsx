@@ -1,7 +1,7 @@
 "use client";
 
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
 import { StorefrontAccountOrderDetailItems } from "@/components/account/orders/storefront-account-order-detail-items";
@@ -34,7 +34,9 @@ export function StorefrontAccountOrderDetail({
   if (orderQuery.error) {
     return (
       <StorefrontAccountSurface className="space-y-400">
-        <ErrorText showIcon>{orderQuery.error}</ErrorText>
+        <StatusText showIcon status="error">
+          {orderQuery.error}
+        </StatusText>
         <LinkButton as={NextLink} href="/account/orders" variant="secondary">
           Späť na objednávky
         </LinkButton>

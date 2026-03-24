@@ -1,8 +1,8 @@
 "use client";
 
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import {
   StorefrontAccountSkeletonSurface,
@@ -47,7 +47,11 @@ export function StorefrontAccountOverview() {
         </Badge>
       </div>
 
-      {ordersQuery.error && <ErrorText showIcon>{ordersQuery.error}</ErrorText>}
+      {ordersQuery.error && (
+        <StatusText showIcon status="error">
+          {ordersQuery.error}
+        </StatusText>
+      )}
 
       <div className="flex flex-wrap gap-200">
         <LinkButton as={NextLink} href="/account/orders" variant="secondary">

@@ -1,0 +1,29 @@
+@theme static {
+  --color-product-card-bg: var(--color-surface);
+  --color-product-card-border: transparent;
+  --color-product-card-name-fg: var(--color-fg-primary);
+  --color-product-card-price-fg: var(--color-fg-primary);
+
+  --color-product-card-button-cart-bg: var(--color-primary);
+  --color-product-card-button-cart-bg-hover: var(--color-primary-hover);
+  --color-product-card-button-cart-fg: var(--color-fg-reverse);
+
+  --spacing-product-card-padding: var(--spacing-500);
+  --spacing-product-card-col-layout: var(--spacing-450);
+  --spacing-product-card-box: var(--spacing-100);
+  --spacing-product-card-buttons: var(--spacing-150);
+
+  --text-product-card-name-size: var(--text-lg);
+  --text-product-card-price-size: var(--text-xl);
+  --text-product-card-stock-size: var(--text-sm);
+  --leading-product-card-name: 1.22;
+
+  --font-weight-product-card-name: var(--font-weight-semibold);
+  --font-weight-product-card-price: var(--font-weight-bold);
+  --font-weight-product-card-stock: var(--font-weight-medium);
+
+  --border-product-card-width: 0px;
+  --radius-product-card: var(--radius-md);
+  --radius-product-card-image: 0;
+  --aspect-product-card-image: 294 / 259.2;
+}

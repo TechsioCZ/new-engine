@@ -1,0 +1,27 @@
+@utility token-icon-user {
+  @apply icon-[mdi--user-outline];
+}
+
+@utility token-icon-search {
+  @apply icon-[mdi--search];
+}
+
+@utility token-icon-heart {
+  @apply icon-[mdi--heart-outline];
+}
+
+@utility token-icon-cart {
+  @apply icon-[mdi--cart-outline];
+}
+
+@utility token-icon-check {
+  @apply icon-[mdi--check];
+}
+
+@utility token-icon-chevron-right {
+  @apply icon-[mdi--chevron-right];
+}
+
+@utility token-icon-chevron-left {
+  @apply icon-[mdi--chevron-left];
+}
