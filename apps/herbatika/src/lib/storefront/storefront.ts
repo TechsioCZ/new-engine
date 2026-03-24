@@ -4,102 +4,49 @@ import type { HttpTypes } from "@medusajs/types";
 import {
   createMedusaStorefrontPreset,
 } from "@techsio/storefront-data/medusa/preset";
-import { authService } from "./auth/service";
-import { storefrontCacheConfig } from "./cache";
-import {
-  buildAddLineItemParams,
-  buildCreateCartParams,
-  buildUpdateCartParams,
-} from "./cart/params";
-import { cartStorage } from "./cart-storage";
-import {
-  buildCategoryListParams,
-  DEFAULT_CATEGORY_PAGE_SIZE,
-} from "./category-query-config";
-import { herbatikaOrderService, buildHerbatikaOrderListParams } from "./orders-service";
-import {
-  DEFAULT_PRODUCT_PAGE_SIZE,
-  STOREFRONT_PRODUCT_CARD_FIELDS,
-  STOREFRONT_PRODUCT_DETAIL_FIELDS,
-  buildProductListParams,
-} from "./product-query-config";
-import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
-import {
-  storefrontCatalogServiceConfig,
-  storefrontCategoryServiceConfig,
-  storefrontProductServiceConfig,
-  storefrontQueryKeys,
-  STOREFRONT_CATALOG_DEFAULT_LIMIT,
-} from "./storefront-config";
+import { storefrontDefinition } from "./storefront-definition";
 
 export const storefront = createMedusaStorefrontPreset<
   HttpTypes.StoreProduct,
   HttpTypes.StoreProductCategory
 >({
   sdk: storefrontSdk,
-  queryKeyNamespace: STOREFRONT_QUERY_KEY_NAMESPACE,
-  cacheConfig: storefrontCacheConfig,
+  queryKeyNamespace: storefrontDefinition.namespace,
+  cacheConfig: storefrontDefinition.cacheConfig,
   auth: {
-    service: authService,
-    queryKeys: storefrontQueryKeys.auth,
-    hooks: {
-      invalidateOnAuthChange: {
-        includeDefaults: true,
-        invalidate: [storefrontQueryKeys.cart.all()],
-        removeOnLogout: [storefrontQueryKeys.cart.all()],
-      },
-    },
+    service: storefrontDefinition.auth.service,
+    queryKeys: storefrontDefinition.queryKeys.auth,
+    hooks: storefrontDefinition.auth.hooks,
   },
   cart: {
-    queryKeys: storefrontQueryKeys.cart,
-    hooks: {
-      cartStorage,
-      requireRegion: true,
-      buildCreateParams: buildCreateCartParams,
-      buildUpdateParams: buildUpdateCartParams,
-      buildAddParams: buildAddLineItemParams,
-    },
+    queryKeys: storefrontDefinition.queryKeys.cart,
+    hooks: storefrontDefinition.cart.hooks,
   },
   products: {
-    queryKeys: storefrontQueryKeys.products,
-    serviceConfig: storefrontProductServiceConfig,
-    hooks: {
-      buildListParams: buildProductListParams,
-      buildPrefetchParams: buildProductListParams,
-      buildDetailParams: (input) => input,
-      defaultPageSize: DEFAULT_PRODUCT_PAGE_SIZE,
-    },
+    queryKeys: storefrontDefinition.queryKeys.products,
+    serviceConfig: storefrontDefinition.products.serviceConfig,
+    hooks: storefrontDefinition.products.hooks,
   },
   orders: {
-    service: herbatikaOrderService,
-    queryKeys: storefrontQueryKeys.orders,
-    hooks: {
-      buildListParams: buildHerbatikaOrderListParams,
-      buildDetailParams: (input) => input,
-    },
+    service: storefrontDefinition.orders.service,
+    queryKeys: storefrontDefinition.queryKeys.orders,
+    hooks: storefrontDefinition.orders.hooks,
   },
   customers: {
-    queryKeys: storefrontQueryKeys.customers,
+    queryKeys: storefrontDefinition.queryKeys.customers,
   },
   regions: {
-    queryKeys: storefrontQueryKeys.regions,
+    queryKeys: storefrontDefinition.queryKeys.regions,
   },
   categories: {
-    queryKeys: storefrontQueryKeys.categories,
-    serviceConfig: storefrontCategoryServiceConfig,
-    hooks: {
-      buildListParams: buildCategoryListParams,
-      buildDetailParams: (input) => input,
-      defaultPageSize: DEFAULT_CATEGORY_PAGE_SIZE,
-    },
+    queryKeys: storefrontDefinition.queryKeys.categories,
+    serviceConfig: storefrontDefinition.categories.serviceConfig,
+    hooks: storefrontDefinition.categories.hooks,
   },
   catalog: {
-    queryKeys: storefrontQueryKeys.catalog,
-    serviceConfig: storefrontCatalogServiceConfig,
-    hooks: {
-      requireRegion: true,
-      defaultPageSize: STOREFRONT_CATALOG_DEFAULT_LIMIT,
-    },
+    queryKeys: storefrontDefinition.queryKeys.catalog,
+    serviceConfig: storefrontDefinition.catalog.serviceConfig,
+    hooks: storefrontDefinition.catalog.hooks,
   },
 });

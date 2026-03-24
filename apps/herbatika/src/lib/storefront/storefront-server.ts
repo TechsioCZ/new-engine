@@ -26,12 +26,7 @@ import {
   STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,
 } from "./product-query-config";
 import { storefrontSdk } from "./sdk";
-import {
-  storefrontCatalogServiceConfig,
-  storefrontCategoryServiceConfig,
-  storefrontProductServiceConfig,
-  storefrontQueryKeys,
-} from "./storefront-config";
+import { storefrontDefinition } from "./storefront-definition";
 import type {
   ProductDetailParams,
   ProductListParams,
@@ -51,22 +46,22 @@ export const storefrontServerServices = {
     HttpTypes.StoreProduct,
     MedusaProductListInput,
     MedusaProductDetailInput
-  >(storefrontSdk, storefrontProductServiceConfig),
+  >(storefrontSdk, storefrontDefinition.products.serviceConfig),
   regions: createMedusaRegionService(storefrontSdk),
   categories: createMedusaCategoryService<
     HttpTypes.StoreProductCategory,
     MedusaCategoryListInput,
     MedusaCategoryDetailInput
-  >(storefrontSdk, storefrontCategoryServiceConfig),
+  >(storefrontSdk, storefrontDefinition.categories.serviceConfig),
   catalog: createMedusaCatalogService<
     HttpTypes.StoreProduct,
     MedusaCatalogListInput
-  >(storefrontSdk, storefrontCatalogServiceConfig),
+  >(storefrontSdk, storefrontDefinition.catalog.serviceConfig),
 };
 
 export const getServerRegionListQueryOptions = (params: RegionListParams) => {
   return {
-    queryKey: storefrontQueryKeys.regions.list(params),
+    queryKey: storefrontDefinition.queryKeys.regions.list(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.regions.getRegions(params, signal),
     ...storefrontCacheConfig.static,
@@ -75,7 +70,7 @@ export const getServerRegionListQueryOptions = (params: RegionListParams) => {
 
 export const getServerCategoryListQueryOptions = (params: CategoryListParams) => {
   return {
-    queryKey: storefrontQueryKeys.categories.list(params),
+    queryKey: storefrontDefinition.queryKeys.categories.list(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.categories.getCategories(params, signal),
     ...storefrontCacheConfig.static,
@@ -84,7 +79,7 @@ export const getServerCategoryListQueryOptions = (params: CategoryListParams) =>
 
 export const getServerCatalogListQueryOptions = (params: CatalogProductsParams) => {
   return {
-    queryKey: storefrontQueryKeys.catalog.list(params),
+    queryKey: storefrontDefinition.queryKeys.catalog.list(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.catalog.getCatalogProducts(params, signal),
     ...storefrontCacheConfig.semiStatic,
@@ -93,7 +88,7 @@ export const getServerCatalogListQueryOptions = (params: CatalogProductsParams) 
 
 export const getServerProductListQueryOptions = (params: ProductListParams) => {
   return {
-    queryKey: storefrontQueryKeys.products.list(params),
+    queryKey: storefrontDefinition.queryKeys.products.list(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.products.getProducts(params, signal),
     ...storefrontCacheConfig.semiStatic,
@@ -102,7 +97,7 @@ export const getServerProductListQueryOptions = (params: ProductListParams) => {
 
 export const getServerProductDetailQueryOptions = (params: ProductDetailParams) => {
   return {
-    queryKey: storefrontQueryKeys.products.detail(params),
+    queryKey: storefrontDefinition.queryKeys.products.detail(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.products.getProductByHandle(params, signal),
     ...storefrontCacheConfig.semiStatic,
