@@ -8,9 +8,13 @@ import {
 } from "@/services/product-service"
 import { useRegions } from "./use-region"
 
+type StorefrontPrefetchProductsOptions = Parameters<
+  typeof storefront.hooks.products.usePrefetchProducts
+>[0]
+
 type UsePrefetchProductsOptions = {
   enabled?: boolean
-  cacheStrategy?: "semiStatic" | "dynamic" | "static" | "realtime"
+  cacheStrategy?: NonNullable<StorefrontPrefetchProductsOptions>["cacheStrategy"]
 }
 
 const DEFAULT_LIMIT = 12

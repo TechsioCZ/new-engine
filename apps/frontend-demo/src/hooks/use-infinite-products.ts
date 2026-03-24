@@ -127,7 +127,7 @@ export function useInfiniteProducts(
       buildProductsPageFragmentInput(params, nextPage)
     )
 
-    await queryClient.prefetchQuery(
+    await queryClient.fetchQuery(
       storefront.hooks.products.getListQueryOptions(fragmentInput)
     )
   }

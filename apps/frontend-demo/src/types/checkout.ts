@@ -1,6 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 
-export interface AddressData {
+export type AddressData = {
   firstName: string
   lastName: string
   email: string
@@ -12,13 +12,13 @@ export interface AddressData {
   company?: string
 }
 
-export interface CheckoutAddressData {
+export type CheckoutAddressData = {
   shipping: AddressData
   billing: AddressData
   useSameAddress: boolean
 }
 
-export interface ShippingMethod {
+export type ShippingMethod = {
   id: string
   name: string
   description: string
@@ -29,33 +29,32 @@ export interface ShippingMethod {
   image: string
 }
 
-export interface PaymentMethod {
+export type PaymentMethod = {
   id: string
   name: string
   fee: number
   image: string
 }
 
-export interface Country {
+export type Country = {
   label: string
   value: string
   [key: string]: unknown
 }
 
-export interface AddressFormProps {
+export type AddressFormProps = {
   onComplete: (data: CheckoutAddressData) => void | Promise<void>
   sameData?: boolean
   isLoading?: boolean
 }
 
-export interface ReducedShippingMethod {
+export type ReducedShippingMethod = {
   id: string
   name: string
   calculated_price: HttpTypes.StoreCalculatedPrice
 }
 
-// UseCheckout hook return type
-export interface UseCheckoutReturn {
+export type UseCheckoutReturn = {
   // State
   currentStep: number
   selectedPayment: string
@@ -69,16 +68,14 @@ export interface UseCheckoutReturn {
   // Actions
   setCurrentStep: (step: number) => void
   setSelectedPayment: (payment: string) => void
-  setSelectedShipping: (shipping: string) => void
   setAddressData: (data: CheckoutAddressData) => void
   updateAddresses: (data: CheckoutAddressData) => Promise<void>
   addShippingMethod: (methodId: string) => Promise<void>
   processOrder: () => Promise<HttpTypes.StoreOrder | undefined>
   canProceedToStep: (step: number) => boolean
-  // getShippingMethod: () => void
 }
 
-export interface FormUserData {
+export type FormUserData = {
   id: string
   first_name: string
   last_name: string
@@ -87,7 +84,7 @@ export interface FormUserData {
   company_name: string
 }
 
-export interface FormAddressData {
+export type FormAddressData = {
   street: string
   city: string
   postalCode: string

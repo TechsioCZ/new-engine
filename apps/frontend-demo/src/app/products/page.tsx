@@ -2,6 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import Link from "next/link"
 import { Suspense, useMemo } from "react"
@@ -20,6 +21,7 @@ const SORT_OPTIONS: Array<{ value: ExtendedSortOption; label: string }> = [
 ]
 
 function ProductsContent() {
+  const toast = useToast()
   const { selectedRegion } = useRegions()
   const selectedCountryCode = selectedRegion
     ? (selectedRegion.countries?.[0]?.iso_2 ?? "cz")
@@ -79,8 +81,17 @@ function ProductsContent() {
   })
 
   const handleLoadMore = async () => {
-    await fetchNextPage()
-    urlFilters.extendPageRange()
+    try {
+      await fetchNextPage()
+      urlFilters.extendPageRange()
+    } catch (error) {
+      toast.create({
+        title: "Nepodařilo se načíst další produkty",
+        description:
+          error instanceof Error ? error.message : "Zkuste to prosím znovu.",
+        type: "error",
+      })
+    }
   }
 
   let productsContent = (

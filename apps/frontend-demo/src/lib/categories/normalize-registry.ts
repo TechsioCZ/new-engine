@@ -144,6 +144,8 @@ export function normalizeCategoryRegistry(
     }
 
     if (node.children.some((child) => child.children.length === 0)) {
+      // A leaf parent stays selectable for the current filter UX, but it needs
+      // all descendant leaf ids so the filter can expand to the full subtree.
       leafParents.push({
         id: node.id,
         name: node.name,

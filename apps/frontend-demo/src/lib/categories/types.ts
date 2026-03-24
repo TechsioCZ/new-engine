@@ -3,8 +3,8 @@ export type Category = {
   name: string
   handle: string
   description?: string
-  parent_category_id?: string | null
-  root_category_id?: string | null
+  parent_category_id: string | null
+  root_category_id: string | null
 }
 
 export type CategoryTreeNode = {
@@ -12,7 +12,7 @@ export type CategoryTreeNode = {
   name: string
   handle: string
   description?: string
-  parent_category_id?: string | null
+  parent_category_id: string | null
   children: CategoryTreeNode[]
 }
 

@@ -6,7 +6,6 @@ import { storefront, storefrontFlows } from "@/lib/storefront"
 import { orderHelpers } from "@/stores/order-store"
 import type { CheckoutAddressData, UseCheckoutReturn } from "@/types/checkout"
 import { useCart } from "./use-cart"
-import { useCustomer } from "./use-customer"
 
 const toCartAddressInput = (data: CheckoutAddressData) => ({
   email: data.shipping.email,
@@ -45,12 +44,10 @@ const toCartAddressInput = (data: CheckoutAddressData) => ({
 
 export function useCheckout(): UseCheckoutReturn {
   const { cart } = useCart()
-  const { address } = useCustomer()
   const toast = useToast()
 
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedPayment, setSelectedPayment] = useState("")
-  const [selectedShipping, setSelectedShipping] = useState("")
   const [addressData, setAddressData] = useState<CheckoutAddressData | null>(
     null
   )
@@ -184,14 +181,19 @@ export function useCheckout(): UseCheckoutReturn {
     }
   }
 
+  const hasCheckoutAddress =
+    Boolean(addressData?.shipping) ||
+    Boolean(cart?.shipping_address?.address_1 && cart?.email)
+  const selectedShipping = shipping.selectedShippingMethodId ?? ""
+
   const canProceedToStep = (step: number) => {
     switch (step) {
       case 1:
-        return !!address
+        return hasCheckoutAddress
       case 2:
-        return !!address && !!selectedShipping
+        return hasCheckoutAddress && !!selectedShipping
       case 3:
-        return !!address && !!selectedShipping && !!selectedPayment
+        return hasCheckoutAddress && !!selectedShipping && !!selectedPayment
       default:
         return true
     }
@@ -210,7 +212,6 @@ export function useCheckout(): UseCheckoutReturn {
     shippingError,
     setCurrentStep,
     setSelectedPayment,
-    setSelectedShipping,
     setAddressData,
     updateAddresses,
     addShippingMethod,

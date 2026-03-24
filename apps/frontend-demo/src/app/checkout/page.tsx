@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 import Link from "next/link"
-import { type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useState } from "react"
 import { LoadingPage } from "@/components/loading-page"
 import { OrderSummary } from "@/components/order-summary"
 import { useCart } from "@/hooks/use-cart"
@@ -34,7 +34,6 @@ export default function CheckoutPage() {
     isProcessingPayment,
     setCurrentStep,
     setSelectedPayment,
-    setSelectedShipping,
     updateAddresses,
     addShippingMethod,
     processOrder,
@@ -46,20 +45,6 @@ export default function CheckoutPage() {
   const [isOrderComplete, setIsOrderComplete] = useState(false)
   const [orderNumber, setOrderNumber] = useState<string>("")
   const [showOrderSummary, setShowOrderSummary] = useState(false)
-
-  useEffect(() => {
-    if (!isLoading) {
-      const hasCompletedOrder = orderHelpers.getOrderData(null) !== null
-
-      if (
-        (!cart || cart.items?.length === 0) &&
-        !hasCompletedOrder &&
-        !isOrderComplete
-      ) {
-        // router.push("/cart")
-      }
-    }
-  }, [cart, isLoading, isOrderComplete])
 
   if (isLoading) {
     return <LoadingPage />
@@ -80,6 +65,7 @@ export default function CheckoutPage() {
   const shippingPrice =
     selectedShippingMethod?.calculated_price.calculated_amount || 0
   const paymentFee = selectedPaymentMethod?.fee || 0
+  const finalTotal = (orderData?.total ?? 0) + paymentFee
 
   const handleComplete = async () => {
     try {
@@ -121,7 +107,6 @@ export default function CheckoutPage() {
           currentStep={currentStep}
           isLoading={isLoadingShipping}
           onSelect={async (method) => {
-            setSelectedShipping(method)
             try {
               await addShippingMethod(method)
             } catch {
@@ -248,9 +233,7 @@ export default function CheckoutPage() {
               {showOrderSummary ? "Skrýt" : "Zobrazit"} souhrn objednávky
             </span>
           </div>
-          <span className="font-bold">
-            {formatPrice(orderData?.total || 0 + shippingPrice + paymentFee)}
-          </span>
+          <span className="font-bold">{formatPrice(finalTotal)}</span>
         </Button>
 
         {showOrderSummary && (

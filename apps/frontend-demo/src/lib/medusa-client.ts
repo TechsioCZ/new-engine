@@ -8,7 +8,7 @@ const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 const LEGACY_AUTH_TOKEN_STORAGE_KEY = "medusa_auth_token"
 
 if (!PUBLISHABLE_KEY) {
-  console.warn("âš ď¸Ź NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set!")
+  console.warn("Warning: NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set!")
 }
 
 export const sdk = createMedusaSdk({

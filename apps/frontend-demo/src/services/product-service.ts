@@ -179,15 +179,19 @@ export const transformProduct = (
 export const getProducts = async (
   params: ProductListParams = {}
 ): Promise<ProductListResponse> => {
-  const queryParams = {
-    ...buildProductListQuery(params),
-    country_code: params.country_code ?? "cz",
-  }
-  const limit = queryParams.limit ?? 20
-  const offset = queryParams.offset ?? 0
+  const queryParams = buildProductListQuery(params)
+  const resolvedQueryParams =
+    params.region_id || params.country_code
+      ? queryParams
+      : {
+          ...queryParams,
+          country_code: "cz",
+        }
+  const limit = resolvedQueryParams.limit ?? 20
+  const offset = resolvedQueryParams.offset ?? 0
 
   try {
-    const response = await sdk.store.product.list(queryParams)
+    const response = await sdk.store.product.list(resolvedQueryParams)
 
     if (!response.products) {
       console.error("[ProductService] Invalid response structure:", response)
