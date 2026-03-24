@@ -2,12 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useState } from "react";
-import {
-  storefrontCartReadQueryOptions,
-  useAddLineItem,
-  useCart,
-} from "@/lib/storefront/cart";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
 
 type UseSearchAddToCartInput = {
   regionId?: string;
@@ -19,51 +14,32 @@ export const useSearchAddToCart = ({
   countryCode,
 }: UseSearchAddToCartInput) => {
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
-  const [activeProductId, setActiveProductId] = useState<string | null>(null);
-
-  const cartQuery = useCart({
-    autoCreate: true,
-    region_id: regionId,
-    country_code: countryCode,
-    enabled: Boolean(regionId),
-  }, {
-    queryOptions: storefrontCartReadQueryOptions,
+  const addToCart = useAddProductToCart({
+    regionId,
+    countryCode,
   });
-  const addLineItemMutation = useAddLineItem();
 
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
     setAddToCartError(null);
 
-    const variantId = product.variants?.[0]?.id;
-    if (!variantId || !regionId) {
-      setAddToCartError(
-        "Produkt nemá dostupnú variantu na pridanie do košíka.",
-      );
-      return;
-    }
-
-    setActiveProductId(product.id);
-
     try {
-      await addLineItemMutation.mutateAsync({
-        cartId: cartQuery.cart?.id,
-        variantId,
+      await addToCart.addProductToCart({
+        product,
         quantity: 1,
-        autoCreate: true,
-        region_id: regionId,
-        country_code: countryCode,
       });
     } catch (error) {
-      setAddToCartError(resolveErrorMessage(error, "Pridanie do košíka zlyhalo."));
-    } finally {
-      setActiveProductId(null);
+      setAddToCartError(
+        error instanceof Error
+          ? error.message
+          : "Pridanie do košíka zlyhalo.",
+      );
     }
   };
 
   return {
     addToCartError,
-    activeProductId,
-    isAddPending: addLineItemMutation.isPending,
+    activeProductId: addToCart.activeProductId,
+    isAddPending: addToCart.isAddPending,
     handleAddToCart,
   };
 };

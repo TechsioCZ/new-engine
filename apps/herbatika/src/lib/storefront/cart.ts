@@ -3,10 +3,8 @@
 import { storefront } from "./storefront";
 import { storefrontCacheConfig } from "./cache";
 
-export const cartQueryKeys = storefront.queryKeys.cart;
-export const cartService = storefront.services.cart;
-export const cartHooks = storefront.hooks.cart;
-export const cartFlow = storefront.flows.cart;
+const cartHooks = storefront.hooks.cart;
+const cartFlow = storefront.flows.cart;
 
 export const storefrontCartReadQueryOptions = {
   staleTime: 60 * 1000,

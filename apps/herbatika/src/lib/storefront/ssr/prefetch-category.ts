@@ -6,8 +6,10 @@ import { collectDescendantCategoryIds } from "../category-tree";
 import { buildCategoryListParams } from "../category-query-config";
 import { PLP_PAGE_SIZE } from "../plp-config";
 import type { PlpQueryState } from "../plp-query-state";
-import { storefrontCacheConfig } from "../cache";
-import { storefront } from "../storefront";
+import {
+  getServerCatalogListQueryOptions,
+  getServerCategoryListQueryOptions,
+} from "../storefront-server";
 import { CATEGORY_LIST_LIMIT } from "./constants";
 import { getRegionServerContext } from "./context";
 
@@ -23,12 +25,9 @@ export const prefetchCategoryPageStorefrontData = async (
     fields: "id,name,handle,parent_category_id,rank",
   });
 
-  const categoryResponse = await queryClient.fetchQuery({
-    queryKey: storefront.queryKeys.categories.list(categoryListParams),
-    queryFn: ({ signal }) =>
-      storefront.services.categories.getCategories(categoryListParams, signal),
-    ...storefrontCacheConfig.static,
-  });
+  const categoryResponse = await queryClient.fetchQuery(
+    getServerCategoryListQueryOptions(categoryListParams),
+  );
 
   const activeCategory =
     categoryResponse.categories.find((category) => category.handle === slug) ?? null;
@@ -46,12 +45,9 @@ export const prefetchCategoryPageStorefrontData = async (
       countryCode: region.country_code,
     });
 
-    await queryClient.prefetchQuery({
-      queryKey: storefront.queryKeys.catalog.list(catalogListParams),
-      queryFn: ({ signal }) =>
-        storefront.services.catalog.getCatalogProducts(catalogListParams, signal),
-      ...storefrontCacheConfig.semiStatic,
-    });
+    await queryClient.prefetchQuery(
+      getServerCatalogListQueryOptions(catalogListParams),
+    );
   }
 
   return {

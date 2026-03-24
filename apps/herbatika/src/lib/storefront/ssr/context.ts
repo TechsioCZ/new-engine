@@ -4,11 +4,11 @@ import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client";
 import type { QueryClient } from "@tanstack/react-query";
 import { cookies } from "next/headers";
-import { storefrontCacheConfig } from "../cache";
 import {
-  getProductDetailQueryOptions,
-  getProductListQueryOptions,
-} from "../products";
+  getServerProductDetailQueryOptions,
+  getServerProductListQueryOptions,
+  getServerRegionListQueryOptions,
+} from "../storefront-server";
 import {
   REGION_COUNTRY_CODE_STORAGE_KEY,
   REGION_STORAGE_KEY,
@@ -16,7 +16,6 @@ import {
 } from "../region-preferences";
 import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "../region-query-config";
 import { resolveRegionByIdOrDefault, toRegionInfo } from "../region-selection";
-import { storefront } from "../storefront";
 import type {
   ProductDetailParams,
   ProductListParams,
@@ -41,11 +40,9 @@ export const getRegionServerContext = async () => {
     limit: REGION_LIST_LIMIT,
   };
 
-  const regionListResponse = await queryClient.fetchQuery({
-    queryKey: storefront.queryKeys.regions.list(listParams),
-    queryFn: ({ signal }) => storefront.services.regions.getRegions(listParams, signal),
-    ...storefrontCacheConfig.static,
-  });
+  const regionListResponse = await queryClient.fetchQuery(
+    getServerRegionListQueryOptions(listParams),
+  );
 
   const resolvedRegionRecord = resolveRegionByIdOrDefault(
     regionListResponse.regions,
@@ -66,9 +63,7 @@ export const prefetchProductList = async (
   listParams: ProductListParams,
 ) => {
   await queryClient.prefetchQuery(
-    getProductListQueryOptions(listParams, {
-      queryOptions: storefrontCacheConfig.semiStatic,
-    }),
+    getServerProductListQueryOptions(listParams),
   );
 };
 
@@ -76,9 +71,5 @@ export const prefetchProductDetail = async (
   queryClient: QueryClient,
   detailParams: ProductDetailParams,
 ) => {
-  return queryClient.fetchQuery(
-    getProductDetailQueryOptions(detailParams, {
-      queryOptions: storefrontCacheConfig.semiStatic,
-    }),
-  );
+  return queryClient.fetchQuery(getServerProductDetailQueryOptions(detailParams));
 };

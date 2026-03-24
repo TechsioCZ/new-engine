@@ -10,9 +10,7 @@ import {
 import { resolveRegionByIdOrDefault, toRegionInfo } from "./region-selection";
 import { storefront } from "./storefront";
 
-export const regionService = storefront.services.regions;
-export const regionQueryKeys = storefront.queryKeys.regions;
-export const regionHooks = storefront.hooks.regions;
+const regionHooks = storefront.hooks.regions;
 
 export const {
   useRegions,

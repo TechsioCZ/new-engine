@@ -1,3 +1,5 @@
+"use client";
+
 import type { HttpTypes } from "@medusajs/types";
 import {
   createMedusaStorefrontPreset,
@@ -24,6 +26,11 @@ import {
 } from "./product-query-config";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import { storefrontSdk } from "./sdk";
+import {
+  STOREFRONT_CATALOG_DEFAULT_LIMIT,
+  STOREFRONT_CATALOG_DEFAULT_SORT,
+  STOREFRONT_CATEGORY_FIELDS,
+} from "./storefront-config";
 
 const presetQueryKeys = createMedusaStorefrontQueryKeys(
   STOREFRONT_QUERY_KEY_NAMESPACE,
@@ -76,10 +83,8 @@ export const storefront = createMedusaStorefrontPreset<
   },
   categories: {
     serviceConfig: {
-      defaultListFields:
-        "id,name,handle,parent_category_id,rank,is_active,category_children",
-      defaultDetailFields:
-        "id,name,handle,parent_category_id,rank,is_active,category_children",
+      defaultListFields: STOREFRONT_CATEGORY_FIELDS,
+      defaultDetailFields: STOREFRONT_CATEGORY_FIELDS,
     },
     hooks: {
       buildListParams: buildCategoryListParams,
@@ -89,12 +94,12 @@ export const storefront = createMedusaStorefrontPreset<
   },
   catalog: {
     serviceConfig: {
-      defaultLimit: 24,
-      defaultSort: "recommended",
+      defaultLimit: STOREFRONT_CATALOG_DEFAULT_LIMIT,
+      defaultSort: STOREFRONT_CATALOG_DEFAULT_SORT,
     },
     hooks: {
       requireRegion: true,
-      defaultPageSize: 24,
+      defaultPageSize: STOREFRONT_CATALOG_DEFAULT_LIMIT,
     },
   },
 });

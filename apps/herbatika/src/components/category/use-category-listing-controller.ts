@@ -7,11 +7,6 @@ import { useEffect, useState } from "react";
 import { useCategoryListingQueries } from "@/components/category/use-category-listing-queries";
 import { toggleSelection } from "@/components/category/category-selection-utils";
 import {
-  storefrontCartReadQueryOptions,
-  useAddLineItem,
-  useCart,
-} from "@/lib/storefront/cart";
-import {
   usePrefetchCategories,
   usePrefetchCategory,
 } from "@/lib/storefront/categories";
@@ -24,7 +19,7 @@ import {
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
 } from "@/lib/storefront/products";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
 
 type UseCategoryListingControllerProps = {
   slug: string;
@@ -36,7 +31,6 @@ export function useCategoryListingController({
   const region = useRegionContext();
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers);
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
-  const [activeProductId, setActiveProductId] = useState<string | null>(null);
 
   const listingQueries = useCategoryListingQueries({
     slug,
@@ -45,15 +39,10 @@ export function useCategoryListingController({
     countryCode: region?.country_code,
   });
 
-  const cartQuery = useCart({
-    autoCreate: true,
-    region_id: region?.region_id,
-    country_code: region?.country_code,
-    enabled: Boolean(region?.region_id),
-  }, {
-    queryOptions: storefrontCartReadQueryOptions,
+  const addToCart = useAddProductToCart({
+    regionId: region?.region_id,
+    countryCode: region?.country_code,
   });
-  const addLineItemMutation = useAddLineItem();
   const prefetchProduct = usePrefetchProduct({ defaultDelay: 180, skipMode: "any" });
   const prefetchCategory = usePrefetchCategory({ defaultDelay: 200, skipMode: "any" });
   const prefetchCategories = usePrefetchCategories({ defaultDelay: 250, skipMode: "any" });
@@ -80,27 +69,17 @@ export function useCategoryListingController({
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
     setAddToCartError(null);
 
-    const variantId = product.variants?.[0]?.id;
-    if (!variantId || !region?.region_id) {
-      setAddToCartError("Produkt nemá dostupnú variantu na pridanie do košíka.");
-      return;
-    }
-
-    setActiveProductId(product.id);
-
     try {
-      await addLineItemMutation.mutateAsync({
-        cartId: cartQuery.cart?.id,
-        variantId,
+      await addToCart.addProductToCart({
+        product,
         quantity: 1,
-        autoCreate: true,
-        region_id: region.region_id,
-        country_code: region.country_code,
       });
     } catch (error) {
-      setAddToCartError(resolveErrorMessage(error, "Pridanie do košíka zlyhalo."));
-    } finally {
-      setActiveProductId(null);
+      setAddToCartError(
+        error instanceof Error
+          ? error.message
+          : "Pridanie do košíka zlyhalo.",
+      );
     }
   };
 
@@ -119,7 +98,7 @@ export function useCategoryListingController({
     ...listingQueries,
     addToCartError,
     isProductAdding: (productId: string) =>
-      addLineItemMutation.isPending && activeProductId === productId,
+      addToCart.isProductAdding(productId),
     onAddToCart: handleAddToCart,
     onBrandToggle: (itemId: string) => patchMultiSelect("brand", itemId),
     onCategoryBlur: (category: HttpTypes.StoreProductCategory) => {

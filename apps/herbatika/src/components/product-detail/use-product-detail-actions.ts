@@ -6,15 +6,10 @@ import type {
 } from "@/components/product-detail/use-product-detail-data";
 import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
 import {
-  storefrontCartReadQueryOptions,
-  useAddLineItem,
-  useCart,
-} from "@/lib/storefront/cart";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
-import {
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
 } from "@/lib/storefront/products";
+import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
 
 type UseProductDetailActionsProps = {
   product: ProductDetailDataState["product"];
@@ -32,18 +27,10 @@ export function useProductDetailActions({
   selectedVolumeDiscountOption,
 }: UseProductDetailActionsProps) {
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
-  const [activeProductId, setActiveProductId] = useState<string | null>(null);
-
-  const cartQuery = useCart({
-    autoCreate: true,
-    region_id: region?.region_id,
-    country_code: region?.country_code,
-    enabled: Boolean(region?.region_id),
-  }, {
-    queryOptions: storefrontCartReadQueryOptions,
+  const addToCart = useAddProductToCart({
+    regionId: region?.region_id,
+    countryCode: region?.country_code,
   });
-
-  const addLineItemMutation = useAddLineItem();
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 220,
     skipMode: "any",
@@ -55,26 +42,19 @@ export function useProductDetailActions({
     variantIdOverride?: string | null,
   ) => {
     setAddToCartError(null);
-    setActiveProductId(productToAdd.id);
 
     try {
-      const variantId = variantIdOverride ?? productToAdd.variants?.[0]?.id;
-      if (!variantId || !region?.region_id) {
-        throw new Error("Produkt nemá dostupnú variantu na pridanie do košíka.");
-      }
-
-      await addLineItemMutation.mutateAsync({
-        cartId: cartQuery.cart?.id,
-        variantId,
+      await addToCart.addProductToCart({
+        product: productToAdd,
         quantity: quantityToAdd,
-        autoCreate: true,
-        region_id: region.region_id,
-        country_code: region.country_code,
+        variantId: variantIdOverride,
       });
     } catch (error) {
-      setAddToCartError(resolveErrorMessage(error));
-    } finally {
-      setActiveProductId(null);
+      setAddToCartError(
+        error instanceof Error
+          ? error.message
+          : "Pridanie do košíka zlyhalo.",
+      );
     }
   };
 
@@ -122,10 +102,10 @@ export function useProductDetailActions({
       );
     },
     isMainProductAdding:
-      addLineItemMutation.isPending &&
+      addToCart.isAddPending &&
       Boolean(product?.id) &&
-      activeProductId === product?.id,
+      addToCart.activeProductId === product?.id,
     isProductAdding: (productId: string) =>
-      addLineItemMutation.isPending && activeProductId === productId,
+      addToCart.isProductAdding(productId),
   };
 }

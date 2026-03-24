@@ -23,9 +23,7 @@ export type ProductDetailInput = MedusaProductDetailInput & {
   enabled?: boolean;
 };
 
-export const productService = storefront.services.products;
-export const productQueryKeys = storefront.queryKeys.products;
-export const productHooks = storefront.hooks.products;
+const productHooks = storefront.hooks.products;
 
 export const useProducts = (
   input: ProductListInput,

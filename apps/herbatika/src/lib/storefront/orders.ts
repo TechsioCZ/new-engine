@@ -6,9 +6,7 @@ import type {
   HerbatikaOrderListInput,
 } from "./orders-service";
 
-export const orderService = storefront.services.orders;
-export const orderQueryKeys = storefront.queryKeys.orders;
-export const orderHooks = storefront.hooks.orders;
+const orderHooks = storefront.hooks.orders;
 
 export const {
   useOrders,

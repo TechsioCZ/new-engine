@@ -15,9 +15,7 @@ type CategoryListInput = StorefrontCategoryListInput & {
   page?: number;
 };
 
-export const categoryService = storefront.services.categories;
-export const categoryQueryKeys = storefront.queryKeys.categories;
-export const categoryHooks = storefront.hooks.categories;
+const categoryHooks = storefront.hooks.categories;
 
 export const useCategories = (
   input: CategoryListInput,

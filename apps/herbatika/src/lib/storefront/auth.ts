@@ -4,7 +4,7 @@ import { storefront } from "./storefront";
 
 export { authService } from "./auth/service";
 
-export const authHooks = storefront.hooks.auth;
+const authHooks = storefront.hooks.auth;
 
 export const {
   useAuth,

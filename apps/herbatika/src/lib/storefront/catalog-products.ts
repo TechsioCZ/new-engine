@@ -22,9 +22,8 @@ export type CatalogProductsResponse = CatalogListResponse<
   CatalogFacets
 >;
 
-export const catalogService = storefront.services.catalog;
-export const catalogQueryKeys = storefront.queryKeys.catalog;
-export const catalogHooks = storefront.hooks.catalog;
+const catalogService = storefront.services.catalog;
+const catalogHooks = storefront.hooks.catalog;
 
 export const useCatalogProducts = catalogHooks.useCatalogProducts;
 export const useSuspenseCatalogProducts = catalogHooks.useSuspenseCatalogProducts;

@@ -20,9 +20,7 @@ export type CustomerAddressUpdateInput = MedusaCustomerAddressUpdateInput & {
 
 export type CustomerProfileUpdateInput = MedusaCustomerProfileUpdateInput;
 
-export const customerService = storefront.services.customers;
-export const customerQueryKeys = storefront.queryKeys.customers;
-export const customerHooks = storefront.hooks.customers;
+const customerHooks = storefront.hooks.customers;
 
 export const {
   useCustomerAddresses,

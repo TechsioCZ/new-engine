@@ -1,10 +1,6 @@
 import type { HttpTypes } from "@medusajs/types";
 import { useEffect, useState } from "react";
-import {
-  storefrontCartReadQueryOptions,
-  useAddLineItem,
-  useCart,
-} from "@/lib/storefront/cart";
+import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
 
 type RegionLike = {
   region_id?: string;
@@ -23,17 +19,10 @@ export function useHomepageCartActions(
 ): UseHomepageCartActionsResult {
   const [cartMessage, setCartMessage] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
-  const [addingVariantId, setAddingVariantId] = useState<string | null>(null);
-
-  const cartQuery = useCart({
-    autoCreate: true,
-    region_id: region?.region_id,
-    country_code: region?.country_code,
-    enabled: Boolean(region?.region_id),
-  }, {
-    queryOptions: storefrontCartReadQueryOptions,
+  const addToCart = useAddProductToCart({
+    regionId: region?.region_id,
+    countryCode: region?.country_code,
   });
-  const addLineItem = useAddLineItem();
 
   useEffect(() => {
     if (!cartMessage) {
@@ -53,44 +42,23 @@ export function useHomepageCartActions(
     setMutationError(null);
     setCartMessage(null);
 
-    const variantId = product.variants?.[0]?.id;
-
-    if (!region?.region_id) {
-      setMutationError("Región sa ešte načítava. Skúste to prosím o chvíľu.");
-      return;
-    }
-
-    if (!variantId) {
-      setMutationError(
-        "Produkt nemá dostupnú variantu pre vloženie do košíka.",
-      );
-      return;
-    }
-
     try {
-      setAddingVariantId(variantId);
-      await addLineItem.mutateAsync({
-        cartId: cartQuery.cart?.id,
-        variantId,
+      await addToCart.addProductToCart({
+        product,
         quantity: 1,
-        autoCreate: true,
-        region_id: region.region_id,
-        country_code: region.country_code,
       });
       setCartMessage(`Pridané do košíka: ${product.title}`);
     } catch (error) {
       setMutationError(
         error instanceof Error ? error.message : "An unknown error occurred.",
       );
-    } finally {
-      setAddingVariantId(null);
     }
   };
 
   return {
     cartMessage,
     mutationError,
-    isProductAdding: (product) => addingVariantId === product.variants?.[0]?.id,
+    isProductAdding: (product) => addToCart.isProductAdding(product.id),
     handleAddToCart,
   };
 }
