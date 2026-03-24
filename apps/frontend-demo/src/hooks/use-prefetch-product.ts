@@ -1,8 +1,8 @@
 "use client"
 
 import { useCallback } from "react"
+import { buildProductDetailQuery } from "@/lib/product-query-params"
 import { storefront } from "@/lib/storefront"
-import { buildProductDetailQuery } from "@/services/product-service"
 import { useRegions } from "./use-region"
 
 export function usePrefetchProduct(enabled?: boolean) {

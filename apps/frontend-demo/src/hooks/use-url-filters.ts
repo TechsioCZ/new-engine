@@ -5,8 +5,6 @@ import { useCallback, useMemo } from "react"
 import type { FilterState } from "@/components/organisms/product-filters"
 import type { SortOption } from "@/utils/product-filters"
 
-export type ExtendedSortOption = SortOption | "relevance"
-
 export type PageRange = {
   start: number
   end: number
@@ -41,9 +39,6 @@ export function useUrlFilters() {
 
   // Legacy single page for backward compatibility
   const page = pageRange.start
-
-  // Parse search query from URL
-  const searchQuery = searchParams.get("q") || ""
 
   // Parse filters from URL
   const filters: FilterState = useMemo(() => {
@@ -88,10 +83,10 @@ export function useUrlFilters() {
   )
 
   // Sort state
-  const sortBy = (searchParams.get("sort") || "newest") as ExtendedSortOption
+  const sortBy = (searchParams.get("sort") || "newest") as SortOption
 
   const setSortBy = useCallback(
-    (sort: ExtendedSortOption) => {
+    (sort: SortOption) => {
       const params = new URLSearchParams(searchParams.toString())
       params.set("sort", sort)
       // Reset to page 1 when sort changes
@@ -142,22 +137,6 @@ export function useUrlFilters() {
     router.replace(`?${params.toString()}`, { scroll: false })
   }, [pageRange.start, pageRange.end, searchParams, router])
 
-  // Update search query in URL
-  const setSearchQuery = useCallback(
-    (query: string) => {
-      const params = new URLSearchParams(searchParams.toString())
-      if (query) {
-        params.set("q", query)
-      } else {
-        params.delete("q")
-      }
-      // Reset to first page when searching
-      params.set("page", "1")
-      router.push(`?${params.toString()}`, { scroll: false })
-    },
-    [searchParams, router]
-  )
-
   return {
     filters,
     setFilters,
@@ -168,7 +147,5 @@ export function useUrlFilters() {
     pageRange,
     setPageRange,
     extendPageRange,
-    searchQuery,
-    setSearchQuery,
   }
 }

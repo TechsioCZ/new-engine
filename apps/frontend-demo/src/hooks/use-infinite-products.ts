@@ -5,12 +5,11 @@ import {
   useQueries,
   useQueryClient,
 } from "@tanstack/react-query"
-import { buildStorefrontProductListParams, storefront } from "@/lib/storefront"
 import {
   buildProductListQuery,
   type ProductListParams,
-  type ProductListResponse,
-} from "@/services/product-service"
+} from "@/lib/product-query-params"
+import { buildStorefrontProductListParams, storefront } from "@/lib/storefront"
 import type { Product } from "@/types/product"
 import type { PageRange } from "./use-url-filters"
 
@@ -27,6 +26,11 @@ type UseInfiniteProductsReturn = {
   hasNextPage: boolean
   isFetchingNextPage: boolean
   fetchNextPage: () => Promise<unknown>
+}
+
+type ProductListResponse = {
+  products: Product[]
+  count: number
 }
 
 type ProductsPageFragmentParams = Omit<

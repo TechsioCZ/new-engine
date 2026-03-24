@@ -9,12 +9,16 @@ export function sortVariantsBySize(
     const aIndex = SIZE_ORDER.indexOf(a.title.toLowerCase())
     const bIndex = SIZE_ORDER.indexOf(b.title.toLowerCase())
 
-    // Pokud není v seznamu velikostí, dát na konec a řadit alfabeticky
+    // Sort unknown sizes after the standard size order and compare them alphabetically.
     if (aIndex === -1 && bIndex === -1) {
       return a.title.localeCompare(b.title)
     }
-    if (aIndex === -1) return 1
-    if (bIndex === -1) return -1
+    if (aIndex === -1) {
+      return 1
+    }
+    if (bIndex === -1) {
+      return -1
+    }
 
     return aIndex - bIndex
   })

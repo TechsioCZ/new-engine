@@ -12,9 +12,10 @@ import { ProductGrid } from "@/components/organisms/product-grid"
 import { useInfiniteProducts } from "@/hooks/use-infinite-products"
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { useRegions } from "@/hooks/use-region"
-import { type ExtendedSortOption, useUrlFilters } from "@/hooks/use-url-filters"
+import { useUrlFilters } from "@/hooks/use-url-filters"
+import type { SortOption } from "@/utils/product-filters"
 
-const SORT_OPTIONS: Array<{ value: ExtendedSortOption; label: string }> = [
+const SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
   { value: "newest", label: "Nejnovější" },
   { value: "name-asc", label: "Název: A-Z" },
   { value: "name-desc", label: "Název: Z-A" },
@@ -42,8 +43,7 @@ function ProductsContent() {
       pageRange: urlFilters.pageRange,
       limit: pageSize,
       filters: productFilters,
-      sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
-      q: urlFilters.searchQuery || undefined,
+      sort: urlFilters.sortBy,
       region_id: selectedRegion?.id,
       country_code: selectedCountryCode,
     }),
@@ -52,7 +52,6 @@ function ProductsContent() {
       selectedCountryCode,
       selectedRegion?.id,
       urlFilters.pageRange,
-      urlFilters.searchQuery,
       urlFilters.sortBy,
     ]
   )
@@ -74,8 +73,7 @@ function ProductsContent() {
     totalPages,
     limit: pageSize,
     filters: productFilters,
-    sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
-    q: urlFilters.searchQuery || undefined,
+    sort: urlFilters.sortBy,
     region_id: selectedRegion?.id,
     country_code: selectedCountryCode,
   })
@@ -166,7 +164,7 @@ function ProductsContent() {
               items={SORT_OPTIONS}
               label="Řadit podle"
               onValueChange={(details) => {
-                const value = details.value[0] as ExtendedSortOption | undefined
+                const value = details.value[0] as SortOption | undefined
                 if (value) {
                   urlFilters.setSortBy(value)
                 }

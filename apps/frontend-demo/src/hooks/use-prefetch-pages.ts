@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { buildProductsPageFragmentInput } from "@/hooks/use-infinite-products"
-import type { ProductFilters } from "@/services/product-service"
+import type { ProductFilters } from "@/lib/product-query-params"
 import { usePrefetchProducts } from "./use-prefetch-products"
 
 type UsePrefetchPagesParams = {

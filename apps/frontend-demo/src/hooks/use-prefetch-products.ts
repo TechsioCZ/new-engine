@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback } from "react"
-import { storefront } from "@/lib/storefront"
 import {
   buildProductListQuery,
   type ProductListParams,
-} from "@/services/product-service"
+} from "@/lib/product-query-params"
+import { storefront } from "@/lib/storefront"
 import { useRegions } from "./use-region"
 
 type StorefrontPrefetchProductsOptions = Parameters<

@@ -5,10 +5,10 @@ import { STORAGE_KEYS } from "@/lib/constants"
 import { sdk } from "@/lib/medusa-client"
 import { ORDER_FIELDS } from "@/lib/order-utils"
 import {
-  DETAIL_FIELDS,
-  LIST_FIELDS,
-  transformProduct,
-} from "@/services/product-service"
+  PRODUCT_DETAIL_FIELDS,
+  PRODUCT_LIST_FIELDS,
+} from "@/lib/product-query-params"
+import { transformProduct } from "@/lib/product-transform"
 import type { Product } from "@/types/product"
 
 const cartStorage = createLocalStorageValueStore({
@@ -55,8 +55,8 @@ export const storefront = createMedusaStorefrontPreset<Product>({
       requireRegion: false,
     },
     serviceConfig: {
-      defaultListFields: LIST_FIELDS,
-      defaultDetailFields: DETAIL_FIELDS,
+      defaultListFields: PRODUCT_LIST_FIELDS,
+      defaultDetailFields: PRODUCT_DETAIL_FIELDS,
       transformProduct: (product) => transformProduct(product, true),
     },
   },

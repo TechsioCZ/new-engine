@@ -1,11 +1,11 @@
 "use client"
 
-import { storefront } from "@/lib/storefront"
 import {
   buildProductDetailQuery,
   buildProductListQuery,
   type ProductFilters,
-} from "@/services/product-service"
+} from "@/lib/product-query-params"
+import { storefront } from "@/lib/storefront"
 import type { Product } from "@/types/product"
 
 type UseProductsParams = {
