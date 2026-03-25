@@ -1,6 +1,10 @@
 @theme static {
   /* === BASE COLOR MAPPING === */
   --color-radio-group-accent: var(--color-primary);
+  --color-radio-group-accent-hover: var(--color-primary-hover);
+  --color-radio-group-accent-light: var(--color-primary-light);
+  --color-radio-group-accent-light-hover: var(--color-primary-light-hover);
+  --color-radio-group-accent-contrast: var(--color-fg-dark);
   --color-radio-group-danger: var(--color-danger);
   --color-radio-group-fg: var(--color-fg-primary);
   --color-radio-group-fg-disabled: var(--color-fg-disabled);
@@ -10,9 +14,6 @@
   /* === DERIVED COLORS === */
   --color-radio-group-item-control-bg: var(--color-radio-group-surface);
   --color-radio-group-item-control-border: var(--color-radio-group-border);
-  --color-radio-group-item-control-border-checked: var(
-    --color-radio-group-accent
-  );
   --color-radio-group-item-indicator: var(--color-radio-group-accent);
   --color-radio-group-item-fg: var(--color-radio-group-fg);
 
@@ -27,7 +28,53 @@
   );
 
   /* === COMPONENT VARIANTS === */
-  /* No component-specific visual variants yet. */
+  --color-radio-group-item-control-bg-outline-checked: var(
+    --color-radio-group-item-control-bg
+  );
+  --color-radio-group-item-control-bg-outline-checked-hover: var(
+    --color-radio-group-item-control-bg-hover
+  );
+  --color-radio-group-item-control-border-outline-checked: var(
+    --color-radio-group-accent
+  );
+  --color-radio-group-item-control-border-outline-checked-hover: var(
+    --color-radio-group-accent-hover
+  );
+  --color-radio-group-item-indicator-outline: var(
+    --color-radio-group-item-indicator
+  );
+
+  --color-radio-group-item-control-bg-subtle-checked: var(
+    --color-radio-group-accent-light
+  );
+  --color-radio-group-item-control-bg-subtle-checked-hover: var(
+    --color-radio-group-accent-light-hover
+  );
+  --color-radio-group-item-control-border-subtle-checked: var(
+    --color-radio-group-accent-light
+  );
+  --color-radio-group-item-control-border-subtle-checked-hover: var(
+    --color-radio-group-accent-light-hover
+  );
+  --color-radio-group-item-indicator-subtle: var(
+    --color-radio-group-item-indicator
+  );
+
+  --color-radio-group-item-control-bg-solid-checked: var(
+    --color-radio-group-accent
+  );
+  --color-radio-group-item-control-bg-solid-checked-hover: var(
+    --color-radio-group-accent-hover
+  );
+  --color-radio-group-item-control-border-solid-checked: var(
+    --color-radio-group-accent
+  );
+  --color-radio-group-item-control-border-solid-checked-hover: var(
+    --color-radio-group-accent-hover
+  );
+  --color-radio-group-item-indicator-solid: var(
+    --color-radio-group-accent-contrast
+  );
 
   /* === VALIDATION STATES === */
   --color-radio-group-item-control-border-error: var(
@@ -63,7 +110,9 @@
   --spacing-radio-group-control-sm: var(--spacing-200);
   --spacing-radio-group-control-md: var(--spacing-200);
   --spacing-radio-group-control-lg: var(--spacing-250);
-  --spacing-radio-group-indicator: 65%;
+  --spacing-radio-group-indicator-sm: var(--spacing-100);
+  --spacing-radio-group-indicator-md: var(--spacing-100);
+  --spacing-radio-group-indicator-lg: var(--spacing-150);
 
   /* === TYPOGRAPHY === */
   --text-radio-group-item-sm: var(--text-sm);
@@ -79,4 +128,9 @@
 
   /* === FOCUS RINGS === */
   --color-radio-group-ring: var(--color-ring);
+}
+
+
+@utility token-icon-radio-group-checked {
+  @apply icon-[mdi--circle];
 }

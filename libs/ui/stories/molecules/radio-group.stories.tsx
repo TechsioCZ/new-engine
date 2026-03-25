@@ -92,7 +92,7 @@ const meta: Meta<typeof RadioGroup> = {
     docs: {
       description: {
         component:
-          "A compound radio-group component built with Zag.js. It supports controlled/uncontrolled state, form submission, validation, horizontal or vertical layouts, and rich item content.",
+          "A compound radio-group component built with Zag.js. It supports controlled/uncontrolled state, form submission, validation, visual variants, horizontal or vertical layouts, and rich item content.",
       },
     },
   },
@@ -103,6 +103,12 @@ const meta: Meta<typeof RadioGroup> = {
       options: ["sm", "md", "lg"],
       description: "Size of the radio group content.",
       table: { defaultValue: { summary: "md" } },
+    },
+    variant: {
+      control: { type: "inline-radio" },
+      options: ["outline", "subtle", "solid"],
+      description: "Visual treatment for the radio control.",
+      table: { defaultValue: { summary: "outline" } },
     },
     orientation: {
       control: { type: "inline-radio" },
@@ -143,6 +149,7 @@ const meta: Meta<typeof RadioGroup> = {
   },
   args: {
     size: "md",
+    variant: "outline",
     orientation: "vertical",
     validateStatus: "default",
     disabled: false,
@@ -158,6 +165,18 @@ type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
   render: (args) => <BasicRadioGroup {...args} />,
+}
+
+export const Variants: Story = {
+  render: () => (
+    <VariantContainer>
+      <VariantGroup title="Variants" fullWidth>
+        <BasicRadioGroup defaultValue="standard" variant="outline" />
+        <BasicRadioGroup defaultValue="standard" variant="subtle" />
+        <BasicRadioGroup defaultValue="standard" variant="solid" />
+      </VariantGroup>
+    </VariantContainer>
+  ),
 }
 
 export const Sizes: Story = {

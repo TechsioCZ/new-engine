@@ -36,16 +36,16 @@ const radioGroupVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
       "after:absolute after:top-1/2 after:left-1/2",
       "after:-translate-x-1/2 after:-translate-y-1/2",
-      "after:size-radio-group-indicator after:rounded-full",
-      "after:bg-radio-group-item-indicator after:content-['']",
+      "after:content-['']",
       "after:opacity-0 after:transition-opacity after:duration-200",
       "data-hover:bg-radio-group-item-control-bg-hover",
       "data-hover:border-radio-group-item-control-border-hover",
-      "data-[state=checked]:border-radio-group-item-control-border-checked",
+      "data-[state=checked]:after:token-icon-radio-group-checked",
       "data-[state=checked]:after:opacity-100",
+      "after:scale-50",
       "data-disabled:bg-radio-group-item-control-bg-disabled",
       "data-disabled:border-radio-group-item-control-border-disabled",
-      "data-disabled:after:bg-radio-group-item-indicator-disabled",
+      "data-disabled:data-[state=checked]:text-radio-group-item-indicator-disabled",
       "data-focus-visible:outline-(style:--default-ring-style)",
       "data-focus-visible:outline-(length:--default-ring-width)",
       "data-focus-visible:outline-radio-group-ring",
@@ -64,13 +64,42 @@ const radioGroupVariants = tv({
     hiddenInput: "sr-only",
   },
   variants: {
+    variant: {
+      outline: {
+        itemControl: [
+          "data-[state=checked]:bg-radio-group-item-control-bg-outline-checked",
+          "data-[state=checked]:border-radio-group-item-control-border-outline-checked",
+          "data-[state=checked]:after:bg-radio-group-item-indicator-outline",
+          "data-hover:data-[state=checked]:bg-radio-group-item-control-bg-outline-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-item-control-border-outline-checked-hover",
+        ],
+      },
+      subtle: {
+        itemControl: [
+          "data-[state=checked]:bg-radio-group-item-control-bg-subtle-checked",
+          "data-[state=checked]:border-radio-group-item-control-border-subtle-checked",
+          "data-[state=checked]:after:bg-radio-group-item-indicator-subtle",
+          "data-hover:data-[state=checked]:bg-radio-group-item-control-bg-subtle-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-item-control-border-subtle-checked-hover",
+        ],
+      },
+      solid: {
+        itemControl: [
+          "data-[state=checked]:bg-radio-group-item-control-bg-solid-checked",
+          "data-[state=checked]:border-radio-group-item-control-border-solid-checked",
+          "data-[state=checked]:after:bg-radio-group-item-indicator-solid",
+          "data-hover:data-[state=checked]:bg-radio-group-item-control-bg-solid-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-item-control-border-solid-checked-hover",
+        ],
+      },
+    },
     size: {
       sm: {
         root: "gap-radio-group-root-sm",
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-sm data-[orientation=vertical]:gap-radio-group-items-vertical-sm",
         item: "gap-radio-group-item-sm",
-        itemControl: "size-radio-group-control-sm",
+        itemControl: "size-radio-group-control-sm after:size-radio-group-indicator-sm",
         itemText: "text-radio-group-item-sm",
       },
       md: {
@@ -78,7 +107,7 @@ const radioGroupVariants = tv({
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-md data-[orientation=vertical]:gap-radio-group-items-vertical-md",
         item: "gap-radio-group-item-md",
-        itemControl: "size-radio-group-control-md",
+        itemControl: "size-radio-group-control-md after:size-radio-group-indicator-md",
         itemText: "text-radio-group-item-md",
       },
       lg: {
@@ -86,15 +115,20 @@ const radioGroupVariants = tv({
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-lg data-[orientation=vertical]:gap-radio-group-items-vertical-lg",
         item: "gap-radio-group-item-lg",
-        itemControl: "size-radio-group-control-lg",
+        itemControl: "size-radio-group-control-lg after:size-radio-group-indicator-lg",
         itemText: "text-radio-group-item-lg",
       },
     },
   },
   defaultVariants: {
+    variant: "outline",
     size: "md",
   },
 })
+
+type RadioGroupVariant = NonNullable<
+  VariantProps<typeof radioGroupVariants>["variant"]
+>
 
 type RadioGroupSize = NonNullable<
   VariantProps<typeof radioGroupVariants>["size"]
@@ -104,6 +138,7 @@ type RadioGroupValidateStatus = "default" | "error" | "success" | "warning"
 
 type RadioGroupContextValue = {
   api: ReturnType<typeof zagRadioGroup.connect>
+  variant: RadioGroupVariant
   size: RadioGroupSize
   orientation: "horizontal" | "vertical"
   disabled: boolean
@@ -158,6 +193,7 @@ export function RadioGroup({
   orientation = "vertical",
   validateStatus = "default",
   onValueChange,
+  variant = "outline",
   size = "md",
   children,
   className,
@@ -184,11 +220,11 @@ export function RadioGroup({
     service,
     normalizeProps,
   )
-  const styles = radioGroupVariants({ size })
+  const styles = radioGroupVariants({ size, variant })
 
   return (
     <RadioGroupContext.Provider
-      value={{ api, size, orientation, disabled, required, validateStatus }}
+      value={{ api, variant, size, orientation, disabled, required, validateStatus }}
     >
       <div className={styles.root({ className })} ref={ref} {...api.getRootProps()}>
         {children}
@@ -239,8 +275,8 @@ RadioGroup.ItemGroup = function RadioGroupItemGroup({
   ref,
   ...props
 }: RadioGroupItemGroupProps) {
-  const { size, orientation } = useRadioGroupContext()
-  const styles = radioGroupVariants({ size })
+  const { size, variant, orientation } = useRadioGroupContext()
+  const styles = radioGroupVariants({ size, variant })
 
   return (
     <div
@@ -268,8 +304,8 @@ RadioGroup.Item = function RadioGroupItem({
   ref,
   ...props
 }: RadioGroupItemProps) {
-  const { api, size } = useRadioGroupContext()
-  const styles = radioGroupVariants({ size })
+  const { api, size, variant } = useRadioGroupContext()
+  const styles = radioGroupVariants({ size, variant })
   const itemProps = { value, disabled, invalid }
 
   return (
@@ -298,9 +334,9 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
   ref,
   ...props
 }: RadioGroupItemHiddenInputProps) {
-  const { api, size } = useRadioGroupContext()
+  const { api, size, variant } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
-  const styles = radioGroupVariants({ size })
+  const styles = radioGroupVariants({ size, variant })
 
   return (
     <input
@@ -321,9 +357,9 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
   ref,
   ...props
 }: RadioGroupItemControlProps) {
-  const { api, size } = useRadioGroupContext()
+  const { api, size, variant } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
-  const styles = radioGroupVariants({ size })
+  const styles = radioGroupVariants({ size, variant })
 
   return (
     <span
@@ -345,9 +381,9 @@ RadioGroup.ItemText = function RadioGroupItemText({
   ref,
   ...props
 }: RadioGroupItemTextProps) {
-  const { api, size } = useRadioGroupContext()
+  const { api, size, variant } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
-  const styles = radioGroupVariants({ size })
+  const styles = radioGroupVariants({ size, variant })
 
   return (
     <span
