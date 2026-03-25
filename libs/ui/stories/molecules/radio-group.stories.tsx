@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
+import { fn } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import {
@@ -143,7 +144,6 @@ const meta: Meta<typeof RadioGroup> = {
       description: "Initial selected value for uncontrolled usage.",
     },
     onValueChange: {
-      action: "value changed",
       description: "Called when the selected value changes.",
     },
   },
@@ -156,6 +156,7 @@ const meta: Meta<typeof RadioGroup> = {
     readOnly: false,
     required: false,
     defaultValue: "standard",
+    onValueChange: fn(),
   },
 }
 
