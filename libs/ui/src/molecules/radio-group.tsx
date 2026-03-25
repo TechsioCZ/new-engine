@@ -23,7 +23,7 @@ const radioGroupVariants = tv({
       "data-[orientation=vertical]:flex-col",
     ],
     item: [
-      "group inline-flex items-start",
+      "inline-flex items-start",
       "cursor-pointer select-none",
       "data-disabled:cursor-not-allowed",
       "data-readonly:cursor-default",
@@ -50,7 +50,7 @@ const radioGroupVariants = tv({
       "data-invalid:outline-offset-(length:--default-ring-offset)",
     ],
     itemIndicator: [
-      "pointer-events-none block shrink-0 leading-none",
+      "pointer-events-none block leading-none",
       "token-icon-radio-group-checked",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
       "data-[state=checked]:opacity-100",
@@ -376,8 +376,6 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
         aria-hidden="true"
         className={styles.itemIndicator()}
         data-disabled={itemState.disabled || undefined}
-        data-focus={itemState.focused || undefined}
-        data-invalid={itemState.invalid || undefined}
         data-state={itemState.checked ? "checked" : "unchecked"}
       />
       {children}
