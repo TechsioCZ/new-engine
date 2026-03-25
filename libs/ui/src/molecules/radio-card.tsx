@@ -42,7 +42,6 @@ const radioCardVariants = tv({
       "data-focus-visible:outline-radio-card-ring",
       "data-focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-invalid:border-radio-card-item-border-error",
-      "data-invalid:outline-(style:--default-ring-style)",
     ],
     itemControl: ["flex min-w-0 flex-1"],
     itemContent: ["flex min-w-0 flex-col"],
@@ -610,7 +609,6 @@ RadioCard.ItemDescription = function RadioCardItemDescription({
     <div
       className={styles.itemDescription({ className })}
       data-disabled={itemState.disabled || undefined}
-      data-invalid={itemState.invalid || undefined}
       data-state={itemState.checked ? "checked" : "unchecked"}
       ref={ref}
       {...props}
@@ -642,7 +640,6 @@ RadioCard.ItemIndicator = function RadioCardItemIndicator({
       aria-hidden="true"
       className={styles.itemIndicator()}
       data-disabled={itemState.disabled || undefined}
-      data-invalid={itemState.invalid || undefined}
       data-state={itemState.checked ? "checked" : "unchecked"}
       ref={ref}
       {...props}
@@ -650,7 +647,6 @@ RadioCard.ItemIndicator = function RadioCardItemIndicator({
       <span
         className={styles.itemIndicatorContent()}
         data-disabled={itemState.disabled || undefined}
-        data-invalid={itemState.invalid || undefined}
         data-state={itemState.checked ? "checked" : "unchecked"}
       >
         <span className={styles.itemIndicatorMark({ className })} />
@@ -682,7 +678,6 @@ RadioCard.ItemAddon = function RadioCardItemAddon({
     <div
       className={styles.itemAddon({ className })}
       data-disabled={itemState.disabled || undefined}
-      data-invalid={itemState.invalid || undefined}
       data-state={itemState.checked ? "checked" : "unchecked"}
       ref={ref}
       {...props}
