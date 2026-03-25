@@ -1,0 +1,82 @@
+@theme static {
+  /* === BASE COLOR MAPPING === */
+  --color-radio-group-accent: var(--color-primary);
+  --color-radio-group-danger: var(--color-danger);
+  --color-radio-group-fg: var(--color-fg-primary);
+  --color-radio-group-fg-disabled: var(--color-fg-disabled);
+  --color-radio-group-surface: var(--color-fill-active);
+  --color-radio-group-border: var(--color-border-primary);
+
+  /* === DERIVED COLORS === */
+  --color-radio-group-item-control-bg: var(--color-radio-group-surface);
+  --color-radio-group-item-control-border: var(--color-radio-group-border);
+  --color-radio-group-item-control-border-checked: var(
+    --color-radio-group-accent
+  );
+  --color-radio-group-item-indicator: var(--color-radio-group-accent);
+  --color-radio-group-item-fg: var(--color-radio-group-fg);
+
+  /* === STATE VARIATIONS === */
+  --color-radio-group-item-control-bg-hover: oklch(
+    from var(--color-radio-group-item-control-bg) calc(l + var(--state-hover)) c
+      h
+  );
+  --color-radio-group-item-control-border-hover: oklch(
+    from var(--color-radio-group-item-control-border)
+      calc(l + var(--state-hover)) c h
+  );
+
+  /* === COMPONENT VARIANTS === */
+  /* No component-specific visual variants yet. */
+
+  /* === VALIDATION STATES === */
+  --color-radio-group-item-control-border-error: var(
+    --color-radio-group-danger
+  );
+  --color-radio-group-ring-error: var(--color-radio-group-danger);
+
+  /* === DISABLED STATES === */
+  --color-radio-group-item-control-bg-disabled: var(--color-bg-disabled);
+  --color-radio-group-item-control-border-disabled: var(
+    --color-border-disabled
+  );
+  --color-radio-group-item-indicator-disabled: var(--color-fg-disabled);
+  --color-radio-group-item-fg-disabled: var(--color-radio-group-fg-disabled);
+
+  /* === SPACING === */
+  --gap-radio-group-root-sm: var(--spacing-100);
+  --gap-radio-group-root-md: var(--spacing-150);
+  --gap-radio-group-root-lg: var(--spacing-200);
+
+  --gap-radio-group-items-vertical-sm: var(--spacing-100);
+  --gap-radio-group-items-vertical-md: var(--spacing-150);
+  --gap-radio-group-items-vertical-lg: var(--spacing-200);
+
+  --gap-radio-group-items-horizontal-sm: var(--spacing-150);
+  --gap-radio-group-items-horizontal-md: var(--spacing-250);
+  --gap-radio-group-items-horizontal-lg: var(--spacing-300);
+
+  --gap-radio-group-item-sm: var(--spacing-100);
+  --gap-radio-group-item-md: var(--spacing-150);
+  --gap-radio-group-item-lg: var(--spacing-200);
+
+  --spacing-radio-group-control-sm: var(--spacing-200);
+  --spacing-radio-group-control-md: var(--spacing-200);
+  --spacing-radio-group-control-lg: var(--spacing-250);
+  --spacing-radio-group-indicator: 65%;
+
+  /* === TYPOGRAPHY === */
+  --text-radio-group-item-sm: var(--text-sm);
+  --text-radio-group-item-md: var(--text-md);
+  --text-radio-group-item-lg: var(--text-lg);
+
+  /* === BORDERS & RADIUS === */
+  --border-width-radio-group: var(--border-width-sm);
+  --radius-radio-group-control: var(--radius-full);
+
+  /* === SHADOWS === */
+  /* No shadows. */
+
+  /* === FOCUS RINGS === */
+  --color-radio-group-ring: var(--color-ring);
+}
