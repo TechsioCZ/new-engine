@@ -2,7 +2,6 @@ import "server-only";
 
 import type { FindParams, HttpTypes } from "@medusajs/types";
 import type { CatalogProductsParams } from "./catalog-query-state";
-import { storefrontCacheConfig } from "./cache";
 import {
   createMedusaCatalogService,
   type MedusaCatalogListInput,
@@ -64,7 +63,7 @@ export const getServerRegionListQueryOptions = (params: RegionListParams) => {
     queryKey: storefrontCoreDefinition.queryKeys.regions.list(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.regions.getRegions(params, signal),
-    ...storefrontCacheConfig.static,
+    ...storefrontCoreDefinition.cacheConfig.static,
   };
 };
 
@@ -73,7 +72,7 @@ export const getServerCategoryListQueryOptions = (params: CategoryListParams) =>
     queryKey: storefrontCoreDefinition.queryKeys.categories.list(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.categories.getCategories(params, signal),
-    ...storefrontCacheConfig.static,
+    ...storefrontCoreDefinition.cacheConfig.static,
   };
 };
 
@@ -82,7 +81,7 @@ export const getServerCatalogListQueryOptions = (params: CatalogProductsParams) 
     queryKey: storefrontCoreDefinition.queryKeys.catalog.list(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.catalog.getCatalogProducts(params, signal),
-    ...storefrontCacheConfig.semiStatic,
+    ...storefrontCoreDefinition.cacheConfig.semiStatic,
   };
 };
 
@@ -91,7 +90,7 @@ export const getServerProductListQueryOptions = (params: ProductListParams) => {
     queryKey: storefrontCoreDefinition.queryKeys.products.list(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.products.getProducts(params, signal),
-    ...storefrontCacheConfig.semiStatic,
+    ...storefrontCoreDefinition.cacheConfig.semiStatic,
   };
 };
 
@@ -100,7 +99,7 @@ export const getServerProductDetailQueryOptions = (params: ProductDetailParams) 
     queryKey: storefrontCoreDefinition.queryKeys.products.detail(params),
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
       storefrontServerServices.products.getProductByHandle(params, signal),
-    ...storefrontCacheConfig.semiStatic,
+    ...storefrontCoreDefinition.cacheConfig.semiStatic,
   };
 };
 

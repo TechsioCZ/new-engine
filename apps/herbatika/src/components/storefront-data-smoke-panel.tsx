@@ -71,13 +71,11 @@ export function StorefrontDataSmokePanel() {
 
   const checkoutShippingQuery = useCheckoutShipping({
     cartId: cartQuery.cart?.id,
-    cart: cartQuery.cart,
     enabled: Boolean(cartQuery.cart?.id),
   });
 
   const checkoutPaymentQuery = useCheckoutPayment({
     cartId: cartQuery.cart?.id,
-    cart: cartQuery.cart,
     regionId: cartQuery.cart?.region_id ?? region?.region_id,
     enabled: Boolean(cartQuery.cart?.region_id ?? region?.region_id),
   });

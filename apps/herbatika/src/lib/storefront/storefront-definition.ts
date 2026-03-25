@@ -5,9 +5,6 @@ import {
   buildUpdateCartParams,
 } from "./cart/params";
 import { cartStorage } from "./cart-storage";
-import {
-  storefrontQueryKeys,
-} from "./storefront-config";
 import { storefrontCoreDefinition } from "./storefront-core-definition";
 
 export const storefrontDefinition = {
@@ -17,8 +14,8 @@ export const storefrontDefinition = {
     hooks: {
       invalidateOnAuthChange: {
         includeDefaults: true,
-        invalidate: [storefrontQueryKeys.cart.all()],
-        removeOnLogout: [storefrontQueryKeys.cart.all()],
+        invalidate: [storefrontCoreDefinition.queryKeys.cart.all()],
+        removeOnLogout: [storefrontCoreDefinition.queryKeys.cart.all()],
       },
     },
   },

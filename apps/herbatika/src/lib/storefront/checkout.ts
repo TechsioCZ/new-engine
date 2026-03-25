@@ -14,7 +14,6 @@ export const {
 
 type CheckoutShippingInput = {
   cartId?: string;
-  cart?: HttpTypes.StoreCart | null;
   enabled?: boolean;
   calculatePrices?: boolean;
 };
@@ -25,13 +24,12 @@ type CheckoutShippingOptions = {
 };
 
 type PendingShippingRequest = {
-  resolve: (cart: HttpTypes.StoreCart) => void;
+  resolve: () => void;
   reject: (error?: unknown) => void;
 };
 
 type CheckoutPaymentInput = {
   cartId?: string;
-  cart?: HttpTypes.StoreCart | null;
   regionId?: string;
   enabled?: boolean;
 };
@@ -63,7 +61,7 @@ export const useCheckoutShipping = (
       enabled: input.enabled,
       calculatePrices: input.calculatePrices,
       onSuccess: (cart) => {
-        pendingRequestRef.current?.resolve(cart);
+        pendingRequestRef.current?.resolve();
         pendingRequestRef.current = null;
         options?.onSuccess?.(cart);
       },
@@ -87,12 +85,10 @@ export const useCheckoutShipping = (
     data?: Record<string, unknown>,
   ) => {
     if (optionId === shipping.selectedShippingMethodId && data === undefined) {
-      return Promise.resolve(
-        (input.cart ?? { id: input.cartId ?? "" }) as HttpTypes.StoreCart,
-      );
+      return Promise.resolve();
     }
 
-    return new Promise<HttpTypes.StoreCart>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       pendingRequestRef.current?.reject(
         new Error("A newer shipping selection replaced the previous request."),
       );
