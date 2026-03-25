@@ -92,7 +92,15 @@ function BasicRadioCard({
                 <div className="flex items-center gap-100">
                   <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
                   {option.badge ? (
-                    <Badge className="w-max" variant="outline">
+                    <Badge
+                      //className="w-max border-current"
+                      //variant="outline"
+                      variant="dynamic"
+                      bgColor="#888"
+                      fgColor="#fff"
+                      borderColor="transparent"
+
+                    >
                       {option.badge}
                     </Badge>
                   ) : null}
@@ -288,7 +296,7 @@ export const Centered: Story = {
 
 export const WithAddon: Story = {
   render: () => (
-    <RadioCard defaultValue="vite" size="md" variant="subtle">
+    <RadioCard defaultValue="vite" size="md" variant="outline">
       <RadioCard.Label>Preferred frontend setup</RadioCard.Label>
       <div className="grid w-full gap-150 md:grid-cols-3">
         {frameworkOptions.map((option) => (

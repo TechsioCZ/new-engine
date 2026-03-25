@@ -83,7 +83,6 @@ const radioCardVariants = tv({
     itemAddon: [
       "border-t-(length:--border-width-radio-card-addon)",
       "border-radio-card-item-addon-border",
-      "bg-radio-card-item-addon-bg",
       "font-radio-card-item-addon",
       "text-radio-card-item-addon-fg",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -116,6 +115,12 @@ const radioCardVariants = tv({
           "data-hover:data-[state=checked]:bg-radio-card-item-bg-subtle-checked-hover",
           "data-hover:data-[state=checked]:border-radio-card-item-border-subtle-checked-hover",
         ],
+        itemText: [
+          "data-[state=checked]:text-radio-card-item-fg-subtle-checked",
+        ],
+        itemDescription: [
+          "data-[state=checked]:text-radio-card-item-description-subtle-checked",
+        ],
         itemIndicator: [
           "data-[state=checked]:border-radio-card-item-indicator-border-subtle-checked",
         ],
@@ -123,8 +128,8 @@ const radioCardVariants = tv({
           "data-[state=checked]:text-radio-card-item-indicator-content-subtle-checked",
         ],
         itemAddon: [
-          "data-[state=checked]:bg-radio-card-item-addon-bg-subtle-checked",
           "data-[state=checked]:border-radio-card-item-addon-border-subtle-checked",
+          "data-[state=checked]:text-radio-card-item-addon-fg-subtle-checked",
         ],
       },
       solid: {
@@ -148,7 +153,6 @@ const radioCardVariants = tv({
           "data-[state=checked]:text-radio-card-item-indicator-content-solid-checked",
         ],
         itemAddon: [
-          "data-[state=checked]:bg-radio-card-item-addon-bg-solid-checked",
           "data-[state=checked]:border-radio-card-item-addon-border-solid-checked",
           "data-[state=checked]:text-radio-card-item-addon-fg-solid-checked",
         ],
@@ -456,7 +460,6 @@ RadioCard.Item = function RadioCardItem({
 
   return (
     <RadioCardItemContext.Provider value={{ itemProps }}>
-      {/* biome-ignore lint/a11y/noLabelWithoutControl: RadioCard.ItemHiddenInput renders the associated input through compound composition. */}
       <label
         className={styles.item({ className })}
         ref={ref}
