@@ -42,11 +42,7 @@ const radioGroupVariants = tv({
       "data-focus-visible:outline-(length:--default-ring-width)",
       "data-focus-visible:outline-radio-group-ring",
       "data-focus-visible:outline-offset-(length:--default-ring-offset)",
-      "data-invalid:border-(length:--border-width-validation)",
       "data-invalid:border-radio-group-item-control-border-error",
-      "data-invalid:outline-(style:--default-ring-style)",
-      "data-invalid:outline-(length:--default-ring-width)",
-      "data-invalid:outline-radio-group-ring-error",
       "data-invalid:outline-offset-(length:--default-ring-offset)",
     ],
     itemIndicator: [
