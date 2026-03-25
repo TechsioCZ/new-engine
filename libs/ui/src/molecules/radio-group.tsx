@@ -136,8 +136,13 @@ function useRadioGroupItemContext() {
   return context
 }
 
+type RadioGroupMachineProps = Omit<
+  zagRadioGroup.Props,
+  "id" | "invalid" | "onValueChange"
+>
+
 export type RadioGroupProps = VariantProps<typeof radioGroupVariants> &
-  Omit<zagRadioGroup.Props, "id" | "invalid" | "onValueChange"> & {
+  RadioGroupMachineProps & {
     id?: string
     children: ReactNode
     className?: string
@@ -148,48 +153,35 @@ export type RadioGroupProps = VariantProps<typeof radioGroupVariants> &
 
 export function RadioGroup({
   id: providedId,
-  value,
-  defaultValue,
-  name,
-  form,
   disabled = false,
   required = false,
-  readOnly = false,
   orientation = "vertical",
-  dir,
   validateStatus = "default",
   onValueChange,
   size = "md",
   children,
   className,
   ref,
+  ...machineProps
 }: RadioGroupProps) {
   const generatedId = useId()
   const id = providedId || generatedId
   const invalid = validateStatus === "error"
 
-  const service = useMachine(
-    zagRadioGroup.machine as any,
-    {
+  const service = useMachine(zagRadioGroup.machine, {
+    ...machineProps,
     id,
-    value,
-    defaultValue,
-    name,
-    form,
     disabled,
     required,
-    readOnly,
     orientation,
-    dir,
     invalid,
     onValueChange: ({ value: nextValue }: zagRadioGroup.ValueChangeDetails) => {
       onValueChange?.(nextValue)
     },
-    },
-  )
+  })
 
   const api = zagRadioGroup.connect(
-    service as unknown as zagRadioGroup.Service,
+    service,
     normalizeProps,
   )
   const styles = radioGroupVariants({ size })
