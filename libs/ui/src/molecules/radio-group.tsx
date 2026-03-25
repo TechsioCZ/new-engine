@@ -23,12 +23,13 @@ const radioGroupVariants = tv({
       "data-[orientation=vertical]:flex-col",
     ],
     item: [
-      "inline-flex items-start",
+      "grid grid-cols-(--radio-group-item-grid) items-start",
       "cursor-pointer select-none",
       "data-disabled:cursor-not-allowed",
       "data-readonly:cursor-default",
     ],
     itemControl: [
+      "row-start-1 self-center",
       "inline-grid shrink-0 place-items-center rounded-radio-group-control",
       "border-(length:--border-width-radio-group)",
       "border-radio-group-item-control-border",
@@ -45,6 +46,7 @@ const radioGroupVariants = tv({
       "data-invalid:border-radio-group-item-control-border-error",
       "data-invalid:outline-offset-(length:--default-ring-offset)",
     ],
+    itemContent: ["col-start-2 row-start-1 min-w-0 flex flex-col"],
     itemIndicator: [
       "pointer-events-none block leading-none",
       "token-icon-radio-group-checked",
@@ -53,8 +55,12 @@ const radioGroupVariants = tv({
       "data-disabled:data-[state=checked]:text-radio-group-item-indicator-disabled",
     ],
     itemText: [
-      "text-radio-group-item-fg leading-normal",
+      "min-w-0 text-radio-group-item-fg leading-normal",
       "data-disabled:text-radio-group-item-fg-disabled",
+    ],
+    itemDescription: [
+      "col-start-2 row-start-2 min-w-0 text-radio-group-item-description leading-normal",
+      "data-disabled:text-radio-group-item-description-disabled",
     ],
     hiddenInput: "sr-only",
   },
@@ -93,28 +99,34 @@ const radioGroupVariants = tv({
         root: "gap-radio-group-root-sm",
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-sm data-[orientation=vertical]:gap-radio-group-items-vertical-sm",
-        item: "gap-radio-group-item-sm",
+        item: "gap-x-radio-group-item-sm",
         itemControl: "size-radio-group-control-sm",
+        itemContent: "gap-radio-group-item-content-sm",
         itemIndicator: "size-radio-group-indicator-sm",
         itemText: "text-radio-group-item-sm",
+        itemDescription: "text-radio-group-item-description-sm",
       },
       md: {
         root: "gap-radio-group-root-md",
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-md data-[orientation=vertical]:gap-radio-group-items-vertical-md",
-        item: "gap-radio-group-item-md",
+        item: "gap-x-radio-group-item-md",
         itemControl: "size-radio-group-control-md",
+        itemContent: "gap-radio-group-item-content-md",
         itemIndicator: "size-radio-group-indicator-md",
         itemText: "text-radio-group-item-md",
+        itemDescription: "text-radio-group-item-description-md",
       },
       lg: {
         root: "gap-radio-group-root-lg",
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-lg data-[orientation=vertical]:gap-radio-group-items-vertical-lg",
-        item: "gap-radio-group-item-lg",
+        item: "gap-x-radio-group-item-lg",
         itemControl: "size-radio-group-control-lg",
+        itemContent: "gap-radio-group-item-content-lg",
         itemIndicator: "size-radio-group-indicator-lg",
         itemText: "text-radio-group-item-lg",
+        itemDescription: "text-radio-group-item-description-lg",
       },
     },
   },
@@ -379,6 +391,26 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
   )
 }
 
+type RadioGroupItemContentProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement>
+}
+
+RadioGroup.ItemContent = function RadioGroupItemContent({
+  children,
+  className,
+  ref,
+  ...props
+}: RadioGroupItemContentProps) {
+  const { size, variant } = useRadioGroupContext()
+  const styles = radioGroupVariants({ size, variant })
+
+  return (
+    <div className={styles.itemContent({ className })} ref={ref} {...props}>
+      {children}
+    </div>
+  )
+}
+
 type RadioGroupItemTextProps = ComponentPropsWithoutRef<"span"> & {
   ref?: Ref<HTMLSpanElement>
 }
@@ -402,6 +434,33 @@ RadioGroup.ItemText = function RadioGroupItemText({
     >
       {children}
     </span>
+  )
+}
+
+type RadioGroupItemDescriptionProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement>
+}
+
+RadioGroup.ItemDescription = function RadioGroupItemDescription({
+  children,
+  className,
+  ref,
+  ...props
+}: RadioGroupItemDescriptionProps) {
+  const { api, size, variant } = useRadioGroupContext()
+  const { itemProps } = useRadioGroupItemContext()
+  const styles = radioGroupVariants({ size, variant })
+  const itemState = api.getItemState(itemProps)
+
+  return (
+    <div
+      className={styles.itemDescription({ className })}
+      data-disabled={itemState.disabled || undefined}
+      ref={ref}
+      {...props}
+    >
+      {children}
+    </div>
   )
 }
 

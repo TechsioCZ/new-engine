@@ -1,4 +1,6 @@
 @theme static {
+  --radio-group-item-grid: min-content minmax(0, 1fr);
+
   /* === BASE COLOR MAPPING === */
   --color-radio-group-accent: var(--color-primary);
   --color-radio-group-accent-hover: var(--color-primary-hover);
@@ -7,6 +9,7 @@
   --color-radio-group-accent-contrast: var(--color-fg-dark);
   --color-radio-group-danger: var(--color-danger);
   --color-radio-group-fg: var(--color-fg-primary);
+  --color-radio-group-fg-secondary: var(--color-fg-secondary);
   --color-radio-group-fg-disabled: var(--color-fg-disabled);
   --color-radio-group-surface: var(--color-fill-active);
   --color-radio-group-border: var(--color-border-primary);
@@ -16,6 +19,7 @@
   --color-radio-group-item-control-border: var(--color-radio-group-border);
   --color-radio-group-item-indicator: var(--color-radio-group-accent);
   --color-radio-group-item-fg: var(--color-radio-group-fg);
+  --color-radio-group-item-description: var(--color-radio-group-fg-secondary);
 
   /* === STATE VARIATIONS === */
   --color-radio-group-item-control-bg-hover: oklch(
@@ -89,6 +93,9 @@
   );
   --color-radio-group-item-indicator-disabled: var(--color-fg-disabled);
   --color-radio-group-item-fg-disabled: var(--color-radio-group-fg-disabled);
+  --color-radio-group-item-description-disabled: var(
+    --color-radio-group-fg-disabled
+  );
 
   /* === SPACING === */
   --gap-radio-group-root-sm: var(--spacing-100);
@@ -107,6 +114,10 @@
   --gap-radio-group-item-md: var(--spacing-150);
   --gap-radio-group-item-lg: var(--spacing-200);
 
+  --gap-radio-group-item-content-sm: var(--spacing-50);
+  --gap-radio-group-item-content-md: var(--spacing-100);
+  --gap-radio-group-item-content-lg: var(--spacing-100);
+
   --spacing-radio-group-control-sm: 0.875rem;
   --spacing-radio-group-control-md: 1rem;
   --spacing-radio-group-control-lg: 1.125rem;
@@ -118,6 +129,9 @@
   --text-radio-group-item-sm: var(--text-sm);
   --text-radio-group-item-md: var(--text-md);
   --text-radio-group-item-lg: var(--text-lg);
+  --text-radio-group-item-description-sm: var(--text-sm);
+  --text-radio-group-item-description-md: var(--text-sm);
+  --text-radio-group-item-description-lg: var(--text-md);
 
   /* === BORDERS & RADIUS === */
   --border-width-radio-group: var(--border-width-sm);

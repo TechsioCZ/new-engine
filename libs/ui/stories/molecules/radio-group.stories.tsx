@@ -66,14 +66,14 @@ function BasicRadioGroup(args: BasicRadioGroupProps) {
           >
             <RadioGroup.ItemHiddenInput />
             <RadioGroup.ItemControl />
-            <span className="flex flex-col gap-50">
+            <RadioGroup.ItemContent>
               <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
-              {option.description && (
-                <span className="text-fg-secondary text-sm">
-                  {option.description}
-                </span>
-              )}
-            </span>
+            </RadioGroup.ItemContent>
+            {option.description && (
+              <RadioGroup.ItemDescription>
+                {option.description}
+              </RadioGroup.ItemDescription>
+            )}
           </RadioGroup.Item>
         ))}
       </RadioGroup.ItemGroup>
@@ -248,14 +248,14 @@ export const Controlled: Story = {
               <RadioGroup.Item key={option.value} value={option.value}>
                 <RadioGroup.ItemHiddenInput />
                 <RadioGroup.ItemControl />
-                <span className="flex flex-col gap-50">
+                <RadioGroup.ItemContent>
                   <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
-                  {option.description && (
-                    <span className="text-fg-secondary text-sm">
-                      {option.description}
-                    </span>
-                  )}
-                </span>
+                </RadioGroup.ItemContent>
+                {option.description && (
+                  <RadioGroup.ItemDescription>
+                    {option.description}
+                  </RadioGroup.ItemDescription>
+                )}
               </RadioGroup.Item>
             ))}
           </RadioGroup.ItemGroup>
@@ -293,19 +293,19 @@ export const RichContent: Story = {
           <RadioGroup.Item key={option.value} value={option.value}>
             <RadioGroup.ItemHiddenInput />
             <RadioGroup.ItemControl />
-            <div className="flex flex-col gap-50">
+            <RadioGroup.ItemContent>
               <div className="flex items-center gap-100">
                 <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
                 <span className="rounded-full bg-fill-base px-100 py-50 text-fg-secondary text-xs">
                   {option.value === "growth" ? "Popular" : "Available"}
                 </span>
               </div>
-              {option.description && (
-                <span className="text-fg-secondary text-sm">
-                  {option.description}
-                </span>
-              )}
-            </div>
+            </RadioGroup.ItemContent>
+            {option.description && (
+              <RadioGroup.ItemDescription>
+                {option.description}
+              </RadioGroup.ItemDescription>
+            )}
           </RadioGroup.Item>
         ))}
       </RadioGroup.ItemGroup>
