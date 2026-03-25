@@ -29,23 +29,15 @@ const radioGroupVariants = tv({
       "data-readonly:cursor-default",
     ],
     itemControl: [
-      "relative shrink-0 rounded-radio-group-control",
+      "inline-grid shrink-0 place-items-center rounded-radio-group-control",
       "border-(length:--border-width-radio-group)",
       "border-radio-group-item-control-border",
       "bg-radio-group-item-control-bg",
       "transition-colors duration-200 motion-reduce:transition-none",
-      "after:absolute after:top-1/2 after:left-1/2",
-      "after:-translate-x-1/2 after:-translate-y-1/2",
-      "after:content-['']",
-      "after:opacity-0 after:transition-opacity after:duration-200",
       "data-hover:bg-radio-group-item-control-bg-hover",
       "data-hover:border-radio-group-item-control-border-hover",
-      "data-[state=checked]:after:token-icon-radio-group-checked",
-      "data-[state=checked]:after:opacity-100",
-      "after:scale-50",
       "data-disabled:bg-radio-group-item-control-bg-disabled",
       "data-disabled:border-radio-group-item-control-border-disabled",
-      "data-disabled:data-[state=checked]:text-radio-group-item-indicator-disabled",
       "data-focus-visible:outline-(style:--default-ring-style)",
       "data-focus-visible:outline-(length:--default-ring-width)",
       "data-focus-visible:outline-radio-group-ring",
@@ -56,6 +48,13 @@ const radioGroupVariants = tv({
       "data-invalid:outline-(length:--default-ring-width)",
       "data-invalid:outline-radio-group-ring-error",
       "data-invalid:outline-offset-(length:--default-ring-offset)",
+    ],
+    itemIndicator: [
+      "pointer-events-none block shrink-0 leading-none",
+      "token-icon-radio-group-checked",
+      "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
+      "data-[state=checked]:opacity-100",
+      "data-disabled:data-[state=checked]:text-radio-group-item-indicator-disabled",
     ],
     itemText: [
       "text-radio-group-item-fg leading-normal",
@@ -69,28 +68,28 @@ const radioGroupVariants = tv({
         itemControl: [
           "data-[state=checked]:bg-radio-group-item-control-bg-outline-checked",
           "data-[state=checked]:border-radio-group-item-control-border-outline-checked",
-          "data-[state=checked]:after:bg-radio-group-item-indicator-outline",
           "data-hover:data-[state=checked]:bg-radio-group-item-control-bg-outline-checked-hover",
           "data-hover:data-[state=checked]:border-radio-group-item-control-border-outline-checked-hover",
         ],
+        itemIndicator: "text-radio-group-item-indicator-outline",
       },
       subtle: {
         itemControl: [
           "data-[state=checked]:bg-radio-group-item-control-bg-subtle-checked",
           "data-[state=checked]:border-radio-group-item-control-border-subtle-checked",
-          "data-[state=checked]:after:bg-radio-group-item-indicator-subtle",
           "data-hover:data-[state=checked]:bg-radio-group-item-control-bg-subtle-checked-hover",
           "data-hover:data-[state=checked]:border-radio-group-item-control-border-subtle-checked-hover",
         ],
+        itemIndicator: "text-radio-group-item-indicator-subtle",
       },
       solid: {
         itemControl: [
           "data-[state=checked]:bg-radio-group-item-control-bg-solid-checked",
           "data-[state=checked]:border-radio-group-item-control-border-solid-checked",
-          "data-[state=checked]:after:bg-radio-group-item-indicator-solid",
           "data-hover:data-[state=checked]:bg-radio-group-item-control-bg-solid-checked-hover",
           "data-hover:data-[state=checked]:border-radio-group-item-control-border-solid-checked-hover",
         ],
+        itemIndicator: "text-radio-group-item-indicator-solid",
       },
     },
     size: {
@@ -99,7 +98,8 @@ const radioGroupVariants = tv({
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-sm data-[orientation=vertical]:gap-radio-group-items-vertical-sm",
         item: "gap-radio-group-item-sm",
-        itemControl: "size-radio-group-control-sm after:size-radio-group-indicator-sm",
+        itemControl: "size-radio-group-control-sm",
+        itemIndicator: "size-radio-group-indicator-sm",
         itemText: "text-radio-group-item-sm",
       },
       md: {
@@ -107,7 +107,8 @@ const radioGroupVariants = tv({
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-md data-[orientation=vertical]:gap-radio-group-items-vertical-md",
         item: "gap-radio-group-item-md",
-        itemControl: "size-radio-group-control-md after:size-radio-group-indicator-md",
+        itemControl: "size-radio-group-control-md",
+        itemIndicator: "size-radio-group-indicator-md",
         itemText: "text-radio-group-item-md",
       },
       lg: {
@@ -115,7 +116,8 @@ const radioGroupVariants = tv({
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-lg data-[orientation=vertical]:gap-radio-group-items-vertical-lg",
         item: "gap-radio-group-item-lg",
-        itemControl: "size-radio-group-control-lg after:size-radio-group-indicator-lg",
+        itemControl: "size-radio-group-control-lg",
+        itemIndicator: "size-radio-group-indicator-lg",
         itemText: "text-radio-group-item-lg",
       },
     },
@@ -353,6 +355,7 @@ type RadioGroupItemControlProps = ComponentPropsWithoutRef<"span"> & {
 }
 
 RadioGroup.ItemControl = function RadioGroupItemControl({
+  children,
   className,
   ref,
   ...props
@@ -360,6 +363,7 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
   const { api, size, variant } = useRadioGroupContext()
   const { itemProps } = useRadioGroupItemContext()
   const styles = radioGroupVariants({ size, variant })
+  const itemState = api.getItemState(itemProps)
 
   return (
     <span
@@ -367,7 +371,17 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
       ref={ref}
       {...api.getItemControlProps(itemProps)}
       {...props}
-    />
+    >
+      <span
+        aria-hidden="true"
+        className={styles.itemIndicator()}
+        data-disabled={itemState.disabled || undefined}
+        data-focus={itemState.focused || undefined}
+        data-invalid={itemState.invalid || undefined}
+        data-state={itemState.checked ? "checked" : "unchecked"}
+      />
+      {children}
+    </span>
   )
 }
 

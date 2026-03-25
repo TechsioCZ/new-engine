@@ -107,12 +107,12 @@
   --gap-radio-group-item-md: var(--spacing-150);
   --gap-radio-group-item-lg: var(--spacing-200);
 
-  --spacing-radio-group-control-sm: var(--spacing-200);
-  --spacing-radio-group-control-md: var(--spacing-200);
-  --spacing-radio-group-control-lg: var(--spacing-250);
-  --spacing-radio-group-indicator-sm: var(--spacing-100);
-  --spacing-radio-group-indicator-md: var(--spacing-100);
-  --spacing-radio-group-indicator-lg: var(--spacing-150);
+  --spacing-radio-group-control-sm: 0.875rem;
+  --spacing-radio-group-control-md: 1rem;
+  --spacing-radio-group-control-lg: 1.125rem;
+  --spacing-radio-group-indicator-sm: 0.5rem;
+  --spacing-radio-group-indicator-md: 0.625rem;
+  --spacing-radio-group-indicator-lg: 0.75rem;
 
   /* === TYPOGRAPHY === */
   --text-radio-group-item-sm: var(--text-sm);
