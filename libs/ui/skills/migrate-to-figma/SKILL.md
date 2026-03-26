@@ -270,6 +270,39 @@ From the `tv()` analysis, identify all dimensions:
 - Example: `variant` x `theme` x `size` x `state`
 - States should include: `default`, `hover`, `active`, `focus`, `disabled`, `loading` (if component supports them)
 
+### Mandatory page pattern for atom migrations
+
+For atoms, the migration target is not just a component set. The page must follow the top-to-bottom structure:
+
+1. A large component set at the top of the page
+2. Four documentation sections stacked below it:
+   - `Theme Showcase`
+   - `Interactive States`
+   - `Examples`
+   - `Properties & Tokens`
+
+This is the default output pattern for atom migrations unless the user explicitly asks for a different layout.
+
+#### Required component set layout
+
+The component set should match this structure:
+
+- `layoutMode = 'HORIZONTAL'`
+- `layoutWrap = 'WRAP'`
+- `itemSpacing = 12`
+- `counterAxisSpacing = 12`
+- `padding = 32`
+- `fills = [{ r: 0.98, g: 0.98, b: 0.99 }]`
+- `width = 2400`
+- Positioned at `x = 0`, `y = 0`
+
+#### Forbidden output
+
+- Do not stop after creating only the component set
+- Do not place documentation frames at `(0,0)`
+- Do not let frames cover the component set or cover each other
+- Do not create a full-page wrapper frame that visually covers content underneath
+
 ### 5b. Create individual components
 
 ```js
@@ -412,6 +445,57 @@ Each section is built as:
 | Examples | green `{0.16, 0.65, 0.38}` | Sizes, icons, loading, block layout |
 | Properties & Tokens | teal `{0.13, 0.59, 0.56}` | Two-column: Component Props + CSS Variables |
 
+### Button documentation blueprint
+
+When migrating `Button`, use this exact section structure:
+
+#### Theme Showcase
+
+- Theme groups in this order:
+  - `Solid`
+  - `Light`
+  - `Outlined`
+  - `Borderless`
+- Under each theme group, add rows in this order:
+  - `Primary`
+  - `Secondary`
+  - `Tertiary`
+  - `Warning`
+  - `Danger`
+- Each row shows the `default` state in `sm`, `md`, and `lg`
+
+#### Interactive States
+
+- Add a header row with these columns:
+  - `Default`
+  - `Hover`
+  - `Active`
+  - `Focus`
+  - `Disabled`
+  - `Loading`
+- Include these rows:
+  - `primary/solid`
+  - `primary/light`
+  - `primary/outlined`
+  - `primary/borderless`
+  - `secondary/solid`
+  - `danger/solid`
+  - `warning/outlined`
+- Use `md` size for the state showcase rows
+
+#### Examples
+
+- Include these rows:
+  - `SM / MD / LG` for primary solid
+  - `All themes` for primary at `md`
+  - `Themes` for danger at `md`
+
+#### Properties & Tokens
+
+- Use a two-card body layout
+- Left card: props, types, defaults
+- Right card: token counts, token categories, and collection names
+
 ### Helper: Create section with header
 
 ```js
@@ -542,6 +626,9 @@ for (const node of toKeep) {
 - 2-column grid for theme showcases (solid+light side by side, outlined+borderless below)
 - White section backgrounds with padding
 - Consistent 24px padding inside section content areas
+- The final page must read top-to-bottom with no covered content
+- Always calculate the next section's `y` from the previous node's actual height
+- If any section overlaps another node, the migration is incomplete and must be fixed before moving to the next component
 
 ## Step 7: Visual Comparison — Storybook vs Figma (MANDATORY)
 
