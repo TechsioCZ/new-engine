@@ -16,12 +16,12 @@
   --color-radio-card-item-bg: var(--color-radio-card-surface);
   --color-radio-card-item-border: var(--color-radio-card-border);
   --color-radio-card-item-fg: var(--color-radio-card-fg);
-  --color-radio-card-item-description: var(--color-radio-card-fg-secondary);
+  --color-radio-card-item-description-fg: var(--color-radio-card-fg-secondary);
   --color-radio-card-item-addon-border: var(--color-radio-card-border);
   --color-radio-card-item-addon-fg: var(--color-radio-card-fg-secondary);
   --color-radio-card-item-indicator-border: var(--color-radio-card-border);
   --color-radio-card-item-indicator-bg: transparent;
-  --color-radio-card-item-indicator-content: var(--color-radio-card-accent);
+  --color-radio-card-item-indicator-content-fg: var(--color-radio-card-accent);
 
   /* === STATE VARIATIONS === */
   --color-radio-card-item-bg-hover: oklch(
@@ -45,7 +45,7 @@
   --color-radio-card-item-indicator-border-outline-checked: var(
     --color-radio-card-accent
   );
-  --color-radio-card-item-indicator-content-outline-checked: var(
+  --color-radio-card-item-indicator-content-fg-outline-checked: var(
     --color-radio-card-accent
   );
 
@@ -64,7 +64,7 @@
   --color-radio-card-item-fg-subtle-checked: var(
     --color-radio-card-accent-contrast
   );
-  --color-radio-card-item-description-subtle-checked: var(
+  --color-radio-card-item-description-fg-subtle-checked: var(
     --color-radio-card-accent-contrast
   );
   --color-radio-card-item-addon-border-subtle-checked: var(
@@ -76,7 +76,7 @@
   --color-radio-card-item-indicator-border-subtle-checked: var(
     --color-radio-card-accent-contrast
   );
-  --color-radio-card-item-indicator-content-subtle-checked: var(
+  --color-radio-card-item-indicator-content-fg-subtle-checked: var(
     --color-radio-card-accent-contrast
   );
 
@@ -91,7 +91,7 @@
   --color-radio-card-item-fg-solid-checked: var(
     --color-radio-card-accent-contrast
   );
-  --color-radio-card-item-description-solid-checked: var(
+  --color-radio-card-item-description-fg-solid-checked: var(
     --color-radio-card-accent-contrast
   );
   --color-radio-card-item-addon-border-solid-checked: var(
@@ -106,7 +106,7 @@
   --color-radio-card-item-indicator-border-solid-checked: var(
     --color-radio-card-accent-contrast
   );
-  --color-radio-card-item-indicator-content-solid-checked: var(
+  --color-radio-card-item-indicator-content-fg-solid-checked: var(
     --color-radio-card-accent
   );
 
@@ -117,7 +117,7 @@
   --color-radio-card-item-bg-disabled: var(--color-bg-disabled);
   --color-radio-card-item-border-disabled: var(--color-border-disabled);
   --color-radio-card-item-fg-disabled: var(--color-radio-card-fg-disabled);
-  --color-radio-card-item-description-disabled: var(
+  --color-radio-card-item-description-fg-disabled: var(
     --color-radio-card-fg-disabled
   );
   --color-radio-card-item-addon-bg-disabled: var(--color-bg-disabled);
@@ -129,7 +129,7 @@
     --color-radio-card-item-border-disabled
   );
   --color-radio-card-item-indicator-bg-disabled: transparent;
-  --color-radio-card-item-indicator-content-disabled: var(
+  --color-radio-card-item-indicator-content-fg-disabled: var(
     --color-radio-card-fg-disabled
   );
 

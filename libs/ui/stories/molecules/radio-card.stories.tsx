@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { fn } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Badge } from "../../src/atoms/badge"
 import { Icon, type IconType } from "../../src/atoms/icon"
@@ -194,7 +195,6 @@ const meta: Meta<typeof RadioCard> = {
       description: "Initial selected value for uncontrolled usage.",
     },
     onValueChange: {
-      action: "value changed",
       description: "Called when the selected value changes.",
     },
   },
@@ -209,6 +209,7 @@ const meta: Meta<typeof RadioCard> = {
     readOnly: false,
     required: false,
     defaultValue: "next",
+    onValueChange: fn(),
   },
 }
 

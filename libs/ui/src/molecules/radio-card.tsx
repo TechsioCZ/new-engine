@@ -54,9 +54,9 @@ const radioCardVariants = tv({
     ],
     itemDescription: [
       "min-w-0",
-      "text-radio-card-item-description",
+      "text-radio-card-item-description-fg",
       "leading-normal",
-      "data-disabled:text-radio-card-item-description-disabled",
+      "data-disabled:text-radio-card-item-description-fg-disabled",
     ],
     itemIndicator: [
       "inline-grid shrink-0 place-items-center",
@@ -70,10 +70,10 @@ const radioCardVariants = tv({
     ],
     itemIndicatorContent: [
       "inline-grid place-items-center",
-      "text-radio-card-item-indicator-content",
+      "text-radio-card-item-indicator-content-fg",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
       "data-[state=checked]:opacity-100",
-      "data-disabled:data-[state=checked]:text-radio-card-item-indicator-content-disabled",
+      "data-disabled:data-[state=checked]:text-radio-card-item-indicator-content-fg-disabled",
     ],
     itemIndicatorMark: [
       "block leading-none",
@@ -104,7 +104,7 @@ const radioCardVariants = tv({
           "data-[state=checked]:border-radio-card-item-indicator-border-outline-checked",
         ],
         itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-outline-checked",
+          "data-[state=checked]:text-radio-card-item-indicator-content-fg-outline-checked",
         ],
       },
       subtle: {
@@ -118,13 +118,13 @@ const radioCardVariants = tv({
           "data-[state=checked]:text-radio-card-item-fg-subtle-checked",
         ],
         itemDescription: [
-          "data-[state=checked]:text-radio-card-item-description-subtle-checked",
+          "data-[state=checked]:text-radio-card-item-description-fg-subtle-checked",
         ],
         itemIndicator: [
           "data-[state=checked]:border-radio-card-item-indicator-border-subtle-checked",
         ],
         itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-subtle-checked",
+          "data-[state=checked]:text-radio-card-item-indicator-content-fg-subtle-checked",
         ],
         itemAddon: [
           "data-[state=checked]:border-radio-card-item-addon-border-subtle-checked",
@@ -142,14 +142,14 @@ const radioCardVariants = tv({
           "data-[state=checked]:text-radio-card-item-fg-solid-checked",
         ],
         itemDescription: [
-          "data-[state=checked]:text-radio-card-item-description-solid-checked",
+          "data-[state=checked]:text-radio-card-item-description-fg-solid-checked",
         ],
         itemIndicator: [
           "data-[state=checked]:border-radio-card-item-indicator-border-solid-checked",
           "data-[state=checked]:bg-radio-card-item-indicator-bg-solid-checked",
         ],
         itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-solid-checked",
+          "data-[state=checked]:text-radio-card-item-indicator-content-fg-solid-checked",
         ],
         itemAddon: [
           "data-[state=checked]:border-radio-card-item-addon-border-solid-checked",
@@ -497,8 +497,8 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
   )
 }
 
-type RadioCardItemControlProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+type RadioCardItemControlProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement>
 }
 
 RadioCard.ItemControl = function RadioCardItemControl({
@@ -519,14 +519,14 @@ RadioCard.ItemControl = function RadioCardItemControl({
   })
 
   return (
-    <span
+    <div
       className={styles.itemControl({ className })}
       ref={ref}
       {...api.getItemControlProps(itemProps)}
       {...props}
     >
       {children}
-    </span>
+    </div>
   )
 }
 
