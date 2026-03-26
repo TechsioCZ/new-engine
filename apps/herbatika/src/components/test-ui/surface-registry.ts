@@ -1,4 +1,5 @@
 export type TestUiSurfaceId =
+  | "app-specific"
   | "buttons"
   | "badges"
   | "header"
@@ -19,6 +20,14 @@ export type TestUiSurface = {
 };
 
 export const TEST_UI_SURFACES: TestUiSurface[] = [
+  {
+    id: "app-specific",
+    title: "App-specific",
+    href: "/test-ui/app-specific",
+    description: "Filter button, checkout shell, blog cards, prose a phone field.",
+    status: "ready",
+    notes: "Herbatica wrappers nad current shared primitives bez tlaku na nové libs/ui API.",
+  },
   {
     id: "buttons",
     title: "Buttons",
@@ -47,7 +56,7 @@ export const TEST_UI_SURFACES: TestUiSurface[] = [
     id: "footer",
     title: "Footer",
     href: "/test-ui/footer",
-    description: "Column layout, social icons, rating blocky a legal bottom.",
+    description: "Column layout, social icons, rating bloky a legal bottom.",
     status: "ready",
     notes: "Kritická brand surface. První showcase je připravený.",
   },

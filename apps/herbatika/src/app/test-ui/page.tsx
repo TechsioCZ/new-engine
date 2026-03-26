@@ -1,14 +1,20 @@
-"use client"
+"use client";
+
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { TestUiLayout, TestUiPlaceholder, TestUiSurfaceGrid } from "@/components/test-ui/test-ui-layout";
-import { CheckoutShowcase } from "@/components/test-ui/checkout-showcase";
+import { AppSpecificShowcase } from "@/components/test-ui/app-specific-showcase";
 import { ButtonShowcase } from "@/components/test-ui/button-showcase";
+import { CheckoutShowcase } from "@/components/test-ui/checkout-showcase";
 import { FooterShowcase } from "@/components/test-ui/footer-showcase";
 import { HeaderShowcase } from "@/components/test-ui/header-showcase";
 import { NumericInputShowcase } from "@/components/test-ui/numeric-input-showcase";
 import { ProductCardShowcase } from "@/components/test-ui/product-card-showcase";
 import { SearchFormShowcase } from "@/components/test-ui/search-form-showcase";
 import { SelectShowcase } from "@/components/test-ui/select-showcase";
+import {
+  TestUiLayout,
+  TestUiPlaceholder,
+  TestUiSurfaceGrid,
+} from "@/components/test-ui/test-ui-layout";
 
 export default function TestUiPage() {
   return (
@@ -19,6 +25,7 @@ export default function TestUiPage() {
     >
       <TestUiSurfaceGrid />
 
+      <AppSpecificShowcase />
       <ButtonShowcase />
       <HeaderShowcase />
       <FooterShowcase />
@@ -30,11 +37,11 @@ export default function TestUiPage() {
 
       <TestUiPlaceholder
         title="Další doporučené bloky"
-        summary="Core form a checkout surface už mají první showcase. Další logický krok jsou badge surface a jemnější app wrappers jako category chips nebo account utility blocks."
+        summary="Core form, checkout i první app-specific wrappers už mají referenční showcase. Další krok je doplnit missing badge surface a potom rozhodovat, co z app patterns má zůstat lokální."
         nextSteps={[
           "Badges: promo flagy a utility badge surface podle Figmy.",
-          "Category chips / sort pills: rozhodnout app-local composition vs shared gap.",
-          "Account utility surface: zkontrolovat, co zůstane čistě app wrapper.",
+          "Radio / radio-group: samostatně dopsat shared primitive gap pro checkout selection.",
+          "Cutover review: projít, které app-specific wrappery už jsou dost stabilní pro napojení do reálných flow.",
         ]}
       />
     </TestUiLayout>

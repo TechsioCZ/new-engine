@@ -1,3 +1,4 @@
+"use client";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import { SupportingText } from "@/components/text/supporting-text";

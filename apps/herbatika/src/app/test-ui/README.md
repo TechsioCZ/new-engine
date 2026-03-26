@@ -11,6 +11,7 @@ Tahle složka je záměrně oddělený spike prostor pro ověřování `tokens-2
 
 ## Aktuální surface
 
+- `app-specific/`
 - `buttons/`
 - `badges/`
 - `header/`
@@ -50,6 +51,7 @@ V předloze se aktuálně vyskytují 4 základní button surface:
 
 Aktuálně mají první reálný showcase:
 
+- `app-specific/`
 - `buttons/`
 - `header/`
 - `footer/`

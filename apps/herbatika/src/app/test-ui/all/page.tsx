@@ -1,14 +1,19 @@
-"use client"
+"use client";
+
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { TestUiBackLink, TestUiLayout } from "@/components/test-ui/test-ui-layout";
-import { CheckoutShowcase } from "@/components/test-ui/checkout-showcase";
+import { AppSpecificShowcase } from "@/components/test-ui/app-specific-showcase";
 import { ButtonShowcase } from "@/components/test-ui/button-showcase";
+import { CheckoutShowcase } from "@/components/test-ui/checkout-showcase";
 import { FooterShowcase } from "@/components/test-ui/footer-showcase";
 import { HeaderShowcase } from "@/components/test-ui/header-showcase";
 import { NumericInputShowcase } from "@/components/test-ui/numeric-input-showcase";
 import { ProductCardShowcase } from "@/components/test-ui/product-card-showcase";
 import { SearchFormShowcase } from "@/components/test-ui/search-form-showcase";
 import { SelectShowcase } from "@/components/test-ui/select-showcase";
+import {
+  TestUiBackLink,
+  TestUiLayout,
+} from "@/components/test-ui/test-ui-layout";
 
 export default function TestUiAllPage() {
   return (
@@ -22,6 +27,7 @@ export default function TestUiAllPage() {
         </div>
       }
     >
+      <AppSpecificShowcase />
       <ButtonShowcase />
       <HeaderShowcase />
       <FooterShowcase />
