@@ -470,6 +470,8 @@ Carousel.Indicators = function CarouselIndicators({
         <Button
           className={indicator()}
           key={`indicator-${index}`}
+          size="current"
+          theme="unstyled"
           {...api.getIndicatorProps({ index })}
         />
       ))}
@@ -488,6 +490,8 @@ Carousel.Indicator = function CarouselIndicator({
   return (
     <Button
       className={indicator({ className })}
+      size="current"
+      theme="unstyled"
       {...api.getIndicatorProps({ index })}
     >
       {children}
