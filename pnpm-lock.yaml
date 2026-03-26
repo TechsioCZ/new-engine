@@ -483,7 +483,7 @@ importers:
         specifier: ^1.31.1
         version: 1.31.1
       '@zag-js/radio-group':
-        specifier: 1.31.1
+        specifier: ^1.31.1
         version: 1.31.1
       '@zag-js/rating-group':
         specifier: ^1.31.1
