@@ -1,139 +1,145 @@
 {
-  "name": "@techsio/ui-kit",
-  "version": "0.3.2",
-  "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/NMIT-WR/new-engine.git",
-    "directory": "libs/ui"
-  },
-  "exports": {
-    "./types/zag": {
-      "types": "./dist/src/types/zag.d.ts",
-      "import": "./dist/types/zag.js"
-    },
-    "./tokens": {
-      "style": "./src/tokens/tokens-only.css",
-      "default": "./src/tokens/tokens-only.css"
-    },
-    "./tokens-with-tailwind": {
-      "style": "./src/tokens/index.css",
-      "default": "./src/tokens/index.css"
-    },
-    "./tokens/*": {
-      "style": "./src/tokens/*.css",
-      "default": "./src/tokens/*.css"
-    },
-    "./atoms/*": {
-      "types": "./dist/src/atoms/*.d.ts",
-      "import": "./dist/atoms/*.js"
-    },
-    "./molecules/*": {
-      "types": "./dist/src/molecules/*.d.ts",
-      "import": "./dist/molecules/*.js"
-    },
-    "./organisms/*": {
-      "types": "./dist/src/organisms/*.d.ts",
-      "import": "./dist/organisms/*.js"
-    },
-    "./templates/*": {
-      "types": "./dist/src/templates/*.d.ts",
-      "import": "./dist/templates/*.js"
-    },
-    "./utils": {
-      "types": "./dist/src/utils.d.ts",
-      "import": "./dist/utils.js"
-    }
-  },
-  "files": [
-    "dist",
-    "src/tokens"
-  ],
-  "scripts": {
-    "build": "rslib build",
-    "build:storybook": "storybook build",
-    "dev": "rslib build --watch",
-    "storybook": "storybook dev",
-    "test-storybook": "test-storybook",
-    "storybook:a11y": "bash scripts/storybook-a11y.sh",
-    "test:components": "node scripts/run-component-tests.mjs",
-    "test:components:update": "node scripts/run-component-tests.mjs --update-snapshots",
-    "lint:tailwind": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js",
-    "lint:tailwind:fix": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js --fix",
-    "prepare": "pnpm build && pnpm build:storybook",
-    "check:unused-tokens": "bun scripts/check-unused-tokens.js",
-    "validate:tokens": "bun scripts/validate-token-usage.js && bun scripts/validate-token-definitions.js",
-    "validate:token-usage": "bun scripts/validate-token-usage.js",
-    "validate:token-definitions": "bun scripts/validate-token-definitions.js",
-    "semantic-release": "semantic-release"
-  },
-  "dependencies": {
-    "@zag-js/accordion": "^1.31.1",
-    "@zag-js/carousel": "^1.31.1",
-    "@zag-js/checkbox": "^1.31.1",
-    "@zag-js/combobox": "^1.31.1",
-    "@zag-js/dialog": "^1.31.1",
-    "@zag-js/i18n-utils": "^1.31.1",
-    "@zag-js/menu": "^1.31.1",
-    "@zag-js/number-input": "^1.31.1",
-    "@zag-js/pagination": "^1.31.1",
-    "@zag-js/popover": "^1.31.1",
-    "@zag-js/rating-group": "^1.31.1",
-    "@zag-js/react": "^1.31.1",
-    "@zag-js/select": "^1.31.1",
-    "@zag-js/slider": "^1.31.1",
-    "@zag-js/steps": "^1.31.1",
-    "@zag-js/switch": "^1.31.1",
-    "@zag-js/tabs": "^1.31.1",
-    "@zag-js/toast": "^1.31.1",
-    "@zag-js/tooltip": "^1.31.1",
-    "@zag-js/tree-view": "^1.31.1",
-    "tailwind-variants": "^3.1.1"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@iconify/json": "^2.2.409",
-    "@iconify/tailwind4": "^1.1.0",
-    "@rsbuild/core": "1.6.7",
-    "@rsbuild/plugin-react": "^1.4.1",
-    "@rslib/core": "^0.18.0",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^12.0.2",
-    "@semantic-release/npm": "^13.1.2",
-    "@semantic-release/release-notes-generator": "^14.1.0",
-    "@storybook/addon-a11y": "^10.0.3",
-    "@storybook/addon-links": "^10.0.2",
-    "@storybook/addon-onboarding": "^10.0.2",
-    "@storybook/addon-themes": "^10.0.2",
-    "@storybook/react": "^10.0.2",
-    "@storybook/test-runner": "^0.24.2",
-    "@tailwindcss/postcss": "^4.1.17",
-    "@techsio/storybook-a11y-reporter": "0.1.3",
-    "@techsio/storybook-better-a11y": "0.1.3",
-    "@typescript-eslint/parser": "^8.47.0",
-    "eslint": "^9.39.1",
-    "eslint-plugin-tailwindcss": "beta",
-    "glob": "^11.0.2",
-    "postcss": "^8.5.6",
-    "rsbuild-plugin-publint": "^0.3.3",
-    "semantic-release": "^25.0.2",
-    "storybook": "^10.0.2",
-    "storybook-addon-rslib": "^2.1.6",
-    "storybook-react-rsbuild": "^2.1.4",
-    "tailwind-merge": "^3.4.0",
-    "tailwindcss": "^4.1.17",
-    "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.3"
-  },
-  "peerDependencies": {
-    "@types/react": ">=19.2.0",
-    "@types/react-dom": ">=19.2.0",
-    "react": ">=19.2.0",
-    "react-dom": ">=19.2.0"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+   "name": "@techsio/ui-kit",
+   "version": "0.3.2",
+   "type": "module",
+   "repository": {
+      "type": "git",
+      "url": "git+https://github.com/NMIT-WR/new-engine.git",
+      "directory": "libs/ui"
+   },
+   "exports": {
+      "./types/zag": {
+         "types": "./dist/src/types/zag.d.ts",
+         "import": "./dist/types/zag.js"
+      },
+      "./tokens": {
+         "style": "./src/tokens/tokens-only.css",
+         "default": "./src/tokens/tokens-only.css"
+      },
+      "./tokens-with-tailwind": {
+         "style": "./src/tokens/index.css",
+         "default": "./src/tokens/index.css"
+      },
+      "./tokens/*": {
+         "style": "./src/tokens/*.css",
+         "default": "./src/tokens/*.css"
+      },
+      "./atoms/*": {
+         "types": "./dist/src/atoms/*.d.ts",
+         "import": "./dist/atoms/*.js"
+      },
+      "./molecules/*": {
+         "types": "./dist/src/molecules/*.d.ts",
+         "import": "./dist/molecules/*.js"
+      },
+      "./organisms/*": {
+         "types": "./dist/src/organisms/*.d.ts",
+         "import": "./dist/organisms/*.js"
+      },
+      "./templates/*": {
+         "types": "./dist/src/templates/*.d.ts",
+         "import": "./dist/templates/*.js"
+      },
+      "./utils": {
+         "types": "./dist/src/utils.d.ts",
+         "import": "./dist/utils.js"
+      }
+   },
+   "files": [
+      "dist",
+      "src/tokens",
+      "skills",
+      "!skills/_artifacts"
+   ],
+   "scripts": {
+      "build": "rslib build",
+      "build:storybook": "storybook build",
+      "dev": "rslib build --watch",
+      "storybook": "storybook dev",
+      "test-storybook": "test-storybook",
+      "storybook:a11y": "bash scripts/storybook-a11y.sh",
+      "test:components": "node scripts/run-component-tests.mjs",
+      "test:components:update": "node scripts/run-component-tests.mjs --update-snapshots",
+      "lint:tailwind": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js",
+      "lint:tailwind:fix": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js --fix",
+      "prepare": "pnpm build && pnpm build:storybook",
+      "check:unused-tokens": "bun scripts/check-unused-tokens.js",
+      "validate:tokens": "bun scripts/validate-token-usage.js && bun scripts/validate-token-definitions.js",
+      "validate:token-usage": "bun scripts/validate-token-usage.js",
+      "validate:token-definitions": "bun scripts/validate-token-definitions.js",
+      "semantic-release": "semantic-release"
+   },
+   "dependencies": {
+      "@zag-js/accordion": "^1.31.1",
+      "@zag-js/carousel": "^1.31.1",
+      "@zag-js/checkbox": "^1.31.1",
+      "@zag-js/combobox": "^1.31.1",
+      "@zag-js/dialog": "^1.31.1",
+      "@zag-js/i18n-utils": "^1.31.1",
+      "@zag-js/menu": "^1.31.1",
+      "@zag-js/number-input": "^1.31.1",
+      "@zag-js/pagination": "^1.31.1",
+      "@zag-js/popover": "^1.31.1",
+      "@zag-js/rating-group": "^1.31.1",
+      "@zag-js/react": "^1.31.1",
+      "@zag-js/select": "^1.31.1",
+      "@zag-js/slider": "^1.31.1",
+      "@zag-js/steps": "^1.31.1",
+      "@zag-js/switch": "^1.31.1",
+      "@zag-js/tabs": "^1.31.1",
+      "@zag-js/toast": "^1.31.1",
+      "@zag-js/tooltip": "^1.31.1",
+      "@zag-js/tree-view": "^1.31.1",
+      "tailwind-variants": "^3.1.1"
+   },
+   "devDependencies": {
+      "@tanstack/intent": "^0.0.23",
+      "@eslint/js": "^9.39.1",
+      "@iconify/json": "^2.2.409",
+      "@iconify/tailwind4": "^1.1.0",
+      "@rsbuild/core": "1.6.7",
+      "@rsbuild/plugin-react": "^1.4.1",
+      "@rslib/core": "^0.18.0",
+      "@semantic-release/changelog": "^6.0.3",
+      "@semantic-release/commit-analyzer": "^13.0.1",
+      "@semantic-release/git": "^10.0.1",
+      "@semantic-release/github": "^12.0.2",
+      "@semantic-release/npm": "^13.1.2",
+      "@semantic-release/release-notes-generator": "^14.1.0",
+      "@storybook/addon-a11y": "^10.0.3",
+      "@storybook/addon-links": "^10.0.2",
+      "@storybook/addon-onboarding": "^10.0.2",
+      "@storybook/addon-themes": "^10.0.2",
+      "@storybook/react": "^10.0.2",
+      "@storybook/test-runner": "^0.24.2",
+      "@tailwindcss/postcss": "^4.1.17",
+      "@techsio/storybook-a11y-reporter": "0.1.3",
+      "@techsio/storybook-better-a11y": "0.1.3",
+      "@typescript-eslint/parser": "^8.47.0",
+      "eslint": "^9.39.1",
+      "eslint-plugin-tailwindcss": "beta",
+      "glob": "^11.0.2",
+      "postcss": "^8.5.6",
+      "rsbuild-plugin-publint": "^0.3.3",
+      "semantic-release": "^25.0.2",
+      "storybook": "^10.0.2",
+      "storybook-addon-rslib": "^2.1.6",
+      "storybook-react-rsbuild": "^2.1.4",
+      "tailwind-merge": "^3.4.0",
+      "tailwindcss": "^4.1.17",
+      "tailwindcss-animate": "^1.0.7",
+      "typescript": "^5.9.3"
+   },
+   "peerDependencies": {
+      "@types/react": ">=19.2.0",
+      "@types/react-dom": ">=19.2.0",
+      "react": ">=19.2.0",
+      "react-dom": ">=19.2.0"
+   },
+   "publishConfig": {
+      "access": "public"
+   },
+   "keywords": [
+      "tanstack-intent"
+   ]
 }
