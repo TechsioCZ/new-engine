@@ -217,7 +217,7 @@ const radioCardVariants = tv({
         ],
       },
     },
-    orientation: {
+    itemOrientation: {
       horizontal: {
         itemControl: "flex-row",
         itemContent: "flex-1",
@@ -268,7 +268,7 @@ const radioCardVariants = tv({
   defaultVariants: {
     variant: "outline",
     size: "md",
-    orientation: "horizontal",
+    itemOrientation: "horizontal",
     align: "start",
     justify: "between",
   },
@@ -278,8 +278,8 @@ type RadioCardVariant = NonNullable<
   VariantProps<typeof radioCardVariants>["variant"]
 >
 type RadioCardSize = NonNullable<VariantProps<typeof radioCardVariants>["size"]>
-type RadioCardOrientation = NonNullable<
-  VariantProps<typeof radioCardVariants>["orientation"]
+type RadioCardItemOrientation = NonNullable<
+  VariantProps<typeof radioCardVariants>["itemOrientation"]
 >
 type RadioCardAlign = NonNullable<
   VariantProps<typeof radioCardVariants>["align"]
@@ -293,7 +293,7 @@ type RadioCardContextValue = {
   api: ReturnType<typeof connect>
   variant: RadioCardVariant
   size: RadioCardSize
-  orientation: RadioCardOrientation
+  itemOrientation: RadioCardItemOrientation
   align: RadioCardAlign
   justify: RadioCardJustify
   disabled: boolean
@@ -351,6 +351,7 @@ export function RadioCard({
   disabled = false,
   required = false,
   orientation = "horizontal",
+  itemOrientation = "horizontal",
   align = "start",
   justify = "between",
   validateStatus = "default",
@@ -382,7 +383,7 @@ export function RadioCard({
   const styles = radioCardVariants({
     size,
     variant,
-    orientation,
+    itemOrientation,
     align,
     justify,
   })
@@ -399,7 +400,7 @@ export function RadioCard({
         api,
         variant,
         size,
-        orientation,
+        itemOrientation,
         align,
         justify,
         disabled,
@@ -521,13 +522,13 @@ RadioCard.ItemControl = function RadioCardItemControl({
   ref,
   ...props
 }: RadioCardItemControlProps) {
-  const { api, size, variant, orientation, align, justify } =
+  const { api, size, variant, itemOrientation, align, justify } =
     useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
     size,
     variant,
-    orientation,
+    itemOrientation,
     align,
     justify,
   })
@@ -554,11 +555,11 @@ RadioCard.ItemContent = function RadioCardItemContent({
   ref,
   ...props
 }: RadioCardItemContentProps) {
-  const { size, variant, orientation, align } = useRadioCardContext()
+  const { size, variant, itemOrientation, align } = useRadioCardContext()
   const styles = radioCardVariants({
     size,
     variant,
-    orientation,
+    itemOrientation,
     align,
   })
 
@@ -579,12 +580,12 @@ RadioCard.ItemText = function RadioCardItemText({
   ref,
   ...props
 }: RadioCardItemTextProps) {
-  const { api, size, variant, orientation, align } = useRadioCardContext()
+  const { api, size, variant, itemOrientation, align } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
     size,
     variant,
-    orientation,
+    itemOrientation,
     align,
   })
   const itemTextProps = mergeProps(props, api.getItemTextProps(itemProps))

@@ -69,14 +69,14 @@ type BasicRadioCardProps = Omit<RadioCardProps, "children">
 function BasicRadioCard({
   align = "start",
   justify = "between",
-  orientation = "horizontal",
+  itemOrientation = "horizontal",
   ...args
 }: BasicRadioCardProps) {
   return (
     <RadioCard
       align={align}
       justify={justify}
-      orientation={orientation}
+      itemOrientation={itemOrientation}
       {...args}
     >
       <RadioCard.Label>Choose your stack</RadioCard.Label>
@@ -153,6 +153,12 @@ const meta: Meta<typeof RadioCard> = {
     orientation: {
       control: { type: "inline-radio" },
       options: ["horizontal", "vertical"],
+      description: "Keyboard and navigation orientation for the radio group.",
+      table: { defaultValue: { summary: "horizontal" } },
+    },
+    itemOrientation: {
+      control: { type: "inline-radio" },
+      options: ["horizontal", "vertical"],
       description: "Content flow inside each card.",
       table: { defaultValue: { summary: "horizontal" } },
     },
@@ -202,6 +208,7 @@ const meta: Meta<typeof RadioCard> = {
     size: "md",
     variant: "outline",
     orientation: "horizontal",
+    itemOrientation: "horizontal",
     align: "start",
     justify: "between",
     validateStatus: "default",
@@ -267,7 +274,7 @@ export const Centered: Story = {
       align="center"
       defaultValue="card"
       justify="center"
-      orientation="vertical"
+      itemOrientation="vertical"
       size="md"
       variant="outline"
     >
@@ -329,46 +336,13 @@ export const WithAddon: Story = {
   ),
 }
 
-export const CustomIndicator: Story = {
-  render: () => (
-    <RadioCard defaultValue="next" size="md" variant="outline">
-      <RadioCard.Label>Deploy target</RadioCard.Label>
-      <div className="grid w-full gap-150 md:grid-cols-3">
-        {frameworkOptions.map((option) => (
-          <RadioCard.Item
-            disabled={option.disabled}
-            key={option.value}
-            value={option.value}
-          >
-            <RadioCard.ItemHiddenInput />
-            <RadioCard.ItemControl>
-              <RadioCard.ItemContent>
-                <RadioCard.ItemText>{option.title}</RadioCard.ItemText>
-                {option.description ? (
-                  <RadioCard.ItemDescription>
-                    {option.description}
-                  </RadioCard.ItemDescription>
-                ) : null}
-              </RadioCard.ItemContent>
-              <RadioCard.ItemIndicator className="token-icon-check" />
-            </RadioCard.ItemControl>
-          </RadioCard.Item>
-        ))}
-      </div>
-      <RadioCard.StatusText>
-        Override the default checked glyph by swapping the indicator utility class.
-      </RadioCard.StatusText>
-    </RadioCard>
-  ),
-}
-
 export const WithoutIndicator: Story = {
   render: () => (
     <RadioCard
       align="center"
       defaultValue="card"
       justify="center"
-      orientation="vertical"
+      itemOrientation="vertical"
       size="md"
       variant="outline"
     >
