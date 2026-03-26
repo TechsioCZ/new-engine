@@ -368,6 +368,8 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  apps/zane-operator: {}
+
   libs/analytics:
     dependencies:
       next:
@@ -478,6 +480,9 @@ importers:
         specifier: ^1.31.1
         version: 1.31.1
       '@zag-js/popover':
+        specifier: ^1.31.1
+        version: 1.31.1
+      '@zag-js/radio-group':
         specifier: ^1.31.1
         version: 1.31.1
       '@zag-js/rating-group':
@@ -7538,6 +7543,9 @@ packages:
 
   '@zag-js/popper@1.31.1':
     resolution: {integrity: sha512-wLXcEqzn9MK1rGbsgnDH26o5ZWqR4oeb6ZepKKy0gcuJl/1S5/dr1VBvxJNMZlf9d6etvYklG5LRnIVkXCbrjA==}
+
+  '@zag-js/radio-group@1.31.1':
+    resolution: {integrity: sha512-OfKIdEtSG0EuHM+cFVqcR+04yzZmcDRgG3j0QhoJsyS1my63ZHbwC2HNAtfPFh4U4sJx9yUexwSzPGZ6pOzIdw==}
 
   '@zag-js/rating-group@1.31.1':
     resolution: {integrity: sha512-BkQUglKm4a+KXYPACYvIvBJSuEyzV0YQqjjiucwJ5UiOlK72C66VBvyGN+DqJRDnkU1K5azt6E1Ja5ANk3fgsg==}
@@ -22446,6 +22454,15 @@ snapshots:
     dependencies:
       '@floating-ui/dom': 1.7.4
       '@zag-js/dom-query': 1.31.1
+      '@zag-js/utils': 1.31.1
+
+  '@zag-js/radio-group@1.31.1':
+    dependencies:
+      '@zag-js/anatomy': 1.31.1
+      '@zag-js/core': 1.31.1
+      '@zag-js/dom-query': 1.31.1
+      '@zag-js/focus-visible': 1.31.1
+      '@zag-js/types': 1.31.1
       '@zag-js/utils': 1.31.1
 
   '@zag-js/rating-group@1.31.1':
