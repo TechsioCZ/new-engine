@@ -5,7 +5,7 @@ import {
   type ValueChangeDetails,
   type Props as ZagRadioGroupProps,
 } from "@zag-js/radio-group"
-import { normalizeProps, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -37,6 +37,9 @@ const radioCardVariants = tv({
       "data-disabled:bg-radio-card-item-bg-disabled",
       "data-disabled:border-radio-card-item-border-disabled",
       "data-disabled:text-radio-card-item-fg-disabled",
+      "data-disabled:data-[state=checked]:bg-radio-card-item-bg-disabled",
+      "data-disabled:data-[state=checked]:border-radio-card-item-border-disabled",
+      "data-disabled:data-[state=checked]:text-radio-card-item-fg-disabled",
       "data-focus-visible:outline-(style:--default-ring-style)",
       "data-focus-visible:outline-(length:--default-ring-width)",
       "data-focus-visible:outline-radio-card-ring",
@@ -51,12 +54,14 @@ const radioCardVariants = tv({
       "text-radio-card-item-fg",
       "leading-snug",
       "data-disabled:text-radio-card-item-fg-disabled",
+      "data-disabled:data-[state=checked]:text-radio-card-item-fg-disabled",
     ],
     itemDescription: [
       "min-w-0",
       "text-radio-card-item-description-fg",
       "leading-normal",
       "data-disabled:text-radio-card-item-description-fg-disabled",
+      "data-disabled:data-[state=checked]:text-radio-card-item-description-fg-disabled",
     ],
     itemIndicator: [
       "inline-grid shrink-0 place-items-center",
@@ -67,6 +72,8 @@ const radioCardVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
       "data-disabled:border-radio-card-item-indicator-border-disabled",
       "data-disabled:bg-radio-card-item-indicator-bg-disabled",
+      "data-disabled:data-[state=checked]:border-radio-card-item-indicator-border-disabled",
+      "data-disabled:data-[state=checked]:bg-radio-card-item-indicator-bg-disabled",
     ],
     itemIndicatorContent: [
       "inline-grid place-items-center",
@@ -88,6 +95,9 @@ const radioCardVariants = tv({
       "data-disabled:border-radio-card-item-addon-border-disabled",
       "data-disabled:bg-radio-card-item-addon-bg-disabled",
       "data-disabled:text-radio-card-item-addon-fg-disabled",
+      "data-disabled:data-[state=checked]:border-radio-card-item-addon-border-disabled",
+      "data-disabled:data-[state=checked]:bg-radio-card-item-addon-bg-disabled",
+      "data-disabled:data-[state=checked]:text-radio-card-item-addon-fg-disabled",
     ],
     hiddenInput: "sr-only",
   },
@@ -326,6 +336,7 @@ type RadioCardMachineProps = Omit<
 
 export type RadioCardProps = VariantProps<typeof radioCardVariants> &
   RadioCardMachineProps & {
+    "aria-describedby"?: string
     id?: string
     children: ReactNode
     className?: string
@@ -335,6 +346,7 @@ export type RadioCardProps = VariantProps<typeof radioCardVariants> &
   }
 
 export function RadioCard({
+  "aria-describedby": ariaDescribedByProp,
   id: providedId,
   disabled = false,
   required = false,
@@ -374,6 +386,12 @@ export function RadioCard({
     align,
     justify,
   })
+  const rootProps = mergeProps(
+    {
+      "aria-describedby": ariaDescribedByProp,
+    },
+    api.getRootProps(),
+  )
 
   return (
     <RadioCardContext.Provider
@@ -389,11 +407,7 @@ export function RadioCard({
         validateStatus,
       }}
     >
-      <div
-        className={styles.root({ className })}
-        ref={ref}
-        {...api.getRootProps()}
-      >
+      <div className={styles.root({ className })} ref={ref} {...rootProps}>
         {children}
       </div>
     </RadioCardContext.Provider>
@@ -422,14 +436,14 @@ RadioCard.Label = function RadioCardLabel({
     disabled: groupDisabled,
     required: groupRequired,
   } = useRadioCardContext()
+  const labelProps = mergeProps(props, api.getLabelProps())
 
   return (
     <Label
       disabled={disabled ?? groupDisabled}
       required={required ?? groupRequired}
       size={sizeProp ?? size}
-      {...api.getLabelProps()}
-      {...props}
+      {...labelProps}
     >
       {children}
     </Label>
@@ -456,14 +470,14 @@ RadioCard.Item = function RadioCardItem({
   const { api, size, variant } = useRadioCardContext()
   const styles = radioCardVariants({ size, variant })
   const itemProps = { value, disabled, invalid }
+  const mergedItemProps = mergeProps(props, api.getItemProps(itemProps))
 
   return (
     <RadioCardItemContext.Provider value={{ itemProps }}>
       <label
         className={styles.item({ className })}
         ref={ref}
-        {...api.getItemProps(itemProps)}
-        {...props}
+        {...mergedItemProps}
       >
         {children}
       </label>
@@ -486,13 +500,13 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
   const { api, size, variant } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({ size, variant })
+  const hiddenInputProps = mergeProps(props, api.getItemHiddenInputProps(itemProps))
 
   return (
     <input
       className={styles.hiddenInput({ className })}
       ref={ref}
-      {...api.getItemHiddenInputProps(itemProps)}
-      {...props}
+      {...hiddenInputProps}
     />
   )
 }
@@ -517,13 +531,13 @@ RadioCard.ItemControl = function RadioCardItemControl({
     align,
     justify,
   })
+  const itemControlProps = mergeProps(props, api.getItemControlProps(itemProps))
 
   return (
     <div
       className={styles.itemControl({ className })}
       ref={ref}
-      {...api.getItemControlProps(itemProps)}
-      {...props}
+      {...itemControlProps}
     >
       {children}
     </div>
@@ -573,13 +587,13 @@ RadioCard.ItemText = function RadioCardItemText({
     orientation,
     align,
   })
+  const itemTextProps = mergeProps(props, api.getItemTextProps(itemProps))
 
   return (
     <span
       className={styles.itemText({ className })}
       ref={ref}
-      {...api.getItemTextProps(itemProps)}
-      {...props}
+      {...itemTextProps}
     >
       {children}
     </span>
