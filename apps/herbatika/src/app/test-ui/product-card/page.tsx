@@ -1,3 +1,4 @@
+"use client"
 import { ProductCardShowcase } from "@/components/test-ui/product-card-showcase";
 import { TestUiBackLink, TestUiLayout } from "@/components/test-ui/test-ui-layout";
 

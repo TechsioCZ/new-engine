@@ -123,7 +123,6 @@ export function CartItemRow({
             className="bg-surface"
             disabled={isPending || localQuantity <= 1}
             icon="icon-[mdi--minus]"
-            size="sm"
             theme="outlined"
             variant="secondary"
           />
@@ -139,7 +138,6 @@ export function CartItemRow({
             className="bg-surface"
             disabled={isPending || localQuantity >= itemMaxQuantity}
             icon="icon-[mdi--plus]"
-            size="sm"
             theme="outlined"
             variant="secondary"
           />

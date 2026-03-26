@@ -1,7 +1,7 @@
 import NextLink from "next/link";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
@@ -31,7 +31,7 @@ function SelectionRow({
   subtitle: string;
   priceLabel: string;
   selected?: boolean;
-  icon: string;
+  icon: IconType;
 }) {
   return (
     <Button
@@ -40,7 +40,7 @@ function SelectionRow({
       theme="unstyled"
       type="button"
     >
-      <div className="space-y-150 px-550 py-400 w-full">
+      <div className="w-full space-y-150 px-550 py-400">
         <div className="flex flex-wrap items-center justify-between gap-200">
           <div className="flex min-w-0 items-center gap-150">
             <span
@@ -52,10 +52,15 @@ function SelectionRow({
                 data-selected={selected}
               />
             </span>
-            <Icon className={`text-md ${selected ? "text-primary" : "text-fg-secondary"}`} icon={icon} />
+            <Icon
+              className={`text-md ${selected ? "text-primary" : "text-fg-secondary"}`}
+              icon={icon}
+            />
             <p className="truncate text-md font-medium text-fg-primary">{title}</p>
           </div>
-          <p className={`text-md font-medium ${priceLabel === "Zadarmo" ? "text-success" : "text-fg-primary"}`}>
+          <p
+            className={`text-md font-medium ${priceLabel === "Zadarmo" ? "text-success" : "text-fg-primary"}`}
+          >
             {priceLabel}
           </p>
         </div>
@@ -75,9 +80,9 @@ export function CheckoutShowcase() {
             <SupportingText>Adresní a souhlasové prvky nad current shared form contracts.</SupportingText>
           </div>
           <div className="space-y-250 rounded-md bg-highlight p-400">
-            <FormInput id="checkout-first-name-preview" label="Meno" required value="Ján" />
-            <FormInput id="checkout-last-name-preview" label="Priezvisko" required value="Novák" />
-            <Select items={COUNTRY_ITEMS} size="sm" value={["SK"]}>
+            <FormInput defaultValue="Ján" id="checkout-first-name-preview" label="Meno" required />
+            <FormInput defaultValue="Novák" id="checkout-last-name-preview" label="Priezvisko" required />
+            <Select defaultValue={["SK"]} items={COUNTRY_ITEMS} size="sm">
               <Select.Label>Krajina</Select.Label>
               <Select.Control>
                 <Select.Trigger>
@@ -95,7 +100,11 @@ export function CheckoutShowcase() {
                 </Select.Content>
               </Select.Positioner>
             </Select>
-            <FormCheckbox checked label="Súhlasím so zasielaním marketingových informácií" size="sm" />
+            <FormCheckbox
+              defaultChecked
+              label="Súhlasím so zasielaním marketingových informácií"
+              size="sm"
+            />
             <SupportingText className="text-fg-secondary">
               * povinné polia a doplňujúce helper texty majú byť app-local supporting copy.
             </SupportingText>

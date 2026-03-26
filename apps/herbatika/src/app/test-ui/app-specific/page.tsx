@@ -1,3 +1,4 @@
+"use client"
 import { AppSpecificShowcase } from "@/components/test-ui/app-specific-showcase";
 import { TestUiBackLink, TestUiLayout } from "@/components/test-ui/test-ui-layout";
 

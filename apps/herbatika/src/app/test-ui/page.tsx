@@ -2,6 +2,7 @@
 
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { AppSpecificShowcase } from "@/components/test-ui/app-specific-showcase";
+import { BadgesShowcase } from "@/components/test-ui/badges-showcase";
 import { ButtonShowcase } from "@/components/test-ui/button-showcase";
 import { CheckoutShowcase } from "@/components/test-ui/checkout-showcase";
 import { FooterShowcase } from "@/components/test-ui/footer-showcase";
@@ -26,6 +27,7 @@ export default function TestUiPage() {
       <TestUiSurfaceGrid />
 
       <AppSpecificShowcase />
+      <BadgesShowcase />
       <ButtonShowcase />
       <HeaderShowcase />
       <FooterShowcase />
@@ -37,10 +39,10 @@ export default function TestUiPage() {
 
       <TestUiPlaceholder
         title="Další doporučené bloky"
-        summary="Core form, checkout i první app-specific wrappers už mají referenční showcase. Další krok je doplnit missing badge surface a potom rozhodovat, co z app patterns má zůstat lokální."
+        summary="Core form, checkout, badges i první app-specific wrappers už mají referenční showcase. Další krok je vizuální kontrola a teprve potom rozhodování o cutoveru do reálné appky."
         nextSteps={[
-          "Badges: promo flagy a utility badge surface podle Figmy.",
           "Radio / radio-group: samostatně dopsat shared primitive gap pro checkout selection.",
+          "Vizuální review: projít surface proti Figmě a potvrdit finální token drift.",
           "Cutover review: projít, které app-specific wrappery už jsou dost stabilní pro napojení do reálných flow.",
         ]}
       />

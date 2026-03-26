@@ -1,7 +1,7 @@
 import NextLink from "next/link";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
 import { Footer } from "@techsio/ui-kit/organisms/footer";
 import { HerbatikaLogo } from "@/components/herbatika-logo";
 import { SupportingText } from "@/components/text/supporting-text";
@@ -9,11 +9,24 @@ import { SupportingText } from "@/components/text/supporting-text";
 const FOOTER_COLUMNS = [
   {
     title: "Informácie pre vás",
-    links: ["Blog", "O nás", "Časté otázky", "Darčeková poukážka", "Výrobcovia a značky", "Recenzie"],
+    links: [
+      "Blog",
+      "O nás",
+      "Časté otázky",
+      "Darčeková poukážka",
+      "Výrobcovia a značky",
+      "Recenzie",
+    ],
   },
   {
     title: "Dôležité informácie",
-    links: ["Doprava a platby", "Reklamácia a vrátenie", "Obchodné podmienky", "Ochrana osobných údajov", "Cookies"],
+    links: [
+      "Doprava a platby",
+      "Reklamácia a vrátenie",
+      "Obchodné podmienky",
+      "Ochrana osobných údajov",
+      "Cookies",
+    ],
   },
   {
     title: "Pre partnerov",
@@ -27,11 +40,19 @@ const FOOTER_NOTES = [
   "Social icon row je vhodná jako Button theme='unstyled' pattern nad token layerem.",
 ] as const;
 
+const SOCIAL_ICONS: IconType[] = [
+  "icon-[mdi--facebook]",
+  "icon-[mdi--instagram]",
+  "icon-[mdi--youtube]",
+  "icon-[mdi--linkedin]",
+  "icon-[mdi--music-note]",
+];
+
 export function FooterShowcase() {
   return (
     <div className="space-y-500">
       <section className="rounded-md border border-border-secondary bg-surface p-500">
-        <Footer className="w-full bg-surface max-w-none px-0 py-0" size="md">
+        <Footer className="max-w-none w-full bg-surface px-0 py-0" size="md">
           <Footer.Container className="mx-auto grid w-full grid-cols-1 gap-x-0 gap-y-700 px-500 pt-850 pb-700 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-600 xl:gap-y-0">
             <Footer.Section className="px-500 py-250">
               <HerbatikaLogo size="lg" />
@@ -73,13 +94,7 @@ export function FooterShowcase() {
 
           <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-700 lg:flex-row lg:items-center lg:gap-800">
             <div className="flex flex-wrap items-center gap-300">
-              {[
-                "icon-[mdi--facebook]",
-                "icon-[mdi--instagram]",
-                "icon-[mdi--youtube]",
-                "icon-[mdi--linkedin]",
-                "icon-[mdi--music-note]",
-              ].map((icon) => (
+              {SOCIAL_ICONS.map((icon) => (
                 <Button
                   aria-label={icon}
                   className="h-750 w-750 rounded-full bg-bg-disabled text-2xl text-fg-secondary hover:text-primary"
@@ -136,9 +151,7 @@ export function FooterShowcase() {
         <div className="space-y-100">
           <h2 className="text-lg font-semibold text-fg-primary">Footer mapping</h2>
           <SupportingText>
-            Footer už teď poměrně jasně ukazuje, že nejde o chybějící shared
-            component, ale o správné rozdělení mezi shared contract a app
-            composition.
+            Footer už teď poměrně jasně ukazuje, že nejde o chybějící shared component, ale o správné rozdělení mezi shared contract a app composition.
           </SupportingText>
         </div>
 

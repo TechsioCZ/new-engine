@@ -31,7 +31,7 @@ export function SelectShowcase() {
             <SupportingText>Country picker pro checkout adresu.</SupportingText>
           </div>
           <div className="rounded-md bg-highlight p-400">
-            <Select items={COUNTRY_ITEMS} size="sm" value={["SK"]}>
+            <Select defaultValue={["SK"]} items={COUNTRY_ITEMS} size="sm">
               <Select.Label>Krajina</Select.Label>
               <Select.Control>
                 <Select.Trigger>
@@ -59,7 +59,7 @@ export function SelectShowcase() {
             <SupportingText>Variant picker pro product detail.</SupportingText>
           </div>
           <div className="rounded-md bg-highlight p-400">
-            <Select items={VARIANT_ITEMS} size="sm" value={["500g"]}>
+            <Select defaultValue={["500g"]} items={VARIANT_ITEMS} size="sm">
               <Select.Label>Varianta</Select.Label>
               <Select.Control>
                 <Select.Trigger>

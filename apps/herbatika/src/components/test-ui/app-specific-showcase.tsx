@@ -118,7 +118,7 @@ export function AppSpecificShowcase() {
             <SupportingText>
               Výber dopravy a platby se bude řešit přes radio primitives v samostatném PR.
             </SupportingText>
-            <FormCheckbox checked label="Chcem sa registrovať a získať výhody" size="sm" />
+            <FormCheckbox defaultChecked label="Chcem sa registrovať a získať výhody" size="sm" />
           </div>
         </HerbaticaCheckoutShell>
       </ShowcaseCard>

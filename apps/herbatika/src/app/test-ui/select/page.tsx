@@ -1,3 +1,4 @@
+"use client"
 import { SelectShowcase } from "@/components/test-ui/select-showcase";
 import { TestUiBackLink, TestUiLayout } from "@/components/test-ui/test-ui-layout";
 

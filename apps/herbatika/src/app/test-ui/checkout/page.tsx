@@ -1,3 +1,4 @@
+"use client"
 import { CheckoutShowcase } from "@/components/test-ui/checkout-showcase";
 import { TestUiBackLink, TestUiLayout } from "@/components/test-ui/test-ui-layout";
 

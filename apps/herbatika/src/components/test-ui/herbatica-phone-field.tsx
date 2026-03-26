@@ -42,7 +42,7 @@ export function HerbaticaPhoneField({
       </div>
 
       <div className="grid gap-150 sm:grid-cols-[8rem_1fr]">
-        <Select items={COUNTRY_CODE_ITEMS} size="sm" value={["+421"]}>
+        <Select defaultValue={["+421"]} items={COUNTRY_CODE_ITEMS} size="sm">
           <Select.Control>
             <Select.Trigger>
               <Select.ValueText placeholder="Predvoľba" />

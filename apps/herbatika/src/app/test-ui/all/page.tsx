@@ -2,6 +2,7 @@
 
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { AppSpecificShowcase } from "@/components/test-ui/app-specific-showcase";
+import { BadgesShowcase } from "@/components/test-ui/badges-showcase";
 import { ButtonShowcase } from "@/components/test-ui/button-showcase";
 import { CheckoutShowcase } from "@/components/test-ui/checkout-showcase";
 import { FooterShowcase } from "@/components/test-ui/footer-showcase";
@@ -28,6 +29,7 @@ export default function TestUiAllPage() {
       }
     >
       <AppSpecificShowcase />
+      <BadgesShowcase />
       <ButtonShowcase />
       <HeaderShowcase />
       <FooterShowcase />

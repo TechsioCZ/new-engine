@@ -53,6 +53,7 @@ Aktuálně mají první reálný showcase:
 
 - `app-specific/`
 - `buttons/`
+- `badges/`
 - `header/`
 - `footer/`
 - `product-card/`

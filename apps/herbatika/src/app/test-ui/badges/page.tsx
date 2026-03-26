@@ -1,21 +1,14 @@
-import { TestUiBackLink, TestUiLayout, TestUiPlaceholder } from "@/components/test-ui/test-ui-layout";
+import { BadgesShowcase } from "@/components/test-ui/badges-showcase";
+import { TestUiBackLink, TestUiLayout } from "@/components/test-ui/test-ui-layout";
 
 export default function TestUiBadgesPage() {
   return (
     <TestUiLayout
       title="Test UI / Badges"
-      description="Plánovaná surface pro mapování Akcia, Novinka, Tip, promo a utility badges."
+      description="Referenční mapping badge family z Figmy na current libs/ui contract a Herbatica app styling."
       actions={<TestUiBackLink />}
     >
-      <TestUiPlaceholder
-        title="Badge showcase"
-        summary="Další krok po buttons. Tady se budou ověřovat varianty badge contractu proti produktovým a hero surface z Figmy."
-        nextSteps={[
-          "Mapovat Figma promo flags na current Badge variants bez zavádění nových shared API.",
-          "Ověřit utility badges pro search toolbar, account a info surface.",
-          "Teprve pak rozhodnout, jestli je potřeba další component-specific token override.",
-        ]}
-      />
+      <BadgesShowcase />
     </TestUiLayout>
   );
 }

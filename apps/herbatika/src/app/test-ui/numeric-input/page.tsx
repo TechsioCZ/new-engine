@@ -1,3 +1,4 @@
+"use client";
 import { NumericInputShowcase } from "@/components/test-ui/numeric-input-showcase";
 import { TestUiBackLink, TestUiLayout } from "@/components/test-ui/test-ui-layout";
 

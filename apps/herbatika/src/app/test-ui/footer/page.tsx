@@ -1,3 +1,4 @@
+"use client"
 import { FooterShowcase } from "@/components/test-ui/footer-showcase";
 import { TestUiBackLink, TestUiLayout } from "@/components/test-ui/test-ui-layout";
 

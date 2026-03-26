@@ -194,7 +194,6 @@ export function CheckoutCartItemRow({
           className="min-w-300 text-fg-primary"
           disabled={isPending || localQuantity <= 1}
           icon="icon-[mdi--minus]"
-          size="sm"
           variant="secondary"
         />
 
@@ -209,7 +208,6 @@ export function CheckoutCartItemRow({
           className="min-w-300 text-fg-primary"
           disabled={isPending || localQuantity >= itemMaxQuantity}
           icon="icon-[mdi--plus]"
-          size="sm"
           variant="secondary"
         />
       </NumericInput>

@@ -41,8 +41,8 @@ export const TEST_UI_SURFACES: TestUiSurface[] = [
     title: "Badges",
     href: "/test-ui/badges",
     description: "Akcia, Novinka, Tip, info a utility badge surface.",
-    status: "planned",
-    notes: "Naváže na produktové a hero karty.",
+    status: "ready",
+    notes: "Promo flagy i utility badges jsou namapované na current Badge contract.",
   },
   {
     id: "header",
