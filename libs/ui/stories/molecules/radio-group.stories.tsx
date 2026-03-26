@@ -52,12 +52,19 @@ const planOptions: RadioOption[] = [
   },
 ]
 
-type BasicRadioGroupProps = Omit<RadioGroupProps, "children">
+type BasicRadioGroupProps = Omit<RadioGroupProps, "children"> & {
+  label?: string
+  statusText?: string
+}
 
-function BasicRadioGroup(args: BasicRadioGroupProps) {
+function BasicRadioGroup({
+  label = "Shipping method",
+  statusText = "Choose one delivery option for the order.",
+  ...args
+}: BasicRadioGroupProps) {
   return (
     <RadioGroup {...args}>
-      <RadioGroup.Label>Shipping method</RadioGroup.Label>
+      <RadioGroup.Label>{label}</RadioGroup.Label>
       <RadioGroup.ItemGroup>
         {shippingOptions.map((option) => (
           <RadioGroup.Item
@@ -78,9 +85,7 @@ function BasicRadioGroup(args: BasicRadioGroupProps) {
           </RadioGroup.Item>
         ))}
       </RadioGroup.ItemGroup>
-      <RadioGroup.StatusText>
-        Choose one delivery option for the order.
-      </RadioGroup.StatusText>
+      <RadioGroup.StatusText>{statusText}</RadioGroup.StatusText>
     </RadioGroup>
   )
 }
@@ -192,6 +197,48 @@ export const Sizes: Story = {
   ),
 }
 
+export const States: Story = {
+  render: () => (
+    <VariantContainer>
+      <VariantGroup title="Validation" fullWidth>
+        <BasicRadioGroup
+          defaultValue={null}
+          label="Required delivery option"
+          statusText="Select one delivery option before continuing."
+          validateStatus="error"
+          required
+        />
+        <BasicRadioGroup
+          defaultValue="express"
+          label="Saved delivery option"
+          statusText="Your delivery preference has been saved."
+          validateStatus="success"
+        />
+        <BasicRadioGroup
+          defaultValue="standard"
+          label="Review delivery option"
+          statusText="Double-check the selected delivery option."
+          validateStatus="warning"
+        />
+      </VariantGroup>
+      <VariantGroup title="Interactivity" fullWidth>
+        <BasicRadioGroup
+          defaultValue="standard"
+          disabled
+          label="Disabled delivery option"
+          statusText="Delivery options are temporarily unavailable."
+        />
+        <BasicRadioGroup
+          defaultValue="express"
+          label="Read-only delivery option"
+          readOnly
+          statusText="The selected delivery option is locked."
+        />
+      </VariantGroup>
+    </VariantContainer>
+  ),
+}
+
 export const Orientations: Story = {
   render: () => (
     <VariantContainer>
@@ -200,32 +247,6 @@ export const Orientations: Story = {
       </VariantGroup>
       <VariantGroup title="Horizontal" fullWidth>
         <BasicRadioGroup defaultValue="standard" orientation="horizontal" />
-      </VariantGroup>
-    </VariantContainer>
-  ),
-}
-
-export const States: Story = {
-  render: () => (
-    <VariantContainer>
-      <VariantGroup title="Validation" fullWidth>
-        <BasicRadioGroup
-          defaultValue={null}
-          validateStatus="error"
-          required
-        />
-        <BasicRadioGroup
-          defaultValue="express"
-          validateStatus="success"
-        />
-        <BasicRadioGroup
-          defaultValue="standard"
-          validateStatus="warning"
-        />
-      </VariantGroup>
-      <VariantGroup title="Interactivity" fullWidth>
-        <BasicRadioGroup defaultValue="standard" disabled />
-        <BasicRadioGroup defaultValue="express" readOnly />
       </VariantGroup>
     </VariantContainer>
   ),
