@@ -90,7 +90,7 @@ importers:
         version: 0.8.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@techsio/ui-kit':
         specifier: workspace:*
-        version: link:../../libs/ui
+        version: file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwind-merge@3.4.0)(tailwindcss@4.1.17)
       dompurify:
         specifier: ^3.3.0
         version: 3.3.0
@@ -311,7 +311,7 @@ importers:
         version: file:libs/analytics(next@16.0.7(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@techsio/ui-kit':
         specifier: workspace:*
-        version: link:../../libs/ui
+        version: file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwind-merge@3.4.0)(tailwindcss@4.1.17)
       next:
         specifier: 16.0.7
         version: 16.0.7(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0)
@@ -6936,6 +6936,14 @@ packages:
       react: 19.2.3
       react-dom: 19.2.3
       storybook: '>=8.0.0'
+
+  '@techsio/ui-kit@file:libs/ui':
+    resolution: {directory: libs/ui, type: directory}
+    peerDependencies:
+      '@types/react': 19.2.3
+      '@types/react-dom': 19.2.3
+      react: 19.2.3
+      react-dom: 19.2.3
 
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
@@ -21681,6 +21689,38 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
       storybook: 10.1.11(@testing-library/dom@10.4.1)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+
+  '@techsio/ui-kit@file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwind-merge@3.4.0)(tailwindcss@4.1.17)':
+    dependencies:
+      '@types/react': 19.2.3
+      '@types/react-dom': 19.2.3(@types/react@19.2.3)
+      '@zag-js/accordion': 1.31.1
+      '@zag-js/carousel': 1.31.1
+      '@zag-js/checkbox': 1.31.1
+      '@zag-js/combobox': 1.31.1
+      '@zag-js/dialog': 1.31.1
+      '@zag-js/i18n-utils': 1.33.1
+      '@zag-js/menu': 1.31.1
+      '@zag-js/number-input': 1.31.1
+      '@zag-js/pagination': 1.31.1
+      '@zag-js/popover': 1.31.1
+      '@zag-js/radio-group': 1.31.1
+      '@zag-js/rating-group': 1.31.1
+      '@zag-js/react': 1.31.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@zag-js/select': 1.31.1
+      '@zag-js/slider': 1.31.1
+      '@zag-js/steps': 1.31.1
+      '@zag-js/switch': 1.31.1
+      '@zag-js/tabs': 1.31.1
+      '@zag-js/toast': 1.31.1
+      '@zag-js/tooltip': 1.31.1
+      '@zag-js/tree-view': 1.31.1
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      tailwind-variants: 3.1.1(tailwind-merge@3.4.0)(tailwindcss@4.1.17)
+    transitivePeerDependencies:
+      - tailwind-merge
+      - tailwindcss
 
   '@testing-library/dom@10.4.1':
     dependencies:
