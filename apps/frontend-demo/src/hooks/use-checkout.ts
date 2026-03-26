@@ -1,115 +1,145 @@
 "use client"
 
-import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useState } from "react"
-import { cacheConfig } from "@/lib/cache-config"
-import { STORAGE_KEYS } from "@/lib/constants"
-import { sdk } from "@/lib/medusa-client"
-import { queryKeys } from "@/lib/query-keys"
+import { storefront, storefrontFlows } from "@/lib/storefront"
 import { orderHelpers } from "@/stores/order-store"
 import type { CheckoutAddressData, UseCheckoutReturn } from "@/types/checkout"
 import { useCart } from "./use-cart"
-import { useCustomer } from "./use-customer"
+
+const toCartAddressInput = (data: CheckoutAddressData) => ({
+  email: data.shipping.email,
+  shippingAddress: {
+    first_name: data.shipping.firstName,
+    last_name: data.shipping.lastName,
+    address_1: data.shipping.street,
+    city: data.shipping.city,
+    postal_code: data.shipping.postalCode,
+    phone: data.shipping.phone,
+    country_code: (data.shipping.country || "CZ").toLowerCase(),
+    company: data.shipping.company,
+  },
+  billingAddress: data.useSameAddress
+    ? {
+        first_name: data.shipping.firstName,
+        last_name: data.shipping.lastName,
+        address_1: data.shipping.street,
+        city: data.shipping.city,
+        postal_code: data.shipping.postalCode,
+        phone: data.shipping.phone,
+        country_code: (data.shipping.country || "CZ").toLowerCase(),
+        company: data.shipping.company,
+      }
+    : {
+        first_name: data.billing.firstName,
+        last_name: data.billing.lastName,
+        address_1: data.billing.street,
+        city: data.billing.city,
+        postal_code: data.billing.postalCode,
+        country_code: (data.billing.country || "CZ").toLowerCase(),
+        company: data.billing.company,
+      },
+  useSameAddress: data.useSameAddress,
+})
 
 export function useCheckout(): UseCheckoutReturn {
-  const { cart, refetch, clearCart } = useCart()
-  const { address } = useCustomer()
+  const { cart } = useCart()
   const toast = useToast()
-  const queryClient = useQueryClient()
 
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedPayment, setSelectedPayment] = useState("")
-  const [selectedShipping, setSelectedShipping] = useState("")
   const [addressData, setAddressData] = useState<CheckoutAddressData | null>(
     null
   )
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [shippingError, setShippingError] = useState<Error | null>(null)
 
-  // Update addresses in cart
-  const updateAddresses = async (data: CheckoutAddressData) => {
-    if (!cart?.id) return
-
-    try {
-      await sdk.store.cart.update(cart.id, {
-        email: data.shipping.email,
-        shipping_address: {
-          first_name: data.shipping.firstName,
-          last_name: data.shipping.lastName,
-          address_1: data.shipping.street,
-          city: data.shipping.city,
-          postal_code: data.shipping.postalCode,
-          phone: data.shipping.phone,
-          country_code: (data.shipping.country || "CZ").toLowerCase(),
-          company: data.shipping.company,
-        },
-        billing_address: data.useSameAddress
-          ? {
-              first_name: data.shipping.firstName,
-              last_name: data.shipping.lastName,
-              address_1: data.shipping.street,
-              city: data.shipping.city,
-              postal_code: data.shipping.postalCode,
-              phone: data.shipping.phone,
-              country_code: (data.shipping.country || "CZ").toLowerCase(),
-              company: data.shipping.company,
-            }
-          : {
-              first_name: data.billing.firstName,
-              last_name: data.billing.lastName,
-              address_1: data.billing.street,
-              city: data.billing.city,
-              postal_code: data.billing.postalCode,
-              country_code: (data.billing.country || "CZ").toLowerCase(),
-              company: data.billing.company,
-            },
-      })
-      setAddressData(data)
-    } catch (err) {
-      console.error("Failed to update cart with addresses:", err)
+  const updateAddressMutation = storefront.hooks.cart.useUpdateCartAddress({
+    onError: () => {
       toast.create({
         title: "Chyba při ukládání adresy",
         description: "Zkuste to prosím znovu",
         type: "error",
       })
-      throw err
-    }
-  }
-
-  const {
-    data: shippingMethods,
-    isLoading: isLoadingShipping,
-    error: shippingError,
-  } = useQuery({
-    queryKey: queryKeys.fulfillment.cartOptions(cart?.id || ""),
-    queryFn: async () => {
-      if (!cart?.id) throw new Error("No cart ID available")
-      const response = await sdk.store.fulfillment.listCartOptions({
-        cart_id: cart.id,
-      })
-
-      const reducedShippingMethods = response.shipping_options.map((o) => ({
-        id: o.id,
-        name: o.name,
-        calculated_price: o.calculated_price,
-      }))
-      return reducedShippingMethods
     },
-    enabled: !!cart?.id,
-    ...cacheConfig.semiStatic,
   })
 
-  // Add shipping method to cart
+  const shipping = storefront.hooks.checkout.useCheckoutShipping(
+    {
+      cartId: cart?.id,
+      cart,
+      enabled: !!cart?.id,
+    },
+    {
+      onError: (error) => {
+        setShippingError(
+          error instanceof Error
+            ? error
+            : new Error("Nepodařilo se načíst dopravu")
+        )
+      },
+    }
+  )
+
+  const payment = storefront.hooks.checkout.useCheckoutPayment(
+    {
+      cartId: cart?.id,
+      regionId: cart?.region_id ?? undefined,
+      cart,
+      enabled: !!cart?.id,
+    },
+    {
+      onError: () => {
+        toast.create({
+          title: "Chyba při inicializaci platby",
+          description: "Zkuste to prosím znovu",
+          type: "error",
+        })
+      },
+    }
+  )
+
+  const completeCheckoutMutation = storefrontFlows.checkout.useCompleteCheckout(
+    {
+      cartId: cart?.id,
+      cart,
+      regionId: cart?.region_id ?? undefined,
+      enabled: !!cart?.id,
+    },
+    {
+      resolvePaymentProviderId: ({
+        paymentProviders,
+        existingPaymentProviderId,
+      }) =>
+        paymentProviders.find((provider) => provider.id === selectedPayment)
+          ?.id ??
+        existingPaymentProviderId ??
+        paymentProviders[0]?.id ??
+        null,
+    }
+  )
+
+  const updateAddresses = async (data: CheckoutAddressData) => {
+    if (!cart?.id) {
+      return
+    }
+
+    await updateAddressMutation.mutateAsync({
+      cartId: cart.id,
+      ...toCartAddressInput(data),
+    })
+    setAddressData(data)
+  }
+
   const addShippingMethod = async (methodId: string) => {
-    if (!cart?.id) return
+    if (!cart?.id) {
+      return
+    }
+
+    setShippingError(null)
 
     try {
-      await sdk.store.cart.addShippingMethod(cart.id, {
-        option_id: methodId,
-      })
-      await refetch()
+      await shipping.setShippingMethodAsync(methodId)
     } catch (error) {
-      console.error("Failed to add shipping method:", error)
       toast.create({
         title: "Chyba při výběru dopravy",
         description: "Zkuste to prosím znovu",
@@ -119,94 +149,26 @@ export function useCheckout(): UseCheckoutReturn {
     }
   }
 
-  // Process order
   const processOrder = async () => {
-    if (!cart?.id) return
+    if (!cart?.id) {
+      return
+    }
 
-    setIsProcessingPayment(true)
+    if (!shipping.selectedShippingMethodId) {
+      toast.create({
+        title: "Chyba",
+        description: "Prosím vyberte způsob dopravy",
+        type: "error",
+      })
+      setCurrentStep(1)
+      return
+    }
 
     try {
-      // Get fresh cart state
-      const { cart: currentCart } = await sdk.store.cart.retrieve(cart.id)
-
-      // Check shipping method
-      if (
-        !currentCart.shipping_methods ||
-        currentCart.shipping_methods.length === 0
-      ) {
-        toast.create({
-          title: "Chyba",
-          description: "Prosím vyberte způsob dopravy",
-          type: "error",
-        })
-        setCurrentStep(1)
-        return
-      }
-
-      // Initialize payment if needed
-      if (!currentCart.payment_collection) {
-        if (!currentCart.region_id) {
-          toast.create({
-            title: "Chyba",
-            description: "Košík nemá nastavenou region",
-            type: "error",
-          })
-          return
-        }
-
-        const providers = await sdk.store.payment.listPaymentProviders({
-          region_id: currentCart.region_id,
-        })
-
-        if (providers.payment_providers?.length > 0) {
-          const providerId = providers.payment_providers[0].id
-          await sdk.store.payment.initiatePaymentSession(currentCart, {
-            provider_id: providerId,
-          })
-        }
-      }
-
-      // Refresh cart to get payment collection
-      const { cart: latestCart } = await sdk.store.cart.retrieve(cart.id)
-
-      // Create payment session if needed
-      if (
-        !latestCart.payment_collection?.payment_sessions ||
-        latestCart.payment_collection.payment_sessions.length === 0
-      ) {
-        await sdk.store.payment.initiatePaymentSession(latestCart, {
-          provider_id: "pp_system_default",
-        })
-      }
-
-      // Complete order
-      const result = await sdk.store.cart.complete(cart.id)
-
-      if (result.type === "order") {
-        const order = result.order
-
-        // Save completed order data
-        if (currentCart) {
-          orderHelpers.saveCompletedOrder(currentCart)
-        }
-
-        // Clear cart from localStorage
-        if (typeof window !== "undefined") {
-          localStorage.removeItem(STORAGE_KEYS.CART_ID)
-        }
-
-        clearCart()
-
-        // Invalidate orders cache to refresh the list
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.orders.all(),
-        })
-
-        // Return success with order data
-        return order
-      }
+      const result = await completeCheckoutMutation.mutateAsync(undefined)
+      orderHelpers.saveCompletedOrder(cart)
+      return result.order
     } catch (error) {
-      console.error("Order creation error:", error)
       toast.create({
         title: "Chyba při vytváření objednávky",
         description:
@@ -216,40 +178,40 @@ export function useCheckout(): UseCheckoutReturn {
         type: "error",
       })
       throw error
-    } finally {
-      setIsProcessingPayment(false)
     }
   }
 
-  // Check if can proceed to step
+  const hasCheckoutAddress =
+    Boolean(addressData?.shipping) ||
+    Boolean(cart?.shipping_address?.address_1 && cart?.email)
+  const selectedShipping = shipping.selectedShippingMethodId ?? ""
+
   const canProceedToStep = (step: number) => {
     switch (step) {
-      case 1: // Shipping
-        return !!address
-      case 2: // Payment
-        return !!address && !!selectedShipping
-      case 3: // Summary
-        return !!address && !!selectedShipping && !!selectedPayment
+      case 1:
+        return hasCheckoutAddress
+      case 2:
+        return hasCheckoutAddress && !!selectedShipping
+      case 3:
+        return hasCheckoutAddress && !!selectedShipping && !!selectedPayment
       default:
         return true
     }
   }
 
   return {
-    // State
     currentStep,
     selectedPayment,
     selectedShipping,
     addressData,
-    isProcessingPayment,
-    shippingMethods,
-    isLoadingShipping,
+    isProcessingPayment:
+      completeCheckoutMutation.isPending || payment.isInitiatingPayment,
+    shippingMethods: shipping.shippingOptions,
+    isLoadingShipping:
+      shipping.isLoading || shipping.isFetching || shipping.isCalculating,
     shippingError,
-
-    // Actions
     setCurrentStep,
     setSelectedPayment,
-    setSelectedShipping,
     setAddressData,
     updateAddresses,
     addShippingMethod,

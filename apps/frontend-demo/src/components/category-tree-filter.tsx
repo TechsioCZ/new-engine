@@ -3,20 +3,91 @@ import { type TreeNode, TreeView } from "@techsio/ui-kit/molecules/tree-view"
 import { useCallback, useMemo, useState } from "react"
 import { useAccordionTree } from "@/hooks/use-accordion-tree"
 import { useCategoryPrefetch } from "@/hooks/use-category-prefetch"
-import type { CategoryTreeNode } from "@/lib/server/categories"
-import type { LeafCategory, LeafParent } from "@/lib/static-data/categories"
+import type {
+  CategoryTreeNode,
+  LeafCategory,
+  LeafParent,
+} from "@/lib/categories/types"
 import {
   findNodeById,
   getLeafIdsForCategory,
   isSelectableCategory,
 } from "@/utils/category-tree-helpers"
 
-interface CategoryFilterProps {
+type CategoryFilterProps = {
   categories: CategoryTreeNode[]
   leafCategories: LeafCategory[]
   leafParents: LeafParent[]
   onSelectionChange: (categoryIds: string[]) => void
   label?: string
+}
+
+type DelayedPrefetch = (
+  categoryIds: string[],
+  delay?: number,
+  prefetchId?: string
+) => string
+
+const queueLeafParentPrefetch = ({
+  delayedPrefetch,
+  expandedParentLeaf,
+  leafCategoryIds,
+  leafParentIds,
+  leafParents,
+}: {
+  delayedPrefetch: DelayedPrefetch
+  expandedParentLeaf: LeafParent
+  leafCategoryIds: Set<string>
+  leafParentIds: Set<string>
+  leafParents: LeafParent[]
+}) => {
+  for (const childId of expandedParentLeaf.children || []) {
+    if (leafCategoryIds.has(childId)) {
+      delayedPrefetch([childId], 800, `leaf_${childId}`)
+      continue
+    }
+
+    if (!leafParentIds.has(childId)) {
+      continue
+    }
+
+    const childParentLeaf = leafParents.find((parent) => parent.id === childId)
+    const children = childParentLeaf?.children ?? []
+
+    if (children.length > 0) {
+      delayedPrefetch(children, 800, `parent_leaf_${childId}`)
+    }
+  }
+}
+
+const queueStandardCategoryPrefetch = ({
+  categories,
+  delayedPrefetch,
+  leafParentIds,
+  leafParents,
+  nodeId,
+}: {
+  categories: CategoryTreeNode[]
+  delayedPrefetch: DelayedPrefetch
+  leafParentIds: Set<string>
+  leafParents: LeafParent[]
+  nodeId: string
+}) => {
+  const expandedNode = findNodeById(categories, nodeId)
+  if (!expandedNode?.children) {
+    return
+  }
+
+  for (const child of expandedNode.children) {
+    if (!leafParentIds.has(child.id)) {
+      continue
+    }
+
+    const childParentLeaf = leafParents.find((parent) => parent.id === child.id)
+    if (childParentLeaf) {
+      delayedPrefetch(childParentLeaf.leafs, 0, `parent_leaf_${child.id}`)
+    }
+  }
 }
 
 export function CategoryTreeFilter({
@@ -29,8 +100,7 @@ export function CategoryTreeFilter({
   const [selectedCategory, setSelectedCategory] = useState<string>("")
   const { expandedNodes, handleAccordionExpansion } =
     useAccordionTree(categories)
-  const { delayedPrefetch, cancelAllPrefetches, prefetchCategoryProducts } =
-    useCategoryPrefetch()
+  const { delayedPrefetch } = useCategoryPrefetch()
   // Create Sets for quick lookup
   const leafCategoryIds = useMemo(
     () => new Set(leafCategories.map((cat) => cat.id)),
@@ -60,16 +130,11 @@ export function CategoryTreeFilter({
   }, [categories, leafCategoryIds, leafParentIds])
 
   const handleSelectionChange = (details: { selectedValue: string[] }) => {
-    // In single mode, selectedValue is still an array but with max 1 item
     const selectedCategoryId = details.selectedValue?.[0]
 
     if (selectedCategoryId) {
-      // Cancel all pending prefetches since user made a selection
-      // cancelAllPrefetches()
-
       setSelectedCategory(selectedCategoryId)
 
-      // Get leaf IDs and notify parent
       const leafIds = getLeafIdsForCategory(
         selectedCategoryId,
         leafCategoryIds,
@@ -84,63 +149,38 @@ export function CategoryTreeFilter({
   const handleExpandedChange = useCallback(
     (details: { expandedValue: string[] }) => {
       const finalExpanded = handleAccordionExpansion(details)
-
-      // Find which nodes were newly expanded
       const newlyExpanded = finalExpanded.filter(
         (nodeId: string) => !expandedNodes.includes(nodeId)
       )
 
-      // Process each newly expanded node
       for (const nodeId of newlyExpanded) {
-        // 1. LEAF CATEGORY - nothing to prefecth
         if (leafCategoryIds.has(nodeId)) {
           continue
         }
 
-        // 2. LEAF PARENT CATEGORY - prefetch direct children only
         if (leafParentIds.has(nodeId)) {
           const expandedParentLeaf = leafParents.find((p) => p.id === nodeId)
-          if (!expandedParentLeaf) continue
-
-          //console.log(`[Prefetch] Expanding parentLeaf: ${expandedParentLeaf.name}`)
-          for (const childId of expandedParentLeaf.children || []) {
-            if (leafCategoryIds.has(childId)) {
-              // Direct leaf child - prefetch individually with delay
-              delayedPrefetch([childId], 800, `leaf_${childId}`)
-            } else if (leafParentIds.has(childId)) {
-              // Direct parentLeaf child - prefetch limited children, not all leafs
-              const childParentLeaf = leafParents.find((p) => p.id === childId)
-              if (childParentLeaf) {
-                const children = childParentLeaf.children
-                if (children.length > 0) {
-                  delayedPrefetch(children, 800, `parent_leaf_${childId}`)
-                }
-              }
-            }
+          if (!expandedParentLeaf) {
+            continue
           }
 
+          queueLeafParentPrefetch({
+            delayedPrefetch,
+            expandedParentLeaf,
+            leafCategoryIds,
+            leafParentIds,
+            leafParents,
+          })
           continue
         }
 
-        // 3. Standard category (non-selectable) - prefetch selectable children
-        const expandedNode = findNodeById(categories, nodeId)
-        if (expandedNode?.children) {
-          // console.log(`[Prefetch] Expanding standard category: ${expandedNode.name}`)
-
-          // Process each direct child
-          for (const child of expandedNode.children) {
-            if (leafParentIds.has(child.id)) {
-              // Child is a parentLeaf - prefetch limited children instead of all leafs
-              const childParentLeaf = leafParents.find((p) => p.id === child.id)
-              if (childParentLeaf) {
-                /*console.log(
-                  `[Prefetch] - ParentLeaf child "${childParentLeaf.name}": ${childParentLeaf.leafs.length} leafs`
-                )*/
-                void prefetchCategoryProducts(childParentLeaf.leafs)
-              }
-            }
-          }
-        }
+        queueStandardCategoryPrefetch({
+          categories,
+          delayedPrefetch,
+          leafParentIds,
+          leafParents,
+          nodeId,
+        })
       }
     },
     [

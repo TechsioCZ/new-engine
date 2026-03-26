@@ -3,10 +3,28 @@ import type { ProductVariant } from "@/types/product"
 
 export type StockStatus = "in-stock" | "low-stock" | "out-of-stock"
 
-export interface InventoryInfo {
+export type InventoryInfo = {
   status: StockStatus
   quantity: number
   message: string
+}
+
+function isVariantPurchasable(
+  variant: ProductVariant | StoreProductVariant | undefined | null
+): boolean {
+  return getVariantInventory(variant).status !== "out-of-stock"
+}
+
+export function findPreferredVariant<
+  T extends ProductVariant | StoreProductVariant,
+>(variants: T[] | undefined | null): T | null {
+  if (!variants?.length) {
+    return null
+  }
+
+  return (
+    variants.find((variant) => isVariantPurchasable(variant)) ?? variants[0]
+  )
 }
 
 /**

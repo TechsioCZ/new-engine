@@ -1,9 +1,15 @@
 "use client"
 
-import { useInfiniteQuery } from "@tanstack/react-query"
-import { cacheConfig } from "@/lib/cache-config"
-import { queryKeys } from "@/lib/query-keys"
-import { getProducts, type ProductListParams } from "@/services/product-service"
+import {
+  useIsFetching,
+  useQueries,
+  useQueryClient,
+} from "@tanstack/react-query"
+import {
+  buildProductListQuery,
+  type ProductListParams,
+} from "@/lib/product-query-params"
+import { buildStorefrontProductListParams, storefront } from "@/lib/storefront"
 import type { Product } from "@/types/product"
 import type { PageRange } from "./use-url-filters"
 
@@ -12,17 +18,59 @@ interface UseInfiniteProductsParams extends Omit<ProductListParams, "offset"> {
   enabled?: boolean
 }
 
-interface UseInfiniteProductsReturn {
+type UseInfiniteProductsReturn = {
   products: Product[]
   isLoading: boolean
   error: string | null
   totalCount: number
-  currentPageRange: PageRange
   hasNextPage: boolean
   isFetchingNextPage: boolean
-  fetchNextPage: () => void
-  refetch: () => void
+  fetchNextPage: () => Promise<unknown>
 }
+
+type ProductListResponse = {
+  products: Product[]
+  count: number
+}
+
+type ProductsPageFragmentParams = Omit<
+  UseInfiniteProductsParams,
+  "pageRange" | "enabled"
+>
+
+const toProductsPageFragmentParams = (
+  params: ProductsPageFragmentParams,
+  page: number
+): ProductListParams => {
+  const limit = params.limit ?? 12
+
+  return {
+    limit,
+    offset: (page - 1) * limit,
+    filters: params.filters,
+    sort: params.sort,
+    fields: params.fields,
+    q: params.q,
+    category: params.category,
+    region_id: params.region_id,
+    country_code: params.country_code,
+  }
+}
+
+export const buildProductsPageFragmentInput = (
+  params: ProductsPageFragmentParams,
+  page: number
+): ProductListParams => toProductsPageFragmentParams(params, page)
+
+const buildProductsPageFragmentQueryKey = (
+  params: ProductsPageFragmentParams,
+  page: number
+): readonly unknown[] =>
+  storefront.queryKeys.products.list(
+    buildStorefrontProductListParams(
+      buildProductListQuery(toProductsPageFragmentParams(params, page))
+    )
+  )
 
 /**
  * Hook for fetching infinite product lists with "load more" functionality
@@ -30,94 +78,71 @@ interface UseInfiniteProductsReturn {
 export function useInfiniteProducts(
   params: UseInfiniteProductsParams
 ): UseInfiniteProductsReturn {
-  const {
-    pageRange,
-    limit = 12,
-    filters,
-    sort,
-    fields,
-    q,
-    category,
-    region_id,
-    enabled,
-  } = params
+  const queryClient = useQueryClient()
+  const enabled =
+    params.enabled !== undefined ? params.enabled : !!params.region_id
+  const limit = params.limit ?? 12
+  const pages = Array.from(
+    { length: params.pageRange.end - params.pageRange.start + 1 },
+    (_, index) => params.pageRange.start + index
+  )
 
-  const baseOffset = (pageRange.start - 1) * limit
-  const totalPagesNeeded = pageRange.end - pageRange.start + 1
+  const queries = useQueries({
+    queries: pages.map((page) => {
+      const fragmentInput = buildProductListQuery(
+        buildProductsPageFragmentInput(params, page)
+      )
 
-  // For range queries, we need to load all pages in the range at once
-  const rangeLimit = totalPagesNeeded * limit
+      return {
+        ...storefront.hooks.products.getListQueryOptions(fragmentInput),
+        enabled,
+      }
+    }),
+  })
 
-  const {
-    data,
-    isLoading,
+  const firstResolvedPage = queries.find(
+    (query): query is typeof query & { data: ProductListResponse } =>
+      Boolean(query.data)
+  )
+  const totalCount = firstResolvedPage?.data.count ?? 0
+  const totalPages = limit > 0 ? Math.ceil(totalCount / limit) : 0
+  const nextPage = params.pageRange.end + 1
+  const nextPageQueryKey = buildProductsPageFragmentQueryKey(params, nextPage)
+  const isFetchingNextPage =
+    useIsFetching({
+      queryKey: nextPageQueryKey,
+      exact: true,
+    }) > 0
+  const hasNextPage = params.pageRange.end < totalPages
+  const firstError = queries.find((query) => query.error)?.error
+  let error: string | null = null
+  if (firstError instanceof Error) {
+    error = firstError.message
+  } else if (firstError) {
+    error = "An unknown error occurred."
+  }
+
+  const fetchNextPage = async () => {
+    if (!(enabled && hasNextPage)) {
+      return
+    }
+
+    const fragmentInput = buildProductListQuery(
+      buildProductsPageFragmentInput(params, nextPage)
+    )
+
+    await queryClient.fetchQuery(
+      storefront.hooks.products.getListQueryOptions(fragmentInput)
+    )
+  }
+
+  return {
+    products: queries.flatMap((query) => query.data?.products ?? []),
+    isLoading: queries.some((query) => query.isLoading),
     error,
+    totalCount,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-    refetch,
-  } = useInfiniteQuery({
-    queryKey: queryKeys.products.infinite({
-      pageRangeStart: pageRange.start, // Use only start to keep key stable when extending
-      limit,
-      filters,
-      sort,
-      region_id,
-      q,
-      category,
-    }),
-    queryFn: ({ pageParam = baseOffset }) => {
-      // For the initial load, use rangeLimit to load all pages in range at once
-      // For subsequent "load more" calls, use normal limit
-      const isInitialLoad = pageParam === baseOffset
-      const requestLimit = isInitialLoad ? rangeLimit : limit
-
-      return getProducts({
-        limit: requestLimit,
-        offset: pageParam,
-        filters,
-        sort,
-        fields,
-        q,
-        category,
-        region_id,
-      })
-    },
-    initialPageParam: baseOffset,
-    getNextPageParam: (lastPage, allPages, lastPageParam) => {
-      // Since we load the full range in the first request,
-      // subsequent calls are just "load more" beyond the range
-      const totalFetched = allPages.reduce(
-        (sum, page) => sum + page.products.length,
-        0
-      )
-
-      // Check if there are more products to load
-      const hasMore = totalFetched < lastPage.count
-      if (!hasMore) return
-
-      // Calculate offset for the next batch (beyond current range)
-      const nextOffset = baseOffset + totalFetched
-      return nextOffset
-    },
-    enabled: enabled !== undefined ? enabled : !!region_id,
-    ...cacheConfig.semiStatic,
-  })
-
-  // Flatten all pages into a single array
-  const products = data?.pages.flatMap((page) => page.products) || []
-  const totalCount = data?.pages[0]?.count || 0
-
-  return {
-    products,
-    isLoading,
-    error:
-      error instanceof Error ? error.message : error ? String(error) : null,
-    totalCount,
-    currentPageRange: pageRange,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage: () => fetchNextPage(),
-    refetch,
   }
 }

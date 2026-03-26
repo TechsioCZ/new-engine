@@ -24,7 +24,7 @@ export function HeaderSearch() {
   )
 
   // Use search hook
-  const { searchResults, isSearching, searchProducts } = useSearchProducts({
+  const { searchResults, searchProducts } = useSearchProducts({
     limit: 5,
   })
 
@@ -80,18 +80,17 @@ export function HeaderSearch() {
     const selectedValues = Array.isArray(value) ? value : [value]
 
     if (selectedValues.length > 0 && selectedValues[0]) {
-      const selectedValue = selectedValues[0]
+      const selectedEntryValue = selectedValues[0]
 
-      // Zkontrolovat jestli je to existující produkt nebo custom search
       const isProductHandle = searchItems.some(
-        (item) => item.value === selectedValue
+        (item) => item.value === selectedEntryValue
       )
 
       if (isProductHandle) {
-        router.push(`/products/${selectedValue}`)
+        router.push(`/products/${selectedEntryValue}`)
       } else {
-        // Custom hodnota = search query
-        handleSearch(selectedValue)
+        // Treat a custom value as a free-text search query.
+        handleSearch(selectedEntryValue)
       }
 
       setSearchQuery("")

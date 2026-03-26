@@ -3,9 +3,9 @@
  * These functions build query parameters for server-side filtering
  */
 
-import type { ProductFilters } from "@/services/product-service"
+import type { ProductFilters } from "@/lib/product-query-params"
 
-export interface MedusaProductQuery {
+export type MedusaProductQuery = {
   limit?: number
   offset?: number
   fields?: string
@@ -16,7 +16,7 @@ export interface MedusaProductQuery {
   cart_id?: string
   currency_code?: string
   // Variant filtering requires special handling
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**
@@ -28,7 +28,9 @@ export function buildMedusaQuery(
 ): MedusaProductQuery {
   const query: MedusaProductQuery = { ...baseQuery }
 
-  if (!filters) return query
+  if (!filters) {
+    return query
+  }
 
   // Category filtering - Medusa supports this natively
   if (filters.categories?.length) {

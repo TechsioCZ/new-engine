@@ -1,76 +1,30 @@
-import Medusa from "@medusajs/js-sdk"
-import { STORAGE_KEYS } from "./constants"
+import { createMedusaSdk } from "@techsio/storefront-data/shared/medusa-client"
 
 // Environment validation
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
+const LEGACY_AUTH_TOKEN_STORAGE_KEY = "medusa_auth_token"
+
 if (!PUBLISHABLE_KEY) {
-  console.warn("⚠️ NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set!")
+  console.warn("Warning: NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set!")
 }
 
-// Custom storage implementation
-const customStorage = {
-  setItem: (key: string, value: string) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(key, value)
-    }
+export const sdk = createMedusaSdk({
+  baseUrl: BACKEND_URL,
+  publishableKey: PUBLISHABLE_KEY,
+  auth: {
+    type: "session",
+    fetchCredentials: "include",
+    // Session mode still uses a token briefly during login/register; keep it
+    // in memory only so we do not persist customer auth into localStorage.
+    jwtTokenStorageMethod: "memory",
   },
-  getItem: (key: string) => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(key)
-    }
-    return null
-  },
-  removeItem: (key: string) => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(key)
-    }
-  },
-}
+  debug: process.env.NODE_ENV === "development",
+})
 
-// Function to create SDK instance
-const createSDK = () => {
-  if (typeof window === "undefined") {
-    return new Medusa({
-      baseUrl: BACKEND_URL,
-      publishableKey: PUBLISHABLE_KEY,
-      // No auth for server-side/static generation
-    })
-  }
-
-  const sdkInstance = new Medusa({
-    baseUrl: BACKEND_URL,
-    publishableKey: PUBLISHABLE_KEY,
-    auth: {
-      type: "jwt",
-      jwtTokenStorageKey: STORAGE_KEYS.AUTH_TOKEN,
-      jwtTokenStorageMethod: "custom",
-      storage: customStorage,
-    },
-    // Add debug logging
-    debug: process.env.NODE_ENV === "development",
-  })
-
-  return sdkInstance
-}
-
-// Create SDK instance
-export const sdk = createSDK()
-
-// Initialize auth on client side
 if (typeof window !== "undefined") {
-  // Try to refresh token if it exists
-  const initializeAuth = async () => {
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-    if (token && sdk.auth) {
-      try {
-        await sdk.auth.refresh()
-      } catch (error) {
-        // Silent fail - let the app handle auth errors
-      }
-    }
-  }
-  initializeAuth()
+  // Cleanup stale tokens from the previous JWT/localStorage auth model.
+  window.localStorage.removeItem(LEGACY_AUTH_TOKEN_STORAGE_KEY)
 }

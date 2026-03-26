@@ -4,8 +4,7 @@
 
 // Storage keys
 export const STORAGE_KEYS = {
-  // Authentication & Cart
-  AUTH_TOKEN: "medusa_auth_token",
+  // Cart
   CART_ID: "medusa_cart_id",
 
   // User preferences

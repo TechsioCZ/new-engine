@@ -1,8 +1,8 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInputRaw as FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
@@ -117,7 +117,9 @@ export function AddressForm({
           <FormInput
             helpText={
               errors.shippingFirstName && (
-                <ErrorText>{errors.shippingFirstName}</ErrorText>
+                <StatusText size="sm" status="error">
+                  {errors.shippingFirstName}
+                </StatusText>
               )
             }
             id="shipping-first-name"
@@ -136,7 +138,9 @@ export function AddressForm({
           <FormInput
             helpText={
               errors.shippingLastName && (
-                <ErrorText>{errors.shippingLastName}</ErrorText>
+                <StatusText size="sm" status="error">
+                  {errors.shippingLastName}
+                </StatusText>
               )
             }
             id="shipping-last-name"
@@ -170,7 +174,9 @@ export function AddressForm({
           <FormInput
             helpText={
               errors.shippingEmail && (
-                <ErrorText>{errors.shippingEmail}</ErrorText>
+                <StatusText size="sm" status="error">
+                  {errors.shippingEmail}
+                </StatusText>
               )
             }
             id="shipping-email"
@@ -198,7 +204,9 @@ export function AddressForm({
           <FormInput
             helpText={
               errors.shippingPhone && (
-                <ErrorText>{errors.shippingPhone}</ErrorText>
+                <StatusText size="sm" status="error">
+                  {errors.shippingPhone}
+                </StatusText>
               )
             }
             id="shipping-phone"
@@ -218,7 +226,9 @@ export function AddressForm({
         <FormInput
           helpText={
             errors.shippingStreet && (
-              <ErrorText>{errors.shippingStreet}</ErrorText>
+              <StatusText size="sm" status="error">
+                {errors.shippingStreet}
+              </StatusText>
             )
           }
           id="shipping-street"
@@ -235,7 +245,9 @@ export function AddressForm({
           <FormInput
             helpText={
               errors.shippingCity && (
-                <ErrorText>{errors.shippingCity}</ErrorText>
+                <StatusText size="sm" status="error">
+                  {errors.shippingCity}
+                </StatusText>
               )
             }
             id="shipping-city"
@@ -251,7 +263,9 @@ export function AddressForm({
           <FormInput
             helpText={
               errors.shippingPostalCode && (
-                <ErrorText>{errors.shippingPostalCode}</ErrorText>
+                <StatusText size="sm" status="error">
+                  {errors.shippingPostalCode}
+                </StatusText>
               )
             }
             id="shipping-postal-code"
@@ -305,7 +319,9 @@ export function AddressForm({
             <FormInput
               helpText={
                 errors.billingFirstName && (
-                  <ErrorText>{errors.billingFirstName}</ErrorText>
+                  <StatusText size="sm" status="error">
+                    {errors.billingFirstName}
+                  </StatusText>
                 )
               }
               id="billing-first-name"
@@ -324,7 +340,9 @@ export function AddressForm({
             <FormInput
               helpText={
                 errors.billingLastName && (
-                  <ErrorText>{errors.billingLastName}</ErrorText>
+                  <StatusText size="sm" status="error">
+                    {errors.billingLastName}
+                  </StatusText>
                 )
               }
               id="billing-last-name"
@@ -353,7 +371,9 @@ export function AddressForm({
           <FormInput
             helpText={
               errors.billingStreet && (
-                <ErrorText>{errors.billingStreet}</ErrorText>
+                <StatusText size="sm" status="error">
+                  {errors.billingStreet}
+                </StatusText>
               )
             }
             id="billing-street"
@@ -370,7 +390,9 @@ export function AddressForm({
             <FormInput
               helpText={
                 errors.billingCity && (
-                  <ErrorText>{errors.billingCity}</ErrorText>
+                  <StatusText size="sm" status="error">
+                    {errors.billingCity}
+                  </StatusText>
                 )
               }
               id="billing-city"
@@ -386,7 +408,9 @@ export function AddressForm({
             <FormInput
               helpText={
                 errors.billingPostalCode && (
-                  <ErrorText>{errors.billingPostalCode}</ErrorText>
+                  <StatusText size="sm" status="error">
+                    {errors.billingPostalCode}
+                  </StatusText>
                 )
               }
               id="billing-postal-code"

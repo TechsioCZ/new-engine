@@ -1,20 +1,27 @@
 "use client"
-import { useEffect } from "react"
+
+import { useEffect, useMemo } from "react"
 import { ProductGridSkeleton } from "@/components/molecules/product-grid-skeleton"
 import { SaleBanner } from "@/components/molecules/sale-banner"
 import { CategoryGrid } from "@/components/organisms/category-grid"
 import { Hero } from "@/components/organisms/hero"
 import { ProductGrid } from "@/components/organisms/product-grid"
-import { homeCategories, homeContent } from "@/data/home-content"
+import { homeCategoryConfigs, homeContent } from "@/data/home-content"
+import { useCategoryRegistry } from "@/hooks/use-category-registry"
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 import { useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
-import { getCategoryIdByHandle } from "@/utils/category-helpers"
+import {
+  getCategoryIdByHandle,
+  getCategoryIdsByHandles,
+} from "@/lib/categories/selectors"
 import homeImage from "../../assets/hero/home.webp"
 
 export default function Home() {
   const { prefetchDefaultProducts } = usePrefetchProducts()
   const { selectedRegion } = useRegions()
+  const { categoryRegistry, isSuccess: hasCategoryRegistry } =
+    useCategoryRegistry()
   const {
     hero,
     trending,
@@ -22,12 +29,27 @@ export default function Home() {
     saleBanner,
     newArrivals,
   } = homeContent
+  const trendingCategoryId = getCategoryIdByHandle(
+    categoryRegistry,
+    "kratke-rukavy"
+  )
+  const homeCategories = useMemo(
+    () =>
+      homeCategoryConfigs.map((category) => ({
+        name: category.name,
+        imageUrl: category.imageUrl,
+        description: category.description,
+        leaves: getCategoryIdsByHandles(categoryRegistry, category.handles),
+      })),
+    [categoryRegistry]
+  )
   const { products, isLoading } = useProducts({
     q: "triko",
     sort: "newest",
     limit: 8,
-    category: getCategoryIdByHandle("kratke-rukavy"),
+    category: trendingCategoryId,
     region_id: selectedRegion?.id,
+    enabled: Boolean(selectedRegion?.id && trendingCategoryId),
   })
 
   useEffect(() => {
@@ -42,7 +64,6 @@ export default function Home() {
 
   return (
     <div>
-      {/* Hero Section */}
       <Hero
         backgroundImage={homeImage}
         primaryAction={hero.primaryAction}
@@ -51,7 +72,6 @@ export default function Home() {
         title={hero.title}
       />
 
-      {/* Featured Products */}
       <div className="mx-auto max-w-layout-max px-4 py-16">
         <div className="mb-4 flex flex-col">
           <h2 className="font-bold text-featured-title text-featured-title-size">
@@ -68,19 +88,14 @@ export default function Home() {
         )}
       </div>
 
-      {/* Categories - Grid View */}
-      <CategoryGrid
-        categories={homeCategories.map((cat) => ({
-          name: cat.name,
-          imageUrl: cat.imageUrl,
-          leaves: cat.leaves,
-          description: cat.description,
-        }))}
-        subtitle={categoriesSection.subtitle}
-        title={categoriesSection.title}
-      />
+      {hasCategoryRegistry && (
+        <CategoryGrid
+          categories={homeCategories}
+          subtitle={categoriesSection.subtitle}
+          title={categoriesSection.title}
+        />
+      )}
 
-      {/* Banner Section */}
       <SaleBanner
         backgroundImage={saleBanner.backgroundImage}
         linkHref={saleBanner.linkHref}
@@ -89,7 +104,6 @@ export default function Home() {
         title={saleBanner.title}
       />
 
-      {/* New Arrivals */}
       <div className="mx-auto max-w-layout-max px-4 py-16">
         <div className="mb-4 flex flex-col">
           <h2 className="font-bold text-featured-title text-featured-title-size">

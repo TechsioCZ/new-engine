@@ -1,7 +1,6 @@
 import type { HomeCategory } from "@/types/product"
-import { getCategoryIdsByHandles } from "@/utils/category-helpers"
 
-export interface HeroContent {
+export type HeroContent = {
   title: string
   subtitle: string
   backgroundImage: string
@@ -15,14 +14,14 @@ export interface HeroContent {
   }
 }
 
-export interface FeaturedSection {
+export type FeaturedSection = {
   title: string
   subtitle: string
   linkText?: string
   linkHref: string
 }
 
-export interface BannerContent {
+export type BannerContent = {
   title: string
   subtitle: string
   backgroundImage: string
@@ -30,7 +29,7 @@ export interface BannerContent {
   linkHref: string
 }
 
-export interface HomeContent {
+export type HomeContent = {
   hero: HeroContent
   trending: FeaturedSection
   categories: {
@@ -109,12 +108,17 @@ const categoryHandles = {
 }
 
 type CategoryKey = keyof typeof categoryHandles
-const categoryConfig: {
+
+type HomeCategoryConfig = Omit<HomeCategory, "leaves"> & {
+  handles: string[]
+}
+
+const categoryConfig: Array<{
   key: CategoryKey
   name: string
   image: string
   description: string
-}[] = [
+}> = [
   {
     key: "panske",
     name: "Pánské",
@@ -153,9 +157,11 @@ const categoryConfig: {
   },
 ]
 
-export const homeCategories: HomeCategory[] = categoryConfig.map((cat) => ({
-  name: cat.name,
-  imageUrl: `/assets/cat-images/${cat.image}`,
-  leaves: getCategoryIdsByHandles(categoryHandles[cat.key]),
-  description: cat.description,
-}))
+export const homeCategoryConfigs: HomeCategoryConfig[] = categoryConfig.map(
+  (category) => ({
+    name: category.name,
+    imageUrl: `/assets/cat-images/${category.image}`,
+    handles: categoryHandles[category.key],
+    description: category.description,
+  })
+)

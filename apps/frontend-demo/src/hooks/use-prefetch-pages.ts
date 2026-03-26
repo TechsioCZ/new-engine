@@ -1,108 +1,92 @@
 "use client"
 
-import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
-import { queryKeys } from "@/lib/query-keys"
-import { getProducts, type ProductFilters } from "@/services/product-service"
+import { buildProductsPageFragmentInput } from "@/hooks/use-infinite-products"
+import type { ProductFilters } from "@/lib/product-query-params"
+import { usePrefetchProducts } from "./use-prefetch-products"
 
-interface UsePrefetchPagesParams {
+type UsePrefetchPagesParams = {
+  enabled?: boolean
   currentPage: number
-  hasNextPage: boolean
-  hasPrevPage: boolean
-  productsLength: number
-  pageSize: number
-  sortBy: string | undefined
   totalPages: number
-  regionId: string | undefined
-  searchQuery: string | undefined
-  filters: ProductFilters
+  limit: number
+  filters?: ProductFilters
+  sort?: string
+  q?: string
+  category?: string | string[]
+  region_id?: string
+  country_code?: string
 }
 
-/**
- * Hook for prefetching product pages to improve perceived performance
- * This is a simple extraction of the existing prefetch logic
- */
 export function usePrefetchPages({
+  enabled = true,
   currentPage,
-  hasNextPage,
-  hasPrevPage,
-  productsLength,
-  pageSize,
-  sortBy,
   totalPages,
-  regionId,
-  searchQuery,
+  limit,
   filters,
+  sort,
+  q,
+  category,
+  region_id,
+  country_code,
 }: UsePrefetchPagesParams) {
-  const queryClient = useQueryClient()
+  const { prefetchProducts } = usePrefetchProducts({
+    enabled,
+    cacheStrategy: "semiStatic",
+  })
 
   useEffect(() => {
-    if (productsLength > 0) {
-      const pagesToPrefetch = []
+    if (!(enabled && totalPages > 0)) {
+      return
+    }
 
-      // Always prefetch first page (if not current)
-      if (currentPage !== 1) {
-        pagesToPrefetch.push(1)
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const baseParams = {
+      limit,
+      filters,
+      sort,
+      q,
+      category,
+      region_id,
+      country_code,
+    }
+
+    const schedulePrefetch = (page: number, delay = 0) => {
+      if (page < 1 || page > totalPages || page === currentPage) {
+        return
       }
 
-      // Prefetch previous pages
-      if (hasPrevPage) {
-        pagesToPrefetch.push(currentPage - 1)
-        // Also prefetch page -2 if it exists
-        if (currentPage - 2 >= 1) {
-          pagesToPrefetch.push(currentPage - 2)
-        }
-      }
+      const run = () =>
+        prefetchProducts(buildProductsPageFragmentInput(baseParams, page))
 
-      // Prefetch next pages
-      if (hasNextPage) {
-        pagesToPrefetch.push(currentPage + 1)
-        // Also prefetch page +2 if it exists
-        if (currentPage + 2 <= totalPages) {
-          pagesToPrefetch.push(currentPage + 2)
-        }
-      }
-
-      // Prefetch last page (if known and not current)
-      if (totalPages > 1 && currentPage !== totalPages) {
-        pagesToPrefetch.push(totalPages)
-      }
-
-      // Execute all prefetches
-      for (const page of pagesToPrefetch) {
-        const offset = (page - 1) * pageSize
-        queryClient.prefetchQuery({
-          queryKey: queryKeys.products.list({
-            page,
-            limit: pageSize,
-            filters,
-            sort: sortBy === "relevance" ? undefined : sortBy,
-            q: searchQuery || undefined,
-            region_id: regionId,
-          }),
-          queryFn: () =>
-            getProducts({
-              limit: pageSize,
-              offset,
-              filters,
-              sort: sortBy === "relevance" ? undefined : sortBy,
-              q: searchQuery || undefined,
-              region_id: regionId,
-            }),
+      if (delay <= 0) {
+        run().catch(() => {
+          // Ignore prefetch errors; the interactive fetch remains authoritative.
         })
+        return
+      }
+
+      timers.push(setTimeout(run, delay))
+    }
+
+    schedulePrefetch(currentPage + 1)
+
+    return () => {
+      for (const timer of timers) {
+        clearTimeout(timer)
       }
     }
   }, [
+    enabled,
     currentPage,
-    hasNextPage,
-    hasPrevPage,
-    productsLength,
-    queryClient,
-    pageSize,
-    sortBy,
     totalPages,
-    regionId,
-    searchQuery,
+    limit,
     filters,
+    sort,
+    q,
+    category,
+    region_id,
+    country_code,
+    prefetchProducts,
   ])
 }
