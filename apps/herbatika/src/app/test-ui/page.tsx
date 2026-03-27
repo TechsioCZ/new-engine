@@ -20,9 +20,9 @@ import {
 export default function TestUiPage() {
   return (
     <TestUiLayout
-      title="Herbatika Test UI"
-      description="Paralelní referenční playground nad tokens-2 a current libs/ui contractem. Slouží jako bezpečný spike prostor před cutoverem do produkční appky."
       actions={<Badge variant="success">tokens-2 active</Badge>}
+      description="Paralelní referenční playground nad tokens-2 a current libs/ui contractem. Slouží jako bezpečný spike prostor před cutoverem do produkční appky."
+      title="Herbatika Test UI"
     >
       <TestUiSurfaceGrid />
 
@@ -38,13 +38,13 @@ export default function TestUiPage() {
       <CheckoutShowcase />
 
       <TestUiPlaceholder
-        title="Další doporučené bloky"
-        summary="Core form, checkout, badges i první app-specific wrappers už mají referenční showcase. Další krok je vizuální kontrola a teprve potom rozhodování o cutoveru do reálné appky."
         nextSteps={[
-          "Radio / radio-group: samostatně dopsat shared primitive gap pro checkout selection.",
+          "Checkout radios: potvrdit spacing, hierarchii ceny a selected state nového RadioCard a RadioGroup proti Figmě.",
           "Vizuální review: projít surface proti Figmě a potvrdit finální token drift.",
           "Cutover review: projít, které app-specific wrappery už jsou dost stabilní pro napojení do reálných flow.",
         ]}
+        summary="Core form, checkout, badges i první app-specific wrappers už mají referenční showcase. Další krok je vizuální kontrola a teprve potom rozhodování o cutoveru do reálné appky."
+        title="Další doporučené bloky"
       />
     </TestUiLayout>
   );

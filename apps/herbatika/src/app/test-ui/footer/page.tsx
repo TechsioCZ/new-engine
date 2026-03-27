@@ -6,7 +6,7 @@ export default function TestUiFooterPage() {
   return (
     <TestUiLayout
       title="Test UI / Footer"
-      description="Plánovaná surface pro Herbatika footer composition nad organisms/footer."
+      description="Parity surface pro Herbatika footer composition nad organisms/footer, určená pro skill-driven kontrolu proti Figmě."
       actions={<TestUiBackLink />}
     >
       <FooterShowcase />

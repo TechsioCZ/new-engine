@@ -1,13 +1,16 @@
 import NextLink from "next/link";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import { SupportingText } from "@/components/text/supporting-text";
+import {
+  CheckoutCustomerTypePreview,
+  CheckoutPaymentPreview,
+  CheckoutShippingPreview,
+} from "./checkout-radio-preview";
 
 const COUNTRY_ITEMS: SelectItem[] = [
   { label: "Slovensko", value: "SK" },
@@ -15,60 +18,10 @@ const COUNTRY_ITEMS: SelectItem[] = [
 ];
 
 const CHECKOUT_NOTES = [
-  "Checkout selection rows jsou zatím app composition nad shared primitives, ne nový shared component.",
-  "Form family sedí na current FormInput/FormCheckbox/Select contract a teď je potřeba hlavně appearance cleanup.",
-  "StatusText + SupportingText dohromady řeší to, co dřív v appce dělal ErrorText/ExtraText drift.",
+  "Výber dopravy a platby už sedí na shared RadioCard contracte, ďalší krok je hlavne dotiahnuť vizuálnu paritu s Figmou.",
+  "Typ nákupu je jednoduchší shared RadioGroup; app-specific zostáva shell, summary panel a obsahová skladba checkoutu.",
+  "StatusText a SupportingText pokrývajú validačné a helper surface bez starého driftu okolo ErrorText alebo ExtraText.",
 ] as const;
-
-function SelectionRow({
-  title,
-  subtitle,
-  priceLabel,
-  selected = false,
-  icon,
-}: {
-  title: string;
-  subtitle: string;
-  priceLabel: string;
-  selected?: boolean;
-  icon: IconType;
-}) {
-  return (
-    <Button
-      className="w-full rounded-sm border border-border-primary bg-surface p-0 text-left data-[selected=true]:border-success"
-      data-selected={selected}
-      theme="unstyled"
-      type="button"
-    >
-      <div className="w-full space-y-150 px-550 py-400">
-        <div className="flex flex-wrap items-center justify-between gap-200">
-          <div className="flex min-w-0 items-center gap-150">
-            <span
-              className="flex size-550 items-center justify-center rounded-full border border-fg-placeholder data-[selected=true]:border-success"
-              data-selected={selected}
-            >
-              <span
-                className="size-250 rounded-full bg-success opacity-0 data-[selected=true]:opacity-100"
-                data-selected={selected}
-              />
-            </span>
-            <Icon
-              className={`text-md ${selected ? "text-primary" : "text-fg-secondary"}`}
-              icon={icon}
-            />
-            <p className="truncate text-md font-medium text-fg-primary">{title}</p>
-          </div>
-          <p
-            className={`text-md font-medium ${priceLabel === "Zadarmo" ? "text-success" : "text-fg-primary"}`}
-          >
-            {priceLabel}
-          </p>
-        </div>
-        <SupportingText className="pl-700 text-fg-secondary">{subtitle}</SupportingText>
-      </div>
-    </Button>
-  );
-}
 
 export function CheckoutShowcase() {
   return (
@@ -77,11 +30,25 @@ export function CheckoutShowcase() {
         <article className="space-y-300 rounded-md border border-border-secondary bg-surface p-400">
           <div className="space-y-100">
             <h2 className="text-lg font-semibold text-fg-primary">Checkout form family</h2>
-            <SupportingText>Adresní a souhlasové prvky nad current shared form contracts.</SupportingText>
+            <SupportingText>
+              Adresné polia, helper texty a typ nákupu nad current shared form a radio
+              contracts.
+            </SupportingText>
           </div>
+
           <div className="space-y-250 rounded-md bg-highlight p-400">
-            <FormInput defaultValue="Ján" id="checkout-first-name-preview" label="Meno" required />
-            <FormInput defaultValue="Novák" id="checkout-last-name-preview" label="Priezvisko" required />
+            <CheckoutCustomerTypePreview />
+
+            <div className="grid gap-250 md:grid-cols-2">
+              <FormInput defaultValue="Ján" id="checkout-first-name-preview" label="Meno" required />
+              <FormInput
+                defaultValue="Novák"
+                id="checkout-last-name-preview"
+                label="Priezvisko"
+                required
+              />
+            </div>
+
             <Select defaultValue={["SK"]} items={COUNTRY_ITEMS} size="sm">
               <Select.Label>Krajina</Select.Label>
               <Select.Control>
@@ -100,36 +67,32 @@ export function CheckoutShowcase() {
                 </Select.Content>
               </Select.Positioner>
             </Select>
+
             <FormCheckbox
               defaultChecked
               label="Súhlasím so zasielaním marketingových informácií"
               size="sm"
             />
+
             <SupportingText className="text-fg-secondary">
-              * povinné polia a doplňujúce helper texty majú byť app-local supporting copy.
+              Povinné polia, helper copy a sekundárne texty zostávajú app-level obsah, nie
+              shared API.
             </SupportingText>
           </div>
         </article>
 
         <article className="space-y-300 rounded-md border border-border-secondary bg-surface p-400">
           <div className="space-y-100">
-            <h2 className="text-lg font-semibold text-fg-primary">Shipping / payment rows</h2>
-            <SupportingText>Dnešní checkout selection rows jako app composition nad shared primitives.</SupportingText>
+            <h2 className="text-lg font-semibold text-fg-primary">Shipping / payment radios</h2>
+            <SupportingText>
+              Checkout výberové bloky po prechode z ručných button rows na shared compound
+              radio primitives.
+            </SupportingText>
           </div>
-          <div className="space-y-150 rounded-md bg-highlight p-400">
-            <SelectionRow
-              icon="icon-[mdi--truck-delivery-outline]"
-              priceLabel="+ 2,99 €"
-              selected
-              subtitle="Zvolená možnosť"
-              title="Ekologická doprava kuriérom"
-            />
-            <SelectionRow
-              icon="icon-[mdi--credit-card-outline]"
-              priceLabel="Zadarmo"
-              subtitle="Dostupná možnosť"
-              title="Platba kartou, Google Pay alebo Apple Pay"
-            />
+
+          <div className="space-y-250 rounded-md bg-highlight p-400">
+            <CheckoutShippingPreview />
+            <CheckoutPaymentPreview />
           </div>
         </article>
       </section>
@@ -138,7 +101,10 @@ export function CheckoutShowcase() {
         <article className="space-y-300 rounded-md border border-border-secondary bg-surface p-400">
           <div className="space-y-100">
             <h2 className="text-lg font-semibold text-fg-primary">Summary surface</h2>
-            <SupportingText>Checkout summary řádky jako app composition bez potřeby nové shared komponenty.</SupportingText>
+            <SupportingText>
+              Checkout summary riadky zostávajú app composition bez potreby ďalšej shared
+              komponenty.
+            </SupportingText>
           </div>
           <div className="space-y-150 rounded-md bg-highlight p-400">
             <div className="flex items-center justify-between gap-200 border-b border-border-primary pb-150">
@@ -162,7 +128,9 @@ export function CheckoutShowcase() {
         <article className="space-y-300 rounded-md border border-border-secondary bg-surface p-400">
           <div className="space-y-100">
             <h2 className="text-lg font-semibold text-fg-primary">Feedback contract</h2>
-            <SupportingText>Error/success surface po odstranění ErrorText/ExtraText.</SupportingText>
+            <SupportingText>
+              Error a success surface po odstránení starého ErrorText alebo ExtraText driftu.
+            </SupportingText>
           </div>
           <div className="space-y-200 rounded-md bg-highlight p-400">
             <StatusText showIcon status="error">
@@ -172,7 +140,8 @@ export function CheckoutShowcase() {
               Údaje sú uložené.
             </StatusText>
             <SupportingText className="text-fg-secondary">
-              Potvrdzujem, že som sa oboznámil s obchodnými podmienkami a ochranou osobných údajov.
+              Potvrdzujem, že som sa oboznámil s obchodnými podmienkami a ochranou osobných
+              údajov.
             </SupportingText>
             <LinkButton as={NextLink} className="px-0 underline" href="#" size="sm" theme="unstyled">
               Upraviť

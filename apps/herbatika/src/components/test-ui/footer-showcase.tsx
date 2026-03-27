@@ -10,78 +10,96 @@ const FOOTER_COLUMNS = [
   {
     title: "Informácie pre vás",
     links: [
-      "Blog",
-      "O nás",
-      "Časté otázky",
-      "Darčeková poukážka",
-      "Výrobcovia a značky",
-      "Recenzie",
+      { href: "/#blog", label: "Blog" },
+      { href: "/#o-nas", label: "O nás" },
+      { href: "/#caste-otazky", label: "Časté otázky" },
+      { href: "/#darcekova-poukazka", label: "Darčeková poukážka" },
+      { href: "/#vyrobcovia-a-znacky", label: "Výrobcovia a značky" },
+      { href: "/#recenzie", label: "Recenzie" },
     ],
   },
   {
     title: "Dôležité informácie",
     links: [
-      "Doprava a platby",
-      "Reklamácia a vrátenie",
-      "Obchodné podmienky",
-      "Ochrana osobných údajov",
-      "Cookies",
+      { href: "/#doprava-a-platby", label: "Doprava a platby" },
+      { href: "/#reklamacia-a-vratenie", label: "Reklamácia a vrátenie" },
+      { href: "/#obchodne-podmienky", label: "Obchodné podmienky" },
+      { href: "/#ochrana-osobnych-udajov", label: "Ochrana osobných údajov" },
+      { href: "/#cookies", label: "Cookies" },
     ],
   },
   {
     title: "Pre partnerov",
-    links: ["Affiliate program", "Veľkoobchod", "Dropshipping", "Private label"],
+    links: [
+      { href: "/#affiliate", label: "Affiliate program" },
+      { href: "/#velkoobchod", label: "Veľkoobchod" },
+      { href: "/#dropshipping", label: "Dropshipping" },
+      { href: "/#private-label", label: "Private label" },
+    ],
   },
 ] as const;
 
 const FOOTER_NOTES = [
-  "Shared Footer contract dobře pokrývá column layout, titles, links a bottom row.",
-  "Contact intro blok, rating cards a locale pills zůstávají app-local composition.",
-  "Social icon row je vhodná jako Button theme='unstyled' pattern nad token layerem.",
+  "Shared Footer contract je pro Herbatiku správná volba; teď už jen dolaďujeme existující `--footer-*` tokeny pro `md` variantu.",
+  "Do `_herbatika-footer.css` jdou jen tokeny, které se skutečně používají a opravdu se odlišují od defaultní logiky `libs/ui`.",
+  "Inline className v téhle surface zůstávají jen tam, kde jde o lokální composition kolem Footer slotů, ne o nový tokenový systém vedle `libs/ui`.",
 ] as const;
 
-const SOCIAL_ICONS: IconType[] = [
-  "icon-[mdi--facebook]",
-  "icon-[mdi--instagram]",
-  "icon-[mdi--youtube]",
-  "icon-[mdi--linkedin]",
-  "icon-[mdi--music-note]",
+const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
+  { href: "https://www.facebook.com/", icon: "icon-[mdi--facebook]", label: "Facebook" },
+  { href: "https://www.instagram.com/", icon: "icon-[mdi--instagram]", label: "Instagram" },
+  { href: "https://www.youtube.com/", icon: "icon-[mdi--youtube]", label: "YouTube" },
+  { href: "https://www.linkedin.com/", icon: "icon-[mdi--linkedin]", label: "LinkedIn" },
+  { href: "https://www.tiktok.com/", icon: "icon-[mdi--music-note]", label: "TikTok" },
+];
+
+const FOOTER_RATINGS = [
+  { brand: "heureka!", score: "100%", votes: "(2129x)" },
+  { brand: "zbozi.cz", score: "97%", votes: "(692x)" },
+  { brand: "Google", score: "5,0/5", votes: "(5x)" },
+] as const;
+
+const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
+  { code: "SK", icon: "icon-[cif--sk]", active: true },
+  { code: "CZ", icon: "icon-[cif--cz]" },
+  { code: "HU", icon: "icon-[cif--hu]" },
+  { code: "RO", icon: "icon-[cif--ro]" },
 ];
 
 export function FooterShowcase() {
   return (
-    <div className="space-y-500">
       <section className="rounded-md border border-border-secondary bg-surface p-500">
-        <Footer className="max-w-none w-full bg-surface px-0 py-0" size="md">
-          <Footer.Container className="mx-auto grid w-full grid-cols-1 gap-x-0 gap-y-700 px-500 pt-850 pb-700 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-600 xl:gap-y-0">
-            <Footer.Section className="px-500 py-250">
+        <Footer direction="vertical" size="md">
+          <Footer.Container className="mx-auto grid-cols-1 gap-x-0 px-500 pt-850 pb-700 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-600 xl:gap-y-0">
+            <Footer.Section>
               <HerbatikaLogo size="lg" />
-              <Footer.Text className="max-w-footer-intro text-md leading-normal">
+
+              <Footer.Text className="leading-normal">
                 Váš partner pre zdravý životný štýl a vitalitu.
               </Footer.Text>
-              <Footer.Text className="mt-250 flex items-start gap-300 text-md text-primary">
+
+              <Footer.Text className="mt-250 flex items-start gap-300">
                 <Icon className="mt-50 text-2xl text-fg-secondary" icon="icon-[mdi--phone-outline]" />
-                <span>
-                  <span className="block text-md font-bold text-primary">+421 2/321 123 45</span>
+                <span className="leading-normal">
+                  <span className="block font-bold text-primary">+421 2/321 123 45</span>
                   <span className="block text-sm text-fg-secondary">(Po-Pia: 9:00 - 16:00)</span>
                 </span>
               </Footer.Text>
-              <Footer.Text className="mt-500 inline-flex items-center gap-300 text-md font-bold text-primary">
+
+              <Footer.Link className="mt-500 inline-flex items-center gap-300 font-bold text-primary" href="mailto:ahoj@herbatica.sk">
                 <Icon className="text-2xl text-fg-secondary" icon="icon-[mdi--email-outline]" />
                 ahoj@herbatica.sk
-              </Footer.Text>
+              </Footer.Link>
             </Footer.Section>
 
             {FOOTER_COLUMNS.map((column) => (
-              <Footer.Section className="px-500 py-250" key={column.title}>
-                <Footer.Title className="text-md leading-relaxed uppercase">
-                  {column.title}
-                </Footer.Title>
-                <Footer.List className="bg-transparent">
+              <Footer.Section key={column.title}>
+                <Footer.Title className="leading-relaxed uppercase">{column.title}</Footer.Title>
+                <Footer.List>
                   {column.links.map((link) => (
-                    <li key={link}>
-                      <Footer.Link as={NextLink} className="text-md leading-normal" href="#">
-                        {link}
+                    <li key={link.href}>
+                      <Footer.Link as={NextLink} href={link.href}>
+                        {link.label}
                       </Footer.Link>
                     </li>
                   ))}
@@ -90,16 +108,16 @@ export function FooterShowcase() {
             ))}
           </Footer.Container>
 
-          <Footer.Divider className="mx-auto max-w-footer-max bg-border-primary" />
-
           <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-700 lg:flex-row lg:items-center lg:gap-800">
             <div className="flex flex-wrap items-center gap-300">
-              {SOCIAL_ICONS.map((icon) => (
+              {SOCIAL_LINKS.map((social) => (
                 <Button
-                  aria-label={icon}
-                  className="h-750 w-750 rounded-full bg-bg-disabled text-2xl text-fg-secondary hover:text-primary"
-                  icon={icon}
-                  key={icon}
+                  aria-label={social.label}
+                  className="h-750 w-750 rounded-full bg-bg-disabled p-0 text-fg-secondary hover:text-primary"
+                  icon={social.icon}
+                  iconSize="lg"
+                  key={social.label}
+                  onClick={() => window.open(social.href, "_blank", "noopener,noreferrer")}
                   size="current"
                   theme="unstyled"
                   type="button"
@@ -108,62 +126,47 @@ export function FooterShowcase() {
             </div>
 
             <div className="grid w-full gap-x-400 gap-y-300 sm:grid-cols-3 lg:w-auto lg:gap-y-0">
-              {[
-                { brand: "heureka!", score: "100%", meta: "(2129x)" },
-                { brand: "zbozi.cz", score: "97%", meta: "(692x)" },
-                { brand: "Google", score: "5,0/5", meta: "(5x)" },
-              ].map((rating) => (
-                <div className="rounded-sm bg-overlay px-500 py-500 text-center" key={rating.brand}>
-                  <Footer.Text className="text-md font-bold leading-relaxed text-fg-primary">
+              {FOOTER_RATINGS.map((rating) => (
+                <article className="rounded-sm bg-overlay px-500 py-500 text-center" key={rating.brand}>
+                  <Footer.Text className="font-bold leading-relaxed text-fg-primary">
                     {rating.brand} <span className="text-primary">{rating.score}</span>
                   </Footer.Text>
                   <Footer.Text className="text-2xs leading-snug text-fg-disabled">
-                    {rating.meta}
+                    {rating.votes}
                   </Footer.Text>
-                </div>
+                </article>
               ))}
             </div>
           </section>
 
-          <Footer.Divider className="mx-auto max-w-footer-max bg-border-primary" />
-
-          <Footer.Bottom className="mx-auto w-full max-w-footer-max flex-wrap items-center gap-400 border-0 px-500 py-600">
-            <Footer.Text className="text-md leading-normal text-fg-secondary">
+          <Footer.Divider className="mx-auto max-w-footer-max" />
+          
+          <Footer.Bottom className="mx-auto w-full max-w-footer-max flex-wrap items-center gap-400">
+            <Footer.Text className="leading-normal text-fg-secondary">
               Copyright 2025 <strong className="text-fg-primary">Herbatica.sk.</strong> Všetky
               práva vyhradené.{" "}
-              <Footer.Link as={NextLink} className="text-primary underline" href="#">
+              <Footer.Link as={NextLink} className="text-primary underline" href="/#cookies">
                 Upraviť nastavenie cookies
               </Footer.Link>
             </Footer.Text>
 
             <div className="flex flex-wrap items-center justify-start gap-150 sm:justify-end">
-              {["SK", "CZ", "HU", "RO"].map((locale, index) => (
-                <Badge key={locale} variant={index === 0 ? "success" : "secondary"}>
-                  {locale}
-                </Badge>
+              {FOOTER_LOCALES.map((locale) => (
+                <Button
+                  icon={locale.icon}
+                  iconSize="sm"
+                  key={locale.code}
+                  size="sm"
+                  theme={locale.active ? "light" : "outlined"}
+                  type="button"
+                  variant={locale.active ? "primary" : "secondary"}
+                >
+                  {locale.code}
+                </Button>
               ))}
             </div>
           </Footer.Bottom>
         </Footer>
       </section>
-
-      <section className="space-y-250 rounded-md border border-border-secondary bg-surface p-400">
-        <div className="space-y-100">
-          <h2 className="text-lg font-semibold text-fg-primary">Footer mapping</h2>
-          <SupportingText>
-            Footer už teď poměrně jasně ukazuje, že nejde o chybějící shared component, ale o správné rozdělení mezi shared contract a app composition.
-          </SupportingText>
-        </div>
-
-        <div className="space-y-150">
-          {FOOTER_NOTES.map((item, index) => (
-            <div className="flex items-start gap-200 rounded-sm bg-highlight px-300 py-250" key={item}>
-              <Badge variant="secondary">{String(index + 1)}</Badge>
-              <SupportingText className="text-fg-primary">{item}</SupportingText>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
   );
 }

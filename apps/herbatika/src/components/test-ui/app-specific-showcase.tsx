@@ -7,6 +7,11 @@ import { HerbaticaArticleProse } from "./herbatica-article-prose";
 import { HerbaticaAuthorCard } from "./herbatica-author-card";
 import { HerbaticaBlogCard } from "./herbatica-blog-card";
 import {
+  CheckoutCustomerTypePreview,
+  CheckoutPaymentPreview,
+  CheckoutShippingPreview,
+} from "./checkout-radio-preview";
+import {
   HerbaticaCheckoutProductRecap,
   HerbaticaCheckoutShell,
   HerbaticaCheckoutSummaryPanel,
@@ -16,9 +21,9 @@ import { HerbaticaFilterButton } from "./herbatica-filter-button";
 import { HerbaticaPhoneField } from "./herbatica-phone-field";
 
 const APP_SPECIFIC_NOTES = [
-  "Filter chip button zůstává app-specific wrapper nad button base contractem přes tailwind-variants extend.",
-  "Checkout shell používá shared Steps a Button family, ale layout, summary panel a recap blok zůstávají v appce.",
-  "Compact product card, blog cards a article prose jsou composition patterns, ne nový shared primitive.",
+  "Filter chip button zostáva app-specific wrapper nad button base contractom cez tailwind-variants extend.",
+  "Checkout shell používa shared Steps, RadioGroup a RadioCard, ale layout, summary panel a recap blok zostávajú v appke.",
+  "Compact product card, blog cards a article prose sú composition patterns, nie nový shared primitive.",
 ] as const;
 
 function ShowcaseCard({
@@ -46,8 +51,8 @@ export function AppSpecificShowcase() {
     <div className="space-y-500">
       <section className="grid gap-300 xl:grid-cols-2">
         <ShowcaseCard
+          description="App wrapper pre category chips a jemnejšie segmented pills bez rozšírenia shared Button API."
           title="1. Filter button"
-          description="App wrapper pro category chips a jemnější segmented pills bez rozšíření shared Button API."
         >
           <div className="flex flex-wrap gap-150">
             <HerbaticaFilterButton selected>Najobľúbenejšie</HerbaticaFilterButton>
@@ -60,16 +65,16 @@ export function AppSpecificShowcase() {
         </ShowcaseCard>
 
         <ShowcaseCard
+          description="Telefón s predvoľbou a tooltipom ako app composition nad Select, Input a Tooltip."
           title="2. Phone field"
-          description="Telefon s předvolbou a tooltipem jako app composition nad Select, Input a Tooltip."
         >
           <HerbaticaPhoneField id="test-ui-phone-field-standalone" />
         </ShowcaseCard>
       </section>
 
       <ShowcaseCard
+        description="Shared Steps zostávajú zdieľané, ale shell, sidebar a recap surface sú zatiaľ čisto Herbatica app wrapper."
         title="3. Checkout shell"
-        description="Shared Steps zůstávají sdílené, ale shell, sidebar a recap surface jsou zatím čistě Herbatica app wrapper."
       >
         <HerbaticaCheckoutShell
           sidebar={
@@ -96,37 +101,53 @@ export function AppSpecificShowcase() {
               </div>
             </HerbaticaCheckoutSummaryPanel>
           }
-          subtitle="Sem patří radio rows v jiném PR. Teď držíme jen shell, contact blok a pravý summary panel."
-          title="Kontaktné údaje"
+          subtitle="Shell, sidebar a pravý summary panel sú app wrapper. Výberové skupiny už stoja na shared RadioCard a RadioGroup."
+          title="Doprava, platba a kontaktné údaje"
         >
-          <div className="grid gap-200 md:grid-cols-2">
-            <FormInput id="test-ui-first-name" defaultValue="Ján" label="Meno" required size="sm" />
-            <FormInput id="test-ui-last-name" defaultValue="Novák" label="Priezvisko" required size="sm" />
-            <FormInput
-              defaultValue="jan.novak@herbatika.sk"
-              id="test-ui-email"
-              label="E-mail"
-              required
-              size="sm"
-              type="email"
-            />
-            <HerbaticaPhoneField id="test-ui-phone-field-checkout" value="905 777 111" />
-          </div>
+          <div className="space-y-300">
+            <CheckoutCustomerTypePreview />
 
-          <div className="space-y-150 rounded-xl bg-highlight p-300">
-            <p className="text-sm font-medium text-fg-primary">Doručovacia poznámka</p>
-            <SupportingText>
-              Výber dopravy a platby se bude řešit přes radio primitives v samostatném PR.
-            </SupportingText>
-            <FormCheckbox defaultChecked label="Chcem sa registrovať a získať výhody" size="sm" />
+            <div className="grid gap-200 md:grid-cols-2">
+              <FormInput defaultValue="Ján" id="test-ui-first-name" label="Meno" required size="sm" />
+              <FormInput
+                defaultValue="Novák"
+                id="test-ui-last-name"
+                label="Priezvisko"
+                required
+                size="sm"
+              />
+              <FormInput
+                defaultValue="jan.novak@herbatika.sk"
+                id="test-ui-email"
+                label="E-mail"
+                required
+                size="sm"
+                type="email"
+              />
+              <HerbaticaPhoneField id="test-ui-phone-field-checkout" value="905 777 111" />
+            </div>
+
+            <div className="grid gap-200 xl:grid-cols-2">
+              <CheckoutShippingPreview />
+              <CheckoutPaymentPreview />
+            </div>
+
+            <div className="space-y-150 rounded-xl bg-highlight p-300">
+              <p className="text-sm font-medium text-fg-primary">Doručovacia poznámka</p>
+              <SupportingText>
+                Vizuálne ešte potrebujeme potvrdiť spacing, hierarchiu ceny a indikátor proti
+                checkout screenom vo Figme.
+              </SupportingText>
+              <FormCheckbox defaultChecked label="Chcem sa registrovať a získať výhody" size="sm" />
+            </div>
           </div>
         </HerbaticaCheckoutShell>
       </ShowcaseCard>
 
       <section className="grid gap-300 xl:grid-cols-2">
         <ShowcaseCard
+          description="Ľahký wrapper nad ProductCard pre bloky typu Naposledy navštívené alebo sidebar recapy."
           title="4. Compact product card"
-          description="Lehký wrapper nad ProductCard pro bloky typu Naposledy navštívené nebo sidebar recapy."
         >
           <div className="max-w-1100">
             <HerbaticaCompactProductCard
@@ -138,14 +159,14 @@ export function AppSpecificShowcase() {
         </ShowcaseCard>
 
         <ShowcaseCard
+          description="Listing a related article karty držíme ako app-level composition nad Badge, Image a Link."
           title="5. Blog cards"
-          description="Listing a related article karty držíme jako app-level composition nad Badge, Image a Link."
         >
           <div className="grid gap-200 lg:grid-cols-2">
             <HerbaticaBlogCard
               badge="Imunita"
               date="14. 3. 2026"
-              excerpt="Praktický přehled bylin a režimových kroků, které dávají smysl při sezónní únavě."
+              excerpt="Praktický prehľad bylín a režimových krokov, ktoré dávajú zmysel pri sezónnej únave."
               readingTime="4 min čtení"
               title="Ako podporiť imunitu pred jarou bez zbytočného chaosu"
               variant="listing"
@@ -153,7 +174,7 @@ export function AppSpecificShowcase() {
             <HerbaticaBlogCard
               badge="Detox"
               date="7. 3. 2026"
-              excerpt="Krátká související karta pro sidebar nebo detail článku."
+              excerpt="Krátka súvisiaca karta pre sidebar alebo detail článku."
               title="Kedy zaradiť očistu a čo od nej realisticky čakať"
               variant="related"
             />
@@ -163,8 +184,8 @@ export function AppSpecificShowcase() {
 
       <section className="grid gap-300 xl:grid-cols-[1.2fr_0.8fr]">
         <ShowcaseCard
+          description="Rich text wrapper pre single blog post bez zavádzania novej shared content komponenty."
           title="6. Article prose"
-          description="Rich text wrapper pro single blog post bez zavádění nové shared content komponenty."
         >
           <HerbaticaArticleProse>
             <p>
@@ -183,19 +204,19 @@ export function AppSpecificShowcase() {
             <h3>Praktický postup</h3>
             <ol>
               <li>Upraviť denný režim a zásadné návyky.</li>
-              <li>Pridať len 1-2 podporné produkty s jasným účelom.</li>
+              <li>Pridať len 1 až 2 podporné produkty s jasným účelom.</li>
               <li>Vyhodnotiť efekt po pár týždňoch, nie po dvoch dňoch.</li>
             </ol>
           </HerbaticaArticleProse>
         </ShowcaseCard>
 
         <ShowcaseCard
+          description="Autor box k detailu článku držíme ako čistý app composition pattern."
           title="7. Author card"
-          description="Autor box k detailu článku držíme jako čistý app composition pattern."
         >
           <HerbaticaAuthorCard
             author="Mgr. Lucia Horská"
-            bio="Věnuje se fitoterapii, edukaci a praktickému překladu odborných témat do srozumitelné obsahové vrstvy pro e-shop."
+            bio="Venuje sa fitoterapii, edukácii a praktickému prekladu odborných tém do zrozumiteľnej obsahovej vrstvy pre e-shop."
             role="Odborná garantka obsahu"
           />
         </ShowcaseCard>
