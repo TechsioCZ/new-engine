@@ -5,9 +5,7 @@ import { tv } from "../utils"
 const badgeVariants = tv({
   base: [
     "inline-flex items-center justify-center",
-    "p-badge",
     "rounded-badge border-badge-border",
-    "font-badge text-badge-size",
     "border-(length:--border-width-badge)",
   ],
   variants: {
@@ -39,19 +37,28 @@ const badgeVariants = tv({
       ],
       dynamic: [],
     },
+    size: {
+      sm: ["text-badge-sm font-badge-sm", "p-badge-sm"],
+      md: ["text-badge-md font-badge-md", "p-badge-md"],
+      lg: ["text-badge-lg font-badge-lg", "p-badge-lg"],
+      xl: ["text-badge-xl font-badge-xl", "p-badge-xl"],
+    },
   },
   defaultVariants: {
     variant: "info",
+    size: "md",
   },
 })
 
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>
+type BadgeSize = NonNullable<VariantProps<typeof badgeVariants>["size"]>
 
 type BaseBadgeProps = Omit<
   HTMLAttributes<HTMLSpanElement>,
   "color" | "children"
 > & {
   children: string
+  size?: BadgeSize
 }
 
 type DefaultBadgeProps = BaseBadgeProps & {
@@ -69,6 +76,7 @@ export type BadgeProps = DefaultBadgeProps | DynamicBadgeProps
 
 export function Badge({
   variant,
+  size,
   className,
   children,
   style,
@@ -82,15 +90,15 @@ export function Badge({
   const dynamicStyles = isDynamic
     ? {
         ...style,
-        "background-color": bgColor,
+        "backgroundColor": bgColor,
         color: fgColor,
-        "border-color": borderColor,
+        "borderColor": borderColor,
       }
     : style
 
   return (
     <span
-      className={badgeVariants({ variant, className })}
+      className={badgeVariants({ variant, size, className })}
       style={dynamicStyles}
       {...restProps}
     >

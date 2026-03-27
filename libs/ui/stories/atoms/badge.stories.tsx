@@ -10,6 +10,14 @@ const meta: Meta<typeof Badge> = {
   },
   tags: ['autodocs'],
   argTypes: {
+    size: {
+      control: 'select',
+      options: ['sm', 'md', 'lg', 'xl'],
+      description: 'Badge size',
+      table: {
+        defaultValue: { summary: 'md' },
+      },
+    },
     variant: {
       control: 'select',
       options: [
@@ -60,55 +68,100 @@ const meta: Meta<typeof Badge> = {
   },
   args: {
     variant: 'info',
+    size: 'md',
     children: 'Badge',
   },
 }
 
 export default meta
-// ! Storybook can't infer dynamic badge props, we need to enforce manually
-type Story = Omit<StoryObj<typeof meta>, 'args'> & { args: BadgeProps }
+type Story = Omit<StoryObj<typeof meta>, 'args'> & { args?: Partial<BadgeProps> }
 
 export const Playground: Story = {
   args: {
     variant: 'info',
-    children: 'Badge Text',
-  },
-}
-
-export const Outline: Story = {
-  args: {
-    variant: 'outline',
-    children: 'Outline',
-  },
-}
-
-export const Dynamic: Story = {
-  args: {
-    variant: 'dynamic',
-    bgColor: '#8A0002',
-    fgColor: '#fff',
-    borderColor: '#fff500',
-    children: 'Dynamic Badge',
+    size: 'md',
+    children: 'Badge text',
   },
 }
 
 export const Variants: Story = {
-  args: {} as BadgeProps,
+  args: {},
   render: () => (
     <VariantContainer>
       <VariantGroup title="Solid themes">
         <Badge variant="primary">Primary</Badge>
         <Badge variant="secondary">Secondary</Badge>
         <Badge variant="tertiary">Tertiary</Badge>
-        <Badge variant="discount">Sleva 30%</Badge>
-        <Badge variant="info">Odesíláme do 24h</Badge>
-        <Badge variant="success">Doručeno</Badge>
-        <Badge variant="warning">Poslední kusy</Badge>
-        <Badge variant="danger">Nedostupné</Badge>
+        <Badge variant="discount">Discount 30%</Badge>
+        <Badge variant="info">Ships within 24 h</Badge>
+        <Badge variant="success">Delivered</Badge>
+        <Badge variant="warning">Last units</Badge>
+        <Badge variant="danger">Unavailable</Badge>
       </VariantGroup>
       <VariantGroup title="Outline">
-        <Badge variant="outline">Outline Badge</Badge>
+        <Badge variant="outline">Outline badge</Badge>
       </VariantGroup>
     </VariantContainer>
   ),
+}
+
+export const Sizes: Story = {
+  args: {},
+  render: () => (
+    <VariantContainer>
+      <VariantGroup title="Info">
+        <Badge size="sm" variant="info">
+          Small badge
+        </Badge>
+        <Badge size="md" variant="info">
+          Medium badge
+        </Badge>
+        <Badge size="lg" variant="info">
+          Large badge
+        </Badge>
+        <Badge size="xl" variant="info">
+          Extra large badge
+        </Badge>
+      </VariantGroup>
+      <VariantGroup title="Outline">
+        <Badge size="sm" variant="outline">
+          Small outline
+        </Badge>
+        <Badge size="md" variant="outline">
+          Medium outline
+        </Badge>
+        <Badge size="lg" variant="outline">
+          Large outline
+        </Badge>
+        <Badge size="xl" variant="outline">
+          Extra large outline
+        </Badge>
+      </VariantGroup>
+      <VariantGroup title="Dynamic">
+        <Badge variant='dynamic' bgColor='yellow' fgColor='black' borderColor='black' size='sm'>
+          Small dynamic
+        </Badge>
+        <Badge variant='dynamic' bgColor='yellow' fgColor='black' borderColor='black' size='md'>
+          Medium dynamic
+        </Badge>
+        <Badge variant='dynamic' bgColor='yellow' fgColor='black' borderColor='black' size='lg'>
+          Large dynamic
+        </Badge>
+        <Badge variant='dynamic' bgColor='yellow' fgColor='black' borderColor='black' size='xl'>
+          Extra dynamic
+        </Badge>
+      </VariantGroup>
+    </VariantContainer>
+  ),
+}
+
+export const Dynamic: Story = {
+  args: {
+    variant: 'dynamic',
+    size: 'md',
+    bgColor: '#8A0002',
+    fgColor: '#FFFFFF',
+    borderColor: '#FFF500',
+    children: 'Dynamic badge',
+  },
 }
