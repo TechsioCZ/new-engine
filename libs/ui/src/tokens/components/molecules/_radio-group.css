@@ -1,0 +1,150 @@
+@theme static {
+  --radio-group-item-grid: min-content minmax(0, 1fr);
+
+  /* === BASE COLOR MAPPING === */
+  --color-radio-group-accent: var(--color-primary);
+  --color-radio-group-accent-hover: var(--color-primary-hover);
+  --color-radio-group-accent-light: var(--color-primary-light);
+  --color-radio-group-accent-light-hover: var(--color-primary-light-hover);
+  --color-radio-group-accent-contrast: var(--color-fg-dark);
+  --color-radio-group-danger: var(--color-danger);
+  --color-radio-group-fg: var(--color-fg-primary);
+  --color-radio-group-fg-secondary: var(--color-fg-secondary);
+  --color-radio-group-fg-disabled: var(--color-fg-disabled);
+  --color-radio-group-surface: var(--color-fill-active);
+  --color-radio-group-border: var(--color-border-primary);
+
+  /* === DERIVED COLORS === */
+  --color-radio-group-item-control-bg: var(--color-radio-group-surface);
+  --color-radio-group-item-control-border: var(--color-radio-group-border);
+  --color-radio-group-item-indicator: var(--color-radio-group-accent);
+  --color-radio-group-item-fg: var(--color-radio-group-fg);
+  --color-radio-group-item-description: var(--color-radio-group-fg-secondary);
+
+  /* === STATE VARIATIONS === */
+  --color-radio-group-item-control-bg-hover: oklch(
+    from var(--color-radio-group-item-control-bg) calc(l + var(--state-hover)) c
+      h
+  );
+  --color-radio-group-item-control-border-hover: oklch(
+    from var(--color-radio-group-item-control-border)
+      calc(l + var(--state-hover)) c h
+  );
+
+  /* === COMPONENT VARIANTS === */
+  --color-radio-group-item-control-bg-outline-checked: var(
+    --color-radio-group-item-control-bg
+  );
+  --color-radio-group-item-control-bg-outline-checked-hover: var(
+    --color-radio-group-item-control-bg-hover
+  );
+  --color-radio-group-item-control-border-outline-checked: var(
+    --color-radio-group-accent
+  );
+  --color-radio-group-item-control-border-outline-checked-hover: var(
+    --color-radio-group-accent-hover
+  );
+  --color-radio-group-item-indicator-outline: var(
+    --color-radio-group-item-indicator
+  );
+
+  --color-radio-group-item-control-bg-subtle-checked: var(
+    --color-radio-group-accent-light
+  );
+  --color-radio-group-item-control-bg-subtle-checked-hover: var(
+    --color-radio-group-accent-light-hover
+  );
+  --color-radio-group-item-control-border-subtle-checked: var(
+    --color-radio-group-accent-light
+  );
+  --color-radio-group-item-control-border-subtle-checked-hover: var(
+    --color-radio-group-accent-light-hover
+  );
+  --color-radio-group-item-indicator-subtle: var(
+    --color-radio-group-item-indicator
+  );
+
+  --color-radio-group-item-control-bg-solid-checked: var(
+    --color-radio-group-accent
+  );
+  --color-radio-group-item-control-bg-solid-checked-hover: var(
+    --color-radio-group-accent-hover
+  );
+  --color-radio-group-item-control-border-solid-checked: var(
+    --color-radio-group-accent
+  );
+  --color-radio-group-item-control-border-solid-checked-hover: var(
+    --color-radio-group-accent-hover
+  );
+  --color-radio-group-item-indicator-solid: var(
+    --color-radio-group-accent-contrast
+  );
+
+  /* === VALIDATION STATES === */
+  --color-radio-group-item-control-border-error: var(
+    --color-radio-group-danger
+  );
+  --color-radio-group-ring-error: var(--color-radio-group-danger);
+
+  /* === DISABLED STATES === */
+  --color-radio-group-item-control-bg-disabled: var(--color-bg-disabled);
+  --color-radio-group-item-control-border-disabled: var(
+    --color-border-disabled
+  );
+  --color-radio-group-item-indicator-disabled: var(--color-fg-disabled);
+  --color-radio-group-item-fg-disabled: var(--color-radio-group-fg-disabled);
+  --color-radio-group-item-description-disabled: var(
+    --color-radio-group-fg-disabled
+  );
+
+  /* === SPACING === */
+  --gap-radio-group-root-sm: var(--spacing-100);
+  --gap-radio-group-root-md: var(--spacing-150);
+  --gap-radio-group-root-lg: var(--spacing-200);
+
+  --gap-radio-group-items-vertical-sm: var(--spacing-100);
+  --gap-radio-group-items-vertical-md: var(--spacing-150);
+  --gap-radio-group-items-vertical-lg: var(--spacing-200);
+
+  --gap-radio-group-items-horizontal-sm: var(--spacing-150);
+  --gap-radio-group-items-horizontal-md: var(--spacing-250);
+  --gap-radio-group-items-horizontal-lg: var(--spacing-300);
+
+  --gap-radio-group-item-sm: var(--spacing-100);
+  --gap-radio-group-item-md: var(--spacing-150);
+  --gap-radio-group-item-lg: var(--spacing-200);
+
+  --gap-radio-group-item-content-sm: var(--spacing-50);
+  --gap-radio-group-item-content-md: var(--spacing-100);
+  --gap-radio-group-item-content-lg: var(--spacing-100);
+
+  --spacing-radio-group-control-sm: 0.875rem;
+  --spacing-radio-group-control-md: 1rem;
+  --spacing-radio-group-control-lg: 1.125rem;
+  --spacing-radio-group-indicator-sm: 0.5rem;
+  --spacing-radio-group-indicator-md: 0.625rem;
+  --spacing-radio-group-indicator-lg: 0.75rem;
+
+  /* === TYPOGRAPHY === */
+  --text-radio-group-item-sm: var(--text-sm);
+  --text-radio-group-item-md: var(--text-md);
+  --text-radio-group-item-lg: var(--text-lg);
+  --text-radio-group-item-description-sm: var(--text-sm);
+  --text-radio-group-item-description-md: var(--text-sm);
+  --text-radio-group-item-description-lg: var(--text-md);
+
+  /* === BORDERS & RADIUS === */
+  --border-width-radio-group: var(--border-width-sm);
+  --radius-radio-group-control: var(--radius-full);
+
+  /* === SHADOWS === */
+  /* No shadows. */
+
+  /* === FOCUS RINGS === */
+  --color-radio-group-ring: var(--color-ring);
+}
+
+
+@utility token-icon-radio-group-checked {
+  @apply icon-[mdi--circle];
+}
