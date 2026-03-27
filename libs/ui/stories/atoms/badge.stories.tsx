@@ -110,30 +110,30 @@ export const Sizes: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Info">
-        <Badge size="sm" variant="info">
+        <Badge variant="info" size="sm">
           Small badge
         </Badge>
-        <Badge size="md" variant="info">
+        <Badge variant="info" size="md">
           Medium badge
         </Badge>
-        <Badge size="lg" variant="info">
+        <Badge variant="info" size="lg">
           Large badge
         </Badge>
-        <Badge size="xl" variant="info">
+        <Badge variant="info" size="xl">
           Extra large badge
         </Badge>
       </VariantGroup>
       <VariantGroup title="Outline">
-        <Badge size="sm" variant="outline">
+        <Badge variant="outline" size="sm">
           Small outline
         </Badge>
-        <Badge size="md" variant="outline">
+        <Badge variant="outline" size="md">
           Medium outline
         </Badge>
-        <Badge size="lg" variant="outline">
+        <Badge variant="outline" size="lg">
           Large outline
         </Badge>
-        <Badge size="xl" variant="outline">
+        <Badge variant="outline" size="xl">
           Extra large outline
         </Badge>
       </VariantGroup>

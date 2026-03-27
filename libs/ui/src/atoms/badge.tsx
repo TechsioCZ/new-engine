@@ -90,9 +90,9 @@ export function Badge({
   const dynamicStyles = isDynamic
     ? {
         ...style,
-        "backgroundColor": bgColor,
+        backgroundColor: bgColor,
         color: fgColor,
-        "borderColor": borderColor,
+        borderColor: borderColor,
       }
     : style
 
