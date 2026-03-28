@@ -21,8 +21,8 @@ export function HeaderShowcase() {
   return (
     <div className="space-y-500">
       <section className="overflow-hidden rounded-md border border-border-secondary bg-surface">
-        <Header className="border-none shadow-none" direction="vertical">
-          <Header.Container className="mx-auto flex w-full max-w-max-w items-center gap-600 px-400 py-300 @header-desktop:px-600">
+        <Header direction="vertical">
+          <Header.Container className="mx-auto flex items-center px-400 py-300 @header-desktop:px-600">
             <HerbatikaLogo className="shrink-0" size="lg" />
 
             <div className="hidden w-full max-w-header-search flex-1 @header-desktop:block">
@@ -42,9 +42,8 @@ export function HeaderShowcase() {
               </SearchForm>
             </div>
 
-            <div className="flex items-center gap-450">
-              <Link
-                as={NextLink}
+            <Header.Actions className="flex items-center gap-450">
+              <NextLink
                 className="inline-flex items-center gap-300 text-fg-secondary font-open-sans hover:text-fg-primary"
                 href="tel:+421232112345"
               >
@@ -57,7 +56,7 @@ export function HeaderShowcase() {
                     (Po-Pia: 09:00 - 16:00)
                   </span>
                 </span>
-              </Link>
+              </NextLink>
 
               <Button
                 aria-label="Obľúbené"
@@ -95,29 +94,28 @@ export function HeaderShowcase() {
                   0
                 </Badge>
               </div>
-            </div>
+            </Header.Actions>
           </Header.Container>
 
-          <Header.Desktop className="w-full bg-primary">
-            <Header.Container className="mx-auto flex min-h-750 w-full max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
+          <Header.Desktop className="bg-primary">
+            <Header.Container className="mx-auto flex min-h-750 max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
               <Header.Nav
-                className="flex-nowrap gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="flex-nowrap overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 size="sm"
               >
                 {PRIMARY_NAV_ITEMS.map((item) => (
-                  <Header.NavItem className="shrink-0 px-100 py-200" key={item.href} size="sm">
-                    <Link
-                      as={NextLink}
-                      className="whitespace-nowrap leading-none text-xs"
+                  <Header.NavItem className="shrink-0" key={item.href} size="sm">
+                    <NextLink
+                      className="whitespace-nowrap leading-none"
                       href={item.href}
                     >
                       {item.label}
-                    </Link>
+                    </NextLink>
                   </Header.NavItem>
                 ))}
               </Header.Nav>
 
-              <Header.Actions className="gap-100 pl-100" size="sm">
+              <Header.Actions className="pl-100" size="sm">
                 {HEADER_ACTION_ITEMS.map((action) => (
                   <Header.ActionItem className="p-0" key={action.href} size="sm">
                     <LinkButton
@@ -138,25 +136,6 @@ export function HeaderShowcase() {
         </Header>
       </section>
 
-      <section className="space-y-250 rounded-md border border-border-secondary bg-surface p-400">
-        <div className="space-y-100">
-          <h2 className="text-lg font-semibold text-fg-primary">Header mapping</h2>
-          <SupportingText>
-            Figma potvrzuje, že shared `Header` + `SearchForm` pokrývají hlavní
-            kostru. Nejvíc app-level composition zůstává v utility bloku,
-            cart chipu a doplňkových nav CTA.
-          </SupportingText>
-        </div>
-
-        <div className="space-y-150">
-          {HEADER_MAPPING.map((item, index) => (
-            <div className="flex items-start gap-200 rounded-sm bg-highlight px-300 py-250" key={item}>
-              <Badge variant="secondary">{String(index + 1)}</Badge>
-              <SupportingText className="text-fg-primary">{item}</SupportingText>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

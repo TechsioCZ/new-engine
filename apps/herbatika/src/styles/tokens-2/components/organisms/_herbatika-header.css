@@ -17,16 +17,16 @@
   --text-header-item-md: var(--text-xs);
   --text-header-item-lg: var(--text-sm);
 
-  --padding-header-item-sm: var(--spacing-200) var(--spacing-150);
+  --padding-header-item-sm: var(--spacing-200) var(--spacing-100);
   --padding-header-item-md: var(--spacing-200) var(--spacing-150);
   --padding-header-item-lg: var(--spacing-250) var(--spacing-200);
 
   --spacing-header-container: var(--spacing-600);
-  --spacing-header-nav-sm: var(--spacing-100);
+  --spacing-header-nav-sm: 0;
   --spacing-header-nav-md: var(--spacing-100);
   --spacing-header-nav-lg: var(--spacing-150);
-  --spacing-header-actions-sm: var(--spacing-150);
-  --spacing-header-actions-md: var(--spacing-200);
+  --spacing-header-actions-sm: var(--spacing-100);
+  --spacing-header-actions-md: var(--spacing-450);
   --spacing-header-actions-lg: var(--spacing-250);
 
   --color-header-hamburger-fg: var(--color-fg-primary);
