@@ -1,6 +1,5 @@
 @theme static {
-  --radius-search-form-sm: var(--radius-xl);
-  --radius-search-form-md: var(--radius-xl);
+  --radius-search-form-md: 0.625rem;
   --padding-search-form-clear-button: var(--spacing-200);
 
   --color-form-control-bg: var(--color-surface);

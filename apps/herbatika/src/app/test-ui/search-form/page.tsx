@@ -5,7 +5,7 @@ export default function TestUiSearchFormPage() {
   return (
     <TestUiLayout
       title="Test UI / Search Form"
-      description="Plánovaná surface pro header search a jeho states."
+      description="Desktop header search z Figma node 94:1614."
       actions={<TestUiBackLink />}
     >
       <SearchFormShowcase />
