@@ -3,37 +3,31 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { SupportingText } from "@/components/text/supporting-text";
 
 const BADGE_NOTES = [
-  "Promo flags z produktových karet se dají čistě mapovat na current Badge variants bez nového shared API.",
-  "Topic pills pro hero a blog zůstávají stejný Badge primitive, jen s app-level className pro radius a spacing.",
-  "Info / success / warning / outline pokrývají utility surface pro search toolbar, account a interní test-ui meta štítky.",
+  "Aktualni Figma potvrzuje jen promo badge family: Akcia, Novinka, Tip.",
+  "Price chip -4,50 EUR pouziva stejnou ruzovou jako Akcia, ale je to druha size family.",
+  "Topic pills a utility badges jsou zatim jen exploratory surface mimo tento token pass.",
 ] as const;
 
 const BADGE_INVENTORY = [
   {
     figmaLabel: "Akcia",
     mapping: 'Badge variant="discount"',
-    surface: "Home, Category, Product, blog featured product",
+    surface: "Home, category, product card, featured product",
   },
   {
     figmaLabel: "Novinka",
     mapping: 'Badge variant="success"',
-    surface: "Home, Category, Product",
+    surface: "Home, category, product card",
   },
   {
     figmaLabel: "Tip",
     mapping: 'Badge variant="warning"',
-    surface: "Home, Category, Product",
+    surface: "Home, category, product card",
   },
   {
-    figmaLabel: "Bylinky / Imunita / Detox",
-    mapping:
-      'Badge variant="secondary" className="rounded-full px-200 py-100 text-2xs font-medium"',
-    surface: "Hero carousel, blog listing, single blog post",
-  },
-  {
-    figmaLabel: "query / status / count",
-    mapping: 'Badge variant="info|success|warning|outline"',
-    surface: "Search toolbar, account overview, internal test-ui meta",
+    figmaLabel: "-4,50 EUR",
+    mapping: "Separate price-chip pattern",
+    surface: "Discount amount on product cards",
   },
 ] as const;
 
@@ -62,66 +56,51 @@ export function BadgesShowcase() {
   return (
     <div className="space-y-500">
       <section className="grid gap-300 xl:grid-cols-2">
-        <ShowcaseCard
-          title="1. Promo flags"
-          description="Produktové promo badges z home/category/PDP a featured product bloků."
-        >
           <div className="space-y-250">
             <div className="flex flex-wrap gap-150">
-              <Badge className="rounded-md px-200 py-100 text-xs font-bold" variant="discount">
+              {/* discount badge md */}
+              <Badge variant="discount">
                 Akcia
               </Badge>
-              <Badge className="rounded-md px-200 py-100 text-xs font-bold" variant="success">
+              {/* primary badge md */}
+              <Badge variant="success">
                 Novinka
               </Badge>
-              <Badge className="rounded-md px-200 py-100 text-xs font-bold" variant="warning">
+              {/* secondary badge md */}
+              <Badge variant="warning">
                 Tip
               </Badge>
+              {/* tertiary badge md */}
+              <Badge variant="tertiary">Fitness</Badge>
             </div>
-
-            <div className="rounded-2xl border border-border-secondary bg-surface p-300">
-              <div className="relative overflow-hidden rounded-xl bg-base p-300">
-                <div className="flex flex-wrap gap-100">
-                  <Badge className="rounded-md px-200 py-100 text-xs font-bold" variant="discount">
-                    Akcia
-                  </Badge>
-                  <Badge className="rounded-md px-200 py-100 text-xs font-bold" variant="success">
-                    Novinka
-                  </Badge>
-                  <Badge className="rounded-md px-200 py-100 text-xs font-bold" variant="warning">
-                    Tip
-                  </Badge>
-                </div>
-
-                <div className="mt-300 flex items-end justify-between gap-200">
-                  <div>
-                    <p className="text-sm font-semibold text-fg-primary">
-                      Sofia krém na žily
-                    </p>
-                    <p className="text-xs text-fg-secondary">produktová karta / featured produkt</p>
-                  </div>
-                  <div className="rounded-md bg-tertiary px-200 py-150">
-                    <span className="text-xs font-bold text-fg-reverse">-4,50 €</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              {/* discount badge  */}
+              <Badge variant="discount" size="lg">-4,50 EUR</Badge>
+              <Badge variant="discount" size="lg" className="rounded-xl px-0 py-0 h-14 aspect-square">-29%</Badge>
+        
           </div>
-        </ShowcaseCard>
 
         <ShowcaseCard
           title="2. Topic pills"
-          description="Hero a blog štítky jsou pořád shared Badge, jen s app-level pill stylingem."
+          description="Exploratory pill usage. Neni soucasti aktualniho color token rozhodnuti."
         >
           <div className="space-y-250">
             <div className="flex flex-wrap gap-150">
-              <Badge className="rounded-full px-200 py-100 text-2xs font-medium uppercase" variant="secondary">
+              <Badge
+                className="rounded-full px-200 py-100 text-2xs font-medium uppercase"
+                variant="secondary"
+              >
                 Bylinky
               </Badge>
-              <Badge className="rounded-full px-200 py-100 text-2xs font-medium" variant="secondary">
+              <Badge
+                className="rounded-full px-200 py-100 text-2xs font-medium"
+                variant="secondary"
+              >
                 Imunita
               </Badge>
-              <Badge className="rounded-full px-200 py-100 text-2xs font-medium" variant="secondary">
+              <Badge
+                className="rounded-full px-200 py-100 text-2xs font-medium"
+                variant="secondary"
+              >
                 Detox
               </Badge>
             </div>
@@ -133,9 +112,7 @@ export function BadgesShowcase() {
               >
                 Bylinky
               </Badge>
-              <p className="text-sm font-bold">
-                Hero / blog pill surface nad fotkou nebo tinted overlay.
-              </p>
+              <p className="text-sm font-bold">Hero / blog pill surface over tinted media.</p>
             </div>
           </div>
         </ShowcaseCard>
@@ -144,19 +121,19 @@ export function BadgesShowcase() {
       <section className="grid gap-300 xl:grid-cols-2">
         <ShowcaseCard
           title="3. Utility badges"
-          description="Search toolbar, account stavy a interní meta štítky v test-ui."
+          description="Exploratory utility examples. Nejsou zdrojem pravdy pro current promo token pass."
         >
           <div className="space-y-250">
             <div className="flex flex-wrap gap-150">
-              <Badge variant="info">dotaz: čaj</Badge>
-              <Badge variant="secondary">nájdené: 128</Badge>
+              <Badge variant="info">query: caj</Badge>
+              <Badge variant="secondary">nalezeno: 128</Badge>
               <Badge variant="secondary">strana: 1/8</Badge>
             </div>
 
             <div className="flex flex-wrap gap-150">
-              <Badge variant="success">objednávka dokončená</Badge>
-              <Badge variant="warning">čeká na platbu</Badge>
-              <Badge variant="info">guest režim</Badge>
+              <Badge variant="success">objednavka dokoncena</Badge>
+              <Badge variant="warning">ceka na platbu</Badge>
+              <Badge variant="info">guest rezim</Badge>
               <Badge variant="outline">app</Badge>
             </div>
           </div>
@@ -164,7 +141,7 @@ export function BadgesShowcase() {
 
         <ShowcaseCard
           title="4. Badge inventory"
-          description="Praktické mapování Figma badge family na current libs/ui contract."
+          description="Potvrzene Figma kombinace pro aktualni badge token pass."
         >
           <div className="grid gap-150">
             {BADGE_INVENTORY.map((item) => (
@@ -183,7 +160,10 @@ export function BadgesShowcase() {
 
       <section className="space-y-150 rounded-md border border-border-secondary bg-surface p-400">
         {BADGE_NOTES.map((item, index) => (
-          <div className="flex items-start gap-200 rounded-sm bg-highlight px-300 py-250" key={item}>
+          <div
+            className="flex items-start gap-200 rounded-sm bg-highlight px-300 py-250"
+            key={item}
+          >
             <Badge variant="secondary">{String(index + 1)}</Badge>
             <SupportingText className="text-fg-primary">{item}</SupportingText>
           </div>
