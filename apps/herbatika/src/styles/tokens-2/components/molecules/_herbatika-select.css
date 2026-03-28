@@ -1,7 +1,6 @@
 @theme static {
   --gap-select-root: var(--spacing-100);
-  --radius-select-sm: var(--radius-sm);
-  --radius-select-md: var(--radius-sm);
+  --radius-select: var(--radius-sm);
 
   --color-select-content-bg: var(--color-surface);
   --color-select-content-border: var(--color-border-primary);
