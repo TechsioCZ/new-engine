@@ -51,12 +51,21 @@
   --color-badge-border-outline: var(--color-badge-border);
 
   /* === SPACING === */
-  --padding-badge: var(--spacing-100) var(--spacing-100);
+  --spacing-badge-sm: var(--spacing-50);
+  --spacing-badge-md: var(--spacing-100);
+  --spacing-badge-lg: var(--spacing-150);
+  --spacing-badge-xl: var(--spacing-200);
 
   /* === TYPOGRAPHY === */
-  --text-badge-size: var(--text-xs);
-  --font-weight-badge: var(--font-weight-normal);
+  --text-badge-sm: var(--text-xs);
+  --text-badge-md: var(--text-xs);
+  --text-badge-lg: var(--text-sm);
+  --text-badge-xl: var(--text-md);
 
+  --font-weight-badge-sm: var(--font-weight-light);
+  --font-weight-badge-md: var(--font-weight-medium);
+  --font-weight-badge-lg: var(--font-weight-semibold);
+  --font-weight-badge-xl: var(--font-weight-bold);
   /* === BORDERS & RADIUS === */
   --radius-badge: var(--radius-sm);
   --border-width-badge: var(--border-width-sm);
