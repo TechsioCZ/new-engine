@@ -1,0 +1,268 @@
+/**
+ * Smooth Animations with View Transitions
+ *
+ * MDN: https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API
+ * MDN: https://developer.mozilla.org/en-US/docs/Web/CSS/@view-transition
+ * MDN: https://developer.mozilla.org/en-US/docs/Web/CSS/view-transition-name
+ * MDN: https://developer.mozilla.org/en-US/docs/Web/CSS/view-transition-class
+ * MDN: https://developer.mozilla.org/en-US/docs/Web/CSS/::view-transition
+ * MDN: https://developer.mozilla.org/en-US/docs/Web/CSS/::view-transition-group
+ * MDN: https://developer.mozilla.org/en-US/docs/Web/CSS/::view-transition-image-pair
+ * MDN: https://developer.mozilla.org/en-US/docs/Web/CSS/::view-transition-old
+ * MDN: https://developer.mozilla.org/en-US/docs/Web/CSS/::view-transition-new
+ *
+ * Baseline: 🔵 Newly Available
+ * Support: 90% (Chrome 111+, Safari 18+)
+ *
+ * Task: Add smooth page transitions
+ * Why: View Transitions API provides smooth, performant transitions without JavaScript
+ * Last verified: 2026-02
+ */
+
+/* Enable view transitions for navigation */
+@view-transition {
+  navigation: auto;
+  types: slide;
+}
+
+:root:active-view-transition {
+  view-transition-name: none;
+}
+
+:root::view-transition {
+  background: Canvas;
+}
+
+::view-transition-group(root) {
+  animation-duration: 0.3s;
+  animation-timing-function: ease-in-out;
+}
+
+::view-transition-image-pair(root) {
+  isolation: isolate;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+  animation-timing-function: ease-in-out;
+}
+
+/* Scoped transitions for specific elements */
+.card {
+  view-transition-name: card-transition;
+  view-transition-class: card-scope;
+}
+
+::view-transition-group(card-transition) {
+  animation-duration: 0.3s;
+}
+
+::view-transition-group(.card-scope) {
+  animation-timing-function: ease-in-out;
+}
+
+::view-transition-image-pair(card-transition) {
+  isolation: isolate;
+}
+
+/* Customize card-specific transition */
+::view-transition-old(card-transition) {
+  animation: slide-out 0.3s ease-out;
+}
+
+::view-transition-new(card-transition) {
+  animation: slide-in 0.3s ease-in;
+}
+
+:root:active-view-transition-type(slide)::view-transition-old(card-transition) {
+  animation-name: slide-out;
+}
+
+:root:active-view-transition-type(slide)::view-transition-new(card-transition) {
+  animation-name: slide-in;
+}
+
+@keyframes slide-out {
+  from {
+    translate: 0 0; /* Modern translate property */
+    opacity: 1;
+  }
+  to {
+    translate: -20px 0;
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    translate: 20px 0; /* Modern translate property */
+    opacity: 0;
+  }
+  to {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
+
+/* ==========================================================================
+   SCOPED VIEW TRANSITIONS — subtree transitions (Chrome 140+, experimental)
+   Reference: https://developer.chrome.com/blog/scoped-view-transitions-feedback
+   ========================================================================== */
+
+/*
+ * Scoped view transitions run on a DOM subtree instead of the whole document.
+ * JS: element.startViewTransition({ callback }) instead of document.startViewTransition()
+ *
+ * Requirements:
+ *   - The scoped root element MUST have contain: layout
+ *   - The ::view-transition pseudo-tree is injected onto that element
+ *
+ * Benefits:
+ *   - Content clips to parent boundaries during animation
+ *   - External elements can render above the transition
+ *   - Multiple independent transitions can run simultaneously
+ *   - Only the transitioning subtree blocks pointer events
+ */
+
+/* Scoped transition root — must have contain: layout */
+.sidebar {
+  contain: layout;
+  position: relative;
+}
+
+/* The ::view-transition pseudo-tree attaches to the scoped element,
+   not :root. Style it on the element directly. */
+.sidebar::view-transition {
+  position: absolute;
+  inset: 0;
+}
+
+.sidebar::view-transition-group(nav-item) {
+  animation-duration: 0.25s;
+  animation-timing-function: ease-in-out;
+}
+
+.sidebar::view-transition-old(nav-item) {
+  animation: fade-slide-out 0.25s ease-out;
+}
+
+.sidebar::view-transition-new(nav-item) {
+  animation: fade-slide-in 0.25s ease-in;
+}
+
+/* Each item participating in the scoped transition needs a name */
+.sidebar .nav-item {
+  view-transition-name: nav-item;
+}
+
+/* --- Concurrent scoped transitions on separate subtrees --- */
+
+.main-content {
+  contain: layout;
+}
+
+.main-content::view-transition-group(article) {
+  animation-duration: 0.3s;
+}
+
+.main-content .article {
+  view-transition-name: article;
+}
+
+/* Both .sidebar and .main-content can transition independently
+   and simultaneously without blocking each other */
+
+@keyframes fade-slide-out {
+  to {
+    translate: -10px 0;
+    opacity: 0;
+  }
+}
+
+@keyframes fade-slide-in {
+  from {
+    translate: 10px 0;
+    opacity: 0;
+  }
+}
+
+
+/* ==========================================================================
+   NESTED VIEW TRANSITION GROUPS (Chrome 140+)
+   Reference: https://developer.chrome.com/docs/css-ui/view-transitions/nested-view-transition-groups
+
+   Problem: By default, all ::view-transition-group() pseudos are flat siblings.
+   This breaks clipping, 3D transforms, and parent opacity/filter effects.
+
+   Solution: view-transition-group property nests groups in a parent-child tree.
+   ========================================================================== */
+
+/* --- Option 1: contain — parent captures all named children --- */
+
+.card-container {
+  view-transition-name: card-container;
+  view-transition-group: contain;      /* children nest inside this group */
+}
+
+.card-container .card-title {
+  view-transition-name: card-title;
+}
+
+.card-container .card-image {
+  view-transition-name: card-image;
+}
+
+/*
+  Pseudo-tree WITHOUT nesting (flat):
+    ::view-transition-group(card-container)
+    ::view-transition-group(card-title)     ← sibling, no clipping
+    ::view-transition-group(card-image)     ← sibling, no clipping
+
+  Pseudo-tree WITH nesting:
+    ::view-transition-group(card-container)
+      ::view-transition-group-children(card-container)
+        ::view-transition-group(card-title)   ← nested, clips correctly
+        ::view-transition-group(card-image)   ← nested, clips correctly
+*/
+
+
+/* --- Option 2: nearest — child looks up for closest ancestor group --- */
+
+.gallery-item {
+  view-transition-name: gallery-item;
+  view-transition-group: nearest;      /* nests under closest ancestor group */
+}
+
+
+/* --- Clipping: apply overflow on the children pseudo --- */
+
+::view-transition-group-children(card-container) {
+  overflow: clip;                      /* children clip to parent bounds */
+  border-radius: 0.75rem;             /* preserves card shape during transition */
+}
+
+
+/* --- 3D transforms: rotate card with children following --- */
+
+::view-transition-group(card-container) {
+  animation: card-flip 0.5s ease;
+}
+
+@keyframes card-flip {
+  from {
+    rotate: y 90deg;
+    opacity: 0;
+  }
+}
+
+/* Children inherit the 3D transform from their parent group —
+   impossible with the flat structure */
+
+
+/* --- Values reference ---
+   view-transition-group: normal    → flat (default, no nesting)
+   view-transition-group: contain   → this group contains descendant groups
+   view-transition-group: nearest   → nest under closest ancestor group
+*/

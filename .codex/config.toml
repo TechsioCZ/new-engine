@@ -1,0 +1,47 @@
+model = "gpt-5.4"
+review_model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+personality = "pragmatic"
+tool_output_token_limit = 25000
+# Leave room for native compaction near the 272-273k context window.
+# Formula: 273000 - (tool_output_token_limit + 15000) = 233000
+model_auto_compact_token_limit = 233000
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+project_root_markers = [".git", "pnpm-workspace.yaml", "nx.json", "turbo.json", "package.json"]
+project_doc_fallback_filenames = ["AGENTS.md", "README.md"]
+
+[features]
+shell_snapshot = true
+multi_agent = true
+
+[mcp_servers.context7]
+command = "bunx"
+args = ["-y", "@upstash/context7-mcp"]
+startup_timeout_sec = 30
+
+[mcp_servers.browsermcp]
+command = "npx"
+args = ["-y", "@browsermcp/mcp@latest"]
+
+[mcp_servers.puppeteer-mcp]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-puppeteer"]
+
+[sandbox_workspace_write]
+network_access = true
+
+[profiles.fast]
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+
+[profiles.deep]
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+model_reasoning_summary = "concise"
+
+[profiles.research]
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+web_search = "live"

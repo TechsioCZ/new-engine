@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Token Overrides"
+  short_description: "Help with App Token Overrides tasks"
+  default_prompt: "Use $adopting-ui-kit-in-apps/app-token-overrides to map a new app design into semantic, typography, spacing, and component token overrides without drifting into inline className styling."

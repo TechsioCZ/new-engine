@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Component Creator"
+  short_description: "Build consistent UI components with tokens"
+  default_prompt: "Create or update a libs/ui component with consistent TSX, token CSS, and Storybook patterns, using Zag.js docs when relevant."

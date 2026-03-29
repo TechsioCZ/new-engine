@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Component Inventory"
+  short_description: "Map a concrete app component or Figma node onto the right ui-kit usage"
+  default_prompt: "Use $adopting-ui-kit-in-apps/app-component-inventory to take a concrete app component need or Figma node, choose the right @techsio/ui-kit component, write the preferred prop-only JSX usage, and identify whether any remaining differences belong in app tokens or a shared-library gap."
