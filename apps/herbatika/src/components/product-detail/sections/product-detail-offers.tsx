@@ -77,9 +77,16 @@ export function ProductDetailOffers({
         })}
       </div>
 
-      <Button block disabled={isAdding || !selectedOptionId} onClick={onAddToCart} variant="primary">
-        <Icon className="text-xl" icon="token-icon-cart" />
-        {isAdding ? "Pridávam..." : "Pridať do košíka"}
+      <Button
+        block
+        disabled={!selectedOptionId}
+        icon="token-icon-cart"
+        isLoading={isAdding}
+        loadingText="Pridávam..."
+        onClick={onAddToCart}
+        variant="primary"
+      >
+        Pridať do košíka
       </Button>
     </section>
   );

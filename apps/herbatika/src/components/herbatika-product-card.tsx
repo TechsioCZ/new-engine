@@ -180,15 +180,16 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
 
           <ProductCard.Actions className="mt-0 shrink-0">
             <Button
-              className="inline-flex h-750 min-w-900 items-center gap-200 rounded-md border border-primary bg-primary px-450 text-sm leading-normal font-medium text-fg-reverse hover:bg-primary-hover"
+              className="min-w-900"
               disabled={!defaultVariantId}
               icon="token-icon-cart"
               isLoading={isAdding}
               onClick={() => {
                 void onAddToCart(product);
               }}
-              size="current"
+              size="md"
               type="button"
+              variant="primary"
             >
               Do košíka
             </Button>

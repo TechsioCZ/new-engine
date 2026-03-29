@@ -39,14 +39,6 @@ export function AsideFilterChipSection({
     return items.slice(0, collapseAfter);
   }, [collapseAfter, isExpanded, items]);
 
-  const chipButtonClass = (checked: boolean, disabled?: boolean) => {
-    return [
-      "rounded-full px-250 py-100 text-sm font-medium leading-tight transition-colors",
-      checked ? "bg-primary text-fg-reverse" : "bg-highlight text-primary",
-      disabled ? "opacity-55" : "hover:bg-highlight-hover",
-    ].join(" ");
-  };
-
   return (
     <section className="space-y-250">
       <h3 className="text-2xl font-bold leading-tight">{title}</h3>
@@ -62,13 +54,11 @@ export function AsideFilterChipSection({
           <div className="flex flex-wrap gap-200">
             {visibleItems.map((item) => (
               <Button
-                className={chipButtonClass(item.checked, item.disabled)}
+                className="rounded-full leading-tight"          
                 disabled={isLoading || item.disabled}
                 key={item.id}
                 onClick={() => onToggle(item.id)}
-                size="current"
-                theme="unstyled"
-                type="button"
+                size="sm"
               >
                 {`${item.label} (${item.count})`}
               </Button>

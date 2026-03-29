@@ -16,6 +16,7 @@
   --color-button-fg-tertiary: var(--color-fg-reverse);
   --color-button-fg-outlined-primary: var(--color-primary);
   --color-button-fg-outlined-secondary: var(--color-fg-primary);
+  --color-button-fg-light: var(--color-primary);
   --color-button-border-secondary: var(--color-border-secondary);
   --color-button-border-tertiary: var(--color-tertiary);
 
@@ -26,4 +27,7 @@
   --color-button-fg-primary-borderless: var(--color-primary);
   --color-button-fg-secondary-borderless: var(--color-fg-primary);
   --color-button-fg-tertiary-borderless: var(--color-tertiary);
+  
+  --text-button-sm: var(--text-sm);
+  --padding-button-sm: var(--spacing-100) var(--spacing-250);
 }

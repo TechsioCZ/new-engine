@@ -78,6 +78,12 @@ export function ButtonShowcase() {
           </Button>
         </ShowcaseCard>
 
+        <div>
+          <Button size="sm" theme="light" variant="primary" className="font-rubik rounded-full font-medium leading-tight">
+            Light primary
+          </Button>
+        </div>
+
         <ShowcaseCard
           title="2. Add to cart"
           description="Figma node `63:1130` - compact CTA s ikonou vlevo."

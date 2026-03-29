@@ -99,12 +99,17 @@ export function ProductDetailPurchasePanel({
       </div>
 
       <header className="space-y-200">
-        <h1 className="text-3xl font-semibold leading-none text-fg-primary">{product.title}</h1>
+        <h1 className="text-3xl font-semibold leading-none text-fg-primary">
+          {product.title}
+        </h1>
       </header>
 
       <ul className="space-y-50">
         {displayHighlights.map((highlight) => (
-          <li className="relative pl-500 pt-100 text-md leading-tight text-fg-primary" key={highlight}>
+          <li
+            className="relative pl-500 pt-100 text-md leading-tight text-fg-primary"
+            key={highlight}
+          >
             <span className="absolute top-300 left-0 h-200 w-200 rounded-full bg-primary" />
             <span>{highlight}</span>
           </li>
@@ -114,22 +119,30 @@ export function ProductDetailPurchasePanel({
       <div className="flex flex-wrap items-end justify-between gap-250">
         <div className="space-y-200">
           <div className="flex flex-wrap items-end gap-150">
-            <p className="text-3xl leading-tight font-medium text-fg-primary">{currentAmountLabel}</p>
+            <p className="text-3xl leading-tight font-medium text-fg-primary">
+              {currentAmountLabel}
+            </p>
             {displayOriginalLabel ? (
               <span className="pb-50 text-lg leading-normal font-normal text-fg-secondary line-through">
                 {displayOriginalLabel}
               </span>
             ) : null}
           </div>
-          {unitPriceLabel ? <p className="text-md leading-tight text-fg-primary">{unitPriceLabel}</p> : null}
+          {unitPriceLabel ? (
+            <p className="text-md leading-tight text-fg-primary">{unitPriceLabel}</p>
+          ) : null}
         </div>
 
         {vipCreditLabel ? (
           <div className="flex items-center gap-400 rounded-sm bg-highlight px-400 py-200">
             <Icon className="text-primary" icon="icon-[mdi--star-check-outline]" />
             <div className="space-y-50">
-              <p className="text-md leading-tight font-semibold text-fg-primary">VIP kredit</p>
-              <p className="text-sm leading-tight text-fg-secondary">{`Nákupom získate ${vipCreditLabel}`}</p>
+              <p className="text-md leading-tight font-semibold text-fg-primary">
+                VIP kredit
+              </p>
+              <p className="text-sm leading-tight text-fg-secondary">
+                {`Nákupom získate ${vipCreditLabel}`}
+              </p>
             </div>
           </div>
         ) : null}
@@ -200,13 +213,15 @@ export function ProductDetailPurchasePanel({
 
         <Button
           block
-          className="py-250 text-md leading-tight sm:col-span-3"
-          disabled={!selectedVariantId || isAdding}
+          className="sm:col-span-3"
+          disabled={!selectedVariantId}
+          icon="token-icon-cart"
+          isLoading={isAdding}
+          loadingText="Pridávam..."
           onClick={onAddToCart}
           variant="primary"
         >
-          <Icon className="text-2xl" icon="token-icon-cart" />
-          {isAdding ? "Pridávam..." : "Pridať do košíka"}
+          Pridať do košíka
         </Button>
       </div>
     </div>

@@ -149,8 +149,9 @@ export function HerbatikaFooter() {
           {SOCIAL_LINKS.map((social) => (
             <Button
               aria-label={social.label}
-              className="h-750 w-750 rounded-full bg-bg-disabled text-2xl text-fg-secondary hover:text-primary"
+              className="h-750 w-750 rounded-full bg-bg-disabled text-fg-secondary hover:text-primary"
               icon={social.icon}
+              iconSize="lg"
               key={social.label}
               onClick={() =>
                 window.open(social.href, "_blank", "noopener,noreferrer")
@@ -195,16 +196,13 @@ export function HerbatikaFooter() {
         <div className="flex flex-wrap items-center justify-start gap-150 sm:justify-end">
           {LANGUAGES.map((language) => (
             <Button
-              className={`rounded-sm px-200 py-150 text-sm font-semibold ${
-                language.active
-                  ? "border border-primary/15 bg-primary/12 text-primary"
-                  : "border border-border-secondary bg-surface text-fg-secondary"
-              }`}
               icon={language.icon}
+              iconSize="sm"
               key={language.code}
               size="sm"
-              theme="unstyled"
+              theme={language.active ? "light" : "outlined"}
               type="button"
+              variant={language.active ? "primary" : "secondary"}
             >
               {language.code}
             </Button>

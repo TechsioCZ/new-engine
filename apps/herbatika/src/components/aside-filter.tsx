@@ -188,14 +188,6 @@ export function AsideFilter({
     setSliderRange(selectedRange);
   }, [selectedRange]);
 
-  const chipButtonClass = (checked: boolean, disabled?: boolean) => {
-    return [
-      "rounded-full px-250 py-100 text-sm font-medium leading-tight transition-colors",
-      checked ? "bg-primary text-fg-reverse" : "bg-highlight text-primary",
-      disabled ? "opacity-55" : "hover:bg-highlight-hover",
-    ].join(" ");
-  };
-
   return (
     <aside className="rounded-2xl border border-border-secondary bg-surface p-500 text-fg-primary xl:sticky xl:top-400">
       <div className="space-y-500">
@@ -251,17 +243,14 @@ export function AsideFilter({
         <section className="space-y-250">
           <div className="flex flex-wrap gap-200">
             {statusItems.map((item) => (
-              <Button
-                className={chipButtonClass(item.checked, item.disabled)}
+              <Button 
+                size="sm" 
+                theme="light" 
+                variant="primary" 
+                className="font-rubik rounded-full font-medium leading-tight"
                 disabled={isLoading || item.disabled}
                 key={item.id}
-                onClick={() => onStatusToggle(item.id)}
-                size="current"
-                theme="unstyled"
-                type="button"
-              >
-                {`${item.label} (${item.count})`}
-              </Button>
+                onClick={() => onStatusToggle(item.id)}>{`${item.label} (${item.count})`}</Button>
             ))}
           </div>
         </section>
