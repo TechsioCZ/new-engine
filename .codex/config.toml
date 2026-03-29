@@ -21,6 +21,22 @@ command = "bunx"
 args = ["-y", "@upstash/context7-mcp"]
 startup_timeout_sec = 30
 
+[mcp_servers.figma]
+url = "https://mcp.figma.com/mcp"
+
+[mcp_servers.figma_console]
+command = "cmd"
+args = ["/c", "npx.cmd", "-y", "figma-console-mcp@latest"]
+startup_timeout_sec = 30
+tool_timeout_sec = 120
+
+[mcp_servers.figma_console.env]
+ENABLE_MCP_APPS = "true"
+
+
+[mcp_servers.design_systems]
+url = "https://design-systems-mcp.southleft-llc.workers.dev/mcp"
+
 [mcp_servers.browsermcp]
 command = "npx"
 args = ["-y", "@browsermcp/mcp@latest"]
