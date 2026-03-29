@@ -295,11 +295,11 @@ importers:
   apps/n1:
     dependencies:
       '@medusajs/js-sdk':
-        specifier: ^2.10.3
-        version: 2.12.4
+        specifier: ^2.13.1
+        version: 2.13.1
       '@medusajs/types':
-        specifier: ^2.10.3
-        version: 2.12.2(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))
+        specifier: ^2.13.1
+        version: 2.13.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))
       '@tanstack/react-form':
         specifier: ^1.27.4
         version: 1.27.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -309,6 +309,9 @@ importers:
       '@techsio/analytics':
         specifier: workspace:*
         version: file:libs/analytics(next@16.0.7(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@techsio/storefront-data':
+        specifier: workspace:*
+        version: file:libs/storefront-data(@medusajs/js-sdk@2.13.1)(@medusajs/types@2.13.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@techsio/ui-kit':
         specifier: workspace:*
         version: file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwind-merge@3.4.0)(tailwindcss@4.1.17)
@@ -3040,10 +3043,6 @@ packages:
 
   '@medusajs/js-sdk@2.12.2':
     resolution: {integrity: sha512-SDfjZv4wJKLLQ07LhdUWJce8KygJ6UhrCglO8altLTdyBZDT59naE7KN4pdd8FrdVvaWLzxKHfHo0crtXS32fQ==}
-    engines: {node: '>=20'}
-
-  '@medusajs/js-sdk@2.12.4':
-    resolution: {integrity: sha512-RSZJd7vLXPnvtLUV8WI/aaVRG/3WcrRrCBJg3fUBsVeGupvG3Ac7S77V9bXs1I24mIY6arlfSQ4a7oLe3E6sEA==}
     engines: {node: '>=20'}
 
   '@medusajs/js-sdk@2.13.1':
@@ -6920,6 +6919,15 @@ packages:
     resolution: {directory: libs/analytics, type: directory}
     peerDependencies:
       next: '>=16.0.0'
+      react: 19.2.3
+      react-dom: 19.2.3
+
+  '@techsio/storefront-data@file:libs/storefront-data':
+    resolution: {directory: libs/storefront-data, type: directory}
+    peerDependencies:
+      '@medusajs/js-sdk': '>=2.12.0'
+      '@medusajs/types': '>=2.12.0'
+      '@tanstack/react-query': '>=5.0.0'
       react: 19.2.3
       react-dom: 19.2.3
 
@@ -16788,11 +16796,6 @@ snapshots:
       fetch-event-stream: 0.1.6
       qs: 6.14.0
 
-  '@medusajs/js-sdk@2.12.4':
-    dependencies:
-      fetch-event-stream: 0.1.6
-      qs: 6.14.1
-
   '@medusajs/js-sdk@2.13.1':
     dependencies:
       fetch-event-stream: 0.1.6
@@ -17072,6 +17075,13 @@ snapshots:
     optionalDependencies:
       ioredis: 5.9.0
       vite: 7.3.1(@types/node@25.0.3)(jiti@2.6.1)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1)(tsx@4.19.4)(yaml@2.7.1)
+
+  '@medusajs/types@2.13.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))':
+    dependencies:
+      bignumber.js: 9.3.1
+    optionalDependencies:
+      ioredis: 5.9.0
+      vite: 5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1)
 
   '@medusajs/types@2.13.1(ioredis@5.9.0)(vite@5.4.21(@types/node@24.10.1)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))':
     dependencies:
@@ -21671,6 +21681,14 @@ snapshots:
   '@techsio/analytics@file:libs/analytics(next@16.0.7(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       next: 16.0.7(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
+  '@techsio/storefront-data@file:libs/storefront-data(@medusajs/js-sdk@2.13.1)(@medusajs/types@2.13.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@medusajs/js-sdk': 2.13.1
+      '@medusajs/types': 2.13.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))
+      '@tanstack/react-query': 5.90.10(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 

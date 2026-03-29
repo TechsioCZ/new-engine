@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { queryKeys } from "@/lib/query-keys"
+import { storefront } from "@/hooks/storefront-preset"
 
 type ErrorProps = {
   error: Error & { digest?: string }
@@ -13,8 +13,17 @@ export default function ErrorProduct({ reset }: ErrorProps) {
   const queryClient = useQueryClient()
 
   const handleRetry = () => {
-    queryClient.resetQueries({ queryKey: queryKeys.regions() })
-    queryClient.resetQueries({ queryKey: queryKeys.products.all() })
+    const productQueryPrefix = Array.isArray(storefront.namespace)
+      ? [...storefront.namespace, "products"]
+      : [storefront.namespace, "products"]
+
+    queryClient.resetQueries({ queryKey: storefront.queryKeys.regions.all() })
+    queryClient.resetQueries({
+      predicate: (query) =>
+        productQueryPrefix.every(
+          (segment, index) => query.queryKey[index] === segment
+        ),
+    })
     reset()
   }
 

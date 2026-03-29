@@ -1,7 +1,9 @@
 "use client"
-import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import {
+  Breadcrumb,
+  type BreadcrumbItemType,
+} from "@techsio/ui-kit/molecules/breadcrumb"
 import NextLink from "next/link"
 import {
   notFound,
@@ -19,25 +21,40 @@ import {
   categoryMap,
   categoryTree,
 } from "@/data/static/categories"
+import { storefront } from "@/hooks/storefront-preset"
 import { usePrefetchCategoryChildren } from "@/hooks/use-prefetch-category-children"
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { usePrefetchRootCategories } from "@/hooks/use-prefetch-root-categories"
-import { useSuspenseProducts } from "@/hooks/use-products"
-import { useSuspenseRegion } from "@/hooks/use-region"
 import {
   ALL_CATEGORIES_MAP,
   PRODUCT_LIMIT,
   VALID_CATEGORY_ROUTES,
 } from "@/lib/constants"
+import { buildProductQueryParams } from "@/lib/product-query-params"
 import { useAnalytics } from "@/providers/analytics-provider"
+import { buildBreadcrumbs } from "@/utils/helpers/build-breadcrumb"
 import { transformProduct } from "@/utils/transform/transform-product"
+
+type StaticCategory = (typeof allCategories)[number]
+
+const parsePageParam = (value: string | null): number => {
+  if (value == null) {
+    return 1
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return 1
+  }
+
+  return Math.max(1, Math.floor(parsed))
+}
 
 export default function CategoryPage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
   const handle = params.handle as string
-  const { regionId, countryCode } = useSuspenseRegion()
   const analytics = useAnalytics()
 
   // Track which category we've already tracked to prevent duplicates
@@ -82,11 +99,77 @@ export default function CategoryPage() {
     }
   }, [currentCategory, analytics, buildCategoryPath])
 
-  // Get current page from URL or default to 1
-  const currentPage = Number(searchParams.get("page")) || 1
+  const handlePageChange = (page: number) => {
+    const newSearchParams = new URLSearchParams(searchParams.toString())
+    newSearchParams.set("page", page.toString())
+    router.push(`/kategorie/${handle}?${newSearchParams.toString()}`, {
+      scroll: true,
+    })
+  }
 
+  if (
+    !(VALID_CATEGORY_ROUTES.includes(handle) && currentCategory && rootCategory)
+  ) {
+    notFound()
+  }
+
+  const rootCategoryTree = categoryTree.find(
+    (cat) => cat.id === rootCategory?.id
+  )
+
+  const breadcrumbItems: BreadcrumbItemType[] = buildBreadcrumbs(
+    currentCategory?.id,
+    categoryMap
+  ).map((item, index) =>
+    index === 0 ? { ...item, icon: "icon-[mdi--home]" } : item
+  )
+
+  const currentPage = parsePageParam(searchParams.get("page"))
   const categoryIds = ALL_CATEGORIES_MAP[handle] ?? []
 
+  return (
+    <CategoryPageContent
+      breadcrumbItems={breadcrumbItems}
+      categoryIds={categoryIds}
+      currentCategory={currentCategory}
+      currentCategoryChildren={currentCategoryChildren}
+      currentPage={currentPage}
+      handle={handle}
+      onPageChange={handlePageChange}
+      rootCategory={rootCategory}
+      rootCategoryTree={rootCategoryTree}
+    />
+  )
+}
+
+type CategoryPageContentProps = {
+  breadcrumbItems: BreadcrumbItemType[]
+  categoryIds: string[]
+  currentCategory: StaticCategory
+  currentCategoryChildren: StaticCategory[]
+  currentPage: number
+  handle: string
+  onPageChange: (page: number) => void
+  rootCategory: StaticCategory
+  rootCategoryTree?: (typeof categoryTree)[number]
+}
+
+function CategoryPageContent({
+  breadcrumbItems,
+  categoryIds,
+  currentCategory,
+  currentCategoryChildren,
+  currentPage,
+  handle,
+  onPageChange,
+  rootCategory,
+  rootCategoryTree,
+}: CategoryPageContentProps) {
+  const productQuery = buildProductQueryParams({
+    category_id: categoryIds,
+    page: currentPage,
+    limit: PRODUCT_LIMIT,
+  })
   const {
     products: rawProducts,
     isFetching,
@@ -95,11 +178,7 @@ export default function CategoryPage() {
     totalPages,
     hasNextPage,
     hasPrevPage,
-  } = useSuspenseProducts({
-    category_id: categoryIds,
-    page: currentPage,
-    limit: PRODUCT_LIMIT,
-  })
+  } = storefront.hooks.products.useSuspenseProducts(productQuery)
 
   const isCurrentPageReady = !isFetching
 
@@ -117,8 +196,6 @@ export default function CategoryPage() {
     totalPages,
     pageSize: PRODUCT_LIMIT,
     category_id: categoryIds,
-    regionId,
-    countryCode,
   })
 
   usePrefetchCategoryChildren({
@@ -127,27 +204,6 @@ export default function CategoryPage() {
   })
 
   const products = rawProducts.map(transformProduct)
-
-  const handlePageChange = (page: number) => {
-    const newSearchParams = new URLSearchParams(searchParams.toString())
-    newSearchParams.set("page", page.toString())
-    router.push(`/kategorie/${handle}?${newSearchParams.toString()}`, {
-      scroll: true,
-    })
-  }
-
-  if (!VALID_CATEGORY_ROUTES.includes(handle)) {
-    notFound()
-  }
-
-  const rootCategoryTree = categoryTree.find(
-    (cat) => cat.id === rootCategory?.id
-  )
-
-  const breadcrumbItems: { label: string; href: string; icon?: IconType }[] = [
-    { label: "Home", href: "/", icon: "icon-[mdi--home]" },
-    { label: rootCategory?.handle || handle, href: `/kategorie/${handle}` },
-  ]
 
   return (
     <div className="relative grid grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] p-400">
@@ -185,7 +241,7 @@ export default function CategoryPage() {
         <section>
           <ProductGrid
             currentPage={responsePage}
-            onPageChange={handlePageChange}
+            onPageChange={onPageChange}
             pageSize={PRODUCT_LIMIT}
             products={products}
             skeletonCount={24}

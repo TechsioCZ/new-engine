@@ -1,17 +1,17 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
 import { useForm } from "@tanstack/react-form"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { Button } from "@ui/atoms/button"
-import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
-import { AddressValidationError } from "@/lib/errors"
-import type { StoreCustomerAddress } from "@/services/customer-service"
+import { storefront } from "@/hooks/storefront-preset"
+import { toAddressValidationError } from "@/lib/errors"
 import { addressToFormData, DEFAULT_ADDRESS } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"
 import { AddressFormFields } from "./address-form-fields"
 
 type AddressFormProps = {
-  address?: StoreCustomerAddress
+  address?: HttpTypes.StoreCustomerAddress
   onCancel: () => void
   onSuccess: () => void
 }
@@ -21,8 +21,8 @@ export function AddressForm({
   onCancel,
   onSuccess,
 }: AddressFormProps) {
-  const createAddress = useCreateAddress()
-  const updateAddress = useUpdateAddress()
+  const createAddress = storefront.hooks.customers.useCreateCustomerAddress()
+  const updateAddress = storefront.hooks.customers.useUpdateCustomerAddress()
   const toaster = useToast()
 
   const isEditingExistingAddress = Boolean(address)
@@ -45,7 +45,7 @@ export function AddressForm({
         if (address) {
           await updateAddress.mutateAsync({
             addressId: address.id,
-            data: value,
+            ...value,
           })
           toaster.create({ title: "Adresa upravena", type: "success" })
         } else {
@@ -54,9 +54,10 @@ export function AddressForm({
         }
         onSuccess()
       } catch (error) {
-        if (AddressValidationError.isAddressValidationError(error)) {
+        const validationError = toAddressValidationError(error)
+        if (validationError) {
           toaster.create({
-            title: error.firstError,
+            title: validationError.firstError,
             type: "error",
           })
         } else {

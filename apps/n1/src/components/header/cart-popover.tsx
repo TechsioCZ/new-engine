@@ -4,7 +4,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import { Suspense } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
-import { useSuspenseCart } from "@/hooks/use-cart"
+import { cartFlow } from "@/hooks/storefront-preset"
 import { CartContent } from "./cart-content"
 import { CartEmptyState } from "./cart-empty-state"
 import { CartSkeleton } from "./cart-skeleton"
@@ -35,7 +35,7 @@ export const CartPopover = () => {
 
 function CartPopoverContent({ onClose }: { onClose: () => void }) {
   const { isCartOpen, toggleCart } = useHeaderContext()
-  const { cart, itemCount } = useSuspenseCart()
+  const { cart, itemCount } = cartFlow.useSuspenseCart()
 
   return (
     <Popover

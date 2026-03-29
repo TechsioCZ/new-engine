@@ -1,16 +1,25 @@
-import { useQueryClient } from "@tanstack/react-query"
-import { useRef } from "react"
-import { cacheConfig } from "@/lib/cache-config"
-import { prefetchLogger } from "@/lib/loggers/prefetch"
-import { buildPrefetchParams } from "@/lib/product-query-params"
-import { queryKeys } from "@/lib/query-keys"
-import { getProducts, getProductsGlobal } from "@/services/product-service"
+import { PRODUCT_LIMIT } from "@/lib/constants"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
+import {
+  buildCategoryPrefetchLabels,
+  runLoggedPrefetch,
+} from "./prefetch-utils"
+import { storefront } from "./storefront-preset"
 import { useRegion } from "./use-region"
 
 export function usePrefetchProducts() {
   const { regionId, countryCode } = useRegion()
-  const queryClient = useQueryClient()
-  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  const productHooks = storefront.hooks.products
+  const {
+    prefetchProducts: prefetchProductsBase,
+    prefetchFirstPage,
+    delayedPrefetch: delayedPrefetchBase,
+    cancelPrefetch: cancelPrefetchBase,
+  } = productHooks.usePrefetchProducts({
+    cacheStrategy: "semiStatic",
+    skipIfCached: true,
+    skipMode: "any",
+  })
 
   const prefetchCategoryProducts = async (
     categoryId: string[],
@@ -19,107 +28,74 @@ export function usePrefetchProducts() {
     if (!regionId) {
       return
     }
-    const [firstCategory] = categoryId
-    if (!firstCategory) {
+    const labels = buildCategoryPrefetchLabels(categoryId)
+    if (!labels) {
       return
     }
 
-    const queryParams = buildPrefetchParams({
+    const queryInput = {
       category_id: categoryId,
       region_id: regionId,
       country_code: countryCode,
-    })
-
-    const queryKey = queryKeys.products.list(queryParams)
-    const cached = queryClient.getQueryData(queryKey)
-
-    if (cached) {
-      const label = firstCategory.slice(-6)
-      prefetchLogger.cacheHit("Categories", label)
-    } else {
-      const label =
-        categoryId.length === 1
-          ? firstCategory.slice(-6)
-          : `${firstCategory.slice(-6)} +${categoryId.length - 1}`
-      const start = performance.now()
-
-      prefetchLogger.start("Categories", label)
-
-      await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: ({ signal }) => getProducts(queryParams, signal),
-        ...cacheConfig.semiStatic,
-        meta: prefetchedBy ? { prefetchedBy } : undefined,
-      })
-
-      const duration = performance.now() - start
-      prefetchLogger.complete("Categories", label, duration)
+      limit: PRODUCT_LIMIT,
+      offset: 0,
     }
+
+    await runLoggedPrefetch({
+      type: "Categories",
+      label: labels.requestLabel,
+      prefetch: () =>
+        prefetchProductsBase(queryInput, {
+          prefetchedBy,
+        }),
+    })
   }
 
   const prefetchRootCategories = async (categoryId: string[]) => {
     if (!regionId) {
       return
     }
-    const [firstCategory] = categoryId
-    if (!firstCategory) {
+    const labels = buildCategoryPrefetchLabels(categoryId)
+    if (!labels) {
       return
     }
 
-    const queryParams = buildPrefetchParams({
+    const queryInput = {
       category_id: categoryId,
       region_id: regionId,
       country_code: countryCode,
-    })
-
-    const queryKey = queryKeys.products.list(queryParams)
-    const cached = queryClient.getQueryData(queryKey)
-
-    if (cached) {
-      const label = firstCategory.slice(-6)
-      prefetchLogger.cacheHit("Root", label)
-    } else {
-      const label =
-        categoryId.length === 1
-          ? firstCategory.slice(-6)
-          : `${firstCategory.slice(-6)} +${categoryId.length - 1}`
-      const start = performance.now()
-
-      prefetchLogger.start("Root", label)
-
-      await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () => getProductsGlobal(queryParams),
-        ...cacheConfig.semiStatic,
-      })
-
-      const duration = performance.now() - start
-      prefetchLogger.complete("Root", label, duration)
     }
+
+    await runLoggedPrefetch({
+      type: "Root",
+      label: labels.requestLabel,
+      prefetch: () =>
+        prefetchFirstPage(queryInput, {
+          useGlobalFetcher: true,
+        }),
+    })
   }
 
-  const delayedPrefetch = (categoryId: string[], delay = 800) => {
-    const id = categoryId.join("-")
-    const existing = timeoutsRef.current.get(id)
-    if (existing) {
-      clearTimeout(existing)
+  const delayedPrefetch = (
+    categoryId: string[],
+    delay: number = PREFETCH_DELAYS.CATEGORY_LIST
+  ) => {
+    if (!regionId) {
+      return categoryId.join("-")
     }
 
-    const timeoutId = setTimeout(() => {
-      prefetchCategoryProducts(categoryId)
-      timeoutsRef.current.delete(id)
-    }, delay)
-
-    timeoutsRef.current.set(id, timeoutId)
+    const id = categoryId.join("-")
+    const queryInput = {
+      category_id: categoryId,
+      region_id: regionId,
+      country_code: countryCode,
+    }
+    delayedPrefetchBase(queryInput, delay, id)
     return id
   }
 
   const cancelPrefetch = (prefetchId: string) => {
-    const timeout = timeoutsRef.current.get(prefetchId)
-    if (timeout) {
-      clearTimeout(timeout)
-      timeoutsRef.current.delete(prefetchId)
-    }
+    cancelPrefetchBase(prefetchId)
   }
 
   return {

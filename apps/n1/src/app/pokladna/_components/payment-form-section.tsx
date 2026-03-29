@@ -1,97 +1,144 @@
 "use client"
 
-import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
-import { useState } from "react"
-import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
-import { useSuspenseRegion } from "@/hooks/use-region"
-import type { Cart } from "@/services/cart-service"
-
-type PaymentFormSectionProps = {
-  cart: Cart
-}
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { useEffect, useState } from "react"
+import { useCheckoutContext } from "../_context/checkout-context"
 
 const CASH_ON_DELIVERY_PROVIDER = "pp_system_default"
 
-export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
-  const { regionId } = useSuspenseRegion()
-  const [selectedProvider, setSelectedProvider] = useState<string>("")
-
+export function PaymentFormSection() {
+  const { payment, cart } = useCheckoutContext()
   const {
     paymentProviders,
     hasPaymentSessions,
     canInitiatePayment,
     isInitiatingPayment,
-    initiatePayment,
-  } = useCheckoutPayment(cart.id, regionId, cart)
+    isLoadingPaymentProviders,
+    isFetchingPaymentProviders,
+    initiatePaymentAsync,
+  } = payment
 
-  function handleProviderSelect(providerId: string) {
-    if (selectedProvider !== providerId) {
-      setSelectedProvider(providerId)
-      initiatePayment(providerId)
+  const hasProviders = (paymentProviders?.length ?? 0) > 0
+  const isLoadingProviders =
+    !hasProviders &&
+    (isLoadingPaymentProviders ||
+      (isFetchingPaymentProviders && !hasPaymentSessions))
+
+  const [selectedProvider, setSelectedProvider] = useState<string>("")
+  const [selectionError, setSelectionError] = useState<string | null>(null)
+  const currentProviderId =
+    cart?.payment_collection?.payment_sessions?.[0]?.provider_id ?? ""
+
+  useEffect(() => {
+    setSelectedProvider(currentProviderId)
+  }, [currentProviderId])
+
+  async function handleProviderSelect(providerId: string) {
+    if (!(canInitiatePayment && selectedProvider !== providerId)) {
+      return
+    }
+
+    const previousProvider = selectedProvider
+    setSelectionError(null)
+    setSelectedProvider(providerId)
+
+    try {
+      await initiatePaymentAsync(providerId)
+    } catch (error) {
+      setSelectedProvider(previousProvider)
+      setSelectionError(
+        error instanceof Error && error.message
+          ? error.message
+          : "Nepodařilo se změnit způsob platby"
+      )
     }
   }
 
   return (
     <section className="rounded border border-border-secondary bg-surface/70 p-400">
       <h2 className="mb-400 font-semibold text-fg-primary text-lg">Platba</h2>
-      {paymentProviders && paymentProviders.length > 0 && (
+      {isLoadingProviders && !hasPaymentSessions && (
+        <p className="text-fg-secondary text-sm">
+          Načítáme dostupné způsoby platby…
+        </p>
+      )}
+
+      {hasProviders && paymentProviders && (
         <>
           <div className="mb-300">
             <p className="font-medium text-fg-primary text-sm">
               Vyberte způsob platby:
             </p>
           </div>
-          <ul className="space-y-300">
+          <div
+            aria-label="Vyberte způsob platby"
+            className="space-y-300"
+            role="radiogroup"
+          >
             {paymentProviders.map((provider) => {
-              const providerInputId = `payment-provider-${provider.id}`
+              const selected = provider.id === selectedProvider
+
               return (
-                <li key={provider.id}>
-                  <label
-                    className="flex w-full cursor-pointer items-center gap-300 rounded border border-border-secondary bg-surface-light p-300 hover:bg-overlay data-[selected=true]:border-border-primary/30 data-[selected=true]:bg-overlay-light"
-                    data-selected={provider.id === selectedProvider}
-                    htmlFor={providerInputId}
-                  >
-                    <Checkbox
-                      checked={selectedProvider === provider.id}
-                      disabled={isInitiatingPayment}
-                      id={providerInputId}
-                      name="payment-provider"
-                      onChange={() => handleProviderSelect(provider.id)}
+                <Button
+                  aria-checked={selected}
+                  aria-label={provider.id}
+                  className="flex w-full items-center gap-300 rounded border border-border-secondary bg-surface-light p-300 text-left hover:bg-overlay data-[selected=true]:border-border-primary/30 data-[selected=true]:bg-overlay-light"
+                  data-selected={selected}
+                  disabled={isInitiatingPayment || !canInitiatePayment}
+                  key={provider.id}
+                  onClick={async () => {
+                    await handleProviderSelect(provider.id)
+                  }}
+                  role="radio"
+                  size="current"
+                  theme="unstyled"
+                  type="button"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border-primary/40">
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${selected ? "bg-fg-primary" : "bg-transparent"}`}
                     />
-                    <span className="flex flex-1 flex-col">
-                      <span className="font-medium text-fg-primary text-sm">
-                        {provider.id === CASH_ON_DELIVERY_PROVIDER
-                          ? "Při převzetí"
-                          : provider.id}
-                      </span>
-                      <span className="text-fg-secondary text-xs">
-                        {provider.id === CASH_ON_DELIVERY_PROVIDER
-                          ? "Zaplatíte při doručení objednávky"
-                          : "Online platba"}
-                      </span>
+                  </span>
+                  <span className="flex flex-1 flex-col">
+                    <span className="font-medium text-fg-primary text-sm">
+                      {provider.id === CASH_ON_DELIVERY_PROVIDER
+                        ? "Při převzetí"
+                        : provider.id}
                     </span>
-                  </label>
-                </li>
+                    <span className="text-fg-secondary text-xs">
+                      {provider.id === CASH_ON_DELIVERY_PROVIDER
+                        ? "Zaplatíte při doručení objednávky"
+                        : "Online platba"}
+                    </span>
+                  </span>
+                </Button>
               )
             })}
-          </ul>
+          </div>
+
+          {isFetchingPaymentProviders && (
+            <p className="mt-300 text-fg-tertiary text-xs">
+              Aktualizujeme dostupné způsoby platby…
+            </p>
+          )}
+
+          {selectionError && (
+            <p className="mt-300 text-danger text-xs">{selectionError}</p>
+          )}
 
           {!canInitiatePayment && (
             <p className="mt-300 text-fg-tertiary text-xs">
-              💡 Nejprve vyberte způsob dopravy
+              Nejprve vyberte způsob dopravy
             </p>
           )}
         </>
       )}
 
-      {!hasPaymentSessions &&
+      {!(isLoadingProviders || hasPaymentSessions) &&
         (!paymentProviders || paymentProviders.length === 0) && (
-          <div className="rounded border border-border-primary p-300">
-            <p className="font-medium text-fg-primary text-sm">Při převzetí</p>
-            <p className="mt-100 text-fg-secondary text-xs">
-              Zaplatíte při doručení objednávky
-            </p>
-          </div>
+          <p className="text-fg-secondary text-sm">
+            Žádný způsob platby není momentálně k dispozici.
+          </p>
         )}
     </section>
   )

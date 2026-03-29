@@ -5,8 +5,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useDebounce } from "@/hooks/use-debounce"
-import type { CartLineItem } from "@/services/cart-service"
-import { formatToTaxIncluded } from "@/utils/format/format-product"
+import { formatCartLineItemUnitPrice } from "@/lib/pricing/cart-pricing"
+import type { CartLineItem } from "@/types/cart"
 
 type CartItemProps = {
   item: CartLineItem
@@ -48,7 +48,7 @@ export const CartItem = ({
     debouncedUpdate(validValue)
   }
 
-  const formattedPrice = formatToTaxIncluded({ amount: item.unit_price })
+  const formattedPrice = formatCartLineItemUnitPrice(item)
 
   return (
     <div

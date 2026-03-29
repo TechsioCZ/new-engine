@@ -1,6 +1,8 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
+import type { MedusaCompleteCheckoutError } from "@techsio/storefront-data/medusa/checkout-flow"
+import { StorefrontAddressValidationError } from "@techsio/storefront-data/shared/address"
 import { useRouter } from "next/navigation"
 import {
   createContext,
@@ -10,12 +12,11 @@ import {
   useRef,
   useState,
 } from "react"
+import { cartFlow, checkoutFlow, storefront } from "@/hooks/storefront-preset"
 import { useSuspenseAuth } from "@/hooks/use-auth"
-import { useCompleteCart, useSuspenseCart } from "@/hooks/use-cart"
 import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
 import { useCheckoutShipping } from "@/hooks/use-checkout-shipping"
 import { useSuspenseRegion } from "@/hooks/use-region"
-import { useUpdateCartAddress } from "@/hooks/use-update-cart-address"
 import {
   accessPointToAddress,
   addressToFormData,
@@ -42,14 +43,59 @@ type InitialCheckoutState = {
   selectedAddressId: string | null
 }
 
+type SuspenseCartResult = ReturnType<typeof cartFlow.useSuspenseCart>
+
+const includesMessagePart = (message: string, parts: string[]): boolean => {
+  const normalizedMessage = message.toLowerCase()
+  return parts.some((part) => normalizedMessage.includes(part))
+}
+
+const toCheckoutCompletionErrorMessage = (error: unknown): string => {
+  if (!(error && typeof error === "object" && "stage" in error)) {
+    return "Nepodařilo se dokončit objednávku"
+  }
+
+  const completeCheckoutError = error as MedusaCompleteCheckoutError
+
+  switch (completeCheckoutError.stage) {
+    case "cart":
+      return "Košík nebyl nalezen"
+    case "payment_provider":
+      return "Není dostupný způsob platby"
+    case "payment":
+      return completeCheckoutError.message
+        ? `Chyba platby: ${completeCheckoutError.message}`
+        : "Nepodařilo se inicializovat platbu"
+    case "complete":
+      if (
+        includesMessagePart(completeCheckoutError.message, [
+          "payment",
+          "platba",
+        ])
+      ) {
+        return `Chyba platby: ${completeCheckoutError.message}`
+      }
+
+      if (
+        includesMessagePart(completeCheckoutError.message, ["stock", "sklad"])
+      ) {
+        return `Některé produkty nejsou skladem: ${completeCheckoutError.message}`
+      }
+
+      return completeCheckoutError.message
+        ? `Nepodařilo se dokončit objednávku: ${completeCheckoutError.message}`
+        : "Nepodařilo se dokončit objednávku"
+    default:
+      return "Nepodařilo se dokončit objednávku"
+  }
+}
+
 const resolveInitialCheckoutState = (
-  cart: ReturnType<typeof useSuspenseCart>["cart"],
+  cart: SuspenseCartResult["cart"],
   customer: ReturnType<typeof useSuspenseAuth>["customer"]
 ): InitialCheckoutState => {
   if (cart?.billing_address?.first_name) {
-    const addressData = addressToFormData(
-      cart.billing_address
-    ) as AddressFormData
+    const addressData = addressToFormData(cart.billing_address)
 
     return {
       defaultValues: {
@@ -63,7 +109,7 @@ const resolveInitialCheckoutState = (
   if (customer?.addresses && customer.addresses.length > 0) {
     const defaultAddress = getDefaultAddress(customer.addresses)
     if (defaultAddress) {
-      const addressData = addressToFormData(defaultAddress) as AddressFormData
+      const addressData = addressToFormData(defaultAddress)
       return {
         defaultValues: {
           email: customer?.email ?? "",
@@ -85,7 +131,7 @@ const resolveInitialCheckoutState = (
 
 type CheckoutContextValue = {
   form: CheckoutForm
-  cart: ReturnType<typeof useSuspenseCart>["cart"]
+  cart: SuspenseCartResult["cart"]
   hasItems: boolean
   shipping: ReturnType<typeof useCheckoutShipping>
   payment: ReturnType<typeof useCheckoutPayment>
@@ -111,20 +157,30 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   const { customer } = useSuspenseAuth()
-  const { cart, hasItems } = useSuspenseCart()
+  const { cart, hasItems } = cartFlow.useSuspenseCart()
   const { regionId } = useSuspenseRegion()
 
   const shipping = useCheckoutShipping(cart?.id, cart)
   const payment = useCheckoutPayment(cart?.id, regionId, cart)
 
   const { mutateAsync: updateCartAddressAsync, isPending: isSavingAddress } =
-    useUpdateCartAddress()
-  const { mutateAsync: completeCartAsync, isPending: isCompletingCart } =
-    useCompleteCart({
-      onSuccess: (order) => {
+    storefront.hooks.cart.useUpdateCartAddress()
+  const {
+    mutateAsync: completeCheckoutAsync,
+    isPending: isCompletingCheckout,
+  } = checkoutFlow.useCompleteCheckout(
+    {
+      cartId: cart?.id,
+      cart,
+      regionId,
+      enabled: Boolean(cart?.id),
+    },
+    {
+      onSuccess: ({ order }) => {
         router.push(`/orders/${order.id}?success=true`)
       },
-    })
+    }
+  )
 
   const initialStateRef = useRef<InitialCheckoutState | null>(null)
   if (!initialStateRef.current) {
@@ -140,6 +196,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     useState<PplAccessPointData | null>(null)
   const [isPickupDialogOpen, setIsPickupDialogOpen] = useState(false)
   const [pendingOptionId, setPendingOptionId] = useState<string | null>(null)
+  const hasAutoSelectedShippingRef = useRef(false)
 
   const openPickupDialog = (optionId: string) => {
     setPendingOptionId(optionId)
@@ -186,12 +243,26 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
         const cartEmail = customer?.email || email
         await updateCartAddressAsync({
           cartId: cart.id,
+          region_id: regionId,
           billingAddress,
           shippingAddress,
           email: cartEmail,
         })
       } catch (err) {
-        if (err instanceof Error) {
+        if (err instanceof StorefrontAddressValidationError) {
+          const firstIssue = err.issues[0]
+          if (firstIssue?.scope === "billing") {
+            setError(
+              `Chyba fakturační adresy: ${firstIssue.message ?? err.message}`
+            )
+          } else if (firstIssue?.scope === "shipping") {
+            setError(
+              `Chyba doručovací adresy: ${firstIssue.message ?? err.message}`
+            )
+          } else {
+            setError(`Neplatná adresa: ${firstIssue?.message ?? err.message}`)
+          }
+        } else if (err instanceof Error) {
           if (
             err.message.includes("billing") ||
             err.message.includes("faktur")
@@ -213,49 +284,52 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      // Complete the cart
       try {
-        await completeCartAsync({ cartId: cart.id })
+        await completeCheckoutAsync({
+          paymentProviderId:
+            cart.payment_collection?.payment_sessions?.[0]?.provider_id,
+        })
       } catch (err) {
-        if (err instanceof Error) {
-          if (
-            err.message.includes("payment") ||
-            err.message.includes("platb")
-          ) {
-            setError(`Chyba platby: ${err.message}`)
-          } else if (
-            err.message.includes("stock") ||
-            err.message.includes("sklad")
-          ) {
-            setError(`Některé produkty nejsou skladem: ${err.message}`)
-          } else {
-            setError(`Nepodařilo se dokončit objednávku: ${err.message}`)
-          }
-        } else {
-          setError("Nepodařilo se dokončit objednávku")
-        }
+        setError(toCheckoutCompletionErrorMessage(err))
       }
     },
   })
 
-  // Auto-select PPL Private as default (PPL Parcel requires dialog)
-  // NOTE: Options 0-6 use manual_manual provider which is disabled on backend
+  // Auto-select PPL Private as default.
+  // Other manual_manual options are currently exposed by backend config,
+  // but fail when applied to the cart.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset auto-selected shipping when cart changes
   useEffect(() => {
+    hasAutoSelectedShippingRef.current = false
+  }, [cart?.id])
+
+  useEffect(() => {
+    if (hasAutoSelectedShippingRef.current) {
+      return
+    }
+
     if (
       shipping.shippingOptions &&
       shipping.shippingOptions.length > 0 &&
       !shipping.selectedShippingMethodId
     ) {
-      // Find PPL Private option (doesn't require access point selection)
       const pplPrivate = shipping.shippingOptions.find((opt) =>
         opt.name.toLowerCase().includes("ppl private")
       )
       if (pplPrivate) {
+        hasAutoSelectedShippingRef.current = true
         shipping.setShipping(pplPrivate.id)
       }
-      // Don't auto-select if no PPL Private found - let user choose manually
     }
-  }, [shipping.shippingOptions, shipping.selectedShippingMethodId, shipping])
+
+    if (shipping.selectedShippingMethodId) {
+      hasAutoSelectedShippingRef.current = true
+    }
+  }, [
+    shipping.shippingOptions,
+    shipping.selectedShippingMethodId,
+    shipping.setShipping,
+  ])
 
   // Reset access point when switching to non-parcel shipping method
   useEffect(() => {
@@ -295,7 +369,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     selectedAddressId,
     setSelectedAddressId,
     completeCheckout,
-    isCompleting: isSavingAddress || isCompletingCart,
+    isCompleting: isSavingAddress || isCompletingCheckout,
     error,
     isReady,
     // PPL Parcel state

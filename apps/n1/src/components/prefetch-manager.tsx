@@ -5,29 +5,28 @@ import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 import { useRegion } from "@/hooks/use-region"
 import { CATEGORY_MAP } from "@/lib/constants"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
-
-const PREFETCH_DELAY = 200
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 
 /**
- * Prefetches all root categories on non-category pages
- * Category pages use usePrefetchRootCategories hook instead
+ * Prefetches all root categories only on homepage
+ * Category pages use usePrefetchRootCategories hook instead.
  */
 export function PrefetchManager() {
   const { prefetchRootCategories } = usePrefetchProducts()
   const { regionId } = useRegion()
-  const pathname = usePathname()
+  const pathname = usePathname() ?? "/"
   const hasPrefetched = useRef(false)
+  const prefetchedRegionId = useRef<string | undefined>(undefined)
 
   useEffect(() => {
-    if (!regionId) {
-      return
+    if (prefetchedRegionId.current !== regionId) {
+      hasPrefetched.current = false
+      prefetchedRegionId.current = regionId
     }
-    if (hasPrefetched.current) {
-      return
-    }
+  }, [regionId])
 
-    // Skip category pages - they have their own prefetch logic
-    if (pathname.startsWith("/kategorie/")) {
+  useEffect(() => {
+    if (pathname !== "/" || !regionId || hasPrefetched.current) {
       return
     }
 
@@ -40,7 +39,7 @@ export function PrefetchManager() {
       for (const categoryIds of Object.values(CATEGORY_MAP)) {
         prefetchRootCategories(categoryIds)
       }
-    }, PREFETCH_DELAY)
+    }, PREFETCH_DELAYS.ROOT_CATEGORIES)
 
     return () => clearTimeout(timer)
   }, [regionId, pathname, prefetchRootCategories])
