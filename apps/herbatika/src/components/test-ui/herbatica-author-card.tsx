@@ -2,16 +2,16 @@ import { Image } from "@techsio/ui-kit/atoms/image";
 
 type HerbaticaAuthorCardProps = {
   author: string;
+  authorRole: string;
   bio: string;
   imageSrc?: string;
-  role: string;
 };
 
 export function HerbaticaAuthorCard({
   author,
+  authorRole,
   bio,
   imageSrc = "/photos/image.png",
-  role,
 }: HerbaticaAuthorCardProps) {
   return (
     <section className="flex flex-col gap-300 rounded-2xl border border-border-secondary bg-surface p-400 sm:flex-row sm:items-center">
@@ -24,8 +24,10 @@ export function HerbaticaAuthorCard({
       />
 
       <div className="space-y-150">
-        <p className="text-xs leading-normal text-fg-secondary">{role}</p>
-        <h3 className="text-xl leading-tight font-bold text-fg-primary">{author}</h3>
+        <p className="text-xs leading-normal text-fg-secondary">{authorRole}</p>
+        <h3 className="text-xl leading-tight font-bold text-fg-primary">
+          {author}
+        </h3>
         <p className="text-sm leading-relaxed text-fg-secondary">{bio}</p>
       </div>
     </section>

@@ -5,6 +5,8 @@
 
 @import "./molecules/_herbatika-carousel.css";
 @import "./molecules/_herbatika-product-card.css";
+@import "./molecules/_herbatika-radio-card.css";
+@import "./molecules/_herbatika-radio-group.css";
 @import "./molecules/_herbatika-search-form.css";
 @import "./molecules/_herbatika-select.css";
 
