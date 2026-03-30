@@ -1,5 +1,5 @@
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
-import { SupportingText } from "@/components/text/supporting-text";
+import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+import { SupportingText } from "@/components/text/supporting-text"
 
 // function CartRowNumericInput() {
 //   return (
@@ -18,22 +18,32 @@ import { SupportingText } from "@/components/text/supporting-text";
 function ProductDetailNumericInput() {
   return (
     <div className="w-fit">
-      <NumericInput defaultValue={1} id="product-quantity-preview" inputMode="numeric" max={50} min={1} size="md">
+      <NumericInput
+        defaultValue={1}
+        id="product-quantity-preview"
+        inputMode="numeric"
+        max={50}
+        min={1}
+        size="md"
+      >
         <NumericInput.Control>
           <NumericInput.DecrementTrigger />
-          <NumericInput.Input aria-label="Množstvo na detaile produktu" className="text-center" />
+          <NumericInput.Input
+            aria-label="Množstvo na detaile produktu"
+            className="text-center"
+          />
           <NumericInput.IncrementTrigger />
         </NumericInput.Control>
       </NumericInput>
     </div>
-  );
+  )
 }
 
 export function NumericInputShowcase() {
   return (
     <div className="space-y-500">
       <section className="grid gap-300 xl:grid-cols-2">
-       {/* <article className="space-y-300 rounded-md border border-border-secondary bg-surface p-400">
+        {/* <article className="space-y-300 rounded-md border border-border-secondary bg-surface p-400">
           <div className="space-y-100">
             <h2 className="text-lg font-semibold text-fg-primary">Cart row quantity</h2>
             <SupportingText>Quantity control pro mini-cart a cart row surface.</SupportingText>
@@ -45,15 +55,18 @@ export function NumericInputShowcase() {
 
         <article className="space-y-300 rounded-md border border-border-secondary bg-surface p-400">
           <div className="space-y-100">
-            <h2 className="text-lg font-semibold text-fg-primary">PDP quantity picker</h2>
-            <SupportingText>Quantity control pro product detail purchase panel.</SupportingText>
+            <h2 className="font-semibold text-fg-primary text-lg">
+              PDP quantity picker
+            </h2>
+            <SupportingText>
+              Quantity control pro product detail purchase panel.
+            </SupportingText>
           </div>
-          <div className="rounded-md bg-highlight p-400 w-32">
+          <div className="w-32 rounded-mdp-400">
             <ProductDetailNumericInput />
           </div>
         </article>
       </section>
-
     </div>
-  );
+  )
 }

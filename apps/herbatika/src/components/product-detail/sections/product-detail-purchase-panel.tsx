@@ -1,37 +1,37 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Link } from "@techsio/ui-kit/atoms/link";
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
-import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
-import NextLink from "next/link";
+import type { HttpTypes } from "@medusajs/types"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { Link } from "@techsio/ui-kit/atoms/link"
+import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
+import NextLink from "next/link"
 import type {
   ProductOfferState,
   StorefrontProduct,
-} from "@/components/product-detail/product-detail.types";
-import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers";
+} from "@/components/product-detail/product-detail.types"
+import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
 
 type ProductDetailPurchasePanelProps = {
-  currentAmountLabel: string;
-  discountPercent: number | null;
-  displayOriginalLabel: string | null;
-  isAdding: boolean;
-  offerState: ProductOfferState;
-  onAddToCart: () => void;
-  onQuantityChange: (quantity: number) => void;
-  onVariantChange: (variantId: string | null) => void;
-  product: StorefrontProduct;
-  productCategories: HttpTypes.StoreProductCategory[];
-  productHighlights: string[];
-  quantity: number;
-  selectedVariantId: string | null;
-  unitPriceLabel: string | null;
-  variantItems: SelectItem[];
-  vipCreditLabel: string | null;
-};
+  currentAmountLabel: string
+  discountPercent: number | null
+  displayOriginalLabel: string | null
+  isAdding: boolean
+  offerState: ProductOfferState
+  onAddToCart: () => void
+  onQuantityChange: (quantity: number) => void
+  onVariantChange: (variantId: string | null) => void
+  product: StorefrontProduct
+  productCategories: HttpTypes.StoreProductCategory[]
+  productHighlights: string[]
+  quantity: number
+  selectedVariantId: string | null
+  unitPriceLabel: string | null
+  variantItems: SelectItem[]
+  vipCreditLabel: string | null
+}
 
 export function ProductDetailPurchasePanel({
   currentAmountLabel,
@@ -50,11 +50,11 @@ export function ProductDetailPurchasePanel({
   variantItems,
   vipCreditLabel,
 }: ProductDetailPurchasePanelProps) {
-  const primaryCategory = productCategories[0];
+  const primaryCategory = productCategories[0]
   const displayHighlights = productHighlights
     .map((highlight) => highlight.replace(/\s+/g, " ").trim())
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, 3)
 
   return (
     <div className="space-y-300 rounded-lg border border-border-secondary bg-surface p-350">
@@ -69,15 +69,17 @@ export function ProductDetailPurchasePanel({
 
         <div className="ml-auto flex items-center gap-500">
           <div className="flex items-center gap-100">
-            <span className="text-sm leading-tight text-fg-placeholder">
+            <span className="text-fg-placeholder text-sm leading-tight">
               ID: {offerState.code ?? product.handle}
             </span>
             {primaryCategory?.handle ? (
               <>
-                <span className="text-sm leading-tight text-fg-placeholder">•</span>
+                <span className="text-fg-placeholder text-sm leading-tight">
+                  •
+                </span>
                 <Link
                   as={NextLink}
-                  className="text-sm leading-tight font-normal text-primary underline hover:text-primary-strong"
+                  className="font-normal text-primary text-sm leading-tight underline hover:text-primary-strong"
                   href={`/c/${primaryCategory.handle}`}
                 >
                   {normalizeCategoryName(primaryCategory.name)}
@@ -88,7 +90,7 @@ export function ProductDetailPurchasePanel({
 
           <Button
             aria-label="Pridať do obľúbených"
-            className="h-600 w-600 min-h-600 min-w-600 p-0 text-fg-secondary hover:text-fg-primary"
+            className="h-600 min-h-600 w-600 min-w-600 p-0 text-fg-secondary hover:text-fg-primary"
             size="sm"
             theme="borderless"
             variant="secondary"
@@ -99,7 +101,7 @@ export function ProductDetailPurchasePanel({
       </div>
 
       <header className="space-y-200">
-        <h1 className="text-3xl font-semibold leading-none text-fg-primary">
+        <h1 className="font-semibold text-3xl text-fg-primary leading-none">
           {product.title}
         </h1>
       </header>
@@ -107,7 +109,7 @@ export function ProductDetailPurchasePanel({
       <ul className="space-y-50">
         {displayHighlights.map((highlight) => (
           <li
-            className="relative pl-500 pt-100 text-md leading-tight text-fg-primary"
+            className="relative pt-100 pl-500 text-fg-primary text-md leading-tight"
             key={highlight}
           >
             <span className="absolute top-300 left-0 h-200 w-200 rounded-full bg-primary" />
@@ -119,28 +121,33 @@ export function ProductDetailPurchasePanel({
       <div className="flex flex-wrap items-end justify-between gap-250">
         <div className="space-y-200">
           <div className="flex flex-wrap items-end gap-150">
-            <p className="text-3xl leading-tight font-medium text-fg-primary">
+            <p className="font-medium text-3xl text-fg-primary leading-tight">
               {currentAmountLabel}
             </p>
             {displayOriginalLabel ? (
-              <span className="pb-50 text-lg leading-normal font-normal text-fg-secondary line-through">
+              <span className="pb-50 font-normal text-fg-secondary text-lg leading-normal line-through">
                 {displayOriginalLabel}
               </span>
             ) : null}
           </div>
           {unitPriceLabel ? (
-            <p className="text-md leading-tight text-fg-primary">{unitPriceLabel}</p>
+            <p className="text-fg-primary text-md leading-tight">
+              {unitPriceLabel}
+            </p>
           ) : null}
         </div>
 
         {vipCreditLabel ? (
           <div className="flex items-center gap-400 rounded-sm bg-highlight px-400 py-200">
-            <Icon className="text-primary" icon="icon-[mdi--star-check-outline]" />
+            <Icon
+              className="text-primary"
+              icon="icon-[mdi--star-check-outline]"
+            />
             <div className="space-y-50">
-              <p className="text-md leading-tight font-semibold text-fg-primary">
+              <p className="font-semibold text-fg-primary text-md leading-tight">
                 VIP kredit
               </p>
-              <p className="text-sm leading-tight text-fg-secondary">
+              <p className="text-fg-secondary text-sm leading-tight">
                 {`Nákupom získate ${vipCreditLabel}`}
               </p>
             </div>
@@ -152,7 +159,7 @@ export function ProductDetailPurchasePanel({
         <Select
           items={variantItems}
           onValueChange={(details) => {
-            onVariantChange(details.value[0] ?? null);
+            onVariantChange(details.value[0] ?? null)
           }}
           size="sm"
           value={selectedVariantId ? [selectedVariantId] : []}
@@ -177,37 +184,27 @@ export function ProductDetailPurchasePanel({
       ) : null}
 
       <div className="grid items-center gap-350 sm:grid-cols-4">
-        <div className="sm:col-span-1 sm:px-300">
+        <div>
           <NumericInput
+            className="w-full"
             id="product-quantity"
             max={50}
             min={1}
             onChange={(value) => {
               if (!Number.isFinite(value) || value < 1) {
-                onQuantityChange(1);
-                return;
+                onQuantityChange(1)
+                return
               }
 
-              onQuantityChange(Math.floor(value));
+              onQuantityChange(Math.floor(value))
             }}
-            size="sm"
             value={quantity}
           >
-            <div className="grid grid-cols-3 overflow-hidden rounded-sm border border-border-primary">
-              <NumericInput.DecrementTrigger
-                className="rounded-none border-0 bg-transparent px-0 py-300 text-md leading-tight text-fg-primary disabled:opacity-35"
-                icon="icon-[mdi--minus]"
-                theme="borderless"
-              />
-              <NumericInput.Control className="rounded-none border-x-0 border-y-0 border-border-primary bg-transparent">
-                <NumericInput.Input className="rounded-none border-0 focus:bg-base px-200 py-300 text-center text-md" />
-              </NumericInput.Control>
-              <NumericInput.IncrementTrigger
-                className="rounded-none border-0 bg-transparent px-0 py-300 text-md leading-tight text-fg-primary"
-                icon="icon-[mdi--plus]"
-                theme="borderless"
-              />
-            </div>
+            <NumericInput.Control>
+              <NumericInput.DecrementTrigger />
+              <NumericInput.Input className="text-center" />
+              <NumericInput.IncrementTrigger />
+            </NumericInput.Control>
           </NumericInput>
         </div>
 
@@ -225,5 +222,5 @@ export function ProductDetailPurchasePanel({
         </Button>
       </div>
     </div>
-  );
+  )
 }
