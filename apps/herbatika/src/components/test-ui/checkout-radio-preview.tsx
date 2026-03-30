@@ -209,7 +209,7 @@ function CheckoutCardPreview({
                     </span>
                   ) : null}
 
-                  <RadioCard.ItemContent className="gap-50">
+                  <RadioCard.ItemContent>
                     <div className="flex min-w-0 flex-wrap items-center gap-x-150 gap-y-50">
                       <RadioCard.ItemText
                         className={resolveOfferTitleClassName({
