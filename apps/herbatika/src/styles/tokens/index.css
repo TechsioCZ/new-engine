@@ -1,13 +1,15 @@
 @import "tailwindcss";
 @import "@techsio/ui-kit/tokens";
-@import "./_herbatica-base.css";
-@import "./_herbatica-icons.css";
-@import "./_herbatica-layout.css";
-@import "./_herbatica-semantic.css";
-@import "./_herbatica-spacing.css";
-@import "./_herbatica-typography.css";
 
-/* components overrides */
+@import "./_herbatika-base.css";
+@import "./_herbatika-icons.css";
+@import "./_herbatika-layout.css";
+@import "./_herbatika-semantic.css";
+@import "./_herbatika-spacing.css";
+@import "./_herbatika-typography.css";
+
 @import "./components/components.css";
-@source "../../../node_modules/@techsio/ui-kit";
+
 @plugin "tailwindcss-animate";
+@source "../../../node_modules/@techsio/ui-kit";
+@source "../../**/*.{js,ts,jsx,tsx,mdx}";

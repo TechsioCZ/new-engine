@@ -1,7 +1,0 @@
-@theme static {
-  --container-max-w: 88.75rem; /* 1420px */
-  --container-header-search: 30.625rem; /* 490px */
-  --container-footer-intro: 24rem; /* 384px */
-  --container-auth-content: 48rem; /* 768px */
-  --container-account-content: 80rem; /* 1280px */
-}

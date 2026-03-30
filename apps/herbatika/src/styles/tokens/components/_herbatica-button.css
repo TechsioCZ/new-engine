@@ -1,6 +1,0 @@
-@theme static {
-  --color-button-fg-outlined-primary: var(--color-primary);
-  --color-button-border-secondary: var(--color-border-secondary);
-  --text-button-md: var(--text-sm);
-  --radius-button-md: var(--radius-sm);
-}
