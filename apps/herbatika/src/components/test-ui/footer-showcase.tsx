@@ -1,10 +1,8 @@
 import NextLink from "next/link";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
 import { Footer } from "@techsio/ui-kit/organisms/footer";
 import { HerbatikaLogo } from "@/components/herbatika-logo";
-import { SupportingText } from "@/components/text/supporting-text";
 
 const FOOTER_COLUMNS = [
   {
@@ -39,12 +37,6 @@ const FOOTER_COLUMNS = [
   },
 ] as const;
 
-const FOOTER_NOTES = [
-  "Shared Footer contract je pro Herbatiku správná volba; teď už jen dolaďujeme existující `--footer-*` tokeny pro `md` variantu.",
-  "Do `_herbatika-footer.css` jdou jen tokeny, které se skutečně používají a opravdu se odlišují od defaultní logiky `libs/ui`.",
-  "Inline className v téhle surface zůstávají jen tam, kde jde o lokální composition kolem Footer slotů, ne o nový tokenový systém vedle `libs/ui`.",
-] as const;
-
 const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
   { href: "https://www.facebook.com/", icon: "icon-[mdi--facebook]", label: "Facebook" },
   { href: "https://www.instagram.com/", icon: "icon-[mdi--instagram]", label: "Instagram" },
@@ -69,7 +61,7 @@ const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
 export function FooterShowcase() {
   return (
       <section className="rounded-md border border-border-secondary bg-surface p-500">
-        <Footer direction="vertical" size="md">
+        <Footer direction="vertical">
           <Footer.Container className="mx-auto grid-cols-1 gap-x-0 px-500 pt-850 pb-700 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-600 xl:gap-y-0">
             <Footer.Section>
               <HerbatikaLogo size="lg" />
@@ -82,7 +74,7 @@ export function FooterShowcase() {
                 <Icon className="mt-50 text-2xl text-fg-secondary" icon="icon-[mdi--phone-outline]" />
                 <span className="leading-normal">
                   <span className="block font-bold text-primary">+421 2/321 123 45</span>
-                  <span className="block text-sm text-fg-secondary">(Po-Pia: 9:00 - 16:00)</span>
+                  <span className="block text-sm">(Po-Pia: 9:00 - 16:00)</span>
                 </span>
               </Footer.Text>
 
@@ -141,8 +133,8 @@ export function FooterShowcase() {
 
           <Footer.Divider className="mx-auto max-w-footer-max" />
           
-          <Footer.Bottom className="mx-auto w-full max-w-footer-max flex-wrap items-center gap-400">
-            <Footer.Text className="leading-normal text-fg-secondary">
+          <Footer.Bottom className="mx-auto max-w-footer-max flex-wrap items-center gap-400">
+            <Footer.Text className="leading-normal">
               Copyright 2025 <strong className="text-fg-primary">Herbatica.sk.</strong> Všetky
               práva vyhradené.{" "}
               <Footer.Link as={NextLink} className="text-primary underline" href="/#cookies">
