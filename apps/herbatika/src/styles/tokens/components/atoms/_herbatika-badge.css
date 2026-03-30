@@ -1,9 +1,9 @@
 @theme static {
-  --spacing-badge-md: var(--spacing-100);
+  --spacing-badge-md: var(--spacing-100) var(--spacing-200);
   --spacing-badge-lg: var(--spacing-200);
   --text-badge-md: var(--text-xs);
   --font-weight-badge-md: var(--font-weight-semibold);
-  --radius-badge: var(--radius-xs);
+  --radius-badge: var(--radius-md);
 
   --color-badge-bg-primary: var(--color-primary);
   --color-badge-fg-primary: var(--color-fg-reverse);

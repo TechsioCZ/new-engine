@@ -2,7 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useMemo, useState } from "react";
-import { HerbatikaProductCard } from "@/components/herbatika-product-card";
+import { HerbatikaProductCardCompact } from "@/components/herbatika-product-card-compact";
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton";
 import { RECENT_PRODUCT_SKELETON_KEYS } from "@/components/homepage/homepage.data";
 import { SupportingText } from "@/components/text/supporting-text";
@@ -12,16 +12,17 @@ type HomepageRecentProductsSectionProps = {
   shouldShowProductSkeleton: boolean;
 };
 
-const RECENT_PRODUCTS_GRID_CLASSNAME = "grid grid-cols-2 gap-300 md:grid-cols-4";
+const RECENT_PRODUCTS_GRID_CLASSNAME =
+  "grid grid-cols-2 gap-300 md:grid-cols-4";
 const RECENT_PRODUCTS_VISIBLE_COUNT = 4;
 
 export function HomepageRecentProductsSection({
   products,
   shouldShowProductSkeleton,
 }: HomepageRecentProductsSectionProps) {
-  const [productsWithImageError, setProductsWithImageError] = useState<string[]>(
-    [],
-  );
+  const [productsWithImageError, setProductsWithImageError] = useState<
+    string[]
+  >([]);
 
   const visibleProducts = useMemo(() => {
     return products
@@ -50,7 +51,9 @@ export function HomepageRecentProductsSection({
   return (
     <section className="space-y-400" id="naposledy-navstivene">
       <header>
-        <h2 className="text-2xl font-bold text-fg-primary">Naposledy navštívené</h2>
+        <h2 className="text-2xl font-bold text-fg-primary">
+          Naposledy navštívené
+        </h2>
       </header>
 
       {shouldShowProductSkeleton ? (
@@ -62,11 +65,10 @@ export function HomepageRecentProductsSection({
       ) : visibleProducts.length > 0 ? (
         <div className={RECENT_PRODUCTS_GRID_CLASSNAME}>
           {visibleProducts.map((product, index) => (
-            <HerbatikaProductCard
+            <HerbatikaProductCardCompact
               key={`recent-product-${product.id}-${index}`}
               onCompactImageError={handleCompactImageError}
               product={product}
-              variant="compact"
             />
           ))}
         </div>
