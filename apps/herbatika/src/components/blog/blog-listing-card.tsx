@@ -12,7 +12,7 @@ type BlogListingCardProps = {
 export function BlogListingCard({ post }: BlogListingCardProps) {
   return (
     <article className="flex h-full min-h-950 flex-col overflow-hidden rounded-2xl border border-border-secondary bg-surface">
-      <Link as={NextLink} className="block" href={`/blog/${post.slug}`}>
+      <NextLink className="block" href={`/blog/${post.slug}`}>
         <Image
           alt={post.title}
           className="aspect-video w-full object-cover"
@@ -21,7 +21,7 @@ export function BlogListingCard({ post }: BlogListingCardProps) {
           src={post.imageSrc}
           width={640}
         />
-      </Link>
+      </NextLink>
 
       <div className="flex h-full flex-col gap-200 p-300">
         <div className="flex items-center justify-between gap-200">
@@ -29,33 +29,31 @@ export function BlogListingCard({ post }: BlogListingCardProps) {
             {formatBlogDate(post.publishedAt)}
           </p>
           <Badge
-            className="rounded-full px-200 py-100 text-2xs font-medium"
+            className="text-2xs"
             variant="secondary"
           >
             {formatTopicFromKey(post.topic)}
           </Badge>
         </div>
 
-        <Link
-          as={NextLink}
+        <NextLink
           className="line-clamp-2 text-lg leading-snug font-bold text-fg-primary hover:text-primary"
           href={`/blog/${post.slug}`}
         >
           {post.title}
-        </Link>
+        </NextLink>
 
         <p className="line-clamp-3 font-verdana text-xs leading-relaxed text-fg-secondary">
           {post.excerpt}
         </p>
 
         <div className="mt-auto flex items-center justify-between gap-300">
-          <Link
-            as={NextLink}
+          <NextLink
             className="text-xs leading-normal font-semibold text-fg-primary underline underline-offset-2 hover:text-primary"
             href={`/blog/${post.slug}`}
           >
             Prejsť na článok →
-          </Link>
+          </NextLink>
           <span className="text-2xs leading-normal text-fg-secondary">
             {post.readingTime}
           </span>

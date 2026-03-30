@@ -1,5 +1,5 @@
 "use client";
-
+import NextLink from "next/link";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Image } from "@techsio/ui-kit/atoms/image";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
@@ -23,7 +23,7 @@ export function BlogInlineProductCard({ product }: BlogInlineProductCardProps) {
 
           return (
             <Badge
-              className="rounded-md px-200 py-100 text-2xs font-semibold"
+              className="text-2xs"
               key={badge}
               variant={badgeVariant}
             >
@@ -74,6 +74,7 @@ export function BlogInlineProductCard({ product }: BlogInlineProductCardProps) {
         </div>
 
         <LinkButton
+          as={NextLink}
           className="px-350 py-250 text-xs font-semibold"
           href="/c/trapi-ma"
           icon="token-icon-cart"

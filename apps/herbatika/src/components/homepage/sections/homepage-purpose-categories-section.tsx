@@ -23,18 +23,17 @@ const buildPurposeSlides = (
   return categories.map((category) => ({
     id: category.id,
     content: (
-      <Link
-        as={NextLink}
-        className="group flex min-h-900 w-full flex-col items-center justify-center gap-200 rounded-md border border-border-secondary bg-surface px-250 py-250 text-center transition-colors hover:border-primary/30 hover:bg-highlight"
+      <NextLink
+        className="group flex min-h-900 w-full flex-col items-center justify-center gap-200 rounded-md border border-border-secondary bg-surface px-250 py-250 text-center transition-colors hover:border-primary/30 hover:bg-highlight aspect-square"
         href={category.href}
       >
         <span className="flex h-700 w-700 items-center justify-center rounded-full bg-highlight text-primary transition-colors group-hover:bg-primary/10">
-          <Icon className="text-3xl" icon={category.icon} />
+          <Icon className="text-5xl" icon={category.icon} />
         </span>
         <span className="text-sm leading-snug font-semibold text-fg-primary">
           {category.label}
         </span>
-      </Link>
+      </NextLink>
     ),
   }));
 };
@@ -44,10 +43,6 @@ function PurposeCategoriesCarousel({
   slidesPerPage,
 }: PurposeCategoriesCarouselProps) {
   const hasOverflow = slides.length > slidesPerPage;
-  const slidesClassName = hasOverflow
-    ? "px-500 pb-450 lg:px-550"
-    : undefined;
-
   return (
     <Carousel.Root
       aspectRatio="none"
@@ -59,15 +54,15 @@ function PurposeCategoriesCarousel({
       slidesPerPage={slidesPerPage}
       spacing="var(--spacing-250)"
     >
-      <Carousel.Slides className={slidesClassName} slides={slides} />
+      <Carousel.Slides slides={slides} />
       {hasOverflow ? (
         <>
           <Carousel.Previous
-            className="-translate-y-1/2 absolute top-1/2 left-100 z-10 rounded-full border border-border-secondary bg-surface/90 p-150 text-lg text-primary hover:bg-surface"
+            className="-translate-y-1/2 absolute top-1/2 left-100 rounded-full aspect-square text-lg shadow-md"
             icon="icon-[mdi--chevron-left]"
           />
           <Carousel.Next
-            className="-translate-y-1/2 absolute top-1/2 right-100 z-10 rounded-full border border-border-secondary bg-surface/90 p-150 text-lg text-primary hover:bg-surface"
+            className="-translate-y-1/2 absolute top-1/2 right-100 rounded-full aspect-square text-lg shadow-md"
             icon="icon-[mdi--chevron-right]"
           />
 
@@ -103,13 +98,13 @@ export function HomepagePurposeCategoriesSection({
 
       <div className="space-y-200">
         <div className="md:hidden">
-          <PurposeCategoriesCarousel slides={slides} slidesPerPage={2} />
-        </div>
-        <div className="hidden md:block xl:hidden">
           <PurposeCategoriesCarousel slides={slides} slidesPerPage={3} />
         </div>
-        <div className="hidden xl:block">
+        <div className="hidden md:block xl:hidden">
           <PurposeCategoriesCarousel slides={slides} slidesPerPage={5} />
+        </div>
+        <div className="hidden xl:block">
+          <PurposeCategoriesCarousel slides={slides} slidesPerPage={7} />
         </div>
       </div>
     </section>

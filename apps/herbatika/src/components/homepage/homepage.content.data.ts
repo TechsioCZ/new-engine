@@ -104,6 +104,12 @@ export const PURPOSE_CATEGORIES: PurposeCategoryItem[] = [
     href: "/c/trapi-ma-hormonalna-rovnovaha",
     icon: "icon-[mdi--gender-male-female]",
   },
+  {
+    id: "purpose-kozne-problemy-2",
+    label: "Kožné problémy 2",
+    href: "/c/trapi-ma-kozne-problemy",
+    icon: "icon-[mdi--hand-back-right-outline]",
+  },
 ];
 
 export const RECENT_PRODUCT_SKELETON_KEYS = [

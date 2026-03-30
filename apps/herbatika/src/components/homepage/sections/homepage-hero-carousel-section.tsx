@@ -1,5 +1,5 @@
+import Image from "next/image";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import {
   Carousel,
@@ -21,15 +21,15 @@ const buildHeroSlides = (banners: HeroBannerItem[]): CarouselSlide[] => {
       content: (
         <div className="grid h-full w-full grid-cols-2 gap-300 lg:grid-cols-4">
           {page.map((banner) => (
-            <Link
-              as={NextLink}
+            <NextLink
               className="group relative h-full overflow-hidden rounded-2xl border border-border-secondary"
               href={banner.href}
               key={banner.id}
             >
               <Image
                 alt={banner.title}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
                 src={banner.imageSrc}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-fg-primary/70 via-fg-primary/20 to-transparent" />
@@ -47,7 +47,7 @@ const buildHeroSlides = (banners: HeroBannerItem[]): CarouselSlide[] => {
                   {banner.subtitle}
                 </p>
               </div>
-            </Link>
+            </NextLink>
           ))}
         </div>
       ),
@@ -67,7 +67,7 @@ export function HomepageHeroCarouselSection({
   const slides = useMemo(() => buildHeroSlides(banners), [banners]);
 
   return (
-    <section className="rounded-2xl border border-border-secondary bg-surface p-300 shadow-sm">
+    <section className="p-300">
       <Carousel.Root
         aspectRatio="none"
         className="w-full"
@@ -75,12 +75,9 @@ export function HomepageHeroCarouselSection({
         slideCount={slides.length}
         size="full"
       >
-        <Carousel.Slides className="h-950 md:h-950 lg:h-950" slides={slides} />
-        <Carousel.Previous className="-translate-y-1/2 absolute top-1/2 left-200 rounded-full border border-surface/80 bg-surface/85 p-200 text-xl text-fg-primary hover:bg-surface" />
-        <Carousel.Next className="-translate-y-1/2 absolute top-1/2 right-200 rounded-full border border-surface/80 bg-surface/85 p-200 text-xl text-fg-primary hover:bg-surface" />
-        <Carousel.Control className="absolute bottom-200 left-1/2 -translate-x-1/2 rounded-full bg-surface/85 px-300 py-200">
-          <Carousel.Indicators className="gap-150" />
-        </Carousel.Control>
+        <Carousel.Slides className="h-120" slides={slides} />
+        <Carousel.Previous className="-translate-y-1/2 absolute top-1/2 left-200 rounded-full border border-surface/80 aspect-square font-bold" />
+        <Carousel.Next className="-translate-y-1/2 absolute top-1/2 right-200 rounded-full border border-surface/80 aspect-square font-bold" />
       </Carousel.Root>
     </section>
   );
