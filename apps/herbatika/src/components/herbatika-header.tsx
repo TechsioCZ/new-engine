@@ -87,33 +87,28 @@ export function HerbatikaHeader() {
   };
 
   return (
-    <Header
-      className="relative z-50 w-full border-b border-border-secondary bg-header-bg"
-      direction="vertical"
-    >
-      <Header.Container className="mx-auto flex w-full max-w-max-w items-center gap-600 px-400 py-300 @header-desktop:px-600">
+    <Header direction="vertical">
+      <Header.Container className="mx-auto max-w-max-w flex items-center px-400 py-300 @header-desktop:px-600">
         <HerbatikaLogo className="shrink-0" size="lg" />
 
         <div className="hidden w-full max-w-header-search flex-1 @header-desktop:block">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
-            <SearchForm.Control className="h-750 rounded-search-form border-border-secondary bg-surface">
+            <SearchForm.Control>
               <SearchForm.Input
-                className="h-full px-500 text-md text-fg-secondary placeholder:text-fg-placeholder"
                 name="q"
                 placeholder="Napíšte, čo hľadáte..."
               />
               <SearchForm.Button
                 aria-label="Hľadať"
-                className="min-w-800 rounded-r-search-form rounded-l-none px-450"
+                className="rounded-none"
                 showSearchIcon
               />
             </SearchForm.Control>
           </SearchForm>
         </div>
 
-        <div className="flex items-center gap-450 @max-header-desktop:hidden">
-          <Link
-            as={NextLink}
+        <Header.Actions className="gap-450 @max-header-desktop:hidden">
+          <NextLink
             className="inline-flex items-center gap-300 text-fg-secondary font-open-sans hover:text-fg-primary"
             href="tel:+421232112345"
           >
@@ -126,7 +121,7 @@ export function HerbatikaHeader() {
                 (Po-Pia: 09:00 - 16:00)
               </span>
             </span>
-          </Link>
+          </NextLink>
 
           <Button
             aria-label="Obľúbené"
@@ -144,7 +139,7 @@ export function HerbatikaHeader() {
             currencyCode={currency}
             itemCount={itemCount}
           />
-        </div>
+        </Header.Actions>
 
         <div className="ml-auto flex items-center gap-250 @header-desktop:hidden">
           <div className="relative">
@@ -166,25 +161,25 @@ export function HerbatikaHeader() {
             </Badge>
           </div>
 
-          <Header.Hamburger className="border border-border-secondary text-2xl text-fg-primary" />
+          <Header.Hamburger className="border border-border-secondary text-2xl" />
         </div>
       </Header.Container>
 
-      <Header.Desktop className="w-full bg-primary">
-        <Header.Container className="mx-auto flex min-h-750 w-full max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
+      <Header.Desktop className="bg-primary">
+        <Header.Container className="mx-auto flex min-h-750 max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
           <Header.Nav
-            className="flex-nowrap gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex-nowrap overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             size="sm"
           >
             {PRIMARY_NAV_ITEMS.map((item) => (
               <Header.NavItem
-                className="shrink-0 px-100 py-200"
+                className="shrink-0"
                 key={item.href}
                 size="sm"
               >
                 <Link
                   as={NextLink}
-                  className="whitespace-nowrap leading-none text-xs"
+                  className="whitespace-nowrap leading-none"
                   href={item.href}
                 >
                   {item.label}
@@ -193,7 +188,7 @@ export function HerbatikaHeader() {
             ))}
           </Header.Nav>
 
-          <Header.Actions className="gap-100 pl-100" size="sm">
+          <Header.Actions className="pl-100" size="sm">
             {HEADER_ACTION_ITEMS.map((action) => (
               <Header.ActionItem className="p-0" key={action.href} size="sm">
                 <LinkButton
@@ -218,10 +213,8 @@ export function HerbatikaHeader() {
       >
         <div className="border-border-secondary border-b p-400">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
-            <SearchForm.Control className="h-750 rounded-search-form border-border-secondary bg-surface">
+            <SearchForm.Control>
               <SearchForm.Input
-                className="h-full px-500 text-md text-fg-secondary placeholder:text-fg-placeholder"
-                name="q"
                 placeholder="Napíšte, čo hľadáte..."
               />
               <SearchForm.Button aria-label="Hľadať" showSearchIcon />
@@ -229,7 +222,7 @@ export function HerbatikaHeader() {
           </SearchForm>
         </div>
 
-        <Header.Nav className="w-full gap-0">
+        <Header.Nav className="w-full">
           {PRIMARY_NAV_ITEMS.map((item) => (
             <Header.NavItem
               className="w-full border-border-secondary border-b"
