@@ -2,20 +2,12 @@ import NextLink from "next/link";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import { Header } from "@techsio/ui-kit/organisms/header";
 import { HEADER_ACTION_ITEMS, PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation";
 import { HerbatikaLogo } from "@/components/herbatika-logo";
-import { SupportingText } from "@/components/text/supporting-text";
 
-const HEADER_MAPPING = [
-  "Top utility row: logo + search field + phone block + account/cart actions.",
-  "Green nav strip: organisms/header s vertical composition a app-level nav item content.",
-  "Gift/Akcie pills: LinkButton varianta, ne nový shared component.",
-  "Cart total chip: LinkButton variant='primary' + Badge counter jako app composition.",
-] as const;
 
 export function HeaderShowcase() {
   return (
@@ -26,20 +18,15 @@ export function HeaderShowcase() {
             <HerbatikaLogo className="shrink-0" size="lg" />
 
             <div className="hidden w-full max-w-header-search flex-1 @header-desktop:block">
-              <SearchForm className="w-full">
-                <SearchForm.Control className="h-750 rounded-search-form border-border-secondary bg-surface">
+              <SearchForm className="w-full max-w-header-search">
+                <SearchForm.Control>
                   <SearchForm.Input
-                    className="h-full px-500 text-md text-fg-secondary placeholder:text-fg-placeholder"
                     name="q"
                     placeholder="Napíšte, čo hľadáte..."
                   />
-                  <SearchForm.Button
-                    aria-label="Hľadať"
-                    className="min-w-800 rounded-r-search-form rounded-l-none px-450"
-                    showSearchIcon
-                  />
+                  <SearchForm.Button aria-label="Hľadať" showSearchIcon className="rounded-none"/>
                 </SearchForm.Control>
-              </SearchForm>
+            </SearchForm>
             </div>
 
             <Header.Actions className="flex items-center gap-450">
