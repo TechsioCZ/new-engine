@@ -15,31 +15,28 @@ export function HomepagePromoSection() {
       </div>
 
       <div className="flex flex-col justify-center gap-300">
-        <Badge
-          className="w-fit rounded-full px-300 py-100 text-xs font-semibold"
-          variant="secondary"
-        >
-          Spoja nás láska k prírode
-        </Badge>
         <h2 className="text-2xl leading-tight font-bold text-fg-primary">
           Prírodná kozmetika, doplnky výživy a tradičná medicína
         </h2>
         <p className="text-sm leading-relaxed text-fg-secondary">
-          Starostlivo vyberáme produkty, ktoré podporujú zdravie prirodzenou
-          cestou. V ponuke nájdete výživové doplnky, bylinky aj kozmetiku pre
-          každodennú rovnováhu.
+          Spoznajte blahodarné účinky prírodnej kozmetiky 
+          a jej pozitívny vplyv nielen na pokožku. 
+          Upevnite si vaše zdravie pomocou doplnkov stravy a tradičnej
+          medicíny.Toto všetko nájdete v našej pestrej ponuke, ktorá
+          je navyše obohatená aj o zdravotné doplnky z prírodných materiálov.
         </p>
-        <LinkButton
-          as={NextLink}
-          className="w-fit rounded-md px-400 py-200 font-semibold"
-          href="/#"
-          icon="icon-[mdi--arrow-right]"
-          iconPosition="right"
-          size="sm"
-          variant="primary"
-        >
-          Objaviť ponuku
-        </LinkButton>
+        <p className="text-sm leading-relaxed text-fg-secondary">
+          Špecializujeme sa na výber tých najkvalitnejších produktov, 
+          ktoré aj my sami používame, vylepšujeme a opakovane testujeme. 
+          Máme radi kvalitu a potrpíme si na detaily. 
+          Sme pripravení, pomôcť vám s výberom produktov 
+          špeciálne podľa vašich potrieb alebo na váš zdravotný problém.
+        </p>
+        <p className="text-sm leading-relaxed text-fg-secondary">
+          Herbatica má už aj svoju značku, pod ktorou vyrábame množstvo 
+          produktov, ktoré inde nenájdete. Máme radi 
+          kvalitu a detaily a na tie sa sústredíme v každom našom produkte.
+        </p>
       </div>
     </section>
   );
