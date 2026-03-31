@@ -3,12 +3,7 @@ import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import type { ReactNode } from "react";
 import { SupportingText } from "@/components/text/supporting-text";
-import {
-  CheckoutCustomerTypePreview,
-  CheckoutPaymentPreview,
-  CheckoutShippingPreview,
-  QuantityDiscountPreview,
-} from "./checkout-radio-preview";
+import { CheckoutCustomerTypePreview } from "./checkout-radio-preview";
 import { HerbaticaArticleProse } from "./herbatica-article-prose";
 import { HerbaticaAuthorCard } from "./herbatica-author-card";
 import { HerbaticaBlogCard } from "./herbatica-blog-card";
@@ -20,6 +15,11 @@ import {
 import { HerbaticaCompactProductCard } from "./herbatica-compact-product-card";
 import { HerbaticaFilterButton } from "./herbatica-filter-button";
 import { HerbaticaPhoneField } from "./herbatica-phone-field";
+import { QuantityDiscountPreview } from "./radio-card-discount";
+import {
+  CheckoutPaymentPreview,
+  CheckoutShippingPreview,
+} from "./radio-card-payment";
 
 const APP_SPECIFIC_NOTES = [
   "Filter chip button zostáva app-specific wrapper nad button base contractom cez tailwind-variants extend.",

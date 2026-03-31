@@ -6,11 +6,11 @@ import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import NextLink from "next/link";
 import { SupportingText } from "@/components/text/supporting-text";
+import { CheckoutCustomerTypePreview } from "./checkout-radio-preview";
 import {
-  CheckoutCustomerTypePreview,
   CheckoutPaymentPreview,
   CheckoutShippingPreview,
-} from "./checkout-radio-preview";
+} from "./radio-card-payment";
 
 const COUNTRY_ITEMS: SelectItem[] = [
   { label: "Slovensko", value: "SK" },

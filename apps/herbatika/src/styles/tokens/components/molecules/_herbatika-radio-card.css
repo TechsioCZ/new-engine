@@ -1,4 +1,14 @@
 @theme static {
-      --gap-radio-card-root-sm: var(--spacing-150);
+      --gap-radio-card-root-sm: var(--spacing-150);  
+      --gap-radio-card-item-control-sm: var(--spacing-200);
+
+      --padding-radio-card-item-addon-sm: var(--spacing-500);
+      --spacing-radio-card-indicator-mark-sm: 0.75rem;
+
+      --gap-radio-card-item-control-md: var(--spacing-500);
+      --padding-radio-card-item-control-md: var(--spacing-400);
+
+      --text-radio-card-item-sm: var(--text-sm);
+      --text-radio-card-item-description-md: var(--text-xs);
 
 }
