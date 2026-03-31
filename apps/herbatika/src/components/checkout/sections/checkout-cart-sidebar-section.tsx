@@ -63,7 +63,6 @@ export function CheckoutCartSidebarSection({
           <LinkButton
             as={NextLink}
             block
-            className="py-300"
             href={nextStepHref}
             icon="token-icon-chevron-right"
             iconPosition="right"
@@ -71,7 +70,7 @@ export function CheckoutCartSidebarSection({
             uppercase
             variant="primary"
           >
-            Pokračovať na dopravu a platbu
+            <span className="font-normal">Pokračovať na dopravu a platbu</span>
           </LinkButton>
         </div>
       </div>

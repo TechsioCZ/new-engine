@@ -1,7 +1,7 @@
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
-import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { SupportingText } from "@/components/text/supporting-text";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { CheckoutOptionRadioCard } from "./checkout-option-radio-card";
 
 type ShippingOption = {
   id: string;
@@ -72,60 +72,29 @@ export function CheckoutShippingSection({
       </header>
       <div className="grid gap-150">
         {shippingOptions.length > 0 ? (
-          shippingOptions.map((option) => {
-            const optionPrice = shippingPrices[option.id] ?? 0;
-            const isSelected = selectedShippingMethodId === option.id;
-            const optionStatusLabel = isSelected ? "Zvolená možnosť" : "Dostupná možnosť";
+          <CheckoutOptionRadioCard
+            label="Doprava"
+            onValueChange={(value) => {
+              void onSelectShipping(value);
+            }}
+            options={shippingOptions.map((option) => {
+              const optionPrice = shippingPrices[option.id] ?? 0;
 
-            return (
-              <Button
-                className="w-full rounded-sm border border-border-primary bg-surface p-0 text-left data-[selected=true]:border-success"
-                data-selected={isSelected}
-                disabled={isBusy}
-                key={option.id}
-                onClick={() => {
-                  void onSelectShipping(option.id);
-                }}
-                theme="unstyled"
-                type="button"
-              >
-                <div className="space-y-150 px-550 py-400 w-full">
-                  <div className="flex flex-wrap items-center justify-between w-full gap-200">
-                    <div className="flex min-w-0 items-center gap-150">
-                      <span
-                        className="flex size-550 items-center justify-center rounded-full border border-fg-placeholder data-[selected=true]:border-success"
-                        data-selected={isSelected}
-                      >
-                        <span
-                          className="size-250 rounded-full bg-success opacity-0 data-[selected=true]:opacity-100"
-                          data-selected={isSelected}
-                        />
-                      </span>
-                      <Icon
-                        className={`text-md ${isSelected ? "text-primary" : "text-fg-secondary"}`}
-                        icon={resolveShippingIcon(option)}
-                      />
-                      <p className="truncate text-md font-medium text-fg-primary">
-                        {option.name ?? option.id}
-                      </p>
-                    </div>
-                    <p
-                      className={`text-md font-medium ${
-                        optionPrice > 0 ? "text-fg-primary" : "text-success"
-                      }`}
-                    >
-                      {resolveShippingPriceLabel(optionPrice)}
-                    </p>
-                  </div>
-                  <SupportingText className="pl-700 text-fg-secondary">
-                    {optionStatusLabel}
-                  </SupportingText>
-                </div>
-              </Button>
-            );
-          })
+              return {
+                disabled: isBusy,
+                icon: resolveShippingIcon(option),
+                priceLabel: resolveShippingPriceLabel(optionPrice),
+                priceTone: optionPrice > 0 ? "default" : "success",
+                title: option.name ?? option.id,
+                value: option.id,
+              };
+            })}
+            value={selectedShippingMethodId ?? null}
+          />
         ) : (
-          <SupportingText>Nie sú dostupné žiadne možnosti dopravy.</SupportingText>
+          <SupportingText>
+            Nie sú dostupné žiadne možnosti dopravy.
+          </SupportingText>
         )}
       </div>
     </section>

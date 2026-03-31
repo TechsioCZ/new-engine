@@ -1,10 +1,11 @@
 @theme static {
   --gap-select-root: var(--spacing-100);
-  --radius-select: var(--radius-sm);
+  --radius-select-md: var(--radius-xs);
 
   --color-select-content-bg: var(--color-surface);
   --color-select-content-border: var(--color-border-primary);
-  --color-select-trigger-border-hover: var(--color-border-primary);
+  --color-select-trigger-border: var(--color-border-primary);
+  --color-select-trigger-border-hover: var(--color-border-secondary);
   --color-select-trigger-border-focus: var(--color-primary);
   --color-select-item-bg-hover: var(--color-highlight);
   --color-select-item-bg-selected: oklch(

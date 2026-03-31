@@ -1,7 +1,7 @@
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
-import { Button } from "@techsio/ui-kit/atoms/button";
+import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { resolveProviderLabel } from "@/components/checkout/checkout.utils";
 import { SupportingText } from "@/components/text/supporting-text";
+import { CheckoutOptionRadioCard } from "./checkout-option-radio-card";
 
 type PaymentProvider = {
   id?: string | null;
@@ -68,63 +68,40 @@ export function CheckoutPaymentSection({
       </header>
       <div className="grid gap-150">
         {paymentProviders.length > 0 ? (
-          paymentProviders.map((provider, index) => {
-            const providerId = resolveProviderId(provider);
-            const providerLabel = resolveProviderLabel(providerId);
-            const isSelected =
+          <CheckoutOptionRadioCard
+            label="Platba"
+            onValueChange={(value) => {
+              void onSelectPaymentProvider(value);
+            }}
+            options={paymentProviders.map((provider, index) => {
+              const providerId = resolveProviderId(provider);
+              const providerLabel = resolveProviderLabel(providerId);
+              const isProviderSelectable = Boolean(
+                providerId && canInitiatePayment,
+              );
+
+              return {
+                disabled:
+                  isBusy || isInitiatingPayment || !isProviderSelectable,
+                icon: resolvePaymentIcon(providerId),
+                priceLabel: "Zadarmo",
+                priceTone: "success" as const,
+                title: providerLabel,
+                value: providerId || `${providerLabel}-${index}`,
+              };
+            })}
+            value={
               selectedPaymentProviderId && selectedPaymentProviderId.length > 0
-                ? selectedPaymentProviderId === providerId
-                : hasPayment && index === 0;
-            const isProviderSelectable = Boolean(providerId && canInitiatePayment);
-            const optionStatusLabel = isSelected ? "Zvolená možnosť" : "Dostupná možnosť";
-
-            return (
-              <Button
-                className="w-full rounded-sm border border-border-primary bg-surface p-0 text-left data-[selected=true]:border-success"
-                data-selected={isSelected}
-                disabled={isBusy || isInitiatingPayment || !isProviderSelectable}
-                key={providerId || `${providerLabel}-${index}`}
-                onClick={() => {
-                  if (!providerId) {
-                    return;
-                  }
-
-                  void onSelectPaymentProvider(providerId);
-                }}
-                theme="unstyled"
-                type="button"
-              >
-                <div className="space-y-150 px-550 w-full py-400">
-                  <div className="flex flex-wrap items-center justify-between gap-200">
-                    <div className="flex min-w-0 items-center gap-150">
-                      <span
-                        className="flex size-550 items-center justify-center rounded-full border border-fg-placeholder data-[selected=true]:border-success"
-                        data-selected={isSelected}
-                      >
-                        <span
-                          className="size-250 rounded-full bg-success opacity-0 data-[selected=true]:opacity-100"
-                          data-selected={isSelected}
-                        />
-                      </span>
-                      <Icon
-                        className={`text-md ${isSelected ? "text-primary" : "text-fg-secondary"}`}
-                        icon={resolvePaymentIcon(providerId)}
-                      />
-                      <p className="truncate text-md font-medium text-fg-primary">{providerLabel}</p>
-                    </div>
-                    <p className="text-md font-medium text-success">
-                      Zadarmo
-                    </p>
-                  </div>
-                  <SupportingText className="pl-700 text-fg-secondary">
-                    {optionStatusLabel}
-                  </SupportingText>
-                </div>
-              </Button>
-            );
-          })
+                ? selectedPaymentProviderId
+                : hasPayment
+                  ? (paymentProviders[0]?.id ?? null)
+                  : null
+            }
+          />
         ) : (
-          <SupportingText>Nie sú dostupné žiadne platobné metódy.</SupportingText>
+          <SupportingText>
+            Nie sú dostupné žiadne platobné metódy.
+          </SupportingText>
         )}
       </div>
     </section>

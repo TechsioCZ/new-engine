@@ -1,11 +1,12 @@
-import type { FormEvent } from "react";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea";
+import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group";
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import NextLink from "next/link";
+import type { FormEvent } from "react";
 import type { AddressFormState } from "@/components/checkout/checkout.constants";
 import { SupportingText } from "@/components/text/supporting-text";
 
@@ -34,56 +35,6 @@ type CheckoutAddressSectionProps = {
 const PRIVATE_PURCHASE_LABEL = "Súkromná osoba";
 const COMPANY_PURCHASE_LABEL = "Nakupujem na firmu";
 
-type PurchaseTypeToggleProps = {
-  isCompanyPurchase: boolean;
-  onChange: (value: boolean) => void;
-};
-
-function PurchaseTypeToggle({
-  isCompanyPurchase,
-  onChange,
-}: PurchaseTypeToggleProps) {
-  const options = [
-    {
-      id: "private",
-      isActive: !isCompanyPurchase,
-      label: PRIVATE_PURCHASE_LABEL,
-      value: false,
-    },
-    {
-      id: "company",
-      isActive: isCompanyPurchase,
-      label: COMPANY_PURCHASE_LABEL,
-      value: true,
-    },
-  ];
-
-  return (
-    <div className="flex flex-wrap items-center gap-100 font-rubik">
-      {options.map((option) => (
-        <Button
-          className="gap-100 px-0 py-0 text-left"
-          key={option.id}
-          onClick={() => {
-            onChange(option.value);
-          }}
-          theme="unstyled"
-          type="button"
-        >
-          <span
-            className={`flex size-300 items-center justify-center rounded-full border ${
-              option.isActive ? "border-primary" : "border-fg-secondary"
-            }`}
-          >
-            {option.isActive ? <span className="size-150 rounded-full bg-primary" /> : null}
-          </span>
-          <span className="text-sm font-normal text-fg-primary">{option.label}</span>
-        </Button>
-      ))}
-    </div>
-  );
-}
-
 export function CheckoutAddressSection({
   addressForm,
   countryItems,
@@ -110,7 +61,9 @@ export function CheckoutAddressSection({
 
       <div className="flex flex-wrap items-center justify-between gap-250 rounded-sm bg-highlight p-300">
         <div className="space-y-50">
-          <p className="text-base font-medium text-fg-primary">Už máte v Herbatica účet?</p>
+          <p className="text-base font-medium text-fg-primary">
+            Už máte v Herbatica účet?
+          </p>
           <SupportingText className="text-fg-secondary">
             Prihláste sa pre rýchly nákup a zľavu na ďalšie nákupy
           </SupportingText>
@@ -120,7 +73,8 @@ export function CheckoutAddressSection({
           href="/account"
           size="md"
           theme="outlined"
-          variant="secondary"
+          variant="tertiary"
+          className="bg-button-bg-outlined-tertiary rounded-button-outlined-tertiary font-normal hover:bg-button-bg-outlined-tertiary-hover"
         >
           Prihlásiť sa
         </LinkButton>
@@ -132,15 +86,36 @@ export function CheckoutAddressSection({
           void onSaveAddress(event);
         }}
       >
-        <div className="flex flex-wrap items-center justify-between gap-200">
-          <PurchaseTypeToggle
-            isCompanyPurchase={isCompanyPurchase}
-            onChange={onIsCompanyPurchaseChange}
-          />
-          <SupportingText className="font-rubik text-fg-secondary">
-            * povinné
-          </SupportingText>
-        </div>
+        <RadioGroup
+          className="font-rubik"
+          onValueChange={(value) => onIsCompanyPurchaseChange(value === "company")}
+          orientation="horizontal"
+          size="sm"
+          value={isCompanyPurchase ? "company" : "private"}
+          variant="subtle"
+        >
+          <RadioGroup.Label className="sr-only">Typ nákupu</RadioGroup.Label>
+          <RadioGroup.ItemGroup>
+            <RadioGroup.Item value="private">
+              <RadioGroup.ItemHiddenInput />
+              <RadioGroup.ItemControl />
+              <RadioGroup.ItemContent>
+                <RadioGroup.ItemText>
+                  {PRIVATE_PURCHASE_LABEL}
+                </RadioGroup.ItemText>
+              </RadioGroup.ItemContent>
+            </RadioGroup.Item>
+            <RadioGroup.Item value="company">
+              <RadioGroup.ItemHiddenInput />
+              <RadioGroup.ItemControl />
+              <RadioGroup.ItemContent>
+                <RadioGroup.ItemText>
+                  {COMPANY_PURCHASE_LABEL}
+                </RadioGroup.ItemText>
+              </RadioGroup.ItemContent>
+            </RadioGroup.Item>
+          </RadioGroup.ItemGroup>
+        </RadioGroup>
 
         <div className="grid gap-250 md:grid-cols-2">
           <FormInput
@@ -150,7 +125,9 @@ export function CheckoutAddressSection({
             required
             type="text"
             value={addressForm.firstName}
-            onChange={(event) => onUpdateAddressField("firstName", event.target.value)}
+            onChange={(event) =>
+              onUpdateAddressField("firstName", event.target.value)
+            }
           />
           <FormInput
             id="checkout-last-name"
@@ -159,7 +136,9 @@ export function CheckoutAddressSection({
             required
             type="text"
             value={addressForm.lastName}
-            onChange={(event) => onUpdateAddressField("lastName", event.target.value)}
+            onChange={(event) =>
+              onUpdateAddressField("lastName", event.target.value)
+            }
           />
 
           {isCompanyPurchase ? (
@@ -172,7 +151,9 @@ export function CheckoutAddressSection({
                   required
                   type="text"
                   value={addressForm.company}
-                  onChange={(event) => onUpdateAddressField("company", event.target.value)}
+                  onChange={(event) =>
+                    onUpdateAddressField("company", event.target.value)
+                  }
                 />
               </div>
               <div className="grid gap-250 md:col-span-2 md:grid-cols-3">
@@ -183,7 +164,9 @@ export function CheckoutAddressSection({
                   required
                   type="text"
                   value={addressForm.companyId}
-                  onChange={(event) => onUpdateAddressField("companyId", event.target.value)}
+                  onChange={(event) =>
+                    onUpdateAddressField("companyId", event.target.value)
+                  }
                 />
                 <FormInput
                   id="checkout-tax-id"
@@ -192,7 +175,9 @@ export function CheckoutAddressSection({
                   required
                   type="text"
                   value={addressForm.taxId}
-                  onChange={(event) => onUpdateAddressField("taxId", event.target.value)}
+                  onChange={(event) =>
+                    onUpdateAddressField("taxId", event.target.value)
+                  }
                 />
                 <FormInput
                   id="checkout-vat-id"
@@ -200,7 +185,9 @@ export function CheckoutAddressSection({
                   name="vat_id"
                   type="text"
                   value={addressForm.vatId}
-                  onChange={(event) => onUpdateAddressField("vatId", event.target.value)}
+                  onChange={(event) =>
+                    onUpdateAddressField("vatId", event.target.value)
+                  }
                 />
               </div>
             </>
@@ -213,7 +200,9 @@ export function CheckoutAddressSection({
             required
             type="email"
             value={addressForm.email}
-            onChange={(event) => onUpdateAddressField("email", event.target.value)}
+            onChange={(event) =>
+              onUpdateAddressField("email", event.target.value)
+            }
           />
           <FormInput
             id="checkout-phone"
@@ -222,15 +211,20 @@ export function CheckoutAddressSection({
             required
             type="tel"
             value={addressForm.phone}
-            onChange={(event) => onUpdateAddressField("phone", event.target.value)}
+            onChange={(event) =>
+              onUpdateAddressField("phone", event.target.value)
+            }
           />
 
           <Select
             items={countryItems}
             onValueChange={(details) => {
-              onUpdateAddressField("countryCode", (details.value[0] ?? "SK").toUpperCase());
+              onUpdateAddressField(
+                "countryCode",
+                (details.value[0] ?? "SK").toUpperCase(),
+              );
             }}
-            size="sm"
+            size="md"
             value={[addressForm.countryCode]}
           >
             <Select.Label>Krajina</Select.Label>
@@ -257,7 +251,9 @@ export function CheckoutAddressSection({
             required
             type="text"
             value={addressForm.address1}
-            onChange={(event) => onUpdateAddressField("address1", event.target.value)}
+            onChange={(event) =>
+              onUpdateAddressField("address1", event.target.value)
+            }
           />
           <FormInput
             id="checkout-city"
@@ -266,7 +262,9 @@ export function CheckoutAddressSection({
             required
             type="text"
             value={addressForm.city}
-            onChange={(event) => onUpdateAddressField("city", event.target.value)}
+            onChange={(event) =>
+              onUpdateAddressField("city", event.target.value)
+            }
           />
           <FormInput
             id="checkout-postal-code"
@@ -275,7 +273,9 @@ export function CheckoutAddressSection({
             required
             type="text"
             value={addressForm.postalCode}
-            onChange={(event) => onUpdateAddressField("postalCode", event.target.value)}
+            onChange={(event) =>
+              onUpdateAddressField("postalCode", event.target.value)
+            }
           />
 
           {hasCustomerSupportNote ? (
@@ -286,7 +286,9 @@ export function CheckoutAddressSection({
                 name="customer_note"
                 rows={3}
                 value={addressForm.customerNote}
-                onChange={(event) => onUpdateAddressField("customerNote", event.target.value)}
+                onChange={(event) =>
+                  onUpdateAddressField("customerNote", event.target.value)
+                }
               />
             </div>
           ) : (
@@ -320,12 +322,7 @@ export function CheckoutAddressSection({
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-200 md:col-span-2">
-            {hasStoredAddress ? (
-              <SupportingText className="text-success">
-                Údaje sú uložené.
-              </SupportingText>
-            ) : null}
+          <div className="flex flex-col flex-wrap items-end justify-center gap-200 md:col-span-2">
             <Button
               disabled={isBusy || !ready}
               isLoading={isSavingAddress}
@@ -334,6 +331,11 @@ export function CheckoutAddressSection({
             >
               Uložiť údaje
             </Button>
+            {hasStoredAddress ? (
+              <SupportingText className="text-success">
+                Údaje sú uložené.
+              </SupportingText>
+            ) : null}
           </div>
         </div>
       </form>

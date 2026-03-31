@@ -29,12 +29,13 @@ export function CheckoutShippingPaymentStepSection({
         <LinkButton
           as={NextLink}
           href={backStepHref}
-          size="md"
+          size="lg"
           theme="outlined"
           icon="token-icon-chevron-left"
-          variant="secondary"
+          variant="tertiary"
+          className="hover:button-bg-outlined-tertiary-hover"
         >
-          Späť na košík
+          <span className="font-normal">Späť na košík</span>
         </LinkButton>
         {canContinue ? (
           <LinkButton
@@ -43,14 +44,13 @@ export function CheckoutShippingPaymentStepSection({
             href={nextStepHref}
             icon="token-icon-chevron-right"
             iconPosition="right"
-            size="md"
-            variant="primary"
+            size="lg"
           >
-            Pokračovať na vaše údaje
+            <span className="font-normal">Pokračovať na vaše údaje</span>
           </LinkButton>
         ) : (
-          <Button className="w-full sm:ml-auto sm:w-auto" disabled size="md" variant="primary">
-            Pokračovať na vaše údaje
+          <Button className="w-full sm:ml-auto sm:w-auto" disabled size="lg">
+            <span className="font-normal">Pokračovať na vaše údaje</span>
           </Button>
         )}
       </div>

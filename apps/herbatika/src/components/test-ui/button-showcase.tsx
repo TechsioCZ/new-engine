@@ -110,16 +110,17 @@ export function ButtonShowcase() {
             Zobraziť všetky
           </LinkButton>
         </ShowcaseCard>
-
-        <ShowcaseCard
-          title="4. Outlined pill"
-          description="Figma node `63:6559` - pill outlined CTA."
-          code={`<Button theme="outlined" variant="primary" size="md">Odporúčame</Button>`}
-        >
+        <div className="w-2xs">
           <Button size="md" theme="outlined" variant="primary">
             Odporúčame
           </Button>
-        </ShowcaseCard>
+        </div>
+        <div className="w-2xs">
+          <Button size="lg">
+            Odporúčame
+          </Button>
+        </div>
+
       </section>
 
       <section className="space-y-250 rounded-md border border-border-secondary bg-surface p-400">
