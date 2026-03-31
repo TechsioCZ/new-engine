@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import {
-  CHECKOUT_STEPS,
   DEFAULT_CHECKOUT_STEP_SLUG,
 } from "@/components/checkout/checkout.constants";
 import {
@@ -15,15 +16,14 @@ type CheckoutStepPageProps = {
   }>;
 };
 
-export function generateStaticParams() {
-  return CHECKOUT_STEPS.map((step) => ({
-    step: step.slug,
-  }));
+function CheckoutStepPageFallback() {
+  return <main className="mx-auto min-h-dvh w-full max-w-max-w" />;
 }
 
-export default async function CheckoutStepPage({
+async function CheckoutStepPageContent({
   params,
 }: CheckoutStepPageProps) {
+  await connection();
   const { step } = await params;
 
   if (!isCheckoutStepSlug(step)) {
@@ -31,4 +31,12 @@ export default async function CheckoutStepPage({
   }
 
   return <StorefrontCheckoutFlow activeStep={step} />;
+}
+
+export default function CheckoutStepPage(props: CheckoutStepPageProps) {
+  return (
+    <Suspense fallback={<CheckoutStepPageFallback />}>
+      <CheckoutStepPageContent {...props} />
+    </Suspense>
+  );
 }
