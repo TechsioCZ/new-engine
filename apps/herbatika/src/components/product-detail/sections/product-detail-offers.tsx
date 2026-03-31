@@ -2,8 +2,8 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { RadioCard } from "@techsio/ui-kit/molecules/radio-card";
 import type { VolumeDiscountOption } from "@/components/product-detail/product-detail.types";
-import { SupportingText } from "@/components/text/supporting-text";
 
 type ProductDetailOffersProps = {
   isAdding: boolean;
@@ -26,56 +26,57 @@ export function ProductDetailOffers({
 
   return (
     <section className="space-y-350 p-550">
-      <h2 className="text-xl font-semibold text-fg-primary">Množstevná zľava</h2>
+      <h2 className="text-xl font-semibold text-fg-primary">
+        Množstevná zľava
+      </h2>
 
-      <div className="space-y-350">
+      <RadioCard
+        onValueChange={(value) => {
+          if (!value) {
+            return;
+          }
+
+          onSelectOption(value);
+        }}
+        orientation="vertical"
+        size="md"
+        value={selectedOptionId}
+        variant="subtle"
+      >
+        <RadioCard.Label className="sr-only">Množstevná zľava</RadioCard.Label>
+
         {options.map((option) => {
           const isSelected = selectedOptionId === option.id;
 
           return (
-            <Button
-              className={`w-full rounded-lg px-400 py-400 text-left ${
-                isSelected
-                  ? "border-2 border-primary bg-highlight"
-                  : "border border-border-secondary bg-surface"
-              }`}
+            <RadioCard.Item
+              className="data-[state=checked]:border-primary"
               key={option.id}
-              onClick={() => onSelectOption(option.id)}
-              theme="unstyled"
-              type="button"
+              value={option.id}
             >
-              <div className="flex w-full items-center gap-400">
-                <span
-                  aria-hidden="true"
-                  className={`flex h-500 w-500 shrink-0 items-center justify-center rounded-sm border ${
-                    isSelected
-                      ? "border-primary bg-primary text-fg-reverse"
-                      : "border-border-primary bg-surface"
-                  }`}
-                >
-                  {isSelected ? <Icon className="text-xs" icon="token-icon-check" /> : null}
-                </span>
+              <RadioCard.ItemHiddenInput />
 
-                <div className="space-y-150">
-                  <p className="text-md font-medium text-fg-primary">{option.title}</p>
-                  <SupportingText className="text-sm text-fg-tertiary">
+              <RadioCard.ItemControl className="items-center">
+                <DiscountOptionIndicator isSelected={isSelected} />
+
+                <RadioCard.ItemContent>
+                  <RadioCard.ItemText className="data-[state=checked]:font-semibold">
+                    {option.title}
+                  </RadioCard.ItemText>
+                  <RadioCard.ItemDescription className="text-fg-tertiary">
                     {option.perUnitLabel}
-                  </SupportingText>
-                </div>
+                  </RadioCard.ItemDescription>
+                </RadioCard.ItemContent>
 
-                <div className="ml-auto space-y-200 text-right">
-                  <p className="text-md font-medium text-fg-primary">{option.totalAmountLabel}</p>
-                  {option.oldTotalAmountLabel ? (
-                    <SupportingText className="text-sm text-fg-tertiary line-through">
-                      {option.oldTotalAmountLabel}
-                    </SupportingText>
-                  ) : null}
-                </div>
-              </div>
-            </Button>
+                <DiscountOptionPrice
+                  originalPriceLabel={option.oldTotalAmountLabel}
+                  priceLabel={option.totalAmountLabel}
+                />
+              </RadioCard.ItemControl>
+            </RadioCard.Item>
           );
         })}
-      </div>
+      </RadioCard>
 
       <Button
         block
@@ -89,5 +90,41 @@ export function ProductDetailOffers({
         Pridať do košíka
       </Button>
     </section>
+  );
+}
+
+function DiscountOptionIndicator({ isSelected }: { isSelected: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`grid h-500 w-500 shrink-0 place-items-center rounded-[3px] border ${
+        isSelected
+          ? "border-primary bg-primary text-fg-reverse"
+          : "border-border-primary bg-surface text-fg-reverse"
+      }`}
+    >
+      {isSelected ? <Icon className="text-xs" icon="token-icon-check" /> : null}
+    </span>
+  );
+}
+
+function DiscountOptionPrice({
+  originalPriceLabel,
+  priceLabel,
+}: {
+  originalPriceLabel?: string | null;
+  priceLabel: string;
+}) {
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-50 text-right">
+      <span className="text-sm font-medium leading-tight text-fg-primary">
+        {priceLabel}
+      </span>
+      {originalPriceLabel ? (
+        <span className="text-sm leading-tight text-fg-tertiary line-through">
+          {originalPriceLabel}
+        </span>
+      ) : null}
+    </div>
   );
 }
