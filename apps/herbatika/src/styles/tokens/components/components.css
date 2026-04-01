@@ -11,6 +11,7 @@
 @import "./molecules/_herbatika-radio-group.css";
 @import "./molecules/_herbatika-search-form.css";
 @import "./molecules/_herbatika-select.css";
+@import "./molecules/_herbatika-steps.css";
 
 @import "./organisms/_herbatika-footer.css";
 @import "./organisms/_herbatika-header.css";
