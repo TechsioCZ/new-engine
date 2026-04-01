@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/storefront/auth";
 import { useCart, useUpdateCartAddress } from "@/lib/storefront/cart";
 import {
   resolveCartSubtotalAmount,
+  resolveCartTotalAmount,
   resolveCartTotalWithoutTaxAmount,
 } from "@/lib/storefront/cart-calculations";
 import {
@@ -15,10 +16,7 @@ import {
   useCheckoutShipping,
   useCompleteCheckout,
 } from "@/lib/storefront/checkout";
-import {
-  resolveCartTotalAmount,
-  resolveHasStoredAddress,
-} from "./checkout.utils";
+import { resolveHasStoredAddress } from "./checkout-address.utils";
 import { useCheckoutActions } from "./use-checkout-actions";
 import { useCheckoutFormState } from "./use-checkout-form-state";
 

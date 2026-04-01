@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import type { AddressFormState } from "./checkout.constants";
+import { buildMissingFieldMessage } from "./checkout-address.utils";
 import {
-  buildMissingFieldMessage,
   resolveCompleteCartFailure,
   resolveOrderId,
-} from "./checkout.utils";
+} from "./checkout-completion.utils";
 
 type AddressMutationInput = {
   billingAddress: {

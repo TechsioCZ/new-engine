@@ -1,10 +1,10 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Image } from "@techsio/ui-kit/atoms/image";
+import { SupportingText } from "@/components/text/supporting-text";
 import {
   resolveCartItemName,
   resolveLineItemTotalAmount,
-} from "@/components/checkout/checkout.utils";
-import { SupportingText } from "@/components/text/supporting-text";
+} from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
 type CheckoutOrderSummarySectionProps = {

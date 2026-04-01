@@ -1,62 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
-import {
-  resolveCartItemName as resolveCartItemNameShared,
-  resolveCartTotalAmount as resolveCartTotalAmountShared,
-  resolveLineItemTotalAmount as resolveLineItemTotalAmountShared,
-} from "@/lib/storefront/cart-calculations";
 import type { AddressFormState } from "./checkout.constants";
-
-const isObject = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === "object" && value !== null;
-};
-
-export const resolveCartTotalAmount = (
-  cart: HttpTypes.StoreCart | null | undefined,
-) => {
-  return resolveCartTotalAmountShared(cart);
-};
-
-export const resolveLineItemTotalAmount = (
-  item: HttpTypes.StoreCartLineItem,
-) => {
-  return resolveLineItemTotalAmountShared(item);
-};
-
-export const resolveOrderId = (result: unknown) => {
-  if (!isObject(result)) {
-    return null;
-  }
-
-  if (
-    result.type === "order" &&
-    isObject(result.order) &&
-    typeof result.order.id === "string"
-  ) {
-    return result.order.id;
-  }
-
-  if (isObject(result.order) && typeof result.order.id === "string") {
-    return result.order.id;
-  }
-
-  return null;
-};
-
-export const resolveCompleteCartFailure = (result: unknown) => {
-  if (!isObject(result)) {
-    return null;
-  }
-
-  if (
-    result.type === "cart" &&
-    isObject(result.error) &&
-    typeof result.error.message === "string"
-  ) {
-    return result.error.message;
-  }
-
-  return null;
-};
 
 export const buildMissingFieldMessage = (
   form: AddressFormState,
@@ -105,10 +48,6 @@ export const buildMissingFieldMessage = (
   }
 
   return `Vyplňte povinné polia: ${missing.join(", ")}`;
-};
-
-export const resolveCartItemName = (item: HttpTypes.StoreCartLineItem) => {
-  return resolveCartItemNameShared(item);
 };
 
 export const resolveHasStoredAddress = (
