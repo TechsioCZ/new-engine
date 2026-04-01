@@ -1,4 +1,3 @@
-import type { HttpTypes } from "@medusajs/types";
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { COUNTRY_SELECT_ITEMS } from "./checkout.constants";
 
@@ -59,26 +58,6 @@ export const resolvePaymentSummaryLabel = (providerId: string) => {
   }
 
   return resolveProviderLabel(providerId);
-};
-
-export const resolveSelectedPaymentProviderId = (
-  cart: HttpTypes.StoreCart | null | undefined,
-) => {
-  const paymentSessions = cart?.payment_collection?.payment_sessions;
-  if (!paymentSessions?.length) {
-    return undefined;
-  }
-
-  type PaymentSessionWithSelection = HttpTypes.StorePaymentSession & {
-    is_selected?: boolean;
-  };
-  const selectedPaymentSession =
-    paymentSessions.find(
-      (session) =>
-        (session as PaymentSessionWithSelection).is_selected === true,
-    ) ?? paymentSessions[0];
-
-  return selectedPaymentSession?.provider_id;
 };
 
 export const resolvePaymentIcon = (providerId: string): IconType => {

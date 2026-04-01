@@ -1,16 +1,15 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
+import { resolveSelectedPaymentProviderId as resolveSelectedPaymentProviderIdShared } from "@techsio/storefront-data/shared/checkout-flow-utils";
 import { useEffect, useRef } from "react";
 import { storefront } from "./storefront";
 
 const checkoutHooks = storefront.hooks.checkout;
 const checkoutFlow = storefront.flows.checkout;
 
-export const {
-  getPaymentProvidersQueryOptions,
-  fetchPaymentProviders,
-} = checkoutHooks;
+export const { getPaymentProvidersQueryOptions, fetchPaymentProviders } =
+  checkoutHooks;
 
 type CheckoutShippingInput = {
   cartId?: string;
@@ -54,24 +53,20 @@ export const useCheckoutShipping = (
     };
   }, []);
 
-  const shipping = checkoutFlow.useCheckoutShipping(
-    input.cartId,
-    undefined,
-    {
-      enabled: input.enabled,
-      calculatePrices: input.calculatePrices,
-      onSuccess: (cart) => {
-        pendingRequestRef.current?.resolve();
-        pendingRequestRef.current = null;
-        options?.onSuccess?.(cart);
-      },
-      onError: (error) => {
-        pendingRequestRef.current?.reject(error);
-        pendingRequestRef.current = null;
-        options?.onError?.(error);
-      },
+  const shipping = checkoutFlow.useCheckoutShipping(input.cartId, undefined, {
+    enabled: input.enabled,
+    calculatePrices: input.calculatePrices,
+    onSuccess: (cart) => {
+      pendingRequestRef.current?.resolve();
+      pendingRequestRef.current = null;
+      options?.onSuccess?.(cart);
     },
-  );
+    onError: (error) => {
+      pendingRequestRef.current?.reject(error);
+      pendingRequestRef.current = null;
+      options?.onError?.(error);
+    },
+  });
 
   const setShippingMethod = (
     optionId: string,
@@ -104,7 +99,8 @@ export const useCheckoutShipping = (
   };
 };
 
-export const useSuspenseCheckoutShipping = checkoutHooks.useSuspenseCheckoutShipping;
+export const useSuspenseCheckoutShipping =
+  checkoutHooks.useSuspenseCheckoutShipping;
 
 export const useCheckoutPayment = (
   input: CheckoutPaymentInput,
@@ -122,7 +118,11 @@ export const useCheckoutPayment = (
   );
 };
 
-export const useSuspenseCheckoutPayment = checkoutHooks.useSuspenseCheckoutPayment;
+export const useSuspenseCheckoutPayment =
+  checkoutHooks.useSuspenseCheckoutPayment;
+
+export const resolveSelectedPaymentProviderId =
+  resolveSelectedPaymentProviderIdShared;
 
 type CompleteCheckoutInput = {
   cartId?: string;

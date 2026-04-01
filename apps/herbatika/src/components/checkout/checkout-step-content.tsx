@@ -1,9 +1,6 @@
 import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants";
 import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
-import {
-  resolvePaymentSummaryLabel,
-  resolveSelectedPaymentProviderId,
-} from "@/components/checkout/checkout-display.utils";
+import { resolvePaymentSummaryLabel } from "@/components/checkout/checkout-display.utils";
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils";
 import { CheckoutCartSidebarSection } from "@/components/checkout/sections/checkout-cart-sidebar-section";
 import { CheckoutCartStepSection } from "@/components/checkout/sections/checkout-cart-step-section";
@@ -12,6 +9,7 @@ import { CheckoutDetailsStepSection } from "@/components/checkout/sections/check
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section";
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
+import { resolveSelectedPaymentProviderId } from "@/lib/storefront/checkout";
 
 type CheckoutStepContentProps = {
   activeStep: CheckoutStepSlug;
@@ -29,6 +27,11 @@ export function CheckoutStepContent({
   const selectedPaymentProviderId = resolveSelectedPaymentProviderId(
     controller.cartQuery.cart,
   );
+  const selectedShippingOption =
+    controller.checkoutShippingQuery.selectedOption;
+  const selectedShippingLabel = selectedShippingOption?.name ?? undefined;
+  const selectedShippingOptionId =
+    controller.checkoutShippingQuery.selectedShippingMethodId;
   const selectedPaymentLabel =
     typeof selectedPaymentProviderId === "string" &&
     selectedPaymentProviderId.length > 0
@@ -52,9 +55,7 @@ export function CheckoutStepContent({
       hasPayment={controller.hasPayment}
       hasShipping={controller.hasShipping}
       paymentLabel={selectedPaymentLabel}
-      selectedOptionName={
-        controller.checkoutShippingQuery.selectedOption?.name ?? undefined
-      }
+      selectedOptionName={selectedShippingLabel}
       selectedShippingPrice={controller.selectedShippingPrice}
     />
   );
@@ -173,12 +174,8 @@ export function CheckoutStepContent({
           onCompleteOrder={controller.handleCompleteOrder}
           paymentProviderId={selectedPaymentProviderId}
           paymentLabel={selectedPaymentLabel}
-          shippingLabel={
-            controller.checkoutShippingQuery.selectedOption?.name ?? undefined
-          }
-          shippingOptionId={
-            controller.checkoutShippingQuery.selectedShippingMethodId
-          }
+          shippingLabel={selectedShippingLabel}
+          shippingOptionId={selectedShippingOptionId}
           shippingStepHref={shippingStepHref}
         />
       </div>
