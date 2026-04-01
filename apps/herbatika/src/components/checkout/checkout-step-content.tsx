@@ -94,7 +94,6 @@ export function CheckoutStepContent({
             paymentProps={{
               canInitiatePayment:
                 controller.checkoutPaymentQuery.canInitiatePayment,
-              hasPayment: controller.hasPayment,
               isBusy: controller.isBusy,
               isInitiatingPayment:
                 controller.checkoutPaymentQuery.isInitiatingPayment,
@@ -132,10 +131,7 @@ export function CheckoutStepContent({
               hasCustomerSupportNote: controller.hasCustomerSupportNote,
               hasDifferentShippingAddress:
                 controller.hasDifferentShippingAddress,
-              hasStoredAddress: controller.hasStoredAddress,
               isCompanyPurchase: controller.isCompanyPurchase,
-              isBusy: controller.isBusy,
-              isSavingAddress: controller.updateCartAddressMutation.isPending,
               onCreateAccountConsentChange: controller.setCreateAccountConsent,
               onCustomerSupportNoteToggle: controller.setHasCustomerSupportNote,
               onDifferentShippingAddressChange:
@@ -143,11 +139,12 @@ export function CheckoutStepContent({
               onIsCompanyPurchaseChange: controller.setIsCompanyPurchase,
               onSaveAddress: controller.handleSaveAddress,
               onUpdateAddressField: controller.updateAddressField,
-              ready: Boolean(controller.cartQuery.cart?.id),
             }}
             backStepHref={shippingStepHref}
-            canContinue={controller.hasStoredAddress}
+            isBusy={controller.isBusy}
+            isSavingAddress={controller.updateCartAddressMutation.isPending}
             nextStepHref={summaryStepHref}
+            ready={Boolean(controller.cartQuery.cart?.id)}
           />
         </div>
         <aside className={stepAsideClassName}>{orderSummarySection}</aside>

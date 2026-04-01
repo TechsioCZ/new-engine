@@ -6,7 +6,6 @@ import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea";
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group";
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import NextLink from "next/link";
-import type { FormEvent } from "react";
 import type { AddressFormState } from "@/components/checkout/checkout.constants";
 import { SupportingText } from "@/components/text/supporting-text";
 
@@ -14,22 +13,20 @@ type CheckoutAddressSectionProps = {
   addressForm: AddressFormState;
   countryItems: SelectItem[];
   createAccountConsent: boolean;
+  formId?: string;
   hasCustomerSupportNote: boolean;
   hasDifferentShippingAddress: boolean;
-  hasStoredAddress: boolean;
-  isBusy: boolean;
   isCompanyPurchase: boolean;
-  isSavingAddress: boolean;
+  onAddressSaved?: () => void;
   onCreateAccountConsentChange: (value: boolean) => void;
   onCustomerSupportNoteToggle: (value: boolean) => void;
   onDifferentShippingAddressChange: (value: boolean) => void;
   onIsCompanyPurchaseChange: (value: boolean) => void;
-  onSaveAddress: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onSaveAddress: () => Promise<boolean>;
   onUpdateAddressField: <K extends keyof AddressFormState>(
     key: K,
     value: AddressFormState[K],
   ) => void;
-  ready: boolean;
 };
 
 const PRIVATE_PURCHASE_LABEL = "Súkromná osoba";
@@ -39,19 +36,17 @@ export function CheckoutAddressSection({
   addressForm,
   countryItems,
   createAccountConsent,
+  formId = "checkout-address-form",
   hasCustomerSupportNote,
   hasDifferentShippingAddress,
-  hasStoredAddress,
-  isBusy,
   isCompanyPurchase,
-  isSavingAddress,
+  onAddressSaved,
   onCreateAccountConsentChange,
   onCustomerSupportNoteToggle,
   onDifferentShippingAddressChange,
   onIsCompanyPurchaseChange,
   onSaveAddress,
   onUpdateAddressField,
-  ready,
 }: CheckoutAddressSectionProps) {
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
@@ -82,13 +77,22 @@ export function CheckoutAddressSection({
 
       <form
         className="space-y-250 font-inter"
+        id={formId}
         onSubmit={(event) => {
-          void onSaveAddress(event);
+          event.preventDefault();
+          void (async () => {
+            const didSaveAddress = await onSaveAddress();
+            if (didSaveAddress) {
+              onAddressSaved?.();
+            }
+          })();
         }}
       >
         <RadioGroup
           className="font-rubik"
-          onValueChange={(value) => onIsCompanyPurchaseChange(value === "company")}
+          onValueChange={(value) =>
+            onIsCompanyPurchaseChange(value === "company")
+          }
           orientation="horizontal"
           size="sm"
           value={isCompanyPurchase ? "company" : "private"}
@@ -320,22 +324,6 @@ export function CheckoutAddressSection({
               onCheckedChange={onCreateAccountConsentChange}
               size="sm"
             />
-          </div>
-
-          <div className="flex flex-col flex-wrap items-end justify-center gap-200 md:col-span-2">
-            <Button
-              disabled={isBusy || !ready}
-              isLoading={isSavingAddress}
-              type="submit"
-              variant="primary"
-            >
-              Uložiť údaje
-            </Button>
-            {hasStoredAddress ? (
-              <SupportingText className="text-success">
-                Údaje sú uložené.
-              </SupportingText>
-            ) : null}
           </div>
         </div>
       </form>

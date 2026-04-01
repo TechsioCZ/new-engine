@@ -74,13 +74,12 @@ export function useCheckoutActions({
     setCompletedOrderId(null);
   };
 
-  const handleSaveAddress = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSaveAddress = async () => {
     resetFeedback();
 
     if (!cartId) {
       setCheckoutError("Košík není připraven.");
-      return;
+      return false;
     }
 
     const missingFieldsMessage = buildMissingFieldMessage(
@@ -89,7 +88,7 @@ export function useCheckoutActions({
     );
     if (missingFieldsMessage) {
       setCheckoutError(missingFieldsMessage);
-      return;
+      return false;
     }
 
     const normalizedAddress = {
@@ -112,9 +111,10 @@ export function useCheckoutActions({
         billingAddress: normalizedAddress,
         useSameAddress: true,
       });
-      setCheckoutMessage("Adresa bola uložená.");
+      return true;
     } catch (error) {
       setCheckoutError(resolveErrorMessage(error, "Uloženie adresy zlyhalo."));
+      return false;
     }
   };
 
@@ -125,7 +125,9 @@ export function useCheckoutActions({
       await setShippingMethod(optionId);
       setCheckoutMessage("Doprava bola vybraná.");
     } catch (error) {
-      setCheckoutError(resolveErrorMessage(error, "Nastavenie dopravy zlyhalo."));
+      setCheckoutError(
+        resolveErrorMessage(error, "Nastavenie dopravy zlyhalo."),
+      );
     }
   };
 
@@ -141,7 +143,9 @@ export function useCheckoutActions({
       await initiatePayment(providerId);
       setCheckoutMessage("Platba bola inicializovaná.");
     } catch (error) {
-      setCheckoutError(resolveErrorMessage(error, "Nastavenie platby zlyhalo."));
+      setCheckoutError(
+        resolveErrorMessage(error, "Nastavenie platby zlyhalo."),
+      );
     }
   };
 
@@ -178,7 +182,8 @@ export function useCheckoutActions({
         return;
       }
 
-      const completionFailureMessage = resolveCompleteCartFailure(completeResult);
+      const completionFailureMessage =
+        resolveCompleteCartFailure(completeResult);
       if (completionFailureMessage) {
         setCheckoutError(completionFailureMessage);
         return;
@@ -186,7 +191,9 @@ export function useCheckoutActions({
 
       setCheckoutError("Dokončenie objednávky zlyhalo.");
     } catch (error) {
-      setCheckoutError(resolveErrorMessage(error, "Dokončenie objednávky zlyhalo."));
+      setCheckoutError(
+        resolveErrorMessage(error, "Dokončenie objednávky zlyhalo."),
+      );
     }
   };
 

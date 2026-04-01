@@ -11,7 +11,6 @@ type PaymentProvider = {
 
 type CheckoutPaymentSectionProps = {
   canInitiatePayment: boolean;
-  hasPayment: boolean;
   isBusy: boolean;
   isInitiatingPayment: boolean;
   onSelectPaymentProvider: (providerId: string) => Promise<void>;
@@ -29,7 +28,6 @@ const resolveProviderId = (provider: PaymentProvider) => {
 
 export function CheckoutPaymentSection({
   canInitiatePayment,
-  hasPayment,
   isBusy,
   isInitiatingPayment,
   onSelectPaymentProvider,
@@ -65,13 +63,7 @@ export function CheckoutPaymentSection({
                 value: providerId || `${providerLabel}-${index}`,
               };
             })}
-            value={
-              selectedPaymentProviderId && selectedPaymentProviderId.length > 0
-                ? selectedPaymentProviderId
-                : hasPayment
-                  ? (paymentProviders[0]?.id ?? null)
-                  : null
-            }
+            value={selectedPaymentProviderId ?? null}
           />
         ) : (
           <SupportingText>
