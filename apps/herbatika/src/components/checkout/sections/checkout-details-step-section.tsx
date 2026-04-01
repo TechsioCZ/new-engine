@@ -4,25 +4,38 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import type { ComponentProps } from "react";
+import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
+import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
 import { CheckoutAddressSection } from "./checkout-address-section";
 
+type CheckoutDetailsStepController = Pick<
+  CheckoutController,
+  | "addressForm"
+  | "cartQuery"
+  | "createAccountConsent"
+  | "handleSaveAddress"
+  | "hasCustomerSupportNote"
+  | "hasDifferentShippingAddress"
+  | "isBusy"
+  | "isCompanyPurchase"
+  | "setCreateAccountConsent"
+  | "setHasCustomerSupportNote"
+  | "setHasDifferentShippingAddress"
+  | "setIsCompanyPurchase"
+  | "updateAddressField"
+  | "updateCartAddressMutation"
+>;
+
 type CheckoutDetailsStepSectionProps = {
-  addressProps: ComponentProps<typeof CheckoutAddressSection>;
   backStepHref: string;
-  isBusy: boolean;
-  isSavingAddress: boolean;
+  controller: CheckoutDetailsStepController;
   nextStepHref: string;
-  ready: boolean;
 };
 
 export function CheckoutDetailsStepSection({
-  addressProps,
   backStepHref,
-  isBusy,
-  isSavingAddress,
+  controller,
   nextStepHref,
-  ready,
 }: CheckoutDetailsStepSectionProps) {
   const router = useRouter();
   const addressFormId = "checkout-address-form";
@@ -30,11 +43,24 @@ export function CheckoutDetailsStepSection({
   return (
     <section className="space-y-300">
       <CheckoutAddressSection
-        {...addressProps}
+        addressForm={controller.addressForm}
+        countryItems={COUNTRY_SELECT_ITEMS}
+        createAccountConsent={controller.createAccountConsent}
         formId={addressFormId}
+        hasCustomerSupportNote={controller.hasCustomerSupportNote}
+        hasDifferentShippingAddress={controller.hasDifferentShippingAddress}
+        isCompanyPurchase={controller.isCompanyPurchase}
         onAddressSaved={() => {
           router.push(nextStepHref);
         }}
+        onCreateAccountConsentChange={controller.setCreateAccountConsent}
+        onCustomerSupportNoteToggle={controller.setHasCustomerSupportNote}
+        onDifferentShippingAddressChange={
+          controller.setHasDifferentShippingAddress
+        }
+        onIsCompanyPurchaseChange={controller.setIsCompanyPurchase}
+        onSaveAddress={controller.handleSaveAddress}
+        onUpdateAddressField={controller.updateAddressField}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-200">
@@ -51,11 +77,11 @@ export function CheckoutDetailsStepSection({
         </LinkButton>
         <Button
           className="w-full sm:min-w-950 sm:w-auto"
-          disabled={isBusy || !ready}
+          disabled={controller.isBusy || !controller.cartQuery.cart?.id}
           form={addressFormId}
           icon="token-icon-chevron-right"
           iconPosition="right"
-          isLoading={isSavingAddress}
+          isLoading={controller.updateCartAddressMutation.isPending}
           size="lg"
           type="submit"
         >

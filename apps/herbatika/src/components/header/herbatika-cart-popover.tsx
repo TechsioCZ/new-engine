@@ -184,7 +184,6 @@ export function HerbatikaCartPopover({
             <LinkButton
               as={NextLink}
               block
-              className="justify-center"
               href="/checkout/kosik"
               onClick={handleClose}
               size="md"
@@ -199,7 +198,7 @@ export function HerbatikaCartPopover({
               theme="outlined"
               variant="secondary"
             >
-              Pokračovat v nákupu
+              Pokračovať v nákupe
             </Button>
           </div>
         </>
@@ -209,13 +208,12 @@ export function HerbatikaCartPopover({
           <LinkButton
             as={NextLink}
             block
-            className="justify-center"
             href="/search"
             onClick={handleClose}
             size="sm"
-            variant="secondary"
+            
           >
-            Pokračovat v nákupu
+            Pokračovať v nákupe
           </LinkButton>
         </div>
       )}
