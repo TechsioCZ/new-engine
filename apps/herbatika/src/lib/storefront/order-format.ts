@@ -29,7 +29,7 @@ export const resolveOrderStatusBadgeVariant = (
   }
 
   if (status === "pending" || status === "requires_action") {
-    return "warning";
+    return "info";
   }
 
   return "info";

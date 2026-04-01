@@ -36,44 +36,27 @@ export function StorefrontAccountOverview() {
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-200">
-        <Badge variant="success">
-          {`${authQuery.customer.first_name ?? ""} ${authQuery.customer.last_name ?? ""}`.trim() ||
-            "Zákazník"}
-        </Badge>
-        <Badge variant="info">{authQuery.customer.email ?? "-"}</Badge>
-        <Badge variant={ordersQuery.totalCount > 0 ? "success" : "warning"}>
-          {`objednávky: ${ordersQuery.totalCount}`}
-        </Badge>
-      </div>
+      <ul className="flex flex-col flex-wrap gap-200">
+        <li>
+          <span>Zákazník: </span>
+          <span className="text-fg-secondary">{`${authQuery.customer.first_name ?? ""} ${authQuery.customer.last_name ?? ""}`.trim() ||
+            "Zákazník"}</span>
+        </li>
+        <li>
+          <span>Email: </span>
+          <span className="text-fg-secondary">{authQuery.customer.email ?? "-"}</span>
+        </li>
+        <li>
+          <span>Objednávky: </span>
+          <span className="text-fg-secondary">{`${ordersQuery.totalCount}`}</span>
+        </li>
+      </ul>
 
       {ordersQuery.error && (
         <StatusText showIcon status="error">
           {ordersQuery.error}
         </StatusText>
       )}
-
-      <div className="flex flex-wrap gap-200">
-        <LinkButton as={NextLink} href="/account/orders" variant="secondary">
-          Otvoriť objednávky
-        </LinkButton>
-        <LinkButton
-          as={NextLink}
-          href="/account/settings"
-          theme="outlined"
-          variant="secondary"
-        >
-          Upraviť údaje
-        </LinkButton>
-        <LinkButton
-          as={NextLink}
-          href="/checkout/kosik"
-          theme="outlined"
-          variant="secondary"
-        >
-          Prejsť na checkout
-        </LinkButton>
-      </div>
     </StorefrontAccountSurface>
   );
 }

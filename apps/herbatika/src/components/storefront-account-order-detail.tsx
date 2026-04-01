@@ -37,7 +37,7 @@ export function StorefrontAccountOrderDetail({
         <StatusText showIcon status="error">
           {orderQuery.error}
         </StatusText>
-        <LinkButton as={NextLink} href="/account/orders" variant="secondary">
+        <LinkButton as={NextLink} href="/account/orders" variant="secondary" size="sm">
           Späť na objednávky
         </LinkButton>
       </StorefrontAccountSurface>
@@ -51,7 +51,7 @@ export function StorefrontAccountOrderDetail({
         <p className="text-sm text-fg-secondary">
           Skontrolujte URL alebo sa vráťte do zoznamu objednávok.
         </p>
-        <LinkButton as={NextLink} href="/account/orders" variant="secondary">
+        <LinkButton as={NextLink} href="/account/orders" variant="secondary" size="sm">
           Späť na objednávky
         </LinkButton>
       </StorefrontAccountSurface>
@@ -79,14 +79,6 @@ export function StorefrontAccountOrderDetail({
 
       <StorefrontAccountOrderDetailItems order={order} />
 
-      <LinkButton
-        as={NextLink}
-        href="/account/orders"
-        theme="outlined"
-        variant="secondary"
-      >
-        Späť na objednávky
-      </LinkButton>
     </div>
   );
 }

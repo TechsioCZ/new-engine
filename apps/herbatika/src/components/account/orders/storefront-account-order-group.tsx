@@ -144,13 +144,13 @@ export function StorefrontAccountOrderGroup({
                   </div>
 
                   <div className="flex items-center">
-                    <Badge variant={orderStatusVariant}>{orderStatus}</Badge>
+                    <Badge variant={orderStatusVariant} className="rounded-xs text-2xs font-medium">{orderStatus}</Badge>
                   </div>
 
                   <div className="flex items-center justify-end">
                     <LinkButton
                       as={NextLink}
-                      href={detailHref}
+                      href={`/p/${item.product_handle}`}
                       onFocus={() => {
                         onPrefetchOrderDetail(order.id);
                       }}
