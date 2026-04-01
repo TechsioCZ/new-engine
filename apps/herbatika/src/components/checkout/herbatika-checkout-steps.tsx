@@ -17,11 +17,11 @@ export function HerbatikaCheckoutSteps({
 }: HerbatikaCheckoutStepsProps) {
   return (
     <Steps count={steps.length} linear size="sm" step={step}>
-      <Steps.List className="w-fit mx-auto justify-start bg-base p-300 rounded-xl">
+      <Steps.List className="w-fit mx-auto justify-start p-300 rounded-xl">
         {steps.map((item, index) => (
           <Steps.Item index={index} key={item.id} className="flex-none min-w-max">
             <Steps.Trigger disabled>
-              <Steps.Indicator className="leading-none">
+              <Steps.Indicator>
                 <Steps.Status
                 complete={<Steps.Number />}
                 current={<Steps.Number />}

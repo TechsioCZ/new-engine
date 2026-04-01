@@ -79,10 +79,10 @@ export const StorefrontLoginForm = ({
       </form.Field>
 
       <div className="md:col-span-2 flex flex-wrap gap-200">
-        <Button disabled={isSubmitDisabled} isLoading={isBusy} type="submit">
+        <Button disabled={isSubmitDisabled} isLoading={isBusy} type="submit" size="sm">
           Prihlásiť
         </Button>
-        <LinkButton as={NextLink} href={registerHref} variant="primary" className="items-center rounded-sm px-200 text-sm">
+        <LinkButton as={NextLink} href={registerHref} variant="primary" size="sm">
           Na registráciu
         </LinkButton>
       </div>

@@ -175,12 +175,13 @@ export const StorefrontRegisterForm = ({
             theme="outlined"
             type="button"
             variant="secondary"
+            size="sm"
           >
             Vygenerovať test identitu
           </Button>
         ) : null}
 
-        <LinkButton as={NextLink} href={loginHref} variant="primary" className="items-center rounded-sm px-200 text-sm">
+        <LinkButton as={NextLink} href={loginHref} variant="primary" size="sm">
           Na prihlásenie
         </LinkButton>
       </div>

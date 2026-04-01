@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import {
   CHECKOUT_STEPS,
@@ -30,5 +31,9 @@ export default async function CheckoutStepPage({
     redirect(resolveCheckoutStepHref(DEFAULT_CHECKOUT_STEP_SLUG));
   }
 
-  return <StorefrontCheckoutFlow activeStep={step} />;
+  return (
+    <Suspense fallback={<main className="mx-auto min-h-dvh w-full max-w-max-w" />}>
+      <StorefrontCheckoutFlow activeStep={step} />
+    </Suspense>
+  );
 }
