@@ -2,6 +2,18 @@
   @apply icon-[mdi--user-outline];
 }
 
+@utility token-icon-logout {
+  @apply icon-[mdi--logout];
+}
+
+@utility token-icon-order {
+  @apply icon-[mdi--note-text-outline];
+}
+
+@utility token-icon-settings {
+  @apply icon-[mdi--settings];
+}
+
 @utility token-icon-search {
   @apply icon-[mdi--search];
 }

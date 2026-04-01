@@ -17,6 +17,7 @@
   --color-button-fg-outlined-primary: var(--color-primary);
   --color-button-fg-outlined-secondary: var(--color-fg-primary);
   --color-button-fg-light: var(--color-primary);
+  --color-button-fg-danger: var(--color-fg-reverse);
   --color-button-border-secondary: var(--color-border-secondary);
   --color-button-border-tertiary: var(--color-tertiary);
 

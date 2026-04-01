@@ -12,11 +12,18 @@ import { useEffect, useState } from "react";
 import { useAuth, useLogout } from "@/lib/storefront/auth";
 import { cartStorage } from "@/lib/storefront/cart-storage";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { IconType } from "@techsio/ui-kit/atoms/icon";
 
-const ACCOUNT_NAV_ITEMS = [
-  { href: "/account", label: "Prehľad" },
-  { href: "/account/orders", label: "Objednávky" },
-  { href: "/account/settings", label: "Nastavenia" },
+type AccountNavItemType = {
+  href: string;
+  label: string;
+  icon: IconType;
+}
+
+const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
+  { href: "/account", label: "Prehľad", icon:"token-icon-user"},
+  { href: "/account/orders", label: "Objednávky", icon:"token-icon-order"},
+  { href: "/account/settings", label: "Nastavenia", icon:"token-icon-settings"},
 ] as const;
 
 const isNavItemActive = (pathname: string, href: string) => {
@@ -102,6 +109,7 @@ export function StorefrontAccountLayout({
             as={NextLink}
             href={`/auth/login?next=${encodeURIComponent(redirectTarget)}`}
             variant="secondary"
+            size="sm"
           >
             Prihlásiť sa
           </LinkButton>
@@ -125,13 +133,14 @@ export function StorefrontAccountLayout({
 
               return (
                 <LinkButton
+                  className={`${isActive && "border-l-3 text-primary border-primary"} justify-start px-200`}
                   as={NextLink}
                   block
-                  className="justify-start"
                   href={item.href}
                   key={item.href}
-                  theme={isActive ? "solid" : "outlined"}
-                  variant={isActive ? "primary" : "secondary"}
+                  theme="unstyled"
+                  size="current"
+                  icon={item.icon}
                 >
                   {item.label}
                 </LinkButton>
@@ -145,13 +154,18 @@ export function StorefrontAccountLayout({
             </StatusText>
           )}
 
+          <hr className="border-border-primary"/>
+
           <Button
             block
             isLoading={logoutMutation.isPending}
             onClick={() => {
               void handleLogout();
             }}
-            variant="danger"
+            theme="unstyled"
+            icon="token-icon-logout"
+            size="current"
+            className="justify-start"
           >
             Odhlásiť
           </Button>
@@ -161,4 +175,36 @@ export function StorefrontAccountLayout({
       </div>
     </main>
   );
+}
+
+
+const AccountTabs = ({items}: {items: string[]}) => {
+
+  return(
+     <aside className="space-y-400 rounded-lg border border-border-secondary bg-surface p-400">
+          <header className="space-y-200">
+            <h1 className="text-xl font-semibold">Môj účet</h1>
+            {/*<Badge variant="info">{authQuery.customer?.email ?? "-"}</Badge>*/}
+          </header>
+            <nav className="flex flex-col gap-200">
+            {ACCOUNT_NAV_ITEMS.map((item) => {
+              //const isActive = isNavItemActive(pathname, item.href);
+
+              return (
+                <LinkButton
+                 // className={`${isActive && "border-l-2"} justify-start p-200`}
+                  as={NextLink}
+                  block
+                  href={item.href}
+                  key={item.href}
+                  theme="unstyled"
+                  size="current"
+                >
+                  {item.label}
+                </LinkButton>
+              );
+            })}
+          </nav>
+      </aside>
+  )
 }
