@@ -16,10 +16,10 @@ export function CheckoutCompletedOrderSection({
         {`Objednávka bola vytvorená (${completedOrderId}).`}
       </StatusText>
       <div className="flex flex-wrap gap-200">
-        <LinkButton as={NextLink} href="/" variant="secondary">
+        <LinkButton as={NextLink} href="/" size="sm">
           Pokračovať v nákupe
         </LinkButton>
-        <LinkButton as={NextLink} href="/account" theme="outlined" variant="secondary">
+        <LinkButton as={NextLink} href="/account" theme="outlined" size="sm" variant="secondary">
           Prejsť na účet
         </LinkButton>
       </div>
