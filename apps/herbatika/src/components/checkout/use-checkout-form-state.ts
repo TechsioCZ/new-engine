@@ -2,7 +2,10 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useEffect, useState } from "react";
-import { DEFAULT_ADDRESS_FORM, type AddressFormState } from "./checkout.constants";
+import {
+  type AddressFormState,
+  DEFAULT_ADDRESS_FORM,
+} from "./checkout.constants";
 
 type UseCheckoutFormStateProps = {
   cart: HttpTypes.StoreCart | null | undefined;
@@ -17,12 +20,12 @@ export function useCheckoutFormState({
   isCartLoading,
   regionCountryCode,
 }: UseCheckoutFormStateProps) {
-  const [addressForm, setAddressForm] = useState<AddressFormState>(
-    DEFAULT_ADDRESS_FORM,
-  );
+  const [addressForm, setAddressForm] =
+    useState<AddressFormState>(DEFAULT_ADDRESS_FORM);
   const [isAddressInitialized, setIsAddressInitialized] = useState(false);
-  const [isCompanyPurchase, setIsCompanyPurchase] = useState(true);
-  const [hasDifferentShippingAddress, setHasDifferentShippingAddress] = useState(false);
+  const [isCompanyPurchase, setIsCompanyPurchase] = useState(false);
+  const [hasDifferentShippingAddress, setHasDifferentShippingAddress] =
+    useState(false);
   const [hasCustomerSupportNote, setHasCustomerSupportNote] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [heurekaConsent, setHeurekaConsent] = useState(false);
@@ -40,8 +43,10 @@ export function useCheckoutFormState({
     setAddressForm((previous) => ({
       ...previous,
       email: cart?.email ?? customer?.email ?? previous.email,
-      firstName: baseAddress?.first_name ?? customer?.first_name ?? previous.firstName,
-      lastName: baseAddress?.last_name ?? customer?.last_name ?? previous.lastName,
+      firstName:
+        baseAddress?.first_name ?? customer?.first_name ?? previous.firstName,
+      lastName:
+        baseAddress?.last_name ?? customer?.last_name ?? previous.lastName,
       phone: baseAddress?.phone ?? previous.phone,
       company: baseAddress?.company ?? previous.company,
       companyId: previous.companyId,
@@ -58,7 +63,7 @@ export function useCheckoutFormState({
       ).toUpperCase(),
       customerNote: previous.customerNote,
     }));
-    setIsCompanyPurchase(Boolean(baseAddress?.company) || isCompanyPurchase);
+    setIsCompanyPurchase(Boolean(baseAddress?.company));
     setIsAddressInitialized(true);
   }, [
     cart,
@@ -67,7 +72,6 @@ export function useCheckoutFormState({
     customer?.last_name,
     isAddressInitialized,
     isCartLoading,
-    isCompanyPurchase,
     regionCountryCode,
   ]);
 

@@ -4,7 +4,7 @@ import {
   resolveCartTotalAmount as resolveCartTotalAmountShared,
   resolveLineItemTotalAmount as resolveLineItemTotalAmountShared,
 } from "@/lib/storefront/cart-calculations";
-import { CHECKOUT_STEPS, type AddressFormState } from "./checkout.constants";
+import type { AddressFormState } from "./checkout.constants";
 
 const isObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
@@ -16,7 +16,9 @@ export const resolveCartTotalAmount = (
   return resolveCartTotalAmountShared(cart);
 };
 
-export const resolveLineItemTotalAmount = (item: HttpTypes.StoreCartLineItem) => {
+export const resolveLineItemTotalAmount = (
+  item: HttpTypes.StoreCartLineItem,
+) => {
   return resolveLineItemTotalAmountShared(item);
 };
 
@@ -105,19 +107,6 @@ export const buildMissingFieldMessage = (
   return `Vyplňte povinné polia: ${missing.join(", ")}`;
 };
 
-export const resolveProviderLabel = (providerId: string) => {
-  if (!providerId) {
-    return "Neznámy poskytovateľ";
-  }
-
-  return providerId
-    .replace(/[_-]+/g, " ")
-    .split(" ")
-    .filter((part) => part.length > 0)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-};
-
 export const resolveCartItemName = (item: HttpTypes.StoreCartLineItem) => {
   return resolveCartItemNameShared(item);
 };
@@ -142,25 +131,4 @@ export const resolveHasStoredAddress = (
       address.postal_code &&
       address.country_code,
   );
-};
-
-export const resolveCheckoutStepIndex = (params: {
-  hasItems: boolean;
-  hasStoredAddress: boolean;
-  hasShipping: boolean;
-  hasPayment: boolean;
-}) => {
-  if (!params.hasItems) {
-    return 0;
-  }
-
-  if (!params.hasShipping || !params.hasPayment) {
-    return 1;
-  }
-
-  if (!params.hasStoredAddress) {
-    return 2;
-  }
-
-  return CHECKOUT_STEPS.length - 1;
 };

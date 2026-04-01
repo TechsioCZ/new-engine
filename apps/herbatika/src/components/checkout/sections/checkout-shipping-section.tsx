@@ -1,4 +1,4 @@
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
+import { resolveShippingIcon } from "@/components/checkout/checkout-display.utils";
 import { SupportingText } from "@/components/text/supporting-text";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card";
@@ -16,33 +16,6 @@ type CheckoutShippingSectionProps = {
   selectedShippingMethodId?: string | null;
   shippingOptions: ShippingOption[];
   shippingPrices: Record<string, number>;
-};
-
-const resolveShippingIcon = (option: ShippingOption): IconType => {
-  const normalizedValue = `${option.name ?? ""} ${option.id}`.toLowerCase();
-
-  if (
-    normalizedValue.includes("packeta") ||
-    normalizedValue.includes("box") ||
-    normalizedValue.includes("pickup") ||
-    normalizedValue.includes("predaj")
-  ) {
-    return "icon-[mdi--package-variant-closed]";
-  }
-
-  if (
-    normalizedValue.includes("express") ||
-    normalizedValue.includes("kurier") ||
-    normalizedValue.includes("courier")
-  ) {
-    return "icon-[mdi--truck-fast-outline]";
-  }
-
-  if (normalizedValue.includes("eko") || normalizedValue.includes("eco")) {
-    return "icon-[mdi--leaf]";
-  }
-
-  return "icon-[mdi--truck-delivery-outline]";
 };
 
 export function CheckoutShippingSection({

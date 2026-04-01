@@ -4,28 +4,23 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/storefront/auth";
+import { useCart, useUpdateCartAddress } from "@/lib/storefront/cart";
 import {
   resolveCartSubtotalAmount,
   resolveCartTotalWithoutTaxAmount,
 } from "@/lib/storefront/cart-calculations";
 import {
   fetchPaymentProviders,
-  useCompleteCheckout,
   useCheckoutPayment,
   useCheckoutShipping,
+  useCompleteCheckout,
 } from "@/lib/storefront/checkout";
-import {
-  useCart,
-  useUpdateCartAddress,
-} from "@/lib/storefront/cart";
-import { CHECKOUT_STEPS } from "./checkout.constants";
-import { useCheckoutActions } from "./use-checkout-actions";
-import { useCheckoutFormState } from "./use-checkout-form-state";
 import {
   resolveCartTotalAmount,
   resolveHasStoredAddress,
-  resolveCheckoutStepIndex,
 } from "./checkout.utils";
+import { useCheckoutActions } from "./use-checkout-actions";
+import { useCheckoutFormState } from "./use-checkout-form-state";
 
 export function useCheckoutController() {
   const queryClient = useQueryClient();
@@ -129,12 +124,6 @@ export function useCheckoutController() {
   const hasStoredAddress = resolveHasStoredAddress(cartQuery.cart);
   const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId);
   const hasPayment = checkoutPaymentQuery.hasPaymentSessions;
-  const checkoutStepIndex = resolveCheckoutStepIndex({
-    hasItems,
-    hasStoredAddress,
-    hasShipping,
-    hasPayment,
-  });
 
   const selectedShippingPrice = useMemo(() => {
     if (!checkoutShippingQuery.selectedShippingMethodId) {
@@ -179,7 +168,6 @@ export function useCheckoutController() {
     cartTotalAmount,
     checkoutPaymentQuery,
     checkoutShippingQuery,
-    checkoutStepIndex,
     completeCartMutation: completeCheckoutMutation,
     completeCheckoutMutation,
     currencyCode,
@@ -194,7 +182,6 @@ export function useCheckoutController() {
       !isBusy &&
       Boolean(checkoutShippingQuery.selectedShippingMethodId) &&
       checkoutPaymentQuery.hasPaymentSessions,
-    checkoutSteps: CHECKOUT_STEPS,
   };
 }
 

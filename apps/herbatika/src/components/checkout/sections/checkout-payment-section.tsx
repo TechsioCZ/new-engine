@@ -1,5 +1,7 @@
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
-import { resolveProviderLabel } from "@/components/checkout/checkout.utils";
+import {
+  resolvePaymentIcon,
+  resolveProviderLabel,
+} from "@/components/checkout/checkout-display.utils";
 import { SupportingText } from "@/components/text/supporting-text";
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card";
 
@@ -23,33 +25,6 @@ const resolveProviderId = (provider: PaymentProvider) => {
   }
 
   return "";
-};
-
-const resolvePaymentIcon = (providerId: string): IconType => {
-  const normalizedValue = providerId.toLowerCase();
-
-  if (normalizedValue.includes("paypal")) {
-    return "icon-[mdi--paypal]";
-  }
-
-  if (
-    normalizedValue.includes("card") ||
-    normalizedValue.includes("stripe") ||
-    normalizedValue.includes("google") ||
-    normalizedValue.includes("apple")
-  ) {
-    return "icon-[mdi--credit-card-outline]";
-  }
-
-  if (normalizedValue.includes("bank") || normalizedValue.includes("wire")) {
-    return "icon-[mdi--bank-outline]";
-  }
-
-  if (normalizedValue.includes("cod") || normalizedValue.includes("cash")) {
-    return "icon-[mdi--cash-multiple]";
-  }
-
-  return "icon-[mdi--wallet-outline]";
 };
 
 export function CheckoutPaymentSection({

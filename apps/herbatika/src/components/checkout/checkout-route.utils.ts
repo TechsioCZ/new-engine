@@ -1,12 +1,14 @@
 import {
   CHECKOUT_STEPS,
-  DEFAULT_CHECKOUT_STEP_SLUG,
   type CheckoutStepSlug,
+  DEFAULT_CHECKOUT_STEP_SLUG,
 } from "./checkout.constants";
 
 const CHECKOUT_STEP_SLUGS = CHECKOUT_STEPS.map((step) => step.slug);
 
-export const isCheckoutStepSlug = (value: string): value is CheckoutStepSlug => {
+export const isCheckoutStepSlug = (
+  value: string,
+): value is CheckoutStepSlug => {
   return CHECKOUT_STEP_SLUGS.includes(value as CheckoutStepSlug);
 };
 
@@ -61,7 +63,7 @@ export const canAccessCheckoutStep = (params: {
     case "kosik":
       return true;
     case "doprava-platba":
-      return true;
+      return params.hasItems;
     case "udaje":
       return params.hasItems && params.hasShipping && params.hasPayment;
     case "suhrn":
