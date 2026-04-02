@@ -5,7 +5,6 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import { useEffect, useMemo, useState } from "react";
-import { PDP_FREE_SHIPPING_THRESHOLD } from "@/components/product-detail/product-detail.constants";
 import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log";
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products";
@@ -28,6 +27,7 @@ import {
   resolveVolumeDiscountOptions,
 } from "@/components/product-detail/utils/pricing-utils";
 import { asNumber, asRecord, asString } from "@/components/product-detail/utils/value-utils";
+import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
 
@@ -233,6 +233,8 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
       : []),
     { label: product?.title || handle },
   ];
+  const freeShippingThresholdAmount =
+    resolveFreeShippingThresholdAmount(currentCurrencyCode);
 
   return {
     breadcrumbItems,
@@ -240,10 +242,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     defaultInfoSectionValue: productContentSections[0]?.key ?? "description",
     displayOriginalLabel,
     discountPercent,
-    freeShippingThresholdLabel: formatCurrencyAmount(
-      PDP_FREE_SHIPPING_THRESHOLD,
-      currentCurrencyCode,
-    ),
+    freeShippingThresholdLabel:
+      freeShippingThresholdAmount === null
+        ? null
+        : formatCurrencyAmount(freeShippingThresholdAmount, currentCurrencyCode),
     galleryItems,
     isBootstrappingRegion: !region?.region_id,
     mediaFacts,

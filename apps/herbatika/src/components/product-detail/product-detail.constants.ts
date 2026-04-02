@@ -26,5 +26,3 @@ export const PRODUCT_DETAIL_SECTION_TITLES: Record<string, string> = {
   warning: "Upozornenie",
   other: "Ostatné informácie",
 };
-
-export const PDP_FREE_SHIPPING_THRESHOLD = 49;

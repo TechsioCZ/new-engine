@@ -18,7 +18,7 @@ type ProductDetailHeroProps = {
   currentAmountLabel: string;
   discountPercent: number | null;
   displayOriginalLabel: string | null;
-  freeShippingThresholdLabel: string;
+  freeShippingThresholdLabel: string | null;
   galleryItems: GalleryItem[];
   mediaFacts: ProductMediaFact[];
   isAdding: boolean;
