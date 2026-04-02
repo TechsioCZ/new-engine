@@ -10,13 +10,8 @@ import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import { Header } from "@techsio/ui-kit/organisms/header";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { storefrontCartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
-import {
-  CART_ID_CHANGED_EVENT,
-  getStoredCartId,
-} from "@/lib/storefront/cart-storage";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { HEADER_ACTION_ITEMS, PRIMARY_NAV_ITEMS } from "./header/herbatika-header.navigation";
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover";
@@ -33,24 +28,9 @@ const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
 export function HerbatikaHeader() {
   const router = useRouter();
   const region = useRegionContext();
-  const [cartId, setCartId] = useState<string | null>(() => getStoredCartId());
-
-  useEffect(() => {
-    const handleCartIdChanged = (event: Event) => {
-      const detail = (event as CustomEvent<{ cartId: string | null }>).detail;
-      setCartId(detail?.cartId ?? null);
-    };
-
-    window.addEventListener(CART_ID_CHANGED_EVENT, handleCartIdChanged);
-
-    return () => {
-      window.removeEventListener(CART_ID_CHANGED_EVENT, handleCartIdChanged);
-    };
-  }, []);
 
   const { cart, itemCount } = useCart(
     {
-      cartId: cartId ?? undefined,
       autoCreate: true,
       region_id: region?.region_id,
       country_code: region?.country_code,
@@ -60,20 +40,6 @@ export function HerbatikaHeader() {
       queryOptions: storefrontCartReadQueryOptions,
     },
   );
-
-  useEffect(() => {
-    if (!cart?.id) {
-      return;
-    }
-
-    setCartId((currentCartId) => {
-      if (currentCartId === cart.id) {
-        return currentCartId;
-      }
-
-      return cart.id;
-    });
-  }, [cart?.id]);
 
   const currency = REGION_TO_CURRENCY[region?.country_code ?? ""] ?? "EUR";
   const cartTotalLabel = formatCurrencyAmount(
