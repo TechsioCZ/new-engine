@@ -12,15 +12,10 @@ type CheckoutDetailsStepController = Pick<
   CheckoutController,
   | "addressForm"
   | "cartQuery"
-  | "createAccountConsent"
   | "handleSaveAddress"
-  | "hasCustomerSupportNote"
-  | "hasDifferentShippingAddress"
+  | "isAuthenticated"
   | "isBusy"
   | "isCompanyPurchase"
-  | "setCreateAccountConsent"
-  | "setHasCustomerSupportNote"
-  | "setHasDifferentShippingAddress"
   | "setIsCompanyPurchase"
   | "updateAddressField"
   | "updateCartAddressMutation"
@@ -45,19 +40,12 @@ export function CheckoutDetailsStepSection({
       <CheckoutAddressSection
         addressForm={controller.addressForm}
         countryItems={COUNTRY_SELECT_ITEMS}
-        createAccountConsent={controller.createAccountConsent}
         formId={addressFormId}
-        hasCustomerSupportNote={controller.hasCustomerSupportNote}
-        hasDifferentShippingAddress={controller.hasDifferentShippingAddress}
+        isAuthenticated={controller.isAuthenticated}
         isCompanyPurchase={controller.isCompanyPurchase}
         onAddressSaved={() => {
           router.push(nextStepHref);
         }}
-        onCreateAccountConsentChange={controller.setCreateAccountConsent}
-        onCustomerSupportNoteToggle={controller.setHasCustomerSupportNote}
-        onDifferentShippingAddressChange={
-          controller.setHasDifferentShippingAddress
-        }
         onIsCompanyPurchaseChange={controller.setIsCompanyPurchase}
         onSaveAddress={controller.handleSaveAddress}
         onUpdateAddressField={controller.updateAddressField}
