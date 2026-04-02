@@ -2,15 +2,13 @@
 
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
-import {
-  CategoryContextPanel,
-} from "@/components/category/category-context-panel";
+import { CategoryContextPanel } from "@/components/category/category-context-panel";
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
 import { normalizeCategoryName } from "@/components/category/category-product-utils";
 import { CategoryResultsSection } from "@/components/category/category-results-section";
-import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation";
 import { useCategoryListingController } from "@/components/category/use-category-listing-controller";
+import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 
 type StorefrontCategoryListingProps = {
@@ -61,8 +59,8 @@ export function StorefrontCategoryListing({
       />
 
       <section className="space-y-400">
-        <div className="grid gap-600 xl:grid-cols-12">
-          <div className="xl:col-span-3">
+        <div className="grid gap-600 xl:grid-cols-12 xl:items-start">
+          <div className="xl:col-span-3 xl:self-start xl:sticky xl:top-400">
             <CategoryFacetsPanel
               activeFilterCount={controller.activeAsideFilterCount}
               brandItems={controller.asideBrandItems}

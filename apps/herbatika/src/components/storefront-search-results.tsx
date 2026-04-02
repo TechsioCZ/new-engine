@@ -4,8 +4,8 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
 import { CategoryResultsSection } from "@/components/category/category-results-section";
-import { useSearchListingController } from "./search/use-search-listing-controller";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
+import { useSearchListingController } from "./search/use-search-listing-controller";
 
 export function StorefrontSearchResults() {
   const controller = useSearchListingController();
@@ -38,8 +38,8 @@ export function StorefrontSearchResults() {
         </section>
       ) : (
         <section className="space-y-400">
-          <div className="grid gap-600 xl:grid-cols-12">
-            <div className="xl:col-span-3">
+          <div className="grid gap-600 xl:grid-cols-12 xl:items-start">
+            <div className="xl:col-span-3 xl:self-start xl:sticky xl:top-400">
               <CategoryFacetsPanel
                 activeFilterCount={controller.activeAsideFilterCount}
                 brandItems={controller.asideBrandItems}

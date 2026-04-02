@@ -176,9 +176,8 @@ export function AsideFilter({
     [priceBoundsForRender, selectedPriceRange],
   );
 
-  const [sliderRange, setSliderRange] = useState<[number, number]>(
-    selectedRange,
-  );
+  const [sliderRange, setSliderRange] =
+    useState<[number, number]>(selectedRange);
   const sliderRangeForRender = useMemo(
     () => resolveRangeWithinBounds(sliderRange, priceBoundsForRender),
     [priceBoundsForRender, sliderRange],
@@ -189,8 +188,8 @@ export function AsideFilter({
   }, [selectedRange]);
 
   return (
-    <aside className="rounded-2xl border border-border-secondary bg-surface p-500 text-fg-primary xl:sticky xl:top-400">
-      <div className="space-y-500">
+    <aside className="overflow-hidden rounded-2xl border border-border-secondary bg-surface text-fg-primary">
+      <div className="scrollbar-primary space-y-500 p-500 xl:max-h-[calc(100dvh-var(--spacing-400))] xl:overflow-y-auto xl:overscroll-contain">
         <section className="space-y-300">
           <h2 className="text-2xl font-bold uppercase leading-none">Cena</h2>
           <div className="flex items-center justify-between text-lg font-medium text-fg-secondary">
@@ -202,10 +201,7 @@ export function AsideFilter({
             </span>
           </div>
           <Slider
-            defaultValue={[
-              priceBoundsForRender.min,
-              priceBoundsForRender.max,
-            ]}
+            defaultValue={[priceBoundsForRender.min, priceBoundsForRender.max]}
             max={priceBoundsForRender.max}
             min={priceBoundsForRender.min}
             minStepsBetweenThumbs={0}
@@ -243,14 +239,15 @@ export function AsideFilter({
         <section className="space-y-250">
           <div className="flex flex-wrap gap-200">
             {statusItems.map((item) => (
-              <Button 
-                size="sm" 
-                theme="light" 
-                variant="primary" 
+              <Button
+                size="sm"
+                theme="light"
+                variant="primary"
                 className="font-rubik rounded-full font-medium leading-tight"
                 disabled={isLoading || item.disabled}
                 key={item.id}
-                onClick={() => onStatusToggle(item.id)}>{`${item.label} (${item.count})`}</Button>
+                onClick={() => onStatusToggle(item.id)}
+              >{`${item.label} (${item.count})`}</Button>
             ))}
           </div>
         </section>
