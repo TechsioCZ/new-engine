@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { Suspense } from "react";
 import {
   DEFAULT_CHECKOUT_STEP_SLUG,
 } from "@/components/checkout/checkout.constants";
