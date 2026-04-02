@@ -1,9 +1,6 @@
 "use client";
 
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import NextLink from "next/link";
 import {
   StorefrontAccountSkeletonSurface,
   StorefrontAccountSurface,

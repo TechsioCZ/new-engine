@@ -13,11 +13,12 @@ import {
   formatOrderAmount,
   formatOrderDate,
   resolveOrderDisplayId,
+  resolveOrderFulfillmentStatusLabel,
   resolveOrderInvoiceUrl,
   resolveOrderItemCount,
   resolveOrderItemTotalAmount,
-  resolveOrderStatusBadgeVariant,
-  resolveOrderStatusLabel,
+  resolveOrderPaymentStatusLabel,
+  resolveOrderProgressState,
   resolveOrderTotalAmount,
 } from "@/lib/storefront/order-format";
 
@@ -47,6 +48,9 @@ export function StorefrontAccountOrderDetailSummary({
   const trackingCode = resolveOrderTrackingCode(order);
   const invoiceUrl = resolveOrderInvoiceUrl(order);
   const resolvedEmail = resolveOrderContactEmail(order, customerEmail);
+  const orderProgress = resolveOrderProgressState(order);
+  const paymentStatus = resolveOrderPaymentStatusLabel(order);
+  const fulfillmentStatus = resolveOrderFulfillmentStatusLabel(order);
 
   return (
     <section className="space-y-400 rounded-lg border border-border-secondary bg-surface p-550">
@@ -61,8 +65,8 @@ export function StorefrontAccountOrderDetailSummary({
         </div>
 
         <div className="flex flex-wrap items-center gap-200">
-          <Badge variant={resolveOrderStatusBadgeVariant(order.status)}>
-            {resolveOrderStatusLabel(order.status)}
+          <Badge variant={orderProgress.variant}>
+            {orderProgress.label}
           </Badge>
           {invoiceUrl && (
             <LinkButton
@@ -152,6 +156,11 @@ export function StorefrontAccountOrderDetailSummary({
           <p className="text-fg-secondary text-sm">
             {shippingMethod ?? "Spôsob dopravy nie je dostupný"}
           </p>
+          {fulfillmentStatus && (
+            <p className="text-fg-secondary text-sm">
+              {`Stav: ${fulfillmentStatus}`}
+            </p>
+          )}
         </article>
 
         <article className="space-y-100">
@@ -159,6 +168,9 @@ export function StorefrontAccountOrderDetailSummary({
           <p className="text-fg-secondary text-sm">
             {paymentMethod ?? "Spôsob platby nie je dostupný"}
           </p>
+          {paymentStatus && (
+            <p className="text-fg-secondary text-sm">{`Stav: ${paymentStatus}`}</p>
+          )}
         </article>
 
         <article className="space-y-100">

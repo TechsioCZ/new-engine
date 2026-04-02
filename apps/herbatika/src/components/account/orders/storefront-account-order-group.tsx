@@ -9,8 +9,7 @@ import {
   resolveOrderInvoiceUrl,
   resolveOrderItemQuantity,
   resolveOrderItemTotalAmount,
-  resolveOrderStatusBadgeVariant,
-  resolveOrderStatusLabel,
+  resolveOrderProgressState,
   resolveOrderTotalAmount,
 } from "@/lib/storefront/order-format";
 
@@ -26,8 +25,7 @@ export function StorefrontAccountOrderGroup({
   const detailHref = `/account/orders/${order.id}`;
   const invoiceUrl = resolveOrderInvoiceUrl(order);
   const orderTotalAmount = resolveOrderTotalAmount(order);
-  const orderStatus = resolveOrderStatusLabel(order.status);
-  const orderStatusVariant = resolveOrderStatusBadgeVariant(order.status);
+  const orderProgress = resolveOrderProgressState(order);
   const orderItems = order.items ?? [];
   const productColumnClass = "min-w-0";
   const priceColumnClass = "text-fg-secondary text-sm";
@@ -144,7 +142,12 @@ export function StorefrontAccountOrderGroup({
                   </div>
 
                   <div className="flex items-center">
-                    <Badge variant={orderStatusVariant} className="rounded-xs text-2xs font-medium">{orderStatus}</Badge>
+                    <Badge
+                      variant={orderProgress.variant}
+                      className="rounded-xs text-2xs font-medium"
+                    >
+                      {orderProgress.label}
+                    </Badge>
                   </div>
 
                   <div className="flex items-center justify-end">
@@ -190,8 +193,8 @@ export function StorefrontAccountOrderGroup({
                       <p className="text-fg-secondary text-xs">{item.variant_title}</p>
                     )}
                   </div>
-                  <Badge variant={orderStatusVariant}>
-                    {orderStatus}
+                  <Badge variant={orderProgress.variant}>
+                    {orderProgress.label}
                   </Badge>
                 </div>
                 <div className="mt-150 flex items-center justify-between gap-200">

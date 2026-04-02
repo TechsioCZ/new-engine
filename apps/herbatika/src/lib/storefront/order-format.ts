@@ -1,38 +1,166 @@
 import { formatCurrencyAmount } from "./price-format";
 
-const ORDER_STATUS_LABELS: Record<string, string> = {
+const ORDER_LIFECYCLE_STATUS_LABELS: Record<string, string> = {
+  archived: "Uzavretá",
   canceled: "Zrušená",
   completed: "Dokončená",
-  pending: "Čaká na spracovanie",
+  draft: "Rozpracovaná",
+  pending: "Spracováva sa",
   requires_action: "Vyžaduje akciu",
+};
+
+const ORDER_PAYMENT_STATUS_LABELS: Record<string, string> = {
+  authorized: "Platba overená",
+  awaiting: "Čaká na platbu",
+  canceled: "Platba zrušená",
+  captured: "Zaplatená",
+  not_paid: "Čaká na platbu",
+  partially_authorized: "Čiastočne overená",
+  partially_captured: "Čiastočne zaplatená",
+  partially_refunded: "Čiastočne vrátená",
+  refunded: "Vrátená",
+  requires_action: "Platba vyžaduje akciu",
+};
+
+const ORDER_FULFILLMENT_STATUS_LABELS: Record<string, string> = {
+  canceled: "Doručenie zrušené",
+  delivered: "Doručená",
+  fulfilled: "Pripravená na odoslanie",
+  not_fulfilled: "Spracováva sa",
+  partially_delivered: "Čiastočne doručená",
+  partially_fulfilled: "Čiastočne pripravená",
+  partially_shipped: "Čiastočne odoslaná",
+  shipped: "Odoslaná",
 };
 
 type OrderStatusBadgeVariant = "danger" | "info" | "success" | "warning";
 
-export const resolveOrderStatusLabel = (status?: string | null) => {
-  if (!status) {
-    return "Neznámy stav";
-  }
-
-  return ORDER_STATUS_LABELS[status] ?? status;
+export type StorefrontOrderStatusInput = {
+  fulfillment_status?: string | null;
+  payment_status?: string | null;
+  status?: string | null;
 };
 
-export const resolveOrderStatusBadgeVariant = (
-  status?: string | null,
-): OrderStatusBadgeVariant => {
-  if (status === "completed") {
-    return "success";
+export const resolveOrderPaymentStatusLabel = (
+  order: StorefrontOrderStatusInput,
+) => {
+  if (!order.payment_status) {
+    return null;
   }
 
-  if (status === "canceled") {
-    return "danger";
+  return ORDER_PAYMENT_STATUS_LABELS[order.payment_status] ?? order.payment_status;
+};
+
+export const resolveOrderFulfillmentStatusLabel = (
+  order: StorefrontOrderStatusInput,
+) => {
+  if (!order.fulfillment_status) {
+    return null;
   }
 
-  if (status === "pending" || status === "requires_action") {
-    return "info";
+  return (
+    ORDER_FULFILLMENT_STATUS_LABELS[order.fulfillment_status] ??
+    order.fulfillment_status
+  );
+};
+
+export const resolveOrderProgressState = (
+  order: StorefrontOrderStatusInput,
+): { label: string; variant: OrderStatusBadgeVariant } => {
+  if (order.status === "canceled") {
+    return {
+      label: ORDER_LIFECYCLE_STATUS_LABELS.canceled,
+      variant: "danger",
+    };
   }
 
-  return "info";
+  if (
+    order.status === "requires_action" ||
+    order.payment_status === "requires_action"
+  ) {
+    return {
+      label: ORDER_LIFECYCLE_STATUS_LABELS.requires_action,
+      variant: "warning",
+    };
+  }
+
+  if (order.fulfillment_status === "delivered") {
+    return {
+      label: ORDER_FULFILLMENT_STATUS_LABELS.delivered,
+      variant: "success",
+    };
+  }
+
+  if (order.fulfillment_status === "partially_delivered") {
+    return {
+      label: ORDER_FULFILLMENT_STATUS_LABELS.partially_delivered,
+      variant: "info",
+    };
+  }
+
+  if (order.fulfillment_status === "shipped") {
+    return {
+      label: ORDER_FULFILLMENT_STATUS_LABELS.shipped,
+      variant: "info",
+    };
+  }
+
+  if (order.fulfillment_status === "partially_shipped") {
+    return {
+      label: ORDER_FULFILLMENT_STATUS_LABELS.partially_shipped,
+      variant: "info",
+    };
+  }
+
+  if (order.fulfillment_status === "fulfilled") {
+    return {
+      label: ORDER_FULFILLMENT_STATUS_LABELS.fulfilled,
+      variant: "info",
+    };
+  }
+
+  if (order.fulfillment_status === "partially_fulfilled") {
+    return {
+      label: ORDER_FULFILLMENT_STATUS_LABELS.partially_fulfilled,
+      variant: "info",
+    };
+  }
+
+  if (order.fulfillment_status === "canceled") {
+    return {
+      label: ORDER_FULFILLMENT_STATUS_LABELS.canceled,
+      variant: "danger",
+    };
+  }
+
+  if (
+    order.payment_status === "awaiting" ||
+    order.payment_status === "not_paid"
+  ) {
+    return {
+      label: ORDER_PAYMENT_STATUS_LABELS.awaiting,
+      variant: "warning",
+    };
+  }
+
+  if (order.status === "completed") {
+    return {
+      label: ORDER_LIFECYCLE_STATUS_LABELS.completed,
+      variant: "success",
+    };
+  }
+
+  if (order.status === "archived") {
+    return {
+      label: ORDER_LIFECYCLE_STATUS_LABELS.archived,
+      variant: "info",
+    };
+  }
+
+  return {
+    label: ORDER_LIFECYCLE_STATUS_LABELS.pending,
+    variant: "info",
+  };
 };
 
 export const resolveOrderDisplayId = (order: {
