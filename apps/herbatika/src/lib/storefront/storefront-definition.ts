@@ -1,4 +1,5 @@
 import { authService } from "./auth/service";
+import { herbatikaCheckoutCartAddressAdapter } from "./cart/address-adapter";
 import {
   buildAddLineItemParams,
   buildCreateCartParams,
@@ -21,6 +22,7 @@ export const storefrontDefinition = {
   },
   cart: {
     hooks: {
+      addressAdapter: herbatikaCheckoutCartAddressAdapter,
       cartStorage,
       requireRegion: true,
       buildCreateParams: buildCreateCartParams,

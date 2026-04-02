@@ -12,7 +12,7 @@ type CheckoutShippingSectionProps = {
   currencyCode: string;
   hasShipping: boolean;
   isBusy: boolean;
-  onSelectShipping: (optionId: string) => Promise<void>;
+  onSelectShipping: (optionId: string) => void;
   selectedShippingMethodId?: string | null;
   shippingOptions: ShippingOption[];
   shippingPrices: Record<string, number>;

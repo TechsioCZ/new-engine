@@ -78,7 +78,6 @@ export function StorefrontCheckoutFlow({
       <CheckoutFeedbackSection
         cartError={controller.cartQuery.error}
         checkoutError={controller.checkoutError}
-        checkoutMessage={controller.checkoutMessage}
       />
 
       {controller.completedOrderId ? (

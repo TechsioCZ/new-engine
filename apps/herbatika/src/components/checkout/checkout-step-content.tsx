@@ -111,7 +111,7 @@ export function CheckoutStepContent({
             hasShipping={controller.hasShipping}
             hasStoredAddress={controller.hasStoredAddress}
             heurekaConsent={controller.heurekaConsent}
-            isCompletingOrder={controller.completeCartMutation.isPending}
+            isCompletingOrder={controller.completeCheckoutMutation.isPending}
             marketingConsent={controller.marketingConsent}
             onHeurekaConsentChange={controller.setHeurekaConsent}
             onMarketingConsentChange={controller.setMarketingConsent}

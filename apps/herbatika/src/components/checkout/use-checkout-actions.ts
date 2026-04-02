@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import type { AddressFormState } from "./checkout.constants";
 import { buildMissingFieldMessage } from "./checkout-address.utils";
@@ -10,30 +11,10 @@ import {
 } from "./checkout-completion.utils";
 
 type AddressMutationInput = {
-  billingAddress: {
-    address_1: string;
-    address_2?: string;
-    city: string;
-    company?: string;
-    country_code: string;
-    first_name: string;
-    last_name: string;
-    phone?: string;
-    postal_code: string;
-  };
+  billingAddress: ReturnType<typeof buildHerbatikaCheckoutAddressInput>;
   cartId: string;
   email: string;
-  shippingAddress: {
-    address_1: string;
-    address_2?: string;
-    city: string;
-    company?: string;
-    country_code: string;
-    first_name: string;
-    last_name: string;
-    phone?: string;
-    postal_code: string;
-  };
+  shippingAddress: ReturnType<typeof buildHerbatikaCheckoutAddressInput>;
   useSameAddress: boolean;
 };
 
@@ -45,10 +26,11 @@ type UseCheckoutActionsProps = {
   itemCount: number;
   canInitiatePayment: boolean;
   selectedShippingMethodId?: string | null;
-  completeCart: (input: { cartId: string }) => Promise<unknown>;
+  completeCart: () => Promise<unknown>;
   initiatePayment: (providerId: string) => Promise<unknown>;
+  onCheckoutErrorChange: (message: string | null) => void;
   saveAddress: (input: AddressMutationInput) => Promise<unknown>;
-  setShippingMethod: (optionId: string) => Promise<unknown>;
+  setShippingMethod: (optionId: string) => void;
 };
 
 export function useCheckoutActions({
@@ -60,17 +42,15 @@ export function useCheckoutActions({
   hasPaymentSessions,
   initiatePayment,
   itemCount,
+  onCheckoutErrorChange,
   saveAddress,
   selectedShippingMethodId,
   setShippingMethod,
 }: UseCheckoutActionsProps) {
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null);
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
 
   const resetFeedback = () => {
-    setCheckoutError(null);
-    setCheckoutMessage(null);
+    onCheckoutErrorChange(null);
     setCompletedOrderId(null);
   };
 
@@ -78,7 +58,7 @@ export function useCheckoutActions({
     resetFeedback();
 
     if (!cartId) {
-      setCheckoutError("Košík není připraven.");
+      onCheckoutErrorChange("Košík není připraven.");
       return false;
     }
 
@@ -87,21 +67,11 @@ export function useCheckoutActions({
       isCompanyPurchase,
     );
     if (missingFieldsMessage) {
-      setCheckoutError(missingFieldsMessage);
+      onCheckoutErrorChange(missingFieldsMessage);
       return false;
     }
 
-    const normalizedAddress = {
-      first_name: addressForm.firstName.trim(),
-      last_name: addressForm.lastName.trim(),
-      phone: addressForm.phone.trim() || undefined,
-      company: addressForm.company.trim() || undefined,
-      address_1: addressForm.address1.trim(),
-      address_2: addressForm.address2.trim() || undefined,
-      city: addressForm.city.trim(),
-      postal_code: addressForm.postalCode.trim(),
-      country_code: addressForm.countryCode.trim().toLowerCase(),
-    };
+    const normalizedAddress = buildHerbatikaCheckoutAddressInput(addressForm);
 
     try {
       await saveAddress({
@@ -113,19 +83,18 @@ export function useCheckoutActions({
       });
       return true;
     } catch (error) {
-      setCheckoutError(resolveErrorMessage(error, "Uloženie adresy zlyhalo."));
+      onCheckoutErrorChange(resolveErrorMessage(error, "Uloženie adresy zlyhalo."));
       return false;
     }
   };
 
-  const handleSelectShipping = async (optionId: string) => {
+  const handleSelectShipping = (optionId: string) => {
     resetFeedback();
 
     try {
-      await setShippingMethod(optionId);
-      setCheckoutMessage("Doprava bola vybraná.");
+      setShippingMethod(optionId);
     } catch (error) {
-      setCheckoutError(
+      onCheckoutErrorChange(
         resolveErrorMessage(error, "Nastavenie dopravy zlyhalo."),
       );
     }
@@ -135,15 +104,14 @@ export function useCheckoutActions({
     resetFeedback();
 
     if (!canInitiatePayment) {
-      setCheckoutError("Najprv vyberte dopravu.");
+      onCheckoutErrorChange("Najprv vyberte dopravu.");
       return;
     }
 
     try {
       await initiatePayment(providerId);
-      setCheckoutMessage("Platba bola inicializovaná.");
     } catch (error) {
-      setCheckoutError(
+      onCheckoutErrorChange(
         resolveErrorMessage(error, "Nastavenie platby zlyhalo."),
       );
     }
@@ -153,53 +121,50 @@ export function useCheckoutActions({
     resetFeedback();
 
     if (!cartId) {
-      setCheckoutError("Košík není připraven.");
+      onCheckoutErrorChange("Košík není připraven.");
       return;
     }
 
     if (itemCount < 1) {
-      setCheckoutError("Košík je prázdny. Pridajte najprv produkty.");
+      onCheckoutErrorChange("Košík je prázdny. Pridajte najprv produkty.");
       return;
     }
 
     if (!selectedShippingMethodId) {
-      setCheckoutError("Vyberte dopravu pred dokončením objednávky.");
+      onCheckoutErrorChange("Vyberte dopravu pred dokončením objednávky.");
       return;
     }
 
     if (!hasPaymentSessions) {
-      setCheckoutError("Vyberte platobnú metódu pred dokončením objednávky.");
+      onCheckoutErrorChange("Vyberte platobnú metódu pred dokončením objednávky.");
       return;
     }
 
     try {
-      const completeResult = await completeCart({ cartId });
+      const completeResult = await completeCart();
 
       const orderId = resolveOrderId(completeResult);
       if (orderId) {
         setCompletedOrderId(orderId);
-        setCheckoutMessage(`Objednávka bola vytvorená (${orderId}).`);
         return;
       }
 
       const completionFailureMessage =
         resolveCompleteCartFailure(completeResult);
       if (completionFailureMessage) {
-        setCheckoutError(completionFailureMessage);
+        onCheckoutErrorChange(completionFailureMessage);
         return;
       }
 
-      setCheckoutError("Dokončenie objednávky zlyhalo.");
+      onCheckoutErrorChange("Dokončenie objednávky zlyhalo.");
     } catch (error) {
-      setCheckoutError(
+      onCheckoutErrorChange(
         resolveErrorMessage(error, "Dokončenie objednávky zlyhalo."),
       );
     }
   };
 
   return {
-    checkoutError,
-    checkoutMessage,
     completedOrderId,
     handleCompleteOrder,
     handleSaveAddress,

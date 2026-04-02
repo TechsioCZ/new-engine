@@ -14,15 +14,12 @@ import {
   useCart,
   useRemoveLineItem,
 } from "@/lib/storefront/cart";
-import {
-  useCheckoutPayment,
-  useCheckoutShipping,
-} from "@/lib/storefront/checkout";
 import { useCustomerAddresses } from "@/lib/storefront/customers";
 import { useAuth } from "@/lib/storefront/auth";
 import { useOrders } from "@/lib/storefront/orders";
 import { useProduct, useProducts } from "@/lib/storefront/products";
 import { useRegions } from "@/lib/storefront/regions";
+import { storefront } from "@/lib/storefront/storefront";
 
 const sectionClassName = "rounded-xl border border-black/10 bg-white p-4";
 
@@ -69,16 +66,22 @@ export function StorefrontDataSmokePanel() {
 
   const firstLineItemId = cartQuery.cart?.items?.[0]?.id;
 
-  const checkoutShippingQuery = useCheckoutShipping({
-    cartId: cartQuery.cart?.id,
-    enabled: Boolean(cartQuery.cart?.id),
-  });
+  const checkoutShippingQuery = storefront.flows.checkout.useCheckoutShipping(
+    cartQuery.cart?.id,
+    cartQuery.cart,
+    {
+      enabled: Boolean(cartQuery.cart?.id),
+    },
+  );
 
-  const checkoutPaymentQuery = useCheckoutPayment({
-    cartId: cartQuery.cart?.id,
-    regionId: cartQuery.cart?.region_id ?? region?.region_id,
-    enabled: Boolean(cartQuery.cart?.region_id ?? region?.region_id),
-  });
+  const checkoutPaymentQuery = storefront.flows.checkout.useCheckoutPayment(
+    cartQuery.cart?.id,
+    cartQuery.cart?.region_id ?? region?.region_id,
+    cartQuery.cart,
+    {
+      enabled: Boolean(cartQuery.cart?.region_id ?? region?.region_id),
+    },
+  );
 
   const customerAddressesQuery = useCustomerAddresses({
     enabled: authQuery.isAuthenticated,
