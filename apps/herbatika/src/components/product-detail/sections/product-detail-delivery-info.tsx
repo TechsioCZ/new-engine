@@ -5,7 +5,7 @@ import type { ProductOfferState } from "@/components/product-detail/product-deta
 import { SupportingText } from "@/components/text/supporting-text";
 
 type ProductDetailDeliveryInfoProps = {
-  freeShippingThresholdLabel: string;
+  freeShippingThresholdLabel: string | null;
   offerState: ProductOfferState;
 };
 
@@ -39,12 +39,14 @@ export function ProductDetailDeliveryInfo({
           </SupportingText>
         </div>
 
-        <div className="flex items-center gap-200">
-          <Icon className="text-xl text-primary" icon="icon-[mdi--truck-delivery-outline]" />
-          <SupportingText className="text-md leading-snug text-fg-secondary">
-            Doručenie zdarma nad <span className="font-semibold text-primary">{freeShippingThresholdLabel}</span>
-          </SupportingText>
-        </div>
+        {freeShippingThresholdLabel ? (
+          <div className="flex items-center gap-200">
+            <Icon className="text-xl text-primary" icon="icon-[mdi--truck-delivery-outline]" />
+            <SupportingText className="text-md leading-snug text-fg-secondary">
+              Doručenie zdarma nad <span className="font-semibold text-primary">{freeShippingThresholdLabel}</span>
+            </SupportingText>
+          </div>
+        ) : null}
       </div>
     </div>
   );

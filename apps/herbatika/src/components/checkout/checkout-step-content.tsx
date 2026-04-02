@@ -1,14 +1,15 @@
-import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
+import type { ReactNode } from "react";
 import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants";
+import { resolvePaymentSummaryLabel } from "@/components/checkout/checkout-display.utils";
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils";
-import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
 import { CheckoutCartSidebarSection } from "@/components/checkout/sections/checkout-cart-sidebar-section";
 import { CheckoutCartStepSection } from "@/components/checkout/sections/checkout-cart-step-section";
+import { CheckoutCompleteSection } from "@/components/checkout/sections/checkout-complete-section";
 import { CheckoutDetailsStepSection } from "@/components/checkout/sections/checkout-details-step-section";
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section";
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section";
-import { CheckoutSummaryStepSection } from "@/components/checkout/sections/checkout-summary-step-section";
-import { resolveProviderLabel } from "@/components/checkout/checkout.utils";
+import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
+import { resolveSelectedPaymentProviderId } from "@/lib/storefront/checkout";
 
 type CheckoutStepContentProps = {
   activeStep: CheckoutStepSlug;
@@ -23,156 +24,121 @@ export function CheckoutStepContent({
   const shippingStepHref = resolveCheckoutStepHref("doprava-platba");
   const detailsStepHref = resolveCheckoutStepHref("udaje");
   const summaryStepHref = resolveCheckoutStepHref("suhrn");
-  const selectedPaymentProviderId = controller.hasPayment
-    ? (controller.checkoutPaymentQuery.paymentProviders[0]?.id ?? undefined)
-    : undefined;
+  const selectedPaymentProviderId = resolveSelectedPaymentProviderId(
+    controller.cartQuery.cart,
+  );
+  const selectedShippingOption =
+    controller.checkoutShippingQuery.selectedOption;
+  const selectedShippingLabel = selectedShippingOption?.name ?? undefined;
+  const selectedShippingOptionId =
+    controller.checkoutShippingQuery.selectedShippingMethodId;
   const selectedPaymentLabel =
-    typeof selectedPaymentProviderId === "string" && selectedPaymentProviderId.length > 0
-      ? resolveProviderLabel(selectedPaymentProviderId)
+    typeof selectedPaymentProviderId === "string" &&
+    selectedPaymentProviderId.length > 0
+      ? resolvePaymentSummaryLabel(selectedPaymentProviderId)
       : undefined;
   const orderSummaryDetailsFont = activeStep === "kosik" ? "rubik" : "inter";
-  const stepLayoutClassName = "grid w-full gap-700 xl:grid-cols-12 xl:items-start";
-  const stepMainClassName = "space-y-350 xl:col-span-7";
-  const stepAsideClassName = "space-y-300 xl:col-span-5 xl:sticky xl:top-400 xl:self-start";
-
-  const orderSummarySection = (
+  const orderSummaryAside = (
     <CheckoutOrderSummarySection
       cartItems={controller.cartItems}
       cartSubtotalAmount={controller.cartSubtotalAmount}
       cartTotalAmount={controller.cartTotalAmount}
+      cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
       currencyCode={controller.currencyCode}
       detailsFont={orderSummaryDetailsFont}
       hasPayment={controller.hasPayment}
       hasShipping={controller.hasShipping}
-      selectedOptionName={controller.checkoutShippingQuery.selectedOption?.name ?? undefined}
+      paymentLabel={selectedPaymentLabel}
+      selectedOptionName={selectedShippingLabel}
       selectedShippingPrice={controller.selectedShippingPrice}
     />
   );
 
-  if (activeStep === "kosik") {
-    return (
-      <div className={stepLayoutClassName}>
-        <div className={stepMainClassName}>
+  switch (activeStep) {
+    case "kosik":
+      return (
+        <CheckoutStepLayout
+          aside={
+            <CheckoutCartSidebarSection
+              cartSubtotalAmount={controller.cartSubtotalAmount}
+              cartTotalAmount={controller.cartTotalAmount}
+              cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
+              currencyCode={controller.currencyCode}
+              nextStepHref={shippingStepHref}
+            />
+          }
+        >
           <CheckoutCartStepSection
             cartId={controller.cartQuery.cart?.id}
             cartItems={controller.cartItems}
             cartSubtotalAmount={controller.cartSubtotalAmount}
             currencyCode={controller.currencyCode}
           />
-        </div>
-        <aside className={stepAsideClassName}>
-          <CheckoutCartSidebarSection
-            cartSubtotalAmount={controller.cartSubtotalAmount}
+        </CheckoutStepLayout>
+      );
+    case "doprava-platba":
+      return (
+        <CheckoutStepLayout aside={orderSummaryAside}>
+          <CheckoutShippingPaymentStepSection
+            backStepHref={cartStepHref}
+            controller={controller}
+            nextStepHref={detailsStepHref}
+            selectedPaymentProviderId={selectedPaymentProviderId}
+          />
+        </CheckoutStepLayout>
+      );
+    case "udaje":
+      return (
+        <CheckoutStepLayout aside={orderSummaryAside}>
+          <CheckoutDetailsStepSection
+            backStepHref={shippingStepHref}
+            controller={controller}
+            nextStepHref={summaryStepHref}
+          />
+        </CheckoutStepLayout>
+      );
+    default:
+      return (
+        <CheckoutStepLayout aside={orderSummaryAside}>
+          <CheckoutCompleteSection
+            addressForm={controller.addressForm}
+            canCompleteOrder={controller.canCompleteOrder}
             cartTotalAmount={controller.cartTotalAmount}
             cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
             currencyCode={controller.currencyCode}
-            nextStepHref={shippingStepHref}
+            detailsStepHref={detailsStepHref}
+            hasPayment={controller.hasPayment}
+            hasShipping={controller.hasShipping}
+            hasStoredAddress={controller.hasStoredAddress}
+            heurekaConsent={controller.heurekaConsent}
+            isCompletingOrder={controller.completeCheckoutMutation.isPending}
+            marketingConsent={controller.marketingConsent}
+            onHeurekaConsentChange={controller.setHeurekaConsent}
+            onMarketingConsentChange={controller.setMarketingConsent}
+            onCompleteOrder={controller.handleCompleteOrder}
+            paymentProviderId={selectedPaymentProviderId}
+            paymentLabel={selectedPaymentLabel}
+            shippingLabel={selectedShippingLabel}
+            shippingOptionId={selectedShippingOptionId}
+            shippingStepHref={shippingStepHref}
           />
-        </aside>
-      </div>
-    );
+        </CheckoutStepLayout>
+      );
   }
+}
 
-  if (activeStep === "doprava-platba") {
-    return (
-      <div className={stepLayoutClassName}>
-        <div className={stepMainClassName}>
-          <CheckoutShippingPaymentStepSection
-            backStepHref={cartStepHref}
-            canContinue={controller.hasShipping && controller.hasPayment}
-            nextStepHref={detailsStepHref}
-            paymentProps={{
-              canInitiatePayment: controller.checkoutPaymentQuery.canInitiatePayment,
-              hasPayment: controller.hasPayment,
-              isBusy: controller.isBusy,
-              isInitiatingPayment: controller.checkoutPaymentQuery.isInitiatingPayment,
-              onSelectPaymentProvider: controller.handleSelectPaymentProvider,
-              paymentProviders: controller.checkoutPaymentQuery.paymentProviders,
-              selectedPaymentProviderId,
-            }}
-            shippingProps={{
-              currencyCode: controller.currencyCode,
-              hasShipping: controller.hasShipping,
-              isBusy: controller.isBusy,
-              onSelectShipping: controller.handleSelectShipping,
-              selectedShippingMethodId:
-                controller.checkoutShippingQuery.selectedShippingMethodId,
-              shippingOptions: controller.checkoutShippingQuery.shippingOptions,
-              shippingPrices: controller.checkoutShippingQuery.shippingPrices,
-            }}
-          />
-        </div>
-        <aside className={stepAsideClassName}>
-          {orderSummarySection}
-        </aside>
-      </div>
-    );
-  }
-
-  if (activeStep === "udaje") {
-    return (
-      <div className={stepLayoutClassName}>
-        <div className={stepMainClassName}>
-          <CheckoutDetailsStepSection
-            addressProps={{
-              addressForm: controller.addressForm,
-              countryItems: COUNTRY_SELECT_ITEMS,
-              createAccountConsent: controller.createAccountConsent,
-              hasCustomerSupportNote: controller.hasCustomerSupportNote,
-              hasDifferentShippingAddress: controller.hasDifferentShippingAddress,
-              hasStoredAddress: controller.hasStoredAddress,
-              isCompanyPurchase: controller.isCompanyPurchase,
-              isBusy: controller.isBusy,
-              isSavingAddress: controller.updateCartAddressMutation.isPending,
-              onCreateAccountConsentChange: controller.setCreateAccountConsent,
-              onCustomerSupportNoteToggle: controller.setHasCustomerSupportNote,
-              onDifferentShippingAddressChange:
-                controller.setHasDifferentShippingAddress,
-              onIsCompanyPurchaseChange: controller.setIsCompanyPurchase,
-              onSaveAddress: controller.handleSaveAddress,
-              onUpdateAddressField: controller.updateAddressField,
-              ready: Boolean(controller.cartQuery.cart?.id),
-            }}
-            backStepHref={shippingStepHref}
-            canContinue={controller.hasStoredAddress}
-            nextStepHref={summaryStepHref}
-          />
-        </div>
-        <aside className={stepAsideClassName}>
-          {orderSummarySection}
-        </aside>
-      </div>
-    );
-  }
-
+function CheckoutStepLayout({
+  aside,
+  children,
+}: {
+  aside: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <div className={stepLayoutClassName}>
-      <div className={stepMainClassName}>
-        <CheckoutSummaryStepSection
-          completeProps={{
-            addressForm: controller.addressForm,
-            canCompleteOrder: controller.canCompleteOrder,
-            cartTotalAmount: controller.cartTotalAmount,
-            cartTotalWithoutTaxAmount: controller.cartTotalWithoutTaxAmount,
-            currencyCode: controller.currencyCode,
-            detailsStepHref,
-            hasPayment: controller.hasPayment,
-            hasShipping: controller.hasShipping,
-            hasStoredAddress: controller.hasStoredAddress,
-            heurekaConsent: controller.heurekaConsent,
-            isCompletingOrder: controller.completeCartMutation.isPending,
-            marketingConsent: controller.marketingConsent,
-            onHeurekaConsentChange: controller.setHeurekaConsent,
-            onMarketingConsentChange: controller.setMarketingConsent,
-            onCompleteOrder: controller.handleCompleteOrder,
-            paymentLabel: selectedPaymentLabel,
-            shippingLabel: controller.checkoutShippingQuery.selectedOption?.name ?? undefined,
-            shippingStepHref,
-          }}
-        />
-      </div>
-      <aside className={stepAsideClassName}>
-        {orderSummarySection}
+    <div className="grid w-full gap-700 xl:grid-cols-12 xl:items-start">
+      <div className="space-y-350 xl:col-span-7">{children}</div>
+      <aside className="space-y-300 xl:sticky xl:top-400 xl:col-span-5 xl:self-start">
+        {aside}
       </aside>
     </div>
   );

@@ -4,31 +4,10 @@ import {
 } from "@techsio/storefront-data/shared/browser-storage";
 
 export const CART_STORAGE_KEY = "herbatika_cart_id";
-export const CART_ID_CHANGED_EVENT = "herbatika:cart-id-changed";
-
-type CartIdChangedDetail = {
-  cartId: string | null;
-};
 
 const baseCartStorage = createLocalStorageValueStore({
   key: CART_STORAGE_KEY,
 });
-
-const emitCartIdChanged = (cartId: string | null) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.dispatchEvent(
-    new CustomEvent<CartIdChangedDetail>(CART_ID_CHANGED_EVENT, {
-      detail: { cartId },
-    }),
-  );
-};
-
-export const getStoredCartId = () => {
-  return baseCartStorage.getSnapshot?.() ?? baseCartStorage.get();
-};
 
 type HerbatikaCartStorage = StorageValueStore & {
   getCartId: () => string | null;
@@ -42,11 +21,9 @@ export const cartStorage: HerbatikaCartStorage = {
   },
   set(cartId: string) {
     baseCartStorage.set(cartId);
-    emitCartIdChanged(baseCartStorage.get());
   },
   clear() {
     baseCartStorage.clear();
-    emitCartIdChanged(baseCartStorage.get());
   },
   subscribe(listener) {
     return baseCartStorage.subscribe?.(listener) ?? (() => {});
@@ -58,7 +35,7 @@ export const cartStorage: HerbatikaCartStorage = {
     return baseCartStorage.getServerSnapshot?.() ?? null;
   },
   getCartId() {
-    return getStoredCartId();
+    return baseCartStorage.getSnapshot?.() ?? baseCartStorage.get();
   },
   setCartId(cartId: string) {
     this.set(cartId);

@@ -1,25 +1,55 @@
-import type { ComponentProps } from "react";
+"use client";
+
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
+import { useRouter } from "next/navigation";
+import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
+import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
 import { CheckoutAddressSection } from "./checkout-address-section";
 
+type CheckoutDetailsStepController = Pick<
+  CheckoutController,
+  | "addressForm"
+  | "cartQuery"
+  | "handleSaveAddress"
+  | "isAuthenticated"
+  | "isBusy"
+  | "isCompanyPurchase"
+  | "setIsCompanyPurchase"
+  | "updateAddressField"
+  | "updateCartAddressMutation"
+>;
+
 type CheckoutDetailsStepSectionProps = {
-  addressProps: ComponentProps<typeof CheckoutAddressSection>;
   backStepHref: string;
-  canContinue: boolean;
+  controller: CheckoutDetailsStepController;
   nextStepHref: string;
 };
 
 export function CheckoutDetailsStepSection({
-  addressProps,
   backStepHref,
-  canContinue,
+  controller,
   nextStepHref,
 }: CheckoutDetailsStepSectionProps) {
+  const router = useRouter();
+  const addressFormId = "checkout-address-form";
+
   return (
     <section className="space-y-300">
-      <CheckoutAddressSection {...addressProps} />
+      <CheckoutAddressSection
+        addressForm={controller.addressForm}
+        countryItems={COUNTRY_SELECT_ITEMS}
+        formId={addressFormId}
+        isAuthenticated={controller.isAuthenticated}
+        isCompanyPurchase={controller.isCompanyPurchase}
+        onAddressSaved={() => {
+          router.push(nextStepHref);
+        }}
+        onIsCompanyPurchaseChange={controller.setIsCompanyPurchase}
+        onSaveAddress={controller.handleSaveAddress}
+        onUpdateAddressField={controller.updateAddressField}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-200">
         <LinkButton
@@ -33,22 +63,18 @@ export function CheckoutDetailsStepSection({
         >
           <span className="font-normal">Späť na dopravu a platbu</span>
         </LinkButton>
-        {canContinue ? (
-          <LinkButton
-            as={NextLink}
-            className="w-full sm:min-w-950 sm:w-auto"
-            href={nextStepHref}
-            icon="token-icon-chevron-right"
-            iconPosition="right"
-            size="lg"
-          >
-            <span className="font-normal">Pokračovať na súhrn</span>
-          </LinkButton>
-        ) : (
-          <Button className="w-full sm:min-w-950 sm:w-auto" disabled size="lg">
-            <span className="font-normal">Pokračovať na súhrn</span>
-          </Button>
-        )}
+        <Button
+          className="w-full sm:min-w-950 sm:w-auto"
+          disabled={controller.isBusy || !controller.cartQuery.cart?.id}
+          form={addressFormId}
+          icon="token-icon-chevron-right"
+          iconPosition="right"
+          isLoading={controller.updateCartAddressMutation.isPending}
+          size="lg"
+          type="submit"
+        >
+          <span className="font-normal">Pokračovať na súhrn</span>
+        </Button>
       </div>
     </section>
   );

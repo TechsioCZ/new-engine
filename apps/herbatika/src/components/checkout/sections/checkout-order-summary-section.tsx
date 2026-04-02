@@ -1,20 +1,22 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Image } from "@techsio/ui-kit/atoms/image";
-import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { SupportingText } from "@/components/text/supporting-text";
 import {
   resolveCartItemName,
   resolveLineItemTotalAmount,
-} from "@/components/checkout/checkout.utils";
-import { SupportingText } from "@/components/text/supporting-text";
+} from "@/lib/storefront/cart-calculations";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
 type CheckoutOrderSummarySectionProps = {
   cartItems: HttpTypes.StoreCartLineItem[];
   cartSubtotalAmount: number;
   cartTotalAmount: number;
+  cartTotalWithoutTaxAmount: number;
   currencyCode: string;
   detailsFont: "inter" | "rubik";
   hasPayment: boolean;
   hasShipping: boolean;
+  paymentLabel?: string;
   selectedOptionName?: string;
   selectedShippingPrice: number;
 };
@@ -23,14 +25,17 @@ export function CheckoutOrderSummarySection({
   cartItems,
   cartSubtotalAmount,
   cartTotalAmount,
+  cartTotalWithoutTaxAmount,
   currencyCode,
   detailsFont,
   hasPayment,
   hasShipping,
+  paymentLabel,
   selectedOptionName,
   selectedShippingPrice,
 }: CheckoutOrderSummarySectionProps) {
-  const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik";
+  const detailsFontClass =
+    detailsFont === "inter" ? "font-inter" : "font-rubik";
 
   return (
     <section className={`space-y-300 rounded-sm p-550 ${detailsFontClass}`}>
@@ -66,10 +71,14 @@ export function CheckoutOrderSummarySection({
                   src={itemThumbnail}
                 />
                 <div className="min-w-0 flex-1 space-y-100">
-                  <p className="line-clamp-2 text-md font-medium text-fg-primary">{itemName}</p>
+                  <p className="line-clamp-2 text-md font-medium text-fg-primary">
+                    {itemName}
+                  </p>
                   <SupportingText className="text-fg-secondary">{`× ${itemQuantity}`}</SupportingText>
                 </div>
-                <p className="shrink-0 text-lg font-semibold text-fg-primary">{itemPrice}</p>
+                <p className="shrink-0 text-lg font-semibold text-fg-primary">
+                  {itemPrice}
+                </p>
               </article>
             );
           })
@@ -94,19 +103,31 @@ export function CheckoutOrderSummarySection({
           </p>
         </div>
         <div className="flex items-center justify-between gap-200 border-t border-border-primary pt-150">
-          <span className="text-md font-semibold text-fg-primary">Spolu s DPH</span>
+          <span className="text-md font-semibold text-fg-primary">
+            Spolu s DPH
+          </span>
           <div>
-          <p className="text-2xl font-bold text-fg-primary">
-            {formatCurrencyAmount(cartTotalAmount, currencyCode)}
-          </p>
-          <span className="text-sm">bez DPH: </span>
+            <p className="text-2xl font-bold text-fg-primary">
+              {formatCurrencyAmount(cartTotalAmount, currencyCode)}
+            </p>
+            <span className="text-sm text-fg-secondary">
+              {`bez DPH: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
+            </span>
           </div>
         </div>
       </div>
 
       <div className="space-y-100 text-sm text-fg-secondary">
-        <p>{hasShipping ? `Doprava: ${selectedOptionName ?? "Zvolená"}` : "Doprava: nevybraná"}</p>
-        <p>{hasPayment ? "Platba: vybraná" : "Platba: nevybraná"}</p>
+        <p>
+          {hasShipping
+            ? `Doprava: ${selectedOptionName ?? "Zvolená"}`
+            : "Doprava: nevybraná"}
+        </p>
+        <p>
+          {hasPayment
+            ? `Platba: ${paymentLabel ?? "Zvolená"}`
+            : "Platba: nevybraná"}
+        </p>
       </div>
     </section>
   );

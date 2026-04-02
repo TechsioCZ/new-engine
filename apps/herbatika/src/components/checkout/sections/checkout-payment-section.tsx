@@ -1,5 +1,7 @@
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
-import { resolveProviderLabel } from "@/components/checkout/checkout.utils";
+import {
+  resolvePaymentIcon,
+  resolveProviderLabel,
+} from "@/components/checkout/checkout-display.utils";
 import { SupportingText } from "@/components/text/supporting-text";
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card";
 
@@ -9,7 +11,6 @@ type PaymentProvider = {
 
 type CheckoutPaymentSectionProps = {
   canInitiatePayment: boolean;
-  hasPayment: boolean;
   isBusy: boolean;
   isInitiatingPayment: boolean;
   onSelectPaymentProvider: (providerId: string) => Promise<void>;
@@ -25,36 +26,8 @@ const resolveProviderId = (provider: PaymentProvider) => {
   return "";
 };
 
-const resolvePaymentIcon = (providerId: string): IconType => {
-  const normalizedValue = providerId.toLowerCase();
-
-  if (normalizedValue.includes("paypal")) {
-    return "icon-[mdi--paypal]";
-  }
-
-  if (
-    normalizedValue.includes("card") ||
-    normalizedValue.includes("stripe") ||
-    normalizedValue.includes("google") ||
-    normalizedValue.includes("apple")
-  ) {
-    return "icon-[mdi--credit-card-outline]";
-  }
-
-  if (normalizedValue.includes("bank") || normalizedValue.includes("wire")) {
-    return "icon-[mdi--bank-outline]";
-  }
-
-  if (normalizedValue.includes("cod") || normalizedValue.includes("cash")) {
-    return "icon-[mdi--cash-multiple]";
-  }
-
-  return "icon-[mdi--wallet-outline]";
-};
-
 export function CheckoutPaymentSection({
   canInitiatePayment,
-  hasPayment,
   isBusy,
   isInitiatingPayment,
   onSelectPaymentProvider,
@@ -90,13 +63,7 @@ export function CheckoutPaymentSection({
                 value: providerId || `${providerLabel}-${index}`,
               };
             })}
-            value={
-              selectedPaymentProviderId && selectedPaymentProviderId.length > 0
-                ? selectedPaymentProviderId
-                : hasPayment
-                  ? (paymentProviders[0]?.id ?? null)
-                  : null
-            }
+            value={selectedPaymentProviderId ?? null}
           />
         ) : (
           <SupportingText>

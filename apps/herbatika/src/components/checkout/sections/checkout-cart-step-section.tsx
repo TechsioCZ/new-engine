@@ -10,9 +10,8 @@ import {
   useUpdateLineItem,
 } from "@/lib/storefront/cart";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-
-const FREE_SHIPPING_THRESHOLD_EUR = 49;
 
 const resolveSupportedCurrency = (currencyCode: string): "EUR" | "CZK" => {
   return currencyCode.toUpperCase() === "CZK" ? "CZK" : "EUR";
@@ -38,19 +37,24 @@ export function CheckoutCartStepSection({
   const isPending =
     updateLineItemMutation.isPending || removeLineItemMutation.isPending;
   const supportedCurrencyCode = resolveSupportedCurrency(currencyCode);
-  const missingAmount = Math.max(FREE_SHIPPING_THRESHOLD_EUR - cartSubtotalAmount, 0);
-  const progressValue = Math.min(
-    (cartSubtotalAmount / FREE_SHIPPING_THRESHOLD_EUR) * 100,
-    100,
-  );
-  const missingAmountLabel = formatCurrencyAmount(
-    missingAmount,
-    supportedCurrencyCode,
-  );
-  const freeShippingTargetLabel = formatCurrencyAmount(
-    FREE_SHIPPING_THRESHOLD_EUR,
-    supportedCurrencyCode,
-  );
+  const freeShippingThresholdAmount =
+    resolveFreeShippingThresholdAmount(supportedCurrencyCode);
+  const missingAmount =
+    freeShippingThresholdAmount === null
+      ? 0
+      : Math.max(freeShippingThresholdAmount - cartSubtotalAmount, 0);
+  const progressValue =
+    freeShippingThresholdAmount === null
+      ? 0
+      : Math.min((cartSubtotalAmount / freeShippingThresholdAmount) * 100, 100);
+  const missingAmountLabel =
+    freeShippingThresholdAmount === null
+      ? null
+      : formatCurrencyAmount(missingAmount, supportedCurrencyCode);
+  const freeShippingTargetLabel =
+    freeShippingThresholdAmount === null
+      ? null
+      : formatCurrencyAmount(freeShippingThresholdAmount, supportedCurrencyCode);
 
   const handleUpdateQuantity = (lineItemId: string, quantity: number) => {
     if (!cartId) {
@@ -90,41 +94,48 @@ export function CheckoutCartStepSection({
         {`Váš košík (${cartItems.length})`}
       </h2>
 
-      <div className="min-h-900 rounded-sm border border-border-primary bg-surface px-400 pt-400 pb-650 md:px-550">
-        <p className="text-center text-sm font-light leading-relaxed text-fg-primary">
-          {missingAmount > 0 ? (
-            <>
-              {`Nakúpte ešte za ${missingAmountLabel} a získajte `}
-              <span className="font-semibold">dopravu zadarmo.</span>
-            </>
-          ) : (
-            "Dopravu zadarmo už máte v košíku."
-          )}
-        </p>
+      {freeShippingThresholdAmount !== null ? (
+        <div className="min-h-900 rounded-sm border border-border-primary bg-surface px-400 pt-400 pb-650 md:px-550">
+          <p className="text-center text-sm font-light leading-relaxed text-fg-primary">
+            {missingAmount > 0 ? (
+              <>
+                {`Nakúpte ešte za ${missingAmountLabel} a získajte `}
+                <span className="font-semibold">dopravu zadarmo.</span>
+              </>
+            ) : (
+              "Dopravu zadarmo už máte v košíku."
+            )}
+          </p>
 
-        <div className="mt-400 flex items-start gap-200">
-          <div
-            aria-label="Priebeh do dopravy zadarmo"
-            aria-valuemax={100}
-            aria-valuemin={0}
-            aria-valuenow={Math.round(progressValue)}
-            className="relative mt-150 h-100 flex-1 overflow-hidden rounded-xs bg-border-primary"
-            role="progressbar"
-          >
+          <div className="mt-400 flex items-start gap-200">
             <div
-              className="h-full rounded-xs bg-success transition-all duration-300 ease-out"
-              style={{ width: `${progressValue}%` }}
-            />
-          </div>
+              aria-label="Priebeh do dopravy zadarmo"
+              aria-valuemax={100}
+              aria-valuemin={0}
+              aria-valuenow={Math.round(progressValue)}
+              className="relative mt-150 h-100 flex-1 overflow-hidden rounded-xs bg-border-primary"
+              role="progressbar"
+            >
+              <div
+                className="h-full rounded-xs bg-success transition-all duration-300 ease-out"
+                style={{ width: `${progressValue}%` }}
+              />
+            </div>
 
-          <div className="flex min-w-700 flex-col items-center gap-50">
-            <span className="inline-flex h-700 w-700 items-center justify-center rounded-full border border-border-primary bg-overlay">
-              <Icon className="text-lg text-fg-secondary" icon="icon-[mdi--truck-delivery-outline]" />
-            </span>
-            <span className="text-sm text-fg-primary">{freeShippingTargetLabel}</span>
+            <div className="flex min-w-700 flex-col items-center gap-50">
+              <span className="inline-flex h-700 w-700 items-center justify-center rounded-full border border-border-primary bg-overlay">
+                <Icon
+                  className="text-lg text-fg-secondary"
+                  icon="icon-[mdi--truck-delivery-outline]"
+                />
+              </span>
+              <span className="text-sm text-fg-primary">
+                {freeShippingTargetLabel}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="overflow-hidden rounded-sm border border-border-primary bg-surface p-400 md:px-550 md:pt-550 md:pb-500">
         {cartItems.map((item, index) => (

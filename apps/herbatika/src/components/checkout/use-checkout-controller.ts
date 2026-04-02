@@ -2,30 +2,26 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/storefront/auth";
 import {
+  useCart,
+  useUpdateCart,
+  useUpdateCartAddress,
+} from "@/lib/storefront/cart";
+import {
   resolveCartSubtotalAmount,
+  resolveCartTotalAmount,
   resolveCartTotalWithoutTaxAmount,
 } from "@/lib/storefront/cart-calculations";
 import {
   fetchPaymentProviders,
-  useCompleteCheckout,
-  useCheckoutPayment,
-  useCheckoutShipping,
 } from "@/lib/storefront/checkout";
-import {
-  useCart,
-  useUpdateCartAddress,
-} from "@/lib/storefront/cart";
-import { CHECKOUT_STEPS } from "./checkout.constants";
+import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { storefront } from "@/lib/storefront/storefront";
+import { resolveHasStoredAddress } from "./checkout-address.utils";
 import { useCheckoutActions } from "./use-checkout-actions";
 import { useCheckoutFormState } from "./use-checkout-form-state";
-import {
-  resolveCartTotalAmount,
-  resolveHasStoredAddress,
-  resolveCheckoutStepIndex,
-} from "./checkout.utils";
 
 export function useCheckoutController() {
   const queryClient = useQueryClient();
@@ -40,25 +36,39 @@ export function useCheckoutController() {
   });
   const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id;
 
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const updateCartAddressMutation = useUpdateCartAddress();
-  const completeCheckoutMutation = useCompleteCheckout({
+  const updateCartMutation = useUpdateCart();
+  const completeCheckoutMutation = storefront.flows.checkout.useCompleteCheckout({
     cartId: cartQuery.cart?.id,
     regionId: activeRegionId,
     enabled: Boolean(activeRegionId),
   });
   const isUpdatingCartAddress = updateCartAddressMutation.isPending;
-  const mutateCartAddress = updateCartAddressMutation.mutate;
+  const isBackfillingCartCountry = updateCartMutation.isPending;
+  const mutateCart = updateCartMutation.mutate;
 
-  const checkoutShippingQuery = useCheckoutShipping({
-    cartId: cartQuery.cart?.id,
-    enabled: Boolean(cartQuery.cart?.id),
-  });
+  const checkoutShippingQuery = storefront.flows.checkout.useCheckoutShipping(
+    cartQuery.cart?.id,
+    cartQuery.cart,
+    {
+      enabled: Boolean(cartQuery.cart?.id),
+      onError: (error) => {
+        setCheckoutError(
+          resolveErrorMessage(error, "Nastavenie dopravy zlyhalo."),
+        );
+      },
+    },
+  );
 
-  const checkoutPaymentQuery = useCheckoutPayment({
-    cartId: cartQuery.cart?.id,
-    regionId: activeRegionId,
-    enabled: Boolean(activeRegionId),
-  });
+  const checkoutPaymentQuery = storefront.flows.checkout.useCheckoutPayment(
+    cartQuery.cart?.id,
+    activeRegionId,
+    cartQuery.cart,
+    {
+      enabled: Boolean(activeRegionId),
+    },
+  );
 
   useEffect(() => {
     const cartId = cartQuery.cart?.id;
@@ -72,21 +82,21 @@ export function useCheckoutController() {
 
     // Keep existing customer-entered country intact; only backfill missing value
     // so Medusa can calculate taxes in cart/checkout summary.
-    if (cartCountryCode || isUpdatingCartAddress) {
+    if (cartCountryCode || isUpdatingCartAddress || isBackfillingCartCountry) {
       return;
     }
 
-    mutateCartAddress({
+    mutateCart({
       cartId,
-      shippingAddress: { country_code: regionCountryCode },
-      useSameAddress: true,
+      country_code: regionCountryCode,
     });
   }, [
     cartQuery.cart?.id,
     cartQuery.cart?.shipping_address?.country_code,
     region?.country_code,
+    isBackfillingCartCountry,
     isUpdatingCartAddress,
-    mutateCartAddress,
+    mutateCart,
   ]);
 
   useEffect(() => {
@@ -103,6 +113,7 @@ export function useCheckoutController() {
     cart: cartQuery.cart,
     customer: authQuery.customer,
     isCartLoading: cartQuery.isLoading,
+    isCustomerLoading: authQuery.isLoading,
     regionCountryCode: region?.country_code,
   });
 
@@ -110,14 +121,15 @@ export function useCheckoutController() {
     addressForm: formState.addressForm,
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
-    completeCart: async () => completeCheckoutMutation.mutateAsync(undefined),
+    completeCart: () => completeCheckoutMutation.mutateAsync(undefined),
     hasPaymentSessions: checkoutPaymentQuery.hasPaymentSessions,
     initiatePayment: checkoutPaymentQuery.initiatePaymentAsync,
     isCompanyPurchase: formState.isCompanyPurchase,
     itemCount: cartQuery.itemCount,
+    onCheckoutErrorChange: setCheckoutError,
     saveAddress: updateCartAddressMutation.mutateAsync,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
-    setShippingMethod: checkoutShippingQuery.setShippingMethodAsync,
+    setShippingMethod: checkoutShippingQuery.setShipping,
   });
 
   const currencyCode = useMemo(() => {
@@ -129,12 +141,6 @@ export function useCheckoutController() {
   const hasStoredAddress = resolveHasStoredAddress(cartQuery.cart);
   const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId);
   const hasPayment = checkoutPaymentQuery.hasPaymentSessions;
-  const checkoutStepIndex = resolveCheckoutStepIndex({
-    hasItems,
-    hasStoredAddress,
-    hasShipping,
-    hasPayment,
-  });
 
   const selectedShippingPrice = useMemo(() => {
     if (!checkoutShippingQuery.selectedShippingMethodId) {
@@ -179,14 +185,14 @@ export function useCheckoutController() {
     cartTotalAmount,
     checkoutPaymentQuery,
     checkoutShippingQuery,
-    checkoutStepIndex,
-    completeCartMutation: completeCheckoutMutation,
+    checkoutError,
     completeCheckoutMutation,
     currencyCode,
     hasItems,
     hasPayment,
     hasShipping,
     hasStoredAddress,
+    isAuthenticated: authQuery.isAuthenticated,
     isBusy,
     selectedShippingPrice,
     updateCartAddressMutation,
@@ -194,7 +200,6 @@ export function useCheckoutController() {
       !isBusy &&
       Boolean(checkoutShippingQuery.selectedShippingMethodId) &&
       checkoutPaymentQuery.hasPaymentSessions,
-    checkoutSteps: CHECKOUT_STEPS,
   };
 }
 

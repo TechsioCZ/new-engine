@@ -1,35 +1,25 @@
-import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea";
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group";
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
 import NextLink from "next/link";
-import type { FormEvent } from "react";
 import type { AddressFormState } from "@/components/checkout/checkout.constants";
 import { SupportingText } from "@/components/text/supporting-text";
 
 type CheckoutAddressSectionProps = {
   addressForm: AddressFormState;
   countryItems: SelectItem[];
-  createAccountConsent: boolean;
-  hasCustomerSupportNote: boolean;
-  hasDifferentShippingAddress: boolean;
-  hasStoredAddress: boolean;
-  isBusy: boolean;
+  formId?: string;
+  isAuthenticated: boolean;
   isCompanyPurchase: boolean;
-  isSavingAddress: boolean;
-  onCreateAccountConsentChange: (value: boolean) => void;
-  onCustomerSupportNoteToggle: (value: boolean) => void;
-  onDifferentShippingAddressChange: (value: boolean) => void;
+  onAddressSaved?: () => void;
   onIsCompanyPurchaseChange: (value: boolean) => void;
-  onSaveAddress: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onSaveAddress: () => Promise<boolean>;
   onUpdateAddressField: <K extends keyof AddressFormState>(
     key: K,
     value: AddressFormState[K],
   ) => void;
-  ready: boolean;
 };
 
 const PRIVATE_PURCHASE_LABEL = "Súkromná osoba";
@@ -38,20 +28,13 @@ const COMPANY_PURCHASE_LABEL = "Nakupujem na firmu";
 export function CheckoutAddressSection({
   addressForm,
   countryItems,
-  createAccountConsent,
-  hasCustomerSupportNote,
-  hasDifferentShippingAddress,
-  hasStoredAddress,
-  isBusy,
+  formId = "checkout-address-form",
+  isAuthenticated,
   isCompanyPurchase,
-  isSavingAddress,
-  onCreateAccountConsentChange,
-  onCustomerSupportNoteToggle,
-  onDifferentShippingAddressChange,
+  onAddressSaved,
   onIsCompanyPurchaseChange,
   onSaveAddress,
   onUpdateAddressField,
-  ready,
 }: CheckoutAddressSectionProps) {
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
@@ -59,36 +42,47 @@ export function CheckoutAddressSection({
         <h2 className="text-xl font-medium text-fg-primary">Vaše údaje</h2>
       </header>
 
-      <div className="flex flex-wrap items-center justify-between gap-250 rounded-sm bg-highlight p-300">
-        <div className="space-y-50">
-          <p className="text-base font-medium text-fg-primary">
-            Už máte v Herbatica účet?
-          </p>
-          <SupportingText className="text-fg-secondary">
-            Prihláste sa pre rýchly nákup a zľavu na ďalšie nákupy
-          </SupportingText>
+      {!isAuthenticated ? (
+        <div className="flex flex-wrap items-center justify-between gap-250 rounded-sm bg-highlight p-300">
+          <div className="space-y-50">
+            <p className="text-base font-medium text-fg-primary">
+              Už máte v Herbatica účet?
+            </p>
+            <SupportingText className="text-fg-secondary">
+              Prihláste sa pre rýchly nákup a zľavu na ďalšie nákupy
+            </SupportingText>
+          </div>
+          <LinkButton
+            as={NextLink}
+            href="/account"
+            size="md"
+            theme="outlined"
+            variant="tertiary"
+            className="bg-button-bg-outlined-tertiary rounded-button-outlined-tertiary font-normal hover:bg-button-bg-outlined-tertiary-hover"
+          >
+            Prihlásiť sa
+          </LinkButton>
         </div>
-        <LinkButton
-          as={NextLink}
-          href="/account"
-          size="md"
-          theme="outlined"
-          variant="tertiary"
-          className="bg-button-bg-outlined-tertiary rounded-button-outlined-tertiary font-normal hover:bg-button-bg-outlined-tertiary-hover"
-        >
-          Prihlásiť sa
-        </LinkButton>
-      </div>
+      ) : null}
 
       <form
         className="space-y-250 font-inter"
+        id={formId}
         onSubmit={(event) => {
-          void onSaveAddress(event);
+          event.preventDefault();
+          void (async () => {
+            const didSaveAddress = await onSaveAddress();
+            if (didSaveAddress) {
+              onAddressSaved?.();
+            }
+          })();
         }}
       >
         <RadioGroup
           className="font-rubik"
-          onValueChange={(value) => onIsCompanyPurchaseChange(value === "company")}
+          onValueChange={(value) =>
+            onIsCompanyPurchaseChange(value === "company")
+          }
           orientation="horizontal"
           size="sm"
           value={isCompanyPurchase ? "company" : "private"}
@@ -278,65 +272,22 @@ export function CheckoutAddressSection({
             }
           />
 
-          {hasCustomerSupportNote ? (
-            <div className="md:col-span-2">
-              <FormTextarea
-                id="checkout-customer-note"
-                label="Poznámka pre zákaznícku podporu"
-                name="customer_note"
-                rows={3}
-                value={addressForm.customerNote}
-                onChange={(event) =>
-                  onUpdateAddressField("customerNote", event.target.value)
-                }
-              />
-            </div>
-          ) : (
-            <div className="md:col-span-2">
-              <Button
-                className="px-0"
-                onClick={() => {
-                  onCustomerSupportNoteToggle(true);
-                }}
-                theme="borderless"
-                type="button"
-                variant="secondary"
-              >
-                + Pridať poznámku pre zákaznícku podporu
-              </Button>
-            </div>
-          )}
-
-          <div className="space-y-150 md:col-span-2">
-            <FormCheckbox
-              checked={hasDifferentShippingAddress}
-              label="Poslať na inú adresu"
-              onCheckedChange={onDifferentShippingAddressChange}
+          <div className="md:col-span-2">
+            <FormTextarea
+              id="checkout-customer-note"
+              label="Voliteľná poznámka pre zákaznícku podporu"
+              name="customer_note"
+              rows={3}
+              value={addressForm.customerNote}
+              resize="auto"
               size="sm"
-            />
-            <FormCheckbox
-              checked={createAccountConsent}
-              label="Chcem sa registrovať a tak získavať výhody"
-              onCheckedChange={onCreateAccountConsentChange}
-              size="sm"
+              className="min-h-14"
+              onChange={(event) =>
+                onUpdateAddressField("customerNote", event.target.value)
+              }
             />
           </div>
 
-          <div className="flex flex-col flex-wrap items-end justify-center gap-200 md:col-span-2">
-            <Button
-              disabled={isBusy || !ready}
-              isLoading={isSavingAddress}
-              type="submit"
-              variant="primary"
-            >
-              Uložiť údaje
-            </Button>
-            {hasStoredAddress ? (
-              <SupportingText className="text-success">
-                Údaje sú uložené.
-              </SupportingText>
-            ) : null}
-          </div>
         </div>
       </form>
     </section>
