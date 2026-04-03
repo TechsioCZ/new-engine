@@ -110,7 +110,7 @@ export function HerbatikaCartPopover({
           <span>{cartTotalLabel}</span>
           <Badge
             className="absolute -top-200 -right-200 min-w-500 justify-center rounded-full px-100 py-50 text-xs"
-            variant="secondary"
+            variant="success"
           >
             {itemCount > 99 ? "99+" : String(itemCount)}
           </Badge>

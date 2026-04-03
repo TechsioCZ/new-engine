@@ -38,37 +38,37 @@ export function StorefrontAccountOrderGroup({
 
   return (
     <article
-      className={`overflow-hidden rounded-lg border border-order-group-border-primary bg-surface lg:grid ${desktopGridColumns}`}
+      className={`overflow-hidden rounded-order-group-lg border border-order-group-border bg-order-group-surface lg:grid ${desktopGridColumns}`}
     >
       <header
-        className={`flex flex-col gap-300 border-order-group-border-primary border-b bg-base p-350 lg:col-span-3 lg:grid lg:items-start lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
+        className={`flex flex-col gap-order-group-header-gap border-order-group-border border-b bg-order-group-overlay p-order-group-3xl lg:col-span-3 lg:grid lg:items-start lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
       >
-        <section className="min-w-0 space-y-150">
-          <div className="flex flex-wrap items-center gap-x-200 gap-y-100">
-            <p className="text-base font-semibold text-fg-primary">
+        <section className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-order-group-lg gap-y-order-group-sm">
+            <p className="text-order-group-fg-primary text-order-group-primary-size font-semibold">
               {resolveOrderDisplayId(order)}
             </p>
-            <p className="text-fg-secondary text-sm">
+            <p className="text-order-group-fg-secondary text-order-group-secondary-size">
               {formatOrderDate(order.created_at)}
             </p>
             <Badge
               variant={orderProgress.variant}
               size="sm"
-              className="rounded-xs whitespace-nowrap"
+              className="px-150 whitespace-nowrap"
             >
               {orderProgress.label}
             </Badge>
           </div>
 
-          <div className="flex flex-wrap items-center gap-150">
-            <p className="text-fg-secondary text-sm">
-              {`${orderItemCount} položiek v objednávke`}
+          <div className="flex flex-wrap items-center">
+            <p className="text-order-group-fg-secondary text-order-group-secondary-size">
+              {`${orderItemCount}ks položiek v objednávke`}
             </p>
           </div>
         </section>
 
-        <section className="space-y-50 leading-none lg:justify-self-end lg:text-start">
-          <p className="text-fg-tertiary text-xs font-medium uppercase">
+        <section className="leading-none lg:justify-self-end lg:text-start">
+          <p className="text-order-group-fg-tertiary text-order-group-tertiary-size font-medium uppercase">
             Celková suma
           </p>
           <p className="font-semibold">
@@ -76,7 +76,7 @@ export function StorefrontAccountOrderGroup({
           </p>
         </section>
 
-        <div className="flex flex-wrap gap-150 lg:justify-self-end">
+        <div className="flex flex-wrap gap-order-group-md lg:justify-self-end">
           {invoiceUrl && (
             <LinkButton
               as={NextLink}
@@ -108,7 +108,7 @@ export function StorefrontAccountOrderGroup({
       </header>
 
       <div
-        className={`hidden lg:col-span-3 lg:grid lg:items-center lg:gap-order-group-column px-350 py-250 text-fg-tertiary text-xs uppercase tracking-wide ${desktopGridColumns} ${desktopSubgridColumns}`}
+        className={`hidden px-order-group-3xl py-order-group-lg text-order-group-fg-tertiary text-order-group-tertiary-size uppercase tracking-wide lg:col-span-3 lg:grid lg:items-center lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
       >
         <p>Produkt</p>
         <p className="text-start">Cena</p>
@@ -125,11 +125,11 @@ export function StorefrontAccountOrderGroup({
 
             return (
               <li
-                className={`border-order-group-border-primary border-t px-350 py-300 lg:col-span-3 lg:grid lg:items-start lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
+                className={`border-order-group-border border-t px-order-group-3xl py-order-group-3xl lg:col-span-3 lg:grid lg:items-start lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
                 key={item.id}
               >
                 <div className="min-w-0">
-                  <div className="flex items-center gap-200">
+                  <div className="flex items-center gap-order-group-lg">
                     {item.thumbnail ? (
                       <NextImage
                         alt={item.title ?? "Produkt"}
@@ -141,12 +141,12 @@ export function StorefrontAccountOrderGroup({
                       />
                     ) : null}
 
-                    <div className="min-w-0 space-y-50">
-                      <p className="line-clamp-2 font-medium text-fg-primary text-sm">
+                    <div className="min-w-0">
+                      <p className="line-clamp-2 text-order-group-fg-primary text-order-group-secondary-size font-medium">
                         {item.title ?? "-"}
                       </p>
                       {item.variant_title ? (
-                        <p className="line-clamp-1 text-fg-secondary text-xs">
+                        <p className="line-clamp-1 text-order-group-fg-secondary text-order-group-tertiary-size">
                           {item.variant_title}
                         </p>
                       ) : null}
@@ -155,10 +155,10 @@ export function StorefrontAccountOrderGroup({
                 </div>
 
                 <div className="min-w-fit text-start lg:justify-self-start">
-                  <p className="font-medium text-fg-primary text-sm">
+                  <p className="text-order-group-fg-primary text-order-group-secondary-size font-medium">
                     {formatOrderAmount(lineTotal, order.currency_code)}
                   </p>
-                  <p className="text-fg-secondary text-sm">{`Množstvo: ${itemQuantity}`}</p>
+                  <p className="text-order-group-fg-secondary text-order-group-secondary-size">{`Množstvo: ${itemQuantity}`}</p>
                 </div>
 
                 <div className="flex items-center justify-end lg:justify-self-end">
@@ -183,20 +183,23 @@ export function StorefrontAccountOrderGroup({
           })}
         </ul>
       ) : (
-        <p className="hidden border-order-group-border-primary border-t px-300 py-350 text-fg-secondary text-sm lg:col-span-3 lg:block">
+        <p className="hidden border-order-group-border border-t px-order-group-3xl py-order-group-3xl text-order-group-fg-secondary text-order-group-secondary-size lg:col-span-3 lg:block">
           Objednávka neobsahuje položky.
         </p>
       )}
 
-      <div className="space-y-200 p-300 lg:hidden">
+      <div className="p-order-group-order-group-2xl lg:hidden">
         {orderItems.length > 0 ? (
           orderItems.map((item) => {
             const itemQuantity = resolveOrderItemQuantity(item);
             const lineTotal = resolveOrderItemTotalAmount(item);
 
             return (
-              <article className="rounded-md border border-order-group-border-primary bg-base p-250" key={item.id}>
-                <div className="flex items-start gap-200">
+              <article
+                className="rounded-order-group-md border border-order-group-border bg-order-group-overlay p-order-group-xl"
+                key={item.id}
+              >
+                <div className="flex items-start gap-order-group-lg">
                   {item.thumbnail ? (
                     <NextImage
                       alt={item.title ?? "Produkt"}
@@ -208,30 +211,34 @@ export function StorefrontAccountOrderGroup({
                     />
                   ) : null}
 
-                  <div className="min-w-0 flex-1 space-y-150">
-                    <div className="flex items-start justify-between gap-200">
-                      <div className="min-w-0 space-y-50">
-                        <p className="line-clamp-2 font-medium text-fg-primary text-sm">
+                  <div className="min-w-0 flex-1 space-y-order-group-md">
+                    <div className="flex items-start justify-between gap-order-group-lg">
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 text-order-group-fg-primary text-order-group-secondary-size font-medium">
                           {item.title ?? "-"}
                         </p>
                         {item.variant_title && (
-                          <p className="text-fg-secondary text-xs">{item.variant_title}</p>
+                          <p className="text-order-group-fg-secondary text-order-group-tertiary-size">
+                            {item.variant_title}
+                          </p>
                         )}
                       </div>
 
-                      <p className="shrink-0 font-semibold text-fg-primary text-sm">
+                      <p className="shrink-0 text-order-group-fg-primary text-order-group-secondary-size font-semibold">
                         {formatOrderAmount(lineTotal, order.currency_code)}
                       </p>
                     </div>
 
-                    <p className="text-fg-secondary text-xs">{`Množstvo: ${itemQuantity}`}</p>
+                    <p className="text-order-group-fg-secondary text-order-group-tertiary-size">{`Množstvo: ${itemQuantity}`}</p>
                   </div>
                 </div>
               </article>
             );
           })
         ) : (
-          <p className="text-fg-secondary text-sm">Objednávka neobsahuje položky.</p>
+          <p className="text-order-group-fg-secondary text-order-group-secondary-size">
+            Objednávka neobsahuje položky.
+          </p>
         )}
       </div>
     </article>
