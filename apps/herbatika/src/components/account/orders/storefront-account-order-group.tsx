@@ -2,6 +2,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
+import NextImage from "next/image";
 import {
   formatOrderAmount,
   formatOrderDate,
@@ -27,40 +28,68 @@ export function StorefrontAccountOrderGroup({
   const orderTotalAmount = resolveOrderTotalAmount(order);
   const orderProgress = resolveOrderProgressState(order);
   const orderItems = order.items ?? [];
-  const productColumnClass = "min-w-0";
-  const priceColumnClass = "text-fg-secondary text-sm";
+  const orderItemCount = orderItems.reduce((count, item) => {
+    return count + resolveOrderItemQuantity(item);
+  }, 0);
+  const desktopGridColumns =
+    "lg:grid-cols-[minmax(0,1fr)_max-content_max-content]";
+  const desktopSubgridColumns =
+    "lg:supports-[grid-template-columns:subgrid]:grid-cols-subgrid";
 
   return (
-    <article className="overflow-hidden rounded-lg border border-border-secondary bg-surface">
-      <header className="grid gap-300 border-border-secondary border-b bg-base p-300 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center">
-        <section className="space-y-50">
-          <p className="text-xs font-medium text-fg-tertiary uppercase tracking-wide">
-            Dátum objednávky
-          </p>
-          <p className="text-sm font-semibold text-fg-primary">
-            {formatOrderDate(order.created_at)}
-          </p>
+    <article
+      className={`overflow-hidden rounded-lg border border-order-group-border-primary bg-surface lg:grid ${desktopGridColumns}`}
+    >
+      <header
+        className={`flex flex-col gap-300 border-order-group-border-primary border-b bg-base p-350 lg:col-span-3 lg:grid lg:items-start lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
+      >
+        <section className="min-w-0 space-y-150">
+          <div className="flex flex-wrap items-center gap-x-200 gap-y-100">
+            <p className="text-base font-semibold text-fg-primary">
+              {resolveOrderDisplayId(order)}
+            </p>
+            <p className="text-fg-secondary text-sm">
+              {formatOrderDate(order.created_at)}
+            </p>
+            <Badge
+              variant={orderProgress.variant}
+              size="sm"
+              className="rounded-xs whitespace-nowrap"
+            >
+              {orderProgress.label}
+            </Badge>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-150">
+            <p className="text-fg-secondary text-sm">
+              {`${orderItemCount} položiek v objednávke`}
+            </p>
+          </div>
         </section>
 
-        <section className="space-y-50">
-          <p className="text-xs font-medium text-fg-tertiary uppercase tracking-wide">
-            Číslo objednávky
-          </p>
-          <p className="text-sm font-semibold text-fg-primary">
-            {resolveOrderDisplayId(order)}
-          </p>
-        </section>
-
-        <section className="space-y-50">
-          <p className="text-xs font-medium text-fg-tertiary uppercase tracking-wide">
+        <section className="space-y-50 leading-none lg:justify-self-end lg:text-start">
+          <p className="text-fg-tertiary text-xs font-medium uppercase">
             Celková suma
           </p>
-          <p className="text-sm font-semibold text-fg-primary">
+          <p className="font-semibold">
             {formatOrderAmount(orderTotalAmount, order.currency_code)}
           </p>
         </section>
 
-        <div className="flex flex-wrap gap-200 lg:justify-end">
+        <div className="flex flex-wrap gap-150 lg:justify-self-end">
+          {invoiceUrl && (
+            <LinkButton
+              as={NextLink}
+              href={invoiceUrl}
+              rel="noreferrer"
+              size="sm"
+              target="_blank"
+              theme="outlined"
+              variant="secondary"
+            >
+              Zobraziť faktúru
+            </LinkButton>
+          )}
           <LinkButton
             as={NextLink}
             href={detailHref}
@@ -75,108 +104,89 @@ export function StorefrontAccountOrderGroup({
           >
             Zobraziť objednávku
           </LinkButton>
-          {invoiceUrl && (
-            <LinkButton
-              as={NextLink}
-              href={invoiceUrl}
-              rel="noreferrer"
-              size="sm"
-              target="_blank"
-              theme="outlined"
-              variant="secondary"
-            >
-              Zobraziť faktúru
-            </LinkButton>
-          )}
         </div>
       </header>
 
-      <div className="hidden lg:block">
-        <div className="grid grid-cols-[minmax(0,1fr)_9rem_12rem_7.5rem] gap-200 px-300 py-200 text-fg-tertiary text-xs uppercase tracking-wide">
-          <p>Produkt</p>
-          <p className="text-end">Cena</p>
-          <p>Stav</p>
-          <p className="text-end">Info</p>
-        </div>
+      <div
+        className={`hidden lg:col-span-3 lg:grid lg:items-center lg:gap-order-group-column px-350 py-250 text-fg-tertiary text-xs uppercase tracking-wide ${desktopGridColumns} ${desktopSubgridColumns}`}
+      >
+        <p>Produkt</p>
+        <p className="text-start">Cena</p>
+        <p className="text-end pr-500">Info</p>
+      </div>
 
-        {orderItems.length > 0 ? (
-          <ul>
-            {orderItems.map((item) => {
-              const itemQuantity = resolveOrderItemQuantity(item);
-              const lineTotal = resolveOrderItemTotalAmount(item);
+      {orderItems.length > 0 ? (
+        <ul
+          className={`hidden lg:col-span-3 lg:grid ${desktopGridColumns} ${desktopSubgridColumns}`}
+        >
+          {orderItems.map((item) => {
+            const itemQuantity = resolveOrderItemQuantity(item);
+            const lineTotal = resolveOrderItemTotalAmount(item);
 
-              return (
-                <li
-                  className="grid grid-cols-[minmax(0,1fr)_9rem_12rem_7.5rem] gap-200 border-border-secondary border-t px-300 py-250"
-                  key={item.id}
-                >
-                  <div className={productColumnClass}>
-                    <div className="flex items-center gap-200">
-                      {item.thumbnail ? (
-                        <img
-                          alt={item.title ?? "Produkt"}
-                          className="h-550 w-550 rounded-md border border-border-secondary object-cover"
-                          loading="lazy"
-                          src={item.thumbnail}
-                        />
-                      ) : null}
+            return (
+              <li
+                className={`border-order-group-border-primary border-t px-350 py-300 lg:col-span-3 lg:grid lg:items-start lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
+                key={item.id}
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-200">
+                    {item.thumbnail ? (
+                      <NextImage
+                        alt={item.title ?? "Produkt"}
+                        width={32}
+                        height={32}
+                        className="object-cover"
+                        loading="lazy"
+                        src={item.thumbnail}
+                      />
+                    ) : null}
 
-                      <div className="min-w-0 space-y-50">
-                        <p className="line-clamp-2 font-medium text-fg-primary text-sm">
-                          {item.title ?? "-"}
+                    <div className="min-w-0 space-y-50">
+                      <p className="line-clamp-2 font-medium text-fg-primary text-sm">
+                        {item.title ?? "-"}
+                      </p>
+                      {item.variant_title ? (
+                        <p className="line-clamp-1 text-fg-secondary text-xs">
+                          {item.variant_title}
                         </p>
-                        {item.variant_title ? (
-                          <p className="line-clamp-1 text-fg-secondary text-xs">
-                            {item.variant_title}
-                          </p>
-                        ) : null}
-                      </div>
+                      ) : null}
                     </div>
                   </div>
+                </div>
 
-                  <div className="space-y-50 text-end">
-                    <p className="font-medium text-fg-primary text-sm">
-                      {formatOrderAmount(lineTotal, order.currency_code)}
-                    </p>
-                    <p className={priceColumnClass}>{`Množstvo: ${itemQuantity}`}</p>
-                  </div>
+                <div className="min-w-fit text-start lg:justify-self-start">
+                  <p className="font-medium text-fg-primary text-sm">
+                    {formatOrderAmount(lineTotal, order.currency_code)}
+                  </p>
+                  <p className="text-fg-secondary text-sm">{`Množstvo: ${itemQuantity}`}</p>
+                </div>
 
-                  <div className="flex items-center">
-                    <Badge
-                      variant={orderProgress.variant}
-                      className="rounded-xs text-2xs font-medium"
-                    >
-                      {orderProgress.label}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    <LinkButton
-                      as={NextLink}
-                      href={`/p/${item.product_handle}`}
-                      onFocus={() => {
-                        onPrefetchOrderDetail(order.id);
-                      }}
-                      onMouseEnter={() => {
-                        onPrefetchOrderDetail(order.id);
-                      }}
-                      size="sm"
-                      theme="outlined"
-                      variant="secondary"
-                    >
-                      Detail
-                    </LinkButton>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="border-border-secondary border-t px-300 py-350 text-fg-secondary text-sm">
-            Objednávka neobsahuje položky.
-          </p>
-        )}
-      </div>
+                <div className="flex items-center justify-end lg:justify-self-end">
+                  <LinkButton
+                    as={NextLink}
+                    href={`/p/${item.product_handle}`}
+                    onFocus={() => {
+                      onPrefetchOrderDetail(order.id);
+                    }}
+                    onMouseEnter={() => {
+                      onPrefetchOrderDetail(order.id);
+                    }}
+                    size="sm"
+                    theme="outlined"
+                    variant="secondary"
+                  >
+                    Detail
+                  </LinkButton>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="hidden border-order-group-border-primary border-t px-300 py-350 text-fg-secondary text-sm lg:col-span-3 lg:block">
+          Objednávka neobsahuje položky.
+        </p>
+      )}
 
       <div className="space-y-200 p-300 lg:hidden">
         {orderItems.length > 0 ? (
@@ -185,23 +195,37 @@ export function StorefrontAccountOrderGroup({
             const lineTotal = resolveOrderItemTotalAmount(item);
 
             return (
-              <article className="rounded-md border border-border-secondary bg-base p-250" key={item.id}>
-                <div className="flex items-start justify-between gap-200">
-                  <div className="space-y-50">
-                    <p className="font-medium text-fg-primary text-sm">{item.title ?? "-"}</p>
-                    {item.variant_title && (
-                      <p className="text-fg-secondary text-xs">{item.variant_title}</p>
-                    )}
+              <article className="rounded-md border border-order-group-border-primary bg-base p-250" key={item.id}>
+                <div className="flex items-start gap-200">
+                  {item.thumbnail ? (
+                    <NextImage
+                      alt={item.title ?? "Produkt"}
+                      width={32}
+                      height={32}
+                      className="shrink-0 object-cover"
+                      loading="lazy"
+                      src={item.thumbnail}
+                    />
+                  ) : null}
+
+                  <div className="min-w-0 flex-1 space-y-150">
+                    <div className="flex items-start justify-between gap-200">
+                      <div className="min-w-0 space-y-50">
+                        <p className="line-clamp-2 font-medium text-fg-primary text-sm">
+                          {item.title ?? "-"}
+                        </p>
+                        {item.variant_title && (
+                          <p className="text-fg-secondary text-xs">{item.variant_title}</p>
+                        )}
+                      </div>
+
+                      <p className="shrink-0 font-semibold text-fg-primary text-sm">
+                        {formatOrderAmount(lineTotal, order.currency_code)}
+                      </p>
+                    </div>
+
+                    <p className="text-fg-secondary text-xs">{`Množstvo: ${itemQuantity}`}</p>
                   </div>
-                  <Badge variant={orderProgress.variant}>
-                    {orderProgress.label}
-                  </Badge>
-                </div>
-                <div className="mt-150 flex items-center justify-between gap-200">
-                  <p className="text-fg-secondary text-xs">{`Množstvo: ${itemQuantity}`}</p>
-                  <p className="font-semibold text-fg-primary text-sm">
-                    {formatOrderAmount(lineTotal, order.currency_code)}
-                  </p>
                 </div>
               </article>
             );

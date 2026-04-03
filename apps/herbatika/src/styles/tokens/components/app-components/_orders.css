@@ -1,0 +1,12 @@
+:root {
+  /*@media (width < 48rem) {
+    --spacing-header-nav-sm: var(--spacing-50);
+    --spacing-header-nav-md: var(--spacing-100);
+    --spacing-header-nav-lg: var(--spacing-150);
+  }*/
+}
+
+@theme static {
+    --color-order-group-border-primary: var(--color-border-secondary);
+    --spacing-order-group-column: var(--spacing-650);
+}
