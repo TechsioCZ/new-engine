@@ -1,8 +1,8 @@
 "use client";
 
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import NextImage from "next/image";
 import { BLOG_FEATURED_PRODUCT } from "@/lib/storefront/blog-content";
 
 export function BlogFeaturedProductCard() {
@@ -30,13 +30,14 @@ export function BlogFeaturedProductCard() {
       </div>
 
       <div className="relative overflow-hidden rounded-lg border border-border-secondary bg-base">
-        <Image
+        <NextImage
           alt={BLOG_FEATURED_PRODUCT.title}
           className="aspect-video w-full object-cover"
           height={380}
           loading="lazy"
           src={BLOG_FEATURED_PRODUCT.imageSrc}
           width={420}
+          quality={50}
         />
         <Badge
           className="absolute right-300 bottom-300 rounded-md px-300 py-100 text-2xs font-semibold"

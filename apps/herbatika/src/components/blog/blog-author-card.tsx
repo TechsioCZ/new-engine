@@ -1,4 +1,4 @@
-import { Image } from "@techsio/ui-kit/atoms/image";
+import NextImage from "next/image";
 import type { BlogPost } from "@/lib/storefront/blog-content";
 
 type BlogAuthorCardProps = {
@@ -8,12 +8,13 @@ type BlogAuthorCardProps = {
 export function BlogAuthorCard({ post }: BlogAuthorCardProps) {
   return (
     <section className="flex flex-col gap-300 rounded-2xl border border-border-secondary bg-surface p-400 sm:flex-row sm:items-center">
-      <Image
+      <NextImage
         alt={post.author}
         className="h-850 w-850 rounded-lg object-cover"
-        height={200}
+        height={32}
         src={post.authorImageSrc}
-        width={200}
+        width={32}
+        quality={50}
       />
 
       <div className="space-y-150">

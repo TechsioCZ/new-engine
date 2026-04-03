@@ -1,5 +1,5 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Image } from "@techsio/ui-kit/atoms/image";
+import NextImage from "next/image";
 import { BLOG_PROMO_BANNER, BLOG_SIDEBAR_CATEGORIES } from "@/lib/storefront/blog-content";
 import { BlogFeaturedProductCard } from "./blog-featured-product-card";
 
@@ -25,13 +25,14 @@ export function BlogArticleSidebar() {
       </section>
 
       <section className="relative overflow-hidden rounded-2xl border border-border-secondary bg-surface">
-        <Image
+        <NextImage
           alt={BLOG_PROMO_BANNER.title}
           className="aspect-square w-full object-cover"
           height={560}
           loading="lazy"
           src={BLOG_PROMO_BANNER.imageSrc}
           width={420}
+          quality={50}
         />
 
         <div className="absolute inset-0 bg-fg-primary/35" />

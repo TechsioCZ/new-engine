@@ -1,9 +1,9 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
+import NextImage from "next/image";
 import type { BlogPost } from "@/lib/storefront/blog-content";
 import { BLOG_INLINE_PRODUCTS } from "@/lib/storefront/blog-content";
 import { BlogArticleSidebar } from "./blog-article-sidebar";
@@ -79,12 +79,13 @@ export function BlogDetailPage({ post, relatedPosts }: BlogDetailPageProps) {
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-border-secondary bg-surface">
-              <Image
+              <NextImage
                 alt={post.title}
                 className="aspect-wide w-full object-cover"
                 height={620}
                 src={post.imageSrc}
                 width={1200}
+                quality={50}
               />
             </section>
 

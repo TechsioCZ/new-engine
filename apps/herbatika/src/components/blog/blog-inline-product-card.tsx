@@ -1,8 +1,8 @@
 "use client";
 import NextLink from "next/link";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import NextImage from "next/image";
 import type { BLOG_INLINE_PRODUCTS } from "@/lib/storefront/blog-content";
 
 type BlogInlineProductCardProps = {
@@ -34,13 +34,14 @@ export function BlogInlineProductCard({ product }: BlogInlineProductCardProps) {
       </div>
 
       <div className="relative overflow-hidden rounded-lg border border-border-secondary bg-base">
-        <Image
+        <NextImage
           alt={product.title}
           className="aspect-video w-full object-cover"
           height={280}
           loading="lazy"
           src={product.imageSrc}
           width={360}
+          quality={50}
         />
 
         {product.discountLabel ? (

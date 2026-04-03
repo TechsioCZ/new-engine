@@ -8,8 +8,8 @@
   --color-badge-bg-primary: var(--color-primary);
   --color-badge-fg-primary: var(--color-fg-reverse);
 
-  --color-badge-bg-secondary: var(--color-float);
-  --color-badge-fg-secondary: var(--color-fg-primary);
+  --color-badge-bg-secondary: var(--color-highlight);
+  --color-badge-fg-secondary: var(--color-primary);
 
   --color-badge-bg-tertiary: var(--color-herbatika-highlight);
   --color-badge-fg-tertiary: var(--color-herbatika-primary);

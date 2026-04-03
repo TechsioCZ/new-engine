@@ -1,7 +1,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import NextLink from "next/link";
+import NextImage from "next/image";
 import type { BlogPost } from "@/lib/storefront/blog-content";
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters";
 
@@ -13,13 +13,14 @@ export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
   return (
     <article className="min-h-950 overflow-hidden rounded-2xl border border-border-secondary bg-surface">
       <Link as={NextLink} className="block" href={`/blog/${post.slug}`}>
-        <Image
+        <NextImage
           alt={post.title}
           className="aspect-video w-full object-cover"
           height={320}
           loading="lazy"
           src={post.imageSrc}
           width={520}
+          quality={50}
         />
       </Link>
 
