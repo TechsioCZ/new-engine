@@ -1,4 +1,4 @@
-import { Image } from "@techsio/ui-kit/atoms/image";
+import NextImage from "next/image";
 
 type HerbaticaAuthorCardProps = {
   author: string;
@@ -15,10 +15,11 @@ export function HerbaticaAuthorCard({
 }: HerbaticaAuthorCardProps) {
   return (
     <section className="flex flex-col gap-300 rounded-2xl border border-border-secondary bg-surface p-400 sm:flex-row sm:items-center">
-      <Image
+      <NextImage
         alt={author}
         className="h-850 w-850 rounded-xl object-cover"
         height={200}
+        quality={50}
         src={imageSrc}
         width={200}
       />

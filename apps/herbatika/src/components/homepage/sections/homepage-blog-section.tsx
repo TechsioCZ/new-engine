@@ -1,7 +1,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import NextLink from "next/link";
+import NextImage from "next/image";
 import { formatBlogDate, formatTopicFromKey } from "@/components/blog/blog-formatters";
 import type { BlogTeaserItem } from "@/components/homepage/homepage.data";
 
@@ -23,10 +23,13 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
             key={post.id}
           >
             <Link as={NextLink} className="block" href={post.href}>
-              <Image
+              <NextImage
                 alt={post.title}
                 className="aspect-video w-full object-cover"
+                height={360}
+                quality={50}
                 src={post.imageSrc}
+                width={640}
               />
             </Link>
 

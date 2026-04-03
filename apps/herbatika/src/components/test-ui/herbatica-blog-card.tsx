@@ -1,6 +1,6 @@
 import NextLink from "next/link";
+import NextImage from "next/image";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 
 type HerbaticaBlogCardProps = {
@@ -31,11 +31,12 @@ export function HerbaticaBlogCard({
   return (
     <article className="flex h-full min-h-950 flex-col overflow-hidden rounded-2xl border border-border-secondary bg-surface">
       <Link as={NextLink} className="block" href={href}>
-        <Image
+        <NextImage
           alt={imageAlt ?? title}
           className="aspect-video w-full object-cover"
           height={360}
           loading="lazy"
+          quality={50}
           src={imageSrc}
           width={640}
         />

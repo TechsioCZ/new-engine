@@ -1,11 +1,11 @@
 "use client";
 
 import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery";
 import NextLink from "next/link";
+import NextImage from "next/image";
 import type {
   ProductMediaFact,
   ProductOfferState,
@@ -68,10 +68,13 @@ export function ProductDetailMediaColumn({
 
       <div className="flex flex-wrap items-center justify-between gap-250 rounded-lg border border-primary/20 bg-surface p-400 md:flex-nowrap">
         <div className="flex items-center gap-150">
-          <Image
+          <NextImage
             alt="Poradca Herbatika"
             className="size-8 shrink-0 rounded-full object-cover"
+            height={32}
+            quality={50}
             src="/photos/image.png"
+            width={32}
           />
           <div className="space-y-0">
             <p className="whitespace-nowrap text-md font-bold leading-tight text-fg-strong">

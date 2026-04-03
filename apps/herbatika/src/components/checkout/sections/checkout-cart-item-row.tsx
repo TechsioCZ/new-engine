@@ -3,9 +3,9 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
+import NextImage from "next/image";
 import NextLink from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -174,10 +174,13 @@ export function CheckoutCartItemRow({
         className="col-span-3 inline-flex h-750 w-750 md:col-span-2"
         href={itemHref}
       >
-        <Image
+        <NextImage
           alt={itemName}
           className="h-750 w-750 object-cover"
+          height={60}
+          quality={50}
           src={resolveLineItemThumbnail(item)}
+          width={60}
         />
       </Link>
 

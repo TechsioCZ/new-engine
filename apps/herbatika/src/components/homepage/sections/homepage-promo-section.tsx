@@ -1,16 +1,16 @@
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Image } from "@techsio/ui-kit/atoms/image";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import NextLink from "next/link";
+import NextImage from "next/image";
 
 export function HomepagePromoSection() {
   return (
     <section className="grid gap-400 rounded-2xl border border-border-secondary bg-surface p-400 md:grid-cols-2 md:p-550">
       <div className="overflow-hidden rounded-2xl border border-border-secondary">
-        <Image
+        <NextImage
           alt="Predajňa Herbatika"
           className="h-full min-h-950 w-full object-cover"
+          height={900}
+          quality={50}
           src="https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?auto=format&fit=crop&w=1100&q=80"
+          width={1100}
         />
       </div>
 

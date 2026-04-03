@@ -1,8 +1,8 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import NextImage from "next/image";
 import type { ReactNode } from "react";
 import { CHECKOUT_STEPS } from "@/components/checkout/checkout.constants";
 import { HerbatikaCheckoutSteps } from "@/components/checkout/herbatika-checkout-steps";
@@ -109,10 +109,13 @@ export function HerbaticaCheckoutProductRecap({
   return (
     <div className="flex items-start gap-200 rounded-xl bg-highlight p-250">
       <div className="flex size-850 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface">
-        <Image
+        <NextImage
           alt={title}
           className="h-full w-full object-cover"
+          height={80}
+          quality={50}
           src="/photos/image.png"
+          width={80}
         />
       </div>
       <div className="min-w-0 space-y-100">

@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
-import { Image } from "@techsio/ui-kit/atoms/image";
+import NextImage from "next/image";
 import { SupportingText } from "@/components/text/supporting-text";
 import {
   resolveCartItemName,
@@ -65,10 +65,13 @@ export function CheckoutOrderSummarySection({
                 }`}
                 key={item.id}
               >
-                <Image
+                <NextImage
                   alt={itemName}
                   className="h-850 w-850 shrink-0 rounded-sm border border-border-secondary object-cover"
+                  height={80}
+                  quality={50}
                   src={itemThumbnail}
+                  width={80}
                 />
                 <div className="min-w-0 flex-1 space-y-100">
                   <p className="line-clamp-2 text-md font-medium text-fg-primary">

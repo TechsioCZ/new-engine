@@ -1,6 +1,6 @@
-import { Image } from "@techsio/ui-kit/atoms/image";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import NextLink from "next/link";
+import NextImage from "next/image";
 
 interface HerbatikaLogoProps {
   className?: string;
@@ -21,10 +21,13 @@ export function HerbatikaLogo({
 
   return (
     <Link as={NextLink} className={className} href={href}>
-      <Image
+      <NextImage
         alt="Herbatika"
         className={imageClasses}
+        height={64}
+        quality={50}
         src="/herbatika-logo.svg"
+        width={280}
       />
     </Link>
   );
