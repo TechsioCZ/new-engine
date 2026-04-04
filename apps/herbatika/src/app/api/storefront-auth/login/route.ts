@@ -23,14 +23,14 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as LoginBody;
   } catch {
-    return badRequest("Request body must be valid JSON.");
+    return badRequest("Telo požiadavky musí byť platné JSON.");
   }
 
   const email = body.email?.trim();
   const password = body.password;
 
   if (!(email && password)) {
-    return badRequest("Both email and password are required.");
+    return badRequest("E-mail aj heslo sú povinné.");
   }
 
   try {
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       payload && typeof payload.token === "string" ? payload.token : null;
 
     if (!token) {
-      return serverError("Login succeeded but no auth token was returned.");
+      return serverError("Prihlásenie prebehlo úspešne, ale autentifikačný token nebol vrátený.");
     }
 
     const response = NextResponse.json<LoginResponse>(
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     setSessionTokenCookie(response, token);
     return response;
   } catch (error) {
-    return serverError("Unable to reach Medusa auth service.", {
+    return serverError("Nepodarilo sa spojiť s autentifikačnou službou Medusa.", {
       error: error instanceof Error ? error.message : String(error),
     });
   }

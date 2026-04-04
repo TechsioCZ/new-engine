@@ -135,7 +135,7 @@ export function CartItemRow({
         </NumericInput>
 
         <Button
-          aria-label={`Odstranit ${itemName} z košíku`}
+          aria-label={`Odstrániť ${itemName} z košíka`}
           className="h-650 w-650 p-0 text-fg-secondary hover:text-fg-primary"
           disabled={isPending}
           icon="icon-[mdi--trash-can-outline]"

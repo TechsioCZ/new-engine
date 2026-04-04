@@ -27,14 +27,14 @@ export const parseResponseJson = async (response: Response) => {
 
 const fallbackErrorMessage = (status: number) => {
   if (status === 400) {
-    return "Invalid auth request payload.";
+    return "Neplatné údaje autentifikačnej požiadavky.";
   }
 
   if (status === 401 || status === 403) {
-    return "Authentication failed.";
+    return "Autentifikácia zlyhala.";
   }
 
-  return `Auth request failed with status ${status}.`;
+  return `Autentifikačná požiadavka zlyhala so stavom ${status}.`;
 };
 
 export const buildErrorResponse = async (response: Response) => {

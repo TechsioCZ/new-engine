@@ -97,7 +97,7 @@ export function StorefrontDataSmokePanel() {
     setMutationError(null);
 
     if (!firstVariantId) {
-      setMutationError("Není dostupná varianta produktu pro add-to-cart test.");
+      setMutationError("Nie je dostupná varianta produktu pre test pridania do košíka.");
       return;
     }
 
@@ -112,7 +112,7 @@ export function StorefrontDataSmokePanel() {
       });
     } catch (error) {
       setMutationError(
-        error instanceof Error ? error.message : "Add-to-cart test selhal.",
+        error instanceof Error ? error.message : "Test pridania do košíka zlyhal.",
       );
     }
   };
@@ -121,7 +121,7 @@ export function StorefrontDataSmokePanel() {
     setMutationError(null);
 
     if (!firstLineItemId) {
-      setMutationError("Košík neobsahuje položku pro remove test.");
+      setMutationError("Košík neobsahuje položku pre test odstránenia.");
       return;
     }
 
@@ -132,7 +132,7 @@ export function StorefrontDataSmokePanel() {
       });
     } catch (error) {
       setMutationError(
-        error instanceof Error ? error.message : "Remove item test selhal.",
+        error instanceof Error ? error.message : "Test odstránenia položky zlyhal.",
       );
     }
   };
@@ -142,8 +142,8 @@ export function StorefrontDataSmokePanel() {
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">Storefront data smoke test</h1>
         <p className="text-sm text-black/70">
-          Ověření fáze 1: products list/detail, cart create/add/remove, checkout
-          shipping a payment providers.
+          Overenie fázy 1: zoznam/detail produktov, vytvorenie košíka,
+          pridanie/odstránenie položky a poskytovatelia dopravy a platby.
         </p>
       </header>
 

@@ -134,7 +134,7 @@ export function HerbatikaCartPopover({
           </div>
 
           {hiddenItemCount > 0 ? (
-            <p className="text-fg-secondary text-xs">{`+ ${hiddenItemCount} dalších položek v košíku`}</p>
+            <p className="text-fg-secondary text-xs">{`+ ${hiddenItemCount} ďalších položiek v košíku`}</p>
           ) : null}
 
           {errorMessage ? (
@@ -145,7 +145,7 @@ export function HerbatikaCartPopover({
 
           <div className="space-y-150 border-border-secondary border-t pt-250">
             <div className="flex items-center justify-between gap-200">
-              <span className="text-fg-secondary">Mezisoučet:</span>
+              <span className="text-fg-secondary">Medzisúčet:</span>
               <span>{cartSubtotalLabel}</span>
             </div>
 
@@ -167,7 +167,7 @@ export function HerbatikaCartPopover({
 
             {discountAmount !== null && discountAmount > 0 ? (
               <div className="flex items-center justify-between gap-200 text-success">
-                <span>Sleva:</span>
+                <span>Zľava:</span>
                 <span>
                   -{formatCurrencyAmount(discountAmount, currencyCode)}
                 </span>
@@ -175,7 +175,7 @@ export function HerbatikaCartPopover({
             ) : null}
 
             <div className="flex items-center justify-between gap-200 border-border-secondary border-t pt-200 font-bold text-lg">
-              <span>Celkem:</span>
+              <span>Spolu:</span>
               <span>{cartTotalLabel}</span>
             </div>
           </div>
@@ -189,7 +189,7 @@ export function HerbatikaCartPopover({
               size="md"
               variant="primary"
             >
-              Přejít k pokladně
+              Pokračovať k pokladni
             </LinkButton>
             <Button
               block
@@ -204,7 +204,7 @@ export function HerbatikaCartPopover({
         </>
       ) : (
         <div className="space-y-250">
-          <p className="text-fg-secondary text-sm">Košík je zatím prázdný.</p>
+          <p className="text-fg-secondary text-sm">Košík je zatiaľ prázdny.</p>
           <LinkButton
             as={NextLink}
             block

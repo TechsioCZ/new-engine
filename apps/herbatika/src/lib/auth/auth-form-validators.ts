@@ -76,12 +76,12 @@ const validateTerms = (value: boolean) => {
 export const PASSWORD_REQUIREMENTS = [
   {
     id: "min-length",
-    label: "Alespoň 8 znaků",
+    label: "Aspoň 8 znakov",
     test: (password: string) => password.length >= 8,
   },
   {
     id: "has-number",
-    label: "Alespoň jedna číslice",
+    label: "Aspoň jedna číslica",
     test: (password: string) => PASSWORD_NUMBER_REGEX.test(password),
   },
 ] as const;
@@ -159,7 +159,7 @@ export const resolveLoginSubmitError = (error: unknown) => {
     normalizedMessage.includes("401") ||
     normalizedMessage.includes("403")
   ) {
-    return "Nesprávný email nebo heslo";
+    return "Nesprávny e-mail alebo heslo.";
   }
 
   return message || "Prihlásenie sa nepodarilo. Skúste to prosím znovu.";

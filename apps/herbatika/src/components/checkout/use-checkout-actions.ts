@@ -58,7 +58,7 @@ export function useCheckoutActions({
     resetFeedback();
 
     if (!cartId) {
-      onCheckoutErrorChange("Košík není připraven.");
+      onCheckoutErrorChange("Košík nie je pripravený.");
       return false;
     }
 
@@ -121,7 +121,7 @@ export function useCheckoutActions({
     resetFeedback();
 
     if (!cartId) {
-      onCheckoutErrorChange("Košík není připraven.");
+      onCheckoutErrorChange("Košík nie je pripravený.");
       return;
     }
 

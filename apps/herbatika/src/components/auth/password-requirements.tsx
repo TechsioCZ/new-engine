@@ -15,7 +15,7 @@ export const PasswordRequirements = ({
 
   return (
     <div className="space-y-100">
-      <p className="text-sm font-medium text-fg-secondary">Požadavky na heslo:</p>
+      <p className="text-sm font-medium text-fg-secondary">Požiadavky na heslo:</p>
       <ul className="space-y-100">
         {requirements.map((requirement) => (
           <li

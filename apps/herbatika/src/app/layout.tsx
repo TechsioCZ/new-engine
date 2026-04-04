@@ -50,7 +50,7 @@ const roboto = Roboto({
 
 export const metadata: Metadata = {
   title: "Herbatika",
-  description: "Herbatika e-shop - přírodní produkty",
+  description: "Herbatika e-shop - prírodné produkty",
 };
 
 export default function RootLayout({

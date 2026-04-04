@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as RegisterBody;
   } catch {
-    return badRequest("Request body must be valid JSON.");
+    return badRequest("Telo požiadavky musí byť platné JSON.");
   }
 
   const email = asStringOrUndefined(body.email);
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   const lastName = asStringOrUndefined(body.last_name);
 
   if (!(email && password)) {
-    return badRequest("Both email and password are required.");
+    return badRequest("E-mail aj heslo sú povinné.");
   }
 
   try {
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
         : null;
 
     if (!loginToken) {
-      return serverError("Customer login succeeded but no token was returned.");
+      return serverError("Prihlásenie zákazníka prebehlo úspešne, ale token nebol vrátený.");
     }
 
     const createCustomerResponse = await fetch(buildMedusaUrl("/store/customers"), {
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
     setSessionTokenCookie(response, refreshedToken);
     return response;
   } catch (error) {
-    return serverError("Unable to complete customer registration.", {
+    return serverError("Nepodarilo sa dokončiť registráciu zákazníka.", {
       error: error instanceof Error ? error.message : String(error),
     });
   }

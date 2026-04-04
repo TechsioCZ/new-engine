@@ -17,7 +17,7 @@ const resolveObjectErrorMessage = (error: unknown) => {
 
 export const resolveErrorMessage = (
   error: unknown,
-  fallbackMessage = "An unknown error occurred.",
+  fallbackMessage = "Nastala neznáma chyba.",
 ) => {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message;

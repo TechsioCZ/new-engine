@@ -10,7 +10,7 @@ const parseProxyError = async (response: Response) => {
     // noop
   }
 
-  return `Auth request failed with status ${response.status}`;
+  return `Autentifikačná požiadavka zlyhala so stavom ${response.status}`;
 };
 
 export const requestAuthProxy = async <TBody extends Record<string, unknown>>(
@@ -31,7 +31,7 @@ export const requestAuthProxy = async <TBody extends Record<string, unknown>>(
 
   const payload = (await response.json()) as Partial<AuthProxyResponse>;
   if (typeof payload.token !== "string" || payload.token.length === 0) {
-    throw new Error("Auth proxy did not return a token.");
+    throw new Error("Autentifikačné rozhranie nevrátilo token.");
   }
 
   return {

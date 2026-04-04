@@ -50,7 +50,7 @@ export function useHomepageCartActions(
       setCartMessage(`Pridané do košíka: ${product.title}`);
     } catch (error) {
       setMutationError(
-        error instanceof Error ? error.message : "An unknown error occurred.",
+        error instanceof Error ? error.message : "Nastala neznáma chyba.",
       );
     }
   };
