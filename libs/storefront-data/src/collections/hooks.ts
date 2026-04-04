@@ -17,6 +17,7 @@ import { resolvePagination } from "../shared/pagination"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
+import { createCollectionQueryOptionsFactory } from "./query-options"
 import { createCollectionQueryKeys } from "./query-keys"
 import type {
   CollectionDetailInputBase,
@@ -78,6 +79,14 @@ export function createCollectionHooks<
   const buildDetail =
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
+  const { getListQueryOptions, getDetailQueryOptions } =
+    createCollectionQueryOptionsFactory({
+      service,
+      buildListParams: buildList,
+      buildDetailParams: buildDetail,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig: resolvedCacheConfig,
+    })
 
   function useCollections(
     input: TListInput,
@@ -89,15 +98,13 @@ export function createCollectionHooks<
       enabled?: boolean
     }
     const listParams = buildList(listInput as TListInput)
-    const queryKey = resolvedQueryKeys.list(listParams)
     const enabled = inputEnabled ?? true
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getCollections(listParams, signal),
+      ...getListQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
       enabled,
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -143,10 +150,9 @@ export function createCollectionHooks<
     }
     const listParams = buildList(listInput as TListInput)
     const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.list(listParams),
-      queryFn: ({ signal }) => service.getCollections(listParams, signal),
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
+      ...getListQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
     })
     const { data, isFetching } = query
 
@@ -185,19 +191,16 @@ export function createCollectionHooks<
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TCollection | null> }
   ): UseCollectionResult<TCollection> {
-    const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
+    const { enabled: inputEnabled } = input as TDetailInput & {
       enabled?: boolean
     }
-    const detailParams = buildDetail(detailInput as TDetailInput)
-    const queryKey = resolvedQueryKeys.detail(detailParams)
     const enabled = inputEnabled ?? Boolean(input.id)
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getCollection(detailParams, signal),
+      ...getDetailQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
       enabled,
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -215,20 +218,13 @@ export function createCollectionHooks<
     input: TDetailInput,
     options?: { queryOptions?: SuspenseQueryOptions<TCollection | null> }
   ): UseSuspenseCollectionResult<TCollection> {
-    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
+    const { enabled: _inputEnabled } = input as TDetailInput & {
       enabled?: boolean
     }
-    const detailParams = buildDetail(detailInput as TDetailInput)
     const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => {
-        if (!input.id) {
-          throw new Error("Collection id is required for collection queries")
-        }
-        return service.getCollection(detailParams, signal)
-      },
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
+      ...getDetailQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
     })
     const { data, isFetching } = query
 
@@ -386,6 +382,8 @@ export function createCollectionHooks<
   }
 
   return {
+    getListQueryOptions,
+    getDetailQueryOptions,
     useCollections,
     useSuspenseCollections,
     useCollection,
