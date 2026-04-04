@@ -173,6 +173,10 @@
       "types": "./dist/src/medusa/preset.d.ts",
       "import": "./dist/medusa/preset.js"
     },
+    "./medusa/server-read": {
+      "types": "./dist/src/medusa/server-read.d.ts",
+      "import": "./dist/medusa/server-read.js"
+    },
     "./orders/hooks": {
       "types": "./dist/src/orders/hooks.d.ts",
       "import": "./dist/orders/hooks.js"
