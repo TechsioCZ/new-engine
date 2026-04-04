@@ -12,6 +12,7 @@ type StorefrontAuthShellProps = {
   hasCart: boolean;
   isTransferPending: boolean;
   message?: string | null;
+  notice?: string | null;
   error?: string | null;
   children: ReactNode;
 };
@@ -25,6 +26,7 @@ export const StorefrontAuthShell = ({
   hasCart,
   isTransferPending,
   message,
+  notice,
   error,
   children,
 }: StorefrontAuthShellProps) => {
@@ -62,6 +64,12 @@ export const StorefrontAuthShell = ({
         >
           {message}
         </Badge>
+      )}
+
+      {notice && (
+        <StatusText showIcon status="warning">
+          {notice}
+        </StatusText>
       )}
 
       {error && (

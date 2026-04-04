@@ -13,7 +13,7 @@ import {
 } from "@/components/auth/storefront-auth-helpers";
 import { resolveLoginSubmitError } from "@/lib/auth/auth-form-validators";
 import type { RegisterFormValues } from "@/lib/auth/auth-form-validators";
-import { useAuth, useLogin, useLogout, useRegister } from "@/lib/storefront/auth";
+import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth";
 import {
   storefrontCartReadQueryOptions,
   useCart,
@@ -21,6 +21,7 @@ import {
 } from "@/lib/storefront/cart";
 import { cartStorage } from "@/lib/storefront/cart-storage";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { useStorefrontLogoutAction } from "@/lib/storefront/use-storefront-logout-action";
 
 type AuthControlsMode = "login" | "register" | "both";
 
@@ -38,11 +39,15 @@ export const useStorefrontAuthController = ({
   const authQuery = useAuth();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
-  const logoutMutation = useLogout();
   const transferCartMutation = useTransferCart();
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
   const isDiagnosticsMode = mode === "both";
+  const {
+    handleLogout: performLogout,
+    logoutMutation,
+  } = useStorefrontLogoutAction();
 
   const cartQuery = useCart({
     autoCreate: false,
@@ -69,6 +74,7 @@ export const useStorefrontAuthController = ({
   const clearFeedback = useCallback(() => {
     setAuthError(null);
     setAuthMessage(null);
+    setAuthNotice(null);
   }, []);
 
   const transferCartIfAvailable = useCallback(async () => {
@@ -80,11 +86,23 @@ export const useStorefrontAuthController = ({
     const transferredCart = await transferCartMutation.mutateAsync({
       cartId: activeCartId,
     });
-
     if (transferredCart?.id) {
       cartStorage.setCartId(transferredCart.id);
     }
   }, [cartQuery.cart?.id, transferCartMutation]);
+
+  const runPostAuthCartTransfer = useCallback(async () => {
+    if (!cartQuery.cart?.id) {
+      return null;
+    }
+
+    try {
+      await transferCartIfAvailable();
+      return null;
+    } catch {
+      return "Účet je aktívny, ale obsah košíka sa nepodarilo preniesť. Skúste to prosím znova v košíku.";
+    }
+  }, [cartQuery.cart?.id, transferCartIfAvailable]);
 
   useEffect(() => {
     if (!safeRedirectHref) {
@@ -109,7 +127,7 @@ export const useStorefrontAuthController = ({
 
       try {
         await loginMutation.mutateAsync(values);
-        await transferCartIfAvailable();
+        const transferNotice = await runPostAuthCartTransfer();
 
         if (safeRedirectHref) {
           router.replace(safeRedirectHref);
@@ -117,12 +135,13 @@ export const useStorefrontAuthController = ({
         }
 
         setAuthMessage("Prihlásenie prebehlo úspešne.");
+        setAuthNotice(transferNotice);
         return null;
       } catch (error) {
         return resolveLoginSubmitError(error);
       }
     },
-    [clearFeedback, loginMutation, router, safeRedirectHref, transferCartIfAvailable],
+    [clearFeedback, loginMutation, router, runPostAuthCartTransfer, safeRedirectHref],
   );
 
   const handleRegisterSubmit = useCallback(
@@ -136,7 +155,7 @@ export const useStorefrontAuthController = ({
           first_name: values.first_name,
           last_name: values.last_name,
         });
-        await transferCartIfAvailable();
+        const transferNotice = await runPostAuthCartTransfer();
 
         if (safeRedirectHref) {
           router.replace(safeRedirectHref);
@@ -144,25 +163,37 @@ export const useStorefrontAuthController = ({
         }
 
         setAuthMessage("Registrácia prebehla úspešne.");
+        setAuthNotice(transferNotice);
         return null;
       } catch (error) {
         return resolveErrorMessage(error);
       }
     },
-    [clearFeedback, registerMutation, router, safeRedirectHref, transferCartIfAvailable],
+    [clearFeedback, registerMutation, router, runPostAuthCartTransfer, safeRedirectHref],
   );
 
   const handleLogout = useCallback(async () => {
     clearFeedback();
 
-    try {
-      await logoutMutation.mutateAsync();
-      cartStorage.clearCartId();
+    const result = await performLogout();
+    if (result.ok) {
       setAuthMessage("Odhlásenie prebehlo úspešne.");
+      return;
+    }
+
+    setAuthError(result.error);
+  }, [clearFeedback, performLogout]);
+
+  const handleTransferCart = useCallback(async () => {
+    clearFeedback();
+
+    try {
+      await transferCartIfAvailable();
+      setAuthMessage("Prenos košíka prebehol úspešne.");
     } catch (error) {
       setAuthError(resolveErrorMessage(error));
     }
-  }, [clearFeedback, logoutMutation]);
+  }, [clearFeedback, transferCartIfAvailable]);
 
   const isBusy =
     loginMutation.isPending ||
@@ -184,12 +215,14 @@ export const useStorefrontAuthController = ({
   return {
     authError,
     authMessage,
+    authNotice,
     authQuery,
     cartQuery,
     description,
     handleLoginSubmit,
     handleLogout,
     handleRegisterSubmit,
+    handleTransferCart,
     isBusy,
     isDiagnosticsMode,
     loginDefaultValues,

@@ -33,6 +33,10 @@ const clearToken = () => {
   authTokenStorage.clear();
 };
 
+const fetchCustomer = (signal?: AbortSignal) => {
+  return authServiceBase.getCustomer(signal);
+};
+
 const ensureSessionProxyToken = async (): Promise<string | null> => {
   const existingToken = getStoredToken();
   if (existingToken) {
@@ -63,26 +67,38 @@ const ensureSessionProxyToken = async (): Promise<string | null> => {
 
 export const authService = {
   async getCustomer(signal?: AbortSignal): Promise<HttpTypes.StoreCustomer | null> {
+    if (!isSessionProxyAuthMode) {
+      if (!getStoredToken()) {
+        return null;
+      }
+
+      return fetchCustomer(signal);
+    }
+
     if (!getStoredToken()) {
-      if (isSessionProxyAuthMode) {
-        const restoredToken = await ensureSessionProxyToken();
-        if (!restoredToken) {
-          return null;
-        }
-      } else {
+      const restoredToken = await ensureSessionProxyToken();
+      if (!restoredToken) {
         return null;
       }
     }
 
-    try {
-      return await authServiceBase.getCustomer(signal);
-    } catch (error) {
-      if (isSessionProxyAuthMode) {
-        clearToken();
-      }
-
-      throw error;
+    const customer = await fetchCustomer(signal);
+    if (customer) {
+      return customer;
     }
+
+    if (!getStoredToken()) {
+      return null;
+    }
+
+    clearToken();
+
+    const restoredToken = await ensureSessionProxyToken();
+    if (!restoredToken) {
+      return null;
+    }
+
+    return fetchCustomer(signal);
   },
   async login(credentials: AuthLoginInput) {
     const { token } = await requestAuthProxy("login", {
@@ -106,11 +122,7 @@ export const authService = {
   },
   async logout() {
     if (isSessionProxyAuthMode) {
-      try {
-        await requestLogoutProxy();
-      } catch {
-        // best effort: continue with local logout cleanup
-      }
+      await requestLogoutProxy();
     }
 
     await authServiceBase.logout();

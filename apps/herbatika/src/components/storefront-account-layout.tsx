@@ -8,9 +8,8 @@ import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { useAuth, useLogout } from "@/lib/storefront/auth";
-import { cartStorage } from "@/lib/storefront/cart-storage";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { useAuth } from "@/lib/storefront/auth";
+import { useStorefrontLogoutAction } from "@/lib/storefront/use-storefront-logout-action";
 import { Icon, IconType } from "@techsio/ui-kit/atoms/icon";
 
 type AccountNavItemType = {
@@ -47,10 +46,18 @@ export function StorefrontAccountLayout({
   const router = useRouter();
   const pathname = usePathname();
   const authQuery = useAuth();
-  const logoutMutation = useLogout();
-  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const redirectTarget = pathname;
+  const {
+    clearLogoutError,
+    handleLogout: performLogout,
+    logoutError,
+    logoutMutation,
+  } = useStorefrontLogoutAction({
+    onSuccess: () => {
+      router.replace("/");
+    },
+  });
 
   useEffect(() => {
     if (isLoggingOut) {
@@ -71,16 +78,12 @@ export function StorefrontAccountLayout({
   ]);
 
   const handleLogout = async () => {
-    setLogoutError(null);
+    clearLogoutError();
     setIsLoggingOut(true);
 
-    try {
-      await logoutMutation.mutateAsync();
-      cartStorage.clearCartId();
-      router.replace("/");
-    } catch (error) {
+    const result = await performLogout();
+    if (!result.ok) {
       setIsLoggingOut(false);
-      setLogoutError(resolveErrorMessage(error));
     }
   };
 
@@ -160,6 +163,7 @@ export function StorefrontAccountLayout({
           <Button
             block
             onClick={() => handleLogout()}
+            isLoading={logoutMutation.isPending}
             theme="unstyled"
             size="current"
             className="justify-start text-lg hover:text-danger px-200"
@@ -173,33 +177,4 @@ export function StorefrontAccountLayout({
       </div>
     </main>
   );
-}
-
-
-const AccountTabs = ({items}: {items: string[]}) => {
-
-  return(
-     <aside className="space-y-400 rounded-lg border border-border-secondary bg-surface p-400">
-          <header className="space-y-200">
-            <h1 className="text-xl font-semibold">Môj účet</h1>
-          </header>
-            <nav className="flex flex-col gap-200">
-            {ACCOUNT_NAV_ITEMS.map((item) => {
-
-              return (
-                <LinkButton
-                  as={NextLink}
-                  block
-                  href={item.href}
-                  key={item.href}
-                  theme="unstyled"
-                  size="current"
-                >
-                  {item.label}
-                </LinkButton>
-              );
-            })}
-          </nav>
-      </aside>
-  )
 }

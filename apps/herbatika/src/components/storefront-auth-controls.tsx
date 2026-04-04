@@ -30,6 +30,7 @@ export function StorefrontAuthControls({
       hasCart={Boolean(controller.cartQuery.cart?.id)}
       isAuthenticated={controller.authQuery.isAuthenticated}
       isDiagnosticsMode={controller.isDiagnosticsMode}
+      notice={controller.authNotice}
       isTransferPending={controller.transferCartMutation.isPending}
       message={controller.authMessage}
       title={controller.isDiagnosticsMode ? "Auth actions" : controller.title}
@@ -65,7 +66,7 @@ export function StorefrontAuthControls({
           void controller.handleLogout();
         }}
         onTransferCart={() => {
-          void controller.transferCartIfAvailable();
+          void controller.handleTransferCart();
         }}
       />
     </StorefrontAuthShell>
