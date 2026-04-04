@@ -1,8 +1,8 @@
+import { HydrationBoundary } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { StorefrontCategoryListing } from "@/components/storefront-category-listing";
-import { StorefrontHydrationBoundary } from "@/components/storefront-hydration-boundary";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr";
 
@@ -44,9 +44,9 @@ async function CategoryPageContent({
   );
 
   return (
-    <StorefrontHydrationBoundary state={dehydratedState}>
+    <HydrationBoundary state={dehydratedState}>
       <StorefrontCategoryListing slug={normalizedSlug} />
-    </StorefrontHydrationBoundary>
+    </HydrationBoundary>
   );
 }
 

@@ -1,7 +1,7 @@
+import { HydrationBoundary } from "@tanstack/react-query";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { StorefrontProductDetail } from "@/components/storefront-product-detail";
-import { StorefrontHydrationBoundary } from "@/components/storefront-hydration-boundary";
 import { prefetchProductDetailPageStorefrontData } from "@/lib/storefront/ssr";
 
 type ProductDetailPageProps = {
@@ -20,9 +20,9 @@ async function ProductDetailPageContent({ params }: ProductDetailPageProps) {
   const { dehydratedState } = await prefetchProductDetailPageStorefrontData(handle);
 
   return (
-    <StorefrontHydrationBoundary state={dehydratedState}>
+    <HydrationBoundary state={dehydratedState}>
       <StorefrontProductDetail handle={handle} />
-    </StorefrontHydrationBoundary>
+    </HydrationBoundary>
   );
 }
 

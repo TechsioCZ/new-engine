@@ -1,7 +1,7 @@
+import { HydrationBoundary } from "@tanstack/react-query";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { HerbatikaHomepage } from "@/components/herbatika-homepage";
-import { StorefrontHydrationBoundary } from "@/components/storefront-hydration-boundary";
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr";
 
 function HomePageFallback() {
@@ -13,9 +13,9 @@ async function HomePageContent() {
   const { dehydratedState } = await prefetchHomePageStorefrontData();
 
   return (
-    <StorefrontHydrationBoundary state={dehydratedState}>
+    <HydrationBoundary state={dehydratedState}>
       <HerbatikaHomepage />
-    </StorefrontHydrationBoundary>
+    </HydrationBoundary>
   );
 }
 
