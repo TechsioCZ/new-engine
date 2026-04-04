@@ -5,9 +5,9 @@ import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-
 import type { QueryClient } from "@tanstack/react-query";
 import { cookies } from "next/headers";
 import {
-  getServerProductDetailQueryOptions,
-  getServerProductListQueryOptions,
-  getServerRegionListQueryOptions,
+  fetchServerProduct,
+  fetchServerRegions,
+  prefetchServerProducts,
 } from "../storefront-server";
 import {
   REGION_COUNTRY_CODE_STORAGE_KEY,
@@ -40,9 +40,7 @@ export const getRegionServerContext = async () => {
     limit: REGION_LIST_LIMIT,
   };
 
-  const regionListResponse = await queryClient.fetchQuery(
-    getServerRegionListQueryOptions(listParams),
-  );
+  const regionListResponse = await fetchServerRegions(queryClient, listParams);
 
   const resolvedRegionRecord = resolveRegionByIdOrDefault(
     regionListResponse.regions,
@@ -62,14 +60,12 @@ export const prefetchProductList = async (
   queryClient: QueryClient,
   listParams: ProductListParams,
 ) => {
-  await queryClient.prefetchQuery(
-    getServerProductListQueryOptions(listParams),
-  );
+  await prefetchServerProducts(queryClient, listParams);
 };
 
 export const prefetchProductDetail = async (
   queryClient: QueryClient,
   detailParams: ProductDetailParams,
 ) => {
-  return queryClient.fetchQuery(getServerProductDetailQueryOptions(detailParams));
+  return fetchServerProduct(queryClient, detailParams);
 };

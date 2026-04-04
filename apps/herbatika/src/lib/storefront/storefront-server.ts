@@ -1,106 +1,132 @@
 import "server-only";
 
-import type { FindParams, HttpTypes } from "@medusajs/types";
-import type { CatalogProductsParams } from "./catalog-query-state";
-import {
-  createMedusaCatalogService,
-  type MedusaCatalogListInput,
-} from "@techsio/storefront-data/catalog/medusa-service";
-import {
-  createMedusaCategoryService,
-  type MedusaCategoryDetailInput,
-  type MedusaCategoryListInput,
+import type { HttpTypes } from "@medusajs/types";
+import type { QueryClient } from "@tanstack/react-query";
+import type { MedusaCatalogListInput } from "@techsio/storefront-data/catalog/medusa-service";
+import type { CatalogFacets } from "@techsio/storefront-data/catalog/types";
+import type {
+  MedusaCategoryDetailInput,
+  MedusaCategoryListInput,
 } from "@techsio/storefront-data/categories/medusa-service";
 import {
-  createMedusaProductService,
-  type MedusaProductDetailInput,
-  type MedusaProductListInput,
+  createMedusaStorefrontServerReadPreset,
+} from "@techsio/storefront-data/medusa/server-read";
+import type {
+  MedusaProductDetailInput,
+  MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service";
-import {
-  createMedusaRegionService,
-  type MedusaRegionDetailInput,
-  type MedusaRegionListInput,
+import type {
+  MedusaRegionDetailInput,
+  MedusaRegionListInput,
 } from "@techsio/storefront-data/regions/medusa-service";
-import {
-  STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,
-} from "./product-query-config";
+import { STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS } from "./product-query-config";
 import { storefrontSdk } from "./sdk";
 import { storefrontCoreDefinition } from "./storefront-core-definition";
 import type {
+  CategoryListParams,
+  CatalogListParams,
   ProductDetailParams,
   ProductListParams,
   RegionListParams,
 } from "./ssr/types";
 
-type CategoryListParams = FindParams & HttpTypes.StoreProductCategoryListParams;
+const storefrontServerRead = createMedusaStorefrontServerReadPreset<
+  HttpTypes.StoreProduct,
+  HttpTypes.StoreProductCategory,
+  HttpTypes.StoreCollection,
+  HttpTypes.StoreProduct,
+  CatalogFacets
+>({
+  sdk: storefrontSdk,
+  queryKeyNamespace: storefrontCoreDefinition.namespace,
+  cacheConfig: storefrontCoreDefinition.cacheConfig,
+  products: {
+    serviceConfig: storefrontCoreDefinition.products.serviceConfig,
+    hooks: {
+      buildListParams:
+        storefrontCoreDefinition.products.hooks.buildListParams as (
+          input: MedusaProductListInput,
+        ) => ProductListParams,
+      buildDetailParams:
+        storefrontCoreDefinition.products.hooks.buildDetailParams as (
+          input: MedusaProductDetailInput,
+        ) => ProductDetailParams,
+    },
+    queryKeys: storefrontCoreDefinition.queryKeys.products,
+  },
+  orders: {
+    service: storefrontCoreDefinition.orders.service,
+    hooks: storefrontCoreDefinition.orders.hooks,
+    queryKeys: storefrontCoreDefinition.queryKeys.orders,
+  },
+  regions: {
+    queryKeys: storefrontCoreDefinition.queryKeys.regions,
+  },
+  categories: {
+    serviceConfig: storefrontCoreDefinition.categories.serviceConfig,
+    hooks: {
+      buildListParams:
+        storefrontCoreDefinition.categories.hooks.buildListParams as (
+          input: MedusaCategoryListInput,
+        ) => CategoryListParams,
+      buildDetailParams:
+        storefrontCoreDefinition.categories.hooks.buildDetailParams as (
+          input: MedusaCategoryDetailInput,
+        ) => MedusaCategoryDetailInput,
+    },
+    queryKeys: storefrontCoreDefinition.queryKeys.categories,
+  },
+  catalog: {
+    serviceConfig: storefrontCoreDefinition.catalog.serviceConfig,
+    queryKeys: storefrontCoreDefinition.queryKeys.catalog,
+  },
+});
+
+export const fetchServerRegions = (
+  queryClient: QueryClient,
+  listParams: RegionListParams,
+) =>
+  queryClient.fetchQuery(
+    storefrontServerRead.queries.regions.getListQueryOptions(listParams),
+  );
+
+export const prefetchServerProducts = (
+  queryClient: QueryClient,
+  listParams: ProductListParams,
+) =>
+  queryClient.prefetchQuery(
+    storefrontServerRead.queries.products.getListQueryOptions(listParams),
+  );
+
+export const fetchServerProduct = (
+  queryClient: QueryClient,
+  detailParams: ProductDetailParams,
+) =>
+  queryClient.fetchQuery(
+    storefrontServerRead.queries.products.getDetailQueryOptions(detailParams),
+  );
+
+export const fetchServerCategories = (
+  queryClient: QueryClient,
+  listParams: CategoryListParams,
+) =>
+  queryClient.fetchQuery(
+    storefrontServerRead.queries.categories.getListQueryOptions(listParams),
+  );
+
+export const prefetchServerCatalogProducts = (
+  queryClient: QueryClient,
+  listParams: CatalogListParams,
+) =>
+  queryClient.prefetchQuery(
+    storefrontServerRead.queries.catalog.getListQueryOptions(listParams),
+  );
+
 type SearchProductsBatchInput = {
   handles: string[];
   regionId?: string | null;
   countryCode?: string | null;
   limit?: number;
-};
-
-export const storefrontServerServices = {
-  products: createMedusaProductService<
-    HttpTypes.StoreProduct,
-    MedusaProductListInput,
-    MedusaProductDetailInput
-  >(storefrontSdk, storefrontCoreDefinition.products.serviceConfig),
-  regions: createMedusaRegionService(storefrontSdk),
-  categories: createMedusaCategoryService<
-    HttpTypes.StoreProductCategory,
-    MedusaCategoryListInput,
-    MedusaCategoryDetailInput
-  >(storefrontSdk, storefrontCoreDefinition.categories.serviceConfig),
-  catalog: createMedusaCatalogService<
-    HttpTypes.StoreProduct,
-    MedusaCatalogListInput
-  >(storefrontSdk, storefrontCoreDefinition.catalog.serviceConfig),
-};
-
-export const getServerRegionListQueryOptions = (params: RegionListParams) => {
-  return {
-    queryKey: storefrontCoreDefinition.queryKeys.regions.list(params),
-    queryFn: ({ signal }: { signal?: AbortSignal }) =>
-      storefrontServerServices.regions.getRegions(params, signal),
-    ...storefrontCoreDefinition.cacheConfig.static,
-  };
-};
-
-export const getServerCategoryListQueryOptions = (params: CategoryListParams) => {
-  return {
-    queryKey: storefrontCoreDefinition.queryKeys.categories.list(params),
-    queryFn: ({ signal }: { signal?: AbortSignal }) =>
-      storefrontServerServices.categories.getCategories(params, signal),
-    ...storefrontCoreDefinition.cacheConfig.static,
-  };
-};
-
-export const getServerCatalogListQueryOptions = (params: CatalogProductsParams) => {
-  return {
-    queryKey: storefrontCoreDefinition.queryKeys.catalog.list(params),
-    queryFn: ({ signal }: { signal?: AbortSignal }) =>
-      storefrontServerServices.catalog.getCatalogProducts(params, signal),
-    ...storefrontCoreDefinition.cacheConfig.semiStatic,
-  };
-};
-
-export const getServerProductListQueryOptions = (params: ProductListParams) => {
-  return {
-    queryKey: storefrontCoreDefinition.queryKeys.products.list(params),
-    queryFn: ({ signal }: { signal?: AbortSignal }) =>
-      storefrontServerServices.products.getProducts(params, signal),
-    ...storefrontCoreDefinition.cacheConfig.semiStatic,
-  };
-};
-
-export const getServerProductDetailQueryOptions = (params: ProductDetailParams) => {
-  return {
-    queryKey: storefrontCoreDefinition.queryKeys.products.detail(params),
-    queryFn: ({ signal }: { signal?: AbortSignal }) =>
-      storefrontServerServices.products.getProductByHandle(params, signal),
-    ...storefrontCoreDefinition.cacheConfig.semiStatic,
-  };
 };
 
 export const fetchServerSearchProductsByHandles = async (

@@ -7,8 +7,8 @@ import { buildCategoryListParams } from "../category-query-config";
 import { PLP_PAGE_SIZE } from "../plp-config";
 import type { PlpQueryState } from "../plp-query-state";
 import {
-  getServerCatalogListQueryOptions,
-  getServerCategoryListQueryOptions,
+  fetchServerCategories,
+  prefetchServerCatalogProducts,
 } from "../storefront-server";
 import { CATEGORY_LIST_LIMIT } from "./constants";
 import { getRegionServerContext } from "./context";
@@ -25,8 +25,9 @@ export const prefetchCategoryPageStorefrontData = async (
     fields: "id,name,handle,parent_category_id,rank",
   });
 
-  const categoryResponse = await queryClient.fetchQuery(
-    getServerCategoryListQueryOptions(categoryListParams),
+  const categoryResponse = await fetchServerCategories(
+    queryClient,
+    categoryListParams,
   );
 
   const activeCategory =
@@ -45,9 +46,7 @@ export const prefetchCategoryPageStorefrontData = async (
       countryCode: region.country_code,
     });
 
-    await queryClient.prefetchQuery(
-      getServerCatalogListQueryOptions(catalogListParams),
-    );
+    await prefetchServerCatalogProducts(queryClient, catalogListParams);
   }
 
   return {
