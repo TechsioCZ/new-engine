@@ -36,9 +36,6 @@ export function useHomepageController(): UseHomepageControllerResult {
     page: 1,
     limit: PRODUCT_FETCH_LIMIT,
     fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-    region_id: region?.region_id,
-    country_code: region?.country_code,
-    enabled: Boolean(region?.region_id),
   });
 
   const cartActions = useHomepageCartActions(region);

@@ -1,6 +1,7 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { useMemo } from "react";
 import {
@@ -18,6 +19,10 @@ import {
   buildCatalogProductsParams,
   resolveCatalogActiveFilterCount,
 } from "@/lib/storefront/catalog-query-state";
+import {
+  STOREFRONT_CATEGORY_TREE_FIELDS,
+  STOREFRONT_CATEGORY_TREE_LIMIT,
+} from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree";
 import { PLP_PAGE_SIZE, type NuqsPlpQueryState } from "@/lib/storefront/plp-query-state";
@@ -82,22 +87,19 @@ const resolveBreadcrumbItems = (
 };
 
 type UseCategoryListingQueriesProps = {
-  countryCode?: string;
   queryState: NuqsPlpQueryState;
-  regionId?: string;
   slug: string;
 };
 
 export function useCategoryListingQueries({
-  countryCode,
   queryState,
-  regionId,
   slug,
 }: UseCategoryListingQueriesProps) {
+  const region = useRegionContext();
   const categoriesQuery = useCategories({
     page: 1,
-    limit: 500,
-    fields: "id,name,handle,parent_category_id,rank,description",
+    limit: STOREFRONT_CATEGORY_TREE_LIMIT,
+    fields: STOREFRONT_CATEGORY_TREE_FIELDS,
   });
 
   const categoryByHandle = useMemo(() => {
@@ -158,12 +160,10 @@ export function useCategoryListingQueries({
       queryState,
       categoryIds: activeCategoryFilterIds,
       limit: PLP_PAGE_SIZE,
-      regionId,
-      countryCode,
     });
-  }, [activeCategoryFilterIds, countryCode, queryState, regionId]);
+  }, [activeCategoryFilterIds, queryState]);
 
-  const isCatalogQueryEnabled = Boolean(regionId && activeCategory?.id);
+  const isCatalogQueryEnabled = Boolean(region?.region_id && activeCategory?.id);
 
   const catalogQuery = useCatalogProducts({
     ...catalogProductsInput,
@@ -185,10 +185,8 @@ export function useCategoryListingQueries({
       },
       categoryIds: activeCategoryFilterIds,
       limit: 1,
-      regionId,
-      countryCode,
     });
-  }, [activeCategoryFilterIds, countryCode, queryState, regionId]);
+  }, [activeCategoryFilterIds, queryState]);
 
   const catalogFacetSeedQuery = useCatalogProducts({
     ...catalogFacetSeedInput,

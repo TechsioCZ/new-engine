@@ -6,6 +6,7 @@ import { useQueryStates } from "nuqs";
 import { useEffect, useState } from "react";
 import { useCategoryListingQueries } from "@/components/category/use-category-listing-queries";
 import { toggleSelection } from "@/components/category/category-selection-utils";
+import { STOREFRONT_CATEGORY_TREE_FIELDS } from "@/lib/storefront/category-query-config";
 import {
   usePrefetchCategories,
   usePrefetchCategory,
@@ -35,8 +36,6 @@ export function useCategoryListingController({
   const listingQueries = useCategoryListingQueries({
     slug,
     queryState,
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
   });
 
   const addToCart = useAddProductToCart({
@@ -118,7 +117,12 @@ export function useCategoryListingController({
         `prefetch-category-${category.id}`,
       );
       prefetchCategories.delayedPrefetch(
-        { page: 1, limit: 100, parent_category_id: category.id },
+        {
+          page: 1,
+          limit: 100,
+          parent_category_id: category.id,
+          fields: STOREFRONT_CATEGORY_TREE_FIELDS,
+        },
         300,
         `prefetch-category-children-${category.id}`,
       );

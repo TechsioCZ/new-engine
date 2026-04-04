@@ -3,14 +3,17 @@ import "server-only";
 import { dehydrate } from "@tanstack/react-query";
 import { buildCatalogProductsParams } from "../catalog-query-state";
 import { collectDescendantCategoryIds } from "../category-tree";
-import { buildCategoryListParams } from "../category-query-config";
+import {
+  buildCategoryListParams,
+  STOREFRONT_CATEGORY_TREE_FIELDS,
+  STOREFRONT_CATEGORY_TREE_LIMIT,
+} from "../category-query-config";
 import { PLP_PAGE_SIZE } from "../plp-config";
 import type { PlpQueryState } from "../plp-query-state";
 import {
   fetchServerCategories,
   prefetchServerCatalogProducts,
 } from "../storefront-server";
-import { CATEGORY_LIST_LIMIT } from "./constants";
 import { getRegionServerContext } from "./context";
 
 export const prefetchCategoryPageStorefrontData = async (
@@ -21,8 +24,8 @@ export const prefetchCategoryPageStorefrontData = async (
 
   const categoryListParams = buildCategoryListParams({
     page: 1,
-    limit: CATEGORY_LIST_LIMIT,
-    fields: "id,name,handle,parent_category_id,rank",
+    limit: STOREFRONT_CATEGORY_TREE_LIMIT,
+    fields: STOREFRONT_CATEGORY_TREE_FIELDS,
   });
 
   const categoryResponse = await fetchServerCategories(

@@ -9,12 +9,10 @@ import { STOREFRONT_PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/pr
 
 type UseProductDetailRelatedProductsProps = {
   product: StorefrontProduct | null;
-  regionId: string | null | undefined;
 };
 
 export function useProductDetailRelatedProducts({
   product,
-  regionId,
 }: UseProductDetailRelatedProductsProps) {
   const relatedCategoryIds = useMemo(() => resolveRelatedCategoryIds(product), [product]);
 
@@ -24,7 +22,7 @@ export function useProductDetailRelatedProducts({
     category_id: relatedCategoryIds.length > 0 ? relatedCategoryIds : undefined,
     order: "-created_at",
     fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-    enabled: Boolean(regionId && product?.id),
+    enabled: Boolean(product?.id),
   });
 
   const relatedProducts = useMemo(() => {

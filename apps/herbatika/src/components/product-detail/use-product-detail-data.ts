@@ -45,7 +45,6 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   const productQuery = useProduct({
     handle,
-    enabled: Boolean(region?.region_id),
     fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
   });
 
@@ -202,7 +201,6 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   const relatedSections = useProductDetailRelatedProducts({
     product,
-    regionId: region?.region_id,
   });
 
   useEffect(() => {

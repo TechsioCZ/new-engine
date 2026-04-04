@@ -1,7 +1,6 @@
 "use client";
 
 import type { FindParams, HttpTypes } from "@medusajs/types";
-import type { MedusaCategoryDetailInput } from "@techsio/storefront-data/categories/medusa-service";
 import type { StorefrontCategoryListInput } from "./category-query-config";
 import {
   buildCategoryListParams,
@@ -11,34 +10,19 @@ import { storefront } from "./storefront";
 
 type CategoryHooks = typeof storefront.hooks.categories;
 
-type CategoryListInput = StorefrontCategoryListInput & {
-  page?: number;
-};
-
 const categoryHooks = storefront.hooks.categories;
+const toCategoryListParams = (
+  input: StorefrontCategoryListInput,
+): FindParams & HttpTypes.StoreProductCategoryListParams =>
+  input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams;
 
 export const useCategories = (
-  input: CategoryListInput,
+  input: StorefrontCategoryListInput,
   options?: Parameters<CategoryHooks["useCategories"]>[1],
 ) => {
-  return categoryHooks.useCategories(
-    input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams,
-    options,
-  );
+  return categoryHooks.useCategories(toCategoryListParams(input), options);
 };
 
-export const useSuspenseCategories = (
-  input: CategoryListInput,
-  options?: Parameters<CategoryHooks["useSuspenseCategories"]>[1],
-) => {
-  return categoryHooks.useSuspenseCategories(
-    input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams,
-    options,
-  );
-};
-
-export const useCategory = categoryHooks.useCategory;
-export const useSuspenseCategory = categoryHooks.useSuspenseCategory;
 export const usePrefetchCategory = categoryHooks.usePrefetchCategory;
 
 export const usePrefetchCategories = (
@@ -49,19 +33,16 @@ export const usePrefetchCategories = (
   return {
     ...prefetch,
     prefetchCategories: (
-      input: CategoryListInput,
+      input: StorefrontCategoryListInput,
       ...prefetchArgs: Parameters<typeof prefetch.prefetchCategories> extends [
         unknown,
       ]
         ? []
         : never
     ) =>
-      prefetch.prefetchCategories(
-        input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams,
-        ...prefetchArgs,
-      ),
+      prefetch.prefetchCategories(toCategoryListParams(input), ...prefetchArgs),
     delayedPrefetch: (
-      input: CategoryListInput,
+      input: StorefrontCategoryListInput,
       ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
         unknown,
         ...infer TRest,
@@ -69,17 +50,10 @@ export const usePrefetchCategories = (
         ? TRest
         : never
     ) =>
-      prefetch.delayedPrefetch(
-        input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams,
-        ...prefetchArgs,
-      ),
+      prefetch.delayedPrefetch(toCategoryListParams(input), ...prefetchArgs),
   };
 };
 
-export type {
-  CategoryListInput,
-  MedusaCategoryDetailInput,
-  StorefrontCategoryListInput,
-};
+export type { StorefrontCategoryListInput };
 
 export { buildCategoryListParams, DEFAULT_CATEGORY_PAGE_SIZE };

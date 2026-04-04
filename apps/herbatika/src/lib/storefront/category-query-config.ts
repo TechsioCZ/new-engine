@@ -2,6 +2,9 @@ import type { HttpTypes } from "@medusajs/types";
 import type { FindParams } from "@medusajs/types";
 
 export const DEFAULT_CATEGORY_PAGE_SIZE = 24;
+export const STOREFRONT_CATEGORY_TREE_FIELDS =
+  "id,name,handle,parent_category_id,rank,description";
+export const STOREFRONT_CATEGORY_TREE_LIMIT = 500;
 
 export type StorefrontCategoryListInput = FindParams &
   HttpTypes.StoreProductCategoryListParams & {

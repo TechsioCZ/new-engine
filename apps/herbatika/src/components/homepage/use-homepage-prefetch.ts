@@ -38,8 +38,6 @@ export function useHomepagePrefetch(region: RegionLike): UseHomepagePrefetchResu
         page: 1,
         limit: PRODUCT_FETCH_LIMIT,
         fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-        region_id: region.region_id,
-        country_code: region.country_code,
       },
       { prefetchedBy: "home-main" },
     );
@@ -49,8 +47,6 @@ export function useHomepagePrefetch(region: RegionLike): UseHomepagePrefetchResu
         page: 2,
         limit: PRODUCT_FETCH_LIMIT,
         fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-        region_id: region.region_id,
-        country_code: region.country_code,
       },
       {
         prefetchedBy: "home-next-page",
@@ -73,8 +69,6 @@ export function useHomepagePrefetch(region: RegionLike): UseHomepagePrefetchResu
       {
         handle: product.handle,
         fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
-        region_id: region?.region_id,
-        country_code: region?.country_code,
       },
       120,
       `home-product-${product.id}`,

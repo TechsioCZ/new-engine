@@ -42,10 +42,8 @@ export function useSearchListingController() {
     return buildCatalogProductsParams({
       queryState,
       limit: PLP_PAGE_SIZE,
-      regionId: region?.region_id,
-      countryCode: region?.country_code,
     });
-  }, [queryState, region?.country_code, region?.region_id]);
+  }, [queryState]);
 
   const catalogQuery = useCatalogProducts({
     ...catalogProductsInput,
@@ -66,10 +64,8 @@ export function useSearchListingController() {
         price_max: null,
       },
       limit: 1,
-      regionId: region?.region_id,
-      countryCode: region?.country_code,
     });
-  }, [queryState, region?.country_code, region?.region_id]);
+  }, [queryState]);
 
   const catalogFacetSeedQuery = useCatalogProducts({
     ...catalogFacetSeedInput,
