@@ -3,24 +3,17 @@
 import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useQueryStates } from "nuqs";
-import { useEffect, useState } from "react";
 import { useCategoryListingQueries } from "@/components/category/use-category-listing-queries";
-import { toggleSelection } from "@/components/category/category-selection-utils";
 import { STOREFRONT_CATEGORY_TREE_FIELDS } from "@/lib/storefront/category-query-config";
 import {
   usePrefetchCategories,
   usePrefetchCategory,
 } from "@/lib/storefront/categories";
+import { plpQueryParsers } from "@/lib/storefront/plp-query-state";
 import {
-  plpQueryParsers,
-  resolveCatalogQueryStatePatch,
-  type ProductSortValue,
-} from "@/lib/storefront/plp-query-state";
-import {
-  STOREFRONT_PRODUCT_DETAIL_FIELDS,
-  usePrefetchProduct,
-} from "@/lib/storefront/products";
-import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
+  useCatalogListingInteractions,
+  useCatalogListingPageBounds,
+} from "@/lib/storefront/use-catalog-listing-interactions";
 
 type UseCategoryListingControllerProps = {
   slug: string;
@@ -31,75 +24,33 @@ export function useCategoryListingController({
 }: UseCategoryListingControllerProps) {
   const region = useRegionContext();
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers);
-  const [addToCartError, setAddToCartError] = useState<string | null>(null);
 
   const listingQueries = useCategoryListingQueries({
     slug,
     queryState,
   });
 
-  const addToCart = useAddProductToCart({
+  const listingInteractions = useCatalogListingInteractions({
+    productPrefetchKeyPrefix: "plp-product",
+    queryState,
     regionId: region?.region_id,
     countryCode: region?.country_code,
+    setQueryState,
   });
-  const prefetchProduct = usePrefetchProduct({ defaultDelay: 180, skipMode: "any" });
   const prefetchCategory = usePrefetchCategory({ defaultDelay: 200, skipMode: "any" });
   const prefetchCategories = usePrefetchCategories({ defaultDelay: 250, skipMode: "any" });
 
-  useEffect(() => {
-    if (!listingQueries.isCatalogQueryEnabled || listingQueries.catalogQuery.isLoading) {
-      return;
-    }
-
-    const safeLastPage = Math.max(listingQueries.catalogQuery.totalPages, 1);
-    if (queryState.page <= safeLastPage) {
-      return;
-    }
-
-    void setQueryState({ page: safeLastPage });
-  }, [
-    listingQueries.catalogQuery.isLoading,
-    listingQueries.catalogQuery.totalPages,
-    listingQueries.isCatalogQueryEnabled,
-    queryState.page,
+  useCatalogListingPageBounds({
+    isLoading: listingQueries.catalogQuery.isLoading,
+    isQueryEnabled: listingQueries.isCatalogQueryEnabled,
+    page: queryState.page,
     setQueryState,
-  ]);
-
-  const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
-    setAddToCartError(null);
-
-    try {
-      await addToCart.addProductToCart({
-        product,
-        quantity: 1,
-      });
-    } catch (error) {
-      setAddToCartError(
-        error instanceof Error
-          ? error.message
-          : "Pridanie do košíka zlyhalo.",
-      );
-    }
-  };
-
-  const patchMultiSelect = (
-    key: "status" | "form" | "brand" | "ingredient",
-    itemId: string,
-  ) => {
-    void setQueryState(
-      resolveCatalogQueryStatePatch(queryState, {
-        [key]: toggleSelection(queryState[key], itemId),
-      }),
-    );
-  };
+    totalPages: listingQueries.catalogQuery.totalPages,
+  });
 
   return {
     ...listingQueries,
-    addToCartError,
-    isProductAdding: (productId: string) =>
-      addToCart.isProductAdding(productId),
-    onAddToCart: handleAddToCart,
-    onBrandToggle: (itemId: string) => patchMultiSelect("brand", itemId),
+    ...listingInteractions,
     onCategoryBlur: (category: HttpTypes.StoreProductCategory) => {
       prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`);
     },
@@ -130,63 +81,6 @@ export function useCategoryListingController({
     onCategoryMouseLeave: (category: HttpTypes.StoreProductCategory) => {
       prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`);
       prefetchCategories.cancelPrefetch(`prefetch-category-children-${category.id}`);
-    },
-    onFormToggle: (itemId: string) => patchMultiSelect("form", itemId),
-    onIngredientToggle: (itemId: string) => patchMultiSelect("ingredient", itemId),
-    onPageChange: (nextPage: number) => {
-      if (nextPage === queryState.page) {
-        return;
-      }
-
-      void setQueryState({ page: nextPage });
-    },
-    onPriceRangeCommit: (range: { min?: number; max?: number }) => {
-      void setQueryState(
-        resolveCatalogQueryStatePatch(queryState, {
-          price_min: range.min ?? null,
-          price_max: range.max ?? null,
-        }),
-      );
-    },
-    onProductHoverEnd: (product: HttpTypes.StoreProduct) => {
-      prefetchProduct.cancelPrefetch(`plp-product-${product.id}`);
-    },
-    onProductHoverStart: (product: HttpTypes.StoreProduct) => {
-      if (!product.handle) {
-        return;
-      }
-
-      prefetchProduct.delayedPrefetch(
-        { handle: product.handle, fields: STOREFRONT_PRODUCT_DETAIL_FIELDS },
-        180,
-        `plp-product-${product.id}`,
-      );
-    },
-    onResetFilters: () => {
-      void setQueryState(
-        resolveCatalogQueryStatePatch(
-          queryState,
-          {
-            status: [],
-            form: [],
-            brand: [],
-            ingredient: [],
-            price_min: null,
-            price_max: null,
-          },
-          { resetPage: "always" },
-        ),
-      );
-    },
-    onSortChange: (value: ProductSortValue) => {
-      void setQueryState(resolveCatalogQueryStatePatch(queryState, { sort: value }));
-    },
-    onStatusToggle: (itemId: string) => patchMultiSelect("status", itemId),
-    page: queryState.page,
-    queryState,
-    selectedPriceRange: {
-      min: queryState.price_min ?? undefined,
-      max: queryState.price_max ?? undefined,
     },
   };
 }

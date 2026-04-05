@@ -28,6 +28,20 @@ export type CatalogProductsParams = {
   currency_code?: string;
 };
 
+export const resolveCatalogPriceBounds = (priceFacet: {
+  min: number | null;
+  max: number | null;
+}) => {
+  if (priceFacet.min === null && priceFacet.max === null) {
+    return null;
+  }
+
+  return {
+    min: priceFacet.min ?? 0,
+    max: priceFacet.max ?? priceFacet.min ?? 1,
+  };
+};
+
 export const buildCatalogProductsParams = ({
   queryState,
   categoryIds,

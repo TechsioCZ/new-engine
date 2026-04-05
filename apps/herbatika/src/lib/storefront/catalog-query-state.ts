@@ -19,5 +19,6 @@ export { parseCatalogQueryStateFromSearchParams } from "./catalog-query-state/pa
 export {
   buildCatalogProductsParams,
   resolveCatalogActiveFilterCount,
+  resolveCatalogPriceBounds,
   type CatalogProductsParams,
 } from "./catalog-query-state/params";
