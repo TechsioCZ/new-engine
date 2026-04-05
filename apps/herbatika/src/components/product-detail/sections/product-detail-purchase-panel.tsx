@@ -163,12 +163,13 @@ export function ProductDetailPurchasePanel({
           onValueChange={(details) => {
             onVariantChange(details.value[0] ?? null)
           }}
-          size="sm"
+          className="max-w-xs"
+          size="lg"
           value={selectedVariantId ? [selectedVariantId] : []}
         >
           <Select.Label>Varianta</Select.Label>
           <Select.Control>
-            <Select.Trigger>
+            <Select.Trigger className="rounded-select-lg">
               <Select.ValueText placeholder="Vyberte variantu" />
             </Select.Trigger>
           </Select.Control>
