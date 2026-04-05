@@ -28,6 +28,8 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
   const { handleImageError, imageSrc, price, productHref, title } =
     useHerbatikaProductCardState(product);
   const defaultVariantId = product.variants?.[0]?.id;
+  const canAddToCart =
+    Boolean(defaultVariantId) && typeof price.currentAmount === "number";
   const discountLabel = resolveDiscountLabel(price);
   const flags = resolveFlags(product, Boolean(discountLabel));
   const description =
@@ -110,7 +112,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
           <ProductCard.Actions className="shrink-0">
             <Button
               className="min-w-900"
-              disabled={!defaultVariantId}
+              disabled={!canAddToCart}
               icon="token-icon-cart"
               isLoading={isAdding}
               onClick={() => {

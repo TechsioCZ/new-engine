@@ -1,46 +1,6 @@
 import type { HttpTypes } from "@medusajs/types";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { asNumber, asRecord } from "./product-card.parsers";
-import type { ProductPriceState, TopOfferPriceState } from "./product-card.types";
-
-const resolveTopOfferPriceState = (
-  product: HttpTypes.StoreProduct,
-): TopOfferPriceState => {
-  const metadata = asRecord(product.metadata);
-  const topOffer = asRecord(metadata?.top_offer);
-
-  if (!topOffer) {
-    return {
-      currentAmount: null,
-      originalAmount: null,
-      currencyCode: "EUR",
-    };
-  }
-
-  const currencyCode =
-    typeof topOffer.currency === "string" && topOffer.currency.length === 3
-      ? topOffer.currency
-      : "EUR";
-
-  const currentAmount =
-    asNumber(topOffer.current_price) ??
-    asNumber(topOffer.action_price) ??
-    asNumber(topOffer.price_vat);
-  const compareAtAmount =
-    asNumber(topOffer.compare_at_price) ?? asNumber(topOffer.standard_price);
-  const originalAmount =
-    currentAmount !== null &&
-    compareAtAmount !== null &&
-    compareAtAmount > currentAmount
-      ? compareAtAmount
-      : null;
-
-  return {
-    currentAmount,
-    originalAmount,
-    currencyCode,
-  };
-};
+import type { ProductPriceState } from "./product-card.types";
 
 export const resolvePriceState = (
   product: HttpTypes.StoreProduct,
@@ -48,27 +8,20 @@ export const resolvePriceState = (
   const calculatedPrice = product.variants?.[0]?.calculated_price;
   const calculatedAmount = calculatedPrice?.calculated_amount;
   const calculatedOriginalAmount = calculatedPrice?.original_amount;
-  const topOfferPrice = resolveTopOfferPriceState(product);
 
   const currentAmount =
-    typeof calculatedAmount === "number"
-      ? calculatedAmount
-      : topOfferPrice.currentAmount;
+    typeof calculatedAmount === "number" ? calculatedAmount : null;
   const currencyCode =
     typeof calculatedPrice?.currency_code === "string"
       ? calculatedPrice.currency_code
-      : topOfferPrice.currencyCode;
+      : "EUR";
 
   const originalAmount =
     typeof calculatedOriginalAmount === "number" &&
     typeof currentAmount === "number" &&
     calculatedOriginalAmount > currentAmount
       ? calculatedOriginalAmount
-      : typeof topOfferPrice.originalAmount === "number" &&
-          typeof currentAmount === "number" &&
-          topOfferPrice.originalAmount > currentAmount
-        ? topOfferPrice.originalAmount
-        : null;
+      : null;
 
   if (typeof currentAmount !== "number") {
     return {

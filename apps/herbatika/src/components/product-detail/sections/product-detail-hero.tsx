@@ -15,6 +15,7 @@ import type {
 
 type ProductDetailHeroProps = {
   children?: ReactNode;
+  canAddToCart: boolean;
   currentAmountLabel: string;
   discountPercent: number | null;
   displayOriginalLabel: string | null;
@@ -38,6 +39,7 @@ type ProductDetailHeroProps = {
 
 export function ProductDetailHero({
   children,
+  canAddToCart,
   currentAmountLabel,
   discountPercent,
   displayOriginalLabel,
@@ -68,6 +70,7 @@ export function ProductDetailHero({
 
       <div className="space-y-300">
         <ProductDetailPurchasePanel
+          canAddToCart={canAddToCart}
           currentAmountLabel={currentAmountLabel}
           discountPercent={discountPercent}
           displayOriginalLabel={displayOriginalLabel}

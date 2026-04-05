@@ -5,7 +5,7 @@ import type {
   StorefrontProduct,
   VolumeDiscountOption,
 } from "@/components/product-detail/product-detail.types";
-import { asNumber, asRecord } from "@/components/product-detail/utils/value-utils";
+import { asNumber } from "@/components/product-detail/utils/value-utils";
 
 const resolveAmountWithoutTax = (params: {
   amountWithTax: number | null;
@@ -40,23 +40,18 @@ export const resolvePriceState = (
   const variants = product.variants ?? [];
   const selectedVariant =
     variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
-  const selectedVariantMetadata = asRecord(selectedVariant?.metadata);
 
   const calculatedPrice = selectedVariant?.calculated_price;
   const calculatedAmount = calculatedPrice?.calculated_amount;
   const originalAmount = calculatedPrice?.original_amount;
-  const fallbackCalculatedAmount =
-    asNumber(selectedVariantMetadata?.current_price) ??
-    asNumber(selectedVariantMetadata?.price_vat);
-  const fallbackOriginalAmount = asNumber(selectedVariantMetadata?.standard_price);
   const currencyCode =
     typeof calculatedPrice?.currency_code === "string"
       ? calculatedPrice.currency_code
       : "EUR";
 
   const resolvedCalculatedAmount =
-    typeof calculatedAmount === "number" ? calculatedAmount : fallbackCalculatedAmount;
-  const vatRate = asNumber(selectedVariantMetadata?.vat);
+    typeof calculatedAmount === "number" ? calculatedAmount : null;
+  const vatRate = asNumber(selectedVariant?.metadata?.vat);
   const explicitCalculatedAmountWithoutTax =
     typeof calculatedPrice?.calculated_amount_without_tax === "number"
       ? calculatedPrice.calculated_amount_without_tax
@@ -82,9 +77,7 @@ export const resolvePriceState = (
   const normalizedOriginalAmount =
     typeof originalAmount === "number"
       ? originalAmount
-      : typeof fallbackOriginalAmount === "number"
-        ? fallbackOriginalAmount
-        : null;
+      : null;
 
   return {
     currentLabel: formatCurrencyAmount(resolvedCalculatedAmount, currencyCode),
@@ -104,7 +97,7 @@ export const resolvePriceState = (
 
 export const resolveDisplayOriginalAmount = (
   priceState: ProductPriceState | null,
-  offerState: ProductOfferState,
+  _offerState: ProductOfferState,
 ): number | null => {
   if (!priceState?.currentAmount) {
     return null;
@@ -116,14 +109,6 @@ export const resolveDisplayOriginalAmount = (
     variantOriginalAmount > priceState.currentAmount
   ) {
     return variantOriginalAmount;
-  }
-
-  const offerStandardAmount = offerState.standardAmount;
-  if (
-    typeof offerStandardAmount === "number" &&
-    offerStandardAmount > priceState.currentAmount
-  ) {
-    return offerStandardAmount;
   }
 
   return null;

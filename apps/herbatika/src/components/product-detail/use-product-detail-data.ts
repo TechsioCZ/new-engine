@@ -138,10 +138,13 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     [product, productContentSections],
   );
 
-  const currentAmount = productPrice?.currentAmount ?? offerState.currentAmount;
+  const currentAmount = productPrice?.currentAmount ?? null;
   const currentAmountWithoutTax = productPrice?.currentAmountWithoutTax ?? null;
   const currentAmountLabel = productPrice?.currentLabel ?? "Cena na vyžiadanie";
   const currentCurrencyCode = productPrice?.currencyCode ?? "EUR";
+  const canAddToCart =
+    Boolean(selectedVariant?.id) &&
+    typeof productPrice?.currentAmount === "number";
 
   const displayOriginalAmount = useMemo(
     () => resolveDisplayOriginalAmount(productPrice, offerState),
@@ -236,6 +239,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   return {
     breadcrumbItems,
+    canAddToCart,
     currentAmountLabel,
     defaultInfoSectionValue: productContentSections[0]?.key ?? "description",
     displayOriginalLabel,

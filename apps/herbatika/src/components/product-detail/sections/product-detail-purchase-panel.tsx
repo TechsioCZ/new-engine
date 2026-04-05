@@ -15,6 +15,7 @@ import type {
 import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
 
 type ProductDetailPurchasePanelProps = {
+  canAddToCart: boolean
   currentAmountLabel: string
   discountPercent: number | null
   displayOriginalLabel: string | null
@@ -34,6 +35,7 @@ type ProductDetailPurchasePanelProps = {
 }
 
 export function ProductDetailPurchasePanel({
+  canAddToCart,
   currentAmountLabel,
   displayOriginalLabel,
   isAdding,
@@ -211,7 +213,7 @@ export function ProductDetailPurchasePanel({
         <Button
           block
           className="sm:col-span-3"
-          disabled={!selectedVariantId}
+          disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAdding}
           loadingText="Pridávam..."

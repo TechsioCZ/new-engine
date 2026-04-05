@@ -10,9 +10,3 @@ export type ProductFlagState = {
   label: string;
   variant: "success" | "warning" | "discount";
 };
-
-export type TopOfferPriceState = {
-  currentAmount: number | null;
-  originalAmount: number | null;
-  currencyCode: string;
-};

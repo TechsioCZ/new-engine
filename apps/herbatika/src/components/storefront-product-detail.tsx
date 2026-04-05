@@ -63,6 +63,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
       controller.product ? (
         <>
           <ProductDetailHero
+            canAddToCart={controller.canAddToCart}
             currentAmountLabel={controller.currentAmountLabel}
             discountPercent={controller.discountPercent}
             displayOriginalLabel={controller.displayOriginalLabel}
