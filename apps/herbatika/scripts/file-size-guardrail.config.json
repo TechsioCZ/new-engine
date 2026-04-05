@@ -20,10 +20,8 @@
     "src/app/theme/page.tsx",
     "src/lib/storefront/blog-content.ts",
     "src/lib/storefront/ssr.ts",
-    "src/lib/storefront/query-monitor.ts",
     "src/components/herbatika-header.tsx",
     "src/components/aside-filter.tsx",
-    "src/components/storefront-data-smoke-panel.tsx",
     "src/lib/storefront/catalog-query-state.ts",
     "src/lib/storefront/meili-search.ts"
   ]

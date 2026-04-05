@@ -10,9 +10,6 @@ export default {
     "**/*.test.tsx",
     "**/*.spec.tsx",
     "src/app/theme/**",
-    "src/components/storefront-data-smoke-panel.tsx",
-    "src/components/storefront-query-monitor-panel.tsx",
-    "src/components/storefront-query-monitor-bridge.tsx",
   ],
   rules: {
     noArbitraryValues: {

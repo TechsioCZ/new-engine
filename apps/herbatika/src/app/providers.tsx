@@ -6,7 +6,6 @@ import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { PropsWithChildren } from "react";
 import { useEffect } from "react";
-import { StorefrontQueryMonitorBridge } from "@/components/storefront-query-monitor-bridge";
 import { useRegionBootstrap } from "@/lib/storefront/regions";
 
 type RegionBootstrapProviderProps = PropsWithChildren<{
@@ -45,7 +44,6 @@ export function Providers({ children, initialRegion = null }: ProvidersProps) {
 
   return (
     <StorefrontDataProvider>
-      <StorefrontQueryMonitorBridge />
       <NuqsAdapter>
         <RegionBootstrapProvider initialRegion={initialRegion}>
           {children}
