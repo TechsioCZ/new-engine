@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: [
     "@techsio/ui-kit",
-    "@techsio/analytics",
     "@techsio/storefront-data",
   ],
   reactCompiler: true,
