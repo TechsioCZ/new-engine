@@ -277,6 +277,9 @@ const runAudit = async () => {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
+  await context.addInitScript(() => {
+    window.sessionStorage.setItem("herbatika.storefront-monitor", "1");
+  });
   const page = await context.newPage();
 
   page.on("console", (msg) => {

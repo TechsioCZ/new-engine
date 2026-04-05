@@ -2,14 +2,22 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { installStorefrontMonitor } from "@/lib/storefront/query-monitor";
+import {
+  installStorefrontMonitor,
+  isStorefrontMonitorEnabled,
+} from "@/lib/storefront/query-monitor";
 
 export function StorefrontQueryMonitorBridge() {
   const queryClient = useQueryClient();
+  const isMonitorEnabled = isStorefrontMonitorEnabled();
 
   useEffect(() => {
+    if (!isMonitorEnabled) {
+      return;
+    }
+
     installStorefrontMonitor(queryClient);
-  }, [queryClient]);
+  }, [isMonitorEnabled, queryClient]);
 
   return null;
 }
