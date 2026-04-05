@@ -4,17 +4,11 @@ import { storefront } from "./storefront";
 
 export { authService } from "./auth/service";
 
-const authHooks = storefront.hooks.auth;
-
 export const {
   useAuth,
-  useSuspenseAuth,
   useLogin,
   useRegister,
-  useCreateCustomer,
   useLogout,
-  useUpdateCustomer: useUpdateAuthCustomer,
-  useRefreshAuth,
-} = authHooks;
+} = storefront.hooks.auth;
 
 export type { AuthLoginInput, AuthRegisterInput, AuthUpdateInput } from "./auth/types";

@@ -59,15 +59,6 @@ export type HerbatikaOrderDetailInput = MedusaOrderDetailInput & {
   enabled?: boolean;
 };
 
-type OrderWithFallbacks = HttpTypes.StoreOrder & {
-  items?: HttpTypes.StoreOrderLineItem[] | null;
-  shipping_methods?: unknown;
-  payment_collections?: unknown;
-  transactions?: unknown;
-  billing_address?: unknown;
-  shipping_address?: unknown;
-};
-
 const resolveErrorStatus = (error: unknown): number | undefined => {
   if (!error || typeof error !== "object") {
     return undefined;
@@ -98,45 +89,6 @@ export const buildHerbatikaOrderListParams = (
   };
 };
 
-const normalizeOrderListItem = (
-  order: HttpTypes.StoreOrder,
-): HttpTypes.StoreOrder => {
-  const rawOrder = order as OrderWithFallbacks;
-
-  return {
-    ...rawOrder,
-    items: Array.isArray(rawOrder.items) ? rawOrder.items : [],
-  } as HttpTypes.StoreOrder;
-};
-
-const normalizeOrderDetail = (
-  order: HttpTypes.StoreOrder,
-): HttpTypes.StoreOrder => {
-  const rawOrder = order as OrderWithFallbacks;
-
-  return {
-    ...rawOrder,
-    items: Array.isArray(rawOrder.items) ? rawOrder.items : [],
-    shipping_methods: Array.isArray(rawOrder.shipping_methods)
-      ? rawOrder.shipping_methods
-      : [],
-    payment_collections: Array.isArray(rawOrder.payment_collections)
-      ? rawOrder.payment_collections
-      : [],
-    transactions: Array.isArray(rawOrder.transactions)
-      ? rawOrder.transactions
-      : [],
-    billing_address:
-      rawOrder.billing_address && typeof rawOrder.billing_address === "object"
-        ? rawOrder.billing_address
-        : null,
-    shipping_address:
-      rawOrder.shipping_address && typeof rawOrder.shipping_address === "object"
-        ? rawOrder.shipping_address
-        : null,
-  } as HttpTypes.StoreOrder;
-};
-
 export const herbatikaOrderService: OrderService<
   HttpTypes.StoreOrder,
   MedusaOrderListInput,
@@ -146,6 +98,8 @@ export const herbatikaOrderService: OrderService<
     params: MedusaOrderListInput,
     signal?: AbortSignal,
   ): Promise<OrderListResponse<HttpTypes.StoreOrder>> {
+    // Shared Medusa order service does not yet support separate list/detail fields
+    // plus deterministic list sorting, so Herbatika keeps this read-only adapter.
     const response = await storefrontSdk.client.fetch<HttpTypes.StoreOrderListResponse>(
       "/store/orders",
       {
@@ -160,7 +114,7 @@ export const herbatikaOrderService: OrderService<
     );
 
     return {
-      orders: (response.orders ?? []).map(normalizeOrderListItem),
+      orders: response.orders ?? [],
       count: response.count ?? 0,
     };
   },
@@ -187,7 +141,7 @@ export const herbatikaOrderService: OrderService<
         return null;
       }
 
-      return normalizeOrderDetail(response.order);
+      return response.order;
     } catch (error) {
       if (resolveErrorStatus(error) === 404) {
         return null;

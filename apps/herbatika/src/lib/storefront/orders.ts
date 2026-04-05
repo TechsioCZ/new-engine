@@ -10,10 +10,7 @@ const orderHooks = storefront.hooks.orders;
 
 export const {
   useOrders,
-  useSuspenseOrders,
   useOrder,
-  useSuspenseOrder,
-  getListQueryOptions: getOrderListQueryOptions,
   getDetailQueryOptions: getOrderDetailQueryOptions,
 } = orderHooks;
 
