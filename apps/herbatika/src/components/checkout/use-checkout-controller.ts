@@ -27,9 +27,11 @@ export function useCheckoutController() {
   const queryClient = useQueryClient();
   const region = useRegionContext();
   const authQuery = useAuth();
+  const [allowCartAutoCreate, setAllowCartAutoCreate] = useState(true);
+  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
 
   const cartQuery = useCart({
-    autoCreate: true,
+    autoCreate: allowCartAutoCreate && !completedOrderId,
     region_id: region?.region_id,
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
@@ -118,18 +120,28 @@ export function useCheckoutController() {
   });
 
   const actions = useCheckoutActions({
-    addressForm: formState.addressForm,
+    billingAddressForm: formState.billingAddressForm,
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
+    completedOrderId,
     completeCart: () => completeCheckoutMutation.mutateAsync(undefined),
     hasPaymentSessions: checkoutPaymentQuery.hasPaymentSessions,
     initiatePayment: checkoutPaymentQuery.initiatePaymentAsync,
     isCompanyPurchase: formState.isCompanyPurchase,
     itemCount: cartQuery.itemCount,
+    onCompletedOrderIdChange: setCompletedOrderId,
+    onOrderCompletionAbort: () => {
+      setAllowCartAutoCreate(true);
+    },
+    onOrderCompletionStart: () => {
+      setAllowCartAutoCreate(false);
+    },
     onCheckoutErrorChange: setCheckoutError,
     saveAddress: updateCartAddressMutation.mutateAsync,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
     setShippingMethod: checkoutShippingQuery.setShipping,
+    shippingAddressForm: formState.shippingAddressForm,
+    useSameAddress: formState.useSameAddress,
   });
 
   const currencyCode = useMemo(() => {
@@ -186,6 +198,7 @@ export function useCheckoutController() {
     checkoutPaymentQuery,
     checkoutShippingQuery,
     checkoutError,
+    completedOrderId,
     completeCheckoutMutation,
     currencyCode,
     hasItems,

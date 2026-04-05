@@ -101,7 +101,7 @@ export function CheckoutStepContent({
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutCompleteSection
-            addressForm={controller.addressForm}
+            billingAddressForm={controller.billingAddressForm}
             canCompleteOrder={controller.canCompleteOrder}
             cartTotalAmount={controller.cartTotalAmount}
             cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
@@ -118,9 +118,11 @@ export function CheckoutStepContent({
             onCompleteOrder={controller.handleCompleteOrder}
             paymentProviderId={selectedPaymentProviderId}
             paymentLabel={selectedPaymentLabel}
+            shippingAddressForm={controller.shippingAddressForm}
             shippingLabel={selectedShippingLabel}
             shippingOptionId={selectedShippingOptionId}
             shippingStepHref={shippingStepHref}
+            useSameAddress={controller.useSameAddress}
           />
         </CheckoutStepLayout>
       );

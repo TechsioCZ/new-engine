@@ -10,16 +10,20 @@ import { SupportingText } from "@/components/text/supporting-text";
 type CheckoutAddressSectionProps = {
   addressForm: AddressFormState;
   countryItems: SelectItem[];
-  formId?: string;
-  isAuthenticated: boolean;
-  isCompanyPurchase: boolean;
-  onAddressSaved?: () => void;
-  onIsCompanyPurchaseChange: (value: boolean) => void;
-  onSaveAddress: () => Promise<boolean>;
+  fieldPrefix: string;
+  isAuthenticated?: boolean;
+  isCompanyPurchase?: boolean;
+  onIsCompanyPurchaseChange?: (value: boolean) => void;
   onUpdateAddressField: <K extends keyof AddressFormState>(
     key: K,
     value: AddressFormState[K],
   ) => void;
+  showCompanyFields?: boolean;
+  showCompanyPurchaseToggle?: boolean;
+  showContactFields?: boolean;
+  showCustomerNote?: boolean;
+  showLoginPrompt?: boolean;
+  title: string;
 };
 
 const PRIVATE_PURCHASE_LABEL = "Súkromná osoba";
@@ -28,21 +32,25 @@ const COMPANY_PURCHASE_LABEL = "Nakupujem na firmu";
 export function CheckoutAddressSection({
   addressForm,
   countryItems,
-  formId = "checkout-address-form",
-  isAuthenticated,
-  isCompanyPurchase,
-  onAddressSaved,
+  fieldPrefix,
+  isAuthenticated = false,
+  isCompanyPurchase = false,
   onIsCompanyPurchaseChange,
-  onSaveAddress,
   onUpdateAddressField,
+  showCompanyFields = false,
+  showCompanyPurchaseToggle = false,
+  showContactFields = true,
+  showCustomerNote = false,
+  showLoginPrompt = false,
+  title,
 }: CheckoutAddressSectionProps) {
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
       <header>
-        <h2 className="text-xl font-medium text-fg-primary">Vaše údaje</h2>
+        <h2 className="text-xl font-medium text-fg-primary">{title}</h2>
       </header>
 
-      {!isAuthenticated ? (
+      {showLoginPrompt && !isAuthenticated ? (
         <div className="flex flex-wrap items-center justify-between gap-250 rounded-sm bg-highlight p-300">
           <div className="space-y-50">
             <p className="text-base font-medium text-fg-primary">
@@ -65,57 +73,47 @@ export function CheckoutAddressSection({
         </div>
       ) : null}
 
-      <form
-        className="space-y-250 font-inter"
-        id={formId}
-        onSubmit={(event) => {
-          event.preventDefault();
-          void (async () => {
-            const didSaveAddress = await onSaveAddress();
-            if (didSaveAddress) {
-              onAddressSaved?.();
+      <div className="space-y-250 font-inter">
+        {showCompanyPurchaseToggle && onIsCompanyPurchaseChange ? (
+          <RadioGroup
+            className="font-rubik"
+            onValueChange={(value) =>
+              onIsCompanyPurchaseChange(value === "company")
             }
-          })();
-        }}
-      >
-        <RadioGroup
-          className="font-rubik"
-          onValueChange={(value) =>
-            onIsCompanyPurchaseChange(value === "company")
-          }
-          orientation="horizontal"
-          size="sm"
-          value={isCompanyPurchase ? "company" : "private"}
-          variant="subtle"
-        >
-          <RadioGroup.Label className="sr-only">Typ nákupu</RadioGroup.Label>
-          <RadioGroup.ItemGroup>
-            <RadioGroup.Item value="private">
-              <RadioGroup.ItemHiddenInput />
-              <RadioGroup.ItemControl />
-              <RadioGroup.ItemContent>
-                <RadioGroup.ItemText>
-                  {PRIVATE_PURCHASE_LABEL}
-                </RadioGroup.ItemText>
-              </RadioGroup.ItemContent>
-            </RadioGroup.Item>
-            <RadioGroup.Item value="company">
-              <RadioGroup.ItemHiddenInput />
-              <RadioGroup.ItemControl />
-              <RadioGroup.ItemContent>
-                <RadioGroup.ItemText>
-                  {COMPANY_PURCHASE_LABEL}
-                </RadioGroup.ItemText>
-              </RadioGroup.ItemContent>
-            </RadioGroup.Item>
-          </RadioGroup.ItemGroup>
-        </RadioGroup>
+            orientation="horizontal"
+            size="sm"
+            value={isCompanyPurchase ? "company" : "private"}
+            variant="subtle"
+          >
+            <RadioGroup.Label className="sr-only">Typ nákupu</RadioGroup.Label>
+            <RadioGroup.ItemGroup>
+              <RadioGroup.Item value="private">
+                <RadioGroup.ItemHiddenInput />
+                <RadioGroup.ItemControl />
+                <RadioGroup.ItemContent>
+                  <RadioGroup.ItemText>
+                    {PRIVATE_PURCHASE_LABEL}
+                  </RadioGroup.ItemText>
+                </RadioGroup.ItemContent>
+              </RadioGroup.Item>
+              <RadioGroup.Item value="company">
+                <RadioGroup.ItemHiddenInput />
+                <RadioGroup.ItemControl />
+                <RadioGroup.ItemContent>
+                  <RadioGroup.ItemText>
+                    {COMPANY_PURCHASE_LABEL}
+                  </RadioGroup.ItemText>
+                </RadioGroup.ItemContent>
+              </RadioGroup.Item>
+            </RadioGroup.ItemGroup>
+          </RadioGroup>
+        ) : null}
 
         <div className="grid gap-250 md:grid-cols-2">
           <FormInput
-            id="checkout-first-name"
+            id={`${fieldPrefix}-first-name`}
             label="Meno"
-            name="first_name"
+            name={`${fieldPrefix}_first_name`}
             required
             type="text"
             value={addressForm.firstName}
@@ -124,9 +122,9 @@ export function CheckoutAddressSection({
             }
           />
           <FormInput
-            id="checkout-last-name"
+            id={`${fieldPrefix}-last-name`}
             label="Priezvisko"
-            name="last_name"
+            name={`${fieldPrefix}_last_name`}
             required
             type="text"
             value={addressForm.lastName}
@@ -135,13 +133,13 @@ export function CheckoutAddressSection({
             }
           />
 
-          {isCompanyPurchase ? (
+          {showCompanyFields ? (
             <>
               <div className="md:col-span-2">
                 <FormInput
-                  id="checkout-company"
+                  id={`${fieldPrefix}-company`}
                   label="Názov firmy"
-                  name="company"
+                  name={`${fieldPrefix}_company`}
                   required
                   type="text"
                   value={addressForm.company}
@@ -152,9 +150,9 @@ export function CheckoutAddressSection({
               </div>
               <div className="grid gap-250 md:col-span-2 md:grid-cols-3">
                 <FormInput
-                  id="checkout-company-id"
+                  id={`${fieldPrefix}-company-id`}
                   label="IČO"
-                  name="company_id"
+                  name={`${fieldPrefix}_company_id`}
                   required
                   type="text"
                   value={addressForm.companyId}
@@ -163,9 +161,9 @@ export function CheckoutAddressSection({
                   }
                 />
                 <FormInput
-                  id="checkout-tax-id"
+                  id={`${fieldPrefix}-tax-id`}
                   label="DIČ"
-                  name="tax_id"
+                  name={`${fieldPrefix}_tax_id`}
                   required
                   type="text"
                   value={addressForm.taxId}
@@ -174,9 +172,9 @@ export function CheckoutAddressSection({
                   }
                 />
                 <FormInput
-                  id="checkout-vat-id"
+                  id={`${fieldPrefix}-vat-id`}
                   label="IČ DPH"
-                  name="vat_id"
+                  name={`${fieldPrefix}_vat_id`}
                   type="text"
                   value={addressForm.vatId}
                   onChange={(event) =>
@@ -187,28 +185,32 @@ export function CheckoutAddressSection({
             </>
           ) : null}
 
-          <FormInput
-            id="checkout-email"
-            label="E-mail"
-            name="email"
-            required
-            type="email"
-            value={addressForm.email}
-            onChange={(event) =>
-              onUpdateAddressField("email", event.target.value)
-            }
-          />
-          <FormInput
-            id="checkout-phone"
-            label="Telefón"
-            name="phone"
-            required
-            type="tel"
-            value={addressForm.phone}
-            onChange={(event) =>
-              onUpdateAddressField("phone", event.target.value)
-            }
-          />
+          {showContactFields ? (
+            <>
+              <FormInput
+                id={`${fieldPrefix}-email`}
+                label="E-mail"
+                name={`${fieldPrefix}_email`}
+                required
+                type="email"
+                value={addressForm.email}
+                onChange={(event) =>
+                  onUpdateAddressField("email", event.target.value)
+                }
+              />
+              <FormInput
+                id={`${fieldPrefix}-phone`}
+                label="Telefón"
+                name={`${fieldPrefix}_phone`}
+                required
+                type="tel"
+                value={addressForm.phone}
+                onChange={(event) =>
+                  onUpdateAddressField("phone", event.target.value)
+                }
+              />
+            </>
+          ) : null}
 
           <Select
             items={countryItems}
@@ -239,9 +241,9 @@ export function CheckoutAddressSection({
             </Select.Positioner>
           </Select>
           <FormInput
-            id="checkout-address-1"
+            id={`${fieldPrefix}-address-1`}
             label="Ulica a číslo domu"
-            name="address_1"
+            name={`${fieldPrefix}_address_1`}
             required
             type="text"
             value={addressForm.address1}
@@ -250,9 +252,9 @@ export function CheckoutAddressSection({
             }
           />
           <FormInput
-            id="checkout-city"
+            id={`${fieldPrefix}-city`}
             label="Mesto"
-            name="city"
+            name={`${fieldPrefix}_city`}
             required
             type="text"
             value={addressForm.city}
@@ -261,9 +263,9 @@ export function CheckoutAddressSection({
             }
           />
           <FormInput
-            id="checkout-postal-code"
+            id={`${fieldPrefix}-postal-code`}
             label="PSČ"
-            name="postal_code"
+            name={`${fieldPrefix}_postal_code`}
             required
             type="text"
             value={addressForm.postalCode}
@@ -272,24 +274,25 @@ export function CheckoutAddressSection({
             }
           />
 
-          <div className="md:col-span-2">
-            <FormTextarea
-              id="checkout-customer-note"
-              label="Voliteľná poznámka pre zákaznícku podporu"
-              name="customer_note"
-              rows={3}
-              value={addressForm.customerNote}
-              resize="auto"
-              size="sm"
-              className="min-h-14"
-              onChange={(event) =>
-                onUpdateAddressField("customerNote", event.target.value)
-              }
-            />
-          </div>
-
+          {showCustomerNote ? (
+            <div className="md:col-span-2">
+              <FormTextarea
+                id={`${fieldPrefix}-customer-note`}
+                label="Voliteľná poznámka pre zákaznícku podporu"
+                name={`${fieldPrefix}_customer_note`}
+                rows={3}
+                value={addressForm.customerNote}
+                resize="auto"
+                size="sm"
+                className="min-h-14"
+                onChange={(event) =>
+                  onUpdateAddressField("customerNote", event.target.value)
+                }
+              />
+            </div>
+          ) : null}
         </div>
-      </form>
+      </div>
     </section>
   );
 }

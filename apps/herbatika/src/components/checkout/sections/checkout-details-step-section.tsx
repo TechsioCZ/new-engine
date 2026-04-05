@@ -2,6 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
@@ -10,15 +11,19 @@ import { CheckoutAddressSection } from "./checkout-address-section";
 
 type CheckoutDetailsStepController = Pick<
   CheckoutController,
-  | "addressForm"
+  | "billingAddressForm"
   | "cartQuery"
   | "handleSaveAddress"
   | "isAuthenticated"
   | "isBusy"
   | "isCompanyPurchase"
+  | "setUseSameAddress"
+  | "shippingAddressForm"
   | "setIsCompanyPurchase"
-  | "updateAddressField"
+  | "updateBillingAddressField"
+  | "updateShippingAddressField"
   | "updateCartAddressMutation"
+  | "useSameAddress"
 >;
 
 type CheckoutDetailsStepSectionProps = {
@@ -37,19 +42,63 @@ export function CheckoutDetailsStepSection({
 
   return (
     <section className="space-y-300">
-      <CheckoutAddressSection
-        addressForm={controller.addressForm}
-        countryItems={COUNTRY_SELECT_ITEMS}
-        formId={addressFormId}
-        isAuthenticated={controller.isAuthenticated}
-        isCompanyPurchase={controller.isCompanyPurchase}
-        onAddressSaved={() => {
-          router.push(nextStepHref);
+      <form
+        className="space-y-300"
+        id={addressFormId}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void (async () => {
+            const didSaveAddress = await controller.handleSaveAddress();
+            if (didSaveAddress) {
+              router.push(nextStepHref);
+            }
+          })();
         }}
-        onIsCompanyPurchaseChange={controller.setIsCompanyPurchase}
-        onSaveAddress={controller.handleSaveAddress}
-        onUpdateAddressField={controller.updateAddressField}
-      />
+      >
+        <CheckoutAddressSection
+          addressForm={controller.shippingAddressForm}
+          countryItems={COUNTRY_SELECT_ITEMS}
+          fieldPrefix="checkout-shipping"
+          isAuthenticated={controller.isAuthenticated}
+          isCompanyPurchase={controller.isCompanyPurchase}
+          onIsCompanyPurchaseChange={
+            controller.useSameAddress ? controller.setIsCompanyPurchase : undefined
+          }
+          onUpdateAddressField={controller.updateShippingAddressField}
+          showCompanyFields={
+            controller.useSameAddress && controller.isCompanyPurchase
+          }
+          showCompanyPurchaseToggle={controller.useSameAddress}
+          showContactFields
+          showCustomerNote
+          showLoginPrompt
+          title="Doručovacie údaje"
+        />
+
+        <div className="rounded-sm border border-border-primary bg-surface px-550 py-350">
+          <FormCheckbox
+            checked={controller.useSameAddress}
+            label="Fakturačná adresa je rovnaká ako doručovacia"
+            onCheckedChange={controller.setUseSameAddress}
+            size="sm"
+          />
+        </div>
+
+        {!controller.useSameAddress ? (
+          <CheckoutAddressSection
+            addressForm={controller.billingAddressForm}
+            countryItems={COUNTRY_SELECT_ITEMS}
+            fieldPrefix="checkout-billing"
+            isCompanyPurchase={controller.isCompanyPurchase}
+            onIsCompanyPurchaseChange={controller.setIsCompanyPurchase}
+            onUpdateAddressField={controller.updateBillingAddressField}
+            showCompanyFields={controller.isCompanyPurchase}
+            showCompanyPurchaseToggle
+            showContactFields={false}
+            title="Fakturačné údaje"
+          />
+        ) : null}
+      </form>
 
       <div className="flex flex-wrap items-center justify-between gap-200">
         <LinkButton

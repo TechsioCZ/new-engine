@@ -1,6 +1,4 @@
 "use client";
-
-import { useState } from "react";
 import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import type { AddressFormState } from "./checkout.constants";
@@ -19,8 +17,12 @@ type AddressMutationInput = {
 };
 
 type UseCheckoutActionsProps = {
-  addressForm: AddressFormState;
+  billingAddressForm: AddressFormState;
   cartId?: string;
+  completedOrderId: string | null;
+  onCompletedOrderIdChange: (orderId: string | null) => void;
+  onOrderCompletionAbort: () => void;
+  onOrderCompletionStart: () => void;
   isCompanyPurchase: boolean;
   hasPaymentSessions: boolean;
   itemCount: number;
@@ -31,11 +33,17 @@ type UseCheckoutActionsProps = {
   onCheckoutErrorChange: (message: string | null) => void;
   saveAddress: (input: AddressMutationInput) => Promise<unknown>;
   setShippingMethod: (optionId: string) => void;
+  shippingAddressForm: AddressFormState;
+  useSameAddress: boolean;
 };
 
 export function useCheckoutActions({
-  addressForm,
+  billingAddressForm,
   cartId,
+  completedOrderId,
+  onCompletedOrderIdChange,
+  onOrderCompletionAbort,
+  onOrderCompletionStart,
   isCompanyPurchase,
   canInitiatePayment,
   completeCart,
@@ -46,12 +54,15 @@ export function useCheckoutActions({
   saveAddress,
   selectedShippingMethodId,
   setShippingMethod,
+  shippingAddressForm,
+  useSameAddress,
 }: UseCheckoutActionsProps) {
-  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
-
   const resetFeedback = () => {
     onCheckoutErrorChange(null);
-    setCompletedOrderId(null);
+    if (completedOrderId) {
+      onCompletedOrderIdChange(null);
+      onOrderCompletionAbort();
+    }
   };
 
   const handleSaveAddress = async () => {
@@ -62,24 +73,31 @@ export function useCheckoutActions({
       return false;
     }
 
-    const missingFieldsMessage = buildMissingFieldMessage(
-      addressForm,
+    const missingFieldsMessage = buildMissingFieldMessage({
+      billingForm: billingAddressForm,
       isCompanyPurchase,
-    );
+      shippingForm: shippingAddressForm,
+      useSameAddress,
+    });
     if (missingFieldsMessage) {
       onCheckoutErrorChange(missingFieldsMessage);
       return false;
     }
 
-    const normalizedAddress = buildHerbatikaCheckoutAddressInput(addressForm);
+    const normalizedShippingAddress = buildHerbatikaCheckoutAddressInput(
+      shippingAddressForm,
+    );
+    const normalizedBillingAddress = useSameAddress
+      ? normalizedShippingAddress
+      : buildHerbatikaCheckoutAddressInput(billingAddressForm);
 
     try {
       await saveAddress({
         cartId,
-        email: addressForm.email.trim(),
-        shippingAddress: normalizedAddress,
-        billingAddress: normalizedAddress,
-        useSameAddress: true,
+        email: shippingAddressForm.email.trim(),
+        shippingAddress: normalizedShippingAddress,
+        billingAddress: normalizedBillingAddress,
+        useSameAddress,
       });
       return true;
     } catch (error) {
@@ -140,24 +158,29 @@ export function useCheckoutActions({
       return;
     }
 
+    onOrderCompletionStart();
+
     try {
       const completeResult = await completeCart();
 
       const orderId = resolveOrderId(completeResult);
       if (orderId) {
-        setCompletedOrderId(orderId);
+        onCompletedOrderIdChange(orderId);
         return;
       }
 
       const completionFailureMessage =
         resolveCompleteCartFailure(completeResult);
       if (completionFailureMessage) {
+        onOrderCompletionAbort();
         onCheckoutErrorChange(completionFailureMessage);
         return;
       }
 
+      onOrderCompletionAbort();
       onCheckoutErrorChange("Dokončenie objednávky zlyhalo.");
     } catch (error) {
+      onOrderCompletionAbort();
       onCheckoutErrorChange(
         resolveErrorMessage(error, "Dokončenie objednávky zlyhalo."),
       );
