@@ -11,8 +11,16 @@ export const applyRegion = <T extends RegionInfo>(
     return input
   }
 
+  const resolvedRegionId = input.region_id ?? region.region_id
+  const resolvedCountryCode = input.country_code ?? region.country_code
+
   return {
-    ...region,
     ...input,
+    ...(resolvedRegionId !== undefined
+      ? { region_id: resolvedRegionId }
+      : {}),
+    ...(resolvedCountryCode !== undefined
+      ? { country_code: resolvedCountryCode }
+      : {}),
   }
 }
