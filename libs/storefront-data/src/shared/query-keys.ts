@@ -1,7 +1,7 @@
 export type QueryKey = readonly unknown[]
 
 export type QueryNamespace = string | readonly string[]
-type NormalizeQueryKeyParamsOptions = {
+export type NormalizeQueryKeyParamsOptions = {
   omitKeys?: readonly string[]
 }
 

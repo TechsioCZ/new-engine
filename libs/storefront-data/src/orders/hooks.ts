@@ -8,6 +8,7 @@ import type {
 } from "../shared/hook-types"
 import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
+import { createOrderQueryOptionsFactory } from "./query-options"
 import { createOrderQueryKeys } from "./query-keys"
 import type {
   OrderDetailInputBase,
@@ -113,48 +114,14 @@ export function createOrderHooks<
   const buildDetail =
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
-
-  const getListQueryOptions = (
-    input: TListInput,
-    options?: {
-      queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
-    }
-  ) => {
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
-
-    return {
-      queryKey: resolvedQueryKeys.list(listParams),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
-        service.getOrders(listParams, signal),
-      ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    }
-  }
-
-  const getDetailQueryOptions = (
-    input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
-  ) => {
-    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-      enabled?: boolean
-    }
-    const detailParams = buildDetail(detailInput as TDetailInput)
-
-    return {
-      queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }: { signal?: AbortSignal }) => {
-        if (!input.id) {
-          throw new Error("Order id is required for order queries")
-        }
-        return service.getOrder(detailParams, signal)
-      },
-      ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    }
-  }
+  const { getListQueryOptions, getDetailQueryOptions } =
+    createOrderQueryOptionsFactory({
+      service,
+      buildListParams: buildList,
+      buildDetailParams: buildDetail,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig: resolvedCacheConfig,
+    })
 
   function useOrders(
     input: TListInput,

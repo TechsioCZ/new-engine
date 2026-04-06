@@ -19,6 +19,7 @@ import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
+import { createCatalogQueryOptionsFactory } from "./query-options"
 import { createCatalogQueryKeys } from "./query-keys"
 import type {
   CatalogListInputBase,
@@ -69,6 +70,12 @@ export function createCatalogHooks<
     queryKeys ?? createCatalogQueryKeys<TListParams>(queryKeyNamespace)
   const buildList =
     buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+  const { getListQueryOptions } = createCatalogQueryOptionsFactory({
+    service,
+    buildListParams: buildList,
+    queryKeys: resolvedQueryKeys,
+    cacheConfig: resolvedCacheConfig,
+  })
 
   function useCatalogProducts(
     input: TListInput,
@@ -85,18 +92,17 @@ export function createCatalogHooks<
       listInput as TListInput,
       contextRegion ?? undefined
     )
-    const listParams = buildList(resolvedInput)
-    const queryKey = resolvedQueryKeys.list(listParams)
     const enabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
+      ...getListQueryOptions(input, {
+        cacheStrategy,
+        queryOptions: options?.queryOptions,
+        region: contextRegion,
+      }),
       enabled,
-      ...resolvedCacheConfig[cacheStrategy],
-      ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -149,13 +155,13 @@ export function createCatalogHooks<
       throw new Error("Region is required for catalog queries")
     }
 
-    const listParams = buildList(resolvedInput)
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.list(listParams),
-      queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
-      ...resolvedCacheConfig[cacheStrategy],
-      ...(options?.queryOptions ?? {}),
+      ...getListQueryOptions(input, {
+        cacheStrategy,
+        queryOptions: options?.queryOptions,
+        region: contextRegion,
+      }),
     })
     const { data, isFetching } = query
 
@@ -289,16 +295,16 @@ export function createCatalogHooks<
     if (!isEnabled) {
       return
     }
-
-    const listParams = buildList(resolvedInput)
-    await queryClient.prefetchQuery({
-      queryKey: resolvedQueryKeys.list(listParams),
-      queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
-      ...resolvedCacheConfig.semiStatic,
-    })
+    await queryClient.prefetchQuery(
+      getListQueryOptions(input, {
+        cacheStrategy: "semiStatic",
+        region,
+      })
+    )
   }
 
   return {
+    getListQueryOptions,
     useCatalogProducts,
     useSuspenseCatalogProducts,
     usePrefetchCatalogProducts,

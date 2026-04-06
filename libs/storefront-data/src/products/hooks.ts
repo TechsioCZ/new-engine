@@ -21,10 +21,15 @@ import type {
 import { resolvePagination } from "../shared/pagination"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import { createPrefetchPagesPlan } from "../shared/prefetch-pages-plan"
-import { appendQueryKey, type QueryNamespace } from "../shared/query-keys"
-import { applyRegion } from "../shared/region"
+import type { QueryNamespace } from "../shared/query-keys"
 import { useRegionContext } from "../shared/region-context"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
+import {
+  createProductDetailQueryDefinition,
+  createProductListQueryDefinition,
+  resolveProductQueryInput,
+} from "./query-definition"
+import { createProductQueryOptionsFactory } from "./query-options"
 import { createProductQueryKeys } from "./query-keys"
 import type {
   ProductDetailInputBase,
@@ -50,10 +55,6 @@ type InfiniteProductsPageParam = {
   page: number
 }
 
-type ProductQueryInput = RegionInfo & {
-  enabled?: boolean
-}
-
 const isInfiniteProductsPageParam = (
   pageParam: unknown
 ): pageParam is InfiniteProductsPageParam =>
@@ -61,14 +62,6 @@ const isInfiniteProductsPageParam = (
   pageParam !== null &&
   typeof (pageParam as { offset?: unknown }).offset === "number" &&
   typeof (pageParam as { page?: unknown }).page === "number"
-
-const resolveProductQueryInput = <TInput extends ProductQueryInput>(
-  input: TInput,
-  region?: RegionInfo | null
-): TInput => {
-  const { enabled: _inputEnabled, ...baseInput } = input
-  return applyRegion(baseInput as TInput, region ?? undefined)
-}
 
 const resolveInfiniteProductsPageParam = ({
   pageParam,
@@ -269,44 +262,14 @@ export function createProductHooks<
   const buildDetail =
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
-
-  const resolveUseGlobalFetcher = (useGlobalFetcher?: boolean): boolean =>
-    Boolean(useGlobalFetcher && service.getProductsGlobal)
-
-  const createListQueryKey = (
-    listParams: TListParams,
-    useGlobalFetcher: boolean
-  ) =>
-    useGlobalFetcher
-      ? appendQueryKey(resolvedQueryKeys.list(listParams), {
-          fetcher: "global",
-        })
-      : resolvedQueryKeys.list(listParams)
-
-
-  const getListQueryOptions = (
-    input: TListInput,
-    options?: {
-      queryOptions?: ReadQueryOptions<ProductListResponse<TProduct>>
-      region?: RegionInfo | null
-      useGlobalFetcher?: boolean
-    }
-  ) => {
-    const resolvedInput = resolveProductQueryInput(input, options?.region)
-    const listParams = buildList(resolvedInput)
-    const useGlobalFetcher = resolveUseGlobalFetcher(options?.useGlobalFetcher)
-
-    return {
-      queryKey: createListQueryKey(listParams, useGlobalFetcher),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
-        useGlobalFetcher
-          ? (service.getProductsGlobal?.(listParams, signal) ??
-            service.getProducts(listParams, signal))
-          : service.getProducts(listParams, signal),
-      ...resolvedCacheConfig.semiStatic,
-      ...(options?.queryOptions ?? {}),
-    }
-  }
+  const { getListQueryOptions, getDetailQueryOptions } =
+    createProductQueryOptionsFactory({
+      service,
+      buildListParams: buildList,
+      buildDetailParams: buildDetail,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig: resolvedCacheConfig,
+    })
 
   const createProductsListPrefetchQueryOptions = (
     input: TListInput,
@@ -317,21 +280,22 @@ export function createProductHooks<
       useGlobalFetcher?: boolean
     }
   ) => {
-    const resolvedInput = resolveProductQueryInput(input, options?.region)
-    const listParams = buildList(resolvedInput)
-    const useGlobalFetcher = resolveUseGlobalFetcher(options?.useGlobalFetcher)
+    const { queryKey, queryFn } = createProductListQueryDefinition({
+      input,
+      region: options?.region,
+      service,
+      buildListParams: buildList,
+      queryKeys: resolvedQueryKeys,
+      useGlobalFetcher: options?.useGlobalFetcher,
+    })
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
       options?.cacheStrategy ?? "semiStatic"
     )
 
     return {
-      queryKey: createListQueryKey(listParams, useGlobalFetcher),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
-        useGlobalFetcher
-          ? (service.getProductsGlobal?.(listParams, signal) ??
-            service.getProducts(listParams, signal))
-          : service.getProducts(listParams, signal),
+      queryKey,
+      queryFn,
       ...prefetchCacheOptions,
       meta: options?.prefetchedBy
         ? { prefetchedBy: options.prefetchedBy }
@@ -348,54 +312,32 @@ export function createProductHooks<
       useGlobalFetcher?: boolean
     }
   ) => {
-    const resolvedInput = resolveProductQueryInput(input, options?.region)
-    const firstPageInput = {
-      ...resolvedInput,
-      page: 1,
-      offset: 0,
-    } as TListInput
-    const listParams = buildPrefetch(firstPageInput)
-    const useGlobalFetcher = resolveUseGlobalFetcher(options?.useGlobalFetcher)
+    const { queryKey, queryFn } = createProductListQueryDefinition({
+      input,
+      region: options?.region,
+      service,
+      buildListParams: buildPrefetch,
+      queryKeys: resolvedQueryKeys,
+      useGlobalFetcher: options?.useGlobalFetcher,
+      transformInput: (resolvedInput) =>
+        ({
+          ...resolvedInput,
+          page: 1,
+          offset: 0,
+        }) as TListInput,
+    })
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
       options?.cacheStrategy ?? "semiStatic"
     )
 
     return {
-      queryKey: createListQueryKey(listParams, useGlobalFetcher),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
-        useGlobalFetcher
-          ? (service.getProductsGlobal?.(listParams, signal) ??
-            service.getProducts(listParams, signal))
-          : service.getProducts(listParams, signal),
+      queryKey,
+      queryFn,
       ...prefetchCacheOptions,
       meta: options?.prefetchedBy
         ? { prefetchedBy: options.prefetchedBy }
         : undefined,
-    }
-  }
-
-  const getDetailQueryOptions = (
-    input: TDetailInput,
-    options?: {
-      queryOptions?: ReadQueryOptions<TProduct | null>
-      region?: RegionInfo | null
-    }
-  ) => {
-    const resolvedInput = resolveProductQueryInput(input, options?.region)
-    const detailParams = buildDetail(resolvedInput)
-
-    return {
-      queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }: { signal?: AbortSignal }) => {
-        if (!resolvedInput.handle) {
-          throw new Error("Product handle is required for product queries")
-        }
-
-        return service.getProductByHandle(detailParams, signal)
-      },
-      ...resolvedCacheConfig.semiStatic,
-      ...(options?.queryOptions ?? {}),
     }
   }
 
@@ -407,22 +349,21 @@ export function createProductHooks<
       region?: RegionInfo | null
     }
   ) => {
-    const resolvedInput = resolveProductQueryInput(input, options?.region)
-    const detailParams = buildDetail(resolvedInput)
+    const { queryKey, queryFn } = createProductDetailQueryDefinition({
+      input,
+      region: options?.region,
+      service,
+      buildDetailParams: buildDetail,
+      queryKeys: resolvedQueryKeys,
+    })
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
       options?.cacheStrategy ?? "semiStatic"
     )
 
     return {
-      queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }: { signal?: AbortSignal }) => {
-        if (!resolvedInput.handle) {
-          throw new Error("Product handle is required for product queries")
-        }
-
-        return service.getProductByHandle(detailParams, signal)
-      },
+      queryKey,
+      queryFn,
       ...prefetchCacheOptions,
       meta: options?.prefetchedBy
         ? { prefetchedBy: options.prefetchedBy }

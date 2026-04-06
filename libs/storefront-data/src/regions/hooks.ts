@@ -17,6 +17,7 @@ import { resolvePagination } from "../shared/pagination"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
+import { createRegionQueryOptionsFactory } from "./query-options"
 import { createRegionQueryKeys } from "./query-keys"
 import type {
   RegionDetailInputBase,
@@ -78,6 +79,14 @@ export function createRegionHooks<
   const buildDetail =
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
+  const { getListQueryOptions, getDetailQueryOptions } =
+    createRegionQueryOptionsFactory({
+      service,
+      buildListParams: buildList,
+      buildDetailParams: buildDetail,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig: resolvedCacheConfig,
+    })
 
   function useRegions(
     input: TListInput,
@@ -87,15 +96,13 @@ export function createRegionHooks<
       enabled?: boolean
     }
     const listParams = buildList(listInput as TListInput)
-    const queryKey = resolvedQueryKeys.list(listParams)
     const enabled = inputEnabled ?? true
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getRegions(listParams, signal),
+      ...getListQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
       enabled,
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -141,10 +148,9 @@ export function createRegionHooks<
     }
     const listParams = buildList(listInput as TListInput)
     const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.list(listParams),
-      queryFn: ({ signal }) => service.getRegions(listParams, signal),
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
+      ...getListQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
     })
     const { data, isFetching } = query
 
@@ -183,19 +189,16 @@ export function createRegionHooks<
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TRegion | null> }
   ): UseRegionResult<TRegion> {
-    const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
+    const { enabled: inputEnabled } = input as TDetailInput & {
       enabled?: boolean
     }
-    const detailParams = buildDetail(detailInput as TDetailInput)
-    const queryKey = resolvedQueryKeys.detail(detailParams)
     const enabled = inputEnabled ?? Boolean(input.id)
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getRegion(detailParams, signal),
+      ...getDetailQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
       enabled,
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -213,20 +216,10 @@ export function createRegionHooks<
     input: TDetailInput,
     options?: { queryOptions?: SuspenseQueryOptions<TRegion | null> }
   ): UseSuspenseRegionResult<TRegion> {
-    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-      enabled?: boolean
-    }
-    const detailParams = buildDetail(detailInput as TDetailInput)
     const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => {
-        if (!input.id) {
-          throw new Error("Region id is required for region queries")
-        }
-        return service.getRegion(detailParams, signal)
-      },
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
+      ...getDetailQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
     })
     const { data, isFetching } = query
 
@@ -380,6 +373,8 @@ export function createRegionHooks<
   }
 
   return {
+    getListQueryOptions,
+    getDetailQueryOptions,
     useRegions,
     useSuspenseRegions,
     useRegion,

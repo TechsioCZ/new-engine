@@ -17,6 +17,7 @@ import { resolvePagination } from "../shared/pagination"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
+import { createCategoryQueryOptionsFactory } from "./query-options"
 import { createCategoryQueryKeys } from "./query-keys"
 import type {
   CategoryDetailInputBase,
@@ -78,6 +79,14 @@ export function createCategoryHooks<
   const buildDetail =
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
+  const { getListQueryOptions, getDetailQueryOptions } =
+    createCategoryQueryOptionsFactory({
+      service,
+      buildListParams: buildList,
+      buildDetailParams: buildDetail,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig: resolvedCacheConfig,
+    })
 
   function useCategories(
     input: TListInput,
@@ -89,15 +98,13 @@ export function createCategoryHooks<
       enabled?: boolean
     }
     const listParams = buildList(listInput as TListInput)
-    const queryKey = resolvedQueryKeys.list(listParams)
     const enabled = inputEnabled ?? true
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getCategories(listParams, signal),
+      ...getListQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
       enabled,
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -143,10 +150,9 @@ export function createCategoryHooks<
     }
     const listParams = buildList(listInput as TListInput)
     const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.list(listParams),
-      queryFn: ({ signal }) => service.getCategories(listParams, signal),
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
+      ...getListQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
     })
     const { data, isFetching } = query
 
@@ -185,19 +191,16 @@ export function createCategoryHooks<
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TCategory | null> }
   ): UseCategoryResult<TCategory> {
-    const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
+    const { enabled: inputEnabled } = input as TDetailInput & {
       enabled?: boolean
     }
-    const detailParams = buildDetail(detailInput as TDetailInput)
-    const queryKey = resolvedQueryKeys.detail(detailParams)
     const enabled = inputEnabled ?? Boolean(input.id)
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getCategory(detailParams, signal),
+      ...getDetailQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
       enabled,
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -215,20 +218,10 @@ export function createCategoryHooks<
     input: TDetailInput,
     options?: { queryOptions?: SuspenseQueryOptions<TCategory | null> }
   ): UseSuspenseCategoryResult<TCategory> {
-    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-      enabled?: boolean
-    }
-    const detailParams = buildDetail(detailInput as TDetailInput)
     const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => {
-        if (!input.id) {
-          throw new Error("Category id is required for category queries")
-        }
-        return service.getCategory(detailParams, signal)
-      },
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
+      ...getDetailQueryOptions(input, {
+        queryOptions: options?.queryOptions,
+      }),
     })
     const { data, isFetching } = query
 
@@ -386,6 +379,8 @@ export function createCategoryHooks<
   }
 
   return {
+    getListQueryOptions,
+    getDetailQueryOptions,
     useCategories,
     useSuspenseCategories,
     useCategory,
