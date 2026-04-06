@@ -56,7 +56,7 @@ export const buildCatalogProductsParams = ({
     queryState.price_max,
   );
 
-  return {
+  const params: CatalogProductsParams = {
     q: normalizedSearchQuery || undefined,
     page: queryState.page,
     limit,
@@ -68,10 +68,21 @@ export const buildCatalogProductsParams = ({
     ingredient: toNonEmptyArray(queryState.ingredient),
     price_min: normalizedPriceRange.min,
     price_max: normalizedPriceRange.max,
-    region_id: regionId || undefined,
-    country_code: countryCode || undefined,
-    currency_code: currencyCode || undefined,
   };
+
+  if (regionId) {
+    params.region_id = regionId;
+  }
+
+  if (countryCode) {
+    params.country_code = countryCode;
+  }
+
+  if (currencyCode) {
+    params.currency_code = currencyCode;
+  }
+
+  return params;
 };
 
 export const resolveCatalogActiveFilterCount = (
