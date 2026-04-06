@@ -21,7 +21,7 @@ import type {
 import { resolvePagination } from "../shared/pagination"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import { createPrefetchPagesPlan } from "../shared/prefetch-pages-plan"
-import type { QueryNamespace } from "../shared/query-keys"
+import { appendQueryKey, type QueryNamespace } from "../shared/query-keys"
 import { useRegionContext } from "../shared/region-context"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import {
