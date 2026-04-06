@@ -3,8 +3,11 @@ import type {
   QueryFactoryOptions,
   ReadQueryOptions,
 } from "../shared/hook-types"
-import { appendQueryKey, type QueryNamespace } from "../shared/query-keys"
-import { applyRegion } from "../shared/region"
+import type { QueryNamespace } from "../shared/query-keys"
+import {
+  createProductDetailQueryDefinition,
+  createProductListQueryDefinition,
+} from "./query-definition"
 import { createProductQueryKeys } from "./query-keys"
 import type {
   ProductDetailInputBase,
@@ -14,18 +17,6 @@ import type {
   ProductService,
   RegionInfo,
 } from "./types"
-
-type ProductQueryInput = RegionInfo & {
-  enabled?: boolean
-}
-
-const resolveProductQueryInput = <TInput extends ProductQueryInput>(
-  input: TInput,
-  region?: RegionInfo | null
-): TInput => {
-  const { enabled: _inputEnabled, ...baseInput } = input
-  return applyRegion(baseInput as TInput, region ?? undefined)
-}
 
 type CacheStrategy = keyof CacheConfig
 
@@ -98,38 +89,24 @@ export function createProductQueryOptionsFactory<
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  const resolveUseGlobalFetcher = (useGlobalFetcher?: boolean): boolean =>
-    Boolean(useGlobalFetcher && service.getProductsGlobal)
-
-  const createListQueryKey = (
-    listParams: TListParams,
-    useGlobalFetcher: boolean
-  ) =>
-    useGlobalFetcher
-      ? appendQueryKey(resolvedQueryKeys.list(listParams), {
-          fetcher: "global",
-        })
-      : resolvedQueryKeys.list(listParams)
-
   return {
     getListQueryOptions: (
       input,
       options
     ): QueryFactoryOptions<ProductListResponse<TProduct>> => {
-      const resolvedInput = resolveProductQueryInput(input, options?.region)
-      const listParams = buildList(resolvedInput)
-      const useGlobalFetcher = resolveUseGlobalFetcher(
-        options?.useGlobalFetcher
-      )
+      const { queryKey, queryFn } = createProductListQueryDefinition({
+        input,
+        region: options?.region,
+        service,
+        buildListParams: buildList,
+        queryKeys: resolvedQueryKeys,
+        useGlobalFetcher: options?.useGlobalFetcher,
+      })
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
       return {
-        queryKey: createListQueryKey(listParams, useGlobalFetcher),
-        queryFn: ({ signal }) =>
-          useGlobalFetcher
-            ? (service.getProductsGlobal?.(listParams, signal) ??
-              service.getProducts(listParams, signal))
-            : service.getProducts(listParams, signal),
+        queryKey,
+        queryFn,
         ...resolvedCacheConfig[cacheStrategy],
         ...(options?.queryOptions ?? {}),
       }
@@ -138,19 +115,18 @@ export function createProductQueryOptionsFactory<
       input,
       options
     ): QueryFactoryOptions<TProduct | null> => {
-      const resolvedInput = resolveProductQueryInput(input, options?.region)
-      const detailParams = buildDetail(resolvedInput)
+      const { queryKey, queryFn } = createProductDetailQueryDefinition({
+        input,
+        region: options?.region,
+        service,
+        buildDetailParams: buildDetail,
+        queryKeys: resolvedQueryKeys,
+      })
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
       return {
-        queryKey: resolvedQueryKeys.detail(detailParams),
-        queryFn: ({ signal }) => {
-          if (!resolvedInput.handle) {
-            throw new Error("Product handle is required for product queries")
-          }
-
-          return service.getProductByHandle(detailParams, signal)
-        },
+        queryKey,
+        queryFn,
         ...resolvedCacheConfig[cacheStrategy],
         ...(options?.queryOptions ?? {}),
       }

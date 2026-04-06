@@ -2,6 +2,9 @@ import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { createMedusaStorefrontServerReadPreset } from "../src/medusa/server-read"
+import { createOrderQueryKeys } from "../src/orders/query-keys"
+import { createProductQueryKeys } from "../src/products/query-keys"
+import { createRegionQueryKeys } from "../src/regions/query-keys"
 
 const createSdkMock = () => {
   const clientFetch = vi.fn(
@@ -53,6 +56,14 @@ const createSdkMock = () => {
 describe("createMedusaStorefrontServerReadPreset", () => {
   it("builds namespaced reusable read query options for SSR prefetch", async () => {
     const { sdk, spies } = createSdkMock()
+    const productQueryKeys = createProductQueryKeys<{ limit: number }, { handle: string }>([
+      "tenant",
+      "demo",
+    ])
+    const regionQueryKeys = createRegionQueryKeys<Record<string, never>, { id: string }>([
+      "tenant",
+      "demo",
+    ])
     const preset = createMedusaStorefrontServerReadPreset({
       sdk,
       queryKeyNamespace: ["tenant", "demo"],
@@ -67,20 +78,8 @@ describe("createMedusaStorefrontServerReadPreset", () => {
     })
     const regionQuery = preset.queries.regions.getListQueryOptions({})
 
-    expect(productQuery.queryKey).toEqual([
-      "tenant",
-      "demo",
-      "products",
-      "list",
-      { limit: 2 },
-    ])
-    expect(regionQuery.queryKey).toEqual([
-      "tenant",
-      "demo",
-      "regions",
-      "list",
-      {},
-    ])
+    expect(productQuery.queryKey).toEqual(productQueryKeys.list({ limit: 2 }))
+    expect(regionQuery.queryKey).toEqual(regionQueryKeys.list({}))
 
     await queryClient.prefetchQuery(productQuery)
     await queryClient.prefetchQuery(regionQuery)
@@ -103,6 +102,9 @@ describe("createMedusaStorefrontServerReadPreset", () => {
 
   it("supports custom order services and list param builders without touching hooks", async () => {
     const { sdk } = createSdkMock()
+    const orderQueryKeys = createOrderQueryKeys<{ limit: number; offset: number }, { id: string }>(
+      "storefront-data"
+    )
 
     const customOrderService = {
       getOrders: vi.fn(
@@ -140,12 +142,9 @@ describe("createMedusaStorefrontServerReadPreset", () => {
       enabled: true,
     })
 
-    expect(ordersQuery.queryKey).toEqual([
-      "storefront-data",
-      "orders",
-      "list",
-      { limit: 5, offset: 10 },
-    ])
+    expect(ordersQuery.queryKey).toEqual(
+      orderQueryKeys.list({ limit: 5, offset: 10 })
+    )
     expect(ordersQuery.staleTime).toBe(5 * 60 * 1000)
 
     await queryClient.prefetchQuery(ordersQuery)
