@@ -37,35 +37,44 @@ const createQueryClient = () =>
     },
   })
 
+const createCatalogRegionTestContext = (queryKeyNamespace: string) => {
+  const service = {
+    getCatalogProducts: vi.fn(async (params: ListParams) => ({
+      products: [{ id: "prod_1" } as Product],
+      count: 1,
+      page: 1,
+      limit: 12,
+      totalPages: 1,
+      facets: EMPTY_FACETS,
+    })),
+  }
+
+  const { getListQueryOptions } = createCatalogQueryOptionsFactory<
+    Product,
+    ListInput,
+    ListParams,
+    CatalogFacets
+  >({
+    service,
+    queryKeyNamespace,
+    buildListParams: (input) => ({
+      q: input.q,
+      region_id: input.region_id,
+      country_code: input.country_code,
+    }),
+  })
+
+  return {
+    service,
+    getListQueryOptions,
+    queryClient: createQueryClient(),
+  }
+}
+
 describe("catalog query options region merge", () => {
   it("uses context region when input region fields are undefined", async () => {
-    const service = {
-      getCatalogProducts: vi.fn(async (params: ListParams) => ({
-        products: [{ id: "prod_1" } as Product],
-        count: 1,
-        page: 1,
-        limit: 12,
-        totalPages: 1,
-        facets: EMPTY_FACETS,
-      })),
-    }
-
-    const { getListQueryOptions } = createCatalogQueryOptionsFactory<
-      Product,
-      ListInput,
-      ListParams,
-      CatalogFacets
-    >({
-      service,
-      queryKeyNamespace: "catalog-region-options",
-      buildListParams: (input) => ({
-        q: input.q,
-        region_id: input.region_id,
-        country_code: input.country_code,
-      }),
-    })
-
-    const queryClient = createQueryClient()
+    const { service, getListQueryOptions, queryClient } =
+      createCatalogRegionTestContext("catalog-region-options")
     await queryClient.prefetchQuery(
       getListQueryOptions(
         {
@@ -90,33 +99,8 @@ describe("catalog query options region merge", () => {
   })
 
   it("prefers explicit input region over context region", async () => {
-    const service = {
-      getCatalogProducts: vi.fn(async () => ({
-        products: [{ id: "prod_1" } as Product],
-        count: 1,
-        page: 1,
-        limit: 12,
-        totalPages: 1,
-        facets: EMPTY_FACETS,
-      })),
-    }
-
-    const { getListQueryOptions } = createCatalogQueryOptionsFactory<
-      Product,
-      ListInput,
-      ListParams,
-      CatalogFacets
-    >({
-      service,
-      queryKeyNamespace: "catalog-region-options-explicit",
-      buildListParams: (input) => ({
-        q: input.q,
-        region_id: input.region_id,
-        country_code: input.country_code,
-      }),
-    })
-
-    const queryClient = createQueryClient()
+    const { service, getListQueryOptions, queryClient } =
+      createCatalogRegionTestContext("catalog-region-options-explicit")
     await queryClient.prefetchQuery(
       getListQueryOptions(
         {
@@ -141,33 +125,8 @@ describe("catalog query options region merge", () => {
   })
 
   it("merges region fields independently from input and context", async () => {
-    const service = {
-      getCatalogProducts: vi.fn(async () => ({
-        products: [{ id: "prod_1" } as Product],
-        count: 1,
-        page: 1,
-        limit: 12,
-        totalPages: 1,
-        facets: EMPTY_FACETS,
-      })),
-    }
-
-    const { getListQueryOptions } = createCatalogQueryOptionsFactory<
-      Product,
-      ListInput,
-      ListParams,
-      CatalogFacets
-    >({
-      service,
-      queryKeyNamespace: "catalog-region-options-partial",
-      buildListParams: (input) => ({
-        q: input.q,
-        region_id: input.region_id,
-        country_code: input.country_code,
-      }),
-    })
-
-    const queryClient = createQueryClient()
+    const { service, getListQueryOptions, queryClient } =
+      createCatalogRegionTestContext("catalog-region-options-partial")
     await queryClient.prefetchQuery(
       getListQueryOptions(
         {
