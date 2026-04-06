@@ -139,4 +139,55 @@ describe("catalog query options region merge", () => {
       expect.any(AbortSignal)
     )
   })
+
+  it("merges region fields independently from input and context", async () => {
+    const service = {
+      getCatalogProducts: vi.fn(async () => ({
+        products: [{ id: "prod_1" } as Product],
+        count: 1,
+        page: 1,
+        limit: 12,
+        totalPages: 1,
+        facets: EMPTY_FACETS,
+      })),
+    }
+
+    const { getListQueryOptions } = createCatalogQueryOptionsFactory<
+      Product,
+      ListInput,
+      ListParams,
+      CatalogFacets
+    >({
+      service,
+      queryKeyNamespace: "catalog-region-options-partial",
+      buildListParams: (input) => ({
+        q: input.q,
+        region_id: input.region_id,
+        country_code: input.country_code,
+      }),
+    })
+
+    const queryClient = createQueryClient()
+    await queryClient.prefetchQuery(
+      getListQueryOptions(
+        {
+          q: "kretin",
+          region_id: undefined,
+          country_code: "cz",
+        },
+        {
+          region: { region_id: "reg_cz", country_code: "sk" },
+        }
+      )
+    )
+
+    expect(service.getCatalogProducts).toHaveBeenCalledWith(
+      {
+        q: "kretin",
+        region_id: "reg_cz",
+        country_code: "cz",
+      },
+      expect.any(AbortSignal)
+    )
+  })
 })
