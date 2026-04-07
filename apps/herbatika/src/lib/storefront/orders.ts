@@ -4,7 +4,7 @@ import { storefront } from "./storefront";
 import type {
   HerbatikaOrderDetailInput,
   HerbatikaOrderListInput,
-} from "./orders-service";
+} from "./order-query-config";
 
 const orderHooks = storefront.hooks.orders;
 

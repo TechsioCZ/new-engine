@@ -3,7 +3,7 @@ import {
   buildCategoryListParams,
   DEFAULT_CATEGORY_PAGE_SIZE,
 } from "./category-query-config";
-import { herbatikaOrderService, buildHerbatikaOrderListParams } from "./orders-service";
+import { buildHerbatikaOrderListParams } from "./order-query-config";
 import {
   DEFAULT_PRODUCT_PAGE_SIZE,
   buildProductListParams,
@@ -12,6 +12,7 @@ import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import {
   storefrontCatalogServiceConfig,
   storefrontCategoryServiceConfig,
+  storefrontOrderServiceConfig,
   storefrontProductServiceConfig,
   storefrontQueryKeys,
   STOREFRONT_CATALOG_DEFAULT_LIMIT,
@@ -31,7 +32,7 @@ export const storefrontCoreDefinition = {
     },
   },
   orders: {
-    service: herbatikaOrderService,
+    serviceConfig: storefrontOrderServiceConfig,
     hooks: {
       buildListParams: buildHerbatikaOrderListParams,
       buildDetailParams: <TInput>(input: TInput) => input,

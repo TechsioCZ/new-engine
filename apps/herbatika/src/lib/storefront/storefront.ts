@@ -29,7 +29,7 @@ export const storefront = createMedusaStorefrontPreset<
     hooks: storefrontDefinition.products.hooks,
   },
   orders: {
-    service: storefrontDefinition.orders.service,
+    serviceConfig: storefrontDefinition.orders.serviceConfig,
     queryKeys: storefrontDefinition.queryKeys.orders,
     hooks: storefrontDefinition.orders.hooks,
   },

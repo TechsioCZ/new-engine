@@ -21,6 +21,7 @@ import { createOrderQueryKeys } from "@techsio/storefront-data/orders/query-keys
 import type {
   MedusaOrderDetailInput,
   MedusaOrderListInput,
+  MedusaOrderServiceConfig,
 } from "@techsio/storefront-data/orders/medusa-service";
 import { createProductQueryKeys } from "@techsio/storefront-data/products/query-keys";
 import type {
@@ -41,6 +42,44 @@ export const STOREFRONT_CATEGORY_FIELDS =
 
 export const STOREFRONT_CATALOG_DEFAULT_LIMIT = 24;
 export const STOREFRONT_CATALOG_DEFAULT_SORT = "recommended";
+export const STOREFRONT_ORDER_DEFAULT_SORT = "-created_at";
+
+export const STOREFRONT_ORDER_LIST_FIELDS = [
+  "id",
+  "display_id",
+  "status",
+  "payment_status",
+  "fulfillment_status",
+  "created_at",
+  "updated_at",
+  "currency_code",
+  "total",
+  "item_total",
+  "items.id",
+  "items.quantity",
+].join(",");
+
+export const STOREFRONT_ORDER_DETAIL_FIELDS = [
+  "id",
+  "display_id",
+  "status",
+  "payment_status",
+  "fulfillment_status",
+  "created_at",
+  "updated_at",
+  "currency_code",
+  "email",
+  "total",
+  "item_total",
+  "shipping_total",
+  "tax_total",
+  "billing_address.*",
+  "shipping_address.*",
+  "shipping_methods.*",
+  "transactions.*",
+  "payment_collections.*",
+  "*items",
+].join(",");
 
 export const storefrontQueryKeys = {
   auth: createAuthQueryKeys(STOREFRONT_QUERY_KEY_NAMESPACE),
@@ -92,4 +131,11 @@ export const storefrontCatalogServiceConfig: MedusaCatalogServiceConfig<
 > = {
   defaultLimit: STOREFRONT_CATALOG_DEFAULT_LIMIT,
   defaultSort: STOREFRONT_CATALOG_DEFAULT_SORT,
+};
+
+export const storefrontOrderServiceConfig: MedusaOrderServiceConfig = {
+  defaultListFields: STOREFRONT_ORDER_LIST_FIELDS,
+  defaultDetailFields: STOREFRONT_ORDER_DETAIL_FIELDS,
+  defaultOrder: STOREFRONT_ORDER_DEFAULT_SORT,
+  returnNullOnNotFound: true,
 };
