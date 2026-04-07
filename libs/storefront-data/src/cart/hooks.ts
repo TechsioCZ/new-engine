@@ -560,6 +560,8 @@ export function createCartHooks<
     autoUpdateRegion,
     signal,
   }: LoadCartOptions): Promise<TCart | null> => {
+    const resolvedCartId = cartId ?? resolveCartId(input.cartId)
+
     const createIfAllowed = (): Promise<TCart | null> => {
       if (!canCreate) {
         return Promise.resolve(null)
@@ -587,12 +589,12 @@ export function createCartHooks<
       return Promise.resolve(cart)
     }
 
-    if (!cartId) {
+    if (!resolvedCartId) {
       return createIfAllowed()
     }
 
     try {
-      const cart = await service.retrieveCart(cartId, signal)
+      const cart = await service.retrieveCart(resolvedCartId, signal)
 
       if (!cart) {
         clearCartId()
