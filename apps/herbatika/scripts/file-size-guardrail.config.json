@@ -22,7 +22,6 @@
     "src/lib/storefront/ssr.ts",
     "src/components/herbatika-header.tsx",
     "src/components/aside-filter.tsx",
-    "src/lib/storefront/catalog-query-state.ts",
-    "src/lib/storefront/meili-search.ts"
+    "src/lib/storefront/catalog-query-state.ts"
   ]
 }

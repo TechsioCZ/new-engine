@@ -19,7 +19,6 @@ import type {
   MedusaRegionDetailInput,
   MedusaRegionListInput,
 } from "@techsio/storefront-data/regions/medusa-service";
-import { STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS } from "./product-query-config";
 import { storefrontSdk } from "./sdk";
 import { storefrontCoreDefinition } from "./storefront-core-definition";
 import type {
@@ -121,51 +120,3 @@ export const prefetchServerCatalogProducts = (
   queryClient.prefetchQuery(
     storefrontServerRead.queries.catalog.getListQueryOptions(listParams),
   );
-
-type SearchProductsBatchInput = {
-  handles: string[];
-  regionId?: string | null;
-  countryCode?: string | null;
-  limit?: number;
-};
-
-export const fetchServerSearchProductsByHandles = async (
-  input: SearchProductsBatchInput,
-  signal?: AbortSignal,
-) => {
-  if (input.handles.length === 0) {
-    return {
-      products: [] as HttpTypes.StoreProduct[],
-      count: 0,
-    };
-  }
-
-  const searchParams = new URLSearchParams();
-  searchParams.set("offset", "0");
-  searchParams.set("limit", String(input.limit ?? input.handles.length));
-  searchParams.set("fields", STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS);
-
-  if (input.regionId) {
-    searchParams.set("region_id", input.regionId);
-  }
-
-  if (input.countryCode) {
-    searchParams.set("country_code", input.countryCode);
-  }
-
-  for (const handle of input.handles) {
-    searchParams.append("handle[]", handle);
-  }
-
-  const response = await storefrontSdk.client.fetch<HttpTypes.StoreProductListResponse>(
-    `/store/products?${searchParams.toString()}`,
-    {
-      signal,
-    },
-  );
-
-  return {
-    products: response.products ?? [],
-    count: response.count ?? 0,
-  };
-};
