@@ -43,6 +43,11 @@ const getStorageItem = (
   }
 }
 
+export const getLocalStorageItem = (
+  key: string,
+  storage?: Storage | null
+): string | null => getStorageItem(resolveStorage(storage), key) ?? null
+
 const setStorageItem = (
   storage: Storage | null,
   key: string,
@@ -60,6 +65,12 @@ const setStorageItem = (
   }
 }
 
+export const setLocalStorageItem = (
+  key: string,
+  value: string,
+  storage?: Storage | null
+): boolean => setStorageItem(resolveStorage(storage), key, value)
+
 const removeStorageItem = (storage: Storage | null, key: string): boolean => {
   if (!storage) {
     return false
@@ -72,6 +83,11 @@ const removeStorageItem = (storage: Storage | null, key: string): boolean => {
     return false
   }
 }
+
+export const removeLocalStorageItem = (
+  key: string,
+  storage?: Storage | null
+): boolean => removeStorageItem(resolveStorage(storage), key)
 
 export function createLocalStorageValueStore({
   key,

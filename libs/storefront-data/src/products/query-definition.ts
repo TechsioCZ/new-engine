@@ -17,7 +17,7 @@ export const resolveProductQueryInput = <TInput extends ProductQueryInput>(
   region?: RegionInfo | null
 ): TInput => {
   const { enabled: _inputEnabled, ...baseInput } = input
-  return applyRegion(baseInput as TInput, region ?? undefined)
+  return applyRegion(baseInput as TInput, region)
 }
 
 type ProductListQueryDefinitionConfig<
@@ -59,10 +59,8 @@ export const createProductListQueryDefinition = <
     ? transformInput(resolvedInput)
     : resolvedInput
   const listParams = buildListParams(normalizedInput)
-  const resolvedUseGlobalFetcher = Boolean(
-    useGlobalFetcher && service.getProductsGlobal
-  )
-  const queryKey = resolvedUseGlobalFetcher
+  const globalFetcher = useGlobalFetcher ? service.getProductsGlobal : undefined
+  const queryKey = globalFetcher
     ? appendQueryKey(queryKeys.list(listParams), {
         fetcher: "global",
       })
@@ -71,12 +69,11 @@ export const createProductListQueryDefinition = <
   return {
     resolvedInput: normalizedInput,
     listParams,
-    useGlobalFetcher: resolvedUseGlobalFetcher,
+    useGlobalFetcher: Boolean(globalFetcher),
     queryKey,
     queryFn: ({ signal }: { signal?: AbortSignal }) =>
-      resolvedUseGlobalFetcher
-        ? (service.getProductsGlobal?.(listParams, signal) ??
-          service.getProducts(listParams, signal))
+      globalFetcher
+        ? globalFetcher(listParams, signal)
         : service.getProducts(listParams, signal),
   }
 }
