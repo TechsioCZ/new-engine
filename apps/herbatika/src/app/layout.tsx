@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 import localFont from "next/font/local";
 import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google";
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
+import { getRegionServerContext } from "@/lib/storefront/ssr/context";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -53,6 +55,31 @@ export const metadata: Metadata = {
   description: "Herbatika e-shop - prírodné produkty",
 };
 
+type LayoutShellProps = Readonly<{
+  children: React.ReactNode;
+  initialRegion?: RegionInfo | null;
+}>;
+
+function LayoutShell({ children, initialRegion = null }: LayoutShellProps) {
+  return (
+    <Providers initialRegion={initialRegion}>
+      <Suspense fallback={<div className="min-h-dvh bg-base">{children}</div>}>
+        <AppShell>{children}</AppShell>
+      </Suspense>
+    </Providers>
+  );
+}
+
+async function ResolvedLayoutShell({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const { region } = await getRegionServerContext();
+
+  return <LayoutShell initialRegion={region}>{children}</LayoutShell>;
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -64,11 +91,9 @@ export default function RootLayout({
       className={`${verdana.variable} ${openSans.variable} ${inter.variable} ${rubik.variable} ${roboto.variable}`}
     >
       <body className={`text-fg-primary ${verdana.className}`}>
-        <Providers>
-          <Suspense fallback={<div className="min-h-dvh bg-base">{children}</div>}>
-            <AppShell>{children}</AppShell>
-          </Suspense>
-        </Providers>
+        <Suspense fallback={<LayoutShell>{children}</LayoutShell>}>
+          <ResolvedLayoutShell>{children}</ResolvedLayoutShell>
+        </Suspense>
       </body>
     </html>
   );
