@@ -72,6 +72,53 @@ describe("phase 2 regressions", () => {
     })
   })
 
+  it("supports separate order list/detail fields, sorting, and opt-in 404 nulls", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        orders: [{ id: "order_1" }],
+        count: 1,
+      } satisfies HttpTypes.StoreOrderListResponse)
+      .mockRejectedValueOnce({ response: { status: 404 } })
+
+    const service = createMedusaOrderService(
+      { client: { fetch } } as never,
+      {
+        defaultListFields: "id,display_id",
+        defaultDetailFields: "id,*items",
+        defaultOrder: "-created_at",
+        returnNullOnNotFound: true,
+      }
+    )
+    const controller = new AbortController()
+
+    const list = await service.getOrders(
+      { limit: 10, offset: 20 },
+      controller.signal
+    )
+    expect(list.orders).toHaveLength(1)
+
+    await expect(
+      service.getOrder({ id: "order_missing" }, controller.signal)
+    ).resolves.toBeNull()
+
+    expect(fetch).toHaveBeenNthCalledWith(1, "/store/orders", {
+      query: {
+        fields: "id,display_id",
+        order: "-created_at",
+        limit: 10,
+        offset: 20,
+      },
+      signal: controller.signal,
+    })
+    expect(fetch).toHaveBeenNthCalledWith(2, "/store/orders/order_missing", {
+      query: {
+        fields: "id,*items",
+      },
+      signal: controller.signal,
+    })
+  })
+
   it("skips order detail fetch when id is missing", async () => {
     const fetch = vi.fn()
     const service = createMedusaOrderService(

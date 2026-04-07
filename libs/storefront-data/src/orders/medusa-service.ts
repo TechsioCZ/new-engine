@@ -4,6 +4,10 @@ import type { OrderListResponse, OrderService } from "./types"
 
 export type MedusaOrderServiceConfig = {
   defaultFields?: string
+  defaultListFields?: string
+  defaultDetailFields?: string
+  defaultOrder?: string
+  returnNullOnNotFound?: boolean
 }
 
 export type MedusaOrderListInput = {
@@ -49,7 +53,29 @@ export function createMedusaOrderService(
   MedusaOrderListInput,
   MedusaOrderDetailInput
 > {
-  const { defaultFields } = config ?? {}
+  const {
+    defaultFields,
+    defaultListFields,
+    defaultDetailFields,
+    defaultOrder,
+    returnNullOnNotFound = false,
+  } = config ?? {}
+
+  const resolveErrorStatus = (error: unknown): number | undefined => {
+    if (!error || typeof error !== "object") {
+      return undefined
+    }
+
+    const normalizedError = error as {
+      status?: number
+      response?: { status?: number }
+    }
+
+    return normalizedError.status ?? normalizedError.response?.status
+  }
+
+  const listFields = defaultListFields ?? defaultFields
+  const detailFields = defaultDetailFields ?? defaultFields
 
   return {
     async getOrders(
@@ -60,7 +86,8 @@ export function createMedusaOrderService(
         "/store/orders",
         {
           query: {
-            fields: defaultFields,
+            fields: listFields,
+            order: defaultOrder,
             limit: params.limit,
             offset: params.offset,
           },
@@ -81,17 +108,25 @@ export function createMedusaOrderService(
         return null
       }
 
-      const response = await sdk.client.fetch<{ order: HttpTypes.StoreOrder }>(
-        `/store/orders/${params.id}`,
-        {
-          query: {
-            fields: defaultFields,
-          },
-          signal,
-        }
-      )
+      try {
+        const response = await sdk.client.fetch<{ order: HttpTypes.StoreOrder }>(
+          `/store/orders/${params.id}`,
+          {
+            query: {
+              fields: detailFields,
+            },
+            signal,
+          }
+        )
 
-      return response.order ?? null
+        return response.order ?? null
+      } catch (error) {
+        if (returnNullOnNotFound && resolveErrorStatus(error) === 404) {
+          return null
+        }
+
+        throw error
+      }
     },
   }
 }
