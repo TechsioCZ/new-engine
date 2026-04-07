@@ -1,3 +1,7 @@
+import {
+  getLocalStorageItem,
+  setLocalStorageItem,
+} from "@techsio/storefront-data/shared/browser-storage";
 import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 
 export const REGION_STORAGE_KEY = "herbatika_region_id";
@@ -51,13 +55,8 @@ export const persistRegionPreference = (region: RegionInfo) => {
     return;
   }
 
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(REGION_STORAGE_KEY, regionId);
-    window.localStorage.setItem(
-      REGION_COUNTRY_CODE_STORAGE_KEY,
-      countryCode,
-    );
-  }
+  setLocalStorageItem(REGION_STORAGE_KEY, regionId);
+  setLocalStorageItem(REGION_COUNTRY_CODE_STORAGE_KEY, countryCode);
 
   writeCookie(REGION_STORAGE_KEY, regionId);
   writeCookie(REGION_COUNTRY_CODE_STORAGE_KEY, countryCode);
@@ -68,9 +67,9 @@ export const getStoredRegionPreference = (): RegionInfo | null => {
     return null;
   }
 
-  const regionId = normalizeRegionId(window.localStorage.getItem(REGION_STORAGE_KEY));
+  const regionId = normalizeRegionId(getLocalStorageItem(REGION_STORAGE_KEY));
   const countryCode = normalizeCountryCode(
-    window.localStorage.getItem(REGION_COUNTRY_CODE_STORAGE_KEY),
+    getLocalStorageItem(REGION_COUNTRY_CODE_STORAGE_KEY),
   );
 
   if (!regionId || !countryCode) {
