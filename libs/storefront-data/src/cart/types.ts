@@ -1,4 +1,6 @@
-import type { StorefrontCartAddressAdapter } from "../shared/address"
+import type {
+  StorefrontCartAddressAdapter,
+} from "../shared/address"
 import type {
   QueryResult,
   ReadResultBase,

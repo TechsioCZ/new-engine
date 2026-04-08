@@ -15,6 +15,8 @@ export type CacheConfig = {
   userData: CacheOptions
 }
 
+export type CacheStrategy = keyof CacheConfig
+
 export type CacheConfigOverrides = {
   [Key in keyof CacheConfig]?: Partial<CacheOptions>
 }

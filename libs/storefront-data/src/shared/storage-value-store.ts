@@ -1,3 +1,10 @@
+import {
+  getLocalStorageItem,
+  removeLocalStorageItem,
+  resolveLocalStorage,
+  setLocalStorageItem,
+} from "./local-storage"
+
 type ObservableStorageValueStore = StorageValueStore & {
   subscribe: (listener: () => void) => () => void
   getSnapshot: () => string | null
@@ -12,67 +19,6 @@ export type StorageValueStore = {
   getServerSnapshot?: () => string | null
 }
 
-const resolveStorage = (storage?: Storage | null): Storage | null => {
-  try {
-    if (storage) {
-      return storage
-    }
-
-    if (typeof window === "undefined") {
-      return null
-    }
-
-    return window.localStorage
-  } catch {
-    return null
-  }
-}
-
-const getStorageItem = (
-  storage: Storage | null,
-  key: string
-): string | null => {
-  if (!storage) {
-    return null
-  }
-
-  try {
-    return storage.getItem(key)
-  } catch {
-    return null
-  }
-}
-
-const setStorageItem = (
-  storage: Storage | null,
-  key: string,
-  value: string
-): boolean => {
-  if (!storage) {
-    return false
-  }
-
-  try {
-    storage.setItem(key, value)
-    return true
-  } catch {
-    return false
-  }
-}
-
-const removeStorageItem = (storage: Storage | null, key: string): boolean => {
-  if (!storage) {
-    return false
-  }
-
-  try {
-    storage.removeItem(key)
-    return true
-  } catch {
-    return false
-  }
-}
-
 export function createLocalStorageValueStore({
   key,
   storage,
@@ -84,8 +30,7 @@ export function createLocalStorageValueStore({
 }): ObservableStorageValueStore {
   const listeners = new Set<() => void>()
 
-  const readValue = (): string | null =>
-    getStorageItem(resolveStorage(storage), key) ?? null
+  const readValue = (): string | null => getLocalStorageItem(key, storage)
 
   const notifyListeners = () => {
     for (const listener of listeners) {
@@ -96,30 +41,30 @@ export function createLocalStorageValueStore({
   return {
     get: readValue,
     set(value: string) {
-      const resolvedStorage = resolveStorage(storage)
+      const resolvedStorage = resolveLocalStorage(storage)
       if (!resolvedStorage) {
         return
       }
 
-      if (getStorageItem(resolvedStorage, key) === value) {
+      if (getLocalStorageItem(key, resolvedStorage) === value) {
         return
       }
 
-      if (setStorageItem(resolvedStorage, key, value)) {
+      if (setLocalStorageItem(key, value, resolvedStorage)) {
         notifyListeners()
       }
     },
     clear() {
-      const resolvedStorage = resolveStorage(storage)
+      const resolvedStorage = resolveLocalStorage(storage)
       if (!resolvedStorage) {
         return
       }
 
-      if (getStorageItem(resolvedStorage, key) === null) {
+      if (getLocalStorageItem(key, resolvedStorage) === null) {
         return
       }
 
-      if (removeStorageItem(resolvedStorage, key)) {
+      if (removeLocalStorageItem(key, resolvedStorage)) {
         notifyListeners()
       }
     },
@@ -132,7 +77,7 @@ export function createLocalStorageValueStore({
         }
       }
 
-      const resolvedStorage = resolveStorage(storage)
+      const resolvedStorage = resolveLocalStorage(storage)
       const handleStorage = (event: StorageEvent) => {
         if (
           resolvedStorage &&

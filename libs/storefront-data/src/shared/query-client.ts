@@ -3,6 +3,7 @@ import {
   defaultShouldDehydrateQuery,
   isServer,
 } from "@tanstack/react-query"
+import { getErrorStatus } from "./medusa-errors"
 
 export type QueryClientConfig = NonNullable<
   ConstructorParameters<typeof QueryClient>[0]
@@ -14,10 +15,7 @@ const defaultQueryClientConfig: QueryClientConfig = {
       staleTime: 60 * 1000,
       gcTime: 5 * 60 * 1000,
       retry: (failureCount, error: unknown) => {
-        const status =
-          typeof error === "object" && error !== null
-            ? (error as { status?: number }).status
-            : undefined
+        const status = getErrorStatus(error)
         if (status && status >= 400 && status < 500) {
           return false
         }
