@@ -1,23 +1,15 @@
 import {
-  useQuery,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
-import {
   type CacheConfig,
   type CacheStrategy,
   createCacheConfig,
-  getPrefetchCacheOptions,
 } from "../shared/cache-config"
-import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { resolvePagination } from "../shared/pagination"
-import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
+import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
-import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
+import { createSimpleListDetailHooks } from "../shared/simple-list-detail-hooks"
 import { createCategoryQueryOptionsFactory } from "./query-options"
 import { createCategoryQueryKeys } from "./query-keys"
 import type {
@@ -86,6 +78,20 @@ export function createCategoryHooks<
       queryKeys: resolvedQueryKeys,
       cacheConfig: resolvedCacheConfig,
     })
+  const simpleHooks = createSimpleListDetailHooks({
+    buildList,
+    buildDetail,
+    getListItems: (data: CategoryListResponse<TCategory> | undefined) =>
+      data?.categories ?? [],
+    getList: service.getCategories,
+    getDetail: service.getCategory,
+    getListQueryOptions,
+    getDetailQueryOptions,
+    resolvedCacheConfig,
+    resolvedQueryKeys,
+    defaultPageSize,
+    defaultCacheStrategy: "static",
+  })
 
   function useCategories(
     input: TListInput,
@@ -93,48 +99,10 @@ export function createCategoryHooks<
       queryOptions?: ReadQueryOptions<CategoryListResponse<TCategory>>
     }
   ): UseCategoriesResult<TCategory> {
-    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
-    const enabled = inputEnabled ?? true
-
-    const query = useQuery({
-      ...getListQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
-      enabled,
-    })
-    const { data, isLoading, isFetching, isSuccess, error } = query
-
-    const limitFromParams = (listParams as { limit?: number }).limit
-    const offsetFromParams = (listParams as { offset?: number }).offset
-    const pagination = resolvePagination(
-      {
-        page: input.page,
-        limit: limitFromParams ?? input.limit,
-        offset: offsetFromParams,
-      },
-      defaultPageSize
-    )
-
-    const totalCount = data?.count ?? 0
-    const totalPages = pagination.limit
-      ? Math.ceil(totalCount / pagination.limit)
-      : 0
-
+    const { items, ...result } = simpleHooks.useList(input, options)
     return {
-      categories: data?.categories ?? [],
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
-      totalCount,
-      currentPage: pagination.page,
-      totalPages,
-      hasNextPage: pagination.page < totalPages,
-      hasPrevPage: pagination.page > 1,
-      query,
+      ...result,
+      categories: items,
     }
   }
 
@@ -144,45 +112,10 @@ export function createCategoryHooks<
       queryOptions?: SuspenseQueryOptions<CategoryListResponse<TCategory>>
     }
   ): UseSuspenseCategoriesResult<TCategory> {
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
-    const query = useSuspenseQuery({
-      ...getListQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
-    })
-    const { data, isFetching } = query
-
-    const limitFromParams = (listParams as { limit?: number }).limit
-    const offsetFromParams = (listParams as { offset?: number }).offset
-    const pagination = resolvePagination(
-      {
-        page: input.page,
-        limit: limitFromParams ?? input.limit,
-        offset: offsetFromParams,
-      },
-      defaultPageSize
-    )
-
-    const totalCount = data?.count ?? 0
-    const totalPages = pagination.limit
-      ? Math.ceil(totalCount / pagination.limit)
-      : 0
-
+    const { items, ...result } = simpleHooks.useSuspenseList(input, options)
     return {
-      categories: data?.categories ?? [],
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
-      totalCount,
-      currentPage: pagination.page,
-      totalPages,
-      hasNextPage: pagination.page < totalPages,
-      hasPrevPage: pagination.page > 1,
-      query,
+      ...result,
+      categories: items,
     }
   }
 
@@ -190,26 +123,10 @@ export function createCategoryHooks<
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TCategory | null> }
   ): UseCategoryResult<TCategory> {
-    const { enabled: inputEnabled } = input as TDetailInput & {
-      enabled?: boolean
-    }
-    const enabled = inputEnabled ?? Boolean(input.id)
-
-    const query = useQuery({
-      ...getDetailQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
-      enabled,
-    })
-    const { data, isLoading, isFetching, isSuccess, error } = query
-
+    const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
-      category: data ?? null,
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
-      query,
+      ...result,
+      category: item,
     }
   }
 
@@ -217,20 +134,10 @@ export function createCategoryHooks<
     input: TDetailInput,
     options?: { queryOptions?: SuspenseQueryOptions<TCategory | null> }
   ): UseSuspenseCategoryResult<TCategory> {
-    const query = useSuspenseQuery({
-      ...getDetailQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
-    })
-    const { data, isFetching } = query
-
+    const { item, ...result } = simpleHooks.useSuspenseDetail(input, options)
     return {
-      category: data ?? null,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
-      query,
+      ...result,
+      category: item,
     }
   }
 
@@ -240,66 +147,11 @@ export function createCategoryHooks<
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
   }) {
-    const queryClient = useQueryClient()
-    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
-    const cacheStrategy = options?.cacheStrategy ?? "static"
-    const defaultDelay = options?.defaultDelay ?? 800
-    const skipIfCached = options?.skipIfCached ?? true
-    const skipMode = options?.skipMode ?? "fresh"
-    const prefetchCacheOptions = getPrefetchCacheOptions(
-      resolvedCacheConfig,
-      cacheStrategy
-    )
-
-    const prefetchCategories = async (input: TListInput) => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const listParams = buildList(listInput as TListInput)
-      const queryKey = resolvedQueryKeys.list(listParams)
-      if (
-        shouldSkipPrefetch({
-          queryClient,
-          queryKey,
-          cacheOptions: prefetchCacheOptions,
-          skipIfCached,
-          skipMode,
-        })
-      ) {
-        return
-      }
-
-      await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: ({ signal }) => service.getCategories(listParams, signal),
-        ...prefetchCacheOptions,
-      })
-    }
-
-    const delayedPrefetch = (
-      input: TListInput,
-      delay = defaultDelay,
-      prefetchId?: string
-    ) => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const listParams = buildList(listInput as TListInput)
-      const queryKey = resolvedQueryKeys.list(listParams)
-      const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(
-        () => {
-          prefetchCategories(input)
-        },
-        id,
-        delay
-      )
-    }
+    const { prefetchList, ...result } = simpleHooks.usePrefetchList(options)
 
     return {
-      prefetchCategories,
-      delayedPrefetch,
-      cancelPrefetch,
+      ...result,
+      prefetchCategories: prefetchList,
     }
   }
 
@@ -309,71 +161,11 @@ export function createCategoryHooks<
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
   }) {
-    const queryClient = useQueryClient()
-    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
-    const cacheStrategy = options?.cacheStrategy ?? "static"
-    const defaultDelay = options?.defaultDelay ?? 400
-    const skipIfCached = options?.skipIfCached ?? true
-    const skipMode = options?.skipMode ?? "fresh"
-    const prefetchCacheOptions = getPrefetchCacheOptions(
-      resolvedCacheConfig,
-      cacheStrategy
-    )
-
-    const prefetchCategory = async (input: TDetailInput) => {
-      if (!input.id) {
-        return
-      }
-      const { enabled: _inputEnabled, ...detailInput } =
-        input as TDetailInput & {
-          enabled?: boolean
-        }
-      const detailParams = buildDetail(detailInput as TDetailInput)
-      const queryKey = resolvedQueryKeys.detail(detailParams)
-      if (
-        shouldSkipPrefetch({
-          queryClient,
-          queryKey,
-          cacheOptions: prefetchCacheOptions,
-          skipIfCached,
-          skipMode,
-        })
-      ) {
-        return
-      }
-
-      await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: ({ signal }) => service.getCategory(detailParams, signal),
-        ...prefetchCacheOptions,
-      })
-    }
-
-    const delayedPrefetch = (
-      input: TDetailInput,
-      delay = defaultDelay,
-      prefetchId?: string
-    ) => {
-      const { enabled: _inputEnabled, ...detailInput } =
-        input as TDetailInput & {
-          enabled?: boolean
-        }
-      const detailParams = buildDetail(detailInput as TDetailInput)
-      const queryKey = resolvedQueryKeys.detail(detailParams)
-      const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(
-        () => {
-          prefetchCategory(input)
-        },
-        id,
-        delay
-      )
-    }
+    const { prefetchDetail, ...result } = simpleHooks.usePrefetchDetail(options)
 
     return {
-      prefetchCategory,
-      delayedPrefetch,
-      cancelPrefetch,
+      ...result,
+      prefetchCategory: prefetchDetail,
     }
   }
 

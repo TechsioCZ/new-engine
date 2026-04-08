@@ -1,13 +1,13 @@
 import {
   type CacheConfig,
   type CacheStrategy,
-  createCacheConfig,
 } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
 } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
+import { createSimpleListDetailQueryOptionsFactory } from "../shared/simple-list-detail-query-options"
 import { createCollectionQueryKeys } from "./query-keys"
 import type {
   CollectionDetailInputBase,
@@ -73,56 +73,19 @@ export function createCollectionQueryOptionsFactory<
   TDetailInput,
   TDetailParams
 >): CollectionQueryOptionsFactory<TCollection, TListInput, TDetailInput> {
-  const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createCollectionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
-  const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  return {
-    getListQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<CollectionListResponse<TCollection>> => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const listParams = buildList(listInput as TListInput)
-      const cacheStrategy = options?.cacheStrategy ?? "static"
-
-      return {
-        queryKey: resolvedQueryKeys.list(listParams),
-        queryFn: ({ signal }) => service.getCollections(listParams, signal),
-        ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
-      }
-    },
-    getDetailQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<TCollection | null> => {
-      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
-      const detailParams = buildDetail(detailInput as TDetailInput)
-      const cacheStrategy = options?.cacheStrategy ?? "static"
-
-      return {
-        queryKey: resolvedQueryKeys.detail(detailParams),
-        queryFn: ({ signal }) => {
-          if (!input.id) {
-            throw new Error("Collection id is required for collection queries")
-          }
-
-          return service.getCollection(detailParams, signal)
-        },
-        ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
-      }
-    },
-  }
+  return createSimpleListDetailQueryOptionsFactory({
+    getList: service.getCollections,
+    getDetail: service.getCollection,
+    buildListParams,
+    buildDetailParams,
+    queryKeys: resolvedQueryKeys,
+    cacheConfig,
+    defaultCacheStrategy: "static",
+    missingDetailErrorMessage:
+      "Collection id is required for collection queries",
+  })
 }

@@ -1,13 +1,13 @@
 import {
   type CacheConfig,
   type CacheStrategy,
-  createCacheConfig,
 } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
 } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
+import { createSimpleListDetailQueryOptionsFactory } from "../shared/simple-list-detail-query-options"
 import { createOrderQueryKeys } from "./query-keys"
 import type {
   OrderDetailInputBase,
@@ -73,56 +73,18 @@ export function createOrderQueryOptionsFactory<
   TDetailInput,
   TDetailParams
 >): OrderQueryOptionsFactory<TOrder, TListInput, TDetailInput> {
-  const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createOrderQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
-  const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  return {
-    getListQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<OrderListResponse<TOrder>> => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const listParams = buildList(listInput as TListInput)
-      const cacheStrategy = options?.cacheStrategy ?? "userData"
-
-      return {
-        queryKey: resolvedQueryKeys.list(listParams),
-        queryFn: ({ signal }) => service.getOrders(listParams, signal),
-        ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
-      }
-    },
-    getDetailQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<TOrder | null> => {
-      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
-      const detailParams = buildDetail(detailInput as TDetailInput)
-      const cacheStrategy = options?.cacheStrategy ?? "userData"
-
-      return {
-        queryKey: resolvedQueryKeys.detail(detailParams),
-        queryFn: ({ signal }) => {
-          if (!input.id) {
-            throw new Error("Order id is required for order queries")
-          }
-
-          return service.getOrder(detailParams, signal)
-        },
-        ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
-      }
-    },
-  }
+  return createSimpleListDetailQueryOptionsFactory({
+    getList: service.getOrders,
+    getDetail: service.getOrder,
+    buildListParams,
+    buildDetailParams,
+    queryKeys: resolvedQueryKeys,
+    cacheConfig,
+    defaultCacheStrategy: "userData",
+    missingDetailErrorMessage: "Order id is required for order queries",
+  })
 }
