@@ -1,9 +1,13 @@
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import {
+  type CacheConfig,
+  type CacheStrategy,
+} from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
 } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
+import { createSimpleListDetailQueryOptionsFactory } from "../shared/simple-list-detail-query-options"
 import { createCategoryQueryKeys } from "./query-keys"
 import type {
   CategoryDetailInputBase,
@@ -12,8 +16,6 @@ import type {
   CategoryQueryKeys,
   CategoryService,
 } from "./types"
-
-type CacheStrategy = keyof CacheConfig
 
 export type CreateCategoryQueryOptionsFactoryConfig<
   TCategory,
@@ -71,56 +73,18 @@ export function createCategoryQueryOptionsFactory<
   TDetailInput,
   TDetailParams
 >): CategoryQueryOptionsFactory<TCategory, TListInput, TDetailInput> {
-  const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createCategoryQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
-  const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => input as unknown as TDetailParams)
 
-  return {
-    getListQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<CategoryListResponse<TCategory>> => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const listParams = buildList(listInput as TListInput)
-      const cacheStrategy = options?.cacheStrategy ?? "static"
-
-      return {
-        queryKey: resolvedQueryKeys.list(listParams),
-        queryFn: ({ signal }) => service.getCategories(listParams, signal),
-        ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
-      }
-    },
-    getDetailQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<TCategory | null> => {
-      const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-        enabled?: boolean
-      }
-      const detailParams = buildDetail(detailInput as TDetailInput)
-      const cacheStrategy = options?.cacheStrategy ?? "static"
-
-      return {
-        queryKey: resolvedQueryKeys.detail(detailParams),
-        queryFn: ({ signal }) => {
-          if (!input.id) {
-            throw new Error("Category id is required for category queries")
-          }
-
-          return service.getCategory(detailParams, signal)
-        },
-        ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
-      }
-    },
-  }
+  return createSimpleListDetailQueryOptionsFactory({
+    getList: service.getCategories,
+    getDetail: service.getCategory,
+    buildListParams,
+    buildDetailParams,
+    queryKeys: resolvedQueryKeys,
+    cacheConfig,
+    defaultCacheStrategy: "static",
+    missingDetailErrorMessage: "Category id is required for category queries",
+  })
 }

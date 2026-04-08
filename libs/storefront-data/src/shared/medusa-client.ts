@@ -15,6 +15,10 @@ export type CreateMedusaSdkOptions = {
 
 export type MedusaSdk = InstanceType<typeof Medusa>
 
+// Shared Medusa SDK bootstrap.
+// Besides server-safe auth handling, this file also hardens locale persistence
+// because Medusa touches `medusa_locale` in localStorage during client creation
+// and locale reads/writes without exposing a clean public override.
 const LOCALE_STORAGE_KEY = "medusa_locale"
 
 type MedusaClientWithMutableLocale = {
@@ -52,6 +56,9 @@ const patchStorageMethod = <
   }
 }
 
+// During SDK construction, Medusa may read/write locale from localStorage.
+// Some browsers expose localStorage but still throw on access, so we
+// temporarily patch those methods just for the constructor call.
 const withSafeLocalStorageMethods = <TValue>(callback: () => TValue): TValue => {
   if (typeof window === "undefined") {
     return callback()
@@ -107,6 +114,8 @@ const withSafeLocalStorageMethods = <TValue>(callback: () => TValue): TValue => 
   }
 }
 
+// After construction, keep locale access on the client side behind the same
+// safe localStorage seam so blocked storage degrades instead of crashing.
 const patchClientLocaleStorage = (sdk: MedusaSdk): MedusaSdk => {
   if (typeof window === "undefined") {
     return sdk

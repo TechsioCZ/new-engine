@@ -21,6 +21,10 @@
       "types": "./dist/src/shared/cache-config.d.ts",
       "import": "./dist/shared/cache-config.js"
     },
+    "./shared/local-storage": {
+      "types": "./dist/src/shared/local-storage.d.ts",
+      "import": "./dist/shared/local-storage.js"
+    },
     "./shared/medusa-client": {
       "types": "./dist/src/shared/medusa-client.d.ts",
       "import": "./dist/shared/medusa-client.js"
@@ -56,6 +60,10 @@
     "./shared/browser-storage": {
       "types": "./dist/src/shared/browser-storage.d.ts",
       "import": "./dist/shared/browser-storage.js"
+    },
+    "./shared/storage-value-store": {
+      "types": "./dist/src/shared/storage-value-store.d.ts",
+      "import": "./dist/shared/storage-value-store.js"
     },
     "./cart/hooks": {
       "types": "./dist/src/cart/hooks.d.ts",

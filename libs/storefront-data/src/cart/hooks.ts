@@ -6,9 +6,9 @@ import {
 } from "@tanstack/react-query"
 import { useEffect, useSyncExternalStore } from "react"
 import { assertStorefrontAddressValidation } from "../shared/address"
-import type { StorageValueStore } from "../shared/browser-storage"
 import {
   type CacheConfig,
+  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
@@ -23,6 +23,7 @@ import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
+import type { StorageValueStore } from "../shared/storage-value-store"
 import { invalidateCartCaches, syncCartCaches } from "../shared/cart-cache-sync"
 import { createCartQueryKeys } from "./query-keys"
 import type {
@@ -41,8 +42,6 @@ import type {
   UseCartResult,
   UseSuspenseCartResult,
 } from "./types"
-
-type CacheStrategy = keyof CacheConfig
 
 type CartTransientInput = {
   cartId?: string
