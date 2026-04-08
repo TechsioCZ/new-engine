@@ -15,8 +15,8 @@ export function CategorySortTabs({
   totalProducts,
 }: CategorySortTabsProps) {
   return (
-    <div className="flex flex-col gap-150 rounded-full bg-highlight px-250 py-200 md:flex-row md:items-center md:justify-between">
-      <div className="flex min-w-0 items-center gap-100 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-visible">
+    <div className="flex flex-col gap-150 rounded-xs md:rounded-full bg-highlight px-250 py-200 md:flex-row md:items-center md:justify-between">
+      <div className="flex min-w-0 flex-wrap items-center gap-100">
         {sortItems.map((item) => {
           const isActive = item.value === activeSort;
 
@@ -39,9 +39,9 @@ export function CategorySortTabs({
         })}
       </div>
 
-      <p className="shrink-0 font-verdana text-sm text-fg-secondary">
-        <span className="font-semibold text-fg-primary">{totalProducts}</span>{" "}
-        položiek celkom
+      <p className="flex shrink-0 gap-100 justify-end font-verdana text-sm text-fg-secondary">
+        <span className="font-semibold text-fg-primary">{totalProducts}</span>
+        <span>položiek celkom</span>
       </p>
     </div>
   );

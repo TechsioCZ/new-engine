@@ -52,7 +52,7 @@ export function CategoryResultsSection({
   totalProducts,
 }: CategoryResultsSectionProps) {
   return (
-    <div className="space-y-400 xl:col-span-9">
+    <div className="min-w-0 space-y-400 xl:col-span-9">
       <CategorySortTabs
         activeSort={activeSort}
         onSortChange={onSortChange}
