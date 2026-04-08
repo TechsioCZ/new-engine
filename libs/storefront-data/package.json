@@ -57,10 +57,6 @@
       "types": "./dist/src/auth/types.d.ts",
       "import": "./dist/auth/types.js"
     },
-    "./shared/browser-storage": {
-      "types": "./dist/src/shared/browser-storage.d.ts",
-      "import": "./dist/shared/browser-storage.js"
-    },
     "./shared/storage-value-store": {
       "types": "./dist/src/shared/storage-value-store.d.ts",
       "import": "./dist/shared/storage-value-store.js"

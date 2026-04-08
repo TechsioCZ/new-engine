@@ -167,9 +167,6 @@ Core subpaths:
 - `@techsio/storefront-data/shared/storage-value-store`
 - `@techsio/storefront-data/medusa/preset`
 
-Compatibility subpath:
-- `@techsio/storefront-data/shared/browser-storage`
-
 Domain subpaths:
 - `@techsio/storefront-data/<domain>/hooks`
 - `@techsio/storefront-data/<domain>/medusa-service`
