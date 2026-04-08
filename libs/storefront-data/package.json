@@ -21,6 +21,10 @@
       "types": "./dist/src/shared/cache-config.d.ts",
       "import": "./dist/shared/cache-config.js"
     },
+    "./shared/local-storage": {
+      "types": "./dist/src/shared/local-storage.d.ts",
+      "import": "./dist/shared/local-storage.js"
+    },
     "./shared/medusa-client": {
       "types": "./dist/src/shared/medusa-client.d.ts",
       "import": "./dist/shared/medusa-client.js"
@@ -53,9 +57,9 @@
       "types": "./dist/src/auth/types.d.ts",
       "import": "./dist/auth/types.js"
     },
-    "./shared/browser-storage": {
-      "types": "./dist/src/shared/browser-storage.d.ts",
-      "import": "./dist/shared/browser-storage.js"
+    "./shared/storage-value-store": {
+      "types": "./dist/src/shared/storage-value-store.d.ts",
+      "import": "./dist/shared/storage-value-store.js"
     },
     "./cart/hooks": {
       "types": "./dist/src/cart/hooks.d.ts",
@@ -85,6 +89,10 @@
       "types": "./dist/src/catalog/query-keys.d.ts",
       "import": "./dist/catalog/query-keys.js"
     },
+    "./catalog/query-options": {
+      "types": "./dist/src/catalog/query-options.d.ts",
+      "import": "./dist/catalog/query-options.js"
+    },
     "./catalog/types": {
       "types": "./dist/src/catalog/types.d.ts",
       "import": "./dist/catalog/types.js"
@@ -100,6 +108,10 @@
     "./categories/query-keys": {
       "types": "./dist/src/categories/query-keys.d.ts",
       "import": "./dist/categories/query-keys.js"
+    },
+    "./categories/query-options": {
+      "types": "./dist/src/categories/query-options.d.ts",
+      "import": "./dist/categories/query-options.js"
     },
     "./categories/types": {
       "types": "./dist/src/categories/types.d.ts",
@@ -137,6 +149,10 @@
       "types": "./dist/src/collections/query-keys.d.ts",
       "import": "./dist/collections/query-keys.js"
     },
+    "./collections/query-options": {
+      "types": "./dist/src/collections/query-options.d.ts",
+      "import": "./dist/collections/query-options.js"
+    },
     "./collections/types": {
       "types": "./dist/src/collections/types.d.ts",
       "import": "./dist/collections/types.js"
@@ -161,6 +177,10 @@
       "types": "./dist/src/medusa/preset.d.ts",
       "import": "./dist/medusa/preset.js"
     },
+    "./medusa/server-read": {
+      "types": "./dist/src/medusa/server-read.d.ts",
+      "import": "./dist/medusa/server-read.js"
+    },
     "./orders/hooks": {
       "types": "./dist/src/orders/hooks.d.ts",
       "import": "./dist/orders/hooks.js"
@@ -172,6 +192,10 @@
     "./orders/query-keys": {
       "types": "./dist/src/orders/query-keys.d.ts",
       "import": "./dist/orders/query-keys.js"
+    },
+    "./orders/query-options": {
+      "types": "./dist/src/orders/query-options.d.ts",
+      "import": "./dist/orders/query-options.js"
     },
     "./orders/types": {
       "types": "./dist/src/orders/types.d.ts",
@@ -189,6 +213,10 @@
       "types": "./dist/src/products/query-keys.d.ts",
       "import": "./dist/products/query-keys.js"
     },
+    "./products/query-options": {
+      "types": "./dist/src/products/query-options.d.ts",
+      "import": "./dist/products/query-options.js"
+    },
     "./products/types": {
       "types": "./dist/src/products/types.d.ts",
       "import": "./dist/products/types.js"
@@ -204,6 +232,10 @@
     "./regions/query-keys": {
       "types": "./dist/src/regions/query-keys.d.ts",
       "import": "./dist/regions/query-keys.js"
+    },
+    "./regions/query-options": {
+      "types": "./dist/src/regions/query-options.d.ts",
+      "import": "./dist/regions/query-options.js"
     },
     "./regions/types": {
       "types": "./dist/src/regions/types.d.ts",

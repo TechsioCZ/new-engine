@@ -1,10 +1,12 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { hydrateRoot } from "react-dom/client"
+import { renderToString } from "react-dom/server"
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import { StorefrontDataProvider } from "../src/client/provider"
-import { createLocalStorageValueStore } from "../src/shared/browser-storage"
+import { createLocalStorageValueStore } from "../src/shared/storage-value-store"
 
 type Cart = {
   id: string
@@ -89,6 +91,94 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
 
     expect(retrieveCart.mock.calls.at(-1)?.[0]).toBe("cart_1")
+  })
+
+  it("does not auto-create a new cart during hydration when storage already has a cart id", async () => {
+    const key = "test_hydration_existing_cart_id"
+    const backingStorage = createMemoryStorage()
+    backingStorage.setItem(key, "cart_existing")
+    const cartStorage = createLocalStorageValueStore({
+      key,
+      storage: backingStorage,
+    })
+    const retrieveCart = vi.fn(async (cartId: string) => ({
+      id: cartId,
+      region_id: "reg_1",
+      items: [{ quantity: 1 }],
+    }))
+    const createCart = vi.fn(async () => ({
+      id: "cart_created",
+      region_id: "reg_1",
+      items: [{ quantity: 1 }],
+    }))
+
+    const { useCart } = createCartHooks<
+      Cart,
+      { region_id?: string },
+      { region_id?: string }
+    >({
+      service: {
+        retrieveCart,
+        createCart,
+      },
+      cartStorage,
+      requireRegion: false,
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const Wrapper = createWrapper(queryClient)
+
+    function CartProbe() {
+      const { cart } = useCart({
+        autoCreate: true,
+        enabled: true,
+        region_id: "reg_1",
+      })
+
+      return <div data-testid="cart-id">{cart?.id ?? "none"}</div>
+    }
+
+    const container = document.createElement("div")
+    container.innerHTML = renderToString(
+      <Wrapper>
+        <CartProbe />
+      </Wrapper>
+    )
+    document.body.appendChild(container)
+
+    let root: ReturnType<typeof hydrateRoot> | null = null
+
+    await act(async () => {
+      root = hydrateRoot(
+        container,
+        <Wrapper>
+          <CartProbe />
+        </Wrapper>
+      )
+    })
+
+    await waitFor(() => {
+      expect(retrieveCart).toHaveBeenCalledWith(
+        "cart_existing",
+        expect.any(AbortSignal)
+      )
+    })
+
+    expect(createCart).not.toHaveBeenCalled()
+
+    await waitFor(() => {
+      expect(container.textContent).toBe("cart_existing")
+    })
+
+    await act(async () => {
+      root?.unmount()
+    })
+    container.remove()
   })
 
   it("reacts to observable cartStorage implementations that use method context", async () => {

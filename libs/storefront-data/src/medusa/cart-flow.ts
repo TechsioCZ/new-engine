@@ -11,7 +11,6 @@ import type {
   UseCartResult,
   UseSuspenseCartResult,
 } from "../cart/types"
-import type { StorageValueStore } from "../shared/browser-storage"
 import {
   type ActiveCartQueryKeyMatcher,
   createDefaultActiveCartQueryMatcher,
@@ -23,6 +22,7 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
+import type { StorageValueStore } from "../shared/storage-value-store"
 
 type MedusaCartMutationHook<TInput> = (options?: {
   onSuccess?: (cart: HttpTypes.StoreCart) => void | Promise<void>

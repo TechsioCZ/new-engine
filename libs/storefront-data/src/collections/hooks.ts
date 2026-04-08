@@ -1,22 +1,16 @@
 import {
-  useQuery,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
-import {
   type CacheConfig,
+  type CacheStrategy,
   createCacheConfig,
-  getPrefetchCacheOptions,
 } from "../shared/cache-config"
-import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { resolvePagination } from "../shared/pagination"
-import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
+import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
-import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
+import { createSimpleListDetailHooks } from "../shared/simple-list-detail-hooks"
+import { createCollectionQueryOptionsFactory } from "./query-options"
 import { createCollectionQueryKeys } from "./query-keys"
 import type {
   CollectionDetailInputBase,
@@ -29,8 +23,6 @@ import type {
   UseSuspenseCollectionResult,
   UseSuspenseCollectionsResult,
 } from "./types"
-
-type CacheStrategy = keyof CacheConfig
 
 export type CreateCollectionHooksConfig<
   TCollection,
@@ -78,6 +70,28 @@ export function createCollectionHooks<
   const buildDetail =
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
+  const { getListQueryOptions, getDetailQueryOptions } =
+    createCollectionQueryOptionsFactory({
+      service,
+      buildListParams: buildList,
+      buildDetailParams: buildDetail,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig: resolvedCacheConfig,
+    })
+  const simpleHooks = createSimpleListDetailHooks({
+    buildList,
+    buildDetail,
+    getListItems: (data: CollectionListResponse<TCollection> | undefined) =>
+      data?.collections ?? [],
+    getList: service.getCollections,
+    getDetail: service.getCollection,
+    getListQueryOptions,
+    getDetailQueryOptions,
+    resolvedCacheConfig,
+    resolvedQueryKeys,
+    defaultPageSize,
+    defaultCacheStrategy: "static",
+  })
 
   function useCollections(
     input: TListInput,
@@ -85,50 +99,10 @@ export function createCollectionHooks<
       queryOptions?: ReadQueryOptions<CollectionListResponse<TCollection>>
     }
   ): UseCollectionsResult<TCollection> {
-    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
-    const queryKey = resolvedQueryKeys.list(listParams)
-    const enabled = inputEnabled ?? true
-
-    const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getCollections(listParams, signal),
-      enabled,
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
-    })
-    const { data, isLoading, isFetching, isSuccess, error } = query
-
-    const limitFromParams = (listParams as { limit?: number }).limit
-    const offsetFromParams = (listParams as { offset?: number }).offset
-    const pagination = resolvePagination(
-      {
-        page: input.page,
-        limit: limitFromParams ?? input.limit,
-        offset: offsetFromParams,
-      },
-      defaultPageSize
-    )
-
-    const totalCount = data?.count ?? 0
-    const totalPages = pagination.limit
-      ? Math.ceil(totalCount / pagination.limit)
-      : 0
-
+    const { items, ...result } = simpleHooks.useList(input, options)
     return {
-      collections: data?.collections ?? [],
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
-      totalCount,
-      currentPage: pagination.page,
-      totalPages,
-      hasNextPage: pagination.page < totalPages,
-      hasPrevPage: pagination.page > 1,
-      query,
+      ...result,
+      collections: items,
     }
   }
 
@@ -138,46 +112,10 @@ export function createCollectionHooks<
       queryOptions?: SuspenseQueryOptions<CollectionListResponse<TCollection>>
     }
   ): UseSuspenseCollectionsResult<TCollection> {
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
-    const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.list(listParams),
-      queryFn: ({ signal }) => service.getCollections(listParams, signal),
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
-    })
-    const { data, isFetching } = query
-
-    const limitFromParams = (listParams as { limit?: number }).limit
-    const offsetFromParams = (listParams as { offset?: number }).offset
-    const pagination = resolvePagination(
-      {
-        page: input.page,
-        limit: limitFromParams ?? input.limit,
-        offset: offsetFromParams,
-      },
-      defaultPageSize
-    )
-
-    const totalCount = data?.count ?? 0
-    const totalPages = pagination.limit
-      ? Math.ceil(totalCount / pagination.limit)
-      : 0
-
+    const { items, ...result } = simpleHooks.useSuspenseList(input, options)
     return {
-      collections: data?.collections ?? [],
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
-      totalCount,
-      currentPage: pagination.page,
-      totalPages,
-      hasNextPage: pagination.page < totalPages,
-      hasPrevPage: pagination.page > 1,
-      query,
+      ...result,
+      collections: items,
     }
   }
 
@@ -185,29 +123,10 @@ export function createCollectionHooks<
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TCollection | null> }
   ): UseCollectionResult<TCollection> {
-    const { enabled: inputEnabled, ...detailInput } = input as TDetailInput & {
-      enabled?: boolean
-    }
-    const detailParams = buildDetail(detailInput as TDetailInput)
-    const queryKey = resolvedQueryKeys.detail(detailParams)
-    const enabled = inputEnabled ?? Boolean(input.id)
-
-    const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getCollection(detailParams, signal),
-      enabled,
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
-    })
-    const { data, isLoading, isFetching, isSuccess, error } = query
-
+    const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
-      collection: data ?? null,
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
-      query,
+      ...result,
+      collection: item,
     }
   }
 
@@ -215,30 +134,10 @@ export function createCollectionHooks<
     input: TDetailInput,
     options?: { queryOptions?: SuspenseQueryOptions<TCollection | null> }
   ): UseSuspenseCollectionResult<TCollection> {
-    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-      enabled?: boolean
-    }
-    const detailParams = buildDetail(detailInput as TDetailInput)
-    const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }) => {
-        if (!input.id) {
-          throw new Error("Collection id is required for collection queries")
-        }
-        return service.getCollection(detailParams, signal)
-      },
-      ...resolvedCacheConfig.static,
-      ...(options?.queryOptions ?? {}),
-    })
-    const { data, isFetching } = query
-
+    const { item, ...result } = simpleHooks.useSuspenseDetail(input, options)
     return {
-      collection: data ?? null,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
-      query,
+      ...result,
+      collection: item,
     }
   }
 
@@ -248,66 +147,11 @@ export function createCollectionHooks<
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
   }) {
-    const queryClient = useQueryClient()
-    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
-    const cacheStrategy = options?.cacheStrategy ?? "static"
-    const defaultDelay = options?.defaultDelay ?? 800
-    const skipIfCached = options?.skipIfCached ?? true
-    const skipMode = options?.skipMode ?? "fresh"
-    const prefetchCacheOptions = getPrefetchCacheOptions(
-      resolvedCacheConfig,
-      cacheStrategy
-    )
-
-    const prefetchCollections = async (input: TListInput) => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const listParams = buildList(listInput as TListInput)
-      const queryKey = resolvedQueryKeys.list(listParams)
-      if (
-        shouldSkipPrefetch({
-          queryClient,
-          queryKey,
-          cacheOptions: prefetchCacheOptions,
-          skipIfCached,
-          skipMode,
-        })
-      ) {
-        return
-      }
-
-      await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: ({ signal }) => service.getCollections(listParams, signal),
-        ...prefetchCacheOptions,
-      })
-    }
-
-    const delayedPrefetch = (
-      input: TListInput,
-      delay = defaultDelay,
-      prefetchId?: string
-    ) => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const listParams = buildList(listInput as TListInput)
-      const queryKey = resolvedQueryKeys.list(listParams)
-      const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(
-        () => {
-          prefetchCollections(input)
-        },
-        id,
-        delay
-      )
-    }
+    const { prefetchList, ...result } = simpleHooks.usePrefetchList(options)
 
     return {
-      prefetchCollections,
-      delayedPrefetch,
-      cancelPrefetch,
+      ...result,
+      prefetchCollections: prefetchList,
     }
   }
 
@@ -317,75 +161,17 @@ export function createCollectionHooks<
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
   }) {
-    const queryClient = useQueryClient()
-    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
-    const cacheStrategy = options?.cacheStrategy ?? "static"
-    const defaultDelay = options?.defaultDelay ?? 400
-    const skipIfCached = options?.skipIfCached ?? true
-    const skipMode = options?.skipMode ?? "fresh"
-    const prefetchCacheOptions = getPrefetchCacheOptions(
-      resolvedCacheConfig,
-      cacheStrategy
-    )
-
-    const prefetchCollection = async (input: TDetailInput) => {
-      if (!input.id) {
-        return
-      }
-      const { enabled: _inputEnabled, ...detailInput } =
-        input as TDetailInput & {
-          enabled?: boolean
-        }
-      const detailParams = buildDetail(detailInput as TDetailInput)
-      const queryKey = resolvedQueryKeys.detail(detailParams)
-      if (
-        shouldSkipPrefetch({
-          queryClient,
-          queryKey,
-          cacheOptions: prefetchCacheOptions,
-          skipIfCached,
-          skipMode,
-        })
-      ) {
-        return
-      }
-
-      await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: ({ signal }) => service.getCollection(detailParams, signal),
-        ...prefetchCacheOptions,
-      })
-    }
-
-    const delayedPrefetch = (
-      input: TDetailInput,
-      delay = defaultDelay,
-      prefetchId?: string
-    ) => {
-      const { enabled: _inputEnabled, ...detailInput } =
-        input as TDetailInput & {
-          enabled?: boolean
-        }
-      const detailParams = buildDetail(detailInput as TDetailInput)
-      const queryKey = resolvedQueryKeys.detail(detailParams)
-      const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(
-        () => {
-          prefetchCollection(input)
-        },
-        id,
-        delay
-      )
-    }
+    const { prefetchDetail, ...result } = simpleHooks.usePrefetchDetail(options)
 
     return {
-      prefetchCollection,
-      delayedPrefetch,
-      cancelPrefetch,
+      ...result,
+      prefetchCollection: prefetchDetail,
     }
   }
 
   return {
+    getListQueryOptions,
+    getDetailQueryOptions,
     useCollections,
     useSuspenseCollections,
     useCollection,

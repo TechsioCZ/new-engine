@@ -1,4 +1,9 @@
-import { createLocalStorageValueStore } from "../src/shared/browser-storage"
+import {
+  getLocalStorageItem,
+  removeLocalStorageItem,
+  setLocalStorageItem,
+} from "../src/shared/local-storage"
+import { createLocalStorageValueStore } from "../src/shared/storage-value-store"
 
 const createMemoryStorage = (): Storage => {
   const store = new Map<string, string>()
@@ -23,6 +28,16 @@ const createMemoryStorage = (): Storage => {
 
 describe("createLocalStorageValueStore", () => {
   const key = "test_cart_storage_key"
+
+  it("exposes safe localStorage helpers", () => {
+    const storage = createMemoryStorage()
+
+    expect(getLocalStorageItem(key, storage)).toBeNull()
+    expect(setLocalStorageItem(key, "cart_1", storage)).toBe(true)
+    expect(getLocalStorageItem(key, storage)).toBe("cart_1")
+    expect(removeLocalStorageItem(key, storage)).toBe(true)
+    expect(getLocalStorageItem(key, storage)).toBeNull()
+  })
 
   it("notifies listeners for same-tab and storage-event updates", () => {
     const backingStorage = createMemoryStorage()

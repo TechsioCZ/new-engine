@@ -44,7 +44,7 @@ const sanitizeCartWriteParams = <TParams extends MedusaCartWriteParams>(
  * ```typescript
  * import { createCartHooks } from "@techsio/storefront-data/cart/hooks"
  * import { createMedusaCartService } from "@techsio/storefront-data/cart/medusa-service"
- * import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/browser-storage"
+ * import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/storage-value-store"
  * import { sdk } from "@/lib/medusa-client"
  *
  * const cartHooks = createCartHooks({

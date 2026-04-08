@@ -58,7 +58,7 @@ export function Providers({ children }) {
 ## Preset-first example
 
 ```ts
-import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/browser-storage"
+import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/storage-value-store"
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
 import { sdk } from "@/lib/medusa-client"
 
@@ -159,12 +159,13 @@ Core subpaths:
 - `@techsio/storefront-data/server/get-query-client`
 - `@techsio/storefront-data/shared/address`
 - `@techsio/storefront-data/shared/cache-config`
+- `@techsio/storefront-data/shared/local-storage`
 - `@techsio/storefront-data/shared/medusa-client`
 - `@techsio/storefront-data/shared/query-client`
 - `@techsio/storefront-data/shared/query-keys`
 - `@techsio/storefront-data/shared/region-context`
+- `@techsio/storefront-data/shared/storage-value-store`
 - `@techsio/storefront-data/medusa/preset`
-- `@techsio/storefront-data/shared/browser-storage`
 
 Domain subpaths:
 - `@techsio/storefront-data/<domain>/hooks`

@@ -1,13 +1,12 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
-import { toErrorMessage } from "../shared/error-utils"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
+import { createSimpleListDetailHooks } from "../shared/simple-list-detail-hooks"
+import { createOrderQueryOptionsFactory } from "./query-options"
 import { createOrderQueryKeys } from "./query-keys"
 import type {
   OrderDetailInputBase,
@@ -113,48 +112,28 @@ export function createOrderHooks<
   const buildDetail =
     buildDetailParams ??
     ((input: TDetailInput) => input as unknown as TDetailParams)
-
-  const getListQueryOptions = (
-    input: TListInput,
-    options?: {
-      queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
-    }
-  ) => {
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
-
-    return {
-      queryKey: resolvedQueryKeys.list(listParams),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
-        service.getOrders(listParams, signal),
-      ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    }
-  }
-
-  const getDetailQueryOptions = (
-    input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
-  ) => {
-    const { enabled: _inputEnabled, ...detailInput } = input as TDetailInput & {
-      enabled?: boolean
-    }
-    const detailParams = buildDetail(detailInput as TDetailInput)
-
-    return {
-      queryKey: resolvedQueryKeys.detail(detailParams),
-      queryFn: ({ signal }: { signal?: AbortSignal }) => {
-        if (!input.id) {
-          throw new Error("Order id is required for order queries")
-        }
-        return service.getOrder(detailParams, signal)
-      },
-      ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    }
-  }
+  const { getListQueryOptions, getDetailQueryOptions } =
+    createOrderQueryOptionsFactory({
+      service,
+      buildListParams: buildList,
+      buildDetailParams: buildDetail,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig: resolvedCacheConfig,
+    })
+  const simpleHooks = createSimpleListDetailHooks({
+    buildList,
+    buildDetail,
+    getListItems: (data: OrderListResponse<TOrder> | undefined) =>
+      data?.orders ?? [],
+    getList: service.getOrders,
+    getDetail: service.getOrder,
+    getListQueryOptions,
+    getDetailQueryOptions,
+    resolvedCacheConfig,
+    resolvedQueryKeys,
+    defaultPageSize,
+    defaultCacheStrategy: "userData",
+  })
 
   function useOrders(
     input: TListInput,
@@ -162,46 +141,10 @@ export function createOrderHooks<
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
     }
   ): UseOrdersResult<TOrder> {
-    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
-    const enabled = inputEnabled ?? true
-
-    const query = useQuery({
-      ...getListQueryOptions(input, options),
-      enabled,
-    })
-    const { data, isLoading, isFetching, isSuccess, error } = query
-
-    const limitFromParams = (listParams as { limit?: number }).limit
-    const offsetFromParams = (listParams as { offset?: number }).offset
-    const pagination = resolvePagination(
-      {
-        page: input.page,
-        limit: limitFromParams ?? input.limit,
-        offset: offsetFromParams,
-      },
-      defaultPageSize
-    )
-
-    const totalCount = data?.count ?? 0
-    const totalPages = pagination.limit
-      ? Math.ceil(totalCount / pagination.limit)
-      : 0
-
+    const { items, ...result } = simpleHooks.useList(input, options)
     return {
-      orders: data?.orders ?? [],
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
-      totalCount,
-      currentPage: pagination.page,
-      totalPages,
-      hasNextPage: pagination.page < totalPages,
-      hasPrevPage: pagination.page > 1,
-      query,
+      ...result,
+      orders: items,
     }
   }
 
@@ -211,42 +154,13 @@ export function createOrderHooks<
       queryOptions?: SuspenseQueryOptions<OrderListResponse<TOrder>>
     }
   ): UseSuspenseOrdersResult<TOrder> {
-    const listParams = buildList(input as TListInput)
-    const query = useSuspenseQuery(
-      getListQueryOptions(input as TListInput, {
-        queryOptions: options?.queryOptions,
-      })
+    const { items, ...result } = simpleHooks.useSuspenseList(
+      input as TListInput,
+      options
     )
-    const { data, isFetching } = query
-
-    const limitFromParams = (listParams as { limit?: number }).limit
-    const offsetFromParams = (listParams as { offset?: number }).offset
-    const pagination = resolvePagination(
-      {
-        page: input.page,
-        limit: limitFromParams ?? input.limit,
-        offset: offsetFromParams,
-      },
-      defaultPageSize
-    )
-
-    const totalCount = data?.count ?? 0
-    const totalPages = pagination.limit
-      ? Math.ceil(totalCount / pagination.limit)
-      : 0
-
     return {
-      orders: data?.orders ?? [],
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
-      totalCount,
-      currentPage: pagination.page,
-      totalPages,
-      hasNextPage: pagination.page < totalPages,
-      hasPrevPage: pagination.page > 1,
-      query,
+      ...result,
+      orders: items,
     }
   }
 
@@ -254,24 +168,10 @@ export function createOrderHooks<
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
   ): UseOrderResult<TOrder> {
-    const { enabled: inputEnabled } = input as TDetailInput & {
-      enabled?: boolean
-    }
-    const enabled = inputEnabled ?? Boolean(input.id)
-
-    const query = useQuery({
-      ...getDetailQueryOptions(input, options),
-      enabled,
-    })
-    const { data, isLoading, isFetching, isSuccess, error } = query
-
+    const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
-      order: data ?? null,
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
-      query,
+      ...result,
+      order: item,
     }
   }
 
@@ -279,20 +179,13 @@ export function createOrderHooks<
     input: SuspenseDetailInput<TDetailInput>,
     options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
   ): UseSuspenseOrderResult<TOrder> {
-    const query = useSuspenseQuery(
-      getDetailQueryOptions(input as TDetailInput, {
-        queryOptions: options?.queryOptions,
-      })
+    const { item, ...result } = simpleHooks.useSuspenseDetail(
+      input as TDetailInput,
+      options
     )
-    const { data, isFetching } = query
-
     return {
-      order: data ?? null,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
-      query,
+      ...result,
+      order: item,
     }
   }
 
