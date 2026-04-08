@@ -54,7 +54,7 @@ export function AsideFilterChipSection({
           <div className="flex flex-wrap gap-200">
             {visibleItems.map((item) => (
               <Button
-                className="rounded-full leading-tight"          
+                className="min-h-750 rounded-full leading-tight"
                 disabled={isLoading || item.disabled}
                 key={item.id}
                 onClick={() => onToggle(item.id)}
@@ -69,7 +69,7 @@ export function AsideFilterChipSection({
             collapseAfter > 0 &&
             items.length > collapseAfter && (
               <Button
-                className="text-sm font-semibold text-fg-secondary underline hover:text-primary"
+                className="min-h-750 text-sm font-semibold text-fg-secondary underline hover:text-primary"
                 onClick={() => setIsExpanded((currentState) => !currentState)}
                 size="current"
                 theme="unstyled"

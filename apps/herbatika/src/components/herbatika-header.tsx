@@ -54,8 +54,11 @@ export function HerbatikaHeader() {
 
   return (
     <Header direction="vertical">
-      <Header.Container className="mx-auto max-w-max-w flex items-center px-400 py-300 @header-desktop:px-600">
-        <HerbatikaLogo className="shrink-0" size="lg" />
+      <Header.Container className="mx-auto flex w-full min-w-0 items-center justify-between gap-200 px-300 py-300 sm:px-400 @header-desktop:px-600">
+        <HerbatikaLogo
+          className="min-w-0 shrink"
+          size="lg"
+        />
 
         <div className="hidden w-full max-w-header-search flex-1 @header-desktop:block">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
@@ -107,11 +110,12 @@ export function HerbatikaHeader() {
           />
         </Header.Actions>
 
-        <div className="ml-auto flex items-center gap-250 @header-desktop:hidden">
+        <div className="flex shrink-0 items-center gap-150 @header-desktop:hidden">
           <div className="relative">
             <LinkButton
               as={NextLink}
-              className="px-350 py-250 text-xl font-bold"
+              className="px-350 py-250 text-md md:text-xl font-bold"
+              //className="h-750 min-h-750 max-w-900 min-w-0 overflow-hidden px-250 py-150 text-base font-semibold text-ellipsis whitespace-nowrap sm:max-w-none sm:px-350 sm:py-250 sm:text-xl"
               href="/checkout/kosik"
               icon="token-icon-cart"
               size="sm"
@@ -120,14 +124,14 @@ export function HerbatikaHeader() {
               {cartTotalLabel}
             </LinkButton>
             <Badge
-              className="absolute -top-200 -right-200 min-w-500 justify-center rounded-full px-100 py-50 text-xs"
+              className="absolute -top-150 -right-150 min-h-400 min-w-400 justify-center rounded-full px-100 py-0 text-xs leading-none"
               variant="secondary"
             >
               {String(itemCount)}
             </Badge>
           </div>
 
-          <Header.Hamburger className="border border-border-secondary text-2xl" />
+          <Header.Hamburger className="h-750 w-750 shrink-0 border border-border-secondary text-2xl" />
         </div>
       </Header.Container>
 
@@ -174,8 +178,8 @@ export function HerbatikaHeader() {
       </Header.Desktop>
 
       <Header.Mobile
-        className="w-full border-t border-border-secondary bg-surface"
-        position="left"
+        className="inset-x-0 z-20 w-full max-w-full overflow-x-hidden border-t border-border-secondary bg-primary shadow-sm"
+        position="right"
       >
         <div className="border-border-secondary border-b p-400">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
@@ -183,30 +187,30 @@ export function HerbatikaHeader() {
               <SearchForm.Input
                 placeholder="Napíšte, čo hľadáte..."
               />
-              <SearchForm.Button aria-label="Hľadať" showSearchIcon />
+              <SearchForm.Button className="rounded-r-none" aria-label="Hľadať" showSearchIcon />
             </SearchForm.Control>
           </SearchForm>
         </div>
 
-        <Header.Nav className="w-full">
+        <Header.Nav className="w-full min-w-0 gap-y-0">
           {PRIMARY_NAV_ITEMS.map((item) => (
             <Header.NavItem
-              className="w-full border-border-secondary border-b"
+              className="min-w-0 w-full bg-primary hover:bg-secondary border-border-secondary border-b"
               key={`mobile-${item.href}`}
             >
-              <Link as={NextLink} className="w-full" href={item.href}>
+              <Link as={NextLink} className="block w-full min-w-0" href={item.href}>
                 {item.label}
               </Link>
             </Header.NavItem>
           ))}
         </Header.Nav>
 
-        <div className="flex gap-300 p-400">
+        <div className="grid w-full grid-cols-1 gap-200 p-400 sm:grid-cols-2">
           {HEADER_ACTION_ITEMS.map((action) => (
             <LinkButton
               as={NextLink}
               block
-              className="justify-center font-bold"
+              className="min-h-750 justify-center font-bold"
               href={action.href}
               icon={action.icon}
               key={`mobile-action-${action.href}`}

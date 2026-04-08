@@ -189,7 +189,7 @@ export function AsideFilter({
 
   return (
     <aside className="overflow-hidden rounded-2xl border border-border-secondary bg-surface text-fg-primary">
-      <div className="scrollbar-primary space-y-500 p-500 xl:max-h-[calc(100dvh-var(--spacing-400))] xl:overflow-y-auto xl:overscroll-contain">
+      <div className="scrollbar-primary space-y-400 p-400 xl:max-h-[calc(100dvh-var(--spacing-400))] xl:overflow-y-auto xl:overscroll-contain xl:space-y-500 xl:p-500">
         <section className="space-y-300">
           <h2 className="text-2xl font-bold uppercase leading-none">Cena</h2>
           <div className="flex items-center justify-between text-lg font-medium text-fg-secondary">
@@ -243,7 +243,7 @@ export function AsideFilter({
                 size="sm"
                 theme="light"
                 variant="primary"
-                className="font-rubik rounded-full font-medium leading-tight"
+                className="min-h-750 font-rubik rounded-full leading-tight"
                 disabled={isLoading || item.disabled}
                 key={item.id}
                 onClick={() => onStatusToggle(item.id)}
@@ -287,6 +287,7 @@ export function AsideFilter({
         <div className="space-y-250">
           <Button
             block
+            className="min-h-750"
             disabled={activeFilterCount === 0}
             onClick={onReset}
             size="sm"
