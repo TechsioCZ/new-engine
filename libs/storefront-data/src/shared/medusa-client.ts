@@ -4,7 +4,7 @@ import {
   getLocalStorageItem,
   removeLocalStorageItem,
   setLocalStorageItem,
-} from "./browser-storage"
+} from "./local-storage"
 import { omitKeys } from "./object-utils"
 
 export type MedusaClientConfig = Config
