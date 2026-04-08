@@ -1,7 +1,7 @@
 import {
   createLocalStorageValueStore,
   type StorageValueStore,
-} from "@techsio/storefront-data/shared/browser-storage";
+} from "@techsio/storefront-data/shared/storage-value-store";
 
 export const CART_STORAGE_KEY = "herbatika_cart_id";
 

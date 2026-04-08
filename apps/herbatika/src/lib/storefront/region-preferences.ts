@@ -1,7 +1,7 @@
 import {
   getLocalStorageItem,
   setLocalStorageItem,
-} from "@techsio/storefront-data/shared/browser-storage";
+} from "@techsio/storefront-data/shared/local-storage";
 import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 
 export const REGION_STORAGE_KEY = "herbatika_region_id";

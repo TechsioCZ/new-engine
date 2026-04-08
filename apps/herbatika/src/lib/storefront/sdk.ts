@@ -2,7 +2,7 @@ import {
   getLocalStorageItem,
   removeLocalStorageItem,
   setLocalStorageItem,
-} from "@techsio/storefront-data/shared/browser-storage";
+} from "@techsio/storefront-data/shared/local-storage";
 import {
   createMedusaSdk,
   type MedusaClientConfig,
