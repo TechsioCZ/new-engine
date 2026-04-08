@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query"
 import {
   type CacheConfig,
+  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
@@ -31,8 +32,6 @@ import type {
   UseSuspenseCatalogProductsResult,
 } from "./types"
 import { resolvePositiveInteger } from "./utils"
-
-type CacheStrategy = keyof CacheConfig
 
 export type CreateCatalogHooksConfig<
   TProduct,

@@ -8,6 +8,7 @@ import {
 import { useEffect, useMemo } from "react"
 import {
   type CacheConfig,
+  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
@@ -47,7 +48,6 @@ import type {
   UseSuspenseProductsResult,
 } from "./types"
 
-type CacheStrategy = keyof CacheConfig
 type SuspenseInput<TInput> = Omit<TInput, "enabled">
 
 type InfiniteProductsPageParam = {

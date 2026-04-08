@@ -6,7 +6,7 @@ import { renderToString } from "react-dom/server"
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import { StorefrontDataProvider } from "../src/client/provider"
-import { createLocalStorageValueStore } from "../src/shared/browser-storage"
+import { createLocalStorageValueStore } from "../src/shared/storage-value-store"
 
 type Cart = {
   id: string

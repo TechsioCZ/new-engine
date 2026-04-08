@@ -1,8 +1,6 @@
 import type {
-  StorefrontAddressValidationResult,
   StorefrontCartAddressAdapter,
 } from "../shared/address"
-import type { StorageValueStore } from "../shared/browser-storage"
 import type {
   QueryResult,
   ReadResultBase,
@@ -69,10 +67,6 @@ export type CartAddressAdapter<
   TAddressPayload = TAddressInput,
   TStoredAddress = unknown,
 > = StorefrontCartAddressAdapter<TAddressInput, TAddressPayload, TStoredAddress>
-
-export type CartAddressValidationResult = StorefrontAddressValidationResult
-
-export type CartStorage = StorageValueStore
 
 export type TransferCartInputBase = {
   cartId?: string

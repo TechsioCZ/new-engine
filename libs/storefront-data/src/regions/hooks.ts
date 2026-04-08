@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query"
 import {
   type CacheConfig,
+  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
@@ -30,8 +31,6 @@ import type {
   UseSuspenseRegionResult,
   UseSuspenseRegionsResult,
 } from "./types"
-
-type CacheStrategy = keyof CacheConfig
 
 export type CreateRegionHooksConfig<
   TRegion,

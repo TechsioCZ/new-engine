@@ -1,4 +1,8 @@
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import {
+  type CacheConfig,
+  type CacheStrategy,
+  createCacheConfig,
+} from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
@@ -17,8 +21,6 @@ import type {
   ProductService,
   RegionInfo,
 } from "./types"
-
-type CacheStrategy = keyof CacheConfig
 
 export type CreateProductQueryOptionsFactoryConfig<
   TProduct,

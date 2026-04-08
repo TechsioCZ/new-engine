@@ -2,7 +2,6 @@ import type { HttpTypes } from "@medusajs/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
-import type { StorageValueStore } from "../shared/browser-storage"
 import {
   type ActiveCartQueryKeyMatcher,
   getCachedCartById,
@@ -15,6 +14,7 @@ import {
 } from "../shared/checkout-flow-utils"
 import { createErrorWithStage } from "../shared/error-utils"
 import { toPlainRecord } from "../shared/object-utils"
+import type { StorageValueStore } from "../shared/storage-value-store"
 import {
   createMedusaCartFlow,
   type MedusaCartFlowStorefront,

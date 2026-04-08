@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { getErrorStatus } from "../shared/medusa-errors"
 import type { OrderListResponse, OrderService } from "./types"
 
 export type MedusaOrderServiceConfig = {
@@ -61,19 +62,6 @@ export function createMedusaOrderService(
     returnNullOnNotFound = false,
   } = config ?? {}
 
-  const resolveErrorStatus = (error: unknown): number | undefined => {
-    if (!error || typeof error !== "object") {
-      return undefined
-    }
-
-    const normalizedError = error as {
-      status?: number
-      response?: { status?: number }
-    }
-
-    return normalizedError.status ?? normalizedError.response?.status
-  }
-
   const listFields = defaultListFields ?? defaultFields
   const detailFields = defaultDetailFields ?? defaultFields
 
@@ -121,7 +109,7 @@ export function createMedusaOrderService(
 
         return response.order ?? null
       } catch (error) {
-        if (returnNullOnNotFound && resolveErrorStatus(error) === 404) {
+        if (returnNullOnNotFound && getErrorStatus(error) === 404) {
           return null
         }
 
