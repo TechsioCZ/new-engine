@@ -7,9 +7,9 @@ import {
   HerbatikaProductGrid,
   type HerbatikaProductGridLayout,
 } from "@/components/product/herbatika-product-grid";
+import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton";
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state";
 import { CategorySortTabs } from "./category-sort-tabs";
-import { ProductGridSkeleton } from "./product-grid-skeleton";
 
 type CategoryResultsSectionProps = {
   activeSort: ProductSortValue;
@@ -63,7 +63,7 @@ export function CategoryResultsSection({
   isRefreshing = false,
 }: CategoryResultsSectionProps) {
   const resolvedLoadingSkeleton =
-    loadingSkeleton ?? <ProductGridSkeleton layout={layout} />;
+    loadingSkeleton ?? <HerbatikaProductGridSkeleton layout={layout} />;
   const shouldShowInitialSkeleton = isLoading && products.length === 0;
   const shouldShowProductsGrid = !showCategoryNotFound && products.length > 0;
 

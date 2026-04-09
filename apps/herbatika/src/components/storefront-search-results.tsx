@@ -4,7 +4,6 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
 import { CategoryResultsSection } from "@/components/category/category-results-section";
-import { SearchSkeletonGrid } from "@/components/search/search-skeleton-grid";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 import { useSearchListingController } from "./search/use-search-listing-controller";
 
@@ -70,7 +69,6 @@ export function StorefrontSearchResults() {
               isRefreshing={controller.isResultsRefreshing}
               isProductAdding={controller.isProductAdding}
               layout="catalog"
-              loadingSkeleton={<SearchSkeletonGrid />}
               onAddToCart={controller.onAddToCart}
               onPageChange={controller.onPageChange}
               onProductHoverEnd={controller.onProductHoverEnd}
