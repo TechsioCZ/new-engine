@@ -54,7 +54,7 @@ export function HerbatikaHeader() {
 
   return (
     <Header direction="vertical">
-      <Header.Container className="mx-auto flex w-full min-w-0 items-center justify-between gap-200 px-300 py-300 sm:px-400 @header-desktop:px-600">
+      <Header.Container className="mx-auto flex max-w-max-w w-full min-w-0 items-center justify-between gap-200 px-300 py-300 sm:px-400 @header-desktop:px-600">
         <HerbatikaLogo
           className="min-w-0 shrink"
           size="lg"

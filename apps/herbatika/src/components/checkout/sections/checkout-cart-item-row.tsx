@@ -168,80 +168,83 @@ export function CheckoutCartItemRow({
   };
 
   return (
-    <article className="grid grid-cols-12 items-start gap-200">
-      <Link
-        as={NextLink}
-        className="col-span-3 inline-flex h-750 w-750 md:col-span-2"
-        href={itemHref}
-      >
-        <NextImage
-          alt={itemName}
-          className="h-750 w-750 object-cover"
-          height={60}
-          quality={50}
-          src={resolveLineItemThumbnail(item)}
-          width={60}
-        />
-      </Link>
-
-      <div className="col-span-9 min-w-0 pt-100 md:col-span-5">
+    <article className="flex flex-col gap-250 md:flex-row md:items-start md:gap-300">
+      <div className="flex min-w-0 flex-1 h-full items-start gap-200">
         <Link
           as={NextLink}
-          className="line-clamp-3 font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary"
+          className="inline-flex size-[120px] shrink-0"
           href={itemHref}
         >
-          {itemName}
+          <NextImage
+            alt={itemName}
+            className="object-cover"
+            height={120}
+            quality={50}
+            src={resolveLineItemThumbnail(item)}
+            width={120}
+          />
         </Link>
 
-        <p className="mt-500 inline-flex items-center gap-150 font-medium text-primary text-xs leading-normal">
-          <Icon className="text-md" icon="icon-[mdi--check]" />
-          <span>{availabilityText}</span>
-        </p>
-      </div>
-      <NumericInput
-        allowOverflow={false}
-        className="w-32"
-        max={itemMaxQuantity}
-        min={1}
-        onChange={handleQuantityChange}
-        size="md"
-        value={localQuantity}
-      >
-        <NumericInput.Control>
-          <NumericInput.DecrementTrigger
-            disabled={isPending || localQuantity <= 1}
-          />
-          <NumericInput.Input
-            aria-label={`Množstvo pre ${itemName}`}
-            className="text-center"
-          />
-          <NumericInput.IncrementTrigger
-            disabled={isPending || localQuantity >= itemMaxQuantity}
-          />
-        </NumericInput.Control>
-      </NumericInput>
+        <div className="min-w-0 flex-1 h-full pt-100">
+          <Link
+            as={NextLink}
+            className="line-clamp-2 font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary sm:line-clamp-3"
+            href={itemHref}
+          >
+            {itemName}
+          </Link>
 
-      <div className="col-span-6 mt-200 flex items-center justify-end gap-150 md:col-span-3 md:mt-0 md:min-h-750 md:flex-col md:items-end md:justify-start md:gap-100">
-        {shouldShowOriginalAmount ? (
-          <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-            {formatCurrencyAmount(originalLineAmount, currencyCode)}
+          <p className="mt-500 h-full inline-flex items-start gap-150 font-medium text-primary text-xs leading-normal">
+            <Icon className="shrink-0 text-md" icon="icon-[mdi--check]" />
+            <span className="min-w-0">{availabilityText}</span>
           </p>
-        ) : (
-          <span />
-        )}
-        <p className="font-bold text-fg-primary text-xl leading-tight">
-          {formatCurrencyAmount(currentLineAmount, currencyCode)}
-        </p>
-        <Button
-          aria-label={`Odstrániť ${itemName} z košíka`}
-          className="h-650 w-650 p-150 text-fg-secondary hover:text-fg-primary md:mt-auto"
-          disabled={isPending}
-          icon="icon-[mdi--trash-can-outline]"
-          onClick={() => onRemove(item.id)}
-          size="sm"
-          theme="unstyled"
-          variant="secondary"
-        />
+        </div>
+      </div>
+
+      <div className="flex w-full items-start justify-between gap-250 md:w-auto md:shrink-0 md:justify-end md:pl-250">
+        <NumericInput
+          allowOverflow={false}
+          className="w-20 shrink-0 sm:w-24"
+          max={itemMaxQuantity}
+          min={1}
+          onChange={handleQuantityChange}
+          size="md"
+          value={localQuantity}
+        >
+          <NumericInput.Control>
+            <NumericInput.DecrementTrigger
+              disabled={isPending || localQuantity <= 1}
+            />
+            <NumericInput.Input
+              aria-label={`Množstvo pre ${itemName}`}
+              className="text-center"
+            />
+            <NumericInput.IncrementTrigger
+              disabled={isPending || localQuantity >= itemMaxQuantity}
+            />
+          </NumericInput.Control>
+        </NumericInput>
+
+        <div className="flex min-w-0 flex-col items-end gap-100 text-right md:min-h-750">
+          {shouldShowOriginalAmount ? (
+            <p className="font-light text-fg-secondary text-sm leading-tight line-through">
+              {formatCurrencyAmount(originalLineAmount, currencyCode)}
+            </p>
+          ) : null}
+          <p className="font-bold text-fg-primary text-xl leading-tight">
+            {formatCurrencyAmount(currentLineAmount, currencyCode)}
+          </p>
+          <Button
+            aria-label={`Odstrániť ${itemName} z košíka`}
+            className="mt-50 h-650 w-650 p-150 text-fg-secondary hover:text-fg-primary md:mt-auto"
+            disabled={isPending}
+            icon="icon-[mdi--trash-can-outline]"
+            onClick={() => onRemove(item.id)}
+            size="sm"
+            theme="unstyled"
+            variant="secondary"
+          />
+        </div>
       </div>
     </article>
   );

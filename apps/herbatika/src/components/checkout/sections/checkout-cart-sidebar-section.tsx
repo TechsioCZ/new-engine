@@ -58,7 +58,7 @@ export function CheckoutCartSidebarSection({
             uppercase
             variant="primary"
           >
-            <span className="font-normal">Pokračovať na dopravu a platbu</span>
+            <span className="font-normal text-xs sm:text-md">Pokračovať na dopravu a platbu</span>
           </LinkButton>
         </div>
       </div>

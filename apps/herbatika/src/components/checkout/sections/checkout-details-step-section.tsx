@@ -108,7 +108,7 @@ export function CheckoutDetailsStepSection({
           theme="outlined"
           icon="token-icon-chevron-left"
           variant="tertiary"
-          className="hover:button-bg-outlined-tertiary-hover"
+          className="w-full sm:min-w-950 sm:w-auto hover:button-bg-outlined-tertiary-hover"
         >
           <span className="font-normal">Späť na dopravu a platbu</span>
         </LinkButton>
