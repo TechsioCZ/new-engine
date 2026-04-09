@@ -1,7 +1,5 @@
 import { HydrationBoundary } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
-import { connection } from "next/server";
-import { Suspense } from "react";
 import { StorefrontCategoryListing } from "@/components/storefront-category-listing";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr";
@@ -19,15 +17,10 @@ const CATEGORY_SLUG_ALIASES: Record<string, string> = {
   akcie: "vypredaj-zlavy-a-akcie",
 };
 
-function CategoryPageFallback() {
-  return <main className="mx-auto min-h-dvh w-full max-w-max-w" />;
-}
-
-async function CategoryPageContent({
+export default async function CategoryPage({
   params,
   searchParams,
 }: CategoryPageProps) {
-  await connection();
   const [{ slug }, resolvedSearchParams] = await Promise.all([params, searchParams]);
 
   const normalizedSlug = slug.trim().toLowerCase();
@@ -47,13 +40,5 @@ async function CategoryPageContent({
     <HydrationBoundary state={dehydratedState}>
       <StorefrontCategoryListing slug={normalizedSlug} />
     </HydrationBoundary>
-  );
-}
-
-export default function CategoryPage(props: CategoryPageProps) {
-  return (
-    <Suspense fallback={<CategoryPageFallback />}>
-      <CategoryPageContent {...props} />
-    </Suspense>
   );
 }

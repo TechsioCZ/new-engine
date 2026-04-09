@@ -1,7 +1,7 @@
 import { AsideFilter } from "@/components/aside-filter";
 import type { AsideFilterChipItem } from "@/components/aside-filter-chip-section";
 
-export type CategoryFacetsPanelProps = {
+type CategoryFacetsPanelProps = {
   activeFilterCount: number;
   brandItems: AsideFilterChipItem[];
   currencyCode: string;

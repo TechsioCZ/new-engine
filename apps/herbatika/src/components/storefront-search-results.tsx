@@ -1,55 +1,15 @@
 "use client";
 
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { CatalogResultsShell } from "@/components/catalog/catalog-results-shell";
+import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
+import { CategoryResultsSection } from "@/components/category/category-results-section";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 import { useSearchListingController } from "./search/use-search-listing-controller";
 
 export function StorefrontSearchResults() {
   const controller = useSearchListingController();
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1);
-  const facetsPanelProps = {
-    activeFilterCount: controller.activeAsideFilterCount,
-    brandItems: controller.asideBrandItems,
-    currencyCode: controller.productsCurrencyCode,
-    formItems: controller.asideFormItems,
-    ingredientItems: controller.asideIngredientItems,
-    isLoading: controller.isFiltersLoading,
-    onBrandToggle: controller.onBrandToggle,
-    onFormToggle: controller.onFormToggle,
-    onIngredientToggle: controller.onIngredientToggle,
-    onPriceRangeCommit: controller.onPriceRangeCommit,
-    onReset: controller.onResetFilters,
-    onStatusToggle: controller.onStatusToggle,
-    priceBounds: controller.priceBounds,
-    selectedPriceRange: controller.selectedPriceRange,
-    statusItems: controller.asideStatusItems,
-  };
-  const resultsSectionProps = {
-    activeSort: controller.queryState.sort,
-    addToCartError: controller.addToCartError,
-    categoriesError: null,
-    catalogError: controller.catalogError,
-    isEmpty: controller.products.length === 0,
-    isLoading: controller.isResultsLoading,
-    isRefreshing: controller.isResultsRefreshing,
-    isProductAdding: controller.isProductAdding,
-    layout: "catalog" as const,
-    onAddToCart: controller.onAddToCart,
-    onPageChange: controller.onPageChange,
-    onProductHoverEnd: controller.onProductHoverEnd,
-    onProductHoverStart: controller.onProductHoverStart,
-    onSortChange: controller.onSortChange,
-    page: controller.page,
-    pageSize: PLP_PAGE_SIZE,
-    products: controller.products,
-    showCategoryNotFound: false,
-    sortItems: SORT_TAB_ITEMS,
-    totalCount: controller.catalogQuery.totalCount,
-    totalPages: controller.catalogQuery.totalPages,
-    totalProducts: controller.catalogQuery.totalCount,
-  };
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-500 font-rubik sm:p-600">
@@ -77,10 +37,54 @@ export function StorefrontSearchResults() {
           </p>
         </section>
       ) : (
-        <CatalogResultsShell
-          facetsPanelProps={facetsPanelProps}
-          resultsSectionProps={resultsSectionProps}
-        />
+        <section className="space-y-400">
+          <div className="flex min-w-0 flex-col gap-600 xl:grid xl:grid-cols-12 xl:items-start">
+            <div className="min-w-0 xl:col-span-3 xl:self-start xl:sticky xl:top-400">
+              <CategoryFacetsPanel
+                activeFilterCount={controller.activeAsideFilterCount}
+                brandItems={controller.asideBrandItems}
+                currencyCode={controller.productsCurrencyCode}
+                formItems={controller.asideFormItems}
+                ingredientItems={controller.asideIngredientItems}
+                isLoading={controller.isFiltersLoading}
+                onBrandToggle={controller.onBrandToggle}
+                onFormToggle={controller.onFormToggle}
+                onIngredientToggle={controller.onIngredientToggle}
+                onPriceRangeCommit={controller.onPriceRangeCommit}
+                onReset={controller.onResetFilters}
+                onStatusToggle={controller.onStatusToggle}
+                priceBounds={controller.priceBounds}
+                selectedPriceRange={controller.selectedPriceRange}
+                statusItems={controller.asideStatusItems}
+              />
+            </div>
+
+            <CategoryResultsSection
+              activeSort={controller.queryState.sort}
+              addToCartError={controller.addToCartError}
+              categoriesError={null}
+              catalogError={controller.catalogError}
+              isEmpty={controller.products.length === 0}
+              isLoading={controller.isResultsLoading}
+              isRefreshing={controller.isResultsRefreshing}
+              isProductAdding={controller.isProductAdding}
+              layout="catalog"
+              onAddToCart={controller.onAddToCart}
+              onPageChange={controller.onPageChange}
+              onProductHoverEnd={controller.onProductHoverEnd}
+              onProductHoverStart={controller.onProductHoverStart}
+              onSortChange={controller.onSortChange}
+              page={controller.page}
+              pageSize={PLP_PAGE_SIZE}
+              products={controller.products}
+              showCategoryNotFound={false}
+              sortItems={SORT_TAB_ITEMS}
+              totalCount={controller.catalogQuery.totalCount}
+              totalPages={controller.catalogQuery.totalPages}
+              totalProducts={controller.catalogQuery.totalCount}
+            />
+          </div>
+        </section>
       )}
     </main>
   );
