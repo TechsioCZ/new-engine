@@ -40,7 +40,7 @@ export function HomepageProductCollectionSection({
       id={section.id}
       isProductAdding={isProductAdding}
       keyPrefix={section.id}
-      layout="home"
+      layout="collection"
       onAddToCart={onAddToCart}
       onProductHoverEnd={onProductHoverEnd}
       onProductHoverStart={onProductHoverStart}

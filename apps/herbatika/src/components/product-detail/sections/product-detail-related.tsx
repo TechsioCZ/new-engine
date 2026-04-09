@@ -39,7 +39,7 @@ export function ProductDetailRelated({
           isProductAdding={(product) => isProductAdding(product.id)}
           key={section.id}
           keyPrefix={section.id}
-          layout="related"
+          layout="collection"
           onAddToCart={(productToAdd) => {
             onAddToCart(productToAdd);
           }}

@@ -1,8 +1,13 @@
 import type { HttpTypes } from "@medusajs/types";
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
+import type { ReactNode } from "react";
+import {
+  HerbatikaProductGrid,
+  type HerbatikaProductGridLayout,
+} from "@/components/product/herbatika-product-grid";
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state";
-import { CategoryProductsGrid } from "./category-products-grid";
 import { CategorySortTabs } from "./category-sort-tabs";
 import { ProductGridSkeleton } from "./product-grid-skeleton";
 
@@ -22,11 +27,14 @@ type CategoryResultsSectionProps = {
   page: number;
   pageSize: number;
   products: HttpTypes.StoreProduct[];
+  layout?: HerbatikaProductGridLayout;
+  loadingSkeleton?: ReactNode;
   showCategoryNotFound: boolean;
   sortItems: Array<{ label: string; value: ProductSortValue }>;
   totalCount: number;
   totalPages: number;
   totalProducts: number;
+  isRefreshing?: boolean;
 };
 
 export function CategoryResultsSection({
@@ -45,12 +53,20 @@ export function CategoryResultsSection({
   page,
   pageSize,
   products,
+  layout = "catalog",
+  loadingSkeleton,
   showCategoryNotFound,
   sortItems,
   totalCount,
   totalPages,
   totalProducts,
+  isRefreshing = false,
 }: CategoryResultsSectionProps) {
+  const resolvedLoadingSkeleton =
+    loadingSkeleton ?? <ProductGridSkeleton layout={layout} />;
+  const shouldShowInitialSkeleton = isLoading && products.length === 0;
+  const shouldShowProductsGrid = !showCategoryNotFound && products.length > 0;
+
   return (
     <div className="min-w-0 space-y-400 xl:col-span-9">
       <CategorySortTabs
@@ -59,6 +75,10 @@ export function CategoryResultsSection({
         sortItems={sortItems}
         totalProducts={totalProducts}
       />
+
+      {isRefreshing ? (
+        <Skeleton.Rectangle className="h-100 rounded-full" speed="fast" />
+      ) : null}
 
       {addToCartError && (
         <StatusText showIcon status="error">
@@ -82,7 +102,7 @@ export function CategoryResultsSection({
         </StatusText>
       )}
 
-      {isLoading && <ProductGridSkeleton />}
+      {shouldShowInitialSkeleton && resolvedLoadingSkeleton}
 
       {!isLoading && !showCategoryNotFound && isEmpty && (
         <div className="rounded-lg border border-border-secondary bg-base p-400">
@@ -92,9 +112,11 @@ export function CategoryResultsSection({
         </div>
       )}
 
-      {!isLoading && !isEmpty && (
-        <CategoryProductsGrid
-          isProductAdding={isProductAdding}
+      {shouldShowProductsGrid && (
+        <HerbatikaProductGrid
+          isProductAdding={(product) => isProductAdding(product.id)}
+          keyPrefix={`${layout}-product`}
+          layout={layout}
           onAddToCart={onAddToCart}
           onProductHoverEnd={onProductHoverEnd}
           onProductHoverStart={onProductHoverStart}
