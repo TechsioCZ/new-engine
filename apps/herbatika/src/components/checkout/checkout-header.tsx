@@ -5,8 +5,10 @@ import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
 import { HerbatikaLogo } from "@/components/herbatika-logo";
+import { useAuth } from "@/lib/storefront/auth";
 
 export function CheckoutHeader() {
+  const { isAuthenticated } = useAuth()
   return (
     <header className="w-full border-b border-border-secondary bg-surface font-rubik">
       <div className="mx-auto flex w-full max-w-max-w items-center justify-between gap-250 px-400 py-350 lg:px-550">
@@ -35,16 +37,17 @@ export function CheckoutHeader() {
             <Icon icon="icon-[mdi--phone-in-talk]" color="success" />
             +421 2/321 123 45
           </Link>
-          <LinkButton
+          {!isAuthenticated && <LinkButton
             as={NextLink}
             href="/auth/login"
             size="sm"
             variant="secondary"
             theme="outlined"
             icon="icon-[mdi--account-outline]"
+            className="text-nowrap text-xs sm:text-sm"
           >
             Prihlásiť sa
-          </LinkButton>
+          </LinkButton>}
         </div>
       </div>
     </header>

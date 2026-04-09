@@ -60,17 +60,15 @@ export function ProductDetailPurchasePanel({
 
   return (
     <div className="space-y-300 rounded-lg border border-border-secondary bg-surface p-350">
-      <div className="flex min-h-600 items-center justify-between gap-200">
+      <div className="flex min-h-600 flex-wrap items-start gap-200">
         {offerState.hasActiveDiscount ? (
           <Badge className="font-bold" variant="tertiary">
             Akcia
           </Badge>
-        ) : (
-          <span />
-        )}
+        ) : null}
 
-        <div className="ml-auto flex items-center gap-500">
-          <div className="flex items-center gap-100">
+        <div className="ml-auto flex min-w-0 items-center gap-300 sm:gap-500">
+          <div className="min-w-0 flex flex-wrap items-center gap-x-100 gap-y-50">
             <span className="text-fg-placeholder text-sm leading-tight">
               ID: {offerState.code ?? product.handle}
             </span>
@@ -81,7 +79,7 @@ export function ProductDetailPurchasePanel({
                 </span>
                 <Link
                   as={NextLink}
-                  className="font-normal text-primary text-sm leading-tight underline hover:text-primary-strong"
+                  className="min-w-0 break-words font-normal text-primary text-sm leading-tight underline hover:text-primary-strong"
                   href={`/c/${primaryCategory.handle}`}
                 >
                   {normalizeCategoryName(primaryCategory.name)}
@@ -92,7 +90,7 @@ export function ProductDetailPurchasePanel({
 
           <Button
             aria-label="Pridať do obľúbených"
-            className="h-600 min-h-600 w-600 min-w-600 p-0 text-fg-secondary hover:text-fg-primary"
+            className="h-750 min-h-750 w-750 min-w-750 p-0 text-fg-secondary hover:text-fg-primary sm:h-600 sm:min-h-600 sm:w-600 sm:min-w-600"
             size="sm"
             theme="borderless"
             variant="secondary"
@@ -103,7 +101,7 @@ export function ProductDetailPurchasePanel({
       </div>
 
       <header className="space-y-200">
-        <h1 className="font-semibold text-3xl text-fg-primary leading-none">
+        <h1 className="font-semibold text-2xl md:text-3xl text-fg-primary leading-none">
           {product.title}
         </h1>
       </header>
@@ -111,7 +109,7 @@ export function ProductDetailPurchasePanel({
       <ul className="space-y-50">
         {displayHighlights.map((highlight) => (
           <li
-            className="relative pt-100 pl-500 text-fg-primary text-md leading-tight"
+            className="relative pt-100 pl-500 text-fg-primary text-sm md:text-md leading-tight"
             key={highlight}
           >
             <span className="absolute top-300 left-0 h-200 w-200 rounded-full bg-primary" />
@@ -123,24 +121,24 @@ export function ProductDetailPurchasePanel({
       <div className="flex flex-wrap items-end justify-between gap-250">
         <div className="space-y-200">
           <div className="flex flex-wrap items-end gap-150">
-            <p className="font-medium text-3xl text-fg-primary leading-tight">
+            <p className="font-medium text-xl md:text-3xl text-fg-primary leading-tight">
               {currentAmountLabel}
             </p>
             {displayOriginalLabel ? (
-              <span className="pb-50 font-normal text-fg-secondary text-lg leading-normal line-through">
+              <span className="pb-50 font-normal text-fg-secondary text-md md:text-lg leading-normal line-through">
                 {displayOriginalLabel}
               </span>
             ) : null}
           </div>
           {unitPriceLabel ? (
-            <p className="text-fg-primary text-md leading-tight">
+            <p className="text-fg-primary text-sm md:text-md leading-tight">
               {unitPriceLabel}
             </p>
           ) : null}
         </div>
 
         {vipCreditLabel ? (
-          <div className="flex items-center gap-400 rounded-sm bg-highlight px-400 py-200">
+          <div className="flex w-full items-center gap-400 rounded-sm bg-highlight px-400 py-200 sm:w-auto">
             <Icon
               className="text-primary"
               icon="icon-[mdi--star-check-outline]"
@@ -203,17 +201,17 @@ export function ProductDetailPurchasePanel({
             }}
             value={quantity}
           >
-            <NumericInput.Control>
-              <NumericInput.DecrementTrigger />
-              <NumericInput.Input className="text-center" />
-              <NumericInput.IncrementTrigger />
+            <NumericInput.Control className="min-h-750">
+              <NumericInput.DecrementTrigger className="min-h-750 min-w-750" />
+              <NumericInput.Input className="min-h-750 text-center" />
+              <NumericInput.IncrementTrigger className="min-h-750 min-w-750" />
             </NumericInput.Control>
           </NumericInput>
         </div>
 
         <Button
           block
-          className="sm:col-span-3"
+          className="min-h-750 sm:col-span-3"
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAdding}

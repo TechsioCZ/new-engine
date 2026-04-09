@@ -43,7 +43,7 @@ export function StorefrontCategoryListing({
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 p-600 font-rubik">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-500 font-rubik sm:p-600">
       <Breadcrumb items={controller.breadcrumbItems} linkAs={NextLink} />
 
       <section>
@@ -59,8 +59,8 @@ export function StorefrontCategoryListing({
       />
 
       <section className="space-y-400">
-        <div className="grid gap-600 xl:grid-cols-12 xl:items-start">
-          <div className="xl:col-span-3 xl:self-start xl:sticky xl:top-400">
+        <div className="flex min-w-0 flex-col gap-600 xl:grid xl:grid-cols-12 xl:items-start">
+          <div className="min-w-0 xl:col-span-3 xl:self-start xl:sticky xl:top-400">
             <CategoryFacetsPanel
               activeFilterCount={controller.activeAsideFilterCount}
               brandItems={controller.asideBrandItems}
