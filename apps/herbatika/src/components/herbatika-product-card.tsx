@@ -39,7 +39,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
 
   return (
     <ProductCard className="h-full min-w-0">
-      <div className="relative pb-250">
+      <div className="flex relative justify-center pb-250">
         <NextLink
           className="block"
           href={productHref}

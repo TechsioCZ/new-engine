@@ -7,6 +7,29 @@ type PlpPageSkeletonProps = {
   variant: "search" | "category";
 };
 
+function CategoryDescriptionSkeleton() {
+  return (
+    <section className="space-y-350">
+      <div className="space-y-150">
+        <Skeleton.Text noOfLines={4} size="sm" />
+        <Skeleton.Rectangle className="h-450 w-900 rounded-full" />
+      </div>
+
+      <div className="grid gap-250 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 8 }, (_, index) => (
+          <div
+            className="flex min-h-750 items-center gap-200 rounded-lg border border-border-secondary bg-surface px-300 py-200"
+            key={`category-context-skeleton-${index + 1}`}
+          >
+            <Skeleton.Circle className="h-6 w-6 shrink-0" />
+            <Skeleton.Text noOfLines={1} size="sm" containerClassName="w-full" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
   const isSearch = variant === "search";
 
@@ -20,30 +43,23 @@ export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
           </>
         ) : (
           <>
-            <Skeleton.Rectangle className="h-250 rounded-full" />
-            <Skeleton.Text noOfLines={1} size="lg" />
+            <Skeleton.Rectangle className="h-8 rounded-sm" />
+            <Skeleton.Rectangle className="h-12 rounded-sm" />
           </>
         )}
       </section>
 
-      {isSearch ? (
-        <div className="flex flex-wrap items-center gap-200">
-          <Skeleton.Rectangle className="h-550 w-1200 rounded-full" />
-          <Skeleton.Rectangle className="h-550 w-1200 rounded-full" />
-          <Skeleton.Rectangle className="h-550 w-1200 rounded-full" />
-        </div>
-      ) : null}
+      {isSearch ? <Skeleton.Text noOfLines={3} size="lg" containerClassName="w-full" />
+        : <CategoryDescriptionSkeleton />}
 
       <section className="space-y-400">
-        <div className="flex min-w-0 flex-col gap-600 xl:grid xl:grid-cols-12 xl:items-start">
-          {!isSearch ? (
-            <aside className="hidden xl:col-span-3 xl:block">
-              <Skeleton.Rectangle className="h-2100 rounded-2xl" />
+        <div className="flex min-w-0 flex-col gap-600 md:grid md:grid-cols-12 md:items-start">
+            <aside className="hidden md:col-span-3 md:block">
+              <Skeleton.Rectangle variant="primary" className="h-164 rounded-2xl" />
             </aside>
-          ) : null}
 
-          <div className={isSearch ? "space-y-400" : "space-y-400 xl:col-span-9"}>
-            <Skeleton.Rectangle className="h-650 rounded-xs" />
+          <div className="space-y-400 md:col-span-9">
+            <Skeleton.Rectangle className="h-16 rounded-xl" />
             <HerbatikaProductGridSkeleton layout="catalog" />
           </div>
         </div>

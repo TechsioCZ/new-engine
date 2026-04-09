@@ -11,7 +11,7 @@ import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-pro
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state";
 import { CategorySortTabs } from "./category-sort-tabs";
 
-type CategoryResultsSectionProps = {
+export type CategoryResultsSectionProps = {
   activeSort: ProductSortValue;
   addToCartError: string | null;
   categoriesError: string | null;
