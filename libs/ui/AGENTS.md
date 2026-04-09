@@ -212,8 +212,8 @@ Common prefixes used in this repo:
 - Codebase token architecture is the source of truth for Figma library work.
 - Mirror the code hierarchy in Figma: primitive/core values → semantic aliases → component-specific aliases.
 - Component-specific Figma variables must never contain raw values when an upper-layer token exists. They must alias semantic or primitive tokens.
-- For Button and other component collections, use slash-separated Figma names in this order: `property/component/cssProperty/variant/state`.
-- Examples: `color/button/bg/primary`, `color/button/bg/primary/hover`, `color/button/fg/outlined/danger`, `spacing/button/gap/md`, `radius/button/root/md`.
+- For component-specific Figma variables, use slash-separated names: `property/component/cssProperty/variant/state`. Only include the levels that are meaningful — omit `variant` and `state` segments when the token has no variants or states that change the value. For example, use `spacing/form-field/gap` (not `spacing/form-field/gap/default/default`) when the gap is the same regardless of variant or state.
+- Examples: `color/button/bg/primary`, `color/button/bg/primary/hover`, `color/button/fg/outlined/danger`, `spacing/button/gap/md`, `radius/button/root/md`, `spacing/form-field/gap`.
 - Keep component property labels aligned with code props whenever Figma supports them directly. Prefer lowercase value names for variant options.
 - When code derives hover or active colors from a semantic token, create the Figma state token in the semantic or component layer and keep the component token aliased from the upper layer when possible.
 - When a semantic token depends on a palette axis, create the primitive axis first. For branded semantic colors, provide named primitive scales such as `color/primary/100` through `color/primary/900` before aliasing semantic or component tokens to them.
