@@ -36,23 +36,36 @@ export function CategoryFacetsPanel({
   selectedPriceRange,
   statusItems,
 }: CategoryFacetsPanelProps) {
+  const filterProps = {
+    activeFilterCount,
+    brandItems,
+    currencyCode,
+    formItems,
+    ingredientItems,
+    isLoading,
+    onBrandToggle,
+    onFormToggle,
+    onIngredientToggle,
+    onPriceRangeCommit,
+    onReset,
+    onStatusToggle,
+    priceBounds,
+    selectedPriceRange,
+    statusItems,
+  };
+
   return (
-    <AsideFilter
-      activeFilterCount={activeFilterCount}
-      brandItems={brandItems}
-      currencyCode={currencyCode}
-      formItems={formItems}
-      ingredientItems={ingredientItems}
-      isLoading={isLoading}
-      onBrandToggle={onBrandToggle}
-      onFormToggle={onFormToggle}
-      onIngredientToggle={onIngredientToggle}
-      onPriceRangeCommit={onPriceRangeCommit}
-      onReset={onReset}
-      onStatusToggle={onStatusToggle}
-      priceBounds={priceBounds}
-      selectedPriceRange={selectedPriceRange}
-      statusItems={statusItems}
-    />
+    <>
+      <div className="hidden xl:block">
+        <AsideFilter {...filterProps} />
+      </div>
+
+      <details className="space-y-300 xl:hidden">
+        <summary className="cursor-pointer rounded-2xl border border-border-secondary bg-surface px-400 py-300 text-sm font-medium text-fg-primary">
+          {activeFilterCount > 0 ? `Filtr (${activeFilterCount})` : "Filtr"}
+        </summary>
+        <AsideFilter {...filterProps} />
+      </details>
+    </>
   );
 }

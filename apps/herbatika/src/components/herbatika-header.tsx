@@ -185,6 +185,7 @@ export function HerbatikaHeader() {
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
             <SearchForm.Control>
               <SearchForm.Input
+                name="q"
                 placeholder="Napíšte, čo hľadáte..."
               />
               <SearchForm.Button className="rounded-r-none" aria-label="Hľadať" showSearchIcon />
