@@ -3,42 +3,49 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
 import NextLink from "next/link";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useTransition } from "react";
 import { StorefrontAccountOrderGroup } from "@/components/account/orders/storefront-account-order-group";
+import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton";
 import {
-  StorefrontAccountSkeletonSurface,
   StorefrontAccountSurface,
 } from "@/components/account/storefront-account-surface";
 import { useAuth } from "@/lib/storefront/auth";
-import {
-  getOrderDetailQueryOptions,
-  useOrders,
-} from "@/lib/storefront/orders";
+import { getOrderDetailQueryOptions, useOrders } from "@/lib/storefront/orders";
 
 const ORDER_PAGE_SIZE = 10;
 
 export function StorefrontAccountOrdersList() {
   const queryClient = useQueryClient();
   const authQuery = useAuth();
+  const [isPageTransitionPending, startTransition] = useTransition();
   const [currentPage, setCurrentPage] = useQueryState(
     "page",
     parseAsInteger.withDefault(1),
   );
-  const ordersQuery = useOrders({
-    page: currentPage,
-    limit: ORDER_PAGE_SIZE,
-    enabled: authQuery.isAuthenticated,
-  });
+  const ordersQuery = useOrders(
+    {
+      page: currentPage,
+      limit: ORDER_PAGE_SIZE,
+      enabled: authQuery.isAuthenticated,
+    },
+  );
+  const hasVisibleOrders = ordersQuery.orders.length > 0;
+  const isOrdersRefreshing =
+    (ordersQuery.query.isFetching || isPageTransitionPending) &&
+    (hasVisibleOrders || ordersQuery.query.isPlaceholderData);
 
   const setPage = useCallback(
     (nextPage: number, replaceHistoryEntry = false) => {
       const normalizedPage = Math.max(1, nextPage);
-      void setCurrentPage(normalizedPage, {
-        history: replaceHistoryEntry ? "replace" : "push",
+      startTransition(() => {
+        void setCurrentPage(normalizedPage, {
+          history: replaceHistoryEntry ? "replace" : "push",
+        });
       });
     },
     [setCurrentPage],
@@ -58,13 +65,15 @@ export function StorefrontAccountOrdersList() {
 
   const prefetchOrderDetail = useCallback(
     (orderId: string) => {
-      void queryClient.prefetchQuery(getOrderDetailQueryOptions({ id: orderId }));
+      void queryClient.prefetchQuery(
+        getOrderDetailQueryOptions({ id: orderId }),
+      );
     },
     [queryClient],
   );
 
-  if (authQuery.isLoading || (ordersQuery.isLoading && currentPage === 1)) {
-    return <StorefrontAccountSkeletonSurface lines={8} />;
+  if (authQuery.isLoading || (ordersQuery.isLoading && !hasVisibleOrders)) {
+    return <AccountOrdersSkeleton />;
   }
 
   if (ordersQuery.error) {
@@ -106,8 +115,12 @@ export function StorefrontAccountOrdersList() {
         <p className="text-sm text-fg-secondary">
           Prehľad dokončených objednávok s položkami a stavom doručenia.
         </p>
-        <p className="text-fg-tertiary text-xs">{`Celkom: ${ordersQuery.totalCount} | Strana ${ordersQuery.currentPage}/${ordersQuery.totalPages}`}</p>
+        <p className="text-fg-tertiary text-xs">{`Celkom: ${ordersQuery.totalCount} | Strana ${currentPage}/${ordersQuery.totalPages}`}</p>
       </header>
+
+      {isOrdersRefreshing ? (
+        <Skeleton.Rectangle className="h-100 rounded-full" speed="fast" />
+      ) : null}
 
       <div className="space-y-300">
         {ordersQuery.orders.map((order) => {
@@ -131,7 +144,7 @@ export function StorefrontAccountOrdersList() {
 
             setPage(nextPage);
           }}
-          page={ordersQuery.currentPage}
+          page={currentPage}
           pageSize={ORDER_PAGE_SIZE}
           size="sm"
           variant="outlined"

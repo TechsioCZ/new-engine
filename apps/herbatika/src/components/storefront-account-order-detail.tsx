@@ -6,8 +6,8 @@ import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
 import { StorefrontAccountOrderDetailItems } from "@/components/account/orders/storefront-account-order-detail-items";
 import { StorefrontAccountOrderDetailSummary } from "@/components/account/orders/storefront-account-order-detail-summary";
+import { OrderSkeleton } from "@/components/loading/order-skeleton";
 import {
-  StorefrontAccountSkeletonSurface,
   StorefrontAccountSurface,
 } from "@/components/account/storefront-account-surface";
 import { resolveOrderDisplayId } from "@/lib/storefront/order-format";
@@ -28,7 +28,7 @@ export function StorefrontAccountOrderDetail({
   });
 
   if (authQuery.isLoading || orderQuery.isLoading) {
-    return <StorefrontAccountSkeletonSurface lines={10} />;
+    return <OrderSkeleton />;
   }
 
   if (orderQuery.error) {

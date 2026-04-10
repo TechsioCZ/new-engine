@@ -2,12 +2,14 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton";
+import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton";
+import { OrderSkeleton } from "@/components/loading/order-skeleton";
 import { useAuth } from "@/lib/storefront/auth";
 import { useStorefrontLogoutAction } from "@/lib/storefront/use-storefront-logout-action";
 import { Icon, IconType } from "@techsio/ui-kit/atoms/icon";
@@ -48,6 +50,8 @@ export function StorefrontAccountLayout({
   const authQuery = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const redirectTarget = pathname;
+  const isOrdersListRoute = pathname === "/account/orders";
+  const isOrderDetailRoute = pathname.startsWith("/account/orders/");
   const {
     clearLogoutError,
     handleLogout: performLogout,
@@ -89,13 +93,16 @@ export function StorefrontAccountLayout({
 
   if (authQuery.isLoading) {
     return (
-      <main className="mx-auto w-full max-w-max-w px-400 py-550 lg:px-550">
-        <section className="rounded-lg border border-border-secondary bg-surface p-550">
-          <Skeleton>
-            <Skeleton.Text noOfLines={4} />
-          </Skeleton>
-        </section>
-      </main>
+      <AccountLayoutSkeleton
+        surface={
+          isOrderDetailRoute
+            ? <OrderSkeleton />
+            : isOrdersListRoute
+              ? <AccountOrdersSkeleton />
+              : undefined
+        }
+        surfaceLines={4}
+      />
     );
   }
 
