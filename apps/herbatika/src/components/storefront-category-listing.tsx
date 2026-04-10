@@ -38,8 +38,7 @@ export function StorefrontCategoryListing({
     controller.categoriesQuery.isLoading ||
     (controller.catalogQuery.isLoading && !hasResultProducts);
   const isResultsRefreshing =
-    (controller.catalogQuery.isFetching ||
-      controller.isQueryTransitionPending) &&
+    controller.catalogQuery.isFetching &&
     (hasResultProducts || controller.catalogQuery.query.isPlaceholderData);
   const fallbackNavTitle =
     PRIMARY_NAV_ITEMS.find((item) => item.href === `/c/${slug}`)?.label ??

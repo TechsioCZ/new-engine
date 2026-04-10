@@ -99,6 +99,9 @@ export function useSearchListingController() {
     isFiltersLoading:
       isSearchQueryEnabled &&
       (catalogQuery.isLoading || catalogFacetSeedQuery.isLoading),
+    isResultsRefreshing:
+      catalogQuery.isFetching &&
+      (catalogQuery.products.length > 0 || catalogQuery.query.isPlaceholderData),
     isResultsLoading:
       query.length > 0 &&
       (!region?.region_id || catalogQuery.isLoading),
