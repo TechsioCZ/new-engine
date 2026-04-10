@@ -7,7 +7,7 @@ description: "Migrate UI library components from code into the Figma component l
  
 Migrate one UI component from the codebase into the Figma design system library with strict code-first parity.
  
-Use this for component-library work, not for product screens. For canvas writes, always use [$figma:figma-use](/Users/lukaschylik/.codex/plugins/cache/openai-curated/figma/f78e3ad49297672a905eb7afb6aa0cef34edc79e/skills/figma-use/SKILL.md). For library structure and sequencing, also use [$figma:figma-generate-library](/Users/lukaschylik/.codex/plugins/cache/openai-curated/figma/f78e3ad49297672a905eb7afb6aa0cef34edc79e/skills/figma-generate-library/SKILL.md). For the final mapping step, use [$figma:figma-code-connect-components](/Users/lukaschylik/.codex/plugins/cache/openai-curated/figma/f78e3ad49297672a905eb7afb6aa0cef34edc79e/skills/figma-code-connect-components/SKILL.md).
+Use this for component-library work, not for product screens. For canvas writes, always use `$figma:figma-use`. For library structure and sequencing, also use `$figma:figma-generate-library`. For the final mapping step, use `$figma:figma-code-connect-components`.
  
 ## Non-Negotiable Rules
  
@@ -17,7 +17,7 @@ Use this for component-library work, not for product screens. For canvas writes,
 4. Never create component-specific Figma variables with raw values.
 5. Component variables must always inherit from semantic or primitive variables.
 6. Never duplicate tokens that already exist in the Figma library. Reuse or alias them.
-7. Variable naming is mandatory: `type/component/cssProperty/variant/state`.
+7. Variable naming is mandatory: use slash-separated names in the form `type/component/cssProperty/variant/state`, omitting variant and state segments when they are not meaningful.
 8. Figma pages must follow the established library shell:
    - black canvas background
    - white section cards
@@ -84,7 +84,7 @@ Use Storybook to inspect the live component before building or fixing Figma.
  
 Preferred flow:
 1. If Storybook is already running, use it.
-2. Otherwise run `pnpm run storybook`.
+2. Otherwise run `bunx nx run ui:storybook`.
 3. Open the relevant Storybook URL for the component.
 4. Use Chrome DevTools MCP to inspect the rendered HTML and final CSS.
  
@@ -120,17 +120,17 @@ Create or update Figma variables in this order:
 3. component-specific
  
 Component-specific variables must use this naming:
-- `color/button/bg/primary/default`
+- `color/button/bg/primary`
 - `color/button/bg/primary/hover`
-- `color/input/border/error/default`
-- `spacing/input/x/md/default`
-- `radius/form-control/root/md/default`
+- `color/input/border/error`
+- `spacing/input/x/md`
+- `radius/form-control/root/md`
  
 Guidelines:
 - `type` examples: `color`, `spacing`, `padding`, `gap`, `radius`, `border`, `text`, `size`, `opacity`
 - `component` must use the real component name in lowercase slash style
 - `cssProperty` should describe the visual role: `bg`, `fg`, `border`, `ring`, `x`, `y`, `root`, `height`, `icon-gap`
-- `variant` and `state` must match code semantics
+- `variant` and `state` must match code semantics, and should be omitted when they are not meaningful
  
 Set scopes correctly. Never leave component variables overly broad.
  
@@ -183,20 +183,20 @@ After validation:
 - update page order if needed
 - keep the same shell styling and spacing rhythm as the existing component pages
  
-Use [$figma:figma-generate-library](/Users/lukaschylik/.codex/plugins/cache/openai-curated/figma/f78e3ad49297672a905eb7afb6aa0cef34edc79e/skills/figma-generate-library/SKILL.md) conventions for sequencing and library hygiene.
+Use `$figma:figma-generate-library` conventions for sequencing and library hygiene.
  
 ### Step 9: Create Repo-Side Code Connect Files
  
 After the component is visually correct in Figma:
 1. create or update `<component>.figma.tsx` beside the component implementation
-2. follow the pattern used by `/Users/lukaschylik/Projects/new-engine/libs/ui/src/atoms/button.figma.tsx`
+2. follow the pattern used by `libs/ui/src/atoms/button.figma.tsx`
 3. map the real Figma node and the real visual props
 4. keep prop names aligned with code and Figma
 5. run local parse validation
  
 ### Step 10: Create Figma Code Connect Mapping
  
-Use [$figma:figma-code-connect-components](/Users/lukaschylik/.codex/plugins/cache/openai-curated/figma/f78e3ad49297672a905eb7afb6aa0cef34edc79e/skills/figma-code-connect-components/SKILL.md) after the Figma component is published and the account has the required Figma plan.
+Use `$figma:figma-code-connect-components` after the Figma component is published and the account has the required Figma plan.
  
 If Code Connect is blocked by plan or permissions:
 - still create the local `.figma.tsx` file

@@ -35,7 +35,7 @@ This project includes MCP (Model Context Protocol) servers configuration to enha
    - Use for: E2E testing, visual regression tests, automated screenshots
    - Example: "Use puppeteer to capture screenshots of all product pages"
 
-2. **github** - GitHub repository management
+2. **GitHub** - GitHub repository management
    - Use for: Creating PRs, managing issues, reviewing code
    - Example: "Create a GitHub issue for refactoring CSS tokens"
 
@@ -43,7 +43,7 @@ This project includes MCP (Model Context Protocol) servers configuration to enha
    - Use for: Researching e-commerce best practices, competitor analysis
    - Example: "Search for modern e-commerce UI patterns for checkout flow"
 
-4. **sequential-thinking** - Complex problem solving
+4. **sequential-thinking** - Complex problem-solving
    - Use for: Architecture decisions, refactoring planning
    - Example: "Plan the migration of all CSS files to new naming convention"
 
@@ -116,9 +116,9 @@ bunx nx run ui:test           # Run UI library tests with Vitest
 ```
 
 ### Code Quality
-Always run Biome globally over the entire repository:
+Run Biome only on the files or paths you changed:
 ```bash
-bunx biome check --write .     # Lint and format entire repository
+bunx biome check --write path/to/file.tsx     # Lint and format a specific file or path
 ```
 
 ### Nx Utilities

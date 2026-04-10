@@ -41,25 +41,13 @@
    * form-control wrappers so they share an identical rendered height.
    */
   --height-form-control-sm: calc(
-    var(--border-width-form-control) *
-    2 +
-    var(--spacing-50) *
-    2 +
-    1lh
+    var(--border-width-form-control) * 2 + var(--spacing-50) * 2 + 1lh
   );
   --height-form-control-md: calc(
-    var(--border-width-form-control) *
-    2 +
-    var(--spacing-100) *
-    2 +
-    1lh
+    var(--border-width-form-control) * 2 + var(--spacing-100) * 2 + 1lh
   );
   --height-form-control-lg: calc(
-    var(--border-width-form-control) *
-    2 +
-    var(--spacing-200) *
-    2 +
-    1lh
+    var(--border-width-form-control) * 2 + var(--spacing-200) * 2 + 1lh
   );
 }
 

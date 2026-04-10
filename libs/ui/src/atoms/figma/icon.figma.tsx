@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+import type { IconType } from "../icon"
 import { Icon } from "../icon"
 
 figma.connect(
@@ -24,10 +25,10 @@ figma.connect(
         success: "success",
         warning: "warning",
       }),
-      icon: figma.instance("icon"),
+      icon: figma.instance<IconType | undefined>("icon"),
     },
-    example: ({ color, size }) => (
-      <Icon icon="token-icon-plus" size={size} color={color} />
+    example: ({ color, size, icon }) => (
+      <Icon color={color} icon={icon ?? "token-icon-plus"} size={size} />
     ),
-  },
+  }
 )

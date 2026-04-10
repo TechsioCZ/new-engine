@@ -1,6 +1,11 @@
 import figma from "@figma/code-connect"
 import { Skeleton } from "../skeleton"
 
+const placeholderBgClassByVariant = {
+  primary: "bg-skeleton-bg-primary",
+  secondary: "bg-skeleton-bg-secondary",
+} as const
+
 figma.connect(
   Skeleton.Rectangle,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=565-101",
@@ -17,12 +22,16 @@ figma.connect(
         fast: "fast",
       }),
     },
-    example: ({ speed, variant }) => (
-      <Skeleton.Rectangle speed={speed} variant={variant}>
-        <div className="h-20 w-xs rounded-md bg-primary" />
-      </Skeleton.Rectangle>
-    ),
-  },
+    example: ({ speed, variant }) => {
+      const placeholderBgClass = placeholderBgClassByVariant[variant]
+
+      return (
+        <Skeleton.Rectangle speed={speed} variant={variant}>
+          <div className={`h-20 w-xs rounded-md ${placeholderBgClass}`} />
+        </Skeleton.Rectangle>
+      )
+    },
+  }
 )
 
 figma.connect(
@@ -47,12 +56,16 @@ figma.connect(
         xl: "xl",
       }),
     },
-    example: ({ size, speed, variant }) => (
-      <Skeleton.Circle size={size} speed={speed} variant={variant}>
-        <div className="bg-primary/20 size-16 rounded-full" />
-      </Skeleton.Circle>
-    ),
-  },
+    example: ({ size, speed, variant }) => {
+      const placeholderBgClass = placeholderBgClassByVariant[variant]
+
+      return (
+        <Skeleton.Circle size={size} speed={speed} variant={variant}>
+          <div className={`size-16 rounded-full ${placeholderBgClass}`} />
+        </Skeleton.Circle>
+      )
+    },
+  }
 )
 
 figma.connect(
@@ -87,19 +100,23 @@ figma.connect(
         "90%": "90%",
       }),
     },
-    example: ({ lastLineWidth, noOfLines, size, speed, variant }) => (
-      <Skeleton.Text
-        lastLineWidth={lastLineWidth}
-        noOfLines={noOfLines}
-        size={size}
-        speed={speed}
-        variant={variant}
-      >
-        <div className="space-y-150 w-xs">
-          <div className="bg-primary/20 h-4 rounded-sm w-full" />
-          <div className="bg-primary/20 h-4 rounded-sm w-4/5" />
-        </div>
-      </Skeleton.Text>
-    ),
-  },
+    example: ({ lastLineWidth, noOfLines, size, speed, variant }) => {
+      const placeholderBgClass = placeholderBgClassByVariant[variant]
+
+      return (
+        <Skeleton.Text
+          lastLineWidth={lastLineWidth}
+          noOfLines={noOfLines}
+          size={size}
+          speed={speed}
+          variant={variant}
+        >
+          <div className="w-xs space-y-150">
+            <div className={`h-4 w-full rounded-sm ${placeholderBgClass}`} />
+            <div className={`h-4 w-4/5 rounded-sm ${placeholderBgClass}`} />
+          </div>
+        </Skeleton.Text>
+      )
+    },
+  }
 )
