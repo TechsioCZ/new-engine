@@ -63,7 +63,7 @@ type LayoutShellProps = Readonly<{
 function LayoutShell({ children, initialRegion = null }: LayoutShellProps) {
   return (
     <Providers initialRegion={initialRegion}>
-      <Suspense fallback={<div className="min-h-dvh bg-base">{children}</div>}>
+      <Suspense fallback={<div className="min-h-dvh bg-base" />}>
         <AppShell>{children}</AppShell>
       </Suspense>
     </Providers>
@@ -91,7 +91,13 @@ export default function RootLayout({
       className={`${verdana.variable} ${openSans.variable} ${inter.variable} ${rubik.variable} ${roboto.variable}`}
     >
       <body className={`text-fg-primary ${verdana.className}`}>
-        <Suspense fallback={<LayoutShell>{children}</LayoutShell>}>
+        <Suspense
+          fallback={
+            <LayoutShell>
+              <div className="min-h-dvh bg-base" />
+            </LayoutShell>
+          }
+        >
           <ResolvedLayoutShell>{children}</ResolvedLayoutShell>
         </Suspense>
       </body>
