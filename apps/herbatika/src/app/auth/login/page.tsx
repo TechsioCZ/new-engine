@@ -1,18 +1,17 @@
-import { Suspense } from "react";
-import { StorefrontAuthPageContent } from "@/components/storefront-auth-page-content";
+import { resolveAfterAuthHref } from "@/components/auth/storefront-auth-helpers";
+import { StorefrontAuthControls } from "@/components/storefront-auth-controls";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const afterAuthHref = resolveAfterAuthHref(resolvedSearchParams.next);
+
   return (
     <main className="mx-auto w-full max-w-auth-content px-400 py-550 lg:px-550">
-      <Suspense
-        fallback={
-          <section className="rounded-xl border border-border-secondary bg-surface p-550">
-            <p className="text-sm text-fg-secondary">Načítavam formulár…</p>
-          </section>
-        }
-      >
-        <StorefrontAuthPageContent mode="login" />
-      </Suspense>
+      <StorefrontAuthControls afterAuthHref={afterAuthHref} mode="login" />
     </main>
   );
 }

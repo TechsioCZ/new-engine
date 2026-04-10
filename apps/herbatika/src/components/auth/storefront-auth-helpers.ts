@@ -72,6 +72,14 @@ export const buildAuthRouteHref = (
   return `${path}?next=${encodeURIComponent(next)}`;
 };
 
+export const resolveAfterAuthHref = (
+  value?: string | string[],
+  fallback = "/account",
+) => {
+  const nextValue = typeof value === "string" ? value : undefined;
+  return resolveSafeRedirectHref(nextValue) ?? fallback;
+};
+
 export type LoginFormValues = {
   email: string;
   password: string;
