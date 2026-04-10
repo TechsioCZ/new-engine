@@ -17,7 +17,6 @@ type ProductCollectionSectionProps = {
   id?: string;
   subtitle?: string;
   shouldShowSkeleton?: boolean;
-  skeletonLayout?: HerbatikaProductGridLayout;
   emptyText?: string;
   sectionClassName?: string;
   headerClassName?: string;
@@ -40,7 +39,6 @@ export function ProductCollectionSection({
   id,
   subtitle,
   shouldShowSkeleton = false,
-  skeletonLayout,
   emptyText = EMPTY_PRODUCTS_TEXT,
   sectionClassName,
   headerClassName,
@@ -65,7 +63,6 @@ export function ProductCollectionSection({
   const subtitleClassNames = ["mt-100 text-sm text-fg-secondary", subtitleClassName]
     .filter(Boolean)
     .join(" ");
-  const activeSkeletonLayout = skeletonLayout ?? layout;
 
   return (
     <section className={sectionClassNames} id={id}>
@@ -78,7 +75,7 @@ export function ProductCollectionSection({
       </header>
 
       {shouldShowSkeleton ? (
-        <HerbatikaProductGridSkeleton layout={activeSkeletonLayout} />
+        <HerbatikaProductGridSkeleton layout={layout} />
       ) : products.length > 0 ? (
         <HerbatikaProductGrid
           isProductAdding={isProductAdding}
