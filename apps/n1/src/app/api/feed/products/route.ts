@@ -3,7 +3,9 @@ import {
   type MedusaProductDetailInput,
   type MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
+import { createMedusaRegionService } from "@techsio/storefront-data/regions/medusa-service"
 import { NextResponse } from "next/server"
+import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
 import { sdk } from "@/lib/medusa-client"
 
 const BATCH_SIZE = 100
@@ -42,15 +44,53 @@ const productService = createMedusaProductService<
   MedusaProductListInput,
   MedusaProductDetailInput
 >(sdk)
+const regionService = createMedusaRegionService(sdk)
 
-function resolveFeedConfig(): FeedConfig | null {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
-  const defaultRegionId = process.env.NEXT_PUBLIC_DEFAULT_REGION_ID?.trim()
+function selectPreferredRegionId(
+  regions: Array<{ id?: string; countries?: Array<{ iso_2?: string | null }> }>
+): string | null {
+  const preferredRegion =
+    regions.find((region) =>
+      region.countries?.some(
+        (country) => country.iso_2 === DEFAULT_COUNTRY_CODE
+      )
+    ) ?? regions[0]
+
+  return preferredRegion?.id ?? null
+}
+
+async function resolveDefaultRegionId(): Promise<string | null> {
+  const explicitRegionId = process.env.NEXT_PUBLIC_DEFAULT_REGION_ID?.trim()
+
+  if (explicitRegionId) {
+    return explicitRegionId
+  }
+
+  try {
+    const { regions } = await regionService.getRegions({
+      fields: "id,*countries",
+    })
+    const regionId = selectPreferredRegionId(regions)
+
+    if (!regionId) {
+      console.warn("[ProductFeed] Unable to resolve fallback region")
+      return null
+    }
+
+    return regionId
+  } catch (error) {
+    console.warn("[ProductFeed] Failed to resolve fallback region", error)
+    return null
+  }
+}
+
+async function resolveFeedConfig(request: Request): Promise<FeedConfig | null> {
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? new URL(request.url).origin
+  const defaultRegionId = await resolveDefaultRegionId()
 
   if (!(siteUrl && defaultRegionId)) {
-    console.warn(
-      "[ProductFeed] Missing NEXT_PUBLIC_SITE_URL or NEXT_PUBLIC_DEFAULT_REGION_ID"
-    )
+    console.warn("[ProductFeed] Unable to resolve site URL or default region")
     return null
   }
 
@@ -152,8 +192,8 @@ function generateXmlFeed(products: FeedProduct[], siteUrl: string): string {
 </SHOP>`
 }
 
-export async function GET() {
-  const config = resolveFeedConfig()
+export async function GET(request: Request) {
+  const config = await resolveFeedConfig(request)
 
   if (!config) {
     return new NextResponse("Product feed is not configured", {
