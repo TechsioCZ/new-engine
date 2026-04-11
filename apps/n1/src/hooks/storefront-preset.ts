@@ -10,8 +10,8 @@ import type {
   MedusaProductDetailInput,
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
-import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/browser-storage"
 import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config"
+import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/storage-value-store"
 import { cacheConfig as appCacheConfig } from "@/lib/cache-config"
 import {
   DEFAULT_COUNTRY_CODE,

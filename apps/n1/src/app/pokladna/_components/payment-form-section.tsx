@@ -1,5 +1,6 @@
 "use client"
 
+import { resolveSelectedPaymentProviderId } from "@techsio/storefront-data/shared/checkout-flow-utils"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useEffect, useState } from "react"
 import { useCheckoutContext } from "../_context/checkout-context"
@@ -26,8 +27,7 @@ export function PaymentFormSection() {
 
   const [selectedProvider, setSelectedProvider] = useState<string>("")
   const [selectionError, setSelectionError] = useState<string | null>(null)
-  const currentProviderId =
-    cart?.payment_collection?.payment_sessions?.[0]?.provider_id ?? ""
+  const currentProviderId = resolveSelectedPaymentProviderId(cart) ?? ""
 
   useEffect(() => {
     setSelectedProvider(currentProviderId)
@@ -92,7 +92,6 @@ export function PaymentFormSection() {
                   role="radio"
                   size="current"
                   theme="unstyled"
-                  type="button"
                 >
                   <span className="flex h-5 w-5 items-center justify-center rounded-full border border-border-primary/40">
                     <span

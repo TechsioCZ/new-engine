@@ -27,8 +27,9 @@ export function SaveAddressPanel() {
   const { mutateAsync: updateAddressAsync } =
     storefront.hooks.customers.useUpdateCustomerAddress()
 
-  const syncBillingAddress = () => {
-    const currentValues = { ...form.getFieldValue("billingAddress") }
+  const syncBillingAddress = (
+    currentValues: typeof form.state.values.billingAddress
+  ) => {
     const nextValues = {
       ...form.state.values,
       billingAddress: currentValues,
@@ -45,11 +46,12 @@ export function SaveAddressPanel() {
   }
 
   const handleSaveNew = async () => {
-    const currentValues = syncBillingAddress()
+    const currentValues = { ...form.getFieldValue("billingAddress") }
     setSaveStatus("saving")
     setErrorMessage(null)
     try {
       await createAddressAsync(currentValues)
+      syncBillingAddress(currentValues)
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 2000)
     } catch (error) {
@@ -71,7 +73,7 @@ export function SaveAddressPanel() {
     if (!selectedAddressId) {
       return
     }
-    const currentValues = syncBillingAddress()
+    const currentValues = { ...form.getFieldValue("billingAddress") }
     setSaveStatus("saving")
     setErrorMessage(null)
     try {
@@ -79,6 +81,7 @@ export function SaveAddressPanel() {
         addressId: selectedAddressId,
         ...currentValues,
       })
+      syncBillingAddress(currentValues)
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 2000)
     } catch (error) {
@@ -108,11 +111,11 @@ export function SaveAddressPanel() {
 
       {saveStatus === "idle" && (
         <div className="flex gap-200">
-          <Button onClick={handleSaveNew} size="sm" type="button">
+          <Button onClick={handleSaveNew} size="sm">
             Uložit jako novou adresu
           </Button>
           {selectedAddressId && (
-            <Button onClick={handleUpdate} size="sm" type="button">
+            <Button onClick={handleUpdate} size="sm">
               Aktualizovat
             </Button>
           )}

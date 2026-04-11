@@ -88,7 +88,6 @@ export function AddressForm({
           onClick={onCancel}
           size="sm"
           theme="borderless"
-          type="button"
           variant="secondary"
         >
           Zrušit

@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import { storefront } from "./storefront-preset"
 
@@ -23,13 +24,18 @@ export function usePrefetchPages({
   category_id,
 }: UsePrefetchPagesParams) {
   const productHooks = storefront.hooks.products
+  const baseInput = useMemo(
+    () => ({
+      category_id,
+      limit: pageSize,
+    }),
+    [category_id, pageSize]
+  )
+
   productHooks.usePrefetchPages({
     enabled,
     shouldPrefetch: category_id.length > 0,
-    baseInput: {
-      category_id,
-      limit: pageSize,
-    },
+    baseInput,
     currentPage,
     hasNextPage,
     hasPrevPage,

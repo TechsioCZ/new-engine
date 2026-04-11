@@ -45,7 +45,7 @@ type InitialCheckoutState = {
 
 type SuspenseCartResult = ReturnType<typeof cartFlow.useSuspenseCart>
 
-const includesMessagePart = (message: string, parts: string[]): boolean => {
+const messageIncludesAny = (message: string, parts: string[]): boolean => {
   const normalizedMessage = message.toLowerCase()
   return parts.some((part) => normalizedMessage.includes(part))
 }
@@ -68,7 +68,7 @@ const toCheckoutCompletionErrorMessage = (error: unknown): string => {
         : "Nepodařilo se inicializovat platbu"
     case "complete":
       if (
-        includesMessagePart(completeCheckoutError.message, [
+        messageIncludesAny(completeCheckoutError.message, [
           "payment",
           "platba",
         ])
@@ -77,7 +77,7 @@ const toCheckoutCompletionErrorMessage = (error: unknown): string => {
       }
 
       if (
-        includesMessagePart(completeCheckoutError.message, ["stock", "sklad"])
+        messageIncludesAny(completeCheckoutError.message, ["stock", "sklad"])
       ) {
         return `Některé produkty nejsou skladem: ${completeCheckoutError.message}`
       }
@@ -285,10 +285,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        await completeCheckoutAsync({
-          paymentProviderId:
-            cart.payment_collection?.payment_sessions?.[0]?.provider_id,
-        })
+        await completeCheckoutAsync({})
       } catch (err) {
         setError(toCheckoutCompletionErrorMessage(err))
       }

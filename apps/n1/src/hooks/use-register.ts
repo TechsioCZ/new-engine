@@ -7,10 +7,8 @@ export type UseRegisterOptions = {
   onError?: (error: Error) => void
 }
 
-const authHooks = storefront.hooks.auth
-
 export function useRegister(options?: UseRegisterOptions) {
-  return authHooks.useRegister({
+  return storefront.hooks.auth.useRegister({
     onSuccess: () => {
       options?.onSuccess?.()
     },

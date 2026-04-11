@@ -67,7 +67,6 @@ function ShippingOptionCard({
       role="radio"
       size="current"
       theme="unstyled"
-      type="button"
     >
       <div className="flex-1 text-left">
         <p className="font-medium text-fg-primary text-sm">{option.name}</p>
