@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
   transpilePackages: [
-    "@new-engine/ui",
+    "@techsio/ui-kit",
     "@techsio/analytics",
     "@techsio/storefront-data",
   ],

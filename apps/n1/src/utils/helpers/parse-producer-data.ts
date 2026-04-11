@@ -157,6 +157,10 @@ export const parseProducerData = (
     return null
   }
 
+  // Producer data currently comes from the `sizing_info` attribute as a
+  // semi-structured HTML blob. We extract just the pieces we render on the
+  // product page: sizing guide URL, manufacturer / responsible person details,
+  // and distributor info.
   const sizingAttr = attributes.find(
     (attr) => attr.attributeType?.name === "sizing_info"
   )

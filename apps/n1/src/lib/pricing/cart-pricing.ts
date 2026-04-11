@@ -18,7 +18,7 @@ const isAmount = (amount?: number | null): amount is number =>
   typeof amount === "number" && Number.isFinite(amount)
 
 const hasPositiveAmount = (amount?: number | null) =>
-  typeof amount === "number" && amount > 0
+  isAmount(amount) && amount > 0
 
 const hasTaxLines = (lines?: unknown[] | null) => (lines?.length ?? 0) > 0
 

@@ -74,11 +74,6 @@ const normalizePatchCountryCode = (value: unknown): string => {
   return value.trim().toLowerCase()
 }
 
-const hasOwnAddressField = (
-  input: Record<string, unknown>,
-  field: AddressFieldKey
-): boolean => Object.hasOwn(input, field)
-
 const normalizeAddressPatch = <
   T extends Partial<AddressFormData> & Record<string, unknown>,
 >(
@@ -88,37 +83,37 @@ const normalizeAddressPatch = <
     ...input,
   }
 
-  if (hasOwnAddressField(input, "first_name")) {
+  if (Object.hasOwn(input, "first_name")) {
     normalized.first_name = trimPatchString(input.first_name)
   }
-  if (hasOwnAddressField(input, "last_name")) {
+  if (Object.hasOwn(input, "last_name")) {
     normalized.last_name = trimPatchString(input.last_name)
   }
-  if (hasOwnAddressField(input, "company")) {
+  if (Object.hasOwn(input, "company")) {
     normalized.company = trimPatchString(input.company)
   }
-  if (hasOwnAddressField(input, "address_1")) {
+  if (Object.hasOwn(input, "address_1")) {
     normalized.address_1 = trimPatchString(input.address_1)
   }
-  if (hasOwnAddressField(input, "address_2")) {
+  if (Object.hasOwn(input, "address_2")) {
     normalized.address_2 = trimPatchString(input.address_2)
   }
-  if (hasOwnAddressField(input, "city")) {
+  if (Object.hasOwn(input, "city")) {
     normalized.city = trimPatchString(input.city)
   }
-  if (hasOwnAddressField(input, "province")) {
+  if (Object.hasOwn(input, "province")) {
     normalized.province = trimPatchString(input.province)
   }
-  if (hasOwnAddressField(input, "postal_code")) {
+  if (Object.hasOwn(input, "postal_code")) {
     normalized.postal_code =
       typeof input.postal_code === "string"
         ? cleanPostalCode(input.postal_code)
         : ""
   }
-  if (hasOwnAddressField(input, "country_code")) {
+  if (Object.hasOwn(input, "country_code")) {
     normalized.country_code = normalizePatchCountryCode(input.country_code)
   }
-  if (hasOwnAddressField(input, "phone")) {
+  if (Object.hasOwn(input, "phone")) {
     normalized.phone =
       typeof input.phone === "string" ? cleanPhoneNumber(input.phone) : ""
   }
@@ -180,17 +175,17 @@ const toValidationInput = (input: AddressFormData): AddressFormData => {
 const toValidationPatchInput = (input: AddressPatchData): AddressPatchData => {
   const normalized = normalizeAddressPatch(input)
   let formattedPhone = normalized.phone
-  if (hasOwnAddressField(normalized, "phone")) {
+  if (Object.hasOwn(normalized, "phone")) {
     formattedPhone = normalized.phone ? formatPhoneNumber(normalized.phone) : ""
   }
 
   return {
     ...normalized,
-    postal_code: hasOwnAddressField(normalized, "postal_code")
+    postal_code: Object.hasOwn(normalized, "postal_code")
       ? formatPostalCode(normalized.postal_code ?? "")
       : normalized.postal_code,
     phone: formattedPhone,
-    country_code: hasOwnAddressField(normalized, "country_code")
+    country_code: Object.hasOwn(normalized, "country_code")
       ? (normalized.country_code ?? "")
       : normalized.country_code,
   }
@@ -302,34 +297,34 @@ const toMedusaCustomerAddressUpdatePayload = (
   const normalized = normalizeAddressPatch(input)
   const payload: MedusaCustomerAddressUpdateInput = {}
 
-  if (hasOwnAddressField(normalized, "first_name")) {
+  if (Object.hasOwn(normalized, "first_name")) {
     payload.first_name = normalized.first_name
   }
-  if (hasOwnAddressField(normalized, "last_name")) {
+  if (Object.hasOwn(normalized, "last_name")) {
     payload.last_name = normalized.last_name
   }
-  if (hasOwnAddressField(normalized, "company")) {
+  if (Object.hasOwn(normalized, "company")) {
     payload.company = normalized.company
   }
-  if (hasOwnAddressField(normalized, "address_1")) {
+  if (Object.hasOwn(normalized, "address_1")) {
     payload.address_1 = normalized.address_1
   }
-  if (hasOwnAddressField(normalized, "address_2")) {
+  if (Object.hasOwn(normalized, "address_2")) {
     payload.address_2 = normalized.address_2
   }
-  if (hasOwnAddressField(normalized, "city")) {
+  if (Object.hasOwn(normalized, "city")) {
     payload.city = normalized.city
   }
-  if (hasOwnAddressField(normalized, "province")) {
+  if (Object.hasOwn(normalized, "province")) {
     payload.province = normalized.province
   }
-  if (hasOwnAddressField(normalized, "postal_code")) {
+  if (Object.hasOwn(normalized, "postal_code")) {
     payload.postal_code = normalized.postal_code
   }
-  if (hasOwnAddressField(normalized, "country_code")) {
+  if (Object.hasOwn(normalized, "country_code")) {
     payload.country_code = normalized.country_code
   }
-  if (hasOwnAddressField(normalized, "phone")) {
+  if (Object.hasOwn(normalized, "phone")) {
     payload.phone = normalized.phone
   }
 
