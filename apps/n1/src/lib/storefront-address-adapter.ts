@@ -83,37 +83,43 @@ const normalizeAddressPatch = <
     ...input,
   }
 
-  if (Object.hasOwn(input, "first_name")) {
+  if (Object.hasOwn(input, "first_name") && input.first_name !== undefined) {
     normalized.first_name = trimPatchString(input.first_name)
   }
-  if (Object.hasOwn(input, "last_name")) {
+  if (Object.hasOwn(input, "last_name") && input.last_name !== undefined) {
     normalized.last_name = trimPatchString(input.last_name)
   }
-  if (Object.hasOwn(input, "company")) {
+  if (Object.hasOwn(input, "company") && input.company !== undefined) {
     normalized.company = trimPatchString(input.company)
   }
-  if (Object.hasOwn(input, "address_1")) {
+  if (Object.hasOwn(input, "address_1") && input.address_1 !== undefined) {
     normalized.address_1 = trimPatchString(input.address_1)
   }
-  if (Object.hasOwn(input, "address_2")) {
+  if (Object.hasOwn(input, "address_2") && input.address_2 !== undefined) {
     normalized.address_2 = trimPatchString(input.address_2)
   }
-  if (Object.hasOwn(input, "city")) {
+  if (Object.hasOwn(input, "city") && input.city !== undefined) {
     normalized.city = trimPatchString(input.city)
   }
-  if (Object.hasOwn(input, "province")) {
+  if (Object.hasOwn(input, "province") && input.province !== undefined) {
     normalized.province = trimPatchString(input.province)
   }
-  if (Object.hasOwn(input, "postal_code")) {
+  if (
+    Object.hasOwn(input, "postal_code") &&
+    input.postal_code !== undefined
+  ) {
     normalized.postal_code =
       typeof input.postal_code === "string"
         ? cleanPostalCode(input.postal_code)
         : ""
   }
-  if (Object.hasOwn(input, "country_code")) {
+  if (
+    Object.hasOwn(input, "country_code") &&
+    input.country_code !== undefined
+  ) {
     normalized.country_code = normalizePatchCountryCode(input.country_code)
   }
-  if (Object.hasOwn(input, "phone")) {
+  if (Object.hasOwn(input, "phone") && input.phone !== undefined) {
     normalized.phone =
       typeof input.phone === "string" ? cleanPhoneNumber(input.phone) : ""
   }
@@ -175,17 +181,21 @@ const toValidationInput = (input: AddressFormData): AddressFormData => {
 const toValidationPatchInput = (input: AddressPatchData): AddressPatchData => {
   const normalized = normalizeAddressPatch(input)
   let formattedPhone = normalized.phone
-  if (Object.hasOwn(normalized, "phone")) {
+  if (Object.hasOwn(normalized, "phone") && normalized.phone !== undefined) {
     formattedPhone = normalized.phone ? formatPhoneNumber(normalized.phone) : ""
   }
 
   return {
     ...normalized,
-    postal_code: Object.hasOwn(normalized, "postal_code")
+    postal_code:
+      Object.hasOwn(normalized, "postal_code") &&
+      normalized.postal_code !== undefined
       ? formatPostalCode(normalized.postal_code ?? "")
       : normalized.postal_code,
     phone: formattedPhone,
-    country_code: Object.hasOwn(normalized, "country_code")
+    country_code:
+      Object.hasOwn(normalized, "country_code") &&
+      normalized.country_code !== undefined
       ? (normalized.country_code ?? "")
       : normalized.country_code,
   }
@@ -297,34 +307,40 @@ const toMedusaCustomerAddressUpdatePayload = (
   const normalized = normalizeAddressPatch(input)
   const payload: MedusaCustomerAddressUpdateInput = {}
 
-  if (Object.hasOwn(normalized, "first_name")) {
+  if (Object.hasOwn(normalized, "first_name") && normalized.first_name !== undefined) {
     payload.first_name = normalized.first_name
   }
-  if (Object.hasOwn(normalized, "last_name")) {
+  if (Object.hasOwn(normalized, "last_name") && normalized.last_name !== undefined) {
     payload.last_name = normalized.last_name
   }
-  if (Object.hasOwn(normalized, "company")) {
+  if (Object.hasOwn(normalized, "company") && normalized.company !== undefined) {
     payload.company = normalized.company
   }
-  if (Object.hasOwn(normalized, "address_1")) {
+  if (Object.hasOwn(normalized, "address_1") && normalized.address_1 !== undefined) {
     payload.address_1 = normalized.address_1
   }
-  if (Object.hasOwn(normalized, "address_2")) {
+  if (Object.hasOwn(normalized, "address_2") && normalized.address_2 !== undefined) {
     payload.address_2 = normalized.address_2
   }
-  if (Object.hasOwn(normalized, "city")) {
+  if (Object.hasOwn(normalized, "city") && normalized.city !== undefined) {
     payload.city = normalized.city
   }
-  if (Object.hasOwn(normalized, "province")) {
+  if (Object.hasOwn(normalized, "province") && normalized.province !== undefined) {
     payload.province = normalized.province
   }
-  if (Object.hasOwn(normalized, "postal_code")) {
+  if (
+    Object.hasOwn(normalized, "postal_code") &&
+    normalized.postal_code !== undefined
+  ) {
     payload.postal_code = normalized.postal_code
   }
-  if (Object.hasOwn(normalized, "country_code")) {
+  if (
+    Object.hasOwn(normalized, "country_code") &&
+    normalized.country_code !== undefined
+  ) {
     payload.country_code = normalized.country_code
   }
-  if (Object.hasOwn(normalized, "phone")) {
+  if (Object.hasOwn(normalized, "phone") && normalized.phone !== undefined) {
     payload.phone = normalized.phone
   }
 

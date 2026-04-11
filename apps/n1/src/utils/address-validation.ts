@@ -161,7 +161,7 @@ export function validateAddressPatch(data: AddressPatchData): AddressErrors {
   const errors: AddressErrors = {}
 
   for (const field of REQUIRED_ADDRESS_FIELDS) {
-    if (!Object.hasOwn(data, field)) {
+    if (!Object.hasOwn(data, field) || data[field] === undefined) {
       continue
     }
 
@@ -172,7 +172,7 @@ export function validateAddressPatch(data: AddressPatchData): AddressErrors {
     }
   }
 
-  if (Object.hasOwn(data, "phone")) {
+  if (Object.hasOwn(data, "phone") && data.phone !== undefined) {
     const phoneError = validateAddressField("phone", data.phone || "")
     if (phoneError) {
       errors.phone = phoneError
