@@ -30,15 +30,10 @@ export function SaveAddressPanel() {
   const syncBillingAddress = (
     currentValues: typeof form.state.values.billingAddress
   ) => {
-    const nextValues = {
+    form.reset({
       ...form.state.values,
       billingAddress: currentValues,
-    }
-
-    form.reset(nextValues)
-    form.setFieldValue("billingAddress", currentValues)
-
-    return currentValues
+    })
   }
 
   if (!shouldShowSavePanel) {
