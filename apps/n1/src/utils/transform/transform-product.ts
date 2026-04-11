@@ -7,36 +7,28 @@ import type {
   ProductVariantDetail,
   StoreProductExtended,
 } from "@/types/product"
+import { resolveProductAvailability } from "@/utils/product-availability"
 import { formatPrice, formatVariants } from "../format/format-product"
 
 const IMAGE_PREFIX_REGEX = /^[a-f0-9]{10}-/
 
-const formatStockValue = (
-  variants?: StoreProduct["variants"]
-): "Skladem" | "Vyprodáno" => {
-  if (
-    !variants ||
-    variants.length === 0 ||
-    variants.every((v) => v.inventory_quantity === 0)
-  ) {
-    return "Vyprodáno"
-  }
-
-  return "Skladem"
-}
-
 /**
  * Extracts base product fields that are common between Product and ProductDetail
  */
-const getBaseProductFields = (product: StoreProduct) => ({
-  id: product.id,
-  handle: product.handle,
-  title: product.title,
-  price: formatPrice({ variants: product.variants }),
-  withoutTax: formatPrice({ variants: product.variants, tax: false }),
-  imageSrc: product.thumbnail || "/placeholder.jpg",
-  stockValue: formatStockValue(product.variants),
-})
+const getBaseProductFields = (product: StoreProduct) => {
+  const availability = resolveProductAvailability(product.variants)
+
+  return {
+    id: product.id,
+    handle: product.handle,
+    title: product.title,
+    price: formatPrice({ variants: product.variants }),
+    withoutTax: formatPrice({ variants: product.variants, tax: false }),
+    imageSrc: product.thumbnail || "/placeholder.jpg",
+    stockStatus: availability.status,
+    stockValue: availability.label,
+  }
+}
 
 export const transformProduct = (product: StoreProduct): Product => ({
   ...getBaseProductFields(product),

@@ -15,14 +15,12 @@ type ProductInfoPanelProps = {
   detail: ProductDetail
   selectedVariant: ProductVariantDetail | null
   handle: string
-  quantity: number
 }
 
 export const ProductInfoPanel = ({
   detail,
   selectedVariant,
   handle,
-  quantity,
 }: ProductInfoPanelProps) => {
   const priceWithTax = selectedVariant?.calculated_price
     ? formatCalculatedVariantPrice(selectedVariant.calculated_price, true)
@@ -55,7 +53,7 @@ export const ProductInfoPanel = ({
             )}
           </div>
           <div>
-            <StoreStatus quantity={quantity} />
+            <StoreStatus variant={selectedVariant} />
           </div>
         </div>
       </SectionBasicInfo>

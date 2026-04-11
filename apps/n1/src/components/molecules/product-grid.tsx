@@ -110,11 +110,7 @@ export const ProductGrid = ({
                   </ProductCard.Actions>
                 </div>
                 <ProductCard.Stock
-                  status={
-                    product.stockValue === "Skladem"
-                      ? "in-stock"
-                      : "out-of-stock"
-                  }
+                  status={product.stockStatus ?? "in-stock"}
                 >
                   {product.stockValue}
                 </ProductCard.Stock>

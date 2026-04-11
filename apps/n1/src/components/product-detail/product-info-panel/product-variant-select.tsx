@@ -59,9 +59,9 @@ export const ProductVariantSelect = ({
           <Tooltip
             content={
               <TooltipContent
-                quantity={variant.inventory_quantity ?? 0}
                 title={detail.title}
-                variant={variant.title}
+                variant={variant}
+                variantLabel={variant.title}
               />
             }
             key={variant.id}

@@ -42,7 +42,6 @@ export default function ProductPage() {
   const title = selectedVariant
     ? `${detail?.title} - ${selectedVariant.title}`
     : detail?.title
-  const quantity = selectedVariant?.inventory_quantity ?? 0
 
   // Unified analytics - ViewContent tracking (sends to Meta, Google, Leadhub)
   useEffect(() => {
@@ -167,7 +166,6 @@ export default function ProductPage() {
         <ProductInfoPanel
           detail={detail}
           handle={handle}
-          quantity={quantity}
           selectedVariant={selectedVariant}
         />
       </div>

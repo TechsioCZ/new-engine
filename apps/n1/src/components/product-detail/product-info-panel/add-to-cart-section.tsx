@@ -9,6 +9,10 @@ import { useCartToast } from "@/hooks/use-toast"
 import { useAnalytics } from "@/providers/analytics-provider"
 import type { ProductDetail, ProductVariantDetail } from "@/types/product"
 import { validateAddToCart } from "@/utils/cart/cart-validation"
+import {
+  getVariantMaxOrderQuantity,
+  isVariantPurchasable,
+} from "@/utils/product-availability"
 
 export const AddToCartSection = ({
   selectedVariant,
@@ -23,6 +27,8 @@ export const AddToCartSection = ({
   const { regionId } = useRegion()
   const toast = useCartToast()
   const analytics = useAnalytics()
+  const isPurchasable = isVariantPurchasable(selectedVariant)
+  const maxQuantity = getVariantMaxOrderQuantity(selectedVariant)
 
   const handleAddToCart = () => {
     // Validate region context
@@ -42,7 +48,7 @@ export const AddToCartSection = ({
       cart,
       variantId: selectedVariant.id,
       quantity,
-      inventoryQuantity: selectedVariant.inventory_quantity,
+      variant: selectedVariant,
     })
 
     if (!validation.valid) {
@@ -59,7 +65,7 @@ export const AddToCartSection = ({
         quantity,
         autoCreate: true,
         metadata: {
-          inventory_quantity: selectedVariant.inventory_quantity || 0,
+          inventory_quantity: selectedVariant.inventory_quantity ?? 0,
         },
       },
       {
@@ -112,7 +118,6 @@ export const AddToCartSection = ({
     )
   }
 
-  const maxQuantity = selectedVariant?.inventory_quantity || 99
   return (
     <div className="flex gap-200">
       <NumericInput
@@ -134,7 +139,7 @@ export const AddToCartSection = ({
       </NumericInput>
       <Button
         className="items-center"
-        disabled={isPending || !selectedVariant?.id || !regionId}
+        disabled={isPending || !selectedVariant?.id || !regionId || !isPurchasable}
         onClick={handleAddToCart}
         variant="secondary"
       >
