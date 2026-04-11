@@ -57,10 +57,9 @@ const meta: Meta<typeof Pagination> = {
       defaultValue: 'filled',
     },
     type: {
-      control: 'radio',
-      options: ['button', 'link'],
-      description: 'Interaction mode: real buttons or real links',
-      defaultValue: 'button',
+      control: false,
+      description:
+        'Supports both button and link modes. See the LinkMode story for true link-based pagination.',
     },
     getPageUrl: {
       control: false,

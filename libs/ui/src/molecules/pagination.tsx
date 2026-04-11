@@ -171,6 +171,7 @@ export function Pagination({
                 className={link()}
                 disabled={api.page === 1}
                 icon="token-icon-pagination-prev"
+                size="current"
                 theme="borderless"
                 {...api.getPrevTriggerProps()}
               />
@@ -200,6 +201,7 @@ export function Pagination({
                     <LinkButton
                       as={linkAs}
                       className={link()}
+                      size="current"
                       theme="borderless"
                       {...api.getItemProps(page)}
                     >
@@ -240,6 +242,7 @@ export function Pagination({
                 className={link()}
                 disabled={api.page === api.totalPages}
                 icon="token-icon-pagination-next"
+                size="current"
                 theme="borderless"
                 {...api.getNextTriggerProps()}
               />
