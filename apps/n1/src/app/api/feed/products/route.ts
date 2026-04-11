@@ -86,7 +86,7 @@ async function resolveDefaultRegionId(): Promise<string | null> {
 
 async function resolveFeedConfig(request: Request): Promise<FeedConfig | null> {
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? new URL(request.url).origin
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || new URL(request.url).origin
   const defaultRegionId = await resolveDefaultRegionId()
 
   if (!(siteUrl && defaultRegionId)) {

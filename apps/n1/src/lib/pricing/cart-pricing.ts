@@ -12,7 +12,7 @@ type ShippingOptionWithProvider = HttpTypes.StoreCartShippingOption & {
 }
 
 const getCurrencyCode = (currencyCode?: string | null) =>
-  currencyCode ?? DEFAULT_CURRENCY
+  currencyCode?.trim().toUpperCase() || DEFAULT_CURRENCY.toUpperCase()
 
 const isAmount = (amount?: number | null): amount is number =>
   typeof amount === "number" && Number.isFinite(amount)
@@ -40,20 +40,31 @@ const getItemsSubtotalAmount = (cart: Cart) =>
 const getOrderItemsSubtotalAmount = (order: HttpTypes.StoreOrder) =>
   order.item_subtotal ?? 0
 
-export const cartHasTaxData = (cart: Cart | null | undefined) => {
-  if (!cart) {
+type TaxDataCarrier = {
+  tax_total?: number | null
+  item_tax_total?: number | null
+  shipping_tax_total?: number | null
+  items?: Array<{ tax_lines?: unknown[] | null }> | null
+  shipping_methods?: Array<{ tax_lines?: unknown[] | null }> | null
+}
+
+const hasTaxData = (value: TaxDataCarrier | null | undefined) => {
+  if (!value) {
     return false
   }
 
   return (
-    hasPositiveAmount(cart.tax_total) ||
-    hasPositiveAmount(cart.item_tax_total) ||
-    hasPositiveAmount(cart.shipping_tax_total) ||
-    cart.items?.some((item) => hasTaxLines(item.tax_lines)) === true ||
-    cart.shipping_methods?.some((method) => hasTaxLines(method.tax_lines)) ===
+    hasPositiveAmount(value.tax_total) ||
+    hasPositiveAmount(value.item_tax_total) ||
+    hasPositiveAmount(value.shipping_tax_total) ||
+    value.items?.some((item) => hasTaxLines(item.tax_lines)) === true ||
+    value.shipping_methods?.some((method) => hasTaxLines(method.tax_lines)) ===
       true
   )
 }
+
+export const cartHasTaxData = (cart: Cart | null | undefined) =>
+  hasTaxData(cart)
 
 export const getCartPriceView = (cart: Cart) => {
   const currencyCode = getCurrencyCode(cart.currency_code)
@@ -81,20 +92,7 @@ export const getCartPriceView = (cart: Cart) => {
 
 export const orderHasTaxData = (
   order: HttpTypes.StoreOrder | null | undefined
-) => {
-  if (!order) {
-    return false
-  }
-
-  return (
-    hasPositiveAmount(order.tax_total) ||
-    hasPositiveAmount(order.item_tax_total) ||
-    hasPositiveAmount(order.shipping_tax_total) ||
-    order.items?.some((item) => hasTaxLines(item.tax_lines)) === true ||
-    order.shipping_methods?.some((method) => hasTaxLines(method.tax_lines)) ===
-      true
-  )
-}
+) => hasTaxData(order)
 
 export const getOrderPriceView = (order: HttpTypes.StoreOrder) => {
   const currencyCode = getCurrencyCode(order.currency_code)
@@ -171,16 +169,16 @@ export const getShippingOptionDisplayAmount = (
   shippingPrices?: ShippingPriceMap
 ) => {
   const amountFromHook = shippingPrices?.[option.id]
-  if (typeof amountFromHook === "number") {
+  if (isAmount(amountFromHook)) {
     return amountFromHook
   }
 
   const calculatedAmount = option.calculated_price?.calculated_amount
-  if (typeof calculatedAmount === "number") {
+  if (isAmount(calculatedAmount)) {
     return calculatedAmount
   }
 
-  return typeof option.amount === "number" ? option.amount : 0
+  return isAmount(option.amount) ? option.amount : 0
 }
 
 export const formatShippingOptionDisplayPrice = (
