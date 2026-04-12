@@ -21,6 +21,10 @@
       "types": "./dist/src/shared/cache-config.d.ts",
       "import": "./dist/shared/cache-config.js"
     },
+    "./shared/checkout-flow-utils":{
+      "types": "./dist/src/shared/checkout-flow-utils.d.ts",
+      "import": "./dist/shared/checkout-flow-utils.js"
+    },
     "./shared/local-storage": {
       "types": "./dist/src/shared/local-storage.d.ts",
       "import": "./dist/shared/local-storage.js"
