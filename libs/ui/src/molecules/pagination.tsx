@@ -1,6 +1,11 @@
 import * as pagination from "@zag-js/pagination"
 import { normalizeProps, useMachine } from "@zag-js/react"
-import { type ElementType, type HTMLAttributes, useId } from "react"
+import {
+  type ElementType,
+  type HTMLAttributes,
+  type ReactNode,
+  useId,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { Icon } from "../atoms/icon"
@@ -86,6 +91,8 @@ const paginationVariants = tv({
   },
 })
 
+type HrefCapableElement = ElementType<{ href?: unknown }>
+
 type PaginationBaseProps = HTMLAttributes<HTMLElement> &
   VariantProps<typeof paginationVariants> & {
     page?: number
@@ -98,6 +105,10 @@ type PaginationBaseProps = HTMLAttributes<HTMLElement> &
     onPageChange?: (page: number) => void
     dir?: "ltr" | "rtl"
     compact?: boolean
+    compactLabel?: (details: {
+      page: number
+      totalPages: number
+    }) => ReactNode
     translations?: pagination.IntlTranslations
   }
 
@@ -110,7 +121,7 @@ type PaginationModeProps =
   | {
       type: "link"
       getPageUrl: (details: pagination.PageUrlDetails) => string
-      linkAs?: ElementType
+      linkAs?: HrefCapableElement
     }
 
 export type PaginationProps = PaginationBaseProps & PaginationModeProps
@@ -132,6 +143,7 @@ export function Pagination({
   linkAs,
   size,
   compact = false,
+  compactLabel,
   translations,
   ...props
 }: PaginationProps) {
@@ -189,7 +201,10 @@ export function Pagination({
         {compact ? (
           <li className={item()}>
             <span className={compactText()} data-part="compact-text">
-              {api.page} of {api.totalPages}
+              {compactLabel?.({
+                page: api.page,
+                totalPages: api.totalPages,
+              }) ?? `${api.page} of ${api.totalPages}`}
             </span>
           </li>
         ) : (
