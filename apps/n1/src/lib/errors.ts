@@ -1,16 +1,9 @@
 import { StorefrontAddressValidationError } from "@techsio/storefront-data/shared/address"
+import { getErrorStatus } from "@techsio/storefront-data/shared/medusa-errors"
 import type { AddressErrors, AddressFieldKey } from "@/utils/address-validation"
 
 type ErrorWithMessage = {
   message: unknown
-}
-
-type ErrorWithStatus = {
-  status: unknown
-}
-
-type ErrorWithResponse = {
-  response: unknown
 }
 
 const UNKNOWN_ERROR_MESSAGE = "An unknown error occurred"
@@ -53,32 +46,6 @@ function getErrorMessage(error: unknown): string {
   }
 
   return UNKNOWN_ERROR_MESSAGE
-}
-
-function getErrorStatus(error: unknown): number | null {
-  // Check for direct status property (Medusa SDK)
-  if (error && typeof error === "object" && "status" in error) {
-    const errorWithStatus = error as ErrorWithStatus
-    if (typeof errorWithStatus.status === "number") {
-      return errorWithStatus.status
-    }
-  }
-
-  if (error && typeof error === "object" && "response" in error) {
-    const errorWithResponse = error as ErrorWithResponse
-    if (
-      errorWithResponse.response &&
-      typeof errorWithResponse.response === "object" &&
-      "status" in errorWithResponse.response
-    ) {
-      const response = errorWithResponse.response as { status: unknown }
-      if (typeof response.status === "number") {
-        return response.status
-      }
-    }
-  }
-
-  return null
 }
 
 export function toError(
