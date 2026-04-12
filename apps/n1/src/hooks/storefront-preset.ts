@@ -6,22 +6,17 @@ import {
   createMedusaStorefrontPreset,
   createMedusaStorefrontQueryKeys,
 } from "@techsio/storefront-data/medusa/preset"
-import type {
-  MedusaProductDetailInput,
-  MedusaProductListInput,
-} from "@techsio/storefront-data/products/medusa-service"
-import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config"
 import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/storage-value-store"
-import { cacheConfig as appCacheConfig } from "@/lib/cache-config"
 import {
-  DEFAULT_COUNTRY_CODE,
-  PRODUCT_DETAILED_FIELDS,
-  PRODUCT_LIMIT,
-  PRODUCT_LIST_FIELDS,
-} from "@/lib/constants"
+  STOREFRONT_QUERY_NAMESPACE,
+  orderHooksConfig,
+  orderServiceConfig,
+  productHooksConfig,
+  productServiceConfig,
+  storefrontCacheConfig,
+} from "@/lib/storefront-config"
 import { isNotFoundError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
-import { buildProductQueryParams } from "@/lib/product-query-params"
 import {
   type CustomerAddressUpdateHookInput,
   cartAddressAdapter,
@@ -30,31 +25,12 @@ import {
 import type { AddressFormData } from "@/utils/address-validation"
 
 const CART_ID_KEY = "n1_cart_id"
-const storefrontQueryKeys = createMedusaStorefrontQueryKeys("n1")
-type MedusaProductListQuery = MedusaProductListInput & Record<string, unknown>
+const storefrontQueryKeys = createMedusaStorefrontQueryKeys(
+  STOREFRONT_QUERY_NAMESPACE
+)
 
 const cartStorage = createLocalStorageValueStore({
   key: CART_ID_KEY,
-})
-
-const normalizeProductListParams = (
-  input: MedusaProductListInput
-): MedusaProductListQuery => {
-  const normalizedInput = buildProductQueryParams(input)
-
-  return {
-    ...normalizedInput,
-    country_code: normalizedInput.country_code ?? DEFAULT_COUNTRY_CODE,
-    fields: normalizedInput.fields ?? PRODUCT_LIST_FIELDS,
-  } as MedusaProductListQuery
-}
-
-const storefrontCacheConfig = createCacheConfig({
-  realtime: {
-    ...appCacheConfig.realtime,
-    refetchOnMount: true,
-  },
-  userData: appCacheConfig.userData,
 })
 
 type N1StorefrontConfig = CreateMedusaStorefrontPresetConfig<
@@ -84,7 +60,7 @@ type N1Storefront = ReturnType<
 
 const storefrontConfig = {
   sdk,
-  queryKeyNamespace: "n1",
+  queryKeyNamespace: STOREFRONT_QUERY_NAMESPACE,
   cacheConfig: storefrontCacheConfig,
   auth: {
     hooks: {
@@ -103,35 +79,12 @@ const storefrontConfig = {
     },
   },
   products: {
-    serviceConfig: {
-      defaultListFields: PRODUCT_LIST_FIELDS,
-      defaultDetailFields: PRODUCT_DETAILED_FIELDS,
-      normalizeListQuery: normalizeProductListParams,
-      normalizeDetailQuery: (params: MedusaProductDetailInput) => ({
-        handle: params.handle,
-        region_id: params.region_id,
-        country_code: params.country_code ?? DEFAULT_COUNTRY_CODE,
-        province: params.province,
-        cart_id: params.cart_id,
-        locale: params.locale,
-        fields: params.fields ?? PRODUCT_DETAILED_FIELDS,
-      }),
-      createGlobalFetcher: true,
-    },
-    hooks: {
-      defaultPageSize: PRODUCT_LIMIT,
-      requireRegion: true,
-      buildListParams: normalizeProductListParams,
-      buildPrefetchParams: normalizeProductListParams,
-    },
+    serviceConfig: productServiceConfig,
+    hooks: productHooksConfig,
   },
   orders: {
-    serviceConfig: {
-      defaultFields: "*items",
-    },
-    hooks: {
-      defaultPageSize: 20,
-    },
+    serviceConfig: orderServiceConfig,
+    hooks: orderHooksConfig,
   },
   customers: {
     hooks: {

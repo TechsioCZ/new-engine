@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { DEFAULT_COUNTRY_CODE, DEFAULT_CURRENCY } from "@/lib/constants"
+import { resolveRegionSelection } from "@/lib/region-selection"
 import { storefront } from "./storefront-preset"
 
 const REGION_STALE_TIME = 5 * 60 * 1000
@@ -35,46 +35,8 @@ const regionQueryOptions = {
   refetchOnWindowFocus: false,
 }
 
-const regionHooks = storefront.hooks.regions
-
-function findPreferredRegion(regions: Region[]): Region | undefined {
-  return (
-    regions.find((r) =>
-      r.countries?.some((country) => country.iso_2 === DEFAULT_COUNTRY_CODE)
-    ) || regions[0]
-  )
-}
-
-function getRegionValues(region: Region | undefined) {
-  const preferredCountry = region?.countries?.find(
-    (country) => country.iso_2 === DEFAULT_COUNTRY_CODE
-  )
-
-  return {
-    regionId: region?.id,
-    countryCode:
-      preferredCountry?.iso_2 ??
-      region?.countries?.[0]?.iso_2 ??
-      DEFAULT_COUNTRY_CODE,
-    currencyCode: region?.currency_code || DEFAULT_CURRENCY,
-  }
-}
-
-function resolveRegionSelection(regions: Region[]): RegionSelection {
-  const selectedRegion = findPreferredRegion(regions)
-  const { regionId, countryCode, currencyCode } =
-    getRegionValues(selectedRegion)
-
-  return {
-    selectedRegion,
-    regionId,
-    countryCode,
-    currencyCode,
-  }
-}
-
 export function useRegion(): UseRegionReturn {
-  const { regions, isLoading } = regionHooks.useRegions(
+  const { regions, isLoading } = storefront.hooks.regions.useRegions(
     {},
     { queryOptions: regionQueryOptions }
   )
@@ -93,7 +55,7 @@ export function useRegion(): UseRegionReturn {
 }
 
 export function useSuspenseRegion(): UseSuspenseRegionReturn {
-  const { regions } = regionHooks.useSuspenseRegions(
+  const { regions } = storefront.hooks.regions.useSuspenseRegions(
     {},
     { queryOptions: regionQueryOptions }
   )

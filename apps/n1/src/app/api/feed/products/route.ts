@@ -1,12 +1,7 @@
-import {
-  createMedusaProductService,
-  type MedusaProductDetailInput,
-  type MedusaProductListInput,
-} from "@techsio/storefront-data/products/medusa-service"
-import { createMedusaRegionService } from "@techsio/storefront-data/regions/medusa-service"
+import type { HttpTypes } from "@medusajs/types"
 import { NextResponse } from "next/server"
-import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
-import { sdk } from "@/lib/medusa-client"
+import { getStorefrontRegionSelection } from "@/lib/storefront-region"
+import { storefrontServerRead } from "@/lib/storefront-server-read"
 
 const BATCH_SIZE = 100
 
@@ -15,48 +10,11 @@ type FeedConfig = {
   defaultRegionId: string
 }
 
-type FeedVariant = {
-  id: string
-  title: string
-  sku?: string
-  ean?: string
-  calculated_price?: {
-    calculated_amount: number
-    currency_code: string
-  }
-  metadata?: {
-    attributes?: Array<{ name: string; value: string }>
-  }
-}
-
-type FeedProduct = {
-  id: string
-  title: string
-  handle: string
-  description?: string
-  thumbnail?: string
-  variants?: FeedVariant[]
-  categories?: Array<{ name: string }>
-}
-
-const productService = createMedusaProductService<
-  FeedProduct,
-  MedusaProductListInput,
-  MedusaProductDetailInput
->(sdk)
-const regionService = createMedusaRegionService(sdk)
-
-function selectPreferredRegionId(
-  regions: Array<{ id?: string; countries?: Array<{ iso_2?: string | null }> }>
-): string | null {
-  const preferredRegion =
-    regions.find((region) =>
-      region.countries?.some(
-        (country) => country.iso_2 === DEFAULT_COUNTRY_CODE
-      )
-    ) ?? regions[0]
-
-  return preferredRegion?.id ?? null
+type FeedVariant = HttpTypes.StoreProductVariant
+type FeedProduct = HttpTypes.StoreProduct
+type FeedAttribute = {
+  name?: string | null
+  value?: string | null
 }
 
 async function resolveDefaultRegionId(): Promise<string | null> {
@@ -67,10 +25,7 @@ async function resolveDefaultRegionId(): Promise<string | null> {
   }
 
   try {
-    const { regions } = await regionService.getRegions({
-      fields: "id,*countries",
-    })
-    const regionId = selectPreferredRegionId(regions)
+    const { regionId } = await getStorefrontRegionSelection()
 
     if (!regionId) {
       console.warn("[ProductFeed] Unable to resolve fallback region")
@@ -108,7 +63,7 @@ async function fetchAllProducts(
   let total = 0
 
   do {
-    const response = await productService.getProducts({
+    const response = await storefrontServerRead.services.products.getProducts({
       limit: BATCH_SIZE,
       offset,
       region_id: defaultRegionId,
@@ -145,7 +100,9 @@ function buildShopItem(
   const variantTitle = variant.title || "Default"
   const url = `${siteUrl}/produkt/${product.handle}?variant=${encodeURIComponent(variantTitle)}`
 
-  const attributes = variant.metadata?.attributes || []
+  const attributes: FeedAttribute[] = Array.isArray(variant.metadata?.attributes)
+    ? (variant.metadata.attributes as FeedAttribute[])
+    : []
   const manufacturer =
     attributes.find((a) => a.name === "Distributor")?.value || ""
 
