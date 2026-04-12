@@ -15,10 +15,8 @@ export type UseSuspenseAuthReturn = {
   isAuthenticated: boolean
 }
 
-const authHooks = storefront.hooks.auth
-
 export function useAuth(): UseAuthReturn {
-  const auth = authHooks.useAuth()
+  const auth = storefront.hooks.auth.useAuth()
 
   return {
     customer: auth.customer,
@@ -32,7 +30,7 @@ export function useAuth(): UseAuthReturn {
 }
 
 export function useSuspenseAuth(): UseSuspenseAuthReturn {
-  const auth = authHooks.useSuspenseAuth()
+  const auth = storefront.hooks.auth.useSuspenseAuth()
 
   return {
     customer: auth.customer,

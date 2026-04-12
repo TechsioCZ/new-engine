@@ -6,10 +6,8 @@ export type UseLogoutOptions = {
   onError?: (error: Error) => void
 }
 
-const authHooks = storefront.hooks.auth
-
 export function useLogout(options?: UseLogoutOptions) {
-  return authHooks.useLogout({
+  return storefront.hooks.auth.useLogout({
     onSuccess: () => {
       options?.onSuccess?.()
     },
