@@ -1,6 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
-import type { MedusaCustomerProfileUpdateInput } from "@techsio/storefront-data/customers/medusa-service"
 import {
   type CreateMedusaStorefrontPresetConfig,
   createMedusaStorefrontPreset,
@@ -15,7 +14,6 @@ import {
   productServiceConfig,
   storefrontCacheConfig,
 } from "@/lib/storefront-config"
-import { isNotFoundError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
 import {
   type CustomerAddressUpdateHookInput,
@@ -70,10 +68,8 @@ const storefrontConfig = {
     },
   },
   cart: {
-    serviceConfig: { isNotFoundError },
     hooks: {
       cartStorage,
-      isNotFoundError,
       invalidateOnSuccess: true,
       addressAdapter: cartAddressAdapter,
     },
@@ -89,12 +85,6 @@ const storefrontConfig = {
   customers: {
     hooks: {
       addressAdapter: customerAddressAdapter,
-      buildUpdateCustomerParams: (
-        input: MedusaCustomerProfileUpdateInput & { password?: string }
-      ) => {
-        const { password: _password, ...rest } = input
-        return rest
-      },
     },
   },
 } satisfies N1StorefrontConfig

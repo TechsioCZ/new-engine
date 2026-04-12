@@ -11,15 +11,9 @@ import { transformProduct } from "@/utils/transform/transform-product"
 
 type HomePageClientProps = {
   featuredCategoryIds?: string[]
-  regionId?: string
-  countryCode?: string
 }
 
-export function HomePageClient({
-  featuredCategoryIds,
-  regionId,
-  countryCode,
-}: HomePageClientProps) {
+export function HomePageClient({ featuredCategoryIds }: HomePageClientProps) {
   return (
     <main className="grid justify-center">
       <section className="w-full">
@@ -58,12 +52,8 @@ export function HomePageClient({
         <Suspense
           fallback={<ProductGrid isLoading products={[]} skeletonCount={8} />}
         >
-          {featuredCategoryIds && featuredCategoryIds.length > 0 && regionId ? (
-            <FeaturedHomeProductGrid
-              countryCode={countryCode}
-              featuredCategoryIds={featuredCategoryIds}
-              regionId={regionId}
-            />
+          {featuredCategoryIds && featuredCategoryIds.length > 0 ? (
+            <FeaturedHomeProductGrid featuredCategoryIds={featuredCategoryIds} />
           ) : (
             <ProductGrid products={[]} skeletonCount={8} />
           )}
@@ -75,20 +65,14 @@ export function HomePageClient({
 
 type FeaturedHomeProductGridProps = {
   featuredCategoryIds: string[]
-  regionId: string
-  countryCode?: string
 }
 
 function FeaturedHomeProductGrid({
   featuredCategoryIds,
-  regionId,
-  countryCode,
 }: FeaturedHomeProductGridProps) {
   const { products: rawProducts } = storefront.hooks.products.useSuspenseProducts({
     category_id: featuredCategoryIds,
     limit: 8,
-    region_id: regionId,
-    country_code: countryCode,
   })
 
   const products = rawProducts.map(transformProduct)

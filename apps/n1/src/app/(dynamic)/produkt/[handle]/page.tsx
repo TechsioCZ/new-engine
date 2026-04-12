@@ -35,9 +35,7 @@ export default async function ProductPage({
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <ProductPageClient
-        countryCode={region.countryCode}
         handle={handle}
-        regionId={region.regionId}
         variantParam={Array.isArray(variant) ? variant[0] ?? null : variant ?? null}
       />
     </HydrationBoundary>

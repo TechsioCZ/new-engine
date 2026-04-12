@@ -74,12 +74,7 @@ export default async function CategoryPage({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <CategoryPageClient
-        currentPage={currentPage}
-        handle={handle}
-        regionId={region.regionId}
-        countryCode={region.countryCode}
-      />
+      <CategoryPageClient currentPage={currentPage} handle={handle} />
     </HydrationBoundary>
   )
 }

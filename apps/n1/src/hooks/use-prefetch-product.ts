@@ -3,10 +3,8 @@
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import { runLoggedPrefetch } from "./prefetch-utils"
 import { storefront } from "./storefront-preset"
-import { useRegion } from "./use-region"
 
 export function usePrefetchProduct() {
-  const { regionId, countryCode } = useRegion()
   const productHooks = storefront.hooks.products
   const {
     prefetchProduct: prefetchProductBase,
@@ -19,15 +17,13 @@ export function usePrefetchProduct() {
   })
 
   const prefetchProduct = async (handle: string, fields?: string) => {
-    if (!(regionId && handle)) {
+    if (!handle) {
       return
     }
 
     const queryInput = {
       handle,
       fields,
-      region_id: regionId,
-      country_code: countryCode,
     }
 
     await runLoggedPrefetch({
@@ -42,14 +38,12 @@ export function usePrefetchProduct() {
     delay: number = PREFETCH_DELAYS.PRODUCT_DETAIL,
     fields?: string
   ) => {
-    if (!(regionId && handle)) {
+    if (!handle) {
       return handle
     }
     const queryInput = {
       handle,
       fields,
-      region_id: regionId,
-      country_code: countryCode,
     }
     return delayedPrefetchBase(queryInput, delay, handle)
   }

@@ -5,10 +5,8 @@ import {
   runLoggedPrefetch,
 } from "./prefetch-utils"
 import { storefront } from "./storefront-preset"
-import { useRegion } from "./use-region"
 
 export function usePrefetchProducts() {
-  const { regionId, countryCode } = useRegion()
   const productHooks = storefront.hooks.products
   const {
     prefetchProducts: prefetchProductsBase,
@@ -25,9 +23,6 @@ export function usePrefetchProducts() {
     categoryId: string[],
     prefetchedBy?: string
   ) => {
-    if (!regionId) {
-      return
-    }
     const labels = buildCategoryPrefetchLabels(categoryId)
     if (!labels) {
       return
@@ -35,8 +30,6 @@ export function usePrefetchProducts() {
 
     const queryInput = {
       category_id: categoryId,
-      region_id: regionId,
-      country_code: countryCode,
       limit: PRODUCT_LIMIT,
       offset: 0,
     }
@@ -52,9 +45,6 @@ export function usePrefetchProducts() {
   }
 
   const prefetchRootCategories = async (categoryId: string[]) => {
-    if (!regionId) {
-      return
-    }
     const labels = buildCategoryPrefetchLabels(categoryId)
     if (!labels) {
       return
@@ -62,8 +52,6 @@ export function usePrefetchProducts() {
 
     const queryInput = {
       category_id: categoryId,
-      region_id: regionId,
-      country_code: countryCode,
     }
 
     await runLoggedPrefetch({
@@ -80,15 +68,9 @@ export function usePrefetchProducts() {
     categoryId: string[],
     delay: number = PREFETCH_DELAYS.CATEGORY_LIST
   ) => {
-    if (!regionId) {
-      return categoryId.join("-")
-    }
-
     const id = categoryId.join("-")
     const queryInput = {
       category_id: categoryId,
-      region_id: regionId,
-      country_code: countryCode,
     }
     delayedPrefetchBase(queryInput, delay, id)
     return id

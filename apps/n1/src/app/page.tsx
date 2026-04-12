@@ -34,11 +34,7 @@ export default async function Home() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <HomePageClient
-        featuredCategoryIds={featuredCategoryIds}
-        regionId={region.regionId}
-        countryCode={region.countryCode}
-      />
+      <HomePageClient featuredCategoryIds={featuredCategoryIds} />
     </HydrationBoundary>
   )
 }

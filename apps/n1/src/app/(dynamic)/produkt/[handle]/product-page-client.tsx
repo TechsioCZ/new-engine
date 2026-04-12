@@ -24,20 +24,14 @@ import { transformProductDetail } from "@/utils/transform/transform-product"
 type ProductPageClientProps = {
   handle: string
   variantParam: string | null
-  regionId?: string
-  countryCode?: string
 }
 
 export function ProductPageClient({
   handle,
   variantParam,
-  regionId,
-  countryCode,
 }: ProductPageClientProps) {
   const { product: rawProduct } = storefront.hooks.products.useSuspenseProduct({
     handle,
-    region_id: regionId,
-    country_code: countryCode,
   })
   const analytics = useAnalytics()
 

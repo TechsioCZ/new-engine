@@ -1,7 +1,6 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
-import type { MedusaCompleteCheckoutError } from "@techsio/storefront-data/medusa/checkout-flow"
 import { StorefrontAddressValidationError } from "@techsio/storefront-data/shared/address"
 import { useRouter } from "next/navigation"
 import {
@@ -45,17 +44,42 @@ type InitialCheckoutState = {
 
 type SuspenseCartResult = ReturnType<typeof cartFlow.useSuspenseCart>
 
+type CheckoutCompletionError = {
+  stage: "cart" | "payment_provider" | "payment" | "complete"
+  message: string
+}
+
 const messageIncludesAny = (message: string, parts: string[]): boolean => {
   const normalizedMessage = message.toLowerCase()
   return parts.some((part) => normalizedMessage.includes(part))
 }
 
+const isCheckoutCompletionError = (
+  error: unknown
+): error is CheckoutCompletionError => {
+  if (!(error && typeof error === "object")) {
+    return false
+  }
+
+  const stage = "stage" in error ? (error as { stage?: unknown }).stage : undefined
+  const message =
+    "message" in error ? (error as { message?: unknown }).message : undefined
+
+  return (
+    typeof message === "string" &&
+    (stage === "cart" ||
+      stage === "payment_provider" ||
+      stage === "payment" ||
+      stage === "complete")
+  )
+}
+
 const toCheckoutCompletionErrorMessage = (error: unknown): string => {
-  if (!(error && typeof error === "object" && "stage" in error)) {
+  if (!isCheckoutCompletionError(error)) {
     return "Nepodařilo se dokončit objednávku"
   }
 
-  const completeCheckoutError = error as MedusaCompleteCheckoutError
+  const completeCheckoutError = error
 
   switch (completeCheckoutError.stage) {
     case "cart":

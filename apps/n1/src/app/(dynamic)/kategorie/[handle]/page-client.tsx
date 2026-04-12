@@ -21,10 +21,7 @@ import { storefront } from "@/hooks/storefront-preset"
 import { usePrefetchCategoryChildren } from "@/hooks/use-prefetch-category-children"
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { usePrefetchRootCategories } from "@/hooks/use-prefetch-root-categories"
-import {
-  ALL_CATEGORIES_MAP,
-  PRODUCT_LIMIT,
-} from "@/lib/constants"
+import { ALL_CATEGORIES_MAP, PRODUCT_LIMIT } from "@/lib/constants"
 import { resolveProductPagination } from "@/lib/product-query-params"
 import { useAnalytics } from "@/providers/analytics-provider"
 import { buildBreadcrumbs } from "@/utils/helpers/build-breadcrumb"
@@ -33,15 +30,11 @@ import { transformProduct } from "@/utils/transform/transform-product"
 type CategoryPageClientProps = {
   handle: string
   currentPage: number
-  regionId?: string
-  countryCode?: string
 }
 
 export function CategoryPageClient({
   handle,
   currentPage,
-  regionId,
-  countryCode,
 }: CategoryPageClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -127,8 +120,6 @@ export function CategoryPageClient({
     category_id: categoryIds,
     limit,
     offset,
-    region_id: regionId,
-    country_code: countryCode,
   })
 
   const isCurrentPageReady = !isFetching
