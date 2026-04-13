@@ -3,9 +3,11 @@ import { normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ElementType,
   type HTMLAttributes,
+  type ReactNode,
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { Button } from "../atoms/button"
 import { Icon } from "../atoms/icon"
 import { LinkButton } from "../atoms/link-button"
 import { tv } from "../utils"
@@ -48,7 +50,7 @@ const paginationVariants = tv({
       filled: {
         item: "bg-pagination-bg",
         link: [
-          "data-[current=true]:border-pagination-border-active data-[current=true]:bg-pagination-bg-active data-[current=true]:text-pagination-filled-fg-active",
+          "data-selected:border-pagination-border-active data-selected:bg-pagination-bg-active data-selected:text-pagination-filled-fg-active",
           "hover:border-pagination-border-hover hover:bg-pagination-bg-hover",
           "hover:text-pagination-filled-fg-active",
         ],
@@ -56,14 +58,14 @@ const paginationVariants = tv({
       outlined: {
         item: "bg-pagination-bg",
         link: [
-          "data-[current=true]:border-pagination-border-active data-[current=true]:text-pagination-outlined-fg-active",
+          "data-selected:border-pagination-border-active data-selected:text-pagination-outlined-fg-active",
           "hover:border-pagination-border-hover hover:text-pagination-outlined-fg-active",
         ],
       },
       minimal: {
         link: [
           "border-transparent",
-          "data-[current=true]:text-pagination-minimal-fg-active",
+          "data-selected:text-pagination-minimal-fg-active",
           "hover:text-pagination-minimal-fg-active",
         ],
       },
@@ -89,20 +91,40 @@ const paginationVariants = tv({
   },
 })
 
-export interface PaginationProps
-  extends HTMLAttributes<HTMLElement>,
-    VariantProps<typeof paginationVariants> {
-  page?: number
-  defaultPage?: number
-  count: number
-  pageSize?: number
-  siblingCount?: number
-  showPrevNext?: boolean
-  onPageChange?: (page: number) => void
-  dir?: "ltr" | "rtl"
-  linkAs?: ElementType
-  compact?: boolean
-}
+type HrefCapableElement = ElementType<{ href?: unknown }>
+
+type PaginationBaseProps = HTMLAttributes<HTMLElement> &
+  VariantProps<typeof paginationVariants> & {
+    page?: number
+    defaultPage?: number
+    count: number
+    pageSize?: number
+    siblingCount?: number
+    boundaryCount?: number
+    showPrevNext?: boolean
+    onPageChange?: (page: number) => void
+    dir?: "ltr" | "rtl"
+    compact?: boolean
+    compactLabel?: (details: {
+      page: number
+      totalPages: number
+    }) => ReactNode
+    translations?: pagination.IntlTranslations
+  }
+
+type PaginationModeProps =
+  | {
+      type?: "button"
+      getPageUrl?: never
+      linkAs?: never
+    }
+  | {
+      type: "link"
+      getPageUrl: (details: pagination.PageUrlDetails) => string
+      linkAs?: HrefCapableElement
+    }
+
+export type PaginationProps = PaginationBaseProps & PaginationModeProps
 
 export function Pagination({
   page,
@@ -110,14 +132,19 @@ export function Pagination({
   count,
   pageSize = 10,
   siblingCount = 1,
+  boundaryCount = 1,
   showPrevNext = true,
   onPageChange,
   variant,
   className,
   dir = "ltr",
+  type = "button",
+  getPageUrl,
   linkAs,
   size,
   compact = false,
+  compactLabel,
+  translations,
   ...props
 }: PaginationProps) {
   const uniqueId = useId()
@@ -127,9 +154,13 @@ export function Pagination({
     count,
     pageSize,
     siblingCount,
+    boundaryCount,
     page,
     dir,
     defaultPage,
+    type,
+    getPageUrl,
+    translations,
     onPageChange: ({ page }) => {
       onPageChange?.(page)
     },
@@ -143,23 +174,37 @@ export function Pagination({
 
   return (
     <nav className={base({ className })} {...api.getRootProps()} {...props}>
-      <ul aria-label="Pagination" className={list()}>
+      <ul className={list()}>
         {showPrevNext && (
           <li className={item()}>
-            <LinkButton
-              as={linkAs}
-              className={link()}
-              disabled={api.page === 1}
-              icon="token-icon-pagination-prev"
-              theme="borderless"
-              {...api.getPrevTriggerProps()}
-            />
+            {type === "link" ? (
+              <LinkButton
+                as={linkAs}
+                className={link()}
+                disabled={api.page === 1}
+                icon="token-icon-pagination-prev"
+                size="current"
+                theme="borderless"
+                {...api.getPrevTriggerProps()}
+              />
+            ) : (
+              <Button
+                className={link()}
+                icon="token-icon-pagination-prev"
+                size="current"
+                theme="borderless"
+                {...api.getPrevTriggerProps()}
+              />
+            )}
           </li>
         )}
         {compact ? (
           <li className={item()}>
             <span className={compactText()} data-part="compact-text">
-              {api.page} of {api.totalPages}
+              {compactLabel?.({
+                page: api.page,
+                totalPages: api.totalPages,
+              }) ?? `${api.page} of ${api.totalPages}`}
             </span>
           </li>
         ) : (
@@ -167,16 +212,26 @@ export function Pagination({
             if (page.type === "page") {
               return (
                 <li className={item()} key={page.value}>
-                  <LinkButton
-                    aria-current={api.page === page.value ? "page" : undefined}
-                    as={linkAs}
-                    className={link()}
-                    data-current={api.page === page.value}
-                    theme="borderless"
-                    {...api.getItemProps(page)}
-                  >
-                    {page.value}
-                  </LinkButton>
+                  {type === "link" ? (
+                    <LinkButton
+                      as={linkAs}
+                      className={link()}
+                      size="current"
+                      theme="borderless"
+                      {...api.getItemProps(page)}
+                    >
+                      {page.value}
+                    </LinkButton>
+                  ) : (
+                    <Button
+                      className={link()}
+                      size="current"
+                      theme="borderless"
+                      {...api.getItemProps(page)}
+                    >
+                      {page.value}
+                    </Button>
+                  )}
                 </li>
               )
             }
@@ -196,14 +251,25 @@ export function Pagination({
 
         {showPrevNext && (
           <li className={item()}>
-            <LinkButton
-              as={linkAs}
-              className={link()}
-              disabled={api.page === api.totalPages}
-              icon="token-icon-pagination-next"
-              theme="borderless"
-              {...api.getNextTriggerProps()}
-            />
+            {type === "link" ? (
+              <LinkButton
+                as={linkAs}
+                className={link()}
+                disabled={api.page === api.totalPages}
+                icon="token-icon-pagination-next"
+                size="current"
+                theme="borderless"
+                {...api.getNextTriggerProps()}
+              />
+            ) : (
+              <Button
+                className={link()}
+                icon="token-icon-pagination-next"
+                size="current"
+                theme="borderless"
+                {...api.getNextTriggerProps()}
+              />
+            )}
           </li>
         )}
       </ul>
