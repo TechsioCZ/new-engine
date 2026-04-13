@@ -70,6 +70,7 @@
   --radius-input: var(--radius-form-control);
   --radius-input-sm: var(--radius-form-control-sm);
   --radius-input-md: var(--radius-form-control-md);
+  --radius-input-lg: var(--radius-form-control-lg);
 
   /* Form field spacing */
   --spacing-form-field-gap: var(--spacing-50);

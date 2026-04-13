@@ -40,10 +40,10 @@ import {
   type CreateCatalogHooksConfig,
   createCatalogHooks,
 } from "../catalog/hooks"
-import {
+import type {
   createMedusaCatalogService,
-  type MedusaCatalogListInput,
-  type MedusaCatalogServiceConfig,
+  MedusaCatalogListInput,
+  MedusaCatalogServiceConfig,
 } from "../catalog/medusa-service"
 import type { CatalogFacets, CatalogQueryKeys } from "../catalog/types"
 import {
@@ -51,11 +51,11 @@ import {
   type CreateCategoryHooksConfig,
   createCategoryHooks,
 } from "../categories/hooks"
-import {
+import type {
   createMedusaCategoryService,
-  type MedusaCategoryDetailInput,
-  type MedusaCategoryListInput,
-  type MedusaCategoryServiceConfig,
+  MedusaCategoryDetailInput,
+  MedusaCategoryListInput,
+  MedusaCategoryServiceConfig,
 } from "../categories/medusa-service"
 import type { CategoryQueryKeys } from "../categories/types"
 import {
@@ -73,11 +73,11 @@ import {
   type CreateCollectionHooksConfig,
   createCollectionHooks,
 } from "../collections/hooks"
-import {
+import type {
   createMedusaCollectionService,
-  type MedusaCollectionDetailInput,
-  type MedusaCollectionListInput,
-  type MedusaCollectionServiceConfig,
+  MedusaCollectionDetailInput,
+  MedusaCollectionListInput,
+  MedusaCollectionServiceConfig,
 } from "../collections/medusa-service"
 import type { CollectionQueryKeys } from "../collections/types"
 import {
@@ -103,12 +103,12 @@ import {
   createOrderHooks,
   type OrderHooks,
 } from "../orders/hooks"
-import {
-  type MedusaOrderDetailHookInput,
-  type MedusaOrderDetailInput,
-  type MedusaOrderListHookInput,
-  type MedusaOrderListInput,
-  type MedusaOrderServiceConfig,
+import type {
+  MedusaOrderDetailHookInput,
+  MedusaOrderDetailInput,
+  MedusaOrderListHookInput,
+  MedusaOrderListInput,
+  MedusaOrderServiceConfig,
 } from "../orders/medusa-service"
 import type { OrderQueryKeys, OrderService } from "../orders/types"
 import {
@@ -116,11 +116,11 @@ import {
   createProductHooks,
   type ProductHooks,
 } from "../products/hooks"
-import {
+import type {
   createMedusaProductService,
-  type MedusaProductDetailInput,
-  type MedusaProductListInput,
-  type MedusaProductServiceConfig,
+  MedusaProductDetailInput,
+  MedusaProductListInput,
+  MedusaProductServiceConfig,
 } from "../products/medusa-service"
 import type { ProductQueryKeys } from "../products/types"
 import {
@@ -128,10 +128,10 @@ import {
   createRegionHooks,
   type RegionHooks,
 } from "../regions/hooks"
-import {
+import type {
   createMedusaRegionService,
-  type MedusaRegionDetailInput,
-  type MedusaRegionListInput,
+  MedusaRegionDetailInput,
+  MedusaRegionListInput,
 } from "../regions/medusa-service"
 import type { RegionQueryKeys } from "../regions/types"
 import type { CacheConfig } from "../shared/cache-config"
@@ -139,7 +139,8 @@ import type { QueryNamespace } from "../shared/query-keys"
 import { createMedusaCartFlow } from "./cart-flow"
 import { createMedusaCheckoutFlow } from "./checkout-flow"
 import {
-  type MedusaStorefrontQueryKeys,
+  createMedusaStorefrontQueryKeys as createMedusaStorefrontQueryKeysFromFoundation,
+  type MedusaStorefrontQueryKeys as MedusaStorefrontQueryKeysFromFoundation,
   resolveMedusaStorefrontFoundation,
 } from "./foundation"
 import { createMedusaStorefrontServerReadPreset } from "./server-read"
@@ -637,10 +638,11 @@ const createDefaultCatalogFacets = (): CatalogFacets => ({
   },
 })
 
-export {
-  createMedusaStorefrontQueryKeys,
-  type MedusaStorefrontQueryKeys,
-} from "./foundation"
+export const createMedusaStorefrontQueryKeys =
+  createMedusaStorefrontQueryKeysFromFoundation
+
+export type MedusaStorefrontQueryKeys =
+  MedusaStorefrontQueryKeysFromFoundation
 
 /**
  * Create a complete Medusa storefront data preset with shared namespace/cache config.

@@ -81,7 +81,7 @@ import type { RegionQueryKeys } from "../regions/types"
 import type { CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 import {
-  createMedusaStorefrontQueryKeys,
+  createMedusaStorefrontQueryKeys as createMedusaStorefrontQueryKeysFromFoundation,
   resolveMedusaStorefrontFoundation,
 } from "./foundation"
 
@@ -364,7 +364,8 @@ export type MedusaStorefrontServerReadPresetResult<
   >
 }
 
-export { createMedusaStorefrontQueryKeys }
+export const createMedusaStorefrontQueryKeys =
+  createMedusaStorefrontQueryKeysFromFoundation
 
 export function createMedusaStorefrontServerReadPreset<
   TProduct = HttpTypes.StoreProduct,

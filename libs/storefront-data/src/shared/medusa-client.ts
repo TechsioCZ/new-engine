@@ -71,38 +71,43 @@ const withSafeLocalStorageMethods = <TValue>(callback: () => TValue): TValue => 
     return callback()
   }
 
-  const restoreGetItem = patchStorageMethod(storage, "getItem", (original) => {
-    return function getItem(this: Storage, key: string) {
-      try {
-        return original.call(this, key)
-      } catch {
-        return null
+  const restoreGetItem = patchStorageMethod(
+    storage,
+    "getItem",
+    (original) =>
+      function getItem(this: Storage, key: string) {
+        try {
+          return original.call(this, key)
+        } catch {
+          return null
+        }
       }
-    }
-  })
+  )
 
-  const restoreSetItem = patchStorageMethod(storage, "setItem", (original) => {
-    return function setItem(this: Storage, key: string, value: string) {
-      try {
-        original.call(this, key, value)
-      } catch {
-        return undefined
+  const restoreSetItem = patchStorageMethod(
+    storage,
+    "setItem",
+    (original) =>
+      function setItem(this: Storage, key: string, value: string) {
+        try {
+          original.call(this, key, value)
+        } catch {
+          return
+        }
       }
-    }
-  })
+  )
 
   const restoreRemoveItem = patchStorageMethod(
     storage,
     "removeItem",
-    (original) => {
-      return function removeItem(this: Storage, key: string) {
+    (original) =>
+      function removeItem(this: Storage, key: string) {
         try {
           original.call(this, key)
         } catch {
-          return undefined
+          return
         }
       }
-    }
   )
 
   try {
