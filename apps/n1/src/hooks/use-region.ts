@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { DEFAULT_COUNTRY_CODE, DEFAULT_CURRENCY } from "@/lib/constants"
 import { resolveRegionSelection } from "@/lib/region-selection"
 import { storefront } from "./storefront-preset"
 
@@ -40,6 +41,17 @@ export function useRegion(): UseRegionReturn {
     {},
     { queryOptions: regionQueryOptions }
   )
+
+  if (regions.length === 0 && isLoading) {
+    return {
+      regions,
+      selectedRegion: undefined,
+      regionId: undefined,
+      countryCode: DEFAULT_COUNTRY_CODE,
+      currencyCode: DEFAULT_CURRENCY,
+      isLoading,
+    }
+  }
 
   const { selectedRegion, regionId, countryCode, currencyCode } =
     resolveRegionSelection(regions)

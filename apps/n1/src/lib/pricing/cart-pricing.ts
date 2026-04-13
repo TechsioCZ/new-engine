@@ -23,10 +23,11 @@ const hasPositiveAmount = (amount?: number | null) =>
 const hasTaxLines = (lines?: unknown[] | null) => (lines?.length ?? 0) > 0
 
 const getTaxRate = (lines?: { rate?: number | null }[] | null) =>
-  lines?.reduce((sum, line) => sum + (line.rate ?? 0), 0) ?? 0
+  lines?.reduce((sum, line) => sum + (isAmount(line.rate) ? line.rate : 0), 0) ??
+  0
 
 const getLineItemQuantity = (quantity?: number | null) =>
-  typeof quantity === "number" && quantity > 0 ? quantity : 1
+  isAmount(quantity) && quantity > 0 ? quantity : 1
 
 const getPerUnitAmount = (amount: number, quantity: number) =>
   Math.round(amount / quantity)

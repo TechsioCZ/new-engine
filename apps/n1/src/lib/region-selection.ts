@@ -25,18 +25,26 @@ export function selectPreferredRegion(
 export function resolveRegionSelection(
   regions: StorefrontRegion[]
 ): StorefrontRegionSelection {
+  if (regions.length === 0) {
+    throw new Error("No storefront regions are available")
+  }
+
   const selectedRegion = selectPreferredRegion(regions)
+  if (!selectedRegion) {
+    throw new Error("Unable to resolve a storefront region")
+  }
+
   const preferredCountry = selectedRegion?.countries?.find(
     (country) => country.iso_2 === DEFAULT_COUNTRY_CODE
   )
 
   return {
     selectedRegion,
-    regionId: selectedRegion?.id,
+    regionId: selectedRegion.id,
     countryCode:
       preferredCountry?.iso_2 ??
-      selectedRegion?.countries?.[0]?.iso_2 ??
+      selectedRegion.countries?.[0]?.iso_2 ??
       DEFAULT_COUNTRY_CODE,
-    currencyCode: selectedRegion?.currency_code || DEFAULT_CURRENCY,
+    currencyCode: selectedRegion.currency_code || DEFAULT_CURRENCY,
   }
 }

@@ -169,12 +169,16 @@ const normalizeAddressCore = <
 
 const toValidationInput = (input: AddressFormData): AddressFormData => {
   const normalized = normalizeAddressCore(input)
+  const validationCountryCode =
+    typeof input.country_code === "string"
+      ? input.country_code.trim().toLowerCase()
+      : ""
 
   return {
     ...normalized,
     postal_code: formatPostalCode(normalized.postal_code),
     phone: normalized.phone ? formatPhoneNumber(normalized.phone) : "",
-    country_code: normalized.country_code || DEFAULT_COUNTRY_CODE,
+    country_code: validationCountryCode,
   }
 }
 

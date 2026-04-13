@@ -7,7 +7,7 @@ import {
 } from "@techsio/ui-kit/molecules/breadcrumb"
 import NextLink from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCallback, useEffect, useRef } from "react"
+import { useEffect, useRef } from "react"
 import { Banner } from "@/components/atoms/banner"
 import { Heading } from "@/components/heading"
 import { ProductGrid } from "@/components/molecules/product-grid"
@@ -30,11 +30,15 @@ import { transformProduct } from "@/utils/transform/transform-product"
 type CategoryPageClientProps = {
   handle: string
   currentPage: number
+  rootCategoryHandle: string
+  rootCategoryId: string
 }
 
 export function CategoryPageClient({
   handle,
   currentPage,
+  rootCategoryHandle,
+  rootCategoryId,
 }: CategoryPageClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -46,28 +50,9 @@ export function CategoryPageClient({
   const currentCategoryChildren = allCategories.filter(
     (category) => category.parent_category_id === currentCategory?.id
   )
-  const rootCategory =
-    allCategories.find((category) => category.id === currentCategory?.root_category_id) ??
-    currentCategory
   const rootCategoryTree = categoryTree.find(
-    (category) => category.id === rootCategory?.id
+    (category) => category.id === rootCategoryId
   )
-
-  const buildCategoryPath = useCallback((): string | null => {
-    if (!currentCategory) {
-      return null
-    }
-
-    const path: string[] = []
-    let current: typeof currentCategory | undefined = currentCategory
-
-    while (current) {
-      path.unshift(current.name)
-      current = allCategories.find((category) => category.id === current?.parent_category_id)
-    }
-
-    return path.join(" > ")
-  }, [currentCategory])
 
   useEffect(() => {
     if (!currentCategory) {
@@ -77,12 +62,21 @@ export function CategoryPageClient({
       return
     }
 
-    const categoryPath = buildCategoryPath()
-    if (categoryPath) {
-      trackedCategoryId.current = currentCategory.id
-      analytics.trackViewCategory({ category: categoryPath })
+    const path: string[] = []
+    let current: typeof currentCategory | undefined = currentCategory
+
+    while (current) {
+      path.unshift(current.name)
+      current = allCategories.find(
+        (category) => category.id === current?.parent_category_id
+      )
     }
-  }, [currentCategory, analytics, buildCategoryPath])
+
+    if (path.length > 0) {
+      trackedCategoryId.current = currentCategory.id
+      analytics.trackViewCategory({ category: path.join(" > ") })
+    }
+  }, [currentCategory, analytics])
 
   const handlePageChange = (page: number) => {
     const nextSearchParams = new URLSearchParams(searchParams.toString())
@@ -92,7 +86,7 @@ export function CategoryPageClient({
     })
   }
 
-  if (!(currentCategory && rootCategory)) {
+  if (!currentCategory) {
     return null
   }
 
@@ -156,7 +150,7 @@ export function CategoryPageClient({
         categories={rootCategoryTree?.children || []}
         categoryMap={categoryMap}
         currentCategory={currentCategory}
-        label={rootCategory.handle}
+        label={rootCategoryHandle}
       />
       <main className="px-300">
         <header className="space-y-300">

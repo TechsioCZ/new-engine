@@ -22,11 +22,18 @@ export const ProductInfoPanel = ({
   selectedVariant,
   handle,
 }: ProductInfoPanelProps) => {
-  const priceWithTax = selectedVariant?.calculated_price
-    ? formatCalculatedVariantPrice(selectedVariant.calculated_price, true)
+  const calculatedPrice = selectedVariant?.calculated_price
+  const hasCalculatedPriceWithTax =
+    typeof calculatedPrice?.calculated_amount_with_tax === "number" &&
+    Number.isFinite(calculatedPrice.calculated_amount_with_tax)
+  const hasCalculatedPriceWithoutTax =
+    typeof calculatedPrice?.calculated_amount_without_tax === "number" &&
+    Number.isFinite(calculatedPrice.calculated_amount_without_tax)
+  const priceWithTax = hasCalculatedPriceWithTax
+    ? formatCalculatedVariantPrice(calculatedPrice, true)
     : detail.price
-  const priceWithoutTax = selectedVariant?.calculated_price
-    ? formatCalculatedVariantPrice(selectedVariant.calculated_price, false)
+  const priceWithoutTax = hasCalculatedPriceWithoutTax
+    ? formatCalculatedVariantPrice(calculatedPrice, false)
     : detail.withoutTax
 
   return (
@@ -52,9 +59,11 @@ export const ProductInfoPanel = ({
               />
             )}
           </div>
-          <div>
-            <StoreStatus variant={selectedVariant} />
-          </div>
+          {selectedVariant && (
+            <div>
+              <StoreStatus variant={selectedVariant} />
+            </div>
+          )}
         </div>
       </SectionBasicInfo>
 

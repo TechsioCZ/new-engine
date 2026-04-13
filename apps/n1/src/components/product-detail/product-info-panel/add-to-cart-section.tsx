@@ -65,7 +65,7 @@ export const AddToCartSection = ({
         quantity,
         autoCreate: true,
         metadata: {
-          inventory_quantity: selectedVariant.inventory_quantity ?? 0,
+          inventory_quantity: selectedVariant.inventory_quantity,
         },
       },
       {

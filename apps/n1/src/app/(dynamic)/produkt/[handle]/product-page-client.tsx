@@ -64,12 +64,9 @@ export function ProductPageClient({
       category: rawProduct?.categories?.[0]?.name,
     })
   }, [
-    detail?.id,
-    selectedVariant?.id,
     analytics,
     rawProduct?.categories,
     detail,
-    selectedVariant?.calculated_price?.calculated_amount_with_tax,
     selectedVariant,
   ])
 

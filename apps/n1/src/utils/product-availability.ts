@@ -26,7 +26,7 @@ const DEFAULT_MAX_ORDER_QUANTITY = 99 as const
 const normalizeQuantity = (quantity?: number | null) =>
   typeof quantity === "number" && Number.isFinite(quantity)
     ? Math.max(quantity, 0)
-    : 0
+    : null
 
 export const resolveVariantAvailability = (
   variant?: VariantAvailabilityInput | null
@@ -45,6 +45,24 @@ export const resolveVariantAvailability = (
   const allowsBackorder = variant.allow_backorder === true
 
   if (!managesInventory) {
+    return {
+      isPurchasable: true,
+      status: "in-stock",
+      label: "Skladem",
+      availableQuantity: null,
+    }
+  }
+
+  if (inventoryQuantity == null) {
+    if (allowsBackorder) {
+      return {
+        isPurchasable: true,
+        status: "limited-stock",
+        label: "Na objednávku",
+        availableQuantity: null,
+      }
+    }
+
     return {
       isPurchasable: true,
       status: "in-stock",

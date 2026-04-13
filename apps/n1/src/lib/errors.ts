@@ -7,21 +7,21 @@ type ErrorWithMessage = {
 }
 
 const UNKNOWN_ERROR_MESSAGE = "An unknown error occurred"
-const ADDRESS_FIELD_KEYS = [
-  "first_name",
-  "last_name",
-  "company",
-  "address_1",
-  "address_2",
-  "city",
-  "province",
-  "postal_code",
-  "country_code",
-  "phone",
-] as const satisfies readonly AddressFieldKey[]
+const ADDRESS_FIELD_KEYS: Record<AddressFieldKey, true> = {
+  first_name: true,
+  last_name: true,
+  company: true,
+  address_1: true,
+  address_2: true,
+  city: true,
+  province: true,
+  postal_code: true,
+  country_code: true,
+  phone: true,
+}
 
 function isAddressFieldKey(field: string): field is AddressFieldKey {
-  return ADDRESS_FIELD_KEYS.includes(field as AddressFieldKey)
+  return Object.hasOwn(ADDRESS_FIELD_KEYS, field)
 }
 
 function isError(error: unknown): error is Error {

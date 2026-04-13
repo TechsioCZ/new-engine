@@ -1,13 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
+
+const subscribe = () => () => {}
 
 export function useClientReady(): boolean {
-  const [isClientReady, setIsClientReady] = useState(false)
-
-  useEffect(() => {
-    setIsClientReady(true)
-  }, [])
-
-  return isClientReady
+  return useSyncExternalStore(subscribe, () => true, () => false)
 }

@@ -5,22 +5,23 @@ import { Button } from "@ui/atoms/button"
 import { useState } from "react"
 import { storefront } from "@/hooks/storefront-preset"
 import { toAddressValidationError } from "@/lib/errors"
+import { addressToFormData } from "@/utils/address-helpers"
 import {
   useCheckoutContext,
   useCheckoutForm,
 } from "../_context/checkout-context"
 
 export function SaveAddressPanel() {
-  const { customer, selectedAddressId } = useCheckoutContext()
+  const { customer, selectedAddressId, setSelectedAddressId } =
+    useCheckoutContext()
   const form = useCheckoutForm()
-
-  const isDirty = useStore(form.store, (state) => state.isDirty)
-  const shouldShowSavePanel = Boolean(customer) && isDirty
 
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "success" | "error"
   >("idle")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const isDirty = useStore(form.store, (state) => state.isDirty)
+  const shouldShowSavePanel = Boolean(customer) && (isDirty || saveStatus !== "idle")
 
   const { mutateAsync: createAddressAsync } =
     storefront.hooks.customers.useCreateCustomerAddress()
@@ -34,6 +35,7 @@ export function SaveAddressPanel() {
       ...form.state.values,
       billingAddress: currentValues,
     })
+    form.setFieldValue("billingAddress", currentValues)
   }
 
   if (!shouldShowSavePanel) {
@@ -45,8 +47,11 @@ export function SaveAddressPanel() {
     setSaveStatus("saving")
     setErrorMessage(null)
     try {
-      await createAddressAsync(currentValues)
-      syncBillingAddress(currentValues)
+      const createdAddress = await createAddressAsync(currentValues)
+      const nextValues = addressToFormData(createdAddress)
+
+      syncBillingAddress(nextValues)
+      setSelectedAddressId(createdAddress.id)
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 2000)
     } catch (error) {
@@ -72,11 +77,11 @@ export function SaveAddressPanel() {
     setSaveStatus("saving")
     setErrorMessage(null)
     try {
-      await updateAddressAsync({
+      const updatedAddress = await updateAddressAsync({
         addressId: selectedAddressId,
         ...currentValues,
       })
-      syncBillingAddress(currentValues)
+      syncBillingAddress(addressToFormData(updatedAddress))
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 2000)
     } catch (error) {

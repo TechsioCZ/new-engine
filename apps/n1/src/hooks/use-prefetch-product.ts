@@ -39,7 +39,7 @@ export function usePrefetchProduct() {
     fields?: string
   ) => {
     if (!handle) {
-      return handle
+      return
     }
     const queryInput = {
       handle,
