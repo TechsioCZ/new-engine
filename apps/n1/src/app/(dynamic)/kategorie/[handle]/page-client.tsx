@@ -154,7 +154,7 @@ export function CategoryPageClient({
       />
       <main className="px-300">
         <header className="space-y-300">
-          <Heading as="h1">{currentCategory.handle}</Heading>
+          <Heading as="h1">{currentCategory.name}</Heading>
           <div className="grid grid-cols-4 gap-100">
             {currentCategoryChildren.map((child) => (
               <LinkButton

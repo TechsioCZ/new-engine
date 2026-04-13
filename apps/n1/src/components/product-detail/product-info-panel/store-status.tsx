@@ -8,10 +8,14 @@ import {
 
 const StatusContent = ({ variant }: { variant: ProductVariantDetail | null }) => {
   const availability = resolveVariantAvailability(variant)
+  const availabilityLeadText =
+    availability.status === "in-stock"
+      ? "Sklad N1shop - doba dodání 1-2 dny:"
+      : "Sklad N1shop:"
 
   return (
     <div className="text-xs">
-      <h4 className="font-bold">Sklad N1shop - doba dodání 1-2 dny:</h4>
+      <h4 className="font-bold">{availabilityLeadText}</h4>
       <p
         className={`font-semibold ${availabilityStatusClass[availability.status]}`}
       >

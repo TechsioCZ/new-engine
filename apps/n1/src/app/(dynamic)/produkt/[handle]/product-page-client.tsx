@@ -148,8 +148,8 @@ export function ProductPageClient({
           />
           <Heading as="h1">{title}</Heading>
         </header>
-        <div className="mx-auto aspect-square max-w-md">
-          {detail.images && (
+        {detail.images.length > 0 && (
+          <div className="mx-auto aspect-square max-w-md">
             <Gallery
               aspectRatio="square"
               carouselSize={150}
@@ -158,8 +158,8 @@ export function ProductPageClient({
               orientation="horizontal"
               size="md"
             />
-          )}
-        </div>
+          </div>
+        )}
         <ProductInfoPanel
           detail={detail}
           handle={handle}
