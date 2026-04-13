@@ -1,10 +1,73 @@
 import { join } from "node:path"
 import type { NextConfig } from "next"
 
+const isProduction = process.env.NODE_ENV === "production"
+const strictTransportSecurityValue = [
+  "max-age=31536000",
+  "includeSubDomains",
+].join("; ")
+const permissionsPolicyValue = [
+  "camera=()",
+  "microphone=()",
+  "geolocation=(self)",
+  "payment=()",
+  "usb=()",
+  "serial=()",
+  "browsing-topics=()",
+].join(", ")
+
+function buildContentSecurityPolicy() {
+  const scriptSrc = [
+    "'self'",
+    // Next.js App Router currently emits inline bootstrap/runtime scripts.
+    "'unsafe-inline'",
+    ...(isProduction ? [] : ["'unsafe-eval'"]),
+    "https://www.googletagmanager.com",
+    "https://connect.facebook.net",
+    "https://www.lhinsights.com",
+    "https://heureka.cz",
+    "https://heureka.sk",
+    "https://www.ppl.cz",
+  ]
+
+  const styleSrc = [
+    "'self'",
+    // Inline styles are present in the current storefront HTML output.
+    "'unsafe-inline'",
+    "https://www.ppl.cz",
+  ]
+
+  const connectSrc = [
+    "'self'",
+    ...(isProduction ? [] : ["ws:", "wss:"]),
+    "https:",
+  ]
+
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    `script-src ${scriptSrc.join(" ")}`,
+    `style-src ${styleSrc.join(" ")}`,
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src ${connectSrc.join(" ")}`,
+    "frame-src 'self' https:",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    ...(isProduction ? ["upgrade-insecure-requests"] : []),
+  ].join("; ")
+}
+
+const contentSecurityPolicy = buildContentSecurityPolicy()
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["n1.medusa.localhost"],
   reactStrictMode: true,
   output: "standalone",
+  poweredByHeader: false,
   transpilePackages: ["@new-engine/ui", "@techsio/analytics"],
   reactCompiler: true,
   cacheComponents: true,
@@ -61,17 +124,34 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Referrer-Policy",
-            value: "origin-when-cross-origin",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            // Preserves opener isolation without breaking legitimate popup flows.
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
+          },
+          {
+            key: "Origin-Agent-Cluster",
+            value: "?1",
+          },
+          {
+            key: "X-Permitted-Cross-Domain-Policies",
+            value: "none",
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self)",
+            value: permissionsPolicyValue,
           },
-          ...(process.env.NODE_ENV === "production"
+          {
+            key: "Content-Security-Policy",
+            value: contentSecurityPolicy,
+          },
+          ...(isProduction
             ? [
                 {
                   key: "Strict-Transport-Security",
-                  value: "max-age=31536000; includeSubDomains",
+                  value: strictTransportSecurityValue,
                 },
               ]
             : []),
