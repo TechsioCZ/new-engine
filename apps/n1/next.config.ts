@@ -2,6 +2,9 @@ import { join } from "node:path"
 import type { NextConfig } from "next"
 
 const isProduction = process.env.NODE_ENV === "production"
+const allowedDevOrigins = ["n1.medusa.localhost"]
+// Keep this fallback aligned with src/lib/medusa-backend-url.ts.
+const defaultPublicMedusaBackendUrl = "http://localhost:9000"
 const strictTransportSecurityValue = [
   "max-age=31536000",
   "includeSubDomains",
@@ -16,32 +19,81 @@ const permissionsPolicyValue = [
   "browsing-topics=()",
 ].join(", ")
 
+function getOrigin(value: string | undefined): string | null {
+  if (!value) {
+    return null
+  }
+
+  try {
+    return new URL(value).origin
+  } catch {
+    return null
+  }
+}
+
+function uniquePolicySources(sources: Array<string | null | undefined>) {
+  return [
+    ...new Set(sources.filter((source): source is string => Boolean(source))),
+  ]
+}
+
+const publicMedusaBackendOrigin =
+  getOrigin(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL) ||
+  getOrigin(defaultPublicMedusaBackendUrl)
+const devHmrOrigins = isProduction
+  ? []
+  : [
+      "ws://localhost:3000",
+      "ws://127.0.0.1:3000",
+      ...allowedDevOrigins.flatMap((origin) => [
+        `ws://${origin}`,
+        `wss://${origin}`,
+      ]),
+    ]
+const googleScriptOrigins = ["https://www.googletagmanager.com"]
+const googleConnectOrigins = [
+  "https://region1.google-analytics.com",
+  "https://www.google-analytics.com",
+]
+const metaScriptOrigins = ["https://connect.facebook.net"]
+const metaConnectOrigins = [
+  "https://connect.facebook.net",
+  "https://www.facebook.com",
+]
+const leadhubOrigins = ["https://www.lhinsights.com"]
+const heurekaOrigins = ["https://heureka.cz", "https://heureka.sk"]
+const pplOrigins = ["https://www.ppl.cz"]
+
 function buildContentSecurityPolicy() {
   const scriptSrc = [
     "'self'",
     // Next.js App Router currently emits inline bootstrap/runtime scripts.
     "'unsafe-inline'",
     ...(isProduction ? [] : ["'unsafe-eval'"]),
-    "https://www.googletagmanager.com",
-    "https://connect.facebook.net",
-    "https://www.lhinsights.com",
-    "https://heureka.cz",
-    "https://heureka.sk",
-    "https://www.ppl.cz",
+    ...googleScriptOrigins,
+    ...metaScriptOrigins,
+    ...leadhubOrigins,
+    ...heurekaOrigins,
+    ...pplOrigins,
   ]
 
   const styleSrc = [
     "'self'",
     // Inline styles are present in the current storefront HTML output.
     "'unsafe-inline'",
-    "https://www.ppl.cz",
+    ...pplOrigins,
   ]
 
-  const connectSrc = [
+  const connectSrc = uniquePolicySources([
     "'self'",
-    ...(isProduction ? [] : ["ws:", "wss:"]),
-    "https:",
-  ]
+    publicMedusaBackendOrigin,
+    ...devHmrOrigins,
+    ...googleConnectOrigins,
+    ...metaConnectOrigins,
+    ...leadhubOrigins,
+    ...pplOrigins,
+  ])
+  const frameSrc = uniquePolicySources(["'self'", ...pplOrigins])
 
   return [
     "default-src 'self'",
@@ -54,7 +106,7 @@ function buildContentSecurityPolicy() {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     `connect-src ${connectSrc.join(" ")}`,
-    "frame-src 'self' https:",
+    `frame-src ${frameSrc.join(" ")}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     ...(isProduction ? ["upgrade-insecure-requests"] : []),
@@ -64,7 +116,7 @@ function buildContentSecurityPolicy() {
 const contentSecurityPolicy = buildContentSecurityPolicy()
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["n1.medusa.localhost"],
+  allowedDevOrigins,
   reactStrictMode: true,
   output: "standalone",
   poweredByHeader: false,
