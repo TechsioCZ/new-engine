@@ -92,11 +92,9 @@ export default function RootLayout({
     >
       <body className={`text-fg-primary ${verdana.className}`}>
         <Suspense
-          fallback={
-            <LayoutShell>
-              <div className="min-h-dvh bg-base" />
-            </LayoutShell>
-          }
+          // Avoid rendering a fallback app shell here. During streaming, it can
+          // coexist with the resolved shell and duplicate header popover ids.
+          fallback={<div className="min-h-dvh bg-base" />}
         >
           <ResolvedLayoutShell>{children}</ResolvedLayoutShell>
         </Suspense>
