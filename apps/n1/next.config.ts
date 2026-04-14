@@ -1,10 +1,9 @@
 import { join } from "node:path"
 import type { NextConfig } from "next"
+import { getPublicMedusaBackendOrigin } from "./src/lib/medusa-backend-url"
 
 const isProduction = process.env.NODE_ENV === "production"
 const allowedDevOrigins = ["n1.medusa.localhost"]
-// Keep this fallback aligned with src/lib/medusa-backend-url.ts.
-const defaultPublicMedusaBackendUrl = "http://localhost:9000"
 const strictTransportSecurityValue = [
   "max-age=31536000",
   "includeSubDomains",
@@ -19,27 +18,13 @@ const permissionsPolicyValue = [
   "browsing-topics=()",
 ].join(", ")
 
-function getOrigin(value: string | undefined): string | null {
-  if (!value) {
-    return null
-  }
-
-  try {
-    return new URL(value).origin
-  } catch {
-    return null
-  }
-}
-
 function uniquePolicySources(sources: Array<string | null | undefined>) {
   return [
     ...new Set(sources.filter((source): source is string => Boolean(source))),
   ]
 }
 
-const publicMedusaBackendOrigin =
-  getOrigin(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL) ||
-  getOrigin(defaultPublicMedusaBackendUrl)
+const publicMedusaBackendOrigin = getPublicMedusaBackendOrigin()
 const devHmrOrigins = isProduction
   ? []
   : [
@@ -48,6 +33,8 @@ const devHmrOrigins = isProduction
       ...allowedDevOrigins.flatMap((origin) => [
         `ws://${origin}`,
         `wss://${origin}`,
+        `ws://${origin}:3000`,
+        `wss://${origin}:3000`,
       ]),
     ]
 const googleScriptOrigins = ["https://www.googletagmanager.com"]
