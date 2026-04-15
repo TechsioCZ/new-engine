@@ -1,7 +1,4 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-} from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,

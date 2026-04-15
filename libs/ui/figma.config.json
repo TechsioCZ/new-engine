@@ -1,0 +1,12 @@
+{
+  "codeConnect": {
+    "parser": "react",
+    "include": ["src/**/figma/*.figma.tsx", "src/atoms/*.tsx", "src/molecules/*.tsx"],
+    "importPaths": {
+      "@libs/ui/*": "src/*"
+    },
+    "paths": {
+      "src/*": ["src/*"]
+    }
+  }
+}
