@@ -564,7 +564,15 @@ function ComponentComparison() {
             <Menu items={menuItems} size="md" triggerText="Actions" />
           </ComponentCard>
           <ComponentCard title="Pagination" bodyClassName="w-full overflow-x-auto">
-            <Pagination compact count={12} pageSize={1} size="md" />
+            <Pagination
+              compact
+              count={12}
+              getPageUrl={({ page, pageSize }) =>
+                `#component-pagination?page=${page}&pageSize=${pageSize}`
+              }
+              pageSize={1}
+              size="md"
+            />
           </ComponentCard>
           <ComponentCard title="Popover">
             <Popover
