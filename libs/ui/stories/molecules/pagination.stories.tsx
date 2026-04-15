@@ -1,8 +1,10 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Button } from '../../src/atoms/button'
-import { Pagination } from '../../src/molecules/pagination'
+import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentPropsWithoutRef } from "react"
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import {
+  Pagination,
+  type PaginationProps,
+} from "../../src/molecules/pagination"
 
 const getStoryPageUrl = ({
   page,
@@ -12,159 +14,159 @@ const getStoryPageUrl = ({
   pageSize: number
 }) => `#products?page=${page}&pageSize=${pageSize}`
 
+type StoryPaginationProps = Omit<PaginationProps, "getPageUrl">
+
+function StoryPagination(props: StoryPaginationProps) {
+  return <Pagination {...props} getPageUrl={getStoryPageUrl} />
+}
+
+type StoryLinkProps = ComponentPropsWithoutRef<"a"> & {
+  replace?: boolean
+}
+
+function StoryLink({ replace, ...props }: StoryLinkProps) {
+  return <a data-replace={replace ? "true" : undefined} {...props} />
+}
+
 const meta: Meta<typeof Pagination> = {
-  title: 'Molecules/Pagination',
+  title: "Molecules/Pagination",
   component: Pagination,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     page: {
-      control: { type: 'number', min: 1 },
-      description: 'Current active page (controlled)',
+      control: { type: "number", min: 1 },
+      description: "Current active page (controlled)",
     },
     defaultPage: {
-      control: { type: 'number', min: 1 },
-      description: 'Initial active page (uncontrolled)',
+      control: { type: "number", min: 1 },
+      description: "Initial active page (uncontrolled)",
       defaultValue: 1,
     },
     count: {
-      control: { type: 'number', min: 1 },
-      description: 'Total number of items',
+      control: { type: "number", min: 1 },
+      description: "Total number of items",
       defaultValue: 100,
     },
     pageSize: {
-      control: { type: 'number', min: 1 },
-      description: 'Number of items per page',
+      control: { type: "number", min: 1 },
+      description: "Number of items per page",
       defaultValue: 10,
     },
     siblingCount: {
-      control: { type: 'number', min: 0 },
+      control: { type: "number", min: 0 },
       description:
-        'Number of sibling pages to show on each side of current page',
+        "Number of sibling pages to show on each side of current page",
       defaultValue: 1,
     },
     boundaryCount: {
-      control: { type: 'number', min: 0 },
-      description: 'Number of boundary pages to always show at each end',
+      control: { type: "number", min: 0 },
+      description: "Number of boundary pages to always show at each end",
       defaultValue: 1,
-    },
-    variant: {
-      control: 'select',
-      options: ['filled', 'outlined', 'minimal'],
-      description: 'Visual style variant',
-      defaultValue: 'filled',
-    },
-    type: {
-      control: false,
-      description:
-        'Supports both button and link modes. See the LinkMode story for true link-based pagination.',
     },
     getPageUrl: {
       control: false,
-      description: 'Required when type is set to "link"',
+      description: "Required. Builds the href for each pagination trigger.",
+    },
+    linkAs: {
+      control: false,
+      description: "Optional custom link component used for navigable items.",
+    },
+    linkProps: {
+      control: false,
+      description:
+        "Optional props forwarded to the custom link component. `href` remains owned by Pagination.",
+    },
+    variant: {
+      control: "select",
+      options: ["filled", "outlined", "minimal"],
+      description: "Visual style variant",
+      defaultValue: "filled",
     },
     showPrevNext: {
-      control: 'boolean',
-      description: 'Show previous/next page buttons',
+      control: "boolean",
+      description: "Show previous/next page buttons",
       defaultValue: true,
     },
+  },
+  args: {
+    defaultPage: 5,
+    count: 100,
+    pageSize: 10,
+    siblingCount: 1,
+    variant: "filled",
+    showPrevNext: true,
+    getPageUrl: getStoryPageUrl,
   },
 }
 
 export default meta
 type Story = StoryObj<typeof Pagination>
 
-export const Default: Story = {
-  args: {
-    defaultPage: 5,
-    count: 100,
-    pageSize: 10,
-    siblingCount: 1,
-    variant: 'filled',
-    showPrevNext: true,
-  },
-}
+export const Default: Story = {}
 
 export const Sizes: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Small (sm)">
-        <div className='space-y-300'>
-          <Pagination 
-            count={100} 
-            pageSize={10} 
-            defaultPage={5} 
+        <div className="space-y-300">
+          <StoryPagination count={100} defaultPage={5} pageSize={10} size="sm" />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
             size="sm"
-          variant="filled" 
-        />
-        <Pagination 
-          count={100} 
-          pageSize={10} 
-          defaultPage={5} 
-          size="sm"
-          variant="outlined" 
-        />
-        <Pagination 
-          count={100} 
-          pageSize={10} 
-          defaultPage={5} 
-          size="sm"
-          variant="minimal" 
-        />
+            variant="outlined"
+          />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="sm"
+            variant="minimal"
+          />
         </div>
       </VariantGroup>
-      
-      <VariantGroup title="Medium (md) - default">
-        <div className='space-y-300'>
-        <Pagination 
-          count={100} 
-          pageSize={10} 
-          defaultPage={5} 
-          size="md"
-          variant="filled" 
-        />
-        <Pagination 
-          count={100} 
-          pageSize={10} 
-          defaultPage={5} 
-          size="md"
-          variant="outlined" 
-        />
-        <Pagination 
-          count={100} 
-          pageSize={10} 
-          defaultPage={5} 
-          size="md"
-          variant="minimal" 
-        />
+
+      <VariantGroup title="Medium (md)">
+        <div className="space-y-300">
+          <StoryPagination count={100} defaultPage={5} pageSize={10} size="md" />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="md"
+            variant="outlined"
+          />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="md"
+            variant="minimal"
+          />
         </div>
       </VariantGroup>
-      
+
       <VariantGroup title="Large (lg)">
-        <div className='space-y-300'>
-        <Pagination 
-          count={100} 
-          pageSize={10} 
-          defaultPage={5} 
-          size="lg"
-          variant="filled" 
-        />
-        <Pagination 
-          count={100} 
-          pageSize={10} 
-          defaultPage={5} 
-          size="lg"
-          variant="outlined" 
-        />
-        <Pagination 
-          count={100} 
-          pageSize={10} 
-          defaultPage={5} 
-          size="lg"
-          variant="minimal" 
-        />
+        <div className="space-y-300">
+          <StoryPagination count={100} defaultPage={5} pageSize={10} size="lg" />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="lg"
+            variant="outlined"
+          />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="lg"
+            variant="minimal"
+          />
         </div>
       </VariantGroup>
     </VariantContainer>
@@ -176,77 +178,32 @@ export const CompactMode: Story = {
     <VariantContainer>
       <VariantGroup title="Regular vs Compact">
         <div className="space-y-300">
-          <div>
-            <p className="text-sm text-fg-secondary mb-100">Regular pagination:</p>
-            <Pagination 
-              count={250} 
-              pageSize={10} 
-              defaultPage={5} 
-              variant="filled"
-              compact={false}
-            />
-          </div>
-          <div>
-            <p className="text-sm text-fg-secondary mb-100">Compact mode:</p>
-            <Pagination 
-              count={250} 
-              pageSize={10} 
-              defaultPage={5} 
-              variant="filled"
-              compact={true}
-            />
-          </div>
+          <StoryPagination count={250} defaultPage={5} pageSize={10} />
+          <StoryPagination compact count={250} defaultPage={5} pageSize={10} />
         </div>
       </VariantGroup>
 
-      <VariantGroup title="Compact with different variants">
-        <Pagination 
-          count={150} 
-          pageSize={10} 
-          defaultPage={8} 
-          variant="filled"
-          compact={true}
-        />
-        <Pagination 
-          count={150} 
-          pageSize={10} 
-          defaultPage={8} 
-          variant="outlined"
-          compact={true}
-        />
-        <Pagination 
-          count={150} 
-          pageSize={10} 
-          defaultPage={8} 
-          variant="minimal"
-          compact={true}
-        />
-      </VariantGroup>
-
       <VariantGroup title="Compact with sizes">
-        <Pagination 
-          count={200} 
-          pageSize={10} 
-          defaultPage={12} 
+        <StoryPagination
+          compact
+          count={200}
+          defaultPage={12}
+          pageSize={10}
           size="sm"
-          variant="filled"
-          compact={true}
         />
-        <Pagination 
-          count={200} 
-          pageSize={10} 
-          defaultPage={12} 
+        <StoryPagination
+          compact
+          count={200}
+          defaultPage={12}
+          pageSize={10}
           size="md"
-          variant="filled"
-          compact={true}
         />
-        <Pagination 
-          count={200} 
-          pageSize={10} 
-          defaultPage={12} 
+        <StoryPagination
+          compact
+          count={200}
+          defaultPage={12}
+          pageSize={10}
           size="lg"
-          variant="filled"
-          compact={true}
         />
       </VariantGroup>
     </VariantContainer>
@@ -256,34 +213,24 @@ export const CompactMode: Story = {
 export const StyleVariants: Story = {
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Default (Filled)">
-        <Pagination
-          defaultPage={5}
-          count={100}
-          pageSize={10}
-          showPrevNext={true}
-          variant="filled"
-        />
+      <VariantGroup title="Filled">
+        <StoryPagination count={100} defaultPage={5} pageSize={10} />
       </VariantGroup>
 
       <VariantGroup title="Outlined">
-        <Pagination
-          defaultPage={5}
+        <StoryPagination
           count={100}
+          defaultPage={5}
           pageSize={10}
-          siblingCount={1}
-          showPrevNext={true}
           variant="outlined"
         />
       </VariantGroup>
 
       <VariantGroup title="Minimal">
-        <Pagination
-          defaultPage={5}
+        <StoryPagination
           count={100}
+          defaultPage={5}
           pageSize={10}
-          siblingCount={1}
-          showPrevNext={true}
           variant="minimal"
         />
       </VariantGroup>
@@ -294,139 +241,59 @@ export const StyleVariants: Story = {
 export const EdgeCases: Story = {
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Very few pages (1-3)">
+      <VariantGroup title="Very few pages">
         <div className="space-y-300">
-          <Pagination count={5} pageSize={10} defaultPage={1} variant="filled" />
-          <Pagination count={20} pageSize={10} defaultPage={1} variant="outlined" />
-          <Pagination count={30} pageSize={10} defaultPage={2} variant="minimal" />
+          <StoryPagination count={5} defaultPage={1} pageSize={10} />
+          <StoryPagination
+            count={20}
+            defaultPage={1}
+            pageSize={10}
+            variant="outlined"
+          />
+          <StoryPagination
+            count={30}
+            defaultPage={2}
+            pageSize={10}
+            variant="minimal"
+          />
         </div>
       </VariantGroup>
 
-      <VariantGroup title="Many pages (1000+ items)">
+      <VariantGroup title="Many pages">
         <div className="space-y-300">
-          <Pagination count={1000} pageSize={10} defaultPage={50} variant="filled" />
-          <Pagination count={5000} pageSize={20} defaultPage={125} variant="outlined" />
-        </div>
-      </VariantGroup>
-
-      <VariantGroup title="Different sibling counts">
-        <div className="space-y-300">
-          <div className="flex items-center gap-300">
-            <span className="text-sm w-24">siblingCount=0</span>
-            <Pagination count={200} pageSize={10} defaultPage={10} siblingCount={0} variant="filled" />
-          </div>
-          <div className="flex items-center gap-300">
-            <span className="text-sm w-24">siblingCount=2</span>
-            <Pagination count={200} pageSize={10} defaultPage={10} siblingCount={2} variant="filled" />
-          </div>
-          <div className="flex items-center gap-300">
-            <span className="text-sm w-24">siblingCount=3</span>
-            <Pagination count={200} pageSize={10} defaultPage={10} siblingCount={3} variant="filled" />
-          </div>
+          <StoryPagination count={1000} defaultPage={50} pageSize={10} />
+          <StoryPagination
+            count={5000}
+            defaultPage={125}
+            pageSize={20}
+            variant="outlined"
+          />
         </div>
       </VariantGroup>
     </VariantContainer>
   ),
 }
 
-export const Controlled: Story = {
-  render: () => {
-    const [page, setPage] = useState(1)
-    const totalItems = 250
-    const pageSize = 10
-    const totalPages = Math.ceil(totalItems / pageSize)
-    
-    const startItem = (page - 1) * pageSize + 1
-    const endItem = Math.min(page * pageSize, totalItems)
-
-    return (
-      <div className="space-y-400">
-        <div className="text-center space-y-150">
-          <div className="text-lg font-medium">
-            Page {page} of {totalPages}
-          </div>
-          <div className="text-sm text-fg-secondary">
-            Showing items {startItem}-{endItem} of {totalItems}
-          </div>
-        </div>
-
-        <Pagination
-          page={page}
-          count={totalItems}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          variant="filled"
-        />
-
-        <div className="flex gap-150 justify-center">
-          <Button
-            onClick={() => setPage(1)}
-            disabled={page === 1}
-            size="sm"
-            theme="outlined"
-          >
-            First
-          </Button>
-          <Button
-            onClick={() => setPage(Math.max(1, page - 5))}
-            disabled={page <= 5}
-            size="sm"
-            theme="outlined"
-          >
-            -5 Pages
-          </Button>
-          <Button
-            onClick={() => setPage(Math.min(totalPages, page + 5))}
-            disabled={page >= totalPages - 4}
-            size="sm"
-            theme="outlined"
-          >
-            +5 Pages
-          </Button>
-          <Button
-            onClick={() => setPage(totalPages)}
-            disabled={page === totalPages}
-            size="sm"
-            theme="outlined"
-          >
-            Last
-          </Button>
-        </div>
-      </div>
-    )
-  },
-}
-
-export const LinkMode: Story = {
+export const CustomLinkComponent: Story = {
   render: () => (
     <VariantContainer>
-      <VariantGroup title="True link-based pagination">
+      <VariantGroup title="Custom polymorphic link">
         <div className="space-y-300">
-          <p className="text-sm text-fg-secondary">
-            Uses Zag link mode to generate real href values for each trigger.
+          <p className="text-fg-secondary text-sm">
+            `Pagination` stays navigation-only, but can forward extra props to a
+            custom link component.
           </p>
           <Pagination
             count={500}
-            defaultPage={3}
+            defaultPage={6}
             pageSize={20}
-            type="link"
+            siblingCount={2}
+            linkAs={StoryLink}
+            linkProps={{ replace: true }}
             getPageUrl={getStoryPageUrl}
-            variant="filled"
+            variant="outlined"
           />
         </div>
-      </VariantGroup>
-
-      <VariantGroup title="Link mode with custom ranges">
-        <Pagination
-          count={500}
-          boundaryCount={2}
-          defaultPage={6}
-          pageSize={20}
-          siblingCount={2}
-          type="link"
-          getPageUrl={getStoryPageUrl}
-          variant="outlined"
-        />
       </VariantGroup>
     </VariantContainer>
   ),
@@ -435,59 +302,41 @@ export const LinkMode: Story = {
 export const RealWorldScenarios: Story = {
   render: () => (
     <VariantContainer>
-      <VariantGroup title="Table pagination (pageSize=20)">
+      <VariantGroup title="Table navigation">
         <div className="space-y-300">
-          <div className="border rounded p-300 space-y-300">
-            <div className="h-32 bg-surface rounded flex items-center justify-center text-sm text-fg-primary">
+          <div className="space-y-300 rounded border bg-base p-300">
+            <div className="flex h-32 items-center justify-center rounded bg-surface text-fg-primary text-sm">
               Table content area
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-fg-secondary">20 items per page</span>
-              <Pagination count={456} pageSize={20} defaultPage={3} variant="filled" />
+            <div className="flex items-center justify-between">
+              <span className="text-fg-secondary text-sm">20 items per page</span>
+              <StoryPagination count={456} defaultPage={3} pageSize={20} />
             </div>
-          </div>
-        </div>
-      </VariantGroup>
-
-      <VariantGroup title="Different page sizes">
-        <div className="space-y-300">
-          <div className="flex items-center gap-300">
-            <span className="text-sm w-32">5 items/page</span>
-            <Pagination count={100} pageSize={5} defaultPage={3} variant="outlined" />
-          </div>
-          <div className="flex items-center gap-300">
-            <span className="text-sm w-32">25 items/page</span>
-            <Pagination count={100} pageSize={25} defaultPage={2} variant="outlined" />
-          </div>
-          <div className="flex items-center gap-300">
-            <span className="text-sm w-32">50 items/page</span>
-            <Pagination count={100} pageSize={50} defaultPage={1} variant="outlined" />
           </div>
         </div>
       </VariantGroup>
 
       <VariantGroup title="Without prev/next buttons">
         <div className="space-y-300">
-          <Pagination 
-            count={150} 
-            pageSize={10} 
-            defaultPage={5} 
-            showPrevNext={false} 
-            variant="filled" 
+          <StoryPagination
+            count={150}
+            defaultPage={5}
+            pageSize={10}
+            showPrevNext={false}
           />
-          <Pagination 
-            count={150} 
-            pageSize={10} 
-            defaultPage={5} 
-            showPrevNext={false} 
-            variant="outlined" 
+          <StoryPagination
+            count={150}
+            defaultPage={5}
+            pageSize={10}
+            showPrevNext={false}
+            variant="outlined"
           />
-          <Pagination 
-            count={150} 
-            pageSize={10} 
-            defaultPage={5} 
-            showPrevNext={false} 
-            variant="minimal" 
+          <StoryPagination
+            count={150}
+            defaultPage={5}
+            pageSize={10}
+            showPrevNext={false}
+            variant="minimal"
           />
         </div>
       </VariantGroup>
