@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { getCartPriceView } from "@/lib/pricing/cart-pricing"
 import type { Cart } from "@/types/cart"
 import { CartItemRow } from "./cart-item-row"

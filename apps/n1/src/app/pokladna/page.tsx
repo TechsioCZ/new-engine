@@ -1,5 +1,5 @@
 "use client"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef } from "react"
 import { useClientReady } from "@/hooks/use-client-ready"

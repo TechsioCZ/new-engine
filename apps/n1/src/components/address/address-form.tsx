@@ -3,7 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useForm } from "@tanstack/react-form"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { storefront } from "@/hooks/storefront-preset"
 import { toAddressValidationError } from "@/lib/errors"
 import { addressToFormData, DEFAULT_ADDRESS } from "@/utils/address-helpers"

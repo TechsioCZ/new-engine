@@ -2,8 +2,8 @@
 
 import { useForm } from "@tanstack/react-form"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { Button } from "@ui/atoms/button"
-import { FormInput } from "@ui/molecules/form-input"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { TextField } from "@/components/forms/fields/text-field"
 import { storefront } from "@/hooks/storefront-preset"
 import { useAuth } from "@/hooks/use-auth"

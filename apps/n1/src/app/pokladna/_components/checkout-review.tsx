@@ -1,8 +1,8 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { Badge } from "@ui/atoms/badge"
-import { Button } from "@ui/atoms/button"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
