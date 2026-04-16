@@ -1,5 +1,8 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import {
+  Pagination,
+  type PaginationProps as UIPaginationProps,
+} from "@techsio/ui-kit/molecules/pagination"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import Image from "next/image"
 import Link from "next/link"
@@ -15,7 +18,7 @@ type ProductGridProps = {
   totalCount?: number
   currentPage?: number
   pageSize?: number
-  onPageChange?: (page: number) => void
+  getPageUrl?: NonNullable<UIPaginationProps["getPageUrl"]>
   isLoading?: boolean
   skeletonCount?: number
 }
@@ -25,7 +28,7 @@ export const ProductGrid = ({
   totalCount,
   currentPage = 1,
   pageSize = 24,
-  onPageChange,
+  getPageUrl,
   isLoading = false,
   skeletonCount = 12,
 }: ProductGridProps) => {
@@ -137,20 +140,22 @@ export const ProductGrid = ({
         ))}
       </div>
 
-      {totalPages > 1 && onPageChange && (
+      {totalPages > 1 && getPageUrl && (
         <div className="mt-700 flex justify-end">
           <Pagination
             className="sm:hidden"
+            linkAs={Link}
             count={totalCount || products.length}
-            onPageChange={onPageChange}
+            getPageUrl={getPageUrl}
             page={currentPage}
             pageSize={pageSize}
             siblingCount={0}
           />
           <Pagination
             className="hidden sm:flex"
+            linkAs={Link}
             count={totalCount || products.length}
-            onPageChange={onPageChange}
+            getPageUrl={getPageUrl}
             page={currentPage}
             pageSize={pageSize}
             siblingCount={1}

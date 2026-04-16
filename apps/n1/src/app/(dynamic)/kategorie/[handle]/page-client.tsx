@@ -6,7 +6,6 @@ import {
   type BreadcrumbItemType,
 } from "@techsio/ui-kit/molecules/breadcrumb"
 import NextLink from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
 import { Banner } from "@/components/atoms/banner"
 import { Heading } from "@/components/heading"
@@ -40,8 +39,6 @@ export function CategoryPageClient({
   rootCategoryHandle,
   rootCategoryId,
 }: CategoryPageClientProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const analytics = useAnalytics()
 
   const trackedCategoryId = useRef<string | null>(null)
@@ -77,14 +74,6 @@ export function CategoryPageClient({
       analytics.trackViewCategory({ category: path.join(" > ") })
     }
   }, [currentCategory, analytics])
-
-  const handlePageChange = (page: number) => {
-    const nextSearchParams = new URLSearchParams(searchParams.toString())
-    nextSearchParams.set("page", page.toString())
-    router.push(`/kategorie/${handle}?${nextSearchParams.toString()}`, {
-      scroll: true,
-    })
-  }
 
   if (!currentCategory) {
     return null
@@ -177,7 +166,9 @@ export function CategoryPageClient({
         <section>
           <ProductGrid
             currentPage={responsePage}
-            onPageChange={handlePageChange}
+            getPageUrl={({ page }) =>
+              page <= 1 ? `/kategorie/${handle}` : `/kategorie/${handle}?page=${page}`
+            }
             pageSize={PRODUCT_LIMIT}
             products={products}
             skeletonCount={24}
