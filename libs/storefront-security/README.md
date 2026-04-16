@@ -27,7 +27,7 @@ Use `createStorefrontSecurityConfig()` with:
 - `replace` for full overrides
 
 ```ts
-import { createStorefrontSecurityConfig } from "../../libs/storefront-security/next-security.mjs"
+import { createStorefrontSecurityConfig } from "../../libs/storefront-security/index.mjs"
 
 const storefrontSecurity = createStorefrontSecurityConfig({
   preset: "medusaStorefront",
@@ -89,8 +89,8 @@ const storefrontSecurity = createStorefrontSecurityConfig({
 
 ### `replace`
 
-Use `replace` when you want to override a whole directive or policy instead of
-extending it.
+Use `replace` when a project needs to take ownership of a full directive,
+policy, or header value.
 
 ```ts
 const storefrontSecurity = createStorefrontSecurityConfig({
@@ -190,7 +190,7 @@ import {
   buildStorefrontContentSecurityPolicy,
   buildDevHmrOrigins,
   storefrontSecurityPresets,
-} from "../../libs/storefront-security/next-security.mjs"
+} from "../../libs/storefront-security/index.mjs"
 ```
 
 ## Suggested rollout

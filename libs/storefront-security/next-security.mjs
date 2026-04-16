@@ -137,7 +137,7 @@ export function createStorefrontSecurityConfig(options = {}) {
     isProduction = process.env.NODE_ENV === "production",
     allowedDevOrigins = [],
     devPort = 3000,
-    publicBackendUrl = process.env[DEFAULT_PUBLIC_BACKEND_ENV_NAME],
+    publicBackendUrl,
     envVarName = DEFAULT_PUBLIC_BACKEND_ENV_NAME,
     defaultDevelopmentBackendUrl = DEFAULT_DEVELOPMENT_BACKEND_URL,
     extend,

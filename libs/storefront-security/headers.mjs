@@ -57,16 +57,16 @@ export function buildStorefrontResponseHeaders(options) {
     ].map(([key, value]) => [key, value])
   )
 
+  for (const header of extendHeaders) {
+    headerMap.set(header.key, header.value)
+  }
+
   for (const header of replaceHeaders) {
     if (header.value === null) {
       headerMap.delete(header.key)
       continue
     }
 
-    headerMap.set(header.key, header.value)
-  }
-
-  for (const header of extendHeaders) {
     headerMap.set(header.key, header.value)
   }
 

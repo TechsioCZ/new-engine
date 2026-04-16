@@ -42,6 +42,27 @@ export function uniquePolicySources(sources) {
 }
 
 /**
+ * @param {string} origin
+ * @returns {{ hostname: string, port: string | null }}
+ */
+function normalizeAllowedDevOrigin(origin) {
+  const normalizedOrigin = origin.trim()
+
+  if (!normalizedOrigin) {
+    throw new Error("allowedDevOrigins entries must not be empty.")
+  }
+
+  const parsedOrigin = normalizedOrigin.includes("://")
+    ? new URL(normalizedOrigin)
+    : new URL(`http://${normalizedOrigin}`)
+
+  return {
+    hostname: parsedOrigin.hostname,
+    port: parsedOrigin.port || null,
+  }
+}
+
+/**
  * @param {{
  *   isProduction?: boolean
  *   allowedDevOrigins?: string[]
@@ -63,12 +84,20 @@ export function buildDevHmrOrigins(options = {}) {
   return uniquePolicySources([
     `ws://localhost:${devPort}`,
     `ws://127.0.0.1:${devPort}`,
-    ...allowedDevOrigins.flatMap((origin) => [
-      `ws://${origin}`,
-      `wss://${origin}`,
-      `ws://${origin}:${devPort}`,
-      `wss://${origin}:${devPort}`,
-    ]),
+    ...allowedDevOrigins.flatMap((origin) => {
+      const { hostname, port } = normalizeAllowedDevOrigin(origin)
+
+      if (port) {
+        return [`ws://${hostname}:${port}`, `wss://${hostname}:${port}`]
+      }
+
+      return [
+        `ws://${hostname}`,
+        `wss://${hostname}`,
+        `ws://${hostname}:${devPort}`,
+        `wss://${hostname}:${devPort}`,
+      ]
+    }),
   ])
 }
 

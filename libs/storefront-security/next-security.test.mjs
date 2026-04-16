@@ -6,7 +6,7 @@ import {
   createStorefrontSecurityConfig,
   resolvePublicBackendOrigin,
   resolveStorefrontSecurityPreset,
-} from "./next-security.mjs"
+} from "./index.mjs"
 
 const MISSING_BACKEND_URL_PATTERN = /Missing NEXT_PUBLIC_MEDUSA_BACKEND_URL/
 const INVALID_BACKEND_URL_PATTERN = /Invalid NEXT_PUBLIC_MEDUSA_BACKEND_URL/
@@ -44,6 +44,37 @@ test("resolvePublicBackendOrigin fails fast in production when invalid", () => {
   )
 })
 
+test("resolvePublicBackendOrigin honors envVarName overrides", () => {
+  const originalBackendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+  const originalCustomBackendUrl = process.env.CUSTOM_MEDUSA_BACKEND_URL
+
+  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL = "https://default.example.com"
+  process.env.CUSTOM_MEDUSA_BACKEND_URL = "https://custom.example.com"
+
+  try {
+    assert.equal(
+      resolvePublicBackendOrigin({
+        isProduction: false,
+        publicBackendUrl: undefined,
+        envVarName: "CUSTOM_MEDUSA_BACKEND_URL",
+      }),
+      "https://custom.example.com"
+    )
+  } finally {
+    if (originalBackendUrl === undefined) {
+      delete process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+    } else {
+      process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL = originalBackendUrl
+    }
+
+    if (originalCustomBackendUrl === undefined) {
+      delete process.env.CUSTOM_MEDUSA_BACKEND_URL
+    } else {
+      process.env.CUSTOM_MEDUSA_BACKEND_URL = originalCustomBackendUrl
+    }
+  }
+})
+
 test("buildDevHmrOrigins includes explicit custom host and :3000 variants", () => {
   const origins = buildDevHmrOrigins({
     isProduction: false,
@@ -57,6 +88,24 @@ test("buildDevHmrOrigins includes explicit custom host and :3000 variants", () =
     "wss://n1.medusa.localhost",
     "ws://n1.medusa.localhost:3000",
     "wss://n1.medusa.localhost:3000",
+  ])
+})
+
+test("buildDevHmrOrigins normalizes full origins and explicit ports", () => {
+  const origins = buildDevHmrOrigins({
+    isProduction: false,
+    allowedDevOrigins: ["https://shop.localhost", "shop.localhost:3100"],
+  })
+
+  assert.deepEqual(origins, [
+    "ws://localhost:3000",
+    "ws://127.0.0.1:3000",
+    "ws://shop.localhost",
+    "wss://shop.localhost",
+    "ws://shop.localhost:3000",
+    "wss://shop.localhost:3000",
+    "ws://shop.localhost:3100",
+    "wss://shop.localhost:3100",
   ])
 })
 
@@ -124,6 +173,25 @@ test("createStorefrontSecurityConfig supports preset + extend + replace", async 
   assert.match(cspHeader?.value ?? "", /frame-src 'self' https:\/\/www\.ppl\.cz/)
   assert.equal(permissionsHeader?.value, "camera=(), microphone=()")
   assert.equal(cacheControlHeader?.value, "public, max-age=60")
+})
+
+test("replace headers win over extend headers", async () => {
+  const securityConfig = createStorefrontSecurityConfig({
+    isProduction: false,
+    publicBackendUrl: "https://demo-medusa.example.com",
+    extend: {
+      headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
+    },
+    replace: {
+      headers: [{ key: "X-Frame-Options", value: "DENY" }],
+    },
+  })
+
+  const frameOptionsHeader = (await securityConfig.headers())[0].headers.find(
+    (header) => header.key === "X-Frame-Options"
+  )
+
+  assert.equal(frameOptionsHeader?.value, "DENY")
 })
 
 test("legacy additional* options still extend the preset", async () => {

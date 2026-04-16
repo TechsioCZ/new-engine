@@ -16,10 +16,11 @@ export const DEFAULT_DEVELOPMENT_BACKEND_URL = "http://localhost:9000"
 export function resolvePublicBackendUrl(options = {}) {
   const {
     isProduction = process.env.NODE_ENV === "production",
-    publicBackendUrl = process.env[DEFAULT_PUBLIC_BACKEND_ENV_NAME],
     envVarName = DEFAULT_PUBLIC_BACKEND_ENV_NAME,
     defaultDevelopmentBackendUrl = DEFAULT_DEVELOPMENT_BACKEND_URL,
   } = options
+  const publicBackendUrl =
+    options.publicBackendUrl ?? process.env[envVarName]
 
   const configuredUrl = publicBackendUrl?.trim()
 
