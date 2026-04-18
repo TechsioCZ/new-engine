@@ -121,6 +121,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
   projectSlug: string
   environmentName: string
   environmentCreated: boolean
+  allowGenerateMissing: boolean
   dryRun: boolean
   zaneOperatorClient: ZaneOperatorClient | null
 }): Promise<PreviewRandomOnceSecretInput[]> {
@@ -131,6 +132,28 @@ async function resolvePreviewRandomOnceSecrets(input: {
 
   if (input.dryRun || !input.zaneOperatorClient) {
     return generatePreviewRandomOnceSecrets(input.stackInputs)
+  }
+
+  const resolveSecrets = (
+    syncedSecrets: Array<{ secret_id: string; value: string }>
+  ): PreviewRandomOnceSecretInput[] => {
+    const resolvedValueBySecretId = new Map(
+      syncedSecrets.map((secret) => [secret.secret_id, secret.value])
+    )
+
+    return definitions.map((definition) => {
+      const value = resolvedValueBySecretId.get(definition.secret_id)
+      if (!value) {
+        throw new Error(
+          `Preview random-once secret ${definition.secret_id} was not returned for ${input.environmentName}.`
+        )
+      }
+
+      return {
+        ...definition,
+        value,
+      }
+    })
   }
 
   if (input.environmentCreated) {
@@ -159,23 +182,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
       )
     }
 
-    const resolvedValueBySecretId = new Map(
-      materialized.secrets.map((secret) => [secret.secret_id, secret.value])
-    )
-
-    return definitions.map((definition) => {
-      const value = resolvedValueBySecretId.get(definition.secret_id)
-      if (!value) {
-        throw new Error(
-          `Preview random-once secret ${definition.secret_id} was not returned for ${input.environmentName}.`
-        )
-      }
-
-      return {
-        ...definition,
-        value,
-      }
-    })
+    return resolveSecrets(materialized.secrets)
   }
 
   const synced = await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
@@ -192,29 +199,47 @@ async function resolvePreviewRandomOnceSecrets(input: {
     })),
   })
 
-  if (synced.missing_secret_ids.length > 0) {
+  if (synced.missing_secret_ids.length === 0) {
+    return resolveSecrets(synced.secrets)
+  }
+
+  if (!input.allowGenerateMissing) {
     throw new Error(
       `Preview random-once secrets are missing in ${input.environmentName}: ${synced.missing_secret_ids.join(", ")}`
     )
   }
 
-  const resolvedValueBySecretId = new Map(
-    synced.secrets.map((secret) => [secret.secret_id, secret.value])
+  // Baseline replays should reuse persisted values. Only fill the gaps left by an
+  // interrupted first-creation run; do not rotate secrets that already exist.
+  const missingSecretIds = new Set(synced.missing_secret_ids)
+  const generatedSecrets = generatePreviewRandomOnceSecrets(input.stackInputs)
+  const generatedValuesBySecretId = new Map(
+    generatedSecrets.map((secret) => [secret.secret_id, secret.value])
   )
-
-  return definitions.map((definition) => {
-    const value = resolvedValueBySecretId.get(definition.secret_id)
-    if (!value) {
-      throw new Error(
-        `Preview random-once secret ${definition.secret_id} was not returned for ${input.environmentName}.`
-      )
-    }
-
-    return {
-      ...definition,
-      value,
-    }
+  const materialized = await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
+    project_slug: input.projectSlug,
+    environment_name: input.environmentName,
+    secrets: definitions.map((definition) => ({
+      secret_id: definition.secret_id,
+      ...(missingSecretIds.has(definition.secret_id)
+        ? { value: generatedValuesBySecretId.get(definition.secret_id) }
+        : {}),
+      persist_to: definition.persist_to,
+      persisted_env_var: definition.persisted_env_var,
+      targets: definition.targets.map((target) => ({
+        service_slug: target.service_id,
+        env_var: target.env_var,
+      })),
+    })),
   })
+
+  if (materialized.missing_secret_ids.length > 0) {
+    throw new Error(
+      `Preview random-once secrets are missing in ${input.environmentName}: ${materialized.missing_secret_ids.join(", ")}`
+    )
+  }
+
+  return resolveSecrets(materialized.secrets)
 }
 
 async function syncPreviewSharedEnv(input: {
@@ -390,6 +415,7 @@ export async function executeDeployPreview(
     projectSlug: input.projectSlug,
     environmentName: environment.environment_name,
     environmentCreated: environment.created,
+    allowGenerateMissing: baselineDeploy,
     dryRun: input.dryRun,
     zaneOperatorClient,
   })

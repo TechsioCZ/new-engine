@@ -472,7 +472,14 @@ setup::effective_builder_json() {
   jq -cS '
     ([.unapplied_changes[] | select(.field == "builder")] | last) as $pending
     | if $pending then
-        $pending.new_value
+        {
+          builder: ($pending.new_value.builder // null),
+          options: {
+            dockerfile_path: ($pending.new_value.options.dockerfile_path // $pending.new_value.dockerfile_path // null),
+            build_context_dir: ($pending.new_value.options.build_context_dir // $pending.new_value.build_context_dir // null),
+            build_stage_target: ($pending.new_value.options.build_stage_target // $pending.new_value.build_stage_target // null)
+          }
+        }
       else
         {
           builder: .builder,
@@ -485,6 +492,7 @@ setup::effective_builder_json() {
       end
   ' <<<"$service_json"
 }
+
 
 setup::desired_builder_json() {
   local dockerfile_path="$1"
@@ -718,21 +726,25 @@ setup::ensure_service_source_and_builder() {
 setup::ensure_service_command() {
   local service_slug="$1"
   local service_json="$2"
-  local desired_command="$3"
-  local effective_command payload
+  local desired_command_json="$3"
+  local effective_command_json payload
 
-  [[ "$desired_command" != "null" ]] || return 0
+  effective_command_json="$(jq -c '([.unapplied_changes[] | select(.field == "command")] | last) as $pending | if $pending then $pending.new_value else (.command // null) end' <<<"$service_json")"
+  [[ "$effective_command_json" == "$desired_command_json" ]] && return 0
 
-  effective_command="$(jq -r '([.unapplied_changes[] | select(.field == "command")] | last | .new_value) // .command // empty' <<<"$service_json")"
-  [[ "$effective_command" == "$desired_command" ]] && return 0
-
-  payload="$(
-    jq -n \
-      --arg command "$desired_command" \
-      '{field: "command", type: "UPDATE", new_value: $command}'
-  )"
+  if [[ "$desired_command_json" == "null" ]]; then
+    # The CTL plan owns whether a service should use the image default command.
+    payload='{"field":"command","type":"UPDATE","new_value":null}'
+  else
+    payload="$(
+      jq -n \
+        --argjson command "$desired_command_json" \
+        '{field: "command", type: "UPDATE", new_value: $command}'
+    )"
+  fi
   zane::request_service_change "$service_slug" "$payload"
 }
+
 
 setup::normalize_healthcheck_json() {
   jq -cS '
@@ -976,10 +988,7 @@ setup::ensure_service_urls() {
   local desired_json="$3"
   local effective_json
   local pending_urls_reset="false"
-
-  if [[ "$(jq 'length' <<<"$desired_json")" == "0" ]]; then
-    return 0
-  fi
+  local desired_compact_rows stale_rows
 
   effective_json="$(setup::effective_urls_json "$service_json")"
 
@@ -1113,7 +1122,72 @@ setup::ensure_service_urls() {
     service_json="$(zane::get_service "$service_slug")"
     effective_json="$(setup::effective_urls_json "$service_json")"
   done < <(jq -c '.[]' <<<"$desired_json")
+
+  desired_compact_rows="$(
+    jq -cS '[.[] | {domain, base_path, strip_prefix, redirect_to: (.redirect_to // null), associated_port: (.associated_port // null)}]' <<<"$desired_json"
+  )"
+  stale_rows="$(
+    jq -c --argjson desired "$desired_compact_rows" '
+      map({
+        id: .id,
+        domain,
+        base_path,
+        strip_prefix,
+        redirect_to: (.redirect_to // null),
+        associated_port: (.associated_port // null)
+      })
+      | map(
+          select(
+            (. as $candidate | any($desired[]; . == ($candidate | del(.id)))) | not
+          )
+        )
+    ' <<<"$effective_json"
+  )"
+  if [[ "$(jq 'length' <<<"$stale_rows")" == "0" ]]; then
+    return 0
+  fi
+
+  if [[ "$pending_urls_reset" != "true" ]]; then
+    setup::cancel_pending_changes_for_field "$service_slug" "$service_json" "urls"
+    service_json="$(zane::get_service "$service_slug")"
+    effective_json="$(setup::effective_urls_json "$service_json")"
+    stale_rows="$(
+      jq -c --argjson desired "$desired_compact_rows" '
+        map({
+          id: .id,
+          domain,
+          base_path,
+          strip_prefix,
+          redirect_to: (.redirect_to // null),
+          associated_port: (.associated_port // null)
+        })
+        | map(
+            select(
+              (. as $candidate | any($desired[]; . == ($candidate | del(.id)))) | not
+            )
+          )
+      ' <<<"$effective_json"
+    )"
+  fi
+
+  while IFS= read -r stale_row; do
+    local item_id delete_payload
+    [[ -n "$stale_row" ]] || continue
+
+    item_id="$(jq -r '.id' <<<"$stale_row")"
+    [[ -n "$item_id" && "$item_id" != "null" ]] || continue
+
+    delete_payload="$(
+      jq -n \
+        --arg item_id "$item_id" \
+        '{field: "urls", type: "DELETE", item_id: $item_id}'
+    )"
+    zane::request_service_change "$service_slug" "$delete_payload"
+    service_json="$(zane::get_service "$service_slug")"
+    effective_json="$(setup::effective_urls_json "$service_json")"
+  done < <(jq -c '.[]' <<<"$stale_rows")
 }
+
 
 setup::ensure_service_envs() {
   local service_slug="$1"
@@ -1246,7 +1320,7 @@ setup::apply_service_from_plan() {
 
   setup::ensure_service_source_and_builder "$service_slug" "$service_json" "$spec_json"
   service_json="$(zane::get_service "$service_slug")"
-  setup::ensure_service_command "$service_slug" "$service_json" "$(jq -r '.desired_command' <<<"$service_plan_json")"
+  setup::ensure_service_command "$service_slug" "$service_json" "$(jq -c '.desired_command' <<<"$service_plan_json")"
   service_json="$(zane::get_service "$service_slug")"
   setup::ensure_service_volumes "$service_slug" "$service_json" "$(jq -c '.desired_volumes' <<<"$service_plan_json")"
   service_json="$(zane::get_service "$service_slug")"

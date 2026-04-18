@@ -627,6 +627,8 @@ export class ZaneEnvironmentManager {
       return state
     }
 
+    const requiresBaselineReplay = state.missing_preview_service_slugs.length > 0
+
     logResolveEnvironmentEvent("resolve-environment.preview.reconcile", {
       project_slug: input.projectSlug,
       environment_name: input.environmentName,
@@ -669,6 +671,14 @@ export class ZaneEnvironmentManager {
       false,
       null
     )
+
+    if (requiresBaselineReplay && state.baseline_complete) {
+      // Recreated preview-cloned services exist but have not been baseline-deployed yet.
+      state = {
+        ...state,
+        baseline_complete: false,
+      }
+    }
 
     return state
   }
