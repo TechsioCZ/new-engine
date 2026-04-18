@@ -6,7 +6,7 @@ import {
   mapMedusaAddressToCheckoutAddress,
 } from "@techsio/storefront-data/checkout/address";
 import type { StorefrontCartAddressAdapter } from "@techsio/storefront-data/shared/address";
-import type { AddressFormState } from "@/components/checkout/checkout.constants";
+import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form";
 
 const HERBATIKA_ADDRESS_METADATA_FIELDS = [
   ["companyId", "company_id"],
@@ -74,7 +74,7 @@ const readMetadataString = (
 };
 
 export const buildHerbatikaCheckoutAddressInput = (
-  addressForm: AddressFormState,
+  addressForm: CheckoutAddressValues,
 ): HerbatikaCheckoutAddressInput => {
   return {
     firstName: addressForm.firstName,
@@ -95,7 +95,7 @@ export const buildHerbatikaCheckoutAddressInput = (
 
 export const mapHerbatikaAddressFormStateFromMedusaAddress = (
   address?: MedusaAddressLike | null,
-): Partial<AddressFormState> => {
+): Partial<CheckoutAddressValues> => {
   const baseAddress =
     mapMedusaAddressToCheckoutAddress<HerbatikaCheckoutAddressInput>(address);
   const metadata = isRecord(address?.metadata) ? address.metadata : undefined;

@@ -1,19 +1,16 @@
 "use client";
 
-import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import { useState } from "react";
-import { AuthTextField } from "@/components/auth/auth-text-field";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
-import { StorefrontRegisterTermsField } from "@/components/auth/storefront-register-terms-field";
 import {
-  isRegisterFormValid,
   registerValidators,
   type RegisterFormValues,
 } from "@/lib/auth/auth-form-validators";
+import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
 
 type StorefrontRegisterFormProps = {
   isBusy: boolean;
@@ -34,20 +31,14 @@ export const StorefrontRegisterForm = ({
 }: StorefrontRegisterFormProps) => {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const form = useForm({
+  const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value }) => {
-      if (!isRegisterFormValid(value)) {
-        return;
-      }
-
+      setSubmitError(null);
       const error = await onSubmit(value);
       setSubmitError(error);
     },
   });
-
-  const values = useStore(form.store, (state) => state.values);
-  const isSubmitDisabled = isBusy || !isRegisterFormValid(values);
 
   return (
     <form
@@ -66,56 +57,56 @@ export const StorefrontRegisterForm = ({
         </div>
       )}
 
-      <form.Field name="first_name" validators={registerValidators.first_name}>
+      <form.AppField name="first_name" validators={registerValidators.first_name}>
         {(field) => (
-          <AuthTextField
+          <field.TextField
             autoComplete="given-name"
-            field={field}
             id="auth-register-first-name"
             label="Meno"
+            onValueChange={() => setSubmitError(null)}
             required
             validationMode="blur"
           />
         )}
-      </form.Field>
+      </form.AppField>
 
-      <form.Field name="last_name" validators={registerValidators.last_name}>
+      <form.AppField name="last_name" validators={registerValidators.last_name}>
         {(field) => (
-          <AuthTextField
+          <field.TextField
             autoComplete="family-name"
-            field={field}
             id="auth-register-last-name"
             label="Priezvisko"
+            onValueChange={() => setSubmitError(null)}
             required
             validationMode="blur"
           />
         )}
-      </form.Field>
+      </form.AppField>
 
       <div className="md:col-span-2">
-        <form.Field name="email" validators={registerValidators.email}>
+        <form.AppField name="email" validators={registerValidators.email}>
           {(field) => (
-            <AuthTextField
+            <field.TextField
               autoComplete="email"
-              field={field}
               id="auth-register-email"
               label="E-mailová adresa"
+              onValueChange={() => setSubmitError(null)}
               required
               type="email"
               validationMode="blur"
             />
           )}
-        </form.Field>
+        </form.AppField>
       </div>
 
-      <form.Field name="password" validators={registerValidators.password}>
+      <form.AppField name="password" validators={registerValidators.password}>
         {(field) => (
           <div className="space-y-200">
-            <AuthTextField
+            <field.TextField
               autoComplete="new-password"
-              field={field}
               id="auth-register-password"
               label="Heslo"
+              onValueChange={() => setSubmitError(null)}
               required
               type="password"
               validationMode="blur"
@@ -123,38 +114,44 @@ export const StorefrontRegisterForm = ({
             <PasswordRequirements password={String(field.state.value ?? "")} />
           </div>
         )}
-      </form.Field>
+      </form.AppField>
 
-      <form.Field
+      <form.AppField
         name="confirm_password"
         validators={registerValidators.confirm_password}
       >
         {(field) => (
-          <AuthTextField
+          <field.TextField
             autoComplete="new-password"
-            field={field}
             id="auth-register-confirm-password"
             label="Potvrdenie hesla"
+            onValueChange={() => setSubmitError(null)}
             required
             type="password"
             validationMode="blur"
           />
         )}
-      </form.Field>
+      </form.AppField>
 
       <div className="md:col-span-2">
-        <form.Field name="accept_terms" validators={registerValidators.accept_terms}>
+        <form.AppField
+          name="accept_terms"
+          validators={registerValidators.accept_terms}
+        >
           {(field) => (
-            <StorefrontRegisterTermsField
-              field={field}
-              onChange={() => setSubmitError(null)}
+            <field.CheckboxField
+              id="auth-register-accept-terms"
+              label="Súhlasím s obchodnými podmienkami"
+              onValueChange={() => setSubmitError(null)}
+              required
+              size="sm"
             />
           )}
-        </form.Field>
+        </form.AppField>
       </div>
 
       <div className="md:col-span-2 flex flex-wrap gap-200">
-        <Button disabled={isSubmitDisabled} isLoading={isBusy} type="submit">
+        <Button isLoading={isBusy} type="submit" size="sm">
           Registrovať
         </Button>
 

@@ -8,11 +8,13 @@ import {
   buildGeneratedRegisterIdentity,
   buildLoginDefaults,
   buildRegisterDefaults,
-  type LoginFormValues,
   resolveSafeRedirectHref,
 } from "@/components/auth/storefront-auth-helpers";
-import { resolveLoginSubmitError } from "@/lib/auth/auth-form-validators";
-import type { RegisterFormValues } from "@/lib/auth/auth-form-validators";
+import {
+  resolveLoginSubmitError,
+  type LoginFormValues,
+  type RegisterFormValues,
+} from "@/lib/auth/auth-form-validators";
 import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth";
 import {
   storefrontCartReadQueryOptions,

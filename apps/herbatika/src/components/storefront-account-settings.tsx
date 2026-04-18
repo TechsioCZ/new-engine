@@ -1,18 +1,16 @@
 "use client";
 
-import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import { useEffect, useRef, useState } from "react";
-import { AuthTextField } from "@/components/auth/auth-text-field";
 import {
   StorefrontAccountSkeletonSurface,
   StorefrontAccountSurface,
 } from "@/components/account/storefront-account-surface";
+import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
 import {
   accountSettingsValidators,
-  isAccountSettingsFormValid,
   toAccountSettingsValues,
 } from "@/lib/storefront/account-settings-validators";
 import { useAuth } from "@/lib/storefront/auth";
@@ -26,7 +24,7 @@ export function StorefrontAccountSettings() {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const hydratedCustomerIdRef = useRef<string | null>(null);
 
-  const form = useForm({
+  const form = useHerbatikaForm({
     defaultValues: toAccountSettingsValues(authQuery.customer),
     onSubmit: async ({ value }) => {
       setSubmitError(null);
@@ -53,10 +51,6 @@ export function StorefrontAccountSettings() {
       }
     },
   });
-
-  const values = useStore(form.store, (state) => state.values);
-  const isSubmitDisabled =
-    updateCustomerMutation.isPending || !isAccountSettingsFormValid(values);
 
   useEffect(() => {
     const customer = authQuery.customer;
@@ -128,29 +122,41 @@ export function StorefrontAccountSettings() {
           </div>
         )}
 
-        <form.Field name="first_name" validators={accountSettingsValidators.first_name}>
+        <form.AppField
+          name="first_name"
+          validators={accountSettingsValidators.first_name}
+        >
           {(field) => (
-            <AuthTextField
-              field={field}
+            <field.TextField
               id="account-settings-first-name"
               label="Meno"
+              onValueChange={() => {
+                setSubmitError(null);
+                setSubmitSuccess(null);
+              }}
               required
               validationMode="blur"
             />
           )}
-        </form.Field>
+        </form.AppField>
 
-        <form.Field name="last_name" validators={accountSettingsValidators.last_name}>
+        <form.AppField
+          name="last_name"
+          validators={accountSettingsValidators.last_name}
+        >
           {(field) => (
-            <AuthTextField
-              field={field}
+            <field.TextField
               id="account-settings-last-name"
               label="Priezvisko"
+              onValueChange={() => {
+                setSubmitError(null);
+                setSubmitSuccess(null);
+              }}
               required
               validationMode="blur"
             />
           )}
-        </form.Field>
+        </form.AppField>
 
         <div className="md:col-span-2">
           <FormInput
@@ -161,30 +167,37 @@ export function StorefrontAccountSettings() {
           />
         </div>
 
-        <form.Field name="phone" validators={accountSettingsValidators.phone}>
+        <form.AppField name="phone" validators={accountSettingsValidators.phone}>
           {(field) => (
-            <AuthTextField
-              field={field}
+            <field.TextField
               id="account-settings-phone"
               label="Telefón"
+              onValueChange={() => {
+                setSubmitError(null);
+                setSubmitSuccess(null);
+              }}
+              type="tel"
               validationMode="blur"
             />
           )}
-        </form.Field>
+        </form.AppField>
 
-        <form.Field name="company_name">
+        <form.AppField name="company_name">
           {(field) => (
-            <AuthTextField
-              field={field}
+            <field.TextField
               id="account-settings-company"
               label="Firma (voliteľné)"
+              onValueChange={() => {
+                setSubmitError(null);
+                setSubmitSuccess(null);
+              }}
               validationMode="none"
             />
           )}
-        </form.Field>
+        </form.AppField>
 
         <div className="md:col-span-2 flex justify-end">
-          <Button disabled={isSubmitDisabled} isLoading={updateCustomerMutation.isPending} type="submit">
+          <Button isLoading={updateCustomerMutation.isPending} type="submit">
             Uložiť údaje
           </Button>
         </div>

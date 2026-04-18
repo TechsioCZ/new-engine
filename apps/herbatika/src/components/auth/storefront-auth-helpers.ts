@@ -1,40 +1,7 @@
-import type { RegisterFormValues } from "@/lib/auth/auth-form-validators";
-
-type BlurAwareFieldMeta = {
-  isBlurred: boolean;
-  isDirty: boolean;
-  errorMap: {
-    onChange?: unknown;
-    onBlur?: unknown;
-  };
-};
-
-export const toFieldErrorText = (error: unknown): string | undefined => {
-  if (typeof error === "string" || typeof error === "number") {
-    return String(error);
-  }
-
-  if (Array.isArray(error) && error.length > 0) {
-    return toFieldErrorText(error[0]);
-  }
-
-  return undefined;
-};
-
-export const resolveBlurAwareFieldError = (meta: BlurAwareFieldMeta) => {
-  if (!meta.isBlurred) {
-    return undefined;
-  }
-
-  const changeError = toFieldErrorText(meta.errorMap.onChange);
-  const blurError = toFieldErrorText(meta.errorMap.onBlur);
-
-  if (meta.isDirty) {
-    return changeError;
-  }
-
-  return changeError ?? blurError;
-};
+import type {
+  LoginFormValues,
+  RegisterFormValues,
+} from "@/lib/auth/auth-form-validators";
 
 export const buildGeneratedIdentity = () => {
   const seed =
@@ -78,11 +45,6 @@ export const resolveAfterAuthHref = (
 ) => {
   const nextValue = typeof value === "string" ? value : undefined;
   return resolveSafeRedirectHref(nextValue) ?? fallback;
-};
-
-export type LoginFormValues = {
-  email: string;
-  password: string;
 };
 
 const DEFAULT_PASSWORD = "CodexTest123!";

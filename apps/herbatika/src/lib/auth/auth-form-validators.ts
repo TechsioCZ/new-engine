@@ -1,7 +1,22 @@
+import {
+  passwordHasNumber,
+  validateCustomerName,
+  validateEmailAddress,
+  validateLoginPassword,
+  validatePasswordConfirmation,
+  validateRegisterPassword,
+  validateRequiredAgreement,
+} from "@/lib/forms/validators/shared";
+import {
+  createChangeBlurContextualFieldValidators,
+  createChangeBlurFieldValidators,
+} from "@/lib/forms/validators/field-validator-factories";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_NUMBER_REGEX = /\d/;
+export type LoginFormValues = {
+  email: string;
+  password: string;
+};
 
 export type RegisterFormValues = {
   first_name: string;
@@ -18,59 +33,9 @@ type ConfirmPasswordFieldApi = {
   };
 };
 
-const validateName = (value: string, label: "Meno" | "Priezvisko") => {
-  if (value.trim().length < 2) {
-    return `${label} musí mať aspoň 2 znaky.`;
-  }
-
-  return undefined;
-};
-
-const validateEmail = (value: string) => {
-  if (!value.trim()) {
-    return "Zadajte e-mail.";
-  }
-
-  if (!EMAIL_REGEX.test(value.trim())) {
-    return "Zadajte platný e-mail.";
-  }
-
-  return undefined;
-};
-
-const validatePassword = (value: string) => {
-  if (value.length < 8) {
-    return "Heslo musí mať aspoň 8 znakov.";
-  }
-
-  if (!PASSWORD_NUMBER_REGEX.test(value)) {
-    return "Heslo musí obsahovať aspoň jednu číslicu.";
-  }
-
-  return undefined;
-};
-
-const validatePasswordConfirmation = (
-  password: string,
-  confirmPassword: string,
-) => {
-  if (!confirmPassword) {
-    return "Potvrďte heslo.";
-  }
-
-  if (password !== confirmPassword) {
-    return "Heslá sa nezhodujú.";
-  }
-
-  return undefined;
-};
-
-const validateTerms = (value: boolean) => {
-  if (!value) {
-    return "Potrebujeme súhlas s obchodnými podmienkami.";
-  }
-
-  return undefined;
+export const loginValidators = {
+  email: createChangeBlurFieldValidators(validateEmailAddress),
+  password: createChangeBlurFieldValidators(validateLoginPassword),
 };
 
 export const PASSWORD_REQUIREMENTS = [
@@ -82,71 +47,36 @@ export const PASSWORD_REQUIREMENTS = [
   {
     id: "has-number",
     label: "Aspoň jedna číslica",
-    test: (password: string) => PASSWORD_NUMBER_REGEX.test(password),
+    test: (password: string) => passwordHasNumber(password),
   },
 ] as const;
 
 export const registerValidators = {
-  first_name: {
-    onChange: ({ value }: { value: string }) => validateName(value, "Meno"),
-    onBlur: ({ value }: { value: string }) => validateName(value, "Meno"),
-  },
-  last_name: {
-    onChange: ({ value }: { value: string }) =>
-      validateName(value, "Priezvisko"),
-    onBlur: ({ value }: { value: string }) =>
-      validateName(value, "Priezvisko"),
-  },
-  email: {
-    onChange: ({ value }: { value: string }) => validateEmail(value),
-    onBlur: ({ value }: { value: string }) => validateEmail(value),
-  },
-  password: {
-    onChange: ({ value }: { value: string }) => validatePassword(value),
-    onBlur: ({ value }: { value: string }) => validatePassword(value),
-  },
+  first_name: createChangeBlurFieldValidators((value: string) =>
+    validateCustomerName(value, "Meno"),
+  ),
+  last_name: createChangeBlurFieldValidators((value: string) =>
+    validateCustomerName(value, "Priezvisko"),
+  ),
+  email: createChangeBlurFieldValidators(validateEmailAddress),
+  password: createChangeBlurFieldValidators(validateRegisterPassword),
   confirm_password: {
     onChangeListenTo: ["password"] as Array<keyof RegisterFormValues>,
-    onChange: ({
-      value,
-      fieldApi,
-    }: {
-      value: string;
-      fieldApi: ConfirmPasswordFieldApi;
-    }) => {
-      const password =
-        (fieldApi.form.getFieldValue("password") as string | undefined) ?? "";
+    ...createChangeBlurContextualFieldValidators(
+      ({ value, fieldApi }: { value: string; fieldApi: ConfirmPasswordFieldApi }) => {
+        const password =
+          (fieldApi.form.getFieldValue("password") as string | undefined) ?? "";
 
-      return validatePasswordConfirmation(password, value);
-    },
-    onBlur: ({
-      value,
-      fieldApi,
-    }: {
-      value: string;
-      fieldApi: ConfirmPasswordFieldApi;
-    }) => {
-      const password =
-        (fieldApi.form.getFieldValue("password") as string | undefined) ?? "";
-
-      return validatePasswordConfirmation(password, value);
-    },
+        return validatePasswordConfirmation(password, value);
+      },
+    ),
   },
-  accept_terms: {
-    onChange: ({ value }: { value: boolean }) => validateTerms(value),
-    onBlur: ({ value }: { value: boolean }) => validateTerms(value),
-  },
-};
-
-export const isRegisterFormValid = (values: RegisterFormValues) => {
-  return (
-    !validateName(values.first_name, "Meno") &&
-    !validateName(values.last_name, "Priezvisko") &&
-    !validateEmail(values.email) &&
-    !validatePassword(values.password) &&
-    !validatePasswordConfirmation(values.password, values.confirm_password) &&
-    !validateTerms(values.accept_terms)
-  );
+  accept_terms: createChangeBlurFieldValidators((value: boolean) =>
+    validateRequiredAgreement(
+      value,
+      "Potrebujeme súhlas s obchodnými podmienkami.",
+    ),
+  ),
 };
 
 export const resolveLoginSubmitError = (error: unknown) => {
