@@ -143,10 +143,10 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 
 - The shared deploy-input contract lives in `apps/new-engine-ctl/config/stack-inputs.yaml`.
 - Preview first-creation random-once secrets are CI-generated from that contract and land on exactly two planes only:
-  service-shared secrets overwrite the existing preview environment shared env keys already defined by the project/env contract
-  service-specific secrets overwrite the existing service env keys those services actually consume
-- Those generated preview secrets must be created exactly once per preview environment creation/baseline materialization and reused for all later preview deploy/verify runs unless the preview environment is recreated.
-- Baseline deploy must not invent new preview env variable names beyond explicit `ZANE_OPERATOR_PREVIEW_*` metadata keys. It must only overwrite the existing shared preview env keys and existing service env keys defined by the contract.
+  service-shared secrets overwrite the existing preview environment shared env keys already defined by the project/env contract when the preview environment is first created
+  service-specific secrets overwrite the existing service env keys those services actually consume when the preview environment is first created
+- Those generated preview secrets must be created exactly once per preview environment creation and reused for all later preview deploy/verify runs unless the preview environment is recreated.
+- Baseline deploy must not invent new preview env variable names beyond explicit `ZANE_OPERATOR_PREVIEW_*` metadata keys. It must only overwrite the existing shared preview env keys and existing service env keys defined by the contract on first creation, then reuse those stored preview values on later baseline replays or redeploy-only runs.
 - The contract for those preview shared/service env rewrites is repo-owned in `apps/new-engine-ctl/config/stack-inputs.yaml` under `preview_runtime_reconciliation`; `zane-operator` executes typed source resolution from CTL payloads and must not grow a second hardcoded mapping table.
 - The contract for lane-specific service-spec normalization is also repo-owned in `apps/new-engine-ctl/config/stack-inputs.yaml` under `service_reconciliation`; preview environment resolve consumes the preview lane slice, while the same file remains the source of truth for main-lane build-stage policy.
 - That service-spec contract does not own deployment target commit pinning. Preview target commit selection remains deploy metadata owned by `apps/new-engine-ctl`, while preview Git source reconcile may normalize only repository/branch/git-app shape.
