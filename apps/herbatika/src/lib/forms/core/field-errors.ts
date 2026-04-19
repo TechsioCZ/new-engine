@@ -118,17 +118,7 @@ export const resolveVisibleFieldError = ({
         return liveResult.errorText;
       }
 
-      const passiveResult = resolveErrorFromValidationSources(meta, [
-        "onServer",
-        "onSubmit",
-        "onBlur",
-      ]);
-
-      if (passiveResult.matchedSource) {
-        return passiveResult.errorText;
-      }
-
-      return resolveFallbackFieldError(meta);
+      return undefined;
     }
 
     if (meta.isBlurred) {
@@ -176,13 +166,7 @@ export const resolveVisibleFieldError = ({
       return liveResult.errorText;
     }
 
-    const passiveResult = resolveErrorFromValidationSources(meta, ["onBlur"]);
-
-    if (passiveResult.matchedSource) {
-      return passiveResult.errorText;
-    }
-
-    return resolveFallbackFieldError(meta);
+    return undefined;
   }
 
   const blurredResult = resolveErrorFromValidationSources(meta, [
