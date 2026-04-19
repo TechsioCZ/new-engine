@@ -421,6 +421,129 @@ preview_verification:
         - ZANE_USERNAME
         - ZANE_PASSWORD
 
+bootstrap_zane_project:
+  shared_env:
+    - key: MEDUSA_DB_HOST
+      source:
+        kind: service_global_network_alias
+        service_id: medusa-db
+      service_targets:
+        - service_id: zane-operator
+          env_var: PGHOST
+
+    - key: MEDUSA_VALKEY_HOST
+      source:
+        kind: service_network_alias
+        service_id: medusa-valkey
+
+    - key: MEDUSA_MEILISEARCH_HOST
+      source:
+        kind: service_network_alias
+        service_id: medusa-meilisearch
+
+    - key: MEDUSA_APP_DB_USER
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_APP_DB_USER
+        default_value: medusa_app
+      service_targets:
+        - service_id: medusa-db
+          env_var: MEDUSA_APP_DB_USER
+        - service_id: medusa-be
+          env_var: MEDUSA_APP_DB_USER
+
+    - key: MEDUSA_APP_DB_PASSWORD
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_APP_DB_PASSWORD
+        default_value: ""
+      service_targets:
+        - service_id: medusa-db
+          env_var: MEDUSA_APP_DB_PASSWORD
+        - service_id: medusa-be
+          env_var: MEDUSA_APP_DB_PASSWORD
+
+    - key: MEDUSA_APP_DB_NAME
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_APP_DB_NAME
+        default_value: medusa
+      service_targets:
+        - service_id: medusa-db
+          env_var: POSTGRES_DB
+        - service_id: medusa-db
+          env_var: MEDUSA_APP_DB_NAME
+        - service_id: medusa-be
+          env_var: MEDUSA_APP_DB_NAME
+
+    - key: MEDUSA_APP_DB_SCHEMA
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_APP_DB_SCHEMA
+        default_value: medusa
+      service_targets:
+        - service_id: medusa-db
+          env_var: MEDUSA_APP_DB_SCHEMA
+        - service_id: medusa-be
+          env_var: MEDUSA_APP_DB_SCHEMA
+        - service_id: medusa-be
+          env_var: MEDUSA_DATABASE_SCHEMA
+        - service_id: medusa-be
+          env_var: DATABASE_SCHEMA
+        - service_id: zane-operator
+          env_var: DB_APP_SCHEMA
+
+    - key: MEDUSA_VALKEY_PASSWORD
+      source:
+        kind: local_env
+        env_var: DC_VALKEY_PASSWORD
+        default_value: ""
+      service_targets:
+        - service_id: medusa-valkey
+          env_var: VALKEY_PASSWORD
+
+    - key: MEDUSA_MINIO_ACCESS_KEY
+      source:
+        kind: local_env
+        env_var: DC_MINIO_ACCESS_KEY
+        default_value: ""
+      service_targets:
+        - service_id: medusa-minio
+          env_var: MINIO_MEDUSA_ACCESS_KEY
+        - service_id: medusa-be
+          env_var: MINIO_ACCESS_KEY
+
+    - key: MEDUSA_MINIO_SECRET_KEY
+      source:
+        kind: local_env
+        env_var: DC_MINIO_SECRET_KEY
+        default_value: ""
+      service_targets:
+        - service_id: medusa-minio
+          env_var: MINIO_MEDUSA_SECRET_KEY
+        - service_id: medusa-be
+          env_var: MINIO_SECRET_KEY
+
+    - key: MEDUSA_MINIO_BUCKET
+      source:
+        kind: local_env
+        env_var: DC_MINIO_BUCKET
+        default_value: medusa-bucket
+      service_targets:
+        - service_id: medusa-minio
+          env_var: MINIO_MEDUSA_BUCKET
+        - service_id: medusa-be
+          env_var: MINIO_BUCKET
+
+    - key: MEDUSA_MEILISEARCH_MASTER_KEY
+      source:
+        kind: local_env
+        env_var: DC_MEILISEARCH_MASTER_KEY
+        default_value: ""
+      service_targets:
+        - service_id: medusa-meilisearch
+          env_var: MEILI_MASTER_KEY
+
 service_reconciliation:
   services:
     - service_id: medusa-be

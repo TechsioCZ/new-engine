@@ -8,7 +8,6 @@ import type {
 import { deployMainResponseSchema } from "../contracts/deploy-main.js"
 import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
 import { executeApplyEnvOverridesPayload } from "./apply-env-overrides.js"
-import { loadDeployContracts } from "./deploy-inputs.js"
 import {
   buildStagePlan,
   collectStageNumbers,
@@ -19,6 +18,7 @@ import {
   stageHasService,
   waitForDeployments,
 } from "./deploy-shared.js"
+import { loadDeployContracts } from "./deploy-inputs.js"
 import { executePlan } from "./plan.js"
 import {
   collectMeiliOutputNeeds,
@@ -79,7 +79,7 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
 
 function stageConsumesMeiliApiCredentials(
   stagePlan: Awaited<ReturnType<typeof executePlan>>
- ): boolean {
+): boolean {
   return stagePlan.deploy_services.some(
     (service) =>
       service.consumes.meili_backend_key || service.consumes.meili_frontend_key
@@ -104,6 +104,7 @@ function stageHasResolvedMainMeiliKeys(
   })
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: main deploy orchestration keeps stage ordering and meili reconciliation in one linear flow
 export async function executeDeployMain(
   input: DeployMainCommandInput
 ): Promise<DeployMainExecutionResult> {
@@ -124,7 +125,6 @@ export async function executeDeployMain(
     contracts.stackInputs,
     input.meiliApiCredentialsProviderId
   )
-  let effectivePlan = plan
   const environment = await executeResolveEnvironment({
     lane: "main",
     projectSlug: input.projectSlug,
@@ -155,11 +155,11 @@ export async function executeDeployMain(
     dryRun: input.dryRun,
     meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
   })
+  const effectivePlan = prerequisitePlan.plan
 
   if (prerequisitePlan.transientServiceIds.length > 0) {
-    effectivePlan = prerequisitePlan.plan
     logDeployProgress(
-      `Adding transient provider prerequisite services to the deploy plan: ${prerequisitePlan.transientServiceIds.join(",")}.`
+      `Adding transient prerequisite services to the main deploy plan: ${prerequisitePlan.transientServiceIds.join(",")}.`
     )
   }
 
@@ -173,6 +173,10 @@ export async function executeDeployMain(
     )
   }
 
+  logDeployProgress(
+    `Resolved main environment ${environment.environment_name} (${environment.environment_id}).`
+  )
+
   const sourceServiceInPlan = effectivePlan.deploy_services.some(
     (service) => service.id === meiliApiCredentialsSource.serviceId
   )
@@ -183,10 +187,6 @@ export async function executeDeployMain(
   const meiliNeeds = collectMeiliOutputNeeds(effectivePlan.deploy_services)
   const needsMeiliApiCredentials =
     meiliNeeds.needBackendKey || meiliNeeds.needFrontendKey
-
-  logDeployProgress(
-    `Resolved main environment ${environment.environment_name} (${environment.environment_id}).`
-  )
 
   let envOverrideServiceIdsCsv = ""
   let triggeredServicesCsv = ""
@@ -343,6 +343,7 @@ export async function executeDeployMain(
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
     })
+
     logDeployProgress(
       `Resolving deploy targets for stage ${stage}: ${stageServicesCsv}.`
     )
@@ -503,13 +504,18 @@ export async function executeDeployMain(
               service.consumes.meili_frontend_key)
         )
       )
-      if (postSourceMeiliNeeds.needBackendKey || postSourceMeiliNeeds.needFrontendKey) {
+      if (
+        postSourceMeiliNeeds.needBackendKey ||
+        postSourceMeiliNeeds.needFrontendKey
+      ) {
         logDeployProgress(
           `Stage ${stage} included Meili source service ${meiliApiCredentialsSource.serviceId}; reconciling credentials after the source became healthy.`
         )
         await reconcileMeiliApiCredentials({
-          needBackendKey: postSourceMeiliNeeds.needBackendKey && !meiliBackendKey,
-          needFrontendKey: postSourceMeiliNeeds.needFrontendKey && !meiliFrontendKey,
+          needBackendKey:
+            postSourceMeiliNeeds.needBackendKey && !meiliBackendKey,
+          needFrontendKey:
+            postSourceMeiliNeeds.needFrontendKey && !meiliFrontendKey,
         })
       }
     }

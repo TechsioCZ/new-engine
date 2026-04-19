@@ -1,12 +1,16 @@
 import type { BootstrapInspectServiceDetails } from "../../contracts/bootstrap-shared.js"
 import type { BootstrapZaneProjectPlanCommandInput } from "../../contracts/bootstrap-zane-project.js"
 import {
+  getBootstrapZaneProjectSharedEnvDefinitions,
+  type StackInputs,
+} from "../../contracts/stack-inputs.js"
+import {
   bootstrapZaneProjectInspectResponseSchema,
   bootstrapZaneProjectPlanResponseSchema,
 } from "../../contracts/bootstrap-zane-project.js"
 import type { PreviewSharedEnvVariableInput } from "../../contracts/preview-shared-env.js"
 import { listDeployableServices } from "../../contracts/stack-manifest.js"
-import { loadManifest } from "../deploy-inputs.js"
+import { loadDeployContracts } from "../deploy-inputs.js"
 import type { BootstrapValueSource } from "./shared.js"
 import {
   deriveBranchName,
@@ -300,65 +304,80 @@ function summarizeSource(input: {
 }
 
 function buildSharedEnvVariables(
-  serviceSlugs: Record<string, string>
+  serviceSlugs: Record<string, string>,
+  stackInputs: StackInputs
 ): PlannedSharedEnvVariable[] {
-  const medusaDbSlug = requiredServiceSlug(serviceSlugs, "medusa-db")
-  const valkeySlug = requiredServiceSlug(serviceSlugs, "medusa-valkey")
-  const meilisearchSlug = requiredServiceSlug(
-    serviceSlugs,
-    "medusa-meilisearch"
+  return getBootstrapZaneProjectSharedEnvDefinitions(stackInputs).map(
+    (definition) => {
+      switch (definition.source.kind) {
+        case "service_global_network_alias":
+          return {
+            key: definition.key,
+            source: serviceGlobalNetworkAliasSource(
+              requiredServiceSlug(
+                serviceSlugs,
+                definition.source.service_id ?? ""
+              )
+            ),
+          }
+        case "service_network_alias":
+          return {
+            key: definition.key,
+            source: serviceNetworkAliasSource(
+              requiredServiceSlug(
+                serviceSlugs,
+                definition.source.service_id ?? ""
+              )
+            ),
+          }
+        case "local_env":
+          return {
+            key: definition.key,
+            source: literalSource(
+              process.env[definition.source.env_var ?? ""] ??
+                definition.source.default_value ??
+                ""
+            ),
+          }
+        default:
+          throw new Error(
+            `Unsupported bootstrap shared env source kind: ${definition.source.kind}`
+          )
+      }
+    }
   )
+}
 
-  return [
-    {
-      key: "MEDUSA_DB_HOST",
-      source: serviceGlobalNetworkAliasSource(medusaDbSlug),
-    },
-    {
-      key: "MEDUSA_VALKEY_HOST",
-      source: serviceNetworkAliasSource(valkeySlug),
-    },
-    {
-      key: "MEDUSA_MEILISEARCH_HOST",
-      source: serviceNetworkAliasSource(meilisearchSlug),
-    },
-    {
-      key: "MEDUSA_APP_DB_USER",
-      source: literalSource(process.env.DC_MEDUSA_APP_DB_USER ?? "medusa_app"),
-    },
-    {
-      key: "MEDUSA_APP_DB_PASSWORD",
-      source: literalSource(process.env.DC_MEDUSA_APP_DB_PASSWORD ?? ""),
-    },
-    {
-      key: "MEDUSA_APP_DB_NAME",
-      source: literalSource(process.env.DC_MEDUSA_APP_DB_NAME ?? "medusa"),
-    },
-    {
-      key: "MEDUSA_APP_DB_SCHEMA",
-      source: literalSource(process.env.DC_MEDUSA_APP_DB_SCHEMA ?? "medusa"),
-    },
-    {
-      key: "MEDUSA_VALKEY_PASSWORD",
-      source: literalSource(process.env.DC_VALKEY_PASSWORD ?? ""),
-    },
-    {
-      key: "MEDUSA_MINIO_ACCESS_KEY",
-      source: literalSource(process.env.DC_MINIO_ACCESS_KEY ?? ""),
-    },
-    {
-      key: "MEDUSA_MINIO_SECRET_KEY",
-      source: literalSource(process.env.DC_MINIO_SECRET_KEY ?? ""),
-    },
-    {
-      key: "MEDUSA_MINIO_BUCKET",
-      source: literalSource(process.env.DC_MINIO_BUCKET ?? "medusa-bucket"),
-    },
-    {
-      key: "MEDUSA_MEILISEARCH_MASTER_KEY",
-      source: literalSource(process.env.DC_MEILISEARCH_MASTER_KEY ?? ""),
-    },
-  ]
+function applySharedEnvServiceTargets(input: {
+  plannedServices: Record<string, PlannedBootstrapService>
+  stackInputs: StackInputs
+}): void {
+  for (const definition of getBootstrapZaneProjectSharedEnvDefinitions(
+    input.stackInputs
+  )) {
+    for (const target of definition.service_targets) {
+      const servicePlan = input.plannedServices[target.service_id]
+      if (!servicePlan) {
+        throw new Error(
+          `Missing bootstrap service plan for shared env target ${target.service_id}.${target.env_var}.`
+        )
+      }
+
+      const nextEnv = {
+        envVar: target.env_var,
+        source: literalSource(placeholderSharedValue(definition.key)),
+      }
+      const existingIndex = servicePlan.env.findIndex(
+        (envVar) => envVar.envVar === target.env_var
+      )
+
+      if (existingIndex >= 0) {
+        servicePlan.env[existingIndex] = nextEnv
+      } else {
+        servicePlan.env.push(nextEnv)
+      }
+    }
+  }
 }
 
 function buildZaneProjectServices(
@@ -438,30 +457,8 @@ function buildZaneProjectServices(
           ),
         },
         {
-          envVar: "POSTGRES_DB",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_NAME")),
-        },
-        {
           envVar: "PGDATA",
           source: literalSource("/var/lib/postgresql/18/docker"),
-        },
-        {
-          envVar: "MEDUSA_APP_DB_USER",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_USER")),
-        },
-        {
-          envVar: "MEDUSA_APP_DB_PASSWORD",
-          source: literalSource(
-            placeholderSharedValue("MEDUSA_APP_DB_PASSWORD")
-          ),
-        },
-        {
-          envVar: "MEDUSA_APP_DB_NAME",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_NAME")),
-        },
-        {
-          envVar: "MEDUSA_APP_DB_SCHEMA",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_SCHEMA")),
         },
         {
           envVar: "MEDUSA_DEV_DB_USER",
@@ -514,14 +511,7 @@ function buildZaneProjectServices(
       },
       resourceLimits: { cpus: 0.25, memory: { unit: "MEGABYTES", value: 256 } },
       cleanupEnvKeys: ["DC_VALKEY_PASSWORD"],
-      env: [
-        {
-          envVar: "VALKEY_PASSWORD",
-          source: literalSource(
-            placeholderSharedValue("MEDUSA_VALKEY_PASSWORD")
-          ),
-        },
-      ],
+      env: [],
     },
     "medusa-minio": {
       dockerfilePath: "./docker/development/medusa-minio/Dockerfile",
@@ -560,22 +550,6 @@ function buildZaneProjectServices(
           envVar: "MINIO_ROOT_PASSWORD",
           source: literalSource(process.env.DC_MINIO_ROOT_PASSWORD ?? ""),
         },
-        {
-          envVar: "MINIO_MEDUSA_ACCESS_KEY",
-          source: literalSource(
-            placeholderSharedValue("MEDUSA_MINIO_ACCESS_KEY")
-          ),
-        },
-        {
-          envVar: "MINIO_MEDUSA_SECRET_KEY",
-          source: literalSource(
-            placeholderSharedValue("MEDUSA_MINIO_SECRET_KEY")
-          ),
-        },
-        {
-          envVar: "MINIO_MEDUSA_BUCKET",
-          source: literalSource(placeholderSharedValue("MEDUSA_MINIO_BUCKET")),
-        },
       ],
     },
     "medusa-meilisearch": {
@@ -613,15 +587,7 @@ function buildZaneProjectServices(
       },
       resourceLimits: { cpus: 0.5, memory: { unit: "MEGABYTES", value: 1024 } },
       cleanupEnvKeys: ["DC_MEILISEARCH_MASTER_KEY"],
-      env: [
-        {
-          envVar: "MEILI_MASTER_KEY",
-          source: literalSource(
-            placeholderSharedValue("MEDUSA_MEILISEARCH_MASTER_KEY")
-          ),
-        },
-        { envVar: "MEILI_NO_ANALYTICS", source: literalSource("true") },
-      ],
+      env: [{ envVar: "MEILI_NO_ANALYTICS", source: literalSource("true") }],
     },
     "medusa-be": {
       dockerfilePath: "./docker/development/medusa-be/Dockerfile",
@@ -722,32 +688,6 @@ function buildZaneProjectServices(
         },
         { envVar: "DATABASE_TYPE", source: literalSource("postgres") },
         {
-          envVar: "MEDUSA_APP_DB_USER",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_USER")),
-        },
-        {
-          envVar: "MEDUSA_APP_DB_PASSWORD",
-          source: literalSource(
-            placeholderSharedValue("MEDUSA_APP_DB_PASSWORD")
-          ),
-        },
-        {
-          envVar: "MEDUSA_APP_DB_NAME",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_NAME")),
-        },
-        {
-          envVar: "MEDUSA_APP_DB_SCHEMA",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_SCHEMA")),
-        },
-        {
-          envVar: "MEDUSA_DATABASE_SCHEMA",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_SCHEMA")),
-        },
-        {
-          envVar: "DATABASE_SCHEMA",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_SCHEMA")),
-        },
-        {
           envVar: "DATABASE_URL",
           source: literalSource(
             "postgresql://{{env.MEDUSA_APP_DB_USER}}:{{env.MEDUSA_APP_DB_PASSWORD}}@{{env.MEDUSA_DB_HOST}}:5432/{{env.MEDUSA_APP_DB_NAME}}?sslmode=disable&options=-csearch_path%3D{{env.MEDUSA_APP_DB_SCHEMA}}%2Cpg_catalog"
@@ -781,22 +721,6 @@ function buildZaneProjectServices(
             port: 9004,
             trailingSlash: true,
           }),
-        },
-        {
-          envVar: "MINIO_BUCKET",
-          source: literalSource(placeholderSharedValue("MEDUSA_MINIO_BUCKET")),
-        },
-        {
-          envVar: "MINIO_ACCESS_KEY",
-          source: literalSource(
-            placeholderSharedValue("MEDUSA_MINIO_ACCESS_KEY")
-          ),
-        },
-        {
-          envVar: "MINIO_SECRET_KEY",
-          source: literalSource(
-            placeholderSharedValue("MEDUSA_MINIO_SECRET_KEY")
-          ),
         },
       ],
     },
@@ -939,10 +863,6 @@ function buildZaneProjectServices(
             process.env.DC_ZANE_OPERATOR_API_AUTH_TOKEN ?? ""
           ),
         },
-        {
-          envVar: "PGHOST",
-          source: literalSource(placeholderSharedValue("MEDUSA_DB_HOST")),
-        },
         { envVar: "PGPORT", source: literalSource("5432") },
         {
           envVar: "PGUSER",
@@ -980,10 +900,6 @@ function buildZaneProjectServices(
           source: literalSource(
             process.env.DC_MEDUSA_DEV_DB_USER ?? "medusa_dev"
           ),
-        },
-        {
-          envVar: "DB_APP_SCHEMA",
-          source: literalSource(placeholderSharedValue("MEDUSA_APP_DB_SCHEMA")),
         },
         {
           envVar: "DB_PREVIEW_APP_PASSWORD_SECRET",
@@ -1308,7 +1224,7 @@ function interpolateSharedValues(
   )
 }
 
-function resolveSourceValue(input: {
+function resolveSharedSourceValue(input: {
   source: BootstrapValueSource
   context: ZaneProjectContext
   inspectedServices: Record<string, InspectedServiceState>
@@ -1362,6 +1278,63 @@ function resolveSourceValue(input: {
   }
 }
 
+function renderSharedEnvReference(key: string | undefined): string {
+  return key ? placeholderSharedValue(key) : ""
+}
+
+function resolveServiceSourceValue(input: {
+  source: BootstrapValueSource
+  context: ZaneProjectContext
+  inspectedServices: Record<string, InspectedServiceState>
+}): string {
+  const { source, context, inspectedServices } = input
+  if (source.kind === "literal") {
+    return source.value ?? ""
+  }
+
+  const serviceState = Object.values(inspectedServices).find(
+    (service) => service.details?.slug === source.service_slug
+  )
+  const serviceDetails = serviceState?.details
+  if (!serviceDetails) {
+    return ""
+  }
+
+  switch (source.kind) {
+    case "service_network_alias":
+      return serviceDetails.network_alias ?? ""
+    case "service_global_network_alias":
+      return serviceDetails.global_network_alias ?? ""
+    case "service_public_origin": {
+      const domain = publicServiceDomain({
+        projectSlug: context.projectSlug,
+        serviceSlug: source.service_slug ?? "",
+        publicUrlAffix: context.publicUrlAffix,
+        publicDomain: context.publicDomain,
+      })
+      return domain ? `https://${domain}` : ""
+    }
+    case "service_internal_origin": {
+      const alias = serviceDetails.network_alias ?? ""
+      const suffix = source.trailing_slash ? "/" : ""
+      return alias && source.port
+        ? `http://${alias}:${source.port}${suffix}`
+        : ""
+    }
+    case "service_internal_bucket_url": {
+      const alias = serviceDetails.network_alias ?? ""
+      const bucketReference = renderSharedEnvReference(
+        source.bucket_shared_env_key
+      )
+      return alias && source.port && bucketReference
+        ? `http://${alias}:${source.port}/${bucketReference}`
+        : ""
+    }
+    default:
+      return ""
+  }
+}
+
 function resolveSharedEnv(
   variables: PlannedSharedEnvVariable[],
   context: ZaneProjectContext,
@@ -1369,7 +1342,7 @@ function resolveSharedEnv(
 ): Record<string, string> {
   const sharedEnv: Record<string, string> = {}
   for (const variable of variables) {
-    sharedEnv[variable.key] = resolveSourceValue({
+    sharedEnv[variable.key] = resolveSharedSourceValue({
       source: variable.source,
       context,
       inspectedServices,
@@ -1382,16 +1355,14 @@ function resolveSharedEnv(
 function resolveServiceEnv(
   env: PlannedServiceEnvVariable[],
   context: ZaneProjectContext,
-  inspectedServices: Record<string, InspectedServiceState>,
-  sharedEnv: Record<string, string>
+  inspectedServices: Record<string, InspectedServiceState>
 ): Record<string, string> {
   const result: Record<string, string> = {}
   for (const envVar of env) {
-    result[envVar.envVar] = resolveSourceValue({
+    result[envVar.envVar] = resolveServiceSourceValue({
       source: envVar.source,
       context,
       inspectedServices,
-      sharedEnv,
     })
   }
   return result
@@ -1400,7 +1371,10 @@ function resolveServiceEnv(
 export async function executeBootstrapZaneProjectPlan(
   input: BootstrapZaneProjectPlanCommandInput
 ) {
-  const manifest = await loadManifest(input.stackManifestPath)
+  const { manifest, stackInputs } = await loadDeployContracts(
+    input.stackManifestPath,
+    input.stackInputsPath
+  )
   const deployableServices = listDeployableServices(manifest)
   const repositoryUrl = await deriveRepositoryUrl(input.repositoryUrl)
   const branchName = await deriveBranchName(input.branchName)
@@ -1417,6 +1391,7 @@ export async function executeBootstrapZaneProjectPlan(
     deployableServices.map((service) => [service.id, service.serviceSlug])
   ) as Record<string, string>
   const plannedServices = buildZaneProjectServices(context, serviceSlugById)
+  applySharedEnvServiceTargets({ plannedServices, stackInputs })
   const inspectedServices = Object.fromEntries(
     deployableServices.map((service) => {
       const inspected = inspectResponse.services.find(
@@ -1440,7 +1415,7 @@ export async function executeBootstrapZaneProjectPlan(
     inspectedServices,
   })
   const warnings = buildWarningReasons()
-  const sharedEnvVariables = buildSharedEnvVariables(serviceSlugById)
+  const sharedEnvVariables = buildSharedEnvVariables(serviceSlugById, stackInputs)
   const resolvedSharedEnv =
     input.phase === "services"
       ? {}
@@ -1482,15 +1457,14 @@ export async function executeBootstrapZaneProjectPlan(
       const managedPublicDomains = servicePlan.urls
         .map((url) => url.domain)
         .filter((value): value is string => Boolean(value))
-      const desiredEnv =
-        input.phase === "services"
-          ? {}
-          : resolveServiceEnv(
-              servicePlan.env,
-              context,
-              inspectedServices,
-              resolvedSharedEnv
-            )
+        const desiredEnv =
+          input.phase === "services"
+            ? {}
+            : resolveServiceEnv(
+                servicePlan.env,
+                context,
+                inspectedServices
+              )
 
       return {
         service_id: service.id,

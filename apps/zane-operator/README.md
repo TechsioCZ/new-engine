@@ -279,11 +279,13 @@ The helper:
   - `docker/development/zane-operator/Dockerfile`
 - auto-resolves internal service network aliases after service creation
 - upserts only the curated shared `production` environment contract needed by the deployed stack, not a full copy of `.env.zane`
+- derives that shared-env and shared-env-to-service-env contract from the repo-owned CTL config surfaces (`apps/new-engine-ctl/config/stack-manifest.yaml` and `apps/new-engine-ctl/config/stack-inputs.yaml`) instead of re-deriving it in shell
 - prefixes shared Zane project variables by service/domain to avoid collisions across inherited service environments
 - upserts the per-service env blocks using `{{env.VAR}}` references
 - upserts the expected per-service healthchecks in Zane so reruns also converge probe configuration
 - upserts conservative per-service CPU/memory caps for a local 4-core / 12 GB class machine
-- does not create public Zane URL routes; keep those explicit because hostnames/TLS choices are environment-specific
+- reconciles the repo-owned managed public service URL set for `medusa-be`, `n1`, `medusa-meilisearch`, and `zane-operator`
+- derives those managed public URLs from the project slug plus the Zane root-domain route contract rather than copying ambient `.env.zane` frontend URL values
 - uses the DB service `global_network_alias` for `MEDUSA_DB_HOST`
 - defaults `MINIO_FILE_URL` to the deployed MinIO alias rather than a compose-only hostname; override it once you have a public MinIO route
 
@@ -324,6 +326,7 @@ node apps/new-engine-ctl/dist/cli.js bootstrap zane-project plan \
 That planning surface is fed by shell-owned upstream Zane inspection, and the checked-in helper wrapper now executes only the resulting CTL-owned desired state plus manual transport.
 
 Managed public service URLs are derived from the project slug plus the Zane root-domain route contract. Ambient `.env.zane` frontend URL values do not override those deployed URLs.
+The same CTL-owned bootstrap plan also defines which shared env keys are created and which service env vars consume them via `{{env.VAR}}` references.
 
 `zane-operator` no longer ships a separate bootstrap CLI. Role/template bootstrap is owned by `medusa-db`, so Zane-targeted maintenance should sync `medusa-db` bootstrap envs and redeploy `medusa-db` before redeploying `zane-operator` when those credentials change.
 

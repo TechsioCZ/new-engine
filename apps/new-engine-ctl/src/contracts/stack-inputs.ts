@@ -84,6 +84,50 @@ const previewForbiddenServiceEnvDefinitionSchema = z.looseObject({
   env_keys: z.array(z.string().min(1)).default([]),
 })
 
+const bootstrapSharedEnvSourceSchema = z
+  .looseObject({
+    kind: z.enum([
+      "service_network_alias",
+      "service_global_network_alias",
+      "local_env",
+    ]),
+    service_id: z.string().min(1).optional(),
+    env_var: z.string().min(1).optional(),
+    default_value: z.string().optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      (value.kind === "service_network_alias" ||
+        value.kind === "service_global_network_alias") &&
+      !value.service_id
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["service_id"],
+        message: `${value.kind} requires service_id`,
+      })
+    }
+
+    if (value.kind === "local_env" && !value.env_var) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["env_var"],
+        message: "local_env requires env_var",
+      })
+    }
+  })
+
+const bootstrapSharedEnvTargetSchema = z.looseObject({
+  service_id: z.string().min(1),
+  env_var: z.string().min(1),
+})
+
+const bootstrapSharedEnvDefinitionSchema = z.looseObject({
+  key: z.string().min(1),
+  source: bootstrapSharedEnvSourceSchema,
+  service_targets: z.array(bootstrapSharedEnvTargetSchema).default([]),
+})
+
 const laneBuildStageTargetsSchema = z
   .object({
     preview: z.string().nullable().optional(),
@@ -160,6 +204,11 @@ export const stackInputsSchema = z.object({
         .default([]),
     })
     .default({ forbidden_service_env: [] }),
+  bootstrap_zane_project: z
+    .object({
+      shared_env: z.array(bootstrapSharedEnvDefinitionSchema).default([]),
+    })
+    .default({ shared_env: [] }),
   service_reconciliation: z
     .object({
       services: z.array(serviceReconciliationDefinitionSchema).default([]),
@@ -182,6 +231,9 @@ export type PreviewServiceEnvDefinition = z.infer<
 >
 export type PreviewForbiddenServiceEnvDefinition = z.infer<
   typeof previewForbiddenServiceEnvDefinitionSchema
+>
+export type BootstrapSharedEnvDefinition = z.infer<
+  typeof bootstrapSharedEnvDefinitionSchema
 >
 export type ServiceReconciliationDefinition = z.infer<
   typeof serviceReconciliationDefinitionSchema
@@ -219,6 +271,12 @@ export function getPreviewForbiddenServiceEnvDefinitions(
   inputs: StackInputs
 ): PreviewForbiddenServiceEnvDefinition[] {
   return inputs.preview_verification.forbidden_service_env
+}
+
+export function getBootstrapZaneProjectSharedEnvDefinitions(
+  inputs: StackInputs
+): BootstrapSharedEnvDefinition[] {
+  return inputs.bootstrap_zane_project.shared_env
 }
 
 export function getServiceReconciliationDefinitions(

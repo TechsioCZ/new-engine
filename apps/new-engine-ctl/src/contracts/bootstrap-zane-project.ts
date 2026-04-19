@@ -53,6 +53,7 @@ export const bootstrapZaneProjectPlanCommandInputSchema = z.object({
   operatorUpstreamZaneUsername: z.string().min(1).optional(),
   operatorUpstreamZanePassword: z.string().min(1).optional(),
   stackManifestPath: z.string().min(1),
+  stackInputsPath: z.string().min(1),
   phase: z.enum(["services", "env", "all"]).default("all"),
 })
 

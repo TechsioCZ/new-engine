@@ -190,13 +190,21 @@ function buildServiceEnvOverride(
 
   if (context.lane === "preview") {
     appendPreviewRandomOnceEnv(env, context, service.id)
+
+    if (service.consumes.meili_frontend_key) {
+      appendMeiliFrontendEnv(env, context, service.id)
+    }
+
+    if (service.consumes.meili_backend_key) {
+      appendMeiliBackendEnv(env, context, service.id)
+    }
   }
 
-  if (service.consumes.meili_frontend_key) {
+  if (context.lane !== "preview" && service.consumes.meili_frontend_key) {
     appendMeiliFrontendEnv(env, context, service.id)
   }
 
-  if (service.consumes.meili_backend_key) {
+  if (context.lane !== "preview" && service.consumes.meili_backend_key) {
     appendMeiliBackendEnv(env, context, service.id)
   }
 

@@ -301,7 +301,7 @@ Active Zane deployment for this repo is no longer driven by a checked-in swarm c
 The supported setup is:
 
 * create one canonical Zane project with the service names from `apps/new-engine-ctl/config/stack-manifest.yaml`
-* configure the shared production-environment variables and per-service env blocks described in `apps/zane-operator/README.md`
+* configure the shared production-environment variables and per-service env blocks described in `apps/zane-operator/README.md`; the bootstrap helper derives that contract from `apps/new-engine-ctl/config/stack-manifest.yaml` and `apps/new-engine-ctl/config/stack-inputs.yaml`
 * let CI orchestrate preview/main deploys through `zane-operator`
 
 For first-time local Zane setup, follow:
@@ -323,6 +323,7 @@ Use `.env` for local compose/runtime and `.env.zane` for Zane-targeted helper sc
 The lane helpers and bootstrap helpers are different surfaces:
 - `dev:zane:main` / `dev:zane:preview` are staged local wrappers that build CTL and call the active lane commands against a running deployed `zane-operator`; they do not authenticate directly to upstream Zane
 - the bootstrap helpers authenticate to upstream Zane in shell, capture normalized inspect JSON, call the CTL bootstrap plan surface, and execute only the resulting local/manual transport
+- those bootstrap helpers also reconcile the repo-owned shared env contract and managed public URL set defined by the CTL/bootstrap inputs rather than copying ambient `.env.zane` service URLs into Zane
 
 Planning for those rare-use local Zane bootstrap helpers exists in CTL:
 - `node apps/new-engine-ctl/dist/cli.js bootstrap zane-project plan --inspect-json /tmp/zane-project-inspect.json`

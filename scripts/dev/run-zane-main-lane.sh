@@ -263,7 +263,7 @@ run_deploy_stage() {
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode main-deploy
   ) >/dev/null
 
-  common::step "Main deploy will reconcile runtime-provider outputs inside deploy orchestration when required by the selected services."
+  common::step "Main deploy may reconcile provider-managed Meili env outputs when required; setup-zane-project.sh remains the owner of steady-state shared/service wiring."
 
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' RETURN

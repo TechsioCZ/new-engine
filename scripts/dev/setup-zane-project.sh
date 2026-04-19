@@ -287,6 +287,7 @@ setup::resolve_ctl_plan() {
     --branch "$BRANCH_NAME"
     --public-url-affix "$PUBLIC_URL_AFFIX"
     --stack-manifest-path "$REPO_ROOT/apps/new-engine-ctl/config/stack-manifest.yaml"
+    --stack-inputs-path "$REPO_ROOT/apps/new-engine-ctl/config/stack-inputs.yaml"
   )
   [[ -n "$GIT_APP_ID" ]] && ctl_args+=(--git-app-id "$GIT_APP_ID")
   [[ -n "$PUBLIC_DOMAIN" ]] && ctl_args+=(--public-domain "$PUBLIC_DOMAIN")

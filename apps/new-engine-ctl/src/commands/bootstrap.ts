@@ -4,7 +4,7 @@ import { bootstrapPreviewTemplateDbPlanCommandInputSchema } from "../contracts/b
 import { bootstrapZaneProjectPlanCommandInputSchema } from "../contracts/bootstrap-zane-project.js"
 import { executeBootstrapPreviewTemplateDbPlan } from "../orchestration/bootstrap/preview-template-db.js"
 import { executeBootstrapZaneProjectPlan } from "../orchestration/bootstrap/zane-project.js"
-import { defaultStackManifestPath } from "../paths.js"
+import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
 export function createBootstrapCommand(): Command {
   const command = new Command("bootstrap").description(
@@ -79,6 +79,11 @@ export function createBootstrapCommand(): Command {
       "",
       process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
+    .option(
+      "--stack-inputs-path <path>",
+      "",
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+    )
     .action(async (options) => {
       const projectSlug =
         options.projectSlug || process.env.ZANE_PROJECT_SLUG || ""
@@ -112,6 +117,7 @@ export function createBootstrapCommand(): Command {
           operatorUpstreamZanePassword:
             options.operatorUpstreamZanePassword || undefined,
           stackManifestPath: options.stackManifestPath,
+          stackInputsPath: options.stackInputsPath,
         })
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
