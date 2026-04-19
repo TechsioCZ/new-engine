@@ -1,10 +1,10 @@
 @theme static {
   --color-header-bg: var(--color-surface);
   --color-header-nav-item-bg: transparent;
-  --color-header-nav-item-bg-hover: transparent;
+  --color-header-nav-item-bg-hover: var(--color-surface);
 
   --color-header-nav-fg: var(--color-fg-reverse);
-  --color-header-nav-fg-hover: var(--color-fg-reverse);
+  --color-header-nav-fg-hover: var(--color-primary);
   --color-header-nav-fg-active: var(--color-fg-reverse);
 
   --color-header-actions-fg: var(--color-fg-primary);
@@ -18,7 +18,7 @@
   --text-header-item-lg: var(--text-sm);
 
   --padding-header-item-sm: var(--spacing-200) var(--spacing-100);
-  --padding-header-item-md: var(--spacing-200) var(--spacing-150);
+  --padding-header-item-md: var(--spacing-200) var(--spacing-350);
   --padding-header-item-lg: var(--spacing-250) var(--spacing-200);
 
   --spacing-header-container: var(--spacing-600);
@@ -28,6 +28,8 @@
   --spacing-header-actions-sm: var(--spacing-100);
   --spacing-header-actions-md: var(--spacing-450);
   --spacing-header-actions-lg: var(--spacing-250);
+
+  --height-header-nav: 2.625rem;
 
   --color-header-hamburger-fg: var(--color-fg-primary);
   --color-header-hamburger-fg-hover: var(--color-primary);

@@ -1,4 +1,7 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
+import giftIcon from "@/assets/icons/gift-icon.avif";
+import flameIcon from "@/assets/icons/flame-icon.avif";
+import { StaticImageData } from "next/image";
 
 type HeaderNavItem = {
   href: string;
@@ -7,6 +10,7 @@ type HeaderNavItem = {
 
 type HeaderActionItem = HeaderNavItem & {
   icon: IconType;
+  src: StaticImageData;
 };
 
 export const PRIMARY_NAV_ITEMS: HeaderNavItem[] = [
@@ -23,11 +27,13 @@ export const HEADER_ACTION_ITEMS: HeaderActionItem[] = [
   {
     href: "/c/darceky",
     icon: "icon-[mdi--gift-outline]",
+    src: giftIcon,
     label: "Darčeky",
   },
   {
     href: "/c/vypredaj-zlavy-a-akcie",
     icon: "icon-[mdi--fire]",
+    src: flameIcon,
     label: "Akcie",
   },
 ];

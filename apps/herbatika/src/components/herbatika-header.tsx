@@ -9,6 +9,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import { Header } from "@techsio/ui-kit/organisms/header";
 import NextLink from "next/link";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { storefrontCartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
@@ -136,16 +137,15 @@ export function HerbatikaHeader() {
       </Header.Container>
 
       <Header.Desktop className="bg-primary">
-        <Header.Container className="mx-auto flex min-h-750 max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
+        <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
           <Header.Nav
-            className="flex-nowrap overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex-nowrap md:h-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             size="sm"
           >
             {PRIMARY_NAV_ITEMS.map((item) => (
               <Header.NavItem
-                className="shrink-0"
+                className="shrink-0 h-full items-center flex"
                 key={item.href}
-                size="sm"
               >
                 <Link
                   as={NextLink}
@@ -158,20 +158,25 @@ export function HerbatikaHeader() {
             ))}
           </Header.Nav>
 
-          <Header.Actions className="pl-100" size="sm">
+          <Header.Actions className="px-200 gap-x-200" size="sm">
             {HEADER_ACTION_ITEMS.map((action) => (
-              <Header.ActionItem className="p-0" key={action.href} size="sm">
                 <LinkButton
+                  key={action.href}
                   as={NextLink}
-                  className="px-300 py-150 text-sm font-bold"
+                  className="px-300 py-400 rounded-xs h-fit text-sm font-bold bg-surface text-fg-primary"
                   href={action.href}
-                  icon={action.icon}
                   size="sm"
                   variant="secondary"
                 >
+                  <NextImage
+                    src={action.src}
+                    alt={action.label}
+                    width={24}
+                    height={24}
+                  />
                   {action.label}
                 </LinkButton>
-              </Header.ActionItem>
+
             ))}
           </Header.Actions>
         </Header.Container>
