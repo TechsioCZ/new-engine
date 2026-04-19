@@ -2,26 +2,29 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/storefront/auth";
 import {
   useCart,
   useUpdateCart,
   useUpdateCartAddress,
 } from "@/lib/storefront/cart";
+import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter";
 import {
   resolveCartSubtotalAmount,
   resolveCartTotalAmount,
   resolveCartTotalWithoutTaxAmount,
 } from "@/lib/storefront/cart-calculations";
+import { fetchPaymentProviders } from "@/lib/storefront/checkout";
 import {
-  fetchPaymentProviders,
-} from "@/lib/storefront/checkout";
+  type CheckoutDetailsValues,
+  resolveEffectiveCheckoutAddressDetails,
+} from "@/lib/forms/checkout/address.form";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { storefront } from "@/lib/storefront/storefront";
 import { resolveHasStoredAddress } from "./checkout-address.utils";
 import { useCheckoutActions } from "./use-checkout-actions";
-import { useCheckoutFormState } from "./use-checkout-form-state";
+import { useCheckoutDetailsForm } from "./use-checkout-details-form";
 
 export function useCheckoutController() {
   const queryClient = useQueryClient();
@@ -29,6 +32,9 @@ export function useCheckoutController() {
   const authQuery = useAuth();
   const [allowCartAutoCreate, setAllowCartAutoCreate] = useState(true);
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [heurekaConsent, setHeurekaConsent] = useState(false);
+  const saveAddressSucceededRef = useRef(false);
 
   const cartQuery = useCart({
     autoCreate: allowCartAutoCreate && !completedOrderId,
@@ -82,8 +88,6 @@ export function useCheckoutController() {
       return;
     }
 
-    // Keep existing customer-entered country intact; only backfill missing value
-    // so Medusa can calculate taxes in cart/checkout summary.
     if (cartCountryCode || isUpdatingCartAddress || isBackfillingCartCountry) {
       return;
     }
@@ -111,23 +115,13 @@ export function useCheckoutController() {
     });
   }, [activeRegionId, queryClient]);
 
-  const formState = useCheckoutFormState({
-    cart: cartQuery.cart,
-    customer: authQuery.customer,
-    isCartLoading: cartQuery.isLoading,
-    isCustomerLoading: authQuery.isLoading,
-    regionCountryCode: region?.country_code,
-  });
-
   const actions = useCheckoutActions({
-    billingAddressForm: formState.billingAddressForm,
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
     completedOrderId,
     completeCart: () => completeCheckoutMutation.mutateAsync(undefined),
     hasPaymentSessions: checkoutPaymentQuery.hasPaymentSessions,
     initiatePayment: checkoutPaymentQuery.initiatePaymentAsync,
-    isCompanyPurchase: formState.isCompanyPurchase,
     itemCount: cartQuery.itemCount,
     onCompletedOrderIdChange: setCompletedOrderId,
     onOrderCompletionAbort: () => {
@@ -137,12 +131,59 @@ export function useCheckoutController() {
       setAllowCartAutoCreate(false);
     },
     onCheckoutErrorChange: setCheckoutError,
-    saveAddress: updateCartAddressMutation.mutateAsync,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
     setShippingMethod: checkoutShippingQuery.setShipping,
-    shippingAddressForm: formState.shippingAddressForm,
-    useSameAddress: formState.useSameAddress,
   });
+
+  const checkoutDetailsForm = useCheckoutDetailsForm({
+    cart: cartQuery.cart,
+    customer: authQuery.customer,
+    isCartLoading: cartQuery.isLoading,
+    isCustomerLoading: authQuery.isLoading,
+    onSubmit: async (values) => {
+      if (!cartQuery.cart?.id) {
+        setCheckoutError("Košík nie je pripravený.");
+        return;
+      }
+
+      const effectiveCheckoutDetails =
+        resolveEffectiveCheckoutAddressDetails(values);
+
+      try {
+        await updateCartAddressMutation.mutateAsync({
+          cartId: cartQuery.cart.id,
+          email: values.shipping.email.trim(),
+          shippingAddress: buildHerbatikaCheckoutAddressInput(
+            effectiveCheckoutDetails.shipping,
+          ),
+          billingAddress: buildHerbatikaCheckoutAddressInput(
+            effectiveCheckoutDetails.billing,
+          ),
+          useSameAddress: effectiveCheckoutDetails.useSameAddress,
+        });
+        saveAddressSucceededRef.current = true;
+      } catch (error) {
+        setCheckoutError(
+          resolveErrorMessage(error, "Uloženie adresy zlyhalo."),
+        );
+      }
+    },
+    regionCountryCode: region?.country_code,
+  });
+
+  const handleSaveAddress = async () => {
+    actions.resetFeedback();
+    saveAddressSucceededRef.current = false;
+    await checkoutDetailsForm.form.handleSubmit();
+
+    if (saveAddressSucceededRef.current) {
+      checkoutDetailsForm.resetToValues(
+        checkoutDetailsForm.form.state.values as CheckoutDetailsValues,
+      );
+    }
+
+    return saveAddressSucceededRef.current;
+  };
 
   const currencyCode = useMemo(() => {
     return (cartQuery.cart?.currency_code ?? "eur").toUpperCase();
@@ -176,6 +217,7 @@ export function useCheckoutController() {
   const cartTotalAmount = useMemo(() => {
     return resolveCartTotalAmount(cartQuery.cart);
   }, [cartQuery.cart]);
+
   const cartTotalWithoutTaxAmount = useMemo(() => {
     return resolveCartTotalWithoutTaxAmount(cartQuery.cart);
   }, [cartQuery.cart]);
@@ -189,26 +231,35 @@ export function useCheckoutController() {
 
   return {
     ...actions,
-    ...formState,
+    billingAddressForm: checkoutDetailsForm.effectiveValues.billing,
     cartItems,
     cartQuery,
     cartSubtotalAmount,
     cartTotalWithoutTaxAmount,
     cartTotalAmount,
+    checkoutDetailsForm,
+    checkoutError,
     checkoutPaymentQuery,
     checkoutShippingQuery,
-    checkoutError,
     completedOrderId,
     completeCheckoutMutation,
     currencyCode,
+    handleSaveAddress,
     hasItems,
     hasPayment,
     hasShipping,
     hasStoredAddress,
+    heurekaConsent,
     isAuthenticated: authQuery.isAuthenticated,
     isBusy,
+    isCompanyPurchase: checkoutDetailsForm.values.isCompanyPurchase,
+    marketingConsent,
     selectedShippingPrice,
+    setHeurekaConsent,
+    setMarketingConsent,
+    shippingAddressForm: checkoutDetailsForm.effectiveValues.shipping,
     updateCartAddressMutation,
+    useSameAddress: checkoutDetailsForm.values.useSameAddress,
     canCompleteOrder:
       !isBusy &&
       Boolean(checkoutShippingQuery.selectedShippingMethodId) &&

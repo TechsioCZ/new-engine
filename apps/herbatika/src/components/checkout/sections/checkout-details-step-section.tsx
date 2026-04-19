@@ -2,28 +2,21 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
+import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
 import { CheckoutAddressSection } from "./checkout-address-section";
 
 type CheckoutDetailsStepController = Pick<
   CheckoutController,
-  | "billingAddressForm"
   | "cartQuery"
+  | "checkoutDetailsForm"
   | "handleSaveAddress"
   | "isAuthenticated"
   | "isBusy"
-  | "isCompanyPurchase"
-  | "setUseSameAddress"
-  | "shippingAddressForm"
-  | "setIsCompanyPurchase"
-  | "updateBillingAddressField"
-  | "updateShippingAddressField"
   | "updateCartAddressMutation"
-  | "useSameAddress"
 >;
 
 type CheckoutDetailsStepSectionProps = {
@@ -39,12 +32,14 @@ export function CheckoutDetailsStepSection({
 }: CheckoutDetailsStepSectionProps) {
   const router = useRouter();
   const addressFormId = "checkout-address-form";
+  const checkoutDetailsValues = controller.checkoutDetailsForm.values;
 
   return (
     <section className="space-y-300">
       <form
         className="space-y-300"
         id={addressFormId}
+        noValidate
         onSubmit={(event) => {
           event.preventDefault();
           void (async () => {
@@ -56,19 +51,16 @@ export function CheckoutDetailsStepSection({
         }}
       >
         <CheckoutAddressSection
-          addressForm={controller.shippingAddressForm}
+          checkoutDetailsForm={controller.checkoutDetailsForm}
           countryItems={COUNTRY_SELECT_ITEMS}
           fieldPrefix="checkout-shipping"
           isAuthenticated={controller.isAuthenticated}
-          isCompanyPurchase={controller.isCompanyPurchase}
-          onIsCompanyPurchaseChange={
-            controller.useSameAddress ? controller.setIsCompanyPurchase : undefined
-          }
-          onUpdateAddressField={controller.updateShippingAddressField}
+          scope="shipping"
           showCompanyFields={
-            controller.useSameAddress && controller.isCompanyPurchase
+            checkoutDetailsValues.useSameAddress &&
+            checkoutDetailsValues.isCompanyPurchase
           }
-          showCompanyPurchaseToggle={controller.useSameAddress}
+          showCompanyPurchaseToggle={checkoutDetailsValues.useSameAddress}
           showContactFields
           showCustomerNote
           showLoginPrompt
@@ -76,23 +68,41 @@ export function CheckoutDetailsStepSection({
         />
 
         <div className="rounded-sm border border-border-primary bg-surface px-550 py-350">
-          <FormCheckbox
-            checked={controller.useSameAddress}
-            label="Fakturačná adresa je rovnaká ako doručovacia"
-            onCheckedChange={controller.setUseSameAddress}
-            size="sm"
-          />
+          <controller.checkoutDetailsForm.form.AppField name="useSameAddress">
+            {(field) => (
+              <field.CheckboxField
+                id="checkout-use-same-address"
+                label="Fakturačná adresa je rovnaká ako doručovacia"
+                onValueChange={(nextUseSameAddress) => {
+                  controller.checkoutDetailsForm.trackUseSameAddressIntent(
+                    nextUseSameAddress,
+                  );
+
+                  if (
+                    !nextUseSameAddress &&
+                    !controller.checkoutDetailsForm.hasStoredBillingAddress &&
+                    resolveAddressFormsMatch(
+                      controller.checkoutDetailsForm.values.billing,
+                      controller.checkoutDetailsForm.hydratedValues.billing,
+                    )
+                  ) {
+                    controller.checkoutDetailsForm.copyShippingIntoBilling();
+                  }
+                }}
+                size="sm"
+                validationMode="none"
+              />
+            )}
+          </controller.checkoutDetailsForm.form.AppField>
         </div>
 
-        {!controller.useSameAddress ? (
+        {!checkoutDetailsValues.useSameAddress ? (
           <CheckoutAddressSection
-            addressForm={controller.billingAddressForm}
+            checkoutDetailsForm={controller.checkoutDetailsForm}
             countryItems={COUNTRY_SELECT_ITEMS}
             fieldPrefix="checkout-billing"
-            isCompanyPurchase={controller.isCompanyPurchase}
-            onIsCompanyPurchaseChange={controller.setIsCompanyPurchase}
-            onUpdateAddressField={controller.updateBillingAddressField}
-            showCompanyFields={controller.isCompanyPurchase}
+            scope="billing"
+            showCompanyFields={checkoutDetailsValues.isCompanyPurchase}
             showCompanyPurchaseToggle
             showContactFields={false}
             title="Fakturačné údaje"

@@ -1,38 +1,7 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
+import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form";
 
-export type AddressFormState = {
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  company: string;
-  companyId: string;
-  taxId: string;
-  vatId: string;
-  address1: string;
-  address2: string;
-  city: string;
-  postalCode: string;
-  countryCode: string;
-  customerNote: string;
-};
-
-export const DEFAULT_ADDRESS_FORM: AddressFormState = {
-  email: "",
-  firstName: "",
-  lastName: "",
-  phone: "",
-  company: "",
-  companyId: "",
-  taxId: "",
-  vatId: "",
-  address1: "",
-  address2: "",
-  city: "",
-  postalCode: "",
-  countryCode: "SK",
-  customerNote: "",
-};
+export type AddressFormState = CheckoutAddressValues;
 
 export const COUNTRY_SELECT_ITEMS: SelectItem[] = [
   { value: "SK", label: "Slovensko" },

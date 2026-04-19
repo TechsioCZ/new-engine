@@ -1,37 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
-import type { AddressFormState } from "./checkout.constants";
-
-const SHIPPING_REQUIRED_FIELD_LABELS = [
-  ["email", "email"],
-  ["firstName", "meno"],
-  ["lastName", "priezvisko"],
-  ["phone", "telefón"],
-  ["address1", "ulica"],
-  ["city", "mesto"],
-  ["postalCode", "PSČ"],
-  ["countryCode", "krajina"],
-] as const satisfies ReadonlyArray<
-  readonly [keyof AddressFormState, string]
->;
-
-const BILLING_REQUIRED_FIELD_LABELS = [
-  ["firstName", "meno"],
-  ["lastName", "priezvisko"],
-  ["address1", "ulica"],
-  ["city", "mesto"],
-  ["postalCode", "PSČ"],
-  ["countryCode", "krajina"],
-] as const satisfies ReadonlyArray<
-  readonly [keyof AddressFormState, string]
->;
-
-const COMPANY_REQUIRED_FIELD_LABELS = [
-  ["company", "názov firmy"],
-  ["companyId", "IČO"],
-  ["taxId", "DIČ"],
-] as const satisfies ReadonlyArray<
-  readonly [keyof AddressFormState, string]
->;
+import { CHECKOUT_ADDRESS_FIELDS, type CheckoutAddressValues } from "@/lib/forms/checkout/address.form";
 
 const ADDRESS_COMPARISON_FIELDS = [
   "firstName",
@@ -47,7 +15,49 @@ const ADDRESS_COMPARISON_FIELDS = [
   "postalCode",
   "countryCode",
   "customerNote",
-] as const satisfies ReadonlyArray<keyof AddressFormState>;
+] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>;
+
+type CheckoutAddressFieldPath<
+  TScope extends "billing" | "shipping",
+  TField extends keyof CheckoutAddressValues = keyof CheckoutAddressValues,
+> = `${TScope}.${TField}`;
+
+export type CheckoutScopedFieldName =
+  | CheckoutAddressFieldPath<"billing">
+  | CheckoutAddressFieldPath<"shipping">;
+
+const createCheckoutAddressFieldPaths = <TScope extends "billing" | "shipping">(
+  scope: TScope,
+  fields: ReadonlyArray<keyof CheckoutAddressValues>,
+) => {
+  return fields.map((field) => `${scope}.${field}` as CheckoutAddressFieldPath<TScope>);
+};
+
+const CHECKOUT_COMPANY_FIELD_NAMES = [
+  "company",
+  "companyId",
+  "taxId",
+  "vatId",
+] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>;
+
+const CHECKOUT_BILLING_ACTIVE_FIELDS = CHECKOUT_ADDRESS_FIELDS.filter(
+  (field) => field !== "address2" && field !== "customerNote" && field !== "email" && field !== "phone",
+);
+
+export const CHECKOUT_BILLING_ACTIVE_FIELD_NAMES = createCheckoutAddressFieldPaths(
+  "billing",
+  CHECKOUT_BILLING_ACTIVE_FIELDS,
+);
+
+export const CHECKOUT_BILLING_COMPANY_FIELD_NAMES = createCheckoutAddressFieldPaths(
+  "billing",
+  CHECKOUT_COMPANY_FIELD_NAMES,
+);
+
+export const CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES = createCheckoutAddressFieldPaths(
+  "shipping",
+  CHECKOUT_COMPANY_FIELD_NAMES,
+);
 
 const hasRequiredAddressFields = (
   address: HttpTypes.StoreCartAddress | null | undefined,
@@ -62,78 +72,9 @@ const hasRequiredAddressFields = (
   );
 };
 
-const collectMissingFields = (
-  form: AddressFormState,
-  requiredFields: ReadonlyArray<readonly [keyof AddressFormState, string]>,
-) => {
-  const missing: string[] = [];
-
-  for (const [field, label] of requiredFields) {
-    if (!form[field].trim()) {
-      missing.push(label);
-    }
-  }
-
-  return missing;
-};
-
-const appendCompanyMissingFields = (
-  missing: string[],
-  form: AddressFormState,
-  isCompanyPurchase: boolean,
-) => {
-  if (isCompanyPurchase) {
-    for (const [field, label] of COMPANY_REQUIRED_FIELD_LABELS) {
-      if (!form[field].trim()) {
-        missing.push(label);
-      }
-    }
-  }
-};
-
-export const buildMissingFieldMessage = ({
-  billingForm,
-  isCompanyPurchase,
-  shippingForm,
-  useSameAddress,
-}: {
-  billingForm: AddressFormState;
-  isCompanyPurchase: boolean;
-  shippingForm: AddressFormState;
-  useSameAddress: boolean;
-}) => {
-  const shippingMissing = collectMissingFields(
-    shippingForm,
-    SHIPPING_REQUIRED_FIELD_LABELS,
-  );
-
-  if (useSameAddress) {
-    appendCompanyMissingFields(shippingMissing, shippingForm, isCompanyPurchase);
-  }
-
-  const billingMissing = useSameAddress
-    ? []
-    : collectMissingFields(billingForm, BILLING_REQUIRED_FIELD_LABELS);
-
-  if (!useSameAddress) {
-    appendCompanyMissingFields(billingMissing, billingForm, isCompanyPurchase);
-  }
-
-  const missing = [
-    ...shippingMissing.map((field) => `doručovacia adresa: ${field}`),
-    ...billingMissing.map((field) => `fakturačná adresa: ${field}`),
-  ];
-
-  if (missing.length === 0) {
-    return null;
-  }
-
-  return `Vyplňte povinné polia: ${missing.join(", ")}`;
-};
-
 export const resolveAddressFormsMatch = (
-  left: Partial<AddressFormState> | null | undefined,
-  right: Partial<AddressFormState> | null | undefined,
+  left: Partial<CheckoutAddressValues> | null | undefined,
+  right: Partial<CheckoutAddressValues> | null | undefined,
 ) => {
   return ADDRESS_COMPARISON_FIELDS.every((field) => {
     const leftValue = left?.[field];

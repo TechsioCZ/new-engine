@@ -11,17 +11,17 @@ import {
 
 type CheckoutAddressField = keyof CheckoutAddressValues;
 type CheckoutAddressFieldValidator = (value: string) => string | undefined;
-type FieldValidationActivityPredicate = (
-  values: CheckoutDetailsValues,
-) => boolean;
 
 const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/;
+
 const validateBillingFields = (values: CheckoutDetailsValues) => {
   return !values.useSameAddress;
 };
+
 const validateShippingCompanyFields = (values: CheckoutDetailsValues) => {
   return values.useSameAddress && values.isCompanyPurchase;
 };
+
 const validateBillingCompanyFields = (values: CheckoutDetailsValues) => {
   return !values.useSameAddress && values.isCompanyPurchase;
 };
@@ -74,6 +74,14 @@ const validatePostalCode: CheckoutAddressFieldValidator = (value) => {
   return undefined;
 };
 
+const validateCountryCode: CheckoutAddressFieldValidator = (value) => {
+  if (!value.trim()) {
+    return "Vyberte krajinu.";
+  }
+
+  return undefined;
+};
+
 const validateCompanyName = createRequiredTextValidator(
   "Zadajte názov firmy.",
   "Názov firmy musí mať aspoň 2 znaky.",
@@ -107,13 +115,16 @@ export const checkoutAddressFieldValidators = {
   ),
   company: validateCompanyName,
   companyId: (value: string) => validateCompanyIdentifier(value, "IČO"),
+  countryCode: validateCountryCode,
   email: validateEmailAddress,
   firstName: (value: string) => validateCustomerName(value, "Meno"),
   lastName: (value: string) => validateCustomerName(value, "Priezvisko"),
   phone: validateRequiredPhoneNumber,
   postalCode: validatePostalCode,
   taxId: (value: string) => validateCompanyIdentifier(value, "DIČ"),
-} as const satisfies Partial<Record<CheckoutAddressField, CheckoutAddressFieldValidator>>;
+} as const satisfies Partial<
+  Record<CheckoutAddressField, CheckoutAddressFieldValidator>
+>;
 
 const shippingFieldValidators = {
   address1: createChangeBlurSubmitScopedFieldValidators(
@@ -129,6 +140,9 @@ const shippingFieldValidators = {
   companyId: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.companyId,
     validateShippingCompanyFields,
+  ),
+  countryCode: createChangeBlurSubmitScopedFieldValidators(
+    checkoutAddressFieldValidators.countryCode,
   ),
   email: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.email,
@@ -167,6 +181,10 @@ const billingFieldValidators = {
   companyId: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.companyId,
     validateBillingCompanyFields,
+  ),
+  countryCode: createChangeBlurSubmitScopedFieldValidators(
+    checkoutAddressFieldValidators.countryCode,
+    validateBillingFields,
   ),
   firstName: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.firstName,

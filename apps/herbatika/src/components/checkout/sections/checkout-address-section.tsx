@@ -1,23 +1,20 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { FormInput } from "@techsio/ui-kit/molecules/form-input";
-import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea";
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group";
-import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
+import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import NextLink from "next/link";
-import type { AddressFormState } from "@/components/checkout/checkout.constants";
+import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form";
+import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators";
+import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form";
 import { SupportingText } from "@/components/text/supporting-text";
 
+type CheckoutAddressScope = "billing" | "shipping";
+
 type CheckoutAddressSectionProps = {
-  addressForm: AddressFormState;
+  checkoutDetailsForm: CheckoutDetailsFormController;
   countryItems: SelectItem[];
   fieldPrefix: string;
   isAuthenticated?: boolean;
-  isCompanyPurchase?: boolean;
-  onIsCompanyPurchaseChange?: (value: boolean) => void;
-  onUpdateAddressField: <K extends keyof AddressFormState>(
-    key: K,
-    value: AddressFormState[K],
-  ) => void;
+  scope: CheckoutAddressScope;
   showCompanyFields?: boolean;
   showCompanyPurchaseToggle?: boolean;
   showContactFields?: boolean;
@@ -29,14 +26,19 @@ type CheckoutAddressSectionProps = {
 const PRIVATE_PURCHASE_LABEL = "Súkromná osoba";
 const COMPANY_PURCHASE_LABEL = "Nakupujem na firmu";
 
+const resolveAddressFieldName = <K extends keyof CheckoutAddressValues>(
+  scope: CheckoutAddressScope,
+  field: K,
+) => {
+  return `${scope}.${field}` as const;
+};
+
 export function CheckoutAddressSection({
-  addressForm,
+  checkoutDetailsForm,
   countryItems,
   fieldPrefix,
   isAuthenticated = false,
-  isCompanyPurchase = false,
-  onIsCompanyPurchaseChange,
-  onUpdateAddressField,
+  scope,
   showCompanyFields = false,
   showCompanyPurchaseToggle = false,
   showContactFields = true,
@@ -44,6 +46,8 @@ export function CheckoutAddressSection({
   showLoginPrompt = false,
   title,
 }: CheckoutAddressSectionProps) {
+  const scopedValidators = checkoutFieldValidators[scope];
+
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
       <header>
@@ -74,15 +78,16 @@ export function CheckoutAddressSection({
       ) : null}
 
       <div className="space-y-250 font-inter">
-        {showCompanyPurchaseToggle && onIsCompanyPurchaseChange ? (
+        {showCompanyPurchaseToggle ? (
           <RadioGroup
             className="font-rubik"
-            onValueChange={(value) =>
-              onIsCompanyPurchaseChange(value === "company")
-            }
+            id={`${fieldPrefix}-purchase-type`}
+            onValueChange={(value) => {
+              checkoutDetailsForm.setCompanyPurchase(value === "company");
+            }}
             orientation="horizontal"
             size="sm"
-            value={isCompanyPurchase ? "company" : "private"}
+            value={checkoutDetailsForm.values.isCompanyPurchase ? "company" : "private"}
             variant="subtle"
           >
             <RadioGroup.Label className="sr-only">Typ nákupu</RadioGroup.Label>
@@ -110,185 +115,207 @@ export function CheckoutAddressSection({
         ) : null}
 
         <div className="grid gap-250 md:grid-cols-2">
-          <FormInput
-            id={`${fieldPrefix}-first-name`}
-            label="Meno"
-            name={`${fieldPrefix}_first_name`}
-            required
-            type="text"
-            value={addressForm.firstName}
-            onChange={(event) =>
-              onUpdateAddressField("firstName", event.target.value)
-            }
-          />
-          <FormInput
-            id={`${fieldPrefix}-last-name`}
-            label="Priezvisko"
-            name={`${fieldPrefix}_last_name`}
-            required
-            type="text"
-            value={addressForm.lastName}
-            onChange={(event) =>
-              onUpdateAddressField("lastName", event.target.value)
-            }
-          />
+          <checkoutDetailsForm.form.AppField
+            name={resolveAddressFieldName(scope, "firstName")}
+            validators={scopedValidators.firstName}
+          >
+            {(field) => (
+              <field.TextField
+                id={`${fieldPrefix}-first-name`}
+                label="Meno"
+                required
+                validationMode="blur"
+              />
+            )}
+          </checkoutDetailsForm.form.AppField>
+
+          <checkoutDetailsForm.form.AppField
+            name={resolveAddressFieldName(scope, "lastName")}
+            validators={scopedValidators.lastName}
+          >
+            {(field) => (
+              <field.TextField
+                id={`${fieldPrefix}-last-name`}
+                label="Priezvisko"
+                required
+                validationMode="blur"
+              />
+            )}
+          </checkoutDetailsForm.form.AppField>
 
           {showCompanyFields ? (
             <>
               <div className="md:col-span-2">
-                <FormInput
-                  id={`${fieldPrefix}-company`}
-                  label="Názov firmy"
-                  name={`${fieldPrefix}_company`}
-                  required
-                  type="text"
-                  value={addressForm.company}
-                  onChange={(event) =>
-                    onUpdateAddressField("company", event.target.value)
-                  }
-                />
+                <checkoutDetailsForm.form.AppField
+                  name={resolveAddressFieldName(scope, "company")}
+                  validators={scopedValidators.company}
+                >
+                  {(field) => (
+                    <field.TextField
+                      id={`${fieldPrefix}-company`}
+                      label="Názov firmy"
+                      required
+                      validationMode="blur"
+                    />
+                  )}
+                </checkoutDetailsForm.form.AppField>
               </div>
+
               <div className="grid gap-250 md:col-span-2 md:grid-cols-3">
-                <FormInput
-                  id={`${fieldPrefix}-company-id`}
-                  label="IČO"
-                  name={`${fieldPrefix}_company_id`}
-                  required
-                  type="text"
-                  value={addressForm.companyId}
-                  onChange={(event) =>
-                    onUpdateAddressField("companyId", event.target.value)
-                  }
-                />
-                <FormInput
-                  id={`${fieldPrefix}-tax-id`}
-                  label="DIČ"
-                  name={`${fieldPrefix}_tax_id`}
-                  required
-                  type="text"
-                  value={addressForm.taxId}
-                  onChange={(event) =>
-                    onUpdateAddressField("taxId", event.target.value)
-                  }
-                />
-                <FormInput
-                  id={`${fieldPrefix}-vat-id`}
-                  label="IČ DPH"
-                  name={`${fieldPrefix}_vat_id`}
-                  type="text"
-                  value={addressForm.vatId}
-                  onChange={(event) =>
-                    onUpdateAddressField("vatId", event.target.value)
-                  }
-                />
+                <checkoutDetailsForm.form.AppField
+                  name={resolveAddressFieldName(scope, "companyId")}
+                  validators={scopedValidators.companyId}
+                >
+                  {(field) => (
+                    <field.TextField
+                      id={`${fieldPrefix}-company-id`}
+                      label="IČO"
+                      required
+                      validationMode="blur"
+                    />
+                  )}
+                </checkoutDetailsForm.form.AppField>
+
+                <checkoutDetailsForm.form.AppField
+                  name={resolveAddressFieldName(scope, "taxId")}
+                  validators={scopedValidators.taxId}
+                >
+                  {(field) => (
+                    <field.TextField
+                      id={`${fieldPrefix}-tax-id`}
+                      label="DIČ"
+                      required
+                      validationMode="blur"
+                    />
+                  )}
+                </checkoutDetailsForm.form.AppField>
+
+                <checkoutDetailsForm.form.AppField
+                  name={resolveAddressFieldName(scope, "vatId")}
+                >
+                  {(field) => (
+                    <field.TextField
+                      id={`${fieldPrefix}-vat-id`}
+                      label="IČ DPH"
+                      validationMode="blur"
+                    />
+                  )}
+                </checkoutDetailsForm.form.AppField>
               </div>
             </>
           ) : null}
 
           {showContactFields ? (
             <>
-              <FormInput
-                id={`${fieldPrefix}-email`}
-                label="E-mail"
-                name={`${fieldPrefix}_email`}
-                required
-                type="email"
-                value={addressForm.email}
-                onChange={(event) =>
-                  onUpdateAddressField("email", event.target.value)
-                }
-              />
-              <FormInput
-                id={`${fieldPrefix}-phone`}
-                label="Telefón"
-                name={`${fieldPrefix}_phone`}
-                required
-                type="tel"
-                value={addressForm.phone}
-                onChange={(event) =>
-                  onUpdateAddressField("phone", event.target.value)
-                }
-              />
+              <checkoutDetailsForm.form.AppField
+                name={resolveAddressFieldName(scope, "email")}
+                validators={checkoutFieldValidators.shipping.email}
+              >
+                {(field) => (
+                  <field.TextField
+                    autoComplete="email"
+                    id={`${fieldPrefix}-email`}
+                    label="E-mail"
+                    required
+                    type="email"
+                    validationMode="blur"
+                  />
+                )}
+              </checkoutDetailsForm.form.AppField>
+
+              <checkoutDetailsForm.form.AppField
+                name={resolveAddressFieldName(scope, "phone")}
+                validators={checkoutFieldValidators.shipping.phone}
+              >
+                {(field) => (
+                  <field.TextField
+                    autoComplete="tel"
+                    id={`${fieldPrefix}-phone`}
+                    label="Telefón"
+                    required
+                    type="tel"
+                    validationMode="blur"
+                  />
+                )}
+              </checkoutDetailsForm.form.AppField>
             </>
           ) : null}
 
-          <Select
-            items={countryItems}
-            onValueChange={(details) => {
-              onUpdateAddressField(
-                "countryCode",
-                (details.value[0] ?? "SK").toUpperCase(),
-              );
-            }}
-            size="md"
-            value={[addressForm.countryCode]}
+          <checkoutDetailsForm.form.AppField
+            name={resolveAddressFieldName(scope, "countryCode")}
+            validators={scopedValidators.countryCode}
           >
-            <Select.Label>Krajina</Select.Label>
-            <Select.Control>
-              <Select.Trigger>
-                <Select.ValueText placeholder="Vyberte krajinu" />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content>
-                {countryItems.map((country) => (
-                  <Select.Item item={country} key={country.value}>
-                    <Select.ItemText />
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select>
-          <FormInput
-            id={`${fieldPrefix}-address-1`}
-            label="Ulica a číslo domu"
-            name={`${fieldPrefix}_address_1`}
-            required
-            type="text"
-            value={addressForm.address1}
-            onChange={(event) =>
-              onUpdateAddressField("address1", event.target.value)
-            }
-          />
-          <FormInput
-            id={`${fieldPrefix}-city`}
-            label="Mesto"
-            name={`${fieldPrefix}_city`}
-            required
-            type="text"
-            value={addressForm.city}
-            onChange={(event) =>
-              onUpdateAddressField("city", event.target.value)
-            }
-          />
-          <FormInput
-            id={`${fieldPrefix}-postal-code`}
-            label="PSČ"
-            name={`${fieldPrefix}_postal_code`}
-            required
-            type="text"
-            value={addressForm.postalCode}
-            onChange={(event) =>
-              onUpdateAddressField("postalCode", event.target.value)
-            }
-          />
+            {(field) => (
+              <field.SelectField
+                id={`${fieldPrefix}-country`}
+                items={countryItems}
+                label="Krajina"
+                placeholder="Vyberte krajinu"
+                required
+                validationMode="blur"
+              />
+            )}
+          </checkoutDetailsForm.form.AppField>
+
+          <checkoutDetailsForm.form.AppField
+            name={resolveAddressFieldName(scope, "address1")}
+            validators={scopedValidators.address1}
+          >
+            {(field) => (
+              <field.TextField
+                id={`${fieldPrefix}-address-1`}
+                label="Ulica a číslo domu"
+                required
+                validationMode="blur"
+              />
+            )}
+          </checkoutDetailsForm.form.AppField>
+
+          <checkoutDetailsForm.form.AppField
+            name={resolveAddressFieldName(scope, "city")}
+            validators={scopedValidators.city}
+          >
+            {(field) => (
+              <field.TextField
+                id={`${fieldPrefix}-city`}
+                label="Mesto"
+                required
+                validationMode="blur"
+              />
+            )}
+          </checkoutDetailsForm.form.AppField>
+
+          <checkoutDetailsForm.form.AppField
+            name={resolveAddressFieldName(scope, "postalCode")}
+            validators={scopedValidators.postalCode}
+          >
+            {(field) => (
+              <field.TextField
+                id={`${fieldPrefix}-postal-code`}
+                label="PSČ"
+                required
+                validationMode="blur"
+              />
+            )}
+          </checkoutDetailsForm.form.AppField>
 
           {showCustomerNote ? (
             <div className="md:col-span-2">
-              <FormTextarea
-                id={`${fieldPrefix}-customer-note`}
-                label="Voliteľná poznámka pre zákaznícku podporu"
-                name={`${fieldPrefix}_customer_note`}
-                rows={3}
-                value={addressForm.customerNote}
-                resize="auto"
-                size="sm"
-                className="min-h-14"
-                onChange={(event) =>
-                  onUpdateAddressField("customerNote", event.target.value)
-                }
-              />
+              <checkoutDetailsForm.form.AppField
+                name={resolveAddressFieldName(scope, "customerNote")}
+              >
+                {(field) => (
+                  <field.TextareaField
+                    className="min-h-14"
+                    id={`${fieldPrefix}-customer-note`}
+                    label="Voliteľná poznámka pre zákaznícku podporu"
+                    resize="auto"
+                    rows={3}
+                    size="sm"
+                    validationMode="none"
+                  />
+                )}
+              </checkoutDetailsForm.form.AppField>
             </div>
           ) : null}
         </div>
