@@ -263,7 +263,7 @@ export function HerbatikaHeader() {
         <Header.Nav className="w-full min-w-0 gap-y-0">
           {PRIMARY_NAV_ITEMS.map((item) => (
             <Header.NavItem
-              className="min-w-0 w-full bg-primary hover:bg-secondary border-border-secondary border-b"
+              className="min-w-0 w-full bg-primary border-border-secondary border-b"
               key={`mobile-${item.href}`}
             >
               <Link as={NextLink} className="block w-full min-w-0" href={item.href}>
@@ -276,15 +276,19 @@ export function HerbatikaHeader() {
         <div className="grid w-full grid-cols-1 gap-200 p-400 sm:grid-cols-2">
           {HEADER_ACTION_ITEMS.map((action) => (
             <LinkButton
-              as={NextLink}
-              block
-              className="min-h-750 justify-center font-bold"
-              href={action.href}
-              icon={action.icon}
               key={`mobile-action-${action.href}`}
+              as={NextLink}
+              className="px-300 py-400 rounded-xs h-fit text-sm font-bold bg-surface text-fg-primary"
+              href={action.href}
               size="sm"
               variant="secondary"
             >
+              <NextImage
+                src={action.src}
+                alt={action.label}
+                width={24}
+                height={24}
+              />
               {action.label}
             </LinkButton>
           ))}
