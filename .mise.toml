@@ -26,6 +26,15 @@ run = "mise run dev:internal:frontend:up && mise run dev:internal:frontend:wait"
 description = "Converge medusa-db bootstrap state for current operator envs, then start operator runtime services"
 run = "bash ./scripts/dev/mise-dev-helpers.sh ensure-operator-db-convergence && mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
 
+[tasks."test:e2e:medusa-be:http"]
+description = "Start isolated Medusa BE e2e stack, run all HTTP e2e specs, then teardown"
+run = "bash ./scripts/e2e/medusa-be-http.sh run"
+
+[tasks."test:e2e:medusa-be:http:debug"]
+description = "Run Medusa BE HTTP e2e specs against an isolated stack and keep containers running for debugging"
+run = "MEDUSA_E2E_KEEP_STACK=1 bash ./scripts/e2e/medusa-be-http.sh run"
+
+
 [tasks."dev:postgres:bootstrap"]
 description = "Rerun medusa-db role bootstrap against the running local stack"
 run = "bash ./scripts/apply-postgres-role-bootstrap.sh"

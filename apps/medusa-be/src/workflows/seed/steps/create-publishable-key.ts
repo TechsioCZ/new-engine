@@ -1,7 +1,7 @@
-import type { IApiKeyModuleService, Logger } from "@medusajs/framework/types"
+import type { IApiKeyModuleService, ILockingModule, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { createApiKeysWorkflow } from "@medusajs/medusa/core-flows"
+import { provisionPublishableKey } from "../../../utils/publishable-key"
 
 export type CreatePublishableKeyStepInput = {
   title: string
@@ -15,35 +15,22 @@ export const createPublishableKeyStep = createStep(
     const apiKeyService = container.resolve<IApiKeyModuleService>(
       Modules.API_KEY
     )
+    const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
-    const existingKey = await apiKeyService.listApiKeys({
+    const result = await provisionPublishableKey({
+      apiKeyService,
+      lockingModule,
       title: input.title,
-      type: "publishable",
     })
 
-    if (existingKey.length !== 0) {
-      return new StepResponse({
-        result: existingKey,
-      })
-    }
-
-    logger.info("Creating or retrieving publishable API key data...")
-    const { result: publishableApiKeyResult } = await createApiKeysWorkflow(
-      container
-    ).run({
-      input: {
-        api_keys: [
-          {
-            title: input.title,
-            type: "publishable",
-            created_by: "",
-          },
-        ],
-      },
-    })
+    logger.info(
+      result.created
+        ? "Created publishable API key for seed workflow"
+        : "Using existing publishable API key for seed workflow"
+    )
 
     return new StepResponse({
-      result: publishableApiKeyResult,
+      result: [result.apiKey],
     })
   }
 )

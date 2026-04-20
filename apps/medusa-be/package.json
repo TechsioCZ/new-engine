@@ -22,6 +22,8 @@
     "dev": "medusa develop",
     "test:integration:http": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
     "test:integration:modules": "cross-env TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit",
+    "test:e2e:http": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand integration-tests/http/*.spec.ts",
+    "test:e2e:http:debug": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --detectOpenHandles integration-tests/http/*.spec.ts",
     "test:unit": "cross-env TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit",
     "test:all": "pnpm test:unit && pnpm test:integration:modules && pnpm test:integration:http",
     "migrateProd": "medusa db:migrate --execute-all-links",

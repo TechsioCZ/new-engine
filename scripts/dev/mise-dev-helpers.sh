@@ -199,8 +199,25 @@ sync_env_key() {
   fi
 }
 
+map_meili_runtime_env_to_local_compose_env() {
+  local runtime_env_var="$1"
+
+  case "$runtime_env_var" in
+    MEILISEARCH_API_KEY)
+      printf '%s' "DC_MEILISEARCH_BACKEND_API_KEY"
+      ;;
+    NEXT_PUBLIC_MEILISEARCH_API_KEY)
+      printf '%s' "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY"
+      ;;
+    *)
+      printf '%s' "$runtime_env_var"
+      ;;
+  esac
+}
+
+
 sync_meili_env() {
-  local output backend_key frontend_key backend_env_var frontend_env_var backend_created backend_updated frontend_created frontend_updated
+  local output backend_key frontend_key backend_env_var frontend_env_var backend_target_env_var frontend_target_env_var backend_created backend_updated frontend_created frontend_updated
 
   require_cmd bash
   require_cmd awk
@@ -224,6 +241,9 @@ sync_meili_env() {
     exit 1
   fi
 
+  backend_target_env_var="$(map_meili_runtime_env_to_local_compose_env "$backend_env_var")"
+  frontend_target_env_var="$(map_meili_runtime_env_to_local_compose_env "$frontend_env_var")"
+
   backend_created="$(printf '%s\n' "$output" | sed -n 's/^backend_created=//p' | tail -n1)"
   backend_updated="$(printf '%s\n' "$output" | sed -n 's/^backend_updated=//p' | tail -n1)"
   frontend_created="$(printf '%s\n' "$output" | sed -n 's/^frontend_created=//p' | tail -n1)"
@@ -231,8 +251,8 @@ sync_meili_env() {
 
   echo "Provision status: backend(created=${backend_created:-unknown},updated=${backend_updated:-unknown}), frontend(created=${frontend_created:-unknown},updated=${frontend_updated:-unknown})"
 
-  sync_env_key "$backend_env_var" "$backend_key"
-  sync_env_key "$frontend_env_var" "$frontend_key"
+  sync_env_key "$backend_target_env_var" "$backend_key"
+  sync_env_key "$frontend_target_env_var" "$frontend_key"
 }
 
 ensure_operator_db_convergence() {

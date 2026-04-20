@@ -5,6 +5,8 @@
   "scripts": {
     "test-all": "cross-env TEST_ALL_ESHOPS=true nx e2e e2e",
     "test": "nx e2e e2e",
+    "test:e2e:medusa-be:http": "bash ./scripts/e2e/medusa-be-http.sh run",
+    "test:e2e:medusa-be:http:debug": "MEDUSA_E2E_KEEP_STACK=1 bash ./scripts/e2e/medusa-be-http.sh run",
     "dev:all:nx": "nx run-many --target=dev --projects=medusa-*",
     "start:fe-demo": "cd apps/frontend-demo && npm run start",
     "start:be": "cd apps/medusa-be && npm run start",
