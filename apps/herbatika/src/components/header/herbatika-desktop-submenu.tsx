@@ -76,6 +76,7 @@ export function HerbatikaDesktopSubmenu({
                       as={NextLink}
                       className="block leading-tight font-bold text-fg-primary hover:text-primary"
                       href={item.href}
+                      onClick={onClose}
                     >
                       {item.label}
                     </Link>
@@ -88,6 +89,7 @@ export function HerbatikaDesktopSubmenu({
                               as={NextLink}
                               className="text-sm text-primary hover:text-fg-primary"
                               href={childItem.href}
+                              onClick={onClose}
                             >
                               {childItem.label}
                             </Link>
