@@ -45,7 +45,7 @@ const resolveRootHandleFromHref = (href: string) => {
 export function HerbatikaHeader() {
   const router = useRouter();
   const region = useRegionContext();
-  const [activeRootHandle, setActiveRootHandle] = useState<string | null>('trapi-ma');
+  const [activeRootHandle, setActiveRootHandle] = useState<string | null>(null);
 
   const { cart, itemCount } = useCart(
     {
