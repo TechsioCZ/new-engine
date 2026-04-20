@@ -1,0 +1,16 @@
+:where([data-herbatika-mobile-menu-dialog-root]) {
+  --color-dialog-backdrop-bg: transparent;
+  --color-dialog-content-bg: transparent;
+  --color-dialog-content-border: transparent;
+  --padding-dialog-content: 0;
+  --gap-dialog-content: 0;
+  --border-width-dialog: 0;
+  --shadow-dialog-content: none;
+}
+
+:where([data-herbatika-mobile-menu-dialog-root])
+  [data-scope="dialog"][data-part="backdrop"],
+:where([data-herbatika-mobile-menu-dialog-root])
+  [data-scope="dialog"][data-part="positioner"] {
+  top: var(--herbatika-mobile-menu-top, 0px);
+}

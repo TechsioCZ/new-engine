@@ -8,6 +8,7 @@
 
 @import "./molecules/_herbatika-carousel.css";
 @import "./molecules/_herbatika-accordion.css";
+@import "./molecules/_herbatika-dialog.css";
 @import "./molecules/_herbatika-product-card.css";
 @import "./molecules/_herbatika-radio-card.css";
 @import "./molecules/_herbatika-radio-group.css";
