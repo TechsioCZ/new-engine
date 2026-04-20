@@ -1,6 +1,7 @@
 :where([data-herbatika-mobile-menu-dialog-root]) {
+  --herbatika-mobile-menu-top: 6rem;
   --color-dialog-backdrop-bg: transparent;
-  --color-dialog-content-bg: transparent;
+  --color-dialog-content-bg: var(--color-primary);
   --color-dialog-content-border: transparent;
   --padding-dialog-content: 0;
   --gap-dialog-content: 0;
