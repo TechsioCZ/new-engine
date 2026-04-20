@@ -18,6 +18,7 @@ import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { HERBATIKA_HEADER_SUBMENU_GROUPS } from "./header/herbatika-header.submenu-data";
 import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu";
+import { HerbatikaMobileMenuNav } from "./header/herbatika-mobile-menu-nav";
 import { HEADER_ACTION_ITEMS, PRIMARY_NAV_ITEMS } from "./header/herbatika-header.navigation";
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover";
 import { HerbatikaCartPopover } from "./header/herbatika-cart-popover";
@@ -260,18 +261,7 @@ export function HerbatikaHeader() {
           </SearchForm>
         </div>
 
-        <Header.Nav className="w-full min-w-0 gap-y-0">
-          {PRIMARY_NAV_ITEMS.map((item) => (
-            <Header.NavItem
-              className="min-w-0 w-full bg-primary border-border-secondary border-b"
-              key={`mobile-${item.href}`}
-            >
-              <Link as={NextLink} className="block w-full min-w-0" href={item.href}>
-                {item.label}
-              </Link>
-            </Header.NavItem>
-          ))}
-        </Header.Nav>
+        <HerbatikaMobileMenuNav />
 
         <div className="grid w-full grid-cols-1 gap-200 p-400 sm:grid-cols-2">
           {HEADER_ACTION_ITEMS.map((action) => (
