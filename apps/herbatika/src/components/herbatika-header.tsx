@@ -220,7 +220,7 @@ export function HerbatikaHeader() {
                 <LinkButton
                   key={action.href}
                   as={NextLink}
-                  className="px-300 py-400 rounded-xs h-fit text-sm font-bold bg-surface text-fg-primary"
+                  className="px-300 py-400 rounded-xs h-fit text-sm font-bold bg-surface hover:bg-highlight text-fg-primary"
                   href={action.href}
                   size="sm"
                   variant="secondary"
