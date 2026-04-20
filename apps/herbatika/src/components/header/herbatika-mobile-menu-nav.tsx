@@ -128,21 +128,23 @@ export function HerbatikaMobileMenuNav() {
           entry.type === "group" ? (
             <Accordion.Item key={entry.href} value={entry.value}>
               <Accordion.Header>
-                <Accordion.Title className="font-semibold">{entry.label}</Accordion.Title>
+                <Accordion.Title className="font-semibold">
+                  <NextLink href={entry.href} onClick={handleClose}>{entry.label}</NextLink>
+                  </Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
               <Accordion.Content>
                 <ul className="flex flex-col">
                   {entry.items.map((item) => (
                     <li key={item.id}>
-                      <Link
-                        as={NextLink}
+                      <NextLink
+                       // as={NextLink}
                         className="block border-border-secondary/40 hover:bg-surface hover:text-primary text-sm px-350 py-150"
                         href={item.href}
                         onClick={handleClose}
                       >
                         {item.label}
-                      </Link>
+                      </NextLink>
                     </li>
                   ))}
                 </ul>
@@ -153,14 +155,14 @@ export function HerbatikaMobileMenuNav() {
               className="min-w-0 w-full text-md bg-primary border-border-secondary border-b hover:text-fg-reverse hover:bg-accordion-bg-hover"
               key={entry.href}
             >
-              <Link
-                as={NextLink}
+              <NextLink
+               // as={NextLink}
                 className="block w-full min-w-0"
                 href={entry.href}
                 onClick={handleClose}
               >
                 {entry.label}
-              </Link>
+              </NextLink>
             </Header.NavItem>
           ),
         )}
