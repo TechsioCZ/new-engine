@@ -20,4 +20,6 @@
   --spacing-950: 15.625rem;
 
   --height-category-image: 5.375rem;
+  --width-submenu-image: var(--spacing-850);
+  --height-submenu-image: 3.75rem;
 }

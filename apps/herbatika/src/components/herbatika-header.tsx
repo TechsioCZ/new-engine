@@ -1,5 +1,7 @@
 "use client";
 
+import type { FocusEvent } from "react";
+import { useState } from "react";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
@@ -14,6 +16,8 @@ import { useRouter } from "next/navigation";
 import { storefrontCartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { HERBATIKA_HEADER_SUBMENU_GROUPS } from "./header/herbatika-header.submenu-data";
+import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu";
 import { HEADER_ACTION_ITEMS, PRIMARY_NAV_ITEMS } from "./header/herbatika-header.navigation";
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover";
 import { HerbatikaCartPopover } from "./header/herbatika-cart-popover";
@@ -26,9 +30,22 @@ const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
   sk: "EUR",
 };
 
+const SUBMENU_ROOT_HANDLES = new Set<string>(
+  HERBATIKA_HEADER_SUBMENU_GROUPS.map((group) => group.rootHandle),
+);
+
+const resolveRootHandleFromHref = (href: string) => {
+  if (!href.startsWith("/c/")) {
+    return null;
+  }
+
+  return href.slice(3);
+};
+
 export function HerbatikaHeader() {
   const router = useRouter();
   const region = useRegionContext();
+  const [activeRootHandle, setActiveRootHandle] = useState<string | null>(null);
 
   const { cart, itemCount } = useCart(
     {
@@ -51,6 +68,28 @@ export function HerbatikaHeader() {
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const formData = new FormData(event.currentTarget);
     router.push(resolveSearchHref(formData.get("q")));
+  };
+
+  const handleActivateDesktopItem = (href: string) => {
+    const rootHandle = resolveRootHandleFromHref(href);
+    if (!rootHandle || !SUBMENU_ROOT_HANDLES.has(rootHandle)) {
+      setActiveRootHandle(null);
+      return;
+    }
+
+    setActiveRootHandle(rootHandle);
+  };
+
+  const handleDesktopBlur = (event: FocusEvent<HTMLDivElement>) => {
+    const nextFocusedElement = event.relatedTarget;
+    if (
+      nextFocusedElement instanceof Node &&
+      event.currentTarget.contains(nextFocusedElement)
+    ) {
+      return;
+    }
+
+    setActiveRootHandle(null);
   };
 
   return (
@@ -137,29 +176,47 @@ export function HerbatikaHeader() {
       </Header.Container>
 
       <Header.Desktop className="bg-primary">
-        <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
-          <Header.Nav
-            className="flex-nowrap md:h-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            size="sm"
-          >
-            {PRIMARY_NAV_ITEMS.map((item) => (
-              <Header.NavItem
-                className="shrink-0 h-full items-center flex"
-                key={item.href}
-              >
-                <Link
-                  as={NextLink}
-                  className="whitespace-nowrap leading-none"
-                  href={item.href}
-                >
-                  {item.label}
-                </Link>
-              </Header.NavItem>
-            ))}
-          </Header.Nav>
+        <div
+          className="relative flex w-full min-h-header-nav"
+          onBlurCapture={handleDesktopBlur}
+          onMouseLeave={() => setActiveRootHandle(null)}
+        >
+          <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
+            <Header.Nav
+              className="flex-nowrap md:h-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              size="sm"
+            >
+              {PRIMARY_NAV_ITEMS.map((item) => {
+                const rootHandle = resolveRootHandleFromHref(item.href);
+                const hasSubmenu = Boolean(
+                  rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle),
+                );
 
-          <Header.Actions className="px-200 gap-x-200" size="sm">
-            {HEADER_ACTION_ITEMS.map((action) => (
+                return (
+                  <Header.NavItem
+                    className="shrink-0 h-full items-center flex"
+                    key={item.href}
+                    onMouseEnter={() => handleActivateDesktopItem(item.href)}
+                  >
+                    <Link
+                      aria-expanded={
+                        hasSubmenu ? activeRootHandle === rootHandle : undefined
+                      }
+                      aria-haspopup={hasSubmenu ? "dialog" : undefined}
+                      as={NextLink}
+                      className="whitespace-nowrap leading-none"
+                      href={item.href}
+                      onFocus={() => handleActivateDesktopItem(item.href)}
+                    >
+                      {item.label}
+                    </Link>
+                  </Header.NavItem>
+                );
+              })}
+            </Header.Nav>
+
+            <Header.Actions className="px-200 gap-x-200" size="sm">
+              {HEADER_ACTION_ITEMS.map((action) => (
                 <LinkButton
                   key={action.href}
                   as={NextLink}
@@ -176,10 +233,15 @@ export function HerbatikaHeader() {
                   />
                   {action.label}
                 </LinkButton>
+              ))}
+            </Header.Actions>
+          </Header.Container>
 
-            ))}
-          </Header.Actions>
-        </Header.Container>
+          <HerbatikaDesktopSubmenu
+            activeRootHandle={activeRootHandle}
+            onClose={() => setActiveRootHandle(null)}
+          />
+        </div>
       </Header.Desktop>
 
       <Header.Mobile
