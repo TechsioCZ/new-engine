@@ -30,6 +30,7 @@
   --spacing-header-actions-lg: var(--spacing-250);
 
   --height-header-nav: 2.625rem;
+  --height-header-mobile: 6rem;
 
   --color-header-hamburger-fg: var(--color-fg-primary);
   --color-header-hamburger-fg-hover: var(--color-primary);

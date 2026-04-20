@@ -10,17 +10,21 @@ import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import { Header } from "@techsio/ui-kit/organisms/header";
-import NextLink from "next/link";
 import NextImage from "next/image";
+import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import { storefrontCartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { HERBATIKA_HEADER_SUBMENU_GROUPS } from "./header/herbatika-header.submenu-data";
-import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu";
-import { HEADER_ACTION_ITEMS, PRIMARY_NAV_ITEMS } from "./header/herbatika-header.navigation";
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover";
 import { HerbatikaCartPopover } from "./header/herbatika-cart-popover";
+import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu";
+import {
+  HEADER_ACTION_ITEMS,
+  PRIMARY_NAV_ITEMS,
+} from "./header/herbatika-header.navigation";
+import { HerbatikaMobileMenuDialog } from "./header/herbatika-mobile-menu-dialog";
+import { HERBATIKA_HEADER_SUBMENU_GROUPS } from "./header/herbatika-header.submenu-data";
 import { HerbatikaLogo } from "./herbatika-logo";
 import { resolveSearchHref } from "./search/search-query-config";
 
@@ -95,10 +99,7 @@ export function HerbatikaHeader() {
   return (
     <Header direction="vertical">
       <Header.Container className="mx-auto flex max-w-max-w w-full min-w-0 items-center justify-between gap-200 px-300 py-300 sm:px-400 @header-desktop:px-600">
-        <HerbatikaLogo
-          className="min-w-0 shrink"
-          size="lg"
-        />
+        <HerbatikaLogo className="min-w-0 shrink" size="lg" />
 
         <div className="hidden w-full max-w-header-search flex-1 @header-desktop:block">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
@@ -155,7 +156,6 @@ export function HerbatikaHeader() {
             <LinkButton
               as={NextLink}
               className="px-350 py-250 text-md md:text-xl font-bold"
-              //className="h-750 min-h-750 max-w-900 min-w-0 overflow-hidden px-250 py-150 text-base font-semibold text-ellipsis whitespace-nowrap sm:max-w-none sm:px-350 sm:py-250 sm:text-xl"
               href="/checkout/kosik"
               icon="token-icon-cart"
               size="sm"
@@ -220,7 +220,7 @@ export function HerbatikaHeader() {
                 <LinkButton
                   key={action.href}
                   as={NextLink}
-                  className="px-300 py-400 rounded-xs h-fit text-sm font-bold bg-surface text-fg-primary"
+                  className="px-300 py-400 rounded-xs h-fit text-sm font-bold bg-surface hover:bg-highlight text-fg-primary"
                   href={action.href}
                   size="sm"
                   variant="secondary"
@@ -245,54 +245,10 @@ export function HerbatikaHeader() {
       </Header.Desktop>
 
       <Header.Mobile
-        className="inset-x-0 z-20 w-full max-w-full overflow-x-hidden border-t border-border-secondary bg-primary shadow-sm"
+        className="inset-x-0 z-20 w-full max-w-full overflow-x-hidden"
         position="right"
       >
-        <div className="border-border-secondary border-b p-400">
-          <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
-            <SearchForm.Control>
-              <SearchForm.Input
-                name="q"
-                placeholder="Napíšte, čo hľadáte..."
-              />
-              <SearchForm.Button className="rounded-r-none" aria-label="Hľadať" showSearchIcon />
-            </SearchForm.Control>
-          </SearchForm>
-        </div>
-
-        <Header.Nav className="w-full min-w-0 gap-y-0">
-          {PRIMARY_NAV_ITEMS.map((item) => (
-            <Header.NavItem
-              className="min-w-0 w-full bg-primary border-border-secondary border-b"
-              key={`mobile-${item.href}`}
-            >
-              <Link as={NextLink} className="block w-full min-w-0" href={item.href}>
-                {item.label}
-              </Link>
-            </Header.NavItem>
-          ))}
-        </Header.Nav>
-
-        <div className="grid w-full grid-cols-1 gap-200 p-400 sm:grid-cols-2">
-          {HEADER_ACTION_ITEMS.map((action) => (
-            <LinkButton
-              key={`mobile-action-${action.href}`}
-              as={NextLink}
-              className="px-300 py-400 rounded-xs h-fit text-sm font-bold bg-surface text-fg-primary"
-              href={action.href}
-              size="sm"
-              variant="secondary"
-            >
-              <NextImage
-                src={action.src}
-                alt={action.label}
-                width={24}
-                height={24}
-              />
-              {action.label}
-            </LinkButton>
-          ))}
-        </div>
+        <HerbatikaMobileMenuDialog onSearchSubmit={handleSearchSubmit} />
       </Header.Mobile>
     </Header>
   );

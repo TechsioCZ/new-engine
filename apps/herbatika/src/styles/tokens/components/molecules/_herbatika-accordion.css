@@ -1,0 +1,21 @@
+:where([data-herbatika-mobile-menu-accordion]) {
+  --radius-accordion: 0;
+
+  --color-accordion-bg: transparent;
+  --color-accordion-title-bg: var(--color-primary);
+  --color-accordion-bg-hover: oklch(from var(--color-accordion-title-bg) calc(l - 0.05) c h);
+  --color-accordion-title-bg-hover: var(--color-accordion-bg-hover);
+  --color-accordion-title-fg: var(--color-fg-reverse);
+  --color-accordion-content-bg: var(--color-accordion-bg-hover);
+  --color-accordion-content-fg: var(--color-fg-reverse);
+
+  --font-weight-accordion-title: var(--font-weight-header-nav);
+  --text-accordion-title-md: var(--text-md);
+  --padding-accordion-content-md: 0;
+  --padding-accordion-icon: var(--spacing-350);
+}
+
+:where([data-herbatika-mobile-menu-accordion])
+  [data-scope="accordion"][data-part="item"] {
+  border-bottom: var(--border-width-sm) solid var(--color-border-secondary);
+}
