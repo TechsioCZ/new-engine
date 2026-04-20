@@ -9,11 +9,6 @@ const planServiceSchema = z.object({
   deploy_lanes: z.array(laneSchema),
   deploy_stage: z.number().int(),
   downtime_risk: z.boolean(),
-  consumes: z.object({
-    preview_db: z.boolean(),
-    meili_frontend_key: z.boolean(),
-    meili_backend_key: z.boolean(),
-  }),
   service_dependencies: z.array(z.string().min(1)),
 })
 

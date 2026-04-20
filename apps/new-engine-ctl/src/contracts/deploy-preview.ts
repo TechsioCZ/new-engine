@@ -9,9 +9,6 @@ const deployPreviewCommandInputSchemaBase = z.object({
   previewDbName: z.string().default(""),
   previewDbUser: z.string().default(""),
   previewDbPassword: z.string().default(""),
-  meiliBackendKey: z.string().default(""),
-  meiliFrontendKey: z.string().default(""),
-  meiliFrontendEnvVar: z.string().default(""),
   outputJson: z.string().min(1).optional(),
   baseUrl: z.string().default(""),
   apiToken: z.string().default(""),
@@ -79,8 +76,6 @@ export const deployPreviewResponseSchema = z.object({
   last_deployed_commit_sha: z.string().nullable().optional(),
   env_override_service_ids_csv: z.string(),
   triggered_services_csv: z.string(),
-  meili_frontend_env_var: z.string(),
-  meili_keys_provisioned: z.boolean(),
   deployments: z.array(z.unknown()),
 })
 

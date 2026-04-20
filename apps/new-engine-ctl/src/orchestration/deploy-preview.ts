@@ -6,6 +6,7 @@ import type {
   DeployPreviewResponse,
 } from "../contracts/deploy-preview.js"
 import { deployPreviewResponseSchema } from "../contracts/deploy-preview.js"
+import type { RuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
 import { getPreviewRandomOnceSecretDefinitions } from "../contracts/stack-inputs.js"
 import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
@@ -23,11 +24,12 @@ import {
 } from "./deploy-shared.js"
 import { executePlan } from "./plan.js"
 import {
-  collectMeiliOutputNeeds,
-  getMeiliApiCredentialsProviderSourceService,
-  provisionMeiliKeys,
-  reusePersistedMeiliKeysFromTargets,
-} from "./preview-meili.js"
+  buildRuntimeProviderRenderContext,
+  collectConfiguredRuntimeProviderNeeds,
+  createRuntimeProviderState,
+  ensureStageRuntimeProviderOutputs,
+  reuseRuntimeProviderOutputs,
+} from "./runtime-provider-orchestration.js"
 import { generatePreviewRandomOnceSecrets } from "./preview-random-secrets.js"
 import {
   buildPreviewServiceEnvSyncServices,
@@ -42,9 +44,7 @@ import { executeTriggerPayload } from "./trigger.js"
 export type DeployPreviewExecutionResult = {
   response: DeployPreviewResponse
   previewRandomOnceSecretsJson: string
-  meiliBackendKey: string
-  meiliFrontendKey: string
-  meiliFrontendEnvVar: string
+  runtimeProviderOutputs: RuntimeProviderOutputs
 }
 
 function supportsPrettyLogs(): boolean {
@@ -87,33 +87,6 @@ function logDeployProgress(message: string): void {
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
-}
-
-function stageNeedsPreviewMeiliKeys(
-  stagePlan: Awaited<ReturnType<typeof executePlan>>
-): boolean {
-  return stagePlan.deploy_services.some(
-    (service) =>
-      service.consumes.meili_backend_key || service.consumes.meili_frontend_key
-  )
-}
-
-function stageHasResolvedPreviewMeiliKeys(
-  stagePlan: Awaited<ReturnType<typeof executePlan>>,
-  meiliBackendKey: string,
-  meiliFrontendKey: string
-): boolean {
-  return stagePlan.deploy_services.every((service) => {
-    if (service.consumes.meili_backend_key && !meiliBackendKey) {
-      return false
-    }
-
-    if (service.consumes.meili_frontend_key && !meiliFrontendKey) {
-      return false
-    }
-
-    return true
-  })
 }
 
 async function resolvePreviewRandomOnceSecrets(input: {
@@ -318,6 +291,7 @@ async function syncPreviewServiceEnv(input: {
   })
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: preview deploy keeps provider provisioning and staged deploy ordering in one flow
 export async function executeDeployPreview(
   input: DeployPreviewCommandInput
 ): Promise<DeployPreviewExecutionResult> {
@@ -423,19 +397,14 @@ export async function executeDeployPreview(
     previewRandomOnceSecrets.length > 0
       ? JSON.stringify(previewRandomOnceSecrets)
       : ""
-  const meiliSourceService = getMeiliApiCredentialsProviderSourceService(
-    contracts.manifest,
-    contracts.stackInputs,
-    input.meiliApiCredentialsProviderId
-  )
-  const runtimeMeiliNeeds = collectMeiliOutputNeeds(
-    effectiveRuntimePlan.deploy_services
-  )
-
-  let meiliBackendKey = input.meiliBackendKey
-  let meiliFrontendKey = input.meiliFrontendKey
-  let meiliFrontendEnvVar = input.meiliFrontendEnvVar
-  let meiliKeysProvisioned = false
+  const runtimeProviderNeeds = collectConfiguredRuntimeProviderNeeds({
+    lane: "preview",
+    manifest: contracts.manifest,
+    stackInputs: contracts.stackInputs,
+    services: effectiveRuntimePlan.deploy_services,
+    meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+  })
+  const runtimeProviderState = createRuntimeProviderState({})
   let targetCommitSha: string | null = null
   let lastDeployedCommitSha: string | null = null
   let envOverrideServiceIdsCsv = ""
@@ -453,9 +422,9 @@ export async function executeDeployPreview(
       previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
       previewRandomOnceSecrets,
-      meiliFrontendKey,
-      meiliFrontendEnvVar,
-      meiliBackendKey,
+      runtimeProviderOutputs: buildRuntimeProviderRenderContext(
+        runtimeProviderState
+      ).runtimeProviderOutputs,
       outputJson: undefined,
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
@@ -530,53 +499,24 @@ export async function executeDeployPreview(
     targetCommitSha = input.targetCommitSha
   }
 
-  if (
-    !baselineDeploy &&
-    (runtimeMeiliNeeds.needBackendKey || runtimeMeiliNeeds.needFrontendKey) &&
-    !effectiveRuntimePlan.deploy_services.some(
-      (service) => service.id === meiliSourceService.serviceId
-    ) &&
-    !input.dryRun
-  ) {
-    const meiliConsumerTargets = await executeResolveTargetsPayload({
-      payload: {
-        lane: "preview",
-        project_slug: input.projectSlug,
-        environment_name: environment.environment_name,
-        services: effectiveRuntimePlan.deploy_services
-          .filter(
-            (service) =>
-              service.consumes.meili_backend_key ||
-              service.consumes.meili_frontend_key
-          )
-          .map((service) => ({
-            service_id: service.id,
-            service_slug: service.service_slug,
-          })),
-      },
+  if (!baselineDeploy) {
+    await reuseRuntimeProviderOutputs({
+      lane: "preview",
+      projectSlug: input.projectSlug,
+      environmentName: environment.environment_name,
+      planServices: effectiveRuntimePlan.deploy_services.map((service) => ({
+        id: service.id,
+        service_slug: service.service_slug,
+      })),
+      needs: runtimeProviderNeeds,
+      stackInputs: contracts.stackInputs,
       baseUrl: input.baseUrl,
       apiToken: input.apiToken,
-      dryRun: false,
+      dryRun: input.dryRun,
+      state: runtimeProviderState,
+      meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+      onProgress: logDeployProgress,
     })
-    const reusedKeys = reusePersistedMeiliKeysFromTargets({
-      targets: meiliConsumerTargets.services,
-      stackInputs: contracts.stackInputs,
-      providerId: input.meiliApiCredentialsProviderId,
-      backendConsumerIds: runtimeMeiliNeeds.backendConsumerIds,
-      frontendConsumerIds: runtimeMeiliNeeds.frontendConsumerIds,
-    })
-    meiliBackendKey = reusedKeys.backendKey
-    meiliFrontendKey = reusedKeys.frontendKey
-    meiliFrontendEnvVar = reusedKeys.frontendEnvVar
-
-    if (
-      (!runtimeMeiliNeeds.needBackendKey || meiliBackendKey) &&
-      (!runtimeMeiliNeeds.needFrontendKey || meiliFrontendKey)
-    ) {
-      logDeployProgress(
-        "Reusing persisted Meili API credentials from current healthy preview consumer deployments."
-      )
-    }
   }
 
   for (const stage of collectStageNumbers(effectiveRuntimePlan)) {
@@ -589,42 +529,29 @@ export async function executeDeployPreview(
     logDeployProgress(
       `Starting preview deploy stage ${stage} for services: ${stageServicesCsv}.`
     )
-
-    if (
-      stageNeedsPreviewMeiliKeys(stagePlan) &&
-      !stageHasResolvedPreviewMeiliKeys(
-        stagePlan,
-        meiliBackendKey,
-        meiliFrontendKey
-      )
-    ) {
-      const stageMeiliNeeds = collectMeiliOutputNeeds(stagePlan.deploy_services)
-      logDeployProgress(
-        `Stage ${stage} consumes Meili API credentials; provisioning or reusing only the required outputs before env overrides.`
-      )
-      const provisionedKeys = await provisionMeiliKeys({
-        projectSlug: input.projectSlug,
-        environmentName: environment.environment_name,
-        serviceSlug: meiliSourceService.serviceSlug,
-        stackInputs: contracts.stackInputs,
-        providerId: input.meiliApiCredentialsProviderId,
-        baseUrl: input.baseUrl,
-        apiToken: input.apiToken,
-        dryRun: input.dryRun,
-        needBackendKey: stageMeiliNeeds.needBackendKey && !meiliBackendKey,
-        needFrontendKey: stageMeiliNeeds.needFrontendKey && !meiliFrontendKey,
-      })
-      if (provisionedKeys.backend_key) {
-        meiliBackendKey = provisionedKeys.backend_key
-      }
-      if (provisionedKeys.frontend_key) {
-        meiliFrontendKey = provisionedKeys.frontend_key
-      }
-      meiliFrontendEnvVar = provisionedKeys.frontend_env_var
-      meiliKeysProvisioned =
-        meiliKeysProvisioned || Boolean(provisionedKeys.backend_key || provisionedKeys.frontend_key)
-      logDeployProgress("Meili API credentials resolved for preview consumers.")
-    }
+    await ensureStageRuntimeProviderOutputs({
+      lane: "preview",
+      stage,
+      stageServices: stagePlan.deploy_services.map((service) => ({
+        id: service.id,
+        service_slug: service.service_slug,
+      })),
+      fullPlanServices: effectiveRuntimePlan.deploy_services.map((service) => ({
+        id: service.id,
+        service_slug: service.service_slug,
+        deploy_stage: service.deploy_stage,
+      })),
+      needs: runtimeProviderNeeds,
+      projectSlug: input.projectSlug,
+      environmentName: environment.environment_name,
+      stackInputs: contracts.stackInputs,
+      baseUrl: input.baseUrl,
+      apiToken: input.apiToken,
+      dryRun: input.dryRun,
+      state: runtimeProviderState,
+      meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+      onProgress: logDeployProgress,
+    })
 
     logDeployProgress(
       `Rendering env overrides for preview stage ${stage}: ${stageServicesCsv}.`
@@ -636,9 +563,9 @@ export async function executeDeployPreview(
       previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
       previewRandomOnceSecrets,
-      meiliFrontendKey,
-      meiliFrontendEnvVar,
-      meiliBackendKey,
+      runtimeProviderOutputs: buildRuntimeProviderRenderContext(
+        runtimeProviderState
+      ).runtimeProviderOutputs,
       outputJson: undefined,
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
@@ -779,9 +706,9 @@ export async function executeDeployPreview(
       previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
       previewRandomOnceSecrets,
-      meiliFrontendKey,
-      meiliFrontendEnvVar,
-      meiliBackendKey,
+      runtimeProviderOutputs: buildRuntimeProviderRenderContext(
+        runtimeProviderState
+      ).runtimeProviderOutputs,
       deployments: stageDeployments,
       baseUrl: input.baseUrl,
       apiToken: input.apiToken,
@@ -821,6 +748,10 @@ export async function executeDeployPreview(
     lastDeployedCommitSha = input.targetCommitSha
   }
 
+  const runtimeProviderRenderContext = buildRuntimeProviderRenderContext(
+    runtimeProviderState
+  )
+
   const response = deployPreviewResponseSchema.parse({
     lane: "preview",
     project_slug: input.projectSlug,
@@ -839,8 +770,6 @@ export async function executeDeployPreview(
     last_deployed_commit_sha: lastDeployedCommitSha,
     env_override_service_ids_csv: envOverrideServiceIdsCsv,
     triggered_services_csv: triggeredServicesCsv,
-    meili_frontend_env_var: meiliFrontendEnvVar,
-    meili_keys_provisioned: meiliKeysProvisioned,
     deployments: allDeployments,
   })
 
@@ -851,8 +780,6 @@ export async function executeDeployPreview(
   return {
     response,
     previewRandomOnceSecretsJson,
-    meiliBackendKey,
-    meiliFrontendKey,
-    meiliFrontendEnvVar,
+    runtimeProviderOutputs: runtimeProviderRenderContext.runtimeProviderOutputs,
   }
 }

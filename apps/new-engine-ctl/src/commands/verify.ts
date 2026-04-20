@@ -1,4 +1,5 @@
 import { Command } from "commander"
+import { parseRuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import {
   parsePreviewRandomOnceSecrets,
   resolveDeploymentRefs,
@@ -25,9 +26,7 @@ export function createVerifyCommand(): Command {
     .option("--preview-db-user <user>", "", "")
     .option("--preview-db-password <password>", "", "")
     .option("--preview-random-once-secrets-json <json>", "", "")
-    .option("--meili-frontend-key <key>", "", "")
-    .option("--meili-frontend-env-var <env-var>", "", "")
-    .option("--meili-backend-key <key>", "", "")
+    .option("--runtime-provider-outputs-json <json>", "", "")
     .option("--deployments-json <path>")
     .option("--deployments-json-inline <json>")
     .option("--output-json <path>")
@@ -56,6 +55,9 @@ export function createVerifyCommand(): Command {
       const previewRandomOnceSecrets = parsePreviewRandomOnceSecrets(
         options.previewRandomOnceSecretsJson
       )
+      const runtimeProviderOutputs = parseRuntimeProviderOutputs(
+        options.runtimeProviderOutputsJson
+      )
       const input = verifyCommandInputSchema.parse({
         lane: options.lane,
         projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
@@ -69,9 +71,7 @@ export function createVerifyCommand(): Command {
         previewDbUser: options.previewDbUser,
         previewDbPassword: options.previewDbPassword,
         previewRandomOnceSecrets,
-        meiliFrontendKey: options.meiliFrontendKey,
-        meiliFrontendEnvVar: options.meiliFrontendEnvVar,
-        meiliBackendKey: options.meiliBackendKey,
+        runtimeProviderOutputs,
         deployments,
         outputJson: options.outputJson,
         baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
@@ -82,8 +82,9 @@ export function createVerifyCommand(): Command {
       })
 
       maskGitHubValue(input.previewDbPassword)
-      maskGitHubValue(input.meiliFrontendKey)
-      maskGitHubValue(input.meiliBackendKey)
+      for (const output of Object.values(input.runtimeProviderOutputs)) {
+        maskGitHubValue(output.value)
+      }
       const result = await executeVerify(input)
       await appendGitHubOutput("verified", String(result.verified))
       process.stdout.write(`${JSON.stringify(result)}\n`)

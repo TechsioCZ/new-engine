@@ -1,18 +1,60 @@
-# Shared deploy-input contract for CI, local tooling, and zane-operator.
-# This file defines:
-# - first-creation secret materialization policy
-# - runtime-dependent provisioning providers
+# Stack inputs: runtime/env/provider materialization + lane runtime policy.
+# Ownership in this file:
+# - first-creation secret materialization
+# - runtime providers, outputs, and env targets
+# - preview runtime reconciliation + verification rules
+# - bootstrap shared env and service reconciliation policy
+#
+# Keep service identity, deploy lanes/stages, and service dependencies in
+# stack-manifest.yaml.
+#
+# Minimal common example (defaults omitted):
+# secret_materialization:
+#   secrets:
+#     - secret_id: preview_jwt_secret
+#       scope: preview
+#       lifecycle: random_once
+#       materializer: ci
+#       persist_to: service_env
+#       generator:
+#         kind: random_hex
+#         bytes: 32
+#       targets:
+#         - service_id: medusa-be
+#           env_var: JWT_SECRET
+#
+# runtime_providers:
+#   providers:
+#     - provider_id: meili_api_credentials
+#       source_service_id: medusa-meilisearch
+#       orchestration:
+#         lanes:
+#           main:
+#             reconcile_when_source_not_in_plan: true
+#       readiness:
+#         kind: http_health
+#         path: /health
+#       outputs:
+#         - output_id: backend_key
+#           target_envs:
+#             - service_id: medusa-be
+#               env_var: MEILISEARCH_API_KEY
+#
+# preview_runtime_reconciliation:
+#   shared_env:
+#     - key: MEDUSA_DB_HOST
+#       consumed_by_service_ids: [medusa-be]
+#       source:
+#         kind: service_global_network_alias
+#         service_id: medusa-db
+#         environment_scope: source
 #
 # Omission defaults:
 # - secret.persist_to: zane_env
 # - runtime_provider.status: active
 # - runtime_provider.materializer: zane_operator
-#
-# Notes:
-# - Keep deploy-policy metadata in this file, not in workflow YAML.
-# - Keep service identity in stack-manifest.yaml.
-# - Reserved runtime providers may exist here before implementation, but they
-#   must stay explicitly inactive until their upstream service contract exists.
+# - runtime_provider.orchestration.lanes.preview:
+#   enabled=true, reuse_persisted_outputs=true, reconcile_when_source_not_in_plan=false
 
 secret_materialization:
   secrets:
@@ -68,7 +110,6 @@ secret_materialization:
       scope: preview
       lifecycle: random_once
       materializer: ci
-      persist_to: zane_env
       persisted_env_var: MEDUSA_VALKEY_PASSWORD
       generator:
         kind: random_base64url
@@ -107,7 +148,6 @@ secret_materialization:
       scope: preview
       lifecycle: random_once
       materializer: ci
-      persist_to: zane_env
       persisted_env_var: MEDUSA_MINIO_ACCESS_KEY
       generator:
         kind: random_alnum
@@ -122,7 +162,6 @@ secret_materialization:
       scope: preview
       lifecycle: random_once
       materializer: ci
-      persist_to: zane_env
       persisted_env_var: MEDUSA_MINIO_SECRET_KEY
       generator:
         kind: random_base64url
@@ -137,7 +176,6 @@ secret_materialization:
       scope: preview
       lifecycle: random_once
       materializer: ci
-      persist_to: zane_env
       persisted_env_var: MEDUSA_MEILISEARCH_MASTER_KEY
       generator:
         kind: random_base64url
@@ -149,15 +187,22 @@ secret_materialization:
 runtime_providers:
   providers:
     - provider_id: meili_api_credentials
-      status: active
-      materializer: zane_operator
       source_service_id: medusa-meilisearch
+      orchestration:
+        lanes:
+          preview:
+            enabled: true
+            reuse_persisted_outputs: true
+            reconcile_when_source_not_in_plan: false
+          main:
+            enabled: true
+            reuse_persisted_outputs: true
+            reconcile_when_source_not_in_plan: true
       readiness:
         kind: http_health
         path: /health
       outputs:
         - output_id: backend_key
-          output_kind: secret
           target_envs:
             - service_id: medusa-be
               env_var: MEILISEARCH_API_KEY
@@ -183,7 +228,6 @@ runtime_providers:
               - producers
 
         - output_id: frontend_key
-          output_kind: secret
           target_envs:
             - service_id: n1
               env_var: NEXT_PUBLIC_MEILISEARCH_API_KEY
@@ -199,13 +243,28 @@ runtime_providers:
               - producers
 
     - provider_id: medusa_publishable_key
-      status: reserved
-      materializer: zane_operator
       source_service_id: medusa-be
-      notes:
-        - Target contract intentionally inactive until medusa-be exposes a stable runtime provisioning API.
-        - Do not infer output shape or consumer mapping before the upstream contract exists.
-      outputs: []
+      orchestration:
+        lanes:
+          preview:
+            enabled: true
+            reuse_persisted_outputs: true
+            reconcile_when_source_not_in_plan: false
+          main:
+            enabled: true
+            reuse_persisted_outputs: true
+            reconcile_when_source_not_in_plan: true
+      readiness:
+        kind: http_health
+        path: /health
+      outputs:
+        - output_id: frontend_key
+          target_envs:
+            - service_id: n1
+              env_var: NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+          policy:
+            kind: medusa_publishable_key
+            title: Storefront Publishable Key
 
 preview_runtime_reconciliation:
   shared_env:

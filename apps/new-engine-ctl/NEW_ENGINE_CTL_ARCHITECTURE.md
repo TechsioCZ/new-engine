@@ -1,6 +1,6 @@
 # New Engine CTL Architecture
 
-Last updated: 2026-03-18
+Last updated: 2026-04-20
 Scope: repo-owned typed orchestration CLI for CI and local deploy-related flows.
 
 ## Authority
@@ -78,6 +78,10 @@ The CLI must consume:
 - `apps/new-engine-ctl/config/stack-manifest.yaml`
 - `apps/new-engine-ctl/config/stack-inputs.yaml`
 
+Config ownership is intentionally split:
+- `stack-manifest.yaml`: service graph/deploy topology and CI service mapping metadata
+- `stack-inputs.yaml`: runtime/env/provider materialization and lane runtime behavior
+
 The CLI must not re-encode deploy policy in code when that policy already belongs in shared config.
 
 Boundary state:
@@ -114,6 +118,10 @@ Phase intent:
 - `prepare` is for shared-resource prerequisites and input validation only.
 - preview `prepare` owns baseline-aware shared-resource ensure decisions. It must not rely only on the originally requested service set when a baseline replay will expand deploy scope to the full preview clone set.
 - runtime-provider execution belongs in deploy orchestration after the provider source service is deployed and healthy, except that consumer-only deploys may reuse already-persisted contract-owned provider outputs from healthy target deployments when the source service is not in the current plan.
+- deploy-to-verify/render runtime-provider handoff is generic:
+  - deploy emits `runtime_provider_outputs_json` and `runtime_provider_output_keys_csv`
+  - verify/render consume `--runtime-provider-outputs-json`
+  - generic deploy surfaces must not rely on provider-specific output field names
 - preview deploy owns preview commit metadata sequencing: write `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` before deploy stages start, set `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=false` while a baseline run is in progress, and advance `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` plus `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true` only as the final successful deploy-stage metadata update
 - preview deploy owns preview random-once secret materialization policy: first-creation runs materialize preview-owned random-once values onto the existing shared preview env keys and existing service env keys those services actually consume before staged deploy begins; later preview runs and baseline replays reuse those stored values rather than regenerating them
 - preview runtime reconciliation is data-driven from `apps/new-engine-ctl/config/stack-inputs.yaml`; `preview_runtime_reconciliation` is the single source of truth for preview shared-env and service-env rewrites, and `service_reconciliation` is the single source of truth for lane-specific service-spec normalization such as Git source cleanup, builder targets, healthchecks, and resource limits

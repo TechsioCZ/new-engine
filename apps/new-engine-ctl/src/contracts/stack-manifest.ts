@@ -8,12 +8,6 @@ export const localPhaseSchema = z.enum([
   "operator",
 ])
 
-const defaultConsumes = {
-  preview_db: false,
-  meili_frontend_key: false,
-  meili_backend_key: false,
-}
-
 const defaultCiConfig = {
   deployable: false,
   affected_path_globs: [],
@@ -21,14 +15,6 @@ const defaultCiConfig = {
     preview_db: false,
   },
 }
-
-const consumesSchema = z
-  .object({
-    preview_db: z.boolean().optional().default(false),
-    meili_frontend_key: z.boolean().optional().default(false),
-    meili_backend_key: z.boolean().optional().default(false),
-  })
-  .default(defaultConsumes)
 
 const prepareSchema = z
   .object({
@@ -42,7 +28,6 @@ const zaneServiceSchema = z.looseObject({
   deploy_lanes: z.array(laneSchema).default([]),
   deploy_stage: z.number().int().optional().default(100),
   downtime_risk: z.boolean().optional().default(false),
-  consumes: consumesSchema.optional().default(defaultConsumes),
   service_dependencies: z.array(z.string().min(1)).optional().default([]),
 })
 
@@ -97,11 +82,6 @@ export type DeployableService = {
   deployLanes: Lane[]
   deployStage: number
   downtimeRisk: boolean
-  consumes: {
-    preview_db: boolean
-    meili_frontend_key: boolean
-    meili_backend_key: boolean
-  }
   serviceDependencies: string[]
 }
 export type GlobalRuntimeRule = {
@@ -125,11 +105,6 @@ function toDeployableService(
     deployLanes: service.ci.zane.deploy_lanes,
     deployStage: service.ci.zane.deploy_stage,
     downtimeRisk: service.ci.zane.downtime_risk,
-    consumes: {
-      preview_db: service.ci.zane.consumes.preview_db,
-      meili_frontend_key: service.ci.zane.consumes.meili_frontend_key,
-      meili_backend_key: service.ci.zane.consumes.meili_backend_key,
-    },
     serviceDependencies: service.ci.zane.service_dependencies,
   }
 }

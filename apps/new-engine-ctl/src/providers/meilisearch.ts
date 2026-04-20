@@ -7,9 +7,8 @@ import {
   meiliVerifyResponseSchema,
 } from "../contracts/meilisearch-keys.js"
 import {
-  getRuntimeProviderOutputPolicy,
+  getRuntimeProviderMeiliKeyPolicy,
   getRuntimeProviderTargetEnvVar,
-  type RuntimeProviderPolicy,
   type StackInputs,
 } from "../contracts/stack-inputs.js"
 
@@ -30,8 +29,8 @@ type PolicyDefinition = {
 }
 
 type MeiliApiCredentialPolicies = {
-  backendPolicy: RuntimeProviderPolicy
-  frontendPolicy: RuntimeProviderPolicy
+  backendPolicy: PolicyDefinition
+  frontendPolicy: PolicyDefinition
   backendEnvVar: string
   frontendEnvVar: string
 }
@@ -59,12 +58,12 @@ function resolveMeiliApiCredentialPolicies(
   providerId: string
 ): MeiliApiCredentialPolicies {
   return {
-    backendPolicy: getRuntimeProviderOutputPolicy(
+    backendPolicy: getRuntimeProviderMeiliKeyPolicy(
       stackInputs,
       providerId,
       "backend_key"
     ),
-    frontendPolicy: getRuntimeProviderOutputPolicy(
+    frontendPolicy: getRuntimeProviderMeiliKeyPolicy(
       stackInputs,
       providerId,
       "frontend_key"

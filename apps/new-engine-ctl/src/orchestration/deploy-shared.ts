@@ -1,6 +1,7 @@
 import type { PlanResponse } from "../contracts/plan.js"
 import type { RenderEnvOverridesResponse } from "../contracts/render-env-overrides.js"
 import type { ResolveTargetsResponse } from "../contracts/resolve-targets.js"
+import type { RuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import type {
   DeploymentRef,
   PreviewRandomOnceSecretInput,
@@ -46,9 +47,7 @@ type WaitForDeploymentsInput = {
   previewDbUser: string
   previewDbPassword: string
   previewRandomOnceSecrets: PreviewRandomOnceSecretInput[]
-  meiliFrontendKey: string
-  meiliFrontendEnvVar: string
-  meiliBackendKey: string
+  runtimeProviderOutputs: RuntimeProviderOutputs
   deployments: DeploymentRef[]
   baseUrl: string
   apiToken: string
@@ -352,9 +351,7 @@ function verifyDeploymentsOnce(
     previewDbUser: input.previewDbUser,
     previewDbPassword: input.previewDbPassword,
     previewRandomOnceSecrets: input.previewRandomOnceSecrets,
-    meiliFrontendKey: input.meiliFrontendKey,
-    meiliFrontendEnvVar: input.meiliFrontendEnvVar,
-    meiliBackendKey: input.meiliBackendKey,
+    runtimeProviderOutputs: input.runtimeProviderOutputs,
     deployments: input.deployments,
     baseUrl: input.baseUrl,
     apiToken: input.apiToken,
@@ -515,7 +512,7 @@ export async function waitForDeployments(
     while (true) {
       if (interrupted) {
         input.onProgress?.(
-          `Interrupt received while waiting; cancelling currently waited triggered deployments.`
+          "Interrupt received while waiting; cancelling currently waited triggered deployments."
         )
         await cancelTriggeredDeployments(input)
         throw new Error("Deployment wait interrupted.")

@@ -19,9 +19,6 @@ export function createDeployMainCommand(): Command {
     .option("--api-token <token>")
     .option("--dry-run", "", false)
     .option("--approve-downtime-risk", "", false)
-    .option("--meili-wait-seconds <n>")
-    .option("--retry-count <n>")
-    .option("--retry-delay-seconds <n>")
     .option("--poll-interval-seconds <n>")
     .option("--wait-timeout-seconds <n>")
     .option(
@@ -48,20 +45,6 @@ export function createDeployMainCommand(): Command {
         meiliApiCredentialsProviderId:
           process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
           "meili_api_credentials",
-        meiliWaitSeconds:
-          typeof options.meiliWaitSeconds === "string" &&
-          options.meiliWaitSeconds.trim()
-            ? Number(options.meiliWaitSeconds)
-            : undefined,
-        retryCount:
-          typeof options.retryCount === "string" && options.retryCount.trim()
-            ? Number(options.retryCount)
-            : undefined,
-        retryDelaySeconds:
-          typeof options.retryDelaySeconds === "string" &&
-          options.retryDelaySeconds.trim()
-            ? Number(options.retryDelaySeconds)
-            : undefined,
         pollIntervalSeconds:
           typeof options.pollIntervalSeconds === "string" &&
           options.pollIntervalSeconds.trim()
@@ -79,8 +62,14 @@ export function createDeployMainCommand(): Command {
       const deploymentsJson = JSON.stringify({
         services: result.response.deployments,
       })
-      maskGitHubValue(result.meiliBackendKey)
-      maskGitHubValue(result.meiliFrontendKey)
+      const runtimeProviderOutputsJson = JSON.stringify(result.runtimeProviderOutputs)
+
+      for (const output of Object.values(result.runtimeProviderOutputs)) {
+        if (output.value) {
+          maskGitHubValue(output.value)
+        }
+      }
+      maskGitHubValue(runtimeProviderOutputsJson)
 
       await appendGitHubOutput("lane", "main")
       await appendGitHubOutput(
@@ -112,35 +101,13 @@ export function createDeployMainCommand(): Command {
         "skipped_services_csv",
         result.response.skipped_services_csv
       )
-      await appendGitHubOutput("meili_backend_key", result.meiliBackendKey)
-      await appendGitHubOutput("meili_frontend_key", result.meiliFrontendKey)
       await appendGitHubOutput(
-        "meili_frontend_env_var",
-        result.response.meili_frontend_env_var
+        "runtime_provider_output_keys_csv",
+        Object.keys(result.runtimeProviderOutputs).join(",")
       )
       await appendGitHubOutput(
-        "meili_backend_created",
-        String(result.response.meili_backend_created)
-      )
-      await appendGitHubOutput(
-        "meili_backend_updated",
-        String(result.response.meili_backend_updated)
-      )
-      await appendGitHubOutput(
-        "meili_frontend_created",
-        String(result.response.meili_frontend_created)
-      )
-      await appendGitHubOutput(
-        "meili_frontend_updated",
-        String(result.response.meili_frontend_updated)
-      )
-      await appendGitHubOutput(
-        "meili_keys_reconciled",
-        String(result.response.meili_keys_reconciled)
-      )
-      await appendGitHubOutput(
-        "meili_verified",
-        String(result.response.meili_verified)
+        "runtime_provider_outputs_json",
+        runtimeProviderOutputsJson
       )
       await appendGitHubOutput("deployments_json", deploymentsJson)
 

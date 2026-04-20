@@ -1,10 +1,10 @@
 import type { ProvisionMeiliKeysResponse } from "../contracts/provision-meili-keys.js"
 import type { ResolveTargetsResponse } from "../contracts/resolve-targets.js"
 import {
-  getRuntimeProviderOutputPolicy,
+  getRuntimeProviderMeiliKeyPolicy,
   getRuntimeProviderReadinessPath,
   getRuntimeProviderSourceServiceId,
-  getRuntimeProviderTargetEnvVar,
+  listRuntimeProviderOutputTargets,
   type StackInputs,
 } from "../contracts/stack-inputs.js"
 import type { StackManifest } from "../contracts/stack-manifest.js"
@@ -33,35 +33,6 @@ export function getMeiliApiCredentialsProviderSourceService(
   return {
     serviceId,
     serviceSlug: service.serviceSlug,
-  }
-}
-
-export function collectMeiliOutputNeeds(
-  services: Array<{
-    id: string
-    consumes: {
-      meili_backend_key: boolean
-      meili_frontend_key: boolean
-    }
-  }>
-): {
-  backendConsumerIds: string[]
-  frontendConsumerIds: string[]
-  needBackendKey: boolean
-  needFrontendKey: boolean
-} {
-  const backendConsumerIds = services
-    .filter((service) => service.consumes.meili_backend_key)
-    .map((service) => service.id)
-  const frontendConsumerIds = services
-    .filter((service) => service.consumes.meili_frontend_key)
-    .map((service) => service.id)
-
-  return {
-    backendConsumerIds,
-    frontendConsumerIds,
-    needBackendKey: backendConsumerIds.length > 0,
-    needFrontendKey: frontendConsumerIds.length > 0,
   }
 }
 
@@ -113,17 +84,15 @@ export function reusePersistedMeiliKeysFromTargets(input: {
   frontendKey: string
   frontendEnvVar: string
 } {
-  const backendEnvVar = getRuntimeProviderTargetEnvVar(
+  const backendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "backend_key",
-    "medusa-be"
+    "backend_key"
   )
-  const frontendEnvVar = getRuntimeProviderTargetEnvVar(
+  const frontendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "frontend_key",
-    "n1"
+    "frontend_key"
   )
 
   return {
@@ -141,6 +110,7 @@ export function reusePersistedMeiliKeysFromTargets(input: {
   }
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: provider output shaping is intentionally linear here
 export async function provisionMeiliKeys(input: {
   projectSlug: string
   environmentName: string
@@ -153,28 +123,26 @@ export async function provisionMeiliKeys(input: {
   needBackendKey: boolean
   needFrontendKey: boolean
 }): Promise<ProvisionMeiliKeysResponse> {
-  const backendEnvVar = getRuntimeProviderTargetEnvVar(
+  const backendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "backend_key",
-    "medusa-be"
+    "backend_key"
   )
-  const frontendEnvVar = getRuntimeProviderTargetEnvVar(
+  const frontendEnvVar = resolveOutputEnvVar(
     input.stackInputs,
     input.providerId,
-    "frontend_key",
-    "n1"
+    "frontend_key"
   )
   const readinessPath = getRuntimeProviderReadinessPath(
     input.stackInputs,
     input.providerId
   )
-  const backendPolicy = getRuntimeProviderOutputPolicy(
+  const backendPolicy = getRuntimeProviderMeiliKeyPolicy(
     input.stackInputs,
     input.providerId,
     "backend_key"
   )
-  const frontendPolicy = getRuntimeProviderOutputPolicy(
+  const frontendPolicy = getRuntimeProviderMeiliKeyPolicy(
     input.stackInputs,
     input.providerId,
     "frontend_key"
@@ -266,4 +234,23 @@ export async function provisionMeiliKeys(input: {
     frontend_created: frontendOutput?.created ?? false,
     frontend_updated: frontendOutput?.updated ?? false,
   }
+}
+
+function resolveOutputEnvVar(
+  stackInputs: StackInputs,
+  providerId: string,
+  outputId: string
+): string {
+  const target = listRuntimeProviderOutputTargets(
+    stackInputs,
+    providerId,
+    outputId
+  )[0]
+  if (!target?.env_var) {
+    throw new Error(
+      `Missing target env var for runtime provider ${providerId} output ${outputId}.`
+    )
+  }
+
+  return target.env_var
 }

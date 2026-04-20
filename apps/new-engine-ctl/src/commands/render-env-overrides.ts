@@ -1,4 +1,5 @@
 import { Command } from "commander"
+import { parseRuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import { renderEnvOverridesCommandInputSchema } from "../contracts/render-env-overrides.js"
 import { parsePreviewRandomOnceSecrets } from "../contracts/verify.js"
 import { appendGitHubOutput, maskGitHubValue } from "../github-actions.js"
@@ -30,9 +31,7 @@ export function createRenderEnvOverridesCommand(): Command {
     .option("--preview-db-user <user>", "", "")
     .option("--preview-db-password <password>", "", "")
     .option("--preview-random-once-secrets-json <json>", "", "")
-    .option("--meili-frontend-key <key>", "", "")
-    .option("--meili-frontend-env-var <env-var>", "", "")
-    .option("--meili-backend-key <key>", "", "")
+    .option("--runtime-provider-outputs-json <json>", "", "")
     .option("--output-json <path>")
     .option(
       "--stack-manifest-path <path>",
@@ -48,6 +47,9 @@ export function createRenderEnvOverridesCommand(): Command {
       const previewRandomOnceSecrets = parsePreviewRandomOnceSecrets(
         options.previewRandomOnceSecretsJson
       )
+      const runtimeProviderOutputs = parseRuntimeProviderOutputs(
+        options.runtimeProviderOutputsJson
+      )
       const input = renderEnvOverridesCommandInputSchema.parse({
         lane: options.lane,
         servicesCsv: options.servicesCsv,
@@ -55,17 +57,16 @@ export function createRenderEnvOverridesCommand(): Command {
         previewDbUser: options.previewDbUser,
         previewDbPassword: options.previewDbPassword,
         previewRandomOnceSecrets,
-        meiliFrontendKey: options.meiliFrontendKey,
-        meiliFrontendEnvVar: options.meiliFrontendEnvVar,
-        meiliBackendKey: options.meiliBackendKey,
+        runtimeProviderOutputs,
         outputJson: options.outputJson,
         stackManifestPath: options.stackManifestPath,
         stackInputsPath: options.stackInputsPath,
       })
 
       maskGitHubValue(input.previewDbPassword)
-      maskGitHubValue(input.meiliFrontendKey)
-      maskGitHubValue(input.meiliBackendKey)
+      for (const output of Object.values(input.runtimeProviderOutputs)) {
+        maskGitHubValue(output.value)
+      }
 
       const result = await executeRenderEnvOverrides(input)
       await appendGitHubOutput(

@@ -17,9 +17,6 @@ export const deployMainCommandInputSchema = z
       .string()
       .min(1)
       .default("meili_api_credentials"),
-    meiliWaitSeconds: z.number().int().positive().default(60),
-    retryCount: z.number().int().nonnegative().default(3),
-    retryDelaySeconds: z.number().int().nonnegative().default(2),
     pollIntervalSeconds: z.number().int().positive().default(10),
     waitTimeoutSeconds: z.number().int().positive().default(900),
   })
@@ -52,13 +49,6 @@ export const deployMainResponseSchema = z.object({
   env_override_service_ids_csv: z.string(),
   triggered_services_csv: z.string(),
   skipped_services_csv: z.string(),
-  meili_frontend_env_var: z.string(),
-  meili_backend_created: z.boolean(),
-  meili_backend_updated: z.boolean(),
-  meili_frontend_created: z.boolean(),
-  meili_frontend_updated: z.boolean(),
-  meili_keys_reconciled: z.boolean(),
-  meili_verified: z.boolean(),
   deployments: z.array(z.unknown()),
 })
 

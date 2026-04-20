@@ -121,15 +121,8 @@ jobs:
       env_override_service_ids_csv: ${{ steps.run_deploy.outputs.env_override_service_ids_csv }}
       triggered_services_csv: ${{ steps.run_deploy.outputs.triggered_services_csv }}
       skipped_services_csv: ${{ steps.run_deploy.outputs.skipped_services_csv }}
-      meili_backend_key: ${{ steps.run_deploy.outputs.meili_backend_key }}
-      meili_frontend_key: ${{ steps.run_deploy.outputs.meili_frontend_key }}
-      meili_frontend_env_var: ${{ steps.run_deploy.outputs.meili_frontend_env_var }}
-      meili_backend_created: ${{ steps.run_deploy.outputs.meili_backend_created }}
-      meili_backend_updated: ${{ steps.run_deploy.outputs.meili_backend_updated }}
-      meili_frontend_created: ${{ steps.run_deploy.outputs.meili_frontend_created }}
-      meili_frontend_updated: ${{ steps.run_deploy.outputs.meili_frontend_updated }}
-      meili_keys_reconciled: ${{ steps.run_deploy.outputs.meili_keys_reconciled }}
-      meili_verified: ${{ steps.run_deploy.outputs.meili_verified }}
+      runtime_provider_output_keys_csv: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv }}
+      runtime_provider_outputs_json: ${{ steps.run_deploy.outputs.runtime_provider_outputs_json }}
       deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
     steps:
       - uses: actions/checkout@v4
@@ -177,8 +170,7 @@ jobs:
             echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
             echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"
             echo "- Skipped services: ${{ steps.run_deploy.outputs.skipped_services_csv || 'n/a' }}"
-            echo "- Meili keys reconciled: ${{ steps.run_deploy.outputs.meili_keys_reconciled || 'false' }}"
-            echo "- Meili verified: ${{ steps.run_deploy.outputs.meili_verified || 'false' }}"
+            echo "- Runtime provider outputs: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify:
@@ -215,9 +207,7 @@ jobs:
           DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv }}
           TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv }}
           DEPLOYMENTS_JSON: ${{ needs.deploy.outputs.deployments_json }}
-          MEILI_BACKEND_KEY: ${{ needs.deploy.outputs.meili_backend_key }}
-          MEILI_FRONTEND_KEY: ${{ needs.deploy.outputs.meili_frontend_key }}
-          MEILI_FRONTEND_ENV_VAR: ${{ needs.deploy.outputs.meili_frontend_env_var }}
+          RUNTIME_PROVIDER_OUTPUTS_JSON: ${{ needs.deploy.outputs.runtime_provider_outputs_json }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
@@ -230,9 +220,7 @@ jobs:
             --deploy-services-csv "${DEPLOY_SERVICES_CSV:-}" \
             --triggered-services-csv "${TRIGGERED_SERVICES_CSV:-}" \
             --deployments-json-inline "${DEPLOYMENTS_JSON:-}" \
-            --meili-backend-key "${MEILI_BACKEND_KEY:-}" \
-            --meili-frontend-key "${MEILI_FRONTEND_KEY:-}" \
-            --meili-frontend-env-var "${MEILI_FRONTEND_ENV_VAR:-}"
+            --runtime-provider-outputs-json "${RUNTIME_PROVIDER_OUTPUTS_JSON:-{}}"
 
       - name: Summary
         if: always()

@@ -1,6 +1,11 @@
 import type { PlanResponse } from "../contracts/plan.js"
 import type { ResolveTargetsResponse } from "../contracts/resolve-targets.js"
-import type { StackInputs } from "../contracts/stack-inputs.js"
+import {
+  getRuntimeProviderLaneBehavior,
+  listRuntimeProviderOutputIds,
+  listRuntimeProviderOutputTargets,
+  type StackInputs,
+} from "../contracts/stack-inputs.js"
 import {
   getDeployableService,
   type Lane,
@@ -51,7 +56,6 @@ function buildPlanService(
     deploy_lanes: service.deployLanes,
     deploy_stage: service.deployStage,
     downtime_risk: service.downtimeRisk,
-    consumes: service.consumes,
     service_dependencies: service.serviceDependencies,
   }
 }
@@ -103,6 +107,32 @@ function isHealthyTarget(
   )
 }
 
+function planNeedsRuntimeProvider(input: {
+  lane: Lane
+  stackInputs: StackInputs
+  providerId: string
+  serviceIds: string[]
+}): boolean {
+  if (
+    !getRuntimeProviderLaneBehavior(
+      input.stackInputs,
+      input.providerId,
+      input.lane
+    ).enabled
+  ) {
+    return false
+  }
+
+  return listRuntimeProviderOutputIds(input.stackInputs, input.providerId).some(
+    (outputId) =>
+      listRuntimeProviderOutputTargets(
+        input.stackInputs,
+        input.providerId,
+        outputId
+      ).some((target) => input.serviceIds.includes(target.service_id))
+  )
+}
+
 export async function expandPlanForRuntimeProviderPrerequisites(input: {
   lane: Lane
   plan: PlanResponse
@@ -124,11 +154,6 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
     input.stackInputs,
     input.meiliApiCredentialsProviderId
   )
-  const needsMeiliApiCredentials = input.plan.deploy_services.some(
-    (service) =>
-      service.consumes.meili_backend_key ||
-      service.consumes.meili_frontend_key
-  )
 
   if (input.dryRun) {
     return {
@@ -141,6 +166,12 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
   const requestedServiceIds = input.plan.deploy_services.map(
     (service) => service.id
   )
+  const needsMeiliApiCredentials = planNeedsRuntimeProvider({
+    lane: input.lane,
+    stackInputs: input.stackInputs,
+    providerId: input.meiliApiCredentialsProviderId,
+    serviceIds: requestedServiceIds,
+  })
   const dependencyServiceIds = collectDependencyServiceIds(
     input.manifest,
     requestedServiceIds

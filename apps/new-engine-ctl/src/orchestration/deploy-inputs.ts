@@ -3,9 +3,13 @@ import { readFile } from "node:fs/promises"
 import { parse as parseYaml } from "yaml"
 
 import {
+  runtimeProviderOutputKey,
+  type RuntimeProviderOutputs,
+} from "../contracts/runtime-provider-outputs.js"
+import {
   getPreviewForbiddenServiceEnvDefinitions,
   getPreviewRandomOnceSecretDefinitions,
-  getRuntimeProviderTargetEnvVar,
+  listRuntimeProviderTargetsForServiceInLane,
   previewRandomOnceSecretPersistsToZaneEnv,
   type StackInputs,
   stackInputsSchema,
@@ -28,11 +32,6 @@ import {
   buildPreviewRequiredSharedEnvKeys,
 } from "./preview-runtime-reconciliation.js"
 
-export type MeiliApiCredentialEnvVars = {
-  backend: string
-  frontend: string
-}
-
 export type DeployContracts = {
   manifest: StackManifest
   stackInputs: StackInputs
@@ -44,10 +43,7 @@ export type DeployEnvContext = {
   previewDbUser: string
   previewDbPassword: string
   previewRandomOnceSecrets: PreviewRandomOnceSecretInput[]
-  meiliFrontendKey: string
-  meiliFrontendEnvVar: string
-  meiliBackendKey: string
-  meiliApiCredentialEnvVars: MeiliApiCredentialEnvVars
+  runtimeProviderOutputs: RuntimeProviderOutputs
 }
 
 export type RequiredSharedEnv = {
@@ -117,25 +113,6 @@ export async function loadDeployContracts(
   }
 }
 
-export function getMeiliApiCredentialEnvVars(
-  stackInputs: StackInputs
-): MeiliApiCredentialEnvVars {
-  return {
-    backend: getRuntimeProviderTargetEnvVar(
-      stackInputs,
-      "meili_api_credentials",
-      "backend_key",
-      "medusa-be"
-    ),
-    frontend: getRuntimeProviderTargetEnvVar(
-      stackInputs,
-      "meili_api_credentials",
-      "frontend_key",
-      "n1"
-    ),
-  }
-}
-
 function appendPreviewRandomOnceEnv(
   env: Record<string, string>,
   context: DeployEnvContext,
@@ -154,59 +131,51 @@ function appendPreviewRandomOnceEnv(
   }
 }
 
-function appendMeiliFrontendEnv(
-  env: Record<string, string>,
-  context: DeployEnvContext,
+function appendConfiguredRuntimeProviderEnv(input: {
+  env: Record<string, string>
+  context: DeployEnvContext
+  stackInputs: StackInputs
   serviceId: string
-): void {
-  if (context.lane === "main" && !context.meiliFrontendKey) {
-    throw new Error(`Frontend Meili key is required for service ${serviceId}.`)
-  }
+}): void {
+  for (const target of listRuntimeProviderTargetsForServiceInLane(
+    input.stackInputs,
+    input.context.lane,
+    input.serviceId
+  )) {
+    const outputValue =
+      input.context.runtimeProviderOutputs[
+        runtimeProviderOutputKey(target.provider_id, target.output_id)
+      ]?.value ?? ""
 
-  if (context.meiliFrontendKey) {
-    env[context.meiliFrontendEnvVar] = context.meiliFrontendKey
-  }
-}
+    if (input.context.lane === "main" && !outputValue) {
+      throw new Error(
+        `Runtime provider output ${target.provider_id}.${target.output_id} is required for service ${input.serviceId}.`
+      )
+    }
 
-function appendMeiliBackendEnv(
-  env: Record<string, string>,
-  context: DeployEnvContext,
-  serviceId: string
-): void {
-  if (context.lane === "main" && !context.meiliBackendKey) {
-    throw new Error(`Backend Meili key is required for service ${serviceId}.`)
-  }
-
-  if (context.meiliBackendKey) {
-    env[context.meiliApiCredentialEnvVars.backend] = context.meiliBackendKey
+    if (outputValue) {
+      input.env[target.env_var] = outputValue
+    }
   }
 }
 
 function buildServiceEnvOverride(
   service: DeployableService,
+  contracts: DeployContracts,
   context: DeployEnvContext
 ): EnvOverride | null {
   const env: Record<string, string> = {}
 
   if (context.lane === "preview") {
     appendPreviewRandomOnceEnv(env, context, service.id)
-
-    if (service.consumes.meili_frontend_key) {
-      appendMeiliFrontendEnv(env, context, service.id)
-    }
-
-    if (service.consumes.meili_backend_key) {
-      appendMeiliBackendEnv(env, context, service.id)
-    }
   }
 
-  if (context.lane !== "preview" && service.consumes.meili_frontend_key) {
-    appendMeiliFrontendEnv(env, context, service.id)
-  }
-
-  if (context.lane !== "preview" && service.consumes.meili_backend_key) {
-    appendMeiliBackendEnv(env, context, service.id)
-  }
+  appendConfiguredRuntimeProviderEnv({
+    env,
+    context,
+    stackInputs: contracts.stackInputs,
+    serviceId: service.id,
+  })
 
   if (Object.keys(env).length === 0) {
     return null
@@ -226,7 +195,7 @@ export function buildExpectedEnvOverrides(
 ): EnvOverride[] {
   return deployServiceIds.flatMap((serviceId) => {
     const service = getDeployableService(contracts.manifest, serviceId)
-    const override = buildServiceEnvOverride(service, context)
+    const override = buildServiceEnvOverride(service, contracts, context)
 
     return override ? [override] : []
   })
@@ -243,11 +212,11 @@ function addPersistedEnvKey(
   }
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: persisted env requirements combine provider and preview-secret contracts
 function buildPersistedEnvKeysForService(
   service: DeployableService,
   lane: Lane,
-  contracts: DeployContracts,
-  meiliApiCredentialEnvVars: MeiliApiCredentialEnvVars
+  contracts: DeployContracts
 ): string[] {
   const envKeys: string[] = []
   const seen = new Set<string>()
@@ -255,12 +224,12 @@ function buildPersistedEnvKeysForService(
     contracts.stackInputs
   )
 
-  if (service.consumes.meili_frontend_key) {
-    addPersistedEnvKey(envKeys, seen, meiliApiCredentialEnvVars.frontend)
-  }
-
-  if (service.consumes.meili_backend_key) {
-    addPersistedEnvKey(envKeys, seen, meiliApiCredentialEnvVars.backend)
+  for (const target of listRuntimeProviderTargetsForServiceInLane(
+    contracts.stackInputs,
+    lane,
+    service.id
+  )) {
+    addPersistedEnvKey(envKeys, seen, target.env_var)
   }
 
   if (lane === "preview") {
@@ -285,18 +254,9 @@ export function buildRequiredPersistedEnv(
   deployServiceIds: string[],
   contracts: DeployContracts
 ): RequiredPersistedEnv[] {
-  const meiliApiCredentialEnvVars = getMeiliApiCredentialEnvVars(
-    contracts.stackInputs
-  )
-
   const persisted = deployServiceIds.flatMap((serviceId) => {
     const service = getDeployableService(contracts.manifest, serviceId)
-    const envKeys = buildPersistedEnvKeysForService(
-      service,
-      lane,
-      contracts,
-      meiliApiCredentialEnvVars
-    )
+    const envKeys = buildPersistedEnvKeysForService(service, lane, contracts)
 
     if (envKeys.length === 0) {
       return []

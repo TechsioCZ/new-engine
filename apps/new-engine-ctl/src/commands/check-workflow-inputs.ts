@@ -70,8 +70,7 @@ function validateMode(mode: WorkflowInputMode): void {
       maskEnv("ZANE_PRODUCTION_ENVIRONMENT_NAME")
       maskEnv("PREVIEW_DB_PASSWORD")
       maskEnv("PREVIEW_RANDOM_ONCE_SECRETS_JSON")
-      maskEnv("MEILI_BACKEND_KEY")
-      maskEnv("MEILI_FRONTEND_KEY")
+      maskEnv("RUNTIME_PROVIDER_OUTPUTS_JSON")
       return
     case "main-deploy":
     case "main-verify":
@@ -91,8 +90,7 @@ function validateMode(mode: WorkflowInputMode): void {
       maskEnv("ZANE_OPERATOR_BASE_URL")
       maskEnv("ZANE_OPERATOR_API_TOKEN")
       maskEnv("ZANE_PRODUCTION_ENVIRONMENT_NAME")
-      maskEnv("MEILI_BACKEND_KEY")
-      maskEnv("MEILI_FRONTEND_KEY")
+      maskEnv("RUNTIME_PROVIDER_OUTPUTS_JSON")
       return
     case "preview-teardown":
       requireEnv({

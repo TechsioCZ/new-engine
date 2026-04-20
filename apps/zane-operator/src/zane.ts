@@ -4,6 +4,7 @@ import type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
   Lane,
+  ProvisionMedusaPublishableKeyInput,
   PreviewRuntimeValueSourceInput,
   ProvisionMeiliKeysInput,
   ReadPreviewCommitStateInput,
@@ -32,6 +33,7 @@ import { buildServicePublicUrls } from "./zane-effective-service-urls"
 import { ZaneEnvironmentManager } from "./zane-environments"
 import { UpstreamHttpError } from "./zane-errors"
 import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
+import { ZaneMedusaPublishableKeyProvisioner } from "./zane-medusa-publishable-key"
 import {
   type HttpMethod,
   type ZaneSession,
@@ -44,6 +46,7 @@ export type {
   ForbiddenEnvRequirement,
   Lane,
   PersistedEnvRequirement,
+  ProvisionMedusaPublishableKeyInput,
   ProvisionMeiliKeysInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
@@ -185,6 +188,33 @@ function toMeiliProvisionOutputInput(
       description: description.trim(),
       actions: assertStringArrayInput(output.policy.actions, `${label}.policy.actions`),
       indexes: assertStringArrayInput(output.policy.indexes, `${label}.policy.indexes`),
+    },
+  }
+}
+
+function toMedusaPublishableKeyProvisionOutputInput(
+  output: RuntimeProviderOutputInput,
+  label: string
+): ProvisionMedusaPublishableKeyInput["frontendOutput"] {
+  if (output.policy.kind !== "medusa_publishable_key") {
+    throw new BadRequestError(
+      `${label}.policy.kind must be medusa_publishable_key for medusa_publishable_key`
+    )
+  }
+
+  const title = output.policy.title
+  if (title != null && (typeof title !== "string" || !title.trim())) {
+    throw new BadRequestError(
+      `${label}.policy.title must be a non-empty string when provided`
+    )
+  }
+
+  return {
+    envVar: output.envVar,
+    policy: {
+      ...(typeof title === "string" && title.trim()
+        ? { title: title.trim() }
+        : {}),
     },
   }
 }
@@ -344,6 +374,26 @@ export class ZaneClient {
 
   private createMeiliApiCredentialsProvisioner(): ZaneMeiliApiCredentialsProvisioner {
     return new ZaneMeiliApiCredentialsProvisioner({
+      authenticate: async () => await this.authenticate(),
+      getEnvironment: async (session, projectSlug, environmentName) =>
+        await this.getEnvironment(session, projectSlug, environmentName),
+      getServiceDetails: async (
+        session,
+        projectSlug,
+        environmentName,
+        serviceSlug
+      ) =>
+        await this.getServiceDetails(
+          session,
+          projectSlug,
+          environmentName,
+          serviceSlug
+        ),
+    })
+  }
+
+  private createMedusaPublishableKeyProvisioner(): ZaneMedusaPublishableKeyProvisioner {
+    return new ZaneMedusaPublishableKeyProvisioner({
       authenticate: async () => await this.authenticate(),
       getEnvironment: async (session, projectSlug, environmentName) =>
         await this.getEnvironment(session, projectSlug, environmentName),
@@ -968,6 +1018,45 @@ export class ZaneClient {
                   },
                 ]
               : []),
+          ],
+        }
+      }
+      case "medusa_publishable_key": {
+        const provider = this.createMedusaPublishableKeyProvisioner()
+        const frontendOutput = input.outputs.find(
+          (candidate) => candidate.outputId === "frontend_key"
+        )
+        if (!frontendOutput) {
+          throw new BadRequestError(
+            "Runtime provider medusa_publishable_key requires frontend_key output."
+          )
+        }
+
+        const result = await provider.provisionPublishableKey({
+          projectSlug: input.projectSlug,
+          environmentName: input.environmentName,
+          serviceSlug: input.serviceSlug,
+          readinessPath: input.readinessPath,
+          frontendOutput: toMedusaPublishableKeyProvisionOutputInput(
+            frontendOutput,
+            "outputs[frontend_key]"
+          ),
+        })
+
+        return {
+          project_slug: result.project_slug,
+          environment_name: result.environment_name,
+          provider_id: input.providerId,
+          service_slug: result.service_slug,
+          source_url: result.medusa_url,
+          outputs: [
+            {
+              output_id: "frontend_key",
+              env_var: result.frontend_env_var,
+              value: result.frontend_key,
+              created: result.frontend_created,
+              updated: result.frontend_updated,
+            },
           ],
         }
       }

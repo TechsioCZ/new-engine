@@ -303,6 +303,10 @@ The supported setup is:
 * create one canonical Zane project with the service names from `apps/new-engine-ctl/config/stack-manifest.yaml`
 * configure the shared production-environment variables and per-service env blocks described in `apps/zane-operator/README.md`; the bootstrap helper derives that contract from `apps/new-engine-ctl/config/stack-manifest.yaml` and `apps/new-engine-ctl/config/stack-inputs.yaml`
 * let CI orchestrate preview/main deploys through `zane-operator`
+* config ownership is split intentionally:
+  * `stack-manifest.yaml` = service graph/deploy topology
+  * `stack-inputs.yaml` = runtime/env/provider materialization and lane runtime policy
+* deploy-to-verify runtime-provider handoff is generic via `runtime_provider_outputs_json` (plus `runtime_provider_output_keys_csv`), not Meili-only output fields
 
 For first-time local Zane setup, follow:
 

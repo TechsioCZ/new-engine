@@ -24,10 +24,6 @@ function buildDeployPreviewInput(options: Record<string, unknown>) {
     previewDbName: options.previewDbName,
     previewDbUser: options.previewDbUser,
     previewDbPassword: options.previewDbPassword,
-    meiliBackendKey:
-      options.meiliBackendKey ?? process.env.MEILI_BACKEND_KEY ?? "",
-    meiliFrontendKey: options.meiliFrontendKey ?? "",
-    meiliFrontendEnvVar: options.meiliFrontendEnvVar ?? "",
     outputJson: options.outputJson,
     baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
     apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
@@ -58,10 +54,15 @@ async function writeDeployPreviewOutputs(
   const deploymentsJson = JSON.stringify({
     services: result.response.deployments,
   })
+  const runtimeProviderOutputsJson = JSON.stringify(result.runtimeProviderOutputs)
 
   maskGitHubValue(result.previewRandomOnceSecretsJson)
-  maskGitHubValue(result.meiliBackendKey)
-  maskGitHubValue(result.meiliFrontendKey)
+  for (const output of Object.values(result.runtimeProviderOutputs)) {
+    if (output.value) {
+      maskGitHubValue(output.value)
+    }
+  }
+  maskGitHubValue(runtimeProviderOutputsJson)
 
   await appendGitHubOutput("lane", "preview")
   await appendGitHubOutput("environment_name", result.response.environment_name)
@@ -114,15 +115,13 @@ async function writeDeployPreviewOutputs(
     "preview_random_once_secrets_json",
     result.previewRandomOnceSecretsJson
   )
-  await appendGitHubOutput("meili_backend_key", result.meiliBackendKey)
-  await appendGitHubOutput("meili_frontend_key", result.meiliFrontendKey)
   await appendGitHubOutput(
-    "meili_frontend_env_var",
-    result.response.meili_frontend_env_var
+    "runtime_provider_output_keys_csv",
+    Object.keys(result.runtimeProviderOutputs).join(",")
   )
   await appendGitHubOutput(
-    "meili_keys_provisioned",
-    String(result.response.meili_keys_provisioned)
+    "runtime_provider_outputs_json",
+    runtimeProviderOutputsJson
   )
   await appendGitHubOutput("deployments_json", deploymentsJson)
 }
@@ -140,9 +139,6 @@ export function createDeployPreviewCommand(): Command {
     .option("--preview-db-name <name>", "", "")
     .option("--preview-db-user <user>", "", "")
     .option("--preview-db-password <password>", "", "")
-    .option("--meili-backend-key <key>", "", "")
-    .option("--meili-frontend-key <key>", "", "")
-    .option("--meili-frontend-env-var <env-var>", "", "")
     .option("--output-json <path>")
     .option("--base-url <url>")
     .option("--api-token <token>")

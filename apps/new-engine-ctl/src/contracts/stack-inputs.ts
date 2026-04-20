@@ -33,12 +33,20 @@ const providerOutputSchema = z.looseObject({
   target_envs: z.array(providerOutputTargetSchema).default([]),
   policy: z
     .looseObject({
-      uid: z.string().min(1),
-      description: z.string().min(1),
+      kind: z.string().min(1).optional(),
+      uid: z.string().min(1).optional(),
+      title: z.string().min(1).optional(),
+      description: z.string().min(1).optional(),
       actions: z.array(z.string().min(1)).default([]),
       indexes: z.array(z.string().min(1)).default([]),
     })
     .optional(),
+})
+
+const runtimeProviderLaneBehaviorSchema = z.looseObject({
+  enabled: z.boolean().optional().default(true),
+  reuse_persisted_outputs: z.boolean().optional().default(true),
+  reconcile_when_source_not_in_plan: z.boolean().optional().default(false),
 })
 
 const runtimeProviderSchema = z.looseObject({
@@ -50,8 +58,20 @@ const runtimeProviderSchema = z.looseObject({
     .looseObject({
       kind: z.string().min(1).optional(),
       path: z.string().min(1).optional(),
+      })
+      .optional(),
+  orchestration: z
+    .looseObject({
+      lanes: z
+        .looseObject({
+          preview: runtimeProviderLaneBehaviorSchema.optional(),
+          main: runtimeProviderLaneBehaviorSchema.optional(),
+        })
+        .optional()
+        .default({}),
     })
-    .optional(),
+    .optional()
+    .default({ lanes: {} }),
   outputs: z.array(providerOutputSchema).default([]),
 })
 
@@ -239,7 +259,31 @@ export type ServiceReconciliationDefinition = z.infer<
   typeof serviceReconciliationDefinitionSchema
 >
 export type RuntimeProviderOutput = z.infer<typeof providerOutputSchema>
+export type RuntimeProviderOutputTarget = z.infer<typeof providerOutputTargetSchema>
 export type RuntimeProviderPolicy = NonNullable<RuntimeProviderOutput["policy"]>
+export type RuntimeProviderLaneBehavior = z.infer<
+  typeof runtimeProviderLaneBehaviorSchema
+>
+export type RuntimeProviderMeiliKeyPolicy = {
+  uid: string
+  description: string
+  actions: string[]
+  indexes: string[]
+}
+
+function getRuntimeProvider(
+  inputs: StackInputs,
+  providerId: string
+): StackInputs["runtime_providers"]["providers"][number] {
+  const provider = inputs.runtime_providers.providers.find(
+    (candidate) => candidate.provider_id === providerId
+  )
+  if (!provider) {
+    throw new Error(`Missing runtime provider ${providerId}.`)
+  }
+
+  return provider
+}
 
 export function getPreviewRandomOnceSecretDefinitions(
   inputs: StackInputs
@@ -291,9 +335,7 @@ export function getRuntimeProviderTargetEnvVar(
   outputId: string,
   serviceId: string
 ): string {
-  const provider = inputs.runtime_providers.providers.find(
-    (candidate) => candidate.provider_id === providerId
-  )
+  const provider = getRuntimeProvider(inputs, providerId)
   const output = provider?.outputs.find(
     (candidate) => candidate.output_id === outputId
   )
@@ -313,9 +355,7 @@ export function getRuntimeProviderSourceServiceId(
   inputs: StackInputs,
   providerId: string
 ): string {
-  const provider = inputs.runtime_providers.providers.find(
-    (candidate) => candidate.provider_id === providerId
-  )
+  const provider = getRuntimeProvider(inputs, providerId)
   const sourceServiceId = provider?.source_service_id
   if (!sourceServiceId) {
     throw new Error(`Missing source_service_id for provider ${providerId}.`)
@@ -328,9 +368,7 @@ export function getRuntimeProviderReadinessPath(
   inputs: StackInputs,
   providerId: string
 ): string {
-  const provider = inputs.runtime_providers.providers.find(
-    (candidate) => candidate.provider_id === providerId
-  )
+  const provider = getRuntimeProvider(inputs, providerId)
   const readinessPath = provider?.readiness?.path
   if (!readinessPath) {
     throw new Error(`Missing readiness.path for provider ${providerId}.`)
@@ -339,14 +377,23 @@ export function getRuntimeProviderReadinessPath(
   return readinessPath
 }
 
+export function getRuntimeProviderLaneBehavior(
+  inputs: StackInputs,
+  providerId: string,
+  lane: "preview" | "main"
+): RuntimeProviderLaneBehavior {
+  const provider = getRuntimeProvider(inputs, providerId)
+  return runtimeProviderLaneBehaviorSchema.parse(
+    provider.orchestration?.lanes?.[lane] ?? {}
+  )
+}
+
 export function getRuntimeProviderOutputPolicy(
   inputs: StackInputs,
   providerId: string,
   outputId: string
 ): RuntimeProviderPolicy {
-  const provider = inputs.runtime_providers.providers.find(
-    (candidate) => candidate.provider_id === providerId
-  )
+  const provider = getRuntimeProvider(inputs, providerId)
   const output = provider?.outputs.find(
     (candidate) => candidate.output_id === outputId
   )
@@ -359,16 +406,31 @@ export function getRuntimeProviderOutputPolicy(
   return output.policy
 }
 
+export function getRuntimeProviderMeiliKeyPolicy(
+  inputs: StackInputs,
+  providerId: string,
+  outputId: string
+): RuntimeProviderMeiliKeyPolicy {
+  const policy = getRuntimeProviderOutputPolicy(inputs, providerId, outputId)
+  if (!(policy.uid && policy.description)) {
+    throw new Error(
+      `Missing meili policy uid/description for provider ${providerId} output ${outputId}.`
+    )
+  }
+
+  return {
+    uid: policy.uid,
+    description: policy.description,
+    actions: policy.actions,
+    indexes: policy.indexes,
+  }
+}
+
 export function listRuntimeProviderConsumerServiceIds(
   inputs: StackInputs,
   providerId: string
  ): string[] {
-  const provider = inputs.runtime_providers.providers.find(
-    (candidate) => candidate.provider_id === providerId
-  )
-  if (!provider) {
-    throw new Error(`Missing runtime provider ${providerId}.`)
-  }
+  const provider = getRuntimeProvider(inputs, providerId)
 
   return [...new Set(
     provider.outputs.flatMap((output) =>
@@ -377,10 +439,91 @@ export function listRuntimeProviderConsumerServiceIds(
   )]
 }
 
+export function listRuntimeProviderOutputTargets(
+  inputs: StackInputs,
+  providerId: string,
+  outputId: string
+): RuntimeProviderOutputTarget[] {
+  const provider = getRuntimeProvider(inputs, providerId)
+  const output = provider.outputs.find(
+    (candidate) => candidate.output_id === outputId
+  )
+  if (!output) {
+    throw new Error(
+      `Missing output ${outputId} for runtime provider ${providerId}.`
+    )
+  }
+
+  return output.target_envs
+}
+
+export function listRuntimeProviderOutputIds(
+  inputs: StackInputs,
+  providerId: string
+): string[] {
+  return getRuntimeProvider(inputs, providerId).outputs.map(
+    (output) => output.output_id
+  )
+}
+
+export function listRuntimeProviderTargetsForService(
+  inputs: StackInputs,
+  serviceId: string
+): Array<{
+  provider_id: string
+  output_id: string
+  env_var: string
+}> {
+  return inputs.runtime_providers.providers.flatMap((provider) =>
+    provider.outputs.flatMap((output) =>
+      output.target_envs.flatMap((target) =>
+        target.service_id === serviceId
+          ? [
+              {
+                provider_id: provider.provider_id,
+                output_id: output.output_id,
+                env_var: target.env_var,
+              },
+            ]
+          : []
+      )
+    )
+  )
+}
+
+export function listRuntimeProviderTargetsForServiceInLane(
+  inputs: StackInputs,
+  lane: "preview" | "main",
+  serviceId: string
+): Array<{
+  provider_id: string
+  output_id: string
+  env_var: string
+}> {
+  return listRuntimeProviderTargetsForService(inputs, serviceId).filter((target) =>
+    getRuntimeProviderLaneBehavior(inputs, target.provider_id, lane).enabled
+  )
+}
+
 export function listRuntimeProviderServiceIds(
   inputs: StackInputs,
   providerId: string
  ): string[] {
   const sourceServiceId = getRuntimeProviderSourceServiceId(inputs, providerId)
   return [...new Set([sourceServiceId, ...listRuntimeProviderConsumerServiceIds(inputs, providerId)])]
+}
+
+export function listActiveRuntimeProviderIds(inputs: StackInputs): string[] {
+  return inputs.runtime_providers.providers
+    .filter((provider) => (provider.status ?? "active") === "active")
+    .map((provider) => provider.provider_id)
+}
+
+export function listActiveRuntimeProviderIdsForLane(
+  inputs: StackInputs,
+  lane: "preview" | "main"
+): string[] {
+  return listActiveRuntimeProviderIds(inputs).filter(
+    (providerId) => getRuntimeProviderLaneBehavior(inputs, providerId, lane).enabled
+  )
 }

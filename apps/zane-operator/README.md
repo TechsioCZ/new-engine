@@ -87,6 +87,7 @@ Teardown response includes role cleanup result:
 - Preview environment resolution clones from the protected `production` environment only when the requested preview environment does not already exist.
 - Env override application performs client-side upsert logic against ZaneOps itemized env-variable changes: unchanged keys are skipped, existing keys use `UPDATE`, and missing keys use `ADD`.
 - Deploy trigger uses per-service deploy webhook tokens resolved through authenticated ZaneOps control-plane APIs.
+- Runtime provider execution now supports both Meili API credential provisioning and Medusa publishable-key provisioning against live target services.
 
 ## Onboarding
 
@@ -375,7 +376,7 @@ Public route follow-up remains manual on purpose:
 Notes:
 - `MINIO_FILE_URL` should eventually be a public URL when browsers need direct asset access
 - `NEXT_PUBLIC_MEILISEARCH_URL` should eventually be a public URL if the storefront searches directly from the browser
-- `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` is usually not known on day one; set it after the first Medusa bootstrap, then redeploy `n1`
+- `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` is now provisioned through the active runtime-provider contract during deploy orchestration; keep the provider target in `stack-inputs.yaml` aligned with the frontend env contract
 
 #### 6.3 First deploy notes
 
@@ -401,6 +402,10 @@ Active GitHub Actions contract:
   - `.github/workflows/zaneops-preview-after-ci.yml`
   - `.github/workflows/zaneops-main-after-ci.yml`
   - `.github/workflows/zaneops-preview-teardown.yml`
+- deploy/verify runtime-provider handoff is generic:
+  - deploy emits `runtime_provider_outputs_json` and `runtime_provider_output_keys_csv`
+  - verify consumes `--runtime-provider-outputs-json`
+  - workflow/orchestration logic must not assume Meili-only deploy output fields
 - required repository secrets:
   - `ZANEOPS_ZANE_OPERATOR_BASE_URL`
   - `ZANEOPS_ZANE_OPERATOR_API_TOKEN`

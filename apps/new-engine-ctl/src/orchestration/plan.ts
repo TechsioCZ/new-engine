@@ -73,7 +73,6 @@ function buildPlanService(
     deploy_lanes: service.deployLanes,
     deploy_stage: service.deployStage,
     downtime_risk: service.downtimeRisk,
-    consumes: service.consumes,
     service_dependencies: service.serviceDependencies,
   }
 }

@@ -1,5 +1,6 @@
 import { z } from "zod"
 
+import { runtimeProviderOutputsSchema } from "./runtime-provider-outputs.js"
 import { laneSchema } from "./stack-manifest.js"
 import {
   envOverrideSchema,
@@ -15,9 +16,7 @@ export const renderEnvOverridesCommandInputSchema = z.object({
   previewRandomOnceSecrets: z
     .array(previewRandomOnceSecretInputSchema)
     .default([]),
-  meiliFrontendKey: z.string().default(""),
-  meiliFrontendEnvVar: z.string().default(""),
-  meiliBackendKey: z.string().default(""),
+  runtimeProviderOutputs: runtimeProviderOutputsSchema.default({}),
   outputJson: z.string().min(1).optional(),
   stackManifestPath: z.string().min(1),
   stackInputsPath: z.string().min(1),

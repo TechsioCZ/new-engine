@@ -330,15 +330,13 @@ run_deploy_stage() {
 
   jq -cn \
     --argjson response "$deploy_json" \
-    --arg meili_backend_key "$(read_output_value meili_backend_key "$output_file")" \
-    --arg meili_frontend_key "$(read_output_value meili_frontend_key "$output_file")" \
-    --arg meili_frontend_env_var "$(read_output_value meili_frontend_env_var "$output_file")" \
+    --arg runtime_provider_output_keys_csv "$(read_output_value runtime_provider_output_keys_csv "$output_file")" \
+    --arg runtime_provider_outputs_json "$(read_output_value runtime_provider_outputs_json "$output_file")" \
     --arg preview_random_once_secrets_json "$(read_output_value preview_random_once_secrets_json "$output_file")" \
     --arg deployments_json "$(read_output_value deployments_json "$output_file")" \
     '($response + {
-      meili_backend_key: $meili_backend_key,
-      meili_frontend_key: $meili_frontend_key,
-      meili_frontend_env_var: $meili_frontend_env_var,
+      runtime_provider_output_keys_csv: $runtime_provider_output_keys_csv,
+      runtime_provider_outputs_json: $runtime_provider_outputs_json,
       preview_random_once_secrets_json: $preview_random_once_secrets_json,
       deployments_json: $deployments_json
     })'
@@ -359,8 +357,7 @@ run_verify_stage() {
     export ZANE_PROJECT_SLUG="$PROJECT_SLUG"
     export PREVIEW_DB_PASSWORD="$(jq -r '.preview_db_password // ""' <<<"$prepare_json")"
     export PREVIEW_RANDOM_ONCE_SECRETS_JSON="$(jq -r '.preview_random_once_secrets_json // ""' <<<"$deploy_json")"
-    export MEILI_BACKEND_KEY="$(jq -r '.meili_backend_key // ""' <<<"$deploy_json")"
-    export MEILI_FRONTEND_KEY="$(jq -r '.meili_frontend_key // ""' <<<"$deploy_json")"
+    export RUNTIME_PROVIDER_OUTPUTS_JSON="$(jq -r '.runtime_provider_outputs_json // "{}"' <<<"$deploy_json")"
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode preview-verify
   ) >/dev/null
 
@@ -380,9 +377,7 @@ run_verify_stage() {
       --preview-db-user "$(jq -r '.preview_db_user // ""' <<<"$prepare_json")" \
       --preview-db-password "$(jq -r '.preview_db_password // ""' <<<"$prepare_json")" \
       --preview-random-once-secrets-json "$(jq -r '.preview_random_once_secrets_json // ""' <<<"$deploy_json")" \
-      --meili-backend-key "$(jq -r '.meili_backend_key // ""' <<<"$deploy_json")" \
-      --meili-frontend-key "$(jq -r '.meili_frontend_key // ""' <<<"$deploy_json")" \
-      --meili-frontend-env-var "$(jq -r '.meili_frontend_env_var // ""' <<<"$deploy_json")" \
+      --runtime-provider-outputs-json "$(jq -r '.runtime_provider_outputs_json // "{}"' <<<"$deploy_json")" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
       --api-token "$ZANE_OPERATOR_API_TOKEN"
   )"
@@ -463,7 +458,7 @@ main() {
     --argjson scope "$scope_json" \
     --argjson preview_commit_state "$preview_commit_state_json" \
     --argjson prepare "$(jq 'del(.preview_db_password)' <<<"$prepare_json")" \
-    --argjson deploy "$(jq 'del(.meili_backend_key, .meili_frontend_key, .preview_random_once_secrets_json)' <<<"$deploy_json")" \
+    --argjson deploy "$(jq 'del(.runtime_provider_outputs_json, .preview_random_once_secrets_json)' <<<"$deploy_json")" \
     --argjson verify "$verify_json" \
     --argjson skipped_verify "$(jq -n --arg value "$SKIP_VERIFY" '$value == "true"')" \
     '{

@@ -123,6 +123,21 @@ export interface ProvisionMeiliKeysInput {
   frontendOutput?: ProvisionMeiliKeysOutputInput
 }
 
+export interface ProvisionMedusaPublishableKeyOutputInput {
+  envVar: string
+  policy: {
+    title?: string
+  }
+}
+
+export interface ProvisionMedusaPublishableKeyInput {
+  projectSlug: string
+  environmentName: string
+  serviceSlug: string
+  readinessPath: string
+  frontendOutput: ProvisionMedusaPublishableKeyOutputInput
+}
+
 export type RuntimeProviderOutputPolicyInput = Record<string, unknown> & {
   kind: string
 }

@@ -19,8 +19,6 @@ const DEFAULT_PREVIEW_DB_APP_USER_PREFIX = "medusa_pr_app_"
 export type PrepareExecutionResult = {
   response: PrepareResponse
   previewDbPassword: string
-  meiliBackendKey: string
-  meiliFrontendKey: string
 }
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
@@ -101,8 +99,6 @@ async function executePreviewPrepare(
     return {
       response,
       previewDbPassword: "",
-      meiliBackendKey: "",
-      meiliFrontendKey: "",
     }
   }
 
@@ -137,8 +133,6 @@ async function executePreviewPrepare(
   return {
     response,
     previewDbPassword: previewDb.app_password,
-    meiliBackendKey: "",
-    meiliFrontendKey: "",
   }
 }
 
@@ -158,8 +152,6 @@ async function executeMainPrepare(
   return {
     response,
     previewDbPassword: "",
-    meiliBackendKey: "",
-    meiliFrontendKey: "",
   }
 }
 

@@ -183,10 +183,8 @@ jobs:
       environment_warning_count: ${{ steps.run_deploy.outputs.environment_warning_count }}
       target_commit_sha: ${{ steps.run_deploy.outputs.target_commit_sha }}
       last_deployed_commit_sha: ${{ steps.run_deploy.outputs.last_deployed_commit_sha }}
-      meili_backend_key: ${{ steps.run_deploy.outputs.meili_backend_key }}
-      meili_frontend_key: ${{ steps.run_deploy.outputs.meili_frontend_key }}
-      meili_frontend_env_var: ${{ steps.run_deploy.outputs.meili_frontend_env_var }}
-      meili_keys_provisioned: ${{ steps.run_deploy.outputs.meili_keys_provisioned }}
+      runtime_provider_output_keys_csv: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv }}
+      runtime_provider_outputs_json: ${{ steps.run_deploy.outputs.runtime_provider_outputs_json }}
       requested_services_csv: ${{ steps.run_deploy.outputs.requested_services_csv }}
       deploy_services_csv: ${{ steps.run_deploy.outputs.deploy_services_csv }}
       preview_cloned_service_ids_csv: ${{ steps.run_deploy.outputs.preview_cloned_service_ids_csv }}
@@ -253,7 +251,7 @@ jobs:
             echo "- Environment warnings: ${{ steps.run_deploy.outputs.environment_warning_count || '0' }}"
             echo "- Target SHA: ${{ steps.run_deploy.outputs.target_commit_sha || 'n/a' }}"
             echo "- Last deployed SHA: ${{ steps.run_deploy.outputs.last_deployed_commit_sha || 'n/a' }}"
-            echo "- Meili keys provisioned: ${{ steps.run_deploy.outputs.meili_keys_provisioned || 'false' }}"
+            echo "- Runtime provider outputs: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv || 'n/a' }}"
             echo "- Requested services: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}"
             echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
             echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"
@@ -284,8 +282,6 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
-          MEILI_BACKEND_KEY: ${{ needs.deploy.outputs.meili_backend_key }}
-          MEILI_FRONTEND_KEY: ${{ needs.deploy.outputs.meili_frontend_key }}
           PREVIEW_RANDOM_ONCE_SECRETS_JSON: ${{ needs.deploy.outputs.preview_random_once_secrets_json }}
         run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode preview-verify
 
@@ -302,9 +298,7 @@ jobs:
           PREVIEW_DB_USER: ${{ needs.prepare.outputs.preview_db_user }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
           PREVIEW_RANDOM_ONCE_SECRETS_JSON: ${{ needs.deploy.outputs.preview_random_once_secrets_json }}
-          MEILI_BACKEND_KEY: ${{ needs.deploy.outputs.meili_backend_key }}
-          MEILI_FRONTEND_KEY: ${{ needs.deploy.outputs.meili_frontend_key }}
-          MEILI_FRONTEND_ENV_VAR: ${{ needs.deploy.outputs.meili_frontend_env_var }}
+          RUNTIME_PROVIDER_OUTPUTS_JSON: ${{ needs.deploy.outputs.runtime_provider_outputs_json }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
@@ -322,9 +316,7 @@ jobs:
             --preview-db-user "${PREVIEW_DB_USER:-}" \
             --preview-db-password "${PREVIEW_DB_PASSWORD:-}" \
             --preview-random-once-secrets-json "${PREVIEW_RANDOM_ONCE_SECRETS_JSON:-}" \
-            --meili-backend-key "${MEILI_BACKEND_KEY:-}" \
-            --meili-frontend-key "${MEILI_FRONTEND_KEY:-}" \
-            --meili-frontend-env-var "${MEILI_FRONTEND_ENV_VAR:-}"
+            --runtime-provider-outputs-json "${RUNTIME_PROVIDER_OUTPUTS_JSON:-{}}"
 
       - name: Summary
         if: always()

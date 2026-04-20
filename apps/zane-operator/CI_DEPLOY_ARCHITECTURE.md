@@ -132,8 +132,8 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
   - optional `clone_to_preview` marker; omitted means cloned into preview by default
   - deploy lane eligibility (`preview`, `main`, or both)
   - whether main-lane deploy of the service carries downtime risk and therefore requires manual approval
-  - which prepared or runtime-provisioned outputs the service consumes
   - optional coupled dependents that should deploy together
+- Runtime-provider consumer mapping is not part of `stack-manifest.yaml`; it is owned by `apps/new-engine-ctl/config/stack-inputs.yaml` under `runtime_providers[*].outputs[*].target_envs`.
 - Active manifest/script/operator payloads use exactly two service identity fields:
   - `service_id`: stable repo/manifest identity
   - `service_slug`: stable upstream Zane identity
@@ -169,6 +169,10 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 ## Secret And Output Contract
 
 - Cross-job propagation is allowed when operationally required for deploy.
+- Runtime-provider output propagation between deploy and verify/render uses the generic output bag:
+  - `runtime_provider_outputs_json`
+  - `runtime_provider_output_keys_csv`
+- Generic deploy/verify/render workflow wiring must not depend on Meili-only output field names.
 - Every sensitive value written to `GITHUB_OUTPUT` must be masked first.
 - Sensitive values must never be echoed in transformed or summarized form.
 - The deploy stage may read sensitive cross-job outputs, but it must not republish them.
@@ -193,10 +197,8 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 - `zane-operator` is responsible only for provisioners that require authenticated Zane inspection or access to a running service.
 - `prepare` is not a runtime-provider phase. Runtime providers must run only when their source service is already deployed and healthy in the current target environment.
 - The contract must remain provider-oriented rather than product-name-oriented.
-  - Current example: a Meili API credentials provider for browser/backend consumers.
-  - Reserved future example: an application publishable-key provider once its upstream service contract is stable.
+  - Current examples: a Meili API credentials provider for browser/backend consumers and a Medusa publishable-key provider for frontend consumers.
 - Provider definitions may be prepared ahead of implementation, but inactive providers must stay explicitly non-runnable until their upstream service contract exists.
-  - Current reserved inactive provider: Medusa publishable-key provisioning for frontend consumers.
 
 ## Required Active Surface
 
@@ -233,7 +235,7 @@ Main verification must prove:
 ## Do Not Assume
 
 - Preview deploy and verify are active workflow paths; validate the active orchestration surface and `zane-operator` behavior before changing the contract.
-- `zane-operator` actively owns authenticated Zane gateway behavior implemented in active code, including preview DB lifecycle, environment resolution/archive, target resolution, env mutation, deploy trigger, deploy verify, and preview Meili provisioning.
+- `zane-operator` actively owns authenticated Zane gateway behavior implemented in active code, including preview DB lifecycle, environment resolution/archive, target resolution, env mutation, deploy trigger, deploy verify, and runtime-provider execution requested by CTL.
 - Local `mise` orchestration is not the CI decision engine.
 - `nx affected` is CI-only and must not drive local runtime behavior.
 

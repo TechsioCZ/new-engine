@@ -235,15 +235,8 @@ run_deploy_stage() {
   local git_commit_sha
   local output_file
   local status=0
-  local backend_key=""
-  local frontend_key=""
-  local frontend_env_var=""
-  local backend_created="false"
-  local backend_updated="false"
-  local frontend_created="false"
-  local frontend_updated="false"
-  local keys_reconciled="false"
-  local meili_verified="false"
+  local runtime_provider_output_keys_csv=""
+  local runtime_provider_outputs_json=""
 
   common::stage "Deploy"
   common::step "Running main deploy stage..."
@@ -263,7 +256,7 @@ run_deploy_stage() {
     node "${ROOT_DIR}/apps/new-engine-ctl/dist/cli.js" check-workflow-inputs --mode main-deploy
   ) >/dev/null
 
-  common::step "Main deploy may reconcile provider-managed Meili env outputs when required; setup-zane-project.sh remains the owner of steady-state shared/service wiring."
+  common::step "Main deploy may reconcile provider-managed runtime outputs when required; setup-zane-project.sh remains the owner of steady-state shared/service wiring."
 
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' RETURN
@@ -292,37 +285,16 @@ run_deploy_stage() {
     return "$status"
   fi
 
-  backend_key="$(sed -n 's/^meili_backend_key=//p' "$output_file" | tail -n1)"
-  frontend_key="$(sed -n 's/^meili_frontend_key=//p' "$output_file" | tail -n1)"
-  frontend_env_var="$(sed -n 's/^meili_frontend_env_var=//p' "$output_file" | tail -n1)"
-  backend_created="$(sed -n 's/^meili_backend_created=//p' "$output_file" | tail -n1)"
-  backend_updated="$(sed -n 's/^meili_backend_updated=//p' "$output_file" | tail -n1)"
-  frontend_created="$(sed -n 's/^meili_frontend_created=//p' "$output_file" | tail -n1)"
-  frontend_updated="$(sed -n 's/^meili_frontend_updated=//p' "$output_file" | tail -n1)"
-  keys_reconciled="$(sed -n 's/^meili_keys_reconciled=//p' "$output_file" | tail -n1)"
-  meili_verified="$(sed -n 's/^meili_verified=//p' "$output_file" | tail -n1)"
+  runtime_provider_output_keys_csv="$(sed -n 's/^runtime_provider_output_keys_csv=//p' "$output_file" | tail -n1)"
+  runtime_provider_outputs_json="$(sed -n 's/^runtime_provider_outputs_json=//p' "$output_file" | tail -n1)"
 
   jq -cn \
     --argjson response "$deploy_json" \
-    --arg meili_backend_key "$backend_key" \
-    --arg meili_frontend_key "$frontend_key" \
-    --arg meili_frontend_env_var "$frontend_env_var" \
-    --argjson meili_backend_created "$(jq -n --arg value "${backend_created:-false}" '$value == "true"')" \
-    --argjson meili_backend_updated "$(jq -n --arg value "${backend_updated:-false}" '$value == "true"')" \
-    --argjson meili_frontend_created "$(jq -n --arg value "${frontend_created:-false}" '$value == "true"')" \
-    --argjson meili_frontend_updated "$(jq -n --arg value "${frontend_updated:-false}" '$value == "true"')" \
-    --argjson meili_keys_reconciled "$(jq -n --arg value "${keys_reconciled:-false}" '$value == "true"')" \
-    --argjson meili_verified "$(jq -n --arg value "${meili_verified:-false}" '$value == "true"')" \
+    --arg runtime_provider_output_keys_csv "$runtime_provider_output_keys_csv" \
+    --arg runtime_provider_outputs_json "$runtime_provider_outputs_json" \
     '($response + {
-      meili_backend_key: $meili_backend_key,
-      meili_frontend_key: $meili_frontend_key,
-      meili_frontend_env_var: $meili_frontend_env_var,
-      meili_backend_created: $meili_backend_created,
-      meili_backend_updated: $meili_backend_updated,
-      meili_frontend_created: $meili_frontend_created,
-      meili_frontend_updated: $meili_frontend_updated,
-      meili_keys_reconciled: $meili_keys_reconciled,
-      meili_verified: $meili_verified
+      runtime_provider_output_keys_csv: $runtime_provider_output_keys_csv,
+      runtime_provider_outputs_json: $runtime_provider_outputs_json
     })'
 }
 
@@ -355,9 +327,7 @@ run_verify_stage() {
       --deploy-services-csv "$(jq -r '.deploy_services_csv' <<<"$deploy_json")" \
       --triggered-services-csv "$(jq -r '.triggered_services_csv' <<<"$deploy_json")" \
       --deployments-json-inline "$deployments_json_inline" \
-      --meili-backend-key "$(jq -r '.meili_backend_key // ""' <<<"$deploy_json")" \
-      --meili-frontend-key "$(jq -r '.meili_frontend_key // ""' <<<"$deploy_json")" \
-      --meili-frontend-env-var "$(jq -r '.meili_frontend_env_var // ""' <<<"$deploy_json")" \
+      --runtime-provider-outputs-json "$(jq -r '.runtime_provider_outputs_json // "{}"' <<<"$deploy_json")" \
       --base-url "$ZANE_OPERATOR_BASE_URL" \
       --api-token "$ZANE_OPERATOR_API_TOKEN"
   )"
@@ -451,7 +421,7 @@ main() {
     --argjson prepare_needs "$prepare_needs_json" \
     --argjson downtime_risk "$downtime_json" \
     --argjson prepare "$prepare_json" \
-    --argjson deploy "$(jq 'del(.meili_backend_key, .meili_frontend_key)' <<<"$deploy_json")" \
+    --argjson deploy "$(jq 'del(.runtime_provider_outputs_json)' <<<"$deploy_json")" \
     --argjson verify "$verify_json" \
     --argjson skipped_verify "$(jq -n --arg value "$SKIP_VERIFY" '$value == "true"')" \
     '{

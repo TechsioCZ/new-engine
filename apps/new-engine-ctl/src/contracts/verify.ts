@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises"
 
 import { z } from "zod"
 
+import { runtimeProviderOutputsSchema } from "./runtime-provider-outputs.js"
 import { laneSchema } from "./stack-manifest.js"
 
 export const envOverrideSchema = z.object({
@@ -67,9 +68,7 @@ export const verifyCommandInputSchema = z
     previewRandomOnceSecrets: z
       .array(previewRandomOnceSecretInputSchema)
       .default([]),
-    meiliFrontendKey: z.string().default(""),
-    meiliFrontendEnvVar: z.string().default(""),
-    meiliBackendKey: z.string().default(""),
+    runtimeProviderOutputs: runtimeProviderOutputsSchema.default({}),
     deployments: z.array(deploymentRefSchema).default([]),
     outputJson: z.string().min(1).optional(),
     baseUrl: z.string().default(""),
