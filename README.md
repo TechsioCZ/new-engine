@@ -5,40 +5,45 @@
 * Docker compose + Docker
   * For Mac, <a href="https://orbstack.dev/">OrbStack</a> is recommended instead of Docker Desktop
 * mise
-  * install repo-managed tools with `mise install`
+  * add trust to the project folder with `mise trust`
   * activate mise in your shell (for example `eval "$(mise activate bash)"` or your shell equivalent) so repo-managed tools win on `PATH`
 
 ### Steps
 
-1. <b>Create .env file</b>
-    * copy .env.docker => .env
-    * optionally update config as needed
-    * if you also use the Zane-targeted helper scripts, copy .env => .env.zane once and keep Zane-specific values there
-
-2. <b>Install repo tooling and workspace dependencies</b>
+1. <b>Initialize the local stack</b> (first run, or whenever you want to rebuild local bootstrap state)
 
     ```shell
-    mise install
-    mise run dev:install
+    mise run dev:init
     ```
 
-* alternatively force dependency lock fix:
-  ```shell
-  mise run dev:install:fix-lock
-  ```
+    `dev:init` is the first half of the local startup flow. It:
+    * creates `.env` from `.env.docker` when `.env` is missing
+    * stops immediately until `.env` contains non-empty `DC_SUPERADMIN_EMAIL` and `DC_SUPERADMIN_PASSWORD` values
+    * prepares the local Postgres bind-mount folders so `medusa-db` can bootstrap while the database process still runs as the `postgres` user
+    * runs `mise run dev:install`
+    * starts shared resources
+    * provisions local Meilisearch keys into `.env`
+    * runs Medusa DB migrations before starting `medusa-be`
+    * creates the Medusa admin user from `DC_SUPERADMIN_EMAIL` / `DC_SUPERADMIN_PASSWORD`
+    * runs `mise run dev:medusa:seed`
 
-3. <b>Run docker compose</b>
+    If you also use the Zane-targeted helper scripts, copy `.env` to `.env.zane` once and keep Zane-specific values there.
 
-    Preferred local startup path (stepped `mise` orchestration):
+2. <b>Bring the full local stack to steady state</b>
+
     ```shell
     mise run dev
     ```
-    This runs in order:
+
+    `dev` is the normal incremental/start-or-heal path after initialization. It runs in order:
     1. resources (`medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`)
     2. Meilisearch key provisioning
-    3. `medusa-be`
-    4. `n1`
+    3. Medusa DB migrations
+    4. `medusa-be`
+    5. `n1`
+
     Common follow-up tasks stay on the public `mise` surface:
+    * rerun first-time bootstrap from the top: `mise run dev:init`
     * non-destructive restart from a stopped stack: `mise run dev:fresh`
     * stop the stack: `mise run dev:down`
     * destructive reset that also removes named volumes: `mise run dev:down:volumes`
@@ -47,7 +52,7 @@
     * verify Postgres bootstrap idempotency: `mise run dev:postgres:bootstrap:verify`
     * verify hardened Postgres grants: `mise run dev:postgres:grants:verify`
 
-    During step 3, `.env` handling is opinionated:
+    During `dev` startup, `.env` handling is opinionated:
     * if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written
     * if existing values differ, you are prompted to `override` or `keep`
     * Meilisearch key policy/provisioning is owned by `apps/new-engine-ctl meili-api-credentials`; only `mise run dev` performs `.env` sync logic
@@ -65,13 +70,15 @@
       * `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
       * `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`
       * `DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET=<replace-with-long-random-secret>`
-    * To exercise the deploy-wrapper endpoints locally as well, also set:
+
+    To exercise the deploy-wrapper endpoints locally as well, also set:
       * `DC_ZANE_OPERATOR_ZANE_BASE_URL=<upstream-zane-url>`
       * `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL=<optional-container-reachable-upstream-url>`
       * `DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER=<optional-host-header-for-connect-url>`
       * `DC_ZANE_OPERATOR_ZANE_USERNAME=<upstream-zane-username>`
       * `DC_ZANE_OPERATOR_ZANE_PASSWORD=<upstream-zane-password>`
-    * First-time upstream ZaneOps setup assumptions for local deploy testing:
+
+    First-time upstream ZaneOps setup assumptions for local deploy testing:
       * `DC_ZANE_OPERATOR_ZANE_BASE_URL` must point at the upstream ZaneOps UI/API root you actually log into, for example `http://localhost:3000`
       * `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL` / `...HOST_HEADER` should stay empty by default; they are only needed when the deployed `zane-operator` cannot reach the public Zane hostname directly, such as this local Docker-based Zane stack
       * `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` are the login credentials for that ZaneOps instance; `zane-operator` uses session + CSRF login upstream, not a direct Zane token
@@ -80,24 +87,26 @@
       * service names in that Zane project must match `apps/new-engine-ctl/config/stack-manifest.yaml` currently: `medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`, `medusa-be`, `n1`
       * preview environments are derived in CI script space as `pr-<number>` by default
       * preview teardown is explicit in this repo's CI flow; do not rely on built-in Zane preview auto-teardown for these cloned environments
-    * When you run the deploy scripts manually later, export:
+
+    When you run the deploy scripts manually later, export:
       * `ZANE_OPERATOR_BASE_URL=http://localhost:8082`
       * `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
       * `ZANE_PROJECT_SLUG=<your-zane-project-slug>`
       * `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
-    * If your Postgres volume already existed before this change, rerun Postgres bootstrap once after setting the operator password:
+
+    If your Postgres volume already existed before this change, rerun Postgres bootstrap once after setting the operator password:
 
     ```shell
     mise run dev:postgres:bootstrap
     ```
 
-    * Optional idempotency check (runs bootstrap twice):
+    Optional idempotency check (runs bootstrap twice):
 
     ```shell
     mise run dev:postgres:bootstrap:verify
     ```
 
-    * Optional grant hardening check (read-only verification):
+    Optional grant hardening check (read-only verification):
 
     ```shell
     mise run dev:postgres:grants:verify

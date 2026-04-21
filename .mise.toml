@@ -3,8 +3,12 @@
 "aqua:jqlang/jq" = "1.8.1"
 
 [tasks.dev]
-description = "Incremental local startup: resources -> meili provisioning -> backend phase -> frontend phase"
+description = "Incremental local startup after `dev:init`: resources -> meili provisioning -> backend phase -> frontend phase"
 run = "mise run dev:resources && mise run dev:internal:meili:sync-env && mise run dev:backend && mise run dev:frontend"
+
+[tasks."dev:init"]
+description = "First-time local initialization: env bootstrap -> dependency install -> backend bootstrap -> admin user -> seed"
+run = "bash ./scripts/dev/init-local-stack.sh"
 
 [tasks."dev:fresh"]
 description = "Fresh local restart from stopped state: down -> resources -> meili provisioning -> backend phase -> frontend phase"
@@ -23,8 +27,8 @@ description = "Start and wait for manifest-defined shared resources"
 run = "mise run dev:internal:resources:up && mise run dev:internal:resources:wait"
 
 [tasks."dev:backend"]
-description = "Start and wait for manifest-defined backend phase services"
-run = "mise run dev:internal:backend:up && mise run dev:internal:backend:wait"
+description = "Run Medusa migrations, then start and wait for manifest-defined backend phase services"
+run = "mise run dev:internal:backend:prepare && mise run dev:internal:backend:up && mise run dev:internal:backend:wait"
 
 [tasks."dev:frontend"]
 description = "Start and wait for manifest-defined frontend phase services"
@@ -178,6 +182,11 @@ run = "bash ./scripts/dev/mise-dev-helpers.sh sync-meili-env"
 description = "Start manifest-defined backend phase services"
 hide = true
 run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase backend)"
+
+[tasks."dev:internal:backend:prepare"]
+description = "Run Medusa DB migrations before backend startup"
+hide = true
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} run --rm --build --no-deps medusa-be pnpm --filter medusa-be run migrate"
 
 [tasks."dev:internal:backend:wait"]
 description = "Wait for manifest-defined backend phase services to become healthy"

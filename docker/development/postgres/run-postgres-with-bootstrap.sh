@@ -5,6 +5,8 @@ postgres_pid=""
 bootstrap_marker="${POSTGRES_BOOTSTRAP_MARKER:-/tmp/postgres-role-bootstrap.complete}"
 
 start_postgres() {
+  # `dev:init` prepares the host bind-mount path so postgres can create PGDATA while the
+  # final database process still runs as the postgres user.
   su -c "/usr/local/bin/docker-entrypoint.sh -c file_copy_method=clone" postgres &
   postgres_pid="$!"
 }
