@@ -1,26 +1,33 @@
+"use client";
+
 import type { ComponentProps } from "react";
+import { useMemo } from "react";
 import NextImage from "next/image";
+import NextLink from "next/link";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import {
   Carousel,
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel";
-import NextLink from "next/link";
-import { useMemo } from "react";
-import { categoryImageItems } from "@/assets/category-images";
+import { HERBATIKA_HEADER_SUBMENU_GROUPS } from "@/components/header/herbatika-header.submenu-data";
+import { resolveCategoryImage } from "@/lib/category-images";
 
 type ImageSource = ComponentProps<typeof NextImage>["src"];
+type PurposeCarouselRootHandle =
+  (typeof HERBATIKA_HEADER_SUBMENU_GROUPS)[number]["rootHandle"];
 
 type PurposeCarouselItem = {
+  href: string;
   id: string;
   label: string;
   src: ImageSource;
 };
 
 type PurposeCarouselProps = {
+  items?: PurposeCarouselItem[];
+  rootHandle?: PurposeCarouselRootHandle;
   title?: string;
   viewAllHref?: string;
-  items?: PurposeCarouselItem[];
 };
 
 type PurposeCarouselSlidesProps = {
@@ -28,13 +35,39 @@ type PurposeCarouselSlidesProps = {
   slidesPerPage: number;
 };
 
-const DEFAULT_ITEMS: PurposeCarouselItem[] = Object.entries(
-  categoryImageItems,
-).map(([id, item]) => ({
-  id,
-  label: item.label,
-  src: item.src,
-}));
+const DEFAULT_ROOT_HANDLE: PurposeCarouselRootHandle = "trapi-ma";
+
+const buildResolvedPurposeCarouselItems = (
+  rootHandle: PurposeCarouselRootHandle,
+): PurposeCarouselItem[] => {
+  const group = HERBATIKA_HEADER_SUBMENU_GROUPS.find(
+    (candidate) => candidate.rootHandle === rootHandle,
+  );
+
+  if (!group) {
+    return [];
+  }
+
+  return group.featuredItems.flatMap((item) => {
+    const src = resolveCategoryImage({
+      handle: item.handle,
+      label: item.label,
+    });
+
+    if (!src) {
+      return [];
+    }
+
+    return [
+      {
+        href: `/c/${item.handle}`,
+        id: item.id,
+        label: item.label,
+        src,
+      },
+    ];
+  });
+};
 
 const buildImageSlides = (
   items: PurposeCarouselItem[],
@@ -42,7 +75,11 @@ const buildImageSlides = (
   return items.map((item) => ({
     id: item.id,
     content: (
-      <div className="flex h-full min-h-800 w-full flex-col items-center justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center">
+      <Link
+        as={NextLink}
+        className="flex h-full min-h-800 w-full flex-col items-center justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
+        href={item.href}
+      >
         <div className="flex h-850 w-full items-center justify-center">
           <NextImage
             alt={item.label}
@@ -55,7 +92,7 @@ const buildImageSlides = (
         <span className="line-clamp-2 max-w-full text-sm leading-snug font-semibold text-fg-primary">
           {item.label}
         </span>
-      </div>
+      </Link>
     ),
   }));
 };
@@ -95,15 +132,20 @@ function PurposeCarouselSlides({
 }
 
 export function PurposeCarousel({
+  items,
+  rootHandle = DEFAULT_ROOT_HANDLE,
   title = "Čo vás trápi? Nakupujte podľa účelu",
-  viewAllHref = "/c/trapi-ma",
-  items = DEFAULT_ITEMS,
+  viewAllHref,
 }: PurposeCarouselProps) {
-  if (items.length === 0) {
+  const resolvedItems = useMemo(
+    () => items ?? buildResolvedPurposeCarouselItems(rootHandle),
+    [items, rootHandle],
+  );
+  const slides = useMemo(() => buildImageSlides(resolvedItems), [resolvedItems]);
+
+  if (resolvedItems.length === 0) {
     return null;
   }
-
-  const slides = useMemo(() => buildImageSlides(items), [items]);
 
   return (
     <section className="space-y-350" id="test-nakupujte-carousel">
@@ -114,7 +156,7 @@ export function PurposeCarousel({
         <Link
           as={NextLink}
           className="shrink-0 text-sm leading-snug text-fg-primary underline underline-offset-2 hover:text-primary"
-          href={viewAllHref}
+          href={viewAllHref ?? `/c/${rootHandle}`}
         >
           Zobraziť všetky
         </Link>
