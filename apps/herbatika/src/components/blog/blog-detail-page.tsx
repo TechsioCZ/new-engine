@@ -119,35 +119,34 @@ export function BlogDetailPage({ post, relatedPosts }: BlogDetailPageProps) {
               </ul>
             </section>
 
-            {post.sections.map((section) => (
-              <section
-                className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400"
-                key={section.title}
-              >
-                <h2 className="text-2xl leading-tight font-bold text-fg-primary">
-                  {section.title}
-                </h2>
+            <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
+              {post.sections.map((section) => (
+                <section className="space-y-250" key={section.title}>
+                  <h2 className="text-xl leading-tight text-fg-primary">
+                    {section.title}
+                  </h2>
 
-                {section.paragraphs.map((paragraph) => (
-                  <p className="text-sm leading-relaxed text-fg-primary" key={paragraph}>
-                    {paragraph}
-                  </p>
-                ))}
+                  {section.paragraphs.map((paragraph) => (
+                    <p className="text-md leading-relaxed text-fg-primary" key={paragraph}>
+                      {paragraph}
+                    </p>
+                  ))}
 
-                {section.bulletPoints ? (
-                  <ul className="space-y-100 pl-350">
-                    {section.bulletPoints.map((item) => (
-                      <li
-                        className="list-disc text-sm leading-relaxed text-fg-primary marker:text-primary"
-                        key={item}
-                      >
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </section>
-            ))}
+                  {section.bulletPoints ? (
+                    <ul className="space-y-100 pl-350">
+                      {section.bulletPoints.map((item) => (
+                        <li
+                          className="list-disc text-md leading-relaxed text-fg-primary marker:text-primary"
+                          key={item}
+                        >
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </section>
+              ))}
+            </article>
 
             <section className="space-y-300">
               <div className="grid gap-300 sm:grid-cols-2 xl:grid-cols-4">
