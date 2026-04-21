@@ -22,7 +22,6 @@
     * prepares the local Postgres bind-mount folders so `medusa-db` can bootstrap while the database process still runs as the `postgres` user
     * runs `mise run dev:install`
     * starts shared resources
-    * provisions local Meilisearch keys into `.env`
     * runs Medusa DB migrations before starting `medusa-be`
     * creates the Medusa admin user from `DC_SUPERADMIN_EMAIL` / `DC_SUPERADMIN_PASSWORD`
     * runs `mise run dev:medusa:seed`

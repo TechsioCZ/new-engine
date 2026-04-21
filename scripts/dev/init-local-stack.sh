@@ -16,8 +16,7 @@ Initializes a fresh local checkout by:
 3. preparing local Postgres bind-mount folders for the postgres runtime user
 4. installing repo dependencies
 5. starting resources
-6. provisioning Meilisearch keys
-7. running migrations, starting the backend, creating the Medusa user, and seeding initial data
+6. running migrations, starting the backend, creating the Medusa user, and seeding initial data
 EOF
 }
 
@@ -145,7 +144,6 @@ main() {
 
   mise run dev:install
   mise run dev:resources
-  mise run dev:internal:meili:sync-env
   mise run dev:backend
   EMAIL="$superadmin_email" PASSWORD="$superadmin_password" mise run dev:medusa:user:create
   mise run dev:medusa:seed
