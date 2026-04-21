@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
-import { buildCategoryContextTiles } from "@/components/category/category-context-panel";
+import { buildCategoryContextImageTiles } from "@/components/category/category-context-image-tile-grid";
 import {
   CATEGORY_CONTEXT_PRESETS,
   type CategoryContextIntroSegmentPreset,
@@ -121,7 +121,7 @@ type ResolveCategoryContextTilesInput = {
   categoryById: Map<string, HttpTypes.StoreProductCategory>;
 };
 
-export const resolveCategoryContextTiles = ({
+export const resolveCategoryContextImageTiles = ({
   slug,
   activeCategory,
   activeCategoryFilterIds,
@@ -147,6 +147,7 @@ export const resolveCategoryContextTiles = ({
           label: tileConfig.label,
           href: `/c/${category.handle}`,
           handle: category.handle,
+          parentCategoryId: category.parent_category_id ?? null,
         };
       })
       .filter(
@@ -157,11 +158,15 @@ export const resolveCategoryContextTiles = ({
           label: string;
           href: string;
           handle: string;
+          parentCategoryId: string | null;
         } => Boolean(tile),
       );
 
     if (presetTiles.length > 0) {
-      return buildCategoryContextTiles(presetTiles);
+      return buildCategoryContextImageTiles({
+        categories: presetTiles,
+        categoryById,
+      });
     }
   }
 
@@ -179,10 +184,14 @@ export const resolveCategoryContextTiles = ({
       label: normalizeCategoryName(category.name),
       href: `/c/${category.handle}`,
       handle: category.handle,
+      parentCategoryId: category.parent_category_id ?? null,
     }));
 
   if (directChildren.length > 0) {
-    return buildCategoryContextTiles(directChildren);
+    return buildCategoryContextImageTiles({
+      categories: directChildren,
+      categoryById,
+    });
   }
 
   const descendants = sortCategories(
@@ -202,7 +211,11 @@ export const resolveCategoryContextTiles = ({
       label: normalizeCategoryName(category.name),
       href: `/c/${category.handle}`,
       handle: category.handle,
+      parentCategoryId: category.parent_category_id ?? null,
     }));
 
-  return buildCategoryContextTiles(descendants);
+  return buildCategoryContextImageTiles({
+    categories: descendants,
+    categoryById,
+  });
 };
