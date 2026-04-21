@@ -37,6 +37,21 @@ type HerbatikaHeaderSubmenuGroup = {
   featuredItems: HerbatikaHeaderSubmenuFeaturedItem[];
 };
 
+const sortFeaturedItems = (
+  items: HerbatikaHeaderSubmenuFeaturedItem[],
+) => {
+  return [...items].sort((left, right) => {
+    const childCountDifference =
+      right.childItems.length - left.childItems.length;
+
+    if (childCountDifference !== 0) {
+      return childCountDifference;
+    }
+
+    return left.label.localeCompare(right.label, "sk");
+  });
+};
+
 const sortCategories = (categories: HttpTypes.StoreProductCategory[]) => {
   return [...categories].sort((left, right) => {
     const rankDifference = resolveCategoryRank(left) - resolveCategoryRank(right);
@@ -133,7 +148,7 @@ export function useHerbatikaHeaderSubmenu() {
             rootHandle,
             {
               rootHandle,
-              featuredItems,
+              featuredItems: sortFeaturedItems(featuredItems),
             },
           ] as const;
         }),
