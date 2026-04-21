@@ -58,9 +58,9 @@ export function StorefrontCategoryListing({
       </section>
 
       <CategoryContextPanel
+        imageTiles={controller.categoryContextImageTiles}
         introSegments={controller.categoryIntroSegments}
         introText={controller.categoryIntroText}
-        tiles={controller.categoryContextTiles}
       />
 
       <section className="space-y-400">

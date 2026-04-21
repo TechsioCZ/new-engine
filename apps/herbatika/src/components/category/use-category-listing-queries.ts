@@ -6,7 +6,7 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { useMemo } from "react";
 import {
   resolveCategoryIntroSegments,
-  resolveCategoryContextTiles,
+  resolveCategoryContextImageTiles,
   resolveCategoryIntroText,
 } from "@/components/category/category-context.utils";
 import {
@@ -204,9 +204,9 @@ export function useCategoryListingQueries({
     seedFacets: catalogFacetSeedQuery.facets,
   });
 
-  const categoryContextTiles = useMemo(
+  const categoryContextImageTiles = useMemo(
     () =>
-      resolveCategoryContextTiles({
+      resolveCategoryContextImageTiles({
         slug,
         activeCategory,
         activeCategoryFilterIds,
@@ -241,7 +241,7 @@ export function useCategoryListingQueries({
       ? resolveErrorMessage(categoriesQuery.error, "Načítanie kategórií zlyhalo.")
       : null,
     categoriesQuery,
-    categoryContextTiles,
+    categoryContextImageTiles,
     categoryIntroSegments: resolveCategoryIntroSegments({ slug, categoryByHandle }),
     categoryIntroText: resolveCategoryIntroText({ slug, activeCategory }),
     categorySubtitle:

@@ -24,7 +24,7 @@ import {
   PRIMARY_NAV_ITEMS,
 } from "./header/herbatika-header.navigation";
 import { HerbatikaMobileMenuDialog } from "./header/herbatika-mobile-menu-dialog";
-import { HERBATIKA_HEADER_SUBMENU_GROUPS } from "./header/herbatika-header.submenu-data";
+import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./header/herbatika-header.submenu-data";
 import { HerbatikaLogo } from "./herbatika-logo";
 import { resolveSearchHref } from "./search/search-query-config";
 
@@ -35,7 +35,7 @@ const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
 };
 
 const SUBMENU_ROOT_HANDLES = new Set<string>(
-  HERBATIKA_HEADER_SUBMENU_GROUPS.map((group) => group.rootHandle),
+  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle),
 );
 
 const resolveRootHandleFromHref = (href: string) => {
