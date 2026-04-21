@@ -1,19 +1,20 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
+import type { StaticImageData } from "next/image";
 import { useMemo } from "react";
 import {
   normalizeCategoryName,
   resolveCategoryRank,
 } from "@/components/category/category-product-utils";
+import { resolveCategoryImage } from "@/lib/category-images";
 import {
   STOREFRONT_CATEGORY_TREE_FIELDS,
   STOREFRONT_CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
 import {
-  HERBATIKA_HEADER_SUBMENU_GROUPS,
-  type HerbatikaHeaderSubmenuFeaturedItemConfig,
+  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS,
 } from "./herbatika-header.submenu-data";
 
 type HerbatikaHeaderSubmenuChildItem = {
@@ -22,11 +23,14 @@ type HerbatikaHeaderSubmenuChildItem = {
   href: string;
 };
 
-type HerbatikaHeaderSubmenuFeaturedItem =
-  HerbatikaHeaderSubmenuFeaturedItemConfig & {
-    href: string;
-    childItems: HerbatikaHeaderSubmenuChildItem[];
-  };
+type HerbatikaHeaderSubmenuFeaturedItem = {
+  childItems: HerbatikaHeaderSubmenuChildItem[];
+  href: string;
+  id: string;
+  label: string;
+  handle: string;
+  src?: StaticImageData;
+};
 
 type HerbatikaHeaderSubmenuGroup = {
   rootHandle: string;
@@ -53,6 +57,16 @@ export function useHerbatikaHeaderSubmenu() {
     limit: STOREFRONT_CATEGORY_TREE_LIMIT,
     fields: STOREFRONT_CATEGORY_TREE_FIELDS,
   });
+
+  const categoryById = useMemo(() => {
+    const map = new Map<string, HttpTypes.StoreProductCategory>();
+
+    for (const category of categoriesQuery.categories) {
+      map.set(category.id, category);
+    }
+
+    return map;
+  }, [categoriesQuery.categories]);
 
   const categoryByHandle = useMemo(() => {
     const map = new Map<string, HttpTypes.StoreProductCategory>();
@@ -88,30 +102,43 @@ export function useHerbatikaHeaderSubmenu() {
 
   const groupsByRootHandle = useMemo(() => {
     return new Map<string, HerbatikaHeaderSubmenuGroup>(
-      HERBATIKA_HEADER_SUBMENU_GROUPS.map((group) => [
-        group.rootHandle,
-        {
-          rootHandle: group.rootHandle,
-          featuredItems: group.featuredItems.map((item) => {
-            const featuredCategory = categoryByHandle.get(item.handle) ?? null;
-            const childItems = featuredCategory
-              ? (childrenByParentId.get(featuredCategory.id) ?? []).map((child) => ({
+      HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((rootConfig) => {
+          const sourceRootHandle =
+            "submenuSourceHandle" in rootConfig
+              ? rootConfig.submenuSourceHandle ?? rootConfig.rootHandle
+              : rootConfig.rootHandle;
+          const rootHandle = rootConfig.rootHandle;
+          const rootCategory = categoryByHandle.get(sourceRootHandle) ?? null;
+          const featuredItems = rootCategory
+            ? (childrenByParentId.get(rootCategory.id) ?? []).map((category) => ({
+                id: category.id,
+                handle: category.handle ?? category.id,
+                label: normalizeCategoryName(category.name),
+                src: resolveCategoryImage({
+                  categoryById,
+                  handle: category.handle,
+                  label: category.name,
+                  parentCategoryId: category.parent_category_id,
+                }),
+                href: category.handle ? `/c/${category.handle}` : "#",
+                childItems: (childrenByParentId.get(category.id) ?? []).map((child) => ({
                   id: child.id,
                   label: normalizeCategoryName(child.name),
-                  href: `/c/${child.handle}`,
-                }))
-              : [];
+                  href: child.handle ? `/c/${child.handle}` : "#",
+                })),
+              }))
+            : [];
 
-            return {
-              ...item,
-              href: `/c/${item.handle}`,
-              childItems,
-            };
-          }),
-        },
-      ]),
+          return [
+            rootHandle,
+            {
+              rootHandle,
+              featuredItems,
+            },
+          ] as const;
+        }),
     );
-  }, [categoryByHandle, childrenByParentId]);
+  }, [categoryByHandle, categoryById, childrenByParentId]);
 
   return {
     categoriesQuery,

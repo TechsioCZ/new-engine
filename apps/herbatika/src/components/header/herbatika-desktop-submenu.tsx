@@ -61,14 +61,16 @@ export function HerbatikaDesktopSubmenu({
               {activeGroup.featuredItems.map((item) => (
                 <div className="flex min-w-0 items-start gap-300" key={item.id}>
                   <div className="flex h-submenu-image w-submenu-image shrink-0 items-start justify-start">
-                    <NextImage
-                      alt=""
-                      aria-hidden="true"
-                      className="object-contain"
-                      height={54}
-                      src={item.src}
-                      width={76}
-                    />
+                    {item.src ? (
+                      <NextImage
+                        alt=""
+                        aria-hidden="true"
+                        className="object-contain"
+                        height={54}
+                        src={item.src}
+                        width={76}
+                      />
+                    ) : null}
                   </div>
 
                   <div className="min-w-0 space-y-300 pt-100">

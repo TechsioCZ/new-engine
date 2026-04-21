@@ -1,11 +1,5 @@
 import type { StaticImageData } from "next/image";
-import {
-  categoryDoplnkyVyzivy,
-  categoryEkoDomacnost,
-  categoryPotravinyNapoje,
-  categoryPrirodnaKozmetika,
-  categoryTrapiMa,
-} from "@/assets/category-images";
+import { resolveCategoryImage } from "@/lib/category-images";
 
 export type HerbatikaHeaderSubmenuFeaturedItemConfig = {
   id: string;
@@ -19,258 +13,258 @@ export type HerbatikaHeaderSubmenuGroupConfig = {
   featuredItems: readonly HerbatikaHeaderSubmenuFeaturedItemConfig[];
 };
 
+export type HerbatikaHeaderSubmenuRootConfig = {
+  rootHandle: string;
+  submenuSourceHandle?: string;
+};
+
+const createFeaturedItem = (
+  id: string,
+  handle: string,
+  label: string,
+): HerbatikaHeaderSubmenuFeaturedItemConfig => {
+  const src = resolveCategoryImage({ handle, label });
+
+  if (!src) {
+    throw new Error(`Missing category image for featured header item: ${handle}`);
+  }
+
+  return {
+    id,
+    handle,
+    label,
+    src,
+  };
+};
+
 export const HERBATIKA_HEADER_SUBMENU_GROUPS = [
   {
     rootHandle: "trapi-ma",
     featuredItems: [
-      {
-        id: "kozne-problemy",
-        handle: "trapi-ma-kozne-problemy",
-        label: categoryTrapiMa.kozneProblemy.label,
-        src: categoryTrapiMa.kozneProblemy.src,
-      },
-      {
-        id: "imunita-a-obranyschopnost",
-        handle: "trapi-ma-imunita-a-obranyschopnost",
-        label: categoryTrapiMa.imunitaAObranyschopnost.label,
-        src: categoryTrapiMa.imunitaAObranyschopnost.src,
-      },
-      {
-        id: "travenie-a-metabolizmus",
-        handle: "trapi-ma-travenie-a-metabolizmus",
-        label: categoryTrapiMa.travenieAMetabolizmus.label,
-        src: categoryTrapiMa.travenieAMetabolizmus.src,
-      },
-      {
-        id: "klby-a-pohybovy-aparat",
-        handle: "trapi-ma-klby-a-pohybovy-aparat",
-        label: categoryTrapiMa.klbyAPohybovyAparat.label,
-        src: categoryTrapiMa.klbyAPohybovyAparat.src,
-      },
-      {
-        id: "mozog-a-nervovy-system",
-        handle: "trapi-ma-mozog-a-nervovy-system",
-        label: categoryTrapiMa.mozogANervovySystem.label,
-        src: categoryTrapiMa.mozogANervovySystem.src,
-      },
-      {
-        id: "srdce-a-cievy",
-        handle: "trapi-ma-srdce-a-cievy",
-        label: categoryTrapiMa.srdceACievy.label,
-        src: categoryTrapiMa.srdceACievy.src,
-      },
-      {
-        id: "hormonalna-rovnovaha",
-        handle: "trapi-ma-hormonalna-rovnovaha",
-        label: categoryTrapiMa.hormonalnaRovnovaha.label,
-        src: categoryTrapiMa.hormonalnaRovnovaha.src,
-      },
-      {
-        id: "dychacie-cesty-priedusky-a-pluca",
-        handle: "trapi-ma-dychacie-cesty-priedusky-a-pluca",
-        label: categoryTrapiMa.dychacieCestyPrieduskyAPluca.label,
-        src: categoryTrapiMa.dychacieCestyPrieduskyAPluca.src,
-      },
-      {
-        id: "oci-a-zrak",
-        handle: "trapi-ma-oci-a-zrak",
-        label: categoryTrapiMa.ociAZrak.label,
-        src: categoryTrapiMa.ociAZrak.src,
-      },
-      {
-        id: "oblicky-a-mocove-cesty",
-        handle: "trapi-ma-oblicky-a-mocove-cesty",
-        label: categoryTrapiMa.oblickyAMocoveCesty.label,
-        src: categoryTrapiMa.oblickyAMocoveCesty.src,
-      },
-      {
-        id: "chudnutie-a-krasna-linia",
-        handle: "trapi-ma-chudnutie-a-krasna-linia",
-        label: categoryTrapiMa.chudnutieAKrasnaLinia.label,
-        src: categoryTrapiMa.chudnutieAKrasnaLinia.src,
-      },
+      createFeaturedItem(
+        "kozne-problemy",
+        "trapi-ma-kozne-problemy",
+        "Kožné problémy",
+      ),
+      createFeaturedItem(
+        "imunita-a-obranyschopnost",
+        "trapi-ma-imunita-a-obranyschopnost",
+        "Imunita a obranyschopnosť",
+      ),
+      createFeaturedItem(
+        "travenie-a-metabolizmus",
+        "trapi-ma-travenie-a-metabolizmus",
+        "Trávenie a metabolizmus",
+      ),
+      createFeaturedItem(
+        "klby-a-pohybovy-aparat",
+        "trapi-ma-klby-a-pohybovy-aparat",
+        "Kĺby a pohybový aparát",
+      ),
+      createFeaturedItem(
+        "mozog-a-nervovy-system",
+        "trapi-ma-mozog-a-nervovy-system",
+        "Mozog a nervový systém",
+      ),
+      createFeaturedItem(
+        "srdce-a-cievy",
+        "trapi-ma-srdce-a-cievy",
+        "Srdce a cievy",
+      ),
+      createFeaturedItem(
+        "hormonalna-rovnovaha",
+        "trapi-ma-hormonalna-rovnovaha",
+        "Hormonálna rovnováha",
+      ),
+      createFeaturedItem(
+        "dychacie-cesty-priedusky-a-pluca",
+        "trapi-ma-dychacie-cesty-priedusky-a-pluca",
+        "Dýchacie cesty, priedušky a pľúca",
+      ),
+      createFeaturedItem("oci-a-zrak", "trapi-ma-oci-a-zrak", "Oči a zrak"),
+      createFeaturedItem(
+        "oblicky-a-mocove-cesty",
+        "trapi-ma-oblicky-a-mocove-cesty",
+        "Obličky a močové cesty",
+      ),
+      createFeaturedItem(
+        "chudnutie-a-krasna-linia",
+        "trapi-ma-chudnutie-a-krasna-linia",
+        "Chudnutie a krásna línia",
+      ),
     ],
   },
   {
     rootHandle: "prirodna-kozmetika",
     featuredItems: [
-      {
-        id: "pletova-kozmetika",
-        handle: "prirodna-kozmetika-pletova-kozmetika",
-        label: categoryPrirodnaKozmetika.pletovaKozmetika.label,
-        src: categoryPrirodnaKozmetika.pletovaKozmetika.src,
-      },
-      {
-        id: "telova-kozmetika",
-        handle: "prirodna-kozmetika-telova-kozmetika",
-        label: categoryPrirodnaKozmetika.telovaKozmetika.label,
-        src: categoryPrirodnaKozmetika.telovaKozmetika.src,
-      },
-      {
-        id: "starostlivost-o-vlasy",
-        handle: "prirodna-kozmetika-starostlivost-o-vlasy",
-        label: categoryPrirodnaKozmetika.starostlivostOVlasy.label,
-        src: categoryPrirodnaKozmetika.starostlivostOVlasy.src,
-      },
-      {
-        id: "ustna-hygiena",
-        handle: "prirodna-kozmetika-ustna-hygiena",
-        label: categoryPrirodnaKozmetika.ustnaHygiena.label,
-        src: categoryPrirodnaKozmetika.ustnaHygiena.src,
-      },
-      {
-        id: "aromaterapia",
-        handle: "prirodna-kozmetika-aromaterapia",
-        label: categoryPrirodnaKozmetika.aromaterapia.label,
-        src: categoryPrirodnaKozmetika.aromaterapia.src,
-      },
-      {
-        id: "cbd",
-        handle: "prirodna-kozmetika-cbd",
-        label: categoryPrirodnaKozmetika.cbd.label,
-        src: categoryPrirodnaKozmetika.cbd.src,
-      },
-      {
-        id: "masazne-pomocky",
-        handle: "prirodna-kozmetika-masazne-pomocky",
-        label: categoryPrirodnaKozmetika.masaznePomocky.label,
-        src: categoryPrirodnaKozmetika.masaznePomocky.src,
-      },
-      {
-        id: "pre-muza",
-        handle: "prirodna-kozmetika-pre-muza",
-        label: categoryPrirodnaKozmetika.preMuza.label,
-        src: categoryPrirodnaKozmetika.preMuza.src,
-      },
+      createFeaturedItem(
+        "pletova-kozmetika",
+        "prirodna-kozmetika-pletova-kozmetika",
+        "Pleťová kozmetika",
+      ),
+      createFeaturedItem(
+        "telova-kozmetika",
+        "prirodna-kozmetika-telova-kozmetika",
+        "Telová kozmetika",
+      ),
+      createFeaturedItem(
+        "starostlivost-o-vlasy",
+        "prirodna-kozmetika-starostlivost-o-vlasy",
+        "Starostlivosť o vlasy",
+      ),
+      createFeaturedItem(
+        "ustna-hygiena",
+        "prirodna-kozmetika-ustna-hygiena",
+        "Ústna hygiena",
+      ),
+      createFeaturedItem(
+        "aromaterapia",
+        "prirodna-kozmetika-aromaterapia",
+        "Aromaterapia",
+      ),
+      createFeaturedItem("cbd", "prirodna-kozmetika-cbd", "CBD"),
+      createFeaturedItem(
+        "masazne-pomocky",
+        "prirodna-kozmetika-masazne-pomocky",
+        "Masážne pomôcky",
+      ),
+      createFeaturedItem(
+        "pre-muza",
+        "prirodna-kozmetika-pre-muza",
+        "Pre muža",
+      ),
     ],
   },
   {
     rootHandle: "doplnky-vyzivy",
     featuredItems: [
-      {
-        id: "vitaminy-a-mineraly",
-        handle: "doplnky-vyzivy-vitaminy-a-mineraly",
-        label: categoryDoplnkyVyzivy.vitaminyAMineraly.label,
-        src: categoryDoplnkyVyzivy.vitaminyAMineraly.src,
-      },
-      {
-        id: "lipozomalne-vitaminy",
-        handle: "doplnky-vyzivy-lipozomalne-vitaminy",
-        label: categoryDoplnkyVyzivy.lipozomalneVitaminy.label,
-        src: categoryDoplnkyVyzivy.lipozomalneVitaminy.src,
-      },
-      {
-        id: "probiotika-a-prebiotika",
-        handle: "doplnky-vyzivy-probiotika-a-prebiotika",
-        label: categoryDoplnkyVyzivy.probiotikaAPrebiotika.label,
-        src: categoryDoplnkyVyzivy.probiotikaAPrebiotika.src,
-      },
-      {
-        id: "adaptogeny",
-        handle: "doplnky-vyzivy-adaptogeny",
-        label: categoryDoplnkyVyzivy.adaptogeny.label,
-        src: categoryDoplnkyVyzivy.adaptogeny.src,
-      },
-      {
-        id: "bylinne-extrakty",
-        handle: "doplnky-vyzivy-bylinne-extrakty",
-        label: categoryDoplnkyVyzivy.bylinneExtrakty.label,
-        src: categoryDoplnkyVyzivy.bylinneExtrakty.src,
-      },
-      {
-        id: "omega-3-a-zdrave-tuky",
-        handle: "doplnky-vyzivy-omega-3-a-zdrave-tuky",
-        label: categoryDoplnkyVyzivy.omega3AZdraveTuky.label,
-        src: categoryDoplnkyVyzivy.omega3AZdraveTuky.src,
-      },
-      {
-        id: "doplnky-stravy-pre-muza",
-        handle: "doplnky-vyzivy-doplnky-stravy-pre-muza",
-        label: categoryDoplnkyVyzivy.doplnkyStravyPreMuza.label,
-        src: categoryDoplnkyVyzivy.doplnkyStravyPreMuza.src,
-      },
-      {
-        id: "doplnky-stravy-pre-zenu",
-        handle: "doplnky-vyzivy-doplnky-stravy-pre-zenu",
-        label: categoryDoplnkyVyzivy.doplnkyStravyPreZenu.label,
-        src: categoryDoplnkyVyzivy.doplnkyStravyPreZenu.src,
-      },
-      {
-        id: "doplnky-stravy-pre-deti",
-        handle: "doplnky-vyzivy-doplnky-stravy-pre-deti",
-        label: categoryDoplnkyVyzivy.doplnkyStravyPreDeti.label,
-        src: categoryDoplnkyVyzivy.doplnkyStravyPreDeti.src,
-      },
+      createFeaturedItem(
+        "vitaminy-a-mineraly",
+        "doplnky-vyzivy-vitaminy-a-mineraly",
+        "Vitamíny a minerály",
+      ),
+      createFeaturedItem(
+        "lipozomalne-vitaminy",
+        "doplnky-vyzivy-lipozomalne-vitaminy",
+        "Lipozomálne vitamíny",
+      ),
+      createFeaturedItem(
+        "probiotika-a-prebiotika",
+        "doplnky-vyzivy-probiotika-a-prebiotika",
+        "Probiotiká a prebiotiká",
+      ),
+      createFeaturedItem(
+        "adaptogeny",
+        "doplnky-vyzivy-adaptogeny",
+        "Adaptogény",
+      ),
+      createFeaturedItem(
+        "bylinne-extrakty",
+        "doplnky-vyzivy-bylinne-extrakty",
+        "Bylinné extrakty",
+      ),
+      createFeaturedItem(
+        "omega-3-a-zdrave-tuky",
+        "doplnky-vyzivy-omega-3-a-zdrave-tuky",
+        "Omega-3 a zdravé tuky",
+      ),
+      createFeaturedItem(
+        "doplnky-stravy-pre-muza",
+        "doplnky-vyzivy-doplnky-stravy-pre-muza",
+        "Doplnky stravy pre muža",
+      ),
+      createFeaturedItem(
+        "doplnky-stravy-pre-zenu",
+        "doplnky-vyzivy-doplnky-stravy-pre-zenu",
+        "Doplnky stravy pre ženu",
+      ),
+      createFeaturedItem(
+        "doplnky-stravy-pre-deti",
+        "doplnky-vyzivy-doplnky-stravy-pre-deti",
+        "Doplnky stravy pre deti",
+      ),
     ],
   },
   {
     rootHandle: "potraviny-a-napoje",
     featuredItems: [
-      {
-        id: "caje",
-        handle: "potraviny-a-napoje-caje",
-        label: categoryPotravinyNapoje.caje.label,
-        src: categoryPotravinyNapoje.caje.src,
-      },
-      {
-        id: "kava",
-        handle: "potraviny-a-napoje-kava",
-        label: categoryPotravinyNapoje.kava.label,
-        src: categoryPotravinyNapoje.kava.src,
-      },
-      {
-        id: "sirupy-a-medy",
-        handle: "potraviny-a-napoje-sirupy-a-medy",
-        label: categoryPotravinyNapoje.sirupyAMedy.label,
-        src: categoryPotravinyNapoje.sirupyAMedy.src,
-      },
-      {
-        id: "bylinne-tinktury",
-        handle: "potraviny-a-napoje-bylinne-tinktury",
-        label: categoryPotravinyNapoje.bylinneTinktury.label,
-        src: categoryPotravinyNapoje.bylinneTinktury.src,
-      },
-      {
-        id: "specialne-jedle-oleje",
-        handle: "potraviny-a-napoje-specialne-jedle-oleje",
-        label: categoryPotravinyNapoje.specialneJedleOleje.label,
-        src: categoryPotravinyNapoje.specialneJedleOleje.src,
-      },
-      {
-        id: "zuvacky",
-        handle: "potraviny-a-napoje-zuvacky",
-        label: categoryPotravinyNapoje.zuvacky.label,
-        src: categoryPotravinyNapoje.zuvacky.src,
-      },
-      {
-        id: "cukriky",
-        handle: "potraviny-a-napoje-cukriky",
-        label: categoryPotravinyNapoje.cukriky.label,
-        src: categoryPotravinyNapoje.cukriky.src,
-      },
+      createFeaturedItem("caje", "potraviny-a-napoje-caje", "Čaje"),
+      createFeaturedItem("kava", "potraviny-a-napoje-kava", "Káva"),
+      createFeaturedItem(
+        "sirupy-a-medy",
+        "potraviny-a-napoje-sirupy-a-medy",
+        "Sirupy a medy",
+      ),
+      createFeaturedItem(
+        "bylinne-tinktury",
+        "potraviny-a-napoje-bylinne-tinktury",
+        "Bylinné tinktúry",
+      ),
+      createFeaturedItem(
+        "specialne-jedle-oleje",
+        "potraviny-a-napoje-specialne-jedle-oleje",
+        "Špeciálne jedlé oleje",
+      ),
+      createFeaturedItem(
+        "zuvacky",
+        "potraviny-a-napoje-zuvacky",
+        "Žuvačky",
+      ),
+      createFeaturedItem(
+        "cukriky",
+        "potraviny-a-napoje-cukriky",
+        "Cukríky",
+      ),
     ],
   },
   {
     rootHandle: "eko-domacnost",
     featuredItems: [
-      {
-        id: "oblecenie-a-obuv",
-        handle: "eko-domacnost-oblecenie-a-obuv",
-        label: categoryEkoDomacnost.oblecenieAObuv.label,
-        src: categoryEkoDomacnost.oblecenieAObuv.src,
-      },
-      {
-        id: "eko-doplnky",
-        handle: "eko-domacnost-eko-doplnky",
-        label: categoryEkoDomacnost.ekoDoplnky.label,
-        src: categoryEkoDomacnost.ekoDoplnky.src,
-      },
-      {
-        id: "rehabilitacne-pomocky",
-        handle: "eko-domacnost-rehabilitacne-pomocky",
-        label: categoryEkoDomacnost.rehabilitacnePomocky.label,
-        src: categoryEkoDomacnost.rehabilitacnePomocky.src,
-      },
+      createFeaturedItem(
+        "oblecenie-a-obuv",
+        "eko-domacnost-oblecenie-a-obuv",
+        "Oblečenie a obuv",
+      ),
+      createFeaturedItem(
+        "eko-doplnky",
+        "eko-domacnost-eko-doplnky",
+        "EKO doplnky",
+      ),
+      createFeaturedItem(
+        "rehabilitacne-pomocky",
+        "eko-domacnost-rehabilitacne-pomocky",
+        "Rehabilitačné pomôcky",
+      ),
+    ],
+  },
+  {
+    rootHandle: "ucinne-zlozky-od-a-po-z",
+    featuredItems: [
+      createFeaturedItem(
+        "aloe-vera",
+        "ucinne-zlozky-od-a-po-z-aloe-vera",
+        "Aloe vera",
+      ),
+      createFeaturedItem("caga", "ucinne-zlozky-od-a-po-z-caga", "Čaga"),
+      createFeaturedItem(
+        "pagastan-konsky",
+        "ucinne-zlozky-od-a-po-z-pagastan-konsky",
+        "Pagaštan konský",
+      ),
+      createFeaturedItem(
+        "extrakt-z-pijavice-lekarskej",
+        "ucinne-zlozky-od-a-po-z-extrakt-z-pijavice-lekarskej",
+        "Extrakt z pijavice lekárskej",
+      ),
     ],
   },
 ] as const satisfies readonly HerbatikaHeaderSubmenuGroupConfig[];
+
+export const HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS = [
+  { rootHandle: "trapi-ma", submenuSourceHandle: "trapi-ma-2" },
+  { rootHandle: "prirodna-kozmetika" },
+  { rootHandle: "doplnky-vyzivy" },
+  { rootHandle: "potraviny-a-napoje" },
+  { rootHandle: "eko-domacnost" },
+  { rootHandle: "ucinne-zlozky-od-a-po-z" },
+] as const satisfies readonly HerbatikaHeaderSubmenuRootConfig[];
