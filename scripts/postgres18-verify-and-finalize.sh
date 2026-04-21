@@ -187,7 +187,7 @@ new_major="$(read_new_major_from_dir)"
 [[ "$new_major" == "18" ]] || die "New data dir is not PostgreSQL 18 cluster: $NEW_DATA_DIR"
 
 new_container_id="$(docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" ps -q medusa-db || true)"
-[[ -n "$new_container_id" ]] || die "medusa-db container not found for compose project '$PROJECT_NAME'. Run 'make dev' first."
+[[ -n "$new_container_id" ]] || die "medusa-db container not found for compose project '$PROJECT_NAME'. Run 'mise run dev' first."
 
 running_state="$(docker inspect "$new_container_id" --format '{{.State.Running}}')"
 [[ "$running_state" == "true" ]] || die "medusa-db container is not running."

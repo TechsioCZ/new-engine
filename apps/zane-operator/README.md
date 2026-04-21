@@ -262,11 +262,11 @@ Important model constraints:
 - shared variables should live on the `production` environment in Zane; services inherit them and preview clones copy them
 - the canonical project should also include `zane-operator` so the deployed stack exposes the same control-plane wrapper used by CI
 
-#### 6.1 Bootstrap the canonical project with the helper script
+#### 6.1 Bootstrap the canonical project with the public helper task
 
-Preferred path: use the local bootstrap helper instead of creating the project and service envs by hand.
+Preferred path: use the public `mise` task instead of calling the raw shell entrypoint or creating the project and service envs by hand.
 
-The helper:
+The helper behind that task:
 - creates or reuses the canonical project
 - expects the protected `production` environment and fails if it is missing
 - creates or reuses the required services as Git services with Dockerfile builders
@@ -293,7 +293,7 @@ The helper:
 Run it from the repo root:
 
 ```bash
-scripts/dev/setup-zane-project.sh \
+mise run dev:zane:project:sync -- \
   --env-file .env.zane \
   --zane-base-url http://localhost \
   --zane-username admin \
@@ -317,11 +317,25 @@ Optional overrides worth knowing:
 
 The helper reads `.env.zane` by default, but it only maps the values that are part of the deployed stack contract. Keep compose/local runtime values in `.env`; use `.env.zane` for Zane-targeted helper runs. The helper forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
 
-Read-only planning for this helper now also lives in CTL:
+Read-only planning for this helper now also lives in CTL, but the direct CTL path is lower-level: you must provide a real inspect snapshot from shell-owned upstream Zane inspection plus the required plan inputs.
 
 ```bash
+INSPECT_JSON_FILE="$(mktemp)"
+source scripts/dev/lib/common.sh
+source scripts/dev/lib/zane.sh
+PROJECT_SLUG=new-engine
+ENVIRONMENT_NAME=production
+ZANE_BASE_URL=http://localhost
+ZANE_USERNAME=admin
+ZANE_PASSWORD='replace-me'
+zane::login
+zane::bootstrap_zane_project_inspect_json \
+  medusa-db medusa-valkey medusa-minio medusa-meilisearch medusa-be n1 zane-operator \
+  >"$INSPECT_JSON_FILE"
 node apps/new-engine-ctl/dist/cli.js bootstrap zane-project plan \
-  --inspect-json /tmp/zane-project-inspect.json
+  --project-slug "$PROJECT_SLUG" \
+  --environment-name "$ENVIRONMENT_NAME" \
+  --inspect-json "$INSPECT_JSON_FILE"
 ```
 
 That planning surface is fed by shell-owned upstream Zane inspection, and the checked-in helper wrapper now executes only the resulting CTL-owned desired state plus manual transport.
@@ -335,8 +349,7 @@ If your repo is private:
 1. install/configure the git app in Zane first
 2. rerun the helper with `--git-app-id <id>`
 
-If you want to inspect or patch values manually, the helper entrypoint is:
-- `scripts/dev/setup-zane-project.sh`
+If you want to inspect or patch values manually, the underlying shell entrypoint remains `scripts/dev/setup-zane-project.sh`, but the public repo entrypoint is `mise run dev:zane:project:sync`.
 
 #### 6.2 Post-bootstrap manual checks
 
@@ -459,11 +472,26 @@ mise run dev:zane:template-db:sync
 
 That helper creates the configured preview template DB on first run and refreshes it from the chosen source DB on later runs.
 
-Read-only planning for that flow now also exists in CTL:
+Read-only planning for that flow now also exists in CTL, but the direct CTL path requires both a real inspect snapshot and the service/db inputs that the shell helper normally supplies:
 
 ```bash
+INSPECT_JSON_FILE="$(mktemp)"
+source scripts/dev/lib/common.sh
+source scripts/dev/lib/zane.sh
+PROJECT_SLUG=new-engine
+ENVIRONMENT_NAME=production
+ZANE_BASE_URL=http://localhost
+ZANE_USERNAME=admin
+ZANE_PASSWORD='replace-me'
+zane::login
+zane::bootstrap_preview_template_db_inspect_json medusa-db zane-operator >"$INSPECT_JSON_FILE"
 node apps/new-engine-ctl/dist/cli.js bootstrap preview-template-db plan \
-  --inspect-json /tmp/zane-template-db-inspect.json
+  --project-slug "$PROJECT_SLUG" \
+  --environment-name "$ENVIRONMENT_NAME" \
+  --inspect-json "$INSPECT_JSON_FILE" \
+  --db-service-slug medusa-db \
+  --operator-service-slug zane-operator \
+  --source-db-name medusa
 ```
 
 Prerequisites:

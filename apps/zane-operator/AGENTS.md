@@ -84,9 +84,9 @@ This file is the source of truth for AI agents changing:
 - Canonical startup/bootstrap path:
   - `docker/development/postgres/run-postgres-with-bootstrap.sh`
 - Existing DB path:
-  - `make postgres-role-bootstrap`
+  - `mise run dev:postgres:bootstrap`
 - Idempotency checks:
-  - `make postgres-role-bootstrap-verify`
+  - `mise run dev:postgres:bootstrap:verify`
 
 ## Change Rules for Agents
 
@@ -107,7 +107,7 @@ This file is the source of truth for AI agents changing:
 - Compose config sanity:
   - `docker compose -f docker-compose.yaml config`
 - If role/grant logic changed, run (when docker access available):
-  - `make postgres-role-bootstrap-verify`
+  - `mise run dev:postgres:bootstrap:verify`
 - If bootstrap gating changed, verify `medusa-db` only becomes healthy after `/usr/local/bin/postgres-ready-with-bootstrap.sh` succeeds.
 - Confirm operator startup log includes clone-path status:
   - `file_copy_method`

@@ -4,8 +4,9 @@
 
 * Docker compose + Docker
   * For Mac, <a href="https://orbstack.dev/">OrbStack</a> is recommended instead of Docker Desktop
-* make
-* mise (preferred for local orchestration and CI-parity helper tasks)
+* mise
+  * install repo-managed tools with `mise install`
+  * activate mise in your shell (for example `eval "$(mise activate bash)"` or your shell equivalent) so repo-managed tools win on `PATH`
 
 ### Steps
 
@@ -14,15 +15,16 @@
     * optionally update config as needed
     * if you also use the Zane-targeted helper scripts, copy .env => .env.zane once and keep Zane-specific values there
 
-2. <b>Install dependencies</b>
+2. <b>Install repo tooling and workspace dependencies</b>
 
     ```shell
-    make install
+    mise install
+    mise run dev:install
     ```
 
 * alternatively force dependency lock fix:
   ```shell
-  make install-fix-lock
+  mise run dev:install:fix-lock
   ```
 
 3. <b>Run docker compose</b>
@@ -36,19 +38,14 @@
     2. Meilisearch key provisioning
     3. `medusa-be`
     4. `n1`
-    Use `mise run dev:fresh` when you want the explicit `down --remove-orphans` reset first.
-    Internal sub-steps are hidden from `mise tasks ls` and can still be run manually when needed:
-    * `mise run dev:internal:down`
-    * `mise run dev:internal:resources:up`
-    * `mise run dev:internal:resources:wait`
-    * `mise run dev:internal:meili:sync-env`
-    * `mise run dev:internal:backend:up`
-    * `mise run dev:internal:backend:wait`
-    * `mise run dev:internal:frontend:up`
-    * `mise run dev:internal:frontend:wait`
-    * (optional operator profile) `mise run dev:operator`
-    * (optional rerun) `mise run dev:postgres:bootstrap`
-    * (optional rerun) `mise run dev:postgres:bootstrap:verify`
+    Common follow-up tasks stay on the public `mise` surface:
+    * non-destructive restart from a stopped stack: `mise run dev:fresh`
+    * stop the stack: `mise run dev:down`
+    * destructive reset that also removes named volumes: `mise run dev:down:volumes`
+    * enable the optional operator profile: `mise run dev:operator`
+    * rerun Postgres bootstrap: `mise run dev:postgres:bootstrap`
+    * verify Postgres bootstrap idempotency: `mise run dev:postgres:bootstrap:verify`
+    * verify hardened Postgres grants: `mise run dev:postgres:grants:verify`
 
     During step 3, `.env` handling is opinionated:
     * if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written
@@ -91,21 +88,19 @@
     * If your Postgres volume already existed before this change, rerun Postgres bootstrap once after setting the operator password:
 
     ```shell
-    make postgres-role-bootstrap
     mise run dev:postgres:bootstrap
     ```
 
     * Optional idempotency check (runs bootstrap twice):
 
     ```shell
-    make postgres-role-bootstrap-verify
     mise run dev:postgres:bootstrap:verify
     ```
 
     * Optional grant hardening check (read-only verification):
 
     ```shell
-    make postgres-grants-verify
+    mise run dev:postgres:grants:verify
     ```
 
     * Existing DB migration note: bootstrap includes idempotent legacy-object migration from `public` schema into `DC_MEDUSA_APP_DB_SCHEMA` (default `medusa`), with conflict fail-fast if same object already exists in target schema.
@@ -149,26 +144,25 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
 4. <b>Migrate database</b> (if needed)
     * <i>(optional)</i> `medusa` schema needs to exist, which it should, unless it was manually dropped
     ```shell
-    make medusa-migrate
+    mise run dev:medusa:migrate
     ```
 
 5. <b>Create user for medusa admin</b> (if needed)
     ```shell
-    make medusa-create-user EMAIL=[some@email.com] PASSWORD=[PASSWORD]
+    EMAIL=[some@email.com] PASSWORD=[PASSWORD] mise run dev:medusa:user:create
     ```
 
 6. <b>Prepare file storage</b> (automatic in compose; manual fallback only if needed)
     ```shell
-    make medusa-minio-init
+    mise run dev:medusa:minio:init
     ```
 
 7. <b>Seed initial data</b> (only first time)
     * seeded data also add regions that are required to be set
     * optionally this step can be skipped, but you need to manually add at least 1 region in medusa BE settings page
    ```shell
-   make medusa-seed
+   mise run dev:medusa:seed
    ```
-
 
 8. <b>Create & set PUBLISHABLE_API_KEY</b> for Store front (only first time)
     * Restart services (commands below)
@@ -179,8 +173,8 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
     * Update DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY in .env
     * Restart services
     ```shell
-   make down
-   make dev
+   mise run dev:down
+   mise run dev
     ```
 
 8b. <b>Verify scoped Meilisearch keys</b> (manual helper only)
@@ -213,7 +207,7 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
             * backend key: `DC_MEILISEARCH_BACKEND_API_KEY` (scoped, server-only)
             * frontend key: `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` (read-only search key, never master)
             * (optional) if plugin was disabled before adding products:
-                * `make medusa-meilisearch-reseed`
+                * `mise run dev:medusa:meili:reseed`
     * zane-operator should be available at:
         * <a href="http://localhost:8082/healthz">localhost:8082/healthz</a>
         * optional local-stack Caddy route: <a href="https://admin.zane-operator.localhost/healthz">https://admin.zane-operator.localhost/healthz</a>
@@ -245,7 +239,7 @@ Postgres Docker image `18+` changed its default `PGDATA` layout. This repo now p
 If you already have local data in `./.docker_data/db` from Postgres `<18`, run:
 
 ```shell
-make postgres18-migrate-local
+mise run dev:postgres18:migrate
 ```
 
 What the migration script does:
@@ -258,7 +252,7 @@ What the migration script does:
 After migration:
 
 ```shell
-make dev
+mise run dev
 ```
 
 Rollback path:
@@ -268,14 +262,14 @@ Rollback path:
 When migration looks good and you want to keep only the PG18 state:
 
 ```shell
-make postgres18-verify
-make postgres18-finalize
+mise run dev:postgres18:verify
+mise run dev:postgres18:finalize
 ```
 
-`make postgres18-verify` checks that old cluster DBs/roles exist in the new cluster and compares structure, sequence values, and per-table row counts.
+`mise run dev:postgres18:verify` checks that old cluster DBs/roles exist in the new cluster and compares structure, sequence values, and per-table row counts.
 If old `./.docker_data/db` cannot be started, it falls back to verifying against the newest
 `./.docker_data/backups/postgres18-migration/pg_dumpall_*.sql` backup.
-`make postgres18-finalize` runs the same verification and then deletes `./.docker_data/db` and `./.docker_data/backups/postgres18-migration`.
+`mise run dev:postgres18:finalize` runs the same verification and then deletes `./.docker_data/db` and `./.docker_data/backups/postgres18-migration`.
 
 ---
 
@@ -284,14 +278,16 @@ If old `./.docker_data/db` cannot be started, it falls back to verifying against
 To test the production Docker build locally:
 
 ```shell
-make prod
+mise run dev:prod
 ```
+
+Use `mise run dev:prod:no-cache` when you need to bypass Docker layer cache.
 
 This builds a production-optimized image and starts the container. Access the admin at:
 * <a href="https://admin.medusa.localhost/app">https://admin.medusa.localhost/app</a> (requires HTTPS for session cookies)
 
 Note: Production mode uses secure cookies, so you must access via HTTPS (Caddy) rather than `http://localhost:9000`.
-Note: `make prod` now starts `medusa-be`, waits for health, regenerates `apps/n1/src/data/static/categories.ts` from Medusa data, then builds the `n1` prod image.
+Note: `mise run dev:prod` now starts `medusa-be`, waits for health, regenerates `apps/n1/src/data/static/categories.ts` from Medusa data, then builds the `n1` prod image.
 
 ---
 

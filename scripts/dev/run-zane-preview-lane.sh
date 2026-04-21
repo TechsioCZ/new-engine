@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env.zane"
+ENV_FILE_EXPLICIT="false"
 
 # shellcheck source=scripts/dev/lib/common.sh
 source "${ROOT_DIR}/scripts/dev/lib/common.sh"
@@ -43,7 +44,7 @@ Options:
   -h, --help                     show this help
 
 Notes:
-  - Local defaults are sourced from .env.zane.
+  - Local defaults are sourced from .env.zane when present.
   - This helper stays thin: repo policy remains owned by apps/new-engine-ctl.
   - Pass explicit services, for example: --services-csv medusa-be,n1
 EOF
@@ -54,6 +55,7 @@ parse_args() {
     case "$1" in
       --env-file)
         ENV_FILE="$2"
+        ENV_FILE_EXPLICIT="true"
         shift 2
         ;;
       --pr-number)
@@ -112,7 +114,13 @@ parse_args() {
 }
 
 load_env_file() {
-  [[ -f "$ENV_FILE" ]] || common::die "Env file not found: $ENV_FILE"
+  if [[ ! -f "$ENV_FILE" ]]; then
+    if [[ "$ENV_FILE_EXPLICIT" == "true" ]]; then
+      common::die "Env file not found: $ENV_FILE"
+    fi
+    common::warn "Optional env defaults file not found: $ENV_FILE. Continuing with flags and existing environment."
+    return
+  fi
 
   set +u
   set -a
@@ -173,7 +181,7 @@ derive_defaults() {
   PRODUCTION_ENVIRONMENT_NAME="${PRODUCTION_ENVIRONMENT_NAME:-${ZANE_ENVIRONMENT_NAME:-${ZANE_PRODUCTION_ENVIRONMENT_NAME:-production}}}"
 
   [[ -n "$PROJECT_SLUG" ]] || common::die "Unable to resolve project slug. Pass --project-slug or export ZANE_PROJECT_SLUG."
-
+  [[ -n "$ZANE_OPERATOR_API_TOKEN" ]] || common::die "Unable to resolve Zane operator API token. Pass --operator-api-token or export DC_ZANE_OPERATOR_API_AUTH_TOKEN."
   if [[ -z "$ZANE_OPERATOR_BASE_URL" ]]; then
     derive_public_domain
     ZANE_OPERATOR_BASE_URL="https://${PROJECT_SLUG}-zane-operator${PUBLIC_URL_AFFIX}.${PUBLIC_DOMAIN}"
@@ -408,7 +416,6 @@ main() {
 
   [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || common::die "--pr-number must be a positive integer."
   [[ -n "$SERVICES_CSV" ]] || common::die "--services-csv is required."
-  [[ -n "$ZANE_OPERATOR_API_TOKEN" ]] || common::die "Unable to resolve ZANE operator API token from ${ENV_FILE}."
 
   common::configure_node_extra_ca_certs_from_local_caddy "$ZANE_OPERATOR_BASE_URL"
   trap 'common::cleanup_node_extra_ca_certs_temp' EXIT

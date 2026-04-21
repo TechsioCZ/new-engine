@@ -48,7 +48,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 if [ -z "$(docker compose ps -q medusa-db)" ]; then
-  echo "medusa-db container is not running. Start the stack first (for example: make dev)." >&2
+  echo "medusa-db container is not running. Start the stack first (for example: mise run dev)." >&2
   exit 1
 fi
 

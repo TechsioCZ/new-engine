@@ -7,8 +7,16 @@ description = "Incremental local startup: resources -> meili provisioning -> bac
 run = "mise run dev:resources && mise run dev:internal:meili:sync-env && mise run dev:backend && mise run dev:frontend"
 
 [tasks."dev:fresh"]
-description = "Fresh local startup from clean state: down -> resources -> meili provisioning -> backend phase -> frontend phase"
-run = "mise run dev:internal:down && mise run dev:resources && mise run dev:internal:meili:sync-env && mise run dev:backend && mise run dev:frontend"
+description = "Fresh local restart from stopped state: down -> resources -> meili provisioning -> backend phase -> frontend phase"
+run = "mise run dev:down && mise run dev:resources && mise run dev:internal:meili:sync-env && mise run dev:backend && mise run dev:frontend"
+
+[tasks."dev:down"]
+description = "Gracefully stop and remove the local compose stack"
+run = "mise run dev:internal:down"
+
+[tasks."dev:down:volumes"]
+description = "Stop the local compose stack and remove named volumes"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} down -v --remove-orphans --timeout ${COMPOSE_STOP_TIMEOUT:-60}"
 
 [tasks."dev:resources"]
 description = "Start and wait for manifest-defined shared resources"
@@ -26,14 +34,69 @@ run = "mise run dev:internal:frontend:up && mise run dev:internal:frontend:wait"
 description = "Converge medusa-db bootstrap state for current operator envs, then start operator runtime services"
 run = "bash ./scripts/dev/mise-dev-helpers.sh ensure-operator-db-convergence && mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
 
-[tasks."test:e2e:medusa-be:http"]
-description = "Start isolated Medusa BE e2e stack, run all HTTP e2e specs, then teardown"
-run = "bash ./scripts/e2e/medusa-be-http.sh run"
+[tasks."dev:corepack:update"]
+description = "Update Corepack inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} corepack up"
 
-[tasks."test:e2e:medusa-be:http:debug"]
-description = "Run Medusa BE HTTP e2e specs against an isolated stack and keep containers running for debugging"
-run = "MEDUSA_E2E_KEEP_STACK=1 bash ./scripts/e2e/medusa-be-http.sh run"
+[tasks."dev:install"]
+description = "Install workspace dependencies inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm install --frozen-lockfile"
 
+[tasks."dev:install:fix-lock"]
+description = "Repair the pnpm lockfile inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm install --fix-lockfile"
+
+[tasks."dev:deps:update"]
+description = "Update Medusa backend workspace dependencies inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm --filter medusa-be update --latest"
+
+[tasks."dev:deps:update:medusa"]
+description = "Update @medusajs/* packages inside the Medusa backend workspace"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm --filter medusa-be update '@medusajs/*' --latest"
+
+[tasks."dev:deps:npkill"]
+description = "Interactively clean node_modules trees inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -it -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpx npkill -x -D -y"
+
+[tasks."dev:prod"]
+description = "Build and run the local production compose stack, including frontend category regeneration"
+run = "bash ./scripts/dev/run-prod-stack.sh"
+
+[tasks."dev:prod:no-cache"]
+description = "Build and run the local production compose stack without Docker layer cache"
+run = "bash ./scripts/dev/run-prod-stack.sh --no-cache"
+
+[tasks."dev:medusa:user:create"]
+description = "Create a Medusa admin user in the running local stack (requires EMAIL and PASSWORD)"
+run = """bash -lc 'test -n \"${EMAIL:-}\" && test -n \"${PASSWORD:-}\" || { echo \"EMAIL and PASSWORD are required.\" >&2; exit 1; }; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be exec medusa user -e \"$EMAIL\" -p \"$PASSWORD\"'"""
+
+[tasks."dev:medusa:migrate"]
+description = "Run Medusa migrations against the running local stack"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run migrate"
+
+[tasks."dev:medusa:migration:generate"]
+description = "Generate a Medusa migration in the running local stack (requires MODULE)"
+run = """bash -lc 'test -n \"${MODULE:-}\" || { echo \"MODULE is required.\" >&2; exit 1; }; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run migrate:generate-only \"$MODULE\"'"""
+
+[tasks."dev:medusa:minio:init"]
+description = "Manually reapply the local MinIO bootstrap fallback against the running stack"
+run = "bash ./scripts/dev/minio-init.sh"
+
+[tasks."dev:medusa:meili:reseed"]
+description = "Rebuild Medusa search documents in the running local stack"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run addInitialSearchDocuments"
+
+[tasks."dev:medusa:seed"]
+description = "Seed initial Medusa data in the running local stack"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedInitialData"
+
+[tasks."dev:medusa:seed:dev-data"]
+description = "Seed Medusa development data in the running local stack"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedDevData"
+
+[tasks."dev:medusa:seed:n1"]
+description = "Seed N1-specific Medusa data in the running local stack"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedN1"
 
 [tasks."dev:postgres:bootstrap"]
 description = "Rerun medusa-db role bootstrap against the running local stack"
@@ -43,6 +106,26 @@ run = "bash ./scripts/apply-postgres-role-bootstrap.sh"
 description = "Rerun medusa-db role bootstrap twice to verify idempotency"
 run = "bash ./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent"
 
+[tasks."dev:postgres:grants:verify"]
+description = "Verify hardened Postgres grants and search_path in the running local stack"
+run = "bash ./scripts/verify-postgres-grants.sh"
+
+[tasks."dev:postgres18:migrate"]
+description = "Migrate an existing local Postgres <18 data dir into the PG18 layout"
+run = "bash ./scripts/postgres18-local-migrate.sh"
+
+[tasks."dev:postgres18:verify"]
+description = "Verify migrated PG18 state against the old cluster data without deleting backups"
+run = "bash ./scripts/postgres18-verify-and-finalize.sh --check-only"
+
+[tasks."dev:postgres18:finalize"]
+description = "Verify migrated PG18 state and delete the old cluster data plus migration backups"
+run = "bash ./scripts/postgres18-verify-and-finalize.sh --yes"
+
+[tasks."dev:meili:verify"]
+description = "Thin local helper that checks provided Meili keys against the active CLI-managed contract"
+run = "bash ./scripts/dev/verify-meili-keys.sh"
+
 [tasks."dev:zane:main"]
 description = "Simulate the active CI main lane locally against a deployed Zane target"
 run = "bash ./scripts/dev/run-zane-main-lane.sh"
@@ -51,10 +134,6 @@ run = "bash ./scripts/dev/run-zane-main-lane.sh"
 description = "Simulate the active CI preview lane locally against a deployed Zane target"
 run = "bash ./scripts/dev/run-zane-preview-lane.sh"
 
-[tasks."dev:meili:verify"]
-description = "Thin local helper that checks provided Meili keys against the active CLI-managed contract"
-run = "bash ./scripts/dev/verify-meili-keys.sh"
-
 [tasks."dev:zane:project:sync"]
 description = "Rare-use CTL-backed Zane helper: create or sync the canonical project/services on a deployed Zane stack"
 run = "bash ./scripts/dev/setup-zane-project.sh"
@@ -62,6 +141,18 @@ run = "bash ./scripts/dev/setup-zane-project.sh"
 [tasks."dev:zane:template-db:sync"]
 description = "Rare-use CTL-backed Zane helper: create or refresh the live preview template DB on a deployed Zane stack"
 run = "bash ./scripts/dev/refresh-zane-template-db.sh"
+
+[tasks."dev:biome:medusa-be"]
+description = "Run Biome with writes against apps/medusa-be"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm exec biome check --write apps/medusa-be"
+
+[tasks."test:e2e:medusa-be:http"]
+description = "Start isolated Medusa BE e2e stack, run all HTTP e2e specs, then teardown"
+run = "bash ./scripts/e2e/medusa-be-http.sh run"
+
+[tasks."test:e2e:medusa-be:http:debug"]
+description = "Run Medusa BE HTTP e2e specs against an isolated stack and keep containers running for debugging"
+run = "MEDUSA_E2E_KEEP_STACK=1 bash ./scripts/e2e/medusa-be-http.sh run"
 
 [tasks."dev:internal:resources:up"]
 description = "Start manifest-defined shared resource services"
