@@ -168,75 +168,128 @@ export function CheckoutCartItemRow({
   };
 
   return (
-    <article className="flex flex-col gap-250 md:flex-row md:items-start md:gap-300">
-      <div className="flex min-w-0 flex-1 h-full items-start gap-200">
-        <Link
-          as={NextLink}
-          className="inline-flex size-[120px] shrink-0"
-          href={itemHref}
-        >
-          <NextImage
-            alt={itemName}
-            className="object-cover"
-            height={120}
-            quality={50}
-            src={resolveLineItemThumbnail(item)}
-            width={120}
-          />
-        </Link>
-
-        <div className="min-w-0 flex-1 h-full pt-100">
-          <Link
-            as={NextLink}
-            className="line-clamp-2 font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary sm:line-clamp-3"
-            href={itemHref}
-          >
-            {itemName}
-          </Link>
-
-          <p className="mt-500 h-full inline-flex items-start gap-150 font-medium text-primary text-xs leading-normal">
-            <Icon className="shrink-0 text-md" icon="icon-[mdi--check]" />
-            <span className="min-w-0">{availabilityText}</span>
-          </p>
-        </div>
+    <article className="flex flex-col w-full gap-250 sm:flex-row sm:items-start md:gap-300 md:grid md:grid-cols-[auto_1fr]">
+      <div className="flex gap-100">
+      <Link
+        as={NextLink}
+        className="inline-flex size-[120px] shrink-0"
+        href={itemHref}
+      >
+        <NextImage
+          alt={itemName}
+          className="object-cover"
+          height={120}
+          quality={50}
+          src={resolveLineItemThumbnail(item)}
+          width={120}
+        />
+      </Link>
+      <div className="flex flex-col gap-300 items-start sm:hidden w-full">
+            <Link
+              as={NextLink}
+              className="font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary"
+              href={itemHref}
+            >
+              {itemName}
+            </Link>
+          <div className="flex w-full justify-between">
+             <div className="flex justify-center">
+            <NumericInput
+              allowOverflow={false}
+              className="w-20 shrink-0 sm:w-24"
+              max={itemMaxQuantity}
+              min={1}
+              onChange={handleQuantityChange}
+              size="md"
+              value={localQuantity}
+            >
+              <NumericInput.Control>
+                <NumericInput.DecrementTrigger
+                  disabled={isPending || localQuantity <= 1}
+                />
+                <NumericInput.Input
+                  aria-label={`Množstvo pre ${itemName}`}
+                  className="text-center"
+                />
+                <NumericInput.IncrementTrigger
+                  disabled={isPending || localQuantity >= itemMaxQuantity}
+                />
+              </NumericInput.Control>
+            </NumericInput>
+          </div>
+          <div className="flex flex-col gap-100">
+            {shouldShowOriginalAmount ? (
+              <p className="font-light text-fg-secondary text-sm leading-tight line-through">
+                {formatCurrencyAmount(originalLineAmount, currencyCode)}
+              </p>
+            ) : null}
+            <p className="font-bold text-fg-primary text-xl leading-tight">
+              {formatCurrencyAmount(currentLineAmount, currencyCode)}
+            </p>
+          </div>
+          </div>
+      </div>
       </div>
 
-      <div className="flex w-full items-start justify-between gap-250 md:w-auto md:shrink-0 md:justify-end md:pl-250">
-        <NumericInput
-          allowOverflow={false}
-          className="w-20 shrink-0 sm:w-24"
-          max={itemMaxQuantity}
-          min={1}
-          onChange={handleQuantityChange}
-          size="md"
-          value={localQuantity}
-        >
-          <NumericInput.Control>
-            <NumericInput.DecrementTrigger
-              disabled={isPending || localQuantity <= 1}
-            />
-            <NumericInput.Input
-              aria-label={`Množstvo pre ${itemName}`}
-              className="text-center"
-            />
-            <NumericInput.IncrementTrigger
-              disabled={isPending || localQuantity >= itemMaxQuantity}
-            />
-          </NumericInput.Control>
-        </NumericInput>
+      <div className="grid grid-rows-[1fr_auto] h-full w-full">
+        <div className="hidden sm:grid sm:grid-cols-[3fr_2fr_auto]">
+          <div className="flex items-start">
+            <Link
+              as={NextLink}
+              className="font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary"
+              href={itemHref}
+            >
+              {itemName}
+            </Link>
+          </div>
 
-        <div className="flex min-w-0 flex-col items-end gap-100 text-right md:min-h-750">
-          {shouldShowOriginalAmount ? (
-            <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-              {formatCurrencyAmount(originalLineAmount, currencyCode)}
+          <div className="flex justify-center">
+            <NumericInput
+              allowOverflow={false}
+              className="w-20 shrink-0 sm:w-24"
+              max={itemMaxQuantity}
+              min={1}
+              onChange={handleQuantityChange}
+              size="md"
+              value={localQuantity}
+            >
+              <NumericInput.Control>
+                <NumericInput.DecrementTrigger
+                  disabled={isPending || localQuantity <= 1}
+                />
+                <NumericInput.Input
+                  aria-label={`Množstvo pre ${itemName}`}
+                  className="text-center"
+                />
+                <NumericInput.IncrementTrigger
+                  disabled={isPending || localQuantity >= itemMaxQuantity}
+                />
+              </NumericInput.Control>
+            </NumericInput>
+          </div>
+          <div className="flex flex-col gap-100">
+            {shouldShowOriginalAmount ? (
+              <p className="font-light text-fg-secondary text-sm leading-tight line-through">
+                {formatCurrencyAmount(originalLineAmount, currencyCode)}
+              </p>
+            ) : null}
+            <p className="font-bold text-fg-primary text-xl leading-tight">
+              {formatCurrencyAmount(currentLineAmount, currencyCode)}
             </p>
-          ) : null}
-          <p className="font-bold text-fg-primary text-xl leading-tight">
-            {formatCurrencyAmount(currentLineAmount, currencyCode)}
+          </div>
+        </div>
+
+          
+        <div className="flex justify-between items-center">
+          <p className="inline-flex items-end h-full gap-150 font-medium text-primary text-xs leading-normal">
+            <span className="h-fit flex items-center gap-150">
+            <Icon className="shrink-0 text-md" icon="icon-[mdi--check]" />
+            <span className="min-w-0">{availabilityText}</span>
+            </span>
           </p>
           <Button
             aria-label={`Odstrániť ${itemName} z košíka`}
-            className="mt-50 h-650 w-650 p-150 text-fg-secondary hover:text-fg-primary md:mt-auto"
+            className="text-fg-secondary text-2xl hover:text-fg-primary"
             disabled={isPending}
             icon="icon-[mdi--trash-can-outline]"
             onClick={() => onRemove(item.id)}
@@ -246,6 +299,7 @@ export function CheckoutCartItemRow({
           />
         </div>
       </div>
+
     </article>
   );
 }
