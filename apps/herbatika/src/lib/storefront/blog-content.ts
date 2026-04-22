@@ -25,6 +25,11 @@ export type BlogPost = {
   sections: BlogPostSection[];
 };
 
+export type BlogRecommendedProductsConfig = {
+  categoryHandles: string[];
+  limit?: number;
+};
+
 export type BlogTopicFilter = {
   key: BlogTopicKey;
   label: string;
@@ -81,56 +86,6 @@ export const BLOG_FEATURED_PRODUCT = {
   discountLabel: "-4,50 €",
 };
 
-export const BLOG_INLINE_PRODUCTS = [
-  {
-    id: "inline-product-1",
-    title: "Sofia krém na žily s extraktom z pijavice lekárskej",
-    excerpt:
-      "Podporte harmóniu medzi cievom a mysľou s unikátnou kombináciou šafranu, probiotík a prebiotík.",
-    imageSrc:
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=640&q=80",
-    badges: ["Novinka"],
-    oldPrice: "20,23 €",
-    price: "16,83 €",
-    discountLabel: null,
-  },
-  {
-    id: "inline-product-2",
-    title: "Yucca kapsuly pre pohybový aparát",
-    excerpt:
-      "Podpora pohybového aparátu a každodennej vitality pri zvýšenej fyzickej záťaži.",
-    imageSrc:
-      "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&w=640&q=80",
-    badges: ["Novinka", "Tip"],
-    oldPrice: null,
-    price: "16,83 €",
-    discountLabel: null,
-  },
-  {
-    id: "inline-product-3",
-    title: "Pine pollen 100% kapsuly",
-    excerpt:
-      "Prírodná podpora vitality a energie pre každodenné fungovanie organizmu.",
-    imageSrc:
-      "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=640&q=80",
-    badges: ["Akcia"],
-    oldPrice: "20,23 €",
-    price: "16,83 €",
-    discountLabel: "-4,50 €",
-  },
-  {
-    id: "inline-product-4",
-    title: "Bylinný komplex pre zdravé kĺby",
-    excerpt:
-      "Vyvážené zloženie bylinných extraktov pre aktívny pohyb bez kompromisov.",
-    imageSrc:
-      "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&w=640&q=80",
-    badges: ["Tip"],
-    oldPrice: null,
-    price: "16,83 €",
-    discountLabel: null,
-  },
-] as const;
 
 export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
   {
@@ -631,10 +586,105 @@ export const resolveBlogListing = ({
   };
 };
 
+const BLOG_RECOMMENDED_PRODUCTS_BY_SLUG: Record<
+  string,
+  BlogRecommendedProductsConfig
+> = {
+  "adaptogeny-kedy-ich-zaradit-do-svojho-rezimu": {
+    categoryHandles: [
+      "doplnky-vyzivy-adaptogeny",
+      "doplnky-vyzivy-bylinne-extrakty",
+    ],
+    limit: 10,
+  },
+  "ashwagandha-adaptogen-pre-rovnovahu-tela-a-mysle": {
+    categoryHandles: [
+      "doplnky-vyzivy-adaptogeny",
+      "doplnky-vyzivy-bylinne-extrakty",
+    ],
+    limit: 10,
+  },
+  "detox-pecene-bez-extremov": {
+    categoryHandles: [
+      "trapi-ma-travenie-a-metabolizmus-pecen-a-zlcnik",
+      "doplnky-vyzivy-bylinne-extrakty",
+    ],
+    limit: 10,
+  },
+  "elektrolyty-klucove-mineraly-pre-spravne-fungovanie-tela": {
+    categoryHandles: [
+      "doplnky-vyzivy-vitaminy-a-mineraly",
+      "doplnky-vyzivy-lipozomalne-vitaminy",
+    ],
+    limit: 10,
+  },
+  "hormonalna-rovnovaha-a-kazdodenny-rezim": {
+    categoryHandles: [
+      "trapi-ma-hormonalna-rovnovaha-zenske-zdravie-2",
+      "trapi-ma-hormonalna-rovnovaha-stitna-zlaza",
+    ],
+    limit: 10,
+  },
+  "kolagen-pre-klby-a-vaziva": {
+    categoryHandles: [
+      "trapi-ma-klby-a-pohybovy-aparat-klby",
+      "trapi-ma-klby-a-pohybovy-aparat-chrupavky",
+    ],
+    limit: 10,
+  },
+  "lymfaticky-system-a-regeneracia": {
+    categoryHandles: [
+      "trapi-ma-srdce-a-cievy-lymfaticky-system-2",
+      "trapi-ma-srdce-a-cievy-krcove-zily-2",
+    ],
+    limit: 10,
+  },
+  "mineraly-pre-aktivny-zivot-a-sport": {
+    categoryHandles: [
+      "doplnky-vyzivy-vitaminy-a-mineraly",
+      "doplnky-vyzivy-lipozomalne-vitaminy",
+    ],
+    limit: 10,
+  },
+  "prirodna-kozmetika-a-citliva-pokozka": {
+    categoryHandles: [
+      "prirodna-kozmetika-pletova-kozmetika-specialna-starostlivost-o-plet",
+      "prirodna-kozmetika-pletova-kozmetika-pletove-kremy",
+    ],
+    limit: 10,
+  },
+  "probiotika-a-travenie-kazdy-den": {
+    categoryHandles: [
+      "doplnky-vyzivy-probiotika-a-prebiotika",
+      "trapi-ma-travenie-a-metabolizmus-creva-a-crevna-mikroflora",
+    ],
+    limit: 10,
+  },
+  "srdce-a-cievy-ako-podporit-obeh-prirodzene": {
+    categoryHandles: [
+      "trapi-ma-srdce-a-cievy-cholesterol",
+      "trapi-ma-srdce-a-cievy-vysoky-krvny-tlak",
+    ],
+    limit: 10,
+  },
+  "travenie-a-metabolizmus-ako-zacat-od-zakladu": {
+    categoryHandles: [
+      "trapi-ma-travenie-a-metabolizmus-travenie-a-zaludok",
+      "trapi-ma-travenie-a-metabolizmus-creva-a-crevna-mikroflora",
+    ],
+    limit: 10,
+  },
+};
+
 export const resolveBlogPostBySlug = (slug: string) => {
   return HERBATIKA_BLOG_POSTS.find((post) => post.slug === slug) ?? null;
+};
+
+export const resolveBlogRecommendedProductsConfig = (slug: string) => {
+  return BLOG_RECOMMENDED_PRODUCTS_BY_SLUG[slug] ?? null;
 };
 
 export const resolveRelatedBlogPosts = (slug: string, limit = 4) => {
   return HERBATIKA_BLOG_POSTS.filter((post) => post.slug !== slug).slice(0, limit);
 };
+

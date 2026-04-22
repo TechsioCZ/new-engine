@@ -80,6 +80,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
 
                 return (
                   <LinkButton
+                    as={NextLink}
                     className="rounded-full px-400 py-200 font-open-sans text-md font-semibold"
                     href={resolveBlogListingHref({
                       topic: filter.key,
@@ -107,6 +108,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
             <div className="relative flex min-h-600 items-center justify-center">
               {shouldShowLoadMore ? (
                 <LinkButton
+                  as={NextLink}
                   className="rounded-full px-550 py-250 font-open-sans text-sm font-semibold"
                   href={resolveBlogListingHref({
                     topic: listing.topic,

@@ -1,3 +1,4 @@
+import type { HttpTypes } from "@medusajs/types";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
@@ -5,19 +6,23 @@ import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
 import NextImage from "next/image";
 import type { BlogPost } from "@/lib/storefront/blog-content";
-import { BLOG_INLINE_PRODUCTS } from "@/lib/storefront/blog-content";
 import { BlogArticleSidebar } from "./blog-article-sidebar";
 import { BlogAuthorCard } from "./blog-author-card";
 import { formatBlogDate } from "./blog-formatters";
-import { BlogInlineProductCard } from "./blog-inline-product-card";
+import { BlogInlineProductsCarousel } from "./blog-inline-products-carousel";
 import { BlogRelatedCard } from "./blog-related-card";
 
 type BlogDetailPageProps = {
   post: BlogPost;
+  recommendedProducts: HttpTypes.StoreProduct[];
   relatedPosts: BlogPost[];
 };
 
-export function BlogDetailPage({ post, relatedPosts }: BlogDetailPageProps) {
+export function BlogDetailPage({
+  post,
+  recommendedProducts,
+  relatedPosts,
+}: BlogDetailPageProps) {
   const breadcrumbItems: Array<{
     label: string;
     href?: string;
@@ -119,50 +124,47 @@ export function BlogDetailPage({ post, relatedPosts }: BlogDetailPageProps) {
               </ul>
             </section>
 
-            {post.sections.map((section) => (
-              <section
-                className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400"
-                key={section.title}
-              >
-                <h2 className="text-2xl leading-tight font-bold text-fg-primary">
-                  {section.title}
-                </h2>
+            <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
+              {post.sections.map((section) => (
+                <section className="space-y-250" key={section.title}>
+                  <h2 className="text-xl leading-tight text-fg-primary">
+                    {section.title}
+                  </h2>
 
-                {section.paragraphs.map((paragraph) => (
-                  <p className="text-sm leading-relaxed text-fg-primary" key={paragraph}>
-                    {paragraph}
-                  </p>
-                ))}
+                  {section.paragraphs.map((paragraph) => (
+                    <p className="text-md leading-relaxed text-fg-primary" key={paragraph}>
+                      {paragraph}
+                    </p>
+                  ))}
 
-                {section.bulletPoints ? (
-                  <ul className="space-y-100 pl-350">
-                    {section.bulletPoints.map((item) => (
-                      <li
-                        className="list-disc text-sm leading-relaxed text-fg-primary marker:text-primary"
-                        key={item}
-                      >
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </section>
-            ))}
+                  {section.bulletPoints ? (
+                    <ul className="space-y-100 pl-350">
+                      {section.bulletPoints.map((item) => (
+                        <li
+                          className="list-disc text-md leading-relaxed text-fg-primary marker:text-primary"
+                          key={item}
+                        >
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </section>
+              ))}
+            </article>
 
             <section className="space-y-300">
-              <div className="grid gap-300 sm:grid-cols-2 xl:grid-cols-4">
-                {BLOG_INLINE_PRODUCTS.map((product) => (
-                  <BlogInlineProductCard key={product.id} product={product} />
-                ))}
-              </div>
-
-              <ul className="space-y-100 rounded-2xl border border-border-secondary bg-surface p-400">
+              {recommendedProducts.length > 0 ? (
+                <BlogInlineProductsCarousel products={recommendedProducts} />
+              ) : null}
+              <ul className="space-y-0 rounded-2xl bg-surface p-400">
                 {post.bulletPoints.map((item) => (
-                  <li
-                    className="list-disc text-sm leading-relaxed text-fg-primary marker:text-primary"
-                    key={item}
-                  >
-                    {item}
+                  <li className="grid grid-cols-[6px_minmax(0,1fr)] gap-100 py-[1px]" key={item}>
+                    <span
+                      aria-hidden="true"
+                      className="mt-150 h-[6px] w-[6px] rounded-full bg-primary"
+                    />
+                    <span className="text-md leading-[1.5] text-fg-primary">{item}</span>
                   </li>
                 ))}
               </ul>
