@@ -1,3 +1,4 @@
+import type { HttpTypes } from "@medusajs/types";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
@@ -5,19 +6,23 @@ import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
 import NextImage from "next/image";
 import type { BlogPost } from "@/lib/storefront/blog-content";
-import { BLOG_INLINE_PRODUCTS } from "@/lib/storefront/blog-content";
 import { BlogArticleSidebar } from "./blog-article-sidebar";
 import { BlogAuthorCard } from "./blog-author-card";
 import { formatBlogDate } from "./blog-formatters";
-import { BlogInlineProductCard } from "./blog-inline-product-card";
+import { BlogInlineProductsCarousel } from "./blog-inline-products-carousel";
 import { BlogRelatedCard } from "./blog-related-card";
 
 type BlogDetailPageProps = {
   post: BlogPost;
+  recommendedProducts: HttpTypes.StoreProduct[];
   relatedPosts: BlogPost[];
 };
 
-export function BlogDetailPage({ post, relatedPosts }: BlogDetailPageProps) {
+export function BlogDetailPage({
+  post,
+  recommendedProducts,
+  relatedPosts,
+}: BlogDetailPageProps) {
   const breadcrumbItems: Array<{
     label: string;
     href?: string;
@@ -149,12 +154,9 @@ export function BlogDetailPage({ post, relatedPosts }: BlogDetailPageProps) {
             </article>
 
             <section className="space-y-300">
-              <div className="grid gap-300 sm:grid-cols-2 xl:grid-cols-4">
-                {BLOG_INLINE_PRODUCTS.map((product) => (
-                  <BlogInlineProductCard key={product.id} product={product} />
-                ))}
-              </div>
-
+              {recommendedProducts.length > 0 ? (
+                <BlogInlineProductsCarousel products={recommendedProducts} />
+              ) : null}
               <ul className="space-y-100 rounded-2xl border border-border-secondary bg-surface p-400">
                 {post.bulletPoints.map((item) => (
                   <li

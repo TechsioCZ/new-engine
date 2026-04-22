@@ -97,6 +97,14 @@ export const prefetchServerProducts = (
     storefrontServerRead.queries.products.getListQueryOptions(listParams),
   );
 
+export const fetchServerProducts = (
+  queryClient: QueryClient,
+  listParams: ProductListParams,
+) =>
+  queryClient.fetchQuery(
+    storefrontServerRead.queries.products.getListQueryOptions(listParams),
+  );
+
 export const fetchServerProduct = (
   queryClient: QueryClient,
   detailParams: ProductDetailParams,

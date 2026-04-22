@@ -1,11 +1,27 @@
+import type { HttpTypes } from "@medusajs/types";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { BlogDetailPage } from "@/components/blog/blog-detail-page";
 import {
+  buildCategoryListParams,
+  STOREFRONT_CATEGORY_TREE_FIELDS,
+  STOREFRONT_CATEGORY_TREE_LIMIT,
+} from "@/lib/storefront/category-query-config";
+import {
   resolveBlogPostBySlug,
+  resolveBlogRecommendedProductsConfig,
   resolveRelatedBlogPosts,
 } from "@/lib/storefront/blog-content";
+import {
+  buildProductListParams,
+  STOREFRONT_PRODUCT_CARD_FIELDS,
+} from "@/lib/storefront/product-query-config";
+import { getRegionServerContext } from "@/lib/storefront/ssr/context";
+import {
+  fetchServerCategories,
+  fetchServerProducts,
+} from "@/lib/storefront/storefront-server";
 
 type BlogDetailRouteProps = {
   params: Promise<{
@@ -15,6 +31,65 @@ type BlogDetailRouteProps = {
 
 function BlogDetailPageFallback() {
   return <main className="mx-auto min-h-dvh w-full max-w-max-w" />;
+}
+
+async function resolveRecommendedProductsForBlogPost(
+  slug: string,
+): Promise<HttpTypes.StoreProduct[]> {
+  const recommendationConfig = resolveBlogRecommendedProductsConfig(slug);
+  if (!recommendationConfig) {
+    return [];
+  }
+
+  const { queryClient, region } = await getRegionServerContext();
+  const categoryResponse = await fetchServerCategories(
+    queryClient,
+    buildCategoryListParams({
+      page: 1,
+      limit: STOREFRONT_CATEGORY_TREE_LIMIT,
+      fields: STOREFRONT_CATEGORY_TREE_FIELDS,
+    }),
+  );
+
+  const recommendedCategoryIds = recommendationConfig.categoryHandles
+    .map((handle) => {
+      return categoryResponse.categories.find(
+        (category) => category.handle === handle,
+      )?.id;
+    })
+    .filter((categoryId): categoryId is string => typeof categoryId === "string");
+
+  if (recommendedCategoryIds.length === 0) {
+    return [];
+  }
+
+  const recommendedProductsLimit = Math.min(
+    Math.max(recommendationConfig.limit ?? 8, 1),
+    10,
+  );
+  const productResponse = await fetchServerProducts(
+    queryClient,
+    buildProductListParams({
+      page: 1,
+      limit: recommendedProductsLimit,
+      fields: STOREFRONT_PRODUCT_CARD_FIELDS,
+      order: "-created_at",
+      category_id: recommendedCategoryIds,
+      region_id: region?.region_id,
+      country_code: region?.country_code,
+    }),
+  );
+
+  const uniqueProducts = new Map<string, HttpTypes.StoreProduct>();
+  for (const product of productResponse.products) {
+    if (!product.id || uniqueProducts.has(product.id)) {
+      continue;
+    }
+
+    uniqueProducts.set(product.id, product);
+  }
+
+  return [...uniqueProducts.values()].slice(0, recommendedProductsLimit);
 }
 
 async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {
@@ -27,8 +102,15 @@ async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {
   }
 
   const relatedPosts = resolveRelatedBlogPosts(post.slug, 4);
+  const recommendedProducts = await resolveRecommendedProductsForBlogPost(post.slug);
 
-  return <BlogDetailPage post={post} relatedPosts={relatedPosts} />;
+  return (
+    <BlogDetailPage
+      post={post}
+      recommendedProducts={recommendedProducts}
+      relatedPosts={relatedPosts}
+    />
+  );
 }
 
 export default function BlogDetailPageRoute(props: BlogDetailRouteProps) {
