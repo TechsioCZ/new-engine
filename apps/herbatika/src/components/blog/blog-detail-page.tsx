@@ -9,7 +9,7 @@ import type { BlogPost } from "@/lib/storefront/blog-content";
 import { BlogArticleSidebar } from "./blog-article-sidebar";
 import { BlogAuthorCard } from "./blog-author-card";
 import { formatBlogDate } from "./blog-formatters";
-import { BlogInlineProductsCarousel } from "./blog-inline-products-carousel";
+import { InlineProductsCarousel } from "./inline-products-carousel";
 import { BlogRelatedCard } from "./blog-related-card";
 
 type BlogDetailPageProps = {
@@ -155,7 +155,7 @@ export function BlogDetailPage({
 
             <section className="space-y-300">
               {recommendedProducts.length > 0 ? (
-                <BlogInlineProductsCarousel products={recommendedProducts} />
+                <InlineProductsCarousel products={recommendedProducts} />
               ) : null}
               <ul className="space-y-0 rounded-2xl bg-surface p-400">
                 {post.bulletPoints.map((item) => (
