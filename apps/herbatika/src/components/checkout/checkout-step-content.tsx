@@ -60,6 +60,9 @@ export function CheckoutStepContent({
     case "kosik":
       return (
         <CheckoutStepLayout
+          header={<h2 className="text-2xl col-span-full leading-tight font-inter font-semibold text-fg-primary">
+         {`Váš košík (${controller.cartItems.length})`}
+      </h2>}
           aside={
             <CheckoutCartSidebarSection
               cartSubtotalAmount={controller.cartSubtotalAmount}
@@ -133,17 +136,20 @@ export function CheckoutStepContent({
 }
 
 function CheckoutStepLayout({
+  header,
   aside,
   children,
   cartItems,
 }: {
+  header?: ReactNode;
   aside: ReactNode;
   children: ReactNode;
   cartItems?: HttpTypes.StoreCartLineItem[];
 }) {
   return (
     <div className="mx-auto max-w-max-w w-full space-y-900">
-      <div className="grid w-full max-w-checkout mx-auto gap-700 xl:grid-cols-12 xl:items-start">
+      <div className="grid w-full max-w-checkout mx-auto gap-x-700 gap-y-400 xl:grid-cols-12 xl:items-start">
+        {header}
         <div className="space-y-350 xl:col-span-7">{children}</div>
         <aside className="space-y-300 xl:sticky xl:top-400 xl:col-span-5 xl:self-start">
           {aside}

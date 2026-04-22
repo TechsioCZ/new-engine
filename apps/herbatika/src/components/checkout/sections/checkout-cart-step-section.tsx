@@ -54,7 +54,7 @@ export function CheckoutCartStepSection({
   const freeShippingTargetLabel =
     freeShippingThresholdAmount === null
       ? null
-      : formatCurrencyAmount(freeShippingThresholdAmount, supportedCurrencyCode);
+      : formatCurrencyAmount(freeShippingThresholdAmount, supportedCurrencyCode, {minimumFractionDigits: 0, maximumFractionDigits: 0});
 
   const handleUpdateQuantity = (lineItemId: string, quantity: number) => {
     if (!cartId) {
@@ -90,10 +90,6 @@ export function CheckoutCartStepSection({
 
   return (
     <section className="space-y-300">
-      <h2 className="text-4xl leading-tight font-semibold text-fg-primary">
-        {`Váš košík (${cartItems.length})`}
-      </h2>
-
       {freeShippingThresholdAmount !== null ? (
         <div className="min-h-900 rounded-sm border border-border-primary bg-surface px-400 pt-400 pb-650 md:px-550">
           <p className="text-center text-sm font-light leading-relaxed text-fg-primary">
@@ -107,13 +103,13 @@ export function CheckoutCartStepSection({
             )}
           </p>
 
-          <div className="mt-400 flex items-start gap-200">
+          <div className="mt-400 flex items-start relative">
             <div
               aria-label="Priebeh do dopravy zadarmo"
               aria-valuemax={100}
               aria-valuemin={0}
               aria-valuenow={Math.round(progressValue)}
-              className="relative mt-150 h-100 flex-1 overflow-hidden rounded-xs bg-border-primary"
+              className="relative mt-350 h-100 flex-1 overflow-hidden rounded-xs bg-border-primary"
               role="progressbar"
             >
               <div
@@ -122,7 +118,7 @@ export function CheckoutCartStepSection({
               />
             </div>
 
-            <div className="flex min-w-700 flex-col items-center gap-50">
+            <div className="flex min-w-700 -translate-x-3 flex-col items-center gap-50">
               <span className="inline-flex h-700 w-700 items-center justify-center rounded-full border border-border-primary bg-overlay">
                 <Icon
                   className="text-lg text-fg-secondary"
