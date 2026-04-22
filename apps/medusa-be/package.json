@@ -35,6 +35,7 @@
     "addInitialSearchDocuments": "medusa exec ./src/scripts/search-index.ts",
     "setInitialPublishableKey": "bash -c \"medusa exec ./src/scripts/output-publishable-key.ts | grep -o '<PK_TOKEN>.*</PK_TOKEN>' | sed 's/<PK_TOKEN>//g;s/<\\/PK_TOKEN>//g' | tr -d '\\n\\r' | zsc setSecretEnv CHANNEL_PUBLISHABLE_KEY\"",
     "seedHerbatica": "medusa exec ./src/scripts/herbatica-seed.ts",
+    "cleanupHerbaticaLegacyCategories": "medusa exec ./src/scripts/herbatica-cleanup-legacy-categories.ts",
     "auditXmlVsDb": "medusa exec ./src/scripts/audit-xml-vs-db.ts"
   },
   "dependencies": {

@@ -16,9 +16,28 @@ export type CreateProductCategoriesStepInput = {
   parentHandle?: string
   description?: string
   handle?: string
+  metadata?: Record<string, unknown>
+  rank?: number
+  isInternal?: boolean
 }[]
 
 const CreateProductCategoriesStepId = "create-product-categories-seed-step"
+
+function dedupeStringValues(values: Array<string | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value?.trim())))]
+}
+
+function matchesCategoryInput(
+  inputCategory: CreateProductCategoriesStepInput[number],
+  existingCategory: Pick<ProductCategoryDTO, "name" | "handle">
+): boolean {
+  if (inputCategory.handle) {
+    return inputCategory.handle === existingCategory.handle
+  }
+
+  return inputCategory.name === existingCategory.name
+}
+
 export const createProductCategoriesStep = createStep(
   CreateProductCategoriesStepId,
   async (input: CreateProductCategoriesStepInput, { container }) => {
@@ -30,31 +49,57 @@ export const createProductCategoriesStep = createStep(
       Modules.PRODUCT
     )
 
-    const existingProductCategories =
-      await productService.listProductCategories(
-        {
-          name: input.map((i) => i.name),
-        },
-        {
-          select: ["id", "name", "handle"],
-        }
-      )
+    const inputHandles = dedupeStringValues(input.map((category) => category.handle))
+    const inputNamesWithoutHandle = dedupeStringValues(
+      input
+        .filter((category) => !category.handle)
+        .map((category) => category.name)
+    )
+
+    const existingByHandle =
+      inputHandles.length > 0
+        ? await productService.listProductCategories(
+            {
+              handle: inputHandles,
+            },
+            {
+              select: ["id", "name", "handle"],
+            }
+          )
+        : []
+
+    const existingByName =
+      inputNamesWithoutHandle.length > 0
+        ? await productService.listProductCategories(
+            {
+              name: inputNamesWithoutHandle,
+            },
+            {
+              select: ["id", "name", "handle"],
+            }
+          )
+        : []
+
+    const existingProductCategories = [
+      ...new Map(
+        [...existingByHandle, ...existingByName].map((category) => [
+          category.id,
+          category,
+        ])
+      ).values(),
+    ]
 
     const missingProductCategories = input.filter(
       (i) =>
-        !existingProductCategories.find(
-          (j) =>
-            (i.handle === undefined && i.name === j.name) ||
-            i.handle === j.handle
+        !existingProductCategories.find((existingCategory) =>
+          matchesCategoryInput(i, existingCategory)
         )
     )
     const updateProductCategories = existingProductCategories.flatMap(
       (existingProductCategory) => {
         const inputProductCategories = input.find(
           (productCategory) =>
-            (productCategory.handle === undefined &&
-              productCategory.name === existingProductCategory.name) ||
-            productCategory.handle === existingProductCategory.handle
+            matchesCategoryInput(productCategory, existingProductCategory)
         )
         if (!inputProductCategories) {
           return []
@@ -67,6 +112,9 @@ export const createProductCategoriesStep = createStep(
             is_active: inputProductCategories.isActive,
             description: inputProductCategories.description,
             handle: inputProductCategories.handle,
+            metadata: inputProductCategories.metadata,
+            rank: inputProductCategories.rank,
+            is_internal: inputProductCategories.isInternal,
           },
         ]
       }
@@ -84,6 +132,9 @@ export const createProductCategoriesStep = createStep(
             is_active: category.isActive,
             description: category.description,
             handle: category.handle,
+            metadata: category.metadata,
+            rank: category.rank,
+            is_internal: category.isInternal,
           })),
         },
       })
@@ -108,6 +159,9 @@ export const createProductCategoriesStep = createStep(
                 is_active: updateProductCategory.is_active,
                 description: updateProductCategory.description,
                 handle: updateProductCategory.handle,
+                metadata: updateProductCategory.metadata,
+                rank: updateProductCategory.rank,
+                is_internal: updateProductCategory.is_internal,
               },
             },
           })
@@ -117,15 +171,22 @@ export const createProductCategoriesStep = createStep(
       }
     }
 
-    const allProductCategories = await productService.listProductCategories(
-      {
-        name: input.map((i) => i.name),
-        include_ancestors_tree: true,
-      },
-      {
-        select: ["id", "name", "handle"],
-      }
-    )
+    const handlesForParentResolution = dedupeStringValues([
+      ...input.map((category) => category.handle),
+      ...input.map((category) => category.parentHandle),
+    ])
+
+    const allProductCategories =
+      handlesForParentResolution.length > 0
+        ? await productService.listProductCategories(
+            {
+              handle: handlesForParentResolution,
+            },
+            {
+              select: ["id", "name", "handle"],
+            }
+          )
+        : []
 
     const updateParentProductCategories = input
       .filter((i) => i.parentHandle !== undefined && i.parentHandle !== null)
