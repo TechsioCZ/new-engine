@@ -12,6 +12,11 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import {
+  excerptPlainText,
+  parseHerbaticaCategoriesXmlFile,
+  type HerbaticaCategoryExport,
+} from "./herbatica-category-export"
 import seedDatabaseWorkflow, {
   type SeedDatabaseWorkflowInput,
 } from "../workflows/seed/workflows/seed-database"
@@ -29,6 +34,12 @@ type XmlElement = {
 type ParsedParameter = {
   name: string
   value: string
+}
+
+type ParsedCategoryRef = {
+  id?: string
+  path: string
+  isDefault: boolean
 }
 
 type ParsedFlag = {
@@ -134,6 +145,7 @@ type ParsedShopItem = {
   supplier?: string
   adult?: boolean
   itemType?: string
+  categoryRefs: ParsedCategoryRef[]
   categoryPaths: string[]
   images: string[]
   textProperties: ParsedParameter[]
@@ -196,6 +208,7 @@ type CategoryNode = {
 type CategoryBuildResult = {
   categories: CategorySeedInput[]
   pathToHandle: Map<string, string>
+  categoryIdToHandle: Map<string, string>
 }
 
 type BuildResult = {
@@ -210,8 +223,17 @@ type BuildResult = {
   }
 }
 
-const DEFAULT_XML_PATHS = [
+type ResolvedFeedPaths = {
+  productsXmlPath: string
+  categoriesXmlPath?: string
+}
+
+const DEFAULT_PRODUCTS_XML_PATHS = [
   resolve(__dirname, "seed-files/productsComplete.xml"),
+] as const
+
+const DEFAULT_CATEGORIES_XML_PATHS = [
+  resolve(__dirname, "seed-files/categories.xml"),
 ] as const
 
 const DEFAULT_COUNTRIES = [
@@ -1010,8 +1032,12 @@ function normalizeCategoryPath(path: string): string {
 function splitCategoryPath(path: string): string[] {
   return normalizeCategoryPath(path)
     .split(" > ")
-    .map((part) => part.trim())
+    .map((part) => part.replace(/^>+\s*/, "").replace(/\s*>+$/, "").trim())
     .filter((part) => part !== "")
+}
+
+function canonicalizeCategoryPath(path: string): string {
+  return splitCategoryPath(path).join(" > ")
 }
 
 function slugify(value: string): string {
@@ -1341,22 +1367,43 @@ function parseImageUrls(source: string): string[] {
   )
 }
 
-function parseCategoryPaths(source: string): string[] {
+function parseCategoryRefs(source: string): ParsedCategoryRef[] {
   const categoriesRaw = extractFirstElementContent(source, "CATEGORIES")
   if (!categoriesRaw) {
     return []
   }
 
-  const paths = [
-    ...extractElements(categoriesRaw, "CATEGORY").map((category) =>
-      normalizeInlineText(category.inner)
-    ),
-    normalizeInlineText(
-      extractFirstElementContent(categoriesRaw, "DEFAULT_CATEGORY")
-    ),
+  const refs = [
+    ...extractElements(categoriesRaw, "CATEGORY").map((category) => ({
+      id: normalizeInlineText(category.attributes.id),
+      path: canonicalizeCategoryPath(normalizeInlineText(category.inner) ?? ""),
+      isDefault: false,
+    })),
+    ...extractElements(categoriesRaw, "DEFAULT_CATEGORY").map((category) => ({
+      id: normalizeInlineText(category.attributes.id),
+      path: canonicalizeCategoryPath(normalizeInlineText(category.inner) ?? ""),
+      isDefault: true,
+    })),
   ]
 
-  return dedupeStrings(paths).map((path) => normalizeCategoryPath(path))
+  const result: ParsedCategoryRef[] = []
+  const seen = new Set<string>()
+
+  for (const ref of refs) {
+    if (!ref.id && !ref.path) {
+      continue
+    }
+
+    const key = `${ref.id ?? ""}::${ref.path}::${ref.isDefault ? "1" : "0"}`
+    if (seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    result.push(ref)
+  }
+
+  return result
 }
 
 function parseShopItems(xml: string): ParsedShopItem[] {
@@ -1386,6 +1433,7 @@ function parseShopItems(xml: string): ParsedShopItem[] {
       ...variants.map((variant) => variant.imageRef),
       extractFirstText(topLevelSource, "IMAGE_REF"),
     ])
+    const categoryRefs = parseCategoryRefs(shopItem.inner)
 
     return {
       id: shopItem.attributes.id ?? "",
@@ -1400,7 +1448,8 @@ function parseShopItems(xml: string): ParsedShopItem[] {
       supplier: extractFirstText(shopItem.inner, "SUPPLIER"),
       adult: parseBoolean(extractFirstText(shopItem.inner, "ADULT")),
       itemType: extractFirstText(shopItem.inner, "ITEM_TYPE"),
-      categoryPaths: parseCategoryPaths(shopItem.inner),
+      categoryRefs,
+      categoryPaths: dedupeStrings(categoryRefs.map((category) => category.path)),
       images,
       textProperties: parseTextProperties(shopItem.inner),
       relatedProducts: parseCodeList(shopItem.inner, "RELATED_PRODUCTS"),
@@ -1436,7 +1485,9 @@ function parseShopItems(xml: string): ParsedShopItem[] {
   })
 }
 
-function buildCategories(items: ParsedShopItem[]): CategoryBuildResult {
+function buildCategoriesFromProductPaths(
+  items: ParsedShopItem[]
+): CategoryBuildResult {
   const nodes = new Map<string, CategoryNode>()
 
   for (const item of items) {
@@ -1495,6 +1546,135 @@ function buildCategories(items: ParsedShopItem[]): CategoryBuildResult {
   return {
     categories,
     pathToHandle,
+    categoryIdToHandle: new Map<string, string>(),
+  }
+}
+
+function buildCategoryExportPathIndex(
+  categories: HerbaticaCategoryExport[]
+): Map<string, string> {
+  const categoryById = new Map(categories.map((category) => [category.id, category]))
+  const pathById = new Map<string, string>()
+  const visiting = new Set<string>()
+
+  const resolvePath = (categoryId: string): string => {
+    const existingPath = pathById.get(categoryId)
+    if (existingPath) {
+      return existingPath
+    }
+
+    const category = categoryById.get(categoryId)
+    if (!category) {
+      return ""
+    }
+
+    if (visiting.has(categoryId)) {
+      throw new Error(`Detected circular category ancestry for ${categoryId}`)
+    }
+
+    visiting.add(categoryId)
+
+    const title = normalizeInlineText(category.title) ?? categoryId
+    const parentPath = category.parentId ? resolvePath(category.parentId) : ""
+    const path = parentPath ? `${parentPath} > ${title}` : title
+
+    visiting.delete(categoryId)
+    pathById.set(categoryId, path)
+    return path
+  }
+
+  for (const category of categories) {
+    resolvePath(category.id)
+  }
+
+  return pathById
+}
+
+function buildCategoryMetadata(
+  category: HerbaticaCategoryExport,
+  path: string
+): Record<string, unknown> {
+  return {
+    source: "herbatica-categories-xml",
+    source_category_id: category.id,
+    source_parent_category_id: category.parentId,
+    source_guid: category.guid,
+    source_url: category.url,
+    source_path: path,
+    link_text: category.linkText,
+    top_description_html: category.topDescriptionHtml,
+    bottom_description_html: category.bottomDescriptionHtml,
+    meta_title: category.metaTitle,
+    meta_description: category.metaDescription,
+    access: category.access,
+    expand_in_menu: category.expandInMenu,
+    visible: category.isVisible,
+    priority: category.priority,
+    page_type: category.pageType,
+    search_priority: category.searchPriority,
+    is_system: category.isSystem,
+  }
+}
+
+function buildCategoriesFromExport(
+  categoryExports: HerbaticaCategoryExport[]
+): CategoryBuildResult {
+  const pathById = buildCategoryExportPathIndex(categoryExports)
+  const sortedCategories = [...categoryExports]
+    .map((category) => {
+      const path = pathById.get(category.id)
+      if (!path) {
+        throw new Error(`Missing resolved path for category ${category.id}`)
+      }
+
+      return {
+        category,
+        path,
+        depth: splitCategoryPath(path).length,
+      }
+    })
+    .sort((a, b) => {
+      if (a.depth !== b.depth) {
+        return a.depth - b.depth
+      }
+
+      return a.path.localeCompare(b.path)
+    })
+
+  const usedHandles = new Set<string>()
+  const pathToHandle = new Map<string, string>()
+  const categoryIdToHandle = new Map<string, string>()
+
+  for (const node of sortedCategories) {
+    const baseHandle = truncateWithHash(
+      slugify(node.path) ||
+        `category-${createHash("sha1").update(node.path).digest("hex").slice(0, 10)}`
+    )
+    const handle = ensureUnique(baseHandle, usedHandles, "category")
+    pathToHandle.set(node.path, handle)
+    categoryIdToHandle.set(node.category.id, handle)
+  }
+
+  const categories: CategorySeedInput[] = sortedCategories.map((node) => ({
+    name: node.category.title,
+    description:
+      excerptPlainText(node.category.topDescriptionHtml) ??
+      excerptPlainText(node.category.bottomDescriptionHtml) ??
+      "Imported from Herbatica category export.",
+    handle: categoryIdToHandle.get(node.category.id),
+    isActive: node.category.isVisible,
+    parentHandle: node.category.parentId
+      ? categoryIdToHandle.get(node.category.parentId)
+      : undefined,
+    metadata: buildCategoryMetadata(node.category, node.path),
+    rank: node.category.priority,
+    isInternal: node.category.isSystem,
+  }))
+
+  return {
+    categories,
+    pathToHandle,
+    categoryIdToHandle,
   }
 }
 
@@ -1588,9 +1768,14 @@ function buildVariantMetadata(
 function buildProductMetadata(
   item: ParsedShopItem,
   topOffer: ParsedOfferData,
-  categoryPaths: string[]
+  categoryPaths: string[],
+  categoryRefs: ParsedCategoryRef[]
 ): Record<string, unknown> {
   const normalizedFlags = normalizeFlags(item.flags, topOffer)
+  const sourceCategoryIds = dedupeStrings(
+    categoryRefs.map((categoryRef) => categoryRef.id)
+  )
+  const defaultCategoryRef = categoryRefs.find((categoryRef) => categoryRef.isDefault)
 
   const contentSections = buildProductContentSections(item)
   const contentSectionsMap = {} as Record<ProductContentSectionKey, string>
@@ -1639,6 +1824,14 @@ function buildProductMetadata(
     content_sections_map: contentSectionsMap,
     card_copy: cardCopy,
     category_paths: categoryPaths,
+    category_refs: categoryRefs.map((categoryRef) => ({
+      id: categoryRef.id,
+      path: categoryRef.path,
+      is_default: categoryRef.isDefault,
+    })),
+    source_category_ids: sourceCategoryIds,
+    source_default_category_id: defaultCategoryRef?.id,
+    source_default_category_path: defaultCategoryRef?.path,
     related_products: item.relatedProducts,
     alternative_products: item.alternativeProducts,
     related_files: item.relatedFiles,
@@ -1819,7 +2012,8 @@ function buildVariantsForProduct(
 
 function buildProducts(
   items: ParsedShopItem[],
-  pathToHandle: Map<string, string>
+  pathToHandle: Map<string, string>,
+  categoryIdToHandle: Map<string, string>
 ): ProductSeedInput[] {
   const usedHandles = new Set<string>()
   const usedSkus = new Set<string>()
@@ -1834,9 +2028,16 @@ function buildProducts(
     )
     const handle = ensureUnique(handleSeed, usedHandles, `product-${index + 1}`)
     const categoryHandles = dedupeStrings(
-      item.categoryPaths.map((path) =>
-        pathToHandle.get(splitCategoryPath(path).join(" > "))
-      )
+      item.categoryRefs.map((categoryRef) => {
+        if (categoryRef.id) {
+          const categoryHandle = categoryIdToHandle.get(categoryRef.id)
+          if (categoryHandle) {
+            return categoryHandle
+          }
+        }
+
+        return pathToHandle.get(categoryRef.path)
+      })
     )
     const categories = categoryHandles.map((categoryHandle) => ({
       handle: categoryHandle,
@@ -1869,7 +2070,12 @@ function buildProducts(
       handle,
       weight,
       status: isVisible ? ProductStatus.PUBLISHED : ProductStatus.DRAFT,
-      metadata: buildProductMetadata(item, item.topOffer, item.categoryPaths),
+      metadata: buildProductMetadata(
+        item,
+        item.topOffer,
+        item.categoryPaths,
+        item.categoryRefs
+      ),
       shippingProfileName: "Default Shipping Profile",
       thumbnail,
       images: imageUrls.map((url) => ({ url })),
@@ -1909,10 +2115,15 @@ function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
   }
 }
 
-function buildSeedInputFromXml(xml: string): BuildResult {
+export function buildSeedInputFromXml(
+  xml: string,
+  categoryExports?: HerbaticaCategoryExport[]
+): BuildResult {
   const items = parseShopItems(xml)
-  const { categories, pathToHandle } = buildCategories(items)
-  const products = buildProducts(items, pathToHandle)
+  const { categories, pathToHandle, categoryIdToHandle } = categoryExports
+    ? buildCategoriesFromExport(categoryExports)
+    : buildCategoriesFromProductPaths(items)
+  const products = buildProducts(items, pathToHandle, categoryIdToHandle)
   enforceUniqueVariantSkus(products)
   const hiddenProducts = products.filter(
     (product) => product.status === ProductStatus.DRAFT
@@ -1935,7 +2146,7 @@ function buildSeedInputFromXml(xml: string): BuildResult {
   }
 }
 
-function resolveXmlPath(args?: string[]): string {
+function resolveProductsXmlPath(args?: string[]): string {
   const argPath = normalizeInlineText(args?.[0])
   if (argPath) {
     return argPath
@@ -1946,25 +2157,56 @@ function resolveXmlPath(args?: string[]): string {
     return envPath
   }
 
-  const detectedPath = DEFAULT_XML_PATHS.find((path) => existsSync(path))
+  const detectedPath = DEFAULT_PRODUCTS_XML_PATHS.find((path) => existsSync(path))
   if (!detectedPath) {
     throw new Error(
-      `Could not find productsComplete.xml. Checked: ${DEFAULT_XML_PATHS.join(", ")}`
+      `Could not find productsComplete.xml. Checked: ${DEFAULT_PRODUCTS_XML_PATHS.join(", ")}`
     )
   }
 
   return detectedPath
 }
 
+function resolveCategoriesXmlPath(args?: string[]): string | undefined {
+  const argPath = normalizeInlineText(args?.[1])
+  if (argPath) {
+    return argPath
+  }
+
+  const envPath = normalizeInlineText(process.env.HERBATICA_CATEGORIES_XML_PATH)
+  if (envPath) {
+    return envPath
+  }
+
+  return DEFAULT_CATEGORIES_XML_PATHS.find((path) => existsSync(path))
+}
+
+function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
+  return {
+    productsXmlPath: resolveProductsXmlPath(args),
+    categoriesXmlPath: resolveCategoriesXmlPath(args),
+  }
+}
+
 export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
   logger.info("Starting Herbatica seed from XML feed...")
-  const xmlPath = resolveXmlPath(args)
-  logger.info(`Using XML feed: ${xmlPath}`)
+  const feedPaths = resolveFeedPaths(args)
+  logger.info(`Using product XML feed: ${feedPaths.productsXmlPath}`)
+  if (feedPaths.categoriesXmlPath) {
+    logger.info(`Using categories XML feed: ${feedPaths.categoriesXmlPath}`)
+  } else {
+    logger.warn(
+      "Categories XML feed not found, falling back to categories derived from product paths."
+    )
+  }
 
-  const xml = readFileSync(xmlPath, "utf8")
-  const parsed = buildSeedInputFromXml(xml)
+  const xml = readFileSync(feedPaths.productsXmlPath, "utf8")
+  const categoryExports = feedPaths.categoriesXmlPath
+    ? parseHerbaticaCategoriesXmlFile(feedPaths.categoriesXmlPath)
+    : undefined
+  const parsed = buildSeedInputFromXml(xml, categoryExports)
 
   logger.info(
     `Parsed feed: ${parsed.stats.shopItems} SHOPITEMs, ${parsed.stats.categories} categories, ${parsed.stats.products} products, ${parsed.stats.variants} variants`
