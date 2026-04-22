@@ -157,13 +157,14 @@ export function BlogDetailPage({
               {recommendedProducts.length > 0 ? (
                 <BlogInlineProductsCarousel products={recommendedProducts} />
               ) : null}
-              <ul className="space-y-100 rounded-2xl border border-border-secondary bg-surface p-400">
+              <ul className="space-y-0 rounded-2xl bg-surface p-400">
                 {post.bulletPoints.map((item) => (
-                  <li
-                    className="list-disc text-sm leading-relaxed text-fg-primary marker:text-primary"
-                    key={item}
-                  >
-                    {item}
+                  <li className="grid grid-cols-[6px_minmax(0,1fr)] gap-100 py-[1px]" key={item}>
+                    <span
+                      aria-hidden="true"
+                      className="mt-150 h-[6px] w-[6px] rounded-full bg-primary"
+                    />
+                    <span className="text-md leading-[1.5] text-fg-primary">{item}</span>
                   </li>
                 ))}
               </ul>
