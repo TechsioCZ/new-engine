@@ -159,6 +159,7 @@ export function CheckoutCartStepSection({
           {lineItemError}
         </StatusText>
       ) : null}
+
     </section>
   );
 }

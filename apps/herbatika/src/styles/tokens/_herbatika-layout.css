@@ -5,5 +5,8 @@
   --container-auth-content: 48rem;
   --container-account-content: 80rem;
 
+  /* checkout */
+  --container-checkout: 78.75rem;
+  --container-checkout-step: 42.625rem;
   --container-submenu: 86rem;
 }

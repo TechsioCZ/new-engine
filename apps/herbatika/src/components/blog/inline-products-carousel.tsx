@@ -13,6 +13,9 @@ import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
 
 type InlineProductsCarouselProps = {
   products: HttpTypes.StoreProduct[];
+  slidesSm?: number;
+  slidesMd?: number;
+  slidesLg?: number;
 };
 
 type InlineProductsSlidesProps = {
@@ -56,6 +59,9 @@ function InlineProductsSlides({
 
 export function InlineProductsCarousel({
   products,
+  slidesSm = 1,
+  slidesMd = 2,
+  slidesLg = 4,
 }: InlineProductsCarouselProps) {
   const region = useRegionContext();
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
@@ -97,13 +103,13 @@ export function InlineProductsCarousel({
   return (
     <section className="space-y-250">
       <div className="md:hidden">
-        <InlineProductsSlides slides={slides} slidesPerPage={1} />
+        <InlineProductsSlides slides={slides} slidesPerPage={slidesSm} />
       </div>
       <div className="hidden md:block xl:hidden">
-        <InlineProductsSlides slides={slides} slidesPerPage={2} />
+        <InlineProductsSlides slides={slides} slidesPerPage={slidesMd} />
       </div>
       <div className="hidden xl:block">
-        <InlineProductsSlides slides={slides} slidesPerPage={4} />
+        <InlineProductsSlides slides={slides} slidesPerPage={slidesLg} />
       </div>
 
       {addToCartError ? (

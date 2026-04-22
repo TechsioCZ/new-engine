@@ -10,6 +10,8 @@ import { CheckoutOrderSummarySection } from "@/components/checkout/sections/chec
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
 import { resolveSelectedPaymentProviderId } from "@/lib/storefront/checkout";
+import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section";
+import { HttpTypes } from "@medusajs/types";
 
 type CheckoutStepContentProps = {
   activeStep: CheckoutStepSlug;
@@ -67,6 +69,7 @@ export function CheckoutStepContent({
               nextStepHref={shippingStepHref}
             />
           }
+          cartItems={controller.cartItems}
         >
           <CheckoutCartStepSection
             cartId={controller.cartQuery.cart?.id}
@@ -132,16 +135,21 @@ export function CheckoutStepContent({
 function CheckoutStepLayout({
   aside,
   children,
+  cartItems,
 }: {
   aside: ReactNode;
   children: ReactNode;
+  cartItems?: HttpTypes.StoreCartLineItem[];
 }) {
   return (
-    <div className="grid w-full gap-700 xl:grid-cols-12 xl:items-start">
-      <div className="space-y-350 xl:col-span-7">{children}</div>
-      <aside className="space-y-300 xl:sticky xl:top-400 xl:col-span-5 xl:self-start">
-        {aside}
-      </aside>
+    <div className="mx-auto max-w-max-w w-full space-y-900">
+      <div className="grid w-full max-w-checkout mx-auto gap-700 xl:grid-cols-12 xl:items-start">
+        <div className="space-y-350 xl:col-span-7">{children}</div>
+        <aside className="space-y-300 xl:sticky xl:top-400 xl:col-span-5 xl:self-start">
+          {aside}
+        </aside>
+      </div>
+      {cartItems && <CheckoutInlineProductsSection cartItems={cartItems}/>}
     </div>
   );
 }
