@@ -13,6 +13,7 @@ import {
   resolveBlogRecommendedProductsConfig,
   resolveRelatedBlogPosts,
 } from "@/lib/storefront/blog-content";
+import { selectRecommendedProductRepresentatives } from "@/lib/storefront/recommended-product-families";
 import {
   buildProductListParams,
   STOREFRONT_PRODUCT_CARD_FIELDS,
@@ -67,11 +68,15 @@ async function resolveRecommendedProductsForBlogPost(
     Math.max(recommendationConfig.limit ?? 8, 1),
     10,
   );
+  const recommendedProductsCandidateLimit = Math.min(
+    Math.max(recommendedProductsLimit * 4, 24),
+    40,
+  );
   const productResponse = await fetchServerProducts(
     queryClient,
     buildProductListParams({
       page: 1,
-      limit: recommendedProductsLimit,
+      limit: recommendedProductsCandidateLimit,
       fields: STOREFRONT_PRODUCT_CARD_FIELDS,
       order: "-created_at",
       category_id: recommendedCategoryIds,
@@ -80,16 +85,10 @@ async function resolveRecommendedProductsForBlogPost(
     }),
   );
 
-  const uniqueProducts = new Map<string, HttpTypes.StoreProduct>();
-  for (const product of productResponse.products) {
-    if (!product.id || uniqueProducts.has(product.id)) {
-      continue;
-    }
-
-    uniqueProducts.set(product.id, product);
-  }
-
-  return [...uniqueProducts.values()].slice(0, recommendedProductsLimit);
+  return selectRecommendedProductRepresentatives(
+    productResponse.products,
+    recommendedProductsLimit,
+  );
 }
 
 async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {

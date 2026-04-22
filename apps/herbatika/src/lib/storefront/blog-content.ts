@@ -86,56 +86,6 @@ export const BLOG_FEATURED_PRODUCT = {
   discountLabel: "-4,50 €",
 };
 
-export const BLOG_INLINE_PRODUCTS = [
-  {
-    id: "inline-product-1",
-    title: "Sofia krém na žily s extraktom z pijavice lekárskej",
-    excerpt:
-      "Podporte harmóniu medzi cievom a mysľou s unikátnou kombináciou šafranu, probiotík a prebiotík.",
-    imageSrc:
-      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=640&q=80",
-    badges: ["Novinka"],
-    oldPrice: "20,23 €",
-    price: "16,83 €",
-    discountLabel: null,
-  },
-  {
-    id: "inline-product-2",
-    title: "Yucca kapsuly pre pohybový aparát",
-    excerpt:
-      "Podpora pohybového aparátu a každodennej vitality pri zvýšenej fyzickej záťaži.",
-    imageSrc:
-      "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&w=640&q=80",
-    badges: ["Novinka", "Tip"],
-    oldPrice: null,
-    price: "16,83 €",
-    discountLabel: null,
-  },
-  {
-    id: "inline-product-3",
-    title: "Pine pollen 100% kapsuly",
-    excerpt:
-      "Prírodná podpora vitality a energie pre každodenné fungovanie organizmu.",
-    imageSrc:
-      "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=640&q=80",
-    badges: ["Akcia"],
-    oldPrice: "20,23 €",
-    price: "16,83 €",
-    discountLabel: "-4,50 €",
-  },
-  {
-    id: "inline-product-4",
-    title: "Bylinný komplex pre zdravé kĺby",
-    excerpt:
-      "Vyvážené zloženie bylinných extraktov pre aktívny pohyb bez kompromisov.",
-    imageSrc:
-      "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&w=640&q=80",
-    badges: ["Tip"],
-    oldPrice: null,
-    price: "16,83 €",
-    discountLabel: null,
-  },
-] as const;
 
 export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
   {
@@ -737,3 +687,4 @@ export const resolveBlogRecommendedProductsConfig = (slug: string) => {
 export const resolveRelatedBlogPosts = (slug: string, limit = 4) => {
   return HERBATIKA_BLOG_POSTS.filter((post) => post.slug !== slug).slice(0, limit);
 };
+
