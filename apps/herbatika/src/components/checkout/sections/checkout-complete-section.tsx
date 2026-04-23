@@ -37,6 +37,16 @@ type CheckoutCompleteSectionProps = {
   useSameAddress: boolean;
 };
 
+type AddressSummaryRow = {
+  label: string;
+  value: string;
+};
+
+type BuildAddressRowsOptions = {
+  includeContactDetails?: boolean;
+  includeCustomerNote?: boolean;
+};
+
 const summaryCardClassName =
   "rounded-sm border border-border-primary bg-surface space-y-300 p-400 sm:p-550";
 const summaryEditLinkClassName =
@@ -54,7 +64,10 @@ const resolveStreetValue = (form: AddressFormState) => {
     .join(", ");
 };
 
-const resolveAddressRows = (form: AddressFormState) => {
+const buildAddressRows = (
+  form: AddressFormState,
+  options: BuildAddressRowsOptions = {},
+): AddressSummaryRow[] => {
   const hasCompanyDetails = [
     form.company,
     form.companyId,
@@ -62,7 +75,7 @@ const resolveAddressRows = (form: AddressFormState) => {
     form.vatId,
   ].some(hasTextValue);
 
-  return [
+  const rows: AddressSummaryRow[] = [
     { label: "Meno", value: form.firstName },
     { label: "Priezvisko", value: form.lastName },
     ...(hasCompanyDetails
@@ -73,42 +86,36 @@ const resolveAddressRows = (form: AddressFormState) => {
           { label: "IČ DPH", value: form.vatId },
         ]
       : []),
-    { label: "E-mail", value: form.email },
-    { label: "Telefón", value: form.phone },
+  ];
+
+  if (options.includeContactDetails) {
+    rows.push({ label: "E-mail", value: form.email });
+    rows.push({ label: "Telefón", value: form.phone });
+  }
+
+  rows.push(
     { label: "Krajina", value: resolveCountryLabel(form.countryCode) },
     { label: "Ulica a číslo domu", value: resolveStreetValue(form) },
     { label: "Mesto", value: form.city },
     { label: "PSČ", value: form.postalCode },
-    ...(hasTextValue(form.customerNote)
-      ? [{ label: "Poznámka", value: form.customerNote }]
-      : []),
-  ];
+  );
+
+  if (options.includeCustomerNote && hasTextValue(form.customerNote)) {
+    rows.push({ label: "Poznámka", value: form.customerNote });
+  }
+
+  return rows;
+};
+
+const resolveAddressRows = (form: AddressFormState) => {
+  return buildAddressRows(form, {
+    includeContactDetails: true,
+    includeCustomerNote: true,
+  });
 };
 
 const resolveBillingAddressRows = (form: AddressFormState) => {
-  const hasCompanyDetails = [
-    form.company,
-    form.companyId,
-    form.taxId,
-    form.vatId,
-  ].some(hasTextValue);
-
-  return [
-    { label: "Meno", value: form.firstName },
-    { label: "Priezvisko", value: form.lastName },
-    ...(hasCompanyDetails
-      ? [
-          { label: "Názov firmy", value: form.company },
-          { label: "IČO", value: form.companyId },
-          { label: "DIČ", value: form.taxId },
-          { label: "IČ DPH", value: form.vatId },
-        ]
-      : []),
-    { label: "Krajina", value: resolveCountryLabel(form.countryCode) },
-    { label: "Ulica a číslo domu", value: resolveStreetValue(form) },
-    { label: "Mesto", value: form.city },
-    { label: "PSČ", value: form.postalCode },
-  ];
+  return buildAddressRows(form);
 };
 
 const resolveValue = (value: string) => {
@@ -154,7 +161,7 @@ export function CheckoutCompleteSection({
         Súhrn objednávky
       </h2>
 
-      <section className={`${summaryCardClassName}`}>
+      <section className={summaryCardClassName}>
         <div className="flex items-start justify-between gap-200 border-b border-border-secondary pb-250">
           <p className="text-sm font-medium text-fg-primary">Spolu s DPH</p>
           <div className="text-right">
@@ -193,9 +200,9 @@ export function CheckoutCompleteSection({
             onClick={() => {
               void onCompleteOrder();
             }}
+            size="lg"
             type="button"
             uppercase
-            size="lg"
           >
             Dokončiť objednávku
           </Button>
@@ -238,7 +245,7 @@ export function CheckoutCompleteSection({
         tone={hasPayment ? "default" : "warning"}
       />
 
-      <section className={`${summaryCardClassName}`}>
+      <section className={summaryCardClassName}>
         <div className="flex items-center justify-between gap-200">
           <p className="font-rubik text-lg font-medium text-fg-primary">
             Vaše údaje
@@ -260,7 +267,10 @@ export function CheckoutCompleteSection({
             <p className="font-medium text-fg-primary">Doručovacie údaje</p>
             <div className="grid gap-x-250 gap-y-150 md:grid-cols-2">
               {shippingAddressRows.map((row) => (
-                <div className="space-y-50 px-150 py-100" key={`shipping-${row.label}`}>
+                <div
+                  className="space-y-50 px-150 py-100"
+                  key={`shipping-${row.label}`}
+                >
                   <p className="text-sm text-fg-tertiary">{row.label}</p>
                   <p className="text-sm leading-relaxed text-fg-primary">
                     {resolveValue(row.value)}
@@ -282,7 +292,10 @@ export function CheckoutCompleteSection({
               <p className="font-medium text-fg-primary">Fakturačné údaje</p>
               <div className="grid gap-x-250 gap-y-150 md:grid-cols-2">
                 {billingAddressRows.map((row) => (
-                  <div className="space-y-50 px-150 py-100" key={`billing-${row.label}`}>
+                  <div
+                    className="space-y-50 px-150 py-100"
+                    key={`billing-${row.label}`}
+                  >
                     <p className="text-sm text-fg-tertiary">{row.label}</p>
                     <p className="text-sm leading-relaxed text-fg-primary">
                       {resolveValue(row.value)}
@@ -316,7 +329,7 @@ function SummaryRecapCard({
   tone?: "default" | "warning";
 }) {
   return (
-    <div className={`${summaryCardClassName}`}>
+    <div className={summaryCardClassName}>
       <div className="flex items-center justify-between gap-200">
         <div className="flex min-w-0 items-center gap-200">
           <span className="flex h-600 w-600 shrink-0 items-center justify-center text-fg-primary">

@@ -1,13 +1,13 @@
 import type { HttpTypes } from "@medusajs/types";
-import { buildCategoryContextImageTiles } from "@/components/category/category-context-image-tile-grid";
 import {
   CATEGORY_CONTEXT_PRESETS,
   type CategoryContextIntroSegmentPreset,
 } from "@/components/category/category-context.data";
+import { buildCategoryContextImageTiles } from "@/components/category/category-context-image-tile-grid";
 import {
   normalizeCategoryName,
   resolveCategoryRank,
-} from "@/components/category/category-product-utils";
+} from "@/lib/storefront/category-utils";
 
 export type CategoryContextIntroSegment =
   | {
@@ -42,7 +42,8 @@ const resolveIntroLinkHref = ({
   }
 
   if (segment.handle) {
-    const categoryHandle = categoryByHandle.get(segment.handle)?.handle ?? segment.handle;
+    const categoryHandle =
+      categoryByHandle.get(segment.handle)?.handle ?? segment.handle;
     return `/c/${categoryHandle}`;
   }
 
@@ -51,7 +52,8 @@ const resolveIntroLinkHref = ({
 
 const sortCategories = (categories: HttpTypes.StoreProductCategory[]) => {
   return [...categories].sort((left, right) => {
-    const rankDifference = resolveCategoryRank(left) - resolveCategoryRank(right);
+    const rankDifference =
+      resolveCategoryRank(left) - resolveCategoryRank(right);
     if (rankDifference !== 0) {
       return rankDifference;
     }
@@ -72,7 +74,8 @@ export const resolveCategoryIntroText = ({
   slug,
   activeCategory,
 }: ResolveCategoryIntroTextInput) => {
-  const presetIntroSegments = CATEGORY_CONTEXT_PRESETS[slug]?.introSegments ?? [];
+  const presetIntroSegments =
+    CATEGORY_CONTEXT_PRESETS[slug]?.introSegments ?? [];
   if (presetIntroSegments.length > 0) {
     return resolveIntroTextFromSegments(presetIntroSegments);
   }
@@ -94,7 +97,8 @@ export const resolveCategoryIntroSegments = ({
   slug,
   categoryByHandle,
 }: ResolveCategoryIntroSegmentsInput): CategoryContextIntroSegment[] | null => {
-  const presetIntroSegments = CATEGORY_CONTEXT_PRESETS[slug]?.introSegments ?? [];
+  const presetIntroSegments =
+    CATEGORY_CONTEXT_PRESETS[slug]?.introSegments ?? [];
   if (presetIntroSegments.length === 0) {
     return null;
   }
@@ -133,7 +137,8 @@ export const resolveCategoryContextImageTiles = ({
     return [];
   }
 
-  const presetTilesConfig = CATEGORY_CONTEXT_PRESETS[slug]?.preferredTiles ?? [];
+  const presetTilesConfig =
+    CATEGORY_CONTEXT_PRESETS[slug]?.preferredTiles ?? [];
   if (presetTilesConfig.length > 0) {
     const presetTiles = presetTilesConfig
       .map((tileConfig) => {

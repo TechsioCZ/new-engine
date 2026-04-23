@@ -1,12 +1,7 @@
 import type { HttpTypes } from "@medusajs/types";
+import { asFiniteNumber } from "./value-utils";
 
-export const asFiniteNumber = (value: unknown): number | null => {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return null;
-  }
-
-  return value;
-};
+export { asFiniteNumber };
 
 export const resolveLineItemQuantity = (
   item: HttpTypes.StoreCartLineItem,
@@ -107,7 +102,9 @@ export const resolveCartSubtotalAmount = (
 
   return (
     cart.items?.reduce(
-      (sum, item) => sum + (asFiniteNumber(item.subtotal) ?? resolveLineItemTotalAmount(item)),
+      (sum, item) =>
+        sum +
+        (asFiniteNumber(item.subtotal) ?? resolveLineItemTotalAmount(item)),
       0,
     ) ?? 0
   );

@@ -3,16 +3,19 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useQueryStates } from "nuqs";
 import { useMemo } from "react";
-import { resolveProductCurrencyCode } from "@/components/category/category-product-utils";
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { useCatalogProducts } from "@/lib/storefront/catalog-products";
 import {
   buildCatalogProductsParams,
   resolveCatalogActiveFilterCount,
   resolveCatalogPriceBounds,
 } from "@/lib/storefront/catalog-query-state";
-import { useCatalogProducts } from "@/lib/storefront/catalog-products";
-import { PLP_PAGE_SIZE, plpQueryParsers } from "@/lib/storefront/plp-query-state";
+import { resolveProductCurrencyCode } from "@/lib/storefront/category-utils";
+import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import {
+  PLP_PAGE_SIZE,
+  plpQueryParsers,
+} from "@/lib/storefront/plp-query-state";
 import {
   useCatalogListingInteractions,
   useCatalogListingPageBounds,
@@ -101,10 +104,10 @@ export function useSearchListingController() {
       (catalogQuery.isLoading || catalogFacetSeedQuery.isLoading),
     isResultsRefreshing:
       catalogQuery.isFetching &&
-      (catalogQuery.products.length > 0 || catalogQuery.query.isPlaceholderData),
+      (catalogQuery.products.length > 0 ||
+        catalogQuery.query.isPlaceholderData),
     isResultsLoading:
-      query.length > 0 &&
-      (!region?.region_id || catalogQuery.isLoading),
+      query.length > 0 && (!region?.region_id || catalogQuery.isLoading),
     isSearchQueryEnabled,
     priceBounds: resolveCatalogPriceBounds(catalogQuery.facets.price),
     products: catalogQuery.products,

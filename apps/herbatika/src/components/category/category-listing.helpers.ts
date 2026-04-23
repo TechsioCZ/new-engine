@@ -7,7 +7,8 @@ export {
   resolveProductCurrencyCode,
   resolveProductInStock,
   resolveProductPriceAmount,
-} from "./category-product-utils";
+} from "@/lib/storefront/category-utils";
+export { toggleSelection } from "@/lib/storefront/selection-utils";
 export {
   buildPriceBandDefinitions,
   formatAmount,
@@ -16,6 +17,5 @@ export {
 } from "./category-price-utils";
 export {
   buildFacetChipItems,
-  toggleSelection,
   type CategoryFacetChipItem,
 } from "./category-selection-utils";

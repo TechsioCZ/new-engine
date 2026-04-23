@@ -3,19 +3,17 @@
 import type { HttpTypes } from "@medusajs/types";
 import type { StaticImageData } from "next/image";
 import { useMemo } from "react";
-import {
-  normalizeCategoryName,
-  resolveCategoryRank,
-} from "@/components/category/category-product-utils";
 import { resolveCategoryImage } from "@/lib/category-images";
+import { useCategories } from "@/lib/storefront/categories";
 import {
   STOREFRONT_CATEGORY_TREE_FIELDS,
   STOREFRONT_CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
-import { useCategories } from "@/lib/storefront/categories";
 import {
-  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS,
-} from "./herbatika-header.submenu-data";
+  normalizeCategoryName,
+  resolveCategoryRank,
+} from "@/lib/storefront/category-utils";
+import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data";
 
 type HerbatikaHeaderSubmenuChildItem = {
   id: string;
@@ -37,9 +35,7 @@ type HerbatikaHeaderSubmenuGroup = {
   featuredItems: HerbatikaHeaderSubmenuFeaturedItem[];
 };
 
-const sortFeaturedItems = (
-  items: HerbatikaHeaderSubmenuFeaturedItem[],
-) => {
+const sortFeaturedItems = (items: HerbatikaHeaderSubmenuFeaturedItem[]) => {
   return [...items].sort((left, right) => {
     const childCountDifference =
       right.childItems.length - left.childItems.length;
@@ -54,7 +50,8 @@ const sortFeaturedItems = (
 
 const sortCategories = (categories: HttpTypes.StoreProductCategory[]) => {
   return [...categories].sort((left, right) => {
-    const rankDifference = resolveCategoryRank(left) - resolveCategoryRank(right);
+    const rankDifference =
+      resolveCategoryRank(left) - resolveCategoryRank(right);
     if (rankDifference !== 0) {
       return rankDifference;
     }
@@ -118,40 +115,42 @@ export function useHerbatikaHeaderSubmenu() {
   const groupsByRootHandle = useMemo(() => {
     return new Map<string, HerbatikaHeaderSubmenuGroup>(
       HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((rootConfig) => {
-          const sourceRootHandle =
-            "submenuSourceHandle" in rootConfig
-              ? rootConfig.submenuSourceHandle ?? rootConfig.rootHandle
-              : rootConfig.rootHandle;
-          const rootHandle = rootConfig.rootHandle;
-          const rootCategory = categoryByHandle.get(sourceRootHandle) ?? null;
-          const featuredItems = rootCategory
-            ? (childrenByParentId.get(rootCategory.id) ?? []).map((category) => ({
-                id: category.id,
-                handle: category.handle ?? category.id,
-                label: normalizeCategoryName(category.name),
-                src: resolveCategoryImage({
-                  categoryById,
-                  handle: category.handle,
-                  label: category.name,
-                  parentCategoryId: category.parent_category_id,
-                }),
-                href: category.handle ? `/c/${category.handle}` : "#",
-                childItems: (childrenByParentId.get(category.id) ?? []).map((child) => ({
+        const sourceRootHandle =
+          "submenuSourceHandle" in rootConfig
+            ? (rootConfig.submenuSourceHandle ?? rootConfig.rootHandle)
+            : rootConfig.rootHandle;
+        const rootHandle = rootConfig.rootHandle;
+        const rootCategory = categoryByHandle.get(sourceRootHandle) ?? null;
+        const featuredItems = rootCategory
+          ? (childrenByParentId.get(rootCategory.id) ?? []).map((category) => ({
+              id: category.id,
+              handle: category.handle ?? category.id,
+              label: normalizeCategoryName(category.name),
+              src: resolveCategoryImage({
+                categoryById,
+                handle: category.handle,
+                label: category.name,
+                parentCategoryId: category.parent_category_id,
+              }),
+              href: category.handle ? `/c/${category.handle}` : "#",
+              childItems: (childrenByParentId.get(category.id) ?? []).map(
+                (child) => ({
                   id: child.id,
                   label: normalizeCategoryName(child.name),
                   href: child.handle ? `/c/${child.handle}` : "#",
-                })),
-              }))
-            : [];
+                }),
+              ),
+            }))
+          : [];
 
-          return [
+        return [
+          rootHandle,
+          {
             rootHandle,
-            {
-              rootHandle,
-              featuredItems: sortFeaturedItems(featuredItems),
-            },
-          ] as const;
-        }),
+            featuredItems: sortFeaturedItems(featuredItems),
+          },
+        ] as const;
+      }),
     );
   }, [categoryByHandle, categoryById, childrenByParentId]);
 

@@ -1,11 +1,11 @@
-import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import type {
   ProductOfferState,
   ProductPriceState,
   StorefrontProduct,
   VolumeDiscountOption,
 } from "@/components/product-detail/product-detail.types";
-import { asNumber } from "@/components/product-detail/utils/value-utils";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { asNumber } from "@/lib/storefront/value-utils";
 
 const resolveAmountWithoutTax = (params: {
   amountWithTax: number | null;
@@ -58,7 +58,9 @@ export const resolvePriceState = (
       : null;
   const resolvedCalculatedAmountWithoutTax = resolveAmountWithoutTax({
     amountWithTax:
-      typeof resolvedCalculatedAmount === "number" ? resolvedCalculatedAmount : null,
+      typeof resolvedCalculatedAmount === "number"
+        ? resolvedCalculatedAmount
+        : null,
     amountWithoutTax: explicitCalculatedAmountWithoutTax,
     vatRate,
   });
@@ -75,14 +77,13 @@ export const resolvePriceState = (
   }
 
   const normalizedOriginalAmount =
-    typeof originalAmount === "number"
-      ? originalAmount
-      : null;
+    typeof originalAmount === "number" ? originalAmount : null;
 
   return {
     currentLabel: formatCurrencyAmount(resolvedCalculatedAmount, currencyCode),
     originalLabel:
-      normalizedOriginalAmount && normalizedOriginalAmount > resolvedCalculatedAmount
+      normalizedOriginalAmount &&
+      normalizedOriginalAmount > resolvedCalculatedAmount
         ? formatCurrencyAmount(normalizedOriginalAmount, currencyCode)
         : null,
     currentAmount: resolvedCalculatedAmount,
@@ -148,7 +149,13 @@ export const resolveUnitPriceLabel = (params: {
   unitLabel: string | null;
   vatRate: number | null;
 }): string | null => {
-  const { currentAmount, currentAmountWithoutTax, currencyCode, unitLabel, vatRate } = params;
+  const {
+    currentAmount,
+    currentAmountWithoutTax,
+    currencyCode,
+    unitLabel,
+    vatRate,
+  } = params;
 
   if (typeof currentAmount !== "number" || !unitLabel) {
     return null;
@@ -189,7 +196,10 @@ export const resolveVolumeDiscountOptions = (
       id: `quantity-tier-${option.quantity}`,
       title: `Kúpte ${option.quantity} a ušetrite`,
       quantity: option.quantity,
-      totalAmountLabel: formatCurrencyAmount(discountedTotalAmount, currencyCode),
+      totalAmountLabel: formatCurrencyAmount(
+        discountedTotalAmount,
+        currencyCode,
+      ),
       perUnitLabel: `${formatCurrencyAmount(discountedUnitAmount, currencyCode)} / kus`,
       oldTotalAmountLabel:
         discountedTotalAmount < originalTotalAmount

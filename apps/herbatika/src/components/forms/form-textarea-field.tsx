@@ -1,12 +1,8 @@
 "use client";
 
-import { useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea";
-import {
-  resolveVisibleFieldFeedback,
-  shouldTrackLiveFieldFeedback,
-} from "@/lib/forms/core/field-errors";
-import { useFieldContext } from "@/lib/forms/core/herbatika-form-context";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { useStringFieldInput } from "@/lib/forms/core/use-string-field-input";
 
 type FormTextareaFieldProps = {
   id: string;
@@ -35,15 +31,8 @@ export function FormTextareaField({
   validationMode = "blur",
   ...props
 }: FormTextareaFieldProps) {
-  const field = useFieldContext<string>();
-  const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false);
-  const value = typeof field.state.value === "string" ? field.state.value : "";
-  const fieldFeedback = resolveVisibleFieldFeedback({
-    hasChangedSinceBlur,
-    meta: field.state.meta,
-    submissionAttempts: field.form.state.submissionAttempts,
-    validationMode,
-  });
+  const { field, fieldFeedback, handleBlur, handleValueChange, value } =
+    useStringFieldInput({ validationMode });
 
   return (
     <FormTextarea
@@ -51,21 +40,10 @@ export function FormTextareaField({
       id={id}
       label={label}
       name={field.name}
-      onBlur={() => {
-        field.handleBlur();
-        setHasChangedSinceBlur(false);
-      }}
+      onBlur={handleBlur}
       onChange={(event) => {
         const nextValue = event.target.value;
-        if (
-          shouldTrackLiveFieldFeedback({
-            meta: field.state.meta,
-            submissionAttempts: field.form.state.submissionAttempts,
-          })
-        ) {
-          setHasChangedSinceBlur(true);
-        }
-        field.handleChange(nextValue);
+        handleValueChange(nextValue);
         onValueChange?.(nextValue);
       }}
       required={required}

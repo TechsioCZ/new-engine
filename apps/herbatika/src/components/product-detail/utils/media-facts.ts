@@ -6,7 +6,7 @@ import type {
   StorefrontProduct,
 } from "@/components/product-detail/product-detail.types";
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer";
-import { asRecord, asString } from "@/components/product-detail/utils/value-utils";
+import { asRecord, asString } from "@/lib/storefront/value-utils";
 
 const CAPSULE_COUNT_PATTERN =
   /(\d{1,4})\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/gi;
@@ -116,13 +116,19 @@ const resolveDailyCapsuleDose = (texts: string[]): number | null => {
 const collectParameterTexts = (product: StorefrontProduct | null): string[] => {
   const metadata = asRecord(product?.metadata);
   const topOffer = asRecord(metadata?.top_offer);
-  const parameters = Array.isArray(topOffer?.parameters) ? topOffer.parameters : [];
+  const parameters = Array.isArray(topOffer?.parameters)
+    ? topOffer.parameters
+    : [];
 
   return parameters
     .map((parameter) => asRecord(parameter))
-    .filter((parameter): parameter is Record<string, unknown> => Boolean(parameter))
-    .map((parameter) => [asString(parameter.name), asString(parameter.value)])
-    .flat()
+    .filter((parameter): parameter is Record<string, unknown> =>
+      Boolean(parameter),
+    )
+    .flatMap((parameter) => [
+      asString(parameter.name),
+      asString(parameter.value),
+    ])
     .filter((value): value is string => Boolean(value));
 };
 
@@ -136,7 +142,9 @@ const collectTexts = (
 
   const metadata = asRecord(product.metadata);
   const shortDescriptionText = stripHtml(asString(metadata?.short_description));
-  const sectionTexts = sections.map((section) => stripHtml(section.html)).filter(Boolean);
+  const sectionTexts = sections
+    .map((section) => stripHtml(section.html))
+    .filter(Boolean);
   const parameterTexts = collectParameterTexts(product);
 
   return [

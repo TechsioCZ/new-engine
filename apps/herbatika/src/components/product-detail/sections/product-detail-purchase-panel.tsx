@@ -1,38 +1,38 @@
-"use client"
+"use client";
 
-import type { HttpTypes } from "@medusajs/types"
-import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
-import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Link } from "@techsio/ui-kit/atoms/link"
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
-import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
-import NextLink from "next/link"
+import type { HttpTypes } from "@medusajs/types";
+import { Badge } from "@techsio/ui-kit/atoms/badge";
+import { Button } from "@techsio/ui-kit/atoms/button";
+import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { Link } from "@techsio/ui-kit/atoms/link";
+import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
+import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select";
+import NextLink from "next/link";
 import type {
   ProductOfferState,
   StorefrontProduct,
-} from "@/components/product-detail/product-detail.types"
-import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
+} from "@/components/product-detail/product-detail.types";
+import { normalizeCategoryName } from "@/lib/storefront/category-utils";
 
 type ProductDetailPurchasePanelProps = {
-  canAddToCart: boolean
-  currentAmountLabel: string
-  discountPercent: number | null
-  displayOriginalLabel: string | null
-  isAdding: boolean
-  offerState: ProductOfferState
-  onAddToCart: () => void
-  onQuantityChange: (quantity: number) => void
-  onVariantChange: (variantId: string | null) => void
-  product: StorefrontProduct
-  productCategories: HttpTypes.StoreProductCategory[]
-  productHighlights: string[]
-  quantity: number
-  selectedVariantId: string | null
-  unitPriceLabel: string | null
-  variantItems: SelectItem[]
-  vipCreditLabel: string | null
-}
+  canAddToCart: boolean;
+  currentAmountLabel: string;
+  discountPercent: number | null;
+  displayOriginalLabel: string | null;
+  isAdding: boolean;
+  offerState: ProductOfferState;
+  onAddToCart: () => void;
+  onQuantityChange: (quantity: number) => void;
+  onVariantChange: (variantId: string | null) => void;
+  product: StorefrontProduct;
+  productCategories: HttpTypes.StoreProductCategory[];
+  productHighlights: string[];
+  quantity: number;
+  selectedVariantId: string | null;
+  unitPriceLabel: string | null;
+  variantItems: SelectItem[];
+  vipCreditLabel: string | null;
+};
 
 export function ProductDetailPurchasePanel({
   canAddToCart,
@@ -52,11 +52,11 @@ export function ProductDetailPurchasePanel({
   variantItems,
   vipCreditLabel,
 }: ProductDetailPurchasePanelProps) {
-  const primaryCategory = productCategories[0]
+  const primaryCategory = productCategories[0];
   const displayHighlights = productHighlights
     .map((highlight) => highlight.replace(/\s+/g, " ").trim())
     .filter(Boolean)
-    .slice(0, 3)
+    .slice(0, 3);
 
   return (
     <div className="space-y-300 rounded-lg border border-border-secondary bg-surface p-350">
@@ -159,7 +159,7 @@ export function ProductDetailPurchasePanel({
         <Select
           items={variantItems}
           onValueChange={(details) => {
-            onVariantChange(details.value[0] ?? null)
+            onVariantChange(details.value[0] ?? null);
           }}
           className="max-w-xs"
           size="lg"
@@ -193,11 +193,11 @@ export function ProductDetailPurchasePanel({
             min={1}
             onChange={(value) => {
               if (!Number.isFinite(value) || value < 1) {
-                onQuantityChange(1)
-                return
+                onQuantityChange(1);
+                return;
               }
 
-              onQuantityChange(Math.floor(value))
+              onQuantityChange(Math.floor(value));
             }}
             value={quantity}
           >
@@ -223,5 +223,5 @@ export function ProductDetailPurchasePanel({
         </Button>
       </div>
     </div>
-  )
+  );
 }

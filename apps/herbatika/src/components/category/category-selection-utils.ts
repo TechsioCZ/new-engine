@@ -8,20 +8,14 @@ export type CategoryFacetChipItem = {
   disabled: boolean;
 };
 
-export const toggleSelection = (currentItems: string[], itemId: string) => {
-  if (currentItems.includes(itemId)) {
-    return currentItems.filter((existingId) => existingId !== itemId);
-  }
-
-  return [...currentItems, itemId];
-};
-
 export const buildFacetChipItems = (
   currentFacetItems: CatalogFacetItem[],
   seedFacetItems: CatalogFacetItem[],
   selectedIds: string[],
 ): CategoryFacetChipItem[] => {
-  const countById = new Map(currentFacetItems.map((item) => [item.id, item.count]));
+  const countById = new Map(
+    currentFacetItems.map((item) => [item.id, item.count]),
+  );
   const labelById = new Map<string, string>();
   const orderedIds: string[] = [];
   const seenIds = new Set<string>();

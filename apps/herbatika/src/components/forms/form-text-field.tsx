@@ -1,12 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
-import {
-  resolveVisibleFieldFeedback,
-  shouldTrackLiveFieldFeedback,
-} from "@/lib/forms/core/field-errors";
-import { useFieldContext } from "@/lib/forms/core/herbatika-form-context";
+import type { ReactNode } from "react";
+import { useStringFieldInput } from "@/lib/forms/core/use-string-field-input";
 
 type FormTextFieldProps = {
   id: string;
@@ -29,19 +25,10 @@ export function FormTextField({
   externalError,
   onValueChange,
 }: FormTextFieldProps) {
-  const field = useFieldContext<string>();
-  const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false);
-  const value = typeof field.state.value === "string" ? field.state.value : "";
-  const fieldFeedback = resolveVisibleFieldFeedback({
-    hasChangedSinceBlur,
-    meta: field.state.meta,
-    submissionAttempts: field.form.state.submissionAttempts,
-    validationMode,
-  });
+  const { field, fieldFeedback, handleBlur, handleValueChange, value } =
+    useStringFieldInput({ validationMode });
   const errorText = externalError ?? fieldFeedback.errorText;
-  const validateStatus = externalError
-    ? "error"
-    : fieldFeedback.validateStatus;
+  const validateStatus = externalError ? "error" : fieldFeedback.validateStatus;
 
   return (
     <FormInput
@@ -50,21 +37,10 @@ export function FormTextField({
       id={id}
       label={label}
       name={field.name}
-      onBlur={() => {
-        field.handleBlur();
-        setHasChangedSinceBlur(false);
-      }}
+      onBlur={handleBlur}
       onChange={(event) => {
         const nextValue = event.target.value;
-        if (
-          shouldTrackLiveFieldFeedback({
-            meta: field.state.meta,
-            submissionAttempts: field.form.state.submissionAttempts,
-          })
-        ) {
-          setHasChangedSinceBlur(true);
-        }
-        field.handleChange(nextValue);
+        handleValueChange(nextValue);
         onValueChange?.(nextValue);
       }}
       required={required}

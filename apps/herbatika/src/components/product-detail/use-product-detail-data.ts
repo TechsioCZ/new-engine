@@ -8,11 +8,13 @@ import { useEffect, useMemo, useState } from "react";
 import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log";
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products";
-import { resolveGalleryItems, resolveProductHighlights } from "@/components/product-detail/utils/display-utils";
+import {
+  resolveGalleryItems,
+  resolveProductHighlights,
+} from "@/components/product-detail/utils/display-utils";
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer";
 import { resolveProductMediaFacts } from "@/components/product-detail/utils/media-facts";
 import {
-  normalizeCategoryName,
   resolveOfferState,
   resolveProductContentSections,
   resolveProductImages,
@@ -26,10 +28,14 @@ import {
   resolveVipCreditLabel,
   resolveVolumeDiscountOptions,
 } from "@/components/product-detail/utils/pricing-utils";
-import { asNumber, asRecord, asString } from "@/components/product-detail/utils/value-utils";
+import { normalizeCategoryName } from "@/lib/storefront/category-utils";
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
+import {
+  STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  useProduct,
+} from "@/lib/storefront/products";
+import { asNumber, asRecord, asString } from "@/lib/storefront/value-utils";
 
 type UseProductDetailDataProps = {
   handle: string;
@@ -38,10 +44,12 @@ type UseProductDetailDataProps = {
 export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const region = useRegionContext();
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
-  const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<string | null>(
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
     null,
   );
+  const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<
+    string | null
+  >(null);
 
   const productQuery = useProduct({
     handle,
@@ -57,7 +65,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
       return null;
     }
 
-    return variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
+    return (
+      variants.find((variant) => variant.id === selectedVariantId) ??
+      variants[0]
+    );
   }, [selectedVariantId, variants]);
 
   const optionTitlesById = useMemo(() => {
@@ -81,8 +92,9 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   const variantItems = useMemo<SelectItem[]>(() => {
     return variants
-      .filter((variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
-        Boolean(variant.id),
+      .filter(
+        (variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
+          Boolean(variant.id),
       )
       .map((variant) => ({
         value: variant.id,
@@ -197,8 +209,9 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     }
 
     return (
-      volumeDiscountOptions.find((option) => option.id === selectedVolumeDiscountId) ??
-      volumeDiscountOptions[0]
+      volumeDiscountOptions.find(
+        (option) => option.id === selectedVolumeDiscountId,
+      ) ?? volumeDiscountOptions[0]
     );
   }, [selectedVolumeDiscountId, volumeDiscountOptions]);
 
@@ -210,7 +223,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     setQuantity(1);
     setSelectedVariantId(product?.variants?.[0]?.id ?? null);
     setSelectedVolumeDiscountId(null);
-  }, [product?.id, product?.variants]);
+  }, [product?.variants]);
 
   useEffect(() => {
     setSelectedVolumeDiscountId(volumeDiscountOptions[0]?.id ?? null);
@@ -247,7 +260,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     freeShippingThresholdLabel:
       freeShippingThresholdAmount === null
         ? null
-        : formatCurrencyAmount(freeShippingThresholdAmount, currentCurrencyCode),
+        : formatCurrencyAmount(
+            freeShippingThresholdAmount,
+            currentCurrencyCode,
+          ),
     galleryItems,
     isBootstrappingRegion: !region?.region_id,
     mediaFacts,

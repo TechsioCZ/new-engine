@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
-import { asRecord } from "@/components/product-detail/utils/value-utils";
+import { asRecord } from "@/lib/storefront/value-utils";
 
 export function useProductDetailDebugLog(product: StorefrontProduct | null) {
   useEffect(() => {

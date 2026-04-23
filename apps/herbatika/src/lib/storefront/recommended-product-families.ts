@@ -1,4 +1,9 @@
 import type { HttpTypes } from "@medusajs/types";
+import {
+  resolveOfferInStock,
+  resolveTopOffer as resolveProductTopOffer,
+} from "./offer-utils";
+import { asPositiveInteger, asRecord } from "./value-utils";
 
 type RecommendedProductCandidate = {
   familyKey: string;
@@ -6,14 +11,6 @@ type RecommendedProductCandidate = {
   packageMultiplier: number;
   isInStock: boolean;
   product: HttpTypes.StoreProduct;
-};
-
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-
-  return null;
 };
 
 const asString = (value: unknown): string | null => {
@@ -28,28 +25,12 @@ const asString = (value: unknown): string | null => {
   return null;
 };
 
-const asPositiveInteger = (value: unknown): number | null => {
-  const parsed =
-    typeof value === "number" && Number.isFinite(value)
-      ? value
-      : typeof value === "string" && value.trim().length > 0
-        ? Number(value.trim())
-        : Number.NaN;
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
-};
-
 const resolveProductMetadata = (product: HttpTypes.StoreProduct) => {
   return asRecord(product.metadata);
 };
 
 const resolveTopOffer = (product: HttpTypes.StoreProduct) => {
-  const metadata = resolveProductMetadata(product);
-  return asRecord(metadata?.top_offer);
+  return resolveProductTopOffer(product.metadata);
 };
 
 const resolvePrimarySetItem = (product: HttpTypes.StoreProduct) => {
@@ -130,14 +111,7 @@ const resolveRecommendedProductPackageMultiplier = (
 };
 
 const resolveRecommendedProductInStock = (product: HttpTypes.StoreProduct) => {
-  const topOffer = resolveTopOffer(product);
-  const stock = asRecord(topOffer?.stock);
-  const amount =
-    typeof stock?.amount === "number" && Number.isFinite(stock.amount)
-      ? stock.amount
-      : null;
-
-  return amount === null ? true : amount > 0;
+  return resolveOfferInStock(resolveTopOffer(product));
 };
 
 const isBetterRecommendedProductCandidate = (

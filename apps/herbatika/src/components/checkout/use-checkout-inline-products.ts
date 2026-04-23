@@ -4,30 +4,22 @@ import type { HttpTypes } from "@medusajs/types";
 import { useQueries } from "@tanstack/react-query";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useMemo } from "react";
-import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils";
+import { resolveLineItemProductHandle } from "@/lib/storefront/cart-line-item";
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree";
-import {
-  resolveRecommendedProductFamilyKey,
-  selectRecommendedProductRepresentatives,
-} from "@/lib/storefront/recommended-product-families";
 import {
   STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   useProducts,
 } from "@/lib/storefront/products";
+import {
+  resolveRecommendedProductFamilyKey,
+  selectRecommendedProductRepresentatives,
+} from "@/lib/storefront/recommended-product-families";
 import { storefront } from "@/lib/storefront/storefront";
+import { asString } from "@/lib/storefront/value-utils";
 
 const CHECKOUT_INLINE_PRODUCTS_LIMIT = 10;
 const CHECKOUT_INLINE_PRODUCTS_CANDIDATE_LIMIT = 32;
-
-const asString = (value: unknown): string | null => {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
 
 export function useCheckoutInlineProducts(
   cartItems: HttpTypes.StoreCartLineItem[],
@@ -50,20 +42,18 @@ export function useCheckoutInlineProducts(
   }, [cartItems]);
 
   const cartProductQueries = useQueries({
-    queries: cartProductHandles.map((handle) =>
-      ({
-        ...storefront.hooks.products.getDetailQueryOptions(
-          {
-            handle,
-            fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
-          },
-          {
-            region,
-          },
-        ),
-        enabled: cartProductHandles.length > 0,
-      }),
-    ),
+    queries: cartProductHandles.map((handle) => ({
+      ...storefront.hooks.products.getDetailQueryOptions(
+        {
+          handle,
+          fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
+        },
+        {
+          region,
+        },
+      ),
+      enabled: cartProductHandles.length > 0,
+    })),
   });
 
   const cartProducts = useMemo(
@@ -109,10 +99,14 @@ export function useCheckoutInlineProducts(
     const cartProductHandlesSet = new Set(
       cartProducts
         .map((product) => asString(product.handle))
-        .filter((productHandle): productHandle is string => Boolean(productHandle)),
+        .filter((productHandle): productHandle is string =>
+          Boolean(productHandle),
+        ),
     );
     const cartFamilyKeys = new Set(
-      cartProducts.map((product) => resolveRecommendedProductFamilyKey(product)),
+      cartProducts.map((product) =>
+        resolveRecommendedProductFamilyKey(product),
+      ),
     );
 
     const filteredProducts = relatedProductsQuery.products.filter((product) => {

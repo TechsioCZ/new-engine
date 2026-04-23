@@ -4,22 +4,22 @@ import type { HttpTypes } from "@medusajs/types";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
 import NextImage from "next/image";
 import NextLink from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { CartItemQuantityInput } from "@/components/cart/cart-item-quantity-input";
+import { useCartItemQuantity } from "@/components/cart/use-cart-item-quantity";
 import {
-  FALLBACK_MAX_QUANTITY,
-  resolveLineItemHref,
-  resolveLineItemInventory,
-  resolveLineItemThumbnail,
-} from "@/components/header/herbatika-cart-item.utils";
-import {
-  asFiniteNumber,
   resolveCartItemName,
   resolveLineItemQuantity,
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations";
+import {
+  resolveLineItemAvailabilityText,
+  resolveLineItemHref,
+  resolveLineItemMaxQuantity,
+  resolveLineItemOriginalTotalAmount,
+  resolveLineItemThumbnail,
+} from "@/lib/storefront/cart-line-item";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
 type CheckoutCartItemRowProps = {
@@ -30,86 +30,98 @@ type CheckoutCartItemRowProps = {
   onUpdateQuantity: (lineItemId: string, quantity: number) => void;
 };
 
-const toSkDate = (date: Date) => {
-  const day = `${date.getDate()}`.padStart(2, "0");
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const year = date.getFullYear();
-
-  return `${day}.${month}.${year}`;
+type CheckoutCartItemNameLinkProps = {
+  href: string;
+  itemName: string;
 };
 
-const addBusinessDays = (start: Date, daysToAdd: number) => {
-  const date = new Date(start);
-  let remainingDays = daysToAdd;
-
-  while (remainingDays > 0) {
-    date.setDate(date.getDate() + 1);
-    const dayOfWeek = date.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      remainingDays -= 1;
-    }
-  }
-
-  return date;
-};
-
-const resolveFallbackDeliveryLabel = () => {
-  const deliveryDate = addBusinessDays(new Date(), 3);
-  return `u Vás do ${toSkDate(deliveryDate)}`;
-};
-
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return null;
-  }
-
-  return value as Record<string, unknown>;
-};
-
-const asString = (value: unknown): string | null => {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
-const resolveOriginalLineItemTotalAmount = (
-  item: HttpTypes.StoreCartLineItem,
-) => {
-  const itemRecord = item as unknown as Record<string, unknown>;
-  const compareAtUnit = asFiniteNumber(itemRecord.compare_at_unit_price);
-  if (compareAtUnit === null) {
-    return null;
-  }
-
-  return compareAtUnit * resolveLineItemQuantity(item);
-};
-
-const resolveAvailabilityText = (item: HttpTypes.StoreCartLineItem) => {
-  const metadata = asRecord(
-    (item as unknown as Record<string, unknown>).metadata,
+function CheckoutCartItemNameLink({
+  href,
+  itemName,
+}: CheckoutCartItemNameLinkProps) {
+  return (
+    <Link
+      as={NextLink}
+      className="font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary"
+      href={href}
+    >
+      {itemName}
+    </Link>
   );
-  const topOffer = asRecord(metadata?.top_offer);
-  const stock = asRecord(topOffer?.stock);
-  const stockAmount =
-    asFiniteNumber(stock?.amount) ?? resolveLineItemInventory(item);
-  const isInStock = stockAmount === null ? true : stockAmount > 0;
+}
 
-  if (!isInStock) {
-    return (
-      asString(topOffer?.availability_out_of_stock) ??
-      "Momentálne nie je skladom"
-    );
-  }
-
-  const availabilityLabel =
-    asString(topOffer?.availability_in_stock) ?? "Na sklade";
-  const deliveryLabel =
-    asString(topOffer?.delivery_label) ?? resolveFallbackDeliveryLabel();
-  return `${availabilityLabel}, ${deliveryLabel}`;
+type CheckoutCartItemPriceProps = {
+  currencyCode: CheckoutCartItemRowProps["currencyCode"];
+  currentLineAmount: number;
+  originalLineAmount: number | null;
+  shouldShowOriginalAmount: boolean;
 };
+
+function CheckoutCartItemPrice({
+  currencyCode,
+  currentLineAmount,
+  originalLineAmount,
+  shouldShowOriginalAmount,
+}: CheckoutCartItemPriceProps) {
+  return (
+    <div className="flex flex-col gap-100">
+      {shouldShowOriginalAmount && originalLineAmount !== null ? (
+        <p className="font-light text-fg-secondary text-sm leading-tight line-through">
+          {formatCurrencyAmount(originalLineAmount, currencyCode)}
+        </p>
+      ) : null}
+      <p className="font-bold text-fg-primary text-xl leading-tight">
+        {formatCurrencyAmount(currentLineAmount, currencyCode)}
+      </p>
+    </div>
+  );
+}
+
+type CheckoutCartItemControlsProps = {
+  currencyCode: CheckoutCartItemRowProps["currencyCode"];
+  currentLineAmount: number;
+  isPending: boolean;
+  itemMaxQuantity: number;
+  itemName: string;
+  localQuantity: number;
+  onQuantityChange: (nextQuantity: number) => void;
+  originalLineAmount: number | null;
+  shouldShowOriginalAmount: boolean;
+};
+
+function CheckoutCartItemControls({
+  currencyCode,
+  currentLineAmount,
+  isPending,
+  itemMaxQuantity,
+  itemName,
+  localQuantity,
+  onQuantityChange,
+  originalLineAmount,
+  shouldShowOriginalAmount,
+}: CheckoutCartItemControlsProps) {
+  return (
+    <>
+      <div className="flex justify-center">
+        <CartItemQuantityInput
+          className="w-20 shrink-0 sm:w-24"
+          isPending={isPending}
+          itemName={itemName}
+          maxQuantity={itemMaxQuantity}
+          onQuantityChange={onQuantityChange}
+          quantity={localQuantity}
+        />
+      </div>
+
+      <CheckoutCartItemPrice
+        currencyCode={currencyCode}
+        currentLineAmount={currentLineAmount}
+        originalLineAmount={originalLineAmount}
+        shouldShowOriginalAmount={shouldShowOriginalAmount}
+      />
+    </>
+  );
+}
 
 export function CheckoutCartItemRow({
   currencyCode,
@@ -119,174 +131,86 @@ export function CheckoutCartItemRow({
   onUpdateQuantity,
 }: CheckoutCartItemRowProps) {
   const baseQuantity = resolveLineItemQuantity(item);
-  const [localQuantity, setLocalQuantity] = useState(baseQuantity);
   const itemName = resolveCartItemName(item);
   const itemHref = resolveLineItemHref(item);
-  const itemInventory = resolveLineItemInventory(item);
-  const itemMaxQuantity = Math.max(
-    baseQuantity,
-    itemInventory ?? FALLBACK_MAX_QUANTITY,
-  );
+  const itemMaxQuantity = resolveLineItemMaxQuantity(item);
   const currentLineAmount = resolveLineItemTotalAmount(item);
-  const originalLineAmount = useMemo(
-    () => resolveOriginalLineItemTotalAmount(item),
-    [item],
-  );
+  const originalLineAmount = resolveLineItemOriginalTotalAmount(item);
   const shouldShowOriginalAmount =
     typeof originalLineAmount === "number" &&
     originalLineAmount > currentLineAmount + 0.001;
-  const availabilityText = resolveAvailabilityText(item);
-
-  useEffect(() => {
-    setLocalQuantity(baseQuantity);
-  }, [baseQuantity]);
-
-  useEffect(() => {
-    if (localQuantity === baseQuantity) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      onUpdateQuantity(item.id, localQuantity);
-    }, 250);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [baseQuantity, item.id, localQuantity, onUpdateQuantity]);
-
-  const handleQuantityChange = (nextQuantity: number) => {
-    if (!Number.isFinite(nextQuantity)) {
-      return;
-    }
-
-    const normalizedQuantity = Math.max(
-      1,
-      Math.min(Math.round(nextQuantity), itemMaxQuantity),
-    );
-    setLocalQuantity(normalizedQuantity);
-  };
+  const availabilityText = resolveLineItemAvailabilityText(item);
+  const { handleQuantityChange, localQuantity } = useCartItemQuantity({
+    baseQuantity,
+    itemId: item.id,
+    maxQuantity: itemMaxQuantity,
+    onUpdateQuantity,
+  });
 
   return (
-    <article className="flex flex-col w-full gap-250 sm:flex-row sm:items-start md:gap-300 md:grid md:grid-cols-[auto_1fr]">
+    <article className="flex w-full flex-col gap-250 sm:flex-row sm:items-start md:grid md:grid-cols-[auto_1fr] md:gap-300">
       <div className="flex gap-100">
-      <Link
-        as={NextLink}
-        className="inline-flex size-[120px] shrink-0"
-        href={itemHref}
-      >
-        <NextImage
-          alt={itemName}
-          className="object-cover"
-          height={120}
-          quality={50}
-          src={resolveLineItemThumbnail(item)}
-          width={120}
-        />
-      </Link>
-      <div className="flex flex-col gap-300 items-start sm:hidden w-full">
-            <Link
-              as={NextLink}
-              className="font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary"
-              href={itemHref}
-            >
-              {itemName}
-            </Link>
+        <Link
+          as={NextLink}
+          className="inline-flex size-[120px] shrink-0"
+          href={itemHref}
+        >
+          <NextImage
+            alt={itemName}
+            className="object-cover"
+            height={120}
+            quality={50}
+            src={resolveLineItemThumbnail(item)}
+            width={120}
+          />
+        </Link>
+
+        <div className="flex w-full flex-col items-start gap-300 sm:hidden">
+          <CheckoutCartItemNameLink href={itemHref} itemName={itemName} />
+
           <div className="flex w-full justify-between">
-             <div className="flex justify-center">
-            <NumericInput
-              allowOverflow={false}
-              className="w-20 shrink-0 sm:w-24"
-              max={itemMaxQuantity}
-              min={1}
-              onChange={handleQuantityChange}
-              size="md"
-              value={localQuantity}
-            >
-              <NumericInput.Control>
-                <NumericInput.DecrementTrigger
-                  disabled={isPending || localQuantity <= 1}
-                />
-                <NumericInput.Input
-                  aria-label={`Množstvo pre ${itemName}`}
-                  className="text-center"
-                />
-                <NumericInput.IncrementTrigger
-                  disabled={isPending || localQuantity >= itemMaxQuantity}
-                />
-              </NumericInput.Control>
-            </NumericInput>
-          </div>
-          <div className="flex flex-col gap-100">
-            {shouldShowOriginalAmount ? (
-              <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-                {formatCurrencyAmount(originalLineAmount, currencyCode)}
-              </p>
-            ) : null}
-            <p className="font-bold text-fg-primary text-xl leading-tight">
-              {formatCurrencyAmount(currentLineAmount, currencyCode)}
-            </p>
-          </div>
-          </div>
-      </div>
-      </div>
-
-      <div className="grid grid-rows-[1fr_auto] h-full w-full">
-        <div className="hidden sm:grid sm:grid-cols-[3fr_2fr_auto]">
-          <div className="flex items-start">
-            <Link
-              as={NextLink}
-              className="font-normal text-fg-primary text-md leading-snug no-underline hover:text-fg-primary"
-              href={itemHref}
-            >
-              {itemName}
-            </Link>
-          </div>
-
-          <div className="flex justify-center">
-            <NumericInput
-              allowOverflow={false}
-              className="w-20 shrink-0 sm:w-24"
-              max={itemMaxQuantity}
-              min={1}
-              onChange={handleQuantityChange}
-              size="md"
-              value={localQuantity}
-            >
-              <NumericInput.Control>
-                <NumericInput.DecrementTrigger
-                  disabled={isPending || localQuantity <= 1}
-                />
-                <NumericInput.Input
-                  aria-label={`Množstvo pre ${itemName}`}
-                  className="text-center"
-                />
-                <NumericInput.IncrementTrigger
-                  disabled={isPending || localQuantity >= itemMaxQuantity}
-                />
-              </NumericInput.Control>
-            </NumericInput>
-          </div>
-          <div className="flex flex-col gap-100">
-            {shouldShowOriginalAmount ? (
-              <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-                {formatCurrencyAmount(originalLineAmount, currencyCode)}
-              </p>
-            ) : null}
-            <p className="font-bold text-fg-primary text-xl leading-tight">
-              {formatCurrencyAmount(currentLineAmount, currencyCode)}
-            </p>
+            <CheckoutCartItemControls
+              currencyCode={currencyCode}
+              currentLineAmount={currentLineAmount}
+              isPending={isPending}
+              itemMaxQuantity={itemMaxQuantity}
+              itemName={itemName}
+              localQuantity={localQuantity}
+              onQuantityChange={handleQuantityChange}
+              originalLineAmount={originalLineAmount}
+              shouldShowOriginalAmount={shouldShowOriginalAmount}
+            />
           </div>
         </div>
+      </div>
 
-          
-        <div className="flex justify-between items-center">
-          <p className="inline-flex items-end h-full gap-150 font-medium text-primary text-xs leading-normal">
-            <span className="h-fit flex items-center gap-150">
-            <Icon className="shrink-0 text-md" icon="icon-[mdi--check]" />
-            <span className="min-w-0">{availabilityText}</span>
+      <div className="grid h-full w-full grid-rows-[1fr_auto]">
+        <div className="hidden sm:grid sm:grid-cols-[3fr_2fr_auto]">
+          <div className="flex items-start">
+            <CheckoutCartItemNameLink href={itemHref} itemName={itemName} />
+          </div>
+
+          <CheckoutCartItemControls
+            currencyCode={currencyCode}
+            currentLineAmount={currentLineAmount}
+            isPending={isPending}
+            itemMaxQuantity={itemMaxQuantity}
+            itemName={itemName}
+            localQuantity={localQuantity}
+            onQuantityChange={handleQuantityChange}
+            originalLineAmount={originalLineAmount}
+            shouldShowOriginalAmount={shouldShowOriginalAmount}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="inline-flex h-full items-end gap-150 font-medium text-primary text-xs leading-normal">
+            <span className="flex h-fit items-center gap-150">
+              <Icon className="shrink-0 text-md" icon="icon-[mdi--check]" />
+              <span className="min-w-0">{availabilityText}</span>
             </span>
           </p>
+
           <Button
             aria-label={`Odstrániť ${itemName} z košíka`}
             className="text-fg-secondary text-2xl hover:text-fg-primary"
@@ -299,7 +223,6 @@ export function CheckoutCartItemRow({
           />
         </div>
       </div>
-
     </article>
   );
 }

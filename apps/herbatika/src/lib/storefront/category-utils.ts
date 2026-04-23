@@ -1,8 +1,10 @@
 import type { HttpTypes } from "@medusajs/types";
+import { resolveOfferStockAmount, resolveTopOffer } from "./offer-utils";
+import { asFiniteNumber } from "./value-utils";
 
 export const normalizeCategoryName = (value?: string | null) => {
   if (!value) {
-    return "Kategória";
+    return "Kateg\u00f3ria";
   }
 
   return value.replace(/^>\s*/, "").trim();
@@ -18,19 +20,12 @@ export const resolveCategoryRank = (
   return Number.MAX_SAFE_INTEGER;
 };
 
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-
-  return null;
-};
-
 export const resolveProductPriceAmount = (
   product: HttpTypes.StoreProduct,
 ): number | null => {
-  const amount = product.variants?.[0]?.calculated_price?.calculated_amount;
-  return typeof amount === "number" && Number.isFinite(amount) ? amount : null;
+  return asFiniteNumber(
+    product.variants?.[0]?.calculated_price?.calculated_amount,
+  );
 };
 
 export const resolveProductCurrencyCode = (
@@ -49,14 +44,8 @@ export const resolveProductCurrencyCode = (
 export const resolveProductInStock = (
   product: HttpTypes.StoreProduct,
 ): boolean => {
-  const metadata = asRecord(product.metadata);
-  const topOffer = asRecord(metadata?.top_offer);
-  const stock = asRecord(topOffer?.stock);
-  const amount = stock?.amount;
-
-  if (typeof amount === "number") {
-    return amount > 0;
-  }
-
-  return true;
+  const stockAmount = resolveOfferStockAmount(
+    resolveTopOffer(product.metadata),
+  );
+  return stockAmount === null ? true : stockAmount > 0;
 };

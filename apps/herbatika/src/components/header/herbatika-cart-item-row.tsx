@@ -1,32 +1,32 @@
-"use client"
+"use client";
 
-import type { HttpTypes } from "@medusajs/types"
-import { Button } from "@techsio/ui-kit/atoms/button"
-import { Link } from "@techsio/ui-kit/atoms/link"
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
-import Image from "next/image"
-import NextLink from "next/link"
-import { useEffect, useState } from "react"
+import type { HttpTypes } from "@medusajs/types";
+import { Button } from "@techsio/ui-kit/atoms/button";
+import { Link } from "@techsio/ui-kit/atoms/link";
+import Image from "next/image";
+import NextLink from "next/link";
+import { CartItemQuantityInput } from "@/components/cart/cart-item-quantity-input";
+import { useCartItemQuantity } from "@/components/cart/use-cart-item-quantity";
 import {
   resolveCartItemName,
   resolveLineItemQuantity,
   resolveLineItemUnitAmount,
-} from "@/lib/storefront/cart-calculations"
-import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+} from "@/lib/storefront/cart-calculations";
 import {
-  FALLBACK_MAX_QUANTITY,
   resolveLineItemHref,
   resolveLineItemInventory,
+  resolveLineItemMaxQuantity,
   resolveLineItemThumbnail,
-} from "./herbatika-cart-item.utils"
+} from "@/lib/storefront/cart-line-item";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
 type CartItemRowProps = {
-  currencyCode: "EUR" | "CZK"
-  isPending: boolean
-  item: HttpTypes.StoreCartLineItem
-  onRemove: (lineItemId: string) => void
-  onUpdateQuantity: (lineItemId: string, quantity: number) => void
-}
+  currencyCode: "EUR" | "CZK";
+  isPending: boolean;
+  item: HttpTypes.StoreCartLineItem;
+  onRemove: (lineItemId: string) => void;
+  onUpdateQuantity: (lineItemId: string, quantity: number) => void;
+};
 
 export function CartItemRow({
   currencyCode,
@@ -35,50 +35,22 @@ export function CartItemRow({
   onRemove,
   onUpdateQuantity,
 }: CartItemRowProps) {
-  const baseQuantity = resolveLineItemQuantity(item)
-  const [localQuantity, setLocalQuantity] = useState(baseQuantity)
-  const itemName = resolveCartItemName(item)
-  const itemHref = resolveLineItemHref(item)
-  const itemVariant = item.variant_title
-  const itemInventory = resolveLineItemInventory(item)
-  const itemMaxQuantity = Math.max(
-    baseQuantity,
-    itemInventory ?? FALLBACK_MAX_QUANTITY
-  )
+  const baseQuantity = resolveLineItemQuantity(item);
+  const itemName = resolveCartItemName(item);
+  const itemHref = resolveLineItemHref(item);
+  const itemVariant = item.variant_title;
+  const itemInventory = resolveLineItemInventory(item);
+  const itemMaxQuantity = resolveLineItemMaxQuantity(item);
   const itemUnitAmountLabel = formatCurrencyAmount(
     resolveLineItemUnitAmount(item),
-    currencyCode
-  )
-
-  useEffect(() => {
-    setLocalQuantity(baseQuantity)
-  }, [baseQuantity])
-
-  useEffect(() => {
-    if (localQuantity === baseQuantity) {
-      return
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      onUpdateQuantity(item.id, localQuantity)
-    }, 250)
-
-    return () => {
-      window.clearTimeout(timeoutId)
-    }
-  }, [baseQuantity, item.id, localQuantity, onUpdateQuantity])
-
-  const handleQuantityChange = (nextQuantity: number) => {
-    if (!Number.isFinite(nextQuantity)) {
-      return
-    }
-
-    const normalizedQuantity = Math.max(
-      1,
-      Math.min(Math.round(nextQuantity), itemMaxQuantity)
-    )
-    setLocalQuantity(normalizedQuantity)
-  }
+    currencyCode,
+  );
+  const { handleQuantityChange, localQuantity } = useCartItemQuantity({
+    baseQuantity,
+    itemId: item.id,
+    maxQuantity: itemMaxQuantity,
+    onUpdateQuantity,
+  });
 
   return (
     <article className="grid grid-cols-[auto_1fr_auto] items-start gap-200">
@@ -111,31 +83,17 @@ export function CartItemRow({
       </div>
 
       <div className="ml-auto flex items-center gap-150">
-        <NumericInput
-          allowOverflow={false}
+        <CartItemQuantityInput
           className="w-20"
-          max={itemMaxQuantity}
-          min={1}
-          onChange={handleQuantityChange}
-          size="md"
-          value={localQuantity}
-        >
-          <NumericInput.Control>
-            <NumericInput.DecrementTrigger
-              disabled={isPending || localQuantity <= 1}
-            />
-            <NumericInput.Input
-              aria-label={`Množstvo pre ${itemName}`}
-              className="text-center"
-            />
-            <NumericInput.IncrementTrigger
-              disabled={isPending || localQuantity >= itemMaxQuantity}
-            />
-          </NumericInput.Control>
-        </NumericInput>
+          isPending={isPending}
+          itemName={itemName}
+          maxQuantity={itemMaxQuantity}
+          onQuantityChange={handleQuantityChange}
+          quantity={localQuantity}
+        />
 
         <Button
-          aria-label={`Odstrániť ${itemName} z košíka`}
+          aria-label={`Odstránit ${itemName} z košíku`}
           className="h-650 w-650 p-0 text-fg-secondary hover:text-fg-primary"
           disabled={isPending}
           icon="icon-[mdi--trash-can-outline]"
@@ -146,5 +104,5 @@ export function CartItemRow({
         />
       </div>
     </article>
-  )
+  );
 }

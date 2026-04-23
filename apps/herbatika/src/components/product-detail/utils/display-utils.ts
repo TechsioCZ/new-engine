@@ -1,7 +1,7 @@
-import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery";
 import type { HttpTypes } from "@medusajs/types";
+import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery";
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-detail/product-detail.constants";
-import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers";
+import { normalizeCategoryName } from "@/lib/storefront/category-utils";
 
 export const resolveGalleryItems = (
   imageUrls: string[],
@@ -29,7 +29,7 @@ export const resolveProductHighlights = (
   categories: HttpTypes.StoreProductCategory[],
 ): string[] => {
   const sentenceCandidates = summaryText
-    .split(/[\.\!\?]/)
+    .split(/[.!?]/)
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence.length >= 24)
     .slice(0, 3);

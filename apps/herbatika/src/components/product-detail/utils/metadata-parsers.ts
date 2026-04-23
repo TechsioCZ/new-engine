@@ -10,11 +10,18 @@ import type {
   StorefrontProduct,
 } from "@/components/product-detail/product-detail.types";
 import {
+  resolveBusinessDayDeliveryLabel,
+  resolveOfferStockAmount,
+  resolveProductOfferSource,
+} from "@/lib/storefront/offer-utils";
+import {
   asBoolean,
   asNumber,
   asRecord,
   asString,
-} from "@/components/product-detail/utils/value-utils";
+} from "@/lib/storefront/value-utils";
+
+export { normalizeCategoryName } from "@/lib/storefront/category-utils";
 
 const normalizeSectionKey = (value: unknown): string | null => {
   const parsed = asString(value);
@@ -30,43 +37,9 @@ const normalizeSectionKey = (value: unknown): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
-const toSkDate = (date: Date) => {
-  const day = `${date.getDate()}`.padStart(2, "0");
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const year = date.getFullYear();
-
-  return `${day}.${month}.${year}`;
-};
-
-const addBusinessDays = (start: Date, daysToAdd: number) => {
-  const date = new Date(start);
-  let remainingDays = daysToAdd;
-
-  while (remainingDays > 0) {
-    date.setDate(date.getDate() + 1);
-    const dayOfWeek = date.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      remainingDays -= 1;
-    }
-  }
-
-  return date;
-};
-
-const resolveInStockDeliveryLabel = () => {
-  const deliveryDate = addBusinessDays(new Date(), 3);
-  return `u vás do ${toSkDate(deliveryDate)}`;
-};
-
-export const normalizeCategoryName = (value?: string | null) => {
-  if (!value) {
-    return "Kategória";
-  }
-
-  return value.replace(/^>\s*/, "").trim();
-};
-
-export const resolveProductImages = (product: StorefrontProduct | null): string[] => {
+export const resolveProductImages = (
+  product: StorefrontProduct | null,
+): string[] => {
   if (!product) {
     return [];
   }
@@ -115,25 +88,21 @@ export const resolveVariantLabel = (
     return title;
   }
 
-  return "Predvolená varianta";
+  return "Predvolen\u00e1 varianta";
 };
 
 export const resolveOfferState = (
   product: StorefrontProduct | null,
   selectedVariant: HttpTypes.StoreProductVariant | null,
 ): ProductOfferState => {
-  const metadata = asRecord(product?.metadata);
-  const topOffer = asRecord(metadata?.top_offer);
-  const variantMetadata = asRecord(selectedVariant?.metadata);
-  const source = topOffer ?? variantMetadata;
-  const stock = asRecord(source?.stock);
-  const stockAmount = asNumber(stock?.amount);
-
+  const source = resolveProductOfferSource(product, selectedVariant);
+  const stockAmount = resolveOfferStockAmount(source);
   const isInStock = stockAmount === null ? true : stockAmount > 0;
 
   const inStockLabel = asString(source?.availability_in_stock) ?? "Skladom";
   const outOfStockLabel =
-    asString(source?.availability_out_of_stock) ?? "Momentálne nie je skladom";
+    asString(source?.availability_out_of_stock) ??
+    "Moment\u00e1lne nie je skladom";
   const currentAmount =
     asNumber(source?.current_price) ?? asNumber(source?.price_vat);
 
@@ -150,8 +119,8 @@ export const resolveOfferState = (
     ean: asString(source?.ean) ?? asString(selectedVariant?.ean),
     availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
     deliveryLabel: isInStock
-      ? resolveInStockDeliveryLabel()
-      : "po naskladnení",
+      ? resolveBusinessDayDeliveryLabel()
+      : "po naskladnen\u00ed",
     stockAmount,
     isInStock,
     offerSource: source,
@@ -195,7 +164,9 @@ export const resolveProductContentSections = (
 
   return PRODUCT_DETAIL_SECTION_ORDER.map((sectionKey) => {
     let html =
-      asString(sectionMap?.[sectionKey]) ?? sectionHtmlByKey.get(sectionKey) ?? "";
+      asString(sectionMap?.[sectionKey]) ??
+      sectionHtmlByKey.get(sectionKey) ??
+      "";
 
     if (!html && sectionKey === "description") {
       html = fallbackHtml;

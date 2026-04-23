@@ -3,17 +3,17 @@
 import type { HttpTypes } from "@medusajs/types";
 import type { SetValues } from "nuqs";
 import { useEffect, useState } from "react";
-import { toggleSelection } from "@/components/category/category-selection-utils";
 import {
-  plpQueryParsers,
-  resolveCatalogQueryStatePatch,
   type NuqsPlpQueryState,
   type ProductSortValue,
+  type plpQueryParsers,
+  resolveCatalogQueryStatePatch,
 } from "@/lib/storefront/plp-query-state";
 import {
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
 } from "@/lib/storefront/products";
+import { toggleSelection } from "@/lib/storefront/selection-utils";
 import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
 
 type CatalogMultiSelectKey = "status" | "form" | "brand" | "ingredient";
@@ -84,7 +84,10 @@ export function useCatalogListingInteractions({
     regionId,
     countryCode,
   });
-  const prefetchProduct = usePrefetchProduct({ defaultDelay: 180, skipMode: "any" });
+  const prefetchProduct = usePrefetchProduct({
+    defaultDelay: 180,
+    skipMode: "any",
+  });
 
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
     setAddToCartError(null);
@@ -112,11 +115,13 @@ export function useCatalogListingInteractions({
 
   return {
     addToCartError,
-    isProductAdding: (productId: string) => addToCart.isProductAdding(productId),
+    isProductAdding: (productId: string) =>
+      addToCart.isProductAdding(productId),
     onAddToCart: handleAddToCart,
     onBrandToggle: (itemId: string) => patchMultiSelect("brand", itemId),
     onFormToggle: (itemId: string) => patchMultiSelect("form", itemId),
-    onIngredientToggle: (itemId: string) => patchMultiSelect("ingredient", itemId),
+    onIngredientToggle: (itemId: string) =>
+      patchMultiSelect("ingredient", itemId),
     onPageChange: (nextPage: number) => {
       if (nextPage === queryState.page) {
         return;
@@ -133,7 +138,9 @@ export function useCatalogListingInteractions({
       );
     },
     onProductHoverEnd: (product: HttpTypes.StoreProduct) => {
-      prefetchProduct.cancelPrefetch(`${productPrefetchKeyPrefix}-${product.id}`);
+      prefetchProduct.cancelPrefetch(
+        `${productPrefetchKeyPrefix}-${product.id}`,
+      );
     },
     onProductHoverStart: (product: HttpTypes.StoreProduct) => {
       if (!product.handle) {
@@ -163,7 +170,9 @@ export function useCatalogListingInteractions({
       );
     },
     onSortChange: (value: ProductSortValue) => {
-      void setQueryState(resolveCatalogQueryStatePatch(queryState, { sort: value }));
+      void setQueryState(
+        resolveCatalogQueryStatePatch(queryState, { sort: value }),
+      );
     },
     onStatusToggle: (itemId: string) => patchMultiSelect("status", itemId),
     page: queryState.page,
