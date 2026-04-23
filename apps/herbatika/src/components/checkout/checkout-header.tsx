@@ -44,9 +44,9 @@ export function CheckoutHeader() {
             variant="secondary"
             theme="outlined"
             icon="icon-[mdi--account-outline]"
-            className="text-nowrap text-xs sm:text-sm"
+            className="text-nowrap sm:text-sm px-400 py-300 h-full border-2"
           >
-            Prihlásiť sa
+            <span className="text-sm">Prihlásiť sa</span>
           </LinkButton>}
         </div>
       </div>
