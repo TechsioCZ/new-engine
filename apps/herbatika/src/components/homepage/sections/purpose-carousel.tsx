@@ -119,11 +119,11 @@ function PurposeCarouselSlides({
         <>
           <Carousel.Previous
             className="-translate-y-1/2 absolute top-1/2 left-100 rounded-full aspect-square text-lg shadow-md"
-            icon="icon-[mdi--chevron-left]"
+            icon="token-icon-chevron-left"
           />
           <Carousel.Next
             className="-translate-y-1/2 absolute top-1/2 right-100 rounded-full aspect-square text-lg shadow-md"
-            icon="icon-[mdi--chevron-right]"
+            icon="token-icon-chevron-right"
           />
         </>
       ) : null}

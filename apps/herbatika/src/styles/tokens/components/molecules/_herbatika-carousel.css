@@ -31,3 +31,16 @@
   --radius-carousel: var(--radius-md);
   --radius-carousel-indicator: 999px;
 }
+
+
+@utility token-icon-carousel-prev {
+  @apply token-icon-heart;
+}
+
+@utility token-icon-carousel-prev {
+  @apply icon-[mdi--chevron-right];
+}
+
+@utility token-icon-carousel-next {
+  @apply token-icon-chevron-right;
+}

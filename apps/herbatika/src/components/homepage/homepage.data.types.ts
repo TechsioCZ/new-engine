@@ -30,7 +30,7 @@ export type BlogTeaserItem = {
 export type ProductSectionDefinition = {
   id: string;
   title: string;
-  subtitle: string;
+  //subtitle: string;
 };
 
 export type PurposeCategoryItem = {
