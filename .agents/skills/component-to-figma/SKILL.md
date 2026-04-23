@@ -17,15 +17,29 @@ Use this for component-library work, not for product screens. For canvas writes,
 4. Never create component-specific Figma variables with raw values.
 5. Component variables must always inherit from semantic or primitive variables.
 6. Never duplicate tokens that already exist in the Figma library. Reuse or alias them.
-7. Variable naming is mandatory: use slash-separated names in the form `type/component/cssProperty/variant/state`, omitting variant and state segments when they are not meaningful.
-8. Figma pages must follow the established library shell:
-   - black canvas background
-   - white section cards
-   - `24px` radius on section cards
-   - `36px` internal padding
-   - consistent vertical gaps between sections
-9. Validation is mandatory. Do not declare migration done until Storybook and Figma visually match.
-10. `use_figma` calls must be sequential and incremental. Never batch the whole migration into one large write.
+7. **Three-tier token architecture is mandatory.** Every Figma variable must live in exactly one tier and inherit strictly downward:
+   - **Core (primitives)** — raw values only. Short, flat names. No "Primitive", "Space", "Default" padding in names.
+   - **Semantic** — aliases to core. Gives design meaning to raw values.
+   - **Component-specific** — aliases to semantic (or core when no semantic exists). Never holds raw values.
+8. **Figma modes are strictly light and dark.** No mobile, tablet, desktop, mode-1, or any pseudo-responsive modes. Responsive sizing is handled through the core→semantic→component inheritance chain, not through Figma variable modes. If existing Figma variables contain invalid modes (e.g., mobile, tablet, desktop, mode-1), **delete those modes and refactor the variables into the correct collection** before continuing.
+9. **Figma variable collections** map 1:1 to tiers:
+   - **Core** — one collection named `core` for all primitives.
+   - **Semantic** — one collection named `semantic` for all semantic aliases.
+   - **Component-specific** — one collection per component, named after the component (e.g., `button`, `badge`, `input`, `rating`). Each component gets its own collection so tokens stay scoped and manageable.
+10. **Variable naming rules** differ by tier and token type:
+   - **Core names** are maximally short: `size/8`, `size/16`, `color/red/500`, `radius/4`, `opacity/50`.
+   - **Semantic names** add design meaning: `size/sm`, `size/md`, `color/primary/base`, `radius/sm`.
+   - **Component color tokens** use up to 5 levels: `type/component/cssProperty/variant/state` — only for components with color-variant props AND interactive states (button, badge). Components without color variants drop the variant level. Components without states drop the state level.
+   - **Component non-color tokens** use simplified flat naming: `type/component/size` — no redundant variant/state segments.
+   - **Never use "default"** for the initial state. Use **"base"** (shorter, clearer). Example: `color/button/bg/primary/base`, not `…/default`.
+11. Figma pages must follow the established library shell:
+    - black canvas background
+    - white section cards
+    - `24px` radius on section cards
+    - `36px` internal padding
+    - consistent vertical gaps between sections
+12. Validation is mandatory. Do not declare migration done until Storybook and Figma visually match.
+13. `use_figma` calls must be sequential and incremental. Never batch the whole migration into one large write.
  
 ## What Counts As A Visual Prop
  
@@ -102,36 +116,171 @@ Inspect at minimum:
  
 Take screenshots when useful, but rely on computed CSS for exact values.
  
-### Step 4: Inspect Existing Figma State
- 
+### Step 4: Inspect And Clean Existing Figma State
+
 Before creating anything:
 - inspect the target Figma file
-- list existing pages, components, collections, and variables
+- list existing pages, components, collections, modes, and variables
 - reuse existing primitives and semantic variables when names and values already match
 - detect whether the component page already exists and whether it needs update instead of recreation
- 
+
+**Mode and collection audit** (mandatory):
+1. List all variable collections and their modes.
+2. If any collection contains modes other than light/dark (e.g., mobile, tablet, desktop, mode-1), those modes are invalid.
+3. Delete invalid modes.
+4. If variables from invalid modes hold unique values, refactor them into the correct tier collection with proper naming before deleting the mode.
+5. Ensure collections match the required structure: `core`, `semantic`, and one collection per component.
+6. If a single catch-all collection exists with all variables mixed together, split it into the correct per-tier/per-component collections.
+
 Do not recreate tokens already present in the library.
  
 ### Step 5: Migrate Tokens First
- 
-Create or update Figma variables in this order:
-1. primitives
-2. semantic/core
-3. component-specific
- 
-Component-specific variables must use this naming:
-- `color/button/bg/primary`
-- `color/button/bg/primary/hover`
-- `color/input/border/error`
-- `spacing/input/x/md`
-- `radius/form-control/root/md`
- 
-Guidelines:
-- `type` examples: `color`, `spacing`, `padding`, `gap`, `radius`, `border`, `text`, `size`, `opacity`
-- `component` must use the real component name in lowercase slash style
-- `cssProperty` should describe the visual role: `bg`, `fg`, `border`, `ring`, `x`, `y`, `root`, `height`, `icon-gap`
-- `variant` and `state` must match code semantics, and should be omitted when they are not meaningful
- 
+
+Create or update Figma variables strictly in tier order: core first, then semantic, then component-specific.
+
+**Collection structure**:
+- `core` collection — all primitives (single mode for non-color, light+dark for color)
+- `semantic` collection — all semantic aliases (single mode for non-color, light+dark for color)
+- `button` / `badge` / `input` / etc. — one collection per component for its component-specific variables
+
+#### Tier 1: Core (Primitives)
+
+Core variables hold **raw values only**. Names must be maximally short — strip all redundant words like "Primitive", "Space", "Default".
+
+**Naming pattern**: `type/value`
+
+Examples — sizing and spacing:
+- `--spacingPrimitiveSpace50Default` => `size/3` (0.1875rem = 3px)
+- `--spacingPrimitiveSpace100Default` => `size/5` (0.3125rem = 5px)
+- `--spacingPrimitiveSpace200Default` => `size/15` (0.9375rem = 15px)
+- Use pixel-based scale numbers: `size/4`, `size/8`, `size/12`, `size/16`, `size/24`, `size/32`, `size/48`, `size/64`
+
+Examples — typography:
+- `--textPrimitiveSizeSmDefault` => `text/sm`
+- `--textPrimitiveSizeBaseDefault` => `text/base`
+- `--textPrimitiveSizeLgDefault` => `text/lg`
+- `--textPrimitiveSizeXlDefault` => `text/xl`
+
+Examples — color:
+- `color/red/500`, `color/red/600`, `color/blue/400`
+- `color/neutral/100`, `color/neutral/900`
+- `color/white`, `color/black`
+
+Examples — other:
+- `radius/4`, `radius/8`, `radius/16`, `radius/full`
+- `opacity/50`, `opacity/100`
+- `border-width/1`, `border-width/2`
+- `font-weight/400`, `font-weight/500`, `font-weight/700`
+
+Core variables use **light and dark modes only** for color values. Non-color core variables have a single mode.
+
+#### Tier 2: Semantic
+
+Semantic variables **alias core variables**. They never hold raw values. They give design meaning to the raw scale.
+
+**Naming pattern**: `type/role` or `type/role/state`
+
+Examples — sizing:
+- `size/sm` => aliases `size/8`
+- `size/md` => aliases `size/16`
+- `size/lg` => aliases `size/32`
+
+Examples — spacing:
+- `spacing/sm` => aliases `size/8`
+- `spacing/md` => aliases `size/16`
+- `spacing/lg` => aliases `size/24`
+
+Examples — typography:
+- `text/sm` => aliases core `text/sm`
+- `text/md` => aliases core `text/base`
+- `text/lg` => aliases core `text/lg`
+
+Examples — color:
+- `color/primary/base` => aliases `color/red/600`
+- `color/primary/hover` => aliases `color/red/700`
+- `color/secondary/base` => aliases `color/blue/500`
+- `color/danger/base` => aliases `color/red/500`
+- `color/fg/base` => aliases `color/neutral/900`
+- `color/fg/muted` => aliases `color/neutral/500`
+- `color/bg/base` => aliases `color/white`
+- `color/border/base` => aliases `color/neutral/200`
+
+Examples — radius:
+- `radius/sm` => aliases `radius/4`
+- `radius/md` => aliases `radius/8`
+- `radius/lg` => aliases `radius/16`
+- `radius/full` => aliases `radius/full`
+
+Semantic color variables use **light and dark modes** (values change per theme by pointing to different core aliases). Non-color semantic variables have a single mode.
+
+#### Tier 3: Component-Specific
+
+Component variables **alias semantic variables** (or core when no suitable semantic exists). Never raw values.
+
+Component tokens follow two naming tracks:
+
+**Color tokens** — up to 5 levels for interactive components:
+
+Pattern: `color/component/cssProperty/variant/state`
+
+Button (has color variants + states):
+- `color/button/bg/primary/base` => aliases `color/primary/base`
+- `color/button/bg/primary/hover` => aliases `color/primary/hover`
+- `color/button/bg/primary/disabled` => aliases `color/neutral/200`
+- `color/button/fg/secondary/base` => aliases `color/secondary/base`
+
+Badge (has color variants + states):
+- `color/badge/bg/success/base` => aliases `color/success/base`
+- `color/badge/fg/error/base` => aliases `color/danger/base`
+
+Input (no color variant, has states — 4 levels):
+- `color/input/border/base` => aliases `color/border/base`
+- `color/input/border/hover` => aliases `color/border/hover`
+- `color/input/border/error` => aliases `color/danger/base`
+- `color/input/bg/disabled` => aliases `color/bg/muted`
+
+Components without color-variant properties omit the variant level.
+Components without interactive states omit the state level.
+Solve depth case-by-case per component.
+
+**Non-color tokens** — simplified flat naming:
+
+Pattern: `type/component/size` or `type/component` (when size-independent)
+
+From code CSS custom properties:
+
+**Size / text / font-weight**:
+- `--text-badge-size-sm-default` => `text/badge/sm` => aliases `text/sm`
+- `--text-badge-size-md-default` => `text/badge/md` => aliases `text/md`
+- `--font-weight-badge-weight-sm-default` => `font-weight/badge/sm` => aliases `font-weight/500`
+- `--text-input-size-sm-default` => `text/input/sm` => aliases `text/sm`
+
+**Spacing / padding**:
+- `--padding-badge-all-sm-default` => `spacing/badge/sm` => aliases `spacing/sm`
+- `--padding-badge-all-xl-default` => `spacing/badge/xl` => aliases `spacing/xl`
+- `--padding-input-x-sm-default` + `--padding-input-y-sm-default` => `padding/input/sm` => aliases `spacing/sm`
+
+**Radius** (`type/component` or `type/component/size`):
+- `--radius-badge-root-default-default` => `radius/badge` => aliases `radius/md`
+- `--radius-input-root-sm-default` => `radius/input/sm` => aliases `radius/sm`
+
+**Border-width** (`type/component`):
+- `--border-width-badge-root-default-default` => `border-width/badge` => aliases `border-width/1`
+- `--border-input-width-default-default` => `border-width/input` => aliases `border-width/1`
+
+When a non-color token has one value across all sizes, drop the size segment.
+When it varies by size, keep `type/component/size`.
+
+#### Naming Guidelines Summary
+
+- **Core**: `type/value` — e.g., `size/8`, `color/red/500`, `radius/4`, `font-weight/700`
+- **Semantic**: `type/role` — e.g., `size/sm`, `color/primary/base`, `radius/md`
+- **Component color**: `color/component/cssProperty/variant/state` — depth varies per component
+- **Component non-color**: `type/component/size` — flat, no redundant segments
+- **Never use "default"** — use **"base"** for the initial state
+- **Modes**: light and dark only, applied to color variables. No responsive modes.
+- **Inheritance is strict**: component => semantic => core. No skipping tiers except when no semantic equivalent exists.
+
 Set scopes correctly. Never leave component variables overly broad.
  
 ### Step 6: Build Or Update The Component In Figma
