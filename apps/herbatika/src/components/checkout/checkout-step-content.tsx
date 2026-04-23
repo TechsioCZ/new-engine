@@ -48,10 +48,6 @@ export function CheckoutStepContent({
       cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
       currencyCode={controller.currencyCode}
       detailsFont={orderSummaryDetailsFont}
-      hasPayment={controller.hasPayment}
-      hasShipping={controller.hasShipping}
-      paymentLabel={selectedPaymentLabel}
-      selectedOptionName={selectedShippingLabel}
       selectedShippingPrice={controller.selectedShippingPrice}
     />
   );

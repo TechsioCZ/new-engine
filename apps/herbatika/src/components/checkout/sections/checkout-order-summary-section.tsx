@@ -14,10 +14,6 @@ type CheckoutOrderSummarySectionProps = {
   cartTotalWithoutTaxAmount: number;
   currencyCode: string;
   detailsFont: "inter" | "rubik";
-  hasPayment: boolean;
-  hasShipping: boolean;
-  paymentLabel?: string;
-  selectedOptionName?: string;
   selectedShippingPrice: number;
 };
 
@@ -28,10 +24,6 @@ export function CheckoutOrderSummarySection({
   cartTotalWithoutTaxAmount,
   currencyCode,
   detailsFont,
-  hasPayment,
-  hasShipping,
-  paymentLabel,
-  selectedOptionName,
   selectedShippingPrice,
 }: CheckoutOrderSummarySectionProps) {
   const detailsFontClass =
@@ -77,7 +69,7 @@ export function CheckoutOrderSummarySection({
                   <p className="line-clamp-2 text-md font-medium text-fg-primary">
                     {itemName}
                   </p>
-                  <SupportingText className="text-fg-secondary">{`× ${itemQuantity}`}</SupportingText>
+                  <SupportingText className="text-fg-secondary">{`${itemQuantity} ks`}</SupportingText>
                 </div>
                 <p className="shrink-0 text-lg font-semibold text-fg-primary">
                   {itemPrice}
@@ -118,19 +110,6 @@ export function CheckoutOrderSummarySection({
             </span>
           </div>
         </div>
-      </div>
-
-      <div className="space-y-100 text-sm text-fg-secondary">
-        <p>
-          {hasShipping
-            ? `Doprava: ${selectedOptionName ?? "Zvolená"}`
-            : "Doprava: nevybraná"}
-        </p>
-        <p>
-          {hasPayment
-            ? `Platba: ${paymentLabel ?? "Zvolená"}`
-            : "Platba: nevybraná"}
-        </p>
       </div>
     </section>
   );
