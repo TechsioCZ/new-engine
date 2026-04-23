@@ -6,6 +6,9 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { resolveAvailabilityText } from "../utils/resolve-availability-text";
+import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { Select } from "@techsio/ui-kit/molecules/select";
 
 type CheckoutOrderSummarySectionProps = {
   cartItems: HttpTypes.StoreCartLineItem[];
@@ -37,6 +40,11 @@ export function CheckoutOrderSummarySection({
   const detailsFontClass =
     detailsFont === "inter" ? "font-inter" : "font-rubik";
 
+  const testItems = [{label: 'test',
+		value: 'test',
+		role: 'code'}
+  ]
+
   return (
     <section className={`space-y-300 rounded-sm p-550 ${detailsFontClass}`}>
       <header>
@@ -57,6 +65,7 @@ export function CheckoutOrderSummarySection({
                 ? item.thumbnail
                 : "/file.svg";
             const hasDivider = index < cartItems.length - 1;
+            const availabilityText = resolveAvailabilityText(item);
 
             return (
               <article
@@ -67,21 +76,29 @@ export function CheckoutOrderSummarySection({
               >
                 <NextImage
                   alt={itemName}
-                  className="h-850 w-850 shrink-0 rounded-sm border border-border-secondary object-cover"
-                  height={80}
+                  className="size-checkout-image shrink-0 rounded-sm border border-border-secondary object-cover"
+                  height={150}
                   quality={50}
                   src={itemThumbnail}
-                  width={80}
+                  width={150}
                 />
-                <div className="min-w-0 flex-1 space-y-100">
-                  <p className="line-clamp-2 text-md font-medium text-fg-primary">
+                <div className="flex flex-col min-w-0 space-y-100 h-checkout-image justify-between">
+                  <p className="line-clamp text-md font-medium text-fg-primary">
                     {itemName}
                   </p>
-                  <SupportingText className="text-fg-secondary">{`× ${itemQuantity}`}</SupportingText>
+                  <p className="inline-flex items-end h-full font-medium text-primary text-xs leading-normal">
+                    <span className="h-fit flex items-center gap-150">
+                      <Icon className="shrink-0 text-md" icon="icon-[mdi--check]" />
+                      <span className="min-w-0">{availabilityText}</span>
+                    </span>
+                  </p>
                 </div>
-                <p className="shrink-0 text-lg font-semibold text-fg-primary">
-                  {itemPrice}
-                </p>
+                <div className="flex flex-col gap-100 items-end">
+                  <p className="shrink-0 text-lg font-semibold text-fg-primary">
+                    {itemPrice}
+                  </p>
+                  <SupportingText className="text-fg-secondary">{`${itemQuantity} ks`}</SupportingText>
+                </div>
               </article>
             );
           })
@@ -92,24 +109,30 @@ export function CheckoutOrderSummarySection({
         )}
       </div>
 
-      <div className="space-y-150 border-y border-border-primary py-250">
-        <div className="flex items-center justify-between gap-200 border-b border-border-primary">
-          <span className="text-fg-secondary pb-150">Cena produktov</span>
+      <div className="space-y-200 border-t border-border-primary">
+        <div className="flex items-center justify-between border-b border-border-primary">
+          <span className="text-fg-secondary py-200">Cena produktov</span>
           <p className="text-md font-medium text-fg-primary">
             {formatCurrencyAmount(cartSubtotalAmount, currencyCode)}
           </p>
         </div>
-        <div className="flex items-center justify-between gap-200">
-          <span className="text-fg-secondary">Doprava</span>
+        <div className="flex items-center justify-between border-b border-border-primary py-200">
+          <span className="text-fg-secondary">{selectedOptionName || "Doprava"}</span>
           <p className="text-md font-medium text-fg-primary">
             {formatCurrencyAmount(selectedShippingPrice, currencyCode)}
           </p>
         </div>
-        <div className="flex items-center justify-between gap-200 border-t border-border-primary pt-150">
-          <span className="text-md font-semibold text-fg-primary">
+        <div className="flex items-center justify-between py-200">
+          <span className="text-fg-secondary">{paymentLabel || "Platební metoda"}</span>
+          <p className="text-md font-medium text-primary">
+            Zadarmo
+          </p>
+        </div>
+        <div className="flex items-start justify-between border-t border-border-primary pt-150">
+          <span className="text-md md:mt-150 font-semibold text-fg-primary">
             Spolu s DPH
           </span>
-          <div>
+          <div className="flex flex-col items-end gap-200">
             <p className="text-2xl font-bold text-fg-primary">
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
             </p>
@@ -119,19 +142,26 @@ export function CheckoutOrderSummarySection({
           </div>
         </div>
       </div>
-
-      <div className="space-y-100 text-sm text-fg-secondary">
-        <p>
-          {hasShipping
-            ? `Doprava: ${selectedOptionName ?? "Zvolená"}`
-            : "Doprava: nevybraná"}
-        </p>
-        <p>
-          {hasPayment
-            ? `Platba: ${paymentLabel ?? "Zvolená"}`
-            : "Platba: nevybraná"}
-        </p>
-      </div>
+      <Select items={testItems} className="gap-y-50">
+        <Select.Label className="text-sm font-[500]">Benefity</Select.Label>
+        <Select.Control>
+          <Select.Trigger className="bg-surface-secondary min-h-12 px-400">
+            <Icon icon="icon-[hugeicons--shopping-basket-check-in-01]" className="text-2xl" />
+            <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Vrátenie do 14 dní zadarmo" />
+          </Select.Trigger>
+          <Select.ClearTrigger />
+        </Select.Control>
+        <Select.Positioner>
+          <Select.Content>
+            {testItems?.map((item) => (
+              <Select.Item key={item.value} item={item}>
+                <Select.ItemText />
+                <Select.ItemIndicator />
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Positioner>
+      </Select>
     </section>
   );
 }

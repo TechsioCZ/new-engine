@@ -21,6 +21,7 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { resolveAvailabilityText, resolveFallbackDeliveryLabel, resolveOriginalLineItemTotalAmount } from "../utils/resolve-availability-text";
 
 type CheckoutCartItemRowProps = {
   currencyCode: "EUR" | "CZK";
@@ -28,87 +29,6 @@ type CheckoutCartItemRowProps = {
   item: HttpTypes.StoreCartLineItem;
   onRemove: (lineItemId: string) => void;
   onUpdateQuantity: (lineItemId: string, quantity: number) => void;
-};
-
-const toSkDate = (date: Date) => {
-  const day = `${date.getDate()}`.padStart(2, "0");
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const year = date.getFullYear();
-
-  return `${day}.${month}.${year}`;
-};
-
-const addBusinessDays = (start: Date, daysToAdd: number) => {
-  const date = new Date(start);
-  let remainingDays = daysToAdd;
-
-  while (remainingDays > 0) {
-    date.setDate(date.getDate() + 1);
-    const dayOfWeek = date.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      remainingDays -= 1;
-    }
-  }
-
-  return date;
-};
-
-const resolveFallbackDeliveryLabel = () => {
-  const deliveryDate = addBusinessDays(new Date(), 3);
-  return `u Vás do ${toSkDate(deliveryDate)}`;
-};
-
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return null;
-  }
-
-  return value as Record<string, unknown>;
-};
-
-const asString = (value: unknown): string | null => {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
-const resolveOriginalLineItemTotalAmount = (
-  item: HttpTypes.StoreCartLineItem,
-) => {
-  const itemRecord = item as unknown as Record<string, unknown>;
-  const compareAtUnit = asFiniteNumber(itemRecord.compare_at_unit_price);
-  if (compareAtUnit === null) {
-    return null;
-  }
-
-  return compareAtUnit * resolveLineItemQuantity(item);
-};
-
-const resolveAvailabilityText = (item: HttpTypes.StoreCartLineItem) => {
-  const metadata = asRecord(
-    (item as unknown as Record<string, unknown>).metadata,
-  );
-  const topOffer = asRecord(metadata?.top_offer);
-  const stock = asRecord(topOffer?.stock);
-  const stockAmount =
-    asFiniteNumber(stock?.amount) ?? resolveLineItemInventory(item);
-  const isInStock = stockAmount === null ? true : stockAmount > 0;
-
-  if (!isInStock) {
-    return (
-      asString(topOffer?.availability_out_of_stock) ??
-      "Momentálne nie je skladom"
-    );
-  }
-
-  const availabilityLabel =
-    asString(topOffer?.availability_in_stock) ?? "Na sklade";
-  const deliveryLabel =
-    asString(topOffer?.delivery_label) ?? resolveFallbackDeliveryLabel();
-  return `${availabilityLabel}, ${deliveryLabel}`;
 };
 
 export function CheckoutCartItemRow({

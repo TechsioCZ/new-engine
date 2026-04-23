@@ -25,7 +25,7 @@ export function CheckoutCartSidebarSection({
 
   const testItems = [{label: 'test',
 		value: 'test',
-		role: 'Designer'}
+		role: 'code'}
   ]
   return (
     <section className="w-full xl:max-w-header-search space-y-300">
@@ -95,38 +95,38 @@ export function CheckoutCartSidebarSection({
 
       <div className="space-y-500">
         <Select items={testItems} className="gap-y-50">
-              <Select.Label className="text-sm font-[500]">Benefity</Select.Label>
-              <Select.Control>
-                <Select.Trigger className="bg-surface-secondary min-h-12 px-400">
-                  <Icon icon="icon-[hugeicons--shopping-basket-check-in-01]" className="text-2xl" />
-                  <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Vrátenie do 14 dní zadarmo" />
-                </Select.Trigger>
-                <Select.ClearTrigger />
-              </Select.Control>
-              <Select.Positioner>
-                <Select.Content>
-                  {testItems?.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      <Select.ItemText />
-                      <Select.ItemIndicator />
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Positioner>
-		      </Select>
-          <div className="flex flex-col gap-150">
-            <Label className="text-sm font-[500]">Odložiť si košík na neskôr</Label>
-            <div className="flex gap-300">
-              <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
-                <Icon icon="icon-[mdi--content-copy]" />
-                <span>Uložiť link</span>
-              </Button>
-              <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
-                <Icon icon="icon-[tabler--send]" />
-                <span>Poslať na e-mail</span>
-              </Button>
-            </div>
+          <Select.Label className="text-sm font-[500]">Benefity</Select.Label>
+          <Select.Control>
+            <Select.Trigger className="bg-surface-secondary min-h-12 px-400">
+              <Icon icon="icon-[hugeicons--shopping-basket-check-in-01]" className="text-2xl" />
+              <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Vrátenie do 14 dní zadarmo" />
+            </Select.Trigger>
+            <Select.ClearTrigger />
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content>
+              {testItems?.map((item) => (
+                <Select.Item key={item.value} item={item}>
+                  <Select.ItemText />
+                  <Select.ItemIndicator />
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select>
+        <div className="flex flex-col gap-150">
+          <Label className="text-sm font-[500]">Odložiť si košík na neskôr</Label>
+          <div className="flex gap-300">
+            <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
+              <Icon icon="icon-[mdi--content-copy]" />
+              <span>Uložiť link</span>
+            </Button>
+            <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
+              <Icon icon="icon-[tabler--send]" />
+              <span>Poslať na e-mail</span>
+            </Button>
           </div>
+        </div>
       </div>
     </section>
   );
