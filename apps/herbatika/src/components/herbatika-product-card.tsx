@@ -98,7 +98,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
         </div>
 
         <div className="mt-auto flex flex-col items-stretch gap-200 sm:flex-row sm:items-end sm:justify-between sm:gap-300">
-          <div className="flex flex-col justify-end sm:min-h-750">
+          <div className="flex flex-col h-full justify-center sm:min-h-750">
             {price.originalLabel ? (
               <span className="text-xs leading-normal text-fg-tertiary line-through">
                 {price.originalLabel}

@@ -13,7 +13,7 @@ export function CheckoutStepsSection({
   steps,
 }: CheckoutStepsSectionProps) {
   return (
-    <section className="flex w-full justify-center max-w-max-w mx-auto">
+    <section className="flex w-full justify-center max-w-checkout-step mx-auto">
       <div className="flex min-h-850 w-full max-w-auth-content items-center justify-center rounded-xl bg-surface px-300 sm:px-400">
         <div className="w-full overflow-x-auto">
           <HerbatikaCheckoutSteps step={checkoutStepIndex} steps={steps} />

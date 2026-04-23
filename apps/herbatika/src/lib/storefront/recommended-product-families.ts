@@ -87,7 +87,9 @@ const resolveTopOfferCode = (product: HttpTypes.StoreProduct) => {
   return asString(topOffer?.code);
 };
 
-const resolveRecommendedProductFamilyKey = (product: HttpTypes.StoreProduct) => {
+export const resolveRecommendedProductFamilyKey = (
+  product: HttpTypes.StoreProduct,
+) => {
   const primarySetItem = resolvePrimarySetItem(product);
   if (primarySetItem?.code) {
     return primarySetItem.code;

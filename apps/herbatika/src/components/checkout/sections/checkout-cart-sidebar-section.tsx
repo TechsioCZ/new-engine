@@ -1,6 +1,11 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { Select } from "@techsio/ui-kit/molecules/select";
+import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { Button } from "@techsio/ui-kit/atoms/button";
+import { Label } from "@techsio/ui-kit/atoms/label";
+
 
 type CheckoutCartSidebarSectionProps = {
   cartSubtotalAmount: number;
@@ -17,10 +22,35 @@ export function CheckoutCartSidebarSection({
   currencyCode,
   nextStepHref,
 }: CheckoutCartSidebarSectionProps) {
+
+  const testItems = [{label: 'test',
+		value: 'test',
+		role: 'Designer'}
+  ]
   return (
-    <section className="w-full xl:max-w-header-search">
+    <section className="w-full xl:max-w-header-search space-y-300">
       <div className="rounded-sm bg-surface shadow-md">
         <div className="flex flex-col gap-450 px-400 pt-550 pb-450 md:px-550">
+          	<Select items={testItems}>
+              <Select.Label className="sr-only">Zlavový kód</Select.Label>
+              <Select.Control>
+                <Select.Trigger className="bg-base border-1 min-h-12 px-400">
+                  <Icon icon="icon-[mynaui--label]" className="text-2xl" />
+                  <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Zadať zľavový kód" />
+                </Select.Trigger>
+                <Select.ClearTrigger />
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content>
+                  {testItems?.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      <Select.ItemText />
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+		        </Select>
           <div>
             <div className="flex items-center justify-between pb-150">
               <p className="text-sm leading-relaxed font-normal text-fg-primary">
@@ -61,6 +91,42 @@ export function CheckoutCartSidebarSection({
             <span className="font-normal text-xs sm:text-md">Pokračovať na dopravu a platbu</span>
           </LinkButton>
         </div>
+      </div>
+
+      <div className="space-y-500">
+        <Select items={testItems} className="gap-y-50">
+              <Select.Label className="text-sm font-[500]">Benefity</Select.Label>
+              <Select.Control>
+                <Select.Trigger className="bg-surface-secondary min-h-12 px-400">
+                  <Icon icon="icon-[hugeicons--shopping-basket-check-in-01]" className="text-2xl" />
+                  <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Vrátenie do 14 dní zadarmo" />
+                </Select.Trigger>
+                <Select.ClearTrigger />
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content>
+                  {testItems?.map((item) => (
+                    <Select.Item key={item.value} item={item}>
+                      <Select.ItemText />
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+		      </Select>
+          <div className="flex flex-col gap-150">
+            <Label className="text-sm font-[500]">Odložiť si košík na neskôr</Label>
+            <div className="flex gap-300">
+              <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
+                <Icon icon="icon-[mdi--content-copy]" />
+                <span>Uložiť link</span>
+              </Button>
+              <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
+                <Icon icon="icon-[tabler--send]" />
+                <span>Poslať na e-mail</span>
+              </Button>
+            </div>
+          </div>
       </div>
     </section>
   );

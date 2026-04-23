@@ -3,12 +3,17 @@ import { asFiniteNumber } from "@/lib/storefront/cart-calculations";
 
 export const FALLBACK_MAX_QUANTITY = 99;
 
-export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
+export const resolveLineItemProductHandle = (
+  item: HttpTypes.StoreCartLineItem,
+) => {
   const itemRecord = item as unknown as Record<string, unknown>;
-  const productHandle =
-    typeof itemRecord.product_handle === "string"
-      ? itemRecord.product_handle
-      : null;
+  return typeof itemRecord.product_handle === "string"
+    ? itemRecord.product_handle
+    : null;
+};
+
+export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
+  const productHandle = resolveLineItemProductHandle(item);
 
   if (productHandle) {
     return `/p/${productHandle}`;

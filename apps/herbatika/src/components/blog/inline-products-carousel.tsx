@@ -11,19 +11,22 @@ import { HerbatikaProductCard } from "@/components/herbatika-product-card";
 import { SupportingText } from "@/components/text/supporting-text";
 import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
 
-type BlogInlineProductsCarouselProps = {
+type InlineProductsCarouselProps = {
   products: HttpTypes.StoreProduct[];
+  slidesSm?: number;
+  slidesMd?: number;
+  slidesLg?: number;
 };
 
-type BlogInlineProductsSlidesProps = {
+type InlineProductsSlidesProps = {
   slides: CarouselSlide[];
   slidesPerPage: number;
 };
 
-function BlogInlineProductsSlides({
+function InlineProductsSlides({
   slides,
   slidesPerPage,
-}: BlogInlineProductsSlidesProps) {
+}: InlineProductsSlidesProps) {
   const hasOverflow = slides.length > slidesPerPage;
 
   return (
@@ -54,9 +57,12 @@ function BlogInlineProductsSlides({
   );
 }
 
-export function BlogInlineProductsCarousel({
+export function InlineProductsCarousel({
   products,
-}: BlogInlineProductsCarouselProps) {
+  slidesSm = 1,
+  slidesMd = 2,
+  slidesLg = 4,
+}: InlineProductsCarouselProps) {
   const region = useRegionContext();
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
   const addToCart = useAddProductToCart({
@@ -97,13 +103,13 @@ export function BlogInlineProductsCarousel({
   return (
     <section className="space-y-250">
       <div className="md:hidden">
-        <BlogInlineProductsSlides slides={slides} slidesPerPage={1} />
+        <InlineProductsSlides slides={slides} slidesPerPage={slidesSm} />
       </div>
       <div className="hidden md:block xl:hidden">
-        <BlogInlineProductsSlides slides={slides} slidesPerPage={2} />
+        <InlineProductsSlides slides={slides} slidesPerPage={slidesMd} />
       </div>
       <div className="hidden xl:block">
-        <BlogInlineProductsSlides slides={slides} slidesPerPage={4} />
+        <InlineProductsSlides slides={slides} slidesPerPage={slidesLg} />
       </div>
 
       {addToCartError ? (

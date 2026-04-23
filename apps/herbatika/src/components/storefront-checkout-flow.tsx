@@ -69,7 +69,7 @@ export function StorefrontCheckoutFlow({
   const activeStepIndex = resolveCheckoutStepIndexBySlug(activeStep);
 
   return (
-    <main className="mx-auto flex w-full max-w-account-content flex-col gap-750 px-400 pt-700 pb-850 font-rubik lg:px-550">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 pt-600 pb-850 font-rubik lg:px-550 xl:px-700">
       <CheckoutStepsSection
         checkoutStepIndex={activeStepIndex}
         steps={CHECKOUT_STEPS}

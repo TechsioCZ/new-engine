@@ -73,6 +73,7 @@
   --color-base-dark: var(--color-herbatika-fg-strong);
   --color-base: var(--color-herbatika-base);
   --color-surface: var(--color-herbatika-white);
+  --color-surface-secondary: var(--color-herbatika-border-soft);
   --color-overlay: var(--color-herbatika-overlay);
   --color-float: var(--color-herbatika-float);
   --color-highlight: var(--color-herbatika-highlight);
