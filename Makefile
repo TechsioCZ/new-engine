@@ -62,6 +62,15 @@ medusa-seed-n1:
 	docker exec wr_medusa_be pnpm --filter medusa-be run seedN1
 medusa-seed-herbatica:
 	docker exec wr_medusa_be pnpm --filter medusa-be run seedHerbatica
+# Usage: make medusa-seed-herbatica-promos [PROMO_REBASE_DAYS=30]
+medusa-seed-herbatica-promos:
+	@PROMO_REBASE_DAYS_VAL="$${PROMO_REBASE_DAYS:-30}"; \
+	echo "Seeding Herbatica with rebased promo windows for $$PROMO_REBASE_DAYS_VAL days"; \
+	docker exec -e HERBATICA_PROMO_REBASE_DAYS="$$PROMO_REBASE_DAYS_VAL" wr_medusa_be pnpm --filter medusa-be run seedHerbatica
+medusa-debug-product-count:
+	docker exec $(if $(PUBLISHABLE_KEY),-e PUBLISHABLE_KEY="$(PUBLISHABLE_KEY)",) wr_medusa_be pnpm --filter medusa-be run debugProductCount
+medusa-analyze-product-count:
+	docker exec -e RUN_ANALYZE=1 $(if $(PUBLISHABLE_KEY),-e PUBLISHABLE_KEY="$(PUBLISHABLE_KEY)",) wr_medusa_be pnpm --filter medusa-be run debugProductCount
 
 # Biome commands
 biome-be:
