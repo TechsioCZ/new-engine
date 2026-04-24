@@ -71,3 +71,83 @@ describe("Herbatica seed category mapping", () => {
     })
   })
 })
+
+describe("Herbatica seed promo rebase", () => {
+  const xml = `
+    <SHOP>
+      <SHOPITEM id="42">
+        <NAME>Akcny produkt</NAME>
+        <DESCRIPTION>Popis produktu</DESCRIPTION>
+        <PRICE_VAT>9.99</PRICE_VAT>
+        <STANDARD_PRICE>9.99</STANDARD_PRICE>
+        <ACTION_PRICE>7.99</ACTION_PRICE>
+        <ACTION_PRICE_FROM>2025-06-03</ACTION_PRICE_FROM>
+        <ACTION_PRICE_UNTIL>2025-06-03</ACTION_PRICE_UNTIL>
+        <CURRENCY>EUR</CURRENCY>
+        <VISIBLE>1</VISIBLE>
+        <STOCK>
+          <AMOUNT>3</AMOUNT>
+        </STOCK>
+        <CATEGORIES>
+          <CATEGORY id="promo">Akcie</CATEGORY>
+          <DEFAULT_CATEGORY id="promo">Akcie</DEFAULT_CATEGORY>
+        </CATEGORIES>
+      </SHOPITEM>
+    </SHOP>
+  `
+
+  it("keeps expired discounts inactive by default", () => {
+    const result = buildSeedInputFromXml(xml)
+    const product = result.products[0]
+    const variant = product?.variants?.[0]
+
+    expect(variant?.prices).toEqual([
+      {
+        amount: 9.99,
+        currency_code: "eur",
+      },
+    ])
+    expect(product?.metadata).toMatchObject({
+      top_offer: {
+        current_price: 9.99,
+        has_active_discount: false,
+      },
+    })
+    expect(variant?.metadata).toMatchObject({
+      current_price: 9.99,
+      has_active_discount: false,
+    })
+  })
+
+  it("rebases expired discounts into an active promo window when enabled", () => {
+    const result = buildSeedInputFromXml(xml, undefined, {
+      promoRebaseDays: 30,
+      referenceDate: new Date("2026-04-23T12:00:00.000Z"),
+    })
+    const product = result.products[0]
+    const variant = product?.variants?.[0]
+
+    expect(variant?.prices).toEqual([
+      {
+        amount: 7.99,
+        currency_code: "eur",
+      },
+    ])
+    expect(product?.metadata).toMatchObject({
+      top_offer: {
+        action_price_from: "2026-04-23",
+        action_price_until: "2026-05-23",
+        compare_at_price: 9.99,
+        current_price: 7.99,
+        has_active_discount: true,
+      },
+    })
+    expect(variant?.metadata).toMatchObject({
+      action_price_from: "2026-04-23",
+      action_price_until: "2026-05-23",
+      compare_at_price: 9.99,
+      current_price: 7.99,
+      has_active_discount: true,
+    })
+  })
+})

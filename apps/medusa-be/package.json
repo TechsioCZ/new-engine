@@ -42,7 +42,8 @@
     "setInitialPublishableKeyZerops": "bash -euo pipefail -c \"npm run -s setInitialPublishableKey | tr -d '\\n\\r' | zsc setSecretEnv CHANNEL_PUBLISHABLE_KEY\"",
     "seedHerbatica": "medusa exec ./src/scripts/herbatica-seed.ts",
     "cleanupHerbaticaLegacyCategories": "medusa exec ./src/scripts/herbatica-cleanup-legacy-categories.ts",
-    "auditXmlVsDb": "medusa exec ./src/scripts/audit-xml-vs-db.ts"
+    "auditXmlVsDb": "medusa exec ./src/scripts/audit-xml-vs-db.ts",
+    "debugProductCount": "medusa exec ./src/scripts/debug-product-count.ts"
   },
   "dependencies": {
     "@badgateway/oauth2-client": "^3.3.1",

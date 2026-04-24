@@ -228,6 +228,16 @@ type ResolvedFeedPaths = {
   categoriesXmlPath?: string
 }
 
+type SeedBuildOptions = {
+  referenceDate?: Date
+  promoRebaseDays?: number
+}
+
+type ResolvedSeedBuildOptions = {
+  referenceDate: Date
+  promoRebaseDays?: number
+}
+
 const DEFAULT_PRODUCTS_XML_PATHS = [
   resolve(__dirname, "seed-files/productsComplete.xml"),
 ] as const
@@ -776,6 +786,46 @@ function normalizePriceAmount(amount?: number): number | undefined {
   return Math.max(0, amount)
 }
 
+function parsePositiveIntegerEnv(name: string): number | undefined {
+  const parsed = parseInteger(process.env[name])
+  if (parsed === undefined || parsed <= 0) {
+    return undefined
+  }
+
+  return parsed
+}
+
+function formatIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
+function addUtcDays(date: Date, days: number): Date {
+  const result = new Date(date.getTime())
+  result.setUTCDate(result.getUTCDate() + days)
+  return result
+}
+
+function resolveSeedBuildOptions(
+  options?: SeedBuildOptions
+): ResolvedSeedBuildOptions {
+  const referenceDate = options?.referenceDate
+    ? new Date(options.referenceDate)
+    : new Date()
+  const promoRebaseDays =
+    typeof options?.promoRebaseDays === "number" &&
+    Number.isFinite(options.promoRebaseDays) &&
+    options.promoRebaseDays > 0
+      ? Math.trunc(options.promoRebaseDays)
+      : undefined
+
+  return {
+    referenceDate: Number.isNaN(referenceDate.getTime())
+      ? new Date()
+      : referenceDate,
+    promoRebaseDays,
+  }
+}
+
 function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
   const normalized = normalizeInlineText(value)
   if (!normalized) {
@@ -894,6 +944,22 @@ function resolveOfferHasActiveDiscount(
   return actionPrice < basePrice
 }
 
+function hasDiscountedActionPrice(
+  offer: ParsedOfferData,
+  fallbackOffer?: ParsedOfferData
+): boolean {
+  const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
+  const actionPrice = normalizePriceAmount(
+    offer.actionPrice ?? fallbackOffer?.actionPrice
+  )
+
+  return (
+    basePrice !== undefined &&
+    actionPrice !== undefined &&
+    actionPrice < basePrice
+  )
+}
+
 function resolveOfferCurrentPrice(
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
@@ -923,6 +989,35 @@ function resolveOfferCurrentPrice(
   }
 
   return 0
+}
+
+function rebaseOfferPromotion(
+  offer: ParsedOfferData,
+  buildOptions: ResolvedSeedBuildOptions,
+  fallbackOffer?: ParsedOfferData
+): ParsedOfferData {
+  if (!buildOptions.promoRebaseDays) {
+    return offer
+  }
+
+  if (
+    !hasDiscountedActionPrice(offer, fallbackOffer) ||
+    resolveOfferHasActiveDiscount(
+      offer,
+      fallbackOffer,
+      buildOptions.referenceDate
+    )
+  ) {
+    return offer
+  }
+
+  return {
+    ...offer,
+    actionPriceFrom: formatIsoDate(buildOptions.referenceDate),
+    actionPriceUntil: formatIsoDate(
+      addUtcDays(buildOptions.referenceDate, buildOptions.promoRebaseDays)
+    ),
+  }
 }
 
 function normalizeFlags(
@@ -1700,13 +1795,44 @@ function buildProducer(item: ParsedShopItem): ProductSeedInput["producer"] {
   }
 }
 
+function applyPromoOverrides(
+  items: ParsedShopItem[],
+  buildOptions: ResolvedSeedBuildOptions
+): ParsedShopItem[] {
+  if (!buildOptions.promoRebaseDays) {
+    return items
+  }
+
+  return items.map((item) => {
+    const topOffer = rebaseOfferPromotion(item.topOffer, buildOptions)
+    const variants = item.variants.map((variant) =>
+      rebaseOfferPromotion(variant, buildOptions, topOffer)
+    )
+
+    return {
+      ...item,
+      topOffer,
+      variants,
+    }
+  })
+}
+
 function buildVariantMetadata(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData
+  fallbackOffer?: ParsedOfferData,
+  referenceDate = new Date()
 ): Record<string, unknown> {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
-  const hasActiveDiscount = resolveOfferHasActiveDiscount(offer, fallbackOffer)
-  const currentPrice = resolveOfferCurrentPrice(offer, fallbackOffer)
+  const hasActiveDiscount = resolveOfferHasActiveDiscount(
+    offer,
+    fallbackOffer,
+    referenceDate
+  )
+  const currentPrice = resolveOfferCurrentPrice(
+    offer,
+    fallbackOffer,
+    referenceDate
+  )
   const compareAtPrice = hasActiveDiscount ? basePrice : undefined
 
   return {
@@ -1769,9 +1895,10 @@ function buildProductMetadata(
   item: ParsedShopItem,
   topOffer: ParsedOfferData,
   categoryPaths: string[],
-  categoryRefs: ParsedCategoryRef[]
+  categoryRefs: ParsedCategoryRef[],
+  referenceDate = new Date()
 ): Record<string, unknown> {
-  const normalizedFlags = normalizeFlags(item.flags, topOffer)
+  const normalizedFlags = normalizeFlags(item.flags, topOffer, referenceDate)
   const sourceCategoryIds = dedupeStrings(
     categoryRefs.map((categoryRef) => categoryRef.id)
   )
@@ -1840,7 +1967,7 @@ function buildProductMetadata(
     flags: normalizedFlags,
     flags_raw: item.flags,
     set_items: item.setItems,
-    top_offer: buildVariantMetadata(topOffer),
+    top_offer: buildVariantMetadata(topOffer, undefined, referenceDate),
   }
 }
 
@@ -1848,7 +1975,8 @@ function buildVariantsForProduct(
   item: ParsedShopItem,
   handle: string,
   usedSkus: Set<string>,
-  usedEans: Set<string>
+  usedEans: Set<string>,
+  referenceDate = new Date()
 ): {
   options: ProductOptionSeedInput[]
   variants: VariantSeedInput[]
@@ -1865,7 +1993,7 @@ function buildVariantsForProduct(
     if (ean) {
       usedEans.add(ean)
     }
-    const amount = resolveOfferCurrentPrice(topOffer)
+    const amount = resolveOfferCurrentPrice(topOffer, undefined, referenceDate)
     const currencyCode = (topOffer.currency ?? "EUR").toLowerCase()
     const quantity = normalizeInventoryQuantity(topOffer.stockAmountRaw)
     const thumbnail = topOffer.imageRef
@@ -1895,7 +2023,7 @@ function buildVariantsForProduct(
           ],
           images: thumbnail ? [{ url: thumbnail }] : undefined,
           thumbnail,
-          metadata: buildVariantMetadata(topOffer),
+          metadata: buildVariantMetadata(topOffer, undefined, referenceDate),
           quantities: {
             quantity,
           },
@@ -1975,7 +2103,11 @@ function buildVariantsForProduct(
       item.topOffer.currency ??
       "EUR"
     ).toLowerCase()
-    const amount = resolveOfferCurrentPrice(variant, item.topOffer)
+    const amount = resolveOfferCurrentPrice(
+      variant,
+      item.topOffer,
+      referenceDate
+    )
     const quantity = normalizeInventoryQuantity(variant.stockAmountRaw)
     const thumbnail = variant.imageRef
     const rawEan = normalizeInlineText(variant.ean)
@@ -1997,7 +2129,7 @@ function buildVariantsForProduct(
       ],
       images: thumbnail ? [{ url: thumbnail }] : undefined,
       thumbnail,
-      metadata: buildVariantMetadata(variant, item.topOffer),
+      metadata: buildVariantMetadata(variant, item.topOffer, referenceDate),
       quantities: {
         quantity,
       },
@@ -2013,7 +2145,8 @@ function buildVariantsForProduct(
 function buildProducts(
   items: ParsedShopItem[],
   pathToHandle: Map<string, string>,
-  categoryIdToHandle: Map<string, string>
+  categoryIdToHandle: Map<string, string>,
+  buildOptions: ResolvedSeedBuildOptions
 ): ProductSeedInput[] {
   const usedHandles = new Set<string>()
   const usedSkus = new Set<string>()
@@ -2058,7 +2191,8 @@ function buildProducts(
       item,
       handle,
       usedSkus,
-      usedEans
+      usedEans,
+      buildOptions.referenceDate
     )
     const thumbnail = item.images[0] ?? item.topOffer.imageRef
     const imageUrls = dedupeStrings([...item.images, thumbnail])
@@ -2074,7 +2208,8 @@ function buildProducts(
         item,
         item.topOffer,
         item.categoryPaths,
-        item.categoryRefs
+        item.categoryRefs,
+        buildOptions.referenceDate
       ),
       shippingProfileName: "Default Shipping Profile",
       thumbnail,
@@ -2117,13 +2252,20 @@ function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
 
 export function buildSeedInputFromXml(
   xml: string,
-  categoryExports?: HerbaticaCategoryExport[]
+  categoryExports?: HerbaticaCategoryExport[],
+  options?: SeedBuildOptions
 ): BuildResult {
-  const items = parseShopItems(xml)
+  const buildOptions = resolveSeedBuildOptions(options)
+  const items = applyPromoOverrides(parseShopItems(xml), buildOptions)
   const { categories, pathToHandle, categoryIdToHandle } = categoryExports
     ? buildCategoriesFromExport(categoryExports)
     : buildCategoriesFromProductPaths(items)
-  const products = buildProducts(items, pathToHandle, categoryIdToHandle)
+  const products = buildProducts(
+    items,
+    pathToHandle,
+    categoryIdToHandle,
+    buildOptions
+  )
   enforceUniqueVariantSkus(products)
   const hiddenProducts = products.filter(
     (product) => product.status === ProductStatus.DRAFT
@@ -2206,7 +2348,17 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const categoryExports = feedPaths.categoriesXmlPath
     ? parseHerbaticaCategoriesXmlFile(feedPaths.categoriesXmlPath)
     : undefined
-  const parsed = buildSeedInputFromXml(xml, categoryExports)
+  const buildOptions = resolveSeedBuildOptions({
+    promoRebaseDays: parsePositiveIntegerEnv("HERBATICA_PROMO_REBASE_DAYS"),
+  })
+
+  if (buildOptions.promoRebaseDays !== undefined) {
+    logger.info(
+      `Rebasing expired Herbatica promo windows to ${formatIsoDate(buildOptions.referenceDate)} + ${buildOptions.promoRebaseDays} days`
+    )
+  }
+
+  const parsed = buildSeedInputFromXml(xml, categoryExports, buildOptions)
 
   logger.info(
     `Parsed feed: ${parsed.stats.shopItems} SHOPITEMs, ${parsed.stats.categories} categories, ${parsed.stats.products} products, ${parsed.stats.variants} variants`
