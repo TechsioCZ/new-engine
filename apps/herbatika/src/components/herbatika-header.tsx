@@ -122,7 +122,7 @@ export function HerbatikaHeader() {
             className="inline-flex items-center gap-300 text-fg-secondary font-open-sans hover:text-fg-primary"
             href="tel:+421232112345"
           >
-            <Icon className="text-2xl" icon="icon-[mdi--phone-outline]" />
+            <Icon className="text-2xl" icon="token-icon-phone" />
             <span className="leading-snug">
               <span className="block text-md font-semibold leading-snug text-fg-primary">
                 +421 2/321 123 45

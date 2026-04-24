@@ -32,13 +32,8 @@
   --radius-carousel-indicator: 999px;
 }
 
-
 @utility token-icon-carousel-prev {
-  @apply token-icon-heart;
-}
-
-@utility token-icon-carousel-prev {
-  @apply icon-[mdi--chevron-right];
+  @apply token-icon-chevron-left;
 }
 
 @utility token-icon-carousel-next {

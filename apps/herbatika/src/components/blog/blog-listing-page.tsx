@@ -50,7 +50,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
     {
       label: "Blog",
       href: "/blog",
-      icon: "icon-[mdi--home-outline]",
+      icon: "token-icon-home",
     },
   ];
 

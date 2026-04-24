@@ -71,7 +71,7 @@ export function HerbatikaFooter() {
               </Footer.Text>
 
               <Footer.Text className="mt-250 flex items-start gap-300">
-                <Icon className="mt-50 text-2xl text-fg-secondary" icon="icon-[mdi--phone-outline]" />
+                <Icon className="mt-50 text-2xl text-fg-secondary" icon="token-icon-phone" />
                 <span className="leading-normal">
                   <span className="block font-bold text-primary">+421 2/321 123 45</span>
                   <span className="block text-sm">(Po-Pia: 9:00 - 16:00)</span>
@@ -79,7 +79,7 @@ export function HerbatikaFooter() {
               </Footer.Text>
 
               <Footer.Link className="mt-500 inline-flex items-center gap-300 font-bold text-primary" href="mailto:ahoj@herbatica.sk">
-                <Icon className="text-2xl text-fg-secondary" icon="icon-[mdi--email-outline]" />
+                <Icon className="text-2xl text-fg-secondary" icon="token-icon-email" />
                 ahoj@herbatica.sk
               </Footer.Link>
             </Footer.Section>

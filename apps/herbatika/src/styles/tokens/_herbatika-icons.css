@@ -10,6 +10,10 @@
   @apply icon-[solar--phone-outline];
 }
 
+@utility token-icon-email {
+  @apply icon-[solar--letter-outline];
+}
+
 /* COMPANY ICONS */
 @utility token-icon-fb {
   @apply icon-[mdi--facebook];
@@ -48,6 +52,18 @@
   @apply icon-[cif--ro];
 }
 
+
+/* === === */
+
+@utility token-icon-home {
+  @apply icon-[solar--home-angle-outline];
+}
+
+/* mdi set */
+@utility token-icon-list {
+  @apply icon-[mdi--format-list-bulleted];
+}
+
 @utility token-icon-logout {
   @apply icon-[mdi--logout];
 }
@@ -64,8 +80,6 @@
   @apply icon-[mdi--search];
 }
 
-
-
 @utility token-icon-cart {
   @apply icon-[mdi--cart-outline];
 }
@@ -80,4 +94,12 @@
 
 @utility token-icon-chevron-left {
   @apply icon-[solar--alt-arrow-left-line-duotone];
+}
+
+@utility token-icon-chevron-up {
+  @apply icon-[solar--alt-arrow-up-line-duotone];
+}
+
+@utility token-icon-chevron-down {
+  @apply icon-[solar--alt-arrow-down-line-duotone];
 }
