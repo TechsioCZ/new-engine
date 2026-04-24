@@ -6,6 +6,7 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { useMemo } from "react";
 import {
   resolveCategoryContextImageTiles,
+  resolveCategoryIntroHtml,
   resolveCategoryIntroText,
 } from "@/components/category/category-context.utils";
 import {
@@ -254,6 +255,10 @@ export function useCategoryListingQueries({
       : null,
     categoriesQuery,
     categoryContextImageTiles,
+    categoryIntroHtml: resolveCategoryIntroHtml({
+      activeCategory,
+      categoryByHandle,
+    }),
     categoryIntroText: resolveCategoryIntroText({ activeCategory }),
     categorySubtitle:
       activeCategoryFilterIds.length > 1

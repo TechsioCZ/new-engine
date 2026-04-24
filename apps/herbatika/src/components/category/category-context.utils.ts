@@ -10,6 +10,28 @@ const CATEGORY_DESCRIPTION_PLACEHOLDERS = new Set([
   "Imported from Herbatica category export.",
 ]);
 
+const SHOW_MORE_MARKER_PATTERN = /#showmore#/gi;
+const SHOW_MORE_MARKER_PARAGRAPH_PATTERN =
+  /<p[^>]*>\s*(?:<span[^>]*>)?\s*#showmore#\s*(?:<\/span>)?\s*<\/p>/gi;
+const HERBATICA_LEGACY_HOSTNAMES = new Set([
+  "herbatica.sk",
+  "www.herbatica.sk",
+]);
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return null;
+};
+
+const asString = (value: unknown): string | null => {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
+};
+
 const sortCategories = (categories: HttpTypes.StoreProductCategory[]) => {
   return [...categories].sort((left, right) => {
     const rankDifference =
@@ -29,6 +51,69 @@ type ResolveCategoryIntroTextInput = {
   activeCategory: HttpTypes.StoreProductCategory | null;
 };
 
+type ResolveCategoryIntroHtmlInput = ResolveCategoryIntroTextInput & {
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>;
+};
+
+const stripShowMoreMarker = (html: string) => {
+  return html
+    .replace(SHOW_MORE_MARKER_PARAGRAPH_PATTERN, "")
+    .replace(SHOW_MORE_MARKER_PATTERN, "")
+    .trim();
+};
+
+const resolveLegacyCategoryHref = (
+  href: string,
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+) => {
+  const trimmedHref = href.trim();
+  if (!trimmedHref || trimmedHref.startsWith("#")) {
+    return href;
+  }
+
+  let pathname = trimmedHref;
+
+  try {
+    const url = new URL(trimmedHref);
+    if (!HERBATICA_LEGACY_HOSTNAMES.has(url.hostname)) {
+      return href;
+    }
+
+    pathname = url.pathname;
+  } catch {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmedHref)) {
+      return href;
+    }
+  }
+
+  const normalizedPath = pathname.replace(/^\/+|\/+$/g, "");
+  if (!normalizedPath || normalizedPath.startsWith("c/")) {
+    return href;
+  }
+
+  const [handle] = normalizedPath.split("/");
+  if (!handle || !categoryByHandle.has(handle)) {
+    return href;
+  }
+
+  return `/c/${handle}`;
+};
+
+const rewriteLegacyCategoryLinks = (
+  html: string,
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+) => {
+  return html.replace(
+    /\bhref=(["'])(.*?)\1/gi,
+    (_match, quote: string, href: string) => {
+      return `href=${quote}${resolveLegacyCategoryHref(
+        href,
+        categoryByHandle,
+      )}${quote}`;
+    },
+  );
+};
+
 export const resolveCategoryIntroText = ({
   activeCategory,
 }: ResolveCategoryIntroTextInput) => {
@@ -38,6 +123,22 @@ export const resolveCategoryIntroText = ({
   }
 
   return description;
+};
+
+export const resolveCategoryIntroHtml = ({
+  activeCategory,
+  categoryByHandle,
+}: ResolveCategoryIntroHtmlInput) => {
+  const metadata = asRecord(activeCategory?.metadata);
+  const topDescriptionHtml = asString(metadata?.top_description_html);
+  if (!topDescriptionHtml) {
+    return null;
+  }
+
+  return rewriteLegacyCategoryLinks(
+    stripShowMoreMarker(topDescriptionHtml),
+    categoryByHandle,
+  );
 };
 
 type ResolveCategoryContextTilesInput = {
