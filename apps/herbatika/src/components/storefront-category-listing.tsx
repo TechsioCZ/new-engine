@@ -59,7 +59,6 @@ export function StorefrontCategoryListing({
 
       <CategoryContextPanel
         imageTiles={controller.categoryContextImageTiles}
-        introSegments={controller.categoryIntroSegments}
         introText={controller.categoryIntroText}
       />
 

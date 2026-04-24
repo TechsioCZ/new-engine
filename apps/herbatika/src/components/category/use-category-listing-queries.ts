@@ -5,7 +5,6 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { useMemo } from "react";
 import {
-  resolveCategoryIntroSegments,
   resolveCategoryContextImageTiles,
   resolveCategoryIntroText,
 } from "@/components/category/category-context.utils";
@@ -25,7 +24,10 @@ import {
 } from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree";
-import { PLP_PAGE_SIZE, type NuqsPlpQueryState } from "@/lib/storefront/plp-query-state";
+import {
+  PLP_PAGE_SIZE,
+  type NuqsPlpQueryState,
+} from "@/lib/storefront/plp-query-state";
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 
@@ -69,7 +71,8 @@ const resolveBreadcrumbItems = (
       break;
     }
 
-    currentCategory = categoryById.get(currentCategory.parent_category_id) ?? null;
+    currentCategory =
+      categoryById.get(currentCategory.parent_category_id) ?? null;
   }
 
   for (let index = 0; index < trail.length; index += 1) {
@@ -79,7 +82,11 @@ const resolveBreadcrumbItems = (
 
     items.push({
       label,
-      href: isLast ? undefined : category.handle ? `/c/${category.handle}` : undefined,
+      href: isLast
+        ? undefined
+        : category.handle
+          ? `/c/${category.handle}`
+          : undefined,
     });
   }
 
@@ -131,7 +138,10 @@ export function useCategoryListingQueries({
 
     return [
       activeCategory.id,
-      ...collectDescendantCategoryIds(categoriesQuery.categories, activeCategory.id),
+      ...collectDescendantCategoryIds(
+        categoriesQuery.categories,
+        activeCategory.id,
+      ),
     ];
   }, [activeCategory, categoriesQuery.categories]);
 
@@ -139,7 +149,8 @@ export function useCategoryListingQueries({
     return categoriesQuery.categories
       .filter((category) => !category.parent_category_id && category.handle)
       .sort((left, right) => {
-        const rankDifference = resolveCategoryRank(left) - resolveCategoryRank(right);
+        const rankDifference =
+          resolveCategoryRank(left) - resolveCategoryRank(right);
         if (rankDifference !== 0) {
           return rankDifference;
         }
@@ -163,7 +174,9 @@ export function useCategoryListingQueries({
     });
   }, [activeCategoryFilterIds, queryState]);
 
-  const isCatalogQueryEnabled = Boolean(region?.region_id && activeCategory?.id);
+  const isCatalogQueryEnabled = Boolean(
+    region?.region_id && activeCategory?.id,
+  );
 
   const catalogQuery = useCatalogProducts({
     ...catalogProductsInput,
@@ -207,20 +220,16 @@ export function useCategoryListingQueries({
   const categoryContextImageTiles = useMemo(
     () =>
       resolveCategoryContextImageTiles({
-        slug,
         activeCategory,
         activeCategoryFilterIds,
         categories: categoriesQuery.categories,
-        categoryByHandle,
         categoryById,
       }),
     [
       activeCategory,
       activeCategoryFilterIds,
       categoriesQuery.categories,
-      categoryByHandle,
       categoryById,
-      slug,
     ],
   );
 
@@ -238,19 +247,23 @@ export function useCategoryListingQueries({
       : null,
     catalogQuery,
     categoriesError: categoriesQuery.error
-      ? resolveErrorMessage(categoriesQuery.error, "Načítanie kategórií zlyhalo.")
+      ? resolveErrorMessage(
+          categoriesQuery.error,
+          "Načítanie kategórií zlyhalo.",
+        )
       : null,
     categoriesQuery,
     categoryContextImageTiles,
-    categoryIntroSegments: resolveCategoryIntroSegments({ slug, categoryByHandle }),
-    categoryIntroText: resolveCategoryIntroText({ slug, activeCategory }),
+    categoryIntroText: resolveCategoryIntroText({ activeCategory }),
     categorySubtitle:
       activeCategoryFilterIds.length > 1
         ? `Zobrazené vrátane ${activeCategoryFilterIds.length - 1} podkategórií`
         : "Zobrazené produkty danej kategórie",
     isCatalogQueryEnabled,
     isFiltersLoading:
-      categoriesQuery.isLoading || catalogQuery.isLoading || catalogFacetSeedQuery.isLoading,
+      categoriesQuery.isLoading ||
+      catalogQuery.isLoading ||
+      catalogFacetSeedQuery.isLoading,
     priceBounds: resolvePriceBounds(catalogQuery.facets.price),
     products: catalogQuery.products,
     productsCurrencyCode: resolveProductCurrencyCode(catalogQuery.products),
