@@ -160,6 +160,9 @@ export const resolveOfferState = (
     standardAmount: asNumber(source?.standard_price),
     actionAmount,
     hasActiveDiscount,
+    applyLoyaltyDiscount: asBoolean(source?.apply_loyalty_discount) === true,
+    applyQuantityDiscount: asBoolean(source?.apply_quantity_discount) === true,
+    applyVolumeDiscount: asBoolean(source?.apply_volume_discount) === true,
   };
 };
 

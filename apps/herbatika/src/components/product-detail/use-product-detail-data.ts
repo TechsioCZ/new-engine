@@ -164,8 +164,13 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     [currentAmount, displayOriginalAmount],
   );
   const vipCreditLabel = useMemo(
-    () => resolveVipCreditLabel(currentAmount, currentCurrencyCode),
-    [currentAmount, currentCurrencyCode],
+    () =>
+      resolveVipCreditLabel(
+        currentAmount,
+        currentCurrencyCode,
+        offerState.applyLoyaltyDiscount,
+      ),
+    [currentAmount, currentCurrencyCode, offerState.applyLoyaltyDiscount],
   );
 
   const unitPriceLabel = useMemo(() => {
@@ -175,6 +180,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
       currentAmount,
       currentAmountWithoutTax,
       currencyCode: currentCurrencyCode,
+      mediaFacts,
       unitLabel: offerState.unitLabel,
       vatRate,
     });
@@ -182,13 +188,24 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     currentAmount,
     currentAmountWithoutTax,
     currentCurrencyCode,
+    mediaFacts,
     offerState.offerSource,
     offerState.unitLabel,
   ]);
 
   const volumeDiscountOptions = useMemo(
-    () => resolveVolumeDiscountOptions(currentAmount, currentCurrencyCode),
-    [currentAmount, currentCurrencyCode],
+    () =>
+      resolveVolumeDiscountOptions(
+        currentAmount,
+        currentCurrencyCode,
+        offerState.applyQuantityDiscount || offerState.applyVolumeDiscount,
+      ),
+    [
+      currentAmount,
+      currentCurrencyCode,
+      offerState.applyQuantityDiscount,
+      offerState.applyVolumeDiscount,
+    ],
   );
 
   const selectedVolumeDiscountOption = useMemo(() => {
