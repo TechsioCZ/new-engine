@@ -20,7 +20,10 @@ export const useCategories = (
   input: StorefrontCategoryListInput,
   options?: Parameters<CategoryHooks["useCategories"]>[1],
 ) => {
-  return categoryHooks.useCategories(toCategoryListParams(input), options);
+  return categoryHooks.useCategories(
+    toCategoryListParams(buildCategoryListParams(input)),
+    options,
+  );
 };
 
 export const usePrefetchCategory = categoryHooks.usePrefetchCategory;
@@ -40,7 +43,10 @@ export const usePrefetchCategories = (
         ? []
         : never
     ) =>
-      prefetch.prefetchCategories(toCategoryListParams(input), ...prefetchArgs),
+      prefetch.prefetchCategories(
+        toCategoryListParams(buildCategoryListParams(input)),
+        ...prefetchArgs,
+      ),
     delayedPrefetch: (
       input: StorefrontCategoryListInput,
       ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
@@ -50,7 +56,10 @@ export const usePrefetchCategories = (
         ? TRest
         : never
     ) =>
-      prefetch.delayedPrefetch(toCategoryListParams(input), ...prefetchArgs),
+      prefetch.delayedPrefetch(
+        toCategoryListParams(buildCategoryListParams(input)),
+        ...prefetchArgs,
+      ),
   };
 };
 
