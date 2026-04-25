@@ -7,6 +7,7 @@ import { CategoryContextPanel } from "@/components/category/category-context-pan
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
 import { normalizeCategoryName } from "@/components/category/category-product-utils";
 import { CategoryResultsSection } from "@/components/category/category-results-section";
+import { CategoryRichText } from "@/components/category/category-rich-text";
 import { useCategoryListingController } from "@/components/category/use-category-listing-controller";
 import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
@@ -110,6 +111,11 @@ export function StorefrontCategoryListing({
           />
         </div>
       </section>
+
+      <CategoryRichText
+        className="rounded-2xl bg-surface p-500"
+        html={controller.categoryBottomHtml}
+      />
     </main>
   );
 }

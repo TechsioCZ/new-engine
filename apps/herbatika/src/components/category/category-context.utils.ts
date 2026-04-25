@@ -51,7 +51,7 @@ type ResolveCategoryIntroTextInput = {
   activeCategory: HttpTypes.StoreProductCategory | null;
 };
 
-type ResolveCategoryIntroHtmlInput = ResolveCategoryIntroTextInput & {
+type ResolveCategoryHtmlInput = ResolveCategoryIntroTextInput & {
   categoryByHandle: Map<string, HttpTypes.StoreProductCategory>;
 };
 
@@ -125,21 +125,27 @@ export const resolveCategoryIntroText = ({
   return description;
 };
 
-export const resolveCategoryIntroHtml = ({
+const resolveCategoryMetadataHtml = ({
   activeCategory,
   categoryByHandle,
-}: ResolveCategoryIntroHtmlInput) => {
+  field,
+}: ResolveCategoryHtmlInput & {
+  field: "bottom_description_html" | "top_description_html";
+}) => {
   const metadata = asRecord(activeCategory?.metadata);
-  const topDescriptionHtml = asString(metadata?.top_description_html);
-  if (!topDescriptionHtml) {
+  const html = asString(metadata?.[field]);
+  if (!html) {
     return null;
   }
 
-  return rewriteLegacyCategoryLinks(
-    stripShowMoreMarker(topDescriptionHtml),
-    categoryByHandle,
-  );
+  return rewriteLegacyCategoryLinks(stripShowMoreMarker(html), categoryByHandle);
 };
+
+export const resolveCategoryIntroHtml = (input: ResolveCategoryHtmlInput) =>
+  resolveCategoryMetadataHtml({ ...input, field: "top_description_html" });
+
+export const resolveCategoryBottomHtml = (input: ResolveCategoryHtmlInput) =>
+  resolveCategoryMetadataHtml({ ...input, field: "bottom_description_html" });
 
 type ResolveCategoryContextTilesInput = {
   activeCategory: HttpTypes.StoreProductCategory | null;

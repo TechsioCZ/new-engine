@@ -5,6 +5,7 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { useMemo } from "react";
 import {
+  resolveCategoryBottomHtml,
   resolveCategoryContextImageTiles,
   resolveCategoryIntroHtml,
   resolveCategoryIntroText,
@@ -254,6 +255,10 @@ export function useCategoryListingQueries({
         )
       : null,
     categoriesQuery,
+    categoryBottomHtml: resolveCategoryBottomHtml({
+      activeCategory,
+      categoryByHandle,
+    }),
     categoryContextImageTiles,
     categoryIntroHtml: resolveCategoryIntroHtml({
       activeCategory,
