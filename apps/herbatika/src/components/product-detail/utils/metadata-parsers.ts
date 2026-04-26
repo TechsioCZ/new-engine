@@ -9,7 +9,10 @@ import type {
   ProductOfferState,
   StorefrontProduct,
 } from "@/components/product-detail/product-detail.types";
-import { stripHtml } from "@/components/product-detail/utils/html-sanitizer";
+import {
+  hasRenderableHtmlContent,
+  stripHtml,
+} from "@/components/product-detail/utils/html-sanitizer";
 import {
   asBoolean,
   asNumber,
@@ -32,7 +35,7 @@ const normalizeSectionKey = (value: unknown): string | null => {
 };
 
 const hasRenderableSectionHtml = (html: string): boolean => {
-  return stripHtml(html).length > 0;
+  return hasRenderableHtmlContent(html);
 };
 
 const toSkDate = (date: Date) => {
