@@ -170,6 +170,18 @@ type ParsedShopItem = {
   variants: ParsedOfferData[]
 }
 
+type ResolvedProductReference = {
+  source_shopitem_id: string
+  handle: string
+}
+
+type ResolvedProductReferences = {
+  relatedProductHandles: string[]
+  relatedProductRefs: ResolvedProductReference[]
+  alternativeProductHandles: string[]
+  alternativeProductRefs: ResolvedProductReference[]
+}
+
 type ProductContentSectionKey =
   | "description"
   | "usage"
@@ -768,9 +780,10 @@ function splitLabeledTextBlock(blockHtml: string): {
     return { sections: [] }
   }
 
-  const beforeHtml = buildPlainTextHtmlFragment(
-    blockText.slice(0, anchors[0].start)
-  )
+  const firstAnchor = anchors[0]
+  const beforeHtml = firstAnchor
+    ? buildPlainTextHtmlFragment(blockText.slice(0, firstAnchor.start))
+    : undefined
   const sections = anchors.flatMap((anchor, index) => {
     const nextAnchor = anchors[index + 1]
     const value = blockText.slice(anchor.end, nextAnchor?.start).trim()
@@ -2112,6 +2125,90 @@ function applyPromoOverrides(
   })
 }
 
+function isProductPublished(item: ParsedShopItem): boolean {
+  return (
+    (item.visibility?.toLowerCase() ?? "visible") !== "hidden" &&
+    (item.topOffer.visible ?? true)
+  )
+}
+
+function resolveProductReference(
+  code: string,
+  productHandleBySourceId: Map<string, string>,
+  publishedSourceIds: Set<string>
+): ResolvedProductReference | undefined {
+  const sourceShopitemId = normalizeInlineText(code)
+  if (!sourceShopitemId || !publishedSourceIds.has(sourceShopitemId)) {
+    return undefined
+  }
+
+  const handle = productHandleBySourceId.get(sourceShopitemId)
+  if (!handle) {
+    return undefined
+  }
+
+  return {
+    source_shopitem_id: sourceShopitemId,
+    handle,
+  }
+}
+
+function resolveProductReferences(
+  codes: string[],
+  productHandleBySourceId: Map<string, string>,
+  publishedSourceIds: Set<string>,
+  excludedSourceId?: string
+): ResolvedProductReference[] {
+  const refs: ResolvedProductReference[] = []
+  const seen = new Set<string>()
+
+  for (const code of codes) {
+    const ref = resolveProductReference(
+      code,
+      productHandleBySourceId,
+      publishedSourceIds
+    )
+    if (
+      !ref ||
+      ref.source_shopitem_id === excludedSourceId ||
+      seen.has(ref.source_shopitem_id)
+    ) {
+      continue
+    }
+
+    seen.add(ref.source_shopitem_id)
+    refs.push(ref)
+  }
+
+  return refs
+}
+
+function buildResolvedProductReferences(
+  item: ParsedShopItem,
+  productHandleBySourceId: Map<string, string>,
+  publishedSourceIds: Set<string>
+): ResolvedProductReferences {
+  const relatedProductRefs = resolveProductReferences(
+    item.relatedProducts,
+    productHandleBySourceId,
+    publishedSourceIds,
+    item.id
+  )
+  const alternativeProductRefs = resolveProductReferences(
+    item.alternativeProducts,
+    productHandleBySourceId,
+    publishedSourceIds,
+    item.id
+  )
+
+  return {
+    relatedProductRefs,
+    relatedProductHandles: relatedProductRefs.map((ref) => ref.handle),
+    alternativeProductRefs,
+    alternativeProductHandles: alternativeProductRefs.map((ref) => ref.handle),
+  }
+}
+
 function buildVariantMetadata(
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
@@ -2191,6 +2288,7 @@ function buildProductMetadata(
   topOffer: ParsedOfferData,
   categoryPaths: string[],
   categoryRefs: ParsedCategoryRef[],
+  resolvedProductReferences: ResolvedProductReferences,
   referenceDate = new Date()
 ): Record<string, unknown> {
   const normalizedFlags = normalizeFlags(item.flags, topOffer, referenceDate)
@@ -2255,7 +2353,12 @@ function buildProductMetadata(
     source_default_category_id: defaultCategoryRef?.id,
     source_default_category_path: defaultCategoryRef?.path,
     related_products: item.relatedProducts,
+    related_product_handles: resolvedProductReferences.relatedProductHandles,
+    related_product_refs: resolvedProductReferences.relatedProductRefs,
     alternative_products: item.alternativeProducts,
+    alternative_product_handles:
+      resolvedProductReferences.alternativeProductHandles,
+    alternative_product_refs: resolvedProductReferences.alternativeProductRefs,
     related_files: item.relatedFiles,
     related_videos: item.relatedVideos,
     text_properties: item.textProperties,
@@ -2446,8 +2549,7 @@ function buildProducts(
   const usedHandles = new Set<string>()
   const usedSkus = new Set<string>()
   const usedEans = new Set<string>()
-
-  return items.map((item, index) => {
+  const productEntries = items.map((item, index) => {
     const stableHandleSource = item.id
       ? `shopitem-${item.id}`
       : `${item.name}-${index + 1}`
@@ -2455,6 +2557,28 @@ function buildProducts(
       slugify(stableHandleSource) || `product-${index + 1}`
     )
     const handle = ensureUnique(handleSeed, usedHandles, `product-${index + 1}`)
+
+    return {
+      item,
+      index,
+      handle,
+    }
+  })
+  const productHandleBySourceId = new Map<string, string>()
+  const publishedSourceIds = new Set<string>()
+
+  for (const { item, handle } of productEntries) {
+    if (!item.id) {
+      continue
+    }
+
+    productHandleBySourceId.set(item.id, handle)
+    if (isProductPublished(item)) {
+      publishedSourceIds.add(item.id)
+    }
+  }
+
+  return productEntries.map(({ item, index, handle }) => {
     const categoryHandles = dedupeStrings(
       item.categoryRefs.map((categoryRef) => {
         if (categoryRef.id) {
@@ -2478,9 +2602,12 @@ function buildProducts(
       primaryWeightKg !== undefined
         ? Math.max(1, Math.round(primaryWeightKg * 1000))
         : 1
-    const isVisible =
-      (item.visibility?.toLowerCase() ?? "visible") !== "hidden" &&
-      (item.topOffer.visible ?? true)
+    const isVisible = isProductPublished(item)
+    const resolvedProductReferences = buildResolvedProductReferences(
+      item,
+      productHandleBySourceId,
+      publishedSourceIds
+    )
 
     const { options, variants } = buildVariantsForProduct(
       item,
@@ -2504,6 +2631,7 @@ function buildProducts(
         item.topOffer,
         item.categoryPaths,
         item.categoryRefs,
+        resolvedProductReferences,
         buildOptions.referenceDate
       ),
       shippingProfileName: "Default Shipping Profile",

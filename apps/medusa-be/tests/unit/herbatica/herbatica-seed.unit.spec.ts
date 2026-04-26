@@ -152,6 +152,100 @@ describe("Herbatica seed promo rebase", () => {
   })
 })
 
+describe("Herbatica seed product references", () => {
+  it("keeps raw related product codes and adds resolved handles for published products", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="1">
+          <NAME>Hlavný produkt</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>9.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+            <DEFAULT_CATEGORY id="1701">Doplnky výživy</DEFAULT_CATEGORY>
+          </CATEGORIES>
+          <RELATED_PRODUCTS>
+            <CODE>1</CODE>
+            <CODE>2</CODE>
+            <CODE>4</CODE>
+            <CODE>999</CODE>
+            <CODE>2</CODE>
+          </RELATED_PRODUCTS>
+          <ALTERNATIVE_PRODUCTS>
+            <CODE>3</CODE>
+          </ALTERNATIVE_PRODUCTS>
+        </SHOPITEM>
+        <SHOPITEM id="2">
+          <NAME>Súvisiaci produkt</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>5.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+        <SHOPITEM id="3">
+          <NAME>Alternatívny produkt</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>6.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+        <SHOPITEM id="4">
+          <NAME>Skrytý produkt</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>7.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>0</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const product = result.products.find((item) => item.handle === "shopitem-1")
+
+    expect(product?.metadata).toMatchObject({
+      related_products: ["1", "2", "4", "999"],
+      related_product_handles: ["shopitem-2"],
+      related_product_refs: [
+        {
+          source_shopitem_id: "2",
+          handle: "shopitem-2",
+        },
+      ],
+      alternative_products: ["3"],
+      alternative_product_handles: ["shopitem-3"],
+      alternative_product_refs: [
+        {
+          source_shopitem_id: "3",
+          handle: "shopitem-3",
+        },
+      ],
+    })
+  })
+})
+
 describe("Herbatica seed product content sections", () => {
   it("splits labeled product description fragments into tab sections", () => {
     const xml = `
