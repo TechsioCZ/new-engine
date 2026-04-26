@@ -6,12 +6,16 @@ export const STOREFRONT_PRODUCT_CARD_FIELDS =
   "id,title,handle,thumbnail,*variants.calculated_price,+metadata.flags,+metadata.top_offer,+metadata.short_description,+metadata.content_sections_map";
 
 export const STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS =
-  "id,title,handle,thumbnail,variants.id,*variants.calculated_price,+metadata.flags";
+  STOREFRONT_PRODUCT_CARD_FIELDS;
+
+export const STOREFRONT_RELATED_PRODUCT_FIELDS =
+  `${STOREFRONT_PRODUCT_CARD_FIELDS},+metadata.source_shopitem_id`;
 
 export const STOREFRONT_PRODUCT_DETAIL_FIELDS =
-  "id,title,handle,description,thumbnail,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,*variants.calculated_price,+variants.metadata,+metadata.short_description,+metadata.top_offer,+metadata.content_sections_map";
+  "id,title,handle,description,thumbnail,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,producer.id,producer.title,producer.handle,options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,*variants.calculated_price,+variants.metadata,+metadata.short_description,+metadata.top_offer,+metadata.content_sections,+metadata.content_sections_map,+metadata.related_products,+metadata.alternative_products";
 
 export type StorefrontProductListInput = HttpTypes.StoreProductListParams & {
+  handle?: string | string[];
   page?: number;
 };
 
@@ -36,6 +40,12 @@ export const buildProductListParams = (
     // Medusa Store parser accepts multi-value `category_id[]` as CSV.
     params["category_id[]"] = categoryIds.join(",");
     delete params.category_id;
+  }
+
+  const handles = params.handle;
+  if (Array.isArray(handles) && handles.length > 0) {
+    params["handle[]"] = handles.join(",");
+    delete params.handle;
   }
 
   return params as HttpTypes.StoreProductListParams;

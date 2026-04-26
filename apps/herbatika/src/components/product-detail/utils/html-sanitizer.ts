@@ -8,6 +8,7 @@ const ALLOWED_HTML_TAGS = new Set([
   "h3",
   "h4",
   "i",
+  "img",
   "li",
   "ol",
   "p",
@@ -27,9 +28,21 @@ const ALLOWED_GLOBAL_ATTRIBUTES = new Set(["title"]);
 
 const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
   a: new Set(["href", "target", "rel", "title"]),
+  img: new Set(["src", "alt", "width", "height", "loading", "decoding", "title"]),
   td: new Set(["colspan", "rowspan", "title"]),
   th: new Set(["colspan", "rowspan", "title"]),
 };
+
+const isSafeAnchorHref = (value: string): boolean =>
+  /^(https?:|mailto:|tel:|\/|#)/i.test(value);
+
+const isSafeImageSrc = (value: string): boolean => /^(https?:|\/)/i.test(value);
+
+const isAllowedImageLoading = (value: string): boolean =>
+  value === "lazy" || value === "eager";
+
+const isAllowedImageDecoding = (value: string): boolean =>
+  value === "async" || value === "sync" || value === "auto";
 
 const escapeHtmlAttribute = (value: string): string => {
   return value
@@ -83,6 +96,10 @@ export const sanitizeHtml = (html: string): string => {
 
       const isClosingTag = closingSlash === "/";
       if (isClosingTag) {
+        if (tag === "br" || tag === "img") {
+          return "";
+        }
+
         return `</${tag}>`;
       }
 
@@ -91,6 +108,9 @@ export const sanitizeHtml = (html: string): string => {
 
       const sanitizedAttributes: string[] = [];
       let sanitizedHref: string | null = null;
+      let sanitizedImageSrc: string | null = null;
+      let hasImageLoading = false;
+      let hasImageDecoding = false;
       let targetValue: string | null = null;
       let relValue: string | null = null;
 
@@ -105,13 +125,37 @@ export const sanitizeHtml = (html: string): string => {
         }
 
         if (tag === "a" && name === "href") {
-          const hasSafeHref = /^(https?:|mailto:|tel:|\/|#)/i.test(value);
-          if (!hasSafeHref) {
+          if (!isSafeAnchorHref(value)) {
             continue;
           }
 
           sanitizedHref = value;
           continue;
+        }
+
+        if (tag === "img" && name === "src") {
+          if (!isSafeImageSrc(value)) {
+            continue;
+          }
+
+          sanitizedImageSrc = value;
+          continue;
+        }
+
+        if (tag === "img" && name === "loading") {
+          if (!isAllowedImageLoading(value)) {
+            continue;
+          }
+
+          hasImageLoading = true;
+        }
+
+        if (tag === "img" && name === "decoding") {
+          if (!isAllowedImageDecoding(value)) {
+            continue;
+          }
+
+          hasImageDecoding = true;
         }
 
         if (tag === "a" && name === "target") {
@@ -148,10 +192,26 @@ export const sanitizeHtml = (html: string): string => {
         }
       }
 
+      if (tag === "img") {
+        if (!sanitizedImageSrc) {
+          return "";
+        }
+
+        sanitizedAttributes.push(`src="${escapeHtmlAttribute(sanitizedImageSrc)}"`);
+
+        if (!hasImageLoading) {
+          sanitizedAttributes.push('loading="lazy"');
+        }
+
+        if (!hasImageDecoding) {
+          sanitizedAttributes.push('decoding="async"');
+        }
+      }
+
       const attributesString =
         sanitizedAttributes.length > 0 ? ` ${sanitizedAttributes.join(" ")}` : "";
 
-      if (tag === "br") {
+      if (tag === "br" || tag === "img") {
         return `<${tag}${attributesString}>`;
       }
 
@@ -165,6 +225,21 @@ export const sanitizeHtml = (html: string): string => {
   );
 
   return sanitized.trim();
+};
+
+export const hasRenderableHtmlContent = (
+  value: string | null | undefined,
+): boolean => {
+  if (!value) {
+    return false;
+  }
+
+  const sanitizedHtml = sanitizeHtml(value);
+  if (!sanitizedHtml) {
+    return false;
+  }
+
+  return stripHtml(sanitizedHtml).length > 0 || /<\s*img\b/i.test(sanitizedHtml);
 };
 
 export const stripHtml = (value: string | null | undefined): string => {

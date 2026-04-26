@@ -21,6 +21,15 @@ export const normalizeCategoryImageKey = (value: string) => {
     .replace(/^-+|-+$/g, "");
 };
 
+const CATEGORY_IMAGE_HANDLE_PREFIXES = [
+  "trapi-ma-",
+  "prirodna-kozmetika-",
+  "doplnky-vyzivy-",
+  "potraviny-a-napoje-",
+  "eko-domacnost-",
+  "ucinne-zlozky-od-a-po-z-",
+] as const;
+
 export const CATEGORY_IMAGE_ALIASES_BY_HANDLE = {
   "ine-podpora-a-rast-vlasov": "vlasy-vypadavanie-lupiny",
   "potraviny-a-napoje-prirodne-a-zdrave-zuvacky": "prirodne-a-zdrave-zuvacky",
@@ -53,6 +62,23 @@ const resolveImageBySlug = (slug?: string | null): StaticImageData | undefined =
   return undefined;
 };
 
+const resolveImageByPrefixedHandle = (
+  handle?: string | null,
+): StaticImageData | undefined => {
+  if (!handle) {
+    return undefined;
+  }
+
+  const normalizedHandle = normalizeCategoryImageKey(handle);
+  for (const prefix of CATEGORY_IMAGE_HANDLE_PREFIXES) {
+    if (normalizedHandle.startsWith(prefix)) {
+      return resolveImageBySlug(normalizedHandle.slice(prefix.length));
+    }
+  }
+
+  return undefined;
+};
+
 const resolveImageByAlias = (
   aliasMap: Record<string, CategoryImageSlug>,
   value?: string | null,
@@ -76,6 +102,7 @@ const resolveOwnCategoryImage = ({
 }: Pick<ResolveCategoryImageInput, "handle" | "label">) => {
   return (
     resolveImageBySlug(handle) ??
+    resolveImageByPrefixedHandle(handle) ??
     resolveImageByAlias(CATEGORY_IMAGE_ALIASES_BY_HANDLE, handle) ??
     resolveImageBySlug(label) ??
     resolveImageByAlias(CATEGORY_IMAGE_ALIASES_BY_LABEL, label)

@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types";
 import type { StorefrontProductListInput } from "./product-query-config";
 import {
   buildProductListParams,
+  STOREFRONT_RELATED_PRODUCT_FIELDS,
   STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,
@@ -75,6 +76,7 @@ export const usePrefetchProducts = (
 
 export {
   buildProductListParams,
+  STOREFRONT_RELATED_PRODUCT_FIELDS,
   STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,

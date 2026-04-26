@@ -9,12 +9,12 @@ import {
   Carousel,
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel";
-import { HERBATIKA_HEADER_SUBMENU_GROUPS } from "@/components/header/herbatika-header.submenu-data";
-import { resolveCategoryImage } from "@/lib/category-images";
+import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "@/components/header/herbatika-header.submenu-data";
+import { useHerbatikaHeaderSubmenu } from "@/components/header/use-herbatika-header-submenu";
 
 type ImageSource = ComponentProps<typeof NextImage>["src"];
 type PurposeCarouselRootHandle =
-  (typeof HERBATIKA_HEADER_SUBMENU_GROUPS)[number]["rootHandle"];
+  (typeof HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS)[number]["rootHandle"];
 
 type PurposeCarouselItem = {
   href: string;
@@ -39,22 +39,17 @@ const DEFAULT_ROOT_HANDLE: PurposeCarouselRootHandle = "trapi-ma";
 
 const buildResolvedPurposeCarouselItems = (
   rootHandle: PurposeCarouselRootHandle,
+  groupsByRootHandle: ReturnType<
+    typeof useHerbatikaHeaderSubmenu
+  >["groupsByRootHandle"],
 ): PurposeCarouselItem[] => {
-  const group = HERBATIKA_HEADER_SUBMENU_GROUPS.find(
-    (candidate) => candidate.rootHandle === rootHandle,
-  );
-
+  const group = groupsByRootHandle.get(rootHandle);
   if (!group) {
     return [];
   }
 
   return group.featuredItems.flatMap((item) => {
-    const src = resolveCategoryImage({
-      handle: item.handle,
-      label: item.label,
-    });
-
-    if (!src) {
+    if (!item.src) {
       return [];
     }
 
@@ -63,15 +58,13 @@ const buildResolvedPurposeCarouselItems = (
         href: `/c/${item.handle}`,
         id: item.id,
         label: item.label,
-        src,
+        src: item.src,
       },
     ];
   });
 };
 
-const buildImageSlides = (
-  items: PurposeCarouselItem[],
-): CarouselSlide[] => {
+const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] => {
   return items.map((item) => ({
     id: item.id,
     content: (
@@ -119,11 +112,11 @@ function PurposeCarouselSlides({
         <>
           <Carousel.Previous
             className="-translate-y-1/2 absolute top-1/2 left-100 rounded-full aspect-square text-lg shadow-md"
-            icon="icon-[mdi--chevron-left]"
+            icon="token-icon-chevron-left"
           />
           <Carousel.Next
             className="-translate-y-1/2 absolute top-1/2 right-100 rounded-full aspect-square text-lg shadow-md"
-            icon="icon-[mdi--chevron-right]"
+            icon="token-icon-chevron-right"
           />
         </>
       ) : null}
@@ -137,11 +130,17 @@ export function PurposeCarousel({
   title = "Čo vás trápi? Nakupujte podľa účelu",
   viewAllHref,
 }: PurposeCarouselProps) {
+  const { groupsByRootHandle } = useHerbatikaHeaderSubmenu();
   const resolvedItems = useMemo(
-    () => items ?? buildResolvedPurposeCarouselItems(rootHandle),
-    [items, rootHandle],
+    () =>
+      items ??
+      buildResolvedPurposeCarouselItems(rootHandle, groupsByRootHandle),
+    [groupsByRootHandle, items, rootHandle],
   );
-  const slides = useMemo(() => buildImageSlides(resolvedItems), [resolvedItems]);
+  const slides = useMemo(
+    () => buildImageSlides(resolvedItems),
+    [resolvedItems],
+  );
 
   if (resolvedItems.length === 0) {
     return null;

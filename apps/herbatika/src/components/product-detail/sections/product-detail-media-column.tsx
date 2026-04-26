@@ -1,34 +1,33 @@
 "use client";
 
+import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery";
 import NextLink from "next/link";
 import NextImage from "next/image";
-import type {
-  ProductMediaFact,
-  ProductOfferState,
-} from "@/components/product-detail/product-detail.types";
+import type { ProductMediaFact } from "@/components/product-detail/product-detail.types";
 import { SupportingText } from "@/components/text/supporting-text";
 
 type ProductDetailMediaColumnProps = {
+  discountPercent: number | null;
   galleryItems: GalleryItem[];
   mediaFacts: ProductMediaFact[];
-  offerState: ProductOfferState;
 };
 
 export function ProductDetailMediaColumn({
+  discountPercent,
   galleryItems,
   mediaFacts,
-  offerState,
 }: ProductDetailMediaColumnProps) {
   return (
     <div className="space-y-300">
       <Gallery
         items={galleryItems}
         orientation="vertical"
-        thumbnailSize={72}
+        thumbnailSize={88}
+        hideThumbnailsWhenSingle={false}
         className="md:grid-cols-[auto_minmax(0,1fr)]"
         carouselProps={{
           aspectRatio: "square",
@@ -43,16 +42,25 @@ export function ProductDetailMediaColumn({
           className="md:col-start-1 md:row-start-1"
           listClassName="gap-100"
         />
-        <Gallery.Main className="flex-col overflow-hidden rounded-lg border border-border-secondary bg-surface md:col-start-2 md:row-start-1">
+        <Gallery.Main className="relative flex-col overflow-hidden rounded-lg border border-border-secondary bg-surface md:col-start-2 md:row-start-1">
+          {typeof discountPercent === "number" && discountPercent > 0 ? (
+            <Badge
+              className="absolute top-300 right-300 z-1 flex w-850 aspect-square rounded-full text-sm"
+              variant="discount"
+            >
+              {`-${discountPercent}%`}
+            </Badge>
+          ) : null}
+
           <Gallery.Carousel>
             <Gallery.Slides />
           </Gallery.Carousel>
 
           {mediaFacts.length > 0 ? (
-            <div className="flex items-center justify-center divide-x divide-border-secondary border-t border-border-secondary bg-surface">
+            <div className="flex items-center justify-center divide-x divide-border-secondary border-t border-border-secondary bg-surface p-550">
               {mediaFacts.slice(0, 2).map((fact) => (
                 <div className="flex items-center gap-200 px-350 py-250" key={fact.id}>
-                  <span className="flex h-600 w-600 items-center justify-center rounded-md bg-highlight">
+                  <span className="flex h-600 w-600 items-center justify-center rounded-xs bg-highlight">
                     <Icon className="text-lg text-primary" icon={fact.icon} />
                   </span>
                   <SupportingText className="text-md leading-snug text-fg-secondary">

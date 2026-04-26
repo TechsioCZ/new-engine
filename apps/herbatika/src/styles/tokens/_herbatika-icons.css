@@ -1,5 +1,67 @@
 @utility token-icon-user {
-  @apply icon-[mdi--user-outline];
+  @apply icon-[solar--user-outline];
+}
+
+@utility token-icon-heart {
+  @apply icon-[solar--heart-outline];
+}
+
+@utility token-icon-phone {
+  @apply icon-[solar--phone-outline];
+}
+
+@utility token-icon-email {
+  @apply icon-[solar--letter-outline];
+}
+
+/* COMPANY ICONS */
+@utility token-icon-fb {
+  @apply icon-[mdi--facebook];
+}
+
+@utility token-icon-instagram {
+  @apply icon-[mdi--instagram];
+}
+
+@utility token-icon-youtube {
+  @apply icon-[mdi--youtube];
+}
+
+@utility token-icon-linkedin {
+  @apply icon-[mdi--linkedin];
+}
+
+@utility token-icon-music {
+  @apply icon-[mdi--music-note];
+}
+
+/* FLAG ICONS */
+@utility token-icon-sk {
+  @apply icon-[cif--sk];
+}
+
+@utility token-icon-cz {
+  @apply icon-[cif--cz];
+}
+
+@utility token-icon-hu {
+  @apply icon-[cif--hu];
+}
+
+@utility token-icon-ro {
+  @apply icon-[cif--ro];
+}
+
+
+/* === === */
+
+@utility token-icon-home {
+  @apply icon-[solar--home-angle-outline];
+}
+
+/* mdi set */
+@utility token-icon-list {
+  @apply icon-[mdi--format-list-bulleted];
 }
 
 @utility token-icon-logout {
@@ -18,10 +80,6 @@
   @apply icon-[mdi--search];
 }
 
-@utility token-icon-heart {
-  @apply icon-[mdi--heart-outline];
-}
-
 @utility token-icon-cart {
   @apply icon-[mdi--cart-outline];
 }
@@ -31,9 +89,17 @@
 }
 
 @utility token-icon-chevron-right {
-  @apply icon-[mdi--chevron-right];
+  @apply icon-[solar--alt-arrow-right-line-duotone];
 }
 
 @utility token-icon-chevron-left {
-  @apply icon-[mdi--chevron-left];
+  @apply icon-[solar--alt-arrow-left-line-duotone];
+}
+
+@utility token-icon-chevron-up {
+  @apply icon-[solar--alt-arrow-up-line-duotone];
+}
+
+@utility token-icon-chevron-down {
+  @apply icon-[solar--alt-arrow-down-line-duotone];
 }

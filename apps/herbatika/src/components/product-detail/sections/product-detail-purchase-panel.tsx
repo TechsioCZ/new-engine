@@ -13,11 +13,47 @@ import type {
   StorefrontProduct,
 } from "@/components/product-detail/product-detail.types"
 import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
+import { asRecord, asString } from "@/components/product-detail/utils/value-utils"
+import { resolveFlags } from "@/components/product-card/product-card.flags"
+
+type ProductInfoLink = {
+  href: string | null
+  label: string
+}
+
+const resolveProductInfoLink = (
+  product: StorefrontProduct,
+  primaryCategory?: HttpTypes.StoreProductCategory,
+): ProductInfoLink | null => {
+  const producer = asRecord(
+    (product as StorefrontProduct & { producer?: unknown }).producer,
+  )
+  const producerTitle = asString(producer?.title)
+
+  if (producerTitle) {
+    const producerHandle = asString(producer?.handle)
+
+    return {
+      href: producerHandle
+        ? `/search?brand=${encodeURIComponent(producerHandle)}`
+        : null,
+      label: producerTitle,
+    }
+  }
+
+  if (!primaryCategory?.handle) {
+    return null
+  }
+
+  return {
+    href: `/c/${primaryCategory.handle}`,
+    label: normalizeCategoryName(primaryCategory.name),
+  }
+}
 
 type ProductDetailPurchasePanelProps = {
   canAddToCart: boolean
   currentAmountLabel: string
-  discountPercent: number | null
   displayOriginalLabel: string | null
   isAdding: boolean
   offerState: ProductOfferState
@@ -53,6 +89,8 @@ export function ProductDetailPurchasePanel({
   vipCreditLabel,
 }: ProductDetailPurchasePanelProps) {
   const primaryCategory = productCategories[0]
+  const productInfoLink = resolveProductInfoLink(product, primaryCategory)
+  const flags = resolveFlags(product, Boolean(displayOriginalLabel))
   const displayHighlights = productHighlights
     .map((highlight) => highlight.replace(/\s+/g, " ").trim())
     .filter(Boolean)
@@ -61,29 +99,39 @@ export function ProductDetailPurchasePanel({
   return (
     <div className="space-y-300 rounded-lg border border-border-secondary bg-surface p-350">
       <div className="flex min-h-600 flex-wrap items-start gap-200">
-        {offerState.hasActiveDiscount ? (
-          <Badge className="font-bold" variant="tertiary">
-            Akcia
+        {flags.map((flag) => (
+          <Badge
+            className="leading-tight font-bold"
+            key={`${product.id}-${flag.label}`}
+            variant={flag.variant}
+          >
+            {flag.label}
           </Badge>
-        ) : null}
+        ))}
 
         <div className="ml-auto flex min-w-0 items-center gap-300 sm:gap-500">
           <div className="min-w-0 flex flex-wrap items-center gap-x-100 gap-y-50">
             <span className="text-fg-placeholder text-sm leading-tight">
               ID: {offerState.code ?? product.handle}
             </span>
-            {primaryCategory?.handle ? (
+            {productInfoLink ? (
               <>
                 <span className="text-fg-placeholder text-sm leading-tight">
                   •
                 </span>
-                <Link
-                  as={NextLink}
-                  className="min-w-0 break-words font-normal text-primary text-sm leading-tight underline hover:text-primary-strong"
-                  href={`/c/${primaryCategory.handle}`}
-                >
-                  {normalizeCategoryName(primaryCategory.name)}
-                </Link>
+                {productInfoLink.href ? (
+                  <Link
+                    as={NextLink}
+                    className="min-w-0 break-words font-normal text-primary text-sm leading-tight underline hover:text-primary-strong"
+                    href={productInfoLink.href}
+                  >
+                    {productInfoLink.label}
+                  </Link>
+                ) : (
+                  <span className="min-w-0 break-words text-primary text-sm leading-tight">
+                    {productInfoLink.label}
+                  </span>
+                )}
               </>
             ) : null}
           </div>

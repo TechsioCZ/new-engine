@@ -31,7 +31,7 @@ export function BlogDetailPage({
     {
       label: "Blog",
       href: "/blog",
-      icon: "icon-[mdi--home-outline]",
+      icon: "token-icon-home",
     },
     {
       label: post.title,
@@ -97,8 +97,8 @@ export function BlogDetailPage({
             <section className="space-y-350 rounded-2xl border border-border-secondary bg-surface p-400">
               <header className="flex items-start justify-between gap-300">
                 <div className="flex items-center gap-250">
-                  <span className="inline-flex h-550 w-550 items-center justify-center rounded-md bg-highlight text-primary">
-                    <Icon className="text-2xl" icon="icon-[mdi--format-list-bulleted]" />
+                  <span className="inline-flex p-50 items-center justify-center rounded-xs bg-highlight text-primary">
+                    <Icon className="text-2xl" icon="token-icon-list" />
                   </span>
                   <div>
                     <h2 className="text-xl leading-tight font-bold text-fg-primary">
@@ -109,7 +109,7 @@ export function BlogDetailPage({
                     </p>
                   </div>
                 </div>
-                <Icon className="text-2xl text-fg-secondary" icon="icon-[mdi--chevron-up]" />
+                <Icon className="text-2xl text-fg-secondary" icon="token-icon-chevron-up" />
               </header>
 
               <ul className="space-y-100 pl-350">

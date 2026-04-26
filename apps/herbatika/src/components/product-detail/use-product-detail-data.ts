@@ -30,6 +30,7 @@ import { asNumber, asRecord, asString } from "@/components/product-detail/utils/
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
+import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products";
 
 type UseProductDetailDataProps = {
   handle: string;
@@ -164,8 +165,13 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     [currentAmount, displayOriginalAmount],
   );
   const vipCreditLabel = useMemo(
-    () => resolveVipCreditLabel(currentAmount, currentCurrencyCode),
-    [currentAmount, currentCurrencyCode],
+    () =>
+      resolveVipCreditLabel(
+        currentAmount,
+        currentCurrencyCode,
+        offerState.applyLoyaltyDiscount,
+      ),
+    [currentAmount, currentCurrencyCode, offerState.applyLoyaltyDiscount],
   );
 
   const unitPriceLabel = useMemo(() => {
@@ -175,6 +181,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
       currentAmount,
       currentAmountWithoutTax,
       currencyCode: currentCurrencyCode,
+      mediaFacts,
       unitLabel: offerState.unitLabel,
       vatRate,
     });
@@ -182,13 +189,24 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     currentAmount,
     currentAmountWithoutTax,
     currentCurrencyCode,
+    mediaFacts,
     offerState.offerSource,
     offerState.unitLabel,
   ]);
 
   const volumeDiscountOptions = useMemo(
-    () => resolveVolumeDiscountOptions(currentAmount, currentCurrencyCode),
-    [currentAmount, currentCurrencyCode],
+    () =>
+      resolveVolumeDiscountOptions(
+        currentAmount,
+        currentCurrencyCode,
+        offerState.applyQuantityDiscount || offerState.applyVolumeDiscount,
+      ),
+    [
+      currentAmount,
+      currentCurrencyCode,
+      offerState.applyQuantityDiscount,
+      offerState.applyVolumeDiscount,
+    ],
   );
 
   const selectedVolumeDiscountOption = useMemo(() => {
@@ -217,6 +235,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   }, [volumeDiscountOptions]);
 
   useProductDetailDebugLog(product);
+  useRecordRecentlyVisitedProduct(product);
 
   const breadcrumbItems: Array<{
     label: string;

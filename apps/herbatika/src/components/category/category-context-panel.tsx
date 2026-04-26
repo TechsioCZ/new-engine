@@ -1,69 +1,64 @@
 "use client";
 
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { Link } from "@techsio/ui-kit/atoms/link";
-import NextLink from "next/link";
-import { useState } from "react";
-import type { CategoryContextIntroSegment } from "@/components/category/category-context.utils";
+import { useMemo, useState } from "react";
+import { stripHtml } from "@/components/product-detail/utils/html-sanitizer";
 import {
   CategoryContextImageTileGrid,
   type CategoryContextImageTile,
 } from "./category-context-image-tile-grid";
+import {
+  CATEGORY_RICH_TEXT_CLASS,
+  sanitizeCategoryRichTextHtml,
+} from "./category-rich-text";
 
 type CategoryContextPanelProps = {
   imageTiles?: CategoryContextImageTile[];
-  introSegments?: CategoryContextIntroSegment[] | null;
+  introHtml?: string | null;
   introText?: string | null;
 };
 
 export function CategoryContextPanel({
   imageTiles,
-  introSegments,
+  introHtml,
   introText,
 }: CategoryContextPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const introContentText = introSegments?.map((segment) => segment.value).join("") ?? "";
-  const hasIntroSegments = Boolean(introSegments && introSegments.length > 0);
-  const resolvedIntroText = introText ?? introContentText;
-  const shouldShowIntroToggle =
-    Boolean(resolvedIntroText && resolvedIntroText.length > 260);
+  const sanitizedIntroHtml = useMemo(
+    () => sanitizeCategoryRichTextHtml(introHtml),
+    [introHtml],
+  );
+  const resolvedIntroText = sanitizedIntroHtml
+    ? stripHtml(sanitizedIntroHtml)
+    : (introText ?? "");
+  const shouldShowIntroToggle = Boolean(
+    resolvedIntroText && resolvedIntroText.length > 260,
+  );
 
-  if (!introText && !hasIntroSegments && !imageTiles?.length) {
+  if (!sanitizedIntroHtml && !introText && !imageTiles?.length) {
     return null;
   }
 
   return (
     <section className="space-y-350">
-      {(introText || hasIntroSegments) && (
+      {sanitizedIntroHtml || introText ? (
         <div className="space-y-150">
-          <div
-            className={`max-w-none text-sm leading-relaxed text-fg-primary ${
-              !isExpanded ? "line-clamp-4" : ""
-            }`}
-          >
-            {hasIntroSegments
-              ? introSegments?.map((segment, index) => {
-                  if (segment.type === "text") {
-                    return (
-                      <span key={`intro-text-${index}-${segment.value.slice(0, 10)}`}>
-                        {segment.value}
-                      </span>
-                    );
-                  }
-
-                  return (
-                    <Link
-                      as={NextLink}
-                      className="font-semibold text-primary underline underline-offset-2"
-                      href={segment.href}
-                      key={`intro-link-${index}-${segment.href}`}
-                    >
-                      {segment.value}
-                    </Link>
-                  );
-                })
-              : introText}
-          </div>
+          {sanitizedIntroHtml ? (
+            <div
+              className={`${CATEGORY_RICH_TEXT_CLASS} ${
+                !isExpanded ? "line-clamp-4" : ""
+              }`}
+              dangerouslySetInnerHTML={{ __html: sanitizedIntroHtml }}
+            />
+          ) : (
+            <div
+              className={`max-w-none font-verdana text-sm leading-relaxed text-fg-primary sm:text-md ${
+                !isExpanded ? "line-clamp-4" : ""
+              }`}
+            >
+              {introText}
+            </div>
+          )}
           {shouldShowIntroToggle ? (
             <Button
               className="p-0 text-sm font-semibold text-primary underline-offset-2 hover:underline"
@@ -78,7 +73,7 @@ export function CategoryContextPanel({
             </Button>
           ) : null}
         </div>
-      )}
+      ) : null}
 
       {Boolean(imageTiles?.length) ? (
         <CategoryContextImageTileGrid tiles={imageTiles ?? []} />

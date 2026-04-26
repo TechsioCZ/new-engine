@@ -13,9 +13,7 @@ import {
   STOREFRONT_CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
-import {
-  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS,
-} from "./herbatika-header.submenu-data";
+import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data";
 
 type HerbatikaHeaderSubmenuChildItem = {
   id: string;
@@ -23,7 +21,7 @@ type HerbatikaHeaderSubmenuChildItem = {
   href: string;
 };
 
-type HerbatikaHeaderSubmenuFeaturedItem = {
+export type HerbatikaHeaderSubmenuFeaturedItem = {
   childItems: HerbatikaHeaderSubmenuChildItem[];
   href: string;
   id: string;
@@ -37,24 +35,10 @@ type HerbatikaHeaderSubmenuGroup = {
   featuredItems: HerbatikaHeaderSubmenuFeaturedItem[];
 };
 
-const sortFeaturedItems = (
-  items: HerbatikaHeaderSubmenuFeaturedItem[],
-) => {
-  return [...items].sort((left, right) => {
-    const childCountDifference =
-      right.childItems.length - left.childItems.length;
-
-    if (childCountDifference !== 0) {
-      return childCountDifference;
-    }
-
-    return left.label.localeCompare(right.label, "sk");
-  });
-};
-
 const sortCategories = (categories: HttpTypes.StoreProductCategory[]) => {
   return [...categories].sort((left, right) => {
-    const rankDifference = resolveCategoryRank(left) - resolveCategoryRank(right);
+    const rankDifference =
+      resolveCategoryRank(left) - resolveCategoryRank(right);
     if (rankDifference !== 0) {
       return rankDifference;
     }
@@ -118,40 +102,38 @@ export function useHerbatikaHeaderSubmenu() {
   const groupsByRootHandle = useMemo(() => {
     return new Map<string, HerbatikaHeaderSubmenuGroup>(
       HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((rootConfig) => {
-          const sourceRootHandle =
-            "submenuSourceHandle" in rootConfig
-              ? rootConfig.submenuSourceHandle ?? rootConfig.rootHandle
-              : rootConfig.rootHandle;
-          const rootHandle = rootConfig.rootHandle;
-          const rootCategory = categoryByHandle.get(sourceRootHandle) ?? null;
-          const featuredItems = rootCategory
-            ? (childrenByParentId.get(rootCategory.id) ?? []).map((category) => ({
-                id: category.id,
-                handle: category.handle ?? category.id,
-                label: normalizeCategoryName(category.name),
-                src: resolveCategoryImage({
-                  categoryById,
-                  handle: category.handle,
-                  label: category.name,
-                  parentCategoryId: category.parent_category_id,
-                }),
-                href: category.handle ? `/c/${category.handle}` : "#",
-                childItems: (childrenByParentId.get(category.id) ?? []).map((child) => ({
+        const rootHandle = rootConfig.rootHandle;
+        const rootCategory = categoryByHandle.get(rootHandle) ?? null;
+        const featuredItems = rootCategory
+          ? (childrenByParentId.get(rootCategory.id) ?? []).map((category) => ({
+              id: category.id,
+              handle: category.handle ?? category.id,
+              label: normalizeCategoryName(category.name),
+              src: resolveCategoryImage({
+                categoryById,
+                handle: category.handle,
+                label: category.name,
+                parentCategoryId: category.parent_category_id,
+              }),
+              href: category.handle ? `/c/${category.handle}` : "#",
+              childItems: (childrenByParentId.get(category.id) ?? []).map(
+                (child) => ({
                   id: child.id,
                   label: normalizeCategoryName(child.name),
                   href: child.handle ? `/c/${child.handle}` : "#",
-                })),
-              }))
-            : [];
+                }),
+              ),
+            }))
+          : [];
 
-          return [
+        return [
+          rootHandle,
+          {
             rootHandle,
-            {
-              rootHandle,
-              featuredItems: sortFeaturedItems(featuredItems),
-            },
-          ] as const;
-        }),
+            featuredItems,
+          },
+        ] as const;
+      }),
     );
   }, [categoryByHandle, categoryById, childrenByParentId]);
 

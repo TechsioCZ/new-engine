@@ -8,17 +8,17 @@ export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
   {
     id: "najpredavanejsie-produkty",
     title: "Najpredávanejšie produkty",
-    subtitle: "Produkty, po ktorých zákazníci siahajú najčastejšie.",
+   // subtitle: "Produkty, po ktorých zákazníci siahajú najčastejšie.",
   },
   {
     id: "novinky",
     title: "Novinky",
-    subtitle: "Čerstvo naskladnené produkty v našej ponuke.",
+    //subtitle: "Čerstvo naskladnené produkty v našej ponuke.",
   },
   {
-    id: "atraktivna-v-cene",
-    title: "Atraktívna v cene",
-    subtitle: "Výber produktov s výhodnou cenou.",
+    id: "aktuálne-v.zlave",
+    title: "Aktuálne v zľave",
+   // subtitle: "Výber produktov s výhodnou cenou.",
   },
 ];
 

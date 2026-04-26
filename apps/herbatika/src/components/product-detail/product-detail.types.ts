@@ -29,6 +29,9 @@ export type ProductOfferState = {
   standardAmount: number | null;
   actionAmount: number | null;
   hasActiveDiscount: boolean;
+  applyLoyaltyDiscount: boolean;
+  applyQuantityDiscount: boolean;
+  applyVolumeDiscount: boolean;
 };
 
 export type ProductMediaFact = {

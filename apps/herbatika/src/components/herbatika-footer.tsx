@@ -40,11 +40,11 @@ const FOOTER_COLUMNS = [
 ] as const;
 
 const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
-  { href: "https://www.facebook.com/", icon: "icon-[mdi--facebook]", label: "Facebook" },
-  { href: "https://www.instagram.com/", icon: "icon-[mdi--instagram]", label: "Instagram" },
-  { href: "https://www.youtube.com/", icon: "icon-[mdi--youtube]", label: "YouTube" },
-  { href: "https://www.linkedin.com/", icon: "icon-[mdi--linkedin]", label: "LinkedIn" },
-  { href: "https://www.tiktok.com/", icon: "icon-[mdi--music-note]", label: "TikTok" },
+  { href: "https://www.facebook.com/", icon: "token-icon-fb", label: "Facebook" },
+  { href: "https://www.instagram.com/", icon: "token-icon-instagram", label: "Instagram" },
+  { href: "https://www.youtube.com/", icon: "token-icon-youtube", label: "YouTube" },
+  { href: "https://www.linkedin.com/", icon: "token-icon-linkedin", label: "LinkedIn" },
+  { href: "https://www.tiktok.com/", icon: "token-icon-music", label: "TikTok" },
 ];
 
 const FOOTER_RATINGS = [
@@ -54,10 +54,10 @@ const FOOTER_RATINGS = [
 ] as const;
 
 const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
-  { code: "SK", icon: "icon-[cif--sk]", active: true },
-  { code: "CZ", icon: "icon-[cif--cz]" },
-  { code: "HU", icon: "icon-[cif--hu]" },
-  { code: "RO", icon: "icon-[cif--ro]" },
+  { code: "SK", icon: "token-icon-sk", active: true },
+  { code: "CZ", icon: "token-icon-cz" },
+  { code: "HU", icon: "token-icon-hu" },
+  { code: "RO", icon: "token-icon-ro" },
 ];
 export function HerbatikaFooter() {
   return (
@@ -71,7 +71,7 @@ export function HerbatikaFooter() {
               </Footer.Text>
 
               <Footer.Text className="mt-250 flex items-start gap-300">
-                <Icon className="mt-50 text-2xl text-fg-secondary" icon="icon-[mdi--phone-outline]" />
+                <Icon className="mt-50 text-2xl text-fg-secondary" icon="token-icon-phone" />
                 <span className="leading-normal">
                   <span className="block font-bold text-primary">+421 2/321 123 45</span>
                   <span className="block text-sm">(Po-Pia: 9:00 - 16:00)</span>
@@ -79,7 +79,7 @@ export function HerbatikaFooter() {
               </Footer.Text>
 
               <Footer.Link className="mt-500 inline-flex items-center gap-300 font-bold text-primary" href="mailto:ahoj@herbatica.sk">
-                <Icon className="text-2xl text-fg-secondary" icon="icon-[mdi--email-outline]" />
+                <Icon className="text-2xl text-fg-secondary" icon="token-icon-email" />
                 ahoj@herbatica.sk
               </Footer.Link>
             </Footer.Section>

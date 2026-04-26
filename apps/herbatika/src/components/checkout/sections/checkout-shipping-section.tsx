@@ -39,9 +39,6 @@ export function CheckoutShippingSection({
     <section className="space-y-250 rounded-sm p-550 font-rubik">
       <header className="space-y-50">
         <h2 className="text-xl font-medium text-fg-primary">Doprava</h2>
-        <SupportingText className="text-fg-secondary">
-          {hasShipping ? "Doprava je zvolená." : "Vyberte spôsob dopravy."}
-        </SupportingText>
       </header>
       <div className="grid gap-150">
         {shippingOptions.length > 0 ? (

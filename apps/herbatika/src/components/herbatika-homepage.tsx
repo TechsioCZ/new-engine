@@ -25,7 +25,7 @@ export function HerbatikaHomepage() {
       <PurposeCarousel />
       <BenefitsSection benefits={BENEFITS} />
 
-      {controller.cartMessage ? (
+      {/*controller.cartMessage ? (
         <div className="flex">
           <Badge
             className="rounded-full px-300 py-100 text-xs font-semibold"
@@ -46,7 +46,7 @@ export function HerbatikaHomepage() {
         <StatusText className="text-sm" showIcon status="error">
           {controller.productsError}
         </StatusText>
-      ) : null}
+      ) : null*/}
 
       {controller.leadingSections.map((section) => (
         <HomepageProductCollectionSection

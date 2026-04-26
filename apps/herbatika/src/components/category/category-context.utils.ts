@@ -1,57 +1,41 @@
 import type { HttpTypes } from "@medusajs/types";
 import { buildCategoryContextImageTiles } from "@/components/category/category-context-image-tile-grid";
 import {
-  CATEGORY_CONTEXT_PRESETS,
-  type CategoryContextIntroSegmentPreset,
-} from "@/components/category/category-context.data";
-import {
   normalizeCategoryName,
   resolveCategoryRank,
 } from "@/components/category/category-product-utils";
 
-export type CategoryContextIntroSegment =
-  | {
-      type: "text";
-      value: string;
-    }
-  | {
-      type: "link";
-      value: string;
-      href: string;
-    };
+const CATEGORY_DESCRIPTION_PLACEHOLDERS = new Set([
+  "Imported from Herbatica XML feed.",
+  "Imported from Herbatica category export.",
+]);
 
-const CATEGORY_DESCRIPTION_PLACEHOLDER = "Imported from Herbatica XML feed.";
+const SHOW_MORE_MARKER_PATTERN = /#showmore#/gi;
+const SHOW_MORE_MARKER_PARAGRAPH_PATTERN =
+  /<p[^>]*>\s*(?:<span[^>]*>)?\s*#showmore#\s*(?:<\/span>)?\s*<\/p>/gi;
+const HERBATICA_LEGACY_HOSTNAMES = new Set([
+  "herbatica.sk",
+  "www.herbatica.sk",
+]);
 
-const resolveIntroTextFromSegments = (
-  segments: CategoryContextIntroSegmentPreset[],
-) => {
-  return segments.map((segment) => segment.value).join("");
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return null;
 };
 
-const resolveIntroLinkHref = ({
-  slug,
-  categoryByHandle,
-  segment,
-}: {
-  slug: string;
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>;
-  segment: Extract<CategoryContextIntroSegmentPreset, { type: "link" }>;
-}) => {
-  if (segment.href) {
-    return segment.href;
-  }
-
-  if (segment.handle) {
-    const categoryHandle = categoryByHandle.get(segment.handle)?.handle ?? segment.handle;
-    return `/c/${categoryHandle}`;
-  }
-
-  return `/c/${slug}`;
+const asString = (value: unknown): string | null => {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 };
 
 const sortCategories = (categories: HttpTypes.StoreProductCategory[]) => {
   return [...categories].sort((left, right) => {
-    const rankDifference = resolveCategoryRank(left) - resolveCategoryRank(right);
+    const rankDifference =
+      resolveCategoryRank(left) - resolveCategoryRank(right);
     if (rankDifference !== 0) {
       return rankDifference;
     }
@@ -64,110 +48,120 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) => {
 };
 
 type ResolveCategoryIntroTextInput = {
-  slug: string;
   activeCategory: HttpTypes.StoreProductCategory | null;
 };
 
-export const resolveCategoryIntroText = ({
-  slug,
-  activeCategory,
-}: ResolveCategoryIntroTextInput) => {
-  const presetIntroSegments = CATEGORY_CONTEXT_PRESETS[slug]?.introSegments ?? [];
-  if (presetIntroSegments.length > 0) {
-    return resolveIntroTextFromSegments(presetIntroSegments);
+type ResolveCategoryHtmlInput = ResolveCategoryIntroTextInput & {
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>;
+};
+
+const stripShowMoreMarker = (html: string) => {
+  return html
+    .replace(SHOW_MORE_MARKER_PARAGRAPH_PATTERN, "")
+    .replace(SHOW_MORE_MARKER_PATTERN, "")
+    .trim();
+};
+
+const resolveLegacyCategoryHref = (
+  href: string,
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+) => {
+  const trimmedHref = href.trim();
+  if (!trimmedHref || trimmedHref.startsWith("#")) {
+    return href;
   }
 
+  let pathname = trimmedHref;
+
+  try {
+    const url = new URL(trimmedHref);
+    if (!HERBATICA_LEGACY_HOSTNAMES.has(url.hostname)) {
+      return href;
+    }
+
+    pathname = url.pathname;
+  } catch {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmedHref)) {
+      return href;
+    }
+  }
+
+  const normalizedPath = pathname.replace(/^\/+|\/+$/g, "");
+  if (!normalizedPath || normalizedPath.startsWith("c/")) {
+    return href;
+  }
+
+  const [handle] = normalizedPath.split("/");
+  if (!handle || !categoryByHandle.has(handle)) {
+    return href;
+  }
+
+  return `/c/${handle}`;
+};
+
+const rewriteLegacyCategoryLinks = (
+  html: string,
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+) => {
+  return html.replace(
+    /\bhref=(["'])(.*?)\1/gi,
+    (_match, quote: string, href: string) => {
+      return `href=${quote}${resolveLegacyCategoryHref(
+        href,
+        categoryByHandle,
+      )}${quote}`;
+    },
+  );
+};
+
+export const resolveCategoryIntroText = ({
+  activeCategory,
+}: ResolveCategoryIntroTextInput) => {
   const description = activeCategory?.description?.trim();
-  if (!description || description === CATEGORY_DESCRIPTION_PLACEHOLDER) {
+  if (!description || CATEGORY_DESCRIPTION_PLACEHOLDERS.has(description)) {
     return null;
   }
 
   return description;
 };
 
-type ResolveCategoryIntroSegmentsInput = {
-  slug: string;
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>;
-};
-
-export const resolveCategoryIntroSegments = ({
-  slug,
+const resolveCategoryMetadataHtml = ({
+  activeCategory,
   categoryByHandle,
-}: ResolveCategoryIntroSegmentsInput): CategoryContextIntroSegment[] | null => {
-  const presetIntroSegments = CATEGORY_CONTEXT_PRESETS[slug]?.introSegments ?? [];
-  if (presetIntroSegments.length === 0) {
+  field,
+}: ResolveCategoryHtmlInput & {
+  field: "bottom_description_html" | "top_description_html";
+}) => {
+  const metadata = asRecord(activeCategory?.metadata);
+  const html = asString(metadata?.[field]);
+  if (!html) {
     return null;
   }
 
-  return presetIntroSegments.map((segment) => {
-    if (segment.type === "text") {
-      return segment;
-    }
-
-    return {
-      type: "link",
-      value: segment.value,
-      href: resolveIntroLinkHref({ slug, categoryByHandle, segment }),
-    };
-  });
+  return rewriteLegacyCategoryLinks(stripShowMoreMarker(html), categoryByHandle);
 };
 
+export const resolveCategoryIntroHtml = (input: ResolveCategoryHtmlInput) =>
+  resolveCategoryMetadataHtml({ ...input, field: "top_description_html" });
+
+export const resolveCategoryBottomHtml = (input: ResolveCategoryHtmlInput) =>
+  resolveCategoryMetadataHtml({ ...input, field: "bottom_description_html" });
+
 type ResolveCategoryContextTilesInput = {
-  slug: string;
   activeCategory: HttpTypes.StoreProductCategory | null;
   activeCategoryFilterIds: string[];
   categories: HttpTypes.StoreProductCategory[];
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>;
   categoryById: Map<string, HttpTypes.StoreProductCategory>;
 };
 
 export const resolveCategoryContextImageTiles = ({
-  slug,
   activeCategory,
   activeCategoryFilterIds,
   categories,
-  categoryByHandle,
   categoryById,
 }: ResolveCategoryContextTilesInput) => {
   if (!activeCategory) {
     return [];
-  }
-
-  const presetTilesConfig = CATEGORY_CONTEXT_PRESETS[slug]?.preferredTiles ?? [];
-  if (presetTilesConfig.length > 0) {
-    const presetTiles = presetTilesConfig
-      .map((tileConfig) => {
-        const category = categoryByHandle.get(tileConfig.handle) ?? null;
-        if (!category?.handle) {
-          return null;
-        }
-
-        return {
-          id: category.id,
-          label: tileConfig.label,
-          href: `/c/${category.handle}`,
-          handle: category.handle,
-          parentCategoryId: category.parent_category_id ?? null,
-        };
-      })
-      .filter(
-        (
-          tile,
-        ): tile is {
-          id: string;
-          label: string;
-          href: string;
-          handle: string;
-          parentCategoryId: string | null;
-        } => Boolean(tile),
-      );
-
-    if (presetTiles.length > 0) {
-      return buildCategoryContextImageTiles({
-        categories: presetTiles,
-        categoryById,
-      });
-    }
   }
 
   const directChildren = sortCategories(
@@ -177,15 +171,13 @@ export const resolveCategoryContextImageTiles = ({
         Boolean(category.handle)
       );
     }),
-  )
-    .slice(0, 8)
-    .map((category) => ({
-      id: category.id,
-      label: normalizeCategoryName(category.name),
-      href: `/c/${category.handle}`,
-      handle: category.handle,
-      parentCategoryId: category.parent_category_id ?? null,
-    }));
+  ).map((category) => ({
+    id: category.id,
+    label: normalizeCategoryName(category.name),
+    href: `/c/${category.handle}`,
+    handle: category.handle,
+    parentCategoryId: category.parent_category_id ?? null,
+  }));
 
   if (directChildren.length > 0) {
     return buildCategoryContextImageTiles({

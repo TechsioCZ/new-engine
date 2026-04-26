@@ -63,16 +63,15 @@ export function ProductDetailHero({
   return (
     <section className="grid gap-500 xl:grid-cols-2">
       <ProductDetailMediaColumn
+        discountPercent={discountPercent}
         galleryItems={galleryItems}
         mediaFacts={mediaFacts}
-        offerState={offerState}
       />
 
       <div className="space-y-300">
         <ProductDetailPurchasePanel
           canAddToCart={canAddToCart}
           currentAmountLabel={currentAmountLabel}
-          discountPercent={discountPercent}
           displayOriginalLabel={displayOriginalLabel}
           isAdding={isAdding}
           offerState={offerState}

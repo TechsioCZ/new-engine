@@ -46,7 +46,7 @@ export function HomepageProductCollectionSection({
       onProductHoverStart={onProductHoverStart}
       products={section.products}
       shouldShowSkeleton={shouldShowProductSkeleton}
-      subtitle={section.subtitle}
+      //subtitle={section.subtitle}
       title={section.title}
     />
   );

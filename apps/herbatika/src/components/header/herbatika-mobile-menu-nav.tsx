@@ -1,16 +1,13 @@
 "use client";
 
-import { Link } from "@techsio/ui-kit/atoms/link";
 import { Accordion } from "@techsio/ui-kit/molecules/accordion";
 import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
-import { useContext, useEffect, useState } from "react";
-import {
-  HERBATIKA_HEADER_SUBMENU_GROUPS,
-  type HerbatikaHeaderSubmenuFeaturedItemConfig,
-} from "./herbatika-header.submenu-data";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { PRIMARY_NAV_ITEMS } from "./herbatika-header.navigation";
+import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data";
+import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu";
 
 type HerbatikaMobileMenuChildItem = {
   href: string;
@@ -36,11 +33,8 @@ type HerbatikaMobileMenuEntry =
   | HerbatikaMobileMenuLinkEntry
   | HerbatikaMobileMenuGroupEntry;
 
-const submenuGroupsByRootHandle = new Map<
-  string,
-  (typeof HERBATIKA_HEADER_SUBMENU_GROUPS)[number]
->(
-  HERBATIKA_HEADER_SUBMENU_GROUPS.map((group) => [group.rootHandle, group]),
+const SUBMENU_ROOT_HANDLES = new Set<string>(
+  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle),
 );
 
 const resolveRootHandleFromHref = (href: string) => {
@@ -52,7 +46,11 @@ const resolveRootHandleFromHref = (href: string) => {
 };
 
 const resolveMobileChildItems = (
-  featuredItems: readonly HerbatikaHeaderSubmenuFeaturedItemConfig[],
+  featuredItems: Array<{
+    handle: string;
+    id: string;
+    label: string;
+  }>,
 ): readonly HerbatikaMobileMenuChildItem[] =>
   featuredItems.map((item) => ({
     href: `/c/${item.handle}`,
@@ -60,14 +58,15 @@ const resolveMobileChildItems = (
     label: item.label,
   }));
 
-const MOBILE_MENU_ENTRIES: readonly HerbatikaMobileMenuEntry[] =
+const buildMobileMenuEntries = (
+  groupsByRootHandle: ReturnType<
+    typeof useHerbatikaHeaderSubmenu
+  >["groupsByRootHandle"],
+): readonly HerbatikaMobileMenuEntry[] =>
   PRIMARY_NAV_ITEMS.map((item) => {
     const rootHandle = resolveRootHandleFromHref(item.href);
-    const submenuGroup = rootHandle
-      ? submenuGroupsByRootHandle.get(rootHandle)
-      : undefined;
 
-    if (!submenuGroup) {
+    if (!rootHandle || !SUBMENU_ROOT_HANDLES.has(rootHandle)) {
       return {
         href: item.href,
         label: item.label,
@@ -75,17 +74,22 @@ const MOBILE_MENU_ENTRIES: readonly HerbatikaMobileMenuEntry[] =
       } satisfies HerbatikaMobileMenuLinkEntry;
     }
 
+    const submenuGroup = groupsByRootHandle.get(rootHandle);
+
     return {
       href: item.href,
-      items: resolveMobileChildItems(submenuGroup.featuredItems),
+      items: resolveMobileChildItems(submenuGroup?.featuredItems ?? []),
       label: item.label,
       type: "group",
-      value: rootHandle ?? item.href,
+      value: rootHandle,
     } satisfies HerbatikaMobileMenuGroupEntry;
   });
 
-const resolveExpandedValues = (pathname: string) => {
-  const activeGroup = MOBILE_MENU_ENTRIES.find(
+const resolveExpandedValues = (
+  pathname: string,
+  mobileMenuEntries: readonly HerbatikaMobileMenuEntry[],
+) => {
+  const activeGroup = mobileMenuEntries.find(
     (entry) =>
       entry.type === "group" &&
       (pathname === entry.href ||
@@ -102,13 +106,18 @@ const resolveExpandedValues = (pathname: string) => {
 export function HerbatikaMobileMenuNav() {
   const pathname = usePathname();
   const { setIsMobileMenuOpen } = useContext(HeaderContext);
+  const { groupsByRootHandle } = useHerbatikaHeaderSubmenu();
+  const mobileMenuEntries = useMemo(
+    () => buildMobileMenuEntries(groupsByRootHandle),
+    [groupsByRootHandle],
+  );
   const [expandedValues, setExpandedValues] = useState<string[]>(() =>
-    resolveExpandedValues(pathname),
+    resolveExpandedValues(pathname, mobileMenuEntries),
   );
 
   useEffect(() => {
-    setExpandedValues(resolveExpandedValues(pathname));
-  }, [pathname]);
+    setExpandedValues(resolveExpandedValues(pathname, mobileMenuEntries));
+  }, [mobileMenuEntries, pathname]);
 
   const handleClose = () => setIsMobileMenuOpen(false);
 
@@ -124,13 +133,15 @@ export function HerbatikaMobileMenuNav() {
         value={expandedValues}
         variant="borderless"
       >
-        {MOBILE_MENU_ENTRIES.map((entry) =>
+        {mobileMenuEntries.map((entry) =>
           entry.type === "group" ? (
             <Accordion.Item key={entry.href} value={entry.value}>
               <Accordion.Header>
                 <Accordion.Title className="font-semibold">
-                  <NextLink href={entry.href} onClick={handleClose}>{entry.label}</NextLink>
-                  </Accordion.Title>
+                  <NextLink href={entry.href} onClick={handleClose}>
+                    {entry.label}
+                  </NextLink>
+                </Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
               <Accordion.Content>
@@ -138,7 +149,6 @@ export function HerbatikaMobileMenuNav() {
                   {entry.items.map((item) => (
                     <li key={item.id}>
                       <NextLink
-                       // as={NextLink}
                         className="block border-border-secondary/40 hover:bg-surface hover:text-primary text-sm px-350 py-150"
                         href={item.href}
                         onClick={handleClose}
@@ -156,7 +166,6 @@ export function HerbatikaMobileMenuNav() {
               key={entry.href}
             >
               <NextLink
-               // as={NextLink}
                 className="block w-full min-w-0"
                 href={entry.href}
                 onClick={handleClose}

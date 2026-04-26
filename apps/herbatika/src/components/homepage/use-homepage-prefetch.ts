@@ -1,12 +1,8 @@
 import type { HttpTypes } from "@medusajs/types";
-import { useEffect } from "react";
 import {
-  STOREFRONT_PRODUCT_CARD_FIELDS,
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
-  usePrefetchProducts,
 } from "@/lib/storefront/products";
-import { PRODUCT_FETCH_LIMIT } from "./homepage.data";
 
 type RegionLike = {
   region_id?: string;
@@ -18,50 +14,16 @@ type UseHomepagePrefetchResult = {
   handleProductHoverEnd: (product: HttpTypes.StoreProduct) => void;
 };
 
-export function useHomepagePrefetch(region: RegionLike): UseHomepagePrefetchResult {
-  const { prefetchFirstPage, prefetchProducts } = usePrefetchProducts({
-    cacheStrategy: "semiStatic",
-    defaultDelay: 220,
-  });
+export function useHomepagePrefetch(
+  region: RegionLike,
+): UseHomepagePrefetchResult {
   const { delayedPrefetch, cancelPrefetch } = usePrefetchProduct({
     cacheStrategy: "semiStatic",
     defaultDelay: 160,
   });
 
-  useEffect(() => {
-    if (!region?.region_id) {
-      return;
-    }
-
-    void prefetchFirstPage(
-      {
-        page: 1,
-        limit: PRODUCT_FETCH_LIMIT,
-        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-      },
-      { prefetchedBy: "home-main" },
-    );
-
-    void prefetchProducts(
-      {
-        page: 2,
-        limit: PRODUCT_FETCH_LIMIT,
-        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-      },
-      {
-        prefetchedBy: "home-next-page",
-        skipMode: "any",
-      },
-    );
-  }, [
-    prefetchFirstPage,
-    prefetchProducts,
-    region?.country_code,
-    region?.region_id,
-  ]);
-
   const handleProductHoverStart = (product: HttpTypes.StoreProduct) => {
-    if (!product.handle) {
+    if (!region?.region_id || !product.handle) {
       return;
     }
 

@@ -4,11 +4,29 @@ import NextImage from "next/image";
 import NextLink from "next/link";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { Dialog } from "@techsio/ui-kit/molecules/dialog";
-import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu";
+import {
+  type HerbatikaHeaderSubmenuFeaturedItem,
+  useHerbatikaHeaderSubmenu,
+} from "./use-herbatika-header-submenu";
 
 type HerbatikaDesktopSubmenuProps = {
   activeRootHandle: string | null;
   onClose: () => void;
+};
+
+const sortDesktopSubmenuItems = (
+  items: HerbatikaHeaderSubmenuFeaturedItem[],
+) => {
+  return [...items].sort((left, right) => {
+    const childCountDifference =
+      right.childItems.length - left.childItems.length;
+
+    if (childCountDifference !== 0) {
+      return childCountDifference;
+    }
+
+    return left.label.localeCompare(right.label, "sk");
+  });
 };
 
 export function HerbatikaDesktopSubmenu({
@@ -20,6 +38,9 @@ export function HerbatikaDesktopSubmenu({
   const activeGroup = activeRootHandle
     ? groupsByRootHandle.get(activeRootHandle) ?? null
     : null;
+  const desktopSubmenuItems = activeGroup
+    ? sortDesktopSubmenuItems(activeGroup.featuredItems)
+    : [];
 
   return (
     <div className="[&_[data-part=backdrop]]:hidden [&_[data-part=positioner]]:bottom-auto [&_[data-part=positioner]]:left-0 [&_[data-part=positioner]]:overflow-visible [&_[data-part=positioner]]:right-0 [&_[data-part=positioner]]:top-full">
@@ -58,7 +79,7 @@ export function HerbatikaDesktopSubmenu({
             ) : null}
 
             <div className="grid grid-cols-1 gap-x-750 gap-y-700 lg:grid-cols-3 xl:grid-cols-4">
-              {activeGroup.featuredItems.map((item) => (
+              {desktopSubmenuItems.map((item) => (
                 <div className="flex min-w-0 items-start gap-300" key={item.id}>
                   <div className="flex h-submenu-image w-submenu-image shrink-0 items-start justify-start">
                     {item.src ? (
