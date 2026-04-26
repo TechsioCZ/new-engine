@@ -30,6 +30,7 @@ import { asNumber, asRecord, asString } from "@/components/product-detail/utils/
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
+import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products";
 
 type UseProductDetailDataProps = {
   handle: string;
@@ -234,6 +235,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   }, [volumeDiscountOptions]);
 
   useProductDetailDebugLog(product);
+  useRecordRecentlyVisitedProduct(product);
 
   const breadcrumbItems: Array<{
     label: string;

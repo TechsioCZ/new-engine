@@ -2,14 +2,16 @@ export const PRODUCT_FALLBACK_IMAGE = "/file.svg";
 
 export const RELATED_PRODUCTS_PER_SECTION = 4;
 
-export const RELATED_SECTION_TITLES = [
+export const RELATED_RECOMMENDATION_SECTION_TITLES = [
   "Ďalšie kúpil tiež",
   "Súvisiace produkty",
-  "Naposledy navštívené",
 ] as const;
 
+export const RECENTLY_VISITED_RELATED_SECTION_TITLE = "Naposledy navštívené";
+
 export const RELATED_PRODUCTS_LIMIT =
-  RELATED_PRODUCTS_PER_SECTION * RELATED_SECTION_TITLES.length + 1;
+  RELATED_PRODUCTS_PER_SECTION * RELATED_RECOMMENDATION_SECTION_TITLES.length +
+  1;
 
 export const PRODUCT_DETAIL_SECTION_ORDER = [
   "description",
