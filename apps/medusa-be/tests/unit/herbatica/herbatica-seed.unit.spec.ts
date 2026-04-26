@@ -151,3 +151,155 @@ describe("Herbatica seed promo rebase", () => {
     })
   })
 })
+
+describe("Herbatica seed product content sections", () => {
+  it("splits labeled product description fragments into tab sections", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="16182">
+          <NAME>Olej zo semien ostropestreca</NAME>
+          <SHORT_DESCRIPTION><![CDATA[
+            <p>Krátky popis produktu.</p>
+          ]]></SHORT_DESCRIPTION>
+          <DESCRIPTION><![CDATA[
+            <p>Hlavný popis produktu so <strong>silným marketingovým tvrdením</strong>.</p>
+            <p>
+              <span><strong>Spôsob užívania a o</strong></span>
+              <span>
+                <strong>dporúčané dávkovanie:</strong> Dospelí užívajú 4 kapsuly denne.
+                <br /><br />
+                <strong>Zdravotné upozornenia:</strong> Neprekračujte odporúčanú dennú dávku.
+              </span>
+            </p>
+            <p><strong>Výživové údaje na 100 g:</strong> Energia 3692 kJ.</p>
+            <p><strong>Skladovanie:</strong> Skladujte na tmavom mieste.</p>
+            <p><strong>Obsah balenia/Objem:</strong> 100 kapsúl.</p>
+            <p><strong>Krajina pôvodu:</strong> Estónsko.</p>
+          ]]></DESCRIPTION>
+          <PRICE_VAT>12.90</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+            <DEFAULT_CATEGORY id="1701">Doplnky výživy</DEFAULT_CATEGORY>
+          </CATEGORIES>
+          <TEXT_PROPERTIES>
+            <TEXT_PROPERTY>
+              <NAME>Zloženie</NAME>
+              <VALUE>Olej zo semien ostropestreca.</VALUE>
+            </TEXT_PROPERTY>
+          </TEXT_PROPERTIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const product = result.products[0]
+    const contentSections = product?.metadata?.content_sections_map as Record<
+      string,
+      string
+    >
+
+    expect(contentSections.description).toContain("Hlavný popis produktu")
+    expect(contentSections.description).toContain("Krátky popis produktu")
+    expect(contentSections.description).not.toContain("Neprekračujte")
+    expect(contentSections.description).not.toContain("Skladovanie")
+    expect(contentSections.usage).toContain("Dospelí užívajú 4 kapsuly denne")
+    expect(contentSections.warning).toContain("Neprekračujte")
+    expect(contentSections.composition).toContain("Olej zo semien ostropestreca")
+    expect(contentSections.other).toContain("Výživové údaje")
+    expect(contentSections.other).toContain("Skladovanie")
+    expect(contentSections.other).toContain("Obsah balenia/Objem")
+    expect(contentSections.other).toContain("Krajina pôvodu")
+  })
+
+  it("uses explicit section headings without classifying marketing headings", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="200">
+          <NAME>Produkt s heading sekciami</NAME>
+          <DESCRIPTION><![CDATA[
+            <h2>Prečo je produkt výnimočný</h2>
+            <p><strong>regenerácia pečene</strong> a podpora vitality.</p>
+            <h2>Použitie</h2>
+            <p>Užívajte jednu kapsulu denne.</p>
+            <h2>Upozornenie</h2>
+            <p>Nevhodné pre deti.</p>
+            <h2>Jednoduché použitie v praxi</h2>
+            <p>Tento marketingový odsek má zostať v popise.</p>
+          ]]></DESCRIPTION>
+          <PRICE_VAT>8.90</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+            <DEFAULT_CATEGORY id="1701">Doplnky výživy</DEFAULT_CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const product = result.products[0]
+    const contentSections = product?.metadata?.content_sections_map as Record<
+      string,
+      string
+    >
+
+    expect(contentSections.description).toContain("regenerácia pečene")
+    expect(contentSections.description).toContain("Jednoduché použitie v praxi")
+    expect(contentSections.description).toContain("marketingový odsek")
+    expect(contentSections.usage).toContain("Užívajte jednu kapsulu denne")
+    expect(contentSections.warning).toContain("Nevhodné pre deti")
+    expect(contentSections.usage).not.toContain("marketingový odsek")
+  })
+
+  it("splits multiple labels from the same paragraph without duplicating them in description", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="300">
+          <NAME>Produkt s inline parametrami</NAME>
+          <DESCRIPTION><![CDATA[
+            <p>Úvodný popis.</p>
+            <p>
+              <strong>Zloženie:</strong> 100 % amarantový olej.
+              <br />
+              <strong>Objem:</strong> 100 ml.
+              <br />
+              <strong>Krajina pôvodu:</strong> Ruská federácia.
+            </p>
+          ]]></DESCRIPTION>
+          <PRICE_VAT>6.90</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+            <DEFAULT_CATEGORY id="1701">Doplnky výživy</DEFAULT_CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const product = result.products[0]
+    const contentSections = product?.metadata?.content_sections_map as Record<
+      string,
+      string
+    >
+
+    expect(contentSections.description).toContain("Úvodný popis")
+    expect(contentSections.description).not.toContain("amarantový olej")
+    expect(contentSections.composition).toContain("amarantový olej")
+    expect(contentSections.other).toContain("Objem")
+    expect(contentSections.other).toContain("Krajina pôvodu")
+  })
+})

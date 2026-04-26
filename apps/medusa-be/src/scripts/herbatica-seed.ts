@@ -193,11 +193,6 @@ type ProductCardCopyConfig = {
   take: number
 }
 
-type HtmlHeadingSection = {
-  title?: string
-  html: string
-}
-
 type CategoryNode = {
   key: string
   title: string
@@ -282,53 +277,243 @@ type ClassifiedProductContentSectionKey = Exclude<
   ProductContentSectionKey,
   "description"
 >
-const PRODUCT_CONTENT_KEYWORDS: Record<
-  ClassifiedProductContentSectionKey,
-  string[]
-> = {
-  usage: [
-    "sposob pouzitia",
-    "pouzitie",
-    "uzivanie",
-    "davkovanie",
-    "odporucane davkovanie",
-    "navod na pouzitie",
-    "ako uzivat",
-    "vnutorne pouzitie",
-    "vonkajsie pouzitie",
-  ],
-  composition: [
-    "zlozenie",
-    "zlozky",
-    "ingrediencie",
-    "obsahuje",
-    "ucinne latky",
-    "aktivne latky",
-  ],
-  warning: [
-    "upozornenie",
-    "upozornenia",
-    "varovanie",
-    "kontraindikacie",
-    "zdravotne upozornenia",
-    "bezpecnost",
-    "neprekrocujte",
-    "neuzivajte",
-    "nevhodne",
-  ],
-  other: [
-    "skladovanie",
-    "obsah balenia",
-    "krajina povodu",
-    "objem",
-    "viac informacii",
-    "zaujimavost",
-    "ostatne informacie",
-    "dalsie informacie",
-    "zaruka",
-    "appendix",
-  ],
+type ProductContentLabelRule = {
+  key: ClassifiedProductContentSectionKey
+  patterns: RegExp[]
 }
+type ProductContentTextLabelDefinition = {
+  key: ClassifiedProductContentSectionKey
+  label: string
+  pattern: RegExp
+}
+type ProductContentTextAnchor = {
+  end: number
+  key: ClassifiedProductContentSectionKey
+  label: string
+  start: number
+}
+
+const PRODUCT_CONTENT_LABEL_RULES: ProductContentLabelRule[] = [
+  {
+    key: "usage",
+    patterns: [
+      /^sposob (?:pouzitia|uzivania)(?: a (?:odporucane )?davkovanie)?$/,
+      /^davkovanie(?: a (?:pouzitie|sposob (?:pouzitia|uzivania)))?$/,
+      /^odporucane davkovanie$/,
+      /^pouzitie(?: a (?:davkovanie|odporucane davkovanie))?$/,
+      /^navod na pouzitie$/,
+      /^(?:vnutorne|vonkajsie|na vonkajsie|pre vnutorne) (?:pouzitie|uzivanie)$/,
+    ],
+  },
+  {
+    key: "composition",
+    patterns: [
+      /^zlozenie(?: .*)?$/,
+      /^ingrediencie$/,
+      /^zlozky$/,
+      /^ucinne latky$/,
+      /^aktivne latky$/,
+      /^obsah ucin(?:nej latky|nych latok)(?: .*)?$/,
+      /^materialove zlozenie$/,
+    ],
+  },
+  {
+    key: "warning",
+    patterns: [
+      /^(?:zdravotne )?(?:upozornenie|upozornenia)$/,
+      /^bezpecnostne upozornenia$/,
+      /^vseobecne upozornenia$/,
+      /^kontraindikacie$/,
+    ],
+  },
+  {
+    key: "other",
+    patterns: [
+      /^skladovanie(?: .*)?$/,
+      /^obsah$/,
+      /^obsah balenia(?:\/objem)?$/,
+      /^obsah balenia a povod$/,
+      /^obsah a povod$/,
+      /^objem(?: .*)?$/,
+      /^krajina (?:povodu|vyroby)$/,
+      /^nas tip$/,
+      /^vyzivove udaje(?: .*)?$/,
+      /^rozmer$/,
+      /^rozmery balenia$/,
+      /^zaruka$/,
+      /^appendix$/,
+    ],
+  },
+]
+
+const PRODUCT_CONTENT_TEXT_LABEL_DEFINITIONS: ProductContentTextLabelDefinition[] =
+  [
+    {
+      key: "usage",
+      label: "Spôsob užívania a odporúčané dávkovanie",
+      pattern: /Spôsob\s+užívania\s+a\s+o\s*dporúčané\s+dávkovanie\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Spôsob užívania a odporúčané dávkovanie",
+      pattern:
+        /Spôsob\s+užívania\s+a\s+odporúčané\s+dávkovanie\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Spôsob použitia a odporúčané dávkovanie",
+      pattern:
+        /Spôsob\s+použitia\s+a\s+odporúčané\s+dávkovanie\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Spôsob použitia",
+      pattern: /Spôsob\s+použitia\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Spôsob užívania",
+      pattern: /Spôsob\s+užívania\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Odporúčané dávkovanie",
+      pattern: /Odporúčané\s+dávkovanie\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Dávkovanie",
+      pattern: /Dávkovanie\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Použitie",
+      pattern: /Použitie\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Vnútorné použitie",
+      pattern: /Vnútorné\s+použitie\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Vnútorné užívanie",
+      pattern: /Vnútorné\s+užívanie\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Vonkajšie použitie",
+      pattern: /Vonkajšie\s+použitie\s*:/gi,
+    },
+    {
+      key: "usage",
+      label: "Na vonkajšie použitie",
+      pattern: /Na\s+vonkajšie\s+použitie\s*:/gi,
+    },
+    {
+      key: "warning",
+      label: "Zdravotné upozornenia",
+      pattern: /Zdravotné\s+upozornenia\s*:/gi,
+    },
+    {
+      key: "warning",
+      label: "Bezpečnostné upozornenia",
+      pattern: /Bezpečnostné\s+upozornenia\s*:/gi,
+    },
+    {
+      key: "warning",
+      label: "Všeobecné upozornenia",
+      pattern: /Všeobecné\s+upozornenia\s*:/gi,
+    },
+    {
+      key: "warning",
+      label: "Upozornenia",
+      pattern: /Upozornenia\s*:/gi,
+    },
+    {
+      key: "warning",
+      label: "Upozornenie",
+      pattern: /Upozornenie\s*:/gi,
+    },
+    {
+      key: "composition",
+      label: "Zloženie",
+      pattern: /Zloženie(?:\s+\(INCI\))?\s*:/gi,
+    },
+    {
+      key: "composition",
+      label: "Ingrediencie",
+      pattern: /Ingrediencie\s*:/gi,
+    },
+    {
+      key: "composition",
+      label: "Účinné látky",
+      pattern: /Účinné\s+látky\s*:/gi,
+    },
+    {
+      key: "composition",
+      label: "Aktívne látky",
+      pattern: /Aktívne\s+látky\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Výživové údaje na 100 g",
+      pattern: /Výživové\s+údaje\s+na\s+100\s+g\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Výživové údaje",
+      pattern: /Výživové\s+údaje\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Skladovanie",
+      pattern: /Skladovanie\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Obsah balenia/Objem",
+      pattern: /Obsah\s+balenia\/Objem\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Obsah balenia",
+      pattern: /Obsah\s+balenia\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Krajina pôvodu",
+      pattern: /Krajina\s+pôvodu\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Krajina výroby",
+      pattern: /Krajina\s+výroby\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Objem",
+      pattern: /Objem\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Obsah",
+      pattern: /Obsah\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "Rozmer",
+      pattern: /Rozmer\s*:/gi,
+    },
+    {
+      key: "other",
+      label: "NÁŠ TIP",
+      pattern: /NÁŠ\s+TIP\s*:/gi,
+    },
+  ]
+
+const PRODUCT_CONTENT_BLOCK_REGEX =
+  /<(h[1-6]|p|div|ul|ol|table|blockquote)[^>]*>[\s\S]*?<\/\1>/gi
 
 const ENTITY_MAP: Record<string, string> = {
   "&quot;": '"',
@@ -435,102 +620,37 @@ function dedupeHtmlFragments(values: Array<string | undefined>): string[] {
   return result
 }
 
+function normalizeProductContentLabel(value?: string): string | undefined {
+  const normalized = normalizeComparableText(value)
+  if (!normalized) {
+    return undefined
+  }
+
+  const cleaned = normalized
+    .replace(/^[^a-z0-9]+/g, "")
+    .replace(/\bo\s+dporucane\b/g, "odporucane")
+    .replace(/[:\-]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  return cleaned === "" ? undefined : cleaned
+}
+
 function classifyProductContentLabel(
   label?: string
 ): ProductContentSectionKey | undefined {
-  const normalizedLabel = normalizeComparableText(
-    label?.replace(/[:\-]+$/g, "")
-  )
+  const normalizedLabel = normalizeProductContentLabel(label)
   if (!normalizedLabel) {
     return undefined
   }
 
-  for (const [sectionKey, keywords] of Object.entries(
-    PRODUCT_CONTENT_KEYWORDS
-  ) as [ClassifiedProductContentSectionKey, string[]][]) {
-    if (keywords.some((keyword) => normalizedLabel.includes(keyword))) {
-      return sectionKey
+  for (const rule of PRODUCT_CONTENT_LABEL_RULES) {
+    if (rule.patterns.some((pattern) => pattern.test(normalizedLabel))) {
+      return rule.key
     }
   }
 
   return undefined
-}
-
-function splitHtmlByHeadings(html: string): {
-  prefaceHtml?: string
-  sections: HtmlHeadingSection[]
-} {
-  const matches = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)]
-  if (matches.length === 0) {
-    return { sections: [] }
-  }
-
-  const sections: HtmlHeadingSection[] = []
-  const firstHeadingIndex = matches[0]?.index ?? 0
-  const prefaceHtml = trimHtmlFragment(html.slice(0, firstHeadingIndex))
-
-  for (let index = 0; index < matches.length; index += 1) {
-    const match = matches[index]
-    if (!match) {
-      continue
-    }
-    const nextMatch = matches[index + 1]
-    const start = match.index ?? 0
-    const end = nextMatch?.index ?? html.length
-    const sectionHtml = trimHtmlFragment(html.slice(start, end))
-    if (!sectionHtml) {
-      continue
-    }
-
-    sections.push({
-      title: stripHtmlTags(match[2]),
-      html: sectionHtml,
-    })
-  }
-
-  return {
-    prefaceHtml,
-    sections,
-  }
-}
-
-function extractStrongLabelSections(html: string): Array<{
-  key: ProductContentSectionKey
-  html: string
-}> {
-  const sections: Array<{ key: ProductContentSectionKey; html: string }> = []
-  const blockRegex = /<(p|div|li)[^>]*>[\s\S]*?<\/\1>/gi
-
-  for (const match of html.matchAll(blockRegex)) {
-    const blockHtml = trimHtmlFragment(match[0])
-    if (!blockHtml) {
-      continue
-    }
-
-    const strongMatch = blockHtml.match(
-      /<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/i
-    )
-    if (!strongMatch) {
-      continue
-    }
-
-    const label = stripHtmlTags(strongMatch[1])
-    if (!label || label.length > 120) {
-      continue
-    }
-
-    const sectionKey = classifyProductContentLabel(label)
-    if (!sectionKey) {
-      continue
-    }
-
-    sections.push({
-      key: sectionKey,
-      html: blockHtml,
-    })
-  }
-
-  return sections
 }
 
 function toHtmlFragment(value?: string): string | undefined {
@@ -566,6 +686,195 @@ function buildTextPropertyHtml(property: ParsedParameter): string {
   return `<p><strong>${escapeHtml(property.name)}:</strong> ${escapeHtml(property.value)}</p>`
 }
 
+function buildPlainTextHtmlFragment(value?: string): string | undefined {
+  const normalized = normalizeInlineText(value)
+  if (!normalized) {
+    return undefined
+  }
+
+  return `<p>${escapeHtml(normalized)}</p>`
+}
+
+function buildLabeledPlainTextHtmlFragment(
+  label: string,
+  value?: string
+): string | undefined {
+  const normalizedLabel = normalizeInlineText(label.replace(/:\s*$/g, ""))
+  const normalizedValue = normalizeInlineText(value)
+  if (!normalizedLabel) {
+    return undefined
+  }
+
+  return `<p><strong>${escapeHtml(normalizedLabel)}:</strong>${
+    normalizedValue ? ` ${escapeHtml(normalizedValue)}` : ""
+  }</p>`
+}
+
+function findProductContentTextAnchors(
+  text: string
+): ProductContentTextAnchor[] {
+  const anchors: ProductContentTextAnchor[] = []
+
+  for (const definition of PRODUCT_CONTENT_TEXT_LABEL_DEFINITIONS) {
+    const pattern = new RegExp(definition.pattern.source, "gi")
+    for (const match of text.matchAll(pattern)) {
+      const start = match.index
+      const matchedText = match[0]
+      if (start === undefined || !matchedText) {
+        continue
+      }
+
+      anchors.push({
+        end: start + matchedText.length,
+        key: definition.key,
+        label: definition.label,
+        start,
+      })
+    }
+  }
+
+  const sortedAnchors = anchors.sort((left, right) => {
+    if (left.start !== right.start) {
+      return left.start - right.start
+    }
+
+    return right.end - left.end
+  })
+  const result: ProductContentTextAnchor[] = []
+
+  for (const anchor of sortedAnchors) {
+    const previous = result.at(-1)
+    if (previous && anchor.start < previous.end) {
+      continue
+    }
+
+    result.push(anchor)
+  }
+
+  return result
+}
+
+function splitLabeledTextBlock(blockHtml: string): {
+  beforeHtml?: string
+  sections: Array<{ key: ProductContentSectionKey; html: string }>
+} {
+  const blockText = stripHtmlTags(blockHtml)
+  if (!blockText) {
+    return { sections: [] }
+  }
+
+  const anchors = findProductContentTextAnchors(blockText)
+  if (anchors.length === 0) {
+    return { sections: [] }
+  }
+
+  const beforeHtml = buildPlainTextHtmlFragment(
+    blockText.slice(0, anchors[0].start)
+  )
+  const sections = anchors.flatMap((anchor, index) => {
+    const nextAnchor = anchors[index + 1]
+    const value = blockText.slice(anchor.end, nextAnchor?.start).trim()
+    const html = buildLabeledPlainTextHtmlFragment(anchor.label, value)
+    if (!html) {
+      return []
+    }
+
+    return [
+      {
+        key: anchor.key,
+        html,
+      },
+    ]
+  })
+
+  return {
+    beforeHtml,
+    sections,
+  }
+}
+
+function buildProductDescriptionContentGroups(
+  descriptionHtml: string
+): Record<ProductContentSectionKey, string[]> {
+  const grouped: Record<ProductContentSectionKey, string[]> = {
+    description: [],
+    usage: [],
+    composition: [],
+    warning: [],
+    other: [],
+  }
+  let currentSection: ProductContentSectionKey = "description"
+  let cursor = 0
+  let hasBlock = false
+
+  for (const match of descriptionHtml.matchAll(PRODUCT_CONTENT_BLOCK_REGEX)) {
+    hasBlock = true
+    const blockStart = match.index ?? 0
+    const blockEnd = blockStart + match[0].length
+    const beforeHtml = trimHtmlFragment(
+      descriptionHtml.slice(cursor, blockStart)
+    )
+    if (beforeHtml) {
+      grouped[currentSection].push(beforeHtml)
+    }
+
+    const blockHtml = trimHtmlFragment(match[0])
+    const tagName = match[1]?.toLowerCase()
+    if (!blockHtml || !tagName) {
+      cursor = blockEnd
+      continue
+    }
+
+    if (/^h[1-6]$/.test(tagName)) {
+      const sectionKey = classifyProductContentLabel(stripHtmlTags(blockHtml))
+      if (sectionKey) {
+        currentSection = sectionKey
+      } else {
+        currentSection = "description"
+        grouped.description.push(blockHtml)
+      }
+      cursor = blockEnd
+      continue
+    }
+
+    const splitBlock = splitLabeledTextBlock(blockHtml)
+    if (splitBlock.sections.length > 0) {
+      if (splitBlock.beforeHtml) {
+        grouped[currentSection].push(splitBlock.beforeHtml)
+      }
+      for (const section of splitBlock.sections) {
+        grouped[section.key].push(section.html)
+      }
+    } else {
+      grouped[currentSection].push(blockHtml)
+    }
+
+    cursor = blockEnd
+  }
+
+  if (!hasBlock) {
+    const splitBlock = splitLabeledTextBlock(descriptionHtml)
+    if (splitBlock.sections.length > 0) {
+      if (splitBlock.beforeHtml) {
+        grouped.description.push(splitBlock.beforeHtml)
+      }
+      for (const section of splitBlock.sections) {
+        grouped[section.key].push(section.html)
+      }
+    } else {
+      grouped.description.push(descriptionHtml)
+    }
+    return grouped
+  }
+
+  const remainingHtml = trimHtmlFragment(descriptionHtml.slice(cursor))
+  if (remainingHtml) {
+    grouped[currentSection].push(remainingHtml)
+  }
+
+  return grouped
+}
+
 function buildProductContentSections(
   item: ParsedShopItem
 ): ProductContentSection[] {
@@ -584,24 +893,10 @@ function buildProductContentSections(
 
   const descriptionHtml = toHtmlFragment(item.description)
   if (descriptionHtml) {
-    const splitByHeadings = splitHtmlByHeadings(descriptionHtml)
-
-    if (splitByHeadings.prefaceHtml) {
-      grouped.description.push(splitByHeadings.prefaceHtml)
-    }
-
-    for (const section of splitByHeadings.sections) {
-      const sectionKey =
-        classifyProductContentLabel(section.title) ?? "description"
-      grouped[sectionKey].push(section.html)
-    }
-
-    if (splitByHeadings.sections.length === 0) {
-      grouped.description.push(descriptionHtml)
-    }
-
-    for (const section of extractStrongLabelSections(descriptionHtml)) {
-      grouped[section.key].push(section.html)
+    const descriptionGroups =
+      buildProductDescriptionContentGroups(descriptionHtml)
+    for (const sectionKey of PRODUCT_CONTENT_SECTION_ORDER) {
+      grouped[sectionKey].push(...descriptionGroups[sectionKey])
     }
   }
 
