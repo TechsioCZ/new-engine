@@ -9,7 +9,7 @@ export const STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS =
   STOREFRONT_PRODUCT_CARD_FIELDS;
 
 export const STOREFRONT_PRODUCT_DETAIL_FIELDS =
-  "id,title,handle,description,thumbnail,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,producer.id,producer.title,producer.handle,options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,*variants.calculated_price,+variants.metadata,+metadata.short_description,+metadata.top_offer,+metadata.content_sections_map";
+  "id,title,handle,description,thumbnail,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,producer.id,producer.title,producer.handle,options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,*variants.calculated_price,+variants.metadata,+metadata.short_description,+metadata.top_offer,+metadata.content_sections,+metadata.content_sections_map";
 
 export type StorefrontProductListInput = HttpTypes.StoreProductListParams & {
   page?: number;

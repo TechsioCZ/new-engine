@@ -9,6 +9,7 @@ import type {
   ProductOfferState,
   StorefrontProduct,
 } from "@/components/product-detail/product-detail.types";
+import { stripHtml } from "@/components/product-detail/utils/html-sanitizer";
 import {
   asBoolean,
   asNumber,
@@ -28,6 +29,10 @@ const normalizeSectionKey = (value: unknown): string | null => {
     .replace(/[^a-z0-9_-]/g, "");
 
   return normalized.length > 0 ? normalized : null;
+};
+
+const hasRenderableSectionHtml = (html: string): boolean => {
+  return stripHtml(html).length > 0;
 };
 
 const toSkDate = (date: Date) => {
@@ -196,9 +201,9 @@ export const resolveProductContentSections = (
     .filter((value): value is string => Boolean(value))
     .join("\n");
 
-  return PRODUCT_DETAIL_SECTION_ORDER.map((sectionKey) => {
+  const sections = PRODUCT_DETAIL_SECTION_ORDER.map((sectionKey) => {
     let html =
-      asString(sectionMap?.[sectionKey]) ?? sectionHtmlByKey.get(sectionKey) ?? "";
+      sectionHtmlByKey.get(sectionKey) ?? asString(sectionMap?.[sectionKey]) ?? "";
 
     if (!html && sectionKey === "description") {
       html = fallbackHtml;
@@ -209,5 +214,17 @@ export const resolveProductContentSections = (
       title: PRODUCT_DETAIL_SECTION_TITLES[sectionKey] ?? "Obsah",
       html,
     };
-  });
+  }).filter((section) => hasRenderableSectionHtml(section.html));
+
+  if (sections.length > 0) {
+    return sections;
+  }
+
+  return [
+    {
+      key: "description",
+      title: PRODUCT_DETAIL_SECTION_TITLES.description,
+      html: fallbackHtml,
+    },
+  ];
 };
