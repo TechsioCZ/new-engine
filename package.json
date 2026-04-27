@@ -50,6 +50,24 @@
       "react-dom": "19.2.3",
       "@types/react": "19.2.3",
       "@types/react-dom": "19.2.3"
+    },
+    "supportedArchitectures": {
+      "os": [
+        "current",
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "cpu": [
+        "current",
+        "x64",
+        "arm64"
+      ],
+      "libc": [
+        "current",
+        "glibc",
+        "musl"
+      ]
     }
   }
 }
