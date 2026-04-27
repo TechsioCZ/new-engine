@@ -36,10 +36,7 @@ type ProductInput = {
   width?: number
   height?: number
   length?: number
-  tags?: {
-    id?: string
-    value: string
-  }[]
+  tags?: ProductInputTag[]
   metadata?: Record<string, unknown>
   status?: ProductStatus
   shippingProfileName: string
@@ -92,6 +89,11 @@ type ProductInput = {
     }[]
   }[]
   salesChannelNames: string[]
+}
+
+type ProductInputTag = {
+  id?: string
+  value: string
 }
 
 type ProductVariantImagesInput = {
@@ -197,6 +199,64 @@ function processProductVariantImagesInput(
   }
 }
 
+async function resolveProductTags(
+  input: CreateProductsStepInput,
+  productService: IProductModuleService
+) {
+  const tagValues = [
+    ...new Set(
+      input
+        .flatMap((product) => product.tags ?? [])
+        .map((tag) => tag.value.trim())
+        .filter(Boolean)
+    ),
+  ]
+
+  if (!tagValues.length) {
+    return
+  }
+
+  const existingTags = await productService.listProductTags(
+    {
+      value: tagValues,
+    },
+    {
+      select: ["id", "value"],
+      take: tagValues.length,
+    }
+  )
+  const existingTagsByValue = new Map(
+    existingTags.map((tag) => [tag.value, tag])
+  )
+  const missingTagValues = tagValues.filter(
+    (value) => !existingTagsByValue.has(value)
+  )
+  const createdTags = missingTagValues.length
+    ? await productService.createProductTags(
+        missingTagValues.map((value) => ({ value }))
+      )
+    : []
+  const tagsByValue = new Map(
+    [...existingTags, ...createdTags].map((tag) => [tag.value, tag])
+  )
+
+  for (const product of input) {
+    product.tags = product.tags?.map((tag) => {
+      const value = tag.value.trim()
+      const resolvedTag = tag.id ? tag : tagsByValue.get(value)
+
+      if (!resolvedTag?.id) {
+        throw new Error(`Product tag "${value}" could not be resolved`)
+      }
+
+      return {
+        id: resolvedTag.id,
+        value,
+      }
+    })
+  }
+}
+
 function prepareVariantImagesWorkflowInput(
   product: ProductDTO,
   productVariantImages: Map<string, Map<string, ProductVariantImagesInput>>
@@ -279,6 +339,8 @@ export const createProductsStep = createStep(
     )
     const producerService =
       container.resolve<ProducerModuleService>(PRODUCER_MODULE)
+
+    await resolveProductTags(input, productService)
 
     const productVariantImages = new Map<
       string,
