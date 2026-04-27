@@ -33,7 +33,10 @@ export const resolveEnvironmentCommandInputSchema = z
       })
     }
 
-    if (value.lane === "preview" && !(value.dryRun || value.sourceEnvironmentName)) {
+    if (
+      value.lane === "preview" &&
+      !(value.dryRun || value.sourceEnvironmentName)
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["sourceEnvironmentName"],

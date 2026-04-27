@@ -346,12 +346,8 @@ export async function provisionMeiliKeys(input: {
   stackInputs: StackInputs
   providerId: string
 }): Promise<MeiliProvisionResponse> {
-  const {
-    backendPolicy,
-    frontendPolicy,
-    backendEnvVar,
-    frontendEnvVar,
-  } = resolveMeiliApiCredentialPolicies(input.stackInputs, input.providerId)
+  const { backendPolicy, frontendPolicy, backendEnvVar, frontendEnvVar } =
+    resolveMeiliApiCredentialPolicies(input.stackInputs, input.providerId)
 
   await waitForHealth({
     meiliUrl: input.meiliUrl,
@@ -466,17 +462,13 @@ export async function verifyMeiliKeys(input: {
     )
   }
 
-  if (
-    !matchesPolicy(backend, backendPolicy)
-  ) {
+  if (!matchesPolicy(backend, backendPolicy)) {
     throw new Error(
       `Backend key uid=${backendPolicy.uid} does not match the contract-owned policy.`
     )
   }
 
-  if (
-    !matchesPolicy(frontend, frontendPolicy)
-  ) {
+  if (!matchesPolicy(frontend, frontendPolicy)) {
     throw new Error(
       `Frontend key uid=${frontendPolicy.uid} does not match the contract-owned policy.`
     )

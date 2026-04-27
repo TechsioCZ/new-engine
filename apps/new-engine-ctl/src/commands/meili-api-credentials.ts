@@ -13,7 +13,9 @@ export function createMeiliApiCredentialsCommand(): Command {
   const command = new Command("meili-api-credentials")
 
   command
-    .description("Reconcile Meili API credentials from the active CLI-managed contract")
+    .description(
+      "Reconcile Meili API credentials from the active CLI-managed contract"
+    )
     .option("--meili-url <url>")
     .option("--master-key <key>")
     .option("--output-json <path>")

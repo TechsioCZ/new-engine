@@ -8,7 +8,7 @@ export const previewRandomOnceSecretsResponseSchema = z.object({
     z.object({
       secret_id: z.string().min(1),
       value: z.string().min(1),
-    }),
+    })
   ),
   missing_secret_ids: z.array(z.string().min(1)).default([]),
 })

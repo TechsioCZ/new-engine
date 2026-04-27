@@ -65,7 +65,9 @@ function buildDryRunResponse({
     checked_persisted_env_service_ids: requiredPersistedEnv.map(
       (requirement) => requirement.service_id
     ),
-    checked_shared_env_keys: requiredSharedEnv.map((requirement) => requirement.key),
+    checked_shared_env_keys: requiredSharedEnv.map(
+      (requirement) => requirement.key
+    ),
     checked_forbidden_env_service_ids: forbiddenEnv.map(
       (requirement) => requirement.service_id
     ),

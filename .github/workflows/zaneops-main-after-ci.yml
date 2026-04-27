@@ -142,7 +142,8 @@ jobs:
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
         run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-deploy
 
@@ -150,15 +151,23 @@ jobs:
         id: run_deploy
         env:
           SERVICES_CSV: ${{ needs.scope.outputs.services_csv }}
+          REQUIRES_DOWNTIME_APPROVAL: ${{ needs.scope.outputs.requires_downtime_approval }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
         run: |
+          downtime_args=()
+          if [[ "$REQUIRES_DOWNTIME_APPROVAL" == "true" ]]; then
+            downtime_args+=(--approve-downtime-risk)
+          fi
+
           node apps/new-engine-ctl/dist/cli.js deploy-main \
             --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
             --git-commit-sha "${{ github.event.workflow_run.head_sha }}" \
-            --services-csv "$SERVICES_CSV"
+            --services-csv "$SERVICES_CSV" \
+            "${downtime_args[@]}"
 
       - name: Summary
         if: always()
@@ -196,7 +205,8 @@ jobs:
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
         run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-verify
 
@@ -210,7 +220,8 @@ jobs:
           RUNTIME_PROVIDER_OUTPUTS_JSON: ${{ needs.deploy.outputs.runtime_provider_outputs_json }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
         run: |
           node apps/new-engine-ctl/dist/cli.js verify \

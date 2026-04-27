@@ -54,7 +54,9 @@ async function writeDeployPreviewOutputs(
   const deploymentsJson = JSON.stringify({
     services: result.response.deployments,
   })
-  const runtimeProviderOutputsJson = JSON.stringify(result.runtimeProviderOutputs)
+  const runtimeProviderOutputsJson = JSON.stringify(
+    result.runtimeProviderOutputs
+  )
 
   maskGitHubValue(result.previewRandomOnceSecretsJson)
   for (const output of Object.values(result.runtimeProviderOutputs)) {

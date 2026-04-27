@@ -1,14 +1,14 @@
 import type { BootstrapInspectServiceDetails } from "../../contracts/bootstrap-shared.js"
 import type { BootstrapZaneProjectPlanCommandInput } from "../../contracts/bootstrap-zane-project.js"
 import {
-  getBootstrapZaneProjectSharedEnvDefinitions,
-  type StackInputs,
-} from "../../contracts/stack-inputs.js"
-import {
   bootstrapZaneProjectInspectResponseSchema,
   bootstrapZaneProjectPlanResponseSchema,
 } from "../../contracts/bootstrap-zane-project.js"
 import type { PreviewSharedEnvVariableInput } from "../../contracts/preview-shared-env.js"
+import {
+  getBootstrapZaneProjectSharedEnvDefinitions,
+  type StackInputs,
+} from "../../contracts/stack-inputs.js"
 import { listDeployableServices } from "../../contracts/stack-manifest.js"
 import { loadDeployContracts } from "../deploy-inputs.js"
 import type { BootstrapValueSource } from "./shared.js"
@@ -380,6 +380,7 @@ function applySharedEnvServiceTargets(input: {
   }
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is a declarative service bootstrap plan; splitting it would hide the service graph.
 function buildZaneProjectServices(
   context: ZaneProjectContext,
   serviceSlugs: Record<string, string>
@@ -935,6 +936,17 @@ function buildZaneProjectServices(
   }
 }
 
+function resolveOperatorUpstreamBaseUrl(input: {
+  candidate?: string
+  appDomain?: string | null
+}): string | null {
+  if (input.candidate && !isLoopbackUrl(input.candidate)) {
+    return input.candidate
+  }
+
+  return input.appDomain ? `https://${input.appDomain}` : null
+}
+
 function buildContext(input: {
   planInput: BootstrapZaneProjectPlanCommandInput
   settings: {
@@ -952,13 +964,10 @@ function buildContext(input: {
       process.env.DC_ZANE_OPERATOR_ZANE_BASE_URL
     )
   )
-  const operatorUpstreamBaseUrl =
-    operatorUpstreamBaseUrlCandidate &&
-    !isLoopbackUrl(operatorUpstreamBaseUrlCandidate)
-      ? operatorUpstreamBaseUrlCandidate
-      : input.settings.app_domain
-        ? `https://${input.settings.app_domain}`
-        : null
+  const operatorUpstreamBaseUrl = resolveOperatorUpstreamBaseUrl({
+    candidate: operatorUpstreamBaseUrlCandidate,
+    appDomain: input.settings.app_domain,
+  })
   const connectBaseUrl = normalizeOriginUrl(
     firstNonEmpty(
       input.planInput.operatorUpstreamZaneConnectBaseUrl,
@@ -1117,7 +1126,8 @@ function buildBlockingReasons(input: {
           value: process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET,
         },
       ],
-      placeholderMessage: "is still set to a placeholder value and must be replaced before bootstrap.",
+      placeholderMessage:
+        "is still set to a placeholder value and must be replaced before bootstrap.",
       missingMessage: "could not be resolved for bootstrap.",
     })
   )
@@ -1209,8 +1219,10 @@ function buildWarningReasons(): string[] {
         value: process.env.DC_SETTINGS_ENCRYPTION_KEY,
       },
     ],
-    placeholderMessage: "is still set to a placeholder value; bootstrap will continue, but the value should be replaced.",
-    missingMessage: "is empty; bootstrap will continue, but the value should be filled before relying on the deployed service.",
+    placeholderMessage:
+      "is still set to a placeholder value; bootstrap will continue, but the value should be replaced.",
+    missingMessage:
+      "is empty; bootstrap will continue, but the value should be filled before relying on the deployed service.",
   })
 }
 
@@ -1224,6 +1236,7 @@ function interpolateSharedValues(
   )
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: source resolution intentionally keeps all supported source kinds in one switch.
 function resolveSharedSourceValue(input: {
   source: BootstrapValueSource
   context: ZaneProjectContext
@@ -1282,6 +1295,7 @@ function renderSharedEnvReference(key: string | undefined): string {
   return key ? placeholderSharedValue(key) : ""
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: source resolution intentionally keeps all supported source kinds in one switch.
 function resolveServiceSourceValue(input: {
   source: BootstrapValueSource
   context: ZaneProjectContext
@@ -1415,7 +1429,10 @@ export async function executeBootstrapZaneProjectPlan(
     inspectedServices,
   })
   const warnings = buildWarningReasons()
-  const sharedEnvVariables = buildSharedEnvVariables(serviceSlugById, stackInputs)
+  const sharedEnvVariables = buildSharedEnvVariables(
+    serviceSlugById,
+    stackInputs
+  )
   const resolvedSharedEnv =
     input.phase === "services"
       ? {}
@@ -1457,14 +1474,10 @@ export async function executeBootstrapZaneProjectPlan(
       const managedPublicDomains = servicePlan.urls
         .map((url) => url.domain)
         .filter((value): value is string => Boolean(value))
-        const desiredEnv =
-          input.phase === "services"
-            ? {}
-            : resolveServiceEnv(
-                servicePlan.env,
-                context,
-                inspectedServices
-              )
+      const desiredEnv =
+        input.phase === "services"
+          ? {}
+          : resolveServiceEnv(servicePlan.env, context, inspectedServices)
 
       return {
         service_id: service.id,

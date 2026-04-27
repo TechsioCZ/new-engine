@@ -11,6 +11,7 @@ export const scopeCommandInputSchema = z
     servicesCsv: z.string().default(""),
     baseSha: z.string().min(1).optional(),
     headSha: z.string().min(1).default("HEAD"),
+    previewBaselineComplete: z.boolean().default(true),
     outputJson: z.string().min(1).optional(),
     stackManifestPath: z.string().min(1),
     stackInputsPath: z.string().min(1),

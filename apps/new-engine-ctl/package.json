@@ -11,6 +11,7 @@
     "dev": "tsx src/cli.ts",
     "lint": "biome check src scripts",
     "format": "biome format --write src scripts",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

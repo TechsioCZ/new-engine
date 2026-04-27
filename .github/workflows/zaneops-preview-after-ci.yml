@@ -28,6 +28,7 @@ jobs:
     outputs:
       pr_number: ${{ steps.pr.outputs.number }}
       baseline_sha: ${{ steps.scope_base.outputs.base_sha }}
+      baseline_complete: ${{ steps.preview_commit_state.outputs.baseline_complete }}
       projects_csv: ${{ steps.scope_data.outputs.projects_csv }}
       services_csv: ${{ steps.scope_data.outputs.services_csv }}
       nx_status: ${{ steps.scope_data.outputs.nx_status }}
@@ -62,7 +63,8 @@ jobs:
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
         run: |
           node apps/new-engine-ctl/dist/cli.js preview-commit-state \
             --pr-number "${{ steps.pr.outputs.number }}"
@@ -78,11 +80,14 @@ jobs:
 
       - name: Resolve preview scope
         id: scope_data
+        env:
+          PREVIEW_BASELINE_COMPLETE: ${{ steps.preview_commit_state.outputs.baseline_complete || 'false' }}
         run: |
           node apps/new-engine-ctl/dist/cli.js scope \
             --lane preview \
             --base-sha "${{ steps.scope_base.outputs.base_sha }}" \
-            --head-sha "${{ github.event.workflow_run.head_sha }}"
+            --head-sha "${{ github.event.workflow_run.head_sha }}" \
+            --preview-baseline-complete "$PREVIEW_BASELINE_COMPLETE"
 
       - name: Upload new-engine-ctl artifact
         uses: actions/upload-artifact@v4
@@ -99,6 +104,7 @@ jobs:
             echo "- PR: #${{ steps.pr.outputs.number }}"
             echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
             echo "- Baseline SHA: ${{ steps.scope_base.outputs.base_sha }}"
+            echo "- Baseline complete: ${{ steps.preview_commit_state.outputs.baseline_complete || 'false' }}"
             echo "- Affected projects: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}"
             echo "- Affected services: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}"
             echo "- Nx status: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}"
@@ -211,7 +217,8 @@ jobs:
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
         run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode preview-deploy
@@ -227,7 +234,8 @@ jobs:
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
         run: |
           node apps/new-engine-ctl/dist/cli.js deploy-preview \
@@ -280,7 +288,8 @@ jobs:
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           PREVIEW_DB_PASSWORD: ${{ needs.prepare.outputs.preview_db_password }}
           PREVIEW_RANDOM_ONCE_SECRETS_JSON: ${{ needs.deploy.outputs.preview_random_once_secrets_json }}
         run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode preview-verify
@@ -301,7 +310,8 @@ jobs:
           RUNTIME_PROVIDER_OUTPUTS_JSON: ${{ needs.deploy.outputs.runtime_provider_outputs_json }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
-          ZANE_CANONICAL_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
         run: |
           node apps/new-engine-ctl/dist/cli.js verify \
             --lane preview \

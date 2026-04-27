@@ -21,6 +21,13 @@
         "command": "pnpm run typecheck"
       }
     },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/new-engine-ctl",
+        "command": "pnpm run test"
+      }
+    },
     "dev": {
       "executor": "nx:run-commands",
       "cache": false,

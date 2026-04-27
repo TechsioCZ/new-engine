@@ -40,7 +40,7 @@ export const manifestServiceSlugsResponseSchema = z.object({
 
 export type ManifestServiceSlugsCommandInput = z.infer<
   typeof manifestServiceSlugsCommandInputSchema
- >
+>
 export type ManifestServiceSlugsResponse = z.infer<
   typeof manifestServiceSlugsResponseSchema
- >
+>

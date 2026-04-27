@@ -6,8 +6,8 @@ import type {
   DeployPreviewResponse,
 } from "../contracts/deploy-preview.js"
 import { deployPreviewResponseSchema } from "../contracts/deploy-preview.js"
-import type { RuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
+import type { RuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import { getPreviewRandomOnceSecretDefinitions } from "../contracts/stack-inputs.js"
 import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
@@ -23,13 +23,6 @@ import {
   waitForDeployments,
 } from "./deploy-shared.js"
 import { executePlan } from "./plan.js"
-import {
-  buildRuntimeProviderRenderContext,
-  collectConfiguredRuntimeProviderNeeds,
-  createRuntimeProviderState,
-  ensureStageRuntimeProviderOutputs,
-  reuseRuntimeProviderOutputs,
-} from "./runtime-provider-orchestration.js"
 import { generatePreviewRandomOnceSecrets } from "./preview-random-secrets.js"
 import {
   buildPreviewServiceEnvSyncServices,
@@ -38,6 +31,13 @@ import {
 import { executeRenderEnvOverrides } from "./render-env-overrides.js"
 import { executeResolveEnvironment } from "./resolve-environment.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
+import {
+  buildRuntimeProviderRenderContext,
+  collectConfiguredRuntimeProviderNeeds,
+  createRuntimeProviderState,
+  ensureStageRuntimeProviderOutputs,
+  reuseRuntimeProviderOutputs,
+} from "./runtime-provider-orchestration.js"
 import { expandPlanForRuntimeProviderPrerequisites } from "./runtime-provider-prerequisites.js"
 import { executeTriggerPayload } from "./trigger.js"
 
@@ -134,20 +134,21 @@ async function resolvePreviewRandomOnceSecrets(input: {
     const generatedValuesBySecretId = new Map(
       generatedSecrets.map((secret) => [secret.secret_id, secret.value])
     )
-    const materialized = await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
-      secrets: definitions.map((definition) => ({
-        secret_id: definition.secret_id,
-        value: generatedValuesBySecretId.get(definition.secret_id),
-        persist_to: definition.persist_to,
-        persisted_env_var: definition.persisted_env_var,
-        targets: definition.targets.map((target) => ({
-          service_slug: target.service_id,
-          env_var: target.env_var,
+    const materialized =
+      await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
+        project_slug: input.projectSlug,
+        environment_name: input.environmentName,
+        secrets: definitions.map((definition) => ({
+          secret_id: definition.secret_id,
+          value: generatedValuesBySecretId.get(definition.secret_id),
+          persist_to: definition.persist_to,
+          persisted_env_var: definition.persisted_env_var,
+          targets: definition.targets.map((target) => ({
+            service_slug: target.service_id,
+            env_var: target.env_var,
+          })),
         })),
-      })),
-    })
+      })
 
     if (materialized.missing_secret_ids.length > 0) {
       throw new Error(
@@ -189,22 +190,23 @@ async function resolvePreviewRandomOnceSecrets(input: {
   const generatedValuesBySecretId = new Map(
     generatedSecrets.map((secret) => [secret.secret_id, secret.value])
   )
-  const materialized = await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
-    project_slug: input.projectSlug,
-    environment_name: input.environmentName,
-    secrets: definitions.map((definition) => ({
-      secret_id: definition.secret_id,
-      ...(missingSecretIds.has(definition.secret_id)
-        ? { value: generatedValuesBySecretId.get(definition.secret_id) }
-        : {}),
-      persist_to: definition.persist_to,
-      persisted_env_var: definition.persisted_env_var,
-      targets: definition.targets.map((target) => ({
-        service_slug: target.service_id,
-        env_var: target.env_var,
+  const materialized =
+    await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
+      project_slug: input.projectSlug,
+      environment_name: input.environmentName,
+      secrets: definitions.map((definition) => ({
+        secret_id: definition.secret_id,
+        ...(missingSecretIds.has(definition.secret_id)
+          ? { value: generatedValuesBySecretId.get(definition.secret_id) }
+          : {}),
+        persist_to: definition.persist_to,
+        persisted_env_var: definition.persisted_env_var,
+        targets: definition.targets.map((target) => ({
+          service_slug: target.service_id,
+          env_var: target.env_var,
+        })),
       })),
-    })),
-  })
+    })
 
   if (materialized.missing_secret_ids.length > 0) {
     throw new Error(
@@ -422,9 +424,9 @@ export async function executeDeployPreview(
       previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
       previewRandomOnceSecrets,
-      runtimeProviderOutputs: buildRuntimeProviderRenderContext(
-        runtimeProviderState
-      ).runtimeProviderOutputs,
+      runtimeProviderOutputs:
+        buildRuntimeProviderRenderContext(runtimeProviderState)
+          .runtimeProviderOutputs,
       outputJson: undefined,
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
@@ -563,9 +565,9 @@ export async function executeDeployPreview(
       previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
       previewRandomOnceSecrets,
-      runtimeProviderOutputs: buildRuntimeProviderRenderContext(
-        runtimeProviderState
-      ).runtimeProviderOutputs,
+      runtimeProviderOutputs:
+        buildRuntimeProviderRenderContext(runtimeProviderState)
+          .runtimeProviderOutputs,
       outputJson: undefined,
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
@@ -706,9 +708,9 @@ export async function executeDeployPreview(
       previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
       previewRandomOnceSecrets,
-      runtimeProviderOutputs: buildRuntimeProviderRenderContext(
-        runtimeProviderState
-      ).runtimeProviderOutputs,
+      runtimeProviderOutputs:
+        buildRuntimeProviderRenderContext(runtimeProviderState)
+          .runtimeProviderOutputs,
       deployments: stageDeployments,
       baseUrl: input.baseUrl,
       apiToken: input.apiToken,
@@ -748,9 +750,8 @@ export async function executeDeployPreview(
     lastDeployedCommitSha = input.targetCommitSha
   }
 
-  const runtimeProviderRenderContext = buildRuntimeProviderRenderContext(
-    runtimeProviderState
-  )
+  const runtimeProviderRenderContext =
+    buildRuntimeProviderRenderContext(runtimeProviderState)
 
   const response = deployPreviewResponseSchema.parse({
     lane: "preview",

@@ -65,11 +65,10 @@ export const previewRuntimeSourceInputSchema = z
     }
   })
 
-export const previewSharedEnvVariableInputSchema = z
-  .object({
-    key: z.string().min(1),
-    source: previewRuntimeSourceInputSchema,
-  })
+export const previewSharedEnvVariableInputSchema = z.object({
+  key: z.string().min(1),
+  source: previewRuntimeSourceInputSchema,
+})
 
 export const previewSharedEnvSyncResponseSchema = z.object({
   project_slug: z.string().min(1),

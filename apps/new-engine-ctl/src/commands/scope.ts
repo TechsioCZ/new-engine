@@ -29,6 +29,7 @@ export function createScopeCommand(): Command {
     .option("--services-csv <csv>", "", "")
     .option("--base-sha <sha>")
     .option("--head-sha <sha>", "", "HEAD")
+    .option("--preview-baseline-complete <true|false>", "", "true")
     .option("--output-json <path>")
     .option(
       "--nx-isolate-plugins <true|false>",
@@ -51,6 +52,9 @@ export function createScopeCommand(): Command {
         servicesCsv: options.servicesCsv,
         baseSha: options.baseSha,
         headSha: options.headSha,
+        previewBaselineComplete: parseBooleanOption(
+          options.previewBaselineComplete
+        ),
         outputJson: options.outputJson,
         stackManifestPath: options.stackManifestPath,
         stackInputsPath: options.stackInputsPath,

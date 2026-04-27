@@ -6,6 +6,7 @@ import { executeBootstrapPreviewTemplateDbPlan } from "../orchestration/bootstra
 import { executeBootstrapZaneProjectPlan } from "../orchestration/bootstrap/zane-project.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: command setup is a flat list of CLI options mirroring env inputs
 export function createBootstrapCommand(): Command {
   const command = new Command("bootstrap").description(
     "Bootstrap planning surfaces for local Zane helper flows"

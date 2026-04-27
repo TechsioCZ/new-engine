@@ -13,7 +13,9 @@ export const runtimeProviderOutputsSchema = z.record(
 export type RuntimeProviderOutputValue = z.infer<
   typeof runtimeProviderOutputValueSchema
 >
-export type RuntimeProviderOutputs = z.infer<typeof runtimeProviderOutputsSchema>
+export type RuntimeProviderOutputs = z.infer<
+  typeof runtimeProviderOutputsSchema
+>
 
 export function runtimeProviderOutputKey(
   providerId: string,

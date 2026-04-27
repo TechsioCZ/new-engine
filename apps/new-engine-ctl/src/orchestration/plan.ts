@@ -61,6 +61,12 @@ function assertServiceAllowedInLane(
   if (!service.deployLanes.includes(lane)) {
     throw new Error(`${label} ${service.id} is not eligible for lane ${lane}.`)
   }
+
+  if (lane === "preview" && !service.cloneToPreview) {
+    throw new Error(
+      `${label} ${service.id} is not eligible for lane preview because clone_to_preview is false.`
+    )
+  }
 }
 
 function buildPlanService(
@@ -120,8 +126,10 @@ export async function executePlan(
 ): Promise<PlanResponse> {
   const manifest = await loadManifest(input.stackManifestPath)
   const sourceServiceIds = normalizeCsvToArray(input.servicesCsv)
-  const laneServices = listDeployableServices(manifest).filter((service) =>
-    service.deployLanes.includes(input.lane)
+  const laneServices = listDeployableServices(manifest).filter(
+    (service) =>
+      service.deployLanes.includes(input.lane) &&
+      (input.lane !== "preview" || service.cloneToPreview)
   )
   const { requestedServiceIds, deployServiceIds } = buildRequestedAndDeploySets(
     manifest,

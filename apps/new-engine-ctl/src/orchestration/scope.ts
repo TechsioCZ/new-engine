@@ -5,15 +5,16 @@ import { promisify } from "node:util"
 
 import type { ScopeCommandInput, ScopeResponse } from "../contracts/scope.js"
 import { scopeResponseSchema } from "../contracts/scope.js"
+import { listRuntimeProviderServiceIds } from "../contracts/stack-inputs.js"
 import {
   getGlobalRuntimeRules,
   getIgnorePathGlobs,
+  listDeployableServices,
   listDowntimeRiskServiceIds,
   listLaneServiceIds,
   listPrepareServiceIds,
   type StackManifest,
 } from "../contracts/stack-manifest.js"
-import { listRuntimeProviderServiceIds } from "../contracts/stack-inputs.js"
 import { loadDeployContracts, normalizeCsvToArray } from "./deploy-inputs.js"
 
 const execFileAsync = promisify(execFile)
@@ -170,6 +171,7 @@ function applyPrepareAndDowntimeState(input: {
   lane: ScopeCommandInput["lane"]
   servicesCsv: string
   manifest: StackManifest
+  previewBaselineComplete: boolean
 }): Pick<
   ScopeResponse,
   | "should_prepare"
@@ -182,8 +184,15 @@ function applyPrepareAndDowntimeState(input: {
 
   const previewDbServiceIds =
     input.lane === "preview"
-      ? listPrepareServiceIds(input.manifest, "preview_db").filter(
-          (serviceId) => selected.has(serviceId)
+      ? normalizeCsvToArray(
+          [
+            ...listPrepareServiceIds(input.manifest, "preview_db").filter(
+              (serviceId) => selected.has(serviceId)
+            ),
+            ...(input.previewBaselineComplete
+              ? []
+              : listPreviewBaselinePrepareServiceIds(input.manifest)),
+          ].join(",")
         )
       : []
   const downtimeServiceIds =
@@ -200,6 +209,23 @@ function applyPrepareAndDowntimeState(input: {
     requires_downtime_approval: downtimeServiceIds.length > 0,
     downtime_service_ids: downtimeServiceIds.join(","),
   }
+}
+
+function listPreviewBaselinePrepareServiceIds(
+  manifest: StackManifest
+): string[] {
+  const previewClonedServiceIds = new Set(
+    listDeployableServices(manifest)
+      .filter(
+        (service) =>
+          service.deployLanes.includes("preview") && service.cloneToPreview
+      )
+      .map((service) => service.id)
+  )
+
+  return listPrepareServiceIds(manifest, "preview_db").filter((serviceId) =>
+    previewClonedServiceIds.has(serviceId)
+  )
 }
 
 function logMainRuntimeProviderScope(input: {
@@ -336,6 +362,18 @@ function resolveServicesFromGitDiff(input: {
   return orderedServiceIds.filter((serviceId) => serviceFlags.get(serviceId))
 }
 
+function filterServicesAllowedInLane(input: {
+  manifest: StackManifest
+  lane: ScopeCommandInput["lane"]
+  servicesCsv: string
+}): string {
+  const allowed = new Set(listLaneServiceIds(input.manifest, input.lane))
+
+  return normalizeCsvToArray(input.servicesCsv)
+    .filter((serviceId) => allowed.has(serviceId))
+    .join(",")
+}
+
 export async function executeScope(
   input: ScopeCommandInput
 ): Promise<ScopeResponse> {
@@ -387,12 +425,18 @@ export async function executeScope(
       nxStatus,
       nxProjects: nx.projects,
     }).join(",")
+    servicesCsv = filterServicesAllowedInLane({
+      manifest,
+      lane: input.lane,
+      servicesCsv,
+    })
   }
 
   const prepareAndDowntime = applyPrepareAndDowntimeState({
     lane: input.lane,
     servicesCsv,
     manifest,
+    previewBaselineComplete: input.previewBaselineComplete,
   })
 
   if (input.lane === "main" && servicesCsv) {

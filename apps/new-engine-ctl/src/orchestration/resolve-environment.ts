@@ -6,12 +6,12 @@ import {
   resolveEnvironmentResponseSchema,
 } from "../contracts/resolve-environment.js"
 import {
-  type StackManifest,
   listDeployableServices,
+  type StackManifest,
 } from "../contracts/stack-manifest.js"
-import { buildServiceReconciliationSpecs } from "./preview-runtime-reconciliation.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import { loadDeployContracts, normalizeCsvToArray } from "./deploy-inputs.js"
+import { buildServiceReconciliationSpecs } from "./preview-runtime-reconciliation.js"
 
 function buildPreviewEnvironmentName(
   input: ResolveEnvironmentCommandInput

@@ -62,7 +62,9 @@ export function createDeployMainCommand(): Command {
       const deploymentsJson = JSON.stringify({
         services: result.response.deployments,
       })
-      const runtimeProviderOutputsJson = JSON.stringify(result.runtimeProviderOutputs)
+      const runtimeProviderOutputsJson = JSON.stringify(
+        result.runtimeProviderOutputs
+      )
 
       for (const output of Object.values(result.runtimeProviderOutputs)) {
         if (output.value) {

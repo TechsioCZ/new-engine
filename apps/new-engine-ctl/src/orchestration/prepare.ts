@@ -70,8 +70,9 @@ async function resolveRequiresPreviewDb(
     environment_name: buildPreviewEnvironmentName(input),
   })
 
-  return (
-    !previewCommitState.environment_exists || !previewCommitState.baseline_complete
+  return !(
+    previewCommitState.environment_exists &&
+    previewCommitState.baseline_complete
   )
 }
 

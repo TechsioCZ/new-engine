@@ -1,3 +1,4 @@
+import type { ResolveTargetsResponse } from "../contracts/resolve-targets.js"
 import type { RuntimeProviderRunResponse } from "../contracts/runtime-provider-run.js"
 import {
   getRuntimeProviderOutputPolicy,
@@ -9,7 +10,6 @@ import {
 } from "../contracts/stack-inputs.js"
 import type { StackManifest } from "../contracts/stack-manifest.js"
 import { listDeployableServices } from "../contracts/stack-manifest.js"
-import type { ResolveTargetsResponse } from "../contracts/resolve-targets.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
 function requireRuntimeProviderOutput(
@@ -38,7 +38,9 @@ function resolveSharedPersistedValue(input: {
   }
 
   const values = input.serviceIds.map((serviceId) => {
-    const target = input.targets.find((candidate) => candidate.service_id === serviceId)
+    const target = input.targets.find(
+      (candidate) => candidate.service_id === serviceId
+    )
     return target?.current_production_deployment?.env?.[input.envVar] ?? ""
   })
 

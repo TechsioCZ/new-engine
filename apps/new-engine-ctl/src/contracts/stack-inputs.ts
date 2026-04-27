@@ -58,8 +58,8 @@ const runtimeProviderSchema = z.looseObject({
     .looseObject({
       kind: z.string().min(1).optional(),
       path: z.string().min(1).optional(),
-      })
-      .optional(),
+    })
+    .optional(),
   orchestration: z
     .looseObject({
       lanes: z
@@ -259,7 +259,9 @@ export type ServiceReconciliationDefinition = z.infer<
   typeof serviceReconciliationDefinitionSchema
 >
 export type RuntimeProviderOutput = z.infer<typeof providerOutputSchema>
-export type RuntimeProviderOutputTarget = z.infer<typeof providerOutputTargetSchema>
+export type RuntimeProviderOutputTarget = z.infer<
+  typeof providerOutputTargetSchema
+>
 export type RuntimeProviderPolicy = NonNullable<RuntimeProviderOutput["policy"]>
 export type RuntimeProviderLaneBehavior = z.infer<
   typeof runtimeProviderLaneBehaviorSchema
@@ -429,14 +431,16 @@ export function getRuntimeProviderMeiliKeyPolicy(
 export function listRuntimeProviderConsumerServiceIds(
   inputs: StackInputs,
   providerId: string
- ): string[] {
+): string[] {
   const provider = getRuntimeProvider(inputs, providerId)
 
-  return [...new Set(
-    provider.outputs.flatMap((output) =>
-      output.target_envs.map((target) => target.service_id)
-    )
-  )]
+  return [
+    ...new Set(
+      provider.outputs.flatMap((output) =>
+        output.target_envs.map((target) => target.service_id)
+      )
+    ),
+  ]
 }
 
 export function listRuntimeProviderOutputTargets(
@@ -500,17 +504,23 @@ export function listRuntimeProviderTargetsForServiceInLane(
   output_id: string
   env_var: string
 }> {
-  return listRuntimeProviderTargetsForService(inputs, serviceId).filter((target) =>
-    getRuntimeProviderLaneBehavior(inputs, target.provider_id, lane).enabled
+  return listRuntimeProviderTargetsForService(inputs, serviceId).filter(
+    (target) =>
+      getRuntimeProviderLaneBehavior(inputs, target.provider_id, lane).enabled
   )
 }
 
 export function listRuntimeProviderServiceIds(
   inputs: StackInputs,
   providerId: string
- ): string[] {
+): string[] {
   const sourceServiceId = getRuntimeProviderSourceServiceId(inputs, providerId)
-  return [...new Set([sourceServiceId, ...listRuntimeProviderConsumerServiceIds(inputs, providerId)])]
+  return [
+    ...new Set([
+      sourceServiceId,
+      ...listRuntimeProviderConsumerServiceIds(inputs, providerId),
+    ]),
+  ]
 }
 
 export function listActiveRuntimeProviderIds(inputs: StackInputs): string[] {
@@ -524,6 +534,7 @@ export function listActiveRuntimeProviderIdsForLane(
   lane: "preview" | "main"
 ): string[] {
   return listActiveRuntimeProviderIds(inputs).filter(
-    (providerId) => getRuntimeProviderLaneBehavior(inputs, providerId, lane).enabled
+    (providerId) =>
+      getRuntimeProviderLaneBehavior(inputs, providerId, lane).enabled
   )
 }

@@ -3,8 +3,8 @@ import { readFile } from "node:fs/promises"
 import { parse as parseYaml } from "yaml"
 
 import {
-  runtimeProviderOutputKey,
   type RuntimeProviderOutputs,
+  runtimeProviderOutputKey,
 } from "../contracts/runtime-provider-outputs.js"
 import {
   getPreviewForbiddenServiceEnvDefinitions,
@@ -212,7 +212,6 @@ function addPersistedEnvKey(
   }
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: persisted env requirements combine provider and preview-secret contracts
 function buildPersistedEnvKeysForService(
   service: DeployableService,
   lane: Lane,

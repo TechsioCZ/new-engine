@@ -3,7 +3,10 @@ import {
   getRuntimeProviderTargetEnvVar,
   type StackInputs,
 } from "../contracts/stack-inputs.js"
-import { provisionMeiliKeys, verifyMeiliKeys } from "../providers/meilisearch.js"
+import {
+  provisionMeiliKeys,
+  verifyMeiliKeys,
+} from "../providers/meilisearch.js"
 
 export type MainMeiliApiCredentialsResult = {
   backendKey: string

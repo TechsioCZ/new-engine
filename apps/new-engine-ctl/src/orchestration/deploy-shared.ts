@@ -7,9 +7,9 @@ import type {
   PreviewRandomOnceSecretInput,
   VerifyResponse,
 } from "../contracts/verify.js"
+import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import { normalizeCsvToArray } from "./deploy-inputs.js"
 import { executeVerify } from "./verify.js"
-import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
 export type DeploymentLike = {
   service_id: string

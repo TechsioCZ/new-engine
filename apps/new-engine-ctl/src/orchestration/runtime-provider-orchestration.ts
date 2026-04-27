@@ -1,8 +1,9 @@
-import type { StackInputs } from "../contracts/stack-inputs.js"
+import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
 import {
-  runtimeProviderOutputKey,
   type RuntimeProviderOutputs,
+  runtimeProviderOutputKey,
 } from "../contracts/runtime-provider-outputs.js"
+import type { StackInputs } from "../contracts/stack-inputs.js"
 import {
   getRuntimeProviderLaneBehavior,
   listActiveRuntimeProviderIdsForLane,
@@ -11,8 +12,6 @@ import {
   type RuntimeProviderLaneBehavior,
 } from "../contracts/stack-inputs.js"
 import type { StackManifest } from "../contracts/stack-manifest.js"
-import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
-import { executeResolveTargetsPayload } from "./resolve-targets.js"
 import {
   getMedusaPublishableKeyProviderSourceService,
   provisionMedusaPublishableKey,
@@ -23,6 +22,7 @@ import {
   provisionMeiliKeys,
   reusePersistedMeiliKeysFromTargets,
 } from "./preview-meili.js"
+import { executeResolveTargetsPayload } from "./resolve-targets.js"
 
 export type RuntimeProviderState = {
   outputValues: Record<string, string>
@@ -58,7 +58,9 @@ type RuntimeProviderAdapter = {
   reusePersisted(input: {
     need: RuntimeProviderNeed
     stackInputs: StackInputs
-    targets: Awaited<ReturnType<typeof executeResolveTargetsPayload>>["services"]
+    targets: Awaited<
+      ReturnType<typeof executeResolveTargetsPayload>
+    >["services"]
     state: RuntimeProviderState
   }): void
   provision(input: {
@@ -175,11 +177,12 @@ function buildRuntimeProviderAdapters(
           providerId: need.providerId,
           outputId: "backend_key",
           value: reused.backendKey,
-          envVar: getRuntimeProviderOutputEnvVar(
-            state,
-            need.providerId,
-            "backend_key"
-          ) || "MEILISEARCH_API_KEY",
+          envVar:
+            getRuntimeProviderOutputEnvVar(
+              state,
+              need.providerId,
+              "backend_key"
+            ) || "MEILISEARCH_API_KEY",
         })
         setRuntimeProviderOutput({
           state,
@@ -321,7 +324,11 @@ function resolveRuntimeProviderNeeds(input: {
       listRuntimeProviderOutputIds(input.stackInputs, providerId)
         .map((outputId) => [
           outputId,
-          listRuntimeProviderOutputTargets(input.stackInputs, providerId, outputId)
+          listRuntimeProviderOutputTargets(
+            input.stackInputs,
+            providerId,
+            outputId
+          )
             .filter((target) => input.serviceIds.includes(target.service_id))
             .map((target) => target.service_id),
         ])
@@ -400,7 +407,11 @@ export function getRuntimeProviderOutputValueByRef(input: {
   providerId: string
   outputId: string
 }): string {
-  return getRuntimeProviderOutputValue(input.state, input.providerId, input.outputId)
+  return getRuntimeProviderOutputValue(
+    input.state,
+    input.providerId,
+    input.outputId
+  )
 }
 
 export function buildRuntimeProviderRenderContext(state: RuntimeProviderState) {
@@ -525,7 +536,11 @@ export async function ensureStageRuntimeProviderOutputs(input: {
   lane: ResolveTargetsPayload["lane"]
   stage: number
   stageServices: Array<{ id: string; service_slug: string }>
-  fullPlanServices: Array<{ id: string; service_slug: string; deploy_stage: number }>
+  fullPlanServices: Array<{
+    id: string
+    service_slug: string
+    deploy_stage: number
+  }>
   needs: RuntimeProviderNeed[]
   projectSlug: string
   environmentName: string

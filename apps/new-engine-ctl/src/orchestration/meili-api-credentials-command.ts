@@ -1,15 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
-
-import {
-  getRuntimeProviderOutputPolicy,
-  getRuntimeProviderTargetEnvVar,
-} from "../contracts/stack-inputs.js"
 import type {
   MeiliApiCredentialsCommandInput,
   MeiliApiCredentialsResponse,
 } from "../contracts/meili-api-credentials.js"
 import { meiliApiCredentialsResponseSchema } from "../contracts/meili-api-credentials.js"
+import {
+  getRuntimeProviderOutputPolicy,
+  getRuntimeProviderTargetEnvVar,
+} from "../contracts/stack-inputs.js"
 import { loadDeployContracts } from "./deploy-inputs.js"
 import { reconcileMainMeiliApiCredentials } from "./meili-api-credentials.js"
 

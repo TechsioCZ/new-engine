@@ -160,7 +160,7 @@ export function listComposeServicesForPhase(
 export function listPrepareServiceIds(
   manifest: StackManifest,
   requirement: "preview_db"
- ): string[] {
+): string[] {
   return manifest.services.flatMap((service) =>
     service.ci.prepare[requirement] === true ? [service.id] : []
   )
@@ -171,7 +171,11 @@ export function listLaneServiceIds(
   lane: Lane
 ): string[] {
   return listDeployableServices(manifest)
-    .filter((service) => service.deployLanes.includes(lane))
+    .filter(
+      (service) =>
+        service.deployLanes.includes(lane) &&
+        (lane !== "preview" || service.cloneToPreview)
+    )
     .map((service) => service.id)
 }
 

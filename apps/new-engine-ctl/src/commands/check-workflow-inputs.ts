@@ -105,6 +105,10 @@ function validateMode(mode: WorkflowInputMode): void {
       maskEnv("ZANE_OPERATOR_BASE_URL")
       maskEnv("ZANE_OPERATOR_API_TOKEN")
       return
+    default: {
+      const exhaustive: never = mode
+      throw new Error(`Unsupported workflow input mode: ${exhaustive}`)
+    }
   }
 }
 
@@ -114,7 +118,7 @@ export function createCheckWorkflowInputsCommand(): Command {
   command
     .description("Validate required workflow env inputs and mask known secrets")
     .requiredOption("--mode <mode>")
-    .action(async (options) => {
+    .action((options) => {
       const input = checkWorkflowInputsCommandInputSchema.parse({
         mode: options.mode,
       })

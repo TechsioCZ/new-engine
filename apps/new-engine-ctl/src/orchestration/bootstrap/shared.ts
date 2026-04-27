@@ -7,6 +7,10 @@ import type { PreviewSharedEnvVariableInput } from "../../contracts/preview-shar
 import { repoRoot } from "../../paths.js"
 
 const execFileAsync = promisify(execFile)
+const loopbackUrlPattern =
+  /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/
+const trailingSlashPattern = /\/+$/
+const httpSchemePattern = /^https?:\/\//
 
 export type BootstrapValueSource = PreviewSharedEnvVariableInput["source"]
 
@@ -76,9 +80,7 @@ export function isLoopbackUrl(value?: string): boolean {
     return false
   }
 
-  return /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/.test(
-    value.trim()
-  )
+  return loopbackUrlPattern.test(value.trim())
 }
 
 export function normalizeOriginUrl(value?: string): string | undefined {
@@ -86,8 +88,8 @@ export function normalizeOriginUrl(value?: string): string | undefined {
     return
   }
 
-  const trimmed = value.trim().replace(/\/+$/, "")
-  if (/^https?:\/\//.test(trimmed)) {
+  const trimmed = value.trim().replace(trailingSlashPattern, "")
+  if (httpSchemePattern.test(trimmed)) {
     return trimmed
   }
 
@@ -116,7 +118,7 @@ export function preferPublicCsvOrUrl(input: {
 }
 
 function stripTrailingSlash(value: string): string {
-  return value === "/" ? value : value.replace(/\/+$/, "")
+  return value === "/" ? value : value.replace(trailingSlashPattern, "")
 }
 
 export function resolveOptionalPath(pathValue?: string): string | undefined {

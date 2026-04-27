@@ -6,9 +6,10 @@ import type {
   DeployMainResponse,
 } from "../contracts/deploy-main.js"
 import { deployMainResponseSchema } from "../contracts/deploy-main.js"
-import type { RuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
+import type { RuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import { executeApplyEnvOverridesPayload } from "./apply-env-overrides.js"
+import { loadDeployContracts } from "./deploy-inputs.js"
 import {
   buildStagePlan,
   collectStageNumbers,
@@ -19,8 +20,10 @@ import {
   stageHasService,
   waitForDeployments,
 } from "./deploy-shared.js"
-import { loadDeployContracts } from "./deploy-inputs.js"
 import { executePlan } from "./plan.js"
+import { executeRenderEnvOverrides } from "./render-env-overrides.js"
+import { executeResolveEnvironment } from "./resolve-environment.js"
+import { executeResolveTargetsPayload } from "./resolve-targets.js"
 import {
   buildRuntimeProviderRenderContext,
   collectConfiguredRuntimeProviderNeeds,
@@ -28,9 +31,6 @@ import {
   ensureStageRuntimeProviderOutputs,
   reuseRuntimeProviderOutputs,
 } from "./runtime-provider-orchestration.js"
-import { executeRenderEnvOverrides } from "./render-env-overrides.js"
-import { executeResolveEnvironment } from "./resolve-environment.js"
-import { executeResolveTargetsPayload } from "./resolve-targets.js"
 import { expandPlanForRuntimeProviderPrerequisites } from "./runtime-provider-prerequisites.js"
 import { executeTriggerPayload } from "./trigger.js"
 
@@ -78,7 +78,6 @@ async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: main deploy orchestration keeps stage ordering and meili reconciliation in one linear flow
 export async function executeDeployMain(
   input: DeployMainCommandInput
 ): Promise<DeployMainExecutionResult> {
@@ -220,9 +219,9 @@ export async function executeDeployMain(
       previewDbUser: "",
       previewDbPassword: "",
       previewRandomOnceSecrets: [],
-      runtimeProviderOutputs: buildRuntimeProviderRenderContext(
-        runtimeProviderState
-      ).runtimeProviderOutputs,
+      runtimeProviderOutputs:
+        buildRuntimeProviderRenderContext(runtimeProviderState)
+          .runtimeProviderOutputs,
       outputJson: undefined,
       stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
@@ -360,9 +359,9 @@ export async function executeDeployMain(
       previewDbUser: "",
       previewDbPassword: "",
       previewRandomOnceSecrets: [],
-      runtimeProviderOutputs: buildRuntimeProviderRenderContext(
-        runtimeProviderState
-      ).runtimeProviderOutputs,
+      runtimeProviderOutputs:
+        buildRuntimeProviderRenderContext(runtimeProviderState)
+          .runtimeProviderOutputs,
       deployments: stageDeployments,
       baseUrl: input.baseUrl,
       apiToken: input.apiToken,
@@ -377,9 +376,8 @@ export async function executeDeployMain(
     })
   }
 
-  const runtimeProviderRenderContext = buildRuntimeProviderRenderContext(
-    runtimeProviderState
-  )
+  const runtimeProviderRenderContext =
+    buildRuntimeProviderRenderContext(runtimeProviderState)
 
   const response = deployMainResponseSchema.parse({
     lane: "main",

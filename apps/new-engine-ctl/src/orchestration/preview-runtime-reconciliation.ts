@@ -1,3 +1,4 @@
+import type { PreviewSharedEnvVariableInput } from "../contracts/preview-shared-env.js"
 import type {
   PreviewRuntimeSourceDefinition,
   ServiceReconciliationDefinition,
@@ -10,7 +11,6 @@ import {
 } from "../contracts/stack-inputs.js"
 import type { StackManifest } from "../contracts/stack-manifest.js"
 import { getDeployableService } from "../contracts/stack-manifest.js"
-import type { PreviewSharedEnvVariableInput } from "../contracts/preview-shared-env.js"
 
 export type PreviewRuntimeContext = {
   sourceEnvironmentName: string
@@ -62,7 +62,12 @@ function requireServiceSlug(
   serviceId: string,
   label: string
 ): string {
-  return getDeployableService(manifest, serviceId).serviceSlug
+  try {
+    return getDeployableService(manifest, serviceId).serviceSlug
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Unable to resolve ${label}: ${message}`)
+  }
 }
 
 function buildResolvedSource(input: {
@@ -199,13 +204,11 @@ export function buildPreviewServiceEnvSyncServices(input: {
       definition.service_id,
       `preview service env ${definition.service_id}.${definition.env_var}`
     )
-    const existing =
-      grouped.get(definition.service_id) ??
-      {
-        service_id: definition.service_id,
-        service_slug: targetSlug,
-        env: [],
-      }
+    const existing = grouped.get(definition.service_id) ?? {
+      service_id: definition.service_id,
+      service_slug: targetSlug,
+      env: [],
+    }
 
     existing.env.push({
       env_var: definition.env_var,
@@ -232,7 +235,12 @@ export function buildPreviewRequiredServiceEnvKeys(input: {
 }> {
   const grouped = new Map<
     string,
-    { service_id: string; service_slug: string; env_keys: string[]; seen: Set<string> }
+    {
+      service_id: string
+      service_slug: string
+      env_keys: string[]
+      seen: Set<string>
+    }
   >()
 
   for (const definition of getPreviewServiceEnvDefinitions(input.stackInputs)) {
@@ -240,18 +248,16 @@ export function buildPreviewRequiredServiceEnvKeys(input: {
       continue
     }
 
-    const existing =
-      grouped.get(definition.service_id) ??
-      {
-        service_id: definition.service_id,
-        service_slug: requireServiceSlug(
-          input.manifest,
-          definition.service_id,
-          `preview service env ${definition.service_id}.${definition.env_var}`
-        ),
-        env_keys: [],
-        seen: new Set<string>(),
-      }
+    const existing = grouped.get(definition.service_id) ?? {
+      service_id: definition.service_id,
+      service_slug: requireServiceSlug(
+        input.manifest,
+        definition.service_id,
+        `preview service env ${definition.service_id}.${definition.env_var}`
+      ),
+      env_keys: [],
+      seen: new Set<string>(),
+    }
 
     if (!existing.seen.has(definition.env_var)) {
       existing.seen.add(definition.env_var)
@@ -278,23 +284,22 @@ export function buildServiceReconciliationSpecs(input: {
   )
 
   return [...new Set(input.serviceIds)].map((serviceId) => {
-    const definition =
-      definitionByServiceId.get(serviceId) ?? {
-        service_id: serviceId,
-        git_source: {
-          sync_from_source: true,
-        },
-        builder: {
-          sync_from_source: true,
-          build_stage_target_by_lane: {},
-        },
-        healthcheck: {
-          sync_from_source: true,
-        },
-        resource_limits: {
-          sync_from_source: true,
-        },
-      }
+    const definition = definitionByServiceId.get(serviceId) ?? {
+      service_id: serviceId,
+      git_source: {
+        sync_from_source: true,
+      },
+      builder: {
+        sync_from_source: true,
+        build_stage_target_by_lane: {},
+      },
+      healthcheck: {
+        sync_from_source: true,
+      },
+      resource_limits: {
+        sync_from_source: true,
+      },
+    }
     const serviceSpec: PreviewServiceSpecSyncService = {
       service_id: serviceId,
       service_slug: requireServiceSlug(
