@@ -59,21 +59,21 @@
 /* Tree Icons - using semantic tokens */
 
 @utility token-icon-tree-node {
-  @apply icon-[mdi--folder];
+  @apply token-icon-folder;
 }
 
 @utility token-icon-tree-node-open {
-  @apply icon-[mdi--folder-open];
+  @apply token-icon-folder-open;
 }
 
 @utility token-icon-tree-item {
-  @apply icon-[mdi--file-document];
+  @apply token-icon-file-document;
 }
 
 @utility token-icon-tree-indicator {
-  @apply icon-[mdi--chevron-right];
+  @apply token-icon-chevron-right;
 }
 
 @utility token-icon-tree-indicator-open {
-  @apply icon-[mdi--chevron-down];
+  @apply token-icon-chevron-down;
 }

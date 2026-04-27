@@ -102,9 +102,9 @@
 
 /* Semantic tokens for combobox icons */
 @utility token-icon-combobox-chevron {
-  @apply icon-[mdi--chevron-down];
+  @apply token-icon-chevron-down;
 }
 
 @utility token-icon-combobox-clear {
-  @apply icon-[mdi--close];
+  @apply token-icon-close;
 }

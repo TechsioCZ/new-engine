@@ -64,9 +64,17 @@
 }
 
 @utility token-icon-carousel-prev {
-  @apply icon-[mdi--chevron-left];
+  @apply token-icon-chevron-left;
 }
 
 @utility token-icon-carousel-next {
-  @apply icon-[mdi--chevron-right];
+  @apply token-icon-chevron-right;
+}
+
+@utility token-icon-carousel-play {
+  @apply token-icon-play;
+}
+
+@utility token-icon-carousel-pause {
+  @apply token-icon-pause;
 }

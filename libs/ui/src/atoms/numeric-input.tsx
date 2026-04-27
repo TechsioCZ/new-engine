@@ -76,8 +76,9 @@ const numericInputVariants = tv({
       },
       lg: {
         root: "gap-numeric-input-root-lg text-numeric-input-lg",
+        container: "h-form-control-lg rounded-numeric-input-lg",
         trigger: "text-numeric-input-lg",
-        input: "pl-numeric-input-input-md text-numeric-input-lg",
+        input: "pl-numeric-input-input-lg text-numeric-input-lg",
       },
     },
   },

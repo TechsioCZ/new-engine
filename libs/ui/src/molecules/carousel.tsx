@@ -58,7 +58,7 @@ const carouselVariants = tv({
       "rounded-carousel-indicator border border-carousel-indicator-border",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    autoplayIcon: ["icon-[mdi--play]", "data-[pressed=true]:icon-[mdi--pause]"],
+    autoplayIcon: ["token-icon-carousel-play", "data-[pressed=true]:token-icon-carousel-pause"],
     autoplayTrigger: [
       "absolute top-carousel-trigger-top right-carousel-trigger-right z-50",
       "bg-carousel-trigger-bg",
@@ -470,6 +470,8 @@ Carousel.Indicators = function CarouselIndicators({
         <Button
           className={indicator()}
           key={`indicator-${index}`}
+          size="current"
+          theme="unstyled"
           {...api.getIndicatorProps({ index })}
         />
       ))}
@@ -488,6 +490,8 @@ Carousel.Indicator = function CarouselIndicator({
   return (
     <Button
       className={indicator({ className })}
+      size="current"
+      theme="unstyled"
       {...api.getIndicatorProps({ index })}
     >
       {children}
@@ -504,7 +508,7 @@ Carousel.Autoplay = function CarouselAutoplay({
   return (
     <Button
       className={autoplayTriggerSlot({ className })}
-      icon={api.isPlaying ? "icon-[mdi--pause]" : "icon-[mdi--play]"}
+      icon={api.isPlaying ? "token-icon-carousel-pause" : "token-icon-carousel-play"}
       {...api.getAutoplayTriggerProps()}
     />
   )

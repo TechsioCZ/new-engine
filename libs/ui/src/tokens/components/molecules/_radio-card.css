@@ -193,5 +193,5 @@
 }
 
 @utility token-icon-radio-card-checked {
-  @apply icon-[mdi--circle];
+  @apply token-icon-circle;
 }

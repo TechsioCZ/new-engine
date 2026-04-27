@@ -24,7 +24,7 @@ const inputVariants = tv({
     size: {
       sm: "h-form-control-sm rounded-input-sm p-input-sm text-input-sm",
       md: "h-form-control-md rounded-input-md p-input-md text-input-md",
-      lg: "p-input-lg text-input-lg",
+      lg: "h-form-control-lg rounded-input-lg p-input-lg text-input-lg",
     },
     variant: {
       default: "",

@@ -54,6 +54,8 @@
     "build:storybook": "storybook build",
     "dev": "rslib build --watch",
     "storybook": "storybook dev",
+    "figma:connect:parse": "figma connect parse --config figma.config.json",
+    "figma:connect:publish": "figma connect publish --config figma.config.json",
     "test-storybook": "test-storybook",
     "storybook:a11y": "bash scripts/storybook-a11y.sh",
     "test:components": "node scripts/run-component-tests.mjs",
@@ -93,6 +95,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@figma/code-connect": "^1.4.3",
     "@iconify/json": "^2.2.409",
     "@iconify/tailwind4": "^1.1.0",
     "@rsbuild/core": "1.6.7",

@@ -49,7 +49,7 @@
 }
 
 @utility token-icon-color-select {
-  @apply icon-[mdi--check-bold];
+  @apply token-icon-check-bold;
 }
 
 @utility select-disabled {
