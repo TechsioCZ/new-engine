@@ -348,7 +348,7 @@ Commands:
                               Ensure medusa-db has converged zane-operator bootstrap state for current local envs
 
 Environment options:
-  PROJECT_NAME                         docker compose project name (default: new-engine)
+  PROJECT_NAME                         Override Docker Compose project name
   LOCAL_DEV_RUNTIME_ENV_FILE           generated compose env file (default: .docker_data/dev-runtime.env)
   MISE_DEV_HEALTH_TIMEOUT_SECONDS      health wait timeout per service (default: 180)
   MISE_DEV_MEILI_KEY_CONFLICT          prompt|override|keep (default: prompt)

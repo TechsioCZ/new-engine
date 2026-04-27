@@ -50,6 +50,11 @@ const integerPattern = /^\d+$/
 const dockerPublishedPortPattern =
   /(?:^|,\s)[^,]*:(\d+)(?:-(\d+))?->\d+(?:-\d+)?\/(tcp|udp)/g
 const bareShellEnvValuePattern = /^[A-Za-z0-9_./:@,+%-]*$/
+const argOptionMap = {
+  "--env-file": "envFile",
+  "--output": "output",
+  "--project-name": "projectName",
+}
 
 function parseArgs(argv) {
   const args = {
@@ -59,34 +64,25 @@ function parseArgs(argv) {
     json: false,
   }
 
-  let index = 0
-  while (index < argv.length) {
+  for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === "-h" || arg === "--help") {
       printUsage()
       process.exit(0)
     }
 
-    switch (arg) {
-      case "--env-file":
-        index += 1
-        args.envFile = requireValue(argv, index, arg)
-        break
-      case "--output":
-        index += 1
-        args.output = requireValue(argv, index, arg)
-        break
-      case "--project-name":
-        index += 1
-        args.projectName = requireValue(argv, index, arg)
-        break
-      case "--json":
-        args.json = true
-        break
-      default:
-        throw new Error(`Unknown argument: ${arg}`)
+    if (arg === "--json") {
+      args.json = true
+      continue
     }
+
+    const optionKey = argOptionMap[arg]
+    if (!optionKey) {
+      throw new Error(`Unknown argument: ${arg}`)
+    }
+
     index += 1
+    args[optionKey] = requireValue(argv, index, arg)
   }
 
   return args
@@ -217,26 +213,6 @@ async function canBindUdp(host, port) {
   })
 }
 
-async function isProtocolAvailable({
-  host,
-  port,
-  protocol,
-  dockerPorts,
-  projectPorts,
-}) {
-  const key = `${protocol}:${port}`
-  if (projectPorts.has(key)) {
-    return true
-  }
-  if (dockerPorts.has(key)) {
-    return false
-  }
-  if (protocol === "udp") {
-    return await canBindUdp(host, port)
-  }
-  return await canBindTcp(host, port)
-}
-
 async function isEndpointPortAvailable(
   endpoint,
   port,
@@ -244,14 +220,12 @@ async function isEndpointPortAvailable(
   projectPorts
 ) {
   for (const protocol of endpoint.protocols) {
-    const available = await isProtocolAvailable({
-      host: endpoint.host,
-      port,
-      protocol,
-      dockerPorts,
-      projectPorts,
-    })
-    if (!available) {
+    const key = `${protocol}:${port}`
+    const canBind = protocol === "udp" ? canBindUdp : canBindTcp
+    if (projectPorts.has(key)) {
+      continue
+    }
+    if (dockerPorts.has(key) || !(await canBind(endpoint.host, port))) {
       return false
     }
   }

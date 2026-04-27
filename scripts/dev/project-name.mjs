@@ -2,84 +2,76 @@
 import { createHash } from "node:crypto"
 import { basename, resolve } from "node:path"
 
-function sanitizeSlug(value) {
-  const slug = value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+const PREFIX = "new-engine"
+const HASH_LENGTH = 8
+const MAX_NAME_LENGTH = 63
+const VALID_NAME = /^[a-z0-9][a-z0-9_-]*$/
 
-  return slug || "worktree"
-}
+let rootDir = process.cwd()
+let json = false
 
-function truncateSlug(value, maxLength) {
-  if (value.length <= maxLength) {
-    return value
+for (const arg of process.argv.slice(2)) {
+  if (arg === "--json") {
+    json = true
+  } else if (arg === "-h" || arg === "--help") {
+    process.stdout.write(
+      "Usage: scripts/dev/project-name.mjs [--json] [root-dir]\n"
+    )
+    process.exit(0)
+  } else {
+    rootDir = arg
   }
-
-  return value.slice(0, maxLength).replace(/-+$/g, "") || "worktree"
 }
 
-function projectNameFor(rootDir) {
-  const absoluteRoot = resolve(rootDir)
+function slug(value) {
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "worktree"
+  )
+}
+
+function projectNameFor(sourceRootDir) {
+  const absoluteRoot = resolve(sourceRootDir)
   const hash = createHash("sha256")
     .update(absoluteRoot)
     .digest("hex")
-    .slice(0, 8)
-  const rootSlug = sanitizeSlug(basename(absoluteRoot))
-  const prefix = "new-engine"
-  const name =
-    rootSlug === prefix
-      ? `${prefix}-${hash}`
-      : `${prefix}-${truncateSlug(rootSlug, 63 - prefix.length - hash.length - 2)}-${hash}`
+    .slice(0, HASH_LENGTH)
+  const rootSlug = slug(basename(absoluteRoot))
 
-  return name.replace(/[^a-z0-9_-]/g, "-")
-}
-
-function parseArgs(argv) {
-  const args = {
-    rootDir: process.cwd(),
-    json: false,
+  if (rootSlug === PREFIX) {
+    return `${PREFIX}-${hash}`
   }
 
-  for (const arg of argv) {
-    if (arg === "--json") {
-      args.json = true
-      continue
-    }
-    if (arg === "-h" || arg === "--help") {
-      process.stdout.write(
-        "Usage: scripts/dev/project-name.mjs [--json] [root-dir]\n"
-      )
-      process.exit(0)
-    }
-    args.rootDir = arg
-  }
+  const maxSlugLength = MAX_NAME_LENGTH - PREFIX.length - HASH_LENGTH - 2
+  const shortSlug =
+    rootSlug.length <= maxSlugLength
+      ? rootSlug
+      : rootSlug.slice(0, maxSlugLength).replace(/-+$/g, "") || "worktree"
 
-  return args
+  return `${PREFIX}-${shortSlug}-${hash}`
 }
 
-const args = parseArgs(process.argv.slice(2))
 const explicitName =
   process.env.PROJECT_NAME || process.env.COMPOSE_PROJECT_NAME
-const projectName = explicitName || projectNameFor(args.rootDir)
-if (!/^[a-z0-9][a-z0-9_-]*$/.test(projectName)) {
+const projectName = explicitName || projectNameFor(rootDir)
+if (!VALID_NAME.test(projectName)) {
   throw new Error(
     `Invalid Docker Compose project name "${projectName}". Use lowercase letters, digits, hyphens, or underscores, and start with a letter or digit.`
   )
 }
 
-if (args.json) {
-  process.stdout.write(
-    `${JSON.stringify(
+const output = json
+  ? `${JSON.stringify(
       {
         project_name: projectName,
         source: explicitName ? "env" : "worktree",
-        root_dir: resolve(args.rootDir),
+        root_dir: resolve(rootDir),
       },
       null,
       2
     )}\n`
-  )
-} else {
-  process.stdout.write(`${projectName}\n`)
-}
+  : `${projectName}\n`
+
+process.stdout.write(output)
