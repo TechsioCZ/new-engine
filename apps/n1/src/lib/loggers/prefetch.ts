@@ -41,6 +41,26 @@ export const prefetchLogger = {
   },
 
   /**
+   * Log prefetch failure
+   */
+  fail: (
+    type: PrefetchType,
+    label: string,
+    duration: number,
+    error: unknown
+  ) => {
+    if (process.env.NODE_ENV !== "development") {
+      return
+    }
+
+    const errorMessage = error instanceof Error ? `: ${error.message}` : ""
+
+    console.warn(
+      `[Prefetch ${type}] ${label} failed in ${Math.round(duration)}ms${errorMessage}`
+    )
+  },
+
+  /**
    * Log prefetch skip
    */
   skip: (type: PrefetchType, label: string, reason?: string) => {

@@ -1,6 +1,6 @@
 import type { StoreOrder } from "@medusajs/types"
+import { getOrderPriceView } from "@/lib/pricing/cart-pricing"
 import { formatDateString } from "@/utils/format/format-date"
-import { formatAmount } from "@/utils/format/format-product"
 import { ItemCard } from "./item-card"
 
 type OrderDetailProps = {
@@ -8,6 +8,12 @@ type OrderDetailProps = {
 }
 
 export const OrderDetail = ({ order }: OrderDetailProps) => {
+  const pricing = getOrderPriceView(order)
+  const shippingMethodName = order.shipping_methods?.[0]?.name
+  const showShippingRow = Boolean(shippingMethodName) || pricing.hasShipping
+  const subtotalLabel = pricing.showTax ? "Cena bez DPH" : "Mezisoučet"
+  const shippingValue = pricing.hasShipping ? pricing.shipping : "Zdarma"
+
   return (
     <div className="space-y-500">
       {/* Products Grid */}
@@ -31,24 +37,28 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
           </h3>
           <div className="space-y-200">
             <div className="flex justify-between">
-              <span className="text-fg-secondary">Mezisoučet</span>
+              <span className="text-fg-secondary">{subtotalLabel}</span>
               <span className="font-medium text-fg-primary">
-                {formatAmount(order.item_subtotal)}
+                {pricing.itemsSubtotal}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-fg-secondary">DPH</span>
-              <span className="font-medium text-fg-primary">
-                {formatAmount(order.item_tax_total)}
-              </span>
-            </div>
-            {order.shipping_methods?.[0] && (
+            {pricing.showTax && (
+              <div className="flex justify-between">
+                <span className="text-fg-secondary">DPH</span>
+                <span className="font-medium text-fg-primary">
+                  {pricing.tax}
+                </span>
+              </div>
+            )}
+            {showShippingRow && (
               <div className="flex justify-between">
                 <span className="text-fg-secondary">
-                  Doprava ({order.shipping_methods[0].name})
+                  {shippingMethodName
+                    ? `Doprava (${shippingMethodName})`
+                    : "Doprava"}
                 </span>
                 <span className="font-medium text-fg-primary">
-                  {formatAmount(order.shipping_total)}
+                  {shippingValue}
                 </span>
               </div>
             )}
@@ -58,7 +68,7 @@ export const OrderDetail = ({ order }: OrderDetailProps) => {
                   Celkem
                 </span>
                 <span className="font-bold text-fg-primary text-lg">
-                  {formatAmount(order.summary?.original_order_total)}
+                  {pricing.total}
                 </span>
               </div>
             </div>

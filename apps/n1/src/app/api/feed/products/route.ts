@@ -1,62 +1,82 @@
+import type { HttpTypes } from "@medusajs/types"
 import { NextResponse } from "next/server"
-import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
+import { getStorefrontRegionSelection } from "@/lib/storefront-region"
+import { storefrontServerRead } from "@/lib/storefront-server-read"
 
-const MEDUSA_API_URL = getMedusaBackendUrl()
-const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 const BATCH_SIZE = 100
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
-const DEFAULT_REGION_ID =
-  process.env.NEXT_PUBLIC_DEFAULT_REGION_ID || "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
 
-type MedusaVariant = {
-  id: string
-  title: string
-  sku?: string
-  ean?: string
-  calculated_price?: {
-    calculated_amount: number
-    currency_code: string
+type FeedConfig = {
+  siteUrl: string
+  defaultRegionId: string
+}
+
+type FeedVariant = HttpTypes.StoreProductVariant
+type FeedProduct = HttpTypes.StoreProduct
+type FeedAttribute = {
+  name?: string | null
+  value?: string | null
+}
+
+async function resolveDefaultRegionId(): Promise<string | null> {
+  const explicitRegionId = process.env.NEXT_PUBLIC_DEFAULT_REGION_ID?.trim()
+
+  if (explicitRegionId) {
+    return explicitRegionId
   }
-  metadata?: {
-    attributes?: Array<{ name: string; value: string }>
+
+  try {
+    const { regionId } = await getStorefrontRegionSelection()
+
+    if (!regionId) {
+      console.warn("[ProductFeed] Unable to resolve fallback region")
+      return null
+    }
+
+    return regionId
+  } catch (error) {
+    console.warn("[ProductFeed] Failed to resolve fallback region", error)
+    return null
   }
 }
 
-type MedusaProduct = {
-  id: string
-  title: string
-  handle: string
-  description?: string
-  thumbnail?: string
-  variants?: MedusaVariant[]
-  categories?: Array<{ name: string }>
+async function resolveFeedConfig(request: Request): Promise<FeedConfig | null> {
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || new URL(request.url).origin
+  const defaultRegionId = await resolveDefaultRegionId()
+
+  if (!(siteUrl && defaultRegionId)) {
+    console.warn("[ProductFeed] Unable to resolve site URL or default region")
+    return null
+  }
+
+  return {
+    siteUrl,
+    defaultRegionId,
+  }
 }
 
-type MedusaResponse = {
-  products: MedusaProduct[]
-  count: number
-}
-
-async function fetchAllProducts(): Promise<MedusaProduct[]> {
-  const allProducts: MedusaProduct[] = []
+async function fetchAllProducts(
+  defaultRegionId: string
+): Promise<FeedProduct[]> {
+  const allProducts: FeedProduct[] = []
   let offset = 0
   let total = 0
 
   do {
-    const url = `${MEDUSA_API_URL}/store/products?limit=${BATCH_SIZE}&offset=${offset}&region_id=${DEFAULT_REGION_ID}&fields=*variants.calculated_price`
-
-    const response = await fetch(url, {
-      headers: { "x-publishable-api-key": MEDUSA_API_KEY },
-      next: { revalidate: 3600 }, // Cache for 1 hour
+    const response = await storefrontServerRead.services.products.getProducts({
+      limit: BATCH_SIZE,
+      offset,
+      region_id: defaultRegionId,
+      fields: "*variants.calculated_price",
     })
 
-    if (!response.ok) {
-      throw new Error(`Medusa API error: ${response.status}`)
+    const products = response.products
+    if (!products.length) {
+      break
     }
 
-    const data: MedusaResponse = await response.json()
-    total = data.count
-    allProducts.push(...data.products)
+    total = response.count
+    allProducts.push(...products)
     offset += BATCH_SIZE
   } while (offset < total)
 
@@ -72,11 +92,17 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;")
 }
 
-function buildShopItem(product: MedusaProduct, variant: MedusaVariant): string {
+function buildShopItem(
+  product: FeedProduct,
+  variant: FeedVariant,
+  siteUrl: string
+): string {
   const variantTitle = variant.title || "Default"
-  const url = `${SITE_URL}/produkt/${product.handle}?variant=${encodeURIComponent(variantTitle)}`
+  const url = `${siteUrl}/produkt/${product.handle}?variant=${encodeURIComponent(variantTitle)}`
 
-  const attributes = variant.metadata?.attributes || []
+  const attributes: FeedAttribute[] = Array.isArray(variant.metadata?.attributes)
+    ? (variant.metadata.attributes as FeedAttribute[])
+    : []
   const manufacturer =
     attributes.find((a) => a.name === "Distributor")?.value || ""
 
@@ -108,12 +134,12 @@ function buildShopItem(product: MedusaProduct, variant: MedusaVariant): string {
     </SHOPITEM>`
 }
 
-function generateXmlFeed(products: MedusaProduct[]): string {
+function generateXmlFeed(products: FeedProduct[], siteUrl: string): string {
   const items: string[] = []
 
   for (const product of products) {
     for (const variant of product.variants || []) {
-      items.push(buildShopItem(product, variant))
+      items.push(buildShopItem(product, variant, siteUrl))
     }
   }
 
@@ -123,21 +149,22 @@ function generateXmlFeed(products: MedusaProduct[]): string {
 </SHOP>`
 }
 
-export async function GET() {
-  if (!MEDUSA_API_KEY) {
-    console.warn("NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set.")
-    const xml = generateXmlFeed([])
-    return new NextResponse(xml, {
+export async function GET(request: Request) {
+  const config = await resolveFeedConfig(request)
+
+  if (!config) {
+    return new NextResponse("Product feed is not configured", {
+      status: 500,
       headers: {
-        "Content-Type": "application/xml; charset=utf-8",
-        "Cache-Control": "public, max-age=3600, s-maxage=3600",
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
       },
     })
   }
 
   try {
-    const products = await fetchAllProducts()
-    const xml = generateXmlFeed(products)
+    const products = await fetchAllProducts(config.defaultRegionId)
+    const xml = generateXmlFeed(products, config.siteUrl)
 
     return new NextResponse(xml, {
       headers: {
@@ -147,7 +174,7 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Feed generation error:", error)
-    const xml = generateXmlFeed([])
+    const xml = generateXmlFeed([], config.siteUrl)
     return new NextResponse(xml, {
       headers: {
         "Content-Type": "application/xml; charset=utf-8",

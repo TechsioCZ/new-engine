@@ -1,7 +1,7 @@
 import type { StoreOrder } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import { Icon } from "@ui/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
 import Image from "next/image"
 import Link from "next/link"
 import type { ReactNode } from "react"

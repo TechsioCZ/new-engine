@@ -40,6 +40,13 @@ export const PREFETCH_DELAYS = {
   CATEGORY_HOVER: 300,
 
   /**
+   * Delayed category list prefetch
+   * Used by: usePrefetchProducts.delayedPrefetch
+   * Context: secondary category interactions where immediate prefetch is not needed
+   */
+  CATEGORY_LIST: 800,
+
+  /**
    * Individual product detail prefetch delay
    * Used by: usePrefetchProduct
    * Context: Hover/focus on product card

@@ -90,6 +90,8 @@ export const PRODUCT_LIST_FIELDS =
 
 export const PRODUCT_LIMIT = 24 as const
 
+export const FREE_SHIPPING_THRESHOLD = 1500
+
 /**
  * Tax rate for Czech Republic (DPH)
  * Used for price calculations and display

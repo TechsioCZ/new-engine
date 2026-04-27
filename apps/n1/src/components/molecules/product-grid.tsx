@@ -1,10 +1,14 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import {
+  Pagination,
+  type PaginationProps as UIPaginationProps,
+} from "@techsio/ui-kit/molecules/pagination"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import Image from "next/image"
 import Link from "next/link"
 import { Fragment } from "react"
 import { usePrefetchProduct } from "@/hooks/use-prefetch-product"
+import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 import type { Product } from "@/types/product"
 import { ProductCardSkeleton } from "../skeletons/product-card-skeleton"
 import { VariantsBox } from "./variants-box"
@@ -14,7 +18,7 @@ type ProductGridProps = {
   totalCount?: number
   currentPage?: number
   pageSize?: number
-  onPageChange?: (page: number) => void
+  getPageUrl?: NonNullable<UIPaginationProps["getPageUrl"]>
   isLoading?: boolean
   skeletonCount?: number
 }
@@ -24,11 +28,11 @@ export const ProductGrid = ({
   totalCount,
   currentPage = 1,
   pageSize = 24,
-  onPageChange,
+  getPageUrl,
   isLoading = false,
   skeletonCount = 12,
 }: ProductGridProps) => {
-  const { delayedPrefetch } = usePrefetchProduct()
+  const { delayedPrefetch, cancelPrefetch } = usePrefetchProduct()
   const totalPages = Math.ceil((totalCount || products.length) / pageSize)
   const skeletonKeys = Array.from(
     { length: skeletonCount },
@@ -75,7 +79,10 @@ export const ProductGrid = ({
               className="contents"
               href={`/produkt/${product.handle}`}
               onMouseEnter={() => {
-                delayedPrefetch(product.handle, 200)
+                delayedPrefetch(product.handle, PREFETCH_DELAYS.PRODUCT_DETAIL)
+              }}
+              onMouseLeave={() => {
+                cancelPrefetch(product.handle)
               }}
             >
               <ProductCard className="row-span-5 grid h-full max-w-3xs cursor-pointer grid-rows-subgrid place-items-center gap-y-100 hover:shadow-lg">
@@ -106,11 +113,7 @@ export const ProductGrid = ({
                   </ProductCard.Actions>
                 </div>
                 <ProductCard.Stock
-                  status={
-                    product.stockValue === "Skladem"
-                      ? "in-stock"
-                      : "out-of-stock"
-                  }
+                  status={product.stockStatus ?? "in-stock"}
                 >
                   {product.stockValue}
                 </ProductCard.Stock>
@@ -137,20 +140,22 @@ export const ProductGrid = ({
         ))}
       </div>
 
-      {totalPages > 1 && onPageChange && (
+      {totalPages > 1 && getPageUrl && (
         <div className="mt-700 flex justify-end">
           <Pagination
             className="sm:hidden"
+            linkAs={Link}
             count={totalCount || products.length}
-            onPageChange={onPageChange}
+            getPageUrl={getPageUrl}
             page={currentPage}
             pageSize={pageSize}
             siblingCount={0}
           />
           <Pagination
             className="hidden sm:flex"
+            linkAs={Link}
             count={totalCount || products.length}
-            onPageChange={onPageChange}
+            getPageUrl={getPageUrl}
             page={currentPage}
             pageSize={pageSize}
             siblingCount={1}

@@ -2,7 +2,7 @@
 
 import { useForm, useStore } from "@tanstack/react-form"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import Link from "next/link"
 import { TextField } from "@/components/forms/fields/text-field"
 import { useRegister } from "@/hooks/use-register"
@@ -98,9 +98,13 @@ export function RegisterForm({
         form.handleSubmit()
       }}
     >
-      {register.error && (
+      {Boolean(register.error) && (
         <ErrorBanner
-          message={register.error.message}
+          message={
+            register.error instanceof Error
+              ? register.error.message
+              : AUTH_MESSAGES.SERVER_ERROR
+          }
           title={AUTH_MESSAGES.REGISTER_FAILED}
         />
       )}

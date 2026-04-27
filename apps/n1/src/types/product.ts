@@ -15,7 +15,7 @@ export type Product = {
   badges?: BadgeProps[]
   imageSrc?: string
   stockStatus?: "in-stock" | "out-of-stock" | "limited-stock" | undefined
-  stockValue?: "Skladem" | "Vyprodáno"
+  stockValue?: "Skladem" | "Na objednávku" | "Vyprodáno"
   variants?: string[]
 }
 

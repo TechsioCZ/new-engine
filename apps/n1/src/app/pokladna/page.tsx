@@ -1,7 +1,8 @@
 "use client"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef } from "react"
+import { useClientReady } from "@/hooks/use-client-ready"
 import { useAnalytics } from "@/providers/analytics-provider"
 import type { PplAccessPointData } from "@/utils/address-helpers"
 import { accessPointToShippingData } from "@/utils/address-helpers"
@@ -16,10 +17,27 @@ import {
 } from "./_context/checkout-context"
 
 export default function CheckoutPage() {
+  const isClientReady = useClientReady()
+
+  if (!isClientReady) {
+    return <CheckoutLoadingState />
+  }
+
   return (
     <CheckoutProvider>
       <CheckoutContent />
     </CheckoutProvider>
+  )
+}
+
+function CheckoutLoadingState() {
+  return (
+    <div className="container mx-auto p-500">
+      <h1 className="font-bold text-2xl text-fg-primary">Načítání pokladny</h1>
+      <p className="mt-200 text-fg-secondary">
+        Načítám obsah košíku a checkout data.
+      </p>
+    </div>
   )
 }
 
@@ -109,7 +127,7 @@ function CheckoutContent() {
             selectedAccessPoint={selectedAccessPoint}
             shipping={shipping}
           />
-          <PaymentFormSection cart={cart} />
+          <PaymentFormSection />
         </div>
         <div>
           <OrderSummary

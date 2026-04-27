@@ -1,8 +1,9 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
-import { useSuspenseAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth"
+import { buildLoginHref } from "@/lib/auth-redirect"
 import { AccountProvider } from "./context/account-context"
 
 export default function AccountLayout({
@@ -11,39 +12,44 @@ export default function AccountLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { customer, isAuthenticated, isTokenExpired } = useSuspenseAuth()
-  const [showExpiredMessage, setShowExpiredMessage] = useState(false)
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { customer, isAuthenticated, isFetching, isLoading, error } = useAuth()
+  const [isHydrated, setIsHydrated] = useState(false)
+  const loginHref = buildLoginHref(pathname ?? "/ucet", searchParams.toString())
 
   useEffect(() => {
-    if (!isTokenExpired) {
+    setIsHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!(isHydrated && !isLoading && !isFetching)) {
       return
     }
 
-    setShowExpiredMessage(true)
-    const timeout = setTimeout(() => {
-      router.push("/prihlaseni")
-    }, 3000)
-    return () => clearTimeout(timeout)
-  }, [isTokenExpired, router])
-
-  useEffect(() => {
-    if (!(isAuthenticated || isTokenExpired)) {
-      router.push("/prihlaseni")
+    if (!(error || isAuthenticated)) {
+      router.push(loginHref)
     }
-  }, [isAuthenticated, isTokenExpired, router])
+  }, [
+    error,
+    isAuthenticated,
+    isFetching,
+    isHydrated,
+    isLoading,
+    loginHref,
+    router,
+  ])
 
-  if (showExpiredMessage) {
+  if (!(isHydrated && !isLoading && !isFetching)) {
+    return <main className="mx-auto w-full max-w-5xl px-400 py-400" />
+  }
+
+  if (error) {
     return (
-      <main className="mx-auto w-2xl max-w-full py-300">
-        <div className="rounded bg-warning-light p-250">
-          <div className="mb-100 font-semibold text-md text-warning">
-            Platnost relace vypršela
-          </div>
-          <p className="text-sm text-warning">
-            Vaše přihlášení vypršelo. Za chvíli budete přesměrováni na
-            přihlašovací stránku...
-          </p>
-        </div>
+      <main className="mx-auto w-full max-w-5xl px-400 py-400">
+        <p className="text-fg-secondary">
+          Nepodařilo se načíst účet. Zkuste prosím obnovit stránku.
+        </p>
       </main>
     )
   }

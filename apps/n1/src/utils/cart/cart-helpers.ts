@@ -1,4 +1,4 @@
-import type { Cart, CartLineItem } from "@/services/cart-service"
+import type { Cart, CartLineItem } from "@/types/cart"
 
 export function getOptimisticFlag(
   entity: Cart | CartLineItem | undefined | null

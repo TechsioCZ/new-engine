@@ -1,47 +1,63 @@
 "use client"
 
 import { useStore } from "@tanstack/react-form"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { useState } from "react"
-import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
-import { AddressValidationError } from "@/lib/errors"
+import { storefront } from "@/hooks/storefront-preset"
+import { toAddressValidationError } from "@/lib/errors"
+import { addressToFormData } from "@/utils/address-helpers"
 import {
   useCheckoutContext,
   useCheckoutForm,
 } from "../_context/checkout-context"
 
 export function SaveAddressPanel() {
-  const { customer, selectedAddressId } = useCheckoutContext()
+  const { customer, selectedAddressId, setSelectedAddressId } =
+    useCheckoutContext()
   const form = useCheckoutForm()
-
-  const isDirty = useStore(form.store, (state) => state.isDirty)
-  const shouldShowSavePanel = Boolean(customer) && isDirty
 
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "success" | "error"
   >("idle")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const isDirty = useStore(form.store, (state) => state.isDirty)
+  const shouldShowSavePanel = Boolean(customer) && (isDirty || saveStatus !== "idle")
 
-  const { mutateAsync: createAddressAsync } = useCreateAddress()
-  const { mutateAsync: updateAddressAsync } = useUpdateAddress()
+  const { mutateAsync: createAddressAsync } =
+    storefront.hooks.customers.useCreateCustomerAddress()
+  const { mutateAsync: updateAddressAsync } =
+    storefront.hooks.customers.useUpdateCustomerAddress()
+
+  const syncBillingAddress = (
+    currentValues: typeof form.state.values.billingAddress
+  ) => {
+    form.reset({
+      ...form.state.values,
+      billingAddress: currentValues,
+    })
+    form.setFieldValue("billingAddress", currentValues)
+  }
 
   if (!shouldShowSavePanel) {
     return null
   }
 
   const handleSaveNew = async () => {
-    const currentValues = form.getFieldValue("billingAddress")
+    const currentValues = { ...form.getFieldValue("billingAddress") }
     setSaveStatus("saving")
     setErrorMessage(null)
     try {
-      await createAddressAsync(currentValues)
-      // Reset with current values to clear isDirty without losing data
-      form.reset({ ...form.state.values, billingAddress: currentValues })
+      const createdAddress = await createAddressAsync(currentValues)
+      const nextValues = addressToFormData(createdAddress)
+
+      syncBillingAddress(nextValues)
+      setSelectedAddressId(createdAddress.id)
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 2000)
     } catch (error) {
-      if (AddressValidationError.isAddressValidationError(error)) {
-        setErrorMessage(error.firstError)
+      const validationError = toAddressValidationError(error)
+      if (validationError) {
+        setErrorMessage(validationError.firstError)
       } else {
         setErrorMessage("Nepodařilo se uložit adresu")
       }
@@ -57,21 +73,21 @@ export function SaveAddressPanel() {
     if (!selectedAddressId) {
       return
     }
-    const currentValues = form.getFieldValue("billingAddress")
+    const currentValues = { ...form.getFieldValue("billingAddress") }
     setSaveStatus("saving")
     setErrorMessage(null)
     try {
-      await updateAddressAsync({
+      const updatedAddress = await updateAddressAsync({
         addressId: selectedAddressId,
-        data: currentValues,
+        ...currentValues,
       })
-      // Reset with current values to clear isDirty without losing data
-      form.reset({ ...form.state.values, billingAddress: currentValues })
+      syncBillingAddress(addressToFormData(updatedAddress))
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 2000)
     } catch (error) {
-      if (AddressValidationError.isAddressValidationError(error)) {
-        setErrorMessage(error.firstError)
+      const validationError = toAddressValidationError(error)
+      if (validationError) {
+        setErrorMessage(validationError.firstError)
       } else {
         setErrorMessage("Nepodařilo se aktualizovat adresu")
       }
