@@ -98,7 +98,7 @@ export function HerbatikaHeader() {
 
   return (
     <Header direction="vertical">
-      <Header.Container className="mx-auto flex max-w-max-w w-full min-w-0 items-center justify-between gap-200 px-300 py-300 sm:px-400 @header-desktop:px-600">
+      <Header.Container className="mx-auto flex max-w-max-w w-full min-w-0 items-center justify-between gap-200 px-300 py-400 sm:px-400 @header-desktop:px-600">
         <HerbatikaLogo className="min-w-0 shrink" size="lg" />
 
         <div className="hidden w-full max-w-header-search flex-1 @header-desktop:block">
@@ -112,6 +112,7 @@ export function HerbatikaHeader() {
                 aria-label="Hľadať"
                 className="rounded-none"
                 showSearchIcon
+                iconSize="xl"
               />
             </SearchForm.Control>
           </SearchForm>
@@ -122,12 +123,12 @@ export function HerbatikaHeader() {
             className="inline-flex items-center gap-300 text-fg-secondary font-open-sans hover:text-fg-primary"
             href="tel:+421232112345"
           >
-            <Icon className="text-2xl" icon="token-icon-phone" />
+            <Icon icon="token-icon-phone-talk" size="2xl" />
             <span className="leading-snug">
               <span className="block text-md font-semibold leading-snug text-fg-primary">
                 +421 2/321 123 45
               </span>
-              <span className="block text-xs font-normal leading-snug text-fg-secondary">
+              <span className="block text-xs ml-0.5 font-normal leading-snug text-fg-secondary">
                 (Po-Pia: 09:00 - 16:00)
               </span>
             </span>
@@ -140,6 +141,7 @@ export function HerbatikaHeader() {
             size="current"
             theme="unstyled"
             type="button"
+            iconSize="2xl"
           />
 
           <HerbatikaAccountPopover />

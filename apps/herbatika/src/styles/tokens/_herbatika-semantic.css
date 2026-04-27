@@ -5,6 +5,7 @@
   --color-herbatika-overlay: oklch(0.9846 0.0017 247.84);
   --color-herbatika-float: oklch(0.8875 0.0018 247.85);
   --color-herbatika-highlight: oklch(0.9553 0.0079 177.32);
+  --color-herbatika-highlight-secondary: oklch(0.961 0.0304 162.22);
   --color-herbatika-fg: oklch(0.2423 0.0212 276.66);
   --color-herbatika-fg-strong: oklch(0 0 0);
   --color-herbatika-fg-secondary: oklch(0.4202 0 0);
@@ -77,6 +78,7 @@
   --color-overlay: var(--color-herbatika-overlay);
   --color-float: var(--color-herbatika-float);
   --color-highlight: var(--color-herbatika-highlight);
+  --color-highlight-secondary: var(--color-herbatika-highlight-secondary);
   --color-fill-base: var(--color-herbatika-white);
   --color-fill-hover: var(--color-herbatika-highlight);
   --color-fill-active: oklch(

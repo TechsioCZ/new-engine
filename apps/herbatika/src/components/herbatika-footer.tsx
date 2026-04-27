@@ -71,21 +71,21 @@ export function HerbatikaFooter() {
               </Footer.Text>
 
               <Footer.Text className="mt-250 flex items-start gap-300">
-                <Icon className="mt-50 text-2xl text-fg-secondary" icon="token-icon-phone" />
+                <Icon className="mt-50 text-fg-secondary" icon="token-icon-phone-talk" size="lg" />
                 <span className="leading-normal">
-                  <span className="block font-bold text-primary">+421 2/321 123 45</span>
+                  <span className="block font-bold text-primary hover:underline">+421 2/321 123 45</span>
                   <span className="block text-sm">(Po-Pia: 9:00 - 16:00)</span>
                 </span>
               </Footer.Text>
 
               <Footer.Link className="mt-500 inline-flex items-center gap-300 font-bold text-primary" href="mailto:ahoj@herbatica.sk">
-                <Icon className="text-2xl text-fg-secondary" icon="token-icon-email" />
-                ahoj@herbatica.sk
+                <Icon className="text-fg-secondary" icon="token-icon-email" size="lg" />
+                <span className="hover:underline font-bold">ahoj@herbatica.sk</span>
               </Footer.Link>
             </Footer.Section>
 
             {FOOTER_COLUMNS.map((column) => (
-              <Footer.Section key={column.title}>
+              <Footer.Section key={column.title} className="px-500">
                 <Footer.Title className="leading-relaxed uppercase">{column.title}</Footer.Title>
                 <Footer.List>
                   {column.links.map((link) => (
@@ -100,6 +100,7 @@ export function HerbatikaFooter() {
             ))}
           </Footer.Container>
 
+          <Footer.Divider className="mx-auto max-w-footer-max" />
           <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-700 lg:flex-row lg:items-center lg:gap-800">
             <div className="flex flex-wrap items-center gap-300">
               {SOCIAL_LINKS.map((social) => (
@@ -146,12 +147,13 @@ export function HerbatikaFooter() {
               {FOOTER_LOCALES.map((locale) => (
                 <Button
                   icon={locale.icon}
-                  iconSize="sm"
+                  iconSize="md"
                   key={locale.code}
                   size="sm"
-                  theme={locale.active ? "light" : "outlined"}
+                  theme={locale.active ? "light" : "borderless"}
                   type="button"
-                  variant={locale.active ? "primary" : "secondary"}
+                  variant={locale.active ? "primary" : "primary"}
+                  className={`${!locale.active && "bg-base"} font-bold [&_span]:saturate-[1.7] [&_span]:brightness-100`}
                 >
                   {locale.code}
                 </Button>

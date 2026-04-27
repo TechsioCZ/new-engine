@@ -1,3 +1,13 @@
+@theme static {
+  --text-icon-xs: var(--text-xs);
+  --text-icon-sm: var(--text-sm);
+  --text-icon-md: 20px;
+  --text-icon-lg: 24px;
+  --text-icon-xl: 26px;
+  --text-icon-2xl: 32px;
+}
+
+
 /* NAVIGATION AND DIRECTION */
 @utility token-icon-home {
   @apply icon-[solar--home-angle-outline];
@@ -20,8 +30,8 @@
 }
 
 @utility token-icon-search {
-  /*@apply icon-[mdi--search];*/
-  @apply icon-[solar--minimalistic-magnifer-outline];
+  @apply icon-[mdi--search];
+  /*@apply icon-[solar--minimalistic-magnifer-outline];*/
 }
 
 @utility token-icon-chevron-down {
@@ -191,19 +201,23 @@
 
 /* MARKET FLAGS */
 @utility token-icon-sk {
-  @apply icon-[cif--sk];
+  /*@apply icon-[cif--sk];*/
+  @apply icon-[emojione--flag-for-slovakia];
 }
 
 @utility token-icon-cz {
-  @apply icon-[cif--cz];
+  /*@apply icon-[cif--cz];*/
+  @apply icon-[emojione--flag-for-czechia];
 }
 
 @utility token-icon-hu {
-  @apply icon-[cif--hu];
+  /*@apply icon-[cif--hu];*/
+  @apply icon-[emojione--flag-for-hungary];
 }
 
 @utility token-icon-ro {
-  @apply icon-[cif--ro];
+  /*@apply icon-[cif--ro];*/
+  @apply icon-[emojione--flag-for-romania];
 }
 
 /* UI KIT BRIDGE TOKENS */

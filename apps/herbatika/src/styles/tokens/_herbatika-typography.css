@@ -15,6 +15,8 @@
   --text-3xl: 1.75rem;
   --text-4xl: 2rem;
 
+  --text-cart-badge: 11px;
+
   --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-regular: var(--font-weight-normal);

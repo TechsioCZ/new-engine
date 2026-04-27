@@ -17,7 +17,7 @@ export function HerbatikaLogo({
   size = "md",
 }: HerbatikaLogoProps) {
   const sizeClass =
-    size === "sm" ? "h-11 w-auto" : size === "lg" ? "h-[4.5rem] w-auto" : "h-13 w-auto";
+    size === "sm" ? "h-11 w-auto" : size === "lg" ? "h-header-logo w-auto" : "h-13 w-auto";
   const imageClasses = imageClassName ? `${sizeClass} ${imageClassName}` : sizeClass;
 
   return (
