@@ -1,6 +1,6 @@
 "use client"
 
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -72,9 +72,9 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
       <div className="min-h-screen bg-product-detail-bg">
         <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y text-center">
           <h1 className="mb-4 font-semibold text-2xl">Product not found</h1>
-          <ErrorText showIcon>
+          <StatusText showIcon status="error">
             {error || "The product you are looking for does not exist."}
-          </ErrorText>
+          </StatusText>
         </div>
       </div>
     )

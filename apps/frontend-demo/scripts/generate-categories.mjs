@@ -125,6 +125,89 @@ const ROOT_CATEGORY_ORDER = [
   'Ski',
 ]
 
+function createStaticCategoryModule(dataToSave) {
+  return `// Auto-generated file - DO NOT EDIT
+// Generated at: ${dataToSave.generatedAt}
+// Run 'node scripts/generate-categories.mjs' to regenerate
+// This version filters out categories without products
+
+import type { Category, CategoryTreeNode } from '@/lib/server/categories'
+
+export interface LeafCategory {
+  id: string
+  name: string
+  handle: string
+  parent_category_id: string | null
+}
+
+export interface LeafParent {
+  id: string
+  name: string
+  handle: string
+  children: string[] // Array of direct child category IDs
+  leafs: string[] // Array of ALL nested leaf category IDs
+}
+
+export interface FilteringStats {
+  totalCategoriesBeforeFiltering: number
+  totalCategoriesAfterFiltering: number
+  categoriesWithDirectProducts: number
+  filteredOutCount: number
+}
+
+export interface StaticCategoryData {
+  allCategories: Category[]
+  categoryTree: CategoryTreeNode[]
+  rootCategories: Category[]
+  categoryMap: Record<string, Category>
+  leafCategories: LeafCategory[]
+  leafParents: LeafParent[]
+  generatedAt: string
+  filteringStats: FilteringStats
+}
+
+const data: StaticCategoryData = ${JSON.stringify(dataToSave, null, 2)}
+
+export default data
+export const { allCategories, categoryTree, rootCategories, categoryMap, leafCategories, leafParents, filteringStats } = data
+`
+}
+
+function createFallbackCategoryData(generatedAt) {
+  return {
+    allCategories: [],
+    categoryTree: [],
+    rootCategories: [],
+    categoryMap: {},
+    leafCategories: [],
+    leafParents: [],
+    generatedAt,
+    filteringStats: {
+      totalCategoriesBeforeFiltering: 0,
+      totalCategoriesAfterFiltering: 0,
+      categoriesWithDirectProducts: 0,
+      filteredOutCount: 0,
+    },
+  }
+}
+
+function getStaticCategoryModulePath() {
+  return path.join(__dirname, '../src/lib/static-data/categories.ts')
+}
+
+function writeStaticCategoryModule(dataToSave) {
+  const tsOutputPath = getStaticCategoryModulePath()
+  const tsDir = path.dirname(tsOutputPath)
+
+  if (!fs.existsSync(tsDir)) {
+    fs.mkdirSync(tsDir, { recursive: true })
+  }
+
+  fs.writeFileSync(tsOutputPath, createStaticCategoryModule(dataToSave))
+
+  return tsOutputPath
+}
+
 function buildCategoryTree(categories) {
   const categoryMap = new Map()
   const rootNodes = []
@@ -402,6 +485,7 @@ async function generateCategories() {
       categoryMap
     )
 
+    const generatedAt = new Date().toISOString()
     const dataToSave = {
       allCategories,
       categoryTree,
@@ -409,7 +493,7 @@ async function generateCategories() {
       categoryMap,
       leafCategories,
       leafParents,
-      generatedAt: new Date().toISOString(),
+      generatedAt,
       filteringStats: {
         totalCategoriesBeforeFiltering: allCategoriesRaw.length,
         totalCategoriesAfterFiltering: allCategories.length,
@@ -428,64 +512,8 @@ async function generateCategories() {
     const outputPath = path.join(dataDir, 'categories-test.json')
     fs.writeFileSync(outputPath, JSON.stringify(dataToSave, null, 2))
 
-    // Generate TypeScript module to categories-test.ts
-    const tsOutputPath = path.join(
-      __dirname,
-      '../src/lib/static-data/categories.ts'
-    )
-    const tsDir = path.dirname(tsOutputPath)
-
-    if (!fs.existsSync(tsDir)) {
-      fs.mkdirSync(tsDir, { recursive: true })
-    }
-
-    const tsContent = `// Auto-generated file - DO NOT EDIT
-// Generated at: ${new Date().toISOString()}
-// Run 'node scripts/generate-categories-2.mjs' to regenerate
-// This version filters out categories without products
-
-import type { Category, CategoryTreeNode } from '@/lib/server/categories'
-
-export interface LeafCategory {
-  id: string
-  name: string
-  handle: string
-  parent_category_id: string | null
-}
-
-export interface LeafParent {
-  id: string
-  name: string
-  handle: string
-  children: string[] // Array of direct child category IDs
-  leafs: string[] // Array of ALL nested leaf category IDs
-}
-
-export interface FilteringStats {
-  totalCategoriesBeforeFiltering: number
-  totalCategoriesAfterFiltering: number
-  categoriesWithDirectProducts: number
-  filteredOutCount: number
-}
-
-export interface StaticCategoryData {
-  allCategories: Category[]
-  categoryTree: CategoryTreeNode[]
-  rootCategories: Category[]
-  categoryMap: Record<string, Category>
-  leafCategories: LeafCategory[]
-  leafParents: LeafParent[]
-  generatedAt: string
-  filteringStats: FilteringStats
-}
-
-const data: StaticCategoryData = ${JSON.stringify(dataToSave, null, 2)}
-
-export default data
-export const { allCategories, categoryTree, rootCategories, categoryMap, leafCategories, leafParents, filteringStats } = data
-`
-
-    fs.writeFileSync(tsOutputPath, tsContent)
+    // Generate TypeScript module used by the Next.js build
+    const tsOutputPath = writeStaticCategoryModule(dataToSave)
 
     console.log(
       '✅ Category data V2 with product filtering generated successfully!'
@@ -519,8 +547,25 @@ export const { allCategories, categoryTree, rootCategories, categoryMap, leafCat
       `\n   - File size: ${(fs.statSync(outputPath).size / 1024).toFixed(2)} KB`
     )
   } catch (error) {
-    console.error('❌ Error generating categories:', error)
-    process.exit(1)
+    console.error('❌ Category generation failed:', error)
+
+    const tsOutputPath = getStaticCategoryModulePath()
+    const moduleExists = fs.existsSync(tsOutputPath)
+
+    if (!moduleExists && !process.env.CI) {
+      const fallbackData = createFallbackCategoryData(new Date().toISOString())
+      const writtenPath = writeStaticCategoryModule(fallbackData)
+      console.warn(`📁 Empty fallback TypeScript module saved to: ${writtenPath}`)
+      return
+    }
+
+    if (moduleExists) {
+      console.warn(
+        `ℹ️ Keeping existing module at ${tsOutputPath}; not overwriting it with an empty fallback.`
+      )
+    }
+
+    process.exitCode = 1
   }
 }
 

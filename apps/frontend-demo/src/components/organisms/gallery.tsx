@@ -121,12 +121,10 @@ export function Gallery({
           page={currentPage}
           size={size}
           slideCount={images.length}
+          height={carouselSize}
+          width={carouselSize}
         >
-          <Carousel.Slides
-            height={carouselSize}
-            slides={images}
-            width={carouselSize}
-          />
+          <Carousel.Slides slides={images} />
         </Carousel>
       </div>
     </div>
