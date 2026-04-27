@@ -36,7 +36,10 @@ type ProductInput = {
   width?: number
   height?: number
   length?: number
-  tags?: string[]
+  tags?: {
+    id?: string
+    value: string
+  }[]
   metadata?: Record<string, unknown>
   status?: ProductStatus
   shippingProfileName: string

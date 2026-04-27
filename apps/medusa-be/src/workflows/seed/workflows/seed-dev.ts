@@ -100,6 +100,13 @@ function toProductCategories(
     }))
 }
 
+function toProductTags(tags: string[] | undefined) {
+  return tags
+    ?.map((tag) => tag.trim())
+    .filter(Boolean)
+    .map((value) => ({ value }))
+}
+
 function toProductsStepInput(
   inputProducts: DevSeedProduct[],
   currencies: Steps.UpdateStoreCurrenciesStepCurrenciesInput
@@ -127,7 +134,7 @@ function toProductsStepInput(
       width: product.dimensions?.width,
       height: product.dimensions?.height,
       length: product.dimensions?.depth,
-      tags: product.tags,
+      tags: toProductTags(product.tags),
       metadata: {
         seed: {
           dev: {
