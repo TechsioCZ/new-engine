@@ -28,7 +28,9 @@ COPY . .
 
 # Build using shared script (cleanup, install, build, validate, prod deploy)
 ARG FEATURE_PPL_ENABLED=0
-RUN FEATURE_PPL_ENABLED=${FEATURE_PPL_ENABLED} ./scripts/build-medusa.sh
+ARG FEATURE_PAYLOAD_ENABLED=0
+ENV FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED}
+RUN FEATURE_PPL_ENABLED=${FEATURE_PPL_ENABLED} FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED} ./scripts/build-medusa.sh
 
 # ============================================
 # PROD RUNTIME - minimal final image

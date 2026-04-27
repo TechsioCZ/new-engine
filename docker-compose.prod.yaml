@@ -5,4 +5,5 @@ services:
       target: prod
       args:
         FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
+        FEATURE_PAYLOAD_ENABLED: ${DC_FEATURE_PAYLOAD_ENABLED:-0}
     volumes: []  # No volume mounts in prod

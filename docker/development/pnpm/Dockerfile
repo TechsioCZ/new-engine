@@ -7,4 +7,5 @@ RUN npm i -g corepack@latest
 
 RUN corepack enable
 RUN corepack install -g pnpm@10.26.0
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /var/www

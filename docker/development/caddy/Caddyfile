@@ -29,6 +29,15 @@ front.medusa.localhost {
     redir https://{host}{uri}
 }
 
+admin.payload.medusa.localhost:443 {
+    reverse_proxy payload:8083
+    tls internal
+}
+
+admin.payload.medusa.localhost {
+    redir https://{host}{uri}
+}
+
 admin.meilisearch.localhost:443 {
     reverse_proxy medusa-meilisearch:7700
     tls internal

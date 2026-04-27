@@ -4,6 +4,7 @@ zerops:
       envVariables:
         BACKEND_URL: ${MEDUSA_INSTANCE_URL}
         NX_DAEMON: false
+        FEATURE_PAYLOAD_ENABLED: ${FEATURE_PAYLOAD_ENABLED}
       base: nodejs@22
       buildCommands:
         - bash ./scripts/build-medusa.sh
@@ -41,6 +42,7 @@ zerops:
         MEILISEARCH_API_KEY: ${search_masterKey}
         SENTRY_DSN: ${MEDUSA_SENTRY_DSN}
         SENTRY_NAME: ${MEDUSA_SENTRY_NAME}
+        PAYLOAD_WEBHOOK_SECRET: ${PAYLOAD_WEBHOOK_SECRET}
       initCommands:
         # with each deploy
         - zsc execOnce ${appVersionId}_migration -- npm run migrateProd
@@ -104,3 +106,42 @@ zerops:
         NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${medusa_zeropsSubdomain}
         NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${medusa_CHANNEL_PUBLISHABLE_KEY}
         CI: true
+
+  - setup: payload
+    build:
+      base: nodejs@22
+      envVariables:
+        NX_DAEMON: false
+      buildCommands:
+        - |
+          shopt -s extglob
+          rm -rf apps/!(payload)
+        - pnpm i
+        - pnpm --filter=@nmit/payload build
+        - pnpm --filter=@nmit/payload --prod deploy payload-temp-deploy
+        - mv payload-temp-deploy/node_modules apps/payload/
+      deployFiles:
+        - .nx
+        - nx.json
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - node_modules
+        - apps/payload/package.json
+        - apps/payload/next.config.mjs
+        - apps/payload/.next
+        - apps/payload/public
+        - apps/payload/node_modules
+      cache: node_modules
+    run:
+      base: nodejs@22
+      start: npm run --prefix apps/payload start
+      ports:
+        - port: 3000
+          httpSupport: true
+      envVariables:
+        NODE_ENV: production
+        DATABASE_URL: postgresql://${db_user}:${db_password}@${db_hostname}:5432/${db_hostname}?sslmode=disable
+        PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+        PAYLOAD_BASE_URL: ${PAYLOAD_BASE_URL}
+        PAYLOAD_WEBHOOK_SECRET: ${PAYLOAD_WEBHOOK_SECRET}
