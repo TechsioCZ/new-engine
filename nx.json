@@ -21,6 +21,9 @@
     }
   ],
   "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"]
+    },
     "@nx/esbuild:esbuild": {
       "cache": true,
       "dependsOn": ["^build"],
