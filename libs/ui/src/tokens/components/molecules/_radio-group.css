@@ -146,5 +146,5 @@
 
 
 @utility token-icon-radio-group-checked {
-  @apply icon-[mdi--circle];
+  @apply token-icon-circle;
 }

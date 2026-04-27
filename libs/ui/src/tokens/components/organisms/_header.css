@@ -84,3 +84,11 @@
 
   --duration-header: 300ms;
 }
+
+@utility token-icon-header-menu {
+  @apply token-icon-menu;
+}
+
+@utility token-icon-header-close {
+  @apply token-icon-close;
+}

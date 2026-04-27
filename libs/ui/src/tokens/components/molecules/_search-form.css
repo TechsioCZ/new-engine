@@ -12,7 +12,3 @@
   --radius-search-form-input: 0;
   --padding-search-form-clear-button: var(--spacing-200);
 }
-
-@utility token-icon-search {
-  @apply icon-[mdi--magnify];
-}

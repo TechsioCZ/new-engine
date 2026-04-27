@@ -36,9 +36,9 @@
 }
 
 @utility token-icon-breadcrumb-separator {
-  @apply icon-[mdi--chevron-right];
+  @apply token-icon-chevron-right;
 }
 
 @utility token-icon-breadcrumb-ellipsis {
-  @apply icon-[mdi--ellipsis-horizontal];
+  @apply token-icon-ellipsis-horizontal;
 }

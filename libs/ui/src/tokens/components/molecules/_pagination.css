@@ -57,13 +57,13 @@
 }
 
 @utility token-icon-pagination-prev {
-  @apply icon-[mdi--chevron-left];
+  @apply token-icon-chevron-left;
 }
 
 @utility token-icon-pagination-next {
-  @apply icon-[mdi--chevron-right];
+  @apply token-icon-chevron-right;
 }
 
 @utility token-icon-pagination-ellipsis {
-  @apply icon-[mdi--ellipsis-horizontal];
+  @apply token-icon-ellipsis-horizontal;
 }

@@ -289,7 +289,7 @@ export function Button({
     >
       {isLoading ? (
         <>
-          <Icon className="mr-2" icon="icon-[svg-spinners--ring-resize]" />
+          <Icon className="mr-2" icon="token-icon-button-spinner" />
           {loadingText || children}
         </>
       ) : (

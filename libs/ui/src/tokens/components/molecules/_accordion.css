@@ -71,5 +71,5 @@
 
 /* Semantic tokens for accordion icons */
 @utility token-icon-accordion-chevron {
-  @apply icon-[mdi--chevron-down];
+  @apply token-icon-chevron-down;
 }

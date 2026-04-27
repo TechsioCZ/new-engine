@@ -63,9 +63,9 @@
 }
 
 @utility token-icon-numeric-input-increment {
-  @apply icon-[mdi--chevron-up];
+  @apply token-icon-chevron-up;
 }
 
 @utility token-icon-numeric-input-decrement {
-  @apply icon-[mdi--chevron-down];
+  @apply token-icon-chevron-down;
 }
