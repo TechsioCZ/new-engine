@@ -9,6 +9,3 @@
     --spacing-radio-group-indicator-sm: 0.75rem;
 }
 
-@utility token-icon-radio-group-checked {
-  @apply icon-[mdi--circle];
-}

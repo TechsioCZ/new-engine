@@ -14,6 +14,22 @@
   @apply icon-[solar--letter-outline];
 }
 
+@utility token-icon-save-money {
+  @apply icon-[mdi--piggy-bank-outline];
+}
+
+@utility token-icon-increment {
+  @apply icon-[mdi--plus];
+}
+
+@utility token-icon-decrement {
+  @apply icon-[mdi--minus];
+}
+
+@utility token-icon-circle {
+  @apply icon-[mdi--circle];
+}
+
 /* COMPANY ICONS */
 @utility token-icon-fb {
   @apply icon-[mdi--facebook];

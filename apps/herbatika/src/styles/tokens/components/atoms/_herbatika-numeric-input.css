@@ -15,11 +15,3 @@
   --padding-numeric-input-input-md: var(--spacing-250);
 }
 
-
-@utility token-icon-numeric-input-increment {
-  @apply icon-[mdi--plus];
-}
-
-@utility token-icon-numeric-input-decrement {
-  @apply icon-[mdi--minus];
-}
