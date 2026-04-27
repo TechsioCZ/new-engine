@@ -23,8 +23,10 @@ FROM base AS ci-dev
 
 ENV NODE_ENV=development
 
-COPY . .
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/payload/package.json apps/payload/package.json
+RUN pnpm install --frozen-lockfile --filter payload...
+COPY apps/payload apps/payload
 
 EXPOSE 8083
 
@@ -59,8 +61,11 @@ ENV S3_BUCKET=${S3_BUCKET}
 ENV S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
 ENV S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
 
-COPY . .
-RUN pnpm install --frozen-lockfile && pnpm --filter=payload run build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/payload/package.json apps/payload/package.json
+RUN pnpm install --frozen-lockfile --filter payload...
+COPY apps/payload apps/payload
+RUN pnpm --filter=payload run build
 
 FROM base AS prod
 
