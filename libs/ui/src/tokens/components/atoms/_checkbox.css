@@ -48,5 +48,5 @@
 }
 
 @utility token-icon-checkbox {
-  @apply icon-[mdi--check-bold];
+  @apply token-icon-check-bold;
 }

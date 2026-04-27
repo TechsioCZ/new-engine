@@ -214,3 +214,8 @@
   /* === FOCUS RING === */
   --color-button-ring: var(--color-ring);
 }
+
+
+@utility token-icon-button-spinner {
+  @apply token-icon-spinner;
+}

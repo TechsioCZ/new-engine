@@ -57,21 +57,21 @@
 
 /* Icons */
 @utility token-icon-toast-success {
-  @apply icon-[mdi--check-circle];
+  @apply token-icon-check-circle;
 }
 
 @utility token-icon-toast-error {
-  @apply icon-[mdi--alert-circle];
+  @apply token-icon-alert-circle;
 }
 
 @utility token-icon-toast-warning {
-  @apply icon-[mdi--alert];
+  @apply token-icon-alert;
 }
 
 @utility token-icon-toast-info {
-  @apply icon-[mdi--information];
+  @apply token-icon-information;
 }
 
 @utility token-icon-toast-close {
-  @apply icon-[mdi--close];
+  @apply token-icon-close;
 }

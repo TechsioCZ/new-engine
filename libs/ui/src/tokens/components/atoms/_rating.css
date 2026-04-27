@@ -22,9 +22,9 @@
 
 /* Semantic tokens for rating icons */
 @utility token-icon-rating {
-  @apply icon-[mdi--star];
+  @apply token-icon-star;
 }
 
 @utility token-icon-rating-half {
-  @apply icon-[mdi--star-half];
+  @apply token-icon-star-half;
 }

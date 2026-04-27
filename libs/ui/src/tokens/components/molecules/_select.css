@@ -96,16 +96,16 @@
 
 /* === ICONS === */
 @utility token-icon-select-indicator {
-  @apply icon-[mdi--chevron-down];
+  @apply token-icon-chevron-down;
 }
 @utility token-icon-select-indicator-open {
-  @apply icon-[mdi--chevron-up];
+  @apply token-icon-chevron-up;
 }
 
 @utility token-icon-select-check {
-  @apply icon-[mdi--check];
+  @apply token-icon-check;
 }
 
 @utility token-icon-select-clear {
-  @apply icon-[mdi--close];
+  @apply token-icon-close;
 }
