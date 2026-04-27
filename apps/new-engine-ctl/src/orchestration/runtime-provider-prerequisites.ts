@@ -180,10 +180,7 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
   const dependencyServices = dependencyServiceIds
     .map((serviceId) => getDeployableService(input.manifest, serviceId))
     .filter((service) => input.lane !== "preview" || service.cloneToPreview)
-  let targetByServiceId = new Map<
-    string,
-    ResolveTargetsResponse["services"][number]
-  >()
+  let targetByServiceId: Map<string, ResolveTargetsResponse["services"][number]>
   try {
     const targetsResponse = await executeResolveTargetsPayload({
       payload: {
