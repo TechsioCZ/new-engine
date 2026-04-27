@@ -76,7 +76,8 @@ services:
     container_name: wr_payload
     build:
       context: .
-      dockerfile: docker/development/pnpm/Dockerfile
+      dockerfile: docker/development/payload/Dockerfile
+      target: dev
     working_dir: /var/www
     command: >-
       sh -c "pnpm --filter payload payload migrate &&
