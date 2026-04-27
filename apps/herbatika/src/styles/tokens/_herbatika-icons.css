@@ -1,5 +1,64 @@
+/* NAVIGATION AND DIRECTION */
+@utility token-icon-home {
+  @apply icon-[solar--home-angle-outline];
+}
+
+@utility token-icon-arrow-right {
+  @apply icon-[solar--arrow-right-linear];
+}
+
+@utility token-icon-chevron-right {
+  @apply icon-[solar--alt-arrow-right-line-duotone];
+}
+
+@utility token-icon-chevron-left {
+  @apply icon-[solar--alt-arrow-left-line-duotone];
+}
+
+@utility token-icon-chevron-up {
+  @apply icon-[solar--alt-arrow-up-line-duotone];
+}
+
+@utility token-icon-search {
+  @apply icon-[mdi--search];
+}
+
+@utility token-icon-chevron-down {
+  @apply icon-[solar--alt-arrow-down-line-duotone];
+}
+
+/* ACTIONS AND STATUS */
+@utility token-icon-check {
+  @apply icon-[mdi--check];
+}
+
+@utility token-icon-alert {
+  @apply icon-[solar--danger-circle-linear];
+}
+
+@utility token-icon-pen {
+  @apply icon-[solar--pen-outline];
+}
+
+@utility token-icon-trash {
+  @apply icon-[solar--trash-bin-minimalistic-linear];
+}
+
+@utility token-icon-copy {
+  @apply icon-[solar--copy-linear];
+}
+
+@utility token-icon-send {
+  @apply icon-[tabler--send];
+}
+
+/* ACCOUNT AND CONTACT */
 @utility token-icon-user {
   @apply icon-[solar--user-outline];
+}
+
+@utility token-icon-account {
+  @apply icon-[mdi--account-outline];
 }
 
 @utility token-icon-heart {
@@ -10,52 +69,68 @@
   @apply icon-[solar--phone-outline];
 }
 
+@utility token-icon-phone-talk {
+  @apply icon-[mdi--phone-in-talk-outline];
+}
+
 @utility token-icon-email {
   @apply icon-[solar--letter-outline];
+}
+
+@utility token-icon-conversation {
+  @apply icon-[mdi--message-processing];
+}
+
+@utility token-icon-logout {
+  @apply icon-[mdi--logout];
+}
+
+@utility token-icon-order {
+  @apply icon-[mdi--note-text-outline];
+}
+
+@utility token-icon-settings {
+  @apply icon-[mdi--settings];
+}
+
+/* PRODUCT AND CONTENT */
+@utility token-icon-cart {
+  @apply icon-[mdi--cart-outline];
 }
 
 @utility token-icon-save-money {
   @apply icon-[mdi--piggy-bank-outline];
 }
 
-@utility token-icon-increment {
-  @apply icon-[mdi--plus];
+@utility token-icon-leaf {
+  @apply icon-[solar--leaf-linear];
 }
 
-@utility token-icon-decrement {
-  @apply icon-[mdi--minus];
+@utility token-icon-calendar {
+  @apply icon-[solar--calendar-linear];
 }
 
-@utility token-icon-circle {
-  @apply icon-[mdi--circle];
+@utility token-icon-pill {
+  @apply icon-[mdi--pill];
 }
 
-/* COMPANY ICONS */
-@utility token-icon-fb {
-  @apply icon-[mdi--facebook];
+@utility token-icon-list {
+  @apply icon-[mdi--format-list-bulleted];
 }
 
-@utility token-icon-instagram {
-  @apply icon-[mdi--instagram];
+@utility token-icon-label {
+  @apply icon-[mynaui--label];
 }
 
-@utility token-icon-youtube {
-  @apply icon-[mdi--youtube];
+@utility token-icon-shopping-basket-in {
+  @apply icon-[hugeicons--shopping-basket-check-in-01];
 }
 
-@utility token-icon-linkedin {
-  @apply icon-[mdi--linkedin];
-}
-
-@utility token-icon-music {
-  @apply icon-[mdi--music-note];
-}
-
+/* CHECKOUT, PAYMENT, AND DELIVERY */
 @utility token-icon-paypal {
   @apply icon-[mdi--paypal];
 }
 
-/* PAYMENT AND DELIVERY (CHECKOUT) */
 @utility token-icon-credit-card {
   @apply icon-[solar--card-2-linear];
 }
@@ -88,59 +163,32 @@
   @apply icon-[mdi--truck-delivery-outline];
 }
 
-@utility token-icon-pen {
-  @apply icon-[solar--pen-outline];
-}
-
-@utility token-icon-leaf {
-  @apply icon-[solar--leaf-linear];
-}
-
 @utility token-icon-shield-check {
   @apply icon-[solar--shield-check-linear];
 }
 
-@utility token-icon-conversation {
-  @apply icon-[mdi--message-processing];
+/* SOCIAL AND BRAND */
+@utility token-icon-fb {
+  @apply icon-[mdi--facebook];
 }
 
-@utility token-icon-phone-talk {
-  @apply icon-[mdi--phone-in-talk-outline];
+@utility token-icon-instagram {
+  @apply icon-[mdi--instagram];
 }
 
-@utility token-icon-account {
-  @apply icon-[mdi--account-outline];
+@utility token-icon-youtube {
+  @apply icon-[mdi--youtube];
 }
 
-@utility token-icon-trash {
-  @apply icon-[solar--trash-bin-minimalistic-linear];
+@utility token-icon-linkedin {
+  @apply icon-[mdi--linkedin];
 }
 
-@utility token-icon-label {
-  @apply icon-[mynaui--label];
+@utility token-icon-music {
+  @apply icon-[mdi--music-note];
 }
 
-@utility token-icon-shopping-basket-in {
-  @apply icon-[hugeicons--shopping-basket-check-in-01];
-}
-
-@utility token-icon-copy {
-  @apply icon-[solar--copy-linear];
-}
-
-@utility token-icon-send {
-  @apply icon-[tabler--send];
-}
-
-@utility token-icon-arrow-right {
-  @apply icon-[solar--arrow-right-linear];
-}
-
-@utility token-icon-alert {
-  @apply icon-[solar--danger-circle-linear];
-}
-
-/* FLAG ICONS */
+/* MARKET FLAGS */
 @utility token-icon-sk {
   @apply icon-[cif--sk];
 }
@@ -157,62 +205,15 @@
   @apply icon-[cif--ro];
 }
 
-
-/* === === */
-
-@utility token-icon-home {
-  @apply icon-[solar--home-angle-outline];
+/* UI KIT BRIDGE TOKENS */
+@utility token-icon-increment {
+  @apply icon-[mdi--plus];
 }
 
-@utility token-icon-calendar {
-  @apply icon-[solar--calendar-linear];
+@utility token-icon-decrement {
+  @apply icon-[mdi--minus];
 }
 
-@utility token-icon-pill {
-  @apply icon-[mdi--pill];
-}
-
-/* mdi set */
-@utility token-icon-list {
-  @apply icon-[mdi--format-list-bulleted];
-}
-
-@utility token-icon-logout {
-  @apply icon-[mdi--logout];
-}
-
-@utility token-icon-order {
-  @apply icon-[mdi--note-text-outline];
-}
-
-@utility token-icon-settings {
-  @apply icon-[mdi--settings];
-}
-
-@utility token-icon-search {
-  @apply icon-[mdi--search];
-}
-
-@utility token-icon-cart {
-  @apply icon-[mdi--cart-outline];
-}
-
-@utility token-icon-check {
-  @apply icon-[mdi--check];
-}
-
-@utility token-icon-chevron-right {
-  @apply icon-[solar--alt-arrow-right-line-duotone];
-}
-
-@utility token-icon-chevron-left {
-  @apply icon-[solar--alt-arrow-left-line-duotone];
-}
-
-@utility token-icon-chevron-up {
-  @apply icon-[solar--alt-arrow-up-line-duotone];
-}
-
-@utility token-icon-chevron-down {
-  @apply icon-[solar--alt-arrow-down-line-duotone];
+@utility token-icon-circle {
+  @apply icon-[mdi--circle];
 }
