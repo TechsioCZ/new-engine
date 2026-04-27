@@ -11,10 +11,7 @@ import { useInfiniteProducts } from "@/hooks/use-infinite-products"
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
-import {
-  type ExtendedSortOption,
-  useUrlFilters,
-} from "@/hooks/use-url-filters"
+import { type ExtendedSortOption, useUrlFilters } from "@/hooks/use-url-filters"
 
 const SORT_OPTIONS: Array<{ value: ExtendedSortOption; label: string }> = [
   { value: "newest", label: "Nejnovější" },
@@ -177,7 +174,7 @@ function ProductsContent() {
             <div>
               <ProductGrid
                 currentPage={currentPage}
-                onPageChange={urlFilters.setPage}
+                getPageUrl={urlFilters.getPageUrl}
                 pageSize={pageSize}
                 products={products}
                 totalCount={totalCount}
