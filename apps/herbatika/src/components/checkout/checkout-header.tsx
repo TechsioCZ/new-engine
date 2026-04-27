@@ -43,7 +43,7 @@ export function CheckoutHeader() {
             size="sm"
             variant="secondary"
             theme="outlined"
-            icon="token-icon-account"
+            icon="token-icon-user"
             className="text-nowrap sm:text-sm px-400 py-300 h-full border-2"
           >
             <span className="text-sm">Prihlásiť sa</span>

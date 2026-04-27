@@ -20,7 +20,8 @@
 }
 
 @utility token-icon-search {
-  @apply icon-[mdi--search];
+  /*@apply icon-[mdi--search];*/
+  @apply icon-[solar--minimalistic-magnifer-outline];
 }
 
 @utility token-icon-chevron-down {
@@ -49,16 +50,12 @@
 }
 
 @utility token-icon-send {
-  @apply icon-[tabler--send];
+  @apply icon-[solar--plain-outline];
 }
 
 /* ACCOUNT AND CONTACT */
 @utility token-icon-user {
   @apply icon-[solar--user-outline];
-}
-
-@utility token-icon-account {
-  @apply icon-[mdi--account-outline];
 }
 
 @utility token-icon-heart {
@@ -70,7 +67,7 @@
 }
 
 @utility token-icon-phone-talk {
-  @apply icon-[mdi--phone-in-talk-outline];
+  @apply icon-[solar--phone-calling-linear];
 }
 
 @utility token-icon-email {
@@ -78,24 +75,25 @@
 }
 
 @utility token-icon-conversation {
-  @apply icon-[mdi--message-processing];
+  @apply icon-[solar--chat-dots-outline];
 }
 
 @utility token-icon-logout {
-  @apply icon-[mdi--logout];
+  /*@apply icon-[mdi--logout];*/
+  @apply icon-[solar--logout-2-outline];
 }
 
 @utility token-icon-order {
-  @apply icon-[mdi--note-text-outline];
+  @apply icon-[solar--clipboard-list-outline];
 }
 
 @utility token-icon-settings {
-  @apply icon-[mdi--settings];
+  @apply icon-[solar--settings-outline];
 }
 
 /* PRODUCT AND CONTENT */
 @utility token-icon-cart {
-  @apply icon-[mdi--cart-outline];
+  @apply icon-[solar--cart-large-minimalistic-outline];
 }
 
 @utility token-icon-save-money {
@@ -111,15 +109,17 @@
 }
 
 @utility token-icon-pill {
-  @apply icon-[mdi--pill];
+  /*@apply icon-[mdi--pill];*/
+  @apply icon-[solar--pill-outline];
 }
 
 @utility token-icon-list {
-  @apply icon-[mdi--format-list-bulleted];
+  /*@apply icon-[mdi--format-list-bulleted];*/
+  @apply icon-[solar--list-outline];
 }
 
 @utility token-icon-label {
-  @apply icon-[mynaui--label];
+  @apply icon-[solar--tag-outline];
 }
 
 @utility token-icon-shopping-basket-in {
@@ -140,7 +140,7 @@
 }
 
 @utility token-icon-cash {
-  @apply icon-[mdi--cash-multiple];
+  @apply icon-[solar--hand-money-linear];
 }
 
 @utility token-icon-wallet {
@@ -185,7 +185,8 @@
 }
 
 @utility token-icon-music {
-  @apply icon-[mdi--music-note];
+  /*@apply icon-[mdi--music-note];*/
+  @apply icon-[solar--music-note-3-bold];
 }
 
 /* MARKET FLAGS */
