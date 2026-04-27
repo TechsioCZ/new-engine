@@ -1,0 +1,245 @@
+name: ZaneOps Main After CI
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+env:
+  NX_NO_CLOUD: "true"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      base_sha: ${{ steps.base.outputs.base_sha }}
+      projects_csv: ${{ steps.scope_data.outputs.projects_csv }}
+      services_csv: ${{ steps.scope_data.outputs.services_csv }}
+      nx_status: ${{ steps.scope_data.outputs.nx_status }}
+      requires_downtime_approval: ${{ steps.scope_data.outputs.requires_downtime_approval }}
+      downtime_service_ids: ${{ steps.scope_data.outputs.downtime_service_ids }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build new-engine-ctl
+        run: pnpm exec nx run new-engine-ctl:build
+
+      - name: Resolve base SHA
+        id: base
+        run: |
+          base_sha="$(git rev-parse HEAD^ 2>/dev/null || true)"
+          if [[ -z "$base_sha" ]]; then
+            base_sha="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          echo "base_sha=${base_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve main scope
+        id: scope_data
+        run: |
+          node apps/new-engine-ctl/dist/cli.js scope \
+            --lane main \
+            --base-sha "${{ steps.base.outputs.base_sha }}" \
+            --head-sha "${{ github.event.workflow_run.head_sha }}"
+
+      - name: Upload new-engine-ctl artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist/cli.js
+          if-no-files-found: error
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Main Scope"
+            echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
+            echo "- Base SHA: ${{ steps.base.outputs.base_sha || 'n/a' }}"
+            echo "- Affected projects: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}"
+            echo "- Affected services: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}"
+            echo "- Nx status: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}"
+            echo "- Requires downtime approval: ${{ steps.scope_data.outputs.requires_downtime_approval || 'false' }}"
+            echo "- Downtime-risk services: ${{ steps.scope_data.outputs.downtime_service_ids || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  approval:
+    needs: scope
+    if: needs.scope.outputs.requires_downtime_approval == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: zaneops-main-downtime
+    steps:
+      - name: Summary
+        run: |
+          {
+            echo "## Main Downtime Approval"
+            echo "- Approved downtime-risk services: ${{ needs.scope.outputs.downtime_service_ids || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: [scope, approval]
+    if: >-
+      always() &&
+      needs.scope.outputs.services_csv != '' &&
+      (needs.approval.result == 'success' || needs.approval.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: zaneops-main-deploy
+      cancel-in-progress: true
+    outputs:
+      environment_name: ${{ steps.run_deploy.outputs.environment_name }}
+      environment_id: ${{ steps.run_deploy.outputs.environment_id }}
+      environment_created: ${{ steps.run_deploy.outputs.environment_created }}
+      requested_services_csv: ${{ steps.run_deploy.outputs.requested_services_csv }}
+      deploy_services_csv: ${{ steps.run_deploy.outputs.deploy_services_csv }}
+      env_override_service_ids_csv: ${{ steps.run_deploy.outputs.env_override_service_ids_csv }}
+      triggered_services_csv: ${{ steps.run_deploy.outputs.triggered_services_csv }}
+      skipped_services_csv: ${{ steps.run_deploy.outputs.skipped_services_csv }}
+      runtime_provider_output_keys_csv: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv }}
+      runtime_provider_outputs_json: ${{ steps.run_deploy.outputs.runtime_provider_outputs_json }}
+      deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate deploy inputs
+        env:
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
+        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-deploy
+
+      - name: Run main deploy
+        id: run_deploy
+        env:
+          SERVICES_CSV: ${{ needs.scope.outputs.services_csv }}
+          REQUIRES_DOWNTIME_APPROVAL: ${{ needs.scope.outputs.requires_downtime_approval }}
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
+        run: |
+          downtime_args=()
+          if [[ "$REQUIRES_DOWNTIME_APPROVAL" == "true" ]]; then
+            downtime_args+=(--approve-downtime-risk)
+          fi
+
+          node apps/new-engine-ctl/dist/cli.js deploy-main \
+            --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
+            --git-commit-sha "${{ github.event.workflow_run.head_sha }}" \
+            --services-csv "$SERVICES_CSV" \
+            "${downtime_args[@]}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Main Deploy"
+            echo "- Environment: ${{ steps.run_deploy.outputs.environment_name || 'n/a' }}"
+            echo "- Requested services: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}"
+            echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
+            echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"
+            echo "- Skipped services: ${{ steps.run_deploy.outputs.skipped_services_csv || 'n/a' }}"
+            echo "- Runtime provider outputs: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  verify:
+    needs: [scope, deploy]
+    if: needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: new-engine-ctl-dist
+          path: apps/new-engine-ctl/dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate verify inputs
+        env:
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
+        run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode main-verify
+
+      - name: Run main verify
+        env:
+          ENVIRONMENT_NAME: ${{ needs.deploy.outputs.environment_name }}
+          REQUESTED_SERVICES_CSV: ${{ needs.deploy.outputs.requested_services_csv }}
+          DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv }}
+          TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv }}
+          DEPLOYMENTS_JSON: ${{ needs.deploy.outputs.deployments_json }}
+          RUNTIME_PROVIDER_OUTPUTS_JSON: ${{ needs.deploy.outputs.runtime_provider_outputs_json }}
+          ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
+          ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
+          ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          ZANE_PRODUCTION_ENVIRONMENT_NAME: ${{ secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
+        run: |
+          node apps/new-engine-ctl/dist/cli.js verify \
+            --lane main \
+            --environment-name "$ENVIRONMENT_NAME" \
+            --requested-services-csv "${REQUESTED_SERVICES_CSV:-}" \
+            --deploy-services-csv "${DEPLOY_SERVICES_CSV:-}" \
+            --triggered-services-csv "${TRIGGERED_SERVICES_CSV:-}" \
+            --deployments-json-inline "${DEPLOYMENTS_JSON:-}" \
+            --runtime-provider-outputs-json "${RUNTIME_PROVIDER_OUTPUTS_JSON:-{}}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Main Verify"
+            echo "- Environment: ${{ needs.deploy.outputs.environment_name || 'n/a' }}"
+            echo "- Requested services: ${{ needs.deploy.outputs.requested_services_csv || 'n/a' }}"
+            echo "- Deploy services: ${{ needs.deploy.outputs.deploy_services_csv || 'n/a' }}"
+            echo "- Triggered services: ${{ needs.deploy.outputs.triggered_services_csv || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"

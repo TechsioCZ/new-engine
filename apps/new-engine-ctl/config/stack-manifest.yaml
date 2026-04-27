@@ -1,0 +1,185 @@
+# Stack manifest: service graph + deploy topology.
+# Ownership in this file:
+# - service identity and local compose metadata
+# - CI affected-path and deployability metadata
+# - lane/stage/dependency deployment topology
+#
+# Keep runtime providers, env materialization, and lane runtime reconciliation
+# policy in stack-inputs.yaml.
+#
+# Minimal common example (defaults omitted):
+# ci:
+#   ignore_path_globs: ["*.md", "plans/**"]
+# services:
+#   - id: medusa-be
+#     compose_service: medusa-be
+#     local:
+#       phase: backend
+#     ci:
+#       deployable: true
+#       affected_path_globs: ["docker/development/medusa-be/**"]
+#       zane:
+#         service_slug: medusa-be
+#         deploy_lanes: [preview, main]
+#         deploy_stage: 20
+#         service_dependencies: [medusa-db, medusa-valkey, medusa-minio, medusa-meilisearch]
+#   - id: n1
+#     compose_service: n1
+#     local:
+#       phase: frontend
+#     ci:
+#       deployable: true
+#       affected_path_globs: ["docker/development/n1/**"]
+#       zane:
+#         service_slug: n1
+#         deploy_lanes: [preview, main]
+#         deploy_stage: 25
+#         service_dependencies: [medusa-be]
+
+ci:
+  ignore_path_globs:
+    - "*.md"
+    - "*/README.md"
+    - "*/AGENTS.md"
+    - "*/CLAUDE.md"
+    - "plans/**"
+    - ".github/workflows/**"
+  global_runtime_rules:
+    - path_globs:
+        - ".dockerignore"
+      service_ids:
+        - "medusa-be"
+        - "n1"
+        - "zane-operator"
+        - "medusa-db"
+        - "medusa-minio"
+        - "medusa-meilisearch"
+        - "medusa-valkey"
+    - path_globs:
+        - "nx.json"
+        - "package.json"
+        - "pnpm-lock.yaml"
+        - "pnpm-workspace.yaml"
+        - "tsconfig.base.json"
+        - "tsconfig.json"
+      service_ids:
+        - "medusa-be"
+        - "n1"
+
+services:
+  - id: "medusa-db"
+    compose_service: "medusa-db"
+    kind: "infra"
+    local:
+      phase: "resources"
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/postgres/**"
+        - "scripts/apply-postgres-role-bootstrap.sh"
+      zane:
+        service_slug: "medusa-db"
+        clone_to_preview: false
+        deploy_lanes: ["preview", "main"]
+        deploy_stage: 5
+        downtime_risk: true
+
+  - id: "medusa-valkey"
+    compose_service: "medusa-valkey"
+    kind: "infra"
+    local:
+      phase: "resources"
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/medusa-valkey/**"
+      zane:
+        service_slug: "medusa-valkey"
+        deploy_lanes: ["preview", "main"]
+        deploy_stage: 15
+        downtime_risk: true
+
+  - id: "medusa-minio"
+    compose_service: "medusa-minio"
+    kind: "infra"
+    local:
+      phase: "resources"
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/medusa-minio/**"
+      zane:
+        service_slug: "medusa-minio"
+        deploy_lanes: ["preview", "main"]
+        deploy_stage: 15
+        downtime_risk: true
+
+  - id: "medusa-meilisearch"
+    compose_service: "medusa-meilisearch"
+    kind: "infra"
+    local:
+      phase: "resources"
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/medusa-meilisearch/**"
+      zane:
+        service_slug: "medusa-meilisearch"
+        deploy_lanes: ["preview", "main"]
+        deploy_stage: 15
+        downtime_risk: true
+
+  - id: "medusa-be"
+    compose_service: "medusa-be"
+    kind: "backend"
+    nx_projects:
+      - "medusa-be"
+    local:
+      phase: "backend"
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/medusa-be/**"
+        - "scripts/build-medusa.sh"
+      prepare:
+        preview_db: true
+      zane:
+        service_slug: "medusa-be"
+        deploy_lanes: ["preview", "main"]
+        deploy_stage: 20
+        service_dependencies: ["medusa-db", "medusa-valkey", "medusa-minio", "medusa-meilisearch"]
+
+  - id: "n1"
+    compose_service: "n1"
+    kind: "frontend"
+    nx_projects:
+      - "n1"
+    local:
+      phase: "frontend"
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/n1/**"
+      zane:
+        service_slug: "n1"
+        deploy_lanes: ["preview", "main"]
+        deploy_stage: 25
+        service_dependencies: ["medusa-be"]
+
+  - id: "zane-operator"
+    compose_service: "zane-operator"
+    kind: "operator"
+    nx_projects:
+      - "zane-operator"
+    local:
+      phase: "operator"
+      enabled_by_default: false
+    ci:
+      deployable: true
+      affected_path_globs:
+        - "docker/development/zane-operator/**"
+      zane:
+        service_slug: "zane-operator"
+        clone_to_preview: false
+        deploy_lanes: ["main"]
+        deploy_stage: 10

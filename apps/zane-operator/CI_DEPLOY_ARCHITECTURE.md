@@ -1,0 +1,271 @@
+# CI Deploy Architecture
+
+Last updated: 2026-03-18
+Scope: CI-driven preview and main deployment orchestration through `zane-operator`.
+
+## Authority
+
+- This file is the committed source of truth for active CI deploy behavior in this repo.
+- If active code or workflow behavior conflicts with this file, update the code or explicitly update this file first.
+- Broader architecture planning may exist outside this file, but CI deploy implementation must remain consistent with this committed contract.
+- Any change to this contract requires explicit user approval before implementation continues.
+- Any commit explicitly requested by the user must use Conventional Commits style.
+
+## Control Plane
+
+- CI is the source of deploy orchestration truth.
+- Built-in Zane preview-environment behavior is not sufficient for this monorepo and affected-service deployment model.
+- Zane is the deployment target, not the orchestration owner for previews in this repository.
+- `zane-operator` is the default CI-facing control-plane wrapper for Zane API calls.
+- Direct CI -> Zane deploy webhook calls are allowed only as an implementation detail or narrow exception that has been explicitly approved in this architecture.
+- `apps/new-engine-ctl` is the active repo-owned orchestration surface for prepare, preview/main deploy, verify, and preview teardown flows.
+- shell files may remain only as narrow helpers for validation, transport, or local convenience tasks; they are not the active deploy contract surface.
+
+## Required Inputs
+
+- required repo config: `apps/new-engine-ctl/config/stack-manifest.yaml`, `apps/new-engine-ctl/config/stack-inputs.yaml`
+- required workflow surfaces: `.github/workflows/zaneops-preview-after-ci.yml`, `.github/workflows/zaneops-main-after-ci.yml`, `.github/workflows/zaneops-preview-teardown.yml`
+- required active orchestration app: `apps/new-engine-ctl/**`
+- required operator/runtime surface: active `apps/zane-operator/**` endpoints used for environment resolution, env mutation, deploy trigger, verify, and runtime provisioning
+- required secrets/config must be validated before deploy starts: canonical Zane project/environment identity, authenticated Zane API credentials, and any lane-specific deploy secrets consumed by `prepare` or `deploy`
+
+## Operating Model
+
+- One canonical Zane project tracks the default branch / production lane.
+- PR CI creates or reuses a preview environment derived from that canonical project.
+- Preview environments clone the canonical service set except services explicitly marked as non-cloned in `apps/new-engine-ctl/config/stack-manifest.yaml`.
+- Preview baseline completeness is repo-owned metadata on the preview environment, not a guess from environment existence alone. The active key is `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`.
+- Current examples of non-cloned services are `medusa-db` and `zane-operator`.
+- Generic environment clone may initially copy non-cloned services, but preview baseline reconcile must archive them before preview deploy starts.
+- User-created helper/debug services may exist in preview environments and must not fail preview readiness.
+- CI updates only the affected services in that preview environment.
+- CI affected-service resolution is driven by `nx affected` plus manifest path-glob/runtime rules exposed through `apps/new-engine-ctl`.
+- CI injects env overrides produced by `prepare` or first-creation runtime provisioning only where required by the affected services.
+- Preview-cloned services must not receive shared Zane admin/operator credentials in their runtime env.
+- Preview-cloned service public URLs are repo-owned. Generic Zane clone/default URLs are drift and must be reconciled to the repo preview route contract before preview deploy proceeds.
+- Preview URL reconcile must be set-based: undesired cloned/default URLs are removed, and only the repo-owned preview URL set may remain before preview deploy proceeds.
+- Preview service spec drift is also repo-owned. Git source, builder, healthcheck, and resource limits for preview-cloned services must be reconciled from `apps/new-engine-ctl/config/stack-inputs.yaml` before baseline deploy proceeds.
+
+## Preview Deploy Contract
+
+1. Resolve the canonical Zane project identity from CI secrets/config, not from hardcoded workflow literals.
+2. Discover whether the preview environment for `pr_number` already exists.
+3. If it does not exist, create it through the approved control-plane path.
+4. Initial preview creation must be idempotent:
+   - environment existence alone does not mean preview creation is complete; the active orchestration surface must consult `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE`
+   - preview `prepare` must also be baseline-aware: narrow requested-service reruns against an incomplete preview environment must still ensure shared prerequisites needed by the expanded baseline deploy set
+   - if the environment already exists and `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=true`, preview creation passes without redeploying
+   - preview DB ensure and credential generation must also be idempotent
+   - services excluded from preview cloning must be archived from the preview environment before baseline deploy starts
+   - preview-cloned service spec drift (Git source, builder, healthcheck, resource limits, and repo-owned preview URLs) must be converged before baseline deploy starts
+   - user-created helper/debug services do not block reuse
+5. On initial preview creation or baseline replay, deploy services in manifest stack order.
+6. Provisioning that depends on preview service runtime may only run after the relevant preview service is deployed and healthy.
+7. Runtime-dependent provisioning on first preview creation or baseline replay is allowed only through an explicit contract-owned provider path.
+   - Current example: scoped Meilisearch keys are provisioned only after the preview search service is healthy.
+8. After first successful preview creation or baseline replay, subsequent PR updates are redeploy-only in manifest stack order.
+9. Subsequent PR updates should reuse existing preview env values held in Zane; automatic reprovisioning is not required.
+10. If a contract or env shape change requires reprovisioning beyond normal redeploy behavior, that is a manual intervention path unless explicitly automated later.
+   - Consumer-only redeploys may reuse already-persisted contract-owned provider outputs from healthy target deployments instead of rerunning the provider when those outputs are already present on the affected consumers.
+11. Resolve deploy targets for affected services inside that preview environment.
+12. Obtain the per-service deploy key/webhook/token required to trigger deploys for those services.
+13. Apply env overrides derived from `prepare` or first-creation runtime provisioning before or as part of the deploy trigger.
+14. For preview, write `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA` to the preview environment before deploy stages start.
+15. For preview baseline runs, write `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE=false` before deploy stages start and advance it to `true` only after successful baseline completion.
+16. Trigger deploy only for affected services plus any explicitly coupled dependents defined in the manifest, except that baseline runs must target the full manifest-allowed preview clone set in manifest stack order.
+17. After successful preview deploy completion, update `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` to the target commit SHA; verification remains read-only.
+18. Persist enough metadata in job outputs for downstream verification, but do not emit secrets to summaries/logs.
+
+## Preview Decision Table
+
+- environment missing: create preview environment with deploy disabled, archive preview-excluded services, reconcile baseline cloned services, run first-creation deploy flow in manifest stack order, allow contract-owned runtime provisioning after prerequisite services are healthy
+- environment exists and baseline incomplete: archive preview-excluded services, reconcile missing preview-cloned services and repo-owned preview URLs, rerun the first-creation deploy flow in manifest stack order, and mark baseline complete only after success
+- environment exists and baseline complete: treat as redeploy-only flow, reuse existing preview env values in Zane, do not automatically reprovision random-once or runtime-generated values
+- environment exists with safe drift: auto-reconcile only missing preview-cloned services, repo-owned preview URLs, missing contract-owned persisted inputs, or missing deploy-target metadata required for normal deploy flow, then continue with the appropriate first-creation or redeploy path
+- environment exists with manual-only drift: stop and require manual intervention for reprovisioning caused by contract/key-scope changes, structural env changes requiring rotation, or state migration
+- preview-excluded services must be removed during baseline create/replay; user-created helper/debug services remain warning-only for readiness and verification unless a later explicit contract changes that behavior
+
+## Main Deploy Contract
+
+1. Resolve the canonical production Zane project/environment from CI secrets/config.
+2. Resolve deploy targets only for affected services.
+3. Obtain the per-service deploy key/webhook/token required for those services.
+4. Main currently has no active shared-resource `prepare` phase. Runtime-provider work belongs inside deploy orchestration, not before it.
+5. Consumer-only main deploys may reuse already-persisted contract-owned provider outputs from healthy target deployments when those outputs are already present on the affected consumers; source-service deploys or missing persisted values still drive reconciliation.
+6. Trigger deploys without preview-only env mutation logic.
+7. Each deploy trigger must request cleanup of any queued or currently building deployment for the same service before starting the new deployment, so newer desired state replaces stale in-flight work for that service.
+8. Preserve the same masking and no-summary secret policy used in preview.
+9. Resolve downtime-risk once after affected-service filtering and require explicit manual approval before any main-lane deploy that includes downtime-risk shared services.
+10. Shared-resource bootstrap ordering must be preserved inside the deploy plan. Current example: if bootstrap-relevant `medusa-db` changes are in scope, `medusa-db` must converge before `zane-operator`.
+
+## Git Resolution Contract
+
+- Main-lane Git deploys must be pinned to the exact CI commit SHA being promoted.
+- Preview CI deploys must target the exact workflow head commit SHA and persist that intent on the preview environment as `ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA`.
+- Preview scope must diff from `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` when that metadata exists; if it is missing or empty, fall back to the PR base SHA.
+- `ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE` is the active repo-owned marker for preview baseline completion. A preview environment may exist while still requiring baseline replay.
+- After a successful preview deploy stage completes, the preview environment must advance `ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA` to the target commit SHA.
+- Preview verification is read-only and must not persist preview commit metadata.
+- Out-of-band manual reruns in Zane are drift relative to the CI-owned preview commit metadata unless a later explicit contract changes that ownership.
+
+## Preview Environment Identity
+
+- Preview environments are keyed by PR number and must be discoverable idempotently.
+- Re-running the same PR workflow must not create duplicate preview environments.
+- Closing the PR should eventually tear down the preview environment and its preview DB.
+- Teardown closes the whole preview environment created for the PR; it does not selectively archive services inside it.
+- The preview environment naming/lookup rule must live in the active orchestration surface, not inline in workflow YAML.
+- Preview environment clone must remain non-deploying on creation; baseline deploy ownership stays with the repo orchestration surface rather than the generic Zane clone step.
+
+## Preview Route Identity
+
+- Preview public service URLs are repo-owned, not Zane-generated.
+- The preview route contract is `[preview-environment]-[project]-[service][affix].[domain]`, where `[affix]` is the same optional suffix already used by the canonical environment route contract.
+- Preview environment reconcile must upsert those URLs after clone/reuse before preview deploy depends on them.
+
+## Service Identity Contract
+
+- `apps/new-engine-ctl/config/stack-manifest.yaml` is the source of truth for CI service mapping metadata.
+- Each deployable service must declare the metadata needed to map `service_id` -> `service_slug`.
+- Minimum required Zane metadata per deployable:
+  - `service_slug`
+  - optional `clone_to_preview` marker; omitted means cloned into preview by default
+  - deploy lane eligibility (`preview`, `main`, or both)
+  - whether main-lane deploy of the service carries downtime risk and therefore requires manual approval
+  - optional coupled dependents that should deploy together
+- Runtime-provider consumer mapping is not part of `stack-manifest.yaml`; it is owned by `apps/new-engine-ctl/config/stack-inputs.yaml` under `runtime_providers[*].outputs[*].target_envs`.
+- Active manifest/script/operator payloads use exactly two service identity fields:
+  - `service_id`: stable repo/manifest identity
+  - `service_slug`: stable upstream Zane identity
+- No other service-identity fields belong in the active deploy contract.
+
+## Deploy Input Contract
+
+- The shared deploy-input contract lives in `apps/new-engine-ctl/config/stack-inputs.yaml`.
+- Preview first-creation random-once secrets are CI-generated from that contract and land on exactly two planes only:
+  service-shared secrets overwrite the existing preview environment shared env keys already defined by the project/env contract when the preview environment is first created
+  service-specific secrets overwrite the existing service env keys those services actually consume when the preview environment is first created
+- Those generated preview secrets must be created exactly once per preview environment creation and reused for all later preview deploy/verify runs unless the preview environment is recreated.
+- Baseline deploy must not invent new preview env variable names beyond explicit `ZANE_OPERATOR_PREVIEW_*` metadata keys. It must only overwrite the existing shared preview env keys and existing service env keys defined by the contract on first creation, then reuse those stored preview values on later baseline replays or redeploy-only runs.
+- The contract for those preview shared/service env rewrites is repo-owned in `apps/new-engine-ctl/config/stack-inputs.yaml` under `preview_runtime_reconciliation`; `zane-operator` executes typed source resolution from CTL payloads and must not grow a second hardcoded mapping table.
+- The contract for lane-specific service-spec normalization is also repo-owned in `apps/new-engine-ctl/config/stack-inputs.yaml` under `service_reconciliation`; preview environment resolve consumes the preview lane slice, while the same file remains the source of truth for main-lane build-stage policy.
+- That service-spec contract does not own deployment target commit pinning. Preview target commit selection remains deploy metadata owned by `apps/new-engine-ctl`, while preview Git source reconcile may normalize only repository/branch/git-app shape.
+- That section should stay lean: source-sync behavior is the default for preview-cloned services, and YAML entries should only be needed for non-default policy such as lane-specific build-stage targets.
+- Current lane-specific build-stage policy in that contract: `medusa-be` and `n1` use `ci-dev` for preview and `prod` for main.
+- Workflow-level concurrency may cancel superseded CI runs, but deployment ownership still lives in CTL: when a wait is interrupted, only the currently waited deployments that the interrupted stage actually triggered should be canceled.
+- Preview DB credentials produced by `prepare`/preview DB ensure are part of that shared-env plane and must overwrite the existing `MEDUSA_APP_DB_*` preview env keys before preview deploy depends on them.
+- Preview shared host keys are part of that same plane. The active preview contract keys are `MEDUSA_DB_HOST`, `MEDUSA_VALKEY_HOST`, and `MEDUSA_MEILISEARCH_HOST`; preview deploy must reconcile them from the canonical source/preview service topology before deploy or verify depends on them.
+- The deploy path must support prepared inputs produced before deploy starts.
+  - Current example: preview DB credentials returned by `prepare`.
+- The deploy path must support runtime-provisioned inputs produced only after a prerequisite service is healthy.
+  - Current example: scoped Meili API credentials produced after the search service is healthy.
+- Public client-facing outputs must flow through manifest-defined target env vars, not hardcoded workflow YAML.
+- Subsequent preview redeploys should reuse existing preview env values held in Zane and do not require automatic reprovisioning.
+- Main lane must not model runtime-provider outputs as unconditional `prepare` outputs.
+- The active deploy orchestration surface owns the mapping from prepared or runtime-provisioned outputs to Zane env var updates.
+- On redeploy-only preview runs, verification must still prove that required persisted contract-owned inputs are present on affected consumers even when those inputs were not regenerated in the current run.
+- Main and preview consumer-only deploys should prefer reuse of persisted contract-owned provider outputs already present on healthy affected consumers; provider reruns are required only when the source service is in scope or those persisted values are missing.
+
+## Secret And Output Contract
+
+- Cross-job propagation is allowed when operationally required for deploy.
+- Runtime-provider output propagation between deploy and verify/render uses the generic output bag:
+  - `runtime_provider_outputs_json`
+  - `runtime_provider_output_keys_csv`
+- Generic deploy/verify/render workflow wiring must not depend on Meili-only output field names.
+- Every sensitive value written to `GITHUB_OUTPUT` must be masked first.
+- Sensitive values must never be echoed in transformed or summarized form.
+- The deploy stage may read sensitive cross-job outputs, but it must not republish them.
+- Required Zane API credentials/secrets must be validated before deploy starts.
+
+## Failure Handling Contract
+
+- `scope` failure: stop immediately; do not guess affected services or deploy targets
+- `prepare` failure: stop before deploy; partial prepare outputs may be discarded and must not trigger deploy
+- preview environment create/reconcile failure: stop; retry is allowed only if the active orchestration surface is designed to converge safely
+- deploy trigger failure after partial service deploys: stop and verify actual remote state before any retry; retries must remain idempotent and must not silently regenerate random-once or runtime-provisioned secrets
+- runtime provider failure: stop the affected lane unless the provider is explicitly optional in the active contract; do not continue with incomplete required env mutation
+- verification failure: treat deploy as incomplete; require investigation of remote state before retry or manual intervention
+- manual intervention paths must be used for structural drift, reprovisioning after contract changes, or any case where retry would mutate state beyond the normal converge contract
+
+## Runtime Provisioning Contract
+
+- Runtime-dependent provisioning must not be ad hoc inside workflow YAML.
+- Runtime-dependent provisioning must be driven by `apps/new-engine-ctl/config/stack-inputs.yaml`, consumed by `apps/new-engine-ctl`, and enforced by the active orchestration surface and `zane-operator`.
+- Operator-side runtime provisioning must use a target-environment-reachable service address. For preview services this means a preview-scoped internal/global private address, not the canonical environment service alias and not the public preview route.
+- The only intended local-scope exception is service-to-service runtime inside the same target environment. Preview shared/service env values consumed by preview services may still use the stable local private alias (`service_network_alias` / `ZANE_PRIVATE_DOMAIN`) when the consumer and provider are on the same preview environment network.
+- `zane-operator` is responsible only for provisioners that require authenticated Zane inspection or access to a running service.
+- `prepare` is not a runtime-provider phase. Runtime providers must run only when their source service is already deployed and healthy in the current target environment.
+- The contract must remain provider-oriented rather than product-name-oriented.
+  - Current examples: a Meili API credentials provider for browser/backend consumers and a Medusa publishable-key provider for frontend consumers.
+- Provider definitions may be prepared ahead of implementation, but inactive providers must stay explicitly non-runnable until their upstream service contract exists.
+
+## Required Active Surface
+
+- Keep workflow YAML thin; active deploy logic belongs in `apps/new-engine-ctl/**` and `apps/zane-operator/**`.
+- Local/manual shell helpers may exist under `scripts/dev/*`, but they are not part of the active CI deploy contract surface.
+- Deploy responsibilities must stay explicit and testable:
+  - Zane environment discovery/create/update
+  - deploy-target/deploy-key resolution
+  - env override application
+  - deploy trigger
+  - deploy verification
+- Route authenticated Zane API interactions through `zane-operator` by default.
+- Local/manual helper flows may remain override-driven. Without an explicit per-service desired-revision snapshot contract, local branch-based deploy/verify logic must stay conservative and must not guess a single deterministic desired remote state for all services.
+
+## Verification Contract
+
+Preview verification must prove:
+- the target preview environment exists
+- the preview environment contains the expected cloned service set
+- preview-excluded services are absent after baseline create/replay
+- affected services were the ones targeted for deploy
+- required prepared inputs reached the services that consume them
+- required runtime-provisioned inputs reached the services that consume them
+- on redeploy-only preview runs, required persisted contract-owned env inputs are still present on affected consumers even when the current run did not regenerate them
+- first-creation-only runtime provisioning ran only after its prerequisite service was healthy
+- deploy trigger completed without leaking secrets
+- user-created helper/debug services are warning-only and must not fail verification
+
+Main verification must prove:
+- only intended services were targeted
+- no preview-only env overrides were applied
+- deploy trigger completed without leaking secrets
+
+## Do Not Assume
+
+- Preview deploy and verify are active workflow paths; validate the active orchestration surface and `zane-operator` behavior before changing the contract.
+- `zane-operator` actively owns authenticated Zane gateway behavior implemented in active code, including preview DB lifecycle, environment resolution/archive, target resolution, env mutation, deploy trigger, deploy verify, and runtime-provider execution requested by CTL.
+- Local `mise` orchestration is not the CI decision engine.
+- `nx affected` is CI-only and must not drive local runtime behavior.
+
+## Required Read Set
+
+- `apps/zane-operator/CI_DEPLOY_ARCHITECTURE.md`
+- `apps/new-engine-ctl/NEW_ENGINE_CTL_ARCHITECTURE.md`
+- `apps/new-engine-ctl/config/stack-inputs.yaml`
+- `apps/new-engine-ctl/config/stack-manifest.yaml`
+- `.github/workflows/zaneops-preview-after-ci.yml`
+- `.github/workflows/zaneops-main-after-ci.yml`
+- `.github/workflows/zaneops-preview-teardown.yml`
+- active `apps/new-engine-ctl/**` prepare/deploy/verify/teardown command and orchestration surface
+- active `apps/new-engine-ctl/**` scope/manifest command and config-loading surface
+- active `apps/new-engine-ctl/**` `check-workflow-inputs` command surface
+- active `apps/zane-operator/**` API surface if `zane-operator` is extended for deploy orchestration
+
+## Non-Goals
+
+- Do not redesign local `mise` developer flow.
+- Do not move deploy logic into workflow YAML.
+- Do not invent a different preview orchestration model without updating this file first.
+
+## Completion Gate
+
+Do not treat CI deploy implementation as complete until:
+- the preview/main deploy contract above is implemented in the active orchestration surface (`apps/new-engine-ctl` plus `apps/zane-operator` where authenticated execution is required)
+- active workflows call that orchestration surface directly, without a superseded shell deploy wrapper
+- obsolete placeholder deploy/verify jobs are removed
+- this file and active workflow behavior match exactly
+- `MEDUSA_MEILISEARCH_MASTER_KEY` remains shared infrastructure state for the preview Meilisearch service and operator-side key provisioning only.
+- Application consumers do not read the master key directly: `medusa-be` gets the provisioned backend key on `MEILISEARCH_API_KEY`, and `n1` gets the provisioned frontend key on `NEXT_PUBLIC_MEILISEARCH_API_KEY`.
+- Runtime service config must not fall back from scoped keys to the Meilisearch master key.

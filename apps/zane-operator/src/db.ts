@@ -138,19 +138,14 @@ function assertSafeTargetDatabaseName(dbName: string, config: AppConfig): void {
   }
 }
 
-function buildDatabaseUrl(databaseUrl: string, databaseName: string): string {
-  const parsedUrl = new URL(databaseUrl)
-  parsedUrl.pathname = `/${databaseName}`
-  return parsedUrl.toString()
-}
-
 async function withDatabaseClientByUrl<T>(
   databaseUrl: string,
   databaseName: string,
   operation: (databaseSql: Bun.SQL) => Promise<T>,
 ): Promise<T> {
   const databaseSql = new SQL({
-    url: buildDatabaseUrl(databaseUrl, databaseName),
+    url: databaseUrl,
+    database: databaseName,
     max: 4,
     idleTimeout: 10,
     connectionTimeout: 10,
@@ -213,6 +208,20 @@ async function grantReadWriteOnSchema(
 
 interface SchemaOwnerRole {
   owner: string
+}
+
+async function getSchemaOwnerRole(
+  databaseSql: Bun.SQL,
+  schemaName: string,
+): Promise<string | null> {
+  const rows = await databaseSql<SchemaOwnerRole[]>`
+    SELECT pg_get_userbyid(n.nspowner) AS owner
+    FROM pg_namespace n
+    WHERE n.nspname = ${schemaName}
+    LIMIT 1
+  `
+
+  return rows[0]?.owner ?? null
 }
 
 async function listSchemaOwnerRoles(databaseSql: Bun.SQL, schemaName: string): Promise<string[]> {
@@ -338,7 +347,6 @@ DECLARE
   routine RECORD;
   custom_type RECORD;
 BEGIN
-${schemaOwnerBlock}
   FOR rel IN
     SELECT c.oid, c.relkind, n.nspname, c.relname
     FROM pg_class c
@@ -392,14 +400,11 @@ ${schemaOwnerBlock}
   LOOP
     EXECUTE format('ALTER TYPE %s OWNER TO %I', custom_type.identity, ${quoteLiteral(targetRole)});
   END LOOP;
+${schemaOwnerBlock}
 END
 $do$;
 `,
   )
-}
-
-async function transferSchemaOwnershipToRole(databaseSql: Bun.SQL, schemaName: string, targetRole: string): Promise<void> {
-  await transferObjectsOwnership(databaseSql, schemaName, targetRole)
 }
 
 async function grantAppRoleOnSchema(databaseSql: Bun.SQL, schemaName: string, appRoleName: string): Promise<void> {
@@ -410,6 +415,66 @@ async function grantAppRoleOnSchema(databaseSql: Bun.SQL, schemaName: string, ap
   await databaseSql.unsafe(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`)
   await databaseSql.unsafe(`GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`)
   await databaseSql.unsafe(`GRANT EXECUTE ON ALL ROUTINES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`)
+}
+
+async function withRole<T>(
+  databaseSql: Bun.SQL,
+  roleName: string,
+  operation: (roleSql: Bun.ReservedSQL) => Promise<T>,
+): Promise<T> {
+  const reservedSql = await databaseSql.reserve()
+  const quotedRoleName = quoteIdentifier(roleName)
+
+  try {
+    await reservedSql.unsafe(`SET ROLE ${quotedRoleName};`)
+    return await operation(reservedSql)
+  } finally {
+    try {
+      await reservedSql.unsafe("RESET ROLE;")
+    } finally {
+      reservedSql.release()
+    }
+  }
+}
+
+async function grantAppRoleDefaultPrivilegesOnSchemaWithCurrentRole(
+  databaseSql: Bun.SQL,
+  schemaName: string,
+  appRoleName: string,
+  devRoleName: string,
+): Promise<void> {
+  const quotedSchemaName = quoteCatalogIdentifier(schemaName)
+  const quotedAppRoleName = quoteIdentifier(appRoleName)
+  const quotedDevRoleName = quoteIdentifier(devRoleName)
+
+  await databaseSql.unsafe(
+    `ALTER DEFAULT PRIVILEGES IN SCHEMA ${quotedSchemaName} GRANT ALL PRIVILEGES ON TABLES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
+  )
+  await databaseSql.unsafe(
+    `ALTER DEFAULT PRIVILEGES IN SCHEMA ${quotedSchemaName} GRANT ALL PRIVILEGES ON SEQUENCES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
+  )
+  await databaseSql.unsafe(
+    `ALTER DEFAULT PRIVILEGES IN SCHEMA ${quotedSchemaName} GRANT EXECUTE ON ROUTINES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
+  )
+}
+
+async function syncAppSchemaGrants(
+  databaseSql: Bun.SQL,
+  schemaName: string,
+  appRoleName: string,
+  devRoleName: string,
+): Promise<void> {
+  await withRole(databaseSql, appRoleName, async (roleSql) => {
+    await grantAppRoleOnSchema(roleSql, schemaName, appRoleName)
+    await grantReadWriteOnSchema(roleSql, schemaName, devRoleName, true)
+    await grantReadWriteDefaultPrivilegesOnSchema(roleSql, schemaName, devRoleName)
+    await grantAppRoleDefaultPrivilegesOnSchemaWithCurrentRole(
+      roleSql,
+      schemaName,
+      appRoleName,
+      devRoleName,
+    )
+  })
 }
 
 async function transferOwnedObjectsInSchemaToRole(
@@ -515,7 +580,7 @@ async function ensurePreviewAppRole(
   }
 
   await sql.unsafe(
-    `ALTER ROLE ${quoteIdentifier(appRoleName)} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS INHERIT PASSWORD ${quoteLiteral(appPassword)};`,
+    `ALTER ROLE ${quoteIdentifier(appRoleName)} WITH LOGIN NOCREATEDB NOCREATEROLE INHERIT PASSWORD ${quoteLiteral(appPassword)};`,
   )
 
   // Allow preview owner to manage default privileges for app role objects.
@@ -544,35 +609,43 @@ async function syncPreviewDatabaseGrants(
 
   await sql.unsafe(`REVOKE ALL PRIVILEGES ON DATABASE ${quoteIdentifier(dbName)} FROM ${quoteIdentifier(appRoleName)};`)
   await sql.unsafe(`REVOKE CONNECT, TEMPORARY ON DATABASE ${quoteIdentifier(dbName)} FROM PUBLIC;`)
-  await sql.unsafe(`GRANT CONNECT ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(appRoleName)};`)
+  await sql.unsafe(`GRANT CONNECT, CREATE ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(appRoleName)};`)
   await sql.unsafe(`GRANT CONNECT ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(devRole)};`)
   await setRoleSearchPath(sql, appRoleName, dbName, config.appSchema)
 
   await withDatabaseClient(config, dbName, async (dbSql) => {
     await lockDownPublicSchema(dbSql)
     await ensureSchemaExists(dbSql, config.appSchema, appRoleName)
-    await transferSchemaOwnershipToRole(dbSql, config.appSchema, appRoleName)
-    await grantAppRoleOnSchema(dbSql, config.appSchema, appRoleName)
-    await revokeAppRoleOutsideSchema(dbSql, appRoleName, config.previewOwner, config.appSchema)
+    const currentSchemaOwner = await getSchemaOwnerRole(dbSql, config.appSchema)
+    if (currentSchemaOwner === config.previewOwner) {
+      await dbSql.unsafe(
+        `GRANT USAGE, CREATE ON SCHEMA ${quoteCatalogIdentifier(config.appSchema)} TO ${quoteIdentifier(appRoleName)};`,
+      )
+    }
+    await transferOwnedObjectsInSchemaToRole(
+      dbSql,
+      config.appSchema,
+      config.previewOwner,
+      appRoleName,
+    )
+    await syncAppSchemaGrants(
+      dbSql,
+      config.appSchema,
+      appRoleName,
+      devRole,
+    )
 
     const schemas = await listNonSystemSchemas(dbSql)
     for (const schemaName of schemas) {
+      if (schemaName === config.appSchema) {
+        continue
+      }
+
       await grantReadWriteOnSchema(dbSql, schemaName, devRole, true)
       await grantReadWriteDefaultPrivilegesOnSchema(dbSql, schemaName, devRole)
     }
 
-    const quotedSchemaName = quoteCatalogIdentifier(config.appSchema)
-    const quotedAppRoleName = quoteIdentifier(appRoleName)
-    const quotedDevRoleName = quoteIdentifier(devRole)
-    await dbSql.unsafe(
-      `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedAppRoleName} IN SCHEMA ${quotedSchemaName} GRANT ALL PRIVILEGES ON TABLES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
-    )
-    await dbSql.unsafe(
-      `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedAppRoleName} IN SCHEMA ${quotedSchemaName} GRANT ALL PRIVILEGES ON SEQUENCES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
-    )
-    await dbSql.unsafe(
-      `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedAppRoleName} IN SCHEMA ${quotedSchemaName} GRANT EXECUTE ON ROUTINES TO ${quotedAppRoleName}, ${quotedDevRoleName};`,
-    )
+    await revokeAppRoleOutsideSchema(dbSql, appRoleName, config.previewOwner, config.appSchema)
   })
 }
 
