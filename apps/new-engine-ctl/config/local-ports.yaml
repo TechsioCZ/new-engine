@@ -1,0 +1,96 @@
+local_ports:
+  runtime_env_file: .docker_data/dev-runtime.env
+  endpoints:
+    - id: medusa-be
+      env_var: DC_MEDUSA_BE_PUBLIC_PORT
+      preferred_port: 9000
+      description: Medusa backend HTTP/API
+    - id: medusa-be-admin
+      env_var: DC_MEDUSA_BE_ADMIN_PUBLIC_PORT
+      preferred_port: 9009
+      description: Medusa backend admin dev runtime
+    - id: medusa-be-hmr
+      env_var: DC_MEDUSA_BE_HMR_PUBLIC_PORT
+      preferred_port: 24678
+      description: Medusa backend Vite HMR
+    - id: n1
+      env_var: DC_N1_PUBLIC_PORT
+      preferred_port: 8000
+      description: N1 storefront
+    - id: valkey
+      env_var: DC_VALKEY_PUBLIC_PORT
+      preferred_port: 6379
+      description: Valkey host access
+    - id: minio-console
+      env_var: DC_MINIO_CONSOLE_PUBLIC_PORT
+      preferred_port: 9003
+      description: MinIO console
+    - id: minio-api
+      env_var: DC_MINIO_API_PUBLIC_PORT
+      preferred_port: 9004
+      description: MinIO S3 API
+    - id: meilisearch
+      env_var: DC_MEILISEARCH_PUBLIC_PORT
+      preferred_port: 7700
+      description: Meilisearch host access
+    - id: postgres
+      env_var: DC_POSTGRES_PUBLIC_PORT
+      preferred_port: 5433
+      description: Postgres host access
+    - id: zane-operator
+      env_var: DC_ZANE_OPERATOR_PUBLIC_PORT
+      preferred_port: 8082
+      description: zane-operator API
+    - id: engine-db
+      env_var: DC_ENGINE_DB_PUBLIC_PORT
+      preferred_port: 3306
+      description: Legacy MariaDB host access
+    - id: adminer
+      env_var: DC_ADMINER_PUBLIC_PORT
+      preferred_port: 8081
+      description: Adminer UI
+    - id: caddy-http
+      env_var: DC_CADDY_HTTP_PUBLIC_PORT
+      preferred_port: 80
+      description: Caddy HTTP
+    - id: caddy-https
+      env_var: DC_CADDY_HTTPS_PUBLIC_PORT
+      preferred_port: 443
+      protocols: [tcp, udp]
+      description: Caddy HTTPS and HTTP/3
+  derived_env:
+    - env_var: DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL
+      value: http://localhost:${DC_MEDUSA_BE_PUBLIC_PORT}
+      replace_when_current:
+        - http://localhost:9000
+      description: Browser URL used by N1 for Medusa
+    - env_var: DC_N1_NEXT_PUBLIC_MEILISEARCH_URL
+      value: http://localhost:${DC_MEILISEARCH_PUBLIC_PORT}
+      replace_when_current:
+        - http://localhost:7700
+      description: Browser URL used by N1 for Meilisearch
+    - env_var: DC_N1_NEXT_PUBLIC_SITE_URL
+      value: http://localhost:${DC_N1_PUBLIC_PORT}
+      replace_when_current:
+        - http://localhost:8000
+      description: Browser URL used by N1 for its own origin
+    - env_var: DC_STORE_CORS
+      value: http://localhost:${DC_N1_PUBLIC_PORT},http://localhost:8080,https://n1.medusa.localhost,http://localhost:${DC_MINIO_API_PUBLIC_PORT},https://docs.medusajs.com
+      replace_when_current:
+        - http://localhost:8000,http://localhost:8080,https://n1.medusa.localhost,http://localhost:9004,https://docs.medusajs.com
+      description: Medusa store CORS origins for local browser ports
+    - env_var: DC_ADMIN_CORS
+      value: http://localhost:5173,https://admin.medusa.localhost,http://localhost:${DC_MEDUSA_BE_PUBLIC_PORT},https://docs.medusajs.com
+      replace_when_current:
+        - http://localhost:5173,https://admin.medusa.localhost,http://localhost:9000,https://docs.medusajs.com
+      description: Medusa admin CORS origins for local browser ports
+    - env_var: DC_AUTH_CORS
+      value: http://localhost:5173,https://admin.medusa.localhost,http://localhost:${DC_MEDUSA_BE_PUBLIC_PORT},https://docs.medusajs.com
+      replace_when_current:
+        - http://localhost:5173,https://admin.medusa.localhost,http://localhost:9000,https://docs.medusajs.com
+      description: Medusa auth CORS origins for local browser ports
+    - env_var: MISE_DEV_MEILI_URL
+      value: http://127.0.0.1:${DC_MEILISEARCH_PUBLIC_PORT}
+      replace_when_current:
+        - http://127.0.0.1:7700
+      description: Host URL used by Mise Meilisearch provisioning

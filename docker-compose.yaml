@@ -98,9 +98,9 @@ x-medusa-base: &medusa-base
   restart: unless-stopped
   container_name: wr_medusa_be
   ports:
-    - "127.0.0.1:9000:9000"
-    - "127.0.0.1:9009:9009"
-    - "127.0.0.1:24678:24678"
+    - "127.0.0.1:${DC_MEDUSA_BE_PUBLIC_PORT:-9000}:9000"
+    - "127.0.0.1:${DC_MEDUSA_BE_ADMIN_PUBLIC_PORT:-9009}:9009"
+    - "127.0.0.1:${DC_MEDUSA_BE_HMR_PUBLIC_PORT:-24678}:24678"
   depends_on:
     medusa-db:
       condition: service_healthy
@@ -166,7 +166,7 @@ services:
       medusa-be:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8000:3000"
+      - "127.0.0.1:${DC_N1_PUBLIC_PORT:-8000}:3000"
     networks:
       - internal
     environment:
@@ -192,7 +192,7 @@ services:
       interval: 1s
       retries: 5
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${DC_VALKEY_PUBLIC_PORT:-6379}:6379"
     volumes:
       - medusa-valkey-data:/data
     networks:
@@ -205,8 +205,8 @@ services:
       dockerfile: Dockerfile
     container_name: wr_medusa_minio
     ports:
-      - "127.0.0.1:9003:9003"
-      - "127.0.0.1:9004:9004"
+      - "127.0.0.1:${DC_MINIO_CONSOLE_PUBLIC_PORT:-9003}:9003"
+      - "127.0.0.1:${DC_MINIO_API_PUBLIC_PORT:-9004}:9004"
     volumes:
       - medusa-minio-data:/data
     networks:
@@ -222,7 +222,7 @@ services:
       dockerfile: Dockerfile
     container_name: wr_medusa_meilisearch
     ports:
-      - "127.0.0.1:7700:7700"
+      - "127.0.0.1:${DC_MEILISEARCH_PUBLIC_PORT:-7700}:7700"
     volumes:
       - medusa-meilisearch-data:/meili_data
     networks:
@@ -241,7 +241,7 @@ services:
     restart: unless-stopped
     command: ["/usr/local/bin/run-postgres-with-bootstrap.sh"]
     ports:
-      - "127.0.0.1:${DC_POSTGRES_PUBLIC_PORT:-5432}:5432"
+      - "127.0.0.1:${DC_POSTGRES_PUBLIC_PORT:-5433}:5432"
     volumes:
       - ${DC_POSTGRES_VOLUME_DATA:-./.docker_data/db18}:/var/lib/postgresql
     networks:
@@ -292,7 +292,7 @@ services:
       MYSQL_PASSWORD: 1234
     command: --sql_mode="NO_ENGINE_SUBSTITUTION"
     ports:
-      - "127.0.0.1:3306:3306"
+      - "127.0.0.1:${DC_ENGINE_DB_PUBLIC_PORT:-3306}:3306"
     volumes:
       - ./.docker_data/dbmysql:/var/lib/mysql
       - ./docker/development/mariadb/wr.cnf:/etc/mysql/conf.d/wr.cnf
@@ -302,7 +302,7 @@ services:
     image: adminer
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8081:8080"
+      - "127.0.0.1:${DC_ADMINER_PUBLIC_PORT:-8081}:8080"
     depends_on:
       - medusa-db
     networks:
@@ -318,9 +318,9 @@ services:
     cap_add:
       - NET_ADMIN
     ports:
-      - "127.0.0.1:80:80"
-      - "127.0.0.1:443:443"
-      - "127.0.0.1:443:443/udp"
+      - "127.0.0.1:${DC_CADDY_HTTP_PUBLIC_PORT:-80}:80"
+      - "127.0.0.1:${DC_CADDY_HTTPS_PUBLIC_PORT:-443}:443"
+      - "127.0.0.1:${DC_CADDY_HTTPS_PUBLIC_PORT:-443}:443/udp"
     networks:
       - internal
     volumes:

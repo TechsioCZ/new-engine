@@ -4,6 +4,7 @@ import { createBootstrapCommand } from "./commands/bootstrap.js"
 import { createCheckWorkflowInputsCommand } from "./commands/check-workflow-inputs.js"
 import { createDeployMainCommand } from "./commands/deploy-main.js"
 import { createDeployPreviewCommand } from "./commands/deploy-preview.js"
+import { createLocalPortsCommand } from "./commands/local-ports.js"
 import { createManifestCommand } from "./commands/manifest.js"
 import { createMeiliApiCredentialsCommand } from "./commands/meili-api-credentials.js"
 import { createPlanCommand } from "./commands/plan.js"
@@ -25,6 +26,7 @@ async function main(): Promise<void> {
   program.addCommand(createBootstrapCommand())
   program.addCommand(createDeployMainCommand())
   program.addCommand(createDeployPreviewCommand())
+  program.addCommand(createLocalPortsCommand())
   program.addCommand(createManifestCommand())
   program.addCommand(createMeiliApiCredentialsCommand())
   program.addCommand(createPlanCommand())

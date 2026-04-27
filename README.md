@@ -42,6 +42,7 @@
     5. `n1`
 
     Common follow-up tasks stay on the public `mise` surface:
+    * resolve local host ports without starting the stack: `mise run dev:ports`
     * rerun first-time bootstrap from the top: `mise run dev:init`
     * non-destructive restart from a stopped stack: `mise run dev:fresh`
     * stop the stack: `mise run dev:down`
@@ -52,10 +53,14 @@
     * verify hardened Postgres grants: `mise run dev:postgres:grants:verify`
 
     During `dev` startup, `.env` handling is opinionated:
+    * host-published Docker ports are resolved before Compose `up`/`run` commands and written to `.docker_data/dev-runtime.env`
+    * if a preferred port from `.env` or `apps/new-engine-ctl/config/local-ports.yaml` is busy, the next available port is selected automatically
+    * container-to-container runtime envs stay stable; for example `DC_MEDUSA_APP_DB_HOST=medusa-db` and `DC_MEDUSA_APP_DB_PORT=5432` still define the Medusa/ZaneOps DB endpoint inside the Docker network
+    * host-facing local URLs such as `DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `DC_N1_NEXT_PUBLIC_MEILISEARCH_URL`, CORS values, and `MISE_DEV_MEILI_URL` are generated from the resolved public ports unless you already customized them in `.env`
     * if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written
     * if existing values differ, you are prompted to `override` or `keep`
     * Meilisearch key policy/provisioning is owned by `apps/new-engine-ctl meili-api-credentials`; only `mise run dev` performs `.env` sync logic
-    * `mise run dev` calls provisioning against host URL `http://127.0.0.1:7700` by default (override via `MISE_DEV_MEILI_URL`) so `DC_MEILISEARCH_HOST` can remain container-internal (`http://medusa-meilisearch:7700`)
+    * `mise run dev` calls provisioning against the resolved host Meilisearch URL (override via `MISE_DEV_MEILI_URL`) so `DC_MEILISEARCH_HOST` can remain container-internal (`http://medusa-meilisearch:7700`)
 
     * Postgres role bootstrap (`medusa_app`, `medusa_dev`, `zane_operator`) runs automatically from `medusa-db` startup via `/usr/local/bin/run-postgres-with-bootstrap.sh`
     * MinIO bootstrap now runs inside `medusa-minio` startup (idempotent): it ensures `DC_MINIO_BUCKET` exists, enforces public object reads, and provisions a non-root Medusa runtime key with bucket-scoped permissions limited to the Medusa bucket
@@ -197,6 +202,7 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
     * provider policy lives in `apps/new-engine-ctl/config/stack-inputs.yaml`, not in shell scripts
 
 9. <b>Explore local envs</b>
+    * The exact host ports for your machine are in `.docker_data/dev-runtime.env` after `mise run dev:ports`, `mise run dev:init`, or `mise run dev`.
     * N1 FE should be available at:
         * <a href="http://localhost:8000">localhost:8000</a>
         * <a href="https://n1.medusa.localhost">https://n1.medusa.localhost</a>
@@ -222,7 +228,7 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
             * bearer token: `DC_ZANE_OPERATOR_API_AUTH_TOKEN`
     * Redis compatible ValKey storage can be connected at `localhost:6379`
         * password: `DC_VALKEY_PASSWORD` (default in `.env`: `valkey_dev_change_me`)
-    * Postgres DB can be connected at `localhost:5432`
+    * Postgres DB can be connected at `localhost:5433` by default, or the resolved `DC_POSTGRES_PUBLIC_PORT`
         * default credentials: `root`/`root`
         * adminer can be accessed on <a href="http://localhost:8081">localhost:8081</a>
 

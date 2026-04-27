@@ -8,6 +8,10 @@ node = "latest"
 description = "Incremental local startup after `dev:init`: resources -> meili provisioning -> backend phase -> frontend phase"
 run = "mise run dev:resources && mise run dev:internal:meili:sync-env && mise run dev:backend && mise run dev:frontend"
 
+[tasks."dev:ports"]
+description = "Resolve available local host ports into the generated Docker Compose env file"
+run = "bash ./scripts/dev/mise-dev-helpers.sh resolve-local-ports"
+
 [tasks."dev:init"]
 description = "First-time local initialization: env bootstrap -> dependency install -> backend bootstrap -> admin user -> seed"
 run = "bash ./scripts/dev/init-local-stack.sh"
@@ -22,7 +26,7 @@ run = "mise run dev:internal:down"
 
 [tasks."dev:down:volumes"]
 description = "Stop the local compose stack and remove named volumes"
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} down -v --remove-orphans --timeout ${COMPOSE_STOP_TIMEOUT:-60}"
+run = "bash ./scripts/dev/compose.sh down -v --remove-orphans --timeout ${COMPOSE_STOP_TIMEOUT:-60}"
 
 [tasks."dev:resources"]
 description = "Start and wait for manifest-defined shared resources"
@@ -74,15 +78,15 @@ run = "bash ./scripts/dev/run-prod-stack.sh --no-cache"
 
 [tasks."dev:medusa:user:create"]
 description = "Create a Medusa admin user in the running local stack (requires EMAIL and PASSWORD)"
-run = """bash -lc 'test -n \"${EMAIL:-}\" && test -n \"${PASSWORD:-}\" || { echo \"EMAIL and PASSWORD are required.\" >&2; exit 1; }; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be exec medusa user -e \"$EMAIL\" -p \"$PASSWORD\"'"""
+run = """bash -lc 'test -n \"${EMAIL:-}\" && test -n \"${PASSWORD:-}\" || { echo \"EMAIL and PASSWORD are required.\" >&2; exit 1; }; bash ./scripts/dev/compose.sh exec medusa-be pnpm --filter medusa-be exec medusa user -e \"$EMAIL\" -p \"$PASSWORD\"'"""
 
 [tasks."dev:medusa:migrate"]
 description = "Run Medusa migrations against the running local stack"
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run migrate"
+run = "bash ./scripts/dev/compose.sh exec medusa-be pnpm --filter medusa-be run migrate"
 
 [tasks."dev:medusa:migration:generate"]
 description = "Generate a Medusa migration in the running local stack (requires MODULE)"
-run = """bash -lc 'test -n \"${MODULE:-}\" || { echo \"MODULE is required.\" >&2; exit 1; }; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run migrate:generate-only \"$MODULE\"'"""
+run = """bash -lc 'test -n \"${MODULE:-}\" || { echo \"MODULE is required.\" >&2; exit 1; }; bash ./scripts/dev/compose.sh exec medusa-be pnpm --filter medusa-be run migrate:generate-only \"$MODULE\"'"""
 
 [tasks."dev:medusa:minio:init"]
 description = "Manually reapply the local MinIO bootstrap fallback against the running stack"
@@ -90,19 +94,19 @@ run = "bash ./scripts/dev/minio-init.sh"
 
 [tasks."dev:medusa:meili:reseed"]
 description = "Rebuild Medusa search documents in the running local stack"
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run addInitialSearchDocuments"
+run = "bash ./scripts/dev/compose.sh exec medusa-be pnpm --filter medusa-be run addInitialSearchDocuments"
 
 [tasks."dev:medusa:seed"]
 description = "Seed initial Medusa data in the running local stack"
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedInitialData"
+run = "bash ./scripts/dev/compose.sh exec medusa-be pnpm --filter medusa-be run seedInitialData"
 
 [tasks."dev:medusa:seed:dev-data"]
 description = "Seed Medusa development data in the running local stack"
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedDevData"
+run = "bash ./scripts/dev/compose.sh exec medusa-be pnpm --filter medusa-be run seedDevData"
 
 [tasks."dev:medusa:seed:n1"]
 description = "Seed N1-specific Medusa data in the running local stack"
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedN1"
+run = "bash ./scripts/dev/compose.sh exec medusa-be pnpm --filter medusa-be run seedN1"
 
 [tasks."dev:postgres:bootstrap"]
 description = "Rerun medusa-db role bootstrap against the running local stack"
@@ -163,12 +167,12 @@ run = "MEDUSA_E2E_KEEP_STACK=1 bash ./scripts/e2e/medusa-be-http.sh run"
 [tasks."dev:internal:resources:up"]
 description = "Start manifest-defined shared resource services"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase resources)"
+run = "bash ./scripts/dev/compose.sh up -d --build $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase resources)"
 
 [tasks."dev:internal:down"]
 description = "Gracefully stop and remove compose services before stepped startup"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} down --remove-orphans --timeout ${COMPOSE_STOP_TIMEOUT:-60}"
+run = "bash ./scripts/dev/compose.sh down --remove-orphans --timeout ${COMPOSE_STOP_TIMEOUT:-60}"
 
 [tasks."dev:internal:resources:wait"]
 description = "Wait for manifest-defined shared resource services to become healthy"
@@ -183,12 +187,12 @@ run = "bash ./scripts/dev/mise-dev-helpers.sh sync-meili-env"
 [tasks."dev:internal:backend:up"]
 description = "Start manifest-defined backend phase services"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase backend)"
+run = "bash ./scripts/dev/compose.sh up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase backend)"
 
 [tasks."dev:internal:backend:prepare"]
 description = "Run Medusa DB migrations before backend startup"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} run --rm --build --no-deps medusa-be pnpm --filter medusa-be run migrate"
+run = "bash ./scripts/dev/compose.sh run --rm --build --no-deps medusa-be pnpm --filter medusa-be run migrate"
 
 [tasks."dev:internal:backend:wait"]
 description = "Wait for manifest-defined backend phase services to become healthy"
@@ -198,7 +202,7 @@ run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy $(bash ./scripts/dev/
 [tasks."dev:internal:frontend:up"]
 description = "Start manifest-defined frontend phase services"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase frontend)"
+run = "bash ./scripts/dev/compose.sh up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase frontend)"
 
 [tasks."dev:internal:frontend:wait"]
 description = "Wait for manifest-defined frontend phase services to become healthy"
@@ -208,7 +212,7 @@ run = "bash ./scripts/dev/mise-dev-helpers.sh wait-healthy $(bash ./scripts/dev/
 [tasks."dev:internal:operator:up"]
 description = "Start manifest-defined operator phase services"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} --profile operator up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase operator)"
+run = "bash ./scripts/dev/compose.sh --profile operator up -d --build --no-deps $(bash ./scripts/dev/mise-dev-helpers.sh services-for-phase operator)"
 
 [tasks."dev:internal:operator:wait"]
 description = "Wait for manifest-defined operator phase services to become healthy"
