@@ -96,6 +96,10 @@ run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec
 description = "Seed initial Medusa data in the running local stack"
 run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedInitialData"
 
+[tasks."dev:medusa:seed:dev"]
+description = "Seed JSON-backed Medusa development data in the running local stack"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedDev"
+
 [tasks."dev:medusa:seed:dev-data"]
 description = "Seed Medusa development data in the running local stack"
 run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedDevData"

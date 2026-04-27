@@ -30,7 +30,11 @@ export const createProductCategoriesStep = createStep(
       Modules.PRODUCT
     )
 
-    const existingProductCategories =
+    const handles = input
+      .map((category) => category.handle)
+      .filter((handle): handle is string => handle !== undefined)
+
+    const existingProductCategoriesByName =
       await productService.listProductCategories(
         {
           name: input.map((i) => i.name),
@@ -39,6 +43,27 @@ export const createProductCategoriesStep = createStep(
           select: ["id", "name", "handle"],
         }
       )
+
+    const existingProductCategoriesByHandle =
+      handles.length === 0
+        ? []
+        : await productService.listProductCategories(
+            {
+              handle: handles,
+            },
+            {
+              select: ["id", "name", "handle"],
+            }
+          )
+
+    const existingProductCategories = [
+      ...new Map(
+        [
+          ...existingProductCategoriesByName,
+          ...existingProductCategoriesByHandle,
+        ].map((category) => [category.id, category])
+      ).values(),
+    ]
 
     const missingProductCategories = input.filter(
       (i) =>

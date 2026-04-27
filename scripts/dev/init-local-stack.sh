@@ -146,7 +146,7 @@ main() {
   mise run dev:resources
   mise run dev:backend
   EMAIL="$superadmin_email" PASSWORD="$superadmin_password" mise run dev:medusa:user:create
-  mise run dev:medusa:seed
+  mise run dev:medusa:seed:dev
 
   cat <<'EOF'
 Local initialization completed.

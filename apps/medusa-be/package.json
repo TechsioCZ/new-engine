@@ -31,6 +31,7 @@
     "migrate:generate-only": "medusa db:generate",
     "syncLinks": "medusa db:sync-links",
     "createInitialSuperadmin": "bash -euo pipefail -c 'if [ -f ./src/scripts/create-initial-superadmin.ts ]; then medusa exec ./src/scripts/create-initial-superadmin.ts; else medusa exec ./src/scripts/create-initial-superadmin.js; fi'",
+    "seedDev": "medusa exec ./src/scripts/seed-dev.ts",
     "seedDevData": "medusa exec ./src/scripts/seed-dev-data.ts",
     "seedN1": "medusa exec ./src/scripts/seed-n1.ts",
     "seedInitialData": "medusa exec ./src/scripts/seed.ts",

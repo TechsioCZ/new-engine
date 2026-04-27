@@ -5,6 +5,7 @@ import type {
   ISalesChannelModuleService,
   Logger,
   ProductDTO,
+  Query,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -18,6 +19,7 @@ import {
   createProductsWorkflow,
   updateProductsWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { ProductProducerLink } from "../../../links/product-producer"
 import { PRODUCER_MODULE } from "../../../modules/producer"
 import type ProducerModuleService from "../../../modules/producer/service"
 
@@ -29,7 +31,13 @@ type ProductInput = {
   }[]
   description: string
   handle: string
+  externalId?: string
   weight?: number
+  width?: number
+  height?: number
+  length?: number
+  tags?: string[]
+  metadata?: Record<string, unknown>
   status?: ProductStatus
   shippingProfileName: string
   thumbnail?: string
@@ -50,8 +58,13 @@ type ProductInput = {
   variants?: {
     title: string
     sku: string
+    barcode?: string
     ean?: string
     material?: string
+    weight?: number
+    width?: number
+    height?: number
+    length?: number
     options?: {
       [key: string]: string
     }
@@ -85,6 +98,37 @@ type ProductVariantImagesInput = {
 export type CreateProductsStepInput = ProductInput[]
 
 const CreateProductsStepId = "create-products-seed-step"
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function mergeProductMetadata(
+  existingMetadata: Record<string, unknown> | null | undefined,
+  inputMetadata: Record<string, unknown> | undefined
+) {
+  if (!inputMetadata) {
+    return existingMetadata
+  }
+
+  const existing = existingMetadata ?? {}
+
+  if (isRecord(existing.seed) && isRecord(inputMetadata.seed)) {
+    return {
+      ...existing,
+      ...inputMetadata,
+      seed: {
+        ...existing.seed,
+        ...inputMetadata.seed,
+      },
+    }
+  }
+
+  return {
+    ...existing,
+    ...inputMetadata,
+  }
+}
 
 function processProductProducerInput(
   inputProduct: ProductInput,
@@ -220,6 +264,7 @@ export const createProductsStep = createStep(
     const result: string[] = []
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const productService = container.resolve<IProductModuleService>(
       Modules.PRODUCT
     )
@@ -296,6 +341,7 @@ export const createProductsStep = createStep(
         {
           id: existingProduct.id,
           title: inputProduct.title,
+          external_id: inputProduct.externalId,
           categories: inputProduct.categories?.map((inputCat) => {
             const existingCategory = existingCategories.find(
               (cat) => cat.handle === inputCat.handle
@@ -307,6 +353,14 @@ export const createProductsStep = createStep(
           }),
           description: inputProduct.description,
           weight: inputProduct.weight,
+          width: inputProduct.width,
+          height: inputProduct.height,
+          length: inputProduct.length,
+          tags: inputProduct.tags,
+          metadata: mergeProductMetadata(
+            existingProduct.metadata,
+            inputProduct.metadata
+          ),
           status: inputProduct.status || ProductStatus.PUBLISHED,
           shipping_profile_id: (() => {
             const profile = existingShippingProfiles.find(
@@ -330,8 +384,13 @@ export const createProductsStep = createStep(
               ? {
                   title: inputVariant.title,
                   sku: inputVariant.sku,
+                  barcode: inputVariant.barcode,
                   ean: inputVariant.ean,
                   material: inputVariant.material,
+                  weight: inputVariant.weight,
+                  width: inputVariant.width,
+                  height: inputVariant.height,
+                  length: inputVariant.length,
                   options: inputVariant.options,
                   prices: inputVariant.prices?.map((p) => ({
                     amount: p.amount,
@@ -363,6 +422,7 @@ export const createProductsStep = createStep(
 
         return {
           title: p.title,
+          external_id: p.externalId,
           category_ids: p.categories?.map((inputCat) => {
             const existingCategory = existingCategories.find(
               (cat) => cat.handle === inputCat.handle
@@ -375,6 +435,11 @@ export const createProductsStep = createStep(
           description: p.description,
           handle: p.handle,
           weight: p.weight,
+          width: p.width,
+          height: p.height,
+          length: p.length,
+          tags: p.tags,
+          metadata: p.metadata,
           status: p.status || ProductStatus.PUBLISHED,
           shipping_profile_id: (() => {
             const profile = existingShippingProfiles.find(
@@ -393,8 +458,13 @@ export const createProductsStep = createStep(
           variants: p.variants?.map((v) => ({
             title: v.title,
             sku: v.sku,
+            barcode: v.barcode,
             ean: v.ean,
             material: v.material,
+            weight: v.weight,
+            width: v.width,
+            height: v.height,
+            length: v.length,
             options: v.options,
             thumbnail: v.thumbnail,
             prices: v.prices?.map((price) => ({
@@ -530,16 +600,39 @@ export const createProductsStep = createStep(
         }
       )
 
-      const links = products.map((p) => ({
-        [Modules.PRODUCT]: {
-          product_id: p.id,
-        },
-        [PRODUCER_MODULE]: {
+      const productIds = products.map((product) => product.id)
+      const { data: existingLinks } = await query.graph({
+        entity: ProductProducerLink.entryPoint,
+        filters: {
           producer_id: producer.id,
+          product_id: {
+            $in: productIds,
+          },
         },
-      }))
+        fields: ["product_id", "producer_id"],
+      })
 
-      await link.create(links)
+      const links = products
+        .filter(
+          (product) =>
+            !existingLinks.find(
+              (existingLink) =>
+                existingLink.product_id === product.id &&
+                existingLink.producer_id === producer.id
+            )
+        )
+        .map((p) => ({
+          [Modules.PRODUCT]: {
+            product_id: p.id,
+          },
+          [PRODUCER_MODULE]: {
+            producer_id: producer.id,
+          },
+        }))
+
+      if (links.length > 0) {
+        await link.create(links)
+      }
     }
 
     return new StepResponse({
