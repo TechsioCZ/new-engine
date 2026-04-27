@@ -247,7 +247,7 @@ export function CheckoutCompleteSection({
             as={NextLink}
             className={summaryEditLinkClassName}
             href={detailsStepHref}
-            icon="icon-[mdi--pencil-outline]"
+            icon="token-icon-pen"
             size="sm"
             theme="unstyled"
           >
@@ -337,7 +337,7 @@ function SummaryRecapCard({
           as={NextLink}
           className={summaryEditLinkClassName}
           href={href}
-          icon="icon-[mdi--pencil-outline]"
+          icon="token-icon-pen"
           size="sm"
           theme="unstyled"
         >

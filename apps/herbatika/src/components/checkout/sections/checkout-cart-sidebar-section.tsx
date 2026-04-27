@@ -35,7 +35,7 @@ export function CheckoutCartSidebarSection({
               <Select.Label className="sr-only">Zlavový kód</Select.Label>
               <Select.Control>
                 <Select.Trigger className="bg-base border-1 min-h-12 px-400">
-                  <Icon icon="icon-[mynaui--label]" className="text-2xl" />
+                  <Icon icon="token-icon-label" className="text-2xl" />
                   <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Zadať zľavový kód" />
                 </Select.Trigger>
                 <Select.ClearTrigger />
@@ -98,7 +98,7 @@ export function CheckoutCartSidebarSection({
           <Select.Label className="text-sm font-[500]">Benefity</Select.Label>
           <Select.Control>
             <Select.Trigger className="bg-surface-secondary min-h-12 px-400">
-              <Icon icon="icon-[hugeicons--shopping-basket-check-in-01]" className="text-2xl" />
+              <Icon icon="token-icon-shopping-basket-in" className="text-2xl" />
               <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Vrátenie do 14 dní zadarmo" />
             </Select.Trigger>
             <Select.ClearTrigger />
@@ -118,11 +118,11 @@ export function CheckoutCartSidebarSection({
           <Label className="text-sm font-[500]">Odložiť si košík na neskôr</Label>
           <div className="flex gap-300">
             <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
-              <Icon icon="icon-[mdi--content-copy]" />
+              <Icon icon="token-icon-copy" />
               <span>Uložiť link</span>
             </Button>
             <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
-              <Icon icon="icon-[tabler--send]" />
+              <Icon icon="token-icon-send" />
               <span>Poslať na e-mail</span>
             </Button>
           </div>

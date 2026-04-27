@@ -242,7 +242,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     href?: string;
     icon?: IconType;
   }> = [
-    { label: "", href: "/", icon: "icon-[mdi--home-outline]" },
+    { label: "", href: "/", icon: "token-icon-home" },
     ...(productCategories[0]?.handle
       ? [
           {

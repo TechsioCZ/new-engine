@@ -203,7 +203,7 @@ export function CheckoutCartItemRow({
         <div className="flex justify-between items-center">
           <p className="inline-flex items-end h-full gap-150 font-medium text-primary text-xs leading-normal">
             <span className="h-fit flex items-center gap-150">
-            <Icon className="shrink-0 text-md" icon="icon-[mdi--check]" />
+            <Icon className="shrink-0 text-md" icon="token-icon-check" />
             <span className="min-w-0">{availabilityText}</span>
             </span>
           </p>
@@ -211,7 +211,7 @@ export function CheckoutCartItemRow({
             aria-label={`Odstrániť ${itemName} z košíka`}
             className="text-fg-secondary text-2xl hover:text-fg-primary"
             disabled={isPending}
-            icon="icon-[mdi--trash-can-outline]"
+            icon="token-icon-trash"
             onClick={() => onRemove(item.id)}
             size="sm"
             theme="unstyled"

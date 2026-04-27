@@ -95,7 +95,7 @@ export function ProductDetailMediaColumn({
         </div>
 
         <div className="flex items-center gap-200">
-          <Icon className="text-2xl text-primary" icon="icon-[mdi--phone-outline]" />
+          <Icon className="text-2xl text-primary" icon="token-icon-phone" />
           <Link
             as={NextLink}
             className="whitespace-nowrap text-sm leading-tight font-medium text-fg-strong hover:text-fg-primary"

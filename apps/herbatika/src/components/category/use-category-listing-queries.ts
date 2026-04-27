@@ -56,7 +56,7 @@ const resolveBreadcrumbItems = (
     label: string;
     href?: string;
     icon?: IconType;
-  }> = [{ label: "Products", href: "/", icon: "icon-[mdi--home-outline]" }];
+  }> = [{ label: "Products", href: "/", icon: "token-icon-home" }];
 
   if (!activeCategory) {
     items.push({ label: normalizeCategoryName(slug) });

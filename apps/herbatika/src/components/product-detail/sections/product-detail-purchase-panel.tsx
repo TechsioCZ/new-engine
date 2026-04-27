@@ -189,7 +189,7 @@ export function ProductDetailPurchasePanel({
           <div className="flex w-full items-center gap-400 rounded-sm bg-highlight px-400 py-200 sm:w-auto">
             <Icon
               className="text-primary"
-              icon="icon-[mdi--star-check-outline]"
+              icon="token-icon-save-money"
             />
             <div className="space-y-50">
               <p className="font-semibold text-fg-primary text-md leading-tight">

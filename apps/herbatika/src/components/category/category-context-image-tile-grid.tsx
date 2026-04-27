@@ -32,7 +32,7 @@ type CategoryContextImageTileGridProps = {
   tiles: CategoryContextImageTile[];
 };
 
-const DEFAULT_TILE_ICON: IconType = "icon-[mdi--leaf-circle-outline]";
+const DEFAULT_TILE_ICON: IconType = "token-icon-leaf";
 
 const resolveCategoryTileImage = ({
   handle,

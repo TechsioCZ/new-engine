@@ -22,7 +22,7 @@ export function ProductDetailDeliveryInfo({
         <div className="flex items-center gap-200">
           <Icon
             className={offerState.isInStock ? "text-xl text-primary" : "text-xl text-warning"}
-            icon={offerState.isInStock ? "token-icon-check" : "icon-[mdi--alert-circle-outline]"}
+            icon={offerState.isInStock ? "token-icon-check" : "token-icon-alert"}
           />
           <SupportingText className="text-md leading-snug text-fg-primary">
             <span className={`font-semibold ${availabilityToneClass}`}>
@@ -41,7 +41,7 @@ export function ProductDetailDeliveryInfo({
 
         {freeShippingThresholdLabel ? (
           <div className="flex items-center gap-200">
-            <Icon className="text-xl text-primary" icon="icon-[mdi--truck-delivery-outline]" />
+            <Icon className="text-xl text-primary" icon="token-icon-truck-delivery" />
             <SupportingText className="text-md leading-snug text-fg-secondary">
               Doručenie zdarma nad <span className="font-semibold text-primary">{freeShippingThresholdLabel}</span>
             </SupportingText>

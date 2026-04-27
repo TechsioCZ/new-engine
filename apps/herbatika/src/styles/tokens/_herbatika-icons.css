@@ -35,6 +35,95 @@
   @apply icon-[mdi--music-note];
 }
 
+@utility token-icon-paypal {
+  @apply icon-[mdi--paypal];
+}
+
+/* PAYMENT AND DELIVERY (CHECKOUT) */
+@utility token-icon-credit-card {
+  @apply icon-[solar--card-2-linear];
+}
+
+@utility token-icon-bank {
+  @apply icon-[mdi--bank-outline];
+}
+
+@utility token-icon-cash {
+  @apply icon-[mdi--cash-multiple];
+}
+
+@utility token-icon-wallet {
+  @apply icon-[solar--wallet-2-linear];
+}
+
+@utility token-icon-box {
+  @apply icon-[solar--box-linear];
+}
+
+@utility token-icon-truck {
+  @apply icon-[mdi--truck-outline];
+}
+
+@utility token-icon-truck-fast {
+  @apply icon-[mdi--truck-fast-outline];
+}
+
+@utility token-icon-truck-delivery {
+  @apply icon-[mdi--truck-delivery-outline];
+}
+
+@utility token-icon-pen {
+  @apply icon-[solar--pen-outline];
+}
+
+@utility token-icon-leaf {
+  @apply icon-[solar--leaf-linear];
+}
+
+@utility token-icon-shield-check {
+  @apply icon-[solar--shield-check-linear];
+}
+
+@utility token-icon-conversation {
+  @apply icon-[mdi--message-processing];
+}
+
+@utility token-icon-phone-talk {
+  @apply icon-[mdi--phone-in-talk-outline];
+}
+
+@utility token-icon-account {
+  @apply icon-[mdi--account-outline];
+}
+
+@utility token-icon-trash {
+  @apply icon-[solar--trash-bin-minimalistic-linear];
+}
+
+@utility token-icon-label {
+  @apply icon-[mynaui--label];
+}
+
+@utility token-icon-shopping-basket-in {
+  @apply icon-[hugeicons--shopping-basket-check-in-01];
+}
+
+@utility token-icon-copy {
+  @apply icon-[solar--copy-linear];
+}
+
+@utility token-icon-send {
+  @apply icon-[tabler--send];
+}
+
+@utility token-icon-arrow-right {
+  @apply icon-[solar--arrow-right-linear];
+}
+
+@utility token-icon-alert {
+  @apply icon-[solar--danger-circle-linear];
+}
+
 /* FLAG ICONS */
 @utility token-icon-sk {
   @apply icon-[cif--sk];
@@ -57,6 +146,14 @@
 
 @utility token-icon-home {
   @apply icon-[solar--home-angle-outline];
+}
+
+@utility token-icon-calendar {
+  @apply icon-[solar--calendar-linear];
+}
+
+@utility token-icon-pill {
+  @apply icon-[mdi--pill];
 }
 
 /* mdi set */

@@ -64,7 +64,7 @@ export const resolvePaymentIcon = (providerId: string): IconType => {
   const normalizedValue = normalizeProviderValue(providerId);
 
   if (normalizedValue.includes("paypal")) {
-    return "icon-[mdi--paypal]";
+    return "token-icon-paypal";
   }
 
   if (
@@ -74,18 +74,18 @@ export const resolvePaymentIcon = (providerId: string): IconType => {
     normalizedValue.includes("apple") ||
     normalizedValue.includes("system default")
   ) {
-    return "icon-[mdi--credit-card-outline]";
+    return "token-icon-credit-card";
   }
 
   if (normalizedValue.includes("bank") || normalizedValue.includes("wire")) {
-    return "icon-[mdi--bank-outline]";
+    return "token-icon-bank";
   }
 
   if (normalizedValue.includes("cod") || normalizedValue.includes("cash")) {
-    return "icon-[mdi--cash-multiple]";
+    return "token-icon-cash";
   }
 
-  return "icon-[mdi--wallet-outline]";
+  return "token-icon-wallet";
 };
 
 export const resolveShippingIcon = (option: {
@@ -101,7 +101,7 @@ export const resolveShippingIcon = (option: {
     normalizedValue.includes("pickup") ||
     normalizedValue.includes("predaj")
   ) {
-    return "icon-[mdi--package-variant-closed]";
+    return "token-icon-box";
   }
 
   if (
@@ -109,14 +109,14 @@ export const resolveShippingIcon = (option: {
     normalizedValue.includes("kurier") ||
     normalizedValue.includes("courier")
   ) {
-    return "icon-[mdi--truck-fast-outline]";
+    return "token-icon-truck-fast";
   }
 
   if (normalizedValue.includes("eko") || normalizedValue.includes("eco")) {
-    return "icon-[mdi--leaf]";
+    return "token-icon-leaf";
   }
 
-  return "icon-[mdi--truck-delivery-outline]";
+  return "token-icon-truck";
 };
 
 export const resolveCountryLabel = (countryCode: string) => {

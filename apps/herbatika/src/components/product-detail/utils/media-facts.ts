@@ -169,13 +169,13 @@ export const resolveProductMediaFacts = (
   return [
     {
       id: "doses",
-      icon: "icon-[mdi--calendar-month-outline]",
+      icon: "token-icon-calendar",
       value: `${doses}`,
       label: resolveDoseWord(doses),
     },
     {
       id: "daily-intake",
-      icon: "icon-[mdi--pill]",
+      icon: "token-icon-pill",
       value: `${safeDailyDose}`,
       label: `${resolveCapsuleWord(safeDailyDose)} denne`,
     },

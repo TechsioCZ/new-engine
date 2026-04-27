@@ -1,4 +1,4 @@
-import type { BenefitItem, HeroBannerItem } from "./homepage.data.types";
+import type { HeroBannerItem } from "./homepage.data.types";
 
 export const HERO_BANNERS: HeroBannerItem[] = [
   {
@@ -75,29 +75,3 @@ export const HERO_BANNERS: HeroBannerItem[] = [
   },
 ];
 
-export const BENEFITS: BenefitItem[] = [
-  {
-    id: "benefit-delivery",
-    title: "Rýchle dodanie a balenie.",
-    description: "Odosielame každý pracovný deň.",
-    icon: "icon-[mdi--truck-fast-outline]",
-  },
-  {
-    id: "benefit-refund",
-    title: "Garantujeme vrátenie peňazí.",
-    description: "Jednoduchá reklamácia a férové podmienky.",
-    icon: "icon-[mdi--cash-refund]",
-  },
-  {
-    id: "benefit-stock",
-    title: "Viac ako 60 vlastných produktov skladom.",
-    description: "Stabilná dostupnosť overených produktov.",
-    icon: "icon-[mdi--package-variant-closed]",
-  },
-  {
-    id: "benefit-verified",
-    title: "Preverené tisíckami zákazníkov po celej Európe.",
-    description: "Dlhodobo testované značky.",
-    icon: "icon-[mdi--account-group-outline]",
-  },
-];

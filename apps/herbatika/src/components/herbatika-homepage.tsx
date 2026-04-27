@@ -1,6 +1,4 @@
 "use client";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import {
   BLOG_POSTS,
   HERO_BANNERS,

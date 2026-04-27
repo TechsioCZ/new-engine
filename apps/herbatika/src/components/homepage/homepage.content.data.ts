@@ -1,6 +1,5 @@
 import type {
   BlogTeaserItem,
-  PurposeCategoryItem,
   ProductSectionDefinition,
 } from "./homepage.data.types";
 
@@ -8,17 +7,14 @@ export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
   {
     id: "najpredavanejsie-produkty",
     title: "Najpredávanejšie produkty",
-   // subtitle: "Produkty, po ktorých zákazníci siahajú najčastejšie.",
   },
   {
     id: "novinky",
     title: "Novinky",
-    //subtitle: "Čerstvo naskladnené produkty v našej ponuke.",
   },
   {
     id: "aktuálne-v.zlave",
     title: "Aktuálne v zľave",
-   // subtitle: "Výber produktov s výhodnou cenou.",
   },
 ];
 
@@ -58,57 +54,6 @@ export const BLOG_POSTS: BlogTeaserItem[] = [
     topic: "fitness",
     publishedAt: "2025-12-06",
     readingTime: "9 min",
-  },
-];
-
-export const PURPOSE_CATEGORIES: PurposeCategoryItem[] = [
-  {
-    id: "purpose-kozne-problemy",
-    label: "Kožné problémy",
-    href: "/c/trapi-ma-kozne-problemy",
-    icon: "icon-[mdi--hand-back-right-outline]",
-  },
-  {
-    id: "purpose-mozog-a-nervovy-system",
-    label: "Mozog a nervový systém",
-    href: "/c/trapi-ma-mozog-a-nervovy-system",
-    icon: "icon-[mdi--brain]",
-  },
-  {
-    id: "purpose-imunita",
-    label: "Imunita",
-    href: "/c/trapi-ma-imunita-a-obranyschopnost",
-    icon: "icon-[mdi--shield-check-outline]",
-  },
-  {
-    id: "purpose-klby-a-pohyb",
-    label: "Kĺby a pohyb",
-    href: "/c/trapi-ma-klby-a-pohybovy-aparat",
-    icon: "icon-[mdi--bone]",
-  },
-  {
-    id: "purpose-travenie-a-metabolizmus",
-    label: "Trávenie a metabolizmus",
-    href: "/c/trapi-ma-travenie-a-metabolizmus",
-    icon: "icon-[mdi--stomach]",
-  },
-  {
-    id: "purpose-srdce-a-cievy",
-    label: "Srdce a cievy",
-    href: "/c/trapi-ma-srdce-a-cievy",
-    icon: "icon-[mdi--heart-pulse]",
-  },
-  {
-    id: "purpose-hormonalna-rovnovaha",
-    label: "Hormonálna rovnováha",
-    href: "/c/trapi-ma-hormonalna-rovnovaha",
-    icon: "icon-[mdi--gender-male-female]",
-  },
-  {
-    id: "purpose-kozne-problemy-2",
-    label: "Kožné problémy 2",
-    href: "/c/trapi-ma-kozne-problemy",
-    icon: "icon-[mdi--hand-back-right-outline]",
   },
 ];
 

@@ -9,13 +9,6 @@ export type HeroBannerItem = {
   imageSrc: string;
 };
 
-export type BenefitItem = {
-  id: string;
-  title: string;
-  description: string;
-  icon: IconType;
-};
-
 export type BlogTeaserItem = {
   id: string;
   title: string;
@@ -30,12 +23,4 @@ export type BlogTeaserItem = {
 export type ProductSectionDefinition = {
   id: string;
   title: string;
-  //subtitle: string;
-};
-
-export type PurposeCategoryItem = {
-  id: string;
-  label: string;
-  href: string;
-  icon: IconType;
 };

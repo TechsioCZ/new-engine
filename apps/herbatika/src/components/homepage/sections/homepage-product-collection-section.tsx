@@ -28,7 +28,7 @@ export function HomepageProductCollectionSection({
           as={NextLink}
           className="hidden rounded-md px-400 py-200 text-sm font-semibold md:inline-flex"
           href="/#"
-          icon="icon-[mdi--arrow-right]"
+          icon="token-icon-arrow-right"
           iconPosition="right"
           size="sm"
           theme="outlined"

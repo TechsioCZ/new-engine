@@ -122,7 +122,7 @@ export function CheckoutCartStepSection({
               <span className="inline-flex h-700 w-700 items-center justify-center rounded-full border border-border-primary bg-overlay">
                 <Icon
                   className="text-lg text-fg-secondary"
-                  icon="icon-[mdi--truck-delivery-outline]"
+                  icon="token-icon-truck-delivery"
                 />
               </span>
               <span className="text-sm text-fg-primary">
