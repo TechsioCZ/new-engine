@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.yaml}"
-PROJECT_NAME="${COMPOSE_PROJECT_NAME:-new-engine}"
+PROJECT_NAME="${PROJECT_NAME:-${COMPOSE_PROJECT_NAME:-$(node "$ROOT_DIR/scripts/dev/project-name.mjs" "$ROOT_DIR")}}"
+export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
 
 OLD_DATA_DIR="${OLD_DATA_DIR:-$ROOT_DIR/.docker_data/db}"
 NEW_DATA_DIR="${NEW_DATA_DIR:-$ROOT_DIR/.docker_data/db18}"

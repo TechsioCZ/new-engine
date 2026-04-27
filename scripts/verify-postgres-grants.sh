@@ -8,7 +8,10 @@ fi
 
 echo "Verifying postgres grants for app/dev roles in running medusa-db container..."
 
-docker compose exec -T medusa-db sh -eu <<'SH'
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+cd "$ROOT_DIR"
+bash ./scripts/dev/compose.sh exec -T medusa-db sh -eu <<'SH'
 : "${POSTGRES_USER:?POSTGRES_USER is required}"
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
 : "${POSTGRES_DB:=medusa}"

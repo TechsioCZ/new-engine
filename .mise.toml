@@ -12,6 +12,10 @@ run = "mise run dev:resources && mise run dev:internal:meili:sync-env && mise ru
 description = "Resolve available local host ports into the generated Docker Compose env file"
 run = "bash ./scripts/dev/mise-dev-helpers.sh resolve-local-ports"
 
+[tasks."dev:info"]
+description = "Print the current worktree-local Docker Compose project, generated ports, and running services"
+run = "bash ./scripts/dev/stack-info.sh"
+
 [tasks."dev:init"]
 description = "First-time local initialization: env bootstrap -> dependency install -> backend bootstrap -> admin user -> seed"
 run = "bash ./scripts/dev/init-local-stack.sh"

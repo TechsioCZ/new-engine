@@ -3,8 +3,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-PROJECT_NAME="${PROJECT_NAME:-new-engine}"
+ROOT_DIR="$REPO_ROOT"
 NO_CACHE="false"
+
+# shellcheck source=scripts/dev/project-env.sh
+. "$REPO_ROOT/scripts/dev/project-env.sh"
+
+PROJECT_NAME="$(new_engine_project_name)"
+export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
 
 usage() {
   cat <<'EOF'

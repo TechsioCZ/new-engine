@@ -42,6 +42,7 @@
     5. `n1`
 
     Common follow-up tasks stay on the public `mise` surface:
+    * show this worktree's Compose project, resolved ports, and running services: `mise run dev:info`
     * resolve local host ports without starting the stack: `mise run dev:ports`
     * rerun first-time bootstrap from the top: `mise run dev:init`
     * non-destructive restart from a stopped stack: `mise run dev:fresh`
@@ -53,6 +54,8 @@
     * verify hardened Postgres grants: `mise run dev:postgres:grants:verify`
 
     During `dev` startup, `.env` handling is opinionated:
+    * every worktree gets its own deterministic Docker Compose project name derived from its absolute path; override with `PROJECT_NAME` when needed
+    * Compose container names are generated from that project name and service name, so multiple Git worktrees can run side by side without fixed container-name collisions
     * host-published Docker ports are resolved before Compose `up`/`run` commands and written to `.docker_data/dev-runtime.env`
     * if a preferred port from `.env` or the local resolver defaults is busy, the next available port is selected automatically
     * container-to-container runtime envs stay stable; for example `DC_MEDUSA_APP_DB_HOST=medusa-db` and `DC_MEDUSA_APP_DB_PORT=5432` still define the Medusa/ZaneOps DB endpoint inside the Docker network
@@ -202,7 +205,7 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
     * provider policy lives in `apps/new-engine-ctl/config/stack-inputs.yaml`, not in shell scripts
 
 9. <b>Explore local envs</b>
-    * The exact host ports for your machine are in `.docker_data/dev-runtime.env` after `mise run dev:ports`, `mise run dev:init`, or `mise run dev`.
+    * The exact project name and host ports for your machine are printed by `mise run dev:info`; raw port values are in `.docker_data/dev-runtime.env` after `mise run dev:ports`, `mise run dev:init`, or `mise run dev`.
     * N1 FE should be available at:
         * <a href="http://localhost:8000">localhost:8000</a>
         * <a href="https://n1.medusa.localhost">https://n1.medusa.localhost</a>
