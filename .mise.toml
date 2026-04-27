@@ -74,7 +74,7 @@ run = "bash ./scripts/dev/run-prod-stack.sh --no-cache"
 
 [tasks."dev:medusa:user:create"]
 description = "Create a Medusa admin user in the running local stack (requires EMAIL and PASSWORD)"
-run = """bash -lc 'test -n \"${EMAIL:-}\" && test -n \"${PASSWORD:-}\" || { echo \"EMAIL and PASSWORD are required.\" >&2; exit 1; }; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be exec medusa user -e \"$EMAIL\" -p \"$PASSWORD\"'"""
+run = """bash -lc 'test -n \"${EMAIL:-}\" && test -n \"${PASSWORD:-}\" || { echo \"EMAIL and PASSWORD are required.\" >&2; exit 1; }; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec -e SUPERADMIN_EMAIL=\"$EMAIL\" -e SUPERADMIN_PASSWORD=\"$PASSWORD\" -e SUPERADMIN_SKIP_EXISTING_USER=1 medusa-be pnpm --filter medusa-be run createInitialSuperadmin'"""
 
 [tasks."dev:medusa:migrate"]
 description = "Run Medusa migrations against the running local stack"

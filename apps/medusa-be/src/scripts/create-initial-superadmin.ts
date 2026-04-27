@@ -9,7 +9,7 @@ const EMAIL_PASS_PROVIDER = "emailpass"
 
 function maskEmailForLog(email: string): string {
   const [localPart = "", domain = ""] = email.split("@")
-  if (!localPart || !domain) {
+  if (!(localPart && domain)) {
     return "<redacted>"
   }
 
@@ -17,7 +17,7 @@ function maskEmailForLog(email: string): string {
     return `**@${domain}`
   }
 
-  return `${localPart[0]}***${localPart[localPart.length - 1]}@${domain}`
+  return `${localPart[0]}***${localPart.at(-1)}@${domain}`
 }
 
 export default async function createInitialSuperadmin({
@@ -25,8 +25,9 @@ export default async function createInitialSuperadmin({
 }: ExecArgs): Promise<void> {
   const email = process.env.SUPERADMIN_EMAIL?.trim()
   const password = process.env.SUPERADMIN_PASSWORD
+  const skipExistingUser = process.env.SUPERADMIN_SKIP_EXISTING_USER === "1"
 
-  if (!email || !password) {
+  if (!(email && password)) {
     console.log(
       "Skipping superadmin initialization: SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD is missing."
     )
@@ -42,6 +43,13 @@ export default async function createInitialSuperadmin({
       take: 1,
     }
   )
+
+  if (existingUser && skipExistingUser) {
+    console.log(
+      `Superadmin already exists; skipping: ${maskEmailForLog(email)}`
+    )
+    return
+  }
 
   const user = existingUser ?? (await userService.createUsers({ email }))
 
