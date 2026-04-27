@@ -54,7 +54,7 @@
 
     During `dev` startup, `.env` handling is opinionated:
     * host-published Docker ports are resolved before Compose `up`/`run` commands and written to `.docker_data/dev-runtime.env`
-    * if a preferred port from `.env` or `apps/new-engine-ctl/config/local-ports.yaml` is busy, the next available port is selected automatically
+    * if a preferred port from `.env` or the local resolver defaults is busy, the next available port is selected automatically
     * container-to-container runtime envs stay stable; for example `DC_MEDUSA_APP_DB_HOST=medusa-db` and `DC_MEDUSA_APP_DB_PORT=5432` still define the Medusa/ZaneOps DB endpoint inside the Docker network
     * host-facing local URLs such as `DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL`, `DC_N1_NEXT_PUBLIC_MEILISEARCH_URL`, CORS values, and `MISE_DEV_MEILI_URL` are generated from the resolved public ports unless you already customized them in `.env`
     * if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written

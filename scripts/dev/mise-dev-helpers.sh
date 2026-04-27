@@ -40,24 +40,11 @@ ensure_ctl_dist() {
 }
 
 resolve_local_ports() {
-  local ctl_dist
-
-  ctl_dist="$(ensure_ctl_dist)"
-  node "$ctl_dist" local-ports resolve \
+  require_cmd node
+  node "$ROOT_DIR/scripts/dev/resolve-local-ports.mjs" \
     --env-file "$ENV_FILE" \
     --output "$LOCAL_DEV_RUNTIME_ENV_FILE" \
     --project-name "$PROJECT_NAME"
-}
-
-source_runtime_env() {
-  if [[ ! -f "$LOCAL_DEV_RUNTIME_ENV_FILE" ]]; then
-    return 0
-  fi
-
-  set -a
-  # shellcheck disable=SC1090
-  source "$LOCAL_DEV_RUNTIME_ENV_FILE"
-  set +a
 }
 
 wait_for_service_healthy() {
@@ -126,6 +113,30 @@ get_env_value() {
   fi
 
   printf '%s' "${line#*=}"
+}
+
+get_runtime_env_value() {
+  local var_name="$1"
+  local line
+
+  if [[ ! -f "$LOCAL_DEV_RUNTIME_ENV_FILE" ]]; then
+    echo ""
+    return 0
+  fi
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+
+    if [[ "$line" =~ ^([A-Z][A-Z0-9_]*)=(.*)$ ]]; then
+      if [[ "${BASH_REMATCH[1]}" == "$var_name" ]]; then
+        printf '%s' "${BASH_REMATCH[2]}"
+        return 0
+      fi
+    fi
+  done <"$LOCAL_DEV_RUNTIME_ENV_FILE"
+
+  echo ""
 }
 
 set_env_value() {
@@ -253,7 +264,7 @@ sync_meili_env() {
   require_cmd awk
   require_cmd sed
   resolve_local_ports >/dev/null
-  source_runtime_env
+  MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-$(get_runtime_env_value "MISE_DEV_MEILI_URL")}"
   MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-http://127.0.0.1:7700}"
 
   if [[ ! -f "$ENV_FILE" ]]; then

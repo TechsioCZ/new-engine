@@ -12,7 +12,3 @@ export const defaultStackInputsPath = resolve(
   repoRoot,
   "apps/new-engine-ctl/config/stack-inputs.yaml"
 )
-export const defaultLocalPortsPath = resolve(
-  repoRoot,
-  "apps/new-engine-ctl/config/local-ports.yaml"
-)
