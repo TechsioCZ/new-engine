@@ -4,7 +4,7 @@ zerops:
       envVariables:
         BACKEND_URL: ${MEDUSA_INSTANCE_URL}
         NX_DAEMON: false
-      base: nodejs@22
+      base: nodejs@24
       buildCommands:
         - bash ./scripts/build-medusa.sh
         # Move prod node_modules to apps/medusa-be (equivalent to Docker's COPY --from=build)
@@ -23,7 +23,7 @@ zerops:
           port: 9000
           path: /health
     run:
-      base: nodejs@22
+      base: nodejs@24
       envVariables:
         DATABASE_TYPE: postgres
         NODE_ENV: production
@@ -60,7 +60,7 @@ zerops:
 
   - setup: demo
     build:
-      base: nodejs@22
+      base: nodejs@24
       envVariables:
         RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
         CONTACT_EMAIL: ${CONTACT_EMAIL}
@@ -93,7 +93,7 @@ zerops:
         - apps/frontend-demo/public
       cache: node_modules
     run:
-      base: nodejs@22
+      base: nodejs@24
       start: npm run start:fe-demo
       ports:
         - port: 3000
