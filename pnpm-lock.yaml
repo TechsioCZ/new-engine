@@ -229,91 +229,6 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  apps/local/akros:
-    dependencies:
-      '@medusajs/js-sdk':
-        specifier: ^2.12.5
-        version: 2.13.1
-      '@medusajs/types':
-        specifier: ^2.12.5
-        version: 2.13.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))
-      '@tanstack/react-form':
-        specifier: ^1.27.4
-        version: 1.27.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@tanstack/react-query':
-        specifier: ^5.90.2
-        version: 5.90.10(react@19.2.3)
-      '@tanstack/react-store':
-        specifier: ^0.7.1
-        version: 0.7.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@techsio/analytics':
-        specifier: workspace:*
-        version: link:../../../libs/analytics
-      '@techsio/storefront-data':
-        specifier: workspace:*
-        version: file:libs/storefront-data(@medusajs/js-sdk@2.13.1)(@medusajs/types@2.13.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@techsio/ui-kit':
-        specifier: workspace:*
-        version: link:../../../libs/ui
-      next:
-        specifier: 16.1.1
-        version: 16.1.1(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0)
-      nuqs:
-        specifier: ^2.8.8
-        version: 2.8.9(next@16.1.1(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(react-router-dom@6.30.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-router@6.30.3(react@19.2.3))(react@19.2.3)
-      react:
-        specifier: 19.2.3
-        version: 19.2.3
-      react-dom:
-        specifier: 19.2.3
-        version: 19.2.3(react@19.2.3)
-      react-hook-form:
-        specifier: ^7.67.0
-        version: 7.74.0(react@19.2.3)
-      tailwind-variants:
-        specifier: ^3.1.1
-        version: 3.1.1(tailwind-merge@3.4.0)(tailwindcss@4.1.17)
-    devDependencies:
-      '@biomejs/biome':
-        specifier: 2.2.0
-        version: 2.2.0
-      '@iconify/tailwind4':
-        specifier: ^1.0.6
-        version: 1.1.0(tailwindcss@4.1.17)
-      '@tailwindcss/postcss':
-        specifier: ^4
-        version: 4.1.17
-      '@tanstack/react-query-devtools':
-        specifier: ^5.90.2
-        version: 5.91.2(@tanstack/react-query@5.90.10(react@19.2.3))(react@19.2.3)
-      '@types/node':
-        specifier: ^20
-        version: 20.17.47
-      '@types/react':
-        specifier: 19.2.3
-        version: 19.2.3
-      '@types/react-dom':
-        specifier: 19.2.3
-        version: 19.2.3(@types/react@19.2.3)
-      babel-plugin-react-compiler:
-        specifier: 1.0.0
-        version: 1.0.0
-      dotenv:
-        specifier: ^16.4.7
-        version: 16.6.1
-      postcss-import:
-        specifier: ^16.1.1
-        version: 16.1.1(postcss@8.5.6)
-      tailwindcss:
-        specifier: ^4
-        version: 4.1.17
-      tailwindcss-animate:
-        specifier: ^1.0.7
-        version: 1.0.7(tailwindcss@4.1.17)
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-
   apps/medusa-be:
     dependencies:
       '@badgateway/oauth2-client':
@@ -7138,12 +7053,6 @@ packages:
     peerDependencies:
       react: 19.2.3
 
-  '@tanstack/react-store@0.7.7':
-    resolution: {integrity: sha512-qqT0ufegFRDGSof9D/VqaZgjNgp4tRPHZIJq2+QIHkMUtHjaJ0lYrrXjeIUJvjnTbgPfSD1XgOMEt0lmANn6Zg==}
-    peerDependencies:
-      react: 19.2.3
-      react-dom: 19.2.3
-
   '@tanstack/react-store@0.8.0':
     resolution: {integrity: sha512-1vG9beLIuB7q69skxK9r5xiLN3ztzIPfSQSs0GfeqWGO2tGIyInZx0x1COhpx97RKaONSoAb8C3dxacWksm1ow==}
     peerDependencies:
@@ -12369,12 +12278,6 @@ packages:
   react-hook-form@7.49.1:
     resolution: {integrity: sha512-MId71bfWmpyvwuWjVTe2b4DRc0jIYOb/B9tlrotEHTuHlQGeX1x2QXfjNe9UtMi6TqhO0bsSdSWgjcUFh2fSww==}
     engines: {node: '>=18', pnpm: '8'}
-    peerDependencies:
-      react: 19.2.3
-
-  react-hook-form@7.74.0:
-    resolution: {integrity: sha512-yR6wHr99p9wFv686jhRWVSFhUvDvNbdUf2dKlbno8/VKOCuoNobDGC6S+M2dua9A9Yo8vpcrp8assIYbsZCQ9g==}
-    engines: {node: '>=18.0.0'}
     peerDependencies:
       react: 19.2.3
 
@@ -22149,13 +22052,6 @@ snapshots:
       '@tanstack/query-core': 5.90.10
       react: 19.2.3
 
-  '@tanstack/react-store@0.7.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
-    dependencies:
-      '@tanstack/store': 0.7.7
-      react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
-      use-sync-external-store: 1.6.0(react@19.2.3)
-
   '@tanstack/react-store@0.8.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@tanstack/store': 0.8.0
@@ -28267,10 +28163,6 @@ snapshots:
       shallowequal: 1.1.0
 
   react-hook-form@7.49.1(react@19.2.3):
-    dependencies:
-      react: 19.2.3
-
-  react-hook-form@7.74.0(react@19.2.3):
     dependencies:
       react: 19.2.3
 
