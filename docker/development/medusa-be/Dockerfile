@@ -41,7 +41,24 @@ COPY apps/medusa-be ./apps/medusa-be
 RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/tmp/pnpm-store \
     corepack install && \
     npm_config_store_dir=/tmp/pnpm-store \
-    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=medusa-be...
+    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=medusa-be... && \
+    rm -rf \
+      apps/medusa-be/integration-tests \
+      node_modules/.cache \
+      node_modules/.pnpm/@biomejs+* \
+      node_modules/.pnpm/@jest+* \
+      node_modules/.pnpm/@medusajs+test-utils@* \
+      node_modules/.pnpm/@nx+* \
+      node_modules/.pnpm/@playwright+* \
+      node_modules/.pnpm/@swc+jest@* \
+      node_modules/.pnpm/@types+jest@* \
+      node_modules/.pnpm/jest-* \
+      node_modules/.pnpm/jest@* \
+      node_modules/.pnpm/nx@* \
+      node_modules/.pnpm/playwright@* \
+      node_modules/.pnpm/playwright-core@* \
+      node_modules/.pnpm/yalc@* && \
+    find apps/medusa-be/src -type d -name __tests__ -prune -exec rm -rf {} +
 
 WORKDIR /var/www/apps/medusa-be
 
