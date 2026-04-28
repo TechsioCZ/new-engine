@@ -106,6 +106,16 @@ test("preview scope feeds baseline state into prepare decisions", async () => {
   assert.match(raw, previewBaselineCompleteFlagPattern)
 })
 
+test("preview deploy does not pass DB passwords through GitHub outputs", async () => {
+  const raw = await readFile(
+    join(repoRoot, ".github/workflows/zaneops-preview-after-ci.yml"),
+    "utf8"
+  )
+
+  assert.equal(raw.includes("preview_db_password"), false)
+  assert.equal(raw.includes("PREVIEW_DB_PASSWORD"), false)
+})
+
 test("main CI runs new-engine-ctl tests on the supported Node version", async () => {
   const raw = await readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8")
 

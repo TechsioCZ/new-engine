@@ -23,6 +23,7 @@ import {
   waitForDeployments,
 } from "./deploy-shared.js"
 import { executePlan } from "./plan.js"
+import { resolvePreviewDbContext } from "./preview-db-context.js"
 import { generatePreviewRandomOnceSecrets } from "./preview-random-secrets.js"
 import {
   buildPreviewServiceEnvSyncServices,
@@ -360,18 +361,32 @@ export async function executeDeployPreview(
     input.dryRun || !input.baseUrl || !input.apiToken
       ? null
       : new ZaneOperatorClient(input.baseUrl, input.apiToken)
+  const deployServiceIds = effectiveRuntimePlan.deploy_services.map(
+    (service) => service.id
+  )
+  const previewDbContext = await resolvePreviewDbContext({
+    prNumber: input.prNumber,
+    deployServiceIds,
+    manifest: contracts.manifest,
+    previewDbName: input.previewDbName,
+    previewDbUser: input.previewDbUser,
+    previewDbPassword: input.previewDbPassword,
+    dryRun: input.dryRun,
+    zaneOperatorClient,
+  })
+  if (previewDbContext.required && !input.previewDbPassword) {
+    logDeployProgress("Resolved preview DB credentials inside the deploy job.")
+  }
   await syncPreviewSharedEnv({
     zaneOperatorClient,
     projectSlug: input.projectSlug,
     environmentName: environment.environment_name,
     sourceEnvironmentName: input.sourceEnvironmentName,
     contracts,
-    deployServiceIds: effectiveRuntimePlan.deploy_services.map(
-      (service) => service.id
-    ),
-    previewDbName: input.previewDbName,
-    previewDbUser: input.previewDbUser,
-    previewDbPassword: input.previewDbPassword,
+    deployServiceIds,
+    previewDbName: previewDbContext.name,
+    previewDbUser: previewDbContext.user,
+    previewDbPassword: previewDbContext.password,
   })
   await syncPreviewServiceEnv({
     zaneOperatorClient,
@@ -379,12 +394,10 @@ export async function executeDeployPreview(
     environmentName: environment.environment_name,
     sourceEnvironmentName: input.sourceEnvironmentName,
     contracts,
-    deployServiceIds: effectiveRuntimePlan.deploy_services.map(
-      (service) => service.id
-    ),
-    previewDbName: input.previewDbName,
-    previewDbUser: input.previewDbUser,
-    previewDbPassword: input.previewDbPassword,
+    deployServiceIds,
+    previewDbName: previewDbContext.name,
+    previewDbUser: previewDbContext.user,
+    previewDbPassword: previewDbContext.password,
   })
   const previewRandomOnceSecrets = await resolvePreviewRandomOnceSecrets({
     stackInputs: contracts.stackInputs,
@@ -420,9 +433,9 @@ export async function executeDeployPreview(
     const baselineEnvOverrides = await executeRenderEnvOverrides({
       lane: "preview",
       servicesCsv: effectiveRuntimePlan.deploy_services_csv,
-      previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
-      previewDbPassword: input.previewDbPassword,
+      previewDbName: previewDbContext.name,
+      previewDbUser: previewDbContext.user,
+      previewDbPassword: previewDbContext.password,
       previewRandomOnceSecrets,
       runtimeProviderOutputs:
         buildRuntimeProviderRenderContext(runtimeProviderState)
@@ -561,9 +574,9 @@ export async function executeDeployPreview(
     const envOverrides = await executeRenderEnvOverrides({
       lane: "preview",
       servicesCsv: stageServicesCsv,
-      previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
-      previewDbPassword: input.previewDbPassword,
+      previewDbName: previewDbContext.name,
+      previewDbUser: previewDbContext.user,
+      previewDbPassword: previewDbContext.password,
       previewRandomOnceSecrets,
       runtimeProviderOutputs:
         buildRuntimeProviderRenderContext(runtimeProviderState)
@@ -704,9 +717,9 @@ export async function executeDeployPreview(
         effectiveRuntimePlan.preview_cloned_service_ids_csv,
       previewExcludedServiceIdsCsv:
         effectiveRuntimePlan.preview_excluded_service_ids_csv,
-      previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
-      previewDbPassword: input.previewDbPassword,
+      previewDbName: previewDbContext.name,
+      previewDbUser: previewDbContext.user,
+      previewDbPassword: previewDbContext.password,
       previewRandomOnceSecrets,
       runtimeProviderOutputs:
         buildRuntimeProviderRenderContext(runtimeProviderState)

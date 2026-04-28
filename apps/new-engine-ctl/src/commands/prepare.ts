@@ -29,14 +29,13 @@ async function writePrepareOutputs(
   result: Awaited<ReturnType<typeof executePrepare>>
 ): Promise<void> {
   if (result.response.lane === "preview") {
-    maskGitHubValue(result.previewDbPassword)
     await appendGitHubOutput(
       "preview_db_created",
       String(result.response.preview_db_created)
     )
     await appendGitHubOutput("preview_db_name", result.response.preview_db_name)
     await appendGitHubOutput("preview_db_user", result.response.preview_db_user)
-    await appendGitHubOutput("preview_db_password", result.previewDbPassword)
+    maskGitHubValue(result.previewDbPassword)
     return
   }
 }
