@@ -174,8 +174,9 @@ export function StorefrontAccountLayout({
             theme="unstyled"
             size="current"
             className="justify-start text-lg hover:text-danger px-200"
+            icon={"token-icon-logout"}
+            iconSize="2xl"
           >
-            <Icon icon="token-icon-logout" size="2xl" />
             <span>Odhlásiť</span>
           </Button>
         </aside>
