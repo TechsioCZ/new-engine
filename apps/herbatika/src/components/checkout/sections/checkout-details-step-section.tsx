@@ -132,7 +132,7 @@ export function CheckoutDetailsStepSection({
           size="lg"
           type="submit"
         >
-          <span className="font-normal">Pokračovať na súhrn</span>
+          <span className="font-normal uppercase">Pokračovať na súhrn</span>
         </Button>
       </div>
     </section>
