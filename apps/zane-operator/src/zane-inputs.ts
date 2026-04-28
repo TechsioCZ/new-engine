@@ -401,23 +401,10 @@ function parseServiceReconciliationSpecs(
 
   return value.map((item, index) => {
     const object = assertObject(item, `${label}[${index}]`)
-    const gitSource =
-      object.git_source == null
-        ? undefined
-        : (() => {
-            const gitSourceObject = assertObject(
-              object.git_source,
-              `${label}[${index}].git_source`
-            )
-            return {
-              sync_from_source: gitSourceObject.sync_from_source === true,
-              commit_sha:
-                assertOptionalString(
-                  gitSourceObject.commit_sha,
-                  `${label}[${index}].git_source.commit_sha`
-                ) ?? "HEAD",
-            }
-          })()
+    const gitSource = parseServiceReconciliationGitSource(
+      object.git_source,
+      `${label}[${index}].git_source`
+    )
     const builder =
       object.builder == null
         ? undefined
@@ -428,15 +415,10 @@ function parseServiceReconciliationSpecs(
             )
             return {
               sync_from_source: builderObject.sync_from_source === true,
-              build_stage_target:
-                typeof builderObject.build_stage_target === "string"
-                  ? assertString(
-                      builderObject.build_stage_target,
-                      `${label}[${index}].builder.build_stage_target`
-                    )
-                  : builderObject.build_stage_target === null
-                    ? null
-                    : undefined,
+              build_stage_target: parseOptionalNullableString(
+                builderObject.build_stage_target,
+                `${label}[${index}].builder.build_stage_target`
+              ),
             }
           })()
     const healthcheck =
@@ -479,6 +461,35 @@ function parseServiceReconciliationSpecs(
       ...(resourceLimits ? { resource_limits: resourceLimits } : {}),
     }
   })
+}
+
+function parseOptionalNullableString(value: unknown, label: string) {
+  if (typeof value === "string") {
+    return assertString(value, label)
+  }
+
+  if (value === null) {
+    return null
+  }
+
+  return
+}
+
+function parseServiceReconciliationGitSource(value: unknown, label: string) {
+  if (value == null) {
+    return
+  }
+
+  const object = assertObject(value, label)
+  return {
+    sync_from_source: object.sync_from_source === true,
+    branch_name: assertOptionalString(
+      object.branch_name,
+      `${label}.branch_name`
+    ),
+    commit_sha:
+      assertOptionalString(object.commit_sha, `${label}.commit_sha`) ?? "HEAD",
+  }
 }
 
 export function parseResolveEnvironmentInput(

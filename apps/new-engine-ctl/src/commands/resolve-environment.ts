@@ -17,6 +17,7 @@ export function createResolveEnvironmentCommand(): Command {
     .option("--reconcile-service-ids-csv <csv>", "", "")
     .option("--preview-cloned-service-ids-csv <csv>", "", "")
     .option("--preview-excluded-service-ids-csv <csv>", "", "")
+    .option("--preview-git-branch <branch>", "", "")
     .option("--output-json <path>")
     .option("--base-url <url>")
     .option("--api-token <token>")
@@ -49,6 +50,8 @@ export function createResolveEnvironmentCommand(): Command {
         reconcileServiceIdsCsv: options.reconcileServiceIdsCsv,
         previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
         previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
+        previewGitBranch:
+          options.previewGitBranch ?? process.env.ZANE_PREVIEW_GIT_BRANCH ?? "",
         outputJson: options.outputJson,
         baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
         apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",

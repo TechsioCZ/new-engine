@@ -10,6 +10,7 @@ import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
 import type { RuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import { getPreviewRandomOnceSecretDefinitions } from "../contracts/stack-inputs.js"
 import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
+import { resolveGitHubPreviewHeadBranch } from "../github-event.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import { executeApplyEnvOverridesPayload } from "./apply-env-overrides.js"
 import { loadDeployContracts } from "./deploy-inputs.js"
@@ -310,6 +311,7 @@ export async function executeDeployPreview(
     stackManifestPath: input.stackManifestPath,
     previewEnvPrefix: input.previewEnvPrefix,
   })
+  const previewGitBranch = await resolveGitHubPreviewHeadBranch()
   const environment = await executeResolveEnvironment({
     lane: "preview",
     projectSlug: input.projectSlug,
@@ -327,6 +329,7 @@ export async function executeDeployPreview(
     stackManifestPath: input.stackManifestPath,
     stackInputsPath: input.stackInputsPath,
     previewEnvPrefix: input.previewEnvPrefix,
+    previewGitBranch,
   })
   const baselineDeploy = environment.created || !environment.baseline_complete
   logDeployProgress(

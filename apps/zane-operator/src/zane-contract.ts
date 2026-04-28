@@ -16,6 +16,7 @@ export interface ZaneServiceReconciliationSpec {
   service_slug: string
   git_source?: {
     sync_from_source: boolean
+    branch_name?: string
   }
   builder?: {
     sync_from_source: boolean
