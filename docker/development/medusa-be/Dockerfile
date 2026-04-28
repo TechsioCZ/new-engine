@@ -87,12 +87,9 @@ CMD ["npm", "run", "start:ci-dev"]
 # ============================================
 FROM base AS build
 
-# Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.pnpm={...(pkg.pnpm||{}), supportedArchitectures:{os:['current'], cpu:['current'], libc:['current']}}; fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');"
-RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
-    corepack install && \
-    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+RUN corepack install
 
 # Copy only the files needed for the Medusa production build so unrelated repo changes
 # don't invalidate the expensive install/build layers.
