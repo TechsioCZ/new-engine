@@ -42,7 +42,7 @@ const summaryCardClassName =
 const summaryEditLinkClassName =
   "gap-100 px-0 font-semibold text-fg-primary underline underline-offset-2 hover:text-primary";
 const summaryInlineLinkClassName =
-  "font-semibold text-fg-primary underline underline-offset-2 hover:text-primary";
+  "text-fg-primary underline underline-offset-2 hover:text-primary";
 
 const hasTextValue = (value: string) => {
   return value.trim().length > 0;
@@ -154,10 +154,10 @@ export function CheckoutCompleteSection({
         Súhrn objednávky
       </h2>
 
-      <section className={`${summaryCardClassName}`}>
+      <section className="rounded-sm border border-border-primary bg-surface space-y-300 p-400 sm:p-550">
         <div className="flex items-start justify-between gap-200 border-b border-border-secondary pb-250">
-          <p className="text-sm font-medium text-fg-primary">Spolu s DPH</p>
-          <div className="text-right">
+          <p className="text-sm font-medium mt-200 text-fg-primary">Spolu s DPH</p>
+          <div className="text-right space-y-200">
             <p className="font-rubik text-2xl font-bold text-fg-primary">
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
             </p>
@@ -200,7 +200,7 @@ export function CheckoutCompleteSection({
             Dokončiť objednávku
           </Button>
 
-          <p className="mx-auto max-w-[42rem] text-center text-sm leading-relaxed text-fg-secondary">
+          <p className="mx-auto max-w-[42rem] text-center text-xs leading-relaxed text-fg-secondary">
             Potvrdzujem, že som sa oboznámil s{" "}
             <NextLink
               className={summaryInlineLinkClassName}
@@ -255,10 +255,8 @@ export function CheckoutCompleteSection({
           </LinkButton>
         </div>
 
-        <div className="grid gap-300 xl:grid-cols-2">
-          <div className="space-y-200">
-            <p className="font-medium text-fg-primary">Doručovacie údaje</p>
-            <div className="grid gap-x-250 gap-y-150 md:grid-cols-2">
+        <div className="grid gap-300">
+            <div className="grid gap-x-250 gap-y-150 grid-cols-2 sm:grid-cols-3">
               {shippingAddressRows.map((row) => (
                 <div className="space-y-50 px-150 py-100" key={`shipping-${row.label}`}>
                   <p className="text-sm text-fg-tertiary">{row.label}</p>
@@ -268,30 +266,6 @@ export function CheckoutCompleteSection({
                 </div>
               ))}
             </div>
-          </div>
-
-          {useSameAddress ? (
-            <div className="space-y-100 rounded-sm bg-highlight px-250 py-200">
-              <p className="font-medium text-fg-primary">Fakturačné údaje</p>
-              <SupportingText className="text-fg-secondary">
-                Fakturačná adresa je rovnaká ako doručovacia.
-              </SupportingText>
-            </div>
-          ) : (
-            <div className="space-y-200">
-              <p className="font-medium text-fg-primary">Fakturačné údaje</p>
-              <div className="grid gap-x-250 gap-y-150 md:grid-cols-2">
-                {billingAddressRows.map((row) => (
-                  <div className="space-y-50 px-150 py-100" key={`billing-${row.label}`}>
-                    <p className="text-sm text-fg-tertiary">{row.label}</p>
-                    <p className="text-sm leading-relaxed text-fg-primary">
-                      {resolveValue(row.value)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {!hasStoredAddress ? (
@@ -316,9 +290,9 @@ function SummaryRecapCard({
   tone?: "default" | "warning";
 }) {
   return (
-    <div className={`${summaryCardClassName}`}>
+    <div className="rounded-sm border border-border-primary bg-surface space-y-300 px-350 py-300">
       <div className="flex items-center justify-between gap-200">
-        <div className="flex min-w-0 items-center gap-200">
+        <div className="flex min-w-0 items-center gap-450">
           <span className="flex h-600 w-600 shrink-0 items-center justify-center text-fg-primary">
             <Icon icon={icon} size="lg" />
           </span>
