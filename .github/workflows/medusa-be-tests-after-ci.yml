@@ -150,13 +150,26 @@ jobs:
 
           for _ in {1..30}; do
             if node -e "const net=require('node:net'); const socket=net.connect({host: process.env.DB_HOST, port: Number(process.env.DB_PORT)}, () => { socket.end(); process.exit(0); }); socket.on('error', () => process.exit(1)); socket.setTimeout(1000, () => process.exit(1));"; then
+              break
+            fi
+
+            sleep 1
+          done
+
+      - name: Wait for Postgres SQL
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for _ in {1..30}; do
+            if node -e "const { Client } = require('pg'); const client = new Client({ host: process.env.DB_HOST, port: Number(process.env.DB_PORT), user: process.env.DB_USERNAME, password: process.env.DB_PASSWORD, database: 'postgres' }); client.connect().then(() => client.query('SELECT 1')).then(() => client.end()).then(() => process.exit(0)).catch(async () => { try { await client.end() } catch {} process.exit(1) })"; then
               exit 0
             fi
 
             sleep 1
           done
 
-          echo "Postgres did not accept TCP connections on ${DB_HOST}:${DB_PORT}" >&2
+          echo "Postgres did not accept SQL connections on ${DB_HOST}:${DB_PORT}" >&2
           exit 1
 
       - name: Run Medusa BE module integration tests

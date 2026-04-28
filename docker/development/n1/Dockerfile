@@ -52,7 +52,19 @@ RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/tmp/pnpm-store \
     pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=n1... && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm --filter=@techsio/analytics build && \
-    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=n1...
+    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=n1... && \
+    rm -rf \
+      libs/ui/storybook-static \
+      node_modules/.pnpm/@biomejs+* \
+      node_modules/.pnpm/@figma+* \
+      node_modules/.pnpm/@playwright+* \
+      node_modules/.pnpm/@semantic-release+* \
+      node_modules/.pnpm/@storybook+* \
+      node_modules/.pnpm/@techsio+storybook-* \
+      node_modules/.pnpm/playwright@* \
+      node_modules/.pnpm/playwright-core@* \
+      node_modules/.pnpm/semantic-release@* \
+      node_modules/.pnpm/storybook@*
 
 WORKDIR /var/www/apps/n1
 

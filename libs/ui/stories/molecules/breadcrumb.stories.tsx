@@ -298,7 +298,7 @@ export const AllVariants: Story = {
           items={[
             { label: 'Home', href: '/', icon: 'icon-[mdi--home]' },
             { label: 'Products', href: '/products', icon: 'icon-[mdi--shopping]' },
-            { label: 'Electronics', href: '/electronics', icon: 'icon-[mdi--cpu]' },
+            { label: 'Electronics', href: '/electronics', icon: 'icon-[mdi--cpu-64-bit]' },
           ]}
         />
       </VariantGroup>
