@@ -58,7 +58,25 @@ RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/tmp/pnpm-store \
       node_modules/.pnpm/playwright@* \
       node_modules/.pnpm/playwright-core@* \
       node_modules/.pnpm/yalc@* && \
-    find apps/medusa-be/src -type d -name __tests__ -prune -exec rm -rf {} +
+    find apps/medusa-be/src -type d -name __tests__ -prune -exec rm -rf {} + && \
+    find node_modules -type f \( \
+      -name '*.map' -o \
+      -name '*.md' -o \
+      -name '*.d.ts' -o \
+      -name '*.d.mts' -o \
+      -name '*.d.cts' \
+    \) -delete && \
+    find node_modules -type d \( \
+      -name test -o \
+      -name tests -o \
+      -name __tests__ -o \
+      -name docs -o \
+      -name doc -o \
+      -name example -o \
+      -name examples -o \
+      -name benchmark -o \
+      -name benchmarks \
+    \) -prune -exec rm -rf {} +
 
 WORKDIR /var/www/apps/medusa-be
 
