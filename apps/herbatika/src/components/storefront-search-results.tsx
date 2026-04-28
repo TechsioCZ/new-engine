@@ -70,7 +70,6 @@ export function StorefrontSearchResults() {
               isProductAdding={controller.isProductAdding}
               layout="catalog"
               onAddToCart={controller.onAddToCart}
-              onPageChange={controller.onPageChange}
               onProductHoverEnd={controller.onProductHoverEnd}
               onProductHoverStart={controller.onProductHoverStart}
               onSortChange={controller.onSortChange}

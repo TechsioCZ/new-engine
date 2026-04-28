@@ -1,13 +1,14 @@
 "use client";
 
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
+import NextLink from "next/link";
+import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder";
 
 type SearchPaginationProps = {
   isVisible: boolean;
   count: number;
   currentPage: number;
   pageSize: number;
-  onPageChange: (nextPage: number) => void;
 };
 
 export function SearchPagination({
@@ -15,8 +16,9 @@ export function SearchPagination({
   count,
   currentPage,
   pageSize,
-  onPageChange,
 }: SearchPaginationProps) {
+  const getPageUrl = usePaginationUrlBuilder();
+
   if (!isVisible) {
     return null;
   }
@@ -24,7 +26,8 @@ export function SearchPagination({
   return (
     <Pagination
       count={count}
-      onPageChange={onPageChange}
+      getPageUrl={getPageUrl}
+      linkAs={NextLink}
       page={currentPage}
       pageSize={pageSize}
       size="sm"

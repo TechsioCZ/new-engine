@@ -1,7 +1,8 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { Pagination } from "@techsio/ui-kit/molecules/pagination";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
+import { Pagination } from "@techsio/ui-kit/molecules/pagination";
+import NextLink from "next/link";
 import type { ReactNode } from "react";
 import {
   HerbatikaProductGrid,
@@ -9,6 +10,7 @@ import {
 } from "@/components/product/herbatika-product-grid";
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton";
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state";
+import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder";
 import { CategorySortTabs } from "./category-sort-tabs";
 
 type CategoryResultsSectionProps = {
@@ -20,7 +22,6 @@ type CategoryResultsSectionProps = {
   isLoading: boolean;
   isProductAdding: (productId: string) => boolean;
   onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void>;
-  onPageChange: (nextPage: number) => void;
   onProductHoverEnd: (product: HttpTypes.StoreProduct) => void;
   onProductHoverStart: (product: HttpTypes.StoreProduct) => void;
   onSortChange: (value: ProductSortValue) => void;
@@ -46,7 +47,6 @@ export function CategoryResultsSection({
   isLoading,
   isProductAdding,
   onAddToCart,
-  onPageChange,
   onProductHoverEnd,
   onProductHoverStart,
   onSortChange,
@@ -62,8 +62,10 @@ export function CategoryResultsSection({
   totalProducts,
   isRefreshing = false,
 }: CategoryResultsSectionProps) {
-  const resolvedLoadingSkeleton =
-    loadingSkeleton ?? <HerbatikaProductGridSkeleton layout={layout} />;
+  const getPageUrl = usePaginationUrlBuilder();
+  const resolvedLoadingSkeleton = loadingSkeleton ?? (
+    <HerbatikaProductGridSkeleton layout={layout} />
+  );
   const shouldShowInitialSkeleton = isLoading && products.length === 0;
   const shouldShowProductsGrid = !showCategoryNotFound && products.length > 0;
 
@@ -107,7 +109,8 @@ export function CategoryResultsSection({
       {!isLoading && !showCategoryNotFound && isEmpty && (
         <div className="rounded-lg border border-border-secondary bg-base p-400">
           <p className="text-sm text-fg-secondary">
-            V tejto kategórii zatiaľ nie sú dostupné produkty pre zvolený filter.
+            V tejto kategórii zatiaľ nie sú dostupné produkty pre zvolený
+            filter.
           </p>
         </div>
       )}
@@ -127,7 +130,8 @@ export function CategoryResultsSection({
       {totalPages > 1 && (
         <Pagination
           count={totalCount}
-          onPageChange={onPageChange}
+          getPageUrl={getPageUrl}
+          linkAs={NextLink}
           page={page}
           pageSize={pageSize}
           size="sm"

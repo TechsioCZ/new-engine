@@ -2,8 +2,8 @@
 
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
-import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
 import { CategoryContextPanel } from "@/components/category/category-context-panel";
+import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
 import { normalizeCategoryName } from "@/components/category/category-product-utils";
 import { CategoryResultsSection } from "@/components/category/category-results-section";
@@ -96,7 +96,6 @@ export function StorefrontCategoryListing({
             isRefreshing={isResultsRefreshing}
             isProductAdding={controller.isProductAdding}
             onAddToCart={controller.onAddToCart}
-            onPageChange={controller.onPageChange}
             onProductHoverEnd={controller.onProductHoverEnd}
             onProductHoverStart={controller.onProductHoverStart}
             onSortChange={controller.onSortChange}
