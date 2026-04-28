@@ -608,7 +608,7 @@ service_reconciliation:
     - service_id: medusa-be
       builder:
         build_stage_target_by_lane:
-          preview: ci-dev
+          preview: prod
           main: prod
 
     - service_id: n1

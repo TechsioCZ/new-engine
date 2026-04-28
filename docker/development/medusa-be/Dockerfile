@@ -89,6 +89,7 @@ FROM base AS build
 
 # Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.pnpm={...(pkg.pnpm||{}), supportedArchitectures:{os:['current'], cpu:['current'], libc:['current']}}; fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');"
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
@@ -127,6 +128,24 @@ COPY --from=build --chown=node:node /var/www/apps/medusa-be/src/scripts/seed-fil
 
 # Create writable dirs for runtime (types, admin assets, local uploads if used)
 RUN mkdir -p /app/.medusa/types /app/.medusa/client /app/static && \
+    find node_modules -type f \( \
+      -name '*.map' -o \
+      -name '*.md' -o \
+      -name '*.d.ts' -o \
+      -name '*.d.mts' -o \
+      -name '*.d.cts' \
+    \) -delete && \
+    find node_modules -type d \( \
+      -name test -o \
+      -name tests -o \
+      -name __tests__ -o \
+      -name docs -o \
+      -name doc -o \
+      -name example -o \
+      -name examples -o \
+      -name benchmark -o \
+      -name benchmarks \
+    \) -prune -exec rm -rf {} + && \
     chown -R node:node /app/.medusa /app/static
 
 # Run as non-root user
