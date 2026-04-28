@@ -8,7 +8,7 @@ import type {
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
 import { buttonVariants } from "./button"
-import { Icon, type IconType } from "./icon"
+import { Icon, type IconProps, type IconType } from "./icon"
 import { Link } from "./link"
 
 const linkButton = tv({
@@ -28,6 +28,7 @@ export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
   href?: LinkButtonHref<T>
   icon?: IconType
   iconPosition?: "left" | "right"
+  iconSize?: IconProps["size"]
   children?: ReactNode
   disabled?: boolean
   uppercase?: boolean
@@ -43,6 +44,7 @@ export function LinkButton<T extends ElementType = "a">({
   icon,
   as,
   iconPosition = "left",
+  iconSize,
   children,
   variant,
   theme,
@@ -56,16 +58,15 @@ export function LinkButton<T extends ElementType = "a">({
   tabIndex,
   ...props
 }: LinkButtonProps<T>) {
-  const handleClick = onClick as ((event: MouseEvent<Element>) => void) | undefined
+  const handleClick = onClick as
+    | ((event: MouseEvent<Element>) => void)
+    | undefined
 
   return (
     <Link
       {...props}
-      href={href}
       aria-disabled={disabled}
-      data-disabled={disabled || undefined}
       as={as as ElementType}
-      tabIndex={disabled ? -1 : tabIndex}
       className={linkButton({
         variant,
         theme,
@@ -74,6 +75,8 @@ export function LinkButton<T extends ElementType = "a">({
         uppercase,
         className,
       })}
+      data-disabled={disabled || undefined}
+      href={href}
       onClick={(e: MouseEvent) => {
         if (disabled) {
           e.preventDefault()
@@ -84,10 +87,15 @@ export function LinkButton<T extends ElementType = "a">({
         handleClick?.(e)
       }}
       ref={ref}
+      tabIndex={disabled ? -1 : tabIndex}
     >
-      {icon && iconPosition === "left" && <Icon icon={icon} size={size} />}
+      {icon && iconPosition === "left" && (
+        <Icon icon={icon} size={iconSize ?? size} />
+      )}
       {children}
-      {icon && iconPosition === "right" && <Icon icon={icon} size={size} />}
+      {icon && iconPosition === "right" && (
+        <Icon icon={icon} size={iconSize ?? size} />
+      )}
     </Link>
   )
 }
