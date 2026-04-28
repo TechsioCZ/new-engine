@@ -1,5 +1,5 @@
-import type { HerbaticaCategoryExport } from "../../../src/scripts/herbatica-category-export"
-import { buildSeedInputFromXml } from "../../../src/scripts/herbatica-seed"
+import type {HerbaticaCategoryExport} from "../../../src/scripts/herbatica-category-export"
+import {buildSeedInputFromXml} from "../../../src/scripts/herbatica-seed"
 
 describe("Herbatica seed category mapping", () => {
   it("prefers canonical category export data over malformed product paths", () => {

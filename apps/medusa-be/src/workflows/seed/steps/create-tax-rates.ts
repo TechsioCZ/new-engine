@@ -1,16 +1,13 @@
 import type {
-  IProductModuleService,
-  ITaxModuleService,
-  Logger,
-  TaxRateDTO,
-  TaxRegionDTO,
+    IProductModuleService,
+    ITaxModuleService,
+    Logger,
+    TaxRateDTO,
+    TaxRegionDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  createTaxRatesWorkflow,
-  updateTaxRatesWorkflow,
-} from "@medusajs/medusa/core-flows"
+import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
+import {createStep, StepResponse} from "@medusajs/framework/workflows-sdk"
+import {createTaxRatesWorkflow, updateTaxRatesWorkflow,} from "@medusajs/medusa/core-flows"
 
 type TaxRateMetadata = Record<string, unknown>
 
@@ -53,7 +50,7 @@ const RATE_EPSILON = 0.0001
 
 function asObject(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined
+    return
   }
 
   return value as Record<string, unknown>
@@ -61,12 +58,12 @@ function asObject(value: unknown): Record<string, unknown> | undefined {
 
 function normalizeCountryCode(value: unknown): string | undefined {
   if (typeof value !== "string") {
-    return undefined
+    return
   }
 
   const normalized = value.trim().toLowerCase()
   if (normalized.length !== 2) {
-    return undefined
+    return
   }
 
   return normalized
@@ -75,24 +72,24 @@ function normalizeCountryCode(value: unknown): string | undefined {
 function parseRate(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {
     if (value < 0 || value > 100) {
-      return undefined
+      return
     }
 
     return Number(value.toFixed(4))
   }
 
   if (typeof value !== "string") {
-    return undefined
+    return
   }
 
   const normalized = value.trim().replace(",", ".")
   if (!normalized) {
-    return undefined
+    return
   }
 
   const parsed = Number(normalized)
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
-    return undefined
+    return
   }
 
   return Number(parsed.toFixed(4))
@@ -108,7 +105,7 @@ function parseOssRate(
   }
 
   if (typeof value !== "string") {
-    return undefined
+    return
   }
 
   const normalized = value.trim().toLowerCase()
@@ -116,7 +113,7 @@ function parseOssRate(
     return fallbackRate
   }
 
-  return undefined
+  return
 }
 
 function isSameRate(left: number | null | undefined, right: number): boolean {
@@ -162,7 +159,7 @@ function pickDefaultRate(values: number[]): number {
 function getMetadataString(metadata: TaxRateMetadata | null, key: string) {
   const value = metadata?.[key]
   if (typeof value !== "string") {
-    return undefined
+    return
   }
 
   const normalized = value.trim()

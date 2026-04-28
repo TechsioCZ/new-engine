@@ -36,7 +36,9 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       QueryContext(req.pricingContext as Record<string, unknown>)
   }
 
-  const { data: products = [], metadata } = await (query.graph as GraphWithOptions)(
+  const { data: products = [], metadata } = await (
+    query.graph as GraphWithOptions
+  )(
     {
       entity: "product",
       fields: productFields,
@@ -57,10 +59,12 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
 
   if (withInventoryQuantity) {
     await wrapVariantsWithInventoryQuantityForSalesChannel(
-      req as Parameters<typeof wrapVariantsWithInventoryQuantityForSalesChannel>[0],
-      (products as ProductRecord[])
-        .map((product) => product.variants ?? [])
-        .flat(1) as Parameters<
+      req as Parameters<
+        typeof wrapVariantsWithInventoryQuantityForSalesChannel
+      >[0],
+      (products as ProductRecord[]).flatMap(
+        (product) => product.variants ?? []
+      ) as Parameters<
         typeof wrapVariantsWithInventoryQuantityForSalesChannel
       >[1]
     )

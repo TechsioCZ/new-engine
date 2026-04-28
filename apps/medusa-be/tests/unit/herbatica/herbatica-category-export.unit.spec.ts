@@ -1,8 +1,8 @@
-import { resolve } from "node:path"
+import {resolve} from "node:path"
 import {
-  excerptPlainText,
-  parseHerbaticaCategoriesXmlFile,
-  stripHtmlToPlainText,
+    excerptPlainText,
+    parseHerbaticaCategoriesXmlFile,
+    stripHtmlToPlainText,
 } from "../../../src/scripts/herbatica-category-export"
 
 describe("Herbatica category export parser", () => {

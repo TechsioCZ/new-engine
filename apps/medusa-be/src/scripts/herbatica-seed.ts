@@ -12,14 +12,14 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
-import {
-  excerptPlainText,
-  parseHerbaticaCategoriesXmlFile,
-  type HerbaticaCategoryExport,
-} from "./herbatica-category-export"
 import seedDatabaseWorkflow, {
   type SeedDatabaseWorkflowInput,
 } from "../workflows/seed/workflows/seed-database"
+import {
+  excerptPlainText,
+  type HerbaticaCategoryExport,
+  parseHerbaticaCategoriesXmlFile,
+} from "./herbatica-category-export"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
 type VariantSeedInput = NonNullable<ProductSeedInput["variants"]>[number]
@@ -368,14 +368,12 @@ const PRODUCT_CONTENT_TEXT_LABEL_DEFINITIONS: ProductContentTextLabelDefinition[
     {
       key: "usage",
       label: "Spôsob užívania a odporúčané dávkovanie",
-      pattern:
-        /Spôsob\s+užívania\s+a\s+odporúčané\s+dávkovanie\s*:/gi,
+      pattern: /Spôsob\s+užívania\s+a\s+odporúčané\s+dávkovanie\s*:/gi,
     },
     {
       key: "usage",
       label: "Spôsob použitia a odporúčané dávkovanie",
-      pattern:
-        /Spôsob\s+použitia\s+a\s+odporúčané\s+dávkovanie\s*:/gi,
+      pattern: /Spôsob\s+použitia\s+a\s+odporúčané\s+dávkovanie\s*:/gi,
     },
     {
       key: "usage",
@@ -547,14 +545,15 @@ function decodeXml(value: string): string {
       const parsed = Number.parseInt(num, 10)
       return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
     })
-    .replace(/&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g, (entity) => {
-      return ENTITY_MAP[entity] ?? entity
-    })
+    .replace(
+      /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g,
+      (entity) => ENTITY_MAP[entity] ?? entity
+    )
 }
 
 function normalizeText(value?: string): string | undefined {
   if (value === undefined) {
-    return undefined
+    return
   }
   const decoded = decodeXml(value).replace(/\r\n/g, "\n").trim()
   return decoded === "" ? undefined : decoded
@@ -563,14 +562,14 @@ function normalizeText(value?: string): string | undefined {
 function normalizeInlineText(value?: string): string | undefined {
   const normalized = normalizeText(value)
   if (normalized === undefined) {
-    return undefined
+    return
   }
   return normalized.replace(/\s+/g, " ").trim()
 }
 
 function stripHtmlTags(value?: string): string | undefined {
   if (!value) {
-    return undefined
+    return
   }
   const withoutTags = value.replace(/<[^>]+>/g, " ")
   return normalizeInlineText(withoutTags)
@@ -592,7 +591,7 @@ function hasHtmlTags(value: string): boolean {
 function normalizeComparableText(value?: string): string | undefined {
   const normalized = normalizeInlineText(value)
   if (!normalized) {
-    return undefined
+    return
   }
   return normalized
     .normalize("NFKD")
@@ -603,7 +602,7 @@ function normalizeComparableText(value?: string): string | undefined {
 function trimHtmlFragment(value?: string): string | undefined {
   const normalized = normalizeText(value)
   if (!normalized) {
-    return undefined
+    return
   }
   const trimmed = normalized.replace(/^\s+|\s+$/g, "")
   return trimmed === "" ? undefined : trimmed
@@ -635,13 +634,13 @@ function dedupeHtmlFragments(values: Array<string | undefined>): string[] {
 function normalizeProductContentLabel(value?: string): string | undefined {
   const normalized = normalizeComparableText(value)
   if (!normalized) {
-    return undefined
+    return
   }
 
   const cleaned = normalized
     .replace(/^[^a-z0-9]+/g, "")
     .replace(/\bo\s+dporucane\b/g, "odporucane")
-    .replace(/[:\-]+$/g, "")
+    .replace(/[:-]+$/g, "")
     .replace(/\s+/g, " ")
     .trim()
 
@@ -653,7 +652,7 @@ function classifyProductContentLabel(
 ): ProductContentSectionKey | undefined {
   const normalizedLabel = normalizeProductContentLabel(label)
   if (!normalizedLabel) {
-    return undefined
+    return
   }
 
   for (const rule of PRODUCT_CONTENT_LABEL_RULES) {
@@ -662,13 +661,13 @@ function classifyProductContentLabel(
     }
   }
 
-  return undefined
+  return
 }
 
 function toHtmlFragment(value?: string): string | undefined {
   const normalized = normalizeText(value)
   if (!normalized) {
-    return undefined
+    return
   }
 
   if (hasHtmlTags(normalized)) {
@@ -684,7 +683,7 @@ function buildLabeledHtmlFragment(
 ): string | undefined {
   const normalized = normalizeText(value)
   if (!normalized) {
-    return undefined
+    return
   }
 
   if (hasHtmlTags(normalized)) {
@@ -701,7 +700,7 @@ function buildTextPropertyHtml(property: ParsedParameter): string {
 function buildPlainTextHtmlFragment(value?: string): string | undefined {
   const normalized = normalizeInlineText(value)
   if (!normalized) {
-    return undefined
+    return
   }
 
   return `<p>${escapeHtml(normalized)}</p>`
@@ -714,7 +713,7 @@ function buildLabeledPlainTextHtmlFragment(
   const normalizedLabel = normalizeInlineText(label.replace(/:\s*$/g, ""))
   const normalizedValue = normalizeInlineText(value)
   if (!normalizedLabel) {
-    return undefined
+    return
   }
 
   return `<p><strong>${escapeHtml(normalizedLabel)}:</strong>${
@@ -833,7 +832,7 @@ function buildProductDescriptionContentGroups(
 
     const blockHtml = trimHtmlFragment(match[0])
     const tagName = match[1]?.toLowerCase()
-    if (!blockHtml || !tagName) {
+    if (!(blockHtml && tagName)) {
       cursor = blockEnd
       continue
     }
@@ -1060,7 +1059,7 @@ function extractFirstText(source: string, tag: string): string | undefined {
 function parseNumber(value?: string): number | undefined {
   const normalized = normalizeInlineText(value)
   if (!normalized) {
-    return undefined
+    return
   }
   const numberValue = Number(normalized.replace(",", "."))
   return Number.isFinite(numberValue) ? numberValue : undefined
@@ -1069,7 +1068,7 @@ function parseNumber(value?: string): number | undefined {
 function parseInteger(value?: string): number | undefined {
   const numberValue = parseNumber(value)
   if (numberValue === undefined) {
-    return undefined
+    return
   }
   return Math.trunc(numberValue)
 }
@@ -1088,7 +1087,7 @@ function normalizePriceAmount(amount?: number): number | undefined {
     Number.isNaN(amount) ||
     !Number.isFinite(amount)
   ) {
-    return undefined
+    return
   }
 
   return Math.max(0, amount)
@@ -1097,7 +1096,7 @@ function normalizePriceAmount(amount?: number): number | undefined {
 function parsePositiveIntegerEnv(name: string): number | undefined {
   const parsed = parseInteger(process.env[name])
   if (parsed === undefined || parsed <= 0) {
-    return undefined
+    return
   }
 
   return parsed
@@ -1137,7 +1136,7 @@ function resolveSeedBuildOptions(
 function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
   const normalized = normalizeInlineText(value)
   if (!normalized) {
-    return undefined
+    return
   }
 
   const dateMatch = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/)
@@ -1156,7 +1155,7 @@ function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
     )
 
     if (Number.isNaN(parsed.getTime())) {
-      return undefined
+      return
     }
 
     return parsed
@@ -1164,7 +1163,7 @@ function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
 
   const parsed = new Date(normalized)
   if (Number.isNaN(parsed.getTime())) {
-    return undefined
+    return
   }
 
   parsed.setUTCHours(
@@ -1216,7 +1215,7 @@ function resolveOfferActionPrice(
     offer.actionPrice ?? fallbackOffer?.actionPrice
   )
   if (actionPrice === undefined) {
-    return undefined
+    return
   }
 
   const actionPriceFrom =
@@ -1224,7 +1223,7 @@ function resolveOfferActionPrice(
   const actionPriceUntil =
     offer.actionPriceUntil ?? fallbackOffer?.actionPriceUntil
   if (!isDateRangeActive(actionPriceFrom, actionPriceUntil, referenceDate)) {
-    return undefined
+    return
   }
 
   return actionPrice
@@ -1411,7 +1410,7 @@ function dedupeParameters(values: ParsedParameter[]): ParsedParameter[] {
   for (const value of values) {
     const name = normalizeInlineText(value.name)
     const parsedValue = normalizeInlineText(value.value)
-    if (!name || !parsedValue) {
+    if (!(name && parsedValue)) {
       continue
     }
     const key = `${name}::${parsedValue}`
@@ -1435,7 +1434,12 @@ function normalizeCategoryPath(path: string): string {
 function splitCategoryPath(path: string): string[] {
   return normalizeCategoryPath(path)
     .split(" > ")
-    .map((part) => part.replace(/^>+\s*/, "").replace(/\s*>+$/, "").trim())
+    .map((part) =>
+      part
+        .replace(/^>+\s*/, "")
+        .replace(/\s*>+$/, "")
+        .trim()
+    )
     .filter((part) => part !== "")
 }
 
@@ -1793,7 +1797,7 @@ function parseCategoryRefs(source: string): ParsedCategoryRef[] {
   const seen = new Set<string>()
 
   for (const ref of refs) {
-    if (!ref.id && !ref.path) {
+    if (!(ref.id || ref.path)) {
       continue
     }
 
@@ -1852,7 +1856,9 @@ function parseShopItems(xml: string): ParsedShopItem[] {
       adult: parseBoolean(extractFirstText(shopItem.inner, "ADULT")),
       itemType: extractFirstText(shopItem.inner, "ITEM_TYPE"),
       categoryRefs,
-      categoryPaths: dedupeStrings(categoryRefs.map((category) => category.path)),
+      categoryPaths: dedupeStrings(
+        categoryRefs.map((category) => category.path)
+      ),
       images,
       textProperties: parseTextProperties(shopItem.inner),
       relatedProducts: parseCodeList(shopItem.inner, "RELATED_PRODUCTS"),
@@ -1956,7 +1962,9 @@ function buildCategoriesFromProductPaths(
 function buildCategoryExportPathIndex(
   categories: HerbaticaCategoryExport[]
 ): Map<string, string> {
-  const categoryById = new Map(categories.map((category) => [category.id, category]))
+  const categoryById = new Map(
+    categories.map((category) => [category.id, category])
+  )
   const pathById = new Map<string, string>()
   const visiting = new Set<string>()
 
@@ -2084,7 +2092,7 @@ function buildCategoriesFromExport(
 function buildProducer(item: ParsedShopItem): ProductSeedInput["producer"] {
   const title = item.manufacturer ?? item.supplier
   if (!title) {
-    return undefined
+    return
   }
 
   const attributes = dedupeParameters(
@@ -2138,13 +2146,13 @@ function resolveProductReference(
   publishedSourceIds: Set<string>
 ): ResolvedProductReference | undefined {
   const sourceShopitemId = normalizeInlineText(code)
-  if (!sourceShopitemId || !publishedSourceIds.has(sourceShopitemId)) {
-    return undefined
+  if (!(sourceShopitemId && publishedSourceIds.has(sourceShopitemId))) {
+    return
   }
 
   const handle = productHandleBySourceId.get(sourceShopitemId)
   if (!handle) {
-    return undefined
+    return
   }
 
   return {
@@ -2295,7 +2303,9 @@ function buildProductMetadata(
   const sourceCategoryIds = dedupeStrings(
     categoryRefs.map((categoryRef) => categoryRef.id)
   )
-  const defaultCategoryRef = categoryRefs.find((categoryRef) => categoryRef.isDefault)
+  const defaultCategoryRef = categoryRefs.find(
+    (categoryRef) => categoryRef.isDefault
+  )
 
   const contentSections = buildProductContentSections(item)
   const contentSectionsMap = {} as Record<ProductContentSectionKey, string>
@@ -2436,7 +2446,7 @@ function buildVariantsForProduct(
     for (const parameter of variant.parameters) {
       const name = normalizeInlineText(parameter.name)
       const value = normalizeInlineText(parameter.value)
-      if (!name || !value) {
+      if (!(name && value)) {
         continue
       }
       if (!optionValues.has(name)) {
@@ -2722,7 +2732,9 @@ function resolveProductsXmlPath(args?: string[]): string {
     return envPath
   }
 
-  const detectedPath = DEFAULT_PRODUCTS_XML_PATHS.find((path) => existsSync(path))
+  const detectedPath = DEFAULT_PRODUCTS_XML_PATHS.find((path) =>
+    existsSync(path)
+  )
   if (!detectedPath) {
     throw new Error(
       `Could not find productsComplete.xml. Checked: ${DEFAULT_PRODUCTS_XML_PATHS.join(", ")}`

@@ -7,17 +7,15 @@ type QueryLike = {
     fields: string[]
     filters?: Record<string, unknown>
   }) => Promise<{
-    data?: Array<Record<string, unknown>>
+    data?: Record<string, unknown>[]
   }>
 }
 
-const isRecord = (value: unknown): value is ProductFilters => {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
-}
+const isRecord = (value: unknown): value is ProductFilters =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value)
 
-const asArray = (value: unknown): unknown[] => {
-  return Array.isArray(value) ? value : [value]
-}
+const asArray = (value: unknown): unknown[] =>
+  Array.isArray(value) ? value : [value]
 
 export const normalizeProductSalesChannelFilter = async (
   query: QueryLike,

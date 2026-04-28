@@ -1,5 +1,5 @@
-import type { ExecArgs, Logger } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type {ExecArgs, Logger} from "@medusajs/framework/types"
+import {ContainerRegistrationKeys} from "@medusajs/framework/utils"
 
 type QueryService = {
   graph: (config: {

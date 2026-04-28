@@ -104,6 +104,18 @@ run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec
 description = "Seed N1-specific Medusa data in the running local stack"
 run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedN1"
 
+[tasks."dev:medusa:seed:herbatica-promos"]
+description = "Seed Herbatica with rebased promo windows (PROMO_REBASE_DAYS defaults to 30)"
+run = """bash -lc 'PROMO_REBASE_DAYS_VAL="${PROMO_REBASE_DAYS:-30}"; echo "Seeding Herbatica with rebased promo windows for $PROMO_REBASE_DAYS_VAL days"; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec -e HERBATICA_PROMO_REBASE_DAYS="$PROMO_REBASE_DAYS_VAL" medusa-be pnpm --filter medusa-be run seedHerbatica'"""
+
+[tasks."dev:medusa:debug-product-count"]
+description = "Debug Medusa product counts in the running local stack"
+run = """bash -lc 'env_args=(); [ -z "${PUBLISHABLE_KEY:-}" ] || env_args=(-e "PUBLISHABLE_KEY=$PUBLISHABLE_KEY"); docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec "${env_args[@]}" medusa-be pnpm --filter medusa-be run debugProductCount'"""
+
+[tasks."dev:medusa:analyze-product-count"]
+description = "Analyze Medusa product counts in the running local stack"
+run = """bash -lc 'env_args=(-e RUN_ANALYZE=1); [ -z "${PUBLISHABLE_KEY:-}" ] || env_args+=(-e "PUBLISHABLE_KEY=$PUBLISHABLE_KEY"); docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec "${env_args[@]}" medusa-be pnpm --filter medusa-be run debugProductCount'"""
+
 [tasks."dev:postgres:bootstrap"]
 description = "Rerun medusa-db role bootstrap against the running local stack"
 run = "bash ./scripts/apply-postgres-role-bootstrap.sh"

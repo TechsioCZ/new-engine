@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import {readFileSync} from "node:fs"
 
 type XmlElement = {
   attributes: Record<string, string>
@@ -36,7 +36,7 @@ const ENTITY_MAP: Record<string, string> = {
 
 function decodeXml(value: string): string {
   return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, "$1")
     .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
       const parsed = Number.parseInt(hex, 16)
       return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
@@ -45,14 +45,12 @@ function decodeXml(value: string): string {
       const parsed = Number.parseInt(num, 10)
       return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
     })
-    .replace(/&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g, (entity) => {
-      return ENTITY_MAP[entity] ?? entity
-    })
+    .replace(/&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g, (entity) => ENTITY_MAP[entity] ?? entity)
 }
 
 function normalizeText(value?: string): string | undefined {
   if (value === undefined) {
-    return undefined
+    return
   }
 
   const decoded = decodeXml(value).replace(/\r\n/g, "\n").trim()
@@ -62,7 +60,7 @@ function normalizeText(value?: string): string | undefined {
 function normalizeInlineText(value?: string): string | undefined {
   const normalized = normalizeText(value)
   if (normalized === undefined) {
-    return undefined
+    return
   }
 
   return normalized.replace(/\s+/g, " ").trim()
@@ -71,7 +69,7 @@ function normalizeInlineText(value?: string): string | undefined {
 function trimHtmlFragment(value?: string): string | undefined {
   const normalized = normalizeText(value)
   if (!normalized) {
-    return undefined
+    return
   }
 
   const trimmed = normalized.replace(/^\s+|\s+$/g, "")
@@ -126,7 +124,7 @@ function extractFirstText(source: string, tag: string): string | undefined {
 function parseInteger(value?: string): number | undefined {
   const normalized = normalizeInlineText(value)
   if (!normalized) {
-    return undefined
+    return
   }
 
   const parsed = Number(normalized.replace(",", "."))
@@ -136,7 +134,7 @@ function parseInteger(value?: string): number | undefined {
 function parseBoolean(value?: string): boolean | undefined {
   const normalized = normalizeInlineText(value)?.toLowerCase()
   if (!normalized) {
-    return undefined
+    return
   }
 
   if (["1", "true", "yes"].includes(normalized)) {
@@ -147,12 +145,12 @@ function parseBoolean(value?: string): boolean | undefined {
     return false
   }
 
-  return undefined
+  return
 }
 
 export function stripHtmlToPlainText(value?: string): string | undefined {
   if (!value) {
-    return undefined
+    return
   }
 
   const text = decodeXml(value)
@@ -173,7 +171,7 @@ export function excerptPlainText(
 ): string | undefined {
   const text = stripHtmlToPlainText(value)
   if (!text) {
-    return undefined
+    return
   }
 
   if (text.length <= maxLength) {
@@ -195,7 +193,7 @@ export function parseHerbaticaCategoriesXml(
     const id = extractFirstText(element.inner, "ID")
     const title = normalizeInlineText(extractFirstText(element.inner, "TITLE"))
 
-    if (!id || !title) {
+    if (!(id && title)) {
       continue
     }
 

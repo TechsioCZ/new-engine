@@ -1,5 +1,5 @@
-import { defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
-import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
+import {defineConfig, loadEnv, Modules} from "@medusajs/framework/utils"
+import {buildProductFacetDocument} from "./src/modules/meilisearch/facets/product-facets"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 

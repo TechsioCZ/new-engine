@@ -1,4 +1,4 @@
-import { buildProductFacetDocument } from "../../../src/modules/meilisearch/facets/product-facets"
+import {buildProductFacetDocument} from "../../../src/modules/meilisearch/facets/product-facets"
 
 describe("product facet document builder", () => {
   it("derives all primary facets from product payload", () => {

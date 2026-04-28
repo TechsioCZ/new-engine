@@ -1,14 +1,7 @@
-import type {
-  IProductModuleService,
-  Logger,
-  ProductCategoryDTO,
-} from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  createProductCategoriesWorkflow,
-  updateProductCategoriesWorkflow,
-} from "@medusajs/medusa/core-flows"
+import type {IProductModuleService, Logger, ProductCategoryDTO,} from "@medusajs/framework/types"
+import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
+import {createStep, StepResponse} from "@medusajs/framework/workflows-sdk"
+import {createProductCategoriesWorkflow, updateProductCategoriesWorkflow,} from "@medusajs/medusa/core-flows"
 
 export type CreateProductCategoriesStepInput = {
   name: string

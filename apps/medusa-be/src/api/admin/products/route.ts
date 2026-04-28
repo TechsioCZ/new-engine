@@ -1,11 +1,8 @@
-import { refetchEntities } from "@medusajs/framework/http"
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import {
-  remapKeysForProduct,
-  remapProductResponse,
-} from "@medusajs/medusa/api/admin/products/helpers"
-import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
+import type {MedusaRequest, MedusaResponse} from "@medusajs/framework/http"
+import {refetchEntities} from "@medusajs/framework/http"
+import {ContainerRegistrationKeys} from "@medusajs/framework/utils"
+import {remapKeysForProduct, remapProductResponse,} from "@medusajs/medusa/api/admin/products/helpers"
+import {normalizeProductSalesChannelFilter} from "../../utils/product-filters"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const selectFields = remapKeysForProduct(req.queryConfig.fields ?? [])

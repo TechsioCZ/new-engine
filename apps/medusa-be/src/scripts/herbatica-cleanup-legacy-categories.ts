@@ -1,11 +1,6 @@
-import type {
-  ExecArgs,
-  IProductModuleService,
-  Logger,
-  ProductCategoryDTO,
-} from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { deleteProductCategoriesWorkflow } from "@medusajs/medusa/core-flows"
+import type {ExecArgs, IProductModuleService, Logger, ProductCategoryDTO,} from "@medusajs/framework/types"
+import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
+import {deleteProductCategoriesWorkflow} from "@medusajs/medusa/core-flows"
 
 type ProductCategoryTreeNode = ProductCategoryDTO & {
   category_children?: ProductCategoryTreeNode[]

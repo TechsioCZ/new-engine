@@ -1,6 +1,6 @@
-import type { IPricingModuleService, Logger } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import type {IPricingModuleService, Logger} from "@medusajs/framework/types"
+import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
+import {createStep, StepResponse} from "@medusajs/framework/workflows-sdk"
 
 type PricePreferenceAttribute = "region_id" | "currency_code"
 
