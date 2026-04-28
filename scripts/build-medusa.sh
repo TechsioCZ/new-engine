@@ -156,6 +156,9 @@ log_info "Step 5/5: Creating production node_modules deployment..."
 
 pnpm --filter=medusa-be --prod deploy medusa-be-prod
 rm -rf node_modules apps/medusa-be/node_modules
+if [[ "${PNPM_CLEAN_STORE_AFTER_DEPLOY:-false}" == "true" && -n "${npm_config_store_dir:-}" ]]; then
+  rm -rf "$npm_config_store_dir"
+fi
 
 step_end "Prod deploy"
 

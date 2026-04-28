@@ -99,8 +99,9 @@ COPY apps/medusa-be ./apps/medusa-be
 
 # Build using shared script (cleanup, install, build, validate, prod deploy)
 ARG FEATURE_PPL_ENABLED=0
-RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
-    npm_config_store_dir=/pnpm/store \
+RUN npm_config_store_dir=/var/www/.pnpm-store \
+    npm_config_package_import_method=hardlink \
+    PNPM_CLEAN_STORE_AFTER_DEPLOY=true \
     FEATURE_PPL_ENABLED=${FEATURE_PPL_ENABLED} \
     ./scripts/build-medusa.sh
 
