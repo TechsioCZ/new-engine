@@ -37,12 +37,12 @@ jobs:
       - name: Check if UI is affected
         id: check
         run: |
-          AFFECTED=$(pnpm exec nx show projects --affected --base=$NX_BASE --head=$NX_HEAD)
-          if echo "$AFFECTED" | grep -q "^ui$"; then
-            echo "is_affected=true" >> $GITHUB_OUTPUT
+          AFFECTED=$(pnpm exec nx show projects --affected --base="$NX_BASE" --head="$NX_HEAD")
+          if echo "$AFFECTED" | grep -q "^ui-kit$"; then
+            echo "is_affected=true" >> "$GITHUB_OUTPUT"
             echo "UI library is affected, will proceed with release"
           else
-            echo "is_affected=false" >> $GITHUB_OUTPUT
+            echo "is_affected=false" >> "$GITHUB_OUTPUT"
             echo "UI library is not affected, skipping release"
           fi
 
