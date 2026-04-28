@@ -63,9 +63,9 @@
 }
 
 @utility token-icon-numeric-input-increment {
-  @apply token-icon-chevron-up;
+  @apply token-icon-increment;
 }
 
 @utility token-icon-numeric-input-decrement {
-  @apply token-icon-chevron-down;
+  @apply token-icon-decrement;
 }

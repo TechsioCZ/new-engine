@@ -10,7 +10,7 @@ import {
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
-import { Icon } from "../atoms/icon"
+import { Icon, type IconProps } from "../atoms/icon"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 
@@ -303,8 +303,9 @@ Select.Control = function SelectControl({
   )
 }
 
-interface SelectTriggerProps extends ComponentPropsWithoutRef<"button"> {
+type SelectTriggerProps = ComponentPropsWithoutRef<"button"> & {
   size?: SelectSize
+  iconSize?: IconProps["size"]
   ref?: Ref<HTMLButtonElement>
 }
 
@@ -312,6 +313,7 @@ Select.Trigger = function SelectTrigger({
   children,
   className,
   size: sizeProp,
+  iconSize,
   ref,
   ...props
 }: SelectTriggerProps) {
@@ -340,7 +342,7 @@ Select.Trigger = function SelectTrigger({
           api.open ? "rotate-180" : "rotate-0"
         }`}
         icon="token-icon-select-indicator"
-        size={chevronIconSize}
+        size={iconSize ?? chevronIconSize}
       />
     </Button>
   )
@@ -395,12 +397,14 @@ Select.ValueText = function SelectValueText({
   )
 }
 
-interface SelectClearTriggerProps extends ComponentPropsWithoutRef<"button"> {
+type SelectClearTriggerProps = ComponentPropsWithoutRef<"button"> & {
+  iconSize?: IconProps["size"]
   ref?: Ref<HTMLButtonElement>
 }
 
 Select.ClearTrigger = function SelectClearTrigger({
   className,
+  iconSize,
   ref,
   ...props
 }: SelectClearTriggerProps) {
@@ -416,6 +420,7 @@ Select.ClearTrigger = function SelectClearTrigger({
       {...api.getClearTriggerProps()}
       aria-label="Clear selection"
       icon="token-icon-select-clear"
+      iconSize={iconSize}
       {...props}
     />
   )
@@ -585,12 +590,14 @@ Select.ItemText = function SelectItemText({
   )
 }
 
-interface SelectItemIndicatorProps extends ComponentPropsWithoutRef<"span"> {
+type SelectItemIndicatorProps = ComponentPropsWithoutRef<"span"> & {
+  iconSize?: IconProps["size"]
   ref?: Ref<HTMLSpanElement>
 }
 
 Select.ItemIndicator = function SelectItemIndicator({
   className,
+  iconSize,
   ref,
   ...props
 }: SelectItemIndicatorProps) {
@@ -605,7 +612,7 @@ Select.ItemIndicator = function SelectItemIndicator({
       {...api.getItemIndicatorProps({ item })}
       {...props}
     >
-      <Icon icon="token-icon-select-check" />
+      <Icon icon="token-icon-select-check" size={iconSize} />
     </span>
   )
 }
