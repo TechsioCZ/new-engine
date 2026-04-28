@@ -3,9 +3,11 @@ import {errorHandler} from "@medusajs/framework/http"
 import {defineMiddlewares} from "@medusajs/medusa"
 import {captureException} from "@sentry/node"
 import {normalizeError, shouldCaptureException} from "../utils/errors"
+import {adminPayloadSsoRoutesMiddlewares} from "./admin/payload/sso/middlewares"
 import {adminPplConfigRoutesMiddlewares} from "./admin/ppl-config/middlewares"
 import {adminPublishableKeyRoutesMiddlewares} from "./admin/provisioning/publishable-key/middlewares"
 import {storeCatalogProductsRoutesMiddlewares} from "./store/catalog/products/middlewares"
+import {storeCmsRoutesMiddlewares} from "./store/cms/middlewares"
 import {storeProducersRoutesMiddlewares} from "./store/producers/middlewares"
 
 const originalErrorHandler = errorHandler()
@@ -24,9 +26,11 @@ export default defineMiddlewares({
     return originalErrorHandler(error, req, res, next)
   },
   routes: [
+    ...adminPayloadSsoRoutesMiddlewares,
     ...adminPplConfigRoutesMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
+    ...storeCmsRoutesMiddlewares,
     ...storeProducersRoutesMiddlewares,
   ],
 })
