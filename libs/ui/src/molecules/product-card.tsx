@@ -10,7 +10,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
-import type { IconType } from "../atoms/icon"
+import type { IconProps, IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
 import { Rating, type RatingProps } from "../atoms/rating"
 import { tv } from "../utils"
@@ -130,6 +130,7 @@ interface ProductCardButtonProps extends HTMLAttributes<HTMLButtonElement> {
   onClick?: () => void
   buttonVariant?: "cart" | "detail" | "wishlist" | "custom"
   icon?: IconType
+  iconSize?: IconProps["size"]
   ref?: Ref<HTMLButtonElement>
 }
 
@@ -276,6 +277,7 @@ ProductCard.Button = function ProductCardButton({
   children,
   onClick,
   icon,
+  iconSize,
   className,
   buttonVariant,
   ref,
@@ -287,6 +289,7 @@ ProductCard.Button = function ProductCardButton({
     <Button
       className={button({ className })}
       icon={icon}
+      iconSize={iconSize}
       onClick={onClick}
       ref={ref}
       size="sm"
