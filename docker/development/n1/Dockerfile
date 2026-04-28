@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -37,9 +38,7 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
-    corepack install && \
-    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+RUN node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.pnpm={...(pkg.pnpm||{}), supportedArchitectures:{os:['current'], cpu:['current'], libc:['current']}}; fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');"
 
 COPY tsconfig.base.json ./
 COPY apps/n1 ./apps/n1
@@ -47,12 +46,13 @@ COPY libs/ui ./libs/ui
 COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
-RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
-    npm_config_store_dir=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
+RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/tmp/pnpm-store \
+    corepack install && \
+    npm_config_store_dir=/tmp/pnpm-store \
+    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=n1... && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm --filter=@techsio/analytics build && \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1...
+    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=n1...
 
 WORKDIR /var/www/apps/n1
 

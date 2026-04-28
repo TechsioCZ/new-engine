@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -32,16 +33,15 @@ ENV NODE_ENV=development
 ENV DATABASE_TYPE=postgres
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
-    corepack install && \
-    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+RUN node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.pnpm={...(pkg.pnpm||{}), supportedArchitectures:{os:['current'], cpu:['current'], libc:['current']}}; fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');"
 
 COPY tsconfig.base.json ./
 COPY apps/medusa-be ./apps/medusa-be
 
-RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
-    npm_config_store_dir=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=medusa-be...
+RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/tmp/pnpm-store \
+    corepack install && \
+    npm_config_store_dir=/tmp/pnpm-store \
+    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=medusa-be...
 
 WORKDIR /var/www/apps/medusa-be
 
