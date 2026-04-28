@@ -10,12 +10,11 @@ import NextLink from "next/link";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useTransition } from "react";
 import { StorefrontAccountOrderGroup } from "@/components/account/orders/storefront-account-order-group";
+import { StorefrontAccountSurface } from "@/components/account/storefront-account-surface";
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton";
-import {
-  StorefrontAccountSurface,
-} from "@/components/account/storefront-account-surface";
 import { useAuth } from "@/lib/storefront/auth";
 import { getOrderDetailQueryOptions, useOrders } from "@/lib/storefront/orders";
+import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder";
 
 const ORDER_PAGE_SIZE = 10;
 
@@ -23,17 +22,16 @@ export function StorefrontAccountOrdersList() {
   const queryClient = useQueryClient();
   const authQuery = useAuth();
   const [isPageTransitionPending, startTransition] = useTransition();
+  const getPageUrl = usePaginationUrlBuilder();
   const [currentPage, setCurrentPage] = useQueryState(
     "page",
     parseAsInteger.withDefault(1),
   );
-  const ordersQuery = useOrders(
-    {
-      page: currentPage,
-      limit: ORDER_PAGE_SIZE,
-      enabled: authQuery.isAuthenticated,
-    },
-  );
+  const ordersQuery = useOrders({
+    page: currentPage,
+    limit: ORDER_PAGE_SIZE,
+    enabled: authQuery.isAuthenticated,
+  });
   const hasVisibleOrders = ordersQuery.orders.length > 0;
   const isOrdersRefreshing =
     (ordersQuery.query.isFetching || isPageTransitionPending) &&
@@ -137,13 +135,8 @@ export function StorefrontAccountOrdersList() {
       {ordersQuery.totalPages > 1 && (
         <Pagination
           count={ordersQuery.totalCount}
-          onPageChange={(nextPage) => {
-            if (nextPage === currentPage) {
-              return;
-            }
-
-            setPage(nextPage);
-          }}
+          getPageUrl={getPageUrl}
+          linkAs={NextLink}
           page={currentPage}
           pageSize={ORDER_PAGE_SIZE}
           size="sm"
