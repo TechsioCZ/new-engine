@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes, Ref } from "react"
 import { tv } from "../utils"
 
+// Pipeline smoke marker for GitHub Actions validation.
 const checkboxVariants = tv({
   base: [
     "relative shrink-0 cursor-pointer appearance-none",

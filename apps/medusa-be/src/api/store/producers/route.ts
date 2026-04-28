@@ -1,10 +1,11 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { createFindParams } from "@medusajs/medusa/api/utils/validators"
 import type { z } from "@medusajs/framework/zod"
+import { createFindParams } from "@medusajs/medusa/api/utils/validators"
 
 export const StoreProducersSchema = createFindParams()
 
+// Pipeline smoke marker for ZaneOps deploy validation.
 export type StoreProducersSchemaType = z.infer<typeof StoreProducersSchema>
 
 export async function GET(
