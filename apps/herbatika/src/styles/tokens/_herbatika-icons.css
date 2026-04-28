@@ -1,6 +1,6 @@
 @theme static {
   --text-icon-xs: var(--text-xs);
-  --text-icon-sm: var(--text-sm);
+  --text-icon-sm: 16px;
   --text-icon-md: 20px;
   --text-icon-lg: 24px;
   --text-icon-xl: 26px;

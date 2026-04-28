@@ -38,7 +38,7 @@ type CheckoutCompleteSectionProps = {
 };
 
 const summaryCardClassName =
-  "rounded-sm border border-border-primary bg-surface space-y-300 p-400 sm:p-550";
+  "rounded-sm border border-border-primary bg-surface space-y-300 p-300 sm:px-350";
 const summaryEditLinkClassName =
   "gap-100 px-0 font-semibold text-fg-primary underline underline-offset-2 hover:text-primary";
 const summaryInlineLinkClassName =
@@ -250,6 +250,7 @@ export function CheckoutCompleteSection({
             icon="token-icon-pen"
             size="sm"
             theme="unstyled"
+            iconSize="lg"
           >
             Upraviť
           </LinkButton>
@@ -290,7 +291,7 @@ function SummaryRecapCard({
   tone?: "default" | "warning";
 }) {
   return (
-    <div className="rounded-sm border border-border-primary bg-surface space-y-300 px-350 py-300">
+    <div className={`${summaryCardClassName}`}>
       <div className="flex items-center justify-between gap-200">
         <div className="flex min-w-0 items-center gap-450">
           <span className="flex h-600 w-600 shrink-0 items-center justify-center text-fg-primary">
@@ -314,6 +315,7 @@ function SummaryRecapCard({
           icon="token-icon-pen"
           size="sm"
           theme="unstyled"
+          iconSize="lg"
         >
           Upraviť
         </LinkButton>

@@ -8,7 +8,7 @@ import {
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { resolveAvailabilityText } from "../utils/resolve-availability-text";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Select } from "@techsio/ui-kit/molecules/select";
+import { CheckoutSelectBenefits } from "../checkout-select-benefits";
 
 type CheckoutOrderSummarySectionProps = {
   cartItems: HttpTypes.StoreCartLineItem[];
@@ -39,11 +39,6 @@ export function CheckoutOrderSummarySection({
 }: CheckoutOrderSummarySectionProps) {
   const detailsFontClass =
     detailsFont === "inter" ? "font-inter" : "font-rubik";
-
-  const testItems = [{label: 'test',
-		value: 'test',
-		role: 'code'}
-  ]
 
   return (
     <section className={`space-y-300 rounded-sm p-550 ${detailsFontClass}`}>
@@ -86,9 +81,9 @@ export function CheckoutOrderSummarySection({
                   <p className="line-clamp text-md font-medium text-fg-primary">
                     {itemName}
                   </p>
-                  <p className="inline-flex items-end h-full font-medium text-primary text-xs leading-normal">
+                  <p className="inline-flex items-end h-full font-medium text-success-fg text-xs leading-normal">
                     <span className="h-fit flex items-center gap-150">
-                      <Icon className="shrink-0" icon="token-icon-check" size="md" />
+                      <Icon className="shrink-0" icon="token-icon-check" size="sm" />
                       <span className="min-w-0">{availabilityText}</span>
                     </span>
                   </p>
@@ -124,7 +119,7 @@ export function CheckoutOrderSummarySection({
         </div>
         <div className="flex items-center justify-between py-200">
           <span className="text-fg-secondary">{paymentLabel || "Platební metoda"}</span>
-          <p className="text-md font-medium text-primary">
+          <p className="text-md font-medium text-success-fg">
             Zadarmo
           </p>
         </div>
@@ -142,26 +137,7 @@ export function CheckoutOrderSummarySection({
           </div>
         </div>
       </div>
-      <Select items={testItems} className="gap-y-50">
-        <Select.Label className="text-sm font-[500]">Benefity</Select.Label>
-        <Select.Control>
-          <Select.Trigger className="bg-surface-secondary min-h-12 px-400" >
-            <Icon icon="token-icon-shopping-basket-in" size="lg" />
-            <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Vrátenie do 14 dní zadarmo" />
-          </Select.Trigger>
-          <Select.ClearTrigger />
-        </Select.Control>
-        <Select.Positioner>
-          <Select.Content>
-            {testItems?.map((item) => (
-              <Select.Item key={item.value} item={item}>
-                <Select.ItemText />
-                <Select.ItemIndicator />
-              </Select.Item>
-            ))}
-          </Select.Content>
-        </Select.Positioner>
-      </Select>
+      <CheckoutSelectBenefits />
     </section>
   );
 }

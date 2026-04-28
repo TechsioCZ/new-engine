@@ -5,6 +5,8 @@ import { Select } from "@techsio/ui-kit/molecules/select";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Label } from "@techsio/ui-kit/atoms/label";
+import { CheckoutSelectBenefits } from "../checkout-select-benefits";
+import { CheckoutSelectPromoCode } from "../checkout-select-promo-code";
 
 
 type CheckoutCartSidebarSectionProps = {
@@ -23,34 +25,12 @@ export function CheckoutCartSidebarSection({
   nextStepHref,
 }: CheckoutCartSidebarSectionProps) {
 
-  const testItems = [{label: 'test',
-		value: 'test',
-		role: 'code'}
-  ]
+  
   return (
     <section className="w-full xl:max-w-header-search space-y-300">
       <div className="rounded-sm bg-surface shadow-md">
         <div className="flex flex-col gap-450 px-400 pt-550 pb-450 md:px-550">
-          	<Select items={testItems}>
-              <Select.Label className="sr-only">Zlavový kód</Select.Label>
-              <Select.Control>
-                <Select.Trigger className="bg-base border-1 min-h-12 px-400">
-                  <Icon icon="token-icon-label" size="2xl" />
-                  <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Zadať zľavový kód" />
-                </Select.Trigger>
-                <Select.ClearTrigger />
-              </Select.Control>
-              <Select.Positioner>
-                <Select.Content>
-                  {testItems?.map((item) => (
-                    <Select.Item key={item.value} item={item}>
-                      <Select.ItemText />
-                      <Select.ItemIndicator />
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Positioner>
-		        </Select>
+          	<CheckoutSelectPromoCode />
           <div>
             <div className="flex items-center justify-between pb-150">
               <p className="text-sm leading-relaxed font-normal text-fg-primary">
@@ -94,26 +74,7 @@ export function CheckoutCartSidebarSection({
       </div>
 
       <div className="space-y-500">
-        <Select items={testItems} className="gap-y-50">
-          <Select.Label className="text-sm font-[500]">Benefity</Select.Label>
-          <Select.Control>
-            <Select.Trigger className="bg-surface-secondary min-h-12 px-400">
-              <Icon icon="token-icon-shopping-basket-in" size="lg" />
-              <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Vrátenie do 14 dní zadarmo" />
-            </Select.Trigger>
-            <Select.ClearTrigger />
-          </Select.Control>
-          <Select.Positioner>
-            <Select.Content>
-              {testItems?.map((item) => (
-                <Select.Item key={item.value} item={item}>
-                  <Select.ItemText />
-                  <Select.ItemIndicator />
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Select>
+        <CheckoutSelectBenefits />
         <div className="flex flex-col gap-150">
           <Label className="text-sm font-[500]">Odložiť si košík na neskôr</Label>
           <div className="flex gap-300">

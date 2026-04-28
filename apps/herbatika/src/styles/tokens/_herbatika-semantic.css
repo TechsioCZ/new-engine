@@ -101,6 +101,7 @@
   --color-warning-fg: oklch(
     from var(--color-herbatika-warning) calc(l - 0.32) c h
   );
+  --color-success-fg: oklch(0.634 0.1331 165.09);
   --color-danger-fg: var(--color-herbatika-danger);
 
   /* Disabled */
