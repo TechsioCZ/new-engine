@@ -121,8 +121,8 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgres://root:root@localhost:5432/medusa_test
-      DB_HOST: localhost
+      DATABASE_URL: postgres://root:root@127.0.0.1:5432/medusa_test
+      DB_HOST: 127.0.0.1
       DB_USERNAME: root
       DB_PASSWORD: root
       DB_PORT: '5432'
@@ -142,6 +142,22 @@ jobs:
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Wait for Postgres TCP
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for _ in {1..30}; do
+            if node -e "const net=require('node:net'); const socket=net.connect({host: process.env.DB_HOST, port: Number(process.env.DB_PORT)}, () => { socket.end(); process.exit(0); }); socket.on('error', () => process.exit(1)); socket.setTimeout(1000, () => process.exit(1));"; then
+              exit 0
+            fi
+
+            sleep 1
+          done
+
+          echo "Postgres did not accept TCP connections on ${DB_HOST}:${DB_PORT}" >&2
+          exit 1
 
       - name: Run Medusa BE module integration tests
         run: pnpm --filter medusa-be test:integration:modules
