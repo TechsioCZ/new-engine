@@ -1,12 +1,14 @@
 import * as pagination from "@zag-js/pagination"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import { type ElementType, type HTMLAttributes, type ReactNode, useId } from "react"
-import { Icon } from "../atoms/icon"
 import {
-  LinkButton,
-  type LinkButtonProps,
-} from "../atoms/link-button"
+  type ElementType,
+  type HTMLAttributes,
+  type ReactNode,
+  useId,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
+import { Icon } from "../atoms/icon"
+import { LinkButton, type LinkButtonProps } from "../atoms/link-button"
 import { tv } from "../utils"
 
 export const paginationVariants = tv({
@@ -87,7 +89,10 @@ export const paginationVariants = tv({
   },
 })
 
-export type PaginationBaseProps = HTMLAttributes<HTMLElement> &
+export type PaginationBaseProps = Omit<
+  HTMLAttributes<HTMLElement>,
+  "onChange"
+> &
   VariantProps<typeof paginationVariants> & {
     page?: number
     defaultPage?: number
@@ -98,10 +103,9 @@ export type PaginationBaseProps = HTMLAttributes<HTMLElement> &
     showPrevNext?: boolean
     dir?: "ltr" | "rtl"
     compact?: boolean
-    compactLabel?: (details: {
-      page: number
-      totalPages: number
-    }) => ReactNode
+    compactLabel?: (details: { page: number; totalPages: number }) => ReactNode
+    onChange?: (page: number) => void
+    onPageChange?: (page: number) => void
     translations?: pagination.IntlTranslations
   }
 
@@ -120,7 +124,7 @@ type PaginationLinkProps<T extends ElementType> = Omit<
 
 export type PaginationProps<T extends ElementType = "a"> =
   PaginationBaseProps & {
-    getPageUrl: (details: pagination.PageUrlDetails) => string
+    getPageUrl?: (details: pagination.PageUrlDetails) => string
     linkAs?: T
     linkProps?: PaginationLinkProps<T>
   }
@@ -150,10 +154,13 @@ export function Pagination<T extends ElementType = "a">({
   size,
   compact = false,
   compactLabel,
+  onChange,
+  onPageChange,
   translations,
   ...props
 }: PaginationProps<T>) {
   const uniqueId = useId()
+  const isLinkMode = typeof getPageUrl === "function"
 
   const service = useMachine(pagination.machine, {
     id: uniqueId,
@@ -164,8 +171,12 @@ export function Pagination<T extends ElementType = "a">({
     page,
     dir,
     defaultPage,
-    type: "link",
-    getPageUrl,
+    type: isLinkMode ? "link" : "button",
+    ...(isLinkMode ? { getPageUrl } : {}),
+    onPageChange: (details) => {
+      onChange?.(details.page)
+      onPageChange?.(details.page)
+    },
     translations,
   })
 
@@ -194,7 +205,7 @@ export function Pagination<T extends ElementType = "a">({
       ...overrides,
     })
 
-    if (!hasHref(triggerProps)) {
+    if (isLinkMode && !hasHref(triggerProps)) {
       return mergeProps(baseTriggerProps, {
         disabled: true,
       }) as LinkButtonProps<T>
@@ -202,6 +213,7 @@ export function Pagination<T extends ElementType = "a">({
 
     return mergeProps(sharedLinkProps, baseTriggerProps, {
       ...(linkAs ? { as: linkAs } : {}),
+      ...(isLinkMode || linkAs ? {} : { as: "button", type: "button" }),
     }) as LinkButtonProps<T>
   }
 
