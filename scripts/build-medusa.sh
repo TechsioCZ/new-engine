@@ -118,6 +118,14 @@ else
 fi
 export FEATURE_PAYLOAD_ENABLED
 
+# FEATURE_PACKETA_ENABLED must come from the environment (no default - explicit opt-in)
+if [[ -n "${FEATURE_PACKETA_ENABLED:-}" ]]; then
+  log_info "FEATURE_PACKETA_ENABLED=${FEATURE_PACKETA_ENABLED}"
+  export FEATURE_PACKETA_ENABLED
+else
+  log_warn "FEATURE_PACKETA_ENABLED not set - Packeta module will NOT be included in build"
+fi
+
 log_info "Running: pnpm nx run medusa-be:build --skip-nx-cache"
 
 # Run build and capture output
