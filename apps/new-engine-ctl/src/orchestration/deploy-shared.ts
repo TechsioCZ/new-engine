@@ -280,6 +280,56 @@ export function filterTargetsForGitCommit(
   }
 }
 
+export function filterHealthyBaselineDependencies(input: {
+  targets: ResolveTargetsResponse["services"]
+  envOverrides: RenderEnvOverridesResponse["services"]
+  requestedServiceIds: string[]
+}): FilteredTargets {
+  const requestedServiceIds = new Set(input.requestedServiceIds)
+  const expectedEnvByServiceId = new Map(
+    input.envOverrides.map((service) => [service.service_id, service.env])
+  )
+  const filteredTargets: ResolveTargetsResponse["services"] = []
+  const skippedServices: SkippedService[] = []
+
+  for (const target of input.targets) {
+    const expectedEnv = expectedEnvByServiceId.get(target.service_id) ?? {}
+    const currentDeployment = target.current_production_deployment
+    const canReuseCurrentDeployment = Boolean(
+      !requestedServiceIds.has(target.service_id) &&
+        currentDeployment &&
+        currentDeployment.status.toUpperCase() === "HEALTHY" &&
+        currentEnvMatches(currentDeployment.env, expectedEnv)
+    )
+
+    if (canReuseCurrentDeployment) {
+      skippedServices.push({
+        service_id: target.service_id,
+        service_slug: target.service_slug,
+        reason: "healthy_baseline_dependency",
+        deployment_hash: currentDeployment?.deployment_hash ?? null,
+        commit_sha: currentDeployment?.commit_sha ?? null,
+      })
+      continue
+    }
+
+    filteredTargets.push(target)
+  }
+
+  const allowedServiceIds = new Set(
+    filteredTargets.map((target) => target.service_id)
+  )
+
+  return {
+    services: filteredTargets,
+    skippedServices,
+    adoptedDeployments: [],
+    filteredEnvOverrides: input.envOverrides.filter((service) =>
+      allowedServiceIds.has(service.service_id)
+    ),
+  }
+}
+
 function isTransientOperatorUnavailabilityError(message: string): boolean {
   return [
     "zane-operator request failed before a successful HTTP response",

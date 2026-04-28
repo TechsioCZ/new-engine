@@ -18,6 +18,7 @@ import {
   buildStagePlan,
   collectStageNumbers,
   type DeploymentLike,
+  filterHealthyBaselineDependencies,
   filterTargetsForGitCommit,
   mergeCsvValues,
   mergeDeployments,
@@ -367,6 +368,9 @@ export async function executeDeployPreview(
   const deployServiceIds = effectiveRuntimePlan.deploy_services.map(
     (service) => service.id
   )
+  const requestedServiceIds = plan.requested_services.map(
+    (service) => service.id
+  )
   const previewDbContext = await resolvePreviewDbContext({
     prNumber: input.prNumber,
     deployServiceIds,
@@ -606,18 +610,44 @@ export async function executeDeployPreview(
       apiToken: input.apiToken,
       dryRun: input.dryRun,
     })
-    const desiredCommitSha = input.targetCommitSha || targetCommitSha || ""
-    const filtered = desiredCommitSha
-      ? filterTargetsForGitCommit(
-          targets.services,
-          envOverrides.services,
-          desiredCommitSha
-        )
+    const baselineFiltered = baselineDeploy
+      ? filterHealthyBaselineDependencies({
+          targets: targets.services,
+          envOverrides: envOverrides.services,
+          requestedServiceIds,
+        })
       : {
           services: targets.services,
           skippedServices: [],
           adoptedDeployments: [] as DeploymentLike[],
           filteredEnvOverrides: envOverrides.services,
+        }
+
+    if (baselineFiltered.skippedServices.length > 0) {
+      logDeployProgress(
+        `Reusing healthy baseline dependencies for preview stage ${stage}: ${baselineFiltered.skippedServices
+          .map(
+            (service) =>
+              `${service.service_slug}${
+                service.deployment_hash ? `#${service.deployment_hash}` : ""
+              }`
+          )
+          .join(", ")}.`
+      )
+    }
+
+    const desiredCommitSha = input.targetCommitSha || targetCommitSha || ""
+    const filtered = desiredCommitSha
+      ? filterTargetsForGitCommit(
+          baselineFiltered.services,
+          baselineFiltered.filteredEnvOverrides,
+          desiredCommitSha
+        )
+      : {
+          services: baselineFiltered.services,
+          skippedServices: [],
+          adoptedDeployments: [] as DeploymentLike[],
+          filteredEnvOverrides: baselineFiltered.filteredEnvOverrides,
         }
 
     allDeployments = mergeDeployments(
