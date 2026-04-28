@@ -203,7 +203,7 @@ export function CheckoutCartItemRow({
         <div className="flex justify-between items-center">
           <p className="inline-flex items-end h-full gap-150 font-medium text-primary text-xs leading-normal">
             <span className="h-fit flex items-center gap-150">
-            <Icon className="shrink-0 text-md" icon="token-icon-check" />
+            <Icon className="shrink-0" icon="token-icon-check" size="md" />
             <span className="min-w-0">{availabilityText}</span>
             </span>
           </p>

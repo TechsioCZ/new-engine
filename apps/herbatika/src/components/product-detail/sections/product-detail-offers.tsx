@@ -103,7 +103,7 @@ function DiscountOptionIndicator({ isSelected }: { isSelected: boolean }) {
           : "border-border-primary bg-surface text-fg-reverse"
       }`}
     >
-      {isSelected ? <Icon className="text-xs" icon="token-icon-check" /> : null}
+      {isSelected ? <Icon icon="token-icon-check" size="xs" /> : null}
     </span>
   );
 }

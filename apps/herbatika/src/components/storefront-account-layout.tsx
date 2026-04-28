@@ -152,7 +152,7 @@ export function StorefrontAccountLayout({
                   
                   data-active={isActive}
                 >
-                  <Icon icon={item.icon} className="text-2xl" />
+                  <Icon icon={item.icon} size="2xl" />
                   <span>{item.label}</span>
                 </LinkButton>
               );
@@ -175,7 +175,7 @@ export function StorefrontAccountLayout({
             size="current"
             className="justify-start text-lg hover:text-danger px-200"
           >
-            <Icon icon="token-icon-logout" className="text-2xl" />
+            <Icon icon="token-icon-logout" size="2xl" />
             <span>Odhlásiť</span>
           </Button>
         </aside>

@@ -16,7 +16,7 @@ export function BenefitsSection({
   benefits,
 }: BenefitsSectionProps) {
   return (
-    <section className="rounded-lg bg-highlight px-450 py-350">
+    <section className="rounded-lg bg-highlight-secondary px-450 py-350">
       <div className="grid gap-350 md:grid-cols-2 xl:grid-cols-4">
         {benefits.map((benefit) => (
           <article

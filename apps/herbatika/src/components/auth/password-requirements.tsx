@@ -26,7 +26,7 @@ export const PasswordRequirements = ({
           >
             <span className="inline-flex h-200 w-200 items-center justify-center">
               {requirement.met ? (
-                <Icon className="text-icon-sm" icon="token-icon-check" />
+                <Icon icon="token-icon-check" size="sm" />
               ) : (
                 <span className="text-icon-xs">•</span>
               )}

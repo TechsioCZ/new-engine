@@ -88,7 +88,7 @@ export function CheckoutOrderSummarySection({
                   </p>
                   <p className="inline-flex items-end h-full font-medium text-primary text-xs leading-normal">
                     <span className="h-fit flex items-center gap-150">
-                      <Icon className="shrink-0 text-md" icon="token-icon-check" />
+                      <Icon className="shrink-0" icon="token-icon-check" size="md" />
                       <span className="min-w-0">{availabilityText}</span>
                     </span>
                   </p>
@@ -145,8 +145,8 @@ export function CheckoutOrderSummarySection({
       <Select items={testItems} className="gap-y-50">
         <Select.Label className="text-sm font-[500]">Benefity</Select.Label>
         <Select.Control>
-          <Select.Trigger className="bg-surface-secondary min-h-12 px-400">
-            <Icon icon="token-icon-shopping-basket-in" className="text-2xl" />
+          <Select.Trigger className="bg-surface-secondary min-h-12 px-400" >
+            <Icon icon="token-icon-shopping-basket-in" size="lg" />
             <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Vrátenie do 14 dní zadarmo" />
           </Select.Trigger>
           <Select.ClearTrigger />

@@ -121,8 +121,9 @@ export function CheckoutCartStepSection({
             <div className="flex min-w-700 -translate-x-3 flex-col items-center gap-50">
               <span className="inline-flex h-700 w-700 items-center justify-center rounded-full border border-border-primary bg-overlay">
                 <Icon
-                  className="text-lg text-fg-secondary"
+                  className="text-fg-secondary"
                   icon="token-icon-truck-delivery"
+                  size="lg"
                 />
               </span>
               <span className="text-sm text-fg-primary">

@@ -61,7 +61,7 @@ export function ProductDetailMediaColumn({
               {mediaFacts.slice(0, 2).map((fact) => (
                 <div className="flex items-center gap-200 px-350 py-250" key={fact.id}>
                   <span className="flex h-600 w-600 items-center justify-center rounded-xs bg-highlight">
-                    <Icon className="text-lg text-primary" icon={fact.icon} />
+                    <Icon className="text-primary" icon={fact.icon} size="lg" />
                   </span>
                   <SupportingText className="text-md leading-snug text-fg-secondary">
                     <span className="font-semibold text-primary">{`${fact.value} `}</span>
@@ -95,7 +95,7 @@ export function ProductDetailMediaColumn({
         </div>
 
         <div className="flex items-center gap-200">
-          <Icon className="text-2xl text-primary" icon="token-icon-phone" />
+          <Icon className="text-primary" icon="token-icon-phone" size="2xl" />
           <Link
             as={NextLink}
             className="whitespace-nowrap text-sm leading-tight font-medium text-fg-strong hover:text-fg-primary"

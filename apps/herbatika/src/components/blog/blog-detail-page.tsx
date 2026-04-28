@@ -98,7 +98,7 @@ export function BlogDetailPage({
               <header className="flex items-start justify-between gap-300">
                 <div className="flex items-center gap-250">
                   <span className="inline-flex p-50 items-center justify-center rounded-xs bg-highlight text-primary">
-                    <Icon className="text-2xl" icon="token-icon-list" />
+                    <Icon icon="token-icon-list" size="2xl" />
                   </span>
                   <div>
                     <h2 className="text-xl leading-tight font-bold text-fg-primary">
@@ -109,7 +109,7 @@ export function BlogDetailPage({
                     </p>
                   </div>
                 </div>
-                <Icon className="text-2xl text-fg-secondary" icon="token-icon-chevron-up" />
+                <Icon className="text-fg-secondary" icon="token-icon-chevron-up" size="2xl" />
               </header>
 
               <ul className="space-y-100 pl-350">

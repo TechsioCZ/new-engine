@@ -106,17 +106,17 @@ export function HerbatikaCartPopover({
       title={itemCount > 0 ? `Košík (${itemCount})` : "Košík"}
       trigger={
         <>
-          <Icon icon="token-icon-cart" />
-          <span>{cartTotalLabel}</span>
-          <Badge
-            className="absolute -top-200 -right-200 min-w-500 justify-center rounded-full px-100 py-50 text-xs"
-            variant="success"
-          >
-            {itemCount > 99 ? "99+" : String(itemCount)}
-          </Badge>
+          <div className="relative">
+            <Icon icon="token-icon-cart" size="2xl" />
+            <Badge className="absolute -top-[7px] bg-surface text-primary -right-200 min-w-500 justify-center rounded-full px-100 py-50 text-[11px]"
+              variant="success">
+              {itemCount > 99 ? "99+" : String(itemCount)}
+            </Badge>
+          </div>
+          <span className="text-md font-normal font-sans">{cartTotalLabel}</span>
         </>
       }
-      triggerClassName="relative inline-flex items-center gap-250 rounded-button-sm bg-button-bg-primary px-450 py-300 text-xl font-bold text-button-fg-primary hover:bg-button-bg-primary-hover data-[state=open]:bg-button-bg-primary-hover"
+      triggerClassName="relative inline-flex items-center gap-250 rounded-button-sm bg-button-bg-primary px-450 py-300 text-xl font-bold text-button-fg-primary hover:bg-button-bg-primary-hover data-[state=open]:bg-button-bg-primary-hover py-550"
     >
       {visibleItems.length > 0 ? (
         <>

@@ -25,7 +25,7 @@ export function HerbatikaAccountPopover() {
       <LinkButton
         aria-label="Účet"
         as={NextLink}
-        className="px-0 py-0 text-3xl text-fg-secondary hover:text-primary"
+        className="px-0 py-0 text-icon-2xl text-fg-secondary hover:text-primary"
         href="/account"
         icon="token-icon-user"
         size="current"

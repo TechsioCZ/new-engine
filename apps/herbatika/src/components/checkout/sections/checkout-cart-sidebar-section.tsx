@@ -35,7 +35,7 @@ export function CheckoutCartSidebarSection({
               <Select.Label className="sr-only">Zlavový kód</Select.Label>
               <Select.Control>
                 <Select.Trigger className="bg-base border-1 min-h-12 px-400">
-                  <Icon icon="token-icon-label" className="text-2xl" />
+                  <Icon icon="token-icon-label" size="2xl" />
                   <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Zadať zľavový kód" />
                 </Select.Trigger>
                 <Select.ClearTrigger />
@@ -98,7 +98,7 @@ export function CheckoutCartSidebarSection({
           <Select.Label className="text-sm font-[500]">Benefity</Select.Label>
           <Select.Control>
             <Select.Trigger className="bg-surface-secondary min-h-12 px-400">
-              <Icon icon="token-icon-shopping-basket-in" className="text-2xl" />
+              <Icon icon="token-icon-shopping-basket-in" size="lg" />
               <Select.ValueText className="data-[placeholder]:text-fg-primary text-sm" placeholder="Vrátenie do 14 dní zadarmo" />
             </Select.Trigger>
             <Select.ClearTrigger />

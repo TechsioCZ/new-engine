@@ -45,7 +45,7 @@ export function StorefrontReviewsSection({
           href={linkHref}
         >
           {linkLabel}
-          <Icon className="text-md" icon="token-icon-chevron-right" />
+          <Icon icon="token-icon-chevron-right" size="md" />
         </NextLink>
       </header>
 
@@ -79,7 +79,7 @@ export function StorefrontReviewsSection({
             </p>
 
             <div className="mt-auto flex items-center gap-150 text-primary">
-              <Icon className="text-lg" icon="token-icon-check" />
+              <Icon icon="token-icon-check" size="lg" />
               <span className="text-sm leading-relaxed font-medium">Overený nákup</span>
             </div>
           </article>

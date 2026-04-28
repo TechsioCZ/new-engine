@@ -143,7 +143,7 @@ export function ProductDetailPurchasePanel({
             theme="borderless"
             variant="secondary"
           >
-            <Icon className="text-2xl" icon="token-icon-heart" />
+            <Icon icon="token-icon-heart" size="2xl" />
           </Button>
         </div>
       </div>
