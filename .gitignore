@@ -10,6 +10,8 @@ node_modules
 
 # IDEs and editors
 /.idea
+/.omp
+/.codex
 .project
 .classpath
 .c9/
@@ -49,6 +51,7 @@ test-output
 playwright-report
 test-results
 .env
+.env.zane
 
 # Local Netlify folder
 .netlify

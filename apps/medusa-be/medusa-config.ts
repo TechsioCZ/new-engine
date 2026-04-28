@@ -7,6 +7,10 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
+const MEDUSA_ADMIN_ALLOWED_HOSTS =
+  process.env.NODE_ENV === "development"
+    ? true
+    : process.env.MEDUSA_BACKEND_URL
 
 module.exports = defineConfig({
   featureFlags: {
@@ -19,7 +23,7 @@ module.exports = defineConfig({
     // backendUrl: BACKEND_URL,
     vite: () => ({
       server: {
-        allowedHosts: process.env.MEDUSA_BACKEND_URL,
+        allowedHosts: MEDUSA_ADMIN_ALLOWED_HOSTS,
         hmr: false,
       },
     }),

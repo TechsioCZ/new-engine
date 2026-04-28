@@ -30,6 +30,15 @@
   --text-breadcrumb-sm: var(--text-xs);
   --text-breadcrumb-md: var(--text-sm);
   --text-breadcrumb-lg: var(--text-md);
+  --text-breadcrumb-item-icon-sm: var(--text-breadcrumb-sm);
+  --text-breadcrumb-item-icon-md: var(--text-breadcrumb-md);
+  --text-breadcrumb-item-icon-lg: var(--text-breadcrumb-lg);
+  --text-breadcrumb-separator-icon-sm: var(--text-breadcrumb-sm);
+  --text-breadcrumb-separator-icon-md: var(--text-breadcrumb-md);
+  --text-breadcrumb-separator-icon-lg: var(--text-breadcrumb-lg);
+  --text-breadcrumb-ellipsis-icon-sm: var(--text-breadcrumb-sm);
+  --text-breadcrumb-ellipsis-icon-md: var(--text-breadcrumb-md);
+  --text-breadcrumb-ellipsis-icon-lg: var(--text-breadcrumb-lg);
 
   /* === FOCUS RINGS === */
   --color-breadcrumb-ring: var(--color-ring);

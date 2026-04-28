@@ -7,7 +7,7 @@ import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { useEffect, useId, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
-import { Icon } from "../atoms/icon"
+import { Icon, type IconProps, type IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
@@ -161,8 +161,10 @@ export interface ComboboxProps<T = unknown>
   allowCustomValue?: boolean
   loopFocus?: boolean
   autoFocus?: boolean
-  triggerIcon?: string
-  clearIcon?: string
+  triggerIcon?: IconType
+  triggerIconSize?: IconProps["size"]
+  clearIcon?: IconType
+  clearIconSize?: IconProps["size"]
   onChange?: (value: string | string[]) => void
   onInputValueChange?: (value: string) => void
   onOpenChange?: (open: boolean) => void
@@ -193,6 +195,10 @@ export function Combobox<T = unknown>({
   allowCustomValue = false,
   loopFocus = true,
   autoFocus = false,
+  triggerIcon = "token-icon-combobox-chevron",
+  triggerIconSize,
+  clearIcon = "token-icon-combobox-clear",
+  clearIconSize,
   inputBehavior = "autocomplete",
   onChange,
   onInputValueChange,
@@ -306,7 +312,7 @@ export function Combobox<T = unknown>({
             theme="unstyled"
             {...api.getClearTriggerProps()}
           >
-            <Icon icon={"token-icon-combobox-clear"} size="current" />
+            <Icon icon={clearIcon} size={clearIconSize ?? "current"} />
           </Button>
         )}
 
@@ -320,8 +326,8 @@ export function Combobox<T = unknown>({
             className={`text-combobox-trigger group-hover:text-combobox-trigger-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
               api.open ? "rotate-180" : "rotate-0"
             }`}
-            icon="token-icon-combobox-chevron"
-            size={resolvedChevronIconSize}
+            icon={triggerIcon}
+            size={triggerIconSize ?? resolvedChevronIconSize}
           />
         </Button>
       </div>

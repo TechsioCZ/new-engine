@@ -1,4 +1,4 @@
-FROM node:22-slim AS base
+FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
@@ -28,6 +28,37 @@ CMD ["sh", "-lc", "\
 "]
 
 # ============================================
+# CI DEV TARGET - non-interactive preview runtime
+# ============================================
+FROM base AS ci-dev
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
+    corepack install && \
+    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+
+COPY tsconfig.base.json ./
+COPY apps/n1 ./apps/n1
+COPY libs/ui ./libs/ui
+COPY libs/analytics ./libs/analytics
+RUN mkdir -p apps/n1/public
+
+RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
+    npm_config_store_dir=/pnpm/store \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
+    pnpm --filter=@techsio/ui-kit build && \
+    pnpm --filter=@techsio/analytics build && \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1...
+
+WORKDIR /var/www/apps/n1
+
+CMD ["npm", "run", "start:ci-dev"]
+
+# ============================================
 # PROD BUILD STAGE - compiles everything
 # ============================================
 FROM base AS build
@@ -38,7 +69,12 @@ RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
 
-COPY . .
+# Reuse the same narrowed copy boundary as ci-dev so unrelated repo changes don't
+# invalidate the production dependency and build layers.
+COPY tsconfig.base.json ./
+COPY apps/n1 ./apps/n1
+COPY libs/ui ./libs/ui
+COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
@@ -76,7 +112,7 @@ RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
 # ============================================
 # PROD RUNTIME - minimal final image
 # ============================================
-FROM node:22-slim AS prod
+FROM node:24-slim AS prod
 
 # curl needed for healthcheck
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \

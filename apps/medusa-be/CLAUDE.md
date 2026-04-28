@@ -12,7 +12,7 @@ npx medusa exec ./src/scripts/my-script.ts  # run script
 npx medusa db:generate MODULE               # gen migration
 ```
 
-**Feature-flagged migrations:** Enable `FEATURE_*` env var before `make medusa-generate-migration MODULE=my_module`.
+**Feature-flagged migrations:** Enable `FEATURE_*` env var before `MODULE=my_module mise run dev:medusa:migration:generate`.
 
 ## Production Build
 

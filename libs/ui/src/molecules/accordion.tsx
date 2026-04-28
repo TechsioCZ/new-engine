@@ -9,7 +9,7 @@ import {
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
-import { Icon, type IconType } from "../atoms/icon"
+import { Icon, type IconProps, type IconType } from "../atoms/icon"
 import { tv } from "../utils"
 
 const accordionVariants = tv({
@@ -284,13 +284,15 @@ Accordion.Content = function AccordionContent({
 }
 
 // Indicator component (for expand/collapse icon)
-interface AccordionIndicatorProps extends ComponentPropsWithoutRef<"span"> {
+type AccordionIndicatorProps = ComponentPropsWithoutRef<"span"> & {
   icon?: IconType
+  iconSize?: IconProps["size"]
   ref?: Ref<HTMLSpanElement>
 }
 
 Accordion.Indicator = function AccordionIndicator({
   icon = "token-icon-accordion-chevron",
+  iconSize,
   ref,
   className,
   ...props
@@ -306,6 +308,7 @@ Accordion.Indicator = function AccordionIndicator({
         className={styles.icon()}
         data-state={isExpanded ? "expanded" : "collapsed"}
         icon={icon}
+        size={iconSize}
       />
     </span>
   )

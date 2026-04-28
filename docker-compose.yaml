@@ -8,6 +8,9 @@ x-medusa-bootstrap-db-env: &medusa-bootstrap-db-env
   <<: *medusa-app-db-env
   MEDUSA_DEV_DB_USER: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
   MEDUSA_DEV_DB_PASSWORD: ${DC_MEDUSA_DEV_DB_PASSWORD:-medusa_dev_change_me}
+  MEDUSA_DB_ZANE_OPERATOR_USER: ${DC_ZANE_OPERATOR_PGUSER:-zane_operator}
+  MEDUSA_DB_ZANE_OPERATOR_PASSWORD: ${DC_ZANE_OPERATOR_PGPASSWORD:-}
+  MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME: ${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-template_medusa}
 
 x-medusa-env: &medusa-env
   # Medusa BE: core runtime
@@ -34,9 +37,9 @@ x-medusa-env: &medusa-env
   LEGACY_DATABASE_URL: ${DC_LEGACY_DATABASE_URL}
 
   # Medusa BE: dependencies/integrations
-  REDIS_URL: ${DC_REDIS_URL}
+  REDIS_URL: ${DC_REDIS_URL:-redis://:${DC_VALKEY_PASSWORD:-valkey_dev_change_me}@medusa-valkey:6379}
   MEILISEARCH_HOST: ${DC_MEILISEARCH_HOST}
-  MEILISEARCH_API_KEY: ${DC_MEILISEARCH_API_KEY}
+  MEILISEARCH_API_KEY: ${DC_MEILISEARCH_BACKEND_API_KEY:-}
   MINIO_FILE_URL: ${DC_MINIO_FILE_URL}
   MINIO_REGION: ${DC_MINIO_REGION}
   MINIO_ENDPOINT: ${DC_MINIO_ENDPOINT}
@@ -51,18 +54,24 @@ x-medusa-env: &medusa-env
   FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
   PPL_ENVIRONMENT: ${DC_PPL_ENVIRONMENT:-testing}
 
-x-minio-bootstrap-env: &minio-bootstrap-env
+x-minio-env: &minio-env
   MINIO_ROOT_USER: ${DC_MINIO_ROOT_USER:-minioadmin}
   MINIO_ROOT_PASSWORD: ${DC_MINIO_ROOT_PASSWORD:-minioadmin}
-  MINIO_ACCESS_KEY: ${DC_MINIO_ACCESS_KEY:-minioadminkey}
-  MINIO_SECRET_KEY: ${DC_MINIO_SECRET_KEY:-minioadminkey}
+  MINIO_MEDUSA_ACCESS_KEY: ${DC_MINIO_ACCESS_KEY:-medusaappkey}
+  MINIO_MEDUSA_SECRET_KEY: ${DC_MINIO_SECRET_KEY:-medusaappsecret_change_me}
+  MINIO_MEDUSA_BUCKET: ${DC_MINIO_BUCKET}
+
+x-meilisearch-env: &meilisearch-env
+  MEILI_MASTER_KEY: ${DC_MEILISEARCH_MASTER_KEY}
+  MEILI_NO_ANALYTICS: true
 
 x-zane-operator-db-env: &zane-operator-db-env
   # zane-operator: postgres connectivity
   PGHOST: medusa-db
   PGPORT: 5432
   PGUSER: ${DC_ZANE_OPERATOR_PGUSER:-zane_operator}
-  PGPASSWORD: ${DC_ZANE_OPERATOR_PGPASSWORD:?DC_ZANE_OPERATOR_PGPASSWORD is required}
+  # Keep optional at interpolation time; runtime entrypoint enforces required values when operator profile is used.
+  PGPASSWORD: ${DC_ZANE_OPERATOR_PGPASSWORD:-}
   PGDATABASE: ${DC_ZANE_OPERATOR_PGDATABASE:-postgres}
   PGSSLMODE: ${DC_POSTGRES_SSLMODE:-disable}
   DB_TEMPLATE_NAME: ${DC_ZANE_OPERATOR_DB_TEMPLATE_NAME:-template_medusa}
@@ -70,34 +79,37 @@ x-zane-operator-db-env: &zane-operator-db-env
   DB_PREVIEW_APP_USER_PREFIX: ${DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX:-medusa_pr_app_}
   DB_PREVIEW_DEV_ROLE: ${DC_MEDUSA_DEV_DB_USER:-medusa_dev}
   DB_APP_SCHEMA: ${DC_MEDUSA_APP_DB_SCHEMA:-medusa}
-  DB_PREVIEW_APP_PASSWORD_SECRET: ${DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET:?DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET is required}
+  DB_PREVIEW_APP_PASSWORD_SECRET: ${DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET:-}
   DB_PROTECTED_NAMES: ${DC_ZANE_OPERATOR_DB_PROTECTED_NAMES:-postgres,template0,template1}
 
 x-zane-operator-env: &zane-operator-env
   # zane-operator: service runtime
   PORT: ${DC_ZANE_OPERATOR_PORT:-8080}
   NODE_ENV: ${DC_NODE_ENV:-development}
-  API_AUTH_TOKEN: ${DC_ZANE_OPERATOR_API_AUTH_TOKEN:?DC_ZANE_OPERATOR_API_AUTH_TOKEN is required}
+  API_AUTH_TOKEN: ${DC_ZANE_OPERATOR_API_AUTH_TOKEN:-}
+  ZANE_BASE_URL: ${DC_ZANE_OPERATOR_ZANE_BASE_URL:-}
+  ZANE_CONNECT_BASE_URL: ${DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL:-}
+  ZANE_CONNECT_HOST_HEADER: ${DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER:-}
+  ZANE_USERNAME: ${DC_ZANE_OPERATOR_ZANE_USERNAME:-}
+  ZANE_PASSWORD: ${DC_ZANE_OPERATOR_ZANE_PASSWORD:-}
   <<: *zane-operator-db-env
 
 x-medusa-base: &medusa-base
   restart: unless-stopped
   container_name: wr_medusa_be
   ports:
-    - "9000:9000"
-    - "9009:9009"
-    - "24678:24678"
+    - "127.0.0.1:9000:9000"
+    - "127.0.0.1:9009:9009"
+    - "127.0.0.1:24678:24678"
   depends_on:
     medusa-db:
-      condition: service_started
+      condition: service_healthy
     medusa-valkey:
-      condition: service_started
+      condition: service_healthy
     medusa-minio:
       condition: service_healthy
-    medusa-minio-bootstrap:
-      condition: service_completed_successfully
     medusa-meilisearch:
-      condition: service_started
+      condition: service_healthy
   networks:
     - internal
   environment:
@@ -154,7 +166,7 @@ services:
       medusa-be:
         condition: service_healthy
     ports:
-      - "8000:3000"
+      - "127.0.0.1:8000:3000"
     networks:
       - internal
     environment:
@@ -168,90 +180,74 @@ services:
       interval: 30s
       retries: 5
   medusa-valkey:
-    image: valkey/valkey:8-alpine
+    build:
+      context: ./docker/development/medusa-valkey
+      dockerfile: Dockerfile
+    command: ["sh", "-lc", "exec valkey-server --requirepass \"$$VALKEY_PASSWORD\" --appendonly yes"]
+    container_name: wr_medusa_valkey
     healthcheck:
-      test: "[ $$(valkey-cli ping) = 'PONG' ]"
+      test: ["CMD-SHELL", "valkey-cli -a \"$${VALKEY_PASSWORD}\" --no-auth-warning ping | grep -q PONG"]
       start_period: 5s
       timeout: 3s
       interval: 1s
       retries: 5
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - medusa-valkey-data:/data
     networks:
       - internal
+    environment:
+      VALKEY_PASSWORD: ${DC_VALKEY_PASSWORD:-valkey_dev_change_me}
   medusa-minio:
-    image: minio/minio
+    build:
+      context: ./docker/development/medusa-minio
+      dockerfile: Dockerfile
     container_name: wr_medusa_minio
     ports:
-      - "9003:9003"
-      - "9004:9004"
+      - "127.0.0.1:9003:9003"
+      - "127.0.0.1:9004:9004"
     volumes:
       - medusa-minio-data:/data
     networks:
       - internal
     command: server /data --console-address ":9003" --address :9004
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9003"]
+      test: ["CMD", "curl", "-f", "http://localhost:9004/minio/health/live"]
     environment:
-      MINIO_ROOT_USER: ${DC_MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${DC_MINIO_ROOT_PASSWORD:-minioadmin}
-  medusa-minio-bootstrap:
-    image: minio/mc
-    restart: "no"
-    depends_on:
-      medusa-minio:
-        condition: service_healthy
-    networks:
-      - internal
-    volumes:
-      - ./docker/development/medusa-minio/config/local-bucket-metadata.zip:/config/local-bucket-metadata.zip:ro
-    environment:
-      <<: *minio-bootstrap-env
-    entrypoint:
-      [
-        "sh",
-        "-euc",
-        "mc alias set local http://medusa-minio:9004 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\"; if ! mc admin accesskey info local \"$$MINIO_ACCESS_KEY\" >/dev/null 2>&1; then mc admin accesskey create --access-key \"$$MINIO_ACCESS_KEY\" --secret-key \"$$MINIO_SECRET_KEY\" local; fi; mc admin cluster bucket import local /config/local-bucket-metadata.zip",
-      ]
+      <<: *minio-env
   medusa-meilisearch:
-    image: getmeili/meilisearch:v1.35.1
+    build:
+      context: ./docker/development/medusa-meilisearch
+      dockerfile: Dockerfile
     container_name: wr_medusa_meilisearch
     ports:
-      - "7700:7700"
+      - "127.0.0.1:7700:7700"
     volumes:
       - medusa-meilisearch-data:/meili_data
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7700"]
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
       interval: 10s
       timeout: 5s
       retries: 5
     environment:
-      MEILI_MASTER_KEY: ${DC_MEILI_MASTER_KEY}
-      MEILI_NO_ANALYTICS: true
+      <<: [*medusa-env, *meilisearch-env]
   medusa-db:
-    image: postgres:18.1-alpine
+    build:
+      context: ./docker/development/postgres
+      dockerfile: Dockerfile
     restart: unless-stopped
-    command:
-      [
-        "postgres",
-        "-c",
-        "shared_preload_libraries=pg_stat_statements",
-        "-c",
-        "file_copy_method=clone",
-      ]
+    command: ["/usr/local/bin/run-postgres-with-bootstrap.sh"]
     ports:
-      - "${DC_POSTGRES_PUBLIC_PORT:-5432}:5432"
+      - "127.0.0.1:${DC_POSTGRES_PUBLIC_PORT:-5432}:5432"
     volumes:
       - ${DC_POSTGRES_VOLUME_DATA:-./.docker_data/db18}:/var/lib/postgresql
-      - ./docker/development/postgres/initdb:/docker-entrypoint-initdb.d:ro
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${DC_POSTGRES_SUPERUSER:-root}", "-d", "${DC_MEDUSA_APP_DB_NAME:-medusa}"]
+      test: ["CMD", "/usr/local/bin/postgres-ready-with-bootstrap.sh"]
       start_period: 10s
       interval: 30s
       timeout: 60s
@@ -262,33 +258,26 @@ services:
       POSTGRES_USER: ${DC_POSTGRES_SUPERUSER:-root}
       POSTGRES_DB: ${DC_MEDUSA_APP_DB_NAME:-medusa}
       PGDATA: /var/lib/postgresql/18/docker
-  zane-operator-bootstrap:
-    restart: "no"
-    build:
-      context: .
-      dockerfile: docker/development/zane-operator/Dockerfile
-    entrypoint: ["/app/zane-operator-bootstrap-role"]
-    depends_on:
-      medusa-db:
-        condition: service_healthy
-    networks:
-      - internal
-    environment:
-      <<: *zane-operator-db-env
-      BOOTSTRAP_ADMIN_PGUSER: ${DC_POSTGRES_SUPERUSER:-root}
-      BOOTSTRAP_ADMIN_PGPASSWORD: ${DC_POSTGRES_SUPERUSER_PASSWORD:-root}
   zane-operator:
+    profiles: ["operator"]
     restart: unless-stopped
     build:
       context: .
       dockerfile: docker/development/zane-operator/Dockerfile
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        [ -n "$$API_AUTH_TOKEN" ] || { echo "Missing required env: API_AUTH_TOKEN. Set DC_ZANE_OPERATOR_API_AUTH_TOKEN." >&2; exit 1; }
+        [ -n "$$PGUSER" ] || { echo "Missing required env: PGUSER. Set DC_ZANE_OPERATOR_PGUSER." >&2; exit 1; }
+        [ -n "$$PGPASSWORD" ] || { echo "Missing required env: PGPASSWORD. Set DC_ZANE_OPERATOR_PGPASSWORD." >&2; exit 1; }
+        [ -n "$$DB_PREVIEW_APP_PASSWORD_SECRET" ] || { echo "Missing required env: DB_PREVIEW_APP_PASSWORD_SECRET. Set DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET." >&2; exit 1; }
+        exec /app/zane-operator
     depends_on:
       medusa-db:
         condition: service_healthy
-      zane-operator-bootstrap:
-        condition: service_completed_successfully
     ports:
-      - "${DC_ZANE_OPERATOR_PUBLIC_PORT:-8082}:${DC_ZANE_OPERATOR_PORT:-8080}"
+      - "127.0.0.1:${DC_ZANE_OPERATOR_PUBLIC_PORT:-8082}:${DC_ZANE_OPERATOR_PORT:-8080}"
     networks:
       - internal
     environment:
@@ -303,7 +292,7 @@ services:
       MYSQL_PASSWORD: 1234
     command: --sql_mode="NO_ENGINE_SUBSTITUTION"
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - ./.docker_data/dbmysql:/var/lib/mysql
       - ./docker/development/mariadb/wr.cnf:/etc/mysql/conf.d/wr.cnf
@@ -313,7 +302,7 @@ services:
     image: adminer
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     depends_on:
       - medusa-db
     networks:
@@ -329,9 +318,9 @@ services:
     cap_add:
       - NET_ADMIN
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
+      - "127.0.0.1:443:443/udp"
     networks:
       - internal
     volumes:

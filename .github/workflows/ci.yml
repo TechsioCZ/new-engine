@@ -33,7 +33,7 @@ jobs:
       # Cache node_modules
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
@@ -56,5 +56,7 @@ jobs:
       # - run: pnpm exec nx-cloud record -- echo Hello World
       - name: Lint Nx module boundaries
         run: pnpm lint:nx
+      - name: Test new-engine-ctl CI wiring
+        run: pnpm exec nx run new-engine-ctl:test
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       - run: pnpm exec nx affected -t lint test

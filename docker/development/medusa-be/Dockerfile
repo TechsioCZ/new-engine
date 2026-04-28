@@ -1,4 +1,4 @@
-FROM node:22-slim AS base
+FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
@@ -25,6 +25,29 @@ CMD ["pnpm", "--filter", "medusa-be", "dev"]
 #CMD ["tail", "-f", "/dev/null"]
 
 # ============================================
+# CI DEV TARGET - non-interactive preview runtime
+# ============================================
+FROM base AS ci-dev
+ENV NODE_ENV=development
+ENV DATABASE_TYPE=postgres
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
+    corepack install && \
+    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+
+COPY tsconfig.base.json ./
+COPY apps/medusa-be ./apps/medusa-be
+
+RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
+    npm_config_store_dir=/pnpm/store \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=medusa-be...
+
+WORKDIR /var/www/apps/medusa-be
+
+CMD ["npm", "run", "start:ci-dev"]
+
+# ============================================
 # PROD BUILD STAGE - compiles everything
 # ============================================
 FROM base AS build
@@ -35,7 +58,11 @@ RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
 
-COPY . .
+# Copy only the files needed for the Medusa production build so unrelated repo changes
+# don't invalidate the expensive install/build layers.
+COPY nx.json tsconfig.base.json ./
+COPY scripts/build-medusa.sh ./scripts/build-medusa.sh
+COPY apps/medusa-be ./apps/medusa-be
 
 # Build using shared script (cleanup, install, build, validate, prod deploy)
 ARG FEATURE_PPL_ENABLED=0
@@ -47,7 +74,7 @@ RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
 # ============================================
 # PROD RUNTIME - minimal final image
 # ============================================
-FROM node:22-slim AS prod
+FROM node:24-slim AS prod
 
 # curl needed for healthcheck
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \

@@ -1,32 +1,16 @@
-import type { ExecArgs, IApiKeyModuleService } from "@medusajs/framework/types"
+import type { ExecArgs, IApiKeyModuleService, ILockingModule } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
-
-const DEFAULT_PUBLISHABLE_KEY_TITLE = "Storefront Publishable Key"
+import { provisionPublishableKey } from "../utils/publishable-key"
 
 export default async function myScript({ container, args }: ExecArgs) {
-  const service = container.resolve<IApiKeyModuleService>(Modules.API_KEY)
-  const keyTitle =
-    args?.[0]?.trim() ||
-    process.env.INITIAL_PUBLISHABLE_KEY_NAME?.trim() ||
-    DEFAULT_PUBLISHABLE_KEY_TITLE
+  const apiKeyService = container.resolve<IApiKeyModuleService>(Modules.API_KEY)
+  const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
-  const existingKeys = await service.listApiKeys({
-    title: keyTitle,
-    type: "publishable",
+  const { apiKey } = await provisionPublishableKey({
+    apiKeyService,
+    lockingModule,
+    title: args?.[0],
   })
 
-  const existingActiveKey = existingKeys.find((key) => !key.revoked_at)
-
-  if (existingActiveKey) {
-    process.stdout.write(`<PK_TOKEN>${existingActiveKey.token}</PK_TOKEN>`)
-    return
-  }
-
-  const createdKey = await service.createApiKeys({
-    title: keyTitle,
-    type: "publishable",
-    created_by: "",
-  })
-
-  process.stdout.write(`<PK_TOKEN>${createdKey.token}</PK_TOKEN>`)
+  process.stdout.write(`<PK_TOKEN>${apiKey.token}</PK_TOKEN>`)
 }

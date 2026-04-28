@@ -1,4 +1,4 @@
-import type { ElementType} from "react"
+import type { ElementType } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { Icon, type IconType } from "../atoms/icon"
 import { Link } from "../atoms/link"
@@ -8,13 +8,14 @@ const breadcrumbsVariants = tv({
     root: ["inline-flex flex-wrap items-center", "bg-breadcrumb-bg"],
     list: ["flex items-center", "break-words", "list-none"],
     item: [
-      'inline-flex items-center',
-      'text-breadcrumb-item-fg',
-      'hover:text-breadcrumb-fg-hover',
-      'data-[current=true]:text-breadcrumb-fg-current',
-      'h-full',
-      'transition-colors duration-200 motion-reduce:transition-none',
+      "inline-flex items-center",
+      "text-breadcrumb-item-fg",
+      "hover:text-breadcrumb-fg-hover",
+      "data-[current=true]:text-breadcrumb-fg-current",
+      "h-full",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
+    itemIcon: ["inline-flex items-center justify-center"],
     link: [
       "no-underline",
       "cursor-pointer",
@@ -30,10 +31,12 @@ const breadcrumbsVariants = tv({
       "inline-flex items-center justify-center",
       "rtl:rotate-180",
     ],
+    separatorIcon: ["inline-flex items-center justify-center"],
     ellipsis: [
       "text-breadcrumb-ellipsis-fg",
       "inline-flex items-center justify-center",
     ],
+    ellipsisIcon: ["inline-flex items-center justify-center"],
   },
   compoundSlots: [
     {
@@ -47,22 +50,28 @@ const breadcrumbsVariants = tv({
         root: "p-breadcrumb-sm text-breadcrumb-sm",
         list: "gap-breadcrumb-sm",
         item: "gap-breadcrumb-sm",
+        itemIcon: "text-breadcrumb-item-icon-sm",
         separator: "gap-breadcrumb-sm",
-        ellipsis: "text-breadcrumb-sm",
+        separatorIcon: "text-breadcrumb-separator-icon-sm",
+        ellipsisIcon: "text-breadcrumb-ellipsis-icon-sm",
       },
       md: {
         root: "p-breadcrumb-md text-breadcrumb-md",
         list: "gap-breadcrumb-md",
         item: "gap-breadcrumb-md",
+        itemIcon: "text-breadcrumb-item-icon-md",
         separator: "gap-breadcrumb-md",
-        ellipsis: "text-breadcrumb-md",
+        separatorIcon: "text-breadcrumb-separator-icon-md",
+        ellipsisIcon: "text-breadcrumb-ellipsis-icon-md",
       },
       lg: {
         root: "p-breadcrumb-lg text-breadcrumb-lg",
         list: "gap-breadcrumb-lg",
         item: "gap-breadcrumb-lg",
+        itemIcon: "text-breadcrumb-item-icon-lg",
         separator: "gap-breadcrumb-lg",
-        ellipsis: "text-breadcrumb-lg",
+        separatorIcon: "text-breadcrumb-separator-icon-lg",
+        ellipsisIcon: "text-breadcrumb-ellipsis-icon-lg",
       },
     },
   },
@@ -70,6 +79,8 @@ const breadcrumbsVariants = tv({
     size: "md",
   },
 })
+
+type BreadcrumbSize = NonNullable<VariantProps<typeof breadcrumbsVariants>["size"]>
 
 export type BreadcrumbItemType = {
   label: string
@@ -87,6 +98,7 @@ function BreadcrumbItem({
   isCurrentPage,
   lastItem,
   linkAs,
+  size,
 }: {
   label: string
   href?: string
@@ -95,16 +107,19 @@ function BreadcrumbItem({
   lastItem: boolean
   isCurrentPage?: boolean
   linkAs?: ElementType
+  size: BreadcrumbSize
 }) {
   const {
     item,
+    itemIcon,
     currentLink,
     link,
     separator: separatorSlot,
-  } = breadcrumbsVariants({ size: "md" })
+    separatorIcon,
+  } = breadcrumbsVariants({ size })
   return (
     <li className={item()} data-current={isCurrentPage}>
-      {icon && <Icon icon={icon} />}
+      {icon && <Icon className={itemIcon()} icon={icon} />}
       {isCurrentPage ? (
         <span aria-current="page" className={currentLink()}>
           {label}
@@ -116,24 +131,31 @@ function BreadcrumbItem({
       )}
       {!lastItem && (
         <span className={separatorSlot()}>
-          <Icon icon={separator ?? "token-icon-breadcrumb-separator"} />
+          <Icon
+            className={separatorIcon()}
+            icon={separator ?? "token-icon-breadcrumb-separator"}
+          />
         </span>
       )}
     </li>
   )
 }
 
-function BreadcrumbEllipsis() {
-  const { ellipsis, separator: separatorSlot } = breadcrumbsVariants({
-    size: "md",
-  })
+function BreadcrumbEllipsis({ size }: { size: BreadcrumbSize }) {
+  const { ellipsis, ellipsisIcon, separator: separatorSlot, separatorIcon } =
+    breadcrumbsVariants({
+      size,
+    })
   return (
     <li className={ellipsis()}>
       <span aria-hidden="true">
-        <Icon icon="token-icon-breadcrumb-ellipsis" />
+        <Icon className={ellipsisIcon()} icon="token-icon-breadcrumb-ellipsis" />
       </span>
       <span className={separatorSlot()}>
-        <Icon icon={"token-icon-breadcrumb-separator"} />
+        <Icon
+          className={separatorIcon()}
+          icon={"token-icon-breadcrumb-separator"}
+        />
       </span>
     </li>
   )
@@ -175,7 +197,7 @@ export function Breadcrumb({
       <ol className={list()}>
         {displayItems.map((item, index) =>
           item === "ellipsis" ? (
-            <BreadcrumbEllipsis key="ellipsis" />
+            <BreadcrumbEllipsis key="ellipsis" size={size} />
           ) : (
             item &&
             typeof item !== "string" && (
@@ -192,6 +214,7 @@ export function Breadcrumb({
                 lastItem={index === displayItems.length - 1}
                 linkAs={linkAs}
                 separator={item.separator}
+                size={size}
               />
             )
           )

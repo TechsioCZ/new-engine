@@ -1,9 +1,22 @@
 import { enforceBearerToken } from "./auth"
 import { loadConfig } from "./config"
 import { createDbClient, inspectFileCopyMethod } from "./db"
+import { handleApplyZaneEnvOverrides } from "./handlers/apply-zane-env-overrides"
+import { handleArchiveZaneEnvironment } from "./handlers/archive-zane-environment"
+import { handleCancelZaneDeploy } from "./handlers/cancel-zane-deploy"
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
+import { handleReadPreviewCommitState } from "./handlers/read-preview-commit-state"
+import { handleRunRuntimeProvider } from "./handlers/run-runtime-provider"
+import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
+import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
+import { handleSyncPreviewRandomOnceSecrets } from "./handlers/sync-preview-random-once-secrets"
+import { handleSyncPreviewServiceEnv } from "./handlers/sync-preview-service-env"
+import { handleSyncPreviewSharedEnv } from "./handlers/sync-preview-shared-env"
 import { handleTeardownPreviewDb } from "./handlers/teardown-preview-db"
+import { handleTriggerZaneDeploy } from "./handlers/trigger-zane-deploy"
+import { handleVerifyZaneDeploy } from "./handlers/verify-zane-deploy"
+import { handleWritePreviewCommitState } from "./handlers/write-preview-commit-state"
 import { jsonError, jsonResponse } from "./http"
 
 const config = loadConfig()
@@ -19,7 +32,7 @@ if (fileCopyMethod.warning) {
       warning: fileCopyMethod.warning,
       file_copy_method: fileCopyMethod.method,
       clone_optimized: fileCopyMethod.cloneOptimized,
-    }),
+    })
   )
 } else {
   console.info(
@@ -27,7 +40,7 @@ if (fileCopyMethod.warning) {
       event: "server.startup.file_copy_method",
       file_copy_method: fileCopyMethod.method,
       clone_optimized: fileCopyMethod.cloneOptimized,
-    }),
+    })
   )
 }
 
@@ -61,7 +74,175 @@ const server = Bun.serve({
     }
 
     if (url.pathname.startsWith("/v1/preview-db/")) {
-      return jsonError(405, "method_not_allowed", "Method not allowed for this endpoint")
+      return jsonError(
+        405,
+        "method_not_allowed",
+        "Method not allowed for this endpoint"
+      )
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/environments/resolve"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleResolveZaneEnvironment(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/environments/archive"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleArchiveZaneEnvironment(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-commit-state/read"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleReadPreviewCommitState(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-commit-state/write"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleWritePreviewCommitState(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-random-once-secrets/sync"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleSyncPreviewRandomOnceSecrets(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-shared-env/sync"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleSyncPreviewSharedEnv(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/preview-service-env/sync"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleSyncPreviewServiceEnv(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/runtime-providers/run"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleRunRuntimeProvider(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/resolve-targets"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleResolveZaneTargets(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/apply-env-overrides"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleApplyZaneEnvOverrides(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/trigger"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleTriggerZaneDeploy(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/cancel"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleCancelZaneDeploy(request, { config })
+    }
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/v1/zane/deploy/verify"
+    ) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      if (authResponse) {
+        return authResponse
+      }
+
+      return await handleVerifyZaneDeploy(request, { config })
+    }
+
+    if (url.pathname.startsWith("/v1/zane/")) {
+      return jsonError(
+        405,
+        "method_not_allowed",
+        "Method not allowed for this endpoint"
+      )
     }
 
     return jsonResponse(404, {
@@ -74,7 +255,7 @@ const server = Bun.serve({
       JSON.stringify({
         event: "server.error",
         message: error.message,
-      }),
+      })
     )
     return jsonError(500, "internal_error", "Internal server error")
   },
@@ -84,7 +265,7 @@ console.info(
   JSON.stringify({
     event: "server.started",
     port: config.port,
-  }),
+  })
 )
 
 let shuttingDown = false
@@ -110,7 +291,7 @@ const handleShutdown = async (signal: string): Promise<void> => {
         event: "server.shutdown.error",
         signal,
         error: message,
-      }),
+      })
     )
   } finally {
     process.exit(exitCode)
