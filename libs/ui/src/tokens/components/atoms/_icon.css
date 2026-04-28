@@ -203,8 +203,8 @@
 
 @utility token-icon-increment {
   @apply token-icon-chevron-up;
-};
+}
 
 @utility token-icon-decrement {
-  @apply token-icon-chevron-down
-};
+  @apply token-icon-chevron-down;
+}

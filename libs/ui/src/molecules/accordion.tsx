@@ -284,7 +284,7 @@ Accordion.Content = function AccordionContent({
 }
 
 // Indicator component (for expand/collapse icon)
-interface AccordionIndicatorProps extends ComponentPropsWithoutRef<"span"> {
+type AccordionIndicatorProps = ComponentPropsWithoutRef<"span"> & {
   icon?: IconType
   iconSize?: IconProps["size"]
   ref?: Ref<HTMLSpanElement>

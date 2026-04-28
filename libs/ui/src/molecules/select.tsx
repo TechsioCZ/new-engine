@@ -303,7 +303,7 @@ Select.Control = function SelectControl({
   )
 }
 
-interface SelectTriggerProps extends ComponentPropsWithoutRef<"button"> {
+type SelectTriggerProps = ComponentPropsWithoutRef<"button"> & {
   size?: SelectSize
   iconSize?: IconProps["size"]
   ref?: Ref<HTMLButtonElement>
@@ -397,7 +397,7 @@ Select.ValueText = function SelectValueText({
   )
 }
 
-interface SelectClearTriggerProps extends ComponentPropsWithoutRef<"button"> {
+type SelectClearTriggerProps = ComponentPropsWithoutRef<"button"> & {
   iconSize?: IconProps["size"]
   ref?: Ref<HTMLButtonElement>
 }
@@ -590,7 +590,7 @@ Select.ItemText = function SelectItemText({
   )
 }
 
-interface SelectItemIndicatorProps extends ComponentPropsWithoutRef<"span"> {
+type SelectItemIndicatorProps = ComponentPropsWithoutRef<"span"> & {
   iconSize?: IconProps["size"]
   ref?: Ref<HTMLSpanElement>
 }
