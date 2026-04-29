@@ -20,7 +20,7 @@ COPY libs/storefront-data/package.json libs/storefront-data/package.json
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     corepack install && \
-    pnpm --filter=herbatika... fetch --store-dir=/pnpm/store --frozen-lockfile
+    pnpm --filter=herbatica... fetch --store-dir=/pnpm/store --frozen-lockfile
 
 COPY . .
 
@@ -43,11 +43,11 @@ ENV MEILISEARCH_CATEGORIES_INDEX=${MEILISEARCH_CATEGORIES_INDEX}
 ENV MEILISEARCH_PRODUCERS_INDEX=${MEILISEARCH_PRODUCERS_INDEX}
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatika... && \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatica... && \
     pnpm --filter=@techsio/storefront-data build && \
     pnpm --filter=@techsio/ui-kit build && \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatika... && \
-    pnpm --filter=herbatika build && \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatica... && \
+    pnpm --filter=herbatica build && \
     test -f apps/herbatika/.next/BUILD_ID
 
 FROM node:22-slim AS prod
