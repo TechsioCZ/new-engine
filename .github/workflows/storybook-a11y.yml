@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   storybook-a11y:
-    uses: NMIT-WR/storybook-addons/.github/workflows/storybook-a11y.yml@b52eaf44688051b19eb989fab7b6ab721ce1a2d1 # storybook-a11y-workflow-v0.1.9
+    uses: TechsioCZ/storybook-addons/.github/workflows/storybook-a11y.yml@b52eaf44688051b19eb989fab7b6ab721ce1a2d1 # storybook-a11y-workflow-v0.1.9
     with:
       node-version: "24"
       pnpm-version: ""
