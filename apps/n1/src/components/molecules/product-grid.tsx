@@ -17,7 +17,7 @@ type ProductGridProps = {
   totalCount?: number
   currentPage?: number
   pageSize?: number
-  getPageUrl?: NonNullable<UIPaginationProps["getPageUrl"]>
+  getPageUrl?: NonNullable<UIPaginationProps["getPageUrl"]> | null
   isLoading?: boolean
   skeletonCount?: number
 }

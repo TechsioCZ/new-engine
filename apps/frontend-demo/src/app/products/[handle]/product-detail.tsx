@@ -1,7 +1,7 @@
 "use client"
 
-import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import type { BadgeProps } from "@ui/atoms/badge"
+import { StatusText } from "@ui/atoms/status-text"
 import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
 import Link from "next/link"
 import { useEffect, useState } from "react"

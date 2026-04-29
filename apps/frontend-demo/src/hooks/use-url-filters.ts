@@ -15,7 +15,9 @@ export type PageRange = {
 
 function parsePageRange(pageParam: string): PageRange {
   const parsedSinglePage = Number.parseInt(pageParam, 10)
-  const singlePage = Number.isNaN(parsedSinglePage) ? 1 : parsedSinglePage
+  const singlePage = Number.isNaN(parsedSinglePage)
+    ? 1
+    : Math.max(parsedSinglePage, 1)
 
   if (!pageParam.includes("-")) {
     return { start: singlePage, end: singlePage, isRange: false }
@@ -23,7 +25,12 @@ function parsePageRange(pageParam: string): PageRange {
 
   const [start, end] = pageParam.split("-").map((p) => Number.parseInt(p, 10))
 
-  if (!(Number.isNaN(start) || Number.isNaN(end)) && start <= end) {
+  if (
+    !(Number.isNaN(start) || Number.isNaN(end)) &&
+    start >= 1 &&
+    end >= 1 &&
+    start <= end
+  ) {
     return { start, end, isRange: true }
   }
 

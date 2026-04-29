@@ -129,7 +129,7 @@ type PaginationLinkProps<T extends ElementType> = Omit<
 
 export type PaginationProps<T extends ElementType = "a"> =
   PaginationBaseProps & {
-    getPageUrl?: PaginationGetPageUrl
+    getPageUrl: PaginationGetPageUrl
     linkAs?: T
     linkProps?: PaginationLinkProps<T>
   }
@@ -227,7 +227,6 @@ export function Pagination<T extends ElementType = "a">({
   ...props
 }: PaginationProps<T>) {
   const uniqueId = useId()
-  const isLinkMode = typeof getPageUrl === "function"
 
   const service = useMachine(paginationMachine, {
     id: uniqueId,
@@ -238,8 +237,8 @@ export function Pagination<T extends ElementType = "a">({
     page,
     dir,
     defaultPage,
-    type: isLinkMode ? "link" : "button",
-    ...(isLinkMode ? { getPageUrl } : {}),
+    type: "link",
+    getPageUrl,
     onPageChange: (details) => {
       onChange?.(details.page)
       onPageChange?.(details.page)
@@ -272,15 +271,13 @@ export function Pagination<T extends ElementType = "a">({
       ...overrides,
     })
 
-    if (isLinkMode && !hasHref(triggerProps)) {
-      return mergeProps(baseTriggerProps, {
-        disabled: true,
-      }) as LinkButtonProps<T>
-    }
-
     return mergeProps(sharedLinkProps, baseTriggerProps, {
       ...(linkAs ? { as: linkAs } : {}),
-      ...(isLinkMode || linkAs ? {} : { as: "button", type: "button" }),
+      ...(hasHref(triggerProps)
+        ? {}
+        : {
+            disabled: true,
+          }),
     }) as LinkButtonProps<T>
   }
 
