@@ -35,7 +35,7 @@ services:
 
   - hostname: medusa
     type: nodejs@22
-    buildFromGit: https://github.com/NMIT-WR/new-engine
+    buildFromGit: https://github.com/TechsioCZ/new-engine
     enableSubdomainAccess: true
     envSecrets:
       ADMIN_CORS: ${zeropsSubdomain}
@@ -54,7 +54,7 @@ services:
 
   - hostname: demo
     type: nodejs@22
-    buildFromGit: https://github.com/NMIT-WR/new-engine
+    buildFromGit: https://github.com/TechsioCZ/new-engine
     enableSubdomainAccess: true
     envSecrets:
       REVALIDATE_SECRET: <@generateRandomString(<16>)>
@@ -66,7 +66,7 @@ services:
 
 #  - hostname: nextstore
 #    type: nodejs@22
-#    buildFromGit: https://github.com/NMIT-WR/new-engine
+#    buildFromGit: https://github.com/TechsioCZ/new-engine
 #    enableSubdomainAccess: true
 #    envSecrets:
 #      REVALIDATE_SECRET: <@generateRandomString(<16>)>
