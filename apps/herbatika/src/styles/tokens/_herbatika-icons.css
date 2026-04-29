@@ -241,3 +241,7 @@
 @utility token-icon-breadcrumb-separator {
   @apply token-icon-triangle-right;
 }
+
+@utility token-icon-star {
+  @apply icon-[solar--star-bold];
+}
