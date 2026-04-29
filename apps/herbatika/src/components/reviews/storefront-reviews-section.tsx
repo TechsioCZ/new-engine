@@ -78,7 +78,7 @@ function ReviewCard({
   const isHomepage = variant === "homepage";
 
   return (
-    <article className="flex h-full flex-col gap-350 rounded-md border border-border-secondary bg-highlight p-350 shadow-md">
+    <article className="flex h-full font-roboto flex-col gap-350 rounded-md border border-border-secondary bg-highlight p-350 shadow-md">
       <header className="flex items-center gap-350">
         {isHomepage ? (
           <div className="flex h-800 w-800 flex-shrink-0 items-center justify-center">
@@ -107,7 +107,7 @@ function ReviewCard({
             <p className="text-xs leading-tight text-fg-placeholder">{review.dateLabel}</p>
           </div>
 
-          <p className="truncate text-sm leading-tight font-semibold text-fg-primary">
+          <p className="truncate text-md leading-tight font-semibold text-fg-primary">
             {review.author}
           </p>
         </div>
@@ -115,13 +115,13 @@ function ReviewCard({
 
       <div className="flex flex-1 flex-col gap-250">
         {review.title ? (
-          <p className="flex items-center gap-150 text-sm leading-relaxed text-fg-secondary">
+          <p className="flex items-center gap-150 text-md leading-relaxed text-fg-secondary">
             <Icon className="text-primary" icon="token-icon-plus" size="md" />
             <span className="truncate">{review.title}</span>
           </p>
         ) : null}
 
-        <p className="line-clamp-3 text-sm leading-relaxed text-fg-secondary">
+        <p className="line-clamp-3 text-md leading-relaxed text-fg-secondary">
           {review.message}
         </p>
       </div>

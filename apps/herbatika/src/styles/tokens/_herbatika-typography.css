@@ -4,6 +4,7 @@
   --font-open-sans: var(--font-sans), sans-serif;
   --font-inter: var(--font-inter-font), sans-serif;
   --font-sans: "Rubik", "Open Sans", sans-serif;
+  --font-roboto: "Roboto", "Open Sans", sans-serif;
 
   --text-2xs: 0.625rem;
   --text-xs: 0.8125rem;
