@@ -1,3 +1,10 @@
 @theme static {
     --color-breadcrumb-bg: var(--color-base);
+    --color-breadcrumb-fg: var(--color-fg-accent);
+    --color-breadcrumb-separator-fg: var(--color-breadcrumb-fg);
+    --text-breadcrumb-item-icon-md: var(--text-icon-sm);
+    --text-breadcrumb-md: var(--text-xs);
+    --text-breadcrumb-separator-icon-md: var(--text-icon-sm);
+
+    --gap-breadcrumb-md: var(--spacing-250);
 }

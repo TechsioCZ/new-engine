@@ -23,6 +23,7 @@
   --color-herbatika-info: oklch(0.6885 0.1197 226.99);
   --color-herbatika-warning: oklch(0.8321 0.1354 80.84);
   --color-herbatika-danger: oklch(0.5782 0.2193 26.15);
+  --color-herbatika-fg-tertiary: oklch(0.5517 0.0138 285.94);
 
   /* Brand semantics */
   --color-primary: var(--color-herbatika-primary);
@@ -63,6 +64,7 @@
   --color-fg-primary: var(--color-herbatika-fg);
   --color-fg-secondary: var(--color-herbatika-fg-secondary);
   --color-fg-tertiary: var(--color-herbatika-fg-muted);
+  --color-fg-accent: var(--color-herbatika-fg-tertiary);
   --color-fg-strong: var(--color-herbatika-fg-strong);
   --color-fg-placeholder: oklch(
     from var(--color-herbatika-fg-muted) calc(l + 0.06) c h

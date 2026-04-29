@@ -232,3 +232,11 @@
 @utility token-icon-circle {
   @apply icon-[mdi--circle];
 }
+
+@utility token-icon-triangle-right {
+  @apply icon-[solar--alt-arrow-right-bold];
+}
+
+@utility token-icon-breadcrumb-separator {
+  @apply token-icon-triangle-right;
+}
