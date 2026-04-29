@@ -82,6 +82,7 @@ export async function executeResolveEnvironment(
             input.lane === "preview"
               ? normalizeCsvToArray(input.previewClonedServiceIdsCsv)
               : normalizeCsvToArray(input.reconcileServiceIdsCsv),
+          previewGitBranch: input.previewGitBranch,
         })
       : []
 

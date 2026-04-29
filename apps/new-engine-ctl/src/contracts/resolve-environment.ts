@@ -12,6 +12,7 @@ export const resolveEnvironmentCommandInputSchema = z
     reconcileServiceIdsCsv: z.string().default(""),
     previewClonedServiceIdsCsv: z.string().default(""),
     previewExcludedServiceIdsCsv: z.string().default(""),
+    previewGitBranch: z.string().default(""),
     outputJson: z.string().min(1).optional(),
     baseUrl: z.string().default(""),
     apiToken: z.string().default(""),
