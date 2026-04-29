@@ -43,8 +43,8 @@
   /* BREADCRUMB */
   --color-breadcrumb-bg: transparent;
 
-  --color-breadcrumb-fg-current: var(--color-fg-secondary);
-  --color-breadcrumb-fg-hover: var(--color-fg-primary);
+  --color-breadcrumb-current-link-fg: var(--color-fg-secondary);
+  --color-breadcrumb-link-fg-hover: var(--color-fg-primary);
 
   /* CAROUSEL */
   --color-carousel: transparent;

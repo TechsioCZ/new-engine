@@ -1,7 +1,7 @@
 "use client"
 
 import { ErrorText } from "@techsio/ui-kit/atoms/error-text"
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
@@ -122,7 +122,7 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
       <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y lg:px-product-detail-container-x-lg lg:py-product-detail-container-y-lg">
         {/* Breadcrumb */}
         <div className="mb-product-detail-breadcrumb-margin">
-          <Breadcrumb
+          <BreadcrumbTemplate
             items={[
               { label: "Domů", href: "/" },
               { label: "Produkty", href: "/products" },

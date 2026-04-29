@@ -1,8 +1,7 @@
 "use client"
 
 import { HeurekaProduct } from "@techsio/analytics/heureka"
-import { Link } from "@techsio/ui-kit/atoms/link"
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
 import { useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
 import { Heading } from "@/components/heading"
@@ -136,16 +135,14 @@ export default function ProductPage() {
 
       <div className="grid grid-cols-1 gap-700 md:grid-cols-[auto_1fr]">
         <header className="col-span-1 space-y-400 md:col-span-2">
-          <Breadcrumb
+          <BreadcrumbTemplate
             className="mb-400 hidden md:inline-flex"
             items={breadcrumbPath}
-            linkAs={Link}
             size="md"
           />
-          <Breadcrumb
+          <BreadcrumbTemplate
             className="mb-400 md:hidden"
             items={breadcrumbPathMobile}
-            linkAs={Link}
             size="md"
           />
           <Heading as="h1">{title}</Heading>
