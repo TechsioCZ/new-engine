@@ -77,7 +77,6 @@ jobs:
             --preview-baseline-complete true
 
       - name: Validate teardown inputs
-        if: steps.scope.outputs.services_csv != ''
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
@@ -86,7 +85,6 @@ jobs:
         run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode preview-teardown
 
       - name: Run preview teardown
-        if: steps.scope.outputs.services_csv != ''
         id: run_teardown
         continue-on-error: true
         env:
