@@ -28,7 +28,7 @@ type InjectedDependencies = {
 }
 
 type ForgotPasswordTemplateData = {
-  reset_url?: string
+  reset_url: string
   store_name?: string
 }
 

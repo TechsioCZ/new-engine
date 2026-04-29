@@ -12,18 +12,14 @@ import {
 } from "@react-email/components"
 
 type ForgotPasswordEmailProps = {
-  reset_url?: string
+  reset_url: string
   store_name?: string
 }
-
-const DEFAULT_RESET_URL = "http://localhost:3000/reset-password"
 
 export function ForgotPasswordEmail({
   reset_url,
   store_name,
 }: ForgotPasswordEmailProps) {
-  const resolvedResetUrl = reset_url ?? DEFAULT_RESET_URL
-
   return (
     <Html>
       <Head />
@@ -48,7 +44,7 @@ export function ForgotPasswordEmail({
             <Section className="mb-8 text-center">
               <Button
                 className="rounded-lg bg-black px-6 py-3 text-center font-semibold text-sm text-white no-underline"
-                href={resolvedResetUrl}
+                href={reset_url}
               >
                 Reset password
               </Button>
@@ -60,7 +56,7 @@ export function ForgotPasswordEmail({
             </Text>
 
             <Text className="break-all text-gray-600 text-sm leading-6">
-              {resolvedResetUrl}
+              {reset_url}
             </Text>
           </Container>
         </Body>
