@@ -1,8 +1,7 @@
-import assert from "node:assert/strict"
 import { dirname, join, resolve } from "node:path"
-import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 
+import { expect, test } from "vitest"
 import { executePlan } from "../orchestration/plan.js"
 import { executeScope } from "../orchestration/scope.js"
 
@@ -30,10 +29,10 @@ test("preview scope prepares DB credentials for first baseline replay", async ()
     nxIsolatePlugins: true,
   })
 
-  assert.equal(result.services_csv, "n1")
-  assert.equal(result.should_prepare, true)
-  assert.equal(result.requires_preview_db, true)
-  assert.equal(result.preview_db_service_ids, "medusa-be")
+  expect(result.services_csv).toBe("n1")
+  expect(result.should_prepare).toBe(true)
+  expect(result.requires_preview_db).toBe(true)
+  expect(result.preview_db_service_ids).toBe("medusa-be")
 })
 
 test("preview scope skips prepare for non-DB services after baseline is complete", async () => {
@@ -47,14 +46,14 @@ test("preview scope skips prepare for non-DB services after baseline is complete
     nxIsolatePlugins: true,
   })
 
-  assert.equal(result.services_csv, "n1")
-  assert.equal(result.should_prepare, false)
-  assert.equal(result.requires_preview_db, false)
-  assert.equal(result.preview_db_service_ids, "")
+  expect(result.services_csv).toBe("n1")
+  expect(result.should_prepare).toBe(false)
+  expect(result.requires_preview_db).toBe(false)
+  expect(result.preview_db_service_ids).toBe("")
 })
 
 test("preview scope rejects explicit services excluded from preview cloning", async () => {
-  await assert.rejects(
+  await expect(
     executeScope({
       lane: "preview",
       servicesCsv: "medusa-db",
@@ -63,13 +62,12 @@ test("preview scope rejects explicit services excluded from preview cloning", as
       stackManifestPath,
       stackInputsPath,
       nxIsolatePlugins: true,
-    }),
-    explicitPreviewRejectPattern
-  )
+    })
+  ).rejects.toThrow(explicitPreviewRejectPattern)
 })
 
 test("preview plan rejects services marked clone_to_preview false", async () => {
-  await assert.rejects(
+  await expect(
     executePlan({
       lane: "preview",
       servicesCsv: "medusa-db",
@@ -77,7 +75,6 @@ test("preview plan rejects services marked clone_to_preview false", async () => 
       outputJson: undefined,
       stackManifestPath,
       previewEnvPrefix: "pr-",
-    }),
-    cloneToPreviewRejectPattern
-  )
+    })
+  ).rejects.toThrow(cloneToPreviewRejectPattern)
 })

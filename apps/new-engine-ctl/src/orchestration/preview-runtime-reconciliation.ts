@@ -35,6 +35,8 @@ export type PreviewServiceSpecSyncService = {
   service_slug: string
   git_source?: {
     sync_from_source: boolean
+    branch_name?: string
+    commit_sha?: string
   }
   builder?: {
     sync_from_source: boolean
@@ -45,6 +47,18 @@ export type PreviewServiceSpecSyncService = {
   }
   resource_limits?: {
     sync_from_source: boolean
+  }
+}
+
+function buildPreviewGitSourceSpec(input: {
+  lane: ServiceReconciliationLane
+  previewGitBranch?: string
+}): PreviewServiceSpecSyncService["git_source"] {
+  return {
+    sync_from_source: true,
+    ...(input.lane === "preview" && input.previewGitBranch
+      ? { branch_name: input.previewGitBranch }
+      : {}),
   }
 }
 
@@ -275,6 +289,7 @@ export function buildServiceReconciliationSpecs(input: {
   manifest: StackManifest
   lane: ServiceReconciliationLane
   serviceIds: string[]
+  previewGitBranch?: string
 }): PreviewServiceSpecSyncService[] {
   const definitionByServiceId = new Map(
     getServiceReconciliationDefinitions(input.stackInputs).map((definition) => [
@@ -310,9 +325,7 @@ export function buildServiceReconciliationSpecs(input: {
     }
 
     if (definition.git_source.sync_from_source) {
-      serviceSpec.git_source = {
-        sync_from_source: true,
-      }
+      serviceSpec.git_source = buildPreviewGitSourceSpec(input)
     }
 
     if (definition.builder.sync_from_source) {

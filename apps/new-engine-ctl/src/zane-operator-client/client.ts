@@ -163,6 +163,8 @@ export class ZaneOperatorClient {
       service_slug: string
       git_source?: {
         sync_from_source: boolean
+        branch_name?: string
+        commit_sha?: string
       }
       builder?: {
         sync_from_source: boolean
