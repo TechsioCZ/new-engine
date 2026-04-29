@@ -1,6 +1,6 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import Link from "next/link"
 import { Suspense, useEffect, useRef } from "react"
@@ -122,7 +122,7 @@ function ProductsContent() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-product-listing-header-margin">
-        <Breadcrumb
+        <BreadcrumbTemplate
           items={[
             { label: "Domů", href: "/" },
             { label: "Produkty", href: "/products" },

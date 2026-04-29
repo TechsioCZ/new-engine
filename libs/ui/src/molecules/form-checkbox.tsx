@@ -26,9 +26,6 @@ const checkboxVariants = tv({
       "data-focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-invalid:border-(length:--border-width-validation)",
       "data-invalid:border-checkbox-border-error",
-      "data-invalid:outline-(style:--default-ring-style) data-invalid:outline-(length:--default-ring-width)",
-      "data-invalid:outline-checkbox-ring-error",
-      "data-invalid:outline-offset-(length:--default-ring-offset)",
     ],
     indicator: [
       "text-checkbox-fg-checked",

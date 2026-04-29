@@ -267,7 +267,7 @@ jobs:
 
   verify:
     needs: [scope, prepare, deploy]
-    if: needs.deploy.result == 'success'
+    if: always() && needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

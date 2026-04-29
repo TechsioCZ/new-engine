@@ -85,6 +85,10 @@
   @apply icon-[mdi--plus];
 }
 
+@utility token-icon-minus {
+  @apply icon-[mdi--minus];
+}
+
 @utility token-icon-folder {
   @apply icon-[mdi--folder];
 }
@@ -193,4 +197,14 @@
 
 @utility token-icon-search {
   @apply icon-[mdi--magnify];
+}
+
+/* Semantic action aliases decoupled from concrete icon glyphs. */
+
+@utility token-icon-increment {
+  @apply token-icon-chevron-up;
+}
+
+@utility token-icon-decrement {
+  @apply token-icon-chevron-down;
 }

@@ -12,6 +12,9 @@ packages:
   - '!apps/e2e/**'
   - '!apps/typesense-demo/**'
 
+syncInjectedDepsAfterScripts:
+  - build
+
 ignoredBuiltDependencies:
   - '@medusajs/telemetry'
   - core-js

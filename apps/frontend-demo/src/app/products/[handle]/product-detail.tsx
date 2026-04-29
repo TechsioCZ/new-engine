@@ -1,7 +1,8 @@
 "use client"
 
+import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
@@ -12,10 +13,28 @@ import { ProductTabs } from "@/components/organisms/product-tabs"
 import { useProduct, useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
 import { truncateProductTitle } from "@/lib/order-utils"
+import type { Product } from "@/types/product"
 import { formatPrice } from "@/utils/price-utils"
 
-interface ProductDetailProps {
+type ProductDetailProps = {
   handle: string
+}
+
+function getProductBadges(metadata: Product["metadata"]): BadgeProps[] {
+  const badges: BadgeProps[] = []
+
+  if (metadata?.isNew) {
+    badges.push({ children: "New", variant: "info" })
+  }
+
+  if (metadata?.discount) {
+    badges.push({
+      children: `${metadata.discount}% OFF`,
+      variant: "warning",
+    })
+  }
+
+  return badges
 }
 
 export default function ProductDetail({ handle }: ProductDetailProps) {
@@ -32,14 +51,13 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
     }
   }, [product])
 
-  const { products: relatedProducts, isLoading: isLoadingRelated } =
-    useProducts({
-      q: titleQuery,
-      region_id: selectedRegion?.id,
-      limit: 5,
-      sort: "newest",
-      enabled: !!titleQuery && !!selectedRegion?.id,
-    })
+  const { products: relatedProducts } = useProducts({
+    q: titleQuery,
+    region_id: selectedRegion?.id,
+    limit: 5,
+    sort: "newest",
+    enabled: !!titleQuery && !!selectedRegion?.id,
+  })
 
   // Filter out the current product from related products
   const filteredRelatedProducts = relatedProducts
@@ -82,10 +100,9 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
 
   // Get price for selected variant and region
   // Find the price that matches the current currency
-  let variantPrice = null
-  if (selectedVariant?.calculated_price && selectedRegion?.currency_code) {
-    variantPrice = selectedVariant.calculated_price
-  }
+  const variantPrice = selectedRegion?.currency_code
+    ? selectedVariant?.calculated_price
+    : null
 
   // Prices from Medusa are already in dollars/euros, NOT cents
   const price =
@@ -99,16 +116,7 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
       selectedRegion?.currency_code
     )
   // Get badges for the product
-  const badges = []
-  if (product.metadata?.isNew) {
-    badges.push({ children: "New", variant: "info" as const })
-  }
-  if (product.metadata?.discount) {
-    badges.push({
-      children: `${product.metadata.discount}% OFF`,
-      variant: "warning" as const,
-    })
-  }
+  const badges = getProductBadges(product.metadata)
 
   const galleryImages =
     product.images?.map((img, idx) => ({
@@ -122,7 +130,7 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
       <div className="mx-auto max-w-product-detail-max-w px-product-detail-container-x py-product-detail-container-y lg:px-product-detail-container-x-lg lg:py-product-detail-container-y-lg">
         {/* Breadcrumb */}
         <div className="mb-product-detail-breadcrumb-margin">
-          <Breadcrumb
+          <BreadcrumbTemplate
             items={[
               { label: "Domů", href: "/" },
               { label: "Produkty", href: "/products" },

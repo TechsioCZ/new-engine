@@ -15,7 +15,10 @@ import { StatusText } from '../../src/atoms/status-text'
 import { Textarea } from '../../src/atoms/textarea'
 import { Tooltip } from '../../src/atoms/tooltip'
 import { Accordion } from '../../src/molecules/accordion'
-import { Breadcrumb, type BreadcrumbItemType } from '../../src/molecules/breadcrumb'
+import {
+  BreadcrumbTemplate,
+  type BreadcrumbTemplateItem,
+} from '../../src/templates/breadcrumb'
 import { Carousel } from '../../src/molecules/carousel'
 import { ColorSelect } from '../../src/molecules/color-select'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
@@ -108,7 +111,7 @@ function Section({
   )
 }
 
-const breadcrumbItems: BreadcrumbItemType[] = [
+const breadcrumbItems: BreadcrumbTemplateItem[] = [
   { label: 'Home', href: '#' },
   { label: 'Catalog', href: '#' },
   { label: 'Item', href: '#', isCurrent: true },
@@ -465,7 +468,7 @@ function ComponentComparison() {
             </Accordion>
           </ComponentCard>
           <ComponentCard title="Breadcrumb" bodyClassName="w-full">
-            <Breadcrumb items={breadcrumbItems} size="md" />
+            <BreadcrumbTemplate items={breadcrumbItems} size="md" />
           </ComponentCard>
           <ComponentCard
             title="Carousel"
