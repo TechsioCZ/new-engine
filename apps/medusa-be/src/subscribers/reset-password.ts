@@ -1,6 +1,6 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
-import { sendForgotPasswordWorkflow } from "../workflows/send-order-confirmation"
+import { sendForgotPasswordWorkflow } from "../workflows/send-forgot-password"
 
 type ResetPasswordEvent = {
   entity_id: string
@@ -23,7 +23,7 @@ export default async function resetPasswordHandler({
   await sendForgotPasswordWorkflow(container).run({
     input: {
       email: data.entity_id,
-      reset_url: `${storefrontUrl}/reset-password?token=${data.token}&email=${data.entity_id}`,
+      reset_url: `${storefrontUrl}/reset-password?token=${encodeURIComponent(data.token)}&email=${encodeURIComponent(data.entity_id)}`,
     },
   })
 }
