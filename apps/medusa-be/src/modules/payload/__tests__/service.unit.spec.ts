@@ -216,6 +216,79 @@ describe("PayloadModuleService", () => {
       )
     })
 
+    it("redacts private Payload auth fields from expanded relationships", async () => {
+      const { service, cacheService } = createServiceWithCache()
+      const article = {
+        id: 1,
+        slug: "news",
+        title: "News",
+        author: {
+          id: 1,
+          email: "author@example.com",
+          apiKey: "secret-api-key",
+          apiKeyIndex: "secret-index",
+          enableAPIKey: true,
+          sessions: [{ id: "session-id" }],
+        },
+      }
+
+      cacheService.get.mockResolvedValue(null)
+      fetchMock.mockResolvedValue(
+        createFetchResponse(createBulkResponse([article]))
+      )
+
+      const result = await service.getPublishedArticle("news", "en")
+
+      expect(result).toEqual({
+        id: 1,
+        slug: "news",
+        title: "News",
+        author: {
+          id: 1,
+        },
+      })
+      expect(cacheService.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            id: 1,
+            slug: "news",
+            title: "News",
+            author: {
+              id: 1,
+            },
+          },
+        })
+      )
+    })
+
+    it("redacts private Payload auth fields from cached values", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.get.mockResolvedValue({
+        id: 1,
+        slug: "news",
+        title: "News",
+        author: {
+          id: 1,
+          email: "author@example.com",
+          apiKey: "secret-api-key",
+          sessions: [{ id: "session-id" }],
+        },
+      })
+
+      const result = await service.getPublishedArticle("news", "en")
+
+      expect(result).toEqual({
+        id: 1,
+        slug: "news",
+        title: "News",
+        author: {
+          id: 1,
+        },
+      })
+      expect(fetchMock).not.toHaveBeenCalled()
+    })
+
     it("returns null when article is missing", async () => {
       const { service, cacheService } = createServiceWithCache()
 

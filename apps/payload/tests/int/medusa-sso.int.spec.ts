@@ -167,6 +167,7 @@ describe("medusa SSO endpoint", () => {
   })
 
   it("creates a session and redirects on success", async () => {
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
     process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
 
     importSPKIMock.mockResolvedValue(
@@ -223,5 +224,14 @@ describe("medusa SSO endpoint", () => {
     expect(response.status).toBe(302)
     expect(response.headers.get("Location")).toBe("/")
     expect(response.headers.get("Set-Cookie")).toBe("payload-cookie")
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://allowed.com"
+    )
+    expect(response.headers.get("Access-Control-Allow-Credentials")).toBe(
+      "true"
+    )
+    expect(response.headers.get("Access-Control-Expose-Headers")).toContain(
+      "Location"
+    )
   })
 })

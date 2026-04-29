@@ -95,7 +95,25 @@ export async function GET(
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="cache-control" content="no-store" />
-    <meta name="referrer" content="no-referrer" />
+    <meta name="referrer" content="origin" />
+    <meta name="color-scheme" content="dark" />
+    <style>
+      :root {
+        color-scheme: dark;
+        background: rgb(20, 20, 20);
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+        background: rgb(20, 20, 20);
+      }
+
+      form {
+        display: none;
+      }
+    </style>
     <title>Signing in…</title>
   </head>
   <body onload="document.forms[0].submit()">
@@ -112,6 +130,6 @@ export async function GET(
 
   res.setHeader("Content-Type", "text/html; charset=utf-8")
   res.setHeader("Cache-Control", "no-store")
-  res.setHeader("Referrer-Policy", "no-referrer")
+  res.setHeader("Referrer-Policy", "origin")
   return res.status(200).send(html)
 }

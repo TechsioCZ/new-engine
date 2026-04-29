@@ -54,6 +54,7 @@ const s3SecretAccessKey = getEnv("S3_SECRET_ACCESS_KEY", true)
 export default buildConfig({
   admin: {
     user: Users.slug,
+    theme: "dark",
     importMap: {
       baseDir: path.resolve(dirname),
     },

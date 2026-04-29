@@ -94,6 +94,21 @@ const getRequestOrigin = (headers: Headers) => {
   return normalizeOrigin(headers.get("referer"))
 }
 
+/** Add CORS headers for a request origin that has already passed validation. */
+const setAllowedOriginCorsHeaders = (
+  headers: Headers,
+  origin: string | null
+) => {
+  if (!origin) {
+    return
+  }
+
+  headers.set("Access-Control-Allow-Origin", origin)
+  headers.set("Access-Control-Allow-Credentials", "true")
+  headers.set("Access-Control-Expose-Headers", "Location")
+  headers.append("Vary", "Origin")
+}
+
 /** Type guard for validating configured collection slugs. */
 const hasCollectionSlug = <T extends Record<string, unknown>>(
   collections: T,
@@ -107,11 +122,12 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Endpoint flow is intentionally linear to keep auth failure branches explicit.
   handler: async (req) => {
     const allowedOrigins = getAllowedOrigins()
-    if (allowedOrigins.size > 0) {
-      const requestOrigin = getRequestOrigin(req.headers)
-      if (!(requestOrigin && allowedOrigins.has(requestOrigin))) {
-        throw new APIError("Origin is not allowed.", 403)
-      }
+    const requestOrigin = getRequestOrigin(req.headers)
+    if (
+      allowedOrigins.size > 0 &&
+      !(requestOrigin && allowedOrigins.has(requestOrigin))
+    ) {
+      throw new APIError("Origin is not allowed.", 403)
     }
 
     const publicKey = process.env.PAYLOAD_SSO_PUBLIC_KEY
@@ -255,6 +271,7 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
       }),
       req,
     })
+    setAllowedOriginCorsHeaders(headers, requestOrigin)
 
     return new Response(null, {
       status: 302,

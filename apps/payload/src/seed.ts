@@ -16,6 +16,7 @@ const requireEnv = (name: string): string => {
 }
 
 const SEED_ADMIN_EMAIL = requireEnv("PAYLOAD_SSO_USER_EMAIL")
+const SEED_ADMIN_API_KEY = requireEnv("PAYLOAD_API_KEY")
 const SSO_PRIVATE_KEY = requireEnv("PAYLOAD_SSO_PRIVATE_KEY")
 
 const normalizeKey = (value: string) => value.replace(/\\n/g, "\n").trim()
@@ -98,6 +99,8 @@ const createSeedUser = async (payload: SeedPayload) => {
       collection: "users",
       id: existingUser.id,
       data: {
+        apiKey: SEED_ADMIN_API_KEY,
+        enableAPIKey: true,
         password: SEED_ADMIN_PASSWORD,
       },
       overrideAccess: true,
@@ -110,6 +113,8 @@ const createSeedUser = async (payload: SeedPayload) => {
     collection: "users",
     data: {
       email: SEED_ADMIN_EMAIL,
+      apiKey: SEED_ADMIN_API_KEY,
+      enableAPIKey: true,
       password: SEED_ADMIN_PASSWORD,
       firstName: "Payload",
       lastName: "Admin",

@@ -36,6 +36,19 @@ const PAGE_CATEGORY_GROUPS = "page-categories-with-pages"
 const ARTICLE_CATEGORY_GROUPS = "article-categories-with-articles"
 const RETURN_HTML_HEADER = "X-Payload-Return-Html"
 const TRAILING_SLASH_REGEX = /\/$/
+const PRIVATE_PAYLOAD_FIELD_NAMES = new Set([
+  "apiKey",
+  "apiKeyIndex",
+  "enableAPIKey",
+  "hash",
+  "loginAttempts",
+  "lockUntil",
+  "password",
+  "resetPasswordExpiration",
+  "resetPasswordToken",
+  "salt",
+  "sessions",
+])
 
 type InjectedDependencies = {
   logger: Logger
@@ -194,6 +207,39 @@ export default class PayloadModuleService extends MedusaService({}) {
     return typeof value === "object" && value !== null
   }
 
+  /**
+   * Payload relationship fields can include expanded auth users. Strip private
+   * auth fields before responses are cached or returned by public Store APIs.
+   */
+  private redactPrivatePayloadFields<T>(value: T): T {
+    if (Array.isArray(value)) {
+      return value.map((entry) => this.redactPrivatePayloadFields(entry)) as T
+    }
+
+    if (!this.isRecord(value) || value instanceof Date) {
+      return value
+    }
+
+    const shouldRedactEmail = Object.keys(value).some((key) =>
+      PRIVATE_PAYLOAD_FIELD_NAMES.has(key)
+    )
+
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(
+          ([key]) =>
+            !(
+              PRIVATE_PAYLOAD_FIELD_NAMES.has(key) ||
+              (shouldRedactEmail && key === "email")
+            )
+        )
+        .map(([key, entryValue]) => [
+          key,
+          this.redactPrivatePayloadFields(entryValue),
+        ])
+    ) as T
+  }
+
   private getPayloadErrorMessage(result: unknown, status: number): string {
     if (this.isRecord(result) && typeof result.message === "string") {
       return result.message
@@ -237,17 +283,23 @@ export default class PayloadModuleService extends MedusaService({}) {
     if (this.cacheService_) {
       const cached = (await this.cacheService_.get({ key })) as T | null
       if (cached !== null) {
-        return cached
+        return this.redactPrivatePayloadFields(cached)
       }
     }
 
     const data = await fetcher()
+    const redactedData = this.redactPrivatePayloadFields(data)
 
-    if (this.cacheService_ && data !== null) {
-      await this.cacheService_.set({ key, data: data as object, ttl, tags })
+    if (this.cacheService_ && redactedData !== null) {
+      await this.cacheService_.set({
+        key,
+        data: redactedData as object,
+        ttl,
+        tags,
+      })
     }
 
-    return data
+    return redactedData
   }
 
   /**
