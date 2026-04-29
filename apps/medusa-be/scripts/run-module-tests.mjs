@@ -6,11 +6,9 @@ import path from "node:path"
 import process from "node:process"
 import { fileURLToPath } from "node:url"
 
-const repoRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../.."
-)
-const medusaBeDir = path.join(repoRoot, "apps/medusa-be")
+const scriptDir = path.dirname(fileURLToPath(import.meta.url))
+const medusaBeDir = path.resolve(scriptDir, "..")
+const repoRoot = path.resolve(medusaBeDir, "../..")
 
 const dbEnv = {
   DB_HOST: process.env.DB_HOST || "127.0.0.1",
