@@ -27,10 +27,7 @@ type JsonRecord = Record<string, unknown>
 
 const nonEmptyTrimmedStringSchema = z.string().trim().min(1, "cannot be empty")
 
-const strictTrueBooleanSchema = z.preprocess(
-  (value) => value === true,
-  z.boolean()
-)
+const strictTrueBooleanSchema = z.literal(true)
 
 const optionalTrimmedStringSchema = z.preprocess(
   (value) => (value == null ? undefined : value),

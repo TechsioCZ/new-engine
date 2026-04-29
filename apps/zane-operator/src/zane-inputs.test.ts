@@ -26,7 +26,7 @@ test("normalizes service reconciliation specs", () => {
           branch_name: null,
         },
         builder: {
-          sync_from_source: "true",
+          sync_from_source: true,
           build_stage_target: null,
         },
         healthcheck: {
@@ -47,7 +47,7 @@ test("normalizes service reconciliation specs", () => {
         commit_sha: "HEAD",
       },
       builder: {
-        sync_from_source: false,
+        sync_from_source: true,
         build_stage_target: null,
       },
       healthcheck: {
@@ -55,6 +55,23 @@ test("normalizes service reconciliation specs", () => {
       },
     },
   ])
+})
+
+test("rejects malformed service reconciliation sync flags", () => {
+  expect(() =>
+    parseResolveEnvironmentInput({
+      ...resolveEnvironmentPayload,
+      service_specs: [
+        {
+          service_id: "medusa-be",
+          service_slug: "api",
+          builder: {
+            sync_from_source: "true",
+          },
+        },
+      ],
+    })
+  ).toThrow(BadRequestError)
 })
 
 test("defaults missing service reconciliation specs to an empty list", () => {
