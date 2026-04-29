@@ -2,7 +2,6 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Popover } from "@techsio/ui-kit/molecules/popover";
@@ -116,11 +115,11 @@ export function HerbatikaCartPopover({
           <span className="text-md font-normal font-sans">{cartTotalLabel}</span>
         </>
       }
-      triggerClassName="relative inline-flex items-center gap-250 rounded-button-sm bg-button-bg-primary px-450 py-300 text-xl font-bold text-button-fg-primary hover:bg-button-bg-primary-hover data-[state=open]:bg-button-bg-primary-hover py-550"
+      triggerClassName="relative sm:w-36 inline-flex items-center gap-250 rounded-button-sm bg-button-bg-primary px-450 py-300 text-xl font-bold text-button-fg-primary hover:bg-button-bg-primary-hover data-[state=open]:bg-button-bg-primary-hover py-550"
     >
       {visibleItems.length > 0 ? (
         <>
-          <div className="space-y-250 overflow-y-auto pr-100">
+          <div className="space-y-250 pt-200 overflow-y-auto pr-100">
             {visibleItems.map((item) => (
               <CartItemRow
                 currencyCode={currencyCode}
@@ -191,30 +190,27 @@ export function HerbatikaCartPopover({
             >
               Pokračovať k pokladni
             </LinkButton>
-            <Button
-              block
-              onClick={handleClose}
-              size="md"
-              theme="outlined"
-              variant="secondary"
-            >
-              Pokračovať v nákupe
-            </Button>
           </div>
         </>
       ) : (
-        <div className="space-y-250">
-          <p className="text-fg-secondary text-sm">Košík je zatiaľ prázdny.</p>
-          <LinkButton
-            as={NextLink}
-            block
-            href="/search"
-            onClick={handleClose}
-            size="sm"
-            
+        <div
+          className="flex flex-col items-center gap-200 py-400 text-center"
+          role="status"
+        >
+          <span
+            aria-hidden="true"
+            className="grid place-items-center text-primary"
           >
-            Pokračovať v nákupe
-          </LinkButton>
+            <Icon icon="token-icon-cart" className="text-icon-cart" />
+          </span>
+          <div className="space-y-50">
+            <p className="font-semibold text-fg-primary">
+              Váš košík je prázdny
+            </p>
+            <p className="text-fg-secondary text-sm">
+              Produkty môžete pridať z katalógu.
+            </p>
+          </div>
         </div>
       )}
     </Popover>

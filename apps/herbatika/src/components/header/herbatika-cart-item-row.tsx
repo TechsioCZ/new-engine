@@ -82,13 +82,15 @@ export function CartItemRow({
 
   return (
     <article className="grid grid-cols-[auto_1fr_auto] items-start gap-200">
-      <Image
-        alt={itemName}
-        className="h-10 w-10 rounded-md border border-border-secondary object-cover"
-        height={60}
-        src={resolveLineItemThumbnail(item)}
-        width={60}
-      />
+      <NextLink href={itemHref}>
+        <Image
+          alt={itemName}
+          className="h-16 w-16 rounded-md object-cover"
+          height={60}
+          src={resolveLineItemThumbnail(item)}
+          width={60}
+        />
+      </NextLink>
 
       <div className="min-w-0">
         <Link
@@ -113,7 +115,7 @@ export function CartItemRow({
       <div className="ml-auto flex items-center gap-150">
         <NumericInput
           allowOverflow={false}
-          className="w-20"
+          className="w-24"
           max={itemMaxQuantity}
           min={1}
           onChange={handleQuantityChange}
