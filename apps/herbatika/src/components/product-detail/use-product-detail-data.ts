@@ -2,9 +2,9 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import { useEffect, useMemo, useState } from "react";
+import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb";
 import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log";
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products";
@@ -237,11 +237,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   useProductDetailDebugLog(product);
   useRecordRecentlyVisitedProduct(product);
 
-  const breadcrumbItems: Array<{
-    label: string;
-    href?: string;
-    icon?: IconType;
-  }> = [
+  const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     { label: "", href: "/", icon: "token-icon-home" },
     ...(productCategories[0]?.handle
       ? [

@@ -2,9 +2,11 @@
 
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
+import {
+  HerbatikaBreadcrumb,
+  type HerbatikaBreadcrumbItem,
+} from "@/components/herbatika-breadcrumb";
 import type {
   BlogTopicFilter,
   BlogTopicKey,
@@ -42,11 +44,7 @@ const getFilterLabel = (filter: BlogTopicFilter) => {
 };
 
 export function BlogListingPage({ listing }: BlogListingPageProps) {
-  const breadcrumbItems: Array<{
-    label: string;
-    href?: string;
-    icon?: IconType;
-  }> = [
+  const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: "Blog",
       href: "/blog",
@@ -61,7 +59,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
   return (
     <main className="w-full bg-base font-rubik">
       <div className="mx-auto flex w-full max-w-max-w flex-col gap-550 px-550 pt-550 pb-700">
-        <Breadcrumb items={breadcrumbItems} linkAs={NextLink} size="md" />
+        <HerbatikaBreadcrumb items={breadcrumbItems} />
 
         <section className="space-y-500">
           <header className="space-y-400">

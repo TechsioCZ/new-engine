@@ -2,10 +2,10 @@
 
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
 import { StorefrontAccountOrderDetailItems } from "@/components/account/orders/storefront-account-order-detail-items";
 import { StorefrontAccountOrderDetailSummary } from "@/components/account/orders/storefront-account-order-detail-summary";
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { OrderSkeleton } from "@/components/loading/order-skeleton";
 import {
   StorefrontAccountSurface,
@@ -62,14 +62,13 @@ export function StorefrontAccountOrderDetail({
 
   return (
     <div className="space-y-400">
-      <Breadcrumb
+      <HerbatikaBreadcrumb
         items={[
           { label: "Domov", href: "/" },
           { label: "Účet", href: "/account" },
           { label: "Objednávky", href: "/account/orders" },
           { label: resolveOrderDisplayId(order) },
         ]}
-        linkAs={NextLink}
       />
 
       <StorefrontAccountOrderDetailSummary

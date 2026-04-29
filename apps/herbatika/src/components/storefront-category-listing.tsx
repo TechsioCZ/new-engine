@@ -1,7 +1,5 @@
 "use client";
 
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
-import NextLink from "next/link";
 import { CategoryContextPanel } from "@/components/category/category-context-panel";
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
@@ -9,6 +7,7 @@ import { normalizeCategoryName } from "@/components/category/category-product-ut
 import { CategoryResultsSection } from "@/components/category/category-results-section";
 import { CategoryRichText } from "@/components/category/category-rich-text";
 import { useCategoryListingController } from "@/components/category/use-category-listing-controller";
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 
@@ -50,7 +49,7 @@ export function StorefrontCategoryListing({
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-500 font-rubik sm:p-600">
-      <Breadcrumb items={controller.breadcrumbItems} linkAs={NextLink} className="font-inter" />
+      <HerbatikaBreadcrumb items={controller.breadcrumbItems} />
 
       <section>
         <h1 className="text-4xl font-bold leading-snug text-fg-primary">

@@ -2,9 +2,9 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { ProductDetailMetrics } from "@/components/product-detail/sections/product-detail-metrics";
 import { ProductDetailOffers } from "@/components/product-detail/sections/product-detail-offers";
 import { ProductDetailRelated } from "@/components/product-detail/sections/product-detail-related";
@@ -21,7 +21,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
 
   return (
     <main className="mx-auto font-rubik flex w-full max-w-max-w flex-col gap-600 px-400 py-600 lg:px-550">
-      <Breadcrumb items={controller.breadcrumbItems} linkAs={NextLink} />
+      <HerbatikaBreadcrumb items={controller.breadcrumbItems} />
 
       {controller.isBootstrappingRegion || controller.productQuery.isLoading ? (
         <ProductDetailSkeleton />

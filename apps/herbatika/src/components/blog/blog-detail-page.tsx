@@ -1,10 +1,12 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
 import NextImage from "next/image";
+import {
+  HerbatikaBreadcrumb,
+  type HerbatikaBreadcrumbItem,
+} from "@/components/herbatika-breadcrumb";
 import type { BlogPost } from "@/lib/storefront/blog-content";
 import { BlogArticleSidebar } from "./blog-article-sidebar";
 import { BlogAuthorCard } from "./blog-author-card";
@@ -23,11 +25,7 @@ export function BlogDetailPage({
   recommendedProducts,
   relatedPosts,
 }: BlogDetailPageProps) {
-  const breadcrumbItems: Array<{
-    label: string;
-    href?: string;
-    icon?: IconType;
-  }> = [
+  const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: "Blog",
       href: "/blog",
@@ -41,7 +39,7 @@ export function BlogDetailPage({
   return (
     <main className="w-full bg-base font-rubik">
       <div className="mx-auto flex w-full max-w-max-w flex-col gap-550 px-550 pt-550 pb-700">
-        <Breadcrumb items={breadcrumbItems} linkAs={NextLink} size="md" />
+        <HerbatikaBreadcrumb items={breadcrumbItems} />
 
         <div className="grid gap-500 xl:grid-cols-12">
           <div className="space-y-400 xl:col-span-9">

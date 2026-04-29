@@ -2,8 +2,8 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { useMemo } from "react";
+import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb";
 import {
   resolveCategoryBottomHtml,
   resolveCategoryContextImageTiles,
@@ -52,11 +52,9 @@ const resolveBreadcrumbItems = (
   activeCategory: HttpTypes.StoreProductCategory | null,
   categoryById: Map<string, HttpTypes.StoreProductCategory>,
 ) => {
-  const items: Array<{
-    label: string;
-    href?: string;
-    icon?: IconType;
-  }> = [{ label: "Products", href: "/", icon: "token-icon-home" }];
+  const items: HerbatikaBreadcrumbItem[] = [
+    { label: "Products", href: "/", icon: "token-icon-home" },
+  ];
 
   if (!activeCategory) {
     items.push({ label: normalizeCategoryName(slug) });
