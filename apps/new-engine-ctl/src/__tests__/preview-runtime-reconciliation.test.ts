@@ -1,5 +1,4 @@
-import assert from "node:assert/strict"
-import { test } from "node:test"
+import { expect, test } from "vitest"
 
 import { stackInputsSchema } from "../contracts/stack-inputs.js"
 import { stackManifestSchema } from "../contracts/stack-manifest.js"
@@ -35,7 +34,7 @@ test("preview service reconciliation pins git source to the PR branch", () => {
     previewGitBranch: "ci/pipeline-smoke-20260428",
   })
 
-  assert.equal(specs[0]?.git_source?.branch_name, "ci/pipeline-smoke-20260428")
+  expect(specs[0]?.git_source?.branch_name).toBe("ci/pipeline-smoke-20260428")
 })
 
 test("main service reconciliation does not override source branch", () => {
@@ -47,5 +46,5 @@ test("main service reconciliation does not override source branch", () => {
     previewGitBranch: "ci/pipeline-smoke-20260428",
   })
 
-  assert.equal(specs[0]?.git_source?.branch_name, undefined)
+  expect(specs[0]?.git_source?.branch_name).toBeUndefined()
 })

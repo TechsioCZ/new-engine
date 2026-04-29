@@ -1,8 +1,7 @@
-import assert from "node:assert/strict"
 import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { test } from "node:test"
+import { expect, test } from "vitest"
 
 import { resolveGitHubPreviewHeadBranch } from "../github-event.js"
 
@@ -61,7 +60,7 @@ test("resolves PR head branch from workflow_run pull request payload", async () 
       async (path) => {
         const branch = await resolveGitHubPreviewHeadBranch(path)
 
-        assert.equal(branch, "ci/pipeline-smoke-20260428")
+        expect(branch).toBe("ci/pipeline-smoke-20260428")
       }
     )
   })
@@ -79,7 +78,7 @@ test("falls back to workflow_run head_branch when PR head ref is unavailable", a
       async (path) => {
         const branch = await resolveGitHubPreviewHeadBranch(path)
 
-        assert.equal(branch, "ci/pipeline-smoke-20260428")
+        expect(branch).toBe("ci/pipeline-smoke-20260428")
       }
     )
   })
@@ -98,7 +97,7 @@ test("explicit preview branch env overrides event payload", async () => {
       async (path) => {
         const branch = await resolveGitHubPreviewHeadBranch(path)
 
-        assert.equal(branch, "manual-preview-branch")
+        expect(branch).toBe("manual-preview-branch")
       }
     )
   })
