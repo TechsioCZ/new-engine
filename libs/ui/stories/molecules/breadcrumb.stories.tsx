@@ -2,51 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
 import {
   Breadcrumb,
-  type BreadcrumbItemType,
+  type BreadcrumbRootProps,
 } from '../../src/molecules/breadcrumb'
-
-const simplePath: BreadcrumbItemType[] = [
-  { label: 'Home', href: '/' },
-  { label: 'Products', href: '/products' },
-  { label: 'Electronics', href: '/products/electronics' },
-  { label: 'Smartphones', href: '/products/electronics/smartphones' },
-]
-
-const withIcons: BreadcrumbItemType[] = [
-  { label: 'Home', href: '/', icon: 'token-icon-home' },
-  {
-    label: 'Products',
-    href: '/products',
-    icon: 'token-icon-shopping-bag',
-  },
-  {
-    label: 'Electronics',
-    href: '/products/electronics',
-    icon: 'token-icon-cpu',
-  },
-  {
-    label: 'Smartphones',
-    href: '/products/electronics/smartphones',
-    icon: 'token-icon-smartphone',
-  },
-]
-
-const longPath: BreadcrumbItemType[] = [
-  { label: 'Home', href: '/' },
-  { label: 'Products', href: '/products' },
-  { label: 'Electronics', href: '/products/electronics' },
-  { label: 'Smartphones', href: '/products/electronics/smartphones' },
-  { label: 'Apple', href: '/products/electronics/smartphones/apple' },
-  { label: 'iPhone', href: '/products/electronics/smartphones/apple/iphone' },
-  {
-    label: 'iPhone 14',
-    href: '/products/electronics/smartphones/apple/iphone/iphone-14',
-  },
-  {
-    label: 'Pro Max',
-    href: '/products/electronics/smartphones/apple/iphone/iphone-14/pro-max',
-  },
-]
 
 const meta: Meta<typeof Breadcrumb> = {
   title: 'Molecules/Breadcrumb',
@@ -56,14 +13,9 @@ const meta: Meta<typeof Breadcrumb> = {
     docs: {
       description: {
         component: `
-A breadcrumb navigation component that shows the hierarchical path within a website.
-Provides users with links to previous levels in the hierarchy and their current location.
-
-## Features
-- Simple breadcrumb trail with links
-- Support for icons, custom separators and truncation
-- Accessible by default (aria-* attributes)
-- Responsive design
+A compound breadcrumb navigation component for composing custom breadcrumb structures.
+Use this molecule when a project needs control over individual breadcrumb slots.
+Use BreadcrumbTemplate for the ready-to-use data-driven default.
         `,
       },
     },
@@ -71,268 +23,199 @@ Provides users with links to previous levels in the hierarchy and their current 
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <div className="max-w-xl bg-surface p-4">
+      <div className="max-w-container-md bg-surface p-400">
         <Story />
       </div>
     ),
   ],
   argTypes: {
-    items: {
-      control: 'object',
-      description: 'Array of breadcrumb items to display',
-    },
-    maxItems: {
-      control: { type: 'number', min: 0 },
-      description:
-        'Maximum number of items to display before truncating (0 = show all)',
-      table: {
-        defaultValue: { summary: '0' },
-      },
-    },
     size: {
       control: 'select',
       options: ['sm', 'md', 'lg'],
-      description: 'Size of the breadcrumbs',
+      description:
+        'Controls breadcrumb sizing across root, list, links and icons.',
       table: {
+        category: 'Appearance',
         defaultValue: { summary: 'md' },
+      },
+    },
+    variant: {
+      control: 'select',
+      options: ['plain', 'underline'],
+      description: 'Controls the visual style of breadcrumb links.',
+      table: {
+        category: 'Appearance',
+        defaultValue: { summary: 'plain' },
       },
     },
     'aria-label': {
       control: 'text',
-      description: 'Accessibility label for the breadcrumb navigation',
+      description: 'Accessible label for the breadcrumb navigation.',
       table: {
+        category: 'Accessibility',
         defaultValue: { summary: 'breadcrumb' },
       },
     },
   },
   args: {
-    items: simplePath,
-    maxItems: 0,
     size: 'md',
+    variant: 'plain',
     'aria-label': 'breadcrumb',
   },
 }
 
 export default meta
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof Breadcrumb>
+
+function DemoBreadcrumb(props: BreadcrumbRootProps) {
+  return (
+    <Breadcrumb {...props}>
+      <Breadcrumb.List>
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">Docs</Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">Components</Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Item>
+          <Breadcrumb.CurrentLink>
+            Breadcrumb
+          </Breadcrumb.CurrentLink>
+        </Breadcrumb.Item>
+      </Breadcrumb.List>
+    </Breadcrumb>
+  )
+}
 
 export const Playground: Story = {
-  args: {
-    items: simplePath,
-  },
+  render: (args) => <DemoBreadcrumb {...args} />,
+}
+
+export const Basic: Story = {
+  render: () => <DemoBreadcrumb />,
 }
 
 export const Sizes: Story = {
   render: () => (
+    <div className='flex flex-col gap-500'>
+      <h2>Sizes</h2>
+      <div className="flex flex-col gap-400">
+        <DemoBreadcrumb size="sm" />
+        <DemoBreadcrumb size="md" />
+        <DemoBreadcrumb size="lg" />
+      </div>
+    </div>
+  ),
+}
+
+export const Variants: Story = {
+  render: () => (
     <VariantContainer>
-      <VariantGroup title="Sizes">
-        <Breadcrumb items={simplePath} size="sm" />
-        <Breadcrumb items={simplePath} size="md" />
-        <Breadcrumb items={simplePath} size="lg" />
+      <VariantGroup title="Variants">
+        <div className='flex flex-col'>
+          <DemoBreadcrumb variant="plain" />
+          <DemoBreadcrumb variant="underline" />
+        </div>
       </VariantGroup>
     </VariantContainer>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Breadcrumbs in different sizes: small, medium, and large.',
-      },
-    },
-  },
 }
 
 export const WithIcons: Story = {
-  args: {
-    items: withIcons,
-  },
-}
-
-export const LongPath: Story = {
-  args: {
-    items: longPath,
-    maxItems: 4,
-  },
-}
-
-export const CustomIconsAndSeparator: Story = {
-  args: {
-    items: [
-      {
-        label: 'Home',
-        href: '/',
-        icon: 'icon-[mdi--home]',
-        separator: 'icon-[mdi--chevron-right]',
-      },
-      {
-        label: 'Products',
-        href: '/products',
-        icon: 'icon-[mdi--shopping]',
-        separator: 'icon-[mdi--chevron-double-right]',
-      },
-      {
-        label: 'Electronics',
-        href: '/products/electronics',
-        icon: 'icon-[mdi--computer-classic]',
-        separator: 'icon-[mdi--chevron-triple-right]',
-        isCurrent: true,
-      },
-      {
-        label: 'Smartphones',
-        href: '/products/electronics/smartphones',
-        icon: 'icon-[mdi--smartphone]',
-      },
-    ],
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Breadcrumbs with custom icons for each item and different separators between items.',
-      },
-    },
-  },
-}
-
-const veryLongPath: BreadcrumbItemType[] = [
-  { label: 'Home', href: '/' },
-  { label: 'Products', href: '/products' },
-  { label: 'Electronics', href: '/products/electronics' },
-  { label: 'Computers', href: '/products/electronics/computers' },
-  { label: 'Laptops', href: '/products/electronics/computers/laptops' },
-  { label: 'Gaming', href: '/products/electronics/computers/laptops/gaming' },
-  {
-    label: 'High-End',
-    href: '/products/electronics/computers/laptops/gaming/high-end',
-  },
-  {
-    label: 'ASUS ROG',
-    href: '/products/electronics/computers/laptops/gaming/high-end/asus-rog',
-  },
-  {
-    label: 'RTX 4090',
-    href: '/products/electronics/computers/laptops/gaming/high-end/asus-rog/rtx-4090',
-  },
-]
-
-// Very long path pro stress test
-export const VeryLongPath: Story = {
-  args: {
-    items: veryLongPath,
-    maxItems: 5,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Stress test with very long breadcrumb path to demonstrate ellipsis with many hidden items.',
-      },
-    },
-  },
-}
-
-// Ellipsis s custom icons
-export const EllipsisWithCustomIcons: Story = {
-  args: {
-    items: [
-      {
-        label: 'Home',
-        href: '/',
-        icon: 'icon-[mdi--home]',
-        separator: 'icon-[mdi--chevron-right]',
-      },
-      {
-        label: 'Category',
-        href: '/category',
-        icon: 'icon-[mdi--folder]',
-        separator: 'icon-[mdi--chevron-double-right]',
-      },
-      {
-        label: 'Subcategory',
-        href: '/category/sub',
-        icon: 'icon-[mdi--folder-open]',
-      },
-      {
-        label: 'Product Type',
-        href: '/category/sub/type',
-        icon: 'icon-[mdi--tag]',
-      },
-      {
-        label: 'Brand',
-        href: '/category/sub/type/brand',
-        icon: 'icon-[mdi--store]',
-      },
-      {
-        label: 'Model',
-        href: '/category/sub/type/brand/model',
-        icon: 'icon-[mdi--package-variant]',
-      },
-      {
-        label: 'Variant',
-        href: '/category/sub/type/brand/model/variant',
-        icon: 'icon-[mdi--palette]',
-      },
-    ],
-    maxItems: 4,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Ellipsis functionality combined with custom icons and separators for each breadcrumb item.',
-      },
-    },
-  },
-}
-
-export const AllVariants: Story = {
   render: () => (
-    <VariantContainer>
-      <VariantGroup title="Sizes">
-        <Breadcrumb items={simplePath} size="sm" />
-        <Breadcrumb items={simplePath} size="md" />
-        <Breadcrumb items={simplePath} size="lg" />
-      </VariantGroup>
-
-      <VariantGroup title="With Icons">
-        <Breadcrumb
-          items={[
-            { label: 'Home', href: '/', icon: 'icon-[mdi--home]' },
-            { label: 'Products', href: '/products', icon: 'icon-[mdi--shopping]' },
-            { label: 'Electronics', href: '/electronics', icon: 'icon-[mdi--cpu]' },
-          ]}
-        />
-      </VariantGroup>
-
-      <VariantGroup title="With Ellipsis (maxItems=3)">
-        <Breadcrumb items={veryLongPath} maxItems={3} />
-      </VariantGroup>
-
-      <VariantGroup title="Custom Separators">
-        <Breadcrumb
-          items={[
-            { label: 'Home', href: '/', separator: 'icon-[mdi--chevron-double-right]' },
-            { label: 'Products', href: '/products', separator: 'icon-[mdi--arrow-right]' },
-            { label: 'Detail', href: '/detail' },
-          ]}
-        />
-      </VariantGroup>
-
-      <VariantGroup title="With Explicit Current (middle item)">
-        <Breadcrumb
-          items={[
-            { label: 'Home', href: '/' },
-            { label: 'Products', href: '/products', isCurrent: true },
-            { label: 'Electronics', href: '/electronics' },
-          ]}
-        />
-      </VariantGroup>
-    </VariantContainer>
+    <Breadcrumb>
+      <Breadcrumb.List>
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">
+            <Breadcrumb.Icon icon="token-icon-home" />
+            Home
+          </Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">
+            <Breadcrumb.Icon icon="token-icon-shopping-bag" />
+            Products
+          </Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Item>
+          <Breadcrumb.CurrentLink>
+            <Breadcrumb.Icon icon="token-icon-cpu" />
+            Electronics
+          </Breadcrumb.CurrentLink>
+        </Breadcrumb.Item>
+      </Breadcrumb.List>
+    </Breadcrumb>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story: 'Comprehensive view of all breadcrumb variations.',
-      },
-    },
-  },
+}
+
+export const CustomSeparator: Story = {
+  render: () => (
+    <Breadcrumb>
+      <Breadcrumb.List>
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">Docs</Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator>/</Breadcrumb.Separator>
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">Components</Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator>/</Breadcrumb.Separator>
+        <Breadcrumb.Item>
+          <Breadcrumb.CurrentLink>
+            Breadcrumb
+          </Breadcrumb.CurrentLink>
+        </Breadcrumb.Item>
+      </Breadcrumb.List>
+    </Breadcrumb>
+  ),
+}
+
+export const Ellipsis: Story = {
+  render: () => (
+    <Breadcrumb>
+      <Breadcrumb.List>
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">Home</Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">Catalog</Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Ellipsis />
+        <Breadcrumb.Separator />
+        <Breadcrumb.Item>
+          <Breadcrumb.CurrentLink>
+            Current product
+          </Breadcrumb.CurrentLink>
+        </Breadcrumb.Item>
+      </Breadcrumb.List>
+    </Breadcrumb>
+  ),
+}
+
+export const CustomCurrentLink: Story = {
+  render: () => (
+    <Breadcrumb>
+      <Breadcrumb.List>
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">Home</Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Item>
+          <Breadcrumb.Link href="#">Products</Breadcrumb.Link>
+        </Breadcrumb.Item>
+        <Breadcrumb.Separator />
+        <Breadcrumb.Item>
+          <Breadcrumb.CurrentLink className="underline">
+            Current product
+          </Breadcrumb.CurrentLink>
+        </Breadcrumb.Item>
+      </Breadcrumb.List>
+    </Breadcrumb>
+  ),
 }
