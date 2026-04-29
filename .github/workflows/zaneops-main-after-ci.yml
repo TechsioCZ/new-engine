@@ -212,7 +212,7 @@ jobs:
 
       - name: Run main verify
         env:
-          ENVIRONMENT_NAME: ${{ needs.deploy.outputs.environment_name }}
+          ENVIRONMENT_NAME: ${{ needs.deploy.outputs.environment_name || secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME }}
           REQUESTED_SERVICES_CSV: ${{ needs.deploy.outputs.requested_services_csv }}
           DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv }}
           TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv }}
@@ -238,7 +238,7 @@ jobs:
         run: |
           {
             echo "## Main Verify"
-            echo "- Environment: ${{ needs.deploy.outputs.environment_name || 'n/a' }}"
+            echo "- Environment: ${{ needs.deploy.outputs.environment_name || secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME || 'n/a' }}"
             echo "- Requested services: ${{ needs.deploy.outputs.requested_services_csv || 'n/a' }}"
             echo "- Deploy services: ${{ needs.deploy.outputs.deploy_services_csv || 'n/a' }}"
             echo "- Triggered services: ${{ needs.deploy.outputs.triggered_services_csv || 'n/a' }}"

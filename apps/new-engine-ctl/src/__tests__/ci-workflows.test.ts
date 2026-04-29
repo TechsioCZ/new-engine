@@ -22,6 +22,10 @@ const previewBaselineCompleteFlagPattern =
   /--preview-baseline-complete "\$PREVIEW_BASELINE_COMPLETE"/
 const node24Pattern = /node-version: 24/
 const ciCtlTestPattern = /pnpm exec nx run new-engine-ctl:test/
+const mainVerifyEnvironmentFallbackPattern =
+  /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\}\}/
+const mainVerifySummaryEnvironmentFallbackPattern =
+  /echo "- Environment:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\|\|\s*'n\/a'\s*\}\}"/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -80,6 +84,16 @@ test("main deploy passes downtime approval only after the approval gate", async 
   expect(raw).toMatch(downtimeEnvironmentPattern)
   expect(raw).toMatch(downtimeApprovalEnvPattern)
   expect(raw).toMatch(approveDowntimeRiskFlagPattern)
+})
+
+test("main verify falls back to the production environment secret", async () => {
+  const raw = await readFile(
+    join(repoRoot, ".github/workflows/zaneops-main-after-ci.yml"),
+    "utf8"
+  )
+
+  expect(raw).toMatch(mainVerifyEnvironmentFallbackPattern)
+  expect(raw).toMatch(mainVerifySummaryEnvironmentFallbackPattern)
 })
 
 test("preview scope feeds baseline state into prepare decisions", async () => {
