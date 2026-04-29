@@ -58,12 +58,41 @@ const sanitizeReturnTo = (value: string | null) => {
   return "/"
 }
 
+/** Normalize a URL-like value to a strict origin string. */
+const normalizeOrigin = (value: string | null) => {
+  if (!value) {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === "null") {
+    return null
+  }
+
+  try {
+    return new URL(trimmed).origin
+  } catch {
+    return null
+  }
+}
+
 /** Read and normalize a list of allowed origins from environment. */
 const getAllowedOrigins = () =>
-  (process.env.PAYLOAD_SSO_ALLOWED_ORIGINS || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean)
+  new Set(
+    (process.env.PAYLOAD_SSO_ALLOWED_ORIGINS || "")
+      .split(",")
+      .map((origin) => normalizeOrigin(origin))
+      .filter((origin): origin is string => Boolean(origin))
+  )
+
+/** Resolve request origin from Origin header, with Referer fallback. */
+const getRequestOrigin = (headers: Headers) => {
+  const originHeader = normalizeOrigin(headers.get("origin"))
+  if (originHeader) {
+    return originHeader
+  }
+  return normalizeOrigin(headers.get("referer"))
+}
 
 /** Type guard for validating configured collection slugs. */
 const hasCollectionSlug = <T extends Record<string, unknown>>(
@@ -78,9 +107,9 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Endpoint flow is intentionally linear to keep auth failure branches explicit.
   handler: async (req) => {
     const allowedOrigins = getAllowedOrigins()
-    if (allowedOrigins.length > 0) {
-      const origin = req.headers.get("origin")
-      if (!(origin && allowedOrigins.includes(origin))) {
+    if (allowedOrigins.size > 0) {
+      const requestOrigin = getRequestOrigin(req.headers)
+      if (!(requestOrigin && allowedOrigins.has(requestOrigin))) {
         throw new APIError("Origin is not allowed.", 403)
       }
     }

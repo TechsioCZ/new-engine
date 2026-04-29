@@ -17,7 +17,7 @@ ENV NODE_ENV=development
 
 EXPOSE 8083
 
-CMD ["sh", "-c", "pnpm --filter @nmit/payload payload migrate && pnpm --filter @nmit/payload run dev --hostname 0.0.0.0 --port 8083"]
+CMD ["sh", "-c", "pnpm --filter @nmit/payload payload migrate && pnpm --filter @nmit/payload run seed && pnpm --filter @nmit/payload run dev --hostname 0.0.0.0 --port 8083"]
 
 FROM base AS ci-dev
 
@@ -32,7 +32,7 @@ COPY apps/payload apps/payload
 
 EXPOSE 8083
 
-CMD ["sh", "-c", "pnpm --filter @nmit/payload payload migrate && pnpm --filter @nmit/payload run dev --hostname 0.0.0.0 --port 8083"]
+CMD ["sh", "-c", "pnpm --filter @nmit/payload payload migrate && pnpm --filter @nmit/payload run seed && pnpm --filter @nmit/payload run dev --hostname 0.0.0.0 --port 8083"]
 
 FROM base AS build
 
@@ -80,4 +80,4 @@ COPY --from=build /var/www /var/www
 
 EXPOSE 8083
 
-CMD ["sh", "-c", "pnpm --filter @nmit/payload payload migrate && pnpm --filter @nmit/payload run start --hostname 0.0.0.0 --port 8083"]
+CMD ["sh", "-c", "pnpm --filter @nmit/payload payload migrate && pnpm --filter @nmit/payload run seed && pnpm --filter @nmit/payload run start --hostname 0.0.0.0 --port 8083"]

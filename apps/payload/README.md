@@ -28,6 +28,7 @@ Required:
 - `DATABASE_URL`: postgresql://user:password@localhost/database
 - `PAYLOAD_SECRET`
 - `PAYLOAD_LOCALES`: comma-separated list, first entry is the default locale
+- `PAYLOAD_SSO_USER_EMAIL`, `PAYLOAD_SSO_PRIVATE_KEY`, and `PAYLOAD_SSO_PUBLIC_KEY` for Medusa-driven SSO and local seed
 
 Optional (commonly used):
 
@@ -36,8 +37,9 @@ Optional (commonly used):
 - `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
 - `OPENAI_API_KEY`, `OPENAI_BASE_URL`
 - `MEDUSA_BACKEND_URL` (enables CMS cache invalidation in Medusa)
-- `PAYLOAD_SSO_PUBLIC_KEY`, `PAYLOAD_SSO_ALLOWED_ORIGINS`, `PAYLOAD_SSO_ISSUER`,
-  `PAYLOAD_SSO_AUDIENCE`, `PAYLOAD_SSO_ALG`
+- `PAYLOAD_SSO_ALLOWED_ORIGINS`, `PAYLOAD_SSO_ISSUER`, `PAYLOAD_SSO_AUDIENCE`, `PAYLOAD_SSO_ALG`
+
+`PAYLOAD_SSO_ALLOWED_ORIGINS` accepts a comma-separated list of URLs and matches by origin (scheme + host + port), so path segments are ignored.
 
 ### 2) Install deps (repo root)
 
@@ -51,7 +53,16 @@ pnpm install
 pnpm --filter @nmit/payload payload migrate
 ```
 
-### 4) Start dev server
+### 4) Seed local data
+
+```bash
+pnpm --filter @nmit/payload run seed
+```
+
+The seed is idempotent. It creates or syncs the Payload admin user from the Medusa SSO email/key envs and one minimal
+record for each enabled content collection if that collection is empty.
+
+### 5) Start dev server
 
 ```bash
 pnpm --filter @nmit/payload dev
@@ -68,8 +79,8 @@ Open the admin UI at `http://localhost:3000/admin` (adjust if you customize `rou
 
 ### Docker (monorepo)
 
-The root `docker-compose.yaml` runs Payload on port 8083 and executes migrations on startup. Use the root README steps
-(`make dev`) if you prefer the Docker stack.
+The root `docker-compose.yaml` runs Payload on port 8083, executes migrations, and runs the idempotent seed on startup.
+Use the root README steps (`make dev`) if you prefer the Docker stack.
 
 ## API endpoints
 

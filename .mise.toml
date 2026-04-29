@@ -40,6 +40,34 @@ run = "mise run dev:internal:frontend:up && mise run dev:internal:frontend:wait"
 description = "Converge medusa-db bootstrap state for current operator envs, then start operator runtime services"
 run = "bash ./scripts/dev/mise-dev-helpers.sh ensure-operator-db-convergence && mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
 
+[tasks."dev:helpers:up"]
+description = "Start optional local helper services: adminer and caddy"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper up all"
+
+[tasks."dev:helpers:down"]
+description = "Stop and remove optional local helper services: adminer and caddy"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper down all"
+
+[tasks."dev:helpers:status"]
+description = "Show optional local helper service status: adminer and caddy"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper status all"
+
+[tasks."dev:helper:caddy:up"]
+description = "Start the local Caddy helper"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper up caddy"
+
+[tasks."dev:helper:caddy:down"]
+description = "Stop and remove the local Caddy helper"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper down caddy"
+
+[tasks."dev:helper:adminer:up"]
+description = "Start the local Adminer helper"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper up adminer"
+
+[tasks."dev:helper:adminer:down"]
+description = "Stop and remove the local Adminer helper"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper down adminer"
+
 [tasks."dev:corepack:update"]
 description = "Update Corepack inside the repo pnpm toolchain container"
 run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} corepack up"

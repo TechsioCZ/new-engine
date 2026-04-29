@@ -286,6 +286,73 @@ ensure_operator_db_convergence() {
     medusa-db sh /usr/local/bin/postgres-role-bootstrap
 }
 
+validate_local_helper_service() {
+  local service="$1"
+
+  case "$service" in
+    adminer|caddy)
+      return 0
+      ;;
+    *)
+      echo "Unsupported local helper service: ${service}" >&2
+      echo "Expected one of: adminer, caddy, all" >&2
+      return 1
+      ;;
+  esac
+}
+
+run_local_helper_action_for_service() {
+  local action="$1"
+  local service="$2"
+
+  validate_local_helper_service "$service"
+
+  case "$action" in
+    up)
+      compose up -d --build "$service"
+      ;;
+    down)
+      compose stop "$service"
+      compose rm -f "$service"
+      ;;
+    restart)
+      compose up -d --build --force-recreate "$service"
+      ;;
+    status)
+      compose ps "$service"
+      ;;
+    *)
+      echo "Unsupported local helper action: ${action}" >&2
+      echo "Expected one of: up, down, restart, status" >&2
+      return 1
+      ;;
+  esac
+}
+
+local_helper() {
+  local action="${1:-}"
+  local service="${2:-}"
+
+  if [[ -z "$action" || -z "$service" ]]; then
+    echo "local-helper requires ACTION and SERVICE" >&2
+    echo "Usage: scripts/dev/mise-dev-helpers.sh local-helper <up|down|restart|status> <adminer|caddy|all>" >&2
+    exit 1
+  fi
+
+  case "$service" in
+    all)
+      run_local_helper_action_for_service "$action" adminer
+      run_local_helper_action_for_service "$action" caddy
+      ;;
+    adminer|caddy)
+      run_local_helper_action_for_service "$action" "$service"
+      ;;
+    *)
+      validate_local_helper_service "$service"
+      ;;
+  esac
+}
+
 usage() {
   cat <<'USAGE'
 Usage: scripts/dev/mise-dev-helpers.sh <command> [args]
@@ -296,6 +363,10 @@ Commands:
   sync-meili-env              Provision Meili keys and sync .env values
   ensure-operator-db-convergence
                               Ensure medusa-db has converged zane-operator bootstrap state for current local envs
+  local-helper <action> <service>
+                              Manage optional local helper services.
+                              action: up|down|restart|status
+                              service: adminer|caddy|all
 
 Environment options:
   PROJECT_NAME                         docker compose project name (default: new-engine)
@@ -333,6 +404,9 @@ main() {
       ;;
     ensure-operator-db-convergence)
       ensure_operator_db_convergence
+      ;;
+    local-helper)
+      local_helper "$@"
       ;;
     -h|--help|help)
       usage

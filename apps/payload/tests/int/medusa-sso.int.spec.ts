@@ -124,6 +124,36 @@ describe("medusa SSO endpoint", () => {
     })
   })
 
+  it("accepts allowed origin values configured with path segments", async () => {
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com/admin/login"
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
+
+    const req = createRequest()
+    req.formData.mockResolvedValue(createFormData({ returnTo: "/admin" }))
+
+    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+      message: "Missing SSO token.",
+      status: 400,
+    })
+  })
+
+  it("uses referer as fallback when origin header is missing", async () => {
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
+
+    const req = createRequest({
+      headers: new Headers({
+        referer: "https://allowed.com/app/settings/payload",
+      }),
+    })
+    req.formData.mockResolvedValue(createFormData({ returnTo: "/admin" }))
+
+    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+      message: "Missing SSO token.",
+      status: 400,
+    })
+  })
+
   it("rejects when token is missing", async () => {
     process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
 

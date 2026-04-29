@@ -162,11 +162,13 @@ x-payload-env: &payload-env
   FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED: ${DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED:-1}
   PAYLOAD_WEBHOOK_SECRET: ${DC_PAYLOAD_WEBHOOK_SECRET:-}
   PAYLOAD_LOCALES: ${DC_PAYLOAD_LOCALES:-cs,sk,en}
+  PAYLOAD_SSO_USER_EMAIL: ${DC_PAYLOAD_SSO_USER_EMAIL}
+  PAYLOAD_SSO_PRIVATE_KEY: ${DC_PAYLOAD_SSO_PRIVATE_KEY}
   PAYLOAD_SSO_PUBLIC_KEY: ${DC_PAYLOAD_SSO_PUBLIC_KEY:-}
   PAYLOAD_SSO_ISSUER: ${DC_PAYLOAD_SSO_ISSUER:-medusa}
   PAYLOAD_SSO_AUDIENCE: ${DC_PAYLOAD_SSO_AUDIENCE:-payload}
   PAYLOAD_SSO_ALG: ${DC_PAYLOAD_SSO_ALG:-RS256}
-  PAYLOAD_SSO_ALLOWED_ORIGINS: ${DC_PAYLOAD_SSO_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:9000}
+  PAYLOAD_SSO_ALLOWED_ORIGINS: ${DC_PAYLOAD_SSO_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:9000,http://127.0.0.1:9000}
   OPENAI_API_KEY: ${DC_OPENAI_API_KEY:-}
   S3_ENDPOINT: ${DC_PAYLOAD_S3_ENDPOINT:-http://medusa-minio:9004}
   S3_REGION: ${DC_PAYLOAD_S3_REGION:-us-east-1}
@@ -202,6 +204,7 @@ services:
     working_dir: /var/www
     command: >-
       sh -c "pnpm --filter @nmit/payload payload migrate &&
+      pnpm --filter @nmit/payload run seed &&
       pnpm --filter @nmit/payload run dev --hostname 0.0.0.0 --port 8083"
     depends_on:
       medusa-db:

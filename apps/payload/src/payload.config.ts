@@ -42,6 +42,7 @@ const isPagesEnabled = isEnabled("FEATURE_PAYLOAD_PAGES_ENABLED")
 const isHeroCarouselsEnabled = isEnabled(
   "FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED"
 )
+const isAutoTranslateConfigured = Boolean(getEnv("OPENAI_API_KEY"))
 
 const s3Bucket = getEnv("S3_BUCKET", true)
 const s3Endpoint = getEnv("S3_ENDPOINT", true)
@@ -126,7 +127,7 @@ export default buildConfig({
         "page-categories": isPagesEnabled,
         "hero-carousels": isHeroCarouselsEnabled,
       },
-      enableTranslationSyncByDefault: true,
+      enableTranslationSyncByDefault: isAutoTranslateConfigured,
       translationExclusionsSlug: "translation-exclusions",
       enableExclusions: true,
     }),
