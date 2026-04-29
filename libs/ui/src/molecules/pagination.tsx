@@ -187,10 +187,10 @@ export function createPaginationGetPageUrl({
       }
     }
 
-    if (page > defaultPage) {
-      nextSearchParams.set(pageParam, page.toString())
-    } else {
+    if (page === defaultPage) {
       nextSearchParams.delete(pageParam)
+    } else {
+      nextSearchParams.set(pageParam, page.toString())
     }
 
     const query = nextSearchParams.toString()
@@ -264,6 +264,7 @@ export function Pagination<T extends ElementType = "a">({
     triggerProps: PaginationTriggerProps,
     overrides: Record<string, unknown> = {}
   ) => {
+    const isNavigable = hasHref(triggerProps)
     const baseTriggerProps = mergeProps(triggerProps, {
       className: link(),
       size: "current" as const,
@@ -271,14 +272,18 @@ export function Pagination<T extends ElementType = "a">({
       ...overrides,
     })
 
-    return mergeProps(sharedLinkProps, baseTriggerProps, {
-      ...(linkAs ? { as: linkAs } : {}),
-      ...(hasHref(triggerProps)
-        ? {}
-        : {
-            disabled: true,
-          }),
-    }) as LinkButtonProps<T>
+    return mergeProps(
+      isNavigable ? sharedLinkProps : undefined,
+      baseTriggerProps,
+      {
+        ...(isNavigable && linkAs ? { as: linkAs } : {}),
+        ...(isNavigable
+          ? {}
+          : {
+              disabled: true,
+            }),
+      }
+    ) as LinkButtonProps<T>
   }
 
   const prevTriggerProps = api.getPrevTriggerProps() as PaginationTriggerProps
