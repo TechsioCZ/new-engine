@@ -46,6 +46,8 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/download-artifact@v4
         with:
@@ -56,7 +58,26 @@ jobs:
         with:
           node-version: 24
 
+      - name: Fetch PR revisions
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA"
+
+      - name: Resolve teardown scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node apps/new-engine-ctl/dist/cli.js scope \
+            --lane preview \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA" \
+            --preview-baseline-complete true
+
       - name: Validate teardown inputs
+        if: steps.scope.outputs.services_csv != ''
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
@@ -65,6 +86,7 @@ jobs:
         run: node apps/new-engine-ctl/dist/cli.js check-workflow-inputs --mode preview-teardown
 
       - name: Run preview teardown
+        if: steps.scope.outputs.services_csv != ''
         id: run_teardown
         continue-on-error: true
         env:
@@ -83,6 +105,9 @@ jobs:
           {
             echo "## Preview Teardown"
             echo "- PR: #${{ github.event.pull_request.number }}"
+            echo "- Scope services: ${{ steps.scope.outputs.services_csv || 'none' }}"
+            echo "- Scope projects: ${{ steps.scope.outputs.projects_csv || 'none' }}"
+            echo "- Skipped: ${{ steps.run_teardown.outcome == 'skipped' && 'true' || 'false' }}"
             echo "- Environment outcome: ${{ steps.run_teardown.outputs.environment_outcome || 'n/a' }}"
             echo "- Environment HTTP: ${{ steps.run_teardown.outputs.environment_http_code || 'n/a' }}"
             echo "- Environment name: ${{ steps.run_teardown.outputs.environment_name || 'n/a' }}"
@@ -95,7 +120,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail when teardown failed
-        if: steps.run_teardown.outcome != 'success'
+        if: steps.run_teardown.outcome == 'failure'
         run: |
           echo "Preview teardown failed and requires manual retry." >&2
           exit 1
