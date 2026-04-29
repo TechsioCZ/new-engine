@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 import { BadRequestError } from "./db"
 import type {
   ArchiveEnvironmentInput,
@@ -22,6 +24,94 @@ import type {
 } from "./zane-contract"
 
 type JsonRecord = Record<string, unknown>
+
+const nonEmptyTrimmedStringSchema = z.string().trim().min(1, "cannot be empty")
+
+const strictTrueBooleanSchema = z.literal(true)
+
+const optionalTrimmedStringSchema = z.preprocess(
+  (value) => (value == null ? undefined : value),
+  nonEmptyTrimmedStringSchema.optional()
+)
+
+const optionalNullableTrimmedStringSchema = z.preprocess(
+  (value) => (value === undefined ? undefined : value),
+  nonEmptyTrimmedStringSchema.nullable().optional()
+)
+
+const serviceReconciliationGitSourceSchema = z.object({
+  sync_from_source: strictTrueBooleanSchema,
+  branch_name: optionalTrimmedStringSchema,
+  commit_sha: z.preprocess(
+    (value) => (value == null ? "HEAD" : value),
+    nonEmptyTrimmedStringSchema
+  ),
+})
+
+const serviceReconciliationBuilderSchema = z.object({
+  sync_from_source: strictTrueBooleanSchema,
+  build_stage_target: optionalNullableTrimmedStringSchema,
+})
+
+const serviceReconciliationSyncFlagSchema = z.object({
+  sync_from_source: strictTrueBooleanSchema,
+})
+
+const serviceReconciliationSpecSchema = z.object({
+  service_id: nonEmptyTrimmedStringSchema,
+  service_slug: nonEmptyTrimmedStringSchema,
+  git_source: z.preprocess(
+    (value) => (value == null ? undefined : value),
+    serviceReconciliationGitSourceSchema.optional()
+  ),
+  builder: z.preprocess(
+    (value) => (value == null ? undefined : value),
+    serviceReconciliationBuilderSchema.optional()
+  ),
+  healthcheck: z.preprocess(
+    (value) => (value == null ? undefined : value),
+    serviceReconciliationSyncFlagSchema.optional()
+  ),
+  resource_limits: z.preprocess(
+    (value) => (value == null ? undefined : value),
+    serviceReconciliationSyncFlagSchema.optional()
+  ),
+})
+
+const serviceReconciliationSpecsSchema = z.array(
+  serviceReconciliationSpecSchema
+)
+
+function formatZodPath(label: string, path: PropertyKey[]): string {
+  let current = label
+
+  for (const part of path) {
+    if (typeof part === "number") {
+      current = `${current}[${String(part)}]`
+      continue
+    }
+
+    current = `${current}.${String(part)}`
+  }
+
+  return current
+}
+
+function parseZodInput<T>(
+  schema: z.ZodType<T>,
+  value: unknown,
+  label: string
+): T {
+  const result = schema.safeParse(value)
+  if (result.success) {
+    return result.data
+  }
+
+  const issue = result.error.issues[0]
+  const path = issue ? formatZodPath(label, issue.path) : label
+  const message = issue?.message ?? "is invalid"
+  throw new BadRequestError(`${path} ${message}`)
+}
 
 function assertObject(value: unknown, label: string): JsonRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -395,107 +485,7 @@ function parseServiceReconciliationSpecs(
     return []
   }
 
-  if (!Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be an array`)
-  }
-
-  return value.map((item, index) => {
-    const object = assertObject(item, `${label}[${index}]`)
-    const gitSource = parseServiceReconciliationGitSource(
-      object.git_source,
-      `${label}[${index}].git_source`
-    )
-    const builder =
-      object.builder == null
-        ? undefined
-        : (() => {
-            const builderObject = assertObject(
-              object.builder,
-              `${label}[${index}].builder`
-            )
-            return {
-              sync_from_source: builderObject.sync_from_source === true,
-              build_stage_target: parseOptionalNullableString(
-                builderObject.build_stage_target,
-                `${label}[${index}].builder.build_stage_target`
-              ),
-            }
-          })()
-    const healthcheck =
-      object.healthcheck == null
-        ? undefined
-        : (() => {
-            const healthcheckObject = assertObject(
-              object.healthcheck,
-              `${label}[${index}].healthcheck`
-            )
-            return {
-              sync_from_source: healthcheckObject.sync_from_source === true,
-            }
-          })()
-    const resourceLimits =
-      object.resource_limits == null
-        ? undefined
-        : (() => {
-            const resourceLimitsObject = assertObject(
-              object.resource_limits,
-              `${label}[${index}].resource_limits`
-            )
-            return {
-              sync_from_source: resourceLimitsObject.sync_from_source === true,
-            }
-          })()
-
-    return {
-      service_id: assertString(
-        object.service_id,
-        `${label}[${index}].service_id`
-      ),
-      service_slug: assertString(
-        object.service_slug,
-        `${label}[${index}].service_slug`
-      ),
-      ...(gitSource ? { git_source: gitSource } : {}),
-      ...(builder ? { builder } : {}),
-      ...(healthcheck ? { healthcheck } : {}),
-      ...(resourceLimits ? { resource_limits: resourceLimits } : {}),
-    }
-  })
-}
-
-function parseOptionalNullableString(
-  value: unknown,
-  label: string
-): string | null | undefined {
-  if (typeof value === "undefined") {
-    return
-  }
-
-  if (value === null) {
-    return null
-  }
-
-  return assertString(value, label)
-}
-
-function parseServiceReconciliationGitSource(
-  value: unknown,
-  label: string
-): ZaneServiceReconciliationSpec["git_source"] {
-  if (value == null) {
-    return
-  }
-
-  const object = assertObject(value, label)
-  return {
-    sync_from_source: object.sync_from_source === true,
-    branch_name: assertOptionalString(
-      object.branch_name,
-      `${label}.branch_name`
-    ),
-    commit_sha:
-      assertOptionalString(object.commit_sha, `${label}.commit_sha`) ?? "HEAD",
-  }
+  return parseZodInput(serviceReconciliationSpecsSchema, value, label)
 }
 
 export function parseResolveEnvironmentInput(
