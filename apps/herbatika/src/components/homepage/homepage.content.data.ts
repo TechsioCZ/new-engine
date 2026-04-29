@@ -5,8 +5,8 @@ import type {
 
 export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
   {
-    id: "najpredavanejsie-produkty",
-    title: "Najpredávanejšie produkty",
+    id: "najoblubenejsie-produkty",
+    title: "Najobľúbenejšie produkty",
   },
   {
     id: "novinky",
