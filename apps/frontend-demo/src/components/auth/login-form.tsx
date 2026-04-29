@@ -1,7 +1,6 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import Link from "next/link"
@@ -69,11 +68,7 @@ export function LoginForm() {
             }),
             isFormLoading
           )}
-          helpText={
-            getFieldError("email") && (
-              <ErrorText showIcon>{getFieldError("email")}</ErrorText>
-            )
-          }
+          helpText={getFieldError("email")}
           validateStatus={getFieldError("email") ? "error" : "default"}
         />
 
@@ -88,11 +83,7 @@ export function LoginForm() {
             }),
             isFormLoading
           )}
-          helpText={
-            getFieldError("password") && (
-              <ErrorText>{getFieldError("password")}</ErrorText>
-            )
-          }
+          helpText={getFieldError("password")}
           validateStatus={getFieldError("password") ? "error" : "default"}
         />
 

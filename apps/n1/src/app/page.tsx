@@ -46,7 +46,14 @@ export default function Home() {
           </span>
         </h2>
         <Suspense
-          fallback={<ProductGrid isLoading products={[]} skeletonCount={8} />}
+          fallback={
+            <ProductGrid
+              getPageUrl={null}
+              isLoading
+              products={[]}
+              skeletonCount={8}
+            />
+          }
         >
           <HomeProductGrid />
         </Suspense>
@@ -61,7 +68,7 @@ function HomeProductGrid() {
     : undefined
 
   if (!featuredCategoryIds) {
-    return <ProductGrid products={[]} skeletonCount={8} />
+    return <ProductGrid getPageUrl={null} products={[]} skeletonCount={8} />
   }
 
   return <FeaturedHomeProductGrid featuredCategoryIds={featuredCategoryIds} />
@@ -81,5 +88,5 @@ function FeaturedHomeProductGrid({
 
   const products = rawProducts.map(transformProduct)
 
-  return <ProductGrid products={products} skeletonCount={8} />
+  return <ProductGrid getPageUrl={null} products={products} skeletonCount={8} />
 }

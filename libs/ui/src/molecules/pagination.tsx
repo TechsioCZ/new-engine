@@ -1,4 +1,9 @@
-import * as pagination from "@zag-js/pagination"
+import {
+  connect as connectPagination,
+  type IntlTranslations as PaginationIntlTranslations,
+  type PageUrlDetails as PaginationPageUrlDetails,
+  machine as paginationMachine,
+} from "@zag-js/pagination"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ElementType,
@@ -106,7 +111,7 @@ export type PaginationBaseProps = Omit<
     compactLabel?: (details: { page: number; totalPages: number }) => ReactNode
     onChange?: (page: number) => void
     onPageChange?: (page: number) => void
-    translations?: pagination.IntlTranslations
+    translations?: PaginationIntlTranslations
   }
 
 type PaginationLinkProps<T extends ElementType> = Omit<
@@ -124,12 +129,74 @@ type PaginationLinkProps<T extends ElementType> = Omit<
 
 export type PaginationProps<T extends ElementType = "a"> =
   PaginationBaseProps & {
-    getPageUrl?: (details: pagination.PageUrlDetails) => string
+    getPageUrl: PaginationGetPageUrl
     linkAs?: T
     linkProps?: PaginationLinkProps<T>
   }
 
 type PaginationTriggerProps = Record<string, unknown>
+type PaginationSearchParamValue = string | number | boolean | null | undefined
+type PaginationSearchParamsRecord = Record<string, PaginationSearchParamValue>
+
+export type PaginationGetPageUrl = (details: PaginationPageUrlDetails) => string
+
+export type PaginationSearchParamsInput =
+  | string
+  | URLSearchParams
+  | { toString: () => string }
+
+export type CreatePaginationGetPageUrlOptions = {
+  pathname: string
+  searchParams?: PaginationSearchParamsInput
+  pageParam?: string
+  defaultPage?: number
+  searchParamOverrides?: PaginationSearchParamsRecord
+}
+
+function toURLSearchParams(searchParams?: PaginationSearchParamsInput) {
+  if (!searchParams) {
+    return new URLSearchParams()
+  }
+
+  if (typeof searchParams === "string") {
+    return new URLSearchParams(searchParams)
+  }
+
+  return new URLSearchParams(searchParams.toString())
+}
+
+export function createPaginationGetPageUrl({
+  pathname,
+  searchParams,
+  pageParam = "page",
+  defaultPage = 1,
+  searchParamOverrides,
+}: CreatePaginationGetPageUrlOptions): PaginationGetPageUrl {
+  const baseSearchParams = toURLSearchParams(searchParams)
+
+  return ({ page }) => {
+    const nextSearchParams = new URLSearchParams(baseSearchParams)
+
+    if (searchParamOverrides) {
+      for (const [key, value] of Object.entries(searchParamOverrides)) {
+        if (value == null) {
+          nextSearchParams.delete(key)
+        } else {
+          nextSearchParams.set(key, String(value))
+        }
+      }
+    }
+
+    if (page === defaultPage) {
+      nextSearchParams.delete(pageParam)
+    } else {
+      nextSearchParams.set(pageParam, page.toString())
+    }
+
+    const query = nextSearchParams.toString()
+    return query ? `${pathname}?${query}` : pathname
+  }
+}
 
 function hasHref(
   triggerProps: PaginationTriggerProps
@@ -160,9 +227,8 @@ export function Pagination<T extends ElementType = "a">({
   ...props
 }: PaginationProps<T>) {
   const uniqueId = useId()
-  const isLinkMode = typeof getPageUrl === "function"
 
-  const service = useMachine(pagination.machine, {
+  const service = useMachine(paginationMachine, {
     id: uniqueId,
     count,
     pageSize,
@@ -171,8 +237,8 @@ export function Pagination<T extends ElementType = "a">({
     page,
     dir,
     defaultPage,
-    type: isLinkMode ? "link" : "button",
-    ...(isLinkMode ? { getPageUrl } : {}),
+    type: "link",
+    getPageUrl,
     onPageChange: (details) => {
       onChange?.(details.page)
       onPageChange?.(details.page)
@@ -180,7 +246,7 @@ export function Pagination<T extends ElementType = "a">({
     translations,
   })
 
-  const api = pagination.connect(service, normalizeProps)
+  const api = connectPagination(service, normalizeProps)
   const { base, list, link, item, ellipsis, compactText } = paginationVariants({
     variant,
     size,
@@ -198,6 +264,7 @@ export function Pagination<T extends ElementType = "a">({
     triggerProps: PaginationTriggerProps,
     overrides: Record<string, unknown> = {}
   ) => {
+    const isNavigable = hasHref(triggerProps)
     const baseTriggerProps = mergeProps(triggerProps, {
       className: link(),
       size: "current" as const,
@@ -205,16 +272,18 @@ export function Pagination<T extends ElementType = "a">({
       ...overrides,
     })
 
-    if (isLinkMode && !hasHref(triggerProps)) {
-      return mergeProps(baseTriggerProps, {
-        disabled: true,
-      }) as LinkButtonProps<T>
-    }
-
-    return mergeProps(sharedLinkProps, baseTriggerProps, {
-      ...(linkAs ? { as: linkAs } : {}),
-      ...(isLinkMode || linkAs ? {} : { as: "button", type: "button" }),
-    }) as LinkButtonProps<T>
+    return mergeProps(
+      isNavigable ? sharedLinkProps : undefined,
+      baseTriggerProps,
+      {
+        ...(isNavigable && linkAs ? { as: linkAs } : {}),
+        ...(isNavigable
+          ? {}
+          : {
+              disabled: true,
+            }),
+      }
+    ) as LinkButtonProps<T>
   }
 
   const prevTriggerProps = api.getPrevTriggerProps() as PaginationTriggerProps
@@ -242,23 +311,36 @@ export function Pagination<T extends ElementType = "a">({
             </span>
           </li>
         ) : (
-          api.pages.map((page, index) => {
-            if (page.type === "page") {
+          api.pages.map((paginationPage, index) => {
+            if (paginationPage.type === "page") {
               return (
-                <li className={item()} key={page.value}>
+                <li className={item()} key={paginationPage.value}>
                   <LinkButton
                     {...getTriggerButtonProps(
-                      api.getItemProps(page) as Record<string, unknown>
+                      api.getItemProps(paginationPage) as Record<
+                        string,
+                        unknown
+                      >
                     )}
                   >
-                    {page.value}
+                    {paginationPage.value}
                   </LinkButton>
                 </li>
               )
             }
 
+            const previousPage = api.pages[index - 1]
+            const nextPage = api.pages[index + 1]
+            const previousPageValue =
+              previousPage?.type === "page" ? previousPage.value : "start"
+            const nextPageValue =
+              nextPage?.type === "page" ? nextPage.value : "end"
+
             return (
-              <li className={item()} key={`ellipsis-${index}`}>
+              <li
+                className={item()}
+                key={`ellipsis-${previousPageValue}-${nextPageValue}`}
+              >
                 <span
                   aria-hidden="true"
                   className={ellipsis()}

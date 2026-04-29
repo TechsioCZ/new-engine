@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { LoadingPage } from "@/components/loading-page"
 import { OrderSummary } from "@/components/order-summary"
 import { useCart } from "@/hooks/use-cart"
@@ -16,6 +16,28 @@ import { PaymentSelection } from "../../components/molecules/payment-selection"
 import { ShippingSelection } from "../../components/molecules/shipping-selection"
 import { AddressForm } from "../../components/organisms/address-form"
 import { OrderPreview } from "../../components/organisms/order-preview"
+
+type CheckoutStep = {
+  content: ReactNode
+  title: string
+  value: number
+}
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query)
+    const updateMatches = () => setMatches(mediaQuery.matches)
+
+    updateMatches()
+    mediaQuery.addEventListener("change", updateMatches)
+
+    return () => mediaQuery.removeEventListener("change", updateMatches)
+  }, [query])
+
+  return matches
+}
 
 export default function CheckoutPage() {
   const { cart, isLoading } = useCart()
@@ -40,6 +62,7 @@ export default function CheckoutPage() {
   const [isOrderComplete, setIsOrderComplete] = useState(false)
   const [orderNumber, setOrderNumber] = useState<string>("")
   const [showOrderSummary, setShowOrderSummary] = useState(false)
+  const isDesktopSteps = useMediaQuery("(min-width: 640px)")
 
   // Redirect if cart is empty and no completed order
   useEffect(() => {
@@ -59,12 +82,14 @@ export default function CheckoutPage() {
   }, [cart, isLoading, isOrderComplete])
 
   // Show loading state while cart is loading
-  if (isLoading) return <LoadingPage />
+  if (isLoading) {
+    return <LoadingPage />
+  }
 
   // Get order data (either from cart or saved completed order)
   const orderData = orderHelpers.getOrderData(cart)
 
-  if (!(orderData && orderData.items) || orderData.items.length === 0) {
+  if (!orderData?.items || orderData.items.length === 0) {
     return null
   }
 
@@ -90,12 +115,12 @@ export default function CheckoutPage() {
         setIsOrderComplete(true)
         setCurrentStep(3)
       }
-    } catch (error) {
+    } catch (_error) {
       // Error already handled in hook
     }
   }
 
-  const steps = [
+  const steps: CheckoutStep[] = [
     {
       value: 0,
       title: "Adresa",
@@ -105,7 +130,7 @@ export default function CheckoutPage() {
             try {
               await updateAddresses(data)
               setCurrentStep(1)
-            } catch (err) {
+            } catch (_err) {
               // Error already handled in hook
             }
           }}
@@ -123,7 +148,7 @@ export default function CheckoutPage() {
             setSelectedShipping(method)
             try {
               await addShippingMethod(method)
-            } catch (error) {
+            } catch (_error) {
               // Error already handled in hook
             }
           }}
@@ -181,6 +206,38 @@ export default function CheckoutPage() {
     setCurrentStep(step)
   }
 
+  const renderSteps = (orientation: "horizontal" | "vertical") => (
+    <Steps
+      count={steps.length}
+      linear={false}
+      onStepChange={(details) => handleStepChange(details.step)}
+      orientation={orientation}
+      step={currentStep}
+    >
+      <Steps.List>
+        {steps.map((step) => (
+          <Steps.Item index={step.value} key={step.value}>
+            <Steps.Trigger>
+              <Steps.Indicator />
+              <Steps.ItemText>
+                <Steps.Title>{step.title}</Steps.Title>
+              </Steps.ItemText>
+            </Steps.Trigger>
+            <Steps.Separator />
+          </Steps.Item>
+        ))}
+      </Steps.List>
+
+      <Steps.Panels>
+        {steps.map((step) => (
+          <Steps.Content index={step.value} key={step.value}>
+            {step.content}
+          </Steps.Content>
+        ))}
+      </Steps.Panels>
+    </Steps>
+  )
+
   return (
     <div className="container mx-auto max-w-[80rem] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       {/* Mobile/Tablet: Sticky progress bar */}
@@ -235,28 +292,7 @@ export default function CheckoutPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-8">
-        <div className="hidden sm:block">
-          <Steps
-            currentStep={currentStep}
-            items={steps}
-            linear={false}
-            onStepChange={handleStepChange}
-            onStepComplete={handleComplete}
-            orientation="horizontal"
-            showControls={false}
-          />
-        </div>
-        <div className="sm:hidden">
-          <Steps
-            currentStep={currentStep}
-            items={steps}
-            linear={false}
-            onStepChange={handleStepChange}
-            onStepComplete={handleComplete}
-            orientation="vertical"
-            showControls={false}
-          />
-        </div>
+        {renderSteps(isDesktopSteps ? "horizontal" : "vertical")}
 
         {/* Desktop: Sticky sidebar */}
         <div className="hidden lg:block lg:pl-8">

@@ -1,6 +1,11 @@
 "use client"
-import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import { Suspense, useState } from "react"
+import {
+  createPaginationGetPageUrl,
+  Pagination,
+} from "@techsio/ui-kit/molecules/pagination"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useSuspenseOrders } from "@/hooks/use-orders"
 import { DesktopOrderCard } from "./orders/desktop-order-card"
@@ -13,6 +18,15 @@ import { OrdersSummary } from "./orders/orders-summary"
 const MIN_ORDERS_COUNT = 5
 const PAGE_SIZE = 5
 
+function parsePageParam(value: string | null) {
+  if (!value) {
+    return 1
+  }
+
+  const parsedPage = Number(value)
+  return Number.isFinite(parsedPage) ? Math.trunc(parsedPage) : 1
+}
+
 export function OrderList() {
   return (
     <ErrorBoundary fallback={<OrdersError />}>
@@ -24,10 +38,13 @@ export function OrderList() {
 }
 
 function OrderListContent() {
-  const [page, setPage] = useState(1)
+  const searchParams = useSearchParams()
   const { data: ordersData } = useSuspenseOrders()
 
   const orders = ordersData?.orders || []
+  const totalPages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE))
+  const requestedPage = parsePageParam(searchParams.get("ordersPage"))
+  const page = Math.min(Math.max(requestedPage, 1), totalPages)
 
   // Calculate summary stats (from all orders, not just current page)
   const totalAmount = orders.reduce(
@@ -45,6 +62,14 @@ function OrderListContent() {
   // Pagination
   const startIndex = (page - 1) * PAGE_SIZE
   const paginatedOrders = orders.slice(startIndex, startIndex + PAGE_SIZE)
+  const getPageUrl = createPaginationGetPageUrl({
+    pathname: "/ucet/profil",
+    searchParams: searchParams.toString(),
+    pageParam: "ordersPage",
+    searchParamOverrides: {
+      tab: "orders",
+    },
+  })
 
   return (
     <div className="space-y-400">
@@ -86,7 +111,8 @@ function OrderListContent() {
           {orders.length > PAGE_SIZE && (
             <Pagination
               count={orders.length}
-              onPageChange={setPage}
+              getPageUrl={getPageUrl}
+              linkAs={Link}
               page={page}
               pageSize={PAGE_SIZE}
               size="sm"

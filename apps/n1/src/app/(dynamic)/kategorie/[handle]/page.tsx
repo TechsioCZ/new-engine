@@ -1,17 +1,13 @@
 "use client"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { createPaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
 import {
   BreadcrumbTemplate,
   type BreadcrumbTemplateItem,
 } from "@ui/templates/breadcrumb"
 import NextLink from "next/link"
-import {
-  notFound,
-  useParams,
-  useRouter,
-  useSearchParams,
-} from "next/navigation"
-import { useCallback, useEffect, useRef } from "react"
+import { notFound, useParams, useSearchParams } from "next/navigation"
+import { useEffect, useRef } from "react"
 import { Banner } from "@/components/atoms/banner"
 import { Heading } from "@/components/heading"
 import { ProductGrid } from "@/components/molecules/product-grid"
@@ -34,9 +30,22 @@ import {
 import { useAnalytics } from "@/providers/analytics-provider"
 import { transformProduct } from "@/utils/transform/transform-product"
 
+type Category = (typeof allCategories)[number]
+
+function getCategoryPath(category: Category) {
+  const path: string[] = []
+  let current: Category | undefined = category
+
+  while (current) {
+    path.unshift(current.name)
+    current = allCategories.find((c) => c.id === current?.parent_category_id)
+  }
+
+  return path.join(" > ")
+}
+
 export default function CategoryPage() {
   const params = useParams()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const handle = params.handle as string
   const { regionId, countryCode } = useSuspenseRegion()
@@ -53,22 +62,6 @@ export default function CategoryPage() {
     allCategories.find((cat) => cat.id === currentCategory?.root_category_id) ??
     currentCategory
 
-  const buildCategoryPath = useCallback((): string | null => {
-    if (!currentCategory) {
-      return null
-    }
-
-    const path: string[] = []
-    let current: typeof currentCategory | undefined = currentCategory
-
-    while (current) {
-      path.unshift(current.name)
-      current = allCategories.find((c) => c.id === current?.parent_category_id)
-    }
-
-    return path.join(" > ")
-  }, [currentCategory])
-
   useEffect(() => {
     if (!currentCategory) {
       return
@@ -77,12 +70,9 @@ export default function CategoryPage() {
       return
     }
 
-    const categoryPath = buildCategoryPath()
-    if (categoryPath) {
-      trackedCategoryId.current = currentCategory.id
-      analytics.trackViewCategory({ category: categoryPath })
-    }
-  }, [currentCategory, analytics, buildCategoryPath])
+    trackedCategoryId.current = currentCategory.id
+    analytics.trackViewCategory({ category: getCategoryPath(currentCategory) })
+  }, [currentCategory, analytics])
 
   // Get current page from URL or default to 1
   const currentPage = Number(searchParams.get("page")) || 1
@@ -130,13 +120,10 @@ export default function CategoryPage() {
 
   const products = rawProducts.map(transformProduct)
 
-  const handlePageChange = (page: number) => {
-    const newSearchParams = new URLSearchParams(searchParams.toString())
-    newSearchParams.set("page", page.toString())
-    router.push(`/kategorie/${handle}?${newSearchParams.toString()}`, {
-      scroll: true,
-    })
-  }
+  const getPageUrl = createPaginationGetPageUrl({
+    pathname: `/kategorie/${handle}`,
+    searchParams: searchParams.toString(),
+  })
 
   if (!VALID_CATEGORY_ROUTES.includes(handle)) {
     notFound()
@@ -191,7 +178,7 @@ export default function CategoryPage() {
         <section>
           <ProductGrid
             currentPage={responsePage}
-            onPageChange={handlePageChange}
+            getPageUrl={getPageUrl}
             pageSize={PRODUCT_LIMIT}
             products={products}
             skeletonCount={24}
