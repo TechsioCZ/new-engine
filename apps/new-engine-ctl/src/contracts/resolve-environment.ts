@@ -92,7 +92,10 @@ export const resolveEnvironmentResponseSchema = z.object({
   warnings: z.array(warningSchema).default([]),
 })
 
-export type ResolveEnvironmentCommandInput = z.infer<
+export type ResolveEnvironmentCommandInput = z.input<
+  typeof resolveEnvironmentCommandInputSchema
+>
+export type ResolvedEnvironmentCommandInput = z.infer<
   typeof resolveEnvironmentCommandInputSchema
 >
 export type ResolveEnvironmentResponse = z.infer<

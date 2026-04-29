@@ -110,7 +110,6 @@ export async function executeDeployMain(
     stackManifestPath: input.stackManifestPath,
     stackInputsPath: input.stackInputsPath,
     previewEnvPrefix: "pr-",
-    previewGitBranch: "",
   })
   const prerequisitePlan = await expandPlanForRuntimeProviderPrerequisites({
     lane: "main",
