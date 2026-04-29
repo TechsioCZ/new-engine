@@ -21,6 +21,13 @@
         "command": "bun run typecheck"
       }
     },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/zane-operator",
+        "command": "pnpm run test"
+      }
+    },
     "dev": {
       "executor": "nx:run-commands",
       "cache": false,
