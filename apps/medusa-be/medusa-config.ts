@@ -8,6 +8,11 @@ const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
+const RESEND_API_KEY =
+  process.env.RESEND_API_KEY ?? process.env.DC_N1_MEDUSA_RESEND_API_KEY
+const RESEND_FROM_EMAIL =
+  process.env.RESEND_FROM_EMAIL ?? process.env.DC_N1_MEDUSA_RESEND_FROM_EMAIL
+
 const MEDUSA_ADMIN_ALLOWED_HOSTS =
   process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
 
@@ -183,6 +188,22 @@ module.exports = defineConfig({
   modules: [
     {
       resolve: "@medusajs/medusa/translation",
+    },
+    {
+      resolve: "@medusajs/medusa/notification",
+      options: {
+        providers: [
+          {
+            resolve: "./src/modules/resend",
+            id: "resend",
+            options: {
+              channels: ["email"],
+              api_key: RESEND_API_KEY,
+              from: RESEND_FROM_EMAIL,
+            },
+          },
+        ],
+      },
     },
     {
       resolve: "@medusajs/medusa/caching",
