@@ -2,7 +2,6 @@ import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { expect, test } from "vitest"
-
 import { executePlan } from "../orchestration/plan.js"
 import { executeScope } from "../orchestration/scope.js"
 

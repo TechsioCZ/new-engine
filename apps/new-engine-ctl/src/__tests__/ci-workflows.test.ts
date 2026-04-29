@@ -63,22 +63,13 @@ test("ZaneOps workflows alias the prefixed project slug secret for ctl", async (
     const parsed = parseYaml(raw)
     const envMaps = collectEnvMaps(parsed)
 
-    expect(
-      raw.includes("ZANE_CANONICAL_PROJECT_SLUG"),
-      `${workflowPath} must not use the old canonical project slug env`
-    ).toBe(false)
+    expect(raw.includes("ZANE_CANONICAL_PROJECT_SLUG")).toBe(false)
 
     for (const envMap of envMaps) {
-      expect(
-        Object.hasOwn(envMap, "ZANE_CANONICAL_PROJECT_SLUG"),
-        `${workflowPath} contains the old canonical project slug env`
-      ).toBe(false)
+      expect(Object.hasOwn(envMap, "ZANE_CANONICAL_PROJECT_SLUG")).toBe(false)
 
       if (Object.hasOwn(envMap, "ZANEOPS_ZANE_PROJECT_SLUG")) {
-        expect(
-          envMap.ZANE_PROJECT_SLUG,
-          `${workflowPath} must expose ZANE_PROJECT_SLUG as the ctl alias`
-        ).toBe(envMap.ZANEOPS_ZANE_PROJECT_SLUG)
+        expect(envMap.ZANE_PROJECT_SLUG).toBe(envMap.ZANEOPS_ZANE_PROJECT_SLUG)
       }
     }
   }

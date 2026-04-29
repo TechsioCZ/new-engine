@@ -281,7 +281,9 @@
     "jsdom": "^27.4.0",
     "msw": "^2.8.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "@medusajs/js-sdk": "^2.14.1",
+    "@medusajs/types": "^2.14.1"
   },
   "peerDependencies": {
     "@medusajs/js-sdk": ">=2.12.0",
