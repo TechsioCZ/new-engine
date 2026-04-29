@@ -1,7 +1,9 @@
 "use client"
-import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import {
+  BreadcrumbTemplate,
+  type BreadcrumbTemplateItem,
+} from "@ui/templates/breadcrumb"
 import NextLink from "next/link"
 import {
   notFound,
@@ -144,7 +146,7 @@ export default function CategoryPage() {
     (cat) => cat.id === rootCategory?.id
   )
 
-  const breadcrumbItems: { label: string; href: string; icon?: IconType }[] = [
+  const breadcrumbItems: BreadcrumbTemplateItem[] = [
     { label: "Home", href: "/", icon: "icon-[mdi--home]" },
     { label: rootCategory?.handle || handle, href: `/kategorie/${handle}` },
   ]
@@ -152,7 +154,11 @@ export default function CategoryPage() {
   return (
     <div className="relative grid grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] p-400">
       <header className="col-span-2 row-span-1">
-        <Breadcrumb items={breadcrumbItems} linkAs={NextLink} size="lg" />
+        <BreadcrumbTemplate
+          items={breadcrumbItems}
+          linkAs={NextLink}
+          size="lg"
+        />
       </header>
       <N1Aside
         categories={rootCategoryTree?.children || []}

@@ -1,12 +1,12 @@
-import type { BreadcrumbItemType } from "@techsio/ui-kit/molecules/breadcrumb"
+import type { BreadcrumbTemplateItem } from "@ui/templates/breadcrumb"
 import type { Category } from "@/data/static/type"
 import { getCategoryPath } from "../transform/get-category-path"
 
 export function buildBreadcrumbs(
   categoryId: string | undefined,
   categoryMap: Record<string, Category>
-): BreadcrumbItemType[] {
-  const breadcrumbs: BreadcrumbItemType[] = [{ label: "Domů", href: "/" }]
+): BreadcrumbTemplateItem[] {
+  const breadcrumbs: BreadcrumbTemplateItem[] = [{ label: "Domů", href: "/" }]
 
   if (!categoryId) {
     return breadcrumbs
@@ -39,7 +39,7 @@ export function buildProductBreadcrumbs(
   categoryMap: Record<string, Category>,
   productTitle: string,
   productHandle: string
-): BreadcrumbItemType[] {
+): BreadcrumbTemplateItem[] {
   const categoryBreadcrumbs = buildBreadcrumbs(categoryId, categoryMap)
 
   return [

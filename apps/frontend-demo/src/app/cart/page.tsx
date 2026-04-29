@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@ui/atoms/button"
-import { Breadcrumb } from "@ui/molecules/breadcrumb"
+import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
 import { NumericInputTemplate } from "@ui/templates/numeric-input"
 import Image from "next/image"
 import Link from "next/link"
@@ -34,7 +34,7 @@ export default function CartPage() {
       <div className="mx-auto max-w-cart-max-w px-cart-container-x py-cart-container-y lg:px-cart-container-x-lg lg:py-cart-container-y-lg">
         {/* Breadcrumb */}
         <div className="mb-cart-breadcrumb-margin">
-          <Breadcrumb
+          <BreadcrumbTemplate
             items={[
               { label: "Domů", href: "/" },
               { label: "Košík", href: "/cart" },
