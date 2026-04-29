@@ -49,10 +49,10 @@ RUN mkdir -p apps/n1/public
 RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/tmp/pnpm-store \
     corepack install && \
     npm_config_store_dir=/tmp/pnpm-store \
-    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=n1... && \
+    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=n1... --ignore-scripts && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm --filter=@techsio/analytics build && \
-    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=n1... && \
+    pnpm install --store-dir=/tmp/pnpm-store --frozen-lockfile --filter=n1... --ignore-scripts && \
     rm -rf \
       libs/ui/storybook-static \
       node_modules/.pnpm/@biomejs+* \
@@ -75,11 +75,9 @@ CMD ["npm", "run", "start:ci-dev"]
 # ============================================
 FROM base AS build
 
-# Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
-    corepack install && \
-    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+RUN node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.pnpm={...(pkg.pnpm||{}), supportedArchitectures:{os:['current'], cpu:['current'], libc:['current']}}; fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n');"
+RUN corepack install
 
 # Reuse the same narrowed copy boundary as ci-dev so unrelated repo changes don't
 # invalidate the production dependency and build layers.
@@ -89,8 +87,9 @@ COPY libs/ui ./libs/ui
 COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
-RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
+RUN npm_config_store_dir=/var/www/.pnpm-store \
+    npm_config_package_import_method=hardlink \
+    pnpm install --store-dir=/var/www/.pnpm-store --frozen-lockfile --filter=n1... --ignore-scripts && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm --filter=@techsio/analytics build
 
@@ -115,11 +114,13 @@ ENV NEXT_PUBLIC_HEUREKA_API_KEY=${NEXT_PUBLIC_HEUREKA_API_KEY}
 
 # Keep this second install: with inject-workspace-packages=true, N1 needs a relink
 # after building @techsio/* dist outputs or Next build can resolve stale package state.
-RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
+RUN npm_config_store_dir=/var/www/.pnpm-store \
+    npm_config_package_import_method=hardlink \
+    pnpm install --store-dir=/var/www/.pnpm-store --frozen-lockfile --filter=n1... --ignore-scripts && \
     pnpm --filter=n1 exec next typegen && \
     pnpm --filter=n1 build && \
-    test -f apps/n1/.next/BUILD_ID
+    test -f apps/n1/.next/BUILD_ID && \
+    rm -rf /var/www/.pnpm-store libs/ui/storybook-static node_modules/.cache
 
 # ============================================
 # PROD RUNTIME - minimal final image

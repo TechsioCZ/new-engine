@@ -614,5 +614,5 @@ service_reconciliation:
     - service_id: n1
       builder:
         build_stage_target_by_lane:
-          preview: ci-dev
+          preview: prod
           main: prod
