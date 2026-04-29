@@ -1,3 +1,5 @@
+"use client"
+
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
 import NextLink from "next/link";
