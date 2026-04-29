@@ -1,9 +1,8 @@
-import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import { dirname, join, resolve } from "node:path"
-import { test } from "node:test"
 import { fileURLToPath } from "node:url"
 
+import { expect, test } from "vitest"
 import { parse as parseYaml } from "yaml"
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..")
@@ -25,6 +24,8 @@ const node24Pattern = /node-version: 24/
 const ciCtlTestPattern = /pnpm exec nx run new-engine-ctl:test/
 const mainVerifyEnvironmentFallbackPattern =
   /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\}\}/
+const mainVerifySummaryEnvironmentFallbackPattern =
+  /echo "- Environment:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\|\|\s*'n\/a'\s*\}\}"/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -62,25 +63,22 @@ test("ZaneOps workflows alias the prefixed project slug secret for ctl", async (
     const parsed = parseYaml(raw)
     const envMaps = collectEnvMaps(parsed)
 
-    assert.equal(
+    expect(
       raw.includes("ZANE_CANONICAL_PROJECT_SLUG"),
-      false,
       `${workflowPath} must not use the old canonical project slug env`
-    )
+    ).toBe(false)
 
     for (const envMap of envMaps) {
-      assert.equal(
+      expect(
         Object.hasOwn(envMap, "ZANE_CANONICAL_PROJECT_SLUG"),
-        false,
         `${workflowPath} contains the old canonical project slug env`
-      )
+      ).toBe(false)
 
       if (Object.hasOwn(envMap, "ZANEOPS_ZANE_PROJECT_SLUG")) {
-        assert.equal(
+        expect(
           envMap.ZANE_PROJECT_SLUG,
-          envMap.ZANEOPS_ZANE_PROJECT_SLUG,
           `${workflowPath} must expose ZANE_PROJECT_SLUG as the ctl alias`
-        )
+        ).toBe(envMap.ZANEOPS_ZANE_PROJECT_SLUG)
       }
     }
   }
@@ -92,9 +90,9 @@ test("main deploy passes downtime approval only after the approval gate", async 
     "utf8"
   )
 
-  assert.match(raw, downtimeEnvironmentPattern)
-  assert.match(raw, downtimeApprovalEnvPattern)
-  assert.match(raw, approveDowntimeRiskFlagPattern)
+  expect(raw).toMatch(downtimeEnvironmentPattern)
+  expect(raw).toMatch(downtimeApprovalEnvPattern)
+  expect(raw).toMatch(approveDowntimeRiskFlagPattern)
 })
 
 test("main verify falls back to the production environment secret", async () => {
@@ -103,7 +101,8 @@ test("main verify falls back to the production environment secret", async () => 
     "utf8"
   )
 
-  assert.match(raw, mainVerifyEnvironmentFallbackPattern)
+  expect(raw).toMatch(mainVerifyEnvironmentFallbackPattern)
+  expect(raw).toMatch(mainVerifySummaryEnvironmentFallbackPattern)
 })
 
 test("preview scope feeds baseline state into prepare decisions", async () => {
@@ -112,14 +111,14 @@ test("preview scope feeds baseline state into prepare decisions", async () => {
     "utf8"
   )
 
-  assert.match(raw, baselineCompleteOutputPattern)
-  assert.match(raw, previewBaselineCompleteEnvPattern)
-  assert.match(raw, previewBaselineCompleteFlagPattern)
+  expect(raw).toMatch(baselineCompleteOutputPattern)
+  expect(raw).toMatch(previewBaselineCompleteEnvPattern)
+  expect(raw).toMatch(previewBaselineCompleteFlagPattern)
 })
 
 test("main CI runs new-engine-ctl tests on the supported Node version", async () => {
   const raw = await readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8")
 
-  assert.match(raw, node24Pattern)
-  assert.match(raw, ciCtlTestPattern)
+  expect(raw).toMatch(node24Pattern)
+  expect(raw).toMatch(ciCtlTestPattern)
 })
