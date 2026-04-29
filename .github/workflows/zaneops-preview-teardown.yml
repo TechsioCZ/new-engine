@@ -58,24 +58,6 @@ jobs:
         with:
           node-version: 24
 
-      - name: Fetch PR revisions
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA"
-
-      - name: Resolve teardown scope
-        id: scope
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          node apps/new-engine-ctl/dist/cli.js scope \
-            --lane preview \
-            --base-sha "$BASE_SHA" \
-            --head-sha "$HEAD_SHA" \
-            --preview-baseline-complete true
-
       - name: Validate teardown inputs
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
@@ -103,8 +85,6 @@ jobs:
           {
             echo "## Preview Teardown"
             echo "- PR: #${{ github.event.pull_request.number }}"
-            echo "- Scope services: ${{ steps.scope.outputs.services_csv || 'none' }}"
-            echo "- Scope projects: ${{ steps.scope.outputs.projects_csv || 'none' }}"
             echo "- Skipped: ${{ steps.run_teardown.outcome == 'skipped' && 'true' || 'false' }}"
             echo "- Environment outcome: ${{ steps.run_teardown.outputs.environment_outcome || 'n/a' }}"
             echo "- Environment HTTP: ${{ steps.run_teardown.outputs.environment_http_code || 'n/a' }}"
