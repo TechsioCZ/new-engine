@@ -81,7 +81,7 @@ export function HerbatikaDesktopSubmenu({
             <div className="grid grid-cols-1 gap-x-750 gap-y-700 lg:grid-cols-3 xl:grid-cols-4">
               {desktopSubmenuItems.map((item) => (
                 <div className="flex min-w-0 items-start gap-300" key={item.id}>
-                  <div className="flex h-submenu-image w-submenu-image shrink-0 items-start justify-start">
+                  <NextLink href={item.href} className="flex h-submenu-image w-submenu-image shrink-0 items-start justify-start">
                     {item.src ? (
                       <NextImage
                         alt=""
@@ -92,7 +92,7 @@ export function HerbatikaDesktopSubmenu({
                         width={76}
                       />
                     ) : null}
-                  </div>
+                  </NextLink>
 
                   <div className="min-w-0 space-y-300 pt-100">
                     <Link
