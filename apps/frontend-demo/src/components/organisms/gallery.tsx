@@ -12,7 +12,7 @@ import type { VariantProps } from "tailwind-variants"
 const galleryStyles = tv({
   slots: {
     root: "",
-    mainCarousel: "relative flex h-fit",
+    mainCarousel: "relative flex h-fit w-full",
     container: "flex-shrink-0",
     scrollArea: "scrollbar-thin max-h-[60svh]",
     list: "flex gap-gallery-sm",
@@ -81,6 +81,7 @@ export function Gallery({
     // we'll just update our state to show which is active
     setCurrentPage(index)
   }
+  const carouselWidth = `min(100%, ${carouselSize}px)`
 
   return (
     <div className={root({ className })}>
@@ -121,8 +122,7 @@ export function Gallery({
           page={currentPage}
           size={size}
           slideCount={images.length}
-          height={carouselSize}
-          width={carouselSize}
+          width={carouselWidth}
         >
           <Carousel.Slides slides={images} />
         </Carousel>

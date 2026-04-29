@@ -18,6 +18,15 @@ import { OrdersSummary } from "./orders/orders-summary"
 const MIN_ORDERS_COUNT = 5
 const PAGE_SIZE = 5
 
+function parsePageParam(value: string | null) {
+  if (!value) {
+    return 1
+  }
+
+  const parsedPage = Number(value)
+  return Number.isFinite(parsedPage) ? Math.trunc(parsedPage) : 1
+}
+
 export function OrderList() {
   return (
     <ErrorBoundary fallback={<OrdersError />}>
@@ -34,7 +43,7 @@ function OrderListContent() {
 
   const orders = ordersData?.orders || []
   const totalPages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE))
-  const requestedPage = Number(searchParams.get("ordersPage")) || 1
+  const requestedPage = parsePageParam(searchParams.get("ordersPage"))
   const page = Math.min(Math.max(requestedPage, 1), totalPages)
 
   // Calculate summary stats (from all orders, not just current page)
