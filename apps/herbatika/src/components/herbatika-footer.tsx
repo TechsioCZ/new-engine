@@ -14,9 +14,9 @@ const FOOTER_COLUMNS = [
       { href: "/blog", label: "Blog" },
       { href: "/o-nas", label: "O nás" },
       { href: "/faq", label: "Časté otázky" },
-      { href: "/#darcekova-poukazka", label: "Darčeková poukážka" },
+      { href: "/c/darceky", label: "Darčeková poukážka" },
       { href: "/#vyrobcovia-a-znacky", label: "Výrobcovia a značky" },
-      { href: "/#recenzie", label: "Recenzie" },
+      { href: "https://obchody.heureka.sk/herbatica-sk/recenze/", label: "Recenzie" },
     ],
   },
   {
