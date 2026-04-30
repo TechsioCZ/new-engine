@@ -1,6 +1,6 @@
 import { defineMiddlewares } from "@medusajs/medusa"
-import { adminProductsBatchRoutes } from "./admin/symmy/products/batch/middlewares"
+import { symmyProductsBatchRoutes } from "./api/symmy/v1/products/batch/middlewares"
 
 export default defineMiddlewares({
-  routes: [...adminProductsBatchRoutes],
+  routes: [...symmyProductsBatchRoutes],
 })

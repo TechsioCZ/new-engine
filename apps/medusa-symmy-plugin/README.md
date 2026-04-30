@@ -1,9 +1,9 @@
 # MedusaSymmyPlugin
 
-A Medusa v2 plugin that exposes a single admin endpoint:
+A Medusa v2 plugin that exposes a single authenticated API endpoint:
 
 ```
-POST /admin/symmy/products/batch
+POST /api/symmy/v1/products/batch
 ```
 
 It upserts a list of products in one request with **per-item identifier matching** (`sku` / `ean` / `erp_id`) and **partial-success** semantics — every product reports its own `created` / `updated` / `failed` status.
@@ -95,8 +95,8 @@ The plugin registers no DB models, so no migrations are needed.
 ### Request
 
 ```http
-POST /admin/symmy/products/batch
-Authorization: Bearer <admin-jwt>     # or admin API key, same as other /admin endpoints
+POST /api/symmy/v1/products/batch
+Authorization: Bearer <admin-jwt>     # or session / API key auth
 Content-Type: application/json
 ```
 
@@ -192,7 +192,7 @@ The original spec leaves several semantics open. This plugin makes the following
 | Sales channel on create | Attached to the store's `default_sales_channel_id`, with fallback to the first sales channel in the store. |
 | Categories | `handle` is preferred. If the handle isn't found, falls back to `name`. Unknown categories are silently dropped (no creation). |
 | Variant deletion | **Variants present in DB but absent from the payload are kept.** The endpoint is upsert-only, never destructive. |
-| Authentication | Inherits standard `/admin/*` auth (admin JWT or admin API key). |
+| Authentication | Requires user auth via bearer token, session, or API key. |
 
 ### Identifier matching cheat-sheet
 
@@ -227,7 +227,7 @@ const { result } = await upsertProductsBatchWorkflow(container).run({
 ## Example
 
 ```bash
-curl -X POST http://localhost:9000/admin/symmy/products/batch \
+curl -X POST http://localhost:9000/api/symmy/v1/products/batch \
   -H "Authorization: Bearer $ADMIN_JWT" \
   -H "Content-Type: application/json" \
   -d '{

@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { upsertProductsBatchWorkflow } from "../../../../../workflows/upsert-products-batch"
+import { upsertProductsBatchWorkflow } from "../../../../../../workflows/upsert-products-batch"
 import type { UpsertProductsBatchSchemaType } from "./validators"
 
 export const POST = async (
