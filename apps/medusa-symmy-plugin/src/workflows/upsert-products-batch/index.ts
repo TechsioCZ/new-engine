@@ -1,13 +1,13 @@
-export { upsertProductsBatchWorkflow } from "./workflow"
 export type {
+  CategoryRefInput,
+  ImageInput,
+  PriceInput,
+  ProductIdentifierType,
+  ProductInput,
   UpsertProductsBatchInput,
   UpsertProductsBatchOutput,
   UpsertProductsBatchResult,
-  ProductInput,
-  VariantInput,
-  PriceInput,
-  CategoryRefInput,
-  ImageInput,
-  ProductIdentifierType,
   VariantIdentifierType,
+  VariantInput,
 } from "./types"
+export { upsertProductsBatchWorkflow } from "./workflow"
