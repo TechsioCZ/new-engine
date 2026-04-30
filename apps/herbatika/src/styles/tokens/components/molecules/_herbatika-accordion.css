@@ -19,3 +19,48 @@
   [data-scope="accordion"][data-part="item"] {
   border-bottom: var(--border-width-sm) solid var(--color-border-secondary);
 }
+
+[data-herbatika-faq-accordion] {
+  --herbatika-faq-accordion-duration: 350ms;
+  --herbatika-faq-accordion-easing: cubic-bezier(0, 0, 0.2, 1);
+}
+
+[data-herbatika-faq-accordion]
+  [data-scope="accordion"][data-part="item-content"] {
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+  border-block-start: var(--border-width-sm) solid
+    var(--color-border-secondary);
+  padding-block: 0;
+  padding-inline: var(--spacing-450);
+  transition:
+    grid-template-rows var(--herbatika-faq-accordion-duration)
+    var(--herbatika-faq-accordion-easing),
+    opacity var(--herbatika-faq-accordion-duration)
+    var(--herbatika-faq-accordion-easing),
+    border-color var(--herbatika-faq-accordion-duration)
+    var(--herbatika-faq-accordion-easing);
+}
+
+[data-herbatika-faq-accordion]
+  [data-scope="accordion"][data-part="item-content"][data-state="collapsed"] {
+  grid-template-rows: 0fr;
+  border-block-start-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-herbatika-faq-accordion]
+  [data-scope="accordion"][data-part="item-content"][data-state="expanded"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-herbatika-faq-accordion]
+    [data-scope="accordion"][data-part="item-content"] {
+    transition: none;
+  }
+}
