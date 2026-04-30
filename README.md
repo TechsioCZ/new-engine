@@ -6,7 +6,9 @@
   * For Mac, <a href="https://orbstack.dev/">OrbStack</a> is recommended instead of Docker Desktop
 * mise
   * add trust to the project folder with `mise trust`
+  * install repo-managed tools with `mise install`
   * activate mise in your shell (for example `eval "$(mise activate bash)"` or your shell equivalent) so repo-managed tools win on `PATH`
+  * `dev:init` ensures the `pnpm` version pinned in `package.json` is installed for the active mise-managed Node toolchain when missing
 
 ### Steps
 
