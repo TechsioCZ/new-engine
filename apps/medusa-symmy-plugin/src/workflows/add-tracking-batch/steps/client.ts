@@ -51,6 +51,9 @@ const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
 
 export type Query = ReturnType<typeof getQuery>
+type PgConnection = {
+  raw<T = { rows: unknown[] }>(sql: string, bindings?: unknown[]): Promise<T>
+}
 
 const stringMetadataValue = (
   metadata: Metadata | null | undefined,
@@ -62,10 +65,14 @@ const stringMetadataValue = (
 
 export class TrackingBatchClient {
   private readonly container: MedusaContainer
+  private readonly pg: PgConnection
   private readonly query: Query
 
   constructor(container: MedusaContainer) {
     this.container = container
+    this.pg = container.resolve<PgConnection>(
+      ContainerRegistrationKeys.PG_CONNECTION
+    )
     this.query = getQuery(container)
   }
 
@@ -74,9 +81,7 @@ export class TrackingBatchClient {
   ): Promise<TrackingOrderCache> {
     const orderIds = new Set<string>()
     const displayIds = new Set<number>()
-    const needsMetadataScan = shipments.some(
-      (shipment) => shipment.identifier_type === "erp_id"
-    )
+    const erpIds = new Set<string>()
 
     for (const shipment of shipments) {
       if (shipment.identifier_type === "order_id" && shipment.order_id) {
@@ -88,12 +93,19 @@ export class TrackingBatchClient {
           displayIds.add(displayId)
         }
       }
+      if (shipment.identifier_type === "erp_id" && shipment.erp_id) {
+        erpIds.add(shipment.erp_id)
+      }
     }
 
+    const metadataOrderIds = await this.queryOrderIdsByMetadata(
+      "erp_id",
+      erpIds
+    )
     const [byIdOrders, byDisplayIdOrders, scannedOrders] = await Promise.all([
       this.queryOrders({ id: Array.from(orderIds) }),
       this.queryOrders({ display_id: Array.from(displayIds) }),
-      needsMetadataScan ? this.queryAllOrders() : Promise.resolve([]),
+      this.queryOrders({ id: Array.from(metadataOrderIds) }),
     ])
 
     return this.buildOrderCache([
@@ -248,25 +260,23 @@ export class TrackingBatchClient {
     return (data ?? []) as ExistingOrder[]
   }
 
-  private async queryAllOrders(): Promise<ExistingOrder[]> {
-    const orders: ExistingOrder[] = []
-    const take = 1000
-    let skip = 0
-
-    while (true) {
-      const { data } = await this.query.graph({
-        entity: "order",
-        fields: ORDER_FIELDS as unknown as string[],
-        pagination: { take, skip },
-      })
-      const batch = (data ?? []) as ExistingOrder[]
-      orders.push(...batch)
-      if (batch.length < take) {
-        break
-      }
-      skip += take
+  private async queryOrderIdsByMetadata(
+    key: string,
+    values: Set<string>
+  ): Promise<Set<string>> {
+    const ids = new Set<string>()
+    if (!values.size) {
+      return ids
     }
-
-    return orders
+    const valueList = Array.from(values)
+    const placeholders = valueList.map(() => "?").join(", ")
+    const result = await this.pg.raw<{ rows: { id: string }[] }>(
+      `select id from "order" where deleted_at is null and metadata ->> ? in (${placeholders})`,
+      [key, ...valueList]
+    )
+    for (const row of result.rows ?? []) {
+      ids.add(row.id)
+    }
+    return ids
   }
 }

@@ -57,6 +57,9 @@ const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
 
 export type Query = ReturnType<typeof getQuery>
+type PgConnection = {
+  raw<T = { rows: unknown[] }>(sql: string, bindings?: unknown[]): Promise<T>
+}
 
 const stringMetadataValue = (
   metadata: Metadata | null | undefined,
@@ -71,21 +74,25 @@ const normalizeEmail = (email: string | null | undefined) =>
 
 export class CustomerBatchClient {
   private readonly container: MedusaContainer
+  private readonly pg: PgConnection
   private readonly query: Query
 
   constructor(container: MedusaContainer) {
     this.container = container
+    this.pg = container.resolve<PgConnection>(
+      ContainerRegistrationKeys.PG_CONNECTION
+    )
     this.query = getQuery(container)
   }
 
   async preload(customers: CustomerInput[]): Promise<CustomerCache> {
     const ids = new Set<string>()
     const emails = new Set<string>()
-    const needsMetadataScan = customers.some((customer) =>
-      ["erp_id", "vat_id", "company_registration_number"].includes(
-        customer.identifier_type
-      )
-    )
+    const metadataIdentifiers = {
+      company_registration_number: new Set<string>(),
+      erp_id: new Set<string>(),
+      vat_id: new Set<string>(),
+    }
 
     for (const customer of customers) {
       if (customer.identifier_type === "customer_id" && customer.customer_id) {
@@ -94,19 +101,34 @@ export class CustomerBatchClient {
       if (customer.email) {
         emails.add(customer.email.toLowerCase())
       }
+      if (
+        customer.identifier_type === "erp_id" ||
+        customer.identifier_type === "vat_id" ||
+        customer.identifier_type === "company_registration_number"
+      ) {
+        const value = stringMetadataValue(
+          customer.metadata,
+          customer.identifier_type
+        )
+        if (value) {
+          metadataIdentifiers[customer.identifier_type].add(value)
+        }
+      }
     }
 
-    const [byIdCustomers, byEmailCustomers, scannedCustomers] =
+    const metadataCustomerIds =
+      await this.queryCustomerIdsByMetadata(metadataIdentifiers)
+    const [byIdCustomers, byEmailCustomers, byMetadataCustomers] =
       await Promise.all([
         this.queryCustomers({ id: Array.from(ids) }),
         this.queryCustomers({ email: Array.from(emails) }),
-        needsMetadataScan ? this.queryAllCustomers() : Promise.resolve([]),
+        this.queryCustomers({ id: Array.from(metadataCustomerIds) }),
       ])
 
     return this.buildCustomerCache([
       ...byIdCustomers,
       ...byEmailCustomers,
-      ...scannedCustomers,
+      ...byMetadataCustomers,
     ])
   }
 
@@ -119,12 +141,15 @@ export class CustomerBatchClient {
       return { byCode }
     }
 
-    const { data } = await this.query.graph({
-      entity: "customer_group",
-      fields: ["id", "name", "metadata"],
+    const [nameGroups, metadataGroupIds] = await Promise.all([
+      this.queryGroups({ name: Array.from(codes) }),
+      this.queryGroupIdsByMetadataCodes(codes),
+    ])
+    const metadataGroups = await this.queryGroups({
+      id: Array.from(metadataGroupIds),
     })
 
-    for (const group of (data ?? []) as ExistingGroup[]) {
+    for (const group of [...nameGroups, ...metadataGroups]) {
       for (const code of [
         group.name,
         stringMetadataValue(group.metadata, "erp_code"),
@@ -137,6 +162,20 @@ export class CustomerBatchClient {
     }
 
     return { byCode }
+  }
+
+  private async queryGroups(
+    filters: Record<string, string[]>
+  ): Promise<ExistingGroup[]> {
+    if (Object.values(filters).every((values) => values.length === 0)) {
+      return []
+    }
+    const { data } = await this.query.graph({
+      entity: "customer_group",
+      fields: ["id", "name", "metadata"],
+      filters,
+    })
+    return (data ?? []) as ExistingGroup[]
   }
 
   cacheCustomer(
@@ -349,26 +388,53 @@ export class CustomerBatchClient {
     return (data ?? []) as ExistingCustomer[]
   }
 
-  private async queryAllCustomers(): Promise<ExistingCustomer[]> {
-    const customers: ExistingCustomer[] = []
-    const take = 1000
-    let skip = 0
-
-    while (true) {
-      const { data } = await this.query.graph({
-        entity: "customer",
-        fields: CUSTOMER_FIELDS as unknown as string[],
-        pagination: { take, skip },
-      })
-      const batch = (data ?? []) as ExistingCustomer[]
-      customers.push(...batch)
-      if (batch.length < take) {
-        break
+  private async queryCustomerIdsByMetadata(
+    identifiers: Record<
+      "company_registration_number" | "erp_id" | "vat_id",
+      Set<string>
+    >
+  ): Promise<Set<string>> {
+    const ids = new Set<string>()
+    for (const [key, values] of Object.entries(identifiers)) {
+      if (!values.size) {
+        continue
       }
-      skip += take
+      const valueList = Array.from(values)
+      const placeholders = valueList.map(() => "?").join(", ")
+      const result = await this.pg.raw<{ rows: { id: string }[] }>(
+        `select id from "customer" where deleted_at is null and metadata ->> ? in (${placeholders})`,
+        [key, ...valueList]
+      )
+      for (const row of result.rows ?? []) {
+        ids.add(row.id)
+      }
     }
+    return ids
+  }
 
-    return customers
+  private async queryGroupIdsByMetadataCodes(
+    codes: Set<string>
+  ): Promise<Set<string>> {
+    const ids = new Set<string>()
+    if (!codes.size) {
+      return ids
+    }
+    const valueList = Array.from(codes)
+    const placeholders = valueList.map(() => "?").join(", ")
+    const bindings = [...valueList, ...valueList]
+    const result = await this.pg.raw<{ rows: { id: string }[] }>(
+      `select id from "customer_group"
+       where deleted_at is null
+       and (
+         metadata ->> 'erp_code' in (${placeholders})
+         or metadata ->> 'code' in (${placeholders})
+       )`,
+      bindings
+    )
+    for (const row of result.rows ?? []) {
+      ids.add(row.id)
+    }
+    return ids
   }
 
   private buildCreatePayload(customer: CustomerInput) {
