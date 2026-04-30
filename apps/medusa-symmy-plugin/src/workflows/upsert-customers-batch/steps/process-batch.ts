@@ -9,8 +9,8 @@ import type {
 } from "../types"
 import {
   CustomerBatchClient,
-  type CustomerCache,
-  type GroupCache,
+  type CustomerGroupIndex,
+  type ExistingCustomerIndex,
 } from "./client"
 
 const toErrorMessage = (error: unknown) =>
@@ -28,18 +28,21 @@ const buildFailedResult = (
 const processCustomerForBatch = async ({
   client,
   customer,
-  customerCache,
-  groupCache,
+  existingCustomerIndex,
+  customerGroupIndex,
   logger,
 }: {
   client: CustomerBatchClient
   customer: CustomerInput
-  customerCache: CustomerCache
-  groupCache: GroupCache
+  existingCustomerIndex: ExistingCustomerIndex
+  customerGroupIndex: CustomerGroupIndex
   logger: Logger
 }): Promise<UpsertCustomersBatchResult> => {
   try {
-    const existing = client.findExistingCustomer(customer, customerCache)
+    const existing = client.findExistingCustomer(
+      customer,
+      existingCustomerIndex
+    )
     if (!existing) {
       const created = await client.createCustomer(customer)
       await client.upsertAddresses(created.id, null, customer.addresses)
@@ -47,9 +50,9 @@ const processCustomerForBatch = async ({
         created.id,
         null,
         customer.customer_group_codes,
-        groupCache
+        customerGroupIndex
       )
-      client.cacheCustomer(customerCache, customer, created.id)
+      client.cacheCustomer(existingCustomerIndex, customer, created.id)
       return {
         email: customer.email,
         status: "created",
@@ -63,7 +66,7 @@ const processCustomerForBatch = async ({
       existing.id,
       existing,
       customer.customer_group_codes,
-      groupCache
+      customerGroupIndex
     )
     return {
       email: customer.email ?? existing.email ?? undefined,
@@ -84,7 +87,7 @@ export const processCustomersBatchStep = createStep(
   async (input: UpsertCustomersBatchInput, { container }) => {
     const client = new CustomerBatchClient(container)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-    const [customerCache, groupCache] = await Promise.all([
+    const [existingCustomerIndex, customerGroupIndex] = await Promise.all([
       client.preload(input.customers),
       client.preloadGroups(input.customers),
     ])
@@ -95,8 +98,8 @@ export const processCustomersBatchStep = createStep(
         await processCustomerForBatch({
           client,
           customer,
-          customerCache,
-          groupCache,
+          existingCustomerIndex,
+          customerGroupIndex,
           logger,
         })
       )

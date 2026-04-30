@@ -8,6 +8,10 @@ import {
   updateCustomersWorkflow,
 } from "@medusajs/medusa/core-flows"
 import type { CustomerAddressInput, CustomerInput } from "../types"
+import {
+  type CustomerLookupKeys,
+  customerBatchClientMapperHelper,
+} from "./client-mapper-helper"
 
 type Metadata = Record<string, unknown>
 
@@ -30,7 +34,7 @@ export type ExistingCustomer = {
   addresses: ExistingAddress[]
 }
 
-export type CustomerCache = {
+export type ExistingCustomerIndex = {
   byId: Map<string, ExistingCustomer>
   byEmail: Map<string, ExistingCustomer>
   byErpId: Map<string, ExistingCustomer>
@@ -38,7 +42,7 @@ export type CustomerCache = {
   byCompanyRegistrationNumber: Map<string, ExistingCustomer>
 }
 
-export type GroupCache = {
+export type CustomerGroupIndex = {
   byCode: Map<string, ExistingGroup>
 }
 
@@ -58,57 +62,19 @@ const getQuery = (container: MedusaContainer) =>
 
 export type Query = ReturnType<typeof getQuery>
 
-const stringMetadataValue = (
-  metadata: Metadata | null | undefined,
-  key: string
-) => {
-  const value = metadata?.[key]
-  return typeof value === "string" && value.length ? value : null
-}
-
-const normalizeEmail = (email: string | null | undefined) =>
-  email?.toLowerCase()
-
 export class CustomerBatchClient {
   private readonly container: MedusaContainer
   private readonly query: Query
+  private readonly mapper = customerBatchClientMapperHelper
 
   constructor(container: MedusaContainer) {
     this.container = container
     this.query = getQuery(container)
   }
 
-  async preload(customers: CustomerInput[]): Promise<CustomerCache> {
-    const ids = new Set<string>()
-    const emails = new Set<string>()
-    const metadataIdentifiers = {
-      company_registration_number: new Set<string>(),
-      erp_id: new Set<string>(),
-      vat_id: new Set<string>(),
-    }
-
-    for (const customer of customers) {
-      if (customer.identifier_type === "customer_id" && customer.customer_id) {
-        ids.add(customer.customer_id)
-      }
-      if (customer.email) {
-        emails.add(customer.email.toLowerCase())
-      }
-      if (
-        customer.identifier_type === "erp_id" ||
-        customer.identifier_type === "vat_id" ||
-        customer.identifier_type === "company_registration_number"
-      ) {
-        const value = stringMetadataValue(
-          customer.metadata,
-          customer.identifier_type
-        )
-        if (value) {
-          metadataIdentifiers[customer.identifier_type].add(value)
-        }
-      }
-    }
-
+  async preload(customers: CustomerInput[]): Promise<ExistingCustomerIndex> {
+    const { ids, emails, metadataIdentifiers } =
+      this.mapper.collectCustomerLookupKeys(customers)
     const metadataCustomerIds =
       await this.queryCustomerIdsByMetadata(metadataIdentifiers)
     const [byIdCustomers, byEmailCustomers, byMetadataCustomers] =
@@ -118,20 +84,17 @@ export class CustomerBatchClient {
         this.queryCustomers({ id: Array.from(metadataCustomerIds) }),
       ])
 
-    return this.buildCustomerCache([
+    return this.mapper.buildCustomerIndex([
       ...byIdCustomers,
       ...byEmailCustomers,
       ...byMetadataCustomers,
     ])
   }
 
-  async preloadGroups(customers: CustomerInput[]): Promise<GroupCache> {
-    const codes = new Set(
-      customers.flatMap((customer) => customer.customer_group_codes ?? [])
-    )
-    const byCode = new Map<string, ExistingGroup>()
+  async preloadGroups(customers: CustomerInput[]): Promise<CustomerGroupIndex> {
+    const codes = this.mapper.collectGroupCodes(customers)
     if (!codes.size) {
-      return { byCode }
+      return { byCode: new Map() }
     }
 
     const [nameGroups, metadataGroupIds] = await Promise.all([
@@ -142,19 +105,10 @@ export class CustomerBatchClient {
       id: Array.from(metadataGroupIds),
     })
 
-    for (const group of [...nameGroups, ...metadataGroups]) {
-      for (const code of [
-        group.name,
-        stringMetadataValue(group.metadata, "erp_code"),
-        stringMetadataValue(group.metadata, "code"),
-      ]) {
-        if (code && codes.has(code)) {
-          byCode.set(code, group)
-        }
-      }
-    }
-
-    return { byCode }
+    return this.mapper.buildGroupIndex(
+      [...nameGroups, ...metadataGroups],
+      codes
+    )
   }
 
   private async queryGroups(
@@ -172,54 +126,24 @@ export class CustomerBatchClient {
   }
 
   cacheCustomer(
-    cache: CustomerCache,
+    index: ExistingCustomerIndex,
     customer: CustomerInput,
     customerId: string
   ): void {
-    this.addCustomerToCache(cache, {
-      id: customerId,
-      email: customer.email ?? null,
-      metadata: this.buildMetadata(null, customer),
-      groups: [],
-      addresses: [],
-    })
+    this.mapper.addCreatedCustomerToIndex(index, customer, customerId)
   }
 
   findExistingCustomer(
     customer: CustomerInput,
-    cache: CustomerCache
+    index: ExistingCustomerIndex
   ): ExistingCustomer | null {
-    if (customer.identifier_type === "customer_id" && customer.customer_id) {
-      return cache.byId.get(customer.customer_id) ?? null
-    }
-    if (customer.identifier_type === "email" && customer.email) {
-      return cache.byEmail.get(customer.email.toLowerCase()) ?? null
-    }
-
-    const identifier = stringMetadataValue(
-      customer.metadata,
-      customer.identifier_type
-    )
-    if (!identifier) {
-      return null
-    }
-    if (customer.identifier_type === "erp_id") {
-      return cache.byErpId.get(identifier) ?? null
-    }
-    if (customer.identifier_type === "vat_id") {
-      return cache.byVatId.get(identifier) ?? null
-    }
-    if (customer.identifier_type === "company_registration_number") {
-      return cache.byCompanyRegistrationNumber.get(identifier) ?? null
-    }
-
-    return null
+    return this.mapper.findExistingCustomer(customer, index)
   }
 
   async createCustomer(customer: CustomerInput): Promise<ExistingCustomer> {
     const { result } = await createCustomersWorkflow(this.container).run({
       input: {
-        customersData: [this.buildCreatePayload(customer)] as never,
+        customersData: [this.mapper.buildCreatePayload(customer)] as never,
       },
     })
     const created = result?.[0] as unknown as ExistingCustomer | undefined
@@ -237,7 +161,7 @@ export class CustomerBatchClient {
     await updateCustomersWorkflow(this.container).run({
       input: {
         selector: { id: customerId },
-        update: this.buildUpdatePayload(existing, customer) as never,
+        update: this.mapper.buildUpdatePayload(existing, customer) as never,
       },
     })
   }
@@ -268,7 +192,7 @@ export class CustomerBatchClient {
         await updateCustomerAddressesWorkflow(this.container).run({
           input: {
             selector: { id: address.address_id, customer_id: customerId },
-            update: this.buildAddressPayload(address) as never,
+            update: this.mapper.buildAddressPayload(address) as never,
           },
         })
         continue
@@ -278,7 +202,7 @@ export class CustomerBatchClient {
         input: {
           addresses: [
             {
-              ...this.buildAddressPayload(address),
+              ...this.mapper.buildAddressPayload(address),
               customer_id: customerId,
             },
           ] as never,
@@ -291,7 +215,7 @@ export class CustomerBatchClient {
     customerId: string,
     existing: ExistingCustomer | null,
     groupCodes: string[] | undefined,
-    groupCache: GroupCache
+    groupIndex: CustomerGroupIndex
   ): Promise<void> {
     if (!groupCodes) {
       return
@@ -299,7 +223,7 @@ export class CustomerBatchClient {
 
     const targetIds = new Set<string>()
     for (const code of groupCodes) {
-      const group = groupCache.byCode.get(code)
+      const group = groupIndex.byCode.get(code)
       if (!group) {
         throw new Error(`Customer group code '${code}' was not found`)
       }
@@ -325,48 +249,6 @@ export class CustomerBatchClient {
     })
   }
 
-  private buildCustomerCache(customers: ExistingCustomer[]): CustomerCache {
-    const cache: CustomerCache = {
-      byId: new Map(),
-      byEmail: new Map(),
-      byErpId: new Map(),
-      byVatId: new Map(),
-      byCompanyRegistrationNumber: new Map(),
-    }
-
-    for (const customer of customers) {
-      this.addCustomerToCache(cache, customer)
-    }
-
-    return cache
-  }
-
-  private addCustomerToCache(
-    cache: CustomerCache,
-    customer: ExistingCustomer
-  ): void {
-    cache.byId.set(customer.id, customer)
-    const email = normalizeEmail(customer.email)
-    if (email) {
-      cache.byEmail.set(email, customer)
-    }
-    const erpId = stringMetadataValue(customer.metadata, "erp_id")
-    if (erpId) {
-      cache.byErpId.set(erpId, customer)
-    }
-    const vatId = stringMetadataValue(customer.metadata, "vat_id")
-    if (vatId) {
-      cache.byVatId.set(vatId, customer)
-    }
-    const registrationNumber = stringMetadataValue(
-      customer.metadata,
-      "company_registration_number"
-    )
-    if (registrationNumber) {
-      cache.byCompanyRegistrationNumber.set(registrationNumber, customer)
-    }
-  }
-
   private async queryCustomers(
     filters: Record<string, string[]>
   ): Promise<ExistingCustomer[]> {
@@ -382,10 +264,7 @@ export class CustomerBatchClient {
   }
 
   private async queryCustomerIdsByMetadata(
-    identifiers: Record<
-      "company_registration_number" | "erp_id" | "vat_id",
-      Set<string>
-    >
+    identifiers: CustomerLookupKeys["metadataIdentifiers"]
   ): Promise<Set<string>> {
     const ids = new Set<string>()
     for (const [key, values] of Object.entries(identifiers)) {
@@ -442,61 +321,5 @@ export class CustomerBatchClient {
       ids.add(row.id)
     }
     return ids
-  }
-
-  private buildCreatePayload(customer: CustomerInput) {
-    return {
-      company_name: customer.company_name,
-      first_name: customer.first_name,
-      last_name: customer.last_name,
-      email: customer.email?.toLowerCase(),
-      phone: customer.phone,
-      metadata: this.buildMetadata(null, customer),
-    }
-  }
-
-  private buildUpdatePayload(
-    existing: ExistingCustomer,
-    customer: CustomerInput
-  ) {
-    return {
-      company_name: customer.company_name,
-      first_name: customer.first_name,
-      last_name: customer.last_name,
-      email: customer.email?.toLowerCase(),
-      phone: customer.phone,
-      metadata: this.buildMetadata(existing.metadata, customer),
-    }
-  }
-
-  private buildMetadata(
-    existingMetadata: Metadata | null | undefined,
-    customer: CustomerInput
-  ) {
-    return {
-      ...(existingMetadata ?? {}),
-      ...(customer.metadata ?? {}),
-      ...(customer.identifier_type !== "email" &&
-      customer.identifier_type !== "customer_id"
-        ? {
-            [customer.identifier_type]:
-              customer.metadata?.[customer.identifier_type],
-          }
-        : {}),
-    }
-  }
-
-  private buildAddressPayload(address: CustomerAddressInput) {
-    return {
-      first_name: address.first_name,
-      last_name: address.last_name,
-      company: address.company,
-      address_1: address.address_1,
-      address_2: address.address_2,
-      city: address.city,
-      postal_code: address.postal_code,
-      country_code: address.country_code.toLowerCase(),
-      phone: address.phone,
-    }
   }
 }
