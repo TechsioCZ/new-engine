@@ -7,6 +7,7 @@ import {
   SectionHeader,
   aboutParagraphClassName,
 } from "./about-page.shared";
+import { AboutReviewRating } from "./about-review-rating";
 
 const iconLinkClassName =
   "inline-flex h-800 w-800 items-center justify-center rounded-full border border-border-secondary bg-surface text-fg-primary transition-colors hover:border-primary hover:bg-primary-light";
@@ -138,24 +139,6 @@ function AboutSocialLinks() {
   );
 }
 
-function AboutRatingStars() {
-  return (
-    <div
-      aria-label="5 z 5 hviezdičiek"
-      className="flex items-center gap-100 text-warning"
-      role="img"
-    >
-      {Array.from({ length: 5 }).map((_, index) => (
-        <span
-          aria-hidden="true"
-          className="token-icon-star text-icon-lg"
-          key={`about-rating-star-${index + 1}`}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function AboutCommunityAndReviews() {
   return (
     <div className="space-y-650 border-border-secondary border-t pt-650">
@@ -188,7 +171,7 @@ export function AboutCommunityAndReviews() {
             paragraph={paragraph}
           />
         ))}
-        <AboutRatingStars />
+        <AboutReviewRating />
       </section>
     </div>
   );
