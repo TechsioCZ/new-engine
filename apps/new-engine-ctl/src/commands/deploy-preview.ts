@@ -160,6 +160,7 @@ export function createDeployPreviewCommand(): Command {
     )
     .action(async (options) => {
       const input = buildDeployPreviewInput(options)
+      maskGitHubValue(input.previewDbPassword)
       const result = await executeDeployPreview(input)
       await writeDeployPreviewOutputs(result)
       process.stdout.write(`${JSON.stringify(result.response)}\n`)
