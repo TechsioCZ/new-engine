@@ -14,6 +14,7 @@ export type StorefrontReviewTrustSource = {
   id: string;
   logo: StaticImageData;
   logoAlt: string;
+  logoWidth: number;
   scoreLabel: string;
   reviewCountLabel: string;
 };

@@ -29,4 +29,5 @@
   --height-product-card-image: 16rem;
 
   --height-header-logo: 3.75rem;
+  --height-third-parties-logo: var(--spacing-600);
 }

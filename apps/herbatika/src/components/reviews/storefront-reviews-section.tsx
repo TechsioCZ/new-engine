@@ -5,9 +5,9 @@ import { Rating } from "@techsio/ui-kit/atoms/rating";
 import type { StaticImageData } from "next/image";
 import NextImage from "next/image";
 import NextLink from "next/link";
+import { StorefrontReviewTrustBadges } from "@/components/reviews/storefront-review-trust-badges";
 import {
   STOREFRONT_PRODUCT_REVIEWS,
-  STOREFRONT_REVIEW_TRUST_SOURCES,
   STOREFRONT_REVIEW_VERIFIED_CUSTOMER_BADGE,
 } from "@/components/reviews/storefront-reviews.data";
 import type {
@@ -33,37 +33,6 @@ type StorefrontReviewsSectionProps = {
 function resolveReviewInitial(author: string): string {
   const trimmed = author.trim();
   return trimmed.charAt(0).toUpperCase() || "A";
-}
-
-function ReviewTrustSources({
-  sources,
-}: {
-  sources: readonly StorefrontReviewTrustSource[];
-}) {
-  return (
-    <div className="grid w-full gap-200 sm:w-auto sm:grid-cols-3">
-      {sources.map((source) => (
-        <div
-          className="flex items-center justify-center gap-200 rounded-sm bg-surface px-350 py-200"
-          key={source.id}
-        >
-          <NextImage
-            alt={source.logoAlt}
-            className="h-[28px] w-auto object-contain"
-            src={source.logo}
-          />
-          <div className="flex flex-col items-center">
-            <p className="font-verdana text-base leading-tight font-bold text-primary">
-              {source.scoreLabel}
-            </p>
-            <p className="font-verdana text-2xs leading-tight text-fg-disabled">
-              {source.reviewCountLabel}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function ReviewCard({
@@ -145,7 +114,7 @@ export function StorefrontReviewsSection({
   scoreLabel = "5,0",
   ratingValue = 5,
   reviews = STOREFRONT_PRODUCT_REVIEWS,
-  trustSources = STOREFRONT_REVIEW_TRUST_SOURCES,
+  trustSources,
   sourceBadge = STOREFRONT_REVIEW_VERIFIED_CUSTOMER_BADGE,
 }: StorefrontReviewsSectionProps) {
   const isHomepage = variant === "homepage";
@@ -178,7 +147,9 @@ export function StorefrontReviewsSection({
           )}
         </div>
 
-        {isHomepage ? <ReviewTrustSources sources={trustSources} /> : null}
+        {isHomepage ? (
+          <StorefrontReviewTrustBadges className="sm:w-auto" sources={trustSources} />
+        ) : null}
 
         {shouldShowLink && resolvedLinkHref && resolvedLinkLabel ? (
           <NextLink

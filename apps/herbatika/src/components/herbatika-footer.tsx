@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Footer } from "@techsio/ui-kit/organisms/footer";
+import { StorefrontReviewTrustBadges } from "@/components/reviews/storefront-review-trust-badges";
 import { HerbatikaLogo } from "./herbatika-logo";
 
 const FOOTER_COLUMNS = [
@@ -46,12 +47,6 @@ const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
   { href: "https://www.linkedin.com/", icon: "token-icon-linkedin", label: "LinkedIn" },
   { href: "https://www.tiktok.com/", icon: "token-icon-music", label: "TikTok" },
 ];
-
-const FOOTER_RATINGS = [
-  { brand: "heureka!", score: "100%", votes: "(2129x)" },
-  { brand: "zbozi.cz", score: "97%", votes: "(692x)" },
-  { brand: "Google", score: "5,0/5", votes: "(5x)" },
-] as const;
 
 const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
   { code: "SK", icon: "token-icon-sk", active: true },
@@ -118,18 +113,10 @@ export function HerbatikaFooter() {
               ))}
             </div>
 
-            <div className="grid w-full gap-x-400 gap-y-300 sm:grid-cols-3 lg:w-auto lg:gap-y-0">
-              {FOOTER_RATINGS.map((rating) => (
-                <article className="rounded-sm bg-overlay px-500 py-500 text-center" key={rating.brand}>
-                  <Footer.Text className="font-bold leading-relaxed text-fg-primary">
-                    {rating.brand} <span className="text-primary">{rating.score}</span>
-                  </Footer.Text>
-                  <Footer.Text className="text-2xs leading-snug text-fg-disabled">
-                    {rating.votes}
-                  </Footer.Text>
-                </article>
-              ))}
-            </div>
+            <StorefrontReviewTrustBadges
+              className="lg:w-auto"
+              size="md"
+            />
           </section>
 
           <Footer.Divider className="mx-auto max-w-footer-max" />

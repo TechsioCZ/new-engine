@@ -53,7 +53,7 @@ const resolveBreadcrumbItems = (
   categoryById: Map<string, HttpTypes.StoreProductCategory>,
 ) => {
   const items: HerbatikaBreadcrumbItem[] = [
-    { label: "Products", href: "/", icon: "token-icon-home" },
+    { label: "Domů", href: "/", icon: "token-icon-home" },
   ];
 
   if (!activeCategory) {

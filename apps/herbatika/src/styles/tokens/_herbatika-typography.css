@@ -6,10 +6,10 @@
   --font-sans: "Rubik", "Open Sans", sans-serif;
   --font-roboto: "Roboto", "Open Sans", sans-serif;
 
-  --text-2xs: 0.625rem;
-  --text-xs: 0.8125rem;
-  --text-sm: 0.875rem;
-  --text-md: 1rem;
+  --text-2xs: 0.625rem; /*10px*/
+  --text-xs: 0.8125rem; /*13px*/
+  --text-sm: 0.875rem; /*14px*/
+  --text-md: 1rem; /*16px*/
   --text-lg: 1.125rem;
   --text-xl: 1.25rem;
   --text-2xl: 1.5rem;
