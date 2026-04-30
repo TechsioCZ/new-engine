@@ -7,9 +7,7 @@ const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const MEDUSA_ADMIN_ALLOWED_HOSTS =
-  process.env.NODE_ENV === "development"
-    ? true
-    : process.env.MEDUSA_BACKEND_URL
+  process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
 
 module.exports = defineConfig({
   featureFlags: {
@@ -48,6 +46,10 @@ module.exports = defineConfig({
   plugins: [
     {
       resolve: "@medusajs/draft-order",
+      options: {},
+    },
+    {
+      resolve: "medusa-symmy-plugin",
       options: {},
     },
     {
