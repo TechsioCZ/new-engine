@@ -7,7 +7,8 @@ import type {
   AddTrackingBatchResult,
   TrackingShipmentInput,
 } from "../types"
-import { TrackingBatchClient, type TrackingOrderCache } from "./client"
+import { TrackingBatchClient, type TrackingOrderIndex } from "./client"
+import { trackingBatchClientMapperHelper } from "./client-mapper-helper"
 
 const toErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
@@ -22,32 +23,23 @@ const toErrorMessage = (error: unknown) => {
   return "Unknown error"
 }
 
-const getOrderIdentifier = (shipment: TrackingShipmentInput) => {
-  if (shipment.identifier_type === "display_id") {
-    return shipment.display_id ?? ""
-  }
-  if (shipment.identifier_type === "order_id") {
-    return shipment.order_id ?? ""
-  }
-  return shipment.erp_id ?? ""
-}
-
 const processShipmentForBatch = async ({
   client,
   createdBy,
   logger,
-  orderCache,
+  orderIndex,
   shipment,
 }: {
   client: TrackingBatchClient
   createdBy?: string
   logger: Logger
-  orderCache: TrackingOrderCache
+  orderIndex: TrackingOrderIndex
   shipment: TrackingShipmentInput
 }): Promise<AddTrackingBatchResult> => {
-  const orderIdentifier = getOrderIdentifier(shipment)
+  const orderIdentifier =
+    trackingBatchClientMapperHelper.getOrderIdentifier(shipment)
   try {
-    const order = client.findExistingOrder(shipment, orderCache)
+    const order = client.findExistingOrder(shipment, orderIndex)
     if (!order) {
       return {
         order_identifier: orderIdentifier,
@@ -90,7 +82,7 @@ export const processTrackingBatchStep = createStep(
   async (input: AddTrackingBatchInput, { container }) => {
     const client = new TrackingBatchClient(container)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-    const orderCache = await client.preload(input.shipments)
+    const orderIndex = await client.preload(input.shipments)
 
     const results: AddTrackingBatchResult[] = []
     for (const shipment of input.shipments) {
@@ -99,7 +91,7 @@ export const processTrackingBatchStep = createStep(
           client,
           createdBy: input.created_by,
           logger,
-          orderCache,
+          orderIndex,
           shipment,
         })
       )
