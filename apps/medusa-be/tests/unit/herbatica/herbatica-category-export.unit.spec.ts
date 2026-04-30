@@ -1,12 +1,15 @@
-import {resolve} from "node:path"
+import { resolve } from "node:path"
 import {
-    excerptPlainText,
-    parseHerbaticaCategoriesXmlFile,
-    stripHtmlToPlainText,
+  excerptPlainText,
+  parseHerbaticaCategoriesXmlFile,
+  stripHtmlToPlainText,
 } from "../../../src/scripts/herbatica-category-export"
 
 describe("Herbatica category export parser", () => {
-  const xmlPath = resolve(process.cwd(), "src/scripts/seed-files/categories.xml")
+  const xmlPath = resolve(
+    process.cwd(),
+    "src/scripts/seed-files/categories.xml"
+  )
   const categories = parseHerbaticaCategoriesXmlFile(xmlPath)
 
   it("parses the canonical category export snapshot", () => {
@@ -27,10 +30,10 @@ describe("Herbatica category export parser", () => {
       expandInMenu: false,
       isVisible: true,
     })
-    expect(category?.topDescriptionHtml).toContain(
+    expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
       "Človek je neoddeliteľnou súčasťou prírody"
     )
-    expect(category?.bottomDescriptionHtml).toContain(
+    expect(stripHtmlToPlainText(category?.bottomDescriptionHtml)).toContain(
       "Liečebné smery a prístup k životu"
     )
     expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
@@ -49,7 +52,7 @@ describe("Herbatica category export parser", () => {
       metaDescription: expect.stringContaining("prehľad produktov"),
       bottomDescriptionHtml: undefined,
     })
-    expect(category?.topDescriptionHtml).toContain(
+    expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
       "Kľúčom ku zdravej a krásnej pleti"
     )
   })
