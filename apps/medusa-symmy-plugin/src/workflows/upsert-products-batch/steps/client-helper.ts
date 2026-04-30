@@ -174,7 +174,7 @@ export class ProductBatchClientHelper {
     return null
   }
 
-  private resolveCategoryIds(
+  resolveCategoryIds(
     refs: CategoryRefInput[] | undefined,
     resolved: ResolvedCategoryMap
   ): string[] {
@@ -197,15 +197,11 @@ export class ProductBatchClientHelper {
     return Array.from(ids)
   }
 
-  private buildImagesPayload(images: ImageInput[] | undefined) {
+  buildImagesPayload(images: ImageInput[] | undefined) {
     if (!images?.length) {
       return
     }
     return images.map((image) => ({ url: image.url }))
-  }
-
-  buildProductImagesPayload(images: ImageInput[] | undefined) {
-    return this.buildImagesPayload(images)
   }
 
   buildIdentifierEcho(product: ProductInput) {
@@ -217,7 +213,7 @@ export class ProductBatchClientHelper {
     }
   }
 
-  private validatePrices(prices: PriceInput[] | undefined, label: string) {
+  validatePrices(prices: PriceInput[] | undefined, label: string) {
     if (!prices?.length) {
       return
     }
@@ -231,10 +227,6 @@ export class ProductBatchClientHelper {
         )
       }
     }
-  }
-
-  validateProductBasePrices(product: ProductInput) {
-    this.validatePrices(product.base_prices, "base")
   }
 
   buildCreatePayload(
@@ -298,13 +290,6 @@ export class ProductBatchClientHelper {
         : undefined,
       category_ids: categoryIds.length ? categoryIds : undefined,
     }
-  }
-
-  resolveProductCategoryIds(
-    refs: CategoryRefInput[] | undefined,
-    resolved: ResolvedCategoryMap
-  ) {
-    return this.resolveCategoryIds(refs, resolved)
   }
 
   collectProductIdentifiers(products: ProductInput[]): ProductIdentifierSets {
@@ -411,16 +396,6 @@ export class ProductBatchClientHelper {
     return missingProductIds
   }
 
-  private addProductsToCache(
-    productCache: Map<string, ExistingProduct>,
-    products: Record<string, unknown>[]
-  ) {
-    for (const raw of products) {
-      const existingProduct = this.toExistingProduct(raw as RawExistingProduct)
-      productCache.set(existingProduct.id, existingProduct)
-    }
-  }
-
   async hydrateMissingProducts(
     query: Query,
     productCache: Map<string, ExistingProduct>,
@@ -436,7 +411,10 @@ export class ProductBatchClientHelper {
       fields,
       filters: { id: Array.from(missingProductIds) },
     })
-    this.addProductsToCache(productCache, data)
+    for (const raw of data) {
+      const existingProduct = this.toExistingProduct(raw as RawExistingProduct)
+      productCache.set(existingProduct.id, existingProduct)
+    }
   }
 
   buildExistingProductsByIdentifier(
@@ -472,52 +450,30 @@ export class ProductBatchClientHelper {
     return { handles, names }
   }
 
-  async resolveCategoriesByHandle(
+  async resolveCategoriesByField(
     query: Query,
-    handles: Set<string>
+    field: "handle" | "name",
+    values: Set<string>
   ): Promise<Map<string, string>> {
-    const byHandle = new Map<string, string>()
-    if (handles.size === 0) {
-      return byHandle
+    const map = new Map<string, string>()
+    if (values.size === 0) {
+      return map
     }
 
     const { data } = await query.graph({
       entity: "product_category",
-      fields: ["id", "handle"],
-      filters: { handle: Array.from(handles) },
+      fields: ["id", field],
+      filters: { [field]: Array.from(values) },
     })
 
     for (const category of data) {
-      if (category.handle) {
-        byHandle.set(category.handle, category.id)
+      const value = category[field] as string | null | undefined
+      if (value && !map.has(value)) {
+        map.set(value, category.id)
       }
     }
 
-    return byHandle
-  }
-
-  async resolveCategoriesByName(
-    query: Query,
-    names: Set<string>
-  ): Promise<Map<string, string>> {
-    const byName = new Map<string, string>()
-    if (names.size === 0) {
-      return byName
-    }
-
-    const { data } = await query.graph({
-      entity: "product_category",
-      fields: ["id", "name"],
-      filters: { name: Array.from(names) },
-    })
-
-    for (const category of data) {
-      if (category.name && !byName.has(category.name)) {
-        byName.set(category.name, category.id)
-      }
-    }
-
-    return byName
+    return map
   }
 
   buildVariantChanges(

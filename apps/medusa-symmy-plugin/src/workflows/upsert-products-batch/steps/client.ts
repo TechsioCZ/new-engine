@@ -109,8 +109,8 @@ export class ProductBatchClient {
   ): Promise<ResolvedCategoryMap> {
     const { handles, names } = this.helper.collectCategoryRefs(products)
     const [byHandle, byName] = await Promise.all([
-      this.helper.resolveCategoriesByHandle(this.query, handles),
-      this.helper.resolveCategoriesByName(this.query, names),
+      this.helper.resolveCategoriesByField(this.query, "handle", handles),
+      this.helper.resolveCategoriesByField(this.query, "name", names),
     ])
 
     return { byHandle, byName }
@@ -155,8 +155,8 @@ export class ProductBatchClient {
     product: ProductInput,
     resolvedCategories: ResolvedCategoryMap
   ): Promise<void> {
-    this.helper.validateProductBasePrices(product)
-    const categoryIds = this.helper.resolveProductCategoryIds(
+    this.helper.validatePrices(product.base_prices, "base")
+    const categoryIds = this.helper.resolveCategoryIds(
       product.categories,
       resolvedCategories
     )
@@ -179,7 +179,7 @@ export class ProductBatchClient {
     } else if (product.metadata) {
       update.metadata = product.metadata
     }
-    const images = this.helper.buildProductImagesPayload(product.images)
+    const images = this.helper.buildImagesPayload(product.images)
     if (images) {
       update.images = images
     }
