@@ -41,7 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 src/payload-types.ts
-src/app/(payload)/**/importMap.js
 
 .env
 
