@@ -7,30 +7,30 @@ import type {
   UpdateStockBatchResult,
 } from "../types"
 import { StockBatchClient } from "./client"
-import { stockBatchClientHelper } from "./client-helper"
+import { stockBatchClientMapperHelper } from "./client-mapper-helper"
 
 export const processStockBatchStep = createStep(
   "symmy-process-stock-batch",
   async (input: UpdateStockBatchInput, { container }) => {
     const client = new StockBatchClient(container)
-    const helper = stockBatchClientHelper
+    const mapper = stockBatchClientMapperHelper
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
     const results: UpdateStockBatchResult[] = new Array(input.updates.length)
     const maps = await client.preload(input)
-    const resolved = helper.resolveUpdates(input.updates, maps, results)
+    const resolved = mapper.resolveUpdates(input.updates, maps, results)
     const existingLevels = await client.loadExistingLevels(resolved)
-    const payload = helper.buildBatchPayload(resolved, existingLevels)
+    const payload = mapper.buildBatchPayload(resolved, existingLevels)
 
     try {
       const { created, updated } = await client.applyBatch(payload)
-      helper.fillResultsFromLevels(
+      mapper.fillResultsFromLevels(
         payload.createOwners,
         created,
         existingLevels,
         results
       )
-      helper.fillResultsFromLevels(
+      mapper.fillResultsFromLevels(
         payload.updateOwners,
         updated,
         existingLevels,

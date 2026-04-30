@@ -46,10 +46,14 @@ type StockIdentifierSets = {
   inventoryItemIds: Set<string>
 }
 
+export type VariantInventoryItemRow = Record<string, unknown> & {
+  inventory_items?: { inventory?: { id?: string } }[]
+}
+
 const levelKey = (inventoryItemId: string, locationId: string) =>
   `${inventoryItemId}:${locationId}`
 
-export class StockBatchClientHelper {
+export class StockBatchClientMapperHelper {
   collectIdentifiers(updates: StockUpdateInput[]): StockIdentifierSets {
     const skus = new Set<string>()
     const eans = new Set<string>()
@@ -151,6 +155,45 @@ export class StockBatchClientHelper {
     return resolved
   }
 
+  collectLevelLookupKeys(resolved: ResolvedUpdate[]) {
+    return {
+      inventoryItemIds: Array.from(
+        new Set(resolved.map((item) => item.inventoryItemId))
+      ),
+      locationIds: Array.from(new Set(resolved.map((item) => item.locationId))),
+    }
+  }
+
+  buildExistingLevelIndex(levels: ExistingLevel[]): Map<string, ExistingLevel> {
+    const index = new Map<string, ExistingLevel>()
+    for (const level of levels) {
+      index.set(levelKey(level.inventory_item_id, level.location_id), level)
+    }
+    return index
+  }
+
+  buildVariantInventoryItemMap(
+    field: "sku" | "ean" | "id",
+    variants: VariantInventoryItemRow[]
+  ): Map<string, string> {
+    const index = new Map<string, string>()
+    for (const variant of variants) {
+      const value = variant[field]
+      if (typeof value !== "string" || !value.length) {
+        continue
+      }
+      const inventoryItemId = variant.inventory_items?.[0]?.inventory?.id
+      if (inventoryItemId) {
+        index.set(value, inventoryItemId)
+      }
+    }
+    return index
+  }
+
+  buildValidInventoryItemIdSet(items: { id: string }[]): Set<string> {
+    return new Set(items.map((item) => item.id))
+  }
+
   buildBatchPayload(
     resolved: ResolvedUpdate[],
     existingLevels: Map<string, ExistingLevel>
@@ -225,4 +268,4 @@ export class StockBatchClientHelper {
   }
 }
 
-export const stockBatchClientHelper = new StockBatchClientHelper()
+export const stockBatchClientMapperHelper = new StockBatchClientMapperHelper()

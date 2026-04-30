@@ -8,8 +8,9 @@ import {
   type ResolvedUpdate,
   type ResolverMaps,
   type StockBatchPayload,
-  stockBatchClientHelper,
-} from "./client-helper"
+  stockBatchClientMapperHelper,
+  type VariantInventoryItemRow,
+} from "./client-mapper-helper"
 
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
@@ -23,7 +24,7 @@ export type BatchApplyResult = {
 
 export class StockBatchClient {
   private readonly container: MedusaContainer
-  private readonly helper = stockBatchClientHelper
+  private readonly mapper = stockBatchClientMapperHelper
   private readonly query: Query
 
   constructor(container: MedusaContainer) {
@@ -33,7 +34,7 @@ export class StockBatchClient {
 
   async preload(input: UpdateStockBatchInput): Promise<ResolverMaps> {
     const { skus, eans, variantIds, inventoryItemIds } =
-      this.helper.collectIdentifiers(input.updates)
+      this.mapper.collectIdentifiers(input.updates)
 
     const [
       skuMap,
@@ -61,13 +62,10 @@ export class StockBatchClient {
   async loadExistingLevels(
     resolved: ResolvedUpdate[]
   ): Promise<Map<string, ExistingLevel>> {
-    const inventoryItemIds = Array.from(
-      new Set(resolved.map((r) => r.inventoryItemId))
-    )
-    const locationIds = Array.from(new Set(resolved.map((r) => r.locationId)))
-    const map = new Map<string, ExistingLevel>()
+    const { inventoryItemIds, locationIds } =
+      this.mapper.collectLevelLookupKeys(resolved)
     if (!(inventoryItemIds.length && locationIds.length)) {
-      return map
+      return new Map()
     }
     const { data: levels } = await this.query.graph({
       entity: "inventory_level",
@@ -77,10 +75,9 @@ export class StockBatchClient {
         location_id: locationIds,
       },
     })
-    for (const level of (levels ?? []) as ExistingLevel[]) {
-      map.set(`${level.inventory_item_id}:${level.location_id}`, level)
-    }
-    return map
+    return this.mapper.buildExistingLevelIndex(
+      (levels ?? []) as ExistingLevel[]
+    )
   }
 
   async applyBatch(payload: StockBatchPayload): Promise<BatchApplyResult> {
@@ -105,49 +102,34 @@ export class StockBatchClient {
     field: "sku" | "ean" | "id",
     values: Set<string>
   ): Promise<Map<string, string>> {
-    const map = new Map<string, string>()
     if (!values.size) {
-      return map
+      return new Map()
     }
     const { data: variants } = await this.query.graph({
       entity: "variant",
       fields: [field, "inventory_items.inventory.id"],
       filters: { [field]: Array.from(values) },
     })
-    for (const variant of variants ?? []) {
-      const value = (variant as Record<string, unknown>)[field] as
-        | string
-        | null
-        | undefined
-      if (!value) {
-        continue
-      }
-      const inventoryItem = (
-        variant as { inventory_items?: { inventory?: { id?: string } }[] }
-      ).inventory_items?.[0]?.inventory?.id
-      if (inventoryItem) {
-        map.set(value, inventoryItem)
-      }
-    }
-    return map
+    return this.mapper.buildVariantInventoryItemMap(
+      field,
+      (variants ?? []) as VariantInventoryItemRow[]
+    )
   }
 
   private async queryValidInventoryItemIds(
     ids: Set<string>
   ): Promise<Set<string>> {
-    const valid = new Set<string>()
     if (!ids.size) {
-      return valid
+      return new Set()
     }
     const { data: items } = await this.query.graph({
       entity: "inventory_item",
       fields: ["id"],
       filters: { id: Array.from(ids) },
     })
-    for (const item of (items ?? []) as { id: string }[]) {
-      valid.add(item.id)
-    }
-    return valid
+    return this.mapper.buildValidInventoryItemIdSet(
+      (items ?? []) as { id: string }[]
+    )
   }
 
   private async resolveDefaultLocationId(): Promise<string | null> {
