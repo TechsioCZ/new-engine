@@ -56,10 +56,3 @@ export const BLOG_POSTS: BlogTeaserItem[] = [
     readingTime: "9 min",
   },
 ];
-
-export const RECENT_PRODUCT_SKELETON_KEYS = [
-  "recent-product-skeleton-1",
-  "recent-product-skeleton-2",
-  "recent-product-skeleton-3",
-  "recent-product-skeleton-4",
-] as const;

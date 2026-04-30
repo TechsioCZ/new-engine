@@ -12,7 +12,7 @@ type HomepageBlogSectionProps = {
 export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
   return (
     <section className="space-y-400" id="blog">
-      <h2 className="text-4xl leading-tight font-bold text-fg-primary">
+      <h2 className="text-3xl leading-tight font-bold text-fg-primary">
         Blog o zdraví a kráse
       </h2>
 

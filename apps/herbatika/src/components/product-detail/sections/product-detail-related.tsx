@@ -50,9 +50,9 @@ export function ProductDetailRelated({
             onProductHoverStart(section.id, hoveredProduct);
           }}
           products={section.products}
-          sectionClassName="p-500 lg:p-600"
+          sectionClassName="py-500"
           title={section.title}
-          titleClassName="text-xl font-semibold text-fg-primary"
+          titleClassName="text-3xl font-semibold text-fg-primary"
         />
       ))}
     </>

@@ -7,8 +7,6 @@ export const RELATED_RECOMMENDATION_SECTION_TITLES = [
   "Súvisiace produkty",
 ] as const;
 
-export const RECENTLY_VISITED_RELATED_SECTION_TITLE = "Naposledy navštívené";
-
 export const RELATED_PRODUCTS_LIMIT =
   RELATED_PRODUCTS_PER_SECTION * RELATED_RECOMMENDATION_SECTION_TITLES.length +
   1;

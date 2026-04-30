@@ -15,6 +15,7 @@ import {
   useProductDetailController,
 } from "@/components/product-detail/use-product-detail-controller";
 import type { StorefrontProductDetailProps } from "@/components/product-detail/product-detail.types";
+import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
 
 export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps) {
   const controller = useProductDetailController({ handle });
@@ -109,13 +110,19 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
       ) : null}
 
       {!controller.isBootstrappingRegion && controller.product ? (
-        <ProductDetailRelated
-          isProductAdding={controller.isProductAdding}
-          onAddToCart={controller.handleAddRelatedProductToCart}
-          onProductHoverEnd={controller.handleRelatedProductHoverEnd}
-          onProductHoverStart={controller.handleRelatedProductHoverStart}
-          sections={controller.relatedSections}
-        />
+        <>
+          <ProductDetailRelated
+            isProductAdding={controller.isProductAdding}
+            onAddToCart={controller.handleAddRelatedProductToCart}
+            onProductHoverEnd={controller.handleRelatedProductHoverEnd}
+            onProductHoverStart={controller.handleRelatedProductHoverStart}
+            sections={controller.relatedSections}
+          />
+          <RecentlyVisitedProductsSection
+            excludeHandle={controller.product.handle}
+            hideWhenEmpty
+          />
+        </>
       ) : null}
     </main>
   );

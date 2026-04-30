@@ -57,7 +57,7 @@ export function ProductCollectionSection({
   ]
     .filter(Boolean)
     .join(" ");
-  const titleClassNames = ["text-2xl font-bold text-fg-primary", titleClassName]
+  const titleClassNames = ["text-3xl font-bold text-fg-primary", titleClassName]
     .filter(Boolean)
     .join(" ");
   const subtitleClassNames = ["mt-100 text-sm text-fg-secondary", subtitleClassName]

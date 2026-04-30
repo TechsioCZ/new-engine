@@ -12,7 +12,7 @@ const FOOTER_COLUMNS = [
     title: "Informácie pre vás",
     links: [
       { href: "/blog", label: "Blog" },
-      { href: "/#o-nas", label: "O nás" },
+      { href: "/o-nas", label: "O nás" },
       { href: "/#caste-otazky", label: "Časté otázky" },
       { href: "/#darcekova-poukazka", label: "Darčeková poukážka" },
       { href: "/#vyrobcovia-a-znacky", label: "Výrobcovia a značky" },

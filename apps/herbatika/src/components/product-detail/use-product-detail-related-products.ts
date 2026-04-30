@@ -15,10 +15,6 @@ import {
   STOREFRONT_RELATED_PRODUCT_FIELDS,
   useProducts,
 } from "@/lib/storefront/products";
-import {
-  orderProductsByHandles,
-  useRecentlyVisitedProductHandles,
-} from "@/lib/storefront/recently-visited-products";
 
 type UseProductDetailRelatedProductsProps = {
   product: StorefrontProduct | null;
@@ -40,10 +36,6 @@ export function useProductDetailRelatedProducts({
       .map(resolveProductReferenceHandle)
       .filter((handle): handle is string => Boolean(handle));
   }, [relatedReferenceCodes]);
-  const recentlyVisitedHandles = useRecentlyVisitedProductHandles({
-    excludeHandle: product?.handle,
-  });
-
   const referencedProductsQuery = useProducts({
     page: 1,
     limit: RELATED_PRODUCTS_LIMIT,
@@ -61,15 +53,6 @@ export function useProductDetailRelatedProducts({
     fields: STOREFRONT_PRODUCT_CARD_FIELDS,
     enabled: Boolean(product?.id),
   });
-  const recentlyVisitedProductsQuery = useProducts({
-    page: 1,
-    limit: RELATED_PRODUCTS_LIMIT,
-    handle:
-      recentlyVisitedHandles.length > 0 ? recentlyVisitedHandles : undefined,
-    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-    enabled: Boolean(product?.id && recentlyVisitedHandles.length > 0),
-  });
-
   const relatedProducts = useMemo(() => {
     const referencedProducts = orderProductsByReferenceCodes(
       referencedProductsQuery.products,
@@ -100,19 +83,8 @@ export function useProductDetailRelatedProducts({
     relatedReferenceCodes,
   ]);
 
-  const recentlyVisitedProducts = useMemo(() => {
-    return orderProductsByHandles(
-      recentlyVisitedProductsQuery.products,
-      recentlyVisitedHandles,
-    ).filter((recentProduct) => recentProduct.id !== product?.id);
-  }, [
-    product?.id,
-    recentlyVisitedHandles,
-    recentlyVisitedProductsQuery.products,
-  ]);
-
   return useMemo(
-    () => resolveRelatedSections(relatedProducts, recentlyVisitedProducts),
-    [relatedProducts, recentlyVisitedProducts],
+    () => resolveRelatedSections(relatedProducts),
+    [relatedProducts],
   );
 }

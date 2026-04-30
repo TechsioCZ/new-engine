@@ -9,8 +9,8 @@ import { HomepageBlogSection } from "@/components/homepage/sections/homepage-blo
 import { HomepageHeroCarouselSection } from "@/components/homepage/sections/homepage-hero-carousel-section";
 import { HomepageProductCollectionSection } from "@/components/homepage/sections/homepage-product-collection-section";
 import { HomepagePromoSection } from "@/components/homepage/sections/homepage-promo-section";
-import { HomepageRecentProductsSection } from "@/components/homepage/sections/homepage-recent-products-section";
 import { HomepageReviewsSection } from "@/components/homepage/sections/homepage-reviews-section";
+import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
 import { PurposeCarousel } from "./homepage/sections/purpose-carousel";
 import { BenefitsSection } from "./homepage/sections/benefits-section";
 
@@ -22,29 +22,6 @@ export function HerbatikaHomepage() {
       <HomepageHeroCarouselSection banners={HERO_BANNERS} />
       <PurposeCarousel />
       <BenefitsSection benefits={BENEFITS} />
-
-      {/*controller.cartMessage ? (
-        <div className="flex">
-          <Badge
-            className="rounded-full px-300 py-100 text-xs font-semibold"
-            variant="success"
-          >
-            {controller.cartMessage}
-          </Badge>
-        </div>
-      ) : null}
-
-      {controller.mutationError ? (
-        <StatusText className="text-sm" showIcon status="error">
-          {controller.mutationError}
-        </StatusText>
-      ) : null}
-
-      {controller.productsError ? (
-        <StatusText className="text-sm" showIcon status="error">
-          {controller.productsError}
-        </StatusText>
-      ) : null*/}
 
       {controller.leadingSections.map((section) => (
         <HomepageProductCollectionSection
@@ -74,10 +51,7 @@ export function HerbatikaHomepage() {
 
       <HomepageBlogSection posts={BLOG_POSTS} />
       <HomepagePromoSection />
-      <HomepageRecentProductsSection
-        products={controller.recentProducts}
-        shouldShowProductSkeleton={controller.shouldShowProductSkeleton}
-      />
+      <RecentlyVisitedProductsSection />
     </main>
   );
 }

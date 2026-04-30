@@ -16,7 +16,7 @@ export function ProductDetailTabs({
 }: ProductDetailTabsProps) {
   return (
     <section>
-      <h2 className="mb-400 text-xl font-semibold text-fg-primary">Informácie o produkte</h2>
+      <h2 className="mb-400 text-3xl font-semibold text-fg-primary">Informácie o produkte</h2>
 
       <div className="hidden lg:block">
         <Tabs defaultValue={defaultSectionValue} fitted justify="start" variant="line">

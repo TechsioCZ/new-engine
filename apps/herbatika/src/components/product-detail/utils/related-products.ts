@@ -5,7 +5,6 @@ import type {
 import {
   RELATED_PRODUCTS_PER_SECTION,
   RELATED_RECOMMENDATION_SECTION_TITLES,
-  RECENTLY_VISITED_RELATED_SECTION_TITLE,
 } from "@/components/product-detail/product-detail.constants";
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -136,7 +135,6 @@ const fillSectionProducts = (
 
 export const resolveRelatedSections = (
   products: StorefrontProduct[],
-  recentlyVisitedProducts: StorefrontProduct[] = [],
 ): RelatedProductsSection[] => {
   const recommendationSections = RELATED_RECOMMENDATION_SECTION_TITLES.map(
     (title, sectionIndex) => {
@@ -147,13 +145,6 @@ export const resolveRelatedSections = (
       };
     },
   );
-  const recentlyVisitedSection = {
-    id: "recently-visited",
-    title: RECENTLY_VISITED_RELATED_SECTION_TITLE,
-    products: recentlyVisitedProducts.slice(0, RELATED_PRODUCTS_PER_SECTION),
-  };
 
-  return [...recommendationSections, recentlyVisitedSection].filter(
-    (section) => section.products.length > 0,
-  );
+  return recommendationSections.filter((section) => section.products.length > 0);
 };

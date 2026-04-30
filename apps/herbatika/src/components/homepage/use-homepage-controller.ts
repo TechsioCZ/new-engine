@@ -15,14 +15,6 @@ import {
 } from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
 import { HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE } from "@/lib/storefront/homepage-catalog-config";
-import {
-  orderProductsByHandles,
-  useRecentlyVisitedProductHandles,
-} from "@/lib/storefront/recently-visited-products";
-import {
-  STOREFRONT_PRODUCT_CARD_FIELDS,
-  useProducts,
-} from "@/lib/storefront/products";
 
 type UseHomepageControllerResult = {
   cartMessage: string | null;
@@ -31,7 +23,6 @@ type UseHomepageControllerResult = {
   shouldShowProductSkeleton: boolean;
   leadingSections: HomepageProductSection[];
   trailingSections: HomepageProductSection[];
-  recentProducts: HttpTypes.StoreProduct[];
   isProductAdding: (product: HttpTypes.StoreProduct) => boolean;
   handleAddToCart: (product: HttpTypes.StoreProduct) => Promise<void>;
   handleProductHoverStart: (product: HttpTypes.StoreProduct) => void;
@@ -64,11 +55,6 @@ export function useHomepageController(): UseHomepageControllerResult {
   const bestsellersCategoryId = categoryByHandle.get(
     HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
   )?.id;
-  const recentlyVisitedHandles = useRecentlyVisitedProductHandles();
-  const recentProductHandles = useMemo(
-    () => recentlyVisitedHandles.slice(0, PRODUCTS_PER_GRID_SECTION),
-    [recentlyVisitedHandles],
-  );
 
   const bestsellersProductsQuery = useCatalogProducts({
     page: 1,
@@ -92,14 +78,6 @@ export function useHomepageController(): UseHomepageControllerResult {
     sort: "recommended",
     status: ["action"],
     enabled: Boolean(region?.region_id),
-  });
-
-  const recentProductsQuery = useProducts({
-    page: 1,
-    limit: recentProductHandles.length,
-    handle: recentProductHandles.length > 0 ? recentProductHandles : undefined,
-    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
-    enabled: Boolean(region?.region_id && recentProductHandles.length > 0),
   });
 
   const sectionQueries = [
@@ -134,12 +112,6 @@ export function useHomepageController(): UseHomepageControllerResult {
     bestsellersProductsQuery.products,
     newProductsQuery.products,
   ]);
-  const recentProducts = useMemo(() => {
-    return orderProductsByHandles(
-      recentProductsQuery.products,
-      recentProductHandles,
-    );
-  }, [recentProductsQuery.products, recentProductHandles]);
 
   return {
     cartMessage: cartActions.cartMessage,
@@ -148,12 +120,10 @@ export function useHomepageController(): UseHomepageControllerResult {
       categoriesQuery.error ??
       bestsellersProductsQuery.error ??
       newProductsQuery.error ??
-      actionProductsQuery.error ??
-      recentProductsQuery.error,
+      actionProductsQuery.error,
     shouldShowProductSkeleton,
     leadingSections: preparedProductSections.slice(0, 2),
     trailingSections: preparedProductSections.slice(2),
-    recentProducts,
     isProductAdding: cartActions.isProductAdding,
     handleAddToCart: cartActions.handleAddToCart,
     handleProductHoverStart: prefetchActions.handleProductHoverStart,

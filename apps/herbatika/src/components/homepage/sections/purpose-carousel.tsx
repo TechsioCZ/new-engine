@@ -149,7 +149,7 @@ export function PurposeCarousel({
   return (
     <section className="space-y-350" id="test-nakupujte-carousel">
       <div className="flex items-center justify-between gap-300">
-        <h2 className="text-3xl leading-snug font-bold text-fg-primary lg:text-4xl">
+        <h2 className="text-3xl leading-snug font-bold text-fg-primary">
           {title}
         </h2>
         <Link
