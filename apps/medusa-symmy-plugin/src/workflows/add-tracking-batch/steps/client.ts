@@ -51,9 +51,6 @@ const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
 
 export type Query = ReturnType<typeof getQuery>
-type PgConnection = {
-  raw<T = { rows: unknown[] }>(sql: string, bindings?: unknown[]): Promise<T>
-}
 
 const stringMetadataValue = (
   metadata: Metadata | null | undefined,
@@ -65,14 +62,10 @@ const stringMetadataValue = (
 
 export class TrackingBatchClient {
   private readonly container: MedusaContainer
-  private readonly pg: PgConnection
   private readonly query: Query
 
   constructor(container: MedusaContainer) {
     this.container = container
-    this.pg = container.resolve<PgConnection>(
-      ContainerRegistrationKeys.PG_CONNECTION
-    )
     this.query = getQuery(container)
   }
 
@@ -268,13 +261,16 @@ export class TrackingBatchClient {
     if (!values.size) {
       return ids
     }
-    const valueList = Array.from(values)
-    const placeholders = valueList.map(() => "?").join(", ")
-    const result = await this.pg.raw<{ rows: { id: string }[] }>(
-      `select id from "order" where deleted_at is null and metadata ->> ? in (${placeholders})`,
-      [key, ...valueList]
-    )
-    for (const row of result.rows ?? []) {
+    const { data } = await this.query.graph({
+      entity: "order",
+      fields: ["id"],
+      filters: {
+        metadata: {
+          [key]: Array.from(values),
+        },
+      },
+    })
+    for (const row of (data ?? []) as { id: string }[]) {
       ids.add(row.id)
     }
     return ids

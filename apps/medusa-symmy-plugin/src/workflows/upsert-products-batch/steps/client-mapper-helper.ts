@@ -7,12 +7,9 @@ import type {
 } from "../types"
 import type {
   ExistingProduct,
-  ProductCache,
-  Query,
+  ExistingProductIndex,
   ResolvedCategoryMap,
 } from "./client"
-
-const PRICE_DECIMAL_REGEX = /^\d+(\.\d+)?$/
 
 type ExistingVariantIndex = {
   byId: Map<string, string>
@@ -38,19 +35,16 @@ type CategoryRefSets = {
   names: Set<string>
 }
 
-type VariantChanges = {
-  toCreate: Record<string, unknown>[]
-  toUpdate: { id: string; update: Record<string, unknown> }[]
-  matchedIds: string[]
-}
-
-export class ProductBatchClientHelper {
-  private toExistingProduct(raw: RawExistingProduct): ExistingProduct {
+export class ProductBatchClientMapperHelper {
+  toExistingProduct(
+    raw: RawExistingProduct | Record<string, unknown>
+  ): ExistingProduct {
+    const product = raw as RawExistingProduct
     return {
-      id: raw.id,
-      external_id: raw.external_id ?? null,
-      metadata: (raw.metadata ?? null) as Record<string, unknown> | null,
-      variants: (raw.variants ?? []).map((variant) => ({
+      id: product.id,
+      external_id: product.external_id ?? null,
+      metadata: (product.metadata ?? null) as Record<string, unknown> | null,
+      variants: (product.variants ?? []).map((variant) => ({
         id: variant.id,
         sku: variant.sku ?? null,
         ean: variant.ean ?? null,
@@ -60,16 +54,16 @@ export class ProductBatchClientHelper {
 
   findExistingProduct(
     product: ProductInput,
-    cache: ProductCache
+    index: ExistingProductIndex
   ): ExistingProduct | null {
     if (product.identifier_type === "erp_id" && product.erp_id) {
-      return cache.byErpId.get(product.erp_id) ?? null
+      return index.byErpId.get(product.erp_id) ?? null
     }
     if (product.identifier_type === "sku" && product.sku) {
-      return cache.bySku.get(product.sku) ?? null
+      return index.bySku.get(product.sku) ?? null
     }
     if (product.identifier_type === "ean" && product.ean) {
-      return cache.byEan.get(product.ean) ?? null
+      return index.byEan.get(product.ean) ?? null
     }
     return null
   }
@@ -213,22 +207,6 @@ export class ProductBatchClientHelper {
     }
   }
 
-  validatePrices(prices: PriceInput[] | undefined, label: string) {
-    if (!prices?.length) {
-      return
-    }
-    for (const price of prices) {
-      if (
-        Number.isNaN(price.amount) ||
-        !PRICE_DECIMAL_REGEX.test(price.amount.toString())
-      ) {
-        throw new Error(
-          `Invalid ${label} price amount '${price.amount}' for currency '${price.currency_code}'`
-        )
-      }
-    }
-  }
-
   buildCreatePayload(
     product: ProductInput,
     resolvedCategories: ResolvedCategoryMap,
@@ -236,10 +214,6 @@ export class ProductBatchClientHelper {
   ) {
     const variants = product.variants ?? []
     const productOptions = this.buildOptionsDefinition(variants)
-    this.validatePrices(product.base_prices, "base")
-    for (const variant of variants) {
-      this.validatePrices(variant.prices, `variant '${variant.title}'`)
-    }
     const fallbackPrices = this.normalizePrices(product.base_prices)
     const variantPayload = variants.length
       ? variants.map((variant) => ({
@@ -292,6 +266,73 @@ export class ProductBatchClientHelper {
     }
   }
 
+  buildUpdatePayload(
+    productId: string,
+    product: ProductInput,
+    existing: ExistingProduct,
+    resolvedCategories: ResolvedCategoryMap
+  ) {
+    const variants = product.variants ?? []
+    const productOptions = this.buildOptionsDefinition(variants) ?? [
+      { title: "Default", values: ["Default"] },
+    ]
+    const fallbackPrices = this.normalizePrices(product.base_prices)
+    const existingVariantIndex = this.buildExistingVariantIndex(existing)
+    const categoryIds = this.resolveCategoryIds(
+      product.categories,
+      resolvedCategories
+    )
+    const images = this.buildImagesPayload(product.images)
+
+    return {
+      id: productId,
+      title: product.title,
+      subtitle: product.subtitle,
+      description: product.description,
+      handle: product.handle,
+      status: product.status ?? "published",
+      discountable: product.discountable ?? true,
+      weight: product.weight,
+      hs_code: product.hs_code,
+      external_id:
+        product.identifier_type === "erp_id" ? product.erp_id : undefined,
+      images,
+      metadata: {
+        ...(existing.metadata ?? {}),
+        ...(product.metadata ?? {}),
+        ...(product.identifier_type === "erp_id" && product.erp_id
+          ? { erp_id: product.erp_id }
+          : {}),
+      },
+      variants: variants.length
+        ? variants.map((variant) => {
+            const variantId = this.findExistingVariantId(
+              variant,
+              existingVariantIndex
+            )
+            return {
+              ...(variantId ? { id: variantId } : {}),
+              title: variant.title,
+              sku: variant.sku,
+              ean: variant.ean,
+              manage_inventory: variant.manage_inventory ?? true,
+              prices: this.normalizePrices(variant.prices) ?? fallbackPrices,
+              ...(variantId
+                ? {}
+                : {
+                    options: this.normalizeVariantOptions(
+                      variant,
+                      productOptions
+                    ),
+                  }),
+              metadata: this.buildVariantMetadata(variant),
+            }
+          })
+        : undefined,
+      category_ids: categoryIds.length ? categoryIds : undefined,
+    }
+  }
+
   collectProductIdentifiers(products: ProductInput[]): ProductIdentifierSets {
     const erpIds = new Set<string>()
     const skus = new Set<string>()
@@ -310,56 +351,22 @@ export class ProductBatchClientHelper {
     return { erpIds, skus, eans }
   }
 
-  async queryProductsByExternalIds(
-    query: Query,
-    erpIds: Set<string>,
-    fields: string[]
-  ) {
-    if (erpIds.size === 0) {
-      return [] as Record<string, unknown>[]
-    }
-
-    const { data } = await query.graph({
-      entity: "product",
-      fields,
-      filters: { external_id: Array.from(erpIds) },
-    })
-    return data
-  }
-
-  async queryVariantProductRefs(
-    query: Query,
-    field: "sku" | "ean",
-    values: Set<string>
-  ) {
-    if (values.size === 0) {
-      return [] as Record<string, unknown>[]
-    }
-
-    const { data } = await query.graph({
-      entity: "product_variant",
-      fields: [field, "product_id"],
-      filters: { [field]: Array.from(values) },
-    })
-    return data
-  }
-
   cacheProductsByErpId(products: Record<string, unknown>[]): {
-    productCache: Map<string, ExistingProduct>
+    existingProductsById: Map<string, ExistingProduct>
     byErpId: Map<string, ExistingProduct>
   } {
-    const productCache = new Map<string, ExistingProduct>()
+    const existingProductsById = new Map<string, ExistingProduct>()
     const byErpId = new Map<string, ExistingProduct>()
 
     for (const raw of products) {
-      const existingProduct = this.toExistingProduct(raw as RawExistingProduct)
-      productCache.set(existingProduct.id, existingProduct)
+      const existingProduct = this.toExistingProduct(raw)
+      existingProductsById.set(existingProduct.id, existingProduct)
       if (existingProduct.external_id) {
         byErpId.set(existingProduct.external_id, existingProduct)
       }
     }
 
-    return { productCache, byErpId }
+    return { existingProductsById, byErpId }
   }
 
   buildProductIdByVariantField(
@@ -380,14 +387,14 @@ export class ProductBatchClientHelper {
   }
 
   collectMissingProductIds(
-    productCache: Map<string, ExistingProduct>,
+    existingProductsById: Map<string, ExistingProduct>,
     productIdMaps: Map<string, string>[]
   ): Set<string> {
     const missingProductIds = new Set<string>()
 
     for (const productIdMap of productIdMaps) {
       for (const id of productIdMap.values()) {
-        if (!productCache.has(id)) {
+        if (!existingProductsById.has(id)) {
           missingProductIds.add(id)
         }
       }
@@ -396,35 +403,14 @@ export class ProductBatchClientHelper {
     return missingProductIds
   }
 
-  async hydrateMissingProducts(
-    query: Query,
-    productCache: Map<string, ExistingProduct>,
-    missingProductIds: Set<string>,
-    fields: string[]
-  ) {
-    if (missingProductIds.size === 0) {
-      return
-    }
-
-    const { data } = await query.graph({
-      entity: "product",
-      fields,
-      filters: { id: Array.from(missingProductIds) },
-    })
-    for (const raw of data) {
-      const existingProduct = this.toExistingProduct(raw as RawExistingProduct)
-      productCache.set(existingProduct.id, existingProduct)
-    }
-  }
-
   buildExistingProductsByIdentifier(
-    productCache: Map<string, ExistingProduct>,
+    existingProductsById: Map<string, ExistingProduct>,
     identifierToProductId: Map<string, string>
   ): Map<string, ExistingProduct> {
     const result = new Map<string, ExistingProduct>()
 
     for (const [identifier, productId] of identifierToProductId) {
-      const product = productCache.get(productId)
+      const product = existingProductsById.get(productId)
       if (product) {
         result.set(identifier, product)
       }
@@ -449,83 +435,7 @@ export class ProductBatchClientHelper {
 
     return { handles, names }
   }
-
-  async resolveCategoriesByField(
-    query: Query,
-    field: "handle" | "name",
-    values: Set<string>
-  ): Promise<Map<string, string>> {
-    const map = new Map<string, string>()
-    if (values.size === 0) {
-      return map
-    }
-
-    const { data } = await query.graph({
-      entity: "product_category",
-      fields: ["id", field],
-      filters: { [field]: Array.from(values) },
-    })
-
-    for (const category of data) {
-      const value = category[field] as string | null | undefined
-      if (value && !map.has(value)) {
-        map.set(value, category.id)
-      }
-    }
-
-    return map
-  }
-
-  buildVariantChanges(
-    product: ProductInput,
-    existing: ExistingProduct
-  ): VariantChanges {
-    const fallbackPrices = this.normalizePrices(product.base_prices)
-    const existingVariantIndex = this.buildExistingVariantIndex(existing)
-    const toCreate: Record<string, unknown>[] = []
-    const toUpdate: { id: string; update: Record<string, unknown> }[] = []
-    const matchedIds: string[] = []
-
-    for (const variant of product.variants ?? []) {
-      this.validatePrices(variant.prices, `variant '${variant.title}'`)
-      const existingVariantId = this.findExistingVariantId(
-        variant,
-        existingVariantIndex
-      )
-      const prices = this.normalizePrices(variant.prices) ?? fallbackPrices
-      const metadata = this.buildVariantMetadata(variant)
-      if (existingVariantId) {
-        matchedIds.push(existingVariantId)
-        const update: Record<string, unknown> = {
-          title: variant.title,
-          sku: variant.sku,
-          ean: variant.ean,
-          manage_inventory: variant.manage_inventory ?? true,
-        }
-        if (prices) {
-          update.prices = prices
-        }
-        if (metadata) {
-          update.metadata = metadata
-        }
-        toUpdate.push({ id: existingVariantId, update })
-        continue
-      }
-
-      toCreate.push({
-        product_id: existing.id,
-        title: variant.title,
-        sku: variant.sku,
-        ean: variant.ean,
-        manage_inventory: variant.manage_inventory ?? true,
-        prices: prices ?? [],
-        options: { Default: "Default" },
-        metadata,
-      })
-    }
-
-    return { toCreate, toUpdate, matchedIds }
-  }
 }
 
-export const productBatchClientHelper = new ProductBatchClientHelper()
+export const productBatchClientMapperHelper =
+  new ProductBatchClientMapperHelper()

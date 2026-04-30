@@ -57,9 +57,6 @@ const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
 
 export type Query = ReturnType<typeof getQuery>
-type PgConnection = {
-  raw<T = { rows: unknown[] }>(sql: string, bindings?: unknown[]): Promise<T>
-}
 
 const stringMetadataValue = (
   metadata: Metadata | null | undefined,
@@ -74,14 +71,10 @@ const normalizeEmail = (email: string | null | undefined) =>
 
 export class CustomerBatchClient {
   private readonly container: MedusaContainer
-  private readonly pg: PgConnection
   private readonly query: Query
 
   constructor(container: MedusaContainer) {
     this.container = container
-    this.pg = container.resolve<PgConnection>(
-      ContainerRegistrationKeys.PG_CONNECTION
-    )
     this.query = getQuery(container)
   }
 
@@ -399,13 +392,16 @@ export class CustomerBatchClient {
       if (!values.size) {
         continue
       }
-      const valueList = Array.from(values)
-      const placeholders = valueList.map(() => "?").join(", ")
-      const result = await this.pg.raw<{ rows: { id: string }[] }>(
-        `select id from "customer" where deleted_at is null and metadata ->> ? in (${placeholders})`,
-        [key, ...valueList]
-      )
-      for (const row of result.rows ?? []) {
+      const { data } = await this.query.graph({
+        entity: "customer",
+        fields: ["id"],
+        filters: {
+          metadata: {
+            [key]: Array.from(values),
+          },
+        },
+      })
+      for (const row of (data ?? []) as { id: string }[]) {
         ids.add(row.id)
       }
     }
@@ -419,19 +415,30 @@ export class CustomerBatchClient {
     if (!codes.size) {
       return ids
     }
-    const valueList = Array.from(codes)
-    const placeholders = valueList.map(() => "?").join(", ")
-    const bindings = [...valueList, ...valueList]
-    const result = await this.pg.raw<{ rows: { id: string }[] }>(
-      `select id from "customer_group"
-       where deleted_at is null
-       and (
-         metadata ->> 'erp_code' in (${placeholders})
-         or metadata ->> 'code' in (${placeholders})
-       )`,
-      bindings
-    )
-    for (const row of result.rows ?? []) {
+    const [erpCodeGroups, codeGroups] = await Promise.all([
+      this.query.graph({
+        entity: "customer_group",
+        fields: ["id"],
+        filters: {
+          metadata: {
+            erp_code: Array.from(codes),
+          },
+        },
+      }),
+      this.query.graph({
+        entity: "customer_group",
+        fields: ["id"],
+        filters: {
+          metadata: {
+            code: Array.from(codes),
+          },
+        },
+      }),
+    ])
+    for (const row of [
+      ...((erpCodeGroups.data ?? []) as { id: string }[]),
+      ...((codeGroups.data ?? []) as { id: string }[]),
+    ]) {
       ids.add(row.id)
     }
     return ids

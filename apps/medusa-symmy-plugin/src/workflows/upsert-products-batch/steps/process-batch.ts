@@ -9,11 +9,13 @@ import type {
 } from "../types"
 import {
   type CreateProductPayload,
+  type ExistingProductIndex,
   ProductBatchClient,
-  type ProductCache,
+  type ProductBatchPayload,
   type ResolvedCategoryMap,
+  type UpdateProductPayload,
 } from "./client"
-import { productBatchClientHelper } from "./client-helper"
+import { productBatchClientMapperHelper } from "./client-mapper-helper"
 
 type ProductIdentifierEcho = Pick<
   UpsertProductsBatchResult,
@@ -24,6 +26,13 @@ type CreateProductRequest = {
   index: number
   echo: ProductIdentifierEcho
   payload: CreateProductPayload
+}
+
+type UpdateProductRequest = {
+  index: number
+  echo: ProductIdentifierEcho
+  existing: { id: string; variants: { id: string }[] }
+  payload: UpdateProductPayload
 }
 
 const toErrorMessage = (error: unknown) =>
@@ -38,35 +47,35 @@ const buildFailedResult = (
   error,
 })
 
-const processProductForBatch = async ({
-  client,
+const processProductForBatch = ({
   defaultSalesChannelId,
   index,
   logger,
   product,
-  productCache,
+  existingProductIndex,
   resolvedCategories,
   results,
   toCreate,
+  toUpdate,
 }: {
-  client: ProductBatchClient
   defaultSalesChannelId: string | null
   index: number
   logger: Logger
   product: ProductInput
-  productCache: ProductCache
+  existingProductIndex: ExistingProductIndex
   resolvedCategories: ResolvedCategoryMap
   results: UpsertProductsBatchResult[]
   toCreate: CreateProductRequest[]
+  toUpdate: UpdateProductRequest[]
 }) => {
-  const echo = productBatchClientHelper.buildIdentifierEcho(product)
+  const echo = productBatchClientMapperHelper.buildIdentifierEcho(product)
   try {
-    const existing = productBatchClientHelper.findExistingProduct(
+    const existing = productBatchClientMapperHelper.findExistingProduct(
       product,
-      productCache
+      existingProductIndex
     )
     if (!existing) {
-      const payload = productBatchClientHelper.buildCreatePayload(
+      const payload = productBatchClientMapperHelper.buildCreatePayload(
         product,
         resolvedCategories,
         defaultSalesChannelId
@@ -75,17 +84,13 @@ const processProductForBatch = async ({
       return
     }
 
-    await client.updateProductCore(existing.id, product, resolvedCategories)
-    const variantIds = await client.upsertVariantsForExistingProduct(
+    const payload = productBatchClientMapperHelper.buildUpdatePayload(
+      existing.id,
       product,
-      existing
+      existing,
+      resolvedCategories
     )
-    results[index] = {
-      ...echo,
-      status: "updated",
-      product_id: existing.id,
-      variant_ids: variantIds,
-    }
+    toUpdate.push({ index, echo, existing, payload })
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
@@ -95,22 +100,37 @@ const processProductForBatch = async ({
   }
 }
 
-const processCreateRequests = async (
-  client: ProductBatchClient,
-  logger: Logger,
-  results: UpsertProductsBatchResult[],
+const getVariantIds = (
+  product: { variants?: { id: string }[] } | undefined,
+  fallback: { variants?: { id: string }[] } | undefined
+) =>
+  (product?.variants ?? fallback?.variants ?? []).map((variant) => variant.id)
+
+const processBatchRequests = async ({
+  client,
+  logger,
+  results,
+  toCreate,
+  toUpdate,
+}: {
+  client: ProductBatchClient
+  logger: Logger
+  results: UpsertProductsBatchResult[]
   toCreate: CreateProductRequest[]
-) => {
-  if (!toCreate.length) {
+  toUpdate: UpdateProductRequest[]
+}) => {
+  if (!(toCreate.length || toUpdate.length)) {
     return
   }
 
   try {
-    const createdProducts = await client.createProducts(
-      toCreate.map((item) => item.payload)
-    )
+    const payload: ProductBatchPayload = {
+      create: toCreate.map((item) => item.payload),
+      update: toUpdate.map((item) => item.payload),
+    }
+    const { created, updated } = await client.applyBatch(payload)
     for (const [createIndex, item] of toCreate.entries()) {
-      const createdProduct = createdProducts[createIndex]
+      const createdProduct = created[createIndex]
       results[item.index] = createdProduct
         ? {
             ...item.echo,
@@ -122,15 +142,29 @@ const processCreateRequests = async (
           }
         : buildFailedResult(
             item.echo,
-            "createProductsWorkflow returned fewer products than requested"
+            "batchProductsWorkflow returned fewer created products than requested"
+          )
+    }
+    for (const [updateIndex, item] of toUpdate.entries()) {
+      const updatedProduct = updated[updateIndex]
+      results[item.index] = updatedProduct
+        ? {
+            ...item.echo,
+            status: "updated",
+            product_id: updatedProduct.id,
+            variant_ids: getVariantIds(updatedProduct, item.existing),
+          }
+        : buildFailedResult(
+            item.echo,
+            "batchProductsWorkflow returned fewer updated products than requested"
           )
     }
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to create ${toCreate.length} products in batch: ${message}`
+      `[symmy-plugin] Failed to apply product batch (${toCreate.length} create, ${toUpdate.length} update): ${message}`
     )
-    for (const item of toCreate) {
+    for (const item of [...toCreate, ...toUpdate]) {
       results[item.index] = buildFailedResult(item.echo, message)
     }
   }
@@ -141,7 +175,7 @@ export const processProductsBatchStep = createStep(
   async (input: UpsertProductsBatchInput, { container }) => {
     const client = new ProductBatchClient(container)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-    const [productCache, resolvedCategories, defaultSalesChannelId] =
+    const [existingProductIndex, resolvedCategories, defaultSalesChannelId] =
       await Promise.all([
         client.preload(input.products),
         client.resolveCategoriesForBatch(input.products),
@@ -149,21 +183,28 @@ export const processProductsBatchStep = createStep(
       ])
     const results: UpsertProductsBatchResult[] = []
     const toCreate: CreateProductRequest[] = []
+    const toUpdate: UpdateProductRequest[] = []
 
     for (const [index, product] of input.products.entries()) {
-      await processProductForBatch({
-        client,
+      processProductForBatch({
         defaultSalesChannelId,
         index,
         logger,
         product,
-        productCache,
+        existingProductIndex,
         resolvedCategories,
         results,
         toCreate,
+        toUpdate,
       })
     }
-    await processCreateRequests(client, logger, results, toCreate)
+    await processBatchRequests({
+      client,
+      logger,
+      results,
+      toCreate,
+      toUpdate,
+    })
 
     const processed = results.filter((r) => r.status !== "failed").length
     const failed = results.length - processed

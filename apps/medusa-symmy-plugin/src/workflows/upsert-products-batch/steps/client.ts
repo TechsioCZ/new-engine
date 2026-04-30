@@ -1,13 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import {
-  createProductsWorkflow,
-  createProductVariantsWorkflow,
-  updateProductsWorkflow,
-  updateProductVariantsWorkflow,
-} from "@medusajs/medusa/core-flows"
+import { batchProductsWorkflow } from "@medusajs/medusa/core-flows"
 import type { ProductInput } from "../types"
-import { productBatchClientHelper } from "./client-helper"
+import { productBatchClientMapperHelper } from "./client-mapper-helper"
 
 export type ResolvedCategoryMap = {
   byHandle: Map<string, string>
@@ -21,7 +16,7 @@ export type ExistingProduct = {
   variants: { id: string; sku: string | null; ean: string | null }[]
 }
 
-export type ProductCache = {
+export type ExistingProductIndex = {
   byErpId: Map<string, ExistingProduct>
   bySku: Map<string, ExistingProduct>
   byEan: Map<string, ExistingProduct>
@@ -33,8 +28,21 @@ export type CreatedProduct = {
 }
 
 export type CreateProductPayload = ReturnType<
-  typeof productBatchClientHelper.buildCreatePayload
+  typeof productBatchClientMapperHelper.buildCreatePayload
 >
+export type UpdateProductPayload = ReturnType<
+  typeof productBatchClientMapperHelper.buildUpdatePayload
+>
+
+export type ProductBatchPayload = {
+  create: CreateProductPayload[]
+  update: UpdateProductPayload[]
+}
+
+export type ProductBatchApplyResult = {
+  created: CreatedProduct[]
+  updated: CreatedProduct[]
+}
 
 const PRODUCT_PREFETCH_FIELDS = [
   "id",
@@ -52,7 +60,7 @@ export type Query = ReturnType<typeof getQuery>
 
 export class ProductBatchClient {
   private readonly container: MedusaContainer
-  private readonly helper = productBatchClientHelper
+  private readonly helper = productBatchClientMapperHelper
   private readonly query: Query
 
   constructor(container: MedusaContainer) {
@@ -60,17 +68,17 @@ export class ProductBatchClient {
     this.query = getQuery(container)
   }
 
-  async preload(products: ProductInput[]): Promise<ProductCache> {
+  async preload(products: ProductInput[]): Promise<ExistingProductIndex> {
     const { erpIds, skus, eans } =
       this.helper.collectProductIdentifiers(products)
     const fields = PRODUCT_PREFETCH_FIELDS as unknown as string[]
     const [erpProducts, skuVariants, eanVariants] = await Promise.all([
-      this.helper.queryProductsByExternalIds(this.query, erpIds, fields),
-      this.helper.queryVariantProductRefs(this.query, "sku", skus),
-      this.helper.queryVariantProductRefs(this.query, "ean", eans),
+      this.queryProductsByExternalIds(erpIds, fields),
+      this.queryVariantProductRefs("sku", skus),
+      this.queryVariantProductRefs("ean", eans),
     ])
 
-    const { productCache, byErpId } =
+    const { existingProductsById, byErpId } =
       this.helper.cacheProductsByErpId(erpProducts)
     const skuToProductId = this.helper.buildProductIdByVariantField(
       skuVariants,
@@ -81,12 +89,11 @@ export class ProductBatchClient {
       "ean"
     )
     const missingProductIds = this.helper.collectMissingProductIds(
-      productCache,
+      existingProductsById,
       [skuToProductId, eanToProductId]
     )
-    await this.helper.hydrateMissingProducts(
-      this.query,
-      productCache,
+    await this.hydrateMissingProducts(
+      existingProductsById,
       missingProductIds,
       fields
     )
@@ -94,11 +101,11 @@ export class ProductBatchClient {
     return {
       byErpId,
       bySku: this.helper.buildExistingProductsByIdentifier(
-        productCache,
+        existingProductsById,
         skuToProductId
       ),
       byEan: this.helper.buildExistingProductsByIdentifier(
-        productCache,
+        existingProductsById,
         eanToProductId
       ),
     }
@@ -109,8 +116,8 @@ export class ProductBatchClient {
   ): Promise<ResolvedCategoryMap> {
     const { handles, names } = this.helper.collectCategoryRefs(products)
     const [byHandle, byName] = await Promise.all([
-      this.helper.resolveCategoriesByField(this.query, "handle", handles),
-      this.helper.resolveCategoriesByField(this.query, "name", names),
+      this.resolveCategoriesByField("handle", handles),
+      this.resolveCategoriesByField("name", names),
     ])
 
     return { byHandle, byName }
@@ -134,99 +141,101 @@ export class ProductBatchClient {
     return salesChannels[0]?.id ?? null
   }
 
-  async createProducts(
-    payloads: CreateProductPayload[]
-  ): Promise<CreatedProduct[]> {
-    if (payloads.length === 0) {
-      return []
+  async applyBatch(
+    payload: ProductBatchPayload
+  ): Promise<ProductBatchApplyResult> {
+    if (!(payload.create.length || payload.update.length)) {
+      return { created: [], updated: [] }
     }
-    const created = await createProductsWorkflow(this.container).run({
-      input: { products: payloads as never },
-    })
-    const createdProducts = (created.result ?? []) as CreatedProduct[]
-    if (createdProducts.length === 0) {
-      throw new Error("createProductsWorkflow returned empty result")
-    }
-    return createdProducts
-  }
-
-  async updateProductCore(
-    productId: string,
-    product: ProductInput,
-    resolvedCategories: ResolvedCategoryMap
-  ): Promise<void> {
-    this.helper.validatePrices(product.base_prices, "base")
-    const categoryIds = this.helper.resolveCategoryIds(
-      product.categories,
-      resolvedCategories
-    )
-    const update: Record<string, unknown> = {
-      title: product.title,
-      subtitle: product.subtitle,
-      description: product.description,
-      handle: product.handle,
-      status: product.status ?? "published",
-      discountable: product.discountable ?? true,
-      weight: product.weight,
-      hs_code: product.hs_code,
-    }
-    if (product.identifier_type === "erp_id" && product.erp_id) {
-      update.external_id = product.erp_id
-      update.metadata = {
-        ...(product.metadata ?? {}),
-        erp_id: product.erp_id,
-      }
-    } else if (product.metadata) {
-      update.metadata = product.metadata
-    }
-    const images = this.helper.buildImagesPayload(product.images)
-    if (images) {
-      update.images = images
-    }
-    if (categoryIds.length) {
-      update.category_ids = categoryIds
-    }
-    await updateProductsWorkflow(this.container).run({
+    const { result } = await batchProductsWorkflow(this.container).run({
       input: {
-        selector: { id: productId },
-        update,
+        create: payload.create as never,
+        update: payload.update as never,
       },
     })
+
+    return {
+      created: (result?.created ?? []) as CreatedProduct[],
+      updated: (result?.updated ?? []) as CreatedProduct[],
+    }
   }
 
-  async upsertVariantsForExistingProduct(
-    product: ProductInput,
-    existing: ExistingProduct
-  ): Promise<string[]> {
-    const variants = product.variants ?? []
-    if (!variants.length) {
-      return existing.variants.map((variant) => variant.id)
+  private async queryProductsByExternalIds(
+    erpIds: Set<string>,
+    fields: string[]
+  ) {
+    if (erpIds.size === 0) {
+      return [] as Record<string, unknown>[]
     }
 
-    const { toCreate, toUpdate, matchedIds } = this.helper.buildVariantChanges(
-      product,
-      existing
-    )
+    const { data } = await this.query.graph({
+      entity: "product",
+      fields,
+      filters: { external_id: Array.from(erpIds) },
+    })
+    return data
+  }
 
-    for (const item of toUpdate) {
-      await updateProductVariantsWorkflow(this.container).run({
-        input: {
-          selector: { id: item.id },
-          update: item.update,
-        },
-      })
+  private async queryVariantProductRefs(
+    field: "sku" | "ean",
+    values: Set<string>
+  ) {
+    if (values.size === 0) {
+      return [] as Record<string, unknown>[]
     }
-    if (toCreate.length) {
-      const created = await createProductVariantsWorkflow(this.container).run({
-        input: {
-          product_variants: toCreate as never,
-        },
-      })
-      const createdVariants = (created.result ?? []) as { id: string }[]
-      for (const variant of createdVariants) {
-        matchedIds.push(variant.id)
+
+    const { data } = await this.query.graph({
+      entity: "product_variant",
+      fields: [field, "product_id"],
+      filters: { [field]: Array.from(values) },
+    })
+    return data
+  }
+
+  private async hydrateMissingProducts(
+    existingProductsById: Map<string, ExistingProduct>,
+    missingProductIds: Set<string>,
+    fields: string[]
+  ) {
+    if (missingProductIds.size === 0) {
+      return
+    }
+
+    const { data } = await this.query.graph({
+      entity: "product",
+      fields,
+      filters: { id: Array.from(missingProductIds) },
+    })
+    for (const raw of data) {
+      const existingProduct = this.helper.toExistingProduct(
+        raw as Record<string, unknown>
+      )
+      existingProductsById.set(existingProduct.id, existingProduct)
+    }
+  }
+
+  private async resolveCategoriesByField(
+    field: "handle" | "name",
+    values: Set<string>
+  ): Promise<Map<string, string>> {
+    const map = new Map<string, string>()
+    if (values.size === 0) {
+      return map
+    }
+
+    const { data } = await this.query.graph({
+      entity: "product_category",
+      fields: ["id", field],
+      filters: { [field]: Array.from(values) },
+    })
+
+    for (const category of data) {
+      const value = category[field] as string | null | undefined
+      if (value && !map.has(value)) {
+        map.set(value, category.id)
       }
     }
-    return matchedIds
+
+    return map
   }
 }
