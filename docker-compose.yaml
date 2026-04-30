@@ -169,7 +169,7 @@ x-payload-env: &payload-env
   PAYLOAD_SSO_ISSUER: ${DC_PAYLOAD_SSO_ISSUER:-medusa}
   PAYLOAD_SSO_AUDIENCE: ${DC_PAYLOAD_SSO_AUDIENCE:-payload}
   PAYLOAD_SSO_ALG: ${DC_PAYLOAD_SSO_ALG:-RS256}
-  PAYLOAD_SSO_ALLOWED_ORIGINS: ${DC_PAYLOAD_SSO_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:9000,http://127.0.0.1:9000}
+  PAYLOAD_SSO_ALLOWED_ORIGINS: ${DC_PAYLOAD_SSO_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:9000,http://127.0.0.1:9000,https://admin.medusa.localhost}
   OPENAI_API_KEY: ${DC_OPENAI_API_KEY:-}
   S3_ENDPOINT: ${DC_PAYLOAD_S3_ENDPOINT:-http://medusa-minio:9004}
   S3_REGION: ${DC_PAYLOAD_S3_REGION:-us-east-1}

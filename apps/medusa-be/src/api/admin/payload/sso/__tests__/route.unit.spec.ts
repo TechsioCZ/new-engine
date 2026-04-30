@@ -36,6 +36,18 @@ const createMockResponse = () =>
     json: jest.fn().mockReturnThis(),
   }) as any
 
+const createMockRequest = (
+  overrides: Record<string, unknown> = {},
+  headers: Record<string, string> = {}
+) =>
+  ({
+    headers,
+    validatedQuery: {
+      returnTo: "/admin",
+    },
+    ...overrides,
+  }) as any
+
 describe("GET /admin/payload/sso", () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -51,11 +63,7 @@ describe("GET /admin/payload/sso", () => {
 
   it("returns an auto-post form that preserves the Medusa origin for Payload origin checks", async () => {
     const { GET } = await import("../route")
-    const req = {
-      validatedQuery: {
-        returnTo: "/admin",
-      },
-    } as any
+    const req = createMockRequest()
     const res = createMockResponse()
 
     await GET(req, res)
@@ -79,5 +87,34 @@ describe("GET /admin/payload/sso", () => {
     expect(html).toContain('name="token" value="signed-sso-token"')
     expect(html).toContain('name="returnTo" value="/admin"')
     expect(html).not.toContain("no-referrer")
+  })
+
+  it("uses 127.0.0.1 for Payload SSO when Medusa admin is opened through 127.0.0.1", async () => {
+    const { GET } = await import("../route")
+    const req = createMockRequest({}, { host: "127.0.0.1:9000" })
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    const html = res.send.mock.calls[0]?.[0]
+    expect(html).toContain(
+      '<form method="POST" action="http://127.0.0.1:8083/api/medusa-sso">'
+    )
+  })
+
+  it("uses the local Caddy Payload host when Medusa admin is opened through admin.medusa.localhost", async () => {
+    const { GET } = await import("../route")
+    const req = createMockRequest(
+      {},
+      { "x-forwarded-host": "admin.medusa.localhost" }
+    )
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    const html = res.send.mock.calls[0]?.[0]
+    expect(html).toContain(
+      '<form method="POST" action="https://admin.payload.medusa.localhost/api/medusa-sso">'
+    )
   })
 })

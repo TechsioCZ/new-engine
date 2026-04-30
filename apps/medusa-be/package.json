@@ -84,6 +84,7 @@
     "@medusajs/test-utils": "^2.14.1",
     "@swc/core": "^1.15.3",
     "@swc/jest": "^0.2.39",
+    "@types/escape-html": "^1.0.4",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "@types/qs": "^6.9.17",

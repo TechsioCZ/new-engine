@@ -123,10 +123,11 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
   handler: async (req) => {
     const allowedOrigins = getAllowedOrigins()
     const requestOrigin = getRequestOrigin(req.headers)
-    if (
-      allowedOrigins.size > 0 &&
-      !(requestOrigin && allowedOrigins.has(requestOrigin))
-    ) {
+    if (allowedOrigins.size === 0) {
+      throw new APIError("Payload SSO allowed origins are not configured.", 500)
+    }
+
+    if (!(requestOrigin && allowedOrigins.has(requestOrigin))) {
       throw new APIError("Origin is not allowed.", 403)
     }
 
@@ -230,7 +231,6 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
         id: user.id,
         collection: adminCollectionSlug,
         data: {
-          ...user,
           sessions: [
             ...existingSessions,
             {

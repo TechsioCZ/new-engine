@@ -8,6 +8,12 @@ const DEFAULT_ISSUER = "medusa"
 const DEFAULT_AUDIENCE = "payload"
 const DEFAULT_ALG = "RS256"
 const DEFAULT_TOKEN_TTL_SECONDS = 60
+const LOCAL_PAYLOAD_PORT = "8083"
+const LOCAL_PAYLOAD_HOSTS = new Set([
+  "localhost",
+  "127.0.0.1",
+  "admin.payload.medusa.localhost",
+])
 
 /** Query schema for the admin payload SSO endpoint. */
 export const AdminPayloadSsoSchema = z.object({
@@ -29,6 +35,64 @@ const sanitizeReturnTo = (value: string | undefined) => {
     return value
   }
   return
+}
+
+/** Read a request header from Medusa's underlying Express request. */
+const getRequestHeader = (
+  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
+  name: string
+) => {
+  const header = req.headers?.[name.toLowerCase()]
+  if (Array.isArray(header)) {
+    return header[0]
+  }
+  return typeof header === "string" ? header : undefined
+}
+
+/** Extract the hostname from an HTTP Host-style header. */
+const getHostname = (host: string | undefined) => {
+  if (!host) {
+    return
+  }
+
+  try {
+    return new URL(`http://${host}`).hostname.toLowerCase()
+  } catch {
+    return
+  }
+}
+
+/**
+ * Keep local iframe SSO same-site with the Medusa admin host.
+ *
+ * Browsers may reject the Payload session cookie in an iframe when Medusa is
+ * opened through one local host but the SSO form posts to another. Only known
+ * local development hosts are rewritten.
+ */
+const resolvePayloadSsoUrl = (
+  payloadIframeUrl: string,
+  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>
+) => {
+  const url = new URL(payloadIframeUrl)
+  const forwardedHost = getRequestHeader(req, "x-forwarded-host")
+  const host = getRequestHeader(req, "host")
+  const requestHostname = getHostname(forwardedHost ?? host)
+
+  if (LOCAL_PAYLOAD_HOSTS.has(url.hostname) && requestHostname) {
+    if (requestHostname === "localhost" || requestHostname === "127.0.0.1") {
+      url.protocol = "http:"
+      url.hostname = requestHostname
+      url.port = url.port || LOCAL_PAYLOAD_PORT
+    }
+
+    if (requestHostname === "admin.medusa.localhost") {
+      url.protocol = "https:"
+      url.hostname = "admin.payload.medusa.localhost"
+      url.port = ""
+    }
+  }
+
+  return new URL("/api/medusa-sso", url)
 }
 
 /** Admin API handler that issues an SSO token and auto-posts to Payload. */
@@ -82,7 +146,7 @@ export async function GET(
 
   let redirectUrl: URL
   try {
-    redirectUrl = new URL("/api/medusa-sso", payloadIframeUrl)
+    redirectUrl = resolvePayloadSsoUrl(payloadIframeUrl, req)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error"
     console.error("Invalid PAYLOAD_IFRAME_URL:", payloadIframeUrl, message)

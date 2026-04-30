@@ -110,6 +110,18 @@ afterEach(() => {
 })
 
 describe("medusa SSO endpoint", () => {
+  it("fails closed when allowed origins are not configured", async () => {
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = ""
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
+
+    const req = createRequest()
+
+    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+      message: "Payload SSO allowed origins are not configured.",
+      status: 500,
+    })
+  })
+
   it("rejects requests from disallowed origins", async () => {
     process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
     process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
@@ -155,6 +167,7 @@ describe("medusa SSO endpoint", () => {
   })
 
   it("rejects when token is missing", async () => {
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
     process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
 
     const req = createRequest()
@@ -203,6 +216,9 @@ describe("medusa SSO endpoint", () => {
         }),
         req,
       })
+    )
+    expect(req.payload.db.updateOne.mock.calls[0]?.[0].data).not.toHaveProperty(
+      "id"
     )
 
     expect(jwtSignMock).toHaveBeenCalledWith(
