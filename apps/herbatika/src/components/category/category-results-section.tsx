@@ -21,6 +21,7 @@ type CategoryResultsSectionProps = {
   isEmpty: boolean;
   isLoading: boolean;
   isProductAdding: (productId: string) => boolean;
+  emptyMessage?: string;
   onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void>;
   onProductHoverEnd: (product: HttpTypes.StoreProduct) => void;
   onProductHoverStart: (product: HttpTypes.StoreProduct) => void;
@@ -46,6 +47,7 @@ export function CategoryResultsSection({
   isEmpty,
   isLoading,
   isProductAdding,
+  emptyMessage = "V tejto kategórii zatiaľ nie sú dostupné produkty pre zvolený filter.",
   onAddToCart,
   onProductHoverEnd,
   onProductHoverStart,
@@ -109,8 +111,7 @@ export function CategoryResultsSection({
       {!isLoading && !showCategoryNotFound && isEmpty && (
         <div className="rounded-lg border border-border-secondary bg-base p-400">
           <p className="text-sm text-fg-secondary">
-            V tejto kategórii zatiaľ nie sú dostupné produkty pre zvolený
-            filter.
+            {emptyMessage}
           </p>
         </div>
       )}

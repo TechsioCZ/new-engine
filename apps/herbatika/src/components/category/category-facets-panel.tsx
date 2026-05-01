@@ -16,6 +16,7 @@ type CategoryFacetsPanelProps = {
   onStatusToggle: (itemId: string) => void;
   priceBounds: { min: number; max: number } | null;
   selectedPriceRange: { min?: number; max?: number };
+  showBrandFilter?: boolean;
   statusItems: AsideFilterChipItem[];
 };
 
@@ -34,6 +35,7 @@ export function CategoryFacetsPanel({
   onStatusToggle,
   priceBounds,
   selectedPriceRange,
+  showBrandFilter = true,
   statusItems,
 }: CategoryFacetsPanelProps) {
   const filterProps = {
@@ -51,6 +53,7 @@ export function CategoryFacetsPanel({
     onStatusToggle,
     priceBounds,
     selectedPriceRange,
+    showBrandFilter,
     statusItems,
   };
 

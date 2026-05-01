@@ -127,6 +127,7 @@ type AsideFilterProps = {
   activeFilterCount: number;
   isLoading?: boolean;
   onReset: () => void;
+  showBrandFilter?: boolean;
 };
 
 export function AsideFilter({
@@ -145,6 +146,7 @@ export function AsideFilter({
   activeFilterCount,
   isLoading = false,
   onReset,
+  showBrandFilter = true,
 }: AsideFilterProps) {
   const incomingPriceBounds = useMemo(
     () => toSafeBounds(priceBounds),
@@ -262,16 +264,18 @@ export function AsideFilter({
           />
         </div>
 
-        <div>
-          <AsideFilterChipSection
-            collapseAfter={12}
-            emptyMessage="Značky zatiaľ nie sú dostupné."
-            isLoading={isLoading}
-            items={brandItems}
-            onToggle={onBrandToggle}
-            title="Značka"
-          />
-        </div>
+        {showBrandFilter ? (
+          <div>
+            <AsideFilterChipSection
+              collapseAfter={12}
+              emptyMessage="Značky zatiaľ nie sú dostupné."
+              isLoading={isLoading}
+              items={brandItems}
+              onToggle={onBrandToggle}
+              title="Značka"
+            />
+          </div>
+        ) : null}
 
         <div>
           <AsideFilterChipSection

@@ -4,7 +4,7 @@ import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton";
 
 type PlpPageSkeletonProps = {
-  variant: "search" | "category";
+  variant: "search" | "category" | "brand";
 };
 
 function CategoryDescriptionSkeleton() {
@@ -32,6 +32,7 @@ function CategoryDescriptionSkeleton() {
 
 export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
   const isSearch = variant === "search";
+  const isCategory = variant === "category";
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-500 font-rubik sm:p-600">
@@ -49,8 +50,11 @@ export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
         )}
       </section>
 
-      {isSearch ? <Skeleton.Text noOfLines={3} size="lg" containerClassName="w-full" />
-        : <CategoryDescriptionSkeleton />}
+      {isSearch ? (
+        <Skeleton.Text noOfLines={3} size="lg" containerClassName="w-full" />
+      ) : null}
+
+      {isCategory ? <CategoryDescriptionSkeleton /> : null}
 
       <section className="space-y-400">
         <div className="flex min-w-0 flex-col gap-600 md:grid md:grid-cols-12 md:items-start">

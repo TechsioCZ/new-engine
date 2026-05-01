@@ -15,6 +15,7 @@ import type {
 import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
 import { asRecord, asString } from "@/components/product-detail/utils/value-utils"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
+import { createBrandSlug } from "@/lib/storefront/brands"
 
 type ProductInfoLink = {
   href: string | null
@@ -32,11 +33,10 @@ const resolveProductInfoLink = (
 
   if (producerTitle) {
     const producerHandle = asString(producer?.handle)
+    const producerSlug = createBrandSlug(producerHandle || producerTitle)
 
     return {
-      href: producerHandle
-        ? `/search?brand=${encodeURIComponent(producerHandle)}`
-        : null,
+      href: producerSlug ? `/znacka/${producerSlug}` : null,
       label: producerTitle,
     }
   }
