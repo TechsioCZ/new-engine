@@ -4,11 +4,11 @@ import {
   createOrderFulfillmentWorkflow,
   createOrderShipmentWorkflow,
 } from "@medusajs/medusa/core-flows"
-import type { TrackingItemInput, TrackingShipmentInput } from "../types"
 import {
   type TrackingOrderLookupKeys,
   trackingBatchClientMapperHelper,
 } from "./client-mapper-helper"
+import type { TrackingItemInput, TrackingShipmentInput } from "./types"
 
 type Metadata = Record<string, unknown>
 

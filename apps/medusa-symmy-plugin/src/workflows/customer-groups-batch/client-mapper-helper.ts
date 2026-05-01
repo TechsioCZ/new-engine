@@ -1,8 +1,8 @@
-import type { CustomerGroupInput } from "../types"
 import type {
   ExistingCustomerGroup,
   ExistingCustomerGroupIndex,
 } from "./client"
+import type { CustomerGroupInput } from "./types"
 
 type Metadata = Record<string, unknown>
 

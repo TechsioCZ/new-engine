@@ -2,7 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { processProductsBatchStep } from "./steps"
+import { processProductsBatchStep } from "./steps/process-batch"
 import type {
   UpsertProductsBatchInput,
   UpsertProductsBatchOutput,

@@ -4,11 +4,11 @@ import {
   updateOrderWorkflow,
   uploadFilesWorkflow,
 } from "@medusajs/medusa/core-flows"
-import type { InvoiceInput } from "../types"
 import {
   type InvoiceOrderLookupKeys,
   invoicesBatchClientMapperHelper,
 } from "./client-mapper-helper"
+import type { InvoiceInput } from "./types"
 
 type Metadata = Record<string, unknown>
 

@@ -1,10 +1,10 @@
-import type { CustomerAddressInput, CustomerInput } from "../types"
 import type {
   CustomerGroupIndex,
   ExistingCustomer,
   ExistingCustomerIndex,
   ExistingGroup,
 } from "./client"
+import type { CustomerAddressInput, CustomerInput } from "./types"
 
 type Metadata = Record<string, unknown>
 

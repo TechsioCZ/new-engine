@@ -1,9 +1,9 @@
-import type { InvoiceInput } from "../types"
 import type {
   ExistingOrder,
   ExistingOrderIndex,
   UploadedInvoice,
 } from "./client"
+import type { InvoiceInput } from "./types"
 
 type Metadata = Record<string, unknown>
 const UNSAFE_FILENAME_CHARS = /[^a-zA-Z0-9._-]+/g

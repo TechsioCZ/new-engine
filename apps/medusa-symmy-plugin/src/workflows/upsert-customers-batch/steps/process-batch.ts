@@ -1,17 +1,17 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import {
+  CustomerBatchClient,
+  type CustomerGroupIndex,
+  type ExistingCustomerIndex,
+} from "../client"
 import type {
   CustomerInput,
   UpsertCustomersBatchInput,
   UpsertCustomersBatchOutput,
   UpsertCustomersBatchResult,
 } from "../types"
-import {
-  CustomerBatchClient,
-  type CustomerGroupIndex,
-  type ExistingCustomerIndex,
-} from "./client"
 
 const toErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Unknown error"

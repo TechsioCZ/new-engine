@@ -5,11 +5,11 @@ import {
   createPriceListsWorkflow,
   updatePriceListsWorkflow,
 } from "@medusajs/medusa/core-flows"
-import type { ListedPriceList, PriceInput, PriceListInput } from "../types"
 import {
   type PriceIdentifierSets,
   priceListsClientMapperHelper,
 } from "./client-mapper-helper"
+import type { ListedPriceList, PriceInput, PriceListInput } from "./types"
 
 export type ExistingPriceList = {
   id: string

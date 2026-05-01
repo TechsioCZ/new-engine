@@ -1,10 +1,10 @@
-import type { TrackingItemInput, TrackingShipmentInput } from "../types"
 import type {
   ExistingOrder,
   OrderLineItem,
   ResolvedTrackingItems,
   TrackingOrderIndex,
 } from "./client"
+import type { TrackingItemInput, TrackingShipmentInput } from "./types"
 
 type Metadata = Record<string, unknown>
 

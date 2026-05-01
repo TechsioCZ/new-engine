@@ -1,12 +1,6 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import type {
-  ProductInput,
-  UpsertProductsBatchInput,
-  UpsertProductsBatchOutput,
-  UpsertProductsBatchResult,
-} from "../types"
 import {
   type CreateProductPayload,
   type ExistingProductIndex,
@@ -14,8 +8,14 @@ import {
   type ProductBatchPayload,
   type ResolvedCategoryMap,
   type UpdateProductPayload,
-} from "./client"
-import { productBatchClientMapperHelper } from "./client-mapper-helper"
+} from "../client"
+import { productBatchClientMapperHelper } from "../client-mapper-helper"
+import type {
+  ProductInput,
+  UpsertProductsBatchInput,
+  UpsertProductsBatchOutput,
+  UpsertProductsBatchResult,
+} from "../types"
 
 type ProductIdentifierEcho = Pick<
   UpsertProductsBatchResult,

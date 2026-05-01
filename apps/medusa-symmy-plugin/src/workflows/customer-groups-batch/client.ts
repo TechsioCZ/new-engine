@@ -4,11 +4,11 @@ import {
   createCustomerGroupsWorkflow,
   updateCustomerGroupsWorkflow,
 } from "@medusajs/medusa/core-flows"
-import type { CustomerGroupInput } from "../types"
 import {
   type CustomerGroupLookupKeys,
   customerGroupsBatchClientMapperHelper,
 } from "./client-mapper-helper"
+import type { CustomerGroupInput } from "./types"
 
 type Metadata = Record<string, unknown>
 

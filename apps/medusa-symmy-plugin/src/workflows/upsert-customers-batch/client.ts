@@ -7,11 +7,11 @@ import {
   updateCustomerAddressesWorkflow,
   updateCustomersWorkflow,
 } from "@medusajs/medusa/core-flows"
-import type { CustomerAddressInput, CustomerInput } from "../types"
 import {
   type CustomerLookupKeys,
   customerBatchClientMapperHelper,
 } from "./client-mapper-helper"
+import type { CustomerAddressInput, CustomerInput } from "./types"
 
 type Metadata = Record<string, unknown>
 

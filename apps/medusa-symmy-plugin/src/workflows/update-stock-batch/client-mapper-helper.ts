@@ -1,4 +1,4 @@
-import type { StockUpdateInput, UpdateStockBatchResult } from "../types"
+import type { StockUpdateInput, UpdateStockBatchResult } from "./types"
 
 export type ResolvedUpdate = {
   index: number

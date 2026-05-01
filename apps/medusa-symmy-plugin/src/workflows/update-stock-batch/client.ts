@@ -1,7 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { batchInventoryItemLevelsWorkflow } from "@medusajs/medusa/core-flows"
-import type { UpdateStockBatchInput } from "../types"
 import {
   type ExistingLevel,
   type LevelDTO,
@@ -11,6 +10,7 @@ import {
   stockBatchClientMapperHelper,
   type VariantInventoryItemRow,
 } from "./client-mapper-helper"
+import type { UpdateStockBatchInput } from "./types"
 
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)

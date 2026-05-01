@@ -1,13 +1,13 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { StockBatchClient } from "../client"
+import { stockBatchClientMapperHelper } from "../client-mapper-helper"
 import type {
   UpdateStockBatchInput,
   UpdateStockBatchOutput,
   UpdateStockBatchResult,
 } from "../types"
-import { StockBatchClient } from "./client"
-import { stockBatchClientMapperHelper } from "./client-mapper-helper"
 
 export const processStockBatchStep = createStep(
   "symmy-process-stock-batch",

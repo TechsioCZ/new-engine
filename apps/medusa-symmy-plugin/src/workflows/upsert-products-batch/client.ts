@@ -1,8 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { batchProductsWorkflow } from "@medusajs/medusa/core-flows"
-import type { ProductInput } from "../types"
 import { productBatchClientMapperHelper } from "./client-mapper-helper"
+import type { ProductInput } from "./types"
 
 export type ResolvedCategoryMap = {
   byHandle: Map<string, string>

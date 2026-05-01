@@ -2,7 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { processStockBatchStep } from "./steps"
+import { processStockBatchStep } from "./steps/process-batch"
 import type { UpdateStockBatchInput, UpdateStockBatchOutput } from "./types"
 
 export const updateStockBatchWorkflow = createWorkflow(

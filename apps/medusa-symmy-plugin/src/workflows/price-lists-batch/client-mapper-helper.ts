@@ -1,16 +1,16 @@
 import type {
-  ListedPriceList,
-  PriceInput,
-  PriceListInput,
-  PriceListPriceResult,
-} from "../types"
-import type {
   ExistingPrice,
   ExistingPriceList,
   ExistingPriceListIndex,
   PriceListCustomerGroupIndex,
   VariantLookupMaps,
 } from "./client"
+import type {
+  ListedPriceList,
+  PriceInput,
+  PriceListInput,
+  PriceListPriceResult,
+} from "./types"
 
 const CODE_PREFIX = "[symmy_code:"
 const CODE_SUFFIX = "]"

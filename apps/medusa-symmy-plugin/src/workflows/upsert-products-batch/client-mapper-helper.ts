@@ -1,15 +1,15 @@
 import type {
+  ExistingProduct,
+  ExistingProductIndex,
+  ResolvedCategoryMap,
+} from "./client"
+import type {
   CategoryRefInput,
   ImageInput,
   PriceInput,
   ProductInput,
   VariantInput,
-} from "../types"
-import type {
-  ExistingProduct,
-  ExistingProductIndex,
-  ResolvedCategoryMap,
-} from "./client"
+} from "./types"
 
 type ExistingVariantIndex = {
   byId: Map<string, string>
