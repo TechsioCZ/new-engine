@@ -66,8 +66,9 @@ export const buildFacetChipItems = (
     const checked = selectedIdSet.has(id);
     const currentCount = currentCountById.get(id) ?? 0;
     const seedCount = seedCountById.get(id) ?? 0;
-    const count =
-      !checked && hasSelectionInFacet && currentCount === 0
+    const count = checked
+      ? currentCount
+      : hasSelectionInFacet
         ? seedCount
         : currentCount;
 
