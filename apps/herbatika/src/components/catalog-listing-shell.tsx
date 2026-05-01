@@ -15,7 +15,6 @@ export function CatalogListingShell({
         <div className="min-w-0 xl:col-span-3 xl:self-start xl:sticky xl:top-400">
           {facets}
         </div>
-
         {results}
       </div>
     </section>
