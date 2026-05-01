@@ -4,6 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 
+# shellcheck source=scripts/dev/project-env.sh
+. "$ROOT_DIR/scripts/dev/project-env.sh"
+
+PROJECT_NAME="$(new_engine_project_name)"
+export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
+
 get_env_value() {
   local var_name="$1"
   local line
@@ -47,7 +53,7 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ -z "$(docker compose ps -q medusa-db)" ]; then
+if [ -z "$(cd "$ROOT_DIR" && bash ./scripts/dev/compose.sh ps -q medusa-db)" ]; then
   echo "medusa-db container is not running. Start the stack first (for example: mise run dev)." >&2
   exit 1
 fi
@@ -59,7 +65,7 @@ operator_template_db="$(resolved_env_value "DC_ZANE_OPERATOR_DB_TEMPLATE_NAME" "
 echo "Applying postgres role bootstrap (medusa_app/medusa_dev/zane_operator) to running medusa-db container..."
 (
   cd "$ROOT_DIR"
-  docker compose exec -T \
+  bash ./scripts/dev/compose.sh exec -T \
     -e MEDUSA_DB_ZANE_OPERATOR_USER="$operator_user" \
     -e MEDUSA_DB_ZANE_OPERATOR_PASSWORD="$operator_password" \
     -e MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME="$operator_template_db" \
@@ -70,7 +76,7 @@ if [ "${1:-}" = "--verify-idempotent" ]; then
   echo "Running bootstrap second time to verify idempotency..."
   (
     cd "$ROOT_DIR"
-    docker compose exec -T \
+    bash ./scripts/dev/compose.sh exec -T \
       -e MEDUSA_DB_ZANE_OPERATOR_USER="$operator_user" \
       -e MEDUSA_DB_ZANE_OPERATOR_PASSWORD="$operator_password" \
       -e MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME="$operator_template_db" \

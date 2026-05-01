@@ -3,12 +3,18 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-PROJECT_NAME="${PROJECT_NAME:-new-engine}"
+ROOT_DIR="$REPO_ROOT"
 COMPOSE_FILE="${REPO_ROOT}/docker-compose.yaml"
 MINIO_BOOTSTRAP_ALIAS="${MINIO_BOOTSTRAP_ALIAS:-local}"
 MINIO_BOOTSTRAP_URL="${MINIO_BOOTSTRAP_URL:-http://localhost:9004}"
 MINIO_RUNTIME_POLICY_NAME="medusa-runtime-object-access"
 MINIO_RUNTIME_POLICY_PATH="/tmp/minio-medusa-runtime-policy.json"
+
+# shellcheck source=scripts/dev/project-env.sh
+. "$REPO_ROOT/scripts/dev/project-env.sh"
+
+PROJECT_NAME="$(new_engine_project_name)"
+export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
 
 require_container() {
   local service_name="$1"

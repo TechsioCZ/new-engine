@@ -3,7 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.yaml}"
-PROJECT_NAME="${COMPOSE_PROJECT_NAME:-new-engine}"
+
+# shellcheck source=scripts/dev/project-env.sh
+. "$ROOT_DIR/scripts/dev/project-env.sh"
+
+PROJECT_NAME="$(new_engine_project_name)"
+export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
 
 OLD_DATA_DIR="${OLD_DATA_DIR:-$ROOT_DIR/.docker_data/db}"
 NEW_DATA_DIR="${NEW_DATA_DIR:-$ROOT_DIR/.docker_data/db18}"

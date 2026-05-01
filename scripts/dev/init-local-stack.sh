@@ -5,6 +5,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 ENV_TEMPLATE="${ROOT_DIR}/.env.docker"
 
+# shellcheck source=scripts/dev/project-env.sh
+. "$ROOT_DIR/scripts/dev/project-env.sh"
+
+PROJECT_NAME="$(new_engine_project_name)"
+export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -142,6 +148,7 @@ main() {
 
   cd "$ROOT_DIR"
 
+  echo "Using Docker Compose project: ${PROJECT_NAME}"
   mise run dev:install
   mise run dev:resources
   mise run dev:backend

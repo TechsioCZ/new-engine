@@ -3,10 +3,16 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
-PROJECT_NAME="${PROJECT_NAME:-new-engine}"
+LOCAL_DEV_RUNTIME_ENV_FILE="${LOCAL_DEV_RUNTIME_ENV_FILE:-${ROOT_DIR}/.docker_data/dev-runtime.env}"
 HEALTH_TIMEOUT_SECONDS="${MISE_DEV_HEALTH_TIMEOUT_SECONDS:-180}"
 KEY_CONFLICT_POLICY="${MISE_DEV_MEILI_KEY_CONFLICT:-prompt}" # prompt|override|keep
-MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-http://127.0.0.1:7700}"
+MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-}"
+
+# shellcheck source=scripts/dev/project-env.sh
+. "$ROOT_DIR/scripts/dev/project-env.sh"
+
+PROJECT_NAME="$(new_engine_project_name)"
+export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -18,8 +24,32 @@ require_cmd() {
 compose() {
   (
     cd "$ROOT_DIR"
-    docker compose -f docker-compose.yaml -p "$PROJECT_NAME" "$@"
+    bash ./scripts/dev/compose.sh "$@"
   )
+}
+
+ensure_ctl_dist() {
+  local ctl_dist="$ROOT_DIR/apps/new-engine-ctl/dist/cli.js"
+
+  require_cmd pnpm
+  require_cmd node
+
+  if [[ ! -f "$ctl_dist" ]] || find "$ROOT_DIR/apps/new-engine-ctl/src" "$ROOT_DIR/apps/new-engine-ctl/config" -type f -newer "$ctl_dist" -print -quit | grep -q .; then
+    (
+      cd "$ROOT_DIR/apps/new-engine-ctl"
+      pnpm run build >/dev/null
+    )
+  fi
+
+  printf '%s' "$ctl_dist"
+}
+
+resolve_local_ports() {
+  require_cmd node
+  node "$ROOT_DIR/scripts/dev/resolve-local-ports.mjs" \
+    --env-file "$ENV_FILE" \
+    --output "$LOCAL_DEV_RUNTIME_ENV_FILE" \
+    --project-name "$PROJECT_NAME"
 }
 
 wait_for_service_healthy() {
@@ -61,17 +91,9 @@ wait_for_service_healthy() {
 services_for_phase() {
   local phase="$1"
   local default_only="${2:-true}"
-  local ctl_dist="$ROOT_DIR/apps/new-engine-ctl/dist/cli.js"
+  local ctl_dist
 
-  require_cmd pnpm
-  require_cmd node
-
-  if [[ ! -f "$ctl_dist" ]] || find "$ROOT_DIR/apps/new-engine-ctl/src" "$ROOT_DIR/apps/new-engine-ctl/config" -type f -newer "$ctl_dist" -print -quit | grep -q .; then
-    (
-      cd "$ROOT_DIR/apps/new-engine-ctl"
-      pnpm run build >/dev/null
-    )
-  fi
+  ctl_dist="$(ensure_ctl_dist)"
 
   if [[ "$default_only" == "true" ]]; then
     node "$ctl_dist" manifest compose-services --phase "$phase" --default-only
@@ -96,6 +118,30 @@ get_env_value() {
   fi
 
   printf '%s' "${line#*=}"
+}
+
+get_runtime_env_value() {
+  local var_name="$1"
+  local line
+
+  if [[ ! -f "$LOCAL_DEV_RUNTIME_ENV_FILE" ]]; then
+    echo ""
+    return 0
+  fi
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+
+    if [[ "$line" =~ ^([A-Z][A-Z0-9_]*)=(.*)$ ]]; then
+      if [[ "${BASH_REMATCH[1]}" == "$var_name" ]]; then
+        printf '%s' "${BASH_REMATCH[2]}"
+        return 0
+      fi
+    fi
+  done <"$LOCAL_DEV_RUNTIME_ENV_FILE"
+
+  echo ""
 }
 
 set_env_value() {
@@ -222,6 +268,9 @@ sync_meili_env() {
   require_cmd bash
   require_cmd awk
   require_cmd sed
+  resolve_local_ports >/dev/null
+  MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-$(get_runtime_env_value "MISE_DEV_MEILI_URL")}"
+  MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-http://127.0.0.1:7700}"
 
   if [[ ! -f "$ENV_FILE" ]]; then
     echo "Missing ${ENV_FILE}. Create it from .env.docker first." >&2
@@ -291,6 +340,7 @@ usage() {
 Usage: scripts/dev/mise-dev-helpers.sh <command> [args]
 
 Commands:
+  resolve-local-ports        Generate .docker_data/dev-runtime.env with available host ports
   wait-healthy <service...>   Wait until each docker compose service is healthy
   services-for-phase <phase>  Print compose services for a local-dev phase from stack manifest
   sync-meili-env              Provision Meili keys and sync .env values
@@ -298,10 +348,11 @@ Commands:
                               Ensure medusa-db has converged zane-operator bootstrap state for current local envs
 
 Environment options:
-  PROJECT_NAME                         docker compose project name (default: new-engine)
+  PROJECT_NAME                         Override Docker Compose project name
+  LOCAL_DEV_RUNTIME_ENV_FILE           generated compose env file (default: .docker_data/dev-runtime.env)
   MISE_DEV_HEALTH_TIMEOUT_SECONDS      health wait timeout per service (default: 180)
   MISE_DEV_MEILI_KEY_CONFLICT          prompt|override|keep (default: prompt)
-  MISE_DEV_MEILI_URL                   Host-accessible Meilisearch URL for provisioning (default: http://127.0.0.1:7700)
+  MISE_DEV_MEILI_URL                   Host-accessible Meilisearch URL override for provisioning
 USAGE
 }
 
@@ -312,6 +363,9 @@ main() {
   require_cmd docker
 
   case "$command" in
+    resolve-local-ports)
+      resolve_local_ports
+      ;;
     wait-healthy)
       if [[ "$#" -lt 1 ]]; then
         echo "wait-healthy requires at least one service name" >&2
