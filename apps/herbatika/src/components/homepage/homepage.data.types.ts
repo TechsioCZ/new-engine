@@ -23,4 +23,5 @@ export type BlogTeaserItem = {
 export type ProductSectionDefinition = {
   id: string;
   title: string;
+  viewAllHref: string;
 };

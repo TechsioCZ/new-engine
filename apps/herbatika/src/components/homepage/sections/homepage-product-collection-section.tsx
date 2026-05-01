@@ -1,8 +1,7 @@
 import type { HttpTypes } from "@medusajs/types";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import NextLink from "next/link";
 import type { HomepageProductSection } from "@/components/homepage/homepage.types";
 import { ProductCollectionSection } from "@/components/product/product-collection-section";
+import { TextActionLink } from "@/components/text-action-link";
 
 type HomepageProductCollectionSectionProps = {
   section: HomepageProductSection;
@@ -24,18 +23,7 @@ export function HomepageProductCollectionSection({
   return (
     <ProductCollectionSection
       headerAction={
-        <LinkButton
-          as={NextLink}
-          className="hidden rounded-md px-400 py-200 text-sm font-semibold md:inline-flex"
-          href="/#"
-          icon="token-icon-arrow-right"
-          iconPosition="right"
-          size="sm"
-          theme="outlined"
-          variant="secondary"
-        >
-          Zobraziť viac
-        </LinkButton>
+        <TextActionLink href={section.viewAllHref} />
       }
       id={section.id}
       isProductAdding={isProductAdding}
