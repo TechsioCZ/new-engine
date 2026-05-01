@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
+import { useEffect } from "react";
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { ProductDetailMetrics } from "@/components/product-detail/sections/product-detail-metrics";
 import { ProductDetailOffers } from "@/components/product-detail/sections/product-detail-offers";
@@ -19,6 +20,14 @@ import { RecentlyVisitedProductsSection } from "@/components/recently-visited-pr
 
 export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps) {
   const controller = useProductDetailController({ handle });
+
+  useEffect(() => {
+    if (window.location.hash) {
+      return;
+    }
+
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [handle]);
 
   return (
     <main className="mx-auto font-rubik flex w-full max-w-max-w flex-col gap-600 px-400 py-600 lg:px-550">
