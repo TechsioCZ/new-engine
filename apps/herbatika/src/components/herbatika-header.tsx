@@ -195,24 +195,24 @@ export function HerbatikaHeader() {
                 );
 
                 return (
+                  <NextLink
+                  
+                    aria-expanded={
+                        hasSubmenu ? activeRootHandle === rootHandle : undefined
+                      }
+                    aria-haspopup={hasSubmenu ? "dialog" : undefined}
+                    href={item.href}
+                    onFocus={() => handleActivateDesktopItem(item.href)}
+                    className="shrink-0 h-full"
+                    >
                   <Header.NavItem
-                    className="shrink-0 h-full items-center flex"
+                    className="whitespace-nowrap leading-none h-full items-center flex"
                     key={item.href}
                     onMouseEnter={() => handleActivateDesktopItem(item.href)}
                   >
-                    <Link
-                      aria-expanded={
-                        hasSubmenu ? activeRootHandle === rootHandle : undefined
-                      }
-                      aria-haspopup={hasSubmenu ? "dialog" : undefined}
-                      as={NextLink}
-                      className="whitespace-nowrap leading-none"
-                      href={item.href}
-                      onFocus={() => handleActivateDesktopItem(item.href)}
-                    >
-                      {item.label}
-                    </Link>
+                    {item.label}
                   </Header.NavItem>
+                  </NextLink>
                 );
               })}
             </Header.Nav>
