@@ -11,6 +11,7 @@ import {
 } from "@techsio/ui-kit/molecules/carousel";
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "@/components/header/herbatika-header.submenu-data";
 import { useHerbatikaHeaderSubmenu } from "@/components/header/use-herbatika-header-submenu";
+import { TextActionLink } from "@/components/text-action-link";
 
 type ImageSource = ComponentProps<typeof NextImage>["src"];
 type PurposeCarouselRootHandle =
@@ -152,13 +153,7 @@ export function PurposeCarousel({
         <h2 className="text-3xl leading-snug font-bold text-fg-primary">
           {title}
         </h2>
-        <Link
-          as={NextLink}
-          className="shrink-0 text-sm leading-snug text-fg-primary underline underline-offset-2 hover:text-primary"
-          href={viewAllHref ?? `/c/${rootHandle}`}
-        >
-          Zobraziť všetky
-        </Link>
+        <TextActionLink href={viewAllHref ?? `/c/${rootHandle}`} />
       </div>
 
       <div className="space-y-200">
