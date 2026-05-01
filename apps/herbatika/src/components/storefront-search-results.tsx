@@ -1,9 +1,11 @@
 "use client";
 
 import { Badge } from "@techsio/ui-kit/atoms/badge";
+import { CatalogListingShell } from "@/components/catalog-listing-shell";
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
 import { CategoryResultsSection } from "@/components/category/category-results-section";
+import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 import { useSearchListingController } from "./search/use-search-listing-controller";
 
@@ -37,28 +39,27 @@ export function StorefrontSearchResults() {
           </p>
         </section>
       ) : (
-        <section className="space-y-400">
-          <div className="flex min-w-0 flex-col gap-600 xl:grid xl:grid-cols-12 xl:items-start">
-            <div className="min-w-0 xl:col-span-3 xl:self-start xl:sticky xl:top-400">
-              <CategoryFacetsPanel
-                activeFilterCount={controller.activeAsideFilterCount}
-                brandItems={controller.asideBrandItems}
-                currencyCode={controller.productsCurrencyCode}
-                formItems={controller.asideFormItems}
-                ingredientItems={controller.asideIngredientItems}
-                isLoading={controller.isFiltersLoading}
-                onBrandToggle={controller.onBrandToggle}
-                onFormToggle={controller.onFormToggle}
-                onIngredientToggle={controller.onIngredientToggle}
-                onPriceRangeCommit={controller.onPriceRangeCommit}
-                onReset={controller.onResetFilters}
-                onStatusToggle={controller.onStatusToggle}
-                priceBounds={controller.priceBounds}
-                selectedPriceRange={controller.selectedPriceRange}
-                statusItems={controller.asideStatusItems}
-              />
-            </div>
-
+        <CatalogListingShell
+          facets={
+            <CategoryFacetsPanel
+              activeFilterCount={controller.activeAsideFilterCount}
+              brandItems={controller.asideBrandItems}
+              currencyCode={controller.productsCurrencyCode}
+              formItems={controller.asideFormItems}
+              ingredientItems={controller.asideIngredientItems}
+              isLoading={controller.isFiltersLoading}
+              onBrandToggle={controller.onBrandToggle}
+              onFormToggle={controller.onFormToggle}
+              onIngredientToggle={controller.onIngredientToggle}
+              onPriceRangeCommit={controller.onPriceRangeCommit}
+              onReset={controller.onResetFilters}
+              onStatusToggle={controller.onStatusToggle}
+              priceBounds={controller.priceBounds}
+              selectedPriceRange={controller.selectedPriceRange}
+              statusItems={controller.asideStatusItems}
+            />
+          }
+          results={
             <CategoryResultsSection
               activeSort={controller.queryState.sort}
               addToCartError={controller.addToCartError}
@@ -82,9 +83,11 @@ export function StorefrontSearchResults() {
               totalPages={controller.catalogQuery.totalPages}
               totalProducts={controller.catalogQuery.totalCount}
             />
-          </div>
-        </section>
+          }
+        />
       )}
+
+      <RecentlyVisitedProductsSection hideWhenEmpty />
     </main>
   );
 }

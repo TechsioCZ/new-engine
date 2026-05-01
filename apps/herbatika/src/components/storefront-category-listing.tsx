@@ -1,5 +1,6 @@
 "use client";
 
+import { CatalogListingShell } from "@/components/catalog-listing-shell";
 import { CategoryContextPanel } from "@/components/category/category-context-panel";
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
@@ -9,6 +10,7 @@ import { CategoryRichText } from "@/components/category/category-rich-text";
 import { useCategoryListingController } from "@/components/category/use-category-listing-controller";
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation";
+import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 
 type StorefrontCategoryListingProps = {
@@ -63,28 +65,27 @@ export function StorefrontCategoryListing({
         introText={controller.categoryIntroText}
       />
 
-      <section className="space-y-400">
-        <div className="flex min-w-0 flex-col gap-600 xl:grid xl:grid-cols-12 xl:items-start">
-          <div className="min-w-0 xl:col-span-3 xl:self-start xl:sticky xl:top-400">
-            <CategoryFacetsPanel
-              activeFilterCount={controller.activeAsideFilterCount}
-              brandItems={controller.asideBrandItems}
-              currencyCode={controller.productsCurrencyCode}
-              formItems={controller.asideFormItems}
-              ingredientItems={controller.asideIngredientItems}
-              isLoading={controller.isFiltersLoading}
-              onBrandToggle={controller.onBrandToggle}
-              onFormToggle={controller.onFormToggle}
-              onIngredientToggle={controller.onIngredientToggle}
-              onPriceRangeCommit={controller.onPriceRangeCommit}
-              onReset={controller.onResetFilters}
-              onStatusToggle={controller.onStatusToggle}
-              priceBounds={controller.priceBounds}
-              selectedPriceRange={controller.selectedPriceRange}
-              statusItems={controller.asideStatusItems}
-            />
-          </div>
-
+      <CatalogListingShell
+        facets={
+          <CategoryFacetsPanel
+            activeFilterCount={controller.activeAsideFilterCount}
+            brandItems={controller.asideBrandItems}
+            currencyCode={controller.productsCurrencyCode}
+            formItems={controller.asideFormItems}
+            ingredientItems={controller.asideIngredientItems}
+            isLoading={controller.isFiltersLoading}
+            onBrandToggle={controller.onBrandToggle}
+            onFormToggle={controller.onFormToggle}
+            onIngredientToggle={controller.onIngredientToggle}
+            onPriceRangeCommit={controller.onPriceRangeCommit}
+            onReset={controller.onResetFilters}
+            onStatusToggle={controller.onStatusToggle}
+            priceBounds={controller.priceBounds}
+            selectedPriceRange={controller.selectedPriceRange}
+            statusItems={controller.asideStatusItems}
+          />
+        }
+        results={
           <CategoryResultsSection
             activeSort={controller.queryState.sort}
             addToCartError={controller.addToCartError}
@@ -107,13 +108,15 @@ export function StorefrontCategoryListing({
             totalPages={controller.catalogQuery.totalPages}
             totalProducts={controller.catalogQuery.totalCount}
           />
-        </div>
-      </section>
+        }
+      />
 
       <CategoryRichText
         className="rounded-2xl bg-surface p-500"
         html={controller.categoryBottomHtml}
       />
+
+      <RecentlyVisitedProductsSection hideWhenEmpty />
     </main>
   );
 }
