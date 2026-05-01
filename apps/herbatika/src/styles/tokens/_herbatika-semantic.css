@@ -24,6 +24,8 @@
   --color-herbatika-warning: oklch(0.8321 0.1354 80.84);
   --color-herbatika-danger: oklch(0.5782 0.2193 26.15);
   --color-herbatika-fg-tertiary: oklch(0.5517 0.0138 285.94);
+  --color-herbatika-tip: oklch(0.8056 0.0919 45.13);
+  --color-herbatika-new: oklch(0.7978 0.0954 121.56);
 
   /* Brand semantics */
   --color-primary: var(--color-herbatika-primary);
@@ -57,6 +59,8 @@
   --color-info: var(--color-herbatika-info);
   --color-warning: var(--color-herbatika-warning);
   --color-danger: var(--color-herbatika-danger);
+  --color-tip: var(--color-herbatika-tip);
+  --color-new: var(--color-herbatika-new);
 
   /* Foreground */
   --color-fg-light: var(--color-herbatika-fg);

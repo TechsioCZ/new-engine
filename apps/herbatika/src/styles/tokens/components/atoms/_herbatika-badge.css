@@ -2,10 +2,10 @@
   --spacing-badge-md: var(--spacing-100) var(--spacing-200);
   --spacing-badge-lg: var(--spacing-200);
   --text-badge-md: var(--text-xs);
-  --font-weight-badge-md: var(--font-weight-semibold);
-  --radius-badge: var(--radius-md);
+  --font-weight-badge-md: var(--font-weight-bold);
+  --radius-badge: var(--radius-xs);
 
-  --color-badge-bg-primary: var(--color-primary);
+  --color-badge-bg-primary: var(--color-red-600);
   --color-badge-fg-primary: var(--color-fg-reverse);
 
   --color-badge-bg-secondary: var(--color-highlight);
@@ -17,10 +17,10 @@
   --color-badge-bg-info: var(--color-info);
   --color-badge-fg-info: var(--color-fg-reverse);
 
-  --color-badge-bg-success: var(--color-success);
+  --color-badge-bg-success: var(--color-new);
   --color-badge-fg-success: var(--color-fg-reverse);
 
-  --color-badge-bg-warning: var(--color-warning);
+  --color-badge-bg-warning: var(--color-tip);
   --color-badge-fg-warning: var(--color-fg-reverse);
 
   --color-badge-bg-danger: var(--color-danger);
