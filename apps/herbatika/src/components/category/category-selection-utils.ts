@@ -21,10 +21,16 @@ export const buildFacetChipItems = (
   seedFacetItems: CatalogFacetItem[],
   selectedIds: string[],
 ): CategoryFacetChipItem[] => {
-  const countById = new Map(currentFacetItems.map((item) => [item.id, item.count]));
+  const currentCountById = new Map(
+    currentFacetItems.map((item) => [item.id, item.count]),
+  );
+  const seedCountById = new Map(
+    seedFacetItems.map((item) => [item.id, item.count]),
+  );
   const labelById = new Map<string, string>();
   const orderedIds: string[] = [];
   const seenIds = new Set<string>();
+  const hasSelectionInFacet = selectedIds.length > 0;
 
   const pushOrderedId = (id: string) => {
     if (seenIds.has(id)) {
@@ -57,8 +63,13 @@ export const buildFacetChipItems = (
 
   return orderedIds.map((id) => {
     const label = labelById.get(id) ?? id;
-    const count = countById.get(id) ?? 0;
     const checked = selectedIdSet.has(id);
+    const currentCount = currentCountById.get(id) ?? 0;
+    const seedCount = seedCountById.get(id) ?? 0;
+    const count =
+      !checked && hasSelectionInFacet && currentCount === 0
+        ? seedCount
+        : currentCount;
 
     return {
       id,

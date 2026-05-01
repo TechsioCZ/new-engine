@@ -2,6 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { useMemo, useState } from "react";
+import { AsideFilterButton } from "@/components/aside-filter-button";
 import { SupportingText } from "@/components/text/supporting-text";
 
 export type AsideFilterChipItem = {
@@ -13,10 +14,10 @@ export type AsideFilterChipItem = {
 };
 
 type AsideFilterChipSectionProps = {
-  title: string;
+  title?: string;
   items: AsideFilterChipItem[];
   onToggle: (itemId: string) => void;
-  emptyMessage: string;
+  emptyMessage?: string;
   collapseAfter?: number;
   isLoading?: boolean;
 };
@@ -41,9 +42,11 @@ export function AsideFilterChipSection({
 
   return (
     <section className="space-y-250">
-      <h3 className="text-2xl font-bold leading-tight">{title}</h3>
+      {title && (
+        <h3 className="text-xl font-semibold leading-none">{title}</h3>
+      )}
 
-      {items.length === 0 && (
+      {items.length === 0 && emptyMessage && (
         <SupportingText className="text-fg-secondary text-sm">
           {emptyMessage}
         </SupportingText>
@@ -51,17 +54,16 @@ export function AsideFilterChipSection({
 
       {items.length > 0 && (
         <>
-          <div className="flex flex-wrap gap-200">
+          <div className="flex flex-wrap gap-250">
             {visibleItems.map((item) => (
-              <Button
-                className="min-h-750 rounded-full leading-tight"
+              <AsideFilterButton
+                checked={item.checked}
+                count={item.count}
                 disabled={isLoading || item.disabled}
                 key={item.id}
+                label={item.label}
                 onClick={() => onToggle(item.id)}
-                size="sm"
-              >
-                {`${item.label} (${item.count})`}
-              </Button>
+              />
             ))}
           </div>
 

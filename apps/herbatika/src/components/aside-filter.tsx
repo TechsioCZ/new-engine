@@ -238,21 +238,11 @@ export function AsideFilter({
           />
         </section>
 
-        <section className="space-y-250">
-          <div className="flex flex-wrap gap-200">
-            {statusItems.map((item) => (
-              <Button
-                size="sm"
-                theme="light"
-                variant="primary"
-                className="min-h-750 font-rubik rounded-full leading-tight"
-                disabled={isLoading || item.disabled}
-                key={item.id}
-                onClick={() => onStatusToggle(item.id)}
-              >{`${item.label} (${item.count})`}</Button>
-            ))}
-          </div>
-        </section>
+        <AsideFilterChipSection
+          isLoading={isLoading}
+          items={statusItems}
+          onToggle={onStatusToggle}
+        />
 
         <div>
           <AsideFilterChipSection
