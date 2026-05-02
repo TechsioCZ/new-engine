@@ -10,6 +10,7 @@ import {
   type ForgotPasswordFormValues,
 } from "@/lib/auth/auth-form-validators";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
+import { AuthFooter } from "./auth-footer";
 
 type ForgotPasswordFormProps = {
   isBusy: boolean;
@@ -43,7 +44,7 @@ export const ForgotPasswordForm = ({
   if (submittedEmail) {
     return (
       <div className="flex flex-col gap-300">
-        <StatusText showIcon status="success">
+        <StatusText showIcon={false} status="success">
           {`Odkaz na obnovu hesla sme odoslali na ${submittedEmail}. Skontrolujte si schránku.`}
         </StatusText>
         <p className="text-sm text-fg-secondary">
@@ -51,7 +52,7 @@ export const ForgotPasswordForm = ({
           znovu o pár minút.
         </p>
         <div className="flex flex-wrap gap-200">
-          <LinkButton as={NextLink} href={loginHref} variant="primary" size="sm">
+          <LinkButton as={NextLink} href={loginHref} variant="primary" size="sm" block>
             Späť na prihlásenie
           </LinkButton>
         </div>
@@ -89,13 +90,11 @@ export const ForgotPasswordForm = ({
       </form.AppField>
 
       <div className="flex flex-wrap gap-200">
-        <Button isLoading={isBusy} type="submit" size="sm">
+        <Button isLoading={isBusy} type="submit" size="sm" block>
           Zaslať odkaz
         </Button>
-        <LinkButton as={NextLink} href={loginHref} variant="primary" size="sm">
-          Späť na prihlásenie
-        </LinkButton>
       </div>
+      <AuthFooter text="" href="/auth/login" linkText="Späť na prihlásenie" />
     </form>
   );
 };
