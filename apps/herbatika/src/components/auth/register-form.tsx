@@ -1,9 +1,7 @@
 "use client";
 
 import { Button } from "@techsio/ui-kit/atoms/button";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import NextLink from "next/link";
 import { useState } from "react";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 import {
@@ -11,6 +9,7 @@ import {
   type RegisterFormValues,
 } from "@/lib/auth/auth-form-validators";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
+import { AuthFooter } from "./auth-footer";
 
 type RegisterFormProps = {
   isBusy: boolean;
@@ -151,8 +150,8 @@ export const RegisterForm = ({
       </div>
 
       <div className="md:col-span-2 flex flex-wrap gap-200">
-        <Button isLoading={isBusy} type="submit" size="sm">
-          Registrovať
+        <Button isLoading={isBusy} type="submit" size="sm" block>
+          Registrovať sa
         </Button>
 
         {isDiagnosticsMode ? (
@@ -177,10 +176,9 @@ export const RegisterForm = ({
             Vygenerovať test identitu
           </Button>
         ) : null}
-
-        <LinkButton as={NextLink} href={loginHref} variant="primary" size="sm">
-          Na prihlásenie
-        </LinkButton>
+      </div>
+      <div className="col-span-2">
+        <AuthFooter text="Už máte účet?" href={loginHref} linkText="Prihlásiť sa"/>
       </div>
     </form>
   );

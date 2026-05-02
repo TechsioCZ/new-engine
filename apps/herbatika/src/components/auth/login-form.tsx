@@ -10,6 +10,7 @@ import {
   type LoginFormValues,
 } from "@/lib/auth/auth-form-validators";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
+import { AuthFooter } from "./auth-footer";
 
 type LoginFormProps = {
   isBusy: boolean;
@@ -104,18 +105,7 @@ export const LoginForm = ({
           Prihlásiť sa
         </Button>
       </form>
-
-      <div className="mt-400 border-t border-border-secondary pt-300 text-center">
-        <p className="text-sm text-fg-secondary">
-          {"Nemáte ešte účet? "}
-          <NextLink
-            className="font-medium text-primary underline-offset-4 hover:underline"
-            href={registerHref}
-          >
-            Zaregistrujte sa
-          </NextLink>
-        </p>
-      </div>
+      <AuthFooter text="Nemáte ešte účet?" href={registerHref} linkText="Zaregistrujte sa"/>
     </div>
   );
 };
