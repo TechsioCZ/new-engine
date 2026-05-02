@@ -8,7 +8,7 @@
   --padding-button-lg: var(--spacing-400) var(--spacing-500);
 
   --radius-button-sm: var(--radius-sm);
-  --radius-button-md: var(--radius-xl);
+  --radius-button-md: var(--radius-sm);
   --radius-button-lg: var(--radius-sm);
 
   --color-button-fg-primary: var(--color-fg-reverse);

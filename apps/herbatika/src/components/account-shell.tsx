@@ -11,7 +11,7 @@ import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skele
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton";
 import { OrderSkeleton } from "@/components/loading/order-skeleton";
 import { useAuth } from "@/lib/storefront/auth";
-import { useStorefrontLogoutAction } from "@/lib/storefront/use-storefront-logout-action";
+import { useLogoutAction } from "@/lib/storefront/use-logout-action";
 import { Icon, IconType } from "@techsio/ui-kit/atoms/icon";
 
 type AccountNavItemType = {
@@ -38,13 +38,13 @@ const isNavItemActive = (pathname: string, href: string) => {
   return pathname.startsWith(`${href}/`);
 };
 
-type StorefrontAccountLayoutProps = {
+type AccountShellProps = {
   children: ReactNode;
 };
 
-export function StorefrontAccountLayout({
+export function AccountShell({
   children,
-}: StorefrontAccountLayoutProps) {
+}: AccountShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const authQuery = useAuth();
@@ -57,7 +57,7 @@ export function StorefrontAccountLayout({
     handleLogout: performLogout,
     logoutError,
     logoutMutation,
-  } = useStorefrontLogoutAction({
+  } = useLogoutAction({
     onSuccess: () => {
       router.replace("/");
     },

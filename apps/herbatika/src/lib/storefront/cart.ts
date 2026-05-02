@@ -6,7 +6,7 @@ import { storefrontCacheConfig } from "./cache";
 const cartHooks = storefront.hooks.cart;
 const cartFlow = storefront.flows.cart;
 
-export const storefrontCartReadQueryOptions = {
+export const cartReadQueryOptions = {
   staleTime: 60 * 1000,
   gcTime: storefrontCacheConfig.realtime.gcTime,
   refetchOnMount: false,

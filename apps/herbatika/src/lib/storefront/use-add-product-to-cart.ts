@@ -3,7 +3,7 @@
 import type { HttpTypes } from "@medusajs/types";
 import { useState } from "react";
 import {
-  storefrontCartReadQueryOptions,
+  cartReadQueryOptions,
   useAddLineItem,
   useCart,
 } from "./cart";
@@ -80,7 +80,7 @@ export function useAddProductToCart({
       enabled: Boolean(regionId),
     },
     {
-      queryOptions: storefrontCartReadQueryOptions,
+      queryOptions: cartReadQueryOptions,
     },
   );
   const addLineItemMutation = useAddLineItem();

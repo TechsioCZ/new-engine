@@ -5,11 +5,11 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Popover } from "@techsio/ui-kit/molecules/popover";
 import NextLink from "next/link";
 import { useEffect, useState } from "react";
-import { StorefrontLoginForm } from "@/components/auth/storefront-login-form";
-import { useStorefrontAuthController } from "@/components/auth/use-storefront-auth-controller";
+import { LoginForm } from "@/components/auth/login-form";
+import { useAuthController } from "@/components/auth/use-auth-controller";
 
 export function HerbatikaAccountPopover() {
-  const controller = useStorefrontAuthController({ mode: "login" });
+  const controller = useAuthController({ mode: "login" });
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   useEffect(() => {
@@ -56,11 +56,12 @@ export function HerbatikaAccountPopover() {
       }
       triggerClassName="px-0 py-0 text-3xl hover:bg-transparent data-[state=open]:bg-transparent"
     >
-      <StorefrontLoginForm
+      <LoginForm
         defaultValues={controller.loginDefaultValues}
         isBusy={controller.isBusy}
         onSubmit={controller.handleLoginSubmit}
         registerHref={controller.registerHref}
+        forgotPasswordHref={controller.forgotPasswordHref}
       />
     </Popover>
   );

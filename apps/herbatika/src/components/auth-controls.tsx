@@ -1,29 +1,29 @@
 "use client";
 
-import { StorefrontAuthDebugPanel } from "@/components/auth/storefront-auth-debug-panel";
-import { StorefrontAuthShell } from "@/components/auth/storefront-auth-shell";
-import { StorefrontLoginForm } from "@/components/auth/storefront-login-form";
-import { StorefrontRegisterForm } from "@/components/auth/storefront-register-form";
-import { useStorefrontAuthController } from "@/components/auth/use-storefront-auth-controller";
+import { AuthDebugPanel } from "@/components/auth/auth-debug-panel";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { RegisterForm } from "@/components/auth/register-form";
+import { useAuthController } from "@/components/auth/use-auth-controller";
+import { LoginForm } from "./auth/login-form";
 
 type AuthControlsMode = "login" | "register" | "both";
 
-type StorefrontAuthControlsProps = {
+type AuthControlsProps = {
   mode?: AuthControlsMode;
   afterAuthHref?: string;
 };
 
-export function StorefrontAuthControls({
+export function AuthControls({
   mode = "both",
   afterAuthHref,
-}: StorefrontAuthControlsProps) {
-  const controller = useStorefrontAuthController({
+}: AuthControlsProps) {
+  const controller = useAuthController({
     mode,
     afterAuthHref,
   });
 
   return (
-    <StorefrontAuthShell
+    <AuthShell
       customerEmail={controller.authQuery.customer?.email}
       description={controller.description}
       error={controller.authError}
@@ -36,16 +36,17 @@ export function StorefrontAuthControls({
       title={controller.isDiagnosticsMode ? "Auth actions" : controller.title}
     >
       {(mode === "both" || mode === "login") && (
-        <StorefrontLoginForm
+        <LoginForm
           defaultValues={controller.loginDefaultValues}
           isBusy={controller.isBusy}
           onSubmit={controller.handleLoginSubmit}
           registerHref={controller.registerHref}
+          forgotPasswordHref={controller.forgotPasswordHref}
         />
       )}
 
       {(mode === "both" || mode === "register") && (
-        <StorefrontRegisterForm
+        <RegisterForm
           defaultValues={controller.registerDefaultValues}
           isBusy={controller.isBusy}
           isDiagnosticsMode={controller.isDiagnosticsMode}
@@ -55,7 +56,7 @@ export function StorefrontAuthControls({
         />
       )}
 
-      <StorefrontAuthDebugPanel
+      <AuthDebugPanel
         hasCart={Boolean(controller.cartQuery.cart?.id)}
         isAuthenticated={controller.authQuery.isAuthenticated}
         isBusy={controller.isBusy}
@@ -69,6 +70,6 @@ export function StorefrontAuthControls({
           void controller.handleTransferCart();
         }}
       />
-    </StorefrontAuthShell>
+    </AuthShell>
   );
 }

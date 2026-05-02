@@ -27,6 +27,15 @@ export type RegisterFormValues = {
   accept_terms: boolean;
 };
 
+export type ForgotPasswordFormValues = {
+  email: string;
+};
+
+export type ResetPasswordFormValues = {
+  password: string;
+  confirm_password: string;
+};
+
 type ConfirmPasswordFieldApi = {
   form: {
     getFieldValue: (name: "password") => unknown;
@@ -77,6 +86,37 @@ export const registerValidators = {
       "Potrebujeme súhlas s obchodnými podmienkami.",
     ),
   ),
+};
+
+export const forgotPasswordValidators = {
+  email: createChangeBlurFieldValidators(validateEmailAddress),
+};
+
+type ResetPasswordConfirmFieldApi = {
+  form: {
+    getFieldValue: (name: "password") => unknown;
+  };
+};
+
+export const resetPasswordValidators = {
+  password: createChangeBlurFieldValidators(validateRegisterPassword),
+  confirm_password: {
+    onChangeListenTo: ["password"] as Array<keyof ResetPasswordFormValues>,
+    ...createChangeBlurContextualFieldValidators(
+      ({
+        value,
+        fieldApi,
+      }: {
+        value: string;
+        fieldApi: ResetPasswordConfirmFieldApi;
+      }) => {
+        const password =
+          (fieldApi.form.getFieldValue("password") as string | undefined) ?? "";
+
+        return validatePasswordConfirmation(password, value);
+      },
+    ),
+  },
 };
 
 export const resolveLoginSubmitError = (error: unknown) => {

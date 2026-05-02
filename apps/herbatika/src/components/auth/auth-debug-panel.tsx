@@ -1,6 +1,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button";
 
-type StorefrontAuthDebugPanelProps = {
+type AuthDebugPanelProps = {
   isVisible: boolean;
   isBusy: boolean;
   isAuthenticated: boolean;
@@ -11,7 +11,7 @@ type StorefrontAuthDebugPanelProps = {
   onTransferCart: () => void;
 };
 
-export const StorefrontAuthDebugPanel = ({
+export const AuthDebugPanel = ({
   isVisible,
   isBusy,
   isAuthenticated,
@@ -20,7 +20,7 @@ export const StorefrontAuthDebugPanel = ({
   isTransferPending,
   onLogout,
   onTransferCart,
-}: StorefrontAuthDebugPanelProps) => {
+}: AuthDebugPanelProps) => {
   if (!isVisible) {
     return null;
   }

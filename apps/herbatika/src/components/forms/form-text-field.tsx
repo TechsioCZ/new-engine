@@ -10,7 +10,7 @@ import { useFieldContext } from "@/lib/forms/core/herbatika-form-context";
 
 type FormTextFieldProps = {
   id: string;
-  label: ReactNode;
+  label?: ReactNode;
   type?: "text" | "email" | "password" | "tel";
   autoComplete?: string;
   required?: boolean;

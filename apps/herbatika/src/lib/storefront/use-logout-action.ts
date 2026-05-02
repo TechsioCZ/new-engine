@@ -5,11 +5,11 @@ import { useLogout } from "./auth";
 import { cartStorage } from "./cart-storage";
 import { resolveErrorMessage } from "./error-utils";
 
-type UseStorefrontLogoutActionOptions = {
+type UseLogoutActionOptions = {
   onSuccess?: () => void | Promise<void>;
 };
 
-type StorefrontLogoutActionResult =
+type LogoutActionResult =
   | {
     ok: true;
   }
@@ -18,8 +18,8 @@ type StorefrontLogoutActionResult =
     error: string;
   };
 
-export const useStorefrontLogoutAction = (
-  options?: UseStorefrontLogoutActionOptions,
+export const useLogoutAction = (
+  options?: UseLogoutActionOptions,
 ) => {
   const logoutMutation = useLogout();
   const [logoutError, setLogoutError] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export const useStorefrontLogoutAction = (
     setLogoutError(null);
   }, []);
 
-  const handleLogout = useCallback(async (): Promise<StorefrontLogoutActionResult> => {
+  const handleLogout = useCallback(async (): Promise<LogoutActionResult> => {
     clearLogoutError();
 
     try {

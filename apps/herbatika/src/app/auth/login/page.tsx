@@ -1,5 +1,5 @@
-import { resolveAfterAuthHref } from "@/components/auth/storefront-auth-helpers";
-import { StorefrontAuthControls } from "@/components/storefront-auth-controls";
+import { resolveAfterAuthHref } from "@/components/auth/auth-helpers";
+import { AuthControls } from "@/components/auth-controls";
 
 type LoginPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -11,7 +11,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-auth-content px-400 py-550 lg:px-550">
-      <StorefrontAuthControls afterAuthHref={afterAuthHref} mode="login" />
+      <AuthControls afterAuthHref={afterAuthHref} mode="login" />
     </main>
   );
 }

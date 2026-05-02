@@ -9,7 +9,7 @@ import {
   buildLoginDefaults,
   buildRegisterDefaults,
   resolveSafeRedirectHref,
-} from "@/components/auth/storefront-auth-helpers";
+} from "@/components/auth/auth-helpers";
 import {
   resolveLoginSubmitError,
   type LoginFormValues,
@@ -17,25 +17,25 @@ import {
 } from "@/lib/auth/auth-form-validators";
 import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth";
 import {
-  storefrontCartReadQueryOptions,
+  cartReadQueryOptions,
   useCart,
   useTransferCart,
 } from "@/lib/storefront/cart";
 import { cartStorage } from "@/lib/storefront/cart-storage";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
-import { useStorefrontLogoutAction } from "@/lib/storefront/use-storefront-logout-action";
+import { useLogoutAction } from "@/lib/storefront/use-logout-action";
 
 type AuthControlsMode = "login" | "register" | "both";
 
-type UseStorefrontAuthControllerProps = {
+type UseAuthControllerProps = {
   mode: AuthControlsMode;
   afterAuthHref?: string;
 };
 
-export const useStorefrontAuthController = ({
+export const useAuthController = ({
   mode,
   afterAuthHref,
-}: UseStorefrontAuthControllerProps) => {
+}: UseAuthControllerProps) => {
   const router = useRouter();
   const region = useRegionContext();
   const authQuery = useAuth();
@@ -49,7 +49,7 @@ export const useStorefrontAuthController = ({
   const {
     handleLogout: performLogout,
     logoutMutation,
-  } = useStorefrontLogoutAction();
+  } = useLogoutAction();
 
   const cartQuery = useCart({
     autoCreate: false,
@@ -57,7 +57,7 @@ export const useStorefrontAuthController = ({
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
   }, {
-    queryOptions: storefrontCartReadQueryOptions,
+    queryOptions: cartReadQueryOptions,
   });
 
   const safeRedirectHref = useMemo(
@@ -213,6 +213,7 @@ export const useStorefrontAuthController = ({
     "/auth/register",
     safeRedirectHref ?? undefined,
   );
+  const forgotPasswordHref = "/auth/forgot-password"
 
   return {
     authError,
@@ -232,6 +233,7 @@ export const useStorefrontAuthController = ({
     logoutMutation,
     registerDefaultValues,
     registerHref,
+    forgotPasswordHref,
     title,
     transferCartIfAvailable,
     transferCartMutation,

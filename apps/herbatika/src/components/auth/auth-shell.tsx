@@ -3,7 +3,7 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import type { ReactNode } from "react";
 import { SupportingText } from "@/components/text/supporting-text";
 
-type StorefrontAuthShellProps = {
+type AuthShellProps = {
   isDiagnosticsMode: boolean;
   title: string;
   description: string;
@@ -17,7 +17,7 @@ type StorefrontAuthShellProps = {
   children: ReactNode;
 };
 
-export const StorefrontAuthShell = ({
+export const AuthShell = ({
   isDiagnosticsMode,
   title,
   description,
@@ -29,7 +29,7 @@ export const StorefrontAuthShell = ({
   notice,
   error,
   children,
-}: StorefrontAuthShellProps) => {
+}: AuthShellProps) => {
   return (
     <section className="space-y-400 max-w-max-w mx-auto p-400">
       <header className="space-y-200">

@@ -13,7 +13,7 @@ import { Header } from "@techsio/ui-kit/organisms/header";
 import NextImage from "next/image";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import { storefrontCartReadQueryOptions, useCart } from "@/lib/storefront/cart";
+import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover";
@@ -59,7 +59,7 @@ export function HerbatikaHeader() {
       enabled: Boolean(region?.region_id),
     },
     {
-      queryOptions: storefrontCartReadQueryOptions,
+      queryOptions: cartReadQueryOptions,
     },
   );
 

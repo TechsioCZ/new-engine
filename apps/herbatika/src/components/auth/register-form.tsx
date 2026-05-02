@@ -12,7 +12,7 @@ import {
 } from "@/lib/auth/auth-form-validators";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
 
-type StorefrontRegisterFormProps = {
+type RegisterFormProps = {
   isBusy: boolean;
   defaultValues: RegisterFormValues;
   loginHref: string;
@@ -21,14 +21,14 @@ type StorefrontRegisterFormProps = {
   onSubmit: (values: RegisterFormValues) => Promise<string | null>;
 };
 
-export const StorefrontRegisterForm = ({
+export const RegisterForm = ({
   isBusy,
   defaultValues,
   loginHref,
   isDiagnosticsMode,
   onGenerateIdentity,
   onSubmit,
-}: StorefrontRegisterFormProps) => {
+}: RegisterFormProps) => {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const form = useHerbatikaForm({
