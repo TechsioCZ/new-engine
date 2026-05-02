@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   buildAuthRouteHref,
-  buildGeneratedRegisterIdentity,
   buildLoginDefaults,
   buildRegisterDefaults,
   resolveSafeRedirectHref,
@@ -25,7 +24,7 @@ import { cartStorage } from "@/lib/storefront/cart-storage";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { useLogoutAction } from "@/lib/storefront/use-logout-action";
 
-type AuthControlsMode = "login" | "register" | "both";
+type AuthControlsMode = "login" | "register";
 
 type UseAuthControllerProps = {
   mode: AuthControlsMode;
@@ -45,7 +44,6 @@ export const useAuthController = ({
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
-  const isDiagnosticsMode = mode === "both";
   const {
     handleLogout: performLogout,
     logoutMutation,
@@ -64,14 +62,8 @@ export const useAuthController = ({
     () => resolveSafeRedirectHref(afterAuthHref),
     [afterAuthHref],
   );
-  const loginDefaultValues = useMemo(
-    () => buildLoginDefaults(isDiagnosticsMode),
-    [isDiagnosticsMode],
-  );
-  const registerDefaultValues = useMemo(
-    () => buildRegisterDefaults(isDiagnosticsMode),
-    [isDiagnosticsMode],
-  );
+  const loginDefaultValues = useMemo(() => buildLoginDefaults(), []);
+  const registerDefaultValues = useMemo(() => buildRegisterDefaults(), []);
 
   const clearFeedback = useCallback(() => {
     setAuthError(null);
@@ -227,7 +219,6 @@ export const useAuthController = ({
     handleRegisterSubmit,
     handleTransferCart,
     isBusy,
-    isDiagnosticsMode,
     loginDefaultValues,
     loginHref,
     logoutMutation,
@@ -237,6 +228,5 @@ export const useAuthController = ({
     title,
     transferCartIfAvailable,
     transferCartMutation,
-    generatedIdentityFactory: buildGeneratedRegisterIdentity,
   };
 };

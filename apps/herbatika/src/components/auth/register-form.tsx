@@ -15,8 +15,6 @@ type RegisterFormProps = {
   isBusy: boolean;
   defaultValues: RegisterFormValues;
   loginHref: string;
-  isDiagnosticsMode: boolean;
-  onGenerateIdentity: () => RegisterFormValues;
   onSubmit: (values: RegisterFormValues) => Promise<string | null>;
 };
 
@@ -24,8 +22,6 @@ export const RegisterForm = ({
   isBusy,
   defaultValues,
   loginHref,
-  isDiagnosticsMode,
-  onGenerateIdentity,
   onSubmit,
 }: RegisterFormProps) => {
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -149,36 +145,13 @@ export const RegisterForm = ({
         </form.AppField>
       </div>
 
-      <div className="md:col-span-2 flex flex-wrap gap-200">
-        <Button isLoading={isBusy} type="submit" size="sm" block>
+      <div className="md:col-span-2">
+        <Button block isLoading={isBusy} size="sm" type="submit">
           Registrovať sa
         </Button>
-
-        {isDiagnosticsMode ? (
-          <Button
-            disabled={isBusy}
-            onClick={() => {
-              const identity = onGenerateIdentity();
-
-              form.setFieldValue("email", identity.email);
-              form.setFieldValue("first_name", identity.first_name);
-              form.setFieldValue("last_name", identity.last_name);
-              form.setFieldValue("password", identity.password);
-              form.setFieldValue("confirm_password", identity.confirm_password);
-              form.setFieldValue("accept_terms", identity.accept_terms);
-              setSubmitError(null);
-            }}
-            theme="outlined"
-            type="button"
-            variant="secondary"
-            size="sm"
-          >
-            Vygenerovať test identitu
-          </Button>
-        ) : null}
       </div>
-      <div className="col-span-2">
-        <AuthFooter text="Už máte účet?" href={loginHref} linkText="Prihlásiť sa"/>
+      <div className="md:col-span-2">
+        <AuthFooter href={loginHref} linkText="Prihlásiť sa" text="Už máte účet?" />
       </div>
     </form>
   );
