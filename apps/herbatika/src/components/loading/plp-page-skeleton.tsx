@@ -35,7 +35,7 @@ export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
   const isCategory = variant === "category";
 
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-500 font-rubik sm:p-600">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-category-page-gap p-category-page font-rubik 2xl:p-category-page-lg">
       <section className="space-y-250">
         {isSearch ? (
           <>

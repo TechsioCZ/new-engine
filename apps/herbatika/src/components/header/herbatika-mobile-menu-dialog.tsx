@@ -45,7 +45,7 @@ export function HerbatikaMobileMenuDialog({
   return (
     <div data-herbatika-mobile-menu-dialog-root="">
       <Dialog
-        className="h-auto max-h-full overflow-hidden shadow-none"
+        className="h-auto max-h-full overflow-hidden shadow-none -top-1"
         closeOnInteractOutside
         customTrigger
         hideCloseButton
@@ -55,7 +55,7 @@ export function HerbatikaMobileMenuDialog({
         placement="top"
         portal={false}
         position="fixed"
-        preventScroll
+        preventScroll={false}
         size="full"
         trapFocus
       >

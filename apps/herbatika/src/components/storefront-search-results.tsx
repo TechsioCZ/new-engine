@@ -14,7 +14,7 @@ export function StorefrontSearchResults() {
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1);
 
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-500 font-rubik sm:p-600">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-search-page-gap p-search-page font-rubik 2xl:p-search-page-lg">
       <section className="space-y-300">
         <h1 className="text-4xl font-bold leading-snug text-fg-primary">
           Vyhľadávanie

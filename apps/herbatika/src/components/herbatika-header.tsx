@@ -97,8 +97,8 @@ export function HerbatikaHeader() {
   };
 
   return (
-    <Header direction="vertical">
-      <Header.Container className="mx-auto flex max-w-max-w w-full min-w-0 items-center justify-between gap-200 px-300 py-400 sm:px-400 @header-desktop:px-600">
+    <Header direction="vertical" className="sticky top-0 z-50 flex header-desktop:relative">
+      <Header.Container className="mx-auto flex max-w-max-w w-full min-w-0 items-center justify-between gap-200 px-header-lg py-header-container-y 2xl:px-header-2xl">
         <HerbatikaLogo className="min-w-0 shrink" size="lg" />
 
         <div className="hidden w-full max-w-header-search flex-1 @header-desktop:block">
@@ -183,7 +183,7 @@ export function HerbatikaHeader() {
           onBlurCapture={handleDesktopBlur}
           onMouseLeave={() => setActiveRootHandle(null)}
         >
-          <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between gap-150 px-250 @header-desktop:px-450">
+          <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between px-header-lg 2xl:px-header-2xl">
             <Header.Nav
               className="flex-nowrap md:h-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               size="sm"
@@ -196,18 +196,17 @@ export function HerbatikaHeader() {
 
                 return (
                   <NextLink
-                  
-                    aria-expanded={
-                        hasSubmenu ? activeRootHandle === rootHandle : undefined
-                      }
-                    aria-haspopup={hasSubmenu ? "dialog" : undefined}
-                    href={item.href}
-                    onFocus={() => handleActivateDesktopItem(item.href)}
-                    className="shrink-0 h-full"
-                    >
+                  key={item.href}
+                  aria-expanded={
+                      hasSubmenu ? activeRootHandle === rootHandle : undefined
+                    }
+                  aria-haspopup={hasSubmenu ? "dialog" : undefined}
+                  href={item.href}
+                  onFocus={() => handleActivateDesktopItem(item.href)}
+                  className="shrink-0 h-full"
+                  >
                   <Header.NavItem
-                    className="whitespace-nowrap leading-none h-full items-center flex"
-                    key={item.href}
+                    className="whitespace-nowrap lg:max-header-tablet:p-header-item-desktop-lg lg:max-header-tablet:text-header-item-desktop-lg leading-none h-full items-center flex"
                     onMouseEnter={() => handleActivateDesktopItem(item.href)}
                   >
                     {item.label}
@@ -217,12 +216,12 @@ export function HerbatikaHeader() {
               })}
             </Header.Nav>
 
-            <Header.Actions className="px-200 gap-x-200" size="sm">
+            <Header.Actions className="gap-x-250" size="sm">
               {HEADER_ACTION_ITEMS.map((action) => (
                 <LinkButton
                   key={action.href}
                   as={NextLink}
-                  className="px-300 py-400 rounded-xs h-fit text-sm font-bold bg-surface hover:bg-highlight text-fg-primary"
+                  className="px-300 py-400 rounded-xs h-fit text-sm leading-none font-bold bg-surface hover:bg-highlight text-fg-primary"
                   href={action.href}
                   size="sm"
                   variant="secondary"

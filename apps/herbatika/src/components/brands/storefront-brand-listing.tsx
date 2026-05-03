@@ -21,7 +21,7 @@ export function StorefrontBrandListing({
   const controller = useBrandListingController({ brandFacetId });
 
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-500 font-rubik sm:p-600">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-brand-listing-page-gap p-brand-listing-page font-rubik 2xl:p-brand-listing-page-lg">
       <HerbatikaBreadcrumb
         items={[
           { label: "Domů", href: "/", icon: "token-icon-home" },

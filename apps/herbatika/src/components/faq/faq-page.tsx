@@ -13,7 +13,7 @@ const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
 export function FaqPage() {
   return (
     <main className="w-full bg-base font-rubik">
-      <div className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-550 lg:px-550 lg:py-700">
+      <div className="mx-auto flex w-full max-w-max-w flex-col gap-faq-page-gap p-faq-page 2xl:p-faq-page-lg">
         <HerbatikaBreadcrumb items={breadcrumbItems} />
 
         <section className="mx-auto w-full max-w-7xl space-y-500">

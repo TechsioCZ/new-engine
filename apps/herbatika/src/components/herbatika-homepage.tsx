@@ -18,7 +18,7 @@ export function HerbatikaHomepage() {
   const controller = useHomepageController();
 
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-700 px-400 py-550 font-rubik lg:px-550 lg:py-700">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-homepage-gap p-homepage font-rubik 2xl:p-homepage-lg">
       <HomepageHeroCarouselSection banners={HERO_BANNERS} />
       <PurposeCarousel />
       <BenefitsSection benefits={BENEFITS} />

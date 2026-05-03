@@ -67,7 +67,7 @@ export function HomepageHeroCarouselSection({
   const slides = useMemo(() => buildHeroSlides(banners), [banners]);
 
   return (
-    <section className="p-300">
+    <section>
       <Carousel.Root
         aspectRatio="none"
         className="w-full"

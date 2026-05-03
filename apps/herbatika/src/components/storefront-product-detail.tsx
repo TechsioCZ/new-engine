@@ -30,7 +30,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
   }, [handle]);
 
   return (
-    <main className="mx-auto font-rubik flex w-full max-w-max-w flex-col gap-600 px-400 py-600 lg:px-550">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-product-detail-page-gap p-product-detail-page font-rubik 2xl:p-product-detail-page-lg">
       <HerbatikaBreadcrumb items={controller.breadcrumbItems} />
 
       {controller.isBootstrappingRegion || controller.productQuery.isLoading ? (

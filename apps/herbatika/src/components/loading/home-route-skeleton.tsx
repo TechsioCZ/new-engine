@@ -90,7 +90,7 @@ function PurposeCategoriesSkeleton() {
 
 export function HomeRouteSkeleton() {
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-700 px-400 py-550 font-rubik lg:px-550 lg:py-700">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-homepage-gap p-homepage font-rubik 2xl:p-homepage-lg">
       <section className="p-300">
         <div className="relative">
           <div className="grid grid-cols-2 gap-300 lg:grid-cols-4">

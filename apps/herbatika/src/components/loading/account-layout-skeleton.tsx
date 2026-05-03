@@ -14,8 +14,8 @@ export function AccountLayoutSkeleton({
   surfaceLines = 8,
 }: AccountLayoutSkeletonProps) {
   return (
-    <main className="mx-auto w-full max-w-max-w px-400 py-550 lg:px-550">
-      <div className="grid gap-550 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
+    <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
+      <div className="grid gap-account-page-gap lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
         <aside className="space-y-400 rounded-lg border border-border-secondary bg-surface p-400">
           <div className="space-y-150">
             <Skeleton.Text noOfLines={2} size="sm" />

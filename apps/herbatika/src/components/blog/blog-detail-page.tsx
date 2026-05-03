@@ -38,10 +38,10 @@ export function BlogDetailPage({
 
   return (
     <main className="w-full bg-base font-rubik">
-      <div className="mx-auto flex w-full max-w-max-w flex-col gap-550 px-550 pt-550 pb-700">
+      <div className="mx-auto flex w-full max-w-max-w flex-col gap-blog-detail-page-gap p-blog-detail-page 2xl:p-blog-detail-page-lg">
         <HerbatikaBreadcrumb items={breadcrumbItems} />
 
-        <div className="grid gap-500 xl:grid-cols-12">
+        <div className="grid gap-blog-detail-columns-gap xl:grid-cols-12">
           <div className="space-y-400 xl:col-span-9">
             <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400">
               <div className="flex flex-wrap gap-150">

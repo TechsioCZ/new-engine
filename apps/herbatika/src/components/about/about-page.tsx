@@ -20,7 +20,7 @@ const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
 export function AboutPage() {
   return (
     <main className="w-full bg-base font-rubik">
-      <div className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-550 lg:px-550 lg:py-700">
+      <div className="mx-auto flex w-full max-w-max-w flex-col gap-about-page-gap p-about-page 2xl:p-about-page-lg">
         <HerbatikaBreadcrumb items={breadcrumbItems} />
         <AboutHero />
         <AboutArticleSections group="beforeMilestones" />

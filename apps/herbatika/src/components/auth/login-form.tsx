@@ -90,17 +90,6 @@ export const LoginForm = ({
         </form.AppField>
         </div>
 
-        <div className="flex items-center gap-200">
-          <Checkbox
-            checked={rememberMe}
-            id={REMEMBER_FIELD_ID}
-            onChange={(event) => setRememberMe(event.target.checked)}
-          />
-          <Label htmlFor={REMEMBER_FIELD_ID} size="sm">
-            Zapamätať si ma
-          </Label>
-        </div>
-
         <Button block isLoading={isBusy} size="md" type="submit">
           Prihlásiť sa
         </Button>

@@ -14,7 +14,7 @@ export function BrandIndexPage({ brands }: BrandIndexPageProps) {
   const brandGroups = groupStorefrontBrands(brands);
 
   return (
-    <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 py-500 font-rubik sm:p-600">
+    <main className="mx-auto flex w-full max-w-max-w flex-col gap-brand-index-page-gap p-brand-index-page font-rubik 2xl:p-brand-index-page-lg">
       <HerbatikaBreadcrumb
         items={[
           { label: "Domů", href: "/", icon: "token-icon-home" },

@@ -12,7 +12,7 @@ export default async function RegisterPage({
   const afterAuthHref = resolveAfterAuthHref(resolvedSearchParams.next);
 
   return (
-    <main className="mx-auto w-full max-w-auth-content px-400 py-550 lg:px-550">
+    <main className="mx-auto w-full max-w-auth-content p-auth-page 2xl:p-auth-page-lg">
       <AuthControls afterAuthHref={afterAuthHref} mode="register" />
     </main>
   );

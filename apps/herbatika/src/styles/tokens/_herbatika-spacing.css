@@ -1,4 +1,5 @@
 @theme static {
+  --spacing-0: 0px;
   --spacing-50: 0.125rem;
   --spacing-100: 0.25rem;
   --spacing-150: 0.375rem;
@@ -19,6 +20,68 @@
   --spacing-900: 6.25rem;
   --spacing-950: 15.625rem;
 
+  /* Unified page shell values mapped to the closest app spacing scale. */
+  --spacing-page-inline: var(--spacing-0);
+
+  --spacing-page-block: var(--spacing-500);
+
+  --spacing-page-section-gap: var(--spacing-750);
+  --spacing-page-section-gap-blog: var(--spacing-650);
+
+  /* readable spacing system */
+  --spacing-page-default: var(--spacing-550) var(--spacing-400);
+  --spacing-page: var(--spacing-page-block) var(--spacing-page-inline);
+  --spacing-page-gap: var(--spacing-page-section-gap);
+
+  --spacing-homepage: var(--spacing-page-default);
+  --spacing-homepage-lg: var(--spacing-page);
+  --spacing-homepage-gap: var(--spacing-page-gap);
+
+  --spacing-category-page: var(--spacing-page-default);
+  --spacing-category-page-lg: var(--spacing-page);
+  --spacing-category-page-gap: var(--spacing-page-gap);
+
+  --spacing-search-page: var(--spacing-category-page);
+  --spacing-search-page-lg: var(--spacing-category-page-lg);
+  --spacing-search-page-gap: var(--spacing-category-page-gap);
+
+  --spacing-brand-index-page: var(--spacing-category-page);
+  --spacing-brand-index-page-lg: var(--spacing-category-page-lg);
+  --spacing-brand-index-page-gap: var(--spacing-category-page-gap);
+
+  --spacing-brand-listing-page: var(--spacing-category-page);
+  --spacing-brand-listing-page-lg: var(--spacing-category-page-lg);
+  --spacing-brand-listing-page-gap: var(--spacing-category-page-gap);
+
+  --spacing-product-detail-page: var(--spacing-page-default);
+  --spacing-product-detail-page-lg: var(--spacing-page);
+  --spacing-product-detail-page-gap: var(--spacing-page-gap);
+
+  --spacing-about-page: var(--spacing-page-default);
+  --spacing-about-page-lg: var(--spacing-page);
+  --spacing-about-page-gap: var(--spacing-page-gap);
+
+  --spacing-faq-page: var(--spacing-about-page);
+  --spacing-faq-page-lg: var(--spacing-about-page-lg);
+  --spacing-faq-page-gap: var(--spacing-about-page-gap);
+
+  --spacing-blog-listing-page: var(--spacing-page-default);
+  --spacing-blog-listing-page-lg: var(--spacing-page);
+  --spacing-blog-listing-page-gap: var(--spacing-page-section-gap-blog);
+
+  --spacing-blog-detail-page: var(--spacing-page-default);
+  --spacing-blog-detail-page-lg: var(--spacing-page);
+  --spacing-blog-detail-page-gap: var(--spacing-250);
+  --spacing-blog-detail-columns-gap: var(--spacing-750);
+
+  --spacing-account-page: var(--spacing-page-default);
+  --spacing-account-page-lg: var(--spacing-page);
+  --spacing-account-page-gap: var(--spacing-550);
+
+  --spacing-auth-page: var(--spacing-page-default);
+  --spacing-auth-page-lg: var(--spacing-page);
+
+  /* OTHERS SPACING TOKENS */
   --height-category-image: 5.375rem;
   --width-submenu-image: var(--spacing-850);
   --height-submenu-image: 3.75rem;
