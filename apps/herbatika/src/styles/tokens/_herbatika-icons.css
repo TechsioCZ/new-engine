@@ -195,9 +195,13 @@
   @apply icon-[mdi--linkedin];
 }
 
+@utility token-icon-tiktok {
+  @apply icon-[ic--outline-tiktok];
+}
+
 @utility token-icon-music {
   /*@apply icon-[mdi--music-note];*/
-  @apply icon-[solar--music-note-3-bold];
+  @apply icon-[solar--music-note-3-bold]; 
 }
 
 /* MARKET FLAGS */

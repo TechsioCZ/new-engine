@@ -71,7 +71,7 @@ const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] => {
     content: (
       <Link
         as={NextLink}
-        className="flex h-full min-h-800 w-full flex-col items-center justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
+        className="grid grid-rows-[auto_1fr] h-full min-h-800 w-full items-start justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
         href={item.href}
       >
         <div className="flex h-850 w-full items-center justify-center">
@@ -83,7 +83,7 @@ const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] => {
             width={86}
           />
         </div>
-        <span className="line-clamp-2 max-w-full text-sm leading-snug font-semibold text-fg-primary">
+        <span className="line-clamp-2 max-w-full text-support font-verdana leading-snug font-bold text-fg-primary">
           {item.label}
         </span>
       </Link>
@@ -150,7 +150,7 @@ export function PurposeCarousel({
   return (
     <section className="space-y-350" id="test-nakupujte-carousel">
       <div className="flex items-center justify-between gap-300">
-        <h2 className="text-3xl leading-snug font-bold text-fg-primary">
+        <h2 className="text-3xl leading-none font-bold text-fg-primary">
           {title}
         </h2>
         <TextActionLink href={viewAllHref ?? `/c/${rootHandle}`} />

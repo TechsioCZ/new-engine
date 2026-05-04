@@ -61,7 +61,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
         </NextLink>
 
         {flags.length > 0 ? (
-          <ProductCard.Badges className="absolute top-0 left-0 flex-col items-start gap-100">
+          <ProductCard.Badges className="absolute top-0 left-0 flex-col items-start gap-100 font-verdana">
             {flags.map((flag) => (
               <Badge
                 className="leading-tight font-bold"
@@ -75,7 +75,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
         ) : null}
 
         {discountLabel ? (
-          <Badge variant="discount" size="md" className="absolute py-200 bottom-250 text-xs rounded-sm right-0">{discountLabel}</Badge>
+          <Badge variant="discount" size="md" className="absolute py-200 bottom-250 text-discount-size font-verdana font-bold rounded-sm right-0">{discountLabel}</Badge>
         ) : null}
       </div>
 

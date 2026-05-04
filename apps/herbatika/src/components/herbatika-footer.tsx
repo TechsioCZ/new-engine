@@ -45,7 +45,7 @@ const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
   { href: "https://www.instagram.com/herbatica/", icon: "token-icon-instagram", label: "Instagram" },
   { href: "https://www.youtube.com/@herbatica", icon: "token-icon-youtube", label: "YouTube" },
   { href: "https://www.linkedin.com/company/herbaticask/", icon: "token-icon-linkedin", label: "LinkedIn" },
-  { href: "https://www.tiktok.com/@herbatica.sk", icon: "token-icon-music", label: "TikTok" },
+  { href: "https://www.tiktok.com/@herbatica.sk", icon: "token-icon-tiktok", label: "TikTok" },
 ];
 
 const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [

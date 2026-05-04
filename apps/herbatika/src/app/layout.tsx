@@ -51,8 +51,8 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "Herbatika",
-  description: "Herbatika e-shop - prírodné produkty",
+  title: "Herbatica",
+  description: "Herbatica e-shop - prírodné produkty",
 };
 
 type LayoutShellProps = Readonly<{

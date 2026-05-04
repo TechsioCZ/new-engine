@@ -16,7 +16,7 @@ export function BenefitsSection({
   benefits,
 }: BenefitsSectionProps) {
   return (
-    <section className="rounded-lg bg-highlight-secondary px-450 py-350">
+    <section className="rounded-lg bg-highlight-secondary px-450 py-350 font-verdana">
       <div className="grid gap-350 md:grid-cols-2 xl:grid-cols-4">
         {benefits.map((benefit) => (
           <article
@@ -27,7 +27,7 @@ export function BenefitsSection({
               <NextImage src={benefit.image} alt={benefit.text} width={76} height={76} />
             </span>
 
-            <p className="max-w-950 text-sm leading-snug font-bold text-fg-primary">
+            <p className="max-w-950 text-support leading-snug font-bold text-fg-primary">
               {benefit.text}
             </p>
           </article>
