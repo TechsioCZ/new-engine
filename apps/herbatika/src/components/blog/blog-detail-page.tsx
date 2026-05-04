@@ -18,12 +18,14 @@ type BlogDetailPageProps = {
   post: BlogPost;
   recommendedProducts: HttpTypes.StoreProduct[];
   relatedPosts: BlogPost[];
+  sidebarFeaturedProduct: HttpTypes.StoreProduct | null;
 };
 
 export function BlogDetailPage({
   post,
   recommendedProducts,
   relatedPosts,
+  sidebarFeaturedProduct,
 }: BlogDetailPageProps) {
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
@@ -41,8 +43,8 @@ export function BlogDetailPage({
       <div className="mx-auto flex w-full max-w-max-w flex-col gap-blog-detail-page-gap p-blog-detail-page 2xl:p-blog-detail-page-lg">
         <HerbatikaBreadcrumb items={breadcrumbItems} />
 
-        <div className="grid gap-blog-detail-columns-gap xl:grid-cols-12">
-          <div className="space-y-400 xl:col-span-9">
+        <div className="grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_342px]">
+          <div className="space-y-400">
             <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400">
               <div className="flex flex-wrap gap-150">
                 {post.tags.map((tag) => (
@@ -153,7 +155,7 @@ export function BlogDetailPage({
 
             <section className="space-y-300">
               {recommendedProducts.length > 0 ? (
-                <InlineProductsCarousel products={recommendedProducts} />
+                <InlineProductsCarousel products={recommendedProducts} slidesLg={3} />
               ) : null}
               <ul className="space-y-0 rounded-2xl bg-surface p-400">
                 {post.bulletPoints.map((item) => (
@@ -193,8 +195,8 @@ export function BlogDetailPage({
             </section>
           </div>
 
-          <div className="xl:col-span-3">
-            <BlogArticleSidebar />
+          <div>
+            <BlogArticleSidebar featuredProduct={sidebarFeaturedProduct} />
           </div>
         </div>
       </div>

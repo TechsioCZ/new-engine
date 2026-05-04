@@ -102,12 +102,15 @@ async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {
 
   const relatedPosts = resolveRelatedBlogPosts(post.slug, 4);
   const recommendedProducts = await resolveRecommendedProductsForBlogPost(post.slug);
+  const sidebarFeaturedProduct = recommendedProducts[0] ?? null;
+  const inlineRecommendedProducts = recommendedProducts.slice(1);
 
   return (
     <BlogDetailPage
       post={post}
-      recommendedProducts={recommendedProducts}
+      recommendedProducts={inlineRecommendedProducts}
       relatedPosts={relatedPosts}
+      sidebarFeaturedProduct={sidebarFeaturedProduct}
     />
   );
 }

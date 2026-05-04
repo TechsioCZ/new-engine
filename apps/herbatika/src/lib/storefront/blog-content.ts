@@ -1,3 +1,5 @@
+import BLOG_BANNER from "@/assets/blog-banner.webp"
+
 export type BlogTopicKey = "all" | "fitness" | "krasa" | "zdravie";
 
 export type BlogPostSection = {
@@ -70,22 +72,8 @@ export const BLOG_PROMO_BANNER = {
   subtitle: "na bestsellery",
   codeLabel: "KÓD:",
   codeValue: "TOP20",
-  imageSrc:
-    "https://images.unsplash.com/photo-1611078489935-0cb964de46d6?auto=format&fit=crop&w=720&q=80",
+  imageSrc: BLOG_BANNER,
 };
-
-export const BLOG_FEATURED_PRODUCT = {
-  title: "Sofia krém na žily s extraktom z pijavice lekárskej a pagaštanom",
-  excerpt:
-    "Podporte harmóniu medzi cievom a mysľou s unikátnou kombináciou šafranu, probiotík a prebiotík.",
-  imageSrc:
-    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=640&q=80",
-  badges: ["Akcia", "Novinka", "Tip"],
-  oldPrice: "20,23 €",
-  price: "16,83 €",
-  discountLabel: "-4,50 €",
-};
-
 
 export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
   {
@@ -687,4 +675,3 @@ export const resolveBlogRecommendedProductsConfig = (slug: string) => {
 export const resolveRelatedBlogPosts = (slug: string, limit = 4) => {
   return HERBATIKA_BLOG_POSTS.filter((post) => post.slug !== slug).slice(0, limit);
 };
-
