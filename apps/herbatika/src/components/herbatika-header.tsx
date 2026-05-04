@@ -101,10 +101,11 @@ export function HerbatikaHeader() {
       <Header.Container className="mx-auto flex max-w-max-w w-full min-w-0 items-center justify-between gap-200 px-header-lg py-header-container-y 2xl:px-header-2xl">
         <HerbatikaLogo className="min-w-0 shrink" size="lg" />
 
-        <div className="hidden w-full max-w-header-search flex-1 @header-desktop:block">
+        <div className="hidden w-full max-w-search-form flex-1 @header-desktop:block">
           <SearchForm className="w-full" onSubmit={handleSearchSubmit}>
-            <SearchForm.Control>
+            <SearchForm.Control className="h-search-form border border-border-search bg-fill-secondary">
               <SearchForm.Input
+                className="px-400 font-verdana h-full"
                 name="q"
                 placeholder="Napíšte, čo hľadáte..."
               />

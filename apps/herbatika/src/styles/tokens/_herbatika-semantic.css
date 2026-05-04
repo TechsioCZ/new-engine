@@ -86,6 +86,7 @@
   --color-highlight: var(--color-herbatika-highlight);
   --color-highlight-secondary: var(--color-herbatika-highlight-secondary);
   --color-fill-base: var(--color-herbatika-white);
+  --color-fill-secondary: oklch(0.9764 0.0013 286.38);
   --color-fill-hover: var(--color-herbatika-highlight);
   --color-fill-active: oklch(
     from var(--color-herbatika-highlight) calc(l - 0.04) c h
@@ -95,6 +96,8 @@
   --color-border-primary: var(--color-herbatika-border);
   --color-border-secondary: var(--color-herbatika-border-soft);
   --color-border-tertiary: var(--color-herbatika-fg);
+  --color-border-search: oklch(0.8975 0 0);
+
 
   /* Links and rings */
   --color-link: var(--color-herbatika-primary);
@@ -114,4 +117,6 @@
   --color-bg-disabled: oklch(0.967 0.0029 264.54);
   --color-fg-disabled: oklch(0.7137 0.0192 261.32);
   --color-border-disabled: var(--color-herbatika-border);
+
+  --color-placeholder: oklch(0.7763 0 0);
 }

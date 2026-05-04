@@ -10,6 +10,8 @@
   --container-checkout-step: 42.625rem;
   --container-submenu: 86rem;
 
+  --container-search-form: 28.75rem;
+
   /* breakpoints */
   --breakpoint-xs: 30rem;
   --breakpoint-sm: 40rem;

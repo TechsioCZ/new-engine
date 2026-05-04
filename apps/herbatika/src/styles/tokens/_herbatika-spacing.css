@@ -91,6 +91,8 @@
   --height-product-card-label: 2.5rem;
   --height-product-card-image: 16rem;
 
+  --height-search-form: 2.875rem;
+
   --height-header-logo: 3.75rem;
   --height-third-parties-logo: var(--spacing-600);
 }

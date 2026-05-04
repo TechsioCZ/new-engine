@@ -8,10 +8,10 @@ export function CheckoutEmptyCartSection() {
       <h2 className="text-xl font-semibold text-fg-primary">Košík je prázdny</h2>
       <SupportingText>Pred checkoutom pridajte aspoň jeden produkt.</SupportingText>
       <div className="flex flex-wrap gap-200">
-        <LinkButton as={NextLink} href="/" variant="secondary">
+        <LinkButton as={NextLink} href="/" variant="primary" size="md">
           Ísť na domovskú stránku
         </LinkButton>
-        <LinkButton as={NextLink} href="/c/trapi-ma" theme="outlined" variant="secondary">
+        <LinkButton as={NextLink} href="/c/trapi-ma" theme="outlined" variant="secondary" size="md">
           Otvoriť kategóriu
         </LinkButton>
       </div>
