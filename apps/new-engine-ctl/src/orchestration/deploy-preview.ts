@@ -9,7 +9,9 @@ import { deployPreviewResponseSchema } from "../contracts/deploy-preview.js"
 import type { ResolveTargetsPayload } from "../contracts/resolve-targets.js"
 import type { RuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import { getPreviewRandomOnceSecretDefinitions } from "../contracts/stack-inputs.js"
+import { listPrepareServiceIds } from "../contracts/stack-manifest.js"
 import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
+import { maskGitHubValue } from "../github-actions.js"
 import { resolveGitHubPreviewHeadBranch } from "../github-event.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import { executeApplyEnvOverridesPayload } from "./apply-env-overrides.js"
@@ -48,6 +50,15 @@ export type DeployPreviewExecutionResult = {
   runtimeProviderOutputs: RuntimeProviderOutputs
 }
 
+type PreviewDbContext = {
+  previewDbName: string
+  previewDbUser: string
+  previewDbPassword: string
+}
+
+const DEFAULT_PREVIEW_DB_PREFIX = "medusa_pr_"
+const DEFAULT_PREVIEW_DB_APP_USER_PREFIX = "medusa_pr_app_"
+
 function supportsPrettyLogs(): boolean {
   return Boolean(
     process.stderr.isTTY &&
@@ -83,6 +94,78 @@ function logDeployProgress(message: string): void {
   }
 
   process.stderr.write(`${colorize(label, colorCode)} ${message}\n`)
+}
+
+function previewDbContextIsComplete(context: PreviewDbContext): boolean {
+  return Boolean(
+    context.previewDbName && context.previewDbUser && context.previewDbPassword
+  )
+}
+
+function listPreviewDbRequiredServiceIds(input: {
+  contracts: Awaited<ReturnType<typeof loadDeployContracts>>
+  deployServiceIds: string[]
+}): string[] {
+  const selected = new Set(input.deployServiceIds)
+  return listPrepareServiceIds(input.contracts.manifest, "preview_db").filter(
+    (serviceId) => selected.has(serviceId)
+  )
+}
+
+async function resolvePreviewDbContext(input: {
+  contracts: Awaited<ReturnType<typeof loadDeployContracts>>
+  deployServiceIds: string[]
+  prNumber: number
+  initialContext: PreviewDbContext
+  dryRun: boolean
+  zaneOperatorClient: ZaneOperatorClient | null
+}): Promise<PreviewDbContext> {
+  const requiredServiceIds = listPreviewDbRequiredServiceIds({
+    contracts: input.contracts,
+    deployServiceIds: input.deployServiceIds,
+  })
+
+  if (requiredServiceIds.length === 0) {
+    return input.initialContext
+  }
+
+  if (previewDbContextIsComplete(input.initialContext)) {
+    return input.initialContext
+  }
+
+  if (input.dryRun) {
+    return {
+      previewDbName:
+        input.initialContext.previewDbName ||
+        `${DEFAULT_PREVIEW_DB_PREFIX}${input.prNumber}`,
+      previewDbUser:
+        input.initialContext.previewDbUser ||
+        `${DEFAULT_PREVIEW_DB_APP_USER_PREFIX}${input.prNumber}`,
+      previewDbPassword:
+        input.initialContext.previewDbPassword ||
+        `dry-run:preview-db:${input.prNumber}`,
+    }
+  }
+
+  if (!input.zaneOperatorClient) {
+    throw new Error(
+      `Preview DB credentials are required for services: ${requiredServiceIds.join(",")}.`
+    )
+  }
+
+  logDeployProgress(
+    `Preview DB credentials are missing for services ${requiredServiceIds.join(",")}; ensuring preview DB now.`
+  )
+  const previewDb = (
+    await input.zaneOperatorClient.ensurePreviewDb(input.prNumber)
+  ).body
+  maskGitHubValue(previewDb.app_password)
+
+  return {
+    previewDbName: previewDb.db_name,
+    previewDbUser: previewDb.app_user,
+    previewDbPassword: previewDb.app_password,
+  }
 }
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
@@ -363,18 +446,29 @@ export async function executeDeployPreview(
     input.dryRun || !input.baseUrl || !input.apiToken
       ? null
       : new ZaneOperatorClient(input.baseUrl, input.apiToken)
+  const effectiveDeployServiceIds = effectiveRuntimePlan.deploy_services.map(
+    (service) => service.id
+  )
+  const previewDbContext = await resolvePreviewDbContext({
+    contracts,
+    deployServiceIds: effectiveDeployServiceIds,
+    prNumber: input.prNumber,
+    initialContext: {
+      previewDbName: input.previewDbName,
+      previewDbUser: input.previewDbUser,
+      previewDbPassword: input.previewDbPassword,
+    },
+    dryRun: input.dryRun,
+    zaneOperatorClient,
+  })
   await syncPreviewSharedEnv({
     zaneOperatorClient,
     projectSlug: input.projectSlug,
     environmentName: environment.environment_name,
     sourceEnvironmentName: input.sourceEnvironmentName,
     contracts,
-    deployServiceIds: effectiveRuntimePlan.deploy_services.map(
-      (service) => service.id
-    ),
-    previewDbName: input.previewDbName,
-    previewDbUser: input.previewDbUser,
-    previewDbPassword: input.previewDbPassword,
+    deployServiceIds: effectiveDeployServiceIds,
+    ...previewDbContext,
   })
   await syncPreviewServiceEnv({
     zaneOperatorClient,
@@ -382,12 +476,8 @@ export async function executeDeployPreview(
     environmentName: environment.environment_name,
     sourceEnvironmentName: input.sourceEnvironmentName,
     contracts,
-    deployServiceIds: effectiveRuntimePlan.deploy_services.map(
-      (service) => service.id
-    ),
-    previewDbName: input.previewDbName,
-    previewDbUser: input.previewDbUser,
-    previewDbPassword: input.previewDbPassword,
+    deployServiceIds: effectiveDeployServiceIds,
+    ...previewDbContext,
   })
   const previewRandomOnceSecrets = await resolvePreviewRandomOnceSecrets({
     stackInputs: contracts.stackInputs,
@@ -423,9 +513,7 @@ export async function executeDeployPreview(
     const baselineEnvOverrides = await executeRenderEnvOverrides({
       lane: "preview",
       servicesCsv: effectiveRuntimePlan.deploy_services_csv,
-      previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
-      previewDbPassword: input.previewDbPassword,
+      ...previewDbContext,
       previewRandomOnceSecrets,
       runtimeProviderOutputs:
         buildRuntimeProviderRenderContext(runtimeProviderState)
@@ -564,9 +652,7 @@ export async function executeDeployPreview(
     const envOverrides = await executeRenderEnvOverrides({
       lane: "preview",
       servicesCsv: stageServicesCsv,
-      previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
-      previewDbPassword: input.previewDbPassword,
+      ...previewDbContext,
       previewRandomOnceSecrets,
       runtimeProviderOutputs:
         buildRuntimeProviderRenderContext(runtimeProviderState)
@@ -707,9 +793,7 @@ export async function executeDeployPreview(
         effectiveRuntimePlan.preview_cloned_service_ids_csv,
       previewExcludedServiceIdsCsv:
         effectiveRuntimePlan.preview_excluded_service_ids_csv,
-      previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
-      previewDbPassword: input.previewDbPassword,
+      ...previewDbContext,
       previewRandomOnceSecrets,
       runtimeProviderOutputs:
         buildRuntimeProviderRenderContext(runtimeProviderState)
