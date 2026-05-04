@@ -1,0 +1,54 @@
+{
+    "name": "medusa-symmy-plugin",
+    "version": "0.1.0",
+    "description": "Medusa v2 plugin that exposes an admin batch upsert endpoint for products with per-item identifier matching (sku/ean/erp_id) and partial-success semantics.",
+    "author": "Tomáš Zbedina",
+    "license": "MIT",
+    "keywords": [
+        "medusa-plugin",
+        "medusa-v2",
+        "products",
+        "batch",
+        "upsert",
+        "import"
+    ],
+    "main": "./.medusa/server/src/index.js",
+    "types": "./.medusa/server/src/index.d.ts",
+    "files": [
+        ".medusa/server",
+        "README.md"
+    ],
+    "exports": {
+        ".": {
+            "import": "./.medusa/server/src/index.js",
+            "require": "./.medusa/server/src/index.js",
+            "types": "./.medusa/server/src/index.d.ts"
+        },
+        "./package.json": "./package.json",
+        "./*": "./.medusa/server/src/*.js"
+    },
+    "scripts": {
+        "build": "medusa plugin:build",
+        "dev": "medusa plugin:develop",
+        "publish:local": "medusa plugin:publish",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@medusajs/admin-sdk": "^2.13.6",
+        "@medusajs/admin-shared": "^2.13.6",
+        "@medusajs/cli": "^2.13.6",
+        "@medusajs/framework": "^2.13.6",
+        "@medusajs/medusa": "^2.13.6",
+        "@medusajs/test-utils": "^2.13.6",
+        "@types/node": "^24.10.1",
+        "@types/react": "^19.0.0",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.3"
+    },
+    "peerDependencies": {
+        "@medusajs/framework": "^2.13.0",
+        "@medusajs/medusa": "^2.13.0"
+    }
+}
