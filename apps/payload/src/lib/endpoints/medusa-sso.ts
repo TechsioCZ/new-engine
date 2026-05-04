@@ -17,6 +17,9 @@ const MAX_SESSIONS = 100
 type MedusaSsoToken = {
   email?: string
   sub?: string
+  medusa_actor_id?: string
+  medusa_actor_type?: string
+  payload_sso_mode?: string
 }
 
 /** Session entry stored on Payload admin users. */
@@ -132,7 +135,8 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
     }
 
     const publicKey = process.env.PAYLOAD_SSO_PUBLIC_KEY
-    if (!publicKey) {
+    const expectedSsoEmail = process.env.PAYLOAD_SSO_USER_EMAIL
+    if (!(publicKey && expectedSsoEmail)) {
       throw new APIError("Payload SSO is not configured.", 500)
     }
 
@@ -180,6 +184,9 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
     const email = verifiedPayload.email || verifiedPayload.sub
     if (!email) {
       throw new APIError("SSO token missing user email.", 400)
+    }
+    if (email !== expectedSsoEmail) {
+      throw new APIError("SSO token user is not configured for Payload.", 401)
     }
 
     const adminCollectionSlug = req.payload.config.admin.user

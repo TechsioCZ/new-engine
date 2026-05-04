@@ -1,5 +1,14 @@
-import type {HerbaticaCategoryExport} from "../../../src/scripts/herbatica-category-export"
-import {buildSeedInputFromXml} from "../../../src/scripts/herbatica-seed"
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
+import { ProductStatus } from "@medusajs/framework/utils"
+import {
+  type HerbaticaCategoryExport,
+  parseHerbaticaCategoriesXmlFile,
+} from "../../../src/scripts/herbatica-category-export"
+import { buildSeedInputFromXml } from "../../../src/scripts/herbatica-seed"
+
+const DIRTY_FEED_MARKUP_PATTERN =
+  /data-turn-id|data-message-author-role|data-testid|ChatGPT|markdown prose|webpage-citation-pill|_ngcontent-ng|markdown-main-panel/i
 
 describe("Herbatica seed category mapping", () => {
   it("prefers canonical category export data over malformed product paths", () => {
@@ -56,9 +65,9 @@ describe("Herbatica seed category mapping", () => {
       "trapi-ma-srdce-a-cievy",
       "trapi-ma-srdce-a-cievy-krcove-zily",
     ])
-    expect(result.categories.some((category) => category.handle?.endsWith("-2"))).toBe(
-      false
-    )
+    expect(
+      result.categories.some((category) => category.handle?.endsWith("-2"))
+    ).toBe(false)
     expect(result.products[0]?.categories).toEqual([
       {
         handle: "trapi-ma-srdce-a-cievy-krcove-zily",
@@ -303,7 +312,9 @@ describe("Herbatica seed product content sections", () => {
     expect(contentSections.description).not.toContain("Skladovanie")
     expect(contentSections.usage).toContain("Dospelí užívajú 4 kapsuly denne")
     expect(contentSections.warning).toContain("Neprekračujte")
-    expect(contentSections.composition).toContain("Olej zo semien ostropestreca")
+    expect(contentSections.composition).toContain(
+      "Olej zo semien ostropestreca"
+    )
     expect(contentSections.other).toContain("Výživové údaje")
     expect(contentSections.other).toContain("Skladovanie")
     expect(contentSections.other).toContain("Obsah balenia/Objem")
@@ -395,5 +406,90 @@ describe("Herbatica seed product content sections", () => {
     expect(contentSections.composition).toContain("amarantový olej")
     expect(contentSections.other).toContain("Objem")
     expect(contentSections.other).toContain("Krajina pôvodu")
+  })
+})
+
+describe("Herbatica committed feed fixtures", () => {
+  const productsXmlPath = resolve(
+    process.cwd(),
+    "src/scripts/seed-files/productsComplete.xml"
+  )
+  const categoriesXmlPath = resolve(
+    process.cwd(),
+    "src/scripts/seed-files/categories.xml"
+  )
+
+  it("keeps committed feed fixtures small and free of assistant markup", () => {
+    const productsXml = readFileSync(productsXmlPath, "utf8")
+    const categoriesXml = readFileSync(categoriesXmlPath, "utf8")
+
+    expect(Buffer.byteLength(productsXml, "utf8")).toBeLessThan(50_000)
+    expect(Buffer.byteLength(categoriesXml, "utf8")).toBeLessThan(20_000)
+    expect(productsXml).not.toMatch(DIRTY_FEED_MARKUP_PATTERN)
+    expect(categoriesXml).not.toMatch(DIRTY_FEED_MARKUP_PATTERN)
+  })
+
+  it("preserves parser coverage for metadata, references, hidden products, and duplicate variants", () => {
+    const productsXml = readFileSync(productsXmlPath, "utf8")
+    const categoryExports = parseHerbaticaCategoriesXmlFile(categoriesXmlPath)
+    const result = buildSeedInputFromXml(productsXml, categoryExports, {
+      referenceDate: new Date("2026-04-23T12:00:00.000Z"),
+    })
+
+    expect(result.stats).toEqual({
+      shopItems: 4,
+      categories: 5,
+      products: 4,
+      variants: 5,
+      hiddenProducts: 1,
+    })
+    expect(result.categories.map((category) => category.handle)).toEqual(
+      expect.arrayContaining([
+        "trapi-ma",
+        "trapi-ma-srdce-a-cievy",
+        "trapi-ma-srdce-a-cievy-krcove-zily",
+      ])
+    )
+
+    const mainProduct = result.products.find(
+      (product) => product.handle === "shopitem-fixture-main"
+    )
+    const hiddenProduct = result.products.find(
+      (product) => product.handle === "shopitem-fixture-hidden"
+    )
+
+    expect(mainProduct?.categories).toEqual([
+      {
+        handle: "trapi-ma-srdce-a-cievy-krcove-zily",
+      },
+    ])
+    expect(mainProduct?.metadata).toMatchObject({
+      related_products: [
+        "fixture-main",
+        "fixture-related",
+        "fixture-hidden",
+        "missing-product",
+      ],
+      related_product_handles: ["shopitem-fixture-related"],
+      related_product_refs: [
+        {
+          source_shopitem_id: "fixture-related",
+          handle: "shopitem-fixture-related",
+        },
+      ],
+      alternative_products: ["fixture-alt"],
+      alternative_product_handles: ["shopitem-fixture-alt"],
+      source_category_ids: ["901"],
+      source_default_category_id: "901",
+    })
+    expect(mainProduct?.variants?.map((variant) => variant.sku)).toEqual([
+      "SHOPITEM-FIXTURE-MAIN-VARIANT-VARIANT-DUP",
+      "SHOPITEM-FIXTURE-MAIN-VARIANT-VARIANT-DUP-2",
+    ])
+    expect(mainProduct?.variants?.map((variant) => variant.ean)).toEqual([
+      "1234567890123",
+      undefined,
+    ])
+    expect(hiddenProduct?.status).toBe(ProductStatus.DRAFT)
   })
 })

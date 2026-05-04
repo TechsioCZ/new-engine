@@ -203,11 +203,7 @@ services:
       dockerfile: docker/development/payload/Dockerfile
       target: dev
     working_dir: /var/www
-    command: >-
-      sh -c "pnpm --filter @nmit/payload payload migrate &&
-      pnpm --filter @nmit/payload run generate:importmap &&
-      pnpm --filter @nmit/payload run seed &&
-      pnpm --filter @nmit/payload run devsafe --hostname 0.0.0.0 --port 8083"
+    command: ["payload-runtime", "devsafe"]
     depends_on:
       medusa-db:
         condition: service_healthy

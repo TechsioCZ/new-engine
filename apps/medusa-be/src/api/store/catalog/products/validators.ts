@@ -44,6 +44,7 @@ export const StoreCatalogProductsSchema = z
     region_id: z.string().optional(),
     currency_code: z.string().optional(),
     country_code: z.string().optional(),
+    sales_channel_id: multiValueParamSchema.optional(),
     category_id: multiValueParamSchema.optional(),
     status: multiValueParamSchema.optional(),
     form: multiValueParamSchema.optional(),

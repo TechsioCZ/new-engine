@@ -13,7 +13,7 @@ describe("Herbatica category export parser", () => {
   const categories = parseHerbaticaCategoriesXmlFile(xmlPath)
 
   it("parses the canonical category export snapshot", () => {
-    expect(categories).toHaveLength(206)
+    expect(categories).toHaveLength(5)
   })
 
   it("preserves rich description and metadata for the Trápi ma root", () => {
@@ -24,7 +24,7 @@ describe("Herbatica category export parser", () => {
       title: "Trápi ma",
       url: "trapi-ma",
       metaTitle:
-        "Trápi ma – prírodné riešenia a doplnky podľa problému | Herbatica",
+        "Trápi ma - prírodné riešenia a doplnky podľa problému | Herbatica",
       metaDescription: expect.stringContaining("imunita"),
       priority: 2,
       expandInMenu: false,
@@ -48,7 +48,7 @@ describe("Herbatica category export parser", () => {
       id: "1584",
       title: "Prírodná kozmetika",
       url: "prirodna-kozmetika",
-      metaTitle: "Prírodná kozmetika – prehľad a porovnanie | Herbatica",
+      metaTitle: "Prírodná kozmetika - prehľad a porovnanie | Herbatica",
       metaDescription: expect.stringContaining("prehľad produktov"),
       bottomDescriptionHtml: undefined,
     })

@@ -1,10 +1,35 @@
 import { createHash } from "node:crypto"
 import { getPayload } from "payload"
 import config from "./payload.config"
-import type { Article } from "./payload-types"
 
 type SeedPayload = Awaited<ReturnType<typeof getPayload>>
-type PayloadId = number
+type PayloadId = string | number
+type SeedRichText = {
+  root: {
+    type: "root"
+    format: string
+    indent: number
+    version: number
+    direction: "ltr"
+    children: Array<{
+      type: "paragraph"
+      format: string
+      indent: number
+      version: number
+      textFormat: number
+      textStyle: string
+      children: Array<{
+        type: "text"
+        detail: number
+        format: number
+        mode: "normal"
+        style: string
+        text: string
+        version: number
+      }>
+    }>
+  }
+}
 
 const requireEnv = (name: string): string => {
   const value = process.env[name]
@@ -35,7 +60,7 @@ const isEnabled = (value: string | undefined): boolean =>
   value === undefined ||
   ["1", "true", "yes", "on"].includes(value.toLowerCase())
 
-const paragraph = (text: string): Article["content"] => ({
+const paragraph = (text: string): SeedRichText => ({
   root: {
     type: "root",
     format: "",
