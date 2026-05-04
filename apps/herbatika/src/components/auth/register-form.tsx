@@ -28,15 +28,19 @@ export const RegisterForm = ({
 
   const form = useHerbatikaForm({
     defaultValues,
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value, formApi }) => {
       setSubmitError(null);
       const error = await onSubmit(value);
       setSubmitError(error);
+      if (!error) {
+        formApi.reset(defaultValues);
+      }
     },
   });
 
   return (
     <form
+      autoComplete="off"
       className="grid gap-300 md:grid-cols-2"
       noValidate
       onSubmit={(event) => {
@@ -55,7 +59,7 @@ export const RegisterForm = ({
       <form.AppField name="first_name" validators={registerValidators.first_name}>
         {(field) => (
           <field.TextField
-            autoComplete="given-name"
+            autoComplete="off"
             id="auth-register-first-name"
             label="Meno"
             onValueChange={() => setSubmitError(null)}
@@ -68,7 +72,7 @@ export const RegisterForm = ({
       <form.AppField name="last_name" validators={registerValidators.last_name}>
         {(field) => (
           <field.TextField
-            autoComplete="family-name"
+            autoComplete="off"
             id="auth-register-last-name"
             label="Priezvisko"
             onValueChange={() => setSubmitError(null)}
@@ -82,7 +86,7 @@ export const RegisterForm = ({
         <form.AppField name="email" validators={registerValidators.email}>
           {(field) => (
             <field.TextField
-              autoComplete="email"
+              autoComplete="off"
               id="auth-register-email"
               label="E-mailová adresa"
               onValueChange={() => setSubmitError(null)}

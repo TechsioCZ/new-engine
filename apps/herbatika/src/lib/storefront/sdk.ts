@@ -77,18 +77,6 @@ export const authTokenStorage = {
   },
 };
 
-const browserStorage = {
-  setItem(_key: string, value: string) {
-    authTokenStorage.set(value);
-  },
-  getItem(_key: string) {
-    return authTokenStorage.get();
-  },
-  removeItem(_key: string) {
-    authTokenStorage.clear();
-  },
-};
-
 const medusaClientConfig: MedusaClientConfig = {
   baseUrl: MEDUSA_BACKEND_URL,
   publishableKey: MEDUSA_PUBLISHABLE_KEY,
@@ -96,8 +84,7 @@ const medusaClientConfig: MedusaClientConfig = {
   auth: {
     type: "jwt",
     jwtTokenStorageKey: AUTH_TOKEN_STORAGE_KEY,
-    jwtTokenStorageMethod: "custom",
-    storage: browserStorage,
+    jwtTokenStorageMethod: isSessionProxyAuthMode ? "memory" : "local",
   },
 };
 
