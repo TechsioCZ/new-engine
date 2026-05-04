@@ -211,6 +211,7 @@ export function HerbatikaCartPopover({
               Produkty môžete pridať z katalógu.
             </p>
           </div>
+          <LinkButton as={NextLink} block size="md" href="/checkout/kosik">Do košíku</LinkButton>
         </div>
       )}
     </Popover>
