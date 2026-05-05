@@ -116,7 +116,12 @@ const EmailRows = ({
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell colSpan={6}>Loading...</Table.Cell>
+        <Table.Cell>Loading...</Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
       </Table.Row>
     )
   }
@@ -124,7 +129,12 @@ const EmailRows = ({
   if (!emailLogs.length) {
     return (
       <Table.Row>
-        <Table.Cell colSpan={6}>No emails logged yet.</Table.Cell>
+        <Table.Cell>No emails logged yet.</Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
       </Table.Row>
     )
   }
