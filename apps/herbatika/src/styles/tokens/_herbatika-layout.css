@@ -7,7 +7,7 @@
 
   /* checkout */
   --container-checkout: 78.75rem;
-  --container-checkout-step: 42.625rem;
+  --container-checkout-step: 44.625rem; /* old value 42.625rem */
   --container-submenu: 86rem;
 
   --container-search-form: 28.75rem;
