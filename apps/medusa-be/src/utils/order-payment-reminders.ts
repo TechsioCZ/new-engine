@@ -6,6 +6,7 @@ export type PaymentReminderOrder = {
   custom_display_id?: string | null
   customer_id?: string | null
   email?: string | null
+  payment_collections?: { status?: string | null }[] | null
   payment_status?: string | null
   status?: string | null
   total?: number | string | null
@@ -37,6 +38,7 @@ const ORDER_FIELDS = [
   "customer_id",
   "email",
   "payment_status",
+  "payment_collections.status",
   "status",
   "total",
   "currency_code",
@@ -83,7 +85,12 @@ export function isUnpaidOrder(order: PaymentReminderOrder) {
     return false
   }
 
-  return UNPAID_PAYMENT_STATUSES.has(order.payment_status as PaymentStatus)
+  const paymentStatus =
+    order.payment_status ??
+    order.payment_collections?.[0]?.status ??
+    (order.payment_collections?.length === 0 ? "not_paid" : undefined)
+
+  return UNPAID_PAYMENT_STATUSES.has(paymentStatus as PaymentStatus)
 }
 
 export async function fetchOrderById(query: Query, id: string) {
@@ -107,9 +114,6 @@ export async function fetchUnpaidOrders(
     const { data } = await query.graph({
       entity: "order",
       fields: ORDER_FIELDS,
-      filters: {
-        payment_status: UNPAID_PAYMENT_STATUS_VALUES,
-      },
       pagination: {
         skip: offset,
         take: BATCH_SIZE,
