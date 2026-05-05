@@ -31,6 +31,7 @@ import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shippi
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products";
+import { IconType } from "@techsio/ui-kit/atoms/icon";
 
 type UseProductDetailDataProps = {
   handle: string;
@@ -237,13 +238,15 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   useProductDetailDebugLog(product);
   useRecordRecentlyVisitedProduct(product);
 
+  const primaryCategory = productCategories[0];
+
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
-    { label: "", href: "/", icon: "token-icon-home" },
-    ...(productCategories[0]?.handle
+    ...(primaryCategory?.handle
       ? [
           {
-            label: normalizeCategoryName(productCategories[0].name),
-            href: `/c/${productCategories[0].handle}`,
+            label: normalizeCategoryName(primaryCategory.name),
+            href: `/c/${primaryCategory.handle}`,
+            icon: "token-icon-home" as IconType
           },
         ]
       : []),

@@ -81,6 +81,8 @@
   --spacing-auth-page: var(--spacing-page-default);
   --spacing-auth-page-lg: var(--spacing-page);
 
+  --spacing-product-detail: 3.25rem;
+
   /* OTHERS SPACING TOKENS */
   --height-category-image: 5.375rem;
   --width-submenu-image: var(--spacing-850);

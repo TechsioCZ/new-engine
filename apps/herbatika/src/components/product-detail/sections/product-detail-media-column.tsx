@@ -52,8 +52,8 @@ export function ProductDetailMediaColumn({
             </Badge>
           ) : null}
 
-          <Gallery.Carousel>
-            <Gallery.Slides />
+          <Gallery.Carousel className="px-gallery-carousel">
+            <Gallery.Slides className="w-[408px] h-[408px]"/>
           </Gallery.Carousel>
 
           {mediaFacts.length > 0 ? (
