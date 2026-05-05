@@ -53,7 +53,7 @@ export function ProductDetailMediaColumn({
           ) : null}
 
           <Gallery.Carousel className="px-gallery-carousel">
-            <Gallery.Slides className="w-[408px] h-[408px]"/>
+            <Gallery.Slides className="h-full mx-auto max-w-[408px] max-h-[408px]"/>
           </Gallery.Carousel>
 
           {mediaFacts.length > 0 ? (
