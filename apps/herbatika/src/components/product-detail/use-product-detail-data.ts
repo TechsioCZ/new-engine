@@ -262,7 +262,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     freeShippingThresholdLabel:
       freeShippingThresholdAmount === null
         ? null
-        : formatCurrencyAmount(freeShippingThresholdAmount, currentCurrencyCode),
+        : formatCurrencyAmount(freeShippingThresholdAmount, currentCurrencyCode, { minimumFractionDigits: 0, maximumFractionDigits: 0}),
     galleryItems,
     isBootstrappingRegion: !region?.region_id,
     mediaFacts,

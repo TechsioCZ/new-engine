@@ -20,5 +20,6 @@
 
 @import "./organisms/_herbatika-footer.css";
 @import "./organisms/_herbatika-header.css";
+@import "./organisms/_herbatika-gallery.css";
 
 @import "./app-components/_orders.css";

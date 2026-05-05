@@ -42,7 +42,7 @@ export function ProductDetailMediaColumn({
           className="md:col-start-1 md:row-start-1"
           listClassName="gap-100"
         />
-        <Gallery.Main className="relative flex-col overflow-hidden rounded-lg border border-border-secondary bg-surface md:col-start-2 md:row-start-1">
+        <Gallery.Main className="relative flex-col overflow-hidden rounded-base bg-surface md:col-start-2 md:row-start-1">
           {typeof discountPercent === "number" && discountPercent > 0 ? (
             <Badge
               className="absolute top-300 right-300 z-1 flex w-850 aspect-square rounded-full text-sm"

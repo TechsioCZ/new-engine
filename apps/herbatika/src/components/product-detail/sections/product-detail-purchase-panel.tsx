@@ -97,8 +97,8 @@ export function ProductDetailPurchasePanel({
     .slice(0, 3)
 
   return (
-    <div className="space-y-300 rounded-lg border border-border-secondary bg-surface p-350">
-      <div className="flex min-h-600 flex-wrap items-start gap-200">
+    <div className="rounded-base bg-surface p-550">
+      <div className="flex min-h-600 flex-wrap items-start gap-200 pb-500">
         {flags.map((flag) => (
           <Badge
             className="leading-tight font-bold"
@@ -148,7 +148,8 @@ export function ProductDetailPurchasePanel({
         </div>
       </div>
 
-      <header className="space-y-200">
+      <section className="flex flex-col gap-700">
+      <header>
         <h1 className="font-semibold text-2xl md:text-3xl text-fg-primary leading-none">
           {product.title}
         </h1>
@@ -190,6 +191,7 @@ export function ProductDetailPurchasePanel({
             <Icon
               className="text-primary"
               icon="token-icon-save-money"
+              size="lg"
             />
             <div className="space-y-50">
               <p className="font-semibold text-fg-primary text-md leading-tight">
@@ -232,10 +234,10 @@ export function ProductDetailPurchasePanel({
         </Select>
       ) : null}
 
-      <div className="grid items-center gap-350 sm:grid-cols-4">
+      <div className="grid items-center gap-350 sm:grid-cols-4 min-h-purchase-panel-footer">
         <div>
           <NumericInput
-            className="w-full"
+            className="w-full px-300"
             id="product-quantity"
             max={50}
             min={1}
@@ -249,7 +251,7 @@ export function ProductDetailPurchasePanel({
             }}
             value={quantity}
           >
-            <NumericInput.Control className="min-h-750">
+            <NumericInput.Control className="h-full">
               <NumericInput.DecrementTrigger className="min-h-750 min-w-750" />
               <NumericInput.Input className="min-h-750 text-center" />
               <NumericInput.IncrementTrigger className="min-h-750 min-w-750" />
@@ -259,17 +261,19 @@ export function ProductDetailPurchasePanel({
 
         <Button
           block
-          className="min-h-750 sm:col-span-3"
+          className="h-full sm:col-span-3 text-md"
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAdding}
           loadingText="Pridávam..."
           onClick={onAddToCart}
           variant="primary"
+          iconSize="xl"
         >
           Pridať do košíka
         </Button>
       </div>
+      </section>
     </div>
   )
 }

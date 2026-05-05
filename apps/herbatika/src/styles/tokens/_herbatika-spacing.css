@@ -9,11 +9,11 @@
   --spacing-350: 0.875rem; /* 14px */
   --spacing-400: 1rem; /* 16px */
   --spacing-450: 1.125rem;
-  --spacing-500: 1.25rem;
-  --spacing-550: 1.5rem;
+  --spacing-500: 1.25rem; /* 20px */
+  --spacing-550: 1.5rem; /* 24px */
   --spacing-600: 1.75rem;
   --spacing-650: 1.875rem;
-  --spacing-700: 2rem;
+  --spacing-700: 2rem; /* 32px */
   --spacing-750: 2.5rem;
   --spacing-800: 3.5rem;
   --spacing-850: 4.75rem;
@@ -86,7 +86,8 @@
   --width-submenu-image: var(--spacing-850);
   --height-submenu-image: 3.75rem;
   --size-checkout-image: 7.5rem;
-  --height-checkout-image:7.5rem;
+  --height-checkout-image: 7.5rem;
+  --height-purchase-panel-footer: 2.75rem;
 
   --height-product-card-label: 2.5rem;
   --height-product-card-image: 16rem;

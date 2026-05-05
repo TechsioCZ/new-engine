@@ -19,11 +19,10 @@ export function ProductDetailDeliveryInfo({
   return (
     <div className="rounded-lg bg-surface p-550">
       <div className="flex flex-wrap items-center gap-650 md:flex-nowrap">
-        <div className="flex items-center gap-200">
+        <div className="flex gap-200 items-start">
           <Icon
-            className={offerState.isInStock ? "text-primary" : "text-warning"}
+            className={`text-icon-delivery-size leading-none self-start ${offerState.isInStock ? "text-primary" : "text-warning"}`}
             icon={offerState.isInStock ? "token-icon-check" : "token-icon-alert"}
-            size="xl"
           />
           <SupportingText className="text-md leading-snug text-fg-primary">
             <span className={`font-semibold ${availabilityToneClass}`}>
@@ -42,7 +41,7 @@ export function ProductDetailDeliveryInfo({
 
         {freeShippingThresholdLabel ? (
           <div className="flex items-center gap-200">
-            <Icon className="text-primary" icon="token-icon-truck-delivery" size="xl" />
+            <Icon className="text-primary self-start" icon="token-icon-truck-delivery text-icon-delivery-size" />
             <SupportingText className="text-md leading-snug text-fg-secondary">
               Doručenie zdarma nad <span className="font-semibold text-primary">{freeShippingThresholdLabel}</span>
             </SupportingText>
