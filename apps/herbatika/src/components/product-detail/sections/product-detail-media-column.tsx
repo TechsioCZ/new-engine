@@ -60,7 +60,7 @@ export function ProductDetailMediaColumn({
             <div className="flex items-center justify-center divide-x divide-border-secondary border-t border-border-secondary bg-surface p-550">
               {mediaFacts.slice(0, 2).map((fact) => (
                 <div className="flex items-center gap-200 px-350 py-250" key={fact.id}>
-                  <span className="flex h-600 w-600 items-center justify-center rounded-xs bg-highlight">
+                  <span className="flex items-center justify-center rounded-xs bg-highlight p-200">
                     <Icon className="text-primary" icon={fact.icon} size="lg" />
                   </span>
                   <SupportingText className="text-md leading-snug text-fg-secondary">
@@ -74,28 +74,28 @@ export function ProductDetailMediaColumn({
         </Gallery.Main>
       </Gallery>
 
-      <div className="flex flex-wrap items-center justify-between gap-250 rounded-lg border border-primary/20 bg-surface p-400 md:flex-nowrap">
-        <div className="flex items-center gap-150">
+      <div className="flex flex-wrap items-center justify-between gap-250 rounded-base border border-primary/20 bg-surface p-400 md:flex-nowrap lg:max-xl:grid lg:max-xl:grid-cols-2">
+        <div className="flex items-center gap-150 lg:max-xl:col-span-2">
           <NextImage
             alt="Poradca Herbatika"
-            className="size-8 shrink-0 rounded-full object-cover"
-            height={32}
+            className="size-11 shrink-0 rounded-full object-cover"
+            height={46}
             quality={50}
             src="/photos/image.png"
-            width={32}
+            width={46}
           />
           <div className="space-y-0">
-            <p className="whitespace-nowrap text-md font-bold leading-tight text-fg-strong">
+            <p className="whitespace-nowrap text-lg font-bold leading-tight text-fg-strong">
               Potrebujete poradiť?
             </p>
-            <SupportingText className="whitespace-nowrap text-2xs leading-tight text-fg-secondary">
+            <SupportingText className="whitespace-nowrap text-xs leading-tight text-fg-secondary">
               Kontaktujte nás, radi vám pomôžeme
             </SupportingText>
           </div>
         </div>
 
         <div className="flex items-center gap-200">
-          <Icon className="text-primary" icon="token-icon-phone" size="2xl" />
+          <Icon className="text-primary" icon="token-icon-phone-talk" size="xl" />
           <Link
             as={NextLink}
             className="whitespace-nowrap text-sm leading-tight font-medium text-fg-strong hover:text-fg-primary"
@@ -106,7 +106,7 @@ export function ProductDetailMediaColumn({
         </div>
         <LinkButton
           as={NextLink}
-          className="shrink-0"
+          className="shrink-0 py-150 px-350 min-h-chat-button"
           href="/kontakt"
           size="sm"
           theme="outlined"

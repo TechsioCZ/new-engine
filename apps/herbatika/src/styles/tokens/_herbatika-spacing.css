@@ -98,4 +98,5 @@
 
   --height-header-logo: 3.75rem;
   --height-third-parties-logo: var(--spacing-600);
+  --height-chat-button: 35px;
 }
