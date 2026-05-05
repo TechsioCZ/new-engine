@@ -70,12 +70,6 @@ describe("GET /admin/payload/sso", () => {
     restoreEnv()
   })
 
-  it("keeps Medusa admin route authentication explicitly enabled", async () => {
-    const { AUTHENTICATE } = await import("../route")
-
-    expect(AUTHENTICATE).toBe(true)
-  })
-
   it("rejects direct handler access without an authenticated admin user context", async () => {
     const { GET } = await import("../route")
     const req = createMockRequest({ auth_context: undefined })

@@ -17,13 +17,16 @@ case "$mode" in
     exec pnpm --filter @nmit/payload run generate:importmap "$@"
     ;;
   dev|devsafe|start)
-    generate_importmap_default=0
-    if [ "$mode" = "dev" ] || [ "$mode" = "devsafe" ]; then
-      generate_importmap_default=1
+    if [ "${PAYLOAD_MIGRATE_ON_STARTUP:-1}" = "1" ]; then
+      pnpm --filter @nmit/payload payload migrate
     fi
 
-    if [ "${PAYLOAD_GENERATE_IMPORTMAP_ON_STARTUP:-$generate_importmap_default}" = "1" ]; then
+    if [ "${PAYLOAD_GENERATE_IMPORTMAP_ON_STARTUP:-1}" = "1" ]; then
       pnpm --filter @nmit/payload run generate:importmap
+    fi
+
+    if [ "${PAYLOAD_SEED_ON_STARTUP:-1}" = "1" ]; then
+      pnpm --filter @nmit/payload run seed
     fi
 
     exec pnpm --filter @nmit/payload run "$mode" --hostname "${PAYLOAD_HOST:-0.0.0.0}" --port "${PORT:-8083}" "$@"

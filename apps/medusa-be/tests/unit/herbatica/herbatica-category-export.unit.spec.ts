@@ -1,7 +1,10 @@
+import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import {
   excerptPlainText,
   parseHerbaticaCategoriesXmlFile,
+  parseHerbaticaCategoriesXmlSource,
+  readXmlSource,
   stripHtmlToPlainText,
 } from "../../../src/scripts/herbatica-category-export"
 
@@ -11,6 +14,11 @@ describe("Herbatica category export parser", () => {
     "src/scripts/seed-files/categories.xml"
   )
   const categories = parseHerbaticaCategoriesXmlFile(xmlPath)
+  const originalFetch = global.fetch
+
+  afterEach(() => {
+    ;(global as unknown as { fetch: typeof fetch }).fetch = originalFetch
+  })
 
   it("parses the canonical category export snapshot", () => {
     expect(categories).toHaveLength(5)
@@ -66,5 +74,46 @@ describe("Herbatica category export parser", () => {
     expect(excerpt).toBeDefined()
     expect(excerpt).toContain("Človek je neoddeliteľnou súčasťou prírody")
     expect(excerpt?.length).toBeLessThanOrEqual(123)
+  })
+
+  it("reads XML from a local source path", async () => {
+    await expect(readXmlSource(xmlPath)).resolves.toBe(
+      readFileSync(xmlPath, "utf8")
+    )
+  })
+
+  it("parses categories from an HTTP XML source", async () => {
+    const xml = readFileSync(xmlPath, "utf8")
+    ;(global as unknown as { fetch: jest.Mock }).fetch = jest
+      .fn()
+      .mockResolvedValue({
+        ok: true,
+        text: jest.fn().mockResolvedValue(xml),
+      })
+
+    const result = await parseHerbaticaCategoriesXmlSource(
+      "https://example.test/categories.xml"
+    )
+
+    expect(result).toHaveLength(5)
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://example.test/categories.xml"
+    )
+  })
+
+  it("throws a useful error when HTTP XML loading fails", async () => {
+    ;(global as unknown as { fetch: jest.Mock }).fetch = jest
+      .fn()
+      .mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+      })
+
+    await expect(
+      readXmlSource("https://example.test/missing.xml")
+    ).rejects.toThrow(
+      "Failed to fetch XML source https://example.test/missing.xml: 404 Not Found"
+    )
   })
 })

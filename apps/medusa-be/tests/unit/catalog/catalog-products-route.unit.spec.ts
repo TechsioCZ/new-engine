@@ -45,26 +45,54 @@ const toArray = (value: unknown): string[] => {
   return typeof value === "string" ? [value] : []
 }
 
-const getMeiliIdFilterIds = (filter: unknown): string[] => {
+const getMeiliFilterValues = (filter: unknown, field: string): string[] => {
   if (!Array.isArray(filter)) {
     return []
   }
 
-  const ids: string[] = []
+  const values: string[] = []
+  const pattern = new RegExp(`${field} = "([^"]+)"`, "g")
   for (const expression of filter) {
-    if (typeof expression !== "string" || !expression.includes("id = ")) {
+    if (typeof expression !== "string") {
       continue
     }
 
-    for (const match of expression.matchAll(/id = "([^"]+)"/g)) {
-      const id = match[1]
-      if (id) {
-        ids.push(id)
+    for (const match of expression.matchAll(pattern)) {
+      const value = match[1]
+      if (value) {
+        values.push(value)
       }
     }
   }
 
-  return ids
+  return values
+}
+
+const getMeiliPriceRange = (
+  filter: unknown
+): { min?: number; max?: number } => {
+  if (!Array.isArray(filter)) {
+    return {}
+  }
+
+  let min: number | undefined
+  let max: number | undefined
+  for (const expression of filter) {
+    if (typeof expression !== "string") {
+      continue
+    }
+
+    const minMatch = expression.match(/^facet_price >= ([0-9.]+)$/)
+    if (minMatch?.[1]) {
+      min = Number(minMatch[1])
+    }
+    const maxMatch = expression.match(/^facet_price <= ([0-9.]+)$/)
+    if (maxMatch?.[1]) {
+      max = Number(maxMatch[1])
+    }
+  }
+
+  return { min, max }
 }
 
 const createMockResponse = () =>
@@ -98,66 +126,94 @@ const createCatalogHarness = ({
         filter?: string[]
       }
     ) => {
-      const attributesToRetrieve =
-        options.additionalOptions?.attributesToRetrieve ?? []
-      const isFacetDocumentSearch =
-        attributesToRetrieve.includes("facet_status")
-
-      if (isFacetDocumentSearch) {
-        const idFilterIds = getMeiliIdFilterIds(options.filter)
-
-        return {
-          hits: idFilterIds.flatMap((id) => {
-            const product = productById.get(id)
-            if (!product) {
-              return []
-            }
-
-            return [
-              {
-                id: product.id,
-                facet_status: product.statusFacets ?? [],
-                facet_form: product.formFacets ?? [],
-                facet_brand: product.brandFacets ?? [],
-                facet_ingredient: product.ingredientFacets ?? [],
-                facet_price: product.facetPrice,
-              },
-            ]
-          }),
-          estimatedTotalHits: idFilterIds.length,
+      const statusFilters = getMeiliFilterValues(
+        options.filter,
+        "facet_product_status"
+      )
+      const salesChannelFilters = getMeiliFilterValues(
+        options.filter,
+        "facet_sales_channel_ids"
+      )
+      const priceRange = getMeiliPriceRange(options.filter)
+      const filteredProducts = products.filter((product) => {
+        if (
+          statusFilters.length > 0 &&
+          !statusFilters.includes(product.status)
+        ) {
+          return false
         }
-      }
+        if (
+          salesChannelFilters.length > 0 &&
+          !product.salesChannelIds.some((id) =>
+            salesChannelFilters.includes(id)
+          )
+        ) {
+          return false
+        }
+        if (
+          priceRange.min !== undefined &&
+          (product.facetPrice === undefined ||
+            product.facetPrice < priceRange.min)
+        ) {
+          return false
+        }
+        if (
+          priceRange.max !== undefined &&
+          (product.facetPrice === undefined ||
+            product.facetPrice > priceRange.max)
+        ) {
+          return false
+        }
+        return true
+      })
 
-      const hits = products
+      const hits = filteredProducts
         .slice(
           options.paginationOptions.offset,
           options.paginationOptions.offset + options.paginationOptions.limit
         )
         .map((product) => ({ id: product.id }))
 
-      const visiblePrices = products
+      const visiblePrices = filteredProducts
         .map((product) => product.facetPrice)
         .filter((price): price is number => typeof price === "number")
 
+      const hiddenBrandCount = filteredProducts.filter((product) =>
+        product.brandFacets?.includes("brand-hidden")
+      ).length
+      const visibleBrandCount = filteredProducts.filter((product) =>
+        product.brandFacets?.includes("brand-visible")
+      ).length
+      const visibleIngredientCount = filteredProducts.filter((product) =>
+        product.ingredientFacets?.includes("ingredient-visible")
+      ).length
+
       return {
         hits,
-        estimatedTotalHits: products.length,
+        estimatedTotalHits: filteredProducts.length,
         facetDistribution: {
           facet_status: {
-            action: products.filter((product) =>
+            action: filteredProducts.filter((product) =>
               product.statusFacets?.includes("action")
             ).length,
-            "in-stock": products.filter((product) =>
+            "in-stock": filteredProducts.filter((product) =>
               product.statusFacets?.includes("in-stock")
             ).length,
           },
           facet_form: {},
           facet_brand: {
-            "brand-hidden": products.filter((product) =>
-              product.brandFacets?.includes("brand-hidden")
-            ).length,
+            ...(hiddenBrandCount > 0
+              ? { "brand-hidden": hiddenBrandCount }
+              : {}),
+            ...(visibleBrandCount > 0
+              ? { "brand-visible": visibleBrandCount }
+              : {}),
           },
-          facet_ingredient: {},
+          facet_ingredient: {
+            ...(visibleIngredientCount > 0
+              ? { "ingredient-visible": visibleIngredientCount }
+              : {}),
+          },
         },
         facetStats: {
           facet_price: {
@@ -394,6 +450,37 @@ describe("GET /store/catalog/products", () => {
     expect(payload.page).toBe(2)
     expect(payload.limit).toBe(1)
     expect(payload.totalPages).toBe(3)
+  })
+
+  it("uses indexed visibility filters instead of scanning all Meili hits", async () => {
+    const products = Array.from({ length: 250 }, (_, index) => ({
+      id: `prod_${index}`,
+      title: `Product ${index}`,
+      status: "published" as const,
+      salesChannelIds: ["sc_visible"],
+    }))
+    const { req, res, meiliSearch } = createCatalogHarness({
+      products,
+      query: {
+        limit: 12,
+      },
+    })
+
+    await GET(req, res)
+
+    expect(meiliSearch).toHaveBeenCalledTimes(1)
+    expect(meiliSearch).toHaveBeenCalledWith(
+      "products",
+      "",
+      expect.objectContaining({
+        filter: expect.arrayContaining([
+          'facet_product_status = "published"',
+          'facet_sales_channel_ids = "sc_visible"',
+        ]),
+      })
+    )
+    expect(getJsonPayload(res).products).toHaveLength(12)
+    expect(getJsonPayload(res).count).toBe(250)
   })
 
   it("derives facet counts and price stats only from visible products", async () => {

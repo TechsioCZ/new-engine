@@ -15,8 +15,6 @@ const LOCAL_PAYLOAD_HOSTS = new Set([
   "admin.payload.medusa.localhost",
 ])
 
-export const AUTHENTICATE = true
-
 /** Query schema for the admin payload SSO endpoint. */
 export const AdminPayloadSsoSchema = z.object({
   returnTo: optionalStringParam,
