@@ -10,6 +10,7 @@ import { EMAIL_LOG_MODULE } from "../../modules/email-log"
 import type EmailLogModuleService from "../../modules/email-log/service"
 
 const templateSubjects: Record<string, string> = {
+  "order-payment-reminder": "Zaplaťte prosím svou objednávku",
   "user-forgotpwd": "Forgot Password",
 }
 

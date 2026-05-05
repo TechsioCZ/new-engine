@@ -10,6 +10,7 @@ import {
 import { createElement, type ReactNode } from "react"
 import { type CreateEmailOptions, Resend } from "resend"
 import ForgotPasswordEmail from "./emails/forgot-password"
+import OrderPaymentReminderEmail from "./emails/order-payment-reminder"
 
 type ResendOptions = {
   api_key: string
@@ -32,17 +33,30 @@ type ForgotPasswordTemplateData = {
   store_name?: string
 }
 
+type OrderPaymentReminderTemplateData = {
+  order_display_id: string
+  payment_url: string
+  store_name?: string
+  total?: string
+}
+
 const templates = {
   FORGOT_PASSWORD: "user-forgotpwd",
+  ORDER_PAYMENT_REMINDER: "order-payment-reminder",
 } as const
 
 type Template = (typeof templates)[keyof typeof templates]
 
 const templateComponents: {
   [templates.FORGOT_PASSWORD]: (props: ForgotPasswordTemplateData) => ReactNode
+  [templates.ORDER_PAYMENT_REMINDER]: (
+    props: OrderPaymentReminderTemplateData
+  ) => ReactNode
 } = {
   [templates.FORGOT_PASSWORD]: (props) =>
     createElement(ForgotPasswordEmail, props),
+  [templates.ORDER_PAYMENT_REMINDER]: (props) =>
+    createElement(OrderPaymentReminderEmail, props),
 }
 
 class ResendNotificationProviderService extends AbstractNotificationProviderService {
@@ -98,8 +112,26 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     switch (template) {
       case templates.FORGOT_PASSWORD:
         return "Forgot Password"
+      case templates.ORDER_PAYMENT_REMINDER:
+        return "Zaplaťte prosím svou objednávku"
       default:
         return "New Email"
+    }
+  }
+
+  protected renderTemplate(
+    template: Template,
+    data?: Record<string, unknown> | null
+  ) {
+    switch (template) {
+      case templates.FORGOT_PASSWORD:
+        return templateComponents[template](data as ForgotPasswordTemplateData)
+      case templates.ORDER_PAYMENT_REMINDER:
+        return templateComponents[template](
+          data as OrderPaymentReminderTemplateData
+        )
+      default:
+        return null
     }
   }
 
@@ -132,7 +164,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     } else {
       emailOptions = {
         ...commonOptions,
-        react: template(notification.data as ForgotPasswordTemplateData),
+        react: this.renderTemplate(templateKey, notification.data),
       }
     }
 
