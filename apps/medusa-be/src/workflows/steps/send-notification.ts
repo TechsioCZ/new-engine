@@ -52,13 +52,15 @@ const templateSubjects: Record<string, string> = {
   "user-forgotpwd": "Forgot Password",
 }
 
+const CUSTOMER_LOOKUP_CHUNK_SIZE = 25
+
 function getStringField(
   data: Record<string, unknown> | null | undefined,
   field: string
 ) {
-  const value = data?.[field]
+  const raw: unknown = data?.[field]
 
-  return typeof value === "string" && value.trim() ? value : undefined
+  return typeof raw === "string" && raw.trim() ? raw : undefined
 }
 
 function getNotificationSubject(input: CreateNotificationDTO) {
@@ -105,6 +107,38 @@ async function getCustomerIdByEmail(
   return customer?.id ?? null
 }
 
+function chunkItems<T>(items: T[], chunkSize: number) {
+  const chunks: T[][] = []
+
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize))
+  }
+
+  return chunks
+}
+
+async function getCustomerIdsByEmail(
+  customerModuleService: ICustomerModuleService,
+  emails: string[]
+) {
+  const customerIdsByEmail = new Map<string, string | null>()
+
+  for (const chunk of chunkItems(emails, CUSTOMER_LOOKUP_CHUNK_SIZE)) {
+    const results = await Promise.all(
+      chunk.map(async (email) => ({
+        customerId: await getCustomerIdByEmail(customerModuleService, email),
+        email,
+      }))
+    )
+
+    for (const result of results) {
+      customerIdsByEmail.set(result.email, result.customerId)
+    }
+  }
+
+  return customerIdsByEmail
+}
+
 async function replayPendingCheckedEvents({
   emailLogModuleService,
   emailLogs,
@@ -120,13 +154,19 @@ async function replayPendingCheckedEvents({
         email_id: emailLog.email_id,
       },
       {
+        order: { received_at: "ASC" },
         select: ["id", "email_id", "processed_at", "received_at", "type"],
       }
     )
-    const checkedEvents = pendingEvents.filter(
-      (event) =>
-        !event.processed_at && CHECKED_RESEND_EVENT_TYPES.has(event.type)
-    )
+    const checkedEvents = pendingEvents
+      .filter(
+        (event) =>
+          !event.processed_at && CHECKED_RESEND_EVENT_TYPES.has(event.type)
+      )
+      .sort(
+        (left, right) =>
+          left.received_at.getTime() - right.received_at.getTime()
+      )
 
     if (!checkedEvents.length) {
       continue
@@ -166,36 +206,52 @@ export const sendNotificationStep = createStep(
       Modules.CUSTOMER
     )
 
-    const emailLogs = (
-      await Promise.all(
-        data.map(async (input, index) => {
-          if (input.channel !== "email") {
-            return null
-          }
+    const notificationList = getNotificationList(notification)
+    const emailLogInputs = data
+      .map((input, index) => {
+        if (input.channel !== "email") {
+          return null
+        }
 
-          const createdNotification = getNotificationList(notification)[index]
+        const createdNotification = notificationList[index]
 
-          if (!createdNotification) {
-            return null
-          }
+        if (!createdNotification) {
+          return null
+        }
 
-          const explicitCustomerId =
-            createdNotification.receiver_id ?? getCustomerId(input)
+        const explicitCustomerId =
+          createdNotification.receiver_id ?? getCustomerId(input)
 
-          return {
-            email_id: createdNotification.external_id ?? createdNotification.id,
-            customer_id:
-              explicitCustomerId ??
-              (await getCustomerIdByEmail(customerModuleService, input.to)),
-            type: createdNotification.template ?? getEmailType(input),
-            subject: getNotificationSubject(input),
-            sent_to: createdNotification.to ?? input.to,
-            sent_at: new Date(),
-            checked_at: null,
-          }
-        })
+        return {
+          createdNotification,
+          explicitCustomerId,
+          input,
+        }
+      })
+      .filter((item) => item !== null)
+    const customerLookupEmails = Array.from(
+      new Set(
+        emailLogInputs
+          .filter((item) => !item.explicitCustomerId)
+          .map((item) => item.input.to)
       )
-    ).filter((emailLog) => emailLog !== null)
+    )
+    const customerIdsByEmail = await getCustomerIdsByEmail(
+      customerModuleService,
+      customerLookupEmails
+    )
+    const emailLogs = emailLogInputs.map(
+      ({ createdNotification, explicitCustomerId, input }) => ({
+        email_id: createdNotification.external_id ?? createdNotification.id,
+        customer_id:
+          explicitCustomerId ?? customerIdsByEmail.get(input.to) ?? null,
+        type: createdNotification.template ?? getEmailType(input),
+        subject: getNotificationSubject(input),
+        sent_to: createdNotification.to ?? input.to,
+        sent_at: new Date(),
+        checked_at: null,
+      })
+    )
 
     if (emailLogs.length) {
       const emailLogModuleService =
