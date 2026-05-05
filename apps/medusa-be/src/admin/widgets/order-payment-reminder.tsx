@@ -84,7 +84,7 @@ const OrderEmailSendControl = ({
 }) => {
   const queryClient = useQueryClient()
   const [template, setTemplate] = useState(
-    templates[0]?.template || DEFAULT_ORDER_EMAIL_TEMPLATE
+    templates[0]?.template ?? DEFAULT_ORDER_EMAIL_TEMPLATE
   )
   const mutation = useMutation({
     mutationFn: () => sendOrderEmail({ orderId, template }),
@@ -143,7 +143,7 @@ const DetailReminderWidget = ({ order }: { order: AdminOrder }) => {
         <div>
           <Heading level="h2">Order email</Heading>
           <Text className="text-ui-fg-subtle" size="small">
-            Send an order email to {order.email || "customer"}.
+            Send an order email to {order.email ?? "customer"}.
           </Text>
         </div>
         <OrderEmailSendControl
@@ -205,7 +205,7 @@ const ListReminderWidget = () => {
               <Table.HeaderCell>Status</Table.HeaderCell>
               <Table.HeaderCell>Total</Table.HeaderCell>
               <Table.HeaderCell className="w-[1%] text-right">
-                Email
+                Send
               </Table.HeaderCell>
             </Table.Row>
           </Table.Header>
@@ -234,13 +234,13 @@ const ListReminderWidget = () => {
                   {getOrderLabel(order)}
                 </Table.Cell>
                 <Table.Cell className="max-w-[280px] truncate">
-                  {order.email || "-"}
+                  {order.email ?? "-"}
                 </Table.Cell>
                 <Table.Cell className="whitespace-nowrap">
-                  {order.payment_status || "-"}
+                  {order.payment_status ?? "-"}
                 </Table.Cell>
                 <Table.Cell className="whitespace-nowrap">
-                  {order.total_formatted || "-"}
+                  {order.total_formatted ?? "-"}
                 </Table.Cell>
                 <Table.Cell className="text-right">
                   <OrderEmailSendControl

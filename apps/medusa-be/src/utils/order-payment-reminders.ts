@@ -18,11 +18,15 @@ const BATCH_SIZE = 100
 const DEFAULT_MAX_ORDERS = 500
 const TRAILING_SLASH_REGEX = /\/$/
 
-const UNPAID_PAYMENT_STATUSES = new Set<PaymentStatus>([
+const UNPAID_PAYMENT_STATUS_VALUES: PaymentStatus[] = [
   "not_paid",
   "awaiting",
   "requires_action",
-])
+]
+
+const UNPAID_PAYMENT_STATUSES = new Set<PaymentStatus>(
+  UNPAID_PAYMENT_STATUS_VALUES
+)
 
 const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
 
@@ -39,11 +43,11 @@ const ORDER_FIELDS = [
 ]
 
 export function getStorefrontUrl() {
-  return process.env.STOREFRONT_URL || "http://localhost:8000"
+  return process.env.STOREFRONT_URL ?? "http://localhost:8000"
 }
 
 export function getOrderDisplayId(order: PaymentReminderOrder) {
-  return order.custom_display_id || `#${order.display_id}`
+  return order.custom_display_id ?? `#${order.display_id}`
 }
 
 export function getPaymentUrl(order: PaymentReminderOrder) {
@@ -65,7 +69,7 @@ export function formatTotal(order: PaymentReminderOrder) {
   }
 
   return new Intl.NumberFormat("cs-CZ", {
-    currency: (order.currency_code || "CZK").toUpperCase(),
+    currency: (order.currency_code ?? "CZK").toUpperCase(),
     style: "currency",
   }).format(total)
 }
@@ -103,6 +107,9 @@ export async function fetchUnpaidOrders(
     const { data } = await query.graph({
       entity: "order",
       fields: ORDER_FIELDS,
+      filters: {
+        payment_status: UNPAID_PAYMENT_STATUS_VALUES,
+      },
       pagination: {
         skip: offset,
         take: BATCH_SIZE,

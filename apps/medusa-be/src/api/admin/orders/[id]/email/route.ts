@@ -16,20 +16,20 @@ import {
   toPaymentReminderOrderResponse,
 } from "../../../../../utils/order-payment-reminders"
 import { sendOrderPaymentReminderWorkflow } from "../../../../../workflows/send-order-payment-reminder"
+import type { PostAdminOrderEmailSchemaType } from "./validators"
 
-type SendOrderEmailBody = {
-  template?: string
-}
-
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
+export async function POST(
+  req: MedusaRequest<PostAdminOrderEmailSchemaType>,
+  res: MedusaResponse
+) {
   const { id } = req.params
-  const body = (req.body ?? {}) as SendOrderEmailBody
+  const { template: templateName } = req.validatedBody
 
   if (!id) {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Order id is missing")
   }
 
-  if (!isOrderEmailTemplate(body.template)) {
+  if (!isOrderEmailTemplate(templateName)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Order email template is not supported"
@@ -50,7 +50,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     )
   }
 
-  const template = getOrderEmailTemplate(body.template)
+  const template = getOrderEmailTemplate(templateName)
 
   if (!template) {
     throw new MedusaError(

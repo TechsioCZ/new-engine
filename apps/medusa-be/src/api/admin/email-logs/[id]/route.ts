@@ -26,6 +26,12 @@ type ResendErrorResponse = {
 
 const RESEND_EMAILS_API = "https://api.resend.com/emails"
 
+const isResendErrorResponse = (obj: unknown): obj is ResendErrorResponse =>
+  obj !== null &&
+  typeof obj === "object" &&
+  "message" in obj &&
+  typeof obj.message === "string"
+
 const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
   id: emailLog.id,
   email_id: emailLog.email_id,
@@ -45,7 +51,7 @@ async function retrieveResendEmail(emailId: string) {
 
   if (!apiKey) {
     throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
+      MedusaError.Types.UNEXPECTED_STATE,
       "RESEND_API_KEY is not configured"
     )
   }
@@ -57,20 +63,20 @@ async function retrieveResendEmail(emailId: string) {
     },
   })
 
-  const payload = (await response
-    .json()
-    .catch(() => null)) as ResendErrorResponse | null
+  const parsed = (await response.json().catch(() => null)) as unknown
 
   if (!response.ok) {
+    const errorMessage = isResendErrorResponse(parsed)
+      ? parsed.message
+      : response.statusText
+
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Failed to retrieve Resend email ${emailId}: ${
-        payload?.message ?? response.statusText
-      }`
+      `Failed to retrieve Resend email ${emailId}: ${errorMessage}`
     )
   }
 
-  return payload
+  return parsed
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {

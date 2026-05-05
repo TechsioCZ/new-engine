@@ -67,7 +67,7 @@ export function ForgotPasswordEmail({
 
 ForgotPasswordEmail.PreviewProps = {
   reset_url:
-    "http://localhost:3000/reset-password?token=demo&email=user@example.com",
+    "https://store.example.com/reset-password?token=demo&email=user@example.com",
   store_name: "Demo Store",
 } satisfies ForgotPasswordEmailProps
 

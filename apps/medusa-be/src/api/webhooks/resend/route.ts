@@ -3,6 +3,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { EMAIL_LOG_MODULE } from "../../../modules/email-log"
 import type EmailLogModuleService from "../../../modules/email-log/service"
+import { CHECKED_RESEND_EVENT_TYPES } from "../../../utils/resend-webhook-events"
 
 type ResendWebhookEvent = {
   type?: string
@@ -20,6 +21,15 @@ type EmailLogDTO = {
 }
 
 type EmailLogService = EmailLogModuleService & {
+  createEmailWebhookEvents: (
+    data: {
+      email_id: string
+      payload: ResendWebhookEvent
+      processed_at: Date | null
+      received_at: Date
+      type: string
+    }[]
+  ) => Promise<unknown[]>
   listEmailLogs: (
     filters?: Record<string, unknown>,
     config?: Record<string, unknown>
@@ -29,7 +39,6 @@ type EmailLogService = EmailLogModuleService & {
   ) => Promise<EmailLogDTO[]>
 }
 
-const CHECKED_EVENT_TYPES = new Set(["email.sent", "email.delivered"])
 const SVIX_TOLERANCE_IN_SECONDS = 5 * 60
 
 function getHeader(req: MedusaRequest, header: string) {
@@ -93,14 +102,18 @@ function verifySvixSignature({
 
   return signature.split(" ").some((part) => {
     const [, value] = part.split(",")
-    if (!value) {
+    if (typeof value !== "string") {
       return false
     }
 
-    return crypto.timingSafeEqual(
-      Buffer.from(value),
-      Buffer.from(expectedSignature)
-    )
+    const signatureBuffer = Buffer.from(value)
+    const expectedSignatureBuffer = Buffer.from(expectedSignature)
+
+    if (signatureBuffer.length !== expectedSignatureBuffer.length) {
+      return false
+    }
+
+    return crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer)
   })
 }
 
@@ -126,7 +139,10 @@ async function markEmailLogChecked({
 
   const uncheckedLogs = emailLogs.filter((emailLog) => !emailLog.checked_at)
   if (!uncheckedLogs.length) {
-    return 0
+    return {
+      checkedCount: 0,
+      foundCount: emailLogs.length,
+    }
   }
 
   await emailLogService.updateEmailLogs(
@@ -136,7 +152,30 @@ async function markEmailLogChecked({
     }))
   )
 
-  return uncheckedLogs.length
+  return {
+    checkedCount: uncheckedLogs.length,
+    foundCount: emailLogs.length,
+  }
+}
+
+async function storePendingWebhookEvent({
+  emailId,
+  emailLogService,
+  event,
+}: {
+  emailId: string
+  emailLogService: EmailLogService
+  event: ResendWebhookEvent
+}) {
+  await emailLogService.createEmailWebhookEvents([
+    {
+      email_id: emailId,
+      payload: event,
+      processed_at: null,
+      received_at: new Date(),
+      type: event.type as string,
+    },
+  ])
 }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
@@ -172,16 +211,24 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     )
   }
 
-  if (!CHECKED_EVENT_TYPES.has(event.type)) {
+  if (!CHECKED_RESEND_EVENT_TYPES.has(event.type)) {
     res.json({ received: true, checked: false })
     return
   }
 
   const emailLogService = req.scope.resolve<EmailLogService>(EMAIL_LOG_MODULE)
-  const checkedCount = await markEmailLogChecked({
+  const { checkedCount, foundCount } = await markEmailLogChecked({
     emailId,
     emailLogService,
   })
+
+  if (!foundCount) {
+    await storePendingWebhookEvent({
+      emailId,
+      emailLogService,
+      event,
+    })
+  }
 
   res.json({
     checked: checkedCount > 0,

@@ -3,6 +3,7 @@ import {errorHandler} from "@medusajs/framework/http"
 import {defineMiddlewares} from "@medusajs/medusa"
 import {captureException} from "@sentry/node"
 import {normalizeError, shouldCaptureException} from "../utils/errors"
+import {adminOrderEmailRoutesMiddlewares} from "./admin/orders/[id]/email/middlewares"
 import {adminPayloadSsoRoutesMiddlewares} from "./admin/payload/sso/middlewares"
 import {adminPplConfigRoutesMiddlewares} from "./admin/ppl-config/middlewares"
 import {adminPublishableKeyRoutesMiddlewares} from "./admin/provisioning/publishable-key/middlewares"
@@ -26,6 +27,7 @@ export default defineMiddlewares({
     return originalErrorHandler(error, req, res, next)
   },
   routes: [
+    ...adminOrderEmailRoutesMiddlewares,
     ...adminPayloadSsoRoutesMiddlewares,
     ...adminPplConfigRoutesMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,

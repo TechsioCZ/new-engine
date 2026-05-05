@@ -39,7 +39,7 @@ type ResendEmail = {
 
 type EmailLogDetailResponse = {
   email_log: EmailLog
-  resend_email: ResendEmail
+  resend_email: ResendEmail | null
 }
 
 const PAGE_SIZE = 20
@@ -49,7 +49,7 @@ const formatDate = (date: string | null) => {
     return "-"
   }
 
-  return new Intl.DateTimeFormat("cs-CZ", {
+  return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(date))
@@ -63,7 +63,7 @@ const formatRecipient = (recipient: string | string[] | undefined) => {
   return Array.isArray(recipient) ? recipient.join(", ") : recipient
 }
 
-const getTextContent = (resendEmail: ResendEmail | undefined) => {
+const getTextContent = (resendEmail: ResendEmail | null | undefined) => {
   if (!resendEmail) {
     return null
   }
@@ -75,7 +75,7 @@ const getTextContent = (resendEmail: ResendEmail | undefined) => {
   return null
 }
 
-const getHtmlContent = (resendEmail: ResendEmail | undefined) => {
+const getHtmlContent = (resendEmail: ResendEmail | null | undefined) => {
   if (!resendEmail) {
     return null
   }
@@ -99,7 +99,7 @@ const DetailField = ({
       {label}
     </Text>
     <Text className="break-words" size="small">
-      {value || "-"}
+      {value ?? "-"}
     </Text>
   </div>
 )
@@ -152,7 +152,7 @@ const EmailRows = ({
         {emailLog.subject}
       </Table.Cell>
       <Table.Cell className="max-w-[180px] truncate">
-        {emailLog.customer_id || "-"}
+        {emailLog.customer_id ?? "-"}
       </Table.Cell>
       <Table.Cell className="text-right">
         <Button
@@ -203,12 +203,12 @@ const EmailDetailContent = ({
         <DetailField label="Type" value={detail.email_log.type} />
         <DetailField
           label="Subject"
-          value={resendEmail?.subject || detail.email_log.subject}
+          value={resendEmail?.subject ?? detail.email_log.subject}
         />
         <DetailField label="From" value={resendEmail?.from} />
         <DetailField
           label="To"
-          value={formatRecipient(resendEmail?.to) || detail.email_log.sent_to}
+          value={formatRecipient(resendEmail?.to) ?? detail.email_log.sent_to}
         />
         <DetailField
           label="Sent"
