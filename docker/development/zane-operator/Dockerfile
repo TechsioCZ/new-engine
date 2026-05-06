@@ -3,6 +3,7 @@ FROM node:24-slim AS deps
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ENV CI=true
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl \
@@ -18,9 +19,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/zane-operator/package.json apps/zane-operator/package.json
 RUN --mount=type=cache,id=pnpm-store-zane-operator,target=/pnpm/store \
   corepack install \
-  && pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
-RUN --mount=type=cache,id=pnpm-store-zane-operator,target=/pnpm/store \
-  pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --prod --filter=zane-operator...
+  && pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --prod --filter=zane-operator...
 
 FROM oven/bun:1.3.5 AS build
 
