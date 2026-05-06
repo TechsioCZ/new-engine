@@ -7,6 +7,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Popover } from "@techsio/ui-kit/molecules/popover";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart";
 import {
@@ -35,6 +36,7 @@ export function HerbatikaCartPopover({
   const updateLineItemMutation = useUpdateLineItem();
   const removeLineItemMutation = useRemoveLineItem();
   const cartItems = cart?.items ?? [];
+  const router = useRouter();
   const cartSubtotalLabel = formatCurrencyAmount(
     resolveCartSubtotalAmount(cart),
     currencyCode,
@@ -115,6 +117,10 @@ export function HerbatikaCartPopover({
           <span className="text-md font-normal font-sans">{cartTotalLabel}</span>
         </>
       }
+      onTriggerClick={() => {
+        handleClose();
+        router.push("/checkout/kosik");
+      }}
       triggerClassName="relative sm:w-36 inline-flex items-center gap-250 rounded-button-sm bg-button-bg-primary px-450 py-300 text-xl font-bold text-button-fg-primary hover:bg-button-bg-primary-hover data-[state=open]:bg-button-bg-primary-hover py-550"
     >
       {visibleItems.length > 0 ? (
