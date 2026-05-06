@@ -1,22 +1,34 @@
 import { resolveLineItemInventory } from "@/components/header/herbatika-cart-item.utils";
-import { asFiniteNumber, resolveLineItemQuantity } from "@/lib/storefront/cart-calculations";
-import { HttpTypes } from "@medusajs/types";
+import {
+  resolveLineItemQuantity,
+  resolveLineItemUnitAmount,
+} from "@/lib/storefront/cart-calculations";
+import {
+  asStorefrontNumber,
+  asStorefrontRecord,
+  asStorefrontString,
+  resolveProductTopOffer,
+  resolveTopOfferOriginalAmount,
+} from "@/lib/storefront/product-pricing";
+import type { HttpTypes } from "@medusajs/types";
 
+export const asString = asStorefrontString;
+export const asRecord = asStorefrontRecord;
 
-export const asString = (value: unknown): string | null => {
-  if (typeof value !== "string") {
-    return null;
-  }
+const resolveLineItemTopOffer = (
+  item: HttpTypes.StoreCartLineItem,
+  product?: HttpTypes.StoreProduct | null,
+) => {
+  const itemRecord = item as unknown as Record<string, unknown>;
+  const metadata = asStorefrontRecord(itemRecord.metadata);
+  const itemProduct = asStorefrontRecord(itemRecord.product);
+  const itemProductMetadata = asStorefrontRecord(itemProduct?.metadata);
 
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-export const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return null;
-  }
-
-  return value as Record<string, unknown>;
+  return (
+    resolveProductTopOffer(product) ??
+    asStorefrontRecord(metadata?.top_offer) ??
+    asStorefrontRecord(itemProductMetadata?.top_offer)
+  );
 };
 
 export const toSkDate = (date: Date) => {
@@ -49,36 +61,44 @@ export const resolveFallbackDeliveryLabel = () => {
 
 export const resolveOriginalLineItemTotalAmount = (
   item: HttpTypes.StoreCartLineItem,
+  product?: HttpTypes.StoreProduct | null,
 ) => {
   const itemRecord = item as unknown as Record<string, unknown>;
-  const compareAtUnit = asFiniteNumber(itemRecord.compare_at_unit_price);
-  if (compareAtUnit === null) {
-    return null;
-  }
+  const topOffer = resolveLineItemTopOffer(item, product);
+  const compareAtUnit = asStorefrontNumber(itemRecord.compare_at_unit_price);
 
-  return compareAtUnit * resolveLineItemQuantity(item);
+  const quantity = resolveLineItemQuantity(item);
+  const originalUnitAmount = resolveTopOfferOriginalAmount({
+    currentAmount: resolveLineItemUnitAmount(item),
+    explicitOriginalAmount: compareAtUnit,
+    topOffer,
+  });
+
+  return typeof originalUnitAmount === "number"
+    ? originalUnitAmount * quantity
+    : null;
 };
 
-export const resolveAvailabilityText = (item: HttpTypes.StoreCartLineItem) => {
-  const metadata = asRecord(
-    (item as unknown as Record<string, unknown>).metadata,
-  );
-  const topOffer = asRecord(metadata?.top_offer);
-  const stock = asRecord(topOffer?.stock);
+export const resolveAvailabilityText = (
+  item: HttpTypes.StoreCartLineItem,
+  product?: HttpTypes.StoreProduct | null,
+) => {
+  const topOffer = resolveLineItemTopOffer(item, product);
+  const stock = asStorefrontRecord(topOffer?.stock);
   const stockAmount =
-    asFiniteNumber(stock?.amount) ?? resolveLineItemInventory(item);
+    asStorefrontNumber(stock?.amount) ?? resolveLineItemInventory(item);
   const isInStock = stockAmount === null ? true : stockAmount > 0;
 
   if (!isInStock) {
     return (
-      asString(topOffer?.availability_out_of_stock) ??
+      asStorefrontString(topOffer?.availability_out_of_stock) ??
       "Momentálne nie je skladom"
     );
   }
 
   const availabilityLabel =
-    asString(topOffer?.availability_in_stock) ?? "Na sklade";
+    asStorefrontString(topOffer?.availability_in_stock) ?? "Na sklade";
   const deliveryLabel =
-    asString(topOffer?.delivery_label) ?? resolveFallbackDeliveryLabel();
+    asStorefrontString(topOffer?.delivery_label) ?? resolveFallbackDeliveryLabel();
   return `${availabilityLabel}, ${deliveryLabel}`;
 };

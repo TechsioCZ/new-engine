@@ -2,6 +2,7 @@ import { authService } from "./auth/service";
 import { herbatikaCheckoutCartAddressAdapter } from "./cart/address-adapter";
 import {
   buildAddLineItemParams,
+  buildCreateCartInputFromAddLineItemInput,
   buildCreateCartParams,
   buildUpdateCartParams,
 } from "./cart/params";
@@ -26,6 +27,7 @@ export const storefrontDefinition = {
       cartStorage,
       requireRegion: true,
       buildCreateParams: buildCreateCartParams,
+      buildCreateInputFromAddInput: buildCreateCartInputFromAddLineItemInput,
       buildUpdateParams: buildUpdateCartParams,
       buildAddParams: buildAddLineItemParams,
     },

@@ -15,13 +15,15 @@ import {
   resolveLineItemThumbnail,
 } from "@/components/header/herbatika-cart-item.utils";
 import {
-  asFiniteNumber,
   resolveCartItemName,
   resolveLineItemQuantity,
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { resolveAvailabilityText, resolveFallbackDeliveryLabel, resolveOriginalLineItemTotalAmount } from "../utils/resolve-availability-text";
+import {
+  resolveAvailabilityText,
+  resolveOriginalLineItemTotalAmount,
+} from "../utils/resolve-availability-text";
 
 type CheckoutCartItemRowProps = {
   currencyCode: "EUR" | "CZK";
@@ -29,7 +31,37 @@ type CheckoutCartItemRowProps = {
   item: HttpTypes.StoreCartLineItem;
   onRemove: (lineItemId: string) => void;
   onUpdateQuantity: (lineItemId: string, quantity: number) => void;
+  product?: HttpTypes.StoreProduct | null;
 };
+
+type CheckoutCartItemPriceProps = {
+  currencyCode: CheckoutCartItemRowProps["currencyCode"];
+  currentLineAmount: number;
+  originalLineAmount: number | null;
+};
+
+function CheckoutCartItemPrice({
+  currencyCode,
+  currentLineAmount,
+  originalLineAmount,
+}: CheckoutCartItemPriceProps) {
+  const shouldShowOriginalAmount =
+    typeof originalLineAmount === "number" &&
+    originalLineAmount > currentLineAmount + 0.001;
+
+  return (
+    <div className="flex flex-col items-end gap-100">
+      <p className="font-bold text-fg-primary text-xl leading-tight">
+        {formatCurrencyAmount(currentLineAmount, currencyCode)}
+      </p>
+      {shouldShowOriginalAmount ? (
+        <p className="font-light text-fg-secondary text-sm leading-tight line-through">
+          {formatCurrencyAmount(originalLineAmount, currencyCode)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 export function CheckoutCartItemRow({
   currencyCode,
@@ -37,6 +69,7 @@ export function CheckoutCartItemRow({
   item,
   onRemove,
   onUpdateQuantity,
+  product,
 }: CheckoutCartItemRowProps) {
   const baseQuantity = resolveLineItemQuantity(item);
   const [localQuantity, setLocalQuantity] = useState(baseQuantity);
@@ -49,13 +82,10 @@ export function CheckoutCartItemRow({
   );
   const currentLineAmount = resolveLineItemTotalAmount(item);
   const originalLineAmount = useMemo(
-    () => resolveOriginalLineItemTotalAmount(item),
-    [item],
+    () => resolveOriginalLineItemTotalAmount(item, product),
+    [item, product],
   );
-  const shouldShowOriginalAmount =
-    typeof originalLineAmount === "number" &&
-    originalLineAmount > currentLineAmount + 0.001;
-  const availabilityText = resolveAvailabilityText(item);
+  const availabilityText = resolveAvailabilityText(item, product);
 
   useEffect(() => {
     setLocalQuantity(baseQuantity);
@@ -137,22 +167,17 @@ export function CheckoutCartItemRow({
               </NumericInput.Control>
             </NumericInput>
           </div>
-          <div className="flex flex-col gap-100">
-            {shouldShowOriginalAmount ? (
-              <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-                {formatCurrencyAmount(originalLineAmount, currencyCode)}
-              </p>
-            ) : null}
-            <p className="font-bold text-fg-primary text-xl leading-tight">
-              {formatCurrencyAmount(currentLineAmount, currencyCode)}
-            </p>
-          </div>
+          <CheckoutCartItemPrice
+            currencyCode={currencyCode}
+            currentLineAmount={currentLineAmount}
+            originalLineAmount={originalLineAmount}
+          />
           </div>
       </div>
       </div>
 
       <div className="grid grid-rows-[1fr_auto] h-full w-full">
-        <div className="hidden sm:grid sm:grid-cols-[3fr_2fr_auto]">
+        <div className="hidden gap-200 sm:grid sm:grid-cols-[3fr_1fr_1fr]">
           <div className="flex items-start">
             <Link
               as={NextLink}
@@ -179,7 +204,7 @@ export function CheckoutCartItemRow({
                 />
                 <NumericInput.Input
                   aria-label={`Množstvo pre ${itemName}`}
-                  className="text-center"
+                  className="text-center pr-0 pl-0"
                 />
                 <NumericInput.IncrementTrigger
                   disabled={isPending || localQuantity >= itemMaxQuantity}
@@ -187,16 +212,11 @@ export function CheckoutCartItemRow({
               </NumericInput.Control>
             </NumericInput>
           </div>
-          <div className="flex flex-col gap-100">
-            {shouldShowOriginalAmount ? (
-              <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-                {formatCurrencyAmount(originalLineAmount, currencyCode)}
-              </p>
-            ) : null}
-            <p className="font-bold text-fg-primary text-xl leading-tight">
-              {formatCurrencyAmount(currentLineAmount, currencyCode)}
-            </p>
-          </div>
+          <CheckoutCartItemPrice
+            currencyCode={currencyCode}
+            currentLineAmount={currentLineAmount}
+            originalLineAmount={originalLineAmount}
+          />
         </div>
 
           
