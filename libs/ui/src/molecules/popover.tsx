@@ -1,6 +1,18 @@
 import * as popover from "@zag-js/popover"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
+<<<<<<< Updated upstream
 import { type ReactNode, type Ref, useId } from "react"
+=======
+import {
+  type MouseEventHandler,
+  type ReactNode,
+  type Ref,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+} from "react"
+>>>>>>> Stashed changes
 import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import { tv } from "../utils"
@@ -77,6 +89,7 @@ export interface PopoverProps
   triggerRef?: Ref<HTMLButtonElement>
   contentRef?: Ref<HTMLDivElement>
   triggerClassName?: string
+  onTriggerClick?: MouseEventHandler<HTMLButtonElement>
   contentClassName?: string
   disabled?: boolean
 }
@@ -107,6 +120,7 @@ export function Popover({
   triggerRef,
   contentRef,
   triggerClassName,
+  onTriggerClick,
   contentClassName,
   size = "md",
   shadow = true,
@@ -203,6 +217,42 @@ export function Popover({
         className={triggerStyles({ className: triggerClassName })}
         data-state={api.open ? "open" : "closed"}
         ref={triggerRef}
+<<<<<<< Updated upstream
+=======
+        onClick={(e) => {
+          onTriggerClick?.(e)
+
+          if (e.defaultPrevented) {
+            return
+          }
+
+          if(!openOnHover || !onTriggerClick) {
+            triggerProps.onClick?.(e)
+          }
+        }}
+        onPointerEnter={(event) => {
+          triggerProps.onPointerEnter?.(event)
+
+          if (event.pointerType !== "mouse") {
+            return
+          }
+
+          scheduleHoverOpen()
+        }}
+        onPointerLeave={(event) => {
+          triggerProps.onPointerLeave?.(event)
+
+          if (event.pointerType !== "mouse") {
+            return
+          }
+
+          scheduleHoverClose()
+        }}
+        onFocus={(event) => {
+          triggerProps.onFocus?.(event)
+          clearHoverTimeouts()
+        }}
+>>>>>>> Stashed changes
       >
         {trigger}
       </Button>
