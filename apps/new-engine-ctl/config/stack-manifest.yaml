@@ -159,10 +159,17 @@ services:
     local:
       phase: "backend"
     ci:
-      deployable: false
+      deployable: true
       affected_path_globs:
         - "apps/payload/**"
         - "docker/development/payload/**"
+      prepare:
+        preview_db: true
+      zane:
+        service_slug: "payload"
+        deploy_lanes: ["preview", "main"]
+        deploy_stage: 20
+        service_dependencies: ["medusa-db", "medusa-minio"]
 
   - id: "n1"
     compose_service: "n1"

@@ -85,7 +85,7 @@
       * `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` are the login credentials for that ZaneOps instance; `zane-operator` uses session + CSRF login upstream, not a direct Zane token
       * create one canonical Zane project and note its slug; local CI-style deploy tests use that slug as `ZANE_PROJECT_SLUG`
       * each Zane project gets a protected `production` environment by default; preview clones in this repo always use that environment as the base
-      * service names in that Zane project must match `apps/new-engine-ctl/config/stack-manifest.yaml` currently: `medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`, `medusa-be`, `n1`
+      * service names in that Zane project must match `apps/new-engine-ctl/config/stack-manifest.yaml` currently: `medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`, `medusa-be`, `payload`, `n1`
       * preview environments are derived in CI script space as `pr-<number>` by default
       * preview teardown is explicit in this repo's CI flow; do not rely on built-in Zane preview auto-teardown for these cloned environments
 

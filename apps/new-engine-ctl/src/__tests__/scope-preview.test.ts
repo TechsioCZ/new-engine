@@ -32,7 +32,7 @@ test("preview scope prepares DB credentials for first baseline replay", async ()
   expect(result.services_csv).toBe("n1")
   expect(result.should_prepare).toBe(true)
   expect(result.requires_preview_db).toBe(true)
-  expect(result.preview_db_service_ids).toBe("medusa-be")
+  expect(result.preview_db_service_ids).toBe("medusa-be,payload")
 })
 
 test("preview scope skips prepare for non-DB services after baseline is complete", async () => {
