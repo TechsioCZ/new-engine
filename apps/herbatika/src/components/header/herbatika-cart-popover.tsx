@@ -7,7 +7,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Popover } from "@techsio/ui-kit/molecules/popover";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart";
 import {
   asFiniteNumber,
@@ -211,7 +211,6 @@ export function HerbatikaCartPopover({
               Produkty môžete pridať z katalógu.
             </p>
           </div>
-          <LinkButton as={NextLink} block size="md" href="/checkout/kosik">Do košíku</LinkButton>
         </div>
       )}
     </Popover>
