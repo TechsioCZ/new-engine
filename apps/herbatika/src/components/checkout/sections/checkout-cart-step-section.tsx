@@ -5,13 +5,16 @@ import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { useState } from "react";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { CheckoutCartItemRow } from "./checkout-cart-item-row";
+import { useCartProductsByHandle } from "../use-cart-products-by-handle";
 import {
   useRemoveLineItem,
   useUpdateLineItem,
 } from "@/lib/storefront/cart";
+import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { STOREFRONT_PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/products";
 
 const resolveSupportedCurrency = (currencyCode: string): "EUR" | "CZK" => {
   return currencyCode.toUpperCase() === "CZK" ? "CZK" : "EUR";
@@ -33,6 +36,8 @@ export function CheckoutCartStepSection({
   const [lineItemError, setLineItemError] = useState<string | null>(null);
   const updateLineItemMutation = useUpdateLineItem();
   const removeLineItemMutation = useRemoveLineItem();
+  const { productsByHandle: cartProductsByHandle } =
+    useCartProductsByHandle(cartItems, STOREFRONT_PRODUCT_DETAIL_FIELDS);
 
   const isPending =
     updateLineItemMutation.isPending || removeLineItemMutation.isPending;
@@ -146,6 +151,9 @@ export function CheckoutCartStepSection({
               item={item}
               onRemove={handleRemove}
               onUpdateQuantity={handleUpdateQuantity}
+              product={cartProductsByHandle.get(
+                resolveLineItemProductHandle(item) ?? "",
+              )}
             />
           </div>
         ))}

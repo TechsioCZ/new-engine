@@ -8,6 +8,7 @@ import {
   useCart,
 } from "./cart";
 import { resolveErrorMessage } from "./error-utils";
+import { resolveProductTopOffer } from "./product-pricing";
 
 type AddToCartMessages = {
   missingRegion?: string;
@@ -23,7 +24,7 @@ type UseAddProductToCartProps = {
 };
 
 type AddProductToCartInput = {
-  product: Pick<HttpTypes.StoreProduct, "id" | "title" | "variants">;
+  product: Pick<HttpTypes.StoreProduct, "id" | "metadata" | "title" | "variants">;
   quantity?: number;
   variantId?: string | null;
 };
@@ -59,6 +60,14 @@ const resolveProductVariant = (
   return (
     product.variants?.find((variant) => variant.id === resolvedVariantId) ?? null
   );
+};
+
+const resolveLineItemMetadata = (
+  product: AddProductToCartInput["product"],
+) => {
+  const topOffer = resolveProductTopOffer(product);
+
+  return topOffer ? { top_offer: topOffer } : undefined;
 };
 
 export function useAddProductToCart({
@@ -114,6 +123,7 @@ export function useAddProductToCart({
         cartId: cartQuery.cart?.id,
         variantId: resolvedVariantId,
         quantity,
+        metadata: resolveLineItemMetadata(product),
         autoCreate: true,
         region_id: regionId,
         country_code: countryCode,

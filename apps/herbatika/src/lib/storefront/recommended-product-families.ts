@@ -1,4 +1,9 @@
 import type { HttpTypes } from "@medusajs/types";
+import {
+  asStorefrontNumber,
+  asStorefrontRecord,
+  resolveProductTopOffer,
+} from "./product-pricing";
 
 type RecommendedProductCandidate = {
   familyKey: string;
@@ -6,14 +11,6 @@ type RecommendedProductCandidate = {
   packageMultiplier: number;
   isInStock: boolean;
   product: HttpTypes.StoreProduct;
-};
-
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-
-  return null;
 };
 
 const asString = (value: unknown): string | null => {
@@ -44,12 +41,11 @@ const asPositiveInteger = (value: unknown): number | null => {
 };
 
 const resolveProductMetadata = (product: HttpTypes.StoreProduct) => {
-  return asRecord(product.metadata);
+  return asStorefrontRecord(product.metadata);
 };
 
 const resolveTopOffer = (product: HttpTypes.StoreProduct) => {
-  const metadata = resolveProductMetadata(product);
-  return asRecord(metadata?.top_offer);
+  return resolveProductTopOffer(product);
 };
 
 const resolvePrimarySetItem = (product: HttpTypes.StoreProduct) => {
@@ -57,7 +53,7 @@ const resolvePrimarySetItem = (product: HttpTypes.StoreProduct) => {
   const setItems = Array.isArray(metadata?.set_items) ? metadata.set_items : [];
 
   for (const item of setItems) {
-    const record = asRecord(item);
+    const record = asStorefrontRecord(item);
     if (!record) {
       continue;
     }
@@ -131,11 +127,8 @@ const resolveRecommendedProductPackageMultiplier = (
 
 const resolveRecommendedProductInStock = (product: HttpTypes.StoreProduct) => {
   const topOffer = resolveTopOffer(product);
-  const stock = asRecord(topOffer?.stock);
-  const amount =
-    typeof stock?.amount === "number" && Number.isFinite(stock.amount)
-      ? stock.amount
-      : null;
+  const stock = asStorefrontRecord(topOffer?.stock);
+  const amount = asStorefrontNumber(stock?.amount);
 
   return amount === null ? true : amount > 0;
 };

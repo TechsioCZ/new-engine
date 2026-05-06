@@ -7,62 +7,13 @@ import type {
   VolumeDiscountOption,
 } from "@/components/product-detail/product-detail.types";
 import {
-  asBoolean,
-  asNumber,
-  asRecord,
-  asString,
-} from "@/components/product-detail/utils/value-utils";
-
-const DEFAULT_CURRENCY_CODE = "EUR";
-
-const asCurrencyCode = (value: unknown): string | null => {
-  const parsed = asString(value);
-  return parsed ? parsed.toUpperCase() : null;
-};
-
-const resolveTopOffer = (product: StorefrontProduct) => {
-  const metadata = asRecord(product.metadata);
-  return asRecord(metadata?.top_offer);
-};
-
-const resolveOfferCurrentAmount = (
-  topOffer: Record<string, unknown> | null,
-) => {
-  return (
-    asNumber(topOffer?.current_price) ??
-    asNumber(topOffer?.action_price) ??
-    asNumber(topOffer?.price_vat)
-  );
-};
-
-const resolveOfferOriginalAmount = (params: {
-  currentAmount: number | null;
-  topOffer: Record<string, unknown> | null;
-}) => {
-  const { currentAmount, topOffer } = params;
-  const candidate =
-    asNumber(topOffer?.compare_at_price) ??
-    asNumber(topOffer?.standard_price) ??
-    asNumber(topOffer?.price_vat);
-
-  if (typeof currentAmount !== "number" || typeof candidate !== "number") {
-    return null;
-  }
-
-  const hasActiveDiscount = asBoolean(topOffer?.has_active_discount) === true;
-  const actionAmount = asNumber(topOffer?.action_price);
-  const hasActionPriceDiscount =
-    typeof actionAmount === "number" && candidate > actionAmount;
-
-  if (
-    (hasActiveDiscount || hasActionPriceDiscount) &&
-    candidate > currentAmount
-  ) {
-    return candidate;
-  }
-
-  return null;
-};
+  DEFAULT_CURRENCY_CODE,
+  asCurrencyCode,
+  asStorefrontNumber,
+  resolveProductTopOffer,
+  resolveTopOfferCurrentAmount,
+  resolveTopOfferOriginalAmount,
+} from "@/lib/storefront/product-pricing";
 
 const resolveAmountWithoutTax = (params: {
   amountWithTax: number | null;
@@ -101,11 +52,11 @@ export const resolvePriceState = (
   const calculatedPrice = selectedVariant?.calculated_price;
   const calculatedAmount = calculatedPrice?.calculated_amount;
   const originalAmount = calculatedPrice?.original_amount;
-  const topOffer = resolveTopOffer(product);
+  const topOffer = resolveProductTopOffer(product);
   const currentAmount =
     typeof calculatedAmount === "number"
       ? calculatedAmount
-      : resolveOfferCurrentAmount(topOffer);
+      : resolveTopOfferCurrentAmount(topOffer);
   const currencyCode =
     asCurrencyCode(calculatedPrice?.currency_code) ??
     asCurrencyCode(topOffer?.currency) ??
@@ -114,7 +65,8 @@ export const resolvePriceState = (
   const resolvedCalculatedAmount =
     typeof currentAmount === "number" ? currentAmount : null;
   const vatRate =
-    asNumber(selectedVariant?.metadata?.vat) ?? asNumber(topOffer?.vat);
+    asStorefrontNumber(selectedVariant?.metadata?.vat) ??
+    asStorefrontNumber(topOffer?.vat);
   const explicitCalculatedAmountWithoutTax =
     typeof calculatedPrice?.calculated_amount_without_tax === "number"
       ? calculatedPrice.calculated_amount_without_tax
@@ -140,7 +92,7 @@ export const resolvePriceState = (
   const normalizedOriginalAmount =
     typeof originalAmount === "number" && originalAmount > resolvedCalculatedAmount
       ? originalAmount
-      : resolveOfferOriginalAmount({
+      : resolveTopOfferOriginalAmount({
           currentAmount: resolvedCalculatedAmount,
           topOffer,
         });
@@ -178,9 +130,9 @@ export const resolveDisplayOriginalAmount = (
   }
 
   const offerOriginalAmount =
-    asNumber(offerState.offerSource?.compare_at_price) ??
+    asStorefrontNumber(offerState.offerSource?.compare_at_price) ??
     offerState.standardAmount ??
-    asNumber(offerState.offerSource?.price_vat);
+    asStorefrontNumber(offerState.offerSource?.price_vat);
 
   if (
     offerState.hasActiveDiscount &&
