@@ -235,9 +235,8 @@ export function ProductDetailPurchasePanel({
       ) : null}
 
       <div className="grid items-center gap-350 sm:grid-cols-4 min-h-purchase-panel-footer">
-        <div>
           <NumericInput
-            className="w-full px-300"
+            className="w-full px-0 xl:px-300"
             id="product-quantity"
             max={50}
             min={1}
@@ -251,14 +250,12 @@ export function ProductDetailPurchasePanel({
             }}
             value={quantity}
           >
-            <NumericInput.Control className="h-full">
-              <NumericInput.DecrementTrigger className="min-h-750 min-w-750" />
-              <NumericInput.Input className="min-h-750 text-center" />
-              <NumericInput.IncrementTrigger className="min-h-750 min-w-750" />
+            <NumericInput.Control className="grid grid-cols-3 place-items-center h-full">
+              <NumericInput.DecrementTrigger className="min-h-750 w-auto" />
+              <NumericInput.Input className="min-h-750 text-center px-0 py-0"/>
+              <NumericInput.IncrementTrigger className="min-h-750 w-auto" />
             </NumericInput.Control>
           </NumericInput>
-        </div>
-
         <Button
           block
           className="h-full sm:col-span-3 text-md"

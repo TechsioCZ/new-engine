@@ -74,7 +74,7 @@ export function ProductDetailMediaColumn({
         </Gallery.Main>
       </Gallery>
 
-      <div className="flex flex-wrap items-center justify-between gap-250 rounded-base border border-primary/20 bg-surface p-400 md:flex-nowrap lg:max-xl:grid lg:max-xl:grid-cols-2">
+      <div className="flex flex-wrap items-center justify-between gap-250 rounded-base border border-primary/20 bg-surface p-400 md:flex-nowrap xl:flex-wrap lg:max-xl:grid lg:max-xl:grid-cols-2">
         <div className="flex items-center gap-150 lg:max-xl:col-span-2">
           <NextImage
             alt="Poradca Herbatika"

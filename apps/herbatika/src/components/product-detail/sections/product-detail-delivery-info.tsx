@@ -18,7 +18,7 @@ export function ProductDetailDeliveryInfo({
 
   return (
     <div className="rounded-lg bg-surface p-550">
-      <div className="flex flex-wrap items-center gap-650 md:flex-nowrap">
+      <div className="flex flex-wrap items-center gap-650 lg:max-lg:flex lg:max-lg:flex-col">
         <div className="flex gap-200 items-start">
           <Icon
             className={`text-icon-delivery-size leading-none self-start ${offerState.isInStock ? "text-primary" : "text-warning"}`}

@@ -38,7 +38,7 @@ function getIconOnlyLabel(item: HerbatikaBreadcrumbItem) {
 function BreadcrumbItemContent({ item }: { item: HerbatikaBreadcrumbItem }) {
   return (
     <>
-      {item.icon ? <Breadcrumb.Icon icon={item.icon} className="mb-50 mr-50"/> : null}
+      {item.icon ? <Breadcrumb.Icon icon={item.icon} className="mb-50 mr-50 font-bold"/> : null}
       {item.label && <span>{item.label}</span>}
     </>
   );
