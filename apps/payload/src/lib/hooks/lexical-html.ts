@@ -2,13 +2,15 @@ import {
   convertLexicalToHTMLAsync,
   defaultHTMLConvertersAsync,
 } from "@payloadcms/richtext-lexical/html-async"
-import type { SerializedEditorState } from "lexical"
 import type { PayloadRequest } from "payload"
 
 type UnknownRecord = Record<string, unknown>
+type SerializedEditorStateLike = {
+  root: UnknownRecord
+}
 
 /** Narrow unknown values to a Lexical serialized editor state. */
-const isLexicalState = (value: unknown): value is SerializedEditorState => {
+const isLexicalState = (value: unknown): value is SerializedEditorStateLike => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false
   }
@@ -25,7 +27,7 @@ export const convertLexicalValueToHTML = async (
 ): Promise<unknown> => {
   if (isLexicalState(value)) {
     return convertLexicalToHTMLAsync({
-      data: value,
+      data: value as never,
       converters: defaultHTMLConvertersAsync,
     })
   }

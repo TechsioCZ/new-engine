@@ -23,6 +23,11 @@ export const AdminPayloadSsoSchema = z.object({
 /** Parsed query type for the admin payload SSO endpoint. */
 export type AdminPayloadSsoSchemaType = z.infer<typeof AdminPayloadSsoSchema>
 
+type AdminUserAuthContext = {
+  actor_id?: string
+  actor_type?: string
+}
+
 /** Normalize multiline private keys loaded from environment variables. */
 const normalizeKey = (value: string) => value.replace(/\\n/g, "\n").trim()
 
@@ -34,7 +39,19 @@ const sanitizeReturnTo = (value: string | undefined) => {
   if (value.startsWith("/") && !value.startsWith("//")) {
     return value
   }
-  return
+  throw new Error("returnTo must be a same-origin relative path.")
+}
+
+const resolveSafeReturnTo = (value: string | undefined) => {
+  try {
+    return {
+      value: sanitizeReturnTo(value),
+    }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Invalid returnTo.",
+    }
+  }
 }
 
 /** Read a request header from Medusa's underlying Express request. */
@@ -74,6 +91,10 @@ const resolvePayloadSsoUrl = (
   req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>
 ) => {
   const url = new URL(payloadIframeUrl)
+  if (!(url.protocol === "http:" || url.protocol === "https:")) {
+    throw new Error("PAYLOAD_IFRAME_URL must use http or https.")
+  }
+
   const forwardedHost = getRequestHeader(req, "x-forwarded-host")
   const host = getRequestHeader(req, "host")
   const requestHostname = getHostname(forwardedHost ?? host)
@@ -95,11 +116,32 @@ const resolvePayloadSsoUrl = (
   return new URL("/api/medusa-sso", url)
 }
 
+const getAdminUserAuthContext = (
+  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>
+) => {
+  const authContext = (req as { auth_context?: AdminUserAuthContext })
+    .auth_context
+  if (!authContext?.actor_id) {
+    return null
+  }
+  if (authContext.actor_type !== "user") {
+    return null
+  }
+  return authContext
+}
+
 /** Admin API handler that issues an SSO token and auto-posts to Payload. */
 export async function GET(
   req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
   res: MedusaResponse
 ) {
+  const adminAuthContext = getAdminUserAuthContext(req)
+  if (!adminAuthContext) {
+    return res.status(401).json({
+      message: "Payload SSO requires an authenticated Medusa admin user.",
+    })
+  }
+
   const privateKey = process.env.PAYLOAD_SSO_PRIVATE_KEY
   const payloadIframeUrl = process.env.PAYLOAD_IFRAME_URL
   const ssoEmail = process.env.PAYLOAD_SSO_USER_EMAIL
@@ -122,7 +164,12 @@ export async function GET(
   }
 
   const { returnTo } = req.validatedQuery
-  const safeReturnTo = sanitizeReturnTo(returnTo)
+  const safeReturnToResult = resolveSafeReturnTo(returnTo)
+  if (safeReturnToResult.error) {
+    return res.status(400).json({ message: safeReturnToResult.error })
+  }
+  const safeReturnTo = safeReturnToResult.value
+
   const issuedAt = Math.floor(Date.now() / 1000)
   const expiresAt = issuedAt + ttl
   let key: CryptoKey
@@ -135,7 +182,12 @@ export async function GET(
     })
   }
 
-  const token = await new SignJWT({ email: ssoEmail })
+  const token = await new SignJWT({
+    email: ssoEmail,
+    medusa_actor_id: adminAuthContext.actor_id,
+    medusa_actor_type: adminAuthContext.actor_type,
+    payload_sso_mode: "shared-configured-user",
+  })
     .setProtectedHeader({ alg, typ: "JWT" })
     .setIssuedAt(issuedAt)
     .setExpirationTime(expiresAt)

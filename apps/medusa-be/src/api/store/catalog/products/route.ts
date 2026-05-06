@@ -3,6 +3,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
   ContainerRegistrationKeys,
   MedusaError,
+  ProductStatus,
   QueryContext,
 } from "@medusajs/framework/utils"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
@@ -15,6 +16,7 @@ import {
   STATUS_FACET_LABEL_BY_ID,
 } from "../../../../modules/meilisearch/facets/product-facets"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
+import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
 import {
   buildCatalogFilterExpressions,
   type FacetCountItem,
@@ -132,6 +134,64 @@ const getProductIdFromHit = (hit: unknown): string | undefined => {
   return
 }
 
+const escapeMeiliFilterValue = (value: string): string =>
+  value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
+
+const getSalesChannelIds = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string")
+  }
+
+  if (typeof value === "string") {
+    return [value]
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const inValue = (value as Record<string, unknown>).$in
+    if (Array.isArray(inValue)) {
+      return inValue.filter((item): item is string => typeof item === "string")
+    }
+  }
+
+  return []
+}
+
+const buildMeiliOrExpression = (
+  field: string,
+  values: string[]
+): string | undefined => {
+  const uniqueValues = Array.from(new Set(values.filter(Boolean)))
+  if (uniqueValues.length === 0) {
+    return
+  }
+
+  if (uniqueValues.length === 1) {
+    const [value] = uniqueValues
+    return value ? `${field} = "${escapeMeiliFilterValue(value)}"` : undefined
+  }
+
+  return `(${uniqueValues
+    .map((value) => `${field} = "${escapeMeiliFilterValue(value)}"`)
+    .join(" OR ")})`
+}
+
+const buildVisibilityFilterExpressions = (
+  salesChannelIdFilter: unknown
+): string[] => {
+  const expressions = [
+    `facet_product_status = "${escapeMeiliFilterValue(ProductStatus.PUBLISHED)}"`,
+  ]
+  const salesChannelExpression = buildMeiliOrExpression(
+    "facet_sales_channel_ids",
+    getSalesChannelIds(salesChannelIdFilter)
+  )
+
+  if (salesChannelExpression) {
+    expressions.push(salesChannelExpression)
+  }
+
+  return expressions
+}
 const resolveBrandFacetLabels = async (
   queryService: Query,
   facetIds: string[]
@@ -273,6 +333,10 @@ export async function GET(
   })
 
   const sort = resolveCatalogSort(validatedQuery.sort)
+  const searchFilters = [
+    ...filterExpressions,
+    ...buildVisibilityFilterExpressions(req.filterableFields.sales_channel_id),
+  ]
   const searchResult = await meilisearchService.search(
     "products",
     validatedQuery.q.trim(),
@@ -281,7 +345,7 @@ export async function GET(
         limit,
         offset,
       },
-      filter: filterExpressions.length > 0 ? filterExpressions : undefined,
+      filter: searchFilters.length > 0 ? searchFilters : undefined,
       additionalOptions: {
         attributesToRetrieve: ["id"],
         facets: FACETS_TO_FETCH,
@@ -335,11 +399,13 @@ export async function GET(
       : await queryService.graph({
           entity: "product",
           fields: productFields,
-          filters: {
+          filters: await normalizeProductSalesChannelFilter(queryService, {
             id: {
               $in: productIds,
             },
-          },
+            sales_channel_id: req.filterableFields.sales_channel_id,
+            status: ProductStatus.PUBLISHED,
+          }),
           context: pricingContext
             ? {
                 variants: {

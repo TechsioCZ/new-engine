@@ -1,8 +1,13 @@
 const mockImportPKCS8 = jest.fn()
+const mockSignJWTConstructor = jest.fn()
 
 jest.mock("jose", () => ({
   importPKCS8: (...args: unknown[]) => mockImportPKCS8(...args),
   SignJWT: class {
+    constructor(payload: unknown) {
+      mockSignJWTConstructor(payload)
+    }
+
     setProtectedHeader = jest.fn().mockReturnThis()
     setIssuedAt = jest.fn().mockReturnThis()
     setExpirationTime = jest.fn().mockReturnThis()
@@ -42,6 +47,10 @@ const createMockRequest = (
 ) =>
   ({
     headers,
+    auth_context: {
+      actor_id: "user_123",
+      actor_type: "user",
+    },
     validatedQuery: {
       returnTo: "/admin",
     },
@@ -59,6 +68,39 @@ describe("GET /admin/payload/sso", () => {
 
   afterEach(() => {
     restoreEnv()
+  })
+
+  it("rejects direct handler access without an authenticated admin user context", async () => {
+    const { GET } = await import("../route")
+    const req = createMockRequest({ auth_context: undefined })
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Payload SSO requires an authenticated Medusa admin user.",
+    })
+    expect(mockImportPKCS8).not.toHaveBeenCalled()
+  })
+
+  it("rejects admin secret API key actors for SSO token issuance", async () => {
+    const { GET } = await import("../route")
+    const req = createMockRequest({
+      auth_context: {
+        actor_id: "sk_123",
+        actor_type: "api-key",
+      },
+    })
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Payload SSO requires an authenticated Medusa admin user.",
+    })
+    expect(mockImportPKCS8).not.toHaveBeenCalled()
   })
 
   it("returns an auto-post form that preserves the Medusa origin for Payload origin checks", async () => {
@@ -87,6 +129,61 @@ describe("GET /admin/payload/sso", () => {
     expect(html).toContain('name="token" value="signed-sso-token"')
     expect(html).toContain('name="returnTo" value="/admin"')
     expect(html).not.toContain("no-referrer")
+    expect(mockSignJWTConstructor).toHaveBeenCalledWith({
+      email: "admin@example.com",
+      medusa_actor_id: "user_123",
+      medusa_actor_type: "user",
+      payload_sso_mode: "shared-configured-user",
+    })
+  })
+
+  it("rejects absolute return targets instead of dropping them silently", async () => {
+    const { GET } = await import("../route")
+    const req = createMockRequest({
+      validatedQuery: {
+        returnTo: "https://evil.example/admin",
+      },
+    })
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({
+      message: "returnTo must be a same-origin relative path.",
+    })
+    expect(mockImportPKCS8).not.toHaveBeenCalled()
+  })
+
+  it("rejects protocol-relative return targets", async () => {
+    const { GET } = await import("../route")
+    const req = createMockRequest({
+      validatedQuery: {
+        returnTo: "//evil.example/admin",
+      },
+    })
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({
+      message: "returnTo must be a same-origin relative path.",
+    })
+  })
+
+  it("rejects non-http Payload iframe URLs", async () => {
+    const { GET } = await import("../route")
+    process.env.PAYLOAD_IFRAME_URL = "javascript:alert(1)"
+    const req = createMockRequest()
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(503)
+    expect(res.json).toHaveBeenCalledWith({
+      message: "PAYLOAD_IFRAME_URL is invalid. Please provide an absolute URL.",
+    })
   })
 
   it("uses 127.0.0.1 for Payload SSO when Medusa admin is opened through 127.0.0.1", async () => {

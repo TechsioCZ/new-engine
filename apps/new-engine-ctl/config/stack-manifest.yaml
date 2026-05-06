@@ -159,6 +159,7 @@ services:
     local:
       phase: "backend"
     ci:
+      deployable: false
       affected_path_globs:
         - "apps/payload/**"
         - "docker/development/payload/**"

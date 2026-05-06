@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, writeFileSync } from "node:fs"
 import { isAbsolute, resolve } from "node:path"
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sql } from "drizzle-orm"
 import { sqlRaw } from "../utils/db"
+import { isHttpXmlSource, readXmlSource } from "./herbatica-category-export"
 
 type XmlElement = {
   attributes: Record<string, string>
@@ -470,27 +471,30 @@ function parseOptions(args?: string[]): ScriptOptions {
   }
 
   const xmlPathCandidate = normalizeInlineText(xmlPathArg)
-  const resolvedXmlPath = xmlPathCandidate
-    ? isAbsolute(xmlPathCandidate)
-      ? xmlPathCandidate
-      : resolve(process.cwd(), xmlPathCandidate)
-    : DEFAULT_XML_PATHS.find((path) => existsSync(path))
+  let resolvedXmlPath = DEFAULT_XML_PATHS.find((path) => existsSync(path))
+  if (xmlPathCandidate) {
+    resolvedXmlPath =
+      isHttpXmlSource(xmlPathCandidate) || isAbsolute(xmlPathCandidate)
+        ? xmlPathCandidate
+        : resolve(process.cwd(), xmlPathCandidate)
+  }
 
   if (!resolvedXmlPath) {
     throw new Error(
       `Could not find XML feed. Checked: ${DEFAULT_XML_PATHS.join(", ")}`
     )
   }
-  if (!existsSync(resolvedXmlPath)) {
+  if (!(isHttpXmlSource(resolvedXmlPath) || existsSync(resolvedXmlPath))) {
     throw new Error(`XML feed does not exist at path: ${resolvedXmlPath}`)
   }
 
   const outputCandidate = normalizeInlineText(outputDirArg)
-  const outputDir = outputCandidate
-    ? isAbsolute(outputCandidate)
+  let outputDir = DEFAULT_OUTPUT_DIR
+  if (outputCandidate) {
+    outputDir = isAbsolute(outputCandidate)
       ? outputCandidate
       : resolve(process.cwd(), outputCandidate)
-    : DEFAULT_OUTPUT_DIR
+  }
 
   return {
     xmlPath: resolvedXmlPath,
@@ -675,7 +679,7 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
   logger.info(`Using XML feed: ${options.xmlPath}`)
   logger.info(`Output directory: ${options.outputDir}`)
 
-  const xml = readFileSync(options.xmlPath, "utf8")
+  const xml = await readXmlSource(options.xmlPath)
   const xmlItems = parseShopItems(xml).filter((item) => item.id !== "")
   const xmlBySourceId = new Map<string, XmlShopItem[]>()
   for (const item of xmlItems) {

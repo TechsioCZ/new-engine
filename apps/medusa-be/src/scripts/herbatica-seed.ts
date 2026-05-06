@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { resolve } from "node:path"
 import type {
   ExecArgs,
@@ -18,7 +18,8 @@ import seedDatabaseWorkflow, {
 import {
   excerptPlainText,
   type HerbaticaCategoryExport,
-  parseHerbaticaCategoriesXmlFile,
+  parseHerbaticaCategoriesXmlSource,
+  readXmlSource,
 } from "./herbatica-category-export"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
@@ -243,6 +244,23 @@ type SeedBuildOptions = {
 type ResolvedSeedBuildOptions = {
   referenceDate: Date
   promoRebaseDays?: number
+}
+
+type BuildProductMetadataOptions = {
+  item: ParsedShopItem
+  topOffer: ParsedOfferData
+  categoryPaths: string[]
+  categoryRefs: ParsedCategoryRef[]
+  resolvedProductReferences: ResolvedProductReferences
+  referenceDate?: Date
+}
+
+type BuildVariantsForProductOptions = {
+  item: ParsedShopItem
+  handle: string
+  usedSkus: Set<string>
+  usedEans: Set<string>
+  referenceDate?: Date
 }
 
 const DEFAULT_PRODUCTS_XML_PATHS = [
@@ -2291,14 +2309,14 @@ function buildVariantMetadata(
   }
 }
 
-function buildProductMetadata(
-  item: ParsedShopItem,
-  topOffer: ParsedOfferData,
-  categoryPaths: string[],
-  categoryRefs: ParsedCategoryRef[],
-  resolvedProductReferences: ResolvedProductReferences,
-  referenceDate = new Date()
-): Record<string, unknown> {
+function buildProductMetadata({
+  item,
+  topOffer,
+  categoryPaths,
+  categoryRefs,
+  resolvedProductReferences,
+  referenceDate = new Date(),
+}: BuildProductMetadataOptions): Record<string, unknown> {
   const normalizedFlags = normalizeFlags(item.flags, topOffer, referenceDate)
   const sourceCategoryIds = dedupeStrings(
     categoryRefs.map((categoryRef) => categoryRef.id)
@@ -2379,13 +2397,13 @@ function buildProductMetadata(
   }
 }
 
-function buildVariantsForProduct(
-  item: ParsedShopItem,
-  handle: string,
-  usedSkus: Set<string>,
-  usedEans: Set<string>,
-  referenceDate = new Date()
-): {
+function buildVariantsForProduct({
+  item,
+  handle,
+  usedSkus,
+  usedEans,
+  referenceDate = new Date(),
+}: BuildVariantsForProductOptions): {
   options: ProductOptionSeedInput[]
   variants: VariantSeedInput[]
 } {
@@ -2619,13 +2637,13 @@ function buildProducts(
       publishedSourceIds
     )
 
-    const { options, variants } = buildVariantsForProduct(
+    const { options, variants } = buildVariantsForProduct({
       item,
       handle,
       usedSkus,
       usedEans,
-      buildOptions.referenceDate
-    )
+      referenceDate: buildOptions.referenceDate,
+    })
     const thumbnail = item.images[0] ?? item.topOffer.imageRef
     const imageUrls = dedupeStrings([...item.images, thumbnail])
 
@@ -2636,14 +2654,14 @@ function buildProducts(
       handle,
       weight,
       status: isVisible ? ProductStatus.PUBLISHED : ProductStatus.DRAFT,
-      metadata: buildProductMetadata(
+      metadata: buildProductMetadata({
         item,
-        item.topOffer,
-        item.categoryPaths,
-        item.categoryRefs,
+        topOffer: item.topOffer,
+        categoryPaths: item.categoryPaths,
+        categoryRefs: item.categoryRefs,
         resolvedProductReferences,
-        buildOptions.referenceDate
-      ),
+        referenceDate: buildOptions.referenceDate,
+      }),
       shippingProfileName: "Default Shipping Profile",
       thumbnail,
       images: imageUrls.map((url) => ({ url })),
@@ -2779,9 +2797,9 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     )
   }
 
-  const xml = readFileSync(feedPaths.productsXmlPath, "utf8")
+  const xml = await readXmlSource(feedPaths.productsXmlPath)
   const categoryExports = feedPaths.categoriesXmlPath
-    ? parseHerbaticaCategoriesXmlFile(feedPaths.categoriesXmlPath)
+    ? await parseHerbaticaCategoriesXmlSource(feedPaths.categoriesXmlPath)
     : undefined
   const buildOptions = resolveSeedBuildOptions({
     promoRebaseDays: parsePositiveIntegerEnv("HERBATICA_PROMO_REBASE_DAYS"),

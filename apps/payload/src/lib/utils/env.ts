@@ -43,6 +43,21 @@ export const parseEnvList = (envVar: string): string[] => {
     : []
 }
 
+export const resolveEnvLocales = (
+  envVar = "PAYLOAD_LOCALES",
+  fallbackLocales: string[] = ["en"]
+): { locales: string[]; defaultLocale: string } => {
+  const envLocales = parseEnvList(envVar)
+  const fallback = fallbackLocales.filter(Boolean)
+  const locales = envLocales.length > 0 ? envLocales : fallback
+  const resolvedLocales = locales.length > 0 ? locales : ["en"]
+
+  return {
+    locales: resolvedLocales,
+    defaultLocale: resolvedLocales[0],
+  }
+}
+
 /** Normalize arbitrary values to a string for SEO field generation. */
 export const getDocString = (value: unknown): string =>
   typeof value === "string" ? value : ""

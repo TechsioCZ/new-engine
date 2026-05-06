@@ -66,6 +66,7 @@ module.exports = defineConfig({
             enabled: true,
             fields: [
               "id",
+              "status",
               "title",
               "description",
               "handle",
@@ -78,6 +79,7 @@ module.exports = defineConfig({
               "producer.id",
               "producer.title",
               "producer.handle",
+              "sales_channels.id",
               "variants.id",
               "variants.sku",
               "variants.prices.amount",
@@ -94,6 +96,7 @@ module.exports = defineConfig({
               ],
               displayedAttributes: [
                 "id",
+                "status",
                 "title",
                 "description",
                 "thumbnail",
@@ -102,6 +105,9 @@ module.exports = defineConfig({
                 "metadata",
                 "producer",
                 "categories",
+                "sales_channels",
+                "facet_product_status",
+                "facet_sales_channel_ids",
                 "facet_status",
                 "facet_form",
                 "facet_brand",
@@ -113,6 +119,8 @@ module.exports = defineConfig({
               filterableAttributes: [
                 "id",
                 "handle",
+                "facet_product_status",
+                "facet_sales_channel_ids",
                 "facet_status",
                 "facet_form",
                 "facet_brand",

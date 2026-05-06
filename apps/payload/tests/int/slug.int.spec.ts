@@ -97,6 +97,13 @@ describe("slug utilities", () => {
       expect(generateSlugFromTitle(title)).toBe("english-title")
     })
 
+    it("uses first available title when locale is null", () => {
+      const title = { en: "English Title", cs: "Český Titulek" }
+      expect(generateSlugFromTitle(title, { locale: null })).toBe(
+        "english-title"
+      )
+    })
+
     it("returns fallback when localized value is empty string", () => {
       const title = { en: "", cs: "Český Titulek" }
       expect(

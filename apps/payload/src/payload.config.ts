@@ -28,15 +28,19 @@ import { articleCategoriesWithArticlesEndpoint } from "./lib/endpoints/article-c
 import { healthEndpoint } from "./lib/endpoints/health"
 import { medusaSsoPostEndpoint } from "./lib/endpoints/medusa-sso"
 import { pageCategoriesWithPagesEndpoint } from "./lib/endpoints/page-categories-with-pages"
-import { getDocString, getEnv, isEnabled, parseEnvList } from "./lib/utils/env"
+import {
+  getDocString,
+  getEnv,
+  isEnabled,
+  resolveEnvLocales,
+} from "./lib/utils/env"
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 const secret = getEnv("PAYLOAD_SECRET", true)
 const databaseUrl = getEnv("DATABASE_URL", true)
-const envLocales = parseEnvList("PAYLOAD_LOCALES")
-const defaultLocale = envLocales[0]
+const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", ["en"])
 const isArticlesEnabled = isEnabled("FEATURE_PAYLOAD_ARTICLES_ENABLED")
 const isPagesEnabled = isEnabled("FEATURE_PAYLOAD_PAGES_ENABLED")
 const isHeroCarouselsEnabled = isEnabled(
@@ -73,8 +77,8 @@ export default buildConfig({
     supportedLanguages: { en, cs, sk, pl, hu, ro, sl, de, fr, es },
   },
   localization: {
-    locales: envLocales ?? ["en"],
-    defaultLocale: defaultLocale ?? "en",
+    locales,
+    defaultLocale,
   },
   collections: [
     Users,

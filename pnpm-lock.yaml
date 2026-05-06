@@ -12,6 +12,8 @@ overrides:
   '@types/react': 19.2.3
   '@types/react-dom': 19.2.3
 
+packageExtensionsChecksum: sha256-ybcnxVbiRFpz1dYbThDg02QVZAXChtWD86NDj+Nqi9c=
+
 importers:
 
   .:
@@ -77,11 +79,11 @@ importers:
   apps/frontend-demo:
     dependencies:
       '@medusajs/js-sdk':
-        specifier: 2.12.2
-        version: 2.12.2
+        specifier: 2.14.1
+        version: 2.14.1
       '@medusajs/types':
-        specifier: 2.12.2
-        version: 2.12.2(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))
+        specifier: 2.14.1
+        version: 2.14.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))
       '@react-email/components':
         specifier: ^0.3.2
         version: 0.3.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -303,6 +305,9 @@ importers:
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
+      ts-node:
+        specifier: 10.9.2
+        version: 10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.18))(@types/node@24.10.1)(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -316,11 +321,11 @@ importers:
   apps/n1:
     dependencies:
       '@medusajs/js-sdk':
-        specifier: ^2.10.3
-        version: 2.12.4
+        specifier: ^2.14.1
+        version: 2.14.1
       '@medusajs/types':
-        specifier: ^2.10.3
-        version: 2.12.2(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))
+        specifier: ^2.14.1
+        version: 2.14.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))
       '@tanstack/react-form':
         specifier: ^1.27.4
         version: 1.27.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -442,7 +447,7 @@ importers:
         version: 3.84.1(@types/react@19.2.3)(monaco-editor@0.55.1)(next@16.2.3(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(payload@3.84.1(graphql@16.12.0)(typescript@5.7.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.7.3)
       '@pigment/auto-translate':
         specifier: ^1.3.4
-        version: 1.3.4(payload@3.84.1(graphql@16.12.0)(typescript@5.7.3))(ws@8.19.0)(zod@4.2.0)
+        version: 1.3.4(@types/react@19.2.3)(monaco-editor@0.55.1)(next@16.2.3(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(payload@3.84.1(graphql@16.12.0)(typescript@5.7.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.7.3)(ws@8.19.0)(zod@4.2.0)
       dotenv:
         specifier: 16.4.7
         version: 16.4.7
@@ -3820,14 +3825,6 @@ packages:
     peerDependencies:
       '@medusajs/framework': 2.14.1
 
-  '@medusajs/js-sdk@2.12.2':
-    resolution: {integrity: sha512-SDfjZv4wJKLLQ07LhdUWJce8KygJ6UhrCglO8altLTdyBZDT59naE7KN4pdd8FrdVvaWLzxKHfHo0crtXS32fQ==}
-    engines: {node: '>=20'}
-
-  '@medusajs/js-sdk@2.12.4':
-    resolution: {integrity: sha512-RSZJd7vLXPnvtLUV8WI/aaVRG/3WcrRrCBJg3fUBsVeGupvG3Ac7S77V9bXs1I24mIY6arlfSQ4a7oLe3E6sEA==}
-    engines: {node: '>=20'}
-
   '@medusajs/js-sdk@2.14.1':
     resolution: {integrity: sha512-WOQVw8EuAHnIEqNjaJWWtckzZmnsGC9HH2/dEEN9YdqpzomJNZ/vEoDxVwWSHwNPJD6y8DUjkQ+RZ9+6t8gJ/g==}
     engines: {node: '>=20'}
@@ -4000,18 +3997,6 @@ packages:
     engines: {node: '>=20'}
     peerDependencies:
       '@medusajs/framework': 2.14.1
-
-  '@medusajs/types@2.12.2':
-    resolution: {integrity: sha512-IJ7/a2GaDo8zbc/IKqT9bdL8TBFhdos3kUbO9CfQvL7iHmFdD6xNGZaWojdLrJTk8wCj7lWOpWL7mkJB+75m/g==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      ioredis: ^5.4.1
-      vite: ^5.4.21
-    peerDependenciesMeta:
-      ioredis:
-        optional: true
-      vite:
-        optional: true
 
   '@medusajs/types@2.14.1':
     resolution: {integrity: sha512-L70AWL+wdadzPPFIxCIld8Hsw8sBt4wpqTKZe6vsx0wizUSUptQMzzDoPOPC/cRMjgt7hEPXwCcghRICKYsI8w==}
@@ -14014,10 +13999,6 @@ packages:
     resolution: {integrity: sha512-eZ7l+0ZVy3He9c85pEM9KEBR9DFA4jrmWvIjm9wpcHvScwc/vgZDl2TNOF0pm0JsWKw24XBUZOY0Wxn7/nvJnw==}
     engines: {node: '>=18'}
 
-  qs@6.14.0:
-    resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
-    engines: {node: '>=0.6'}
-
   qs@6.14.1:
     resolution: {integrity: sha512-4EK3+xJl8Ts67nLYNwqw/dsFVnCf+qR7RgXSK9jEEm9unao3njwMDdmsdvoKBKHzxd7tCYz5e5M+SnMjdtXGQQ==}
     engines: {node: '>=0.6'}
@@ -20267,16 +20248,6 @@ snapshots:
     dependencies:
       '@medusajs/framework': 2.14.1(@medusajs/cli@2.14.1(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.9.0)(mysql2@3.15.3)(vite@5.4.21(@types/node@24.10.1)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))(zod@4.2.0)
 
-  '@medusajs/js-sdk@2.12.2':
-    dependencies:
-      fetch-event-stream: 0.1.6
-      qs: 6.14.0
-
-  '@medusajs/js-sdk@2.12.4':
-    dependencies:
-      fetch-event-stream: 0.1.6
-      qs: 6.14.1
-
   '@medusajs/js-sdk@2.14.1':
     dependencies:
       fetch-event-stream: 0.1.6
@@ -20551,7 +20522,7 @@ snapshots:
     dependencies:
       '@medusajs/framework': 2.14.1(@medusajs/cli@2.14.1(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.9.0)(mysql2@3.15.3)(vite@5.4.21(@types/node@24.10.1)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))(zod@4.2.0)
 
-  '@medusajs/types@2.12.2(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))':
+  '@medusajs/types@2.14.1(ioredis@5.9.0)(vite@5.4.21(@types/node@20.17.47)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))':
     dependencies:
       bignumber.js: 9.3.1
     optionalDependencies:
@@ -22281,6 +22252,7 @@ snapshots:
       '@faceless-ui/modal': 3.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@faceless-ui/scroll-info': 2.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@faceless-ui/window-info': 3.0.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@floating-ui/react': 0.27.19(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@monaco-editor/react': 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@payloadcms/translations': 3.84.1
       bson-objectid: 2.0.4
@@ -22313,11 +22285,19 @@ snapshots:
       esquery: 1.6.0
       typescript: 5.9.3
 
-  '@pigment/auto-translate@1.3.4(payload@3.84.1(graphql@16.12.0)(typescript@5.7.3))(ws@8.19.0)(zod@4.2.0)':
+  '@pigment/auto-translate@1.3.4(@types/react@19.2.3)(monaco-editor@0.55.1)(next@16.2.3(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(payload@3.84.1(graphql@16.12.0)(typescript@5.7.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.7.3)(ws@8.19.0)(zod@4.2.0)':
     dependencies:
+      '@payloadcms/ui': 3.84.1(@types/react@19.2.3)(monaco-editor@0.55.1)(next@16.2.3(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(sass@1.84.0))(payload@3.84.1(graphql@16.12.0)(typescript@5.7.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.7.3)
       openai: 6.35.0(ws@8.19.0)(zod@4.2.0)
       payload: 3.84.1(graphql@16.12.0)(typescript@5.7.3)
     transitivePeerDependencies:
+      - '@types/react'
+      - monaco-editor
+      - next
+      - react
+      - react-dom
+      - supports-color
+      - typescript
       - ws
       - zod
 
@@ -24322,6 +24302,7 @@ snapshots:
       '@medusajs/cli': 2.14.1(@types/node@24.10.1)(mysql2@3.15.3)
       '@medusajs/framework': 2.14.1(@medusajs/cli@2.14.1(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.9.0)(mysql2@3.15.3)(vite@5.4.21(@types/node@24.10.1)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))(zod@4.2.0)
       '@medusajs/icons': 2.14.1(react@19.2.3)
+      '@medusajs/js-sdk': 2.14.1
       '@medusajs/medusa': 2.14.1(@medusajs/admin-sdk@2.14.1)(@medusajs/cli@2.14.1(@types/node@24.10.1)(mysql2@3.15.3))(@medusajs/framework@2.14.1(@medusajs/cli@2.14.1(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.9.0)(mysql2@3.15.3)(vite@5.4.21(@types/node@24.10.1)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))(zod@4.2.0))(@medusajs/icons@2.14.1(react@19.2.3))(@medusajs/test-utils@2.14.1)(@medusajs/ui@4.1.8(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(@swc/core@1.15.3(@swc/helpers@0.5.18))(@types/node@24.10.1)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(awilix@12.0.5)(less@4.1.3)(lightningcss@1.30.2)(posthog-node@4.18.0)(react-dom@19.2.3(react@19.2.3))(react-router-dom@6.30.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1)(tsx@4.21.0)(typescript@5.9.3)(yalc@1.0.0-pre.53)(yaml@2.7.1)
       '@medusajs/test-utils': 2.14.1(@medusajs/core-flows@2.14.1(@medusajs/framework@2.14.1(@medusajs/cli@2.14.1(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.9.0)(mysql2@3.15.3)(vite@5.4.21(@types/node@24.10.1)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))(zod@4.2.0)))(@medusajs/framework@2.14.1(@medusajs/cli@2.14.1(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.9.0)(mysql2@3.15.3)(vite@5.4.21(@types/node@24.10.1)(less@4.1.3)(lightningcss@1.30.2)(sass@1.84.0)(stylus@0.64.0)(terser@5.44.1))(zod@4.2.0))(@medusajs/medusa@2.14.1)
       '@medusajs/ui': 4.1.8(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
@@ -26602,9 +26583,9 @@ snapshots:
     dependencies:
       acorn: 8.15.0
 
-  acorn-import-phases@1.0.4(acorn@8.15.0):
+  acorn-import-phases@1.0.4(acorn@8.16.0):
     dependencies:
-      acorn: 8.15.0
+      acorn: 8.16.0
 
   acorn-jsx@5.3.2(acorn@8.15.0):
     dependencies:
@@ -26612,7 +26593,7 @@ snapshots:
 
   acorn-walk@8.3.4:
     dependencies:
-      acorn: 8.15.0
+      acorn: 8.16.0
     optional: true
 
   acorn@7.4.1: {}
@@ -26639,17 +26620,17 @@ snapshots:
     optionalDependencies:
       ajv: 8.13.0
 
-  ajv-formats@2.1.1(ajv@8.13.0):
+  ajv-formats@2.1.1(ajv@8.18.0):
     optionalDependencies:
-      ajv: 8.13.0
+      ajv: 8.18.0
 
   ajv-formats@3.0.1(ajv@8.13.0):
     optionalDependencies:
       ajv: 8.13.0
 
-  ajv-keywords@5.1.0(ajv@8.13.0):
+  ajv-keywords@5.1.0(ajv@8.18.0):
     dependencies:
-      ajv: 8.13.0
+      ajv: 8.18.0
       fast-deep-equal: 3.1.3
 
   ajv@6.12.6:
@@ -28438,7 +28419,7 @@ snapshots:
       eslint: 9.39.1(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.10
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.1(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.1(jiti@2.6.1))
@@ -28471,7 +28452,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.1(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
@@ -28486,7 +28467,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.1(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -32838,10 +32819,6 @@ snapshots:
 
   qs-esm@8.0.1: {}
 
-  qs@6.14.0:
-    dependencies:
-      side-channel: 1.1.0
-
   qs@6.14.1:
     dependencies:
       side-channel: 1.1.0
@@ -33569,9 +33546,9 @@ snapshots:
   schema-utils@4.3.3:
     dependencies:
       '@types/json-schema': 7.0.15
-      ajv: 8.13.0
-      ajv-formats: 2.1.1(ajv@8.13.0)
-      ajv-keywords: 5.1.0(ajv@8.13.0)
+      ajv: 8.18.0
+      ajv-formats: 2.1.1(ajv@8.18.0)
+      ajv-keywords: 5.1.0(ajv@8.18.0)
 
   scrypt-kdf@2.0.1: {}
 
@@ -34584,7 +34561,7 @@ snapshots:
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
       '@types/node': 24.10.1
-      acorn: 8.15.0
+      acorn: 8.16.0
       acorn-walk: 8.3.4
       arg: 4.1.3
       create-require: 1.1.1
@@ -35301,8 +35278,8 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@webassemblyjs/wasm-edit': 1.14.1
       '@webassemblyjs/wasm-parser': 1.14.1
-      acorn: 8.15.0
-      acorn-import-phases: 1.0.4(acorn@8.15.0)
+      acorn: 8.16.0
+      acorn-import-phases: 1.0.4(acorn@8.16.0)
       browserslist: 4.28.1
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.18.3

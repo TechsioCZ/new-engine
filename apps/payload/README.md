@@ -27,14 +27,14 @@ Required:
 
 - `DATABASE_URL`: postgresql://user:password@localhost/database
 - `PAYLOAD_SECRET`
-- `PAYLOAD_LOCALES`: comma-separated list, first entry is the default locale
+- `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
 - `PAYLOAD_SSO_USER_EMAIL`, `PAYLOAD_SSO_PRIVATE_KEY`, and `PAYLOAD_SSO_PUBLIC_KEY` for Medusa-driven SSO and local seed
 
 Optional (commonly used):
 
 - `PAYLOAD_SCHEMA_NAME`
+- `PAYLOAD_LOCALES`: comma-separated list, first entry is the default locale; defaults to `en`
 - `FEATURE_PAYLOAD_ARTICLES_ENABLED`, `FEATURE_PAYLOAD_PAGES_ENABLED`, `FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED`
-- `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
 - `OPENAI_API_KEY`, `OPENAI_BASE_URL`
 - `MEDUSA_BACKEND_URL` (enables CMS cache invalidation in Medusa)
 - `PAYLOAD_SSO_ALLOWED_ORIGINS`, `PAYLOAD_SSO_ISSUER`, `PAYLOAD_SSO_AUDIENCE`, `PAYLOAD_SSO_ALG`

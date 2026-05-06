@@ -23,7 +23,10 @@ export async function GET(
   }
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
-  const article = await cmsService.getPublishedArticle(slug, req.locale)
+  const article = await cmsService.getPublishedArticle(
+    slug,
+    req.validatedQuery.locale
+  )
 
   if (!article) {
     return res.status(404).json({ message: "Article not found" })

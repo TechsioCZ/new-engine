@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     npm i -g corepack@0.34.5 && \
     corepack enable
 
+COPY docker/development/payload/payload-runtime.sh /usr/local/bin/payload-runtime
+RUN chmod +x /usr/local/bin/payload-runtime
+
 WORKDIR /var/www
 
 FROM base AS dev
@@ -17,7 +20,7 @@ ENV NODE_ENV=development
 
 EXPOSE 8083
 
-CMD ["sh", "-c", "pnpm --filter @nmit/payload payload migrate && pnpm --filter @nmit/payload run generate:importmap && pnpm --filter @nmit/payload run seed && pnpm --filter @nmit/payload run devsafe --hostname 0.0.0.0 --port 8083"]
+CMD ["payload-runtime", "devsafe"]
 
 FROM base AS ci-dev
 
@@ -32,7 +35,7 @@ COPY apps/payload apps/payload
 
 EXPOSE 8083
 
-CMD ["sh", "-c", "pnpm --filter @nmit/payload payload migrate && pnpm --filter @nmit/payload run generate:importmap && pnpm --filter @nmit/payload run seed && pnpm --filter @nmit/payload run dev --hostname 0.0.0.0 --port 8083"]
+CMD ["payload-runtime", "dev"]
 
 FROM base AS build
 
@@ -69,7 +72,8 @@ RUN --mount=type=cache,id=pnpm-store-payload,target=/pnpm/store \
     corepack install && \
     pnpm install --store-dir=/pnpm/store --frozen-lockfile --filter @nmit/payload...
 COPY apps/payload apps/payload
-RUN pnpm --filter @nmit/payload run build
+RUN pnpm --filter @nmit/payload run generate:importmap && \
+    pnpm --filter @nmit/payload run build
 
 FROM base AS prod
 
@@ -80,4 +84,4 @@ COPY --from=build /var/www /var/www
 
 EXPOSE 8083
 
-CMD ["sh", "-c", "pnpm --filter @nmit/payload payload migrate && pnpm --filter @nmit/payload run generate:importmap && pnpm --filter @nmit/payload run seed && pnpm --filter @nmit/payload run start --hostname 0.0.0.0 --port 8083"]
+CMD ["payload-runtime", "start"]

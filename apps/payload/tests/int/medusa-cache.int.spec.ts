@@ -324,6 +324,33 @@ describe("medusaCache hooks", () => {
       expect(body.doc.slug).toBeUndefined()
     })
 
+    it("omits locale when Payload provides null locale", async () => {
+      getEnvString
+        .mockReturnValueOnce("http://medusa.test")
+        .mockReturnValueOnce("test-secret")
+
+      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
+      mockFetch.mockResolvedValue({ ok: true })
+
+      const hook = createMedusaCacheHook("pages")
+      const doc = { id: 1, slug: { en: "home" } }
+      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+
+      await hook({
+        doc,
+        req: {
+          locale: null,
+          payload: { logger: mockLogger },
+        } as unknown as PayloadRequest,
+        operation: "update",
+      } as any)
+
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
+      const body = JSON.parse(options.body as string)
+      expect(body.doc.locale).toBeUndefined()
+      expect(body.doc.slug).toBeUndefined()
+    })
+
     it("handles undefined doc gracefully", async () => {
       getEnvString
         .mockReturnValueOnce("http://medusa.test")

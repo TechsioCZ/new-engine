@@ -22,10 +22,10 @@ export async function GET(
 ) {
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
-  const { categorySlug } = req.validatedQuery
+  const { categorySlug, locale } = req.validatedQuery
 
   const articleCategories = await cmsService.listArticleCategoriesWithArticles({
-    locale: req.locale,
+    locale,
     categorySlug,
   })
 

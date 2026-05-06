@@ -5,6 +5,7 @@ import {
   getEnvString,
   isEnabled,
   parseEnvList,
+  resolveEnvLocales,
 } from "@/lib/utils/env"
 
 const ORIGINAL_ENV = { ...process.env }
@@ -125,9 +126,30 @@ describe("env utilities", () => {
     process.env.TEST_LIST = "en, cs , , sk "
     expect(parseEnvList("TEST_LIST")).toEqual(["en", "cs", "sk"])
 
-    // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
-    delete process.env.TEST_LIST
+    Reflect.deleteProperty(process.env, "TEST_LIST")
     expect(parseEnvList("TEST_LIST")).toEqual([])
+  })
+
+  it("resolveEnvLocales uses parsed locales and first locale as default", () => {
+    process.env.TEST_LOCALES = "cs, en, sk"
+
+    expect(resolveEnvLocales("TEST_LOCALES")).toEqual({
+      locales: ["cs", "en", "sk"],
+      defaultLocale: "cs",
+    })
+  })
+
+  it("resolveEnvLocales falls back to a non-empty locale list", () => {
+    Reflect.deleteProperty(process.env, "TEST_LOCALES")
+
+    expect(resolveEnvLocales("TEST_LOCALES")).toEqual({
+      locales: ["en"],
+      defaultLocale: "en",
+    })
+    expect(resolveEnvLocales("TEST_LOCALES", [])).toEqual({
+      locales: ["en"],
+      defaultLocale: "en",
+    })
   })
 
   it("getDocString returns only string values", () => {

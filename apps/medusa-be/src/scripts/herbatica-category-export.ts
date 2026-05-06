@@ -1,4 +1,4 @@
-import {readFileSync} from "node:fs"
+import { readFileSync } from "node:fs"
 
 type XmlElement = {
   attributes: Record<string, string>
@@ -33,6 +33,7 @@ const ENTITY_MAP: Record<string, string> = {
   "&amp;": "&",
   "&nbsp;": " ",
 }
+const HTTP_XML_SOURCE_PATTERN = /^https?:\/\//i
 
 function decodeXml(value: string): string {
   return value
@@ -45,7 +46,10 @@ function decodeXml(value: string): string {
       const parsed = Number.parseInt(num, 10)
       return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
     })
-    .replace(/&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g, (entity) => ENTITY_MAP[entity] ?? entity)
+    .replace(
+      /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g,
+      (entity) => ENTITY_MAP[entity] ?? entity
+    )
 }
 
 function normalizeText(value?: string): string | undefined {
@@ -207,7 +211,9 @@ export function parseHerbaticaCategoriesXml(
       parentId:
         parentId && parentId !== "0" && parentId !== "1" ? parentId : undefined,
       title,
-      linkText: normalizeInlineText(extractFirstText(element.inner, "LINK_TEXT")),
+      linkText: normalizeInlineText(
+        extractFirstText(element.inner, "LINK_TEXT")
+      ),
       url: normalizeInlineText(extractFirstText(element.inner, "INDEX_NAME")),
       topDescriptionHtml: trimHtmlFragment(
         extractFirstText(element.inner, "TOP_DESCRIPTION")
@@ -215,20 +221,27 @@ export function parseHerbaticaCategoriesXml(
       bottomDescriptionHtml: trimHtmlFragment(
         extractFirstText(element.inner, "BOTTOM_DESCRIPTION")
       ),
-      metaTitle: normalizeInlineText(extractFirstText(element.inner, "META_TITLE")),
+      metaTitle: normalizeInlineText(
+        extractFirstText(element.inner, "META_TITLE")
+      ),
       metaDescription: normalizeInlineText(
         extractFirstText(element.inner, "META_DESCRIPTION")
       ),
-      isVisible: parseBoolean(extractFirstText(element.inner, "VISIBLE")) ?? true,
+      isVisible:
+        parseBoolean(extractFirstText(element.inner, "VISIBLE")) ?? true,
       expandInMenu:
-        parseBoolean(extractFirstText(element.inner, "EXPAND_IN_MENU")) ?? false,
+        parseBoolean(extractFirstText(element.inner, "EXPAND_IN_MENU")) ??
+        false,
       access: normalizeInlineText(extractFirstText(element.inner, "ACCESS")),
       priority: parseInteger(extractFirstText(element.inner, "PRIORITY")),
-      pageType: normalizeInlineText(extractFirstText(element.inner, "PAGE_TYPE")),
+      pageType: normalizeInlineText(
+        extractFirstText(element.inner, "PAGE_TYPE")
+      ),
       searchPriority: parseInteger(
         extractFirstText(element.inner, "SEARCH_PRIORITY")
       ),
-      isSystem: parseBoolean(extractFirstText(element.inner, "IS_SYSTEM")) ?? false,
+      isSystem:
+        parseBoolean(extractFirstText(element.inner, "IS_SYSTEM")) ?? false,
     })
   }
 
@@ -239,4 +252,29 @@ export function parseHerbaticaCategoriesXmlFile(
   path: string
 ): HerbaticaCategoryExport[] {
   return parseHerbaticaCategoriesXml(readFileSync(path, "utf8"))
+}
+
+export function isHttpXmlSource(source: string): boolean {
+  return HTTP_XML_SOURCE_PATTERN.test(source)
+}
+
+export async function readXmlSource(source: string): Promise<string> {
+  if (!isHttpXmlSource(source)) {
+    return readFileSync(source, "utf8")
+  }
+
+  const response = await fetch(source)
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch XML source ${source}: ${response.status} ${response.statusText}`
+    )
+  }
+
+  return response.text()
+}
+
+export async function parseHerbaticaCategoriesXmlSource(
+  source: string
+): Promise<HerbaticaCategoryExport[]> {
+  return parseHerbaticaCategoriesXml(await readXmlSource(source))
 }
