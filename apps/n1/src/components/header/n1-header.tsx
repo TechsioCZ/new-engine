@@ -42,19 +42,19 @@ export const N1Header = () => {
       className="z-50 flex h-fit max-h-96 w-full flex-col"
       direction="vertical"
     >
-      <Header.Container className="flex items-center justify-between bg-highlight px-400 py-150">
-        <div className="flex items-center gap-200 font-normal text-2xs text-fg-reverse">
+      <Header.Container className="flex items-center justify-between gap-200 bg-highlight px-400 py-150">
+        <div className="flex min-w-0 items-center gap-200 font-normal text-2xs text-fg-reverse">
           <Link as={NextLink} href="mailto:office@n1shop.cz">
             <Icon className="mr-200" icon="icon-[mdi--email-outline]" />
-            <span className="hover:text-primary hover:underline">
+            <span className="truncate hover:text-primary hover:underline">
               office@n1shop.cz
             </span>
           </Link>
-          <span className="h-1.5 w-1.5 bg-secondary" />
+          <span className="hidden h-1.5 w-1.5 bg-secondary md:block" />
           {topHeaderLinks.map((link) => (
             <Link
               as={NextLink}
-              className="hover:text-primary hover:underline"
+              className="hidden hover:text-primary hover:underline md:inline-flex"
               href={link.href}
               key={link.href}
             >
@@ -62,7 +62,7 @@ export const N1Header = () => {
             </Link>
           ))}
         </div>
-        <div className="flex gap-200">
+        <div className="hidden shrink-0 gap-200 sm:flex">
           <Icon icon="icon-[cif--cz]" />
           <Icon icon="icon-[cif--gb]" />
         </div>

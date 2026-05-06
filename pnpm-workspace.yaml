@@ -18,15 +18,16 @@ syncInjectedDepsAfterScripts:
 ignoredBuiltDependencies:
   - '@medusajs/telemetry'
   - core-js
-  - esbuild
   - msgpackr-extract
   - protobufjs
   - puppeteer
-  - sharp
 
 onlyBuiltDependencies:
   - '@biomejs/biome'
   - '@parcel/watcher'
   - '@swc/core'
   - '@tailwindcss/oxide'
+  - esbuild
   - nx
+  - sharp
+  - unrs-resolver

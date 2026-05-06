@@ -21,9 +21,10 @@ COPY package.json /tmp/corepack/package.json
 RUN corepack install && rm -rf /tmp/corepack
 WORKDIR /var/www
 CMD ["sh", "-lc", "\
-  [ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
+  [ -x apps/n1/node_modules/.bin/next ] && [ -d node_modules/@zag-js/react ] && [ -d node_modules/tailwind-variants ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
   [ -f libs/ui/dist/utils.js ] || pnpm --filter=@techsio/ui-kit build; \
   [ -f libs/analytics/dist/index.js ] || pnpm --filter=@techsio/analytics build; \
+  [ -f apps/n1/node_modules/@techsio/analytics/dist/index.js ] || (rm -rf apps/n1/node_modules/@techsio/analytics && mkdir -p apps/n1/node_modules/@techsio && ln -s ../../../../libs/analytics apps/n1/node_modules/@techsio/analytics); \
   pnpm --filter n1 exec next dev --turbopack --hostname 0.0.0.0 --port 3000 \
 "]
 

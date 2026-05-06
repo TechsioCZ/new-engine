@@ -50,6 +50,7 @@ ci:
       service_ids:
         - "medusa-be"
         - "n1"
+        - "payload"
         - "zane-operator"
         - "medusa-db"
         - "medusa-minio"
@@ -65,6 +66,7 @@ ci:
       service_ids:
         - "medusa-be"
         - "n1"
+        - "payload"
 
 services:
   - id: "medusa-db"
@@ -148,6 +150,19 @@ services:
         deploy_lanes: ["preview", "main"]
         deploy_stage: 20
         service_dependencies: ["medusa-db", "medusa-valkey", "medusa-minio", "medusa-meilisearch"]
+
+  - id: "payload"
+    compose_service: "payload"
+    kind: "backend"
+    nx_projects:
+      - "payload"
+    local:
+      phase: "backend"
+    ci:
+      deployable: false
+      affected_path_globs:
+        - "apps/payload/**"
+        - "docker/development/payload/**"
 
   - id: "n1"
     compose_service: "n1"

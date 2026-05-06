@@ -109,6 +109,15 @@ else
   log_warn "FEATURE_PPL_ENABLED not set - PPL module will NOT be included in build"
 fi
 
+# FEATURE_PAYLOAD_ENABLED is evaluated at build time in medusa-config.ts
+if [[ -n "${FEATURE_PAYLOAD_ENABLED:-}" ]]; then
+  log_info "FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED}"
+else
+  log_warn "FEATURE_PAYLOAD_ENABLED not set - defaulting to 0 for build"
+  FEATURE_PAYLOAD_ENABLED=0
+fi
+export FEATURE_PAYLOAD_ENABLED
+
 log_info "Running: pnpm nx run medusa-be:build --skip-nx-cache"
 
 # Run build and capture output

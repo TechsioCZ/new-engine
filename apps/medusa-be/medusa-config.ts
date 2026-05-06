@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
+import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -6,10 +7,9 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
+const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
 const MEDUSA_ADMIN_ALLOWED_HOSTS =
-  process.env.NODE_ENV === "development"
-    ? true
-    : process.env.MEDUSA_BACKEND_URL
+  process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
 
 module.exports = defineConfig({
   featureFlags: {
@@ -24,6 +24,9 @@ module.exports = defineConfig({
       server: {
         allowedHosts: MEDUSA_ADMIN_ALLOWED_HOSTS,
         hmr: false,
+        headers: {
+          "Cache-Control": "no-store",
+        },
       },
     }),
   },
@@ -63,23 +66,91 @@ module.exports = defineConfig({
             enabled: true,
             fields: [
               "id",
+              "status",
               "title",
               "description",
               "handle",
-              "variant_sku",
               "thumbnail",
+              "created_at",
+              "metadata",
+              "categories.id",
+              "categories.name",
+              "categories.handle",
+              "producer.id",
+              "producer.title",
+              "producer.handle",
+              "sales_channels.id",
+              "variants.id",
+              "variants.sku",
+              "variants.prices.amount",
+              "variants.prices.currency_code",
             ],
             indexSettings: {
-              searchableAttributes: ["title", "description", "variant_sku"],
-              displayedAttributes: [
-                "id",
+              searchableAttributes: [
                 "title",
                 "description",
-                "variant_sku",
+                "handle",
+                "producer.title",
+                "categories.name",
+                "variants.sku",
+              ],
+              displayedAttributes: [
+                "id",
+                "status",
+                "title",
+                "description",
                 "thumbnail",
                 "handle",
+                "created_at",
+                "metadata",
+                "producer",
+                "categories",
+                "sales_channels",
+                "facet_product_status",
+                "facet_sales_channel_ids",
+                "facet_status",
+                "facet_form",
+                "facet_brand",
+                "facet_ingredient",
+                "facet_category_ids",
+                "facet_in_stock",
+                "facet_price",
               ],
-              filterableAttributes: ["id", "handle", "title"],
+              filterableAttributes: [
+                "id",
+                "handle",
+                "facet_product_status",
+                "facet_sales_channel_ids",
+                "facet_status",
+                "facet_form",
+                "facet_brand",
+                "facet_ingredient",
+                "facet_category_ids",
+                "facet_in_stock",
+                "facet_price",
+              ],
+              sortableAttributes: ["created_at", "title", "facet_price"],
+              rankingRules: [
+                "sort",
+                "words",
+                "typo",
+                "proximity",
+                "attribute",
+                "exactness",
+              ],
+            },
+            transformer: async (
+              document: Record<string, unknown>,
+              defaultTransformer: (
+                input: Record<string, unknown>
+              ) => Record<string, unknown>
+            ) => {
+              const transformedDocument = defaultTransformer(document)
+
+              return {
+                ...transformedDocument,
+                ...buildProductFacetDocument(transformedDocument),
+              }
             },
             primaryKey: "id",
           },
@@ -210,10 +281,33 @@ module.exports = defineConfig({
             options: {
               providers: [
                 {
+                  resolve: "@medusajs/medusa/fulfillment-manual",
+                  id: "manual",
+                },
+                {
                   resolve: "./src/modules/fulfillment-ppl",
                   id: "ppl",
                 },
               ],
+            },
+          },
+        ]
+      : []),
+    ...(FEATURE_PAYLOAD_ENABLED
+      ? [
+          {
+            resolve: "./src/modules/payload",
+            options: {
+              serverUrl: process.env.PAYLOAD_BASE_URL,
+              apiKey: process.env.PAYLOAD_API_KEY,
+              contentCacheTtl: Number.parseInt(
+                process.env.CMS_CACHE_TTL ?? "3600",
+                10
+              ),
+              listCacheTtl: Number.parseInt(
+                process.env.CMS_LIST_CACHE_TTL ?? "600",
+                10
+              ),
             },
           },
         ]
