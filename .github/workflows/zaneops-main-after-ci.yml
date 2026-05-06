@@ -1,9 +1,9 @@
 name: ZaneOps Main After CI
 
+# Temporarily disabled. Restore the CI workflow_run trigger when re-enabling
+# ZaneOps main deployments.
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  workflow_dispatch:
 
 permissions:
   contents: read
