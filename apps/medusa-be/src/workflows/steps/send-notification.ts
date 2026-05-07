@@ -158,15 +158,10 @@ async function replayPendingCheckedEvents({
         select: ["id", "email_id", "processed_at", "received_at", "type"],
       }
     )
-    const checkedEvents = pendingEvents
-      .filter(
-        (event) =>
-          !event.processed_at && CHECKED_RESEND_EVENT_TYPES.has(event.type)
-      )
-      .sort(
-        (left, right) =>
-          left.received_at.getTime() - right.received_at.getTime()
-      )
+    const checkedEvents = pendingEvents.filter(
+      (event) =>
+        !event.processed_at && CHECKED_RESEND_EVENT_TYPES.has(event.type)
+    )
 
     if (!checkedEvents.length) {
       continue
@@ -207,28 +202,28 @@ export const sendNotificationStep = createStep(
     )
 
     const notificationList = getNotificationList(notification)
-    const emailLogInputs = data
-      .map((input, index) => {
-        if (input.channel !== "email") {
-          return null
-        }
+    const emailLogInputs = data.flatMap((input, index) => {
+      if (input.channel !== "email") {
+        return []
+      }
 
-        const createdNotification = notificationList[index]
+      const createdNotification = notificationList[index]
 
-        if (!createdNotification) {
-          return null
-        }
+      if (!createdNotification) {
+        return []
+      }
 
-        const explicitCustomerId =
-          createdNotification.receiver_id ?? getCustomerId(input)
+      const explicitCustomerId =
+        createdNotification.receiver_id ?? getCustomerId(input)
 
-        return {
+      return [
+        {
           createdNotification,
           explicitCustomerId,
           input,
-        }
-      })
-      .filter((item) => item !== null)
+        },
+      ]
+    })
     const customerLookupEmails = Array.from(
       new Set(
         emailLogInputs

@@ -1,5 +1,6 @@
 import {
   createWorkflow,
+  transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { sendNotificationStep } from "./steps/send-notification"
@@ -25,24 +26,37 @@ export const sendOrderPaymentReminderWorkflow = createWorkflow(
     store_name,
     total,
   }: WorkflowInput) => {
-    const notification = sendNotificationStep([
-      {
-        to: email,
-        channel: "email",
-        template: "order-payment-reminder",
-        trigger_type: "order.payment_reminder",
-        resource_id: order_id,
-        resource_type: "order",
-        receiver_id: customer_id,
-        data: {
+    const notification = sendNotificationStep(
+      transform(
+        {
+          customer_id,
+          email,
           order_display_id,
           order_id,
           payment_url,
           store_name,
           total,
         },
-      },
-    ])
+        (ctx) => [
+          {
+            to: ctx.email,
+            channel: "email",
+            template: "order-payment-reminder",
+            trigger_type: "order.payment_reminder",
+            resource_id: ctx.order_id,
+            resource_type: "order",
+            receiver_id: ctx.customer_id,
+            data: {
+              order_display_id: ctx.order_display_id,
+              order_id: ctx.order_id,
+              payment_url: ctx.payment_url,
+              store_name: ctx.store_name,
+              total: ctx.total,
+            },
+          },
+        ]
+      )
+    )
 
     return new WorkflowResponse({
       notification,

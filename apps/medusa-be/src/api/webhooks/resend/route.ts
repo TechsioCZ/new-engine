@@ -60,7 +60,10 @@ function getPayload(req: MedusaRequest) {
     return requestWithRawBody.rawBody
   }
 
-  return JSON.stringify(req.body ?? {})
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    "Resend webhook requires the raw request body for signature verification"
+  )
 }
 
 function getSvixSecret(secret: string) {
@@ -125,6 +128,15 @@ function parsePayload(payload: string, body: unknown) {
   return JSON.parse(payload) as ResendWebhookEvent
 }
 
+function hasRequiredResendWebhookFields(
+  event: ResendWebhookEvent
+): event is ResendWebhookEvent & {
+  data: { email_id: string; [key: string]: unknown }
+  type: string
+} {
+  return Boolean(event.type && event.data?.email_id)
+}
+
 async function markEmailLogChecked({
   emailId,
   emailLogService,
@@ -165,7 +177,7 @@ async function storePendingWebhookEvent({
 }: {
   emailId: string
   emailLogService: EmailLogService
-  event: ResendWebhookEvent
+  event: ResendWebhookEvent & { type: string }
 }) {
   await emailLogService.createEmailWebhookEvents([
     {
@@ -173,7 +185,7 @@ async function storePendingWebhookEvent({
       payload: event,
       processed_at: null,
       received_at: new Date(),
-      type: event.type as string,
+      type: event.type,
     },
   ])
 }
@@ -202,14 +214,15 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   const event = parsePayload(payload, req.body)
-  const emailId = event.data?.email_id
 
-  if (!(event.type && emailId)) {
+  if (!hasRequiredResendWebhookFields(event)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Invalid Resend webhook payload"
     )
   }
+
+  const emailId = event.data.email_id
 
   if (!CHECKED_RESEND_EVENT_TYPES.has(event.type)) {
     res.json({ received: true, checked: false })

@@ -11,6 +11,10 @@ import { createElement, type ReactNode } from "react"
 import { type CreateEmailOptions, Resend } from "resend"
 import ForgotPasswordEmail from "./emails/forgot-password"
 import OrderPaymentReminderEmail from "./emails/order-payment-reminder"
+import {
+  type ResendEmailTemplate,
+  resendEmailTemplates as templates,
+} from "./templates"
 
 type ResendOptions = {
   api_key: string
@@ -40,12 +44,7 @@ type OrderPaymentReminderTemplateData = {
   total?: string
 }
 
-const templates = {
-  FORGOT_PASSWORD: "user-forgotpwd",
-  ORDER_PAYMENT_REMINDER: "order-payment-reminder",
-} as const
-
-type Template = (typeof templates)[keyof typeof templates]
+type Template = ResendEmailTemplate
 
 const templateComponents: {
   [templates.FORGOT_PASSWORD]: (props: ForgotPasswordTemplateData) => ReactNode
