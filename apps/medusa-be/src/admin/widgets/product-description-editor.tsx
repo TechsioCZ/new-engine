@@ -2,13 +2,7 @@ import {
   BlockTypeSelect,
   BoldItalicUnderlineToggles,
   CreateLink,
-  codeBlockPlugin,
-  codeMirrorPlugin,
-  DiffSourceToggleWrapper,
-  diffSourcePlugin,
   headingsPlugin,
-  InsertCodeBlock,
-  InsertTable,
   InsertThematicBreak,
   ListsToggle,
   linkDialogPlugin,
@@ -343,17 +337,6 @@ const htmlToMarkdown = (html: string) => {
 const markdownToHtml = (markdown: string) =>
   String(marked.parse(markdown, { async: false, gfm: true })).trim()
 
-const productEditorCodeLanguages = {
-  bash: "Bash",
-  css: "CSS",
-  html: "HTML",
-  js: "JavaScript",
-  json: "JSON",
-  md: "Markdown",
-  sh: "Shell",
-  ts: "TypeScript",
-} as const
-
 const ProductDescriptionEditor = ({
   data: product,
 }: ProductDescriptionEditorProps) => {
@@ -439,7 +422,7 @@ const ProductDescriptionEditor = ({
     () => [
       toolbarPlugin({
         toolbarContents: () => (
-          <DiffSourceToggleWrapper>
+          <>
             <UndoRedo />
             <Separator />
             <BlockTypeSelect />
@@ -450,10 +433,8 @@ const ProductDescriptionEditor = ({
             <ListsToggle />
             <Separator />
             <CreateLink />
-            <InsertTable />
             <InsertThematicBreak />
-            <InsertCodeBlock />
-          </DiffSourceToggleWrapper>
+          </>
         ),
       }),
       headingsPlugin(),
@@ -463,16 +444,9 @@ const ProductDescriptionEditor = ({
       linkPlugin(),
       linkDialogPlugin(),
       tablePlugin(),
-      codeBlockPlugin({ defaultCodeBlockLanguage: "html" }),
-      codeMirrorPlugin({ codeBlockLanguages: productEditorCodeLanguages }),
-      diffSourcePlugin({
-        diffMarkdown: htmlToMarkdown(product?.description ?? ""),
-        readOnlyDiff: true,
-        viewMode: "rich-text",
-      }),
       markdownShortcutPlugin(),
     ],
-    [product?.description]
+    []
   )
 
   if (!product?.id) {

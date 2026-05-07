@@ -51,6 +51,10 @@ module.exports = defineConfig({
   admin: {
     // backendUrl: BACKEND_URL,
     vite: () => ({
+      build: {
+        minify: false,
+        sourcemap: false,
+      },
       server: {
         allowedHosts: MEDUSA_ADMIN_ALLOWED_HOSTS,
         hmr: false,
