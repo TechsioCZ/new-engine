@@ -8,6 +8,30 @@ const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
+const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
+const RESEND_API_KEY = process.env.RESEND_API_KEY
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL
+
+const notificationProvider =
+  NOTIFICATION_PROVIDER === "local"
+    ? {
+        resolve: "@medusajs/medusa/notification-local",
+        id: "local",
+        options: {
+          name: "Local Notification Provider",
+          channels: ["email"],
+        },
+      }
+    : {
+        resolve: "./src/modules/resend",
+        id: "resend",
+        options: {
+          channels: ["email"],
+          api_key: RESEND_API_KEY,
+          from: RESEND_FROM_EMAIL,
+        },
+      }
+
 const MEDUSA_ADMIN_ALLOWED_HOSTS =
   process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
 
@@ -185,6 +209,12 @@ module.exports = defineConfig({
       resolve: "@medusajs/medusa/translation",
     },
     {
+      resolve: "@medusajs/medusa/notification",
+      options: {
+        providers: [notificationProvider],
+      },
+    },
+    {
       resolve: "@medusajs/medusa/caching",
       options: {
         providers: [
@@ -201,6 +231,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/producer",
+    },
+    {
+      resolve: "./src/modules/email-log",
     },
     {
       resolve: "@medusajs/event-bus-redis",

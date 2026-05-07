@@ -230,9 +230,21 @@ const sharedEnvCleanupKeys = [
   "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
   "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
   "DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID",
+  "DC_RESEND_API_KEY",
+  "DC_RESEND_FROM_EMAIL",
+  "DC_RESEND_WEBHOOK_SECRET",
+  "DC_CONTACT_EMAIL",
+  "DC_MEDUSA_BE_NOTIFICATION_PROVIDER",
+  "DC_MEDUSA_BE_RESEND_API_KEY",
+  "DC_MEDUSA_BE_RESEND_FROM_EMAIL",
+  "DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET",
+  "DC_N1_RESEND_API_KEY",
+  "DC_N1_CONTACT_EMAIL",
+  "DC_N1_RESEND_FROM_EMAIL",
   "DC_N1_MEDUSA_RESEND_API_KEY",
   "DC_N1_MEDUSA_CONTACT_EMAIL",
   "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+  "DC_N1_MEDUSA_RESEND_WEBHOOK_SECRET",
   "DC_ZANE_OPERATOR_API_AUTH_TOKEN",
   "DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET",
   "DC_ZANE_OPERATOR_DB_TEMPLATE_NAME",
@@ -263,9 +275,21 @@ const sharedEnvCleanupKeys = [
   "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY",
   "DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
   "DC_N1_NEXT_PUBLIC_SITE_URL",
+  "DC_RESEND_API_KEY",
+  "DC_RESEND_FROM_EMAIL",
+  "DC_RESEND_WEBHOOK_SECRET",
+  "DC_CONTACT_EMAIL",
+  "DC_MEDUSA_BE_NOTIFICATION_PROVIDER",
+  "DC_MEDUSA_BE_RESEND_API_KEY",
+  "DC_MEDUSA_BE_RESEND_FROM_EMAIL",
+  "DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET",
+  "DC_N1_RESEND_API_KEY",
+  "DC_N1_CONTACT_EMAIL",
+  "DC_N1_RESEND_FROM_EMAIL",
   "DC_N1_MEDUSA_RESEND_API_KEY",
   "DC_N1_MEDUSA_CONTACT_EMAIL",
   "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+  "DC_N1_MEDUSA_RESEND_WEBHOOK_SECRET",
   "DC_LEGACY_DATABASE_URL",
   "DC_FEATURE_PAYLOAD_ENABLED",
   "DC_IS_IFRAME_PAYLOAD",
@@ -695,6 +719,13 @@ function buildZaneProjectServices(
         "DC_MINIO_BUCKET",
         "DC_MINIO_ACCESS_KEY",
         "DC_MINIO_SECRET_KEY",
+        "DC_MEDUSA_BE_NOTIFICATION_PROVIDER",
+        "DC_MEDUSA_BE_RESEND_API_KEY",
+        "DC_MEDUSA_BE_RESEND_FROM_EMAIL",
+        "DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET",
+        "DC_N1_MEDUSA_RESEND_API_KEY",
+        "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+        "DC_N1_MEDUSA_RESEND_WEBHOOK_SECRET",
       ],
       env: [
         { envVar: "NODE_ENV", source: literalSource("production") },
@@ -796,6 +827,36 @@ function buildZaneProjectServices(
             port: 9004,
             trailingSlash: true,
           }),
+        },
+        {
+          envVar: "NOTIFICATION_PROVIDER",
+          source: literalSource(
+            process.env.DC_MEDUSA_BE_NOTIFICATION_PROVIDER ?? "resend"
+          ),
+        },
+        {
+          envVar: "RESEND_API_KEY",
+          source: literalSource(
+            process.env.DC_MEDUSA_BE_RESEND_API_KEY ??
+              process.env.DC_RESEND_API_KEY ??
+              ""
+          ),
+        },
+        {
+          envVar: "RESEND_FROM_EMAIL",
+          source: literalSource(
+            process.env.DC_MEDUSA_BE_RESEND_FROM_EMAIL ??
+              process.env.DC_RESEND_FROM_EMAIL ??
+              ""
+          ),
+        },
+        {
+          envVar: "RESEND_WEBHOOK_SECRET",
+          source: literalSource(
+            process.env.DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET ??
+              process.env.DC_RESEND_WEBHOOK_SECRET ??
+              ""
+          ),
         },
       ],
     },
@@ -971,6 +1032,9 @@ function buildZaneProjectServices(
         "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
         "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
         "DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID",
+        "DC_N1_RESEND_API_KEY",
+        "DC_N1_CONTACT_EMAIL",
+        "DC_N1_RESEND_FROM_EMAIL",
         "DC_N1_MEDUSA_RESEND_API_KEY",
         "DC_N1_MEDUSA_CONTACT_EMAIL",
         "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
@@ -1004,6 +1068,30 @@ function buildZaneProjectServices(
           ),
         },
         { envVar: "NEXT_PUBLIC_SITE_URL", source: servicePublicOrigins.n1 },
+        {
+          envVar: "RESEND_API_KEY",
+          source: literalSource(
+            process.env.DC_N1_RESEND_API_KEY ??
+              process.env.DC_RESEND_API_KEY ??
+              ""
+          ),
+        },
+        {
+          envVar: "CONTACT_EMAIL",
+          source: literalSource(
+            process.env.DC_N1_CONTACT_EMAIL ??
+              process.env.DC_CONTACT_EMAIL ??
+              ""
+          ),
+        },
+        {
+          envVar: "RESEND_FROM_EMAIL",
+          source: literalSource(
+            process.env.DC_N1_RESEND_FROM_EMAIL ??
+              process.env.DC_RESEND_FROM_EMAIL ??
+              ""
+          ),
+        },
       ],
     },
     "zane-operator": {
