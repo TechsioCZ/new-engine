@@ -72,7 +72,7 @@ export function OrderPaymentReminderEmail({
 
 OrderPaymentReminderEmail.PreviewProps = {
   order_display_id: "#1001",
-  payment_url: "http://localhost:8000/orders/order_123",
+  payment_url: "https://store.example.com/orders/order_123",
   store_name: "Demo Store",
   total: "1 290 Kč",
 } satisfies OrderPaymentReminderEmailProps

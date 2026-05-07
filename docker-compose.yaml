@@ -140,7 +140,7 @@ x-medusa-base: &medusa-base
   networks:
     - internal
   environment:
-    <<: [ *medusa-env, *medusa-email-env ]
+    <<: [*medusa-env, *medusa-email-env]
 
 x-n1-env: &n1-env
   # N1: backend connectivity
