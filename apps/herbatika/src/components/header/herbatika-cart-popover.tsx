@@ -8,7 +8,7 @@ import { Popover } from "@techsio/ui-kit/molecules/popover";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart";
 import {
   asFiniteNumber,
@@ -33,6 +33,7 @@ export function HerbatikaCartPopover({
 }: HerbatikaCartPopoverProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const updateLineItemMutation = useUpdateLineItem();
   const removeLineItemMutation = useRemoveLineItem();
   const cartItems = cart?.items ?? [];
@@ -52,6 +53,26 @@ export function HerbatikaCartPopover({
   const handleClose = () => {
     setIsPopoverOpen(false);
   };
+
+  useEffect(() => {
+    const trigger = triggerRef.current;
+
+    if (!trigger) {
+      return;
+    }
+
+    const handleTriggerClick = (event: MouseEvent) => {
+      event.preventDefault();
+      setIsPopoverOpen(false);
+      router.push("/checkout/kosik");
+    };
+
+    trigger.addEventListener("click", handleTriggerClick, true);
+
+    return () => {
+      trigger.removeEventListener("click", handleTriggerClick, true);
+    };
+  }, [router]);
 
   const handleUpdateQuantity = (lineItemId: string, quantity: number) => {
     if (!cart?.id) {
@@ -105,6 +126,7 @@ export function HerbatikaCartPopover({
       portalled={false}
       shadow={false}
       title={itemCount > 0 ? `Košík (${itemCount})` : "Košík"}
+      triggerRef={triggerRef}
       trigger={
         <>
           <div className="relative">
@@ -117,10 +139,6 @@ export function HerbatikaCartPopover({
           <span className="text-md font-normal font-sans">{cartTotalLabel}</span>
         </>
       }
-      onTriggerClick={() => {
-        handleClose();
-        router.push("/checkout/kosik");
-      }}
       triggerClassName="relative sm:w-36 inline-flex items-center gap-250 rounded-button-sm bg-button-bg-primary px-450 py-300 text-xl font-bold text-button-fg-primary hover:bg-button-bg-primary-hover data-[state=open]:bg-button-bg-primary-hover py-550"
     >
       {visibleItems.length > 0 ? (
