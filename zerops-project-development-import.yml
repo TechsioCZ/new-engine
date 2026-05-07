@@ -49,6 +49,8 @@ services:
       # Feature flags - set to "1" to enable, "0" or empty to disable
       FEATURE_PPL_ENABLED: "0"
       PPL_ENVIRONMENT: testing
+      FEATURE_PACKETA_ENABLED: "0"
+      PACKETA_ENVIRONMENT: testing
     verticalAutoscaling:
       minRam: 0.5
       cpu: 1

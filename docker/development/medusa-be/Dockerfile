@@ -67,10 +67,12 @@ COPY apps/medusa-be ./apps/medusa-be
 # Build using shared script (cleanup, install, build, validate, prod deploy)
 ARG FEATURE_PPL_ENABLED=0
 ARG FEATURE_PAYLOAD_ENABLED=0
+ARG FEATURE_PACKETA_ENABLED=0
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     npm_config_store_dir=/pnpm/store \
     FEATURE_PPL_ENABLED=${FEATURE_PPL_ENABLED} \
     FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED} \
+    FEATURE_PACKETA_ENABLED=${FEATURE_PACKETA_ENABLED} \
     ./scripts/build-medusa.sh
 
 # ============================================

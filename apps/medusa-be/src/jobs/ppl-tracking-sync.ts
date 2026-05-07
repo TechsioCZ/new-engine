@@ -227,7 +227,7 @@ async function handleDelivered(
   })
 
   await eventBus.emit({
-    name: "fulfillment.delivered",
+    name: "ppl.delivered",
     data: {
       fulfillment_id: fulfillment.id,
       shipment_number: fulfillmentData.shipment_number,
@@ -260,7 +260,7 @@ async function handleFailed(
   })
 
   await eventBus.emit({
-    name: "fulfillment.delivery_failed",
+    name: "ppl.delivery_failed",
     data: {
       fulfillment_id: fulfillment.id,
       shipment_number: fulfillmentData.shipment_number,
