@@ -120,6 +120,13 @@ export const buildUpdateCartParams = (
   return normalizeCartPayload(input as CartPayloadInput) as MedusaCartUpdateParams;
 };
 
+export const buildCreateCartInputFromAddLineItemInput = (
+  input: AddLineItemInputBase,
+): CartCreateInputBase => {
+  const { metadata: _lineItemMetadata, ...rest } = input;
+  return rest as CartCreateInputBase;
+};
+
 export const buildAddLineItemParams = (
   input: AddLineItemInputBase,
 ): MedusaCartAddItemParams => {

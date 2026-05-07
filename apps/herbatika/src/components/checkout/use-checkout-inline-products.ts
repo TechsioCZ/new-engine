@@ -1,10 +1,8 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
-import { useQueries } from "@tanstack/react-query";
-import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useMemo } from "react";
-import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils";
+import { useCartProductsByHandle } from "./use-cart-products-by-handle";
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree";
 import {
   resolveRecommendedProductFamilyKey,
@@ -15,64 +13,18 @@ import {
   STOREFRONT_PRODUCT_DETAIL_FIELDS,
   useProducts,
 } from "@/lib/storefront/products";
-import { storefront } from "@/lib/storefront/storefront";
+import { asStorefrontString } from "@/lib/storefront/product-pricing";
 
 const CHECKOUT_INLINE_PRODUCTS_LIMIT = 10;
 const CHECKOUT_INLINE_PRODUCTS_CANDIDATE_LIMIT = 32;
 
-const asString = (value: unknown): string | null => {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
 export function useCheckoutInlineProducts(
   cartItems: HttpTypes.StoreCartLineItem[],
 ) {
-  const region = useRegionContext();
-
-  const cartProductHandles = useMemo(() => {
-    const seenHandles = new Set<string>();
-
-    return cartItems.reduce<string[]>((handles, item) => {
-      const productHandle = resolveLineItemProductHandle(item);
-      if (!productHandle || seenHandles.has(productHandle)) {
-        return handles;
-      }
-
-      seenHandles.add(productHandle);
-      handles.push(productHandle);
-      return handles;
-    }, []);
-  }, [cartItems]);
-
-  const cartProductQueries = useQueries({
-    queries: cartProductHandles.map((handle) =>
-      ({
-        ...storefront.hooks.products.getDetailQueryOptions(
-          {
-            handle,
-            fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
-          },
-          {
-            region,
-          },
-        ),
-        enabled: cartProductHandles.length > 0,
-      }),
-    ),
-  });
-
-  const cartProducts = useMemo(
-    () =>
-      cartProductQueries.flatMap((query) =>
-        query.data ? [query.data as HttpTypes.StoreProduct] : [],
-      ),
-    [cartProductQueries],
-  );
+  const {
+    isLoading: isCartProductsLoading,
+    products: cartProducts,
+  } = useCartProductsByHandle(cartItems, STOREFRONT_PRODUCT_DETAIL_FIELDS);
 
   const relatedCategoryIds = useMemo(() => {
     const seenCategoryIds = new Set<string>();
@@ -103,12 +55,12 @@ export function useCheckoutInlineProducts(
   const relatedProducts = useMemo(() => {
     const cartProductIds = new Set(
       cartProducts
-        .map((product) => asString(product.id))
+        .map((product) => asStorefrontString(product.id))
         .filter((productId): productId is string => Boolean(productId)),
     );
     const cartProductHandlesSet = new Set(
       cartProducts
-        .map((product) => asString(product.handle))
+        .map((product) => asStorefrontString(product.handle))
         .filter((productHandle): productHandle is string => Boolean(productHandle)),
     );
     const cartFamilyKeys = new Set(
@@ -116,12 +68,12 @@ export function useCheckoutInlineProducts(
     );
 
     const filteredProducts = relatedProductsQuery.products.filter((product) => {
-      const productId = asString(product.id);
+      const productId = asStorefrontString(product.id);
       if (productId && cartProductIds.has(productId)) {
         return false;
       }
 
-      const productHandle = asString(product.handle);
+      const productHandle = asStorefrontString(product.handle);
       if (productHandle && cartProductHandlesSet.has(productHandle)) {
         return false;
       }
@@ -136,9 +88,7 @@ export function useCheckoutInlineProducts(
     );
   }, [cartProducts, relatedProductsQuery.products]);
 
-  const isLoading =
-    cartProductQueries.some((query) => query.isPending) ||
-    relatedProductsQuery.isLoading;
+  const isLoading = isCartProductsLoading || relatedProductsQuery.isLoading;
 
   return {
     isLoading,

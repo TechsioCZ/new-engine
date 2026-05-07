@@ -4,10 +4,10 @@ import type { HttpTypes } from "@medusajs/types";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
 import NextImage from "next/image";
 import NextLink from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input";
 import {
   FALLBACK_MAX_QUANTITY,
   resolveLineItemHref,
@@ -15,13 +15,15 @@ import {
   resolveLineItemThumbnail,
 } from "@/components/header/herbatika-cart-item.utils";
 import {
-  asFiniteNumber,
   resolveCartItemName,
   resolveLineItemQuantity,
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { resolveAvailabilityText, resolveFallbackDeliveryLabel, resolveOriginalLineItemTotalAmount } from "../utils/resolve-availability-text";
+import {
+  resolveAvailabilityText,
+  resolveOriginalLineItemTotalAmount,
+} from "../utils/resolve-availability-text";
 
 type CheckoutCartItemRowProps = {
   currencyCode: "EUR" | "CZK";
@@ -29,7 +31,37 @@ type CheckoutCartItemRowProps = {
   item: HttpTypes.StoreCartLineItem;
   onRemove: (lineItemId: string) => void;
   onUpdateQuantity: (lineItemId: string, quantity: number) => void;
+  product?: HttpTypes.StoreProduct | null;
 };
+
+type CheckoutCartItemPriceProps = {
+  currencyCode: CheckoutCartItemRowProps["currencyCode"];
+  currentLineAmount: number;
+  originalLineAmount: number | null;
+};
+
+function CheckoutCartItemPrice({
+  currencyCode,
+  currentLineAmount,
+  originalLineAmount,
+}: CheckoutCartItemPriceProps) {
+  const shouldShowOriginalAmount =
+    typeof originalLineAmount === "number" &&
+    originalLineAmount > currentLineAmount + 0.001;
+
+  return (
+    <div className="flex flex-col items-end gap-100">
+      <p className="font-bold text-fg-primary text-xl leading-tight">
+        {formatCurrencyAmount(currentLineAmount, currencyCode)}
+      </p>
+      {shouldShowOriginalAmount ? (
+        <p className="font-light text-fg-secondary text-sm leading-tight line-through">
+          {formatCurrencyAmount(originalLineAmount, currencyCode)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 export function CheckoutCartItemRow({
   currencyCode,
@@ -37,9 +69,9 @@ export function CheckoutCartItemRow({
   item,
   onRemove,
   onUpdateQuantity,
+  product,
 }: CheckoutCartItemRowProps) {
   const baseQuantity = resolveLineItemQuantity(item);
-  const [localQuantity, setLocalQuantity] = useState(baseQuantity);
   const itemName = resolveCartItemName(item);
   const itemHref = resolveLineItemHref(item);
   const itemInventory = resolveLineItemInventory(item);
@@ -49,43 +81,10 @@ export function CheckoutCartItemRow({
   );
   const currentLineAmount = resolveLineItemTotalAmount(item);
   const originalLineAmount = useMemo(
-    () => resolveOriginalLineItemTotalAmount(item),
-    [item],
+    () => resolveOriginalLineItemTotalAmount(item, product),
+    [item, product],
   );
-  const shouldShowOriginalAmount =
-    typeof originalLineAmount === "number" &&
-    originalLineAmount > currentLineAmount + 0.001;
-  const availabilityText = resolveAvailabilityText(item);
-
-  useEffect(() => {
-    setLocalQuantity(baseQuantity);
-  }, [baseQuantity]);
-
-  useEffect(() => {
-    if (localQuantity === baseQuantity) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      onUpdateQuantity(item.id, localQuantity);
-    }, 250);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [baseQuantity, item.id, localQuantity, onUpdateQuantity]);
-
-  const handleQuantityChange = (nextQuantity: number) => {
-    if (!Number.isFinite(nextQuantity)) {
-      return;
-    }
-
-    const normalizedQuantity = Math.max(
-      1,
-      Math.min(Math.round(nextQuantity), itemMaxQuantity),
-    );
-    setLocalQuantity(normalizedQuantity);
-  };
+  const availabilityText = resolveAvailabilityText(item, product);
 
   return (
     <article className="flex flex-col w-full gap-250 sm:flex-row sm:items-start md:gap-300 md:grid md:grid-cols-[auto_1fr]">
@@ -114,45 +113,29 @@ export function CheckoutCartItemRow({
             </Link>
           <div className="flex w-full justify-between">
              <div className="flex justify-center">
-            <NumericInput
-              allowOverflow={false}
+            <CartLineItemQuantityInput
               className="w-20 shrink-0 sm:w-24"
-              max={itemMaxQuantity}
-              min={1}
-              onChange={handleQuantityChange}
-              size="md"
-              value={localQuantity}
-            >
-              <NumericInput.Control>
-                <NumericInput.DecrementTrigger
-                  disabled={isPending || localQuantity <= 1}
-                />
-                <NumericInput.Input
-                  aria-label={`Množstvo pre ${itemName}`}
-                  className="text-center"
-                />
-                <NumericInput.IncrementTrigger
-                  disabled={isPending || localQuantity >= itemMaxQuantity}
-                />
-              </NumericInput.Control>
-            </NumericInput>
+              inputClassName="text-center"
+              isPending={isPending}
+              itemName={itemName}
+              lineItemId={item.id}
+              maxQuantity={itemMaxQuantity}
+              onRemove={onRemove}
+              onUpdateQuantity={onUpdateQuantity}
+              quantity={baseQuantity}
+            />
           </div>
-          <div className="flex flex-col gap-100">
-            {shouldShowOriginalAmount ? (
-              <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-                {formatCurrencyAmount(originalLineAmount, currencyCode)}
-              </p>
-            ) : null}
-            <p className="font-bold text-fg-primary text-xl leading-tight">
-              {formatCurrencyAmount(currentLineAmount, currencyCode)}
-            </p>
-          </div>
+          <CheckoutCartItemPrice
+            currencyCode={currencyCode}
+            currentLineAmount={currentLineAmount}
+            originalLineAmount={originalLineAmount}
+          />
           </div>
       </div>
       </div>
 
       <div className="grid grid-rows-[1fr_auto] h-full w-full">
-        <div className="hidden sm:grid sm:grid-cols-[3fr_2fr_auto]">
+        <div className="hidden gap-200 sm:grid sm:grid-cols-[3fr_1fr_1fr]">
           <div className="flex items-start">
             <Link
               as={NextLink}
@@ -164,39 +147,23 @@ export function CheckoutCartItemRow({
           </div>
 
           <div className="flex justify-center">
-            <NumericInput
-              allowOverflow={false}
+            <CartLineItemQuantityInput
               className="w-20 shrink-0 sm:w-24"
-              max={itemMaxQuantity}
-              min={1}
-              onChange={handleQuantityChange}
-              size="md"
-              value={localQuantity}
-            >
-              <NumericInput.Control>
-                <NumericInput.DecrementTrigger
-                  disabled={isPending || localQuantity <= 1}
-                />
-                <NumericInput.Input
-                  aria-label={`Množstvo pre ${itemName}`}
-                  className="text-center"
-                />
-                <NumericInput.IncrementTrigger
-                  disabled={isPending || localQuantity >= itemMaxQuantity}
-                />
-              </NumericInput.Control>
-            </NumericInput>
+              inputClassName="text-center pr-0 pl-0"
+              isPending={isPending}
+              itemName={itemName}
+              lineItemId={item.id}
+              maxQuantity={itemMaxQuantity}
+              onRemove={onRemove}
+              onUpdateQuantity={onUpdateQuantity}
+              quantity={baseQuantity}
+            />
           </div>
-          <div className="flex flex-col gap-100">
-            {shouldShowOriginalAmount ? (
-              <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-                {formatCurrencyAmount(originalLineAmount, currencyCode)}
-              </p>
-            ) : null}
-            <p className="font-bold text-fg-primary text-xl leading-tight">
-              {formatCurrencyAmount(currentLineAmount, currencyCode)}
-            </p>
-          </div>
+          <CheckoutCartItemPrice
+            currencyCode={currencyCode}
+            currentLineAmount={currentLineAmount}
+            originalLineAmount={originalLineAmount}
+          />
         </div>
 
           
