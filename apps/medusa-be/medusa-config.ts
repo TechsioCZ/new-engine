@@ -80,6 +80,10 @@ module.exports = defineConfig({
   },
   plugins: [
     {
+      resolve: "medusa-plugin-content",
+      options: {},
+    },
+    {
       resolve: "@medusajs/draft-order",
       options: {},
     },
