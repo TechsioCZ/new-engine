@@ -36,33 +36,35 @@ export function HerbatikaAccountPopover() {
   }
 
   return (
-    <Popover
-      contentClassName="w-[22rem] max-w-[calc(100vw-2rem)]"
+    <Popover.Root
       gutter={12}
       id="herbatika-login-popover"
       onOpenChange={({ open }) => setIsPopoverOpen(open)}
       open={isPopoverOpen}
       placement="bottom-end"
       shadow={false}
-      title="Prihlásenie"
-      trigger={
-        <>
-          <span className="sr-only">Prihlásenie</span>
-          <Icon
-            className="text-3xl text-fg-secondary hover:text-primary"
-            icon="token-icon-user"
-          />
-        </>
-      }
-      triggerClassName="px-0 py-0 text-3xl hover:bg-transparent data-[state=open]:bg-transparent"
     >
-      <LoginForm
-        defaultValues={controller.loginDefaultValues}
-        isBusy={controller.isBusy}
-        onSubmit={controller.handleLoginSubmit}
-        registerHref={controller.registerHref}
-        forgotPasswordHref={controller.forgotPasswordHref}
-      />
-    </Popover>
+      <Popover.Trigger className="px-0 py-0 text-3xl hover:bg-transparent data-[state=open]:bg-transparent">
+        <span className="sr-only">Prihlásenie</span>
+        <Icon
+          className="text-3xl text-fg-secondary hover:text-primary"
+          icon="token-icon-user"
+        />
+      </Popover.Trigger>
+
+      <Popover.Positioner>
+        <Popover.Content className="w-[22rem] max-w-[calc(100vw-2rem)]">
+          <Popover.Arrow />
+          <Popover.Title>Prihlásenie</Popover.Title>
+          <LoginForm
+            defaultValues={controller.loginDefaultValues}
+            isBusy={controller.isBusy}
+            onSubmit={controller.handleLoginSubmit}
+            registerHref={controller.registerHref}
+            forgotPasswordHref={controller.forgotPasswordHref}
+          />
+        </Popover.Content>
+      </Popover.Positioner>
+    </Popover.Root>
   );
 }
