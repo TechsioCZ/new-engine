@@ -258,6 +258,21 @@ describe("PacketaFulfillmentProviderService", () => {
       )
     })
 
+    it("throws for COD when order total is missing", async () => {
+      const order = createOrder({ total: undefined } as any)
+      await expect(
+        createService().createFulfillment(
+          createShippingData({ supports_cod: true }),
+          [],
+          order,
+          { id: "ful_1" }
+        )
+      ).rejects.toThrow(
+        "Packeta: order total or item_total is required for COD shipments"
+      )
+      expect(mockPacketaClient.createPacket).not.toHaveBeenCalled()
+    })
+
     it("uses explicit shipping weight as kilograms", async () => {
       const order = createOrder()
       await createService().createFulfillment(

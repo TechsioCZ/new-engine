@@ -1,6 +1,7 @@
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import { decryptFields, encryptFields } from "../../utils/encryption"
+import { safeResolve } from "../../utils/safe-resolve"
 import { PacketaClient } from "./client"
 import PacketaConfig from "./models/packeta-config"
 import {
@@ -78,7 +79,7 @@ export class PacketaClientModuleService extends MedusaService({
     this.logger_ = container.logger
     this.environment_ = options.environment
 
-    this.cacheService_ = this.safeResolve<ICachingModuleService>(
+    this.cacheService_ = safeResolve<ICachingModuleService>(
       container,
       Modules.CACHING
     )
@@ -92,14 +93,6 @@ export class PacketaClientModuleService extends MedusaService({
     this.logger_.info(
       `Packeta: Module service initialized (${this.environment_} environment)`
     )
-  }
-
-  private safeResolve<T>(
-    container: InjectedDependencies,
-    key: string
-  ): T | null {
-    const value = (container as Record<string, unknown>)[key]
-    return value !== undefined && value !== null ? (value as T) : null
   }
 
   getEnvironment(): PacketaEnvironment {

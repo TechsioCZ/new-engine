@@ -5,6 +5,7 @@ import type {
 } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import { decryptFields, encryptFields } from "../../utils/encryption"
+import { safeResolve } from "../../utils/safe-resolve"
 import { PplClient } from "./client"
 import PplConfig from "./models/ppl-config"
 import {
@@ -114,13 +115,11 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     this.logger_ = container.logger
     this.environment_ = options.environment
 
-    // Resolve optional cross-module dependencies safely
-    // Awilix throws on access for unregistered keys, so we need try-catch
-    this.cacheService_ = this.safeResolve<ICachingModuleService>(
+    this.cacheService_ = safeResolve<ICachingModuleService>(
       container,
       Modules.CACHING
     )
-    this.lockingService_ = this.safeResolve<ILockingModule>(
+    this.lockingService_ = safeResolve<ILockingModule>(
       container,
       Modules.LOCKING
     )
@@ -134,18 +133,6 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     this.logger_.info(
       `PPL: Module service initialized (${this.environment_} environment)`
     )
-  }
-
-  /**
-   * Safely resolve optional cross-module dependencies.
-   * Returns null instead of throwing if the dependency is not registered.
-   */
-  private safeResolve<T>(
-    container: InjectedDependencies,
-    key: string
-  ): T | null {
-    const value = (container as Record<string, unknown>)[key]
-    return value !== undefined && value !== null ? (value as T) : null
   }
 
   // ============================================

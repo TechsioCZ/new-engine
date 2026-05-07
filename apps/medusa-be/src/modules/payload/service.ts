@@ -4,6 +4,7 @@ import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import type { z } from "@medusajs/framework/zod"
 import qs from "qs"
+import { safeResolve } from "../../utils/safe-resolve"
 import {
   ArticleCategoriesWithArticlesSchema,
   CmsArticlesBulkResultSchema,
@@ -94,7 +95,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       Authorization: `users API-Key ${options.apiKey}`,
     }
     this.logger_ = container.logger
-    this.cacheService_ = this.safeResolve<ICachingModuleService>(
+    this.cacheService_ = safeResolve<ICachingModuleService>(
       container,
       Modules.CACHING
     )
@@ -121,17 +122,6 @@ export default class PayloadModuleService extends MedusaService({}) {
         "Payload apiKey is required"
       )
     }
-  }
-
-  /**
-   * Resolve a dependency from the container, returning null if unavailable.
-   */
-  private safeResolve<T>(
-    container: InjectedDependencies,
-    key: string
-  ): T | null {
-    const value = (container as Record<string, unknown>)[key]
-    return value !== undefined && value !== null ? (value as T) : null
   }
 
   /**

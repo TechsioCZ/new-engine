@@ -461,10 +461,16 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     const orderNumber =
       order.display_id?.toString() || order.id || `fulfillment-${Date.now()}`
 
-    const totalNumber =
+    const orderTotal =
       toFiniteNumber(order.total) ??
-      toFiniteNumber((order as { item_total?: unknown }).item_total) ??
-      1
+      toFiniteNumber((order as { item_total?: unknown }).item_total)
+    if (shippingData.supports_cod && orderTotal === undefined) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: order total or item_total is required for COD shipments"
+      )
+    }
+    const totalNumber = orderTotal ?? 1
     const packetWeight =
       toFiniteNumber((shippingData as { weight?: unknown }).weight) ??
       (await this.calculateOrderItemsWeightKg(order, items)) ??
