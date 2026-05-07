@@ -11,6 +11,7 @@ import { createElement, type ReactNode } from "react"
 import { type CreateEmailOptions, Resend } from "resend"
 import ForgotPasswordEmail from "./emails/forgot-password"
 import OrderPaymentReminderEmail from "./emails/order-payment-reminder"
+import OrderReceiptEmail from "./emails/order-receipt"
 import {
   type ResendEmailTemplate,
   resendEmailTemplates as templates,
@@ -44,16 +45,33 @@ type OrderPaymentReminderTemplateData = {
   total?: string
 }
 
+type OrderReceiptTemplateData = {
+  customer_name?: string
+  order_display_id: string
+  store_name?: string
+  total?: string
+}
+
+type NotificationAttachment = {
+  content?: Buffer | string
+  content_type?: string
+  contentType?: string
+  filename?: string | false
+  path?: string
+}
+
 type Template = ResendEmailTemplate
 
 const templateComponents: {
   [templates.FORGOT_PASSWORD]: (props: ForgotPasswordTemplateData) => ReactNode
+  [templates.ORDER_PLACED]: (props: OrderReceiptTemplateData) => ReactNode
   [templates.ORDER_PAYMENT_REMINDER]: (
     props: OrderPaymentReminderTemplateData
   ) => ReactNode
 } = {
   [templates.FORGOT_PASSWORD]: (props) =>
     createElement(ForgotPasswordEmail, props),
+  [templates.ORDER_PLACED]: (props) => createElement(OrderReceiptEmail, props),
   [templates.ORDER_PAYMENT_REMINDER]: (props) =>
     createElement(OrderPaymentReminderEmail, props),
 }
@@ -111,6 +129,8 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     switch (template) {
       case templates.FORGOT_PASSWORD:
         return "Forgot Password"
+      case templates.ORDER_PLACED:
+        return "Potvrzení objednávky"
       case templates.ORDER_PAYMENT_REMINDER:
         return "Zaplaťte prosím svou objednávku"
       default:
@@ -125,6 +145,8 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     switch (template) {
       case templates.FORGOT_PASSWORD:
         return templateComponents[template](data as ForgotPasswordTemplateData)
+      case templates.ORDER_PLACED:
+        return templateComponents[template](data as OrderReceiptTemplateData)
       case templates.ORDER_PAYMENT_REMINDER:
         return templateComponents[template](
           data as OrderPaymentReminderTemplateData
@@ -132,6 +154,23 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       default:
         return null
     }
+  }
+
+  protected getAttachments(notification: ProviderSendNotificationDTO) {
+    const attachments = (notification as unknown as {
+      attachments?: NotificationAttachment[]
+    }).attachments
+
+    if (!attachments?.length) {
+      return undefined
+    }
+
+    return attachments.map((attachment) => ({
+      content: attachment.content,
+      contentType: attachment.contentType ?? attachment.content_type,
+      filename: attachment.filename,
+      path: attachment.path,
+    }))
   }
 
   override async send(
@@ -148,6 +187,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     }
 
     const commonOptions = {
+      attachments: this.getAttachments(notification),
       from: this.options.from,
       to: [notification.to],
       subject: this.getTemplateSubject(templateKey),

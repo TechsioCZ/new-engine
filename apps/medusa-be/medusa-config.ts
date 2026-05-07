@@ -293,6 +293,9 @@ module.exports = defineConfig({
       resolve: "./src/modules/email-log",
     },
     {
+      resolve: "./src/modules/order-receipt",
+    },
+    {
       resolve: "@medusajs/event-bus-redis",
       key: Modules.EVENT_BUS,
       options: {
