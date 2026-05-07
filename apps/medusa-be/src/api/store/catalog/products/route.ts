@@ -3,6 +3,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
   ContainerRegistrationKeys,
   MedusaError,
+  ProductStatus,
   QueryContext,
 } from "@medusajs/framework/utils"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
@@ -15,8 +16,10 @@ import {
   STATUS_FACET_LABEL_BY_ID,
 } from "../../../../modules/meilisearch/facets/product-facets"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
+import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
 import {
   buildCatalogFilterExpressions,
+  type FacetCountItem,
   getFacetDistribution,
   getNumericFacetStats,
   humanizeFacetHandle,
@@ -27,7 +30,6 @@ import {
   normalizeStatusParam,
   resolveCatalogSort,
   sortFacetCountItems,
-  type FacetCountItem,
 } from "./utils"
 import {
   STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
@@ -62,7 +64,9 @@ const FACETS_TO_FETCH = [
   "facet_price",
 ]
 
-const mapStatusFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
+const mapStatusFacets = (
+  facetCounts: Map<string, number>
+): FacetCountItem[] => {
   const usedIds = new Set<string>()
 
   const result: FacetCountItem[] = STATUS_FACET_DEFINITIONS.map((item) => {
@@ -116,20 +120,78 @@ const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
 
 const getProductIdFromHit = (hit: unknown): string | undefined => {
   if (!hit || typeof hit !== "object" || Array.isArray(hit)) {
-    return undefined
+    return
   }
 
   const id = (hit as MeiliProductHit).id
   if (typeof id === "string") {
     return id
   }
-  if (typeof id === "number" && Number.isFinite(id)) {
+  if (Number.isFinite(id)) {
     return String(id)
   }
 
-  return undefined
+  return
 }
 
+const escapeMeiliFilterValue = (value: string): string =>
+  value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
+
+const getSalesChannelIds = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string")
+  }
+
+  if (typeof value === "string") {
+    return [value]
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const inValue = (value as Record<string, unknown>).$in
+    if (Array.isArray(inValue)) {
+      return inValue.filter((item): item is string => typeof item === "string")
+    }
+  }
+
+  return []
+}
+
+const buildMeiliOrExpression = (
+  field: string,
+  values: string[]
+): string | undefined => {
+  const uniqueValues = Array.from(new Set(values.filter(Boolean)))
+  if (uniqueValues.length === 0) {
+    return
+  }
+
+  if (uniqueValues.length === 1) {
+    const [value] = uniqueValues
+    return value ? `${field} = "${escapeMeiliFilterValue(value)}"` : undefined
+  }
+
+  return `(${uniqueValues
+    .map((value) => `${field} = "${escapeMeiliFilterValue(value)}"`)
+    .join(" OR ")})`
+}
+
+const buildVisibilityFilterExpressions = (
+  salesChannelIdFilter: unknown
+): string[] => {
+  const expressions = [
+    `facet_product_status = "${escapeMeiliFilterValue(ProductStatus.PUBLISHED)}"`,
+  ]
+  const salesChannelExpression = buildMeiliOrExpression(
+    "facet_sales_channel_ids",
+    getSalesChannelIds(salesChannelIdFilter)
+  )
+
+  if (salesChannelExpression) {
+    expressions.push(salesChannelExpression)
+  }
+
+  return expressions
+}
 const resolveBrandFacetLabels = async (
   queryService: Query,
   facetIds: string[]
@@ -159,7 +221,7 @@ const resolveBrandFacetLabels = async (
 
   const producerTitleByHandle = new Map<string, string>()
   for (const producer of producers as ProducerRecord[]) {
-    if (!producer.handle || !producer.title) {
+    if (!(producer.handle && producer.title)) {
       continue
     }
     producerTitleByHandle.set(producer.handle, producer.title)
@@ -171,7 +233,10 @@ const resolveBrandFacetLabels = async (
       continue
     }
 
-    labelsById.set(facetId, producerTitleByHandle.get(handle) ?? humanizeFacetHandle(handle))
+    labelsById.set(
+      facetId,
+      producerTitleByHandle.get(handle) ?? humanizeFacetHandle(handle)
+    )
   }
 
   return labelsById
@@ -206,7 +271,7 @@ const resolveIngredientFacetLabels = async (
 
   const categoryNameByHandle = new Map<string, string>()
   for (const category of categories as CategoryRecord[]) {
-    if (!category.handle || !category.name) {
+    if (!(category.handle && category.name)) {
       continue
     }
     categoryNameByHandle.set(category.handle, category.name)
@@ -230,15 +295,14 @@ const resolveIngredientFacetLabels = async (
 const mapDynamicFacets = (
   facetCounts: Map<string, number>,
   labelsById: Map<string, string>
-): FacetCountItem[] => {
-  return sortFacetCountItems(
+): FacetCountItem[] =>
+  sortFacetCountItems(
     Array.from(facetCounts.entries()).map(([id, count]) => ({
       id,
       label: labelsById.get(id) ?? humanizeFacetHandle(id),
       count,
     }))
   )
-}
 
 export async function GET(
   req: MedusaRequest<unknown, StoreCatalogProductsSchemaType>,
@@ -269,6 +333,10 @@ export async function GET(
   })
 
   const sort = resolveCatalogSort(validatedQuery.sort)
+  const searchFilters = [
+    ...filterExpressions,
+    ...buildVisibilityFilterExpressions(req.filterableFields.sales_channel_id),
+  ]
   const searchResult = await meilisearchService.search(
     "products",
     validatedQuery.q.trim(),
@@ -277,7 +345,7 @@ export async function GET(
         limit,
         offset,
       },
-      filter: filterExpressions.length > 0 ? filterExpressions : undefined,
+      filter: searchFilters.length > 0 ? searchFilters : undefined,
       additionalOptions: {
         attributesToRetrieve: ["id"],
         facets: FACETS_TO_FETCH,
@@ -304,9 +372,10 @@ export async function GET(
       },
     })
 
-    const region = ((regions as RegionPricingRecord[])[0] ?? null) as RegionPricingRecord | null
+    const region = ((regions as RegionPricingRecord[])[0] ??
+      null) as RegionPricingRecord | null
 
-    if (!region?.id || !region.currency_code) {
+    if (!(region?.id && region.currency_code)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         `Region with id ${validatedQuery.region_id} not found when populating pricing context`
@@ -330,11 +399,13 @@ export async function GET(
       : await queryService.graph({
           entity: "product",
           fields: productFields,
-          filters: {
+          filters: await normalizeProductSalesChannelFilter(queryService, {
             id: {
               $in: productIds,
             },
-          },
+            sales_channel_id: req.filterableFields.sales_channel_id,
+            status: ProductStatus.PUBLISHED,
+          }),
           context: pricingContext
             ? {
                 variants: {
@@ -369,7 +440,10 @@ export async function GET(
     searchResult.facetDistribution,
     "facet_ingredient"
   )
-  const priceFacetStats = getNumericFacetStats(searchResult.facetStats, "facet_price")
+  const priceFacetStats = getNumericFacetStats(
+    searchResult.facetStats,
+    "facet_price"
+  )
 
   const [brandLabelsById, ingredientLabelsById] = await Promise.all([
     resolveBrandFacetLabels(queryService, Array.from(brandFacetCounts.keys())),

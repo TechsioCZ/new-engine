@@ -1,8 +1,9 @@
 name: ZaneOps Preview Teardown
 
+# Temporarily disabled. Restore the pull_request closed trigger when re-enabling
+# ZaneOps preview teardown.
 on:
-  pull_request:
-    types: [closed]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -83,6 +84,7 @@ jobs:
           {
             echo "## Preview Teardown"
             echo "- PR: #${{ github.event.pull_request.number }}"
+            echo "- Skipped: ${{ steps.run_teardown.outcome == 'skipped' && 'true' || 'false' }}"
             echo "- Environment outcome: ${{ steps.run_teardown.outputs.environment_outcome || 'n/a' }}"
             echo "- Environment HTTP: ${{ steps.run_teardown.outputs.environment_http_code || 'n/a' }}"
             echo "- Environment name: ${{ steps.run_teardown.outputs.environment_name || 'n/a' }}"
@@ -95,7 +97,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail when teardown failed
-        if: steps.run_teardown.outcome != 'success'
+        if: steps.run_teardown.outcome == 'failure'
         run: |
           echo "Preview teardown failed and requires manual retry." >&2
           exit 1

@@ -1,0 +1,10 @@
+:root {
+  color-scheme: dark;
+  background: var(--theme-bg, rgb(20, 20, 20));
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--theme-bg, rgb(20, 20, 20));
+}

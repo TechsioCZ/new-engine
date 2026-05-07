@@ -1,8 +1,4 @@
-import {
-  createWorkflow,
-  transform,
-  WorkflowResponse,
-} from "@medusajs/framework/workflows-sdk"
+import {createWorkflow, transform, WorkflowResponse,} from "@medusajs/framework/workflows-sdk"
 import * as Steps from "../steps"
 
 const SeedDatabaseWorkflowId = "seed-database-workflow"

@@ -43,7 +43,9 @@ export const FORM_FACET_DEFINITIONS: FormFacetDefinition[] = [
 export const STATUS_FACET_IDS = new Set(
   STATUS_FACET_DEFINITIONS.map((item) => item.id)
 )
-export const FORM_FACET_IDS = new Set(FORM_FACET_DEFINITIONS.map((item) => item.id))
+export const FORM_FACET_IDS = new Set(
+  FORM_FACET_DEFINITIONS.map((item) => item.id)
+)
 
 export const STATUS_FACET_LABEL_BY_ID = new Map(
   STATUS_FACET_DEFINITIONS.map((item) => [item.id, item.label])
@@ -53,6 +55,8 @@ export const FORM_FACET_LABEL_BY_ID = new Map(
 )
 
 export type ProductFacetDocument = {
+  facet_product_status?: string
+  facet_sales_channel_ids: string[]
   facet_status: string[]
   facet_form: string[]
   facet_brand: string[]
@@ -78,21 +82,27 @@ const asArray = (value: unknown): unknown[] => {
   return value
 }
 
-const normalizeForMatch = (value: string): string => {
-  return value
+const getStringField = (
+  value: UnknownRecord | null,
+  field: string
+): string | undefined => {
+  const rawValue = value?.[field]
+  return typeof rawValue === "string" && rawValue.trim() ? rawValue : undefined
+}
+
+const normalizeForMatch = (value: string): string =>
+  value
     .toLowerCase()
     .normalize("NFD")
     .replaceAll(/\p{Diacritic}/gu, "")
     .trim()
-}
 
-const toSlug = (value: string): string => {
-  return normalizeForMatch(value)
+const toSlug = (value: string): string =>
+  normalizeForMatch(value)
     .replaceAll(/[^a-z0-9-]+/g, "-")
     .replaceAll(/-+/g, "-")
     .replaceAll(/^-+/g, "")
     .replaceAll(/-+$/g, "")
-}
 
 const dedupe = (values: string[]): string[] => {
   const result: string[] = []
@@ -114,7 +124,31 @@ const resolveCategoryPaths = (document: UnknownRecord): string[] => {
   const metadata = asRecord(document.metadata)
   const categoryPaths = asArray(metadata?.category_paths)
 
-  return categoryPaths.filter((value): value is string => typeof value === "string")
+  return categoryPaths.filter(
+    (value): value is string => typeof value === "string"
+  )
+}
+
+const resolveSalesChannelFacetIds = (document: UnknownRecord): string[] => {
+  const ids: string[] = []
+
+  for (const rawSalesChannel of asArray(document.sales_channels)) {
+    const salesChannel = asRecord(rawSalesChannel)
+    const id = getStringField(salesChannel, "id")
+    if (id) {
+      ids.push(id)
+    }
+  }
+
+  for (const rawSalesChannelLink of asArray(document.sales_channels_link)) {
+    const salesChannelLink = asRecord(rawSalesChannelLink)
+    const salesChannelId = getStringField(salesChannelLink, "sales_channel_id")
+    if (salesChannelId) {
+      ids.push(salesChannelId)
+    }
+  }
+
+  return dedupe(ids)
 }
 
 const resolveProductInStock = (document: UnknownRecord): boolean => {
@@ -189,7 +223,9 @@ const resolveFormFacetIds = (document: UnknownRecord): string[] => {
   const ids: string[] = []
 
   for (const definition of FORM_FACET_DEFINITIONS) {
-    if (!definition.keywords.some((keyword) => searchableText.includes(keyword))) {
+    if (
+      !definition.keywords.some((keyword) => searchableText.includes(keyword))
+    ) {
       continue
     }
     ids.push(definition.id)
@@ -201,7 +237,7 @@ const resolveFormFacetIds = (document: UnknownRecord): string[] => {
 const sanitizeHandle = (value: string): string | undefined => {
   const normalized = value.trim().toLowerCase()
   if (!normalized) {
-    return undefined
+    return
   }
   const slug = toSlug(normalized)
   return slug || undefined
@@ -219,9 +255,13 @@ const resolveBrandFacetIds = (document: UnknownRecord): string[] => {
   }
 
   const producerHandle =
-    typeof producer.handle === "string" ? sanitizeHandle(producer.handle) : undefined
+    typeof producer.handle === "string"
+      ? sanitizeHandle(producer.handle)
+      : undefined
   const producerTitle =
-    typeof producer.title === "string" ? sanitizeHandle(producer.title) : undefined
+    typeof producer.title === "string"
+      ? sanitizeHandle(producer.title)
+      : undefined
   const handle = producerHandle ?? producerTitle
 
   if (!handle) {
@@ -231,9 +271,8 @@ const resolveBrandFacetIds = (document: UnknownRecord): string[] => {
   return [`${BRAND_FACET_PREFIX}${handle}`]
 }
 
-const isActiveIngredientRoot = (value: string): boolean => {
-  return normalizeForMatch(value) === normalizeForMatch(ACTIVE_INGREDIENT_ROOT)
-}
+const isActiveIngredientRoot = (value: string): boolean =>
+  normalizeForMatch(value) === normalizeForMatch(ACTIVE_INGREDIENT_ROOT)
 
 const resolveIngredientFacetIds = (document: UnknownRecord): string[] => {
   const ids: string[] = []
@@ -289,12 +328,12 @@ const parseNumericValue = (value: unknown): number | undefined => {
   }
 
   if (typeof value !== "string") {
-    return undefined
+    return
   }
 
   const normalized = value.trim().replace(",", ".")
   if (!normalized) {
-    return undefined
+    return
   }
 
   const parsed = Number.parseFloat(normalized)
@@ -303,7 +342,7 @@ const parseNumericValue = (value: unknown): number | undefined => {
 
 const normalizeFacetPrice = (value: number | undefined): number | undefined => {
   if (value === undefined || !Number.isFinite(value) || value < 0) {
-    return undefined
+    return
   }
 
   return Math.round(value * 100) / 100
@@ -324,8 +363,13 @@ const resolveFacetPrice = (document: UnknownRecord): number | undefined => {
   ]
 
   for (const candidate of topOfferPriceCandidates) {
-    const normalizedTopOfferPrice = normalizeFacetPrice(parseNumericValue(candidate))
-    if (normalizedTopOfferPrice !== undefined && normalizedTopOfferPrice > 0) {
+    const parsedTopOfferPrice = parseNumericValue(candidate)
+    if (parsedTopOfferPrice === undefined || parsedTopOfferPrice <= 0) {
+      continue
+    }
+
+    const normalizedTopOfferPrice = normalizeFacetPrice(parsedTopOfferPrice)
+    if (normalizedTopOfferPrice !== undefined) {
       return normalizedTopOfferPrice
     }
   }
@@ -358,10 +402,14 @@ const resolveFacetPrice = (document: UnknownRecord): number | undefined => {
   return minPrice
 }
 
-export const buildProductFacetDocument = (document: unknown): ProductFacetDocument => {
+export const buildProductFacetDocument = (
+  document: unknown
+): ProductFacetDocument => {
   const product = asRecord(document) ?? {}
 
   return {
+    facet_product_status: getStringField(product, "status"),
+    facet_sales_channel_ids: resolveSalesChannelFacetIds(product),
     facet_status: resolveStatusFacetIds(product),
     facet_form: resolveFormFacetIds(product),
     facet_brand: resolveBrandFacetIds(product),
@@ -372,29 +420,27 @@ export const buildProductFacetDocument = (document: unknown): ProductFacetDocume
   }
 }
 
-export const isBrandFacetId = (id: string): boolean => {
-  return id.startsWith(BRAND_FACET_PREFIX)
-}
+export const isBrandFacetId = (id: string): boolean =>
+  id.startsWith(BRAND_FACET_PREFIX)
 
 export const extractBrandHandleFromFacetId = (
   id: string
 ): string | undefined => {
   if (!isBrandFacetId(id)) {
-    return undefined
+    return
   }
 
   return id.slice(BRAND_FACET_PREFIX.length) || undefined
 }
 
-export const isIngredientFacetId = (id: string): boolean => {
-  return id.startsWith(INGREDIENT_FACET_PREFIX)
-}
+export const isIngredientFacetId = (id: string): boolean =>
+  id.startsWith(INGREDIENT_FACET_PREFIX)
 
 export const extractIngredientHandleFromFacetId = (
   id: string
 ): string | undefined => {
   if (!isIngredientFacetId(id)) {
-    return undefined
+    return
   }
 
   return id.slice(INGREDIENT_FACET_PREFIX.length) || undefined

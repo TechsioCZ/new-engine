@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 import { BadRequestError } from "./db"
 import type {
   ArchiveEnvironmentInput,
@@ -22,6 +24,94 @@ import type {
 } from "./zane-contract"
 
 type JsonRecord = Record<string, unknown>
+
+const nonEmptyTrimmedStringSchema = z.string().trim().min(1, "cannot be empty")
+
+const strictTrueBooleanSchema = z.literal(true)
+
+const optionalTrimmedStringSchema = z.preprocess(
+  (value) => (value == null ? undefined : value),
+  nonEmptyTrimmedStringSchema.optional()
+)
+
+const optionalNullableTrimmedStringSchema = z.preprocess(
+  (value) => (value === undefined ? undefined : value),
+  nonEmptyTrimmedStringSchema.nullable().optional()
+)
+
+const serviceReconciliationGitSourceSchema = z.object({
+  sync_from_source: strictTrueBooleanSchema,
+  branch_name: optionalTrimmedStringSchema,
+  commit_sha: z.preprocess(
+    (value) => (value == null ? "HEAD" : value),
+    nonEmptyTrimmedStringSchema
+  ),
+})
+
+const serviceReconciliationBuilderSchema = z.object({
+  sync_from_source: strictTrueBooleanSchema,
+  build_stage_target: optionalNullableTrimmedStringSchema,
+})
+
+const serviceReconciliationSyncFlagSchema = z.object({
+  sync_from_source: strictTrueBooleanSchema,
+})
+
+const serviceReconciliationSpecSchema = z.object({
+  service_id: nonEmptyTrimmedStringSchema,
+  service_slug: nonEmptyTrimmedStringSchema,
+  git_source: z.preprocess(
+    (value) => (value == null ? undefined : value),
+    serviceReconciliationGitSourceSchema.optional()
+  ),
+  builder: z.preprocess(
+    (value) => (value == null ? undefined : value),
+    serviceReconciliationBuilderSchema.optional()
+  ),
+  healthcheck: z.preprocess(
+    (value) => (value == null ? undefined : value),
+    serviceReconciliationSyncFlagSchema.optional()
+  ),
+  resource_limits: z.preprocess(
+    (value) => (value == null ? undefined : value),
+    serviceReconciliationSyncFlagSchema.optional()
+  ),
+})
+
+const serviceReconciliationSpecsSchema = z.array(
+  serviceReconciliationSpecSchema
+)
+
+function formatZodPath(label: string, path: PropertyKey[]): string {
+  let current = label
+
+  for (const part of path) {
+    if (typeof part === "number") {
+      current = `${current}[${String(part)}]`
+      continue
+    }
+
+    current = `${current}.${String(part)}`
+  }
+
+  return current
+}
+
+function parseZodInput<T>(
+  schema: z.ZodType<T>,
+  value: unknown,
+  label: string
+): T {
+  const result = schema.safeParse(value)
+  if (result.success) {
+    return result.data
+  }
+
+  const issue = result.error.issues[0]
+  const path = issue ? formatZodPath(label, issue.path) : label
+  const message = issue?.message ?? "is invalid"
+  throw new BadRequestError(`${path} ${message}`)
+}
 
 function assertObject(value: unknown, label: string): JsonRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -90,7 +180,7 @@ function assertStringArray(value: unknown, label: string): string[] {
 function normalizeRuntimeProviderOutput(
   value: unknown,
   label: string
- ): RuntimeProviderOutputInput {
+): RuntimeProviderOutputInput {
   const object = assertObject(value, label)
   const policy = assertObject(object.policy, `${label}.policy`)
   const kind = assertString(policy.kind, `${label}.policy.kind`)
@@ -395,90 +485,7 @@ function parseServiceReconciliationSpecs(
     return []
   }
 
-  if (!Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be an array`)
-  }
-
-  return value.map((item, index) => {
-    const object = assertObject(item, `${label}[${index}]`)
-    const gitSource =
-      object.git_source == null
-        ? undefined
-        : (() => {
-            const gitSourceObject = assertObject(
-              object.git_source,
-              `${label}[${index}].git_source`
-            )
-            return {
-              sync_from_source: gitSourceObject.sync_from_source === true,
-              commit_sha:
-                assertOptionalString(
-                  gitSourceObject.commit_sha,
-                  `${label}[${index}].git_source.commit_sha`
-                ) ?? "HEAD",
-            }
-          })()
-    const builder =
-      object.builder == null
-        ? undefined
-        : (() => {
-            const builderObject = assertObject(
-              object.builder,
-              `${label}[${index}].builder`
-            )
-            return {
-              sync_from_source: builderObject.sync_from_source === true,
-              build_stage_target:
-                typeof builderObject.build_stage_target === "string"
-                  ? assertString(
-                      builderObject.build_stage_target,
-                      `${label}[${index}].builder.build_stage_target`
-                    )
-                  : builderObject.build_stage_target === null
-                    ? null
-                    : undefined,
-            }
-          })()
-    const healthcheck =
-      object.healthcheck == null
-        ? undefined
-        : (() => {
-            const healthcheckObject = assertObject(
-              object.healthcheck,
-              `${label}[${index}].healthcheck`
-            )
-            return {
-              sync_from_source: healthcheckObject.sync_from_source === true,
-            }
-          })()
-    const resourceLimits =
-      object.resource_limits == null
-        ? undefined
-        : (() => {
-            const resourceLimitsObject = assertObject(
-              object.resource_limits,
-              `${label}[${index}].resource_limits`
-            )
-            return {
-              sync_from_source: resourceLimitsObject.sync_from_source === true,
-            }
-          })()
-
-    return {
-      service_id: assertString(
-        object.service_id,
-        `${label}[${index}].service_id`
-      ),
-      service_slug: assertString(
-        object.service_slug,
-        `${label}[${index}].service_slug`
-      ),
-      ...(gitSource ? { git_source: gitSource } : {}),
-      ...(builder ? { builder } : {}),
-      ...(healthcheck ? { healthcheck } : {}),
-      ...(resourceLimits ? { resource_limits: resourceLimits } : {}),
-    }
-  })
+  return parseZodInput(serviceReconciliationSpecsSchema, value, label)
 }
 
 export function parseResolveEnvironmentInput(
@@ -697,7 +704,7 @@ export function parseSyncPreviewServiceEnvInput(
 
 export function parseRuntimeProviderRunInput(
   rawPayload: unknown
- ): RuntimeProviderRunInput {
+): RuntimeProviderRunInput {
   const payload = assertObject(rawPayload, "request body")
   const rawOutputs = payload.outputs
   if (!Array.isArray(rawOutputs) || rawOutputs.length === 0) {

@@ -109,6 +109,15 @@ else
   log_warn "FEATURE_PPL_ENABLED not set - PPL module will NOT be included in build"
 fi
 
+# FEATURE_PAYLOAD_ENABLED is evaluated at build time in medusa-config.ts
+if [[ -n "${FEATURE_PAYLOAD_ENABLED:-}" ]]; then
+  log_info "FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED}"
+else
+  log_warn "FEATURE_PAYLOAD_ENABLED not set - defaulting to 0 for build"
+  FEATURE_PAYLOAD_ENABLED=0
+fi
+export FEATURE_PAYLOAD_ENABLED
+
 log_info "Running: pnpm nx run medusa-be:build --skip-nx-cache"
 
 # Run build and capture output
@@ -156,6 +165,17 @@ log_info "Step 5/5: Creating production node_modules deployment..."
 
 pnpm --filter=medusa-be --prod deploy medusa-be-prod
 rm -rf node_modules apps/medusa-be/node_modules
+if [[ "${PNPM_CLEAN_STORE_AFTER_DEPLOY:-false}" == "true" && -n "${npm_config_store_dir:-}" ]]; then
+  store_dir="$(node -e 'console.log(require("node:path").resolve(process.argv[1]))' "$npm_config_store_dir")"
+  case "$store_dir" in
+    "$PROJECT_ROOT"/.pnpm-store|"$PROJECT_ROOT"/.pnpm-store/*|/tmp/pnpm-store|/tmp/pnpm-store/*)
+      rm -rf "$store_dir"
+      ;;
+    *)
+      log_warn "Skipping pnpm store cleanup for unexpected path: $store_dir"
+      ;;
+  esac
+fi
 
 step_end "Prod deploy"
 

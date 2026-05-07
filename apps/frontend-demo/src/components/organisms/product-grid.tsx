@@ -1,6 +1,9 @@
 "use client"
 
-import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import {
+  Pagination,
+  type PaginationProps as UIPaginationProps,
+} from "@techsio/ui-kit/molecules/pagination"
 import Link from "next/link"
 import { useState } from "react"
 import { AddToCartDialog } from "@/components/molecules/add-to-cart-dialog"
@@ -11,12 +14,12 @@ import type { Product } from "@/types/product"
 import { formatPrice } from "@/utils/price-utils"
 import { extractProductData } from "@/utils/product-utils"
 
-interface ProductGridProps {
+type ProductGridProps = {
   products: Product[]
   totalCount?: number
   currentPage?: number
   pageSize?: number
-  onPageChange?: (page: number) => void
+  getPageUrl?: NonNullable<UIPaginationProps["getPageUrl"]>
 }
 
 export function ProductGrid({
@@ -24,7 +27,7 @@ export function ProductGrid({
   totalCount,
   currentPage = 1,
   pageSize = 12,
-  onPageChange,
+  getPageUrl,
 }: ProductGridProps) {
   const { selectedRegion } = useRegions()
   const prefetchProduct = usePrefetchProduct()
@@ -98,13 +101,14 @@ export function ProductGrid({
         })}
       </div>
 
-      {totalPages > 1 && onPageChange && (
+      {totalPages > 1 && getPageUrl && (
         <div className="mt-product-grid-pagination-margin flex justify-center">
           {/* Mobile pagination with no siblings */}
           <Pagination
             className="sm:hidden"
             count={totalCount || products.length}
-            onPageChange={onPageChange}
+            getPageUrl={getPageUrl}
+            linkAs={Link}
             page={currentPage}
             pageSize={pageSize}
             siblingCount={0}
@@ -113,7 +117,8 @@ export function ProductGrid({
           <Pagination
             className="hidden sm:flex"
             count={totalCount || products.length}
-            onPageChange={onPageChange}
+            getPageUrl={getPageUrl}
+            linkAs={Link}
             page={currentPage}
             pageSize={pageSize}
             siblingCount={1}

@@ -3,6 +3,7 @@ import { buildProductFacetDocument } from "../../../src/modules/meilisearch/face
 describe("product facet document builder", () => {
   it("derives all primary facets from product payload", () => {
     const result = buildProductFacetDocument({
+      status: "published",
       title: "Horčík kapsuly",
       metadata: {
         category_paths: [
@@ -33,9 +34,18 @@ describe("product facet document builder", () => {
           name: "Horčík",
         },
       ],
+      sales_channels: [
+        {
+          id: "sc_visible",
+        },
+      ],
     })
 
-    expect(result.facet_status).toEqual(expect.arrayContaining(["in-stock", "action"]))
+    expect(result.facet_product_status).toBe("published")
+    expect(result.facet_sales_channel_ids).toEqual(["sc_visible"])
+    expect(result.facet_status).toEqual(
+      expect.arrayContaining(["in-stock", "action"])
+    )
     expect(result.facet_form).toEqual(expect.arrayContaining(["form-capsules"]))
     expect(result.facet_brand).toEqual(["brand-natura-balance"])
     expect(result.facet_ingredient).toEqual([

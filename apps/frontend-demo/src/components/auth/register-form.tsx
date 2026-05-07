@@ -1,6 +1,5 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { ErrorText } from "@techsio/ui-kit/atoms/error-text"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { type FormEvent, useState } from "react"
@@ -125,11 +124,7 @@ export function RegisterForm() {
             }),
             isFormLoading
           )}
-          helpText={
-            getFieldError("email") && (
-              <ErrorText showIcon>{getFieldError("email")}</ErrorText>
-            )
-          }
+          helpText={getFieldError("email")}
           validateStatus={getFieldError("email") ? "error" : "default"}
         />
 
@@ -146,11 +141,7 @@ export function RegisterForm() {
               }),
               isFormLoading
             )}
-            helpText={
-              getFieldError("password") && (
-                <ErrorText showIcon>{getFieldError("password")}</ErrorText>
-              )
-            }
+            helpText={getFieldError("password")}
             validateStatus={getFieldError("password") ? "error" : "default"}
           />
           <PasswordRequirements password={password} />
@@ -168,11 +159,7 @@ export function RegisterForm() {
             }),
             isFormLoading
           )}
-          helpText={
-            getFieldError("confirmPassword") ? (
-              <ErrorText showIcon>{getFieldError("confirmPassword")}</ErrorText>
-            ) : undefined
-          }
+          helpText={getFieldError("confirmPassword")}
           validateStatus={
             getFieldError("confirmPassword") ? "error" : "default"
           }

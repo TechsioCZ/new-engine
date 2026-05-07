@@ -38,8 +38,19 @@ type CatalogFilterInput = {
 
 const MAX_FILTER_VALUES_PER_FACET = 40
 
-const escapeFilterValue = (value: string): string => {
-  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
+const escapeFilterValue = (value: string): string =>
+  value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
+
+const toRawMultiValueArray = (value: MultiValueParam): string[] => {
+  if (Array.isArray(value)) {
+    return value
+  }
+
+  if (typeof value === "string") {
+    return [value]
+  }
+
+  return []
 }
 
 const normalizeMultiValueParam = (
@@ -49,7 +60,7 @@ const normalizeMultiValueParam = (
     maxItems?: number
   }
 ): string[] => {
-  const rawValues = Array.isArray(value) ? value : typeof value === "string" ? [value] : []
+  const rawValues = toRawMultiValueArray(value)
   const seen = new Set<string>()
   const result: string[] = []
   const maxItems = options?.maxItems ?? MAX_FILTER_VALUES_PER_FACET
@@ -77,15 +88,18 @@ const normalizeMultiValueParam = (
   return result
 }
 
-const buildOrFilterExpression = (field: string, values: string[]): string | undefined => {
+const buildOrFilterExpression = (
+  field: string,
+  values: string[]
+): string | undefined => {
   if (values.length === 0) {
-    return undefined
+    return
   }
 
   if (values.length === 1) {
     const singleValue = values[0]
     if (!singleValue) {
-      return undefined
+      return
     }
 
     return `${field} = "${escapeFilterValue(singleValue)}"`
@@ -96,56 +110,49 @@ const buildOrFilterExpression = (field: string, values: string[]): string | unde
     .join(" OR ")})`
 }
 
-const toFinitePositiveNumber = (value: number | undefined): number | undefined => {
+const toFinitePositiveNumber = (
+  value: number | undefined
+): number | undefined => {
   if (value === undefined || Number.isNaN(value) || !Number.isFinite(value)) {
-    return undefined
+    return
   }
 
   return Math.max(0, value)
 }
 
-const isCategoryIdValue = (value: string): boolean => {
-  return value.length <= 120
-}
+const isCategoryIdValue = (value: string): boolean => value.length <= 120
 
-export const isBrandFacetValue = (value: string): boolean => {
-  return value.startsWith(BRAND_FACET_PREFIX)
-}
+export const isBrandFacetValue = (value: string): boolean =>
+  value.startsWith(BRAND_FACET_PREFIX)
 
-export const isIngredientFacetValue = (value: string): boolean => {
-  return value.startsWith(INGREDIENT_FACET_PREFIX)
-}
+export const isIngredientFacetValue = (value: string): boolean =>
+  value.startsWith(INGREDIENT_FACET_PREFIX)
 
-export const normalizeCategoryIdsParam = (value: MultiValueParam): string[] => {
-  return normalizeMultiValueParam(value, { allowValue: isCategoryIdValue })
-}
+export const normalizeCategoryIdsParam = (value: MultiValueParam): string[] =>
+  normalizeMultiValueParam(value, { allowValue: isCategoryIdValue })
 
-export const normalizeStatusParam = (value: MultiValueParam): string[] => {
-  return normalizeMultiValueParam(value, {
+export const normalizeStatusParam = (value: MultiValueParam): string[] =>
+  normalizeMultiValueParam(value, {
     allowValue: (item) => STATUS_FACET_IDS.has(item),
   })
-}
 
-export const normalizeFormParam = (value: MultiValueParam): string[] => {
-  return normalizeMultiValueParam(value, {
+export const normalizeFormParam = (value: MultiValueParam): string[] =>
+  normalizeMultiValueParam(value, {
     allowValue: (item) => FORM_FACET_IDS.has(item),
   })
-}
 
-export const normalizeBrandParam = (value: MultiValueParam): string[] => {
-  return normalizeMultiValueParam(value, { allowValue: isBrandFacetValue })
-}
+export const normalizeBrandParam = (value: MultiValueParam): string[] =>
+  normalizeMultiValueParam(value, { allowValue: isBrandFacetValue })
 
-export const normalizeIngredientParam = (value: MultiValueParam): string[] => {
-  return normalizeMultiValueParam(value, { allowValue: isIngredientFacetValue })
-}
+export const normalizeIngredientParam = (value: MultiValueParam): string[] =>
+  normalizeMultiValueParam(value, { allowValue: isIngredientFacetValue })
 
 export const resolveCatalogSort = (
   sort: CatalogSortValue
 ): string[] | undefined => {
   switch (sort) {
     case "best-selling":
-      return undefined
+      return
     case "newest":
       return ["created_at:desc"]
     case "oldest":
@@ -159,7 +166,7 @@ export const resolveCatalogSort = (
     case "title-desc":
       return ["title:desc"]
     default:
-      return undefined
+      return
   }
 }
 
@@ -176,7 +183,10 @@ export const buildCatalogFilterExpressions = (
     expressions.push(categoryExpression)
   }
 
-  const statusExpression = buildOrFilterExpression("facet_status", input.statusIds)
+  const statusExpression = buildOrFilterExpression(
+    "facet_status",
+    input.statusIds
+  )
   if (statusExpression) {
     expressions.push(statusExpression)
   }
@@ -222,7 +232,11 @@ export const getFacetDistribution = (
   distribution: unknown,
   facetKey: string
 ): Map<string, number> => {
-  if (!distribution || typeof distribution !== "object" || Array.isArray(distribution)) {
+  if (
+    !distribution ||
+    typeof distribution !== "object" ||
+    Array.isArray(distribution)
+  ) {
     return new Map()
   }
 
@@ -246,7 +260,11 @@ export const getNumericFacetStats = (
   facetStats: unknown,
   facetKey: string
 ): { min?: number; max?: number } => {
-  if (!facetStats || typeof facetStats !== "object" || Array.isArray(facetStats)) {
+  if (
+    !facetStats ||
+    typeof facetStats !== "object" ||
+    Array.isArray(facetStats)
+  ) {
     return {}
   }
 
@@ -265,19 +283,16 @@ export const getNumericFacetStats = (
   return { min, max }
 }
 
-export const humanizeFacetHandle = (handle: string): string => {
-  return handle
-    .replaceAll("-", " ")
-    .replaceAll(/\s+/g, " ")
-    .trim()
-}
+export const humanizeFacetHandle = (handle: string): string =>
+  handle.replaceAll("-", " ").replaceAll(/\s+/g, " ").trim()
 
-export const sortFacetCountItems = (items: FacetCountItem[]): FacetCountItem[] => {
-  return [...items].sort((left, right) => {
+export const sortFacetCountItems = (
+  items: FacetCountItem[]
+): FacetCountItem[] =>
+  [...items].sort((left, right) => {
     if (left.count !== right.count) {
       return right.count - left.count
     }
 
     return left.label.localeCompare(right.label, "sk")
   })
-}

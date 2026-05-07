@@ -339,46 +339,51 @@ export const NestedSubmenu: Story = {
               <Header.NavItem>
                 <Link href="/contact">Contact</Link>
               </Header.NavItem>
-              <Popover
-                id="shop-popover-1"
-                trigger={
+              <Popover.Root id="shop-popover-1" placement="bottom">
+                <Popover.Trigger className="hover:bg-transparent">
                   <Header.NavItem>
                     <span>Shop</span>
                     <Icon icon="icon-[mdi--chevron-down]" />
                   </Header.NavItem>
-                }
-                placement="bottom"
-                triggerClassName="hover:bg-transparent"
-              >
-                <Header.NavItem>
-                  <Link href="/shop/new">New Arrivals</Link>
-                </Header.NavItem>
-
-                <Popover
-                  id="categories-popover-1"
-                  trigger={
+                </Popover.Trigger>
+                <Popover.Positioner>
+                  <Popover.Content>
+                    <Popover.Arrow />
                     <Header.NavItem>
-                      <span>Categories</span>
-                      <Icon icon="icon-[mdi--chevron-down]" />
+                      <Link href="/shop/new">New Arrivals</Link>
                     </Header.NavItem>
-                  }
-                  placement="right-start"
-                  triggerClassName="text-fg-primary px-0 py-0 hover:bg-transparent"
-                >
-                  <Header.NavItem>
-                    <Link href="/shop/electronics">Electronics</Link>
-                  </Header.NavItem>
-                  <Header.NavItem>
-                    <Link href="/shop/clothing">Clothing</Link>
-                  </Header.NavItem>
-                  <Header.NavItem>
-                    <Link href="/shop/home">Home & Garden</Link>
-                  </Header.NavItem>
-                </Popover>
-                <Header.NavItem>
-                  <Link href="/shop/sale">Sale</Link>
-                </Header.NavItem>
-              </Popover>
+
+                    <Popover.Root
+                      id="categories-popover-1"
+                      placement="right-start"
+                    >
+                      <Popover.Trigger className="text-fg-primary px-0 py-0 hover:bg-transparent">
+                        <Header.NavItem>
+                          <span>Categories</span>
+                          <Icon icon="icon-[mdi--chevron-down]" />
+                        </Header.NavItem>
+                      </Popover.Trigger>
+                      <Popover.Positioner>
+                        <Popover.Content>
+                          <Popover.Arrow />
+                          <Header.NavItem>
+                            <Link href="/shop/electronics">Electronics</Link>
+                          </Header.NavItem>
+                          <Header.NavItem>
+                            <Link href="/shop/clothing">Clothing</Link>
+                          </Header.NavItem>
+                          <Header.NavItem>
+                            <Link href="/shop/home">Home & Garden</Link>
+                          </Header.NavItem>
+                        </Popover.Content>
+                      </Popover.Positioner>
+                    </Popover.Root>
+                    <Header.NavItem>
+                      <Link href="/shop/sale">Sale</Link>
+                    </Header.NavItem>
+                  </Popover.Content>
+                </Popover.Positioner>
+              </Popover.Root>
             </Header.Nav>
           </Header.Desktop>
           <Header.Mobile position="right">
@@ -466,46 +471,51 @@ export const NestedSubmenu: Story = {
                 <Header.NavItem>
                   <Link href="/contact">Contact</Link>
                 </Header.NavItem>
-                <Popover
-                  id="shop-popover-2"
-                  trigger={
+                <Popover.Root id="shop-popover-2" placement="bottom">
+                  <Popover.Trigger className="hover:bg-transparent">
                     <Header.NavItem>
                       <span>Shop</span>
                       <Icon icon="icon-[mdi--chevron-down]" />
                     </Header.NavItem>
-                  }
-                  placement="bottom"
-                  triggerClassName="hover:bg-transparent"
-                >
-                  <Header.NavItem>
-                    <Link href="/shop/new">New Arrivals</Link>
-                  </Header.NavItem>
-
-                  <Popover
-                    id="categories-popover-2"
-                    trigger={
+                  </Popover.Trigger>
+                  <Popover.Positioner>
+                    <Popover.Content>
+                      <Popover.Arrow />
                       <Header.NavItem>
-                        <span>Categories</span>
-                        <Icon icon="icon-[mdi--chevron-down]" />
+                        <Link href="/shop/new">New Arrivals</Link>
                       </Header.NavItem>
-                    }
-                    placement="right-start"
-                    triggerClassName="text-fg-primary px-0 py-0 hover:bg-transparent"
-                  >
-                    <Header.NavItem>
-                      <Link href="/shop/electronics">Electronics</Link>
-                    </Header.NavItem>
-                    <Header.NavItem>
-                      <Link href="/shop/clothing">Clothing</Link>
-                    </Header.NavItem>
-                    <Header.NavItem>
-                      <Link href="/shop/home">Home & Garden</Link>
-                    </Header.NavItem>
-                  </Popover>
-                  <Header.NavItem>
-                    <Link href="/shop/sale">Sale</Link>
-                  </Header.NavItem>
-                </Popover>
+
+                      <Popover.Root
+                        id="categories-popover-2"
+                        placement="right-start"
+                      >
+                        <Popover.Trigger className="text-fg-primary px-0 py-0 hover:bg-transparent">
+                          <Header.NavItem>
+                            <span>Categories</span>
+                            <Icon icon="icon-[mdi--chevron-down]" />
+                          </Header.NavItem>
+                        </Popover.Trigger>
+                        <Popover.Positioner>
+                          <Popover.Content>
+                            <Popover.Arrow />
+                            <Header.NavItem>
+                              <Link href="/shop/electronics">Electronics</Link>
+                            </Header.NavItem>
+                            <Header.NavItem>
+                              <Link href="/shop/clothing">Clothing</Link>
+                            </Header.NavItem>
+                            <Header.NavItem>
+                              <Link href="/shop/home">Home & Garden</Link>
+                            </Header.NavItem>
+                          </Popover.Content>
+                        </Popover.Positioner>
+                      </Popover.Root>
+                      <Header.NavItem>
+                        <Link href="/shop/sale">Sale</Link>
+                      </Header.NavItem>
+                    </Popover.Content>
+                  </Popover.Positioner>
+                </Popover.Root>
               </Header.Nav>
             </Header.Desktop>
             <Header.Mobile position="right">

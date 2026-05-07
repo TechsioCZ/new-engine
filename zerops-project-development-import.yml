@@ -7,6 +7,7 @@ project:
     SEARCH_URL: https://search-${zeropsSubdomainHost}-7700.prg1.zerops.app
     MEDUSA_INSTANCE_URL: https://medusa-${zeropsSubdomainHost}-9000.prg1.zerops.app
     IMGPROXY_INSTANCE_URL: https://imgproxy-${zeropsSubdomainHost}.prg1.zerops.app
+    PAYLOAD_WEBHOOK_SECRET: <@generateRandomString(<32>)>
   tags:
     - development
 
@@ -35,7 +36,7 @@ services:
 
   - hostname: medusa
     type: nodejs@22
-    buildFromGit: https://github.com/NMIT-WR/new-engine
+    buildFromGit: https://github.com/TechsioCZ/new-engine
     enableSubdomainAccess: true
     envSecrets:
       ADMIN_CORS: ${zeropsSubdomain}
@@ -44,6 +45,7 @@ services:
       SUPERADMIN_EMAIL: admin@example.com
       SUPERADMIN_PASSWORD: s4lt_<@generateRandomString(<16>)>
       SETTINGS_ENCRYPTION_KEY: <@generateRandomString(<64>)>
+      PAYLOAD_WEBHOOK_SECRET: ${PAYLOAD_WEBHOOK_SECRET}
       # Feature flags - set to "1" to enable, "0" or empty to disable
       FEATURE_PPL_ENABLED: "0"
       PPL_ENVIRONMENT: testing
@@ -54,7 +56,7 @@ services:
 
   - hostname: demo
     type: nodejs@22
-    buildFromGit: https://github.com/NMIT-WR/new-engine
+    buildFromGit: https://github.com/TechsioCZ/new-engine
     enableSubdomainAccess: true
     envSecrets:
       REVALIDATE_SECRET: <@generateRandomString(<16>)>
@@ -64,9 +66,22 @@ services:
       cpu: 1
     priority: 80
 
+  - hostname: payload
+    type: nodejs@22
+    buildFromGit: https://github.com/NMIT-WR/new-engine
+    enableSubdomainAccess: true
+    envSecrets:
+      PAYLOAD_SECRET: <@generateRandomString(<32>)>
+      PAYLOAD_BASE_URL: https://payload-${zeropsSubdomainHost}-3000.prg1.zerops.app
+      PAYLOAD_WEBHOOK_SECRET: ${PAYLOAD_WEBHOOK_SECRET}
+    verticalAutoscaling:
+      minRam: 0.5
+      cpu: 1
+    priority: 85
+
 #  - hostname: nextstore
 #    type: nodejs@22
-#    buildFromGit: https://github.com/NMIT-WR/new-engine
+#    buildFromGit: https://github.com/TechsioCZ/new-engine
 #    enableSubdomainAccess: true
 #    envSecrets:
 #      REVALIDATE_SECRET: <@generateRandomString(<16>)>

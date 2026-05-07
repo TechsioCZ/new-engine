@@ -1,10 +1,6 @@
-import type {
-  ExecArgs,
-  Logger,
-  Query,
-} from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+import type {ExecArgs, Logger, Query,} from "@medusajs/framework/types"
+import {ContainerRegistrationKeys} from "@medusajs/framework/utils"
+import type {MeiliSearchService} from "@rokmohar/medusa-plugin-meilisearch"
 
 const BATCH_SIZE = 1000
 
@@ -37,7 +33,7 @@ const SYNC_ENTITIES: SyncEntityConfig[] = [
 
 const resolveRecordId = (record: unknown): string | undefined => {
   if (!record || typeof record !== "object" || Array.isArray(record)) {
-    return undefined
+    return
   }
 
   const id = (record as { id?: unknown }).id
@@ -48,7 +44,7 @@ const resolveRecordId = (record: unknown): string | undefined => {
     return String(id)
   }
 
-  return undefined
+  return
 }
 
 const syncEntityToMeilisearch = async ({

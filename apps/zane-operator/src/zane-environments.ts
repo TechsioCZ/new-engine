@@ -181,7 +181,10 @@ function buildDesiredGitSource(
   }
 
   const repositoryUrl = sourceDetails.repository_url?.trim() ?? ""
-  const branchName = sourceDetails.branch_name?.trim() ?? ""
+  const branchName =
+    spec.git_source?.branch_name?.trim() ||
+    sourceDetails.branch_name?.trim() ||
+    ""
   if (!repositoryUrl || !branchName) {
     throw new UpstreamHttpError(
       409,
