@@ -1,4 +1,9 @@
-import { defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  defineConfig,
+  loadEnv,
+  Modules,
+} from "@medusajs/framework/utils"
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
@@ -7,6 +12,7 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
+const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
 const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
 const RESEND_API_KEY = process.env.RESEND_API_KEY
@@ -309,22 +315,56 @@ module.exports = defineConfig({
           },
         ]
       : []),
-    // PPL Fulfillment Provider - thin provider delegating to ppl-client
-    ...(FEATURE_PPL_ENABLED
+    // Packeta Client Module - config stored in DB, managed via Settings → Packeta
+    ...(FEATURE_PACKETA_ENABLED
+      ? [
+          {
+            resolve: "./src/modules/packeta-client",
+            dependencies: [Modules.LOCKING],
+            options: {
+              environment: process.env.PACKETA_ENVIRONMENT ?? "testing",
+            },
+          },
+        ]
+      : []),
+    // Unified Fulfillment Module — conditionally includes PPL and/or Packeta
+    // providers. Registered only if at least one carrier is enabled.
+    ...(FEATURE_PPL_ENABLED || FEATURE_PACKETA_ENABLED
       ? [
           {
             resolve: "@medusajs/medusa/fulfillment",
-            dependencies: ["ppl_client"],
+            dependencies: [
+              ...(FEATURE_PPL_ENABLED ? ["ppl_client"] : []),
+              ...(FEATURE_PACKETA_ENABLED
+                ? [
+                    "packeta_client",
+                    Modules.FILE,
+                    ContainerRegistrationKeys.QUERY,
+                  ]
+                : []),
+            ],
             options: {
               providers: [
                 {
                   resolve: "@medusajs/medusa/fulfillment-manual",
                   id: "manual",
                 },
-                {
-                  resolve: "./src/modules/fulfillment-ppl",
-                  id: "ppl",
-                },
+                ...(FEATURE_PPL_ENABLED
+                  ? [
+                      {
+                        resolve: "./src/modules/fulfillment-ppl",
+                        id: "ppl",
+                      },
+                    ]
+                  : []),
+                ...(FEATURE_PACKETA_ENABLED
+                  ? [
+                      {
+                        resolve: "./src/modules/fulfillment-packeta",
+                        id: "packeta",
+                      },
+                    ]
+                  : []),
               ],
             },
           },
