@@ -9,7 +9,7 @@ import {
   Section,
   Tailwind,
   Text,
-} from "@react-email/components"
+} from "react-email"
 
 type OrderPaymentReminderEmailProps = {
   order_display_id: string
