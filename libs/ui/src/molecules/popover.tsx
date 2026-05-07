@@ -14,9 +14,7 @@ import {
   type ReactNode,
   type Ref,
   useContext,
-  useEffect,
   useId,
-  useRef,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
@@ -80,11 +78,7 @@ const popoverVariants = tv({
 
 type PopoverContextValue = {
   api: PopoverApi
-  clearHoverTimeouts: () => void
-  openOnHover: boolean
   placement: PopoverPlacement
-  scheduleHoverClose: () => void
-  scheduleHoverOpen: () => void
   styles: ReturnType<typeof popoverVariants>
 }
 
@@ -101,14 +95,12 @@ function usePopoverContext() {
 }
 
 export type PopoverRootProps = VariantProps<typeof popoverVariants> &
-  Omit<PopoverMachineProps, "positioning"> & {
+  Omit<PopoverMachineProps, "id" | "positioning"> & {
     children: ReactNode
     flip?: PopoverPositioningOptions["flip"]
     gutter?: PopoverPositioningOptions["gutter"]
-    hoverCloseDelay?: number
-    hoverOpenDelay?: number
+    id?: string
     offset?: PopoverPositioningOptions["offset"]
-    openOnHover?: boolean
     overflowPadding?: PopoverPositioningOptions["overflowPadding"]
     placement?: PopoverPlacement
     sameWidth?: PopoverPositioningOptions["sameWidth"]
@@ -125,15 +117,12 @@ export function Popover({
   dir = "ltr",
   flip = true,
   gutter = 8,
-  hoverCloseDelay = 120,
-  hoverOpenDelay = 0,
   id,
   modal = false,
   offset = { mainAxis: 8, crossAxis: 0 },
   onOpenChange,
   onPointerDownOutside,
   open,
-  openOnHover = false,
   overflowPadding = 8,
   placement = "bottom",
   portalled = true,
@@ -145,10 +134,6 @@ export function Popover({
 }: PopoverRootProps) {
   const generatedId = useId()
   const uniqueId = id || generatedId
-  const hoverOpenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  )
 
   const service = useMachine(machine, {
     ...props,
@@ -177,62 +162,11 @@ export function Popover({
   const api = connect(service as PopoverService, normalizeProps)
   const styles = popoverVariants({ border, shadow, size })
 
-  const clearHoverTimeouts = () => {
-    if (hoverOpenTimeoutRef.current) {
-      clearTimeout(hoverOpenTimeoutRef.current)
-      hoverOpenTimeoutRef.current = null
-    }
-
-    if (hoverCloseTimeoutRef.current) {
-      clearTimeout(hoverCloseTimeoutRef.current)
-      hoverCloseTimeoutRef.current = null
-    }
-  }
-
-  const scheduleHoverOpen = () => {
-    if (!openOnHover) {
-      return
-    }
-
-    clearHoverTimeouts()
-    hoverOpenTimeoutRef.current = setTimeout(() => {
-      api.setOpen(true)
-    }, hoverOpenDelay)
-  }
-
-  const scheduleHoverClose = () => {
-    if (!openOnHover) {
-      return
-    }
-
-    clearHoverTimeouts()
-    hoverCloseTimeoutRef.current = setTimeout(() => {
-      api.setOpen(false)
-    }, hoverCloseDelay)
-  }
-
-  useEffect(
-    () => () => {
-      if (hoverOpenTimeoutRef.current) {
-        clearTimeout(hoverOpenTimeoutRef.current)
-      }
-
-      if (hoverCloseTimeoutRef.current) {
-        clearTimeout(hoverCloseTimeoutRef.current)
-      }
-    },
-    []
-  )
-
   return (
     <PopoverContext.Provider
       value={{
         api,
-        clearHoverTimeouts,
-        openOnHover,
         placement,
-        scheduleHoverClose,
-        scheduleHoverOpen,
         styles,
       }}
     >
@@ -267,29 +201,16 @@ Popover.Trigger = function PopoverTrigger({
   clickBehavior = "toggle",
   disabled,
   onClick,
-  onFocus,
-  onPointerEnter,
-  onPointerLeave,
   ref,
   size = "current",
   theme = "borderless",
   type = "button",
   ...props
 }: PopoverTriggerProps) {
-  const {
-    api,
-    clearHoverTimeouts,
-    openOnHover,
-    scheduleHoverClose,
-    scheduleHoverOpen,
-    styles,
-  } = usePopoverContext()
+  const { api, styles } = usePopoverContext()
   const {
     disabled: machineDisabled,
     onClick: onMachineClick,
-    onFocus: onMachineFocus,
-    onPointerEnter: onMachinePointerEnter,
-    onPointerLeave: onMachinePointerLeave,
     ...machineTriggerProps
   } = api.getTriggerProps() as ComponentPropsWithoutRef<"button">
   const buttonProps = mergeProps(props, machineTriggerProps)
@@ -307,48 +228,6 @@ Popover.Trigger = function PopoverTrigger({
         if (!event.defaultPrevented && clickBehavior === "toggle") {
           onMachineClick?.(event)
         }
-      }}
-      onFocus={(event) => {
-        onFocus?.(event)
-
-        if (!event.defaultPrevented) {
-          onMachineFocus?.(event)
-          clearHoverTimeouts()
-        }
-      }}
-      onPointerEnter={(event) => {
-        onPointerEnter?.(event)
-
-        if (!event.defaultPrevented) {
-          onMachinePointerEnter?.(event)
-        }
-
-        if (
-          event.defaultPrevented ||
-          !openOnHover ||
-          event.pointerType !== "mouse"
-        ) {
-          return
-        }
-
-        scheduleHoverOpen()
-      }}
-      onPointerLeave={(event) => {
-        onPointerLeave?.(event)
-
-        if (!event.defaultPrevented) {
-          onMachinePointerLeave?.(event)
-        }
-
-        if (
-          event.defaultPrevented ||
-          !openOnHover ||
-          event.pointerType !== "mouse"
-        ) {
-          return
-        }
-
-        scheduleHoverClose()
       }}
       ref={ref}
       size={size}
@@ -421,24 +300,12 @@ export type PopoverContentProps = ComponentPropsWithoutRef<"div"> & {
 Popover.Content = function PopoverContent({
   children,
   className,
-  onPointerEnter,
-  onPointerLeave,
   ref,
   ...props
 }: PopoverContentProps) {
-  const {
-    api,
-    clearHoverTimeouts,
-    openOnHover,
-    placement,
-    scheduleHoverClose,
-    styles,
-  } = usePopoverContext()
-  const {
-    onPointerEnter: onMachinePointerEnter,
-    onPointerLeave: onMachinePointerLeave,
-    ...machineContentProps
-  } = api.getContentProps() as ComponentPropsWithoutRef<"div">
+  const { api, placement, styles } = usePopoverContext()
+  const machineContentProps =
+    api.getContentProps() as ComponentPropsWithoutRef<"div">
   const contentProps = mergeProps(props, machineContentProps)
 
   return (
@@ -447,40 +314,6 @@ Popover.Content = function PopoverContent({
       className={styles.content({ className })}
       data-side={placement.split("-")[0]}
       data-state={api.open ? "open" : "closed"}
-      onPointerEnter={(event) => {
-        onPointerEnter?.(event)
-
-        if (!event.defaultPrevented) {
-          onMachinePointerEnter?.(event)
-        }
-
-        if (
-          event.defaultPrevented ||
-          !openOnHover ||
-          event.pointerType !== "mouse"
-        ) {
-          return
-        }
-
-        clearHoverTimeouts()
-      }}
-      onPointerLeave={(event) => {
-        onPointerLeave?.(event)
-
-        if (!event.defaultPrevented) {
-          onMachinePointerLeave?.(event)
-        }
-
-        if (
-          event.defaultPrevented ||
-          !openOnHover ||
-          event.pointerType !== "mouse"
-        ) {
-          return
-        }
-
-        scheduleHoverClose()
-      }}
       ref={ref}
     >
       {children}

@@ -1,60 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { type ReactNode, useState } from "react"
+import { useState } from "react"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
 import { Label } from "../../src/atoms/label"
 import {
-  Popover,
-  type PopoverRootProps,
-} from "../../src/molecules/popover"
+  PopoverTemplate,
+  type PopoverTemplateProps,
+} from "../../src/templates/popover"
 
-type PopoverStoryArgs = Omit<PopoverRootProps, "children"> & {
-  children: ReactNode
-  contentClassName?: string
-  description?: ReactNode
-  disabled?: boolean
-  showArrow?: boolean
-  showCloseButton?: boolean
-  title?: ReactNode
-  trigger: ReactNode
-  triggerClassName?: string
-}
-
-function DemoPopover({
-  children,
-  contentClassName,
-  description,
-  disabled = false,
-  showArrow = true,
-  showCloseButton = false,
-  title,
-  trigger,
-  triggerClassName,
-  ...rootProps
-}: PopoverStoryArgs) {
-  return (
-    <Popover.Root {...rootProps}>
-      <Popover.Trigger className={triggerClassName} disabled={disabled}>
-        {trigger}
-      </Popover.Trigger>
-      <Popover.Positioner>
-        <Popover.Content className={contentClassName}>
-          {showCloseButton && <Popover.CloseTrigger />}
-          {showArrow && <Popover.Arrow />}
-          {title && <Popover.Title>{title}</Popover.Title>}
-          {description && (
-            <Popover.Description>{description}</Popover.Description>
-          )}
-          {children}
-        </Popover.Content>
-      </Popover.Positioner>
-    </Popover.Root>
-  )
-}
+type PopoverStoryArgs = PopoverTemplateProps
 
 function PopoverStory(args: PopoverStoryArgs) {
-  return <DemoPopover {...args} />
+  return <PopoverTemplate {...args} />
 }
 
 const meta = {
@@ -201,7 +159,7 @@ export const Variants: Story = {
       <div>
         <h3 className="mb-200 text-sm font-semibold">Sizes</h3>
         <div className="flex gap-200">
-          <DemoPopover
+          <PopoverTemplate
             description="Compact size"
             id="small-popover"
             size="sm"
@@ -209,9 +167,9 @@ export const Variants: Story = {
             trigger="Small"
           >
             <p className="text-xs">Small content area</p>
-          </DemoPopover>
+          </PopoverTemplate>
 
-          <DemoPopover
+          <PopoverTemplate
             description="Default size"
             id="medium-popover"
             size="md"
@@ -219,9 +177,9 @@ export const Variants: Story = {
             trigger="Medium"
           >
             <p>Standard content area</p>
-          </DemoPopover>
+          </PopoverTemplate>
 
-          <DemoPopover
+          <PopoverTemplate
             description="Spacious size"
             id="large-popover"
             size="lg"
@@ -229,13 +187,13 @@ export const Variants: Story = {
             trigger="Large"
           >
             <p className="text-lg">Large content area</p>
-          </DemoPopover>
+          </PopoverTemplate>
         </div>
       </div>
       <div>
         <h3 className="mb-200 text-sm font-semibold">Visual Styles</h3>
         <div className="flex gap-200">
-          <DemoPopover
+          <PopoverTemplate
             border={true}
             id="border-shadow-popover"
             shadow={true}
@@ -243,9 +201,9 @@ export const Variants: Story = {
             trigger="Default"
           >
             <p>Border + Shadow (default)</p>
-          </DemoPopover>
+          </PopoverTemplate>
 
-          <DemoPopover
+          <PopoverTemplate
             border={true}
             id="border-only-popover"
             shadow={false}
@@ -253,9 +211,9 @@ export const Variants: Story = {
             trigger="border-only"
           >
             <p>Border only, no shadow</p>
-          </DemoPopover>
+          </PopoverTemplate>
 
-          <DemoPopover
+          <PopoverTemplate
             border={false}
             id="shadow-only-popover"
             shadow={true}
@@ -263,9 +221,9 @@ export const Variants: Story = {
             trigger="shadow-only"
           >
             <p>Shadow only, no border</p>
-          </DemoPopover>
+          </PopoverTemplate>
 
-          <DemoPopover
+          <PopoverTemplate
             border={false}
             id="minimal-popover"
             shadow={false}
@@ -273,21 +231,21 @@ export const Variants: Story = {
             trigger="Minimal"
           >
             <p>No border, no shadow</p>
-          </DemoPopover>
+          </PopoverTemplate>
         </div>
       </div>
 
       <div>
         <h3 className="mb-200 text-sm font-semibold">Arrow Options</h3>
         <div className="flex gap-200">
-          <DemoPopover
+          <PopoverTemplate
             id="no-arrow-popover"
             showArrow={false}
             title="Clean Look"
             trigger="No Arrow"
           >
             <p>No arrow indicator</p>
-          </DemoPopover>
+          </PopoverTemplate>
         </div>
       </div>
     </div>
@@ -314,7 +272,7 @@ export const Controlled: Story = {
           </Button>
         </div>
 
-        <DemoPopover
+        <PopoverTemplate
           description="This popover is controlled by external state"
           id="controlled-popover"
           onOpenChange={(details) => setOpen(details.open)}
@@ -333,7 +291,7 @@ export const Controlled: Story = {
               Close from inside
             </Button>
           </div>
-        </DemoPopover>
+        </PopoverTemplate>
       </div>
     )
   },
@@ -377,7 +335,7 @@ export const CustomTrigger: Story = {
   },
   render: () => (
     <div className="flex gap-200">
-      <DemoPopover
+      <PopoverTemplate
         id="custom-trigger-popover"
         trigger={
           <div className="flex items-center gap-100">
@@ -390,9 +348,9 @@ export const CustomTrigger: Story = {
         <div className="w-3xs">
           <p>This popover uses a custom trigger with an icon.</p>
         </div>
-      </DemoPopover>
+      </PopoverTemplate>
 
-      <DemoPopover
+      <PopoverTemplate
         id="custom-area-trigger-popover"
         trigger={
           <div className="rounded-lg border-2 border-border border-dashed p-100">
@@ -404,7 +362,7 @@ export const CustomTrigger: Story = {
         <div className="w-3xs">
           <p>This popover uses a completely custom trigger element.</p>
         </div>
-      </DemoPopover>
+      </PopoverTemplate>
     </div>
   ),
 }
@@ -451,7 +409,7 @@ export const AsyncContent: Story = {
     }
 
     return (
-      <DemoPopover
+      <PopoverTemplate
         id="async-popover"
         onOpenChange={(details) => {
           if (details.open) {
@@ -484,7 +442,7 @@ export const AsyncContent: Story = {
             <p>Waiting to load...</p>
           )}
         </div>
-      </DemoPopover>
+      </PopoverTemplate>
     )
   },
 }
@@ -497,7 +455,7 @@ export const PositioningBehaviors: Story = {
   },
   render: () => (
     <div className="grid gap-400 p-400">
-      <DemoPopover
+      <PopoverTemplate
         description="Flips to opposite side when no space"
         flip={true}
         id="flip-demo-popover"
@@ -509,7 +467,7 @@ export const PositioningBehaviors: Story = {
           This popover opens on the left but will flip to right if there's no
           space.
         </p>
-      </DemoPopover>
+      </PopoverTemplate>
       <div className="space-y-100">
         <p className="text-sm">
           Bounded containers simulate narrow viewport. Compare slide behavior:
@@ -517,7 +475,7 @@ export const PositioningBehaviors: Story = {
         <div className="flex gap-200">
           <div className="relative h-48 w-sm overflow-hidden border border-border border-dashed">
             <div>
-              <DemoPopover
+              <PopoverTemplate
                 id="slide-true-popover"
                 placement="bottom"
                 portalled={false}
@@ -526,13 +484,13 @@ export const PositioningBehaviors: Story = {
                 trigger="slide=true"
               >
                 <p>Arrow shifts to keep popover visible.</p>
-              </DemoPopover>
+              </PopoverTemplate>
             </div>
           </div>
 
           <div className="relative h-48 w-sm overflow-hidden border border-border border-dashed">
             <div>
-              <DemoPopover
+              <PopoverTemplate
                 id="slide-false-popover"
                 placement="bottom"
                 portalled={false}
@@ -541,7 +499,7 @@ export const PositioningBehaviors: Story = {
                 trigger="slide=false"
               >
                 <p>Popover stays centered, may overflow.</p>
-              </DemoPopover>
+              </PopoverTemplate>
             </div>
           </div>
         </div>
@@ -558,7 +516,7 @@ export const SameWidthDemo: Story = {
   },
   render: () => (
     <div className="flex items-start gap-400">
-      <DemoPopover
+      <PopoverTemplate
         id="short-trigger-popover"
         sameWidth={true}
         title="Same Width"
@@ -567,16 +525,16 @@ export const SameWidthDemo: Story = {
         <p className="text-sm">
           This popover exactly matches the trigger button width.
         </p>
-      </DemoPopover>
+      </PopoverTemplate>
 
-      <DemoPopover
+      <PopoverTemplate
         id="long-trigger-popover"
         sameWidth={true}
         title="Same Width"
         trigger="Very Long Trigger Button Text Here"
       >
         <p className="text-sm">Wide as trigger!</p>
-      </DemoPopover>
+      </PopoverTemplate>
     </div>
   ),
 }
@@ -590,7 +548,7 @@ export const EdgePositioning: Story = {
   render: () => (
     <div className="relative h-96 w-full border border-border border-dashed">
       <div className="absolute top-2 left-2">
-        <DemoPopover
+        <PopoverTemplate
           id="smart-popover"
           placement="bottom-start"
           trigger="Top Left"
@@ -598,11 +556,11 @@ export const EdgePositioning: Story = {
           <div className="w-3xs">
             <p>Opens at screen corner with smart positioning.</p>
           </div>
-        </DemoPopover>
+        </PopoverTemplate>
       </div>
 
       <div className="absolute top-2 right-2">
-        <DemoPopover
+        <PopoverTemplate
           flip={true}
           id="adjust-popover"
           placement="bottom-end"
@@ -611,11 +569,11 @@ export const EdgePositioning: Story = {
           <div className="w-3xs">
             <p>Adjusts to avoid viewport overflow.</p>
           </div>
-        </DemoPopover>
+        </PopoverTemplate>
       </div>
 
       <div className="absolute bottom-2 left-2">
-        <DemoPopover
+        <PopoverTemplate
           flip={true}
           id="flip-popover"
           placement="top-start"
@@ -624,11 +582,11 @@ export const EdgePositioning: Story = {
           <div className="w-3xs">
             <p>Flips upward when at bottom.</p>
           </div>
-        </DemoPopover>
+        </PopoverTemplate>
       </div>
 
       <div className="absolute right-2 bottom-2">
-        <DemoPopover
+        <PopoverTemplate
           flip={true}
           id="corner-popover"
           placement="top-end"
@@ -637,15 +595,15 @@ export const EdgePositioning: Story = {
           <div className="w-3xs">
             <p>Smart positioning at corner.</p>
           </div>
-        </DemoPopover>
+        </PopoverTemplate>
       </div>
 
       <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
-        <DemoPopover id="center-popover" placement="bottom" trigger="Center">
+        <PopoverTemplate id="center-popover" placement="bottom" trigger="Center">
           <div className="w-3xs">
             <p>Center positioned with default behavior.</p>
           </div>
-        </DemoPopover>
+        </PopoverTemplate>
       </div>
     </div>
   ),
@@ -667,7 +625,7 @@ export const OverflowPaddingDemo: Story = {
           shifts to maintain this gap.
         </p>
       </div>
-      <DemoPopover
+      <PopoverTemplate
         id="8px-padding-popover"
         overflowPadding={8}
         placement="bottom"
@@ -675,9 +633,9 @@ export const OverflowPaddingDemo: Story = {
         trigger="Default Padding (8px)"
       >
         <p>8px minimum gap from viewport edges.</p>
-      </DemoPopover>
+      </PopoverTemplate>
 
-      <DemoPopover
+      <PopoverTemplate
         id="24px-padding-popover"
         overflowPadding={24}
         placement="bottom"
@@ -685,9 +643,9 @@ export const OverflowPaddingDemo: Story = {
         trigger="Large Padding (24px)"
       >
         <p>24px minimum gap from viewport edges.</p>
-      </DemoPopover>
+      </PopoverTemplate>
 
-      <DemoPopover
+      <PopoverTemplate
         id="0px-padding-popover"
         overflowPadding={0}
         placement="bottom"
@@ -695,7 +653,7 @@ export const OverflowPaddingDemo: Story = {
         trigger="No Padding (0px)"
       >
         <p>Can touch viewport edges.</p>
-      </DemoPopover>
+      </PopoverTemplate>
     </div>
   ),
 }
@@ -707,7 +665,7 @@ export const NestedPopovers: Story = {
     children: <div />,
   },
   render: () => (
-    <DemoPopover
+    <PopoverTemplate
       id="level1-popover"
       placement="bottom"
       title="First Level"
@@ -716,7 +674,7 @@ export const NestedPopovers: Story = {
       <div className="mt-200 space-y-200">
         <p>This is the first level popover.</p>
 
-        <DemoPopover
+        <PopoverTemplate
           id="level2-popover"
           placement="right"
           size="sm"
@@ -726,7 +684,7 @@ export const NestedPopovers: Story = {
           <div className="mt-200 space-y-200">
             <p className="text-sm">This is nested inside the first popover.</p>
 
-            <DemoPopover
+            <PopoverTemplate
               id="level3-popover"
               placement="right"
               size="sm"
@@ -736,10 +694,10 @@ export const NestedPopovers: Story = {
               <div className="mt-200">
                 <p className="text-sm">This is the deepest level!</p>
               </div>
-            </DemoPopover>
+            </PopoverTemplate>
           </div>
-        </DemoPopover>
+        </PopoverTemplate>
       </div>
-    </DemoPopover>
+    </PopoverTemplate>
   ),
 }
