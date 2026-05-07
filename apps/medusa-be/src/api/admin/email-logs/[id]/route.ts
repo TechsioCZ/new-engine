@@ -25,6 +25,7 @@ type ResendErrorResponse = {
 }
 
 const RESEND_EMAILS_API = "https://api.resend.com/emails"
+const RESEND_EMAILS_API_TIMEOUT_MS = 30_000
 
 const isResendErrorResponse = (obj: unknown): obj is ResendErrorResponse =>
   obj !== null &&
@@ -55,12 +56,33 @@ async function retrieveResendEmail(emailId: string) {
     )
   }
 
-  const response = await fetch(`${RESEND_EMAILS_API}/${emailId}`, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-  })
+  const url = `${RESEND_EMAILS_API}/${emailId}`
+  const controller = new AbortController()
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    RESEND_EMAILS_API_TIMEOUT_MS
+  )
+
+  let response: Response
+  try {
+    response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Resend email retrieval timed out after ${RESEND_EMAILS_API_TIMEOUT_MS}ms: ${emailId}`
+      )
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
   const parsed = (await response.json().catch(() => null)) as unknown
 
