@@ -85,6 +85,9 @@
           "@medusajs/js-sdk": "^2.14.1"
         }
       }
+    },
+    "patchedDependencies": {
+      "medusa-plugin-content@0.2.0": "patches/medusa-plugin-content@0.2.0.patch"
     }
   }
 }

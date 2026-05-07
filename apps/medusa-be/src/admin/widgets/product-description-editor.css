@@ -1,0 +1,180 @@
+.product-description-mdx-editor {
+  --baseBase: #ffffff;
+  --baseBg: #f7f7f8;
+  --baseBgActive: #e4e4e7;
+  --baseBgHover: #ededf0;
+  --baseBgSubtle: #fafafa;
+  --baseBorder: #d4d4d8;
+  --baseBorderHover: #a1a1aa;
+  --basePageBg: #ffffff;
+  --baseTextContrast: #18181b;
+  --baseTextSecondary: #52525b;
+  --accentBase: #eff6ff;
+  --accentBg: #dbeafe;
+  --accentBgActive: #bfdbfe;
+  --accentBgHover: #dbeafe;
+  --accentBgSubtle: #eff6ff;
+  --accentBorder: #93c5fd;
+  --accentBorderHover: #60a5fa;
+  --accentSolid: #2563eb;
+  --accentSolidHover: #1d4ed8;
+  --accentText: #1d4ed8;
+  --accentTextContrast: #ffffff;
+  isolation: isolate;
+  background: var(--basePageBg);
+  color: var(--baseTextContrast);
+}
+
+.dark .product-description-mdx-editor,
+.dark-theme .product-description-mdx-editor,
+[data-theme="dark"] .product-description-mdx-editor {
+  --baseBase: #18181b;
+  --baseBg: #27272a;
+  --baseBgActive: #3f3f46;
+  --baseBgHover: #313135;
+  --baseBgSubtle: #1f1f23;
+  --baseBorder: #3f3f46;
+  --baseBorderHover: #71717a;
+  --basePageBg: #111113;
+  --baseTextContrast: #f4f4f5;
+  --baseTextSecondary: #a1a1aa;
+  --accentBase: #111827;
+  --accentBg: #1e3a8a;
+  --accentBgActive: #1d4ed8;
+  --accentBgHover: #1e40af;
+  --accentBgSubtle: #172554;
+  --accentBorder: #2563eb;
+  --accentBorderHover: #3b82f6;
+  --accentSolid: #60a5fa;
+  --accentSolidHover: #93c5fd;
+  --accentText: #93c5fd;
+  --accentTextContrast: #0b1120;
+}
+
+@media (prefers-color-scheme: dark) {
+  .product-description-mdx-editor {
+    --baseBase: #18181b;
+    --baseBg: #27272a;
+    --baseBgActive: #3f3f46;
+    --baseBgHover: #313135;
+    --baseBgSubtle: #1f1f23;
+    --baseBorder: #3f3f46;
+    --baseBorderHover: #71717a;
+    --basePageBg: #111113;
+    --baseTextContrast: #f4f4f5;
+    --baseTextSecondary: #a1a1aa;
+    --accentBase: #111827;
+    --accentBg: #1e3a8a;
+    --accentBgActive: #1d4ed8;
+    --accentBgHover: #1e40af;
+    --accentBgSubtle: #172554;
+    --accentBorder: #2563eb;
+    --accentBorderHover: #3b82f6;
+    --accentSolid: #60a5fa;
+    --accentSolidHover: #93c5fd;
+    --accentText: #93c5fd;
+    --accentTextContrast: #0b1120;
+  }
+}
+
+.product-description-mdx-editor [role="toolbar"] {
+  border-bottom: 1px solid var(--baseBorder);
+  border-radius: 0;
+}
+
+body.product-description-editor-modal-open
+  .mdxeditor-popup-container.product-description-mdx-editor,
+body.product-description-editor-modal-open
+  .product-description-mdx-editor
+  [role="toolbar"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.product-description-mdx-editor [role="toolbar"] button,
+.product-description-mdx-editor [role="toolbar"] [role="combobox"] {
+  color: var(--baseTextContrast);
+}
+
+.product-description-mdx-editor [role="toolbar"] button:disabled,
+.product-description-mdx-editor [role="toolbar"] button[data-disabled] {
+  color: var(--baseBorderHover);
+}
+
+.product-description-mdx-content {
+  min-height: 320px;
+  padding: 16px;
+  color: var(--baseTextContrast);
+  outline: none;
+}
+
+.product-description-mdx-content h1,
+.product-description-mdx-content h2,
+.product-description-mdx-content h3,
+.product-description-mdx-content h4 {
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+
+.product-description-mdx-content h1 {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.product-description-mdx-content h2 {
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.product-description-mdx-content h3 {
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.product-description-mdx-content p,
+.product-description-mdx-content ul,
+.product-description-mdx-content ol,
+.product-description-mdx-content blockquote,
+.product-description-mdx-content table,
+.product-description-mdx-content pre {
+  margin: 0 0 12px;
+}
+
+.product-description-mdx-content ul,
+.product-description-mdx-content ol {
+  padding-left: 24px;
+}
+
+.product-description-mdx-content ul {
+  list-style: disc;
+}
+
+.product-description-mdx-content ol {
+  list-style: decimal;
+}
+
+.product-description-mdx-content blockquote {
+  border-left: 2px solid var(--baseBorder);
+  color: var(--baseTextSecondary);
+  padding-left: 12px;
+}
+
+.product-description-mdx-content a {
+  color: var(--accentText);
+  text-decoration: underline;
+}
+
+.product-description-mdx-editor .cm-editor,
+.product-description-mdx-editor .cm-gutters {
+  background: var(--basePageBg);
+  color: var(--baseTextContrast);
+}
+
+.product-description-mdx-editor .cm-activeLine,
+.product-description-mdx-editor .cm-activeLineGutter {
+  background: var(--baseBgSubtle);
+}
+
+.product-description-mdx-editor .cm-cursor {
+  border-left-color: var(--baseTextContrast);
+}
