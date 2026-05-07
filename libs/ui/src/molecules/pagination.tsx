@@ -108,6 +108,13 @@ export type PaginationBaseProps = Omit<
     showPrevNext?: boolean
     dir?: "ltr" | "rtl"
     compact?: boolean
+    compactLabel?: (details: {
+      page: number
+      totalPages: number
+    }) => ReactNode
+    translations?: pagination.IntlTranslations
+    /** Fires when the active page changes. Required for button mode (no `getPageUrl`). */
+    onPageChange?: (page: number) => void
     compactLabel?: (details: { page: number; totalPages: number }) => ReactNode
     onChange?: (page: number) => void
     onPageChange?: (page: number) => void
@@ -129,6 +136,8 @@ type PaginationLinkProps<T extends ElementType> = Omit<
 
 export type PaginationProps<T extends ElementType = "a"> =
   PaginationBaseProps & {
+    /** When provided, pagination renders as anchors (link mode). Omit to use button mode + onPageChange. */
+    getPageUrl?: (details: pagination.PageUrlDetails) => string
     getPageUrl: PaginationGetPageUrl
     linkAs?: T
     linkProps?: PaginationLinkProps<T>
@@ -224,9 +233,11 @@ export function Pagination<T extends ElementType = "a">({
   onChange,
   onPageChange,
   translations,
+  onPageChange,
   ...props
 }: PaginationProps<T>) {
   const uniqueId = useId()
+  const isLinkMode = Boolean(getPageUrl)
 
   const service = useMachine(paginationMachine, {
     id: uniqueId,
@@ -237,13 +248,16 @@ export function Pagination<T extends ElementType = "a">({
     page,
     dir,
     defaultPage,
-    type: "link",
+    type: isLinkMode ? "link" : "button",
     getPageUrl,
     onPageChange: (details) => {
       onChange?.(details.page)
       onPageChange?.(details.page)
     },
     translations,
+    onPageChange: onPageChange
+      ? (details) => onPageChange(details.page)
+      : undefined,
   })
 
   const api = connectPagination(service, normalizeProps)
@@ -272,6 +286,25 @@ export function Pagination<T extends ElementType = "a">({
       ...overrides,
     })
 
+    // Button mode: Zag already supplies `disabled` on boundary triggers and
+    // wires `onClick`. Render as <button> — no href needed.
+    if (!isLinkMode) {
+      return mergeProps(baseTriggerProps, {
+        as: "button" as const,
+      }) as LinkButtonProps<T>
+    }
+
+    // Link mode: boundary triggers (prev on page 1, next on last page) come
+    // back without an href — surface that as `disabled` for the LinkButton.
+    if (!hasHref(triggerProps)) {
+      return mergeProps(baseTriggerProps, {
+        disabled: true,
+      }) as LinkButtonProps<T>
+    }
+
+    return mergeProps(sharedLinkProps, baseTriggerProps, {
+      ...(linkAs ? { as: linkAs } : {}),
+    }) as LinkButtonProps<T>
     return mergeProps(
       isNavigable ? sharedLinkProps : undefined,
       baseTriggerProps,

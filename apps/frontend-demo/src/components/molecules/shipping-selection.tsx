@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { SHIPPING_METHODS } from "@/lib/checkout-data"
 import { formatPrice } from "@/lib/format-price"
+import type { PacketaPickupPoint } from "@/lib/packeta"
 import type { ReducedShippingMethod } from "@/types/checkout"
 
 interface ShippingSelectionProps {
@@ -13,6 +14,7 @@ interface ShippingSelectionProps {
   setCurrentStep: (step: number) => void
   shippingMethods: ReducedShippingMethod[] | undefined
   isLoading: boolean
+  pickupPoint?: PacketaPickupPoint | null
 }
 
 const ShippingMethodDetail = ({
@@ -72,18 +74,31 @@ export function ShippingSelection({
   setCurrentStep,
   shippingMethods,
   isLoading,
+  pickupPoint,
 }: ShippingSelectionProps) {
   const toast = useToast()
+  const isPacketaSelected =
+    !!selected &&
+    shippingMethods?.find((m) => m.id === selected)?.provider_id ===
+      "packeta_packeta"
   const handleProgress = () => {
-    if (selected) {
-      setCurrentStep(currentStep + 1)
-    } else {
+    if (!selected) {
       toast.create({
         type: "error",
         title: "Není vybrán dopravce",
         description: "Je potřeba zvolit jeden způsob dopravy",
       })
+      return
     }
+    if (isPacketaSelected && !pickupPoint) {
+      toast.create({
+        type: "error",
+        title: "Vyberte výdejní místo",
+        description: "Pro Packetu je potřeba zvolit výdejní místo",
+      })
+      return
+    }
+    setCurrentStep(currentStep + 1)
   }
 
   return (
@@ -93,18 +108,44 @@ export function ShippingSelection({
         className="grid grid-cols-1 gap-3 sm:gap-4"
         role="radiogroup"
       >
-        {shippingMethods?.map((method) => (
-          <Button
-            aria-checked={selected === method.id}
-            aria-label={`${method.name} - ${method.calculated_price.calculated_amount}`}
-            className="relative flex items-center rounded-lg border-2 border-border-subtle bg-surface p-3 transition-all duration-200 hover:bg-surface-hover hover:shadow-md focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) data-[selected=true]:border-primary data-[selected=true]:bg-surface-selected data-[selected=true]:shadow-lg sm:p-4"
-            data-selected={selected === method.id}
-            key={method.id}
-            onClick={() => onSelect(method.id)}
-          >
-            <ShippingMethodDetail method={method} selected={selected} />
-          </Button>
-        ))}
+        {shippingMethods?.map((method) => {
+          const isSelected = selected === method.id
+          const isPacketa = method.provider_id === "packeta_packeta"
+          return (
+            <div className="flex flex-col gap-2" key={method.id}>
+              <Button
+                aria-checked={isSelected}
+                aria-label={`${method.name} - ${method.calculated_price.calculated_amount}`}
+                className="relative flex items-center rounded-lg border-2 border-border-subtle bg-surface p-3 transition-all duration-200 hover:bg-surface-hover hover:shadow-md focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) data-[selected=true]:border-primary data-[selected=true]:bg-surface-selected data-[selected=true]:shadow-lg sm:p-4"
+                data-selected={isSelected}
+                onClick={() => onSelect(method.id)}
+              >
+                <ShippingMethodDetail method={method} selected={selected} />
+              </Button>
+              {isPacketa && isSelected && pickupPoint && (
+                <div className="flex items-center justify-between rounded-md border border-border-subtle bg-surface-subtle px-3 py-2 text-sm">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-fg-primary">
+                      {pickupPoint.name}
+                    </span>
+                    <span className="text-fg-secondary text-xs">
+                      {[pickupPoint.street, pickupPoint.city, pickupPoint.zip]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => onSelect(method.id)}
+                    size="sm"
+                    variant="secondary"
+                  >
+                    Změnit
+                  </Button>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
       <div className="flex w-full justify-between">
         <Button onClick={() => setCurrentStep(currentStep - 1)} size="sm">

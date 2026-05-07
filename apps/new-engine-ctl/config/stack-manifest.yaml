@@ -49,6 +49,7 @@ ci:
         - ".dockerignore"
       service_ids:
         - "medusa-be"
+        - "frontend-demo"
         - "n1"
         - "payload"
         - "zane-operator"
@@ -65,6 +66,7 @@ ci:
         - "tsconfig.json"
       service_ids:
         - "medusa-be"
+        - "frontend-demo"
         - "n1"
         - "payload"
 
@@ -178,6 +180,7 @@ services:
       - "n1"
     local:
       phase: "frontend"
+      enabled_by_default: false
     ci:
       deployable: true
       affected_path_globs:
@@ -187,6 +190,19 @@ services:
         deploy_lanes: ["preview", "main"]
         deploy_stage: 25
         service_dependencies: ["medusa-be"]
+
+  - id: "frontend-demo"
+    compose_service: "frontend-demo"
+    kind: "frontend"
+    nx_projects:
+      - "frontend-demo"
+    local:
+      phase: "frontend"
+    ci:
+      deployable: false
+      affected_path_globs:
+        - "docker/development/frontend-demo/**"
+        - "apps/frontend-demo/**"
 
   - id: "zane-operator"
     compose_service: "zane-operator"

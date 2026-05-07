@@ -51,6 +51,7 @@ export interface AddressFormProps {
 export interface ReducedShippingMethod {
   id: string
   name: string
+  provider_id: string
   calculated_price: HttpTypes.StoreCalculatedPrice
 }
 
@@ -72,7 +73,10 @@ export interface UseCheckoutReturn {
   setSelectedShipping: (shipping: string) => void
   setAddressData: (data: CheckoutAddressData) => void
   updateAddresses: (data: CheckoutAddressData) => Promise<void>
-  addShippingMethod: (methodId: string) => Promise<void>
+  addShippingMethod: (
+    methodId: string,
+    data?: Record<string, unknown>
+  ) => Promise<void>
   processOrder: () => Promise<HttpTypes.StoreOrder | undefined>
   canProceedToStep: (step: number) => boolean
   // getShippingMethod: () => void

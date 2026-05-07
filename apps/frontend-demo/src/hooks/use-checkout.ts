@@ -91,6 +91,7 @@ export function useCheckout(): UseCheckoutReturn {
       const reducedShippingMethods = response.shipping_options.map((o) => ({
         id: o.id,
         name: o.name,
+        provider_id: o.provider_id,
         calculated_price: o.calculated_price,
       }))
       return reducedShippingMethods
@@ -100,12 +101,16 @@ export function useCheckout(): UseCheckoutReturn {
   })
 
   // Add shipping method to cart
-  const addShippingMethod = async (methodId: string) => {
+  const addShippingMethod = async (
+    methodId: string,
+    data?: Record<string, unknown>
+  ) => {
     if (!cart?.id) return
 
     try {
       await sdk.store.cart.addShippingMethod(cart.id, {
         option_id: methodId,
+        ...(data ? { data } : {}),
       })
       await refetch()
     } catch (error) {

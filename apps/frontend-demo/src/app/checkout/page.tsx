@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
+import { useToast } from "@techsio/ui-kit/molecules/toast"
 import Link from "next/link"
 import { type ReactNode, useEffect, useState } from "react"
 import { LoadingPage } from "@/components/loading-page"
@@ -11,6 +12,11 @@ import { useCart } from "@/hooks/use-cart"
 import { useCheckout } from "@/hooks/use-checkout"
 import { PAYMENT_METHODS } from "@/lib/checkout-data"
 import { formatPrice } from "@/lib/format-price"
+import {
+  type PacketaPickupPoint,
+  pickPacketaPoint,
+  toPacketaShippingData,
+} from "@/lib/packeta"
 import { orderHelpers } from "@/stores/order-store"
 import { PaymentSelection } from "../../components/molecules/payment-selection"
 import { ShippingSelection } from "../../components/molecules/shipping-selection"
@@ -62,6 +68,10 @@ export default function CheckoutPage() {
   const [isOrderComplete, setIsOrderComplete] = useState(false)
   const [orderNumber, setOrderNumber] = useState<string>("")
   const [showOrderSummary, setShowOrderSummary] = useState(false)
+  const [pickupPoint, setPickupPoint] = useState<PacketaPickupPoint | null>(
+    null
+  )
+  const toast = useToast()
   const isDesktopSteps = useMediaQuery("(min-width: 640px)")
 
   // Redirect if cart is empty and no completed order
@@ -145,6 +155,34 @@ export default function CheckoutPage() {
           currentStep={currentStep}
           isLoading={isLoadingShipping}
           onSelect={async (method) => {
+            const option = shippingMethods?.find((m) => m.id === method)
+            const isPacketa = option?.provider_id === "packeta_packeta"
+
+            if (isPacketa) {
+              try {
+                const apiKey =
+                  process.env.NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
+                const point = await pickPacketaPoint(apiKey)
+                if (!point) {
+                  return
+                }
+                setPickupPoint(point)
+                setSelectedShipping(method)
+                await addShippingMethod(method, toPacketaShippingData(point))
+              } catch (error) {
+                toast.create({
+                  type: "error",
+                  title: "Chyba při výběru výdejního místa",
+                  description:
+                    error instanceof Error
+                      ? error.message
+                      : "Zkuste to prosím znovu",
+                })
+              }
+              return
+            }
+
+            setPickupPoint(null)
             setSelectedShipping(method)
             try {
               await addShippingMethod(method)
@@ -152,6 +190,7 @@ export default function CheckoutPage() {
               // Error already handled in hook
             }
           }}
+          pickupPoint={pickupPoint}
           selected={selectedShipping}
           setCurrentStep={setCurrentStep}
           shippingMethods={shippingMethods}
