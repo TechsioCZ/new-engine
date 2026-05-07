@@ -53,10 +53,6 @@ x-medusa-env: &medusa-env
   MINIO_BUCKET: ${DC_MINIO_BUCKET}
   MINIO_ACCESS_KEY: ${DC_MINIO_ACCESS_KEY}
   MINIO_SECRET_KEY: ${DC_MINIO_SECRET_KEY}
-  RESEND_API_KEY: ${DC_N1_MEDUSA_RESEND_API_KEY:-${RESEND_API_KEY:-}}
-  RESEND_FROM_EMAIL: ${DC_N1_MEDUSA_RESEND_FROM_EMAIL:-${RESEND_FROM_EMAIL:-}}
-  RESEND_WEBHOOK_SECRET: ${DC_N1_MEDUSA_RESEND_WEBHOOK_SECRET:-${RESEND_WEBHOOK_SECRET:-}}
-
   # Medusa BE: observability/features
   SENTRY_NAME: ${DC_SENTRY_NAME}
   SENTRY_DSN: ${DC_SENTRY_DSN}
@@ -77,6 +73,13 @@ x-medusa-env: &medusa-env
   PAYLOAD_SSO_AUDIENCE: ${DC_PAYLOAD_SSO_AUDIENCE:-payload}
   PAYLOAD_SSO_ALG: ${DC_PAYLOAD_SSO_ALG:-RS256}
   PAYLOAD_SSO_TOKEN_TTL: ${DC_PAYLOAD_SSO_TOKEN_TTL:-60}
+
+x-medusa-email-env: &medusa-email-env
+  # Medusa BE: transactional email
+  NOTIFICATION_PROVIDER: ${DC_MEDUSA_BE_NOTIFICATION_PROVIDER:-resend}
+  RESEND_API_KEY: ${DC_MEDUSA_BE_RESEND_API_KEY:-${DC_RESEND_API_KEY:-}}
+  RESEND_FROM_EMAIL: ${DC_MEDUSA_BE_RESEND_FROM_EMAIL:-${DC_RESEND_FROM_EMAIL:-}}
+  RESEND_WEBHOOK_SECRET: ${DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET:-${DC_RESEND_WEBHOOK_SECRET:-}}
 
 x-minio-env: &minio-env
   MINIO_ROOT_USER: ${DC_MINIO_ROOT_USER:-minioadmin}
@@ -137,7 +140,7 @@ x-medusa-base: &medusa-base
   networks:
     - internal
   environment:
-    <<: *medusa-env
+    <<: [ *medusa-env, *medusa-email-env ]
 
 x-n1-env: &n1-env
   # N1: backend connectivity
@@ -157,9 +160,9 @@ x-n1-env: &n1-env
   NEXT_PUBLIC_LEADHUB_TRACKING_ID: ${DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID:-}
 
   # N1: email/contact
-  RESEND_API_KEY: ${DC_N1_MEDUSA_RESEND_API_KEY:-}
-  CONTACT_EMAIL: ${DC_N1_MEDUSA_CONTACT_EMAIL:-}
-  RESEND_FROM_EMAIL: ${DC_N1_MEDUSA_RESEND_FROM_EMAIL:-}
+  RESEND_API_KEY: ${DC_N1_RESEND_API_KEY:-${DC_RESEND_API_KEY:-}}
+  CONTACT_EMAIL: ${DC_N1_CONTACT_EMAIL:-${DC_CONTACT_EMAIL:-}}
+  RESEND_FROM_EMAIL: ${DC_N1_RESEND_FROM_EMAIL:-${DC_RESEND_FROM_EMAIL:-}}
 
 x-payload-env: &payload-env
   DATABASE_URL: ${DC_PAYLOAD_DATABASE_URL:-postgresql://${DC_PAYLOAD_DATABASE_USER:-payload}:${DC_PAYLOAD_DATABASE_PASSWORD:-payload}@medusa-db:5432/${DC_MEDUSA_APP_DB_NAME:-medusa}?sslmode=${DC_POSTGRES_SSLMODE:-disable}&options=-csearch_path%3D${DC_PAYLOAD_DATABASE_SCHEMA_NAME:-payload}%2Cpg_catalog}
@@ -315,7 +318,7 @@ services:
       timeout: 5s
       retries: 5
     environment:
-      <<: [ *medusa-env, *meilisearch-env ]
+      <<: *meilisearch-env
   medusa-db:
     build:
       context: ./docker/development/postgres
