@@ -1,11 +1,11 @@
 import {
-  buildCatalogFilterExpressions,
-  normalizeBrandParam,
-  normalizeCategoryIdsParam,
-  normalizeFormParam,
-  normalizeIngredientParam,
-  normalizeStatusParam,
-  resolveCatalogSort,
+    buildCatalogFilterExpressions,
+    normalizeBrandParam,
+    normalizeCategoryIdsParam,
+    normalizeFormParam,
+    normalizeIngredientParam,
+    normalizeStatusParam,
+    resolveCatalogSort,
 } from "../../../src/api/store/catalog/products/utils"
 
 describe("catalog products filter utils", () => {

@@ -35,6 +35,8 @@ export type PreviewServiceSpecSyncService = {
   service_slug: string
   git_source?: {
     sync_from_source: boolean
+    branch_name?: string
+    commit_sha?: string
   }
   builder?: {
     sync_from_source: boolean
@@ -45,6 +47,18 @@ export type PreviewServiceSpecSyncService = {
   }
   resource_limits?: {
     sync_from_source: boolean
+  }
+}
+
+function buildPreviewGitSourceSpec(input: {
+  lane: ServiceReconciliationLane
+  previewGitBranch?: string
+}): PreviewServiceSpecSyncService["git_source"] {
+  return {
+    sync_from_source: true,
+    ...(input.lane === "preview" && input.previewGitBranch
+      ? { branch_name: input.previewGitBranch }
+      : {}),
   }
 }
 
@@ -134,6 +148,17 @@ function buildResolvedSource(input: {
   }
 }
 
+function requireNonEmptyLiteralSource(input: {
+  label: string
+  source: PreviewSharedEnvVariableInput["source"]
+}): PreviewSharedEnvVariableInput["source"] {
+  if (input.source.kind === "literal" && !input.source.value) {
+    throw new Error(`${input.label} resolved to an empty literal value.`)
+  }
+
+  return input.source
+}
+
 function resolveLaneBuildStageTarget(
   definition: ServiceReconciliationDefinition,
   lane: ServiceReconciliationLane
@@ -154,14 +179,21 @@ export function buildPreviewSharedEnvSyncVariables(input: {
         input.deployServiceIds.includes(serviceId)
       )
     )
-    .map((definition) => ({
-      key: definition.key,
-      source: buildResolvedSource({
+    .map((definition) => {
+      const source = buildResolvedSource({
         manifest: input.manifest,
         source: definition.source,
         context: input.context,
-      }),
-    }))
+      })
+
+      return {
+        key: definition.key,
+        source: requireNonEmptyLiteralSource({
+          label: `preview shared env ${definition.key}`,
+          source,
+        }),
+      }
+    })
 }
 
 export function buildPreviewRequiredSharedEnvKeys(input: {
@@ -210,12 +242,17 @@ export function buildPreviewServiceEnvSyncServices(input: {
       env: [],
     }
 
+    const source = buildResolvedSource({
+      manifest: input.manifest,
+      source: definition.source,
+      context: input.context,
+    })
+
     existing.env.push({
       env_var: definition.env_var,
-      source: buildResolvedSource({
-        manifest: input.manifest,
-        source: definition.source,
-        context: input.context,
+      source: requireNonEmptyLiteralSource({
+        label: `preview service env ${definition.service_id}.${definition.env_var}`,
+        source,
       }),
     })
     grouped.set(definition.service_id, existing)
@@ -275,6 +312,7 @@ export function buildServiceReconciliationSpecs(input: {
   manifest: StackManifest
   lane: ServiceReconciliationLane
   serviceIds: string[]
+  previewGitBranch?: string
 }): PreviewServiceSpecSyncService[] {
   const definitionByServiceId = new Map(
     getServiceReconciliationDefinitions(input.stackInputs).map((definition) => [
@@ -310,9 +348,7 @@ export function buildServiceReconciliationSpecs(input: {
     }
 
     if (definition.git_source.sync_from_source) {
-      serviceSpec.git_source = {
-        sync_from_source: true,
-      }
+      serviceSpec.git_source = buildPreviewGitSourceSpec(input)
     }
 
     if (definition.builder.sync_from_source) {

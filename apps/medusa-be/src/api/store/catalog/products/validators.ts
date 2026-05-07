@@ -1,5 +1,5 @@
+import { z } from "@medusajs/framework/zod"
 import { listProductQueryConfig } from "@medusajs/medusa/api/store/products/query-config"
-import { z } from "zod"
 import { CATALOG_SORT_VALUES } from "./utils"
 
 const multiValueParamSchema = z.union([z.string(), z.array(z.string())])
@@ -44,6 +44,7 @@ export const StoreCatalogProductsSchema = z
     region_id: z.string().optional(),
     currency_code: z.string().optional(),
     country_code: z.string().optional(),
+    sales_channel_id: multiValueParamSchema.optional(),
     category_id: multiValueParamSchema.optional(),
     status: multiValueParamSchema.optional(),
     form: multiValueParamSchema.optional(),

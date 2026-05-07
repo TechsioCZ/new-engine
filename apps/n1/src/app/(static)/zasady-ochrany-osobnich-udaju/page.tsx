@@ -1,6 +1,14 @@
+import { CmsPageArticle } from "@/components/cms-page-article"
 import { Heading } from "@/components/heading"
+import { getCmsPage } from "@/services/cms-service"
 
-export default function ZasadyOchranyPage() {
+export default async function ZasadyOchranyPage() {
+  const cmsPage = await getCmsPage("zasady-ochrany-osobnich-udaju")
+
+  if (cmsPage) {
+    return <CmsPageArticle page={cmsPage} />
+  }
+
   return (
     <article className="mt-900 space-y-600">
       <Heading>Zásady ochrany osobních údajů</Heading>

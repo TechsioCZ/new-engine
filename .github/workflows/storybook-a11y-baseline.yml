@@ -111,7 +111,7 @@ jobs:
             echo "Storybook server failed to start within timeout." >&2
             exit 1
           fi
-          pnpm -C libs/ui run test-storybook -- --url "http://127.0.0.1:6006/?globals=theme:${{ matrix.theme }}" --config-dir .storybook --maxWorkers 2 --testTimeout 60000
+          pnpm -C libs/ui exec test-storybook --url "http://127.0.0.1:6006/?globals=theme:${{ matrix.theme }}" --config-dir .storybook --maxWorkers 2 --testTimeout 60000
 
       - name: Upload baseline report (${{ matrix.theme }})
         if: always() && hashFiles(format('libs/ui/a11y-report/{0}/report.json', matrix.theme)) != ''

@@ -9,6 +9,8 @@
       "!**/.medusa/**/*",
       "!**/migrations/**/*",
       "!**/.next/**/*",
+      "!apps/payload/src/payload-types.ts",
+      "!apps/payload/src/app/(payload)/importMap.js",
       "!**/check-env-variables.js",
       "!**/*.stories.tsx",
       "!**/.storybook/main.ts",

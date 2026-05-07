@@ -68,6 +68,23 @@
         "glibc",
         "musl"
       ]
+    },
+    "packageExtensions": {
+      "@payloadcms/ui@3.84.1": {
+        "dependencies": {
+          "@floating-ui/react": "0.27.19"
+        }
+      },
+      "@pigment/auto-translate@1.3.4": {
+        "dependencies": {
+          "@payloadcms/ui": "3.84.1"
+        }
+      },
+      "@rokmohar/medusa-plugin-meilisearch@*": {
+        "dependencies": {
+          "@medusajs/js-sdk": "^2.14.1"
+        }
+      }
     }
   }
 }

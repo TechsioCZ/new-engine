@@ -12,6 +12,7 @@ export const resolveEnvironmentCommandInputSchema = z
     reconcileServiceIdsCsv: z.string().default(""),
     previewClonedServiceIdsCsv: z.string().default(""),
     previewExcludedServiceIdsCsv: z.string().default(""),
+    previewGitBranch: z.string().default(""),
     outputJson: z.string().min(1).optional(),
     baseUrl: z.string().default(""),
     apiToken: z.string().default(""),
@@ -91,7 +92,10 @@ export const resolveEnvironmentResponseSchema = z.object({
   warnings: z.array(warningSchema).default([]),
 })
 
-export type ResolveEnvironmentCommandInput = z.infer<
+export type ResolveEnvironmentCommandInput = z.input<
+  typeof resolveEnvironmentCommandInputSchema
+>
+export type ResolvedEnvironmentCommandInput = z.infer<
   typeof resolveEnvironmentCommandInputSchema
 >
 export type ResolveEnvironmentResponse = z.infer<

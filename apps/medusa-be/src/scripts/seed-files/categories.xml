@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CATEGORIES>
+  <CATEGORY>
+    <ID>4052</ID>
+    <GUID>fixture-sale-guid</GUID>
+    <PARENT_ID>1</PARENT_ID>
+    <PAGE_TYPE>3</PAGE_TYPE>
+    <PRIORITY>1</PRIORITY>
+    <SEARCH_PRIORITY>1</SEARCH_PRIORITY>
+    <EXPAND_IN_MENU>1</EXPAND_IN_MENU>
+    <ACCESS>1</ACCESS>
+    <IS_SYSTEM>0</IS_SYSTEM>
+    <VISIBLE>1</VISIBLE>
+    <TITLE>Výpredaj, zľavy a akcie</TITLE>
+    <LINK_TEXT>🔥 Zľavy</LINK_TEXT>
+    <INDEX_NAME>vypredaj</INDEX_NAME>
+    <TOP_DESCRIPTION></TOP_DESCRIPTION>
+    <BOTTOM_DESCRIPTION></BOTTOM_DESCRIPTION>
+    <META_TITLE>Výpredaj, zľavy a akcie - fixture</META_TITLE>
+    <META_DESCRIPTION>Fixture kategória pre parser test.</META_DESCRIPTION>
+  </CATEGORY>
+  <CATEGORY>
+    <ID>758</ID>
+    <GUID>fixture-trapi-ma-guid</GUID>
+    <PARENT_ID>1</PARENT_ID>
+    <PAGE_TYPE>3</PAGE_TYPE>
+    <PRIORITY>2</PRIORITY>
+    <SEARCH_PRIORITY>2</SEARCH_PRIORITY>
+    <EXPAND_IN_MENU>0</EXPAND_IN_MENU>
+    <ACCESS>1</ACCESS>
+    <IS_SYSTEM>0</IS_SYSTEM>
+    <VISIBLE>1</VISIBLE>
+    <TITLE>Trápi ma</TITLE>
+    <LINK_TEXT>Trápi ma</LINK_TEXT>
+    <INDEX_NAME>trapi-ma</INDEX_NAME>
+    <TOP_DESCRIPTION>&lt;p&gt;Človek je neoddeliteľnou súčasťou prírody a tento fixture text pokrýva oslabená imunita parser assertion.&lt;/p&gt;</TOP_DESCRIPTION>
+    <BOTTOM_DESCRIPTION>&lt;p&gt;Liečebné smery a prístup k životu ostávajú v bottom popise fixture kategórie.&lt;/p&gt;</BOTTOM_DESCRIPTION>
+    <META_TITLE>Trápi ma - prírodné riešenia a doplnky podľa problému | Herbatica</META_TITLE>
+    <META_DESCRIPTION>Fixture meta popis pre imunita kategóriu.</META_DESCRIPTION>
+  </CATEGORY>
+  <CATEGORY>
+    <ID>900</ID>
+    <GUID>fixture-heart-guid</GUID>
+    <PARENT_ID>758</PARENT_ID>
+    <PAGE_TYPE>3</PAGE_TYPE>
+    <PRIORITY>3</PRIORITY>
+    <SEARCH_PRIORITY>3</SEARCH_PRIORITY>
+    <EXPAND_IN_MENU>0</EXPAND_IN_MENU>
+    <ACCESS>1</ACCESS>
+    <IS_SYSTEM>0</IS_SYSTEM>
+    <VISIBLE>1</VISIBLE>
+    <TITLE>Srdce a cievy</TITLE>
+    <LINK_TEXT>Srdce a cievy</LINK_TEXT>
+    <INDEX_NAME>srdce-a-cievy</INDEX_NAME>
+    <TOP_DESCRIPTION>&lt;p&gt;Fixture podkategória pre strom kategórií.&lt;/p&gt;</TOP_DESCRIPTION>
+    <BOTTOM_DESCRIPTION></BOTTOM_DESCRIPTION>
+    <META_TITLE>Srdce a cievy - fixture</META_TITLE>
+    <META_DESCRIPTION>Fixture meta popis.</META_DESCRIPTION>
+  </CATEGORY>
+  <CATEGORY>
+    <ID>901</ID>
+    <GUID>fixture-varicose-guid</GUID>
+    <PARENT_ID>900</PARENT_ID>
+    <PAGE_TYPE>3</PAGE_TYPE>
+    <PRIORITY>4</PRIORITY>
+    <SEARCH_PRIORITY>4</SEARCH_PRIORITY>
+    <EXPAND_IN_MENU>0</EXPAND_IN_MENU>
+    <ACCESS>1</ACCESS>
+    <IS_SYSTEM>0</IS_SYSTEM>
+    <VISIBLE>1</VISIBLE>
+    <TITLE>Kŕčové žily</TITLE>
+    <LINK_TEXT>Kŕčové žily</LINK_TEXT>
+    <INDEX_NAME>krcove-zily</INDEX_NAME>
+    <TOP_DESCRIPTION>&lt;p&gt;Fixture listová kategória pre mapovanie produktov.&lt;/p&gt;</TOP_DESCRIPTION>
+    <BOTTOM_DESCRIPTION></BOTTOM_DESCRIPTION>
+    <META_TITLE>Kŕčové žily - fixture</META_TITLE>
+    <META_DESCRIPTION>Fixture meta popis.</META_DESCRIPTION>
+  </CATEGORY>
+  <CATEGORY>
+    <ID>1584</ID>
+    <GUID>fixture-cosmetics-guid</GUID>
+    <PARENT_ID>1</PARENT_ID>
+    <PAGE_TYPE>3</PAGE_TYPE>
+    <PRIORITY>5</PRIORITY>
+    <SEARCH_PRIORITY>5</SEARCH_PRIORITY>
+    <EXPAND_IN_MENU>0</EXPAND_IN_MENU>
+    <ACCESS>1</ACCESS>
+    <IS_SYSTEM>0</IS_SYSTEM>
+    <VISIBLE>1</VISIBLE>
+    <TITLE>Prírodná kozmetika</TITLE>
+    <LINK_TEXT>Prírodná kozmetika</LINK_TEXT>
+    <INDEX_NAME>prirodna-kozmetika</INDEX_NAME>
+    <TOP_DESCRIPTION>&lt;p&gt;Kľúčom ku zdravej a krásnej pleti je šetrný fixture text.&lt;/p&gt;</TOP_DESCRIPTION>
+    <BOTTOM_DESCRIPTION></BOTTOM_DESCRIPTION>
+    <META_TITLE>Prírodná kozmetika - prehľad a porovnanie | Herbatica</META_TITLE>
+    <META_DESCRIPTION>Fixture prehľad produktov prírodnej kozmetiky.</META_DESCRIPTION>
+  </CATEGORY>
+</CATEGORIES>

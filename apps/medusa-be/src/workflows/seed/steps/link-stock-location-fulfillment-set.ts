@@ -1,11 +1,7 @@
-import type { Link } from "@medusajs/framework/modules-sdk"
-import type {
-  FulfillmentSetDTO,
-  Logger,
-  StockLocationDTO,
-} from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import type {Link} from "@medusajs/framework/modules-sdk"
+import type {FulfillmentSetDTO, Logger, StockLocationDTO,} from "@medusajs/framework/types"
+import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
+import {createStep, StepResponse} from "@medusajs/framework/workflows-sdk"
 
 export type LinkStockLocationFulfillmentSetStepInput = {
   stockLocations: StockLocationDTO[]

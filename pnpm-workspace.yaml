@@ -12,18 +12,22 @@ packages:
   - '!apps/e2e/**'
   - '!apps/typesense-demo/**'
 
+syncInjectedDepsAfterScripts:
+  - build
+
 ignoredBuiltDependencies:
   - '@medusajs/telemetry'
   - core-js
-  - esbuild
   - msgpackr-extract
   - protobufjs
   - puppeteer
-  - sharp
 
 onlyBuiltDependencies:
   - '@biomejs/biome'
   - '@parcel/watcher'
   - '@swc/core'
   - '@tailwindcss/oxide'
+  - esbuild
   - nx
+  - sharp
+  - unrs-resolver

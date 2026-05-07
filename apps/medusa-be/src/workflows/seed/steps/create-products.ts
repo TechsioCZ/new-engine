@@ -110,12 +110,15 @@ function ensureUniqueVariantSkus(
   for (const inputProduct of inputProducts) {
     const existingProduct = existingProductsByHandle.get(inputProduct.handle)
     const existingSkusOnProduct = new Set(
-      (existingProduct?.variants ?? []).map((variant) => variant.sku).filter(Boolean)
+      (existingProduct?.variants ?? [])
+        .map((variant) => variant.sku)
+        .filter(Boolean)
     )
 
     for (const [index, variant] of (inputProduct.variants ?? []).entries()) {
       const originalSku = variant.sku?.trim()
-      const baseSku = originalSku || `${inputProduct.handle}-variant-${index + 1}`
+      const baseSku =
+        originalSku || `${inputProduct.handle}-variant-${index + 1}`
       const isExistingVariant =
         !!originalSku && existingSkusOnProduct.has(originalSku)
 
@@ -161,7 +164,7 @@ function toMetadataId(value: unknown): string | undefined {
     return String(value)
   }
 
-  return undefined
+  return
 }
 
 function getSourceVariantId(variant: {
@@ -169,7 +172,7 @@ function getSourceVariantId(variant: {
 }): string | undefined {
   const metadata = variant.metadata ?? undefined
   if (!metadata) {
-    return undefined
+    return
   }
 
   return toMetadataId(metadata.source_variant_id ?? metadata.variant_id)
@@ -182,8 +185,9 @@ function findExistingVariant(
   const sourceVariantId = getSourceVariantId(inputVariant)
   if (sourceVariantId) {
     const bySourceId = (existingProduct.variants ?? []).find((variant) => {
-      const metadata = (variant as { metadata?: Record<string, unknown> | null })
-        .metadata
+      const metadata = (
+        variant as { metadata?: Record<string, unknown> | null }
+      ).metadata
       return getSourceVariantId({ metadata }) === sourceVariantId
     })
 
@@ -192,9 +196,7 @@ function findExistingVariant(
     }
   }
 
-  return (existingProduct.variants ?? []).find((variant) => {
-    return variant.sku === inputVariant.sku
-  })
+  return (existingProduct.variants ?? []).find((variant) => variant.sku === inputVariant.sku)
 }
 
 function processProductProducerInput(

@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, writeFileSync } from "node:fs"
 import { isAbsolute, resolve } from "node:path"
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sql } from "drizzle-orm"
 import { sqlRaw } from "../utils/db"
+import { isHttpXmlSource, readXmlSource } from "./herbatica-category-export"
 
 type XmlElement = {
   attributes: Record<string, string>
@@ -156,14 +157,15 @@ function decodeXml(value: string): string {
       const parsed = Number.parseInt(num, 10)
       return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
     })
-    .replace(/&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g, (entity) => {
-      return ENTITY_MAP[entity] ?? entity
-    })
+    .replace(
+      /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g,
+      (entity) => ENTITY_MAP[entity] ?? entity
+    )
 }
 
 function normalizeText(value?: string): string | undefined {
   if (value === undefined) {
-    return undefined
+    return
   }
   const decoded = decodeXml(value).replace(/\r\n/g, "\n").trim()
   return decoded === "" ? undefined : decoded
@@ -172,7 +174,7 @@ function normalizeText(value?: string): string | undefined {
 function normalizeInlineText(value?: string): string | undefined {
   const normalized = normalizeText(value)
   if (normalized === undefined) {
-    return undefined
+    return
   }
   return normalized.replace(/\s+/g, " ").trim()
 }
@@ -376,10 +378,12 @@ function toStringArray(value: unknown): string[] {
 }
 
 function normalizeTitle(value?: string): string {
-  return normalizeInlineText(value)
-    ?.normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase() ?? ""
+  return (
+    normalizeInlineText(value)
+      ?.normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase() ?? ""
+  )
 }
 
 function normalizeUrlForStrictCompare(url: string): string {
@@ -412,7 +416,7 @@ function stringifyCsvCell(value: string | number): string {
   return asString
 }
 
-function buildCsv(rows: Array<Record<string, string | number>>): string {
+function buildCsv(rows: Record<string, string | number>[]): string {
   if (rows.length === 0) {
     return ""
   }
@@ -440,7 +444,7 @@ function parseOptions(args?: string[]): ScriptOptions {
   let sourceId: string | undefined
 
   for (const arg of args ?? []) {
-    if (!arg.startsWith("--") && !xmlPathArg) {
+    if (!(arg.startsWith("--") || xmlPathArg)) {
       xmlPathArg = arg
       continue
     }
@@ -463,32 +467,34 @@ function parseOptions(args?: string[]): ScriptOptions {
     if (arg.startsWith("--source-id=")) {
       const parsedSource = normalizeInlineText(arg.slice("--source-id=".length))
       sourceId = parsedSource || undefined
-      continue
     }
   }
 
   const xmlPathCandidate = normalizeInlineText(xmlPathArg)
-  const resolvedXmlPath = xmlPathCandidate
-    ? isAbsolute(xmlPathCandidate)
-      ? xmlPathCandidate
-      : resolve(process.cwd(), xmlPathCandidate)
-    : DEFAULT_XML_PATHS.find((path) => existsSync(path))
+  let resolvedXmlPath = DEFAULT_XML_PATHS.find((path) => existsSync(path))
+  if (xmlPathCandidate) {
+    resolvedXmlPath =
+      isHttpXmlSource(xmlPathCandidate) || isAbsolute(xmlPathCandidate)
+        ? xmlPathCandidate
+        : resolve(process.cwd(), xmlPathCandidate)
+  }
 
   if (!resolvedXmlPath) {
     throw new Error(
       `Could not find XML feed. Checked: ${DEFAULT_XML_PATHS.join(", ")}`
     )
   }
-  if (!existsSync(resolvedXmlPath)) {
+  if (!(isHttpXmlSource(resolvedXmlPath) || existsSync(resolvedXmlPath))) {
     throw new Error(`XML feed does not exist at path: ${resolvedXmlPath}`)
   }
 
   const outputCandidate = normalizeInlineText(outputDirArg)
-  const outputDir = outputCandidate
-    ? isAbsolute(outputCandidate)
+  let outputDir = DEFAULT_OUTPUT_DIR
+  if (outputCandidate) {
+    outputDir = isAbsolute(outputCandidate)
       ? outputCandidate
       : resolve(process.cwd(), outputCandidate)
-    : DEFAULT_OUTPUT_DIR
+  }
 
   return {
     xmlPath: resolvedXmlPath,
@@ -673,7 +679,7 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
   logger.info(`Using XML feed: ${options.xmlPath}`)
   logger.info(`Output directory: ${options.outputDir}`)
 
-  const xml = readFileSync(options.xmlPath, "utf8")
+  const xml = await readXmlSource(options.xmlPath)
   const xmlItems = parseShopItems(xml).filter((item) => item.id !== "")
   const xmlBySourceId = new Map<string, XmlShopItem[]>()
   for (const item of xmlItems) {
@@ -685,7 +691,9 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
 
   const dbProducts = await loadDbProducts()
   const dbBySourceId = new Map<string, DbProductRecord[]>()
-  const dbMissingSourceId = dbProducts.filter((product) => !product.sourceShopitemId)
+  const dbMissingSourceId = dbProducts.filter(
+    (product) => !product.sourceShopitemId
+  )
   for (const product of dbProducts) {
     if (!product.sourceShopitemId) {
       continue
@@ -755,7 +763,8 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
       if (
         xmlEntry.guid &&
         dbEntry.sourceGuid &&
-        normalizeInlineText(xmlEntry.guid) !== normalizeInlineText(dbEntry.sourceGuid)
+        normalizeInlineText(xmlEntry.guid) !==
+          normalizeInlineText(dbEntry.sourceGuid)
       ) {
         mismatchTypes.push("guid_mismatch")
       }
@@ -951,7 +960,8 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
       duplicateImageRows: duplicateImageRows.length,
     },
     potentialMappingRisks: {
-      xmlCategoryPathNormalizationIssues: xmlCategoryPathNormalizationIssues.length,
+      xmlCategoryPathNormalizationIssues:
+        xmlCategoryPathNormalizationIssues.length,
     },
     sample: {
       xmlOnlySourceIds: takeSample(xmlOnlySourceIds, options.sampleSize),
@@ -969,8 +979,14 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
         xmlCategoryPathNormalizationIssues,
         options.sampleSize
       ),
-      duplicateDbSourceIds: takeSample(dbProductSourceDuplicates, options.sampleSize),
-      categoryNameDuplicates: takeSample(categoryNameDuplicates, options.sampleSize),
+      duplicateDbSourceIds: takeSample(
+        dbProductSourceDuplicates,
+        options.sampleSize
+      ),
+      categoryNameDuplicates: takeSample(
+        categoryNameDuplicates,
+        options.sampleSize
+      ),
       categoryHandleSuffixDuplicates: takeSample(
         categoryHandleDuplicates,
         options.sampleSize
@@ -1018,15 +1034,12 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
     resolve(options.outputDir, "category-path-normalization-issues.json"),
     xmlCategoryPathNormalizationIssues
   )
-  writeJson(
-    resolve(options.outputDir, "redundancy.json"),
-    {
-      duplicateDbSourceIds: dbProductSourceDuplicates,
-      categoryNameDuplicates,
-      categoryHandleSuffixDuplicates: categoryHandleDuplicates,
-      duplicateImageRows,
-    }
-  )
+  writeJson(resolve(options.outputDir, "redundancy.json"), {
+    duplicateDbSourceIds: dbProductSourceDuplicates,
+    categoryNameDuplicates,
+    categoryHandleSuffixDuplicates: categoryHandleDuplicates,
+    duplicateImageRows,
+  })
   writeFileSync(
     resolve(options.outputDir, "mismatches.csv"),
     buildCsv(mismatchCsvRows),
