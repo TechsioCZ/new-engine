@@ -14,6 +14,36 @@ type SafeHtmlContentProps = {
 
 const HTML_TAG_PATTERN = /<[^>]*>/
 const HTML_ENTITY_PATTERN = /&#?\w+;/
+const REL_TOKEN_PATTERN = /\s+/
+const BLANK_TARGET_REL_TOKENS = ["noopener", "noreferrer"]
+
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (
+    node.nodeType !== 1 ||
+    !("tagName" in node) ||
+    typeof node.getAttribute !== "function" ||
+    typeof node.setAttribute !== "function"
+  ) {
+    return
+  }
+
+  if (
+    node.tagName.toLowerCase() !== "a" ||
+    node.getAttribute("target")?.toLowerCase() !== "_blank"
+  ) {
+    return
+  }
+
+  const relTokens = new Set(
+    (node.getAttribute("rel") ?? "").split(REL_TOKEN_PATTERN).filter(Boolean)
+  )
+
+  for (const token of BLANK_TARGET_REL_TOKENS) {
+    relTokens.add(token)
+  }
+
+  node.setAttribute("rel", Array.from(relTokens).join(" "))
+})
 
 /**
  * Safely renders HTML content with automatic detection and sanitization.
@@ -74,7 +104,7 @@ export function SafeHtmlContent({
         FORBID_ATTR: ["onerror", "onclick", "onload"],
       }
 
-      // Merge custom config with defaults
+      // Custom config shallow-overrides defaults; array fields are replaced.
       const finalConfig = { ...defaultConfig, ...config }
       const sanitized = DOMPurify.sanitize(content, finalConfig)
 

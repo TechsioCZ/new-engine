@@ -20,6 +20,7 @@
   --accentSolidHover: #1d4ed8;
   --accentText: #1d4ed8;
   --accentTextContrast: #ffffff;
+
   isolation: isolate;
   background: var(--basePageBg);
   color: var(--baseTextContrast);
