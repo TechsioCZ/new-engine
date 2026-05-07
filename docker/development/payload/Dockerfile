@@ -27,6 +27,7 @@ FROM base AS ci-dev
 ENV NODE_ENV=development
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 COPY apps/payload/package.json apps/payload/package.json
 RUN --mount=type=cache,id=pnpm-store-payload-ci-dev,target=/pnpm/store \
     corepack install && \
@@ -67,6 +68,7 @@ ENV S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
 ENV S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 COPY apps/payload/package.json apps/payload/package.json
 RUN --mount=type=cache,id=pnpm-store-payload,target=/pnpm/store \
     corepack install && \

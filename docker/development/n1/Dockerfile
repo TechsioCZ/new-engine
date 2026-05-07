@@ -38,6 +38,7 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
@@ -66,6 +67,7 @@ FROM base AS build
 
 # Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
