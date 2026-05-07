@@ -42,7 +42,14 @@ type UpdateProductResponse = {
 }
 
 const HEADING_TAG_PATTERN = /^h[1-6]$/
+const PRODUCT_DETAIL_ROUTE_PATTERN = /\/products\/[^/]+(?:\/edit)?\/?$/
 const PRODUCT_EDIT_ROUTE_PATTERN = /\/products\/[^/]+\/edit\/?$/
+const PRODUCT_DETAIL_DESCRIPTION_ROW_SELECTOR = "div.grid.grid-cols-2"
+const PRODUCT_DESCRIPTION_LABEL = "Description"
+const DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE =
+  "data-product-description-editor-detail-row-hidden"
+const DETAIL_DESCRIPTION_ROW_DISPLAY_ATTRIBUTE =
+  "data-product-description-editor-detail-row-display"
 const NATIVE_DESCRIPTION_FIELD_SELECTOR = 'form textarea[name="description"]'
 const NATIVE_DESCRIPTION_FIELD_WRAPPER_SELECTOR = ".flex.flex-col.space-y-2"
 const NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE =
@@ -52,20 +59,73 @@ const NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE =
 const PRODUCT_DESCRIPTION_EDITOR_MODAL_OPEN_CLASS =
   "product-description-editor-modal-open"
 
-const restoreNativeProductDescriptionField = () => {
-  document.body.classList.remove(PRODUCT_DESCRIPTION_EDITOR_MODAL_OPEN_CLASS)
+const setStoredDisplay = (
+  element: HTMLElement,
+  displayAttribute: string,
+  hiddenAttribute: string
+) => {
+  if (!element.hasAttribute(displayAttribute)) {
+    element.setAttribute(displayAttribute, element.style.display)
+  }
 
-  const fields = document.querySelectorAll<HTMLElement>(
-    `[${NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE}="true"]`
+  element.style.display = "none"
+  element.hidden = true
+  element.setAttribute(hiddenAttribute, "true")
+}
+
+const restoreStoredDisplay = (
+  selector: string,
+  displayAttribute: string,
+  hiddenAttribute: string
+) => {
+  const elements = document.querySelectorAll<HTMLElement>(selector)
+
+  for (const element of elements) {
+    element.hidden = false
+    element.style.display = element.getAttribute(displayAttribute) ?? ""
+    element.removeAttribute(hiddenAttribute)
+    element.removeAttribute(displayAttribute)
+  }
+}
+
+const restoreProductDescriptionDetailRow = () => {
+  restoreStoredDisplay(
+    `[${DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE}="true"]`,
+    DETAIL_DESCRIPTION_ROW_DISPLAY_ATTRIBUTE,
+    DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE
+  )
+}
+
+const hideProductDescriptionDetailRow = () => {
+  if (!PRODUCT_DETAIL_ROUTE_PATTERN.test(window.location.pathname)) {
+    restoreProductDescriptionDetailRow()
+    return
+  }
+
+  const rows = document.querySelectorAll<HTMLElement>(
+    PRODUCT_DETAIL_DESCRIPTION_ROW_SELECTOR
   )
 
-  for (const field of fields) {
-    field.hidden = false
-    field.style.display =
-      field.getAttribute(NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE) ?? ""
-    field.removeAttribute(NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE)
-    field.removeAttribute(NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE)
+  for (const row of rows) {
+    const label = row.firstElementChild?.textContent?.trim()
+
+    if (label === PRODUCT_DESCRIPTION_LABEL) {
+      setStoredDisplay(
+        row,
+        DETAIL_DESCRIPTION_ROW_DISPLAY_ATTRIBUTE,
+        DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE
+      )
+    }
   }
+}
+
+const restoreNativeProductDescriptionField = () => {
+  document.body.classList.remove(PRODUCT_DESCRIPTION_EDITOR_MODAL_OPEN_CLASS)
+  restoreStoredDisplay(
+    `[${NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE}="true"]`,
+    NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE,
+    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE
+  )
 }
 
 const hideNativeProductDescriptionField = () => {
@@ -90,15 +150,16 @@ const hideNativeProductDescriptionField = () => {
   textarea.readOnly = true
   textarea.tabIndex = -1
   textarea.setAttribute("aria-readonly", "true")
-  if (!field.hasAttribute(NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE)) {
-    field.setAttribute(
-      NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE,
-      field.style.display
-    )
-  }
-  field.style.display = "none"
-  field.hidden = true
-  field.setAttribute(NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE, "true")
+  setStoredDisplay(
+    field,
+    NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE,
+    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE
+  )
+}
+
+const syncNativeProductDescriptionUi = () => {
+  hideProductDescriptionDetailRow()
+  hideNativeProductDescriptionField()
 }
 
 const htmlToMarkdown = (html: string) => {
@@ -210,17 +271,18 @@ const ProductDescriptionEditor = ({
   }, [product?.description])
 
   useEffect(() => {
-    const observer = new MutationObserver(hideNativeProductDescriptionField)
+    const observer = new MutationObserver(syncNativeProductDescriptionUi)
 
     observer.observe(document.body, {
       childList: true,
       subtree: true,
     })
 
-    hideNativeProductDescriptionField()
+    syncNativeProductDescriptionUi()
 
     return () => {
       observer.disconnect()
+      restoreProductDescriptionDetailRow()
       restoreNativeProductDescriptionField()
     }
   }, [])
