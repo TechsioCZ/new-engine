@@ -38,8 +38,17 @@ const notificationProvider =
         },
       }
 
-const MEDUSA_ADMIN_ALLOWED_HOSTS =
-  process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
+const getMedusaAdminAllowedHosts = () => {
+  if (process.env.NODE_ENV === "development") {
+    return true
+  }
+
+  return process.env.MEDUSA_BACKEND_URL
+    ? [process.env.MEDUSA_BACKEND_URL]
+    : undefined
+}
+
+const MEDUSA_ADMIN_ALLOWED_HOSTS = getMedusaAdminAllowedHosts()
 
 module.exports = defineConfig({
   featureFlags: {
@@ -51,10 +60,6 @@ module.exports = defineConfig({
   admin: {
     // backendUrl: BACKEND_URL,
     vite: () => ({
-      build: {
-        minify: false,
-        sourcemap: false,
-      },
       server: {
         allowedHosts: MEDUSA_ADMIN_ALLOWED_HOSTS,
         hmr: false,
