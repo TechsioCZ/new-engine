@@ -105,13 +105,13 @@ export type PacketaShipmentState =
   | "unknown"
 
 /** States that mean the parcel was successfully handed over to the customer */
-export const PACKETA_DELIVERED_STATES: PacketaShipmentState[] = [
+export const PACKETA_DELIVERED_STATES: readonly PacketaShipmentState[] = [
   "delivered",
   "collected",
 ]
 
 /** States that mean delivery failed / was refused / returned */
-export const PACKETA_FAILED_STATES: PacketaShipmentState[] = [
+export const PACKETA_FAILED_STATES: readonly PacketaShipmentState[] = [
   "posted_back",
   "returned",
   "cancelled",

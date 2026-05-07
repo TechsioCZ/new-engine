@@ -140,14 +140,13 @@ async function fetchPendingFulfillments(
     fields: ["id", "data", "shipped_at", "delivered_at", "provider_id"],
     filters: {
       provider_id: "packeta_packeta",
+      shipped_at: { $ne: null },
+      delivered_at: null,
     },
   })
 
   return (fulfillments as FulfillmentRecord[]).filter(
-    (f): f is PendingFulfillment =>
-      f.shipped_at !== null &&
-      !f.delivered_at &&
-      typeof f.data?.packet_id === "number"
+    (f): f is PendingFulfillment => typeof f.data?.packet_id === "number"
   )
 }
 
@@ -218,7 +217,7 @@ async function handleDelivered(
   })
 
   await eventBus.emit({
-    name: "fulfillment.delivered",
+    name: "packeta.delivered",
     data: {
       fulfillment_id: fulfillment.id,
       packet_id: data.packet_id,
@@ -250,7 +249,7 @@ async function handleFailed(
   })
 
   await eventBus.emit({
-    name: "fulfillment.delivery_failed",
+    name: "packeta.delivery_failed",
     data: {
       fulfillment_id: fulfillment.id,
       packet_id: data.packet_id,

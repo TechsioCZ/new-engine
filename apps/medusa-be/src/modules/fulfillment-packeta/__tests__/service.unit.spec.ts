@@ -1,4 +1,9 @@
-import type { FulfillmentOrderDTO } from "@medusajs/framework/types"
+import type {
+  FulfillmentOrderDTO,
+  IFileModuleService,
+  Logger,
+  Query,
+} from "@medusajs/framework/types"
 
 jest.mock("../../packeta-client", () => ({
   PACKETA_CLIENT_MODULE: "packeta_client",
@@ -6,6 +11,8 @@ jest.mock("../../packeta-client", () => ({
 
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 // Import after mock
+import type { PacketaClientModuleService } from "../../packeta-client"
+import type { PacketaOptions } from "../../packeta-client/types"
 import PacketaFulfillmentProviderService from "../service"
 
 const mockLogger = {
@@ -35,16 +42,31 @@ const mockQuery = {
 const PICKUP_POINT_ERROR = /Pickup point/
 const INVALID_PICKUP_POINT_ERROR = /Invalid pickup point ID/
 
-const createService = () =>
-  new PacketaFulfillmentProviderService(
-    {
-      logger: mockLogger,
-      packeta_client: mockPacketaClient,
-      [Modules.FILE]: mockFileService,
-      [ContainerRegistrationKeys.QUERY]: mockQuery,
-    } as any,
-    {} as any
-  )
+type ServiceConstructorArgs = ConstructorParameters<
+  typeof PacketaFulfillmentProviderService
+>
+type InjectedDependencies = ServiceConstructorArgs[0]
+
+const defaultOptions: PacketaOptions = {
+  api_password: "test-pwd",
+  environment: "testing",
+  default_label_format: "A6",
+  default_label_offset: 0,
+  sender_label: "Test Eshop",
+}
+
+const createInjectedDependencies = (): InjectedDependencies => ({
+  logger: mockLogger as unknown as Logger,
+  packeta_client: mockPacketaClient as unknown as PacketaClientModuleService,
+  [Modules.FILE]: mockFileService as unknown as IFileModuleService,
+  [ContainerRegistrationKeys.QUERY]: mockQuery as unknown as Query,
+})
+
+const createService = (options: Partial<PacketaOptions> = {}) =>
+  new PacketaFulfillmentProviderService(createInjectedDependencies(), {
+    ...defaultOptions,
+    ...options,
+  })
 
 const baseShippingAddress = {
   id: "addr_123",
@@ -81,7 +103,7 @@ const createShippingData = (overrides = {}) => ({
 
 describe("PacketaFulfillmentProviderService", () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.resetAllMocks()
     mockPacketaClient.getEffectiveConfig.mockResolvedValue({
       api_password: "test-pwd",
       environment: "testing",
@@ -313,6 +335,7 @@ describe("PacketaFulfillmentProviderService", () => {
       )
       expect((result.data as any).status).toBe("completed")
       expect((result.data as any).label_url).toBeUndefined()
+      expect(result.labels).toEqual([])
     })
   })
 

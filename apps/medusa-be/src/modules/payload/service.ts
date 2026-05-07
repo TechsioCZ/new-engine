@@ -130,11 +130,8 @@ export default class PayloadModuleService extends MedusaService({}) {
     container: InjectedDependencies,
     key: string
   ): T | null {
-    try {
-      return ((container as Record<string, unknown>)[key] as T) ?? null
-    } catch {
-      return null
-    }
+    const value = (container as Record<string, unknown>)[key]
+    return value !== undefined && value !== null ? (value as T) : null
   }
 
   /**

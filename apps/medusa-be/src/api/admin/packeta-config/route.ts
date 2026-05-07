@@ -39,15 +39,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     PACKETA_CLIENT_MODULE
   )
 
-  const config = await packetaService.getConfig()
-  if (!config) {
+  const packetaConfig = await packetaService.getConfig()
+  if (!packetaConfig) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       "Packeta configuration not found. Please restart the server to initialize."
     )
   }
 
-  res.json({ config: toConfigResponse(config) })
+  res.json({ config: toConfigResponse(packetaConfig) })
 }
 
 /**

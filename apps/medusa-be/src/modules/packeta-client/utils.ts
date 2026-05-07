@@ -23,6 +23,7 @@ export function mapPacketaStatusCode(
 
     case "2":
     case "arrived":
+    case "arrived at target":
     case "arrivedattarget":
       return "arrived"
 

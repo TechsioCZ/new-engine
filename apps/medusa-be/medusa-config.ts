@@ -1,4 +1,9 @@
-import { ContainerRegistrationKeys, defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  defineConfig,
+  loadEnv,
+  Modules,
+} from "@medusajs/framework/utils"
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
@@ -313,7 +318,7 @@ module.exports = defineConfig({
             resolve: "./src/modules/packeta-client",
             dependencies: [Modules.LOCKING],
             options: {
-              environment: process.env.PACKETA_ENVIRONMENT || "testing",
+              environment: process.env.PACKETA_ENVIRONMENT ?? "testing",
             },
           },
         ]

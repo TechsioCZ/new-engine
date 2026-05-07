@@ -73,12 +73,17 @@ export async function POST(
 
   const mergedPdf = await PDFDocument.create()
 
-  for (const label of labels) {
-    const labelPdf = await packetaClient.downloadLabelPdf(
-      label.packet_id,
-      labelFormat as PacketaLabelFormat | undefined,
-      label_offset
+  const labelPdfs = await Promise.all(
+    labels.map((label) =>
+      packetaClient.downloadLabelPdf(
+        label.packet_id,
+        labelFormat as PacketaLabelFormat | undefined,
+        label_offset
+      )
     )
+  )
+
+  for (const labelPdf of labelPdfs) {
     const sourcePdf = await PDFDocument.load(labelPdf)
     const copiedPages = await mergedPdf.copyPages(
       sourcePdf,
@@ -120,13 +125,10 @@ function collectPrintableLabels(
     const orderLabels = (order.fulfillments ?? [])
       .filter((fulfillment) => fulfillment.provider_id === "packeta_packeta")
       .filter((fulfillment) => !fulfillment.canceled_at)
-      .map((fulfillment) => {
-        const data = fulfillment.data as PacketaFulfillmentData | null
-        return {
-          fulfillment,
-          data,
-        }
-      })
+      .map((fulfillment) => ({
+        fulfillment,
+        data: fulfillment.data,
+      }))
       .filter(
         (
           item

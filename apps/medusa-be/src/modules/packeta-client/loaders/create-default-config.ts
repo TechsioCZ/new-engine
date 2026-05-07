@@ -17,7 +17,7 @@ export default async function createDefaultConfigLoader({
   options,
 }: LoaderOptions<{ environment: string }>) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const environment = options?.environment || "testing"
+  const environment = options?.environment ?? "testing"
 
   const packetaConfigService = container.resolve<PacketaConfigServiceType>(
     "packetaConfigService"

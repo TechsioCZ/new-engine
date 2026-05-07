@@ -93,8 +93,18 @@ async function downloadLabels(orderIds: string[], labelFormat: LabelFormat) {
   })
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => null)
-    throw new Error(payload?.message ?? "Failed to generate Packeta labels")
+    const payload: unknown = await response.json().catch(() => null)
+    if (
+      typeof payload === "object" &&
+      payload !== null &&
+      "message" in payload
+    ) {
+      const message = (payload as { message?: unknown }).message
+      if (typeof message === "string") {
+        throw new Error(message)
+      }
+    }
+    throw new Error("Failed to generate Packeta labels")
   }
 
   const blob = await response.blob()

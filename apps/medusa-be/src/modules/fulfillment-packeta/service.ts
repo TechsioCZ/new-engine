@@ -209,11 +209,18 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
         `Packeta: Invalid pickup point ID: ${accessPointId}`
       )
     }
+    const optionCode = optionData.code
+    if (optionCode !== "z_point" && optionCode !== "z_point_cod") {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: Invalid shipping option code"
+      )
+    }
 
     return {
-      code: optionData.code as "z_point" | "z_point_cod",
+      code: optionCode,
       requires_access_point: true,
-      supports_cod: optionData.supports_cod as boolean,
+      supports_cod: optionCode === "z_point_cod",
       access_point_id: parsedAccessPointId,
       access_point_name: data.access_point_name as string | undefined,
       access_point_zip: data.access_point_zip as string | undefined,
@@ -302,13 +309,15 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     return {
       data: fulfillmentData,
-      labels: [
-        {
-          tracking_number: result.barcode,
-          tracking_url: trackingUrl,
-          label_url: labelUrl ?? trackingUrl,
-        },
-      ],
+      labels: labelUrl
+        ? [
+            {
+              tracking_number: result.barcode,
+              tracking_url: trackingUrl,
+              label_url: labelUrl,
+            },
+          ]
+        : [],
     }
   }
 

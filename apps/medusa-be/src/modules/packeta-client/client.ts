@@ -149,7 +149,7 @@ export class PacketaClient {
     format: "A6" | "A7" = this.options.default_label_format,
     offset: number = this.options.default_label_offset
   ): Promise<Buffer> {
-    const apiFormat = `${format} on ${format}`
+    const apiFormat = format === "A6" ? "A6 on A6" : "A7 on A4"
     const result = await this.request<string>("packetLabelPdf", {
       params: { packetId, format: apiFormat, offset },
     })
@@ -320,10 +320,11 @@ export class PacketaClient {
       return await fetch(url, { ...init, signal: controller.signal })
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        throw new MedusaError(
-          MedusaError.Types.INVALID_DATA,
+        const abortError = new Error(
           `Packeta request timed out after ${timeoutMs}ms: ${url}`
         )
+        abortError.name = "AbortError"
+        throw abortError
       }
       throw error
     } finally {

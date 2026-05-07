@@ -40,6 +40,20 @@ type PacketaModuleOptions = {
   environment: PacketaEnvironment
 }
 
+type DisabledConfigCacheEntry = {
+  disabled: true
+}
+
+type CachedConfigEntry = PacketaOptions | DisabledConfigCacheEntry
+
+const isDisabledConfigCacheEntry = (
+  value: unknown
+): value is DisabledConfigCacheEntry =>
+  typeof value === "object" &&
+  value !== null &&
+  "disabled" in value &&
+  (value as { disabled?: unknown }).disabled === true
+
 /**
  * Packeta Client Module Service
  *
@@ -84,11 +98,8 @@ export class PacketaClientModuleService extends MedusaService({
     container: InjectedDependencies,
     key: string
   ): T | null {
-    try {
-      return ((container as Record<string, unknown>)[key] as T) ?? null
-    } catch {
-      return null
-    }
+    const value = (container as Record<string, unknown>)[key]
+    return value !== undefined && value !== null ? (value as T) : null
   }
 
   getEnvironment(): PacketaEnvironment {
@@ -159,23 +170,43 @@ export class PacketaClientModuleService extends MedusaService({
    * the same burst don't re-hit the DB. Returns null if disabled / unconfigured.
    */
   async getEffectiveConfig(): Promise<PacketaOptions | null> {
-    if (this.cacheService_) {
-      const cached = await this.cacheService_.get({ key: CACHE_KEYS.CONFIG })
-      if (cached) {
-        return cached as PacketaOptions
-      }
+    const cached = await this.getCachedConfig()
+    if (cached !== undefined) {
+      return cached
     }
 
     const config = await this.getConfig()
-    if (!config?.is_enabled) {
-      return null
-    }
-    if (!config.api_password) {
+    const apiPassword = config?.api_password
+    if (!(config?.is_enabled && apiPassword)) {
+      await this.cacheDisabledConfig()
       return null
     }
 
-    const options: PacketaOptions = {
-      api_password: config.api_password,
+    const options = this.toEffectiveOptions(config, apiPassword)
+    await this.cacheEffectiveConfig(options)
+
+    return options
+  }
+
+  private async getCachedConfig(): Promise<PacketaOptions | null | undefined> {
+    if (!this.cacheService_) {
+      return
+    }
+    const cached = (await this.cacheService_.get({
+      key: CACHE_KEYS.CONFIG,
+    })) as CachedConfigEntry | null
+    if (isDisabledConfigCacheEntry(cached)) {
+      return null
+    }
+    return cached ?? undefined
+  }
+
+  private toEffectiveOptions(
+    config: PacketaConfigDTO,
+    apiPassword: string
+  ): PacketaOptions {
+    return {
+      api_password: apiPassword,
       environment: this.environment_,
       default_label_format: config.default_label_format as PacketaLabelFormat,
       default_label_offset: config.default_label_offset,
@@ -193,17 +224,30 @@ export class PacketaClientModuleService extends MedusaService({
       sender_phone: config.sender_phone ?? undefined,
       sender_email: config.sender_email ?? undefined,
     }
+  }
 
-    if (this.cacheService_) {
-      await this.cacheService_.set({
-        key: CACHE_KEYS.CONFIG,
-        data: options,
-        ttl: CACHE_TTL.CONFIG,
-        tags: [CACHE_TAGS.ALL],
-      })
+  private async cacheEffectiveConfig(options: PacketaOptions): Promise<void> {
+    if (!this.cacheService_) {
+      return
     }
+    await this.cacheService_.set({
+      key: CACHE_KEYS.CONFIG,
+      data: options,
+      ttl: CACHE_TTL.CONFIG,
+      tags: [CACHE_TAGS.ALL],
+    })
+  }
 
-    return options
+  private async cacheDisabledConfig(): Promise<void> {
+    if (!this.cacheService_) {
+      return
+    }
+    await this.cacheService_.set({
+      key: CACHE_KEYS.CONFIG,
+      data: { disabled: true } satisfies DisabledConfigCacheEntry,
+      ttl: CACHE_TTL.CONFIG,
+      tags: [CACHE_TAGS.ALL],
+    })
   }
 
   async invalidateConfigCache(): Promise<void> {

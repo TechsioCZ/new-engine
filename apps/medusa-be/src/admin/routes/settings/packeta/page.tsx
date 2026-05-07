@@ -56,13 +56,33 @@ type PacketaConfigInput = {
   sender_email?: string
 }
 
-const CLEARABLE_FIELDS = new Set([
+const CLEARABLE_FIELDS = [
   "api_password",
   "cod_bank_account",
   "cod_bank_code",
   "cod_iban",
   "cod_swift",
-])
+] as const satisfies readonly (keyof PacketaConfigInput)[]
+
+type ClearableField = (typeof CLEARABLE_FIELDS)[number]
+type PacketaConfigPayload = Partial<PacketaConfigInput> &
+  Partial<Record<ClearableField, string | null>>
+
+const CLEARABLE_FIELD_SET: ReadonlySet<keyof PacketaConfigInput> = new Set(
+  CLEARABLE_FIELDS
+)
+
+const isClearableField = (
+  field: keyof PacketaConfigInput
+): field is ClearableField => CLEARABLE_FIELD_SET.has(field)
+
+const getStringField = (
+  data: PacketaConfigInput,
+  field: keyof PacketaConfigInput
+): string => {
+  const value: unknown = data[field]
+  return typeof value === "string" ? value : ""
+}
 
 const LABEL_FORMATS = [
   { value: "A6", label: "A6 (thermal)" },
@@ -108,7 +128,9 @@ const FormField = ({
 }) => {
   const inputId = `packeta-${fieldConfig.field}`
   const canClear =
-    CLEARABLE_FIELDS.has(fieldConfig.field) && fieldConfig.isSet && !isCleared
+    CLEARABLE_FIELD_SET.has(fieldConfig.field) &&
+    fieldConfig.isSet &&
+    !isCleared
 
   return (
     <div
@@ -140,7 +162,7 @@ const FormField = ({
         id={inputId}
         onChange={(e) => onChange(e.target.value)}
         placeholder={getPlaceholder(isCleared, fieldConfig)}
-        type={fieldConfig.type || "text"}
+        type={fieldConfig.type ?? "text"}
         value={isCleared ? "" : value}
       />
     </div>
@@ -150,7 +172,9 @@ const FormField = ({
 const PacketaSettingsPage = () => {
   const queryClient = useQueryClient()
   const [formData, setFormData] = useState<PacketaConfigInput>({})
-  const [clearedFields, setClearedFields] = useState<Set<string>>(new Set())
+  const [clearedFields, setClearedFields] = useState<Set<ClearableField>>(
+    new Set()
+  )
 
   const { data, isLoading, error } = useQuery({
     queryFn: () =>
@@ -181,18 +205,18 @@ const PacketaSettingsPage = () => {
     if (packetaConfig) {
       setFormData({
         is_enabled: packetaConfig.is_enabled,
-        sender_label: packetaConfig.sender_label || "",
-        eshop_id: packetaConfig.eshop_id || "",
+        sender_label: packetaConfig.sender_label ?? "",
+        eshop_id: packetaConfig.eshop_id ?? "",
         default_label_format:
-          packetaConfig.default_label_format || DEFAULT_LABEL_FORMAT,
+          packetaConfig.default_label_format ?? DEFAULT_LABEL_FORMAT,
         default_label_offset: packetaConfig.default_label_offset,
-        sender_name: packetaConfig.sender_name || "",
-        sender_street: packetaConfig.sender_street || "",
-        sender_city: packetaConfig.sender_city || "",
-        sender_zip_code: packetaConfig.sender_zip_code || "",
-        sender_country: packetaConfig.sender_country || "",
-        sender_phone: packetaConfig.sender_phone || "",
-        sender_email: packetaConfig.sender_email || "",
+        sender_name: packetaConfig.sender_name ?? "",
+        sender_street: packetaConfig.sender_street ?? "",
+        sender_city: packetaConfig.sender_city ?? "",
+        sender_zip_code: packetaConfig.sender_zip_code ?? "",
+        sender_country: packetaConfig.sender_country ?? "",
+        sender_phone: packetaConfig.sender_phone ?? "",
+        sender_email: packetaConfig.sender_email ?? "",
       })
       setClearedFields(new Set())
     }
@@ -200,12 +224,12 @@ const PacketaSettingsPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const payload = { ...formData }
+    const payload: PacketaConfigPayload = { ...formData }
     if (payload.default_label_format === "") {
       payload.default_label_format = undefined
     }
     for (const field of clearedFields) {
-      payload[field as keyof PacketaConfigInput] = null as never
+      payload[field] = null
     }
     mutate(payload)
   }
@@ -215,7 +239,7 @@ const PacketaSettingsPage = () => {
     value: string | boolean | number
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    if (clearedFields.has(field)) {
+    if (isClearableField(field) && clearedFields.has(field)) {
       setClearedFields((prev) => {
         const next = new Set(prev)
         next.delete(field)
@@ -224,9 +248,15 @@ const PacketaSettingsPage = () => {
     }
   }
 
-  const clearField = (field: string) => {
+  const clearField = (field: keyof PacketaConfigInput) => {
+    if (!isClearableField(field)) {
+      return
+    }
     setClearedFields((prev) => new Set(prev).add(field))
   }
+
+  const isFieldCleared = (field: keyof PacketaConfigInput) =>
+    isClearableField(field) && clearedFields.has(field)
 
   if (isLoading) {
     return (
@@ -378,8 +408,8 @@ const PacketaSettingsPage = () => {
                     updateField("default_label_format", value)
                   }
                   value={
-                    formData.default_label_format ||
-                    packetaConfig?.default_label_format ||
+                    formData.default_label_format ??
+                    packetaConfig?.default_label_format ??
                     DEFAULT_LABEL_FORMAT
                   }
                 >
@@ -424,11 +454,11 @@ const PacketaSettingsPage = () => {
             {credentialFields.map((f) => (
               <FormField
                 fieldConfig={f}
-                isCleared={clearedFields.has(f.field)}
+                isCleared={isFieldCleared(f.field)}
                 key={f.field}
                 onChange={(v) => updateField(f.field, v)}
                 onClear={() => clearField(f.field)}
-                value={(formData[f.field] as string) ?? ""}
+                value={getStringField(formData, f.field)}
               />
             ))}
           </div>
@@ -446,11 +476,11 @@ const PacketaSettingsPage = () => {
             {codFields.map((f) => (
               <FormField
                 fieldConfig={f}
-                isCleared={clearedFields.has(f.field)}
+                isCleared={isFieldCleared(f.field)}
                 key={f.field}
                 onChange={(v) => updateField(f.field, v)}
                 onClear={() => clearField(f.field)}
-                value={(formData[f.field] as string) ?? ""}
+                value={getStringField(formData, f.field)}
               />
             ))}
           </div>
@@ -470,7 +500,7 @@ const PacketaSettingsPage = () => {
                 fieldConfig={f}
                 key={f.field}
                 onChange={(v) => updateField(f.field, v)}
-                value={(formData[f.field] as string) ?? ""}
+                value={getStringField(formData, f.field)}
               />
             ))}
           </div>
