@@ -2,6 +2,7 @@ import {
   BlockTypeSelect,
   BoldItalicUnderlineToggles,
   CreateLink,
+  codeBlockPlugin,
   headingsPlugin,
   InsertThematicBreak,
   ListsToggle,
@@ -444,6 +445,7 @@ const ProductDescriptionEditor = ({
       linkPlugin(),
       linkDialogPlugin(),
       tablePlugin(),
+      codeBlockPlugin({ defaultCodeBlockLanguage: "html" }),
       markdownShortcutPlugin(),
     ],
     []
