@@ -218,7 +218,7 @@ async function handleDelivered(
   })
 
   await eventBus.emit({
-    name: "fulfillment.delivered",
+    name: "packeta.fulfillment.delivered",
     data: {
       fulfillment_id: fulfillment.id,
       packet_id: data.packet_id,
@@ -250,11 +250,11 @@ async function handleFailed(
   })
 
   await eventBus.emit({
-    name: "fulfillment.delivery_failed",
+    name: "packeta.fulfillment.delivery_failed",
     data: {
       fulfillment_id: fulfillment.id,
       packet_id: data.packet_id,
-      barcode: data.barcode,
+
       status: newStatus,
       status_date: latest.dateTime,
     },
