@@ -205,7 +205,13 @@ try {
   postgresContainer = await ensurePostgres()
   const exitCode = await run(
     process.execPath,
-    ["./scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts"],
+    [
+      "./scripts/run-vitest.mjs",
+      "run",
+      "--config",
+      "vitest.config.ts",
+      "--no-file-parallelism",
+    ],
     {
       cwd: medusaBeDir,
       env: testEnv,
