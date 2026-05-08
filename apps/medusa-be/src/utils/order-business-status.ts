@@ -208,6 +208,7 @@ export function resolveOrderBusinessStatus(
 
   const activeFulfillments = getActiveFulfillments(order)
   const hasActiveFulfillments = activeFulfillments.length > 0
+  const canUseFulfillmentTimestampFallback = !hasValue(order.fulfillment_status)
   const allActiveFulfillmentsDelivered =
     hasActiveFulfillments &&
     activeFulfillments.every((fulfillment) =>
@@ -216,7 +217,7 @@ export function resolveOrderBusinessStatus(
 
   if (
     order.fulfillment_status === "delivered" ||
-    allActiveFulfillmentsDelivered
+    (canUseFulfillmentTimestampFallback && allActiveFulfillmentsDelivered)
   ) {
     return ORDER_BUSINESS_STATUSES.delivered
   }

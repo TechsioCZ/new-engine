@@ -160,6 +160,14 @@ describe("order business status", () => {
         })
       ).id
     ).toBe("shipped")
+    expect(
+      resolveOrderBusinessStatus(
+        createOrder({
+          fulfillment_status: "partially_delivered",
+          fulfillments: [{ delivered_at: "2026-05-07T12:00:00.000Z" }],
+        })
+      ).id
+    ).toBe("shipped")
   })
 
   it("gives Storno priority over payment and fulfillment signals", () => {
