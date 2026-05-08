@@ -109,6 +109,10 @@ module.exports = defineConfig({
         // @lexical/code imports Prism language modules that assume a global Prism identifier.
         Prism: "globalThis.Prism",
       },
+      build: {
+        minify: false,
+        reportCompressedSize: false,
+      },
       plugins: [prismGlobalPlugin()],
       resolve: {
         alias: [

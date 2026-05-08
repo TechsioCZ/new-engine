@@ -100,6 +100,10 @@ log_info "Step 3/5: Building Medusa..."
 export JWT_SECRET="${JWT_SECRET:-build-placeholder}"
 export COOKIE_SECRET="${COOKIE_SECRET:-build-placeholder}"
 export NODE_ENV="${NODE_ENV:-production}"
+export MEDUSA_TELEMETRY_DISABLED="${MEDUSA_TELEMETRY_DISABLED:-1}"
+export NX_DAEMON=false
+export NX_SKIP_NX_CACHE=true
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${MEDUSA_BUILD_MAX_OLD_SPACE_SIZE:-768}}"
 
 # FEATURE_PPL_ENABLED must come from the environment (no default - explicit opt-in)
 if [[ -n "${FEATURE_PPL_ENABLED:-}" ]]; then
@@ -126,10 +130,10 @@ else
   log_warn "FEATURE_PACKETA_ENABLED not set - Packeta module will NOT be included in build"
 fi
 
-log_info "Running: pnpm nx run medusa-be:build --skip-nx-cache"
+log_info "Running: pnpm --filter=medusa-be build"
 
 # Run build and capture output
-if pnpm nx run medusa-be:build --skip-nx-cache 2>&1 | tee "$BUILD_LOG"; then
+if pnpm --filter=medusa-be build 2>&1 | tee "$BUILD_LOG"; then
   log_info "Build command completed"
 else
   log_warn "Build command exited with code $?"
