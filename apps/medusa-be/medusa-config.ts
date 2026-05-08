@@ -1,3 +1,5 @@
+import fs from "node:fs"
+import path from "node:path"
 import {
   ContainerRegistrationKeys,
   defineConfig,
@@ -17,6 +19,28 @@ const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
 const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL
+const PRISMJS_IMPORT_PATTERN = /^prismjs$/
+const PRISM_GLOBAL_SHIM_PATH = path.resolve(
+  process.cwd(),
+  "src/admin/lib/prism-global.js"
+)
+const PRISM_CORE_SCRIPT = fs.readFileSync(
+  require.resolve("prismjs/prism.js"),
+  "utf8"
+)
+
+const prismGlobalPlugin = () => ({
+  name: "medusa-admin-prism-global",
+  transformIndexHtml() {
+    return [
+      {
+        tag: "script",
+        injectTo: "head-prepend",
+        children: `window.Prism=window.Prism||{};window.Prism.manual=true;\n${PRISM_CORE_SCRIPT}`,
+      },
+    ]
+  },
+})
 
 const notificationProvider =
   NOTIFICATION_PROVIDER === "local"
@@ -38,8 +62,18 @@ const notificationProvider =
         },
       }
 
-const MEDUSA_ADMIN_ALLOWED_HOSTS =
-  process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
+const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL?.trim()
+let MEDUSA_ADMIN_ALLOWED_HOSTS: true | string[] | undefined
+
+if (process.env.NODE_ENV === "development") {
+  MEDUSA_ADMIN_ALLOWED_HOSTS = true
+} else if (MEDUSA_BACKEND_URL) {
+  const backendUrl = MEDUSA_BACKEND_URL.includes("://")
+    ? MEDUSA_BACKEND_URL
+    : `http://${MEDUSA_BACKEND_URL}`
+
+  MEDUSA_ADMIN_ALLOWED_HOSTS = [new URL(backendUrl).hostname]
+}
 const MEDUSA_COOKIE_SECURE = process.env.MEDUSA_COOKIE_SECURE
 const MEDUSA_COOKIE_SAME_SITE = process.env.MEDUSA_COOKIE_SAME_SITE as
   | "lax"
@@ -71,6 +105,19 @@ module.exports = defineConfig({
   admin: {
     // backendUrl: BACKEND_URL,
     vite: () => ({
+      define: {
+        // @lexical/code imports Prism language modules that assume a global Prism identifier.
+        Prism: "globalThis.Prism",
+      },
+      plugins: [prismGlobalPlugin()],
+      resolve: {
+        alias: [
+          {
+            find: PRISMJS_IMPORT_PATTERN,
+            replacement: PRISM_GLOBAL_SHIM_PATH,
+          },
+        ],
+      },
       server: {
         allowedHosts: MEDUSA_ADMIN_ALLOWED_HOSTS,
         hmr: false,
