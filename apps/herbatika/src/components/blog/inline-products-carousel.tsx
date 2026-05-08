@@ -44,10 +44,10 @@ function InlineProductsSlides({
       {hasOverflow ? (
         <>
           <Carousel.Previous
-            className="-translate-y-1/2 absolute top-1/2 left-100 rounded-full aspect-square text-lg shadow-md"
+            className="-translate-y-1/2 absolute top-1/2 left-100 rounded-full aspect-square text-lg shadow-carousel-trigger active:text-carousel-trigger-fg-active"
           />
           <Carousel.Next
-            className="-translate-y-1/2 absolute top-1/2 right-100 rounded-full aspect-square text-lg shadow-md"
+            className="-translate-y-1/2 absolute top-1/2 right-100 rounded-full aspect-square text-lg shadow-carousel-trigger active:text-carousel-trigger-fg-active"
           />
         </>
       ) : null}

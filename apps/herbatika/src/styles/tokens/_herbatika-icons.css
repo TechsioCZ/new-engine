@@ -20,11 +20,13 @@
 }
 
 @utility token-icon-chevron-right {
-  @apply icon-[solar--alt-arrow-right-line-duotone];
+  /* @apply icon-[solar--alt-arrow-right-line-duotone]; */
+  @apply icon-[fluent--chevron-right-12-filled];
 }
 
 @utility token-icon-chevron-left {
-  @apply icon-[solar--alt-arrow-left-line-duotone];
+  /* @apply icon-[solar--alt-arrow-left-line-duotone]; */
+  @apply icon-[fluent--chevron-left-12-filled];
 }
 
 @utility token-icon-chevron-up {

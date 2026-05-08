@@ -112,11 +112,11 @@ function PurposeCarouselSlides({
       {hasOverflow ? (
         <>
           <Carousel.Previous
-            className="-translate-y-1/2 absolute top-1/2 left-100 rounded-full aspect-square text-lg shadow-md"
+            className="-translate-y-1/2 absolute top-1/2 left-100 rounded-full aspect-square text-lg shadow-carousel-trigger active:text-carousel-trigger-fg-active"
             icon="token-icon-chevron-left"
           />
           <Carousel.Next
-            className="-translate-y-1/2 absolute top-1/2 right-100 rounded-full aspect-square text-lg shadow-md"
+            className="-translate-y-1/2 absolute top-1/2 right-100 rounded-full aspect-square text-lg shadow-carousel-trigger active:text-carousel-trigger-fg-active"
             icon="token-icon-chevron-right"
           />
         </>
@@ -158,13 +158,13 @@ export function PurposeCarousel({
 
       <div className="space-y-200">
         <div className="md:hidden">
-          <PurposeCarouselSlides slides={slides} slidesPerPage={3} />
+          <PurposeCarouselSlides slides={slides} slidesPerPage={3.2} />
         </div>
         <div className="hidden md:block xl:hidden">
-          <PurposeCarouselSlides slides={slides} slidesPerPage={5} />
+          <PurposeCarouselSlides slides={slides} slidesPerPage={5.2} />
         </div>
         <div className="hidden xl:block">
-          <PurposeCarouselSlides slides={slides} slidesPerPage={7} />
+          <PurposeCarouselSlides slides={slides} slidesPerPage={7.2} />
         </div>
       </div>
     </section>

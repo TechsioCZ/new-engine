@@ -1,41 +1,39 @@
 import type { HeroBannerItem } from "./homepage.data.types";
+import firstCarouselSlide from "@/assets/homepage-carousel/first.avif";
+import secondCarouselSlide from "@/assets/homepage-carousel/second.avif";
+import thirdCarouselSlide from "@/assets/homepage-carousel/third.avif";
+import fourthCarouselSlide from "@/assets/homepage-carousel/fourth.avif";
+
 
 export const HERO_BANNERS: HeroBannerItem[] = [
   {
-    id: "hero-immune",
-    title: "Silná imunita počas celého roka",
-    subtitle: "Bylinné extrakty, vitamíny a minerály pre každý deň.",
-    badge: "Imunita",
+    id: "rychle-dodanie",
+    title: "Rýchle doručenie 24h!",
+    subtitle: "Rýchle dodanie a balenie",
+    badge: "Rýchle dodanie",
     href: "/c/trapi-ma",
-    imageSrc:
-      "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=900&q=80",
+    imageSrc: firstCarouselSlide.src,
   },
   {
-    id: "hero-cosmetics",
-    title: "Prírodná kozmetika bez kompromisov",
-    subtitle: "Objavte jemnú starostlivosť o pleť a telo.",
+    id: "black-friday",
     badge: "Kozmetika",
-    href: "/c/prirodna-kozmetika",
-    imageSrc:
-      "https://images.unsplash.com/photo-1571875257727-256c39da42af?auto=format&fit=crop&w=900&q=80",
+    href: "/c/vypredaj-zlavy-a-akcie",
+    imageSrc: secondCarouselSlide.src,
   },
   {
-    id: "hero-tea",
-    title: "Bylinky a čaje pre pokojný deň",
-    subtitle: "Vyberte si z overených kombinácií od Herbatica.",
-    badge: "Bylinky",
-    href: "/c/potraviny-a-napoje",
-    imageSrc:
-      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80",
+    id: "nova-prevadzka",
+    title: "Otvárame pre vás novú prevádzku",
+    badge: "Nová prevádzka",
+    href: "/c/novinky",
+    imageSrc: thirdCarouselSlide.src,
   },
   {
-    id: "hero-supplements",
-    title: "Doplnky výživy pre vitalitu",
-    subtitle: "Kapsuly, tinktúry aj funkčné zmesi na mieru.",
-    badge: "Doplnky",
-    href: "/c/doplnky-vyzivy",
-    imageSrc:
-      "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80",
+    id: "rychle-dodanie-2",
+    title: "Rýchle doručenie 24h!",
+    subtitle: "Rýchle dodanie a balenie",
+    badge: "Rýchle dodanie",
+    href: "/c/trapi-ma",
+    imageSrc: fourthCarouselSlide.src,
   },
   {
     id: "hero-home",
