@@ -3,6 +3,7 @@ import {
   BoldItalicUnderlineToggles,
   CreateLink,
   codeBlockPlugin,
+  codeMirrorPlugin,
   headingsPlugin,
   InsertThematicBreak,
   ListsToggle,
@@ -446,6 +447,17 @@ const ProductDescriptionEditor = ({
       linkDialogPlugin(),
       tablePlugin(),
       codeBlockPlugin({ defaultCodeBlockLanguage: "html" }),
+      codeMirrorPlugin({
+        autoLoadLanguageSupport: false,
+        codeBlockLanguages: {
+          html: "HTML",
+          css: "CSS",
+          javascript: "JavaScript",
+          typescript: "TypeScript",
+          markdown: "Markdown",
+          plaintext: "Plain Text",
+        },
+      }),
       markdownShortcutPlugin(),
     ],
     []
