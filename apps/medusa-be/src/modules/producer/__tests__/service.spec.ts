@@ -1,4 +1,5 @@
 import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
+import { vi } from "vitest"
 import { PRODUCER_MODULE } from "../index"
 import Producer from "../models/producer"
 import ProducerAttribute from "../models/producer-attribute"
@@ -150,4 +151,4 @@ moduleIntegrationTestRunner<ProducerModuleService>({
   },
 })
 
-jest.setTimeout(60_000)
+vi.setConfig({ testTimeout: 60_000 })

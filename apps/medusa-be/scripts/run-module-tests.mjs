@@ -25,15 +25,21 @@ dbEnv.DATABASE_URL =
   process.env.DATABASE_URL ||
   `postgres://${dbUser}:${dbPassword}@${dbEnv.DB_HOST}:${dbEnv.DB_PORT}/${dbName}`
 
-const nodeOptions = [process.env.NODE_OPTIONS, "--experimental-vm-modules"]
+const nodeOptions = [
+  process.env.NODE_OPTIONS,
+  "-r",
+  "ts-node/register/transpile-only",
+]
   .filter(Boolean)
   .join(" ")
 
 const testEnv = {
   ...process.env,
   ...dbEnv,
-  TEST_TYPE: "integration:modules",
   NODE_OPTIONS: nodeOptions,
+  TEST_TYPE: "integration:modules",
+  TS_NODE_PROJECT: path.join(medusaBeDir, "tsconfig.json"),
+  TS_NODE_TRANSPILE_ONLY: "true",
 }
 
 function run(command, args, options = {}) {
@@ -116,6 +122,23 @@ async function waitForDockerPostgres(containerName, attempts = 60) {
   return false
 }
 
+async function canRunDocker() {
+  const code = await run(
+    "docker",
+    ["version", "--format", "{{.Server.Version}}"],
+    {
+      allowFailure: true,
+      stdio: "ignore",
+    }
+  )
+
+  return code === 0
+}
+
+function canBindDockerPostgres() {
+  return dbEnv.DB_HOST === "127.0.0.1" || dbEnv.DB_HOST === "localhost"
+}
+
 function dockerContainerName() {
   const raw = [
     "new-engine-medusa-module-test-pg",
@@ -126,17 +149,20 @@ function dockerContainerName() {
   return raw.replace(/[^a-zA-Z0-9_.-]/g, "-")
 }
 
-async function ensureGithubPostgres() {
-  if (process.env.GITHUB_ACTIONS !== "true") {
-    return null
-  }
-
+async function ensurePostgres() {
   const port = Number(dbEnv.DB_PORT)
   if (await waitForTcp(dbEnv.DB_HOST, port, 30)) {
     return null
   }
 
+  if (!(canBindDockerPostgres() && (await canRunDocker()))) {
+    return null
+  }
+
   const name = dockerContainerName()
+  const dockerBindHost =
+    dbEnv.DB_HOST === "localhost" ? "127.0.0.1" : dbEnv.DB_HOST
+
   await run("docker", ["rm", "-f", name], {
     allowFailure: true,
     stdio: "ignore",
@@ -154,7 +180,7 @@ async function ensureGithubPostgres() {
     "-e",
     `POSTGRES_DB=${dbEnv.DB_TEMP_NAME}`,
     "-p",
-    `${dbEnv.DB_HOST}:${dbEnv.DB_PORT}:5432`,
+    `${dockerBindHost}:${dbEnv.DB_PORT}:5432`,
     "postgres:18.1-alpine",
   ])
 
@@ -176,10 +202,10 @@ async function ensureGithubPostgres() {
 let postgresContainer = null
 
 try {
-  postgresContainer = await ensureGithubPostgres()
+  postgresContainer = await ensurePostgres()
   const exitCode = await run(
-    "pnpm",
-    ["exec", "jest", "--silent", "--runInBand", "--forceExit"],
+    process.execPath,
+    ["./scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts"],
     {
       cwd: medusaBeDir,
       env: testEnv,

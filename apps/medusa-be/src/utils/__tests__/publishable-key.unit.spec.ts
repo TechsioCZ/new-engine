@@ -2,26 +2,31 @@ import type {
   IApiKeyModuleService,
   ILockingModule,
 } from "@medusajs/framework/types"
+import type { Mocked } from "vitest"
+import { vi } from "vitest"
 import {
   getActivePublishableKey,
   provisionPublishableKey,
   resolvePublishableKeyTitle,
 } from "../publishable-key"
 
-const createApiKeyService = () => ({
-  listApiKeys: jest.fn(),
-  createApiKeys: jest.fn(),
-}) as unknown as jest.Mocked<IApiKeyModuleService>
+const createApiKeyService = () =>
+  ({
+    listApiKeys: vi.fn(),
+    createApiKeys: vi.fn(),
+  }) as unknown as Mocked<IApiKeyModuleService>
 
-const createLockingModule = () => ({
-  execute: jest.fn(async (_key, callback) => await callback()),
-}) as unknown as jest.Mocked<ILockingModule>
+const createLockingModule = () =>
+  ({
+    execute: vi.fn(async (_key, callback) => await callback()),
+  }) as unknown as Mocked<ILockingModule>
 
 describe("publishable-key utils", () => {
-  const originalInitialPublishableKeyName = process.env.INITIAL_PUBLISHABLE_KEY_NAME
+  const originalInitialPublishableKeyName =
+    process.env.INITIAL_PUBLISHABLE_KEY_NAME
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
 
     if (originalInitialPublishableKeyName === undefined) {
       process.env.INITIAL_PUBLISHABLE_KEY_NAME = ""

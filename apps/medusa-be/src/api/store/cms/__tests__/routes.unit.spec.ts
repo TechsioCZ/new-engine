@@ -1,12 +1,14 @@
+import { vi } from "vitest"
+
 const mockCmsService = {
-  getPublishedPage: jest.fn(),
-  getPublishedArticle: jest.fn(),
-  listPageCategoriesWithPages: jest.fn(),
-  listArticleCategoriesWithArticles: jest.fn(),
-  listHeroCarousels: jest.fn(),
+  getPublishedPage: vi.fn(),
+  getPublishedArticle: vi.fn(),
+  listPageCategoriesWithPages: vi.fn(),
+  listArticleCategoriesWithArticles: vi.fn(),
+  listHeroCarousels: vi.fn(),
 }
 
-jest.mock("../../../../modules/payload", () => ({
+vi.mock("../../../../modules/payload", () => ({
   PAYLOAD_MODULE: "payload",
 }))
 
@@ -22,7 +24,7 @@ const createMockRequest = ({
     validatedQuery,
     locale: "request-locale-should-not-be-used",
     scope: {
-      resolve: jest.fn((key: string) => {
+      resolve: vi.fn((key: string) => {
         if (key === "payload") {
           return mockCmsService
         }
@@ -33,13 +35,13 @@ const createMockRequest = ({
 
 const createMockResponse = () =>
   ({
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
   }) as any
 
 describe("Store CMS routes", () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it("passes validated locale to published page lookup", async () => {

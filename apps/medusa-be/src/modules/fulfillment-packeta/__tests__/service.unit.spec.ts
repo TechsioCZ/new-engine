@@ -4,8 +4,9 @@ import type {
   Logger,
   Query,
 } from "@medusajs/framework/types"
+import { vi } from "vitest"
 
-jest.mock("../../packeta-client", () => ({
+vi.mock("../../packeta-client", () => ({
   PACKETA_CLIENT_MODULE: "packeta_client",
 }))
 
@@ -16,27 +17,27 @@ import type { PacketaOptions } from "../../packeta-client/types"
 import PacketaFulfillmentProviderService from "../service"
 
 const mockLogger = {
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
 }
 
 const mockPacketaClient = {
-  getEffectiveConfig: jest.fn(),
-  createPacket: jest.fn(),
-  cancelPacket: jest.fn(),
-  getPacketStatus: jest.fn(),
-  downloadLabelPdf: jest.fn(),
-  getBranches: jest.fn(),
+  getEffectiveConfig: vi.fn(),
+  createPacket: vi.fn(),
+  cancelPacket: vi.fn(),
+  getPacketStatus: vi.fn(),
+  downloadLabelPdf: vi.fn(),
+  getBranches: vi.fn(),
 }
 
 const mockFileService = {
-  createFiles: jest.fn(),
+  createFiles: vi.fn(),
 }
 
 const mockQuery = {
-  graph: jest.fn(),
+  graph: vi.fn(),
 }
 
 const PICKUP_POINT_ERROR = /Pickup point/
@@ -103,7 +104,7 @@ const createShippingData = (overrides = {}) => ({
 
 describe("PacketaFulfillmentProviderService", () => {
   beforeEach(() => {
-    jest.resetAllMocks()
+    vi.resetAllMocks()
     mockPacketaClient.getEffectiveConfig.mockResolvedValue({
       api_password: "test-pwd",
       environment: "testing",
