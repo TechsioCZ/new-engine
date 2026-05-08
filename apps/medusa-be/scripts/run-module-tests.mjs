@@ -79,20 +79,28 @@ function canConnect(host, port, timeoutMs = 1000) {
   })
 }
 
-async function waitForTcp(host, port, attempts = 30) {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function waitUntil(attempts, check) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (await canConnect(host, port)) {
+    if (await check()) {
       return true
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await sleep(1000)
   }
 
   return false
 }
 
+async function waitForTcp(host, port, attempts = 30) {
+  return waitUntil(attempts, () => canConnect(host, port))
+}
+
 async function waitForDockerPostgres(containerName, attempts = 60) {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
+  return waitUntil(attempts, async () => {
     const code = await run(
       "docker",
       [
@@ -109,14 +117,8 @@ async function waitForDockerPostgres(containerName, attempts = 60) {
       { allowFailure: true, stdio: "ignore" }
     )
 
-    if (code === 0) {
-      return true
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-  }
-
-  return false
+    return code === 0
+  })
 }
 
 async function canRunDocker() {
