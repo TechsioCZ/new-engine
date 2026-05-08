@@ -8,6 +8,7 @@ import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { EMAIL_LOG_MODULE } from "../../modules/email-log"
 import type EmailLogModuleService from "../../modules/email-log/service"
+import { getResendTemplateSubject } from "../../modules/resend/templates"
 import { CHECKED_RESEND_EVENT_TYPES } from "../../utils/resend-webhook-events"
 
 type EmailLogDTO = {
@@ -47,11 +48,6 @@ type EmailLogService = EmailLogModuleService & {
   ) => Promise<EmailWebhookEventDTO[]>
 }
 
-const templateSubjects: Record<string, string> = {
-  "order-payment-reminder": "Zaplaťte prosím svou objednávku",
-  "user-forgotpwd": "Forgot Password",
-}
-
 const CUSTOMER_LOOKUP_CHUNK_SIZE = 25
 
 function getStringField(
@@ -68,7 +64,7 @@ function getNotificationSubject(input: CreateNotificationDTO) {
     input.content?.subject ||
     getStringField(input.provider_data, "subject") ||
     getStringField(input.data, "subject") ||
-    (input.template ? templateSubjects[input.template] : undefined) ||
+    (input.template ? getResendTemplateSubject(input.template) : undefined) ||
     input.template ||
     "Email"
   )

@@ -1,4 +1,7 @@
-import { resendEmailTemplates } from "../modules/resend/templates"
+import {
+  getResendTemplateDefinition,
+  resendEmailTemplates,
+} from "../modules/resend/templates"
 
 export const ALLOWED_ORDER_EMAIL_TEMPLATES = [
   resendEmailTemplates.ORDER_PAYMENT_REMINDER,
@@ -17,7 +20,9 @@ export type OrderEmailTemplate = {
 export const orderEmailTemplates = [
   {
     label: "Payment reminder",
-    subject: "Zaplaťte prosím svou objednávku",
+    subject: getResendTemplateDefinition(
+      resendEmailTemplates.ORDER_PAYMENT_REMINDER
+    ).subject,
     template: resendEmailTemplates.ORDER_PAYMENT_REMINDER,
     trigger_type: "order.payment_reminder",
   },
