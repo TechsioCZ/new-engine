@@ -1,12 +1,9 @@
 @theme static {
-  --color-carousel-trigger-bg: color-mix(
-    in srgb,
-    var(--color-surface) 88%,
-    transparent
-  );
+  --color-carousel-trigger-bg: white;
   --color-carousel-trigger-bg-hover: var(--color-surface);
   --color-carousel-trigger-fg: var(--color-primary);
   --color-carousel-trigger-fg-hover: var(--color-primary);
+  --color-carousel-trigger-fg-active: white;
   --color-carousel-control-bg: color-mix(
     in srgb,
     var(--color-surface) 88%,
@@ -30,4 +27,5 @@
   --text-carousel-trigger-size: var(--text-2xl);
   --radius-carousel: var(--radius-md);
   --radius-carousel-indicator: 999px;
+  --shadow-carousel-trigger: 0 2px 6px 0 rgba(0, 0, 0, 0.25);
 }

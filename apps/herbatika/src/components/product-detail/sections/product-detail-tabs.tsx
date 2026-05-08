@@ -19,18 +19,18 @@ export function ProductDetailTabs({
       <h2 className="mb-400 text-3xl font-semibold text-fg-primary">Informácie o produkte</h2>
 
       <div className="hidden lg:block">
-        <Tabs defaultValue={defaultSectionValue} fitted justify="start" variant="line">
-          <Tabs.List>
+        <Tabs defaultValue={defaultSectionValue} fitted justify="start" variant="line" size="md">
+          <Tabs.List className="mb-200">
             {sections.map((section) => (
-              <Tabs.Trigger key={section.key} value={section.key}>
+              <Tabs.Trigger key={section.key} value={section.key} className="bg-tabs-trigger-bg h-full font-normal data-[selected]:font-medium">
                 {section.title}
               </Tabs.Trigger>
             ))}
-            <Tabs.Indicator />
+            <Tabs.Indicator className="origin-center scale-x-75"/>
           </Tabs.List>
 
           {sections.map((section) => (
-            <Tabs.Content className="px-800 py-400" key={section.key} value={section.key}>
+            <Tabs.Content className="px-800 py-400 bg-surface" key={section.key} value={section.key}>
               <ProductDetailHtmlContent
                 fallback="Obsah sekcie bude čoskoro doplnený."
                 html={section.html}

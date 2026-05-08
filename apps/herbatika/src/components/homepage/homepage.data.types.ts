@@ -2,9 +2,9 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon";
 
 export type HeroBannerItem = {
   id: string;
-  title: string;
-  subtitle: string;
-  badge: string;
+  title?: string;
+  subtitle?: string;
+  badge?: string;
   href: string;
   imageSrc: string;
 };
