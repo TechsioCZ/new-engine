@@ -30,6 +30,14 @@ describe("order expedition helpers", () => {
     ).toMatchObject({ label: "Packeta", value: "packeta" })
   })
 
+  it("does not resolve carrier tokens from unrelated word substrings", () => {
+    expect(
+      resolveOrderExpeditionCarrier({
+        shipping_methods: [{ name: "Supplied courier data" }],
+      })
+    ).toMatchObject({ label: "Other", value: "other" })
+  })
+
   it("matches only the resolved carrier when a carrier filter is active", () => {
     const order = {
       shipping_methods: [{ shipping_option_id: "shipping-option-ppl-home" }],

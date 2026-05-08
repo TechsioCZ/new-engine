@@ -222,9 +222,10 @@ function drawWrappedText(
     options.size,
     options.maxWidth
   )
+  const lineHeight = Math.max(BODY_LINE_HEIGHT, Math.ceil(options.size * 1.2))
 
   for (const line of lines) {
-    ensureSpace(state, BODY_LINE_HEIGHT)
+    ensureSpace(state, lineHeight)
     state.page.drawText(line, {
       x: PAGE_MARGIN,
       y: state.y,
@@ -232,7 +233,7 @@ function drawWrappedText(
       font: options.font,
       color: rgb(0, 0, 0),
     })
-    state.y -= BODY_LINE_HEIGHT
+    state.y -= lineHeight
   }
 }
 

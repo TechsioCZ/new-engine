@@ -14,6 +14,8 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
 import {
+  isOrderExpeditionCarrierKey,
+  isOrderExpeditionTargetStatus,
   ORDER_EXPEDITION_MAX_ORDER_IDS,
   type OrderExpeditionBlockingOrder,
   type OrderExpeditionCarrierKey,
@@ -35,11 +37,6 @@ type CarriersResponse = {
   carriers: OrderExpeditionCarrierOption[]
 }
 
-type StatusBlockedPayload = {
-  message?: string
-  blocked_orders?: OrderExpeditionBlockingOrder[]
-}
-
 const PAGE_SIZE = 50
 const ALL_CARRIERS = "all"
 
@@ -59,12 +56,12 @@ function getOrderItemsSummary(order: OrderExpeditionOrderDto) {
 
   return order.items
     .slice(0, 3)
-    .map((item) => `${item.quantity}x ${item.sku || item.title}`)
+    .map((item) => `${item.quantity}x ${item.sku ?? item.title}`)
     .join(", ")
 }
 
 function getCarrierLabel(order: OrderExpeditionOrderDto) {
-  return order.carrier.shipping_method_name || order.carrier.label
+  return order.carrier.shipping_method_name ?? order.carrier.label
 }
 
 function getNextPageSelection(
@@ -104,15 +101,29 @@ function getErrorMessage(payload: unknown, fallback: string) {
   return fallback
 }
 
+function isBlockingOrder(
+  value: unknown
+): value is OrderExpeditionBlockingOrder {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "order_display_id" in value &&
+    typeof value.order_display_id === "string" &&
+    "reason" in value &&
+    typeof value.reason === "string"
+  )
+}
+
 function getBlockingOrders(payload: unknown): OrderExpeditionBlockingOrder[] {
   if (
     typeof payload === "object" &&
     payload !== null &&
     "blocked_orders" in payload &&
-    Array.isArray((payload as StatusBlockedPayload).blocked_orders)
+    Array.isArray(payload.blocked_orders)
   ) {
-    return (payload as { blocked_orders: OrderExpeditionBlockingOrder[] })
-      .blocked_orders
+    return payload.blocked_orders.filter(isBlockingOrder)
   }
 
   return []
@@ -366,7 +377,20 @@ const OrderExpeditionPage = () => {
     targetStatus
 
   const handleCarrierChange = (value: string) => {
-    setCarrier(value as typeof ALL_CARRIERS | OrderExpeditionCarrierKey)
+    let nextCarrier: typeof ALL_CARRIERS | OrderExpeditionCarrierKey | null =
+      null
+
+    if (value === ALL_CARRIERS) {
+      nextCarrier = ALL_CARRIERS
+    } else if (isOrderExpeditionCarrierKey(value)) {
+      nextCarrier = value
+    }
+
+    if (!nextCarrier) {
+      return
+    }
+
+    setCarrier(nextCarrier)
     setOffset(0)
     setSelectedOrderIds(new Set())
     setIsConfirmingStatus(false)
@@ -374,7 +398,11 @@ const OrderExpeditionPage = () => {
   }
 
   const handleTargetStatusChange = (value: string) => {
-    setTargetStatus(value as OrderExpeditionTargetStatus)
+    if (!isOrderExpeditionTargetStatus(value)) {
+      return
+    }
+
+    setTargetStatus(value)
     setIsConfirmingStatus(false)
   }
 

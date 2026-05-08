@@ -51,11 +51,7 @@ export async function POST(
     return
   }
 
-  await runStatusWorkflow(
-    req.scope,
-    orderedOrders.map((order) => order.id),
-    targetStatus
-  )
+  await runStatusWorkflow(req.scope, orderIds, targetStatus)
 
   const changedOrders = orderOrdersByRequestedIds(
     orderIds,

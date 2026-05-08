@@ -184,6 +184,7 @@ const CARRIER_MATCHERS: Record<
     tokens: ["ppl"],
   },
 }
+const CARRIER_TOKEN_SEPARATOR_REGEX = /[^a-z0-9]+/u
 
 export function getOrderExpeditionDisplayId(
   order: Pick<
@@ -197,16 +198,23 @@ export function getOrderExpeditionDisplayId(
 export function isOrderExpeditionCarrierKey(
   value: string
 ): value is OrderExpeditionCarrierKey {
-  return ORDER_EXPEDITION_CARRIER_KEYS.includes(
-    value as OrderExpeditionCarrierKey
-  )
+  return ORDER_EXPEDITION_CARRIER_KEYS.some((carrier) => carrier === value)
 }
 
 export function isOrderExpeditionTargetStatus(
   value: string
 ): value is OrderExpeditionTargetStatus {
-  return ORDER_EXPEDITION_TARGET_STATUSES.includes(
-    value as OrderExpeditionTargetStatus
+  return ORDER_EXPEDITION_TARGET_STATUSES.some((status) => status === value)
+}
+
+export function isOrderExpeditionRawOrder(
+  value: unknown
+): value is OrderExpeditionRawOrder {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string"
   )
 }
 
@@ -219,10 +227,13 @@ export function resolveOrderExpeditionCarrier(
       shippingMethod.shipping_option_id,
       shippingMethod.data,
     ])
+    const searchableTokens = new Set(
+      searchable.split(CARRIER_TOKEN_SEPARATOR_REGEX).filter(Boolean)
+    )
 
     for (const key of ["ppl", "packeta"] as const) {
       const matcher = CARRIER_MATCHERS[key]
-      if (matcher.tokens.some((token) => searchable.includes(token))) {
+      if (matcher.tokens.some((token) => searchableTokens.has(token))) {
         return {
           label: matcher.label,
           value: key,
@@ -310,7 +321,7 @@ export async function fetchOrderExpeditionOrdersByIds(
     },
   })
 
-  return data as OrderExpeditionRawOrder[]
+  return Array.isArray(data) ? data.filter(isOrderExpeditionRawOrder) : []
 }
 
 function getOrderExpeditionCustomerName(order: OrderExpeditionRawOrder) {

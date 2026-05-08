@@ -6,7 +6,7 @@ import {
   ORDER_EXPEDITION_TARGET_STATUSES,
 } from "../../../utils/order-expedition"
 
-const OptionalPositiveIntQuerySchema = z.preprocess(
+const OptionalNonNegativeIntQuerySchema = z.preprocess(
   (value) => (Array.isArray(value) ? value[0] : value),
   z.coerce.number().int().min(0).optional()
 )
@@ -19,7 +19,7 @@ const OptionalLimitQuerySchema = z.preprocess(
 export const GetAdminOrderExpeditionOrdersSchema = z.object({
   carrier: z.enum(ORDER_EXPEDITION_CARRIER_KEYS).optional(),
   limit: OptionalLimitQuerySchema,
-  offset: OptionalPositiveIntQuerySchema,
+  offset: OptionalNonNegativeIntQuerySchema,
 })
 
 export const PostAdminOrderExpeditionPdfSchema = z.object({

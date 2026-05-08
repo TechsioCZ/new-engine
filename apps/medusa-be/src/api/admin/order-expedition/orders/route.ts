@@ -3,6 +3,7 @@ import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   fetchOrderExpeditionOrdersByIds,
+  isOrderExpeditionRawOrder,
   ORDER_EXPEDITION_DEFAULT_LIMIT,
   ORDER_EXPEDITION_ORDER_FIELDS,
   type OrderExpeditionCarrierKey,
@@ -13,7 +14,6 @@ import {
 } from "../../../../utils/order-expedition"
 import type { GetAdminOrderExpeditionOrdersSchemaType } from "../validators"
 
-type OrderGraphResult = Awaited<ReturnType<Query["graph"]>>
 type OrderExpeditionCarrierFilterOrder = Pick<
   OrderExpeditionRawOrder,
   "id" | "shipping_methods"
@@ -77,10 +77,13 @@ async function fetchOrders(
       take: limit,
     },
   })
+  const validOrders = Array.isArray(orders)
+    ? orders.filter(isOrderExpeditionRawOrder)
+    : []
 
   return {
-    orders: orders as OrderExpeditionRawOrder[],
-    count: metadata?.count ?? orders.length,
+    orders: validOrders,
+    count: metadata?.count ?? validOrders.length,
   }
 }
 
@@ -207,17 +210,20 @@ async function fetchCarrierFilterBatch(
   orders: OrderExpeditionCarrierFilterOrder[]
   totalCount: number
 }> {
-  const { data: orders, metadata } = (await query.graph({
+  const { data: orders, metadata } = await query.graph({
     entity: "order",
     fields: ORDER_EXPEDITION_CARRIER_FILTER_FIELDS,
     pagination: {
       skip: offset,
       take: ORDER_EXPEDITION_SCAN_BATCH_SIZE,
     },
-  })) as OrderGraphResult
+  })
+  const validOrders = Array.isArray(orders)
+    ? orders.filter(isOrderExpeditionRawOrder)
+    : []
 
   return {
-    orders: orders as OrderExpeditionCarrierFilterOrder[],
-    totalCount: metadata?.count ?? offset + orders.length,
+    orders: validOrders,
+    totalCount: metadata?.count ?? offset + validOrders.length,
   }
 }
