@@ -2,11 +2,13 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
+  fetchOrderExpeditionOrdersByIds,
   ORDER_EXPEDITION_DEFAULT_LIMIT,
   ORDER_EXPEDITION_ORDER_FIELDS,
   type OrderExpeditionCarrierKey,
   type OrderExpeditionRawOrder,
   orderMatchesExpeditionCarrier,
+  orderOrdersByRequestedIds,
   toOrderExpeditionDto,
 } from "../../../../utils/order-expedition"
 import type { GetAdminOrderExpeditionOrdersSchemaType } from "../validators"
@@ -99,7 +101,10 @@ async function fetchCarrierFilteredOrders(
     return { orders: [], count }
   }
 
-  const orders = await fetchOrdersByIds(query, pageOrderIds)
+  const orders = orderOrdersByRequestedIds(
+    pageOrderIds,
+    await fetchOrderExpeditionOrdersByIds(query, pageOrderIds)
+  )
 
   return { orders, count }
 }
@@ -193,26 +198,6 @@ function getCarrierFilteredCount(
   }
 
   return accumulator.matchingCount
-}
-
-async function fetchOrdersByIds(
-  query: Query,
-  orderIds: string[]
-): Promise<OrderExpeditionRawOrder[]> {
-  const { data: orders } = await query.graph({
-    entity: "order",
-    fields: ORDER_EXPEDITION_ORDER_FIELDS,
-    filters: { id: orderIds },
-  })
-
-  const ordersById = new Map(
-    (orders as OrderExpeditionRawOrder[]).map((order) => [order.id, order])
-  )
-
-  return orderIds.flatMap((orderId) => {
-    const order = ordersById.get(orderId)
-    return order ? [order] : []
-  })
 }
 
 async function fetchCarrierFilterBatch(

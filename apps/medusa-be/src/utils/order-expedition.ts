@@ -1,3 +1,5 @@
+import type { Query } from "@medusajs/framework/types"
+
 export const ORDER_EXPEDITION_MAX_ORDER_IDS = 100
 export const ORDER_EXPEDITION_DEFAULT_LIMIT = 50
 export const ORDER_EXPEDITION_MAX_LIMIT = 100
@@ -294,6 +296,21 @@ export function orderOrdersByRequestedIds<T extends { id: string }>(
   return requestedOrderIds
     .map((orderId) => ordersById.get(orderId))
     .filter((order): order is T => Boolean(order))
+}
+
+export async function fetchOrderExpeditionOrdersByIds(
+  query: Query,
+  orderIds: string[]
+) {
+  const { data } = await query.graph({
+    entity: "order",
+    fields: ORDER_EXPEDITION_ORDER_FIELDS,
+    filters: {
+      id: orderIds,
+    },
+  })
+
+  return data as OrderExpeditionRawOrder[]
 }
 
 function getOrderExpeditionCustomerName(order: OrderExpeditionRawOrder) {

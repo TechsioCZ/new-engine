@@ -6,9 +6,9 @@ import {
   completeOrderWorkflow,
 } from "@medusajs/medusa/core-flows"
 import {
+  fetchOrderExpeditionOrdersByIds,
   findMissingOrderIds,
   getOrderExpeditionDisplayId,
-  ORDER_EXPEDITION_ORDER_FIELDS,
   type OrderExpeditionBlockingOrder,
   type OrderExpeditionRawOrder,
   type OrderExpeditionTargetStatus,
@@ -33,7 +33,7 @@ export async function POST(
   const orderIds = uniqueOrderIds(requestedOrderIds)
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-  const orders = await fetchSelectedOrders(query, orderIds)
+  const orders = await fetchOrderExpeditionOrdersByIds(query, orderIds)
   const orderedOrders = orderOrdersByRequestedIds(orderIds, orders)
   const blockingOrders = collectBlockingOrders(
     orderIds,
@@ -59,7 +59,7 @@ export async function POST(
 
   const changedOrders = orderOrdersByRequestedIds(
     orderIds,
-    await fetchSelectedOrders(query, orderIds)
+    await fetchOrderExpeditionOrdersByIds(query, orderIds)
   )
 
   res.json({
@@ -67,18 +67,6 @@ export async function POST(
     target_status: targetStatus,
     orders: changedOrders.map(toChangedOrder),
   })
-}
-
-async function fetchSelectedOrders(query: Query, orderIds: string[]) {
-  const { data } = await query.graph({
-    entity: "order",
-    fields: ORDER_EXPEDITION_ORDER_FIELDS,
-    filters: {
-      id: orderIds,
-    },
-  })
-
-  return data as OrderExpeditionRawOrder[]
 }
 
 function collectBlockingOrders(

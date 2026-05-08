@@ -7,10 +7,9 @@ import {
 import type { PDFFont, PDFPage } from "pdf-lib"
 import { PageSizes, PDFDocument, rgb, StandardFonts } from "pdf-lib"
 import {
+  fetchOrderExpeditionOrdersByIds,
   findMissingOrderIds,
-  ORDER_EXPEDITION_ORDER_FIELDS,
   type OrderExpeditionOrderDto,
-  type OrderExpeditionRawOrder,
   orderOrdersByRequestedIds,
   toOrderExpeditionDto,
 } from "../../../../utils/order-expedition"
@@ -84,15 +83,7 @@ export async function POST(
   const { order_ids: orderIds } = req.validatedBody
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-  const { data } = await query.graph({
-    entity: "order",
-    fields: ORDER_EXPEDITION_ORDER_FIELDS,
-    filters: {
-      id: orderIds,
-    },
-  })
-
-  const orders = data as OrderExpeditionRawOrder[]
+  const orders = await fetchOrderExpeditionOrdersByIds(query, orderIds)
   const missingOrderIds = findMissingOrderIds(orderIds, orders)
 
   if (missingOrderIds.length > 0) {
