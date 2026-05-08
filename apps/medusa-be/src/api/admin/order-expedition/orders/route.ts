@@ -20,6 +20,11 @@ type OrderExpeditionOrdersPage = {
   orders: OrderExpeditionRawOrder[]
   scannedCount: number | null
 }
+type OrderExpeditionOrderBatch = {
+  metadataCount: number | null
+  orders: OrderExpeditionRawOrder[]
+  scannedCount: number
+}
 type CarrierFilterAccumulator = {
   matchingCount: number
   matchingOrders: OrderExpeditionRawOrder[]
@@ -69,21 +74,11 @@ async function fetchOrders(
   limit: number,
   offset: number
 ): Promise<OrderExpeditionOrdersPage> {
-  const { data: orders, metadata } = await query.graph({
-    entity: "order",
-    fields: ORDER_EXPEDITION_ORDER_FIELDS,
-    pagination: {
-      skip: offset,
-      take: limit,
-    },
-  })
-  const validOrders = Array.isArray(orders)
-    ? orders.filter(isOrderExpeditionRawOrder)
-    : []
-  const count = metadata?.count ?? validOrders.length
+  const batch = await fetchOrderBatch(query, offset, limit)
+  const count = batch.metadataCount ?? batch.orders.length
 
   return {
-    orders: validOrders,
+    orders: batch.orders,
     count,
     hasNext: offset + limit < count,
     countExact: true,
@@ -115,7 +110,7 @@ async function fetchCarrierFilteredOrders(
       break
     }
 
-    const batch = await fetchCarrierFilterBatch(
+    const batch = await fetchOrderBatch(
       query,
       scanOffset,
       Math.min(ORDER_EXPEDITION_SCAN_BATCH_SIZE, remainingScanRows)
@@ -136,7 +131,8 @@ async function fetchCarrierFilteredOrders(
     })
     scanOffset += batch.scannedCount
 
-    if (batch.totalCount <= scanOffset) {
+    const totalCount = batch.metadataCount ?? scanOffset
+    if (totalCount <= scanOffset) {
       scannedAllOrders = true
       break
     }
@@ -185,15 +181,11 @@ function collectMatchingCarrierOrders({
   }
 }
 
-async function fetchCarrierFilterBatch(
+async function fetchOrderBatch(
   query: Query,
   offset: number,
   limit: number
-): Promise<{
-  orders: OrderExpeditionRawOrder[]
-  scannedCount: number
-  totalCount: number
-}> {
+): Promise<OrderExpeditionOrderBatch> {
   const { data: orders, metadata } = await query.graph({
     entity: "order",
     fields: ORDER_EXPEDITION_ORDER_FIELDS,
@@ -208,8 +200,8 @@ async function fetchCarrierFilterBatch(
   const scannedCount = Array.isArray(orders) ? orders.length : 0
 
   return {
+    metadataCount: metadata?.count ?? null,
     orders: validOrders,
     scannedCount,
-    totalCount: metadata?.count ?? offset + scannedCount,
   }
 }
