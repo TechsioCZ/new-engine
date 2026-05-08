@@ -38,31 +38,18 @@ const notificationProvider =
         },
       }
 
-const getMedusaAdminAllowedHost = (backendUrl?: string) => {
-  const value = backendUrl?.trim()
+const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL?.trim()
+let MEDUSA_ADMIN_ALLOWED_HOSTS: true | string[] | undefined
 
-  if (!value) {
-    return
-  }
-
+if (process.env.NODE_ENV === "development") {
+  MEDUSA_ADMIN_ALLOWED_HOSTS = true
+} else if (MEDUSA_BACKEND_URL) {
   try {
-    return new URL(value).hostname
+    MEDUSA_ADMIN_ALLOWED_HOSTS = [new URL(MEDUSA_BACKEND_URL).hostname]
   } catch {
-    return value
+    MEDUSA_ADMIN_ALLOWED_HOSTS = [MEDUSA_BACKEND_URL]
   }
 }
-
-const getMedusaAdminAllowedHosts = () => {
-  if (process.env.NODE_ENV === "development") {
-    return true
-  }
-
-  const allowedHost = getMedusaAdminAllowedHost(process.env.MEDUSA_BACKEND_URL)
-
-  return allowedHost ? [allowedHost] : undefined
-}
-
-const MEDUSA_ADMIN_ALLOWED_HOSTS = getMedusaAdminAllowedHosts()
 
 module.exports = defineConfig({
   featureFlags: {
