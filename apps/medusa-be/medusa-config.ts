@@ -38,14 +38,28 @@ const notificationProvider =
         },
       }
 
+const getMedusaAdminAllowedHost = (backendUrl?: string) => {
+  const value = backendUrl?.trim()
+
+  if (!value) {
+    return
+  }
+
+  try {
+    return new URL(value).hostname
+  } catch {
+    return value
+  }
+}
+
 const getMedusaAdminAllowedHosts = () => {
   if (process.env.NODE_ENV === "development") {
     return true
   }
 
-  return process.env.MEDUSA_BACKEND_URL
-    ? [process.env.MEDUSA_BACKEND_URL]
-    : undefined
+  const allowedHost = getMedusaAdminAllowedHost(process.env.MEDUSA_BACKEND_URL)
+
+  return allowedHost ? [allowedHost] : undefined
 }
 
 const MEDUSA_ADMIN_ALLOWED_HOSTS = getMedusaAdminAllowedHosts()
