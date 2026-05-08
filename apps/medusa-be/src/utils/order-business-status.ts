@@ -119,12 +119,6 @@ export const ORDER_BUSINESS_STATUSES = {
   },
 } as const satisfies Record<OrderBusinessStatusId, OrderBusinessStatus>
 
-const ORDER_BUSINESS_STATUS_ID_SET = new Set<string>(ORDER_BUSINESS_STATUS_IDS)
-
-const MANUAL_ORDER_BUSINESS_STATUS_ID_SET = new Set<string>(
-  MANUAL_ORDER_BUSINESS_STATUS_IDS
-)
-
 const AWAITING_PAYMENT_STATUSES = new Set([
   "authorized",
   "awaiting",
@@ -154,18 +148,23 @@ function getActiveFulfillments(order: OrderBusinessStatusInput) {
   )
 }
 
+function isIncluded<const TValue extends string>(
+  values: readonly TValue[],
+  value: unknown
+): value is TValue {
+  return typeof value === "string" && values.includes(value as TValue)
+}
+
 export function isOrderBusinessStatusId(
   value: unknown
 ): value is OrderBusinessStatusId {
-  return typeof value === "string" && ORDER_BUSINESS_STATUS_ID_SET.has(value)
+  return isIncluded(ORDER_BUSINESS_STATUS_IDS, value)
 }
 
 export function isManualOrderBusinessStatusId(
   value: unknown
 ): value is ManualOrderBusinessStatusId {
-  return (
-    typeof value === "string" && MANUAL_ORDER_BUSINESS_STATUS_ID_SET.has(value)
-  )
+  return isIncluded(MANUAL_ORDER_BUSINESS_STATUS_IDS, value)
 }
 
 export function getManualOrderBusinessStatusId(
