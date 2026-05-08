@@ -111,8 +111,14 @@ module.exports = defineConfig({
         Prism: "globalThis.Prism",
       },
       build: {
+        cssMinify: false,
         minify: false,
+        modulePreload: false,
         reportCompressedSize: false,
+        target: "esnext",
+      },
+      esbuild: {
+        target: "esnext",
       },
       plugins: [prismGlobalPlugin()],
       resolve: {
