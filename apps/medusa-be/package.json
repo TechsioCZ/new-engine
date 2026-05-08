@@ -47,7 +47,6 @@
   },
   "dependencies": {
     "@badgateway/oauth2-client": "^3.3.1",
-    "@mdxeditor/editor": "3.54.0",
     "@medusajs/admin-sdk": "^2.14.1",
     "@medusajs/admin-shared": "^2.14.1",
     "@medusajs/caching-redis": "^2.14.1",
@@ -82,7 +81,6 @@
     "mime": "4.1.0",
     "mysql2": "^3.15.3",
     "pdf-lib": "^1.17.1",
-    "prismjs": "1.30.0",
     "qs": "^6.14.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
