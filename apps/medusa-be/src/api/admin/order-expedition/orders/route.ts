@@ -18,6 +18,14 @@ type OrderExpeditionCarrierFilterOrder = Pick<
   OrderExpeditionRawOrder,
   "id" | "shipping_methods"
 >
+type OrderExpeditionOrdersPage = {
+  carrierFilterLimitReached: boolean
+  count: number
+  countExact: boolean
+  hasNext: boolean
+  orders: OrderExpeditionRawOrder[]
+  scannedCount: number | null
+}
 type CarrierFilterAccumulator = {
   matchingCount: number
   matchingOrderIds: string[]
@@ -31,6 +39,7 @@ type CollectMatchingCarrierOrderIdsInput = {
 }
 
 const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 100
+const ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS = 1000
 const ORDER_EXPEDITION_CARRIER_FILTER_FIELDS = [
   "id",
   "shipping_methods.id",
@@ -58,6 +67,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   res.json({
     orders: result.orders.map(toOrderExpeditionDto),
     count: result.count,
+    has_next: result.hasNext,
+    count_exact: result.countExact,
+    carrier_filter_limit_reached: result.carrierFilterLimitReached,
+    scanned_count: result.scannedCount,
     offset: normalizedOffset,
     limit: normalizedLimit,
     carrier: carrier ?? null,
@@ -68,7 +81,7 @@ async function fetchOrders(
   query: Query,
   limit: number,
   offset: number
-): Promise<{ orders: OrderExpeditionRawOrder[]; count: number }> {
+): Promise<OrderExpeditionOrdersPage> {
   const { data: orders, metadata } = await query.graph({
     entity: "order",
     fields: ORDER_EXPEDITION_ORDER_FIELDS,
@@ -80,10 +93,15 @@ async function fetchOrders(
   const validOrders = Array.isArray(orders)
     ? orders.filter(isOrderExpeditionRawOrder)
     : []
+  const count = metadata?.count ?? validOrders.length
 
   return {
     orders: validOrders,
-    count: metadata?.count ?? validOrders.length,
+    count,
+    hasNext: offset + limit < count,
+    countExact: true,
+    carrierFilterLimitReached: false,
+    scannedCount: null,
   }
 }
 
@@ -92,24 +110,24 @@ async function fetchCarrierFilteredOrders(
   carrier: OrderExpeditionCarrierKey,
   limit: number,
   offset: number
-): Promise<{ orders: OrderExpeditionRawOrder[]; count: number }> {
-  const { count, pageOrderIds } = await fetchCarrierFilteredOrderIdPage(
+): Promise<OrderExpeditionOrdersPage> {
+  const page = await fetchCarrierFilteredOrderIdPage(
     query,
     carrier,
     limit,
     offset
   )
 
-  if (!pageOrderIds.length) {
-    return { orders: [], count }
+  if (!page.pageOrderIds.length) {
+    return { ...page, orders: [] }
   }
 
   const orders = orderOrdersByRequestedIds(
-    pageOrderIds,
-    await fetchOrderExpeditionOrdersByIds(query, pageOrderIds)
+    page.pageOrderIds,
+    await fetchOrderExpeditionOrdersByIds(query, page.pageOrderIds)
   )
 
-  return { orders, count }
+  return { ...page, orders }
 }
 
 async function fetchCarrierFilteredOrderIdPage(
@@ -117,20 +135,38 @@ async function fetchCarrierFilteredOrderIdPage(
   carrier: OrderExpeditionCarrierKey,
   limit: number,
   offset: number
-): Promise<{ pageOrderIds: string[]; count: number }> {
+): Promise<
+  Omit<OrderExpeditionOrdersPage, "orders"> & { pageOrderIds: string[] }
+> {
   const accumulator: CarrierFilterAccumulator = {
     matchingCount: 0,
     matchingOrderIds: [],
   }
   let scanOffset = 0
+  let scannedCount = 0
+  let scannedAllOrders = false
+  let carrierFilterLimitReached = false
 
   while (true) {
-    const batch = await fetchCarrierFilterBatch(query, scanOffset)
-
-    if (!batch.orders.length) {
+    const remainingScanRows =
+      ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS - scanOffset
+    if (remainingScanRows <= 0) {
+      carrierFilterLimitReached = true
       break
     }
 
+    const batch = await fetchCarrierFilterBatch(
+      query,
+      scanOffset,
+      Math.min(ORDER_EXPEDITION_SCAN_BATCH_SIZE, remainingScanRows)
+    )
+
+    if (!batch.scannedCount) {
+      scannedAllOrders = true
+      break
+    }
+
+    scannedCount += batch.scannedCount
     collectMatchingCarrierOrderIds({
       accumulator,
       carrier,
@@ -138,22 +174,29 @@ async function fetchCarrierFilteredOrderIdPage(
       offset,
       orders: batch.orders,
     })
-    scanOffset += ORDER_EXPEDITION_SCAN_BATCH_SIZE
+    scanOffset += batch.scannedCount
 
-    if (
-      shouldStopCarrierFilterScan(
-        batch.totalCount,
-        scanOffset,
-        accumulator.matchingOrderIds.length,
-        limit
-      )
-    ) {
+    if (batch.totalCount <= scanOffset) {
+      scannedAllOrders = true
+      break
+    }
+
+    if (accumulator.matchingOrderIds.length > limit) {
+      break
+    }
+
+    if (scanOffset >= ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS) {
+      carrierFilterLimitReached = true
       break
     }
   }
 
   return {
-    count: getCarrierFilteredCount(accumulator, offset, limit),
+    count: accumulator.matchingCount,
+    hasNext: accumulator.matchingOrderIds.length > limit,
+    countExact: scannedAllOrders,
+    carrierFilterLimitReached,
+    scannedCount,
     pageOrderIds: accumulator.matchingOrderIds.slice(0, limit),
   }
 }
@@ -182,32 +225,13 @@ function collectMatchingCarrierOrderIds({
   }
 }
 
-function shouldStopCarrierFilterScan(
-  totalCount: number,
-  scanOffset: number,
-  matchingOrderIdsLength: number,
-  limit: number
-) {
-  return totalCount <= scanOffset || matchingOrderIdsLength > limit
-}
-
-function getCarrierFilteredCount(
-  accumulator: CarrierFilterAccumulator,
-  offset: number,
-  limit: number
-) {
-  if (accumulator.matchingOrderIds.length > limit) {
-    return offset + limit + 1
-  }
-
-  return accumulator.matchingCount
-}
-
 async function fetchCarrierFilterBatch(
   query: Query,
-  offset: number
+  offset: number,
+  limit: number
 ): Promise<{
   orders: OrderExpeditionCarrierFilterOrder[]
+  scannedCount: number
   totalCount: number
 }> {
   const { data: orders, metadata } = await query.graph({
@@ -215,15 +239,17 @@ async function fetchCarrierFilterBatch(
     fields: ORDER_EXPEDITION_CARRIER_FILTER_FIELDS,
     pagination: {
       skip: offset,
-      take: ORDER_EXPEDITION_SCAN_BATCH_SIZE,
+      take: limit,
     },
   })
   const validOrders = Array.isArray(orders)
     ? orders.filter(isOrderExpeditionRawOrder)
     : []
+  const scannedCount = Array.isArray(orders) ? orders.length : 0
 
   return {
     orders: validOrders,
-    totalCount: metadata?.count ?? offset + validOrders.length,
+    scannedCount,
+    totalCount: metadata?.count ?? offset + scannedCount,
   }
 }

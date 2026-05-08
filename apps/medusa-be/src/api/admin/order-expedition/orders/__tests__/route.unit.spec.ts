@@ -57,7 +57,10 @@ describe("GET /admin/order-expedition/orders", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         carrier: null,
+        carrier_filter_limit_reached: false,
         count: 1,
+        count_exact: true,
+        has_next: false,
         limit: 50,
         offset: 0,
         orders: [
@@ -67,6 +70,7 @@ describe("GET /admin/order-expedition/orders", () => {
             order_display_id: "#1001",
           }),
         ],
+        scanned_count: null,
       })
     )
   })
@@ -136,13 +140,17 @@ describe("GET /admin/order-expedition/orders", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         carrier: "packeta",
+        carrier_filter_limit_reached: false,
         count: 1,
+        count_exact: true,
+        has_next: false,
         orders: [
           expect.objectContaining({
             id: "order_2",
             order_display_id: "#1002",
           }),
         ],
+        scanned_count: 2,
       })
     )
   })
@@ -198,12 +206,53 @@ describe("GET /admin/order-expedition/orders", () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         count: 2,
+        count_exact: false,
+        has_next: true,
         limit: 1,
         orders: [
           expect.objectContaining({
             id: "order_1",
           }),
         ],
+        scanned_count: 3,
+      })
+    )
+  })
+
+  it("caps carrier scans and exposes truncated metadata", async () => {
+    const { GET } = await import("../route")
+    const graph = vi.fn()
+
+    for (let batchIndex = 0; batchIndex < 10; batchIndex += 1) {
+      graph.mockResolvedValueOnce({
+        data: Array.from({ length: 100 }, (_, index) => ({
+          id: `order_${batchIndex}_${index}`,
+          shipping_methods: [{ name: "PPL" }],
+        })),
+        metadata: {
+          count: 5000,
+        },
+      })
+    }
+
+    const req = createMockRequest(
+      { carrier: "packeta", limit: 50, offset: 0 },
+      graph
+    )
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(graph).toHaveBeenCalledTimes(10)
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        carrier: "packeta",
+        carrier_filter_limit_reached: true,
+        count: 0,
+        count_exact: false,
+        has_next: false,
+        orders: [],
+        scanned_count: 1000,
       })
     )
   })

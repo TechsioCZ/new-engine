@@ -28,6 +28,10 @@ import { sdk } from "../../lib/sdk"
 type OrdersResponse = {
   orders: OrderExpeditionOrderDto[]
   count: number
+  has_next: boolean
+  count_exact: boolean
+  carrier_filter_limit_reached: boolean
+  scanned_count: number | null
   limit: number
   offset: number
   carrier: OrderExpeditionCarrierKey | null
@@ -204,6 +208,88 @@ type OrdersTableProps = {
   somePageOrdersSelected: boolean
 }
 
+type OrderExpeditionPaginationProps = {
+  canNextPage: boolean
+  canPreviousPage: boolean
+  carrierFilterLimitReached: boolean
+  count: number
+  countExact: boolean
+  nextPage: () => void
+  pageCount: number
+  pageIndex: number
+  pageSize: number
+  previousPage: () => void
+  scannedCount: number | null
+}
+
+type CarrierSelectValue = typeof ALL_CARRIERS | OrderExpeditionCarrierKey
+
+function getCarrierSelectValue(value: string): CarrierSelectValue | null {
+  if (value === ALL_CARRIERS) {
+    return ALL_CARRIERS
+  }
+
+  return isOrderExpeditionCarrierKey(value) ? value : null
+}
+
+function getOrderExpeditionPaginationState(
+  data: OrdersResponse | undefined,
+  offset: number
+) {
+  const count = data?.count ?? 0
+  const canNextPage = data?.has_next ?? offset + PAGE_SIZE < count
+  const countExact = data?.count_exact ?? true
+  const pageIndex = Math.floor(offset / PAGE_SIZE)
+
+  return {
+    canNextPage,
+    carrierFilterLimitReached: data?.carrier_filter_limit_reached ?? false,
+    count,
+    countExact,
+    pageCount: countExact
+      ? Math.max(Math.ceil(count / PAGE_SIZE), 1)
+      : pageIndex + (canNextPage ? 2 : 1),
+    pageIndex,
+    scannedCount: data?.scanned_count ?? null,
+  }
+}
+
+function getTargetStatusLabel(targetStatus: OrderExpeditionTargetStatus | "") {
+  return (
+    TARGET_STATUSES.find((status) => status.value === targetStatus)?.label ??
+    targetStatus
+  )
+}
+
+function isOrderSelectionLimitBlocked(
+  orderId: string,
+  selectedOrderIds: Set<string>,
+  selectedCount: number
+) {
+  return (
+    !selectedOrderIds.has(orderId) &&
+    selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
+  )
+}
+
+function shouldWarnPageSelectionLimit(
+  allPageOrdersSelected: boolean,
+  orders: OrderExpeditionOrderDto[],
+  selectedOrderIds: Set<string>,
+  selectedCount: number
+) {
+  if (allPageOrdersSelected) {
+    return false
+  }
+
+  const remainingSlots = ORDER_EXPEDITION_MAX_ORDER_IDS - selectedCount
+  const unselectedPageOrderIds = orders
+    .map((order) => order.id)
+    .filter((orderId) => !selectedOrderIds.has(orderId))
+
+  return unselectedPageOrderIds.length > remainingSlots
+}
+
 function OrdersTable({
   allPageOrdersSelected,
   isSelectionLimitReached,
@@ -314,6 +400,67 @@ function OrdersTable({
   )
 }
 
+function OrderExpeditionPagination({
+  canNextPage,
+  canPreviousPage,
+  carrierFilterLimitReached,
+  count,
+  countExact,
+  nextPage,
+  pageCount,
+  pageIndex,
+  pageSize,
+  previousPage,
+  scannedCount,
+}: OrderExpeditionPaginationProps) {
+  if (countExact) {
+    return (
+      <Table.Pagination
+        canNextPage={canNextPage}
+        canPreviousPage={canPreviousPage}
+        count={count}
+        nextPage={nextPage}
+        pageCount={pageCount}
+        pageIndex={pageIndex}
+        pageSize={pageSize}
+        previousPage={previousPage}
+      />
+    )
+  }
+
+  return (
+    <div className="flex w-full items-center justify-between gap-3 px-3 py-4 text-ui-fg-subtle">
+      <div className="flex flex-col px-3 py-[5px]">
+        <Text size="small">Page {pageIndex + 1}</Text>
+        {carrierFilterLimitReached && scannedCount !== null ? (
+          <Text className="text-ui-fg-muted" size="small">
+            Carrier filter scanned first {scannedCount} orders. More matches may
+            exist.
+          </Text>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-x-2">
+        <Button
+          disabled={!canPreviousPage}
+          onClick={previousPage}
+          type="button"
+          variant="transparent"
+        >
+          Prev
+        </Button>
+        <Button
+          disabled={!canNextPage}
+          onClick={nextPage}
+          type="button"
+          variant="transparent"
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 const OrderExpeditionPage = () => {
   const [carrier, setCarrier] = useState<
     typeof ALL_CARRIERS | OrderExpeditionCarrierKey
@@ -369,22 +516,11 @@ const OrderExpeditionPage = () => {
   const selectedCount = selectedOrderIds.size
   const isSelectionLimitReached =
     selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
-  const count = ordersQuery.data?.count ?? 0
-  const pageIndex = Math.floor(offset / PAGE_SIZE)
-  const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
-  const targetStatusLabel =
-    TARGET_STATUSES.find((status) => status.value === targetStatus)?.label ??
-    targetStatus
+  const pagination = getOrderExpeditionPaginationState(ordersQuery.data, offset)
+  const targetStatusLabel = getTargetStatusLabel(targetStatus)
 
   const handleCarrierChange = (value: string) => {
-    let nextCarrier: typeof ALL_CARRIERS | OrderExpeditionCarrierKey | null =
-      null
-
-    if (value === ALL_CARRIERS) {
-      nextCarrier = ALL_CARRIERS
-    } else if (isOrderExpeditionCarrierKey(value)) {
-      nextCarrier = value
-    }
+    const nextCarrier = getCarrierSelectValue(value)
 
     if (!nextCarrier) {
       return
@@ -410,8 +546,7 @@ const OrderExpeditionPage = () => {
     setIsConfirmingStatus(false)
 
     if (
-      !selectedOrderIds.has(orderId) &&
-      selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
+      isOrderSelectionLimitBlocked(orderId, selectedOrderIds, selectedCount)
     ) {
       toast.error(
         `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
@@ -433,17 +568,17 @@ const OrderExpeditionPage = () => {
   const togglePage = () => {
     setIsConfirmingStatus(false)
 
-    if (!allPageOrdersSelected) {
-      const remainingSlots = ORDER_EXPEDITION_MAX_ORDER_IDS - selectedCount
-      const unselectedPageOrderIds = orders
-        .map((order) => order.id)
-        .filter((orderId) => !selectedOrderIds.has(orderId))
-
-      if (unselectedPageOrderIds.length > remainingSlots) {
-        toast.error(
-          `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
-        )
-      }
+    if (
+      shouldWarnPageSelectionLimit(
+        allPageOrdersSelected,
+        orders,
+        selectedOrderIds,
+        selectedCount
+      )
+    ) {
+      toast.error(
+        `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
+      )
     }
 
     setSelectedOrderIds((prev) =>
@@ -637,15 +772,18 @@ const OrderExpeditionPage = () => {
         somePageOrdersSelected={somePageOrdersSelected}
       />
 
-      <Table.Pagination
-        canNextPage={offset + PAGE_SIZE < count}
+      <OrderExpeditionPagination
+        canNextPage={pagination.canNextPage}
         canPreviousPage={offset > 0}
-        count={count}
+        carrierFilterLimitReached={pagination.carrierFilterLimitReached}
+        count={pagination.count}
+        countExact={pagination.countExact}
         nextPage={() => setOffset((prev) => prev + PAGE_SIZE)}
-        pageCount={pageCount}
-        pageIndex={pageIndex}
+        pageCount={pagination.pageCount}
+        pageIndex={pagination.pageIndex}
         pageSize={PAGE_SIZE}
         previousPage={() => setOffset((prev) => Math.max(0, prev - PAGE_SIZE))}
+        scannedCount={pagination.scannedCount}
       />
     </Container>
   )
