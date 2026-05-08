@@ -38,8 +38,18 @@ const notificationProvider =
         },
       }
 
-const MEDUSA_ADMIN_ALLOWED_HOSTS =
-  process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
+const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL?.trim()
+let MEDUSA_ADMIN_ALLOWED_HOSTS: true | string[] | undefined
+
+if (process.env.NODE_ENV === "development") {
+  MEDUSA_ADMIN_ALLOWED_HOSTS = true
+} else if (MEDUSA_BACKEND_URL) {
+  const backendUrl = MEDUSA_BACKEND_URL.includes("://")
+    ? MEDUSA_BACKEND_URL
+    : `http://${MEDUSA_BACKEND_URL}`
+
+  MEDUSA_ADMIN_ALLOWED_HOSTS = [new URL(backendUrl).hostname]
+}
 
 module.exports = defineConfig({
   featureFlags: {
