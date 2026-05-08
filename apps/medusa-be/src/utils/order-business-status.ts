@@ -124,6 +124,7 @@ const AWAITING_PAYMENT_STATUSES = new Set([
   "awaiting",
   "canceled",
   "not_paid",
+  "partially_captured",
   "partially_authorized",
   "requires_action",
 ])
