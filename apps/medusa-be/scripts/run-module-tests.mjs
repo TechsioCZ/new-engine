@@ -4,11 +4,8 @@ import { spawn } from "node:child_process"
 import net from "node:net"
 import path from "node:path"
 import process from "node:process"
-import { fileURLToPath } from "node:url"
 
-const scriptDir = path.dirname(fileURLToPath(import.meta.url))
-const medusaBeDir = path.resolve(scriptDir, "..")
-const repoRoot = path.resolve(medusaBeDir, "../..")
+import { medusaBeDir, repoRoot } from "./hash-safe-workdir.mjs"
 
 const dbEnv = {
   DB_HOST: process.env.DB_HOST || "127.0.0.1",
