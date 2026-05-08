@@ -10,15 +10,14 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { ComponentProps } from "react"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import {
+  isManualOrderBusinessStatusId,
   MANUAL_ORDER_BUSINESS_STATUS_IDS,
   type ManualOrderBusinessStatusId,
   ORDER_BUSINESS_STATUSES,
   type OrderBusinessStatusSummary,
-  type OrderBusinessStatusTone,
 } from "../../../utils/order-business-status"
 import { sdk } from "../../lib/sdk"
 
@@ -38,35 +37,15 @@ const MANUAL_STATUS_OPTIONS: Array<{
   label: string
   value: ManualStatusValue
 }> = [
-  {
-    label: ORDER_BUSINESS_STATUSES.processing.label,
-    value: "processing",
-  },
-  {
-    label: ORDER_BUSINESS_STATUSES.waiting_for_supplier.label,
-    value: "waiting_for_supplier",
-  },
-  {
-    label: ORDER_BUSINESS_STATUSES.canceled.label,
-    value: "canceled",
-  },
+  ...MANUAL_ORDER_BUSINESS_STATUS_IDS.map((value) => ({
+    label: ORDER_BUSINESS_STATUSES[value].label,
+    value,
+  })),
   {
     label: "Vymazat ruční stav",
     value: "clear",
   },
 ]
-
-const BADGE_COLOR_BY_TONE: Record<
-  OrderBusinessStatusTone,
-  ComponentProps<typeof Badge>["color"]
-> = {
-  blue: "blue",
-  green: "green",
-  grey: "grey",
-  orange: "orange",
-  purple: "purple",
-  red: "red",
-}
 
 const formatDate = (date: string | null | undefined) => {
   if (!date) {
@@ -101,13 +80,6 @@ const formatTotal = (order: OrderBusinessStatusSummary) => {
     style: "currency",
   }).format(order.total)
 }
-
-const isManualStatusValue = (
-  value: string
-): value is ManualOrderBusinessStatusId =>
-  MANUAL_ORDER_BUSINESS_STATUS_IDS.includes(
-    value as ManualOrderBusinessStatusId
-  )
 
 const updateOrderBusinessStatus = ({
   orderId,
@@ -149,7 +121,7 @@ const ManualStatusControl = ({ orderId }: { orderId: string }) => {
       <Select
         disabled={mutation.isPending}
         onValueChange={(value) => {
-          if (value === "clear" || isManualStatusValue(value)) {
+          if (value === "clear" || isManualOrderBusinessStatusId(value)) {
             mutation.mutate(value)
           }
         }}
@@ -258,10 +230,7 @@ const OrderStatusesPage = () => {
                 {formatTotal(order)}
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap">
-                <Badge
-                  color={BADGE_COLOR_BY_TONE[order.business_status.tone]}
-                  size="2xsmall"
-                >
+                <Badge color={order.business_status.tone} size="2xsmall">
                   {order.business_status.label}
                 </Badge>
               </Table.Cell>
