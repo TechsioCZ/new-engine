@@ -121,10 +121,21 @@ function buildPdf(order: OrderReceiptOrder) {
     const quantity = toNumber(item.quantity) || 1
     const lineSubtotal = getItemSubtotal(item)
     const fallbackUnitPrice = getItemUnitPrice(item)
-    const unitPrice = quantity
-      ? lineSubtotal / quantity || fallbackUnitPrice
-      : lineSubtotal || fallbackUnitPrice
-    const taxLabel = toNumber(item.tax_total) > 0 ? "21 %" : "0 %"
+    let unitPrice = fallbackUnitPrice
+    if (Number.isFinite(quantity) && quantity > 0) {
+      unitPrice = Number.isFinite(lineSubtotal)
+        ? lineSubtotal / quantity
+        : fallbackUnitPrice
+    } else if (Number.isFinite(lineSubtotal)) {
+      unitPrice = lineSubtotal
+    }
+    const lineTaxTotal = toNumber(item.tax_total)
+    const itemSubtotal = toNumber(item.subtotal)
+    const taxRate =
+      lineTaxTotal > 0 && itemSubtotal !== 0
+        ? Math.round((lineTaxTotal / itemSubtotal) * 100)
+        : 0
+    const taxLabel = Number.isFinite(taxRate) ? `${taxRate} %` : "0 %"
 
     commands.push(pdfText(quantity, LEFT, y, { size: 9 }))
     commands.push(

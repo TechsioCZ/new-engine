@@ -17,6 +17,7 @@ import {
 type ResendOptions = {
   api_key: string
   from: string
+  request_timeout_ms?: number
 }
 
 type InjectedDependencies = {
@@ -58,6 +59,35 @@ type ResendApiErrorResponse = {
   message?: string
   name?: string
   statusCode?: number
+}
+
+const DEFAULT_RESEND_REQUEST_TIMEOUT_MS = 10_000
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isEmailResponse(value: unknown): value is ResendApiEmailResponse {
+  return isRecord(value) && typeof value.id === "string"
+}
+
+function toErrorResponse(value: unknown): ResendApiErrorResponse {
+  if (!isRecord(value)) {
+    return {}
+  }
+
+  const error: ResendApiErrorResponse = {}
+  if (typeof value.message === "string") {
+    error.message = value.message
+  }
+  if (typeof value.name === "string") {
+    error.name = value.name
+  }
+  if (typeof value.statusCode === "number") {
+    error.statusCode = value.statusCode
+  }
+
+  return error
 }
 
 class ResendNotificationProviderService extends AbstractNotificationProviderService {
@@ -139,36 +169,76 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     }
   }
 
+  protected getRequestTimeoutMs() {
+    const envTimeoutMs = Number(process.env.RESEND_REQUEST_TIMEOUT_MS)
+    if (
+      Number.isFinite(this.options.request_timeout_ms) &&
+      this.options.request_timeout_ms > 0
+    ) {
+      return this.options.request_timeout_ms
+    }
+    if (Number.isFinite(envTimeoutMs) && envTimeoutMs > 0) {
+      return envTimeoutMs
+    }
+    return DEFAULT_RESEND_REQUEST_TIMEOUT_MS
+  }
+
   protected async sendTemplateEmail(emailOptions: ResendTemplateEmailOptions) {
     const baseUrl = process.env.RESEND_BASE_URL || "https://api.resend.com"
-    const response = await fetch(`${baseUrl}/emails`, {
-      body: JSON.stringify({
-        attachments: emailOptions.attachments,
-        from: emailOptions.from,
-        template: emailOptions.template,
-        to: emailOptions.to,
-      }),
-      headers: {
-        Authorization: `Bearer ${this.options.api_key}`,
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    })
+    const timeoutMs = this.getRequestTimeoutMs()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-    const payload = (await response.json()) as
-      | ResendApiEmailResponse
-      | ResendApiErrorResponse
+    try {
+      const response = await fetch(`${baseUrl}/emails`, {
+        body: JSON.stringify({
+          attachments: emailOptions.attachments,
+          from: emailOptions.from,
+          template: emailOptions.template,
+          to: emailOptions.to,
+        }),
+        headers: {
+          Authorization: `Bearer ${this.options.api_key}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        signal: controller.signal,
+      })
 
-    if (!response.ok) {
+      const payload: unknown = await response.json()
+
+      if (!response.ok) {
+        return {
+          data: null,
+          error: toErrorResponse(payload),
+        }
+      }
+
+      if (!isEmailResponse(payload)) {
+        return {
+          data: null,
+          error: toErrorResponse(payload),
+        }
+      }
+
+      return {
+        data: payload,
+        error: null,
+      }
+    } catch (error) {
+      let message = "Unknown Resend API error."
+      if (error instanceof Error && error.name === "AbortError") {
+        message = `Resend API request timed out after ${timeoutMs}ms.`
+      } else if (error instanceof Error) {
+        message = error.message
+      }
+
       return {
         data: null,
-        error: payload as ResendApiErrorResponse,
+        error: { message },
       }
-    }
-
-    return {
-      data: payload as ResendApiEmailResponse,
-      error: null,
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
 
