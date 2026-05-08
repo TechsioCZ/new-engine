@@ -60,7 +60,7 @@ describe("order expedition helpers", () => {
       },
       shipping_methods: [{ name: "Packeta Z-Point" }],
       payment_collections: [{ payments: [{ provider_id: "stripe" }] }],
-      items: [{ id: "item_1", quantity: "2", title: "Tea" }],
+      items: [{ id: "item_1", quantity: { value: "2" }, title: "Tea" }],
     })
 
     expect(dto).toMatchObject({

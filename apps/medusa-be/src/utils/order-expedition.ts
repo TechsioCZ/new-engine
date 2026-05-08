@@ -49,7 +49,7 @@ export type OrderExpeditionLineItem = {
   id?: string | null
   title?: string | null
   subtitle?: string | null
-  quantity?: number | string | null
+  quantity?: number | string | { value?: number | string | null } | null
   variant_sku?: string | null
   variant_title?: string | null
 }
@@ -359,15 +359,27 @@ function getOrderExpeditionPaymentMethod(order: OrderExpeditionRawOrder) {
 function toOrderExpeditionItemDto(
   item: OrderExpeditionLineItem
 ): OrderExpeditionItemDto {
-  const quantity = Number(item.quantity ?? 0)
+  const quantity = getOrderExpeditionItemQuantity(item.quantity)
 
   return {
     id: item.id,
     title: item.title || item.subtitle || item.id || "Untitled item",
-    quantity: Number.isFinite(quantity) ? quantity : 0,
+    quantity,
     sku: item.variant_sku,
     variant: item.variant_title,
   }
+}
+
+function getOrderExpeditionItemQuantity(
+  quantity: OrderExpeditionLineItem["quantity"]
+) {
+  const value =
+    typeof quantity === "object" && quantity !== null && "value" in quantity
+      ? quantity.value
+      : quantity
+  const parsed = Number(value ?? 0)
+
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
 function joinNonEmpty(values: Array<string | null | undefined>) {
