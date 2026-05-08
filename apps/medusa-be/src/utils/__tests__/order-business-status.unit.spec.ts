@@ -65,6 +65,14 @@ describe("order business status", () => {
         createOrder({ payment_status: "partially_captured" })
       ).id
     ).toBe("awaiting_payment")
+    expect(
+      resolveOrderBusinessStatus(
+        createOrder({
+          payment_collections: [{ status: "completed" }],
+          payment_status: "partially_captured",
+        })
+      ).id
+    ).toBe("awaiting_payment")
   })
 
   it("shows Zaplacená only for completed payment signals", () => {

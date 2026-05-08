@@ -137,7 +137,9 @@ const SHIPPED_FULFILLMENT_STATUSES = new Set([
   "shipped",
 ])
 
-function hasValue(value: Date | string | null | undefined) {
+function hasValue(
+  value: Date | string | null | undefined
+): value is Date | string {
   return (
     value instanceof Date || (typeof value === "string" && value.length > 0)
   )
@@ -190,11 +192,14 @@ export function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
 }
 
 function hasPaidPaymentSignal(order: OrderBusinessStatusInput) {
-  return (
-    PAID_PAYMENT_STATUSES.has(order.payment_status ?? "") ||
-    (order.payment_collections ?? []).some((collection) =>
-      PAID_PAYMENT_STATUSES.has(collection.status ?? "")
-    )
+  const paymentStatus = order.payment_status
+
+  if (hasValue(paymentStatus)) {
+    return PAID_PAYMENT_STATUSES.has(paymentStatus)
+  }
+
+  return (order.payment_collections ?? []).some((collection) =>
+    PAID_PAYMENT_STATUSES.has(collection.status ?? "")
   )
 }
 
