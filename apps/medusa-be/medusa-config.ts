@@ -61,6 +61,10 @@ module.exports = defineConfig({
   admin: {
     // backendUrl: BACKEND_URL,
     vite: () => ({
+      define: {
+        // @lexical/code imports Prism language modules that assume a global Prism identifier.
+        Prism: "globalThis.Prism",
+      },
       server: {
         allowedHosts: MEDUSA_ADMIN_ALLOWED_HOSTS,
         hmr: false,
