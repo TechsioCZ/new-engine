@@ -1,7 +1,9 @@
 import { vi } from "vitest"
 
-const mockImportPKCS8 = vi.fn()
-const mockSignJWTConstructor = vi.fn()
+const { mockImportPKCS8, mockSignJWTConstructor } = vi.hoisted(() => ({
+  mockImportPKCS8: vi.fn(),
+  mockSignJWTConstructor: vi.fn(),
+}))
 
 vi.mock("jose", () => ({
   importPKCS8: (...args: unknown[]) => mockImportPKCS8(...args),
