@@ -134,6 +134,8 @@ const AWAITING_PAYMENT_STATUSES = new Set([
   "requires_action",
 ])
 
+const PAID_PAYMENT_STATUSES = new Set(["captured", "completed"])
+
 const SHIPPED_FULFILLMENT_STATUSES = new Set([
   "partially_delivered",
   "partially_shipped",
@@ -187,6 +189,15 @@ export function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
   )
 }
 
+function hasPaidPaymentSignal(order: OrderBusinessStatusInput) {
+  return (
+    PAID_PAYMENT_STATUSES.has(order.payment_status ?? "") ||
+    (order.payment_collections ?? []).some((collection) =>
+      PAID_PAYMENT_STATUSES.has(collection.status ?? "")
+    )
+  )
+}
+
 export function resolveOrderBusinessStatus(
   order: OrderBusinessStatusInput
 ): OrderBusinessStatus {
@@ -232,7 +243,7 @@ export function resolveOrderBusinessStatus(
 
   const paymentStatus = getOrderBusinessPaymentStatus(order)
 
-  if (paymentStatus === "captured") {
+  if (hasPaidPaymentSignal(order)) {
     return ORDER_BUSINESS_STATUSES.paid
   }
 
