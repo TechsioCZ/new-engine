@@ -13,6 +13,7 @@ import {
 } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
+import { ORDER_EXPEDITION_MAX_ORDER_IDS } from "../../../utils/order-expedition"
 import { sdk } from "../../lib/sdk"
 
 type CarrierKey = "ppl" | "packeta" | "other"
@@ -94,6 +95,32 @@ function getOrderItemsSummary(order: ExpeditionOrder) {
 
 function getCarrierLabel(order: ExpeditionOrder) {
   return order.carrier.shipping_method_name || order.carrier.label
+}
+
+function getNextPageSelection(
+  prev: Set<string>,
+  orders: ExpeditionOrder[],
+  allPageOrdersSelected: boolean
+) {
+  const next = new Set(prev)
+
+  if (allPageOrdersSelected) {
+    for (const order of orders) {
+      next.delete(order.id)
+    }
+
+    return next
+  }
+
+  for (const order of orders) {
+    if (!next.has(order.id) && next.size >= ORDER_EXPEDITION_MAX_ORDER_IDS) {
+      continue
+    }
+
+    next.add(order.id)
+  }
+
+  return next
 }
 
 function getErrorMessage(payload: unknown, fallback: string) {
@@ -183,6 +210,7 @@ async function updateStatus(orderIds: string[], targetStatus: TargetStatus) {
 
 type OrdersTableProps = {
   allPageOrdersSelected: boolean
+  isSelectionLimitReached: boolean
   isLoading: boolean
   onToggleOrder: (orderId: string) => void
   onTogglePage: () => void
@@ -193,6 +221,7 @@ type OrdersTableProps = {
 
 function OrdersTable({
   allPageOrdersSelected,
+  isSelectionLimitReached,
   isLoading,
   onToggleOrder,
   onTogglePage,
@@ -254,6 +283,9 @@ function OrdersTable({
             <Table.Cell>
               <Checkbox
                 checked={selectedOrderIds.has(order.id)}
+                disabled={
+                  !selectedOrderIds.has(order.id) && isSelectionLimitReached
+                }
                 onCheckedChange={() => onToggleOrder(order.id)}
               />
             </Table.Cell>
@@ -346,6 +378,8 @@ const OrderExpeditionPage = () => {
     orders.some((order) => selectedOrderIds.has(order.id)) &&
     !allPageOrdersSelected
   const selectedCount = selectedOrderIds.size
+  const isSelectionLimitReached =
+    selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
   const count = ordersQuery.data?.count ?? 0
   const pageIndex = Math.floor(offset / PAGE_SIZE)
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
@@ -368,6 +402,17 @@ const OrderExpeditionPage = () => {
 
   const toggleOrder = (orderId: string) => {
     setIsConfirmingStatus(false)
+
+    if (
+      !selectedOrderIds.has(orderId) &&
+      selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
+    ) {
+      toast.error(
+        `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
+      )
+      return
+    }
+
     setSelectedOrderIds((prev) => {
       const next = new Set(prev)
       if (next.has(orderId)) {
@@ -381,19 +426,23 @@ const OrderExpeditionPage = () => {
 
   const togglePage = () => {
     setIsConfirmingStatus(false)
-    setSelectedOrderIds((prev) => {
-      const next = new Set(prev)
-      if (allPageOrdersSelected) {
-        for (const order of orders) {
-          next.delete(order.id)
-        }
-      } else {
-        for (const order of orders) {
-          next.add(order.id)
-        }
+
+    if (!allPageOrdersSelected) {
+      const remainingSlots = ORDER_EXPEDITION_MAX_ORDER_IDS - selectedCount
+      const unselectedPageOrderIds = orders
+        .map((order) => order.id)
+        .filter((orderId) => !selectedOrderIds.has(orderId))
+
+      if (unselectedPageOrderIds.length > remainingSlots) {
+        toast.error(
+          `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
+        )
       }
-      return next
-    })
+    }
+
+    setSelectedOrderIds((prev) =>
+      getNextPageSelection(prev, orders, allPageOrdersSelected)
+    )
   }
 
   const handlePrint = async () => {
@@ -475,7 +524,7 @@ const OrderExpeditionPage = () => {
         <div>
           <Heading level="h1">Order Expedition</Heading>
           <Text className="text-ui-fg-subtle" size="small">
-            {selectedCount} selected
+            {selectedCount} / {ORDER_EXPEDITION_MAX_ORDER_IDS} selected
           </Text>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -574,6 +623,7 @@ const OrderExpeditionPage = () => {
       <OrdersTable
         allPageOrdersSelected={allPageOrdersSelected}
         isLoading={ordersQuery.isLoading}
+        isSelectionLimitReached={isSelectionLimitReached}
         onToggleOrder={toggleOrder}
         onTogglePage={togglePage}
         orders={orders}
