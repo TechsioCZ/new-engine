@@ -12,8 +12,30 @@ import {
 import type { GetAdminOrderExpeditionOrdersSchemaType } from "../validators"
 
 type OrderGraphResult = Awaited<ReturnType<Query["graph"]>>
+type OrderExpeditionCarrierFilterOrder = Pick<
+  OrderExpeditionRawOrder,
+  "id" | "shipping_methods"
+>
+type CarrierFilterAccumulator = {
+  matchingCount: number
+  matchingOrderIds: string[]
+}
+type CollectMatchingCarrierOrderIdsInput = {
+  accumulator: CarrierFilterAccumulator
+  carrier: OrderExpeditionCarrierKey
+  limit: number
+  offset: number
+  orders: OrderExpeditionCarrierFilterOrder[]
+}
 
 const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 100
+const ORDER_EXPEDITION_CARRIER_FILTER_FIELDS = [
+  "id",
+  "shipping_methods.id",
+  "shipping_methods.name",
+  "shipping_methods.shipping_option_id",
+  "shipping_methods.data",
+]
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -66,46 +88,143 @@ async function fetchCarrierFilteredOrders(
   limit: number,
   offset: number
 ): Promise<{ orders: OrderExpeditionRawOrder[]; count: number }> {
-  const orders: OrderExpeditionRawOrder[] = []
-  let count = 0
+  const { count, pageOrderIds } = await fetchCarrierFilteredOrderIdPage(
+    query,
+    carrier,
+    limit,
+    offset
+  )
+
+  if (!pageOrderIds.length) {
+    return { orders: [], count }
+  }
+
+  const orders = await fetchOrdersByIds(query, pageOrderIds)
+
+  return { orders, count }
+}
+
+async function fetchCarrierFilteredOrderIdPage(
+  query: Query,
+  carrier: OrderExpeditionCarrierKey,
+  limit: number,
+  offset: number
+): Promise<{ pageOrderIds: string[]; count: number }> {
+  const accumulator: CarrierFilterAccumulator = {
+    matchingCount: 0,
+    matchingOrderIds: [],
+  }
   let scanOffset = 0
 
   while (true) {
-    const batch = await fetchOrderBatch(query, scanOffset)
+    const batch = await fetchCarrierFilterBatch(query, scanOffset)
 
     if (!batch.orders.length) {
       break
     }
 
-    for (const order of batch.orders) {
-      if (!orderMatchesExpeditionCarrier(order, carrier)) {
-        continue
-      }
-
-      if (count >= offset && orders.length < limit) {
-        orders.push(order)
-      }
-
-      count += 1
-    }
-
+    collectMatchingCarrierOrderIds({
+      accumulator,
+      carrier,
+      limit,
+      offset,
+      orders: batch.orders,
+    })
     scanOffset += ORDER_EXPEDITION_SCAN_BATCH_SIZE
 
-    if (batch.totalCount <= scanOffset) {
+    if (
+      shouldStopCarrierFilterScan(
+        batch.totalCount,
+        scanOffset,
+        accumulator.matchingOrderIds.length,
+        limit
+      )
+    ) {
       break
     }
   }
 
-  return { orders, count }
+  return {
+    count: getCarrierFilteredCount(accumulator, offset, limit),
+    pageOrderIds: accumulator.matchingOrderIds.slice(0, limit),
+  }
 }
 
-async function fetchOrderBatch(
+function collectMatchingCarrierOrderIds({
+  accumulator,
+  carrier,
+  limit,
+  offset,
+  orders,
+}: CollectMatchingCarrierOrderIdsInput) {
+  for (const order of orders) {
+    if (!orderMatchesExpeditionCarrier(order, carrier)) {
+      continue
+    }
+
+    if (accumulator.matchingCount >= offset) {
+      accumulator.matchingOrderIds.push(order.id)
+    }
+
+    accumulator.matchingCount += 1
+
+    if (accumulator.matchingOrderIds.length > limit) {
+      break
+    }
+  }
+}
+
+function shouldStopCarrierFilterScan(
+  totalCount: number,
+  scanOffset: number,
+  matchingOrderIdsLength: number,
+  limit: number
+) {
+  return totalCount <= scanOffset || matchingOrderIdsLength > limit
+}
+
+function getCarrierFilteredCount(
+  accumulator: CarrierFilterAccumulator,
+  offset: number,
+  limit: number
+) {
+  if (accumulator.matchingOrderIds.length > limit) {
+    return offset + limit + 1
+  }
+
+  return accumulator.matchingCount
+}
+
+async function fetchOrdersByIds(
   query: Query,
-  offset: number
-): Promise<{ orders: OrderExpeditionRawOrder[]; totalCount: number }> {
-  const { data: orders, metadata } = (await query.graph({
+  orderIds: string[]
+): Promise<OrderExpeditionRawOrder[]> {
+  const { data: orders } = await query.graph({
     entity: "order",
     fields: ORDER_EXPEDITION_ORDER_FIELDS,
+    filters: { id: orderIds },
+  })
+
+  const ordersById = new Map(
+    (orders as OrderExpeditionRawOrder[]).map((order) => [order.id, order])
+  )
+
+  return orderIds.flatMap((orderId) => {
+    const order = ordersById.get(orderId)
+    return order ? [order] : []
+  })
+}
+
+async function fetchCarrierFilterBatch(
+  query: Query,
+  offset: number
+): Promise<{
+  orders: OrderExpeditionCarrierFilterOrder[]
+  totalCount: number
+}> {
+  const { data: orders, metadata } = (await query.graph({
+    entity: "order",
+    fields: ORDER_EXPEDITION_CARRIER_FILTER_FIELDS,
     pagination: {
       skip: offset,
       take: ORDER_EXPEDITION_SCAN_BATCH_SIZE,
@@ -113,7 +232,7 @@ async function fetchOrderBatch(
   })) as OrderGraphResult
 
   return {
-    orders: orders as OrderExpeditionRawOrder[],
+    orders: orders as OrderExpeditionCarrierFilterOrder[],
     totalCount: metadata?.count ?? offset + orders.length,
   }
 }
