@@ -1,4 +1,11 @@
-import { defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
+import fs from "node:fs"
+import path from "node:path"
+import {
+  ContainerRegistrationKeys,
+  defineConfig,
+  loadEnv,
+  Modules,
+} from "@medusajs/framework/utils"
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
@@ -7,9 +14,66 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
+const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
-const MEDUSA_ADMIN_ALLOWED_HOSTS =
-  process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
+const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
+const RESEND_API_KEY = process.env.RESEND_API_KEY
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL
+const PRISMJS_IMPORT_PATTERN = /^prismjs$/
+const PRISM_GLOBAL_SHIM_PATH = path.resolve(
+  process.cwd(),
+  "src/admin/lib/prism-global.js"
+)
+const PRISM_CORE_SCRIPT = fs.readFileSync(
+  require.resolve("prismjs/prism.js"),
+  "utf8"
+)
+
+const prismGlobalPlugin = () => ({
+  name: "medusa-admin-prism-global",
+  transformIndexHtml() {
+    return [
+      {
+        tag: "script",
+        injectTo: "head-prepend",
+        children: `window.Prism=window.Prism||{};window.Prism.manual=true;\n${PRISM_CORE_SCRIPT}`,
+      },
+    ]
+  },
+})
+
+const notificationProvider =
+  NOTIFICATION_PROVIDER === "local"
+    ? {
+        resolve: "@medusajs/medusa/notification-local",
+        id: "local",
+        options: {
+          name: "Local Notification Provider",
+          channels: ["email"],
+        },
+      }
+    : {
+        resolve: "./src/modules/resend",
+        id: "resend",
+        options: {
+          channels: ["email"],
+          api_key: RESEND_API_KEY,
+          from: RESEND_FROM_EMAIL,
+        },
+      }
+
+const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL?.trim()
+let MEDUSA_ADMIN_ALLOWED_HOSTS: true | string[] | undefined
+
+if (process.env.NODE_ENV === "development") {
+  MEDUSA_ADMIN_ALLOWED_HOSTS = true
+} else if (MEDUSA_BACKEND_URL) {
+  const backendUrl = MEDUSA_BACKEND_URL.includes("://")
+    ? MEDUSA_BACKEND_URL
+    : `http://${MEDUSA_BACKEND_URL}`
+
+  MEDUSA_ADMIN_ALLOWED_HOSTS = [new URL(backendUrl).hostname]
+}
 
 module.exports = defineConfig({
   featureFlags: {
@@ -21,6 +85,19 @@ module.exports = defineConfig({
   admin: {
     // backendUrl: BACKEND_URL,
     vite: () => ({
+      define: {
+        // @lexical/code imports Prism language modules that assume a global Prism identifier.
+        Prism: "globalThis.Prism",
+      },
+      plugins: [prismGlobalPlugin()],
+      resolve: {
+        alias: [
+          {
+            find: PRISMJS_IMPORT_PATTERN,
+            replacement: PRISM_GLOBAL_SHIM_PATH,
+          },
+        ],
+      },
       server: {
         allowedHosts: MEDUSA_ADMIN_ALLOWED_HOSTS,
         hmr: false,
@@ -49,6 +126,10 @@ module.exports = defineConfig({
     redisUrl: REDIS_URL,
   },
   plugins: [
+    {
+      resolve: "medusa-plugin-content",
+      options: {},
+    },
     {
       resolve: "@medusajs/draft-order",
       options: {},
@@ -185,6 +266,12 @@ module.exports = defineConfig({
       resolve: "@medusajs/medusa/translation",
     },
     {
+      resolve: "@medusajs/medusa/notification",
+      options: {
+        providers: [notificationProvider],
+      },
+    },
+    {
       resolve: "@medusajs/medusa/caching",
       options: {
         providers: [
@@ -201,6 +288,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/producer",
+    },
+    {
+      resolve: "./src/modules/email-log",
     },
     {
       resolve: "@medusajs/event-bus-redis",
@@ -272,22 +362,56 @@ module.exports = defineConfig({
           },
         ]
       : []),
-    // PPL Fulfillment Provider - thin provider delegating to ppl-client
-    ...(FEATURE_PPL_ENABLED
+    // Packeta Client Module - config stored in DB, managed via Settings → Packeta
+    ...(FEATURE_PACKETA_ENABLED
+      ? [
+          {
+            resolve: "./src/modules/packeta-client",
+            dependencies: [Modules.LOCKING],
+            options: {
+              environment: process.env.PACKETA_ENVIRONMENT ?? "testing",
+            },
+          },
+        ]
+      : []),
+    // Unified Fulfillment Module — conditionally includes PPL and/or Packeta
+    // providers. Registered only if at least one carrier is enabled.
+    ...(FEATURE_PPL_ENABLED || FEATURE_PACKETA_ENABLED
       ? [
           {
             resolve: "@medusajs/medusa/fulfillment",
-            dependencies: ["ppl_client"],
+            dependencies: [
+              ...(FEATURE_PPL_ENABLED ? ["ppl_client"] : []),
+              ...(FEATURE_PACKETA_ENABLED
+                ? [
+                    "packeta_client",
+                    Modules.FILE,
+                    ContainerRegistrationKeys.QUERY,
+                  ]
+                : []),
+            ],
             options: {
               providers: [
                 {
                   resolve: "@medusajs/medusa/fulfillment-manual",
                   id: "manual",
                 },
-                {
-                  resolve: "./src/modules/fulfillment-ppl",
-                  id: "ppl",
-                },
+                ...(FEATURE_PPL_ENABLED
+                  ? [
+                      {
+                        resolve: "./src/modules/fulfillment-ppl",
+                        id: "ppl",
+                      },
+                    ]
+                  : []),
+                ...(FEATURE_PACKETA_ENABLED
+                  ? [
+                      {
+                        resolve: "./src/modules/fulfillment-packeta",
+                        id: "packeta",
+                      },
+                    ]
+                  : []),
               ],
             },
           },

@@ -32,6 +32,7 @@ ENV NODE_ENV=development
 ENV DATABASE_TYPE=postgres
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
@@ -54,6 +55,7 @@ FROM base AS build
 
 # Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
@@ -67,10 +69,12 @@ COPY apps/medusa-be ./apps/medusa-be
 # Build using shared script (cleanup, install, build, validate, prod deploy)
 ARG FEATURE_PPL_ENABLED=0
 ARG FEATURE_PAYLOAD_ENABLED=0
+ARG FEATURE_PACKETA_ENABLED=0
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     npm_config_store_dir=/pnpm/store \
     FEATURE_PPL_ENABLED=${FEATURE_PPL_ENABLED} \
     FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED} \
+    FEATURE_PACKETA_ENABLED=${FEATURE_PACKETA_ENABLED} \
     ./scripts/build-medusa.sh
 
 # ============================================

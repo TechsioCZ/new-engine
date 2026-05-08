@@ -1,0 +1,185 @@
+diff --git a/.medusa/server/src/admin/index.js b/.medusa/server/src/admin/index.js
+index 1a2b34586562ae12c210049c212fc555c3588776..db5846be45246706f9e59bc5ac2c9be09350e96c 100644
+--- a/.medusa/server/src/admin/index.js
++++ b/.medusa/server/src/admin/index.js
+@@ -19,6 +19,8 @@ const sdk = new Medusa__default.default({
+     type: "session"
+   }
+ });
++const contentPluginQueryClient = new reactQuery.QueryClient();
++const withContentPluginQueryClient = (Component) => (props) => /* @__PURE__ */ jsxRuntime.jsx(reactQuery.QueryClientProvider, { client: contentPluginQueryClient, children: /* @__PURE__ */ jsxRuntime.jsx(Component, { ...props }) });
+ const useContentCollections = (params = {}) => {
+   return reactQuery.useQuery({
+     queryFn: () => sdk.client.fetch("/admin/content", { query: params }),
+@@ -6662,7 +6664,7 @@ const CreateContentItemModal = ({ open, onOpenChange, contentCollection }) => {
+         const url = (_b = (_a2 = result.files) == null ? void 0 : _a2[0]) == null ? void 0 : _b.url;
+         if (!url) throw new Error("Upload returned no URL");
+         createItem(
+-          { title: data.title, slug: data.slug, content_collection_id: contentCollection.id, body: url },
++          { title: data.title, slug: data.slug, body: url },
+           {
+             onSuccess: () => {
+               ui.toast.success("Image uploaded");
+@@ -6684,7 +6686,6 @@ const CreateContentItemModal = ({ open, onOpenChange, contentCollection }) => {
+         {
+           title: data.title,
+           slug: data.slug,
+-          content_collection_id: contentCollection.id,
+           metadata: hasMetadataFields ? metadata : void 0
+         },
+         {
+@@ -7346,8 +7347,8 @@ const EditContentItemDrawer = ({ item, open, onOpenChange }) => {
+   ] }) }) });
+ };
+ async function loader({ params }) {
+-  const { itemId } = params;
+-  return sdk.client.fetch(`/admin/content-items/${itemId}`, {
++  const { collectionId, itemId } = params;
++  return sdk.client.fetch(`/admin/content/${collectionId}/items/${itemId}`, {
+     query: { fields: "id,title" }
+   });
+ }
+@@ -7553,39 +7554,39 @@ const ContentItemEditorPage = () => {
+ };
+ const widgetModule = { widgets: [
+   {
+-    Component: ProductImageLibraryWidget,
++    Component: withContentPluginQueryClient(ProductImageLibraryWidget),
+     zone: ["product.details.side.before"]
+   },
+   {
+-    Component: ProductVariantImageLibraryWidget,
++    Component: withContentPluginQueryClient(ProductVariantImageLibraryWidget),
+     zone: ["product_variant.details.side.before"]
+   }
+ ] };
+ const routeModule = {
+   routes: [
+     {
+-      Component: ImageGalleryPage,
++      Component: withContentPluginQueryClient(ImageGalleryPage),
+       path: "/images",
+       handle: handle$4
+     },
+     {
+-      Component: ContentCollectionsPage,
++      Component: withContentPluginQueryClient(ContentCollectionsPage),
+       path: "/content",
+       handle: handle$3
+     },
+     {
+-      Component: ContentCollectionDetailPage,
++      Component: withContentPluginQueryClient(ContentCollectionDetailPage),
+       path: "/content/:collectionId",
+       handle: handle$2,
+       loader: loader$1
+     },
+     {
+-      Component: ContentItemsPage,
++      Component: withContentPluginQueryClient(ContentItemsPage),
+       path: "/content/:collectionId/items",
+       handle: handle$1
+     },
+     {
+-      Component: ContentItemEditorPage,
++      Component: withContentPluginQueryClient(ContentItemEditorPage),
+       path: "/content/:collectionId/items/:itemId",
+       handle,
+       loader
+diff --git a/.medusa/server/src/admin/index.mjs b/.medusa/server/src/admin/index.mjs
+index aa07282dad3083c5408be6b0725825d783f66fb5..26b31fbf792309ff348d812c698c69e7ac1c6b57 100644
+--- a/.medusa/server/src/admin/index.mjs
++++ b/.medusa/server/src/admin/index.mjs
+@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
+ import { defineWidgetConfig, defineRouteConfig } from "@medusajs/admin-sdk";
+ import { FocusModal, Heading, Text, Select, Input, toast, Container, Button, Badge, Switch, Label, createDataTableColumnHelper, createDataTableCommandHelper, usePrompt, useDataTable, DataTable, DropdownMenu, IconButton, clx, Drawer, Textarea, DatePicker, Tooltip } from "@medusajs/ui";
+ import { ImageSparkle, ChevronLeft, ChevronRight, Trash, Plus, PencilSquare, EllipsisHorizontal, ArrowUpRightOnBox, ArchiveBox, PaperPlane } from "@medusajs/icons";
+-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
++import { QueryClient, QueryClientProvider, useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+ import Medusa from "@medusajs/js-sdk";
+ import { useNavigate, Link, useParams, useBlocker } from "react-router-dom";
+ import { MDXEditor, toolbarPlugin, DiffSourceToggleWrapper, UndoRedo, Separator, BlockTypeSelect, BoldItalicUnderlineToggles, StrikeThroughSupSubToggles, ListsToggle, HighlightToggle, InsertAdmonition, CreateLink, InsertTable, InsertCodeBlock, codeBlockPlugin, codeMirrorPlugin, diffSourcePlugin, directivesPlugin, AdmonitionDirectiveDescriptor, headingsPlugin, listsPlugin, quotePlugin, thematicBreakPlugin, linkPlugin, linkDialogPlugin, tablePlugin, markdownShortcutPlugin, imagePlugin } from "@mdxeditor/editor";
+@@ -15,6 +15,8 @@ const sdk = new Medusa({
+     type: "session"
+   }
+ });
++const contentPluginQueryClient = new QueryClient();
++const withContentPluginQueryClient = (Component) => (props) => /* @__PURE__ */ jsx(QueryClientProvider, { client: contentPluginQueryClient, children: /* @__PURE__ */ jsx(Component, { ...props }) });
+ const useContentCollections = (params = {}) => {
+   return useQuery({
+     queryFn: () => sdk.client.fetch("/admin/content", { query: params }),
+@@ -6658,7 +6660,7 @@ const CreateContentItemModal = ({ open, onOpenChange, contentCollection }) => {
+         const url = (_b = (_a2 = result.files) == null ? void 0 : _a2[0]) == null ? void 0 : _b.url;
+         if (!url) throw new Error("Upload returned no URL");
+         createItem(
+-          { title: data.title, slug: data.slug, content_collection_id: contentCollection.id, body: url },
++          { title: data.title, slug: data.slug, body: url },
+           {
+             onSuccess: () => {
+               toast.success("Image uploaded");
+@@ -6680,7 +6682,6 @@ const CreateContentItemModal = ({ open, onOpenChange, contentCollection }) => {
+         {
+           title: data.title,
+           slug: data.slug,
+-          content_collection_id: contentCollection.id,
+           metadata: hasMetadataFields ? metadata : void 0
+         },
+         {
+@@ -7342,8 +7343,8 @@ const EditContentItemDrawer = ({ item, open, onOpenChange }) => {
+   ] }) }) });
+ };
+ async function loader({ params }) {
+-  const { itemId } = params;
+-  return sdk.client.fetch(`/admin/content-items/${itemId}`, {
++  const { collectionId, itemId } = params;
++  return sdk.client.fetch(`/admin/content/${collectionId}/items/${itemId}`, {
+     query: { fields: "id,title" }
+   });
+ }
+@@ -7549,39 +7550,39 @@ const ContentItemEditorPage = () => {
+ };
+ const widgetModule = { widgets: [
+   {
+-    Component: ProductImageLibraryWidget,
++    Component: withContentPluginQueryClient(ProductImageLibraryWidget),
+     zone: ["product.details.side.before"]
+   },
+   {
+-    Component: ProductVariantImageLibraryWidget,
++    Component: withContentPluginQueryClient(ProductVariantImageLibraryWidget),
+     zone: ["product_variant.details.side.before"]
+   }
+ ] };
+ const routeModule = {
+   routes: [
+     {
+-      Component: ImageGalleryPage,
++      Component: withContentPluginQueryClient(ImageGalleryPage),
+       path: "/images",
+       handle: handle$4
+     },
+     {
+-      Component: ContentCollectionsPage,
++      Component: withContentPluginQueryClient(ContentCollectionsPage),
+       path: "/content",
+       handle: handle$3
+     },
+     {
+-      Component: ContentCollectionDetailPage,
++      Component: withContentPluginQueryClient(ContentCollectionDetailPage),
+       path: "/content/:collectionId",
+       handle: handle$2,
+       loader: loader$1
+     },
+     {
+-      Component: ContentItemsPage,
++      Component: withContentPluginQueryClient(ContentItemsPage),
+       path: "/content/:collectionId/items",
+       handle: handle$1
+     },
+     {
+-      Component: ContentItemEditorPage,
++      Component: withContentPluginQueryClient(ContentItemEditorPage),
+       path: "/content/:collectionId/items/:itemId",
+       handle,
+       loader

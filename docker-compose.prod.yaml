@@ -6,6 +6,7 @@ services:
       args:
         FEATURE_PPL_ENABLED: ${DC_FEATURE_PPL_ENABLED:-0}
         FEATURE_PAYLOAD_ENABLED: ${DC_FEATURE_PAYLOAD_ENABLED:-0}
+        FEATURE_PACKETA_ENABLED: ${DC_FEATURE_PACKETA_ENABLED:-0}
     environment:
       NODE_ENV: production
     volumes: !reset []  # Remove inherited dev bind mounts in prod

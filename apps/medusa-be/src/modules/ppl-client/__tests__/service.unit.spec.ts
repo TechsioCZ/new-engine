@@ -137,6 +137,29 @@ describe("PplClientModuleService", () => {
     jest.useRealTimers()
   })
 
+  describe("constructor", () => {
+    it("handles optional dependency resolution errors gracefully", () => {
+      const container: Record<string, unknown> = { logger: mockLogger }
+      Object.defineProperty(container, Modules.CACHING, {
+        get() {
+          throw new Error("cache resolution failed")
+        },
+      })
+      Object.defineProperty(container, Modules.LOCKING, {
+        get() {
+          throw new Error("locking resolution failed")
+        },
+      })
+
+      const service = new PplClientModuleService(container as any, validOptions)
+
+      expect(service).toBeInstanceOf(PplClientModuleService)
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        "PPL: Cache or locking service not available. Using local-only mode (not suitable for multi-container)."
+      )
+    })
+  })
+
   describe("token management", () => {
     it("returns cached token when valid and not expired", async () => {
       const futureExpiry = Date.now() + 120_000 // 2 minutes from now

@@ -49,7 +49,11 @@
       "react": "19.2.3",
       "react-dom": "19.2.3",
       "@types/react": "19.2.3",
-      "@types/react-dom": "19.2.3"
+      "@types/react-dom": "19.2.3",
+      "@medusajs/admin-bundler>vite": "8.0.11",
+      "@medusajs/admin-vite-plugin>vite": "8.0.11",
+      "@medusajs/admin-bundler>@vitejs/plugin-react": "6.0.1",
+      "vite": "8.0.11"
     },
     "supportedArchitectures": {
       "os": [
@@ -85,6 +89,9 @@
           "@medusajs/js-sdk": "^2.14.1"
         }
       }
+    },
+    "patchedDependencies": {
+      "medusa-plugin-content@0.2.0": "patches/medusa-plugin-content@0.2.0.patch"
     }
   }
 }
