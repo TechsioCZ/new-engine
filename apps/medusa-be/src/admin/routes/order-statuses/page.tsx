@@ -67,18 +67,17 @@ const formatTotal = (order: OrderBusinessStatusSummary) => {
     return "-"
   }
 
-  if (typeof order.total === "string") {
-    return order.total
-  }
+  const total =
+    typeof order.total === "string" ? Number(order.total) : order.total
 
-  if (!order.currency_code) {
+  if (!(order.currency_code && Number.isFinite(total))) {
     return String(order.total)
   }
 
   return new Intl.NumberFormat("cs-CZ", {
     currency: order.currency_code.toUpperCase(),
     style: "currency",
-  }).format(order.total)
+  }).format(total)
 }
 
 const updateOrderBusinessStatus = ({
