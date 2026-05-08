@@ -103,6 +103,7 @@ module.exports = defineConfig({
     backend_hmr: true,
   },
   admin: {
+    disable: process.env.MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD === "1",
     // backendUrl: BACKEND_URL,
     vite: () => ({
       define: {

@@ -104,6 +104,7 @@ export MEDUSA_TELEMETRY_DISABLED="${MEDUSA_TELEMETRY_DISABLED:-1}"
 export NX_DAEMON=false
 export NX_SKIP_NX_CACHE=true
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${MEDUSA_BUILD_MAX_OLD_SPACE_SIZE:-768}}"
+export CI="${CI:-true}"
 
 # FEATURE_PPL_ENABLED must come from the environment (no default - explicit opt-in)
 if [[ -n "${FEATURE_PPL_ENABLED:-}" ]]; then
@@ -130,14 +131,27 @@ else
   log_warn "FEATURE_PACKETA_ENABLED not set - Packeta module will NOT be included in build"
 fi
 
-log_info "Running: pnpm --filter=medusa-be build"
+log_info "Running: MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD=1 pnpm --filter=medusa-be build"
 
-# Run build and capture output
-if pnpm --filter=medusa-be build 2>&1 | tee "$BUILD_LOG"; then
-  log_info "Build command completed"
+# Medusa builds backend and admin concurrently by default. On small Zane workers
+# that can starve Temporal heartbeats, so build them sequentially and keep the
+# final bundled admin path identical to a normal `medusa build`.
+if MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD=1 pnpm --filter=medusa-be build 2>&1 | tee "$BUILD_LOG"; then
+  log_info "Backend build command completed"
 else
-  log_warn "Build command exited with code $?"
+  log_warn "Backend build command exited with code $?"
 fi
+
+log_info "Running: pnpm --filter=medusa-be exec medusa build --admin-only"
+if pnpm --filter=medusa-be exec medusa build --admin-only 2>&1 | tee -a "$BUILD_LOG"; then
+  log_info "Admin build command completed"
+else
+  log_warn "Admin build command exited with code $?"
+fi
+
+rm -rf apps/medusa-be/.medusa/server/public/admin
+mkdir -p apps/medusa-be/.medusa/server/public
+cp -R apps/medusa-be/.medusa/admin apps/medusa-be/.medusa/server/public/admin
 
 step_end "Build"
 
