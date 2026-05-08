@@ -30,6 +30,7 @@ type EmailLogService = EmailLogModuleService & {
       checked_at: Date | null
       customer_id: string | null
       email_id: string
+      order_id: string | null
       sent_at: Date
       sent_to: string
       subject: string
@@ -75,6 +76,15 @@ function getCustomerId(input: CreateNotificationDTO) {
     input.receiver_id ||
     getStringField(input.data, "customer_id") ||
     getStringField(input.provider_data, "customer_id") ||
+    null
+  )
+}
+
+function getOrderId(input: CreateNotificationDTO) {
+  return (
+    (input.resource_type === "order" ? input.resource_id : undefined) ||
+    getStringField(input.data, "order_id") ||
+    getStringField(input.provider_data, "order_id") ||
     null
   )
 }
@@ -236,6 +246,7 @@ export const sendNotificationStep = createStep(
         email_id: createdNotification.external_id ?? createdNotification.id,
         customer_id:
           explicitCustomerId ?? customerIdsByEmail.get(input.to) ?? null,
+        order_id: getOrderId(input),
         type: createdNotification.template ?? getEmailType(input),
         subject: getNotificationSubject(input),
         sent_to: createdNotification.to ?? input.to,

@@ -1,11 +1,14 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ILockingModule, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { EMAIL_LOG_MODULE } from "../modules/email-log"
+import type EmailLogModuleService from "../modules/email-log/service"
 import {
   fetchUnpaidOrders,
   formatTotal,
   getOrderDisplayId,
   getPaymentUrl,
+  isPaymentReminderReadyOrder,
   type PaymentReminderOrder,
 } from "../utils/order-payment-reminders"
 import { sendOrderPaymentReminderWorkflow } from "../workflows/send-order-payment-reminder"
@@ -13,6 +16,19 @@ import { sendOrderPaymentReminderWorkflow } from "../workflows/send-order-paymen
 const JOB_LOCK_KEY = "unpaid-order-payment-reminders-job"
 const JOB_LOCK_TIMEOUT = 15 * 60
 const MAX_ORDERS_PER_RUN = 500
+const EMAIL_LOG_LOOKUP_BATCH_SIZE = 500
+const PAYMENT_REMINDER_TEMPLATE = "order-payment-reminder"
+
+type EmailLogDTO = {
+  order_id: string | null
+}
+
+type EmailLogService = EmailLogModuleService & {
+  listEmailLogs: (
+    filters?: Record<string, unknown>,
+    config?: Record<string, unknown>
+  ) => Promise<EmailLogDTO[]>
+}
 
 async function sendReminder(
   container: MedusaContainer,
@@ -35,6 +51,47 @@ async function sendReminder(
   })
 }
 
+async function getAlreadyRemindedOrderIds(
+  container: MedusaContainer,
+  orders: PaymentReminderOrder[]
+) {
+  const orderIds = new Set(orders.map((order) => order.id))
+  if (!orderIds.size) {
+    return orderIds
+  }
+
+  const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
+  const alreadyRemindedOrderIds = new Set<string>()
+  let offset = 0
+
+  while (alreadyRemindedOrderIds.size < orderIds.size) {
+    const alreadySentLogs = await emailLogService.listEmailLogs(
+      {
+        type: PAYMENT_REMINDER_TEMPLATE,
+      },
+      {
+        select: ["order_id"],
+        skip: offset,
+        take: EMAIL_LOG_LOOKUP_BATCH_SIZE,
+      }
+    )
+
+    for (const log of alreadySentLogs) {
+      if (log.order_id && orderIds.has(log.order_id)) {
+        alreadyRemindedOrderIds.add(log.order_id)
+      }
+    }
+
+    if (alreadySentLogs.length < EMAIL_LOG_LOOKUP_BATCH_SIZE) {
+      break
+    }
+
+    offset += EMAIL_LOG_LOOKUP_BATCH_SIZE
+  }
+
+  return alreadyRemindedOrderIds
+}
+
 async function executePaymentReminderJob(
   container: MedusaContainer,
   logger: Logger
@@ -44,17 +101,42 @@ async function executePaymentReminderJob(
   logger.info("Unpaid Order Payment Reminders: Starting...")
 
   const unpaidOrders = await fetchUnpaidOrders(query, MAX_ORDERS_PER_RUN)
-  if (!unpaidOrders.length) {
-    logger.info("Unpaid Order Payment Reminders: No unpaid orders found")
+  const readyOrders = unpaidOrders.filter((order) =>
+    isPaymentReminderReadyOrder(order)
+  )
+
+  if (!readyOrders.length) {
+    logger.info(
+      "Unpaid Order Payment Reminders: No unpaid orders older than 24 hours found"
+    )
     return
   }
 
   logger.info(
-    `Unpaid Order Payment Reminders: Found ${unpaidOrders.length} unpaid orders`
+    `Unpaid Order Payment Reminders: Found ${readyOrders.length} unpaid orders older than 24 hours`
+  )
+
+  const alreadyRemindedOrderIds = await getAlreadyRemindedOrderIds(
+    container,
+    readyOrders
+  )
+  const ordersToRemind = readyOrders.filter(
+    (order) => !alreadyRemindedOrderIds.has(order.id)
+  )
+
+  if (!ordersToRemind.length) {
+    logger.info(
+      "Unpaid Order Payment Reminders: All matching orders already have a reminder email log"
+    )
+    return
+  }
+
+  logger.info(
+    `Unpaid Order Payment Reminders: Sending ${ordersToRemind.length} reminders, skipping ${alreadyRemindedOrderIds.size} already sent`
   )
 
   let sentCount = 0
-  for (const order of unpaidOrders) {
+  for (const order of ordersToRemind) {
     try {
       await sendReminder(container, order)
       sentCount += 1

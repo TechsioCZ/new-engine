@@ -2,6 +2,7 @@ import type { Query } from "@medusajs/framework/types"
 
 export type PaymentReminderOrder = {
   id: string
+  created_at?: Date | string | null
   display_id: number
   custom_display_id?: string | null
   customer_id?: string | null
@@ -18,6 +19,7 @@ type PaymentStatus = "not_paid" | "awaiting" | "requires_action"
 const BATCH_SIZE = 100
 const DEFAULT_MAX_ORDERS = 500
 const TRAILING_SLASH_REGEX = /\/$/
+export const PAYMENT_REMINDER_MIN_ORDER_AGE_MS = 24 * 60 * 60 * 1000
 
 const UNPAID_PAYMENT_STATUS_VALUES: PaymentStatus[] = [
   "not_paid",
@@ -33,6 +35,7 @@ const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
 
 const ORDER_FIELDS = [
   "id",
+  "created_at",
   "display_id",
   "custom_display_id",
   "customer_id",
@@ -91,6 +94,28 @@ export function isUnpaidOrder(order: PaymentReminderOrder) {
     (order.payment_collections?.length === 0 ? "not_paid" : undefined)
 
   return UNPAID_PAYMENT_STATUSES.has(paymentStatus as PaymentStatus)
+}
+
+export function isPaymentReminderReadyOrder(
+  order: PaymentReminderOrder,
+  now = new Date()
+) {
+  if (!isUnpaidOrder(order)) {
+    return false
+  }
+
+  if (!order.created_at) {
+    return false
+  }
+
+  const createdAt = new Date(order.created_at)
+  if (Number.isNaN(createdAt.getTime())) {
+    return false
+  }
+
+  return (
+    now.getTime() - createdAt.getTime() >= PAYMENT_REMINDER_MIN_ORDER_AGE_MS
+  )
 }
 
 export async function fetchOrderById(query: Query, id: string) {
