@@ -13,76 +13,46 @@ import {
 } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
-import { ORDER_EXPEDITION_MAX_ORDER_IDS } from "../../../utils/order-expedition"
+import {
+  ORDER_EXPEDITION_MAX_ORDER_IDS,
+  type OrderExpeditionBlockingOrder,
+  type OrderExpeditionCarrierKey,
+  type OrderExpeditionCarrierOption,
+  type OrderExpeditionOrderDto,
+  type OrderExpeditionTargetStatus,
+} from "../../../utils/order-expedition"
 import { sdk } from "../../lib/sdk"
 
-type CarrierKey = "ppl" | "packeta" | "other"
-type TargetStatus = "completed" | "archived" | "canceled"
-
-type CarrierOption = {
-  label: string
-  value: CarrierKey
-}
-
-type ResolvedCarrier = CarrierOption & {
-  shipping_method_name?: string
-  shipping_option_id?: string
-}
-
-type ExpeditionItem = {
-  id?: string | null
-  title: string
-  quantity: number
-  sku?: string | null
-  variant?: string | null
-}
-
-type ExpeditionOrder = {
-  id: string
-  order_display_id: string
-  customer: string
-  email?: string | null
-  delivery_address: string[]
-  carrier: ResolvedCarrier
-  payment_method: string
-  payment_status?: string | null
-  status?: string | null
-  items: ExpeditionItem[]
-}
-
 type OrdersResponse = {
-  orders: ExpeditionOrder[]
+  orders: OrderExpeditionOrderDto[]
   count: number
   limit: number
   offset: number
-  carrier: CarrierKey | null
+  carrier: OrderExpeditionCarrierKey | null
 }
 
 type CarriersResponse = {
-  carriers: CarrierOption[]
-}
-
-type BlockingOrder = {
-  id: string
-  order_display_id: string
-  reason: string
+  carriers: OrderExpeditionCarrierOption[]
 }
 
 type StatusBlockedPayload = {
   message?: string
-  blocked_orders?: BlockingOrder[]
+  blocked_orders?: OrderExpeditionBlockingOrder[]
 }
 
 const PAGE_SIZE = 50
 const ALL_CARRIERS = "all"
 
-const TARGET_STATUSES: Array<{ value: TargetStatus; label: string }> = [
+const TARGET_STATUSES: Array<{
+  value: OrderExpeditionTargetStatus
+  label: string
+}> = [
   { value: "completed", label: "Completed" },
   { value: "archived", label: "Archived" },
   { value: "canceled", label: "Canceled" },
 ]
 
-function getOrderItemsSummary(order: ExpeditionOrder) {
+function getOrderItemsSummary(order: OrderExpeditionOrderDto) {
   if (!order.items.length) {
     return "-"
   }
@@ -93,13 +63,13 @@ function getOrderItemsSummary(order: ExpeditionOrder) {
     .join(", ")
 }
 
-function getCarrierLabel(order: ExpeditionOrder) {
+function getCarrierLabel(order: OrderExpeditionOrderDto) {
   return order.carrier.shipping_method_name || order.carrier.label
 }
 
 function getNextPageSelection(
   prev: Set<string>,
-  orders: ExpeditionOrder[],
+  orders: OrderExpeditionOrderDto[],
   allPageOrdersSelected: boolean
 ) {
   const next = new Set(prev)
@@ -134,14 +104,15 @@ function getErrorMessage(payload: unknown, fallback: string) {
   return fallback
 }
 
-function getBlockingOrders(payload: unknown): BlockingOrder[] {
+function getBlockingOrders(payload: unknown): OrderExpeditionBlockingOrder[] {
   if (
     typeof payload === "object" &&
     payload !== null &&
     "blocked_orders" in payload &&
     Array.isArray((payload as StatusBlockedPayload).blocked_orders)
   ) {
-    return (payload as { blocked_orders: BlockingOrder[] }).blocked_orders
+    return (payload as { blocked_orders: OrderExpeditionBlockingOrder[] })
+      .blocked_orders
   }
 
   return []
@@ -179,7 +150,10 @@ async function downloadPdf(orderIds: string[]) {
   URL.revokeObjectURL(url)
 }
 
-async function updateStatus(orderIds: string[], targetStatus: TargetStatus) {
+async function updateStatus(
+  orderIds: string[],
+  targetStatus: OrderExpeditionTargetStatus
+) {
   const response = await fetch("/admin/order-expedition/status", {
     body: JSON.stringify({
       order_ids: orderIds,
@@ -214,7 +188,7 @@ type OrdersTableProps = {
   isLoading: boolean
   onToggleOrder: (orderId: string) => void
   onTogglePage: () => void
-  orders: ExpeditionOrder[]
+  orders: OrderExpeditionOrderDto[]
   selectedOrderIds: Set<string>
   somePageOrdersSelected: boolean
 }
@@ -330,18 +304,22 @@ function OrdersTable({
 }
 
 const OrderExpeditionPage = () => {
-  const [carrier, setCarrier] = useState<typeof ALL_CARRIERS | CarrierKey>(
-    ALL_CARRIERS
-  )
+  const [carrier, setCarrier] = useState<
+    typeof ALL_CARRIERS | OrderExpeditionCarrierKey
+  >(ALL_CARRIERS)
   const [offset, setOffset] = useState(0)
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(
     new Set()
   )
-  const [targetStatus, setTargetStatus] = useState<TargetStatus | "">("")
+  const [targetStatus, setTargetStatus] = useState<
+    OrderExpeditionTargetStatus | ""
+  >("")
   const [isPrinting, setIsPrinting] = useState(false)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isConfirmingStatus, setIsConfirmingStatus] = useState(false)
-  const [blockingOrders, setBlockingOrders] = useState<BlockingOrder[]>([])
+  const [blockingOrders, setBlockingOrders] = useState<
+    OrderExpeditionBlockingOrder[]
+  >([])
 
   const carriersQuery = useQuery({
     queryFn: () =>
@@ -388,7 +366,7 @@ const OrderExpeditionPage = () => {
     targetStatus
 
   const handleCarrierChange = (value: string) => {
-    setCarrier(value as typeof ALL_CARRIERS | CarrierKey)
+    setCarrier(value as typeof ALL_CARRIERS | OrderExpeditionCarrierKey)
     setOffset(0)
     setSelectedOrderIds(new Set())
     setIsConfirmingStatus(false)
@@ -396,7 +374,7 @@ const OrderExpeditionPage = () => {
   }
 
   const handleTargetStatusChange = (value: string) => {
-    setTargetStatus(value as TargetStatus)
+    setTargetStatus(value as OrderExpeditionTargetStatus)
     setIsConfirmingStatus(false)
   }
 
