@@ -1,0 +1,793 @@
+import { defineRouteConfig } from "@medusajs/admin-sdk"
+import { DocumentSeries } from "@medusajs/icons"
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Container,
+  Heading,
+  Select,
+  Table,
+  Text,
+  toast,
+} from "@medusajs/ui"
+import { useQuery } from "@tanstack/react-query"
+import { useMemo, useState } from "react"
+import {
+  isOrderExpeditionCarrierKey,
+  isOrderExpeditionTargetStatus,
+  ORDER_EXPEDITION_MAX_ORDER_IDS,
+  type OrderExpeditionBlockingOrder,
+  type OrderExpeditionCarrierKey,
+  type OrderExpeditionCarrierOption,
+  type OrderExpeditionOrderDto,
+  type OrderExpeditionTargetStatus,
+} from "../../../utils/order-expedition"
+import { sdk } from "../../lib/sdk"
+
+type OrdersResponse = {
+  orders: OrderExpeditionOrderDto[]
+  count: number
+  has_next: boolean
+  count_exact: boolean
+  carrier_filter_limit_reached: boolean
+  scanned_count: number | null
+  limit: number
+  offset: number
+  carrier: OrderExpeditionCarrierKey | null
+}
+
+type CarriersResponse = {
+  carriers: OrderExpeditionCarrierOption[]
+}
+
+const PAGE_SIZE = 50
+const ALL_CARRIERS = "all"
+
+const TARGET_STATUSES: Array<{
+  value: OrderExpeditionTargetStatus
+  label: string
+}> = [
+  { value: "pending", label: "Pending" },
+  { value: "completed", label: "Completed" },
+  { value: "draft", label: "Draft" },
+  { value: "archived", label: "Archived" },
+  { value: "canceled", label: "Canceled" },
+  { value: "requires_action", label: "Requires action" },
+]
+
+function getOrderItemsSummary(order: OrderExpeditionOrderDto) {
+  if (!order.items.length) {
+    return "-"
+  }
+
+  return order.items
+    .slice(0, 3)
+    .map((item) => `${item.quantity}x ${item.sku ?? item.title}`)
+    .join(", ")
+}
+
+function getCarrierLabel(order: OrderExpeditionOrderDto) {
+  return order.carrier.shipping_method_name ?? order.carrier.label
+}
+
+function getNextPageSelection(
+  prev: Set<string>,
+  orders: OrderExpeditionOrderDto[],
+  allPageOrdersSelected: boolean
+) {
+  const next = new Set(prev)
+
+  if (allPageOrdersSelected) {
+    for (const order of orders) {
+      next.delete(order.id)
+    }
+
+    return next
+  }
+
+  for (const order of orders) {
+    if (!next.has(order.id) && next.size >= ORDER_EXPEDITION_MAX_ORDER_IDS) {
+      continue
+    }
+
+    next.add(order.id)
+  }
+
+  return next
+}
+
+function getErrorMessage(payload: unknown, fallback: string) {
+  if (typeof payload === "object" && payload !== null && "message" in payload) {
+    const message = (payload as { message?: unknown }).message
+    if (typeof message === "string") {
+      return message
+    }
+  }
+
+  return fallback
+}
+
+function isBlockingOrder(
+  value: unknown
+): value is OrderExpeditionBlockingOrder {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "order_display_id" in value &&
+    typeof value.order_display_id === "string" &&
+    "reason" in value &&
+    typeof value.reason === "string"
+  )
+}
+
+function getBlockingOrders(payload: unknown): OrderExpeditionBlockingOrder[] {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "blocked_orders" in payload &&
+    Array.isArray(payload.blocked_orders)
+  ) {
+    return payload.blocked_orders.filter(isBlockingOrder)
+  }
+
+  return []
+}
+
+async function downloadPdf(orderIds: string[]) {
+  const response = await fetch("/admin/order-expedition/pdf", {
+    body: JSON.stringify({
+      order_ids: orderIds,
+    }),
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  })
+
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null)
+    throw new Error(
+      getErrorMessage(payload, "Failed to generate expedition PDF")
+    )
+  }
+
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = `order-expedition-${new Date()
+    .toISOString()
+    .slice(0, 10)}.pdf`
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
+}
+
+async function updateStatus(
+  orderIds: string[],
+  targetStatus: OrderExpeditionTargetStatus
+) {
+  const response = await fetch("/admin/order-expedition/status", {
+    body: JSON.stringify({
+      order_ids: orderIds,
+      target_status: targetStatus,
+    }),
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  })
+
+  const payload: unknown = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    return {
+      blockedOrders: getBlockingOrders(payload),
+      ok: false as const,
+      message: getErrorMessage(payload, "Failed to update order status"),
+    }
+  }
+
+  return {
+    blockedOrders: [],
+    ok: true as const,
+  }
+}
+
+type OrdersTableProps = {
+  allPageOrdersSelected: boolean
+  isSelectionLimitReached: boolean
+  isLoading: boolean
+  onToggleOrder: (orderId: string) => void
+  onTogglePage: () => void
+  orders: OrderExpeditionOrderDto[]
+  selectedOrderIds: Set<string>
+  somePageOrdersSelected: boolean
+}
+
+type OrderExpeditionPaginationProps = {
+  canNextPage: boolean
+  canPreviousPage: boolean
+  carrierFilterLimitReached: boolean
+  count: number
+  countExact: boolean
+  nextPage: () => void
+  pageCount: number
+  pageIndex: number
+  pageSize: number
+  previousPage: () => void
+  scannedCount: number | null
+}
+
+type CarrierSelectValue = typeof ALL_CARRIERS | OrderExpeditionCarrierKey
+
+function getCarrierSelectValue(value: string): CarrierSelectValue | null {
+  if (value === ALL_CARRIERS) {
+    return ALL_CARRIERS
+  }
+
+  return isOrderExpeditionCarrierKey(value) ? value : null
+}
+
+function getOrderExpeditionPaginationState(
+  data: OrdersResponse | undefined,
+  offset: number
+) {
+  const count = data?.count ?? 0
+  const canNextPage = data?.has_next ?? offset + PAGE_SIZE < count
+  const countExact = data?.count_exact ?? true
+  const pageIndex = Math.floor(offset / PAGE_SIZE)
+
+  return {
+    canNextPage,
+    carrierFilterLimitReached: data?.carrier_filter_limit_reached ?? false,
+    count,
+    countExact,
+    pageCount: countExact
+      ? Math.max(Math.ceil(count / PAGE_SIZE), 1)
+      : pageIndex + (canNextPage ? 2 : 1),
+    pageIndex,
+    scannedCount: data?.scanned_count ?? null,
+  }
+}
+
+function getTargetStatusLabel(targetStatus: OrderExpeditionTargetStatus | "") {
+  return (
+    TARGET_STATUSES.find((status) => status.value === targetStatus)?.label ??
+    targetStatus
+  )
+}
+
+function isOrderSelectionLimitBlocked(
+  orderId: string,
+  selectedOrderIds: Set<string>,
+  selectedCount: number
+) {
+  return (
+    !selectedOrderIds.has(orderId) &&
+    selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
+  )
+}
+
+function shouldWarnPageSelectionLimit(
+  allPageOrdersSelected: boolean,
+  orders: OrderExpeditionOrderDto[],
+  selectedOrderIds: Set<string>,
+  selectedCount: number
+) {
+  if (allPageOrdersSelected) {
+    return false
+  }
+
+  const remainingSlots = ORDER_EXPEDITION_MAX_ORDER_IDS - selectedCount
+  const unselectedPageOrderIds = orders
+    .map((order) => order.id)
+    .filter((orderId) => !selectedOrderIds.has(orderId))
+
+  return unselectedPageOrderIds.length > remainingSlots
+}
+
+function OrdersTable({
+  allPageOrdersSelected,
+  isSelectionLimitReached,
+  isLoading,
+  onToggleOrder,
+  onTogglePage,
+  orders,
+  selectedOrderIds,
+  somePageOrdersSelected,
+}: OrdersTableProps) {
+  return (
+    <Table>
+      <Table.Header>
+        <Table.Row>
+          <Table.HeaderCell className="w-12">
+            <Checkbox
+              checked={
+                somePageOrdersSelected ? "indeterminate" : allPageOrdersSelected
+              }
+              disabled={orders.length === 0}
+              onCheckedChange={onTogglePage}
+            />
+          </Table.HeaderCell>
+          <Table.HeaderCell>Order</Table.HeaderCell>
+          <Table.HeaderCell>Customer</Table.HeaderCell>
+          <Table.HeaderCell>Carrier</Table.HeaderCell>
+          <Table.HeaderCell>Payment</Table.HeaderCell>
+          <Table.HeaderCell>Status</Table.HeaderCell>
+          <Table.HeaderCell>Items</Table.HeaderCell>
+          <Table.HeaderCell>Address</Table.HeaderCell>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {isLoading ? (
+          <Table.Row>
+            <Table.Cell>Loading...</Table.Cell>
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
+          </Table.Row>
+        ) : null}
+
+        {isLoading || orders.length ? null : (
+          <Table.Row>
+            <Table.Cell colSpan={8}>No orders found.</Table.Cell>
+          </Table.Row>
+        )}
+
+        {orders.map((order) => (
+          <Table.Row key={order.id}>
+            <Table.Cell>
+              <Checkbox
+                checked={selectedOrderIds.has(order.id)}
+                disabled={
+                  !selectedOrderIds.has(order.id) && isSelectionLimitReached
+                }
+                onCheckedChange={() => onToggleOrder(order.id)}
+              />
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap text-ui-fg-base">
+              {order.order_display_id}
+            </Table.Cell>
+            <Table.Cell className="max-w-[220px]">
+              <div className="flex flex-col">
+                <Text className="truncate" size="small">
+                  {order.customer}
+                </Text>
+                <Text className="truncate text-ui-fg-subtle" size="small">
+                  {order.email ?? "-"}
+                </Text>
+              </div>
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap">
+              <Badge size="2xsmall">{getCarrierLabel(order)}</Badge>
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap">
+              <div className="flex flex-col">
+                <Text size="small">{order.payment_method}</Text>
+                <Text className="text-ui-fg-subtle" size="small">
+                  {order.payment_status ?? "-"}
+                </Text>
+              </div>
+            </Table.Cell>
+            <Table.Cell className="whitespace-nowrap">
+              {order.status ?? "-"}
+            </Table.Cell>
+            <Table.Cell className="max-w-[260px] truncate">
+              {getOrderItemsSummary(order)}
+            </Table.Cell>
+            <Table.Cell className="max-w-[280px] truncate">
+              {order.delivery_address.join(", ") || "-"}
+            </Table.Cell>
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table>
+  )
+}
+
+function OrderExpeditionPagination({
+  canNextPage,
+  canPreviousPage,
+  carrierFilterLimitReached,
+  count,
+  countExact,
+  nextPage,
+  pageCount,
+  pageIndex,
+  pageSize,
+  previousPage,
+  scannedCount,
+}: OrderExpeditionPaginationProps) {
+  if (countExact) {
+    return (
+      <Table.Pagination
+        canNextPage={canNextPage}
+        canPreviousPage={canPreviousPage}
+        count={count}
+        nextPage={nextPage}
+        pageCount={pageCount}
+        pageIndex={pageIndex}
+        pageSize={pageSize}
+        previousPage={previousPage}
+      />
+    )
+  }
+
+  return (
+    <div className="flex w-full items-center justify-between gap-3 px-3 py-4 text-ui-fg-subtle">
+      <div className="flex flex-col px-3 py-[5px]">
+        <Text size="small">Page {pageIndex + 1}</Text>
+        {carrierFilterLimitReached && scannedCount !== null ? (
+          <Text className="text-ui-fg-muted" size="small">
+            Carrier filter scanned first {scannedCount} orders. More matches may
+            exist.
+          </Text>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-x-2">
+        <Button
+          disabled={!canPreviousPage}
+          onClick={previousPage}
+          type="button"
+          variant="transparent"
+        >
+          Prev
+        </Button>
+        <Button
+          disabled={!canNextPage}
+          onClick={nextPage}
+          type="button"
+          variant="transparent"
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+const OrderExpeditionPage = () => {
+  const [carrier, setCarrier] = useState<
+    typeof ALL_CARRIERS | OrderExpeditionCarrierKey
+  >(ALL_CARRIERS)
+  const [offset, setOffset] = useState(0)
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(
+    new Set()
+  )
+  const [targetStatus, setTargetStatus] = useState<
+    OrderExpeditionTargetStatus | ""
+  >("")
+  const [isPrinting, setIsPrinting] = useState(false)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [isConfirmingStatus, setIsConfirmingStatus] = useState(false)
+  const [blockingOrders, setBlockingOrders] = useState<
+    OrderExpeditionBlockingOrder[]
+  >([])
+
+  const carriersQuery = useQuery({
+    queryFn: () =>
+      sdk.client.fetch<CarriersResponse>("/admin/order-expedition/carriers"),
+    queryKey: ["order-expedition-carriers"],
+  })
+
+  const ordersQuery = useQuery({
+    queryFn: () => {
+      const search = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(offset),
+      })
+
+      if (carrier !== ALL_CARRIERS) {
+        search.set("carrier", carrier)
+      }
+
+      return sdk.client.fetch<OrdersResponse>(
+        `/admin/order-expedition/orders?${search}`
+      )
+    },
+    queryKey: ["order-expedition-orders", carrier, offset],
+  })
+
+  const orders = ordersQuery.data?.orders ?? []
+  const selectedOrderIdsList = useMemo(
+    () => [...selectedOrderIds],
+    [selectedOrderIds]
+  )
+  const allPageOrdersSelected =
+    orders.length > 0 && orders.every((order) => selectedOrderIds.has(order.id))
+  const somePageOrdersSelected =
+    orders.some((order) => selectedOrderIds.has(order.id)) &&
+    !allPageOrdersSelected
+  const selectedCount = selectedOrderIds.size
+  const isSelectionLimitReached =
+    selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
+  const pagination = getOrderExpeditionPaginationState(ordersQuery.data, offset)
+  const targetStatusLabel = getTargetStatusLabel(targetStatus)
+
+  const handleCarrierChange = (value: string) => {
+    const nextCarrier = getCarrierSelectValue(value)
+
+    if (!nextCarrier) {
+      return
+    }
+
+    setCarrier(nextCarrier)
+    setOffset(0)
+    setSelectedOrderIds(new Set())
+    setIsConfirmingStatus(false)
+    setBlockingOrders([])
+  }
+
+  const handleTargetStatusChange = (value: string) => {
+    if (!isOrderExpeditionTargetStatus(value)) {
+      return
+    }
+
+    setTargetStatus(value)
+    setIsConfirmingStatus(false)
+  }
+
+  const toggleOrder = (orderId: string) => {
+    setIsConfirmingStatus(false)
+
+    if (
+      isOrderSelectionLimitBlocked(orderId, selectedOrderIds, selectedCount)
+    ) {
+      toast.error(
+        `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
+      )
+      return
+    }
+
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(orderId)) {
+        next.delete(orderId)
+      } else {
+        next.add(orderId)
+      }
+      return next
+    })
+  }
+
+  const togglePage = () => {
+    setIsConfirmingStatus(false)
+
+    if (
+      shouldWarnPageSelectionLimit(
+        allPageOrdersSelected,
+        orders,
+        selectedOrderIds,
+        selectedCount
+      )
+    ) {
+      toast.error(
+        `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
+      )
+    }
+
+    setSelectedOrderIds((prev) =>
+      getNextPageSelection(prev, orders, allPageOrdersSelected)
+    )
+  }
+
+  const handlePrint = async () => {
+    if (!selectedOrderIdsList.length) {
+      return
+    }
+
+    setIsPrinting(true)
+    setBlockingOrders([])
+    try {
+      await downloadPdf(selectedOrderIdsList)
+      toast.success("Order expedition PDF generated")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to print PDF")
+    } finally {
+      setIsPrinting(false)
+    }
+  }
+
+  const requestStatusUpdate = () => {
+    if (!selectedOrderIdsList.length) {
+      return
+    }
+
+    if (!targetStatus) {
+      toast.error("Select a target status")
+      return
+    }
+
+    setIsConfirmingStatus(true)
+  }
+
+  const handleStatusUpdate = async () => {
+    if (!selectedOrderIdsList.length) {
+      return
+    }
+
+    if (!targetStatus) {
+      toast.error("Select a target status")
+      return
+    }
+
+    const nextStatus = targetStatus
+    setIsConfirmingStatus(false)
+    setIsUpdatingStatus(true)
+    setBlockingOrders([])
+    try {
+      const result = await updateStatus(selectedOrderIdsList, nextStatus)
+
+      if (!result.ok) {
+        setBlockingOrders(result.blockedOrders)
+        toast.error(result.message)
+        return
+      }
+
+      toast.success(`${selectedCount} order(s) updated`)
+      setSelectedOrderIds(new Set())
+      await ordersQuery.refetch()
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update order status"
+      )
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  if (carriersQuery.error) {
+    throw carriersQuery.error
+  }
+
+  if (ordersQuery.error) {
+    throw ordersQuery.error
+  }
+
+  return (
+    <Container className="divide-y p-0">
+      <div className="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <Heading level="h1">Order Expedition</Heading>
+          <Text className="text-ui-fg-subtle" size="small">
+            {selectedCount} / {ORDER_EXPEDITION_MAX_ORDER_IDS} selected
+          </Text>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select onValueChange={handleCarrierChange} value={carrier}>
+            <Select.Trigger className="w-[160px]">
+              <Select.Value placeholder="Carrier" />
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value={ALL_CARRIERS}>All carriers</Select.Item>
+              {(carriersQuery.data?.carriers ?? []).map((option) => (
+                <Select.Item key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select>
+
+          <Button
+            disabled={selectedCount === 0}
+            isLoading={isPrinting}
+            onClick={handlePrint}
+            size="small"
+            variant="secondary"
+          >
+            <DocumentSeries />
+            PDF
+          </Button>
+
+          <Select onValueChange={handleTargetStatusChange} value={targetStatus}>
+            <Select.Trigger className="w-[144px]">
+              <Select.Value placeholder="Status" />
+            </Select.Trigger>
+            <Select.Content>
+              {TARGET_STATUSES.map((status) => (
+                <Select.Item key={status.value} value={status.value}>
+                  {status.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select>
+
+          <Button
+            disabled={
+              selectedCount === 0 || !targetStatus || isConfirmingStatus
+            }
+            isLoading={isUpdatingStatus}
+            onClick={requestStatusUpdate}
+            size="small"
+          >
+            Apply status
+          </Button>
+        </div>
+      </div>
+
+      {isConfirmingStatus && targetStatus ? (
+        <div className="flex flex-col gap-3 bg-ui-bg-subtle px-6 py-4 md:flex-row md:items-center md:justify-between">
+          <Text size="small">
+            Change {selectedCount} selected order(s) to {targetStatusLabel}?
+          </Text>
+          <div className="flex items-center gap-2">
+            <Button
+              disabled={isUpdatingStatus}
+              onClick={() => setIsConfirmingStatus(false)}
+              size="small"
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={selectedCount === 0 || !targetStatus}
+              isLoading={isUpdatingStatus}
+              onClick={handleStatusUpdate}
+              size="small"
+            >
+              Confirm
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {blockingOrders.length ? (
+        <div className="flex flex-col gap-2 bg-ui-bg-subtle px-6 py-4">
+          <Text className="font-medium text-ui-fg-error">
+            Some orders could not be updated.
+          </Text>
+          <div className="flex flex-col gap-1">
+            {blockingOrders.map((order) => (
+              <Text key={`${order.id}-${order.reason}`} size="small">
+                {order.order_display_id}: {order.reason}
+              </Text>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <OrdersTable
+        allPageOrdersSelected={allPageOrdersSelected}
+        isLoading={ordersQuery.isLoading}
+        isSelectionLimitReached={isSelectionLimitReached}
+        onToggleOrder={toggleOrder}
+        onTogglePage={togglePage}
+        orders={orders}
+        selectedOrderIds={selectedOrderIds}
+        somePageOrdersSelected={somePageOrdersSelected}
+      />
+
+      <OrderExpeditionPagination
+        canNextPage={pagination.canNextPage}
+        canPreviousPage={offset > 0}
+        carrierFilterLimitReached={pagination.carrierFilterLimitReached}
+        count={pagination.count}
+        countExact={pagination.countExact}
+        nextPage={() => setOffset((prev) => prev + PAGE_SIZE)}
+        pageCount={pagination.pageCount}
+        pageIndex={pagination.pageIndex}
+        pageSize={PAGE_SIZE}
+        previousPage={() => setOffset((prev) => Math.max(0, prev - PAGE_SIZE))}
+        scannedCount={pagination.scannedCount}
+      />
+    </Container>
+  )
+}
+
+export const config = defineRouteConfig({
+  icon: DocumentSeries,
+  label: "Order Expedition",
+})
+
+export default OrderExpeditionPage

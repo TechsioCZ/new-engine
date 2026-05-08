@@ -74,6 +74,26 @@ if (process.env.NODE_ENV === "development") {
 
   MEDUSA_ADMIN_ALLOWED_HOSTS = [new URL(backendUrl).hostname]
 }
+const MEDUSA_COOKIE_SECURE = process.env.MEDUSA_COOKIE_SECURE
+const MEDUSA_COOKIE_SAME_SITE = process.env.MEDUSA_COOKIE_SAME_SITE as
+  | "lax"
+  | "none"
+  | "strict"
+  | undefined
+const cookieOptions = {
+  ...(MEDUSA_COOKIE_SECURE !== undefined
+    ? {
+        secure:
+          MEDUSA_COOKIE_SECURE === "1" ||
+          MEDUSA_COOKIE_SECURE.toLowerCase() === "true",
+      }
+    : {}),
+  ...(MEDUSA_COOKIE_SAME_SITE
+    ? {
+        sameSite: MEDUSA_COOKIE_SAME_SITE,
+      }
+    : {}),
+}
 
 module.exports = defineConfig({
   featureFlags: {
@@ -123,6 +143,7 @@ module.exports = defineConfig({
       jwtSecret: process.env.JWT_SECRET,
       cookieSecret: process.env.COOKIE_SECRET,
     },
+    cookieOptions,
     redisUrl: REDIS_URL,
   },
   plugins: [
