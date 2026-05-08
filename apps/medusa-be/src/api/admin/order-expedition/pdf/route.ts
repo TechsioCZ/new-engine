@@ -24,6 +24,47 @@ const HEADING_SIZE = 16
 const SECTION_GAP = 12
 const FILENAME_SAFE_CHARS_REGEX = /[^a-z0-9-]+/gi
 const WHITESPACE_REGEX = /\s+/
+const COMBINING_MARKS_REGEX = /[\u0300-\u036f]/g
+const PDF_SAFE_ASCII_REGEX = /[^\x20-\x7e]/gu
+const PDF_TEXT_REPLACEMENT_REGEX = /[ŁłĐđÐðØøÞþÆæŒœßĦħı€£¥₽¢–—−“”„‟‘’‚‛•…]/g
+const PDF_TEXT_REPLACEMENTS: Record<string, string> = {
+  Æ: "AE",
+  æ: "ae",
+  Ð: "D",
+  ð: "d",
+  Đ: "D",
+  đ: "d",
+  Ħ: "H",
+  ħ: "h",
+  Ł: "L",
+  ł: "l",
+  Œ: "OE",
+  œ: "oe",
+  Ø: "O",
+  ø: "o",
+  Þ: "Th",
+  þ: "th",
+  ß: "ss",
+  ı: "i",
+  "€": "EUR",
+  "£": "GBP",
+  "¥": "JPY",
+  "₽": "RUB",
+  "¢": "c",
+  "–": "-",
+  "—": "-",
+  "−": "-",
+  "“": '"',
+  "”": '"',
+  "„": '"',
+  "‟": '"',
+  "‘": "'",
+  "’": "'",
+  "‚": "'",
+  "‛": "'",
+  "•": "-",
+  "…": "...",
+}
 
 type DrawState = {
   document: PDFDocument
@@ -250,25 +291,11 @@ function buildFilename(orders: OrderExpeditionOrderDto[]) {
 
 function toPdfSafeText(value: string) {
   return value
-    .replace(/[áàâä]/gi, (match) => preserveCase(match, "a"))
-    .replace(/[č]/gi, (match) => preserveCase(match, "c"))
-    .replace(/[ď]/gi, (match) => preserveCase(match, "d"))
-    .replace(/[éèêëě]/gi, (match) => preserveCase(match, "e"))
-    .replace(/[íìîï]/gi, (match) => preserveCase(match, "i"))
-    .replace(/[ň]/gi, (match) => preserveCase(match, "n"))
-    .replace(/[óòôö]/gi, (match) => preserveCase(match, "o"))
-    .replace(/[ř]/gi, (match) => preserveCase(match, "r"))
-    .replace(/[š]/gi, (match) => preserveCase(match, "s"))
-    .replace(/[ť]/gi, (match) => preserveCase(match, "t"))
-    .replace(/[úùûüů]/gi, (match) => preserveCase(match, "u"))
-    .replace(/[ýÿ]/gi, (match) => preserveCase(match, "y"))
-    .replace(/[ž]/gi, (match) => preserveCase(match, "z"))
-    .replace(/€/g, "EUR")
-    .replace(/₽|£|¥|¢/g, "")
-}
-
-function preserveCase(source: string, replacement: string) {
-  return source === source.toUpperCase()
-    ? replacement.toUpperCase()
-    : replacement
+    .normalize("NFKD")
+    .replace(COMBINING_MARKS_REGEX, "")
+    .replace(
+      PDF_TEXT_REPLACEMENT_REGEX,
+      (match) => PDF_TEXT_REPLACEMENTS[match] ?? ""
+    )
+    .replace(PDF_SAFE_ASCII_REGEX, "?")
 }

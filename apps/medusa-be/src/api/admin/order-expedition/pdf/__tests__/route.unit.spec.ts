@@ -119,4 +119,45 @@ describe("POST /admin/order-expedition/pdf", () => {
     expect(res.send).toHaveBeenCalledWith(Buffer.from([1, 2, 3]))
     expect(mockDrawText).toHaveBeenCalled()
   })
+
+  it("replaces unsupported Helvetica characters before drawing text", async () => {
+    const { POST } = await import("../route")
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: "order_1",
+          display_id: 1001,
+          customer: { first_name: "Łukasz", last_name: "Őster 😀" },
+          items: [{ quantity: 2, title: "Káva Łódź 😀" }],
+          shipping_address: {
+            address_1: "Dlouhá — ulice",
+            city: "Łódź",
+            first_name: "Łukasz",
+            last_name: "Őster 😀",
+            postal_code: "90-001",
+          },
+          shipping_methods: [{ name: "PPL" }],
+          status: "pending",
+        },
+      ],
+    })
+    const req = createMockRequest({ order_ids: ["order_1"] }, graph)
+    const res = createMockResponse()
+
+    await POST(req, res)
+
+    const drawnTexts = mockDrawText.mock.calls.map(([text]) => text as string)
+
+    expect(drawnTexts).toContain("Lukasz Oster ?")
+    expect(drawnTexts).toContain("Dlouha - ulice")
+    expect(drawnTexts).toContain("2x Kava Lodz ?")
+    expect(
+      drawnTexts.every((text) =>
+        Array.from(text).every((char) => {
+          const code = char.charCodeAt(0)
+          return code >= 32 && code <= 126
+        })
+      )
+    ).toBe(true)
+  })
 })
