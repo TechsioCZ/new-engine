@@ -55,38 +55,38 @@ async function getAlreadyRemindedOrderIds(
   container: MedusaContainer,
   orders: PaymentReminderOrder[]
 ) {
-  const orderIds = new Set(orders.map((order) => order.id))
-  if (!orderIds.size) {
-    return orderIds
+  const orderIds = Array.from(new Set(orders.map((order) => order.id)))
+  if (!orderIds.length) {
+    return new Set<string>()
   }
 
   const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
   const alreadyRemindedOrderIds = new Set<string>()
-  let offset = 0
 
-  while (alreadyRemindedOrderIds.size < orderIds.size) {
+  for (
+    let index = 0;
+    index < orderIds.length;
+    index += EMAIL_LOG_LOOKUP_BATCH_SIZE
+  ) {
+    const orderIdChunk = orderIds.slice(
+      index,
+      index + EMAIL_LOG_LOOKUP_BATCH_SIZE
+    )
     const alreadySentLogs = await emailLogService.listEmailLogs(
       {
+        order_id: { $in: orderIdChunk },
         type: PAYMENT_REMINDER_TEMPLATE,
       },
       {
         select: ["order_id"],
-        skip: offset,
-        take: EMAIL_LOG_LOOKUP_BATCH_SIZE,
       }
     )
 
     for (const log of alreadySentLogs) {
-      if (log.order_id && orderIds.has(log.order_id)) {
+      if (log.order_id) {
         alreadyRemindedOrderIds.add(log.order_id)
       }
     }
-
-    if (alreadySentLogs.length < EMAIL_LOG_LOOKUP_BATCH_SIZE) {
-      break
-    }
-
-    offset += EMAIL_LOG_LOOKUP_BATCH_SIZE
   }
 
   return alreadyRemindedOrderIds
