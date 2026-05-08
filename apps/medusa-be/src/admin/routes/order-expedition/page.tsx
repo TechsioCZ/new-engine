@@ -48,9 +48,12 @@ const TARGET_STATUSES: Array<{
   value: OrderExpeditionTargetStatus
   label: string
 }> = [
+  { value: "pending", label: "Pending" },
   { value: "completed", label: "Completed" },
+  { value: "draft", label: "Draft" },
   { value: "archived", label: "Archived" },
   { value: "canceled", label: "Canceled" },
+  { value: "requires_action", label: "Requires action" },
 ]
 
 function getOrderItemsSummary(order: OrderExpeditionOrderDto) {
@@ -338,14 +341,7 @@ function OrdersTable({
 
         {isLoading || orders.length ? null : (
           <Table.Row>
-            <Table.Cell>No orders found.</Table.Cell>
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
+            <Table.Cell colSpan={8}>No orders found.</Table.Cell>
           </Table.Row>
         )}
 

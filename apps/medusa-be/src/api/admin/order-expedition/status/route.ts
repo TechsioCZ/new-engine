@@ -16,6 +16,10 @@ import {
   toOrderExpeditionBlockingOrder,
 } from "../../../../utils/order-expedition"
 import { bulkCancelOrdersWorkflow } from "../../../../workflows/order-expedition/bulk-cancel-orders"
+import {
+  bulkUpdateOrderStatusesWorkflow,
+  isOrderExpeditionDirectUpdateStatus,
+} from "../../../../workflows/order-expedition/bulk-update-order-statuses"
 import type { PostAdminOrderExpeditionStatusSchemaType } from "../validators"
 
 type StatusChangedOrder = {
@@ -132,6 +136,16 @@ async function runStatusWorkflow(
 
   if (targetStatus === "archived") {
     await archiveOrderWorkflow(scope).run({ input: { orderIds } })
+    return
+  }
+
+  if (isOrderExpeditionDirectUpdateStatus(targetStatus)) {
+    await bulkUpdateOrderStatusesWorkflow(scope).run({
+      input: {
+        order_ids: orderIds,
+        target_status: targetStatus,
+      },
+    })
     return
   }
 

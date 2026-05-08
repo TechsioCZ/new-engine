@@ -1,7 +1,9 @@
+import { OrderStatus } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
 import {
   findMissingOrderIds,
   getOrderExpeditionDisplayId,
+  ORDER_EXPEDITION_TARGET_STATUSES,
   orderMatchesExpeditionCarrier,
   orderOrdersByRequestedIds,
   resolveOrderExpeditionCarrier,
@@ -9,6 +11,17 @@ import {
 } from "../order-expedition"
 
 describe("order expedition helpers", () => {
+  it("keeps bulk status options aligned with Medusa order statuses", () => {
+    expect(ORDER_EXPEDITION_TARGET_STATUSES).toEqual([
+      OrderStatus.PENDING,
+      OrderStatus.COMPLETED,
+      OrderStatus.DRAFT,
+      OrderStatus.ARCHIVED,
+      OrderStatus.CANCELED,
+      OrderStatus.REQUIRES_ACTION,
+    ])
+  })
+
   it("resolves carriers from shipping method names and data before fulfillment exists", () => {
     expect(
       resolveOrderExpeditionCarrier({

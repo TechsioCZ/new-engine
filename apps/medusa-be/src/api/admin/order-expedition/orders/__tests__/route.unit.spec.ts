@@ -77,33 +77,24 @@ describe("GET /admin/order-expedition/orders", () => {
 
   it("carrier filtering only narrows visible rows", async () => {
     const { GET } = await import("../route")
-    const graph = vi
-      .fn()
-      .mockResolvedValueOnce({
-        data: [
-          {
-            id: "order_1",
-            shipping_methods: [{ name: "PPL" }],
-          },
-          {
-            id: "order_2",
-            shipping_methods: [{ name: "Packeta" }],
-          },
-        ],
-        metadata: {
-          count: 2,
+    const graph = vi.fn().mockResolvedValueOnce({
+      data: [
+        {
+          id: "order_1",
+          shipping_methods: [{ name: "PPL" }],
         },
-      })
-      .mockResolvedValueOnce({
-        data: [
-          {
-            id: "order_2",
-            display_id: 1002,
-            shipping_methods: [{ name: "Packeta" }],
-            status: "pending",
-          },
-        ],
-      })
+        {
+          id: "order_2",
+          display_id: 1002,
+          items: [{ id: "item_2", quantity: 2, title: "Demo item" }],
+          shipping_methods: [{ name: "Packeta" }],
+          status: "pending",
+        },
+      ],
+      metadata: {
+        count: 2,
+      },
+    })
     const req = createMockRequest(
       { carrier: "packeta", limit: 50, offset: 0 },
       graph
@@ -116,27 +107,18 @@ describe("GET /admin/order-expedition/orders", () => {
       1,
       expect.objectContaining({
         entity: "order",
-        fields: [
-          "id",
-          "shipping_methods.id",
+        fields: expect.arrayContaining([
+          "items.quantity",
+          "shipping_address.city",
           "shipping_methods.name",
-          "shipping_methods.shipping_option_id",
-          "shipping_methods.data",
-        ],
+        ]),
         pagination: {
           skip: 0,
           take: 100,
         },
       })
     )
-    expect(graph).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        entity: "order",
-        filters: { id: ["order_2"] },
-        fields: expect.arrayContaining(["items.id", "shipping_address.city"]),
-      })
-    )
+    expect(graph).toHaveBeenCalledTimes(1)
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         carrier: "packeta",
@@ -147,6 +129,7 @@ describe("GET /admin/order-expedition/orders", () => {
         orders: [
           expect.objectContaining({
             id: "order_2",
+            items: [expect.objectContaining({ quantity: 2 })],
             order_display_id: "#1002",
           }),
         ],
@@ -157,37 +140,29 @@ describe("GET /admin/order-expedition/orders", () => {
 
   it("stops carrier scans after the requested page and a next-page lookahead", async () => {
     const { GET } = await import("../route")
-    const graph = vi
-      .fn()
-      .mockResolvedValueOnce({
-        data: [
-          {
-            id: "order_1",
-            shipping_methods: [{ name: "Packeta" }],
-          },
-          {
-            id: "order_2",
-            shipping_methods: [{ name: "Packeta" }],
-          },
-          {
-            id: "order_3",
-            shipping_methods: [{ name: "PPL" }],
-          },
-        ],
-        metadata: {
-          count: 1000,
+    const graph = vi.fn().mockResolvedValueOnce({
+      data: [
+        {
+          id: "order_1",
+          display_id: 1001,
+          shipping_methods: [{ name: "Packeta" }],
+          status: "pending",
         },
-      })
-      .mockResolvedValueOnce({
-        data: [
-          {
-            id: "order_1",
-            display_id: 1001,
-            shipping_methods: [{ name: "Packeta" }],
-            status: "pending",
-          },
-        ],
-      })
+        {
+          id: "order_2",
+          display_id: 1002,
+          shipping_methods: [{ name: "Packeta" }],
+          status: "pending",
+        },
+        {
+          id: "order_3",
+          shipping_methods: [{ name: "PPL" }],
+        },
+      ],
+      metadata: {
+        count: 1000,
+      },
+    })
     const req = createMockRequest(
       { carrier: "packeta", limit: 1, offset: 0 },
       graph
@@ -196,13 +171,7 @@ describe("GET /admin/order-expedition/orders", () => {
 
     await GET(req, res)
 
-    expect(graph).toHaveBeenCalledTimes(2)
-    expect(graph).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        filters: { id: ["order_1"] },
-      })
-    )
+    expect(graph).toHaveBeenCalledTimes(1)
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         count: 2,

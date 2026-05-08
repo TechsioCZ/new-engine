@@ -10,9 +10,12 @@ export const ORDER_EXPEDITION_CARRIER_KEYS = [
   "other",
 ] as const
 export const ORDER_EXPEDITION_TARGET_STATUSES = [
+  "pending",
   "completed",
+  "draft",
   "archived",
   "canceled",
+  "requires_action",
 ] as const
 
 export type OrderExpeditionCarrierKey =
@@ -82,6 +85,7 @@ export type OrderExpeditionRawOrder = {
   custom_display_id?: string | null
   email?: string | null
   status?: string | null
+  is_draft_order?: boolean | null
   payment_status?: string | null
   customer_id?: string | null
   customer?: OrderExpeditionCustomer | null
@@ -139,6 +143,7 @@ export const ORDER_EXPEDITION_ORDER_FIELDS = [
   "custom_display_id",
   "email",
   "status",
+  "is_draft_order",
   "payment_status",
   "customer_id",
   "customer.id",
