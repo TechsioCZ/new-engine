@@ -19,7 +19,7 @@ type UseCheckoutActionsProps = {
   completeCart: () => Promise<unknown>;
   initiatePayment: (providerId: string) => Promise<unknown>;
   onCheckoutErrorChange: (message: string | null) => void;
-  setShippingMethod: (optionId: string) => void;
+  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void;
 };
 
 export function useCheckoutActions({
@@ -45,11 +45,14 @@ export function useCheckoutActions({
     }
   };
 
-  const handleSelectShipping = (optionId: string) => {
+  const handleSelectShipping = (
+    optionId: string,
+    data?: Record<string, unknown>,
+  ) => {
     resetFeedback();
 
     try {
-      setShippingMethod(optionId);
+      setShippingMethod(optionId, data);
     } catch (error) {
       onCheckoutErrorChange(
         resolveErrorMessage(error, "Nastavenie dopravy zlyhalo."),
