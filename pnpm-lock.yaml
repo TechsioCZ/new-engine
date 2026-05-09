@@ -292,6 +292,9 @@ importers:
       react-email:
         specifier: 6.0.8
         version: 6.0.8(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react-router-dom:
+        specifier: 6.30.3
+        version: 6.30.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       resend:
         specifier: ^4.7.0
         version: 4.7.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)

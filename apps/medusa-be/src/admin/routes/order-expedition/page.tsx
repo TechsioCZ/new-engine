@@ -13,6 +13,7 @@ import {
 } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 import {
   isOrderExpeditionCarrierKey,
   isOrderExpeditionTargetStatus,
@@ -321,14 +322,9 @@ function OrdersTable({
       <Table.Body>
         {isLoading ? (
           <Table.Row>
-            <Table.Cell>Loading...</Table.Cell>
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
+            <td className="px-6 py-8 text-center text-ui-fg-subtle" colSpan={8}>
+              Loading...
+            </td>
           </Table.Row>
         ) : null}
 
@@ -352,7 +348,12 @@ function OrdersTable({
               />
             </Table.Cell>
             <Table.Cell className="whitespace-nowrap text-ui-fg-base">
-              {order.order_display_id}
+              <Link
+                className="txt-compact-small-plus rounded-[4px] text-ui-fg-interactive outline-none transition-fg hover:text-ui-fg-interactive-hover focus-visible:shadow-borders-focus"
+                to={`/orders/${order.id}`}
+              >
+                {order.order_display_id}
+              </Link>
             </Table.Cell>
             <Table.Cell className="max-w-[220px]">
               <div className="flex flex-col">
