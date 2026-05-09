@@ -640,9 +640,6 @@ const OrderExpeditionPage = () => {
       <div className="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <Heading level="h1">Order Expedition</Heading>
-          <Text className="text-ui-fg-subtle" size="small">
-            {selectedCount} / {ORDER_EXPEDITION_MAX_ORDER_IDS} selected
-          </Text>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
@@ -662,6 +659,10 @@ const OrderExpeditionPage = () => {
           </div>
 
           <div className="flex items-center gap-2 border-ui-border-base border-l pl-4">
+            <Text className="whitespace-nowrap text-ui-fg-subtle" size="small">
+              {selectedCount} / {ORDER_EXPEDITION_MAX_ORDER_IDS} selected
+            </Text>
+
             <Button
               disabled={selectedCount === 0}
               isLoading={isPrinting}
