@@ -2,6 +2,7 @@
 
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import type { CarrierPickupRequirement } from "../carrier-pickup.utils";
+import { CheckoutPacketaPickupSelector } from "./checkout-packeta-pickup-selector";
 import { CheckoutPplPickupSelector } from "./checkout-ppl-pickup-selector";
 
 type CheckoutCarrierPickupDetailsProps = {
@@ -18,6 +19,15 @@ export function CheckoutCarrierPickupDetails({
   if (requirement.carrier === "ppl") {
     return (
       <CheckoutPplPickupSelector disabled={disabled} onConfirm={onConfirm} />
+    );
+  }
+
+  if (requirement.carrier === "packeta") {
+    return (
+      <CheckoutPacketaPickupSelector
+        disabled={disabled}
+        onConfirm={onConfirm}
+      />
     );
   }
 

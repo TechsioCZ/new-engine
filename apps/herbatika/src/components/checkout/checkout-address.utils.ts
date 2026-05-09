@@ -1,5 +1,10 @@
 import type { HttpTypes } from "@medusajs/types";
-import { CHECKOUT_ADDRESS_FIELDS, type CheckoutAddressValues } from "@/lib/forms/checkout/address.form";
+import {
+  CHECKOUT_ADDRESS_FIELDS,
+  type CheckoutAddressValues,
+} from "@/lib/forms/checkout/address.form";
+
+export type CheckoutAddressScope = "billing" | "shipping";
 
 const ADDRESS_COMPARISON_FIELDS = [
   "firstName",
@@ -18,7 +23,7 @@ const ADDRESS_COMPARISON_FIELDS = [
 ] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>;
 
 type CheckoutAddressFieldPath<
-  TScope extends "billing" | "shipping",
+  TScope extends CheckoutAddressScope,
   TField extends keyof CheckoutAddressValues = keyof CheckoutAddressValues,
 > = `${TScope}.${TField}`;
 
@@ -26,11 +31,21 @@ export type CheckoutScopedFieldName =
   | CheckoutAddressFieldPath<"billing">
   | CheckoutAddressFieldPath<"shipping">;
 
-const createCheckoutAddressFieldPaths = <TScope extends "billing" | "shipping">(
+export const resolveCheckoutAddressFieldName = <
+  TScope extends CheckoutAddressScope,
+  K extends keyof CheckoutAddressValues,
+>(
+  scope: TScope,
+  field: K,
+) => {
+  return `${scope}.${field}` as CheckoutAddressFieldPath<TScope, K>;
+};
+
+const createCheckoutAddressFieldPaths = <TScope extends CheckoutAddressScope>(
   scope: TScope,
   fields: ReadonlyArray<keyof CheckoutAddressValues>,
 ) => {
-  return fields.map((field) => `${scope}.${field}` as CheckoutAddressFieldPath<TScope>);
+  return fields.map((field) => resolveCheckoutAddressFieldName(scope, field));
 };
 
 const CHECKOUT_COMPANY_FIELD_NAMES = [
@@ -41,23 +56,21 @@ const CHECKOUT_COMPANY_FIELD_NAMES = [
 ] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>;
 
 const CHECKOUT_BILLING_ACTIVE_FIELDS = CHECKOUT_ADDRESS_FIELDS.filter(
-  (field) => field !== "address2" && field !== "customerNote" && field !== "email" && field !== "phone",
+  (field) =>
+    field !== "address2" &&
+    field !== "customerNote" &&
+    field !== "email" &&
+    field !== "phone",
 );
 
-export const CHECKOUT_BILLING_ACTIVE_FIELD_NAMES = createCheckoutAddressFieldPaths(
-  "billing",
-  CHECKOUT_BILLING_ACTIVE_FIELDS,
-);
+export const CHECKOUT_BILLING_ACTIVE_FIELD_NAMES =
+  createCheckoutAddressFieldPaths("billing", CHECKOUT_BILLING_ACTIVE_FIELDS);
 
-export const CHECKOUT_BILLING_COMPANY_FIELD_NAMES = createCheckoutAddressFieldPaths(
-  "billing",
-  CHECKOUT_COMPANY_FIELD_NAMES,
-);
+export const CHECKOUT_BILLING_COMPANY_FIELD_NAMES =
+  createCheckoutAddressFieldPaths("billing", CHECKOUT_COMPANY_FIELD_NAMES);
 
-export const CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES = createCheckoutAddressFieldPaths(
-  "shipping",
-  CHECKOUT_COMPANY_FIELD_NAMES,
-);
+export const CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES =
+  createCheckoutAddressFieldPaths("shipping", CHECKOUT_COMPANY_FIELD_NAMES);
 
 const hasRequiredAddressFields = (
   address: HttpTypes.StoreCartAddress | null | undefined,
@@ -80,8 +93,10 @@ export const resolveAddressFormsMatch = (
     const leftValue = left?.[field];
     const rightValue = right?.[field];
 
-    return (typeof leftValue === "string" ? leftValue.trim() : "") ===
-      (typeof rightValue === "string" ? rightValue.trim() : "");
+    return (
+      (typeof leftValue === "string" ? leftValue.trim() : "") ===
+      (typeof rightValue === "string" ? rightValue.trim() : "")
+    );
   });
 };
 

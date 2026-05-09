@@ -1,7 +1,7 @@
 "use client";
 
-import { useStore } from "@tanstack/react-form";
 import type { HttpTypes } from "@medusajs/types";
+import { useStore } from "@tanstack/react-form";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CHECKOUT_BILLING_ACTIVE_FIELD_NAMES,
@@ -12,14 +12,17 @@ import {
 } from "@/components/checkout/checkout-address.utils";
 import {
   CHECKOUT_ADDRESS_FIELDS,
-  DEFAULT_CHECKOUT_ADDRESS_VALUES,
   type CheckoutAddressDetailsValues,
   type CheckoutAddressValues,
   type CheckoutDetailsValues,
+  DEFAULT_CHECKOUT_ADDRESS_VALUES,
   resolveEffectiveCheckoutAddressDetails,
 } from "@/lib/forms/checkout/address.form";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
 import { mapHerbatikaAddressFormStateFromMedusaAddress } from "@/lib/storefront/cart/address-adapter";
+import type { CarrierPickupAddress } from "./carrier-pickup-address.utils";
+import { resolveCarrierPickupAddress } from "./carrier-pickup-address.utils";
+import { readStoredCarrierPickupSelection } from "./carrier-pickup-selection-storage";
 
 type UseCheckoutDetailsFormProps = {
   cart: HttpTypes.StoreCart | null | undefined;
@@ -156,7 +159,9 @@ const readStoredCheckoutState = (
       return {};
     }
 
-    const parsedValue = JSON.parse(rawValue) as Partial<CheckoutTogglePreferences>;
+    const parsedValue = JSON.parse(
+      rawValue,
+    ) as Partial<CheckoutTogglePreferences>;
 
     return {
       billing: normalizeStoredAddressValues(
@@ -194,15 +199,23 @@ const writeStoredCheckoutState = ({
 };
 
 const resolveCheckoutHydratedValues = ({
+  carrierPickupAddress,
   cart,
   customer,
   regionCountryCode,
 }: Pick<
   UseCheckoutDetailsFormProps,
   "cart" | "customer" | "regionCountryCode"
->): CheckoutDetailsValues => {
-  const shippingAddress = cart?.shipping_address ?? cart?.billing_address;
-  const billingAddress = cart?.billing_address ?? cart?.shipping_address;
+> & {
+  carrierPickupAddress: CarrierPickupAddress | null;
+}): CheckoutDetailsValues => {
+  const hasCarrierPickupAddress = Boolean(carrierPickupAddress);
+  const shippingAddress =
+    cart?.shipping_address ??
+    (hasCarrierPickupAddress ? undefined : cart?.billing_address);
+  const billingAddress =
+    cart?.billing_address ??
+    (hasCarrierPickupAddress ? undefined : cart?.shipping_address);
   const resolvedShippingAddressValues =
     mapHerbatikaAddressFormStateFromMedusaAddress(shippingAddress);
   const resolvedBillingAddressValues =
@@ -215,21 +228,26 @@ const resolveCheckoutHydratedValues = ({
       countryCode: regionCountryCode?.toUpperCase(),
     },
     resolvedShippingAddressValues,
+    carrierPickupAddress?.address,
   );
   const billingAddressValues = mergeCheckoutAddressValues(
     {
       firstName: shippingAddressValues.firstName,
       lastName: shippingAddressValues.lastName,
       phone: shippingAddressValues.phone,
-      company: shippingAddressValues.company,
-      companyId: shippingAddressValues.companyId,
-      taxId: shippingAddressValues.taxId,
-      vatId: shippingAddressValues.vatId,
-      address1: shippingAddressValues.address1,
-      address2: shippingAddressValues.address2,
-      city: shippingAddressValues.city,
-      postalCode: shippingAddressValues.postalCode,
       countryCode: shippingAddressValues.countryCode,
+      ...(hasCarrierPickupAddress
+        ? {}
+        : {
+            company: shippingAddressValues.company,
+            companyId: shippingAddressValues.companyId,
+            taxId: shippingAddressValues.taxId,
+            vatId: shippingAddressValues.vatId,
+            address1: shippingAddressValues.address1,
+            address2: shippingAddressValues.address2,
+            city: shippingAddressValues.city,
+            postalCode: shippingAddressValues.postalCode,
+          }),
     },
     resolvedBillingAddressValues,
   );
@@ -238,10 +256,15 @@ const resolveCheckoutHydratedValues = ({
   return {
     shipping: shippingAddressValues,
     billing: billingAddressValues,
-    useSameAddress: hasHydratedAddress
-      ? resolveAddressFormsMatch(shippingAddressValues, billingAddressValues)
-      : true,
-    isCompanyPurchase: Boolean(billingAddress?.company ?? shippingAddress?.company),
+    useSameAddress: hasCarrierPickupAddress
+      ? false
+      : hasHydratedAddress
+        ? resolveAddressFormsMatch(shippingAddressValues, billingAddressValues)
+        : true,
+    isCompanyPurchase: Boolean(
+      billingAddress?.company ??
+        (hasCarrierPickupAddress ? undefined : shippingAddress?.company),
+    ),
     marketingConsent: false,
     heurekaConsent: false,
   };
@@ -259,9 +282,12 @@ const resolveNextStoredCheckoutState = ({
       ? resolveEffectiveCheckoutAddressDetails({
           billing: nextValues.billing,
           isCompanyPurchase:
-            nextValues.isCompanyPurchase ?? currentState.isCompanyPurchase ?? false,
+            nextValues.isCompanyPurchase ??
+            currentState.isCompanyPurchase ??
+            false,
           shipping: nextValues.shipping,
-          useSameAddress: nextValues.useSameAddress ?? currentState.useSameAddress ?? true,
+          useSameAddress:
+            nextValues.useSameAddress ?? currentState.useSameAddress ?? true,
         })
       : undefined;
 
@@ -276,7 +302,9 @@ const resolveNextStoredCheckoutState = ({
     ...(effectiveValues
       ? {
           billing: pickCheckoutLocalOnlyAddressValues(effectiveValues.billing),
-          shipping: pickCheckoutLocalOnlyAddressValues(effectiveValues.shipping),
+          shipping: pickCheckoutLocalOnlyAddressValues(
+            effectiveValues.shipping,
+          ),
         }
       : {}),
   };
@@ -357,13 +385,38 @@ export function useCheckoutDetailsForm({
   onSubmit,
   regionCountryCode,
 }: UseCheckoutDetailsFormProps) {
+  const selectedShippingMethod = cart?.shipping_methods?.[0];
+  const storedCarrierPickupSelection = useMemo(() => {
+    return readStoredCarrierPickupSelection({
+      cartId: cart?.id,
+      optionId: selectedShippingMethod?.shipping_option_id,
+    });
+  }, [cart?.id, selectedShippingMethod?.shipping_option_id]);
+  const carrierPickupAddress = useMemo(() => {
+    return (
+      resolveCarrierPickupAddress(
+        selectedShippingMethod?.data,
+        regionCountryCode,
+      ) ??
+      resolveCarrierPickupAddress(
+        storedCarrierPickupSelection?.data,
+        regionCountryCode,
+      )
+    );
+  }, [
+    selectedShippingMethod?.data,
+    storedCarrierPickupSelection?.data,
+    regionCountryCode,
+  ]);
+  const hasCarrierPickupShipping = Boolean(carrierPickupAddress);
   const hydratedValues = useMemo(() => {
     return resolveCheckoutHydratedValues({
+      carrierPickupAddress,
       cart,
       customer,
       regionCountryCode,
     });
-  }, [cart, customer, regionCountryCode]);
+  }, [carrierPickupAddress, cart, customer, regionCountryCode]);
   const toggleStorageKey = useMemo(() => {
     return createCheckoutToggleStorageKey(cart?.id);
   }, [cart?.id]);
@@ -371,11 +424,15 @@ export function useCheckoutDetailsForm({
     return readStoredCheckoutState(toggleStorageKey);
   });
   const hydratedValuesWithTogglePreferences = useMemo(() => {
-    return resolveHydratedValuesWithStoredState({
+    const nextValues = resolveHydratedValuesWithStoredState({
       hydratedValues,
       storedState,
     });
-  }, [hydratedValues, storedState]);
+
+    return hasCarrierPickupShipping
+      ? { ...nextValues, useSameAddress: false }
+      : nextValues;
+  }, [hasCarrierPickupShipping, hydratedValues, storedState]);
   const form = useHerbatikaForm({
     defaultValues: hydratedValuesWithTogglePreferences,
     onSubmit: async ({ value }) => {
@@ -383,7 +440,10 @@ export function useCheckoutDetailsForm({
     },
   });
 
-  const values = useStore(form.store, (state) => state.values as CheckoutDetailsValues);
+  const values = useStore(
+    form.store,
+    (state) => state.values as CheckoutDetailsValues,
+  );
   const isDirty = useStore(form.store, (state) => state.isDirty);
   const effectiveValues = useMemo(() => {
     return resolveEffectiveCheckoutAddressDetails(values);
@@ -413,6 +473,67 @@ export function useCheckoutDetailsForm({
     isCartLoading,
     isCustomerLoading,
     isDirty,
+  ]);
+
+  useEffect(() => {
+    if (!hasCarrierPickupShipping) {
+      return;
+    }
+
+    const pickupAddress = carrierPickupAddress?.address;
+
+    if (pickupAddress) {
+      if (values.shipping.address1 !== pickupAddress.address1) {
+        form.setFieldValue("shipping.address1", pickupAddress.address1);
+      }
+
+      if (values.shipping.address2 !== pickupAddress.address2) {
+        form.setFieldValue("shipping.address2", pickupAddress.address2);
+      }
+
+      if (values.shipping.city !== pickupAddress.city) {
+        form.setFieldValue("shipping.city", pickupAddress.city);
+      }
+
+      if (values.shipping.countryCode !== pickupAddress.countryCode) {
+        form.setFieldValue("shipping.countryCode", pickupAddress.countryCode);
+      }
+
+      if (values.shipping.postalCode !== pickupAddress.postalCode) {
+        form.setFieldValue("shipping.postalCode", pickupAddress.postalCode);
+      }
+    }
+
+    if (values.useSameAddress) {
+      form.setFieldValue("useSameAddress", false);
+    }
+
+    if (values.billing.address2) {
+      form.setFieldValue("billing.address2", "");
+    }
+
+    if (values.billing.firstName !== values.shipping.firstName) {
+      form.setFieldValue("billing.firstName", values.shipping.firstName);
+    }
+
+    if (values.billing.lastName !== values.shipping.lastName) {
+      form.setFieldValue("billing.lastName", values.shipping.lastName);
+    }
+  }, [
+    carrierPickupAddress,
+    form,
+    hasCarrierPickupShipping,
+    values.billing.address2,
+    values.billing.firstName,
+    values.billing.lastName,
+    values.shipping.address1,
+    values.shipping.address2,
+    values.shipping.city,
+    values.shipping.countryCode,
+    values.shipping.firstName,
+    values.shipping.lastName,
+    values.shipping.postalCode,
+    values.useSameAddress,
   ]);
 
   const resetToValues = (nextValues: CheckoutDetailsValues) => {
@@ -454,6 +575,10 @@ export function useCheckoutDetailsForm({
   };
 
   const trackUseSameAddressIntent = (nextValue: boolean) => {
+    if (hasCarrierPickupShipping && nextValue) {
+      return;
+    }
+
     const nextTogglePreferences = resolveStoredCheckoutTogglePreferences({
       currentPreferences: storedState,
       nextUseSameAddress: nextValue,
@@ -500,9 +625,11 @@ export function useCheckoutDetailsForm({
   };
 
   return {
+    carrierPickupAddress,
     copyShippingIntoBilling,
     effectiveValues,
     form,
+    hasCarrierPickupShipping,
     hasStoredBillingAddress: Boolean(cart?.billing_address),
     hydratedValues,
     isDirty,

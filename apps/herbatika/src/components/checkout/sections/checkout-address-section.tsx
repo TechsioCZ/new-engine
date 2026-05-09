@@ -1,13 +1,12 @@
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group";
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
-import NextLink from "next/link";
+import {
+  type CheckoutAddressScope,
+  resolveCheckoutAddressFieldName,
+} from "@/components/checkout/checkout-address.utils";
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form";
 import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators";
-import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form";
-import { SupportingText } from "@/components/text/supporting-text";
-
-type CheckoutAddressScope = "billing" | "shipping";
+import { CheckoutLoginPrompt } from "./checkout-login-prompt";
+import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle";
 
 type CheckoutAddressSectionProps = {
   checkoutDetailsForm: CheckoutDetailsFormController;
@@ -21,16 +20,6 @@ type CheckoutAddressSectionProps = {
   showCustomerNote?: boolean;
   showLoginPrompt?: boolean;
   title: string;
-};
-
-const PRIVATE_PURCHASE_LABEL = "Súkromná osoba";
-const COMPANY_PURCHASE_LABEL = "Nakupujem na firmu";
-
-const resolveAddressFieldName = <K extends keyof CheckoutAddressValues>(
-  scope: CheckoutAddressScope,
-  field: K,
-) => {
-  return `${scope}.${field}` as const;
 };
 
 export function CheckoutAddressSection({
@@ -54,69 +43,20 @@ export function CheckoutAddressSection({
         <h2 className="text-xl font-medium text-fg-primary">{title}</h2>
       </header>
 
-      {showLoginPrompt && !isAuthenticated ? (
-        <div className="flex flex-wrap items-center justify-between gap-250 rounded-sm bg-highlight p-300">
-          <div className="space-y-50">
-            <p className="text-base font-medium text-fg-primary">
-              Už máte v Herbatica účet?
-            </p>
-            <SupportingText className="text-fg-secondary">
-              Prihláste sa pre rýchly nákup a zľavu na ďalšie nákupy
-            </SupportingText>
-          </div>
-          <LinkButton
-            as={NextLink}
-            href="/account"
-            size="md"
-            theme="outlined"
-            variant="tertiary"
-            className="bg-button-bg-outlined-tertiary rounded-button-outlined-tertiary font-normal hover:bg-button-bg-outlined-tertiary-hover"
-          >
-            Prihlásiť sa
-          </LinkButton>
-        </div>
-      ) : null}
+      {showLoginPrompt && !isAuthenticated ? <CheckoutLoginPrompt /> : null}
 
       <div className="space-y-250 font-inter">
         {showCompanyPurchaseToggle ? (
-          <RadioGroup
-            className="font-rubik"
+          <CheckoutPurchaseTypeToggle
             id={`${fieldPrefix}-purchase-type`}
-            onValueChange={(value) => {
-              checkoutDetailsForm.setCompanyPurchase(value === "company");
-            }}
-            orientation="horizontal"
-            size="sm"
-            value={checkoutDetailsForm.values.isCompanyPurchase ? "company" : "private"}
-            variant="subtle"
-          >
-            <RadioGroup.Label className="sr-only">Typ nákupu</RadioGroup.Label>
-            <RadioGroup.ItemGroup>
-              <RadioGroup.Item value="private">
-                <RadioGroup.ItemHiddenInput />
-                <RadioGroup.ItemControl />
-                <RadioGroup.ItemContent>
-                  <RadioGroup.ItemText>
-                    {PRIVATE_PURCHASE_LABEL}
-                  </RadioGroup.ItemText>
-                </RadioGroup.ItemContent>
-              </RadioGroup.Item>
-              <RadioGroup.Item value="company">
-                <RadioGroup.ItemHiddenInput />
-                <RadioGroup.ItemControl />
-                <RadioGroup.ItemContent>
-                  <RadioGroup.ItemText>
-                    {COMPANY_PURCHASE_LABEL}
-                  </RadioGroup.ItemText>
-                </RadioGroup.ItemContent>
-              </RadioGroup.Item>
-            </RadioGroup.ItemGroup>
-          </RadioGroup>
+            isCompanyPurchase={checkoutDetailsForm.values.isCompanyPurchase}
+            onValueChange={checkoutDetailsForm.setCompanyPurchase}
+          />
         ) : null}
 
         <div className="grid gap-250 md:grid-cols-2">
           <checkoutDetailsForm.form.AppField
-            name={resolveAddressFieldName(scope, "firstName")}
+            name={resolveCheckoutAddressFieldName(scope, "firstName")}
             validators={scopedValidators.firstName}
           >
             {(field) => (
@@ -130,7 +70,7 @@ export function CheckoutAddressSection({
           </checkoutDetailsForm.form.AppField>
 
           <checkoutDetailsForm.form.AppField
-            name={resolveAddressFieldName(scope, "lastName")}
+            name={resolveCheckoutAddressFieldName(scope, "lastName")}
             validators={scopedValidators.lastName}
           >
             {(field) => (
@@ -147,7 +87,7 @@ export function CheckoutAddressSection({
             <>
               <div className="md:col-span-2">
                 <checkoutDetailsForm.form.AppField
-                  name={resolveAddressFieldName(scope, "company")}
+                  name={resolveCheckoutAddressFieldName(scope, "company")}
                   validators={scopedValidators.company}
                 >
                   {(field) => (
@@ -163,7 +103,7 @@ export function CheckoutAddressSection({
 
               <div className="grid gap-250 md:col-span-2 md:grid-cols-3">
                 <checkoutDetailsForm.form.AppField
-                  name={resolveAddressFieldName(scope, "companyId")}
+                  name={resolveCheckoutAddressFieldName(scope, "companyId")}
                   validators={scopedValidators.companyId}
                 >
                   {(field) => (
@@ -177,7 +117,7 @@ export function CheckoutAddressSection({
                 </checkoutDetailsForm.form.AppField>
 
                 <checkoutDetailsForm.form.AppField
-                  name={resolveAddressFieldName(scope, "taxId")}
+                  name={resolveCheckoutAddressFieldName(scope, "taxId")}
                   validators={scopedValidators.taxId}
                 >
                   {(field) => (
@@ -191,7 +131,7 @@ export function CheckoutAddressSection({
                 </checkoutDetailsForm.form.AppField>
 
                 <checkoutDetailsForm.form.AppField
-                  name={resolveAddressFieldName(scope, "vatId")}
+                  name={resolveCheckoutAddressFieldName(scope, "vatId")}
                 >
                   {(field) => (
                     <field.TextField
@@ -208,7 +148,7 @@ export function CheckoutAddressSection({
           {showContactFields ? (
             <>
               <checkoutDetailsForm.form.AppField
-                name={resolveAddressFieldName(scope, "email")}
+                name={resolveCheckoutAddressFieldName(scope, "email")}
                 validators={checkoutFieldValidators.shipping.email}
               >
                 {(field) => (
@@ -224,7 +164,7 @@ export function CheckoutAddressSection({
               </checkoutDetailsForm.form.AppField>
 
               <checkoutDetailsForm.form.AppField
-                name={resolveAddressFieldName(scope, "phone")}
+                name={resolveCheckoutAddressFieldName(scope, "phone")}
                 validators={checkoutFieldValidators.shipping.phone}
               >
                 {(field) => (
@@ -242,7 +182,7 @@ export function CheckoutAddressSection({
           ) : null}
 
           <checkoutDetailsForm.form.AppField
-            name={resolveAddressFieldName(scope, "countryCode")}
+            name={resolveCheckoutAddressFieldName(scope, "countryCode")}
             validators={scopedValidators.countryCode}
           >
             {(field) => (
@@ -258,7 +198,7 @@ export function CheckoutAddressSection({
           </checkoutDetailsForm.form.AppField>
 
           <checkoutDetailsForm.form.AppField
-            name={resolveAddressFieldName(scope, "address1")}
+            name={resolveCheckoutAddressFieldName(scope, "address1")}
             validators={scopedValidators.address1}
           >
             {(field) => (
@@ -272,7 +212,7 @@ export function CheckoutAddressSection({
           </checkoutDetailsForm.form.AppField>
 
           <checkoutDetailsForm.form.AppField
-            name={resolveAddressFieldName(scope, "city")}
+            name={resolveCheckoutAddressFieldName(scope, "city")}
             validators={scopedValidators.city}
           >
             {(field) => (
@@ -286,7 +226,7 @@ export function CheckoutAddressSection({
           </checkoutDetailsForm.form.AppField>
 
           <checkoutDetailsForm.form.AppField
-            name={resolveAddressFieldName(scope, "postalCode")}
+            name={resolveCheckoutAddressFieldName(scope, "postalCode")}
             validators={scopedValidators.postalCode}
           >
             {(field) => (
@@ -302,7 +242,7 @@ export function CheckoutAddressSection({
           {showCustomerNote ? (
             <div className="md:col-span-2">
               <checkoutDetailsForm.form.AppField
-                name={resolveAddressFieldName(scope, "customerNote")}
+                name={resolveCheckoutAddressFieldName(scope, "customerNote")}
               >
                 {(field) => (
                   <field.TextareaField

@@ -8,6 +8,7 @@ import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
 import { CheckoutAddressSection } from "./checkout-address-section";
+import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section";
 
 type CheckoutDetailsStepController = Pick<
   CheckoutController,
@@ -33,6 +34,10 @@ export function CheckoutDetailsStepSection({
   const router = useRouter();
   const addressFormId = "checkout-address-form";
   const checkoutDetailsValues = controller.checkoutDetailsForm.values;
+  const hasCarrierPickupShipping =
+    controller.checkoutDetailsForm.hasCarrierPickupShipping;
+  const carrierPickupAddress =
+    controller.checkoutDetailsForm.carrierPickupAddress;
 
   return (
     <section className="space-y-300">
@@ -50,64 +55,76 @@ export function CheckoutDetailsStepSection({
           })();
         }}
       >
-        <CheckoutAddressSection
-          checkoutDetailsForm={controller.checkoutDetailsForm}
-          countryItems={COUNTRY_SELECT_ITEMS}
-          fieldPrefix="checkout-shipping"
-          isAuthenticated={controller.isAuthenticated}
-          scope="shipping"
-          showCompanyFields={
-            checkoutDetailsValues.useSameAddress &&
-            checkoutDetailsValues.isCompanyPurchase
-          }
-          showCompanyPurchaseToggle={checkoutDetailsValues.useSameAddress}
-          showContactFields
-          showCustomerNote
-          showLoginPrompt
-          title="Doručovacie údaje"
-        />
-
-        <div className="rounded-sm border border-border-primary bg-surface px-550 py-350">
-          <controller.checkoutDetailsForm.form.AppField name="useSameAddress">
-            {(field) => (
-              <field.CheckboxField
-                id="checkout-use-same-address"
-                label="Fakturačná adresa je rovnaká ako doručovacia"
-                onValueChange={(nextUseSameAddress) => {
-                  controller.checkoutDetailsForm.trackUseSameAddressIntent(
-                    nextUseSameAddress,
-                  );
-
-                  if (
-                    !nextUseSameAddress &&
-                    !controller.checkoutDetailsForm.hasStoredBillingAddress &&
-                    resolveAddressFormsMatch(
-                      controller.checkoutDetailsForm.values.billing,
-                      controller.checkoutDetailsForm.hydratedValues.billing,
-                    )
-                  ) {
-                    controller.checkoutDetailsForm.copyShippingIntoBilling();
-                  }
-                }}
-                size="sm"
-                validationMode="none"
-              />
-            )}
-          </controller.checkoutDetailsForm.form.AppField>
-        </div>
-
-        {!checkoutDetailsValues.useSameAddress ? (
-          <CheckoutAddressSection
+        {hasCarrierPickupShipping && carrierPickupAddress ? (
+          <CheckoutPickupPointDetailsSection
             checkoutDetailsForm={controller.checkoutDetailsForm}
             countryItems={COUNTRY_SELECT_ITEMS}
-            fieldPrefix="checkout-billing"
-            scope="billing"
-            showCompanyFields={checkoutDetailsValues.isCompanyPurchase}
-            showCompanyPurchaseToggle
-            showContactFields={false}
-            title="Fakturačné údaje"
+            isAuthenticated={controller.isAuthenticated}
+            pickupAddress={carrierPickupAddress}
           />
-        ) : null}
+        ) : (
+          <>
+            <CheckoutAddressSection
+              checkoutDetailsForm={controller.checkoutDetailsForm}
+              countryItems={COUNTRY_SELECT_ITEMS}
+              fieldPrefix="checkout-shipping"
+              isAuthenticated={controller.isAuthenticated}
+              scope="shipping"
+              showCompanyFields={
+                checkoutDetailsValues.useSameAddress &&
+                checkoutDetailsValues.isCompanyPurchase
+              }
+              showCompanyPurchaseToggle={checkoutDetailsValues.useSameAddress}
+              showContactFields
+              showCustomerNote
+              showLoginPrompt
+              title="Doručovacie údaje"
+            />
+
+            <div className="rounded-sm border border-border-primary bg-surface px-550 py-350">
+              <controller.checkoutDetailsForm.form.AppField name="useSameAddress">
+                {(field) => (
+                  <field.CheckboxField
+                    id="checkout-use-same-address"
+                    label="Fakturačná adresa je rovnaká ako doručovacia"
+                    onValueChange={(nextUseSameAddress) => {
+                      controller.checkoutDetailsForm.trackUseSameAddressIntent(
+                        nextUseSameAddress,
+                      );
+
+                      if (
+                        !nextUseSameAddress &&
+                        !controller.checkoutDetailsForm
+                          .hasStoredBillingAddress &&
+                        resolveAddressFormsMatch(
+                          controller.checkoutDetailsForm.values.billing,
+                          controller.checkoutDetailsForm.hydratedValues.billing,
+                        )
+                      ) {
+                        controller.checkoutDetailsForm.copyShippingIntoBilling();
+                      }
+                    }}
+                    size="sm"
+                    validationMode="none"
+                  />
+                )}
+              </controller.checkoutDetailsForm.form.AppField>
+            </div>
+
+            {!checkoutDetailsValues.useSameAddress ? (
+              <CheckoutAddressSection
+                checkoutDetailsForm={controller.checkoutDetailsForm}
+                countryItems={COUNTRY_SELECT_ITEMS}
+                fieldPrefix="checkout-billing"
+                scope="billing"
+                showCompanyFields={checkoutDetailsValues.isCompanyPurchase}
+                showCompanyPurchaseToggle
+                showContactFields={false}
+                title="Fakturačné údaje"
+              />
+            ) : null}
+          </>
+        )}
       </form>
 
       <div className="flex flex-wrap items-center justify-between gap-200">

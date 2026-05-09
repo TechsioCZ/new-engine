@@ -2,6 +2,10 @@
 
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import {
+  clearStoredCarrierPickupSelection,
+  writeStoredCarrierPickupSelection,
+} from "./carrier-pickup-selection-storage";
+import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "./checkout-completion.utils";
@@ -52,6 +56,11 @@ export function useCheckoutActions({
     resetFeedback();
 
     try {
+      if (data) {
+        writeStoredCarrierPickupSelection({ cartId, data, optionId });
+      } else {
+        clearStoredCarrierPickupSelection(cartId);
+      }
       setShippingMethod(optionId, data);
     } catch (error) {
       onCheckoutErrorChange(
@@ -96,7 +105,9 @@ export function useCheckoutActions({
     }
 
     if (!hasPaymentSessions) {
-      onCheckoutErrorChange("Vyberte platobnú metódu pred dokončením objednávky.");
+      onCheckoutErrorChange(
+        "Vyberte platobnú metódu pred dokončením objednávky.",
+      );
       return;
     }
 
