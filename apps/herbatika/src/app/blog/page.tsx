@@ -2,9 +2,10 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { BlogListingPage } from "@/components/blog/blog-listing-page";
 import {
-  resolveBlogListing,
   type BlogTopicKey,
+  resolveBlogListing,
 } from "@/lib/storefront/blog-content";
+import { fetchCmsBlogPosts } from "@/lib/storefront/cms";
 
 type BlogPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -43,8 +44,13 @@ async function BlogPageContent({ searchParams }: BlogPageProps) {
 
   const topic = parseTopic(Array.isArray(rawTopic) ? rawTopic[0] : rawTopic);
   const page = parsePage(Array.isArray(rawPage) ? rawPage[0] : rawPage);
+  const cmsPosts = await fetchCmsBlogPosts();
 
-  const listing = resolveBlogListing({ topic, page });
+  const listing = resolveBlogListing({
+    page,
+    posts: cmsPosts.length > 0 ? cmsPosts : undefined,
+    topic,
+  });
 
   return <BlogListingPage listing={listing} />;
 }

@@ -1,4 +1,4 @@
-import BLOG_BANNER from "@/assets/blog-banner.webp"
+import BLOG_BANNER from "@/assets/blog-banner.webp";
 
 export type BlogTopicKey = "all" | "fitness" | "krasa" | "zdravie";
 
@@ -13,6 +13,7 @@ export type BlogPost = {
   slug: string;
   title: string;
   excerpt: string;
+  contentHtml?: string;
   imageSrc: string;
   topic: Exclude<BlogTopicKey, "all">;
   tags: string[];
@@ -39,6 +40,7 @@ export type BlogTopicFilter = {
 };
 
 export type ResolveBlogListingInput = {
+  posts?: BlogPost[];
   topic?: BlogTopicKey;
   page?: number;
   pageSize?: number;
@@ -94,8 +96,7 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     authorImageSrc:
       "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=320&q=80",
     readingTime: "9 min",
-    lead:
-      "Elektrolyty predstavujú skupinu minerálov, ktoré nesú elektrický náboj a zabezpečujú množstvo nevyhnutných funkcií v ľudskom tele.",
+    lead: "Elektrolyty predstavujú skupinu minerálov, ktoré nesú elektrický náboj a zabezpečujú množstvo nevyhnutných funkcií v ľudskom tele.",
     bulletPoints: [
       "hydratačný režim a dopĺňanie minerálov plánujte počas celého dňa",
       "kombinujte horčík, draslík a sodík podľa záťaže, nie nárazovo",
@@ -155,12 +156,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-12-05",
     author: "Herbatika redakcia",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
+    authorBio:
+      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
     readingTime: "9 min",
-    lead:
-      "Adaptogény podporujú odolnosť organizmu voči fyzickému aj psychickému stresu. Dôležité je správne dávkovanie a načasovanie.",
+    lead: "Adaptogény podporujú odolnosť organizmu voči fyzickému aj psychickému stresu. Dôležité je správne dávkovanie a načasovanie.",
     bulletPoints: [
       "ashwagandha je vhodná pri napätí a zhoršenom spánku",
       "podporuje regeneráciu po záťaži",
@@ -188,12 +189,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-12-02",
     author: "Herbatika redakcia",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
+    authorBio:
+      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
     readingTime: "6 min",
-    lead:
-      "Adaptogény podporujú odolnosť organizmu voči fyzickému aj psychickému stresu.",
+    lead: "Adaptogény podporujú odolnosť organizmu voči fyzickému aj psychickému stresu.",
     bulletPoints: [
       "rhodiola podporuje energiu a koncentráciu",
       "ženšen pomáha pri únave",
@@ -221,12 +222,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-11-25",
     author: "Monika Kováčová",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov.",
+    authorBio:
+      "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=320&q=80",
     readingTime: "4 min",
-    lead:
-      "Citlivá pokožka reaguje na parfumáciu a agresívne tenzidy výraznejšie.",
+    lead: "Citlivá pokožka reaguje na parfumáciu a agresívne tenzidy výraznejšie.",
     bulletPoints: [
       "uprednostnite krátke zloženie bez dráždivých parfumov",
       "testujte nové produkty postupne",
@@ -254,12 +255,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-11-14",
     author: "Herbatika redakcia",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
+    authorBio:
+      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
     readingTime: "5 min",
-    lead:
-      "Zdravé trávenie je postavené na pravidelnosti. Pomáha dostatok vlákniny, tekutín a vhodne zvolená suplementácia.",
+    lead: "Zdravé trávenie je postavené na pravidelnosti. Pomáha dostatok vlákniny, tekutín a vhodne zvolená suplementácia.",
     bulletPoints: [
       "raňajky a večeru plánujte v pravidelných časoch",
       "do jedálnička zaraďte fermentované potraviny",
@@ -287,12 +288,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-11-03",
     author: "Katarína Benedová",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Venujem sa výžive, vitality managementu a funkčným doplnkom pre aktívny život.",
+    authorBio:
+      "Venujem sa výžive, vitality managementu a funkčným doplnkom pre aktívny život.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1542382257-80dedb725088?auto=format&fit=crop&w=320&q=80",
     readingTime: "6 min",
-    lead:
-      "Podpora ciev začína pri dennom pohybe, stabilnej hmotnosti a dostatočnom príjme omega-3 mastných kyselín.",
+    lead: "Podpora ciev začína pri dennom pohybe, stabilnej hmotnosti a dostatočnom príjme omega-3 mastných kyselín.",
     bulletPoints: [
       "krátka chôdza po jedle zlepšuje cirkuláciu",
       "zaraďte rastlinné steroly a omega-3",
@@ -320,12 +321,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-10-22",
     author: "Monika Kováčová",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov.",
+    authorBio:
+      "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=320&q=80",
     readingTime: "7 min",
-    lead:
-      "Hormonálne zdravie je citlivé na stres, spánok aj výživu. Najviac pomáha celkový režim, nie izolovaný doplnok.",
+    lead: "Hormonálne zdravie je citlivé na stres, spánok aj výživu. Najviac pomáha celkový režim, nie izolovaný doplnok.",
     bulletPoints: [
       "stabilný spánok znižuje hormonálne výkyvy",
       "dôležitý je pravidelný príjem bielkovín",
@@ -353,12 +354,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-10-12",
     author: "Herbatika redakcia",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
+    authorBio:
+      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
     readingTime: "4 min",
-    lead:
-      "Lymfatický systém nemá vlastnú pumpu, preto potrebuje pravidelný pohyb, hydratáciu a podporu regenerácie.",
+    lead: "Lymfatický systém nemá vlastnú pumpu, preto potrebuje pravidelný pohyb, hydratáciu a podporu regenerácie.",
     bulletPoints: [
       "krátke prechádzky viackrát denne sú účinnejšie než nárazová záťaž",
       "dbajte na pitný režim počas celého dňa",
@@ -419,12 +420,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-09-30",
     author: "Monika Kováčová",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov.",
+    authorBio:
+      "Špecializujem sa na prírodnú kozmetiku, citlivú pokožku a funkčné zloženia bez kompromisov.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=320&q=80",
     readingTime: "5 min",
-    lead:
-      "Pečeň je kľúčový orgán metabolizmu. Podpora funguje najlepšie cez dlhodobé návyky a kvalitný spánok.",
+    lead: "Pečeň je kľúčový orgán metabolizmu. Podpora funguje najlepšie cez dlhodobé návyky a kvalitný spánok.",
     bulletPoints: [
       "znížte alkohol a ultraprocesované jedlá",
       "podporte pečeň ostropestrecom",
@@ -452,12 +453,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-09-22",
     author: "Katarína Benedová",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Venujem sa výžive, vitality managementu a funkčným doplnkom pre aktívny život.",
+    authorBio:
+      "Venujem sa výžive, vitality managementu a funkčným doplnkom pre aktívny život.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1542382257-80dedb725088?auto=format&fit=crop&w=320&q=80",
     readingTime: "6 min",
-    lead:
-      "Kolagén má najlepší efekt pri pravidelnom užívaní minimálne 8 až 12 týždňov.",
+    lead: "Kolagén má najlepší efekt pri pravidelnom užívaní minimálne 8 až 12 týždňov.",
     bulletPoints: [
       "kombinujte s vitamínom C",
       "zaradiť aj bielkoviny v strave",
@@ -485,12 +486,12 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
     publishedAt: "2025-09-15",
     author: "Herbatika redakcia",
     authorRole: "Článok pre vás pripravila",
-    authorBio: "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
+    authorBio:
+      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
     authorImageSrc:
       "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80",
     readingTime: "5 min",
-    lead:
-      "Zdravé črevá ovplyvňujú imunitu, energiu aj náladu. Probiotiká majú zmysel pri pravidelnom režime.",
+    lead: "Zdravé črevá ovplyvňujú imunitu, energiu aj náladu. Probiotiká majú zmysel pri pravidelnom režime.",
     bulletPoints: [
       "zaraďte vlákninu a fermentované potraviny",
       "probiotiká užívajte dlhodobo",
@@ -523,12 +524,13 @@ const normalizeBlogTopic = (topic: BlogTopicKey | undefined): BlogTopicKey => {
   return "all";
 };
 
-export const resolveBlogTopicFilters = (): BlogTopicFilter[] => {
+export const resolveBlogTopicFilters = (
+  posts = HERBATIKA_BLOG_POSTS,
+): BlogTopicFilter[] => {
   const topicCounts = BLOG_TOPIC_ONLY_FILTERS.map((topicFilter) => {
     return {
       ...topicFilter,
-      count: HERBATIKA_BLOG_POSTS.filter((post) => post.topic === topicFilter.key)
-        .length,
+      count: posts.filter((post) => post.topic === topicFilter.key).length,
     };
   });
 
@@ -536,13 +538,14 @@ export const resolveBlogTopicFilters = (): BlogTopicFilter[] => {
     {
       key: "all",
       label: "Všetky",
-      count: HERBATIKA_BLOG_POSTS.length,
+      count: posts.length,
     },
     ...topicCounts,
   ];
 };
 
 export const resolveBlogListing = ({
+  posts = HERBATIKA_BLOG_POSTS,
   topic,
   page,
   pageSize = BLOG_PAGE_SIZE,
@@ -552,12 +555,13 @@ export const resolveBlogListing = ({
 
   const filteredPosts =
     normalizedTopic === "all"
-      ? HERBATIKA_BLOG_POSTS
-      : HERBATIKA_BLOG_POSTS.filter((post) => post.topic === normalizedTopic);
+      ? posts
+      : posts.filter((post) => post.topic === normalizedTopic);
 
   const totalItems = filteredPosts.length;
   const totalPages = Math.max(Math.ceil(totalItems / safePageSize), 1);
-  const safePage = Number.isFinite(page) && Number(page) > 0 ? Math.floor(Number(page)) : 1;
+  const safePage =
+    Number.isFinite(page) && Number(page) > 0 ? Math.floor(Number(page)) : 1;
   const normalizedPage = Math.min(safePage, totalPages);
   const start = (normalizedPage - 1) * safePageSize;
 
@@ -570,7 +574,7 @@ export const resolveBlogListing = ({
     hasPreviousPage: normalizedPage > 1,
     hasNextPage: normalizedPage < totalPages,
     posts: filteredPosts.slice(start, start + safePageSize),
-    topicFilters: resolveBlogTopicFilters(),
+    topicFilters: resolveBlogTopicFilters(posts),
   };
 };
 
@@ -664,14 +668,21 @@ const BLOG_RECOMMENDED_PRODUCTS_BY_SLUG: Record<
   },
 };
 
-export const resolveBlogPostBySlug = (slug: string) => {
-  return HERBATIKA_BLOG_POSTS.find((post) => post.slug === slug) ?? null;
+export const resolveBlogPostBySlug = (
+  slug: string,
+  posts = HERBATIKA_BLOG_POSTS,
+) => {
+  return posts.find((post) => post.slug === slug) ?? null;
 };
 
 export const resolveBlogRecommendedProductsConfig = (slug: string) => {
   return BLOG_RECOMMENDED_PRODUCTS_BY_SLUG[slug] ?? null;
 };
 
-export const resolveRelatedBlogPosts = (slug: string, limit = 4) => {
-  return HERBATIKA_BLOG_POSTS.filter((post) => post.slug !== slug).slice(0, limit);
+export const resolveRelatedBlogPosts = (
+  slug: string,
+  limit = 4,
+  posts = HERBATIKA_BLOG_POSTS,
+) => {
+  return posts.filter((post) => post.slug !== slug).slice(0, limit);
 };

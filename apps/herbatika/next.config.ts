@@ -1,13 +1,32 @@
 import { join } from "node:path";
 import type { NextConfig } from "next";
 
+const resolveMedusaImageRemotePattern = () => {
+  const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
+
+  if (!backendUrl) {
+    return [];
+  }
+
+  try {
+    const parsedUrl = new URL(backendUrl);
+    const protocol = parsedUrl.protocol === "http:" ? "http" : "https";
+
+    return [
+      {
+        protocol,
+        hostname: parsedUrl.hostname,
+      },
+    ] as const;
+  } catch {
+    return [];
+  }
+};
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
-  transpilePackages: [
-    "@techsio/ui-kit",
-    "@techsio/storefront-data",
-  ],
+  transpilePackages: ["@techsio/ui-kit", "@techsio/storefront-data"],
   reactCompiler: true,
   cacheComponents: true,
   outputFileTracingRoot: join(__dirname, "../../"),
@@ -38,6 +57,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      ...resolveMedusaImageRemotePattern(),
     ],
     qualities: [40, 50, 60, 75, 90],
   },
