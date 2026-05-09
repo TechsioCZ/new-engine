@@ -128,20 +128,6 @@ function getTargetStatusOptions(
   }))
 }
 
-function getStatusBlockersText(blockedOrders: OrderExpeditionBlockingOrder[]) {
-  const visibleOrders = blockedOrders.slice(0, 5)
-  const hiddenCount = blockedOrders.length - visibleOrders.length
-  const lines = visibleOrders.map(
-    (order) => `${order.order_display_id}: ${order.reason}`
-  )
-
-  if (hiddenCount > 0) {
-    lines.push(`${hiddenCount} more blocked`)
-  }
-
-  return lines.join("\n")
-}
-
 function getStatusBlockerLabel(blockedCount: number) {
   return blockedCount === 1 ? "Blocked" : `${blockedCount} blocked`
 }
@@ -378,9 +364,6 @@ function StatusSelectItem({ option }: { option: TargetStatusOption }) {
           : undefined
       }
       disabled={isBlocked}
-      title={
-        isBlocked ? getStatusBlockersText(option.blockedOrders) : undefined
-      }
       value={option.value}
     >
       <span className="flex min-w-0 items-center justify-between gap-3">
