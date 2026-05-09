@@ -2,20 +2,25 @@
 
 import { useState } from "react";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+import { requestPasswordResetProxy } from "@/lib/storefront/auth/proxy";
 
 const LOGIN_HREF = "/auth/login";
 
 export const ForgotPasswordPanel = () => {
   const [isBusy, setIsBusy] = useState(false);
 
-  // TODO: wire up to sdk.auth.resetPassword once Medusa email provider (Resend)
-  // is configured on the backend. For now we resolve successfully so the UI
-  // flow can be tested end-to-end.
-  const handleSubmit = async (_values: { email: string }) => {
+  const handleSubmit = async (values: { email: string }) => {
     setIsBusy(true);
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    setIsBusy(false);
-    return null;
+    try {
+      await requestPasswordResetProxy(values.email);
+      return null;
+    } catch (error) {
+      return error instanceof Error
+        ? error.message
+        : "Nepodarilo sa odoslať odkaz na obnovu hesla.";
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   return (

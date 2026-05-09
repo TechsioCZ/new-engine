@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
+import { requestPasswordUpdateProxy } from "@/lib/storefront/auth/proxy";
 
 const LOGIN_HREF = "/auth/login";
 
@@ -14,18 +15,28 @@ export const ResetPasswordPanel = ({ token, email }: ResetPasswordPanelProps) =>
   const [isBusy, setIsBusy] = useState(false);
   const hasToken = Boolean(token);
 
-  // TODO: wire up to sdk.auth.updateProvider("customer", "emailpass",
-  // { password }, token) once Medusa email provider (Resend) is configured on
-  // the backend. For now we resolve successfully so the UI flow can be tested
-  // end-to-end.
-  const handleSubmit = async (_values: {
+  const handleSubmit = async (values: {
     password: string;
     confirm_password: string;
   }) => {
+    if (!token) {
+      return "Tento odkaz je neplatný alebo už vypršal.";
+    }
+
     setIsBusy(true);
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    setIsBusy(false);
-    return null;
+    try {
+      await requestPasswordUpdateProxy({
+        password: values.password,
+        token,
+      });
+      return null;
+    } catch (error) {
+      return error instanceof Error
+        ? error.message
+        : "Nepodarilo sa obnoviť heslo.";
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   return (
