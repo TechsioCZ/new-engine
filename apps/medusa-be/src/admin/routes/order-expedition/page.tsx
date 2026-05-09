@@ -334,14 +334,9 @@ function OrdersTable({
 
         {isLoading || orders.length ? null : (
           <Table.Row>
-            <Table.Cell>No orders found.</Table.Cell>
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
-            <Table.Cell />
+            <td className="px-6 py-8 text-center text-ui-fg-subtle" colSpan={8}>
+              No orders found.
+            </td>
           </Table.Row>
         )}
 
@@ -637,14 +632,15 @@ const OrderExpeditionPage = () => {
 
   return (
     <Container className="divide-y p-0">
-      <div className="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <Heading level="h1">Order Expedition</Heading>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Heading className="whitespace-nowrap" level="h1">
+            Order Expedition
+          </Heading>
+
+          <div className="flex items-center border-ui-border-base border-l pl-4">
             <Select onValueChange={handleCarrierChange} value={carrier}>
-              <Select.Trigger className="w-[160px]">
+              <Select.Trigger className="w-[220px]">
                 <Select.Value placeholder="Carrier" />
               </Select.Trigger>
               <Select.Content>
@@ -657,8 +653,10 @@ const OrderExpeditionPage = () => {
               </Select.Content>
             </Select>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 border-ui-border-base border-l pl-4">
+        <div className="flex min-w-0 flex-1 justify-start lg:justify-end">
+          <div className="flex flex-wrap items-center gap-2">
             <Text className="whitespace-nowrap text-ui-fg-subtle" size="small">
               {selectedCount} / {ORDER_EXPEDITION_MAX_ORDER_IDS} selected
             </Text>
@@ -675,10 +673,14 @@ const OrderExpeditionPage = () => {
             </Button>
 
             <Select
+              disabled={selectedCount === 0}
               onValueChange={handleTargetStatusChange}
               value={targetStatus}
             >
-              <Select.Trigger className="w-[144px]">
+              <Select.Trigger
+                className="w-[144px]"
+                disabled={selectedCount === 0}
+              >
                 <Select.Value placeholder="Status" />
               </Select.Trigger>
               <Select.Content>
