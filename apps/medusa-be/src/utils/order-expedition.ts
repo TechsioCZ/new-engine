@@ -1,6 +1,6 @@
 import type { Query } from "@medusajs/framework/types"
 
-export const ORDER_EXPEDITION_MAX_ORDER_IDS = 100
+export const ORDER_EXPEDITION_MAX_ORDER_IDS = 1000
 export const ORDER_EXPEDITION_DEFAULT_LIMIT = 50
 export const ORDER_EXPEDITION_MAX_LIMIT = 100
 
@@ -17,6 +17,18 @@ export const ORDER_EXPEDITION_TARGET_STATUSES = [
   "canceled",
   "requires_action",
 ] as const
+
+const ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS = {
+  archived: [],
+  canceled: ["archived"],
+  completed: ["archived"],
+  draft: ["pending", "requires_action", "completed", "canceled", "archived"],
+  pending: ["draft", "requires_action", "completed", "canceled"],
+  requires_action: ["draft", "pending", "completed", "canceled"],
+} as const satisfies Record<
+  OrderExpeditionTargetStatus,
+  readonly OrderExpeditionTargetStatus[]
+>
 
 export type OrderExpeditionCarrierKey =
   (typeof ORDER_EXPEDITION_CARRIER_KEYS)[number]
@@ -121,6 +133,7 @@ export type OrderExpeditionOrderDto = {
   payment_method: string
   payment_status?: string | null
   status?: string | null
+  has_active_fulfillment: boolean
   items: OrderExpeditionItemDto[]
 }
 
@@ -128,6 +141,12 @@ export type OrderExpeditionBlockingOrder = {
   id: string
   order_display_id: string
   reason: string
+}
+
+type OrderExpeditionTransitionOrder = {
+  status?: string | null
+  fulfillments?: OrderExpeditionFulfillment[] | null
+  has_active_fulfillment?: boolean | null
 }
 
 export const ORDER_EXPEDITION_CARRIER_OPTIONS: OrderExpeditionCarrierOption[] =
@@ -264,6 +283,72 @@ export function orderMatchesExpeditionCarrier(
   return resolveOrderExpeditionCarrier(order).value === carrier
 }
 
+export function hasOrderExpeditionActiveFulfillment(
+  order: Pick<
+    OrderExpeditionTransitionOrder,
+    "fulfillments" | "has_active_fulfillment"
+  >
+) {
+  if (typeof order.has_active_fulfillment === "boolean") {
+    return order.has_active_fulfillment
+  }
+
+  return Boolean(
+    order.fulfillments?.some((fulfillment) => !fulfillment.canceled_at)
+  )
+}
+
+export function getOrderExpeditionTransitionBlockReason(
+  order: OrderExpeditionTransitionOrder,
+  targetStatus: OrderExpeditionTargetStatus
+) {
+  const currentStatus = order.status
+
+  if (!currentStatus) {
+    return "Order status is unknown"
+  }
+
+  if (currentStatus === targetStatus) {
+    return `Order is already ${formatStatusForReason(targetStatus)}`
+  }
+
+  if (!isOrderExpeditionTransitionSourceStatus(currentStatus)) {
+    return `Order status ${formatStatusForReason(currentStatus)} cannot be changed`
+  }
+
+  if (currentStatus === "archived") {
+    return "Archived orders cannot be changed"
+  }
+
+  if (currentStatus === "canceled" && targetStatus !== "archived") {
+    return "Canceled orders can only be archived"
+  }
+
+  if (currentStatus === "completed" && targetStatus === "canceled") {
+    return "Completed orders cannot be canceled"
+  }
+
+  if (currentStatus === "completed" && targetStatus !== "archived") {
+    return "Completed orders can only be archived"
+  }
+
+  if (
+    targetStatus === "canceled" &&
+    hasOrderExpeditionActiveFulfillment(order)
+  ) {
+    return "Orders with active fulfillments cannot be canceled"
+  }
+
+  const allowedTargetStatuses: readonly OrderExpeditionTargetStatus[] =
+    ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS[currentStatus]
+
+  if (!allowedTargetStatuses.includes(targetStatus)) {
+    return `${formatStatusSubject(currentStatus)} orders cannot be changed to ${formatStatusForReason(targetStatus)}`
+  }
+
+  return
+}
+
 export function toOrderExpeditionDto(
   order: OrderExpeditionRawOrder
 ): OrderExpeditionOrderDto {
@@ -278,6 +363,7 @@ export function toOrderExpeditionDto(
     payment_method: getOrderExpeditionPaymentMethod(order),
     payment_status: order.payment_status,
     status: order.status,
+    has_active_fulfillment: hasOrderExpeditionActiveFulfillment(order),
     items: (order.items ?? []).map(toOrderExpeditionItemDto),
   }
 }
@@ -403,6 +489,21 @@ function joinNonEmpty(values: Array<string | null | undefined>) {
     .map((value) => value?.trim())
     .filter((value): value is string => Boolean(value))
     .join(" ")
+}
+
+function isOrderExpeditionTransitionSourceStatus(
+  value: string
+): value is keyof typeof ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS {
+  return value in ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS
+}
+
+function formatStatusForReason(status: string) {
+  return status.replaceAll("_", " ")
+}
+
+function formatStatusSubject(status: string) {
+  const formatted = formatStatusForReason(status)
+  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`
 }
 
 function normalizeSearchValue(value: unknown): string {

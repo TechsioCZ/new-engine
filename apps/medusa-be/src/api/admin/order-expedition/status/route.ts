@@ -9,6 +9,7 @@ import {
   fetchOrderExpeditionOrdersByIds,
   findMissingOrderIds,
   getOrderExpeditionDisplayId,
+  getOrderExpeditionTransitionBlockReason,
   type OrderExpeditionBlockingOrder,
   type OrderExpeditionRawOrder,
   type OrderExpeditionTargetStatus,
@@ -84,7 +85,7 @@ function collectBlockingOrders(
   }))
 
   for (const order of orders) {
-    const reason = getTransitionBlockReason(order, targetStatus)
+    const reason = getOrderExpeditionTransitionBlockReason(order, targetStatus)
 
     if (reason) {
       blockers.push(toOrderExpeditionBlockingOrder(order, reason))
@@ -92,36 +93,6 @@ function collectBlockingOrders(
   }
 
   return blockers
-}
-
-function getTransitionBlockReason(
-  order: OrderExpeditionRawOrder,
-  targetStatus: OrderExpeditionTargetStatus
-) {
-  if (order.status === targetStatus) {
-    return `Order is already ${targetStatus}`
-  }
-
-  if (order.status === "archived") {
-    return "Archived orders cannot be changed"
-  }
-
-  if (order.status === "canceled") {
-    return "Canceled orders cannot be changed"
-  }
-
-  if (targetStatus === "canceled" && order.status === "completed") {
-    return "Completed orders cannot be canceled"
-  }
-
-  if (
-    targetStatus === "canceled" &&
-    order.fulfillments?.some((fulfillment) => !fulfillment.canceled_at)
-  ) {
-    return "Orders with active fulfillments cannot be canceled"
-  }
-
-  return
 }
 
 async function runStatusWorkflow(
