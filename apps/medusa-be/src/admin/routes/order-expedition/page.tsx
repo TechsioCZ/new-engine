@@ -257,13 +257,6 @@ function getOrderExpeditionPaginationState(
   }
 }
 
-function getTargetStatusLabel(targetStatus: OrderExpeditionTargetStatus | "") {
-  return (
-    TARGET_STATUSES.find((status) => status.value === targetStatus)?.label ??
-    targetStatus
-  )
-}
-
 function isOrderSelectionLimitBlocked(
   orderId: string,
   selectedOrderIds: Set<string>,
@@ -341,7 +334,14 @@ function OrdersTable({
 
         {isLoading || orders.length ? null : (
           <Table.Row>
-            <Table.Cell colSpan={8}>No orders found.</Table.Cell>
+            <Table.Cell>No orders found.</Table.Cell>
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
+            <Table.Cell />
           </Table.Row>
         )}
 
@@ -470,7 +470,6 @@ const OrderExpeditionPage = () => {
   >("")
   const [isPrinting, setIsPrinting] = useState(false)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
-  const [isConfirmingStatus, setIsConfirmingStatus] = useState(false)
   const [blockingOrders, setBlockingOrders] = useState<
     OrderExpeditionBlockingOrder[]
   >([])
@@ -513,7 +512,6 @@ const OrderExpeditionPage = () => {
   const isSelectionLimitReached =
     selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
   const pagination = getOrderExpeditionPaginationState(ordersQuery.data, offset)
-  const targetStatusLabel = getTargetStatusLabel(targetStatus)
 
   const handleCarrierChange = (value: string) => {
     const nextCarrier = getCarrierSelectValue(value)
@@ -525,7 +523,6 @@ const OrderExpeditionPage = () => {
     setCarrier(nextCarrier)
     setOffset(0)
     setSelectedOrderIds(new Set())
-    setIsConfirmingStatus(false)
     setBlockingOrders([])
   }
 
@@ -535,12 +532,10 @@ const OrderExpeditionPage = () => {
     }
 
     setTargetStatus(value)
-    setIsConfirmingStatus(false)
+    setBlockingOrders([])
   }
 
   const toggleOrder = (orderId: string) => {
-    setIsConfirmingStatus(false)
-
     if (
       isOrderSelectionLimitBlocked(orderId, selectedOrderIds, selectedCount)
     ) {
@@ -562,8 +557,6 @@ const OrderExpeditionPage = () => {
   }
 
   const togglePage = () => {
-    setIsConfirmingStatus(false)
-
     if (
       shouldWarnPageSelectionLimit(
         allPageOrdersSelected,
@@ -599,19 +592,6 @@ const OrderExpeditionPage = () => {
     }
   }
 
-  const requestStatusUpdate = () => {
-    if (!selectedOrderIdsList.length) {
-      return
-    }
-
-    if (!targetStatus) {
-      toast.error("Select a target status")
-      return
-    }
-
-    setIsConfirmingStatus(true)
-  }
-
   const handleStatusUpdate = async () => {
     if (!selectedOrderIdsList.length) {
       return
@@ -623,7 +603,6 @@ const OrderExpeditionPage = () => {
     }
 
     const nextStatus = targetStatus
-    setIsConfirmingStatus(false)
     setIsUpdatingStatus(true)
     setBlockingOrders([])
     try {
@@ -637,6 +616,7 @@ const OrderExpeditionPage = () => {
 
       toast.success(`${selectedCount} order(s) updated`)
       setSelectedOrderIds(new Set())
+      setTargetStatus("")
       await ordersQuery.refetch()
     } catch (err) {
       toast.error(
@@ -664,83 +644,62 @@ const OrderExpeditionPage = () => {
             {selectedCount} / {ORDER_EXPEDITION_MAX_ORDER_IDS} selected
           </Text>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select onValueChange={handleCarrierChange} value={carrier}>
-            <Select.Trigger className="w-[160px]">
-              <Select.Value placeholder="Carrier" />
-            </Select.Trigger>
-            <Select.Content>
-              <Select.Item value={ALL_CARRIERS}>All carriers</Select.Item>
-              {(carriersQuery.data?.carriers ?? []).map((option) => (
-                <Select.Item key={option.value} value={option.value}>
-                  {option.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select>
-
-          <Button
-            disabled={selectedCount === 0}
-            isLoading={isPrinting}
-            onClick={handlePrint}
-            size="small"
-            variant="secondary"
-          >
-            <DocumentSeries />
-            PDF
-          </Button>
-
-          <Select onValueChange={handleTargetStatusChange} value={targetStatus}>
-            <Select.Trigger className="w-[144px]">
-              <Select.Value placeholder="Status" />
-            </Select.Trigger>
-            <Select.Content>
-              {TARGET_STATUSES.map((status) => (
-                <Select.Item key={status.value} value={status.value}>
-                  {status.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select>
-
-          <Button
-            disabled={
-              selectedCount === 0 || !targetStatus || isConfirmingStatus
-            }
-            isLoading={isUpdatingStatus}
-            onClick={requestStatusUpdate}
-            size="small"
-          >
-            Apply status
-          </Button>
-        </div>
-      </div>
-
-      {isConfirmingStatus && targetStatus ? (
-        <div className="flex flex-col gap-3 bg-ui-bg-subtle px-6 py-4 md:flex-row md:items-center md:justify-between">
-          <Text size="small">
-            Change {selectedCount} selected order(s) to {targetStatusLabel}?
-          </Text>
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
+            <Select onValueChange={handleCarrierChange} value={carrier}>
+              <Select.Trigger className="w-[160px]">
+                <Select.Value placeholder="Carrier" />
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value={ALL_CARRIERS}>All carriers</Select.Item>
+                {(carriersQuery.data?.carriers ?? []).map((option) => (
+                  <Select.Item key={option.value} value={option.value}>
+                    {option.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2 border-ui-border-base border-l pl-4">
             <Button
-              disabled={isUpdatingStatus}
-              onClick={() => setIsConfirmingStatus(false)}
+              disabled={selectedCount === 0}
+              isLoading={isPrinting}
+              onClick={handlePrint}
               size="small"
               variant="secondary"
             >
-              Cancel
+              <DocumentSeries />
+              PDF
             </Button>
+
+            <Select
+              onValueChange={handleTargetStatusChange}
+              value={targetStatus}
+            >
+              <Select.Trigger className="w-[144px]">
+                <Select.Value placeholder="Status" />
+              </Select.Trigger>
+              <Select.Content>
+                {TARGET_STATUSES.map((status) => (
+                  <Select.Item key={status.value} value={status.value}>
+                    {status.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select>
+
             <Button
               disabled={selectedCount === 0 || !targetStatus}
               isLoading={isUpdatingStatus}
               onClick={handleStatusUpdate}
               size="small"
             >
-              Confirm
+              Apply status
             </Button>
           </div>
         </div>
-      ) : null}
+      </div>
 
       {blockingOrders.length ? (
         <div className="flex flex-col gap-2 bg-ui-bg-subtle px-6 py-4">
