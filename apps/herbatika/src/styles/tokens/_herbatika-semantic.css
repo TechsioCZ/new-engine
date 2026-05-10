@@ -68,6 +68,7 @@
   --color-fg-primary: var(--color-herbatika-fg);
   --color-fg-secondary: var(--color-herbatika-fg-secondary);
   --color-fg-tertiary: var(--color-herbatika-fg-muted);
+  --color-fg-muted: oklch(0.3502 0.0037 308.34);
   --color-fg-accent: var(--color-herbatika-fg-tertiary);
   --color-fg-strong: var(--color-herbatika-fg-strong);
   --color-fg-placeholder: oklch(
@@ -97,6 +98,7 @@
   --color-border-secondary: var(--color-herbatika-border-soft);
   --color-border-tertiary: var(--color-herbatika-fg);
   --color-border-search: oklch(0.8975 0 0);
+  --color-border-muted: oklch(0.7137 0.0192 261.32);
 
 
   /* Links and rings */

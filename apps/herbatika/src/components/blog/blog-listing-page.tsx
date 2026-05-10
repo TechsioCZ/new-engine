@@ -79,7 +79,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                 return (
                   <LinkButton
                     as={NextLink}
-                    className="rounded-full px-400 py-200 font-open-sans text-md font-semibold"
+                    className={`rounded-full px-450 py-250 h-full font-open-sans text-md border-1 border-primary font-bold leading-[18px] ${!isActive && "bg-surface text-fg-muted border-border-muted"}`}
                     href={resolveBlogListingHref({
                       topic: filter.key,
                       page: 1,
