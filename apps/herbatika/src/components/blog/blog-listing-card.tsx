@@ -29,7 +29,7 @@ export function BlogListingCard({ post }: BlogListingCardProps) {
             {formatBlogDate(post.publishedAt)}
           </p>
           <Badge
-            className="text-2xs"
+            className="text-xs font-normal leading-[15px]"
             variant="secondary"
           >
             {formatTopicFromKey(post.topic)}

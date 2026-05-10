@@ -49,7 +49,7 @@ export function BlogDetailPage({
               <div className="flex flex-wrap gap-150">
                 {post.tags.map((tag) => (
                   <span
-                    className="inline-flex items-center rounded-md bg-highlight px-250 py-100 text-xs leading-normal font-medium text-primary"
+                    className="inline-flex items-center rounded-xs bg-highlight px-200 py-100 text-xs leading-[15px] text-primary"
                     key={tag}
                   >
                     {tag}
