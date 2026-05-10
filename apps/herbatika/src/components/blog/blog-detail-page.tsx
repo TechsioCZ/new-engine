@@ -86,7 +86,7 @@ export function BlogDetailPage({
             <section className="overflow-hidden rounded-2xl border border-border-secondary bg-surface">
               <NextImage
                 alt={post.title}
-                className="aspect-wide w-full object-cover"
+                className="aspect-product-detail-image w-full object-cover"
                 height={620}
                 src={post.imageSrc}
                 width={1200}
