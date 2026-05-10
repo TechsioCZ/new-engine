@@ -1,37 +1,9 @@
-import {
-  BlockTypeSelect,
-  BoldItalicUnderlineToggles,
-  CreateLink,
-  codeBlockPlugin,
-  codeMirrorPlugin,
-  DiffSourceToggleWrapper,
-  diffSourcePlugin,
-  headingsPlugin,
-  InsertCodeBlock,
-  InsertTable,
-  InsertThematicBreak,
-  ListsToggle,
-  linkDialogPlugin,
-  linkPlugin,
-  listsPlugin,
-  MDXEditor,
-  type MDXEditorMethods,
-  markdownShortcutPlugin,
-  quotePlugin,
-  Separator,
-  StrikeThroughSupSubToggles,
-  tablePlugin,
-  thematicBreakPlugin,
-  toolbarPlugin,
-  UndoRedo,
-} from "@mdxeditor/editor"
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Button, Container, Heading, toast } from "@medusajs/ui"
-import "@mdxeditor/editor/style.css"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { marked } from "marked"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { sdk } from "../lib/sdk"
 import "./product-description-editor.css"
 
@@ -200,7 +172,7 @@ const htmlToMarkdown = (html: string) => {
 
   const document = new DOMParser().parseFromString(html, "text/html")
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Small local fallback for importing existing HTML product descriptions into MDXEditor.
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Small local fallback for importing existing HTML product descriptions into the Markdown editor.
   const renderNode = (node: ChildNode): string => {
     if (node.nodeType === Node.TEXT_NODE) {
       return node.textContent ?? ""
@@ -343,30 +315,18 @@ const htmlToMarkdown = (html: string) => {
 const markdownToHtml = (markdown: string) =>
   String(marked.parse(markdown, { async: false, gfm: true })).trim()
 
-const productEditorCodeLanguages = {
-  bash: "Bash",
-  css: "CSS",
-  html: "HTML",
-  js: "JavaScript",
-  json: "JSON",
-  md: "Markdown",
-  sh: "Shell",
-  ts: "TypeScript",
-} as const
-
 const ProductDescriptionEditor = ({
   data: product,
 }: ProductDescriptionEditorProps) => {
-  const editorRef = useRef<MDXEditorMethods>(null)
   const queryClient = useQueryClient()
   const [markdown, setMarkdown] = useState(() =>
     htmlToMarkdown(product?.description ?? "")
   )
+  const previewHtml = useMemo(() => markdownToHtml(markdown), [markdown])
 
   useEffect(() => {
     const nextMarkdown = htmlToMarkdown(product?.description ?? "")
     setMarkdown(nextMarkdown)
-    editorRef.current?.setMarkdown(nextMarkdown)
   }, [product?.description])
 
   useEffect(() => {
@@ -423,7 +383,6 @@ const ProductDescriptionEditor = ({
     onSuccess: (response) => {
       const nextMarkdown = htmlToMarkdown(response.product.description ?? "")
       setMarkdown(nextMarkdown)
-      editorRef.current?.setMarkdown(nextMarkdown)
       queryClient.invalidateQueries({ queryKey: ["product", product?.id] })
       queryClient.invalidateQueries({ queryKey: ["products"] })
       toast.success("Product description saved")
@@ -431,49 +390,8 @@ const ProductDescriptionEditor = ({
   })
 
   const handleSave = useCallback(() => {
-    const currentMarkdown = editorRef.current?.getMarkdown() ?? markdown
-    mutation.mutate(markdownToHtml(currentMarkdown))
+    mutation.mutate(markdownToHtml(markdown))
   }, [markdown, mutation])
-
-  const plugins = useMemo(
-    () => [
-      toolbarPlugin({
-        toolbarContents: () => (
-          <DiffSourceToggleWrapper>
-            <UndoRedo />
-            <Separator />
-            <BlockTypeSelect />
-            <Separator />
-            <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
-            <StrikeThroughSupSubToggles options={["Strikethrough"]} />
-            <Separator />
-            <ListsToggle />
-            <Separator />
-            <CreateLink />
-            <InsertTable />
-            <InsertThematicBreak />
-            <InsertCodeBlock />
-          </DiffSourceToggleWrapper>
-        ),
-      }),
-      headingsPlugin(),
-      listsPlugin(),
-      quotePlugin(),
-      thematicBreakPlugin(),
-      linkPlugin(),
-      linkDialogPlugin(),
-      tablePlugin(),
-      codeBlockPlugin({ defaultCodeBlockLanguage: "html" }),
-      codeMirrorPlugin({ codeBlockLanguages: productEditorCodeLanguages }),
-      diffSourcePlugin({
-        diffMarkdown: htmlToMarkdown(product?.description ?? ""),
-        readOnlyDiff: true,
-        viewMode: "rich-text",
-      }),
-      markdownShortcutPlugin(),
-    ],
-    [product?.description]
-  )
 
   if (!product?.id) {
     return null
@@ -492,16 +410,25 @@ const ProductDescriptionEditor = ({
           Save
         </Button>
       </div>
-      <div className="p-0">
-        <MDXEditor
-          className="product-description-mdx-editor"
-          contentEditableClassName="product-description-mdx-content"
-          markdown={markdown}
-          onChange={(nextMarkdown) => setMarkdown(nextMarkdown)}
-          onError={({ error }) => toast.error(error)}
-          plugins={plugins}
-          ref={editorRef}
-        />
+      <div className="product-description-editor-grid">
+        <label className="product-description-editor-pane">
+          <span className="product-description-editor-title">Markdown</span>
+          <textarea
+            aria-label="Product description Markdown"
+            className="product-description-markdown-input"
+            onChange={(event) => setMarkdown(event.target.value)}
+            spellCheck={true}
+            value={markdown}
+          />
+        </label>
+        <div className="product-description-editor-pane">
+          <span className="product-description-editor-title">Preview</span>
+          <div
+            className="product-description-preview product-description-content"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: Preview renders admin-authored product HTML before saving the same value.
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+          />
+        </div>
       </div>
     </Container>
   )

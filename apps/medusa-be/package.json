@@ -33,6 +33,7 @@
     "createInitialSuperadmin": "bash -euo pipefail -c 'if [ -f ./src/scripts/create-initial-superadmin.ts ]; then medusa exec ./src/scripts/create-initial-superadmin.ts; else medusa exec ./src/scripts/create-initial-superadmin.js; fi'",
     "seedDevData": "medusa exec ./src/scripts/seed-dev-data.ts",
     "seedN1": "medusa exec ./src/scripts/seed-n1.ts",
+    "seedOrderBusinessStatusDemo": "medusa exec ./src/scripts/seed-order-business-status-demo.ts",
     "seedInitialData": "medusa exec ./src/scripts/seed.ts",
     "seedInitialDataTs": "medusa exec ./src/scripts/seed.ts",
     "seedDefaultData": "medusa exec ./src/scripts/seed-products-from-db.ts",
@@ -47,7 +48,6 @@
   },
   "dependencies": {
     "@badgateway/oauth2-client": "^3.3.1",
-    "@mdxeditor/editor": "3.54.0",
     "@medusajs/admin-sdk": "^2.14.1",
     "@medusajs/admin-shared": "^2.14.1",
     "@medusajs/caching-redis": "^2.14.1",
@@ -101,8 +101,8 @@
     "cross-env": "^10.1.0",
     "ts-node": "10.9.2",
     "typescript": "^5.9.3",
-    "vite": "^5.4.21",
-    "vitest": "^3.2.4",
+    "vite": "8.0.11",
+    "vitest": "4.1.5",
     "yalc": "1.0.0-pre.53"
   },
   "engines": {

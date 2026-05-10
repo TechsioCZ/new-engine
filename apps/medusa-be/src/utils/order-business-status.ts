@@ -65,6 +65,7 @@ export type OrderBusinessStatusSummary = {
   display_id?: number | null
   email?: string | null
   id: string
+  manual_status?: ManualOrderBusinessStatusId | null
   total?: number | string | null
 }
 

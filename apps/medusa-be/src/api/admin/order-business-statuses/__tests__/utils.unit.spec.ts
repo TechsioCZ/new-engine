@@ -16,7 +16,7 @@ describe("order business status API utilities", () => {
     })
   })
 
-  it("clears only the manual business status metadata key", () => {
+  it("clears only the manual business status metadata value", () => {
     expect(
       buildOrderBusinessStatusMetadata(
         {
@@ -25,7 +25,10 @@ describe("order business status API utilities", () => {
         },
         null
       )
-    ).toEqual({ existing: true })
+    ).toEqual({
+      existing: true,
+      [ORDER_BUSINESS_STATUS_METADATA_KEY]: null,
+    })
   })
 
   it("returns a summary with a computed business status", () => {
@@ -49,6 +52,7 @@ describe("order business status API utilities", () => {
       display_id: 1001,
       email: "customer@example.com",
       id: "order_123",
+      manual_status: null,
       total: 1234,
     })
   })

@@ -1,5 +1,6 @@
 import type { Query } from "@medusajs/framework/types"
 import {
+  getManualOrderBusinessStatusId,
   type ManualOrderBusinessStatusId,
   ORDER_BUSINESS_STATUS_METADATA_KEY,
   type OrderBusinessStatusInput,
@@ -57,6 +58,7 @@ export function toOrderBusinessStatusSummary(
     display_id: order.display_id,
     email: order.email,
     id: order.id,
+    manual_status: getManualOrderBusinessStatusId(order) ?? null,
     total: order.total,
   }
 }
@@ -68,7 +70,7 @@ export function buildOrderBusinessStatusMetadata(
   const nextMetadata = { ...(metadata ?? {}) }
 
   if (status === null) {
-    delete nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY]
+    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = null
   } else {
     nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = status
   }

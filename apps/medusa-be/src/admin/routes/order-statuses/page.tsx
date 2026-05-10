@@ -94,7 +94,13 @@ const updateOrderBusinessStatus = ({
     method: "POST",
   })
 
-const ManualStatusControl = ({ orderId }: { orderId: string }) => {
+const ManualStatusControl = ({
+  manualStatus,
+  orderId,
+}: {
+  manualStatus?: ManualOrderBusinessStatusId | null
+  orderId: string
+}) => {
   const queryClient = useQueryClient()
   const mutation = useMutation({
     mutationFn: (value: ManualStatusValue) =>
@@ -118,7 +124,9 @@ const ManualStatusControl = ({ orderId }: { orderId: string }) => {
   return (
     <div className="flex items-center justify-end gap-2">
       <Select
+        defaultValue={manualStatus ?? undefined}
         disabled={mutation.isPending}
+        key={manualStatus ?? "none"}
         onValueChange={(value) => {
           if (value === "clear" || isManualOrderBusinessStatusId(value)) {
             mutation.mutate(value)
@@ -234,7 +242,10 @@ const OrderStatusesPage = () => {
                 </Badge>
               </Table.Cell>
               <Table.Cell className="text-right">
-                <ManualStatusControl orderId={order.id} />
+                <ManualStatusControl
+                  manualStatus={order.manual_status}
+                  orderId={order.id}
+                />
               </Table.Cell>
             </Table.Row>
           ))}

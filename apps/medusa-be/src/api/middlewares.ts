@@ -7,6 +7,7 @@ import { errorHandler } from "@medusajs/framework/http"
 import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
+import { adminOrderExpeditionRoutesMiddlewares } from "./admin/order-expedition/middlewares"
 import { adminOrderBusinessStatusesRoutesMiddlewares } from "./admin/order-business-statuses/middlewares"
 import { adminOrderBusinessStatusRoutesMiddlewares } from "./admin/orders/[id]/business-status/middlewares"
 import { adminOrderEmailRoutesMiddlewares } from "./admin/orders/[id]/email/middlewares"
@@ -40,6 +41,7 @@ export default defineMiddlewares({
       matcher: "/webhooks/*",
       bodyParser: { preserveRawBody: true },
     },
+    ...adminOrderExpeditionRoutesMiddlewares,
     ...adminOrderBusinessStatusesRoutesMiddlewares,
     ...adminOrderBusinessStatusRoutesMiddlewares,
     ...adminOrderEmailRoutesMiddlewares,
