@@ -8,6 +8,7 @@ import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
 import { adminOrderExpeditionRoutesMiddlewares } from "./admin/order-expedition/middlewares"
+import { adminOrderCommercialValuesRoutesMiddlewares } from "./admin/orders/[id]/commercial-values/middlewares"
 import { adminOrderEmailRoutesMiddlewares } from "./admin/orders/[id]/email/middlewares"
 import { adminPacketaConfigRoutesMiddlewares } from "./admin/packeta-config/middlewares"
 import { adminPacketaLabelsRoutesMiddlewares } from "./admin/packeta-labels/middlewares"
@@ -40,6 +41,7 @@ export default defineMiddlewares({
       bodyParser: { preserveRawBody: true },
     },
     ...adminOrderExpeditionRoutesMiddlewares,
+    ...adminOrderCommercialValuesRoutesMiddlewares,
     ...adminOrderEmailRoutesMiddlewares,
     ...adminPayloadSsoRoutesMiddlewares,
     ...adminPacketaConfigRoutesMiddlewares,

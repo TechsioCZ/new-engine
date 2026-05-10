@@ -1,93 +1,114 @@
-const registerOtel = jest.fn()
-const setGlobalPropagator = jest.fn()
-const sentryInit = jest.fn()
-const otlpExporterMock = jest.fn()
-const sentryPropagatorMock = jest.fn()
-const sentrySpanProcessorMock = jest.fn()
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
-jest.mock("@medusajs/medusa", () => ({
+const {
+  otlpExporterMock,
+  registerOtel,
+  sentryInit,
+  sentryPropagatorMock,
+  sentrySpanProcessorMock,
+  setGlobalPropagator,
+} = vi.hoisted(() => ({
+  otlpExporterMock: vi.fn(),
+  registerOtel: vi.fn(),
+  sentryInit: vi.fn(),
+  sentryPropagatorMock: vi.fn(),
+  sentrySpanProcessorMock: vi.fn(),
+  setGlobalPropagator: vi.fn(),
+}))
+
+vi.mock("@medusajs/medusa", () => ({
   registerOtel,
 }))
 
-jest.mock("@opentelemetry/api", () => ({
+vi.mock("@opentelemetry/api", () => ({
+  default: {
+    propagation: {
+      setGlobalPropagator,
+    },
+  },
   propagation: {
     setGlobalPropagator,
   },
 }))
 
-jest.mock("@opentelemetry/exporter-trace-otlp-grpc", () => ({
+vi.mock("@opentelemetry/exporter-trace-otlp-grpc", () => ({
   OTLPTraceExporter: otlpExporterMock,
 }))
 
-jest.mock("@sentry/opentelemetry", () => ({
+vi.mock("@sentry/opentelemetry", () => ({
   SentryPropagator: sentryPropagatorMock,
   SentrySpanProcessor: sentrySpanProcessorMock,
 }))
 
-jest.mock("@sentry/node", () => ({
+vi.mock("@sentry/node", () => ({
   __esModule: true,
   default: {
     init: sentryInit,
   },
 }))
 
-jest.mock("../../src/utils/errors", () => ({
-  shouldCaptureException: jest.fn(),
+vi.mock("../../src/utils/errors", () => ({
+  shouldCaptureException: vi.fn(),
 }))
 
 describe("instrumentation", () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-    otlpExporterMock.mockImplementation(() => ({ exporter: true }))
-    sentryPropagatorMock.mockImplementation(() => ({ propagator: true }))
-    sentrySpanProcessorMock.mockImplementation(() => ({ processor: true }))
+    vi.clearAllMocks()
+    otlpExporterMock.mockImplementation(function OTLPTraceExporter() {
+      return { exporter: true }
+    })
+    sentryPropagatorMock.mockImplementation(function SentryPropagator() {
+      return { propagator: true }
+    })
+    sentrySpanProcessorMock.mockImplementation(function SentrySpanProcessor() {
+      return { processor: true }
+    })
   })
 
-  it("initializes Sentry and registers OpenTelemetry", () => {
-    jest.isolateModules(() => {
-      const { shouldCaptureException } = require("../../src/utils/errors")
-      shouldCaptureException.mockReturnValue(false)
+  it("initializes Sentry and registers OpenTelemetry", async () => {
+    vi.resetModules()
+    const { shouldCaptureException } = await import("../../src/utils/errors")
+    vi.mocked(shouldCaptureException).mockReturnValue(false)
 
-      const instrumentation = require("../../instrumentation")
+    const instrumentation = await import("../../instrumentation")
 
-      expect(sentryInit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          dsn: process.env.SENTRY_DSN,
-          instrumenter: "otel",
-          beforeSend: expect.any(Function),
-        })
-      )
+    expect(sentryInit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dsn: process.env.SENTRY_DSN,
+        instrumenter: "otel",
+        beforeSend: expect.any(Function),
+      })
+    )
 
-      const beforeSend = sentryInit.mock.calls[0][0].beforeSend
-      const event = { event_id: "evt_1" }
-      expect(
-        beforeSend(event, { originalException: new Error("ignore") })
-      ).toBeNull()
+    const beforeSend = sentryInit.mock.calls[0][0].beforeSend
+    const event = { event_id: "evt_1" }
+    expect(
+      beforeSend(event, { originalException: new Error("ignore") })
+    ).toBeNull()
 
-      shouldCaptureException.mockReturnValue(true)
-      expect(
-        beforeSend(event, { originalException: new Error("capture") })
-      ).toBe(event)
+    vi.mocked(shouldCaptureException).mockReturnValue(true)
+    expect(beforeSend(event, { originalException: new Error("capture") })).toBe(
+      event
+    )
 
-      expect(setGlobalPropagator).toHaveBeenCalledWith(
-        sentryPropagatorMock.mock.results[0]?.value
-      )
+    expect(setGlobalPropagator).toHaveBeenCalledWith(
+      sentryPropagatorMock.mock.results[0]?.value
+    )
 
-      instrumentation.register()
+    instrumentation.register()
 
-      expect(registerOtel).toHaveBeenCalledWith(
-        expect.objectContaining({
-          serviceName: process.env.SENTRY_NAME || "medusa-default",
-          traceExporter: otlpExporterMock.mock.results[0]?.value,
-          spanProcessors: [sentrySpanProcessorMock.mock.results[0]?.value],
-          instrument: {
-            http: true,
-            workflows: true,
-            query: true,
-            db: true,
-          },
-        })
-      )
-    })
+    expect(registerOtel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        serviceName: process.env.SENTRY_NAME || "medusa-default",
+        traceExporter: otlpExporterMock.mock.results[0]?.value,
+        spanProcessors: [sentrySpanProcessorMock.mock.results[0]?.value],
+        instrument: {
+          http: true,
+          workflows: true,
+          query: true,
+          db: true,
+        },
+      })
+    )
   })
 })

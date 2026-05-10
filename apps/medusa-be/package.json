@@ -24,7 +24,7 @@
     "test:integration:modules": "node ./scripts/run-module-tests.mjs",
     "test:e2e:http": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand integration-tests/http/*.spec.ts",
     "test:e2e:http:debug": "cross-env TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --detectOpenHandles integration-tests/http/*.spec.ts",
-    "test:unit": "cross-env TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit",
+    "test:unit": "pnpm --workspace-root exec vitest run --config apps/medusa-be/vitest.config.ts",
     "test:all": "pnpm test:unit && pnpm test:integration:modules && pnpm test:integration:http",
     "migrateProd": "medusa db:migrate --execute-all-links",
     "migrate": "medusa db:migrate",
