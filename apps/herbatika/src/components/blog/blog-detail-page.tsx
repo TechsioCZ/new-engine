@@ -112,10 +112,10 @@ export function BlogDetailPage({
                 <Icon className="text-fg-secondary" icon="token-icon-chevron-up" size="2xl" />
               </header>
 
-              <ul className="space-y-100 pl-350">
+              <ul className="space-y-100 pl-500">
                 {post.sections.map((section) => (
                   <li
-                    className="list-disc text-sm leading-relaxed text-fg-secondary marker:text-fg-disabled"
+                    className="list-inside list-disc marker:text-lg text-sm leading-relaxed text-fg-secondary marker:text-fg-disabled"
                     key={section.title}
                   >
                     {section.title}
