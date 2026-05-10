@@ -26,7 +26,9 @@ const hoistedMocks = vi.hoisted(() => ({
 
 // Mock the client before importing service
 vi.mock("../client", () => ({
-  PplClient: vi.fn().mockImplementation(() => hoistedMocks.mockPplClient),
+  PplClient: vi.fn(function PplClient() {
+    return hoistedMocks.mockPplClient
+  }),
 }))
 
 // Mock encryption utilities

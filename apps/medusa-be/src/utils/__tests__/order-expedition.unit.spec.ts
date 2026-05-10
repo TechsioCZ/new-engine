@@ -1,8 +1,8 @@
 import { OrderStatus } from "@medusajs/framework/utils"
-import { describe, expect, it } from "vitest"
 import {
   findMissingOrderIds,
   getOrderExpeditionDisplayId,
+  getOrderExpeditionTransitionBlockReason,
   ORDER_EXPEDITION_TARGET_STATUSES,
   orderMatchesExpeditionCarrier,
   orderOrdersByRequestedIds,
@@ -87,6 +87,7 @@ describe("order expedition helpers", () => {
     expect(dto).toMatchObject({
       carrier: { value: "packeta" },
       customer: "Jana Novakova",
+      has_active_fulfillment: false,
       order_display_id: "#HERB-1001",
       payment_method: "stripe",
       status: "pending",
@@ -101,6 +102,30 @@ describe("order expedition helpers", () => {
         variant: undefined,
       },
     ])
+  })
+
+  it("explains expedition status transition blockers", () => {
+    expect(
+      getOrderExpeditionTransitionBlockReason(
+        { fulfillments: [], status: "pending" },
+        "archived"
+      )
+    ).toBe("Pending orders cannot be changed to archived")
+    expect(
+      getOrderExpeditionTransitionBlockReason(
+        { fulfillments: [], status: "canceled" },
+        "archived"
+      )
+    ).toBeUndefined()
+    expect(
+      getOrderExpeditionTransitionBlockReason(
+        {
+          fulfillments: [{ canceled_at: null, id: "ful_1" }],
+          status: "pending",
+        },
+        "canceled"
+      )
+    ).toBe("Orders with active fulfillments cannot be canceled")
   })
 
   it("preserves selected order order and reports missing IDs", () => {

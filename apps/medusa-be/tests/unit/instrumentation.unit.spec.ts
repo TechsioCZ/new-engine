@@ -49,11 +49,17 @@ describe("instrumentation", () => {
   beforeEach(() => {
     vi.resetModules()
     vi.clearAllMocks()
-    mocks.otlpExporterMock.mockImplementation(() => ({ exporter: true }))
-    mocks.sentryPropagatorMock.mockImplementation(() => ({ propagator: true }))
-    mocks.sentrySpanProcessorMock.mockImplementation(() => ({
-      processor: true,
-    }))
+    mocks.otlpExporterMock.mockImplementation(function OTLPTraceExporter() {
+      return { exporter: true }
+    })
+    mocks.sentryPropagatorMock.mockImplementation(function SentryPropagator() {
+      return { propagator: true }
+    })
+    mocks.sentrySpanProcessorMock.mockImplementation(
+      function SentrySpanProcessor() {
+        return { processor: true }
+      }
+    )
   })
 
   it("initializes Sentry and registers OpenTelemetry", async () => {

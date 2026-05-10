@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@medusajs/framework/utils", () => ({
-  ContainerRegistrationKeys: {
-    QUERY: "query",
-  },
-}))
-
 const {
   mockArchiveRun,
   mockBulkCancelRun,
@@ -18,19 +12,30 @@ const {
   mockCompleteRun: vi.fn(),
 }))
 
+vi.mock("@medusajs/framework/utils", () => ({
+  ContainerRegistrationKeys: {
+    QUERY: "query",
+  },
+}))
+
 vi.mock("@medusajs/medusa/core-flows", () => ({
   archiveOrderWorkflow: vi.fn(() => ({ run: mockArchiveRun })),
   completeOrderWorkflow: vi.fn(() => ({ run: mockCompleteRun })),
 }))
 
-vi.mock("../../../../../workflows/order-expedition/bulk-cancel-orders", () => ({
-  bulkCancelOrdersWorkflow: vi.fn(() => ({ run: mockBulkCancelRun })),
-}))
+vi.mock(
+  "../../../../../workflows/order-expedition/bulk-cancel-orders",
+  () => ({
+    bulkCancelOrdersWorkflow: vi.fn(() => ({ run: mockBulkCancelRun })),
+  })
+)
 
 vi.mock(
   "../../../../../workflows/order-expedition/bulk-update-order-statuses",
   () => ({
-    bulkUpdateOrderStatusesWorkflow: vi.fn(() => ({ run: mockBulkUpdateRun })),
+    bulkUpdateOrderStatusesWorkflow: vi.fn(() => ({
+      run: mockBulkUpdateRun,
+    })),
     isOrderExpeditionDirectUpdateStatus: vi.fn((status: string) =>
       ["pending", "draft", "requires_action"].includes(status)
     ),
@@ -137,7 +142,7 @@ describe("POST /admin/order-expedition/status", () => {
       .mockResolvedValueOnce({
         data: [
           { id: "order_1", display_id: 1001, status: "pending" },
-          { id: "order_2", display_id: 1002, status: "completed" },
+          { id: "order_2", display_id: 1002, status: "pending" },
         ],
       })
       .mockResolvedValueOnce({
@@ -247,6 +252,87 @@ describe("POST /admin/order-expedition/status", () => {
       })
     )
     expect(mockBulkUpdateRun).not.toHaveBeenCalled()
+  })
+
+  it("blocks archive for mutable orders that must be finalized first", async () => {
+    const { POST } = await import("../route")
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: "order_1",
+          display_id: 1001,
+          status: "pending",
+        },
+      ],
+    })
+    const req = createMockRequest(
+      {
+        order_ids: ["order_1"],
+        target_status: "archived",
+      },
+      graph
+    )
+    const res = createMockResponse()
+
+    await POST(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blocked_orders: [
+          {
+            id: "order_1",
+            order_display_id: "#1001",
+            reason: "Pending orders cannot be changed to archived",
+          },
+        ],
+      })
+    )
+    expect(mockArchiveRun).not.toHaveBeenCalled()
+  })
+
+  it("allows canceled orders to be archived", async () => {
+    const { POST } = await import("../route")
+    const graph = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "order_1",
+            display_id: 1001,
+            status: "canceled",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "order_1",
+            display_id: 1001,
+            status: "archived",
+          },
+        ],
+      })
+    const req = createMockRequest(
+      {
+        order_ids: ["order_1"],
+        target_status: "archived",
+      },
+      graph
+    )
+    const res = createMockResponse()
+
+    await POST(req, res)
+
+    expect(mockArchiveRun).toHaveBeenCalledWith({
+      input: { orderIds: ["order_1"] },
+    })
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        count: 1,
+        target_status: "archived",
+      })
+    )
   })
 
   it("runs cancel through the custom bulk cancel workflow after prevalidation", async () => {

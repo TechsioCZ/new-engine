@@ -9,12 +9,14 @@ import {
   Select,
   Table,
   Text,
+  Tooltip,
   toast,
 } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import {
+  getOrderExpeditionTransitionBlockReason,
   isOrderExpeditionCarrierKey,
   isOrderExpeditionTargetStatus,
   ORDER_EXPEDITION_MAX_ORDER_IDS,
@@ -57,6 +59,10 @@ const TARGET_STATUSES: Array<{
   { value: "requires_action", label: "Requires action" },
 ]
 
+type TargetStatusOption = (typeof TARGET_STATUSES)[number] & {
+  blockedOrders: OrderExpeditionBlockingOrder[]
+}
+
 function getOrderItemsSummary(order: OrderExpeditionOrderDto) {
   if (!order.items.length) {
     return "-"
@@ -73,11 +79,11 @@ function getCarrierLabel(order: OrderExpeditionOrderDto) {
 }
 
 function getNextPageSelection(
-  prev: Set<string>,
+  prev: Map<string, OrderExpeditionOrderDto>,
   orders: OrderExpeditionOrderDto[],
   allPageOrdersSelected: boolean
 ) {
-  const next = new Set(prev)
+  const next = new Map(prev)
 
   if (allPageOrdersSelected) {
     for (const order of orders) {
@@ -92,10 +98,50 @@ function getNextPageSelection(
       continue
     }
 
-    next.add(order.id)
+    next.set(order.id, order)
   }
 
   return next
+}
+
+function getTargetStatusOptions(
+  selectedOrders: OrderExpeditionOrderDto[]
+): TargetStatusOption[] {
+  return TARGET_STATUSES.map((status) => ({
+    ...status,
+    blockedOrders: selectedOrders
+      .map((order) => {
+        const reason = getOrderExpeditionTransitionBlockReason(
+          order,
+          status.value
+        )
+
+        return reason
+          ? {
+              id: order.id,
+              order_display_id: order.order_display_id,
+              reason,
+            }
+          : null
+      })
+      .filter((order): order is OrderExpeditionBlockingOrder => Boolean(order)),
+  }))
+}
+
+function getStatusBlockerLabel(blockedCount: number) {
+  return blockedCount === 1 ? "Blocked" : `${blockedCount} blocked`
+}
+
+function getSelectedStatusBlockedMessage(
+  statusLabel: string,
+  blockedOrders: OrderExpeditionBlockingOrder[]
+) {
+  if (blockedOrders.length === 1) {
+    const [order] = blockedOrders
+    return `${statusLabel} is blocked for 1 selected order: ${order.order_display_id} - ${order.reason}.`
+  }
+
+  return `${statusLabel} is blocked for ${blockedOrders.length} selected orders. Open the status menu for details.`
 }
 
 function getErrorMessage(payload: unknown, fallback: string) {
@@ -205,7 +251,7 @@ type OrdersTableProps = {
   allPageOrdersSelected: boolean
   isSelectionLimitReached: boolean
   isLoading: boolean
-  onToggleOrder: (orderId: string) => void
+  onToggleOrder: (order: OrderExpeditionOrderDto) => void
   onTogglePage: () => void
   orders: OrderExpeditionOrderDto[]
   selectedOrderIds: Set<string>
@@ -287,6 +333,67 @@ function shouldWarnPageSelectionLimit(
   return unselectedPageOrderIds.length > remainingSlots
 }
 
+function StatusBlockersTooltipContent({
+  blockedOrders,
+}: {
+  blockedOrders: OrderExpeditionBlockingOrder[]
+}) {
+  const visibleOrders = blockedOrders.slice(0, 5)
+  const hiddenCount = blockedOrders.length - visibleOrders.length
+
+  return (
+    <div className="flex flex-col gap-1">
+      {visibleOrders.map((order) => (
+        <span key={`${order.id}-${order.reason}`}>
+          {order.order_display_id}: {order.reason}
+        </span>
+      ))}
+      {hiddenCount > 0 ? <span>{hiddenCount} more blocked</span> : null}
+    </div>
+  )
+}
+
+function StatusSelectItem({ option }: { option: TargetStatusOption }) {
+  const blockedCount = option.blockedOrders.length
+  const isBlocked = blockedCount > 0
+  const item = (
+    <Select.Item
+      className={
+        isBlocked
+          ? "data-[disabled]:cursor-not-allowed data-[disabled]:text-ui-fg-disabled"
+          : undefined
+      }
+      disabled={isBlocked}
+      value={option.value}
+    >
+      <span className="flex min-w-0 items-center justify-between gap-3">
+        <span className="truncate">{option.label}</span>
+        {isBlocked ? (
+          <span className="shrink-0 text-ui-fg-muted">
+            {getStatusBlockerLabel(blockedCount)}
+          </span>
+        ) : null}
+      </span>
+    </Select.Item>
+  )
+
+  if (!isBlocked) {
+    return item
+  }
+
+  return (
+    <Tooltip
+      content={
+        <StatusBlockersTooltipContent blockedOrders={option.blockedOrders} />
+      }
+      maxWidth={360}
+      side="right"
+    >
+      {item}
+    </Tooltip>
+  )
+}
+
 function OrdersTable({
   allPageOrdersSelected,
   isSelectionLimitReached,
@@ -344,7 +451,7 @@ function OrdersTable({
                 disabled={
                   !selectedOrderIds.has(order.id) && isSelectionLimitReached
                 }
-                onCheckedChange={() => onToggleOrder(order.id)}
+                onCheckedChange={() => onToggleOrder(order)}
               />
             </Table.Cell>
             <Table.Cell className="whitespace-nowrap text-ui-fg-base">
@@ -458,9 +565,9 @@ const OrderExpeditionPage = () => {
     typeof ALL_CARRIERS | OrderExpeditionCarrierKey
   >(ALL_CARRIERS)
   const [offset, setOffset] = useState(0)
-  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(
-    new Set()
-  )
+  const [selectedOrdersById, setSelectedOrdersById] = useState<
+    Map<string, OrderExpeditionOrderDto>
+  >(new Map())
   const [targetStatus, setTargetStatus] = useState<
     OrderExpeditionTargetStatus | ""
   >("")
@@ -494,19 +601,80 @@ const OrderExpeditionPage = () => {
     queryKey: ["order-expedition-orders", carrier, offset],
   })
 
-  const orders = ordersQuery.data?.orders ?? []
+  const orders = useMemo(
+    () => ordersQuery.data?.orders ?? [],
+    [ordersQuery.data?.orders]
+  )
+
+  useEffect(() => {
+    if (!orders.length) {
+      return
+    }
+
+    setSelectedOrdersById((prev) => {
+      let changed = false
+      const next = new Map(prev)
+
+      for (const order of orders) {
+        if (next.has(order.id)) {
+          next.set(order.id, order)
+          changed = true
+        }
+      }
+
+      return changed ? next : prev
+    })
+  }, [orders])
+
+  const selectedOrders = useMemo(
+    () => [...selectedOrdersById.values()],
+    [selectedOrdersById]
+  )
+  const selectedOrderIds = useMemo(
+    () => new Set(selectedOrdersById.keys()),
+    [selectedOrdersById]
+  )
   const selectedOrderIdsList = useMemo(
-    () => [...selectedOrderIds],
-    [selectedOrderIds]
+    () => [...selectedOrdersById.keys()],
+    [selectedOrdersById]
   )
   const allPageOrdersSelected =
     orders.length > 0 && orders.every((order) => selectedOrderIds.has(order.id))
   const somePageOrdersSelected =
     orders.some((order) => selectedOrderIds.has(order.id)) &&
     !allPageOrdersSelected
-  const selectedCount = selectedOrderIds.size
+  const selectedCount = selectedOrdersById.size
   const isSelectionLimitReached =
     selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
+
+  useEffect(() => {
+    if (selectedCount > 0) {
+      return
+    }
+
+    if (targetStatus) {
+      setTargetStatus("")
+    }
+
+    setBlockingOrders((prev) => (prev.length ? [] : prev))
+  }, [selectedCount, targetStatus])
+
+  const targetStatusOptions = useMemo(
+    () => getTargetStatusOptions(selectedOrders),
+    [selectedOrders]
+  )
+  const selectedTargetStatusOption = targetStatus
+    ? targetStatusOptions.find((option) => option.value === targetStatus)
+    : undefined
+  const selectedTargetStatusBlockers =
+    selectedTargetStatusOption?.blockedOrders ?? []
+  const selectedStatusBlockedMessage =
+    selectedTargetStatusOption && selectedTargetStatusBlockers.length > 0
+      ? getSelectedStatusBlockedMessage(
+          selectedTargetStatusOption.label,
+          selectedTargetStatusBlockers
+        )
+      : null
   const pagination = getOrderExpeditionPaginationState(ordersQuery.data, offset)
 
   const handleCarrierChange = (value: string) => {
@@ -518,7 +686,8 @@ const OrderExpeditionPage = () => {
 
     setCarrier(nextCarrier)
     setOffset(0)
-    setSelectedOrderIds(new Set())
+    setSelectedOrdersById(new Map())
+    setTargetStatus("")
     setBlockingOrders([])
   }
 
@@ -527,13 +696,19 @@ const OrderExpeditionPage = () => {
       return
     }
 
+    const option = targetStatusOptions.find((status) => status.value === value)
+
+    if (option?.blockedOrders.length) {
+      return
+    }
+
     setTargetStatus(value)
     setBlockingOrders([])
   }
 
-  const toggleOrder = (orderId: string) => {
+  const toggleOrder = (order: OrderExpeditionOrderDto) => {
     if (
-      isOrderSelectionLimitBlocked(orderId, selectedOrderIds, selectedCount)
+      isOrderSelectionLimitBlocked(order.id, selectedOrderIds, selectedCount)
     ) {
       toast.error(
         `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
@@ -541,12 +716,13 @@ const OrderExpeditionPage = () => {
       return
     }
 
-    setSelectedOrderIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(orderId)) {
-        next.delete(orderId)
+    setBlockingOrders([])
+    setSelectedOrdersById((prev) => {
+      const next = new Map(prev)
+      if (next.has(order.id)) {
+        next.delete(order.id)
       } else {
-        next.add(orderId)
+        next.set(order.id, order)
       }
       return next
     })
@@ -566,7 +742,8 @@ const OrderExpeditionPage = () => {
       )
     }
 
-    setSelectedOrderIds((prev) =>
+    setBlockingOrders([])
+    setSelectedOrdersById((prev) =>
       getNextPageSelection(prev, orders, allPageOrdersSelected)
     )
   }
@@ -598,6 +775,12 @@ const OrderExpeditionPage = () => {
       return
     }
 
+    if (selectedTargetStatusBlockers.length) {
+      setBlockingOrders(selectedTargetStatusBlockers)
+      toast.error("Selected orders no longer support that status change")
+      return
+    }
+
     const nextStatus = targetStatus
     setIsUpdatingStatus(true)
     setBlockingOrders([])
@@ -611,7 +794,7 @@ const OrderExpeditionPage = () => {
       }
 
       toast.success(`${selectedCount} order(s) updated`)
-      setSelectedOrderIds(new Set())
+      setSelectedOrdersById(new Map())
       setTargetStatus("")
       await ordersQuery.refetch()
     } catch (err) {
@@ -656,10 +839,10 @@ const OrderExpeditionPage = () => {
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 justify-start lg:justify-end">
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-2 lg:items-end">
           <div className="flex flex-wrap items-center gap-2">
             <Text className="whitespace-nowrap text-ui-fg-subtle" size="small">
-              {selectedCount} / {ORDER_EXPEDITION_MAX_ORDER_IDS} selected
+              {selectedCount} selected
             </Text>
 
             <Button
@@ -685,16 +868,18 @@ const OrderExpeditionPage = () => {
                 <Select.Value placeholder="Status" />
               </Select.Trigger>
               <Select.Content>
-                {TARGET_STATUSES.map((status) => (
-                  <Select.Item key={status.value} value={status.value}>
-                    {status.label}
-                  </Select.Item>
+                {targetStatusOptions.map((status) => (
+                  <StatusSelectItem key={status.value} option={status} />
                 ))}
               </Select.Content>
             </Select>
 
             <Button
-              disabled={selectedCount === 0 || !targetStatus}
+              disabled={
+                selectedCount === 0 ||
+                !targetStatus ||
+                selectedTargetStatusBlockers.length > 0
+              }
               isLoading={isUpdatingStatus}
               onClick={handleStatusUpdate}
               size="small"
@@ -702,6 +887,11 @@ const OrderExpeditionPage = () => {
               Apply status
             </Button>
           </div>
+          {selectedStatusBlockedMessage ? (
+            <Text className="max-w-full text-ui-fg-error" size="small">
+              {selectedStatusBlockedMessage}
+            </Text>
+          ) : null}
         </div>
       </div>
 
