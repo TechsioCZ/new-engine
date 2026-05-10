@@ -44,7 +44,28 @@ export async function fetchOrderBusinessStatusOrder(query: Query, id: string) {
     filters: { id },
   })
 
-  return (data as OrderBusinessStatusOrder[])[0]
+  return parseOrderBusinessStatusOrders(data)[0]
+}
+
+export function parseOrderBusinessStatusOrders(
+  value: unknown
+): OrderBusinessStatusOrder[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter(isOrderBusinessStatusOrder)
+}
+
+function isOrderBusinessStatusOrder(
+  value: unknown
+): value is OrderBusinessStatusOrder {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string"
+  )
 }
 
 export function toOrderBusinessStatusSummary(

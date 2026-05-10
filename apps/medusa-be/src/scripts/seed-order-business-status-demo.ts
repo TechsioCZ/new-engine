@@ -55,6 +55,9 @@ type BusinessStatusDemo = {
 }
 
 const DEMO_PRODUCT_HANDLE_PREFIX = "order-expedition-demo-"
+const DEMO_ITEM_BASE_AMOUNT = 500
+const DEMO_ITEM_AMOUNT_STEP = 25
+const DEMO_SHIPPING_AMOUNT = 99
 const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   {
     key: "awaiting-payment",
@@ -221,7 +224,7 @@ async function createDemoOrder({
           product_title: variant.product?.title ?? "Business status demo",
           quantity: 1,
           title: variant.product?.title ?? variant.title ?? "Demo item",
-          unit_price: 500 + index * 25,
+          unit_price: getDemoItemAmount(index),
           variant_id: variant.id,
           variant_sku: variant.sku ?? undefined,
           variant_title: variant.title ?? undefined,
@@ -242,7 +245,7 @@ async function createDemoOrder({
       },
       shipping_methods: [
         {
-          amount: 99,
+          amount: DEMO_SHIPPING_AMOUNT,
           data: { provider: "manual", seed: "order-business-status-demo" },
           name: "Business Status Demo Delivery",
         },
@@ -266,8 +269,7 @@ async function normalizeDemoOrder({
   pgConnection: DatabaseConnection
   region: DemoRegion
 }) {
-  const createdAt = new Date()
-  createdAt.setMinutes(createdAt.getMinutes() - index)
+  const createdAt = new Date(Date.now() - index * 60_000)
   const metadata = buildDemoMetadata(order.metadata, demo)
 
   await pgConnection.raw(
@@ -290,7 +292,13 @@ async function normalizeDemoOrder({
   )
 
   if (demo.paid) {
-    await upsertCompletedPaymentCollection(pgConnection, order, demo, region)
+    await upsertCompletedPaymentCollection(
+      pgConnection,
+      order,
+      demo,
+      region,
+      index
+    )
   } else {
     await removeDemoPaymentCollection(pgConnection, demo)
   }
@@ -306,10 +314,11 @@ async function upsertCompletedPaymentCollection(
   pgConnection: DatabaseConnection,
   order: DemoOrder,
   demo: BusinessStatusDemo,
-  region: DemoRegion
+  region: DemoRegion,
+  index: number
 ) {
   const paymentCollectionId = getPaymentCollectionId(demo)
-  const amount = 599
+  const amount = getDemoOrderTotal(index)
   const rawAmount = { value: amount, precision: 20 }
   const metadata = {
     order_business_status_demo: true,
@@ -548,10 +557,22 @@ function getDemoKey(order: DemoOrder) {
   return typeof key === "string" ? key : undefined
 }
 
+function getDemoItemAmount(index: number) {
+  return DEMO_ITEM_BASE_AMOUNT + index * DEMO_ITEM_AMOUNT_STEP
+}
+
+function getDemoOrderTotal(index: number) {
+  return getDemoItemAmount(index) + DEMO_SHIPPING_AMOUNT
+}
+
+function getDemoIdSlug(demo: BusinessStatusDemo) {
+  return demo.key.replace(/-/g, "_")
+}
+
 function getPaymentCollectionId(demo: BusinessStatusDemo) {
-  return `paycol_obs_demo_${demo.key.replaceAll("-", "_")}`
+  return `paycol_obs_demo_${getDemoIdSlug(demo)}`
 }
 
 function getFulfillmentId(demo: BusinessStatusDemo) {
-  return `ful_obs_demo_${demo.key.replaceAll("-", "_")}`
+  return `ful_obs_demo_${getDemoIdSlug(demo)}`
 }

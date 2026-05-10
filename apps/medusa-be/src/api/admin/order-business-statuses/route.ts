@@ -3,7 +3,7 @@ import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   ORDER_BUSINESS_STATUS_ORDER_FIELDS,
-  type OrderBusinessStatusOrder,
+  parseOrderBusinessStatusOrders,
   toOrderBusinessStatusSummary,
 } from "./utils"
 import type { GetAdminOrderBusinessStatusesSchemaType } from "./validators"
@@ -24,7 +24,7 @@ export async function GET(
     },
   })
 
-  const orders = data as OrderBusinessStatusOrder[]
+  const orders = parseOrderBusinessStatusOrders(data)
 
   res.json({
     orders: orders.map(toOrderBusinessStatusSummary),

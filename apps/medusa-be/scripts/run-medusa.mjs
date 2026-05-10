@@ -14,7 +14,8 @@ const child = spawn("corepack", ["pnpm", "exec", "medusa", ...args], {
 
 child.on("error", (error) => {
   runContext.cleanup()
-  throw error
+  console.error(error)
+  process.exitCode = 1
 })
 
 child.on("exit", (code, signal) => {

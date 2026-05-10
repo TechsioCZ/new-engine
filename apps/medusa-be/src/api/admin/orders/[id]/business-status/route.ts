@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { Query } from "@medusajs/framework/types"
+import type { IOrderModuleService, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -11,13 +11,6 @@ import {
   toOrderBusinessStatusSummary,
 } from "../../../order-business-statuses/utils"
 import type { PostAdminOrderBusinessStatusSchemaType } from "./validators"
-
-type OrderService = {
-  updateOrders: (
-    id: string,
-    data: { metadata: Record<string, unknown> }
-  ) => Promise<unknown>
-}
 
 export async function POST(
   req: MedusaRequest<PostAdminOrderBusinessStatusSchemaType>,
@@ -38,7 +31,7 @@ export async function POST(
   }
 
   const metadata = buildOrderBusinessStatusMetadata(order.metadata, status)
-  const orderService = req.scope.resolve<OrderService>(Modules.ORDER)
+  const orderService = req.scope.resolve<IOrderModuleService>(Modules.ORDER)
 
   await orderService.updateOrders(id, { metadata })
 

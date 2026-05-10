@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../../../../utils/order-business-status"
 import {
   buildOrderBusinessStatusMetadata,
+  parseOrderBusinessStatusOrders,
   type OrderBusinessStatusOrder,
   toOrderBusinessStatusSummary,
 } from "../utils"
@@ -29,6 +30,17 @@ describe("order business status API utilities", () => {
       existing: true,
       [ORDER_BUSINESS_STATUS_METADATA_KEY]: null,
     })
+  })
+
+  it("parses only order-shaped query results", () => {
+    expect(
+      parseOrderBusinessStatusOrders([
+        { id: "order_1", payment_status: "captured" },
+        { id: 123 },
+        null,
+      ])
+    ).toEqual([{ id: "order_1", payment_status: "captured" }])
+    expect(parseOrderBusinessStatusOrders({ id: "order_1" })).toEqual([])
   })
 
   it("returns a summary with a computed business status", () => {

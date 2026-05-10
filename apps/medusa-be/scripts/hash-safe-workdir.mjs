@@ -10,15 +10,27 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 export const medusaBeDir = path.resolve(scriptDir, "..")
 export const repoRoot = path.resolve(medusaBeDir, "../..")
 
-let didMountAlias = false
-
 function commandSucceeds(command, args) {
   return spawnSync(command, args, { stdio: "ignore" }).status === 0
 }
 
+function removeAliasRoot(aliasRoot) {
+  try {
+    fs.rmSync(aliasRoot, { force: true, recursive: true })
+  } catch {
+    // Best-effort cleanup only. A failed rm should not mask the original error.
+  }
+}
+
 function ensureHashSafeRepoAlias() {
   if (!repoRoot.includes("#")) {
-    return repoRoot
+    return { ownsMount: false, runRepoRoot: repoRoot }
+  }
+
+  if (process.platform !== "linux") {
+    throw new Error(
+      "Hash-safe Medusa runner requires Linux with CAP_SYS_ADMIN/root privileges when repo paths contain '#'. It relies on mount --bind and umount -l."
+    )
   }
 
   const digest = crypto
@@ -36,7 +48,7 @@ function ensureHashSafeRepoAlias() {
     if (!stat.isDirectory() || stat.isSymbolicLink()) {
       fs.rmSync(aliasRoot, { force: true, recursive: true })
     } else if (commandSucceeds("mountpoint", ["-q", aliasRoot])) {
-      return aliasRoot
+      return { ownsMount: false, runRepoRoot: aliasRoot }
     }
   } catch (error) {
     if (error.code !== "ENOENT") {
@@ -46,18 +58,19 @@ function ensureHashSafeRepoAlias() {
 
   fs.mkdirSync(aliasRoot, { recursive: true })
 
+  // Linux-only: requires CAP_SYS_ADMIN/root privileges for mount --bind.
   const mountResult = spawnSync("mount", ["--bind", repoRoot, aliasRoot], {
     stdio: "inherit",
   })
 
   if (mountResult.status !== 0) {
+    removeAliasRoot(aliasRoot)
     throw new Error(
       `Unable to bind mount hash-safe path ${aliasRoot} for ${repoRoot}`
     )
   }
 
-  didMountAlias = true
-  return aliasRoot
+  return { ownsMount: true, runRepoRoot: aliasRoot }
 }
 
 function createHashSafeEnv(runCwd) {
@@ -81,7 +94,7 @@ function createHashSafeEnv(runCwd) {
 }
 
 export function createHashSafeRunContext() {
-  const runRepoRoot = ensureHashSafeRepoAlias()
+  const { ownsMount, runRepoRoot } = ensureHashSafeRepoAlias()
   const runCwd = path.join(runRepoRoot, path.relative(repoRoot, medusaBeDir))
 
   return {
@@ -89,9 +102,8 @@ export function createHashSafeRunContext() {
     runCwd,
     runRepoRoot,
     cleanup() {
-      if (didMountAlias) {
+      if (ownsMount) {
         spawnSync("umount", ["-l", runRepoRoot], { stdio: "ignore" })
-        didMountAlias = false
         try {
           fs.rmdirSync(runRepoRoot)
         } catch {
