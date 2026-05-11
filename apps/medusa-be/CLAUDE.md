@@ -332,7 +332,7 @@ export default async function seed({ container, args }: ExecArgs) {}
 
 ## Testing
 
-Uses `@medusajs/test-utils` + Jest. Framework is for **integration only**; unit tests use plain Jest.
+Uses Vitest for unit, HTTP integration, and module integration tests. `@medusajs/test-utils` is for **integration only**; unit tests import Vitest APIs explicitly.
 
 | Type | Location | Command |
 |------|----------|---------|
@@ -358,15 +358,15 @@ Uses `@medusajs/test-utils` + Jest. Framework is for **integration only**; unit 
 
 **Valuable tests:** Behavior users care about, catches real bugs, complex logic, security-critical, edge cases.
 
-**Patterns:** Factory functions (`createMockEntity(overrides)`), boundary tests, `it.each()` for error types, `jest.useFakeTimers()`.
+**Patterns:** Factory functions (`createMockEntity(overrides)`), boundary tests, `it.each()` for error types, `vi.useFakeTimers()`.
 
 **Fake timers:**
 ```typescript
 const promise = service.doSomething()
-await jest.advanceTimersByTimeAsync(waitTime)
+await vi.advanceTimersByTimeAsync(waitTime)
 await promise
-// jest.clearAllMocks() doesn't clear mockResolvedValueOnce → use mockFn.mockReset()
-// Use jest.setSystemTime(ts) for deterministic Date.now()
+// vi.clearAllMocks() doesn't clear mockResolvedValueOnce -> use mockFn.mockReset()
+// Use vi.setSystemTime(ts) for deterministic Date.now()
 ```
 
 ### Integration Tests
@@ -383,7 +383,6 @@ medusaIntegrationTestRunner({
         })
     },
 })
-jest.setTimeout(60_000)
 // Admin auth: headers: { authorization: `Bearer ${jwt.sign({actor_id, actor_type: "user", auth_identity_id}, "supersecret")}` }
 // Store auth: headers: { "x-publishable-api-key": pak.token }
 ```
@@ -397,8 +396,8 @@ moduleIntegrationTestRunner<MyModuleService>({
     resolve: "./src/modules/my-module",
     moduleOptions: { environment: "testing" },
     injectedDependencies: {
-        [Modules.CACHING]: { get: jest.fn(), set: jest.fn(), clear: jest.fn() },
-        [Modules.LOCKING]: { execute: jest.fn(async (_key, fn) => fn()) },
+        [Modules.CACHING]: { get: vi.fn(), set: vi.fn(), clear: vi.fn() },
+        [Modules.LOCKING]: { execute: vi.fn(async (_key, fn) => fn()) },
     },
     testSuite: ({ service }) => {
         it("creates", async () => expect((await service.createMyEntities({ title: "Test" })).title).toBe("Test"))
@@ -408,7 +407,7 @@ moduleIntegrationTestRunner<MyModuleService>({
 
 **Gotchas:**
 - Awilix throws on missing deps even with `?? null` → wrap in try/catch
-- Mock loaders: `jest.mock("../loaders/x", () => ({ __esModule: true, default: jest.fn() }))`
+- Mock loaders: `vi.mock("../loaders/x", () => ({ __esModule: true, default: vi.fn() }))`
 
 **Workflow tests:** Use `medusaIntegrationTestRunner`, `throwOnError: false` to capture errors.
 

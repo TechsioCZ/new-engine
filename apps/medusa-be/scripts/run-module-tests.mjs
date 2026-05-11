@@ -25,15 +25,10 @@ dbEnv.DATABASE_URL =
   process.env.DATABASE_URL ||
   `postgres://${dbUser}:${dbPassword}@${dbEnv.DB_HOST}:${dbEnv.DB_PORT}/${dbName}`
 
-const nodeOptions = [process.env.NODE_OPTIONS, "--experimental-vm-modules"]
-  .filter(Boolean)
-  .join(" ")
-
 const testEnv = {
   ...process.env,
   ...dbEnv,
   TEST_TYPE: "integration:modules",
-  NODE_OPTIONS: nodeOptions,
 }
 
 function run(command, args, options = {}) {
@@ -179,7 +174,7 @@ try {
   postgresContainer = await ensureGithubPostgres()
   const exitCode = await run(
     "pnpm",
-    ["exec", "jest", "--silent", "--runInBand", "--forceExit"],
+    ["exec", "vitest", "run", "--config", "vitest.integration.config.ts"],
     {
       cwd: medusaBeDir,
       env: testEnv,

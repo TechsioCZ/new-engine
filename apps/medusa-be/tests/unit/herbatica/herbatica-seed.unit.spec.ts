@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { ProductStatus } from "@medusajs/framework/utils"
+import { describe, expect, it } from "vitest"
 import {
   type HerbaticaCategoryExport,
   parseHerbaticaCategoriesXmlFile,

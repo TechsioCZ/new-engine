@@ -1,4 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
+import { describe, expect, it } from "vitest"
 import {
   type ErrorWithOriginalThrowable,
   normalizeError,

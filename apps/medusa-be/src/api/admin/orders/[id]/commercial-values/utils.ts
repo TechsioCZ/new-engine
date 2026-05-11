@@ -3,6 +3,7 @@ import { MedusaError, OrderChangeStatus } from "@medusajs/framework/utils"
 import type {
   CommercialAdjustmentInput,
   CommercialValuesCalculationInput,
+  CommercialValuesEditBlocker,
   CommercialValuesItemInput,
   CommercialValuesSnapshot,
 } from "../../../../../utils/order-commercial-values"
@@ -447,16 +448,20 @@ export function getCommercialValuesEditBlockers(
   order: CommercialValuesOrder,
   activeOrderChange?: ActiveOrderChange
 ) {
-  const blockers: string[] = []
+  const blockers: CommercialValuesEditBlocker[] = []
 
   if (order.status && NON_EDITABLE_STATUSES.has(order.status)) {
-    blockers.push(`Order status ${order.status} is not editable`)
+    blockers.push({
+      code: "order_status_not_editable",
+      status: order.status,
+    })
   }
 
   if (activeOrderChange) {
-    blockers.push(
-      `Order already has active order change ${activeOrderChange.id}`
-    )
+    blockers.push({
+      code: "active_order_change_exists",
+      order_change_id: activeOrderChange.id,
+    })
   }
 
   return blockers

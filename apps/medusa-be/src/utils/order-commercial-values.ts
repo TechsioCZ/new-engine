@@ -79,6 +79,16 @@ export type CommercialValuesSnapshotItem = {
   variant_title?: string | null
 }
 
+export type CommercialValuesEditBlocker =
+  | {
+      code: "order_status_not_editable"
+      status: string
+    }
+  | {
+      code: "active_order_change_exists"
+      order_change_id: string
+    }
+
 export type CommercialValuesSnapshot = {
   active_order_change?: {
     id: string
@@ -87,7 +97,7 @@ export type CommercialValuesSnapshot = {
   }
   currency_code: string
   editable: boolean
-  edit_blockers: string[]
+  edit_blockers: CommercialValuesEditBlocker[]
   expected_order_version: number
   items: CommercialValuesSnapshotItem[]
   order_id: string

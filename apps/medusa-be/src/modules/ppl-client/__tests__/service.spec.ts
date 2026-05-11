@@ -1,22 +1,9 @@
-jest.setTimeout(60_000)
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
-// Set encryption key before any imports
-process.env.SETTINGS_ENCRYPTION_KEY =
-  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
-// Mock the OAuth2 client to avoid ES Module issues
-jest.mock("../client", () => ({
-  PplClient: jest.fn().mockImplementation(() => ({
-    fetchNewToken: jest.fn(),
-  })),
-}))
-
-// Mock the module loader to avoid dynamic import issues in Jest
-// The loader creates default config which we don't need in tests
-jest.mock("../loaders/create-default-config", () => ({
-  __esModule: true,
-  default: jest.fn(),
-}))
+vi.hoisted(() => {
+  process.env.SETTINGS_ENCRYPTION_KEY =
+    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+})
 
 import { Modules } from "@medusajs/framework/utils"
 import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
@@ -26,13 +13,13 @@ import type { PplClientModuleService } from "../service"
 
 // Mock services for dependencies
 const mockCacheService = {
-  get: jest.fn().mockResolvedValue(null),
-  set: jest.fn().mockResolvedValue(undefined),
-  clear: jest.fn().mockResolvedValue(undefined),
+  get: vi.fn().mockResolvedValue(null),
+  set: vi.fn().mockResolvedValue(undefined),
+  clear: vi.fn().mockResolvedValue(undefined),
 }
 
 const mockLockingService = {
-  execute: jest.fn().mockImplementation(async (_key, fn) => fn()),
+  execute: vi.fn().mockImplementation(async (_key, fn) => fn()),
 }
 
 // Base64 pattern for encrypted values
@@ -51,14 +38,18 @@ moduleIntegrationTestRunner<PplClientModuleService>({
   },
   testSuite: ({ service }) => {
     beforeEach(() => {
-      jest.clearAllMocks()
+      vi.clearAllMocks()
     })
 
     describe("config management", () => {
-      it("returns null when no config exists", async () => {
-        // Loader is mocked in tests, so no default config is created
+      it("returns disabled default config before admin setup", async () => {
         const result = await service.getConfig()
-        expect(result).toBeNull()
+        expect(result).toMatchObject({
+          environment: "testing",
+          is_enabled: false,
+        })
+        expect(result?.client_id).toBeNull()
+        expect(result?.client_secret).toBeNull()
       })
 
       it("creates and retrieves config with encrypted credentials", async () => {

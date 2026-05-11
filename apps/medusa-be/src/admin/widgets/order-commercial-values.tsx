@@ -17,7 +17,9 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
+import type { TFunction } from "i18next"
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import type {
   CommercialDiscountIntent,
   CommercialValuesConfirmResponse as CommercialValuesConfirmPayload,
@@ -86,24 +88,35 @@ function invalidateMedusaAdminOrderQueries(
   queryClient.invalidateQueries({ queryKey: [orderDetailQueryKey] })
 }
 
-function formatMoney(value: number | undefined, currencyCode: string) {
+function getIntlLocale(language?: string) {
+  return (language || "en").replace(/([a-z])([A-Z])/g, "$1-$2")
+}
+
+function formatMoney(
+  value: number | undefined,
+  currencyCode: string,
+  locale: string
+) {
   if (value === undefined || !Number.isFinite(value)) {
     return "-"
   }
 
-  return new Intl.NumberFormat("cs-CZ", {
+  return new Intl.NumberFormat(locale, {
     currency: currencyCode.toUpperCase(),
     style: "currency",
   }).format(value)
 }
 
-function formatQuantity(value: number) {
-  return new Intl.NumberFormat("cs-CZ", {
+function formatQuantity(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
     maximumFractionDigits: 3,
   }).format(value)
 }
 
-function getItemDisplayName(item: CommercialValuesSnapshot["items"][number]) {
+function getItemDisplayName(
+  item: CommercialValuesSnapshot["items"][number],
+  fallbackName: string
+) {
   const variantTitle =
     item.variant_title && item.product_title !== item.variant_title
       ? item.variant_title
@@ -113,18 +126,22 @@ function getItemDisplayName(item: CommercialValuesSnapshot["items"][number]) {
     item.title ||
     [item.product_title, variantTitle].filter(Boolean).join(" / ") ||
     item.product_title ||
-    "Order item"
+    fallbackName
   )
 }
 
-function getItemMetadata(item: CommercialValuesSnapshot["items"][number]) {
-  return [item.subtitle, item.variant_sku ? `SKU ${item.variant_sku}` : null]
-    .filter(Boolean)
-    .join(" · ")
+function getItemMetadata(
+  item: CommercialValuesSnapshot["items"][number],
+  skuLabel: string | null
+) {
+  return [item.subtitle, skuLabel].filter(Boolean).join(" · ")
 }
 
-function getItemInitials(item: CommercialValuesSnapshot["items"][number]) {
-  const initials = getItemDisplayName(item)
+function getItemInitials(
+  item: CommercialValuesSnapshot["items"][number],
+  fallbackName: string
+) {
+  const initials = getItemDisplayName(item, fallbackName)
     .split(ITEM_INITIALS_SEPARATOR)
     .filter(Boolean)
     .slice(0, 2)
@@ -132,6 +149,29 @@ function getItemInitials(item: CommercialValuesSnapshot["items"][number]) {
     .join("")
 
   return initials || "IT"
+}
+
+function getEditBlockerMessage(
+  blocker: CommercialValuesSnapshot["edit_blockers"][number] | string,
+  t: TFunction
+) {
+  if (typeof blocker === "string") {
+    return blocker
+  }
+
+  if (blocker.code === "order_status_not_editable") {
+    return t("orderCommercialValues.blockers.orderStatusNotEditable", {
+      status: blocker.status,
+    })
+  }
+
+  if (blocker.code === "active_order_change_exists") {
+    return t("orderCommercialValues.blockers.activeOrderChangeExists", {
+      orderChangeId: blocker.order_change_id,
+    })
+  }
+
+  return t("orderCommercialValues.blockers.unknown")
 }
 
 function getDraftLineTotal(item: DraftItem, quantity: number) {
@@ -323,39 +363,47 @@ const DiscountControls = ({
   onValueChange: (value: string) => void
   type: DraftDiscountType
   value: string
-}) => (
-  <div
-    className={`grid min-w-0 grid-cols-[116px_minmax(96px,1fr)] items-center gap-2 ${className}`}
-  >
-    <Select
-      disabled={disabled}
-      onValueChange={(next) => {
-        if (isDraftDiscountType(next)) {
-          onTypeChange(next)
-        }
-      }}
-      value={type}
+}) => {
+  const { t } = useTranslation()
+
+  return (
+    <div
+      className={`grid min-w-0 grid-cols-[116px_minmax(96px,1fr)] items-center gap-2 ${className}`}
     >
-      <Select.Trigger className="w-full">
-        <Select.Value />
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Item value="none">None</Select.Item>
-        <Select.Item value="percentage">%</Select.Item>
-        <Select.Item value="amount">Amount</Select.Item>
-      </Select.Content>
-    </Select>
-    <Input
-      disabled={disabled || type === "none"}
-      min={0}
-      onChange={(event) => onValueChange(event.target.value)}
-      placeholder={type === "percentage" ? "0-100" : "0"}
-      step="any"
-      type="number"
-      value={type === "none" ? "" : value}
-    />
-  </div>
-)
+      <Select
+        disabled={disabled}
+        onValueChange={(next) => {
+          if (isDraftDiscountType(next)) {
+            onTypeChange(next)
+          }
+        }}
+        value={type}
+      >
+        <Select.Trigger className="w-full">
+          <Select.Value />
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Item value="none">
+            {t("orderCommercialValues.discount.none")}
+          </Select.Item>
+          <Select.Item value="percentage">%</Select.Item>
+          <Select.Item value="amount">
+            {t("orderCommercialValues.discount.amount")}
+          </Select.Item>
+        </Select.Content>
+      </Select>
+      <Input
+        disabled={disabled || type === "none"}
+        min={0}
+        onChange={(event) => onValueChange(event.target.value)}
+        placeholder={type === "percentage" ? "0-100" : "0"}
+        step="any"
+        type="number"
+        value={type === "none" ? "" : value}
+      />
+    </div>
+  )
+}
 
 const CommercialValuesDrawer = ({
   draft,
@@ -380,6 +428,8 @@ const CommercialValuesDrawer = ({
   preview?: CommercialValuesPreview
   snapshot: CommercialValuesSnapshot
 }) => {
+  const { i18n, t } = useTranslation()
+  const locale = getIntlLocale(i18n.resolvedLanguage ?? i18n.language)
   const payload = buildPayload(draft, snapshot, "confirm")
   const canSubmit = snapshot.editable && !!payload
 
@@ -396,35 +446,37 @@ const CommercialValuesDrawer = ({
     <Drawer onOpenChange={(open) => !open && onClose()} open={isOpen}>
       <Drawer.Content style={DRAWER_CONTENT_STYLE}>
         <Drawer.Header>
-          <Drawer.Title>Commercial values</Drawer.Title>
+          <Drawer.Title>{t("orderCommercialValues.title")}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-5 overflow-y-auto bg-ui-bg-subtle pb-24">
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-lg border border-ui-border-base bg-ui-bg-base p-4">
               <Text className="text-ui-fg-subtle" size="small">
-                Original total
+                {t("orderCommercialValues.totals.original")}
               </Text>
               <Text className="mt-1 text-ui-fg-base" weight="plus">
                 {formatMoney(
                   snapshot.totals.original_total,
-                  snapshot.currency_code
+                  snapshot.currency_code,
+                  locale
                 )}
               </Text>
             </div>
             <div className="rounded-lg border border-ui-border-base bg-ui-bg-base p-4">
               <Text className="text-ui-fg-subtle" size="small">
-                New total
+                {t("orderCommercialValues.totals.new")}
               </Text>
               <Text className="mt-1 text-ui-fg-base" weight="plus">
                 {formatMoney(
                   preview?.new_total ?? snapshot.totals.current_total,
-                  snapshot.currency_code
+                  snapshot.currency_code,
+                  locale
                 )}
               </Text>
             </div>
             <div className="rounded-lg border border-ui-border-base bg-ui-bg-base p-4">
               <Text className="text-ui-fg-subtle" size="small">
-                Delta
+                {t("orderCommercialValues.totals.delta")}
               </Text>
               <Text
                 className={
@@ -434,7 +486,11 @@ const CommercialValuesDrawer = ({
                 }
                 weight="plus"
               >
-                {formatMoney(preview?.delta ?? 0, snapshot.currency_code)}
+                {formatMoney(
+                  preview?.delta ?? 0,
+                  snapshot.currency_code,
+                  locale
+                )}
               </Text>
             </div>
           </div>
@@ -442,8 +498,16 @@ const CommercialValuesDrawer = ({
           {snapshot.edit_blockers.length > 0 ? (
             <div className="rounded-md border border-ui-border-base p-3">
               {snapshot.edit_blockers.map((blocker) => (
-                <Text className="text-ui-fg-error" key={blocker} size="small">
-                  {blocker}
+                <Text
+                  className="text-ui-fg-error"
+                  key={
+                    typeof blocker === "string"
+                      ? blocker
+                      : `${blocker.code}:${Object.values(blocker).join(":")}`
+                  }
+                  size="small"
+                >
+                  {getEditBlockerMessage(blocker, t)}
                 </Text>
               ))}
             </div>
@@ -455,7 +519,15 @@ const CommercialValuesDrawer = ({
                 (candidate) => candidate.item_id === item.item_id
               )
               const itemPreview = getItemPreview(preview, item.item_id)
-              const metadata = getItemMetadata(item)
+              const fallbackName = t("orderCommercialValues.item.fallbackName")
+              const metadata = getItemMetadata(
+                item,
+                item.variant_sku
+                  ? t("orderCommercialValues.item.sku", {
+                      sku: item.variant_sku,
+                    })
+                  : null
+              )
 
               if (!draftItem) {
                 return null
@@ -470,7 +542,7 @@ const CommercialValuesDrawer = ({
                     <div className="flex min-w-0 items-start gap-3 md:max-w-[560px]">
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-ui-border-base bg-ui-bg-subtle">
                         <Text size="small" weight="plus">
-                          {getItemInitials(item)}
+                          {getItemInitials(item, fallbackName)}
                         </Text>
                       </div>
                       <div className="min-w-0">
@@ -478,7 +550,7 @@ const CommercialValuesDrawer = ({
                           className="truncate text-ui-fg-base"
                           weight="plus"
                         >
-                          {getItemDisplayName(item)}
+                          {getItemDisplayName(item, fallbackName)}
                         </Text>
                         {metadata ? (
                           <Text
@@ -494,21 +566,22 @@ const CommercialValuesDrawer = ({
                     <div className="grid shrink-0 grid-cols-2 gap-3 sm:min-w-[260px]">
                       <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2">
                         <Text className="text-ui-fg-subtle" size="small">
-                          Qty
+                          {t("orderCommercialValues.item.quantity")}
                         </Text>
                         <Text className="mt-1" weight="plus">
-                          {formatQuantity(item.quantity)}
+                          {formatQuantity(item.quantity, locale)}
                         </Text>
                       </div>
                       <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2 sm:text-right">
                         <Text className="text-ui-fg-subtle" size="small">
-                          Line
+                          {t("orderCommercialValues.item.line")}
                         </Text>
                         <Text className="mt-1" weight="plus">
                           {formatMoney(
                             itemPreview?.final_line_total ??
                               getDraftLineTotal(draftItem, item.quantity),
-                            snapshot.currency_code
+                            snapshot.currency_code,
+                            locale
                           )}
                         </Text>
                       </div>
@@ -518,7 +591,7 @@ const CommercialValuesDrawer = ({
                   <div className="mt-4 grid gap-4 border-ui-border-base border-t pt-4 md:grid-cols-[180px_minmax(0,1fr)]">
                     <div>
                       <Text className="mb-2 text-ui-fg-subtle" size="small">
-                        Unit price
+                        {t("orderCommercialValues.fields.unitPrice")}
                       </Text>
                       <Input
                         disabled={!snapshot.editable}
@@ -536,7 +609,7 @@ const CommercialValuesDrawer = ({
 
                     <div className="md:max-w-[420px]">
                       <Text className="mb-2 text-ui-fg-subtle" size="small">
-                        Item discount
+                        {t("orderCommercialValues.fields.itemDiscount")}
                       </Text>
                       <DiscountControls
                         disabled={!snapshot.editable}
@@ -567,7 +640,7 @@ const CommercialValuesDrawer = ({
           <div className="grid gap-4 rounded-lg border border-ui-border-base bg-ui-bg-base p-4 md:grid-cols-[minmax(0,1fr)_160px]">
             <div>
               <Text className="mb-2 text-ui-fg-subtle" size="small">
-                Order discount
+                {t("orderCommercialValues.fields.orderDiscount")}
               </Text>
               <DiscountControls
                 className="max-w-[360px]"
@@ -592,12 +665,13 @@ const CommercialValuesDrawer = ({
             </div>
             <div className="md:text-right">
               <Text className="text-ui-fg-subtle" size="small">
-                Order discount total
+                {t("orderCommercialValues.totals.orderDiscount")}
               </Text>
               <Text className="mt-1" weight="plus">
                 {formatMoney(
                   preview?.order_discount_total ?? 0,
-                  snapshot.currency_code
+                  snapshot.currency_code,
+                  locale
                 )}
               </Text>
             </div>
@@ -605,7 +679,7 @@ const CommercialValuesDrawer = ({
 
           <div className="rounded-lg border border-ui-border-base bg-ui-bg-base p-4">
             <Text className="mb-2 text-ui-fg-subtle" size="small">
-              Internal note
+              {t("orderCommercialValues.fields.internalNote")}
             </Text>
             <Input
               disabled={!snapshot.editable}
@@ -619,7 +693,7 @@ const CommercialValuesDrawer = ({
         <Drawer.Footer>
           <div className="flex w-full items-center justify-end gap-2">
             <Button onClick={onClose} type="button" variant="secondary">
-              Cancel
+              {t("orderCommercialValues.actions.cancel")}
             </Button>
             <Button
               disabled={!canSubmit}
@@ -628,7 +702,7 @@ const CommercialValuesDrawer = ({
               type="button"
               variant="secondary"
             >
-              Preview
+              {t("orderCommercialValues.actions.preview")}
             </Button>
             <Button
               disabled={!(canSubmit && preview)}
@@ -636,7 +710,7 @@ const CommercialValuesDrawer = ({
               onClick={onConfirm}
               type="button"
             >
-              Confirm
+              {t("orderCommercialValues.actions.confirm")}
             </Button>
           </div>
         </Drawer.Footer>
@@ -648,6 +722,8 @@ const CommercialValuesDrawer = ({
 const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
   const order = data
   const queryClient = useQueryClient()
+  const { i18n, t } = useTranslation()
+  const locale = getIntlLocale(i18n.resolvedLanguage ?? i18n.language)
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState<DraftState | null>(null)
   const [preview, setPreview] = useState<CommercialValuesPreview>()
@@ -692,7 +768,11 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
         return
       }
 
-      toast.error(err instanceof Error ? err.message : "Preview failed")
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("orderCommercialValues.errors.previewFailed")
+      )
     },
     onSuccess: (response, variables) => {
       if (latestPreviewKey.current !== variables.key) {
@@ -713,13 +793,17 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
         }
       ),
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Save failed")
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("orderCommercialValues.errors.saveFailed")
+      )
     },
     onSuccess: (response) => {
       toast.success(
         response.commercial_values.mode === "requested"
-          ? "Order edit requested"
-          : "Order edit confirmed"
+          ? t("orderCommercialValues.status.requested")
+          : t("orderCommercialValues.status.confirmed")
       )
       setIsOpen(false)
       setPreview(undefined)
@@ -750,7 +834,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
 
     const payload = buildPayload(draft, snapshot)
     if (!payload) {
-      toast.error("Invalid commercial values")
+      toast.error(t("orderCommercialValues.errors.invalidValues"))
       return
     }
 
@@ -766,7 +850,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
 
     const payload = buildPayload(draft, snapshot, "confirm")
     if (!payload) {
-      toast.error("Invalid commercial values")
+      toast.error(t("orderCommercialValues.errors.invalidValues"))
       return
     }
 
@@ -777,19 +861,22 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
     <Container className="divide-y p-0">
       <div className="flex items-center justify-between gap-3 px-6 py-4">
         <div>
-          <Heading level="h2">Commercial values</Heading>
+          <Heading level="h2">{t("orderCommercialValues.title")}</Heading>
           <Text className="text-ui-fg-subtle" size="small">
             {snapshot
               ? formatMoney(
                   snapshot.totals.current_total,
-                  snapshot.currency_code
+                  snapshot.currency_code,
+                  locale
                 )
-              : "Loading..."}
+              : t("orderCommercialValues.status.loading")}
           </Text>
         </div>
         <div className="flex items-center gap-2">
           {snapshot && !snapshot.editable ? (
-            <Badge size="2xsmall">Locked</Badge>
+            <Badge size="2xsmall">
+              {t("orderCommercialValues.status.locked")}
+            </Badge>
           ) : null}
           <Button
             disabled={isLoading || !!error || !snapshot}
@@ -798,14 +885,14 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
             type="button"
             variant="secondary"
           >
-            Edit
+            {t("orderCommercialValues.actions.edit")}
           </Button>
         </div>
       </div>
       {error ? (
         <div className="px-6 py-4">
           <Text className="text-ui-fg-error" size="small">
-            Failed to load commercial values.
+            {t("orderCommercialValues.errors.loadFailed")}
           </Text>
         </div>
       ) : null}

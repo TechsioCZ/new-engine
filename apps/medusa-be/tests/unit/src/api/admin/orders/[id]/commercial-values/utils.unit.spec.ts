@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest"
+
 import {
   assertCommercialValuesEditable,
   type CommercialValuesOrder,
@@ -102,6 +104,28 @@ describe("commercial values route utils", () => {
       variant_sku: "HOOD-BLK",
       variant_title: "Black",
     })
+  })
+
+  it("returns semantic edit blocker codes for admin localization", () => {
+    const snapshot = toCommercialValuesSnapshot(
+      createMockOrder({ status: "canceled" }),
+      {
+        id: "oc_1",
+        status: "pending",
+        version: 1,
+      }
+    )
+
+    expect(snapshot.edit_blockers).toEqual([
+      {
+        code: "order_status_not_editable",
+        status: "canceled",
+      },
+      {
+        code: "active_order_change_exists",
+        order_change_id: "oc_1",
+      },
+    ])
   })
 
   it("derives unit price from line subtotal when Medusa omits item unit price", () => {

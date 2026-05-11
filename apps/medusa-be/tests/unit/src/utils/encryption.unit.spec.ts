@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
+
 import { decryptFields, encryptFields } from "../../../../src/utils/encryption"
 
 // Valid 64-character hex key (32 bytes) - synthetic test value, not a real secret
