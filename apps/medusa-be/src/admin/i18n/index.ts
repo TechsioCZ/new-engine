@@ -1,3 +1,31 @@
+import type { OrderBusinessStatusId } from "../../utils/order-business-status"
+
+type AdminLocale = "cs" | "en"
+
+type OrderBusinessStatusesNamespace = {
+  columns: Record<
+    | "businessStatus"
+    | "created"
+    | "customer"
+    | "manualStatus"
+    | "order"
+    | "total",
+    string
+  >
+  manualStatus: Record<"clear" | "placeholder" | "saving", string>
+  menuItem: string
+  pagination: Record<"next" | "of" | "pages" | "previous" | "results", string>
+  statuses: Record<OrderBusinessStatusId, string>
+  table: Record<"empty" | "loading", string>
+  title: string
+  toast: Record<"saveError" | "saveSuccess", string>
+}
+
+type AdminI18nResources = Record<
+  AdminLocale,
+  { orderBusinessStatuses: OrderBusinessStatusesNamespace }
+>
+
 const resources = {
   cs: {
     orderBusinessStatuses: {
@@ -87,6 +115,6 @@ const resources = {
       },
     },
   },
-}
+} satisfies AdminI18nResources
 
 export default resources
