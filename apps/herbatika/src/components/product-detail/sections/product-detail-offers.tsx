@@ -30,6 +30,7 @@ export function ProductDetailOffers({
         Množstevná zľava
       </h2>
 
+      <div className="flex flex-col bg-surface p-550 rounded-base gap-y-350">
       <RadioCard
         onValueChange={(value) => {
           if (!value) {
@@ -42,6 +43,7 @@ export function ProductDetailOffers({
         size="md"
         value={selectedOptionId}
         variant="subtle"
+        className="gap-y-350"
       >
         <RadioCard.Label className="sr-only">Množstevná zľava</RadioCard.Label>
 
@@ -50,7 +52,7 @@ export function ProductDetailOffers({
 
           return (
             <RadioCard.Item
-              className="data-[state=checked]:border-primary"
+              className="data-[state=checked]:border-primary data-[state=checked]:border-2"
               key={option.id}
               value={option.id}
             >
@@ -60,7 +62,7 @@ export function ProductDetailOffers({
                 <DiscountOptionIndicator isSelected={isSelected} />
 
                 <RadioCard.ItemContent>
-                  <RadioCard.ItemText className="data-[state=checked]:font-semibold">
+                  <RadioCard.ItemText>
                     {option.title}
                   </RadioCard.ItemText>
                   <RadioCard.ItemDescription className="text-fg-tertiary">
@@ -89,6 +91,8 @@ export function ProductDetailOffers({
       >
         Pridať do košíka
       </Button>
+
+      </div>
     </section>
   );
 }
@@ -117,7 +121,7 @@ function DiscountOptionPrice({
 }) {
   return (
     <div className="flex shrink-0 flex-col items-end gap-50 text-right">
-      <span className="text-sm font-medium leading-tight text-fg-primary">
+      <span className="font-medium leading-tight text-fg-primary">
         {priceLabel}
       </span>
       {originalPriceLabel ? (
