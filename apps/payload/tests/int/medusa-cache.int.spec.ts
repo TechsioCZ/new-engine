@@ -38,7 +38,7 @@ describe("medusaCache hooks", () => {
     vi.resetModules()
     resetEnv()
     originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi.fn() as unknown as typeof fetch
 
     const envModule = await import("@/lib/utils/env")
     getEnvString = envModule.getEnvString as ReturnType<typeof vi.fn>
@@ -322,6 +322,35 @@ describe("medusaCache hooks", () => {
       const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
       const body = JSON.parse(options.body as string)
       expect(body.doc.slug).toBeUndefined()
+    })
+
+    it("notifies Medusa for media changes without slug", async () => {
+      getEnvString
+        .mockReturnValueOnce("http://medusa.test")
+        .mockReturnValueOnce("test-secret")
+
+      const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>
+      mockFetch.mockResolvedValue({ ok: true })
+
+      const hook = createMedusaCacheHook("media")
+      const doc = { id: 1, filename: "image.png" }
+      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+
+      await hook({
+        doc,
+        req: {
+          locale: "cs",
+          payload: { logger: mockLogger },
+        } as unknown as PayloadRequest,
+        operation: "update",
+      } as any)
+
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
+      const body = JSON.parse(options.body as string)
+      expect(body.collection).toBe("media")
+      expect(body.doc.id).toBe("1")
+      expect(body.doc.slug).toBeUndefined()
+      expect(body.doc.locale).toBe("cs")
     })
 
     it("omits locale when Payload provides null locale", async () => {
