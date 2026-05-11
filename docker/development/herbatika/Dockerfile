@@ -14,6 +14,7 @@ WORKDIR /var/www
 FROM base AS build
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 COPY apps/herbatika/package.json apps/herbatika/package.json
 COPY libs/ui/package.json libs/ui/package.json
 COPY libs/storefront-data/package.json libs/storefront-data/package.json
@@ -46,7 +47,6 @@ RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatica... && \
     pnpm --filter=@techsio/storefront-data build && \
     pnpm --filter=@techsio/ui-kit build && \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatica... && \
     pnpm --filter=herbatica build && \
     test -f apps/herbatika/.next/BUILD_ID
 
