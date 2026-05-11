@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import type { AdminPayloadSsoSchemaType } from "../../../../../../../src/api/admin/payload/sso/route"
 
 const { mockImportPKCS8, mockSignJWTConstructor } = vi.hoisted(() => ({
   mockImportPKCS8: vi.fn(),
@@ -44,6 +45,15 @@ type MockResponse = {
   status: ReturnType<typeof vi.fn>
 }
 
+type MockRequest = {
+  auth_context?: {
+    actor_id?: string
+    actor_type?: string
+  }
+  headers: Record<string, string>
+  validatedQuery: AdminPayloadSsoSchemaType
+}
+
 const createMockResponse = (): MockResponse => ({
   json: vi.fn().mockReturnThis(),
   send: vi.fn().mockReturnThis(),
@@ -54,18 +64,17 @@ const createMockResponse = (): MockResponse => ({
 const createMockRequest = (
   overrides: Record<string, unknown> = {},
   headers: Record<string, string> = {}
-) =>
-  ({
-    headers,
-    auth_context: {
-      actor_id: "user_123",
-      actor_type: "user",
-    },
-    validatedQuery: {
-      returnTo: "/admin",
-    },
-    ...overrides,
-  }) as any
+): MockRequest => ({
+  headers,
+  auth_context: {
+    actor_id: "user_123",
+    actor_type: "user",
+  },
+  validatedQuery: {
+    returnTo: "/admin",
+  },
+  ...overrides,
+})
 
 describe("GET /admin/payload/sso", () => {
   beforeEach(() => {
