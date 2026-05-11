@@ -5,7 +5,7 @@ figma.connect(
   Popover,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1076-666",
   {
-    imports: ['import { Popover } from "@techsio/ui-kit/molecules/popover"'],
+    imports: ['import { Popover } from "@libs/ui/molecules/popover"'],
     props: {
       placement: figma.enum("placement", {
         top: "top",
@@ -19,8 +19,14 @@ figma.connect(
       }),
     },
     example: ({ placement }) => (
-      <Popover id="popover" placement={placement} trigger={<button>Open</button>}>
-        Popover content
+      <Popover defaultOpen id="popover" placement={placement}>
+        <Popover.Trigger>Open</Popover.Trigger>
+        <Popover.Positioner>
+          <Popover.Content>
+            <Popover.Arrow />
+            Popover content
+          </Popover.Content>
+        </Popover.Positioner>
       </Popover>
     ),
   }
