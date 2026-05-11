@@ -578,15 +578,21 @@ function ComponentComparison() {
             />
           </ComponentCard>
           <ComponentCard title="Popover">
-            <Popover
-              id="popover"
-              description="Quick details about the item."
-              size="md"
-              title="Popover"
-              trigger="Details"
-            >
-              <div className="text-fg-secondary text-sm">Popover content.</div>
-            </Popover>
+            <Popover.Root id="popover" size="md">
+              <Popover.Trigger>Details</Popover.Trigger>
+              <Popover.Positioner>
+                <Popover.Content>
+                  <Popover.Arrow />
+                  <Popover.Title>Popover</Popover.Title>
+                  <Popover.Description>
+                    Quick details about the item.
+                  </Popover.Description>
+                  <div className="text-fg-secondary text-sm">
+                    Popover content.
+                  </div>
+                </Popover.Content>
+              </Popover.Positioner>
+            </Popover.Root>
           </ComponentCard>
           <ComponentCard title="ProductCard" bodyClassName="flex w-full justify-center">
             <div className="w-full max-w-sm">
