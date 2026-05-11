@@ -187,7 +187,7 @@ Popover.Anchor = function PopoverAnchor({
   const { api } = usePopoverContext()
   const anchorProps = mergeProps(props, api.getAnchorProps())
 
-  return <div className={className} ref={ref} {...anchorProps} />
+  return <div {...anchorProps} className={className} ref={ref} />
 }
 
 export type PopoverTriggerProps = ButtonProps & {
@@ -253,10 +253,10 @@ Popover.Indicator = function PopoverIndicator({
 
   return (
     <span
+      {...indicatorProps}
       className={styles.indicator({ className })}
       data-state={api.open ? "open" : "closed"}
       ref={ref}
-      {...indicatorProps}
     />
   )
 }
@@ -282,9 +282,9 @@ Popover.Positioner = function PopoverPositioner({
   const positionerProps = mergeProps(props, api.getPositionerProps())
   const positionerNode = (
     <div
+      {...positionerProps}
       className={styles.positioner({ className })}
       ref={ref}
-      {...positionerProps}
     >
       {children}
     </div>
@@ -297,6 +297,10 @@ export type PopoverContentProps = ComponentPropsWithoutRef<"div"> & {
   ref?: Ref<HTMLDivElement>
 }
 
+type PopoverContentMergedProps = ComponentPropsWithoutRef<"div"> & {
+  "data-placement"?: PopoverPlacement
+}
+
 Popover.Content = function PopoverContent({
   children,
   className,
@@ -306,13 +310,22 @@ Popover.Content = function PopoverContent({
   const { api, placement, styles } = usePopoverContext()
   const machineContentProps =
     api.getContentProps() as ComponentPropsWithoutRef<"div">
-  const contentProps = mergeProps(props, machineContentProps)
+  const contentProps = mergeProps(
+    props,
+    machineContentProps
+  ) as PopoverContentMergedProps
+  const contentPlacement = contentProps["data-placement"]
+  // Derive data-side from Zag's computed placement so flipped positions animate from the actual side.
+  const contentSide =
+    typeof contentPlacement === "string"
+      ? contentPlacement.split("-")[0]
+      : placement.split("-")[0]
 
   return (
     <div
       {...contentProps}
       className={styles.content({ className })}
-      data-side={placement.split("-")[0]}
+      data-side={contentSide}
       data-state={api.open ? "open" : "closed"}
       ref={ref}
     >
@@ -335,7 +348,7 @@ Popover.Arrow = function PopoverArrow({
   const arrowProps = mergeProps(props, api.getArrowProps())
 
   return (
-    <div className={styles.arrow({ className })} ref={ref} {...arrowProps}>
+    <div {...arrowProps} className={styles.arrow({ className })} ref={ref}>
       {children ?? <Popover.ArrowTip />}
     </div>
   )
@@ -355,9 +368,9 @@ Popover.ArrowTip = function PopoverArrowTip({
 
   return (
     <div
+      {...arrowTipProps}
       className={styles.arrowTip({ className })}
       ref={ref}
-      {...arrowTipProps}
     />
   )
 }
@@ -375,7 +388,7 @@ Popover.Title = function PopoverTitle({
   const titleProps = mergeProps(props, api.getTitleProps())
 
   return (
-    <div className={styles.title({ className })} ref={ref} {...titleProps} />
+    <div {...titleProps} className={styles.title({ className })} ref={ref} />
   )
 }
 
@@ -393,9 +406,9 @@ Popover.Description = function PopoverDescription({
 
   return (
     <div
+      {...descriptionProps}
       className={styles.description({ className })}
       ref={ref}
-      {...descriptionProps}
     />
   )
 }
