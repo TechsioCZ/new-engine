@@ -91,17 +91,20 @@ describe("instrumentation", () => {
       event
     )
 
+    expect(sentryPropagatorMock).toHaveBeenCalledTimes(1)
     expect(setGlobalPropagator).toHaveBeenCalledWith(
-      sentryPropagatorMock.mock.results[0]?.value
+      sentryPropagatorMock.mock.results[0].value
     )
 
     instrumentation.register()
+    expect(otlpExporterMock).toHaveBeenCalledTimes(1)
+    expect(sentrySpanProcessorMock).toHaveBeenCalledTimes(1)
 
     expect(registerOtel).toHaveBeenCalledWith(
       expect.objectContaining({
         serviceName: process.env.SENTRY_NAME ?? "medusa-default",
-        traceExporter: otlpExporterMock.mock.results[0]?.value,
-        spanProcessors: [sentrySpanProcessorMock.mock.results[0]?.value],
+        traceExporter: otlpExporterMock.mock.results[0].value,
+        spanProcessors: [sentrySpanProcessorMock.mock.results[0].value],
         instrument: {
           http: true,
           workflows: true,
