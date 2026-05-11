@@ -1,8 +1,10 @@
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
 import { RadioCard } from "@techsio/ui-kit/molecules/radio-card";
+import type { ReactNode } from "react";
 
 type CheckoutOptionRadioCardItem = {
   actionLabel?: string;
+  addon?: ReactNode;
   bodyText?: string;
   disabled?: boolean;
   hint?: string;
@@ -82,7 +84,8 @@ export function CheckoutOptionRadioCard({
               />
             </RadioCard.ItemControl>
 
-            {isSelected && (option.bodyText || option.actionLabel) ? (
+            {isSelected &&
+            (option.bodyText || option.actionLabel || option.addon) ? (
               <RadioCard.ItemAddon className="space-y-100">
                 {option.bodyText ? (
                   <p className="text-xs leading-relaxed text-fg-secondary">
@@ -95,6 +98,8 @@ export function CheckoutOptionRadioCard({
                     {option.actionLabel}
                   </span>
                 ) : null}
+
+                {option.addon}
               </RadioCard.ItemAddon>
             ) : null}
           </RadioCard.Item>

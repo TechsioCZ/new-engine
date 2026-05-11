@@ -2,6 +2,10 @@
 
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import {
+  clearStoredCarrierPickupSelection,
+  writeStoredCarrierPickupSelection,
+} from "./carrier-pickup-selection-storage";
+import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "./checkout-completion.utils";
@@ -19,7 +23,7 @@ type UseCheckoutActionsProps = {
   completeCart: () => Promise<unknown>;
   initiatePayment: (providerId: string) => Promise<unknown>;
   onCheckoutErrorChange: (message: string | null) => void;
-  setShippingMethod: (optionId: string) => void;
+  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void;
 };
 
 export function useCheckoutActions({
@@ -45,11 +49,19 @@ export function useCheckoutActions({
     }
   };
 
-  const handleSelectShipping = (optionId: string) => {
+  const handleSelectShipping = (
+    optionId: string,
+    data?: Record<string, unknown>,
+  ) => {
     resetFeedback();
 
     try {
-      setShippingMethod(optionId);
+      if (data) {
+        writeStoredCarrierPickupSelection({ cartId, data, optionId });
+      } else {
+        clearStoredCarrierPickupSelection(cartId);
+      }
+      setShippingMethod(optionId, data);
     } catch (error) {
       onCheckoutErrorChange(
         resolveErrorMessage(error, "Nastavenie dopravy zlyhalo."),
@@ -93,7 +105,9 @@ export function useCheckoutActions({
     }
 
     if (!hasPaymentSessions) {
-      onCheckoutErrorChange("Vyberte platobnú metódu pred dokončením objednávky.");
+      onCheckoutErrorChange(
+        "Vyberte platobnú metódu pred dokončením objednávky.",
+      );
       return;
     }
 
