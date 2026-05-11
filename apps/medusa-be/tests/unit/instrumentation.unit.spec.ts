@@ -99,7 +99,7 @@ describe("instrumentation", () => {
 
     expect(registerOtel).toHaveBeenCalledWith(
       expect.objectContaining({
-        serviceName: process.env.SENTRY_NAME || "medusa-default",
+        serviceName: process.env.SENTRY_NAME ?? "medusa-default",
         traceExporter: otlpExporterMock.mock.results[0]?.value,
         spanProcessors: [sentrySpanProcessorMock.mock.results[0]?.value],
         instrument: {

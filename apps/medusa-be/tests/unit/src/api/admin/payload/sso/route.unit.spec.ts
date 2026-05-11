@@ -37,13 +37,19 @@ const restoreEnv = () => {
   }
 }
 
-const createMockResponse = () =>
-  ({
-    setHeader: vi.fn(),
-    status: vi.fn().mockReturnThis(),
-    send: vi.fn().mockReturnThis(),
-    json: vi.fn().mockReturnThis(),
-  }) as any
+type MockResponse = {
+  json: ReturnType<typeof vi.fn>
+  send: ReturnType<typeof vi.fn>
+  setHeader: ReturnType<typeof vi.fn>
+  status: ReturnType<typeof vi.fn>
+}
+
+const createMockResponse = (): MockResponse => ({
+  json: vi.fn().mockReturnThis(),
+  send: vi.fn().mockReturnThis(),
+  setHeader: vi.fn(),
+  status: vi.fn().mockReturnThis(),
+})
 
 const createMockRequest = (
   overrides: Record<string, unknown> = {},

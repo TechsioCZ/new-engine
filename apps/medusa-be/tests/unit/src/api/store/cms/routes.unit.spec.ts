@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { PAYLOAD_MODULE } from "../../../../../../src/modules/payload"
 
 const mockCmsService = {
   getPublishedPage: vi.fn(),
@@ -25,7 +26,7 @@ const createMockRequest = ({
     locale: "request-locale-should-not-be-used",
     scope: {
       resolve: vi.fn((key: string) => {
-        if (key === "payload") {
+        if (key === PAYLOAD_MODULE) {
           return mockCmsService
         }
         return
