@@ -4,11 +4,17 @@ import {
   adminGroups,
   collectionLabels,
   fieldLabels,
-} from "../lib/constants/labels"
+} from "@/lib/constants/labels"
+import { createMedusaCacheHook } from "@/lib/hooks/medusa-cache"
+
+/** Collection slug for media uploads. */
+const COLLECTION_SLUG = "media"
+/** Hook to invalidate Medusa CMS cache when media changes. */
+const invalidateMediaCache = createMedusaCacheHook(COLLECTION_SLUG)
 
 /** Payload collection config for media uploads. */
 export const Media: CollectionConfig = {
-  slug: "media",
+  slug: COLLECTION_SLUG,
   labels: collectionLabels.media,
   admin: {
     group: adminGroups.library,
@@ -24,5 +30,9 @@ export const Media: CollectionConfig = {
       required: true,
     },
   ],
+  hooks: {
+    afterChange: [invalidateMediaCache],
+    afterDelete: [invalidateMediaCache],
+  },
   upload: true,
 }

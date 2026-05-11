@@ -669,6 +669,18 @@ describe("PayloadModuleService", () => {
       })
     })
 
+    it("clears all CMS cache when media changes", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("media")
+
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        tags: ["cms"],
+      })
+    })
+
     it("clears page category tags when locale is missing", async () => {
       const { service, cacheService } = createServiceWithCache()
 
