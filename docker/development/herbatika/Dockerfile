@@ -1,4 +1,4 @@
-FROM node:24-slim AS base
+FROM node:22-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
@@ -23,7 +23,10 @@ RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     corepack install && \
     pnpm --filter=herbatica... fetch --store-dir=/pnpm/store --frozen-lockfile
 
-COPY . .
+COPY tsconfig.base.json tsconfig.json nx.json ./
+COPY apps/herbatika ./apps/herbatika
+COPY libs/ui ./libs/ui
+COPY libs/storefront-data ./libs/storefront-data
 
 ARG NEXT_PUBLIC_MEDUSA_BACKEND_URL
 ARG NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
@@ -47,10 +50,10 @@ RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatica... && \
     pnpm --filter=@techsio/storefront-data build && \
     pnpm --filter=@techsio/ui-kit build && \
-    pnpm --filter=herbatica exec next build --webpack && \
+    pnpm --filter=herbatica build && \
     test -f apps/herbatika/.next/BUILD_ID
 
-FROM node:24-slim AS prod
+FROM node:22-slim AS prod
 
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
