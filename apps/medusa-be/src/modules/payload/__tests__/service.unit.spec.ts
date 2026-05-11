@@ -1,19 +1,21 @@
 import { createHash } from "node:crypto"
 import { Modules } from "@medusajs/framework/utils"
+import type { Mock } from "vitest"
+import { vi } from "vitest"
 import PayloadModuleService from "../service"
 import type { PayloadModuleOptions } from "../types"
 
 const mockLogger = {
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
 }
 
 const createCacheService = () => ({
-  get: jest.fn(),
-  set: jest.fn(),
-  clear: jest.fn(),
+  get: vi.fn(),
+  set: vi.fn(),
+  clear: vi.fn(),
 })
 
 type FetchResponseOverrides = { ok?: boolean; status?: number }
@@ -24,7 +26,7 @@ const createFetchResponse = (
 ) => ({
   ok: overrides.ok ?? true,
   status: overrides.status ?? 200,
-  json: jest.fn().mockResolvedValue(payload),
+  json: vi.fn().mockResolvedValue(payload),
 })
 
 /**
@@ -72,11 +74,11 @@ const createServiceWithoutCache = (options?: Partial<PayloadModuleOptions>) =>
 
 describe("PayloadModuleService", () => {
   const originalFetch = globalThis.fetch
-  let fetchMock: jest.Mock
+  let fetchMock: Mock
 
   beforeEach(() => {
-    jest.clearAllMocks()
-    fetchMock = jest.fn()
+    vi.clearAllMocks()
+    fetchMock = vi.fn()
     globalThis.fetch = fetchMock as unknown as typeof fetch
   })
 

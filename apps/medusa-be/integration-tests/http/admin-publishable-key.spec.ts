@@ -1,10 +1,11 @@
+import { vi } from "vitest"
+
 type JsonObject = Record<string, unknown>
 
 type JsonResponse = {
   status: number
   data: JsonObject
 }
-
 
 function resolveRequiredEnv(name: string): string {
   const value = process.env[name]?.trim()
@@ -31,9 +32,7 @@ async function requestJson(
     method: options?.method ?? "GET",
     headers: {
       ...(options?.body ? { "content-type": "application/json" } : {}),
-      ...(options?.token
-        ? { authorization: `Bearer ${options.token}` }
-        : {}),
+      ...(options?.token ? { authorization: `Bearer ${options.token}` } : {}),
     },
     body: options?.body ? JSON.stringify(options.body) : undefined,
   })
@@ -127,4 +126,4 @@ describe("Admin publishable key endpoint", () => {
   })
 })
 
-jest.setTimeout(60 * 1000)
+vi.setConfig({ testTimeout: 60 * 1000 })

@@ -1,6 +1,14 @@
-jest.mock("@medusajs/framework/utils", () => ({
-  Module: jest.fn(() => ({ __module: true })),
-  MedusaService: jest.fn(() => class {}),
+import { vi } from "vitest"
+
+const frameworkMocks = vi.hoisted(() => ({
+  Module: vi.fn(() => ({ __module: true })),
+  MedusaService: vi.fn(() => class {}),
+  PayloadModuleService: vi.fn(),
+}))
+
+vi.mock("@medusajs/framework/utils", () => ({
+  Module: frameworkMocks.Module,
+  MedusaService: frameworkMocks.MedusaService,
   MedusaError: class MedusaError extends Error {
     static Types = {
       INVALID_DATA: "invalid_data",
@@ -13,19 +21,25 @@ jest.mock("@medusajs/framework/utils", () => ({
   Modules: { CACHING: "caching" },
 }))
 
-describe("payload module", () => {
-  it("registers the module with the payload service", () => {
-    jest.isolateModules(() => {
-      const { Module } = require("@medusajs/framework/utils")
-      const moduleMock = Module as jest.Mock
-      moduleMock.mockClear()
-      const payloadModule = require("../index")
-      const PayloadModuleService = require("../service").default
+vi.mock("../service", () => ({
+  default: frameworkMocks.PayloadModuleService,
+}))
 
-      expect(moduleMock).toHaveBeenCalledWith(payloadModule.PAYLOAD_MODULE, {
-        service: PayloadModuleService,
-      })
-      expect(payloadModule.default).toBe(moduleMock.mock.results[0]?.value)
-    })
+describe("payload module", () => {
+  it("registers the module with the payload service", async () => {
+    vi.resetModules()
+    frameworkMocks.Module.mockClear()
+
+    const payloadModule = await import("../index")
+
+    expect(frameworkMocks.Module).toHaveBeenCalledWith(
+      payloadModule.PAYLOAD_MODULE,
+      {
+        service: frameworkMocks.PayloadModuleService,
+      }
+    )
+    expect(payloadModule.default).toBe(
+      frameworkMocks.Module.mock.results[0]?.value
+    )
   })
 })

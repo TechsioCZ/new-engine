@@ -415,6 +415,18 @@ export async function fetchOrderExpeditionOrdersByIds(
   return Array.isArray(data) ? data.filter(isOrderExpeditionRawOrder) : []
 }
 
+export async function fetchOrderedOrderExpeditionOrdersByIds(
+  query: Query,
+  orderIds: string[]
+) {
+  const orders = await fetchOrderExpeditionOrdersByIds(query, orderIds)
+
+  return {
+    missingOrderIds: findMissingOrderIds(orderIds, orders),
+    orders: orderOrdersByRequestedIds(orderIds, orders),
+  }
+}
+
 function getOrderExpeditionCustomerName(order: OrderExpeditionRawOrder) {
   const customerName = joinNonEmpty([
     order.customer?.company_name,
@@ -498,7 +510,7 @@ function isOrderExpeditionTransitionSourceStatus(
 }
 
 function formatStatusForReason(status: string) {
-  return status.replaceAll("_", " ")
+  return status.replace(/_/g, " ")
 }
 
 function formatStatusSubject(status: string) {

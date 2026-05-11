@@ -1,50 +1,59 @@
 import { MedusaError, Modules } from "@medusajs/framework/utils"
+import { type Mock, vi } from "vitest"
 // Import after mocks
 import { PplClientModuleService } from "../service"
 
+const hoistedMocks = vi.hoisted(() => ({
+  mockPplClient: {
+    fetchNewToken: vi.fn(),
+    getCodelistCountries: vi.fn(),
+    getCodelistCurrencies: vi.fn(),
+    getCodelistProducts: vi.fn(),
+    getCodelistServices: vi.fn(),
+    getCodelistStatuses: vi.fn(),
+    createShipmentBatch: vi.fn(),
+    getBatchStatus: vi.fn(),
+    getShipmentInfo: vi.fn(),
+    cancelShipment: vi.fn(),
+    getAccessPoints: vi.fn(),
+    getCustomerInfo: vi.fn(),
+    getCustomerAddresses: vi.fn(),
+    downloadLabel: vi.fn(),
+  },
+  encryptFields: vi.fn((data) => ({ ...data, _encrypted: true })),
+  decryptFields: vi.fn((data) => ({ ...data, _decrypted: true })),
+}))
+
 // Mock the client before importing service
-jest.mock("../client", () => ({
-  PplClient: jest.fn().mockImplementation(() => mockPplClient),
+vi.mock("../client", () => ({
+  PplClient: vi.fn(function PplClient() {
+    return hoistedMocks.mockPplClient
+  }),
 }))
 
 // Mock encryption utilities
-jest.mock("../../../utils/encryption", () => ({
-  encryptFields: jest.fn((data) => ({ ...data, _encrypted: true })),
-  decryptFields: jest.fn((data) => ({ ...data, _decrypted: true })),
+vi.mock("../../../utils/encryption", () => ({
+  encryptFields: hoistedMocks.encryptFields,
+  decryptFields: hoistedMocks.decryptFields,
 }))
 
-const mockPplClient = {
-  fetchNewToken: jest.fn(),
-  getCodelistCountries: jest.fn(),
-  getCodelistCurrencies: jest.fn(),
-  getCodelistProducts: jest.fn(),
-  getCodelistServices: jest.fn(),
-  getCodelistStatuses: jest.fn(),
-  createShipmentBatch: jest.fn(),
-  getBatchStatus: jest.fn(),
-  getShipmentInfo: jest.fn(),
-  cancelShipment: jest.fn(),
-  getAccessPoints: jest.fn(),
-  getCustomerInfo: jest.fn(),
-  getCustomerAddresses: jest.fn(),
-  downloadLabel: jest.fn(),
-}
+const mockPplClient = hoistedMocks.mockPplClient
 
 const mockCacheService = {
-  get: jest.fn(),
-  set: jest.fn(),
-  clear: jest.fn(),
+  get: vi.fn(),
+  set: vi.fn(),
+  clear: vi.fn(),
 }
 
 const mockLockingService = {
-  execute: jest.fn().mockImplementation(async (_key, fn) => fn()),
+  execute: vi.fn().mockImplementation(async (_key, fn) => fn()),
 }
 
 const mockLogger = {
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
 }
 
 const validOptions = {
@@ -117,24 +126,22 @@ const createService = (
   )
   // Mock getEffectiveConfig by default to bypass DB dependency
   // Tests that need to test config behavior should override this
-  jest
-    .spyOn(service, "getEffectiveConfig")
-    .mockResolvedValue(mockEffectiveConfig)
+  vi.spyOn(service, "getEffectiveConfig").mockResolvedValue(mockEffectiveConfig)
   return service
 }
 
 describe("PplClientModuleService", () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // Clear mockResolvedValueOnce queue (clearAllMocks doesn't do this)
     mockCacheService.get.mockReset()
     mockLockingService.execute.mockReset()
     mockLockingService.execute.mockImplementation(async (_key, fn) => fn())
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   describe("constructor", () => {
@@ -209,7 +216,7 @@ describe("PplClientModuleService", () => {
       // MIN_REQUEST_INTERVAL_MS = 40 in service.ts
       const MIN_INTERVAL = 40
       const fixedNow = new Date("2025-01-15T12:00:00Z").getTime()
-      jest.setSystemTime(fixedNow)
+      vi.setSystemTime(fixedNow)
 
       mockPplClient.fetchNewToken.mockResolvedValue({
         accessToken: "fallback-token",
@@ -221,7 +228,7 @@ describe("PplClientModuleService", () => {
       // 1. Before getToken() - elapsed is huge (from 0), no wait
       // 2. Inside getToken() when fetching - elapsed is 0 (same tick), needs wait
       const promise = service.createShipmentBatch([])
-      await jest.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
+      await vi.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
       await promise
 
       expect(mockPplClient.fetchNewToken).toHaveBeenCalled()
@@ -262,7 +269,7 @@ describe("PplClientModuleService", () => {
       const promise = service.createShipmentBatch([])
 
       // Advance well past MIN_INTERVAL to ensure sleep completes
-      await jest.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
+      await vi.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
       await promise
 
       expect(mockCacheService.set).toHaveBeenCalledWith(
@@ -332,7 +339,7 @@ describe("PplClientModuleService", () => {
       // MIN_REQUEST_INTERVAL_MS = 40 in service.ts
       const MIN_INTERVAL = 40
       const fixedNow = new Date("2025-01-15T12:00:00Z").getTime()
-      jest.setSystemTime(fixedNow)
+      vi.setSystemTime(fixedNow)
 
       const service = createService(validOptions, null, null)
 
@@ -343,19 +350,19 @@ describe("PplClientModuleService", () => {
       })
       // First call - needs timer advance for rate limit sleep inside getToken()
       const primePromise = service.createShipmentBatch([])
-      await jest.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
+      await vi.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
       await primePromise
 
       // Invalidate
       await service.invalidateAllCaches()
 
       // Advance time past rate limit interval before next call
-      await jest.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
+      await vi.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
 
       // Next call should fetch new token (cache was invalidated)
       mockPplClient.fetchNewToken.mockClear()
       const secondPromise = service.createShipmentBatch([])
-      await jest.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
+      await vi.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
       await secondPromise
 
       expect(mockPplClient.fetchNewToken).toHaveBeenCalled()
@@ -363,7 +370,7 @@ describe("PplClientModuleService", () => {
   })
 
   describe("config management", () => {
-    const { encryptFields } = jest.requireMock("../../../utils/encryption")
+    const encryptFields = hoistedMocks.encryptFields
 
     beforeEach(() => {
       encryptFields.mockClear()
@@ -373,14 +380,14 @@ describe("PplClientModuleService", () => {
       it("removes empty string from sensitive fields (keep existing)", async () => {
         const service = createService()
         // Mock getConfig to return existing config
-        jest.spyOn(service, "getConfig").mockResolvedValue(
+        vi.spyOn(service, "getConfig").mockResolvedValue(
           createMockConfig({
             client_id: "existing-id",
             client_secret: "existing-secret",
           })
         )
         // Mock updatePplConfigs
-        jest.spyOn(service, "updatePplConfigs").mockResolvedValue({
+        vi.spyOn(service, "updatePplConfigs").mockResolvedValue({
           id: "config-1",
           environment: "testing",
           is_enabled: true,
@@ -394,7 +401,7 @@ describe("PplClientModuleService", () => {
         })
 
         // encryptFields should NOT receive client_secret (it was filtered out)
-        const encryptCallArgs = (encryptFields as jest.Mock).mock.calls[0][0]
+        const encryptCallArgs = (encryptFields as Mock).mock.calls[0][0]
         expect(encryptCallArgs).not.toHaveProperty("client_secret")
         expect(encryptFields).toHaveBeenCalledWith(
           expect.any(Object),
@@ -404,13 +411,13 @@ describe("PplClientModuleService", () => {
 
       it("passes null through to clear sensitive field", async () => {
         const service = createService()
-        jest.spyOn(service, "getConfig").mockResolvedValue(
+        vi.spyOn(service, "getConfig").mockResolvedValue(
           createMockConfig({
             client_id: "existing-id",
             client_secret: "existing-secret",
           })
         )
-        jest.spyOn(service, "updatePplConfigs").mockResolvedValue({
+        vi.spyOn(service, "updatePplConfigs").mockResolvedValue({
           id: "config-1",
           client_secret: null,
         } as any)
@@ -457,9 +464,9 @@ describe("PplClientModuleService", () => {
         mockCacheService.get.mockResolvedValueOnce(null) // cache miss
 
         const service = createServiceForConfigTests()
-        jest
-          .spyOn(service, "getConfig")
-          .mockResolvedValue(createMockConfig({ is_enabled: false }))
+        vi.spyOn(service, "getConfig").mockResolvedValue(
+          createMockConfig({ is_enabled: false })
+        )
 
         const result = await service.getEffectiveConfig()
 
@@ -470,9 +477,9 @@ describe("PplClientModuleService", () => {
         mockCacheService.get.mockResolvedValueOnce(null)
 
         const service = createServiceForConfigTests()
-        jest
-          .spyOn(service, "getConfig")
-          .mockResolvedValue(createMockConfig({ client_id: null }))
+        vi.spyOn(service, "getConfig").mockResolvedValue(
+          createMockConfig({ client_id: null })
+        )
 
         const result = await service.getEffectiveConfig()
 
@@ -483,9 +490,9 @@ describe("PplClientModuleService", () => {
         mockCacheService.get.mockResolvedValueOnce(null)
 
         const service = createServiceForConfigTests()
-        jest
-          .spyOn(service, "getConfig")
-          .mockResolvedValue(createMockConfig({ client_secret: null }))
+        vi.spyOn(service, "getConfig").mockResolvedValue(
+          createMockConfig({ client_secret: null })
+        )
 
         const result = await service.getEffectiveConfig()
 
@@ -496,7 +503,7 @@ describe("PplClientModuleService", () => {
         mockCacheService.get.mockResolvedValueOnce(null)
 
         const service = createServiceForConfigTests()
-        jest.spyOn(service, "getConfig").mockResolvedValue(
+        vi.spyOn(service, "getConfig").mockResolvedValue(
           createMockConfig({
             client_id: "valid-id",
             client_secret: "valid-secret",
