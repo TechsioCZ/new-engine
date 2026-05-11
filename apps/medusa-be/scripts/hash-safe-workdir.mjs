@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process"
+import { spawn, spawnSync } from "node:child_process"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
@@ -112,4 +112,39 @@ export function createHashSafeRunContext() {
       }
     },
   }
+}
+
+export function runUnderHashSafeContext(bin, args) {
+  const runContext = createHashSafeRunContext()
+  let didCleanup = false
+
+  function cleanupOnce() {
+    if (!didCleanup) {
+      didCleanup = true
+      runContext.cleanup()
+    }
+  }
+
+  const child = spawn("corepack", ["pnpm", "exec", bin, ...args], {
+    cwd: runContext.runCwd,
+    env: runContext.env,
+    stdio: "inherit",
+  })
+
+  child.on("error", (error) => {
+    cleanupOnce()
+    console.error(error)
+    process.exitCode = 1
+  })
+
+  child.on("exit", (code, signal) => {
+    cleanupOnce()
+
+    if (signal) {
+      process.kill(process.pid, signal)
+      return
+    }
+
+    process.exitCode = code ?? 1
+  })
 }

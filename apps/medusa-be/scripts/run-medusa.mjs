@@ -1,30 +1,5 @@
 #!/usr/bin/env node
 
-import { spawn } from "node:child_process"
+import { runUnderHashSafeContext } from "./hash-safe-workdir.mjs"
 
-import { createHashSafeRunContext } from "./hash-safe-workdir.mjs"
-
-const args = process.argv.slice(2)
-const runContext = createHashSafeRunContext()
-const child = spawn("corepack", ["pnpm", "exec", "medusa", ...args], {
-  cwd: runContext.runCwd,
-  env: runContext.env,
-  stdio: "inherit",
-})
-
-child.on("error", (error) => {
-  runContext.cleanup()
-  console.error(error)
-  process.exitCode = 1
-})
-
-child.on("exit", (code, signal) => {
-  runContext.cleanup()
-
-  if (signal) {
-    process.kill(process.pid, signal)
-    return
-  }
-
-  process.exitCode = code ?? 1
-})
+runUnderHashSafeContext("medusa", process.argv.slice(2))
