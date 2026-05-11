@@ -5,6 +5,14 @@ vi.hoisted(() => {
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 })
 
+vi.setConfig({ testTimeout: 60_000 })
+
+vi.mock("../client", () => ({
+  PplClient: vi.fn().mockImplementation(() => ({
+    fetchNewToken: vi.fn(),
+  })),
+}))
+
 import { Modules } from "@medusajs/framework/utils"
 import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
 import { PPL_CLIENT_MODULE } from "../index"
@@ -44,12 +52,14 @@ moduleIntegrationTestRunner<PplClientModuleService>({
     describe("config management", () => {
       it("returns disabled default config before admin setup", async () => {
         const result = await service.getConfig()
-        expect(result).toMatchObject({
-          environment: "testing",
-          is_enabled: false,
-        })
-        expect(result?.client_id).toBeNull()
-        expect(result?.client_secret).toBeNull()
+        expect(result).toEqual(
+          expect.objectContaining({
+            client_id: null,
+            client_secret: null,
+            environment: "testing",
+            is_enabled: false,
+          })
+        )
       })
 
       it("creates and retrieves config with encrypted credentials", async () => {

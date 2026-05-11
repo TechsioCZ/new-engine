@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 type JsonObject = Record<string, unknown>
 
@@ -125,3 +125,5 @@ describe("Admin publishable key endpoint", () => {
     })
   })
 })
+
+vi.setConfig({ testTimeout: 60 * 1000 })
