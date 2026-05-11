@@ -247,26 +247,38 @@ Solve depth case-by-case per component.
 
 Pattern: `type/component/size` or `type/component` (when size-independent)
 
+**Critical rules for non-color tokens:**
+- **Only add a state segment when the token value actually changes between states.** Padding, radius, spacing, border-width, font-size, and font-weight are identical across hover/active/disabled/focus — so they have no state axis and no state suffix at all. Drop `/base`, `/default`, or any other state segment when the value is state-invariant.
+- **Never include `root`, `gap`, `x`, `y`, or other implementation details** in the token name. The CSS property type prefix (`radius/`, `spacing/`, `padding/`) already describes the role. Drop all intermediate segments that echo the CSS variable's internal anatomy.
+- Non-color tokens use at most **3 levels**: `type/component` or `type/component/size`.
+
 From code CSS custom properties:
 
 **Size / text / font-weight**:
-- `--text-badge-size-sm-default` => `text/badge/sm` => aliases `text/sm`
-- `--text-badge-size-md-default` => `text/badge/md` => aliases `text/md`
-- `--font-weight-badge-weight-sm-default` => `font-weight/badge/sm` => aliases `font-weight/500`
-- `--text-input-size-sm-default` => `text/input/sm` => aliases `text/sm`
+- `--text-badge-size-sm` => `text/badge/sm` => aliases `text/sm`
+- `--text-badge-size-md` => `text/badge/md` => aliases `text/md`
+- `--font-weight-badge-weight-sm` => `font-weight/badge/sm` => aliases `font-weight/500`
+- `--text-input-size-sm` => `text/input/sm` => aliases `text/sm`
 
-**Spacing / padding**:
-- `--padding-badge-all-sm-default` => `spacing/badge/sm` => aliases `spacing/sm`
-- `--padding-badge-all-xl-default` => `spacing/badge/xl` => aliases `spacing/xl`
-- `--padding-input-x-sm-default` + `--padding-input-y-sm-default` => `padding/input/sm` => aliases `spacing/sm`
+**Spacing / gap**:
+- `--spacing-button-sm` (used as `gap`) => `spacing/button/sm` => aliases `spacing/sm`
+- `--spacing-button-md` => `spacing/button/md` => aliases `spacing/md`
+- No `gap` segment in the name. `spacing/button/sm` is the gap for button-sm.
 
-**Radius** (`type/component` or `type/component/size`):
-- `--radius-badge-root-default-default` => `radius/badge` => aliases `radius/md`
-- `--radius-input-root-sm-default` => `radius/input/sm` => aliases `radius/sm`
+**Padding**:
+- `--padding-badge-all-sm` => `padding/badge/sm` => aliases `spacing/sm`
+- `--padding-button-sm` (shorthand x+y) => `padding/button/sm` => aliases `spacing/sm`
+- When code has separate `--padding-button-x-sm` + `--padding-button-y-sm`, still create **one** Figma token `padding/button/sm` pointing to the dominant or semantic equivalent. If x and y differ significantly, create `padding/button/x/sm` and `padding/button/y/sm` — but even then, drop any `/base` or `/default` suffix.
+
+**Radius**:
+- `--radius-button-sm` => `radius/button/sm` => aliases `radius/sm`. **Never** add `root` — the component only has one radius target.
+- `--radius-input-sm` => `radius/input/sm` => aliases `radius/sm`
+- `--radius-badge` => `radius/badge` => aliases `radius/md`
+- When the component uses the same radius across all sizes: drop the size segment (`radius/badge` not `radius/badge/md`).
 
 **Border-width** (`type/component`):
-- `--border-width-badge-root-default-default` => `border-width/badge` => aliases `border-width/1`
-- `--border-input-width-default-default` => `border-width/input` => aliases `border-width/1`
+- `--border-width-badge-root` => `border-width/badge` => aliases `border-width/1`
+- `--border-width-input` => `border-width/input` => aliases `border-width/1`
 
 When a non-color token has one value across all sizes, drop the size segment.
 When it varies by size, keep `type/component/size`.
@@ -276,8 +288,10 @@ When it varies by size, keep `type/component/size`.
 - **Core**: `type/value` — e.g., `size/8`, `color/red/500`, `radius/4`, `font-weight/700`
 - **Semantic**: `type/role` — e.g., `size/sm`, `color/primary/base`, `radius/md`
 - **Component color**: `color/component/cssProperty/variant/state` — depth varies per component
-- **Component non-color**: `type/component/size` — flat, no redundant segments
-- **Never use "default"** — use **"base"** for the initial state
+- **Component non-color**: `type/component/size` — flat, no redundant segments (`root`, `gap`, `x`, `y` are forbidden), no state suffix because these values don't change between states
+- **State suffix rule — add a state segment only when the value varies by state:**
+  - Color tokens with multiple states: use **"base"** for the resting state, never "default" (e.g., `color/button/bg/primary/base`, `color/button/bg/primary/hover`)
+  - Tokens that are state-invariant (padding, radius, spacing, border-width, text size, font-weight): **no state suffix at all** — not "base", not "default". The name ends at the size or role segment (e.g., `radius/button/sm`, `padding/button/sm`, `spacing/button/sm`).
 - **Modes**: light and dark only, applied to color variables. No responsive modes.
 - **Inheritance is strict**: component => semantic => core. No skipping tiers except when no semantic equivalent exists.
 
