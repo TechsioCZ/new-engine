@@ -8,6 +8,13 @@ import {
   OrderChangeStatus,
 } from "@medusajs/framework/utils"
 import {
+  createStep,
+  createWorkflow,
+  StepResponse,
+  transform,
+  WorkflowResponse,
+} from "@medusajs/framework/workflows-sdk"
+import {
   beginOrderEditOrderWorkflow,
   cancelBeginOrderEditWorkflow,
   confirmOrderEditRequestWorkflow,
@@ -68,6 +75,24 @@ type ApplyCommercialValuesInput = {
   order: ApplyCommercialValuesOrder
   request: CommercialValuesConfirmRequest
 }
+
+type ApplyCommercialValuesWorkflowInput = Omit<
+  ApplyCommercialValuesInput,
+  "container"
+>
+
+type CommercialValuesOrderEditDependency = {
+  order_change_id: string
+}
+
+type CommercialValuesOrderEditReadiness = {
+  order_id: string
+}
+
+type CommercialValuesOrderEditCompletion = Pick<
+  CommercialValuesConfirmResponse,
+  "mode" | "order_preview"
+>
 
 const COMMERCIAL_VALUES_LOCK_PREFIX = "order-commercial-values:apply"
 const COMMERCIAL_VALUES_LOCK_TIMEOUT_SECONDS = 5
@@ -398,6 +423,241 @@ async function cancelStartedEdit(
   }
 }
 
+const previewCommercialValuesStep = createStep(
+  "preview-order-commercial-values",
+  async (calculationInput: CommercialValuesCalculationInput) =>
+    new StepResponse(calculateCommercialValuesPreview(calculationInput))
+)
+
+const assertCommercialValuesOrderEditCanBeginStep = createStep(
+  "assert-commercial-values-order-edit-can-begin",
+  async (
+    input: {
+      expected_order_version: number
+      order_id: string
+    },
+    { container }
+  ) => {
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+
+    await assertOrderCanBeginCommercialEdit(
+      query,
+      input.order_id,
+      input.expected_order_version
+    )
+
+    return new StepResponse({
+      order_id: input.order_id,
+    })
+  }
+)
+
+const beginCommercialValuesOrderEditStep = createStep(
+  "begin-commercial-values-order-edit",
+  async (
+    input: {
+      actor_id?: string
+      internal_note?: string
+      readiness: CommercialValuesOrderEditReadiness
+    },
+    { container }
+  ) => {
+    const { result: orderChange } = await beginOrderEditOrderWorkflow(
+      container
+    ).run({
+      input: {
+        created_by: input.actor_id,
+        internal_note: input.internal_note,
+        order_id: input.readiness.order_id,
+      },
+    })
+    const activeOrderChange = toActiveOrderChange(orderChange)
+
+    return new StepResponse(activeOrderChange, {
+      order_id: input.readiness.order_id,
+    })
+  },
+  async (input, { container }) => {
+    if (!input) {
+      return
+    }
+
+    const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+
+    await cancelStartedEdit(container, logger, input.order_id)
+  }
+)
+
+const updateCommercialValuesItemsStep = createStep(
+  "update-commercial-values-items",
+  async (
+    input: {
+      active_order_change: ActiveOrderChange
+      order: ApplyCommercialValuesOrder
+      request: CommercialValuesConfirmRequest
+    },
+    { container }
+  ) => {
+    const itemUpdates = buildItemUpdateInputs(input.order, input.request)
+
+    if (itemUpdates.length > 0) {
+      await orderEditUpdateItemQuantityWorkflow(container).run({
+        input: {
+          items: itemUpdates,
+          order_id: input.order.id,
+        },
+      })
+    }
+
+    return new StepResponse({
+      order_change_id: input.active_order_change.id,
+    })
+  }
+)
+
+const replaceCommercialValuesAdjustmentsStep = createStep(
+  "replace-commercial-values-adjustments",
+  async (
+    input: {
+      active_order_change: ActiveOrderChange
+      item_update: CommercialValuesOrderEditDependency
+      order: ApplyCommercialValuesOrder
+      preview: CommercialValuesPreview
+      request: CommercialValuesConfirmRequest
+    },
+    { container }
+  ) => {
+    if (input.item_update.order_change_id !== input.active_order_change.id) {
+      throw new Error(
+        "Commercial values item updates used a stale order change"
+      )
+    }
+
+    const replacementActions = buildReplacementActions({
+      activeOrderChange: input.active_order_change,
+      order: input.order,
+      preview: input.preview,
+      request: input.request,
+    })
+
+    if (replacementActions.length > 0) {
+      await createOrderChangeActionsWorkflow(container).run({
+        input: replacementActions,
+      })
+    }
+
+    return new StepResponse({
+      order_change_id: input.active_order_change.id,
+    })
+  }
+)
+
+const completeCommercialValuesOrderEditStep = createStep(
+  "complete-commercial-values-order-edit",
+  async (
+    input: {
+      actor_id?: string
+      active_order_change: ActiveOrderChange
+      confirmation_mode: "confirm" | "request"
+      order_id: string
+      replacements: CommercialValuesOrderEditDependency
+    },
+    { container }
+  ): Promise<StepResponse<CommercialValuesOrderEditCompletion>> => {
+    if (input.replacements.order_change_id !== input.active_order_change.id) {
+      throw new Error(
+        "Commercial values replacements used a stale order change"
+      )
+    }
+
+    if (input.confirmation_mode === "request") {
+      const { result: requestResult } = await requestOrderEditRequestWorkflow(
+        container
+      ).run({
+        input: {
+          order_id: input.order_id,
+          requested_by: input.actor_id,
+        },
+      })
+
+      const result: CommercialValuesOrderEditCompletion = {
+        mode: "requested" as const,
+        order_preview: requestResult,
+      }
+
+      return new StepResponse(result)
+    }
+
+    const { result: confirmResult } = await confirmOrderEditRequestWorkflow(
+      container
+    ).run({
+      input: {
+        confirmed_by: input.actor_id,
+        order_id: input.order_id,
+      },
+    })
+
+    const result: CommercialValuesOrderEditCompletion = {
+      mode: "confirmed" as const,
+      order_preview: confirmResult,
+    }
+
+    return new StepResponse(result)
+  }
+)
+
+export const applyOrderCommercialValuesWorkflow = createWorkflow(
+  "apply-order-commercial-values",
+  (workflowInput: ApplyCommercialValuesWorkflowInput) => {
+    const preview = previewCommercialValuesStep(workflowInput.calculation_input)
+    const readiness = assertCommercialValuesOrderEditCanBeginStep({
+      expected_order_version: workflowInput.request.expected_order_version,
+      order_id: workflowInput.order.id,
+    })
+    const activeOrderChange = beginCommercialValuesOrderEditStep({
+      actor_id: workflowInput.actor_id,
+      internal_note: workflowInput.request.internal_note,
+      readiness,
+    })
+    const itemUpdate = updateCommercialValuesItemsStep({
+      active_order_change: activeOrderChange,
+      order: workflowInput.order,
+      request: workflowInput.request,
+    })
+    const replacements = replaceCommercialValuesAdjustmentsStep({
+      active_order_change: activeOrderChange,
+      item_update: itemUpdate,
+      order: workflowInput.order,
+      preview,
+      request: workflowInput.request,
+    })
+    const completion = completeCommercialValuesOrderEditStep(
+      transform(
+        { activeOrderChange, replacements, workflowInput },
+        ({
+          activeOrderChange: currentOrderChange,
+          replacements: currentReplacements,
+          workflowInput: currentWorkflowInput,
+        }) => ({
+          actor_id: currentWorkflowInput.actor_id,
+          active_order_change: currentOrderChange,
+          confirmation_mode:
+            currentWorkflowInput.request.confirmation_mode ?? "confirm",
+          order_id: currentWorkflowInput.order.id,
+          replacements: currentReplacements,
+        })
+      )
+    )
+
+    return new WorkflowResponse({
+      mode: completion.mode,
+      order_change_id: activeOrderChange.id,
+      order_preview: completion.order_preview,
+      preview,
+    })
+  }
+)
+
 export async function applyOrderCommercialValues({
   actor_id,
   calculation_input,
@@ -405,102 +665,23 @@ export async function applyOrderCommercialValues({
   order,
   request,
 }: ApplyCommercialValuesInput): Promise<CommercialValuesConfirmResponse> {
-  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
-  const confirmationMode = request.confirmation_mode ?? "confirm"
-  const preview = calculateCommercialValuesPreview(calculation_input)
 
   return lockingModule.execute(
     getCommercialValuesLockKey(order.id),
     async () => {
-      let beganEdit = false
-      let finishedEdit = false
-
-      try {
-        await assertOrderCanBeginCommercialEdit(
-          query,
-          order.id,
-          request.expected_order_version
-        )
-
-        const { result: orderChange } = await beginOrderEditOrderWorkflow(
-          container
-        ).run({
-          input: {
-            created_by: actor_id,
-            internal_note: request.internal_note,
-            order_id: order.id,
-          },
-        })
-
-        beganEdit = true
-
-        const activeOrderChange = toActiveOrderChange(orderChange)
-        const orderChangeId = activeOrderChange.id
-
-        const itemUpdates = buildItemUpdateInputs(order, request)
-        if (itemUpdates.length > 0) {
-          await orderEditUpdateItemQuantityWorkflow(container).run({
-            input: {
-              items: itemUpdates,
-              order_id: order.id,
-            },
-          })
-        }
-
-        const replacementActions = buildReplacementActions({
-          activeOrderChange,
+      const { result } = await applyOrderCommercialValuesWorkflow(
+        container
+      ).run({
+        input: {
+          actor_id,
+          calculation_input,
           order,
-          preview,
           request,
-        })
+        },
+      })
 
-        if (replacementActions.length > 0) {
-          await createOrderChangeActionsWorkflow(container).run({
-            input: replacementActions,
-          })
-        }
-
-        if (confirmationMode === "request") {
-          const { result: requestResult } =
-            await requestOrderEditRequestWorkflow(container).run({
-              input: {
-                order_id: order.id,
-                requested_by: actor_id,
-              },
-            })
-          finishedEdit = true
-
-          return {
-            mode: "requested",
-            order_change_id: orderChangeId,
-            order_preview: requestResult,
-            preview,
-          }
-        }
-
-        const { result: confirmResult } = await confirmOrderEditRequestWorkflow(
-          container
-        ).run({
-          input: {
-            confirmed_by: actor_id,
-            order_id: order.id,
-          },
-        })
-        finishedEdit = true
-
-        return {
-          mode: "confirmed",
-          order_change_id: orderChangeId,
-          order_preview: confirmResult,
-          preview,
-        }
-      } finally {
-        if (beganEdit && !finishedEdit) {
-          await cancelStartedEdit(container, logger, order.id)
-        }
-      }
+      return result
     },
     { timeout: COMMERCIAL_VALUES_LOCK_TIMEOUT_SECONDS }
   )

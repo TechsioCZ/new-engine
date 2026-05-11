@@ -1,4 +1,5 @@
 import type { MedusaContainer } from "@medusajs/framework"
+import { asValue, createContainer } from "@medusajs/framework/awilix"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -41,20 +42,7 @@ const lockingModule = {
   execute: vi.fn((_key: string, fn: () => Promise<unknown>) => fn()),
 }
 
-const container = {
-  resolve: vi.fn((key) => {
-    if (key === ContainerRegistrationKeys.LOGGER) {
-      return logger
-    }
-    if (key === ContainerRegistrationKeys.QUERY) {
-      return query
-    }
-    if (key === Modules.LOCKING) {
-      return lockingModule
-    }
-    throw new Error(`Unexpected resolve key ${String(key)}`)
-  }),
-} as unknown as MedusaContainer
+let container: MedusaContainer
 
 const order = {
   id: "order_1",
@@ -117,6 +105,11 @@ describe("applyOrderCommercialValues", () => {
 
       return { data: [] }
     })
+    container = createContainer().register({
+      [ContainerRegistrationKeys.LOGGER]: asValue(logger),
+      [ContainerRegistrationKeys.QUERY]: asValue(query),
+      [Modules.LOCKING]: asValue(lockingModule),
+    }) as unknown as MedusaContainer
   })
 
   it("updates unit price, replaces adjustments, and confirms", async () => {
