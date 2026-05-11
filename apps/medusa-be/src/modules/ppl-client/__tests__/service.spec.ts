@@ -1,12 +1,12 @@
-import { vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+vi.hoisted(() => {
+  process.env.SETTINGS_ENCRYPTION_KEY =
+    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+})
 
 vi.setConfig({ testTimeout: 60_000 })
 
-// Set encryption key before any imports
-process.env.SETTINGS_ENCRYPTION_KEY =
-  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
-// Mock the OAuth2 client to avoid ES Module issues
 vi.mock("../client", () => ({
   PplClient: vi.fn().mockImplementation(() => ({
     fetchNewToken: vi.fn(),
@@ -50,7 +50,7 @@ moduleIntegrationTestRunner<PplClientModuleService>({
     })
 
     describe("config management", () => {
-      it("creates a disabled default config", async () => {
+      it("returns disabled default config before admin setup", async () => {
         const result = await service.getConfig()
         expect(result).toEqual(
           expect.objectContaining({

@@ -332,12 +332,11 @@ export default async function seed({ container, args }: ExecArgs) {}
 
 ## Testing
 
-Uses `@medusajs/test-utils` + Jest. Framework is for **integration only**; unit tests use plain Jest.
+Uses Vitest for unit, HTTP integration, and module integration tests. `@medusajs/test-utils` is for **integration only**; unit tests import Vitest APIs explicitly.
 
 | Type | Location | Command |
 |------|----------|---------|
-| Unit | `src/**/__tests__/**/*.unit.spec.ts` | `pnpm test:unit` |
-| Unit (jobs) | `tests/unit/jobs/*.unit.spec.ts` | `pnpm test:unit` |
+| Unit | `tests/unit/**/*.unit.spec.ts` | `pnpm test:unit` |
 | HTTP Integration | `integration-tests/http/` | `pnpm test:integration:http` |
 | Module Integration | `src/modules/*/__tests__/*.spec.ts` | `pnpm test:integration:modules` |
 
@@ -383,7 +382,6 @@ medusaIntegrationTestRunner({
         })
     },
 })
-vi.setConfig({ testTimeout: 60_000 })
 // Admin auth: headers: { authorization: `Bearer ${jwt.sign({actor_id, actor_type: "user", auth_identity_id}, "supersecret")}` }
 // Store auth: headers: { "x-publishable-api-key": pak.token }
 ```

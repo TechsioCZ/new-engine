@@ -1,4 +1,8 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  AuthContext,
+  MedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
 import { z } from "@medusajs/framework/zod"
 import escapeHtml from "escape-html"
 import { importPKCS8, SignJWT } from "jose"
@@ -23,10 +27,7 @@ export const AdminPayloadSsoSchema = z.object({
 /** Parsed query type for the admin payload SSO endpoint. */
 export type AdminPayloadSsoSchemaType = z.infer<typeof AdminPayloadSsoSchema>
 
-type AdminUserAuthContext = {
-  actor_id?: string
-  actor_type?: string
-}
+type AdminUserAuthContext = Pick<AuthContext, "actor_id" | "actor_type">
 
 /** Normalize multiline private keys loaded from environment variables. */
 const normalizeKey = (value: string) => value.replace(/\\n/g, "\n").trim()
@@ -119,15 +120,30 @@ const resolvePayloadSsoUrl = (
 const getAdminUserAuthContext = (
   req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>
 ) => {
-  const authContext = (req as { auth_context?: AdminUserAuthContext })
-    .auth_context
-  if (!authContext?.actor_id) {
+  const authContext: unknown =
+    "auth_context" in req ? req.auth_context : undefined
+
+  if (!isAdminUserAuthContext(authContext)) {
     return null
   }
-  if (authContext.actor_type !== "user") {
-    return null
-  }
+
   return authContext
+}
+
+function isAdminUserAuthContext(value: unknown): value is AdminUserAuthContext {
+  if (!value || typeof value !== "object") {
+    return false
+  }
+
+  const actorId: unknown = "actor_id" in value ? value.actor_id : undefined
+  const actorType: unknown =
+    "actor_type" in value ? value.actor_type : undefined
+
+  if (typeof actorId !== "string" || actorId.length === 0) {
+    return false
+  }
+
+  return actorType === "user"
 }
 
 /** Admin API handler that issues an SSO token and auto-posts to Payload. */

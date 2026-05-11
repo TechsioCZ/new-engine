@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import type { Mock } from "vitest"
-import { vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   excerptPlainText,
   parseHerbaticaCategoriesXmlFile,
@@ -16,10 +15,9 @@ describe("Herbatica category export parser", () => {
     "src/scripts/seed-files/categories.xml"
   )
   const categories = parseHerbaticaCategoriesXmlFile(xmlPath)
-  const originalFetch = global.fetch
 
   afterEach(() => {
-    ;(global as unknown as { fetch: typeof fetch }).fetch = originalFetch
+    vi.unstubAllGlobals()
   })
 
   it("parses the canonical category export snapshot", () => {
@@ -86,27 +84,27 @@ describe("Herbatica category export parser", () => {
 
   it("parses categories from an HTTP XML source", async () => {
     const xml = readFileSync(xmlPath, "utf8")
-    ;(global as unknown as { fetch: Mock }).fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      text: vi.fn().mockResolvedValue(xml),
-    })
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(xml))
+    vi.stubGlobal("fetch", fetchMock)
 
     const result = await parseHerbaticaCategoriesXmlSource(
       "https://example.test/categories.xml"
     )
 
     expect(result).toHaveLength(5)
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       "https://example.test/categories.xml"
     )
   })
 
   it("throws a useful error when HTTP XML loading fails", async () => {
-    ;(global as unknown as { fetch: Mock }).fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      statusText: "Not Found",
-    })
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response("", {
+        status: 404,
+        statusText: "Not Found",
+      })
+    )
+    vi.stubGlobal("fetch", fetchMock)
 
     await expect(
       readXmlSource("https://example.test/missing.xml")

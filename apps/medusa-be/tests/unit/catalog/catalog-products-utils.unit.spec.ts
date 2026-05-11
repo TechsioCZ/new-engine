@@ -1,11 +1,13 @@
+import { describe, expect, it } from "vitest"
+
 import {
-    buildCatalogFilterExpressions,
-    normalizeBrandParam,
-    normalizeCategoryIdsParam,
-    normalizeFormParam,
-    normalizeIngredientParam,
-    normalizeStatusParam,
-    resolveCatalogSort,
+  buildCatalogFilterExpressions,
+  normalizeBrandParam,
+  normalizeCategoryIdsParam,
+  normalizeFormParam,
+  normalizeIngredientParam,
+  normalizeStatusParam,
+  resolveCatalogSort,
 } from "../../../src/api/store/catalog/products/utils"
 
 describe("catalog products filter utils", () => {
@@ -15,11 +17,13 @@ describe("catalog products filter utils", () => {
       "in-stock",
     ])
 
-    expect(normalizeFormParam(["form-capsules", "form-tablets,form-tablets"])).toEqual(
-      ["form-capsules", "form-tablets"]
-    )
+    expect(
+      normalizeFormParam(["form-capsules", "form-tablets,form-tablets"])
+    ).toEqual(["form-capsules", "form-tablets"])
 
-    expect(normalizeBrandParam("brand-natura,invalid")).toEqual(["brand-natura"])
+    expect(normalizeBrandParam("brand-natura,invalid")).toEqual([
+      "brand-natura",
+    ])
     expect(normalizeIngredientParam(["ingredient-horcik", "other"])).toEqual([
       "ingredient-horcik",
     ])

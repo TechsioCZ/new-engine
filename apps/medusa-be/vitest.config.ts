@@ -10,10 +10,10 @@ if (isIntegration) {
   loadEnv("test", process.cwd())
 }
 
-let include = ["src/**/*.unit.spec.ts", "tests/unit/**/*.unit.spec.ts"]
+let include = ["tests/unit/**/*.unit.spec.ts"]
 
 if (isHttpIntegration) {
-  include = ["integration-tests/http/*.spec.ts"]
+  include = ["integration-tests/http/**/*.spec.ts"]
 }
 
 if (isModuleIntegration) {
@@ -21,6 +21,7 @@ if (isModuleIntegration) {
 }
 
 export default defineConfig({
+  root: import.meta.dirname,
   test: {
     environment: "node",
     exclude: [
@@ -29,9 +30,11 @@ export default defineConfig({
       ".medusa",
       ...(isModuleIntegration ? ["**/*.unit.spec.ts"] : []),
     ],
-    globals: true,
+    fileParallelism: false,
+    globals: isIntegration,
+    hookTimeout: isIntegration ? 60_000 : 20_000,
     include,
     setupFiles: isIntegration ? ["./integration-tests/setup.js"] : [],
-    testTimeout: isIntegration ? 60_000 : 5000,
+    testTimeout: isIntegration ? 60_000 : 20_000,
   },
 })

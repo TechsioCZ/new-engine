@@ -1,5 +1,5 @@
 import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
-import { vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { PRODUCER_MODULE } from "../index"
 import Producer from "../models/producer"
 import ProducerAttribute from "../models/producer-attribute"

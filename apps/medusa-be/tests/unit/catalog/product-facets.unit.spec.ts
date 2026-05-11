@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest"
+
 import { buildProductFacetDocument } from "../../../src/modules/meilisearch/facets/product-facets"
 
 describe("product facet document builder", () => {
