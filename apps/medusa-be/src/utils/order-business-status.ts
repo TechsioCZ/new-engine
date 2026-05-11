@@ -97,10 +97,12 @@ export const ORDER_BUSINESS_STATUSES = {
   new: createOrderBusinessStatus("new", 8, "grey"),
 } as const satisfies Record<OrderBusinessStatusId, OrderBusinessStatus>
 
+// Failed/canceled payment attempts still need payment action; only order/manual cancellation maps to Storno.
 const AWAITING_PAYMENT_STATUSES = new Set([
   "authorized",
   "awaiting",
   "canceled",
+  "failed",
   "not_paid",
   "partially_captured",
   "partially_authorized",

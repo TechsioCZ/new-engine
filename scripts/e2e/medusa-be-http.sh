@@ -88,7 +88,7 @@ run_tests() {
       MEDUSA_E2E_ADMIN_EMAIL="${MEDUSA_E2E_ADMIN_EMAIL:?MEDUSA_E2E_ADMIN_EMAIL is required}" \
       MEDUSA_E2E_ADMIN_PASSWORD="${MEDUSA_E2E_ADMIN_PASSWORD:?MEDUSA_E2E_ADMIN_PASSWORD is required}" \
       TEST_TYPE="$TEST_TYPE_VALUE" \
-      node ./scripts/run-vitest.mjs run --config vitest.config.ts --no-file-parallelism ${TEST_TARGET}
+      node ./scripts/run-vitest.mjs run --config vitest.config.ts --no-file-parallelism "${TEST_TARGET}"
   )
 }
 

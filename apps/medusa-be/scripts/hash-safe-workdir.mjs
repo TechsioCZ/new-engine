@@ -52,7 +52,13 @@ function ensureHashSafeRepoAlias() {
     }
   } catch (error) {
     if (error.code !== "ENOENT") {
-      throw error
+      try {
+        fs.rmSync(aliasRoot, { force: true, recursive: true })
+      } catch (cleanupError) {
+        throw new Error(`Unable to remove stale hash-safe path ${aliasRoot}`, {
+          cause: cleanupError,
+        })
+      }
     }
   }
 

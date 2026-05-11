@@ -50,49 +50,64 @@ describe("order business status", () => {
     expect(resolveOrderBusinessStatus(createOrder()).id).toBe("new")
   })
 
-  it("shows Čeká na platbu for orders without confirmed payment", () => {
-    expect(
-      resolveOrderBusinessStatus(createOrder({ payment_collections: [] })).id
-    ).toBe("awaiting_payment")
-    expect(
-      resolveOrderBusinessStatus(
-        createOrder({ payment_status: "requires_action" })
-      ).id
-    ).toBe("awaiting_payment")
-    expect(
-      resolveOrderBusinessStatus(createOrder({ payment_status: "authorized" }))
-        .id
-    ).toBe("awaiting_payment")
-    expect(
-      resolveOrderBusinessStatus(
-        createOrder({ payment_status: "partially_captured" })
-      ).id
-    ).toBe("awaiting_payment")
-    expect(
-      resolveOrderBusinessStatus(
-        createOrder({
-          payment_collections: [{ status: "completed" }],
-          payment_status: "partially_captured",
-        })
-      ).id
-    ).toBe("awaiting_payment")
+  it.each([
+    {
+      name: "there are no payment collections",
+      overrides: { payment_collections: [] },
+    },
+    {
+      name: "payment requires action",
+      overrides: { payment_status: "requires_action" },
+    },
+    {
+      name: "payment is only authorized",
+      overrides: { payment_status: "authorized" },
+    },
+    {
+      name: "payment is partially captured",
+      overrides: { payment_status: "partially_captured" },
+    },
+    {
+      name: "payment collection failed",
+      overrides: { payment_collections: [{ status: "failed" }] },
+    },
+    {
+      name: "order-level payment status overrides completed collection",
+      overrides: {
+        payment_collections: [{ status: "completed" }],
+        payment_status: "partially_captured",
+      },
+    },
+  ] satisfies {
+    name: string
+    overrides: Partial<OrderBusinessStatusInput>
+  }[])("shows Čeká na platbu when $name", ({ overrides }) => {
+    expect(resolveOrderBusinessStatus(createOrder(overrides)).id).toBe(
+      "awaiting_payment"
+    )
   })
 
-  it("shows Zaplacená only for completed payment signals", () => {
-    expect(
-      resolveOrderBusinessStatus(createOrder({ payment_status: "captured" })).id
-    ).toBe("paid")
-    expect(
-      resolveOrderBusinessStatus(createOrder({ payment_status: "completed" }))
-        .id
-    ).toBe("paid")
-    expect(
-      resolveOrderBusinessStatus(
-        createOrder({
-          payment_collections: [{ status: "completed" }],
-        })
-      ).id
-    ).toBe("paid")
+  it.each([
+    {
+      name: "payment status is captured",
+      overrides: { payment_status: "captured" },
+    },
+    {
+      name: "payment status is completed",
+      overrides: { payment_status: "completed" },
+    },
+    {
+      name: "payment collection is completed",
+      overrides: { payment_collections: [{ status: "completed" }] },
+    },
+  ] satisfies {
+    name: string
+    overrides: Partial<OrderBusinessStatusInput>
+  }[])("shows Zaplacená when $name", ({ overrides }) => {
+    expect(resolveOrderBusinessStatus(createOrder(overrides)).id).toBe("paid")
+  })
+
+  it("does not show Zaplacená for partially captured payment", () => {
     expect(
       resolveOrderBusinessStatus(
         createOrder({ payment_status: "partially_captured" })

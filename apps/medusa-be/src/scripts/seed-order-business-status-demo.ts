@@ -45,6 +45,8 @@ type DatabaseConnection = {
   raw: <T = unknown>(sql: string, bindings?: unknown[]) => Promise<T>
 }
 
+type RawRows<T> = T[] | { rows?: T[] }
+
 type BusinessStatusDemo = {
   key: string
   email: string
@@ -61,6 +63,14 @@ type UpsertCompletedPaymentCollectionInput = {
   order: DemoOrder
   pgConnection: DatabaseConnection
   region: DemoRegion
+}
+
+type UpsertDemoFulfillmentInput = {
+  demo: BusinessStatusDemo
+  order: DemoOrder
+  pgConnection: DatabaseConnection
+  stockLocationId: string
+  timestamp: Date
 }
 
 const DEMO_PRODUCT_HANDLE_PREFIX = "order-expedition-demo-"
@@ -139,6 +149,8 @@ export default async function seedOrderBusinessStatusDemo({
   logger.info("Starting order business status demo seed...")
 
   await seedOrderExpeditionDemo({ args: [], container })
+  const stockLocationId =
+    await fetchBusinessStatusDemoStockLocationId(pgConnection)
 
   const [region, salesChannel, variants] = await Promise.all([
     fetchCzechRegion(query),
@@ -199,6 +211,7 @@ export default async function seedOrderBusinessStatusDemo({
       order,
       pgConnection,
       region,
+      stockLocationId,
     })
   }
 
@@ -271,16 +284,19 @@ async function normalizeDemoOrder({
   order,
   pgConnection,
   region,
+  stockLocationId,
 }: {
   demo: BusinessStatusDemo
   index: number
   order: DemoOrder
   pgConnection: DatabaseConnection
   region: DemoRegion
+  stockLocationId: string
 }) {
   const createdAt = new Date(Date.now() - index * 60_000)
   const metadata = buildDemoMetadata(order.metadata, demo)
 
+  // Direct SQL keeps demo chronology deterministic and intentionally bypasses order workflows/subscribers.
   await pgConnection.raw(
     `update "order"
       set "email" = ?,
@@ -315,7 +331,13 @@ async function normalizeDemoOrder({
   await removeDemoFulfillment(pgConnection, demo)
 
   if (demo.fulfillment) {
-    await upsertDemoFulfillment(pgConnection, order, demo, createdAt)
+    await upsertDemoFulfillment({
+      demo,
+      pgConnection,
+      order,
+      stockLocationId,
+      timestamp: createdAt,
+    })
   }
 }
 
@@ -402,12 +424,13 @@ async function removeDemoPaymentCollection(
   ])
 }
 
-async function upsertDemoFulfillment(
-  pgConnection: DatabaseConnection,
-  order: DemoOrder,
-  demo: BusinessStatusDemo,
-  timestamp: Date
-) {
+async function upsertDemoFulfillment({
+  demo,
+  order,
+  pgConnection,
+  stockLocationId,
+  timestamp,
+}: UpsertDemoFulfillmentInput) {
   const fulfillmentId = getFulfillmentId(demo)
   const shippedAt = timestamp
   const deliveredAt = demo.fulfillment === "delivered" ? timestamp : null
@@ -441,7 +464,7 @@ async function upsertDemoFulfillment(
           "updated_at" = now()`,
     [
       fulfillmentId,
-      "sloc_order_business_status_demo",
+      stockLocationId,
       shippedAt,
       shippedAt,
       deliveredAt,
@@ -482,6 +505,23 @@ async function removeDemoFulfillment(
   await pgConnection.raw(`delete from "fulfillment" where "id" = ?`, [
     fulfillmentId,
   ])
+}
+
+async function fetchBusinessStatusDemoStockLocationId(
+  pgConnection: DatabaseConnection
+) {
+  const result = await pgConnection.raw<RawRows<{ id: string }>>(
+    `select "id" from "stock_location" where "deleted_at" is null order by "created_at" asc limit 1`
+  )
+  const stockLocationId = getRows(result)[0]?.id
+
+  if (!stockLocationId) {
+    throw new Error(
+      "At least one stock location is required for business status demo seed"
+    )
+  }
+
+  return stockLocationId
 }
 
 async function fetchCzechRegion(query: QueryService) {
@@ -551,15 +591,21 @@ function buildDemoMetadata(
     order_business_status_demo_expected_status: demo.expectedStatus,
     order_business_status_demo_key: demo.key,
   }
-  nextMetadata.order_business_status_demo_expected_label = undefined
+
+  // biome-ignore lint/performance/noDelete: remove a legacy seed marker from serialized demo metadata.
+  delete nextMetadata.order_business_status_demo_expected_label
 
   if (demo.manualStatus) {
     nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = demo.manualStatus
   } else {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = undefined
+    delete nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY]
   }
 
   return nextMetadata
+}
+
+function getRows<T>(result: RawRows<T>) {
+  return Array.isArray(result) ? result : (result.rows ?? [])
 }
 
 function getDemoKey(order: DemoOrder) {
