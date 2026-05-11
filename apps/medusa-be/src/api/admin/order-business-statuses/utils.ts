@@ -51,10 +51,18 @@ export function parseOrderBusinessStatusOrders(
   value: unknown
 ): OrderBusinessStatusOrder[] {
   if (!Array.isArray(value)) {
-    return []
+    throw new Error("Expected order business status query to return an array")
   }
 
-  return value.filter(isOrderBusinessStatusOrder)
+  return value.map((order, index) => {
+    if (!isOrderBusinessStatusOrder(order)) {
+      throw new Error(
+        `Expected order business status query result at index ${index} to include a string id`
+      )
+    }
+
+    return order
+  })
 }
 
 function isOrderBusinessStatusOrder(

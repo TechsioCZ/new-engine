@@ -20,18 +20,21 @@ const createOrder = (
 })
 
 describe("order business status", () => {
-  it("exposes the approved Czech labels", () => {
+  it("exposes the approved statuses with admin translation keys", () => {
     expect(
-      Object.values(ORDER_BUSINESS_STATUSES).map((status) => status.label)
+      Object.values(ORDER_BUSINESS_STATUSES).map((status) => [
+        status.id,
+        status.translation_key,
+      ])
     ).toEqual([
-      "Storno",
-      "Doručená",
-      "Expedovaná",
-      "Čeká na dodavatele",
-      "Zpracovává se",
-      "Zaplacená",
-      "Čeká na platbu",
-      "Nová",
+      ["canceled", "statuses.canceled"],
+      ["delivered", "statuses.delivered"],
+      ["shipped", "statuses.shipped"],
+      ["waiting_for_supplier", "statuses.waiting_for_supplier"],
+      ["processing", "statuses.processing"],
+      ["paid", "statuses.paid"],
+      ["awaiting_payment", "statuses.awaiting_payment"],
+      ["new", "statuses.new"],
     ])
   })
 

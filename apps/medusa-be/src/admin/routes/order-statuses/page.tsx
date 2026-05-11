@@ -10,7 +10,8 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
   isManualOrderBusinessStatusId,
@@ -34,35 +35,38 @@ const PAGE_SIZE = 50
 const ORDER_STATUSES_QUERY_KEY = "order-business-statuses"
 
 const MANUAL_STATUS_OPTIONS: Array<{
-  label: string
+  translationKey: string
   value: ManualStatusValue
 }> = [
   ...MANUAL_ORDER_BUSINESS_STATUS_IDS.map((value) => ({
-    label: ORDER_BUSINESS_STATUSES[value].label,
+    translationKey: ORDER_BUSINESS_STATUSES[value].translation_key,
     value,
   })),
   {
-    label: "Vymazat ruční stav",
+    translationKey: "manualStatus.clear",
     value: "clear",
   },
 ]
 
-const formatDate = (date: string | null | undefined) => {
+const formatLocaleCode = (code: string | undefined) =>
+  code?.replace(/([a-z])([A-Z])/g, "$1-$2")
+
+const formatDate = (date: string | null | undefined, locale?: string) => {
   if (!date) {
     return "-"
   }
 
-  return new Intl.DateTimeFormat("cs-CZ", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(date))
 }
 
 const formatOrderNumber = (order: OrderBusinessStatusSummary) =>
-  order.custom_display_id ||
+  order.custom_display_id ??
   (order.display_id ? `#${order.display_id}` : order.id)
 
-const formatTotal = (order: OrderBusinessStatusSummary) => {
+const formatTotal = (order: OrderBusinessStatusSummary, locale?: string) => {
   if (order.total === null || order.total === undefined) {
     return "-"
   }
@@ -74,7 +78,7 @@ const formatTotal = (order: OrderBusinessStatusSummary) => {
     return String(order.total)
   }
 
-  return new Intl.NumberFormat("cs-CZ", {
+  return new Intl.NumberFormat(locale, {
     currency: order.currency_code.toUpperCase(),
     style: "currency",
   }).format(total)
@@ -101,6 +105,7 @@ const ManualStatusControl = ({
   manualStatus?: ManualOrderBusinessStatusId | null
   orderId: string
 }) => {
+  const { t } = useTranslation("orderBusinessStatuses")
   const queryClient = useQueryClient()
   const mutation = useMutation({
     mutationFn: (value: ManualStatusValue) =>
@@ -109,14 +114,10 @@ const ManualStatusControl = ({
         status: value === "clear" ? null : value,
       }),
     onError: (error) => {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Nepodařilo se uložit stav objednávky"
-      )
+      toast.error(error instanceof Error ? error.message : t("toast.saveError"))
     },
     onSuccess: () => {
-      toast.success("Stav objednávky uložen")
+      toast.success(t("toast.saveSuccess"))
       queryClient.invalidateQueries({ queryKey: [ORDER_STATUSES_QUERY_KEY] })
     },
   })
@@ -134,19 +135,19 @@ const ManualStatusControl = ({
         }}
       >
         <Select.Trigger className="w-[210px]">
-          <Select.Value placeholder="Upravit stav" />
+          <Select.Value placeholder={t("manualStatus.placeholder")} />
         </Select.Trigger>
         <Select.Content>
           {MANUAL_STATUS_OPTIONS.map((option) => (
             <Select.Item key={option.value} value={option.value}>
-              {option.label}
+              {t(option.translationKey)}
             </Select.Item>
           ))}
         </Select.Content>
       </Select>
       {mutation.isPending ? (
         <Text className="text-ui-fg-subtle" size="small">
-          Ukládám...
+          {t("manualStatus.saving")}
         </Text>
       ) : null}
     </div>
@@ -154,8 +155,13 @@ const ManualStatusControl = ({
 }
 
 const OrderStatusesPage = () => {
+  const { i18n, t } = useTranslation("orderBusinessStatuses")
   const [offset, setOffset] = useState(0)
-  const { data, error, isLoading } = useQuery({
+  const intlLocale = useMemo(
+    () => formatLocaleCode(i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  )
+  const { data, isLoading } = useQuery({
     queryFn: () => {
       const search = new URLSearchParams({
         limit: String(PAGE_SIZE),
@@ -167,11 +173,8 @@ const OrderStatusesPage = () => {
       )
     },
     queryKey: [ORDER_STATUSES_QUERY_KEY, offset],
+    throwOnError: true,
   })
-
-  if (error) {
-    throw error
-  }
 
   const orders = data?.orders ?? []
   const pageIndex = Math.floor(offset / PAGE_SIZE)
@@ -180,26 +183,26 @@ const OrderStatusesPage = () => {
   return (
     <Container className="divide-y p-0">
       <div className="flex items-center justify-between px-6 py-4">
-        <Heading level="h1">Stavy objednávek</Heading>
+        <Heading level="h1">{t("title")}</Heading>
       </div>
 
       <Table>
         <Table.Header>
           <Table.Row>
-            <Table.HeaderCell>Objednávka</Table.HeaderCell>
-            <Table.HeaderCell>Zákazník</Table.HeaderCell>
-            <Table.HeaderCell>Vytvořeno</Table.HeaderCell>
-            <Table.HeaderCell>Celkem</Table.HeaderCell>
-            <Table.HeaderCell>Stav objednávky</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.order")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.customer")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.created")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.total")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.businessStatus")}</Table.HeaderCell>
             <Table.HeaderCell className="w-[1%] text-right">
-              Ruční stav
+              {t("columns.manualStatus")}
             </Table.HeaderCell>
           </Table.Row>
         </Table.Header>
         <Table.Body>
           {isLoading ? (
             <Table.Row>
-              <Table.Cell>Načítám...</Table.Cell>
+              <Table.Cell>{t("table.loading")}</Table.Cell>
               <Table.Cell />
               <Table.Cell />
               <Table.Cell />
@@ -209,7 +212,7 @@ const OrderStatusesPage = () => {
           ) : null}
           {isLoading || orders.length ? null : (
             <Table.Row>
-              <Table.Cell>Žádné objednávky nenalezeny.</Table.Cell>
+              <Table.Cell>{t("table.empty")}</Table.Cell>
               <Table.Cell />
               <Table.Cell />
               <Table.Cell />
@@ -231,14 +234,14 @@ const OrderStatusesPage = () => {
                 {order.email ?? "-"}
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap">
-                {formatDate(order.created_at)}
+                {formatDate(order.created_at, intlLocale)}
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap">
-                {formatTotal(order)}
+                {formatTotal(order, intlLocale)}
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap">
                 <Badge color={order.business_status.tone} size="2xsmall">
-                  {order.business_status.label}
+                  {t(order.business_status.translation_key)}
                 </Badge>
               </Table.Cell>
               <Table.Cell className="text-right">
@@ -261,6 +264,13 @@ const OrderStatusesPage = () => {
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
         previousPage={() => setOffset((prev) => Math.max(0, prev - PAGE_SIZE))}
+        translations={{
+          next: t("pagination.next"),
+          of: t("pagination.of"),
+          pages: t("pagination.pages"),
+          prev: t("pagination.previous"),
+          results: t("pagination.results"),
+        }}
       />
     </Container>
   )
@@ -268,7 +278,8 @@ const OrderStatusesPage = () => {
 
 export const config = defineRouteConfig({
   icon: DocumentSeries,
-  label: "Stavy objednávek",
+  label: "menuItem",
+  translationNs: "orderBusinessStatuses",
 })
 
 export default OrderStatusesPage

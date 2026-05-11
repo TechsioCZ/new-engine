@@ -4,6 +4,7 @@ import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
 import {
   type ManualOrderBusinessStatusId,
   ORDER_BUSINESS_STATUS_METADATA_KEY,
+  type OrderBusinessStatusId,
 } from "../utils/order-business-status"
 import seedOrderExpeditionDemo from "./seed-order-expedition-demo"
 
@@ -47,11 +48,19 @@ type DatabaseConnection = {
 type BusinessStatusDemo = {
   key: string
   email: string
-  expectedLabel: string
+  expectedStatus: OrderBusinessStatusId
   paid: boolean
   orderStatus: "pending" | "canceled"
   manualStatus?: ManualOrderBusinessStatusId
   fulfillment?: "shipped" | "delivered"
+}
+
+type UpsertCompletedPaymentCollectionInput = {
+  demo: BusinessStatusDemo
+  index: number
+  order: DemoOrder
+  pgConnection: DatabaseConnection
+  region: DemoRegion
 }
 
 const DEMO_PRODUCT_HANDLE_PREFIX = "order-expedition-demo-"
@@ -62,21 +71,21 @@ const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   {
     key: "awaiting-payment",
     email: "business-status.demo.awaiting-payment@example.test",
-    expectedLabel: "Čeká na platbu",
+    expectedStatus: "awaiting_payment",
     orderStatus: "pending",
     paid: false,
   },
   {
     key: "paid",
     email: "business-status.demo.paid@example.test",
-    expectedLabel: "Zaplacená",
+    expectedStatus: "paid",
     orderStatus: "pending",
     paid: true,
   },
   {
     key: "processing",
     email: "business-status.demo.processing@example.test",
-    expectedLabel: "Zpracovává se",
+    expectedStatus: "processing",
     manualStatus: "processing",
     orderStatus: "pending",
     paid: true,
@@ -84,7 +93,7 @@ const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   {
     key: "waiting-for-supplier",
     email: "business-status.demo.waiting-for-supplier@example.test",
-    expectedLabel: "Čeká na dodavatele",
+    expectedStatus: "waiting_for_supplier",
     manualStatus: "waiting_for_supplier",
     orderStatus: "pending",
     paid: true,
@@ -92,7 +101,7 @@ const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   {
     key: "shipped-over-processing",
     email: "business-status.demo.shipped@example.test",
-    expectedLabel: "Expedovaná",
+    expectedStatus: "shipped",
     fulfillment: "shipped",
     manualStatus: "processing",
     orderStatus: "pending",
@@ -101,7 +110,7 @@ const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   {
     key: "delivered-over-supplier",
     email: "business-status.demo.delivered@example.test",
-    expectedLabel: "Doručená",
+    expectedStatus: "delivered",
     fulfillment: "delivered",
     manualStatus: "waiting_for_supplier",
     orderStatus: "pending",
@@ -110,7 +119,7 @@ const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   {
     key: "canceled-over-paid-shipped",
     email: "business-status.demo.canceled@example.test",
-    expectedLabel: "Storno",
+    expectedStatus: "canceled",
     fulfillment: "shipped",
     manualStatus: "canceled",
     orderStatus: "canceled",
@@ -292,13 +301,13 @@ async function normalizeDemoOrder({
   )
 
   if (demo.paid) {
-    await upsertCompletedPaymentCollection(
-      pgConnection,
-      order,
+    await upsertCompletedPaymentCollection({
       demo,
+      index,
+      order,
+      pgConnection,
       region,
-      index
-    )
+    })
   } else {
     await removeDemoPaymentCollection(pgConnection, demo)
   }
@@ -310,13 +319,13 @@ async function normalizeDemoOrder({
   }
 }
 
-async function upsertCompletedPaymentCollection(
-  pgConnection: DatabaseConnection,
-  order: DemoOrder,
-  demo: BusinessStatusDemo,
-  region: DemoRegion,
-  index: number
-) {
+async function upsertCompletedPaymentCollection({
+  demo,
+  index,
+  order,
+  pgConnection,
+  region,
+}: UpsertCompletedPaymentCollectionInput) {
   const paymentCollectionId = getPaymentCollectionId(demo)
   const amount = getDemoOrderTotal(index)
   const rawAmount = { value: amount, precision: 20 }
@@ -539,14 +548,15 @@ function buildDemoMetadata(
   const nextMetadata: Record<string, unknown> = {
     ...(metadata ?? {}),
     order_business_status_demo: true,
-    order_business_status_demo_expected_label: demo.expectedLabel,
+    order_business_status_demo_expected_status: demo.expectedStatus,
     order_business_status_demo_key: demo.key,
   }
+  nextMetadata.order_business_status_demo_expected_label = undefined
 
   if (demo.manualStatus) {
     nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = demo.manualStatus
   } else {
-    delete nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY]
+    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = undefined
   }
 
   return nextMetadata

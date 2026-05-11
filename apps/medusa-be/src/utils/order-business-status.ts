@@ -33,9 +33,9 @@ export type OrderBusinessStatusTone =
 
 export type OrderBusinessStatus = {
   id: OrderBusinessStatusId
-  label: string
   priority: number
   tone: OrderBusinessStatusTone
+  translation_key: `statuses.${OrderBusinessStatusId}`
 }
 
 export type OrderBusinessStatusPaymentCollection = {
@@ -69,55 +69,32 @@ export type OrderBusinessStatusSummary = {
   total?: number | string | null
 }
 
+function createOrderBusinessStatus<const TId extends OrderBusinessStatusId>(
+  id: TId,
+  priority: number,
+  tone: OrderBusinessStatusTone
+) {
+  return {
+    id,
+    priority,
+    tone,
+    translation_key: `statuses.${id}` as const,
+  }
+}
+
 export const ORDER_BUSINESS_STATUSES = {
-  canceled: {
-    id: "canceled",
-    label: "Storno",
-    priority: 1,
-    tone: "red",
-  },
-  delivered: {
-    id: "delivered",
-    label: "Doručená",
-    priority: 2,
-    tone: "green",
-  },
-  shipped: {
-    id: "shipped",
-    label: "Expedovaná",
-    priority: 3,
-    tone: "purple",
-  },
-  waiting_for_supplier: {
-    id: "waiting_for_supplier",
-    label: "Čeká na dodavatele",
-    priority: 4,
-    tone: "orange",
-  },
-  processing: {
-    id: "processing",
-    label: "Zpracovává se",
-    priority: 5,
-    tone: "blue",
-  },
-  paid: {
-    id: "paid",
-    label: "Zaplacená",
-    priority: 6,
-    tone: "green",
-  },
-  awaiting_payment: {
-    id: "awaiting_payment",
-    label: "Čeká na platbu",
-    priority: 7,
-    tone: "orange",
-  },
-  new: {
-    id: "new",
-    label: "Nová",
-    priority: 8,
-    tone: "grey",
-  },
+  canceled: createOrderBusinessStatus("canceled", 1, "red"),
+  delivered: createOrderBusinessStatus("delivered", 2, "green"),
+  shipped: createOrderBusinessStatus("shipped", 3, "purple"),
+  waiting_for_supplier: createOrderBusinessStatus(
+    "waiting_for_supplier",
+    4,
+    "orange"
+  ),
+  processing: createOrderBusinessStatus("processing", 5, "blue"),
+  paid: createOrderBusinessStatus("paid", 6, "green"),
+  awaiting_payment: createOrderBusinessStatus("awaiting_payment", 7, "orange"),
+  new: createOrderBusinessStatus("new", 8, "grey"),
 } as const satisfies Record<OrderBusinessStatusId, OrderBusinessStatus>
 
 const AWAITING_PAYMENT_STATUSES = new Set([

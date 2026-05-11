@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest"
 import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../../../../utils/order-business-status"
 import {
   buildOrderBusinessStatusMetadata,
-  parseOrderBusinessStatusOrders,
   type OrderBusinessStatusOrder,
+  parseOrderBusinessStatusOrders,
   toOrderBusinessStatusSummary,
 } from "../utils"
 
@@ -32,15 +32,23 @@ describe("order business status API utilities", () => {
     })
   })
 
-  it("parses only order-shaped query results", () => {
+  it("parses order-shaped query results", () => {
     expect(
       parseOrderBusinessStatusOrders([
         { id: "order_1", payment_status: "captured" },
-        { id: 123 },
-        null,
       ])
     ).toEqual([{ id: "order_1", payment_status: "captured" }])
-    expect(parseOrderBusinessStatusOrders({ id: "order_1" })).toEqual([])
+  })
+
+  it("fails closed for invalid query result shapes", () => {
+    expect(() => parseOrderBusinessStatusOrders({ id: "order_1" })).toThrow(
+      "Expected order business status query to return an array"
+    )
+    expect(() =>
+      parseOrderBusinessStatusOrders([{ id: "order_1" }, { id: 123 }])
+    ).toThrow(
+      "Expected order business status query result at index 1 to include a string id"
+    )
   })
 
   it("returns a summary with a computed business status", () => {
@@ -56,7 +64,7 @@ describe("order business status API utilities", () => {
     expect(toOrderBusinessStatusSummary(order)).toEqual({
       business_status: expect.objectContaining({
         id: "paid",
-        label: "Zaplacená",
+        translation_key: "statuses.paid",
       }),
       created_at: null,
       currency_code: "czk",

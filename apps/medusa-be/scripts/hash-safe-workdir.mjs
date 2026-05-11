@@ -93,6 +93,22 @@ function createHashSafeEnv(runCwd) {
   return env
 }
 
+function getPnpmSpawnCommand() {
+  const npmExecPath = process.env.npm_execpath
+
+  if (npmExecPath?.includes("pnpm")) {
+    return {
+      argsPrefix: [npmExecPath],
+      command: process.execPath,
+    }
+  }
+
+  return {
+    argsPrefix: [],
+    command: "pnpm",
+  }
+}
+
 export function createHashSafeRunContext() {
   const { ownsMount, runRepoRoot } = ensureHashSafeRepoAlias()
   const runCwd = path.join(runRepoRoot, path.relative(repoRoot, medusaBeDir))
@@ -116,6 +132,7 @@ export function createHashSafeRunContext() {
 
 export function runUnderHashSafeContext(bin, args) {
   const runContext = createHashSafeRunContext()
+  const pnpm = getPnpmSpawnCommand()
   let didCleanup = false
 
   function cleanupOnce() {
@@ -125,11 +142,15 @@ export function runUnderHashSafeContext(bin, args) {
     }
   }
 
-  const child = spawn("corepack", ["pnpm", "exec", bin, ...args], {
-    cwd: runContext.runCwd,
-    env: runContext.env,
-    stdio: "inherit",
-  })
+  const child = spawn(
+    pnpm.command,
+    [...pnpm.argsPrefix, "exec", bin, ...args],
+    {
+      cwd: runContext.runCwd,
+      env: runContext.env,
+      stdio: "inherit",
+    }
+  )
 
   child.on("error", (error) => {
     cleanupOnce()
