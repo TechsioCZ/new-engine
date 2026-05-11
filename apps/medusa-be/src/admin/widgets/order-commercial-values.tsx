@@ -189,6 +189,48 @@ function getManualAdjustmentAmount(
     .reduce((total, adjustment) => total + adjustment.amount, 0)
 }
 
+function getManualAmountDiscount(
+  item: CommercialValuesSnapshot["items"][number],
+  code: string
+): CommercialDiscountIntent | null {
+  const amount = getManualAdjustmentAmount(item, code)
+
+  return amount > 0 ? { amount, type: "amount" } : null
+}
+
+function getSnapshotOrderDiscount(snapshot: CommercialValuesSnapshot) {
+  const amount = snapshot.items.reduce(
+    (total, item) =>
+      total + getManualAdjustmentAmount(item, MANUAL_ORDER_DISCOUNT_CODE),
+    0
+  )
+
+  return amount > 0 ? { amount, type: "amount" as const } : null
+}
+
+function areDiscountsEqual(
+  left: CommercialDiscountIntent | null,
+  right: CommercialDiscountIntent | null
+) {
+  if (left === null || right === null) {
+    return left === right
+  }
+
+  if (left.type !== right.type) {
+    return false
+  }
+
+  if (left.type === "amount" && right.type === "amount") {
+    return left.amount === right.amount
+  }
+
+  if (left.type === "percentage" && right.type === "percentage") {
+    return left.value_bps === right.value_bps
+  }
+
+  return false
+}
+
 function createDraft(snapshot: CommercialValuesSnapshot): DraftState {
   const orderDiscountAmount = snapshot.items.reduce(
     (total, item) =>
@@ -269,14 +311,14 @@ function buildPayload(
   snapshot: CommercialValuesSnapshot,
   confirmationMode?: "confirm" | "request"
 ) {
-  const items = draft.items.map((item) => ({
+  const parsedItems = draft.items.map((item) => ({
     discount: parseDiscount(item.discount_type, item.discount_value),
     item_id: item.item_id,
     unit_price: parseAmount(item.unit_price),
   }))
 
   if (
-    items.some(
+    parsedItems.some(
       (item, index) =>
         item.unit_price === undefined ||
         item.discount === undefined ||
@@ -287,6 +329,44 @@ function buildPayload(
     return
   }
 
+  const validParsedItems = parsedItems.filter(
+    (
+      item
+    ): item is {
+      discount: CommercialDiscountIntent | null
+      item_id: string
+      unit_price: number
+    } => item.discount !== undefined && item.unit_price !== undefined
+  )
+
+  if (validParsedItems.length !== parsedItems.length) {
+    return
+  }
+
+  const snapshotItemsById = new Map(
+    snapshot.items.map((item) => [item.item_id, item])
+  )
+  const items = validParsedItems.map((item) => {
+    const payloadItem: {
+      discount?: CommercialDiscountIntent | null
+      item_id: string
+      unit_price: number
+    } = {
+      item_id: item.item_id,
+      unit_price: item.unit_price,
+    }
+    const snapshotItem = snapshotItemsById.get(item.item_id)
+    const snapshotDiscount = snapshotItem
+      ? getManualAmountDiscount(snapshotItem, MANUAL_ITEM_DISCOUNT_CODE)
+      : null
+
+    if (!areDiscountsEqual(item.discount, snapshotDiscount)) {
+      payloadItem.discount = item.discount
+    }
+
+    return payloadItem
+  })
+  const snapshotOrderDiscount = getSnapshotOrderDiscount(snapshot)
   const orderDiscount = parseDiscount(
     draft.order_discount_type,
     draft.order_discount_value
@@ -302,12 +382,15 @@ function buildPayload(
   const payload = {
     expected_order_version: snapshot.expected_order_version,
     internal_note: draft.internal_note.trim() || undefined,
-    items: items.map((item) => ({
-      discount: item.discount,
-      item_id: item.item_id,
-      unit_price: item.unit_price as number,
-    })),
-    order_discount: orderDiscount,
+    items,
+  }
+
+  if (!areDiscountsEqual(orderDiscount, snapshotOrderDiscount)) {
+    return {
+      ...payload,
+      order_discount: orderDiscount,
+      ...(confirmationMode ? { confirmation_mode: confirmationMode } : {}),
+    }
   }
 
   return confirmationMode

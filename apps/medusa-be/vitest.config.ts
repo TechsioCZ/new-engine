@@ -13,7 +13,7 @@ if (isIntegration) {
 let include = ["tests/unit/**/*.unit.spec.ts"]
 
 if (isHttpIntegration) {
-  include = ["integration-tests/http/*.spec.ts"]
+  include = ["integration-tests/http/**/*.spec.ts"]
 }
 
 if (isModuleIntegration) {
