@@ -39,6 +39,40 @@ export const requestAuthProxy = async <TBody extends Record<string, unknown>>(
   };
 };
 
+export const requestPasswordResetProxy = async (email: string) => {
+  const response = await fetch("/api/storefront-auth/forgot-password", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseProxyError(response));
+  }
+};
+
+export const requestPasswordUpdateProxy = async ({
+  password,
+  token,
+}: {
+  password: string;
+  token: string;
+}) => {
+  const response = await fetch("/api/storefront-auth/reset-password", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ password, token }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseProxyError(response));
+  }
+};
+
 export const requestSessionProxy = async (): Promise<AuthProxyResponse | null> => {
   const response = await fetch("/api/storefront-auth/session", {
     method: "GET",
