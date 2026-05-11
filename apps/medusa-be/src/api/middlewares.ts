@@ -7,10 +7,11 @@ import { errorHandler } from "@medusajs/framework/http"
 import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
+import { adminOrderExpeditionRoutesMiddlewares } from "./admin/order-expedition/middlewares"
 import { adminOrderEmailRoutesMiddlewares } from "./admin/orders/[id]/email/middlewares"
-import { adminPayloadSsoRoutesMiddlewares } from "./admin/payload/sso/middlewares"
 import { adminPacketaConfigRoutesMiddlewares } from "./admin/packeta-config/middlewares"
 import { adminPacketaLabelsRoutesMiddlewares } from "./admin/packeta-labels/middlewares"
+import { adminPayloadSsoRoutesMiddlewares } from "./admin/payload/sso/middlewares"
 import { adminPplConfigRoutesMiddlewares } from "./admin/ppl-config/middlewares"
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
@@ -38,6 +39,7 @@ export default defineMiddlewares({
       matcher: "/webhooks/*",
       bodyParser: { preserveRawBody: true },
     },
+    ...adminOrderExpeditionRoutesMiddlewares,
     ...adminOrderEmailRoutesMiddlewares,
     ...adminPayloadSsoRoutesMiddlewares,
     ...adminPacketaConfigRoutesMiddlewares,

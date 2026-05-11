@@ -90,6 +90,12 @@ const meta = {
       control: "text",
       description: "Content of the trigger button",
     },
+    id: {
+      table: { disable: true },
+    },
+    children: {
+      table: { disable: true },
+    },
   },
   args: {
     placement: "bottom",
@@ -102,6 +108,11 @@ const meta = {
     trigger: "Open Popover",
     title: "Popover Title",
     description: "This is a popover description.",
+    children: (
+      <div className="mt-200">
+        <p>This is the popover content area.</p>
+      </div>
+    ),
   },
 } satisfies Meta<typeof PopoverStory>
 
@@ -111,11 +122,6 @@ type Story = StoryObj<typeof meta>
 export const Playground: Story = {
   args: {
     id: "playground-popover",
-    children: (
-      <div className="mt-200">
-        <p>This is the popover content area.</p>
-      </div>
-    ),
   },
 }
 
@@ -149,11 +155,7 @@ export const Disabled: Story = {
 }
 
 export const Variants: Story = {
-  args: {
-    id: "variants-popover",
-    trigger: "Demo",
-    children: <div />,
-  },
+  args: {},
   render: () => (
     <div className="space-y-400">
       <div>
@@ -253,11 +255,7 @@ export const Variants: Story = {
 }
 
 export const Controlled: Story = {
-  args: {
-    id: "controlled-popover",
-    trigger: "Demo",
-    children: <div />,
-  },
+  args: {},
   render: () => {
     const [open, setOpen] = useState(false)
 
@@ -328,11 +326,7 @@ export const WithForm: Story = {
 }
 
 export const CustomTrigger: Story = {
-  args: {
-    id: "custom-trigger-popover",
-    trigger: "Demo",
-    children: <div />,
-  },
+  args: {},
   render: () => (
     <div className="flex gap-200">
       <PopoverTemplate
@@ -389,11 +383,7 @@ export const Modal: Story = {
 }
 
 export const AsyncContent: Story = {
-  args: {
-    id: "async-content-popover",
-    trigger: "Demo",
-    children: <div />,
-  },
+  args: {},
   render: () => {
     const [loading, setLoading] = useState(false)
     const [data, setData] = useState<string | null>(null)
@@ -448,11 +438,7 @@ export const AsyncContent: Story = {
 }
 
 export const PositioningBehaviors: Story = {
-  args: {
-    id: "positioning-behaviors-popover",
-    trigger: "Demo",
-    children: <div />,
-  },
+  args: {},
   render: () => (
     <div className="grid gap-400 p-400">
       <PopoverTemplate
@@ -509,11 +495,7 @@ export const PositioningBehaviors: Story = {
 }
 
 export const SameWidthDemo: Story = {
-  args: {
-    id: "same-width-demo-popover",
-    trigger: "Demo",
-    children: <div />,
-  },
+  args: {},
   render: () => (
     <div className="flex items-start gap-400">
       <PopoverTemplate
@@ -540,11 +522,7 @@ export const SameWidthDemo: Story = {
 }
 
 export const EdgePositioning: Story = {
-  args: {
-    id: "edge-positioning-popover",
-    trigger: "Demo",
-    children: <div />,
-  },
+  args: {},
   render: () => (
     <div className="relative h-96 w-full border border-border border-dashed">
       <div className="absolute top-2 left-2">
@@ -610,11 +588,7 @@ export const EdgePositioning: Story = {
 }
 
 export const OverflowPaddingDemo: Story = {
-  args: {
-    id: "overflow-padding-demo-popover",
-    trigger: "Demo",
-    children: <div />,
-  },
+  args: {},
   render: () => (
     <div className="flex w-md flex-col gap-400">
       <div className="mb-200">
@@ -659,11 +633,7 @@ export const OverflowPaddingDemo: Story = {
 }
 
 export const NestedPopovers: Story = {
-  args: {
-    id: "nested-popovers-popover",
-    trigger: "Demo",
-    children: <div />,
-  },
+  args: {},
   render: () => (
     <PopoverTemplate
       id="level1-popover"
