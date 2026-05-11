@@ -12,7 +12,8 @@
 
 /* NAVIGATION AND DIRECTION */
 @utility token-icon-home {
-  @apply icon-[solar--home-angle-outline];
+  /* @apply icon-[solar--home-angle-outline];*/
+  @apply icon-[hugeicons--home-04];
 }
 
 @utility token-icon-arrow-right {
@@ -178,7 +179,7 @@
 }
 
 @utility token-icon-shield-check {
-  @apply icon-[solar--shield-check-linear];
+  @apply icon-[clarity--shield-check-line];
 }
 
 /* SOCIAL AND BRAND */
