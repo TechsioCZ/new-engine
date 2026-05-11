@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
+import type { Mock } from "vitest"
+import { vi } from "vitest"
 import {
   excerptPlainText,
   parseHerbaticaCategoriesXmlFile,
@@ -84,12 +86,10 @@ describe("Herbatica category export parser", () => {
 
   it("parses categories from an HTTP XML source", async () => {
     const xml = readFileSync(xmlPath, "utf8")
-    ;(global as unknown as { fetch: jest.Mock }).fetch = jest
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        text: jest.fn().mockResolvedValue(xml),
-      })
+    ;(global as unknown as { fetch: Mock }).fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: vi.fn().mockResolvedValue(xml),
+    })
 
     const result = await parseHerbaticaCategoriesXmlSource(
       "https://example.test/categories.xml"
@@ -102,13 +102,11 @@ describe("Herbatica category export parser", () => {
   })
 
   it("throws a useful error when HTTP XML loading fails", async () => {
-    ;(global as unknown as { fetch: jest.Mock }).fetch = jest
-      .fn()
-      .mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: "Not Found",
-      })
+    ;(global as unknown as { fetch: Mock }).fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+    })
 
     await expect(
       readXmlSource("https://example.test/missing.xml")

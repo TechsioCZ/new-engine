@@ -1,21 +1,16 @@
-jest.setTimeout(60_000)
+import { vi } from "vitest"
+
+vi.setConfig({ testTimeout: 60_000 })
 
 // Set encryption key before any imports
 process.env.SETTINGS_ENCRYPTION_KEY =
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 // Mock the OAuth2 client to avoid ES Module issues
-jest.mock("../client", () => ({
-  PplClient: jest.fn().mockImplementation(() => ({
-    fetchNewToken: jest.fn(),
+vi.mock("../client", () => ({
+  PplClient: vi.fn().mockImplementation(() => ({
+    fetchNewToken: vi.fn(),
   })),
-}))
-
-// Mock the module loader to avoid dynamic import issues in Jest
-// The loader creates default config which we don't need in tests
-jest.mock("../loaders/create-default-config", () => ({
-  __esModule: true,
-  default: jest.fn(),
 }))
 
 import { Modules } from "@medusajs/framework/utils"
@@ -26,13 +21,13 @@ import type { PplClientModuleService } from "../service"
 
 // Mock services for dependencies
 const mockCacheService = {
-  get: jest.fn().mockResolvedValue(null),
-  set: jest.fn().mockResolvedValue(undefined),
-  clear: jest.fn().mockResolvedValue(undefined),
+  get: vi.fn().mockResolvedValue(null),
+  set: vi.fn().mockResolvedValue(undefined),
+  clear: vi.fn().mockResolvedValue(undefined),
 }
 
 const mockLockingService = {
-  execute: jest.fn().mockImplementation(async (_key, fn) => fn()),
+  execute: vi.fn().mockImplementation(async (_key, fn) => fn()),
 }
 
 // Base64 pattern for encrypted values
@@ -51,14 +46,20 @@ moduleIntegrationTestRunner<PplClientModuleService>({
   },
   testSuite: ({ service }) => {
     beforeEach(() => {
-      jest.clearAllMocks()
+      vi.clearAllMocks()
     })
 
     describe("config management", () => {
-      it("returns null when no config exists", async () => {
-        // Loader is mocked in tests, so no default config is created
+      it("creates a disabled default config", async () => {
         const result = await service.getConfig()
-        expect(result).toBeNull()
+        expect(result).toEqual(
+          expect.objectContaining({
+            client_id: null,
+            client_secret: null,
+            environment: "testing",
+            is_enabled: false,
+          })
+        )
       })
 
       it("creates and retrieves config with encrypted credentials", async () => {

@@ -1,8 +1,9 @@
+import { vi } from "vitest"
 import { safeResolve } from "../safe-resolve"
 
 describe("safeResolve", () => {
   it("returns a registered dependency", () => {
-    const dependency = { get: jest.fn() }
+    const dependency = { get: vi.fn() }
 
     expect(safeResolve<typeof dependency>({ cache: dependency }, "cache")).toBe(
       dependency

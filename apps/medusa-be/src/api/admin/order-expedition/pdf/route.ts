@@ -7,10 +7,8 @@ import {
 import type { PDFFont, PDFPage } from "pdf-lib"
 import { PageSizes, PDFDocument, rgb, StandardFonts } from "pdf-lib"
 import {
-  fetchOrderExpeditionOrdersByIds,
-  findMissingOrderIds,
+  fetchOrderedOrderExpeditionOrdersByIds,
   type OrderExpeditionOrderDto,
-  orderOrdersByRequestedIds,
   toOrderExpeditionDto,
 } from "../../../../utils/order-expedition"
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../validators"
@@ -83,8 +81,8 @@ export async function POST(
   const { order_ids: orderIds } = req.validatedBody
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-  const orders = await fetchOrderExpeditionOrdersByIds(query, orderIds)
-  const missingOrderIds = findMissingOrderIds(orderIds, orders)
+  const { missingOrderIds, orders } =
+    await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
 
   if (missingOrderIds.length > 0) {
     throw new MedusaError(
@@ -93,9 +91,7 @@ export async function POST(
     )
   }
 
-  const orderedDtos = orderOrdersByRequestedIds(orderIds, orders).map(
-    toOrderExpeditionDto
-  )
+  const orderedDtos = orders.map(toOrderExpeditionDto)
   const pdfBytes = await generateExpeditionPdf(orderedDtos)
   const buffer = Buffer.from(pdfBytes)
 

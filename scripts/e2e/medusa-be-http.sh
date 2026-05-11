@@ -88,8 +88,7 @@ run_tests() {
       MEDUSA_E2E_ADMIN_EMAIL="${MEDUSA_E2E_ADMIN_EMAIL:?MEDUSA_E2E_ADMIN_EMAIL is required}" \
       MEDUSA_E2E_ADMIN_PASSWORD="${MEDUSA_E2E_ADMIN_PASSWORD:?MEDUSA_E2E_ADMIN_PASSWORD is required}" \
       TEST_TYPE="$TEST_TYPE_VALUE" \
-      NODE_OPTIONS=--experimental-vm-modules \
-      pnpm exec jest --runInBand --silent=false ${TEST_TARGET}
+      node ./scripts/run-vitest.mjs run --config vitest.config.ts --no-file-parallelism "${TEST_TARGET}"
   )
 }
 
@@ -115,7 +114,7 @@ Usage: scripts/e2e/medusa-be-http.sh <command>
 Commands:
   up      Start the isolated Medusa BE e2e stack
   wait    Wait for the isolated backend health endpoint
-  test    Run Medusa BE HTTP e2e Jest specs against the isolated backend
+  test    Run Medusa BE HTTP e2e Vitest specs against the isolated backend
   logs    Print compose logs for the isolated stack
   down    Stop and remove the isolated e2e stack and volumes
   run     Start stack, wait for health, run tests, and teardown unless MEDUSA_E2E_KEEP_STACK=1
@@ -123,11 +122,11 @@ Commands:
 Environment:
   MEDUSA_E2E_ENV_FILE         Path to env file (default: apps/medusa-be/.env.e2e)
   MEDUSA_E2E_PROJECT_NAME     Docker compose project name (default: new-engine-e2e)
-  MEDUSA_E2E_BACKEND_URL      Required backend URL used both for health checks and by Jest
+  MEDUSA_E2E_BACKEND_URL      Required backend URL used both for health checks and by Vitest
   MEDUSA_E2E_BACKEND_PORT     Optional host port for docker-compose publishing only (used by env interpolation)
   MEDUSA_E2E_WAIT_TIMEOUT_SECONDS  Health wait timeout in seconds (default: 300)
   MEDUSA_E2E_KEEP_STACK       Set to 1 to keep containers running after `run`
-  MEDUSA_E2E_TEST_TARGET      Jest target, file, or glob (default: integration-tests/http/*.spec.ts)
+  MEDUSA_E2E_TEST_TARGET      Vitest target, file, or glob (default: integration-tests/http/*.spec.ts)
 USAGE
 }
 

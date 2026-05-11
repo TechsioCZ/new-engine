@@ -1,13 +1,29 @@
-import * as popover from "@zag-js/popover"
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type ReactNode, type Ref, useId } from "react"
+import {
+  connect,
+  machine,
+  type Api as PopoverApi,
+  type Props as PopoverMachineProps,
+  type Placement as PopoverPlacement,
+  type PositioningOptions as PopoverPositioningOptions,
+  type Service as PopoverService,
+} from "@zag-js/popover"
+import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
+import {
+  type ComponentPropsWithoutRef,
+  createContext,
+  type ReactNode,
+  type Ref,
+  useContext,
+  useId,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Button } from "../atoms/button"
+import { Button, type ButtonProps } from "../atoms/button"
 import { tv } from "../utils"
 
 const popoverVariants = tv({
   slots: {
     trigger: ["p-popover-trigger"],
+    indicator: ["data-[state=open]:rotate-180"],
     positioner: ["absolute"],
     content: [
       "bg-popover-bg",
@@ -18,6 +34,7 @@ const popoverVariants = tv({
       "relative",
     ],
     arrow: "",
+    arrowTip: "",
     title: ["font-popover-title", "leading-none", "mb-popover-title-mb"],
     description: [
       "text-popover-description-fg text-popover-description-size",
@@ -34,7 +51,7 @@ const popoverVariants = tv({
     border: {
       true: {
         content: "border border-popover-border",
-        arrow: "border-popover-border border-t border-l",
+        arrowTip: "border-popover-border border-t border-l",
       },
     },
     size: {
@@ -55,163 +72,402 @@ const popoverVariants = tv({
   defaultVariants: {
     size: "md",
     shadow: true,
+    border: true,
   },
 })
 
-export interface PopoverProps
-  extends VariantProps<typeof popoverVariants>,
-    popover.Props {
-  trigger: ReactNode
-  children: ReactNode
-  placement?: popover.Placement
-  offset?: popover.PositioningOptions["offset"]
-  gutter?: popover.PositioningOptions["gutter"]
-  flip?: popover.PositioningOptions["flip"]
-  slide?: popover.PositioningOptions["slide"]
-  sameWidth?: popover.PositioningOptions["sameWidth"]
-  overflowPadding?: popover.PositioningOptions["overflowPadding"]
-  showArrow?: boolean
-  showCloseButton?: boolean
-  title?: ReactNode
-  description?: ReactNode
-  triggerRef?: Ref<HTMLButtonElement>
-  contentRef?: Ref<HTMLDivElement>
-  triggerClassName?: string
-  contentClassName?: string
-  disabled?: boolean
+type PopoverContextValue = {
+  api: PopoverApi
+  placement: PopoverPlacement
+  styles: ReturnType<typeof popoverVariants>
 }
 
+const PopoverContext = createContext<PopoverContextValue | null>(null)
+
+function usePopoverContext() {
+  const context = useContext(PopoverContext)
+
+  if (!context) {
+    throw new Error("Popover components must be used within Popover.Root")
+  }
+
+  return context
+}
+
+export type PopoverRootProps = VariantProps<typeof popoverVariants> &
+  Omit<PopoverMachineProps, "id" | "positioning"> & {
+    children: ReactNode
+    flip?: PopoverPositioningOptions["flip"]
+    gutter?: PopoverPositioningOptions["gutter"]
+    id?: string
+    offset?: PopoverPositioningOptions["offset"]
+    overflowPadding?: PopoverPositioningOptions["overflowPadding"]
+    placement?: PopoverPlacement
+    sameWidth?: PopoverPositioningOptions["sameWidth"]
+    slide?: PopoverPositioningOptions["slide"]
+  }
+
 export function Popover({
-  trigger,
-  children,
-  open,
-  defaultOpen,
-  onOpenChange,
-  placement = "bottom",
-  offset = { mainAxis: 8, crossAxis: 0 },
-  gutter = 8,
-  sameWidth = false,
-  slide = true,
-  flip = true,
-  overflowPadding = 8,
-  modal = false,
-  closeOnInteractOutside = true,
-  closeOnEscape = true,
-  showArrow = true,
-  showCloseButton = false,
   autoFocus = true,
-  portalled = true,
-  title,
-  description,
+  border,
+  children,
+  closeOnEscape = true,
+  closeOnInteractOutside = true,
+  defaultOpen,
+  dir = "ltr",
+  flip = true,
+  gutter = 8,
   id,
-  triggerRef,
-  contentRef,
-  triggerClassName,
-  contentClassName,
-  size = "md",
-  shadow = true,
-  border = true,
-  disabled = false,
+  modal = false,
+  offset = { mainAxis: 8, crossAxis: 0 },
+  onOpenChange,
   onPointerDownOutside,
-}: PopoverProps) {
+  open,
+  overflowPadding = 8,
+  placement = "bottom",
+  portalled = true,
+  sameWidth = false,
+  shadow,
+  size,
+  slide = true,
+  ...props
+}: PopoverRootProps) {
   const generatedId = useId()
   const uniqueId = id || generatedId
 
-  const service = useMachine(popover.machine, {
-    id: uniqueId,
-    open,
-    defaultOpen,
-    dir: "ltr",
-    positioning: {
-      placement,
-      offset,
-      gutter,
-      sameWidth,
-      slide,
-      flip,
-      overflowPadding,
-    },
-    // Behavior
-    modal,
-    closeOnInteractOutside,
-    closeOnEscape,
+  const service = useMachine(machine, {
+    ...props,
     autoFocus,
-    portalled,
-    // Callbacks
+    closeOnEscape,
+    closeOnInteractOutside,
+    defaultOpen,
+    dir,
+    id: uniqueId,
+    modal,
     onOpenChange,
     onPointerDownOutside,
+    open,
+    portalled,
+    positioning: {
+      flip,
+      gutter,
+      offset,
+      overflowPadding,
+      placement,
+      sameWidth,
+      slide,
+    },
   })
 
-  const api = popover.connect(service as popover.Service, normalizeProps)
+  const api = connect(service as PopoverService, normalizeProps)
+  const styles = popoverVariants({ border, shadow, size })
 
+  return (
+    <PopoverContext.Provider
+      value={{
+        api,
+        placement,
+        styles,
+      }}
+    >
+      {children}
+    </PopoverContext.Provider>
+  )
+}
+
+export type PopoverAnchorProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement>
+}
+
+Popover.Anchor = function PopoverAnchor({
+  className,
+  ref,
+  ...props
+}: PopoverAnchorProps) {
+  const { api } = usePopoverContext()
+  const anchorProps = mergeProps(props, api.getAnchorProps())
+
+  return <div {...anchorProps} className={className} ref={ref} />
+}
+
+export type PopoverTriggerProps = ButtonProps & {
+  clickBehavior?: "toggle" | "manual"
+  ref?: Ref<HTMLButtonElement>
+}
+
+Popover.Trigger = function PopoverTrigger({
+  children,
+  className,
+  clickBehavior = "toggle",
+  disabled,
+  onClick,
+  ref,
+  size = "current",
+  theme = "borderless",
+  type = "button",
+  ...props
+}: PopoverTriggerProps) {
+  const { api, styles } = usePopoverContext()
   const {
-    trigger: triggerStyles,
-    positioner,
-    content: contentStyles,
-    arrow,
-    title: titleStyles,
-    description: descriptionStyles,
-    closeTrigger: closeTriggerStyles,
-  } = popoverVariants({ size, shadow, border })
+    disabled: machineDisabled,
+    onClick: onMachineClick,
+    ...machineTriggerProps
+  } = api.getTriggerProps() as ComponentPropsWithoutRef<"button">
+  const buttonProps = mergeProps(props, machineTriggerProps)
+  const isDisabled = Boolean(disabled || machineDisabled)
 
-  const renderContent = () => (
-    <div {...api.getPositionerProps()} className={positioner()}>
-      <div
-        {...api.getContentProps()}
-        className={contentStyles({ className: contentClassName })}
-        data-side={placement.split("-")[0]}
-        data-state={api.open ? "open" : "closed"}
-        ref={contentRef}
-      >
-        {showCloseButton && (
-          <Button
-            {...api.getCloseTriggerProps()}
-            aria-label="Close popover"
-            className={closeTriggerStyles()}
-            icon="token-icon-close"
-            size="current"
-            theme="unstyled"
-          />
-        )}
-        {showArrow && (
-          <div {...api.getArrowProps()}>
-            <div {...api.getArrowTipProps()} className={arrow()} />
-          </div>
-        )}
+  return (
+    <Button
+      {...buttonProps}
+      className={styles.trigger({ className })}
+      data-state={api.open ? "open" : "closed"}
+      disabled={isDisabled}
+      onClick={(event) => {
+        onClick?.(event)
 
-        {title && (
-          <div {...api.getTitleProps()} className={titleStyles()}>
-            {title}
-          </div>
-        )}
-        {description && (
-          <div {...api.getDescriptionProps()} className={descriptionStyles()}>
-            {description}
-          </div>
-        )}
-        {children}
-      </div>
+        if (!event.defaultPrevented && clickBehavior === "toggle") {
+          onMachineClick?.(event)
+        }
+      }}
+      ref={ref}
+      size={size}
+      theme={theme}
+      type={type}
+    >
+      {children}
+    </Button>
+  )
+}
+
+export type PopoverIndicatorProps = ComponentPropsWithoutRef<"span"> & {
+  ref?: Ref<HTMLSpanElement>
+}
+
+Popover.Indicator = function PopoverIndicator({
+  className,
+  ref,
+  ...props
+}: PopoverIndicatorProps) {
+  const { api, styles } = usePopoverContext()
+  const indicatorProps = mergeProps(props, api.getIndicatorProps())
+
+  return (
+    <span
+      {...indicatorProps}
+      className={styles.indicator({ className })}
+      data-state={api.open ? "open" : "closed"}
+      ref={ref}
+    />
+  )
+}
+
+export type PopoverPositionerProps = ComponentPropsWithoutRef<"div"> & {
+  forceMount?: boolean
+  ref?: Ref<HTMLDivElement>
+}
+
+Popover.Positioner = function PopoverPositioner({
+  children,
+  className,
+  forceMount = false,
+  ref,
+  ...props
+}: PopoverPositionerProps) {
+  const { api, styles } = usePopoverContext()
+
+  if (!(api.open || forceMount)) {
+    return null
+  }
+
+  const positionerProps = mergeProps(props, api.getPositionerProps())
+  const positionerNode = (
+    <div
+      {...positionerProps}
+      className={styles.positioner({ className })}
+      ref={ref}
+    >
+      {children}
     </div>
   )
 
-  return (
-    <>
-      <Button
-        disabled={disabled}
-        theme="borderless"
-        {...api.getTriggerProps()}
-        className={triggerStyles({ className: triggerClassName })}
-        data-state={api.open ? "open" : "closed"}
-        ref={triggerRef}
-      >
-        {trigger}
-      </Button>
+  return api.portalled ? <Portal>{positionerNode}</Portal> : positionerNode
+}
 
-      {portalled ? (
-        <Portal>{api.open && renderContent()}</Portal>
-      ) : (
-        api.open && renderContent()
-      )}
-    </>
+export type PopoverContentProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement>
+}
+
+type PopoverContentMergedProps = ComponentPropsWithoutRef<"div"> & {
+  "data-placement"?: PopoverPlacement
+}
+
+Popover.Content = function PopoverContent({
+  children,
+  className,
+  ref,
+  ...props
+}: PopoverContentProps) {
+  const { api, placement, styles } = usePopoverContext()
+  const machineContentProps =
+    api.getContentProps() as ComponentPropsWithoutRef<"div">
+  const contentProps = mergeProps(
+    props,
+    machineContentProps
+  ) as PopoverContentMergedProps
+  const contentPlacement = contentProps["data-placement"]
+  // Derive data-side from Zag's computed placement so flipped positions animate from the actual side.
+  const contentSide =
+    typeof contentPlacement === "string"
+      ? contentPlacement.split("-")[0]
+      : placement.split("-")[0]
+
+  return (
+    <div
+      {...contentProps}
+      className={styles.content({ className })}
+      data-side={contentSide}
+      data-state={api.open ? "open" : "closed"}
+      ref={ref}
+    >
+      {children}
+    </div>
   )
 }
+
+export type PopoverArrowProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement>
+}
+
+Popover.Arrow = function PopoverArrow({
+  children,
+  className,
+  ref,
+  ...props
+}: PopoverArrowProps) {
+  const { api, styles } = usePopoverContext()
+  const arrowProps = mergeProps(props, api.getArrowProps())
+
+  return (
+    <div {...arrowProps} className={styles.arrow({ className })} ref={ref}>
+      {children ?? <Popover.ArrowTip />}
+    </div>
+  )
+}
+
+export type PopoverArrowTipProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement>
+}
+
+Popover.ArrowTip = function PopoverArrowTip({
+  className,
+  ref,
+  ...props
+}: PopoverArrowTipProps) {
+  const { api, styles } = usePopoverContext()
+  const arrowTipProps = mergeProps(props, api.getArrowTipProps())
+
+  return (
+    <div
+      {...arrowTipProps}
+      className={styles.arrowTip({ className })}
+      ref={ref}
+    />
+  )
+}
+
+export type PopoverTitleProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement>
+}
+
+Popover.Title = function PopoverTitle({
+  className,
+  ref,
+  ...props
+}: PopoverTitleProps) {
+  const { api, styles } = usePopoverContext()
+  const titleProps = mergeProps(props, api.getTitleProps())
+
+  return (
+    <div {...titleProps} className={styles.title({ className })} ref={ref} />
+  )
+}
+
+export type PopoverDescriptionProps = ComponentPropsWithoutRef<"div"> & {
+  ref?: Ref<HTMLDivElement>
+}
+
+Popover.Description = function PopoverDescription({
+  className,
+  ref,
+  ...props
+}: PopoverDescriptionProps) {
+  const { api, styles } = usePopoverContext()
+  const descriptionProps = mergeProps(props, api.getDescriptionProps())
+
+  return (
+    <div
+      {...descriptionProps}
+      className={styles.description({ className })}
+      ref={ref}
+    />
+  )
+}
+
+export type PopoverCloseTriggerProps = ButtonProps & {
+  ref?: Ref<HTMLButtonElement>
+}
+
+Popover.CloseTrigger = function PopoverCloseTrigger({
+  children,
+  className,
+  icon,
+  onClick,
+  ref,
+  size = "current",
+  theme = "unstyled",
+  type = "button",
+  ...props
+}: PopoverCloseTriggerProps) {
+  const { api, styles } = usePopoverContext()
+  const { onClick: onMachineClick, ...machineCloseTriggerProps } =
+    api.getCloseTriggerProps() as ComponentPropsWithoutRef<"button">
+  const buttonProps = mergeProps(props, machineCloseTriggerProps)
+  const closeIcon = icon ?? (children ? undefined : "token-icon-close")
+
+  return (
+    <Button
+      {...buttonProps}
+      aria-label={children ? undefined : "Close popover"}
+      className={styles.closeTrigger({ className })}
+      icon={closeIcon}
+      onClick={(event) => {
+        onClick?.(event)
+
+        if (!event.defaultPrevented) {
+          onMachineClick?.(event)
+        }
+      }}
+      ref={ref}
+      size={size}
+      theme={theme}
+      type={type}
+    >
+      {children}
+    </Button>
+  )
+}
+
+export type PopoverContextProps = {
+  children: (api: PopoverApi) => ReactNode
+}
+
+Popover.Context = function PopoverApiContext({
+  children,
+}: PopoverContextProps) {
+  const { api } = usePopoverContext()
+
+  return children(api)
+}
+
+Popover.Root = Popover
+Popover.displayName = "Popover"

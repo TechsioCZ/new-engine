@@ -1,20 +1,24 @@
-const mockImportPKCS8 = jest.fn()
-const mockSignJWTConstructor = jest.fn()
+import { vi } from "vitest"
 
-jest.mock("jose", () => ({
+const { mockImportPKCS8, mockSignJWTConstructor } = vi.hoisted(() => ({
+  mockImportPKCS8: vi.fn(),
+  mockSignJWTConstructor: vi.fn(),
+}))
+
+vi.mock("jose", () => ({
   importPKCS8: (...args: unknown[]) => mockImportPKCS8(...args),
   SignJWT: class {
     constructor(payload: unknown) {
       mockSignJWTConstructor(payload)
     }
 
-    setProtectedHeader = jest.fn().mockReturnThis()
-    setIssuedAt = jest.fn().mockReturnThis()
-    setExpirationTime = jest.fn().mockReturnThis()
-    setIssuer = jest.fn().mockReturnThis()
-    setAudience = jest.fn().mockReturnThis()
-    setSubject = jest.fn().mockReturnThis()
-    sign = jest.fn().mockResolvedValue("signed-sso-token")
+    setProtectedHeader = vi.fn().mockReturnThis()
+    setIssuedAt = vi.fn().mockReturnThis()
+    setExpirationTime = vi.fn().mockReturnThis()
+    setIssuer = vi.fn().mockReturnThis()
+    setAudience = vi.fn().mockReturnThis()
+    setSubject = vi.fn().mockReturnThis()
+    sign = vi.fn().mockResolvedValue("signed-sso-token")
   },
 }))
 
@@ -35,10 +39,10 @@ const restoreEnv = () => {
 
 const createMockResponse = () =>
   ({
-    setHeader: jest.fn(),
-    status: jest.fn().mockReturnThis(),
-    send: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
+    setHeader: vi.fn(),
+    status: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
   }) as any
 
 const createMockRequest = (
@@ -59,7 +63,7 @@ const createMockRequest = (
 
 describe("GET /admin/payload/sso", () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockImportPKCS8.mockResolvedValue({} as CryptoKey)
     process.env.PAYLOAD_SSO_PRIVATE_KEY = "private-key"
     process.env.PAYLOAD_IFRAME_URL = "http://localhost:8083"

@@ -27,11 +27,11 @@ export async function GET(
 ) {
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
-  const { limit, locale, page, sort } = req.validatedQuery
+  const { limit, page, sort } = req.validatedQuery
 
   const heroCarousels = await cmsService.listHeroCarousels({
     limit,
-    locale,
+    locale: req.locale,
     page,
     sort,
   })

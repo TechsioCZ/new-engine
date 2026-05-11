@@ -1,6 +1,7 @@
 import type { FulfillmentOrderDTO } from "@medusajs/framework/types"
+import { vi } from "vitest"
 
-jest.mock("../../ppl-client", () => ({
+vi.mock("../../ppl-client", () => ({
   PPL_CLIENT_MODULE: "ppl_client",
 }))
 
@@ -8,21 +9,21 @@ jest.mock("../../ppl-client", () => ({
 import PplFulfillmentProviderService from "../service"
 
 const mockLogger = {
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
 }
 
 const mockPplClient = {
-  getCachedCurrencies: jest.fn(),
-  getCachedCountries: jest.fn(),
-  getCustomerInfo: jest.fn(),
-  getCustomerAddresses: jest.fn(),
-  getEffectiveConfig: jest.fn(),
-  createShipmentBatch: jest.fn(),
-  cancelShipment: jest.fn(),
-  getBatchStatus: jest.fn(),
+  getCachedCurrencies: vi.fn(),
+  getCachedCountries: vi.fn(),
+  getCustomerInfo: vi.fn(),
+  getCustomerAddresses: vi.fn(),
+  getEffectiveConfig: vi.fn(),
+  createShipmentBatch: vi.fn(),
+  cancelShipment: vi.fn(),
+  getBatchStatus: vi.fn(),
 }
 
 const createService = () =>
@@ -65,7 +66,7 @@ const createShippingData = (overrides = {}) => ({
 
 describe("PplFulfillmentProviderService", () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockPplClient.getCachedCurrencies.mockResolvedValue([
       { code: "CZK" },
       { code: "EUR" },

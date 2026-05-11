@@ -22,10 +22,7 @@ export async function GET(
     return res.status(400).json({ message: "Missing slug" })
   }
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
-  const page = await cmsService.getPublishedPage(
-    slug,
-    req.validatedQuery.locale
-  )
+  const page = await cmsService.getPublishedPage(slug, req.locale)
 
   if (!page) {
     return res.status(404).json({ message: "Page not found" })

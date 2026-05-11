@@ -1,25 +1,26 @@
 import { createHmac } from "node:crypto"
+import { vi } from "vitest"
 
 const WEBHOOK_SECRET = "test-webhook-secret"
 
-const mockInvalidateCache = jest.fn()
+const mockInvalidateCache = vi.fn()
 const mockLogger = {
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  debug: jest.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
 }
 
-jest.mock("../../../../../modules/payload", () => ({
+vi.mock("../../../../../modules/payload", () => ({
   PAYLOAD_MODULE: "payloadModuleService",
 }))
 
-jest.mock("../../../../../utils/webhooks", () => ({
-  getHeaderValue: jest.fn(
+vi.mock("../../../../../utils/webhooks", () => ({
+  getHeaderValue: vi.fn(
     (req: { headers: Record<string, string> }, name: string) =>
       req.headers[name]
   ),
-  isValidWebhookSignature: jest.fn(
+  isValidWebhookSignature: vi.fn(
     (sig: string | undefined, expected: string | undefined) =>
       sig !== undefined && sig === expected
   ),
@@ -50,7 +51,7 @@ const createMockRequest = (
     rawBody: bodyStr,
     headers,
     scope: {
-      resolve: jest.fn((key: string) => {
+      resolve: vi.fn((key: string) => {
         if (key === "payloadModuleService") {
           return { invalidateCache: mockInvalidateCache }
         }
@@ -65,8 +66,8 @@ const createMockRequest = (
 
 const createMockResponse = () => {
   const res = {
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
   }
   return res as any
 }
@@ -80,9 +81,9 @@ describe("POST /hooks/cms/invalidate", () => {
   let POST: (req: any, res: any) => Promise<any>
 
   beforeEach(async () => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // Re-require to get fresh module with mocks
-    jest.resetModules()
+    vi.resetModules()
     process.env.PAYLOAD_WEBHOOK_SECRET = WEBHOOK_SECRET
     const routeModule = await import("../route")
     POST = routeModule.POST
@@ -218,7 +219,7 @@ describe("POST /hooks/cms/invalidate", () => {
 
 describe("POST /hooks/cms/invalidate - missing webhook secret", () => {
   beforeEach(() => {
-    jest.resetModules()
+    vi.resetModules()
   })
 
   it("returns 500 when webhook secret is not configured", async () => {

@@ -1,61 +1,70 @@
-jest.mock("@medusajs/framework/utils", () => ({
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+const {
+  mockArchiveRun,
+  mockBulkCancelRun,
+  mockBulkUpdateRun,
+  mockCompleteRun,
+} = vi.hoisted(() => ({
+  mockArchiveRun: vi.fn(),
+  mockBulkCancelRun: vi.fn(),
+  mockBulkUpdateRun: vi.fn(),
+  mockCompleteRun: vi.fn(),
+}))
+
+vi.mock("@medusajs/framework/utils", () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
   },
 }))
 
-const mockArchiveRun = jest.fn()
-const mockBulkCancelRun = jest.fn()
-const mockBulkUpdateRun = jest.fn()
-const mockCompleteRun = jest.fn()
-
-jest.mock("@medusajs/medusa/core-flows", () => ({
-  archiveOrderWorkflow: jest.fn(() => ({ run: mockArchiveRun })),
-  completeOrderWorkflow: jest.fn(() => ({ run: mockCompleteRun })),
+vi.mock("@medusajs/medusa/core-flows", () => ({
+  archiveOrderWorkflow: vi.fn(() => ({ run: mockArchiveRun })),
+  completeOrderWorkflow: vi.fn(() => ({ run: mockCompleteRun })),
 }))
 
-jest.mock(
+vi.mock(
   "../../../../../workflows/order-expedition/bulk-cancel-orders",
   () => ({
-    bulkCancelOrdersWorkflow: jest.fn(() => ({ run: mockBulkCancelRun })),
+    bulkCancelOrdersWorkflow: vi.fn(() => ({ run: mockBulkCancelRun })),
   })
 )
 
-jest.mock(
+vi.mock(
   "../../../../../workflows/order-expedition/bulk-update-order-statuses",
   () => ({
-    bulkUpdateOrderStatusesWorkflow: jest.fn(() => ({
+    bulkUpdateOrderStatusesWorkflow: vi.fn(() => ({
       run: mockBulkUpdateRun,
     })),
-    isOrderExpeditionDirectUpdateStatus: jest.fn((status: string) =>
+    isOrderExpeditionDirectUpdateStatus: vi.fn((status: string) =>
       ["pending", "draft", "requires_action"].includes(status)
     ),
   })
 )
 
 const createMockResponse = () => ({
-  json: jest.fn().mockReturnThis(),
-  status: jest.fn().mockReturnThis(),
+  json: vi.fn().mockReturnThis(),
+  status: vi.fn().mockReturnThis(),
 })
 
 const createMockRequest = (
   validatedBody: Record<string, unknown>,
-  graph: ReturnType<typeof jest.fn>
+  graph: ReturnType<typeof vi.fn>
 ) => ({
   scope: {
-    resolve: jest.fn(() => ({ graph })),
+    resolve: vi.fn(() => ({ graph })),
   },
   validatedBody,
 })
 
 describe("POST /admin/order-expedition/status", () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it("prevalidates every selected order and blocks the whole batch when one is missing", async () => {
     const { POST } = await import("../route")
-    const graph = jest.fn().mockResolvedValue({
+    const graph = vi.fn().mockResolvedValue({
       data: [{ id: "order_1", display_id: 1001, status: "pending" }],
     })
     const req = createMockRequest(
@@ -90,7 +99,7 @@ describe("POST /admin/order-expedition/status", () => {
 
   it("runs completed as one bulk workflow after prevalidation", async () => {
     const { POST } = await import("../route")
-    const graph = jest
+    const graph = vi
       .fn()
       .mockResolvedValueOnce({
         data: [
@@ -128,7 +137,7 @@ describe("POST /admin/order-expedition/status", () => {
 
   it("runs direct Medusa status updates through the custom bulk update workflow", async () => {
     const { POST } = await import("../route")
-    const graph = jest
+    const graph = vi
       .fn()
       .mockResolvedValueOnce({
         data: [
@@ -172,7 +181,7 @@ describe("POST /admin/order-expedition/status", () => {
 
   it("blocks cancellation before mutation when a selected order has active fulfillments", async () => {
     const { POST } = await import("../route")
-    const graph = jest.fn().mockResolvedValue({
+    const graph = vi.fn().mockResolvedValue({
       data: [
         {
           fulfillments: [{ canceled_at: null, id: "ful_1" }],
@@ -210,7 +219,7 @@ describe("POST /admin/order-expedition/status", () => {
 
   it("blocks direct status updates for final archived orders", async () => {
     const { POST } = await import("../route")
-    const graph = jest.fn().mockResolvedValue({
+    const graph = vi.fn().mockResolvedValue({
       data: [
         {
           id: "order_1",
@@ -247,7 +256,7 @@ describe("POST /admin/order-expedition/status", () => {
 
   it("blocks archive for mutable orders that must be finalized first", async () => {
     const { POST } = await import("../route")
-    const graph = jest.fn().mockResolvedValue({
+    const graph = vi.fn().mockResolvedValue({
       data: [
         {
           id: "order_1",
@@ -284,7 +293,7 @@ describe("POST /admin/order-expedition/status", () => {
 
   it("allows canceled orders to be archived", async () => {
     const { POST } = await import("../route")
-    const graph = jest
+    const graph = vi
       .fn()
       .mockResolvedValueOnce({
         data: [
@@ -328,7 +337,7 @@ describe("POST /admin/order-expedition/status", () => {
 
   it("runs cancel through the custom bulk cancel workflow after prevalidation", async () => {
     const { POST } = await import("../route")
-    const graph = jest
+    const graph = vi
       .fn()
       .mockResolvedValueOnce({
         data: [

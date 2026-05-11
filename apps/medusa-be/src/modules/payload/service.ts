@@ -30,6 +30,7 @@ const DEFAULT_LOCALE = "default"
 const STATUS_PUBLISHED = "published"
 const PAGES = "pages"
 const ARTICLES = "articles"
+const MEDIA = "media"
 const HERO_CAROUSELS = "hero-carousels"
 const PAGE_CATEGORIES = "page-categories"
 const ARTICLE_CATEGORIES = "article-categories"
@@ -574,6 +575,9 @@ export default class PayloadModuleService extends MedusaService({}) {
         break
       case HERO_CAROUSELS:
         addTags([CACHE_TAGS.HERO_CAROUSELS], CACHE_TAGS.HERO_CAROUSELS)
+        break
+      case MEDIA:
+        tags.push(CACHE_TAGS.ALL)
         break
       default:
         break

@@ -1,3 +1,4 @@
+import { vi } from "vitest"
 import { GET } from "../../../src/api/store/catalog/products/route"
 
 type TestProduct = {
@@ -97,7 +98,7 @@ const getMeiliPriceRange = (
 
 const createMockResponse = () =>
   ({
-    json: jest.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
   }) as any
 
 const createCatalogHarness = ({
@@ -111,7 +112,7 @@ const createCatalogHarness = ({
 }) => {
   const productById = new Map(products.map((product) => [product.id, product]))
 
-  const meiliSearch = jest.fn(
+  const meiliSearch = vi.fn(
     async (
       _index: string,
       _query: string,
@@ -225,7 +226,7 @@ const createCatalogHarness = ({
     }
   )
 
-  const queryGraph = jest.fn(async (config: GraphConfig) => {
+  const queryGraph = vi.fn(async (config: GraphConfig) => {
     const filters = config.filters ?? {}
 
     if (config.entity === "product_sales_channel") {
@@ -286,7 +287,7 @@ const createCatalogHarness = ({
       status: "published",
     },
     scope: {
-      resolve: jest.fn((key: string) => {
+      resolve: vi.fn((key: string) => {
         if (key === "meilisearch") {
           return { search: meiliSearch }
         }
