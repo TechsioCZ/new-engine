@@ -1,4 +1,4 @@
-FROM node:22-slim AS base
+FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
@@ -47,10 +47,10 @@ RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatica... && \
     pnpm --filter=@techsio/storefront-data build && \
     pnpm --filter=@techsio/ui-kit build && \
-    pnpm --filter=herbatica build && \
+    pnpm --filter=herbatica exec next build --webpack && \
     test -f apps/herbatika/.next/BUILD_ID
 
-FROM node:22-slim AS prod
+FROM node:24-slim AS prod
 
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
