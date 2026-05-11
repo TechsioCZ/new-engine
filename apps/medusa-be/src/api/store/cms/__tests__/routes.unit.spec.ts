@@ -11,16 +11,18 @@ jest.mock("../../../../modules/payload", () => ({
 }))
 
 const createMockRequest = ({
+  locale,
   params = {},
   validatedQuery = {},
 }: {
+  locale?: string
   params?: Record<string, string | undefined>
   validatedQuery?: Record<string, unknown>
 } = {}) =>
   ({
     params,
     validatedQuery,
-    locale: "request-locale-should-not-be-used",
+    locale,
     scope: {
       resolve: jest.fn((key: string) => {
         if (key === "payload") {
@@ -42,11 +44,12 @@ describe("Store CMS routes", () => {
     jest.clearAllMocks()
   })
 
-  it("passes validated locale to published page lookup", async () => {
+  it("passes request locale to published page lookup", async () => {
     const { GET } = await import("../pages/[slug]/route")
     const req = createMockRequest({
+      locale: "cs",
       params: { slug: "about-us" },
-      validatedQuery: { locale: "cs" },
+      validatedQuery: {},
     })
     const res = createMockResponse()
     const page = { id: "page_1", slug: "about-us" }
@@ -62,11 +65,12 @@ describe("Store CMS routes", () => {
     expect(res.json).toHaveBeenCalledWith({ page })
   })
 
-  it("passes validated locale to published article lookup", async () => {
+  it("passes request locale to published article lookup", async () => {
     const { GET } = await import("../articles/[slug]/route")
     const req = createMockRequest({
+      locale: "sk",
       params: { slug: "news" },
-      validatedQuery: { locale: "sk" },
+      validatedQuery: {},
     })
     const res = createMockResponse()
     const article = { id: "article_1", slug: "news" }
@@ -82,10 +86,11 @@ describe("Store CMS routes", () => {
     expect(res.json).toHaveBeenCalledWith({ article })
   })
 
-  it("passes validated locale to page category listing", async () => {
+  it("passes request locale to page category listing", async () => {
     const { GET } = await import("../page-categories/route")
     const req = createMockRequest({
-      validatedQuery: { categorySlug: "guides", locale: "cs" },
+      locale: "cs",
+      validatedQuery: { categorySlug: "guides" },
     })
     const res = createMockResponse()
     const pageCategories = [{ id: "page-category_1", slug: "guides" }]
@@ -101,10 +106,11 @@ describe("Store CMS routes", () => {
     expect(res.json).toHaveBeenCalledWith({ pageCategories })
   })
 
-  it("passes validated locale to article category listing", async () => {
+  it("passes request locale to article category listing", async () => {
     const { GET } = await import("../article-categories/route")
     const req = createMockRequest({
-      validatedQuery: { categorySlug: "journal", locale: "en" },
+      locale: "en",
+      validatedQuery: { categorySlug: "journal" },
     })
     const res = createMockResponse()
     const articleCategories = [{ id: "article-category_1", slug: "journal" }]
@@ -124,10 +130,11 @@ describe("Store CMS routes", () => {
     expect(res.json).toHaveBeenCalledWith({ articleCategories })
   })
 
-  it("passes validated locale to hero carousel listing", async () => {
+  it("passes request locale to hero carousel listing", async () => {
     const { GET } = await import("../hero-carousels/route")
     const req = createMockRequest({
-      validatedQuery: { limit: 5, locale: "cs", page: 2, sort: "-updatedAt" },
+      locale: "cs",
+      validatedQuery: { limit: 5, page: 2, sort: "-updatedAt" },
     })
     const res = createMockResponse()
     const heroCarousels = [{ id: "hero-carousel_1" }]
