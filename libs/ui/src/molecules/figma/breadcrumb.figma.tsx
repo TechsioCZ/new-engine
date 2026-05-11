@@ -5,7 +5,7 @@ figma.connect(
   Breadcrumb,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=828-162",
   {
-    imports: ['import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"'],
+    imports: ['import { Breadcrumb } from "@libs/ui/molecules/breadcrumb"'],
     props: {
       size: figma.enum("size", {
         sm: "sm",

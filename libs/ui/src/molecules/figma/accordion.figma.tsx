@@ -5,7 +5,7 @@ figma.connect(
   Accordion,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=993-936",
   {
-    imports: ['import { Accordion } from "@techsio/ui-kit/molecules/accordion"'],
+    imports: ['import { Accordion } from "@libs/ui/molecules/accordion"'],
     props: {
       size: figma.enum("size", {
         sm: "sm",
@@ -24,7 +24,7 @@ figma.connect(
       }),
     },
     example: ({ size, variant, shadow }) => (
-      <Accordion size={size} variant={variant} shadow={shadow}>
+      <Accordion shadow={shadow} size={size} variant={variant}>
         <Accordion.Item value="item-1">
           <Accordion.Header>Title</Accordion.Header>
           <Accordion.Content>Content</Accordion.Content>

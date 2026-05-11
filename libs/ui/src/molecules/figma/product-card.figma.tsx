@@ -5,7 +5,7 @@ figma.connect(
   ProductCard,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1182-51",
   {
-    imports: ['import { ProductCard } from "@techsio/ui-kit/molecules/product-card"'],
+    imports: ['import { ProductCard } from "@libs/ui/molecules/product-card"'],
     props: {
       layout: figma.enum("layout", {
         column: "column",
@@ -14,7 +14,7 @@ figma.connect(
     },
     example: ({ layout }) => (
       <ProductCard layout={layout}>
-        <ProductCard.Image src="/product.jpg" alt="Product" />
+        <ProductCard.Image alt="Product" src="/product.jpg" />
         <ProductCard.Name>Product Name</ProductCard.Name>
         <ProductCard.Price>$99.00</ProductCard.Price>
         <ProductCard.Actions>

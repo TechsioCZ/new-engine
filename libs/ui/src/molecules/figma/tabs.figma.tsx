@@ -5,7 +5,7 @@ figma.connect(
   Tabs,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1174-74",
   {
-    imports: ['import { Tabs } from "@techsio/ui-kit/molecules/tabs"'],
+    imports: ['import { Tabs } from "@libs/ui/molecules/tabs"'],
     props: {
       size: figma.enum("size", {
         sm: "sm",
@@ -18,7 +18,7 @@ figma.connect(
       }),
     },
     example: ({ size, orientation }) => (
-      <Tabs size={size} orientation={orientation} defaultValue="tab-1">
+      <Tabs defaultValue="tab-1" orientation={orientation} size={size}>
         <Tabs.List>
           <Tabs.Trigger value="tab-1">Tab 1</Tabs.Trigger>
           <Tabs.Trigger value="tab-2">Tab 2</Tabs.Trigger>

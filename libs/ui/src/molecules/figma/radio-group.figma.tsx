@@ -5,7 +5,7 @@ figma.connect(
   RadioGroup,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1149-66",
   {
-    imports: ['import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"'],
+    imports: ['import { RadioGroup } from "@libs/ui/molecules/radio-group"'],
     props: {
       size: figma.enum("size", {
         sm: "sm",
@@ -19,7 +19,7 @@ figma.connect(
       disabled: figma.boolean("disabled"),
     },
     example: ({ size, orientation, disabled }) => (
-      <RadioGroup size={size} orientation={orientation} disabled={disabled}>
+      <RadioGroup disabled={disabled} orientation={orientation} size={size}>
         <RadioGroup.Item value="a">
           <RadioGroup.ItemControl />
           <RadioGroup.ItemText>Option A</RadioGroup.ItemText>

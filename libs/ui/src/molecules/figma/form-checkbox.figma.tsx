@@ -20,6 +20,12 @@ figma.connect(
         indeterminate: false,
         disabled: false,
       }),
+      indeterminate: figma.enum("state", {
+        unchecked: false,
+        checked: false,
+        indeterminate: true,
+        disabled: false,
+      }),
       disabled: figma.enum("state", {
         unchecked: false,
         checked: false,
@@ -28,11 +34,12 @@ figma.connect(
       }),
       children: figma.string("label"),
     },
-    example: ({ size, checked, disabled, children }) => (
+    example: ({ size, checked, indeterminate, disabled, children }) => (
       <FormCheckbox
-        size={size}
         checked={checked}
         disabled={disabled}
+        indeterminate={indeterminate}
+        size={size}
       >
         {children}
       </FormCheckbox>

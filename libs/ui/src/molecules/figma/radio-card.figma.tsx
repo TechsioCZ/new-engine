@@ -5,7 +5,7 @@ figma.connect(
   RadioCard,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1151-66",
   {
-    imports: ['import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"'],
+    imports: ['import { RadioCard } from "@libs/ui/molecules/radio-card"'],
     props: {
       size: figma.enum("size", {
         sm: "sm",
@@ -19,7 +19,7 @@ figma.connect(
       disabled: figma.boolean("disabled"),
     },
     example: ({ size, orientation, disabled }) => (
-      <RadioCard size={size} orientation={orientation} disabled={disabled}>
+      <RadioCard disabled={disabled} orientation={orientation} size={size}>
         <RadioCard.Item value="a">
           <RadioCard.ItemControl>
             <RadioCard.ItemContent>
