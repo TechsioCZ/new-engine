@@ -47,6 +47,7 @@ ENV MEILISEARCH_CATEGORIES_INDEX=${MEILISEARCH_CATEGORIES_INDEX}
 ENV MEILISEARCH_PRODUCERS_INDEX=${MEILISEARCH_PRODUCERS_INDEX}
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
+    --mount=type=cache,id=next-cache-herbatika,target=/var/www/apps/herbatika/.next/cache \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatica... && \
     pnpm --filter=@techsio/storefront-data build && \
     pnpm --filter=@techsio/ui-kit build && \

@@ -52,6 +52,7 @@ const nextConfig: NextConfig = {
 
   experimental: {
     typedEnv: true,
+    cpus: 1,
   },
 };
 
