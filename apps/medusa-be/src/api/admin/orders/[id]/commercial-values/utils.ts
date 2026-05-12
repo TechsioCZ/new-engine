@@ -58,6 +58,7 @@ type CommercialValuesOrderItem = {
   raw_unit_price?: RawAmountValue | null
   subtotal?: AmountValue
   is_discountable?: boolean | null
+  is_tax_inclusive?: boolean | null
   product_title?: string | null
   quantity?: AmountValue
   subtitle?: string | null
@@ -144,6 +145,7 @@ const ORDER_FIELDS = [
   "items.discount_total",
   "items.tax_total",
   "items.is_discountable",
+  "items.is_tax_inclusive",
   "items.adjustments.amount",
   "items.adjustments.code",
   "items.adjustments.description",
@@ -410,6 +412,7 @@ function mapItem(item: CommercialValuesOrderItem): CommercialValuesItemInput {
         : toFiniteAmount(item.tax_total, "item tax total"),
     existing_adjustments: (item.adjustments ?? []).map(mapAdjustment),
     is_discountable: item.is_discountable ?? true,
+    is_tax_inclusive: item.is_tax_inclusive ?? false,
     item_id: item.id,
     original_unit_price: unitPrice,
     quantity,

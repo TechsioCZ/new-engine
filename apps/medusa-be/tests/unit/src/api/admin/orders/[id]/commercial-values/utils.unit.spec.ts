@@ -404,6 +404,50 @@ describe("commercial values route utils", () => {
     expect(preview.new_total).toBe(1078)
   })
 
+  it("does not add tax twice for tax-inclusive unchanged items", () => {
+    const calculationInput = toCommercialValuesCalculationInput(
+      createMockOrder({
+        items: [
+          {
+            id: "item_1",
+            is_discountable: true,
+            is_tax_inclusive: true,
+            quantity: 1,
+            subtotal: 6.902_439_024_390_244,
+            tax_total: 1.587_560_975_609_756_2,
+            total: 8.49,
+            unit_price: 8.49,
+          },
+        ],
+        shipping_methods: [
+          {
+            id: "ship_1",
+            name: "Express",
+            subtotal: 8.130_081_300_813_009,
+            tax_total: 1.869_918_699_186_991_8,
+          },
+        ],
+        total: 18.49,
+      }),
+      {
+        expected_order_version: 1,
+        items: [{ item_id: "item_1", unit_price: 8.49 }],
+        shipping_methods: [
+          {
+            discount: { amount: 1, type: "amount" },
+            shipping_method_id: "ship_1",
+          },
+        ],
+      }
+    )
+
+    const preview = calculateCommercialValuesPreview(calculationInput)
+
+    expect(preview.items[0].final_line_total_with_tax).toBe(8.49)
+    expect(preview.shipping_methods[0].final_total_with_tax).toBeCloseTo(8.77)
+    expect(preview.new_total).toBeCloseTo(17.26)
+  })
+
   it("allocates order discounts across items and shipping methods", () => {
     const calculationInput = toCommercialValuesCalculationInput(
       createMockOrder({

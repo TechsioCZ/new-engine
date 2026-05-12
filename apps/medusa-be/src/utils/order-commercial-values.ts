@@ -41,6 +41,7 @@ export type CommercialValuesItemInput = {
   discount?: CommercialDiscountIntent | null
   existing_adjustments?: CommercialAdjustmentInput[] | null
   is_discountable?: boolean | null
+  is_tax_inclusive?: boolean | null
 }
 
 export type CommercialValuesCalculationInput = {
@@ -512,6 +513,7 @@ function calculateItem(
     "item"
   )
   const lineAfterItemDiscount = discountableBase - manualItemDiscountAmount
+  const taxTotal = calculateItemTaxTotal(item, lineAfterItemDiscount)
 
   return {
     discountable_base:
@@ -527,8 +529,10 @@ function calculateItem(
     quantity: item.quantity,
     requested_unit_price: item.unit_price,
     source_item: item,
-    tax_total: 0,
-    final_line_total_with_tax: lineAfterItemDiscount,
+    tax_total: taxTotal,
+    final_line_total_with_tax: item.is_tax_inclusive
+      ? lineAfterItemDiscount
+      : lineAfterItemDiscount + taxTotal,
   }
 }
 
@@ -563,6 +567,20 @@ function getOriginalItemTaxTotal(item: CommercialValuesItemInput) {
   )
 
   return item.current_tax_total
+}
+
+function getOriginalItemTotalWithTax(item: CommercialValuesItemInput) {
+  const originalItemTotal = getOriginalItemTotal(item)
+  const originalTaxTotal = getOriginalItemTaxTotal(item)
+
+  if (
+    item.is_tax_inclusive &&
+    (item.current_subtotal === null || item.current_subtotal === undefined)
+  ) {
+    return originalItemTotal
+  }
+
+  return originalItemTotal + originalTaxTotal
 }
 
 function calculateItemTaxTotal(
@@ -686,7 +704,9 @@ export function calculateCommercialValuesPreview(
 
     return {
       final_line_total: finalLineTotal,
-      final_line_total_with_tax: finalLineTotal + taxTotal,
+      final_line_total_with_tax: item.source_item.is_tax_inclusive
+        ? finalLineTotal
+        : finalLineTotal + taxTotal,
       item_id: item.item_id,
       line_base: item.line_base,
       manual_item_discount_amount: item.manual_item_discount_amount,
@@ -722,8 +742,7 @@ export function calculateCommercialValuesPreview(
   })
 
   const originalItemsTotalWithTax = input.items.reduce(
-    (total, item) =>
-      total + getOriginalItemTotal(item) + getOriginalItemTaxTotal(item),
+    (total, item) => total + getOriginalItemTotalWithTax(item),
     0
   )
   const originalShippingTotalWithTax = (input.shipping_methods ?? []).reduce(
