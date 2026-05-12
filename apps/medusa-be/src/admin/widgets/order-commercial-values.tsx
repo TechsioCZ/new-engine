@@ -58,9 +58,13 @@ type DraftState = {
 
 type CommercialValuesWidgetProps = Partial<DetailWidgetProps<AdminOrder>>
 type CommercialValuesPayload = NonNullable<ReturnType<typeof buildPayload>>
+type CommercialValuesPreviewPayload = Omit<
+  CommercialValuesPayload,
+  "confirmation_mode" | "internal_note"
+>
 type CommercialValuesPreviewVariables = {
   key: string
-  payload: CommercialValuesPayload
+  payload: CommercialValuesPreviewPayload
 }
 
 const QUERY_KEY_PREFIX = "order-commercial-values"
@@ -409,7 +413,21 @@ function getItemPreview(
 }
 
 function getPreviewPayloadKey(payload: CommercialValuesPayload) {
-  return stableStringify(payload)
+  return stableStringify(toPreviewPayload(payload))
+}
+
+function toPreviewPayload(
+  payload: CommercialValuesPayload
+): CommercialValuesPreviewPayload {
+  const {
+    confirmation_mode: _confirmationMode,
+    internal_note: _internalNote,
+    ...previewPayload
+  } = payload as CommercialValuesPayload & {
+    confirmation_mode?: unknown
+  }
+
+  return previewPayload
 }
 
 function stableStringify(value: unknown) {
@@ -496,7 +514,6 @@ const CommercialValuesDrawer = ({
   onClose,
   onConfirm,
   onDraftChange,
-  onPreview,
   preview,
   snapshot,
 }: {
@@ -507,7 +524,6 @@ const CommercialValuesDrawer = ({
   onClose: () => void
   onConfirm: () => void
   onDraftChange: (draft: DraftState) => void
-  onPreview: () => void
   preview?: CommercialValuesPreview
   snapshot: CommercialValuesSnapshot
 }) => {
@@ -779,16 +795,7 @@ const CommercialValuesDrawer = ({
               {t("orderCommercialValues.actions.cancel")}
             </Button>
             <Button
-              disabled={!canSubmit}
-              isLoading={isPreviewing}
-              onClick={onPreview}
-              type="button"
-              variant="secondary"
-            >
-              {t("orderCommercialValues.actions.preview")}
-            </Button>
-            <Button
-              disabled={!(canSubmit && preview)}
+              disabled={!canSubmit || isPreviewing || isSaving}
               isLoading={isSaving}
               onClick={onConfirm}
               type="button"
@@ -854,7 +861,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
       toast.error(
         err instanceof Error
           ? err.message
-          : t("orderCommercialValues.errors.previewFailed")
+          : t("orderCommercialValues.errors.recalculateFailed")
       )
     },
     onSuccess: (response, variables) => {
@@ -897,6 +904,32 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
     },
   })
 
+  useEffect(() => {
+    if (!(draft && isOpen && order?.id && snapshot?.editable)) {
+      return
+    }
+
+    const payload = buildPayload(draft, snapshot)
+    if (!payload) {
+      setPreview(undefined)
+      latestPreviewKey.current = undefined
+      return
+    }
+
+    const key = getPreviewPayloadKey(payload)
+    if (latestPreviewKey.current === key) {
+      return
+    }
+
+    latestPreviewKey.current = key
+    const previewPayload = toPreviewPayload(payload)
+    const timeout = window.setTimeout(() => {
+      previewMutation.mutate({ key, payload: previewPayload })
+    }, 250)
+
+    return () => window.clearTimeout(timeout)
+  }, [draft, isOpen, order?.id, previewMutation, snapshot])
+
   if (!order?.id) {
     return null
   }
@@ -908,22 +941,6 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
       latestPreviewKey.current = undefined
     }
     setIsOpen(true)
-  }
-
-  const runPreview = () => {
-    if (!(draft && snapshot)) {
-      return
-    }
-
-    const payload = buildPayload(draft, snapshot)
-    if (!payload) {
-      toast.error(t("orderCommercialValues.errors.invalidValues"))
-      return
-    }
-
-    const key = getPreviewPayloadKey(payload)
-    latestPreviewKey.current = key
-    previewMutation.mutate({ key, payload })
   }
 
   const runConfirm = () => {
@@ -987,12 +1004,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
           isSaving={confirmMutation.isPending}
           onClose={() => setIsOpen(false)}
           onConfirm={runConfirm}
-          onDraftChange={(nextDraft) => {
-            setDraft(nextDraft)
-            setPreview(undefined)
-            latestPreviewKey.current = undefined
-          }}
-          onPreview={runPreview}
+          onDraftChange={setDraft}
           preview={preview}
           snapshot={snapshot}
         />
