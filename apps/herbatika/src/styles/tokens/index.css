@@ -11,5 +11,5 @@
 @import "./components/components.css";
 
 @plugin "tailwindcss-animate";
-@source "../../../node_modules/@techsio/ui-kit";
+@source "../../../../../libs/ui/src/**/*.{js,ts,jsx,tsx}";
 @source "../../**/*.{js,ts,jsx,tsx,mdx}";
