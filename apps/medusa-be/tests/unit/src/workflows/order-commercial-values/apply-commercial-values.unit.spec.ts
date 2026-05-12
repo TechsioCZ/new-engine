@@ -174,11 +174,14 @@ describe("applyOrderCommercialValues", () => {
         item_id: "item_1",
         promotion_id: undefined,
         provider_id: undefined,
+        shipping_method_id: undefined,
       },
       {
         amount: 100,
         code: "manual_item_discount",
-        description: "Manual item discount",
+        description:
+          'Manual item discount [cv_discount:{"amount":100,"type":"amount"}]',
+        is_tax_inclusive: undefined,
         item_id: "item_1",
       },
     ])
@@ -275,13 +278,14 @@ describe("applyOrderCommercialValues", () => {
       {
         amount: 100,
         code: "manual_shipping_discount",
-        description: "Manual shipping discount",
+        description:
+          'Manual shipping discount [cv_discount:{"amount":100,"type":"amount"}]',
         shipping_method_id: "ship_1",
       },
     ])
   })
 
-  it("converts displayed taxable shipping discounts to Medusa adjustment amounts", async () => {
+  it("converts displayed taxable percentage shipping discounts to Medusa adjustment amounts", async () => {
     await applyOrderCommercialValues({
       calculation_input: {
         ...calculationInput,
@@ -290,7 +294,7 @@ describe("applyOrderCommercialValues", () => {
           {
             current_subtotal: 8.130_081_300_813_009,
             current_tax_total: 1.869_918_699_186_991_8,
-            discount: { amount: 9, type: "amount" as const },
+            discount: { type: "percentage" as const, value_bps: 9000 },
             existing_adjustments: [],
             shipping_method_id: "ship_1",
           },
@@ -316,7 +320,7 @@ describe("applyOrderCommercialValues", () => {
         ],
         shipping_methods: [
           {
-            discount: { amount: 9, type: "amount" },
+            discount: { type: "percentage", value_bps: 9000 },
             shipping_method_id: "ship_1",
           },
         ],
@@ -330,7 +334,8 @@ describe("applyOrderCommercialValues", () => {
     )
     expect(actionInput.details.adjustments[0]).toMatchObject({
       code: "manual_shipping_discount",
-      description: "Manual shipping discount",
+      description:
+        'Manual shipping discount [cv_discount:{"type":"percentage","value_bps":9000}]',
       shipping_method_id: "ship_1",
     })
     expect(actionInput.details.adjustments[0].amount).toBeCloseTo(

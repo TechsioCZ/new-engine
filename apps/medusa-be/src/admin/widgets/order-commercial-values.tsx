@@ -203,18 +203,52 @@ function getManualAdjustmentAmount(
     .reduce((total, adjustment) => total + adjustment.amount, 0)
 }
 
-function getManualAmountDiscount(
+function getManualDiscount(
   target: {
     existing_adjustments: CommercialValuesSnapshot["items"][number]["existing_adjustments"]
   },
   code: string
 ): CommercialDiscountIntent | null {
-  const amount = getManualAdjustmentAmount(target, code)
+  const adjustments = target.existing_adjustments.filter(
+    (adjustment) => adjustment.code === code
+  )
+  const intent = adjustments.find(
+    (adjustment) => adjustment.discount_intent
+  )?.discount_intent
+
+  if (intent) {
+    return intent
+  }
+
+  const amount = adjustments.reduce(
+    (total, adjustment) => total + adjustment.amount,
+    0
+  )
 
   return amount > 0 ? { amount, type: "amount" } : null
 }
 
 function getSnapshotOrderDiscount(snapshot: CommercialValuesSnapshot) {
+  const orderAdjustments = [
+    ...snapshot.items.flatMap((item) =>
+      item.existing_adjustments.filter(
+        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE
+      )
+    ),
+    ...snapshot.shipping_methods.flatMap((shippingMethod) =>
+      shippingMethod.existing_adjustments.filter(
+        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE
+      )
+    ),
+  ]
+  const intent = orderAdjustments.find(
+    (adjustment) => adjustment.discount_intent
+  )?.discount_intent
+
+  if (intent) {
+    return intent
+  }
+
   const itemAmount = snapshot.items.reduce(
     (total, item) =>
       total + getManualAdjustmentAmount(item, MANUAL_ORDER_DISCOUNT_CODE),
@@ -229,6 +263,27 @@ function getSnapshotOrderDiscount(snapshot: CommercialValuesSnapshot) {
   const amount = itemAmount + shippingAmount
 
   return amount > 0 ? { amount, type: "amount" as const } : null
+}
+
+function toDraftDiscount(discount: CommercialDiscountIntent | null) {
+  if (!discount) {
+    return {
+      discount_type: "none" as const,
+      discount_value: "",
+    }
+  }
+
+  if (discount.type === "percentage") {
+    return {
+      discount_type: "percentage" as const,
+      discount_value: String(discount.value_bps / 100),
+    }
+  }
+
+  return {
+    discount_type: "amount" as const,
+    discount_value: String(discount.amount),
+  }
 }
 
 function areDiscountsEqual(
@@ -260,34 +315,28 @@ function createDraft(snapshot: CommercialValuesSnapshot): DraftState {
   return {
     internal_note: "",
     items: snapshot.items.map((item) => {
-      const itemDiscountAmount = getManualAdjustmentAmount(
-        item,
-        MANUAL_ITEM_DISCOUNT_CODE
-      )
+      const itemDiscount = getManualDiscount(item, MANUAL_ITEM_DISCOUNT_CODE)
+      const draftDiscount = toDraftDiscount(itemDiscount)
 
       return {
-        discount_type: itemDiscountAmount > 0 ? "amount" : "none",
-        discount_value:
-          itemDiscountAmount > 0 ? String(itemDiscountAmount) : "",
+        discount_type: draftDiscount.discount_type,
+        discount_value: draftDiscount.discount_value,
         item_id: item.item_id,
         unit_price: String(item.unit_price),
       }
     }),
-    order_discount_type: snapshotOrderDiscount ? "amount" : "none",
-    order_discount_value:
-      snapshotOrderDiscount?.type === "amount"
-        ? String(snapshotOrderDiscount.amount)
-        : "",
+    order_discount_type: toDraftDiscount(snapshotOrderDiscount).discount_type,
+    order_discount_value: toDraftDiscount(snapshotOrderDiscount).discount_value,
     shipping_methods: snapshot.shipping_methods.map((shippingMethod) => {
-      const shippingDiscountAmount = getManualAdjustmentAmount(
+      const shippingDiscount = getManualDiscount(
         shippingMethod,
         MANUAL_SHIPPING_DISCOUNT_CODE
       )
+      const draftDiscount = toDraftDiscount(shippingDiscount)
 
       return {
-        discount_type: shippingDiscountAmount > 0 ? "amount" : "none",
-        discount_value:
-          shippingDiscountAmount > 0 ? String(shippingDiscountAmount) : "",
+        discount_type: draftDiscount.discount_type,
+        discount_value: draftDiscount.discount_value,
         shipping_method_id: shippingMethod.shipping_method_id,
       }
     }),
@@ -424,7 +473,7 @@ function buildPayload(
     }
     const snapshotItem = snapshotItemsById.get(item.item_id)
     const snapshotDiscount = snapshotItem
-      ? getManualAmountDiscount(snapshotItem, MANUAL_ITEM_DISCOUNT_CODE)
+      ? getManualDiscount(snapshotItem, MANUAL_ITEM_DISCOUNT_CODE)
       : null
 
     if (!areDiscountsEqual(item.discount, snapshotDiscount)) {
@@ -445,7 +494,7 @@ function buildPayload(
         shippingMethod.shipping_method_id
       )
       const snapshotDiscount = snapshotShippingMethod
-        ? getManualAmountDiscount(
+        ? getManualDiscount(
             snapshotShippingMethod,
             MANUAL_SHIPPING_DISCOUNT_CODE
           )

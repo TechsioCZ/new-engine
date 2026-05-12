@@ -9,6 +9,7 @@ export const MANUAL_DISCOUNT_CODES = new Set([
   MANUAL_ORDER_DISCOUNT_CODE,
   MANUAL_SHIPPING_DISCOUNT_CODE,
 ])
+const DISCOUNT_INTENT_DESCRIPTION_MARKER = " [cv_discount:"
 
 export type CommercialDiscountIntent =
   | {
@@ -24,6 +25,7 @@ export type CommercialAdjustmentInput = {
   amount: number
   code?: string | null
   description?: string | null
+  discount_intent?: CommercialDiscountIntent | null
   is_preserved_manual_discount?: boolean | null
   is_tax_inclusive?: boolean | null
   item_id?: string | null
@@ -32,6 +34,73 @@ export type CommercialAdjustmentInput = {
   shipping_method_id?: string | null
   subtotal?: number | null
   total?: number | null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value)
+}
+
+function parseCommercialDiscountIntent(
+  value: unknown
+): CommercialDiscountIntent | null {
+  if (!isRecord(value) || typeof value.type !== "string") {
+    return null
+  }
+
+  if (value.type === "percentage") {
+    const valueBps = value.value_bps
+
+    return Number.isSafeInteger(valueBps)
+      ? { type: "percentage", value_bps: valueBps as number }
+      : null
+  }
+
+  if (value.type === "amount") {
+    const amount = value.amount
+
+    return typeof amount === "number" && Number.isFinite(amount)
+      ? { type: "amount", amount }
+      : null
+  }
+
+  return null
+}
+
+export function encodeCommercialDiscountDescription(
+  description: string,
+  discount: CommercialDiscountIntent | null | undefined
+) {
+  if (!discount) {
+    return description
+  }
+
+  return `${description}${DISCOUNT_INTENT_DESCRIPTION_MARKER}${JSON.stringify(discount)}]`
+}
+
+export function decodeCommercialDiscountIntent(
+  description: string | null | undefined
+) {
+  if (!description) {
+    return null
+  }
+
+  const markerIndex = description.lastIndexOf(
+    DISCOUNT_INTENT_DESCRIPTION_MARKER
+  )
+  if (markerIndex < 0) {
+    return null
+  }
+
+  const encodedIntent = description.slice(
+    markerIndex + DISCOUNT_INTENT_DESCRIPTION_MARKER.length,
+    description.endsWith("]") ? -1 : undefined
+  )
+
+  try {
+    return parseCommercialDiscountIntent(JSON.parse(encodedIntent))
+  } catch {
+    return null
+  }
 }
 
 export type CommercialValuesItemInput = {

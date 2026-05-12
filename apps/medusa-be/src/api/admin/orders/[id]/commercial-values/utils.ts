@@ -14,6 +14,7 @@ import type {
   CommercialValuesSnapshot,
 } from "../../../../../utils/order-commercial-values"
 import {
+  decodeCommercialDiscountIntent,
   isManualDiscountAdjustment,
   MANUAL_ITEM_DISCOUNT_CODE,
   MANUAL_ORDER_DISCOUNT_CODE,
@@ -355,6 +356,9 @@ function mapAdjustment(
     amount: toFiniteAmount(adjustment.amount, "adjustment amount"),
     code: adjustment.code ?? undefined,
     description: adjustment.description ?? undefined,
+    discount_intent:
+      adjustment.discount_intent ??
+      decodeCommercialDiscountIntent(adjustment.description),
     is_preserved_manual_discount:
       adjustment.is_preserved_manual_discount ?? undefined,
     is_tax_inclusive: adjustment.is_tax_inclusive ?? undefined,

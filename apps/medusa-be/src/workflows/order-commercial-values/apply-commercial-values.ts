@@ -29,6 +29,7 @@ import {
   type CommercialValuesConfirmResponse,
   type CommercialValuesPreview,
   calculateCommercialValuesPreview,
+  encodeCommercialDiscountDescription,
   isManualDiscountAdjustment,
   MANUAL_ITEM_DISCOUNT_CODE,
   MANUAL_ORDER_DISCOUNT_CODE,
@@ -289,11 +290,15 @@ function buildManualDiscountAdjustments({
   item,
   itemDiscountRequested,
   orderDiscountRequested,
+  requestedItemDiscount,
+  requestedOrderDiscount,
   previewItem,
 }: {
   item: ApplyCommercialValuesOrderItem
   itemDiscountRequested: boolean
   orderDiscountRequested: boolean
+  requestedItemDiscount: CommercialValuesConfirmRequest["items"][number]["discount"]
+  requestedOrderDiscount: CommercialValuesConfirmRequest["order_discount"]
   previewItem: CommercialValuesPreviewItem
 }) {
   const manualAdjustments: ReplacementAdjustment[] = []
@@ -306,7 +311,10 @@ function buildManualDiscountAdjustments({
     manualAdjustments.push({
       amount: previewItem.manual_item_discount_amount,
       code: MANUAL_ITEM_DISCOUNT_CODE,
-      description: "Manual item discount",
+      description: encodeCommercialDiscountDescription(
+        "Manual item discount",
+        requestedItemDiscount
+      ),
       is_tax_inclusive: previewItem.is_tax_inclusive || undefined,
       item_id: item.id,
     })
@@ -320,7 +328,10 @@ function buildManualDiscountAdjustments({
     manualAdjustments.push({
       amount: previewItem.manual_order_discount_amount,
       code: MANUAL_ORDER_DISCOUNT_CODE,
-      description: "Allocated manual order discount",
+      description: encodeCommercialDiscountDescription(
+        "Allocated manual order discount",
+        requestedOrderDiscount
+      ),
       is_tax_inclusive: previewItem.is_tax_inclusive || undefined,
       item_id: item.id,
     })
@@ -332,11 +343,17 @@ function buildManualDiscountAdjustments({
 function buildManualShippingDiscountAdjustments({
   orderDiscountRequested,
   previewShippingMethod,
+  requestedOrderDiscount,
+  requestedShippingDiscount,
   shippingDiscountRequested,
   shippingMethod,
 }: {
   orderDiscountRequested: boolean
   previewShippingMethod: CommercialValuesPreviewShippingMethod
+  requestedOrderDiscount: CommercialValuesConfirmRequest["order_discount"]
+  requestedShippingDiscount: NonNullable<
+    CommercialValuesConfirmRequest["shipping_methods"]
+  >[number]["discount"]
   shippingDiscountRequested: boolean
   shippingMethod: ApplyCommercialValuesShippingMethod
 }) {
@@ -356,7 +373,10 @@ function buildManualShippingDiscountAdjustments({
         previewShippingMethod.manual_shipping_discount_amount
       ),
       code: MANUAL_SHIPPING_DISCOUNT_CODE,
-      description: "Manual shipping discount",
+      description: encodeCommercialDiscountDescription(
+        "Manual shipping discount",
+        requestedShippingDiscount
+      ),
       shipping_method_id: shippingMethod.id,
     })
   }
@@ -375,7 +395,10 @@ function buildManualShippingDiscountAdjustments({
         previewShippingMethod.manual_order_discount_amount
       ),
       code: MANUAL_ORDER_DISCOUNT_CODE,
-      description: "Allocated manual order discount",
+      description: encodeCommercialDiscountDescription(
+        "Allocated manual order discount",
+        requestedOrderDiscount
+      ),
       shipping_method_id: shippingMethod.id,
     })
   }
@@ -484,6 +507,8 @@ function buildReplacementActions({
       itemDiscountRequested,
       orderDiscountRequested,
       previewItem,
+      requestedItemDiscount: requested?.discount,
+      requestedOrderDiscount: request.order_discount,
     })
 
     if (
@@ -534,6 +559,8 @@ function buildReplacementActions({
       const manualAdjustments = buildManualShippingDiscountAdjustments({
         orderDiscountRequested,
         previewShippingMethod,
+        requestedOrderDiscount: request.order_discount,
+        requestedShippingDiscount: requested?.discount,
         shippingDiscountRequested,
         shippingMethod,
       })

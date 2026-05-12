@@ -566,6 +566,35 @@ describe("commercial values route utils", () => {
     expect(preview.new_total).toBeCloseTo(1)
   })
 
+  it("parses persisted manual discount intent from adjustment descriptions", () => {
+    const snapshot = toCommercialValuesSnapshot(
+      createMockOrder({
+        items: [
+          {
+            adjustments: [
+              {
+                amount: 90,
+                code: "manual_item_discount",
+                description:
+                  'Manual item discount [cv_discount:{"type":"percentage","value_bps":9000}]',
+                item_id: "item_1",
+              },
+            ],
+            id: "item_1",
+            is_discountable: true,
+            quantity: 1,
+            unit_price: 1000,
+          },
+        ],
+      })
+    )
+
+    expect(snapshot.items[0].existing_adjustments[0].discount_intent).toEqual({
+      type: "percentage",
+      value_bps: 9000,
+    })
+  })
+
   it("reconstructs baseline totals for previously over-taxed shipping adjustments", () => {
     const order = createMockOrder({
       currency_code: "eur",
