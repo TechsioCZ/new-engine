@@ -1,8 +1,10 @@
 import type { ProviderWebhookPayload } from "@medusajs/framework/types"
 import type {
+  PaykitComgateOptions,
   PaykitGopayOptions,
   PaykitPaymentClient,
   PaykitProviderOptions,
+  PaykitStripeOptions,
   PaykitWebhookEvent,
 } from "./types"
 
@@ -96,6 +98,23 @@ export const getGopayProviderOptions = (
   isSandbox: options.isSandbox ?? options.sandbox ?? true,
   webhookUrl: options.webhookUrl,
   webhookSecret: options.webhookSecret ?? "",
+  debug: options.debug ?? false,
+})
+
+export const getStripeProviderOptions = (
+  options: PaykitStripeOptions
+): Record<string, unknown> => ({
+  apiKey: options.apiKey,
+  webhookSecret: options.webhookSecret ?? "",
+  debug: options.debug ?? false,
+})
+
+export const getComgateProviderOptions = (
+  options: PaykitComgateOptions
+): Record<string, unknown> => ({
+  merchant: options.merchant,
+  secret: options.secret,
+  isSandbox: options.isSandbox ?? options.sandbox ?? true,
   debug: options.debug ?? false,
 })
 

@@ -105,6 +105,18 @@ export type PaykitGopayOptions = PaykitProviderOptions & {
   webhookSecret?: string
 }
 
+export type PaykitStripeOptions = PaykitProviderOptions & {
+  apiKey?: string
+  webhookSecret?: string
+}
+
+export type PaykitComgateOptions = PaykitProviderOptions & {
+  merchant?: string
+  secret?: string
+  sandbox?: boolean
+  isSandbox?: boolean
+}
+
 export type PaykitWebhookEvent = {
   type?: string
   data?: PaykitPayment | { object?: PaykitPayment; payment?: PaykitPayment }

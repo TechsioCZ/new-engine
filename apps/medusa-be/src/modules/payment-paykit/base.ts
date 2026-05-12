@@ -179,6 +179,13 @@ export abstract class PaykitPaymentProviderBase<
     return isRecord(data.provider_metadata) ? data.provider_metadata : {}
   }
 
+  protected getCreateProviderMetadata(
+    _input: InitiatePaymentInput,
+    data: Record<string, unknown>
+  ): Record<string, unknown> {
+    return this.getProviderMetadata(data)
+  }
+
   protected getPaykitCustomer(
     input: InitiatePaymentInput,
     data: Record<string, unknown>
@@ -257,7 +264,7 @@ export abstract class PaykitPaymentProviderBase<
       ...((data.metadata as Record<string, unknown> | undefined) ?? {}),
       session_id: data.session_id,
     }
-    const providerMetadata = this.getProviderMetadata(data)
+    const providerMetadata = this.getCreateProviderMetadata(input, data)
     const createInput: PaykitCreatePaymentInput = {
       amount: this.normalizeAmount(input.amount, input.currency_code),
       currency: input.currency_code,

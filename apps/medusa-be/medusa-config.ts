@@ -7,7 +7,9 @@ import {
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
 import {
   isPaykitProviderEnabled,
+  PAYKIT_COMGATE_PROVIDER_ID,
   PAYKIT_GOPAY_PROVIDER_ID,
+  PAYKIT_STRIPE_PROVIDER_ID,
   parseBooleanEnv,
 } from "./src/modules/payment-paykit/config"
 
@@ -20,6 +22,8 @@ const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
 const FEATURE_PAYKIT_GOPAY_ENABLED = isPaykitProviderEnabled("GOPAY")
+const FEATURE_PAYKIT_STRIPE_ENABLED = isPaykitProviderEnabled("STRIPE")
+const FEATURE_PAYKIT_COMGATE_ENABLED = isPaykitProviderEnabled("COMGATE")
 const PAYKIT_PAYMENT_PROVIDERS = [
   ...(FEATURE_PAYKIT_GOPAY_ENABLED
     ? [
@@ -33,6 +37,33 @@ const PAYKIT_PAYMENT_PROVIDERS = [
             sandbox: parseBooleanEnv(process.env.GOPAY_SANDBOX, true),
             webhookUrl: process.env.GOPAY_WEBHOOK_URL,
             webhookSecret: process.env.GOPAY_WEBHOOK_SECRET,
+            debug: process.env.PAYKIT_DEBUG === "1",
+          },
+        },
+      ]
+    : []),
+  ...(FEATURE_PAYKIT_STRIPE_ENABLED
+    ? [
+        {
+          resolve: "./src/modules/payment-paykit/stripe",
+          id: PAYKIT_STRIPE_PROVIDER_ID,
+          options: {
+            apiKey: process.env.STRIPE_API_KEY,
+            webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+            debug: process.env.PAYKIT_DEBUG === "1",
+          },
+        },
+      ]
+    : []),
+  ...(FEATURE_PAYKIT_COMGATE_ENABLED
+    ? [
+        {
+          resolve: "./src/modules/payment-paykit/comgate",
+          id: PAYKIT_COMGATE_PROVIDER_ID,
+          options: {
+            merchant: process.env.COMGATE_MERCHANT,
+            secret: process.env.COMGATE_SECRET,
+            sandbox: parseBooleanEnv(process.env.COMGATE_SANDBOX, true),
             debug: process.env.PAYKIT_DEBUG === "1",
           },
         },

@@ -3,7 +3,10 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
-import { fromSmallestCurrencyUnit, toSmallestCurrencyUnit } from "./amounts"
+import {
+  fromSmallestCurrencyUnit,
+  toStripeSmallestCurrencyUnit,
+} from "./amounts"
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
@@ -12,43 +15,38 @@ import {
   PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
   requirePaykitOptions,
 } from "./config"
-import { createPaykitClient, getGopayProviderOptions } from "./runtime"
+import { createPaykitClient, getStripeProviderOptions } from "./runtime"
 import type {
-  PaykitGopayOptions,
   PaykitPayment,
   PaykitPaymentClient,
+  PaykitStripeOptions,
 } from "./types"
 
-export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<PaykitGopayOptions> {
+export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<PaykitStripeOptions> {
   static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
 
   // Medusa's provider loader instantiates provider classes directly.
   // biome-ignore lint/complexity/noUselessConstructor: the base constructor is protected; this keeps the provider constructor public.
   constructor(
     container: PaykitInjectedDependencies,
-    options: PaykitGopayOptions
+    options: PaykitStripeOptions
   ) {
     super(container, options)
   }
 
-  static override validateOptions(options: PaykitGopayOptions = {}): void {
+  static override validateOptions(options: PaykitStripeOptions = {}): void {
     if (options.client || options.clientFactory) {
       return
     }
 
-    requirePaykitOptions("PayKit GoPay", options, [
-      "clientId",
-      "clientSecret",
-      "goId",
-      "webhookUrl",
-    ])
+    requirePaykitOptions("PayKit Stripe", options, ["apiKey", "webhookSecret"])
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
     return await createPaykitClient(
-      "@paykit-sdk/gopay",
-      "createGopay",
-      getGopayProviderOptions(this.options_)
+      "@paykit-sdk/stripe",
+      "createStripe",
+      getStripeProviderOptions(this.options_)
     )
   }
 
@@ -58,7 +56,7 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
   ): number {
     const normalized = super.normalizeAmount(amount, currencyCode)
 
-    return toSmallestCurrencyUnit(normalized, currencyCode)
+    return toStripeSmallestCurrencyUnit(normalized, currencyCode)
   }
 
   protected override normalizePaymentDataAmount(
@@ -83,11 +81,12 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
 
     return fromSmallestCurrencyUnit(
       normalized,
-      payment.currency ?? payment.currency_code
+      payment.currency ?? payment.currency_code,
+      { includeStripeThreeDecimalCurrencies: true }
     )
   }
 }
 
 export default ModuleProvider(Modules.PAYMENT, {
-  services: [PaykitGopayPaymentProvider],
+  services: [PaykitStripePaymentProvider],
 })
