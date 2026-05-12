@@ -1,3 +1,5 @@
+import { BigNumber, MathBN } from "@medusajs/framework/utils"
+
 const ZERO_DECIMAL_CURRENCIES = new Set([
   "bif",
   "clp",
@@ -26,20 +28,42 @@ const STRIPE_THREE_DECIMAL_CURRENCIES = new Set([
   "tnd",
 ])
 
-export const getCurrencyMultiplier = (
-  currencyCode?: string,
-  options: { includeStripeThreeDecimalCurrencies?: boolean } = {}
+const getNormalizedCurrency = (currencyCode?: string): string =>
+  currencyCode?.toLowerCase() ?? ""
+
+const roundToSmallestCurrencyUnit = (
+  amount: number,
+  multiplier: number
 ): number => {
+  const roundedMajor =
+    Math.round(new BigNumber(MathBN.mult(amount, multiplier)).numeric) /
+    multiplier
+  const smallestAmount = new BigNumber(MathBN.mult(roundedMajor, multiplier))
+
+  return Math.trunc(smallestAmount.numeric)
+}
+
+export const getCurrencyMultiplier = (currencyCode?: string): number => {
   const normalizedCurrency = currencyCode?.toLowerCase() ?? ""
 
   if (ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency)) {
     return 1
   }
 
+  return 100
+}
+
+export const getStripeCurrencyMultiplier = (currencyCode?: string): number => {
+  const normalizedCurrency = getNormalizedCurrency(currencyCode)
+
   if (
-    options.includeStripeThreeDecimalCurrencies &&
-    STRIPE_THREE_DECIMAL_CURRENCIES.has(normalizedCurrency)
+    ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency) &&
+    normalizedCurrency !== "ugx"
   ) {
+    return 1
+  }
+
+  if (STRIPE_THREE_DECIMAL_CURRENCIES.has(normalizedCurrency)) {
     return 1000
   }
 
@@ -49,23 +73,25 @@ export const getCurrencyMultiplier = (
 export const toSmallestCurrencyUnit = (
   amount: number,
   currencyCode?: string
-): number => Math.round(amount * getCurrencyMultiplier(currencyCode))
+): number =>
+  roundToSmallestCurrencyUnit(amount, getCurrencyMultiplier(currencyCode))
 
 export const fromSmallestCurrencyUnit = (
   amount: number,
-  currencyCode?: string,
-  options: { includeStripeThreeDecimalCurrencies?: boolean } = {}
-): number => amount / getCurrencyMultiplier(currencyCode, options)
+  currencyCode?: string
+): number => amount / getCurrencyMultiplier(currencyCode)
+
+export const fromStripeSmallestCurrencyUnit = (
+  amount: number,
+  currencyCode?: string
+): number => amount / getStripeCurrencyMultiplier(currencyCode)
 
 export const toStripeSmallestCurrencyUnit = (
   amount: number,
   currencyCode?: string
 ): number => {
-  const multiplier = getCurrencyMultiplier(currencyCode, {
-    includeStripeThreeDecimalCurrencies: true,
-  })
-  const roundedMajor = Math.round(amount * multiplier) / multiplier
-  const smallestUnitAmount = roundedMajor * multiplier
+  const multiplier = getStripeCurrencyMultiplier(currencyCode)
+  const smallestUnitAmount = roundToSmallestCurrencyUnit(amount, multiplier)
 
   return multiplier === 1000
     ? Math.ceil(smallestUnitAmount / 10) * 10

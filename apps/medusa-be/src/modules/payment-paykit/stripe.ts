@@ -4,7 +4,7 @@ import type {
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
 import {
-  fromSmallestCurrencyUnit,
+  fromStripeSmallestCurrencyUnit,
   toStripeSmallestCurrencyUnit,
 } from "./amounts"
 import {
@@ -79,10 +79,9 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       payment.currency ?? payment.currency_code
     )
 
-    return fromSmallestCurrencyUnit(
+    return fromStripeSmallestCurrencyUnit(
       normalized,
-      payment.currency ?? payment.currency_code,
-      { includeStripeThreeDecimalCurrencies: true }
+      payment.currency ?? payment.currency_code
     )
   }
 }

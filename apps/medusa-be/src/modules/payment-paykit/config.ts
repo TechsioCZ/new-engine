@@ -6,8 +6,18 @@ export const PAYKIT_COMGATE_PROVIDER_ID = "comgate"
 export const PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID = "paykit_gopay"
 export const PAYKIT_GOPAY_WEBHOOK_PATH = "/hooks/payment/paykit_gopay"
 
-export const isPaykitProviderEnabled = (provider: string): boolean => {
-  const providerFlag = process.env[`FEATURE_PAYKIT_${provider}_ENABLED`]
+export const PAYKIT_PROVIDER_FEATURE_FLAGS = {
+  GOPAY: "FEATURE_PAYKIT_GOPAY_ENABLED",
+  STRIPE: "FEATURE_PAYKIT_STRIPE_ENABLED",
+  COMGATE: "FEATURE_PAYKIT_COMGATE_ENABLED",
+} as const
+
+export type PaykitProviderFeature = keyof typeof PAYKIT_PROVIDER_FEATURE_FLAGS
+
+export const isPaykitProviderEnabled = (
+  provider: PaykitProviderFeature
+): boolean => {
+  const providerFlag = process.env[PAYKIT_PROVIDER_FEATURE_FLAGS[provider]]
 
   if (providerFlag === "1") {
     return true
