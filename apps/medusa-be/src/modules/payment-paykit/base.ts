@@ -44,6 +44,7 @@ import { resolveConfiguredClient } from "./runtime"
 import type {
   PaykitBillingInfo,
   PaykitCreatePaymentInput,
+  PaykitCustomer,
   PaykitPayment,
   PaykitPaymentClient,
   PaykitProviderOptions,
@@ -172,10 +173,12 @@ export abstract class PaykitPaymentProviderBase<
     }
 
     return Object.fromEntries(
-      Object.entries(metadata).map(([key, value]) => [
-        key,
-        typeof value === "string" ? value : JSON.stringify(value),
-      ])
+      Object.entries(metadata)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => [
+          key,
+          typeof value === "string" ? value : JSON.stringify(value),
+        ])
     )
   }
 
@@ -187,7 +190,14 @@ export abstract class PaykitPaymentProviderBase<
   ): PaykitBillingInfo | undefined {
     const billing = input.context?.customer?.billing_address
 
-    if (!(billing?.address_1 && billing.city && billing.country_code)) {
+    if (
+      !(
+        billing?.address_1 &&
+        billing.city &&
+        billing.country_code &&
+        billing.postal_code
+      )
+    ) {
       return
     }
 
@@ -526,13 +536,20 @@ export abstract class PaykitPaymentProviderBase<
     const client = await this.getClient()
 
     if (!client.customers?.retrieve) {
-      throw new MedusaError(
-        MedusaError.Types.NOT_ALLOWED,
-        "PayKit provider does not support retrieving account holders"
-      )
+      return { id }
     }
 
-    const customer = await client.customers.retrieve(id)
+    let customer: PaykitCustomer | null
+
+    try {
+      customer = await client.customers.retrieve(id)
+    } catch (error) {
+      if (isProviderNotSupportedError(error)) {
+        return { id }
+      }
+
+      throw error
+    }
 
     if (!customer?.id) {
       throw new MedusaError(

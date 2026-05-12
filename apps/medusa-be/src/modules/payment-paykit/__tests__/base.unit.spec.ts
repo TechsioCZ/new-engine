@@ -331,6 +331,25 @@ describe("PaykitPaymentProviderBase", () => {
     ).resolves.toEqual({})
   })
 
+  it("falls back to account holder id when PayKit customer retrieval is unsupported", async () => {
+    const unsupported = new Error("Customer retrieval is not supported")
+    unsupported.name = "ProviderNotSupportedError"
+    const client = createMockPaykitClient({
+      customers: {
+        retrieve: vi.fn().mockRejectedValue(unsupported),
+      },
+    })
+    const provider = createProvider(client)
+
+    await expect(
+      provider.retrieveAccountHolder({
+        id: "customer-1",
+      })
+    ).resolves.toEqual({
+      id: "customer-1",
+    })
+  })
+
   it("selects the first actionable payment webhook event", async () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
