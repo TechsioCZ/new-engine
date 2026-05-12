@@ -286,29 +286,6 @@ function toDraftDiscount(discount: CommercialDiscountIntent | null) {
   }
 }
 
-function areDiscountsEqual(
-  left: CommercialDiscountIntent | null,
-  right: CommercialDiscountIntent | null
-) {
-  if (left === null || right === null) {
-    return left === right
-  }
-
-  if (left.type !== right.type) {
-    return false
-  }
-
-  if (left.type === "amount" && right.type === "amount") {
-    return left.amount === right.amount
-  }
-
-  if (left.type === "percentage" && right.type === "percentage") {
-    return left.value_bps === right.value_bps
-  }
-
-  return false
-}
-
 function createDraft(snapshot: CommercialValuesSnapshot): DraftState {
   const snapshotOrderDiscount = getSnapshotOrderDiscount(snapshot)
 
@@ -459,60 +436,15 @@ function buildPayload(
     return
   }
 
-  const snapshotItemsById = new Map(
-    snapshot.items.map((item) => [item.item_id, item])
-  )
-  const items = validParsedItems.map((item) => {
-    const payloadItem: {
-      discount?: CommercialDiscountIntent | null
-      item_id: string
-      unit_price: number
-    } = {
-      item_id: item.item_id,
-      unit_price: item.unit_price,
-    }
-    const snapshotItem = snapshotItemsById.get(item.item_id)
-    const snapshotDiscount = snapshotItem
-      ? getManualDiscount(snapshotItem, MANUAL_ITEM_DISCOUNT_CODE)
-      : null
-
-    if (!areDiscountsEqual(item.discount, snapshotDiscount)) {
-      payloadItem.discount = item.discount
-    }
-
-    return payloadItem
-  })
-  const snapshotShippingMethodsById = new Map(
-    snapshot.shipping_methods.map((shippingMethod) => [
-      shippingMethod.shipping_method_id,
-      shippingMethod,
-    ])
-  )
-  const shippingMethods = validParsedShippingMethods.flatMap(
-    (shippingMethod) => {
-      const snapshotShippingMethod = snapshotShippingMethodsById.get(
-        shippingMethod.shipping_method_id
-      )
-      const snapshotDiscount = snapshotShippingMethod
-        ? getManualDiscount(
-            snapshotShippingMethod,
-            MANUAL_SHIPPING_DISCOUNT_CODE
-          )
-        : null
-
-      if (areDiscountsEqual(shippingMethod.discount, snapshotDiscount)) {
-        return []
-      }
-
-      return [
-        {
-          discount: shippingMethod.discount,
-          shipping_method_id: shippingMethod.shipping_method_id,
-        },
-      ]
-    }
-  )
-  const snapshotOrderDiscount = getSnapshotOrderDiscount(snapshot)
+  const items = validParsedItems.map((item) => ({
+    discount: item.discount,
+    item_id: item.item_id,
+    unit_price: item.unit_price,
+  }))
+  const shippingMethods = validParsedShippingMethods.map((shippingMethod) => ({
+    discount: shippingMethod.discount,
+    shipping_method_id: shippingMethod.shipping_method_id,
+  }))
   const orderDiscount = parseDiscount(
     draft.order_discount_type,
     draft.order_discount_value
@@ -532,20 +464,11 @@ function buildPayload(
     shipping_methods: shippingMethods,
   }
 
-  if (!areDiscountsEqual(orderDiscount, snapshotOrderDiscount)) {
-    return {
-      ...payload,
-      order_discount: orderDiscount,
-      ...(confirmationMode ? { confirmation_mode: confirmationMode } : {}),
-    }
+  return {
+    ...payload,
+    order_discount: orderDiscount,
+    ...(confirmationMode ? { confirmation_mode: confirmationMode } : {}),
   }
-
-  return confirmationMode
-    ? {
-        ...payload,
-        confirmation_mode: confirmationMode,
-      }
-    : payload
 }
 
 function getItemPreview(
