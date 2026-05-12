@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest"
+import { Modules } from "@medusajs/framework/utils"
+import { describe, expect, it, vi } from "vitest"
 
 import {
   assertCommercialValuesEditable,
   type CommercialValuesOrder,
+  fetchCommercialValuesSnapshotOrder,
   toCommercialValuesCalculationInput,
   toCommercialValuesSnapshot,
 } from "../../../../../../../../src/api/admin/orders/[id]/commercial-values/utils"
@@ -138,6 +140,71 @@ describe("commercial values route utils", () => {
 
     expect(snapshot.editable).toBe(true)
     expect(snapshot.edit_blockers).toEqual([])
+  })
+
+  it("uses pending edit preview items without dropping order fields", async () => {
+    const order = createMockOrder()
+    const query = {
+      graph: vi.fn(async ({ entity }: { entity: string }) => {
+        if (entity === "order") {
+          return { data: [order] }
+        }
+
+        if (entity === "order_change") {
+          return {
+            data: [
+              {
+                change_type: "edit",
+                id: "oc_1",
+                status: "pending",
+                version: 1,
+              },
+            ],
+          }
+        }
+
+        return { data: [] }
+      }),
+    }
+    const container = {
+      resolve: vi.fn((key: string) => {
+        if (key === Modules.ORDER) {
+          return {
+            previewOrderChange: vi.fn(async () => ({
+              id: "order_1",
+              items: [
+                {
+                  detail: { quantity: 2 },
+                  id: "item_1",
+                },
+              ],
+            })),
+          }
+        }
+
+        throw new Error(`Unexpected container key ${key}`)
+      }),
+    }
+
+    const { activeOrderChange, order: snapshotOrder } =
+      await fetchCommercialValuesSnapshotOrder(
+        container as never,
+        query as never,
+        "order_1"
+      )
+    const snapshot = toCommercialValuesSnapshot(
+      snapshotOrder,
+      activeOrderChange
+    )
+
+    expect(snapshot.currency_code).toBe("czk")
+    expect(snapshot.editable).toBe(true)
+    expect(snapshot.expected_order_version).toBe(1)
+    expect(snapshot.items[0]).toMatchObject({
+      item_id: "item_1",
+      quantity: 2,
+      unit_price: 1000,
+    })
   })
 
   it("derives unit price from line subtotal when Medusa omits item unit price", () => {

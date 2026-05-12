@@ -542,23 +542,72 @@ export function requireCommercialValuesOrderId(orderId: string | undefined) {
   return orderId
 }
 
+function mergeOrderChangePreview(
+  order: CommercialValuesOrder,
+  preview: CommercialValuesOrder
+): CommercialValuesOrder {
+  const itemsById = new Map((order.items ?? []).map((item) => [item.id, item]))
+
+  return {
+    ...order,
+    ...preview,
+    currency_code: preview.currency_code ?? order.currency_code,
+    items:
+      preview.items?.map((item) => {
+        const originalItem = itemsById.get(item.id)
+
+        if (!originalItem) {
+          return item
+        }
+
+        return {
+          ...originalItem,
+          ...item,
+          adjustments: item.adjustments ?? originalItem.adjustments,
+          detail: {
+            ...originalItem.detail,
+            ...item.detail,
+          },
+          quantity:
+            item.quantity ?? item.detail?.quantity ?? originalItem.quantity,
+          raw_quantity:
+            item.raw_quantity ??
+            item.detail?.raw_quantity ??
+            originalItem.raw_quantity,
+          raw_unit_price:
+            item.raw_unit_price ??
+            item.detail?.raw_unit_price ??
+            originalItem.raw_unit_price,
+          unit_price:
+            item.unit_price ??
+            item.detail?.unit_price ??
+            originalItem.unit_price,
+        }
+      }) ?? order.items,
+    status: preview.status ?? order.status,
+    total: preview.total ?? order.total,
+    version: preview.version ?? order.version,
+  }
+}
+
 async function fetchOrderChangePreview(
   container: MedusaContainer,
-  orderId: string
+  orderId: string,
+  order: CommercialValuesOrder
 ) {
   const orderModuleService = container.resolve(Modules.ORDER) as {
     previewOrderChange: (orderId: string) => Promise<unknown>
   }
-  const order = await orderModuleService.previewOrderChange(orderId)
+  const preview = await orderModuleService.previewOrderChange(orderId)
 
-  if (!isCommercialValuesOrder(order)) {
+  if (!isCommercialValuesOrder(preview)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Order preview returned invalid order data"
     )
   }
 
-  return order
+  return mergeOrderChangePreview(order, preview)
 }
 
 export async function fetchEditableCommercialValuesOrder(
@@ -577,7 +626,7 @@ export async function fetchEditableCommercialValuesOrder(
   assertExpectedOrderVersion(order, expectedOrderVersion)
 
   return isReusableCommercialValuesOrderEdit(activeOrderChange)
-    ? fetchOrderChangePreview(container, orderId)
+    ? fetchOrderChangePreview(container, orderId, order)
     : order
 }
 
@@ -592,7 +641,7 @@ export async function fetchCommercialValuesSnapshotOrder(
 
   const activeOrderChange = await fetchActiveOrderChange(query, orderId)
   const snapshotOrder = isReusableCommercialValuesOrderEdit(activeOrderChange)
-    ? await fetchOrderChangePreview(container, orderId)
+    ? await fetchOrderChangePreview(container, orderId, order)
     : order
 
   return {
