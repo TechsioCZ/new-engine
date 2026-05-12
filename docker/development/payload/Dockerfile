@@ -17,6 +17,10 @@ WORKDIR /var/www
 FROM base AS dev
 
 ENV NODE_ENV=development
+WORKDIR /tmp/corepack
+COPY package.json /tmp/corepack/package.json
+RUN corepack install && rm -rf /tmp/corepack
+WORKDIR /var/www
 
 EXPOSE 8083
 

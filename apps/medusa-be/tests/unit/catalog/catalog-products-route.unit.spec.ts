@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from "vitest"
 import { GET } from "../../../src/api/store/catalog/products/route"
 
 type TestProduct = {
@@ -17,6 +18,11 @@ type GraphConfig = {
   fields?: string[]
   filters?: Record<string, unknown>
 }
+
+type MeiliPriceRange = { max?: number; min?: number }
+
+const FACET_PRICE_MIN_FILTER_REGEX = /^facet_price >= ([0-9.]+)$/
+const FACET_PRICE_MAX_FILTER_REGEX = /^facet_price <= ([0-9.]+)$/
 
 const getFilterIds = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -68,9 +74,7 @@ const getMeiliFilterValues = (filter: unknown, field: string): string[] => {
   return values
 }
 
-const getMeiliPriceRange = (
-  filter: unknown
-): { min?: number; max?: number } => {
+const getMeiliPriceRange = (filter: unknown): MeiliPriceRange => {
   if (!Array.isArray(filter)) {
     return {}
   }
@@ -82,11 +86,11 @@ const getMeiliPriceRange = (
       continue
     }
 
-    const minMatch = expression.match(/^facet_price >= ([0-9.]+)$/)
+    const minMatch = expression.match(FACET_PRICE_MIN_FILTER_REGEX)
     if (minMatch?.[1]) {
       min = Number(minMatch[1])
     }
-    const maxMatch = expression.match(/^facet_price <= ([0-9.]+)$/)
+    const maxMatch = expression.match(FACET_PRICE_MAX_FILTER_REGEX)
     if (maxMatch?.[1]) {
       max = Number(maxMatch[1])
     }
@@ -95,9 +99,30 @@ const getMeiliPriceRange = (
   return { min, max }
 }
 
+const productMatchesSearchFilters = (
+  product: TestProduct,
+  statusFilters: string[],
+  salesChannelFilters: string[],
+  priceRange: MeiliPriceRange
+) => {
+  const matchesStatus =
+    statusFilters.length === 0 || statusFilters.includes(product.status)
+  const matchesSalesChannel =
+    salesChannelFilters.length === 0 ||
+    product.salesChannelIds.some((id) => salesChannelFilters.includes(id))
+  const isAboveMin =
+    priceRange.min === undefined ||
+    (product.facetPrice !== undefined && product.facetPrice >= priceRange.min)
+  const isBelowMax =
+    priceRange.max === undefined ||
+    (product.facetPrice !== undefined && product.facetPrice <= priceRange.max)
+
+  return matchesStatus && matchesSalesChannel && isAboveMin && isBelowMax
+}
+
 const createMockResponse = () =>
   ({
-    json: jest.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
   }) as any
 
 const createCatalogHarness = ({
@@ -111,7 +136,7 @@ const createCatalogHarness = ({
 }) => {
   const productById = new Map(products.map((product) => [product.id, product]))
 
-  const meiliSearch = jest.fn(
+  const meiliSearch = vi.fn(
     async (
       _index: string,
       _query: string,
@@ -135,37 +160,14 @@ const createCatalogHarness = ({
         "facet_sales_channel_ids"
       )
       const priceRange = getMeiliPriceRange(options.filter)
-      const filteredProducts = products.filter((product) => {
-        if (
-          statusFilters.length > 0 &&
-          !statusFilters.includes(product.status)
-        ) {
-          return false
-        }
-        if (
-          salesChannelFilters.length > 0 &&
-          !product.salesChannelIds.some((id) =>
-            salesChannelFilters.includes(id)
-          )
-        ) {
-          return false
-        }
-        if (
-          priceRange.min !== undefined &&
-          (product.facetPrice === undefined ||
-            product.facetPrice < priceRange.min)
-        ) {
-          return false
-        }
-        if (
-          priceRange.max !== undefined &&
-          (product.facetPrice === undefined ||
-            product.facetPrice > priceRange.max)
-        ) {
-          return false
-        }
-        return true
-      })
+      const filteredProducts = products.filter((product) =>
+        productMatchesSearchFilters(
+          product,
+          statusFilters,
+          salesChannelFilters,
+          priceRange
+        )
+      )
 
       const hits = filteredProducts
         .slice(
@@ -225,7 +227,7 @@ const createCatalogHarness = ({
     }
   )
 
-  const queryGraph = jest.fn(async (config: GraphConfig) => {
+  const queryGraph = vi.fn(async (config: GraphConfig) => {
     const filters = config.filters ?? {}
 
     if (config.entity === "product_sales_channel") {
@@ -286,7 +288,7 @@ const createCatalogHarness = ({
       status: "published",
     },
     scope: {
-      resolve: jest.fn((key: string) => {
+      resolve: vi.fn((key: string) => {
         if (key === "meilisearch") {
           return { search: meiliSearch }
         }

@@ -3,5 +3,14 @@
   "name": "medusa-be",
   "projectType": "application",
   "sourceRoot": "apps/medusa-be/src",
-  "tags": ["type:app", "platform:backend", "framework:medusa"]
+  "tags": ["type:app", "platform:backend", "framework:medusa"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/medusa-be",
+        "command": "node ./scripts/run-vitest.mjs run --config vitest.config.ts"
+      }
+    }
+  }
 }
