@@ -26,6 +26,9 @@ class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitProvider
 const createProvider = (client = createMockPaykitClient()) =>
   new TestPaykitPaymentProvider({} as any, { client })
 
+const createProviderWithoutClient = () =>
+  new TestPaykitPaymentProvider({} as any, {})
+
 describe("PaykitPaymentProviderBase", () => {
   it("persists provider payment id inside data.id on initiatePayment", async () => {
     const client = createMockPaykitClient()
@@ -145,6 +148,34 @@ describe("PaykitPaymentProviderBase", () => {
       },
     })
     expect(client.payments.cancel).not.toHaveBeenCalled()
+  })
+
+  it("does not initialize a PayKit client for deletes without a provider id", async () => {
+    const provider = createProviderWithoutClient()
+
+    await expect(
+      provider.deletePayment({
+        data: {
+          session_id: "payses_123",
+        },
+      })
+    ).resolves.toEqual({
+      data: {
+        session_id: "payses_123",
+      },
+    })
+  })
+
+  it("throws when canceling an authorized payment without a provider id", async () => {
+    const provider = createProviderWithoutClient()
+
+    await expect(
+      provider.cancelPayment({
+        data: {
+          session_id: "payses_123",
+        },
+      })
+    ).rejects.toThrow("PayKit payment id is missing from payment data.id")
   })
 
   it("throws clearly when PayKit retrieve returns null", async () => {

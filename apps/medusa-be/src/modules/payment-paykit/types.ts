@@ -34,10 +34,6 @@ export type PaykitPayment = Record<string, unknown> & {
   metadata?: Record<string, unknown>
 }
 
-export type PaykitOperationContext = {
-  idempotencyKey?: string
-}
-
 export type PaykitCustomerInput = string | { email: string }
 
 export type PaykitCreatePaymentInput = {

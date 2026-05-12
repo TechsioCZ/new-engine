@@ -12,7 +12,6 @@ import type {
   GetPaymentStatusOutput,
   InitiatePaymentInput,
   InitiatePaymentOutput,
-  Logger,
   ProviderWebhookPayload,
   RefundPaymentInput,
   RefundPaymentOutput,
@@ -36,16 +35,13 @@ import {
 import { resolveConfiguredClient } from "./runtime"
 import type {
   PaykitCreatePaymentInput,
-  PaykitOperationContext,
   PaykitPayment,
   PaykitPaymentClient,
   PaykitProviderOptions,
   PaykitWebhookEvent,
 } from "./types"
 
-export type PaykitInjectedDependencies = {
-  logger?: Logger
-}
+export type PaykitInjectedDependencies = Record<string, unknown>
 
 type CapturePaymentInputWithAmount = CapturePaymentInput & {
   amount?: RefundPaymentInput["amount"]
@@ -57,7 +53,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 export abstract class PaykitPaymentProviderBase<
   TOptions extends PaykitProviderOptions = PaykitProviderOptions,
 > extends AbstractPaymentProvider<TOptions> {
-  protected readonly logger_: Logger | undefined
   protected readonly options_: TOptions
   private client_: Promise<PaykitPaymentClient> | undefined
 
@@ -67,7 +62,6 @@ export abstract class PaykitPaymentProviderBase<
   ) {
     super(container, options)
 
-    this.logger_ = container.logger
     this.options_ = options
   }
 
@@ -80,22 +74,6 @@ export abstract class PaykitPaymentProviderBase<
     })()
 
     return await this.client_
-  }
-
-  protected getOperationContext(
-    input:
-      | InitiatePaymentInput
-      | UpdatePaymentInput
-      | DeletePaymentInput
-      | AuthorizePaymentInput
-      | CapturePaymentInput
-      | RefundPaymentInput
-      | RetrievePaymentInput
-      | CancelPaymentInput
-  ): PaykitOperationContext | undefined {
-    const idempotencyKey = input.context?.idempotency_key
-
-    return idempotencyKey ? { idempotencyKey } : undefined
   }
 
   protected getProviderPaymentId(data?: Record<string, unknown>): string {
@@ -419,12 +397,8 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
-    const client = await this.getClient()
-    if (!input.data?.id) {
-      return { data: input.data }
-    }
-
     const id = this.getProviderPaymentId(input.data)
+    const client = await this.getClient()
 
     if (!client.payments.cancel) {
       return { data: input.data }
@@ -436,7 +410,22 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
-    return this.cancelPayment(input)
+    // Medusa can call deletePayment during create-session rollback with only
+    // the original input data, before provider data.id has been persisted.
+    if (!input.data?.id) {
+      return { data: input.data }
+    }
+
+    const client = await this.getClient()
+    const id = this.getProviderPaymentId(input.data)
+
+    if (!client.payments.cancel) {
+      return { data: input.data }
+    }
+
+    const payment = await client.payments.cancel(id)
+
+    return { data: toPaykitPaymentData(payment) }
   }
 
   async getWebhookActionAndData(
