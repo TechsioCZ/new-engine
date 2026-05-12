@@ -6,14 +6,12 @@ import {
   completeOrderWorkflow,
 } from "@medusajs/medusa/core-flows"
 import {
-  fetchOrderExpeditionOrdersByIds,
-  findMissingOrderIds,
+  fetchOrderedOrderExpeditionOrdersByIds,
   getOrderExpeditionDisplayId,
   getOrderExpeditionTransitionBlockReason,
   type OrderExpeditionBlockingOrder,
   type OrderExpeditionRawOrder,
   type OrderExpeditionTargetStatus,
-  orderOrdersByRequestedIds,
   toOrderExpeditionBlockingOrder,
 } from "../../../../utils/order-expedition"
 import { bulkCancelOrdersWorkflow } from "../../../../workflows/order-expedition/bulk-cancel-orders"
@@ -38,11 +36,11 @@ export async function POST(
   const orderIds = uniqueOrderIds(requestedOrderIds)
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-  const orders = await fetchOrderExpeditionOrdersByIds(query, orderIds)
-  const orderedOrders = orderOrdersByRequestedIds(orderIds, orders)
+  const { missingOrderIds, orders } =
+    await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
   const blockingOrders = collectBlockingOrders(
-    orderIds,
-    orderedOrders,
+    missingOrderIds,
+    orders,
     targetStatus
   )
 
@@ -58,10 +56,8 @@ export async function POST(
 
   await runStatusWorkflow(req.scope, orderIds, targetStatus)
 
-  const changedOrders = orderOrdersByRequestedIds(
-    orderIds,
-    await fetchOrderExpeditionOrdersByIds(query, orderIds)
-  )
+  const { orders: changedOrders } =
+    await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
 
   res.json({
     count: changedOrders.length,
@@ -71,18 +67,17 @@ export async function POST(
 }
 
 function collectBlockingOrders(
-  requestedOrderIds: string[],
+  missingOrderIds: string[],
   orders: OrderExpeditionRawOrder[],
   targetStatus: OrderExpeditionTargetStatus
 ) {
-  const blockers: OrderExpeditionBlockingOrder[] = findMissingOrderIds(
-    requestedOrderIds,
-    orders
-  ).map((orderId) => ({
-    id: orderId,
-    order_display_id: orderId,
-    reason: "Order was not found",
-  }))
+  const blockers: OrderExpeditionBlockingOrder[] = missingOrderIds.map(
+    (orderId) => ({
+      id: orderId,
+      order_display_id: orderId,
+      reason: "Order was not found",
+    })
+  )
 
   for (const order of orders) {
     const reason = getOrderExpeditionTransitionBlockReason(order, targetStatus)
