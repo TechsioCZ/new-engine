@@ -1,15 +1,13 @@
 import { join } from "node:path";
 import type { NextConfig } from "next";
 
-const resolveMedusaImageRemotePattern = () => {
-  const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
-
-  if (!backendUrl) {
+const resolveImageRemotePattern = (baseUrl: string | undefined) => {
+  if (!baseUrl) {
     return [];
   }
 
   try {
-    const parsedUrl = new URL(backendUrl);
+    const parsedUrl = new URL(baseUrl);
     const protocol = parsedUrl.protocol === "http:" ? "http" : "https";
 
     return [
@@ -22,6 +20,12 @@ const resolveMedusaImageRemotePattern = () => {
     return [];
   }
 };
+
+const resolveMedusaImageRemotePattern = () =>
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL);
+
+const resolvePayloadImageRemotePattern = () =>
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -58,6 +62,7 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
       },
       ...resolveMedusaImageRemotePattern(),
+      ...resolvePayloadImageRemotePattern(),
     ],
     qualities: [40, 50, 60, 75, 90],
   },

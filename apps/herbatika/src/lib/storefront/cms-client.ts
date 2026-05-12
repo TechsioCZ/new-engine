@@ -5,6 +5,9 @@ import { storefrontConfig } from "./sdk";
 
 const CMS_LOCALE = "sk";
 const CMS_REVALIDATE_SECONDS = 600;
+const CMS_MEDIA_BASE_URL =
+  process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL?.trim() ||
+  storefrontConfig.backendUrl;
 
 const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "");
 
@@ -73,7 +76,7 @@ export const resolveCmsMediaUrl = (
   }
 
   try {
-    return new URL(mediaPath, storefrontConfig.backendUrl).toString();
+    return new URL(mediaPath, CMS_MEDIA_BASE_URL).toString();
   } catch {
     return null;
   }
@@ -87,7 +90,7 @@ export const rewriteCmsHtmlMediaUrls = (html: string) => {
   return html.replace(
     /\b(src|href)=["'](\/api\/media\/file\/[^"']+)["']/g,
     (_match, attribute: string, url: string) => {
-      return `${attribute}="${new URL(url, storefrontConfig.backendUrl).toString()}"`;
+      return `${attribute}="${new URL(url, CMS_MEDIA_BASE_URL).toString()}"`;
     },
   );
 };
