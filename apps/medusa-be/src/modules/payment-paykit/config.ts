@@ -1,14 +1,10 @@
 export const PAYKIT_PAYMENT_PROVIDER_IDENTIFIER = "paykit"
 export const PAYKIT_GOPAY_PROVIDER_ID = "gopay"
-export const PAYKIT_GOPAY_MEDUSA_PROVIDER_ID = "pp_paykit_gopay"
+export const PAYKIT_STRIPE_PROVIDER_ID = "stripe"
+export const PAYKIT_COMGATE_PROVIDER_ID = "comgate"
+
 export const PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID = "paykit_gopay"
 export const PAYKIT_GOPAY_WEBHOOK_PATH = "/hooks/payment/paykit_gopay"
-export const PAYKIT_STRIPE_PROVIDER_ID = "stripe"
-export const PAYKIT_STRIPE_MEDUSA_PROVIDER_ID = "pp_paykit_stripe"
-export const PAYKIT_STRIPE_WEBHOOK_PROVIDER_ID = "paykit_stripe"
-export const PAYKIT_COMGATE_PROVIDER_ID = "comgate"
-export const PAYKIT_COMGATE_MEDUSA_PROVIDER_ID = "pp_paykit_comgate"
-export const PAYKIT_COMGATE_WEBHOOK_PROVIDER_ID = "paykit_comgate"
 
 export const isPaykitProviderEnabled = (provider: string): boolean => {
   const providerFlag = process.env[`FEATURE_PAYKIT_${provider}_ENABLED`]

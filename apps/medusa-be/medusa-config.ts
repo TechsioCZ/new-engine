@@ -16,14 +16,19 @@ import {
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
+
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
+
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
+
 const FEATURE_PAYKIT_GOPAY_ENABLED = isPaykitProviderEnabled("GOPAY")
 const FEATURE_PAYKIT_STRIPE_ENABLED = isPaykitProviderEnabled("STRIPE")
 const FEATURE_PAYKIT_COMGATE_ENABLED = isPaykitProviderEnabled("COMGATE")
+
+const PAYKIT_DEBUG = process.env.PAYKIT_DEBUG === "1"
 const PAYKIT_PAYMENT_PROVIDERS = [
   ...(FEATURE_PAYKIT_GOPAY_ENABLED
     ? [
@@ -37,7 +42,7 @@ const PAYKIT_PAYMENT_PROVIDERS = [
             sandbox: parseBooleanEnv(process.env.GOPAY_SANDBOX, true),
             webhookUrl: process.env.GOPAY_WEBHOOK_URL,
             webhookSecret: process.env.GOPAY_WEBHOOK_SECRET,
-            debug: process.env.PAYKIT_DEBUG === "1",
+            debug: PAYKIT_DEBUG,
           },
         },
       ]
@@ -50,7 +55,7 @@ const PAYKIT_PAYMENT_PROVIDERS = [
           options: {
             apiKey: process.env.STRIPE_API_KEY,
             webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-            debug: process.env.PAYKIT_DEBUG === "1",
+            debug: PAYKIT_DEBUG,
           },
         },
       ]
@@ -64,12 +69,13 @@ const PAYKIT_PAYMENT_PROVIDERS = [
             merchant: process.env.COMGATE_MERCHANT,
             secret: process.env.COMGATE_SECRET,
             sandbox: parseBooleanEnv(process.env.COMGATE_SANDBOX, true),
-            debug: process.env.PAYKIT_DEBUG === "1",
+            debug: PAYKIT_DEBUG,
           },
         },
       ]
     : []),
 ]
+
 const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL
@@ -95,6 +101,13 @@ const notificationProvider =
       }
 
 const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL?.trim()
+const MEDUSA_COOKIE_SECURE = process.env.MEDUSA_COOKIE_SECURE
+const MEDUSA_COOKIE_SAME_SITE = process.env.MEDUSA_COOKIE_SAME_SITE as
+  | "lax"
+  | "none"
+  | "strict"
+  | undefined
+
 let MEDUSA_ADMIN_ALLOWED_HOSTS: true | string[] | undefined
 
 if (process.env.NODE_ENV === "development") {
@@ -106,12 +119,7 @@ if (process.env.NODE_ENV === "development") {
 
   MEDUSA_ADMIN_ALLOWED_HOSTS = [new URL(backendUrl).hostname]
 }
-const MEDUSA_COOKIE_SECURE = process.env.MEDUSA_COOKIE_SECURE
-const MEDUSA_COOKIE_SAME_SITE = process.env.MEDUSA_COOKIE_SAME_SITE as
-  | "lax"
-  | "none"
-  | "strict"
-  | undefined
+
 const cookieOptions = {
   ...(MEDUSA_COOKIE_SECURE !== undefined
     ? {
