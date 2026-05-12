@@ -64,6 +64,14 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isProviderNotSupportedError = (error: unknown): boolean =>
   error instanceof Error && error.name === "ProviderNotSupportedError"
 
+const joinName = (...values: unknown[]): string | undefined => {
+  const name = values
+    .filter((value): value is string => typeof value === "string" && !!value)
+    .join(" ")
+
+  return name || undefined
+}
+
 export abstract class PaykitPaymentProviderBase<
   TOptions extends PaykitProviderOptions = PaykitProviderOptions,
 > extends AbstractPaymentProvider<TOptions> {
@@ -208,15 +216,16 @@ export abstract class PaykitPaymentProviderBase<
       return
     }
 
+    const billingRecord = billing as Record<string, unknown>
+
     return {
       address: {
         name:
-          [
+          joinName(billingRecord.first_name, billingRecord.last_name) ||
+          joinName(
             input.context?.customer?.first_name,
-            input.context?.customer?.last_name,
-          ]
-            .filter(Boolean)
-            .join(" ") ||
+            input.context?.customer?.last_name
+          ) ||
           input.context?.customer?.email ||
           input.context?.customer?.id ||
           "Customer",
@@ -581,7 +590,7 @@ export abstract class PaykitPaymentProviderBase<
         billing: this.mapBillingInfo(input) ?? null,
         email: customer.email,
         name:
-          [customer.first_name, customer.last_name].filter(Boolean).join(" ") ||
+          joinName(customer.first_name, customer.last_name) ||
           customer.email.split("@")[0],
         phone: customer.phone ?? "",
         metadata: this.toStringMetadata({
@@ -629,9 +638,7 @@ export abstract class PaykitPaymentProviderBase<
         ...(billing ? { billing } : {}),
         email: customer?.email,
         name: customer
-          ? [customer.first_name, customer.last_name]
-              .filter(Boolean)
-              .join(" ") || customer.email
+          ? joinName(customer.first_name, customer.last_name) || customer.email
           : undefined,
         phone: customer?.phone ?? undefined,
       })
