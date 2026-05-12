@@ -30,6 +30,8 @@ export type CommercialAdjustmentInput = {
   promotion_id?: string | null
   provider_id?: string | null
   shipping_method_id?: string | null
+  subtotal?: number | null
+  total?: number | null
 }
 
 export type CommercialValuesItemInput = {

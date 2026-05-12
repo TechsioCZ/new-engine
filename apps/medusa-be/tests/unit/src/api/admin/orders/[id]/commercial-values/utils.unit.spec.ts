@@ -540,6 +540,7 @@ describe("commercial values route utils", () => {
               amount: nativeShippingDiscount,
               code: "manual_shipping_discount",
               shipping_method_id: "ship_1",
+              total: 9,
             },
           ],
           id: "ship_1",
@@ -563,6 +564,61 @@ describe("commercial values route utils", () => {
       snapshot.shipping_methods[0].existing_adjustments[0].amount
     ).toBeCloseTo(9)
     expect(preview.new_total).toBeCloseTo(1)
+  })
+
+  it("reconstructs baseline totals for previously over-taxed shipping adjustments", () => {
+    const order = createMockOrder({
+      currency_code: "eur",
+      items: [
+        {
+          adjustments: [
+            {
+              amount: 8.49,
+              code: "manual_item_discount",
+              item_id: "item_1",
+              total: 8.49,
+            },
+          ],
+          id: "item_1",
+          is_discountable: true,
+          is_tax_inclusive: true,
+          quantity: 1,
+          subtotal: 6.902_439_024_390_244,
+          tax_total: 0,
+          total: 0,
+          unit_price: 8.49,
+        },
+      ],
+      shipping_methods: [
+        {
+          adjustments: [
+            {
+              amount: 9,
+              code: "manual_shipping_discount",
+              shipping_method_id: "ship_1",
+              total: 11.07,
+            },
+          ],
+          amount: 10,
+          id: "ship_1",
+          name: "Express",
+          subtotal: 8.130_081_300_813_009,
+          tax_total: -0.200_081_300_813_008_12,
+          total: -1.07,
+        },
+      ],
+      total: -1.07,
+    })
+    const snapshot = toCommercialValuesSnapshot(order)
+
+    expect(snapshot.totals.current_total).toBe(-1.07)
+    expect(snapshot.totals.original_total).toBeCloseTo(18.49)
+    expect(snapshot.shipping_methods[0].current_tax_total).toBeCloseTo(
+      1.869_918_699_186_991_8
+    )
+    expect(
+      snapshot.shipping_methods[0].existing_adjustments[0].amount
+    ).toBeCloseTo(11.07)
   })
 
   it("allocates order discounts across items and shipping methods", () => {

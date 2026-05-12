@@ -154,6 +154,10 @@ const ORDER_FIELDS = [
   "items.adjustments.item_id",
   "items.adjustments.promotion_id",
   "items.adjustments.provider_id",
+  "items.adjustments.subtotal",
+  "items.adjustments.total",
+  "items.adjustments.raw_subtotal",
+  "items.adjustments.raw_total",
   "shipping_methods.id",
   "shipping_methods.*",
   "shipping_methods.name",
@@ -177,6 +181,10 @@ const ORDER_FIELDS = [
   "shipping_methods.adjustments.promotion_id",
   "shipping_methods.adjustments.provider_id",
   "shipping_methods.adjustments.shipping_method_id",
+  "shipping_methods.adjustments.subtotal",
+  "shipping_methods.adjustments.total",
+  "shipping_methods.adjustments.raw_subtotal",
+  "shipping_methods.adjustments.raw_total",
 ]
 
 const ACTIVE_ORDER_CHANGE_FIELDS = ["id", "status", "version", "change_type"]
@@ -359,8 +367,17 @@ function mapAdjustment(
 
 function toDisplayShippingAdjustmentAmount(
   amount: number,
+  adjustment: CommercialAdjustmentInput,
   shippingMethod: CommercialValuesOrderShippingMethod
 ) {
+  const adjustmentTotal = isRecord(adjustment)
+    ? ((adjustment as Record<string, unknown>).total as AmountValue)
+    : undefined
+
+  if (adjustmentTotal !== null && adjustmentTotal !== undefined) {
+    return toFiniteAmount(adjustmentTotal, "shipping adjustment total")
+  }
+
   const taxTotal =
     shippingMethod.tax_total === null || shippingMethod.tax_total === undefined
       ? shippingMethod.raw_tax_total
@@ -387,7 +404,11 @@ function mapShippingAdjustment(
 
   return {
     ...mapped,
-    amount: toDisplayShippingAdjustmentAmount(mapped.amount, shippingMethod),
+    amount: toDisplayShippingAdjustmentAmount(
+      mapped.amount,
+      adjustment,
+      shippingMethod
+    ),
   }
 }
 
@@ -495,13 +516,22 @@ function getShippingMethodSubtotal(
 function mapShippingMethod(
   shippingMethod: CommercialValuesOrderShippingMethod
 ): CommercialValuesShippingMethodInput {
-  const taxTotal =
-    shippingMethod.tax_total === null || shippingMethod.tax_total === undefined
-      ? shippingMethod.raw_tax_total
-      : shippingMethod.tax_total
+  const subtotal = getShippingMethodSubtotal(shippingMethod)
+  const amount = shippingMethod.amount ?? shippingMethod.raw_amount
+  let taxTotal: AmountValue
+
+  if (amount === null || amount === undefined) {
+    taxTotal =
+      shippingMethod.tax_total === null ||
+      shippingMethod.tax_total === undefined
+        ? shippingMethod.raw_tax_total
+        : shippingMethod.tax_total
+  } else {
+    taxTotal = Math.max(toFiniteAmount(amount, "shipping amount") - subtotal, 0)
+  }
 
   return {
-    current_subtotal: getShippingMethodSubtotal(shippingMethod),
+    current_subtotal: subtotal,
     current_tax_total:
       taxTotal === null || taxTotal === undefined
         ? undefined
