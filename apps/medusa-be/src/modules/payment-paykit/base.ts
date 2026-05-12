@@ -1,6 +1,7 @@
 import type {
   AuthorizePaymentInput,
   AuthorizePaymentOutput,
+  BigNumberValue,
   CancelPaymentInput,
   CancelPaymentOutput,
   CapturePaymentInput,
@@ -39,6 +40,7 @@ import type {
   PaykitPayment,
   PaykitPaymentClient,
   PaykitProviderOptions,
+  PaykitWebhookEvent,
 } from "./types"
 
 export type PaykitInjectedDependencies = {
@@ -137,13 +139,35 @@ export abstract class PaykitPaymentProviderBase<
     amount: InitiatePaymentInput["amount"],
     _currencyCode?: string
   ): number {
+    return this.normalizeNumericAmount(
+      amount,
+      "PayKit payment amount must be numeric"
+    )
+  }
+
+  protected normalizePaymentDataAmount(
+    amount: RefundPaymentInput["amount"],
+    currencyCode?: string
+  ): number {
+    return this.normalizeAmount(amount, currencyCode)
+  }
+
+  protected normalizeWebhookAmount(
+    amount: BigNumberValue | undefined,
+    _payment: PaykitPayment,
+    _event: PaykitWebhookEvent
+  ): BigNumberValue | undefined {
+    return amount
+  }
+
+  protected normalizeNumericAmount(
+    amount: InitiatePaymentInput["amount"],
+    message: string
+  ): number {
     const normalized = Number(amount)
 
     if (!Number.isFinite(normalized)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "PayKit payment amount must be numeric"
-      )
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, message)
     }
 
     return normalized
@@ -323,9 +347,11 @@ export abstract class PaykitPaymentProviderBase<
       )
     }
 
-    const amount =
-      (input as CapturePaymentInputWithAmount).amount ??
-      (input.data?.amount as RefundPaymentInput["amount"] | undefined)
+    const explicitAmount = (input as CapturePaymentInputWithAmount).amount
+    const paymentDataAmount = input.data?.amount as
+      | RefundPaymentInput["amount"]
+      | undefined
+    const amount = explicitAmount ?? paymentDataAmount
 
     if (amount === undefined) {
       throw new MedusaError(
@@ -334,8 +360,14 @@ export abstract class PaykitPaymentProviderBase<
       )
     }
 
+    const currencyCode = input.data?.currency as string | undefined
+    const normalizedAmount =
+      explicitAmount === undefined
+        ? this.normalizePaymentDataAmount(amount, currencyCode)
+        : this.normalizeAmount(amount, currencyCode)
+
     const payment = await client.payments.capture(id, {
-      amount: this.normalizeAmount(amount, input.data?.currency as string),
+      amount: normalizedAmount,
     })
 
     return { data: toPaykitPaymentData(payment) }
@@ -402,7 +434,10 @@ export abstract class PaykitPaymentProviderBase<
     const eventList = Array.isArray(events) ? events : [events]
 
     for (const event of eventList) {
-      const result = mapPaykitWebhookEvent(event)
+      const result = mapPaykitWebhookEvent(event, {
+        normalizeAmount: (amount, payment, webhookEvent) =>
+          this.normalizeWebhookAmount(amount, payment, webhookEvent),
+      })
 
       if (result.action !== PaymentActions.NOT_SUPPORTED) {
         return result

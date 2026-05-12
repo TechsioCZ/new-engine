@@ -1,12 +1,22 @@
-import type { InitiatePaymentInput } from "@medusajs/framework/types"
+import type {
+  BigNumberValue,
+  InitiatePaymentInput,
+} from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
 } from "./base"
-import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "./config"
+import {
+  PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
+  requirePaykitOptions,
+} from "./config"
 import { createPaykitClient, getGopayProviderOptions } from "./runtime"
-import type { PaykitGopayOptions, PaykitPaymentClient } from "./types"
+import type {
+  PaykitGopayOptions,
+  PaykitPayment,
+  PaykitPaymentClient,
+} from "./types"
 
 const ZERO_DECIMAL_CURRENCIES = new Set([
   "bif",
@@ -44,20 +54,12 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
       return
     }
 
-    const missing = [
-      ["clientId", options.clientId],
-      ["clientSecret", options.clientSecret],
-      ["goId", options.goId],
-      ["webhookUrl", options.webhookUrl],
-    ]
-      .filter(([, value]) => !value)
-      .map(([key]) => key)
-
-    if (missing.length) {
-      throw new Error(
-        `PayKit GoPay missing required option(s): ${missing.join(", ")}`
-      )
-    }
+    requirePaykitOptions("PayKit GoPay", options, [
+      "clientId",
+      "clientSecret",
+      "goId",
+      "webhookUrl",
+    ])
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
@@ -73,13 +75,40 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
     currencyCode?: string
   ): number {
     const normalized = super.normalizeAmount(amount, currencyCode)
-    const multiplier = ZERO_DECIMAL_CURRENCIES.has(
-      currencyCode?.toLowerCase() ?? ""
+
+    return Math.round(normalized * this.getCurrencyMultiplier(currencyCode))
+  }
+
+  protected override normalizePaymentDataAmount(
+    amount: InitiatePaymentInput["amount"],
+    currencyCode?: string
+  ): number {
+    return super.normalizeAmount(amount, currencyCode)
+  }
+
+  protected override normalizeWebhookAmount(
+    amount: BigNumberValue | undefined,
+    payment: PaykitPayment
+  ): BigNumberValue | undefined {
+    if (amount === undefined) {
+      return amount
+    }
+
+    const normalized = super.normalizeAmount(
+      amount as InitiatePaymentInput["amount"],
+      payment.currency ?? payment.currency_code
     )
+
+    return (
+      normalized /
+      this.getCurrencyMultiplier(payment.currency ?? payment.currency_code)
+    )
+  }
+
+  private getCurrencyMultiplier(currencyCode?: string): number {
+    return ZERO_DECIMAL_CURRENCIES.has(currencyCode?.toLowerCase() ?? "")
       ? 1
       : 100
-
-    return Math.round(normalized * multiplier)
   }
 }
 

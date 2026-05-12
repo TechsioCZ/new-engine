@@ -5,6 +5,14 @@ import type {
 import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
 import type { PaykitPayment, PaykitWebhookEvent } from "./types"
 
+type PaykitWebhookMappingOptions = {
+  normalizeAmount?: (
+    amount: BigNumberValue | undefined,
+    payment: PaykitPayment,
+    event: PaykitWebhookEvent
+  ) => BigNumberValue | undefined
+}
+
 export const mapPaykitStatusToMedusa = (
   status: unknown
 ): PaymentSessionStatus => {
@@ -148,7 +156,8 @@ const mapPaykitWebhookAction = (
 }
 
 export const mapPaykitWebhookEvent = (
-  event?: PaykitWebhookEvent
+  event?: PaykitWebhookEvent,
+  options: PaykitWebhookMappingOptions = {}
 ): WebhookActionResult => {
   if (!event) {
     return { action: PaymentActions.NOT_SUPPORTED }
@@ -156,7 +165,10 @@ export const mapPaykitWebhookEvent = (
 
   const payment = getWebhookPayment(event)
   const sessionId = getWebhookSessionId(event, payment)
-  const amount = getWebhookAmount(event, payment)
+  const rawAmount = getWebhookAmount(event, payment)
+  const amount = options.normalizeAmount
+    ? options.normalizeAmount(rawAmount, payment, event)
+    : rawAmount
   const action = mapPaykitWebhookAction(event, payment)
 
   if (!sessionId || amount === undefined) {

@@ -1,9 +1,11 @@
 import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
+import { describe, expect, it, vi } from "vitest"
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
 } from "../base"
 import type { PaykitPaymentClient, PaykitProviderOptions } from "../types"
+import { createMockPaykitClient } from "./helpers"
 
 class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitProviderOptions> {
   static identifier = "paykit_test"
@@ -21,41 +23,12 @@ class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitProvider
   }
 }
 
-const createClient = (): PaykitPaymentClient => ({
-  payments: {
-    create: jest.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "requires_action",
-      payment_url: "https://payments.example/1",
-    }),
-    retrieve: jest.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "requires_capture",
-    }),
-    capture: jest.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "succeeded",
-    }),
-    cancel: jest.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "canceled",
-    }),
-  },
-  refunds: {
-    create: jest.fn().mockResolvedValue({
-      id: "refund-1",
-      payment_id: "provider-payment-1",
-      amount: 250,
-    }),
-  },
-})
-
-const createProvider = (client = createClient()) =>
+const createProvider = (client = createMockPaykitClient()) =>
   new TestPaykitPaymentProvider({} as any, { client })
 
 describe("PaykitPaymentProviderBase", () => {
   it("persists provider payment id inside data.id on initiatePayment", async () => {
-    const client = createClient()
+    const client = createMockPaykitClient()
     const provider = createProvider(client)
 
     const result = await provider.initiatePayment({
@@ -103,7 +76,7 @@ describe("PaykitPaymentProviderBase", () => {
   })
 
   it("reads provider id from data.id when capturing payment", async () => {
-    const client = createClient()
+    const client = createMockPaykitClient()
     const provider = createProvider(client)
 
     await provider.capturePayment({
@@ -122,7 +95,7 @@ describe("PaykitPaymentProviderBase", () => {
   })
 
   it("reads refund amount from Medusa refund input and provider id from data.id", async () => {
-    const client = createClient()
+    const client = createMockPaykitClient()
     const provider = createProvider(client)
 
     await provider.refundPayment({
@@ -144,8 +117,8 @@ describe("PaykitPaymentProviderBase", () => {
   })
 
   it("throws clearly when PayKit retrieve returns null", async () => {
-    const client = createClient()
-    jest.mocked(client.payments.retrieve).mockResolvedValueOnce(null)
+    const client = createMockPaykitClient()
+    vi.mocked(client.payments.retrieve).mockResolvedValueOnce(null)
     const provider = createProvider(client)
 
     await expect(
@@ -158,8 +131,8 @@ describe("PaykitPaymentProviderBase", () => {
   })
 
   it("selects the first actionable payment webhook event", async () => {
-    const client = createClient()
-    client.handleWebhook = jest.fn().mockResolvedValue([
+    const client = createMockPaykitClient()
+    client.handleWebhook = vi.fn().mockResolvedValue([
       {
         type: "invoice.generated",
         data: {

@@ -21,7 +21,7 @@ if (isModuleIntegration) {
 }
 
 export default defineConfig({
-  root: import.meta.dirname,
+  root: process.cwd(),
   test: {
     environment: "node",
     exclude: [

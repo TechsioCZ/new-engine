@@ -5,6 +5,11 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
+import {
+  isPaykitProviderEnabled,
+  PAYKIT_GOPAY_PROVIDER_ID,
+  parseBooleanEnv,
+} from "./src/modules/payment-paykit/config"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -14,42 +19,25 @@ const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
-const isPaykitProviderEnabled = (provider: string) => {
-    const providerFlag = process.env[`FEATURE_PAYKIT_${provider}_ENABLED`]
-
-    if (providerFlag === "1") {
-        return true
-    }
-
-    if (providerFlag === "0") {
-        return false
-    }
-
-    return process.env.FEATURE_PAYKIT_ENABLED === "1"
-}
 const FEATURE_PAYKIT_GOPAY_ENABLED = isPaykitProviderEnabled("GOPAY")
-const MEDUSA_ADMIN_ALLOWED_HOSTS =
-    process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
 const PAYKIT_PAYMENT_PROVIDERS = [
-    ...(FEATURE_PAYKIT_GOPAY_ENABLED
-        ? [
-            {
-                resolve: "./src/modules/payment-paykit/gopay",
-                id: "gopay",
-                options: {
-                    clientId: process.env.GOPAY_CLIENT_ID,
-                    clientSecret: process.env.GOPAY_CLIENT_SECRET,
-                    goId: process.env.GOPAY_GO_ID,
-                    sandbox:
-                        (process.env.GOPAY_SANDBOX ?? "1").toLowerCase() !== "false" &&
-                        process.env.GOPAY_SANDBOX !== "0",
-                    webhookUrl: process.env.GOPAY_WEBHOOK_URL,
-                    webhookSecret: process.env.GOPAY_WEBHOOK_SECRET,
-                    debug: process.env.PAYKIT_DEBUG === "1",
-                },
-            },
-        ]
-        : []),
+  ...(FEATURE_PAYKIT_GOPAY_ENABLED
+    ? [
+        {
+          resolve: "./src/modules/payment-paykit/gopay",
+          id: PAYKIT_GOPAY_PROVIDER_ID,
+          options: {
+            clientId: process.env.GOPAY_CLIENT_ID,
+            clientSecret: process.env.GOPAY_CLIENT_SECRET,
+            goId: process.env.GOPAY_GO_ID,
+            sandbox: parseBooleanEnv(process.env.GOPAY_SANDBOX, true),
+            webhookUrl: process.env.GOPAY_WEBHOOK_URL,
+            webhookSecret: process.env.GOPAY_WEBHOOK_SECRET,
+            debug: process.env.PAYKIT_DEBUG === "1",
+          },
+        },
+      ]
+    : []),
 ]
 const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
 const RESEND_API_KEY = process.env.RESEND_API_KEY

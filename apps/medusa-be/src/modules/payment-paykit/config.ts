@@ -1,6 +1,8 @@
 export const PAYKIT_PAYMENT_PROVIDER_IDENTIFIER = "paykit"
 export const PAYKIT_GOPAY_PROVIDER_ID = "gopay"
 export const PAYKIT_GOPAY_MEDUSA_PROVIDER_ID = "pp_paykit_gopay"
+export const PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID = "paykit_gopay"
+export const PAYKIT_GOPAY_WEBHOOK_PATH = "/hooks/payment/paykit_gopay"
 
 export const isPaykitProviderEnabled = (provider: string): boolean => {
   const providerFlag = process.env[`FEATURE_PAYKIT_${provider}_ENABLED`]
@@ -25,4 +27,18 @@ export const parseBooleanEnv = (
   }
 
   return value === "1" || value.toLowerCase() === "true"
+}
+
+export const requirePaykitOptions = (
+  label: string,
+  options: Record<string, unknown>,
+  keys: string[]
+): void => {
+  const missing = keys.filter((key) => !options[key])
+
+  if (missing.length) {
+    throw new Error(
+      `${label} missing required option(s): ${missing.join(", ")}`
+    )
+  }
 }
