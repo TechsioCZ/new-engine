@@ -13,6 +13,11 @@ type PaykitWebhookMappingOptions = {
   ) => BigNumberValue | undefined
 }
 
+const MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS = new Set<PaymentActions>([
+  PaymentActions.AUTHORIZED,
+  PaymentActions.SUCCESSFUL,
+])
+
 export const mapPaykitStatusToMedusa = (
   status: unknown
 ): PaymentSessionStatus => {
@@ -173,6 +178,8 @@ export const mapPaykitWebhookEvent = (
     ? options.normalizeAmount(rawAmount, payment, event)
     : rawAmount
   const action = mapPaykitWebhookAction(event, payment)
+  const canProcessInMedusa =
+    MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS.has(action) && sessionId
 
   if (
     event.type === "invoice.generated" &&
@@ -181,7 +188,7 @@ export const mapPaykitWebhookEvent = (
     return { action: PaymentActions.NOT_SUPPORTED }
   }
 
-  if (!sessionId || amount === undefined) {
+  if (!canProcessInMedusa || amount === undefined) {
     return { action }
   }
 

@@ -229,4 +229,32 @@ describe("PaykitPaymentProviderBase", () => {
       },
     })
   })
+
+  it("does not return webhook data for pending payment events", async () => {
+    const client = createMockPaykitClient()
+    client.handleWebhook = vi.fn().mockResolvedValue([
+      {
+        type: "payment.created",
+        data: {
+          id: "provider-payment-1",
+          amount: 1000,
+          status: "pending",
+          metadata: {
+            session_id: "payses_123",
+          },
+        },
+      },
+    ])
+    const provider = createProvider(client)
+
+    await expect(
+      provider.getWebhookActionAndData({
+        data: {},
+        rawData: "",
+        headers: {},
+      })
+    ).resolves.toEqual({
+      action: PaymentActions.PENDING,
+    })
+  })
 })

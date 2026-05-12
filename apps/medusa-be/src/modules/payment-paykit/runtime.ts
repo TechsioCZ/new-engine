@@ -175,7 +175,7 @@ const getWebhookFullUrl = (
     | { fullUrl?: unknown; full_url?: unknown; url?: unknown }
     | undefined
 
-  for (const value of [data?.fullUrl, data?.full_url, data?.url]) {
+  for (const value of [data?.fullUrl, data?.full_url]) {
     if (typeof value === "string" && value.length > 0) {
       return value
     }
@@ -183,6 +183,13 @@ const getWebhookFullUrl = (
 
   const host = payload.headers?.host
   const path = data?.url
+
+  if (
+    typeof path === "string" &&
+    (path.startsWith("http://") || path.startsWith("https://"))
+  ) {
+    return path
+  }
 
   if (typeof host === "string" && typeof path === "string") {
     return `https://${host}${path}`
