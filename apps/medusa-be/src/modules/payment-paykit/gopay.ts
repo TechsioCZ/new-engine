@@ -76,15 +76,13 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
       return amount
     }
 
+    const currencyCode = payment.currency ?? payment.currency_code ?? undefined
     const normalized = super.normalizeAmount(
       amount as InitiatePaymentInput["amount"],
-      payment.currency ?? payment.currency_code
+      currencyCode
     )
 
-    return fromSmallestCurrencyUnit(
-      normalized,
-      payment.currency ?? payment.currency_code
-    )
+    return fromSmallestCurrencyUnit(normalized, currencyCode)
   }
 }
 

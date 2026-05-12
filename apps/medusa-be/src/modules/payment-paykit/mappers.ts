@@ -46,7 +46,8 @@ export const getPaymentUrl = (payment: PaykitPayment): string | undefined =>
   payment.paymentUrl ??
   payment.checkout_url ??
   payment.gw_url ??
-  payment.url
+  payment.url ??
+  undefined
 
 export const toPaykitPaymentData = (
   payment: PaykitPayment

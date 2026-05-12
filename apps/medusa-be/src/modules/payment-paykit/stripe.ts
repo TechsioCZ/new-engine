@@ -93,15 +93,13 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       return amount
     }
 
+    const currencyCode = payment.currency ?? payment.currency_code ?? undefined
     const normalized = super.normalizeAmount(
       amount as InitiatePaymentInput["amount"],
-      payment.currency ?? payment.currency_code
+      currencyCode
     )
 
-    return fromStripeSmallestCurrencyUnit(
-      normalized,
-      payment.currency ?? payment.currency_code
-    )
+    return fromStripeSmallestCurrencyUnit(normalized, currencyCode)
   }
 
   override async getWebhookActionAndData(

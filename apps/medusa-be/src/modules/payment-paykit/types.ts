@@ -23,16 +23,19 @@ export type PaykitPayment = Record<string, unknown> & {
   id?: string
   amount?: BigNumberInput
   amount_paid?: BigNumberInput
-  currency?: string
-  currency_code?: string
+  currency?: string | null
+  currency_code?: string | null
+  customer?: string | { email?: string } | null
+  item_id?: string | null
   status?: PaykitPaymentStatus
   state?: PaykitPaymentStatus
-  payment_url?: string
-  paymentUrl?: string
-  checkout_url?: string
-  gw_url?: string
-  url?: string
-  metadata?: Record<string, unknown>
+  requires_action?: boolean
+  payment_url?: string | null
+  paymentUrl?: string | null
+  checkout_url?: string | null
+  gw_url?: string | null
+  url?: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 export type PaykitCustomerInput = string | { email: string }
@@ -113,8 +116,11 @@ export type PaykitComgateOptions = PaykitProviderOptions & {
 
 export type PaykitWebhookEvent = {
   type?: string
-  data?: PaykitPayment | { object?: PaykitPayment; payment?: PaykitPayment }
-  payment?: PaykitPayment
-  metadata?: Record<string, unknown>
+  data?:
+    | PaykitPayment
+    | { object?: PaykitPayment | null; payment?: PaykitPayment | null }
+    | null
+  payment?: PaykitPayment | null
+  metadata?: Record<string, unknown> | null
   amount?: BigNumberInput
 }
