@@ -333,6 +333,64 @@ describe("applyOrderCommercialValues", () => {
     expect(mockBeginRun).not.toHaveBeenCalled()
   })
 
+  it("reuses an existing pending native order edit for discounts", async () => {
+    query.graph.mockImplementation(async ({ entity }: { entity: string }) => {
+      if (entity === "order_change") {
+        return {
+          data: [
+            {
+              change_type: "edit",
+              id: "oc_existing",
+              status: "pending",
+              version: 3,
+            },
+          ],
+        }
+      }
+
+      return { data: [{ id: "order_1", version: 1 }] }
+    })
+
+    const response = await applyOrderCommercialValues({
+      calculation_input: {
+        ...calculationInput,
+        items: [
+          {
+            ...calculationInput.items[0],
+            discount: { amount: 100, type: "amount" as const },
+          },
+        ],
+      },
+      container,
+      order,
+      request: {
+        expected_order_version: 1,
+        items: [
+          {
+            discount: { amount: 100, type: "amount" },
+            item_id: "item_1",
+            unit_price: 1000,
+          },
+        ],
+      },
+    })
+
+    expect(mockBeginRun).not.toHaveBeenCalled()
+    expect(mockCreateActionsRun).toHaveBeenCalled()
+    expect(mockCreateActionsRun.mock.calls[0][0].input[0]).toMatchObject({
+      order_change_id: "oc_existing",
+      version: 3,
+    })
+    expect(mockConfirmRun).toHaveBeenCalledWith({
+      input: {
+        confirmed_by: undefined,
+        order_id: "order_1",
+      },
+    })
+    expect(mockCancelRun).not.toHaveBeenCalled()
+    expect(response.order_change_id).toBe("oc_existing")
+  })
+
   it("cancels the started edit when a later step fails", async () => {
     mockCreateActionsRun.mockRejectedValueOnce(new Error("action failed"))
 

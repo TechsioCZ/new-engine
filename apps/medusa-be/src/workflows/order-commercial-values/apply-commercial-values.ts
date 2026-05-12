@@ -57,12 +57,15 @@ export type ApplyCommercialValuesOrder = {
 }
 
 type ActiveOrderChange = {
+  change_type?: string | null
   id: string
   version: number
 }
 
 type ActiveOrderChangeRecord = {
+  change_type?: string | null
   id: string
+  status?: string | null
   version?: number | string | null
 }
 
@@ -86,6 +89,7 @@ type CommercialValuesOrderEditDependency = {
 }
 
 type CommercialValuesOrderEditReadiness = {
+  active_order_change?: ActiveOrderChange
   order_id: string
 }
 
@@ -135,9 +139,19 @@ function toActiveOrderChange(
   }
 
   return {
+    change_type: orderChange.change_type ?? undefined,
     id: orderChange.id,
     version: toInteger(orderChange.version),
   }
+}
+
+function isReusableCommercialValuesOrderEdit(
+  activeOrderChange: ActiveOrderChangeRecord | null | undefined
+) {
+  return (
+    activeOrderChange?.change_type === "edit" &&
+    activeOrderChange.status === OrderChangeStatus.PENDING
+  )
 }
 
 function getCommercialValuesLockKey(orderId: string) {
@@ -349,7 +363,7 @@ function buildReplacementActions({
 async function fetchActiveOrderChange(query: Query, orderId: string) {
   const { data } = await query.graph({
     entity: "order_change",
-    fields: ["id", "version"],
+    fields: ["id", "version", "change_type", "status"],
     filters: {
       order_id: orderId,
       status: [OrderChangeStatus.PENDING, OrderChangeStatus.REQUESTED],
@@ -357,9 +371,7 @@ async function fetchActiveOrderChange(query: Query, orderId: string) {
     pagination: { take: 1 },
   })
 
-  const activeOrderChange = (data as ActiveOrderChangeRecord[])[0]
-
-  return activeOrderChange ? toActiveOrderChange(activeOrderChange) : undefined
+  return (data as ActiveOrderChangeRecord[])[0]
 }
 
 async function fetchOrderVersion(query: Query, orderId: string) {
@@ -390,7 +402,10 @@ async function assertOrderCanBeginCommercialEdit(
 ) {
   const activeOrderChange = await fetchActiveOrderChange(query, orderId)
 
-  if (activeOrderChange) {
+  if (
+    activeOrderChange &&
+    !isReusableCommercialValuesOrderEdit(activeOrderChange)
+  ) {
     throw new MedusaError(
       MedusaError.Types.CONFLICT,
       `Order already has active order change ${activeOrderChange.id}`
@@ -404,6 +419,8 @@ async function assertOrderCanBeginCommercialEdit(
       `Expected order version ${expectedOrderVersion}, got ${orderVersion}`
     )
   }
+
+  return activeOrderChange ? toActiveOrderChange(activeOrderChange) : undefined
 }
 
 async function cancelStartedEdit(
@@ -440,13 +457,14 @@ const assertCommercialValuesOrderEditCanBeginStep = createStep(
   ) => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-    await assertOrderCanBeginCommercialEdit(
+    const activeOrderChange = await assertOrderCanBeginCommercialEdit(
       query,
       input.order_id,
       input.expected_order_version
     )
 
     return new StepResponse({
+      active_order_change: activeOrderChange,
       order_id: input.order_id,
     })
   }
@@ -462,6 +480,13 @@ const beginCommercialValuesOrderEditStep = createStep(
     },
     { container }
   ) => {
+    if (input.readiness.active_order_change) {
+      return new StepResponse(input.readiness.active_order_change, {
+        order_id: input.readiness.order_id,
+        started_order_edit: false,
+      })
+    }
+
     const { result: orderChange } = await beginOrderEditOrderWorkflow(
       container
     ).run({
@@ -475,10 +500,11 @@ const beginCommercialValuesOrderEditStep = createStep(
 
     return new StepResponse(activeOrderChange, {
       order_id: input.readiness.order_id,
+      started_order_edit: true,
     })
   },
   async (input, { container }) => {
-    if (!input) {
+    if (!input?.started_order_edit) {
       return
     }
 

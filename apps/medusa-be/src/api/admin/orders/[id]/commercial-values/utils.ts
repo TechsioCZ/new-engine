@@ -1,5 +1,10 @@
+import type { MedusaContainer } from "@medusajs/framework"
 import type { Query } from "@medusajs/framework/types"
-import { MedusaError, OrderChangeStatus } from "@medusajs/framework/utils"
+import {
+  MedusaError,
+  Modules,
+  OrderChangeStatus,
+} from "@medusajs/framework/utils"
 import type {
   CommercialAdjustmentInput,
   CommercialValuesCalculationInput,
@@ -73,6 +78,7 @@ export type CommercialValuesOrder = {
 }
 
 export type ActiveOrderChange = {
+  change_type?: string | null
   id: string
   status: "pending" | "requested"
   version: number
@@ -125,7 +131,7 @@ const ORDER_FIELDS = [
   "items.adjustments.provider_id",
 ]
 
-const ACTIVE_ORDER_CHANGE_FIELDS = ["id", "status", "version"]
+const ACTIVE_ORDER_CHANGE_FIELDS = ["id", "status", "version", "change_type"]
 
 const NON_EDITABLE_STATUSES = new Set(["canceled", "archived", "draft"])
 
@@ -255,6 +261,15 @@ function requireCurrencyCode(order: CommercialValuesOrder) {
   }
 
   return order.currency_code
+}
+
+export function isReusableCommercialValuesOrderEdit(
+  activeOrderChange?: ActiveOrderChange
+) {
+  return (
+    activeOrderChange?.change_type === "edit" &&
+    activeOrderChange.status === OrderChangeStatus.PENDING
+  )
 }
 
 function mapAdjustment(
@@ -437,6 +452,7 @@ export async function fetchActiveOrderChange(query: Query, orderId: string) {
 
   return {
     ...activeOrderChange,
+    change_type: activeOrderChange.change_type ?? undefined,
     version: toSafeInteger(
       activeOrderChange.version ?? 0,
       "order change version"
@@ -457,7 +473,10 @@ export function getCommercialValuesEditBlockers(
     })
   }
 
-  if (activeOrderChange) {
+  if (
+    activeOrderChange &&
+    !isReusableCommercialValuesOrderEdit(activeOrderChange)
+  ) {
     blockers.push({
       code: "active_order_change_exists",
       order_change_id: activeOrderChange.id,
@@ -490,7 +509,10 @@ export function assertCommercialValuesEditable(
     )
   }
 
-  if (activeOrderChange) {
+  if (
+    activeOrderChange &&
+    !isReusableCommercialValuesOrderEdit(activeOrderChange)
+  ) {
     throw new MedusaError(
       MedusaError.Types.CONFLICT,
       `Order already has active order change ${activeOrderChange.id}`
@@ -520,7 +542,27 @@ export function requireCommercialValuesOrderId(orderId: string | undefined) {
   return orderId
 }
 
+async function fetchOrderChangePreview(
+  container: MedusaContainer,
+  orderId: string
+) {
+  const orderModuleService = container.resolve(Modules.ORDER) as {
+    previewOrderChange: (orderId: string) => Promise<unknown>
+  }
+  const order = await orderModuleService.previewOrderChange(orderId)
+
+  if (!isCommercialValuesOrder(order)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Order preview returned invalid order data"
+    )
+  }
+
+  return order
+}
+
 export async function fetchEditableCommercialValuesOrder(
+  container: MedusaContainer,
   query: Query,
   orderId: string,
   expectedOrderVersion: number
@@ -534,7 +576,29 @@ export async function fetchEditableCommercialValuesOrder(
   assertCommercialValuesEditable(order, activeOrderChange)
   assertExpectedOrderVersion(order, expectedOrderVersion)
 
-  return order
+  return isReusableCommercialValuesOrderEdit(activeOrderChange)
+    ? fetchOrderChangePreview(container, orderId)
+    : order
+}
+
+export async function fetchCommercialValuesSnapshotOrder(
+  container: MedusaContainer,
+  query: Query,
+  orderId: string
+) {
+  const order = await fetchCommercialValuesOrder(query, orderId)
+
+  assertCommercialValuesOrderFound(order, orderId)
+
+  const activeOrderChange = await fetchActiveOrderChange(query, orderId)
+  const snapshotOrder = isReusableCommercialValuesOrderEdit(activeOrderChange)
+    ? await fetchOrderChangePreview(container, orderId)
+    : order
+
+  return {
+    activeOrderChange,
+    order: snapshotOrder,
+  }
 }
 
 export function toCommercialValuesSnapshot(

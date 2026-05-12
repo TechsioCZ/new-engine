@@ -170,12 +170,14 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
   }
 
   protected getRequestTimeoutMs() {
+    const configuredTimeoutMs = this.options.request_timeout_ms
     const envTimeoutMs = Number(process.env.RESEND_REQUEST_TIMEOUT_MS)
     if (
-      Number.isFinite(this.options.request_timeout_ms) &&
-      this.options.request_timeout_ms > 0
+      typeof configuredTimeoutMs === "number" &&
+      Number.isFinite(configuredTimeoutMs) &&
+      configuredTimeoutMs > 0
     ) {
-      return this.options.request_timeout_ms
+      return configuredTimeoutMs
     }
     if (Number.isFinite(envTimeoutMs) && envTimeoutMs > 0) {
       return envTimeoutMs

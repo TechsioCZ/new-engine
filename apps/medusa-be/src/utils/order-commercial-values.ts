@@ -91,6 +91,7 @@ export type CommercialValuesEditBlocker =
 
 export type CommercialValuesSnapshot = {
   active_order_change?: {
+    change_type?: string | null
     id: string
     status: "pending" | "requested"
     version: number

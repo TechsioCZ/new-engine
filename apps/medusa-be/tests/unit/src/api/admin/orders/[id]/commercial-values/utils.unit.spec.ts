@@ -128,6 +128,18 @@ describe("commercial values route utils", () => {
     ])
   })
 
+  it("allows commercial values while a pending native order edit is active", () => {
+    const snapshot = toCommercialValuesSnapshot(createMockOrder(), {
+      change_type: "edit",
+      id: "oc_1",
+      status: "pending",
+      version: 1,
+    })
+
+    expect(snapshot.editable).toBe(true)
+    expect(snapshot.edit_blockers).toEqual([])
+  })
+
   it("derives unit price from line subtotal when Medusa omits item unit price", () => {
     const snapshot = toCommercialValuesSnapshot(
       createMockOrder({
@@ -293,10 +305,20 @@ describe("commercial values route utils", () => {
 
     expect(() =>
       assertCommercialValuesEditable(createMockOrder(), {
+        change_type: "edit",
         id: "oc_1",
-        status: "pending",
+        status: "requested",
         version: 1,
       })
     ).toThrow("Order already has active order change oc_1")
+
+    expect(() =>
+      assertCommercialValuesEditable(createMockOrder(), {
+        change_type: "edit",
+        id: "oc_2",
+        status: "pending",
+        version: 1,
+      })
+    ).not.toThrow()
   })
 })
