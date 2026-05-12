@@ -264,6 +264,27 @@ function getAdjustmentReference(
     : { shipping_method_id: target.id }
 }
 
+function toMedusaShippingAdjustmentAmount(
+  previewShippingMethod: CommercialValuesPreviewShippingMethod,
+  displayAmount: number
+) {
+  const shippingTotal =
+    previewShippingMethod.current_subtotal +
+    previewShippingMethod.current_tax_total
+
+  if (
+    previewShippingMethod.current_tax_total <= 0 ||
+    previewShippingMethod.current_subtotal <= 0 ||
+    shippingTotal <= 0
+  ) {
+    return displayAmount
+  }
+
+  return (
+    (displayAmount * previewShippingMethod.current_subtotal) / shippingTotal
+  )
+}
+
 function buildManualDiscountAdjustments({
   item,
   itemDiscountRequested,
@@ -330,10 +351,12 @@ function buildManualShippingDiscountAdjustments({
     )
   } else if (previewShippingMethod.manual_shipping_discount_amount > 0) {
     manualAdjustments.push({
-      amount: previewShippingMethod.manual_shipping_discount_amount,
+      amount: toMedusaShippingAdjustmentAmount(
+        previewShippingMethod,
+        previewShippingMethod.manual_shipping_discount_amount
+      ),
       code: MANUAL_SHIPPING_DISCOUNT_CODE,
       description: "Manual shipping discount",
-      is_tax_inclusive: previewShippingMethod.is_tax_inclusive || undefined,
       shipping_method_id: shippingMethod.id,
     })
   }
@@ -347,10 +370,12 @@ function buildManualShippingDiscountAdjustments({
     )
   } else if (previewShippingMethod.manual_order_discount_amount > 0) {
     manualAdjustments.push({
-      amount: previewShippingMethod.manual_order_discount_amount,
+      amount: toMedusaShippingAdjustmentAmount(
+        previewShippingMethod,
+        previewShippingMethod.manual_order_discount_amount
+      ),
       code: MANUAL_ORDER_DISCOUNT_CODE,
       description: "Allocated manual order discount",
-      is_tax_inclusive: previewShippingMethod.is_tax_inclusive || undefined,
       shipping_method_id: shippingMethod.id,
     })
   }

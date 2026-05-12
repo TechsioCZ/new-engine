@@ -24,6 +24,7 @@ export type CommercialAdjustmentInput = {
   amount: number
   code?: string | null
   description?: string | null
+  is_preserved_manual_discount?: boolean | null
   is_tax_inclusive?: boolean | null
   item_id?: string | null
   promotion_id?: string | null
@@ -46,6 +47,7 @@ export type CommercialValuesItemInput = {
 
 export type CommercialValuesCalculationInput = {
   currency_code: string
+  current_total?: number | null
   expected_order_version: number
   items: CommercialValuesItemInput[]
   order_discount?: CommercialDiscountIntent | null
@@ -346,7 +348,9 @@ function getCurrentAdjustmentAmount(
       "adjustment amount"
     )
 
-    return total + adjustment.amount
+    return adjustment.is_preserved_manual_discount
+      ? total
+      : total + adjustment.amount
   }, 0)
 }
 
@@ -665,6 +669,13 @@ export function calculateCommercialValuesPreview(
     "original_total_invalid",
     "original total"
   )
+  if (input.current_total !== null && input.current_total !== undefined) {
+    assertFiniteAmount(
+      input.current_total,
+      "current_total_invalid",
+      "current total"
+    )
+  }
 
   if (!input.items.length) {
     throw new CommercialValuesValidationError(
@@ -785,7 +796,7 @@ export function calculateCommercialValuesPreview(
 
   return {
     currency_code: input.currency_code,
-    delta: newTotal - input.original_total,
+    delta: newTotal - (input.current_total ?? input.original_total),
     expected_order_version: input.expected_order_version,
     item_subtotal_after_item_discounts: itemSubtotalAfterItemDiscounts,
     items,

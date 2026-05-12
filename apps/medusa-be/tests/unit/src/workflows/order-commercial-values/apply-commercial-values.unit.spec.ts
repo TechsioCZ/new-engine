@@ -281,6 +281,64 @@ describe("applyOrderCommercialValues", () => {
     ])
   })
 
+  it("converts displayed taxable shipping discounts to Medusa adjustment amounts", async () => {
+    await applyOrderCommercialValues({
+      calculation_input: {
+        ...calculationInput,
+        original_total: 18.49,
+        shipping_methods: [
+          {
+            current_subtotal: 8.130_081_300_813_009,
+            current_tax_total: 1.869_918_699_186_991_8,
+            discount: { amount: 9, type: "amount" as const },
+            existing_adjustments: [],
+            shipping_method_id: "ship_1",
+          },
+        ],
+      },
+      container,
+      order: {
+        ...order,
+        shipping_methods: [
+          {
+            adjustments: [],
+            id: "ship_1",
+          },
+        ],
+      },
+      request: {
+        expected_order_version: 1,
+        items: [
+          {
+            item_id: "item_1",
+            unit_price: 1000,
+          },
+        ],
+        shipping_methods: [
+          {
+            discount: { amount: 9, type: "amount" },
+            shipping_method_id: "ship_1",
+          },
+        ],
+      },
+    })
+
+    const actionInput = mockCreateActionsRun.mock.calls[0][0].input[0]
+
+    expect(actionInput.details.manual_discounts.shipping_discount_amount).toBe(
+      9
+    )
+    expect(actionInput.details.adjustments[0]).toMatchObject({
+      code: "manual_shipping_discount",
+      description: "Manual shipping discount",
+      shipping_method_id: "ship_1",
+    })
+    expect(actionInput.details.adjustments[0].amount).toBeCloseTo(
+      7.317_073_170_731_708
+    )
+    expect(actionInput.details.adjustments[0].is_tax_inclusive).toBeUndefined()
+  })
+
   it("does not replace adjustments for omitted items", async () => {
     const partialOrder = {
       id: "order_1",

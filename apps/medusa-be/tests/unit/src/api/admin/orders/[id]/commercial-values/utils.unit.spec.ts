@@ -396,17 +396,17 @@ describe("commercial values route utils", () => {
 
     expect(preview.shipping_discount_total).toBe(25)
     expect(preview.shipping_methods[0].final_total).toBeCloseTo(
-      70.833_333_333_333_33
+      69.166_666_666_666_67
     )
     expect(preview.shipping_methods[0]).toMatchObject({
-      final_total_with_tax: 85,
+      final_total_with_tax: 83,
       manual_shipping_discount_amount: 25,
       shipping_method_id: "ship_1",
     })
     expect(preview.shipping_methods[0].tax_total).toBeCloseTo(
-      14.166_666_666_666_671
+      13.833_333_333_333_329
     )
-    expect(preview.new_total).toBe(1085)
+    expect(preview.new_total).toBe(1083)
   })
 
   it("does not add tax twice for tax-inclusive unchanged items", () => {
@@ -508,6 +508,61 @@ describe("commercial values route utils", () => {
     expect(itemPreview.new_total).toBeCloseTo(10)
     expect(shippingPreview.shipping_methods[0].final_total_with_tax).toBe(0)
     expect(shippingPreview.new_total).toBeCloseTo(8.49)
+  })
+
+  it("maps persisted taxable shipping adjustments back to displayed amounts", () => {
+    const nativeShippingDiscount = 9 * (8.130_081_300_813_009 / 10)
+    const order = createMockOrder({
+      currency_code: "eur",
+      items: [
+        {
+          adjustments: [
+            {
+              amount: 8.49,
+              code: "manual_item_discount",
+              item_id: "item_1",
+            },
+          ],
+          id: "item_1",
+          is_discountable: true,
+          is_tax_inclusive: true,
+          quantity: 1,
+          subtotal: 6.902_439_024_390_244,
+          tax_total: 1.587_560_975_609_756_2,
+          total: 8.49,
+          unit_price: 8.49,
+        },
+      ],
+      shipping_methods: [
+        {
+          adjustments: [
+            {
+              amount: nativeShippingDiscount,
+              code: "manual_shipping_discount",
+              shipping_method_id: "ship_1",
+            },
+          ],
+          id: "ship_1",
+          name: "Express",
+          subtotal: 8.130_081_300_813_009,
+          tax_total: 1.869_918_699_186_991_8,
+        },
+      ],
+      total: 1,
+    })
+    const snapshot = toCommercialValuesSnapshot(order)
+    const calculationInput = toCommercialValuesCalculationInput(order, {
+      expected_order_version: 1,
+      items: [{ item_id: "item_1", unit_price: 8.49 }],
+    })
+    const preview = calculateCommercialValuesPreview(calculationInput)
+
+    expect(snapshot.totals.current_total).toBe(1)
+    expect(snapshot.totals.original_total).toBeCloseTo(18.49)
+    expect(
+      snapshot.shipping_methods[0].existing_adjustments[0].amount
+    ).toBeCloseTo(9)
+    expect(preview.new_total).toBeCloseTo(1)
   })
 
   it("allocates order discounts across items and shipping methods", () => {

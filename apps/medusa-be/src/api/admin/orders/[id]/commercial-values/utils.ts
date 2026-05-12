@@ -14,6 +14,7 @@ import type {
   CommercialValuesSnapshot,
 } from "../../../../../utils/order-commercial-values"
 import {
+  isManualDiscountAdjustment,
   MANUAL_ITEM_DISCOUNT_CODE,
   MANUAL_ORDER_DISCOUNT_CODE,
   MANUAL_SHIPPING_DISCOUNT_CODE,
@@ -346,11 +347,47 @@ function mapAdjustment(
     amount: toFiniteAmount(adjustment.amount, "adjustment amount"),
     code: adjustment.code ?? undefined,
     description: adjustment.description ?? undefined,
+    is_preserved_manual_discount:
+      adjustment.is_preserved_manual_discount ?? undefined,
     is_tax_inclusive: adjustment.is_tax_inclusive ?? undefined,
     item_id: adjustment.item_id ?? undefined,
     promotion_id: adjustment.promotion_id ?? undefined,
     provider_id: adjustment.provider_id ?? undefined,
     shipping_method_id: adjustment.shipping_method_id ?? undefined,
+  }
+}
+
+function toDisplayShippingAdjustmentAmount(
+  amount: number,
+  shippingMethod: CommercialValuesOrderShippingMethod
+) {
+  const taxTotal =
+    shippingMethod.tax_total === null || shippingMethod.tax_total === undefined
+      ? shippingMethod.raw_tax_total
+      : shippingMethod.tax_total
+  const shippingSubtotal = getShippingMethodSubtotal(shippingMethod)
+  const shippingTaxTotal =
+    taxTotal === null || taxTotal === undefined
+      ? 0
+      : toFiniteAmount(taxTotal, "shipping tax total")
+  const shippingTotal = shippingSubtotal + shippingTaxTotal
+
+  if (shippingTaxTotal <= 0 || shippingSubtotal <= 0 || shippingTotal <= 0) {
+    return amount
+  }
+
+  return (amount * shippingTotal) / shippingSubtotal
+}
+
+function mapShippingAdjustment(
+  adjustment: CommercialAdjustmentInput,
+  shippingMethod: CommercialValuesOrderShippingMethod
+): CommercialAdjustmentInput {
+  const mapped = mapAdjustment(adjustment)
+
+  return {
+    ...mapped,
+    amount: toDisplayShippingAdjustmentAmount(mapped.amount, shippingMethod),
   }
 }
 
@@ -469,10 +506,44 @@ function mapShippingMethod(
       taxTotal === null || taxTotal === undefined
         ? undefined
         : toFiniteAmount(taxTotal, "shipping tax total"),
-    existing_adjustments: (shippingMethod.adjustments ?? []).map(mapAdjustment),
+    existing_adjustments: (shippingMethod.adjustments ?? []).map((adjustment) =>
+      mapShippingAdjustment(adjustment, shippingMethod)
+    ),
     name: shippingMethod.name ?? undefined,
     shipping_method_id: shippingMethod.id,
   }
+}
+
+function getManualAdjustmentTotal(
+  adjustments: CommercialAdjustmentInput[] | null | undefined
+) {
+  return (adjustments ?? []).reduce(
+    (total, adjustment) =>
+      isManualDiscountAdjustment(adjustment)
+        ? total + adjustment.amount
+        : total,
+    0
+  )
+}
+
+function getManualDiscountBaselineTotal(order: CommercialValuesOrder) {
+  const currentTotal = toFiniteAmount(order.total, "order total")
+  const manualItemDiscountTotal = (order.items ?? []).reduce(
+    (total, item) =>
+      total +
+      getManualAdjustmentTotal((item.adjustments ?? []).map(mapAdjustment)),
+    0
+  )
+  const manualShippingDiscountTotal = (order.shipping_methods ?? []).reduce(
+    (total, shippingMethod) => {
+      const mapped = mapShippingMethod(shippingMethod)
+
+      return total + getManualAdjustmentTotal(mapped.existing_adjustments)
+    },
+    0
+  )
+
+  return currentTotal + manualItemDiscountTotal + manualShippingDiscountTotal
 }
 
 function hasRequestedItemDiscount(
@@ -505,21 +576,33 @@ function toCalculationAdjustment(
     adjustment.code === MANUAL_ITEM_DISCOUNT_CODE &&
     !options.itemDiscountRequested
   ) {
-    return { ...adjustment, code: undefined }
+    return {
+      ...adjustment,
+      code: undefined,
+      is_preserved_manual_discount: true,
+    }
   }
 
   if (
     adjustment.code === MANUAL_ORDER_DISCOUNT_CODE &&
     !options.orderDiscountRequested
   ) {
-    return { ...adjustment, code: undefined }
+    return {
+      ...adjustment,
+      code: undefined,
+      is_preserved_manual_discount: true,
+    }
   }
 
   if (
     adjustment.code === MANUAL_SHIPPING_DISCOUNT_CODE &&
     !options.shippingDiscountRequested
   ) {
-    return { ...adjustment, code: undefined }
+    return {
+      ...adjustment,
+      code: undefined,
+      is_preserved_manual_discount: true,
+    }
   }
 
   return adjustment
@@ -863,7 +946,7 @@ export function toCommercialValuesSnapshot(
     }),
     totals: {
       current_total: toFiniteAmount(order.total, "order total"),
-      original_total: toFiniteAmount(order.total, "order total"),
+      original_total: getManualDiscountBaselineTotal(order),
     },
   }
 }
@@ -962,11 +1045,12 @@ export function toCommercialValuesCalculationInput(
 
   return {
     currency_code: currencyCode,
+    current_total: toFiniteAmount(order.total, "order total"),
     expected_order_version: body.expected_order_version,
     items,
     order_discount: body.order_discount ?? undefined,
     order_id: order.id,
-    original_total: toFiniteAmount(order.total, "order total"),
+    original_total: getManualDiscountBaselineTotal(order),
     shipping_methods: shippingMethods,
   }
 }
