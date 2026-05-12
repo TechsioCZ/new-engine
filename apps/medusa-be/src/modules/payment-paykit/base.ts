@@ -396,7 +396,14 @@ export abstract class PaykitPaymentProviderBase<
         metadata: null,
       })
 
-      return { data: toPaykitPaymentData(refund) }
+      return {
+        data: {
+          ...input.data,
+          id,
+          refund: toPaykitPaymentData(refund),
+          refund_id: refund.id,
+        },
+      }
     }
 
     if (!client.payments.refund) {
@@ -413,6 +420,10 @@ export abstract class PaykitPaymentProviderBase<
 
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
     const client = await this.getClient()
+    if (!input.data?.id) {
+      return { data: input.data }
+    }
+
     const id = this.getProviderPaymentId(input.data)
 
     if (!client.payments.cancel) {

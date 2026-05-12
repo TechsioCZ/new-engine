@@ -98,10 +98,12 @@ describe("PaykitPaymentProviderBase", () => {
     const client = createMockPaykitClient()
     const provider = createProvider(client)
 
-    await provider.refundPayment({
+    const result = await provider.refundPayment({
       amount: 250,
       data: {
         id: "provider-payment-1",
+        amount: 1000,
+        currency: "czk",
       },
       context: {
         idempotency_key: "refund_123",
@@ -114,6 +116,35 @@ describe("PaykitPaymentProviderBase", () => {
       reason: null,
       metadata: null,
     })
+    expect(result.data).toEqual({
+      id: "provider-payment-1",
+      amount: 1000,
+      currency: "czk",
+      refund: {
+        id: "refund-1",
+        payment_id: "provider-payment-1",
+        amount: 250,
+      },
+      refund_id: "refund-1",
+    })
+  })
+
+  it("does not fail Medusa rollback deletes when provider id was not persisted yet", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await expect(
+      provider.deletePayment({
+        data: {
+          session_id: "payses_123",
+        },
+      })
+    ).resolves.toEqual({
+      data: {
+        session_id: "payses_123",
+      },
+    })
+    expect(client.payments.cancel).not.toHaveBeenCalled()
   })
 
   it("throws clearly when PayKit retrieve returns null", async () => {
