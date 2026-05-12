@@ -4,20 +4,21 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { BlogDetailPage } from "@/components/blog/blog-detail-page";
 import {
-  buildCategoryListParams,
-  STOREFRONT_CATEGORY_TREE_FIELDS,
-  STOREFRONT_CATEGORY_TREE_LIMIT,
-} from "@/lib/storefront/category-query-config";
-import {
   resolveBlogPostBySlug,
   resolveBlogRecommendedProductsConfig,
   resolveRelatedBlogPosts,
 } from "@/lib/storefront/blog-content";
-import { selectRecommendedProductRepresentatives } from "@/lib/storefront/recommended-product-families";
+import {
+  buildCategoryListParams,
+  STOREFRONT_CATEGORY_TREE_FIELDS,
+  STOREFRONT_CATEGORY_TREE_LIMIT,
+} from "@/lib/storefront/category-query-config";
+import { fetchCmsBlogPost, fetchCmsBlogPosts } from "@/lib/storefront/cms";
 import {
   buildProductListParams,
   STOREFRONT_PRODUCT_CARD_FIELDS,
 } from "@/lib/storefront/product-query-config";
+import { selectRecommendedProductRepresentatives } from "@/lib/storefront/recommended-product-families";
 import { getRegionServerContext } from "@/lib/storefront/ssr/context";
 import {
   fetchServerCategories,
@@ -58,7 +59,9 @@ async function resolveRecommendedProductsForBlogPost(
         (category) => category.handle === handle,
       )?.id;
     })
-    .filter((categoryId): categoryId is string => typeof categoryId === "string");
+    .filter(
+      (categoryId): categoryId is string => typeof categoryId === "string",
+    );
 
   if (recommendedCategoryIds.length === 0) {
     return [];
@@ -94,14 +97,22 @@ async function resolveRecommendedProductsForBlogPost(
 async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {
   await connection();
   const { slug } = await params;
-  const post = resolveBlogPostBySlug(slug);
+  const cmsPost = await fetchCmsBlogPost(slug);
+  const post = cmsPost ?? resolveBlogPostBySlug(slug);
 
   if (!post) {
     notFound();
   }
 
-  const relatedPosts = resolveRelatedBlogPosts(post.slug, 4);
-  const recommendedProducts = await resolveRecommendedProductsForBlogPost(post.slug);
+  const cmsRelatedPosts = cmsPost ? await fetchCmsBlogPosts() : [];
+  const relatedPosts = resolveRelatedBlogPosts(
+    post.slug,
+    4,
+    cmsRelatedPosts.length > 1 ? cmsRelatedPosts : undefined,
+  );
+  const recommendedProducts = await resolveRecommendedProductsForBlogPost(
+    post.slug,
+  );
   const sidebarFeaturedProduct = recommendedProducts[0] ?? null;
   const inlineRecommendedProducts = recommendedProducts.slice(1);
 

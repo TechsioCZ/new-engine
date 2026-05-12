@@ -1,8 +1,9 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
-import NextLink from "next/link";
 import NextImage from "next/image";
+import NextLink from "next/link";
+import { CategoryRichText } from "@/components/category/category-rich-text";
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
@@ -11,8 +12,8 @@ import type { BlogPost } from "@/lib/storefront/blog-content";
 import { BlogArticleSidebar } from "./blog-article-sidebar";
 import { BlogAuthorCard } from "./blog-author-card";
 import { formatBlogDate } from "./blog-formatters";
-import { InlineProductsCarousel } from "./inline-products-carousel";
 import { BlogRelatedCard } from "./blog-related-card";
+import { InlineProductsCarousel } from "./inline-products-carousel";
 
 type BlogDetailPageProps = {
   post: BlogPost;
@@ -37,6 +38,8 @@ export function BlogDetailPage({
       label: post.title,
     },
   ];
+  const hasStructuredSections = post.sections.length > 0;
+  const hasHighlights = post.bulletPoints.length > 0;
 
   return (
     <main className="w-full bg-base font-rubik">
@@ -63,7 +66,9 @@ export function BlogDetailPage({
 
               <div className="flex flex-wrap items-center gap-x-500 gap-y-150 text-sm leading-normal text-fg-secondary">
                 <p>
-                  <strong className="font-semibold text-fg-primary">Autor:</strong>{" "}
+                  <strong className="font-semibold text-fg-primary">
+                    Autor:
+                  </strong>{" "}
                   {post.author}
                 </p>
                 <p>
@@ -80,7 +85,9 @@ export function BlogDetailPage({
                 </p>
               </div>
 
-              <p className="text-md leading-relaxed text-fg-primary">{post.lead}</p>
+              <p className="text-md leading-relaxed text-fg-primary">
+                {post.lead}
+              </p>
             </section>
 
             <section className="overflow-hidden rounded-2xl border border-border-secondary bg-surface">
@@ -94,81 +101,109 @@ export function BlogDetailPage({
               />
             </section>
 
-            <section className="space-y-350 rounded-2xl border border-border-secondary bg-surface p-400">
-              <header className="flex items-start justify-between gap-300">
-                <div className="flex items-center gap-250">
-                  <span className="inline-flex p-50 items-center justify-center rounded-xs bg-highlight text-primary">
-                    <Icon icon="token-icon-list" size="2xl" />
-                  </span>
-                  <div>
-                    <h2 className="text-xl leading-tight font-bold text-fg-primary">
-                      Obsah článku
-                    </h2>
-                    <p className="text-sm leading-normal text-fg-secondary">
-                      {`${post.sections.length} kapitol`}
-                    </p>
+            {hasStructuredSections ? (
+              <section className="space-y-350 rounded-2xl border border-border-secondary bg-surface p-400">
+                <header className="flex items-start justify-between gap-300">
+                  <div className="flex items-center gap-250">
+                    <span className="inline-flex p-50 items-center justify-center rounded-xs bg-highlight text-primary">
+                      <Icon icon="token-icon-list" size="2xl" />
+                    </span>
+                    <div>
+                      <h2 className="text-xl leading-tight font-bold text-fg-primary">
+                        Obsah článku
+                      </h2>
+                      <p className="text-sm leading-normal text-fg-secondary">
+                        {`${post.sections.length} kapitol`}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <Icon className="text-fg-secondary" icon="token-icon-chevron-up" size="2xl" />
-              </header>
+                  <Icon
+                    className="text-fg-secondary"
+                    icon="token-icon-chevron-up"
+                    size="2xl"
+                  />
+                </header>
 
-              <ul className="space-y-100 pl-500">
-                {post.sections.map((section) => (
-                  <li
-                    className="list-inside list-disc marker:text-lg text-sm leading-relaxed text-fg-secondary marker:text-fg-disabled"
-                    key={section.title}
-                  >
-                    {section.title}
-                  </li>
-                ))}
-              </ul>
-            </section>
+                <ul className="space-y-100 pl-500">
+                  {post.sections.map((section) => (
+                    <li
+                      className="list-inside list-disc marker:text-lg text-sm leading-relaxed text-fg-secondary marker:text-fg-disabled"
+                      key={section.title}
+                    >
+                      {section.title}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
 
             <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
-              {post.sections.map((section) => (
-                <section className="space-y-250" key={section.title}>
-                  <h2 className="text-xl leading-tight text-fg-primary">
-                    {section.title}
-                  </h2>
+              {post.contentHtml ? (
+                <CategoryRichText
+                  className="text-md [&_p+p]:mt-300"
+                  html={post.contentHtml}
+                />
+              ) : (
+                post.sections.map((section) => (
+                  <section className="space-y-250" key={section.title}>
+                    <h2 className="text-xl leading-tight text-fg-primary">
+                      {section.title}
+                    </h2>
 
-                  {section.paragraphs.map((paragraph) => (
-                    <p className="text-md leading-relaxed text-fg-primary" key={paragraph}>
-                      {paragraph}
-                    </p>
-                  ))}
+                    {section.paragraphs.map((paragraph) => (
+                      <p
+                        className="text-md leading-relaxed text-fg-primary"
+                        key={paragraph}
+                      >
+                        {paragraph}
+                      </p>
+                    ))}
 
-                  {section.bulletPoints ? (
-                    <ul className="space-y-100 pl-350">
-                      {section.bulletPoints.map((item) => (
-                        <li
-                          className="list-disc text-md leading-relaxed text-fg-primary marker:text-primary"
-                          key={item}
-                        >
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </section>
-              ))}
+                    {section.bulletPoints ? (
+                      <ul className="space-y-100 pl-350">
+                        {section.bulletPoints.map((item) => (
+                          <li
+                            className="list-disc text-md leading-relaxed text-fg-primary marker:text-primary"
+                            key={item}
+                          >
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </section>
+                ))
+              )}
             </article>
 
-            <section className="space-y-300">
-              {recommendedProducts.length > 0 ? (
-                <InlineProductsCarousel products={recommendedProducts} slidesLg={3} />
-              ) : null}
-              <ul className="space-y-0 rounded-2xl bg-surface p-400">
-                {post.bulletPoints.map((item) => (
-                  <li className="grid grid-cols-[6px_minmax(0,1fr)] gap-100 py-[1px]" key={item}>
-                    <span
-                      aria-hidden="true"
-                      className="mt-150 h-[6px] w-[6px] rounded-full bg-primary"
-                    />
-                    <span className="text-md leading-[1.5] text-fg-primary">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
+            {recommendedProducts.length > 0 || hasHighlights ? (
+              <section className="space-y-300">
+                {recommendedProducts.length > 0 ? (
+                  <InlineProductsCarousel
+                    products={recommendedProducts}
+                    slidesLg={3}
+                  />
+                ) : null}
+                {hasHighlights ? (
+                  <ul className="space-y-0 rounded-2xl bg-surface p-400">
+                    {post.bulletPoints.map((item) => (
+                      <li
+                        className="grid grid-cols-[6px_minmax(0,1fr)] gap-100 py-[1px]"
+                        key={item}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="mt-150 h-[6px] w-[6px] rounded-full bg-primary"
+                        />
+                        <span className="text-md leading-[1.5] text-fg-primary">
+                          {item}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            ) : null}
 
             <BlogAuthorCard post={post} />
 

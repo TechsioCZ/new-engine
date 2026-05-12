@@ -1,13 +1,36 @@
 import { join } from "node:path";
 import type { NextConfig } from "next";
 
+const resolveImageRemotePattern = (baseUrl: string | undefined) => {
+  if (!baseUrl) {
+    return [];
+  }
+
+  try {
+    const parsedUrl = new URL(baseUrl);
+    const protocol = parsedUrl.protocol === "http:" ? "http" : "https";
+
+    return [
+      {
+        protocol,
+        hostname: parsedUrl.hostname,
+      },
+    ] as const;
+  } catch {
+    return [];
+  }
+};
+
+const resolveMedusaImageRemotePattern = () =>
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL);
+
+const resolvePayloadImageRemotePattern = () =>
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL);
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
-  transpilePackages: [
-    "@techsio/ui-kit",
-    "@techsio/storefront-data",
-  ],
+  transpilePackages: ["@techsio/ui-kit", "@techsio/storefront-data"],
   reactCompiler: true,
   cacheComponents: true,
   outputFileTracingRoot: join(__dirname, "../../"),
@@ -38,6 +61,8 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      ...resolveMedusaImageRemotePattern(),
+      ...resolvePayloadImageRemotePattern(),
     ],
     qualities: [40, 50, 60, 75, 90],
   },
