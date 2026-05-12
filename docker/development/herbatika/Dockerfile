@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y curl --no-install-recommends && \
 WORKDIR /var/www
 
 FROM base AS build
+ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY patches ./patches
