@@ -58,7 +58,8 @@ const loadExport = async <T>(
 export const createPaykitClient = async (
   providerPackage: string,
   providerExport: string,
-  providerOptions: Record<string, unknown>
+  providerOptions: Record<string, unknown>,
+  webhookOptions: Record<string, unknown> = providerOptions
 ): Promise<PaykitPaymentClient> => {
   const [PayKit, createProvider] = await Promise.all([
     loadExport<PaykitConstructor>("@paykit-sdk/core", "PayKit"),
@@ -75,7 +76,7 @@ export const createPaykitClient = async (
     payments: paykit.payments,
     refunds: paykit.refunds,
     handleWebhook: (payload) =>
-      provider.handleWebhook(toPaykitWebhookPayload(payload, providerOptions)),
+      provider.handleWebhook(toPaykitWebhookPayload(payload, webhookOptions)),
   }
 }
 
@@ -95,9 +96,8 @@ export const getGopayProviderOptions = (
   clientId: options.clientId,
   clientSecret: options.clientSecret,
   goId: options.goId,
-  isSandbox: options.isSandbox ?? options.sandbox ?? true,
+  isSandbox: options.isSandbox ?? true,
   webhookUrl: options.webhookUrl,
-  webhookSecret: options.webhookSecret ?? "",
   debug: options.debug ?? false,
 })
 
@@ -105,8 +105,13 @@ export const getStripeProviderOptions = (
   options: PaykitStripeOptions
 ): Record<string, unknown> => ({
   apiKey: options.apiKey,
-  webhookSecret: options.webhookSecret ?? "",
   debug: options.debug ?? false,
+})
+
+export const getStripeWebhookOptions = (
+  options: PaykitStripeOptions
+): Record<string, unknown> => ({
+  webhookSecret: options.webhookSecret ?? "",
 })
 
 export const getComgateProviderOptions = (
@@ -114,7 +119,7 @@ export const getComgateProviderOptions = (
 ): Record<string, unknown> => ({
   merchant: options.merchant,
   secret: options.secret,
-  isSandbox: options.isSandbox ?? options.sandbox ?? true,
+  isSandbox: options.isSandbox ?? true,
   debug: options.debug ?? false,
 })
 

@@ -17,6 +17,21 @@ describe("PaykitStripePaymentProvider", () => {
     ).not.toThrow()
   })
 
+  it("creates the default PayKit Stripe client with constructor-safe options", async () => {
+    const provider = new PaykitStripePaymentProvider({} as any, {
+      apiKey: "sk_test_123",
+      webhookSecret: "whsec_123",
+    })
+
+    await expect((provider as any).getClient()).resolves.toEqual(
+      expect.objectContaining({
+        payments: expect.any(Object),
+        refunds: expect.any(Object),
+        handleWebhook: expect.any(Function),
+      })
+    )
+  })
+
   it("normalizes Medusa major-unit amounts to Stripe smallest units", async () => {
     const client = createMockPaykitClient({
       payments: {
@@ -155,6 +170,79 @@ describe("PaykitStripePaymentProvider", () => {
           amount: 1050,
           currency: "czk",
           status: "succeeded",
+          metadata: {
+            session_id: "payses_123",
+          },
+        },
+      },
+    ])
+    const provider = new PaykitStripePaymentProvider({} as any, { client })
+
+    await expect(
+      provider.getWebhookActionAndData({
+        data: {},
+        rawData: "",
+        headers: {
+          "stripe-signature": "sig_123",
+        },
+      })
+    ).resolves.toEqual({
+      action: PaymentActions.SUCCESSFUL,
+      data: {
+        session_id: "payses_123",
+        amount: 10.5,
+      },
+    })
+  })
+
+  it("maps verified Stripe payment intent events when PayKit reports them as unhandled", async () => {
+    const client = createMockPaykitClient()
+    client.handleWebhook = vi
+      .fn()
+      .mockRejectedValue(
+        new Error("Unhandled event type: payment_intent.succeeded")
+      )
+    const provider = new PaykitStripePaymentProvider({} as any, { client })
+
+    await expect(
+      provider.getWebhookActionAndData({
+        data: {},
+        rawData: JSON.stringify({
+          type: "payment_intent.succeeded",
+          data: {
+            object: {
+              id: "stripe-payment-1",
+              amount: 1050,
+              currency: "czk",
+              status: "succeeded",
+              metadata: {
+                session_id: "payses_123",
+              },
+            },
+          },
+        }),
+        headers: {
+          "stripe-signature": "sig_123",
+        },
+      })
+    ).resolves.toEqual({
+      action: PaymentActions.SUCCESSFUL,
+      data: {
+        session_id: "payses_123",
+        amount: 10.5,
+      },
+    })
+  })
+
+  it("maps Stripe checkout invoice events with Medusa major-unit amount", async () => {
+    const client = createMockPaykitClient()
+    client.handleWebhook = vi.fn().mockResolvedValue([
+      {
+        type: "invoice.generated",
+        data: {
+          id: "cs_test_123",
+          amount_paid: 1050,
+          currency: "czk",
           metadata: {
             session_id: "payses_123",
           },

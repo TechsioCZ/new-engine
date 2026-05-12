@@ -89,7 +89,7 @@ const getWebhookAmount = (
   event: PaykitWebhookEvent,
   payment: PaykitPayment
 ): BigNumberValue | undefined =>
-  normalizeWebhookAmount(event.amount ?? payment.amount)
+  normalizeWebhookAmount(event.amount ?? payment.amount ?? payment.amount_paid)
 
 const normalizeWebhookAmount = (
   amount: unknown
@@ -134,6 +134,8 @@ const mapPaykitWebhookAction = (
   const medusaStatus = mapPaykitStatusToMedusa(status)
 
   switch (event.type) {
+    case "invoice.generated":
+      return PaymentActions.SUCCESSFUL
     case "payment.created":
     case "payment.updated":
       switch (medusaStatus) {
@@ -170,6 +172,13 @@ export const mapPaykitWebhookEvent = (
     ? options.normalizeAmount(rawAmount, payment, event)
     : rawAmount
   const action = mapPaykitWebhookAction(event, payment)
+
+  if (
+    event.type === "invoice.generated" &&
+    (!sessionId || amount === undefined)
+  ) {
+    return { action: PaymentActions.NOT_SUPPORTED }
+  }
 
   if (!sessionId || amount === undefined) {
     return { action }

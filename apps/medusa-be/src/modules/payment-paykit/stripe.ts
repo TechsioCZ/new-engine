@@ -1,6 +1,8 @@
 import type {
   BigNumberValue,
   InitiatePaymentInput,
+  ProviderWebhookPayload,
+  WebhookActionResult,
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
 import {
@@ -15,12 +17,28 @@ import {
   PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
   requirePaykitOptions,
 } from "./config"
-import { createPaykitClient, getStripeProviderOptions } from "./runtime"
+import { mapPaykitWebhookEvent } from "./mappers"
+import {
+  createPaykitClient,
+  getStripeProviderOptions,
+  getStripeWebhookOptions,
+} from "./runtime"
 import type {
   PaykitPayment,
   PaykitPaymentClient,
   PaykitStripeOptions,
 } from "./types"
+
+const STRIPE_PAYMENT_INTENT_EVENTS = new Set([
+  "payment_intent.created",
+  "payment_intent.processing",
+  "payment_intent.requires_action",
+  "payment_intent.amount_capturable_updated",
+  "payment_intent.partially_funded",
+  "payment_intent.succeeded",
+  "payment_intent.payment_failed",
+  "payment_intent.canceled",
+])
 
 export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<PaykitStripeOptions> {
   static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
@@ -46,7 +64,8 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     return await createPaykitClient(
       "@paykit-sdk/stripe",
       "createStripe",
-      getStripeProviderOptions(this.options_)
+      getStripeProviderOptions(this.options_),
+      getStripeWebhookOptions(this.options_)
     )
   }
 
@@ -83,6 +102,144 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       normalized,
       payment.currency ?? payment.currency_code
     )
+  }
+
+  override async getWebhookActionAndData(
+    payload: ProviderWebhookPayload["payload"]
+  ): Promise<WebhookActionResult> {
+    try {
+      return await super.getWebhookActionAndData(payload)
+    } catch (error) {
+      const fallback = this.mapVerifiedStripePaymentIntentWebhook(
+        payload,
+        error
+      )
+
+      if (fallback) {
+        return fallback
+      }
+
+      throw error
+    }
+  }
+
+  private mapVerifiedStripePaymentIntentWebhook(
+    payload: ProviderWebhookPayload["payload"],
+    error: unknown
+  ): WebhookActionResult | undefined {
+    if (
+      !(
+        error instanceof Error &&
+        error.message.includes("Unhandled event type: payment_intent.")
+      )
+    ) {
+      return
+    }
+
+    const event = this.parseStripeWebhookEvent(payload.rawData)
+
+    if (!(event && STRIPE_PAYMENT_INTENT_EVENTS.has(event.type))) {
+      return
+    }
+
+    const paymentIntent = event.data?.object
+
+    if (!paymentIntent || typeof paymentIntent !== "object") {
+      return
+    }
+
+    const paykitEventType =
+      event.type === "payment_intent.canceled"
+        ? "payment.canceled"
+        : this.getPaykitPaymentEventType(event.type)
+
+    return mapPaykitWebhookEvent(
+      {
+        type: paykitEventType,
+        data: {
+          id: paymentIntent.id,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+          customer: paymentIntent.customer ?? "",
+          status: this.mapStripePaymentIntentStatus(paymentIntent.status),
+          metadata: paymentIntent.metadata,
+          payment_url: paymentIntent.next_action?.redirect_to_url?.url,
+        },
+      },
+      {
+        normalizeAmount: (amount, payment) =>
+          this.normalizeWebhookAmount(amount, payment),
+      }
+    )
+  }
+
+  private parseStripeWebhookEvent(
+    rawData: ProviderWebhookPayload["payload"]["rawData"]
+  ):
+    | {
+        type: string
+        data?: {
+          object?: {
+            id?: string
+            amount?: number
+            currency?: string
+            customer?: unknown
+            status?: string
+            metadata?: Record<string, unknown>
+            next_action?: {
+              redirect_to_url?: {
+                url?: string
+              }
+            }
+          }
+        }
+      }
+    | undefined {
+    let rawBody = ""
+
+    if (Buffer.isBuffer(rawData)) {
+      rawBody = rawData.toString("utf8")
+    } else if (typeof rawData === "string") {
+      rawBody = rawData
+    }
+
+    if (!rawBody) {
+      return
+    }
+
+    try {
+      return JSON.parse(rawBody)
+    } catch {
+      return
+    }
+  }
+
+  private mapStripePaymentIntentStatus(status: unknown): string {
+    switch (status) {
+      case "requires_payment_method":
+      case "requires_confirmation":
+        return "pending"
+      case "processing":
+        return "processing"
+      case "requires_action":
+        return "requires_action"
+      case "requires_capture":
+        return "requires_capture"
+      case "succeeded":
+        return "succeeded"
+      case "canceled":
+        return "canceled"
+      default:
+        return "failed"
+    }
+  }
+
+  private getPaykitPaymentEventType(
+    eventType: string
+  ): "payment.created" | "payment.updated" {
+    return eventType === "payment_intent.created"
+      ? "payment.created"
+      : "payment.updated"
   }
 }
 

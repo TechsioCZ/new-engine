@@ -48,9 +48,8 @@ describe("PaykitGopayPaymentProvider", () => {
         clientId: "client-id",
         clientSecret: "secret",
         goId: "go-id",
-        sandbox: true,
+        isSandbox: true,
         webhookUrl: "https://shop.example/gopay",
-        webhookSecret: "webhook-secret",
         debug: true,
       })
     ).toEqual({
@@ -59,7 +58,6 @@ describe("PaykitGopayPaymentProvider", () => {
       goId: "go-id",
       isSandbox: true,
       webhookUrl: "https://shop.example/gopay",
-      webhookSecret: "webhook-secret",
       debug: true,
     })
   })

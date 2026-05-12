@@ -22,6 +22,7 @@ export type PaykitPaymentStatus =
 export type PaykitPayment = Record<string, unknown> & {
   id?: string
   amount?: BigNumberInput
+  amount_paid?: BigNumberInput
   currency?: string
   currency_code?: string
   status?: PaykitPaymentStatus
@@ -95,10 +96,8 @@ export type PaykitGopayOptions = PaykitProviderOptions & {
   clientId?: string
   clientSecret?: string
   goId?: string
-  sandbox?: boolean
   isSandbox?: boolean
   webhookUrl?: string
-  webhookSecret?: string
 }
 
 export type PaykitStripeOptions = PaykitProviderOptions & {
@@ -109,7 +108,6 @@ export type PaykitStripeOptions = PaykitProviderOptions & {
 export type PaykitComgateOptions = PaykitProviderOptions & {
   merchant?: string
   secret?: string
-  sandbox?: boolean
   isSandbox?: boolean
 }
 
