@@ -610,6 +610,23 @@ describe("commercial values route utils", () => {
       total: -1.07,
     })
     const snapshot = toCommercialValuesSnapshot(order)
+    const calculationInput = toCommercialValuesCalculationInput(order, {
+      expected_order_version: 1,
+      items: [
+        {
+          discount: { amount: 8.49, type: "amount" },
+          item_id: "item_1",
+          unit_price: 8.49,
+        },
+      ],
+      shipping_methods: [
+        {
+          discount: { amount: 9, type: "amount" },
+          shipping_method_id: "ship_1",
+        },
+      ],
+    })
+    const preview = calculateCommercialValuesPreview(calculationInput)
 
     expect(snapshot.totals.current_total).toBe(-1.07)
     expect(snapshot.totals.original_total).toBeCloseTo(18.49)
@@ -619,6 +636,7 @@ describe("commercial values route utils", () => {
     expect(
       snapshot.shipping_methods[0].existing_adjustments[0].amount
     ).toBeCloseTo(11.07)
+    expect(preview.new_total).toBeCloseTo(1)
   })
 
   it("allocates order discounts across items and shipping methods", () => {

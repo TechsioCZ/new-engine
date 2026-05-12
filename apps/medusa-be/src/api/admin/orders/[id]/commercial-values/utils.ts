@@ -453,21 +453,36 @@ function getItemUnitPrice(item: CommercialValuesOrderItem, quantity: number) {
 function mapItem(item: CommercialValuesOrderItem): CommercialValuesItemInput {
   const quantity = getItemQuantity(item)
   const unitPrice = getItemUnitPrice(item, quantity)
+  const manualAdjustmentTotal = getManualAdjustmentTotal(
+    (item.adjustments ?? []).map(mapAdjustment)
+  )
+  const nonManualDiscountTotal = Math.max(
+    toFiniteAmount(item.discount_total ?? 0, "item discount total") -
+      manualAdjustmentTotal,
+    0
+  )
   const currentSubtotal =
     item.subtotal === null || item.subtotal === undefined
       ? undefined
       : Math.max(
           toFiniteAmount(item.subtotal, "item subtotal") -
-            toFiniteAmount(item.discount_total ?? 0, "item discount total"),
+            nonManualDiscountTotal,
           0
         )
+  const reportedTaxTotal =
+    item.tax_total === null || item.tax_total === undefined
+      ? undefined
+      : toFiniteAmount(item.tax_total, "item tax total")
+  const currentTaxTotal =
+    currentSubtotal !== undefined &&
+    item.is_tax_inclusive &&
+    (reportedTaxTotal === undefined || reportedTaxTotal <= 0)
+      ? Math.max(unitPrice * quantity - currentSubtotal, 0)
+      : reportedTaxTotal
 
   return {
     current_subtotal: currentSubtotal,
-    current_tax_total:
-      item.tax_total === null || item.tax_total === undefined
-        ? undefined
-        : toFiniteAmount(item.tax_total, "item tax total"),
+    current_tax_total: currentTaxTotal,
     existing_adjustments: (item.adjustments ?? []).map(mapAdjustment),
     is_discountable: item.is_discountable ?? true,
     is_tax_inclusive: item.is_tax_inclusive ?? false,
