@@ -10,11 +10,13 @@ import type {
   CommercialValuesCalculationInput,
   CommercialValuesEditBlocker,
   CommercialValuesItemInput,
+  CommercialValuesShippingMethodInput,
   CommercialValuesSnapshot,
 } from "../../../../../utils/order-commercial-values"
 import {
   MANUAL_ITEM_DISCOUNT_CODE,
   MANUAL_ORDER_DISCOUNT_CODE,
+  MANUAL_SHIPPING_DISCOUNT_CODE,
 } from "../../../../../utils/order-commercial-values"
 import type { ApplyCommercialValuesOrder } from "../../../../../workflows/order-commercial-values/apply-commercial-values"
 import type { PostAdminOrderCommercialValuesPreviewSchemaType } from "./validators"
@@ -68,10 +70,30 @@ type CommercialValuesOrderItem = {
   variant_title?: string | null
 }
 
+type CommercialValuesOrderShippingMethod = {
+  id: string
+  adjustments?: CommercialAdjustmentInput[] | null
+  amount?: AmountValue
+  name?: string | null
+  original_subtotal?: AmountValue
+  original_total?: AmountValue
+  raw_amount?: RawAmountValue | null
+  raw_original_subtotal?: RawAmountValue | null
+  raw_original_total?: RawAmountValue | null
+  raw_subtotal?: RawAmountValue | null
+  raw_tax_total?: RawAmountValue | null
+  raw_total?: RawAmountValue | null
+  shipping_option_id?: string | null
+  subtotal?: AmountValue
+  tax_total?: AmountValue
+  total?: AmountValue
+}
+
 export type CommercialValuesOrder = {
   id: string
   currency_code?: string | null
   items?: CommercialValuesOrderItem[] | null
+  shipping_methods?: CommercialValuesOrderShippingMethod[] | null
   status?: string | null
   total?: AmountValue
   version?: AmountValue
@@ -129,6 +151,29 @@ const ORDER_FIELDS = [
   "items.adjustments.item_id",
   "items.adjustments.promotion_id",
   "items.adjustments.provider_id",
+  "shipping_methods.id",
+  "shipping_methods.*",
+  "shipping_methods.name",
+  "shipping_methods.amount",
+  "shipping_methods.original_subtotal",
+  "shipping_methods.original_total",
+  "shipping_methods.subtotal",
+  "shipping_methods.tax_total",
+  "shipping_methods.total",
+  "shipping_methods.raw_amount",
+  "shipping_methods.raw_original_subtotal",
+  "shipping_methods.raw_original_total",
+  "shipping_methods.raw_subtotal",
+  "shipping_methods.raw_tax_total",
+  "shipping_methods.raw_total",
+  "shipping_methods.shipping_option_id",
+  "shipping_methods.adjustments.amount",
+  "shipping_methods.adjustments.code",
+  "shipping_methods.adjustments.description",
+  "shipping_methods.adjustments.is_tax_inclusive",
+  "shipping_methods.adjustments.promotion_id",
+  "shipping_methods.adjustments.provider_id",
+  "shipping_methods.adjustments.shipping_method_id",
 ]
 
 const ACTIVE_ORDER_CHANGE_FIELDS = ["id", "status", "version", "change_type"]
@@ -215,6 +260,20 @@ function isCommercialValuesOrderItem(
   )
 }
 
+function isCommercialValuesOrderShippingMethod(
+  value: unknown
+): value is CommercialValuesOrderShippingMethod {
+  if (!isRecord(value) || typeof value.id !== "string") {
+    return false
+  }
+
+  return (
+    value.adjustments === undefined ||
+    value.adjustments === null ||
+    Array.isArray(value.adjustments)
+  )
+}
+
 function isCommercialValuesOrder(
   value: unknown
 ): value is CommercialValuesOrder {
@@ -222,12 +281,18 @@ function isCommercialValuesOrder(
     return false
   }
 
-  return (
+  const hasValidItems =
     value.items === undefined ||
     value.items === null ||
     (Array.isArray(value.items) &&
       value.items.every(isCommercialValuesOrderItem))
-  )
+  const hasValidShippingMethods =
+    value.shipping_methods === undefined ||
+    value.shipping_methods === null ||
+    (Array.isArray(value.shipping_methods) &&
+      value.shipping_methods.every(isCommercialValuesOrderShippingMethod))
+
+  return hasValidItems && hasValidShippingMethods
 }
 
 function isActiveOrderChangeRecord(
@@ -283,6 +348,7 @@ function mapAdjustment(
     item_id: adjustment.item_id ?? undefined,
     promotion_id: adjustment.promotion_id ?? undefined,
     provider_id: adjustment.provider_id ?? undefined,
+    shipping_method_id: adjustment.shipping_method_id ?? undefined,
   }
 }
 
@@ -351,6 +417,61 @@ function mapItem(item: CommercialValuesOrderItem): CommercialValuesItemInput {
   }
 }
 
+function getShippingMethodSubtotal(
+  shippingMethod: CommercialValuesOrderShippingMethod
+) {
+  const subtotal =
+    shippingMethod.subtotal ??
+    shippingMethod.original_subtotal ??
+    shippingMethod.raw_subtotal ??
+    shippingMethod.raw_original_subtotal
+
+  if (subtotal !== null && subtotal !== undefined) {
+    return toFiniteAmount(subtotal, "shipping subtotal")
+  }
+
+  const taxTotal =
+    shippingMethod.tax_total ?? shippingMethod.raw_tax_total ?? undefined
+  const total =
+    shippingMethod.total ??
+    shippingMethod.original_total ??
+    shippingMethod.raw_total ??
+    shippingMethod.raw_original_total
+
+  if (total !== null && total !== undefined) {
+    return Math.max(
+      toFiniteAmount(total, "shipping total") -
+        toFiniteAmount(taxTotal ?? 0, "shipping tax total"),
+      0
+    )
+  }
+
+  return toFiniteAmount(
+    shippingMethod.amount ?? shippingMethod.raw_amount,
+    "shipping amount"
+  )
+}
+
+function mapShippingMethod(
+  shippingMethod: CommercialValuesOrderShippingMethod
+): CommercialValuesShippingMethodInput {
+  const taxTotal =
+    shippingMethod.tax_total === null || shippingMethod.tax_total === undefined
+      ? shippingMethod.raw_tax_total
+      : shippingMethod.tax_total
+
+  return {
+    current_subtotal: getShippingMethodSubtotal(shippingMethod),
+    current_tax_total:
+      taxTotal === null || taxTotal === undefined
+        ? undefined
+        : toFiniteAmount(taxTotal, "shipping tax total"),
+    existing_adjustments: (shippingMethod.adjustments ?? []).map(mapAdjustment),
+    name: shippingMethod.name ?? undefined,
+    shipping_method_id: shippingMethod.id,
+  }
+}
+
 function hasRequestedItemDiscount(
   requestedItem:
     | PostAdminOrderCommercialValuesPreviewSchemaType["items"][number]
@@ -359,11 +480,22 @@ function hasRequestedItemDiscount(
   return requestedItem ? "discount" in requestedItem : false
 }
 
+function hasRequestedShippingDiscount(
+  requestedShippingMethod:
+    | NonNullable<
+        PostAdminOrderCommercialValuesPreviewSchemaType["shipping_methods"]
+      >[number]
+    | undefined
+) {
+  return requestedShippingMethod ? "discount" in requestedShippingMethod : false
+}
+
 function toCalculationAdjustment(
   adjustment: CommercialAdjustmentInput,
   options: {
     itemDiscountRequested: boolean
     orderDiscountRequested: boolean
+    shippingDiscountRequested: boolean
   }
 ): CommercialAdjustmentInput {
   if (
@@ -380,6 +512,13 @@ function toCalculationAdjustment(
     return { ...adjustment, code: undefined }
   }
 
+  if (
+    adjustment.code === MANUAL_SHIPPING_DISCOUNT_CODE &&
+    !options.shippingDiscountRequested
+  ) {
+    return { ...adjustment, code: undefined }
+  }
+
   return adjustment
 }
 
@@ -387,15 +526,18 @@ function toCalculationAdjustments({
   adjustments,
   itemDiscountRequested,
   orderDiscountRequested,
+  shippingDiscountRequested = false,
 }: {
   adjustments: CommercialAdjustmentInput[] | null | undefined
   itemDiscountRequested: boolean
   orderDiscountRequested: boolean
+  shippingDiscountRequested?: boolean
 }) {
   return (adjustments ?? []).map((adjustment) =>
     toCalculationAdjustment(adjustment, {
       itemDiscountRequested,
       orderDiscountRequested,
+      shippingDiscountRequested,
     })
   )
 }
@@ -547,6 +689,12 @@ function mergeOrderChangePreview(
   preview: CommercialValuesOrder
 ): CommercialValuesOrder {
   const itemsById = new Map((order.items ?? []).map((item) => [item.id, item]))
+  const shippingMethodsById = new Map(
+    (order.shipping_methods ?? []).map((shippingMethod) => [
+      shippingMethod.id,
+      shippingMethod,
+    ])
+  )
 
   return {
     ...order,
@@ -584,6 +732,23 @@ function mergeOrderChangePreview(
             originalItem.unit_price,
         }
       }) ?? order.items,
+    shipping_methods:
+      preview.shipping_methods?.map((shippingMethod) => {
+        const originalShippingMethod = shippingMethodsById.get(
+          shippingMethod.id
+        )
+
+        if (!originalShippingMethod) {
+          return shippingMethod
+        }
+
+        return {
+          ...originalShippingMethod,
+          ...shippingMethod,
+          adjustments:
+            shippingMethod.adjustments ?? originalShippingMethod.adjustments,
+        }
+      }) ?? order.shipping_methods,
     status: preview.status ?? order.status,
     total: preview.total ?? order.total,
     version: preview.version ?? order.version,
@@ -682,6 +847,17 @@ export function toCommercialValuesSnapshot(
       }
     }),
     order_id: order.id,
+    shipping_methods: (order.shipping_methods ?? []).map((shippingMethod) => {
+      const mapped = mapShippingMethod(shippingMethod)
+
+      return {
+        current_subtotal: mapped.current_subtotal,
+        current_tax_total: mapped.current_tax_total ?? 0,
+        existing_adjustments: mapped.existing_adjustments ?? [],
+        name: mapped.name,
+        shipping_method_id: mapped.shipping_method_id,
+      }
+    }),
     totals: {
       current_total: toFiniteAmount(order.total, "order total"),
       original_total: toFiniteAmount(order.total, "order total"),
@@ -695,8 +871,21 @@ export function toCommercialValuesCalculationInput(
 ): CommercialValuesCalculationInput {
   const currencyCode = requireCurrencyCode(order)
   const itemsById = new Map((order.items ?? []).map((item) => [item.id, item]))
+  const shippingMethodsById = new Map(
+    (order.shipping_methods ?? []).map((shippingMethod) => [
+      shippingMethod.id,
+      shippingMethod,
+    ])
+  )
   const requestedItemsById = new Map(
     body.items.map((item) => [item.item_id, item])
+  )
+  const requestedShippingMethods = body.shipping_methods ?? []
+  const requestedShippingMethodsById = new Map(
+    requestedShippingMethods.map((shippingMethod) => [
+      shippingMethod.shipping_method_id,
+      shippingMethod,
+    ])
   )
 
   if (requestedItemsById.size !== body.items.length) {
@@ -706,11 +895,27 @@ export function toCommercialValuesCalculationInput(
     )
   }
 
+  if (requestedShippingMethodsById.size !== requestedShippingMethods.length) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Request contains duplicate shipping method ids"
+    )
+  }
+
   for (const requestedItem of body.items) {
     if (!itemsById.has(requestedItem.item_id)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         `Order item ${requestedItem.item_id} was not found`
+      )
+    }
+  }
+
+  for (const requestedShippingMethod of requestedShippingMethods) {
+    if (!shippingMethodsById.has(requestedShippingMethod.shipping_method_id)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Shipping method ${requestedShippingMethod.shipping_method_id} was not found`
       )
     }
   }
@@ -732,6 +937,25 @@ export function toCommercialValuesCalculationInput(
       unit_price: requested?.unit_price ?? mapped.unit_price,
     }
   })
+  const shippingMethods = (order.shipping_methods ?? []).map(
+    (shippingMethod) => {
+      const mapped = mapShippingMethod(shippingMethod)
+      const requested = requestedShippingMethodsById.get(shippingMethod.id)
+      const shippingDiscountRequested = hasRequestedShippingDiscount(requested)
+      const orderDiscountRequested = body.order_discount !== undefined
+
+      return {
+        ...mapped,
+        existing_adjustments: toCalculationAdjustments({
+          adjustments: mapped.existing_adjustments,
+          itemDiscountRequested: false,
+          orderDiscountRequested,
+          shippingDiscountRequested,
+        }),
+        discount: requested?.discount ?? undefined,
+      }
+    }
+  )
 
   return {
     currency_code: currencyCode,
@@ -740,6 +964,7 @@ export function toCommercialValuesCalculationInput(
     order_discount: body.order_discount ?? undefined,
     order_id: order.id,
     original_total: toFiniteAmount(order.total, "order total"),
+    shipping_methods: shippingMethods,
   }
 }
 
@@ -758,5 +983,9 @@ export function toApplyCommercialValuesOrder(
         unit_price: getItemUnitPrice(item, quantity),
       }
     }),
+    shipping_methods: (order.shipping_methods ?? []).map((shippingMethod) => ({
+      adjustments: (shippingMethod.adjustments ?? []).map(mapAdjustment),
+      id: shippingMethod.id,
+    })),
   }
 }

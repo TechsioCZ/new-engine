@@ -14,7 +14,13 @@ type OrderCommercialValuesNamespace = {
     string
   >
   fields: Record<
-    "internalNote" | "itemDiscount" | "orderDiscount" | "unitPrice",
+    | "internalNote"
+    | "itemDiscount"
+    | "orderDiscount"
+    | "shipping"
+    | "shippingDiscount"
+    | "shippingMethods"
+    | "unitPrice",
     string
   >
   item: Record<"fallbackName" | "line" | "quantity" | "sku", string>
@@ -166,6 +172,9 @@ const orderCommercialValues = {
       internalNote: "Interní poznámka",
       itemDiscount: "Sleva na položku",
       orderDiscount: "Sleva na objednávku",
+      shipping: "Doprava",
+      shippingDiscount: "Sleva na dopravu",
+      shippingMethods: "Doprava",
       unitPrice: "Jednotková cena",
     },
     item: {
@@ -214,6 +223,9 @@ const orderCommercialValues = {
       internalNote: "Internal note",
       itemDiscount: "Item discount",
       orderDiscount: "Order discount",
+      shipping: "Shipping",
+      shippingDiscount: "Shipping discount",
+      shippingMethods: "Shipping",
       unitPrice: "Unit price",
     },
     item: {

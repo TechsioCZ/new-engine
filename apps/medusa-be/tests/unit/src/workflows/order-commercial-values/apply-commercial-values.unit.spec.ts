@@ -194,6 +194,93 @@ describe("applyOrderCommercialValues", () => {
     expect(response.order_preview).toEqual({ id: "confirmed_preview" })
   })
 
+  it("replaces shipping method adjustments for shipping discounts", async () => {
+    await applyOrderCommercialValues({
+      calculation_input: {
+        ...calculationInput,
+        original_total: 1450,
+        shipping_methods: [
+          {
+            current_subtotal: 500,
+            current_tax_total: 0,
+            discount: { amount: 100, type: "amount" as const },
+            existing_adjustments: [
+              {
+                amount: 50,
+                code: "carrier_promo",
+                shipping_method_id: "ship_1",
+              },
+            ],
+            shipping_method_id: "ship_1",
+          },
+        ],
+      },
+      container,
+      order: {
+        ...order,
+        shipping_methods: [
+          {
+            adjustments: [
+              {
+                amount: 50,
+                code: "carrier_promo",
+                shipping_method_id: "ship_1",
+              },
+            ],
+            id: "ship_1",
+          },
+        ],
+      },
+      request: {
+        expected_order_version: 1,
+        items: [
+          {
+            item_id: "item_1",
+            unit_price: 1000,
+          },
+        ],
+        shipping_methods: [
+          {
+            discount: { amount: 100, type: "amount" },
+            shipping_method_id: "ship_1",
+          },
+        ],
+      },
+    })
+
+    expect(mockItemUpdateRun).not.toHaveBeenCalled()
+    expect(mockCreateActionsRun).toHaveBeenCalled()
+    const actionInput = mockCreateActionsRun.mock.calls[0][0].input[0]
+    expect(actionInput).toMatchObject({
+      action: "SHIPPING_ADJUSTMENTS_REPLACE",
+      details: {
+        manual_discounts: {
+          order_discount_amount: 0,
+          shipping_discount_amount: 100,
+        },
+        reference_id: "ship_1",
+      },
+    })
+    expect(actionInput.details.adjustments).toEqual([
+      {
+        amount: 50,
+        code: "carrier_promo",
+        description: undefined,
+        is_tax_inclusive: undefined,
+        item_id: undefined,
+        promotion_id: undefined,
+        provider_id: undefined,
+        shipping_method_id: "ship_1",
+      },
+      {
+        amount: 100,
+        code: "manual_shipping_discount",
+        description: "Manual shipping discount",
+        shipping_method_id: "ship_1",
+      },
+    ])
+  })
+
   it("does not replace adjustments for omitted items", async () => {
     const partialOrder = {
       id: "order_1",

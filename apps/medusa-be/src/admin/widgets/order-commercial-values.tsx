@@ -49,11 +49,18 @@ type DraftItem = {
   unit_price: string
 }
 
+type DraftShippingMethod = {
+  discount_type: DraftDiscountType
+  discount_value: string
+  shipping_method_id: string
+}
+
 type DraftState = {
   internal_note: string
   items: DraftItem[]
   order_discount_type: DraftDiscountType
   order_discount_value: string
+  shipping_methods: DraftShippingMethod[]
 }
 
 type CommercialValuesWidgetProps = Partial<DetailWidgetProps<AdminOrder>>
@@ -70,6 +77,7 @@ type CommercialValuesPreviewVariables = {
 const QUERY_KEY_PREFIX = "order-commercial-values"
 const MANUAL_ITEM_DISCOUNT_CODE = "manual_item_discount"
 const MANUAL_ORDER_DISCOUNT_CODE = "manual_order_discount"
+const MANUAL_SHIPPING_DISCOUNT_CODE = "manual_shipping_discount"
 const ITEM_INITIALS_SEPARATOR = /\s+/
 const DRAWER_CONTENT_STYLE = {
   maxWidth: "min(1040px, calc(100vw - 32px))",
@@ -185,29 +193,40 @@ function getDraftLineTotal(item: DraftItem, quantity: number) {
 }
 
 function getManualAdjustmentAmount(
-  item: CommercialValuesSnapshot["items"][number],
+  target: {
+    existing_adjustments: CommercialValuesSnapshot["items"][number]["existing_adjustments"]
+  },
   code: string
 ) {
-  return item.existing_adjustments
+  return target.existing_adjustments
     .filter((adjustment) => adjustment.code === code)
     .reduce((total, adjustment) => total + adjustment.amount, 0)
 }
 
 function getManualAmountDiscount(
-  item: CommercialValuesSnapshot["items"][number],
+  target: {
+    existing_adjustments: CommercialValuesSnapshot["items"][number]["existing_adjustments"]
+  },
   code: string
 ): CommercialDiscountIntent | null {
-  const amount = getManualAdjustmentAmount(item, code)
+  const amount = getManualAdjustmentAmount(target, code)
 
   return amount > 0 ? { amount, type: "amount" } : null
 }
 
 function getSnapshotOrderDiscount(snapshot: CommercialValuesSnapshot) {
-  const amount = snapshot.items.reduce(
+  const itemAmount = snapshot.items.reduce(
     (total, item) =>
       total + getManualAdjustmentAmount(item, MANUAL_ORDER_DISCOUNT_CODE),
     0
   )
+  const shippingAmount = snapshot.shipping_methods.reduce(
+    (total, shippingMethod) =>
+      total +
+      getManualAdjustmentAmount(shippingMethod, MANUAL_ORDER_DISCOUNT_CODE),
+    0
+  )
+  const amount = itemAmount + shippingAmount
 
   return amount > 0 ? { amount, type: "amount" as const } : null
 }
@@ -236,11 +255,7 @@ function areDiscountsEqual(
 }
 
 function createDraft(snapshot: CommercialValuesSnapshot): DraftState {
-  const orderDiscountAmount = snapshot.items.reduce(
-    (total, item) =>
-      total + getManualAdjustmentAmount(item, MANUAL_ORDER_DISCOUNT_CODE),
-    0
-  )
+  const snapshotOrderDiscount = getSnapshotOrderDiscount(snapshot)
 
   return {
     internal_note: "",
@@ -258,9 +273,24 @@ function createDraft(snapshot: CommercialValuesSnapshot): DraftState {
         unit_price: String(item.unit_price),
       }
     }),
-    order_discount_type: orderDiscountAmount > 0 ? "amount" : "none",
+    order_discount_type: snapshotOrderDiscount ? "amount" : "none",
     order_discount_value:
-      orderDiscountAmount > 0 ? String(orderDiscountAmount) : "",
+      snapshotOrderDiscount?.type === "amount"
+        ? String(snapshotOrderDiscount.amount)
+        : "",
+    shipping_methods: snapshot.shipping_methods.map((shippingMethod) => {
+      const shippingDiscountAmount = getManualAdjustmentAmount(
+        shippingMethod,
+        MANUAL_SHIPPING_DISCOUNT_CODE
+      )
+
+      return {
+        discount_type: shippingDiscountAmount > 0 ? "amount" : "none",
+        discount_value:
+          shippingDiscountAmount > 0 ? String(shippingDiscountAmount) : "",
+        shipping_method_id: shippingMethod.shipping_method_id,
+      }
+    }),
   }
 }
 
@@ -346,6 +376,39 @@ function buildPayload(
   if (validParsedItems.length !== parsedItems.length) {
     return
   }
+  const parsedShippingMethods = draft.shipping_methods.map(
+    (shippingMethod) => ({
+      discount: parseDiscount(
+        shippingMethod.discount_type,
+        shippingMethod.discount_value
+      ),
+      shipping_method_id: shippingMethod.shipping_method_id,
+    })
+  )
+
+  if (
+    parsedShippingMethods.some(
+      (shippingMethod, index) =>
+        shippingMethod.discount === undefined ||
+        (draft.shipping_methods[index]?.discount_type !== "none" &&
+          draft.shipping_methods[index]?.discount_value.trim() === "")
+    )
+  ) {
+    return
+  }
+
+  const validParsedShippingMethods = parsedShippingMethods.filter(
+    (
+      shippingMethod
+    ): shippingMethod is {
+      discount: CommercialDiscountIntent | null
+      shipping_method_id: string
+    } => shippingMethod.discount !== undefined
+  )
+
+  if (validParsedShippingMethods.length !== parsedShippingMethods.length) {
+    return
+  }
 
   const snapshotItemsById = new Map(
     snapshot.items.map((item) => [item.item_id, item])
@@ -370,6 +433,36 @@ function buildPayload(
 
     return payloadItem
   })
+  const snapshotShippingMethodsById = new Map(
+    snapshot.shipping_methods.map((shippingMethod) => [
+      shippingMethod.shipping_method_id,
+      shippingMethod,
+    ])
+  )
+  const shippingMethods = validParsedShippingMethods.flatMap(
+    (shippingMethod) => {
+      const snapshotShippingMethod = snapshotShippingMethodsById.get(
+        shippingMethod.shipping_method_id
+      )
+      const snapshotDiscount = snapshotShippingMethod
+        ? getManualAmountDiscount(
+            snapshotShippingMethod,
+            MANUAL_SHIPPING_DISCOUNT_CODE
+          )
+        : null
+
+      if (areDiscountsEqual(shippingMethod.discount, snapshotDiscount)) {
+        return []
+      }
+
+      return [
+        {
+          discount: shippingMethod.discount,
+          shipping_method_id: shippingMethod.shipping_method_id,
+        },
+      ]
+    }
+  )
   const snapshotOrderDiscount = getSnapshotOrderDiscount(snapshot)
   const orderDiscount = parseDiscount(
     draft.order_discount_type,
@@ -387,6 +480,7 @@ function buildPayload(
     expected_order_version: snapshot.expected_order_version,
     internal_note: draft.internal_note.trim() || undefined,
     items,
+    shipping_methods: shippingMethods,
   }
 
   if (!areDiscountsEqual(orderDiscount, snapshotOrderDiscount)) {
@@ -410,6 +504,15 @@ function getItemPreview(
   itemId: string
 ) {
   return preview?.items.find((item) => item.item_id === itemId)
+}
+
+function getShippingMethodPreview(
+  preview: CommercialValuesPreview | undefined,
+  shippingMethodId: string
+) {
+  return preview?.shipping_methods.find(
+    (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId
+  )
 }
 
 function getPreviewPayloadKey(payload: CommercialValuesPayload) {
@@ -537,6 +640,19 @@ const CommercialValuesDrawer = ({
       ...draft,
       items: draft.items.map((item) =>
         item.item_id === itemId ? { ...item, ...patch } : item
+      ),
+    })
+  }
+  const updateShippingMethod = (
+    shippingMethodId: string,
+    patch: Partial<DraftShippingMethod>
+  ) => {
+    onDraftChange({
+      ...draft,
+      shipping_methods: draft.shipping_methods.map((shippingMethod) =>
+        shippingMethod.shipping_method_id === shippingMethodId
+          ? { ...shippingMethod, ...patch }
+          : shippingMethod
       ),
     })
   }
@@ -735,6 +851,98 @@ const CommercialValuesDrawer = ({
               )
             })}
           </div>
+
+          {snapshot.shipping_methods.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              <Text className="text-ui-fg-subtle" size="small" weight="plus">
+                {t("orderCommercialValues.fields.shippingMethods")}
+              </Text>
+              {snapshot.shipping_methods.map((shippingMethod) => {
+                const draftShippingMethod = draft.shipping_methods.find(
+                  (candidate) =>
+                    candidate.shipping_method_id ===
+                    shippingMethod.shipping_method_id
+                )
+                const shippingMethodPreview = getShippingMethodPreview(
+                  preview,
+                  shippingMethod.shipping_method_id
+                )
+
+                if (!draftShippingMethod) {
+                  return null
+                }
+
+                return (
+                  <div
+                    className="rounded-lg border border-ui-border-base bg-ui-bg-base p-4 shadow-elevation-card-rest"
+                    key={shippingMethod.shipping_method_id}
+                  >
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0">
+                        <Text
+                          className="truncate text-ui-fg-base"
+                          weight="plus"
+                        >
+                          {shippingMethod.name ||
+                            t("orderCommercialValues.fields.shipping")}
+                        </Text>
+                        <Text className="mt-0.5 text-ui-fg-subtle" size="small">
+                          {t("orderCommercialValues.fields.shipping")}
+                        </Text>
+                      </div>
+                      <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2 text-right sm:min-w-[160px]">
+                        <Text className="text-ui-fg-subtle" size="small">
+                          {t("orderCommercialValues.item.line")}
+                        </Text>
+                        <Text className="mt-1" weight="plus">
+                          {formatMoney(
+                            shippingMethodPreview?.final_total_with_tax ??
+                              shippingMethod.current_subtotal +
+                                shippingMethod.current_tax_total,
+                            snapshot.currency_code,
+                            locale
+                          )}
+                        </Text>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 border-ui-border-base border-t pt-4">
+                      <div className="md:max-w-[420px]">
+                        <Text className="mb-2 text-ui-fg-subtle" size="small">
+                          {t("orderCommercialValues.fields.shippingDiscount")}
+                        </Text>
+                        <DiscountControls
+                          disabled={!snapshot.editable}
+                          onTypeChange={(discountType) =>
+                            updateShippingMethod(
+                              shippingMethod.shipping_method_id,
+                              {
+                                discount_type: discountType,
+                                discount_value:
+                                  discountType === "none"
+                                    ? ""
+                                    : draftShippingMethod.discount_value,
+                              }
+                            )
+                          }
+                          onValueChange={(discountValue) =>
+                            updateShippingMethod(
+                              shippingMethod.shipping_method_id,
+                              {
+                                discount_value: discountValue,
+                              }
+                            )
+                          }
+                          type={draftShippingMethod.discount_type}
+                          value={draftShippingMethod.discount_value}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
 
           <div className="grid gap-4 rounded-lg border border-ui-border-base bg-ui-bg-base p-4 md:grid-cols-[minmax(0,1fr)_160px]">
             <div>

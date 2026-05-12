@@ -32,6 +32,7 @@ import {
   isManualDiscountAdjustment,
   MANUAL_ITEM_DISCOUNT_CODE,
   MANUAL_ORDER_DISCOUNT_CODE,
+  MANUAL_SHIPPING_DISCOUNT_CODE,
 } from "../../utils/order-commercial-values"
 
 type ApplyCommercialValuesOrderItem = {
@@ -41,19 +42,26 @@ type ApplyCommercialValuesOrderItem = {
   unit_price?: number | string | null
 }
 
+type ApplyCommercialValuesShippingMethod = {
+  id: string
+  adjustments?: CommercialAdjustmentInput[] | null
+}
+
 type ReplacementAdjustment = {
   amount: number
   code?: string
   description?: string
   is_tax_inclusive?: boolean
-  item_id: string
+  item_id?: string
   promotion_id?: string
   provider_id?: string
+  shipping_method_id?: string
 }
 
 export type ApplyCommercialValuesOrder = {
   id: string
   items?: ApplyCommercialValuesOrderItem[] | null
+  shipping_methods?: ApplyCommercialValuesShippingMethod[] | null
 }
 
 type ActiveOrderChange = {
@@ -70,6 +78,8 @@ type ActiveOrderChangeRecord = {
 }
 
 type CommercialValuesPreviewItem = CommercialValuesPreview["items"][number]
+type CommercialValuesPreviewShippingMethod =
+  CommercialValuesPreview["shipping_methods"][number]
 
 type ApplyCommercialValuesInput = {
   actor_id?: string
@@ -169,47 +179,89 @@ function getPreviewItem(preview: CommercialValuesPreview, itemId: string) {
   return preview.items.find((item) => item.item_id === itemId)
 }
 
+function getRequestedShippingMethod(
+  request: CommercialValuesConfirmRequest,
+  shippingMethodId: string
+) {
+  return request.shipping_methods?.find(
+    (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId
+  )
+}
+
+function getPreviewShippingMethod(
+  preview: CommercialValuesPreview,
+  shippingMethodId: string
+) {
+  return preview.shipping_methods.find(
+    (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId
+  )
+}
+
 function toReplacementAdjustment(
   adjustment: CommercialAdjustmentInput,
-  itemId: string
+  reference: { item_id?: string; shipping_method_id?: string }
 ): ReplacementAdjustment {
   return {
     amount: adjustment.amount,
     code: adjustment.code ?? undefined,
     description: adjustment.description ?? undefined,
     is_tax_inclusive: adjustment.is_tax_inclusive ?? undefined,
-    item_id: adjustment.item_id ?? itemId,
+    item_id: adjustment.item_id ?? reference.item_id,
     promotion_id: adjustment.promotion_id ?? undefined,
     provider_id: adjustment.provider_id ?? undefined,
+    shipping_method_id:
+      adjustment.shipping_method_id ?? reference.shipping_method_id,
   }
 }
 
-function getPreservedAdjustments(item: ApplyCommercialValuesOrderItem) {
-  return (item.adjustments ?? [])
+function getPreservedAdjustments(
+  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod
+) {
+  return (target.adjustments ?? [])
     .filter((adjustment) => !isManualDiscountAdjustment(adjustment))
-    .map((adjustment) => toReplacementAdjustment(adjustment, item.id))
+    .map((adjustment) =>
+      toReplacementAdjustment(adjustment, getAdjustmentReference(target))
+    )
 }
 
 function hasExistingManualAdjustment(
-  item: ApplyCommercialValuesOrderItem,
+  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod,
   code: string
 ) {
-  return (item.adjustments ?? []).some((adjustment) => adjustment.code === code)
+  return (target.adjustments ?? []).some(
+    (adjustment) => adjustment.code === code
+  )
 }
 
 function getExistingManualAdjustments(
-  item: ApplyCommercialValuesOrderItem,
+  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod,
   code: string
 ) {
-  return (item.adjustments ?? [])
+  return (target.adjustments ?? [])
     .filter((adjustment) => adjustment.code === code)
-    .map((adjustment) => toReplacementAdjustment(adjustment, item.id))
+    .map((adjustment) =>
+      toReplacementAdjustment(adjustment, getAdjustmentReference(target))
+    )
 }
 
 function hasRequestedItemDiscount(
   requested: ReturnType<typeof getRequestedItem>
 ) {
   return requested ? "discount" in requested : false
+}
+
+function hasRequestedShippingDiscount(
+  requested: ReturnType<typeof getRequestedShippingMethod>
+) {
+  return requested ? "discount" in requested : false
+}
+
+function getAdjustmentReference(
+  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod
+) {
+  return "unit_price" in target
+    ? { item_id: target.id }
+    : { shipping_method_id: target.id }
 }
 
 function buildManualDiscountAdjustments({
@@ -254,6 +306,54 @@ function buildManualDiscountAdjustments({
   return manualAdjustments
 }
 
+function buildManualShippingDiscountAdjustments({
+  orderDiscountRequested,
+  previewShippingMethod,
+  shippingDiscountRequested,
+  shippingMethod,
+}: {
+  orderDiscountRequested: boolean
+  previewShippingMethod: CommercialValuesPreviewShippingMethod
+  shippingDiscountRequested: boolean
+  shippingMethod: ApplyCommercialValuesShippingMethod
+}) {
+  const manualAdjustments: ReplacementAdjustment[] = []
+
+  if (!shippingDiscountRequested) {
+    manualAdjustments.push(
+      ...getExistingManualAdjustments(
+        shippingMethod,
+        MANUAL_SHIPPING_DISCOUNT_CODE
+      )
+    )
+  } else if (previewShippingMethod.manual_shipping_discount_amount > 0) {
+    manualAdjustments.push({
+      amount: previewShippingMethod.manual_shipping_discount_amount,
+      code: MANUAL_SHIPPING_DISCOUNT_CODE,
+      description: "Manual shipping discount",
+      shipping_method_id: shippingMethod.id,
+    })
+  }
+
+  if (!orderDiscountRequested) {
+    manualAdjustments.push(
+      ...getExistingManualAdjustments(
+        shippingMethod,
+        MANUAL_ORDER_DISCOUNT_CODE
+      )
+    )
+  } else if (previewShippingMethod.manual_order_discount_amount > 0) {
+    manualAdjustments.push({
+      amount: previewShippingMethod.manual_order_discount_amount,
+      code: MANUAL_ORDER_DISCOUNT_CODE,
+      description: "Allocated manual order discount",
+      shipping_method_id: shippingMethod.id,
+    })
+  }
+
+  return manualAdjustments
+}
+
 function shouldReplaceManualDiscounts({
   item,
   itemDiscountRequested,
@@ -277,11 +377,37 @@ function shouldReplaceManualDiscounts({
   return shouldReplaceItemDiscount || shouldReplaceOrderDiscount
 }
 
+function shouldReplaceManualShippingDiscounts({
+  orderDiscountRequested,
+  previewShippingMethod,
+  shippingDiscountRequested,
+  shippingMethod,
+}: {
+  orderDiscountRequested: boolean
+  previewShippingMethod: CommercialValuesPreviewShippingMethod
+  shippingDiscountRequested: boolean
+  shippingMethod: ApplyCommercialValuesShippingMethod
+}) {
+  const shouldReplaceShippingDiscount =
+    shippingDiscountRequested &&
+    (hasExistingManualAdjustment(
+      shippingMethod,
+      MANUAL_SHIPPING_DISCOUNT_CODE
+    ) ||
+      previewShippingMethod.manual_shipping_discount_amount > 0)
+  const shouldReplaceOrderDiscount =
+    orderDiscountRequested &&
+    (hasExistingManualAdjustment(shippingMethod, MANUAL_ORDER_DISCOUNT_CODE) ||
+      previewShippingMethod.manual_order_discount_amount > 0)
+
+  return shouldReplaceShippingDiscount || shouldReplaceOrderDiscount
+}
+
 function buildItemUpdateInputs(
   order: ApplyCommercialValuesOrder,
   request: CommercialValuesConfirmRequest
 ) {
-  return (order.items ?? []).flatMap((item) => {
+  const itemActions = (order.items ?? []).flatMap((item) => {
     const requested = getRequestedItem(request, item.id)
     const currentUnitPrice = toFiniteNumber(item.unit_price)
 
@@ -298,6 +424,8 @@ function buildItemUpdateInputs(
       },
     ]
   })
+
+  return itemActions
 }
 
 function buildReplacementActions({
@@ -311,7 +439,7 @@ function buildReplacementActions({
   preview: CommercialValuesPreview
   request: CommercialValuesConfirmRequest
 }) {
-  return (order.items ?? []).flatMap((item) => {
+  const itemActions = (order.items ?? []).flatMap((item) => {
     const requested = getRequestedItem(request, item.id)
     const previewItem = getPreviewItem(preview, item.id)
 
@@ -358,6 +486,63 @@ function buildReplacementActions({
       },
     ]
   })
+
+  const shippingActions = (order.shipping_methods ?? []).flatMap(
+    (shippingMethod) => {
+      const requested = getRequestedShippingMethod(request, shippingMethod.id)
+      const previewShippingMethod = getPreviewShippingMethod(
+        preview,
+        shippingMethod.id
+      )
+
+      if (!previewShippingMethod) {
+        return []
+      }
+
+      const shippingDiscountRequested = hasRequestedShippingDiscount(requested)
+      const orderDiscountRequested = request.order_discount !== undefined
+      const preservedAdjustments = getPreservedAdjustments(shippingMethod)
+      const manualAdjustments = buildManualShippingDiscountAdjustments({
+        orderDiscountRequested,
+        previewShippingMethod,
+        shippingDiscountRequested,
+        shippingMethod,
+      })
+
+      if (
+        !shouldReplaceManualShippingDiscounts({
+          orderDiscountRequested,
+          previewShippingMethod,
+          shippingDiscountRequested,
+          shippingMethod,
+        })
+      ) {
+        return []
+      }
+
+      return [
+        {
+          action: ChangeActionType.SHIPPING_ADJUSTMENTS_REPLACE,
+          details: {
+            adjustments: [...preservedAdjustments, ...manualAdjustments],
+            manual_discounts: {
+              order_discount_amount:
+                previewShippingMethod.manual_order_discount_amount,
+              shipping_discount_amount:
+                previewShippingMethod.manual_shipping_discount_amount,
+            },
+            reference_id: shippingMethod.id,
+          },
+          internal_note: request.internal_note,
+          order_change_id: activeOrderChange.id,
+          order_id: order.id,
+          version: activeOrderChange.version,
+        },
+      ]
+    }
+  )
+
+  return [...itemActions, ...shippingActions]
 }
 
 async function fetchActiveOrderChange(query: Query, orderId: string) {

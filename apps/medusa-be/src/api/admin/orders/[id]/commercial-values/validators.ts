@@ -27,6 +27,14 @@ export const PostAdminOrderCommercialValuesPreviewSchema = z.object({
     )
     .min(1),
   order_discount: CommercialValuesDiscountIntentSchema.nullish(),
+  shipping_methods: z
+    .array(
+      z.object({
+        discount: CommercialValuesDiscountIntentSchema.nullish(),
+        shipping_method_id: z.string().min(1),
+      })
+    )
+    .optional(),
 })
 
 export type PostAdminOrderCommercialValuesPreviewSchemaType = z.infer<

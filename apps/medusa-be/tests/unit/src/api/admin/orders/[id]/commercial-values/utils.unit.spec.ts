@@ -359,6 +359,78 @@ describe("commercial values route utils", () => {
     expect(preview.delta).toBe(100)
   })
 
+  it("includes shipping methods as discountable commercial values", () => {
+    const order = createMockOrder({
+      shipping_methods: [
+        {
+          adjustments: [{ amount: 10, code: "carrier_promo" }],
+          id: "ship_1",
+          name: "Express",
+          subtotal: 100,
+          tax_total: 20,
+        },
+      ],
+      total: 1120,
+      version: 2,
+    })
+    const snapshot = toCommercialValuesSnapshot(order)
+
+    expect(snapshot.shipping_methods[0]).toMatchObject({
+      current_subtotal: 100,
+      current_tax_total: 20,
+      name: "Express",
+      shipping_method_id: "ship_1",
+    })
+
+    const calculationInput = toCommercialValuesCalculationInput(order, {
+      expected_order_version: 2,
+      items: [{ item_id: "item_1", unit_price: 1000 }],
+      shipping_methods: [
+        {
+          discount: { amount: 25, type: "amount" },
+          shipping_method_id: "ship_1",
+        },
+      ],
+    })
+    const preview = calculateCommercialValuesPreview(calculationInput)
+
+    expect(preview.shipping_discount_total).toBe(25)
+    expect(preview.shipping_methods[0]).toMatchObject({
+      final_total: 65,
+      manual_shipping_discount_amount: 25,
+      shipping_method_id: "ship_1",
+      tax_total: 13,
+    })
+    expect(preview.new_total).toBe(1078)
+  })
+
+  it("allocates order discounts across items and shipping methods", () => {
+    const calculationInput = toCommercialValuesCalculationInput(
+      createMockOrder({
+        shipping_methods: [
+          {
+            id: "ship_1",
+            name: "Express",
+            subtotal: 500,
+            tax_total: 0,
+          },
+        ],
+        total: 1500,
+      }),
+      {
+        expected_order_version: 1,
+        items: [{ item_id: "item_1", unit_price: 1000 }],
+        order_discount: { amount: 150, type: "amount" },
+      }
+    )
+
+    const preview = calculateCommercialValuesPreview(calculationInput)
+
+    expect(preview.items[0].manual_order_discount_amount).toBe(100)
+    expect(preview.shipping_methods[0].manual_order_discount_amount).toBe(50)
+    expect(preview.new_total).toBe(1350)
+  })
+
   it("rejects orders without a currency code", () => {
     expect(() =>
       toCommercialValuesSnapshot(createMockOrder({ currency_code: null }))
