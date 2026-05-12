@@ -7,6 +7,7 @@ type MockPaykitClientOverrides = Omit<
 > & {
   payments?: Partial<PaykitPaymentClient["payments"]>
   refunds?: Partial<NonNullable<PaykitPaymentClient["refunds"]>>
+  customers?: Partial<NonNullable<PaykitPaymentClient["customers"]>>
 }
 
 export const createMockPaykitClient = (
@@ -21,6 +22,10 @@ export const createMockPaykitClient = (
     retrieve: vi.fn().mockResolvedValue({
       id: "provider-payment-1",
       status: "requires_capture",
+    }),
+    update: vi.fn().mockResolvedValue({
+      id: "provider-payment-1",
+      status: "requires_action",
     }),
     capture: vi.fn().mockResolvedValue({
       id: "provider-payment-1",
@@ -39,6 +44,28 @@ export const createMockPaykitClient = (
       amount: 250,
     }),
     ...overrides.refunds,
+  },
+  customers: {
+    create: vi.fn().mockResolvedValue({
+      id: "customer-1",
+      email: "customer@example.com",
+      name: "Customer",
+      phone: "",
+    }),
+    update: vi.fn().mockResolvedValue({
+      id: "customer-1",
+      email: "updated@example.com",
+      name: "Updated",
+      phone: "",
+    }),
+    retrieve: vi.fn().mockResolvedValue({
+      id: "customer-1",
+      email: "customer@example.com",
+      name: "Customer",
+      phone: "",
+    }),
+    delete: vi.fn().mockResolvedValue(null),
+    ...overrides.customers,
   },
   handleWebhook: overrides.handleWebhook,
 })

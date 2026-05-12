@@ -40,8 +40,32 @@ export type PaykitPayment = Record<string, unknown> & {
 
 export type PaykitCustomerInput = string | { email: string }
 
+export type PaykitBillingInfo = {
+  address: {
+    name: string
+    line1: string
+    line2: string
+    city: string
+    state?: string
+    postal_code: string
+    country: string
+    phone?: string
+  }
+  carrier?: string
+  currency: string
+}
+
+export type PaykitCustomer = Record<string, unknown> & {
+  id?: string
+  email?: string
+  name?: string
+  phone?: string
+  metadata?: Record<string, string>
+}
+
 export type PaykitCreatePaymentInput = {
   amount: number
+  billing?: PaykitBillingInfo
   currency: string
   customer: PaykitCustomerInput
   item_id: string | null
@@ -78,6 +102,27 @@ export type PaykitPaymentClient = {
       metadata: Record<string, string> | null
       provider_metadata?: Record<string, unknown>
     }) => Promise<PaykitPayment>
+  }
+  customers?: {
+    create: (input: {
+      billing: PaykitBillingInfo | null
+      email: string
+      metadata?: Record<string, string>
+      name?: string
+      phone: string
+    }) => Promise<PaykitCustomer>
+    update: (
+      id: string,
+      input: {
+        billing?: PaykitBillingInfo | null
+        email?: string
+        metadata?: Record<string, string>
+        name?: string
+        phone?: string
+      }
+    ) => Promise<PaykitCustomer>
+    retrieve: (id: string) => Promise<PaykitCustomer | null>
+    delete: (id: string) => Promise<null>
   }
   handleWebhook?: (
     payload: ProviderWebhookPayload["payload"]

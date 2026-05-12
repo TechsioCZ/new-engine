@@ -78,6 +78,55 @@ describe("PaykitPaymentProviderBase", () => {
     )
   })
 
+  it("passes Medusa customer billing data to PayKit create payment", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await provider.initiatePayment({
+      amount: 1000,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+          billing_address: {
+            first_name: "Ada",
+            last_name: "Lovelace",
+            address_1: "1 Engine Way",
+            address_2: "Suite 2",
+            city: "London",
+            country_code: "GB",
+            postal_code: "NW1",
+            province: "London",
+            phone: "+420123456789",
+          },
+        },
+      },
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billing: {
+          address: {
+            name: "Ada Lovelace",
+            line1: "1 Engine Way",
+            line2: "Suite 2",
+            city: "London",
+            state: "London",
+            postal_code: "NW1",
+            country: "GB",
+            phone: "+420123456789",
+          },
+          currency: "czk",
+        },
+      })
+    )
+  })
+
   it("reads provider id from data.id when capturing payment", async () => {
     const client = createMockPaykitClient()
     const provider = createProvider(client)
@@ -129,6 +178,38 @@ describe("PaykitPaymentProviderBase", () => {
         amount: 250,
       },
       refund_id: "refund-1",
+    })
+  })
+
+  it("passes metadata and provider metadata through on updatePayment", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await provider.updatePayment({
+      amount: 1100,
+      currency_code: "czk",
+      data: {
+        id: "provider-payment-1",
+        metadata: {
+          cart_id: "cart_123",
+          nested: { key: "value" },
+        },
+        provider_metadata: {
+          return_url: "https://shop.example/return",
+        },
+      },
+    })
+
+    expect(client.payments.update).toHaveBeenCalledWith("provider-payment-1", {
+      amount: 1100,
+      currency: "czk",
+      metadata: {
+        cart_id: "cart_123",
+        nested: '{"key":"value"}',
+      },
+      provider_metadata: {
+        return_url: "https://shop.example/return",
+      },
     })
   })
 
@@ -190,6 +271,64 @@ describe("PaykitPaymentProviderBase", () => {
         },
       })
     ).rejects.toThrow("PayKit payment missing-payment could not be retrieved")
+  })
+
+  it("creates PayKit account holders when customer support is available", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await expect(
+      provider.createAccountHolder({
+        context: {
+          customer: {
+            id: "cus_123",
+            email: "customer@example.com",
+            first_name: "Ada",
+            last_name: "Lovelace",
+            phone: "+420123456789",
+          },
+        },
+      })
+    ).resolves.toEqual({
+      id: "customer-1",
+      data: {
+        id: "customer-1",
+        email: "customer@example.com",
+        name: "Customer",
+        phone: "",
+      },
+    })
+    expect(client.customers?.create).toHaveBeenCalledWith({
+      billing: null,
+      email: "customer@example.com",
+      name: "Ada Lovelace",
+      phone: "+420123456789",
+      metadata: {
+        medusa_customer_id: "cus_123",
+      },
+    })
+  })
+
+  it("treats unsupported PayKit customer creation like an optional Medusa provider method", async () => {
+    const unsupported = new Error("Customer creation is not supported")
+    unsupported.name = "ProviderNotSupportedError"
+    const client = createMockPaykitClient({
+      customers: {
+        create: vi.fn().mockRejectedValue(unsupported),
+      },
+    })
+    const provider = createProvider(client)
+
+    await expect(
+      provider.createAccountHolder({
+        context: {
+          customer: {
+            id: "cus_123",
+            email: "customer@example.com",
+          },
+        },
+      })
+    ).resolves.toEqual({})
   })
 
   it("selects the first actionable payment webhook event", async () => {

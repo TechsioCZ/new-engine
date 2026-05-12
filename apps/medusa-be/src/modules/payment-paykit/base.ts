@@ -6,6 +6,10 @@ import type {
   CancelPaymentOutput,
   CapturePaymentInput,
   CapturePaymentOutput,
+  CreateAccountHolderInput,
+  CreateAccountHolderOutput,
+  DeleteAccountHolderInput,
+  DeleteAccountHolderOutput,
   DeletePaymentInput,
   DeletePaymentOutput,
   GetPaymentStatusInput,
@@ -15,8 +19,12 @@ import type {
   ProviderWebhookPayload,
   RefundPaymentInput,
   RefundPaymentOutput,
+  RetrieveAccountHolderInput,
+  RetrieveAccountHolderOutput,
   RetrievePaymentInput,
   RetrievePaymentOutput,
+  UpdateAccountHolderInput,
+  UpdateAccountHolderOutput,
   UpdatePaymentInput,
   UpdatePaymentOutput,
   WebhookActionResult,
@@ -34,10 +42,12 @@ import {
 } from "./mappers"
 import { resolveConfiguredClient } from "./runtime"
 import type {
+  PaykitBillingInfo,
   PaykitCreatePaymentInput,
   PaykitPayment,
   PaykitPaymentClient,
   PaykitProviderOptions,
+  PaykitUpdatePaymentInput,
   PaykitWebhookEvent,
 } from "./types"
 
@@ -49,6 +59,9 @@ type CapturePaymentInputWithAmount = CapturePaymentInput & {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
+
+const isProviderNotSupportedError = (error: unknown): boolean =>
+  error instanceof Error && error.name === "ProviderNotSupportedError"
 
 export abstract class PaykitPaymentProviderBase<
   TOptions extends PaykitProviderOptions = PaykitProviderOptions,
@@ -151,6 +164,64 @@ export abstract class PaykitPaymentProviderBase<
     return normalized
   }
 
+  protected toStringMetadata(
+    metadata?: Record<string, unknown> | null
+  ): Record<string, string> | undefined {
+    if (!metadata) {
+      return
+    }
+
+    return Object.fromEntries(
+      Object.entries(metadata).map(([key, value]) => [
+        key,
+        typeof value === "string" ? value : JSON.stringify(value),
+      ])
+    )
+  }
+
+  protected mapBillingInfo(
+    input:
+      | InitiatePaymentInput
+      | CreateAccountHolderInput
+      | UpdateAccountHolderInput
+  ): PaykitBillingInfo | undefined {
+    const billing = input.context?.customer?.billing_address
+
+    if (!(billing?.address_1 && billing.city && billing.country_code)) {
+      return
+    }
+
+    if (
+      !("currency_code" in input) ||
+      typeof input.currency_code !== "string"
+    ) {
+      return
+    }
+
+    return {
+      address: {
+        name:
+          [
+            input.context?.customer?.first_name,
+            input.context?.customer?.last_name,
+          ]
+            .filter(Boolean)
+            .join(" ") ||
+          input.context?.customer?.email ||
+          input.context?.customer?.id ||
+          "Customer",
+        line1: billing.address_1,
+        line2: billing.address_2 ?? "",
+        city: billing.city,
+        state: billing.province ?? undefined,
+        postal_code: billing.postal_code ?? "",
+        country: billing.country_code,
+        phone: billing.phone ?? input.context?.customer?.phone ?? undefined,
+      },
+      currency: input.currency_code,
+    }
+  }
+
   protected getProviderMetadata(
     data: Record<string, unknown>
   ): Record<string, unknown> {
@@ -159,6 +230,12 @@ export abstract class PaykitPaymentProviderBase<
 
   protected getCreateProviderMetadata(
     _input: InitiatePaymentInput,
+    data: Record<string, unknown>
+  ): Record<string, unknown> {
+    return this.getProviderMetadata(data)
+  }
+
+  protected getUpdateProviderMetadata(
     data: Record<string, unknown>
   ): Record<string, unknown> {
     return this.getProviderMetadata(data)
@@ -245,6 +322,7 @@ export abstract class PaykitPaymentProviderBase<
     const providerMetadata = this.getCreateProviderMetadata(input, data)
     const createInput: PaykitCreatePaymentInput = {
       amount: this.normalizeAmount(input.amount, input.currency_code),
+      billing: this.mapBillingInfo(input),
       currency: input.currency_code,
       metadata,
       provider_metadata: providerMetadata,
@@ -311,10 +389,15 @@ export abstract class PaykitPaymentProviderBase<
       return this.normalizePaymentOutput(payment)
     }
 
-    const payment = await client.payments.update(id, {
+    const updateInput: PaykitUpdatePaymentInput = {
       amount: this.normalizeAmount(input.amount, input.currency_code),
       currency: input.currency_code,
-    })
+      metadata: this.toStringMetadata(
+        input.data?.metadata as Record<string, unknown> | undefined
+      ),
+      provider_metadata: this.getUpdateProviderMetadata(input.data ?? {}),
+    }
+    const payment = await client.payments.update(id, updateInput)
 
     return this.normalizePaymentOutput(payment)
   }
@@ -426,6 +509,151 @@ export abstract class PaykitPaymentProviderBase<
     const payment = await client.payments.cancel(id)
 
     return { data: toPaykitPaymentData(payment) }
+  }
+
+  async retrieveAccountHolder(
+    input: RetrieveAccountHolderInput
+  ): Promise<RetrieveAccountHolderOutput> {
+    const id = input.id
+
+    if (typeof id !== "string" || !id) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PayKit account holder id is missing"
+      )
+    }
+
+    const client = await this.getClient()
+
+    if (!client.customers?.retrieve) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "PayKit provider does not support retrieving account holders"
+      )
+    }
+
+    const customer = await client.customers.retrieve(id)
+
+    if (!customer?.id) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `PayKit account holder ${id} could not be retrieved`
+      )
+    }
+
+    return { id: customer.id, data: customer }
+  }
+
+  async createAccountHolder(
+    input: CreateAccountHolderInput
+  ): Promise<CreateAccountHolderOutput> {
+    const customer = input.context.customer
+
+    if (!customer?.email) {
+      return {} as CreateAccountHolderOutput
+    }
+
+    const client = await this.getClient()
+
+    if (!client.customers?.create) {
+      return {} as CreateAccountHolderOutput
+    }
+
+    try {
+      const providerCustomer = await client.customers.create({
+        billing: this.mapBillingInfo(input) ?? null,
+        email: customer.email,
+        name:
+          [customer.first_name, customer.last_name].filter(Boolean).join(" ") ||
+          customer.email.split("@")[0],
+        phone: customer.phone ?? "",
+        metadata: this.toStringMetadata({
+          medusa_customer_id: customer.id,
+        }),
+      })
+
+      if (!providerCustomer.id) {
+        return {} as CreateAccountHolderOutput
+      }
+
+      return { id: providerCustomer.id, data: providerCustomer }
+    } catch (error) {
+      if (isProviderNotSupportedError(error)) {
+        return {} as CreateAccountHolderOutput
+      }
+
+      throw error
+    }
+  }
+
+  async updateAccountHolder(
+    input: UpdateAccountHolderInput
+  ): Promise<UpdateAccountHolderOutput> {
+    const id = input.context.account_holder.data.id
+
+    if (typeof id !== "string" || !id) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PayKit account holder id is missing from context.account_holder.data.id"
+      )
+    }
+
+    const client = await this.getClient()
+
+    if (!client.customers?.update) {
+      return {}
+    }
+
+    const customer = input.context.customer
+
+    try {
+      const billing = this.mapBillingInfo(input)
+      const providerCustomer = await client.customers.update(id, {
+        ...(billing ? { billing } : {}),
+        email: customer?.email,
+        name: customer
+          ? [customer.first_name, customer.last_name]
+              .filter(Boolean)
+              .join(" ") || customer.email
+          : undefined,
+        phone: customer?.phone ?? undefined,
+      })
+
+      return { data: providerCustomer }
+    } catch (error) {
+      if (isProviderNotSupportedError(error)) {
+        return {}
+      }
+
+      throw error
+    }
+  }
+
+  async deleteAccountHolder(
+    input: DeleteAccountHolderInput
+  ): Promise<DeleteAccountHolderOutput> {
+    const id = input.context.account_holder.data?.id
+
+    if (typeof id !== "string" || !id) {
+      return {}
+    }
+
+    const client = await this.getClient()
+
+    if (!client.customers?.delete) {
+      return {}
+    }
+
+    try {
+      await client.customers.delete(id)
+      return {}
+    } catch (error) {
+      if (isProviderNotSupportedError(error)) {
+        return {}
+      }
+
+      throw error
+    }
   }
 
   async getWebhookActionAndData(

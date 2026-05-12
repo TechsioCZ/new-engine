@@ -9,6 +9,7 @@ import type {
 } from "./types"
 
 type PaykitRuntime = {
+  customers: NonNullable<PaykitPaymentClient["customers"]>
   payments: PaykitPaymentClient["payments"]
   refunds: NonNullable<PaykitPaymentClient["refunds"]>
 }
@@ -73,6 +74,7 @@ export const createPaykitClient = async (
   const paykit = new PayKit(provider)
 
   return {
+    customers: paykit.customers,
     payments: paykit.payments,
     refunds: paykit.refunds,
     handleWebhook: (payload) =>
