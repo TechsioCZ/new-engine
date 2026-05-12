@@ -7,6 +7,7 @@ type EmailLogDTO = {
   id: string
   email_id: string
   customer_id: string | null
+  order_id: string | null
   type: string
   subject: string
   sent_to: string
@@ -37,6 +38,7 @@ const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
   id: emailLog.id,
   email_id: emailLog.email_id,
   customer_id: emailLog.customer_id,
+  order_id: emailLog.order_id,
   type: emailLog.type,
   subject: emailLog.subject,
   sent_to: emailLog.sent_to,

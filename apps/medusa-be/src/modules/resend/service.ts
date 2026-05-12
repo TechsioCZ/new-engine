@@ -7,55 +7,87 @@ import {
   AbstractNotificationProviderService,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { createElement, type ReactNode } from "react"
-import { type CreateEmailOptions, Resend } from "resend"
-import ForgotPasswordEmail from "./emails/forgot-password"
-import OrderPaymentReminderEmail from "./emails/order-payment-reminder"
+import { Resend } from "resend"
 import {
+  getResendTemplateDefinition,
   type ResendEmailTemplate,
-  resendEmailTemplates as templates,
+  type ResendTemplateDefinition,
 } from "./templates"
 
 type ResendOptions = {
   api_key: string
   from: string
-  html_templates?: Record<
-    string,
-    {
-      subject?: string
-      content: string
-    }
-  >
+  request_timeout_ms?: number
 }
 
 type InjectedDependencies = {
   logger: Logger
 }
 
-type ForgotPasswordTemplateData = {
-  reset_url: string
-  store_name?: string
-}
-
-type OrderPaymentReminderTemplateData = {
-  order_display_id: string
-  payment_url: string
-  store_name?: string
-  total?: string
+type NotificationAttachment = {
+  content?: Buffer | string
+  content_type?: string
+  contentType?: string
+  filename?: string | false
+  path?: string
 }
 
 type Template = ResendEmailTemplate
 
-const templateComponents: {
-  [templates.FORGOT_PASSWORD]: (props: ForgotPasswordTemplateData) => ReactNode
-  [templates.ORDER_PAYMENT_REMINDER]: (
-    props: OrderPaymentReminderTemplateData
-  ) => ReactNode
-} = {
-  [templates.FORGOT_PASSWORD]: (props) =>
-    createElement(ForgotPasswordEmail, props),
-  [templates.ORDER_PAYMENT_REMINDER]: (props) =>
-    createElement(OrderPaymentReminderEmail, props),
+type TemplateVariableValue = string | number
+
+type ResendTemplateEmailOptions = {
+  attachments?: {
+    content?: Buffer | string
+    contentType?: string
+    filename?: string | false
+    path?: string
+  }[]
+  from: string
+  template: {
+    id: string
+    variables: Record<string, TemplateVariableValue>
+  }
+  to: string[]
+}
+
+type ResendApiEmailResponse = {
+  id: string
+}
+
+type ResendApiErrorResponse = {
+  message?: string
+  name?: string
+  statusCode?: number
+}
+
+const DEFAULT_RESEND_REQUEST_TIMEOUT_MS = 10_000
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isEmailResponse(value: unknown): value is ResendApiEmailResponse {
+  return isRecord(value) && typeof value.id === "string"
+}
+
+function toErrorResponse(value: unknown): ResendApiErrorResponse {
+  if (!isRecord(value)) {
+    return {}
+  }
+
+  const error: ResendApiErrorResponse = {}
+  if (typeof value.message === "string") {
+    error.message = value.message
+  }
+  if (typeof value.name === "string") {
+    error.name = value.name
+  }
+  if (typeof value.statusCode === "number") {
+    error.statusCode = value.statusCode
+  }
+
+  return error
 }
 
 class ResendNotificationProviderService extends AbstractNotificationProviderService {
@@ -89,48 +121,124 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     }
   }
 
-  protected getTemplate(template: Template) {
-    if (this.options.html_templates?.[template]) {
-      return this.options.html_templates[template].content
+  protected getAttachments(notification: ProviderSendNotificationDTO) {
+    const attachments = (
+      notification as unknown as {
+        attachments?: NotificationAttachment[]
+      }
+    ).attachments
+
+    if (!attachments?.length) {
+      return
     }
 
-    const allowedTemplates = Object.values(templates)
-
-    if (!allowedTemplates.includes(template)) {
-      return null
-    }
-
-    return templateComponents[template]
+    return attachments.map((attachment) => ({
+      content: attachment.content,
+      contentType: attachment.contentType ?? attachment.content_type,
+      filename: attachment.filename,
+      path: attachment.path,
+    }))
   }
 
-  protected getTemplateSubject(template: Template) {
-    if (this.options.html_templates?.[template]?.subject) {
-      return this.options.html_templates[template].subject
-    }
-
-    switch (template) {
-      case templates.FORGOT_PASSWORD:
-        return "Forgot Password"
-      case templates.ORDER_PAYMENT_REMINDER:
-        return "Zaplaťte prosím svou objednávku"
-      default:
-        return "New Email"
-    }
-  }
-
-  protected renderTemplate(
-    template: Template,
+  protected getTemplateVariables(
+    definition: ResendTemplateDefinition,
     data?: Record<string, unknown> | null
   ) {
-    switch (template) {
-      case templates.FORGOT_PASSWORD:
-        return templateComponents[template](data as ForgotPasswordTemplateData)
-      case templates.ORDER_PAYMENT_REMINDER:
-        return templateComponents[template](
-          data as OrderPaymentReminderTemplateData
-        )
-      default:
-        return null
+    const variables: Record<string, TemplateVariableValue> = {}
+    const missingVariables: string[] = []
+
+    for (const variable of definition.requiredVariables) {
+      const value = data?.[variable]
+
+      if (typeof value === "string" || typeof value === "number") {
+        variables[variable] = value
+      } else {
+        missingVariables.push(variable)
+      }
+    }
+
+    for (const variable of definition.optionalVariables) {
+      const value = data?.[variable]
+      variables[variable] =
+        typeof value === "string" || typeof value === "number" ? value : ""
+    }
+
+    return {
+      missingVariables,
+      variables,
+    }
+  }
+
+  protected getRequestTimeoutMs() {
+    const envTimeoutMs = Number(process.env.RESEND_REQUEST_TIMEOUT_MS)
+    if (
+      Number.isFinite(this.options.request_timeout_ms) &&
+      this.options.request_timeout_ms > 0
+    ) {
+      return this.options.request_timeout_ms
+    }
+    if (Number.isFinite(envTimeoutMs) && envTimeoutMs > 0) {
+      return envTimeoutMs
+    }
+    return DEFAULT_RESEND_REQUEST_TIMEOUT_MS
+  }
+
+  protected async sendTemplateEmail(emailOptions: ResendTemplateEmailOptions) {
+    const baseUrl = process.env.RESEND_BASE_URL || "https://api.resend.com"
+    const timeoutMs = this.getRequestTimeoutMs()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      const response = await fetch(`${baseUrl}/emails`, {
+        body: JSON.stringify({
+          attachments: emailOptions.attachments,
+          from: emailOptions.from,
+          template: emailOptions.template,
+          to: emailOptions.to,
+        }),
+        headers: {
+          Authorization: `Bearer ${this.options.api_key}`,
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        signal: controller.signal,
+      })
+
+      const payload: unknown = await response.json()
+
+      if (!response.ok) {
+        return {
+          data: null,
+          error: toErrorResponse(payload),
+        }
+      }
+
+      if (!isEmailResponse(payload)) {
+        return {
+          data: null,
+          error: toErrorResponse(payload),
+        }
+      }
+
+      return {
+        data: payload,
+        error: null,
+      }
+    } catch (error) {
+      let message = "Unknown Resend API error."
+      if (error instanceof Error && error.name === "AbortError") {
+        message = `Resend API request timed out after ${timeoutMs}ms.`
+      } else if (error instanceof Error) {
+        message = error.message
+      }
+
+      return {
+        data: null,
+        error: { message },
+      }
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
 
@@ -138,40 +246,44 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     notification: ProviderSendNotificationDTO
   ): Promise<ProviderSendNotificationResultsDTO> {
     const templateKey = notification.template as Template
-    const template = this.getTemplate(templateKey)
+    const template = getResendTemplateDefinition(templateKey)
 
     if (!template) {
       this.logger.error(
-        `Couldn't find an email template for ${notification.template}. The valid options are ${Object.values(templates)}`
+        `Couldn't find a Resend email template for ${notification.template}.`
       )
       return {}
     }
 
-    const commonOptions = {
+    const { missingVariables, variables } = this.getTemplateVariables(
+      template,
+      notification.data
+    )
+
+    if (missingVariables.length) {
+      this.logger.error(
+        `Missing Resend email template variables for ${templateKey}: ${missingVariables.join(", ")}`
+      )
+      return {}
+    }
+
+    const emailOptions: ResendTemplateEmailOptions = {
+      attachments: this.getAttachments(notification),
       from: this.options.from,
+      template: {
+        id: template.id,
+        variables,
+      },
       to: [notification.to],
-      subject: this.getTemplateSubject(templateKey),
     }
 
-    let emailOptions: CreateEmailOptions
-
-    if (typeof template === "string") {
-      emailOptions = {
-        ...commonOptions,
-        html: template,
-      }
-    } else {
-      emailOptions = {
-        ...commonOptions,
-        react: this.renderTemplate(templateKey, notification.data),
-      }
-    }
-
-    const { data, error } = await this.resendClient.emails.send(emailOptions)
+    const { data, error } = await this.sendTemplateEmail(emailOptions)
 
     if (error || !data) {
       if (error) {
-        this.logger.error("Failed to send email", error)
+        this.logger.error(
+          `Failed to send email: ${error.message ?? "unknown Resend API error"}`
+        )
       } else {
         this.logger.error("Failed to send email: unknown error")
       }
