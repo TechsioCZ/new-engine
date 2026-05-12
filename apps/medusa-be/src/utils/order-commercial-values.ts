@@ -129,6 +129,7 @@ export type CommercialValuesSnapshot = {
 export type CommercialValuesPreviewItem = {
   final_line_total: number
   final_line_total_with_tax: number
+  is_tax_inclusive: boolean
   item_id: string
   line_base: number
   manual_item_discount_amount: number
@@ -145,6 +146,7 @@ export type CommercialValuesPreviewShippingMethod = {
   current_tax_total: number
   final_total: number
   final_total_with_tax: number
+  is_tax_inclusive: boolean
   manual_order_discount_amount: number
   manual_shipping_discount_amount: number
   preserved_adjustment_amount: number
@@ -450,11 +452,12 @@ function calculateShippingMethod(
   )
 
   const currentTaxTotal = getShippingMethodTaxTotal(shippingMethod)
+  const currentTotalWithTax = shippingMethod.current_subtotal + currentTaxTotal
   const preservedAdjustmentAmount = getPreservedAdjustmentAmount(
     shippingMethod.existing_adjustments
   )
   const discountableBase = Math.max(
-    shippingMethod.current_subtotal - preservedAdjustmentAmount,
+    currentTotalWithTax - preservedAdjustmentAmount,
     0
   )
   const manualShippingDiscountAmount = calculateDiscountAmount(
@@ -462,15 +465,20 @@ function calculateShippingMethod(
     discountableBase,
     "shipping"
   )
-  const finalTotal = discountableBase - manualShippingDiscountAmount
+  const finalTotalWithTax = discountableBase - manualShippingDiscountAmount
+  const finalAmounts = splitShippingTotalWithTax(
+    shippingMethod,
+    finalTotalWithTax
+  )
 
   return {
     current_subtotal: shippingMethod.current_subtotal,
     current_tax_total: currentTaxTotal,
-    discountable_base: finalTotal,
-    final_total: finalTotal,
-    final_total_with_tax: finalTotal,
+    discountable_base: finalTotalWithTax,
+    final_total: finalAmounts.subtotal,
+    final_total_with_tax: finalTotalWithTax,
     input_index: inputIndex,
+    is_tax_inclusive: currentTaxTotal > 0,
     manual_order_discount_amount: 0,
     manual_shipping_discount_amount: manualShippingDiscountAmount,
     preserved_adjustment_amount: preservedAdjustmentAmount,
@@ -520,6 +528,7 @@ function calculateItem(
       item.is_discountable === false ? 0 : lineAfterItemDiscount,
     final_line_total: lineAfterItemDiscount,
     input_index: inputIndex,
+    is_tax_inclusive: item.is_tax_inclusive ?? false,
     item_id: item.item_id,
     line_base: lineBase,
     manual_item_discount_amount: manualItemDiscountAmount,
@@ -620,22 +629,27 @@ function getShippingMethodTaxTotal(
   return shippingMethod.current_tax_total
 }
 
-function calculateShippingMethodTaxTotal(
+function splitShippingTotalWithTax(
   shippingMethod: CommercialValuesShippingMethodInput,
-  newSubtotal: number
+  totalWithTax: number
 ) {
   const currentSubtotal = shippingMethod.current_subtotal
   const currentTaxTotal = getShippingMethodTaxTotal(shippingMethod)
+  const currentTotalWithTax = currentSubtotal + currentTaxTotal
 
-  if (currentTaxTotal === 0) {
-    return 0
+  if (currentTaxTotal === 0 || currentTotalWithTax <= 0) {
+    return {
+      subtotal: totalWithTax,
+      tax_total: 0,
+    }
   }
 
-  if (currentSubtotal <= 0) {
-    return newSubtotal === currentSubtotal ? currentTaxTotal : 0
-  }
+  const subtotal = (totalWithTax * currentSubtotal) / currentTotalWithTax
 
-  return (newSubtotal * currentTaxTotal) / currentSubtotal
+  return {
+    subtotal,
+    tax_total: totalWithTax - subtotal,
+  }
 }
 
 export function calculateCommercialValuesPreview(
@@ -707,6 +721,7 @@ export function calculateCommercialValuesPreview(
       final_line_total_with_tax: item.source_item.is_tax_inclusive
         ? finalLineTotal
         : finalLineTotal + taxTotal,
+      is_tax_inclusive: item.is_tax_inclusive,
       item_id: item.item_id,
       line_base: item.line_base,
       manual_item_discount_amount: item.manual_item_discount_amount,
@@ -721,23 +736,25 @@ export function calculateCommercialValuesPreview(
   const shippingMethods = shippingCalculations.map((shippingMethod, index) => {
     const manualOrderDiscountAmount =
       orderAllocations[itemCalculations.length + index] ?? 0
-    const finalTotal = shippingMethod.final_total - manualOrderDiscountAmount
-    const taxTotal = calculateShippingMethodTaxTotal(
+    const finalTotalWithTax =
+      shippingMethod.final_total_with_tax - manualOrderDiscountAmount
+    const finalAmounts = splitShippingTotalWithTax(
       shippingMethod.source_shipping_method,
-      finalTotal
+      finalTotalWithTax
     )
 
     return {
       current_subtotal: shippingMethod.current_subtotal,
       current_tax_total: shippingMethod.current_tax_total,
-      final_total: finalTotal,
-      final_total_with_tax: finalTotal + taxTotal,
+      final_total: finalAmounts.subtotal,
+      final_total_with_tax: finalTotalWithTax,
+      is_tax_inclusive: shippingMethod.is_tax_inclusive,
       manual_order_discount_amount: manualOrderDiscountAmount,
       manual_shipping_discount_amount:
         shippingMethod.manual_shipping_discount_amount,
       preserved_adjustment_amount: shippingMethod.preserved_adjustment_amount,
       shipping_method_id: shippingMethod.shipping_method_id,
-      tax_total: taxTotal,
+      tax_total: finalAmounts.tax_total,
     }
   })
 

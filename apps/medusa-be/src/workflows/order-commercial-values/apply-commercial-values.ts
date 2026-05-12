@@ -286,6 +286,7 @@ function buildManualDiscountAdjustments({
       amount: previewItem.manual_item_discount_amount,
       code: MANUAL_ITEM_DISCOUNT_CODE,
       description: "Manual item discount",
+      is_tax_inclusive: previewItem.is_tax_inclusive || undefined,
       item_id: item.id,
     })
   }
@@ -299,6 +300,7 @@ function buildManualDiscountAdjustments({
       amount: previewItem.manual_order_discount_amount,
       code: MANUAL_ORDER_DISCOUNT_CODE,
       description: "Allocated manual order discount",
+      is_tax_inclusive: previewItem.is_tax_inclusive || undefined,
       item_id: item.id,
     })
   }
@@ -331,6 +333,7 @@ function buildManualShippingDiscountAdjustments({
       amount: previewShippingMethod.manual_shipping_discount_amount,
       code: MANUAL_SHIPPING_DISCOUNT_CODE,
       description: "Manual shipping discount",
+      is_tax_inclusive: previewShippingMethod.is_tax_inclusive || undefined,
       shipping_method_id: shippingMethod.id,
     })
   }
@@ -347,6 +350,7 @@ function buildManualShippingDiscountAdjustments({
       amount: previewShippingMethod.manual_order_discount_amount,
       code: MANUAL_ORDER_DISCOUNT_CODE,
       description: "Allocated manual order discount",
+      is_tax_inclusive: previewShippingMethod.is_tax_inclusive || undefined,
       shipping_method_id: shippingMethod.id,
     })
   }
