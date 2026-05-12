@@ -12,6 +12,7 @@ describe("PayKit runtime helpers", () => {
       getGopayProviderOptions({
         clientId: "client",
         clientSecret: "secret",
+        cloudApiKey: "cloud",
         goId: "goid",
         isSandbox: false,
         webhookUrl: "https://example.com/hooks/gopay",
@@ -19,6 +20,7 @@ describe("PayKit runtime helpers", () => {
     ).toEqual({
       clientId: "client",
       clientSecret: "secret",
+      cloudApiKey: "cloud",
       goId: "goid",
       isSandbox: false,
       webhookUrl: "https://example.com/hooks/gopay",
@@ -31,12 +33,14 @@ describe("PayKit runtime helpers", () => {
       getGopayProviderOptions({
         clientId: "client",
         clientSecret: "secret",
+        cloudApiKey: undefined,
         goId: "goid",
         webhookUrl: "https://example.com/hooks/gopay",
       })
     ).toEqual({
       clientId: "client",
       clientSecret: "secret",
+      cloudApiKey: undefined,
       goId: "goid",
       isSandbox: true,
       webhookUrl: "https://example.com/hooks/gopay",
@@ -48,11 +52,13 @@ describe("PayKit runtime helpers", () => {
     expect(
       getStripeProviderOptions({
         apiKey: "sk_test_123",
+        cloudApiKey: "cloud",
         webhookSecret: "whsec_123",
         debug: true,
       })
     ).toEqual({
       apiKey: "sk_test_123",
+      cloudApiKey: "cloud",
       debug: true,
     })
   })
@@ -71,11 +77,13 @@ describe("PayKit runtime helpers", () => {
   it("maps Comgate options to PayKit's public createComgate options", () => {
     expect(
       getComgateProviderOptions({
+        cloudApiKey: "cloud",
         merchant: "merchant",
         secret: "secret",
         isSandbox: false,
       })
     ).toEqual({
+      cloudApiKey: "cloud",
       merchant: "merchant",
       secret: "secret",
       isSandbox: false,

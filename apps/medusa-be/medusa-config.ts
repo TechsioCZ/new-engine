@@ -28,6 +28,7 @@ const FEATURE_PAYKIT_GOPAY_ENABLED = isPaykitProviderEnabled("GOPAY")
 const FEATURE_PAYKIT_STRIPE_ENABLED = isPaykitProviderEnabled("STRIPE")
 const FEATURE_PAYKIT_COMGATE_ENABLED = isPaykitProviderEnabled("COMGATE")
 
+const PAYKIT_CLOUD_API_KEY = process.env.PAYKIT_CLOUD_API_KEY
 const PAYKIT_DEBUG = process.env.PAYKIT_DEBUG === "1"
 const PAYKIT_PAYMENT_PROVIDERS = [
   ...(FEATURE_PAYKIT_GOPAY_ENABLED
@@ -38,6 +39,7 @@ const PAYKIT_PAYMENT_PROVIDERS = [
           options: {
             clientId: process.env.GOPAY_CLIENT_ID,
             clientSecret: process.env.GOPAY_CLIENT_SECRET,
+            cloudApiKey: PAYKIT_CLOUD_API_KEY,
             goId: process.env.GOPAY_GO_ID,
             isSandbox: parseBooleanEnv(process.env.GOPAY_SANDBOX, true),
             webhookUrl: process.env.GOPAY_WEBHOOK_URL,
@@ -53,6 +55,7 @@ const PAYKIT_PAYMENT_PROVIDERS = [
           id: PAYKIT_STRIPE_PROVIDER_ID,
           options: {
             apiKey: process.env.STRIPE_API_KEY,
+            cloudApiKey: PAYKIT_CLOUD_API_KEY,
             webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
             debug: PAYKIT_DEBUG,
           },
@@ -65,6 +68,7 @@ const PAYKIT_PAYMENT_PROVIDERS = [
           resolve: "./src/modules/payment-paykit/comgate",
           id: PAYKIT_COMGATE_PROVIDER_ID,
           options: {
+            cloudApiKey: PAYKIT_CLOUD_API_KEY,
             merchant: process.env.COMGATE_MERCHANT,
             secret: process.env.COMGATE_SECRET,
             isSandbox: parseBooleanEnv(process.env.COMGATE_SANDBOX, true),

@@ -89,6 +89,7 @@ export type PaykitClientFactory = () =>
   | Promise<PaykitPaymentClient>
 
 export type PaykitProviderOptions = {
+  cloudApiKey?: string
   debug?: boolean
   capture?: boolean
   client?: PaykitPaymentClient
