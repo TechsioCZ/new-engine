@@ -23,6 +23,10 @@
   isolation: isolate;
   background: var(--basePageBg);
   color: var(--baseTextContrast);
+  display: flex;
+  max-height: 50vh;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .dark .rich-html-editor,
@@ -78,8 +82,14 @@
 }
 
 .rich-html-editor [role="toolbar"] {
+  flex: 0 0 auto;
   border-bottom: 1px solid var(--baseBorder);
   border-radius: 0;
+}
+
+.rich-html-editor .mdxeditor-root-contenteditable {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 body.product-description-editor-modal-open
@@ -100,7 +110,7 @@ body.product-description-editor-modal-open .rich-html-editor [role="toolbar"] {
 }
 
 .rich-html-editor-content {
-  min-height: 320px;
+  min-height: min(320px, calc(50vh - 56px));
   padding: 16px;
   color: var(--baseTextContrast);
   outline: none;
