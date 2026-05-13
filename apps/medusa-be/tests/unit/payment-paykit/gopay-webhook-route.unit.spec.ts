@@ -19,12 +19,16 @@ const createRequest = ({
   originalUrl = `${PAYKIT_GOPAY_WEBHOOK_PATH}?id=gopay-payment-1`,
   protocol = "https",
   url = `${PAYKIT_GOPAY_WEBHOOK_PATH}?id=gopay-payment-1`,
+  webhookDelay = 25,
+  webhookRetries = 2,
 }: {
   emit?: ReturnType<typeof vi.fn>
   headers?: Record<string, string>
   originalUrl?: string
   protocol?: string
   url?: string
+  webhookDelay?: number
+  webhookRetries?: number
 } = {}) =>
   ({
     headers,
@@ -35,8 +39,8 @@ const createRequest = ({
         if (key === Modules.PAYMENT) {
           return {
             options: {
-              webhook_delay: 25,
-              webhook_retries: 2,
+              webhook_delay: webhookDelay,
+              webhook_retries: webhookRetries,
             },
           }
         }
@@ -79,6 +83,24 @@ describe("GoPay payment webhook route", () => {
         delay: 25,
       }
     )
+    expect(res.sendStatus).toHaveBeenCalledWith(200)
+  })
+
+  it("preserves explicit zero webhook retry settings", async () => {
+    const emit = vi.fn().mockResolvedValue(undefined)
+    const req = createRequest({
+      emit,
+      webhookDelay: 0,
+      webhookRetries: 0,
+    })
+    const res = createResponse()
+
+    await GET(req, res)
+
+    expect(emit).toHaveBeenCalledWith(expect.any(Object), {
+      attempts: 0,
+      delay: 0,
+    })
     expect(res.sendStatus).toHaveBeenCalledWith(200)
   })
 

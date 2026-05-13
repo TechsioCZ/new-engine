@@ -79,8 +79,8 @@ export const emitPaykitPaymentWebhookEvent = async ({
         },
       },
       {
-        delay: options.webhook_delay || 5000,
-        attempts: options.webhook_retries || 3,
+        delay: options.webhook_delay ?? 5000,
+        attempts: options.webhook_retries ?? 3,
       }
     )
   } catch (error) {

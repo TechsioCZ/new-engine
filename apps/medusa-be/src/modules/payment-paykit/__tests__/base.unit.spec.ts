@@ -388,6 +388,22 @@ describe("PaykitPaymentProviderBase", () => {
     })
   })
 
+  it("returns not supported when PayKit does not return webhook events", async () => {
+    const client = createMockPaykitClient()
+    client.handleWebhook = vi.fn().mockResolvedValue(undefined)
+    const provider = createProvider(client)
+
+    await expect(
+      provider.getWebhookActionAndData({
+        data: {},
+        rawData: "",
+        headers: {},
+      })
+    ).resolves.toEqual({
+      action: PaymentActions.NOT_SUPPORTED,
+    })
+  })
+
   it("does not return webhook data for pending payment events", async () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([

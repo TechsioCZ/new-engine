@@ -3,14 +3,10 @@ import type {
   IPaymentModuleService,
   IRegionModuleService,
   Logger,
+  Query,
   RegionDTO,
-  RemoteQueryFunction,
 } from "@medusajs/framework/types"
-import {
-  ContainerRegistrationKeys,
-  LINKS,
-  Modules,
-} from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { PAYKIT_REGION_PAYMENT_PROVIDER_IDS } from "../workflows/seed/paykit-payment-providers"
 import seedPaykitRegionsWorkflow, {
   type SeedPaykitRegionsWorkflowInput,
@@ -64,30 +60,22 @@ const getEnabledPaykitPaymentProviderIds = async (
 }
 
 const getRegionPaymentProviderLinks = async (
-  remoteQuery: RemoteQueryFunction,
+  query: Query,
   regionIds: string[]
 ): Promise<RegionPaymentProviderLink[]> => {
   if (!regionIds.length) {
     return []
   }
 
-  const query = {
-    service: LINKS.RegionPaymentProvider,
-    variables: {
-      filters: {
-        region_id: regionIds,
-      },
+  const { data } = await query.graph({
+    entity: "region_payment_provider",
+    filters: {
+      region_id: regionIds,
     },
     fields: ["region_id", "payment_provider_id"],
-  } as Parameters<RemoteQueryFunction>[0]
+  })
 
-  const result = await remoteQuery(query)
-
-  if (!Array.isArray(result)) {
-    throw new Error("PayKit region payment provider query returned non-array")
-  }
-
-  return result.flatMap((link) => {
+  return data.flatMap((link) => {
     if (
       typeof link?.region_id === "string" &&
       typeof link.payment_provider_id === "string"
@@ -142,8 +130,11 @@ const toRegionSeedInput = (
   const defaultRegion = defaultRegions.find(
     (seedRegion) => seedRegion.name === region.name
   )
+  const trimmedCurrency = region.currency_code?.trim()
   const currencyCode =
-    region.currency_code?.trim() || defaultRegion?.currencyCode
+    trimmedCurrency === undefined || trimmedCurrency === ""
+      ? defaultRegion?.currencyCode
+      : trimmedCurrency
 
   if (!currencyCode) {
     throw new Error(
@@ -166,9 +157,7 @@ export default async function seedPaykit({ container }: ExecArgs) {
     Modules.PAYMENT
   )
   const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
-  const remoteQuery = container.resolve<RemoteQueryFunction>(
-    ContainerRegistrationKeys.REMOTE_QUERY
-  )
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
   logger.info("Starting PayKit region payment provider seed...")
 
@@ -183,7 +172,7 @@ export default async function seedPaykit({ container }: ExecArgs) {
   const existingRegions = await listAllRegions(regionService)
 
   const paymentProviderLinks = await getRegionPaymentProviderLinks(
-    remoteQuery,
+    query,
     existingRegions.map((region) => region.id)
   )
   const paymentProviderMap = toRegionPaymentProviderMap(paymentProviderLinks)

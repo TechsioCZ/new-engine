@@ -756,8 +756,16 @@ export abstract class PaykitPaymentProviderBase<
 
     const events = await client.handleWebhook(payload)
     const eventList = Array.isArray(events) ? events : [events]
+    const validEvents = eventList.filter(
+      (webhookEvent): webhookEvent is PaykitWebhookEvent =>
+        Boolean(webhookEvent)
+    )
 
-    for (const event of eventList) {
+    if (!validEvents.length) {
+      return { action: PaymentActions.NOT_SUPPORTED }
+    }
+
+    for (const event of validEvents) {
       const result = mapPaykitWebhookEvent(event, {
         normalizeAmount: (amount, payment, webhookEvent) =>
           this.normalizeWebhookAmount(amount, payment, webhookEvent),

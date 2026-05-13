@@ -66,6 +66,54 @@ describe("PaykitComgatePaymentProvider", () => {
     )
   })
 
+  it("uses explicit Medusa payment-session email for Comgate", async () => {
+    const client = createMockPaykitClient()
+    const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await provider.initiatePayment({
+      amount: 10.5,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+        customer: "cus_123",
+        email: "customer@example.com",
+      },
+      context: {},
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: "customer@example.com",
+        provider_metadata: expect.objectContaining({
+          email: "customer@example.com",
+        }),
+      })
+    )
+  })
+
+  it("rejects customer ids without a Comgate email value", async () => {
+    const client = createMockPaykitClient()
+    const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await expect(
+      provider.initiatePayment({
+        amount: 10.5,
+        currency_code: "czk",
+        data: {
+          session_id: "payses_123",
+          item_id: "cart_123",
+          customer: "cus_123",
+        },
+        context: {},
+      })
+    ).rejects.toThrow("PayKit Comgate requires a customer email")
+  })
+
   it("uses configured Comgate payment label before per-payment metadata", async () => {
     const client = createMockPaykitClient()
     const provider = new PaykitComgatePaymentProvider(createMockContainer(), {

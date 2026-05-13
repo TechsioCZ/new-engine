@@ -31,23 +31,16 @@ const getStringValue = (...values: unknown[]): string | undefined => {
   return
 }
 
-const getCustomerEmail = (customer: unknown): string | undefined => {
-  if (typeof customer === "string" && customer.length > 0) {
-    return customer
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const getEmailValue = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return
   }
 
-  if (
-    customer &&
-    typeof customer === "object" &&
-    !Array.isArray(customer) &&
-    "email" in customer &&
-    typeof customer.email === "string" &&
-    customer.email.length > 0
-  ) {
-    return customer.email
-  }
+  const email = value.trim()
 
-  return
+  return EMAIL_PATTERN.test(email) ? email : undefined
 }
 
 export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<PaykitComgateOptions> {
@@ -112,8 +105,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     input: InitiatePaymentInput,
     data: Record<string, unknown>
   ): string {
-    const customer = super.getPaykitCustomer(input, data)
-    const email = getCustomerEmail(customer)
+    const email = this.getComgateCustomerEmail(input, data)
 
     if (!email) {
       throw new MedusaError(
@@ -125,22 +117,21 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     return email
   }
 
+  private getComgateCustomerEmail(
+    input: InitiatePaymentInput,
+    data: Record<string, unknown>
+  ): string | undefined {
+    return (
+      getEmailValue(data.email) ?? getEmailValue(input.context?.customer?.email)
+    )
+  }
+
   protected override getCreateProviderMetadata(
     input: InitiatePaymentInput,
     data: Record<string, unknown>
   ): Record<string, unknown> {
     const providerMetadata = super.getProviderMetadata(data)
-    const customer = data.customer
-    const contextCustomer = input.context?.customer
-    const accountHolderEmail = input.context?.account_holder?.data?.email
-    const email = getStringValue(
-      providerMetadata.email,
-      getCustomerEmail(customer),
-      data.customer_email,
-      data.email,
-      contextCustomer?.email,
-      accountHolderEmail
-    )
+    const email = this.getComgateCustomerEmail(input, data)
     const paymentLabel = getStringValue(
       this.options_.paymentLabel,
       providerMetadata.paymentLabel,
