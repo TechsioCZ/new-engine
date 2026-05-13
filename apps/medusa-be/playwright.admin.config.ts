@@ -44,6 +44,8 @@ const findBundledChromeForTesting = (root: string, prefix: string) => {
       return executablePath
     }
   }
+
+  return
 }
 
 const chromiumExecutablePath =
