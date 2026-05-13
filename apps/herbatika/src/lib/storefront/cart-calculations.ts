@@ -8,6 +8,10 @@ export const asFiniteNumber = (value: unknown): number | null => {
   return value;
 };
 
+const hasExplicitlyNoLineItems = (cart: HttpTypes.StoreCart): boolean => {
+  return Array.isArray(cart.items) && cart.items.length === 0;
+};
+
 export const resolveLineItemQuantity = (
   item: HttpTypes.StoreCartLineItem,
 ): number => {
@@ -54,6 +58,10 @@ export const resolveCartTotalAmount = (
     return 0;
   }
 
+  if (hasExplicitlyNoLineItems(cart)) {
+    return 0;
+  }
+
   const total = asFiniteNumber(cart.total);
   if (total !== null) {
     return total;
@@ -76,6 +84,10 @@ export const resolveCartSubtotalAmount = (
   cart: HttpTypes.StoreCart | null | undefined,
 ): number => {
   if (!cart) {
+    return 0;
+  }
+
+  if (hasExplicitlyNoLineItems(cart)) {
     return 0;
   }
 
@@ -107,7 +119,9 @@ export const resolveCartSubtotalAmount = (
 
   return (
     cart.items?.reduce(
-      (sum, item) => sum + (asFiniteNumber(item.subtotal) ?? resolveLineItemTotalAmount(item)),
+      (sum, item) =>
+        sum +
+        (asFiniteNumber(item.subtotal) ?? resolveLineItemTotalAmount(item)),
       0,
     ) ?? 0
   );
@@ -117,6 +131,10 @@ export const resolveCartTaxAmount = (
   cart: HttpTypes.StoreCart | null | undefined,
 ): number => {
   if (!cart) {
+    return 0;
+  }
+
+  if (hasExplicitlyNoLineItems(cart)) {
     return 0;
   }
 
