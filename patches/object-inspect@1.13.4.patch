@@ -1,0 +1,27 @@
+diff --git a/index.js b/index.js
+index a4b2d4cd850adb5cda64eb9e5692457a73c0947e..794c644b86cfb812dd76dac685436ba79e644b0a 100644
+--- a/index.js
++++ b/index.js
+@@ -66,7 +66,10 @@ function addNumericSeparator(num, str) {
+ }
+ 
+ var utilInspect = require('./util.inspect');
+-var inspectCustom = utilInspect.custom;
++var inspectCustom = null;
++try {
++	inspectCustom = utilInspect && utilInspect.custom;
++} catch (_) {}
+ var inspectSymbol = isSymbol(inspectCustom) ? inspectCustom : null;
+ 
+ var quotes = {
+diff --git a/util.inspect.js b/util.inspect.js
+index 7784fab55d08875a01b24636f3a541c3d0bd39b2..7c1697c792c5260d0218c8d87e1d08615cafa5a8 100644
+--- a/util.inspect.js
++++ b/util.inspect.js
+@@ -1 +1,5 @@
+-module.exports = require('util').inspect;
++try {
++	module.exports = require('util').inspect || {};
++} catch (_) {
++	module.exports = {};
++}

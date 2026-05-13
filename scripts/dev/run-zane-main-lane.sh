@@ -390,9 +390,9 @@ run_admin_build_smoke_stage() {
   common::step "Building medusa-be and testing generated admin assets locally..."
 
   (
-    cd "$ROOT_DIR"
-    pnpm exec nx run medusa-be:build >&2
-    pnpm --dir apps/medusa-be test:e2e:admin:built >&2
+    cd "$ROOT_DIR/apps/medusa-be"
+    pnpm build:admin-smoke-output >&2
+    pnpm test:e2e:admin:built >&2
   ) || common::die "Local Medusa admin build smoke failed."
 
   jq -cn '{skipped:false}'

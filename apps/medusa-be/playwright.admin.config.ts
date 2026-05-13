@@ -4,6 +4,8 @@ import { defineConfig, devices } from "@playwright/test"
 
 const useBuiltAdmin = process.env.MEDUSA_ADMIN_E2E_USE_BUILT_ADMIN === "1"
 const builtAdminBaseURL = "http://127.0.0.1:9180"
+const builtAdminRoot =
+  process.env.MEDUSA_ADMIN_E2E_BUILT_ADMIN_ROOT ?? ".medusa/server/public/admin"
 
 const baseURL =
   process.env.MEDUSA_ADMIN_E2E_BASE_URL ??
@@ -13,7 +15,7 @@ const baseURL =
 const webServerCommand =
   process.env.MEDUSA_ADMIN_E2E_WEB_SERVER_COMMAND ??
   (useBuiltAdmin
-    ? "node ./scripts/serve-built-admin.mjs --host 127.0.0.1 --port 9180"
+    ? `node ./scripts/serve-built-admin.mjs --host 127.0.0.1 --port 9180 --root ${builtAdminRoot}`
     : undefined)
 const homeDirectory = process.env.HOME
 

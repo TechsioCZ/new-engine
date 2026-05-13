@@ -31,8 +31,8 @@
     "@playwright/test": "^1.58.2",
     "@swc-node/register": "~1.11.1",
     "@swc/core": "~1.15.3",
-    "@typescript-eslint/parser": "^8.47.0",
     "@types/bun": "1.3.3",
+    "@typescript-eslint/parser": "^8.47.0",
     "cross-env": "^7.0.3",
     "eslint": "^9.39.1",
     "jscpd": "^4.0.5",
@@ -92,7 +92,9 @@
       }
     },
     "patchedDependencies": {
-      "medusa-plugin-content@0.2.0": "patches/medusa-plugin-content@0.2.0.patch"
+      "medusa-plugin-content@0.2.0": "patches/medusa-plugin-content@0.2.0.patch",
+      "@lexical/code@0.35.0": "patches/@lexical__code@0.35.0.patch",
+      "object-inspect@1.13.4": "patches/object-inspect@1.13.4.patch"
     }
   }
 }

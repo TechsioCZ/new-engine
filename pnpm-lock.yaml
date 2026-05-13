@@ -19,9 +19,15 @@ overrides:
 packageExtensionsChecksum: sha256-ybcnxVbiRFpz1dYbThDg02QVZAXChtWD86NDj+Nqi9c=
 
 patchedDependencies:
+  '@lexical/code@0.35.0':
+    hash: 38ef93d18a7c26b06c6c76116b49aa8fca1128da4eb27c3cda2b27d210788fd6
+    path: patches/@lexical__code@0.35.0.patch
   medusa-plugin-content@0.2.0:
     hash: eb886a22c3a3c3ab3ba909ffa78c4f3e344ffa2ad782cbdd1dd91198f877a1b6
     path: patches/medusa-plugin-content@0.2.0.patch
+  object-inspect@1.13.4:
+    hash: 901c1ec93cfdee21c7fbef4ed06bc68e8f176055c3c556d9a5ea9fabcb9cc0eb
+    path: patches/object-inspect@1.13.4.patch
 
 importers:
 
@@ -21258,7 +21264,7 @@ snapshots:
       '@lexical/utils': 0.41.0
       lexical: 0.41.0
 
-  '@lexical/code@0.35.0':
+  '@lexical/code@0.35.0(patch_hash=38ef93d18a7c26b06c6c76116b49aa8fca1128da4eb27c3cda2b27d210788fd6)':
     dependencies:
       '@lexical/utils': 0.35.0
       lexical: 0.35.0
@@ -21385,7 +21391,7 @@ snapshots:
 
   '@lexical/markdown@0.35.0':
     dependencies:
-      '@lexical/code': 0.35.0
+      '@lexical/code': 0.35.0(patch_hash=38ef93d18a7c26b06c6c76116b49aa8fca1128da4eb27c3cda2b27d210788fd6)
       '@lexical/link': 0.35.0
       '@lexical/list': 0.35.0
       '@lexical/rich-text': 0.35.0
@@ -30698,7 +30704,7 @@ snapshots:
       is-typed-array: 1.1.15
       is-weakref: 1.1.1
       math-intrinsics: 1.1.0
-      object-inspect: 1.13.4
+      object-inspect: 1.13.4(patch_hash=901c1ec93cfdee21c7fbef4ed06bc68e8f176055c3c556d9a5ea9fabcb9cc0eb)
       object-keys: 1.1.1
       object.assign: 4.1.7
       own-keys: 1.0.1
@@ -34673,7 +34679,7 @@ snapshots:
 
   object-hash@3.0.0: {}
 
-  object-inspect@1.13.4: {}
+  object-inspect@1.13.4(patch_hash=901c1ec93cfdee21c7fbef4ed06bc68e8f176055c3c556d9a5ea9fabcb9cc0eb): {}
 
   object-keys@1.1.1: {}
 
@@ -36549,27 +36555,27 @@ snapshots:
   side-channel-list@1.0.0:
     dependencies:
       es-errors: 1.3.0
-      object-inspect: 1.13.4
+      object-inspect: 1.13.4(patch_hash=901c1ec93cfdee21c7fbef4ed06bc68e8f176055c3c556d9a5ea9fabcb9cc0eb)
 
   side-channel-map@1.0.1:
     dependencies:
       call-bound: 1.0.4
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
-      object-inspect: 1.13.4
+      object-inspect: 1.13.4(patch_hash=901c1ec93cfdee21c7fbef4ed06bc68e8f176055c3c556d9a5ea9fabcb9cc0eb)
 
   side-channel-weakmap@1.0.2:
     dependencies:
       call-bound: 1.0.4
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
-      object-inspect: 1.13.4
+      object-inspect: 1.13.4(patch_hash=901c1ec93cfdee21c7fbef4ed06bc68e8f176055c3c556d9a5ea9fabcb9cc0eb)
       side-channel-map: 1.0.1
 
   side-channel@1.1.0:
     dependencies:
       es-errors: 1.3.0
-      object-inspect: 1.13.4
+      object-inspect: 1.13.4(patch_hash=901c1ec93cfdee21c7fbef4ed06bc68e8f176055c3c556d9a5ea9fabcb9cc0eb)
       side-channel-list: 1.0.0
       side-channel-map: 1.0.1
       side-channel-weakmap: 1.0.2
