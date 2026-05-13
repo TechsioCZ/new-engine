@@ -6,17 +6,21 @@ const richHtmlEditorPath = join(
   __dirname,
   "../../../../../src/admin/widgets/rich-html-editor.tsx"
 )
+const medusaConfigPath = join(__dirname, "../../../../../medusa-config.ts")
 const CODE_MIRROR_PRISM_GUARD_PATTERN =
   /codeMirrorPlugin\(\s*\{[\s\S]*autoLoadLanguageSupport:\s*false/
 
 const readRichHtmlEditorSource = () => readFileSync(richHtmlEditorPath, "utf8")
+const readMedusaConfigSource = () => readFileSync(medusaConfigPath, "utf8")
 
 describe("rich HTML editor admin runtime safety", () => {
-  it("uses CodeMirror for code blocks so MDXEditor does not require global Prism", () => {
-    const source = readRichHtmlEditorSource()
+  it("keeps the MDXEditor Prism runtime guards enabled", () => {
+    const editorSource = readRichHtmlEditorSource()
+    const medusaConfigSource = readMedusaConfigSource()
 
-    expect(source).toContain("codeBlockPlugin")
-    expect(source).toContain("codeMirrorPlugin")
-    expect(source).toMatch(CODE_MIRROR_PRISM_GUARD_PATTERN)
+    expect(editorSource).toContain("codeBlockPlugin")
+    expect(editorSource).toContain("codeMirrorPlugin")
+    expect(editorSource).toMatch(CODE_MIRROR_PRISM_GUARD_PATTERN)
+    expect(medusaConfigSource).toContain('Prism: "globalThis.Prism"')
   })
 })

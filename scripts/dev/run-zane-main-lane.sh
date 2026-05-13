@@ -404,7 +404,7 @@ run_admin_smoke_stage() {
   (
     cd "$ROOT_DIR"
     MEDUSA_ADMIN_E2E_BASE_URL="$admin_base_url" \
-      pnpm --dir apps/medusa-be test:e2e:admin
+      pnpm --dir apps/medusa-be test:e2e:admin >&2
   ) || common::die "Medusa admin browser smoke failed for ${admin_base_url}."
 
   jq -cn --arg url "$admin_base_url" '{skipped:false, url:$url}'

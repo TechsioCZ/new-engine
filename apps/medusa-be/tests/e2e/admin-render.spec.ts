@@ -61,6 +61,7 @@ test("renders the Medusa admin login without browser errors", async ({
 
   await page.goto("/app/login", { waitUntil: "domcontentloaded" })
   await page.waitForLoadState("networkidle")
+  expectNoBrowserErrors(browserErrors)
 
   await expect(
     page.getByRole("heading", { name: WELCOME_HEADING_NAME })
@@ -92,6 +93,9 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
   const browserErrors = captureBrowserErrors(page)
 
   await page.goto("/app/login", { waitUntil: "domcontentloaded" })
+  await page.waitForLoadState("networkidle")
+  expectNoBrowserErrors(browserErrors)
+
   await page
     .locator('input[name="email"], input[type="email"]')
     .first()
@@ -106,6 +110,7 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
     page.getByRole("button", { name: CONTINUE_WITH_EMAIL_NAME }).click(),
   ])
   await page.waitForLoadState("networkidle")
+  expectNoBrowserErrors(browserErrors)
 
   await expect(
     page.getByRole("button", { name: MEDUSA_STORE_NAME })
@@ -114,6 +119,4 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
     page.getByRole("link", { name: PRODUCTS_LINK_NAME })
   ).toBeVisible()
   await expect(page.getByRole("link", { name: ORDERS_LINK_NAME })).toBeVisible()
-
-  expectNoBrowserErrors(browserErrors)
 })
