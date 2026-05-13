@@ -25,9 +25,7 @@ export function HerbatikaHomepage() {
 
       {controller.leadingSections.map((section) => (
         <HomepageProductCollectionSection
-          isProductAdding={controller.isProductAdding}
           key={section.id}
-          onAddToCart={controller.handleAddToCart}
           onProductHoverEnd={controller.handleProductHoverEnd}
           onProductHoverStart={controller.handleProductHoverStart}
           section={section}
@@ -39,9 +37,7 @@ export function HerbatikaHomepage() {
 
       {controller.trailingSections.map((section) => (
         <HomepageProductCollectionSection
-          isProductAdding={controller.isProductAdding}
           key={section.id}
-          onAddToCart={controller.handleAddToCart}
           onProductHoverEnd={controller.handleProductHoverEnd}
           onProductHoverStart={controller.handleProductHoverStart}
           section={section}

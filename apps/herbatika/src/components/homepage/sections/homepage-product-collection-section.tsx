@@ -6,8 +6,6 @@ import { TextActionLink } from "@/components/text-action-link";
 type HomepageProductCollectionSectionProps = {
   section: HomepageProductSection;
   shouldShowProductSkeleton: boolean;
-  isProductAdding: (product: HttpTypes.StoreProduct) => boolean;
-  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void;
   onProductHoverStart: (product: HttpTypes.StoreProduct) => void;
   onProductHoverEnd: (product: HttpTypes.StoreProduct) => void;
 };
@@ -15,8 +13,6 @@ type HomepageProductCollectionSectionProps = {
 export function HomepageProductCollectionSection({
   section,
   shouldShowProductSkeleton,
-  isProductAdding,
-  onAddToCart,
   onProductHoverStart,
   onProductHoverEnd,
 }: HomepageProductCollectionSectionProps) {
@@ -25,16 +21,15 @@ export function HomepageProductCollectionSection({
       headerAction={
         <TextActionLink href={section.viewAllHref} />
       }
+      display="carousel"
       id={section.id}
-      isProductAdding={isProductAdding}
       keyPrefix={section.id}
-      layout="collection"
-      onAddToCart={onAddToCart}
       onProductHoverEnd={onProductHoverEnd}
       onProductHoverStart={onProductHoverStart}
       products={section.products}
       shouldShowSkeleton={shouldShowProductSkeleton}
       title={section.title}
+      slidesLg={4.08}
     />
   );
 }

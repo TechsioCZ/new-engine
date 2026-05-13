@@ -11,5 +11,5 @@ export {
   PRODUCT_SECTIONS,
 } from "./homepage.content.data";
 
-export const PRODUCTS_PER_GRID_SECTION = HOMEPAGE_PRODUCTS_PER_SECTION;
-export const HERO_PAGE_SIZE = 4;
+export const PRODUCTS_PER_COLLECTION_SECTION = HOMEPAGE_PRODUCTS_PER_SECTION;
+export const HERO_PAGE_SIZE = 8;

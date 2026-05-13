@@ -13,6 +13,9 @@ import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
 
 type InlineProductsCarouselProps = {
   products: HttpTypes.StoreProduct[];
+  keyPrefix?: string;
+  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void;
+  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void;
   slidesSm?: number;
   slidesMd?: number;
   slidesLg?: number;
@@ -57,6 +60,9 @@ function InlineProductsSlides({
 
 export function InlineProductsCarousel({
   products,
+  keyPrefix = "inline-product",
+  onProductHoverStart,
+  onProductHoverEnd,
   slidesSm = 1,
   slidesMd = 2,
   slidesLg = 4,
@@ -84,11 +90,13 @@ export function InlineProductsCarousel({
   };
 
   const slides: CarouselSlide[] = products.map((product, index) => ({
-    id: product.id ?? product.handle ?? `blog-inline-product-${index}`,
+    id: `${keyPrefix}-${product.id ?? product.handle ?? index}`,
     content: (
       <HerbatikaProductCard
         isAdding={Boolean(product.id) && addToCart.isProductAdding(product.id)}
         onAddToCart={handleAddToCart}
+        onProductHoverEnd={onProductHoverEnd}
+        onProductHoverStart={onProductHoverStart}
         product={product}
       />
     ),

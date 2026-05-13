@@ -3,10 +3,9 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import { useMemo } from "react";
 import {
   PRODUCT_SECTIONS,
-  PRODUCTS_PER_GRID_SECTION,
+  PRODUCTS_PER_COLLECTION_SECTION,
 } from "./homepage.data";
 import type { HomepageProductSection } from "./homepage.types";
-import { useHomepageCartActions } from "./use-homepage-cart-actions";
 import { useHomepagePrefetch } from "./use-homepage-prefetch";
 import { useCatalogProducts } from "@/lib/storefront/catalog-products";
 import {
@@ -17,14 +16,10 @@ import { useCategories } from "@/lib/storefront/categories";
 import { HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE } from "@/lib/storefront/homepage-catalog-config";
 
 type UseHomepageControllerResult = {
-  cartMessage: string | null;
-  mutationError: string | null;
   productsError: string | null;
   shouldShowProductSkeleton: boolean;
   leadingSections: HomepageProductSection[];
   trailingSections: HomepageProductSection[];
-  isProductAdding: (product: HttpTypes.StoreProduct) => boolean;
-  handleAddToCart: (product: HttpTypes.StoreProduct) => Promise<void>;
   handleProductHoverStart: (product: HttpTypes.StoreProduct) => void;
   handleProductHoverEnd: (product: HttpTypes.StoreProduct) => void;
 };
@@ -37,7 +32,6 @@ export function useHomepageController(): UseHomepageControllerResult {
     fields: STOREFRONT_CATEGORY_TREE_FIELDS,
   });
 
-  const cartActions = useHomepageCartActions(region);
   const prefetchActions = useHomepagePrefetch(region);
 
   const categoryByHandle = useMemo(() => {
@@ -58,7 +52,7 @@ export function useHomepageController(): UseHomepageControllerResult {
 
   const bestsellersProductsQuery = useCatalogProducts({
     page: 1,
-    limit: PRODUCTS_PER_GRID_SECTION,
+    limit: PRODUCTS_PER_COLLECTION_SECTION,
     sort: "recommended",
     category_id: bestsellersCategoryId ? [bestsellersCategoryId] : undefined,
     enabled: Boolean(region?.region_id && bestsellersCategoryId),
@@ -66,7 +60,7 @@ export function useHomepageController(): UseHomepageControllerResult {
 
   const newProductsQuery = useCatalogProducts({
     page: 1,
-    limit: PRODUCTS_PER_GRID_SECTION,
+    limit: PRODUCTS_PER_COLLECTION_SECTION,
     sort: "newest",
     status: ["new"],
     enabled: Boolean(region?.region_id),
@@ -74,7 +68,7 @@ export function useHomepageController(): UseHomepageControllerResult {
 
   const actionProductsQuery = useCatalogProducts({
     page: 1,
-    limit: PRODUCTS_PER_GRID_SECTION,
+    limit: PRODUCTS_PER_COLLECTION_SECTION,
     sort: "recommended",
     status: ["action"],
     enabled: Boolean(region?.region_id),
@@ -114,8 +108,6 @@ export function useHomepageController(): UseHomepageControllerResult {
   ]);
 
   return {
-    cartMessage: cartActions.cartMessage,
-    mutationError: cartActions.mutationError,
     productsError:
       categoriesQuery.error ??
       bestsellersProductsQuery.error ??
@@ -124,8 +116,6 @@ export function useHomepageController(): UseHomepageControllerResult {
     shouldShowProductSkeleton,
     leadingSections: preparedProductSections.slice(0, 2),
     trailingSections: preparedProductSections.slice(2),
-    isProductAdding: cartActions.isProductAdding,
-    handleAddToCart: cartActions.handleAddToCart,
     handleProductHoverStart: prefetchActions.handleProductHoverStart,
     handleProductHoverEnd: prefetchActions.handleProductHoverEnd,
   };
