@@ -404,6 +404,8 @@ run_admin_smoke_stage() {
   local requested_services_csv
   local triggered_services_csv
   local admin_base_url
+  local admin_smoke_email
+  local admin_smoke_password
 
   jq -e . >/dev/null <<<"$deploy_json" || common::die "Deploy stage did not return valid JSON."
   requested_services_csv="$(jq -r '.requested_services_csv // ""' <<<"$deploy_json")"
@@ -424,11 +426,16 @@ run_admin_smoke_stage() {
 
   common::stage "Admin smoke"
   admin_base_url="$(medusa_admin_base_url)"
+  admin_smoke_email="${MEDUSA_ADMIN_E2E_EMAIL:-admin@example.com}"
+  admin_smoke_password="${MEDUSA_ADMIN_E2E_PASSWORD:-test}"
   common::step "Running browser admin smoke test against ${admin_base_url}..."
+  common::step "Using admin smoke account ${admin_smoke_email}."
 
   (
     cd "$ROOT_DIR"
     MEDUSA_ADMIN_E2E_BASE_URL="$admin_base_url" \
+      MEDUSA_ADMIN_E2E_EMAIL="$admin_smoke_email" \
+      MEDUSA_ADMIN_E2E_PASSWORD="$admin_smoke_password" \
       pnpm --dir apps/medusa-be test:e2e:admin >&2
   ) || common::die "Medusa admin browser smoke failed for ${admin_base_url}."
 

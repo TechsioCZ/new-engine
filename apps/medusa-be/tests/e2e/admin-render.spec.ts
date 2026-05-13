@@ -28,6 +28,7 @@ const skipAuthenticatedAdmin = process.env.MEDUSA_ADMIN_E2E_SKIP_AUTH === "1"
 
 const ADMIN_APP_URL_PATTERN = /\/app\/(?!login)/
 const CONTINUE_WITH_EMAIL_NAME = /continue with email/i
+const INVALID_CREDENTIALS_MESSAGE = /invalid email or password/i
 const MEDUSA_STORE_NAME = /medusa store/i
 const ORDERS_LINK_NAME = /^orders$/i
 const PRODUCTS_LINK_NAME = /^products$/i
@@ -53,6 +54,29 @@ const expectNoBrowserErrors = (errors: string[]) => {
   expect(errors, "admin rendered with browser console/runtime errors").toEqual(
     []
   )
+}
+
+const submitLoginForm = async (page: Page) => {
+  await page.getByRole("button", { name: CONTINUE_WITH_EMAIL_NAME }).click()
+
+  const authResult = await Promise.race([
+    page
+      .waitForURL(ADMIN_APP_URL_PATTERN, {
+        timeout: 30_000,
+        waitUntil: "domcontentloaded",
+      })
+      .then(() => "authenticated" as const),
+    page
+      .getByText(INVALID_CREDENTIALS_MESSAGE)
+      .waitFor({ state: "visible", timeout: 30_000 })
+      .then(() => "invalid_credentials" as const),
+  ])
+
+  if (authResult === "invalid_credentials") {
+    throw new Error(
+      `Medusa admin smoke login failed for ${adminEmail}: invalid email or password. Set MEDUSA_ADMIN_E2E_EMAIL and MEDUSA_ADMIN_E2E_PASSWORD for this deployed environment.`
+    )
+  }
 }
 
 test("renders the Medusa admin login without browser errors", async ({
@@ -106,10 +130,7 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
     .first()
     .fill(adminPassword)
 
-  await Promise.all([
-    page.waitForURL(ADMIN_APP_URL_PATTERN, { timeout: 30_000 }),
-    page.getByRole("button", { name: CONTINUE_WITH_EMAIL_NAME }).click(),
-  ])
+  await submitLoginForm(page)
   await page.waitForLoadState("networkidle")
   expectNoBrowserErrors(browserErrors)
 
