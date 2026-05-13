@@ -1,4 +1,5 @@
 import { vi } from "vitest"
+import type { PaykitInjectedDependencies } from "../base"
 import type { PaykitPaymentClient } from "../types"
 
 type MockPaykitClientOverrides = Omit<
@@ -9,6 +10,10 @@ type MockPaykitClientOverrides = Omit<
   refunds?: Partial<NonNullable<PaykitPaymentClient["refunds"]>>
   customers?: Partial<NonNullable<PaykitPaymentClient["customers"]>>
 }
+
+export const createMockContainer = (): PaykitInjectedDependencies => ({
+  resolve: vi.fn(),
+})
 
 export const createMockPaykitClient = (
   overrides: MockPaykitClientOverrides = {}

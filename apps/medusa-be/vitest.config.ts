@@ -1,13 +1,17 @@
 import { loadEnv } from "@medusajs/framework/utils"
 import { defineConfig } from "vitest/config"
 
+// This config is type-checked as CommonJS in the backend tsconfig, so
+// import.meta.dirname is not valid here even though Biome can suggest it.
+// biome-ignore lint/correctness/noGlobalDirnameFilename: backend tsconfig emits this file as CommonJS.
+const projectRoot = __dirname
 const testType = process.env.TEST_TYPE ?? "unit"
 const isHttpIntegration = testType === "integration:http"
 const isModuleIntegration = testType === "integration:modules"
 const isIntegration = isHttpIntegration || isModuleIntegration
 
 if (isIntegration) {
-  loadEnv("test", process.cwd())
+  loadEnv("test", projectRoot)
 }
 
 let include = ["tests/unit/**/*.unit.spec.ts"]
@@ -21,7 +25,7 @@ if (isModuleIntegration) {
 }
 
 export default defineConfig({
-  root: process.cwd(),
+  root: projectRoot,
   test: {
     environment: "node",
     exclude: [

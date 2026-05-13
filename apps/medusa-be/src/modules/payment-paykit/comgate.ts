@@ -2,7 +2,7 @@ import type {
   BigNumberValue,
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
-import { ModuleProvider, Modules } from "@medusajs/framework/utils"
+import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
 import { fromSmallestCurrencyUnit, toSmallestCurrencyUnit } from "./amounts"
 import {
   type PaykitInjectedDependencies,
@@ -26,6 +26,25 @@ const getStringValue = (...values: unknown[]): string | undefined => {
     if (typeof value === "string" && value.length > 0) {
       return value
     }
+  }
+
+  return
+}
+
+const getCustomerEmail = (customer: unknown): string | undefined => {
+  if (typeof customer === "string" && customer.length > 0) {
+    return customer
+  }
+
+  if (
+    customer &&
+    typeof customer === "object" &&
+    !Array.isArray(customer) &&
+    "email" in customer &&
+    typeof customer.email === "string" &&
+    customer.email.length > 0
+  ) {
+    return customer.email
   }
 
   return
@@ -94,8 +113,16 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     data: Record<string, unknown>
   ): string {
     const customer = super.getPaykitCustomer(input, data)
+    const email = getCustomerEmail(customer)
 
-    return typeof customer === "string" ? customer : customer.email
+    if (!email) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PayKit Comgate requires a customer email"
+      )
+    }
+
+    return email
   }
 
   protected override getCreateProviderMetadata(
@@ -103,12 +130,12 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     data: Record<string, unknown>
   ): Record<string, unknown> {
     const providerMetadata = super.getProviderMetadata(data)
-    const customer = data.customer as { email?: unknown } | string | undefined
+    const customer = data.customer
     const contextCustomer = input.context?.customer
     const accountHolderEmail = input.context?.account_holder?.data?.email
     const email = getStringValue(
       providerMetadata.email,
-      typeof customer === "object" ? customer.email : undefined,
+      getCustomerEmail(customer),
       data.customer_email,
       data.email,
       contextCustomer?.email,

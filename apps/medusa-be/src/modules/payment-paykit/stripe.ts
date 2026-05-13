@@ -173,14 +173,12 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       return false
     }
 
-    const paykitError = error as Error & {
-      code?: unknown
-      provider?: unknown
-    }
+    const code = "code" in error ? error.code : undefined
+    const provider = "provider" in error ? error.provider : undefined
 
     return (
-      paykitError.code === "WEBHOOK_ERROR" &&
-      paykitError.provider === "stripe" &&
+      code === "WEBHOOK_ERROR" &&
+      provider === "stripe" &&
       UNHANDLED_STRIPE_PAYMENT_INTENT_ERROR_PATTERN.test(error.message)
     )
   }

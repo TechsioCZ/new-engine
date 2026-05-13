@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 import { PAYKIT_GOPAY_WEBHOOK_PATH } from "../config"
 import { PaykitGopayPaymentProvider } from "../gopay"
 import { getGopayProviderOptions } from "../runtime"
-import { createMockPaykitClient } from "./helpers"
+import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 describe("PaykitGopayPaymentProvider", () => {
   it("normalizes Medusa major-unit amounts to GoPay smallest units", async () => {
@@ -18,7 +18,9 @@ describe("PaykitGopayPaymentProvider", () => {
         }),
       },
     })
-    const provider = new PaykitGopayPaymentProvider({} as any, { client })
+    const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await provider.initiatePayment({
       amount: 10.5,
@@ -64,7 +66,9 @@ describe("PaykitGopayPaymentProvider", () => {
 
   it("does not double-normalize persisted PayKit amounts during capture", async () => {
     const client = createMockPaykitClient()
-    const provider = new PaykitGopayPaymentProvider({} as any, { client })
+    const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await provider.capturePayment({
       data: {
@@ -81,7 +85,9 @@ describe("PaykitGopayPaymentProvider", () => {
 
   it("normalizes explicit Medusa capture amount to GoPay smallest units", async () => {
     const client = createMockPaykitClient()
-    const provider = new PaykitGopayPaymentProvider({} as any, { client })
+    const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await provider.capturePayment({
       amount: 10.5,
@@ -112,7 +118,9 @@ describe("PaykitGopayPaymentProvider", () => {
         },
       },
     ])
-    const provider = new PaykitGopayPaymentProvider({} as any, { client })
+    const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await expect(
       provider.getWebhookActionAndData({

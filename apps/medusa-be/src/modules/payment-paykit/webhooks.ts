@@ -91,6 +91,5 @@ export const emitPaykitPaymentWebhookEvent = async ({
       provider,
       rawData,
     })
-    throw error
   }
 }

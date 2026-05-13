@@ -1,7 +1,7 @@
 import { PaymentActions } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import { PaykitComgatePaymentProvider } from "../comgate"
-import { createMockPaykitClient } from "./helpers"
+import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 describe("PaykitComgatePaymentProvider", () => {
   it("validates required Comgate options", () => {
@@ -29,7 +29,9 @@ describe("PaykitComgatePaymentProvider", () => {
         }),
       },
     })
-    const provider = new PaykitComgatePaymentProvider({} as any, { client })
+    const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     const result = await provider.initiatePayment({
       amount: 10.5,
@@ -66,7 +68,7 @@ describe("PaykitComgatePaymentProvider", () => {
 
   it("uses configured Comgate payment label before per-payment metadata", async () => {
     const client = createMockPaykitClient()
-    const provider = new PaykitComgatePaymentProvider({} as any, {
+    const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
       client,
       paymentLabel: "Herbatica order",
     })
@@ -124,7 +126,9 @@ describe("PaykitComgatePaymentProvider", () => {
 
   it("does not double-normalize persisted Comgate amounts during capture", async () => {
     const client = createMockPaykitClient()
-    const provider = new PaykitComgatePaymentProvider({} as any, { client })
+    const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await provider.capturePayment({
       data: {
@@ -155,7 +159,9 @@ describe("PaykitComgatePaymentProvider", () => {
         },
       },
     ])
-    const provider = new PaykitComgatePaymentProvider({} as any, { client })
+    const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await expect(
       provider.getWebhookActionAndData({

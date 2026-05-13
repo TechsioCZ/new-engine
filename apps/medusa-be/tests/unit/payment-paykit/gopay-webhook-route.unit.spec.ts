@@ -97,4 +97,26 @@ describe("GoPay payment webhook route", () => {
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({ error: "Missing GoPay payment id" })
   })
+
+  it("logs webhook emit failures without failing the GoPay callback", async () => {
+    const consoleError = vi.spyOn(console, "error").mockReturnValue(undefined)
+    const emit = vi.fn().mockRejectedValue(new Error("event bus unavailable"))
+    const req = createRequest({ emit })
+    const res = createResponse()
+
+    try {
+      await GET(req, res)
+
+      expect(emit).toHaveBeenCalledOnce()
+      expect(consoleError).toHaveBeenCalledWith(
+        "Failed to emit PayKit payment webhook event",
+        expect.objectContaining({
+          provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
+        })
+      )
+      expect(res.sendStatus).toHaveBeenCalledWith(200)
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
 })

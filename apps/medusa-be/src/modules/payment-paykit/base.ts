@@ -99,6 +99,11 @@ const getCaptureAmount = (
 const isProviderNotSupportedError = (error: unknown): boolean =>
   error instanceof Error && error.name === "ProviderNotSupportedError"
 
+const noAccountHolderCreated = (): CreateAccountHolderOutput =>
+  // Medusa's payment module treats an empty provider account-holder response as
+  // "not supported / not created" via isPresent({}) === false.
+  ({}) as unknown as CreateAccountHolderOutput
+
 const joinName = (...values: unknown[]): string | undefined => {
   const name = values
     .filter((value): value is string => typeof value === "string" && !!value)
@@ -636,13 +641,13 @@ export abstract class PaykitPaymentProviderBase<
     const customer = input.context.customer
 
     if (!customer?.email) {
-      return {} as CreateAccountHolderOutput
+      return noAccountHolderCreated()
     }
 
     const client = await this.getClient()
 
     if (!client.customers?.create) {
-      return {} as CreateAccountHolderOutput
+      return noAccountHolderCreated()
     }
 
     try {

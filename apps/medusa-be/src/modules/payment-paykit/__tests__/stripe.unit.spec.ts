@@ -1,7 +1,7 @@
 import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import { PaykitStripePaymentProvider } from "../stripe"
-import { createMockPaykitClient } from "./helpers"
+import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 describe("PaykitStripePaymentProvider", () => {
   it("validates required Stripe options", () => {
@@ -17,17 +17,31 @@ describe("PaykitStripePaymentProvider", () => {
     ).not.toThrow()
   })
 
-  it("creates the default PayKit Stripe client with constructor-safe options", async () => {
-    const provider = new PaykitStripePaymentProvider({} as any, {
-      apiKey: "sk_test_123",
-      webhookSecret: "whsec_123",
+  it("uses configured Stripe clients through the public payment flow", async () => {
+    const client = createMockPaykitClient()
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
     })
 
-    await expect((provider as any).getClient()).resolves.toEqual(
+    await provider.initiatePayment({
+      amount: 10.5,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+        },
+      },
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        payments: expect.any(Object),
-        refunds: expect.any(Object),
-        handleWebhook: expect.any(Function),
+        amount: 1050,
+        currency: "czk",
       })
     )
   })
@@ -44,7 +58,9 @@ describe("PaykitStripePaymentProvider", () => {
         }),
       },
     })
-    const provider = new PaykitStripePaymentProvider({} as any, { client })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     const result = await provider.initiatePayment({
       amount: 10.5,
@@ -84,7 +100,9 @@ describe("PaykitStripePaymentProvider", () => {
 
   it("normalizes three-decimal Stripe currencies to Stripe's nearest-ten smallest units", async () => {
     const client = createMockPaykitClient()
-    const provider = new PaykitStripePaymentProvider({} as any, { client })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await provider.initiatePayment({
       amount: 10.123,
@@ -110,7 +128,9 @@ describe("PaykitStripePaymentProvider", () => {
 
   it("does not double-normalize persisted Stripe amounts during capture", async () => {
     const client = createMockPaykitClient()
-    const provider = new PaykitStripePaymentProvider({} as any, { client })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await provider.capturePayment({
       data: {
@@ -141,7 +161,9 @@ describe("PaykitStripePaymentProvider", () => {
         },
       },
     ])
-    const provider = new PaykitStripePaymentProvider({} as any, { client })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await expect(
       provider.getWebhookActionAndData({
@@ -176,7 +198,9 @@ describe("PaykitStripePaymentProvider", () => {
         },
       },
     ])
-    const provider = new PaykitStripePaymentProvider({} as any, { client })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await expect(
       provider.getWebhookActionAndData({
@@ -207,7 +231,9 @@ describe("PaykitStripePaymentProvider", () => {
     client.handleWebhook = vi
       .fn()
       .mockRejectedValue(unhandledPaymentIntentError)
-    const provider = new PaykitStripePaymentProvider({} as any, { client })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await expect(
       provider.getWebhookActionAndData({
@@ -254,7 +280,9 @@ describe("PaykitStripePaymentProvider", () => {
         },
       },
     ])
-    const provider = new PaykitStripePaymentProvider({} as any, { client })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
 
     await expect(
       provider.getWebhookActionAndData({

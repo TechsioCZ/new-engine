@@ -17,7 +17,7 @@ is useful as a reference, but this app needs a few Medusa-specific fixes:
 - GoPay uses GET callbacks, while Medusa's built-in payment hook is POST-only,
   so GoPay has a small local GET bridge.
 - Provider amounts are normalized explicitly between Medusa major units and
-  provider smallest units.
+  the provider's smallest units.
 - Webhook data is only returned for Medusa-processable actions:
   `AUTHORIZED` and `SUCCESSFUL`.
 

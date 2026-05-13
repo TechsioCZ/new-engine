@@ -5,7 +5,7 @@ import {
   PaykitPaymentProviderBase,
 } from "../base"
 import type { PaykitPaymentClient, PaykitProviderOptions } from "../types"
-import { createMockPaykitClient } from "./helpers"
+import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitProviderOptions> {
   static identifier = "paykit_test"
@@ -24,10 +24,10 @@ class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitProvider
 }
 
 const createProvider = (client = createMockPaykitClient()) =>
-  new TestPaykitPaymentProvider({} as any, { client })
+  new TestPaykitPaymentProvider(createMockContainer(), { client })
 
 const createProviderWithoutClient = () =>
-  new TestPaykitPaymentProvider({} as any, {})
+  new TestPaykitPaymentProvider(createMockContainer(), {})
 
 describe("PaykitPaymentProviderBase", () => {
   it("persists provider payment id inside data.id on initiatePayment", async () => {
