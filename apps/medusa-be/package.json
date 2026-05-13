@@ -25,6 +25,7 @@
     "test:e2e:http": "cross-env TEST_TYPE=integration:http node ./scripts/run-vitest.mjs run --config vitest.config.ts integration-tests/http/*.spec.ts",
     "test:e2e:http:debug": "cross-env TEST_TYPE=integration:http node ./scripts/run-vitest.mjs --config vitest.config.ts integration-tests/http/*.spec.ts --inspect-brk",
     "test:e2e:admin": "pnpm exec playwright test --config playwright.admin.config.ts",
+    "test:e2e:admin:built": "cross-env MEDUSA_ADMIN_E2E_USE_BUILT_ADMIN=1 MEDUSA_ADMIN_E2E_SKIP_AUTH=1 pnpm exec playwright test --config playwright.admin.config.ts -g \"renders the Medusa admin login\"",
     "test:e2e:admin:install-browsers": "pnpm exec playwright install chromium",
     "test:unit": "cross-env TEST_TYPE=unit node ./scripts/run-vitest.mjs run --config vitest.config.ts",
     "test:all": "pnpm test:unit && pnpm test:integration:modules && pnpm test:integration:http",

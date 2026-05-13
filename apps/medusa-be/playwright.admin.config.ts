@@ -2,12 +2,19 @@ import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { defineConfig, devices } from "@playwright/test"
 
+const useBuiltAdmin = process.env.MEDUSA_ADMIN_E2E_USE_BUILT_ADMIN === "1"
+const builtAdminBaseURL = "http://127.0.0.1:9180"
+
 const baseURL =
   process.env.MEDUSA_ADMIN_E2E_BASE_URL ??
   process.env.TEST_BASE_URL ??
-  "http://127.0.0.1:9000"
+  (useBuiltAdmin ? builtAdminBaseURL : "http://127.0.0.1:9000")
 
-const webServerCommand = process.env.MEDUSA_ADMIN_E2E_WEB_SERVER_COMMAND
+const webServerCommand =
+  process.env.MEDUSA_ADMIN_E2E_WEB_SERVER_COMMAND ??
+  (useBuiltAdmin
+    ? "node ./scripts/serve-built-admin.mjs --host 127.0.0.1 --port 9180"
+    : undefined)
 const homeDirectory = process.env.HOME
 
 const findFirstExistingPath = (paths: string[]) =>

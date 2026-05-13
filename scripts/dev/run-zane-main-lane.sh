@@ -373,6 +373,31 @@ medusa_admin_base_url() {
   printf 'https://%s-medusa-be%s.%s\n' "$PROJECT_SLUG" "$PUBLIC_URL_AFFIX" "$PUBLIC_DOMAIN"
 }
 
+run_admin_build_smoke_stage() {
+  if [[ "$SKIP_ADMIN_SMOKE" == "true" ]]; then
+    common::step "Skipping local medusa-be admin build smoke stage by request."
+    jq -cn '{skipped:true, reason:"requested"}'
+    return 0
+  fi
+
+  if ! csv_contains_service "$SERVICES_CSV" "medusa-be"; then
+    common::step "Skipping local medusa-be admin build smoke stage because medusa-be is not in scope."
+    jq -cn '{skipped:true, reason:"medusa_be_not_in_scope"}'
+    return 0
+  fi
+
+  common::stage "Admin build smoke"
+  common::step "Building medusa-be and testing generated admin assets locally..."
+
+  (
+    cd "$ROOT_DIR"
+    pnpm exec nx run medusa-be:build >&2
+    pnpm --dir apps/medusa-be test:e2e:admin:built >&2
+  ) || common::die "Local Medusa admin build smoke failed."
+
+  jq -cn '{skipped:false}'
+}
+
 run_admin_smoke_stage() {
   local deploy_json="$1"
   local deploy_services_csv
@@ -417,6 +442,7 @@ main() {
   local prepare_json='{"skipped":true,"reason":"main_prepare_not_used"}'
   local deploy_json
   local verify_json='{}'
+  local admin_build_smoke_json='{}'
   local admin_smoke_json='{}'
 
   parse_args "$@"
@@ -467,6 +493,9 @@ main() {
     common::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(",")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
   fi
   common::step "Main lane has no active shared-resource pre-deploy phase."
+  admin_build_smoke_json="$(run_admin_build_smoke_stage)"
+  jq -e . >/dev/null <<<"$admin_build_smoke_json" || common::die "Admin build smoke stage did not return valid JSON."
+
   if ! deploy_json="$(run_deploy_stage)"; then
     common::die "Main deploy stage failed. See the deployment error above for the failing stage and deployment hash."
   fi
@@ -493,6 +522,7 @@ main() {
     --argjson prepare_needs "$prepare_needs_json" \
     --argjson downtime_risk "$downtime_json" \
     --argjson prepare "$prepare_json" \
+    --argjson admin_build_smoke "$admin_build_smoke_json" \
     --argjson deploy "$(jq 'del(.runtime_provider_outputs_json)' <<<"$deploy_json")" \
     --argjson verify "$verify_json" \
     --argjson admin_smoke "$admin_smoke_json" \
@@ -505,6 +535,7 @@ main() {
       prepare_needs: $prepare_needs,
       downtime_risk: $downtime_risk,
       prepare: $prepare,
+      admin_build_smoke: $admin_build_smoke,
       deploy: $deploy,
       verify: $verify,
       admin_smoke: $admin_smoke,

@@ -82,10 +82,6 @@ module.exports = defineConfig({
     disable: process.env.MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD === "1",
     // backendUrl: BACKEND_URL,
     vite: () => ({
-      define: {
-        // @lexical/code imports Prism language modules that assume a global Prism identifier.
-        Prism: "globalThis.Prism",
-      },
       build: {
         cssMinify: false,
         minify: false,

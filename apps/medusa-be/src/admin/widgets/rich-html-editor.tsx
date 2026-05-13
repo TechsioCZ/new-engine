@@ -2,8 +2,6 @@ import {
   BlockTypeSelect,
   BoldItalicUnderlineToggles,
   CreateLink,
-  codeBlockPlugin,
-  codeMirrorPlugin,
   headingsPlugin,
   InsertTable,
   InsertThematicBreak,
@@ -28,8 +26,6 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import "./rich-html-editor.css"
 
 const HEADING_TAG_PATTERN = /^h[1-6]$/
-const BACKTICK_RUN_PATTERN = /`+/g
-const CLASS_NAME_SEPARATOR_PATTERN = /\s+/
 const TABLE_CELL_LINE_BREAK_PATTERN = /\s*\n+\s*/g
 const TABLE_CELL_PIPE_PATTERN = /\|/g
 
@@ -39,33 +35,6 @@ type RichHtmlEditorProps = {
   onError?: (message: string) => void
   valueHtml: string
 }
-
-const getLongestBacktickRun = (value: string) =>
-  Math.max(
-    ...(value.match(BACKTICK_RUN_PATTERN)?.map((match) => match.length) ?? [0])
-  )
-
-const getInlineCodeMarkdown = (value: string) => {
-  const delimiter = "`".repeat(getLongestBacktickRun(value) + 1)
-  const needsPadding = value.startsWith("`") || value.endsWith("`")
-
-  return needsPadding
-    ? `${delimiter} ${value} ${delimiter}`
-    : `${delimiter}${value}${delimiter}`
-}
-
-const getCodeBlockMarkdown = (value: string, language = "") => {
-  const delimiter = "`".repeat(Math.max(3, getLongestBacktickRun(value) + 1))
-  const code = value.endsWith("\n") ? value : `${value}\n`
-
-  return `${delimiter}${language}\n${code}${delimiter}\n\n`
-}
-
-const getCodeLanguage = (element: HTMLElement | null) =>
-  element?.className
-    .split(CLASS_NAME_SEPARATOR_PATTERN)
-    .find((className) => className.startsWith("language-"))
-    ?.replace("language-", "") ?? ""
 
 export const htmlToMarkdown = (html: string) => {
   if (!html.trim()) {
@@ -94,17 +63,8 @@ export const htmlToMarkdown = (html: string) => {
       return "---\n\n"
     }
 
-    if (tag === "code" && node.parentElement?.tagName.toLowerCase() !== "pre") {
-      return getInlineCodeMarkdown(node.textContent ?? "")
-    }
-
     if (tag === "pre") {
-      const codeElement = node.querySelector<HTMLElement>("code")
-
-      return getCodeBlockMarkdown(
-        codeElement?.textContent ?? node.textContent ?? "",
-        getCodeLanguage(codeElement)
-      )
+      return `${(node.textContent ?? "").trim()}\n\n`
     }
 
     if (tag === "table") {
@@ -260,23 +220,6 @@ export const RichHtmlEditor = ({
       linkPlugin(),
       linkDialogPlugin(),
       tablePlugin(),
-      codeBlockPlugin({ defaultCodeBlockLanguage: "html" }),
-      codeMirrorPlugin({
-        autoLoadLanguageSupport: false,
-        codeBlockLanguages: {
-          css: "CSS",
-          html: "HTML",
-          javascript: "JavaScript",
-          js: "JavaScript",
-          markdown: "Markdown",
-          md: "Markdown",
-          plain: "Plain Text",
-          plaintext: "Plain Text",
-          text: "Plain Text",
-          ts: "TypeScript",
-          typescript: "TypeScript",
-        },
-      }),
       markdownShortcutPlugin(),
     ],
     []

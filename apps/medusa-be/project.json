@@ -18,6 +18,13 @@
         "cwd": "apps/medusa-be",
         "command": "pnpm test:e2e:admin"
       }
+    },
+    "test-e2e-admin-built": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/medusa-be",
+        "command": "pnpm test:e2e:admin:built"
+      }
     }
   }
 }

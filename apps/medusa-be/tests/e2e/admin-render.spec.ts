@@ -24,6 +24,7 @@ const adminPassword = readEnv(
   "MEDUSA_ADMIN_E2E_PASSWORD",
   "DC_SUPERADMIN_PASSWORD"
 )
+const skipAuthenticatedAdmin = process.env.MEDUSA_ADMIN_E2E_SKIP_AUTH === "1"
 
 const ADMIN_APP_URL_PATTERN = /\/app\/(?!login)/
 const CONTINUE_WITH_EMAIL_NAME = /continue with email/i
@@ -86,7 +87,7 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
   page,
 }) => {
   test.skip(
-    !(adminEmail && adminPassword),
+    skipAuthenticatedAdmin || !(adminEmail && adminPassword),
     "Set MEDUSA_ADMIN_E2E_EMAIL/MEDUSA_ADMIN_E2E_PASSWORD or DC_SUPERADMIN_EMAIL/DC_SUPERADMIN_PASSWORD to smoke-test the authenticated admin shell."
   )
 
