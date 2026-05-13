@@ -360,37 +360,21 @@ export async function setShippingMethod(
   }
 }
 
-function getPaymentSessionData(cart: Cart, providerId: string) {
-  if (providerId !== "pp_paykit_gopay") {
-    return
-  }
-
-  return {
-    customer: cart.email ? { email: cart.email } : undefined,
-    item_id: cart.id,
-    capture_method: "manual",
-    metadata: {
-      cart_id: cart.id,
-    },
-  }
-}
-
-function validatePaymentCollectionInput(cartId: string, providerId: string) {
-  if (!cartId) {
-    throw new CartServiceError("Cart ID je povinné", "PAYMENT_INIT_FAILED")
-  }
-
-  if (!providerId) {
-    throw new CartServiceError("Provider ID je povinné", "PAYMENT_INIT_FAILED")
-  }
-}
-
 export async function createPaymentCollection(
   cartId: string,
   providerId: string
 ) {
   try {
-    validatePaymentCollectionInput(cartId, providerId)
+    if (!cartId) {
+      throw new CartServiceError("Cart ID je povinné", "PAYMENT_INIT_FAILED")
+    }
+
+    if (!providerId) {
+      throw new CartServiceError(
+        "Provider ID je povinné",
+        "PAYMENT_INIT_FAILED"
+      )
+    }
 
     // Get current cart
     const { cart } = await sdk.store.cart.retrieve(cartId)
@@ -415,12 +399,9 @@ export async function createPaymentCollection(
       return { payment_collection: cart.payment_collection }
     }
 
-    const paymentSessionData = getPaymentSessionData(cart, providerId)
-
     // Use the provider selected by user (not hardcoded!)
     const response = await sdk.store.payment.initiatePaymentSession(cart, {
       provider_id: providerId,
-      ...(paymentSessionData ? { data: paymentSessionData } : {}),
     })
 
     if (!response.payment_collection) {
