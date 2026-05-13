@@ -135,7 +135,10 @@ const toPaykitWebhookPayload = (
   body: rawBodyToString(payload.rawData),
   headers: toHeaders(payload.headers),
   fullUrl: getWebhookFullUrl(payload),
-  webhookSecret: (providerOptions.webhookSecret as string | undefined) ?? "",
+  webhookSecret:
+    typeof providerOptions.webhookSecret === "string"
+      ? providerOptions.webhookSecret
+      : "",
 })
 
 const rawBodyToString = (
@@ -186,7 +189,7 @@ const getWebhookFullUrl = (
     }
   }
 
-  const host = payload.headers?.host
+  const host = getFirstHeaderValue(payload.headers?.host)
   const path = data?.url
 
   if (
@@ -196,9 +199,52 @@ const getWebhookFullUrl = (
     return path
   }
 
-  if (typeof host === "string" && typeof path === "string") {
-    return `https://${host}${path}`
+  if (host && typeof path === "string") {
+    const protocol = getWebhookProtocol(payload.headers, host)
+    return `${protocol}://${host}${path}`
   }
 
   return ""
+}
+
+const getFirstHeaderValue = (value: unknown): string | undefined => {
+  if (Array.isArray(value)) {
+    return getFirstHeaderValue(value[0])
+  }
+
+  return typeof value === "string" && value.length > 0 ? value : undefined
+}
+
+const getWebhookProtocol = (
+  headers: ProviderWebhookPayload["payload"]["headers"],
+  host: string
+): "http" | "https" => {
+  const forwardedProto = getFirstHeaderValue(headers?.["x-forwarded-proto"])
+    ?.split(",")[0]
+    ?.trim()
+  const protocol = getFirstHeaderValue(headers?.protocol)
+
+  if (forwardedProto === "http" || forwardedProto === "https") {
+    return forwardedProto
+  }
+
+  if (protocol === "http" || protocol === "https") {
+    return protocol
+  }
+
+  if (
+    process.env.PAYKIT_WEBHOOK_PROTOCOL === "http" ||
+    process.env.PAYKIT_WEBHOOK_PROTOCOL === "https"
+  ) {
+    return process.env.PAYKIT_WEBHOOK_PROTOCOL
+  }
+
+  return isLocalHost(host) ? "http" : "https"
+}
+
+const isLocalHost = (host: string): boolean => {
+  const hostname = host.split(":")[0]
+  return (
+    hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1"
+  )
 }

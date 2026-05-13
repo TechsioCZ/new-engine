@@ -1,8 +1,13 @@
 import type {
+  BigNumberInput,
   BigNumberValue,
   WebhookActionResult,
 } from "@medusajs/framework/types"
-import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
+import {
+  BigNumber,
+  PaymentActions,
+  PaymentSessionStatus,
+} from "@medusajs/framework/utils"
 import type { PaykitPayment, PaykitWebhookEvent } from "../types"
 
 type PaykitWebhookMappingOptions = {
@@ -28,6 +33,18 @@ const isPaykitPayment = (value: unknown): value is PaykitPayment =>
     "amount_paid" in value ||
     "status" in value ||
     "state" in value)
+
+const toBigNumberValue = (value: unknown): BigNumberValue | undefined => {
+  if (typeof value === "number" || typeof value === "string") {
+    return value
+  }
+
+  try {
+    return new BigNumber(value as BigNumberInput)
+  } catch {
+    return
+  }
+}
 
 export const mapPaykitStatusToMedusa = (
   status: unknown
@@ -130,17 +147,6 @@ const normalizeWebhookAmount = (
   amount: unknown
 ): BigNumberValue | undefined => {
   if (
-    typeof amount === "number" ||
-    typeof amount === "string" ||
-    (typeof amount === "object" &&
-      amount !== null &&
-      "toJSON" in amount &&
-      "valueOf" in amount)
-  ) {
-    return amount as BigNumberValue
-  }
-
-  if (
     typeof amount === "object" &&
     amount !== null &&
     "value" in amount &&
@@ -149,7 +155,7 @@ const normalizeWebhookAmount = (
     return amount.value
   }
 
-  return
+  return toBigNumberValue(amount)
 }
 
 const mapPaykitWebhookAction = (

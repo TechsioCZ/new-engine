@@ -1,4 +1,6 @@
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { Modules, PaymentWebhookEvents } from "@medusajs/framework/utils"
+import type { Response } from "express"
 import { describe, expect, it, vi } from "vitest"
 import { GET } from "../../../src/api/hooks/payment/paykit_gopay/route"
 import {
@@ -6,12 +8,15 @@ import {
   PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
 } from "../../../src/modules/payment-paykit/config"
 
-const createResponse = () =>
-  ({
+const createResponse = (): MedusaResponse => {
+  const res = {
     json: vi.fn().mockReturnThis(),
     sendStatus: vi.fn().mockReturnThis(),
     status: vi.fn().mockReturnThis(),
-  }) as any
+  } satisfies Pick<Response, "json" | "sendStatus" | "status">
+
+  return res as MedusaResponse
+}
 
 const createRequest = ({
   emit = vi.fn().mockResolvedValue(undefined),
@@ -29,8 +34,8 @@ const createRequest = ({
   url?: string
   webhookDelay?: number
   webhookRetries?: number
-} = {}) =>
-  ({
+} = {}): MedusaRequest => {
+  const req = {
     headers,
     originalUrl,
     protocol,
@@ -53,7 +58,13 @@ const createRequest = ({
       }),
     },
     url,
-  }) as any
+  } satisfies Partial<MedusaRequest> & {
+    originalUrl: string
+    protocol: string
+  }
+
+  return req as MedusaRequest
+}
 
 describe("GoPay payment webhook route", () => {
   it("emits Medusa payment webhook events for GoPay GET callbacks", async () => {

@@ -106,11 +106,14 @@ const notificationProvider =
 
 const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL?.trim()
 const MEDUSA_COOKIE_SECURE = process.env.MEDUSA_COOKIE_SECURE
-const MEDUSA_COOKIE_SAME_SITE = process.env.MEDUSA_COOKIE_SAME_SITE as
-  | "lax"
-  | "none"
-  | "strict"
-  | undefined
+type MedusaCookieSameSite = "lax" | "none" | "strict"
+const cookieSameSite = process.env.MEDUSA_COOKIE_SAME_SITE
+const MEDUSA_COOKIE_SAME_SITE: MedusaCookieSameSite | undefined =
+  cookieSameSite === "lax" ||
+  cookieSameSite === "none" ||
+  cookieSameSite === "strict"
+    ? cookieSameSite
+    : undefined
 
 let MEDUSA_ADMIN_ALLOWED_HOSTS: true | string[] | undefined
 
@@ -416,16 +419,12 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/database",
     },
-    ...(PAYKIT_PAYMENT_PROVIDERS.length
-      ? [
-          {
-            resolve: "@medusajs/medusa/payment",
-            options: {
-              providers: PAYKIT_PAYMENT_PROVIDERS,
-            },
-          },
-        ]
-      : []),
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: PAYKIT_PAYMENT_PROVIDERS,
+      },
+    },
     // PPL Client Module - config stored in DB, managed via Settings → PPL
     ...(FEATURE_PPL_ENABLED
       ? [

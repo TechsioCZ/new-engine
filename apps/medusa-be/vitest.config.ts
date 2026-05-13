@@ -14,7 +14,10 @@ if (isIntegration) {
   loadEnv("test", projectRoot)
 }
 
-let include = ["tests/unit/**/*.unit.spec.ts"]
+let include = [
+  "tests/unit/**/*.unit.spec.ts",
+  "src/modules/**/__tests__/**/*.unit.spec.ts",
+]
 
 if (isHttpIntegration) {
   include = ["integration-tests/http/**/*.spec.ts"]

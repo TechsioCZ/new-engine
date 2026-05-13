@@ -1,9 +1,22 @@
+import type { CapturePaymentInput } from "@medusajs/framework/types"
 import { PaymentActions } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import { PAYKIT_GOPAY_WEBHOOK_PATH } from "../config"
 import { getGopayProviderOptions } from "../runtime"
 import { PaykitGopayPaymentProvider } from "../services/gopay"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
+
+type CapturePaymentInputWithAmount = CapturePaymentInput & {
+  amount: number
+}
+
+const makeCapturePaymentInput = (): CapturePaymentInputWithAmount => ({
+  amount: 10.5,
+  data: {
+    id: "gopay-payment-1",
+    currency: "czk",
+  },
+})
 
 describe("PaykitGopayPaymentProvider", () => {
   it("normalizes Medusa major-unit amounts to GoPay smallest units", async () => {
@@ -89,13 +102,7 @@ describe("PaykitGopayPaymentProvider", () => {
       client,
     })
 
-    await provider.capturePayment({
-      amount: 10.5,
-      data: {
-        id: "gopay-payment-1",
-        currency: "czk",
-      },
-    } as any)
+    await provider.capturePayment(makeCapturePaymentInput())
 
     expect(client.payments.capture).toHaveBeenCalledWith("gopay-payment-1", {
       amount: 1050,

@@ -36,7 +36,7 @@ export const syncExistingPaykitRegionsStep = createStep(
     for (const region of regionsToSync) {
       const [updatedRegion] = await regionService.updateRegions(
         { id: region.id },
-        { currency_code: region.currencyCode.toLowerCase() }
+        { currency_code: region.currencyCode.trim().toLowerCase() }
       )
 
       if (updatedRegion) {
