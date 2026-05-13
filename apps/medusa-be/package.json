@@ -74,7 +74,7 @@
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.210.0",
     "@opentelemetry/sdk-trace-base": "^2.4.0",
     "@opentelemetry/semantic-conventions": "^1.39.0",
-    "@paykit-sdk/comgate": "^1.0.5",
+    "@paykit-sdk/comgate": "^1.0.6",
     "@paykit-sdk/core": "^1.1.102",
     "@paykit-sdk/gopay": "^1.1.1",
     "@paykit-sdk/stripe": "^1.1.104",

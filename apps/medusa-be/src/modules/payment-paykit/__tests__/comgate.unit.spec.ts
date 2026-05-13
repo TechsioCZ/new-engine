@@ -25,12 +25,13 @@ describe("PaykitComgatePaymentProvider", () => {
           amount: 1050,
           currency: "czk",
           status: "pending",
+          payment_url: "https://payments.comgate.example/redirect",
         }),
       },
     })
     const provider = new PaykitComgatePaymentProvider({} as any, { client })
 
-    await provider.initiatePayment({
+    const result = await provider.initiatePayment({
       amount: 10.5,
       currency_code: "czk",
       data: {
@@ -53,6 +54,12 @@ describe("PaykitComgatePaymentProvider", () => {
           email: "customer@example.com",
           paymentLabel: "Order from Eshop",
         },
+      })
+    )
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: "comgate-payment-1",
+        payment_url: "https://payments.comgate.example/redirect",
       })
     )
   })

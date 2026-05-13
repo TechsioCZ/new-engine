@@ -248,8 +248,8 @@ importers:
         specifier: ^1.39.0
         version: 1.39.0
       '@paykit-sdk/comgate':
-        specifier: ^1.0.5
-        version: 1.0.5(@paykit-sdk/core@1.1.102(@types/node@24.10.1))
+        specifier: ^1.0.6
+        version: 1.0.6(@paykit-sdk/core@1.1.102(@types/node@24.10.1))
       '@paykit-sdk/core':
         specifier: ^1.1.102
         version: 1.1.102(@types/node@24.10.1)
@@ -5686,10 +5686,10 @@ packages:
     resolution: {integrity: sha512-dfUnCxiN9H4ap84DvD2ubjw+3vUNpstxa0TneY/Paat8a3R4uQZDLSvWjmznAY/DoahqTHl9V46HF/Zs3F29pg==}
     engines: {node: '>= 10.0.0'}
 
-  '@paykit-sdk/comgate@1.0.5':
-    resolution: {integrity: sha512-49ylYVLHbs0jyryy9fQeiNJklQeUd7arvnKW9EQ40kqfeGWv/CHuOqZYoyP8PbSE60ck0f2XJhviwEJS7pcDDQ==}
+  '@paykit-sdk/comgate@1.0.6':
+    resolution: {integrity: sha512-oyethWEOWGdB1RPbmqeHClKUTwXEyl9wTDL8MjI3nO2qd40vRyD8o4ycNyAW2q4PGDyd//ZH9lCO80OuRKJ7hw==}
     peerDependencies:
-      '@paykit-sdk/core': '>=1.1.97'
+      '@paykit-sdk/core': '>=1.1.102'
 
   '@paykit-sdk/core@1.1.102':
     resolution: {integrity: sha512-wQPNfA2SVsv5oeqOghlDX/9vXTIpKZZwWIeCYZwdZNaB70GfNakNVzwvsueJFr5yu6MVUXS/BititrpOeZ+dVw==}
@@ -24087,7 +24087,7 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.5.1
     optional: true
 
-  '@paykit-sdk/comgate@1.0.5(@paykit-sdk/core@1.1.102(@types/node@24.10.1))':
+  '@paykit-sdk/comgate@1.0.6(@paykit-sdk/core@1.1.102(@types/node@24.10.1))':
     dependencies:
       '@paykit-sdk/core': 1.1.102(@types/node@24.10.1)
 
