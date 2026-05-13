@@ -426,8 +426,10 @@ run_admin_smoke_stage() {
 
   common::stage "Admin smoke"
   admin_base_url="$(medusa_admin_base_url)"
-  admin_smoke_email="${MEDUSA_ADMIN_E2E_EMAIL:-admin@example.com}"
-  admin_smoke_password="${MEDUSA_ADMIN_E2E_PASSWORD:-test}"
+  admin_smoke_email="${MEDUSA_ADMIN_E2E_EMAIL:-}"
+  admin_smoke_password="${MEDUSA_ADMIN_E2E_PASSWORD:-}"
+  [[ -n "$admin_smoke_email" ]] || common::die "MEDUSA_ADMIN_E2E_EMAIL is required for medusa-be admin smoke. Set it in your shell or ignored .env.zane."
+  [[ -n "$admin_smoke_password" ]] || common::die "MEDUSA_ADMIN_E2E_PASSWORD is required for medusa-be admin smoke. Set it in your shell or ignored .env.zane."
   common::step "Running browser admin smoke test against ${admin_base_url}..."
   common::step "Using admin smoke account ${admin_smoke_email}."
 
