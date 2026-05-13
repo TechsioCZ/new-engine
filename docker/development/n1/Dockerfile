@@ -36,6 +36,7 @@ ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY patches ./patches
@@ -64,6 +65,7 @@ CMD ["npm", "run", "start:ci-dev"]
 # PROD BUILD STAGE - compiles everything
 # ============================================
 FROM base AS build
+ENV CI=true
 
 # Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
