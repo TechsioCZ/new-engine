@@ -3,7 +3,7 @@ import type {
   WebhookActionResult,
 } from "@medusajs/framework/types"
 import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
-import type { PaykitPayment, PaykitWebhookEvent } from "./types"
+import type { PaykitPayment, PaykitWebhookEvent } from "../types"
 
 type PaykitWebhookMappingOptions = {
   normalizeAmount?: (

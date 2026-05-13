@@ -1,5 +1,5 @@
 import { vi } from "vitest"
-import type { PaykitInjectedDependencies } from "../base"
+import type { PaykitInjectedDependencies } from "../core/base"
 import type { PaykitPaymentClient } from "../types"
 
 type MockPaykitClientOverrides = Omit<

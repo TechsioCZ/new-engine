@@ -34,13 +34,7 @@ import {
   MedusaError,
   PaymentActions,
 } from "@medusajs/framework/utils"
-import {
-  getPaymentStatusValue,
-  mapPaykitStatusToMedusa,
-  mapPaykitWebhookEvent,
-  toPaykitPaymentData,
-} from "./mappers"
-import { resolveConfiguredClient } from "./runtime"
+import { resolveConfiguredClient } from "../runtime"
 import type {
   PaykitBillingInfo,
   PaykitCreatePaymentInput,
@@ -50,7 +44,13 @@ import type {
   PaykitProviderOptions,
   PaykitUpdatePaymentInput,
   PaykitWebhookEvent,
-} from "./types"
+} from "../types"
+import {
+  getPaymentStatusValue,
+  mapPaykitStatusToMedusa,
+  mapPaykitWebhookEvent,
+  toPaykitPaymentData,
+} from "../utils/mappers"
 
 export type PaykitInjectedDependencies = Record<string, unknown>
 

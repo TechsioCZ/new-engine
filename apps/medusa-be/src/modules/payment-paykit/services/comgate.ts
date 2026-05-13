@@ -3,21 +3,24 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
-import { fromSmallestCurrencyUnit, toSmallestCurrencyUnit } from "./amounts"
-import {
-  type PaykitInjectedDependencies,
-  PaykitPaymentProviderBase,
-} from "./base"
 import {
   PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
   requirePaykitOptions,
-} from "./config"
-import { createPaykitClient, getComgateProviderOptions } from "./runtime"
+} from "../config"
+import {
+  type PaykitInjectedDependencies,
+  PaykitPaymentProviderBase,
+} from "../core/base"
+import { createPaykitClient, getComgateProviderOptions } from "../runtime"
 import type {
   PaykitComgateOptions,
   PaykitPayment,
   PaykitPaymentClient,
-} from "./types"
+} from "../types"
+import {
+  fromSmallestCurrencyUnit,
+  toSmallestCurrencyUnit,
+} from "../utils/amounts"
 
 const DEFAULT_PAYMENT_LABEL = "Order from Eshop"
 

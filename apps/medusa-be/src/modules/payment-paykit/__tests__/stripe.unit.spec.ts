@@ -1,6 +1,6 @@
 import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
-import { PaykitStripePaymentProvider } from "../stripe"
+import { PaykitStripePaymentProvider } from "../services/stripe"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 describe("PaykitStripePaymentProvider", () => {

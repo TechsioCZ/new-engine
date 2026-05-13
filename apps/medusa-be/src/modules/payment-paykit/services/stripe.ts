@@ -6,28 +6,28 @@ import type {
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
 import {
-  fromStripeSmallestCurrencyUnit,
-  toStripeSmallestCurrencyUnit,
-} from "./amounts"
+  PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
+  requirePaykitOptions,
+} from "../config"
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
-} from "./base"
-import {
-  PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
-  requirePaykitOptions,
-} from "./config"
-import { mapPaykitWebhookEvent } from "./mappers"
+} from "../core/base"
 import {
   createPaykitClient,
   getStripeProviderOptions,
   getStripeWebhookOptions,
-} from "./runtime"
+} from "../runtime"
 import type {
   PaykitPayment,
   PaykitPaymentClient,
   PaykitStripeOptions,
-} from "./types"
+} from "../types"
+import {
+  fromStripeSmallestCurrencyUnit,
+  toStripeSmallestCurrencyUnit,
+} from "../utils/amounts"
+import { mapPaykitWebhookEvent } from "../utils/mappers"
 
 const STRIPE_PAYMENT_INTENT_EVENTS = new Set([
   "payment_intent.created",

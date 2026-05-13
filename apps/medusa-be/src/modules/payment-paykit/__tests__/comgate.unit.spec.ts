@@ -1,6 +1,6 @@
 import { PaymentActions } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
-import { PaykitComgatePaymentProvider } from "../comgate"
+import { PaykitComgatePaymentProvider } from "../services/comgate"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 describe("PaykitComgatePaymentProvider", () => {

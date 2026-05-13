@@ -3,21 +3,24 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
-import { fromSmallestCurrencyUnit, toSmallestCurrencyUnit } from "./amounts"
-import {
-  type PaykitInjectedDependencies,
-  PaykitPaymentProviderBase,
-} from "./base"
 import {
   PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
   requirePaykitOptions,
-} from "./config"
-import { createPaykitClient, getGopayProviderOptions } from "./runtime"
+} from "../config"
+import {
+  type PaykitInjectedDependencies,
+  PaykitPaymentProviderBase,
+} from "../core/base"
+import { createPaykitClient, getGopayProviderOptions } from "../runtime"
 import type {
   PaykitGopayOptions,
   PaykitPayment,
   PaykitPaymentClient,
-} from "./types"
+} from "../types"
+import {
+  fromSmallestCurrencyUnit,
+  toSmallestCurrencyUnit,
+} from "../utils/amounts"
 
 export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<PaykitGopayOptions> {
   static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER

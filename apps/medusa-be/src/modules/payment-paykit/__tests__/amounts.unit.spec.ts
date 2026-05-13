@@ -6,7 +6,7 @@ import {
   getStripeCurrencyMultiplier,
   toSmallestCurrencyUnit,
   toStripeSmallestCurrencyUnit,
-} from "../amounts"
+} from "../utils/amounts"
 
 describe("PayKit amount helpers", () => {
   it("uses minor units for regular two-decimal currencies", () => {

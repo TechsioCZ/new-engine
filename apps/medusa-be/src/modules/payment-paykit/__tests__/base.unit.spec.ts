@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
-} from "../base"
+} from "../core/base"
 import type { PaykitPaymentClient, PaykitProviderOptions } from "../types"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 

@@ -34,7 +34,7 @@ const PAYKIT_PAYMENT_PROVIDERS = [
   ...(FEATURE_PAYKIT_GOPAY_ENABLED
     ? [
         {
-          resolve: "./src/modules/payment-paykit/gopay",
+          resolve: "./src/modules/payment-paykit/services/gopay",
           id: PAYKIT_GOPAY_PROVIDER_ID,
           options: {
             clientId: process.env.GOPAY_CLIENT_ID,
@@ -51,7 +51,7 @@ const PAYKIT_PAYMENT_PROVIDERS = [
   ...(FEATURE_PAYKIT_STRIPE_ENABLED
     ? [
         {
-          resolve: "./src/modules/payment-paykit/stripe",
+          resolve: "./src/modules/payment-paykit/services/stripe",
           id: PAYKIT_STRIPE_PROVIDER_ID,
           options: {
             apiKey: process.env.STRIPE_API_KEY,
@@ -65,7 +65,7 @@ const PAYKIT_PAYMENT_PROVIDERS = [
   ...(FEATURE_PAYKIT_COMGATE_ENABLED
     ? [
         {
-          resolve: "./src/modules/payment-paykit/comgate",
+          resolve: "./src/modules/payment-paykit/services/comgate",
           id: PAYKIT_COMGATE_PROVIDER_ID,
           options: {
             cloudApiKey: PAYKIT_CLOUD_API_KEY,
