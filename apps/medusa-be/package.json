@@ -24,6 +24,8 @@
     "test:integration:modules": "node ./scripts/run-module-tests.mjs",
     "test:e2e:http": "cross-env TEST_TYPE=integration:http node ./scripts/run-vitest.mjs run --config vitest.config.ts integration-tests/http/*.spec.ts",
     "test:e2e:http:debug": "cross-env TEST_TYPE=integration:http node ./scripts/run-vitest.mjs --config vitest.config.ts integration-tests/http/*.spec.ts --inspect-brk",
+    "test:e2e:admin": "pnpm exec playwright test --config playwright.admin.config.ts",
+    "test:e2e:admin:install-browsers": "pnpm exec playwright install chromium",
     "test:unit": "cross-env TEST_TYPE=unit node ./scripts/run-vitest.mjs run --config vitest.config.ts",
     "test:all": "pnpm test:unit && pnpm test:integration:modules && pnpm test:integration:http",
     "migrateProd": "medusa db:migrate --execute-all-links",
