@@ -61,11 +61,13 @@ export const emitPaykitPaymentWebhookEvent = async ({
   rawData = "",
   req,
 }: EmitPaykitPaymentWebhookEventInput): Promise<void> => {
-  const paymentModule = req.scope.resolve(Modules.PAYMENT)
-  const options = getPaymentModuleOptions(paymentModule)
-  const eventBus = req.scope.resolve(Modules.EVENT_BUS)
+  let options: PaymentModuleOptions = {}
 
   try {
+    const paymentModule = req.scope.resolve(Modules.PAYMENT)
+    options = getPaymentModuleOptions(paymentModule)
+    const eventBus = req.scope.resolve(Modules.EVENT_BUS)
+
     await eventBus.emit(
       {
         name: PaymentWebhookEvents.WebhookReceived,

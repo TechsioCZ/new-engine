@@ -664,13 +664,13 @@ export abstract class PaykitPaymentProviderBase<
       })
 
       if (!providerCustomer.id) {
-        return {} as CreateAccountHolderOutput
+        return noAccountHolderCreated()
       }
 
       return { id: providerCustomer.id, data: providerCustomer }
     } catch (error) {
       if (isProviderNotSupportedError(error)) {
-        return {} as CreateAccountHolderOutput
+        return noAccountHolderCreated()
       }
 
       throw error

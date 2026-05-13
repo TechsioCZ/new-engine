@@ -141,4 +141,31 @@ describe("GoPay payment webhook route", () => {
       consoleError.mockRestore()
     }
   })
+
+  it("logs webhook setup failures without failing the GoPay callback", async () => {
+    const consoleError = vi.spyOn(console, "error").mockReturnValue(undefined)
+    const req = createRequest()
+    req.scope.resolve = vi.fn((key) => {
+      if (key === Modules.PAYMENT) {
+        throw new Error("payment module unavailable")
+      }
+
+      throw new Error(`Unexpected container key: ${String(key)}`)
+    })
+    const res = createResponse()
+
+    try {
+      await GET(req, res)
+
+      expect(consoleError).toHaveBeenCalledWith(
+        "Failed to emit PayKit payment webhook event",
+        expect.objectContaining({
+          provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
+        })
+      )
+      expect(res.sendStatus).toHaveBeenCalledWith(200)
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
 })

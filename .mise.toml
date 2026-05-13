@@ -80,7 +80,7 @@ description = "Repair the pnpm lockfile inside the repo pnpm toolchain container
 run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm install --fix-lockfile"
 
 [tasks."dev:install:no-lock"]
-description = "Repair the pnpm lockfile inside the repo pnpm toolchain container"
+description = "Install workspace dependencies inside the repo pnpm toolchain container without lockfile"
 run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm install --no-frozen-lockfile"
 
 [tasks."dev:deps:update"]
