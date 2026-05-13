@@ -72,6 +72,7 @@ const PAYKIT_PAYMENT_PROVIDERS = [
             merchant: process.env.COMGATE_MERCHANT,
             secret: process.env.COMGATE_SECRET,
             isSandbox: parseBooleanEnv(process.env.COMGATE_SANDBOX, true),
+            paymentLabel: process.env.COMGATE_PAYMENT_LABEL,
             debug: PAYKIT_DEBUG,
           },
         },

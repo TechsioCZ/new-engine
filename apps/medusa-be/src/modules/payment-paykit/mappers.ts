@@ -18,6 +18,17 @@ const MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS = new Set<PaymentActions>([
   PaymentActions.SUCCESSFUL,
 ])
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const isPaykitPayment = (value: unknown): value is PaykitPayment =>
+  isRecord(value) &&
+  (typeof value.id === "string" ||
+    "amount" in value ||
+    "amount_paid" in value ||
+    "status" in value ||
+    "state" in value)
+
 export const mapPaykitStatusToMedusa = (
   status: unknown
 ): PaymentSessionStatus => {
@@ -66,30 +77,48 @@ export const toPaykitPaymentData = (
   }
 }
 
-const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment => {
+const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment | null => {
   const data = event.data
 
-  if (event.payment) {
+  if (isPaykitPayment(event.payment)) {
     return event.payment
   }
 
-  if (data && "object" in data && data.object) {
-    return data.object as PaykitPayment
+  if (isPaykitPayment(data)) {
+    return data
   }
 
-  if (data && "payment" in data && data.payment) {
-    return data.payment as PaykitPayment
+  if (isRecord(data) && isPaykitPayment(data.object)) {
+    return data.object
   }
 
-  return (data ?? ({} as Record<string, unknown>)) as PaykitPayment
+  if (isRecord(data) && isPaykitPayment(data.payment)) {
+    return data.payment
+  }
+
+  return null
 }
 
 const getWebhookSessionId = (
   event: PaykitWebhookEvent,
   payment: PaykitPayment
-): string | undefined =>
-  (payment.metadata?.session_id as string | undefined) ??
-  (event.metadata?.session_id as string | undefined)
+): string | undefined => {
+  if (
+    isRecord(payment.metadata) &&
+    typeof payment.metadata.session_id === "string"
+  ) {
+    return payment.metadata.session_id
+  }
+
+  if (
+    isRecord(event.metadata) &&
+    typeof event.metadata.session_id === "string"
+  ) {
+    return event.metadata.session_id
+  }
+
+  return
+}
 
 const getWebhookAmount = (
   event: PaykitWebhookEvent,
@@ -172,6 +201,11 @@ export const mapPaykitWebhookEvent = (
   }
 
   const payment = getWebhookPayment(event)
+
+  if (!payment) {
+    return { action: PaymentActions.NOT_SUPPORTED }
+  }
+
   const sessionId = getWebhookSessionId(event, payment)
   const rawAmount = getWebhookAmount(event, payment)
   const amount = options.normalizeAmount

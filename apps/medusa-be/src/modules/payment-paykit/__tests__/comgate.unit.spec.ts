@@ -57,6 +57,64 @@ describe("PaykitComgatePaymentProvider", () => {
     )
   })
 
+  it("uses configured Comgate payment label before per-payment metadata", async () => {
+    const client = createMockPaykitClient()
+    const provider = new PaykitComgatePaymentProvider({} as any, {
+      client,
+      paymentLabel: "Herbatica order",
+    })
+
+    await provider.initiatePayment({
+      amount: 10.5,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+        },
+      },
+    })
+
+    await provider.initiatePayment({
+      amount: 10.5,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_456",
+        item_id: "cart_456",
+        provider_metadata: {
+          paymentLabel: "Custom checkout label",
+        },
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+        },
+      },
+    })
+
+    expect(client.payments.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        provider_metadata: expect.objectContaining({
+          paymentLabel: "Herbatica order",
+        }),
+      })
+    )
+    expect(client.payments.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        provider_metadata: expect.objectContaining({
+          paymentLabel: "Herbatica order",
+        }),
+      })
+    )
+  })
+
   it("does not double-normalize persisted Comgate amounts during capture", async () => {
     const client = createMockPaykitClient()
     const provider = new PaykitComgatePaymentProvider({} as any, { client })

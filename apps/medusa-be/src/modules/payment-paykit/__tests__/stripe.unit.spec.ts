@@ -197,11 +197,16 @@ describe("PaykitStripePaymentProvider", () => {
 
   it("maps verified Stripe payment intent events when PayKit reports them as unhandled", async () => {
     const client = createMockPaykitClient()
+    const unhandledPaymentIntentError = Object.assign(
+      new Error("Unhandled event type: payment_intent.succeeded"),
+      {
+        code: "WEBHOOK_ERROR",
+        provider: "stripe",
+      }
+    )
     client.handleWebhook = vi
       .fn()
-      .mockRejectedValue(
-        new Error("Unhandled event type: payment_intent.succeeded")
-      )
+      .mockRejectedValue(unhandledPaymentIntentError)
     const provider = new PaykitStripePaymentProvider({} as any, { client })
 
     await expect(

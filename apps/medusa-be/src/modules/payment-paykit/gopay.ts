@@ -77,10 +77,7 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
     }
 
     const currencyCode = payment.currency ?? payment.currency_code ?? undefined
-    const normalized = super.normalizeAmount(
-      amount as InitiatePaymentInput["amount"],
-      currencyCode
-    )
+    const normalized = super.normalizeWebhookNumericAmount(amount, currencyCode)
 
     return fromSmallestCurrencyUnit(normalized, currencyCode)
   }

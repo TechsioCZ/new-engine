@@ -84,10 +84,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     }
 
     const currencyCode = payment.currency ?? payment.currency_code ?? undefined
-    const normalized = super.normalizeAmount(
-      amount as InitiatePaymentInput["amount"],
-      currencyCode
-    )
+    const normalized = super.normalizeWebhookNumericAmount(amount, currencyCode)
 
     return fromSmallestCurrencyUnit(normalized, currencyCode)
   }
@@ -118,6 +115,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
       accountHolderEmail
     )
     const paymentLabel = getStringValue(
+      this.options_.paymentLabel,
       providerMetadata.paymentLabel,
       providerMetadata.label
     )
@@ -125,6 +123,8 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     return {
       ...providerMetadata,
       email,
+      // PayKit Comgate validates paymentLabel as required, so mirror its
+      // provider default when no app-level label is configured.
       paymentLabel: paymentLabel ?? DEFAULT_PAYMENT_LABEL,
     }
   }

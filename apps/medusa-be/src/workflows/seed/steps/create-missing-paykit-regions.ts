@@ -31,6 +31,7 @@ export const createMissingPaykitRegionsStep = createStep(
           currency_code: region.currencyCode,
           countries: region.countries,
           payment_providers: region.paymentProviders,
+          // Match the existing region seed default when PayKit creates fallback regions.
           is_tax_inclusive: region.isTaxInclusive ?? true,
         })),
       },

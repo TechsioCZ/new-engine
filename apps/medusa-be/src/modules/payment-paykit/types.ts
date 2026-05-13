@@ -158,6 +158,7 @@ export type PaykitComgateOptions = PaykitProviderOptions & {
   merchant?: string
   secret?: string
   isSandbox?: boolean
+  paymentLabel?: string
 }
 
 export type PaykitWebhookEvent = {

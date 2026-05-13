@@ -8,6 +8,11 @@ type RequestWithUrlParts = MedusaRequest & {
   get?: (name: string) => string | undefined
 }
 
+const isRequestWithUrlParts = (
+  req: MedusaRequest
+): req is RequestWithUrlParts =>
+  "originalUrl" in req && typeof req.originalUrl === "string"
+
 const getHeaderValue = (
   req: MedusaRequest,
   header: string
@@ -27,8 +32,7 @@ const getForwardedHeaderValue = (
 ): string | undefined => getHeaderValue(req, header)?.split(",")[0]?.trim()
 
 const getRequestUrl = (req: MedusaRequest): string => {
-  const reqWithUrlParts = req as RequestWithUrlParts
-  const url = reqWithUrlParts.originalUrl ?? req.url
+  const url = isRequestWithUrlParts(req) ? req.originalUrl : req.url
 
   if (url.startsWith("http://") || url.startsWith("https://")) {
     return url
@@ -37,16 +41,14 @@ const getRequestUrl = (req: MedusaRequest): string => {
   const host =
     getForwardedHeaderValue(req, "x-forwarded-host") ??
     getHeaderValue(req, "host") ??
-    reqWithUrlParts.get?.("host")
+    req.get?.("host")
 
   if (!host) {
     return url
   }
 
   const protocol =
-    getForwardedHeaderValue(req, "x-forwarded-proto") ??
-    reqWithUrlParts.protocol ??
-    "https"
+    getForwardedHeaderValue(req, "x-forwarded-proto") ?? req.protocol ?? "https"
 
   return `${protocol}://${host}${url}`
 }
@@ -59,7 +61,10 @@ const hasGopayPaymentId = (url: string): boolean => {
   }
 }
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(
+  req: MedusaRequest,
+  res: MedusaResponse
+): Promise<void> {
   const fullUrl = getRequestUrl(req)
 
   if (!hasGopayPaymentId(fullUrl)) {
@@ -67,14 +72,27 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     return
   }
 
-  await emitPaykitPaymentWebhookEvent({
-    req,
-    provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
-    data: {
+  try {
+    await emitPaykitPaymentWebhookEvent({
+      req,
+      provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
+      data: {
+        fullUrl,
+        url: req.url,
+      },
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown webhook emit error"
+
+    console.error("Failed to emit PayKit GoPay webhook", {
+      error,
       fullUrl,
-      url: req.url,
-    },
-  })
+      provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
+    })
+    res.status(500).json({ error: "Failed to emit webhook", details: message })
+    return
+  }
 
   res.sendStatus(200)
 }

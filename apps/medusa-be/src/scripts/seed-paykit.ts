@@ -66,7 +66,7 @@ const getEnabledPaykitPaymentProviderIds = async (
 const getRegionPaymentProviderLinks = async (
   remoteQuery: RemoteQueryFunction,
   regionIds: string[]
-) => {
+): Promise<RegionPaymentProviderLink[]> => {
   if (!regionIds.length) {
     return []
   }
@@ -79,9 +79,48 @@ const getRegionPaymentProviderLinks = async (
       },
     },
     fields: ["region_id", "payment_provider_id"],
-  } as unknown as Parameters<RemoteQueryFunction>[0]
+  } as Parameters<RemoteQueryFunction>[0]
 
-  return (await remoteQuery(query)) as RegionPaymentProviderLink[]
+  const result = await remoteQuery(query)
+
+  if (!Array.isArray(result)) {
+    throw new Error("PayKit region payment provider query returned non-array")
+  }
+
+  return result.flatMap((link) => {
+    if (
+      typeof link?.region_id === "string" &&
+      typeof link.payment_provider_id === "string"
+    ) {
+      return [link]
+    }
+
+    throw new Error("PayKit region payment provider query returned invalid row")
+  })
+}
+
+const listAllRegions = async (
+  regionService: IRegionModuleService
+): Promise<RegionDTO[]> => {
+  const take = 100
+  const regions: RegionDTO[] = []
+
+  for (let skip = 0; ; skip += take) {
+    const page = await regionService.listRegions(
+      {},
+      {
+        relations: ["countries"],
+        skip,
+        take,
+      }
+    )
+
+    regions.push(...page)
+
+    if (page.length < take) {
+      return regions
+    }
+  }
 }
 
 const toRegionPaymentProviderMap = (
@@ -127,13 +166,7 @@ export default async function seedPaykit({ container }: ExecArgs) {
     return
   }
 
-  const existingRegions = await regionService.listRegions(
-    {},
-    {
-      relations: ["countries"],
-      take: 1000,
-    }
-  )
+  const existingRegions = await listAllRegions(regionService)
 
   const paymentProviderLinks = await getRegionPaymentProviderLinks(
     remoteQuery,

@@ -39,6 +39,8 @@ const STRIPE_PAYMENT_INTENT_EVENTS = new Set([
   "payment_intent.payment_failed",
   "payment_intent.canceled",
 ])
+const UNHANDLED_STRIPE_PAYMENT_INTENT_ERROR_PATTERN =
+  /^Unhandled event type: payment_intent\.[a-z_]+$/
 
 export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<PaykitStripeOptions> {
   static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
@@ -94,10 +96,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     }
 
     const currencyCode = payment.currency ?? payment.currency_code ?? undefined
-    const normalized = super.normalizeAmount(
-      amount as InitiatePaymentInput["amount"],
-      currencyCode
-    )
+    const normalized = super.normalizeWebhookNumericAmount(amount, currencyCode)
 
     return fromStripeSmallestCurrencyUnit(normalized, currencyCode)
   }
@@ -125,15 +124,13 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     payload: ProviderWebhookPayload["payload"],
     error: unknown
   ): WebhookActionResult | undefined {
-    if (
-      !(
-        error instanceof Error &&
-        error.message.includes("Unhandled event type: payment_intent.")
-      )
-    ) {
+    if (!this.isUnhandledStripePaymentIntentWebhookError(error)) {
       return
     }
 
+    // PayKit Stripe verifies the signature before throwing WEBHOOK_ERROR for
+    // unsupported payment_intent events, so this fallback only maps already
+    // verified Stripe events that Medusa still needs to process.
     const event = this.parseStripeWebhookEvent(payload.rawData)
 
     if (!(event && STRIPE_PAYMENT_INTENT_EVENTS.has(event.type))) {
@@ -168,6 +165,23 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
         normalizeAmount: (amount, payment) =>
           this.normalizeWebhookAmount(amount, payment),
       }
+    )
+  }
+
+  private isUnhandledStripePaymentIntentWebhookError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return false
+    }
+
+    const paykitError = error as Error & {
+      code?: unknown
+      provider?: unknown
+    }
+
+    return (
+      paykitError.code === "WEBHOOK_ERROR" &&
+      paykitError.provider === "stripe" &&
+      UNHANDLED_STRIPE_PAYMENT_INTENT_ERROR_PATTERN.test(error.message)
     )
   }
 

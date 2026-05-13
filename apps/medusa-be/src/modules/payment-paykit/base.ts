@@ -54,12 +54,47 @@ import type {
 
 export type PaykitInjectedDependencies = Record<string, unknown>
 
-type CapturePaymentInputWithAmount = CapturePaymentInput & {
-  amount?: RefundPaymentInput["amount"]
-}
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
+
+const isPaymentAmount = (
+  value: unknown
+): value is InitiatePaymentInput["amount"] =>
+  typeof value === "number" ||
+  typeof value === "string" ||
+  (isRecord(value) &&
+    (("value" in value &&
+      (typeof value.value === "number" || typeof value.value === "string")) ||
+      ("toJSON" in value && "valueOf" in value)))
+
+const getCurrencyCode = (data?: Record<string, unknown>): string | undefined =>
+  typeof data?.currency === "string" && data.currency.length > 0
+    ? data.currency
+    : undefined
+
+const getMetadataRecord = (
+  metadata: unknown
+): Record<string, unknown> | undefined =>
+  isRecord(metadata) ? metadata : undefined
+
+const getCaptureAmount = (
+  input: CapturePaymentInput
+): RefundPaymentInput["amount"] | undefined => {
+  if (!("amount" in input)) {
+    return
+  }
+
+  const amount = Reflect.get(input, "amount")
+
+  if (amount !== undefined && !isPaymentAmount(amount)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "PayKit capture amount must be numeric"
+    )
+  }
+
+  return amount
+}
 
 const isProviderNotSupportedError = (error: unknown): boolean =>
   error instanceof Error && error.name === "ProviderNotSupportedError"
@@ -161,16 +196,31 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   protected normalizeNumericAmount(
-    amount: InitiatePaymentInput["amount"],
+    amount: BigNumberValue | InitiatePaymentInput["amount"],
     message: string
   ): number {
-    const normalized = Number(amount)
+    const normalized =
+      isRecord(amount) && "value" in amount
+        ? Number(amount.value)
+        : Number(amount)
 
     if (!Number.isFinite(normalized)) {
       throw new MedusaError(MedusaError.Types.INVALID_DATA, message)
     }
 
     return normalized
+  }
+
+  protected normalizeWebhookNumericAmount(
+    amount: BigNumberValue,
+    _currencyCode?: string
+  ): number {
+    // Keep webhook payload parsing in the base class; provider overrides should
+    // only convert from provider units, such as Stripe cents, to Medusa units.
+    return this.normalizeNumericAmount(
+      amount,
+      "PayKit webhook amount must be numeric"
+    )
   }
 
   protected toStringMetadata(
@@ -216,12 +266,14 @@ export abstract class PaykitPaymentProviderBase<
       return
     }
 
-    const billingRecord = billing as Record<string, unknown>
+    const billingRecord: Record<string, unknown> | undefined = isRecord(billing)
+      ? billing
+      : undefined
 
     return {
       address: {
         name:
-          joinName(billingRecord.first_name, billingRecord.last_name) ||
+          joinName(billingRecord?.first_name, billingRecord?.last_name) ||
           joinName(
             input.context?.customer?.first_name,
             input.context?.customer?.last_name
@@ -335,7 +387,7 @@ export abstract class PaykitPaymentProviderBase<
     const client = await this.getClient()
     const data = input.data ?? {}
     const metadata = {
-      ...((data.metadata as Record<string, unknown> | undefined) ?? {}),
+      ...(getMetadataRecord(data.metadata) ?? {}),
       session_id: data.session_id,
     }
     const providerMetadata = this.getCreateProviderMetadata(input, data)
@@ -411,9 +463,7 @@ export abstract class PaykitPaymentProviderBase<
     const updateInput: PaykitUpdatePaymentInput = {
       amount: this.normalizeAmount(input.amount, input.currency_code),
       currency: input.currency_code,
-      metadata: this.toStringMetadata(
-        input.data?.metadata as Record<string, unknown> | undefined
-      ),
+      metadata: this.toStringMetadata(getMetadataRecord(input.data?.metadata)),
       provider_metadata: this.getUpdateProviderMetadata(input.data ?? {}),
     }
     const payment = await client.payments.update(id, updateInput)
@@ -434,10 +484,20 @@ export abstract class PaykitPaymentProviderBase<
       )
     }
 
-    const explicitAmount = (input as CapturePaymentInputWithAmount).amount
-    const paymentDataAmount = input.data?.amount as
-      | RefundPaymentInput["amount"]
-      | undefined
+    const explicitAmount = getCaptureAmount(input)
+    let paymentDataAmount: RefundPaymentInput["amount"] | undefined
+
+    if (input.data?.amount !== undefined) {
+      if (!isPaymentAmount(input.data.amount)) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "PayKit stored payment amount must be numeric"
+        )
+      }
+
+      paymentDataAmount = input.data.amount
+    }
+
     const amount = explicitAmount ?? paymentDataAmount
 
     if (amount === undefined) {
@@ -447,7 +507,7 @@ export abstract class PaykitPaymentProviderBase<
       )
     }
 
-    const currencyCode = input.data?.currency as string | undefined
+    const currencyCode = getCurrencyCode(input.data)
     const normalizedAmount =
       explicitAmount === undefined
         ? this.normalizePaymentDataAmount(amount, currencyCode)
@@ -465,7 +525,7 @@ export abstract class PaykitPaymentProviderBase<
     const id = this.getProviderPaymentId(input.data)
     const amount = this.normalizeAmount(
       input.amount,
-      input.data?.currency as string
+      getCurrencyCode(input.data)
     )
 
     if (client.refunds?.create) {

@@ -27,6 +27,9 @@ contract:
 - PayKit `cloudApiKey` is passed through when configured.
 - Medusa customer billing data is passed to PayKit payment creation when present.
 - `updatePayment` forwards metadata and provider metadata.
+- Comgate has a provider-specific `paymentLabel` setting because PayKit Comgate
+  requires that field; it is intentionally not a generic PayKit label for
+  Stripe or GoPay.
 - Account-holder create/retrieve/update/delete use PayKit customers when the
   provider supports them, and gracefully no-op on PayKit
   `ProviderNotSupportedError`.
