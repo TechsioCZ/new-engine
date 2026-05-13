@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
+import { rewriteCategoryMetadataHtml } from "@/components/category/category-html-rewrite";
 import { buildCategoryContextImageTiles } from "@/components/category/category-context-image-tile-grid";
 import {
   normalizeCategoryName,
@@ -8,14 +9,6 @@ import {
 const CATEGORY_DESCRIPTION_PLACEHOLDERS = new Set([
   "Imported from Herbatica XML feed.",
   "Imported from Herbatica category export.",
-]);
-
-const SHOW_MORE_MARKER_PATTERN = /#showmore#/gi;
-const SHOW_MORE_MARKER_PARAGRAPH_PATTERN =
-  /<p[^>]*>\s*(?:<span[^>]*>)?\s*#showmore#\s*(?:<\/span>)?\s*<\/p>/gi;
-const HERBATICA_LEGACY_HOSTNAMES = new Set([
-  "herbatica.sk",
-  "www.herbatica.sk",
 ]);
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -55,65 +48,6 @@ type ResolveCategoryHtmlInput = ResolveCategoryIntroTextInput & {
   categoryByHandle: Map<string, HttpTypes.StoreProductCategory>;
 };
 
-const stripShowMoreMarker = (html: string) => {
-  return html
-    .replace(SHOW_MORE_MARKER_PARAGRAPH_PATTERN, "")
-    .replace(SHOW_MORE_MARKER_PATTERN, "")
-    .trim();
-};
-
-const resolveLegacyCategoryHref = (
-  href: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
-) => {
-  const trimmedHref = href.trim();
-  if (!trimmedHref || trimmedHref.startsWith("#")) {
-    return href;
-  }
-
-  let pathname = trimmedHref;
-
-  try {
-    const url = new URL(trimmedHref);
-    if (!HERBATICA_LEGACY_HOSTNAMES.has(url.hostname)) {
-      return href;
-    }
-
-    pathname = url.pathname;
-  } catch {
-    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmedHref)) {
-      return href;
-    }
-  }
-
-  const normalizedPath = pathname.replace(/^\/+|\/+$/g, "");
-  if (!normalizedPath || normalizedPath.startsWith("c/")) {
-    return href;
-  }
-
-  const [handle] = normalizedPath.split("/");
-  if (!handle || !categoryByHandle.has(handle)) {
-    return href;
-  }
-
-  return `/c/${handle}`;
-};
-
-const rewriteLegacyCategoryLinks = (
-  html: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
-) => {
-  return html.replace(
-    /\bhref=(["'])(.*?)\1/gi,
-    (_match, quote: string, href: string) => {
-      return `href=${quote}${resolveLegacyCategoryHref(
-        href,
-        categoryByHandle,
-      )}${quote}`;
-    },
-  );
-};
-
 export const resolveCategoryIntroText = ({
   activeCategory,
 }: ResolveCategoryIntroTextInput) => {
@@ -138,7 +72,7 @@ const resolveCategoryMetadataHtml = ({
     return null;
   }
 
-  return rewriteLegacyCategoryLinks(stripShowMoreMarker(html), categoryByHandle);
+  return rewriteCategoryMetadataHtml(html, categoryByHandle);
 };
 
 export const resolveCategoryIntroHtml = (input: ResolveCategoryHtmlInput) =>
