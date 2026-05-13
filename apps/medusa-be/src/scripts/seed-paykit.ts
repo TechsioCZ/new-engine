@@ -138,13 +138,27 @@ const toRegionPaymentProviderMap = (
 const toRegionSeedInput = (
   region: RegionDTO,
   paymentProviderMap: Map<string, string[]>
-): SeedPaykitRegionsWorkflowInput["regions"][number] => ({
-  id: region.id,
-  name: region.name,
-  currencyCode: region.currency_code,
-  countries: region.countries?.map((country) => country.iso_2),
-  paymentProviders: paymentProviderMap.get(region.id),
-})
+): SeedPaykitRegionsWorkflowInput["regions"][number] => {
+  const defaultRegion = defaultRegions.find(
+    (seedRegion) => seedRegion.name === region.name
+  )
+  const currencyCode =
+    region.currency_code?.trim() || defaultRegion?.currencyCode
+
+  if (!currencyCode) {
+    throw new Error(
+      `PayKit seed cannot sync region "${region.name}" (${region.id}) because currency_code is missing`
+    )
+  }
+
+  return {
+    id: region.id,
+    name: region.name,
+    currencyCode,
+    countries: region.countries?.map((country) => country.iso_2),
+    paymentProviders: paymentProviderMap.get(region.id),
+  }
+}
 
 export default async function seedPaykit({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)

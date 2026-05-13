@@ -12,6 +12,10 @@ import {
   type CreateMissingPaykitRegionsStepInput,
   createMissingPaykitRegionsStep,
 } from "../steps/create-missing-paykit-regions"
+import {
+  type SyncExistingPaykitRegionsStepInput,
+  syncExistingPaykitRegionsStep,
+} from "../steps/sync-existing-paykit-regions"
 
 const SeedPaykitRegionsWorkflowId = "seed-paykit-regions-workflow"
 
@@ -61,14 +65,33 @@ const seedPaykitRegionsWorkflow = createWorkflow(
       })
     )
 
+    const existingRegionsInput = transform(
+      { regionsWithPaykitProviders },
+      (data): SyncExistingPaykitRegionsStepInput =>
+        data.regionsWithPaykitProviders.flatMap((region) =>
+          region.id
+            ? [
+                {
+                  id: region.id,
+                  currencyCode: region.currencyCode,
+                },
+              ]
+            : []
+        )
+    )
+
     const createMissingPaykitRegionsResult =
       createMissingPaykitRegionsStep(missingRegions)
+
+    const syncExistingPaykitRegionsResult =
+      syncExistingPaykitRegionsStep(existingRegionsInput)
 
     const setExistingRegionPaymentProvidersResult =
       setRegionsPaymentProvidersStep(existingRegionPaymentProvidersInput)
 
     return new WorkflowResponse({
       createMissingPaykitRegionsResult,
+      syncExistingPaykitRegionsResult,
       setExistingRegionPaymentProvidersResult,
     })
   }
