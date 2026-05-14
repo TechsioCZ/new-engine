@@ -1,6 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
 const PRICE_LISTS_BATCH_MAX = 500
+const PRICE_LIST_PRICES_MAX = 500
 
 export const PriceInputSchema = z
   .object({
@@ -49,7 +50,7 @@ const PriceListInputSchema = z.object({
   starts_at: z.string().datetime().optional(),
   ends_at: z.string().datetime().optional(),
   customer_group_code: z.string().min(1).optional(),
-  prices: z.array(PriceInputSchema).optional(),
+  prices: z.array(PriceInputSchema).max(PRICE_LIST_PRICES_MAX).optional(),
 })
 
 export const UpsertPriceListsBatchSchema = z.object({

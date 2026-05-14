@@ -1,6 +1,11 @@
 import { z } from "@medusajs/framework/zod"
 
 const PRODUCTS_BATCH_MAX = 500
+const PRODUCT_CATEGORIES_MAX = 50
+const PRODUCT_IMAGES_MAX = 50
+const PRODUCT_BASE_PRICES_MAX = 50
+const VARIANTS_PER_PRODUCT_MAX = 100
+const VARIANT_PRICES_MAX = 50
 
 const PriceSchema = z.object({
   currency_code: z
@@ -33,7 +38,7 @@ const VariantInputSchema = z
     title: z.string().min(1),
     manage_inventory: z.boolean().default(true),
     vat_rate: z.number().nonnegative().optional(),
-    prices: z.array(PriceSchema).optional(),
+    prices: z.array(PriceSchema).max(VARIANT_PRICES_MAX).optional(),
     options: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
@@ -76,10 +81,16 @@ const ProductInputSchema = z
     discountable: z.boolean().default(true),
     weight: z.number().int().nonnegative().optional(),
     hs_code: z.string().optional(),
-    categories: z.array(CategoryRefSchema).optional(),
-    images: z.array(ImageSchema).optional(),
-    base_prices: z.array(PriceSchema).optional(),
-    variants: z.array(VariantInputSchema).optional(),
+    categories: z
+      .array(CategoryRefSchema)
+      .max(PRODUCT_CATEGORIES_MAX)
+      .optional(),
+    images: z.array(ImageSchema).max(PRODUCT_IMAGES_MAX).optional(),
+    base_prices: z.array(PriceSchema).max(PRODUCT_BASE_PRICES_MAX).optional(),
+    variants: z
+      .array(VariantInputSchema)
+      .max(VARIANTS_PER_PRODUCT_MAX)
+      .optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
   .superRefine((value, ctx) => {

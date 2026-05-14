@@ -1,6 +1,8 @@
 import { z } from "@medusajs/framework/zod"
 
 const CUSTOMERS_BATCH_MAX = 500
+const CUSTOMER_ADDRESSES_MAX = 50
+const CUSTOMER_GROUP_CODES_MAX = 100
 
 const CustomerAddressInputSchema = z.object({
   address_id: z.string().min(1).optional(),
@@ -33,8 +35,14 @@ const CustomerInputSchema = z
     last_name: z.string().min(1),
     phone: z.string().optional(),
     company_name: z.string().optional(),
-    addresses: z.array(CustomerAddressInputSchema).optional(),
-    customer_group_codes: z.array(z.string().min(1)).optional(),
+    addresses: z
+      .array(CustomerAddressInputSchema)
+      .max(CUSTOMER_ADDRESSES_MAX)
+      .optional(),
+    customer_group_codes: z
+      .array(z.string().min(1))
+      .max(CUSTOMER_GROUP_CODES_MAX)
+      .optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
   .superRefine((value, ctx) => {
