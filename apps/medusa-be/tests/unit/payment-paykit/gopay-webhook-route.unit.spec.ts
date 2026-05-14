@@ -1,5 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { Modules, PaymentWebhookEvents } from "@medusajs/framework/utils"
+import type { Logger } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  Modules,
+  PaymentWebhookEvents,
+} from "@medusajs/framework/utils"
 import type { Response } from "express"
 import { describe, expect, it, vi } from "vitest"
 import { GET } from "../../../src/api/hooks/payment/paykit_gopay/route"
@@ -21,6 +26,10 @@ const createResponse = (): MedusaResponse => {
 const createRequest = ({
   emit = vi.fn().mockResolvedValue(undefined),
   headers = { host: "shop.example" },
+  logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+  } satisfies Pick<Logger, "debug" | "error">,
   originalUrl = `${PAYKIT_GOPAY_WEBHOOK_PATH}?id=gopay-payment-1`,
   protocol = "https",
   url = `${PAYKIT_GOPAY_WEBHOOK_PATH}?id=gopay-payment-1`,
@@ -29,6 +38,7 @@ const createRequest = ({
 }: {
   emit?: ReturnType<typeof vi.fn>
   headers?: Record<string, string>
+  logger?: Pick<Logger, "debug" | "error">
   originalUrl?: string
   protocol?: string
   url?: string
@@ -52,6 +62,10 @@ const createRequest = ({
 
         if (key === Modules.EVENT_BUS) {
           return { emit }
+        }
+
+        if (key === ContainerRegistrationKeys.LOGGER) {
+          return logger
         }
 
         throw new Error(`Unexpected container key: ${String(key)}`)
@@ -132,31 +146,38 @@ describe("GoPay payment webhook route", () => {
   })
 
   it("logs webhook emit failures without failing the GoPay callback", async () => {
-    const consoleError = vi.spyOn(console, "error").mockReturnValue(undefined)
     const emit = vi.fn().mockRejectedValue(new Error("event bus unavailable"))
-    const req = createRequest({ emit })
+    const logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+    } satisfies Pick<Logger, "debug" | "error">
+    const req = createRequest({ emit, logger })
     const res = createResponse()
 
-    try {
-      await GET(req, res)
+    await GET(req, res)
 
-      expect(emit).toHaveBeenCalledOnce()
-      expect(consoleError).toHaveBeenCalledWith(
-        "Failed to emit PayKit payment webhook event",
-        expect.objectContaining({
-          provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
-        })
-      )
-      expect(res.sendStatus).toHaveBeenCalledWith(200)
-    } finally {
-      consoleError.mockRestore()
-    }
+    expect(emit).toHaveBeenCalledOnce()
+    expect(logger.error).toHaveBeenCalledWith(
+      "Failed to emit PayKit payment webhook event",
+      expect.any(Error)
+    )
+    expect(logger.debug).toHaveBeenCalledWith(
+      expect.stringContaining(PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID)
+    )
+    expect(res.sendStatus).toHaveBeenCalledWith(200)
   })
 
   it("logs webhook setup failures without failing the GoPay callback", async () => {
-    const consoleError = vi.spyOn(console, "error").mockReturnValue(undefined)
+    const logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+    } satisfies Pick<Logger, "debug" | "error">
     const req = createRequest()
     req.scope.resolve = vi.fn((key) => {
+      if (key === ContainerRegistrationKeys.LOGGER) {
+        return logger
+      }
+
       if (key === Modules.PAYMENT) {
         throw new Error("payment module unavailable")
       }
@@ -165,18 +186,15 @@ describe("GoPay payment webhook route", () => {
     })
     const res = createResponse()
 
-    try {
-      await GET(req, res)
+    await GET(req, res)
 
-      expect(consoleError).toHaveBeenCalledWith(
-        "Failed to emit PayKit payment webhook event",
-        expect.objectContaining({
-          provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
-        })
-      )
-      expect(res.sendStatus).toHaveBeenCalledWith(200)
-    } finally {
-      consoleError.mockRestore()
-    }
+    expect(logger.error).toHaveBeenCalledWith(
+      "Failed to emit PayKit payment webhook event",
+      expect.any(Error)
+    )
+    expect(logger.debug).toHaveBeenCalledWith(
+      expect.stringContaining(PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID)
+    )
+    expect(res.sendStatus).toHaveBeenCalledWith(200)
   })
 })

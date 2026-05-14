@@ -1,5 +1,5 @@
 import type { MedusaRequest } from "@medusajs/framework/http"
-import type { PaymentModuleOptions } from "@medusajs/framework/types"
+import type { Logger, PaymentModuleOptions } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   Modules,
@@ -33,26 +33,16 @@ const logWebhookEmitError = (
   error: unknown,
   context: Record<string, unknown>
 ): void => {
-  let logger: unknown
+  const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+  const errorObject = error instanceof Error ? error : new Error(String(error))
 
-  try {
-    logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
-  } catch {
-    logger = undefined
-  }
-
-  if (isRecord(logger) && typeof logger.error === "function") {
-    logger.error("Failed to emit PayKit payment webhook event", {
+  logger.error("Failed to emit PayKit payment webhook event", errorObject)
+  logger.debug(
+    JSON.stringify({
       ...context,
       error,
     })
-    return
-  }
-
-  console.error("Failed to emit PayKit payment webhook event", {
-    ...context,
-    error,
-  })
+  )
 }
 
 export const emitPaykitPaymentWebhookEvent = async ({
