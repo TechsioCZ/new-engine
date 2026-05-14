@@ -1,6 +1,4 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { Logger } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID } from "../../../../modules/payment-paykit/config"
 import { emitPaykitPaymentWebhookEvent } from "../../../../modules/payment-paykit/webhooks"
 
@@ -74,34 +72,14 @@ export async function GET(
     return
   }
 
-  try {
-    await emitPaykitPaymentWebhookEvent({
-      req,
-      provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
-      data: {
-        fullUrl,
-        url: req.url,
-      },
-    })
-  } catch (error) {
-    const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-    const errorObject =
-      error instanceof Error ? error : new Error(String(error))
-
-    logger.error(
-      `Failed to emit PayKit GoPay webhook (provider="${PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID}", fullUrl="${fullUrl}")`,
-      errorObject
-    )
-    logger.debug(
-      JSON.stringify({
-        error,
-        fullUrl,
-        provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
-      })
-    )
-    res.status(500).json({ error: "Failed to emit webhook" })
-    return
-  }
+  await emitPaykitPaymentWebhookEvent({
+    req,
+    provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
+    data: {
+      fullUrl,
+      url: req.url,
+    },
+  })
 
   res.sendStatus(200)
 }

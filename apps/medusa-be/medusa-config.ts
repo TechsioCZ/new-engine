@@ -5,13 +5,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
-import {
-  isPaykitProviderEnabled,
-  PAYKIT_COMGATE_PROVIDER_ID,
-  PAYKIT_GOPAY_PROVIDER_ID,
-  PAYKIT_STRIPE_PROVIDER_ID,
-  parseBooleanEnv,
-} from "./src/modules/payment-paykit/config"
+import { buildPaykitPaymentProviders } from "./src/modules/payment-paykit/medusa-config"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -24,61 +18,7 @@ const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
 
-const FEATURE_PAYKIT_GOPAY_ENABLED = isPaykitProviderEnabled("GOPAY")
-const FEATURE_PAYKIT_STRIPE_ENABLED = isPaykitProviderEnabled("STRIPE")
-const FEATURE_PAYKIT_COMGATE_ENABLED = isPaykitProviderEnabled("COMGATE")
-
-const PAYKIT_CLOUD_API_KEY = process.env.PAYKIT_CLOUD_API_KEY
-const PAYKIT_DEBUG = process.env.PAYKIT_DEBUG === "1"
-const PAYKIT_PAYMENT_PROVIDERS = [
-  ...(FEATURE_PAYKIT_GOPAY_ENABLED
-    ? [
-        {
-          resolve: "./src/modules/payment-paykit/services/gopay",
-          id: PAYKIT_GOPAY_PROVIDER_ID,
-          options: {
-            clientId: process.env.GOPAY_CLIENT_ID,
-            clientSecret: process.env.GOPAY_CLIENT_SECRET,
-            cloudApiKey: PAYKIT_CLOUD_API_KEY,
-            goId: process.env.GOPAY_GO_ID,
-            isSandbox: parseBooleanEnv(process.env.GOPAY_SANDBOX, true),
-            webhookUrl: process.env.GOPAY_WEBHOOK_URL,
-            debug: PAYKIT_DEBUG,
-          },
-        },
-      ]
-    : []),
-  ...(FEATURE_PAYKIT_STRIPE_ENABLED
-    ? [
-        {
-          resolve: "./src/modules/payment-paykit/services/stripe",
-          id: PAYKIT_STRIPE_PROVIDER_ID,
-          options: {
-            apiKey: process.env.STRIPE_API_KEY,
-            cloudApiKey: PAYKIT_CLOUD_API_KEY,
-            webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-            debug: PAYKIT_DEBUG,
-          },
-        },
-      ]
-    : []),
-  ...(FEATURE_PAYKIT_COMGATE_ENABLED
-    ? [
-        {
-          resolve: "./src/modules/payment-paykit/services/comgate",
-          id: PAYKIT_COMGATE_PROVIDER_ID,
-          options: {
-            cloudApiKey: PAYKIT_CLOUD_API_KEY,
-            merchant: process.env.COMGATE_MERCHANT,
-            secret: process.env.COMGATE_SECRET,
-            isSandbox: parseBooleanEnv(process.env.COMGATE_SANDBOX, true),
-            paymentLabel: process.env.COMGATE_PAYMENT_LABEL,
-            debug: PAYKIT_DEBUG,
-          },
-        },
-      ]
-    : []),
-]
+const PAYKIT_PAYMENT_PROVIDERS = buildPaykitPaymentProviders()
 
 const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
 const RESEND_API_KEY = process.env.RESEND_API_KEY

@@ -373,6 +373,19 @@ export abstract class PaykitPaymentProviderBase<
     )
   }
 
+  protected getSessionId(data: Record<string, unknown>): string {
+    const sessionId = data.session_id
+
+    if (typeof sessionId === "string" && sessionId.length > 0) {
+      return sessionId
+    }
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "PayKit requires session_id in payment session data"
+    )
+  }
+
   protected getCaptureMethod(
     data: Record<string, unknown>
   ): "automatic" | "manual" {
@@ -391,9 +404,10 @@ export abstract class PaykitPaymentProviderBase<
   ): Promise<InitiatePaymentOutput> {
     const client = await this.getClient()
     const data = input.data ?? {}
+    const sessionId = this.getSessionId(data)
     const metadata = {
       ...(getMetadataRecord(data.metadata) ?? {}),
-      session_id: data.session_id,
+      session_id: sessionId,
     }
     const providerMetadata = this.getCreateProviderMetadata(input, data)
     const createInput: PaykitCreatePaymentInput = {

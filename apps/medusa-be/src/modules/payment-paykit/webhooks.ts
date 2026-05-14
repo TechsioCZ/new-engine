@@ -76,6 +76,8 @@ export const emitPaykitPaymentWebhookEvent = async ({
       }
     )
   } catch (error) {
+    // Provider callback routes acknowledge the callback; emit failures are
+    // logged here instead of bubbling to the HTTP handler.
     logWebhookEmitError(req, error, {
       eventName: PaymentWebhookEvents.WebhookReceived,
       headers: req.headers,

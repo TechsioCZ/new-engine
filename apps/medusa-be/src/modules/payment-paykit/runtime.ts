@@ -25,6 +25,14 @@ type PaykitProviderRuntime = {
 
 type PaykitConstructor = new (provider: unknown) => PaykitRuntime
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const isPaykitProviderRuntime = (
+  provider: unknown
+): provider is PaykitProviderRuntime =>
+  isRecord(provider) && typeof provider.handleWebhook === "function"
+
 const dynamicImport = new Function("specifier", "return import(specifier)") as (
   specifier: string
 ) => Promise<Record<string, unknown>>
@@ -70,7 +78,14 @@ export const createPaykitClient = async (
     ),
   ])
 
-  const provider = createProvider(providerOptions) as PaykitProviderRuntime
+  const provider = createProvider(providerOptions)
+
+  if (!isPaykitProviderRuntime(provider)) {
+    throw new Error(
+      `PayKit provider "${providerPackage}" does not implement handleWebhook`
+    )
+  }
+
   const paykit = new PayKit(provider)
 
   return {
@@ -179,9 +194,8 @@ const toHeaders = (
 const getWebhookFullUrl = (
   payload: ProviderWebhookPayload["payload"]
 ): string => {
-  const data = payload.data as
-    | { fullUrl?: unknown; full_url?: unknown; url?: unknown }
-    | undefined
+  const rawData = payload.data
+  const data = isRecord(rawData) ? rawData : undefined
 
   for (const value of [data?.fullUrl, data?.full_url]) {
     if (typeof value === "string" && value.length > 0) {

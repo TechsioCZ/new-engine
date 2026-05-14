@@ -34,13 +34,26 @@ const isPaykitPayment = (value: unknown): value is PaykitPayment =>
     "status" in value ||
     "state" in value)
 
+const isBigNumberInput = (value: unknown): value is BigNumberInput =>
+  value instanceof BigNumber ||
+  (isRecord(value) &&
+    "value" in value &&
+    (typeof value.value === "number" || typeof value.value === "string")) ||
+  (isRecord(value) &&
+    typeof value.toJSON === "function" &&
+    typeof value.valueOf === "function")
+
 const toBigNumberValue = (value: unknown): BigNumberValue | undefined => {
   if (typeof value === "number" || typeof value === "string") {
     return value
   }
 
+  if (!isBigNumberInput(value)) {
+    return
+  }
+
   try {
-    return new BigNumber(value as BigNumberInput)
+    return new BigNumber(value)
   } catch {
     return
   }

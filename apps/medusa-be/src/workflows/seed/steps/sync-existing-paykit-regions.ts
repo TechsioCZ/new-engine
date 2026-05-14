@@ -11,14 +11,23 @@ export type SyncExistingPaykitRegionsStepInput = {
   currencyCode: string
 }[]
 
+type SyncExistingPaykitRegion = SyncExistingPaykitRegionsStepInput[number] & {
+  id: string
+}
+
 const SyncExistingPaykitRegionsStepId = "sync-existing-paykit-regions-step"
+
+const hasIdAndCurrency = (
+  region: SyncExistingPaykitRegionsStepInput[number]
+): region is SyncExistingPaykitRegion =>
+  typeof region.id === "string" &&
+  region.id.length > 0 &&
+  region.currencyCode.trim().length > 0
 
 export const syncExistingPaykitRegionsStep = createStep(
   SyncExistingPaykitRegionsStepId,
   async (input: SyncExistingPaykitRegionsStepInput, { container }) => {
-    const regionsToSync = input.filter(
-      (region) => region.id && region.currencyCode.trim()
-    )
+    const regionsToSync = input.filter(hasIdAndCurrency)
 
     if (!regionsToSync.length) {
       return new StepResponse([])

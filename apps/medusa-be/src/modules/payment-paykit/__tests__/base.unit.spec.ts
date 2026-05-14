@@ -78,6 +78,28 @@ describe("PaykitPaymentProviderBase", () => {
     )
   })
 
+  it("requires Medusa payment session id on initiatePayment", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await expect(
+      provider.initiatePayment({
+        amount: 1000,
+        currency_code: "czk",
+        data: {
+          item_id: "cart_123",
+        },
+        context: {
+          customer: {
+            id: "cus_123",
+            email: "customer@example.com",
+          },
+        },
+      })
+    ).rejects.toThrow("PayKit requires session_id in payment session data")
+    expect(client.payments.create).not.toHaveBeenCalled()
+  })
+
   it("passes Medusa customer billing data to PayKit create payment", async () => {
     const client = createMockPaykitClient()
     const provider = createProvider(client)
