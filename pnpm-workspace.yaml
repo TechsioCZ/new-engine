@@ -2,6 +2,7 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@techsio/storybook-better-a11y'
   - '@techsio/storybook-a11y-reporter'
+  - '@medusajs/*'
 # trustPolicy: no-downgrade
 
 packages:

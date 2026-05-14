@@ -29,6 +29,7 @@ CMD ["payload-runtime", "devsafe"]
 FROM base AS ci-dev
 
 ENV NODE_ENV=development
+ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY patches ./patches
@@ -46,6 +47,7 @@ FROM base AS build
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV CI=true
 
 ARG DATABASE_URL=postgresql://payload:payload@localhost:5432/payload
 ARG PAYLOAD_SECRET=payload_build_secret

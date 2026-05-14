@@ -284,12 +284,12 @@
     "msw": "^2.8.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17",
-    "@medusajs/js-sdk": "^2.14.1",
-    "@medusajs/types": "^2.14.1"
+    "@medusajs/js-sdk": "^2.15.2",
+    "@medusajs/types": "^2.15.2"
   },
   "peerDependencies": {
-    "@medusajs/js-sdk": ">=2.12.0",
-    "@medusajs/types": ">=2.12.0",
+    "@medusajs/js-sdk": ">=2.15.2",
+    "@medusajs/types": ">=2.15.2",
     "@tanstack/react-query": ">=5.0.0",
     "react": ">=19.2.0",
     "react-dom": ">=19.2.0"

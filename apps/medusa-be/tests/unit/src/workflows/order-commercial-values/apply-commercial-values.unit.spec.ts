@@ -174,11 +174,14 @@ describe("applyOrderCommercialValues", () => {
         item_id: "item_1",
         promotion_id: undefined,
         provider_id: undefined,
+        shipping_method_id: undefined,
       },
       {
         amount: 100,
         code: "manual_item_discount",
-        description: "Manual item discount",
+        description:
+          'Manual item discount [cv_discount:{"amount":100,"type":"amount"}]',
+        is_tax_inclusive: undefined,
         item_id: "item_1",
       },
     ])
@@ -192,6 +195,153 @@ describe("applyOrderCommercialValues", () => {
     expect(response.mode).toBe("confirmed")
     expect(response.order_change_id).toBe("oc_1")
     expect(response.order_preview).toEqual({ id: "confirmed_preview" })
+  })
+
+  it("replaces shipping method adjustments for shipping discounts", async () => {
+    await applyOrderCommercialValues({
+      calculation_input: {
+        ...calculationInput,
+        original_total: 1450,
+        shipping_methods: [
+          {
+            current_subtotal: 500,
+            current_tax_total: 0,
+            discount: { amount: 100, type: "amount" as const },
+            existing_adjustments: [
+              {
+                amount: 50,
+                code: "carrier_promo",
+                shipping_method_id: "ship_1",
+              },
+            ],
+            shipping_method_id: "ship_1",
+          },
+        ],
+      },
+      container,
+      order: {
+        ...order,
+        shipping_methods: [
+          {
+            adjustments: [
+              {
+                amount: 50,
+                code: "carrier_promo",
+                shipping_method_id: "ship_1",
+              },
+            ],
+            id: "ship_1",
+          },
+        ],
+      },
+      request: {
+        expected_order_version: 1,
+        items: [
+          {
+            item_id: "item_1",
+            unit_price: 1000,
+          },
+        ],
+        shipping_methods: [
+          {
+            discount: { amount: 100, type: "amount" },
+            shipping_method_id: "ship_1",
+          },
+        ],
+      },
+    })
+
+    expect(mockItemUpdateRun).not.toHaveBeenCalled()
+    expect(mockCreateActionsRun).toHaveBeenCalled()
+    const actionInput = mockCreateActionsRun.mock.calls[0][0].input[0]
+    expect(actionInput).toMatchObject({
+      action: "SHIPPING_ADJUSTMENTS_REPLACE",
+      details: {
+        manual_discounts: {
+          order_discount_amount: 0,
+          shipping_discount_amount: 100,
+        },
+        reference_id: "ship_1",
+      },
+    })
+    expect(actionInput.details.adjustments).toEqual([
+      {
+        amount: 50,
+        code: "carrier_promo",
+        description: undefined,
+        is_tax_inclusive: undefined,
+        item_id: undefined,
+        promotion_id: undefined,
+        provider_id: undefined,
+        shipping_method_id: "ship_1",
+      },
+      {
+        amount: 100,
+        code: "manual_shipping_discount",
+        description:
+          'Manual shipping discount [cv_discount:{"amount":100,"type":"amount"}]',
+        shipping_method_id: "ship_1",
+      },
+    ])
+  })
+
+  it("converts displayed taxable percentage shipping discounts to Medusa adjustment amounts", async () => {
+    await applyOrderCommercialValues({
+      calculation_input: {
+        ...calculationInput,
+        original_total: 18.49,
+        shipping_methods: [
+          {
+            current_subtotal: 8.130_081_300_813_009,
+            current_tax_total: 1.869_918_699_186_991_8,
+            discount: { type: "percentage" as const, value_bps: 9000 },
+            existing_adjustments: [],
+            shipping_method_id: "ship_1",
+          },
+        ],
+      },
+      container,
+      order: {
+        ...order,
+        shipping_methods: [
+          {
+            adjustments: [],
+            id: "ship_1",
+          },
+        ],
+      },
+      request: {
+        expected_order_version: 1,
+        items: [
+          {
+            item_id: "item_1",
+            unit_price: 1000,
+          },
+        ],
+        shipping_methods: [
+          {
+            discount: { type: "percentage", value_bps: 9000 },
+            shipping_method_id: "ship_1",
+          },
+        ],
+      },
+    })
+
+    const actionInput = mockCreateActionsRun.mock.calls[0][0].input[0]
+
+    expect(actionInput.details.manual_discounts.shipping_discount_amount).toBe(
+      9
+    )
+    expect(actionInput.details.adjustments[0]).toMatchObject({
+      code: "manual_shipping_discount",
+      description:
+        'Manual shipping discount [cv_discount:{"type":"percentage","value_bps":9000}]',
+      shipping_method_id: "ship_1",
+    })
+    expect(actionInput.details.adjustments[0].amount).toBeCloseTo(
+      7.317_073_170_731_708
+    )
+    expect(actionInput.details.adjustments[0].is_tax_inclusive).toBeUndefined()
   })
 
   it("does not replace adjustments for omitted items", async () => {
@@ -331,6 +481,64 @@ describe("applyOrderCommercialValues", () => {
     ).rejects.toThrow("Order already has active order change oc_busy")
 
     expect(mockBeginRun).not.toHaveBeenCalled()
+  })
+
+  it("reuses an existing pending native order edit for discounts", async () => {
+    query.graph.mockImplementation(async ({ entity }: { entity: string }) => {
+      if (entity === "order_change") {
+        return {
+          data: [
+            {
+              change_type: "edit",
+              id: "oc_existing",
+              status: "pending",
+              version: 3,
+            },
+          ],
+        }
+      }
+
+      return { data: [{ id: "order_1", version: 1 }] }
+    })
+
+    const response = await applyOrderCommercialValues({
+      calculation_input: {
+        ...calculationInput,
+        items: [
+          {
+            ...calculationInput.items[0],
+            discount: { amount: 100, type: "amount" as const },
+          },
+        ],
+      },
+      container,
+      order,
+      request: {
+        expected_order_version: 1,
+        items: [
+          {
+            discount: { amount: 100, type: "amount" },
+            item_id: "item_1",
+            unit_price: 1000,
+          },
+        ],
+      },
+    })
+
+    expect(mockBeginRun).not.toHaveBeenCalled()
+    expect(mockCreateActionsRun).toHaveBeenCalled()
+    expect(mockCreateActionsRun.mock.calls[0][0].input[0]).toMatchObject({
+      order_change_id: "oc_existing",
+      version: 3,
+    })
+    expect(mockConfirmRun).toHaveBeenCalledWith({
+      input: {
+        confirmed_by: undefined,
+        order_id: "order_1",
+      },
+    })
+    expect(mockCancelRun).not.toHaveBeenCalled()
+    expect(response.order_change_id).toBe("oc_existing")
   })
 
   it("cancels the started edit when a later step fails", async () => {
