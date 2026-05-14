@@ -198,6 +198,13 @@ export class ProductBatchClientMapperHelper {
     return images.map((image) => ({ url: image.url }))
   }
 
+  private buildCategoryAssociations(categoryIds: string[]) {
+    if (!categoryIds.length) {
+      return
+    }
+    return categoryIds.map((id) => ({ id }))
+  }
+
   buildIdentifierEcho(product: ProductInput) {
     return {
       identifier_type: product.identifier_type,
@@ -262,7 +269,7 @@ export class ProductBatchClientMapperHelper {
       sales_channels: defaultSalesChannelId
         ? [{ id: defaultSalesChannelId }]
         : undefined,
-      category_ids: categoryIds.length ? categoryIds : undefined,
+      categories: this.buildCategoryAssociations(categoryIds),
     }
   }
 
@@ -327,9 +334,9 @@ export class ProductBatchClientMapperHelper {
                   }),
               metadata: this.buildVariantMetadata(variant),
             }
-          })
+        })
         : undefined,
-      category_ids: categoryIds.length ? categoryIds : undefined,
+      categories: this.buildCategoryAssociations(categoryIds),
     }
   }
 

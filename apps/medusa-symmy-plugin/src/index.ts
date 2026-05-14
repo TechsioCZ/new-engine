@@ -16,3 +16,14 @@ export {
   type UpsertProductsBatchResult,
   upsertProductsBatchWorkflow,
 } from "./workflows/upsert-products-batch"
+export {
+  SYMMY_PRODUCTS_UPSERT_JOB_TYPE,
+  SYMMY_PRODUCTS_UPSERT_REQUESTED_EVENT,
+  type SymmyProductsUpsertRequestedEvent,
+} from "./workflows/upsert-products-batch/async"
+export {
+  SYMMY_IMPORT_JOB_MODULE,
+  type SymmyImportJobDTO,
+  type SymmyImportJobModuleService,
+  type SymmyImportJobStatus,
+} from "./modules/import-job"

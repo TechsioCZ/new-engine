@@ -1,12 +1,12 @@
 # MedusaSymmyPlugin
 
-A Medusa v2 plugin that exposes a single authenticated API endpoint:
+A Medusa v2 plugin that exposes authenticated batch import endpoints:
 
 ```
 POST /api/symmy/v1/products/batch
 ```
 
-It upserts a list of products in one request with **per-item identifier matching** (`sku` / `ean` / `erp_id`) and **partial-success** semantics — every product reports its own `created` / `updated` / `failed` status.
+Product upserts are accepted asynchronously. The request returns an import `job_id`, and the worker stores the final per-item `created` / `updated` / `failed` result for polling.
 
 Built against `@medusajs/medusa@^2.13`.
 
@@ -86,7 +86,7 @@ Then run migrations / dev as usual:
 npx medusa develop
 ```
 
-The plugin registers no DB models, so no migrations are needed.
+The plugin registers a `symmy_import_job` model used to store async batch status and results, so run module migrations before using the async endpoints.
 
 ---
 
@@ -141,39 +141,87 @@ Content-Type: application/json
 }
 ```
 
-### Response (200, partial success allowed)
+### Accepted Response (202)
 
 ```jsonc
 {
-  "success": false,           // true only when every item succeeded
-  "processed": 2,
-  "failed": 1,
-  "results": [
-    {
-      "identifier_type": "sku",
-      "sku": "TS-001",
-      "status": "created",
-      "product_id": "prod_01...",
-      "variant_ids": ["variant_01...", "variant_01..."]
-    },
-    {
-      "identifier_type": "erp_id",
-      "erp_id": "ERP-42",
-      "status": "updated",
-      "product_id": "prod_01...",
-      "variant_ids": ["variant_01..."]
-    },
-    {
-      "identifier_type": "ean",
-      "ean": "8590000000017",
-      "status": "failed",
-      "error": "Currency 'usd' not supported by store"
-    }
-  ]
+  "job_id": "symmy_import_job_01...",
+  "status": "queued",
+  "status_url": "/api/symmy/v1/jobs/symmy_import_job_01..."
 }
 ```
 
-The endpoint always returns `200` when validation passed; per-item failures live in `results[].error` (not as HTTP errors). Validation errors return `400`.
+If the request includes an `Idempotency-Key` header and a matching job already exists, the endpoint returns the existing job instead of creating a duplicate.
+
+### Job Status
+
+```http
+GET /api/symmy/v1/jobs/:id
+Authorization: Bearer <admin-jwt>     # or session / API key auth
+```
+
+Before completion:
+
+```jsonc
+{
+  "job": {
+    "id": "symmy_import_job_01...",
+    "type": "products.upsert",
+    "status": "running",
+    "total": 3,
+    "processed": 0,
+    "failed": 0,
+    "attempts": 1,
+    "result": null,
+    "error": null
+  }
+}
+```
+
+After completion, `job.result` contains the same partial-success payload that the synchronous endpoint previously returned:
+
+```jsonc
+{
+  "job": {
+    "id": "symmy_import_job_01...",
+    "type": "products.upsert",
+    "status": "completed",
+    "total": 3,
+    "processed": 2,
+    "failed": 1,
+    "attempts": 1,
+    "result": {
+      "success": false,           // true only when every item succeeded
+      "processed": 2,
+      "failed": 1,
+      "results": [
+        {
+          "identifier_type": "sku",
+          "sku": "TS-001",
+          "status": "created",
+          "product_id": "prod_01...",
+          "variant_ids": ["variant_01...", "variant_01..."]
+        },
+        {
+          "identifier_type": "erp_id",
+          "erp_id": "ERP-42",
+          "status": "updated",
+          "product_id": "prod_01...",
+          "variant_ids": ["variant_01..."]
+        },
+        {
+          "identifier_type": "ean",
+          "ean": "8590000000017",
+          "status": "failed",
+          "error": "Currency 'usd' not supported by store"
+        }
+      ]
+    }
+  }
+}
+```
+
+The submit endpoint returns `202` when validation passed. Per-item failures live in `job.result.results[].error` after the background worker completes. Validation errors return `400`.
 
 ---
 
