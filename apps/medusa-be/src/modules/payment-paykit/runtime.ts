@@ -112,7 +112,6 @@ export const getGopayProviderOptions = (
 ): Record<string, unknown> => ({
   clientId: options.clientId,
   clientSecret: options.clientSecret,
-  cloudApiKey: options.cloudApiKey,
   goId: options.goId,
   isSandbox: options.isSandbox ?? true,
   webhookUrl: options.webhookUrl,
@@ -123,7 +122,6 @@ export const getStripeProviderOptions = (
   options: PaykitStripeOptions
 ): Record<string, unknown> => ({
   apiKey: options.apiKey,
-  cloudApiKey: options.cloudApiKey,
   debug: options.debug ?? false,
 })
 
@@ -136,7 +134,6 @@ export const getStripeWebhookOptions = (
 export const getComgateProviderOptions = (
   options: PaykitComgateOptions
 ): Record<string, unknown> => ({
-  cloudApiKey: options.cloudApiKey,
   merchant: options.merchant,
   secret: options.secret,
   isSandbox: options.isSandbox ?? true,

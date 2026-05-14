@@ -50,7 +50,6 @@ export const buildPaykitPaymentProviders = (
   env: PaykitConfigEnv = process.env
 ): PaykitPaymentProviderConfig[] => {
   const providers: PaykitPaymentProviderConfig[] = []
-  const cloudApiKey = env.PAYKIT_CLOUD_API_KEY
   const debug = env.PAYKIT_DEBUG === "1"
 
   if (isPaykitProviderEnabledForEnv(env, "GOPAY")) {
@@ -67,7 +66,6 @@ export const buildPaykitPaymentProviders = (
       options: {
         clientId: env.GOPAY_CLIENT_ID,
         clientSecret: env.GOPAY_CLIENT_SECRET,
-        cloudApiKey,
         goId: env.GOPAY_GO_ID,
         isSandbox: parseBooleanEnv(env.GOPAY_SANDBOX, true),
         webhookUrl: env.GOPAY_WEBHOOK_URL,
@@ -87,7 +85,6 @@ export const buildPaykitPaymentProviders = (
       id: PAYKIT_STRIPE_PROVIDER_ID,
       options: {
         apiKey: env.STRIPE_API_KEY,
-        cloudApiKey,
         webhookSecret: env.STRIPE_WEBHOOK_SECRET,
         debug,
       },
@@ -104,7 +101,6 @@ export const buildPaykitPaymentProviders = (
       resolve: "./src/modules/payment-paykit/services/comgate",
       id: PAYKIT_COMGATE_PROVIDER_ID,
       options: {
-        cloudApiKey,
         merchant: env.COMGATE_MERCHANT,
         secret: env.COMGATE_SECRET,
         isSandbox: parseBooleanEnv(env.COMGATE_SANDBOX, true),

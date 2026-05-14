@@ -24,9 +24,12 @@ is useful as a reference, but this app needs a few Medusa-specific fixes:
 The local adapter still keeps the useful upstream behavior where it fits Medusa's
 contract:
 
-- PayKit `cloudApiKey` is passed through when configured.
 - Medusa customer billing data is passed to PayKit payment creation when present.
 - `updatePayment` forwards metadata and provider metadata.
+- GoPay accepts Medusa payment-session `provider_metadata.return_url`, then
+  renames it to PayKit's required `provider_metadata.success_url` at the SDK
+  boundary. In GoPay's API this URL is the customer return URL, not a
+  success-only URL.
 - Comgate has a provider-specific `paymentLabel` setting because PayKit Comgate
   requires that field; it is intentionally not a generic PayKit label for
   Stripe or GoPay.
