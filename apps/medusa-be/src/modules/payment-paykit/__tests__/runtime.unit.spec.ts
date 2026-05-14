@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   getComgateProviderOptions,
   getGopayProviderOptions,
+  getPaykitPackageLoadErrorMessage,
   getStripeProviderOptions,
   getStripeWebhookOptions,
 } from "../runtime"
@@ -81,5 +82,28 @@ describe("PayKit runtime helpers", () => {
       isSandbox: false,
       debug: false,
     })
+  })
+
+  it("describes missing PayKit packages as install issues", () => {
+    const error = Object.assign(
+      new Error(
+        "Cannot find package '@paykit-sdk/gopay' imported from /app/src/modules/payment-paykit/runtime.js"
+      ),
+      { code: "ERR_MODULE_NOT_FOUND" }
+    )
+
+    expect(getPaykitPackageLoadErrorMessage("@paykit-sdk/gopay", error)).toBe(
+      "PayKit package \"@paykit-sdk/gopay\" is not installed. Install it before enabling this provider. Original error: Cannot find package '@paykit-sdk/gopay' imported from /app/src/modules/payment-paykit/runtime.js"
+    )
+  })
+
+  it("describes PayKit package import failures as SDK/package issues", () => {
+    const error = new SyntaxError(
+      "The requested module '@paykit-sdk/core' does not provide an export named 'OAuth2TokenManager'"
+    )
+
+    expect(getPaykitPackageLoadErrorMessage("@paykit-sdk/gopay", error)).toBe(
+      "PayKit package \"@paykit-sdk/gopay\" failed to load. The package is installed, but Node could not import it. This usually means the PayKit SDK packages are version-incompatible or the package build is invalid. Original error: The requested module '@paykit-sdk/core' does not provide an export named 'OAuth2TokenManager'"
+    )
   })
 })

@@ -37,6 +37,40 @@ const dynamicImport = new Function("specifier", "return import(specifier)") as (
   specifier: string
 ) => Promise<Record<string, unknown>>
 
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
+const isMissingPackageImportError = (
+  packageName: string,
+  error: unknown
+): boolean => {
+  if (!isRecord(error) || error.code !== "ERR_MODULE_NOT_FOUND") {
+    return false
+  }
+
+  const message = getErrorMessage(error)
+
+  return (
+    message.includes(`Cannot find package '${packageName}'`) ||
+    message.includes(`Cannot find package "${packageName}"`) ||
+    message.includes(`Cannot find module '${packageName}'`) ||
+    message.includes(`Cannot find module "${packageName}"`)
+  )
+}
+
+export const getPaykitPackageLoadErrorMessage = (
+  packageName: string,
+  error: unknown
+): string => {
+  const originalMessage = getErrorMessage(error)
+
+  if (isMissingPackageImportError(packageName, error)) {
+    return `PayKit package "${packageName}" is not installed. Install it before enabling this provider. Original error: ${originalMessage}`
+  }
+
+  return `PayKit package "${packageName}" failed to load. The package is installed, but Node could not import it. This usually means the PayKit SDK packages are version-incompatible or the package build is invalid. Original error: ${originalMessage}`
+}
+
 const loadExport = async <T>(
   packageName: string,
   exportName: string
@@ -46,11 +80,9 @@ const loadExport = async <T>(
   try {
     mod = await dynamicImport(packageName)
   } catch (error) {
-    throw new Error(
-      `PayKit package "${packageName}" could not be loaded. Install it before enabling this provider. ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    )
+    throw new Error(getPaykitPackageLoadErrorMessage(packageName, error), {
+      cause: error,
+    })
   }
 
   const loaded = mod[exportName]
