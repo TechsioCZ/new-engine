@@ -1,6 +1,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import NextLink from "next/link";
 import NextImage from "next/image";
+import { routes } from "@/lib/routes";
 import type { BlogPost } from "@/lib/storefront/blog-content";
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters";
 
@@ -9,9 +10,11 @@ type BlogListingCardProps = {
 };
 
 export function BlogListingCard({ post }: BlogListingCardProps) {
+  const href = routes.blog.detail(post.slug);
+
   return (
     <article className="flex h-full min-h-950 flex-col overflow-hidden rounded-2xl border border-border-secondary bg-surface">
-      <NextLink className="block" href={`/blog/${post.slug}`}>
+      <NextLink className="block" href={href}>
         <NextImage
           alt={post.title}
           className="aspect-video w-full object-cover"
@@ -38,7 +41,7 @@ export function BlogListingCard({ post }: BlogListingCardProps) {
 
         <NextLink
           className="line-clamp-2 text-lg leading-snug font-bold text-fg-primary hover:text-primary"
-          href={`/blog/${post.slug}`}
+          href={href}
         >
           {post.title}
         </NextLink>
@@ -50,7 +53,7 @@ export function BlogListingCard({ post }: BlogListingCardProps) {
         <div className="mt-auto flex items-center justify-between gap-300">
           <NextLink
             className="text-xs leading-normal font-semibold text-fg-primary underline underline-offset-2 hover:text-primary"
-            href={`/blog/${post.slug}`}
+            href={href}
           >
             Prejsť na článok →
           </NextLink>

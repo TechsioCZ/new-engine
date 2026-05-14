@@ -6,10 +6,11 @@ import { CheckoutFooter } from "@/components/checkout/checkout-footer";
 import { CheckoutHeader } from "@/components/checkout/checkout-header";
 import { HerbatikaFooter } from "@/components/herbatika-footer";
 import { HerbatikaHeader } from "@/components/herbatika-header";
+import { isCheckoutPathname } from "@/lib/routes";
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
-  const isCheckoutRoute = pathname.startsWith("/checkout");
+  const isCheckoutRoute = isCheckoutPathname(pathname);
 
   if (isCheckoutRoute) {
     return (

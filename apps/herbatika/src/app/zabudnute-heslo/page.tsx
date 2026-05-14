@@ -1,4 +1,4 @@
-import { ForgotPasswordPanel } from "@/app/auth/forgot-password/forgot-password-panel";
+import { ForgotPasswordPanel } from "@/components/auth/forgot-password-panel";
 
 export default function ForgotPasswordPage() {
   return (

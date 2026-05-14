@@ -5,6 +5,7 @@ import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
 import { HerbatikaLogo } from "@/components/herbatika-logo";
+import { routes } from "@/lib/routes";
 import { useAuth } from "@/lib/storefront/auth";
 
 export function CheckoutHeader() {
@@ -39,7 +40,7 @@ export function CheckoutHeader() {
           </Link>
           {!isAuthenticated && <LinkButton
             as={NextLink}
-            href="/auth/login"
+            href={routes.auth.login}
             size="sm"
             variant="secondary"
             theme="outlined"

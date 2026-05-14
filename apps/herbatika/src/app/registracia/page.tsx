@@ -5,9 +5,7 @@ type RegisterPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function RegisterPage({
-  searchParams,
-}: RegisterPageProps) {
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const resolvedSearchParams = await searchParams;
   const afterAuthHref = resolveAfterAuthHref(resolvedSearchParams.next);
 

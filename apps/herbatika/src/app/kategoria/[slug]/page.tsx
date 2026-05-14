@@ -1,6 +1,7 @@
 import { HydrationBoundary } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
 import { StorefrontCategoryListing } from "@/components/storefront-category-listing";
+import { appendSearchParamsToHref, routes } from "@/lib/routes";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr";
 
@@ -8,9 +9,7 @@ type CategoryPageProps = {
   params: Promise<{
     slug: string;
   }>;
-  searchParams: Promise<
-    Record<string, string | string[] | undefined>
-  >;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const CATEGORY_SLUG_ALIASES: Record<string, string> = {
@@ -21,13 +20,21 @@ export default async function CategoryPage({
   params,
   searchParams,
 }: CategoryPageProps) {
-  const [{ slug }, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const [{ slug }, resolvedSearchParams] = await Promise.all([
+    params,
+    searchParams,
+  ]);
 
   const normalizedSlug = slug.trim().toLowerCase();
   const canonicalSlug = CATEGORY_SLUG_ALIASES[normalizedSlug];
 
   if (canonicalSlug) {
-    redirect(`/c/${canonicalSlug}`);
+    redirect(
+      appendSearchParamsToHref(
+        routes.category.detail(canonicalSlug),
+        resolvedSearchParams,
+      ),
+    );
   }
 
   const queryState = parsePlpQueryStateFromSearchParams(resolvedSearchParams);

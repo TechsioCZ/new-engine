@@ -6,6 +6,7 @@ import { CategoryResultsSection } from "@/components/category/category-results-s
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
+import { routes } from "@/lib/routes";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 import { useBrandListingController } from "./use-brand-listing-controller";
 
@@ -25,7 +26,7 @@ export function StorefrontBrandListing({
       <HerbatikaBreadcrumb
         items={[
           { label: "Domů", href: "/", icon: "token-icon-home" },
-          { label: "Značky", href: "/znacka" },
+          { label: "Značky", href: routes.brand.index },
           { label: brandTitle },
         ]}
       />

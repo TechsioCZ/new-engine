@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
+import { routes } from "@/lib/routes";
 
 type CategoryTopLevelLinksProps = {
   topLevelCategories: HttpTypes.StoreProductCategory[];
@@ -26,7 +27,7 @@ export function CategoryTopLevelLinks({
       {topLevelCategories.map((category) => (
         <LinkButton
           as={NextLink}
-          href={`/c/${category.handle}`}
+          href={routes.category.detail(category.handle ?? category.id)}
           key={category.id}
           onBlur={() => onCategoryBlur(category)}
           onFocus={() => onCategoryFocus(category)}

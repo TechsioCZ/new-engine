@@ -18,6 +18,7 @@ import {
   useProducts,
 } from "@/lib/storefront/products";
 import { selectRecommendedProductRepresentatives } from "@/lib/storefront/recommended-product-families";
+import { routes } from "@/lib/routes";
 
 const EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE = "novinky";
 const EMPTY_CART_RECOMMENDATIONS_LIMIT = 10;
@@ -91,7 +92,7 @@ export function CheckoutEmptyCartSection() {
               <LinkButton
                 as={NextLink}
                 className="w-full sm:w-auto"
-                href="/c/novinky"
+                href={routes.category.detail("novinky")}
                 size="md"
                 variant="primary"
               >

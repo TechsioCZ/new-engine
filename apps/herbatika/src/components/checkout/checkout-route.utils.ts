@@ -3,6 +3,7 @@ import {
   type CheckoutStepSlug,
   DEFAULT_CHECKOUT_STEP_SLUG,
 } from "./checkout.constants";
+import { routes } from "@/lib/routes";
 
 const CHECKOUT_STEP_SLUGS = CHECKOUT_STEPS.map((step) => step.slug);
 
@@ -23,7 +24,7 @@ export const resolveCheckoutStepSlug = (
 };
 
 export const resolveCheckoutStepHref = (step: CheckoutStepSlug) => {
-  return `/checkout/${step}`;
+  return routes.checkout.step(step);
 };
 
 export const resolveCheckoutStepIndexBySlug = (step: CheckoutStepSlug) => {

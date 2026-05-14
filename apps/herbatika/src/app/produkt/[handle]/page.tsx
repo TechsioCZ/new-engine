@@ -8,9 +8,12 @@ type ProductDetailPageProps = {
   }>;
 };
 
-export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
+export default async function ProductDetailPage({
+  params,
+}: ProductDetailPageProps) {
   const { handle } = await params;
-  const { dehydratedState } = await prefetchProductDetailPageStorefrontData(handle);
+  const { dehydratedState } =
+    await prefetchProductDetailPageStorefrontData(handle);
 
   return (
     <HydrationBoundary state={dehydratedState}>

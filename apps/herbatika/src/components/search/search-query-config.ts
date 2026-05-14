@@ -1,6 +1,7 @@
 "use client";
 
 import { parseAsInteger, parseAsString } from "nuqs";
+import { routes } from "@/lib/routes";
 
 export const SEARCH_RESULT_LIMIT = 24;
 
@@ -33,8 +34,8 @@ export const normalizeSearchQuery = (value: unknown): string => {
 export const resolveSearchHref = (value: unknown): string => {
   const query = normalizeSearchQuery(value);
   if (!query) {
-    return "/search";
+    return routes.search.index;
   }
 
-  return `/search?q=${encodeURIComponent(query)}`;
+  return `${routes.search.index}?q=${encodeURIComponent(query)}`;
 };

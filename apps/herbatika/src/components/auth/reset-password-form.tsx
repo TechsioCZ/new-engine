@@ -11,6 +11,7 @@ import {
   type ResetPasswordFormValues,
 } from "@/lib/auth/auth-form-validators";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
+import { routes } from "@/lib/routes";
 
 type ResetPasswordFormProps = {
   isBusy: boolean;
@@ -55,7 +56,7 @@ export const ResetPasswordForm = ({
         <div className="flex flex-wrap gap-200">
           <LinkButton
             as={NextLink}
-            href="/auth/forgot-password"
+            href={routes.auth.forgotPassword}
             variant="primary"
             size="sm"
           >

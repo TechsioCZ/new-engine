@@ -8,6 +8,7 @@ import { Popover } from "@techsio/ui-kit/molecules/popover";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { routes } from "@/lib/routes";
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart";
 import {
   asFiniteNumber,
@@ -141,7 +142,7 @@ export function HerbatikaCartPopover({
             as={NextLink}
             className="relative sm:w-36 inline-flex items-center gap-250 text-xl data-[state=open]:bg-button-bg-primary-hover py-550"
             data-state={isPopoverOpen ? "open" : "closed"}
-            href="/checkout/kosik"
+            href={routes.checkout.step("kosik")}
             onClick={handleClose}
             onMouseEnter={handlePreviewOpen}
             onMouseLeave={schedulePreviewClose}
@@ -237,7 +238,7 @@ export function HerbatikaCartPopover({
                 <LinkButton
                   as={NextLink}
                   block
-                  href="/checkout/kosik"
+                  href={routes.checkout.step("kosik")}
                   onClick={handleClose}
                   size="md"
                   variant="primary"

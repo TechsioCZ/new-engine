@@ -5,7 +5,7 @@ import { fetchStorefrontBrands } from "@/lib/storefront/brands.server";
 export const metadata: Metadata = {
   title: "Všetky značky A-Z | Herbatica",
   description:
-    "Prehľad všetkých značiek dostupných v e-shope Herbatica zoradený podľa abecedy.",
+    "Prehľad všetkých značiek dostupných v e-shope Herbatica zoradených podľa abecedy.",
 };
 
 export default async function BrandsPage() {

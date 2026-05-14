@@ -14,6 +14,7 @@ import type {
 } from "@/components/product-detail/product-detail.types"
 import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
 import { asRecord, asString } from "@/components/product-detail/utils/value-utils"
+import { routes } from "@/lib/routes"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import { createBrandSlug } from "@/lib/storefront/brands"
 
@@ -36,7 +37,7 @@ const resolveProductInfoLink = (
     const producerSlug = createBrandSlug(producerHandle || producerTitle)
 
     return {
-      href: producerSlug ? `/znacka/${producerSlug}` : null,
+      href: producerSlug ? routes.brand.detail(producerSlug) : null,
       label: producerTitle,
     }
   }
@@ -46,7 +47,7 @@ const resolveProductInfoLink = (
   }
 
   return {
-    href: `/c/${primaryCategory.handle}`,
+    href: routes.category.detail(primaryCategory.handle),
     label: normalizeCategoryName(primaryCategory.name),
   }
 }

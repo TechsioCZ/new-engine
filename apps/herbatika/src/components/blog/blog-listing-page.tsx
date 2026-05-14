@@ -7,6 +7,7 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb";
+import { routes } from "@/lib/routes";
 import type {
   BlogTopicFilter,
   BlogTopicKey,
@@ -36,7 +37,7 @@ const resolveBlogListingHref = ({
   }
 
   const serialized = query.toString();
-  return serialized.length > 0 ? `/blog?${serialized}` : "/blog";
+  return serialized.length > 0 ? `${routes.blog.index}?${serialized}` : routes.blog.index;
 };
 
 const getFilterLabel = (filter: BlogTopicFilter) => {
@@ -47,7 +48,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: "Blog",
-      href: "/blog",
+      href: routes.blog.index,
       icon: "token-icon-home",
     },
   ];

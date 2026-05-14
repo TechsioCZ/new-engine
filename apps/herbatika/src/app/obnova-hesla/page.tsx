@@ -1,4 +1,4 @@
-import { ResetPasswordPanel } from "@/app/auth/reset-password/reset-password-panel";
+import { ResetPasswordPanel } from "@/components/auth/reset-password-panel";
 
 type ResetPasswordPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

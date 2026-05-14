@@ -13,6 +13,7 @@ import { Header } from "@techsio/ui-kit/organisms/header";
 import NextImage from "next/image";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
+import { routes } from "@/lib/routes";
 import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
@@ -39,11 +40,13 @@ const SUBMENU_ROOT_HANDLES = new Set<string>(
 );
 
 const resolveRootHandleFromHref = (href: string) => {
-  if (!href.startsWith("/c/")) {
-    return null;
+  const categoryPrefix = `${routes.category.detail("")}/`;
+
+  if (href.startsWith(categoryPrefix)) {
+    return href.slice(categoryPrefix.length);
   }
 
-  return href.slice(3);
+  return null;
 };
 
 export function HerbatikaHeader() {
@@ -159,7 +162,7 @@ export function HerbatikaHeader() {
             <LinkButton
               as={NextLink}
               className="px-350 py-250 text-md md:text-xl font-bold"
-              href="/checkout/kosik"
+              href={routes.checkout.step("kosik")}
               icon="token-icon-cart"
               size="sm"
               variant="primary"
@@ -197,21 +200,21 @@ export function HerbatikaHeader() {
 
                 return (
                   <NextLink
-                  key={item.href}
-                  aria-expanded={
+                    key={item.href}
+                    aria-expanded={
                       hasSubmenu ? activeRootHandle === rootHandle : undefined
                     }
-                  aria-haspopup={hasSubmenu ? "dialog" : undefined}
-                  href={item.href}
-                  onFocus={() => handleActivateDesktopItem(item.href)}
-                  className="shrink-0 h-full"
+                    aria-haspopup={hasSubmenu ? "dialog" : undefined}
+                    href={item.href}
+                    onFocus={() => handleActivateDesktopItem(item.href)}
+                    className="shrink-0 h-full"
                   >
-                  <Header.NavItem
-                    className="whitespace-nowrap lg:max-header-tablet:p-header-item-desktop-lg lg:max-header-tablet:text-header-item-desktop-lg leading-none h-full items-center flex"
-                    onMouseEnter={() => handleActivateDesktopItem(item.href)}
-                  >
-                    {item.label}
-                  </Header.NavItem>
+                    <Header.NavItem
+                      className="whitespace-nowrap lg:max-header-tablet:p-header-item-desktop-lg lg:max-header-tablet:text-header-item-desktop-lg leading-none h-full items-center flex"
+                      onMouseEnter={() => handleActivateDesktopItem(item.href)}
+                    >
+                      {item.label}
+                    </Header.NavItem>
                   </NextLink>
                 );
               })}

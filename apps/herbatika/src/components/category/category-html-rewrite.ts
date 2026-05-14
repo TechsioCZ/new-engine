@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
+import { routes } from "@/lib/routes";
 
 const SHOW_MORE_MARKER_PATTERN = /#showmore#/gi;
 const SHOW_MORE_MARKER_PARAGRAPH_PATTERN =
@@ -43,16 +44,17 @@ const resolveLegacyCategoryHref = (
   }
 
   const normalizedPath = pathname.replace(/^\/+|\/+$/g, "");
-  if (!normalizedPath || normalizedPath.startsWith("c/")) {
+  if (!normalizedPath) {
     return href;
   }
 
-  const [handle] = normalizedPath.split("/");
+  const segments = normalizedPath.split("/");
+  const handle = segments[0] === "c" ? segments[1] : segments[0];
   if (!handle || !categoryByHandle.has(handle)) {
     return href;
   }
 
-  return `/c/${handle}`;
+  return routes.category.detail(handle);
 };
 
 const resolveLegacyMediaUrl = (value: string) => {

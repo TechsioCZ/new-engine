@@ -10,6 +10,7 @@ import { OrderSkeleton } from "@/components/loading/order-skeleton";
 import {
   StorefrontAccountSurface,
 } from "@/components/account/storefront-account-surface";
+import { routes } from "@/lib/routes";
 import { resolveOrderDisplayId } from "@/lib/storefront/order-format";
 import { useAuth } from "@/lib/storefront/auth";
 import { useOrder } from "@/lib/storefront/orders";
@@ -37,7 +38,7 @@ export function StorefrontAccountOrderDetail({
         <StatusText showIcon status="error">
           {orderQuery.error}
         </StatusText>
-        <LinkButton as={NextLink} href="/account/orders" variant="secondary" size="sm">
+        <LinkButton as={NextLink} href={routes.account.orders} variant="secondary" size="sm">
           Späť na objednávky
         </LinkButton>
       </StorefrontAccountSurface>
@@ -51,7 +52,7 @@ export function StorefrontAccountOrderDetail({
         <p className="text-sm text-fg-secondary">
           Skontrolujte URL alebo sa vráťte do zoznamu objednávok.
         </p>
-        <LinkButton as={NextLink} href="/account/orders" variant="secondary" size="sm">
+        <LinkButton as={NextLink} href={routes.account.orders} variant="secondary" size="sm">
           Späť na objednávky
         </LinkButton>
       </StorefrontAccountSurface>
@@ -65,8 +66,8 @@ export function StorefrontAccountOrderDetail({
       <HerbatikaBreadcrumb
         items={[
           { label: "Domov", href: "/" },
-          { label: "Účet", href: "/account" },
-          { label: "Objednávky", href: "/account/orders" },
+          { label: "Účet", href: routes.account.index },
+          { label: "Objednávky", href: routes.account.orders },
           { label: resolveOrderDisplayId(order) },
         ]}
       />

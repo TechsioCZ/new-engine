@@ -5,37 +5,38 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Footer } from "@techsio/ui-kit/organisms/footer";
 import { StorefrontReviewTrustBadges } from "@/components/reviews/storefront-review-trust-badges";
+import { routes } from "@/lib/routes";
 import { HerbatikaLogo } from "./herbatika-logo";
 
 const FOOTER_COLUMNS = [
   {
     title: "Informácie pre vás",
     links: [
-      { href: "/blog", label: "Blog" },
-      { href: "/o-nas", label: "O nás" },
-      { href: "/faq", label: "Časté otázky" },
-      { href: "/c/darceky", label: "Darčeková poukážka" },
-      { href: "/znacka", label: "Výrobcovia a značky" },
+      { href: routes.blog.index, label: "Blog" },
+      { href: routes.about, label: "O nás" },
+      { href: routes.faq, label: "Časté otázky" },
+      { href: routes.category.detail("darceky"), label: "Darčeková poukážka" },
+      { href: routes.brand.index, label: "Výrobcovia a značky" },
       { href: "https://obchody.heureka.sk/herbatica-sk/recenze/", label: "Recenzie" },
     ],
   },
   {
     title: "Dôležité informácie",
     links: [
-      { href: "/#doprava-a-platby", label: "Doprava a platby" },
-      { href: "/#reklamacia-a-vratenie", label: "Reklamácia a vrátenie" },
-      { href: "/#obchodne-podmienky", label: "Obchodné podmienky" },
-      { href: "/#ochrana-osobnych-udajov", label: "Ochrana osobných údajov" },
-      { href: "/#cookies", label: "Cookies" },
+      { href: routes.homeSection("doprava-a-platby"), label: "Doprava a platby" },
+      { href: routes.homeSection("reklamacia-a-vratenie"), label: "Reklamácia a vrátenie" },
+      { href: routes.homeSection("obchodne-podmienky"), label: "Obchodné podmienky" },
+      { href: routes.homeSection("ochrana-osobnych-udajov"), label: "Ochrana osobných údajov" },
+      { href: routes.homeSection("cookies"), label: "Cookies" },
     ],
   },
   {
     title: "Pre partnerov",
     links: [
-      { href: "/#affiliate", label: "Affiliate program" },
-      { href: "/#velkoobchod", label: "Veľkoobchod" },
-      { href: "/#dropshipping", label: "Dropshipping" },
-      { href: "/#private-label", label: "Private label" },
+      { href: routes.homeSection("affiliate"), label: "Affiliate program" },
+      { href: routes.homeSection("velkoobchod"), label: "Veľkoobchod" },
+      { href: routes.homeSection("dropshipping"), label: "Dropshipping" },
+      { href: routes.homeSection("private-label"), label: "Private label" },
     ],
   },
 ] as const;
@@ -125,7 +126,7 @@ export function HerbatikaFooter() {
             <Footer.Text className="leading-normal">
               Copyright 2025 <strong className="text-fg-primary">Herbatica.sk.</strong> Všetky
               práva vyhradené.{" "}
-              <Footer.Link as={NextLink} className="text-primary underline" href="/#cookies">
+              <Footer.Link as={NextLink} className="text-primary underline" href={routes.homeSection("cookies")}>
                 Upraviť nastavenie cookies
               </Footer.Link>
             </Footer.Text>

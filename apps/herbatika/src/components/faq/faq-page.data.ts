@@ -1,3 +1,5 @@
+import { routes } from "@/lib/routes";
+
 export type FaqLink = {
   href: string;
   label: string;
@@ -204,8 +206,8 @@ export const faqItems = [
       {
         type: "links",
         items: [
-          { href: "/registracia/", label: "Registrácia" },
-          { href: "/newsletter/", label: "Newsletter" },
+          { href: routes.auth.register, label: "Registrácia" },
+          { href: routes.cms.detail("newsletter"), label: "Newsletter" },
           {
             href: "https://www.instagram.com/herbatica/",
             label: "Instagram",
@@ -308,7 +310,7 @@ export const faqItems = [
         type: "links",
         items: [
           {
-            href: "/reklamacny-poriadok/",
+            href: routes.cms.detail("reklamacny-poriadok"),
             label: "Reklamačný formulár",
           },
         ],
@@ -328,7 +330,7 @@ export const faqItems = [
         type: "links",
         items: [
           {
-            href: "/obchodne-podmienky/",
+            href: routes.cms.detail("obchodne-podmienky"),
             label: "Dokumenty k stiahnutiu",
           },
         ],

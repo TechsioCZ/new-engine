@@ -3,6 +3,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
 import NextImage from "next/image";
+import { routes } from "@/lib/routes";
 import {
   formatOrderAmount,
   formatOrderDate,
@@ -23,7 +24,7 @@ export function StorefrontAccountOrderGroup({
   order,
   onPrefetchOrderDetail,
 }: StorefrontAccountOrderGroupProps) {
-  const detailHref = `/account/orders/${order.id}`;
+  const detailHref = routes.account.orderDetail(order.id);
   const invoiceUrl = resolveOrderInvoiceUrl(order);
   const orderTotalAmount = resolveOrderTotalAmount(order);
   const orderProgress = resolveOrderProgressState(order);
@@ -164,7 +165,11 @@ export function StorefrontAccountOrderGroup({
                 <div className="flex items-center justify-end lg:justify-self-end">
                   <LinkButton
                     as={NextLink}
-                    href={`/p/${item.product_handle}`}
+                    href={
+                      item.product_handle
+                        ? routes.product.detail(item.product_handle)
+                        : routes.account.orderDetail(order.id)
+                    }
                     onFocus={() => {
                       onPrefetchOrderDetail(order.id);
                     }}

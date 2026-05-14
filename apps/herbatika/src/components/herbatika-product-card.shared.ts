@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants";
 import { resolvePriceState } from "@/components/product-card/product-card.pricing";
 import { resolveThumbnail } from "@/components/product-card/product-card.thumbnail";
+import { routes } from "@/lib/routes";
 
 export type HerbatikaProductCardBaseProps = {
   product: HttpTypes.StoreProduct;
@@ -16,7 +17,7 @@ export function useHerbatikaProductCardState(
   product: HttpTypes.StoreProduct,
   onImageError?: () => void,
 ) {
-  const productHref = product.handle ? `/p/${product.handle}` : "/#";
+  const productHref = product.handle ? routes.product.detail(product.handle) : "/#";
   const price = resolvePriceState(product);
   const thumbnail = resolveThumbnail(product);
   const [imageSrc, setImageSrc] = useState(thumbnail);

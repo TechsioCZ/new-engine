@@ -94,7 +94,7 @@ export const ForgotPasswordForm = ({
           Zaslať odkaz
         </Button>
       </div>
-      <AuthFooter text="" href="/auth/login" linkText="Späť na prihlásenie" />
+      <AuthFooter text="" href={loginHref} linkText="Späť na prihlásenie" />
     </form>
   );
 };

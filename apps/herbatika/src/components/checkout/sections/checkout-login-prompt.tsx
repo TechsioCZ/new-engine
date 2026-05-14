@@ -1,6 +1,7 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
 import { SupportingText } from "@/components/text/supporting-text";
+import { routes } from "@/lib/routes";
 
 export function CheckoutLoginPrompt() {
   return (
@@ -16,7 +17,7 @@ export function CheckoutLoginPrompt() {
       <LinkButton
         as={NextLink}
         className="rounded-button-outlined-tertiary bg-button-bg-outlined-tertiary font-normal hover:bg-button-bg-outlined-tertiary-hover"
-        href="/account"
+        href={routes.account.index}
         size="md"
         theme="outlined"
         variant="tertiary"

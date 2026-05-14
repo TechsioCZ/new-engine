@@ -1,6 +1,7 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
+import { routes } from "@/lib/routes";
 
 type CheckoutCompletedOrderSectionProps = {
   completedOrderId: string;
@@ -16,10 +17,10 @@ export function CheckoutCompletedOrderSection({
         {`Objednávka bola vytvorená (${completedOrderId}).`}
       </StatusText>
       <div className="flex flex-wrap gap-200">
-        <LinkButton as={NextLink} href="/" size="sm">
+        <LinkButton as={NextLink} href={routes.home} size="sm">
           Pokračovať v nákupe
         </LinkButton>
-        <LinkButton as={NextLink} href="/account" theme="outlined" size="sm" variant="secondary">
+        <LinkButton as={NextLink} href={routes.account.index} theme="outlined" size="sm" variant="secondary">
           Prejsť na účet
         </LinkButton>
       </div>

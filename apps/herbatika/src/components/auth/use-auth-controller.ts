@@ -23,6 +23,7 @@ import {
 import { cartStorage } from "@/lib/storefront/cart-storage";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { useLogoutAction } from "@/lib/storefront/use-logout-action";
+import { routes } from "@/lib/routes";
 
 type AuthControlsMode = "login" | "register";
 
@@ -200,12 +201,12 @@ export const useAuthController = ({
     mode === "register"
       ? "Vyplňte údaje a vytvorte si zákaznícky účet."
       : "Zadajte prihlasovacie údaje pre vstup do zákazníckej sekcie.";
-  const loginHref = buildAuthRouteHref("/auth/login", safeRedirectHref ?? undefined);
+  const loginHref = buildAuthRouteHref(routes.auth.login, safeRedirectHref ?? undefined);
   const registerHref = buildAuthRouteHref(
-    "/auth/register",
+    routes.auth.register,
     safeRedirectHref ?? undefined,
   );
-  const forgotPasswordHref = "/auth/forgot-password"
+  const forgotPasswordHref = routes.auth.forgotPassword
 
   return {
     authError,

@@ -11,6 +11,7 @@ import { useCategoryListingController } from "@/components/category/use-category
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation";
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
+import { routes } from "@/lib/routes";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 
 type StorefrontCategoryListingProps = {
@@ -43,7 +44,7 @@ export function StorefrontCategoryListing({
     controller.catalogQuery.isFetching &&
     (hasResultProducts || controller.catalogQuery.query.isPlaceholderData);
   const fallbackNavTitle =
-    PRIMARY_NAV_ITEMS.find((item) => item.href === `/c/${slug}`)?.label ??
+    PRIMARY_NAV_ITEMS.find((item) => item.href === routes.category.detail(slug))?.label ??
     humanizeCategorySlug(slug);
   const categoryTitle = normalizeCategoryName(
     controller.activeCategory?.name ?? fallbackNavTitle,

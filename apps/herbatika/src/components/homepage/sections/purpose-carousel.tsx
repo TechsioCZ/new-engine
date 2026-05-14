@@ -12,6 +12,7 @@ import {
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "@/components/header/herbatika-header.submenu-data";
 import { useHerbatikaHeaderSubmenu } from "@/components/header/use-herbatika-header-submenu";
 import { TextActionLink } from "@/components/text-action-link";
+import { routes } from "@/lib/routes";
 
 type ImageSource = ComponentProps<typeof NextImage>["src"];
 type PurposeCarouselRootHandle =
@@ -56,7 +57,7 @@ const buildResolvedPurposeCarouselItems = (
 
     return [
       {
-        href: `/c/${item.handle}`,
+        href: routes.category.detail(item.handle),
         id: item.id,
         label: item.label,
         src: item.src,
@@ -153,7 +154,7 @@ export function PurposeCarousel({
         <h2 className="text-3xl leading-none font-bold text-fg-primary">
           {title}
         </h2>
-        <TextActionLink href={viewAllHref ?? `/c/${rootHandle}`} />
+        <TextActionLink href={viewAllHref ?? routes.category.detail(rootHandle)} />
       </div>
 
       <div className="space-y-200">

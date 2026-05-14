@@ -2,6 +2,7 @@ import type { StaticImageData } from "next/image";
 import aboutStoreImage from "@/assets/about/1.avif";
 import aboutTeamImage from "@/assets/about/2.avif";
 import aboutProductsImage from "@/assets/about/3.avif";
+import { routes } from "@/lib/routes";
 
 export type AboutTextLink = {
   href: string;
@@ -51,7 +52,7 @@ export const ABOUT_PAGE = {
     title: "O našom tíme",
     lead: [
       "Vitajte v ",
-      link("Herbatica", "/znacka/herbatica/"),
+      link("Herbatica", routes.brand.detail("herbatica")),
       ", rodinnej firme, ktorá sa zrodila z túžby priniesť ľuďom prírodné riešenia pre zdravie, krásu a well-being. Sme tu pre vás od roku 2015, aby sme vám ponúkli jedinečné produkty, ktoré spájajú tradičné liečiteľské metódy s modernými poznatkami.",
     ],
   },
@@ -124,7 +125,7 @@ export const ABOUT_PAGE = {
       paragraphs: [
         [
           "Od našich začiatkov v roku 2015 sme prešli dlhú cestu a firma zaznamenala významný vývoj predovšetkým v oblasti produktového portfólia. Spočiatku sme sa zameriavali na dovoz produktov z Ruska, Ukrajiny a Bieloruska. V roku 2022 sme začali vyvíjať a vyrábať vlastné produkty ",
-          link("pod značkou Herbatica", "/znacka/herbatica/"),
+          link("pod značkou Herbatica", routes.brand.detail("herbatica")),
           ". Dnes ponúkame širokú škálu výrobkov - sypké zmesi, kapsuly, tobolky, kozmetické či ",
           link("jedlé oleje", "/specialne-jedle-oleje/"),
           " a krémy, gély, masti, prášky, ",
@@ -217,7 +218,7 @@ export const ABOUT_PAGE = {
       year: "2024",
       description: [
         "Pod našou vlastnou ",
-        link("značkou Herbatica", "/znacka/herbatica/"),
+        link("značkou Herbatica", routes.brand.detail("herbatica")),
         " ponúkame viac ako 50 rôznych produktov.",
       ],
     },
@@ -245,7 +246,7 @@ export const ABOUT_PAGE = {
     paragraphs: [
       [
         "Sledujte náš ",
-        link("blog", "/blog/"),
+        link("blog", routes.blog.index),
         ', kde servírujeme iba tie najzaujímavejšie informácie z "Herbatického sveta". Dozviete sa tam veľa zaujímavostí a získate praktické rady zo sveta alternatívnych doplnkov stravy, tradičnej i modernej liečby, prírodnej kozmetickej starostlivosti a mnoho iného.',
       ],
       [
@@ -254,7 +255,7 @@ export const ABOUT_PAGE = {
         " a ",
         link("Facebook", "https://www.facebook.com/vasaherbatica/"),
         " a pravidelne zasielame aj newsletter s novinkami a akciami. Dajte nám follow na sociálnych sieťach, alebo ",
-        link("sa prihláste na odber newslettera", "/newsletter/"),
+        link("sa prihláste na odber newslettera", routes.cms.detail("newsletter")),
         " a už vám nič neutečie.",
       ],
     ],

@@ -2,8 +2,9 @@ import { HydrationBoundary } from "@tanstack/react-query";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { StorefrontBrandListing } from "@/components/brands/storefront-brand-listing";
-import { createBrandHref, resolveBrandBySlug } from "@/lib/storefront/brands";
+import { resolveBrandBySlug } from "@/lib/storefront/brands";
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server";
+import { appendSearchParamsToHref, routes } from "@/lib/routes";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchBrandPageStorefrontData } from "@/lib/storefront/ssr";
 
@@ -17,28 +18,6 @@ type BrandPageProps = {
 const resolveBrandPageData = async (slug: string) => {
   const brands = await fetchStorefrontBrands();
   return resolveBrandBySlug(brands, slug);
-};
-
-const createSearchParamsSuffix = (
-  searchParams: Record<string, string | string[] | undefined>,
-) => {
-  const params = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        params.append(key, item);
-      }
-      continue;
-    }
-
-    if (value !== undefined) {
-      params.set(key, value);
-    }
-  }
-
-  const queryString = params.toString();
-  return queryString ? `?${queryString}` : "";
 };
 
 export async function generateMetadata({
@@ -75,7 +54,10 @@ export default async function BrandPage({
 
   if (slug !== brand.slug) {
     redirect(
-      `${createBrandHref(brand)}${createSearchParamsSuffix(resolvedSearchParams)}`,
+      appendSearchParamsToHref(
+        routes.brand.detail(brand.slug),
+        resolvedSearchParams,
+      ),
     );
   }
 

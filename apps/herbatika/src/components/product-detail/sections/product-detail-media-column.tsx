@@ -9,6 +9,7 @@ import NextLink from "next/link";
 import NextImage from "next/image";
 import type { ProductMediaFact } from "@/components/product-detail/product-detail.types";
 import { SupportingText } from "@/components/text/supporting-text";
+import { routes } from "@/lib/routes";
 
 type ProductDetailMediaColumnProps = {
   discountPercent: number | null;
@@ -107,7 +108,7 @@ export function ProductDetailMediaColumn({
         <LinkButton
           as={NextLink}
           className="shrink-0 py-150 px-350 min-h-chat-button"
-          href="/kontakt"
+          href={routes.cms.detail("kontakt")}
           size="sm"
           theme="outlined"
           variant="primary"

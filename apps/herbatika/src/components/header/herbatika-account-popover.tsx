@@ -7,6 +7,7 @@ import NextLink from "next/link";
 import { useEffect, useState } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import { useAuthController } from "@/components/auth/use-auth-controller";
+import { routes } from "@/lib/routes";
 
 export function HerbatikaAccountPopover() {
   const controller = useAuthController({ mode: "login" });
@@ -26,7 +27,7 @@ export function HerbatikaAccountPopover() {
         aria-label="Účet"
         as={NextLink}
         className="px-0 py-0 text-icon-2xl text-fg-secondary hover:text-primary"
-        href="/account"
+        href={routes.account.index}
         icon="token-icon-user"
         size="current"
         theme="unstyled"

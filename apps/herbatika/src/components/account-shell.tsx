@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton";
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton";
 import { OrderSkeleton } from "@/components/loading/order-skeleton";
+import { routes } from "@/lib/routes";
 import { useAuth } from "@/lib/storefront/auth";
 import { useLogoutAction } from "@/lib/storefront/use-logout-action";
 import { Icon, IconType } from "@techsio/ui-kit/atoms/icon";
@@ -21,9 +22,9 @@ type AccountNavItemType = {
 }
 
 const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
-  { href: "/account", label: "Prehľad", icon:"token-icon-user"},
-  { href: "/account/orders", label: "Objednávky", icon:"token-icon-order"},
-  { href: "/account/settings", label: "Nastavenia", icon:"token-icon-settings"},
+  { href: routes.account.index, label: "Prehľad", icon:"token-icon-user"},
+  { href: routes.account.orders, label: "Objednávky", icon:"token-icon-order"},
+  { href: routes.account.settings, label: "Nastavenia", icon:"token-icon-settings"},
 ] as const;
 
 const isNavItemActive = (pathname: string, href: string) => {
@@ -31,7 +32,7 @@ const isNavItemActive = (pathname: string, href: string) => {
     return true;
   }
 
-  if (href === "/account") {
+  if (href === routes.account.index) {
     return false;
   }
 
@@ -50,8 +51,8 @@ export function AccountShell({
   const authQuery = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const redirectTarget = pathname;
-  const isOrdersListRoute = pathname === "/account/orders";
-  const isOrderDetailRoute = pathname.startsWith("/account/orders/");
+  const isOrdersListRoute = pathname === routes.account.orders;
+  const isOrderDetailRoute = pathname.startsWith(`${routes.account.orders}/`);
   const {
     clearLogoutError,
     handleLogout: performLogout,
@@ -59,7 +60,7 @@ export function AccountShell({
     logoutMutation,
   } = useLogoutAction({
     onSuccess: () => {
-      router.replace("/");
+      router.replace(routes.home);
     },
   });
 
@@ -72,7 +73,7 @@ export function AccountShell({
       return;
     }
 
-    router.replace(`/auth/login?next=${encodeURIComponent(redirectTarget)}`);
+    router.replace(`${routes.auth.login}?next=${encodeURIComponent(redirectTarget)}`);
   }, [
     authQuery.isAuthenticated,
     authQuery.isLoading,
@@ -116,7 +117,7 @@ export function AccountShell({
           </p>
           <LinkButton
             as={NextLink}
-            href={`/auth/login?next=${encodeURIComponent(redirectTarget)}`}
+            href={`${routes.auth.login}?next=${encodeURIComponent(redirectTarget)}`}
             variant="secondary"
             size="sm"
           >

@@ -28,6 +28,7 @@ import {
 } from "@/components/product-detail/utils/pricing-utils";
 import { asNumber, asRecord, asString } from "@/components/product-detail/utils/value-utils";
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
+import { routes } from "@/lib/routes";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products";
@@ -245,7 +246,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
       ? [
           {
             label: normalizeCategoryName(primaryCategory.name),
-            href: `/c/${primaryCategory.handle}`,
+            href: routes.category.detail(primaryCategory.handle),
             icon: "token-icon-home" as IconType
           },
         ]

@@ -6,7 +6,7 @@ import { ProductDetailSkeleton } from "@/components/product-detail/sections/prod
 export default function Loading() {
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-product-detail-page-gap p-product-detail-page font-rubik 2xl:p-product-detail-page-lg">
-      <Skeleton.Rectangle className="h-4 w-full rounded-full" />
+      <Skeleton.Rectangle className="h-skeleton-text-line w-full rounded-full" />
       <ProductDetailSkeleton />
     </main>
   );

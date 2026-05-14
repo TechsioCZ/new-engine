@@ -5,6 +5,7 @@ import {
   normalizeCategoryName,
   resolveCategoryRank,
 } from "@/components/category/category-product-utils";
+import { routes } from "@/lib/routes";
 
 const CATEGORY_DESCRIPTION_PLACEHOLDERS = new Set([
   "Imported from Herbatica XML feed.",
@@ -108,7 +109,7 @@ export const resolveCategoryContextImageTiles = ({
   ).map((category) => ({
     id: category.id,
     label: normalizeCategoryName(category.name),
-    href: `/c/${category.handle}`,
+    href: routes.category.detail(category.handle ?? category.id),
     handle: category.handle,
     parentCategoryId: category.parent_category_id ?? null,
   }));
@@ -135,7 +136,7 @@ export const resolveCategoryContextImageTiles = ({
     .map((category) => ({
       id: category.id,
       label: normalizeCategoryName(category.name),
-      href: `/c/${category.handle}`,
+      href: routes.category.detail(category.handle),
       handle: category.handle,
       parentCategoryId: category.parent_category_id ?? null,
     }));

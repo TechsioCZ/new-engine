@@ -8,6 +8,7 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb";
+import { routes } from "@/lib/routes";
 import type { BlogPost } from "@/lib/storefront/blog-content";
 import { BlogArticleSidebar } from "./blog-article-sidebar";
 import { BlogAuthorCard } from "./blog-author-card";
@@ -31,7 +32,7 @@ export function BlogDetailPage({
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: "Blog",
-      href: "/blog",
+      href: routes.blog.index,
       icon: "token-icon-home",
     },
     {
@@ -216,7 +217,7 @@ export function BlogDetailPage({
                 <Link
                   as={NextLink}
                   className="text-md leading-tight font-medium text-fg-primary underline underline-offset-2 hover:text-primary"
-                  href="/blog"
+                  href={routes.blog.index}
                 >
                   Zobraziť všetky →
                 </Link>

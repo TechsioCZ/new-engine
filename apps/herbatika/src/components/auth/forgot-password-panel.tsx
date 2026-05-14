@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+import { routes } from "@/lib/routes";
 import { requestPasswordResetProxy } from "@/lib/storefront/auth/proxy";
 
-const LOGIN_HREF = "/auth/login";
+const LOGIN_HREF = routes.auth.login;
 
 export const ForgotPasswordPanel = () => {
   const [isBusy, setIsBusy] = useState(false);

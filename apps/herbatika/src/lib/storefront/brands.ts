@@ -1,3 +1,5 @@
+import { routes } from "@/lib/routes";
+
 export type StorefrontBrand = {
   id: string;
   title: string;
@@ -65,7 +67,7 @@ export const createBrandSlug = (value: string): string => {
 };
 
 export const createBrandHref = (brand: Pick<StorefrontBrand, "slug">) =>
-  `/znacka/${brand.slug}`;
+  routes.brand.detail(brand.slug);
 
 export const createBrandFacetId = (value: string) =>
   `${BRAND_FACET_PREFIX}${createBrandSlug(value)}`;

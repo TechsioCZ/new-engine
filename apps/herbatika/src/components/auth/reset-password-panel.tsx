@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
+import { routes } from "@/lib/routes";
 import { requestPasswordUpdateProxy } from "@/lib/storefront/auth/proxy";
 
-const LOGIN_HREF = "/auth/login";
+const LOGIN_HREF = routes.auth.login;
 
 type ResetPasswordPanelProps = {
   token: string | null;

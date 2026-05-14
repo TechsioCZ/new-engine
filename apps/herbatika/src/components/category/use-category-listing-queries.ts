@@ -32,6 +32,7 @@ import {
 } from "@/lib/storefront/plp-query-state";
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { routes } from "@/lib/routes";
 
 const resolvePriceBounds = (priceFacet: {
   min: number | null;
@@ -85,7 +86,7 @@ const resolveBreadcrumbItems = (
       href: isLast
         ? undefined
         : category.handle
-          ? `/c/${category.handle}`
+          ? routes.category.detail(category.handle)
           : undefined,
     });
   }

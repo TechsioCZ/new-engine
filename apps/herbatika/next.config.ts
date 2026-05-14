@@ -30,6 +30,20 @@ const resolvePayloadImageRemotePattern = () =>
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  async redirects() {
+    return [
+      {
+        source: "/pokladna",
+        destination: "/pokladna/kosik",
+        permanent: false,
+      },
+      {
+        source: "/pokladna/platba/navrat",
+        destination: "/pokladna/suhrn",
+        permanent: false,
+      },
+    ];
+  },
   transpilePackages: ["@techsio/ui-kit", "@techsio/storefront-data"],
   reactCompiler: true,
   cacheComponents: true,

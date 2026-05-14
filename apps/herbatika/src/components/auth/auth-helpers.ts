@@ -2,6 +2,7 @@ import type {
   LoginFormValues,
   RegisterFormValues,
 } from "@/lib/auth/auth-form-validators";
+import { routes } from "@/lib/routes";
 
 export const resolveSafeRedirectHref = (value?: string) => {
   if (!value) {
@@ -16,7 +17,7 @@ export const resolveSafeRedirectHref = (value?: string) => {
 };
 
 export const buildAuthRouteHref = (
-  path: "/auth/login" | "/auth/register",
+  path: typeof routes.auth.login | typeof routes.auth.register,
   next?: string,
 ) => {
   if (!next) {
@@ -28,7 +29,7 @@ export const buildAuthRouteHref = (
 
 export const resolveAfterAuthHref = (
   value?: string | string[],
-  fallback = "/account",
+  fallback = routes.account.index,
 ) => {
   const nextValue = typeof value === "string" ? value : undefined;
   return resolveSafeRedirectHref(nextValue) ?? fallback;

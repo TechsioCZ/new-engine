@@ -1,5 +1,6 @@
 import giftIcon from "@/assets/icons/gift-icon.avif";
 import flameIcon from "@/assets/icons/flame-icon.avif";
+import { routes } from "@/lib/routes";
 import { StaticImageData } from "next/image";
 
 type HeaderNavItem = {
@@ -12,23 +13,23 @@ type HeaderActionItem = HeaderNavItem & {
 };
 
 export const PRIMARY_NAV_ITEMS: HeaderNavItem[] = [
-  { href: "/c/trapi-ma", label: "Trápi ma" },
-  { href: "/c/prirodna-kozmetika", label: "Prírodná kozmetika" },
-  { href: "/c/doplnky-vyzivy", label: "Doplnky výživy" },
-  { href: "/c/potraviny-a-napoje", label: "Potraviny a nápoje" },
-  { href: "/c/eko-domacnost", label: "EKO domácnosť" },
-  { href: "/c/ucinne-zlozky-od-a-po-z", label: "Účinné zložky od A po Z" },
-  { href: "/c/novinky", label: "Novinky" },
+  { href: routes.category.detail("trapi-ma"), label: "Trápi ma" },
+  { href: routes.category.detail("prirodna-kozmetika"), label: "Prírodná kozmetika" },
+  { href: routes.category.detail("doplnky-vyzivy"), label: "Doplnky výživy" },
+  { href: routes.category.detail("potraviny-a-napoje"), label: "Potraviny a nápoje" },
+  { href: routes.category.detail("eko-domacnost"), label: "EKO domácnosť" },
+  { href: routes.category.detail("ucinne-zlozky-od-a-po-z"), label: "Účinné zložky od A po Z" },
+  { href: routes.category.detail("novinky"), label: "Novinky" },
 ];
 
 export const HEADER_ACTION_ITEMS: HeaderActionItem[] = [
   {
-    href: "/c/darceky",
+    href: routes.category.detail("darceky"),
     src: giftIcon,
     label: "Darčeky",
   },
   {
-    href: "/c/vypredaj-zlavy-a-akcie",
+    href: routes.category.detail("vypredaj-zlavy-a-akcie"),
     src: flameIcon,
     label: "Akcie",
   },

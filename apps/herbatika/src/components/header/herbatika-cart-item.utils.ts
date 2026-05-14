@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
+import { routes } from "@/lib/routes";
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations";
 
 export const FALLBACK_MAX_QUANTITY = 99;
@@ -16,10 +17,10 @@ export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
   const productHandle = resolveLineItemProductHandle(item);
 
   if (productHandle) {
-    return `/p/${productHandle}`;
+    return routes.product.detail(productHandle);
   }
 
-  return "/checkout/kosik";
+  return routes.checkout.step("kosik");
 };
 
 export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {

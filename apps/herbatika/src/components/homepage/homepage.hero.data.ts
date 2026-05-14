@@ -3,6 +3,7 @@ import firstCarouselSlide from "@/assets/homepage-carousel/first.avif";
 import secondCarouselSlide from "@/assets/homepage-carousel/second.avif";
 import thirdCarouselSlide from "@/assets/homepage-carousel/third.avif";
 import fourthCarouselSlide from "@/assets/homepage-carousel/fourth.avif";
+import { routes } from "@/lib/routes";
 
 
 export const HERO_BANNERS: HeroBannerItem[] = [
@@ -11,20 +12,20 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     title: "Rýchle doručenie 24h!",
     subtitle: "Rýchle dodanie a balenie",
     badge: "Rýchle dodanie",
-    href: "/c/trapi-ma",
+    href: routes.category.detail("trapi-ma"),
     imageSrc: firstCarouselSlide.src,
   },
   {
     id: "black-friday",
     badge: "Kozmetika",
-    href: "/c/vypredaj-zlavy-a-akcie",
+    href: routes.category.detail("vypredaj-zlavy-a-akcie"),
     imageSrc: secondCarouselSlide.src,
   },
   {
     id: "nova-prevadzka",
     title: "Otvárame pre vás novú prevádzku",
     badge: "Nová prevádzka",
-    href: "/c/novinky",
+    href: routes.category.detail("novinky"),
     imageSrc: thirdCarouselSlide.src,
   },
   {
@@ -32,7 +33,7 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     title: "Rýchle doručenie 24h!",
     subtitle: "Rýchle dodanie a balenie",
     badge: "Rýchle dodanie",
-    href: "/c/trapi-ma",
+    href: routes.category.detail("trapi-ma"),
     imageSrc: fourthCarouselSlide.src,
   },
   {
@@ -40,7 +41,7 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     title: "EKO domácnosť bez chemického zaťaženia",
     subtitle: "Čistejšie prostredie pre vás aj vašu rodinu.",
     badge: "EKO domácnosť",
-    href: "/c/eko-domacnost",
+    href: routes.category.detail("eko-domacnost"),
     imageSrc:
       "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=900&q=80",
   },
@@ -49,7 +50,7 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     title: "Akčné ponuky až do vypredania",
     subtitle: "Vyberte si zvýhodnené produkty ešte dnes.",
     badge: "Akcia",
-    href: "/c/vypredaj-zlavy-a-akcie",
+    href: routes.category.detail("vypredaj-zlavy-a-akcie"),
     imageSrc:
       "https://images.unsplash.com/photo-1607083206968-13611e3d76db?auto=format&fit=crop&w=900&q=80",
   },
@@ -58,7 +59,7 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     title: "Darčeky pre zdravie a radosť",
     subtitle: "Pripravené balíčky pre vašich blízkych.",
     badge: "Darčeky",
-    href: "/c/darceky",
+    href: routes.category.detail("darceky"),
     imageSrc:
       "https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=900&q=80",
   },
@@ -67,7 +68,7 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     title: "Novinky zo sveta prírody",
     subtitle: "Pravidelne dopĺňame nové značky a produkty.",
     badge: "Novinky",
-    href: "/c/novinky",
+    href: routes.category.detail("novinky"),
     imageSrc:
       "https://images.unsplash.com/photo-1461354464878-ad92f492a5a0?auto=format&fit=crop&w=900&q=80",
   },

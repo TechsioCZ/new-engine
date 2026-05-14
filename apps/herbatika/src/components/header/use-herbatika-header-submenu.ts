@@ -13,6 +13,7 @@ import {
   STOREFRONT_CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
+import { routes } from "@/lib/routes";
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data";
 
 type HerbatikaHeaderSubmenuChildItem = {
@@ -115,12 +116,12 @@ export function useHerbatikaHeaderSubmenu() {
                 label: category.name,
                 parentCategoryId: category.parent_category_id,
               }),
-              href: category.handle ? `/c/${category.handle}` : "#",
+              href: category.handle ? routes.category.detail(category.handle) : "#",
               childItems: (childrenByParentId.get(category.id) ?? []).map(
                 (child) => ({
                   id: child.id,
                   label: normalizeCategoryName(child.name),
-                  href: child.handle ? `/c/${child.handle}` : "#",
+                  href: child.handle ? routes.category.detail(child.handle) : "#",
                 }),
               ),
             }))
