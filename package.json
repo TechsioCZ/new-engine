@@ -87,7 +87,7 @@
       },
       "@rokmohar/medusa-plugin-meilisearch@*": {
         "dependencies": {
-          "@medusajs/js-sdk": "^2.14.1"
+          "@medusajs/js-sdk": "^2.15.2"
         }
       }
     },
