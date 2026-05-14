@@ -27,3 +27,11 @@ export {
   type SymmyImportJobModuleService,
   type SymmyImportJobStatus,
 } from "./modules/import-job"
+export {
+  SYMMY_WEBHOOK_CONFIG_MODULE,
+  type SymmyWebhookConfigDTO,
+  type SymmyWebhookConfigModuleService,
+  type SymmyWebhookEndpoint,
+  type SymmyWebhookJobPayload,
+  type UpdateSymmyWebhookConfigInput,
+} from "./modules/webhook-config"

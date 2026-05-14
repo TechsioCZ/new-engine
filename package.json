@@ -30,8 +30,9 @@
     "@playwright/test": "^1.58.2",
     "@swc-node/register": "~1.11.1",
     "@swc/core": "~1.15.3",
-    "@typescript-eslint/parser": "^8.47.0",
     "@types/bun": "1.3.3",
+    "@types/node": "24.10.1",
+    "@typescript-eslint/parser": "^8.47.0",
     "cross-env": "^7.0.3",
     "eslint": "^9.39.1",
     "jscpd": "^4.0.5",
@@ -51,6 +52,14 @@
       "@types/react": "19.2.3",
       "@types/react-dom": "19.2.3"
     },
+    "packageExtensions": {
+      "@medusajs/utils@2.14.1": {
+        "dependencies": {
+          "@medusajs/index": "2.14.1",
+          "@medusajs/medusa": "2.14.1"
+        }
+      }
+    },
     "supportedArchitectures": {
       "os": [
         "current",
@@ -69,5 +78,9 @@
         "musl"
       ]
     }
+  },
+  "dependencies": {
+    "@mikro-orm/core": "6.6.12",
+    "@mikro-orm/migrations": "6.6.12"
   }
 }
