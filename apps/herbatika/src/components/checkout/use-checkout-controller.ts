@@ -11,7 +11,8 @@ import {
 } from "@/lib/storefront/cart";
 import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter";
 import {
-  resolveCartSubtotalAmount,
+  resolveCartItemsTotalAmount,
+  resolveCartShippingTotalAmount,
   resolveCartTotalAmount,
   resolveCartTotalWithoutTaxAmount,
 } from "@/lib/storefront/cart-calculations";
@@ -195,7 +196,7 @@ export function useCheckoutController() {
   const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId);
   const hasPayment = checkoutPaymentQuery.hasPaymentSessions;
 
-  const selectedShippingPrice = useMemo(() => {
+  const selectedShippingOptionPrice = useMemo(() => {
     if (!checkoutShippingQuery.selectedShippingMethodId) {
       return 0;
     }
@@ -210,9 +211,17 @@ export function useCheckoutController() {
     checkoutShippingQuery.shippingPrices,
   ]);
 
-  const cartSubtotalAmount = useMemo(() => {
-    return resolveCartSubtotalAmount(cartQuery.cart);
+  const cartItemsTotalAmount = useMemo(() => {
+    return resolveCartItemsTotalAmount(cartQuery.cart);
   }, [cartQuery.cart]);
+
+  const cartShippingTotalAmount = useMemo(() => {
+    if (cartQuery.cart?.shipping_methods?.length) {
+      return resolveCartShippingTotalAmount(cartQuery.cart);
+    }
+
+    return selectedShippingOptionPrice;
+  }, [cartQuery.cart, selectedShippingOptionPrice]);
 
   const cartTotalAmount = useMemo(() => {
     return resolveCartTotalAmount(cartQuery.cart);
@@ -234,7 +243,8 @@ export function useCheckoutController() {
     billingAddressForm: checkoutDetailsForm.effectiveValues.billing,
     cartItems,
     cartQuery,
-    cartSubtotalAmount,
+    cartItemsTotalAmount,
+    cartShippingTotalAmount,
     cartTotalWithoutTaxAmount,
     cartTotalAmount,
     checkoutDetailsForm,
@@ -254,7 +264,6 @@ export function useCheckoutController() {
     isBusy,
     isCompanyPurchase: checkoutDetailsForm.values.isCompanyPurchase,
     marketingConsent,
-    selectedShippingPrice,
     setHeurekaConsent,
     setMarketingConsent,
     shippingAddressForm: checkoutDetailsForm.effectiveValues.shipping,
