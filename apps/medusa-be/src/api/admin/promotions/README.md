@@ -10,6 +10,7 @@ Medusa v2's default promotion system provides basic product-level filtering. Thi
 - **Producer/Manufacturer Filtering** - Apply promotions based on product manufacturer
 - **Cart Item Total Conditions** - Trigger promotions when cart reaches a certain value
 - **Item Price Conditions** - Apply discounts based on individual item prices
+- **Item Quantity Conditions** - Apply promotions based on the number of matching items
 
 These capabilities enable more granular promotional campaigns common in e-commerce scenarios.
 
@@ -39,8 +40,8 @@ Search and filter product variants for promotion rules.
 
 **Query Parameters:**
 - `q`: Search term
-- `value`: Comma-separated variant IDs (for hydrating existing rules)
-- `limit`: Results per page (1-100, default 10)
+- `value` or `id`: Variant IDs for hydrating existing rules
+- `limit`: Results per page (1-100, default 100)
 - `offset`: Pagination offset
 
 **Response Format:**
@@ -70,6 +71,15 @@ Search and filter producers/manufacturers for promotion rules.
 | `producer` | multiselect | IN, EQ, NIN | Filter by manufacturer |
 | `cart_item_total` | number | EQ, GT, GTE, LT, LTE | Cart value threshold |
 | `item_price` | number | EQ, GT, GTE, LT, LTE | Individual item price |
+| `item_quantity` | number | EQ, GT, GTE, LT, LTE | Matching item quantity |
+
+Producer rules evaluate against `items.producer_ids`, which is injected through
+Medusa promotion workflow hooks from the product-producer module link. The
+currently exported hooks cover cart promotion updates, draft-order adjustment
+computation, and order adjustment previews. `refreshDraftOrderAdjustmentsWorkflow`
+also defines the needed hook in Medusa source, but is not currently exported
+from `@medusajs/medusa/core-flows`; see the TODO in
+`src/workflows/hooks/promotion-producer-context.ts`.
 
 ## File Structure
 
@@ -90,4 +100,5 @@ promotions/
 
 ## Testing
 
-Unit tests are located in `__tests__/utils.unit.spec.ts` covering utility functions, validation, and edge cases.
+Unit tests are located in `__tests__/utils.unit.spec.ts` covering utility
+functions, Medusa route-loading assumptions, and producer context enrichment.

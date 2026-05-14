@@ -1,13 +1,8 @@
-import { MedusaError } from "@medusajs/framework/utils"
 import {
-  buyGetBuyRules,
-  buyGetTargetRules,
-  currencyRule,
-  itemsAttributes,
-  ruleAttributes,
-  shippingMethodsAttributes,
-  validRuleTypes,
-} from "./const"
+  getRuleAttributesMap,
+  validateRuleType as medusaValidateRuleType,
+} from "@medusajs/medusa/api/admin/promotions/utils/index"
+import { customRuleAttributes } from "./const"
 import type {
   GetRuleAttributesMapParams,
   ProductVariantInput,
@@ -15,21 +10,11 @@ import type {
   RuleValueOption,
 } from "./types"
 
-/**
- * Escape special characters in LIKE/ILIKE patterns.
- * Characters %, _, and \ have special meaning in SQL LIKE patterns
- * and should be escaped when using user input in searches.
- */
+export const validateRuleType = medusaValidateRuleType
+
 export const escapeLikePattern = (str: string) =>
   str.replace(/[%_\\]/g, (char) => `\\${char}`)
 
-/**
- * Maps a product variant to a label/value pair for the admin UI.
- *
- * Label format: "Product Title - Variant Title (SKU)"
- * - Omits parts that are missing
- * - Falls back to variant ID if no title/product available
- */
 export function mapVariantToRuleValueOption(
   variant: ProductVariantInput
 ): RuleValueOption {
@@ -55,60 +40,33 @@ export function mapVariantToRuleValueOption(
   }
 }
 
-/**
- * Get rule attributes map with extended attributes (including variants)
- * This extends the default Medusa rule attributes
- */
-export function getExtendedRuleAttributesMap({
-  promotionType,
-  applicationMethodType,
-  applicationMethodTargetType,
-}: GetRuleAttributesMapParams): Record<RuleType, typeof ruleAttributes> {
-  const map: Record<RuleType, typeof ruleAttributes> = {
-    rules: [...ruleAttributes],
-    "target-rules":
-      applicationMethodTargetType === "shipping_methods"
-        ? [...shippingMethodsAttributes]
-        : [...itemsAttributes],
-    "buy-rules":
-      applicationMethodTargetType === "shipping_methods"
-        ? [...shippingMethodsAttributes]
-        : [...itemsAttributes],
-  }
+export function getExtendedRuleAttributesMap(
+  params: GetRuleAttributesMapParams
+) {
+  const map = getRuleAttributesMap(params)
+  const itemRuleAttributes =
+    params.applicationMethodTargetType === "shipping_methods"
+      ? []
+      : customRuleAttributes["target-rules"]
 
-  // Add currency rule based on application method type
-  if (applicationMethodType === "fixed") {
-    map.rules.push({ ...currencyRule })
-  } else {
-    map.rules.push({ ...currencyRule, required: false })
-  }
-
-  // Add buyget-specific rules
-  if (promotionType === "buyget") {
-    map["buy-rules"].push(...buyGetBuyRules)
-    map["target-rules"].push(...buyGetTargetRules)
-  }
-
-  return map
+  return {
+    rules: appendMissingAttributes(map.rules, customRuleAttributes.rules),
+    "target-rules": appendMissingAttributes(
+      map["target-rules"],
+      itemRuleAttributes
+    ),
+    "buy-rules": appendMissingAttributes(map["buy-rules"], itemRuleAttributes),
+  } satisfies Record<RuleType, typeof map.rules>
 }
 
-/**
- * Type guard to check if a string is a valid RuleType
- */
-export function isRuleType(ruleType: string): ruleType is RuleType {
-  return (validRuleTypes as readonly string[]).includes(ruleType)
-}
+function appendMissingAttributes<T extends { id: string }>(
+  baseAttributes: T[],
+  customAttributes: readonly T[]
+) {
+  const existingIds = new Set(baseAttributes.map((attribute) => attribute.id))
+  const additions = customAttributes.filter(
+    (attribute) => !existingIds.has(attribute.id)
+  )
 
-/**
- * Validate rule type parameter
- */
-export function validateRuleType(
-  ruleType: string
-): asserts ruleType is RuleType {
-  if (!isRuleType(ruleType)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Invalid rule type: ${ruleType}. Must be one of: ${validRuleTypes.join(", ")}`
-    )
-  }
+  return [...baseAttributes, ...additions]
 }
