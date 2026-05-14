@@ -1,5 +1,11 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import type {
+  ApplicationMethodTargetTypeValues,
+  ApplicationMethodTypeValues,
+  PromotionTypeValues,
+} from "@medusajs/types"
+import type { RuleType } from "../../types"
 import { getExtendedRuleAttributesMap, validateRuleType } from "../../utils"
 
 /**
@@ -32,10 +38,14 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   } = req.validatedQuery
   const attributes =
     getExtendedRuleAttributesMap({
-      promotionType: promotion_type,
-      applicationMethodType: application_method_type,
-      applicationMethodTargetType: application_method_target_type,
-    })[ruleType] || []
+      promotionType: promotion_type as PromotionTypeValues | undefined,
+      applicationMethodType: application_method_type as
+        | ApplicationMethodTypeValues
+        | undefined,
+      applicationMethodTargetType: application_method_target_type as
+        | ApplicationMethodTargetTypeValues
+        | undefined,
+    })[ruleType as RuleType] || []
 
   res.json({ attributes })
 }

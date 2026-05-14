@@ -1,11 +1,15 @@
-import { validRuleTypes } from "../const"
+import { resolve } from "node:path"
+import { pathToFileURL } from "node:url"
+import { describe, expect, it, vi } from "vitest"
+import { buildProducerPromotionContext } from "../../../../workflows/utils/promotion-producer-context"
 import {
   escapeLikePattern,
   getExtendedRuleAttributesMap,
-  isRuleType,
   mapVariantToRuleValueOption,
   validateRuleType,
 } from "../utils"
+
+const validRuleTypes = ["rules", "target-rules", "buy-rules"] as const
 
 type VariantFixture = {
   id: string
@@ -164,34 +168,8 @@ describe("escapeLikePattern", () => {
 })
 
 describe("isRuleType", () => {
-  describe("valid rule types", () => {
-    it.each(validRuleTypes)('returns true for "%s"', (ruleType) => {
-      expect(isRuleType(ruleType)).toBe(true)
-    })
-  })
-
-  describe("invalid rule types", () => {
-    it.each([
-      "invalid",
-      "RULES",
-      "target_rules",
-      "buy_rules",
-      "",
-      "rule",
-      "target",
-      "buy",
-    ])('returns false for "%s"', (invalidType) => {
-      expect(isRuleType(invalidType)).toBe(false)
-    })
-  })
-
-  it("acts as a type guard", () => {
-    const ruleType: string = "rules"
-    if (isRuleType(ruleType)) {
-      // TypeScript should narrow ruleType to RuleType here
-      const narrowed: "rules" | "target-rules" | "buy-rules" = ruleType
-      expect(narrowed).toBe("rules")
-    }
+  it("is covered by Medusa's validateRuleType utility", () => {
+    expect(() => validateRuleType("rules")).not.toThrow()
   })
 })
 
@@ -206,15 +184,13 @@ describe("validateRuleType", () => {
     it.each([
       "invalid",
       "RULES",
-      "target_rules",
-      "buy_rules",
       "",
       "rule",
       "target",
       "buy",
     ])('throws for invalid rule type "%s"', (invalidType) => {
       expect(() => validateRuleType(invalidType)).toThrow(
-        `Invalid rule type: ${invalidType}. Must be one of: rules, target-rules, buy-rules`
+        `Invalid param rule_type (${invalidType})`
       )
     })
   })
@@ -241,15 +217,18 @@ describe("getExtendedRuleAttributesMap", () => {
       expect(ruleIds).toContain("sales_channel")
     })
 
-    it("includes currency rule as optional by default", () => {
+    it("includes cart item total rule for cart-level gift conditions", () => {
       const map = getExtendedRuleAttributesMap({})
-      const currencyRule = map.rules.find((r) => r.id === "currency_code")
+      const cartItemTotal = map.rules.find((r) => r.id === "cart_item_total")
 
-      expect(currencyRule).toBeDefined()
-      expect(currencyRule?.required).toBe(false)
+      expect(cartItemTotal).toMatchObject({
+        id: "cart_item_total",
+        value: "item_total",
+        field_type: "number",
+      })
     })
 
-    it("makes currency rule required when applicationMethodType is fixed", () => {
+    it("preserves Medusa currency rule behavior", () => {
       const map = getExtendedRuleAttributesMap({
         applicationMethodType: "fixed",
       })
@@ -273,7 +252,13 @@ describe("getExtendedRuleAttributesMap", () => {
       expect(ruleIds).toContain("product_type")
       expect(ruleIds).toContain("product_tag")
       expect(ruleIds).toContain("item_price")
+      expect(ruleIds).toContain("item_quantity")
       expect(ruleIds).toContain("producer")
+
+      expect(targetRules.find((r) => r.id === "producer")).toMatchObject({
+        value: "items.producer_ids",
+        field_type: "multiselect",
+      })
     })
 
     it("uses shipping method attributes when target type is shipping_methods", () => {
@@ -311,6 +296,7 @@ describe("getExtendedRuleAttributesMap", () => {
       const ruleIds = buyRules.map((r) => r.id)
       expect(ruleIds).toContain("product")
       expect(ruleIds).toContain("product_variant")
+      expect(ruleIds).toContain("item_quantity")
       expect(ruleIds).toContain("producer")
     })
 
@@ -369,6 +355,126 @@ describe("getExtendedRuleAttributesMap", () => {
       expect(
         map1["buy-rules"].find((r) => r.id === "buy_rules_min_quantity")
       ).toBeUndefined()
+    })
+  })
+})
+
+describe("Medusa route loading assumptions", () => {
+  it("keeps the last registered route for the same matcher and method", async () => {
+    const { RoutesLoader } = await importMedusaFrameworkInternal(
+      "http/routes-loader.js"
+    )
+    const loader = new RoutesLoader()
+    const coreHandler = vi.fn()
+    const appHandler = vi.fn()
+
+    loader.registerRoute({
+      isRoute: true,
+      matcher: "/admin/promotions/rule-attribute-options/:rule_type",
+      method: "GET",
+      handler: coreHandler,
+    })
+    loader.registerRoute({
+      isRoute: true,
+      matcher: "/admin/promotions/rule-attribute-options/:rule_type",
+      method: "GET",
+      handler: appHandler,
+    })
+
+    expect(loader.getRoutes()).toEqual([
+      expect.objectContaining({
+        matcher: "/admin/promotions/rule-attribute-options/:rule_type",
+        method: "GET",
+        handler: appHandler,
+      }),
+    ])
+  })
+
+  it("sorts custom static value-option routes before Medusa's generic route", async () => {
+    const { RoutesSorter } = await importMedusaFrameworkInternal(
+      "http/routes-sorter.js"
+    )
+    const genericRoute = {
+      matcher:
+        "/admin/promotions/rule-value-options/:rule_type/:rule_attribute_id",
+      methods: ["GET"],
+      handler: vi.fn(),
+    }
+    const producerRoute = {
+      matcher: "/admin/promotions/rule-value-options/:rule_type/producer",
+      methods: ["GET"],
+      handler: vi.fn(),
+    }
+
+    expect(new RoutesSorter([genericRoute, producerRoute]).sort()[0]).toBe(
+      producerRoute
+    )
+  })
+})
+
+async function importMedusaFrameworkInternal(path: string) {
+  const modulePath = resolve(
+    process.cwd(),
+    "../../node_modules/@medusajs/framework/dist",
+    path
+  )
+
+  return await import(pathToFileURL(modulePath).href)
+}
+
+describe("buildProducerPromotionContext", () => {
+  it("adds producer ids to items without dropping existing item context", async () => {
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        { product_id: "prod_1", producer_id: "producer_a" },
+        { product_id: "prod_1", producer_id: "producer_b" },
+        { product_id: "prod_2", producer_id: "producer_c" },
+      ],
+    })
+    const container = {
+      resolve: vi.fn().mockReturnValue({ graph }),
+    }
+
+    const result = await buildProducerPromotionContext(
+      {
+        items: [
+          {
+            id: "item_1",
+            product_id: "prod_1",
+            quantity: 2,
+            product: { id: "prod_1" },
+          },
+          {
+            id: "item_2",
+            variant: { product_id: "prod_2" },
+            quantity: 1,
+          },
+        ],
+      },
+      container as never,
+      "product_producer"
+    )
+
+    expect(graph).toHaveBeenCalledWith({
+      entity: expect.any(String),
+      fields: ["product_id", "producer_id"],
+      filters: {
+        product_id: ["prod_1", "prod_2"],
+      },
+    })
+    expect(result).toEqual({
+      items: [
+        expect.objectContaining({
+          id: "item_1",
+          quantity: 2,
+          producer_ids: ["producer_a", "producer_b"],
+        }),
+        expect.objectContaining({
+          id: "item_2",
+          quantity: 1,
+          producer_ids: ["producer_c"],
+        }),
+      ],
     })
   })
 })

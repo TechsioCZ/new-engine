@@ -1,3 +1,9 @@
+import type {
+  ApplicationMethodTargetTypeValues,
+  ApplicationMethodTypeValues,
+  PromotionTypeValues,
+} from "@medusajs/types"
+
 export type RuleType = "rules" | "target-rules" | "buy-rules"
 
 /**
@@ -19,7 +25,7 @@ export type RuleValueOption = {
 }
 
 export type GetRuleAttributesMapParams = {
-  promotionType?: string
-  applicationMethodType?: string
-  applicationMethodTargetType?: string
+  promotionType?: PromotionTypeValues
+  applicationMethodType?: ApplicationMethodTypeValues
+  applicationMethodTargetType?: ApplicationMethodTargetTypeValues
 }
