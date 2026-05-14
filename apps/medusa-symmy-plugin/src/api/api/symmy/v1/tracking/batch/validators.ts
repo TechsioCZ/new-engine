@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+const TRACKING_BATCH_MAX = 500
+
 const TrackingItemSchema = z.object({
   sku: z.string().min(1),
   quantity: z.number().int().positive(),
@@ -42,7 +44,7 @@ const ShipmentInputSchema = z
   })
 
 export const AddTrackingBatchSchema = z.object({
-  shipments: z.array(ShipmentInputSchema).min(1),
+  shipments: z.array(ShipmentInputSchema).min(1).max(TRACKING_BATCH_MAX),
 })
 
 export type AddTrackingBatchSchemaType = z.infer<typeof AddTrackingBatchSchema>

@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+const STOCK_UPDATES_BATCH_MAX = 500
+
 const StockUpdateSchema = z
   .object({
     identifier_type: z.enum(["sku", "ean", "variant_id", "inventory_item_id"]),
@@ -47,7 +49,7 @@ const StockUpdateSchema = z
   })
 
 export const UpdateStockBatchSchema = z.object({
-  updates: z.array(StockUpdateSchema).min(1),
+  updates: z.array(StockUpdateSchema).min(1).max(STOCK_UPDATES_BATCH_MAX),
 })
 
 export type UpdateStockBatchSchemaType = z.infer<typeof UpdateStockBatchSchema>

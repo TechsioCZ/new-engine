@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+const PRODUCTS_BATCH_MAX = 500
+
 const PriceSchema = z.object({
   currency_code: z
     .string()
@@ -105,7 +107,7 @@ const ProductInputSchema = z
   })
 
 export const UpsertProductsBatchSchema = z.object({
-  products: z.array(ProductInputSchema).min(1),
+  products: z.array(ProductInputSchema).min(1).max(PRODUCTS_BATCH_MAX),
 })
 
 export type UpsertProductsBatchSchemaType = z.infer<

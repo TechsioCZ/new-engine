@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+const CUSTOMER_GROUPS_BATCH_MAX = 500
+
 const CustomerGroupInputSchema = z
   .object({
     identifier_type: z.enum(["customer_group_id", "name", "code", "erp_code"]),
@@ -38,7 +40,10 @@ const CustomerGroupInputSchema = z
   })
 
 export const UpsertCustomerGroupsBatchSchema = z.object({
-  customer_groups: z.array(CustomerGroupInputSchema).min(1),
+  customer_groups: z
+    .array(CustomerGroupInputSchema)
+    .min(1)
+    .max(CUSTOMER_GROUPS_BATCH_MAX),
 })
 
 export type UpsertCustomerGroupsBatchSchemaType = z.infer<

@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+const CUSTOMERS_BATCH_MAX = 500
+
 const CustomerAddressInputSchema = z.object({
   address_id: z.string().min(1).optional(),
   first_name: z.string().optional(),
@@ -75,7 +77,7 @@ const CustomerInputSchema = z
   })
 
 export const UpsertCustomersBatchSchema = z.object({
-  customers: z.array(CustomerInputSchema).min(1),
+  customers: z.array(CustomerInputSchema).min(1).max(CUSTOMERS_BATCH_MAX),
 })
 
 export type UpsertCustomersBatchSchemaType = z.infer<

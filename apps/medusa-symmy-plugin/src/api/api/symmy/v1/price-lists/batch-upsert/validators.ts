@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+const PRICE_LISTS_BATCH_MAX = 500
+
 export const PriceInputSchema = z
   .object({
     identifier_type: z.enum(["sku", "ean", "variant_id"]),
@@ -51,7 +53,7 @@ const PriceListInputSchema = z.object({
 })
 
 export const UpsertPriceListsBatchSchema = z.object({
-  price_lists: z.array(PriceListInputSchema).min(1),
+  price_lists: z.array(PriceListInputSchema).min(1).max(PRICE_LISTS_BATCH_MAX),
 })
 
 export type UpsertPriceListsBatchSchemaType = z.infer<

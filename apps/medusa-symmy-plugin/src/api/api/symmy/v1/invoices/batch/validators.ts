@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+const INVOICES_BATCH_MAX = 500
+
 const InvoiceInputSchema = z
   .object({
     identifier_type: z.enum(["display_id", "order_id", "erp_id"]),
@@ -43,7 +45,7 @@ const InvoiceInputSchema = z
   })
 
 export const AttachInvoicesBatchSchema = z.object({
-  invoices: z.array(InvoiceInputSchema).min(1),
+  invoices: z.array(InvoiceInputSchema).min(1).max(INVOICES_BATCH_MAX),
 })
 
 export type AttachInvoicesBatchSchemaType = z.infer<

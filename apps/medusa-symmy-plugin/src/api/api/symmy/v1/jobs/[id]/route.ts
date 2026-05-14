@@ -1,11 +1,9 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { MedusaError } from "@medusajs/framework/utils"
 import {
   SYMMY_IMPORT_JOB_MODULE,
   type SymmyImportJobDTO,
   type SymmyImportJobModuleService,
 } from "../../../../../../modules/import-job"
-import { SYMMY_PRODUCTS_UPSERT_JOB_TYPE } from "../../../../../../workflows/upsert-products-batch/async"
 
 const serializeJob = (job: SymmyImportJobDTO) => ({
   id: job.id,
@@ -24,13 +22,10 @@ const serializeJob = (job: SymmyImportJobDTO) => ({
 })
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
-  const importJobService =
-    req.scope.resolve<SymmyImportJobModuleService>(SYMMY_IMPORT_JOB_MODULE)
+  const importJobService = req.scope.resolve<SymmyImportJobModuleService>(
+    SYMMY_IMPORT_JOB_MODULE
+  )
 
   const job = await importJobService.retrieveJob(req.params.id)
-  if (job.type !== SYMMY_PRODUCTS_UPSERT_JOB_TYPE) {
-    throw new MedusaError(MedusaError.Types.NOT_FOUND, "Import job not found")
-  }
-
   res.status(200).json({ job: serializeJob(job) })
 }

@@ -52,6 +52,7 @@
       "@types/react": "19.2.3",
       "@types/react-dom": "19.2.3"
     },
+    "packageExtensionsComment": "@medusajs/utils@2.14.1 misses runtime dependencies on @medusajs/index and @medusajs/medusa in its published metadata. Remove this workaround after upstream declares them.",
     "packageExtensions": {
       "@medusajs/utils@2.14.1": {
         "dependencies": {
