@@ -14,8 +14,8 @@
     "prebuild": "pnpm generate:categories"
   },
   "dependencies": {
-    "@medusajs/js-sdk": "2.12.2",
-    "@medusajs/types": "2.12.2",
+    "@medusajs/js-sdk": "2.15.2",
+    "@medusajs/types": "2.15.2",
     "@react-email/components": "^0.3.2",
     "@tanstack/react-query": "^5.90.10",
     "@tanstack/react-store": "^0.8.0",
@@ -34,7 +34,7 @@
     "@iconify/tailwind4": "^1.1.0",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.17",
-    "@types/node": "^20.17.47",
+    "@types/node": "^20.19.40",
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
     "babel-plugin-react-compiler": "1.0.0",

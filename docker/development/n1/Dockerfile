@@ -21,9 +21,10 @@ COPY package.json /tmp/corepack/package.json
 RUN corepack install && rm -rf /tmp/corepack
 WORKDIR /var/www
 CMD ["sh", "-lc", "\
-  [ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
+  [ -x apps/n1/node_modules/.bin/next ] && [ -d node_modules/@zag-js/react ] && [ -d node_modules/tailwind-variants ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
   [ -f libs/ui/dist/utils.js ] || pnpm --filter=@techsio/ui-kit build; \
   [ -f libs/analytics/dist/index.js ] || pnpm --filter=@techsio/analytics build; \
+  [ -f apps/n1/node_modules/@techsio/analytics/dist/index.js ] || (rm -rf apps/n1/node_modules/@techsio/analytics && mkdir -p apps/n1/node_modules/@techsio && ln -s ../../../../libs/analytics apps/n1/node_modules/@techsio/analytics); \
   pnpm --filter n1 exec next dev --turbopack --hostname 0.0.0.0 --port 3000 \
 "]
 
@@ -35,8 +36,10 @@ ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
@@ -62,9 +65,11 @@ CMD ["npm", "run", "start:ci-dev"]
 # PROD BUILD STAGE - compiles everything
 # ============================================
 FROM base AS build
+ENV CI=true
 
 # Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile

@@ -3,12 +3,47 @@
 import DOMPurify from "dompurify"
 import { useMemo } from "react"
 
-interface SafeHtmlContentProps {
+type SanitizerConfig = NonNullable<Parameters<typeof DOMPurify.sanitize>[1]>
+
+type SafeHtmlContentProps = {
   content: string | null | undefined
   className?: string
   /** Custom DOMPurify config for allowed tags and attributes */
-  config?: any // DOMPurify.Config type
+  config?: SanitizerConfig
 }
+
+const HTML_TAG_PATTERN = /<[^>]*>/
+const HTML_ENTITY_PATTERN = /&#?\w+;/
+const REL_TOKEN_PATTERN = /\s+/
+const BLANK_TARGET_REL_TOKENS = ["noopener", "noreferrer"]
+
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (
+    node.nodeType !== 1 ||
+    !("tagName" in node) ||
+    typeof node.getAttribute !== "function" ||
+    typeof node.setAttribute !== "function"
+  ) {
+    return
+  }
+
+  if (
+    node.tagName.toLowerCase() !== "a" ||
+    node.getAttribute("target")?.toLowerCase() !== "_blank"
+  ) {
+    return
+  }
+
+  const relTokens = new Set(
+    (node.getAttribute("rel") ?? "").split(REL_TOKEN_PATTERN).filter(Boolean)
+  )
+
+  for (const token of BLANK_TARGET_REL_TOKENS) {
+    relTokens.add(token)
+  }
+
+  node.setAttribute("rel", Array.from(relTokens).join(" "))
+})
 
 /**
  * Safely renders HTML content with automatic detection and sanitization.
@@ -21,11 +56,13 @@ export function SafeHtmlContent({
   config,
 }: SafeHtmlContentProps) {
   const processedContent = useMemo(() => {
-    if (!content) return { isHtml: false, content: "" }
+    if (!content) {
+      return { isHtml: false, content: "" }
+    }
 
     // Check if content contains HTML tags or HTML entities
-    const hasHtmlTags = /<[^>]*>/g.test(content)
-    const hasHtmlEntities = /&#?\w+;/.test(content)
+    const hasHtmlTags = HTML_TAG_PATTERN.test(content)
+    const hasHtmlEntities = HTML_ENTITY_PATTERN.test(content)
     const isHtml = hasHtmlTags || hasHtmlEntities
 
     if (isHtml) {
@@ -35,27 +72,43 @@ export function SafeHtmlContent({
           "p",
           "br",
           "strong",
+          "del",
           "em",
           "b",
           "i",
+          "s",
+          "strike",
           "u",
+          "hr",
           "ul",
           "ol",
           "li",
+          "h1",
+          "h2",
           "h3",
           "h4",
           "h5",
           "h6",
+          "a",
+          "blockquote",
+          "code",
+          "pre",
+          "table",
+          "thead",
+          "tbody",
+          "tr",
+          "th",
+          "td",
           "span",
           "div",
         ],
-        ALLOWED_ATTR: ["class", "style"],
+        ALLOWED_ATTR: ["class", "style", "href", "target", "rel"],
         ALLOW_DATA_ATTR: false,
         FORBID_TAGS: ["script", "iframe", "form", "input"],
         FORBID_ATTR: ["onerror", "onclick", "onload"],
       }
 
-      // Merge custom config with defaults
+      // Custom config shallow-overrides defaults; array fields are replaced.
       const finalConfig = { ...defaultConfig, ...config }
       const sanitized = DOMPurify.sanitize(content, finalConfig)
 
@@ -73,6 +126,7 @@ export function SafeHtmlContent({
     return (
       <div
         className={className}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Product HTML is sanitized by DOMPurify immediately above.
         dangerouslySetInnerHTML={{ __html: processedContent.content }}
       />
     )

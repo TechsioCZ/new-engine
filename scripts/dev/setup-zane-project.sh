@@ -79,7 +79,7 @@ Options:
   --help                         Show this help
 
 Notes:
-  - The helper manages public routes for medusa-be, n1, medusa-meilisearch, and zane-operator.
+  - The helper manages public routes for medusa-be, payload, n1, medusa-meilisearch, and zane-operator.
   - The default branch is the current checked-out branch. Use --branch to target a different branch explicitly.
 EOF
 }
@@ -1366,6 +1366,7 @@ setup::main() {
     medusa-minio
     medusa-meilisearch
     medusa-be
+    payload
     n1
     zane-operator
   )
@@ -1441,11 +1442,12 @@ Created or updated services:
 - medusa-minio
 - medusa-meilisearch
 - medusa-be
+- payload
 - n1
 - zane-operator
 
 Notes:
-- public Zane routes were aligned for medusa-be, n1, medusa-meilisearch, and zane-operator
+- public Zane routes were aligned for medusa-be, payload, n1, medusa-meilisearch, and zane-operator
 - service changes remain pending in Zane until you deploy them
 EOF
 }

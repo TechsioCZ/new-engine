@@ -2,6 +2,9 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@techsio/storybook-better-a11y'
   - '@techsio/storybook-a11y-reporter'
+  - '@medusajs/*'
+  - '@paykit-sdk/comgate'
+  - '@paykit-sdk/gopay'
 # trustPolicy: no-downgrade
 
 packages:
@@ -18,15 +21,16 @@ syncInjectedDepsAfterScripts:
 ignoredBuiltDependencies:
   - '@medusajs/telemetry'
   - core-js
-  - esbuild
   - msgpackr-extract
   - protobufjs
   - puppeteer
-  - sharp
 
 onlyBuiltDependencies:
   - '@biomejs/biome'
   - '@parcel/watcher'
   - '@swc/core'
   - '@tailwindcss/oxide'
+  - esbuild
   - nx
+  - sharp
+  - unrs-resolver

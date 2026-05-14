@@ -11,12 +11,13 @@ Usage:
   scripts/dev/init-local-stack.sh
 
 Initializes a fresh local checkout by:
-1. creating .env from .env.docker when missing
-2. validating required superadmin credentials in .env
-3. preparing local Postgres bind-mount folders for the postgres runtime user
-4. installing repo dependencies
-5. starting resources
-6. running migrations, starting the backend, creating the Medusa user, and seeding initial data
+1. ensuring the package-manager version pinned by package.json is available
+2. creating .env from .env.docker when missing
+3. validating required superadmin credentials in .env
+4. preparing local Postgres bind-mount folders for the postgres runtime user
+5. installing repo dependencies
+6. starting resources
+7. running migrations, starting the backend, creating the Medusa user, and seeding initial data
 EOF
 }
 
@@ -125,6 +126,58 @@ prepare_postgres_bind_mount() {
   echo "Prepared Postgres bind-mount path: ${pgdata_parent} (Postgres creates the final docker leaf)"
 }
 
+resolve_pnpm_spec() {
+  node -e '
+const fs = require("node:fs")
+const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"))
+const packageManager = pkg.packageManager
+
+if (typeof packageManager !== "string" || !packageManager.startsWith("pnpm@")) {
+  console.error("package.json must define packageManager as pnpm@<version>.")
+  process.exit(1)
+}
+
+process.stdout.write(packageManager)
+'
+}
+
+ensure_pnpm() {
+  local current_version pnpm_spec pnpm_version
+
+  if ! command -v node >/dev/null 2>&1; then
+    echo "Node is required before pnpm can be bootstrapped. Run this through mise: \`mise run dev:init\`." >&2
+    exit 1
+  fi
+
+  pnpm_spec="$(resolve_pnpm_spec)"
+  pnpm_version="${pnpm_spec#pnpm@}"
+
+  if command -v pnpm >/dev/null 2>&1; then
+    current_version="$(pnpm --version)"
+    if [[ "$current_version" == "$pnpm_version" ]]; then
+      return 0
+    fi
+
+    echo "Found pnpm ${current_version}; installing pinned ${pnpm_spec} for the active Node toolchain."
+  else
+    echo "pnpm is missing; installing pinned ${pnpm_spec} for the active Node toolchain."
+  fi
+
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "npm is required to install ${pnpm_spec}, but npm was not found on PATH." >&2
+    exit 1
+  fi
+
+  npm install --global "$pnpm_spec"
+  hash -r
+
+  current_version="$(pnpm --version)"
+  if [[ "$current_version" != "$pnpm_version" ]]; then
+    echo "Expected pnpm ${pnpm_version}, but PATH resolves pnpm ${current_version} after installation." >&2
+    exit 1
+  fi
+}
+
 main() {
   local superadmin_email superadmin_password
 
@@ -142,6 +195,7 @@ main() {
 
   cd "$ROOT_DIR"
 
+  ensure_pnpm
   mise run dev:install
   mise run dev:resources
   mise run dev:backend

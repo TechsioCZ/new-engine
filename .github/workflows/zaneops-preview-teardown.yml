@@ -1,8 +1,9 @@
 name: ZaneOps Preview Teardown
 
+# Temporarily disabled. Restore the pull_request closed trigger when re-enabling
+# ZaneOps preview teardown.
 on:
-  pull_request:
-    types: [closed]
+  workflow_dispatch:
 
 permissions:
   contents: read

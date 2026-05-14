@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SHOP>
+  <SHOPITEM id="fixture-main" import-code="HTB">
+    <NAME>Fixture hlavný produkt</NAME>
+    <GUID>fixture-main-guid</GUID>
+    <SHORT_DESCRIPTION><![CDATA[
+      <p>Krátky popis hlavného produktu.</p>
+      <ul>
+        <li>Prvý bod pre card copy.</li>
+        <li>Druhý bod pre card copy.</li>
+      </ul>
+    ]]></SHORT_DESCRIPTION>
+    <DESCRIPTION><![CDATA[
+      <p>Hlavný popis produktu s bezpečným HTML obsahom.</p>
+      <h2>Použitie</h2>
+      <p>Užívajte jednu kapsulu denne.</p>
+      <p>
+        <strong>Zloženie:</strong> Bylinný extrakt, rastlinná kapsula.
+        <br />
+        <strong>Upozornenie:</strong> Neprekračujte odporúčanú dennú dávku.
+        <br />
+        <strong>Krajina pôvodu:</strong> Slovensko.
+      </p>
+    ]]></DESCRIPTION>
+    <PRICE_VAT>12.90</PRICE_VAT>
+    <STANDARD_PRICE>12.90</STANDARD_PRICE>
+    <ACTION_PRICE>9.90</ACTION_PRICE>
+    <ACTION_PRICE_FROM>2099-01-01</ACTION_PRICE_FROM>
+    <ACTION_PRICE_UNTIL>2099-12-31</ACTION_PRICE_UNTIL>
+    <CURRENCY>EUR</CURRENCY>
+    <VAT>20</VAT>
+    <VISIBLE>1</VISIBLE>
+    <VISIBILITY>visible</VISIBILITY>
+    <MANUFACTURER>Fixture Herbs</MANUFACTURER>
+    <SUPPLIER>Fixture Supplier</SUPPLIER>
+    <ADULT>0</ADULT>
+    <ITEM_TYPE>product</ITEM_TYPE>
+    <STOCK>
+      <AMOUNT>8</AMOUNT>
+      <LOCATION>main</LOCATION>
+      <MINIMAL_AMOUNT>1</MINIMAL_AMOUNT>
+    </STOCK>
+    <LOGISTIC>
+      <WEIGHT>0.12</WEIGHT>
+    </LOGISTIC>
+    <CATEGORIES>
+      <CATEGORY id="901">&gt;&gt; Trápi ma &gt; Srdce a cievy &gt;&gt; Kŕčové žily</CATEGORY>
+      <DEFAULT_CATEGORY id="901">&gt;&gt; Trápi ma &gt; Srdce a cievy &gt;&gt; Kŕčové žily</DEFAULT_CATEGORY>
+    </CATEGORIES>
+    <IMAGES>
+      <IMAGE description="Fixture main image">https://example.test/images/fixture-main.png</IMAGE>
+      <IMAGE description="Duplicate image">https://example.test/images/fixture-main.png</IMAGE>
+    </IMAGES>
+    <TEXT_PROPERTIES>
+      <TEXT_PROPERTY>
+        <NAME>Zloženie</NAME>
+        <VALUE>Bylinný extrakt, rastlinná kapsula.</VALUE>
+      </TEXT_PROPERTY>
+      <TEXT_PROPERTY>
+        <NAME>Skladovanie</NAME>
+        <VALUE>Skladujte na suchom mieste.</VALUE>
+      </TEXT_PROPERTY>
+    </TEXT_PROPERTIES>
+    <RELATED_PRODUCTS>
+      <CODE>fixture-main</CODE>
+      <CODE>fixture-related</CODE>
+      <CODE>fixture-hidden</CODE>
+      <CODE>missing-product</CODE>
+      <CODE>fixture-related</CODE>
+    </RELATED_PRODUCTS>
+    <ALTERNATIVE_PRODUCTS>
+      <CODE>fixture-alt</CODE>
+    </ALTERNATIVE_PRODUCTS>
+    <RELATED_FILES>
+      <RELATED_FILE>
+        <URL>https://example.test/files/fixture-main.pdf</URL>
+        <TITLE>Produktový list</TITLE>
+        <TEXT>Deterministický súbor pre parser fixture.</TEXT>
+      </RELATED_FILE>
+    </RELATED_FILES>
+    <RELATED_VIDEOS>
+      <RELATED_VIDEO>
+        <YOUTUBE_VIDEO_CODE>fixture123</YOUTUBE_VIDEO_CODE>
+        <URL>https://example.test/videos/fixture-main</URL>
+        <TEXT>Fixture video.</TEXT>
+      </RELATED_VIDEO>
+    </RELATED_VIDEOS>
+    <FLAGS>
+      <FLAG>
+        <CODE>action</CODE>
+        <VALID_FROM>2099-01-01</VALID_FROM>
+        <VALID_UNTIL>2099-12-31</VALID_UNTIL>
+      </FLAG>
+    </FLAGS>
+    <SET_ITEMS>
+      <SET_ITEM>
+        <CODE>fixture-related</CODE>
+        <AMOUNT>1</AMOUNT>
+      </SET_ITEM>
+    </SET_ITEMS>
+    <VARIANTS>
+      <VARIANT id="variant-dup">
+        <CODE>SKU-DUP</CODE>
+        <EAN>1234567890123</EAN>
+        <PRICE_VAT>12.90</PRICE_VAT>
+        <STANDARD_PRICE>12.90</STANDARD_PRICE>
+        <ACTION_PRICE>9.90</ACTION_PRICE>
+        <ACTION_PRICE_FROM>2099-01-01</ACTION_PRICE_FROM>
+        <ACTION_PRICE_UNTIL>2099-12-31</ACTION_PRICE_UNTIL>
+        <CURRENCY>EUR</CURRENCY>
+        <STOCK>
+          <AMOUNT>5</AMOUNT>
+        </STOCK>
+        <IMAGE_REF>https://example.test/images/fixture-main-30.png</IMAGE_REF>
+        <PARAMETERS>
+          <PARAMETER>
+            <NAME>Balenie</NAME>
+            <VALUE>30 kapsúl</VALUE>
+          </PARAMETER>
+        </PARAMETERS>
+      </VARIANT>
+      <VARIANT id="variant-dup">
+        <CODE>SKU-DUP</CODE>
+        <EAN>1234567890123</EAN>
+        <PRICE_VAT>19.90</PRICE_VAT>
+        <CURRENCY>EUR</CURRENCY>
+        <STOCK>
+          <AMOUNT>2</AMOUNT>
+        </STOCK>
+        <IMAGE_REF>https://example.test/images/fixture-main-60.png</IMAGE_REF>
+        <PARAMETERS>
+          <PARAMETER>
+            <NAME>Balenie</NAME>
+            <VALUE>60 kapsúl</VALUE>
+          </PARAMETER>
+        </PARAMETERS>
+      </VARIANT>
+    </VARIANTS>
+  </SHOPITEM>
+  <SHOPITEM id="fixture-related">
+    <NAME>Fixture súvisiaci produkt</NAME>
+    <DESCRIPTION>Popis súvisiaceho produktu.</DESCRIPTION>
+    <PRICE_VAT>5.99</PRICE_VAT>
+    <CURRENCY>EUR</CURRENCY>
+    <VISIBLE>1</VISIBLE>
+    <STOCK>
+      <AMOUNT>3</AMOUNT>
+    </STOCK>
+    <CATEGORIES>
+      <CATEGORY id="901">Trápi ma &gt; Srdce a cievy &gt; Kŕčové žily</CATEGORY>
+    </CATEGORIES>
+  </SHOPITEM>
+  <SHOPITEM id="fixture-alt">
+    <NAME>Fixture alternatívny produkt</NAME>
+    <DESCRIPTION>Popis alternatívneho produktu.</DESCRIPTION>
+    <PRICE_VAT>6.99</PRICE_VAT>
+    <CURRENCY>EUR</CURRENCY>
+    <VISIBLE>1</VISIBLE>
+    <STOCK>
+      <AMOUNT>4</AMOUNT>
+    </STOCK>
+    <CATEGORIES>
+      <CATEGORY id="901">Trápi ma &gt; Srdce a cievy &gt; Kŕčové žily</CATEGORY>
+    </CATEGORIES>
+  </SHOPITEM>
+  <SHOPITEM id="fixture-hidden">
+    <NAME>Fixture skrytý produkt</NAME>
+    <DESCRIPTION>Popis skrytého produktu.</DESCRIPTION>
+    <PRICE_VAT>7.99</PRICE_VAT>
+    <CURRENCY>EUR</CURRENCY>
+    <VISIBLE>0</VISIBLE>
+    <VISIBILITY>hidden</VISIBILITY>
+    <STOCK>
+      <AMOUNT>0</AMOUNT>
+    </STOCK>
+    <CATEGORIES>
+      <CATEGORY id="901">Trápi ma &gt; Srdce a cievy &gt; Kŕčové žily</CATEGORY>
+    </CATEGORIES>
+  </SHOPITEM>
+</SHOP>

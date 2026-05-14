@@ -5,6 +5,7 @@ export default async function meilisearchProducersIndexJob(
   container: MedusaContainer
 ) {
   const logger = container.resolve("logger")
+
   logger.info("Starting producer indexing...")
 
   const {

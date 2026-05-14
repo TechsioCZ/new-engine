@@ -33,7 +33,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="cs">
-      <body className={`${openSans.variable} antialiased`}>
+      <body
+        className={`${openSans.variable} ${openSans.className} antialiased`}
+      >
         <MetaPixel
           debug={analyticsDebug}
           pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID ?? ""}

@@ -1,13 +1,86 @@
-import { defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  defineConfig,
+  loadEnv,
+  Modules,
+} from "@medusajs/framework/utils"
+import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
+import { buildPaykitPaymentProviders } from "./src/modules/payment-paykit/medusa-config"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
+
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
+
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
-const MEDUSA_ADMIN_ALLOWED_HOSTS =
-  process.env.NODE_ENV === "development" ? true : process.env.MEDUSA_BACKEND_URL
+const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
+const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
+
+const PAYKIT_PAYMENT_PROVIDERS = buildPaykitPaymentProviders()
+
+const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
+const RESEND_API_KEY = process.env.RESEND_API_KEY
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL
+
+const notificationProvider =
+  NOTIFICATION_PROVIDER === "local"
+    ? {
+        resolve: "@medusajs/medusa/notification-local",
+        id: "local",
+        options: {
+          name: "Local Notification Provider",
+          channels: ["email"],
+        },
+      }
+    : {
+        resolve: "./src/modules/resend",
+        id: "resend",
+        options: {
+          channels: ["email"],
+          api_key: RESEND_API_KEY,
+          from: RESEND_FROM_EMAIL,
+        },
+      }
+
+const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL?.trim()
+const MEDUSA_COOKIE_SECURE = process.env.MEDUSA_COOKIE_SECURE
+type MedusaCookieSameSite = "lax" | "none" | "strict"
+const cookieSameSite = process.env.MEDUSA_COOKIE_SAME_SITE
+const MEDUSA_COOKIE_SAME_SITE: MedusaCookieSameSite | undefined =
+  cookieSameSite === "lax" ||
+  cookieSameSite === "none" ||
+  cookieSameSite === "strict"
+    ? cookieSameSite
+    : undefined
+
+let MEDUSA_ADMIN_ALLOWED_HOSTS: true | string[] | undefined
+
+if (process.env.NODE_ENV === "development") {
+  MEDUSA_ADMIN_ALLOWED_HOSTS = true
+} else if (MEDUSA_BACKEND_URL) {
+  const backendUrl = MEDUSA_BACKEND_URL.includes("://")
+    ? MEDUSA_BACKEND_URL
+    : `http://${MEDUSA_BACKEND_URL}`
+
+  MEDUSA_ADMIN_ALLOWED_HOSTS = [new URL(backendUrl).hostname]
+}
+
+const cookieOptions = {
+  ...(MEDUSA_COOKIE_SECURE !== undefined
+    ? {
+        secure:
+          MEDUSA_COOKIE_SECURE === "1" ||
+          MEDUSA_COOKIE_SECURE.toLowerCase() === "true",
+      }
+    : {}),
+  ...(MEDUSA_COOKIE_SAME_SITE
+    ? {
+        sameSite: MEDUSA_COOKIE_SAME_SITE,
+      }
+    : {}),
+}
 
 module.exports = defineConfig({
   featureFlags: {
@@ -17,11 +90,25 @@ module.exports = defineConfig({
     backend_hmr: true,
   },
   admin: {
+    disable: process.env.MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD === "1",
     // backendUrl: BACKEND_URL,
     vite: () => ({
+      build: {
+        cssMinify: false,
+        minify: false,
+        modulePreload: false,
+        reportCompressedSize: false,
+        target: "esnext",
+      },
+      esbuild: {
+        target: "esnext",
+      },
       server: {
         allowedHosts: MEDUSA_ADMIN_ALLOWED_HOSTS,
         hmr: false,
+        headers: {
+          "Cache-Control": "no-store",
+        },
       },
     }),
   },
@@ -41,9 +128,14 @@ module.exports = defineConfig({
       jwtSecret: process.env.JWT_SECRET,
       cookieSecret: process.env.COOKIE_SECRET,
     },
+    cookieOptions,
     redisUrl: REDIS_URL,
   },
   plugins: [
+    {
+      resolve: "medusa-plugin-content",
+      options: {},
+    },
     {
       resolve: "@medusajs/draft-order",
       options: {},
@@ -65,23 +157,91 @@ module.exports = defineConfig({
             enabled: true,
             fields: [
               "id",
+              "status",
               "title",
               "description",
               "handle",
-              "variant_sku",
               "thumbnail",
+              "created_at",
+              "metadata",
+              "categories.id",
+              "categories.name",
+              "categories.handle",
+              "producer.id",
+              "producer.title",
+              "producer.handle",
+              "sales_channels.id",
+              "variants.id",
+              "variants.sku",
+              "variants.prices.amount",
+              "variants.prices.currency_code",
             ],
             indexSettings: {
-              searchableAttributes: ["title", "description", "variant_sku"],
-              displayedAttributes: [
-                "id",
+              searchableAttributes: [
                 "title",
                 "description",
-                "variant_sku",
+                "handle",
+                "producer.title",
+                "categories.name",
+                "variants.sku",
+              ],
+              displayedAttributes: [
+                "id",
+                "status",
+                "title",
+                "description",
                 "thumbnail",
                 "handle",
+                "created_at",
+                "metadata",
+                "producer",
+                "categories",
+                "sales_channels",
+                "facet_product_status",
+                "facet_sales_channel_ids",
+                "facet_status",
+                "facet_form",
+                "facet_brand",
+                "facet_ingredient",
+                "facet_category_ids",
+                "facet_in_stock",
+                "facet_price",
               ],
-              filterableAttributes: ["id", "handle", "title"],
+              filterableAttributes: [
+                "id",
+                "handle",
+                "facet_product_status",
+                "facet_sales_channel_ids",
+                "facet_status",
+                "facet_form",
+                "facet_brand",
+                "facet_ingredient",
+                "facet_category_ids",
+                "facet_in_stock",
+                "facet_price",
+              ],
+              sortableAttributes: ["created_at", "title", "facet_price"],
+              rankingRules: [
+                "sort",
+                "words",
+                "typo",
+                "proximity",
+                "attribute",
+                "exactness",
+              ],
+            },
+            transformer: async (
+              document: Record<string, unknown>,
+              defaultTransformer: (
+                input: Record<string, unknown>
+              ) => Record<string, unknown>
+            ) => {
+              const transformedDocument = defaultTransformer(document)
+
+              return {
+                ...transformedDocument,
+                ...buildProductFacetDocument(transformedDocument),
+              }
             },
             primaryKey: "id",
           },
@@ -116,6 +276,12 @@ module.exports = defineConfig({
       resolve: "@medusajs/medusa/translation",
     },
     {
+      resolve: "@medusajs/medusa/notification",
+      options: {
+        providers: [notificationProvider],
+      },
+    },
+    {
       resolve: "@medusajs/medusa/caching",
       options: {
         providers: [
@@ -132,6 +298,12 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/producer",
+    },
+    {
+      resolve: "./src/modules/email-log",
+    },
+    {
+      resolve: "./src/modules/order-receipt",
     },
     {
       resolve: "@medusajs/event-bus-redis",
@@ -191,6 +363,12 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/database",
     },
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: PAYKIT_PAYMENT_PROVIDERS,
+      },
+    },
     // PPL Client Module - config stored in DB, managed via Settings → PPL
     ...(FEATURE_PPL_ENABLED
       ? [
@@ -203,19 +381,76 @@ module.exports = defineConfig({
           },
         ]
       : []),
-    // PPL Fulfillment Provider - thin provider delegating to ppl-client
-    ...(FEATURE_PPL_ENABLED
+    // Packeta Client Module - config stored in DB, managed via Settings → Packeta
+    ...(FEATURE_PACKETA_ENABLED
+      ? [
+          {
+            resolve: "./src/modules/packeta-client",
+            dependencies: [Modules.LOCKING],
+            options: {
+              environment: process.env.PACKETA_ENVIRONMENT ?? "testing",
+            },
+          },
+        ]
+      : []),
+    // Unified Fulfillment Module — conditionally includes PPL and/or Packeta
+    // providers. Registered only if at least one carrier is enabled.
+    ...(FEATURE_PPL_ENABLED || FEATURE_PACKETA_ENABLED
       ? [
           {
             resolve: "@medusajs/medusa/fulfillment",
-            dependencies: ["ppl_client"],
+            dependencies: [
+              ...(FEATURE_PPL_ENABLED ? ["ppl_client"] : []),
+              ...(FEATURE_PACKETA_ENABLED
+                ? [
+                    "packeta_client",
+                    Modules.FILE,
+                    ContainerRegistrationKeys.QUERY,
+                  ]
+                : []),
+            ],
             options: {
               providers: [
                 {
-                  resolve: "./src/modules/fulfillment-ppl",
-                  id: "ppl",
+                  resolve: "@medusajs/medusa/fulfillment-manual",
+                  id: "manual",
                 },
+                ...(FEATURE_PPL_ENABLED
+                  ? [
+                      {
+                        resolve: "./src/modules/fulfillment-ppl",
+                        id: "ppl",
+                      },
+                    ]
+                  : []),
+                ...(FEATURE_PACKETA_ENABLED
+                  ? [
+                      {
+                        resolve: "./src/modules/fulfillment-packeta",
+                        id: "packeta",
+                      },
+                    ]
+                  : []),
               ],
+            },
+          },
+        ]
+      : []),
+    ...(FEATURE_PAYLOAD_ENABLED
+      ? [
+          {
+            resolve: "./src/modules/payload",
+            options: {
+              serverUrl: process.env.PAYLOAD_BASE_URL,
+              apiKey: process.env.PAYLOAD_API_KEY,
+              contentCacheTtl: Number.parseInt(
+                process.env.CMS_CACHE_TTL ?? "3600",
+                10
+              ),
+              listCacheTtl: Number.parseInt(
+                process.env.CMS_LIST_CACHE_TTL ?? "600",
+                10
+              ),
             },
           },
         ]

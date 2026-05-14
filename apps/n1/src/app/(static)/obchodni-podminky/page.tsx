@@ -1,6 +1,14 @@
+import { CmsPageArticle } from "@/components/cms-page-article"
 import { Heading } from "@/components/heading"
+import { getCmsPage } from "@/services/cms-service"
 
-export default function ObchodniPodminkyPage() {
+export default async function ObchodniPodminkyPage() {
+  const cmsPage = await getCmsPage("obchodni-podminky")
+
+  if (cmsPage) {
+    return <CmsPageArticle page={cmsPage} />
+  }
+
   return (
     <article className="space-y-600">
       <Heading>Obchodní podmínky</Heading>

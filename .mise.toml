@@ -1,8 +1,7 @@
 [tools]
 "aqua:mikefarah/yq" = "4.45.4"
 "aqua:jqlang/jq" = "1.8.1"
-pnpm = "latest"
-node = "latest"
+node = "25.2.1"
 
 [tasks.dev]
 description = "Incremental local startup after `dev:init`: resources -> meili provisioning -> backend phase -> frontend phase"
@@ -40,6 +39,34 @@ run = "mise run dev:internal:frontend:up && mise run dev:internal:frontend:wait"
 description = "Converge medusa-db bootstrap state for current operator envs, then start operator runtime services"
 run = "bash ./scripts/dev/mise-dev-helpers.sh ensure-operator-db-convergence && mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
 
+[tasks."dev:helpers:up"]
+description = "Start optional local helper services: adminer and caddy"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper up all"
+
+[tasks."dev:helpers:down"]
+description = "Stop and remove optional local helper services: adminer and caddy"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper down all"
+
+[tasks."dev:helpers:status"]
+description = "Show optional local helper service status: adminer and caddy"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper status all"
+
+[tasks."dev:helper:caddy:up"]
+description = "Start the local Caddy helper"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper up caddy"
+
+[tasks."dev:helper:caddy:down"]
+description = "Stop and remove the local Caddy helper"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper down caddy"
+
+[tasks."dev:helper:adminer:up"]
+description = "Start the local Adminer helper"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper up adminer"
+
+[tasks."dev:helper:adminer:down"]
+description = "Stop and remove the local Adminer helper"
+run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper down adminer"
+
 [tasks."dev:corepack:update"]
 description = "Update Corepack inside the repo pnpm toolchain container"
 run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} corepack up"
@@ -51,6 +78,10 @@ run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TA
 [tasks."dev:install:fix-lock"]
 description = "Repair the pnpm lockfile inside the repo pnpm toolchain container"
 run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm install --fix-lockfile"
+
+[tasks."dev:install:no-lock"]
+description = "Install workspace dependencies inside the repo pnpm toolchain container without lockfile"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm install --no-frozen-lockfile"
 
 [tasks."dev:deps:update"]
 description = "Update Medusa backend workspace dependencies inside the repo pnpm toolchain container"
@@ -103,6 +134,22 @@ run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec
 [tasks."dev:medusa:seed:n1"]
 description = "Seed N1-specific Medusa data in the running local stack"
 run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedN1"
+
+[tasks."dev:medusa:seed:order-business-status-demo"]
+description = "Seed Medusa order business status demo orders in the running local stack"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run seedOrderBusinessStatusDemo"
+
+[tasks."dev:medusa:seed:herbatica-promos"]
+description = "Seed Herbatica with rebased promo windows (PROMO_REBASE_DAYS defaults to 30)"
+run = """bash -lc 'PROMO_REBASE_DAYS_VAL="${PROMO_REBASE_DAYS:-30}"; echo "Seeding Herbatica with rebased promo windows for $PROMO_REBASE_DAYS_VAL days"; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec -e HERBATICA_PROMO_REBASE_DAYS="$PROMO_REBASE_DAYS_VAL" medusa-be pnpm --filter medusa-be run seedHerbatica'"""
+
+[tasks."dev:medusa:debug-product-count"]
+description = "Debug Medusa product counts in the running local stack"
+run = """bash -lc 'env_args=(); [ -z "${PUBLISHABLE_KEY:-}" ] || env_args=(-e "PUBLISHABLE_KEY=$PUBLISHABLE_KEY"); docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec "${env_args[@]}" medusa-be pnpm --filter medusa-be run debugProductCount'"""
+
+[tasks."dev:medusa:analyze-product-count"]
+description = "Analyze Medusa product counts in the running local stack"
+run = """bash -lc 'env_args=(-e RUN_ANALYZE=1); [ -z "${PUBLISHABLE_KEY:-}" ] || env_args+=(-e "PUBLISHABLE_KEY=$PUBLISHABLE_KEY"); docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec "${env_args[@]}" medusa-be pnpm --filter medusa-be run debugProductCount'"""
 
 [tasks."dev:postgres:bootstrap"]
 description = "Rerun medusa-db role bootstrap against the running local stack"

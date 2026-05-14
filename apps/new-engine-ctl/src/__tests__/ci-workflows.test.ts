@@ -57,7 +57,8 @@ function collectEnvMaps(
   return envMaps
 }
 
-test("ZaneOps workflows alias the prefixed project slug secret for ctl", async () => {
+// biome-ignore lint/suspicious/noSkippedTests: ZaneOps workflows are temporarily disabled.
+test.skip("ZaneOps workflows alias the prefixed project slug secret for ctl", async () => {
   for (const workflowPath of workflowPaths) {
     const raw = await readFile(join(repoRoot, workflowPath), "utf8")
     const parsed = parseYaml(raw)
@@ -75,7 +76,8 @@ test("ZaneOps workflows alias the prefixed project slug secret for ctl", async (
   }
 })
 
-test("main deploy passes downtime approval only after the approval gate", async () => {
+// biome-ignore lint/suspicious/noSkippedTests: ZaneOps workflows are temporarily disabled.
+test.skip("main deploy passes downtime approval only after the approval gate", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-main-after-ci.yml"),
     "utf8"
@@ -86,7 +88,8 @@ test("main deploy passes downtime approval only after the approval gate", async 
   expect(raw).toMatch(approveDowntimeRiskFlagPattern)
 })
 
-test("main verify falls back to the production environment secret", async () => {
+// biome-ignore lint/suspicious/noSkippedTests: ZaneOps workflows are temporarily disabled.
+test.skip("main verify falls back to the production environment secret", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-main-after-ci.yml"),
     "utf8"
@@ -96,7 +99,8 @@ test("main verify falls back to the production environment secret", async () => 
   expect(raw).toMatch(mainVerifySummaryEnvironmentFallbackPattern)
 })
 
-test("preview scope feeds baseline state into prepare decisions", async () => {
+// biome-ignore lint/suspicious/noSkippedTests: ZaneOps workflows are temporarily disabled.
+test.skip("preview scope feeds baseline state into prepare decisions", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-preview-after-ci.yml"),
     "utf8"

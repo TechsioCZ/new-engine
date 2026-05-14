@@ -1,20 +1,14 @@
-import type {
-  IRegionModuleService,
-  Logger,
-  WorkflowTypes,
-} from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  createRegionsWorkflow,
-  updateRegionsWorkflow,
-} from "@medusajs/medusa/core-flows"
+import type {IRegionModuleService, Logger, WorkflowTypes,} from "@medusajs/framework/types"
+import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
+import {createStep, StepResponse} from "@medusajs/framework/workflows-sdk"
+import {createRegionsWorkflow, updateRegionsWorkflow,} from "@medusajs/medusa/core-flows"
 
 export type CreateRegionsStepInput = {
   name: string
   currencyCode: string
   countries?: string[]
   paymentProviders?: string[]
+  isTaxInclusive?: boolean
 }[]
 
 const CreateRegionsStepId = "create-regions-seed-step"
@@ -48,6 +42,7 @@ export const createRegionsStep = createStep(
             currency_code: inputRegion.currencyCode,
             countries: inputRegion.countries,
             payment_providers: inputRegion.paymentProviders,
+            is_tax_inclusive: inputRegion.isTaxInclusive ?? true,
           },
         ]
       }
@@ -66,6 +61,7 @@ export const createRegionsStep = createStep(
             currency_code: i.currencyCode,
             countries: i.countries,
             payment_providers: i.paymentProviders ?? ["pp_system_default"],
+            is_tax_inclusive: i.isTaxInclusive ?? true,
           })),
         },
       })
@@ -82,6 +78,7 @@ export const createRegionsStep = createStep(
           currency_code: i.currency_code,
           countries: i.countries,
           payment_providers: i.payment_providers ?? ["pp_system_default"],
+          is_tax_inclusive: i.is_tax_inclusive,
         },
       }))
 

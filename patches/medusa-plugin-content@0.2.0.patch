@@ -1,0 +1,484 @@
+diff --git a/.medusa/server/src/admin/index.js b/.medusa/server/src/admin/index.js
+index 1a2b34586562ae12c210049c212fc555c3588776..f01413ceecc03f24378e35c6416cf842c095c3e1 100644
+--- a/.medusa/server/src/admin/index.js
++++ b/.medusa/server/src/admin/index.js
+@@ -7,8 +7,6 @@ const icons = require("@medusajs/icons");
+ const reactQuery = require("@tanstack/react-query");
+ const Medusa = require("@medusajs/js-sdk");
+ const reactRouterDom = require("react-router-dom");
+-const editor = require("@mdxeditor/editor");
+-require("@mdxeditor/editor/style.css");
+ const _interopDefault = (e2) => e2 && e2.__esModule ? e2 : { default: e2 };
+ const React__default = /* @__PURE__ */ _interopDefault(React);
+ const Medusa__default = /* @__PURE__ */ _interopDefault(Medusa);
+@@ -19,6 +17,8 @@ const sdk = new Medusa__default.default({
+     type: "session"
+   }
+ });
++const contentPluginQueryClient = new reactQuery.QueryClient();
++const withContentPluginQueryClient = (Component) => (props) => /* @__PURE__ */ jsxRuntime.jsx(reactQuery.QueryClientProvider, { client: contentPluginQueryClient, children: /* @__PURE__ */ jsxRuntime.jsx(Component, { ...props }) });
+ const useContentCollections = (params = {}) => {
+   return reactQuery.useQuery({
+     queryFn: () => sdk.client.fetch("/admin/content", { query: params }),
+@@ -6662,7 +6662,7 @@ const CreateContentItemModal = ({ open, onOpenChange, contentCollection }) => {
+         const url = (_b = (_a2 = result.files) == null ? void 0 : _a2[0]) == null ? void 0 : _b.url;
+         if (!url) throw new Error("Upload returned no URL");
+         createItem(
+-          { title: data.title, slug: data.slug, content_collection_id: contentCollection.id, body: url },
++          { title: data.title, slug: data.slug, body: url },
+           {
+             onSuccess: () => {
+               ui.toast.success("Image uploaded");
+@@ -6684,7 +6684,6 @@ const CreateContentItemModal = ({ open, onOpenChange, contentCollection }) => {
+         {
+           title: data.title,
+           slug: data.slug,
+-          content_collection_id: contentCollection.id,
+           metadata: hasMetadataFields ? metadata : void 0
+         },
+         {
+@@ -7101,107 +7100,54 @@ const InsertImageModal = ({ open, onOpenChange, onSelect }) => {
+   ] }) });
+ };
+ const ContentMarkdownEditor = ({ value, onChange, onSave, isSaving }) => {
+-  const editorRef = React.useRef(null);
+   const [galleryOpen, setGalleryOpen] = React.useState(false);
+   const handleInsertImage = (imgHtml) => {
+-    var _a2;
+-    (_a2 = editorRef.current) == null ? void 0 : _a2.insertMarkdown(imgHtml);
++    onChange(`${value.trim() ? `${value}\n\n` : ""}${imgHtml}`);
+   };
+-  const oldValueRef = React.useRef(value);
+   return /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
+     /* @__PURE__ */ jsxRuntime.jsx(
+       "div",
+       {
+-        className: "border-ui-border-base shadow-elevation-card-rest rounded-lg overflow-hidden isolate",
++        className: "border-ui-border-base shadow-elevation-card-rest rounded-lg overflow-hidden isolate flex flex-col",
+         onKeyDown: (e2) => {
+           if ((e2.ctrlKey || e2.metaKey) && e2.key === "s") {
+             e2.preventDefault();
+             onSave();
+           }
+         },
+-        children: /* @__PURE__ */ jsxRuntime.jsx(
+-          editor.MDXEditor,
+-          {
+-            ref: editorRef,
+-            markdown: value,
+-            onChange,
+-            plugins: [
+-              editor.toolbarPlugin({
+-                toolbarContents: () => /* @__PURE__ */ jsxRuntime.jsxs(editor.DiffSourceToggleWrapper, { children: [
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.UndoRedo, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.Separator, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.BlockTypeSelect, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.Separator, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.BoldItalicUnderlineToggles, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.Separator, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.StrikeThroughSupSubToggles, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.Separator, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.ListsToggle, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.Separator, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.HighlightToggle, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.InsertAdmonition, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.CreateLink, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.InsertTable, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.InsertCodeBlock, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(editor.Separator, {}),
+-                  /* @__PURE__ */ jsxRuntime.jsx(
+-                    ui.Button,
+-                    {
+-                      size: "small",
+-                      variant: "secondary",
+-                      onClick: () => setGalleryOpen(true),
+-                      className: "shrink-0 mr-1",
+-                      children: /* @__PURE__ */ jsxRuntime.jsx("span", { className: "whitespace-nowrap", children: "Insert Image" })
+-                    }
+-                  ),
+-                  /* @__PURE__ */ jsxRuntime.jsx("div", { className: "flex flex-grow", children: /* @__PURE__ */ jsxRuntime.jsx(
+-                    ui.Button,
+-                    {
+-                      size: "small",
+-                      onClick: onSave,
+-                      isLoading: isSaving,
+-                      className: "ml-auto",
+-                      children: "Save"
+-                    }
+-                  ) })
+-                ] })
+-              }),
+-              editor.codeBlockPlugin({ defaultCodeBlockLanguage: "ts" }),
+-              editor.codeMirrorPlugin({
+-                codeBlockLanguages: {
+-                  ts: "TypeScript",
+-                  tsx: "TypeScript (React)",
+-                  js: "JavaScript",
+-                  jsx: "JavaScript (React)",
+-                  html: "HTML",
+-                  css: "CSS",
+-                  json: "JSON",
+-                  md: "Markdown",
+-                  bash: "Bash",
+-                  sh: "Shell",
+-                  sql: "SQL",
+-                  py: "Python"
+-                }
+-              }),
+-              editor.diffSourcePlugin({
+-                diffMarkdown: oldValueRef.current,
+-                viewMode: "rich-text",
+-                readOnlyDiff: true
+-              }),
+-              editor.directivesPlugin({ directiveDescriptors: [editor.AdmonitionDirectiveDescriptor] }),
+-              editor.headingsPlugin(),
+-              editor.listsPlugin(),
+-              editor.quotePlugin(),
+-              editor.thematicBreakPlugin(),
+-              editor.linkPlugin(),
+-              editor.linkDialogPlugin(),
+-              editor.tablePlugin(),
+-              editor.markdownShortcutPlugin(),
+-              editor.imagePlugin()
+-            ],
+-            contentEditableClassName: "min-h-[50vh] px-4 py-3 prose prose-sm max-w-none focus:outline-none"
+-          }
+-        )
++        children: /* @__PURE__ */ jsxRuntime.jsxs(jsxRuntime.Fragment, { children: [
++          /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "border-ui-border-base flex items-center gap-2 border-b p-2", children: [
++            /* @__PURE__ */ jsxRuntime.jsx(
++              ui.Button,
++              {
++                size: "small",
++                variant: "secondary",
++                onClick: () => setGalleryOpen(true),
++                className: "shrink-0",
++                children: /* @__PURE__ */ jsxRuntime.jsx("span", { className: "whitespace-nowrap", children: "Insert Image" })
++              }
++            ),
++            /* @__PURE__ */ jsxRuntime.jsx("div", { className: "flex flex-grow", children: /* @__PURE__ */ jsxRuntime.jsx(
++              ui.Button,
++              {
++                size: "small",
++                onClick: onSave,
++                isLoading: isSaving,
++                className: "ml-auto",
++                children: "Save"
++              }
++            ) })
++          ] }),
++          /* @__PURE__ */ jsxRuntime.jsx(
++            ui.Textarea,
++            {
++              value,
++              onChange: (event) => onChange(event.target.value),
++              className: "min-h-[50vh] rounded-none border-0 font-mono text-sm",
++              spellCheck: true
++            }
++          )
++        ] })
+       }
+     ),
+     /* @__PURE__ */ jsxRuntime.jsx(
+@@ -7346,8 +7292,8 @@ const EditContentItemDrawer = ({ item, open, onOpenChange }) => {
+   ] }) }) });
+ };
+ async function loader({ params }) {
+-  const { itemId } = params;
+-  return sdk.client.fetch(`/admin/content-items/${itemId}`, {
++  const { collectionId, itemId } = params;
++  return sdk.client.fetch(`/admin/content/${collectionId}/items/${itemId}`, {
+     query: { fields: "id,title" }
+   });
+ }
+@@ -7553,39 +7499,39 @@ const ContentItemEditorPage = () => {
+ };
+ const widgetModule = { widgets: [
+   {
+-    Component: ProductImageLibraryWidget,
++    Component: withContentPluginQueryClient(ProductImageLibraryWidget),
+     zone: ["product.details.side.before"]
+   },
+   {
+-    Component: ProductVariantImageLibraryWidget,
++    Component: withContentPluginQueryClient(ProductVariantImageLibraryWidget),
+     zone: ["product_variant.details.side.before"]
+   }
+ ] };
+ const routeModule = {
+   routes: [
+     {
+-      Component: ImageGalleryPage,
++      Component: withContentPluginQueryClient(ImageGalleryPage),
+       path: "/images",
+       handle: handle$4
+     },
+     {
+-      Component: ContentCollectionsPage,
++      Component: withContentPluginQueryClient(ContentCollectionsPage),
+       path: "/content",
+       handle: handle$3
+     },
+     {
+-      Component: ContentCollectionDetailPage,
++      Component: withContentPluginQueryClient(ContentCollectionDetailPage),
+       path: "/content/:collectionId",
+       handle: handle$2,
+       loader: loader$1
+     },
+     {
+-      Component: ContentItemsPage,
++      Component: withContentPluginQueryClient(ContentItemsPage),
+       path: "/content/:collectionId/items",
+       handle: handle$1
+     },
+     {
+-      Component: ContentItemEditorPage,
++      Component: withContentPluginQueryClient(ContentItemEditorPage),
+       path: "/content/:collectionId/items/:itemId",
+       handle,
+       loader
+diff --git a/.medusa/server/src/admin/index.mjs b/.medusa/server/src/admin/index.mjs
+index aa07282dad3083c5408be6b0725825d783f66fb5..55a4017c69dffeaf3fc2fb32dd4fa0d81c7c940b 100644
+--- a/.medusa/server/src/admin/index.mjs
++++ b/.medusa/server/src/admin/index.mjs
+@@ -3,11 +3,9 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
+ import { defineWidgetConfig, defineRouteConfig } from "@medusajs/admin-sdk";
+ import { FocusModal, Heading, Text, Select, Input, toast, Container, Button, Badge, Switch, Label, createDataTableColumnHelper, createDataTableCommandHelper, usePrompt, useDataTable, DataTable, DropdownMenu, IconButton, clx, Drawer, Textarea, DatePicker, Tooltip } from "@medusajs/ui";
+ import { ImageSparkle, ChevronLeft, ChevronRight, Trash, Plus, PencilSquare, EllipsisHorizontal, ArrowUpRightOnBox, ArchiveBox, PaperPlane } from "@medusajs/icons";
+-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
++import { QueryClient, QueryClientProvider, useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+ import Medusa from "@medusajs/js-sdk";
+ import { useNavigate, Link, useParams, useBlocker } from "react-router-dom";
+-import { MDXEditor, toolbarPlugin, DiffSourceToggleWrapper, UndoRedo, Separator, BlockTypeSelect, BoldItalicUnderlineToggles, StrikeThroughSupSubToggles, ListsToggle, HighlightToggle, InsertAdmonition, CreateLink, InsertTable, InsertCodeBlock, codeBlockPlugin, codeMirrorPlugin, diffSourcePlugin, directivesPlugin, AdmonitionDirectiveDescriptor, headingsPlugin, listsPlugin, quotePlugin, thematicBreakPlugin, linkPlugin, linkDialogPlugin, tablePlugin, markdownShortcutPlugin, imagePlugin } from "@mdxeditor/editor";
+-import "@mdxeditor/editor/style.css";
+ const sdk = new Medusa({
+   baseUrl: "/",
+   debug: false,
+@@ -15,6 +13,8 @@ const sdk = new Medusa({
+     type: "session"
+   }
+ });
++const contentPluginQueryClient = new QueryClient();
++const withContentPluginQueryClient = (Component) => (props) => /* @__PURE__ */ jsx(QueryClientProvider, { client: contentPluginQueryClient, children: /* @__PURE__ */ jsx(Component, { ...props }) });
+ const useContentCollections = (params = {}) => {
+   return useQuery({
+     queryFn: () => sdk.client.fetch("/admin/content", { query: params }),
+@@ -6658,7 +6658,7 @@ const CreateContentItemModal = ({ open, onOpenChange, contentCollection }) => {
+         const url = (_b = (_a2 = result.files) == null ? void 0 : _a2[0]) == null ? void 0 : _b.url;
+         if (!url) throw new Error("Upload returned no URL");
+         createItem(
+-          { title: data.title, slug: data.slug, content_collection_id: contentCollection.id, body: url },
++          { title: data.title, slug: data.slug, body: url },
+           {
+             onSuccess: () => {
+               toast.success("Image uploaded");
+@@ -6680,7 +6680,6 @@ const CreateContentItemModal = ({ open, onOpenChange, contentCollection }) => {
+         {
+           title: data.title,
+           slug: data.slug,
+-          content_collection_id: contentCollection.id,
+           metadata: hasMetadataFields ? metadata : void 0
+         },
+         {
+@@ -7097,107 +7096,54 @@ const InsertImageModal = ({ open, onOpenChange, onSelect }) => {
+   ] }) });
+ };
+ const ContentMarkdownEditor = ({ value, onChange, onSave, isSaving }) => {
+-  const editorRef = useRef(null);
+   const [galleryOpen, setGalleryOpen] = useState(false);
+   const handleInsertImage = (imgHtml) => {
+-    var _a2;
+-    (_a2 = editorRef.current) == null ? void 0 : _a2.insertMarkdown(imgHtml);
++    onChange(`${value.trim() ? `${value}\n\n` : ""}${imgHtml}`);
+   };
+-  const oldValueRef = useRef(value);
+   return /* @__PURE__ */ jsxs(Fragment, { children: [
+     /* @__PURE__ */ jsx(
+       "div",
+       {
+-        className: "border-ui-border-base shadow-elevation-card-rest rounded-lg overflow-hidden isolate",
++        className: "border-ui-border-base shadow-elevation-card-rest rounded-lg overflow-hidden isolate flex flex-col",
+         onKeyDown: (e2) => {
+           if ((e2.ctrlKey || e2.metaKey) && e2.key === "s") {
+             e2.preventDefault();
+             onSave();
+           }
+         },
+-        children: /* @__PURE__ */ jsx(
+-          MDXEditor,
+-          {
+-            ref: editorRef,
+-            markdown: value,
+-            onChange,
+-            plugins: [
+-              toolbarPlugin({
+-                toolbarContents: () => /* @__PURE__ */ jsxs(DiffSourceToggleWrapper, { children: [
+-                  /* @__PURE__ */ jsx(UndoRedo, {}),
+-                  /* @__PURE__ */ jsx(Separator, {}),
+-                  /* @__PURE__ */ jsx(BlockTypeSelect, {}),
+-                  /* @__PURE__ */ jsx(Separator, {}),
+-                  /* @__PURE__ */ jsx(BoldItalicUnderlineToggles, {}),
+-                  /* @__PURE__ */ jsx(Separator, {}),
+-                  /* @__PURE__ */ jsx(StrikeThroughSupSubToggles, {}),
+-                  /* @__PURE__ */ jsx(Separator, {}),
+-                  /* @__PURE__ */ jsx(ListsToggle, {}),
+-                  /* @__PURE__ */ jsx(Separator, {}),
+-                  /* @__PURE__ */ jsx(HighlightToggle, {}),
+-                  /* @__PURE__ */ jsx(InsertAdmonition, {}),
+-                  /* @__PURE__ */ jsx(CreateLink, {}),
+-                  /* @__PURE__ */ jsx(InsertTable, {}),
+-                  /* @__PURE__ */ jsx(InsertCodeBlock, {}),
+-                  /* @__PURE__ */ jsx(Separator, {}),
+-                  /* @__PURE__ */ jsx(
+-                    Button,
+-                    {
+-                      size: "small",
+-                      variant: "secondary",
+-                      onClick: () => setGalleryOpen(true),
+-                      className: "shrink-0 mr-1",
+-                      children: /* @__PURE__ */ jsx("span", { className: "whitespace-nowrap", children: "Insert Image" })
+-                    }
+-                  ),
+-                  /* @__PURE__ */ jsx("div", { className: "flex flex-grow", children: /* @__PURE__ */ jsx(
+-                    Button,
+-                    {
+-                      size: "small",
+-                      onClick: onSave,
+-                      isLoading: isSaving,
+-                      className: "ml-auto",
+-                      children: "Save"
+-                    }
+-                  ) })
+-                ] })
+-              }),
+-              codeBlockPlugin({ defaultCodeBlockLanguage: "ts" }),
+-              codeMirrorPlugin({
+-                codeBlockLanguages: {
+-                  ts: "TypeScript",
+-                  tsx: "TypeScript (React)",
+-                  js: "JavaScript",
+-                  jsx: "JavaScript (React)",
+-                  html: "HTML",
+-                  css: "CSS",
+-                  json: "JSON",
+-                  md: "Markdown",
+-                  bash: "Bash",
+-                  sh: "Shell",
+-                  sql: "SQL",
+-                  py: "Python"
+-                }
+-              }),
+-              diffSourcePlugin({
+-                diffMarkdown: oldValueRef.current,
+-                viewMode: "rich-text",
+-                readOnlyDiff: true
+-              }),
+-              directivesPlugin({ directiveDescriptors: [AdmonitionDirectiveDescriptor] }),
+-              headingsPlugin(),
+-              listsPlugin(),
+-              quotePlugin(),
+-              thematicBreakPlugin(),
+-              linkPlugin(),
+-              linkDialogPlugin(),
+-              tablePlugin(),
+-              markdownShortcutPlugin(),
+-              imagePlugin()
+-            ],
+-            contentEditableClassName: "min-h-[50vh] px-4 py-3 prose prose-sm max-w-none focus:outline-none"
+-          }
+-        )
++        children: /* @__PURE__ */ jsxs(Fragment, { children: [
++          /* @__PURE__ */ jsxs("div", { className: "border-ui-border-base flex items-center gap-2 border-b p-2", children: [
++            /* @__PURE__ */ jsx(
++              Button,
++              {
++                size: "small",
++                variant: "secondary",
++                onClick: () => setGalleryOpen(true),
++                className: "shrink-0",
++                children: /* @__PURE__ */ jsx("span", { className: "whitespace-nowrap", children: "Insert Image" })
++              }
++            ),
++            /* @__PURE__ */ jsx("div", { className: "flex flex-grow", children: /* @__PURE__ */ jsx(
++              Button,
++              {
++                size: "small",
++                onClick: onSave,
++                isLoading: isSaving,
++                className: "ml-auto",
++                children: "Save"
++              }
++            ) })
++          ] }),
++          /* @__PURE__ */ jsx(
++            Textarea,
++            {
++              value,
++              onChange: (event) => onChange(event.target.value),
++              className: "min-h-[50vh] rounded-none border-0 font-mono text-sm",
++              spellCheck: true
++            }
++          )
++        ] })
+       }
+     ),
+     /* @__PURE__ */ jsx(
+@@ -7342,8 +7288,8 @@ const EditContentItemDrawer = ({ item, open, onOpenChange }) => {
+   ] }) }) });
+ };
+ async function loader({ params }) {
+-  const { itemId } = params;
+-  return sdk.client.fetch(`/admin/content-items/${itemId}`, {
++  const { collectionId, itemId } = params;
++  return sdk.client.fetch(`/admin/content/${collectionId}/items/${itemId}`, {
+     query: { fields: "id,title" }
+   });
+ }
+@@ -7549,39 +7495,39 @@ const ContentItemEditorPage = () => {
+ };
+ const widgetModule = { widgets: [
+   {
+-    Component: ProductImageLibraryWidget,
++    Component: withContentPluginQueryClient(ProductImageLibraryWidget),
+     zone: ["product.details.side.before"]
+   },
+   {
+-    Component: ProductVariantImageLibraryWidget,
++    Component: withContentPluginQueryClient(ProductVariantImageLibraryWidget),
+     zone: ["product_variant.details.side.before"]
+   }
+ ] };
+ const routeModule = {
+   routes: [
+     {
+-      Component: ImageGalleryPage,
++      Component: withContentPluginQueryClient(ImageGalleryPage),
+       path: "/images",
+       handle: handle$4
+     },
+     {
+-      Component: ContentCollectionsPage,
++      Component: withContentPluginQueryClient(ContentCollectionsPage),
+       path: "/content",
+       handle: handle$3
+     },
+     {
+-      Component: ContentCollectionDetailPage,
++      Component: withContentPluginQueryClient(ContentCollectionDetailPage),
+       path: "/content/:collectionId",
+       handle: handle$2,
+       loader: loader$1
+     },
+     {
+-      Component: ContentItemsPage,
++      Component: withContentPluginQueryClient(ContentItemsPage),
+       path: "/content/:collectionId/items",
+       handle: handle$1
+     },
+     {
+-      Component: ContentItemEditorPage,
++      Component: withContentPluginQueryClient(ContentItemEditorPage),
+       path: "/content/:collectionId/items/:itemId",
+       handle,
+       loader

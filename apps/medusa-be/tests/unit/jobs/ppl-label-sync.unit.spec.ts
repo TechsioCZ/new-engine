@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
 import {
   checkTimeoutConditions,
   MAX_PENDING_AGE_MS,
@@ -5,6 +7,8 @@ import {
   type PendingFulfillment,
   type SyncAttemptInfo,
 } from "../../../src/modules/ppl-client/utils"
+
+const FIXED_NOW = new Date("2026-01-01T12:00:00.000Z")
 
 const createFulfillment = (
   overrides: Partial<PendingFulfillment> = {}
@@ -30,6 +34,15 @@ const createAttemptInfo = (
 })
 
 describe("ppl-label-sync", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(FIXED_NOW)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   describe("checkTimeoutConditions", () => {
     it("returns null when within limits", () => {
       const fulfillment = createFulfillment()

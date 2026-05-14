@@ -172,7 +172,6 @@ const sharedEnvCleanupKeys = [
   "MEDUSA_DEV_DB_PASSWORD",
   "MEDUSA_MINIO_ROOT_USER",
   "MEDUSA_MINIO_ROOT_PASSWORD",
-  "MEDUSA_MINIO_REGION",
   "MEDUSA_MINIO_ENDPOINT",
   "MEDUSA_MINIO_FILE_URL",
   "MEDUSA_MINIO_HOST",
@@ -231,9 +230,21 @@ const sharedEnvCleanupKeys = [
   "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
   "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
   "DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID",
+  "DC_RESEND_API_KEY",
+  "DC_RESEND_FROM_EMAIL",
+  "DC_RESEND_WEBHOOK_SECRET",
+  "DC_CONTACT_EMAIL",
+  "DC_MEDUSA_BE_NOTIFICATION_PROVIDER",
+  "DC_MEDUSA_BE_RESEND_API_KEY",
+  "DC_MEDUSA_BE_RESEND_FROM_EMAIL",
+  "DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET",
+  "DC_N1_RESEND_API_KEY",
+  "DC_N1_CONTACT_EMAIL",
+  "DC_N1_RESEND_FROM_EMAIL",
   "DC_N1_MEDUSA_RESEND_API_KEY",
   "DC_N1_MEDUSA_CONTACT_EMAIL",
   "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+  "DC_N1_MEDUSA_RESEND_WEBHOOK_SECRET",
   "DC_ZANE_OPERATOR_API_AUTH_TOKEN",
   "DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET",
   "DC_ZANE_OPERATOR_DB_TEMPLATE_NAME",
@@ -264,10 +275,54 @@ const sharedEnvCleanupKeys = [
   "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY",
   "DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
   "DC_N1_NEXT_PUBLIC_SITE_URL",
+  "DC_RESEND_API_KEY",
+  "DC_RESEND_FROM_EMAIL",
+  "DC_RESEND_WEBHOOK_SECRET",
+  "DC_CONTACT_EMAIL",
+  "DC_MEDUSA_BE_NOTIFICATION_PROVIDER",
+  "DC_MEDUSA_BE_RESEND_API_KEY",
+  "DC_MEDUSA_BE_RESEND_FROM_EMAIL",
+  "DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET",
+  "DC_N1_RESEND_API_KEY",
+  "DC_N1_CONTACT_EMAIL",
+  "DC_N1_RESEND_FROM_EMAIL",
   "DC_N1_MEDUSA_RESEND_API_KEY",
   "DC_N1_MEDUSA_CONTACT_EMAIL",
   "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+  "DC_N1_MEDUSA_RESEND_WEBHOOK_SECRET",
   "DC_LEGACY_DATABASE_URL",
+  "DC_FEATURE_PAYLOAD_ENABLED",
+  "DC_IS_IFRAME_PAYLOAD",
+  "DC_PAYLOAD_API_KEY",
+  "DC_PAYLOAD_BASE_URL",
+  "DC_PAYLOAD_IFRAME_URL",
+  "DC_PAYLOAD_WEBHOOK_SECRET",
+  "DC_CMS_CACHE_TTL",
+  "DC_CMS_LIST_CACHE_TTL",
+  "DC_FEATURE_PAYLOAD_ARTICLES_ENABLED",
+  "DC_FEATURE_PAYLOAD_PAGES_ENABLED",
+  "DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED",
+  "DC_FE_MEDUSA_BACKEND_URL",
+  "DC_PAYLOAD_DATABASE_USER",
+  "DC_PAYLOAD_DATABASE_PASSWORD",
+  "DC_PAYLOAD_DATABASE_SCHEMA_NAME",
+  "DC_PAYLOAD_DATABASE_URL",
+  "DC_PAYLOAD_SECRET",
+  "DC_PAYLOAD_LOCALES",
+  "DC_PAYLOAD_S3_ENDPOINT",
+  "DC_PAYLOAD_S3_REGION",
+  "DC_PAYLOAD_S3_BUCKET",
+  "DC_PAYLOAD_S3_ACCESS_KEY_ID",
+  "DC_PAYLOAD_S3_SECRET_ACCESS_KEY",
+  "DC_PAYLOAD_SSO_ALG",
+  "DC_PAYLOAD_SSO_ALLOWED_ORIGINS",
+  "DC_PAYLOAD_SSO_AUDIENCE",
+  "DC_PAYLOAD_SSO_ISSUER",
+  "DC_PAYLOAD_SSO_PRIVATE_KEY",
+  "DC_PAYLOAD_SSO_PUBLIC_KEY",
+  "DC_PAYLOAD_SSO_TOKEN_TTL",
+  "DC_PAYLOAD_SSO_USER_EMAIL",
+  "DC_OPENAI_API_KEY",
 ] as const
 
 function placeholderSharedValue(key: string): string {
@@ -392,6 +447,7 @@ function buildZaneProjectServices(
     ? protectedNamesBase
     : `${protectedNamesBase},template_medusa`
   const medusaBeSlug = requiredServiceSlug(serviceSlugs, "medusa-be")
+  const payloadSlug = requiredServiceSlug(serviceSlugs, "payload")
   const n1Slug = requiredServiceSlug(serviceSlugs, "n1")
   const meilisearchSlug = requiredServiceSlug(
     serviceSlugs,
@@ -401,6 +457,7 @@ function buildZaneProjectServices(
 
   const servicePublicOrigins = {
     medusaBe: servicePublicOriginSource(medusaBeSlug),
+    payload: servicePublicOriginSource(payloadSlug),
     n1: servicePublicOriginSource(n1Slug),
     meilisearch: servicePublicOriginSource(meilisearchSlug),
   }
@@ -445,6 +502,9 @@ function buildZaneProjectServices(
         "DC_ZANE_OPERATOR_PGUSER",
         "DC_ZANE_OPERATOR_PGPASSWORD",
         "DC_ZANE_OPERATOR_DB_TEMPLATE_NAME",
+        "DC_PAYLOAD_DATABASE_USER",
+        "DC_PAYLOAD_DATABASE_PASSWORD",
+        "DC_PAYLOAD_DATABASE_SCHEMA_NAME",
       ],
       env: [
         {
@@ -632,6 +692,20 @@ function buildZaneProjectServices(
         "DC_SETTINGS_ENCRYPTION_KEY",
         "DC_FEATURE_PPL_ENABLED",
         "DC_PPL_ENVIRONMENT",
+        "DC_FEATURE_PAYLOAD_ENABLED",
+        "DC_IS_IFRAME_PAYLOAD",
+        "DC_PAYLOAD_BASE_URL",
+        "DC_PAYLOAD_IFRAME_URL",
+        "DC_PAYLOAD_API_KEY",
+        "DC_PAYLOAD_WEBHOOK_SECRET",
+        "DC_CMS_CACHE_TTL",
+        "DC_CMS_LIST_CACHE_TTL",
+        "DC_PAYLOAD_SSO_PRIVATE_KEY",
+        "DC_PAYLOAD_SSO_USER_EMAIL",
+        "DC_PAYLOAD_SSO_ISSUER",
+        "DC_PAYLOAD_SSO_AUDIENCE",
+        "DC_PAYLOAD_SSO_ALG",
+        "DC_PAYLOAD_SSO_TOKEN_TTL",
         "DC_MEDUSA_APP_DB_USER",
         "DC_MEDUSA_APP_DB_PASSWORD",
         "DC_MEDUSA_APP_DB_NAME",
@@ -645,6 +719,13 @@ function buildZaneProjectServices(
         "DC_MINIO_BUCKET",
         "DC_MINIO_ACCESS_KEY",
         "DC_MINIO_SECRET_KEY",
+        "DC_MEDUSA_BE_NOTIFICATION_PROVIDER",
+        "DC_MEDUSA_BE_RESEND_API_KEY",
+        "DC_MEDUSA_BE_RESEND_FROM_EMAIL",
+        "DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET",
+        "DC_N1_MEDUSA_RESEND_API_KEY",
+        "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+        "DC_N1_MEDUSA_RESEND_WEBHOOK_SECRET",
       ],
       env: [
         { envVar: "NODE_ENV", source: literalSource("production") },
@@ -687,6 +768,34 @@ function buildZaneProjectServices(
           envVar: "PPL_ENVIRONMENT",
           source: literalSource(process.env.DC_PPL_ENVIRONMENT ?? "testing"),
         },
+        {
+          envVar: "FEATURE_PAYLOAD_ENABLED",
+          source: literalSource(process.env.DC_FEATURE_PAYLOAD_ENABLED ?? "0"),
+        },
+        {
+          envVar: "IS_IFRAME_PAYLOAD",
+          source: literalSource(process.env.DC_IS_IFRAME_PAYLOAD ?? "true"),
+        },
+        {
+          envVar: "PAYLOAD_BASE_URL",
+          source: serviceInternalOriginSource({
+            serviceSlug: payloadSlug,
+            port: 8083,
+          }),
+        },
+        { envVar: "PAYLOAD_IFRAME_URL", source: servicePublicOrigins.payload },
+        {
+          envVar: "CMS_CACHE_TTL",
+          source: literalSource(process.env.DC_CMS_CACHE_TTL ?? "3600"),
+        },
+        {
+          envVar: "CMS_LIST_CACHE_TTL",
+          source: literalSource(process.env.DC_CMS_LIST_CACHE_TTL ?? "600"),
+        },
+        {
+          envVar: "PAYLOAD_SSO_TOKEN_TTL",
+          source: literalSource(process.env.DC_PAYLOAD_SSO_TOKEN_TTL ?? "60"),
+        },
         { envVar: "DATABASE_TYPE", source: literalSource("postgres") },
         {
           envVar: "DATABASE_URL",
@@ -712,15 +821,165 @@ function buildZaneProjectServices(
         },
         { envVar: "MINIO_FILE_URL", source: minioFileSource },
         {
-          envVar: "MINIO_REGION",
-          source: literalSource(process.env.DC_MINIO_REGION ?? "us-east-1"),
-        },
-        {
           envVar: "MINIO_ENDPOINT",
           source: serviceInternalOriginSource({
             serviceSlug: minioSlug,
             port: 9004,
             trailingSlash: true,
+          }),
+        },
+        {
+          envVar: "NOTIFICATION_PROVIDER",
+          source: literalSource(
+            process.env.DC_MEDUSA_BE_NOTIFICATION_PROVIDER ?? "resend"
+          ),
+        },
+        {
+          envVar: "RESEND_API_KEY",
+          source: literalSource(
+            process.env.DC_MEDUSA_BE_RESEND_API_KEY ??
+              process.env.DC_RESEND_API_KEY ??
+              ""
+          ),
+        },
+        {
+          envVar: "RESEND_FROM_EMAIL",
+          source: literalSource(
+            process.env.DC_MEDUSA_BE_RESEND_FROM_EMAIL ??
+              process.env.DC_RESEND_FROM_EMAIL ??
+              ""
+          ),
+        },
+        {
+          envVar: "RESEND_WEBHOOK_SECRET",
+          source: literalSource(
+            process.env.DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET ??
+              process.env.DC_RESEND_WEBHOOK_SECRET ??
+              ""
+          ),
+        },
+      ],
+    },
+    payload: {
+      dockerfilePath: "./docker/development/payload/Dockerfile",
+      buildContextDir: "./",
+      command: null,
+      volumes: [],
+      urls: [
+        {
+          domain:
+            publicServiceDomain({
+              projectSlug: context.projectSlug,
+              serviceSlug: payloadSlug,
+              publicUrlAffix: context.publicUrlAffix,
+              publicDomain: context.publicDomain,
+            }) ?? "",
+          base_path: "/",
+          strip_prefix: true,
+          associated_port: 8083,
+        },
+      ].filter((url) => url.domain),
+      healthcheck: {
+        type: "PATH",
+        value: "/api/health",
+        timeout_seconds: 120,
+        interval_seconds: 30,
+        associated_port: 8083,
+      },
+      resourceLimits: {
+        cpus: 0.75,
+        memory: { unit: "MEGABYTES", value: 1536 },
+      },
+      cleanupEnvKeys: [
+        "DC_NODE_ENV",
+        "DC_PAYLOAD_API_KEY",
+        "DC_PAYLOAD_BASE_URL",
+        "DC_PAYLOAD_WEBHOOK_SECRET",
+        "DC_FEATURE_PAYLOAD_ARTICLES_ENABLED",
+        "DC_FEATURE_PAYLOAD_PAGES_ENABLED",
+        "DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED",
+        "DC_FE_MEDUSA_BACKEND_URL",
+        "DC_PAYLOAD_DATABASE_USER",
+        "DC_PAYLOAD_DATABASE_PASSWORD",
+        "DC_PAYLOAD_DATABASE_SCHEMA_NAME",
+        "DC_PAYLOAD_DATABASE_URL",
+        "DC_PAYLOAD_SECRET",
+        "DC_PAYLOAD_LOCALES",
+        "DC_PAYLOAD_S3_ENDPOINT",
+        "DC_PAYLOAD_S3_REGION",
+        "DC_PAYLOAD_S3_BUCKET",
+        "DC_PAYLOAD_S3_ACCESS_KEY_ID",
+        "DC_PAYLOAD_S3_SECRET_ACCESS_KEY",
+        "DC_PAYLOAD_SSO_ALG",
+        "DC_PAYLOAD_SSO_ALLOWED_ORIGINS",
+        "DC_PAYLOAD_SSO_AUDIENCE",
+        "DC_PAYLOAD_SSO_ISSUER",
+        "DC_PAYLOAD_SSO_PRIVATE_KEY",
+        "DC_PAYLOAD_SSO_PUBLIC_KEY",
+        "DC_PAYLOAD_SSO_USER_EMAIL",
+        "DC_OPENAI_API_KEY",
+      ],
+      env: [
+        { envVar: "NODE_ENV", source: literalSource("production") },
+        {
+          envVar: "DATABASE_URL",
+          source: literalSource(
+            "postgresql://{{env.PAYLOAD_DB_USER}}:{{env.PAYLOAD_DB_PASSWORD}}@{{env.MEDUSA_DB_HOST}}:5432/{{env.MEDUSA_APP_DB_NAME}}?sslmode=disable&options=-csearch_path%3D{{env.PAYLOAD_DB_SCHEMA}}%2Cpg_catalog"
+          ),
+        },
+        {
+          envVar: "PAYLOAD_SECRET",
+          source: literalSource(
+            process.env.DC_PAYLOAD_SECRET ?? "payload_secret_change_me"
+          ),
+        },
+        { envVar: "PAYLOAD_BASE_URL", source: servicePublicOrigins.payload },
+        {
+          envVar: "MEDUSA_BACKEND_URL",
+          source: serviceInternalOriginSource({
+            serviceSlug: medusaBeSlug,
+            port: 9000,
+          }),
+        },
+        {
+          envVar: "FEATURE_PAYLOAD_ARTICLES_ENABLED",
+          source: literalSource(
+            process.env.DC_FEATURE_PAYLOAD_ARTICLES_ENABLED ?? "1"
+          ),
+        },
+        {
+          envVar: "FEATURE_PAYLOAD_PAGES_ENABLED",
+          source: literalSource(
+            process.env.DC_FEATURE_PAYLOAD_PAGES_ENABLED ?? "1"
+          ),
+        },
+        {
+          envVar: "FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED",
+          source: literalSource(
+            process.env.DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED ?? "1"
+          ),
+        },
+        {
+          envVar: "PAYLOAD_LOCALES",
+          source: literalSource(process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,en"),
+        },
+        {
+          envVar: "PAYLOAD_SSO_PUBLIC_KEY",
+          source: literalSource(process.env.DC_PAYLOAD_SSO_PUBLIC_KEY ?? ""),
+        },
+        {
+          envVar: "PAYLOAD_SSO_ALLOWED_ORIGINS",
+          source: literalSource(context.adminCors),
+        },
+        {
+          envVar: "OPENAI_API_KEY",
+          source: literalSource(process.env.DC_OPENAI_API_KEY ?? ""),
+        },
+        {
+          envVar: "S3_ENDPOINT",
+          source: serviceInternalOriginSource({
+            serviceSlug: minioSlug,
+            port: 9004,
           }),
         },
       ],
@@ -773,6 +1032,9 @@ function buildZaneProjectServices(
         "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
         "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
         "DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID",
+        "DC_N1_RESEND_API_KEY",
+        "DC_N1_CONTACT_EMAIL",
+        "DC_N1_RESEND_FROM_EMAIL",
         "DC_N1_MEDUSA_RESEND_API_KEY",
         "DC_N1_MEDUSA_CONTACT_EMAIL",
         "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
@@ -806,6 +1068,30 @@ function buildZaneProjectServices(
           ),
         },
         { envVar: "NEXT_PUBLIC_SITE_URL", source: servicePublicOrigins.n1 },
+        {
+          envVar: "RESEND_API_KEY",
+          source: literalSource(
+            process.env.DC_N1_RESEND_API_KEY ??
+              process.env.DC_RESEND_API_KEY ??
+              ""
+          ),
+        },
+        {
+          envVar: "CONTACT_EMAIL",
+          source: literalSource(
+            process.env.DC_N1_CONTACT_EMAIL ??
+              process.env.DC_CONTACT_EMAIL ??
+              ""
+          ),
+        },
+        {
+          envVar: "RESEND_FROM_EMAIL",
+          source: literalSource(
+            process.env.DC_N1_RESEND_FROM_EMAIL ??
+              process.env.DC_RESEND_FROM_EMAIL ??
+              ""
+          ),
+        },
       ],
     },
     "zane-operator": {
@@ -1141,6 +1427,7 @@ function buildBlockingReasons(input: {
     { serviceId: "medusa-meilisearch", field: "network_alias" },
     { serviceId: "medusa-minio", field: "network_alias" },
     { serviceId: "medusa-be", field: "network_alias" },
+    { serviceId: "payload", field: "network_alias" },
   ]
   for (const aliasCheck of aliasChecks) {
     const details = input.inspectedServices[aliasCheck.serviceId]?.details
@@ -1217,6 +1504,38 @@ function buildWarningReasons(): string[] {
       {
         label: "DC_SETTINGS_ENCRYPTION_KEY",
         value: process.env.DC_SETTINGS_ENCRYPTION_KEY,
+      },
+      {
+        label: "DC_PAYLOAD_API_KEY",
+        value: process.env.DC_PAYLOAD_API_KEY,
+        placeholderValues: ["payload_dev_api_key_change_me"],
+      },
+      {
+        label: "DC_PAYLOAD_WEBHOOK_SECRET",
+        value: process.env.DC_PAYLOAD_WEBHOOK_SECRET,
+        placeholderValues: ["payload_webhook_secret_change_me"],
+      },
+      {
+        label: "DC_PAYLOAD_SECRET",
+        value: process.env.DC_PAYLOAD_SECRET,
+        placeholderValues: ["payload_secret_change_me"],
+      },
+      {
+        label: "DC_PAYLOAD_DATABASE_PASSWORD",
+        value: process.env.DC_PAYLOAD_DATABASE_PASSWORD,
+        placeholderValues: ["payload"],
+      },
+      {
+        label: "DC_PAYLOAD_SSO_PRIVATE_KEY",
+        value: process.env.DC_PAYLOAD_SSO_PRIVATE_KEY,
+      },
+      {
+        label: "DC_PAYLOAD_SSO_PUBLIC_KEY",
+        value: process.env.DC_PAYLOAD_SSO_PUBLIC_KEY,
+      },
+      {
+        label: "DC_PAYLOAD_SSO_USER_EMAIL",
+        value: process.env.DC_PAYLOAD_SSO_USER_EMAIL,
       },
     ],
     placeholderMessage:

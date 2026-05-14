@@ -19,6 +19,7 @@ ZANE_BASE_URL=""
 ZANE_OPERATOR_BASE_URL=""
 ZANE_OPERATOR_API_TOKEN=""
 SKIP_VERIFY="false"
+SKIP_ADMIN_SMOKE="false"
 APPROVE_DOWNTIME_RISK="false"
 
 usage() {
@@ -42,6 +43,7 @@ Options:
   --operator-api-token <token>  deployed zane-operator API token override
   --approve-downtime-risk       allow local run to continue when downtime-risk services are in scope
   --skip-verify                 skip the final verify stage
+  --skip-admin-smoke            skip browser smoke test for deployed medusa-be admin
   -h, --help                    show this help
 
 Notes:
@@ -100,6 +102,10 @@ parse_args() {
         ;;
       --skip-verify)
         SKIP_VERIFY="true"
+        shift
+        ;;
+      --skip-admin-smoke)
+        SKIP_ADMIN_SMOKE="true"
         shift
         ;;
       -h|--help)
@@ -351,6 +357,93 @@ run_verify_stage() {
   printf '%s\n' "$verify_json"
 }
 
+csv_contains_service() {
+  local csv="$1"
+  local service_id="$2"
+
+  jq -eRn --arg csv "$csv" --arg service_id "$service_id" '
+    $csv
+    | split(",")
+    | map(gsub("^\\s+|\\s+$"; ""))
+    | any(. == $service_id)
+  ' >/dev/null
+}
+
+medusa_admin_base_url() {
+  printf 'https://%s-medusa-be%s.%s\n' "$PROJECT_SLUG" "$PUBLIC_URL_AFFIX" "$PUBLIC_DOMAIN"
+}
+
+run_admin_build_smoke_stage() {
+  if [[ "$SKIP_ADMIN_SMOKE" == "true" ]]; then
+    common::step "Skipping local medusa-be admin build smoke stage by request."
+    jq -cn '{skipped:true, reason:"requested"}'
+    return 0
+  fi
+
+  if ! csv_contains_service "$SERVICES_CSV" "medusa-be"; then
+    common::step "Skipping local medusa-be admin build smoke stage because medusa-be is not in scope."
+    jq -cn '{skipped:true, reason:"medusa_be_not_in_scope"}'
+    return 0
+  fi
+
+  common::stage "Admin build smoke"
+  common::step "Building medusa-be and testing generated admin assets locally..."
+
+  (
+    cd "$ROOT_DIR/apps/medusa-be"
+    pnpm build:admin-smoke-output >&2
+    pnpm test:e2e:admin:built >&2
+  ) || common::die "Local Medusa admin build smoke failed."
+
+  jq -cn '{skipped:false}'
+}
+
+run_admin_smoke_stage() {
+  local deploy_json="$1"
+  local deploy_services_csv
+  local requested_services_csv
+  local triggered_services_csv
+  local admin_base_url
+  local admin_smoke_email
+  local admin_smoke_password
+
+  jq -e . >/dev/null <<<"$deploy_json" || common::die "Deploy stage did not return valid JSON."
+  requested_services_csv="$(jq -r '.requested_services_csv // ""' <<<"$deploy_json")"
+  deploy_services_csv="$(jq -r '.deploy_services_csv // ""' <<<"$deploy_json")"
+  triggered_services_csv="$(jq -r '.triggered_services_csv // ""' <<<"$deploy_json")"
+
+  if [[ "$SKIP_ADMIN_SMOKE" == "true" ]]; then
+    common::step "Skipping medusa-be admin smoke stage by request."
+    jq -cn '{skipped:true, reason:"requested"}'
+    return 0
+  fi
+
+  if ! csv_contains_service "$requested_services_csv,$deploy_services_csv,$triggered_services_csv" "medusa-be"; then
+    common::step "Skipping medusa-be admin smoke stage because medusa-be is not in scope."
+    jq -cn '{skipped:true, reason:"medusa_be_not_in_scope"}'
+    return 0
+  fi
+
+  common::stage "Admin smoke"
+  admin_base_url="$(medusa_admin_base_url)"
+  admin_smoke_email="${MEDUSA_ADMIN_E2E_EMAIL:-}"
+  admin_smoke_password="${MEDUSA_ADMIN_E2E_PASSWORD:-}"
+  [[ -n "$admin_smoke_email" ]] || common::die "MEDUSA_ADMIN_E2E_EMAIL is required for medusa-be admin smoke. Set it in your shell or ignored .env.zane."
+  [[ -n "$admin_smoke_password" ]] || common::die "MEDUSA_ADMIN_E2E_PASSWORD is required for medusa-be admin smoke. Set it in your shell or ignored .env.zane."
+  common::step "Running browser admin smoke test against ${admin_base_url}..."
+  common::step "Using admin smoke account ${admin_smoke_email}."
+
+  (
+    cd "$ROOT_DIR"
+    MEDUSA_ADMIN_E2E_BASE_URL="$admin_base_url" \
+      MEDUSA_ADMIN_E2E_EMAIL="$admin_smoke_email" \
+      MEDUSA_ADMIN_E2E_PASSWORD="$admin_smoke_password" \
+      pnpm --dir apps/medusa-be test:e2e:admin >&2
+  ) || common::die "Medusa admin browser smoke failed for ${admin_base_url}."
+
+  jq -cn --arg url "$admin_base_url" '{skipped:false, url:$url}'
+}
+
 main() {
   local scope_json
   local prepare_needs_json
@@ -358,6 +451,8 @@ main() {
   local prepare_json='{"skipped":true,"reason":"main_prepare_not_used"}'
   local deploy_json
   local verify_json='{}'
+  local admin_build_smoke_json='{}'
+  local admin_smoke_json='{}'
 
   parse_args "$@"
   load_env_file
@@ -407,6 +502,9 @@ main() {
     common::die "Main deploy includes downtime-risk services: $(jq -r '.downtime_service_ids | join(",")' <<<"$downtime_json"). Re-run with --approve-downtime-risk once you are ready to accept downtime."
   fi
   common::step "Main lane has no active shared-resource pre-deploy phase."
+  admin_build_smoke_json="$(run_admin_build_smoke_stage)"
+  jq -e . >/dev/null <<<"$admin_build_smoke_json" || common::die "Admin build smoke stage did not return valid JSON."
+
   if ! deploy_json="$(run_deploy_stage)"; then
     common::die "Main deploy stage failed. See the deployment error above for the failing stage and deployment hash."
   fi
@@ -421,6 +519,9 @@ main() {
     common::step "Skipping main verify stage by request."
   fi
 
+  admin_smoke_json="$(run_admin_smoke_stage "$deploy_json")"
+  jq -e . >/dev/null <<<"$admin_smoke_json" || common::die "Admin smoke stage did not return valid JSON."
+
   common::success "Main lane completed successfully."
   jq -cn \
     --arg project_slug "$PROJECT_SLUG" \
@@ -430,8 +531,10 @@ main() {
     --argjson prepare_needs "$prepare_needs_json" \
     --argjson downtime_risk "$downtime_json" \
     --argjson prepare "$prepare_json" \
+    --argjson admin_build_smoke "$admin_build_smoke_json" \
     --argjson deploy "$(jq 'del(.runtime_provider_outputs_json)' <<<"$deploy_json")" \
     --argjson verify "$verify_json" \
+    --argjson admin_smoke "$admin_smoke_json" \
     --argjson skipped_verify "$(jq -n --arg value "$SKIP_VERIFY" '$value == "true"')" \
     '{
       project_slug: $project_slug,
@@ -441,8 +544,10 @@ main() {
       prepare_needs: $prepare_needs,
       downtime_risk: $downtime_risk,
       prepare: $prepare,
+      admin_build_smoke: $admin_build_smoke,
       deploy: $deploy,
       verify: $verify,
+      admin_smoke: $admin_smoke,
       skipped_verify: $skipped_verify
     }'
 }

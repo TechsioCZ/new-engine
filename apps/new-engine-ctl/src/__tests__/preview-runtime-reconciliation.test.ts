@@ -23,6 +23,16 @@ const manifest = stackManifestSchema.parse({
         },
       },
     },
+    {
+      id: "payload",
+      ci: {
+        deployable: false,
+        affected_path_globs: [
+          "apps/payload/**",
+          "docker/development/payload/**",
+        ],
+      },
+    },
   ],
 })
 
@@ -50,6 +60,18 @@ test("main service reconciliation does not override source branch", () => {
   })
 
   expect(specs[0]?.git_source?.branch_name).toBeUndefined()
+})
+
+test("service reconciliation rejects local-only payload service", () => {
+  expect(() =>
+    buildServiceReconciliationSpecs({
+      stackInputs,
+      manifest,
+      lane: "preview",
+      serviceIds: ["payload"],
+      previewGitBranch: "ci/pipeline-smoke-20260428",
+    })
+  ).toThrow("Service is not deployable or missing Zane metadata: payload")
 })
 
 test("preview shared env sync rejects empty literal values before operator calls", () => {

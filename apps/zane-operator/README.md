@@ -276,6 +276,7 @@ The helper behind that task:
   - `docker/development/medusa-minio/Dockerfile`
   - `docker/development/medusa-meilisearch/Dockerfile`
   - `docker/development/medusa-be/Dockerfile`
+  - `docker/development/payload/Dockerfile`
   - `docker/development/n1/Dockerfile`
   - `docker/development/zane-operator/Dockerfile`
 - auto-resolves internal service network aliases after service creation
@@ -285,7 +286,7 @@ The helper behind that task:
 - upserts the per-service env blocks using `{{env.VAR}}` references
 - upserts the expected per-service healthchecks in Zane so reruns also converge probe configuration
 - upserts conservative per-service CPU/memory caps for a local 4-core / 12 GB class machine
-- reconciles the repo-owned managed public service URL set for `medusa-be`, `n1`, `medusa-meilisearch`, and `zane-operator`
+- reconciles the repo-owned managed public service URL set for `medusa-be`, `payload`, `n1`, `medusa-meilisearch`, and `zane-operator`
 - derives those managed public URLs from the project slug plus the Zane root-domain route contract rather than copying ambient `.env.zane` frontend URL values
 - uses the DB service `global_network_alias` for `MEDUSA_DB_HOST`
 - defaults `MINIO_FILE_URL` to the deployed MinIO alias rather than a compose-only hostname; override it once you have a public MinIO route
@@ -330,7 +331,7 @@ ZANE_USERNAME=admin
 ZANE_PASSWORD='replace-me'
 zane::login
 zane::bootstrap_zane_project_inspect_json \
-  medusa-db medusa-valkey medusa-minio medusa-meilisearch medusa-be n1 zane-operator \
+  medusa-db medusa-valkey medusa-minio medusa-meilisearch medusa-be payload n1 zane-operator \
   >"$INSPECT_JSON_FILE"
 node apps/new-engine-ctl/dist/cli.js bootstrap zane-project plan \
   --project-slug "$PROJECT_SLUG" \
@@ -361,9 +362,10 @@ After the helper finishes:
    - `medusa-minio`
    - `medusa-meilisearch`
    - `medusa-be`
+   - `payload`
    - `n1`
    - `zane-operator`
-3. Confirm the service type for all seven is Git-backed, not direct Docker image pull.
+3. Confirm the service type for all eight is Git-backed, not direct Docker image pull.
 4. Confirm the project `production` environment now contains the shared env variables.
 5. Confirm each service has the expected healthcheck configured in Zane.
 6. Confirm each service has pending changes in Zane; that is expected until you deploy.
