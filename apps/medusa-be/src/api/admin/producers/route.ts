@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { kebabCase } from "@medusajs/framework/utils"
+import { kebabCase, MedusaError } from "@medusajs/framework/utils"
 import {
   createProducersWorkflow,
   type ProducerInput,
@@ -88,8 +88,15 @@ export async function POST(
   })
   const created = result[0]
 
+  if (!created?.id) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Producer creation failed: missing id"
+    )
+  }
+
   const producer = await getProducerService(req.scope).retrieveProducer(
-    created?.id ?? "",
+    created.id,
     {
       relations: ["attributes", "attributes.attributeType"],
     }

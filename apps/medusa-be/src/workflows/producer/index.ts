@@ -3,16 +3,23 @@ import type {
   MedusaContainer,
   Query,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
   StepResponse,
+  transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import {
+  acquireLockStep,
   createLinksWorkflow,
   dismissLinksWorkflow,
+  releaseLockStep,
 } from "@medusajs/medusa/core-flows"
 import { ProductProducerLink } from "../../links/product-producer"
 import { PRODUCER_MODULE } from "../../modules/producer"
@@ -83,11 +90,31 @@ type ProducerAttributeRecord = {
   }
 }
 
+type ProducerAttributeTypeRecord = {
+  deleted_at?: string | Date | null
+  id: string
+  name: string
+}
+
 type ProducerSnapshot = {
   id: string
   title: string
   handle: string
   attributes: ProducerAttributeInput[]
+}
+
+type ProducerSnapshotRecord = {
+  id: string
+  title: string
+  handle: string
+  attributes: Array<
+    ProducerAttributeRecord & {
+      attributeType: {
+        id?: string
+        name: string
+      }
+    }
+  >
 }
 
 type ProductProducerLinkRecord = {
@@ -116,37 +143,72 @@ const normalizeAttributes = (attributes: ProducerAttributeInput[] = []) => {
   return [...byName.values()]
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const isProducerSnapshotRecord = (
+  producer: unknown
+): producer is ProducerSnapshotRecord => {
+  if (!isRecord(producer)) {
+    return false
+  }
+
+  if (
+    typeof producer.id !== "string" ||
+    typeof producer.title !== "string" ||
+    typeof producer.handle !== "string" ||
+    !Array.isArray(producer.attributes)
+  ) {
+    return false
+  }
+
+  return producer.attributes.every((attribute) => {
+    if (!isRecord(attribute) || typeof attribute.value !== "string") {
+      return false
+    }
+
+    return (
+      isRecord(attribute.attributeType) &&
+      typeof attribute.attributeType.name === "string"
+    )
+  })
+}
+
+const assertProducerSnapshotRecord: (
+  producer: unknown,
+  producerId: string
+) => asserts producer is ProducerSnapshotRecord = (
+  producer: unknown,
+  producerId: string
+) => {
+  if (isProducerSnapshotRecord(producer)) {
+    return
+  }
+
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    `Producer "${producerId}" was retrieved without the fields required for a workflow snapshot`
+  )
+}
+
 const snapshotProducer = async (
   service: ProducerModuleService,
   producerId: string
 ): Promise<ProducerSnapshot> => {
-  const producer = (await service.retrieveProducer(producerId, {
+  const producer = await service.retrieveProducer(producerId, {
     relations: ["attributes", "attributes.attributeType"],
-  })) as {
-    id: string
-    title: string
-    handle: string
-    attributes?: ProducerAttributeRecord[]
-  }
+  })
+
+  assertProducerSnapshotRecord(producer, producerId)
 
   return {
     id: producer.id,
     title: producer.title,
     handle: producer.handle,
-    attributes: (producer.attributes ?? []).flatMap((attribute) => {
-      const name = attribute.attributeType?.name
-
-      if (!name) {
-        return []
-      }
-
-      return [
-        {
-          name,
-          value: attribute.value,
-        },
-      ]
-    }),
+    attributes: producer.attributes.map((attribute) => ({
+      name: attribute.attributeType.name,
+      value: attribute.value,
+    })),
   }
 }
 
@@ -159,10 +221,23 @@ const setProducerAttributes = async (
   const names = attributes.map((attribute) => attribute.name)
 
   const existingAttributeTypes = names.length
-    ? ((await service.listProducerAttributeTypes({
-        name: { $in: names },
-      })) as Array<{ id: string; name: string }>)
+    ? ((await service.listProducerAttributeTypes(
+        {
+          name: { $in: names },
+        },
+        {
+          withDeleted: true,
+        }
+      )) as ProducerAttributeTypeRecord[])
     : []
+  const deletedAttributeTypeIds = existingAttributeTypes
+    .filter((attributeType) => attributeType.deleted_at)
+    .map((attributeType) => attributeType.id)
+
+  if (deletedAttributeTypeIds.length) {
+    // Reuse restored types so producer updates do not create duplicate names.
+    await service.restoreProducerAttributeTypes(deletedAttributeTypeIds)
+  }
 
   const attributeTypeIdsByName = new Map(
     existingAttributeTypes.map((attributeType) => [
@@ -604,15 +679,63 @@ export const restoreProducersWorkflow = createWorkflow(
 )
 
 export const setProductProducersWorkflow = createWorkflow(
-  "set-product-producers-workflow",
-  (input: SetProductProducersWorkflowInput) =>
-    new WorkflowResponse(setProductProducersStep(input))
+  {
+    name: "set-product-producers-workflow",
+    idempotent: false,
+  },
+  (input: SetProductProducersWorkflowInput) => {
+    const lockKey = transform(
+      { input },
+      ({ input: workflowInput }) =>
+        `producer-product:${workflowInput.product_id}`
+    )
+
+    acquireLockStep({
+      executeOnSubWorkflow: true,
+      key: lockKey,
+      timeout: 2,
+      ttl: 10,
+    })
+
+    const result = setProductProducersStep(input)
+
+    releaseLockStep({
+      executeOnSubWorkflow: true,
+      key: lockKey,
+    })
+
+    return new WorkflowResponse(result)
+  }
 )
 
 export const setProducerProductsWorkflow = createWorkflow(
-  "set-producer-products-workflow",
-  (input: SetProducerProductsWorkflowInput) =>
-    new WorkflowResponse(setProducerProductsStep(input))
+  {
+    name: "set-producer-products-workflow",
+    idempotent: false,
+  },
+  (input: SetProducerProductsWorkflowInput) => {
+    const lockKey = transform(
+      { input },
+      ({ input: workflowInput }) =>
+        `producer-products:${workflowInput.producer_id}`
+    )
+
+    acquireLockStep({
+      executeOnSubWorkflow: true,
+      key: lockKey,
+      timeout: 2,
+      ttl: 10,
+    })
+
+    const result = setProducerProductsStep(input)
+
+    releaseLockStep({
+      executeOnSubWorkflow: true,
+      key: lockKey,
+    })
+
+    return new WorkflowResponse(result)
+  }
 )
 
 export const createProducerAttributeTypesWorkflow = createWorkflow(

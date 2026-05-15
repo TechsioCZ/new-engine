@@ -2,6 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { setProductProducersWorkflow } from "../../../../../workflows/producer"
 import {
   ensureProducerIdsExist,
+  getProducerActiveProductCounts,
   listProducerIdsForProduct,
   listProducersByIds,
   retrieveProductOrThrow,
@@ -16,10 +17,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   const producerIds = await listProducerIdsForProduct(req.scope, productId)
   const producers = await listProducersByIds(req.scope, producerIds)
+  const activeProductCounts = await getProducerActiveProductCounts(
+    req.scope,
+    producerIds
+  )
 
   res.status(200).json({
     producer_ids: producerIds,
-    producers: producers.map(toProducerResponse),
+    producers: producers.map((producer) =>
+      toProducerResponse(producer, activeProductCounts.get(producer.id) ?? 0)
+    ),
   })
 }
 
@@ -43,9 +50,15 @@ export async function POST(
 
   const nextProducerIds = await listProducerIdsForProduct(req.scope, productId)
   const producers = await listProducersByIds(req.scope, nextProducerIds)
+  const activeProductCounts = await getProducerActiveProductCounts(
+    req.scope,
+    nextProducerIds
+  )
 
   res.status(200).json({
     producer_ids: nextProducerIds,
-    producers: producers.map(toProducerResponse),
+    producers: producers.map((producer) =>
+      toProducerResponse(producer, activeProductCounts.get(producer.id) ?? 0)
+    ),
   })
 }

@@ -3,6 +3,7 @@ import { setProducerProductsWorkflow } from "../../../../../workflows/producer"
 import {
   ensureProductIdsExist,
   ensureProductsAssignableToProducer,
+  listAndCountProductsByIds,
   listProductIdsForProducer,
   listProductsByIds,
   retrieveProducerOrThrow,
@@ -17,9 +18,11 @@ import type {
 const ORDER_FIELDS = new Set(["handle", "status", "title", "created_at"])
 const LEADING_DASH_REGEX = /^-/
 
-const parseOrder = (input?: string) => {
+const parseOrder = (
+  input?: string
+): { direction: "ASC" | "DESC"; field: string } => {
   const value = input ?? "title"
-  const direction = value.startsWith("-") ? "DESC" : "ASC"
+  const direction: "ASC" | "DESC" = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
   if (!ORDER_FIELDS.has(field)) {
@@ -29,10 +32,9 @@ const parseOrder = (input?: string) => {
   return { direction, field }
 }
 
-const getProductOrderValue = (
-  product: ReturnType<typeof toProductResponse>,
-  field: string
-) => product[field as keyof ReturnType<typeof toProductResponse>] ?? ""
+const getProductOrder = (field: string, direction: "ASC" | "DESC") => ({
+  [field]: direction,
+})
 
 export async function GET(
   req: MedusaRequest<unknown, AdminGetProducersSchemaType>,
@@ -47,34 +49,23 @@ export async function GET(
     req.validatedQuery.order_by ?? req.validatedQuery.order
   )
   const productIds = await listProductIdsForProducer(req.scope, producerId)
-  const products = (
-    await listProductsByIds(req.scope, uniqueIds(productIds))
-  ).map(toProductResponse)
-  const search = q?.toLocaleLowerCase()
-  const filteredProducts = products.filter((product) => {
-    if (!search) {
-      return true
+  const [products, count] = await listAndCountProductsByIds(
+    req.scope,
+    uniqueIds(productIds),
+    {
+      order: getProductOrder(order.field, order.direction),
+      q,
+      skip: offset,
+      take: limit,
     }
-
-    return [product.id, product.title, product.handle, product.status].some(
-      (value) => value?.toLocaleLowerCase().includes(search)
-    )
-  })
-
-  filteredProducts.sort((left, right) => {
-    const leftValue = String(getProductOrderValue(left, order.field))
-    const rightValue = String(getProductOrderValue(right, order.field))
-    const result = leftValue.localeCompare(rightValue)
-
-    return order.direction === "DESC" ? -result : result
-  })
+  )
 
   res.status(200).json({
-    count: filteredProducts.length,
+    count,
     limit,
     offset,
     product_ids: productIds,
-    products: filteredProducts.slice(offset, offset + limit),
+    products: products.map(toProductResponse),
   })
 }
 

@@ -20,6 +20,7 @@ import {
   ORDER_BUSINESS_STATUSES,
   type OrderBusinessStatusSummary,
 } from "../../../utils/order-business-status"
+import { formatLocaleCode } from "../../lib/format-locale-code"
 import { sdk } from "../../lib/sdk"
 
 type OrderBusinessStatusesResponse = {
@@ -47,9 +48,6 @@ const MANUAL_STATUS_OPTIONS: Array<{
     value: "clear",
   },
 ]
-
-const formatLocaleCode = (code: string | undefined) =>
-  code?.replace(/([a-z])([A-Z])/g, "$1-$2")
 
 const formatDate = (date: string | null | undefined, locale?: string) => {
   if (!date) {

@@ -43,7 +43,61 @@ const getProducerOrderValue = (
     return attribute.value
   }
 
-  return attribute.producer?.[field as keyof typeof attribute.producer] ?? ""
+  if (!attribute.producer) {
+    return ""
+  }
+
+  switch (field) {
+    case "handle":
+      return attribute.producer.handle
+    case "title":
+      return attribute.producer.title
+    case "created_at":
+      return attribute.producer.created_at
+    case "updated_at":
+      return attribute.producer.updated_at
+    default:
+      return ""
+  }
+}
+
+const toComparableTimestamp = (value: unknown) => {
+  if (value instanceof Date) {
+    return value.getTime()
+  }
+
+  if (typeof value !== "string") {
+    return Number.NaN
+  }
+
+  return Date.parse(value)
+}
+
+const compareOrderValues = (left: unknown, right: unknown) => {
+  if (left == null && right == null) {
+    return 0
+  }
+
+  if (left == null) {
+    return -1
+  }
+
+  if (right == null) {
+    return 1
+  }
+
+  if (typeof left === "number" && typeof right === "number") {
+    return left - right
+  }
+
+  const leftTimestamp = toComparableTimestamp(left)
+  const rightTimestamp = toComparableTimestamp(right)
+
+  if (Number.isFinite(leftTimestamp) && Number.isFinite(rightTimestamp)) {
+    return leftTimestamp - rightTimestamp
+  }
+
+  return String(left).localeCompare(String(right))
 }
 
 const retrieveAttributeType = async (req: MedusaRequest) => {
@@ -134,9 +188,10 @@ export async function GET(
   })
 
   filteredAttributes.sort((left, right) => {
-    const leftValue = String(getProducerOrderValue(left, order.field))
-    const rightValue = String(getProducerOrderValue(right, order.field))
-    const result = leftValue.localeCompare(rightValue)
+    const result = compareOrderValues(
+      getProducerOrderValue(left, order.field),
+      getProducerOrderValue(right, order.field)
+    )
 
     return order.direction === "DESC" ? -result : result
   })

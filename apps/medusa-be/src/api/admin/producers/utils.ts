@@ -1,7 +1,12 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type {
+  IProductModuleService,
+  MedusaContainer,
+  ProductTypes,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
+  Modules,
 } from "@medusajs/framework/utils"
 import { ProductProducerLink } from "../../../links/product-producer"
 import { PRODUCER_MODULE } from "../../../modules/producer"
@@ -76,15 +81,13 @@ type ProducerRecord = {
   updated_at?: string | Date
 }
 
-type ProductRecord = {
-  id: string
-  title?: string
-  handle?: string
-  thumbnail?: string | null
-  status?: string
-  created_at?: string | Date
-  updated_at?: string | Date
-}
+type ProductRecord = Pick<ProductTypes.ProductDTO, "id"> &
+  Partial<
+    Pick<
+      ProductTypes.ProductDTO,
+      "created_at" | "handle" | "status" | "thumbnail" | "title" | "updated_at"
+    >
+  >
 
 type LinkRecord = {
   product_id?: string
@@ -123,8 +126,22 @@ type ProducerService = ProducerModuleService & {
   ) => Promise<ProducerRecord>
 }
 
+type ListProductsOptions = {
+  order?: Record<string, "ASC" | "DESC">
+  q?: string
+  skip?: number
+  take?: number
+}
+
+type RetrieveProducerOptions = {
+  withDeleted?: boolean
+}
+
 export const getProducerService = (scope: MedusaContainer) =>
   scope.resolve<ProducerService>(PRODUCER_MODULE)
+
+const getProductService = (scope: MedusaContainer) =>
+  scope.resolve<IProductModuleService>(Modules.PRODUCT)
 
 export const toProducerResponse = (
   producer: ProducerRecord,
@@ -301,13 +318,17 @@ export const uniqueIds = (ids: string[]) => [...new Set(ids)]
 
 export const retrieveProducerOrThrow = async (
   scope: MedusaContainer,
-  producerId: string
+  producerId: string,
+  options: RetrieveProducerOptions = {}
 ) => {
-  const producer = await getProducerService(scope).retrieveProducer(
-    producerId,
+  const [producer] = await getProducerService(scope).listProducers(
+    {
+      id: producerId,
+    },
     {
       relations: ["attributes", "attributes.attributeType"],
-      withDeleted: true,
+      take: 1,
+      withDeleted: options.withDeleted ?? false,
     }
   )
 
@@ -400,6 +421,21 @@ export const listProductProducerLinksByProductIds = async (
     filters: {
       product_id: { $in: ids },
     },
+  })
+
+  return (data as LinkRecord[]).filter(
+    (link): link is ProductProducerLinkRecord =>
+      !!(link.product_id && link.producer_id)
+  )
+}
+
+export const listProductProducerLinks = async (
+  scope: MedusaContainer
+): Promise<ProductProducerLinkRecord[]> => {
+  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: ProductProducerLink.entryPoint,
+    fields: ["product_id", "producer_id"],
   })
 
   return (data as LinkRecord[]).filter(
@@ -545,12 +581,43 @@ export const listProductsByIds = async (
   return data as ProductRecord[]
 }
 
-export const listAllProducts = async (scope: MedusaContainer) => {
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { data } = await query.graph({
-    entity: "product",
-    fields: ["id", "title", "handle", "thumbnail", "status", "created_at"],
-  })
+export const listAndCountProducts = async (
+  scope: MedusaContainer,
+  filters: Record<string, unknown> = {},
+  options: ListProductsOptions = {}
+): Promise<[ProductRecord[], number]> => {
+  const { order, q, skip, take } = options
 
-  return data as ProductRecord[]
+  return getProductService(scope).listAndCountProducts(
+    {
+      ...filters,
+      ...(q ? { q } : {}),
+    },
+    {
+      order,
+      select: ["id", "title", "handle", "thumbnail", "status", "created_at"],
+      skip,
+      take,
+    }
+  )
+}
+
+export const listAndCountProductsByIds = async (
+  scope: MedusaContainer,
+  productIds: string[],
+  options: ListProductsOptions = {}
+) => {
+  const ids = uniqueIds(productIds)
+
+  if (!ids.length) {
+    return [[], 0] as [ProductRecord[], number]
+  }
+
+  return listAndCountProducts(
+    scope,
+    {
+      id: { $in: ids },
+    },
+    options
+  )
 }

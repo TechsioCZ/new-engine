@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router-dom"
+import { formatLocaleCode } from "../../../../lib/format-locale-code"
 import {
   type ProducerAttributeTypeProducer,
   producerQueryKeys,
@@ -32,9 +33,6 @@ const ORDER_OPTIONS = [
   { labelKey: "orderOptions.valueAsc", value: "attribute_value" },
   { labelKey: "orderOptions.recentlyUpdated", value: "-updated_at" },
 ]
-
-const formatLocaleCode = (language: string | undefined) =>
-  language?.replace("_", "-")
 
 const formatDate = (date: string | undefined, locale?: string) => {
   if (!date) {

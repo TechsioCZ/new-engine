@@ -24,6 +24,7 @@ import {
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+import { formatLocaleCode } from "../../lib/format-locale-code"
 import {
   createProducer,
   createProducerAttributeType,
@@ -51,9 +52,6 @@ const ORDER_OPTIONS = [
   { labelKey: "orderOptions.newest", value: "-created_at" },
   { labelKey: "orderOptions.recentlyUpdated", value: "-updated_at" },
 ]
-
-const formatLocaleCode = (code: string | undefined) =>
-  code?.replace(/([a-z])([A-Z])/g, "$1-$2")
 
 const paginationTranslations = (t: (key: string) => string) => ({
   next: t("pagination.next"),

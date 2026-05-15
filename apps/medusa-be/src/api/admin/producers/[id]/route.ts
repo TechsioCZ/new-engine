@@ -13,7 +13,9 @@ import type { AdminUpdateProducerSchemaType } from "../validators"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const producerId = req.params.id ?? ""
-  const producer = await retrieveProducerOrThrow(req.scope, producerId)
+  const producer = await retrieveProducerOrThrow(req.scope, producerId, {
+    withDeleted: true,
+  })
   const activeProductCounts = await getProducerActiveProductCounts(req.scope, [
     producer.id,
   ])
@@ -80,7 +82,7 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
 export async function PUT(req: MedusaRequest, res: MedusaResponse) {
   const id = req.params.id ?? ""
 
-  await retrieveProducerOrThrow(req.scope, id)
+  await retrieveProducerOrThrow(req.scope, id, { withDeleted: true })
   await restoreProducersWorkflow(req.scope).run({
     input: {
       ids: [id],

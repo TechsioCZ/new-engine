@@ -106,7 +106,10 @@ const ProductSelectionRows = ({
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell colSpan={4}>{t("status.loading")}</Table.Cell>
+        <Table.Cell>{t("status.loading")}</Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
       </Table.Row>
     )
   }
@@ -114,9 +117,12 @@ const ProductSelectionRows = ({
   if (!options.length) {
     return (
       <Table.Row>
-        <Table.Cell colSpan={4}>
+        <Table.Cell>
           {hasSearch ? t("products.emptySearch") : t("products.emptyOptions")}
         </Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
       </Table.Row>
     )
   }
