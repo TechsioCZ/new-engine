@@ -23,14 +23,14 @@ const resolveSupportedCurrency = (currencyCode: string): "EUR" | "CZK" => {
 type CheckoutCartStepSectionProps = {
   cartId?: string;
   cartItems: HttpTypes.StoreCartLineItem[];
-  cartSubtotalAmount: number;
+  cartItemsTotalAmount: number;
   currencyCode: string;
 };
 
 export function CheckoutCartStepSection({
   cartId,
   cartItems,
-  cartSubtotalAmount,
+  cartItemsTotalAmount,
   currencyCode,
 }: CheckoutCartStepSectionProps) {
   const [lineItemError, setLineItemError] = useState<string | null>(null);
@@ -47,11 +47,11 @@ export function CheckoutCartStepSection({
   const missingAmount =
     freeShippingThresholdAmount === null
       ? 0
-      : Math.max(freeShippingThresholdAmount - cartSubtotalAmount, 0);
+      : Math.max(freeShippingThresholdAmount - cartItemsTotalAmount, 0);
   const progressValue =
     freeShippingThresholdAmount === null
       ? 0
-      : Math.min((cartSubtotalAmount / freeShippingThresholdAmount) * 100, 100);
+      : Math.min((cartItemsTotalAmount / freeShippingThresholdAmount) * 100, 100);
   const missingAmountLabel =
     freeShippingThresholdAmount === null
       ? null

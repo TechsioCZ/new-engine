@@ -2,11 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useState } from "react";
-import {
-  cartReadQueryOptions,
-  useAddLineItem,
-  useCart,
-} from "./cart";
+import { useAddLineItem } from "./cart";
 import { resolveErrorMessage } from "./error-utils";
 import { resolveProductTopOffer } from "./product-pricing";
 
@@ -81,17 +77,6 @@ export function useAddProductToCart({
   };
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
 
-  const cartQuery = useCart(
-    {
-      autoCreate: true,
-      region_id: regionId,
-      country_code: countryCode,
-      enabled: Boolean(regionId),
-    },
-    {
-      queryOptions: cartReadQueryOptions,
-    },
-  );
   const addLineItemMutation = useAddLineItem();
 
   const addProductToCart = async ({
@@ -120,7 +105,6 @@ export function useAddProductToCart({
 
     try {
       await addLineItemMutation.mutateAsync({
-        cartId: cartQuery.cart?.id,
         variantId: resolvedVariantId,
         quantity,
         metadata: resolveLineItemMetadata(product),
@@ -138,7 +122,6 @@ export function useAddProductToCart({
   return {
     addProductToCart,
     activeProductId,
-    cartQuery,
     isAddPending: addLineItemMutation.isPending,
     isProductAdding: (productId: string) =>
       addLineItemMutation.isPending && activeProductId === productId,

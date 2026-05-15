@@ -12,30 +12,26 @@ import { CheckoutSelectBenefits } from "../checkout-select-benefits";
 
 type CheckoutOrderSummarySectionProps = {
   cartItems: HttpTypes.StoreCartLineItem[];
-  cartSubtotalAmount: number;
+  cartItemsTotalAmount: number;
   cartTotalAmount: number;
   cartTotalWithoutTaxAmount: number;
   currencyCode: string;
   detailsFont: "inter" | "rubik";
-  hasPayment: boolean;
-  hasShipping: boolean;
   paymentLabel?: string;
-  selectedOptionName?: string;
-  selectedShippingPrice: number;
+  shippingLabel?: string;
+  shippingAmount: number;
 };
 
 export function CheckoutOrderSummarySection({
   cartItems,
-  cartSubtotalAmount,
+  cartItemsTotalAmount,
   cartTotalAmount,
   cartTotalWithoutTaxAmount,
   currencyCode,
   detailsFont,
-  hasPayment,
-  hasShipping,
   paymentLabel,
-  selectedOptionName,
-  selectedShippingPrice,
+  shippingLabel,
+  shippingAmount,
 }: CheckoutOrderSummarySectionProps) {
   const detailsFontClass =
     detailsFont === "inter" ? "font-inter" : "font-rubik";
@@ -108,13 +104,13 @@ export function CheckoutOrderSummarySection({
         <div className="flex items-center justify-between border-b border-border-primary">
           <span className="text-fg-secondary py-200">Cena produktov</span>
           <p className="text-md font-medium text-fg-primary">
-            {formatCurrencyAmount(cartSubtotalAmount, currencyCode)}
+            {formatCurrencyAmount(cartItemsTotalAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between border-b border-border-primary py-200">
-          <span className="text-fg-secondary">{selectedOptionName || "Doprava"}</span>
+          <span className="text-fg-secondary">{shippingLabel || "Doprava"}</span>
           <p className="text-md font-medium text-fg-primary">
-            {formatCurrencyAmount(selectedShippingPrice, currencyCode)}
+            {formatCurrencyAmount(shippingAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between py-200">
