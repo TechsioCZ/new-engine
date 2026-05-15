@@ -89,7 +89,11 @@ const failJobAfterLockError = async ({
 
   try {
     const currentJob = await importJobService.retrieveJob(jobId)
-    if (currentJob.status === "completed" || currentJob.status === "failed") {
+    if (
+      currentJob.status === "completed" ||
+      currentJob.status === "failed" ||
+      currentJob.status === "running"
+    ) {
       return
     }
 
@@ -125,8 +129,14 @@ export default async function productsUpsertRequestedHandler({
       `symmy-products-upsert:${data.job_id}`,
       async () => {
         const job = await importJobService.retrieveJob(data.job_id)
-        if (job.status === "completed" || job.status === "running") {
+        if (job.status === "completed" || job.status === "failed") {
           return
+        }
+
+        if (job.status === "running") {
+          logger.warn(
+            `[symmy-plugin] Product upsert job ${job.id} was already running when the lock was acquired; retrying the job.`
+          )
         }
 
         await importJobService.markRunning(job.id)
