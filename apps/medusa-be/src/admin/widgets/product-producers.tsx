@@ -13,6 +13,7 @@ import {
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
   listProducers,
@@ -27,6 +28,14 @@ type ProductProducersWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
 const PAGE_SIZE = 20
 
+const paginationTranslations = (t: (key: string) => string) => ({
+  next: t("pagination.next"),
+  of: t("pagination.of"),
+  pages: t("pagination.pages"),
+  prev: t("pagination.previous"),
+  results: t("pagination.results"),
+})
+
 const ProducerSelectionRows = ({
   currentProducerId,
   isLoading,
@@ -40,10 +49,12 @@ const ProducerSelectionRows = ({
   onSelect: (producerId: string) => void
   producers: Producer[]
 }) => {
+  const { t } = useTranslation("producers")
+
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell>Loading...</Table.Cell>
+        <Table.Cell>{t("status.loading")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -54,7 +65,7 @@ const ProducerSelectionRows = ({
   if (!producers.length) {
     return (
       <Table.Row>
-        <Table.Cell>No producers found.</Table.Cell>
+        <Table.Cell>{t("producers.empty")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -78,7 +89,11 @@ const ProducerSelectionRows = ({
         <Table.Cell>{producer.title}</Table.Cell>
         <Table.Cell>{producer.handle}</Table.Cell>
         <Table.Cell>
-          {isSelected ? <Badge size="2xsmall">Selected</Badge> : "-"}
+          {isSelected ? (
+            <Badge size="2xsmall">{t("status.selected")}</Badge>
+          ) : (
+            "-"
+          )}
         </Table.Cell>
         <Table.Cell>
           <div className="flex justify-end">
@@ -95,7 +110,7 @@ const ProducerSelectionRows = ({
               type="button"
               variant="secondary"
             >
-              {isSelected ? "Clear" : "Select"}
+              {isSelected ? t("actions.clear") : t("actions.select")}
             </Button>
           </div>
         </Table.Cell>
@@ -113,22 +128,24 @@ const ProducerLinkContent = ({
   isLoading: boolean
   producer?: Producer
 }) => {
+  const { t } = useTranslation("producers")
+
   if (error) {
     return (
       <Text className="text-ui-fg-error" size="small">
-        Failed to load producer.
+        {t("widget.loadFailed")}
       </Text>
     )
   }
 
   if (isLoading) {
-    return <Text size="small">Loading...</Text>
+    return <Text size="small">{t("status.loading")}</Text>
   }
 
   if (!producer) {
     return (
       <Text className="text-ui-fg-subtle" size="small">
-        No producer linked.
+        {t("widget.empty")}
       </Text>
     )
   }
@@ -154,6 +171,7 @@ const ProducerAssignmentDrawer = ({
   open: boolean
   productId: string
 }) => {
+  const { t } = useTranslation("producers")
   const queryClient = useQueryClient()
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
@@ -189,7 +207,7 @@ const ProducerAssignmentDrawer = ({
       setProductProducers(productId, selectedId ? [selectedId] : []),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to save producer"
+        error instanceof Error ? error.message : t("errors.saveProducerFailed")
       )
     },
     onSuccess: async () => {
@@ -206,7 +224,7 @@ const ProducerAssignmentDrawer = ({
       await queryClient.invalidateQueries({
         queryKey: ["producer-product-options"],
       })
-      toast.success("Product producer updated")
+      toast.success(t("toasts.productProducerUpdated"))
       onOpenChange(false)
     },
   })
@@ -222,16 +240,16 @@ const ProducerAssignmentDrawer = ({
     <Drawer onOpenChange={onOpenChange} open={open}>
       <Drawer.Content>
         <Drawer.Header>
-          <Drawer.Title>Manage Producer</Drawer.Title>
+          <Drawer.Title>{t("widget.manageTitle")}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-4 overflow-y-auto">
           <Container className="flex items-center justify-between gap-3 px-4 py-3">
             <div>
               <Text size="small" weight="plus">
-                Selected producer
+                {t("widget.selectedProducer")}
               </Text>
               <Text className="text-ui-fg-subtle" size="small">
-                {selectedProducer?.title ?? "None"}
+                {selectedProducer?.title ?? t("widget.none")}
               </Text>
             </div>
             <Button
@@ -241,7 +259,7 @@ const ProducerAssignmentDrawer = ({
               type="button"
               variant="secondary"
             >
-              Clear
+              {t("actions.clear")}
             </Button>
           </Container>
           <Input
@@ -249,17 +267,17 @@ const ProducerAssignmentDrawer = ({
               setPageIndex(0)
               setQ(event.target.value)
             }}
-            placeholder="Search producers"
+            placeholder={t("search.producers")}
             value={q}
           />
           <Table>
             <Table.Header>
               <Table.Row>
-                <Table.HeaderCell>Producer</Table.HeaderCell>
-                <Table.HeaderCell>Handle</Table.HeaderCell>
-                <Table.HeaderCell>Status</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.producer")}</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
                 <Table.HeaderCell className="w-[1%] text-right">
-                  Actions
+                  {t("columns.actions")}
                 </Table.HeaderCell>
               </Table.Row>
             </Table.Header>
@@ -284,6 +302,7 @@ const ProducerAssignmentDrawer = ({
             previousPage={() =>
               setPageIndex((current) => Math.max(current - 1, 0))
             }
+            translations={paginationTranslations(t)}
           />
         </Drawer.Body>
         <Drawer.Footer>
@@ -294,7 +313,7 @@ const ProducerAssignmentDrawer = ({
               type="button"
               variant="secondary"
             >
-              Cancel
+              {t("actions.cancel")}
             </Button>
             <Button
               isLoading={mutation.isPending}
@@ -302,7 +321,7 @@ const ProducerAssignmentDrawer = ({
               size="small"
               type="button"
             >
-              Save
+              {t("actions.save")}
             </Button>
           </div>
         </Drawer.Footer>
@@ -314,13 +333,14 @@ const ProducerAssignmentDrawer = ({
 const ProductProducersWidget = ({
   data: product,
 }: ProductProducersWidgetProps) => {
+  const { t } = useTranslation("producers")
   const [open, setOpen] = useState(false)
 
   const { data, error, isLoading } = useQuery({
     enabled: !!product?.id,
     queryFn: () => {
       if (!product?.id) {
-        throw new Error("Product id is required")
+        throw new Error(t("errors.productIdRequired"))
       }
       return retrieveProductProducers(product.id)
     },
@@ -338,9 +358,9 @@ const ProductProducersWidget = ({
       <Container className="divide-y p-0">
         <div className="flex items-center justify-between px-6 py-4">
           <div>
-            <Heading level="h2">Producer</Heading>
+            <Heading level="h2">{t("widget.title")}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
-              {producer ? "Linked" : "Not linked"}
+              {producer ? t("products.linked") : t("products.notLinked")}
             </Text>
           </div>
           <Button
@@ -349,7 +369,7 @@ const ProductProducersWidget = ({
             type="button"
             variant="secondary"
           >
-            Edit
+            {t("actions.edit")}
           </Button>
         </div>
         <div className="flex flex-col gap-2 px-6 py-4">

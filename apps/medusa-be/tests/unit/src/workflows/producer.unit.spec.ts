@@ -1,5 +1,36 @@
-import { describe, expect, it } from "vitest"
+import type { MedusaContainer } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+import { describe, expect, it, vi } from "vitest"
+import { PRODUCER_MODULE } from "../../../../src/modules/producer"
 import { diffIds } from "../../../../src/workflows/producer"
+
+const createScope = ({
+  links,
+  producers = [],
+}: {
+  links: Array<{ producer_id: string; product_id: string }>
+  producers?: Array<{ id: string; title: string }>
+}) =>
+  ({
+    resolve: vi.fn((key: string) => {
+      if (key === ContainerRegistrationKeys.QUERY) {
+        return {
+          graph: vi.fn().mockResolvedValue({ data: links }),
+        }
+      }
+
+      if (key === PRODUCER_MODULE) {
+        return {
+          listProducers: vi.fn().mockResolvedValue(producers),
+        }
+      }
+
+      throw new Error(`Unexpected container key: ${key}`)
+    }),
+  }) as unknown as MedusaContainer
 
 describe("producer workflows", () => {
   describe("diffIds", () => {
@@ -23,6 +54,57 @@ describe("producer workflows", () => {
       expect(diffIds(["prod_1", "prod_2"], ["prod_2", "prod_1"])).toEqual({
         add: [],
         remove: [],
+      })
+    })
+  })
+
+  describe("ensureProductsAssignableToProducer", () => {
+    it("allows products that are unassigned or already linked to the producer", async () => {
+      const { ensureProductsAssignableToProducer } = await import(
+        "../../../../src/api/admin/producers/utils"
+      )
+      const scope = createScope({
+        links: [
+          {
+            producer_id: "producer_1",
+            product_id: "prod_1",
+          },
+        ],
+      })
+
+      await expect(
+        ensureProductsAssignableToProducer(scope, "producer_1", [
+          "prod_1",
+          "prod_2",
+        ])
+      ).resolves.toBeUndefined()
+    })
+
+    it("rejects products linked to a different producer with a clear error", async () => {
+      const { ensureProductsAssignableToProducer } = await import(
+        "../../../../src/api/admin/producers/utils"
+      )
+      const scope = createScope({
+        links: [
+          {
+            producer_id: "producer_2",
+            product_id: "prod_1",
+          },
+        ],
+        producers: [
+          {
+            id: "producer_2",
+            title: "Other producer",
+          },
+        ],
+      })
+
+      await expect(
+        ensureProductsAssignableToProducer(scope, "producer_1", ["prod_1"])
+      ).rejects.toMatchObject({
+        message:
+          "Products are already linked to another producer: prod_1 (Other producer)",
+        type: MedusaError.Types.INVALID_DATA,
       })
     })
   })

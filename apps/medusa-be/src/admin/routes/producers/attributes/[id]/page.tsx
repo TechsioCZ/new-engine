@@ -13,6 +13,7 @@ import {
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import {
   type ProducerAttributeTypeProducer,
@@ -25,23 +26,34 @@ import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 const PAGE_SIZE = 20
 
 const ORDER_OPTIONS = [
-  { label: "Producer A-Z", value: "title" },
-  { label: "Producer Z-A", value: "-title" },
-  { label: "Handle A-Z", value: "handle" },
-  { label: "Value A-Z", value: "attribute_value" },
-  { label: "Recently updated", value: "-updated_at" },
+  { labelKey: "orderOptions.producerAsc", value: "title" },
+  { labelKey: "orderOptions.producerDesc", value: "-title" },
+  { labelKey: "orderOptions.handleAsc", value: "handle" },
+  { labelKey: "orderOptions.valueAsc", value: "attribute_value" },
+  { labelKey: "orderOptions.recentlyUpdated", value: "-updated_at" },
 ]
 
-const formatDate = (date: string | undefined) => {
+const formatLocaleCode = (language: string | undefined) =>
+  language?.replace("_", "-")
+
+const formatDate = (date: string | undefined, locale?: string) => {
   if (!date) {
     return "-"
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(date))
 }
+
+const paginationTranslations = (t: (key: string) => string) => ({
+  next: t("pagination.next"),
+  of: t("pagination.of"),
+  pages: t("pagination.pages"),
+  prev: t("pagination.previous"),
+  results: t("pagination.results"),
+})
 
 const ProducerRows = ({
   isLoading,
@@ -52,10 +64,13 @@ const ProducerRows = ({
   onOpen: (producerId: string) => void
   producers: ProducerAttributeTypeProducer[]
 }) => {
+  const { i18n, t } = useTranslation("producers")
+  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
+
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell>Loading...</Table.Cell>
+        <Table.Cell>{t("status.loading")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -68,7 +83,7 @@ const ProducerRows = ({
   if (!producers.length) {
     return (
       <Table.Row>
-        <Table.Cell>No producers found.</Table.Cell>
+        <Table.Cell>{t("producers.empty")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -90,15 +105,16 @@ const ProducerRows = ({
       <Table.Cell>{producer.active_product_count}</Table.Cell>
       <Table.Cell>
         <StatusBadge color={producer.deleted_at ? "red" : "green"}>
-          {producer.deleted_at ? "Deleted" : "Active"}
+          {producer.deleted_at ? t("status.deleted") : t("status.active")}
         </StatusBadge>
       </Table.Cell>
-      <Table.Cell>{formatDate(producer.updated_at)}</Table.Cell>
+      <Table.Cell>{formatDate(producer.updated_at, locale)}</Table.Cell>
     </Table.Row>
   ))
 }
 
 const ProducerAttributeDetailPage = () => {
+  const { t } = useTranslation("producers")
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -124,7 +140,7 @@ const ProducerAttributeDetailPage = () => {
     placeholderData: (previousData) => previousData,
     queryFn: () => {
       if (!id) {
-        throw new Error("Attribute id is required")
+        throw new Error(t("errors.attributeIdRequired"))
       }
 
       return retrieveProducerAttributeType(id, params)
@@ -138,7 +154,7 @@ const ProducerAttributeDetailPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : "Failed to restore attribute"
+          : t("errors.restoreAttributeFailed")
       )
     },
     onSuccess: async () => {
@@ -150,7 +166,7 @@ const ProducerAttributeDetailPage = () => {
       })
       await queryClient.invalidateQueries({ queryKey: ["producer"] })
       await queryClient.invalidateQueries({ queryKey: ["producers"] })
-      toast.success("Attribute restored")
+      toast.success(t("toasts.attributeRestored"))
     },
   })
 
@@ -162,7 +178,9 @@ const ProducerAttributeDetailPage = () => {
   if (error) {
     return (
       <Container>
-        <Text className="text-ui-fg-error">Failed to load attribute.</Text>
+        <Text className="text-ui-fg-error">
+          {t("errors.loadAttributeFailed")}
+        </Text>
       </Container>
     )
   }
@@ -170,7 +188,7 @@ const ProducerAttributeDetailPage = () => {
   if (isLoading || !attributeType) {
     return (
       <Container>
-        <Text>Loading...</Text>
+        <Text>{t("status.loading")}</Text>
       </Container>
     )
   }
@@ -179,23 +197,24 @@ const ProducerAttributeDetailPage = () => {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2">
         <IconButton asChild type="button" variant="transparent">
-          <Link aria-label="Back to producers" to="/producers">
+          <Link aria-label={t("detail.backToProducers")} to="/producers">
             <ArrowLeft />
           </Link>
         </IconButton>
         <Heading level="h1">{attributeType.name}</Heading>
         <StatusBadge color={attributeType.deleted_at ? "red" : "green"}>
-          {attributeType.deleted_at ? "Deleted" : "Active"}
+          {attributeType.deleted_at ? t("status.deleted") : t("status.active")}
         </StatusBadge>
       </div>
 
       <Container className="divide-y p-0">
         <div className="flex items-center justify-between px-6 py-4">
           <div>
-            <Heading level="h2">Details</Heading>
+            <Heading level="h2">{t("detail.details")}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
-              Used by {attributeType.usage_count} active producer
-              {attributeType.usage_count === 1 ? "" : "s"}
+              {t("attributes.usageCount", {
+                count: attributeType.usage_count,
+              })}
             </Text>
           </div>
           {attributeType.deleted_at ? (
@@ -206,23 +225,25 @@ const ProducerAttributeDetailPage = () => {
               type="button"
               variant="secondary"
             >
-              Restore
+              {t("actions.restore")}
             </Button>
           ) : null}
         </div>
         <div className="grid gap-3 px-6 py-4 md:grid-cols-2">
           <div>
             <Text className="text-ui-fg-subtle" size="small">
-              ID
+              {t("detail.id")}
             </Text>
             <Text size="small">{attributeType.id}</Text>
           </div>
           <div>
             <Text className="text-ui-fg-subtle" size="small">
-              Status
+              {t("columns.status")}
             </Text>
             <Text size="small">
-              {attributeType.deleted_at ? "Deleted" : "Active"}
+              {attributeType.deleted_at
+                ? t("status.deleted")
+                : t("status.active")}
             </Text>
           </div>
         </div>
@@ -231,9 +252,9 @@ const ProducerAttributeDetailPage = () => {
       <Container className="divide-y p-0">
         <div className="flex flex-col gap-4 px-6 py-4">
           <div>
-            <Heading level="h2">Producers</Heading>
+            <Heading level="h2">{t("producers.title")}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
-              {count} matching producers
+              {t("attributes.matchingProducerCount", { count })}
             </Text>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px_180px]">
@@ -242,7 +263,7 @@ const ProducerAttributeDetailPage = () => {
                 setPageIndex(0)
                 setQ(event.target.value)
               }}
-              placeholder="Search producers"
+              placeholder={t("search.producers")}
               value={q}
             />
             <Select
@@ -258,7 +279,7 @@ const ProducerAttributeDetailPage = () => {
               <Select.Content>
                 {ORDER_OPTIONS.map((option) => (
                   <Select.Item key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.labelKey)}
                   </Select.Item>
                 ))}
               </Select.Content>
@@ -274,8 +295,12 @@ const ProducerAttributeDetailPage = () => {
                 <Select.Value />
               </Select.Trigger>
               <Select.Content>
-                <Select.Item value="active">Active only</Select.Item>
-                <Select.Item value="all">All statuses</Select.Item>
+                <Select.Item value="active">
+                  {t("filters.activeOnly")}
+                </Select.Item>
+                <Select.Item value="all">
+                  {t("filters.allStatuses")}
+                </Select.Item>
               </Select.Content>
             </Select>
           </div>
@@ -283,12 +308,12 @@ const ProducerAttributeDetailPage = () => {
         <Table>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell>Producer</Table.HeaderCell>
-              <Table.HeaderCell>Handle</Table.HeaderCell>
-              <Table.HeaderCell>Value</Table.HeaderCell>
-              <Table.HeaderCell>Products</Table.HeaderCell>
-              <Table.HeaderCell>Status</Table.HeaderCell>
-              <Table.HeaderCell>Updated</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.producer")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.value")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.products")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.updated")}</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -310,6 +335,7 @@ const ProducerAttributeDetailPage = () => {
           previousPage={() =>
             setPageIndex((current) => Math.max(current - 1, 0))
           }
+          translations={paginationTranslations(t)}
         />
       </Container>
     </div>

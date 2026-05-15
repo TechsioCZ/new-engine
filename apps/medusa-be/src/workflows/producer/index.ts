@@ -1,5 +1,9 @@
-import type { LinkDefinition, MedusaContainer } from "@medusajs/framework/types"
-import { Modules } from "@medusajs/framework/utils"
+import type {
+  LinkDefinition,
+  MedusaContainer,
+  Query,
+} from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
@@ -265,7 +269,7 @@ const getCurrentProductProducerIds = async (
   container: MedusaContainer,
   productId: string
 ) => {
-  const query = container.resolve("query")
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: ProductProducerLink.entryPoint,
     fields: ["producer_id"],
@@ -283,7 +287,7 @@ const getCurrentProducerProductIds = async (
   container: MedusaContainer,
   producerId: string
 ) => {
-  const query = container.resolve("query")
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: ProductProducerLink.entryPoint,
     fields: ["product_id"],

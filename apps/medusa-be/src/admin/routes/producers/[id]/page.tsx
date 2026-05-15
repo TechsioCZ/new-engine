@@ -19,6 +19,7 @@ import {
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import {
   listProducerAttributeTypes,
@@ -42,12 +43,20 @@ const PAGE_SIZE = 20
 const PRODUCT_SELECTOR_PAGE_SIZE = 20
 
 const PRODUCT_ORDER_OPTIONS = [
-  { label: "Title A-Z", value: "title" },
-  { label: "Title Z-A", value: "-title" },
-  { label: "Handle A-Z", value: "handle" },
-  { label: "Status A-Z", value: "status" },
-  { label: "Newest", value: "-created_at" },
+  { labelKey: "orderOptions.titleAsc", value: "title" },
+  { labelKey: "orderOptions.titleDesc", value: "-title" },
+  { labelKey: "orderOptions.handleAsc", value: "handle" },
+  { labelKey: "orderOptions.statusAsc", value: "status" },
+  { labelKey: "orderOptions.newest", value: "-created_at" },
 ]
+
+const paginationTranslations = (t: (key: string) => string) => ({
+  next: t("pagination.next"),
+  of: t("pagination.of"),
+  pages: t("pagination.pages"),
+  prev: t("pagination.previous"),
+  results: t("pagination.results"),
+})
 
 const emptyAttribute = (
   attributeTypes: ProducerAttributeType[] = [],
@@ -71,6 +80,12 @@ const toFormState = (producer?: Producer): ProducerInput => ({
   title: producer?.title ?? "",
 })
 
+const optionalTrimmed = (value?: string) => {
+  const trimmed = value?.trim()
+
+  return trimmed ? trimmed : undefined
+}
+
 const ProductSelectionRows = ({
   currentProducerId,
   hasSearch,
@@ -86,10 +101,12 @@ const ProductSelectionRows = ({
   options: ProducerProductOption[]
   selectedIds: Set<string>
 }) => {
+  const { t } = useTranslation("producers")
+
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell colSpan={4}>Loading...</Table.Cell>
+        <Table.Cell colSpan={4}>{t("status.loading")}</Table.Cell>
       </Table.Row>
     )
   }
@@ -98,9 +115,7 @@ const ProductSelectionRows = ({
     return (
       <Table.Row>
         <Table.Cell colSpan={4}>
-          {hasSearch
-            ? "No products found."
-            : "No products without a producer found."}
+          {hasSearch ? t("products.emptySearch") : t("products.emptyOptions")}
         </Table.Cell>
       </Table.Row>
     )
@@ -110,7 +125,9 @@ const ProductSelectionRows = ({
     const isAssignedToAnotherProducer =
       !!assigned_producer && assigned_producer.id !== currentProducerId
     const tooltip = isAssignedToAnotherProducer
-      ? `Already linked to producer "${assigned_producer.title}"`
+      ? t("products.alreadyLinkedTooltip", {
+          title: assigned_producer.title,
+        })
       : undefined
 
     return (
@@ -169,6 +186,7 @@ const ProducerEditDrawer = ({
   open: boolean
   producer: Producer
 }) => {
+  const { t } = useTranslation("producers")
   const queryClient = useQueryClient()
   const [form, setForm] = useState<ProducerInput>(() => toFormState(producer))
 
@@ -176,7 +194,7 @@ const ProducerEditDrawer = ({
     mutationFn: (input: ProducerInput) => updateProducer(producer.id, input),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to save producer"
+        error instanceof Error ? error.message : t("errors.saveProducerFailed")
       )
     },
     onSuccess: async () => {
@@ -190,7 +208,7 @@ const ProducerEditDrawer = ({
       await queryClient.invalidateQueries({
         queryKey: ["producer-attribute-type"],
       })
-      toast.success("Producer updated")
+      toast.success(t("toasts.producerUpdated"))
       onOpenChange(false)
     },
   })
@@ -241,7 +259,7 @@ const ProducerEditDrawer = ({
           value: attribute.value,
         }))
         .filter((attribute) => attribute.name.length > 0),
-      handle: form.handle?.trim() || undefined,
+      handle: optionalTrimmed(form.handle),
       title: form.title.trim(),
     })
   }
@@ -250,11 +268,11 @@ const ProducerEditDrawer = ({
     <Drawer onOpenChange={onOpenChange} open={open}>
       <Drawer.Content>
         <Drawer.Header>
-          <Drawer.Title>Edit Producer</Drawer.Title>
+          <Drawer.Title>{t("form.editProducer")}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-6 overflow-y-auto">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="producer-title">Title</Label>
+            <Label htmlFor="producer-title">{t("fields.title")}</Label>
             <Input
               id="producer-title"
               onChange={(event) =>
@@ -267,7 +285,7 @@ const ProducerEditDrawer = ({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="producer-handle">Handle</Label>
+            <Label htmlFor="producer-handle">{t("fields.handle")}</Label>
             <Input
               id="producer-handle"
               onChange={(event) =>
@@ -281,7 +299,7 @@ const ProducerEditDrawer = ({
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <Heading level="h2">Attributes</Heading>
+              <Heading level="h2">{t("attributes.title")}</Heading>
               <Button
                 disabled={!canAddAttribute}
                 onClick={() =>
@@ -297,7 +315,7 @@ const ProducerEditDrawer = ({
                 type="button"
                 variant="secondary"
               >
-                Add
+                {t("actions.add")}
               </Button>
             </div>
             {form.attributes.length ? (
@@ -313,7 +331,7 @@ const ProducerEditDrawer = ({
                     value={attribute.name}
                   >
                     <Select.Trigger>
-                      <Select.Value placeholder="Attribute" />
+                      <Select.Value placeholder={t("fields.attribute")} />
                     </Select.Trigger>
                     <Select.Content>
                       {getAttributeOptions(attribute.name).map(
@@ -332,7 +350,7 @@ const ProducerEditDrawer = ({
                     onChange={(event) =>
                       updateAttribute(index, "value", event.target.value)
                     }
-                    placeholder="Value"
+                    placeholder={t("fields.value")}
                     value={attribute.value}
                   />
                   <Button
@@ -348,13 +366,13 @@ const ProducerEditDrawer = ({
                     type="button"
                     variant="secondary"
                   >
-                    Remove
+                    {t("actions.remove")}
                   </Button>
                 </div>
               ))
             ) : (
               <Text className="text-ui-fg-subtle" size="small">
-                No attributes.
+                {t("attributes.empty")}
               </Text>
             )}
           </div>
@@ -367,7 +385,7 @@ const ProducerEditDrawer = ({
               type="button"
               variant="secondary"
             >
-              Cancel
+              {t("actions.cancel")}
             </Button>
             <Button
               disabled={!form.title.trim()}
@@ -376,7 +394,7 @@ const ProducerEditDrawer = ({
               size="small"
               type="button"
             >
-              Save
+              {t("actions.save")}
             </Button>
           </div>
         </Drawer.Footer>
@@ -396,6 +414,7 @@ const ProductAssignmentDrawer = ({
   open: boolean
   producerId: string
 }) => {
+  const { t } = useTranslation("producers")
   const queryClient = useQueryClient()
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
@@ -430,7 +449,7 @@ const ProductAssignmentDrawer = ({
     mutationFn: () => setProducerProducts(producerId, [...selectedIds]),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to save products"
+        error instanceof Error ? error.message : t("errors.saveProductsFailed")
       )
     },
     onSuccess: async () => {
@@ -447,7 +466,7 @@ const ProductAssignmentDrawer = ({
       await queryClient.invalidateQueries({
         queryKey: ["producer-product-options"],
       })
-      toast.success("Producer products updated")
+      toast.success(t("toasts.producerProductsUpdated"))
       onOpenChange(false)
     },
   })
@@ -473,7 +492,7 @@ const ProductAssignmentDrawer = ({
     <Drawer onOpenChange={onOpenChange} open={open}>
       <Drawer.Content>
         <Drawer.Header>
-          <Drawer.Title>Manage Products</Drawer.Title>
+          <Drawer.Title>{t("products.manageTitle")}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-4 overflow-y-auto">
           <Input
@@ -481,16 +500,16 @@ const ProductAssignmentDrawer = ({
               setPageIndex(0)
               setQ(event.target.value)
             }}
-            placeholder="Search products"
+            placeholder={t("search.products")}
             value={q}
           />
           <Table>
             <Table.Header>
               <Table.Row>
                 <Table.HeaderCell className="w-12" />
-                <Table.HeaderCell>Product</Table.HeaderCell>
-                <Table.HeaderCell>Handle</Table.HeaderCell>
-                <Table.HeaderCell>Status</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.product")}</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -515,9 +534,10 @@ const ProductAssignmentDrawer = ({
             previousPage={() =>
               setPageIndex((current) => Math.max(current - 1, 0))
             }
+            translations={paginationTranslations(t)}
           />
           <Text className="text-ui-fg-subtle" size="small">
-            {selectedIds.size} selected
+            {t("products.selectedCount", { count: selectedIds.size })}
           </Text>
         </Drawer.Body>
         <Drawer.Footer>
@@ -528,7 +548,7 @@ const ProductAssignmentDrawer = ({
               type="button"
               variant="secondary"
             >
-              Cancel
+              {t("actions.cancel")}
             </Button>
             <Button
               isLoading={mutation.isPending}
@@ -536,7 +556,7 @@ const ProductAssignmentDrawer = ({
               size="small"
               type="button"
             >
-              Save
+              {t("actions.save")}
             </Button>
           </div>
         </Drawer.Footer>
@@ -558,10 +578,12 @@ const ProductRows = ({
   products: ProductSummary[]
   removingProductId?: string
 }) => {
+  const { t } = useTranslation("producers")
+
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell>Loading...</Table.Cell>
+        <Table.Cell>{t("status.loading")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -572,7 +594,7 @@ const ProductRows = ({
   if (!products.length) {
     return (
       <Table.Row>
-        <Table.Cell>No linked products.</Table.Cell>
+        <Table.Cell>{t("products.emptyLinked")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -594,7 +616,7 @@ const ProductRows = ({
       <Table.Cell>
         <div className="flex justify-end">
           <IconButton
-            aria-label="Remove product"
+            aria-label={t("actions.remove")}
             disabled={removingProductId === product.id}
             onClick={(event) => {
               event.stopPropagation()
@@ -613,6 +635,7 @@ const ProductRows = ({
 }
 
 const ProducerDetailPage = () => {
+  const { t } = useTranslation("producers")
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -628,7 +651,7 @@ const ProducerDetailPage = () => {
     enabled: !!id,
     queryFn: () => {
       if (!id) {
-        throw new Error("Producer id is required")
+        throw new Error(t("errors.producerIdRequired"))
       }
       return retrieveProducer(id)
     },
@@ -650,7 +673,7 @@ const ProducerDetailPage = () => {
     placeholderData: (previousData) => previousData,
     queryFn: () => {
       if (!id) {
-        throw new Error("Producer id is required")
+        throw new Error(t("errors.producerIdRequired"))
       }
       return retrieveProducerProducts(id, productParams)
     },
@@ -680,7 +703,9 @@ const ProducerDetailPage = () => {
     mutationFn: restoreProducer,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to restore producer"
+        error instanceof Error
+          ? error.message
+          : t("errors.restoreProducerFailed")
       )
     },
     onSuccess: async () => {
@@ -691,7 +716,7 @@ const ProducerDetailPage = () => {
       await queryClient.invalidateQueries({
         queryKey: ["producer-attribute-type"],
       })
-      toast.success("Producer restored")
+      toast.success(t("toasts.producerRestored"))
     },
   })
 
@@ -703,7 +728,7 @@ const ProducerDetailPage = () => {
       ),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to remove product"
+        error instanceof Error ? error.message : t("errors.removeProductFailed")
       )
     },
     onSuccess: async () => {
@@ -720,16 +745,18 @@ const ProducerDetailPage = () => {
       await queryClient.invalidateQueries({
         queryKey: ["producer-product-options"],
       })
-      toast.success("Product removed")
+      toast.success(t("toasts.productRemoved"))
     },
   })
 
   const handleRemoveProduct = async (product: ProductSummary) => {
     const confirmed = await prompt({
-      cancelText: "Cancel",
-      confirmText: "Remove",
-      description: `Remove "${product.title ?? product.id}" from this producer?`,
-      title: "Remove product",
+      cancelText: t("actions.cancel"),
+      confirmText: t("actions.remove"),
+      description: t("prompts.removeProductDescription", {
+        title: product.title ?? product.id,
+      }),
+      title: t("prompts.removeProductTitle"),
     })
 
     if (confirmed) {
@@ -740,7 +767,9 @@ const ProducerDetailPage = () => {
   if (producerQuery.error) {
     return (
       <Container>
-        <Text className="text-ui-fg-error">Failed to load producer.</Text>
+        <Text className="text-ui-fg-error">
+          {t("errors.loadProducerFailed")}
+        </Text>
       </Container>
     )
   }
@@ -748,7 +777,7 @@ const ProducerDetailPage = () => {
   if (producerQuery.isLoading || !producer) {
     return (
       <Container>
-        <Text>Loading...</Text>
+        <Text>{t("status.loading")}</Text>
       </Container>
     )
   }
@@ -758,20 +787,20 @@ const ProducerDetailPage = () => {
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-2">
           <IconButton asChild type="button" variant="transparent">
-            <Link aria-label="Back to producers" to="/producers">
+            <Link aria-label={t("detail.backToProducers")} to="/producers">
               <ArrowLeft />
             </Link>
           </IconButton>
           <Heading level="h1">{producer.title}</Heading>
           <StatusBadge color={producer.deleted_at ? "red" : "green"}>
-            {producer.deleted_at ? "Deleted" : "Active"}
+            {producer.deleted_at ? t("status.deleted") : t("status.active")}
           </StatusBadge>
         </div>
 
         <Container className="divide-y p-0">
           <div className="flex items-center justify-between px-6 py-4">
             <div>
-              <Heading level="h2">Details</Heading>
+              <Heading level="h2">{t("detail.details")}</Heading>
               <Text className="text-ui-fg-subtle" size="small">
                 {producer.handle}
               </Text>
@@ -784,7 +813,7 @@ const ProducerDetailPage = () => {
                 type="button"
                 variant="secondary"
               >
-                Restore
+                {t("actions.restore")}
               </Button>
             ) : (
               <Button
@@ -794,32 +823,32 @@ const ProducerDetailPage = () => {
                 variant="secondary"
               >
                 <PencilSquare />
-                Edit
+                {t("actions.edit")}
               </Button>
             )}
           </div>
           <div className="grid gap-3 px-6 py-4 md:grid-cols-2">
             <div>
               <Text className="text-ui-fg-subtle" size="small">
-                ID
+                {t("detail.id")}
               </Text>
               <Text size="small">{producer.id}</Text>
             </div>
             <div>
               <Text className="text-ui-fg-subtle" size="small">
-                Handle
+                {t("fields.handle")}
               </Text>
               <Text size="small">{producer.handle}</Text>
             </div>
             <div>
               <Text className="text-ui-fg-subtle" size="small">
-                Active products
+                {t("detail.activeProducts")}
               </Text>
               <Text size="small">{producer.active_product_count}</Text>
             </div>
           </div>
           <div className="px-6 py-4">
-            <Heading level="h2">Attributes</Heading>
+            <Heading level="h2">{t("attributes.title")}</Heading>
             <div className="mt-3 grid gap-2">
               {producer.attributes.length ? (
                 producer.attributes.map((attribute) => (
@@ -832,13 +861,15 @@ const ProducerDetailPage = () => {
                     </Text>
                     <Text size="small">{attribute.value}</Text>
                     {attribute.attribute_type_deleted_at ? (
-                      <StatusBadge color="red">Deleted</StatusBadge>
+                      <StatusBadge color="red">
+                        {t("status.deleted")}
+                      </StatusBadge>
                     ) : null}
                   </div>
                 ))
               ) : (
                 <Text className="text-ui-fg-subtle" size="small">
-                  No attributes.
+                  {t("attributes.empty")}
                 </Text>
               )}
             </div>
@@ -849,9 +880,9 @@ const ProducerDetailPage = () => {
           <div className="flex flex-col gap-4 px-6 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <Heading level="h2">Products</Heading>
+                <Heading level="h2">{t("products.title")}</Heading>
                 <Text className="text-ui-fg-subtle" size="small">
-                  {count} linked products
+                  {t("detail.linkedProductsCount", { count })}
                 </Text>
               </div>
               <Button
@@ -860,7 +891,7 @@ const ProducerDetailPage = () => {
                 type="button"
                 variant="secondary"
               >
-                Manage
+                {t("actions.manage")}
               </Button>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -869,7 +900,7 @@ const ProducerDetailPage = () => {
                   setPageIndex(0)
                   setProductQ(event.target.value)
                 }}
-                placeholder="Search products"
+                placeholder={t("search.products")}
                 value={productQ}
               />
               <Select
@@ -885,7 +916,7 @@ const ProducerDetailPage = () => {
                 <Select.Content>
                   {PRODUCT_ORDER_OPTIONS.map((option) => (
                     <Select.Item key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </Select.Item>
                   ))}
                 </Select.Content>
@@ -895,11 +926,11 @@ const ProducerDetailPage = () => {
           <Table>
             <Table.Header>
               <Table.Row>
-                <Table.HeaderCell>Product</Table.HeaderCell>
-                <Table.HeaderCell>Handle</Table.HeaderCell>
-                <Table.HeaderCell>Status</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.product")}</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
                 <Table.HeaderCell className="w-[1%] text-right">
-                  Actions
+                  {t("columns.actions")}
                 </Table.HeaderCell>
               </Table.Row>
             </Table.Header>
@@ -924,6 +955,7 @@ const ProducerDetailPage = () => {
             previousPage={() =>
               setPageIndex((current) => Math.max(current - 1, 0))
             }
+            translations={paginationTranslations(t)}
           />
         </Container>
       </div>

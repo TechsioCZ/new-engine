@@ -159,9 +159,12 @@ export async function GET(
     limit,
     offset,
     producers: page.flatMap((attribute) => {
+      const activeProductCount = attribute.producer?.id
+        ? (activeProductCounts.get(attribute.producer.id) ?? 0)
+        : 0
       const producer = toProducerAttributeTypeProducerResponse(
         attribute,
-        activeProductCounts.get(attribute.producer?.id ?? "") ?? 0
+        activeProductCount
       )
 
       return producer ? [producer] : []

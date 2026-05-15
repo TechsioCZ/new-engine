@@ -133,18 +133,16 @@ export const toProducerResponse = (
   active_product_count: activeProductCount,
   attributes: (producer.attributes ?? []).flatMap((attribute) => {
     const name = attribute.attributeType?.name
+    const attributeTypeId = attribute.attributeType?.id
 
-    if (!name) {
+    if (!(name && attributeTypeId)) {
       return []
     }
 
     return [
       {
         attribute_type_deleted_at: attribute.attributeType?.deleted_at ?? null,
-        attribute_type_id:
-          attribute.attributeType?.id ??
-          attribute.attribute_type_id ??
-          attribute.attributeType_id,
+        attribute_type_id: attributeTypeId,
         id: attribute.id,
         name,
         value: attribute.value,

@@ -22,6 +22,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import {
   createProducer,
@@ -44,12 +45,23 @@ import { useDebouncedValue } from "../../lib/use-debounced-value"
 const PAGE_SIZE = 20
 
 const ORDER_OPTIONS = [
-  { label: "Title A-Z", value: "title" },
-  { label: "Title Z-A", value: "-title" },
-  { label: "Handle A-Z", value: "handle" },
-  { label: "Newest", value: "-created_at" },
-  { label: "Recently updated", value: "-updated_at" },
+  { labelKey: "orderOptions.titleAsc", value: "title" },
+  { labelKey: "orderOptions.titleDesc", value: "-title" },
+  { labelKey: "orderOptions.handleAsc", value: "handle" },
+  { labelKey: "orderOptions.newest", value: "-created_at" },
+  { labelKey: "orderOptions.recentlyUpdated", value: "-updated_at" },
 ]
+
+const formatLocaleCode = (code: string | undefined) =>
+  code?.replace(/([a-z])([A-Z])/g, "$1-$2")
+
+const paginationTranslations = (t: (key: string) => string) => ({
+  next: t("pagination.next"),
+  of: t("pagination.of"),
+  pages: t("pagination.pages"),
+  prev: t("pagination.previous"),
+  results: t("pagination.results"),
+})
 
 const emptyAttribute = (
   attributeTypes: ProducerAttributeType[] = [],
@@ -73,12 +85,18 @@ const toFormState = (producer?: Producer): ProducerInput => ({
   title: producer?.title ?? "",
 })
 
-const formatDate = (date: string | undefined) => {
+const optionalTrimmed = (value?: string) => {
+  const trimmed = value?.trim()
+
+  return trimmed ? trimmed : undefined
+}
+
+const formatDate = (date: string | undefined, locale?: string) => {
   if (!date) {
     return "-"
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(date))
@@ -101,10 +119,13 @@ const ProducerRows = ({
   onRestore: (producer: Producer) => void
   producers: Producer[]
 }) => {
+  const { i18n, t } = useTranslation("producers")
+  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
+
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell>Loading...</Table.Cell>
+        <Table.Cell>{t("status.loading")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -118,7 +139,7 @@ const ProducerRows = ({
   if (!producers.length) {
     return (
       <Table.Row>
-        <Table.Cell>No producers found.</Table.Cell>
+        <Table.Cell>{t("producers.empty")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -141,10 +162,10 @@ const ProducerRows = ({
       <Table.Cell>{producer.active_product_count}</Table.Cell>
       <Table.Cell>
         <StatusBadge color={producer.deleted_at ? "red" : "green"}>
-          {producer.deleted_at ? "Deleted" : "Active"}
+          {producer.deleted_at ? t("status.deleted") : t("status.active")}
         </StatusBadge>
       </Table.Cell>
-      <Table.Cell>{formatDate(producer.updated_at)}</Table.Cell>
+      <Table.Cell>{formatDate(producer.updated_at, locale)}</Table.Cell>
       <Table.Cell>
         <div className="flex justify-end gap-1">
           {producer.deleted_at ? (
@@ -157,12 +178,12 @@ const ProducerRows = ({
               type="button"
               variant="secondary"
             >
-              Restore
+              {t("actions.restore")}
             </Button>
           ) : (
             <>
               <IconButton
-                aria-label="Edit producer"
+                aria-label={t("actions.edit")}
                 onClick={(event) => {
                   event.stopPropagation()
                   onEdit(producer)
@@ -174,7 +195,7 @@ const ProducerRows = ({
                 <PencilSquare />
               </IconButton>
               <IconButton
-                aria-label="Delete producer"
+                aria-label={t("actions.delete")}
                 disabled={
                   deleteMutation.isPending &&
                   deleteMutation.variables === producer.id
@@ -208,6 +229,7 @@ const ProducerFormDrawer = ({
   open: boolean
   producer?: Producer
 }) => {
+  const { t } = useTranslation("producers")
   const queryClient = useQueryClient()
   const [form, setForm] = useState<ProducerInput>(() => toFormState(producer))
 
@@ -216,7 +238,7 @@ const ProducerFormDrawer = ({
       producer ? updateProducer(producer.id, input) : createProducer(input),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to save producer"
+        error instanceof Error ? error.message : t("errors.saveProducerFailed")
       )
     },
     onSuccess: async (response) => {
@@ -230,7 +252,9 @@ const ProducerFormDrawer = ({
       await queryClient.invalidateQueries({
         queryKey: producerQueryKeys.detail(response.producer.id),
       })
-      toast.success(producer ? "Producer updated" : "Producer created")
+      toast.success(
+        producer ? t("toasts.producerUpdated") : t("toasts.producerCreated")
+      )
       onOpenChange(false)
     },
   })
@@ -283,7 +307,7 @@ const ProducerFormDrawer = ({
 
     mutation.mutate({
       attributes,
-      handle: form.handle?.trim() || undefined,
+      handle: optionalTrimmed(form.handle),
       title: form.title.trim(),
     })
   }
@@ -293,12 +317,12 @@ const ProducerFormDrawer = ({
       <Drawer.Content>
         <Drawer.Header>
           <Drawer.Title>
-            {producer ? "Edit Producer" : "Create Producer"}
+            {producer ? t("form.editProducer") : t("form.createProducer")}
           </Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-6 overflow-y-auto">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="producer-title">Title</Label>
+            <Label htmlFor="producer-title">{t("fields.title")}</Label>
             <Input
               id="producer-title"
               onChange={(event) =>
@@ -311,7 +335,7 @@ const ProducerFormDrawer = ({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="producer-handle">Handle</Label>
+            <Label htmlFor="producer-handle">{t("fields.handle")}</Label>
             <Input
               id="producer-handle"
               onChange={(event) =>
@@ -320,13 +344,13 @@ const ProducerFormDrawer = ({
                   handle: event.target.value,
                 }))
               }
-              placeholder="auto-generated from title"
+              placeholder={t("form.handlePlaceholder")}
               value={form.handle}
             />
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <Heading level="h2">Attributes</Heading>
+              <Heading level="h2">{t("attributes.title")}</Heading>
               <Button
                 disabled={!canAddAttribute}
                 onClick={() =>
@@ -342,7 +366,7 @@ const ProducerFormDrawer = ({
                 type="button"
                 variant="secondary"
               >
-                Add
+                {t("actions.add")}
               </Button>
             </div>
             {form.attributes.length ? (
@@ -358,7 +382,7 @@ const ProducerFormDrawer = ({
                     value={attribute.name}
                   >
                     <Select.Trigger>
-                      <Select.Value placeholder="Attribute" />
+                      <Select.Value placeholder={t("fields.attribute")} />
                     </Select.Trigger>
                     <Select.Content>
                       {getAttributeOptions(attribute.name).map(
@@ -377,11 +401,11 @@ const ProducerFormDrawer = ({
                     onChange={(event) =>
                       updateAttribute(index, "value", event.target.value)
                     }
-                    placeholder="Value"
+                    placeholder={t("fields.value")}
                     value={attribute.value}
                   />
                   <IconButton
-                    aria-label="Remove attribute"
+                    aria-label={t("actions.remove")}
                     onClick={() =>
                       setForm((current) => ({
                         ...current,
@@ -399,7 +423,7 @@ const ProducerFormDrawer = ({
               ))
             ) : (
               <Text className="text-ui-fg-subtle" size="small">
-                No attributes.
+                {t("attributes.empty")}
               </Text>
             )}
           </div>
@@ -412,7 +436,7 @@ const ProducerFormDrawer = ({
               type="button"
               variant="secondary"
             >
-              Cancel
+              {t("actions.cancel")}
             </Button>
             <Button
               disabled={!form.title.trim()}
@@ -421,7 +445,7 @@ const ProducerFormDrawer = ({
               size="small"
               type="button"
             >
-              Save
+              {t("actions.save")}
             </Button>
           </div>
         </Drawer.Footer>
@@ -431,6 +455,7 @@ const ProducerFormDrawer = ({
 }
 
 const AttributeTypesSection = () => {
+  const { t } = useTranslation("producers")
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const prompt = usePrompt()
@@ -461,7 +486,9 @@ const AttributeTypesSection = () => {
     mutationFn: createProducerAttributeType,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to create attribute"
+        error instanceof Error
+          ? error.message
+          : t("errors.createAttributeFailed")
       )
     },
     onSuccess: async (response) => {
@@ -473,11 +500,11 @@ const AttributeTypesSection = () => {
       })
       setName("")
       if (response.action === "restored") {
-        toast.success("Attribute restored")
+        toast.success(t("toasts.attributeRestored"))
       } else if (response.action === "existing") {
-        toast.success("Attribute already exists")
+        toast.success(t("toasts.attributeAlreadyExists"))
       } else {
-        toast.success("Attribute created")
+        toast.success(t("toasts.attributeCreated"))
       }
     },
   })
@@ -486,7 +513,9 @@ const AttributeTypesSection = () => {
     mutationFn: deleteProducerAttributeType,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to delete attribute"
+        error instanceof Error
+          ? error.message
+          : t("errors.deleteAttributeFailed")
       )
     },
     onSuccess: async () => {
@@ -498,7 +527,7 @@ const AttributeTypesSection = () => {
       })
       await queryClient.invalidateQueries({ queryKey: ["producer"] })
       await queryClient.invalidateQueries({ queryKey: ["producers"] })
-      toast.success("Attribute deleted")
+      toast.success(t("toasts.attributeDeleted"))
     },
   })
 
@@ -506,7 +535,9 @@ const AttributeTypesSection = () => {
     mutationFn: restoreProducerAttributeType,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to restore attribute"
+        error instanceof Error
+          ? error.message
+          : t("errors.restoreAttributeFailed")
       )
     },
     onSuccess: async () => {
@@ -519,7 +550,7 @@ const AttributeTypesSection = () => {
       await queryClient.invalidateQueries({ queryKey: ["producer"] })
       await queryClient.invalidateQueries({ queryKey: ["producers"] })
       setName("")
-      toast.success("Attribute restored")
+      toast.success(t("toasts.attributeRestored"))
     },
   })
 
@@ -529,15 +560,18 @@ const AttributeTypesSection = () => {
 
   const handleDelete = async (attributeType: ProducerAttributeType) => {
     const usedText = attributeType.usage_count
-      ? ` It is currently used by ${attributeType.usage_count} active producer${
-          attributeType.usage_count === 1 ? "" : "s"
-        }.`
+      ? t("prompts.deleteAttributeUsage", {
+          count: attributeType.usage_count,
+        })
       : ""
     const confirmed = await prompt({
-      cancelText: "Cancel",
-      confirmText: "Delete",
-      description: `Soft-delete attribute "${attributeType.name}"?${usedText}`,
-      title: "Delete attribute",
+      cancelText: t("actions.cancel"),
+      confirmText: t("actions.delete"),
+      description: t("prompts.deleteAttributeDescription", {
+        name: attributeType.name,
+        usageText: usedText,
+      }),
+      title: t("prompts.deleteAttributeTitle"),
     })
 
     if (confirmed) {
@@ -567,10 +601,12 @@ const AttributeTypesSection = () => {
 
       if (existing?.deleted_at) {
         const confirmed = await prompt({
-          cancelText: "Cancel",
-          confirmText: "Restore",
-          description: `Attribute "${attributeName}" already exists but is deleted. Restore it instead?`,
-          title: "Restore attribute",
+          cancelText: t("actions.cancel"),
+          confirmText: t("actions.restore"),
+          description: t("prompts.restoreAttributeDescription", {
+            name: attributeName,
+          }),
+          title: t("prompts.restoreAttributeTitle"),
         })
 
         if (confirmed) {
@@ -580,14 +616,16 @@ const AttributeTypesSection = () => {
       }
 
       if (existing) {
-        toast.error(`Attribute "${attributeName}" already exists`)
+        toast.error(t("toasts.attributeExistsError", { name: attributeName }))
         return
       }
 
       createMutation.mutate({ name: attributeName })
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to check attribute"
+        error instanceof Error
+          ? error.message
+          : t("errors.checkAttributeFailed")
       )
     } finally {
       setIsCheckingName(false)
@@ -598,7 +636,7 @@ const AttributeTypesSection = () => {
     if (isLoading) {
       return (
         <Table.Row>
-          <Table.Cell>Loading...</Table.Cell>
+          <Table.Cell>{t("status.loading")}</Table.Cell>
           <Table.Cell />
           <Table.Cell />
           <Table.Cell />
@@ -609,7 +647,7 @@ const AttributeTypesSection = () => {
     if (!attributeTypes.length) {
       return (
         <Table.Row>
-          <Table.Cell>No attributes found.</Table.Cell>
+          <Table.Cell>{t("attributes.empty")}</Table.Cell>
           <Table.Cell />
           <Table.Cell />
           <Table.Cell />
@@ -626,7 +664,9 @@ const AttributeTypesSection = () => {
         <Table.Cell>{attributeType.name}</Table.Cell>
         <Table.Cell>
           <StatusBadge color={attributeType.deleted_at ? "red" : "green"}>
-            {attributeType.deleted_at ? "Deleted" : "Active"}
+            {attributeType.deleted_at
+              ? t("status.deleted")
+              : t("status.active")}
           </StatusBadge>
         </Table.Cell>
         <Table.Cell>{attributeType.usage_count}</Table.Cell>
@@ -646,11 +686,11 @@ const AttributeTypesSection = () => {
                 type="button"
                 variant="secondary"
               >
-                Restore
+                {t("actions.restore")}
               </Button>
             ) : (
               <IconButton
-                aria-label="Delete attribute"
+                aria-label={t("actions.delete")}
                 disabled={
                   deleteMutation.isPending &&
                   deleteMutation.variables === attributeType.id
@@ -677,15 +717,15 @@ const AttributeTypesSection = () => {
       <div className="flex flex-col gap-4 px-6 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <Heading level="h2">Attributes</Heading>
+            <Heading level="h2">{t("attributes.title")}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
-              {count} attributes
+              {t("attributes.count", { count })}
             </Text>
           </div>
           <div className="flex items-center gap-2">
             <Input
               onChange={(event) => setName(event.target.value)}
-              placeholder="New attribute"
+              placeholder={t("attributes.newPlaceholder")}
               value={name}
             />
             <Button
@@ -700,7 +740,7 @@ const AttributeTypesSection = () => {
               type="button"
               variant="secondary"
             >
-              Add
+              {t("actions.add")}
             </Button>
           </div>
         </div>
@@ -710,7 +750,7 @@ const AttributeTypesSection = () => {
               setPageIndex(0)
               setQ(event.target.value)
             }}
-            placeholder="Search attributes"
+            placeholder={t("search.attributes")}
             value={q}
           />
           <Select
@@ -724,8 +764,10 @@ const AttributeTypesSection = () => {
               <Select.Value />
             </Select.Trigger>
             <Select.Content>
-              <Select.Item value="active">Active only</Select.Item>
-              <Select.Item value="all">All statuses</Select.Item>
+              <Select.Item value="active">
+                {t("filters.activeOnly")}
+              </Select.Item>
+              <Select.Item value="all">{t("filters.allStatuses")}</Select.Item>
             </Select.Content>
           </Select>
         </div>
@@ -733,11 +775,11 @@ const AttributeTypesSection = () => {
       <Table>
         <Table.Header>
           <Table.Row>
-            <Table.HeaderCell>Name</Table.HeaderCell>
-            <Table.HeaderCell>Status</Table.HeaderCell>
-            <Table.HeaderCell>Used by</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.name")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.usedBy")}</Table.HeaderCell>
             <Table.HeaderCell className="w-[1%] text-right">
-              Actions
+              {t("columns.actions")}
             </Table.HeaderCell>
           </Table.Row>
         </Table.Header>
@@ -752,12 +794,14 @@ const AttributeTypesSection = () => {
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
         previousPage={() => setPageIndex((current) => Math.max(current - 1, 0))}
+        translations={paginationTranslations(t)}
       />
     </Container>
   )
 }
 
 const ProducersPage = () => {
+  const { t } = useTranslation("producers")
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const prompt = usePrompt()
@@ -795,7 +839,7 @@ const ProducersPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : "Failed to delete producer"
+          : t("errors.deleteProducerFailed")
       )
     },
     onSuccess: async () => {
@@ -803,7 +847,7 @@ const ProducersPage = () => {
       await queryClient.invalidateQueries({
         queryKey: ["producer-attribute-type"],
       })
-      toast.success("Producer deleted")
+      toast.success(t("toasts.producerDeleted"))
     },
   })
 
@@ -813,7 +857,7 @@ const ProducersPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : "Failed to restore producer"
+          : t("errors.restoreProducerFailed")
       )
     },
     onSuccess: async () => {
@@ -822,7 +866,7 @@ const ProducersPage = () => {
       await queryClient.invalidateQueries({
         queryKey: ["producer-attribute-type"],
       })
-      toast.success("Producer restored")
+      toast.success(t("toasts.producerRestored"))
     },
   })
 
@@ -846,15 +890,18 @@ const ProducersPage = () => {
 
   const handleDelete = async (producer: Producer) => {
     const activeProductText = producer.active_product_count
-      ? ` It is linked to ${producer.active_product_count} active product${
-          producer.active_product_count === 1 ? "" : "s"
-        }.`
+      ? t("prompts.deleteProducerProducts", {
+          count: producer.active_product_count,
+        })
       : ""
     const confirmed = await prompt({
-      cancelText: "Cancel",
-      confirmText: "Delete",
-      description: `Delete producer "${producer.title}"?${activeProductText}`,
-      title: "Delete producer",
+      cancelText: t("actions.cancel"),
+      confirmText: t("actions.delete"),
+      description: t("prompts.deleteProducerDescription", {
+        linkedText: activeProductText,
+        title: producer.title,
+      }),
+      title: t("prompts.deleteProducerTitle"),
     })
 
     if (confirmed) {
@@ -873,9 +920,9 @@ const ProducersPage = () => {
           <div className="flex flex-col gap-4 px-6 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <Heading level="h1">Producers</Heading>
+                <Heading level="h1">{t("producers.title")}</Heading>
                 <Text className="text-ui-fg-subtle" size="small">
-                  {count} producers
+                  {t("producers.count", { count })}
                 </Text>
               </div>
               <Button
@@ -884,7 +931,7 @@ const ProducersPage = () => {
                 type="button"
                 variant="secondary"
               >
-                Create
+                {t("actions.create")}
               </Button>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px_180px]">
@@ -893,7 +940,7 @@ const ProducersPage = () => {
                   setPageIndex(0)
                   setQ(event.target.value)
                 }}
-                placeholder="Search producers"
+                placeholder={t("search.producers")}
                 value={q}
               />
               <Select
@@ -909,7 +956,7 @@ const ProducersPage = () => {
                 <Select.Content>
                   {ORDER_OPTIONS.map((option) => (
                     <Select.Item key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </Select.Item>
                   ))}
                 </Select.Content>
@@ -925,8 +972,12 @@ const ProducersPage = () => {
                   <Select.Value />
                 </Select.Trigger>
                 <Select.Content>
-                  <Select.Item value="active">Active only</Select.Item>
-                  <Select.Item value="all">All statuses</Select.Item>
+                  <Select.Item value="active">
+                    {t("filters.activeOnly")}
+                  </Select.Item>
+                  <Select.Item value="all">
+                    {t("filters.allStatuses")}
+                  </Select.Item>
                 </Select.Content>
               </Select>
             </div>
@@ -935,7 +986,7 @@ const ProducersPage = () => {
           {listError ? (
             <div className="px-6 py-4">
               <Text className="text-ui-fg-error">
-                Failed to load producers.
+                {t("errors.loadProducersFailed")}
               </Text>
             </div>
           ) : (
@@ -943,14 +994,16 @@ const ProducersPage = () => {
               <Table>
                 <Table.Header>
                   <Table.Row>
-                    <Table.HeaderCell>Title</Table.HeaderCell>
-                    <Table.HeaderCell>Handle</Table.HeaderCell>
-                    <Table.HeaderCell>Attributes</Table.HeaderCell>
-                    <Table.HeaderCell>Products</Table.HeaderCell>
-                    <Table.HeaderCell>Status</Table.HeaderCell>
-                    <Table.HeaderCell>Updated</Table.HeaderCell>
+                    <Table.HeaderCell>{t("columns.title")}</Table.HeaderCell>
+                    <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
+                    <Table.HeaderCell>
+                      {t("columns.attributes")}
+                    </Table.HeaderCell>
+                    <Table.HeaderCell>{t("columns.products")}</Table.HeaderCell>
+                    <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
+                    <Table.HeaderCell>{t("columns.updated")}</Table.HeaderCell>
                     <Table.HeaderCell className="w-[1%] text-right">
-                      Actions
+                      {t("columns.actions")}
                     </Table.HeaderCell>
                   </Table.Row>
                 </Table.Header>
@@ -977,6 +1030,7 @@ const ProducersPage = () => {
                 previousPage={() =>
                   setPageIndex((current) => Math.max(current - 1, 0))
                 }
+                translations={paginationTranslations(t)}
               />
             </>
           )}
@@ -1009,7 +1063,8 @@ const ProducersPage = () => {
 
 export const config = defineRouteConfig({
   icon: Buildings,
-  label: "Producers",
+  label: "menuItem",
+  translationNs: "producers",
 })
 
 export default ProducersPage
