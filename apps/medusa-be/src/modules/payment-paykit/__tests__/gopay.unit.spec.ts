@@ -57,6 +57,69 @@ describe("PaykitGopayPaymentProvider", () => {
     )
   })
 
+  it("renames GoPay return_url to PayKit success_url metadata", async () => {
+    const client = createMockPaykitClient()
+    const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await provider.initiatePayment({
+      amount: 10.5,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+        provider_metadata: {
+          return_url: "https://shop.example/pokladna",
+          success_url: "https://shop.example/wrong",
+        },
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+        },
+      },
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider_metadata: {
+          return_url: "https://shop.example/pokladna",
+          success_url: "https://shop.example/pokladna",
+        },
+      })
+    )
+  })
+
+  it("does not invent a GoPay return URL when payment data has none", async () => {
+    const client = createMockPaykitClient()
+    const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await provider.initiatePayment({
+      amount: 10.5,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+        },
+      },
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider_metadata: {},
+      })
+    )
+  })
+
   it("passes PayKit GoPay public option names", () => {
     expect(
       getGopayProviderOptions({

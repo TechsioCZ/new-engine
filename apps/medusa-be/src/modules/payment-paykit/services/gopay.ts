@@ -22,6 +22,16 @@ import {
   toSmallestCurrencyUnit,
 } from "../utils/amounts"
 
+const getStringValue = (...values: unknown[]): string | undefined => {
+  for (const value of values) {
+    if (typeof value === "string" && value.length > 0) {
+      return value
+    }
+  }
+
+  return
+}
+
 export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<PaykitGopayOptions> {
   static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
 
@@ -83,6 +93,29 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
     const normalized = super.normalizeWebhookNumericAmount(amount, currencyCode)
 
     return fromSmallestCurrencyUnit(normalized, currencyCode)
+  }
+
+  protected override getCreateProviderMetadata(
+    input: InitiatePaymentInput,
+    data: Record<string, unknown>
+  ): Record<string, unknown> {
+    const providerMetadata = super.getCreateProviderMetadata(input, data)
+    const {
+      success_url: _successUrl,
+      successUrl: _successUrlAlias,
+      ...gopayMetadata
+    } = providerMetadata
+    const returnUrl = getStringValue(
+      providerMetadata.return_url,
+      data.return_url
+    )
+
+    return {
+      ...gopayMetadata,
+      // GoPay calls this callback URL `return_url`. PayKit's GoPay provider
+      // currently requires it under `success_url`, so rename only at this SDK boundary.
+      ...(returnUrl ? { success_url: returnUrl } : {}),
+    }
   }
 }
 

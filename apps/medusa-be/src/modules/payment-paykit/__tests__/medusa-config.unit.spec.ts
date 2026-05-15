@@ -28,7 +28,6 @@ describe("buildPaykitPaymentProviders", () => {
         COMGATE_SECRET: "secret",
         COMGATE_SANDBOX: "true",
         COMGATE_PAYMENT_LABEL: "Shop order",
-        PAYKIT_CLOUD_API_KEY: "cloud-key",
         PAYKIT_DEBUG: "1",
       })
     ).toEqual([
@@ -38,7 +37,6 @@ describe("buildPaykitPaymentProviders", () => {
         options: {
           clientId: "gopay-client",
           clientSecret: "gopay-secret",
-          cloudApiKey: "cloud-key",
           goId: "go-id",
           isSandbox: false,
           webhookUrl: "https://shop.example/hooks/gopay",
@@ -50,7 +48,6 @@ describe("buildPaykitPaymentProviders", () => {
         id: PAYKIT_STRIPE_PROVIDER_ID,
         options: {
           apiKey: "sk_test_123",
-          cloudApiKey: "cloud-key",
           webhookSecret: "whsec_123",
           debug: true,
         },
@@ -59,7 +56,6 @@ describe("buildPaykitPaymentProviders", () => {
         resolve: "./src/modules/payment-paykit/services/comgate",
         id: PAYKIT_COMGATE_PROVIDER_ID,
         options: {
-          cloudApiKey: "cloud-key",
           merchant: "merchant",
           secret: "secret",
           isSandbox: true,

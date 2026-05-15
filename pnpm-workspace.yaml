@@ -3,6 +3,8 @@ minimumReleaseAgeExclude:
   - '@techsio/storybook-better-a11y'
   - '@techsio/storybook-a11y-reporter'
   - '@medusajs/*'
+  - '@paykit-sdk/comgate'
+  - '@paykit-sdk/gopay'
 # trustPolicy: no-downgrade
 
 packages:
