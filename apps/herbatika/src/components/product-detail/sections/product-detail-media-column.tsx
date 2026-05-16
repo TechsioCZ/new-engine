@@ -7,6 +7,9 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery";
 import NextLink from "next/link";
 import NextImage from "next/image";
+import { useMemo } from "react";
+import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants";
+import { FallbackImage } from "@/components/fallback-image";
 import type { ProductMediaFact } from "@/components/product-detail/product-detail.types";
 import { SupportingText } from "@/components/text/supporting-text";
 
@@ -21,10 +24,52 @@ export function ProductDetailMediaColumn({
   galleryItems,
   mediaFacts,
 }: ProductDetailMediaColumnProps) {
+  const galleryItemsWithFallback = useMemo<GalleryItem[]>(
+    () =>
+      galleryItems.map((item) => {
+        const imageSrc = item.src || FALLBACK_IMAGE_SRC;
+        const imageAlt = item.alt || "Produkt";
+
+        return {
+          ...item,
+          alt: imageAlt,
+          src: imageSrc,
+          content: item.content ?? (
+            <span className="flex h-full w-full items-center justify-center">
+              <FallbackImage
+                alt={imageAlt}
+                className="h-full w-full object-contain"
+                height={408}
+                loading="eager"
+                quality={75}
+                sizes="(max-width: 767px) 60vw, (max-width: 1023px) 408px, 32vw"
+                src={imageSrc}
+                width={408}
+              />
+            </span>
+          ),
+          thumbnailContent: item.thumbnailContent ?? (
+            <span className="flex h-full w-full items-center justify-center">
+              <FallbackImage
+                alt={item.thumbnailAlt || imageAlt}
+                className="h-full w-full object-contain"
+                height={88}
+                quality={60}
+                sizes="88px"
+                src={item.thumbnailSrc || imageSrc}
+                width={88}
+              />
+            </span>
+          ),
+        };
+      }),
+    [galleryItems],
+  );
+
   return (
     <div className="space-y-300">
       <Gallery
-        items={galleryItems}
+        items={galleryItemsWithFallback}
         orientation="vertical"
         thumbnailSize={88}
         hideThumbnailsWhenSingle={false}
