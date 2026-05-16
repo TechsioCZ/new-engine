@@ -1,4 +1,4 @@
-export const PRODUCT_FALLBACK_IMAGE = "/file.svg";
+export { FALLBACK_IMAGE_SRC as PRODUCT_FALLBACK_IMAGE } from "@/components/fallback-image.constants";
 
 export const RELATED_PRODUCTS_PER_SECTION = 4;
 

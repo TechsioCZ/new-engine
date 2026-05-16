@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types";
 import NextImage from "next/image";
+import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants";
 import { SupportingText } from "@/components/text/supporting-text";
 import {
   resolveCartItemName,
@@ -54,7 +55,7 @@ export function CheckoutOrderSummarySection({
             const itemThumbnail =
               typeof item.thumbnail === "string" && item.thumbnail.length > 0
                 ? item.thumbnail
-                : "/file.svg";
+                : FALLBACK_IMAGE_SRC;
             const hasDivider = index < cartItems.length - 1;
             const availabilityText = resolveAvailabilityText(item);
 

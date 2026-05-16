@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
+import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants";
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations";
 
 export const FALLBACK_MAX_QUANTITY = 99;
@@ -55,5 +56,5 @@ export const resolveLineItemThumbnail = (item: HttpTypes.StoreCartLineItem) => {
     return item.thumbnail;
   }
 
-  return "/file.svg";
+  return FALLBACK_IMAGE_SRC;
 };
