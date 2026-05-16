@@ -48,7 +48,7 @@ export function BlogDetailPage({
 
         <div className="grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_342px]">
           <div className="space-y-400">
-            <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400">
+            <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface max-xs:py-100 p-400">
               <div className="flex flex-wrap gap-150">
                 {post.tags.map((tag) => (
                   <span
@@ -64,33 +64,21 @@ export function BlogDetailPage({
                 {post.title}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-x-500 gap-y-150 text-sm leading-normal text-fg-secondary">
-                <p>
-                  <strong className="font-semibold text-fg-primary">
-                    Autor:
-                  </strong>{" "}
-                  {post.author}
-                </p>
-                <p>
-                  <strong className="font-semibold text-fg-primary">
-                    Publikované:
-                  </strong>{" "}
-                  {formatBlogDate(post.publishedAt)}
-                </p>
-                <p>
-                  <strong className="font-semibold text-fg-primary">
-                    Čas čítania:
-                  </strong>{" "}
-                  {post.readingTime}
-                </p>
-              </div>
+              <NextImage
+                alt={post.title}
+                className="inline-block xs:hidden aspect-product-detail-image w-full object-cover rounded-2xl"
+                height={620}
+                src={post.imageSrc}
+                width={1200}
+                quality={50}
+              />
 
-              <p className="text-md leading-relaxed text-fg-primary">
-                {post.lead}
-              </p>
+              <div className="hidden space-y-300 md:block">
+                <BlogPostIntro post={post} />
+              </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-border-secondary bg-surface">
+            <section className="hidden xs:inline-block overflow-hidden rounded-2xl border border-border-secondary bg-surface">
               <NextImage
                 alt={post.title}
                 className="aspect-product-detail-image w-full object-cover"
@@ -99,6 +87,10 @@ export function BlogDetailPage({
                 width={1200}
                 quality={50}
               />
+            </section>
+
+            <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400 md:hidden">
+              <BlogPostIntro post={post} />
             </section>
 
             {hasStructuredSections ? (
@@ -236,5 +228,32 @@ export function BlogDetailPage({
         </div>
       </div>
     </main>
+  );
+}
+
+function BlogPostIntro({ post }: { post: BlogPost }) {
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-x-500 gap-y-150 text-sm leading-normal text-fg-secondary">
+        <p>
+          <strong className="font-semibold text-fg-primary">Autor:</strong>{" "}
+          {post.author}
+        </p>
+        <p>
+          <strong className="font-semibold text-fg-primary">
+            Publikované:
+          </strong>{" "}
+          {formatBlogDate(post.publishedAt)}
+        </p>
+        <p>
+          <strong className="font-semibold text-fg-primary">
+            Čas čítania:
+          </strong>{" "}
+          {post.readingTime}
+        </p>
+      </div>
+
+      <p className="text-md leading-relaxed text-fg-primary">{post.lead}</p>
+    </>
   );
 }
