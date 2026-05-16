@@ -1,11 +1,11 @@
-import { resolveShippingIcon } from "@/components/checkout/checkout-display.utils";
+import { useEffect, useMemo, useState } from "react";
 import {
   resolveCarrierPickupHint,
   resolveCarrierPickupRequirement,
 } from "@/components/checkout/carrier-pickup.utils";
+import { resolveShippingIcon } from "@/components/checkout/checkout-display.utils";
 import { SupportingText } from "@/components/text/supporting-text";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { useEffect, useMemo, useState } from "react";
 import { CheckoutCarrierPickupDetails } from "./checkout-carrier-pickup-details";
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card";
 
@@ -18,7 +18,6 @@ type ShippingOption = {
 
 type CheckoutShippingSectionProps = {
   currencyCode: string;
-  hasShipping: boolean;
   isBusy: boolean;
   onSelectShipping: (optionId: string, data?: Record<string, unknown>) => void;
   selectedShippingMethodId?: string | null;
@@ -26,9 +25,11 @@ type CheckoutShippingSectionProps = {
   shippingPrices: Record<string, number>;
 };
 
+const PICKUP_SELECTION_REQUIRED_TEXT =
+  "Vyberte výdajné miesto, aby sa odomkla platba.";
+
 export function CheckoutShippingSection({
   currencyCode,
-  hasShipping,
   isBusy,
   onSelectShipping,
   selectedShippingMethodId,
@@ -76,6 +77,7 @@ export function CheckoutShippingSection({
       <div className="grid gap-150">
         {shippingOptions.length > 0 ? (
           <CheckoutOptionRadioCard
+            expandedValue={pendingPickupOptionId}
             label="Doprava"
             onValueChange={(value) => {
               if (pickupRequirements.has(value)) {
@@ -89,6 +91,11 @@ export function CheckoutShippingSection({
             options={shippingOptions.map((option) => {
               const optionPrice = shippingPrices[option.id] ?? 0;
               const pickupRequirement = pickupRequirements.get(option.id);
+              const isAwaitingPickupSelection = Boolean(
+                pickupRequirement &&
+                  pendingPickupOptionId === option.id &&
+                  selectedShippingMethodId !== option.id,
+              );
 
               return {
                 addon: pickupRequirement ? (
@@ -101,6 +108,9 @@ export function CheckoutShippingSection({
                   />
                 ) : undefined,
                 disabled: isBusy,
+                bodyText: isAwaitingPickupSelection
+                  ? PICKUP_SELECTION_REQUIRED_TEXT
+                  : undefined,
                 hint: pickupRequirement
                   ? resolveCarrierPickupHint(pickupRequirement)
                   : undefined,
@@ -111,7 +121,7 @@ export function CheckoutShippingSection({
                 value: option.id,
               };
             })}
-            value={pendingPickupOptionId ?? selectedShippingMethodId ?? null}
+            value={selectedShippingMethodId ?? null}
           />
         ) : (
           <SupportingText>

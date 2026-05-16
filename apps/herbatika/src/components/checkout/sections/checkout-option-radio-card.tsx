@@ -16,6 +16,7 @@ type CheckoutOptionRadioCardItem = {
 };
 
 type CheckoutOptionRadioCardProps = {
+  expandedValue?: string | null;
   label: string;
   onValueChange: (value: string) => void;
   options: CheckoutOptionRadioCardItem[];
@@ -23,6 +24,7 @@ type CheckoutOptionRadioCardProps = {
 };
 
 export function CheckoutOptionRadioCard({
+  expandedValue,
   label,
   onValueChange,
   options,
@@ -46,6 +48,7 @@ export function CheckoutOptionRadioCard({
 
       {options.map((option) => {
         const isSelected = value === option.value;
+        const isExpanded = isSelected || expandedValue === option.value;
 
         return (
           <RadioCard.Item
@@ -84,7 +87,7 @@ export function CheckoutOptionRadioCard({
               />
             </RadioCard.ItemControl>
 
-            {isSelected &&
+            {isExpanded &&
             (option.bodyText || option.actionLabel || option.addon) ? (
               <RadioCard.ItemAddon className="space-y-100">
                 {option.bodyText ? (

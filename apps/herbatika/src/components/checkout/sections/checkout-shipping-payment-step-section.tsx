@@ -37,7 +37,6 @@ export function CheckoutShippingPaymentStepSection({
     <section className="space-y-400">
       <CheckoutShippingSection
         currencyCode={controller.currencyCode}
-        hasShipping={controller.hasShipping}
         isBusy={controller.isBusy}
         onSelectShipping={controller.handleSelectShipping}
         selectedShippingMethodId={
@@ -78,11 +77,15 @@ export function CheckoutShippingPaymentStepSection({
             iconPosition="right"
             size="lg"
           >
-            <span className="font-normal uppercase">Pokračovať na vaše údaje</span>
+            <span className="font-normal uppercase">
+              Pokračovať na vaše údaje
+            </span>
           </LinkButton>
         ) : (
           <Button className="w-full sm:ml-auto sm:w-auto" disabled size="lg">
-            <span className="font-normal uppercase">Pokračovať na vaše údaje</span>
+            <span className="font-normal uppercase">
+              Pokračovať na vaše údaje
+            </span>
           </Button>
         )}
       </div>
