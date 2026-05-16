@@ -25,7 +25,7 @@ export function ProductDetailOffers({
   }
 
   return (
-    <section className="space-y-350 p-550">
+    <section className="space-y-350 sm:p-550">
       <h2 className="text-xl font-semibold text-fg-primary">
         Množstevná zľava
       </h2>
