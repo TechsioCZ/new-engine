@@ -97,7 +97,7 @@ export function HerbatikaFooter() {
 
           <Footer.Divider className="mx-auto max-w-footer-max" />
           <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-700 lg:flex-row lg:items-center lg:gap-800">
-            <div className="flex flex-wrap items-center gap-300">
+            <div className="flex w-full flex-wrap items-center justify-center gap-300 md:w-auto md:justify-start">
               {SOCIAL_LINKS.map((social) => (
                 <Button
                   aria-label={social.label}
@@ -130,7 +130,7 @@ export function HerbatikaFooter() {
               </Footer.Link>
             </Footer.Text>
 
-            <div className="flex flex-wrap items-center justify-start gap-150 sm:justify-end">
+            <div className="flex w-full flex-wrap items-center justify-center gap-150 md:w-auto md:justify-end">
               {FOOTER_LOCALES.map((locale) => (
                 <Button
                   icon={locale.icon}
