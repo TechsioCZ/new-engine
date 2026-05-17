@@ -41,7 +41,7 @@ export function ProductDetailTabs({
       </div>
 
       <div className="lg:hidden">
-        <Accordion defaultValue={[defaultSectionValue]} size="sm" variant="default">
+        <Accordion size="sm" variant="default">
           {sections.map((section) => (
             <Accordion.Item key={section.key} value={section.key}>
               <Accordion.Header>

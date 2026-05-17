@@ -67,13 +67,13 @@ export function ProductDetailMediaColumn({
   );
 
   return (
-    <div className="space-y-300">
+    <div className="min-w-0 space-y-300">
       <Gallery
         items={galleryItemsWithFallback}
         orientation="vertical"
         thumbnailSize={88}
         hideThumbnailsWhenSingle={false}
-        className="md:grid-cols-[auto_minmax(0,1fr)]"
+        className="min-w-0 md:grid-cols-[auto_minmax(0,1fr)]"
         carouselProps={{
           aspectRatio: "square",
           loop: true,
@@ -87,7 +87,7 @@ export function ProductDetailMediaColumn({
           className="md:col-start-1 md:row-start-1"
           listClassName="gap-100"
         />
-        <Gallery.Main className="relative flex-col overflow-hidden rounded-base bg-surface md:col-start-2 md:row-start-1">
+        <Gallery.Main className="relative w-full flex-col overflow-hidden rounded-base bg-surface md:col-start-2 md:row-start-1">
           {typeof discountPercent === "number" && discountPercent > 0 ? (
             <Badge
               className="absolute top-300 right-300 z-1 flex w-850 aspect-square rounded-full text-sm"
@@ -97,8 +97,8 @@ export function ProductDetailMediaColumn({
             </Badge>
           ) : null}
 
-          <Gallery.Carousel className="px-gallery-carousel">
-            <Gallery.Slides className="h-full mx-auto max-w-[408px] max-h-[408px]"/>
+          <Gallery.Carousel className="min-w-0 px-gallery-carousel">
+            <Gallery.Slides className="mx-auto h-full w-full max-w-full max-h-[408px] md:max-w-[408px]" />
           </Gallery.Carousel>
 
           {mediaFacts.length > 0 ? (
@@ -119,8 +119,8 @@ export function ProductDetailMediaColumn({
         </Gallery.Main>
       </Gallery>
 
-      <div className="flex flex-wrap items-center justify-between gap-250 rounded-base border border-primary/20 bg-surface p-400 md:flex-nowrap xl:flex-wrap lg:max-xl:grid lg:max-xl:grid-cols-2">
-        <div className="flex items-center gap-150 lg:max-xl:col-span-2">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-250 rounded-base border border-primary/20 bg-surface p-400 md:flex-nowrap xl:flex-wrap lg:max-xl:grid lg:max-xl:grid-cols-2">
+        <div className="flex min-w-0 items-center gap-150 lg:max-xl:col-span-2">
           <NextImage
             alt="Poradca Herbatika"
             className="size-11 shrink-0 rounded-full object-cover"
@@ -129,11 +129,11 @@ export function ProductDetailMediaColumn({
             src="/photos/image.png"
             width={46}
           />
-          <div className="space-y-0">
-            <p className="whitespace-nowrap text-lg font-bold leading-tight text-fg-strong">
+          <div className="min-w-0 space-y-0">
+            <p className="text-lg font-bold leading-tight text-fg-strong">
               Potrebujete poradiť?
             </p>
-            <SupportingText className="whitespace-nowrap text-xs leading-tight text-fg-secondary">
+            <SupportingText className="text-xs leading-tight text-fg-secondary">
               Kontaktujte nás, radi vám pomôžeme
             </SupportingText>
           </div>
