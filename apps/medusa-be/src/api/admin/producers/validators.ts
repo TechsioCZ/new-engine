@@ -31,6 +31,7 @@ export const ProducerAttributeSchema = z
 
 export const AdminGetProducersSchema = z
   .object({
+    handle: z.string().trim().optional(),
     include_deleted: queryBoolean.optional().default(false),
     limit: z.coerce.number().int().min(1).max(100).optional().default(20),
     offset: z.coerce.number().int().min(0).optional().default(0),

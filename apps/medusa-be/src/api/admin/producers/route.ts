@@ -40,19 +40,23 @@ export async function GET(
   res: MedusaResponse
 ) {
   const service = getProducerService(req.scope)
-  const { include_deleted, limit, offset, q } = req.validatedQuery
+  const { handle, include_deleted, limit, offset, q } = req.validatedQuery
   const order = parseOrder(
     req.validatedQuery.order_by ?? req.validatedQuery.order
   )
   const escapedQuery = q ? escapeLikePattern(q) : undefined
-  const filters = escapedQuery
-    ? {
-        $or: [
-          { title: { $ilike: `%${escapedQuery}%` } },
-          { handle: { $ilike: `%${escapedQuery}%` } },
-        ],
-      }
-    : {}
+  let filters = {}
+
+  if (handle) {
+    filters = { handle }
+  } else if (escapedQuery) {
+    filters = {
+      $or: [
+        { title: { $ilike: `%${escapedQuery}%` } },
+        { handle: { $ilike: `%${escapedQuery}%` } },
+      ],
+    }
+  }
 
   const [producers, count] = await service.listAndCountProducers(filters, {
     order,
@@ -84,6 +88,29 @@ export async function POST(
     attributes: req.validatedBody.attributes,
     handle: req.validatedBody.handle ?? kebabCase(req.validatedBody.title),
     title: req.validatedBody.title,
+  }
+  const [existing] = await getProducerService(req.scope).listProducers(
+    {
+      handle: input.handle,
+    },
+    {
+      take: 1,
+      withDeleted: true,
+    }
+  )
+
+  if (existing?.deleted_at) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Producer with handle "${input.handle}" already exists as a deleted record. Restore it instead of creating a new producer.`
+    )
+  }
+
+  if (existing) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Producer with handle "${input.handle}" already exists.`
+    )
   }
 
   const { result } = await createProducersWorkflow(req.scope).run({

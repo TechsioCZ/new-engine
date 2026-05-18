@@ -90,7 +90,9 @@ export type ProducerAdminI18nNamespace = {
     | "removeProductDescription"
     | "removeProductTitle"
     | "restoreAttributeDescription"
-    | "restoreAttributeTitle",
+    | "restoreAttributeTitle"
+    | "restoreProducerDescription"
+    | "restoreProducerTitle",
     string
   >
   products: Record<
@@ -117,7 +119,9 @@ export type ProducerAdminI18nNamespace = {
     | "attributeRestored"
     | "producerCreated"
     | "producerDeleted"
+    | "producerExistsError"
     | "producerProductsUpdated"
+    | "producerReactivated"
     | "producerRestored"
     | "producerUpdated"
     | "productProducerUpdated"
@@ -243,6 +247,9 @@ export const producerAdminI18n = {
       restoreAttributeDescription:
         'Atribut "{{name}}" už existuje, ale je smazaný. Obnovit ho místo vytvoření nového?',
       restoreAttributeTitle: "Obnovit atribut",
+      restoreProducerDescription:
+        'Výrobce "{{title}}" s handlem "{{handle}}" už existuje, ale je smazaný. Tato akce ho obnoví a upraví místo vytvoření nového výrobce.',
+      restoreProducerTitle: "Obnovit výrobce",
     },
     products: {
       alreadyLinkedTooltip: 'Už je propojen s výrobcem "{{title}}"',
@@ -281,7 +288,9 @@ export const producerAdminI18n = {
       attributeRestored: "Atribut obnoven",
       producerCreated: "Výrobce vytvořen",
       producerDeleted: "Výrobce smazán",
+      producerExistsError: 'Výrobce s handlem "{{handle}}" už existuje',
       producerProductsUpdated: "Produkty výrobce upraveny",
+      producerReactivated: "Výrobce obnoven a upraven",
       producerRestored: "Výrobce obnoven",
       producerUpdated: "Výrobce upraven",
       productProducerUpdated: "Výrobce produktu upraven",
@@ -404,6 +413,9 @@ export const producerAdminI18n = {
       restoreAttributeDescription:
         'Attribute "{{name}}" already exists but is deleted. Restore it instead?',
       restoreAttributeTitle: "Restore attribute",
+      restoreProducerDescription:
+        'Producer "{{title}}" with handle "{{handle}}" already exists but is deleted. This will restore and update it instead of creating a new producer.',
+      restoreProducerTitle: "Restore producer",
     },
     products: {
       alreadyLinkedTooltip: 'Already linked to producer "{{title}}"',
@@ -442,7 +454,9 @@ export const producerAdminI18n = {
       attributeRestored: "Attribute restored",
       producerCreated: "Producer created",
       producerDeleted: "Producer deleted",
+      producerExistsError: 'Producer with handle "{{handle}}" already exists',
       producerProductsUpdated: "Producer products updated",
+      producerReactivated: "Producer restored and updated",
       producerRestored: "Producer restored",
       producerUpdated: "Producer updated",
       productProducerUpdated: "Product producer updated",

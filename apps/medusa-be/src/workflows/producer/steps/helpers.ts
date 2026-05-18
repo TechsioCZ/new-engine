@@ -1,4 +1,5 @@
 import type {
+  Context,
   LinkDefinition,
   MedusaContainer,
   Query,
@@ -59,8 +60,24 @@ type ProductProducerLinkRecord = {
   producer_id?: string
 }
 
+type ProducerServiceWithTransaction = ProducerModuleService & {
+  baseRepository_: {
+    transaction: <T>(
+      task: (transactionManager: unknown) => Promise<T>
+    ) => Promise<T>
+  }
+}
+
 export const getProducerService = (container: MedusaContainer) =>
   container.resolve<ProducerModuleService>(PRODUCER_MODULE)
+
+export const withProducerTransaction = <T>(
+  service: ProducerModuleService,
+  task: (sharedContext: Context) => Promise<T>
+) =>
+  (service as ProducerServiceWithTransaction).baseRepository_.transaction(
+    (transactionManager) => task({ transactionManager } as Context)
+  )
 
 const normalizeAttributes = (attributes: ProducerAttributeInput[] = []) => {
   const byName = new Map<string, ProducerAttributeInput>()
@@ -130,11 +147,16 @@ const assertProducerSnapshotRecord: (
 
 export const snapshotProducer = async (
   service: ProducerModuleService,
-  producerId: string
+  producerId: string,
+  sharedContext: Context = {}
 ): Promise<ProducerSnapshot> => {
-  const producer = await service.retrieveProducer(producerId, {
-    relations: ["attributes", "attributes.attributeType"],
-  })
+  const producer = await service.retrieveProducer(
+    producerId,
+    {
+      relations: ["attributes", "attributes.attributeType"],
+    },
+    sharedContext
+  )
 
   assertProducerSnapshotRecord(producer, producerId)
 
@@ -152,7 +174,8 @@ export const snapshotProducer = async (
 export const setProducerAttributes = async (
   service: ProducerModuleService,
   producerId: string,
-  inputAttributes: ProducerAttributeInput[] = []
+  inputAttributes: ProducerAttributeInput[] = [],
+  sharedContext: Context = {}
 ) => {
   const attributes = normalizeAttributes(inputAttributes)
   const names = attributes.map((attribute) => attribute.name)
@@ -164,7 +187,8 @@ export const setProducerAttributes = async (
         },
         {
           withDeleted: true,
-        }
+        },
+        sharedContext
       )) as ProducerAttributeTypeRecord[])
     : []
   const deletedAttributeTypeIds = existingAttributeTypes
@@ -173,7 +197,11 @@ export const setProducerAttributes = async (
 
   if (deletedAttributeTypeIds.length) {
     // Reuse restored types so producer updates do not create duplicate names.
-    await service.restoreProducerAttributeTypes(deletedAttributeTypeIds)
+    await service.restoreProducerAttributeTypes(
+      deletedAttributeTypeIds,
+      {},
+      sharedContext
+    )
   }
 
   const attributeTypeIdsByName = new Map(
@@ -189,7 +217,8 @@ export const setProducerAttributes = async (
 
   if (missingAttributeTypeNames.length) {
     const createdAttributeTypes = (await service.createProducerAttributeTypes(
-      missingAttributeTypeNames.map((name) => ({ name }))
+      missingAttributeTypeNames.map((name) => ({ name })),
+      sharedContext
     )) as Array<{ id: string; name: string }>
 
     for (const attributeType of createdAttributeTypes) {
@@ -202,14 +231,19 @@ export const setProducerAttributes = async (
     {
       relations: ["attributeType"],
       withDeleted: true,
-    }
+    },
+    sharedContext
   )) as ProducerAttributeRecord[]
   const deletedAttributeIds = existingAttributes
     .filter((attribute) => attribute.deleted_at)
     .map((attribute) => attribute.id)
 
   if (deletedAttributeIds.length) {
-    await service.restoreProducerAttributes(deletedAttributeIds)
+    await service.restoreProducerAttributes(
+      deletedAttributeIds,
+      {},
+      sharedContext
+    )
   }
 
   const existingByName = new Map(
@@ -264,15 +298,15 @@ export const setProducerAttributes = async (
     .map((attribute) => attribute.id)
 
   if (toCreate.length) {
-    await service.createProducerAttributes(toCreate)
+    await service.createProducerAttributes(toCreate, sharedContext)
   }
 
   if (toUpdate.length) {
-    await service.updateProducerAttributes(toUpdate)
+    await service.updateProducerAttributes(toUpdate, sharedContext)
   }
 
   if (toDelete.length) {
-    await service.deleteProducerAttributes(toDelete)
+    await service.deleteProducerAttributes(toDelete, sharedContext)
   }
 }
 

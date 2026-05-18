@@ -1,8 +1,8 @@
 {
   "namespaces": [
-    "public"
+    "medusa"
   ],
-  "name": "public",
+  "name": "medusa",
   "tables": [
     {
       "columns": {
@@ -195,7 +195,7 @@
         }
       },
       "name": "ppl_config",
-      "schema": "public",
+      "schema": "medusa",
       "indexes": [
         {
           "keyName": "IDX_ppl_config_deleted_at",

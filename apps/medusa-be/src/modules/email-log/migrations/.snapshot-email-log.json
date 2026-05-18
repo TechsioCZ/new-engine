@@ -1,8 +1,8 @@
 {
   "namespaces": [
-    "public"
+    "medusa"
   ],
-  "name": "public",
+  "name": "medusa",
   "tables": [
     {
       "columns": {
@@ -114,7 +114,7 @@
         }
       },
       "name": "email_log",
-      "schema": "public",
+      "schema": "medusa",
       "indexes": [
         {
           "keyName": "IDX_email_log_email_id",

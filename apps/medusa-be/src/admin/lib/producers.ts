@@ -58,6 +58,7 @@ export type ProducersResponse = {
 }
 
 export type ProducerResponse = {
+  action?: "created" | "restored" | "updated"
   producer: Producer
 }
 
@@ -144,6 +145,7 @@ export const productQueryKeys = {
 }
 
 export const listProducers = (params: {
+  handle?: string
   include_deleted?: boolean
   limit: number
   offset: number

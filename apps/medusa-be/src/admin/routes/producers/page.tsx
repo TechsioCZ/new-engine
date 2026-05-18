@@ -89,6 +89,13 @@ const optionalTrimmed = (value?: string) => {
   return trimmed ? trimmed : undefined
 }
 
+const toDefaultHandle = (title: string) =>
+  title
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "")
+
 const formatDate = (date: string | undefined, locale?: string) => {
   if (!date) {
     return "-"
@@ -229,17 +236,69 @@ const ProducerFormDrawer = ({
 }) => {
   const { t } = useTranslation("producers")
   const queryClient = useQueryClient()
+  const prompt = usePrompt()
   const [form, setForm] = useState<ProducerInput>(() => toFormState(producer))
 
   const mutation = useMutation({
-    mutationFn: (input: ProducerInput) =>
-      producer ? updateProducer(producer.id, input) : createProducer(input),
+    mutationFn: async (input: ProducerInput) => {
+      if (producer) {
+        return updateProducer(producer.id, input)
+      }
+
+      const handle = input.handle ?? toDefaultHandle(input.title)
+      const existingResponse = await listProducers({
+        handle,
+        include_deleted: true,
+        limit: 1,
+        offset: 0,
+        order_by: "title",
+      })
+      const existing = existingResponse.producers.find(
+        (candidate) => candidate.handle === handle
+      )
+
+      if (existing?.deleted_at) {
+        const confirmed = await prompt({
+          cancelText: t("actions.cancel"),
+          confirmText: t("actions.restore"),
+          description: t("prompts.restoreProducerDescription", {
+            handle,
+            title: existing.title,
+          }),
+          title: t("prompts.restoreProducerTitle"),
+        })
+
+        if (!confirmed) {
+          return null
+        }
+
+        await restoreProducer(existing.id)
+        const response = await updateProducer(existing.id, {
+          ...input,
+          handle,
+        })
+
+        return { ...response, action: "restored" as const }
+      }
+
+      if (existing) {
+        throw new Error(t("toasts.producerExistsError", { handle }))
+      }
+
+      const response = await createProducer({ ...input, handle })
+
+      return { ...response, action: "created" as const }
+    },
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.saveProducerFailed")
       )
     },
     onSuccess: async (response) => {
+      if (!response) {
+        return
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["producers"] })
       await queryClient.invalidateQueries({
         queryKey: ["producer-attribute-types"],
@@ -250,9 +309,13 @@ const ProducerFormDrawer = ({
       await queryClient.invalidateQueries({
         queryKey: producerQueryKeys.detail(response.producer.id),
       })
-      toast.success(
-        producer ? t("toasts.producerUpdated") : t("toasts.producerCreated")
-      )
+      if (response.action === "restored") {
+        toast.success(t("toasts.producerReactivated"))
+      } else {
+        toast.success(
+          producer ? t("toasts.producerUpdated") : t("toasts.producerCreated")
+        )
+      }
       onOpenChange(false)
     },
   })
