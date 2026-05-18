@@ -128,16 +128,27 @@ export const producerQueryKeys = {
     id: string | undefined,
     params: Record<string, unknown>
   ) => ["producer-attribute-type", id, params] as const,
+  attributeTypeDetailPrefix: (id: string | undefined) =>
+    ["producer-attribute-type", id] as const,
+  attributeTypeDetails: () => ["producer-attribute-type"] as const,
   attributeTypes: (params: Record<string, unknown>) =>
     ["producer-attribute-types", params] as const,
+  attributeTypesLists: () => ["producer-attribute-types"] as const,
   detail: (id: string | undefined) => ["producer", id] as const,
+  details: () => ["producer"] as const,
   list: (params: Record<string, unknown>) => ["producers", params] as const,
+  lists: () => ["producers"] as const,
   productLinks: (productId: string | undefined) =>
     ["product-producers", productId] as const,
   productOptions: (id: string | undefined, params: Record<string, unknown>) =>
     ["producer-product-options", id, params] as const,
+  productOptionsLists: () => ["producer-product-options"] as const,
   products: (id: string | undefined, params: Record<string, unknown>) =>
     ["producer-products", id, params] as const,
+  productsLists: (id?: string) =>
+    id
+      ? (["producer-products", id] as const)
+      : (["producer-products"] as const),
 }
 
 export const productQueryKeys = {

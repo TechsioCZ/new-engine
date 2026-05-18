@@ -5,6 +5,7 @@ import {
   restoreProducerAttributeTypesWorkflow,
 } from "../../../../workflows/producer"
 import {
+  escapeLikePattern,
   getProducerAttributeTypeUsageCounts,
   getProducerService,
   toProducerAttributeTypeResponse,
@@ -37,13 +38,14 @@ export async function GET(
 ) {
   const service = getProducerService(req.scope)
   const { include_deleted, limit, name, offset, q } = req.validatedQuery
+  const escapedQuery = q ? escapeLikePattern(q) : undefined
   let filters = {}
 
   if (name) {
     filters = { name }
-  } else if (q) {
+  } else if (escapedQuery) {
     filters = {
-      name: { $ilike: `%${q}%` },
+      name: { $ilike: `%${escapedQuery}%` },
     }
   }
 

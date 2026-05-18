@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { MedusaContainer } from "@medusajs/framework/types"
 import {
+  getActiveProducerIds,
   getProducerActiveProductCounts,
   listAndCountProducts,
   listAndCountProductsByIds,
@@ -125,7 +126,13 @@ export async function GET(
     ? [currentProductIds, { $nin: currentProductIds }]
     : await (async () => {
         const allLinks = await listProductProducerLinks(req.scope)
-        const linkedProductIds = allLinks.map((link) => link.product_id)
+        const activeProducerIds = await getActiveProducerIds(
+          req.scope,
+          allLinks.map((link) => link.producer_id)
+        )
+        const linkedProductIds = allLinks
+          .filter((link) => activeProducerIds.has(link.producer_id))
+          .map((link) => link.product_id)
 
         return [currentProductIds, { $nin: linkedProductIds }]
       })()
@@ -150,16 +157,24 @@ export async function GET(
       toProducerResponse(producer, activeProductCounts.get(producer.id) ?? 0),
     ])
   )
-  const producerIdByProductId = new Map(
-    links.map((link) => [link.product_id, link.producer_id])
+  const activeProducerIds = new Set(
+    linkedProducers
+      .filter((producer) => !producer.deleted_at)
+      .map((producer) => producer.id)
+  )
+  const activeProducerIdByProductId = new Map(
+    links
+      .filter((link) => activeProducerIds.has(link.producer_id))
+      .map((link) => [link.product_id, link.producer_id])
   )
   const options = products.map((product) => {
-    const assignedProducerId = producerIdByProductId.get(product.id)
+    const assignedProducerId = activeProducerIdByProductId.get(product.id)
+    const assignedProducer = assignedProducerId
+      ? (producersById.get(assignedProducerId) ?? null)
+      : null
 
     return {
-      assigned_producer: assignedProducerId
-        ? (producersById.get(assignedProducerId) ?? null)
-        : null,
+      assigned_producer: assignedProducer,
       product,
     }
   })

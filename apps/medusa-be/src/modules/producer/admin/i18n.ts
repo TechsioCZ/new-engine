@@ -42,7 +42,9 @@ export type ProducerAdminI18nNamespace = {
     | "backToProducers"
     | "details"
     | "id"
-    | "linkedProductsCount",
+    | "linkedProductsCount"
+    | "openProducer"
+    | "openProduct",
     string
   >
   errors: Record<
@@ -101,6 +103,7 @@ export type ProducerAdminI18nNamespace = {
     | "emptyLinked"
     | "emptyOptions"
     | "emptySearch"
+    | "inactiveLinked"
     | "linked"
     | "manageTitle"
     | "notLinked"
@@ -110,7 +113,10 @@ export type ProducerAdminI18nNamespace = {
   >
   producers: Record<"count" | "empty" | "title" | "widgetTitle", string>
   search: Record<"attributes" | "producers" | "products", string>
-  status: Record<"active" | "deleted" | "loading" | "selected", string>
+  status: Record<
+    "active" | "deleted" | "inactive" | "loading" | "selected",
+    string
+  >
   toasts: Record<
     | "attributeAlreadyExists"
     | "attributeCreated"
@@ -182,6 +188,8 @@ export const producerAdminI18n = {
       details: "Detaily",
       id: "ID",
       linkedProductsCount: "{{count}} propojených produktů",
+      openProducer: "Otevřít výrobce {{title}}",
+      openProduct: "Otevřít produkt {{title}}",
     },
     errors: {
       attributeIdRequired: "ID atributu je povinné",
@@ -257,6 +265,7 @@ export const producerAdminI18n = {
       emptyLinked: "Žádné propojené produkty.",
       emptyOptions: "Nebyly nalezeny žádné produkty bez výrobce.",
       emptySearch: "Nebyly nalezeny žádné produkty.",
+      inactiveLinked: "Propojeno s neaktivním výrobcem",
       linked: "Propojeno",
       manageTitle: "Spravovat produkty",
       notLinked: "Není propojeno",
@@ -277,6 +286,7 @@ export const producerAdminI18n = {
     status: {
       active: "Aktivní",
       deleted: "Smazáno",
+      inactive: "Neaktivní",
       loading: "Načítání...",
       selected: "Vybráno",
     },
@@ -347,6 +357,8 @@ export const producerAdminI18n = {
       details: "Details",
       id: "ID",
       linkedProductsCount: "{{count}} linked products",
+      openProducer: "Open producer {{title}}",
+      openProduct: "Open product {{title}}",
     },
     errors: {
       attributeIdRequired: "Attribute id is required",
@@ -423,6 +435,7 @@ export const producerAdminI18n = {
       emptyLinked: "No linked products.",
       emptyOptions: "No products without a producer found.",
       emptySearch: "No products found.",
+      inactiveLinked: "Linked to inactive producer",
       linked: "Linked",
       manageTitle: "Manage Products",
       notLinked: "Not linked",
@@ -443,6 +456,7 @@ export const producerAdminI18n = {
     status: {
       active: "Active",
       deleted: "Deleted",
+      inactive: "Inactive",
       loading: "Loading...",
       selected: "Selected",
     },

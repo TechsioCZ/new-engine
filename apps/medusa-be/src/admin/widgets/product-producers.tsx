@@ -22,19 +22,12 @@ import {
   retrieveProductProducers,
   setProductProducers,
 } from "../lib/producers"
+import { getPaginationTranslations } from "../lib/table"
 import { useDebouncedValue } from "../lib/use-debounced-value"
 
 type ProductProducersWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
 const PAGE_SIZE = 20
-
-const paginationTranslations = (t: (key: string) => string) => ({
-  next: t("pagination.next"),
-  of: t("pagination.of"),
-  pages: t("pagination.pages"),
-  prev: t("pagination.previous"),
-  results: t("pagination.results"),
-})
 
 const ProducerSelectionRows = ({
   currentProducerId,
@@ -122,11 +115,11 @@ const ProducerSelectionRows = ({
 const ProducerLinkContent = ({
   error,
   isLoading,
-  producer,
+  producers,
 }: {
   error: unknown
   isLoading: boolean
-  producer?: Producer
+  producers: Producer[]
 }) => {
   const { t } = useTranslation("producers")
 
@@ -142,7 +135,7 @@ const ProducerLinkContent = ({
     return <Text size="small">{t("status.loading")}</Text>
   }
 
-  if (!producer) {
+  if (!producers.length) {
     return (
       <Text className="text-ui-fg-subtle" size="small">
         {t("widget.empty")}
@@ -151,11 +144,32 @@ const ProducerLinkContent = ({
   }
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <Text size="small">
-        <Link to={`/producers/${producer.id}`}>{producer.title}</Link>
-      </Text>
-      <Badge size="2xsmall">{producer.handle}</Badge>
+    <div className="flex flex-col gap-2">
+      {producers.map((producer) => {
+        const isDeleted = !!producer.deleted_at
+
+        return (
+          <div
+            className="flex items-center justify-between gap-3"
+            key={producer.id}
+          >
+            <Text
+              className={isDeleted ? "text-ui-fg-subtle" : undefined}
+              size="small"
+            >
+              <Link to={`/producers/${producer.id}`}>{producer.title}</Link>
+            </Text>
+            <div className="flex items-center gap-2">
+              {isDeleted ? (
+                <Badge color="orange" size="2xsmall">
+                  {t("status.inactive")}
+                </Badge>
+              ) : null}
+              <Badge size="2xsmall">{producer.handle}</Badge>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -215,20 +229,26 @@ const ProducerAssignmentDrawer = ({
       })
       await queryClient.invalidateQueries({ queryKey: ["product", productId] })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
-      await queryClient.invalidateQueries({ queryKey: ["producer"] })
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.details(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-product-options"],
+        queryKey: producerQueryKeys.lists(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.attributeTypeDetails(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.productOptionsLists(),
       })
       toast.success(t("toasts.productProducerUpdated"))
       onOpenChange(false)
     },
   })
 
-  const producers = data?.producers ?? []
+  const producers = [...(data?.producers ?? [])].sort(
+    (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at)
+  )
   const selectedProducer =
     producers.find((producer) => producer.id === selectedId) ??
     (currentProducer?.id === selectedId ? currentProducer : undefined)
@@ -301,7 +321,7 @@ const ProducerAssignmentDrawer = ({
             previousPage={() =>
               setPageIndex((current) => Math.max(current - 1, 0))
             }
-            translations={paginationTranslations(t)}
+            translations={getPaginationTranslations(t)}
           />
         </Drawer.Body>
         <Drawer.Footer>
@@ -350,7 +370,20 @@ const ProductProducersWidget = ({
     return null
   }
 
-  const producer = data?.producers[0]
+  const producers = [...(data?.producers ?? [])].sort(
+    (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at)
+  )
+  const activeProducer = producers.find((producer) => !producer.deleted_at)
+  const hasInactiveProducer = producers.some((producer) => producer.deleted_at)
+  let statusText = t("products.notLinked")
+
+  if (hasInactiveProducer) {
+    statusText = t("products.inactiveLinked")
+  }
+
+  if (activeProducer) {
+    statusText = t("products.linked")
+  }
 
   return (
     <>
@@ -359,7 +392,7 @@ const ProductProducersWidget = ({
           <div>
             <Heading level="h2">{t("widget.title")}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
-              {producer ? t("products.linked") : t("products.notLinked")}
+              {statusText}
             </Text>
           </div>
           <Button
@@ -375,12 +408,12 @@ const ProductProducersWidget = ({
           <ProducerLinkContent
             error={error}
             isLoading={isLoading}
-            producer={producer}
+            producers={producers}
           />
         </div>
       </Container>
       <ProducerAssignmentDrawer
-        currentProducer={producer}
+        currentProducer={activeProducer}
         onOpenChange={setOpen}
         open={open}
         productId={product.id}

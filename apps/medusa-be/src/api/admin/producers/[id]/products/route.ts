@@ -42,7 +42,7 @@ export async function GET(
 ) {
   const producerId = req.params.id ?? ""
 
-  await retrieveProducerOrThrow(req.scope, producerId)
+  await retrieveProducerOrThrow(req.scope, producerId, { withDeleted: true })
 
   const { limit, offset, q } = req.validatedQuery
   const order = parseOrder(

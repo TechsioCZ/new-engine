@@ -1,7 +1,6 @@
-export type ProducerAttributeInput = {
-  name: string
-  value: string
-}
+import type { ProducerAttributeInput as ModuleProducerAttributeInput } from "../../modules/producer/service"
+
+export type ProducerAttributeInput = ModuleProducerAttributeInput
 
 export type ProducerAttributeTypeInput = {
   name: string

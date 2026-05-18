@@ -18,7 +18,13 @@ import {
   usePrompt,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import {
@@ -37,6 +43,10 @@ import {
   setProducerProducts,
   updateProducer,
 } from "../../../lib/producers"
+import {
+  getPaginationTranslations,
+  onRowKeyboardActivate,
+} from "../../../lib/table"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
@@ -49,14 +59,6 @@ const PRODUCT_ORDER_OPTIONS = [
   { labelKey: "orderOptions.statusAsc", value: "status" },
   { labelKey: "orderOptions.newest", value: "-created_at" },
 ]
-
-const paginationTranslations = (t: (key: string) => string) => ({
-  next: t("pagination.next"),
-  of: t("pagination.of"),
-  pages: t("pagination.pages"),
-  prev: t("pagination.previous"),
-  results: t("pagination.results"),
-})
 
 const emptyAttribute = (
   attributeTypes: ProducerAttributeType[] = [],
@@ -213,12 +215,14 @@ const ProducerEditDrawer = ({
       await queryClient.invalidateQueries({
         queryKey: producerQueryKeys.detail(producer.id),
       })
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-types"],
+        queryKey: producerQueryKeys.lists(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.attributeTypesLists(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.attributeTypeDetails(),
       })
       toast.success(t("toasts.producerUpdated"))
       onOpenChange(false)
@@ -466,17 +470,19 @@ const ProductAssignmentDrawer = ({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["producer-products", producerId],
+        queryKey: producerQueryKeys.productsLists(producerId),
       })
       await queryClient.invalidateQueries({
         queryKey: producerQueryKeys.detail(producerId),
       })
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.lists(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-product-options"],
+        queryKey: producerQueryKeys.attributeTypeDetails(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.productOptionsLists(),
       })
       toast.success(t("toasts.producerProductsUpdated"))
       onOpenChange(false)
@@ -546,7 +552,7 @@ const ProductAssignmentDrawer = ({
             previousPage={() =>
               setPageIndex((current) => Math.max(current - 1, 0))
             }
-            translations={paginationTranslations(t)}
+            translations={getPaginationTranslations(t)}
           />
           <Text className="text-ui-fg-subtle" size="small">
             {t("products.selectedCount", { count: selectedIds.size })}
@@ -578,12 +584,14 @@ const ProductAssignmentDrawer = ({
 }
 
 const ProductRows = ({
+  canManage,
   isLoading,
   onOpen,
   onRemove,
   products,
   removingProductId,
 }: {
+  canManage: boolean
   isLoading: boolean
   onOpen: (productId: string) => void
   onRemove: (product: ProductSummary) => void
@@ -598,7 +606,7 @@ const ProductRows = ({
         <Table.Cell>{t("status.loading")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
-        <Table.Cell />
+        {canManage ? <Table.Cell /> : null}
       </Table.Row>
     )
   }
@@ -609,41 +617,173 @@ const ProductRows = ({
         <Table.Cell>{t("products.emptyLinked")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
-        <Table.Cell />
+        {canManage ? <Table.Cell /> : null}
       </Table.Row>
     )
   }
 
   return products.map((product) => (
     <Table.Row
+      aria-label={t("detail.openProduct", {
+        title: product.title ?? product.id,
+      })}
       className="cursor-pointer"
       key={product.id}
       onClick={() => onOpen(product.id)}
+      onKeyDown={onRowKeyboardActivate(() => onOpen(product.id))}
+      role="button"
+      tabIndex={0}
     >
       <Table.Cell>{product.title ?? product.id}</Table.Cell>
       <Table.Cell>{product.handle ?? "-"}</Table.Cell>
       <Table.Cell>
         {product.status ? <Badge size="2xsmall">{product.status}</Badge> : "-"}
       </Table.Cell>
-      <Table.Cell>
-        <div className="flex justify-end">
-          <IconButton
-            aria-label={t("actions.remove")}
-            disabled={removingProductId === product.id}
-            onClick={(event) => {
-              event.stopPropagation()
-              onRemove(product)
-            }}
-            size="small"
-            type="button"
-            variant="transparent"
-          >
-            <Trash />
-          </IconButton>
-        </div>
-      </Table.Cell>
+      {canManage ? (
+        <Table.Cell>
+          <div className="flex justify-end">
+            <IconButton
+              aria-label={t("actions.remove")}
+              disabled={removingProductId === product.id}
+              onClick={(event) => {
+                event.stopPropagation()
+                onRemove(product)
+              }}
+              size="small"
+              type="button"
+              variant="transparent"
+            >
+              <Trash />
+            </IconButton>
+          </div>
+        </Table.Cell>
+      ) : null}
     </Table.Row>
   ))
+}
+
+const ProducerProductsSection = ({
+  canManage,
+  count,
+  isLoading,
+  onManage,
+  onOpenProduct,
+  onRemove,
+  productOrderBy,
+  productQ,
+  products,
+  removingProductId,
+  pageCount,
+  pageIndex,
+  setPageIndex,
+  setProductOrderBy,
+  setProductQ,
+}: {
+  canManage: boolean
+  count: number
+  isLoading: boolean
+  onManage: () => void
+  onOpenProduct: (productId: string) => void
+  onRemove: (product: ProductSummary) => void
+  productOrderBy: string
+  productQ: string
+  products: ProductSummary[]
+  removingProductId?: string
+  pageCount: number
+  pageIndex: number
+  setPageIndex: Dispatch<SetStateAction<number>>
+  setProductOrderBy: (value: string) => void
+  setProductQ: (value: string) => void
+}) => {
+  const { t } = useTranslation("producers")
+
+  return (
+    <Container className="divide-y p-0">
+      <div className="flex flex-col gap-4 px-6 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <Heading level="h2">{t("products.title")}</Heading>
+            <Text className="text-ui-fg-subtle" size="small">
+              {t("detail.linkedProductsCount", { count })}
+            </Text>
+          </div>
+          {canManage ? (
+            <Button
+              onClick={onManage}
+              size="small"
+              type="button"
+              variant="secondary"
+            >
+              {t("actions.manage")}
+            </Button>
+          ) : null}
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+          <Input
+            onChange={(event) => {
+              setPageIndex(0)
+              setProductQ(event.target.value)
+            }}
+            placeholder={t("search.products")}
+            value={productQ}
+          />
+          <Select
+            onValueChange={(value) => {
+              setPageIndex(0)
+              setProductOrderBy(value)
+            }}
+            value={productOrderBy}
+          >
+            <Select.Trigger>
+              <Select.Value />
+            </Select.Trigger>
+            <Select.Content>
+              {PRODUCT_ORDER_OPTIONS.map((option) => (
+                <Select.Item key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select>
+        </div>
+      </div>
+      <Table>
+        <Table.Header>
+          <Table.Row>
+            <Table.HeaderCell>{t("columns.product")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
+            {canManage ? (
+              <Table.HeaderCell className="w-[1%] text-right">
+                {t("columns.actions")}
+              </Table.HeaderCell>
+            ) : null}
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          <ProductRows
+            canManage={canManage}
+            isLoading={isLoading}
+            onOpen={onOpenProduct}
+            onRemove={onRemove}
+            products={products}
+            removingProductId={removingProductId}
+          />
+        </Table.Body>
+      </Table>
+      <Table.Pagination
+        canNextPage={pageIndex + 1 < pageCount}
+        canPreviousPage={pageIndex > 0}
+        count={count}
+        nextPage={() => setPageIndex((current) => current + 1)}
+        pageCount={pageCount}
+        pageIndex={pageIndex}
+        pageSize={PAGE_SIZE}
+        previousPage={() => setPageIndex((current) => Math.max(current - 1, 0))}
+        translations={getPaginationTranslations(t)}
+      />
+    </Container>
+  )
 }
 
 const ProducerDetailPage = () => {
@@ -669,6 +809,8 @@ const ProducerDetailPage = () => {
     },
     queryKey: producerQueryKeys.detail(id),
   })
+  const producer = producerQuery.data?.producer
+  const isDeleted = !!producer?.deleted_at
 
   const productParams = useMemo(
     () => ({
@@ -681,7 +823,7 @@ const ProducerDetailPage = () => {
   )
 
   const productsQuery = useQuery({
-    enabled: !!id,
+    enabled: !!id && !!producer,
     placeholderData: (previousData) => previousData,
     queryFn: () => {
       if (!id) {
@@ -692,7 +834,6 @@ const ProducerDetailPage = () => {
     queryKey: producerQueryKeys.products(id, productParams),
   })
 
-  const producer = producerQuery.data?.producer
   const products = productsQuery.data?.products ?? []
   const productIds = productsQuery.data?.product_ids ?? []
   const count = productsQuery.data?.count ?? 0
@@ -724,9 +865,11 @@ const ProducerDetailPage = () => {
       await queryClient.invalidateQueries({
         queryKey: producerQueryKeys.detail(id),
       })
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.lists(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.attributeTypeDetails(),
       })
       toast.success(t("toasts.producerRestored"))
     },
@@ -745,17 +888,19 @@ const ProducerDetailPage = () => {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["producer-products", id],
+        queryKey: producerQueryKeys.productsLists(id),
       })
       await queryClient.invalidateQueries({
         queryKey: producerQueryKeys.detail(id),
       })
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.lists(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-product-options"],
+        queryKey: producerQueryKeys.attributeTypeDetails(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.productOptionsLists(),
       })
       toast.success(t("toasts.productRemoved"))
     },
@@ -888,104 +1033,37 @@ const ProducerDetailPage = () => {
           </div>
         </Container>
 
-        <Container className="divide-y p-0">
-          <div className="flex flex-col gap-4 px-6 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Heading level="h2">{t("products.title")}</Heading>
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("detail.linkedProductsCount", { count })}
-                </Text>
-              </div>
-              <Button
-                onClick={() => setProductsOpen(true)}
-                size="small"
-                type="button"
-                variant="secondary"
-              >
-                {t("actions.manage")}
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-              <Input
-                onChange={(event) => {
-                  setPageIndex(0)
-                  setProductQ(event.target.value)
-                }}
-                placeholder={t("search.products")}
-                value={productQ}
-              />
-              <Select
-                onValueChange={(value) => {
-                  setPageIndex(0)
-                  setProductOrderBy(value)
-                }}
-                value={productOrderBy}
-              >
-                <Select.Trigger>
-                  <Select.Value />
-                </Select.Trigger>
-                <Select.Content>
-                  {PRODUCT_ORDER_OPTIONS.map((option) => (
-                    <Select.Item key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select>
-            </div>
-          </div>
-          <Table>
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell>{t("columns.product")}</Table.HeaderCell>
-                <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
-                <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
-                <Table.HeaderCell className="w-[1%] text-right">
-                  {t("columns.actions")}
-                </Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              <ProductRows
-                isLoading={productsQuery.isLoading}
-                onOpen={(productId) => navigate(`/products/${productId}`)}
-                onRemove={handleRemoveProduct}
-                products={products}
-                removingProductId={removeProductMutation.variables}
-              />
-            </Table.Body>
-          </Table>
-          <Table.Pagination
-            canNextPage={pageIndex + 1 < pageCount}
-            canPreviousPage={pageIndex > 0}
-            count={count}
-            nextPage={() => setPageIndex((current) => current + 1)}
-            pageCount={pageCount}
-            pageIndex={pageIndex}
-            pageSize={PAGE_SIZE}
-            previousPage={() =>
-              setPageIndex((current) => Math.max(current - 1, 0))
-            }
-            translations={paginationTranslations(t)}
-          />
-        </Container>
+        <ProducerProductsSection
+          canManage={!isDeleted}
+          count={count}
+          isLoading={productsQuery.isLoading}
+          onManage={() => setProductsOpen(true)}
+          onOpenProduct={(productId) => navigate(`/products/${productId}`)}
+          onRemove={handleRemoveProduct}
+          pageCount={pageCount}
+          pageIndex={pageIndex}
+          productOrderBy={productOrderBy}
+          productQ={productQ}
+          products={products}
+          removingProductId={removeProductMutation.variables}
+          setPageIndex={setPageIndex}
+          setProductOrderBy={setProductOrderBy}
+          setProductQ={setProductQ}
+        />
       </div>
 
       <ProducerEditDrawer
         attributeTypes={attributeTypes}
         onOpenChange={setEditOpen}
-        open={editOpen}
+        open={!isDeleted && editOpen}
         producer={producer}
       />
-      {id ? (
-        <ProductAssignmentDrawer
-          currentProductIds={productIds}
-          onOpenChange={setProductsOpen}
-          open={productsOpen}
-          producerId={id}
-        />
-      ) : null}
+      <ProductAssignmentDrawer
+        currentProductIds={productIds}
+        onOpenChange={setProductsOpen}
+        open={!isDeleted && !!id && productsOpen}
+        producerId={id ?? ""}
+      />
     </>
   )
 }

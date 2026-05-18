@@ -5,6 +5,7 @@ import {
   restoreProducerAttributeTypesWorkflow,
 } from "../../../../../workflows/producer"
 import {
+  escapeLikePattern,
   getProducerActiveProductCounts,
   getProducerAttributeTypeUsageCounts,
   getProducerService,
@@ -21,7 +22,6 @@ const ORDER_FIELDS = new Set([
   "updated_at",
 ])
 const LEADING_DASH_REGEX = /^-/
-const LIKE_WILDCARD_REGEX = /[\\%_]/g
 
 const parseOrder = (input?: string) => {
   const value = input ?? "title"
@@ -34,9 +34,6 @@ const parseOrder = (input?: string) => {
 
   return { direction, field }
 }
-
-const escapeLikePattern = (value: string) =>
-  value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
 const toAttributeOrder = ({
   direction,

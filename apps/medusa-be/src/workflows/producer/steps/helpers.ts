@@ -19,19 +19,11 @@ import type ProducerModuleService from "../../../modules/producer/service"
 import type { ProducerAttributeInput } from "../types"
 
 type ProducerAttributeRecord = {
-  deleted_at?: string | Date | null
   id: string
   value: string
   attributeType?: {
-    id: string
     name: string
   }
-}
-
-type ProducerAttributeTypeRecord = {
-  deleted_at?: string | Date | null
-  id: string
-  name: string
 }
 
 type ProducerSnapshot = {
@@ -60,6 +52,10 @@ type ProductProducerLinkRecord = {
   producer_id?: string
 }
 
+type ProducerIdRecord = {
+  id: string
+}
+
 type ProducerServiceWithTransaction = ProducerModuleService & {
   baseRepository_: {
     transaction: <T>(
@@ -78,27 +74,6 @@ export const withProducerTransaction = <T>(
   (service as ProducerServiceWithTransaction).baseRepository_.transaction(
     (transactionManager) => task({ transactionManager } as Context)
   )
-
-const normalizeAttributes = (attributes: ProducerAttributeInput[] = []) => {
-  const byName = new Map<string, ProducerAttributeInput>()
-
-  for (const attribute of attributes) {
-    const name = attribute.name.trim()
-    if (!name) {
-      continue
-    }
-
-    byName.set(name, {
-      name,
-      value: attribute.value,
-    })
-  }
-
-  return [...byName.values()]
-}
-
-const isDeleted = (record: { deleted_at?: string | Date | null }) =>
-  !!record.deleted_at
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -148,151 +123,6 @@ const assertProducerSnapshotRecord: (
   )
 }
 
-const getAttributeTypeIdsByName = async (
-  service: ProducerModuleService,
-  names: string[],
-  sharedContext: Context
-) => {
-  const existingAttributeTypes = names.length
-    ? ((await service.listProducerAttributeTypes(
-        {
-          name: { $in: names },
-        },
-        {
-          withDeleted: true,
-        },
-        sharedContext
-      )) as ProducerAttributeTypeRecord[])
-    : []
-  const attributeTypeIdsByName = new Map<string, string>()
-  const deletedAttributeTypesByName = new Map<
-    string,
-    ProducerAttributeTypeRecord
-  >()
-
-  for (const attributeType of existingAttributeTypes) {
-    if (isDeleted(attributeType)) {
-      if (!deletedAttributeTypesByName.has(attributeType.name)) {
-        deletedAttributeTypesByName.set(attributeType.name, attributeType)
-      }
-      continue
-    }
-
-    attributeTypeIdsByName.set(attributeType.name, attributeType.id)
-  }
-
-  const attributeTypeIdsToRestore = names.flatMap((name) => {
-    if (attributeTypeIdsByName.has(name)) {
-      return []
-    }
-
-    const deletedAttributeType = deletedAttributeTypesByName.get(name)
-
-    if (!deletedAttributeType) {
-      return []
-    }
-
-    attributeTypeIdsByName.set(name, deletedAttributeType.id)
-    return [deletedAttributeType.id]
-  })
-
-  if (attributeTypeIdsToRestore.length) {
-    await service.restoreProducerAttributeTypes(
-      attributeTypeIdsToRestore,
-      {},
-      sharedContext
-    )
-  }
-
-  const missingAttributeTypeNames = names.filter(
-    (name) => !attributeTypeIdsByName.has(name)
-  )
-
-  if (missingAttributeTypeNames.length) {
-    const createdAttributeTypes = (await service.createProducerAttributeTypes(
-      missingAttributeTypeNames.map((name) => ({ name })),
-      sharedContext
-    )) as Array<{ id: string; name: string }>
-
-    for (const attributeType of createdAttributeTypes) {
-      attributeTypeIdsByName.set(attributeType.name, attributeType.id)
-    }
-  }
-
-  return attributeTypeIdsByName
-}
-
-const getReusableAttributesByName = async ({
-  attributeTypeIdsByName,
-  attributes,
-  producerId,
-  service,
-  sharedContext,
-}: {
-  attributeTypeIdsByName: Map<string, string>
-  attributes: ProducerAttributeInput[]
-  producerId: string
-  service: ProducerModuleService
-  sharedContext: Context
-}) => {
-  const existingAttributes = (await service.listProducerAttributes(
-    { producer_id: producerId },
-    {
-      relations: ["attributeType"],
-      withDeleted: true,
-    },
-    sharedContext
-  )) as ProducerAttributeRecord[]
-  const existingByName = new Map<string, ProducerAttributeRecord>()
-  const deletedAttributesByName = new Map<string, ProducerAttributeRecord>()
-
-  for (const attribute of existingAttributes) {
-    const name = attribute.attributeType?.name
-
-    if (!name) {
-      continue
-    }
-
-    if (isDeleted(attribute)) {
-      if (!deletedAttributesByName.has(name)) {
-        deletedAttributesByName.set(name, attribute)
-      }
-      continue
-    }
-
-    existingByName.set(name, attribute)
-  }
-
-  const attributeIdsToRestore = attributes.flatMap((attribute) => {
-    if (existingByName.has(attribute.name)) {
-      return []
-    }
-
-    const deletedAttribute = deletedAttributesByName.get(attribute.name)
-    const attributeTypeId = attributeTypeIdsByName.get(attribute.name)
-
-    if (
-      !deletedAttribute?.attributeType?.id ||
-      deletedAttribute.attributeType.id !== attributeTypeId
-    ) {
-      return []
-    }
-
-    existingByName.set(attribute.name, deletedAttribute)
-    return [deletedAttribute.id]
-  })
-
-  if (attributeIdsToRestore.length) {
-    await service.restoreProducerAttributes(
-      attributeIdsToRestore,
-      {},
-      sharedContext
-    )
-  }
-
-  return { existingAttributes, existingByName }
-}
-
 export const snapshotProducer = async (
   service: ProducerModuleService,
   producerId: string,
@@ -324,80 +154,7 @@ export const setProducerAttributes = async (
   producerId: string,
   inputAttributes: ProducerAttributeInput[] = [],
   sharedContext: Context = {}
-) => {
-  const attributes = normalizeAttributes(inputAttributes)
-  const names = attributes.map((attribute) => attribute.name)
-  const attributeTypeIdsByName = await getAttributeTypeIdsByName(
-    service,
-    names,
-    sharedContext
-  )
-  const { existingAttributes, existingByName } =
-    await getReusableAttributesByName({
-      attributeTypeIdsByName,
-      attributes,
-      producerId,
-      service,
-      sharedContext,
-    })
-
-  const toCreate = attributes.flatMap((attribute) => {
-    if (existingByName.has(attribute.name)) {
-      return []
-    }
-
-    const attributeTypeId = attributeTypeIdsByName.get(attribute.name)
-
-    if (!attributeTypeId) {
-      return []
-    }
-
-    return [
-      {
-        attribute_type_id: attributeTypeId,
-        producer_id: producerId,
-        value: attribute.value,
-      },
-    ]
-  })
-
-  const toUpdate = attributes
-    .map((attribute) => {
-      const existing = existingByName.get(attribute.name)
-
-      if (!existing || existing.value === attribute.value) {
-        return null
-      }
-
-      return {
-        id: existing.id,
-        value: attribute.value,
-      }
-    })
-    .filter(
-      (attribute): attribute is { id: string; value: string } => !!attribute
-    )
-
-  const toDelete = existingAttributes
-    .filter((attribute) => !isDeleted(attribute))
-    .filter((attribute) => {
-      const name = attribute.attributeType?.name
-      return !(name && names.includes(name))
-    })
-    .map((attribute) => attribute.id)
-
-  if (toCreate.length) {
-    await service.createProducerAttributes(toCreate, sharedContext)
-  }
-
-  if (toUpdate.length) {
-    await service.updateProducerAttributes(toUpdate, sharedContext)
-  }
-
-  if (toDelete.length) {
-    await service.deleteProducerAttributes(toDelete, sharedContext)
-  }
-}
+) => service.setProducerAttributes(producerId, inputAttributes, sharedContext)
 
 export const producerProductLink = (productId: string, producerId: string) => ({
   [Modules.PRODUCT]: {
@@ -446,6 +203,21 @@ export const replaceProductProducerLinks = async (
   return { add, remove }
 }
 
+export const dismissProductProducerLinks = async (
+  container: MedusaContainer,
+  links: Array<{ producer_id: string; product_id: string }>
+) => {
+  if (!links.length) {
+    return
+  }
+
+  await dismissLinksWorkflow(container).run({
+    input: links.map((link) =>
+      producerProductLink(link.product_id, link.producer_id)
+    ),
+  })
+}
+
 export const getCurrentProductProducerIds = async (
   container: MedusaContainer,
   productId: string
@@ -463,6 +235,15 @@ export const getCurrentProductProducerIds = async (
     .map((link) => link.producer_id)
     .filter((producerId): producerId is string => !!producerId)
 }
+
+export const getProductProducerIdsToReplace = (
+  currentIds: string[],
+  activeProducerIds: Set<string>,
+  nextIds: string[]
+) =>
+  nextIds.length
+    ? currentIds
+    : currentIds.filter((producerId) => activeProducerIds.has(producerId))
 
 export const getCurrentProductProducerLinks = async (
   container: MedusaContainer,
@@ -486,6 +267,31 @@ export const getCurrentProductProducerLinks = async (
   return (data as ProductProducerLinkRecord[]).filter(
     (link): link is Required<ProductProducerLinkRecord> =>
       !!(link.product_id && link.producer_id)
+  )
+}
+
+export const getActiveProducerIds = async (
+  container: MedusaContainer,
+  producerIds: string[]
+) => {
+  const ids = [...new Set(producerIds)]
+
+  if (!ids.length) {
+    return new Set<string>()
+  }
+
+  const producers = await getProducerService(container).listProducers(
+    {
+      id: { $in: ids },
+    },
+    {
+      select: ["id"],
+      withDeleted: false,
+    }
+  )
+
+  return new Set(
+    (producers as ProducerIdRecord[]).map((producer) => producer.id)
   )
 }
 

@@ -22,6 +22,10 @@ import {
   restoreProducerAttributeType,
   retrieveProducerAttributeType,
 } from "../../../../lib/producers"
+import {
+  getPaginationTranslations,
+  onRowKeyboardActivate,
+} from "../../../../lib/table"
 import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
@@ -44,14 +48,6 @@ const formatDate = (date: string | undefined, locale?: string) => {
     timeStyle: "short",
   }).format(new Date(date))
 }
-
-const paginationTranslations = (t: (key: string) => string) => ({
-  next: t("pagination.next"),
-  of: t("pagination.of"),
-  pages: t("pagination.pages"),
-  prev: t("pagination.previous"),
-  results: t("pagination.results"),
-})
 
 const ProducerRows = ({
   isLoading,
@@ -93,9 +89,13 @@ const ProducerRows = ({
 
   return producers.map((producer) => (
     <Table.Row
+      aria-label={t("detail.openProducer", { title: producer.title })}
       className="cursor-pointer"
       key={producer.id}
       onClick={() => onOpen(producer.id)}
+      onKeyDown={onRowKeyboardActivate(() => onOpen(producer.id))}
+      role="button"
+      tabIndex={0}
     >
       <Table.Cell>{producer.title}</Table.Cell>
       <Table.Cell className="text-ui-fg-subtle">{producer.handle}</Table.Cell>
@@ -157,13 +157,17 @@ const ProducerAttributeDetailPage = () => {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type", id],
+        queryKey: producerQueryKeys.attributeTypeDetailPrefix(id),
       })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-types"],
+        queryKey: producerQueryKeys.attributeTypesLists(),
       })
-      await queryClient.invalidateQueries({ queryKey: ["producer"] })
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.details(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.lists(),
+      })
       toast.success(t("toasts.attributeRestored"))
     },
   })
@@ -333,7 +337,7 @@ const ProducerAttributeDetailPage = () => {
           previousPage={() =>
             setPageIndex((current) => Math.max(current - 1, 0))
           }
-          translations={paginationTranslations(t)}
+          translations={getPaginationTranslations(t)}
         />
       </Container>
     </div>

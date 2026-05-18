@@ -21,7 +21,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { type KeyboardEvent, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import { formatLocaleCode } from "../../lib/format-locale-code"
@@ -41,6 +41,10 @@ import {
   restoreProducerAttributeType,
   updateProducer,
 } from "../../lib/producers"
+import {
+  getPaginationTranslations,
+  onRowKeyboardActivate,
+} from "../../lib/table"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
@@ -52,22 +56,6 @@ const ORDER_OPTIONS = [
   { labelKey: "orderOptions.newest", value: "-created_at" },
   { labelKey: "orderOptions.recentlyUpdated", value: "-updated_at" },
 ]
-
-const paginationTranslations = (t: (key: string) => string) => ({
-  next: t("pagination.next"),
-  of: t("pagination.of"),
-  pages: t("pagination.pages"),
-  prev: t("pagination.previous"),
-  results: t("pagination.results"),
-})
-
-const onRowKeyboardActivate =
-  (activate: () => void) => (event: KeyboardEvent<HTMLTableRowElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault()
-      activate()
-    }
-  }
 
 const emptyAttribute = (
   attributeTypes: ProducerAttributeType[] = [],
@@ -311,12 +299,14 @@ const ProducerFormDrawer = ({
         return
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-types"],
+        queryKey: producerQueryKeys.lists(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.attributeTypesLists(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.attributeTypeDetails(),
       })
       await queryClient.invalidateQueries({
         queryKey: producerQueryKeys.detail(response.producer.id),
@@ -566,10 +556,10 @@ const AttributeTypesSection = () => {
     },
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-types"],
+        queryKey: producerQueryKeys.attributeTypesLists(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.attributeTypeDetails(),
       })
       setName("")
       if (response.action === "restored") {
@@ -593,13 +583,17 @@ const AttributeTypesSection = () => {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-types"],
+        queryKey: producerQueryKeys.attributeTypesLists(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.attributeTypeDetails(),
       })
-      await queryClient.invalidateQueries({ queryKey: ["producer"] })
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.details(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.lists(),
+      })
       toast.success(t("toasts.attributeDeleted"))
     },
   })
@@ -615,13 +609,17 @@ const AttributeTypesSection = () => {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-types"],
+        queryKey: producerQueryKeys.attributeTypesLists(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.attributeTypeDetails(),
       })
-      await queryClient.invalidateQueries({ queryKey: ["producer"] })
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.details(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.lists(),
+      })
       setName("")
       toast.success(t("toasts.attributeRestored"))
     },
@@ -873,7 +871,7 @@ const AttributeTypesSection = () => {
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
         previousPage={() => setPageIndex((current) => Math.max(current - 1, 0))}
-        translations={paginationTranslations(t)}
+        translations={getPaginationTranslations(t)}
       />
     </Container>
   )
@@ -922,9 +920,11 @@ const ProducersPage = () => {
       )
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.lists(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.attributeTypeDetails(),
       })
       toast.success(t("toasts.producerDeleted"))
     },
@@ -940,10 +940,14 @@ const ProducersPage = () => {
       )
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["producers"] })
-      await queryClient.invalidateQueries({ queryKey: ["producer"] })
       await queryClient.invalidateQueries({
-        queryKey: ["producer-attribute-type"],
+        queryKey: producerQueryKeys.lists(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.details(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: producerQueryKeys.attributeTypeDetails(),
       })
       toast.success(t("toasts.producerRestored"))
     },
@@ -1109,7 +1113,7 @@ const ProducersPage = () => {
                 previousPage={() =>
                   setPageIndex((current) => Math.max(current - 1, 0))
                 }
-                translations={paginationTranslations(t)}
+                translations={getPaginationTranslations(t)}
               />
             </>
           )}

@@ -91,6 +91,7 @@ type ProductRecord = Pick<ProductTypes.ProductDTO, "id"> &
   >
 
 type LinkRecord = {
+  deleted_at?: string | Date | null
   product_id?: string
   producer_id?: string
 }
@@ -141,6 +142,8 @@ type ListProductsOptions = {
 type RetrieveProducerOptions = {
   withDeleted?: boolean
 }
+
+const LIKE_WILDCARD_REGEX = /[\\%_]/g
 
 export const getProducerService = (scope: MedusaContainer) =>
   scope.resolve<ProducerService>(PRODUCER_MODULE)
@@ -320,6 +323,9 @@ export const toProductResponse = (product: ProductRecord) => ({
   updated_at: product.updated_at,
 })
 
+export const escapeLikePattern = (value: string) =>
+  value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
+
 export const uniqueIds = (ids: string[]) => [...new Set(ids)]
 
 export const retrieveProducerOrThrow = async (
@@ -380,6 +386,29 @@ export const ensureProducerIdsExist = async (
   return ids
 }
 
+export const getActiveProducerIds = async (
+  scope: MedusaContainer,
+  producerIds: string[]
+) => {
+  const ids = uniqueIds(producerIds)
+
+  if (!ids.length) {
+    return new Set<string>()
+  }
+
+  const producers = await getProducerService(scope).listProducers(
+    {
+      id: { $in: ids },
+    },
+    {
+      select: ["id"],
+      withDeleted: false,
+    }
+  )
+
+  return new Set(producers.map((producer) => producer.id))
+}
+
 export const ensureProductIdsExist = async (
   scope: MedusaContainer,
   productIds: string[]
@@ -413,7 +442,8 @@ export const ensureProductIdsExist = async (
 
 export const listProductProducerLinksByProductIds = async (
   scope: MedusaContainer,
-  productIds: string[]
+  productIds: string[],
+  options: { withDeleted?: boolean } = {}
 ): Promise<ProductProducerLinkRecord[]> => {
   const ids = uniqueIds(productIds)
 
@@ -424,10 +454,11 @@ export const listProductProducerLinksByProductIds = async (
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: ProductProducerLink.entryPoint,
-    fields: ["product_id", "producer_id"],
+    fields: ["deleted_at", "product_id", "producer_id"],
     filters: {
       product_id: { $in: ids },
     },
+    withDeleted: options.withDeleted,
   })
 
   return (data as LinkRecord[]).filter(
@@ -437,12 +468,14 @@ export const listProductProducerLinksByProductIds = async (
 }
 
 export const listProductProducerLinks = async (
-  scope: MedusaContainer
+  scope: MedusaContainer,
+  options: { withDeleted?: boolean } = {}
 ): Promise<ProductProducerLinkRecord[]> => {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: ProductProducerLink.entryPoint,
-    fields: ["product_id", "producer_id"],
+    fields: ["deleted_at", "product_id", "producer_id"],
+    withDeleted: options.withDeleted,
   })
 
   return (data as LinkRecord[]).filter(
@@ -457,8 +490,16 @@ export const ensureProductsAssignableToProducer = async (
   productIds: string[]
 ) => {
   const links = await listProductProducerLinksByProductIds(scope, productIds)
-  const conflictingLinks = links.filter(
+  const linksToOtherProducers = links.filter(
     (link) => link.producer_id !== producerId
+  )
+
+  const activeProducerIds = await getActiveProducerIds(
+    scope,
+    linksToOtherProducers.map((link) => link.producer_id)
+  )
+  const conflictingLinks = linksToOtherProducers.filter((link) =>
+    activeProducerIds.has(link.producer_id)
   )
 
   if (!conflictingLinks.length) {

@@ -1,7 +1,9 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { SetProductProducersWorkflowInput } from "../types"
 import {
+  getActiveProducerIds,
   getCurrentProductProducerIds,
+  getProductProducerIdsToReplace,
   producerProductLink,
   replaceProductProducerLinks,
 } from "./helpers"
@@ -13,9 +15,15 @@ export const setProductProducersStep = createStep(
       container,
       input.product_id
     )
+    const activeProducerIds = await getActiveProducerIds(container, currentIds)
+    const currentIdsToReplace = getProductProducerIdsToReplace(
+      currentIds,
+      activeProducerIds,
+      input.producer_ids
+    )
     const { add, remove } = await replaceProductProducerLinks(
       container,
-      currentIds,
+      currentIdsToReplace,
       input.producer_ids,
       (producerId) => producerProductLink(input.product_id, producerId)
     )
@@ -27,7 +35,7 @@ export const setProductProducersStep = createStep(
       },
       {
         product_id: input.product_id,
-        producer_ids: currentIds,
+        producer_ids: currentIdsToReplace,
       }
     )
   },

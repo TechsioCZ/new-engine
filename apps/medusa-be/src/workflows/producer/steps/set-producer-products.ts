@@ -2,6 +2,9 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { SetProducerProductsWorkflowInput } from "../types"
 import {
+  diffIds,
+  dismissProductProducerLinks,
+  getActiveProducerIds,
   getCurrentProducerProductIds,
   getCurrentProductProducerLinks,
   producerProductLink,
@@ -14,11 +17,21 @@ export const setProducerProductsStep = createStep(
     const conflictingLinks = (
       await getCurrentProductProducerLinks(container, input.product_ids)
     ).filter((link) => link.producer_id !== input.producer_id)
+    const activeProducerIds = await getActiveProducerIds(
+      container,
+      conflictingLinks.map((link) => link.producer_id)
+    )
+    const activeConflictingLinks = conflictingLinks.filter((link) =>
+      activeProducerIds.has(link.producer_id)
+    )
+    const inactiveConflictingLinks = conflictingLinks.filter(
+      (link) => !activeProducerIds.has(link.producer_id)
+    )
 
-    if (conflictingLinks.length) {
+    if (activeConflictingLinks.length) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Products are already linked to another producer: ${conflictingLinks
+        `Products are already linked to another producer: ${activeConflictingLinks
           .map((link) => link.product_id)
           .join(", ")}`
       )
@@ -28,6 +41,14 @@ export const setProducerProductsStep = createStep(
       container,
       input.producer_id
     )
+    const { add: productIdsToAdd } = diffIds(currentIds, input.product_ids)
+    const productIdsToAddSet = new Set(productIdsToAdd)
+    const inactiveLinksToDismiss = inactiveConflictingLinks.filter((link) =>
+      productIdsToAddSet.has(link.product_id)
+    )
+
+    await dismissProductProducerLinks(container, inactiveLinksToDismiss)
+
     const { add, remove } = await replaceProductProducerLinks(
       container,
       currentIds,
