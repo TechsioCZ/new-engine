@@ -364,6 +364,7 @@ export const ensureProducerIdsExist = async (
     },
     {
       select: ["id"],
+      withDeleted: false,
     }
   )
   const found = new Set(producers.map((producer) => producer.id))

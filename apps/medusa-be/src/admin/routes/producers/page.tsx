@@ -21,7 +21,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { type KeyboardEvent, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import { formatLocaleCode } from "../../lib/format-locale-code"
@@ -60,6 +60,14 @@ const paginationTranslations = (t: (key: string) => string) => ({
   prev: t("pagination.previous"),
   results: t("pagination.results"),
 })
+
+const onRowKeyboardActivate =
+  (activate: () => void) => (event: KeyboardEvent<HTMLTableRowElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      activate()
+    }
+  }
 
 const emptyAttribute = (
   attributeTypes: ProducerAttributeType[] = [],
@@ -157,9 +165,13 @@ const ProducerRows = ({
 
   return producers.map((producer) => (
     <Table.Row
+      aria-label={producer.title}
       className="cursor-pointer"
       key={producer.id}
       onClick={() => onOpen(producer)}
+      onKeyDown={onRowKeyboardActivate(() => onOpen(producer))}
+      role="button"
+      tabIndex={0}
     >
       <Table.Cell>{producer.title}</Table.Cell>
       <Table.Cell className="text-ui-fg-subtle">{producer.handle}</Table.Cell>
@@ -718,9 +730,15 @@ const AttributeTypesSection = () => {
 
     return attributeTypes.map((attributeType) => (
       <Table.Row
+        aria-label={attributeType.name}
         className="cursor-pointer"
         key={attributeType.id}
         onClick={() => navigate(`/producers/attributes/${attributeType.id}`)}
+        onKeyDown={onRowKeyboardActivate(() =>
+          navigate(`/producers/attributes/${attributeType.id}`)
+        )}
+        role="button"
+        tabIndex={0}
       >
         <Table.Cell>{attributeType.name}</Table.Cell>
         <Table.Cell>

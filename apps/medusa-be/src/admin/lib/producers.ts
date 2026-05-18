@@ -235,12 +235,16 @@ export const retrieveProductProducers = (productId: string) =>
     `/admin/products/${productId}/producers`
   )
 
-export const setProductProducers = (productId: string, producerIds: string[]) =>
+export const setProductProducers = (
+  productId: string,
+  producerId?: null | string
+) =>
   sdk.client.fetch<ProductProducersResponse>(
     `/admin/products/${productId}/producers`,
     {
+      // Keep the backend relation-replacement payload stable; cardinality is singular.
       body: {
-        producer_ids: producerIds,
+        producer_ids: producerId ? [producerId] : [],
       },
       method: "POST",
     }

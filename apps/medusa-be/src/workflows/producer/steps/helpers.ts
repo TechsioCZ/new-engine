@@ -97,6 +97,9 @@ const normalizeAttributes = (attributes: ProducerAttributeInput[] = []) => {
   return [...byName.values()]
 }
 
+const isDeleted = (record: { deleted_at?: string | Date | null }) =>
+  !!record.deleted_at
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
@@ -145,6 +148,151 @@ const assertProducerSnapshotRecord: (
   )
 }
 
+const getAttributeTypeIdsByName = async (
+  service: ProducerModuleService,
+  names: string[],
+  sharedContext: Context
+) => {
+  const existingAttributeTypes = names.length
+    ? ((await service.listProducerAttributeTypes(
+        {
+          name: { $in: names },
+        },
+        {
+          withDeleted: true,
+        },
+        sharedContext
+      )) as ProducerAttributeTypeRecord[])
+    : []
+  const attributeTypeIdsByName = new Map<string, string>()
+  const deletedAttributeTypesByName = new Map<
+    string,
+    ProducerAttributeTypeRecord
+  >()
+
+  for (const attributeType of existingAttributeTypes) {
+    if (isDeleted(attributeType)) {
+      if (!deletedAttributeTypesByName.has(attributeType.name)) {
+        deletedAttributeTypesByName.set(attributeType.name, attributeType)
+      }
+      continue
+    }
+
+    attributeTypeIdsByName.set(attributeType.name, attributeType.id)
+  }
+
+  const attributeTypeIdsToRestore = names.flatMap((name) => {
+    if (attributeTypeIdsByName.has(name)) {
+      return []
+    }
+
+    const deletedAttributeType = deletedAttributeTypesByName.get(name)
+
+    if (!deletedAttributeType) {
+      return []
+    }
+
+    attributeTypeIdsByName.set(name, deletedAttributeType.id)
+    return [deletedAttributeType.id]
+  })
+
+  if (attributeTypeIdsToRestore.length) {
+    await service.restoreProducerAttributeTypes(
+      attributeTypeIdsToRestore,
+      {},
+      sharedContext
+    )
+  }
+
+  const missingAttributeTypeNames = names.filter(
+    (name) => !attributeTypeIdsByName.has(name)
+  )
+
+  if (missingAttributeTypeNames.length) {
+    const createdAttributeTypes = (await service.createProducerAttributeTypes(
+      missingAttributeTypeNames.map((name) => ({ name })),
+      sharedContext
+    )) as Array<{ id: string; name: string }>
+
+    for (const attributeType of createdAttributeTypes) {
+      attributeTypeIdsByName.set(attributeType.name, attributeType.id)
+    }
+  }
+
+  return attributeTypeIdsByName
+}
+
+const getReusableAttributesByName = async ({
+  attributeTypeIdsByName,
+  attributes,
+  producerId,
+  service,
+  sharedContext,
+}: {
+  attributeTypeIdsByName: Map<string, string>
+  attributes: ProducerAttributeInput[]
+  producerId: string
+  service: ProducerModuleService
+  sharedContext: Context
+}) => {
+  const existingAttributes = (await service.listProducerAttributes(
+    { producer_id: producerId },
+    {
+      relations: ["attributeType"],
+      withDeleted: true,
+    },
+    sharedContext
+  )) as ProducerAttributeRecord[]
+  const existingByName = new Map<string, ProducerAttributeRecord>()
+  const deletedAttributesByName = new Map<string, ProducerAttributeRecord>()
+
+  for (const attribute of existingAttributes) {
+    const name = attribute.attributeType?.name
+
+    if (!name) {
+      continue
+    }
+
+    if (isDeleted(attribute)) {
+      if (!deletedAttributesByName.has(name)) {
+        deletedAttributesByName.set(name, attribute)
+      }
+      continue
+    }
+
+    existingByName.set(name, attribute)
+  }
+
+  const attributeIdsToRestore = attributes.flatMap((attribute) => {
+    if (existingByName.has(attribute.name)) {
+      return []
+    }
+
+    const deletedAttribute = deletedAttributesByName.get(attribute.name)
+    const attributeTypeId = attributeTypeIdsByName.get(attribute.name)
+
+    if (
+      !deletedAttribute?.attributeType?.id ||
+      deletedAttribute.attributeType.id !== attributeTypeId
+    ) {
+      return []
+    }
+
+    existingByName.set(attribute.name, deletedAttribute)
+    return [deletedAttribute.id]
+  })
+
+  if (attributeIdsToRestore.length) {
+    await service.restoreProducerAttributes(
+      attributeIdsToRestore,
+      {},
+      sharedContext
+    )
+  }
+
+  return { existingAttributes, existingByName }
+}
+
 export const snapshotProducer = async (
   service: ProducerModuleService,
   producerId: string,
@@ -179,79 +327,19 @@ export const setProducerAttributes = async (
 ) => {
   const attributes = normalizeAttributes(inputAttributes)
   const names = attributes.map((attribute) => attribute.name)
-
-  const existingAttributeTypes = names.length
-    ? ((await service.listProducerAttributeTypes(
-        {
-          name: { $in: names },
-        },
-        {
-          withDeleted: true,
-        },
-        sharedContext
-      )) as ProducerAttributeTypeRecord[])
-    : []
-  const deletedAttributeTypeIds = existingAttributeTypes
-    .filter((attributeType) => attributeType.deleted_at)
-    .map((attributeType) => attributeType.id)
-
-  if (deletedAttributeTypeIds.length) {
-    // Reuse restored types so producer updates do not create duplicate names.
-    await service.restoreProducerAttributeTypes(
-      deletedAttributeTypeIds,
-      {},
-      sharedContext
-    )
-  }
-
-  const attributeTypeIdsByName = new Map(
-    existingAttributeTypes.map((attributeType) => [
-      attributeType.name,
-      attributeType.id,
-    ])
-  )
-
-  const missingAttributeTypeNames = names.filter(
-    (name) => !attributeTypeIdsByName.has(name)
-  )
-
-  if (missingAttributeTypeNames.length) {
-    const createdAttributeTypes = (await service.createProducerAttributeTypes(
-      missingAttributeTypeNames.map((name) => ({ name })),
-      sharedContext
-    )) as Array<{ id: string; name: string }>
-
-    for (const attributeType of createdAttributeTypes) {
-      attributeTypeIdsByName.set(attributeType.name, attributeType.id)
-    }
-  }
-
-  const existingAttributes = (await service.listProducerAttributes(
-    { producer_id: producerId },
-    {
-      relations: ["attributeType"],
-      withDeleted: true,
-    },
+  const attributeTypeIdsByName = await getAttributeTypeIdsByName(
+    service,
+    names,
     sharedContext
-  )) as ProducerAttributeRecord[]
-  const deletedAttributeIds = existingAttributes
-    .filter((attribute) => attribute.deleted_at)
-    .map((attribute) => attribute.id)
-
-  if (deletedAttributeIds.length) {
-    await service.restoreProducerAttributes(
-      deletedAttributeIds,
-      {},
-      sharedContext
-    )
-  }
-
-  const existingByName = new Map(
-    existingAttributes.flatMap((attribute) => {
-      const name = attribute.attributeType?.name
-      return name ? [[name, attribute] as const] : []
-    })
   )
+  const { existingAttributes, existingByName } =
+    await getReusableAttributesByName({
+      attributeTypeIdsByName,
+      attributes,
+      producerId,
+      service,
+      sharedContext,
+    })
 
   const toCreate = attributes.flatMap((attribute) => {
     if (existingByName.has(attribute.name)) {
@@ -291,6 +379,7 @@ export const setProducerAttributes = async (
     )
 
   const toDelete = existingAttributes
+    .filter((attribute) => !isDeleted(attribute))
     .filter((attribute) => {
       const name = attribute.attributeType?.name
       return !(name && names.includes(name))

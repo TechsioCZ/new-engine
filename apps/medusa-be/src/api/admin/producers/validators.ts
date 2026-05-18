@@ -20,7 +20,7 @@ const queryBoolean = z.preprocess((value) => {
   }
 
   return value
-}, z.boolean())
+}, z.boolean().optional())
 
 export const ProducerAttributeSchema = z
   .object({

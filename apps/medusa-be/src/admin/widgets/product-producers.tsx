@@ -203,8 +203,7 @@ const ProducerAssignmentDrawer = ({
   })
 
   const mutation = useMutation({
-    mutationFn: () =>
-      setProductProducers(productId, selectedId ? [selectedId] : []),
+    mutationFn: () => setProductProducers(productId, selectedId),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.saveProducerFailed")

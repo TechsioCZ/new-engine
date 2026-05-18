@@ -41,6 +41,8 @@ export async function POST(
   )
 
   await retrieveProductOrThrow(req.scope, productId)
+  // Product-side assignment is an explicit replacement operation for one product.
+  // Producer-side batch assignment rejects products owned by another producer.
   await setProductProducersWorkflow(req.scope).run({
     input: {
       producer_ids: producerIds,

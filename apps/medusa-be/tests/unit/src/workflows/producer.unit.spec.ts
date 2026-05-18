@@ -9,6 +9,7 @@ import {
   diffIds,
   getProducerProductsLockKeys,
   getProductProducerLockKeys,
+  setProducerAttributes,
 } from "../../../../src/workflows/producer"
 
 const createScope = ({
@@ -122,6 +123,75 @@ describe("producer workflows", () => {
           "Products are already linked to another producer: prod_1 (Other producer)",
         type: MedusaError.Types.INVALID_DATA,
       })
+    })
+  })
+
+  describe("setProducerAttributes", () => {
+    it("restores only the deleted attribute type and attribute it reuses", async () => {
+      const service = {
+        createProducerAttributeTypes: vi.fn(),
+        createProducerAttributes: vi.fn(),
+        deleteProducerAttributes: vi.fn(),
+        listProducerAttributes: vi.fn().mockResolvedValue([
+          {
+            attributeType: {
+              id: "pat_deleted_1",
+              name: "Material",
+            },
+            deleted_at: new Date(),
+            id: "pa_deleted_1",
+            value: "Wool",
+          },
+          {
+            attributeType: {
+              id: "pat_deleted_2",
+              name: "Material",
+            },
+            deleted_at: new Date(),
+            id: "pa_deleted_2",
+            value: "Linen",
+          },
+        ]),
+        listProducerAttributeTypes: vi.fn().mockResolvedValue([
+          {
+            deleted_at: new Date(),
+            id: "pat_deleted_1",
+            name: "Material",
+          },
+          {
+            deleted_at: new Date(),
+            id: "pat_deleted_2",
+            name: "Material",
+          },
+        ]),
+        restoreProducerAttributes: vi.fn(),
+        restoreProducerAttributeTypes: vi.fn(),
+        updateProducerAttributes: vi.fn(),
+      }
+
+      await setProducerAttributes(
+        service as never,
+        "producer_1",
+        [{ name: "Material", value: "Cotton" }],
+        {}
+      )
+
+      expect(service.restoreProducerAttributeTypes).toHaveBeenCalledWith(
+        ["pat_deleted_1"],
+        {},
+        {}
+      )
+      expect(service.restoreProducerAttributes).toHaveBeenCalledWith(
+        ["pa_deleted_1"],
+        {},
+        {}
+      )
+      expect(service.createProducerAttributeTypes).not.toHaveBeenCalled()
+      expect(service.createProducerAttributes).not.toHaveBeenCalled()
+      expect(service.updateProducerAttributes).toHaveBeenCalledWith(
+        [{ id: "pa_deleted_1", value: "Cotton" }],
+        {}
+      )
     })
   })
 })

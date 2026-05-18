@@ -14,7 +14,7 @@ const ProducerAttributeType = model
       name: "IDX_producer_attribute_type_name_unique",
       on: ["name"],
       unique: true,
-      where: "deleted_at IS NULL",
+      where: { deleted_at: null },
     },
   ])
 
