@@ -285,6 +285,19 @@ export const producerProductLink = (productId: string, producerId: string) => ({
   },
 })
 
+export const getProductProducerLockKeys = (productIds: string[]) =>
+  [...new Set(productIds)]
+    .sort()
+    .map((productId) => `product-producer:${productId}`)
+
+export const getProducerProductsLockKeys = (
+  producerId: string,
+  productIds: string[]
+) => [
+  `producer-products:${producerId}`,
+  ...getProductProducerLockKeys(productIds),
+]
+
 export const replaceProductProducerLinks = async (
   container: MedusaContainer,
   currentIds: string[],
@@ -326,6 +339,31 @@ export const getCurrentProductProducerIds = async (
   return (data as ProductProducerLinkRecord[])
     .map((link) => link.producer_id)
     .filter((producerId): producerId is string => !!producerId)
+}
+
+export const getCurrentProductProducerLinks = async (
+  container: MedusaContainer,
+  productIds: string[]
+) => {
+  const ids = [...new Set(productIds)]
+
+  if (!ids.length) {
+    return []
+  }
+
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: ProductProducerLink.entryPoint,
+    fields: ["product_id", "producer_id"],
+    filters: {
+      product_id: { $in: ids },
+    },
+  })
+
+  return (data as ProductProducerLinkRecord[]).filter(
+    (link): link is Required<ProductProducerLinkRecord> =>
+      !!(link.product_id && link.producer_id)
+  )
 }
 
 export const getCurrentProducerProductIds = async (

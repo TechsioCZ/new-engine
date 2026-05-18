@@ -13,21 +13,27 @@ export const createProducersStep = createStep(
         title: producer.title,
       }))
     )) as Array<{ id: string }>
+    const createdIds = producers.map((producer) => producer.id)
 
-    await Promise.all(
-      producers.map((producer, index) =>
-        setProducerAttributes(
-          service,
-          producer.id,
-          input.producers[index]?.attributes
+    try {
+      await Promise.all(
+        producers.map((producer, index) =>
+          setProducerAttributes(
+            service,
+            producer.id,
+            input.producers[index]?.attributes
+          )
         )
       )
-    )
+    } catch (error) {
+      if (createdIds.length) {
+        await service.deleteProducers(createdIds)
+      }
 
-    return new StepResponse(
-      producers,
-      producers.map((producer) => producer.id)
-    )
+      throw error
+    }
+
+    return new StepResponse(producers, createdIds)
   },
   async (createdIds, { container }) => {
     if (!createdIds?.length) {

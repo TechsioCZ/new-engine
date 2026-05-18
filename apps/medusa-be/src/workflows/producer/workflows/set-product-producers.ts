@@ -4,7 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
-import { setProductProducersStep } from "../steps"
+import { getProductProducerLockKeys, setProductProducersStep } from "../steps"
 import type { SetProductProducersWorkflowInput } from "../types"
 
 export const setProductProducersWorkflow = createWorkflow(
@@ -13,10 +13,8 @@ export const setProductProducersWorkflow = createWorkflow(
     idempotent: false,
   },
   (input: SetProductProducersWorkflowInput) => {
-    const lockKey = transform(
-      { input },
-      ({ input: workflowInput }) =>
-        `producer-product:${workflowInput.product_id}`
+    const lockKey = transform({ input }, ({ input: workflowInput }) =>
+      getProductProducerLockKeys([workflowInput.product_id])
     )
 
     acquireLockStep({

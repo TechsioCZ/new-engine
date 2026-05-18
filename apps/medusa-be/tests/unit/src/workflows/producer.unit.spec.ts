@@ -5,7 +5,11 @@ import {
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import { PRODUCER_MODULE } from "../../../../src/modules/producer"
-import { diffIds } from "../../../../src/workflows/producer"
+import {
+  diffIds,
+  getProducerProductsLockKeys,
+  getProductProducerLockKeys,
+} from "../../../../src/workflows/producer"
 
 const createScope = ({
   links,
@@ -55,6 +59,18 @@ describe("producer workflows", () => {
         add: [],
         remove: [],
       })
+    })
+  })
+
+  describe("product producer lock keys", () => {
+    it("uses one stable product-level lock namespace for both relation workflows", () => {
+      expect(
+        getProductProducerLockKeys(["prod_2", "prod_1", "prod_2"])
+      ).toEqual(["product-producer:prod_1", "product-producer:prod_2"])
+      expect(getProducerProductsLockKeys("producer_1", ["prod_2"])).toEqual([
+        "producer-products:producer_1",
+        "product-producer:prod_2",
+      ])
     })
   })
 

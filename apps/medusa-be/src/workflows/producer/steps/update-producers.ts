@@ -25,12 +25,23 @@ export const updateProducersStep = createStep(
       })) as { id: string } | Array<{ id: string }>
     )
 
-    if (input.update.attributes) {
-      await setProducerAttributes(
-        service,
-        input.selector.id,
-        input.update.attributes
-      )
+    try {
+      if (input.update.attributes !== undefined) {
+        await setProducerAttributes(
+          service,
+          input.selector.id,
+          input.update.attributes
+        )
+      }
+    } catch (error) {
+      await service.updateProducers({
+        handle: previous.handle,
+        id: previous.id,
+        title: previous.title,
+      })
+      await setProducerAttributes(service, previous.id, previous.attributes)
+
+      throw error
     }
 
     return new StepResponse(producers, previous)
