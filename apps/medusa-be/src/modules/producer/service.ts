@@ -318,6 +318,16 @@ class ProducerModuleService extends MedusaService({
         )
       }
 
+      if (producer.title !== input.name) {
+        producer = (await this.updateProducers(
+          {
+            id: producer.id,
+            title: input.name,
+          },
+          context
+        )) as typeof producer
+      }
+
       await this.setProducerAttributes(producer.id, input.attributes, context)
 
       return producer

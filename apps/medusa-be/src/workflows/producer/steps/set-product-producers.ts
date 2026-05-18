@@ -35,7 +35,7 @@ export const setProductProducersStep = createStep(
       },
       {
         product_id: input.product_id,
-        producer_ids: currentIdsToReplace,
+        producer_ids: currentIds,
       }
     )
   },

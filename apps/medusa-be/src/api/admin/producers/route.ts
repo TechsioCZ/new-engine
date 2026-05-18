@@ -98,14 +98,14 @@ export async function POST(
 
   if (existing?.deleted_at) {
     throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
+      MedusaError.Types.DUPLICATE_ERROR,
       `Producer with handle "${input.handle}" already exists as a deleted record. Restore it instead of creating a new producer.`
     )
   }
 
   if (existing) {
     throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
+      MedusaError.Types.DUPLICATE_ERROR,
       `Producer with handle "${input.handle}" already exists.`
     )
   }

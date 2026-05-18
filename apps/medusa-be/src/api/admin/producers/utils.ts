@@ -521,7 +521,7 @@ export const ensureProductsAssignableToProducer = async (
     .join(", ")
 
   throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
+    MedusaError.Types.CONFLICT,
     `Products are already linked to another producer: ${conflictText}`
   )
 }

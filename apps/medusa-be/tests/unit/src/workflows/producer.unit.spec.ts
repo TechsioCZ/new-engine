@@ -153,7 +153,7 @@ describe("producer workflows", () => {
       ).rejects.toMatchObject({
         message:
           "Products are already linked to another producer: prod_1 (Other producer)",
-        type: MedusaError.Types.INVALID_DATA,
+        type: MedusaError.Types.CONFLICT,
       })
     })
 
