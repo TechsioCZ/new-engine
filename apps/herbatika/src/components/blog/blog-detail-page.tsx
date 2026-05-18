@@ -94,8 +94,11 @@ export function BlogDetailPage({
             </section>
 
             {hasStructuredSections ? (
-              <section className="space-y-350 rounded-2xl border border-border-secondary bg-surface p-400">
-                <header className="flex items-start justify-between gap-300">
+              <details
+                className="group space-y-350 rounded-2xl border border-border-secondary bg-surface p-400"
+                open
+              >
+                <summary className="flex cursor-pointer list-none items-start justify-between gap-300 [&::-webkit-details-marker]:hidden">
                   <div className="flex items-center gap-250">
                     <span className="inline-flex p-50 items-center justify-center rounded-xs bg-highlight text-primary">
                       <Icon icon="token-icon-list" size="2xl" />
@@ -110,11 +113,11 @@ export function BlogDetailPage({
                     </div>
                   </div>
                   <Icon
-                    className="text-fg-secondary"
+                    className="rotate-180 text-fg-secondary transition-transform group-open:rotate-0"
                     icon="token-icon-chevron-up"
                     size="2xl"
                   />
-                </header>
+                </summary>
 
                 <ul className="space-y-100 pl-500">
                   {post.sections.map((section) => (
@@ -126,7 +129,7 @@ export function BlogDetailPage({
                     </li>
                   ))}
                 </ul>
-              </section>
+              </details>
             ) : null}
 
             <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
