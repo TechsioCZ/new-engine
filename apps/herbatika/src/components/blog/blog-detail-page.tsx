@@ -48,7 +48,7 @@ export function BlogDetailPage({
 
         <div className="grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_342px]">
           <div className="space-y-400">
-            <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface max-xs:py-100 p-400">
+            <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface max-xs:pb-100 p-400">
               <div className="flex flex-wrap gap-150">
                 {post.tags.map((tag) => (
                   <span
