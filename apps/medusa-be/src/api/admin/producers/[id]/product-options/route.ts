@@ -5,6 +5,7 @@ import {
   listAndCountProducts,
   listAndCountProductsByIds,
   listProducersByIds,
+  listProductIdsForProducer,
   listProductProducerLinks,
   listProductProducerLinksByProductIds,
   retrieveProducerOrThrow,
@@ -116,17 +117,18 @@ export async function GET(
   await retrieveProducerOrThrow(req.scope, producerId)
 
   const { limit, offset, q } = req.validatedQuery
-  const allLinks = await listProductProducerLinks(req.scope)
-  const currentProductIds = allLinks
-    .filter((link) => link.producer_id === producerId)
-    .map((link) => link.product_id)
-  const linkedProductIds = allLinks.map((link) => link.product_id)
-  const otherProductIds = allLinks
-    .filter((link) => link.producer_id !== producerId)
-    .map((link) => link.product_id)
+  const currentProductIds = await listProductIdsForProducer(
+    req.scope,
+    producerId
+  )
   const groups = q
-    ? [currentProductIds, { $nin: linkedProductIds }, otherProductIds]
-    : [currentProductIds, { $nin: linkedProductIds }]
+    ? [currentProductIds, { $nin: currentProductIds }]
+    : await (async () => {
+        const allLinks = await listProductProducerLinks(req.scope)
+        const linkedProductIds = allLinks.map((link) => link.product_id)
+
+        return [currentProductIds, { $nin: linkedProductIds }]
+      })()
   const { count, page: products } = await listRankedProductPage(
     req.scope,
     groups,

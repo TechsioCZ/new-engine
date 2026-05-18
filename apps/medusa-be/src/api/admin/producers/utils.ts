@@ -7,6 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
   Modules,
+  ProductStatus,
 } from "@medusajs/framework/utils"
 import { ProductProducerLink } from "../../../links/product-producer"
 import { PRODUCER_MODULE } from "../../../modules/producer"
@@ -112,6 +113,10 @@ type ProducerService = ProducerModuleService & {
     filters?: Record<string, unknown>,
     config?: Record<string, unknown>
   ) => Promise<ProducerAttributeRecord[]>
+  listAndCountProducerAttributes: (
+    filters?: Record<string, unknown>,
+    config?: Record<string, unknown>
+  ) => Promise<[ProducerAttributeRecord[], number]>
   listProducers: (
     filters?: Record<string, unknown>,
     config?: Record<string, unknown>
@@ -275,6 +280,7 @@ export const getProducerActiveProductCounts = async (
     fields: ["id"],
     filters: {
       id: { $in: productIds },
+      status: ProductStatus.PUBLISHED,
     },
   })
   const activeProductIds = new Set(

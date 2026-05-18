@@ -8,7 +8,6 @@ import {
   getProducerActiveProductCounts,
   getProducerAttributeTypeUsageCounts,
   getProducerService,
-  type ProducerAttributeRecord,
   toProducerAttributeTypeProducerResponse,
   toProducerAttributeTypeResponse,
 } from "../../utils"
@@ -22,6 +21,7 @@ const ORDER_FIELDS = new Set([
   "updated_at",
 ])
 const LEADING_DASH_REGEX = /^-/
+const LIKE_WILDCARD_REGEX = /[\\%_]/g
 
 const parseOrder = (input?: string) => {
   const value = input ?? "title"
@@ -35,70 +35,16 @@ const parseOrder = (input?: string) => {
   return { direction, field }
 }
 
-const getProducerOrderValue = (
-  attribute: ProducerAttributeRecord,
-  field: string
-) => {
-  if (field === "attribute_value") {
-    return attribute.value
-  }
+const escapeLikePattern = (value: string) =>
+  value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
-  if (!attribute.producer) {
-    return ""
-  }
-
-  switch (field) {
-    case "handle":
-      return attribute.producer.handle
-    case "title":
-      return attribute.producer.title
-    case "created_at":
-      return attribute.producer.created_at
-    case "updated_at":
-      return attribute.producer.updated_at
-    default:
-      return ""
-  }
-}
-
-const toComparableTimestamp = (value: unknown) => {
-  if (value instanceof Date) {
-    return value.getTime()
-  }
-
-  if (typeof value !== "string") {
-    return Number.NaN
-  }
-
-  return Date.parse(value)
-}
-
-const compareOrderValues = (left: unknown, right: unknown) => {
-  if (left == null && right == null) {
-    return 0
-  }
-
-  if (left == null) {
-    return -1
-  }
-
-  if (right == null) {
-    return 1
-  }
-
-  if (typeof left === "number" && typeof right === "number") {
-    return left - right
-  }
-
-  const leftTimestamp = toComparableTimestamp(left)
-  const rightTimestamp = toComparableTimestamp(right)
-
-  if (Number.isFinite(leftTimestamp) && Number.isFinite(rightTimestamp)) {
-    return leftTimestamp - rightTimestamp
-  }
-
-  return String(left).localeCompare(String(right))
-}
+const toAttributeOrder = ({
+  direction,
+  field,
+}: ReturnType<typeof parseOrder>) =>
+  field === "attribute_value"
+    ? { value: direction }
+    : { producer: { [field]: direction } }
 
 const retrieveAttributeType = async (req: MedusaRequest) => {
   const [attributeType] = await getProducerService(
@@ -161,42 +107,30 @@ export async function GET(
   const usageCounts = await getProducerAttributeTypeUsageCounts(req.scope, [
     attributeType.id,
   ])
-  const attributes = await service.listProducerAttributes(
+  const escapedQuery = q ? escapeLikePattern(q) : undefined
+  const queryFilters = escapedQuery
+    ? {
+        $or: [
+          { value: { $ilike: `%${escapedQuery}%` } },
+          { producer: { handle: { $ilike: `%${escapedQuery}%` } } },
+          { producer: { title: { $ilike: `%${escapedQuery}%` } } },
+        ],
+      }
+    : {}
+  const [page, count] = await service.listAndCountProducerAttributes(
     {
       attribute_type_id: attributeType.id,
+      ...queryFilters,
+      ...(include_deleted ? {} : { producer: { deleted_at: null } }),
     },
     {
+      order: toAttributeOrder(order),
       relations: ["producer"],
+      skip: offset,
+      take: limit,
       withDeleted: true,
     }
   )
-  const query = q?.toLocaleLowerCase()
-  const filteredAttributes = attributes.filter((attribute) => {
-    if (!(include_deleted || !attribute.producer?.deleted_at)) {
-      return false
-    }
-
-    if (!query) {
-      return true
-    }
-
-    return [
-      attribute.value,
-      attribute.producer?.handle,
-      attribute.producer?.title,
-    ].some((value) => value?.toLocaleLowerCase().includes(query))
-  })
-
-  filteredAttributes.sort((left, right) => {
-    const result = compareOrderValues(
-      getProducerOrderValue(left, order.field),
-      getProducerOrderValue(right, order.field)
-    )
-
-    return order.direction === "DESC" ? -result : result
-  })
-
-  const page = filteredAttributes.slice(offset, offset + limit)
   const producerIds = page
     .map((attribute) => attribute.producer?.id)
     .filter((producerId): producerId is string => !!producerId)
@@ -210,7 +144,7 @@ export async function GET(
       attributeType,
       usageCounts.get(attributeType.id) ?? 0
     ),
-    count: filteredAttributes.length,
+    count,
     limit,
     offset,
     producers: page.flatMap((attribute) => {

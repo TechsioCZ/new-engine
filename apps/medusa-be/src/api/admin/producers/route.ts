@@ -16,6 +16,7 @@ import type {
 
 const ORDER_FIELDS = new Set(["title", "handle", "created_at", "updated_at"])
 const LEADING_DASH_REGEX = /^-/
+const LIKE_WILDCARD_REGEX = /[\\%_]/g
 
 const parseOrder = (input?: string) => {
   const value = input ?? "title"
@@ -31,6 +32,9 @@ const parseOrder = (input?: string) => {
   }
 }
 
+const escapeLikePattern = (value: string) =>
+  value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
+
 export async function GET(
   req: MedusaRequest<unknown, AdminGetProducersSchemaType>,
   res: MedusaResponse
@@ -40,11 +44,12 @@ export async function GET(
   const order = parseOrder(
     req.validatedQuery.order_by ?? req.validatedQuery.order
   )
-  const filters = q
+  const escapedQuery = q ? escapeLikePattern(q) : undefined
+  const filters = escapedQuery
     ? {
         $or: [
-          { title: { $ilike: `%${q}%` } },
-          { handle: { $ilike: `%${q}%` } },
+          { title: { $ilike: `%${escapedQuery}%` } },
+          { handle: { $ilike: `%${escapedQuery}%` } },
         ],
       }
     : {}

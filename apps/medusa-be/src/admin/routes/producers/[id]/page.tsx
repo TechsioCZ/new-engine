@@ -196,6 +196,12 @@ const ProducerEditDrawer = ({
   const queryClient = useQueryClient()
   const [form, setForm] = useState<ProducerInput>(() => toFormState(producer))
 
+  useEffect(() => {
+    if (open) {
+      setForm(toFormState(producer))
+    }
+  }, [open, producer])
+
   const mutation = useMutation({
     mutationFn: (input: ProducerInput) => updateProducer(producer.id, input),
     onError: (error) => {
