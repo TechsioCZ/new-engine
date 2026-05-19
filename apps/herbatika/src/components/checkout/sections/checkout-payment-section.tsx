@@ -1,5 +1,7 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import {
+  resolvePaymentDescription,
+  resolvePaymentHint,
   resolvePaymentIcon,
   resolveProviderLabel,
 } from "@/components/checkout/checkout-display.utils";
@@ -59,6 +61,8 @@ export function CheckoutPaymentSection({
               return {
                 disabled:
                   isBusy || isInitiatingPayment || !isProviderSelectable,
+                bodyText: resolvePaymentDescription(providerId),
+                hint: resolvePaymentHint(providerId),
                 icon: resolvePaymentIcon(providerId),
                 priceLabel: "Zadarmo",
                 priceTone: "success" as const,

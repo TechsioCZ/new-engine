@@ -4,7 +4,6 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
 import { CheckoutAddressSection } from "./checkout-address-section";
@@ -14,6 +13,7 @@ type CheckoutDetailsStepController = Pick<
   CheckoutController,
   | "cartQuery"
   | "checkoutDetailsForm"
+  | "countryItems"
   | "handleSaveAddress"
   | "isAuthenticated"
   | "isBusy"
@@ -38,6 +38,7 @@ export function CheckoutDetailsStepSection({
     controller.checkoutDetailsForm.hasCarrierPickupShipping;
   const carrierPickupAddress =
     controller.checkoutDetailsForm.carrierPickupAddress;
+  const countryItems = controller.countryItems;
 
   return (
     <section className="space-y-300">
@@ -58,7 +59,7 @@ export function CheckoutDetailsStepSection({
         {hasCarrierPickupShipping && carrierPickupAddress ? (
           <CheckoutPickupPointDetailsSection
             checkoutDetailsForm={controller.checkoutDetailsForm}
-            countryItems={COUNTRY_SELECT_ITEMS}
+            countryItems={countryItems}
             isAuthenticated={controller.isAuthenticated}
             pickupAddress={carrierPickupAddress}
           />
@@ -66,7 +67,7 @@ export function CheckoutDetailsStepSection({
           <>
             <CheckoutAddressSection
               checkoutDetailsForm={controller.checkoutDetailsForm}
-              countryItems={COUNTRY_SELECT_ITEMS}
+              countryItems={countryItems}
               fieldPrefix="checkout-shipping"
               isAuthenticated={controller.isAuthenticated}
               scope="shipping"
@@ -114,7 +115,7 @@ export function CheckoutDetailsStepSection({
             {!checkoutDetailsValues.useSameAddress ? (
               <CheckoutAddressSection
                 checkoutDetailsForm={controller.checkoutDetailsForm}
-                countryItems={COUNTRY_SELECT_ITEMS}
+                countryItems={countryItems}
                 fieldPrefix="checkout-billing"
                 scope="billing"
                 showCompanyFields={checkoutDetailsValues.isCompanyPurchase}

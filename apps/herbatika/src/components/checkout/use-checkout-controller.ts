@@ -23,8 +23,17 @@ import {
 } from "@/lib/forms/checkout/address.form";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
+import {
+  REGION_LIST_FIELDS,
+  REGION_LIST_LIMIT,
+} from "@/lib/storefront/region-query-config";
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
+import { useRegions } from "@/lib/storefront/regions";
 import { storefront } from "@/lib/storefront/storefront";
+import {
+  isCheckoutCountryAvailableForRegion,
+  resolveCheckoutCountryItemsForRegion,
+} from "./checkout.constants";
 import { resolveHasStoredAddress } from "./checkout-address.utils";
 import { useCheckoutActions } from "./use-checkout-actions";
 import { useCheckoutDetailsForm } from "./use-checkout-details-form";
@@ -47,6 +56,10 @@ export function useCheckoutController() {
     enabled: Boolean(region?.region_id),
   });
   const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id;
+  const regionsQuery = useRegions({
+    fields: REGION_LIST_FIELDS,
+    limit: REGION_LIST_LIMIT,
+  });
 
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const updateCartAddressMutation = useUpdateCartAddress();
@@ -119,6 +132,14 @@ export function useCheckoutController() {
     });
   }, [activeRegionId, queryClient]);
 
+  const countryItems = useMemo(() => {
+    return resolveCheckoutCountryItemsForRegion({
+      activeCountryCode: region?.country_code,
+      regionId: activeRegionId,
+      regions: regionsQuery.regions,
+    });
+  }, [activeRegionId, region?.country_code, regionsQuery.regions]);
+
   const actions = useCheckoutActions({
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
@@ -152,6 +173,25 @@ export function useCheckoutController() {
 
       const effectiveCheckoutDetails =
         resolveEffectiveCheckoutAddressDetails(values);
+      const hasSupportedShippingCountry = isCheckoutCountryAvailableForRegion({
+        activeCountryCode: region?.country_code,
+        countryCode: effectiveCheckoutDetails.shipping.countryCode,
+        regionId: activeRegionId,
+        regions: regionsQuery.regions,
+      });
+      const hasSupportedBillingCountry = isCheckoutCountryAvailableForRegion({
+        activeCountryCode: region?.country_code,
+        countryCode: effectiveCheckoutDetails.billing.countryCode,
+        regionId: activeRegionId,
+        regions: regionsQuery.regions,
+      });
+
+      if (!hasSupportedShippingCountry || !hasSupportedBillingCountry) {
+        setCheckoutError(
+          "Zvolena krajina nie je dostupna pre aktualny kosik. Zvolte krajinu z ponuky.",
+        );
+        return;
+      }
 
       try {
         await updateCartAddressMutation.mutateAsync({
@@ -237,6 +277,8 @@ export function useCheckoutController() {
 
   const isBusy =
     cartQuery.isFetching ||
+    regionsQuery.isLoading ||
+    regionsQuery.isFetching ||
     updateCartAddressMutation.isPending ||
     checkoutShippingQuery.isSettingShipping ||
     checkoutPaymentQuery.isInitiatingPayment ||
@@ -253,6 +295,7 @@ export function useCheckoutController() {
     cartTotalAmount,
     checkoutDetailsForm,
     checkoutError,
+    countryItems,
     checkoutPaymentQuery,
     checkoutShippingQuery,
     completedOrderId,
