@@ -51,6 +51,7 @@ const ORDER_RECEIPT_FIELDS = [
   "discount_total",
   "item_subtotal",
   "item_tax_total",
+  "metadata",
   "shipping_total",
   "subtotal",
   "tax_total",

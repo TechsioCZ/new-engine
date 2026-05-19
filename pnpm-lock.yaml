@@ -222,7 +222,7 @@ importers:
         version: 2.15.2
       '@medusajs/medusa':
         specifier: ^2.15.2
-        version: 2.15.2(c3f66ee35a265a999eb28600cc87aaad)
+        version: 2.15.2(76743558a5b5d8632bb028f7dbfd34b7)
       '@medusajs/ui':
         specifier: ^4.1.12
         version: 4.1.12(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
@@ -304,6 +304,9 @@ importers:
       pdf-lib:
         specifier: ^1.17.1
         version: 1.17.1
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
       qs:
         specifier: ^6.14.1
         version: 6.14.1
@@ -341,6 +344,9 @@ importers:
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.1
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
       '@types/qs':
         specifier: ^6.9.17
         version: 6.14.0
@@ -8755,6 +8761,9 @@ packages:
   '@types/prismjs@1.26.6':
     resolution: {integrity: sha512-vqlvI7qlMvcCBbVe0AKAb4f97//Hy0EBTaiW8AalRnG/xAN5zOiWWyrNqNXeq8+KAuvRewjCVY1+IPxk4RdNYw==}
 
+  '@types/qrcode@1.5.6':
+    resolution: {integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==}
+
   '@types/qs@6.14.0':
     resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
 
@@ -10896,6 +10905,9 @@ packages:
 
   diffable-html@4.1.0:
     resolution: {integrity: sha512-++kyNek+YBLH8cLXS+iTj/Hiy2s5qkRJEJ8kgu/WHbFrVY2vz9xPFUT+fii2zGF0m1CaojDlQJjkfrCt7YWM1g==}
+
+  dijkstrajs@1.0.3:
+    resolution: {integrity: sha512-qiSlmBq9+BCdCA/L46dw8Uy93mloxsPSbwnm5yrKn2vMPiy8KyAskTF6zuV/j5BMsmOGZDPs7KjU+mjb670kfA==}
 
   dir-glob@3.0.1:
     resolution: {integrity: sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==}
@@ -14923,6 +14935,10 @@ packages:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
     engines: {node: '>=4'}
 
+  pngjs@5.0.0:
+    resolution: {integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==}
+    engines: {node: '>=10.13.0'}
+
   pony-cause@2.1.11:
     resolution: {integrity: sha512-M7LhCsdNbNgiLYiP4WjsfLUuFmCfnjdF6jKe2R9NKl4WFN+HZPGHJZ9lnLP7f9ZnKe3U9nuWD0szirmj+migUg==}
     engines: {node: '>=12.0.0'}
@@ -15176,6 +15192,11 @@ packages:
 
   pure-rand@7.0.1:
     resolution: {integrity: sha512-oTUZM/NAZS8p7ANR3SHh30kXB+zK2r2BPcEn/awJIbOvq82WoMN4p62AWWp3Hhw50G0xMsw1mhIBLqHw64EcNQ==}
+
+  qrcode@1.5.4:
+    resolution: {integrity: sha512-1ca71Zgiu6ORjHqFBDpnSMTR2ReToX4l1Au1VFLyVeBTFavzQnv5JxMFr3ukHVKpSrSA2MCk0lNJSykjUfz7Zg==}
+    engines: {node: '>=10.13.0'}
+    hasBin: true
 
   qs-esm@8.0.1:
     resolution: {integrity: sha512-eZ7l+0ZVy3He9c85pEM9KEBR9DFA4jrmWvIjm9wpcHvScwc/vgZDl2TNOF0pm0JsWKw24XBUZOY0Wxn7/nvJnw==}
@@ -21968,10 +21989,10 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@medusajs/admin-bundler@2.15.2(@types/node@24.10.1)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(babel-plugin-react-compiler@1.0.0)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(picomatch@4.0.4)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.7.1)':
+  '@medusajs/admin-bundler@2.15.2(@types/node@24.10.1)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(babel-plugin-react-compiler@1.0.0)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(picomatch@4.0.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.7.1)':
     dependencies:
       '@medusajs/admin-shared': 2.15.2
-      '@medusajs/admin-vite-plugin': 2.15.2(picomatch@4.0.4)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))
+      '@medusajs/admin-vite-plugin': 2.15.2(picomatch@4.0.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))
       '@medusajs/dashboard': 2.15.2(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(typescript@5.9.3)
       '@vitejs/plugin-react': 6.0.1(babel-plugin-react-compiler@1.0.0)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))
       autoprefixer: 10.5.0(postcss@8.5.14)
@@ -22014,14 +22035,14 @@ snapshots:
 
   '@medusajs/admin-shared@2.15.2': {}
 
-  '@medusajs/admin-vite-plugin@2.15.2(picomatch@4.0.4)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))':
+  '@medusajs/admin-vite-plugin@2.15.2(picomatch@4.0.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))':
     dependencies:
       '@babel/parser': 7.25.6
       '@babel/traverse': 7.25.6
       '@babel/types': 7.25.6
       '@medusajs/admin-shared': 2.15.2
       chokidar: 3.6.0
-      fdir: 6.1.1(picomatch@4.0.4)
+      fdir: 6.1.1(picomatch@4.0.3)
       magic-string: 0.30.5
       outdent: 0.8.0
       picocolors: 1.1.1
@@ -22376,12 +22397,12 @@ snapshots:
     dependencies:
       '@medusajs/framework': 2.15.2(@medusajs/cli@2.15.2(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.10.1)(mysql2@3.15.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))(zod@4.2.0)
 
-  '@medusajs/medusa@2.15.2(c3f66ee35a265a999eb28600cc87aaad)':
+  '@medusajs/medusa@2.15.2(76743558a5b5d8632bb028f7dbfd34b7)':
     dependencies:
       '@inquirer/checkbox': 2.5.0
       '@inquirer/confirm': 2.0.17
       '@inquirer/input': 2.3.0
-      '@medusajs/admin-bundler': 2.15.2(@types/node@24.10.1)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(babel-plugin-react-compiler@1.0.0)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(picomatch@4.0.4)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.7.1)
+      '@medusajs/admin-bundler': 2.15.2(@types/node@24.10.1)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(babel-plugin-react-compiler@1.0.0)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(picomatch@4.0.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.7.1)
       '@medusajs/analytics': 2.15.2(@medusajs/framework@2.15.2(@medusajs/cli@2.15.2(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.10.1)(mysql2@3.15.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))(zod@4.2.0))
       '@medusajs/analytics-local': 2.15.2(@medusajs/framework@2.15.2(@medusajs/cli@2.15.2(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.10.1)(mysql2@3.15.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))(zod@4.2.0))
       '@medusajs/analytics-posthog': 2.15.2(@medusajs/framework@2.15.2(@medusajs/cli@2.15.2(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.10.1)(mysql2@3.15.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))(zod@4.2.0))(posthog-node@5.33.7(rxjs@7.8.2))
@@ -22619,7 +22640,7 @@ snapshots:
       ulid: 2.4.0
     optionalDependencies:
       '@medusajs/core-flows': 2.15.2(@medusajs/framework@2.15.2(@medusajs/cli@2.15.2(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.10.1)(mysql2@3.15.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))(zod@4.2.0))
-      '@medusajs/medusa': 2.15.2(c3f66ee35a265a999eb28600cc87aaad)
+      '@medusajs/medusa': 2.15.2(76743558a5b5d8632bb028f7dbfd34b7)
     transitivePeerDependencies:
       - debug
       - supports-color
@@ -25895,7 +25916,7 @@ snapshots:
       '@medusajs/framework': 2.15.2(@medusajs/cli@2.15.2(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.10.1)(mysql2@3.15.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))(zod@4.2.0)
       '@medusajs/icons': 2.15.2(react@19.2.3)
       '@medusajs/js-sdk': 2.15.2
-      '@medusajs/medusa': 2.15.2(c3f66ee35a265a999eb28600cc87aaad)
+      '@medusajs/medusa': 2.15.2(76743558a5b5d8632bb028f7dbfd34b7)
       '@medusajs/ui': 4.1.12(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
       '@tanstack/react-query': 5.64.2(react@19.2.3)
       awilix: 12.0.5
@@ -27603,6 +27624,10 @@ snapshots:
 
   '@types/prismjs@1.26.6': {}
 
+  '@types/qrcode@1.5.6':
+    dependencies:
+      '@types/node': 24.10.1
+
   '@types/qs@6.14.0': {}
 
   '@types/range-parser@1.2.7': {}
@@ -27646,7 +27671,7 @@ snapshots:
 
   '@types/tar@6.1.13':
     dependencies:
-      '@types/node': 20.19.40
+      '@types/node': 24.10.1
       minipass: 4.2.8
 
   '@types/tedious@4.0.14':
@@ -27682,7 +27707,7 @@ snapshots:
 
   '@types/yauzl@2.10.3':
     dependencies:
-      '@types/node': 20.19.40
+      '@types/node': 24.10.1
     optional: true
 
   '@typescript-eslint/eslint-plugin@8.59.1(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3)':
@@ -30268,6 +30293,8 @@ snapshots:
     dependencies:
       htmlparser2: 3.10.1
 
+  dijkstrajs@1.0.3: {}
+
   dir-glob@3.0.1:
     dependencies:
       path-type: 4.0.0
@@ -31284,9 +31311,9 @@ snapshots:
     dependencies:
       pend: 1.2.0
 
-  fdir@6.1.1(picomatch@4.0.4):
+  fdir@6.1.1(picomatch@4.0.3):
     optionalDependencies:
-      picomatch: 4.0.4
+      picomatch: 4.0.3
 
   fdir@6.5.0(picomatch@4.0.3):
     optionalDependencies:
@@ -33658,7 +33685,7 @@ snapshots:
       '@mdxeditor/editor': 3.54.0(@codemirror/language@6.12.3)(@lezer/highlight@1.2.3)(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(yjs@13.6.30)
       '@medusajs/framework': 2.15.2(@medusajs/cli@2.15.2(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.10.1)(mysql2@3.15.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))(zod@4.2.0)
       '@medusajs/js-sdk': 2.15.2
-      '@medusajs/medusa': 2.15.2(c3f66ee35a265a999eb28600cc87aaad)
+      '@medusajs/medusa': 2.15.2(76743558a5b5d8632bb028f7dbfd34b7)
       multer: 1.4.5-lts.1
     transitivePeerDependencies:
       - '@codemirror/language'
@@ -35155,6 +35182,8 @@ snapshots:
 
   pluralize@8.0.0: {}
 
+  pngjs@5.0.0: {}
+
   pony-cause@2.1.11: {}
 
   possible-typed-array-names@1.1.0: {}
@@ -35443,6 +35472,12 @@ snapshots:
   punycode@2.3.1: {}
 
   pure-rand@7.0.1: {}
+
+  qrcode@1.5.4:
+    dependencies:
+      dijkstrajs: 1.0.3
+      pngjs: 5.0.0
+      yargs: 15.4.1
 
   qs-esm@8.0.1: {}
 

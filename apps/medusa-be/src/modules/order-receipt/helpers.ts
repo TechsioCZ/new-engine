@@ -45,6 +45,7 @@ export type OrderReceiptOrder = {
   item_subtotal?: OrderReceiptMoney
   item_tax_total?: OrderReceiptMoney
   items?: OrderReceiptLineItem[] | null
+  metadata?: Record<string, unknown> | null
   shipping_total?: OrderReceiptMoney
   shipping_address?: OrderReceiptAddress | null
   subtotal?: OrderReceiptMoney
