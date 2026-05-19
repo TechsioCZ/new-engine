@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-05-19T18:52:26.634Z
+ * Exported at: 2026-05-19T20:43:56.598Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -108,8 +108,8 @@
   --color-button-bg-danger-light-active: oklch(0.962 0.019 25.602);
   --color-button-bg-danger-light-base: oklch(0.9 0.048 18.09);
   --color-button-bg-danger-light-hover: oklch(0.953 0.023 24.126);
-  --color-button-bg-disabled-base: oklch(0.278 0.034 257.672);
-  --color-button-bg-outlined-base: oklch(0 0 0 / 0);
+  --color-button-bg-disabled: oklch(0.278 0.034 257.672);
+  --color-button-bg-outlined: oklch(0 0 0 / 0);
   --color-button-bg-outlined-danger-active: oklch(0.794 0.119 20.048 / 0.122);
   --color-button-bg-outlined-danger-hover: oklch(0.805 0.111 19.782 / 0.161);
   --color-button-bg-outlined-primary-active: oklch(0.813 0.111 233.957 / 0.122);
@@ -144,33 +144,33 @@
   --color-button-bg-warning-light-active: oklch(0.975 0.117 107.339);
   --color-button-bg-warning-light-base: oklch(0.928 0.073 92.942);
   --color-button-bg-warning-light-hover: oklch(0.975 0.117 107.339);
-  --color-button-border-danger-base: oklch(0.702 0.189 22.228);
-  --color-button-border-disabled-base: oklch(0.373 0.034 260.169);
-  --color-button-border-primary-base: oklch(0.827 0.109 229.198);
-  --color-button-border-secondary-base: oklch(0.772 0.173 65.367);
-  --color-button-border-tertiary-base: oklch(0.806 0.112 11.594);
-  --color-button-border-warning-base: oklch(0.798 0.164 82.706);
-  --color-button-fg-danger-base: oklch(0.13 0.043 265.132);
-  --color-button-fg-danger-borderless-base: oklch(0.452 0.066 4.881);
-  --color-button-fg-danger-light-base: oklch(0.13 0.043 265.132);
-  --color-button-fg-disabled-base: oklch(0.551 0.027 264.328);
-  --color-button-fg-outlined-danger-base: oklch(1 0 0);
-  --color-button-fg-outlined-primary-base: oklch(1 0 0);
-  --color-button-fg-outlined-secondary-base: oklch(1 0 0);
-  --color-button-fg-outlined-tertiary-base: oklch(1 0 0);
-  --color-button-fg-outlined-warning-base: oklch(1 0 0);
-  --color-button-fg-primary-base: oklch(0.13 0.043 265.132);
-  --color-button-fg-primary-borderless-base: oklch(0.507 0.063 255.385);
-  --color-button-fg-primary-light-base: oklch(0.13 0.043 265.132);
-  --color-button-fg-secondary-base: oklch(0.13 0.043 265.132);
-  --color-button-fg-secondary-borderless-base: oklch(0.447 0.076 49.767);
-  --color-button-fg-secondary-light-base: oklch(0.13 0.043 265.132);
-  --color-button-fg-tertiary-base: oklch(0.13 0.043 265.132);
-  --color-button-fg-tertiary-borderless-base: oklch(0.511 0.054 323.997);
-  --color-button-fg-tertiary-light-base: oklch(0.13 0.043 265.132);
-  --color-button-fg-warning-base: oklch(0.13 0.043 265.132);
-  --color-button-fg-warning-borderless-base: oklch(0.492 0.079 93.623);
-  --color-button-fg-warning-light-base: oklch(0.13 0.043 265.132);
+  --color-button-border-danger: oklch(0.702 0.189 22.228);
+  --color-button-border-disabled: oklch(0.373 0.034 260.169);
+  --color-button-border-primary: oklch(0.827 0.109 229.198);
+  --color-button-border-secondary: oklch(0.772 0.173 65.367);
+  --color-button-border-tertiary: oklch(0.806 0.112 11.594);
+  --color-button-border-warning: oklch(0.798 0.164 82.706);
+  --color-button-fg-danger: oklch(0.13 0.043 265.132);
+  --color-button-fg-danger-borderless: oklch(0.452 0.066 4.881);
+  --color-button-fg-danger-light: oklch(0.13 0.043 265.132);
+  --color-button-fg-disabled: oklch(0.551 0.027 264.328);
+  --color-button-fg-outlined-danger: oklch(1 0 0);
+  --color-button-fg-outlined-primary: oklch(1 0 0);
+  --color-button-fg-outlined-secondary: oklch(1 0 0);
+  --color-button-fg-outlined-tertiary: oklch(1 0 0);
+  --color-button-fg-outlined-warning: oklch(1 0 0);
+  --color-button-fg-primary: oklch(0.13 0.043 265.132);
+  --color-button-fg-primary-borderless: oklch(0.507 0.063 255.385);
+  --color-button-fg-primary-light: oklch(0.13 0.043 265.132);
+  --color-button-fg-secondary: oklch(0.13 0.043 265.132);
+  --color-button-fg-secondary-borderless: oklch(0.447 0.076 49.767);
+  --color-button-fg-secondary-light: oklch(0.13 0.043 265.132);
+  --color-button-fg-tertiary: oklch(0.13 0.043 265.132);
+  --color-button-fg-tertiary-borderless: oklch(0.511 0.054 323.997);
+  --color-button-fg-tertiary-light: oklch(0.13 0.043 265.132);
+  --color-button-fg-warning: oklch(0.13 0.043 265.132);
+  --color-button-fg-warning-borderless: oklch(0.492 0.079 93.623);
+  --color-button-fg-warning-light: oklch(0.13 0.043 265.132);
   --color-button-ring: oklch(1 0 0);
   --color-carousel-control-bg: oklch(0.373 0.034 260.169);
   --color-carousel-indicator-bg-active: oklch(0.827 0.109 229.198);
