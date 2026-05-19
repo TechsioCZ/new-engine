@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
+import { useEffect, useState } from "react";
 import { SupportingText } from "@/components/text/supporting-text";
 import {
   fetchOrderPaymentQr,
@@ -15,9 +16,14 @@ type CheckoutCompletedOrderSectionProps = {
   completedOrderId: string;
 };
 
+const QR_PAYMENT_PENDING_REFETCH_INTERVAL_MS = 1500;
+const QR_PAYMENT_PENDING_TIMEOUT_MS = 15_000;
+
 export function CheckoutCompletedOrderSection({
   completedOrderId,
 }: CheckoutCompletedOrderSectionProps) {
+  const [hasQrPaymentPendingTimedOut, setHasQrPaymentPendingTimedOut] =
+    useState(false);
   const qrPaymentQuery = useQuery({
     enabled: Boolean(completedOrderId),
     queryFn: () =>
@@ -25,14 +31,43 @@ export function CheckoutCompletedOrderSection({
         orderId: completedOrderId,
       }),
     queryKey: ["checkout-order-payment-qr", completedOrderId],
+    refetchInterval: (query) =>
+      query.state.data?.status === "pending" && !hasQrPaymentPendingTimedOut
+        ? QR_PAYMENT_PENDING_REFETCH_INTERVAL_MS
+        : false,
     retry: 2,
     staleTime: Number.POSITIVE_INFINITY,
   });
-  const qrPayment = qrPaymentQuery.data ?? null;
-  const didResolveWithoutQrPayment =
-    qrPaymentQuery.isSuccess &&
-    !qrPaymentQuery.isFetching &&
-    !qrPayment;
+  const qrPaymentStatus = qrPaymentQuery.data?.status;
+  const qrPayment = qrPaymentQuery.data?.qrPayment ?? null;
+  const isPendingQrPayment =
+    qrPaymentStatus === "pending" && !hasQrPaymentPendingTimedOut;
+  const isPreparingQrPayment =
+    (qrPaymentQuery.isFetching &&
+      !qrPayment &&
+      qrPaymentStatus !== "not_applicable" &&
+      !hasQrPaymentPendingTimedOut) ||
+    isPendingQrPayment;
+  const didQrPaymentFail =
+    qrPaymentQuery.isError ||
+    qrPaymentStatus === "unavailable" ||
+    (qrPaymentStatus === "pending" && hasQrPaymentPendingTimedOut);
+
+  useEffect(() => {
+    if (qrPaymentStatus !== "pending") {
+      setHasQrPaymentPendingTimedOut(false);
+      return;
+    }
+
+    setHasQrPaymentPendingTimedOut(false);
+    const timeout = window.setTimeout(() => {
+      setHasQrPaymentPendingTimedOut(true);
+    }, QR_PAYMENT_PENDING_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [completedOrderId, qrPaymentStatus]);
 
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-350">
@@ -43,7 +78,7 @@ export function CheckoutCompletedOrderSection({
         {`Objednávka bola vytvorená (${completedOrderId}).`}
       </StatusText>
 
-      {qrPaymentQuery.isFetching && !qrPayment ? (
+      {isPreparingQrPayment ? (
         <SupportingText aria-live="polite">
           Pripravujeme QR údaje na bankový prevod.
         </SupportingText>
@@ -51,7 +86,7 @@ export function CheckoutCompletedOrderSection({
 
       {qrPayment ? <CheckoutPaymentQrPanel qrPayment={qrPayment} /> : null}
 
-      {qrPaymentQuery.isError || didResolveWithoutQrPayment ? (
+      {didQrPaymentFail ? (
         <StatusText showIcon size="sm" status="warning">
           QR platbu sa nepodarilo načítať. Platobné údaje nájdete aj v
           potvrdení objednávky.
