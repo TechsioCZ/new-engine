@@ -92,7 +92,13 @@ export class OrderPaymentQr {
       return []
     }
 
-    const qr = QRCode.create(spayd, { errorCorrectionLevel: "M" })
+    let qr: ReturnType<typeof QRCode.create>
+    try {
+      qr = QRCode.create(spayd, { errorCorrectionLevel: "M" })
+    } catch {
+      return []
+    }
+
     const matrixSize = qr.modules.size
     const quietZoneSize = PAYMENT_QR_QUIET_ZONE_MODULES * 2
     const moduleSize =
@@ -185,9 +191,9 @@ function getOrderPaymentAmount(order: OrderPaymentQrOrder) {
 }
 
 function getOrderCurrencyCode(order: OrderPaymentQrOrder) {
-  const currencyCode = order.currency_code?.trim()
+  const currencyCode = order.currency_code?.trim() || undefined
 
-  return (currencyCode || "CZK").toUpperCase()
+  return (currencyCode ?? "CZK").toUpperCase()
 }
 
 function getOrderVariableSymbol(order: OrderPaymentQrOrder) {

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest"
+import QRCode from "qrcode"
+import { describe, expect, it, vi } from "vitest"
 import {
   ORDER_PAYMENT_QR_METADATA_KEY,
   OrderPaymentQr,
@@ -129,5 +130,19 @@ describe("order payment QR", () => {
     expect(commands.length).toBeGreaterThan(1)
     expect(commands[0]).toBe("q 1 1 1 rg 445.00 684.00 86.00 86.00 re f Q")
     expect(commands.some((command) => command.endsWith(" re f Q"))).toBe(true)
+  })
+
+  it("returns no PDF commands when QR generation fails", () => {
+    vi.spyOn(QRCode, "create").mockImplementationOnce(() => {
+      throw new Error("invalid QR payload")
+    })
+
+    expect(
+      orderPaymentQr.buildPdfCommands("SPD*1.0*ACC:invalid", {
+        size: 86,
+        x: 445,
+        y: 684,
+      })
+    ).toEqual([])
   })
 })

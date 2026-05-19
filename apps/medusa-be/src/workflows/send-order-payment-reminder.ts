@@ -28,6 +28,22 @@ type QueryOrder = OrderReceiptOrder & {
   customer_id?: string | null
 }
 
+function isQueryOrder(value: unknown): value is QueryOrder {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+
+  const order = value as {
+    customer_id?: unknown
+    id?: unknown
+    total?: unknown
+  }
+
+  return (
+    typeof order.id === "string" && "total" in order && "customer_id" in order
+  )
+}
+
 const ORDER_PAYMENT_REMINDER_RECEIPT_FIELDS = [
   "id",
   "display_id",
@@ -74,7 +90,10 @@ const buildOrderPaymentReminderNotificationStep = createStep(
         id: input.order_id,
       },
     })
-    const order = (data as QueryOrder[])[0]
+    const order =
+      Array.isArray(data) && data.length > 0 && isQueryOrder(data[0])
+        ? data[0]
+        : undefined
 
     if (!order) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")

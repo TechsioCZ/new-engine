@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util"
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import type {
   IOrderModuleService,
@@ -57,7 +58,7 @@ export default async function orderPlacedHandler({
       await qrPaymentService.getIban()
     )
 
-    if (metadata !== order.metadata) {
+    if (!isDeepStrictEqual(metadata, order.metadata)) {
       const orderService = container.resolve<IOrderModuleService>(Modules.ORDER)
       await orderService.updateOrders(order.id, { metadata })
     }

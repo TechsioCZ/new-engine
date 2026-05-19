@@ -1,5 +1,6 @@
-import type { LoaderOptions } from "@medusajs/framework/types"
+import type { LoaderOptions, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { QR_PAYMENT_CONFIG_SERVICE } from "../constants"
 
 type QrPaymentConfigServiceType = {
   create: (data: Record<string, unknown>) => Promise<unknown>
@@ -11,10 +12,10 @@ type QrPaymentConfigServiceType = {
 export default async function createDefaultConfigLoader({
   container,
 }: LoaderOptions) {
-  const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
   const qrPaymentConfigService = container.resolve<QrPaymentConfigServiceType>(
-    "qrPaymentConfigService"
+    QR_PAYMENT_CONFIG_SERVICE
   )
 
   const [, count] = await qrPaymentConfigService.listAndCount({})
