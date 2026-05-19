@@ -5,7 +5,6 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import { Header } from "@techsio/ui-kit/organisms/header";
 import NextImage from "next/image";
 import NextLink from "next/link";
@@ -25,6 +24,7 @@ import {
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./header/herbatika-header.submenu-data";
 import { HerbatikaMobileMenuDialog } from "./header/herbatika-mobile-menu-dialog";
 import { HerbatikaLogo } from "./herbatika-logo";
+import { SearchAutocomplete } from "./search/search-autocomplete";
 import { resolveSearchHref } from "./search/search-query-config";
 
 const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
@@ -44,36 +44,6 @@ const resolveRootHandleFromHref = (href: string) => {
 
   return href.slice(3);
 };
-
-type HerbatikaHeaderSearchFormProps = {
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  variant: "desktop" | "mobile";
-};
-
-function HerbatikaHeaderSearchForm({
-  onSubmit,
-  variant,
-}: HerbatikaHeaderSearchFormProps) {
-  const isMobile = variant === "mobile";
-
-  return (
-    <SearchForm className="w-full" onSubmit={onSubmit}>
-      <SearchForm.Control className="h-search-form border border-border-search bg-fill-secondary">
-        <SearchForm.Input
-          className={`${isMobile ? "px-350 text-sm" : "px-400"} h-full font-verdana`}
-          name="q"
-          placeholder="Napíšte, čo hľadáte..."
-        />
-        <SearchForm.Button
-          aria-label="Hľadať"
-          className="rounded-none"
-          iconSize={isMobile ? "lg" : "xl"}
-          showSearchIcon
-        />
-      </SearchForm.Control>
-    </SearchForm>
-  );
-}
 
 export function HerbatikaHeader() {
   const router = useRouter();
@@ -134,7 +104,8 @@ export function HerbatikaHeader() {
         <HerbatikaLogo className="min-w-0 shrink" size="lg" />
 
         <div className="hidden w-full max-w-search-form flex-1 @header-desktop:block">
-          <HerbatikaHeaderSearchForm
+          <SearchAutocomplete
+            currencyCode={currency}
             onSubmit={handleSearchSubmit}
             variant="desktop"
           />
@@ -150,7 +121,7 @@ export function HerbatikaHeader() {
               <span className="block text-md font-semibold leading-snug text-fg-primary">
                 +421 2/321 123 45
               </span>
-              <span className="block text-xs ml-0.5 font-normal leading-snug text-fg-secondary">
+              <span className="block text-xs ml-50 font-normal leading-snug text-fg-secondary">
                 (Po-Pia: 09:00 - 16:00)
               </span>
             </span>
@@ -200,7 +171,8 @@ export function HerbatikaHeader() {
       </Header.Container>
 
       <div className="mx-auto w-full max-w-max-w px-header-lg pb-300 2xl:px-header-2xl @header-desktop:hidden">
-        <HerbatikaHeaderSearchForm
+        <SearchAutocomplete
+          currencyCode={currency}
           onSubmit={handleSearchSubmit}
           variant="mobile"
         />
