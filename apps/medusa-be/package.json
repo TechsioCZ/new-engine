@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "build": "node ./scripts/run-medusa.mjs build",
-    "build:admin-smoke-output": "bash -euo pipefail -c 'MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD=1 pnpm build && pnpm exec medusa build --admin-only && rm -rf .medusa/server/public/app && mkdir -p .medusa/server/public && cp -R .medusa/admin .medusa/server/public/app'",
+    "build:admin-smoke-output": "bash -euo pipefail -c 'MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD=1 pnpm build && pnpm exec medusa build --admin-only && rm -rf .medusa/server/public/admin && mkdir -p .medusa/server/public && cp -R .medusa/admin .medusa/server/public/admin'",
     "start": "medusa start",
     "entrypoint": "bash -euo pipefail -c 'npm run createInitialSuperadmin; : \"setInitialPublishableKey runs for side-effects only; setInitialPublishableKeyZerops persists the token\"; if [ \"${EXPOSE_INITIAL_PUBLISHABLE_KEY:-0}\" = \"1\" ]; then npm run -s setInitialPublishableKey; else npm run -s setInitialPublishableKey > /dev/null; fi'",
     "start:dev": "cross-env NODE_ENV=development medusa start",
