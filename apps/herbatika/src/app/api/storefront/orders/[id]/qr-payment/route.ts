@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import {
-  buildMedusaUrl,
-  getPublishableHeaders,
-  parseResponseJson,
-} from "../../../../storefront-auth/_lib";
-import {
   getNotApplicableQrPaymentResponse,
   mapStoreOrderPaymentQr,
   ORDER_PAYMENT_QR_FIELDS,
   type StoreOrderResponse,
 } from "@/lib/storefront/order-payment-qr-response";
+import {
+  buildMedusaUrl,
+  getPublishableHeaders,
+  parseResponseJson,
+} from "../../../../storefront-auth/_lib";
 
 type RouteContext = {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export async function GET(_request: Request, context: RouteContext) {
@@ -25,10 +25,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const medusaUrl = new URL(
     buildMedusaUrl(`/store/orders/${encodeURIComponent(id)}`),
   );
-  medusaUrl.searchParams.set(
-    "fields",
-    ORDER_PAYMENT_QR_FIELDS.join(","),
-  );
+  medusaUrl.searchParams.set("fields", ORDER_PAYMENT_QR_FIELDS.join(","));
 
   try {
     const response = await fetch(medusaUrl, {
