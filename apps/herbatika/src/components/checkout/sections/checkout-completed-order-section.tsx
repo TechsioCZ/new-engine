@@ -70,7 +70,8 @@ export function CheckoutCompletedOrderSection({
   }, [completedOrderId, qrPaymentStatus]);
 
   return (
-    <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-350">
+    <section className="max-w-2xl mx-auto flex flex-col gap-400">
+    <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-350 max-w-2xl mx-auto">
       <h2 className="text-xl font-semibold text-fg-primary">
         Objednávka dokončená
       </h2>
@@ -92,15 +93,15 @@ export function CheckoutCompletedOrderSection({
           potvrdení objednávky.
         </StatusText>
       ) : null}
-
-      <div className="flex flex-wrap gap-200">
-        <LinkButton as={NextLink} href="/" size="sm">
+    </section>
+    <div className="flex flex-wrap gap-200 w-full">
+        <LinkButton as={NextLink} href="/" size="md">
           Pokračovať v nákupe
         </LinkButton>
         <LinkButton
           as={NextLink}
           href="/account"
-          size="sm"
+          size="md"
           theme="outlined"
           variant="secondary"
         >
@@ -131,7 +132,7 @@ function CheckoutPaymentQrPanel({
 
   return (
     <div className="border-t border-border-primary pt-300">
-      <div className="grid gap-300 sm:grid-cols-2">
+      <div className="grid gap-400 sm:grid-cols-[1fr_auto] w-fit">
         <div className="flex justify-center sm:justify-start">
           <div
             aria-label={`QR kód pre platbu objednávky ${qrPayment.orderDisplayId}`}
