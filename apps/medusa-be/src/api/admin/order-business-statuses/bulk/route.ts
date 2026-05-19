@@ -17,6 +17,14 @@ type SkippedOrder = {
   reason: string
 }
 
+type UpdateCandidate = {
+  id: string
+  order_display_id: string
+  metadata: Record<string, unknown>
+}
+
+const UPDATE_CHUNK_SIZE = 25
+
 export async function POST(
   req: MedusaRequest<PostAdminOrderBusinessStatusesBulkSchemaType>,
   res: MedusaResponse
@@ -28,7 +36,7 @@ export async function POST(
   const orders = await fetchOrderBusinessStatusOrdersByIds(query, orderIds)
   const ordersById = new Map(orders.map((order) => [order.id, order]))
   const skipped: SkippedOrder[] = []
-  const updatedOrderIds: string[] = []
+  const updateCandidates: UpdateCandidate[] = []
 
   for (const orderId of orderIds) {
     const order = ordersById.get(orderId)
@@ -56,11 +64,18 @@ export async function POST(
       continue
     }
 
-    await orderService.updateOrders(order.id, {
+    updateCandidates.push({
+      id: order.id,
       metadata: buildOrderBusinessStatusMetadata(order.metadata, status),
+      order_display_id: getOrderDisplayId(order),
     })
-    updatedOrderIds.push(order.id)
   }
+
+  const updatedOrderIds = await updateOrdersInChunks(
+    orderService,
+    updateCandidates,
+    skipped
+  )
 
   const updatedOrders = updatedOrderIds.length
     ? await fetchOrderBusinessStatusOrdersByIds(query, updatedOrderIds)
@@ -73,6 +88,44 @@ export async function POST(
     orders: updatedOrders.map(toOrderBusinessStatusSummary),
     skipped,
   })
+}
+
+async function updateOrdersInChunks(
+  orderService: IOrderModuleService,
+  candidates: UpdateCandidate[],
+  skipped: SkippedOrder[]
+) {
+  const updatedOrderIds: string[] = []
+
+  for (let index = 0; index < candidates.length; index += UPDATE_CHUNK_SIZE) {
+    const chunk = candidates.slice(index, index + UPDATE_CHUNK_SIZE)
+    const results = await Promise.allSettled(
+      chunk.map((order) =>
+        orderService.updateOrders(order.id, { metadata: order.metadata })
+      )
+    )
+
+    for (const [resultIndex, result] of results.entries()) {
+      const order = chunk[resultIndex]
+
+      if (!order) {
+        continue
+      }
+
+      if (result.status === "fulfilled") {
+        updatedOrderIds.push(order.id)
+        continue
+      }
+
+      skipped.push({
+        id: order.id,
+        order_display_id: order.order_display_id,
+        reason: getUpdateFailureReason(result.reason),
+      })
+    }
+  }
+
+  return updatedOrderIds
 }
 
 async function fetchOrderBusinessStatusOrdersByIds(
@@ -92,4 +145,10 @@ async function fetchOrderBusinessStatusOrdersByIds(
 
 function getOrderDisplayId(order: OrderBusinessStatusOrder) {
   return order.custom_display_id || `#${order.display_id ?? order.id}`
+}
+
+function getUpdateFailureReason(reason: unknown) {
+  return reason instanceof Error
+    ? `Update failed: ${reason.message}`
+    : "Update failed"
 }

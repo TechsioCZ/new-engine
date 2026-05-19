@@ -250,5 +250,27 @@ describe("order business status", () => {
         "waiting_for_supplier"
       )
     ).toBeUndefined()
+    expect(
+      getOrderBusinessManualStatusUpdateBlockReason(
+        createOrder({ status: "canceled" }),
+        "processing"
+      )
+    ).toBe("canceled status has higher priority")
+    expect(
+      getOrderBusinessManualStatusUpdateBlockReason(
+        createOrder({ status: "canceled" }),
+        "canceled"
+      )
+    ).toBeUndefined()
+    expect(
+      getOrderBusinessManualStatusUpdateBlockReason(
+        createOrder({
+          metadata: {
+            [ORDER_BUSINESS_STATUS_METADATA_KEY]: "canceled",
+          },
+        }),
+        "processing"
+      )
+    ).toBeUndefined()
   })
 })

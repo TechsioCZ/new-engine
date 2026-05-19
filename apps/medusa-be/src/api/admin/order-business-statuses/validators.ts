@@ -13,7 +13,9 @@ export const GetAdminOrderBusinessStatusesByIdsSchema = z
     ids: z.preprocess(
       (value) => {
         if (Array.isArray(value)) {
-          return value.flatMap((item) => String(item).split(","))
+          return value.flatMap((item) =>
+            typeof item === "string" ? item.split(",") : item
+          )
         }
 
         return typeof value === "string" ? value.split(",") : value

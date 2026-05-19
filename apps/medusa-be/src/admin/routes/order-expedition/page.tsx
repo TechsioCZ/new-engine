@@ -176,10 +176,6 @@ function getBusinessStatusBulkBlockReason(
     return `${t(businessStatus.translation_key)} status has higher priority`
   }
 
-  if (businessStatus.id === "canceled" && currentManualStatus !== "canceled") {
-    return "Canceled status has higher priority"
-  }
-
   return
 }
 
