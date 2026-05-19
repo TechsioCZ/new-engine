@@ -38,6 +38,7 @@ const FONT_NORMAL = "F1" as const
 const FONT_BOLD = "F2" as const
 const PAYMENT_QR_MODULE_SIZE = 4
 const PAYMENT_QR_X = LEFT
+const PAYMENT_QR_PROVIDER_IDS = new Set(["pp_system_default"])
 const SUPPLIER_Y = 626
 const SUPPLIER_Y_WITH_PAYMENT_QR = 560
 
@@ -275,6 +276,10 @@ function buildPdf(order: OrderReceiptOrder) {
 }
 
 function buildPaymentQrCommands(order: OrderReceiptOrder): PdfCommand[] {
+  if (!isQrPaymentOrder(order)) {
+    return []
+  }
+
   return orderPaymentQr.buildPdfCommands(
     orderPaymentQr.getSpaydFromMetadata(order.metadata),
     {
@@ -282,6 +287,14 @@ function buildPaymentQrCommands(order: OrderReceiptOrder): PdfCommand[] {
       top: TOP,
       x: PAYMENT_QR_X,
     }
+  )
+}
+
+function isQrPaymentOrder(order: OrderReceiptOrder) {
+  return (order.payment_collections ?? []).some((collection) =>
+    (collection.payments ?? []).some((payment) =>
+      PAYMENT_QR_PROVIDER_IDS.has(payment.provider_id ?? "")
+    )
   )
 }
 
