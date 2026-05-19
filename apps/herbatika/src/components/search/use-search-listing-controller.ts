@@ -3,7 +3,6 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useQueryStates } from "nuqs";
 import { useMemo } from "react";
-import { resolveProductCurrencyCode } from "@/components/category/category-product-utils";
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import {
@@ -13,6 +12,7 @@ import {
 } from "@/lib/storefront/catalog-query-state";
 import { useCatalogProducts } from "@/lib/storefront/catalog-products";
 import { PLP_PAGE_SIZE, plpQueryParsers } from "@/lib/storefront/plp-query-state";
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 import {
   useCatalogListingInteractions,
   useCatalogListingPageBounds,
@@ -20,6 +20,7 @@ import {
 
 export function useSearchListingController() {
   const region = useRegionContext();
+  const regionCurrencyCode = resolveRegionCurrency(region);
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers);
   const query = queryState.q.trim();
   const isSearchQueryEnabled = Boolean(region?.region_id && query.length > 0);
@@ -108,7 +109,7 @@ export function useSearchListingController() {
     isSearchQueryEnabled,
     priceBounds: resolveCatalogPriceBounds(catalogQuery.facets.price),
     products: catalogQuery.products,
-    productsCurrencyCode: resolveProductCurrencyCode(catalogQuery.products),
+    productsCurrencyCode: regionCurrencyCode,
     query,
   };
 }

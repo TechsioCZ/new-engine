@@ -5,7 +5,6 @@ import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import { Header } from "@techsio/ui-kit/organisms/header";
 import NextImage from "next/image";
 import NextLink from "next/link";
@@ -14,7 +13,9 @@ import type { FocusEvent, FormEvent } from "react";
 import { useState } from "react";
 import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover";
 import { HerbatikaCartPopover } from "./header/herbatika-cart-popover";
 import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu";
@@ -25,13 +26,8 @@ import {
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./header/herbatika-header.submenu-data";
 import { HerbatikaMobileMenuDialog } from "./header/herbatika-mobile-menu-dialog";
 import { HerbatikaLogo } from "./herbatika-logo";
+import { SearchAutocomplete } from "./search/search-autocomplete";
 import { resolveSearchHref } from "./search/search-query-config";
-
-const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
-  at: "EUR",
-  cz: "CZK",
-  sk: "EUR",
-};
 
 const SUBMENU_ROOT_HANDLES = new Set<string>(
   HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle),
@@ -44,36 +40,6 @@ const resolveRootHandleFromHref = (href: string) => {
 
   return href.slice(3);
 };
-
-type HerbatikaHeaderSearchFormProps = {
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  variant: "desktop" | "mobile";
-};
-
-function HerbatikaHeaderSearchForm({
-  onSubmit,
-  variant,
-}: HerbatikaHeaderSearchFormProps) {
-  const isMobile = variant === "mobile";
-
-  return (
-    <SearchForm className="w-full" onSubmit={onSubmit}>
-      <SearchForm.Control className="h-search-form border border-border-search bg-fill-secondary">
-        <SearchForm.Input
-          className={`${isMobile ? "px-350 text-sm" : "px-400"} h-full font-verdana`}
-          name="q"
-          placeholder="Napíšte, čo hľadáte..."
-        />
-        <SearchForm.Button
-          aria-label="Hľadať"
-          className="rounded-none"
-          iconSize={isMobile ? "lg" : "xl"}
-          showSearchIcon
-        />
-      </SearchForm.Control>
-    </SearchForm>
-  );
-}
 
 export function HerbatikaHeader() {
   const router = useRouter();
@@ -92,10 +58,14 @@ export function HerbatikaHeader() {
     },
   );
 
-  const currency = REGION_TO_CURRENCY[region?.country_code ?? ""] ?? "EUR";
+  const regionCurrency = resolveRegionCurrency(region);
+  const cartCurrency = resolveSupportedCurrencyCode(
+    cart?.currency_code,
+    regionCurrency,
+  );
   const cartTotalLabel = formatCurrencyAmount(
     resolveCartTotalAmount(cart),
-    currency,
+    cartCurrency,
   );
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -134,8 +104,11 @@ export function HerbatikaHeader() {
         <HerbatikaLogo className="min-w-0 shrink" size="lg" />
 
         <div className="hidden w-full max-w-search-form flex-1 @header-desktop:block">
-          <HerbatikaHeaderSearchForm
+          <SearchAutocomplete
+            countryCode={region?.country_code}
+            currencyCode={regionCurrency}
             onSubmit={handleSearchSubmit}
+            regionId={region?.region_id}
             variant="desktop"
           />
         </div>
@@ -150,7 +123,7 @@ export function HerbatikaHeader() {
               <span className="block text-md font-semibold leading-snug text-fg-primary">
                 +421 2/321 123 45
               </span>
-              <span className="block text-xs ml-0.5 font-normal leading-snug text-fg-secondary">
+              <span className="block text-xs ml-50 font-normal leading-snug text-fg-secondary">
                 (Po-Pia: 09:00 - 16:00)
               </span>
             </span>
@@ -170,7 +143,7 @@ export function HerbatikaHeader() {
           <HerbatikaCartPopover
             cart={cart}
             cartTotalLabel={cartTotalLabel}
-            currencyCode={currency}
+            currencyCode={cartCurrency}
             itemCount={itemCount}
           />
         </Header.Actions>
@@ -200,8 +173,11 @@ export function HerbatikaHeader() {
       </Header.Container>
 
       <div className="mx-auto w-full max-w-max-w px-header-lg pb-300 2xl:px-header-2xl @header-desktop:hidden">
-        <HerbatikaHeaderSearchForm
+        <SearchAutocomplete
+          countryCode={region?.country_code}
+          currencyCode={regionCurrency}
           onSubmit={handleSearchSubmit}
+          regionId={region?.region_id}
           variant="mobile"
         />
       </div>

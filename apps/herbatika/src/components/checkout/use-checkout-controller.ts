@@ -22,6 +22,8 @@ import {
   resolveEffectiveCheckoutAddressDetails,
 } from "@/lib/forms/checkout/address.form";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 import { storefront } from "@/lib/storefront/storefront";
 import { resolveHasStoredAddress } from "./checkout-address.utils";
 import { useCheckoutActions } from "./use-checkout-actions";
@@ -30,6 +32,7 @@ import { useCheckoutDetailsForm } from "./use-checkout-details-form";
 export function useCheckoutController() {
   const queryClient = useQueryClient();
   const region = useRegionContext();
+  const regionCurrencyCode = resolveRegionCurrency(region);
   const authQuery = useAuth();
   const [allowCartAutoCreate, setAllowCartAutoCreate] = useState(true);
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
@@ -186,9 +189,10 @@ export function useCheckoutController() {
     return saveAddressSucceededRef.current;
   };
 
-  const currencyCode = useMemo(() => {
-    return (cartQuery.cart?.currency_code ?? "eur").toUpperCase();
-  }, [cartQuery.cart?.currency_code]);
+  const currencyCode = resolveSupportedCurrencyCode(
+    cartQuery.cart?.currency_code,
+    regionCurrencyCode,
+  );
 
   const cartItems = cartQuery.cart?.items ?? [];
   const hasItems = cartQuery.itemCount > 0 || cartItems.length > 0;

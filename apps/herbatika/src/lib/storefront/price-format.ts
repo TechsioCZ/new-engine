@@ -1,6 +1,6 @@
-const DEFAULT_CURRENCY_CODE = "EUR";
+import { DEFAULT_CURRENCY_CODE } from "./currency";
 
-const normalizeCurrencyCode = (currencyCode?: string | null): string => {
+const normalizeFormatCurrencyCode = (currencyCode?: string | null): string => {
   if (typeof currencyCode !== "string") {
     return DEFAULT_CURRENCY_CODE;
   }
@@ -33,7 +33,7 @@ export const formatCurrencyAmount = (
   options: FormatCurrencyAmountOptions = {},
 ): string => {
   const safeAmount = Number.isFinite(amount) ? amount : 0;
-  const safeCurrencyCode = normalizeCurrencyCode(currencyCode);
+  const safeCurrencyCode = normalizeFormatCurrencyCode(currencyCode);
   const minimumFractionDigits =
     typeof options.minimumFractionDigits === "number"
       ? options.minimumFractionDigits

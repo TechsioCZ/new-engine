@@ -15,10 +15,7 @@ import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/products";
-
-const resolveSupportedCurrency = (currencyCode: string): "EUR" | "CZK" => {
-  return currencyCode.toUpperCase() === "CZK" ? "CZK" : "EUR";
-};
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
 
 type CheckoutCartStepSectionProps = {
   cartId?: string;
@@ -41,7 +38,7 @@ export function CheckoutCartStepSection({
 
   const isPending =
     updateLineItemMutation.isPending || removeLineItemMutation.isPending;
-  const supportedCurrencyCode = resolveSupportedCurrency(currencyCode);
+  const supportedCurrencyCode = resolveSupportedCurrencyCode(currencyCode);
   const freeShippingThresholdAmount =
     resolveFreeShippingThresholdAmount(supportedCurrencyCode);
   const missingAmount =
