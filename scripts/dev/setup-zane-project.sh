@@ -1195,8 +1195,11 @@ setup::ensure_service_envs() {
   local service_json="$2"
   local desired_envs_json="$3"
   local cleanup_keys_json="$4"
+  local entry_json key value
 
-  while IFS=$'\t' read -r key value; do
+  while IFS= read -r entry_json; do
+    key="$(jq -r '.key' <<<"$entry_json")"
+    value="$(jq -r '.value' <<<"$entry_json")"
     local current_row current_value item_id payload
     current_row="$(setup::effective_service_env_row_json "$service_json" "$key")"
     if [[ -n "$current_row" ]]; then
@@ -1239,7 +1242,7 @@ setup::ensure_service_envs() {
 
     zane::request_service_change "$service_slug" "$payload"
     service_json="$(zane::get_service "$service_slug")"
-  done < <(jq -r 'to_entries[] | [.key, .value] | @tsv' <<<"$desired_envs_json")
+  done < <(jq -c 'to_entries[]' <<<"$desired_envs_json")
 
   while IFS= read -r cleanup_key; do
     local existing_row delete_item_id delete_payload
@@ -1334,11 +1337,13 @@ setup::apply_service_from_plan() {
 
 setup::upsert_shared_envs_from_plan() {
   local plan_json="$1"
-  local cleanup_key
+  local cleanup_key entry_json key value
 
-  while IFS=$'\t' read -r key value; do
+  while IFS= read -r entry_json; do
+    key="$(jq -r '.key' <<<"$entry_json")"
+    value="$(jq -r '.value' <<<"$entry_json")"
     zane::ensure_shared_env_var "$key" "$value"
-  done < <(jq -r '.shared_env | to_entries[] | [.key, .value] | @tsv' <<<"$plan_json")
+  done < <(jq -c '.shared_env | to_entries[]' <<<"$plan_json")
 
   while IFS= read -r cleanup_key; do
     [[ -n "$cleanup_key" ]] || continue
