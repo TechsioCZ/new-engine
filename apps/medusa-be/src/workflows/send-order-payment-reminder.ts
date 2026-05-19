@@ -1,4 +1,8 @@
-import type { CreateNotificationDTO, Query } from "@medusajs/framework/types"
+import type {
+  CreateNotificationDTO,
+  Logger,
+  Query,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -81,6 +85,7 @@ const buildOrderPaymentReminderNotificationStep = createStep(
     { container }
   ): Promise<StepResponse<CreateNotificationDTO[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+    const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const orderReceiptModuleService =
       container.resolve<OrderReceiptModuleService>(ORDER_RECEIPT_MODULE)
 
@@ -100,19 +105,31 @@ const buildOrderPaymentReminderNotificationStep = createStep(
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
     }
 
-    const attachment =
-      await orderReceiptModuleService.generateOrderReceiptAttachment(order)
+    let attachments: CreateNotificationDTO["attachments"] = []
+
+    try {
+      const attachment =
+        await orderReceiptModuleService.generateOrderReceiptAttachment(order)
+
+      attachments = [
+        {
+          content: attachment.content.toString("base64"),
+          content_type: attachment.content_type,
+          disposition: "attachment",
+          filename: attachment.filename,
+        },
+      ]
+    } catch (error) {
+      logger.warn(
+        `Payment reminder receipt PDF generation failed for order ${order.id}; sending reminder without attachment. ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      )
+    }
 
     return new StepResponse([
       {
-        attachments: [
-          {
-            content: attachment.content.toString("base64"),
-            content_type: attachment.content_type,
-            disposition: "attachment",
-            filename: attachment.filename,
-          },
-        ],
+        attachments,
         channel: "email",
         data: {
           order_display_id: input.order_display_id,
