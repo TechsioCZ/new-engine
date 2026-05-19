@@ -162,6 +162,38 @@ export function getManualOrderBusinessStatusId(
   return manualStatus
 }
 
+export function getOrderBusinessManualStatusUpdateBlockReason(
+  order: OrderBusinessStatusInput,
+  status: ManualOrderBusinessStatusId | null
+) {
+  const currentManualStatus = getManualOrderBusinessStatusId(order) ?? null
+
+  if (currentManualStatus === status) {
+    return status === null
+      ? "Manual status is already clear"
+      : `Manual status is already ${formatBusinessStatus(status)}`
+  }
+
+  if (status === null) {
+    return
+  }
+
+  const nextOrder = {
+    ...order,
+    metadata: {
+      ...(order.metadata ?? {}),
+      [ORDER_BUSINESS_STATUS_METADATA_KEY]: status,
+    },
+  }
+  const nextBusinessStatus = resolveOrderBusinessStatus(nextOrder)
+
+  if (nextBusinessStatus.id !== status) {
+    return `${formatBusinessStatus(nextBusinessStatus.id)} status has higher priority`
+  }
+
+  return
+}
+
 export function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
   return (
     order.payment_status ??
@@ -181,6 +213,10 @@ function hasPaidPaymentSignal(order: OrderBusinessStatusInput) {
   return (order.payment_collections ?? []).some((collection) =>
     PAID_PAYMENT_STATUSES.has(collection.status ?? "")
   )
+}
+
+function formatBusinessStatus(status: OrderBusinessStatusId) {
+  return status.replace(/_/g, " ")
 }
 
 export function resolveOrderBusinessStatus(
