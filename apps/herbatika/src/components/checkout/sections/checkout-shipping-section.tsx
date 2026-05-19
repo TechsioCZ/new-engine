@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import {
   resolveCarrierPickupHint,
   resolveCarrierPickupRequirement,
@@ -20,6 +20,8 @@ type CheckoutShippingSectionProps = {
   currencyCode: string;
   isBusy: boolean;
   onSelectShipping: (optionId: string, data?: Record<string, unknown>) => void;
+  onPendingPickupOptionIdChange: (optionId: string | null) => void;
+  pendingPickupOptionId: string | null;
   selectedShippingMethodId?: string | null;
   shippingOptions: ShippingOption[];
   shippingPrices: Record<string, number>;
@@ -32,14 +34,12 @@ export function CheckoutShippingSection({
   currencyCode,
   isBusy,
   onSelectShipping,
+  onPendingPickupOptionIdChange,
+  pendingPickupOptionId,
   selectedShippingMethodId,
   shippingOptions,
   shippingPrices,
 }: CheckoutShippingSectionProps) {
-  const [pendingPickupOptionId, setPendingPickupOptionId] = useState<
-    string | null
-  >(null);
-
   const pickupRequirements = useMemo(
     () =>
       new Map(
@@ -57,9 +57,9 @@ export function CheckoutShippingSection({
       pendingPickupOptionId &&
       !shippingOptions.some((option) => option.id === pendingPickupOptionId)
     ) {
-      setPendingPickupOptionId(null);
+      onPendingPickupOptionIdChange(null);
     }
-  }, [pendingPickupOptionId, shippingOptions]);
+  }, [onPendingPickupOptionIdChange, pendingPickupOptionId, shippingOptions]);
 
   const resolveShippingPriceLabel = (amount: number) => {
     if (amount <= 0) {
@@ -81,11 +81,11 @@ export function CheckoutShippingSection({
             label="Doprava"
             onValueChange={(value) => {
               if (pickupRequirements.has(value)) {
-                setPendingPickupOptionId(value);
+                onPendingPickupOptionIdChange(value);
                 return;
               }
 
-              setPendingPickupOptionId(null);
+              onPendingPickupOptionIdChange(null);
               void onSelectShipping(value);
             }}
             options={shippingOptions.map((option) => {
@@ -102,6 +102,7 @@ export function CheckoutShippingSection({
                   <CheckoutCarrierPickupDetails
                     disabled={isBusy}
                     onConfirm={(data) => {
+                      onPendingPickupOptionIdChange(null);
                       void onSelectShipping(option.id, data);
                     }}
                     requirement={pickupRequirement}

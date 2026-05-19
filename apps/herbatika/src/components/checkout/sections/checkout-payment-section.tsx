@@ -1,3 +1,4 @@
+import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import {
   resolvePaymentIcon,
   resolveProviderLabel,
@@ -16,6 +17,7 @@ type CheckoutPaymentSectionProps = {
   onSelectPaymentProvider: (providerId: string) => Promise<void>;
   paymentProviders: PaymentProvider[];
   selectedPaymentProviderId?: string | null;
+  selectionMessage?: string | null;
 };
 
 const resolveProviderId = (provider: PaymentProvider) => {
@@ -33,6 +35,7 @@ export function CheckoutPaymentSection({
   onSelectPaymentProvider,
   paymentProviders,
   selectedPaymentProviderId,
+  selectionMessage,
 }: CheckoutPaymentSectionProps) {
   return (
     <section className="space-y-250 rounded-sm p-550 font-rubik">
@@ -70,7 +73,24 @@ export function CheckoutPaymentSection({
             Nie sú dostupné žiadne platobné metódy.
           </SupportingText>
         )}
+        {paymentProviders.length > 0 && selectionMessage ? (
+          <PaymentSelectionMessage message={selectionMessage} />
+        ) : null}
       </div>
     </section>
+  );
+}
+
+function PaymentSelectionMessage({ message }: { message: string }) {
+  return (
+    <StatusText
+      aria-live="polite"
+      className="text-xs leading-relaxed"
+      showIcon
+      size="sm"
+      status="error"
+    >
+      {message}
+    </StatusText>
   );
 }

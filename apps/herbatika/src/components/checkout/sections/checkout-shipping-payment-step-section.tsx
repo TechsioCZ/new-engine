@@ -1,7 +1,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
-import type { ComponentProps } from "react";
+import { type ComponentProps, useState } from "react";
+import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
 import { CheckoutPaymentSection } from "./checkout-payment-section";
 import { CheckoutShippingSection } from "./checkout-shipping-section";
@@ -33,12 +34,31 @@ export function CheckoutShippingPaymentStepSection({
   nextStepHref,
   selectedPaymentProviderId,
 }: CheckoutShippingPaymentStepSectionProps) {
+  const [pendingPickupOptionId, setPendingPickupOptionId] = useState<
+    string | null
+  >(null);
+  const pendingPickupOption =
+    controller.checkoutShippingQuery.shippingOptions.find(
+      (option) => option.id === pendingPickupOptionId,
+    );
+  const hasPendingPickupRequirement = Boolean(
+    pendingPickupOption && resolveCarrierPickupRequirement(pendingPickupOption),
+  );
+  const paymentSelectionMessage = controller.checkoutPaymentQuery
+    .canInitiatePayment
+    ? null
+    : hasPendingPickupRequirement
+      ? "Pre voľbu platby najprv vyberte výdajné miesto."
+      : "Pre voľbu platby najprv vyberte dopravu.";
+
   return (
     <section className="space-y-400">
       <CheckoutShippingSection
         currencyCode={controller.currencyCode}
         isBusy={controller.isBusy}
         onSelectShipping={controller.handleSelectShipping}
+        onPendingPickupOptionIdChange={setPendingPickupOptionId}
+        pendingPickupOptionId={pendingPickupOptionId}
         selectedShippingMethodId={
           controller.checkoutShippingQuery.selectedShippingMethodId
         }
@@ -54,6 +74,7 @@ export function CheckoutShippingPaymentStepSection({
         onSelectPaymentProvider={controller.handleSelectPaymentProvider}
         paymentProviders={controller.checkoutPaymentQuery.paymentProviders}
         selectedPaymentProviderId={selectedPaymentProviderId}
+        selectionMessage={paymentSelectionMessage}
       />
 
       <div className="flex flex-col gap-250 pt-150 px-500 sm:flex-row sm:items-center">
