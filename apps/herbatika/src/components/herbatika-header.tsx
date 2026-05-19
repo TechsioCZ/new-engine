@@ -13,6 +13,7 @@ import type { FocusEvent, FormEvent } from "react";
 import { useState } from "react";
 import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover";
@@ -57,10 +58,14 @@ export function HerbatikaHeader() {
     },
   );
 
-  const currency = resolveRegionCurrency(region);
+  const regionCurrency = resolveRegionCurrency(region);
+  const cartCurrency = resolveSupportedCurrencyCode(
+    cart?.currency_code,
+    regionCurrency,
+  );
   const cartTotalLabel = formatCurrencyAmount(
     resolveCartTotalAmount(cart),
-    currency,
+    cartCurrency,
   );
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -101,7 +106,7 @@ export function HerbatikaHeader() {
         <div className="hidden w-full max-w-search-form flex-1 @header-desktop:block">
           <SearchAutocomplete
             countryCode={region?.country_code}
-            currencyCode={currency}
+            currencyCode={regionCurrency}
             onSubmit={handleSearchSubmit}
             regionId={region?.region_id}
             variant="desktop"
@@ -138,7 +143,7 @@ export function HerbatikaHeader() {
           <HerbatikaCartPopover
             cart={cart}
             cartTotalLabel={cartTotalLabel}
-            currencyCode={currency}
+            currencyCode={cartCurrency}
             itemCount={itemCount}
           />
         </Header.Actions>
@@ -170,7 +175,7 @@ export function HerbatikaHeader() {
       <div className="mx-auto w-full max-w-max-w px-header-lg pb-300 2xl:px-header-2xl @header-desktop:hidden">
         <SearchAutocomplete
           countryCode={region?.country_code}
-          currencyCode={currency}
+          currencyCode={regionCurrency}
           onSubmit={handleSearchSubmit}
           regionId={region?.region_id}
           variant="mobile"

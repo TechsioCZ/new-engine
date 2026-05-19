@@ -1,70 +1,39 @@
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency";
 import {
-  asCurrencyCode,
-  asStorefrontRecord,
-  resolveTopOfferCurrentAmount,
+  resolveProductTopOffer,
+  resolveStorefrontPrice,
+  resolveTopOfferInStock,
 } from "@/lib/storefront/product-pricing";
 import type {
   RawSearchAutocompleteProductHit,
   SearchAutocompleteSuggestion,
 } from "./search-autocomplete-types";
-import {
-  type CurrencyCode,
-  normalizeString,
-} from "./search-autocomplete-normalizers";
-
-const resolveProductTopOffer = (hit: RawSearchAutocompleteProductHit) => {
-  const metadata = asStorefrontRecord(hit.metadata);
-  return asStorefrontRecord(metadata?.top_offer);
-};
+import { normalizeString } from "./search-autocomplete-normalizers";
 
 const resolveProductPrice = (
   hit: RawSearchAutocompleteProductHit,
-  fallbackCurrencyCode: CurrencyCode,
+  expectedCurrencyCode: HerbatikaCurrencyCode,
 ) => {
-  const requestedCurrencyCode = fallbackCurrencyCode;
   const calculatedPrice = hit.variants?.[0]?.calculated_price;
-  const calculatedAmount = calculatedPrice?.calculated_amount;
-  const calculatedCurrencyCode = asCurrencyCode(calculatedPrice?.currency_code);
-
-  if (
-    typeof calculatedAmount === "number" &&
-    calculatedCurrencyCode === requestedCurrencyCode
-  ) {
-    return {
-      amount: calculatedAmount,
-      currencyCode: calculatedCurrencyCode,
-    };
-  }
-
   const topOffer = resolveProductTopOffer(hit);
-  const topOfferAmount = resolveTopOfferCurrentAmount(topOffer);
-  const topOfferCurrencyCode = asCurrencyCode(topOffer?.currency);
 
-  if (
-    typeof topOfferAmount === "number" &&
-    topOfferCurrencyCode === requestedCurrencyCode
-  ) {
-    return {
-      amount: topOfferAmount,
-      currencyCode: topOfferCurrencyCode,
-    };
-  }
-
-  return null;
+  return resolveStorefrontPrice({
+    calculatedAmount: calculatedPrice?.calculated_amount,
+    calculatedCurrencyCode: calculatedPrice?.currency_code,
+    expectedCurrencyCode,
+    topOffer,
+  });
 };
 
 const resolveProductInStock = (hit: RawSearchAutocompleteProductHit) => {
   const topOffer = resolveProductTopOffer(hit);
-  const stock = asStorefrontRecord(topOffer?.stock);
-  const amount = stock?.amount;
-
-  return typeof amount === "number" ? amount > 0 : true;
+  return resolveTopOfferInStock(topOffer);
 };
 
 const createProductSuggestion = (
   hit: RawSearchAutocompleteProductHit,
-  currencyCode: CurrencyCode,
+  currencyCode: HerbatikaCurrencyCode,
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(hit.id);
   const title = normalizeString(hit.title);
@@ -89,7 +58,7 @@ const createProductSuggestion = (
     subtitle: [producerTitle, categoryName].filter(Boolean).join(" | "),
     imageUrl: normalizeString(hit.thumbnail) || undefined,
     priceLabel: price
-      ? formatCurrencyAmount(price.amount, price.currencyCode)
+      ? formatCurrencyAmount(price.currentAmount, price.currencyCode)
       : undefined,
     inStock: resolveProductInStock(hit),
   };
@@ -97,7 +66,7 @@ const createProductSuggestion = (
 
 export const createProductSuggestions = (
   hits: RawSearchAutocompleteProductHit[],
-  currencyCode: CurrencyCode,
+  currencyCode: HerbatikaCurrencyCode,
   limit: number,
 ) =>
   hits

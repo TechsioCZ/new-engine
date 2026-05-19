@@ -3,7 +3,6 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useQueryStates } from "nuqs";
 import { useEffect, useMemo } from "react";
-import { resolveProductCurrencyCode } from "@/components/category/category-product-utils";
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items";
 import {
   buildCatalogProductsParams,
@@ -13,6 +12,7 @@ import {
 import { useCatalogProducts } from "@/lib/storefront/catalog-products";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { PLP_PAGE_SIZE, plpQueryParsers } from "@/lib/storefront/plp-query-state";
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 import {
   useCatalogListingInteractions,
   useCatalogListingPageBounds,
@@ -26,6 +26,7 @@ export function useBrandListingController({
   brandFacetId,
 }: UseBrandListingControllerProps) {
   const region = useRegionContext();
+  const regionCurrencyCode = resolveRegionCurrency(region);
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers);
   const visibleQueryState = useMemo(
     () => ({
@@ -135,7 +136,7 @@ export function useBrandListingController({
       (catalogQuery.products.length > 0 || catalogQuery.query.isPlaceholderData),
     priceBounds: resolveCatalogPriceBounds(catalogQuery.facets.price),
     products: catalogQuery.products,
-    productsCurrencyCode: resolveProductCurrencyCode(catalogQuery.products),
+    productsCurrencyCode: regionCurrencyCode,
     queryState,
   };
 }

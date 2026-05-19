@@ -1,13 +1,19 @@
-const FREE_SHIPPING_THRESHOLDS = {
+import {
+  type HerbatikaCurrencyCode,
+  normalizeSupportedCurrencyCode,
+} from "./currency";
+
+const FREE_SHIPPING_THRESHOLDS: Partial<Record<HerbatikaCurrencyCode, number>> = {
   EUR: 49,
-} as const;
+};
 
 export const resolveFreeShippingThresholdAmount = (
   currencyCode: string,
 ): number | null => {
-  const normalizedCurrencyCode = currencyCode.toUpperCase();
+  const normalizedCurrencyCode = normalizeSupportedCurrencyCode(currencyCode);
+  if (!normalizedCurrencyCode) {
+    return null;
+  }
 
-  return FREE_SHIPPING_THRESHOLDS[
-    normalizedCurrencyCode as keyof typeof FREE_SHIPPING_THRESHOLDS
-  ] ?? null;
+  return FREE_SHIPPING_THRESHOLDS[normalizedCurrencyCode] ?? null;
 };

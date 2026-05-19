@@ -13,12 +13,12 @@ import {
 import {
   normalizeCategoryName,
   resolveCategoryRank,
-  resolveProductCurrencyCode,
 } from "@/components/category/category-product-utils";
 import { useCatalogProducts } from "@/lib/storefront/catalog-products";
 import {
   buildCatalogProductsParams,
   resolveCatalogActiveFilterCount,
+  resolveCatalogPriceBounds,
 } from "@/lib/storefront/catalog-query-state";
 import {
   STOREFRONT_CATEGORY_TREE_FIELDS,
@@ -32,20 +32,7 @@ import {
 } from "@/lib/storefront/plp-query-state";
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
-
-const resolvePriceBounds = (priceFacet: {
-  min: number | null;
-  max: number | null;
-}) => {
-  if (priceFacet.min === null && priceFacet.max === null) {
-    return null;
-  }
-
-  return {
-    min: priceFacet.min ?? 0,
-    max: priceFacet.max ?? priceFacet.min ?? 1,
-  };
-};
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 
 const resolveBreadcrumbItems = (
   slug: string,
@@ -103,6 +90,7 @@ export function useCategoryListingQueries({
   slug,
 }: UseCategoryListingQueriesProps) {
   const region = useRegionContext();
+  const regionCurrencyCode = resolveRegionCurrency(region);
   const categoriesQuery = useCategories({
     page: 1,
     limit: STOREFRONT_CATEGORY_TREE_LIMIT,
@@ -272,9 +260,9 @@ export function useCategoryListingQueries({
       categoriesQuery.isLoading ||
       catalogQuery.isLoading ||
       catalogFacetSeedQuery.isLoading,
-    priceBounds: resolvePriceBounds(catalogQuery.facets.price),
+    priceBounds: resolveCatalogPriceBounds(catalogQuery.facets.price),
     products: catalogQuery.products,
-    productsCurrencyCode: resolveProductCurrencyCode(catalogQuery.products),
+    productsCurrencyCode: regionCurrencyCode,
     showCategoryNotFound:
       !categoriesQuery.isLoading &&
       categoriesQuery.categories.length > 0 &&

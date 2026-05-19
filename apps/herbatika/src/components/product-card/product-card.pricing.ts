@@ -1,65 +1,58 @@
 import type { HttpTypes } from "@medusajs/types";
-import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import {
   DEFAULT_CURRENCY_CODE,
-  asCurrencyCode,
+  resolveSupportedCurrencyCode,
+} from "@/lib/storefront/currency";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import {
   resolveProductTopOffer,
-  resolveTopOfferCurrentAmount,
-  resolveTopOfferOriginalAmount,
+  resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing";
 import type { ProductPriceState } from "./product-card.types";
 
 export const resolvePriceState = (
   product: HttpTypes.StoreProduct,
+  expectedCurrencyCode?: string | null,
 ): ProductPriceState => {
   const calculatedPrice = product.variants?.[0]?.calculated_price;
-  const calculatedAmount = calculatedPrice?.calculated_amount;
-  const calculatedOriginalAmount = calculatedPrice?.original_amount;
   const topOffer = resolveProductTopOffer(product);
-
-  const currentAmount =
-    typeof calculatedAmount === "number"
-      ? calculatedAmount
-      : resolveTopOfferCurrentAmount(topOffer);
-  const currencyCode =
-    asCurrencyCode(calculatedPrice?.currency_code) ??
-    asCurrencyCode(topOffer?.currency) ??
-    DEFAULT_CURRENCY_CODE;
-
-  const calculatedOriginal =
-    typeof calculatedOriginalAmount === "number" &&
-    typeof currentAmount === "number" &&
-    calculatedOriginalAmount > currentAmount
-      ? calculatedOriginalAmount
-      : null;
-  const offerOriginal = resolveTopOfferOriginalAmount({
-    currentAmount,
+  const price = resolveStorefrontPrice({
+    calculatedAmount: calculatedPrice?.calculated_amount,
+    calculatedCurrencyCode: calculatedPrice?.currency_code,
+    calculatedOriginalAmount: calculatedPrice?.original_amount,
+    expectedCurrencyCode,
     topOffer,
   });
-  const originalAmount = calculatedOriginal ?? offerOriginal;
 
-  if (typeof currentAmount !== "number") {
+  if (!price) {
     return {
       currentLabel: "Cena na vyžiadanie",
       originalLabel: null,
       currentAmount: null,
       originalAmount: null,
-      currencyCode,
+      currencyCode: resolveSupportedCurrencyCode(
+        expectedCurrencyCode,
+        DEFAULT_CURRENCY_CODE,
+      ),
     };
   }
 
-  const currentLabel = formatCurrencyAmount(currentAmount, currencyCode);
+  const currentLabel = formatCurrencyAmount(
+    price.currentAmount,
+    price.currencyCode,
+  );
   const originalLabel =
-    typeof originalAmount === "number" && originalAmount > currentAmount
-      ? formatCurrencyAmount(originalAmount, currencyCode)
+    typeof price.originalAmount === "number" &&
+    price.originalAmount > price.currentAmount
+      ? formatCurrencyAmount(price.originalAmount, price.currencyCode)
       : null;
 
   return {
     currentLabel,
     originalLabel,
-    currentAmount,
-    originalAmount,
-    currencyCode: currencyCode.toUpperCase(),
+    currentAmount: price.currentAmount,
+    originalAmount: price.originalAmount,
+    currencyCode: price.currencyCode,
   };
 };
 
@@ -75,7 +68,7 @@ export const resolveDiscountLabel = (
   }
 
   const discountAmount = price.originalAmount - price.currentAmount;
-  return `–${formatCurrencyAmount(discountAmount, price.currencyCode)}`;
+  return `-${formatCurrencyAmount(discountAmount, price.currencyCode)}`;
 };
 
 export const getProductPriceLabel = (

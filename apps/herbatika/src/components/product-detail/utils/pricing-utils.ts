@@ -1,18 +1,18 @@
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import {
+  DEFAULT_CURRENCY_CODE,
+  resolveSupportedCurrencyCode,
+} from "@/lib/storefront/currency";
 import type {
   ProductMediaFact,
-  ProductOfferState,
   ProductPriceState,
   StorefrontProduct,
   VolumeDiscountOption,
 } from "@/components/product-detail/product-detail.types";
 import {
-  DEFAULT_CURRENCY_CODE,
-  asCurrencyCode,
   asStorefrontNumber,
   resolveProductTopOffer,
-  resolveTopOfferCurrentAmount,
-  resolveTopOfferOriginalAmount,
+  resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing";
 
 const resolveAmountWithoutTax = (params: {
@@ -44,30 +44,32 @@ const resolveAmountWithoutTax = (params: {
 export const resolvePriceState = (
   product: StorefrontProduct,
   selectedVariantId: string | null,
+  expectedCurrencyCode?: string | null,
 ): ProductPriceState => {
   const variants = product.variants ?? [];
   const selectedVariant =
     variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
 
   const calculatedPrice = selectedVariant?.calculated_price;
-  const calculatedAmount = calculatedPrice?.calculated_amount;
-  const originalAmount = calculatedPrice?.original_amount;
   const topOffer = resolveProductTopOffer(product);
-  const currentAmount =
-    typeof calculatedAmount === "number"
-      ? calculatedAmount
-      : resolveTopOfferCurrentAmount(topOffer);
-  const currencyCode =
-    asCurrencyCode(calculatedPrice?.currency_code) ??
-    asCurrencyCode(topOffer?.currency) ??
-    DEFAULT_CURRENCY_CODE;
+  const price = resolveStorefrontPrice({
+    calculatedAmount: calculatedPrice?.calculated_amount,
+    calculatedCurrencyCode: calculatedPrice?.currency_code,
+    calculatedOriginalAmount: calculatedPrice?.original_amount,
+    expectedCurrencyCode,
+    topOffer,
+  });
 
   const resolvedCalculatedAmount =
-    typeof currentAmount === "number" ? currentAmount : null;
+    typeof price?.currentAmount === "number" ? price.currentAmount : null;
+  const currencyCode =
+    price?.currencyCode ??
+    resolveSupportedCurrencyCode(expectedCurrencyCode, DEFAULT_CURRENCY_CODE);
   const vatRate =
     asStorefrontNumber(selectedVariant?.metadata?.vat) ??
     asStorefrontNumber(topOffer?.vat);
   const explicitCalculatedAmountWithoutTax =
+    price?.source === "calculated_price" &&
     typeof calculatedPrice?.calculated_amount_without_tax === "number"
       ? calculatedPrice.calculated_amount_without_tax
       : null;
@@ -89,13 +91,7 @@ export const resolvePriceState = (
     };
   }
 
-  const normalizedOriginalAmount =
-    typeof originalAmount === "number" && originalAmount > resolvedCalculatedAmount
-      ? originalAmount
-      : resolveTopOfferOriginalAmount({
-          currentAmount: resolvedCalculatedAmount,
-          topOffer,
-        });
+  const normalizedOriginalAmount = price?.originalAmount ?? null;
 
   return {
     currentLabel: formatCurrencyAmount(resolvedCalculatedAmount, currencyCode),
@@ -115,34 +111,15 @@ export const resolvePriceState = (
 
 export const resolveDisplayOriginalAmount = (
   priceState: ProductPriceState | null,
-  offerState: ProductOfferState,
 ): number | null => {
   if (!priceState?.currentAmount) {
     return null;
   }
 
-  const variantOriginalAmount = priceState.originalAmount;
-  if (
-    typeof variantOriginalAmount === "number" &&
-    variantOriginalAmount > priceState.currentAmount
-  ) {
-    return variantOriginalAmount;
-  }
-
-  const offerOriginalAmount =
-    asStorefrontNumber(offerState.offerSource?.compare_at_price) ??
-    offerState.standardAmount ??
-    asStorefrontNumber(offerState.offerSource?.price_vat);
-
-  if (
-    offerState.hasActiveDiscount &&
-    typeof offerOriginalAmount === "number" &&
-    offerOriginalAmount > priceState.currentAmount
-  ) {
-    return offerOriginalAmount;
-  }
-
-  return null;
+  return typeof priceState.originalAmount === "number" &&
+    priceState.originalAmount > priceState.currentAmount
+    ? priceState.originalAmount
+    : null;
 };
 
 export const resolveDiscountPercent = (

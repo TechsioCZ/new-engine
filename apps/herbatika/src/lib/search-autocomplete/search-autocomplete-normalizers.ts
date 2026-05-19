@@ -1,14 +1,7 @@
 import { createBrandSlug } from "@/lib/storefront/brands";
 
-export type CurrencyCode = "EUR" | "CZK";
-
-const DEFAULT_CURRENCY_CODE: CurrencyCode = "EUR";
-
 export const normalizeString = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
-
-export const normalizeCurrencyCode = (value?: string | null): CurrencyCode =>
-  value?.trim().toUpperCase() === "CZK" ? "CZK" : DEFAULT_CURRENCY_CODE;
 
 export const normalizeComparable = (value: string) =>
   value

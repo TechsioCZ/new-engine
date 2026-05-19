@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import {
   useId,
-  useMemo,
   useState,
   type FocusEvent,
   type FormEvent,
@@ -47,14 +46,8 @@ export function useSearchAutocompleteController({
     regionId,
   });
   const normalizedQuery = value.trim();
-  const sections = useMemo(
-    () => createSearchAutocompleteSections(autocomplete.data),
-    [autocomplete.data],
-  );
-  const flatItems = useMemo(
-    () => sections.flatMap((section) => section.items),
-    [sections],
-  );
+  const sections = createSearchAutocompleteSections(autocomplete.data);
+  const flatItems = sections.flatMap((section) => section.items);
   const activeItem = flatItems[activeIndex] ?? null;
   const shouldShowPanel =
     isFocused &&

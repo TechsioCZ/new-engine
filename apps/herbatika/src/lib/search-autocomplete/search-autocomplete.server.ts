@@ -4,6 +4,7 @@ import {
   MEDUSA_BACKEND_URL,
   MEDUSA_PUBLISHABLE_KEY,
 } from "@/lib/storefront/ssr/constants";
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
 import {
   createEmptySearchAutocompleteResponse,
   type RawSearchAutocompleteFacetItem,
@@ -13,10 +14,7 @@ import {
   type SearchAutocompleteResponse,
 } from "./search-autocomplete-types";
 import { createProductSuggestions } from "./search-autocomplete-product-normalizers";
-import {
-  normalizeCurrencyCode,
-  normalizeString,
-} from "./search-autocomplete-normalizers";
+import { normalizeString } from "./search-autocomplete-normalizers";
 import {
   createBrandSuggestions,
   createCategorySuggestions,
@@ -144,7 +142,7 @@ export const fetchSearchAutocomplete = async ({
     return createEmptySearchAutocompleteResponse(normalizedQuery);
   }
 
-  const safeCurrencyCode = normalizeCurrencyCode(currencyCode);
+  const safeCurrencyCode = resolveSupportedCurrencyCode(currencyCode);
   const catalogResponse = await fetchCatalogCandidates({
     countryCode,
     currencyCode: safeCurrencyCode,
