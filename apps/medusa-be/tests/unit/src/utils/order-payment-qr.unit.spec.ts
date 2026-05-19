@@ -73,6 +73,22 @@ describe("order payment QR", () => {
     )
   })
 
+  it("formats Medusa BigNumber-like totals", () => {
+    expect(
+      orderPaymentQr.buildSpayd(
+        {
+          currency_code: "CZK",
+          display_id: 24,
+          id: "order_24",
+          total: {
+            valueOf: () => "1109.90909",
+          },
+        },
+        "CZ9608000000005444195083"
+      )
+    ).toContain("*AM:1109.91*")
+  })
+
   it("falls back to CZK when currency code is empty", () => {
     expect(
       orderPaymentQr.buildSpayd(

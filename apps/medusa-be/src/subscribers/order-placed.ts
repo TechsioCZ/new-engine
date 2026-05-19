@@ -23,19 +23,14 @@ type OrderPlacedQueryOrder = OrderPaymentQrOrder & {
   metadata?: Record<string, unknown> | null
 }
 
-type DatabaseConnection = {
-  raw: <T = unknown>(sql: string, bindings?: unknown[]) => Promise<T>
-}
-
-type RawRows<T> = T[] | { rows?: T[] }
-
 const ORDER_PAYMENT_QR_FIELDS = [
   "id",
   "currency_code",
   "custom_display_id",
   "display_id",
   "metadata",
-  "summary.totals",
+  "summary.current_order_total",
+  "summary.original_order_total",
   "total",
 ]
 
@@ -56,13 +51,9 @@ export default async function orderPlacedHandler({
   if (order) {
     const qrPaymentService =
       container.resolve<QrPaymentModuleService>(QR_PAYMENT_MODULE)
-    const orderWithAmount = await withOrderPaymentQrAmountFallback(
-      container,
-      order
-    )
     const metadata = buildOrderPaymentQrMetadata(
       order.metadata,
-      orderWithAmount,
+      order,
       await qrPaymentService.getIban()
     )
 
@@ -84,37 +75,4 @@ export default async function orderPlacedHandler({
 
 export const config: SubscriberConfig = {
   event: "order.placed",
-}
-
-async function withOrderPaymentQrAmountFallback(
-  container: SubscriberArgs<OrderPlacedEvent>["container"],
-  order: OrderPlacedQueryOrder
-): Promise<OrderPlacedQueryOrder> {
-  if (order.total !== null && order.total !== undefined) {
-    return order
-  }
-
-  if (
-    order.summary?.totals?.current_order_total !== null &&
-    order.summary?.totals?.current_order_total !== undefined
-  ) {
-    return order
-  }
-
-  const pgConnection = container.resolve<DatabaseConnection>(
-    ContainerRegistrationKeys.PG_CONNECTION
-  )
-  const result = await pgConnection.raw<RawRows<{ total?: string | null }>>(
-    `select totals->>'current_order_total' as total
-      from "order_summary"
-      where "order_id" = ?
-        and "deleted_at" is null
-      order by "version" desc
-      limit 1`,
-    [order.id]
-  )
-  const rows = Array.isArray(result) ? result : (result.rows ?? [])
-  const total = rows[0]?.total
-
-  return total ? { ...order, total } : order
 }

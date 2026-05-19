@@ -8,12 +8,10 @@ export type OrderPaymentQrOrder = {
   display_id?: number | string | null
   id: string
   summary?: {
-    totals?: {
-      current_order_total?: number | string | null
-      original_order_total?: number | string | null
-    } | null
+    current_order_total?: number | string | null
+    original_order_total?: number | string | null
   } | null
-  total?: number | string | null
+  total?: number | string | { valueOf(): unknown } | null
 }
 
 const VARIABLE_SYMBOL_REGEX = /^\d{1,10}$/
@@ -170,7 +168,7 @@ function formatSpaydAmount(value: OrderPaymentQrOrder["total"]) {
     return null
   }
 
-  const amount = typeof value === "string" ? Number(value) : value
+  const amount = Number(value)
   if (!Number.isFinite(amount) || amount <= 0) {
     return null
   }
@@ -181,8 +179,8 @@ function formatSpaydAmount(value: OrderPaymentQrOrder["total"]) {
 function getOrderPaymentAmount(order: OrderPaymentQrOrder) {
   return (
     order.total ??
-    order.summary?.totals?.current_order_total ??
-    order.summary?.totals?.original_order_total
+    order.summary?.current_order_total ??
+    order.summary?.original_order_total
   )
 }
 
