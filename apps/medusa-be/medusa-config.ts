@@ -303,9 +303,6 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/qr-payment",
-      options: {
-        environment: process.env.QR_PAYMENT_ENVIRONMENT ?? "development",
-      },
     },
     {
       resolve: "@medusajs/event-bus-redis",

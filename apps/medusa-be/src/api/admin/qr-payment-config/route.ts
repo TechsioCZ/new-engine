@@ -14,7 +14,6 @@ const toConfigResponse = (
   config: QrPaymentConfigDTO
 ): QrPaymentConfigResponse => ({
   id: config.id,
-  environment: config.environment,
   iban: config.iban ?? null,
 })
 

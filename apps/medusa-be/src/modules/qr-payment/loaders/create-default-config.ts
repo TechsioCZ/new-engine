@@ -10,35 +10,29 @@ type QrPaymentConfigServiceType = {
 
 export default async function createDefaultConfigLoader({
   container,
-  options,
-}: LoaderOptions<{ environment: string }>) {
+}: LoaderOptions) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const environment = options?.environment ?? "development"
 
   const qrPaymentConfigService = container.resolve<QrPaymentConfigServiceType>(
     "qrPaymentConfigService"
   )
 
-  const [, count] = await qrPaymentConfigService.listAndCount({ environment })
+  const [, count] = await qrPaymentConfigService.listAndCount({})
   if (count > 0) {
-    logger.debug(
-      `QR payment: Config for ${environment} already exists, skipping`
-    )
+    logger.debug("QR payment: Config already exists, skipping")
     return
   }
 
   try {
-    await qrPaymentConfigService.create({ environment })
-    logger.info(`QR payment: Created default config for ${environment}`)
+    await qrPaymentConfigService.create({})
+    logger.info("QR payment: Created default config")
   } catch (error) {
     const errorMessage = String(error)
     if (
       errorMessage.includes("unique constraint") ||
       errorMessage.includes("duplicate key")
     ) {
-      logger.debug(
-        `QR payment: Config for ${environment} created by another process`
-      )
+      logger.debug("QR payment: Config created by another process")
       return
     }
     throw error

@@ -16,7 +16,6 @@ export type OrderPaymentQrOrder = {
   total?: number | string | null
 }
 
-const PAYMENT_QR_IBAN_ENV = "ORDER_PAYMENT_QR_IBAN"
 const VARIABLE_SYMBOL_REGEX = /^\d{1,10}$/
 const PAYMENT_QR_QUIET_ZONE_MODULES = 4
 const SPAYD_RESERVED_CHARS_REGEX = /[*:]/g
@@ -32,14 +31,7 @@ export type PaymentQrPdfCommandOptions = {
 export type PaymentQrPdfCommand = string
 
 export class OrderPaymentQr {
-  getIban() {
-    return process.env[PAYMENT_QR_IBAN_ENV]?.trim()
-  }
-
-  buildSpayd(
-    order: OrderPaymentQrOrder,
-    iban: string | null | undefined = this.getIban()
-  ) {
+  buildSpayd(order: OrderPaymentQrOrder, iban: string | null | undefined) {
     if (!iban) {
       return null
     }
@@ -69,7 +61,7 @@ export class OrderPaymentQr {
   buildMetadata(
     metadata: Record<string, unknown> | null | undefined,
     order: OrderPaymentQrOrder,
-    iban: string | null | undefined = this.getIban()
+    iban: string | null | undefined
   ) {
     const spayd = this.buildSpayd(order, iban)
     if (!spayd) {
@@ -145,13 +137,9 @@ export class OrderPaymentQr {
 
 export const orderPaymentQr = new OrderPaymentQr()
 
-export function getPaymentQrIban() {
-  return orderPaymentQr.getIban()
-}
-
 export function buildOrderPaymentQrSpayd(
   order: OrderPaymentQrOrder,
-  iban: string | null | undefined = getPaymentQrIban()
+  iban: string | null | undefined
 ) {
   return orderPaymentQr.buildSpayd(order, iban)
 }
@@ -159,7 +147,7 @@ export function buildOrderPaymentQrSpayd(
 export function buildOrderPaymentQrMetadata(
   metadata: Record<string, unknown> | null | undefined,
   order: OrderPaymentQrOrder,
-  iban: string | null | undefined = getPaymentQrIban()
+  iban: string | null | undefined
 ) {
   return orderPaymentQr.buildMetadata(metadata, order, iban)
 }

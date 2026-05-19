@@ -2,25 +2,11 @@ import { MedusaService } from "@medusajs/framework/utils"
 import QrPaymentConfig from "./models/qr-payment-config"
 import type { QrPaymentConfigDTO, UpdateQrPaymentConfigInput } from "./types"
 
-type QrPaymentModuleOptions = {
-  environment: string
-}
-
 export class QrPaymentModuleService extends MedusaService({
   QrPaymentConfig,
 }) {
-  protected readonly environment_: string
-
-  constructor(container: unknown, options: QrPaymentModuleOptions) {
-    super(container, options)
-    this.environment_ = options.environment
-  }
-
   async getConfig(): Promise<QrPaymentConfigDTO | null> {
-    const configs = await this.listQrPaymentConfigs(
-      { environment: this.environment_ },
-      { take: 1 }
-    )
+    const configs = await this.listQrPaymentConfigs({}, { take: 1 })
 
     return (configs[0] as QrPaymentConfigDTO | undefined) ?? null
   }
@@ -41,10 +27,7 @@ export class QrPaymentModuleService extends MedusaService({
       }) as Promise<QrPaymentConfigDTO>
     }
 
-    return this.createQrPaymentConfigs({
-      ...update,
-      environment: this.environment_,
-    }) as Promise<QrPaymentConfigDTO>
+    return this.createQrPaymentConfigs(update) as Promise<QrPaymentConfigDTO>
   }
 
   async getIban(): Promise<string | null> {

@@ -15,7 +15,6 @@ import { sdk } from "../../../lib/sdk"
 
 type QrPaymentConfigResponse = {
   id: string
-  environment: string
   iban: string | null
 }
 
@@ -95,9 +94,6 @@ const QrPaymentsSettingsPage = () => {
     <Container className="divide-y p-0">
       <div className="px-6 py-4">
         <Heading level="h1">QR platby</Heading>
-        <Text className="text-ui-fg-subtle">
-          Environment: {qrConfig?.environment}
-        </Text>
       </div>
 
       <form onSubmit={handleSubmit}>
