@@ -315,6 +315,9 @@ module.exports = defineConfig({
       resolve: "./src/modules/order-receipt",
     },
     {
+      resolve: "./src/modules/qr-payment",
+    },
+    {
       resolve: "@medusajs/event-bus-redis",
       key: Modules.EVENT_BUS,
       options: {
