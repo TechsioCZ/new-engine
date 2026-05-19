@@ -59,7 +59,8 @@ const QrPaymentsSettingsPage = () => {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    mutate({ iban: iban.trim() || null })
+    const normalizedIban = iban.trim()
+    mutate({ iban: normalizedIban === "" ? null : normalizedIban })
   }
 
   if (isLoading) {

@@ -27,7 +27,7 @@ export default async function createDefaultConfigLoader({
     await qrPaymentConfigService.create({})
     logger.info("QR payment: Created default config")
   } catch (error) {
-    const errorMessage = String(error)
+    const errorMessage = String(error).toLowerCase()
     if (
       errorMessage.includes("unique constraint") ||
       errorMessage.includes("duplicate key")

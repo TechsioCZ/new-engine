@@ -73,6 +73,20 @@ describe("order payment QR", () => {
     )
   })
 
+  it("falls back to CZK when currency code is empty", () => {
+    expect(
+      orderPaymentQr.buildSpayd(
+        {
+          currency_code: "  ",
+          display_id: 23,
+          id: "order_23",
+          total: 578,
+        },
+        "CZ9608000000005444195083"
+      )
+    ).toContain("*CC:CZK*")
+  })
+
   it("leaves metadata unchanged when IBAN is not configured", () => {
     const metadata = { source: "checkout" }
 

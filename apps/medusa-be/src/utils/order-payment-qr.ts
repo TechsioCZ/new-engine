@@ -46,7 +46,7 @@ export class OrderPaymentQr {
       "1.0",
       `ACC:${iban.replace(/\s+/g, "").toUpperCase()}`,
       `AM:${amount}`,
-      `CC:${(order.currency_code ?? "CZK").toUpperCase()}`,
+      `CC:${getOrderCurrencyCode(order)}`,
       `MSG:${escapeSpaydValue(getOrderPaymentMessage(order))}`,
     ]
 
@@ -184,6 +184,12 @@ function getOrderPaymentAmount(order: OrderPaymentQrOrder) {
     order.summary?.totals?.current_order_total ??
     order.summary?.totals?.original_order_total
   )
+}
+
+function getOrderCurrencyCode(order: OrderPaymentQrOrder) {
+  const currencyCode = order.currency_code?.trim()
+
+  return (currencyCode || "CZK").toUpperCase()
 }
 
 function getOrderVariableSymbol(order: OrderPaymentQrOrder) {

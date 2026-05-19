@@ -21,15 +21,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const qrPaymentService =
     req.scope.resolve<QrPaymentModuleService>(QR_PAYMENT_MODULE)
 
-  const config = await qrPaymentService.getConfig()
-  if (!config) {
+  const qrPaymentConfig = await qrPaymentService.getConfig()
+  if (!qrPaymentConfig) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       "QR payment configuration not found. Please restart the server to initialize."
     )
   }
 
-  res.json({ config: toConfigResponse(config) })
+  res.json({ config: toConfigResponse(qrPaymentConfig) })
 }
 
 export async function POST(

@@ -99,7 +99,7 @@ const buildOrderPaymentReminderNotificationStep = createStep(
           order_id: input.order_id,
           payment_url: input.payment_url,
           store_name: input.store_name,
-          total: input.total,
+          total: order.total,
         },
         receiver_id: input.customer_id,
         resource_id: input.order_id,
