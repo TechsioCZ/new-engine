@@ -14,6 +14,7 @@ import { useState } from "react";
 import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover";
 import { HerbatikaCartPopover } from "./header/herbatika-cart-popover";
 import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu";
@@ -26,12 +27,6 @@ import { HerbatikaMobileMenuDialog } from "./header/herbatika-mobile-menu-dialog
 import { HerbatikaLogo } from "./herbatika-logo";
 import { SearchAutocomplete } from "./search/search-autocomplete";
 import { resolveSearchHref } from "./search/search-query-config";
-
-const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
-  at: "EUR",
-  cz: "CZK",
-  sk: "EUR",
-};
 
 const SUBMENU_ROOT_HANDLES = new Set<string>(
   HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle),
@@ -62,7 +57,7 @@ export function HerbatikaHeader() {
     },
   );
 
-  const currency = REGION_TO_CURRENCY[region?.country_code ?? ""] ?? "EUR";
+  const currency = resolveRegionCurrency(region);
   const cartTotalLabel = formatCurrencyAmount(
     resolveCartTotalAmount(cart),
     currency,

@@ -4,6 +4,38 @@ import type { RegionInfo } from "@techsio/storefront-data/shared/region";
 const DEFAULT_COUNTRY_CODE = "sk";
 const PREFERRED_COUNTRY_CODES = ["sk", "at", "cz"] as const;
 const PREFERRED_CURRENCIES = ["eur", "czk"] as const;
+const DEFAULT_REGION_CURRENCY = "EUR";
+
+export type HerbatikaCurrencyCode = "EUR" | "CZK";
+
+const COUNTRY_CURRENCY_BY_CODE: Record<string, HerbatikaCurrencyCode> = {
+  at: "EUR",
+  cz: "CZK",
+  sk: "EUR",
+};
+
+type RegionCurrencySource = RegionInfo & {
+  currency_code?: unknown;
+};
+
+const normalizeRegionCurrencyCode = (
+  value: unknown,
+): HerbatikaCurrencyCode | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalizedCurrencyCode = value.trim().toUpperCase();
+  if (normalizedCurrencyCode === "CZK") {
+    return "CZK";
+  }
+
+  if (normalizedCurrencyCode === "EUR") {
+    return "EUR";
+  }
+
+  return null;
+};
 
 const resolveRegionCountryCodes = (
   region: HttpTypes.StoreRegion,
@@ -32,6 +64,23 @@ export const toRegionInfo = (region: HttpTypes.StoreRegion): RegionInfo => {
     region_id: region.id,
     country_code: resolveCountryCode(region),
   };
+};
+
+export const resolveRegionCurrency = (
+  region?: RegionInfo | null,
+): HerbatikaCurrencyCode => {
+  const explicitCurrencyCode = normalizeRegionCurrencyCode(
+    (region as RegionCurrencySource | null | undefined)?.currency_code,
+  );
+
+  if (explicitCurrencyCode) {
+    return explicitCurrencyCode;
+  }
+
+  const countryCode = region?.country_code?.trim().toLowerCase();
+  return countryCode
+    ? (COUNTRY_CURRENCY_BY_CODE[countryCode] ?? DEFAULT_REGION_CURRENCY)
+    : DEFAULT_REGION_CURRENCY;
 };
 
 export const pickDefaultRegion = (
