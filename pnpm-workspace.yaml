@@ -5,6 +5,7 @@ minimumReleaseAgeExclude:
   - '@medusajs/*'
   - '@paykit-sdk/comgate'
   - '@paykit-sdk/gopay'
+  - '@rokmohar/medusa-plugin-meilisearch'
 # trustPolicy: no-downgrade
 
 packages:
