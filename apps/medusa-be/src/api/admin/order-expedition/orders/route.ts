@@ -2,6 +2,10 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
+  type OrderBusinessStatusId,
+  resolveOrderBusinessStatus,
+} from "../../../../utils/order-business-status"
+import {
   isOrderExpeditionRawOrder,
   ORDER_EXPEDITION_DEFAULT_LIMIT,
   ORDER_EXPEDITION_ORDER_FIELDS,
@@ -29,9 +33,13 @@ type CarrierFilterAccumulator = {
   matchingCount: number
   matchingOrders: OrderExpeditionRawOrder[]
 }
-type CollectMatchingCarrierOrdersInput = {
+type OrderExpeditionOrderFilters = {
+  businessStatus?: OrderBusinessStatusId
+  carrier?: OrderExpeditionCarrierKey
+}
+type CollectMatchingOrdersInput = {
   accumulator: CarrierFilterAccumulator
-  carrier: OrderExpeditionCarrierKey
+  filters: OrderExpeditionOrderFilters
   limit: number
   offset: number
   orders: OrderExpeditionRawOrder[]
@@ -42,19 +50,27 @@ const ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS = 1000
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const { carrier, limit, offset } =
-    req.validatedQuery as GetAdminOrderExpeditionOrdersSchemaType
+  const {
+    business_status: businessStatus,
+    carrier,
+    limit,
+    offset,
+  } = req.validatedQuery as GetAdminOrderExpeditionOrdersSchemaType
   const normalizedLimit = limit ?? ORDER_EXPEDITION_DEFAULT_LIMIT
   const normalizedOffset = offset ?? 0
 
-  const result = carrier
-    ? await fetchCarrierFilteredOrders(
-        query,
-        carrier,
-        normalizedLimit,
-        normalizedOffset
-      )
-    : await fetchOrders(query, normalizedLimit, normalizedOffset)
+  const result =
+    carrier || businessStatus
+      ? await fetchFilteredOrders(
+          query,
+          {
+            businessStatus,
+            carrier,
+          },
+          normalizedLimit,
+          normalizedOffset
+        )
+      : await fetchOrders(query, normalizedLimit, normalizedOffset)
 
   res.json({
     orders: result.orders.map(toOrderExpeditionDto),
@@ -66,6 +82,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     offset: normalizedOffset,
     limit: normalizedLimit,
     carrier: carrier ?? null,
+    business_status: businessStatus ?? null,
   })
 }
 
@@ -87,9 +104,9 @@ async function fetchOrders(
   }
 }
 
-async function fetchCarrierFilteredOrders(
+async function fetchFilteredOrders(
   query: Query,
-  carrier: OrderExpeditionCarrierKey,
+  filters: OrderExpeditionOrderFilters,
   limit: number,
   offset: number
 ): Promise<OrderExpeditionOrdersPage> {
@@ -122,9 +139,9 @@ async function fetchCarrierFilteredOrders(
     }
 
     scannedCount += batch.scannedCount
-    collectMatchingCarrierOrders({
+    collectMatchingOrders({
       accumulator,
-      carrier,
+      filters,
       limit,
       offset,
       orders: batch.orders,
@@ -157,15 +174,15 @@ async function fetchCarrierFilteredOrders(
   }
 }
 
-function collectMatchingCarrierOrders({
+function collectMatchingOrders({
   accumulator,
-  carrier,
+  filters,
   limit,
   offset,
   orders,
-}: CollectMatchingCarrierOrdersInput) {
+}: CollectMatchingOrdersInput) {
   for (const order of orders) {
-    if (!orderMatchesExpeditionCarrier(order, carrier)) {
+    if (!orderMatchesFilters(order, filters)) {
       continue
     }
 
@@ -179,6 +196,27 @@ function collectMatchingCarrierOrders({
       break
     }
   }
+}
+
+function orderMatchesFilters(
+  order: OrderExpeditionRawOrder,
+  filters: OrderExpeditionOrderFilters
+) {
+  if (
+    filters.carrier &&
+    !orderMatchesExpeditionCarrier(order, filters.carrier)
+  ) {
+    return false
+  }
+
+  if (
+    filters.businessStatus &&
+    resolveOrderBusinessStatus(order).id !== filters.businessStatus
+  ) {
+    return false
+  }
+
+  return true
 }
 
 async function fetchOrderBatch(
