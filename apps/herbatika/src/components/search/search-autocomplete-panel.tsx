@@ -1,9 +1,9 @@
 "use client";
 
-import { Link } from "@techsio/ui-kit/atoms/link";
 import NextLink from "next/link";
 import type { MouseEvent } from "react";
 import type {
+  SearchAutocompleteStatus,
   SearchAutocompleteSuggestion,
   SearchAutocompleteSuggestionType,
 } from "@/lib/search-autocomplete/search-autocomplete-types";
@@ -23,8 +23,11 @@ type SearchAutocompletePanelProps = {
   onMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
   query: string;
   sections: SearchAutocompletePanelSection[];
-  status: "idle" | "loading" | "success" | "error";
+  status: SearchAutocompleteStatus;
 };
+
+const PANEL_CLASS_NAME =
+  "absolute left-0 right-0 top-full z-50 mt-100 max-h-screen overflow-y-auto rounded-xs border border-border-secondary bg-surface py-200 shadow-md";
 
 const joinClassNames = (...classNames: Array<string | false | undefined>) =>
   classNames.filter(Boolean).join(" ");
@@ -33,6 +36,21 @@ export const getSearchAutocompleteOptionId = (
   panelId: string,
   item: SearchAutocompleteSuggestion,
 ) => `${panelId}-${item.type}-${item.id}`;
+
+const resolveStatusMessage = (
+  status: SearchAutocompleteStatus,
+  query: string,
+) => {
+  if (status === "loading") {
+    return "Hľadáme návrhy...";
+  }
+
+  if (status === "error") {
+    return "Návrhy sa nepodarilo načítať.";
+  }
+
+  return `Pre výraz "${query}" nemáme rýchle návrhy.`;
+};
 
 function SearchAutocompleteRow({
   activeItemId,
@@ -52,9 +70,8 @@ function SearchAutocompleteRow({
 
   return (
     <li role="presentation">
-      <Link
+      <NextLink
         aria-selected={isActive}
-        as={NextLink}
         className={joinClassNames(
           "flex min-w-0 items-center gap-300 px-300 py-200 text-fg-primary transition-colors",
           isActive ? "bg-fill-secondary" : "hover:bg-fill-secondary",
@@ -92,7 +109,7 @@ function SearchAutocompleteRow({
             ) : null}
           </span>
         ) : null}
-      </Link>
+      </NextLink>
     </li>
   );
 }
@@ -109,34 +126,34 @@ export function SearchAutocompletePanel({
 }: SearchAutocompletePanelProps) {
   const hasItems = sections.some((section) => section.items.length > 0);
 
+  if (!hasItems) {
+    return (
+      <div className={PANEL_CLASS_NAME} onMouseDown={onMouseDown}>
+        <p
+          className={`px-300 py-250 text-sm ${status === "error" ? "text-danger" : "text-fg-secondary"}`}
+          id={id}
+          role="status"
+        >
+          {resolveStatusMessage(status, query)}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
-      className="absolute left-0 right-0 top-full z-50 mt-100 max-h-screen overflow-y-auto rounded-xs border border-border-secondary bg-surface py-200 shadow-md"
+      aria-busy={status === "loading" ? true : undefined}
+      className={PANEL_CLASS_NAME}
       id={id}
       onMouseDown={onMouseDown}
       role="listbox"
     >
-      {status === "loading" && !hasItems ? (
-        <p className="px-300 py-250 text-sm text-fg-secondary">
-          Hľadáme návrhy...
-        </p>
-      ) : null}
-
-      {status === "error" ? (
-        <p className="px-300 py-250 text-sm text-danger">
-          Návrhy sa nepodarilo načítať.
-        </p>
-      ) : null}
-
-      {status === "success" && !hasItems ? (
-        <p className="px-300 py-250 text-sm text-fg-secondary">
-          Pre výraz "{query}" nemáme rýchle návrhy.
-        </p>
-      ) : null}
-
       {sections.map((section) =>
         section.items.length > 0 ? (
-          <div className="border-b border-border-secondary py-100 last:border-b-0" key={section.key}>
+          <div
+            className="border-b border-border-secondary py-100 last:border-b-0"
+            key={section.key}
+          >
             <div className="px-300 py-100 text-xs font-semibold uppercase tracking-normal text-fg-secondary">
               {section.title}
             </div>

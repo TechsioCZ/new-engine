@@ -4,15 +4,17 @@ import { useEffect, useState } from "react";
 import {
   createEmptySearchAutocompleteResponse,
   SEARCH_AUTOCOMPLETE_DEBOUNCE_MS,
+  SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
   type SearchAutocompleteResponse,
+  type SearchAutocompleteStatus,
 } from "@/lib/search-autocomplete/search-autocomplete-types";
 
-type SearchAutocompleteStatus = "idle" | "loading" | "success" | "error";
-
 type UseSearchAutocompleteInput = {
+  countryCode?: string;
   query: string;
   currencyCode: string;
+  regionId?: string;
 };
 
 type UseSearchAutocompleteResult = {
@@ -21,10 +23,14 @@ type UseSearchAutocompleteResult = {
 };
 
 export function useSearchAutocomplete({
+  countryCode,
   query,
   currencyCode,
+  regionId,
 }: UseSearchAutocompleteInput): UseSearchAutocompleteResult {
-  const normalizedQuery = query.trim();
+  const normalizedQuery = query
+    .trim()
+    .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH);
   const [data, setData] = useState<SearchAutocompleteResponse>(
     createEmptySearchAutocompleteResponse(""),
   );
@@ -37,6 +43,9 @@ export function useSearchAutocomplete({
       return;
     }
 
+    setData(createEmptySearchAutocompleteResponse(normalizedQuery));
+    setStatus("loading");
+
     const abortController = new AbortController();
     const timeoutId = window.setTimeout(() => {
       const params = new URLSearchParams({
@@ -44,7 +53,13 @@ export function useSearchAutocomplete({
         currency: currencyCode,
       });
 
-      setStatus("loading");
+      if (countryCode) {
+        params.set("country", countryCode);
+      }
+
+      if (regionId) {
+        params.set("region", regionId);
+      }
 
       fetch(`/api/search-autocomplete?${params.toString()}`, {
         signal: abortController.signal,
@@ -75,7 +90,7 @@ export function useSearchAutocomplete({
       window.clearTimeout(timeoutId);
       abortController.abort();
     };
-  }, [currencyCode, normalizedQuery]);
+  }, [countryCode, currencyCode, normalizedQuery, regionId]);
 
   return { data, status };
 }

@@ -105,8 +105,10 @@ export function HerbatikaHeader() {
 
         <div className="hidden w-full max-w-search-form flex-1 @header-desktop:block">
           <SearchAutocomplete
+            countryCode={region?.country_code}
             currencyCode={currency}
             onSubmit={handleSearchSubmit}
+            regionId={region?.region_id}
             variant="desktop"
           />
         </div>
@@ -172,8 +174,10 @@ export function HerbatikaHeader() {
 
       <div className="mx-auto w-full max-w-max-w px-header-lg pb-300 2xl:px-header-2xl @header-desktop:hidden">
         <SearchAutocomplete
+          countryCode={region?.country_code}
           currencyCode={currency}
           onSubmit={handleSearchSubmit}
+          regionId={region?.region_id}
           variant="mobile"
         />
       </div>

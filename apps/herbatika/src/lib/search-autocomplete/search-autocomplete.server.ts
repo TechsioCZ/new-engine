@@ -1,156 +1,175 @@
 import "server-only";
 
 import {
+  MEDUSA_BACKEND_URL,
+  MEDUSA_PUBLISHABLE_KEY,
+} from "@/lib/storefront/ssr/constants";
+import {
   createEmptySearchAutocompleteResponse,
-  type RawSearchAutocompleteCategoryHit,
-  type RawSearchAutocompleteProducerHit,
+  type RawSearchAutocompleteFacetItem,
   type RawSearchAutocompleteProductHit,
+  SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
   type SearchAutocompleteResponse,
 } from "./search-autocomplete-types";
+import { createProductSuggestions } from "./search-autocomplete-product-normalizers";
 import {
-  createBrandSuggestions,
-  createCategorySuggestions,
-  createProductSuggestions,
   normalizeCurrencyCode,
   normalizeString,
 } from "./search-autocomplete-normalizers";
+import {
+  createBrandSuggestions,
+  createCategorySuggestions,
+} from "./search-autocomplete-taxonomy-normalizers";
 
-type MeiliResult<THit> = {
-  hits?: THit[];
+type CatalogAutocompleteResponse = {
+  facets?: {
+    brand?: RawSearchAutocompleteFacetItem[];
+  };
+  products?: RawSearchAutocompleteProductHit[];
 };
 
-type MeiliMultiSearchResponse = {
-  results?: [
-    MeiliResult<RawSearchAutocompleteProductHit>,
-    MeiliResult<RawSearchAutocompleteCategoryHit>,
-    MeiliResult<RawSearchAutocompleteProductHit>,
-    MeiliResult<RawSearchAutocompleteProducerHit>,
-  ];
-};
-
-type MeiliConfig = {
-  host: string;
-  apiKey: string;
-  productsIndex: string;
-  categoriesIndex: string;
-  producersIndex: string;
+type FetchSearchAutocompleteInput = {
+  query: string;
+  countryCode?: string | null;
+  currencyCode?: string | null;
+  regionId?: string | null;
 };
 
 const PRODUCT_LIMIT = 5;
 const CATEGORY_LIMIT = 5;
 const BRAND_LIMIT = 4;
+const CANDIDATE_LIMIT = 12;
+const CATALOG_FETCH_TIMEOUT_MS = 3000;
 
-const resolveMeiliConfig = (): MeiliConfig | null => {
-  const host = normalizeString(process.env.MEILISEARCH_HOST).replace(/\/+$/, "");
-  const apiKey = normalizeString(process.env.MEILISEARCH_SEARCH_API_KEY);
-  const productsIndex =
-    normalizeString(process.env.MEILISEARCH_PRODUCTS_INDEX) || "products";
-  const categoriesIndex =
-    normalizeString(process.env.MEILISEARCH_CATEGORIES_INDEX) || "categories";
-  const producersIndex =
-    normalizeString(process.env.MEILISEARCH_PRODUCERS_INDEX) || "producers";
+const normalizeSearchAutocompleteQuery = (query: string) =>
+  query.trim().slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH);
 
-  if (!host || !apiKey) {
-    return null;
+const createCatalogAutocompleteUrl = ({
+  countryCode,
+  currencyCode,
+  query,
+  regionId,
+}: {
+  countryCode?: string | null;
+  currencyCode: string;
+  query: string;
+  regionId?: string | null;
+}) => {
+  const url = new URL("/store/catalog/products", MEDUSA_BACKEND_URL);
+  url.searchParams.set("q", query);
+  url.searchParams.set("page", "1");
+  url.searchParams.set("limit", String(CANDIDATE_LIMIT));
+  url.searchParams.set("sort", "recommended");
+  url.searchParams.set("currency_code", currencyCode.toLowerCase());
+
+  const normalizedRegionId = normalizeString(regionId);
+  if (normalizedRegionId) {
+    url.searchParams.set("region_id", normalizedRegionId);
   }
 
-  return { host, apiKey, productsIndex, categoriesIndex, producersIndex };
+  const normalizedCountryCode = normalizeString(countryCode).toLowerCase();
+  if (normalizedCountryCode) {
+    url.searchParams.set("country_code", normalizedCountryCode);
+  }
+
+  return url;
 };
 
-const createMeiliBody = (query: string, config: MeiliConfig) => ({
-  queries: [
-    {
-      indexUid: config.productsIndex,
-      q: query,
-      limit: PRODUCT_LIMIT,
-      filter: "facet_product_status = published",
-      attributesToRetrieve: [
-        "id",
-        "title",
-        "handle",
-        "thumbnail",
-        "producer",
-        "categories",
-        "facet_price",
-        "facet_in_stock",
-      ],
-    },
-    {
-      indexUid: config.categoriesIndex,
-      q: query,
-      limit: CATEGORY_LIMIT,
-      attributesToRetrieve: ["id", "name", "title", "handle"],
-    },
-    {
-      indexUid: config.productsIndex,
-      q: query,
-      limit: 10,
-      filter: "facet_product_status = published",
-      attributesToSearchOn: ["categories.name"],
-      attributesToRetrieve: ["id", "categories"],
-    },
-    {
-      indexUid: config.producersIndex,
-      q: query,
-      limit: BRAND_LIMIT,
-      attributesToRetrieve: ["id", "title", "handle"],
-    },
-  ],
-});
+const fetchCatalogCandidates = async ({
+  countryCode,
+  currencyCode,
+  query,
+  regionId,
+}: {
+  countryCode?: string | null;
+  currencyCode: string;
+  query: string;
+  regionId?: string | null;
+}) => {
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => {
+    abortController.abort();
+  }, CATALOG_FETCH_TIMEOUT_MS);
+
+  const headers: Record<string, string> = {
+    accept: "application/json",
+  };
+
+  if (MEDUSA_PUBLISHABLE_KEY) {
+    headers["x-publishable-api-key"] = MEDUSA_PUBLISHABLE_KEY;
+  }
+
+  try {
+    const response = await fetch(
+      createCatalogAutocompleteUrl({
+        countryCode,
+        currencyCode,
+        query,
+        regionId,
+      }),
+      {
+        cache: "no-store",
+        headers,
+        signal: abortController.signal,
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Catalog autocomplete failed: ${response.status}`);
+    }
+
+    return (await response.json()) as CatalogAutocompleteResponse;
+  } catch (error) {
+    if (abortController.signal.aborted) {
+      throw new Error(
+        `Catalog autocomplete timed out after ${CATALOG_FETCH_TIMEOUT_MS}ms.`,
+      );
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 export const fetchSearchAutocomplete = async ({
-  query,
+  countryCode,
   currencyCode,
-}: {
-  query: string;
-  currencyCode?: string | null;
-}): Promise<SearchAutocompleteResponse> => {
-  const normalizedQuery = query.trim();
+  query,
+  regionId,
+}: FetchSearchAutocompleteInput): Promise<SearchAutocompleteResponse> => {
+  const normalizedQuery = normalizeSearchAutocompleteQuery(query);
   if (normalizedQuery.length < SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH) {
     return createEmptySearchAutocompleteResponse(normalizedQuery);
   }
 
-  const config = resolveMeiliConfig();
-  if (!config) {
-    throw new Error("Meilisearch autocomplete is not configured.");
-  }
-
-  const response = await fetch(`${config.host}/multi-search`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(createMeiliBody(normalizedQuery, config)),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Meilisearch autocomplete failed: ${response.status}`);
-  }
-
-  const data = (await response.json()) as MeiliMultiSearchResponse;
-  const [
-    productResults,
-    categoryResults,
-    categoryProductResults,
-    producerResults,
-  ] = data.results ?? [];
   const safeCurrencyCode = normalizeCurrencyCode(currencyCode);
+  const catalogResponse = await fetchCatalogCandidates({
+    countryCode,
+    currencyCode: safeCurrencyCode,
+    query: normalizedQuery,
+    regionId,
+  });
+  const productHits = catalogResponse.products ?? [];
 
   return {
     query: normalizedQuery,
     products: createProductSuggestions(
-      productResults?.hits ?? [],
+      productHits,
       safeCurrencyCode,
+      PRODUCT_LIMIT,
     ),
     categories: createCategorySuggestions({
-      categoryHits: categoryResults?.hits ?? [],
-      productHits: categoryProductResults?.hits ?? [],
+      productHits,
       query: normalizedQuery,
       limit: CATEGORY_LIMIT,
     }),
-    brands: createBrandSuggestions(producerResults?.hits ?? []),
+    brands: createBrandSuggestions({
+      brandFacets: catalogResponse.facets?.brand ?? [],
+      productHits,
+      query: normalizedQuery,
+      limit: BRAND_LIMIT,
+    }),
   };
 };
