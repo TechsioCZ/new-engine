@@ -21,8 +21,8 @@ type GraphConfig = {
 
 type MeiliPriceRange = { max?: number; min?: number }
 
-const FACET_PRICE_MIN_FILTER_REGEX = /^facet_price >= ([0-9.]+)$/
-const FACET_PRICE_MAX_FILTER_REGEX = /^facet_price <= ([0-9.]+)$/
+const FACET_PRICE_MIN_FILTER_REGEX = /\bfacet_price >= ([0-9.]+)\b/
+const FACET_PRICE_MAX_FILTER_REGEX = /\bfacet_price <= ([0-9.]+)\b/
 
 const getFilterIds = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -51,14 +51,24 @@ const toArray = (value: unknown): string[] => {
   return typeof value === "string" ? [value] : []
 }
 
+const toFilterExpressions = (filter: unknown): unknown[] => {
+  if (typeof filter === "string") {
+    return [filter]
+  }
+
+  return Array.isArray(filter) ? filter : []
+}
+
 const getMeiliFilterValues = (filter: unknown, field: string): string[] => {
-  if (!Array.isArray(filter)) {
+  const expressions = toFilterExpressions(filter)
+
+  if (expressions.length === 0) {
     return []
   }
 
   const values: string[] = []
   const pattern = new RegExp(`${field} = "([^"]+)"`, "g")
-  for (const expression of filter) {
+  for (const expression of expressions) {
     if (typeof expression !== "string") {
       continue
     }
@@ -75,13 +85,15 @@ const getMeiliFilterValues = (filter: unknown, field: string): string[] => {
 }
 
 const getMeiliPriceRange = (filter: unknown): MeiliPriceRange => {
-  if (!Array.isArray(filter)) {
+  const expressions = toFilterExpressions(filter)
+
+  if (expressions.length === 0) {
     return {}
   }
 
   let min: number | undefined
   let max: number | undefined
-  for (const expression of filter) {
+  for (const expression of expressions) {
     if (typeof expression !== "string") {
       continue
     }
@@ -148,7 +160,7 @@ const createCatalogHarness = ({
         additionalOptions?: {
           attributesToRetrieve?: string[]
         }
-        filter?: string[]
+        filter?: string | string[]
       }
     ) => {
       const statusFilters = getMeiliFilterValues(
@@ -389,16 +401,9 @@ describe("GET /store/catalog/products", () => {
 
     await GET(req, res)
 
-    expect(meiliSearch).toHaveBeenCalledWith(
-      "products",
-      "",
-      expect.objectContaining({
-        filter: expect.arrayContaining([
-          "facet_price >= 10",
-          "facet_price <= 20",
-        ]),
-      })
-    )
+    const searchOptions = meiliSearch.mock.calls[0]?.[2]
+    expect(searchOptions?.filter).toContain("facet_price >= 10")
+    expect(searchOptions?.filter).toContain("facet_price <= 20")
     expect(getJsonPayload(res).products).toHaveLength(1)
   })
 
@@ -471,15 +476,12 @@ describe("GET /store/catalog/products", () => {
     await GET(req, res)
 
     expect(meiliSearch).toHaveBeenCalledTimes(1)
-    expect(meiliSearch).toHaveBeenCalledWith(
-      "products",
-      "",
-      expect.objectContaining({
-        filter: expect.arrayContaining([
-          'facet_product_status = "published"',
-          'facet_sales_channel_ids = "sc_visible"',
-        ]),
-      })
+    const searchOptions = meiliSearch.mock.calls[0]?.[2]
+    expect(searchOptions?.filter).toContain(
+      'facet_product_status = "published"'
+    )
+    expect(searchOptions?.filter).toContain(
+      'facet_sales_channel_ids = "sc_visible"'
     )
     expect(getJsonPayload(res).products).toHaveLength(12)
     expect(getJsonPayload(res).count).toBe(250)

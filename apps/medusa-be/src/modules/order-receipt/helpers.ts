@@ -34,6 +34,14 @@ export type OrderReceiptLineItem = {
   total?: OrderReceiptMoney
 }
 
+export type OrderReceiptPayment = {
+  provider_id?: string | null
+}
+
+export type OrderReceiptPaymentCollection = {
+  payments?: OrderReceiptPayment[] | null
+}
+
 export type OrderReceiptOrder = {
   billing_address?: OrderReceiptAddress | null
   created_at?: Date | string | null
@@ -45,6 +53,8 @@ export type OrderReceiptOrder = {
   item_subtotal?: OrderReceiptMoney
   item_tax_total?: OrderReceiptMoney
   items?: OrderReceiptLineItem[] | null
+  metadata?: Record<string, unknown> | null
+  payment_collections?: OrderReceiptPaymentCollection[] | null
   shipping_total?: OrderReceiptMoney
   shipping_address?: OrderReceiptAddress | null
   subtotal?: OrderReceiptMoney

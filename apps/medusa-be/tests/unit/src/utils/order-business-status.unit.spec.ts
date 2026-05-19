@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  getOrderBusinessManualStatusUpdateBlockReason,
   isManualOrderBusinessStatusId,
   ORDER_BUSINESS_STATUS_METADATA_KEY,
   ORDER_BUSINESS_STATUSES,
@@ -221,5 +222,55 @@ describe("order business status", () => {
         })
       ).id
     ).toBe("canceled")
+  })
+
+  it("explains manual status bulk update blockers", () => {
+    expect(
+      getOrderBusinessManualStatusUpdateBlockReason(
+        createOrder({
+          fulfillment_status: "delivered",
+          payment_status: "captured",
+        }),
+        "processing"
+      )
+    ).toBe("delivered status has higher priority")
+    expect(
+      getOrderBusinessManualStatusUpdateBlockReason(
+        createOrder({
+          metadata: {
+            [ORDER_BUSINESS_STATUS_METADATA_KEY]: "processing",
+          },
+        }),
+        "processing"
+      )
+    ).toBe("Manual status is already processing")
+    expect(
+      getOrderBusinessManualStatusUpdateBlockReason(
+        createOrder({ payment_status: "captured" }),
+        "waiting_for_supplier"
+      )
+    ).toBeUndefined()
+    expect(
+      getOrderBusinessManualStatusUpdateBlockReason(
+        createOrder({ status: "canceled" }),
+        "processing"
+      )
+    ).toBe("canceled status has higher priority")
+    expect(
+      getOrderBusinessManualStatusUpdateBlockReason(
+        createOrder({ status: "canceled" }),
+        "canceled"
+      )
+    ).toBeUndefined()
+    expect(
+      getOrderBusinessManualStatusUpdateBlockReason(
+        createOrder({
+          metadata: {
+            [ORDER_BUSINESS_STATUS_METADATA_KEY]: "canceled",
+          },
+        }),
+        "processing"
+      )
+    ).toBeUndefined()
   })
 })

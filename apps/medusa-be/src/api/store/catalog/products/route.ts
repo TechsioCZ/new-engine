@@ -337,6 +337,8 @@ export async function GET(
     ...filterExpressions,
     ...buildVisibilityFilterExpressions(req.filterableFields.sales_channel_id),
   ]
+  const searchFilter =
+    searchFilters.length > 0 ? searchFilters.join(" AND ") : undefined
   const searchResult = await meilisearchService.search(
     "products",
     validatedQuery.q.trim(),
@@ -345,7 +347,7 @@ export async function GET(
         limit,
         offset,
       },
-      filter: searchFilters.length > 0 ? searchFilters : undefined,
+      filter: searchFilter,
       additionalOptions: {
         attributesToRetrieve: ["id"],
         facets: FACETS_TO_FETCH,

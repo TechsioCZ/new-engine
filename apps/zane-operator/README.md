@@ -316,7 +316,7 @@ Optional overrides worth knowing:
 - `--operator-upstream-zane-username <user>`
 - `--operator-upstream-zane-password <password>`
 
-The helper reads `.env.zane` by default, but it only maps the values that are part of the deployed stack contract. Keep compose/local runtime values in `.env`; use `.env.zane` for Zane-targeted helper runs. The helper forces `NODE_ENV=production` for the Zane environment even if your local compose env uses development mode.
+The helper reads `.env.zane` by default, but it only maps the values that are part of the deployed stack contract. Keep compose/local runtime values in `.env`; use `.env.zane` for Zane-targeted helper runs. `NODE_ENV` is intentionally not synced by this helper; runtime mode is owned by the selected Dockerfile target and lane deployment flow.
 
 Read-only planning for this helper now also lives in CTL, but the direct CTL path is lower-level: you must provide a real inspect snapshot from shell-owned upstream Zane inspection plus the required plan inputs.
 

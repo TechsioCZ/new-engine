@@ -13,6 +13,16 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
 
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
+const MEILISEARCH_TYPO_TOLERANCE_SETTINGS = {
+  enabled: true,
+  minWordSizeForTypos: {
+    oneTypo: 4,
+    twoTypos: 10,
+  },
+  disableOnWords: [],
+  disableOnAttributes: [],
+  disableOnNumbers: false,
+}
 
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
@@ -217,6 +227,7 @@ module.exports = defineConfig({
                 "facet_price",
               ],
               sortableAttributes: ["created_at", "title", "facet_price"],
+              typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
               rankingRules: [
                 "sort",
                 "words",
@@ -249,6 +260,7 @@ module.exports = defineConfig({
               searchableAttributes: ["description"],
               displayedAttributes: ["id", "description", "handle"],
               filterableAttributes: ["id", "handle", "description"],
+              typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
             },
             primaryKey: "id",
           },
@@ -260,6 +272,7 @@ module.exports = defineConfig({
               searchableAttributes: ["title", "handle"],
               displayedAttributes: ["id", "title", "handle"],
               filterableAttributes: ["id", "title", "handle"],
+              typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
             },
             primaryKey: "id",
           },
@@ -300,6 +313,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/order-receipt",
+    },
+    {
+      resolve: "./src/modules/qr-payment",
     },
     {
       resolve: "@medusajs/event-bus-redis",

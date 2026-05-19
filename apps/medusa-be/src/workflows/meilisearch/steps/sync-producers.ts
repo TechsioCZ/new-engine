@@ -49,9 +49,13 @@ export const syncMeilisearchProducersStep = createStep(
       const batchSize = 1000
       while (true) {
         const result = await meilisearchService.search(index, "", {
-          offset: searchOffset,
-          limit: batchSize,
-          attributesToRetrieve: ["id"],
+          paginationOptions: {
+            offset: searchOffset,
+            limit: batchSize,
+          },
+          additionalOptions: {
+            attributesToRetrieve: ["id"],
+          },
         })
 
         for (const hit of result.hits) {
@@ -77,7 +81,14 @@ export const syncMeilisearchProducersStep = createStep(
 
     await Promise.all(
       producerIndexes.map((index) =>
-        meilisearchService.addDocuments(index, transformedProducers)
+        meilisearchService.addDocuments(
+          index,
+          transformedProducers,
+          PRODUCERS,
+          {
+            container,
+          }
+        )
       )
     )
     await Promise.all(
