@@ -5,13 +5,14 @@ import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery";
-import NextLink from "next/link";
 import NextImage from "next/image";
+import NextLink from "next/link";
 import { useMemo } from "react";
-import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants";
 import { FallbackImage } from "@/components/fallback-image";
+import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants";
 import type { ProductMediaFact } from "@/components/product-detail/product-detail.types";
 import { SupportingText } from "@/components/text/supporting-text";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 type ProductDetailMediaColumnProps = {
   discountPercent: number | null;
@@ -24,6 +25,8 @@ export function ProductDetailMediaColumn({
   galleryItems,
   mediaFacts,
 }: ProductDetailMediaColumnProps) {
+  const isDesktopGallery = useMediaQuery("md");
+  const carouselOrientation = isDesktopGallery ? "vertical" : "horizontal";
   const galleryItemsWithFallback = useMemo<GalleryItem[]>(
     () =>
       galleryItems.map((item) => {
@@ -78,7 +81,7 @@ export function ProductDetailMediaColumn({
           aspectRatio: "square",
           loop: true,
           objectFit: "contain",
-          orientation: "vertical",
+          orientation: carouselOrientation,
           size: "full",
           width: "100%",
         }}
@@ -104,7 +107,10 @@ export function ProductDetailMediaColumn({
           {mediaFacts.length > 0 ? (
             <div className="flex items-center justify-center divide-x divide-border-secondary border-t border-border-secondary bg-surface p-550">
               {mediaFacts.slice(0, 2).map((fact) => (
-                <div className="flex items-center gap-200 px-350 py-250" key={fact.id}>
+                <div
+                  className="flex items-center gap-200 px-350 py-250"
+                  key={fact.id}
+                >
                   <span className="flex items-center justify-center rounded-xs bg-highlight p-200">
                     <Icon className="text-primary" icon={fact.icon} size="lg" />
                   </span>
@@ -140,7 +146,11 @@ export function ProductDetailMediaColumn({
         </div>
 
         <div className="flex items-center gap-200">
-          <Icon className="text-primary" icon="token-icon-phone-talk" size="xl" />
+          <Icon
+            className="text-primary"
+            icon="token-icon-phone-talk"
+            size="xl"
+          />
           <Link
             as={NextLink}
             className="whitespace-nowrap text-sm leading-tight font-medium text-fg-strong hover:text-fg-primary"
