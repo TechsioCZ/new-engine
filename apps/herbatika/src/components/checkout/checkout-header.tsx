@@ -25,7 +25,7 @@ export function CheckoutHeader() {
           <Link
             as={NextLink}
             className="hidden items-center gap-100 text-sm text-fg-primary hover:text-primary md:inline-flex"
-            href="/#chat"
+            href={routes.homeSection("chat")}
           >
             <Icon icon="token-icon-conversation" color="success" />
             Spustiť chat

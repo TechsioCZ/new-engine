@@ -1,62 +1,9 @@
-import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants";
+import { routePaths } from "./route-paths";
 
 type SearchParamValue = string | string[] | undefined;
 type SearchParamsInput = Record<string, SearchParamValue>;
 
-const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "");
-
-const path = (...segments: string[]) => {
-  const pathname = segments.map(trimSlashes).filter(Boolean).join("/");
-  return pathname ? `/${pathname}` : "/";
-};
-
-const hashPath = (href: string, hash: string) => {
-  const normalizedHash = hash.replace(/^#+/, "");
-  return normalizedHash ? `${href}#${normalizedHash}` : href;
-};
-
-export const routes = {
-  home: "/",
-  homeSection: (sectionId: string) => hashPath("/", sectionId),
-  about: "/o-nas",
-  blog: {
-    index: "/blog",
-    detail: (slug: string) => path("blog", slug),
-  },
-  faq: "/faq",
-  cms: {
-    detail: (slug: string) => path(slug),
-  },
-  category: {
-    detail: (slug: string) => path("kategoria", slug),
-  },
-  product: {
-    detail: (handle: string) => path("produkt", handle),
-  },
-  checkout: {
-    index: "/pokladna",
-    step: (step: CheckoutStepSlug) => path("pokladna", step),
-  },
-  account: {
-    index: "/ucet",
-    orders: "/ucet/objednavky",
-    orderDetail: (id: string) => path("ucet", "objednavky", id),
-    settings: "/ucet/nastavenia",
-  },
-  auth: {
-    login: "/prihlasenie",
-    register: "/registracia",
-    forgotPassword: "/zabudnute-heslo",
-    resetPassword: "/obnova-hesla",
-  },
-  search: {
-    index: "/vyhladavanie",
-  },
-  brand: {
-    index: "/znacky",
-    detail: (slug: string) => path("znacky", slug),
-  },
-} as const;
+export const routes = routePaths;
 
 export const appendSearchParamsToHref = (
   href: string,

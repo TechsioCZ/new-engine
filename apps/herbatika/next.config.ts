@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type { NextConfig } from "next";
+import { routePaths } from "./src/lib/route-paths";
 
 const resolveImageRemotePattern = (baseUrl: string | undefined) => {
   if (!baseUrl) {
@@ -33,13 +34,13 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: "/pokladna",
-        destination: "/pokladna/kosik",
+        source: routePaths.checkout.index,
+        destination: routePaths.checkout.cart,
         permanent: false,
       },
       {
-        source: "/pokladna/platba/navrat",
-        destination: "/pokladna/suhrn",
+        source: routePaths.checkout.paymentReturn,
+        destination: routePaths.checkout.summary,
         permanent: false,
       },
     ];

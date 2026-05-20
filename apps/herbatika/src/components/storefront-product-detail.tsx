@@ -17,6 +17,7 @@ import {
 } from "@/components/product-detail/use-product-detail-controller";
 import type { StorefrontProductDetailProps } from "@/components/product-detail/product-detail.types";
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
+import { routes } from "@/lib/routes";
 
 export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps) {
   const controller = useProductDetailController({ handle });
@@ -61,7 +62,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
           <StatusText showIcon status="error">
             Produkt sa nepodarilo nájsť.
           </StatusText>
-          <LinkButton as={NextLink} href="/" variant="secondary">
+          <LinkButton as={NextLink} href={routes.home} variant="secondary">
             Späť na domovskú stránku
           </LinkButton>
         </section>

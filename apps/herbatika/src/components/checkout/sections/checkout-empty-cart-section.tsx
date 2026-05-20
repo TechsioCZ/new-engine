@@ -101,7 +101,7 @@ export function CheckoutEmptyCartSection() {
               <LinkButton
                 as={NextLink}
                 className="w-full sm:w-auto"
-                href="/"
+                href={routes.home}
                 size="md"
                 theme="outlined"
                 variant="secondary"

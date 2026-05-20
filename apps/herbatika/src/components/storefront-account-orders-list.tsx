@@ -12,6 +12,7 @@ import { useCallback, useEffect, useTransition } from "react";
 import { StorefrontAccountOrderGroup } from "@/components/account/orders/storefront-account-order-group";
 import { StorefrontAccountSurface } from "@/components/account/storefront-account-surface";
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton";
+import { routes } from "@/lib/routes";
 import { useAuth } from "@/lib/storefront/auth";
 import { getOrderDetailQueryOptions, useOrders } from "@/lib/storefront/orders";
 import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder";
@@ -99,7 +100,7 @@ export function StorefrontAccountOrdersList() {
         <p className="text-sm text-fg-secondary">
           Zatiaľ nemáte žiadnu dokončenú objednávku.
         </p>
-        <LinkButton as={NextLink} href="/" variant="secondary">
+        <LinkButton as={NextLink} href={routes.home} variant="secondary">
           Prejsť na produkty
         </LinkButton>
       </StorefrontAccountSurface>

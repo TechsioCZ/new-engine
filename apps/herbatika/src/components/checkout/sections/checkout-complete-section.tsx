@@ -10,6 +10,7 @@ import {
   resolveShippingIcon,
 } from "@/components/checkout/checkout-display.utils";
 import { SupportingText } from "@/components/text/supporting-text";
+import { routes } from "@/lib/routes";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
 type CheckoutCompleteSectionProps = {
@@ -204,7 +205,7 @@ export function CheckoutCompleteSection({
             Potvrdzujem, že som sa oboznámil s{" "}
             <NextLink
               className={summaryInlineLinkClassName}
-              href="/#obchodne-podmienky"
+              href={routes.homeSection("obchodne-podmienky")}
             >
               obchodnými podmienkami
             </NextLink>
@@ -212,7 +213,7 @@ export function CheckoutCompleteSection({
             Oboznámil som sa so{" "}
             <NextLink
               className={summaryInlineLinkClassName}
-              href="/#ochrana-osobnych-udajov"
+              href={routes.homeSection("ochrana-osobnych-udajov")}
             >
               zásadami ochrany osobných údajov
             </NextLink>
