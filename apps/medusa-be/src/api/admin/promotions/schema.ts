@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
 /** Schema for rule-attribute-options query params */
 export const RuleAttributeOptionsQuerySchema = z.object({

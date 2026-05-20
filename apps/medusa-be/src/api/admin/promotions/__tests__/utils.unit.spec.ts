@@ -1,7 +1,10 @@
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
+import { ApplicationMethodTargetType } from "@medusajs/framework/utils"
+import { areRulesValidForContext } from "@medusajs/promotion/dist/utils/validations/promotion-rule"
 import { describe, expect, it, vi } from "vitest"
 import { buildProducerPromotionContext } from "../../../../workflows/utils/promotion-producer-context"
+import { producerRuleAttribute } from "../const"
 import {
   escapeLikePattern,
   getExtendedRuleAttributesMap,
@@ -356,6 +359,38 @@ describe("getExtendedRuleAttributesMap", () => {
         map1["buy-rules"].find((r) => r.id === "buy_rules_min_quantity")
       ).toBeUndefined()
     })
+  })
+})
+
+describe("custom rule operator compatibility", () => {
+  it("uses Medusa's supported not-in operator for multiselect rules", () => {
+    const operatorValues = producerRuleAttribute.operators.map(
+      (operator) => operator.value
+    )
+
+    expect(operatorValues).toContain("ne")
+    expect(operatorValues).not.toContain("nin")
+
+    const rule = {
+      attribute: "items.producer_ids",
+      operator: "ne",
+      values: [{ value: "producer_blocked" }],
+    }
+
+    expect(
+      areRulesValidForContext(
+        [rule] as never,
+        { producer_ids: ["producer_allowed"] },
+        ApplicationMethodTargetType.ITEMS
+      )
+    ).toBe(true)
+    expect(
+      areRulesValidForContext(
+        [rule] as never,
+        { producer_ids: ["producer_blocked"] },
+        ApplicationMethodTargetType.ITEMS
+      )
+    ).toBe(false)
   })
 })
 

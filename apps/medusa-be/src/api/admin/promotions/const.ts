@@ -9,7 +9,7 @@ const operator = (id: RuleOperator, label: string) => ({
 const multiselectOperators = [
   operator(RuleOperator.IN, "In"),
   operator(RuleOperator.EQ, "Equals"),
-  operator(RuleOperator.NIN, "Not In"),
+  operator(RuleOperator.NE, "Not In"),
 ]
 
 const numericOperators = [
