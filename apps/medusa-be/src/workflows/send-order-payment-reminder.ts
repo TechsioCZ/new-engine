@@ -58,6 +58,7 @@ const ORDER_PAYMENT_REMINDER_RECEIPT_FIELDS = [
   "item_subtotal",
   "item_tax_total",
   "metadata",
+  "payment_collections.payments.data",
   "payment_collections.payments.provider_id",
   "shipping_total",
   "subtotal",

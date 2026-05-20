@@ -1,4 +1,5 @@
 import { orderPaymentQr } from "../../utils/order-payment-qr"
+import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../qr-payment/constants"
 import {
   formatDate,
   formatMoney,
@@ -38,7 +39,7 @@ const FONT_NORMAL = "F1" as const
 const FONT_BOLD = "F2" as const
 const PAYMENT_QR_MODULE_SIZE = 4
 const PAYMENT_QR_X = LEFT
-const PAYMENT_QR_PROVIDER_IDS = new Set(["pp_system_default"])
+const PAYMENT_QR_PROVIDER_IDS = new Set([QR_PAYMENT_MEDUSA_PROVIDER_ID])
 const SUPPLIER_Y = 626
 const SUPPLIER_Y_WITH_PAYMENT_QR = 560
 
@@ -276,26 +277,29 @@ function buildPdf(order: OrderReceiptOrder) {
 }
 
 function buildPaymentQrCommands(order: OrderReceiptOrder): PdfCommand[] {
-  if (!isQrPaymentOrder(order)) {
-    return []
-  }
-
-  return orderPaymentQr.buildPdfCommands(
-    orderPaymentQr.getSpaydFromMetadata(order.metadata),
-    {
-      moduleSize: PAYMENT_QR_MODULE_SIZE,
-      top: TOP,
-      x: PAYMENT_QR_X,
-    }
-  )
+  return orderPaymentQr.buildPdfCommands(getQrPaymentSpayd(order), {
+    moduleSize: PAYMENT_QR_MODULE_SIZE,
+    top: TOP,
+    x: PAYMENT_QR_X,
+  })
 }
 
-function isQrPaymentOrder(order: OrderReceiptOrder) {
-  return (order.payment_collections ?? []).some((collection) =>
-    (collection.payments ?? []).some((payment) =>
-      PAYMENT_QR_PROVIDER_IDS.has(payment.provider_id ?? "")
-    )
-  )
+function getQrPaymentSpayd(order: OrderReceiptOrder) {
+  for (const collection of order.payment_collections ?? []) {
+    for (const payment of collection.payments ?? []) {
+      if (!PAYMENT_QR_PROVIDER_IDS.has(payment.provider_id ?? "")) {
+        continue
+      }
+
+      const spayd = payment.data?.payment_qr_spayd
+
+      if (typeof spayd === "string" && spayd.trim()) {
+        return spayd
+      }
+    }
+  }
+
+  return null
 }
 
 class OrderReceiptModuleService {

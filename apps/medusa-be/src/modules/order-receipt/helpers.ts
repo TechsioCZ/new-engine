@@ -35,6 +35,7 @@ export type OrderReceiptLineItem = {
 }
 
 export type OrderReceiptPayment = {
+  data?: Record<string, unknown> | null
   provider_id?: string | null
 }
 

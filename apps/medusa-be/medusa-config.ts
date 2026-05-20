@@ -6,6 +6,7 @@ import {
 } from "@medusajs/framework/utils"
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
 import { buildPaykitPaymentProviders } from "./src/modules/payment-paykit/medusa-config"
+import { QR_PAYMENT_PROVIDER_ID } from "./src/modules/qr-payment/constants"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -29,6 +30,11 @@ const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
 
 const PAYKIT_PAYMENT_PROVIDERS = buildPaykitPaymentProviders()
+const QR_PAYMENT_PROVIDER = {
+  resolve: "./src/modules/qr-payment/services/manual",
+  id: QR_PAYMENT_PROVIDER_ID,
+  options: {},
+}
 
 const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
 const RESEND_API_KEY = process.env.RESEND_API_KEY
@@ -377,8 +383,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "@medusajs/medusa/payment",
+      dependencies: ["qr_payment"],
       options: {
-        providers: PAYKIT_PAYMENT_PROVIDERS,
+        providers: [QR_PAYMENT_PROVIDER, ...PAYKIT_PAYMENT_PROVIDERS],
       },
     },
     // PPL Client Module - config stored in DB, managed via Settings → PPL
