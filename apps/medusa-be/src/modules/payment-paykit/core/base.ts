@@ -406,16 +406,20 @@ export abstract class PaykitPaymentProviderBase<
         : { id: dataCustomer }
     }
 
-    if (isRecord(dataCustomer) && typeof dataCustomer.email === "string") {
-      return { email: dataCustomer.email }
-    }
+    if (isRecord(dataCustomer)) {
+      if (
+        typeof dataCustomer.email === "string" &&
+        isEmailValue(dataCustomer.email)
+      ) {
+        return { email: dataCustomer.email }
+      }
 
-    if (
-      isRecord(dataCustomer) &&
-      (typeof dataCustomer.id === "string" ||
-        typeof dataCustomer.id === "number")
-    ) {
-      return { id: dataCustomer.id }
+      if (
+        typeof dataCustomer.id === "string" ||
+        typeof dataCustomer.id === "number"
+      ) {
+        return { id: dataCustomer.id }
+      }
     }
 
     if (typeof data.customer_email === "string") {

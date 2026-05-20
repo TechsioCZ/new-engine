@@ -338,6 +338,31 @@ describe("PaykitPaymentProviderBase", () => {
     )
   })
 
+  it("falls back to customer id when object customer email is invalid", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await provider.initiatePayment({
+      amount: 1000,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+        customer: {
+          email: "not-an-email",
+          id: "cus_123",
+        },
+      },
+      context: {},
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: { id: "cus_123" },
+      })
+    )
+  })
+
   it("reads provider id from data.id when capturing payment", async () => {
     const client = createMockPaykitClient()
     const provider = createProvider(client)
