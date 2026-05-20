@@ -25,7 +25,7 @@ export type PaykitPayment = Record<string, unknown> & {
   amount_paid?: BigNumberInput
   currency?: string | null
   currency_code?: string | null
-  customer?: string | { email?: string } | null
+  customer?: { email?: string; id?: string | number } | null
   item_id?: string | null
   status?: PaykitPaymentStatus
   state?: PaykitPaymentStatus
@@ -38,7 +38,7 @@ export type PaykitPayment = Record<string, unknown> & {
   metadata?: Record<string, unknown> | null
 }
 
-export type PaykitCustomerInput = string | { email: string }
+export type PaykitCustomerInput = { email: string } | { id: string | number }
 
 export type PaykitBillingInfo = {
   address: {
@@ -150,6 +150,7 @@ export type PaykitGopayOptions = PaykitProviderOptions & {
 
 export type PaykitStripeOptions = PaykitProviderOptions & {
   apiKey?: string
+  isSandbox?: boolean
   webhookSecret?: string
 }
 
@@ -162,6 +163,7 @@ export type PaykitComgateOptions = PaykitProviderOptions & {
 
 export type PaykitWebhookEvent = {
   type?: string
+  is_raw?: boolean
   data?:
     | PaykitPayment
     | { object?: PaykitPayment | null; payment?: PaykitPayment | null }

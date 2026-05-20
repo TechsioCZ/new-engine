@@ -72,6 +72,10 @@ const getCurrencyCode = (data?: Record<string, unknown>): string | undefined =>
     ? data.currency
     : undefined
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const isEmailValue = (value: string): boolean => EMAIL_PATTERN.test(value)
+
 const getMetadataRecord = (
   metadata: unknown
 ): Record<string, unknown> | undefined =>
@@ -251,34 +255,103 @@ export abstract class PaykitPaymentProviderBase<
       | CreateAccountHolderInput
       | UpdateAccountHolderInput
   ): PaykitBillingInfo | undefined {
-    const billing = input.context?.customer?.billing_address
+    const currencyCode =
+      "currency_code" in input && typeof input.currency_code === "string"
+        ? input.currency_code
+        : undefined
+
+    if ("data" in input && isRecord(input.data)) {
+      const explicitBilling =
+        this.mapPaykitBillingInfo(input.data.billing, currencyCode) ??
+        this.mapMedusaBillingAddress(input.data.billing, currencyCode, input)
+
+      if (explicitBilling) {
+        return explicitBilling
+      }
+    }
+
+    const contextBilling = this.mapMedusaBillingAddress(
+      input.context?.customer?.billing_address,
+      currencyCode,
+      input
+    )
+
+    if (contextBilling) {
+      return contextBilling
+    }
+
+    return
+  }
+
+  private mapPaykitBillingInfo(
+    billing: unknown,
+    currencyCode?: string
+  ): PaykitBillingInfo | undefined {
+    if (!(isRecord(billing) && isRecord(billing.address))) {
+      return
+    }
+
+    const address = billing.address
+    const currency =
+      typeof billing.currency === "string" && billing.currency.length > 0
+        ? billing.currency
+        : currencyCode
 
     if (
       !(
-        billing?.address_1 &&
-        billing.city &&
-        billing.country_code &&
-        billing.postal_code
+        typeof address.name === "string" &&
+        typeof address.line1 === "string" &&
+        typeof address.city === "string" &&
+        typeof address.postal_code === "string" &&
+        typeof address.country === "string" &&
+        currency
       )
     ) {
       return
     }
 
+    return {
+      address: {
+        name: address.name,
+        line1: address.line1,
+        line2: typeof address.line2 === "string" ? address.line2 : "",
+        city: address.city,
+        state: typeof address.state === "string" ? address.state : undefined,
+        postal_code: address.postal_code,
+        country: address.country,
+        phone: typeof address.phone === "string" ? address.phone : undefined,
+      },
+      carrier:
+        typeof billing.carrier === "string" ? billing.carrier : undefined,
+      currency,
+    }
+  }
+
+  private mapMedusaBillingAddress(
+    billing: unknown,
+    currencyCode: string | undefined,
+    input:
+      | InitiatePaymentInput
+      | CreateAccountHolderInput
+      | UpdateAccountHolderInput
+  ): PaykitBillingInfo | undefined {
     if (
-      !("currency_code" in input) ||
-      typeof input.currency_code !== "string"
+      !(
+        isRecord(billing) &&
+        billing?.address_1 &&
+        billing.city &&
+        billing.country_code &&
+        billing.postal_code &&
+        currencyCode
+      )
     ) {
       return
     }
 
-    const billingRecord: Record<string, unknown> | undefined = isRecord(billing)
-      ? billing
-      : undefined
-
     return {
       address: {
         name:
-          joinName(billingRecord?.first_name, billingRecord?.last_name) ||
+          joinName(billing.first_name, billing.last_name) ||
           joinName(
             input.context?.customer?.first_name,
             input.context?.customer?.last_name
@@ -286,15 +359,19 @@ export abstract class PaykitPaymentProviderBase<
           input.context?.customer?.email ||
           input.context?.customer?.id ||
           "Customer",
-        line1: billing.address_1,
-        line2: billing.address_2 ?? "",
-        city: billing.city,
-        state: billing.province ?? undefined,
-        postal_code: billing.postal_code ?? "",
-        country: billing.country_code,
-        phone: billing.phone ?? input.context?.customer?.phone ?? undefined,
+        line1: String(billing.address_1),
+        line2: typeof billing.address_2 === "string" ? billing.address_2 : "",
+        city: String(billing.city),
+        state:
+          typeof billing.province === "string" ? billing.province : undefined,
+        postal_code: String(billing.postal_code),
+        country: String(billing.country_code),
+        phone:
+          typeof billing.phone === "string"
+            ? billing.phone
+            : (input.context?.customer?.phone ?? undefined),
       },
-      currency: input.currency_code,
+      currency: currencyCode,
     }
   }
 
@@ -320,15 +397,25 @@ export abstract class PaykitPaymentProviderBase<
   protected getPaykitCustomer(
     input: InitiatePaymentInput,
     data: Record<string, unknown>
-  ): string | { email: string } {
+  ): PaykitCreatePaymentInput["customer"] {
     const dataCustomer = data.customer
 
     if (typeof dataCustomer === "string" && dataCustomer.length > 0) {
-      return dataCustomer
+      return isEmailValue(dataCustomer)
+        ? { email: dataCustomer }
+        : { id: dataCustomer }
     }
 
     if (isRecord(dataCustomer) && typeof dataCustomer.email === "string") {
       return { email: dataCustomer.email }
+    }
+
+    if (
+      isRecord(dataCustomer) &&
+      (typeof dataCustomer.id === "string" ||
+        typeof dataCustomer.id === "number")
+    ) {
+      return { id: dataCustomer.id }
     }
 
     if (typeof data.customer_email === "string") {
@@ -351,7 +438,7 @@ export abstract class PaykitPaymentProviderBase<
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "PayKit requires customer email in payment session data.customer.email, data.customer_email, or context.customer.email"
+      "PayKit requires customer email or id in payment session data.customer, data.customer_email, or context.customer.email"
     )
   }
 

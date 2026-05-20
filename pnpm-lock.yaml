@@ -248,17 +248,17 @@ importers:
         specifier: ^1.39.0
         version: 1.39.0
       '@paykit-sdk/comgate':
-        specifier: ^1.0.8
-        version: 1.0.8(@paykit-sdk/core@1.1.102(@types/node@24.10.1))
+        specifier: ^1.2.0
+        version: 1.2.0(@paykit-sdk/core@1.2.0(@types/node@24.10.1))
       '@paykit-sdk/core':
-        specifier: ^1.1.102
-        version: 1.1.102(@types/node@24.10.1)
+        specifier: ^1.2.0
+        version: 1.2.0(@types/node@24.10.1)
       '@paykit-sdk/gopay':
-        specifier: ^1.1.3
-        version: 1.1.3(@paykit-sdk/core@1.1.102(@types/node@24.10.1))
+        specifier: ^1.2.0
+        version: 1.2.0(@paykit-sdk/core@1.2.0(@types/node@24.10.1))
       '@paykit-sdk/stripe':
-        specifier: ^1.1.104
-        version: 1.1.104(@paykit-sdk/core@1.1.102(@types/node@24.10.1))(@types/node@24.10.1)
+        specifier: ^1.2.0
+        version: 1.2.0(@paykit-sdk/core@1.2.0(@types/node@24.10.1))(@types/node@24.10.1)
       '@rokmohar/medusa-plugin-meilisearch':
         specifier: ^1.4.3
         version: 1.4.3(@medusajs/admin-sdk@2.15.2)(@medusajs/framework@2.15.2(@medusajs/cli@2.15.2(@types/node@24.10.1)(mysql2@3.15.3))(@types/node@24.10.1)(ioredis@5.10.1)(mysql2@3.15.3)(vite@8.0.11(@types/node@24.10.1)(esbuild@0.28.0)(jiti@1.21.7)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))(zod@4.2.0))(@medusajs/medusa@2.15.2)(@medusajs/ui@4.1.12(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(@tanstack/react-query@5.64.2(react@19.2.3))(awilix@12.0.5)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -5750,23 +5750,23 @@ packages:
     resolution: {integrity: sha512-tmmZ3lQxAe/k/+rNnXQRawJ4NjxO2hqiOLTHvWchtGZULp4RyFeh6aU4XdOYBFe2KE1oShQTv4AblOs2iOrNnQ==}
     engines: {node: '>= 10.0.0'}
 
-  '@paykit-sdk/comgate@1.0.8':
-    resolution: {integrity: sha512-UpofjCVpwGpM1mNPzA9hA33kyZKoT8yUkF3QudvrIrDp3GM44HUIHjgXLkc090wI8YX7el4Hb8ilbCY52sdZHQ==}
+  '@paykit-sdk/comgate@1.2.0':
+    resolution: {integrity: sha512-TJFjE/bXaBzcNg/D6J93vPTAT1PZ3aSsoesP9r5j3U9ILapgZm5Jp5qxfB8QIxsprm/GxE9X/eMgqfmAz+1oOg==}
     peerDependencies:
-      '@paykit-sdk/core': '>=1.1.102'
+      '@paykit-sdk/core': '>=1.2.0'
 
-  '@paykit-sdk/core@1.1.102':
-    resolution: {integrity: sha512-wQPNfA2SVsv5oeqOghlDX/9vXTIpKZZwWIeCYZwdZNaB70GfNakNVzwvsueJFr5yu6MVUXS/BititrpOeZ+dVw==}
+  '@paykit-sdk/core@1.2.0':
+    resolution: {integrity: sha512-EPW+/84SDKItpdN1ZS5TNijJha4pCpyzuByXfRw9EB0y41pEzLM5Y+F4czhfqqoHQsP9iz5MXp6K+UWn3pSYtw==}
 
-  '@paykit-sdk/gopay@1.1.3':
-    resolution: {integrity: sha512-gv96HxE05P4SG9RdoMxCVbV71hqAOEV+19b4aUw48RdBj+QNgdFsevsqjWItcGktqNJd+VdZfq97MDtyPb3LUw==}
+  '@paykit-sdk/gopay@1.2.0':
+    resolution: {integrity: sha512-iCuakDJSJscfY66r1SSDCie+wZuOSrdg5uBbdvlj4eNMOMtBBv7PKhHDpQ2/DhA/CSqxF1vKZEqe0Fkny1rF8g==}
     peerDependencies:
-      '@paykit-sdk/core': '>=1.1.102'
+      '@paykit-sdk/core': '>=1.2.0'
 
-  '@paykit-sdk/stripe@1.1.104':
-    resolution: {integrity: sha512-WSUlDfSQuRKvrBPrStWRkODtLEMfkTvqDrNTRaycfvKx1j2jh/mmGZ+cZRmEWP4XDiLGjNaUZe5MxFDNhFmL6A==}
+  '@paykit-sdk/stripe@1.2.0':
+    resolution: {integrity: sha512-W1RP8SEYZjqpIz6ZhIX1q/ALeWY3FRW6rXxlfF+Bph0YAjPvQVA61zFKYlZha+p4tz/8V9IuHKN95I6KEQEwtA==}
     peerDependencies:
-      '@paykit-sdk/core': '>=1.1.102'
+      '@paykit-sdk/core': '>=1.2.0'
 
   '@payloadcms/db-postgres@3.84.1':
     resolution: {integrity: sha512-/r1+7k58529ziTwqzySXsZb4x3FcfQIQH8R6gXLM3bTU9JA8wfLBraIgSyVKl6B3p+/EQYcaQ1DUlfrzVRxo1A==}
@@ -24170,25 +24170,25 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.5.6
     optional: true
 
-  '@paykit-sdk/comgate@1.0.8(@paykit-sdk/core@1.1.102(@types/node@24.10.1))':
+  '@paykit-sdk/comgate@1.2.0(@paykit-sdk/core@1.2.0(@types/node@24.10.1))':
     dependencies:
-      '@paykit-sdk/core': 1.1.102(@types/node@24.10.1)
+      '@paykit-sdk/core': 1.2.0(@types/node@24.10.1)
 
-  '@paykit-sdk/core@1.1.102(@types/node@24.10.1)':
+  '@paykit-sdk/core@1.2.0(@types/node@24.10.1)':
     dependencies:
-      commander: 14.0.2
+      commander: 14.0.3
       inquirer: 12.11.1(@types/node@24.10.1)
       zod: 3.25.76
     transitivePeerDependencies:
       - '@types/node'
 
-  '@paykit-sdk/gopay@1.1.3(@paykit-sdk/core@1.1.102(@types/node@24.10.1))':
+  '@paykit-sdk/gopay@1.2.0(@paykit-sdk/core@1.2.0(@types/node@24.10.1))':
     dependencies:
-      '@paykit-sdk/core': 1.1.102(@types/node@24.10.1)
+      '@paykit-sdk/core': 1.2.0(@types/node@24.10.1)
 
-  '@paykit-sdk/stripe@1.1.104(@paykit-sdk/core@1.1.102(@types/node@24.10.1))(@types/node@24.10.1)':
+  '@paykit-sdk/stripe@1.2.0(@paykit-sdk/core@1.2.0(@types/node@24.10.1))(@types/node@24.10.1)':
     dependencies:
-      '@paykit-sdk/core': 1.1.102(@types/node@24.10.1)
+      '@paykit-sdk/core': 1.2.0(@types/node@24.10.1)
       stripe: 18.5.0(@types/node@24.10.1)
     transitivePeerDependencies:
       - '@types/node'
@@ -36866,7 +36866,7 @@ snapshots:
 
   stripe@18.5.0(@types/node@24.10.1):
     dependencies:
-      qs: 6.14.1
+      qs: 6.15.1
     optionalDependencies:
       '@types/node': 24.10.1
 
