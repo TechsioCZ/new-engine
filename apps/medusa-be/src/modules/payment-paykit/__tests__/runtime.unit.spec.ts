@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import {
+  callPaykitProviderWebhook,
   getComgateProviderOptions,
   getGopayProviderOptions,
   getPaykitPackageLoadErrorMessage,
@@ -45,16 +46,30 @@ describe("PayKit runtime helpers", () => {
     })
   })
 
-  it("keeps Stripe webhook secret out of PayKit's createStripe options", () => {
+  it("maps Stripe options to PayKit's public createStripe options", () => {
     expect(
       getStripeProviderOptions({
         apiKey: "sk_test_123",
+        isSandbox: false,
         webhookSecret: "whsec_123",
         debug: true,
       })
     ).toEqual({
       apiKey: "sk_test_123",
+      isSandbox: false,
       debug: true,
+    })
+  })
+
+  it("passes explicit Stripe sandbox mode by default", () => {
+    expect(
+      getStripeProviderOptions({
+        apiKey: "sk_test_123",
+      })
+    ).toEqual({
+      apiKey: "sk_test_123",
+      isSandbox: true,
+      debug: false,
     })
   })
 
@@ -67,6 +82,63 @@ describe("PayKit runtime helpers", () => {
     ).toEqual({
       webhookSecret: "whsec_123",
     })
+  })
+
+  it("calls PayKit 1.2 provider webhooks with headersAsObject and secret argument", async () => {
+    const provider = {
+      handleWebhook: vi.fn().mockResolvedValue([]),
+    }
+
+    await callPaykitProviderWebhook(
+      provider,
+      {
+        data: {
+          url: "/hooks/payment/paykit_stripe",
+        },
+        rawData: Buffer.from("webhook-body"),
+        headers: {
+          host: "backend.example",
+          "stripe-signature": "sig_123",
+          "x-forwarded-for": ["client", "proxy"],
+          "x-forwarded-proto": "https",
+          ignored: undefined,
+        },
+      },
+      {
+        webhookSecret: "whsec_123",
+      }
+    )
+
+    expect(provider.handleWebhook).toHaveBeenCalledWith(
+      {
+        body: "webhook-body",
+        headersAsObject: {
+          host: "backend.example",
+          "stripe-signature": "sig_123",
+          "x-forwarded-for": "client,proxy",
+          "x-forwarded-proto": "https",
+        },
+        fullUrl: "https://backend.example/hooks/payment/paykit_stripe",
+      },
+      "whsec_123"
+    )
+  })
+
+  it("passes null webhook secret when a provider has no webhook secret option", async () => {
+    const provider = {
+      handleWebhook: vi.fn().mockResolvedValue([]),
+    }
+
+    await callPaykitProviderWebhook(provider, {
+      data: {},
+      rawData: "",
+      headers: {},
+    })
+
+    expect(provider.handleWebhook).toHaveBeenCalledWith(
+      expect.any(Object),
+      null
+    )
   })
 
   it("maps Comgate options to PayKit's public createComgate options", () => {

@@ -149,6 +149,220 @@ describe("PaykitPaymentProviderBase", () => {
     )
   })
 
+  it("passes PayKit-shaped payment session billing data to PayKit create payment", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await provider.initiatePayment({
+      amount: 1000,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+        billing: {
+          address: {
+            name: "Ada Lovelace",
+            line1: "1 Engine Way",
+            line2: "Suite 2",
+            city: "London",
+            state: "London",
+            postal_code: "NW1",
+            country: "GB",
+            phone: "+420123456789",
+          },
+          carrier: "standard",
+        },
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+        },
+      },
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billing: {
+          address: {
+            name: "Ada Lovelace",
+            line1: "1 Engine Way",
+            line2: "Suite 2",
+            city: "London",
+            state: "London",
+            postal_code: "NW1",
+            country: "GB",
+            phone: "+420123456789",
+          },
+          carrier: "standard",
+          currency: "czk",
+        },
+      })
+    )
+  })
+
+  it("passes Medusa-shaped payment session billing data to PayKit create payment", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await provider.initiatePayment({
+      amount: 1000,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+        billing: {
+          first_name: "Ada",
+          last_name: "Lovelace",
+          address_1: "1 Engine Way",
+          city: "London",
+          country_code: "GB",
+          postal_code: "NW1",
+        },
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+        },
+      },
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billing: {
+          address: expect.objectContaining({
+            name: "Ada Lovelace",
+            line1: "1 Engine Way",
+            line2: "",
+            city: "London",
+            postal_code: "NW1",
+            country: "GB",
+          }),
+          currency: "czk",
+        },
+      })
+    )
+  })
+
+  it("prefers explicit payment session billing data over customer context billing", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await provider.initiatePayment({
+      amount: 1000,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+        billing: {
+          address: {
+            name: "Checkout Buyer",
+            line1: "99 Checkout Street",
+            line2: "",
+            city: "Prague",
+            postal_code: "11000",
+            country: "CZ",
+          },
+        },
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+          billing_address: {
+            first_name: "Default",
+            last_name: "Customer",
+            address_1: "1 Default Way",
+            city: "Brno",
+            country_code: "CZ",
+            postal_code: "60200",
+          },
+        },
+      },
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billing: {
+          address: expect.objectContaining({
+            name: "Checkout Buyer",
+            line1: "99 Checkout Street",
+            city: "Prague",
+            postal_code: "11000",
+            country: "CZ",
+          }),
+          currency: "czk",
+        },
+      })
+    )
+  })
+
+  it("maps legacy string customers to PayKit payee objects", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await provider.initiatePayment({
+      amount: 1000,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_email",
+        item_id: "cart_email",
+        customer: "customer@example.com",
+      },
+      context: {},
+    })
+
+    await provider.initiatePayment({
+      amount: 1000,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_id",
+        item_id: "cart_id",
+        customer: "cus_123",
+      },
+      context: {},
+    })
+
+    expect(client.payments.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        customer: { email: "customer@example.com" },
+      })
+    )
+    expect(client.payments.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        customer: { id: "cus_123" },
+      })
+    )
+  })
+
+  it("falls back to customer id when object customer email is invalid", async () => {
+    const client = createMockPaykitClient()
+    const provider = createProvider(client)
+
+    await provider.initiatePayment({
+      amount: 1000,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+        customer: {
+          email: "not-an-email",
+          id: "cus_123",
+        },
+      },
+      context: {},
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: { id: "cus_123" },
+      })
+    )
+  })
+
   it("reads provider id from data.id when capturing payment", async () => {
     const client = createMockPaykitClient()
     const provider = createProvider(client)
@@ -451,6 +665,34 @@ describe("PaykitPaymentProviderBase", () => {
       })
     ).resolves.toEqual({
       action: PaymentActions.PENDING,
+    })
+  })
+
+  it("maps standard failed payment webhook events without Medusa workflow data", async () => {
+    const client = createMockPaykitClient()
+    client.handleWebhook = vi.fn().mockResolvedValue([
+      {
+        type: "payment.failed",
+        data: {
+          id: "provider-payment-1",
+          amount: 1000,
+          status: "failed",
+          metadata: {
+            session_id: "payses_123",
+          },
+        },
+      },
+    ])
+    const provider = createProvider(client)
+
+    await expect(
+      provider.getWebhookActionAndData({
+        data: {},
+        rawData: "",
+        headers: {},
+      })
+    ).resolves.toEqual({
+      action: PaymentActions.FAILED,
     })
   })
 })
