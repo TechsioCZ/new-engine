@@ -56,6 +56,33 @@ describe("QrManualPaymentProvider", () => {
     expect(result.data?.payment_qr_spayd).toContain("X-VS:987654321")
   })
 
+  it("preserves the existing QR payment reference when payment amount changes", async () => {
+    const getIban = vi.fn().mockResolvedValue("CZ6508000000192000145399")
+    const provider = new QrManualPaymentProvider({
+      [QR_PAYMENT_MODULE]: { getIban },
+    })
+
+    const result = await provider.updatePayment({
+      amount: 250,
+      currency_code: "CZK",
+      data: {
+        qr_payment: {
+          reference: "1234567890",
+        },
+      },
+      context: {
+        idempotency_key: "new-idempotency-key",
+      },
+    })
+
+    expect(result.id).toBe("1234567890")
+    expect(result.data?.payment_qr_spayd).toContain("AM:250.00")
+    expect(result.data?.payment_qr_spayd).toContain("X-VS:1234567890")
+    expect(result.data?.qr_payment).toMatchObject({
+      reference: "1234567890",
+    })
+  })
+
   it("authorizes the manual QR payment so checkout can create an order", async () => {
     const provider = new QrManualPaymentProvider({})
 

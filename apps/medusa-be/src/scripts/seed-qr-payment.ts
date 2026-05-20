@@ -5,7 +5,11 @@ import type {
   Query,
   RegionDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import {
   createWorkflow,
   WorkflowResponse,
@@ -20,6 +24,8 @@ type RegionPaymentProviderLink = {
   payment_provider_id: string
   region_id: string
 }
+
+const SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID = "pp_system_default"
 
 const seedQrPaymentRegionsWorkflow = createWorkflow(
   "seed-qr-payment-regions-workflow",
@@ -55,7 +61,9 @@ export default async function seedQrPayment({ container }: ExecArgs) {
         id: region.id,
         payment_providers: [
           ...new Set([
-            ...(providersByRegion.get(region.id) ?? ["pp_system_default"]),
+            ...(providersByRegion.get(region.id) ?? [
+              SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID,
+            ]),
             QR_PAYMENT_MEDUSA_PROVIDER_ID,
           ]),
         ],
@@ -102,7 +110,8 @@ async function getRegionPaymentProviderLinks(
   })
 
   if (!isRegionPaymentProviderLinks(data)) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       "QR payment seed region provider query returned invalid row"
     )
   }

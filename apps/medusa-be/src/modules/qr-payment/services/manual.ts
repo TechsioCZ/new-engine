@@ -175,13 +175,17 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
     return normalizeIban(await qrPaymentService?.getIban())
   }
 
-  private getPaymentReference(input: InitiatePaymentInput) {
+  private getPaymentReference(
+    input: Pick<InitiatePaymentInput, "context" | "data">
+  ) {
+    const existingQrPayment = getRecord(input.data?.[QR_PAYMENT_DATA_KEY])
+    const existingReference = getString(existingQrPayment?.reference)
     const dataReference =
       getString(input.data?.reference) ??
       getString(input.data?.order_id) ??
       getString(input.context?.idempotency_key)
 
-    return dataReference ?? `qr_${Date.now()}`
+    return existingReference ?? dataReference ?? `qr_${Date.now()}`
   }
 
   private hasQrPaymentData(data: Record<string, unknown> | undefined) {
@@ -214,4 +218,10 @@ function normalizeIban(value: string | null | undefined) {
 
 function getString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined
+}
+
+function getRecord(value: unknown) {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : undefined
 }
