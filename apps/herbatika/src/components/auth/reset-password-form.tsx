@@ -11,12 +11,13 @@ import {
   type ResetPasswordFormValues,
 } from "@/lib/auth/auth-form-validators";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 
 type ResetPasswordFormProps = {
   isBusy: boolean;
   defaultValues: ResetPasswordFormValues;
-  loginHref: string;
+  loginHref: StorefrontRoute;
   hasToken: boolean;
   onSubmit: (values: ResetPasswordFormValues) => Promise<string | null>;
 };

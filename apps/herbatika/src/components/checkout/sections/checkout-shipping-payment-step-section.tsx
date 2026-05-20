@@ -3,6 +3,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
 import type { ComponentProps } from "react";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { CheckoutPaymentSection } from "./checkout-payment-section";
 import { CheckoutShippingSection } from "./checkout-shipping-section";
 
@@ -19,9 +20,9 @@ type CheckoutShippingPaymentStepController = Pick<
 >;
 
 type CheckoutShippingPaymentStepSectionProps = {
-  backStepHref: string;
+  backStepHref: StorefrontRoute;
   controller: CheckoutShippingPaymentStepController;
-  nextStepHref: string;
+  nextStepHref: StorefrontRoute;
   selectedPaymentProviderId?: ComponentProps<
     typeof CheckoutPaymentSection
   >["selectedPaymentProviderId"];

@@ -1,8 +1,6 @@
 import { ResetPasswordPanel } from "@/components/auth/reset-password-panel";
 
-type ResetPasswordPageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
+type ResetPasswordPageProps = PageProps<"/obnova-hesla">;
 
 const resolveStringParam = (value: string | string[] | undefined) => {
   if (Array.isArray(value)) {

@@ -14,6 +14,7 @@ import {
   type LoginFormValues,
   type RegisterFormValues,
 } from "@/lib/auth/auth-form-validators";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth";
 import {
   cartReadQueryOptions,
@@ -29,7 +30,7 @@ type AuthControlsMode = "login" | "register";
 
 type UseAuthControllerProps = {
   mode: AuthControlsMode;
-  afterAuthHref?: string;
+  afterAuthHref?: StorefrontRoute;
 };
 
 export const useAuthController = ({

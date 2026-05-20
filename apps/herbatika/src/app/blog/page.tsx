@@ -7,9 +7,7 @@ import {
 } from "@/lib/storefront/blog-content";
 import { fetchCmsBlogPosts } from "@/lib/storefront/cms";
 
-type BlogPageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
+type BlogPageProps = PageProps<"/blog">;
 
 const parseTopic = (value: string | undefined): BlogTopicKey => {
   if (value === "fitness" || value === "krasa" || value === "zdravie") {

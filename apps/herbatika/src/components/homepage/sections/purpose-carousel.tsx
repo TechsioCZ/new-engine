@@ -12,6 +12,7 @@ import {
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "@/components/header/herbatika-header.submenu-data";
 import { useHerbatikaHeaderSubmenu } from "@/components/header/use-herbatika-header-submenu";
 import { TextActionLink } from "@/components/text-action-link";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 
 type ImageSource = ComponentProps<typeof NextImage>["src"];
@@ -19,7 +20,7 @@ type PurposeCarouselRootHandle =
   (typeof HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS)[number]["rootHandle"];
 
 type PurposeCarouselItem = {
-  href: string;
+  href: StorefrontRoute;
   id: string;
   label: string;
   src: ImageSource;
@@ -29,7 +30,7 @@ type PurposeCarouselProps = {
   items?: PurposeCarouselItem[];
   rootHandle?: PurposeCarouselRootHandle;
   title?: string;
-  viewAllHref?: string;
+  viewAllHref?: StorefrontRoute;
 };
 
 type PurposeCarouselSlidesProps = {

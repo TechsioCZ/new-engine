@@ -1,9 +1,7 @@
 import { resolveAfterAuthHref } from "@/components/auth/auth-helpers";
 import { AuthControls } from "@/components/auth-controls";
 
-type RegisterPageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
+type RegisterPageProps = PageProps<"/registracia">;
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const resolvedSearchParams = await searchParams;

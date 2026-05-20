@@ -1,6 +1,7 @@
 "use client";
 
 import { parseAsInteger, parseAsString } from "nuqs";
+import { asStorefrontRoute, type StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 
 export const SEARCH_RESULT_LIMIT = 24;
@@ -31,11 +32,13 @@ export const normalizeSearchQuery = (value: unknown): string => {
   return value.trim();
 };
 
-export const resolveSearchHref = (value: unknown): string => {
+export const resolveSearchHref = (value: unknown): StorefrontRoute => {
   const query = normalizeSearchQuery(value);
   if (!query) {
     return routes.search.index;
   }
 
-  return `${routes.search.index}?q=${encodeURIComponent(query)}`;
+  return asStorefrontRoute(
+    `${routes.search.index}?q=${encodeURIComponent(query)}`,
+  );
 };

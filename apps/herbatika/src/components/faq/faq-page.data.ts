@@ -1,7 +1,8 @@
 import { routes } from "@/lib/routes";
+import type { StorefrontRoute } from "@/lib/route-paths";
 
 export type FaqLink = {
-  href: string;
+  href: StorefrontRoute;
   label: string;
 };
 

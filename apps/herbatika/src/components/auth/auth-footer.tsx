@@ -1,8 +1,9 @@
 import NextLink from "next/link"
+import type { StorefrontRoute } from "@/lib/route-paths"
 
 type AuthFooterProps = {
     text: string,
-    href: string,
+    href: StorefrontRoute,
     linkText: string
 }
 

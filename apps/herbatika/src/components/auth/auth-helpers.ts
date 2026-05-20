@@ -3,8 +3,9 @@ import type {
   RegisterFormValues,
 } from "@/lib/auth/auth-form-validators";
 import { routes } from "@/lib/routes";
+import { asStorefrontRoute, type StorefrontRoute } from "@/lib/route-paths";
 
-export const resolveSafeRedirectHref = (value?: string) => {
+export const resolveSafeRedirectHref = (value?: string): StorefrontRoute | null => {
   if (!value) {
     return null;
   }
@@ -13,24 +14,24 @@ export const resolveSafeRedirectHref = (value?: string) => {
     return null;
   }
 
-  return value;
+  return asStorefrontRoute(value);
 };
 
 export const buildAuthRouteHref = (
   path: typeof routes.auth.login | typeof routes.auth.register,
   next?: string,
-) => {
+): StorefrontRoute => {
   if (!next) {
     return path;
   }
 
-  return `${path}?next=${encodeURIComponent(next)}`;
+  return asStorefrontRoute(`${path}?next=${encodeURIComponent(next)}`);
 };
 
 export const resolveAfterAuthHref = (
   value?: string | string[],
   fallback = routes.account.index,
-) => {
+): StorefrontRoute => {
   const nextValue = typeof value === "string" ? value : undefined;
   return resolveSafeRedirectHref(nextValue) ?? fallback;
 };

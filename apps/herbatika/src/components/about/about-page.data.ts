@@ -2,10 +2,11 @@ import type { StaticImageData } from "next/image";
 import aboutStoreImage from "@/assets/about/1.avif";
 import aboutTeamImage from "@/assets/about/2.avif";
 import aboutProductsImage from "@/assets/about/3.avif";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 
 export type AboutTextLink = {
-  href: string;
+  href: StorefrontRoute;
   label: string;
 };
 
@@ -42,7 +43,7 @@ type AboutTextBlock = {
   paragraphs: readonly AboutParagraph[];
 };
 
-const link = (label: string, href: string): AboutTextLink => ({
+const link = (label: string, href: StorefrontRoute): AboutTextLink => ({
   href,
   label,
 });
@@ -64,36 +65,36 @@ export const ABOUT_PAGE = {
         "Spoluzakladateľ Juraj, inšpirovaný svojím záujmom o alternatívnu medicínu a prírodnú kozmetiku, sa rozhodol vytvoriť miesto, kde by ľudia mohli nájsť účinné a menej známe produkty pre svoje zdravie. Nápad otvoriť e-shop skrsol v jeho hlave v dobe, keď sa intenzívne zaoberal otázkou, ako môže byť pre svoje okolie prínosný, čím mu vie prispieť a ako môže pomôcť. V prostredí bolo cítiť rodiaci sa priestor pre nové cesty k uzdraveniu, odlišné od tých tradičných.",
         [
           "Juraj mal vždy blízko k alternatívnej scéne v oblasti medicíny, ",
-          link("kozmetiky", "/kozmetika-a-zdravie-2/"),
+          link("kozmetiky", routes.category.detail("kozmetika-a-zdravie-2")),
           ", liečiteľstva a v podstate všetkému, čo možno označiť, niekedy žiaľ aj hanlivo, za alternatívu.",
         ],
         "S podporou brata Michala a mamy Eleny sa v roku 2015 zrodil e-shop Herbatica.",
         "Hlavnou motiváciou jeho zrodu bola nutnosť zmeny. Zmeny v náhľade na svoje telo, dušu, myseľ a celkové zdravie. Ďalej zmeny v zmysle myšlienkového posunu od presvedčenia, že naše zdravie je pevne dané a nemenné, k uvedomeniu si, že sme jeho aktívnymi tvorcami a máme moc ovplyvniť, kedy a ako sa uzdravíme, a to bez ohľadu na to, ako je naše zdravie zapísané v zdravotnej karte.",
         [
           "Od svojho založenia sa Herbatica formuje ako unikátna zdravotná špeciálka. Zameraná je na produkty na prírodnej báze, ktoré sú ojedinelé, málo známe, ale zato veľmi účinné pri riešení konkrétnych zdravotných problémov - ",
-          link("kožné problémy", "/kozne-problemy/"),
+          link("kožné problémy", routes.category.detail("kozne-problemy")),
           " (",
-          link("akné", "/akne/"),
+          link("akné", routes.category.detail("akne")),
           ", ",
-          link("psoriáza", "/psoriaza-a-lupienka/"),
+          link("psoriáza", routes.category.detail("psoriaza-a-lupienka")),
           ", ",
-          link("ekzémy", "/ekzem/"),
+          link("ekzémy", routes.category.detail("ekzem")),
           "), ",
-          link("tráviace problémy", "/zaludok-a-pecen/"),
+          link("tráviace problémy", routes.category.detail("zaludok-a-pecen")),
           ", problémy s ",
-          link("kĺbmi", "/klby-a-pohybovy-aparat/"),
+          link("kĺbmi", routes.category.detail("klby-a-pohybovy-aparat")),
           ", ",
-          link("bolesti chrbtice", "/bolest-chrbta-seknutie-v-krizoch/"),
+          link("bolesti chrbtice", routes.category.detail("bolest-chrbta-seknutie-v-krizoch")),
           ", ",
-          link("stres", "/stres-a-nervozita/"),
+          link("stres", routes.category.detail("stres-a-nervozita")),
           ", ",
-          link("cukrovka", "/cukrovka/"),
+          link("cukrovka", routes.category.detail("cukrovka")),
           ", ",
-          link("kŕčové žily", "/krcove-zily/"),
+          link("kŕčové žily", routes.category.detail("krcove-zily")),
           ", ",
-          link("vysoký krvný tlak", "/vysoky-krvny-tlak/"),
+          link("vysoký krvný tlak", routes.category.detail("vysoky-krvny-tlak")),
           ", oslabená ",
-          link("imunita", "/imunita/"),
+          link("imunita", routes.category.detail("imunita")),
           " a i.",
         ],
       ],
@@ -111,10 +112,10 @@ export const ABOUT_PAGE = {
           "Kvalita je pre nás prvoradá. Máme vysoké nároky nielen na kvalitu, ale aj štandardy, v súlade s ktorými pracujeme na vývoji našich produktov. Pre udržanie najvyššej možnej odbornosti v Herbatica spolupracujeme so širokou sieťou ",
           link(
             "výrobcov, konzultantov, výživových poradcov, fyzioterapeutov a ďalších odborníkov",
-            "/odborne-poradenstvo-a-diagnostika/",
+            routes.category.detail("odborne-poradenstvo-a-diagnostika"),
           ),
           ". Spolu títo odborníci tvoria silnú základňu, na ktorú sa vieme vždy spoľahnúť, či už v otázkach zloženia produktov, kombinácie jednotlivých ",
-          link("účinných látok", "/aktivnelatky/"),
+          link("účinných látok", routes.category.detail("aktivnelatky")),
           ", diagnostikovania ochorení, alebo v rámci poradenstva pri riešení konkrétnych ochorení.",
         ],
         "Spojením tradičných metód, medzi ktoré patrí napríklad ajurvéda či tradičná čínska medicína, s modernými technológiami zabezpečujeme, že naše produkty sú nielen účinné, ale aj bezpečné. Dôraz kladieme na etický prístup, čistotu surovín a ich lokálny pôvod.",
@@ -127,11 +128,11 @@ export const ABOUT_PAGE = {
           "Od našich začiatkov v roku 2015 sme prešli dlhú cestu a firma zaznamenala významný vývoj predovšetkým v oblasti produktového portfólia. Spočiatku sme sa zameriavali na dovoz produktov z Ruska, Ukrajiny a Bieloruska. V roku 2022 sme začali vyvíjať a vyrábať vlastné produkty ",
           link("pod značkou Herbatica", routes.brand.detail("herbatica")),
           ". Dnes ponúkame širokú škálu výrobkov - sypké zmesi, kapsuly, tobolky, kozmetické či ",
-          link("jedlé oleje", "/specialne-jedle-oleje/"),
+          link("jedlé oleje", routes.category.detail("specialne-jedle-oleje")),
           " a krémy, gély, masti, prášky, ",
-          link("bylinné čaje", "/caje/"),
+          link("bylinné čaje", routes.category.detail("caje")),
           ", kávoviny, ",
-          link("tinktúry", "/bylinne-extrakty/"),
+          link("tinktúry", routes.category.detail("bylinne-extrakty")),
           " a iné. Pri vývoji produktov sa snažíme prepájať tradičné princípy a liečiteľské smery, ktoré sú tu s nami tisíce rokov, s modernými výskumami a poznatkami z nich.",
         ],
       ],
@@ -155,21 +156,21 @@ export const ABOUT_PAGE = {
       paragraphs: [
         [
           "Našou víziou je stať sa lídrom, najlepším, nie najväčším, v oblasti prírodných produktov pre zdravie a krásu. Naďalej budeme upevňovať naše postavenie na trhu s ",
-          link("doplnkami stravy", "/doplnky-stravy/"),
+          link("doplnkami stravy", routes.category.detail("doplnky-stravy")),
           ", zdravými potravinami a ",
-          link("medicínskou kozmetikou", "/kozmetika-a-zdravie-2/"),
+          link("medicínskou kozmetikou", routes.category.detail("kozmetika-a-zdravie-2")),
           ". Našu ponuku plánujeme rozširovať o personalizované ",
-          link("doplnky stravy", "/doplnky-vyzivy/"),
+          link("doplnky stravy", routes.category.detail("doplnky-vyzivy")),
           ".",
         ],
         [
           "Budúcnosť vidíme najmä v osobnom kontakte. So snahou byť k vám ešte bližšie a ponúknuť vám viac, plánujeme otvoriť ďalšie predajne, kde vám radi poskytneme ",
-          link("odborné poradenstvo a diagnostiku", "/odborne-poradenstvo-a-diagnostika/"),
+          link("odborné poradenstvo a diagnostiku", routes.category.detail("odborne-poradenstvo-a-diagnostika")),
           ". Tieto priestory chceme vybaviť modernými diagnostickými nástrojmi, ako je napríklad biorezonancia, ktoré umožňujú komplexné hodnotenie vášho zdravotného stavu.",
         ],
         [
           "Sme presvedčení, že skutočná krása pramení z vnútornej harmónie tela, duše a mysle. Preto sa budeme naďalej zameriavať na produkty podporujúce vaše celkové zdravie a ",
-          link("vitalitu", "/energia-a-vitalita/"),
+          link("vitalitu", routes.category.detail("energia-a-vitalita")),
           ". Pre dosiahnutie týchto cieľov sa vždy radi spojíme s ďalšími odborníkmi z rôznych oblastí, vrátane biohacking komunity. Spoločne vám budeme prinášať najnovšie poznatky a účinné riešenia pre váš blahobyt.",
         ],
       ],
@@ -190,7 +191,7 @@ export const ABOUT_PAGE = {
       year: "2015",
       description: [
         "Založenie Herbatica a ",
-        link("spustenie e-shopu pre Slovensko", "/"),
+        link("spustenie e-shopu pre Slovensko", routes.home),
         ".",
       ],
     },
@@ -281,7 +282,7 @@ export const ABOUT_PAGE = {
     paragraphs: [
       [
         "Pre verných zákazníkov, ktorí chcú nakupovať opakovane, sme pripravili vernostný program. Veľa v ňom ušetríte a hlavne ostanete v kontakte s komunitou, ktorá tiež verí, že naša konzumná doba je udržateľná. Viac o našom programe ",
-        link("pre verných zákazníkov nájdete tu", "/vernost/"),
+        link("pre verných zákazníkov nájdete tu", routes.cms.detail("vernost")),
         ".",
       ],
     ],
@@ -291,7 +292,7 @@ export const ABOUT_PAGE = {
     paragraphs: [
       [
         "Zaujíma vás, ako nás vnímajú ostatní zákazníci, ktorí už naše produkty či služby vyskúšali? Prečítajte si, čo o nás napísali: Tu je ",
-        link("hodnotenie obchodu na našom e-shope", "/hodnotenie-obchodu/"),
+        link("hodnotenie obchodu na našom e-shope", routes.cms.detail("hodnotenie-obchodu")),
         " a tu nájdete hodnotenia/recenzie na ",
         link("Heuréke", "https://obchody.heureka.sk/herbatica-sk/recenze/"),
         ".",
@@ -305,7 +306,7 @@ export const ABOUT_PAGE = {
       "V Trenčíne nájdete aj kamenný obchod s prírodnou medicínou a kozmetikou, jeho adresa je: Mierové námestie 33/33, Trenčín. Vždy vám tam ochotne poradia a poslúžia. Otvorené je denne od 12:00 do 17:00.",
       [
         "Ak máte pre nás obchodnú ponuku, návrh na zlepšenie, viete si predstaviť náš spoločný rast-rozvoj alebo máte záujem o veľkoobchodnú spoluprácu, kontaktujte nás ",
-        link("tu", "/napiste-nam/"),
+        link("tu", routes.cms.detail("napiste-nam")),
         ".",
       ],
       "Tešíme sa na vás, nech si už vyberiete akýkoľvek spôsob kontaktu s nami.",

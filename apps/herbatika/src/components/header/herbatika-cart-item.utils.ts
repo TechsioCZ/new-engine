@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations";
 
@@ -13,7 +14,9 @@ export const resolveLineItemProductHandle = (
     : null;
 };
 
-export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
+export const resolveLineItemHref = (
+  item: HttpTypes.StoreCartLineItem,
+): StorefrontRoute => {
   const productHandle = resolveLineItemProductHandle(item);
 
   if (productHandle) {

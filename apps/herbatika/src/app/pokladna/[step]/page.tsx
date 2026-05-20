@@ -6,11 +6,7 @@ import { isCheckoutStepSlug } from "@/components/checkout/checkout-route.utils";
 import { StorefrontCheckoutFlow } from "@/components/storefront-checkout-flow";
 import { routes } from "@/lib/routes";
 
-type CheckoutStepPageProps = {
-  params: Promise<{
-    step: string;
-  }>;
-};
+type CheckoutStepPageProps = PageProps<"/pokladna/[step]">;
 
 function CheckoutStepPageFallback() {
   return <main className="mx-auto min-h-dvh w-full max-w-max-w" />;

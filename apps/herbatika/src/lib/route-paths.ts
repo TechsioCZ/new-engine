@@ -1,13 +1,23 @@
+import type { Route } from "next";
+
+export type StorefrontRoute = Route;
+
 const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "");
 
-export const buildRoutePath = (...segments: string[]) => {
+export const asStorefrontRoute = (href: string): StorefrontRoute =>
+  href as StorefrontRoute;
+
+export const buildPath = (...segments: string[]) => {
   const pathname = segments.map(trimSlashes).filter(Boolean).join("/");
   return pathname ? `/${pathname}` : "/";
 };
 
-export const buildHashRoutePath = (href: string, hash: string) => {
+export const buildRoutePath = (...segments: string[]) =>
+  asStorefrontRoute(buildPath(...segments));
+
+export const buildHashRoutePath = (href: StorefrontRoute, hash: string) => {
   const normalizedHash = hash.replace(/^#+/, "");
-  return normalizedHash ? `${href}#${normalizedHash}` : href;
+  return normalizedHash ? asStorefrontRoute(`${href}#${normalizedHash}`) : href;
 };
 
 export const checkoutStepSlugs = {
@@ -21,14 +31,15 @@ export type CheckoutStepSlug =
   (typeof checkoutStepSlugs)[keyof typeof checkoutStepSlugs];
 
 export const routePaths = {
-  home: "/",
-  homeSection: (sectionId: string) => buildHashRoutePath("/", sectionId),
-  about: "/o-nas",
+  home: asStorefrontRoute("/"),
+  homeSection: (sectionId: string) =>
+    buildHashRoutePath(asStorefrontRoute("/"), sectionId),
+  about: asStorefrontRoute("/o-nas"),
   blog: {
-    index: "/blog",
+    index: asStorefrontRoute("/blog"),
     detail: (slug: string) => buildRoutePath("blog", slug),
   },
-  faq: "/faq",
+  faq: asStorefrontRoute("/faq"),
   cms: {
     detail: (slug: string) => buildRoutePath(slug),
   },
@@ -42,27 +53,27 @@ export const routePaths = {
   checkout: {
     index: "/pokladna",
     cart: buildRoutePath("pokladna", checkoutStepSlugs.cart),
-    paymentReturn: buildRoutePath("pokladna", "platba", "navrat"),
+    paymentReturn: buildPath("pokladna", "platba", "navrat"),
     summary: buildRoutePath("pokladna", checkoutStepSlugs.summary),
     step: (step: CheckoutStepSlug) => buildRoutePath("pokladna", step),
   },
   account: {
-    index: "/ucet",
-    orders: "/ucet/objednavky",
+    index: asStorefrontRoute("/ucet"),
+    orders: asStorefrontRoute("/ucet/objednavky"),
     orderDetail: (id: string) => buildRoutePath("ucet", "objednavky", id),
-    settings: "/ucet/nastavenia",
+    settings: asStorefrontRoute("/ucet/nastavenia"),
   },
   auth: {
-    login: "/prihlasenie",
-    register: "/registracia",
-    forgotPassword: "/zabudnute-heslo",
-    resetPassword: "/obnova-hesla",
+    login: asStorefrontRoute("/prihlasenie"),
+    register: asStorefrontRoute("/registracia"),
+    forgotPassword: asStorefrontRoute("/zabudnute-heslo"),
+    resetPassword: asStorefrontRoute("/obnova-hesla"),
   },
   search: {
-    index: "/vyhladavanie",
+    index: asStorefrontRoute("/vyhladavanie"),
   },
   brand: {
-    index: "/znacky",
+    index: asStorefrontRoute("/znacky"),
     detail: (slug: string) => buildRoutePath("znacky", slug),
   },
 } as const;

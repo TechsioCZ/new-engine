@@ -10,13 +10,15 @@ import { useEffect, useState } from "react";
 import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton";
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton";
 import { OrderSkeleton } from "@/components/loading/order-skeleton";
+import { buildAuthRouteHref } from "@/components/auth/auth-helpers";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 import { useAuth } from "@/lib/storefront/auth";
 import { useLogoutAction } from "@/lib/storefront/use-logout-action";
 import { Icon, IconType } from "@techsio/ui-kit/atoms/icon";
 
 type AccountNavItemType = {
-  href: string;
+  href: StorefrontRoute;
   label: string;
   icon: IconType;
 }
@@ -51,6 +53,7 @@ export function AccountShell({
   const authQuery = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const redirectTarget = pathname;
+  const loginHref = buildAuthRouteHref(routes.auth.login, redirectTarget);
   const isOrdersListRoute = pathname === routes.account.orders;
   const isOrderDetailRoute = pathname.startsWith(`${routes.account.orders}/`);
   const {
@@ -73,12 +76,12 @@ export function AccountShell({
       return;
     }
 
-    router.replace(`${routes.auth.login}?next=${encodeURIComponent(redirectTarget)}`);
+    router.replace(loginHref);
   }, [
     authQuery.isAuthenticated,
     authQuery.isLoading,
     isLoggingOut,
-    redirectTarget,
+    loginHref,
     router,
   ]);
 
@@ -117,7 +120,7 @@ export function AccountShell({
           </p>
           <LinkButton
             as={NextLink}
-            href={`${routes.auth.login}?next=${encodeURIComponent(redirectTarget)}`}
+            href={loginHref}
             variant="secondary"
             size="sm"
           >

@@ -8,12 +8,7 @@ import { appendSearchParamsToHref, routes } from "@/lib/routes";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchBrandPageStorefrontData } from "@/lib/storefront/ssr";
 
-type BrandPageProps = {
-  params: Promise<{
-    slug: string;
-  }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
+type BrandPageProps = PageProps<"/znacky/[slug]">;
 
 const resolveBrandPageData = async (slug: string) => {
   const brands = await fetchStorefrontBrands();

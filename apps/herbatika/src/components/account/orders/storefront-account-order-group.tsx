@@ -80,7 +80,6 @@ export function StorefrontAccountOrderGroup({
         <div className="flex flex-wrap gap-order-group-md lg:justify-self-end">
           {invoiceUrl && (
             <LinkButton
-              as={NextLink}
               href={invoiceUrl}
               rel="noreferrer"
               size="sm"

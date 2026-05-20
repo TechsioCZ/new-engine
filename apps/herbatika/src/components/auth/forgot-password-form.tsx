@@ -10,12 +10,13 @@ import {
   type ForgotPasswordFormValues,
 } from "@/lib/auth/auth-form-validators";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { AuthFooter } from "./auth-footer";
 
 type ForgotPasswordFormProps = {
   isBusy: boolean;
   defaultValues: ForgotPasswordFormValues;
-  loginHref: string;
+  loginHref: StorefrontRoute;
   onSubmit: (values: ForgotPasswordFormValues) => Promise<string | null>;
 };
 

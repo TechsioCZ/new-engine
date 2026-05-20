@@ -4,7 +4,7 @@ import {
   DEFAULT_CHECKOUT_STEP_SLUG,
 } from "./checkout.constants";
 import { routes } from "@/lib/routes";
-import { checkoutStepSlugs } from "@/lib/route-paths";
+import { checkoutStepSlugs, type StorefrontRoute } from "@/lib/route-paths";
 
 const CHECKOUT_STEP_SLUGS = CHECKOUT_STEPS.map((step) => step.slug);
 
@@ -24,7 +24,7 @@ export const resolveCheckoutStepSlug = (
   return isCheckoutStepSlug(value) ? value : DEFAULT_CHECKOUT_STEP_SLUG;
 };
 
-export const resolveCheckoutStepHref = (step: CheckoutStepSlug) => {
+export const resolveCheckoutStepHref = (step: CheckoutStepSlug): StorefrontRoute => {
   return routes.checkout.step(step);
 };
 

@@ -10,6 +10,7 @@ import {
   resolveShippingIcon,
 } from "@/components/checkout/checkout-display.utils";
 import { SupportingText } from "@/components/text/supporting-text";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
@@ -19,7 +20,7 @@ type CheckoutCompleteSectionProps = {
   cartTotalAmount: number;
   cartTotalWithoutTaxAmount: number;
   currencyCode: string;
-  detailsStepHref: string;
+  detailsStepHref: StorefrontRoute;
   hasPayment: boolean;
   hasShipping: boolean;
   hasStoredAddress: boolean;
@@ -34,7 +35,7 @@ type CheckoutCompleteSectionProps = {
   shippingAddressForm: AddressFormState;
   shippingLabel?: string;
   shippingOptionId?: string | null;
-  shippingStepHref: string;
+  shippingStepHref: StorefrontRoute;
   useSameAddress: boolean;
 };
 
@@ -286,7 +287,7 @@ function SummaryRecapCard({
   label,
   tone = "default",
 }: {
-  href: string;
+  href: StorefrontRoute;
   icon: IconType;
   label: string;
   tone?: "default" | "warning";

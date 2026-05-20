@@ -2,6 +2,7 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb";
+import { routes } from "@/lib/routes";
 import {
   AboutArticleSections,
   AboutClosingStatement,
@@ -13,7 +14,7 @@ import {
 import { AboutHero } from "./about-page-top";
 
 const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
-  { label: "Domov", href: "/", icon: "token-icon-home" },
+  { label: "Domov", href: routes.home, icon: "token-icon-home" },
   { label: "O nás" },
 ];
 

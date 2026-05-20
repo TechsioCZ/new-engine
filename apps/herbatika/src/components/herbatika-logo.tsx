@@ -2,17 +2,19 @@ import { Link } from "@techsio/ui-kit/atoms/link";
 import NextLink from "next/link";
 import NextImage from "next/image";
 import logo from "@/assets/herbatica-logo.avif";
+import type { StorefrontRoute } from "@/lib/route-paths";
+import { routes } from "@/lib/routes";
 
 interface HerbatikaLogoProps {
   className?: string;
-  href?: string;
+  href?: StorefrontRoute;
   imageClassName?: string;
   size?: "sm" | "md" | "lg";
 }
 
 export function HerbatikaLogo({
   className,
-  href = "/",
+  href = routes.home,
   imageClassName,
   size = "md",
 }: HerbatikaLogoProps) {

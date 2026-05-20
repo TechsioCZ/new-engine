@@ -1,4 +1,8 @@
-import { routePaths } from "./route-paths";
+import {
+  asStorefrontRoute,
+  routePaths,
+  type StorefrontRoute,
+} from "./route-paths";
 
 type SearchParamValue = string | string[] | undefined;
 type SearchParamsInput = Record<string, SearchParamValue>;
@@ -6,7 +10,7 @@ type SearchParamsInput = Record<string, SearchParamValue>;
 export const routes = routePaths;
 
 export const appendSearchParamsToHref = (
-  href: string,
+  href: StorefrontRoute,
   searchParams: SearchParamsInput,
 ) => {
   const params = new URLSearchParams();
@@ -25,7 +29,7 @@ export const appendSearchParamsToHref = (
   }
 
   const queryString = params.toString();
-  return queryString ? `${href}?${queryString}` : href;
+  return queryString ? asStorefrontRoute(`${href}?${queryString}`) : href;
 };
 
 export const isCheckoutPathname = (pathname: string) =>

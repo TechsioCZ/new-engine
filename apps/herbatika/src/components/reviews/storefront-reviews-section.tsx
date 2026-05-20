@@ -14,13 +14,14 @@ import type {
   StorefrontReviewItem,
   StorefrontReviewTrustSource,
 } from "@/components/reviews/storefront-reviews.types";
+import type { StorefrontRoute } from "@/lib/route-paths";
 
 type StorefrontReviewsVariant = "product" | "homepage";
 
 type StorefrontReviewsSectionProps = {
   sectionClassName?: string;
   variant?: StorefrontReviewsVariant;
-  linkHref?: string | null;
+  linkHref?: StorefrontRoute | null;
   linkLabel?: string | null;
   headingText?: string;
   scoreLabel?: string | null;

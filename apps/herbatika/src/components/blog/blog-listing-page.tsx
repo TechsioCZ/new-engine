@@ -7,6 +7,7 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb";
+import { asStorefrontRoute, type StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 import type {
   BlogTopicFilter,
@@ -25,7 +26,7 @@ const resolveBlogListingHref = ({
 }: {
   topic: BlogTopicKey;
   page: number;
-}) => {
+}): StorefrontRoute => {
   const query = new URLSearchParams();
 
   if (topic !== "all") {
@@ -37,7 +38,9 @@ const resolveBlogListingHref = ({
   }
 
   const serialized = query.toString();
-  return serialized.length > 0 ? `${routes.blog.index}?${serialized}` : routes.blog.index;
+  return serialized.length > 0
+    ? asStorefrontRoute(`${routes.blog.index}?${serialized}`)
+    : routes.blog.index;
 };
 
 const getFilterLabel = (filter: BlogTopicFilter) => {

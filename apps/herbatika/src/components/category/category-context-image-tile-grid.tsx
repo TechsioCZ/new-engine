@@ -7,9 +7,10 @@ import type { StaticImageData } from "next/image";
 import NextImage from "next/image";
 import NextLink from "next/link";
 import { resolveCategoryImage } from "@/lib/category-images";
+import type { StorefrontRoute } from "@/lib/route-paths";
 
 export type CategoryContextImageTile = {
-  href: string;
+  href: StorefrontRoute;
   id: string;
   label: string;
   src?: StaticImageData;
@@ -17,7 +18,7 @@ export type CategoryContextImageTile = {
 
 export type CategoryContextImageTileSource = {
   handle?: string | null;
-  href: string;
+  href: StorefrontRoute;
   id: string;
   label: string;
   parentCategoryId?: string | null;

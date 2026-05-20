@@ -17,9 +17,10 @@ import { asRecord, asString } from "@/components/product-detail/utils/value-util
 import { routes } from "@/lib/routes"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import { createBrandSlug } from "@/lib/storefront/brands"
+import type { StorefrontRoute } from "@/lib/route-paths"
 
 type ProductInfoLink = {
-  href: string | null
+  href: StorefrontRoute | null
   label: string
 }
 

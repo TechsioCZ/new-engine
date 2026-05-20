@@ -5,6 +5,7 @@ import { Select } from "@techsio/ui-kit/molecules/select";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Label } from "@techsio/ui-kit/atoms/label";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { CheckoutSelectBenefits } from "../checkout-select-benefits";
 import { CheckoutSelectPromoCode } from "../checkout-select-promo-code";
 
@@ -14,7 +15,7 @@ type CheckoutCartSidebarSectionProps = {
   cartTotalAmount: number;
   cartTotalWithoutTaxAmount: number;
   currencyCode: string;
-  nextStepHref: string;
+  nextStepHref: StorefrontRoute;
 };
 
 export function CheckoutCartSidebarSection({

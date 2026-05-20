@@ -25,11 +25,7 @@ import {
   fetchServerProducts,
 } from "@/lib/storefront/storefront-server";
 
-type BlogDetailRouteProps = {
-  params: Promise<{
-    slug: string;
-  }>;
-};
+type BlogDetailRouteProps = PageProps<"/blog/[slug]">;
 
 function BlogDetailPageFallback() {
   return <main className="mx-auto min-h-dvh w-full max-w-max-w" />;

@@ -1,7 +1,8 @@
 import NextLink from "next/link";
+import type { StorefrontRoute } from "@/lib/route-paths";
 
 type TextActionLinkProps = {
-  href: string;
+  href: StorefrontRoute;
   text?: string;
 };
 

@@ -10,13 +10,14 @@ import {
   type LoginFormValues,
 } from "@/lib/auth/auth-form-validators";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { AuthFooter } from "./auth-footer";
 
 type LoginFormProps = {
   isBusy: boolean;
   defaultValues: LoginFormValues;
-  registerHref: string;
-  forgotPasswordHref: string;
+  registerHref: StorefrontRoute;
+  forgotPasswordHref: StorefrontRoute;
   onSubmit: (values: LoginFormValues) => Promise<string | null>;
 };
 

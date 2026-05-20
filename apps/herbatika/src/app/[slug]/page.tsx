@@ -3,11 +3,7 @@ import { notFound } from "next/navigation";
 import { CmsPageSurface } from "@/components/cms/cms-page-surface";
 import { fetchCmsPageBySlug } from "@/lib/storefront/cms";
 
-type CmsPageRouteProps = {
-  params: Promise<{
-    slug: string;
-  }>;
-};
+type CmsPageRouteProps = PageProps<"/[slug]">;
 
 export async function generateMetadata({
   params,

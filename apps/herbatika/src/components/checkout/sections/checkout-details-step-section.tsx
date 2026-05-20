@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { COUNTRY_SELECT_ITEMS } from "@/components/checkout/checkout.constants";
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { CheckoutAddressSection } from "./checkout-address-section";
 import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section";
 
@@ -21,9 +22,9 @@ type CheckoutDetailsStepController = Pick<
 >;
 
 type CheckoutDetailsStepSectionProps = {
-  backStepHref: string;
+  backStepHref: StorefrontRoute;
   controller: CheckoutDetailsStepController;
-  nextStepHref: string;
+  nextStepHref: StorefrontRoute;
 };
 
 export function CheckoutDetailsStepSection({

@@ -5,12 +5,7 @@ import { appendSearchParamsToHref, routes } from "@/lib/routes";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr";
 
-type CategoryPageProps = {
-  params: Promise<{
-    slug: string;
-  }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
+type CategoryPageProps = PageProps<"/kategoria/[slug]">;
 
 const CATEGORY_SLUG_ALIASES: Record<string, string> = {
   akcie: "vypredaj-zlavy-a-akcie",

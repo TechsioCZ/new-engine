@@ -1,11 +1,12 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
+import type { StorefrontRoute } from "@/lib/route-paths";
 
 export type HeroBannerItem = {
   id: string;
   title?: string;
   subtitle?: string;
   badge?: string;
-  href: string;
+  href: StorefrontRoute;
   imageSrc: string;
 };
 
@@ -13,7 +14,7 @@ export type BlogTeaserItem = {
   id: string;
   title: string;
   excerpt: string;
-  href: string;
+  href: StorefrontRoute;
   imageSrc: string;
   topic: "fitness" | "krasa" | "zdravie";
   publishedAt: string;
@@ -23,5 +24,5 @@ export type BlogTeaserItem = {
 export type ProductSectionDefinition = {
   id: string;
   title: string;
-  viewAllHref: string;
+  viewAllHref: StorefrontRoute;
 };

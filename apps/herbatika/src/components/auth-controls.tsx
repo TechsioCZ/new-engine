@@ -3,13 +3,14 @@
 import { AuthShell } from "@/components/auth/auth-shell";
 import { RegisterForm } from "@/components/auth/register-form";
 import { useAuthController } from "@/components/auth/use-auth-controller";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { LoginForm } from "./auth/login-form";
 
 type AuthControlsMode = "login" | "register";
 
 type AuthControlsProps = {
   mode: AuthControlsMode;
-  afterAuthHref?: string;
+  afterAuthHref?: StorefrontRoute;
 };
 
 export function AuthControls({ mode, afterAuthHref }: AuthControlsProps) {

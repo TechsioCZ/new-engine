@@ -1,10 +1,11 @@
 import giftIcon from "@/assets/icons/gift-icon.avif";
 import flameIcon from "@/assets/icons/flame-icon.avif";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 import { StaticImageData } from "next/image";
 
 type HeaderNavItem = {
-  href: string;
+  href: StorefrontRoute;
   label: string;
 };
 

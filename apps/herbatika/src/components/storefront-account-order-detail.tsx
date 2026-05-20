@@ -65,7 +65,7 @@ export function StorefrontAccountOrderDetail({
     <div className="space-y-400">
       <HerbatikaBreadcrumb
         items={[
-          { label: "Domov", href: "/" },
+          { label: "Domov", href: routes.home },
           { label: "Účet", href: routes.account.index },
           { label: "Objednávky", href: routes.account.orders },
           { label: resolveOrderDisplayId(order) },

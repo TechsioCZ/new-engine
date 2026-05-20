@@ -3,9 +3,7 @@ import { StorefrontSearchResults } from "@/components/storefront-search-results"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchSearchPageStorefrontData } from "@/lib/storefront/ssr";
 
-type SearchPageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
+type SearchPageProps = PageProps<"/vyhladavanie">;
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const resolvedSearchParams = await searchParams;

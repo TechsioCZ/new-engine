@@ -2,11 +2,7 @@ import { HydrationBoundary } from "@tanstack/react-query";
 import { StorefrontProductDetail } from "@/components/storefront-product-detail";
 import { prefetchProductDetailPageStorefrontData } from "@/lib/storefront/ssr";
 
-type ProductDetailPageProps = {
-  params: Promise<{
-    handle: string;
-  }>;
-};
+type ProductDetailPageProps = PageProps<"/produkt/[handle]">;
 
 export default async function ProductDetailPage({
   params,

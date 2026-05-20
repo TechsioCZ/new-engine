@@ -31,6 +31,7 @@ const resolvePayloadImageRemotePattern = () =>
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  typedRoutes: true,
   async redirects() {
     return [
       {

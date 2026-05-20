@@ -1,7 +1,6 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import NextLink from "next/link";
 import {
   resolveOrderAddresses,
   resolveOrderContactEmail,
@@ -70,7 +69,6 @@ export function StorefrontAccountOrderDetailSummary({
           </Badge>
           {invoiceUrl && (
             <LinkButton
-              as={NextLink}
               href={invoiceUrl}
               rel="noreferrer"
               size="sm"

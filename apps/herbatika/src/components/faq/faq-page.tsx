@@ -2,11 +2,12 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb";
+import { routes } from "@/lib/routes";
 import { FaqAccordion } from "./faq-accordion";
 import { faqItemCount, faqItems } from "./faq-page.data";
 
 const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
-  { label: "Domov", href: "/", icon: "token-icon-home" },
+  { label: "Domov", href: routes.home, icon: "token-icon-home" },
   { label: "Časté otázky" },
 ];
 

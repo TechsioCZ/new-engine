@@ -13,18 +13,19 @@ import {
   STOREFRONT_CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
+import type { StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data";
 
 type HerbatikaHeaderSubmenuChildItem = {
   id: string;
   label: string;
-  href: string;
+  href: StorefrontRoute;
 };
 
 export type HerbatikaHeaderSubmenuFeaturedItem = {
   childItems: HerbatikaHeaderSubmenuChildItem[];
-  href: string;
+  href: StorefrontRoute;
   id: string;
   label: string;
   handle: string;
