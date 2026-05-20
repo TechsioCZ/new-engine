@@ -5,7 +5,7 @@ import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { useContext, useEffect, useMemo, useState } from "react";
-import { routes } from "@/lib/routes";
+import { resolveCategoryHandleFromHref, routes } from "@/lib/routes";
 import { PRIMARY_NAV_ITEMS } from "./herbatika-header.navigation";
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data";
 import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu";
@@ -38,16 +38,6 @@ const SUBMENU_ROOT_HANDLES = new Set<string>(
   HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle),
 );
 
-const resolveRootHandleFromHref = (href: string) => {
-  const categoryPrefix = `${routes.category.detail("")}/`;
-
-  if (href.startsWith(categoryPrefix)) {
-    return href.slice(categoryPrefix.length);
-  }
-
-  return null;
-};
-
 const resolveMobileChildItems = (
   featuredItems: Array<{
     handle: string;
@@ -67,7 +57,7 @@ const buildMobileMenuEntries = (
   >["groupsByRootHandle"],
 ): readonly HerbatikaMobileMenuEntry[] =>
   PRIMARY_NAV_ITEMS.map((item) => {
-    const rootHandle = resolveRootHandleFromHref(item.href);
+    const rootHandle = resolveCategoryHandleFromHref(item.href);
 
     if (!rootHandle || !SUBMENU_ROOT_HANDLES.has(rootHandle)) {
       return {

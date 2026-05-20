@@ -20,7 +20,7 @@ export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
     return routes.product.detail(productHandle);
   }
 
-  return routes.checkout.step("kosik");
+  return routes.checkout.cart;
 };
 
 export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {

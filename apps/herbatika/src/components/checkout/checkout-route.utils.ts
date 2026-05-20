@@ -4,6 +4,7 @@ import {
   DEFAULT_CHECKOUT_STEP_SLUG,
 } from "./checkout.constants";
 import { routes } from "@/lib/routes";
+import { checkoutStepSlugs } from "@/lib/route-paths";
 
 const CHECKOUT_STEP_SLUGS = CHECKOUT_STEPS.map((step) => step.slug);
 
@@ -39,18 +40,18 @@ export const resolveRequiredCheckoutStepSlug = (params: {
   hasStoredAddress: boolean;
 }): CheckoutStepSlug => {
   if (!params.hasItems) {
-    return "kosik";
+    return checkoutStepSlugs.cart;
   }
 
   if (!params.hasShipping || !params.hasPayment) {
-    return "doprava-platba";
+    return checkoutStepSlugs.shippingPayment;
   }
 
   if (!params.hasStoredAddress) {
-    return "udaje";
+    return checkoutStepSlugs.address;
   }
 
-  return "suhrn";
+  return checkoutStepSlugs.summary;
 };
 
 export const canAccessCheckoutStep = (params: {
@@ -61,13 +62,13 @@ export const canAccessCheckoutStep = (params: {
   hasStoredAddress: boolean;
 }) => {
   switch (params.requestedStep) {
-    case "kosik":
+    case checkoutStepSlugs.cart:
       return true;
-    case "doprava-platba":
+    case checkoutStepSlugs.shippingPayment:
       return params.hasItems;
-    case "udaje":
+    case checkoutStepSlugs.address:
       return params.hasItems && params.hasShipping && params.hasPayment;
-    case "suhrn":
+    case checkoutStepSlugs.summary:
       return (
         params.hasItems &&
         params.hasShipping &&

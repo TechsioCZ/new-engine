@@ -33,6 +33,7 @@ export const routePaths = {
     detail: (slug: string) => buildRoutePath(slug),
   },
   category: {
+    prefix: "/kategoria",
     detail: (slug: string) => buildRoutePath("kategoria", slug),
   },
   product: {

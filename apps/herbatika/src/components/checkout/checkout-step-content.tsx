@@ -9,6 +9,7 @@ import { CheckoutDetailsStepSection } from "@/components/checkout/sections/check
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section";
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
+import { checkoutStepSlugs } from "@/lib/route-paths";
 import { resolveSelectedPaymentProviderId } from "@/lib/storefront/checkout";
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section";
 import { HttpTypes } from "@medusajs/types";
@@ -22,10 +23,12 @@ export function CheckoutStepContent({
   activeStep,
   controller,
 }: CheckoutStepContentProps) {
-  const cartStepHref = resolveCheckoutStepHref("kosik");
-  const shippingStepHref = resolveCheckoutStepHref("doprava-platba");
-  const detailsStepHref = resolveCheckoutStepHref("udaje");
-  const summaryStepHref = resolveCheckoutStepHref("suhrn");
+  const cartStepHref = resolveCheckoutStepHref(checkoutStepSlugs.cart);
+  const shippingStepHref = resolveCheckoutStepHref(
+    checkoutStepSlugs.shippingPayment,
+  );
+  const detailsStepHref = resolveCheckoutStepHref(checkoutStepSlugs.address);
+  const summaryStepHref = resolveCheckoutStepHref(checkoutStepSlugs.summary);
   const selectedPaymentProviderId = resolveSelectedPaymentProviderId(
     controller.cartQuery.cart,
   );
@@ -39,7 +42,8 @@ export function CheckoutStepContent({
     selectedPaymentProviderId.length > 0
       ? resolvePaymentSummaryLabel(selectedPaymentProviderId)
       : undefined;
-  const orderSummaryDetailsFont = activeStep === "kosik" ? "rubik" : "inter";
+  const orderSummaryDetailsFont =
+    activeStep === checkoutStepSlugs.cart ? "rubik" : "inter";
   const orderSummaryAside = (
     <CheckoutOrderSummarySection
       cartItems={controller.cartItems}
@@ -57,7 +61,7 @@ export function CheckoutStepContent({
   );
 
   switch (activeStep) {
-    case "kosik":
+    case checkoutStepSlugs.cart:
       return (
         <CheckoutStepLayout
           header={<h2 className="text-2xl col-span-full leading-tight font-inter font-semibold text-fg-primary">
@@ -82,7 +86,7 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       );
-    case "doprava-platba":
+    case checkoutStepSlugs.shippingPayment:
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutShippingPaymentStepSection
@@ -93,7 +97,7 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       );
-    case "udaje":
+    case checkoutStepSlugs.address:
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutDetailsStepSection

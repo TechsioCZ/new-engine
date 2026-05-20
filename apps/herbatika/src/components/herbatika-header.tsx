@@ -13,7 +13,7 @@ import { Header } from "@techsio/ui-kit/organisms/header";
 import NextImage from "next/image";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import { routes } from "@/lib/routes";
+import { resolveCategoryHandleFromHref, routes } from "@/lib/routes";
 import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart";
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
@@ -38,16 +38,6 @@ const REGION_TO_CURRENCY: Record<string, "EUR" | "CZK"> = {
 const SUBMENU_ROOT_HANDLES = new Set<string>(
   HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle),
 );
-
-const resolveRootHandleFromHref = (href: string) => {
-  const categoryPrefix = `${routes.category.detail("")}/`;
-
-  if (href.startsWith(categoryPrefix)) {
-    return href.slice(categoryPrefix.length);
-  }
-
-  return null;
-};
 
 export function HerbatikaHeader() {
   const router = useRouter();
@@ -78,7 +68,7 @@ export function HerbatikaHeader() {
   };
 
   const handleActivateDesktopItem = (href: string) => {
-    const rootHandle = resolveRootHandleFromHref(href);
+    const rootHandle = resolveCategoryHandleFromHref(href);
     if (!rootHandle || !SUBMENU_ROOT_HANDLES.has(rootHandle)) {
       setActiveRootHandle(null);
       return;
@@ -162,7 +152,7 @@ export function HerbatikaHeader() {
             <LinkButton
               as={NextLink}
               className="px-350 py-250 text-md md:text-xl font-bold"
-              href={routes.checkout.step("kosik")}
+              href={routes.checkout.cart}
               icon="token-icon-cart"
               size="sm"
               variant="primary"
@@ -193,7 +183,7 @@ export function HerbatikaHeader() {
               size="sm"
             >
               {PRIMARY_NAV_ITEMS.map((item) => {
-                const rootHandle = resolveRootHandleFromHref(item.href);
+                const rootHandle = resolveCategoryHandleFromHref(item.href);
                 const hasSubmenu = Boolean(
                   rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle),
                 );

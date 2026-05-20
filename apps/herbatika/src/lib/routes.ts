@@ -31,3 +31,13 @@ export const appendSearchParamsToHref = (
 export const isCheckoutPathname = (pathname: string) =>
   pathname === routes.checkout.index ||
   pathname.startsWith(`${routes.checkout.index}/`);
+
+export const resolveCategoryHandleFromHref = (href: string) => {
+  const categoryPathPrefix = `${routes.category.prefix}/`;
+
+  if (href.startsWith(categoryPathPrefix)) {
+    return href.slice(categoryPathPrefix.length);
+  }
+
+  return null;
+};

@@ -142,7 +142,7 @@ export function HerbatikaCartPopover({
             as={NextLink}
             className="relative sm:w-36 inline-flex items-center gap-250 text-xl data-[state=open]:bg-button-bg-primary-hover py-550"
             data-state={isPopoverOpen ? "open" : "closed"}
-            href={routes.checkout.step("kosik")}
+            href={routes.checkout.cart}
             onClick={handleClose}
             onMouseEnter={handlePreviewOpen}
             onMouseLeave={schedulePreviewClose}
@@ -238,7 +238,7 @@ export function HerbatikaCartPopover({
                 <LinkButton
                   as={NextLink}
                   block
-                  href={routes.checkout.step("kosik")}
+                  href={routes.checkout.cart}
                   onClick={handleClose}
                   size="md"
                   variant="primary"
