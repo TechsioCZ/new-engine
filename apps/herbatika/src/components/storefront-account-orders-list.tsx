@@ -100,7 +100,7 @@ export function StorefrontAccountOrdersList() {
         <p className="text-sm text-fg-secondary">
           Zatiaľ nemáte žiadnu dokončenú objednávku.
         </p>
-        <LinkButton as={NextLink} href={routes.home} variant="secondary">
+        <LinkButton as={NextLink} href={routes.home} size="md">
           Prejsť na produkty
         </LinkButton>
       </StorefrontAccountSurface>

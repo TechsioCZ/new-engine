@@ -1,5 +1,5 @@
-import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton";
+import { OrderSkeleton } from "@/components/loading/order-skeleton";
 
 export default function Loading() {
-  return <AccountOrdersSkeleton />;
+  return <OrderSkeleton />;
 }

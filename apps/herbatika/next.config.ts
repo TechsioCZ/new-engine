@@ -35,6 +35,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: routePaths.legacy.resetPassword,
+        destination: routePaths.auth.resetPassword,
+        permanent: false,
+      },
+      {
         source: routePaths.checkout.index,
         destination: routePaths.checkout.cart,
         permanent: false,

@@ -69,6 +69,9 @@ export const routePaths = {
     forgotPassword: asStorefrontRoute("/zabudnute-heslo"),
     resetPassword: asStorefrontRoute("/obnova-hesla"),
   },
+  legacy: {
+    resetPassword: "/reset-password",
+  },
   search: {
     index: asStorefrontRoute("/vyhladavanie"),
   },
