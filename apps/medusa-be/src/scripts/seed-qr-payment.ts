@@ -18,14 +18,15 @@ import {
   type SetRegionsPaymentProvidersStepInput,
   setRegionsPaymentProvidersStep,
 } from "@medusajs/medusa/core-flows"
-import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../modules/payment-qr/constants"
+import {
+  QR_PAYMENT_MEDUSA_PROVIDER_ID,
+  SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID,
+} from "../modules/payment-qr/constants"
 
 type RegionPaymentProviderLink = {
   payment_provider_id: string
   region_id: string
 }
-
-const SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID = "pp_system_default"
 
 const seedQrPaymentRegionsWorkflow = createWorkflow(
   "seed-qr-payment-regions-workflow",
