@@ -26,6 +26,8 @@ import type {
   PacketaConfigResponse,
   PacketaLabelOrdersResponse,
   PendingB2BCustomersResponse,
+  PplConfigInput,
+  PplConfigResponse,
   QrPaymentConfigInput,
   QrPaymentConfigResponse,
 } from "./admin-types"
@@ -410,6 +412,10 @@ function fetchPacketaConfigFromAdminApi(): Promise<PacketaConfigResponse> {
   return fetchAdminApi<PacketaConfigResponse>("/admin/packeta-config")
 }
 
+function fetchPplConfigFromAdminApi(): Promise<PplConfigResponse> {
+  return fetchAdminApi<PplConfigResponse>("/admin/ppl-config")
+}
+
 export function updateQrPaymentConfig(input: QrPaymentConfigInput) {
   return postAdminApi<QrPaymentConfigResponse>(
     "/admin/qr-payment-config",
@@ -419,6 +425,10 @@ export function updateQrPaymentConfig(input: QrPaymentConfigInput) {
 
 export function updatePacketaConfig(input: PacketaConfigInput) {
   return postAdminApi<PacketaConfigResponse>("/admin/packeta-config", input)
+}
+
+export function updatePplConfig(input: PplConfigInput) {
+  return postAdminApi<PplConfigResponse>("/admin/ppl-config", input)
 }
 
 function toProductListItem(product: MedusaAdminProduct) {
@@ -540,6 +550,13 @@ export function usePacketaConfig() {
   return useQuery({
     queryFn: fetchPacketaConfigFromAdminApi,
     queryKey: ["packeta-config", MEDUSA_BACKEND_URL],
+  })
+}
+
+export function usePplConfig() {
+  return useQuery({
+    queryFn: fetchPplConfigFromAdminApi,
+    queryKey: ["ppl-config", MEDUSA_BACKEND_URL],
   })
 }
 

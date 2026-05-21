@@ -195,6 +195,50 @@ export type PacketaConfigInput = {
   sender_zip_code?: string
 }
 
+export type PplConfigResponse = {
+  config: PplConfig
+}
+
+export type PplLabelFormat = "Jpeg" | "Pdf" | "Png" | "Svg" | "Zpl"
+
+export type PplConfig = {
+  client_id: string | null
+  client_secret_set: boolean
+  cod_bank_account_set: boolean
+  cod_bank_code_set: boolean
+  cod_iban_set: boolean
+  cod_swift_set: boolean
+  default_label_format: PplLabelFormat | string
+  environment: string
+  id: string
+  is_enabled: boolean
+  sender_city: string | null
+  sender_country: string | null
+  sender_email: string | null
+  sender_name: string | null
+  sender_phone: string | null
+  sender_street: string | null
+  sender_zip_code: string | null
+}
+
+export type PplConfigInput = {
+  client_id?: string
+  client_secret?: string | null
+  cod_bank_account?: string | null
+  cod_bank_code?: string | null
+  cod_iban?: string | null
+  cod_swift?: string | null
+  default_label_format?: PplLabelFormat
+  is_enabled?: boolean
+  sender_city?: string
+  sender_country?: string
+  sender_email?: string
+  sender_name?: string
+  sender_phone?: string
+  sender_street?: string
+  sender_zip_code?: string
+}
+
 export type MedusaPacketaLabelOrdersResponse = {
   count: number
   limit: number
