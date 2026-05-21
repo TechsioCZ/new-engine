@@ -494,7 +494,7 @@ describe("buildProducerPromotionContext", () => {
       entity: expect.any(String),
       fields: ["product_id", "producer_id"],
       filters: {
-        product_id: ["prod_1", "prod_2"],
+        product_id: { $in: ["prod_1", "prod_2"] },
       },
     })
     expect(result).toEqual({
@@ -511,5 +511,65 @@ describe("buildProducerPromotionContext", () => {
         }),
       ],
     })
+  })
+
+  it("resolves producer ids from variant ids when cart items omit product ids", async () => {
+    const graph = vi.fn().mockImplementation(({ entity }) => {
+      if (entity === "variant") {
+        return {
+          data: [
+            { id: "variant_1", product_id: "prod_1" },
+            { id: "variant_2", product_id: "prod_2" },
+          ],
+        }
+      }
+
+      return {
+        data: [{ product_id: "prod_1", producer_id: "producer_a" }],
+      }
+    })
+    const container = {
+      resolve: vi.fn().mockReturnValue({ graph }),
+    }
+
+    const result = await buildProducerPromotionContext(
+      {
+        items: [
+          { id: "item_1", quantity: 1, variant_id: "variant_1" },
+          { id: "item_2", quantity: 1, variant_id: "variant_2" },
+        ],
+      },
+      container as never,
+      "product_producer"
+    )
+
+    expect(graph).toHaveBeenCalledWith({
+      entity: "variant",
+      fields: ["id", "product_id"],
+      filters: {
+        id: { $in: ["variant_1", "variant_2"] },
+      },
+    })
+    expect(graph).toHaveBeenCalledWith({
+      entity: "product_producer",
+      fields: ["product_id", "producer_id"],
+      filters: {
+        product_id: { $in: ["prod_1", "prod_2"] },
+      },
+    })
+    expect(result).toEqual({
+      items: [
+        expect.objectContaining({
+          id: "item_1",
+          producer_ids: ["producer_a"],
+        }),
+        expect.objectContaining({
+          id: "item_2",
+        }),
+      ],
+    })
+    expect((result.items as Record<string, unknown>[])[1]).not.toHaveProperty(
+      "producer_ids"
+    )
   })
 })
