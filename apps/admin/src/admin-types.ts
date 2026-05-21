@@ -111,6 +111,29 @@ export type AdminEmailLogDetailResponse = {
   resend_email: ResendEmail | null
 }
 
+export type OrderEmailTemplate = {
+  label: string
+  subject: string | undefined
+  template: string
+  trigger_type: string
+}
+
+export type OrderEmailTemplatesResponse = {
+  templates: OrderEmailTemplate[]
+}
+
+export type SendOrderEmailResponse = {
+  order: {
+    id: string
+    email: string | null
+    payment_status: string | null
+    status: string | null
+    total_formatted?: string
+  }
+  sent: boolean
+  template: OrderEmailTemplate
+}
+
 export type MedusaAdminEmailLogsResponse = {
   count: number
   email_logs: AdminEmailLog[]
@@ -265,16 +288,64 @@ export type QrPaymentConfigInput = {
 }
 
 export type MedusaAdminPaymentCollection = {
+  amount?: number | string | null
+  currency_code?: string | null
+  id?: string
   status?: string | null
 }
 
 export type MedusaAdminFulfillment = {
   canceled_at?: string | null
   delivered_at?: string | null
+  id?: string
+  provider_id?: string | null
   shipped_at?: string | null
 }
 
+export type MedusaAdminAddress = {
+  address_1?: string | null
+  address_2?: string | null
+  city?: string | null
+  company?: string | null
+  country_code?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  phone?: string | null
+  postal_code?: string | null
+  province?: string | null
+}
+
+export type MedusaAdminOrderItemVariant = {
+  id?: string
+  sku?: string | null
+  title?: string | null
+}
+
+export type MedusaAdminOrderItemProduct = {
+  handle?: string | null
+  id?: string
+  status?: string | null
+  thumbnail?: string | null
+  title?: string | null
+}
+
+export type MedusaAdminOrderItem = {
+  id: string
+  product?: MedusaAdminOrderItemProduct | null
+  product_id?: string | null
+  product_title?: string | null
+  quantity?: number | string | null
+  thumbnail?: string | null
+  title?: string | null
+  total?: number | string | null
+  unit_price?: number | string | null
+  variant?: MedusaAdminOrderItemVariant | null
+  variant_sku?: string | null
+  variant_title?: string | null
+}
+
 export type MedusaAdminOrder = {
+  billing_address?: MedusaAdminAddress | null
   created_at?: string | null
   currency_code?: string | null
   custom_display_id?: string | null
@@ -283,11 +354,17 @@ export type MedusaAdminOrder = {
   fulfillment_status?: string | null
   fulfillments?: MedusaAdminFulfillment[] | null
   id: string
+  items?: MedusaAdminOrderItem[] | null
   metadata?: Record<string, unknown> | null
   payment_collections?: MedusaAdminPaymentCollection[] | null
   payment_status?: string | null
+  shipping_address?: MedusaAdminAddress | null
   status?: string | null
   total?: number | string | null
+}
+
+export type MedusaAdminOrderResponse = {
+  order: MedusaAdminOrder
 }
 
 export type MedusaAdminCustomer = {

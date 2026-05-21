@@ -6,6 +6,7 @@ import { useActionRequiredSummary } from "./admin-api"
 import { clearStoredAdminToken, hasStoredAdminToken } from "./admin-auth"
 import { isAuthError } from "./admin-errors"
 import { LoginPage } from "./admin-login-page"
+import { OrderDetailPage } from "./admin-order-detail-page"
 import { PacketaLabelsPage } from "./admin-packeta-labels-page"
 import { PacketaSettingsPage } from "./admin-packeta-settings-page"
 import {
@@ -69,6 +70,7 @@ export function AdminApp() {
               path="/"
             />
             <Route element={<OrdersPage />} path="/orders" />
+            <Route element={<OrderDetailPage />} path="/orders/:id" />
             <Route
               element={
                 <PlaceholderPage

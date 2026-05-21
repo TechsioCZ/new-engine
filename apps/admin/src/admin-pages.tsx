@@ -1,7 +1,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { type FormEvent, type ReactNode, useEffect, useState } from "react"
-import { useSearchParams } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import {
   EMAIL_LOG_LIST_LIMIT,
   PRODUCT_LIST_LIMIT,
@@ -402,7 +402,7 @@ function DataSurface<TItem>({
 
 function OrderRow({ order }: { order: ActionRequiredOrder }) {
   return (
-    <article className="admin-row">
+    <Link className="admin-row admin-row-link" to={`/orders/${order.id}`}>
       <div>
         <strong>{formatOrderId(order)}</strong>
         <span>{order.email ?? "Bez e-mailu"}</span>
@@ -413,7 +413,7 @@ function OrderRow({ order }: { order: ActionRequiredOrder }) {
         </Badge>
         <span>{formatMoney(order.total, order.currency_code)}</span>
       </div>
-    </article>
+    </Link>
   )
 }
 

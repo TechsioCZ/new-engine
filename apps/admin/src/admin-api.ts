@@ -18,10 +18,12 @@ import type {
   MedusaAdminCustomersResponse,
   MedusaAdminEmailLogsResponse,
   MedusaAdminOrder,
+  MedusaAdminOrderResponse,
   MedusaAdminOrdersResponse,
   MedusaAdminProduct,
   MedusaAdminProductsResponse,
   MedusaPacketaLabelOrdersResponse,
+  OrderEmailTemplatesResponse,
   PacketaConfigInput,
   PacketaConfigResponse,
   PacketaLabelOrdersResponse,
@@ -31,6 +33,7 @@ import type {
   PplConfigResponse,
   QrPaymentConfigInput,
   QrPaymentConfigResponse,
+  SendOrderEmailResponse,
 } from "./admin-types"
 
 const ADMIN_API_PAGE_SIZE = 100
@@ -56,6 +59,34 @@ const ORDER_FIELDS = [
   "fulfillments.shipped_at",
   "fulfillments.delivered_at",
   "fulfillments.canceled_at",
+].join(",")
+
+const ORDER_DETAIL_FIELDS = [
+  "id",
+  "display_id",
+  "custom_display_id",
+  "email",
+  "created_at",
+  "total",
+  "currency_code",
+  "status",
+  "metadata",
+  "payment_status",
+  "payment_collections.id",
+  "payment_collections.status",
+  "payment_collections.amount",
+  "payment_collections.currency_code",
+  "fulfillment_status",
+  "fulfillments.id",
+  "fulfillments.provider_id",
+  "fulfillments.shipped_at",
+  "fulfillments.delivered_at",
+  "fulfillments.canceled_at",
+  "*items",
+  "*items.variant",
+  "*items.product",
+  "*shipping_address",
+  "*billing_address",
 ].join(",")
 
 const CUSTOMER_FIELDS = [
@@ -388,6 +419,20 @@ function fetchEmailLogDetailFromAdminApi(
   return fetchAdminApi<AdminEmailLogDetailResponse>(`/admin/email-logs/${id}`)
 }
 
+function fetchOrderDetailFromAdminApi(
+  id: string
+): Promise<MedusaAdminOrderResponse> {
+  return fetchAdminApi<MedusaAdminOrderResponse>(`/admin/orders/${id}`, {
+    fields: ORDER_DETAIL_FIELDS,
+  })
+}
+
+function fetchOrderEmailTemplatesFromAdminApi(): Promise<OrderEmailTemplatesResponse> {
+  return fetchAdminApi<OrderEmailTemplatesResponse>(
+    "/admin/orders/email-templates"
+  )
+}
+
 async function fetchPacketaLabelOrdersFromAdminApi({
   offset,
 }: {
@@ -468,6 +513,21 @@ export function updatePacketaConfig(input: PacketaConfigInput) {
 
 export function updatePplConfig(input: PplConfigInput) {
   return postAdminApi<PplConfigResponse>("/admin/ppl-config", input)
+}
+
+export function sendOrderEmail({
+  orderId,
+  template,
+}: {
+  orderId: string
+  template: string
+}) {
+  return postAdminApi<SendOrderEmailResponse>(
+    `/admin/orders/${orderId}/email`,
+    {
+      template,
+    }
+  )
 }
 
 function toProductListItem(product: MedusaAdminProduct) {
@@ -564,6 +624,21 @@ export function useAdminEmailLogDetail({
     enabled: Boolean(id),
     queryFn: () => fetchEmailLogDetailFromAdminApi(id as string),
     queryKey: ["admin-email-log-detail", MEDUSA_BACKEND_URL, id],
+  })
+}
+
+export function useAdminOrderDetail({ id }: { id: string | null | undefined }) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () => fetchOrderDetailFromAdminApi(id as string),
+    queryKey: ["admin-order-detail", MEDUSA_BACKEND_URL, id],
+  })
+}
+
+export function useOrderEmailTemplates() {
+  return useQuery({
+    queryFn: fetchOrderEmailTemplatesFromAdminApi,
+    queryKey: ["order-email-templates", MEDUSA_BACKEND_URL],
   })
 }
 
