@@ -55,7 +55,9 @@ export async function GET(
     },
   })
 
-  const values = data.map(mapVariantToRuleValueOption)
+  const values = Array.isArray(data)
+    ? data.map(mapVariantToRuleValueOption)
+    : []
 
   res.json({
     values,
