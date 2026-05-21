@@ -239,6 +239,11 @@ export type PplConfigInput = {
   sender_zip_code?: string
 }
 
+export type PayloadRuntimeConfigResponse = {
+  iframeUrl: string | null
+  isIframeEnabled: boolean
+}
+
 export type MedusaPacketaLabelOrdersResponse = {
   count: number
   limit: number

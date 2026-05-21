@@ -15,6 +15,7 @@ import {
   PlaceholderPage,
   ProductsPage,
 } from "./admin-pages"
+import { PayloadSettingsPage } from "./admin-payload-settings-page"
 import { PplSettingsPage } from "./admin-ppl-settings-page"
 import { QrPaymentsSettingsPage, SettingsPage } from "./admin-settings-page"
 import type { BadgeKey } from "./admin-types"
@@ -134,10 +135,7 @@ export function AdminApp() {
             />
             <Route element={<PacketaSettingsPage />} path="/settings/packeta" />
             <Route element={<PplSettingsPage />} path="/settings/ppl" />
-            <Route
-              element={<PlaceholderPage eyebrow="Nastaveni" title="Payload" />}
-              path="/settings/payload"
-            />
+            <Route element={<PayloadSettingsPage />} path="/settings/payload" />
             <Route
               element={<Navigate replace to="/orders?view=action-required" />}
               path="*"

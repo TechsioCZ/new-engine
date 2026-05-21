@@ -25,6 +25,7 @@ import type {
   PacketaConfigInput,
   PacketaConfigResponse,
   PacketaLabelOrdersResponse,
+  PayloadRuntimeConfigResponse,
   PendingB2BCustomersResponse,
   PplConfigInput,
   PplConfigResponse,
@@ -129,6 +130,36 @@ async function fetchAdminApi<TResponse>(
   }
 
   return response.json() as Promise<TResponse>
+}
+
+async function fetchAdminText(
+  path: string,
+  params?: Record<string, string>
+): Promise<string> {
+  const headers = new Headers({
+    Accept: "text/html",
+  })
+  const token = getStoredAdminToken()
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
+  }
+
+  const response = await fetch(buildMedusaUrl(path, params), {
+    credentials: "include",
+    headers,
+  })
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => "")
+
+    throw createApiError(
+      message || `Admin API request failed with ${response.status}`,
+      response.status
+    )
+  }
+
+  return response.text()
 }
 
 async function postAdminApi<TResponse>(
@@ -416,6 +447,14 @@ function fetchPplConfigFromAdminApi(): Promise<PplConfigResponse> {
   return fetchAdminApi<PplConfigResponse>("/admin/ppl-config")
 }
 
+function fetchPayloadConfigFromAdminApi(): Promise<PayloadRuntimeConfigResponse> {
+  return fetchAdminApi<PayloadRuntimeConfigResponse>("/admin/payload/config")
+}
+
+export function fetchPayloadSsoHtml(returnTo: string) {
+  return fetchAdminText("/admin/payload/sso", { returnTo })
+}
+
 export function updateQrPaymentConfig(input: QrPaymentConfigInput) {
   return postAdminApi<QrPaymentConfigResponse>(
     "/admin/qr-payment-config",
@@ -557,6 +596,13 @@ export function usePplConfig() {
   return useQuery({
     queryFn: fetchPplConfigFromAdminApi,
     queryKey: ["ppl-config", MEDUSA_BACKEND_URL],
+  })
+}
+
+export function usePayloadConfig() {
+  return useQuery({
+    queryFn: fetchPayloadConfigFromAdminApi,
+    queryKey: ["payload-config", MEDUSA_BACKEND_URL],
   })
 }
 
