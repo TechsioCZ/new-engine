@@ -21,6 +21,8 @@ npx medusa db:generate MODULE               # gen migration
 
 **Build-time secrets:** Medusa validates `JWT_SECRET`/`COOKIE_SECRET` at build but uses them only at runtime. Script provides placeholders; real secrets via runtime env vars.
 
+**Build-only providers:** `medusa-config.ts` fails fast on unknown provider envs. Build wrappers set local/in-memory provider defaults so builds do not require live Redis, Meilisearch, or S3. Runtime provider envs still come from compose/Zerops/Zane and should stay explicit.
+
 **Silent failures:** Build may exit 0 with empty `.medusa/`. Script validates `.medusa/server/medusa-config.js` exists, fails fast with log tail if missing.
 
 ## Structure

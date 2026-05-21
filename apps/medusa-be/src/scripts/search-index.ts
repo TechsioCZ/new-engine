@@ -1,6 +1,7 @@
 import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+import { isMeilisearchEnabled } from "../modules/meilisearch/env"
 
 const BATCH_SIZE = 1000
 
@@ -191,6 +192,12 @@ const syncEntityToMeilisearch = async ({
 
 export default async function searchIndexScript({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+
+  if (!isMeilisearchEnabled()) {
+    logger.info("Skipping search indexing because Meilisearch is disabled")
+    return
+  }
+
   const queryService = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
   const meilisearchIndexService: MeiliSearchService =

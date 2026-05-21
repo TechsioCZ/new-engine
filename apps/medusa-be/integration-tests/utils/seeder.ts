@@ -5,17 +5,17 @@ export async function regionSeeder({ api, adminHeaders, data }) {
       { name: "Test region", currency_code: "usd", ...data },
       adminHeaders
     )
-  ).data.region;
+  ).data.region
 }
 
 export async function salesChannelSeeder({ api, adminHeaders, data }) {
   return (
     await api.post(
-      `/admin/sales-channels`,
+      "/admin/sales-channels",
       { name: "test sales channel", ...data },
       adminHeaders
     )
-  ).data.sales_channel;
+  ).data.sales_channel
 }
 
 export async function productSeeder({ api, adminHeaders, data }) {
@@ -23,8 +23,9 @@ export async function productSeeder({ api, adminHeaders, data }) {
     await api.post(
       "/admin/products",
       {
-        title: `Test Product`,
-        handle: `test-product`,
+        title: "Test Product",
+        handle: "test-product",
+        status: "published",
         options: [
           { title: "size", values: ["large", "small"] },
           { title: "color", values: ["green"] },
@@ -46,16 +47,17 @@ export async function productSeeder({ api, adminHeaders, data }) {
             },
           },
         ],
+        ...data,
       },
       adminHeaders
     )
-  ).data.product;
+  ).data.product
 }
 
 export async function cartSeeder({ api, storeHeaders, data }) {
   return (
     await api.post(
-      `/store/carts`,
+      "/store/carts",
       {
         currency_code: "usd",
         email: "tony@stark-industries.com",
@@ -71,5 +73,5 @@ export async function cartSeeder({ api, storeHeaders, data }) {
       },
       storeHeaders
     )
-  ).data.cart;
+  ).data.cart
 }

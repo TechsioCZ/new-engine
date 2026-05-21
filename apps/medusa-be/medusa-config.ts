@@ -13,10 +13,37 @@ import {
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
+function readRequiredEnv(name: string): string {
+  const value = process.env[name]?.trim()
 
-const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
-const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
+  if (!value) {
+    throw new Error(`${name} is required`)
+  }
+
+  return value
+}
+
+function readEnumEnv<const AllowedValues extends readonly string[]>(
+  name: string,
+  allowedValues: AllowedValues
+): AllowedValues[number] {
+  const value = process.env[name]?.trim()
+
+  if (!(value && (allowedValues as readonly string[]).includes(value))) {
+    throw new Error(
+      `${name} must be one of: ${allowedValues.join(", ")}${
+        value ? `. Received: ${value}` : ""
+      }`
+    )
+  }
+
+  return value as AllowedValues[number]
+}
+
+function readBooleanFlagEnv(name: string): boolean {
+  return readEnumEnv(name, ["0", "1"] as const) === "1"
+}
+
 const MEILISEARCH_TYPO_TOLERANCE_SETTINGS = {
   enabled: true,
   minWordSizeForTypos: {
@@ -50,7 +77,54 @@ const PAYMENT_PROVIDERS = [
   ...PAYKIT_PAYMENT_PROVIDERS,
 ]
 
-const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
+const REDIS_SESSIONS_ENABLED = readBooleanFlagEnv("REDIS_SESSIONS_ENABLED")
+const MEILISEARCH_ENABLED = readBooleanFlagEnv("MEILISEARCH_ENABLED")
+const NOTIFICATION_PROVIDER = readEnumEnv("NOTIFICATION_PROVIDER", [
+  "local",
+  "resend",
+] as const)
+const CACHE_PROVIDER = readEnumEnv("CACHE_PROVIDER", [
+  "inmemory",
+  "redis",
+] as const)
+const EVENT_BUS_PROVIDER = readEnumEnv("EVENT_BUS_PROVIDER", [
+  "local",
+  "redis",
+] as const)
+const WORKFLOW_ENGINE_PROVIDER = readEnumEnv("WORKFLOW_ENGINE_PROVIDER", [
+  "inmemory",
+  "redis",
+] as const)
+const LOCKING_PROVIDER = readEnumEnv("LOCKING_PROVIDER", [
+  "postgres",
+  "redis",
+] as const)
+const FILE_PROVIDER = readEnumEnv("FILE_PROVIDER", ["local", "s3"] as const)
+
+const REDIS_URL =
+  REDIS_SESSIONS_ENABLED ||
+  CACHE_PROVIDER === "redis" ||
+  EVENT_BUS_PROVIDER === "redis" ||
+  WORKFLOW_ENGINE_PROVIDER === "redis" ||
+  LOCKING_PROVIDER === "redis"
+    ? readRequiredEnv("REDIS_URL")
+    : undefined
+
+function requireRedisUrl(): string {
+  if (!REDIS_URL) {
+    throw new Error(
+      "REDIS_URL is required when a Redis-backed provider is enabled"
+    )
+  }
+
+  return REDIS_URL
+}
+
+const MEILISEARCH_HOST = MEILISEARCH_ENABLED
+  ? readRequiredEnv("MEILISEARCH_HOST")
+  : undefined
+const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL
 
@@ -73,6 +147,249 @@ const notificationProvider =
           from: RESEND_FROM_EMAIL,
         },
       }
+
+const meilisearchPlugin = {
+  resolve: "@rokmohar/medusa-plugin-meilisearch",
+  options: {
+    config: {
+      host: MEILISEARCH_HOST,
+      apiKey: MEILISEARCH_API_KEY,
+    },
+    settings: {
+      products: {
+        type: "products",
+        enabled: true,
+        fields: [
+          "id",
+          "status",
+          "title",
+          "description",
+          "handle",
+          "thumbnail",
+          "created_at",
+          "metadata",
+          "categories.id",
+          "categories.name",
+          "categories.handle",
+          "producer.id",
+          "producer.title",
+          "producer.handle",
+          "sales_channels.id",
+          "variants.id",
+          "variants.sku",
+          "variants.prices.amount",
+          "variants.prices.currency_code",
+        ],
+        indexSettings: {
+          searchableAttributes: [
+            "title",
+            "description",
+            "handle",
+            "producer.title",
+            "categories.name",
+            "variants.sku",
+          ],
+          displayedAttributes: [
+            "id",
+            "status",
+            "title",
+            "description",
+            "thumbnail",
+            "handle",
+            "created_at",
+            "metadata",
+            "producer",
+            "categories",
+            "sales_channels",
+            "facet_product_status",
+            "facet_sales_channel_ids",
+            "facet_status",
+            "facet_form",
+            "facet_brand",
+            "facet_ingredient",
+            "facet_category_ids",
+            "facet_in_stock",
+            "facet_price",
+          ],
+          filterableAttributes: [
+            "id",
+            "handle",
+            "facet_product_status",
+            "facet_sales_channel_ids",
+            "facet_status",
+            "facet_form",
+            "facet_brand",
+            "facet_ingredient",
+            "facet_category_ids",
+            "facet_in_stock",
+            "facet_price",
+          ],
+          sortableAttributes: ["created_at", "title", "facet_price"],
+          typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
+          rankingRules: [
+            "sort",
+            "words",
+            "typo",
+            "proximity",
+            "attribute",
+            "exactness",
+          ],
+        },
+        transformer: async (
+          document: Record<string, unknown>,
+          defaultTransformer: (
+            input: Record<string, unknown>
+          ) => Record<string, unknown>
+        ) => {
+          const transformedDocument = defaultTransformer(document)
+
+          return {
+            ...transformedDocument,
+            ...buildProductFacetDocument(transformedDocument),
+          }
+        },
+        primaryKey: "id",
+      },
+      categories: {
+        type: "categories",
+        enabled: true,
+        fields: ["id", "description", "handle"],
+        indexSettings: {
+          searchableAttributes: ["description"],
+          displayedAttributes: ["id", "description", "handle"],
+          filterableAttributes: ["id", "handle", "description"],
+          typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
+        },
+        primaryKey: "id",
+      },
+      producers: {
+        type: "producers",
+        enabled: true,
+        fields: ["id", "title", "handle"],
+        indexSettings: {
+          searchableAttributes: ["title", "handle"],
+          displayedAttributes: ["id", "title", "handle"],
+          filterableAttributes: ["id", "title", "handle"],
+          typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
+        },
+        primaryKey: "id",
+      },
+    },
+  },
+}
+
+const cachingModule =
+  CACHE_PROVIDER === "inmemory"
+    ? {
+        resolve: "@medusajs/medusa/caching",
+        options: {
+          in_memory: {
+            enable: true,
+          },
+        },
+      }
+    : {
+        resolve: "@medusajs/medusa/caching",
+        options: {
+          providers: [
+            {
+              resolve: "@medusajs/caching-redis",
+              id: "caching-redis",
+              is_default: true,
+              options: {
+                redisUrl: requireRedisUrl(),
+              },
+            },
+          ],
+        },
+      }
+
+const eventBusModule =
+  EVENT_BUS_PROVIDER === "local"
+    ? {
+        resolve: "./src/modules/local-providers/event-bus-local",
+        key: Modules.EVENT_BUS,
+      }
+    : {
+        resolve: "@medusajs/event-bus-redis",
+        key: Modules.EVENT_BUS,
+        options: {
+          redisUrl: requireRedisUrl(),
+        },
+      }
+
+const workflowEngineModule =
+  WORKFLOW_ENGINE_PROVIDER === "inmemory"
+    ? {
+        resolve: "@medusajs/medusa/workflow-engine-inmemory",
+      }
+    : {
+        resolve: "@medusajs/medusa/workflow-engine-redis",
+        options: {
+          redis: {
+            redisUrl: requireRedisUrl(),
+          },
+        },
+      }
+
+const lockingModule = {
+  resolve: "@medusajs/medusa/locking",
+  options: {
+    providers: [
+      LOCKING_PROVIDER === "postgres"
+        ? {
+            resolve: "@medusajs/medusa/locking-postgres",
+            id: "locking-postgres",
+            is_default: true,
+          }
+        : {
+            resolve: "@medusajs/medusa/locking-redis",
+            id: "locking-redis",
+            is_default: true,
+            options: {
+              redisUrl: requireRedisUrl(),
+            },
+          },
+    ],
+  },
+}
+
+const FILE_LOCAL_UPLOAD_DIR =
+  FILE_PROVIDER === "local"
+    ? readRequiredEnv("FILE_LOCAL_UPLOAD_DIR")
+    : undefined
+const fileModule = {
+  resolve: "@medusajs/medusa/file",
+  options: {
+    providers: [
+      FILE_PROVIDER === "local"
+        ? {
+            resolve: "./src/modules/local-providers/file-local",
+            id: "local",
+            options: {
+              backend_url: "http://localhost:9000/static",
+              private_upload_dir: FILE_LOCAL_UPLOAD_DIR,
+              upload_dir: FILE_LOCAL_UPLOAD_DIR,
+            },
+          }
+        : {
+            resolve: "@medusajs/medusa/file-s3",
+            id: "s3",
+            options: {
+              file_url: process.env.MINIO_FILE_URL,
+              endpoint: process.env.MINIO_ENDPOINT,
+              bucket: process.env.MINIO_BUCKET,
+              access_key_id: process.env.MINIO_ACCESS_KEY,
+              secret_access_key: process.env.MINIO_SECRET_KEY,
+              region: process.env.MINIO_REGION,
+              additional_client_config: {
+                forcePathStyle: true,
+              },
+            },
+          },
+    ],
+  },
+}
 
 const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL?.trim()
 const MEDUSA_COOKIE_SECURE = process.env.MEDUSA_COOKIE_SECURE
@@ -159,7 +476,11 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET,
     },
     cookieOptions,
-    redisUrl: REDIS_URL,
+    ...(REDIS_SESSIONS_ENABLED
+      ? {
+          redisUrl: requireRedisUrl(),
+        }
+      : {}),
   },
   plugins: [
     {
@@ -178,135 +499,7 @@ module.exports = defineConfig({
       resolve: "medusa-order-dashboard-plugin",
       options: {},
     },
-    {
-      resolve: "@rokmohar/medusa-plugin-meilisearch",
-      options: {
-        config: {
-          host: MEILISEARCH_HOST,
-          apiKey: MEILISEARCH_API_KEY,
-        },
-        settings: {
-          products: {
-            type: "products",
-            enabled: true,
-            fields: [
-              "id",
-              "status",
-              "title",
-              "description",
-              "handle",
-              "thumbnail",
-              "created_at",
-              "metadata",
-              "categories.id",
-              "categories.name",
-              "categories.handle",
-              "producer.id",
-              "producer.title",
-              "producer.handle",
-              "sales_channels.id",
-              "variants.id",
-              "variants.sku",
-              "variants.prices.amount",
-              "variants.prices.currency_code",
-            ],
-            indexSettings: {
-              searchableAttributes: [
-                "title",
-                "description",
-                "handle",
-                "producer.title",
-                "categories.name",
-                "variants.sku",
-              ],
-              displayedAttributes: [
-                "id",
-                "status",
-                "title",
-                "description",
-                "thumbnail",
-                "handle",
-                "created_at",
-                "metadata",
-                "producer",
-                "categories",
-                "sales_channels",
-                "facet_product_status",
-                "facet_sales_channel_ids",
-                "facet_status",
-                "facet_form",
-                "facet_brand",
-                "facet_ingredient",
-                "facet_category_ids",
-                "facet_in_stock",
-                "facet_price",
-              ],
-              filterableAttributes: [
-                "id",
-                "handle",
-                "facet_product_status",
-                "facet_sales_channel_ids",
-                "facet_status",
-                "facet_form",
-                "facet_brand",
-                "facet_ingredient",
-                "facet_category_ids",
-                "facet_in_stock",
-                "facet_price",
-              ],
-              sortableAttributes: ["created_at", "title", "facet_price"],
-              typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
-              rankingRules: [
-                "sort",
-                "words",
-                "typo",
-                "proximity",
-                "attribute",
-                "exactness",
-              ],
-            },
-            transformer: async (
-              document: Record<string, unknown>,
-              defaultTransformer: (
-                input: Record<string, unknown>
-              ) => Record<string, unknown>
-            ) => {
-              const transformedDocument = defaultTransformer(document)
-
-              return {
-                ...transformedDocument,
-                ...buildProductFacetDocument(transformedDocument),
-              }
-            },
-            primaryKey: "id",
-          },
-          categories: {
-            type: "categories",
-            enabled: true,
-            fields: ["id", "description", "handle"],
-            indexSettings: {
-              searchableAttributes: ["description"],
-              displayedAttributes: ["id", "description", "handle"],
-              filterableAttributes: ["id", "handle", "description"],
-              typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
-            },
-            primaryKey: "id",
-          },
-          producers: {
-            type: "producers",
-            enabled: true,
-            fields: ["id", "title", "handle"],
-            indexSettings: {
-              searchableAttributes: ["title", "handle"],
-              displayedAttributes: ["id", "title", "handle"],
-              filterableAttributes: ["id", "title", "handle"],
-              typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
-            },
-            primaryKey: "id",
-          },
-        },
-      },
-    },
+    ...(MEILISEARCH_ENABLED ? [meilisearchPlugin] : []),
   ],
   modules: [
     {
@@ -318,21 +511,7 @@ module.exports = defineConfig({
         providers: [notificationProvider],
       },
     },
-    {
-      resolve: "@medusajs/medusa/caching",
-      options: {
-        providers: [
-          {
-            resolve: "@medusajs/caching-redis",
-            id: "caching-redis",
-            is_default: true,
-            options: {
-              redisUrl: REDIS_URL,
-            },
-          },
-        ],
-      },
-    },
+    cachingModule,
     {
       resolve: "./src/modules/producer",
     },
@@ -367,58 +546,10 @@ module.exports = defineConfig({
           },
         ]
       : []),
-    {
-      resolve: "@medusajs/event-bus-redis",
-      key: Modules.EVENT_BUS,
-      options: {
-        redisUrl: REDIS_URL,
-      },
-    },
-    {
-      resolve: "@medusajs/medusa/workflow-engine-redis",
-      options: {
-        redis: {
-          redisUrl: REDIS_URL,
-        },
-      },
-    },
-    {
-      resolve: "@medusajs/medusa/locking",
-      options: {
-        providers: [
-          {
-            resolve: "@medusajs/medusa/locking-redis",
-            id: "locking-redis",
-            is_default: true,
-            options: {
-              redisUrl: REDIS_URL,
-            },
-          },
-        ],
-      },
-    },
-    {
-      resolve: "@medusajs/medusa/file",
-      options: {
-        providers: [
-          {
-            resolve: "@medusajs/medusa/file-s3",
-            id: "s3",
-            options: {
-              file_url: process.env.MINIO_FILE_URL,
-              endpoint: process.env.MINIO_ENDPOINT,
-              bucket: process.env.MINIO_BUCKET,
-              access_key_id: process.env.MINIO_ACCESS_KEY,
-              secret_access_key: process.env.MINIO_SECRET_KEY,
-              region: process.env.MINIO_REGION,
-              additional_client_config: {
-                forcePathStyle: true,
-              },
-            },
-          },
-        ],
-      },
-    },
+    eventBusModule,
+    workflowEngineModule,
+    lockingModule,
+    fileModule,
     {
       resolve: "@medusajs/index",
     },

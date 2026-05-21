@@ -7,6 +7,7 @@ import {
   QueryContext,
 } from "@medusajs/framework/utils"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
 import {
   extractBrandHandleFromFacetId,
   extractIngredientHandleFromFacetId,
@@ -308,6 +309,13 @@ export async function GET(
   req: MedusaRequest<unknown, StoreCatalogProductsSchemaType>,
   res: MedusaResponse
 ) {
+  if (!isMeilisearchEnabled()) {
+    res.status(503).json({
+      message: "Catalog search is disabled",
+    })
+    return
+  }
+
   const validatedQuery = req.validatedQuery
   const queryService = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)

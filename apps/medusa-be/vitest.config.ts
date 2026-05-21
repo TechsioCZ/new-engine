@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs"
+import { join } from "node:path"
+import { parseEnv } from "node:util"
 import { loadEnv } from "@medusajs/framework/utils"
 import { defineConfig } from "vitest/config"
 
@@ -11,8 +14,17 @@ const isModuleIntegration = testType === "integration:modules"
 const isHttpE2E = testType === "e2e:http"
 const isIntegration = isHttpIntegration || isModuleIntegration || isHttpE2E
 
+function loadLocalEnvOverrides(path: string) {
+  if (!existsSync(path)) {
+    return
+  }
+
+  Object.assign(process.env, parseEnv(readFileSync(path, "utf8")))
+}
+
 if (isIntegration) {
   loadEnv("test", projectRoot)
+  loadLocalEnvOverrides(join(projectRoot, ".env.test.local"))
 }
 
 let include = [
