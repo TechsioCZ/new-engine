@@ -18,15 +18,17 @@ import {
   type SetRegionsPaymentProvidersStepInput,
   setRegionsPaymentProvidersStep,
 } from "@medusajs/medusa/core-flows"
-import {
-  QR_PAYMENT_MEDUSA_PROVIDER_ID,
-  SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID,
-} from "../modules/payment-qr/constants"
+import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../modules/payment-qr/constants"
+import { SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID } from "../workflows/seed/constants"
 
 type RegionPaymentProviderLink = {
   payment_provider_id: string
   region_id: string
 }
+
+type RegionPaymentProviderLinkRecord = Partial<
+  Record<keyof RegionPaymentProviderLink, unknown>
+>
 
 const seedQrPaymentRegionsWorkflow = createWorkflow(
   "seed-qr-payment-regions-workflow",
@@ -134,11 +136,20 @@ function toRegionPaymentProviderMap(links: RegionPaymentProviderLink[]) {
 function isRegionPaymentProviderLinks(
   data: unknown[]
 ): data is RegionPaymentProviderLink[] {
-  return data.every(
-    (link) =>
-      typeof link === "object" &&
-      link !== null &&
-      typeof Reflect.get(link, "region_id") === "string" &&
-      typeof Reflect.get(link, "payment_provider_id") === "string"
+  return data.every(isRegionPaymentProviderLink)
+}
+
+function isRegionPaymentProviderLink(
+  link: unknown
+): link is RegionPaymentProviderLink {
+  if (typeof link !== "object" || link === null) {
+    return false
+  }
+
+  const row = link as RegionPaymentProviderLinkRecord
+
+  return (
+    typeof row.region_id === "string" &&
+    typeof row.payment_provider_id === "string"
   )
 }
