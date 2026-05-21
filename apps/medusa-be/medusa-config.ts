@@ -343,6 +343,15 @@ module.exports = defineConfig({
       resolve: "./src/modules/product-review",
     },
     {
+      resolve: "./src/modules/company",
+    },
+    {
+      resolve: "./src/modules/quote",
+    },
+    {
+      resolve: "./src/modules/approval",
+    },
+    {
       resolve: "./src/modules/email-log",
     },
     {
