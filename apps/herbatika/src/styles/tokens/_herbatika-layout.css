@@ -13,6 +13,7 @@
   --container-search-form: 28.75rem;
 
   /* breakpoints */
+  --breakpoint-2xs: 26rem;
   --breakpoint-xs: 30rem;
   --breakpoint-sm: 40rem;
   --breakpoint-md: 48rem;

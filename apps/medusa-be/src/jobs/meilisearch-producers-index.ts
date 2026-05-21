@@ -1,9 +1,15 @@
 import type { MedusaContainer } from "@medusajs/framework"
+import type { ExecArgs } from "@medusajs/framework/types"
 import { syncMeilisearchProducersWorkflow } from "../workflows/meilisearch/workflows/sync-producers"
 
+const resolveContainer = (
+  input: MedusaContainer | ExecArgs
+): MedusaContainer => ("container" in input ? input.container : input)
+
 export default async function meilisearchProducersIndexJob(
-  container: MedusaContainer
+  input: MedusaContainer | ExecArgs
 ) {
+  const container = resolveContainer(input)
   const logger = container.resolve("logger")
 
   logger.info("Starting producer indexing...")

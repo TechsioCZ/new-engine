@@ -7,7 +7,7 @@ ENV_FILE="${MEDUSA_E2E_ENV_FILE:-${ROOT_DIR}/apps/medusa-be/.env.e2e}"
 PROJECT_NAME="${MEDUSA_E2E_PROJECT_NAME:-new-engine-e2e}"
 WAIT_TIMEOUT_SECONDS="${MEDUSA_E2E_WAIT_TIMEOUT_SECONDS:-300}"
 KEEP_STACK="${MEDUSA_E2E_KEEP_STACK:-0}"
-TEST_TARGET="${MEDUSA_E2E_TEST_TARGET:-integration-tests/http/*.spec.ts}"
+TEST_TARGET="${MEDUSA_E2E_TEST_TARGET:-}"
 TEST_TYPE_VALUE="${MEDUSA_E2E_TEST_TYPE:-integration:http}"
 
 require_cmd() {
@@ -78,9 +78,15 @@ wait_for_backend() {
 
 run_tests() {
   local app_dir
+  local -a vitest_args
   app_dir="${ROOT_DIR}/apps/medusa-be"
+  vitest_args=(run --config vitest.config.ts --no-file-parallelism)
 
-  echo "Running Medusa BE e2e tests: ${TEST_TARGET}"
+  if [[ -n "$TEST_TARGET" ]]; then
+    vitest_args+=("$TEST_TARGET")
+  fi
+
+  echo "Running Medusa BE e2e tests: ${TEST_TARGET:-all HTTP specs}"
 
   (
     cd "$app_dir"
@@ -88,7 +94,7 @@ run_tests() {
       MEDUSA_E2E_ADMIN_EMAIL="${MEDUSA_E2E_ADMIN_EMAIL:?MEDUSA_E2E_ADMIN_EMAIL is required}" \
       MEDUSA_E2E_ADMIN_PASSWORD="${MEDUSA_E2E_ADMIN_PASSWORD:?MEDUSA_E2E_ADMIN_PASSWORD is required}" \
       TEST_TYPE="$TEST_TYPE_VALUE" \
-      node ./scripts/run-vitest.mjs run --config vitest.config.ts --no-file-parallelism "${TEST_TARGET}"
+      node ./scripts/run-vitest.mjs "${vitest_args[@]}"
   )
 }
 
@@ -126,7 +132,7 @@ Environment:
   MEDUSA_E2E_BACKEND_PORT     Optional host port for docker-compose publishing only (used by env interpolation)
   MEDUSA_E2E_WAIT_TIMEOUT_SECONDS  Health wait timeout in seconds (default: 300)
   MEDUSA_E2E_KEEP_STACK       Set to 1 to keep containers running after `run`
-  MEDUSA_E2E_TEST_TARGET      Vitest target, file, or glob (default: integration-tests/http/*.spec.ts)
+  MEDUSA_E2E_TEST_TARGET      Optional Vitest target or file filter (default: all HTTP specs from vitest.config.ts)
 USAGE
 }
 

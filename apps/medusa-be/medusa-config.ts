@@ -5,15 +5,31 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
+import { buildPaykitPaymentProviders } from "./src/modules/payment-paykit/medusa-config"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
+
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || ""
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || ""
+const MEILISEARCH_TYPO_TOLERANCE_SETTINGS = {
+  enabled: true,
+  minWordSizeForTypos: {
+    oneTypo: 4,
+    twoTypos: 10,
+  },
+  disableOnWords: [],
+  disableOnAttributes: [],
+  disableOnNumbers: false,
+}
+
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
+
+const PAYKIT_PAYMENT_PROVIDERS = buildPaykitPaymentProviders()
+
 const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL
@@ -39,6 +55,16 @@ const notificationProvider =
       }
 
 const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL?.trim()
+const MEDUSA_COOKIE_SECURE = process.env.MEDUSA_COOKIE_SECURE
+type MedusaCookieSameSite = "lax" | "none" | "strict"
+const cookieSameSite = process.env.MEDUSA_COOKIE_SAME_SITE
+const MEDUSA_COOKIE_SAME_SITE: MedusaCookieSameSite | undefined =
+  cookieSameSite === "lax" ||
+  cookieSameSite === "none" ||
+  cookieSameSite === "strict"
+    ? cookieSameSite
+    : undefined
+
 let MEDUSA_ADMIN_ALLOWED_HOSTS: true | string[] | undefined
 
 if (process.env.NODE_ENV === "development") {
@@ -50,12 +76,7 @@ if (process.env.NODE_ENV === "development") {
 
   MEDUSA_ADMIN_ALLOWED_HOSTS = [new URL(backendUrl).hostname]
 }
-const MEDUSA_COOKIE_SECURE = process.env.MEDUSA_COOKIE_SECURE
-const MEDUSA_COOKIE_SAME_SITE = process.env.MEDUSA_COOKIE_SAME_SITE as
-  | "lax"
-  | "none"
-  | "strict"
-  | undefined
+
 const cookieOptions = {
   ...(MEDUSA_COOKIE_SECURE !== undefined
     ? {
@@ -206,6 +227,7 @@ module.exports = defineConfig({
                 "facet_price",
               ],
               sortableAttributes: ["created_at", "title", "facet_price"],
+              typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
               rankingRules: [
                 "sort",
                 "words",
@@ -238,6 +260,7 @@ module.exports = defineConfig({
               searchableAttributes: ["description"],
               displayedAttributes: ["id", "description", "handle"],
               filterableAttributes: ["id", "handle", "description"],
+              typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
             },
             primaryKey: "id",
           },
@@ -249,6 +272,7 @@ module.exports = defineConfig({
               searchableAttributes: ["title", "handle"],
               displayedAttributes: ["id", "title", "handle"],
               filterableAttributes: ["id", "title", "handle"],
+              typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
             },
             primaryKey: "id",
           },
@@ -286,6 +310,12 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/email-log",
+    },
+    {
+      resolve: "./src/modules/order-receipt",
+    },
+    {
+      resolve: "./src/modules/qr-payment",
     },
     {
       resolve: "@medusajs/event-bus-redis",
@@ -344,6 +374,12 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/database",
+    },
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: PAYKIT_PAYMENT_PROVIDERS,
+      },
     },
     // PPL Client Module - config stored in DB, managed via Settings → PPL
     ...(FEATURE_PPL_ENABLED

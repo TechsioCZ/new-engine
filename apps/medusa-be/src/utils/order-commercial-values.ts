@@ -2,11 +2,14 @@ import { MedusaError } from "@medusajs/framework/utils"
 
 export const MANUAL_ITEM_DISCOUNT_CODE = "manual_item_discount"
 export const MANUAL_ORDER_DISCOUNT_CODE = "manual_order_discount"
+export const MANUAL_SHIPPING_DISCOUNT_CODE = "manual_shipping_discount"
 
 export const MANUAL_DISCOUNT_CODES = new Set([
   MANUAL_ITEM_DISCOUNT_CODE,
   MANUAL_ORDER_DISCOUNT_CODE,
+  MANUAL_SHIPPING_DISCOUNT_CODE,
 ])
+const DISCOUNT_INTENT_DESCRIPTION_MARKER = " [cv_discount:"
 
 export type CommercialDiscountIntent =
   | {
@@ -22,10 +25,82 @@ export type CommercialAdjustmentInput = {
   amount: number
   code?: string | null
   description?: string | null
+  discount_intent?: CommercialDiscountIntent | null
+  is_preserved_manual_discount?: boolean | null
   is_tax_inclusive?: boolean | null
   item_id?: string | null
   promotion_id?: string | null
   provider_id?: string | null
+  shipping_method_id?: string | null
+  subtotal?: number | null
+  total?: number | null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value)
+}
+
+function parseCommercialDiscountIntent(
+  value: unknown
+): CommercialDiscountIntent | null {
+  if (!isRecord(value) || typeof value.type !== "string") {
+    return null
+  }
+
+  if (value.type === "percentage") {
+    const valueBps = value.value_bps
+
+    return Number.isSafeInteger(valueBps)
+      ? { type: "percentage", value_bps: valueBps as number }
+      : null
+  }
+
+  if (value.type === "amount") {
+    const amount = value.amount
+
+    return typeof amount === "number" && Number.isFinite(amount)
+      ? { type: "amount", amount }
+      : null
+  }
+
+  return null
+}
+
+export function encodeCommercialDiscountDescription(
+  description: string,
+  discount: CommercialDiscountIntent | null | undefined
+) {
+  if (!discount) {
+    return description
+  }
+
+  return `${description}${DISCOUNT_INTENT_DESCRIPTION_MARKER}${JSON.stringify(discount)}]`
+}
+
+export function decodeCommercialDiscountIntent(
+  description: string | null | undefined
+) {
+  if (!description) {
+    return null
+  }
+
+  const markerIndex = description.lastIndexOf(
+    DISCOUNT_INTENT_DESCRIPTION_MARKER
+  )
+  if (markerIndex < 0) {
+    return null
+  }
+
+  const encodedIntent = description.slice(
+    markerIndex + DISCOUNT_INTENT_DESCRIPTION_MARKER.length,
+    description.endsWith("]") ? -1 : undefined
+  )
+
+  try {
+    return parseCommercialDiscountIntent(JSON.parse(encodedIntent))
+  } catch {
+    return null
+  }
 }
 
 export type CommercialValuesItemInput = {
@@ -38,15 +113,18 @@ export type CommercialValuesItemInput = {
   discount?: CommercialDiscountIntent | null
   existing_adjustments?: CommercialAdjustmentInput[] | null
   is_discountable?: boolean | null
+  is_tax_inclusive?: boolean | null
 }
 
 export type CommercialValuesCalculationInput = {
   currency_code: string
+  current_total?: number | null
   expected_order_version: number
   items: CommercialValuesItemInput[]
   order_discount?: CommercialDiscountIntent | null
   order_id: string
   original_total: number
+  shipping_methods?: CommercialValuesShippingMethodInput[]
 }
 
 export type CommercialValuesRequest = {
@@ -58,6 +136,10 @@ export type CommercialValuesRequest = {
     unit_price: number
   }>
   order_discount?: CommercialDiscountIntent | null
+  shipping_methods?: Array<{
+    discount?: CommercialDiscountIntent | null
+    shipping_method_id: string
+  }>
 }
 
 export type CommercialValuesConfirmRequest = CommercialValuesRequest & {
@@ -79,6 +161,14 @@ export type CommercialValuesSnapshotItem = {
   variant_title?: string | null
 }
 
+export type CommercialValuesSnapshotShippingMethod = {
+  current_subtotal: number
+  current_tax_total: number
+  existing_adjustments: CommercialAdjustmentInput[]
+  name?: string | null
+  shipping_method_id: string
+}
+
 export type CommercialValuesEditBlocker =
   | {
       code: "order_status_not_editable"
@@ -91,6 +181,7 @@ export type CommercialValuesEditBlocker =
 
 export type CommercialValuesSnapshot = {
   active_order_change?: {
+    change_type?: string | null
     id: string
     status: "pending" | "requested"
     version: number
@@ -101,6 +192,7 @@ export type CommercialValuesSnapshot = {
   expected_order_version: number
   items: CommercialValuesSnapshotItem[]
   order_id: string
+  shipping_methods: CommercialValuesSnapshotShippingMethod[]
   totals: {
     current_total: number
     original_total: number
@@ -110,6 +202,7 @@ export type CommercialValuesSnapshot = {
 export type CommercialValuesPreviewItem = {
   final_line_total: number
   final_line_total_with_tax: number
+  is_tax_inclusive: boolean
   item_id: string
   line_base: number
   manual_item_discount_amount: number
@@ -118,6 +211,19 @@ export type CommercialValuesPreviewItem = {
   quantity: number
   requested_unit_price: number
   original_unit_price: number
+  tax_total: number
+}
+
+export type CommercialValuesPreviewShippingMethod = {
+  current_subtotal: number
+  current_tax_total: number
+  final_total: number
+  final_total_with_tax: number
+  is_tax_inclusive: boolean
+  manual_order_discount_amount: number
+  manual_shipping_discount_amount: number
+  preserved_adjustment_amount: number
+  shipping_method_id: string
   tax_total: number
 }
 
@@ -131,6 +237,8 @@ export type CommercialValuesPreview = {
   order_discount_total: number
   order_id: string
   original_total: number
+  shipping_discount_total: number
+  shipping_methods: CommercialValuesPreviewShippingMethod[]
 }
 
 export type CommercialValuesConfirmResponse = {
@@ -151,6 +259,26 @@ type ItemCalculation = CommercialValuesPreviewItem & {
   discountable_base: number
   input_index: number
   source_item: CommercialValuesItemInput
+}
+
+export type CommercialValuesShippingMethodInput = {
+  current_subtotal: number
+  current_tax_total?: number | null
+  discount?: CommercialDiscountIntent | null
+  existing_adjustments?: CommercialAdjustmentInput[] | null
+  name?: string | null
+  shipping_method_id: string
+}
+
+type ShippingCalculation = CommercialValuesPreviewShippingMethod & {
+  discountable_base: number
+  input_index: number
+  source_shipping_method: CommercialValuesShippingMethodInput
+}
+
+type DiscountAllocationTarget = {
+  discountable_base: number
+  input_index: number
 }
 
 function assertInteger(value: number, code: string, label: string) {
@@ -195,7 +323,7 @@ function assertPositiveAmount(value: number, code: string, label: string) {
 
 function validateDiscountIntent(
   discount: CommercialDiscountIntent | null | undefined,
-  scope: "item" | "order"
+  scope: "item" | "order" | "shipping"
 ) {
   if (!discount) {
     return
@@ -235,7 +363,7 @@ function validateDiscountIntent(
 function calculateDiscountAmount(
   discount: CommercialDiscountIntent | null | undefined,
   base: number,
-  scope: "item" | "order"
+  scope: "item" | "order" | "shipping"
 ) {
   validateDiscountIntent(discount, scope)
 
@@ -291,18 +419,26 @@ function getCurrentAdjustmentAmount(
       "adjustment amount"
     )
 
-    return total + adjustment.amount
+    return adjustment.is_preserved_manual_discount
+      ? total
+      : total + adjustment.amount
   }, 0)
 }
 
-function canAllocateAsIntegers(totalAmount: number, items: ItemCalculation[]) {
+function canAllocateAsIntegers(
+  totalAmount: number,
+  items: DiscountAllocationTarget[]
+) {
   return (
     Number.isSafeInteger(totalAmount) &&
     items.every((item) => Number.isSafeInteger(item.discountable_base))
   )
 }
 
-function allocateAmount(totalAmount: number, items: ItemCalculation[]) {
+function allocateAmount(
+  totalAmount: number,
+  items: DiscountAllocationTarget[]
+) {
   const allocations = new Array(items.length).fill(0) as number[]
 
   if (totalAmount === 0) {
@@ -380,6 +516,53 @@ function allocateAmount(totalAmount: number, items: ItemCalculation[]) {
   return allocations
 }
 
+function calculateShippingMethod(
+  shippingMethod: CommercialValuesShippingMethodInput,
+  inputIndex: number
+): ShippingCalculation {
+  assertNonNegativeAmount(
+    shippingMethod.current_subtotal,
+    "shipping_subtotal_invalid",
+    "shipping subtotal"
+  )
+
+  const currentTaxTotal = getShippingMethodTaxTotal(shippingMethod)
+  const currentTotalWithTax = shippingMethod.current_subtotal + currentTaxTotal
+  const preservedAdjustmentAmount = getPreservedAdjustmentAmount(
+    shippingMethod.existing_adjustments
+  )
+  const discountableBase = Math.max(
+    currentTotalWithTax - preservedAdjustmentAmount,
+    0
+  )
+  const manualShippingDiscountAmount = calculateDiscountAmount(
+    shippingMethod.discount,
+    discountableBase,
+    "shipping"
+  )
+  const finalTotalWithTax = discountableBase - manualShippingDiscountAmount
+  const finalAmounts = splitShippingTotalWithTax(
+    shippingMethod,
+    finalTotalWithTax
+  )
+
+  return {
+    current_subtotal: shippingMethod.current_subtotal,
+    current_tax_total: currentTaxTotal,
+    discountable_base: finalTotalWithTax,
+    final_total: finalAmounts.subtotal,
+    final_total_with_tax: finalTotalWithTax,
+    input_index: inputIndex,
+    is_tax_inclusive: currentTaxTotal > 0,
+    manual_order_discount_amount: 0,
+    manual_shipping_discount_amount: manualShippingDiscountAmount,
+    preserved_adjustment_amount: preservedAdjustmentAmount,
+    shipping_method_id: shippingMethod.shipping_method_id,
+    source_shipping_method: shippingMethod,
+    tax_total: 0,
+  }
+}
+
 function calculateItem(
   item: CommercialValuesItemInput,
   inputIndex: number
@@ -413,12 +596,14 @@ function calculateItem(
     "item"
   )
   const lineAfterItemDiscount = discountableBase - manualItemDiscountAmount
+  const taxTotal = calculateItemTaxTotal(item, lineAfterItemDiscount)
 
   return {
     discountable_base:
       item.is_discountable === false ? 0 : lineAfterItemDiscount,
     final_line_total: lineAfterItemDiscount,
     input_index: inputIndex,
+    is_tax_inclusive: item.is_tax_inclusive ?? false,
     item_id: item.item_id,
     line_base: lineBase,
     manual_item_discount_amount: manualItemDiscountAmount,
@@ -428,8 +613,10 @@ function calculateItem(
     quantity: item.quantity,
     requested_unit_price: item.unit_price,
     source_item: item,
-    tax_total: 0,
-    final_line_total_with_tax: lineAfterItemDiscount,
+    tax_total: taxTotal,
+    final_line_total_with_tax: item.is_tax_inclusive
+      ? lineAfterItemDiscount
+      : lineAfterItemDiscount + taxTotal,
   }
 }
 
@@ -466,6 +653,20 @@ function getOriginalItemTaxTotal(item: CommercialValuesItemInput) {
   return item.current_tax_total
 }
 
+function getOriginalItemTotalWithTax(item: CommercialValuesItemInput) {
+  const originalItemTotal = getOriginalItemTotal(item)
+  const originalTaxTotal = getOriginalItemTaxTotal(item)
+
+  if (
+    item.is_tax_inclusive &&
+    (item.current_subtotal === null || item.current_subtotal === undefined)
+  ) {
+    return originalItemTotal
+  }
+
+  return originalItemTotal + originalTaxTotal
+}
+
 function calculateItemTaxTotal(
   item: CommercialValuesItemInput,
   newSubtotal: number
@@ -484,6 +685,48 @@ function calculateItemTaxTotal(
   return (newSubtotal * currentTaxTotal) / currentSubtotal
 }
 
+function getShippingMethodTaxTotal(
+  shippingMethod: CommercialValuesShippingMethodInput
+) {
+  if (
+    shippingMethod.current_tax_total === null ||
+    shippingMethod.current_tax_total === undefined
+  ) {
+    return 0
+  }
+
+  assertNonNegativeAmount(
+    shippingMethod.current_tax_total,
+    "shipping_tax_total_invalid",
+    "shipping tax total"
+  )
+
+  return shippingMethod.current_tax_total
+}
+
+function splitShippingTotalWithTax(
+  shippingMethod: CommercialValuesShippingMethodInput,
+  totalWithTax: number
+) {
+  const currentSubtotal = shippingMethod.current_subtotal
+  const currentTaxTotal = getShippingMethodTaxTotal(shippingMethod)
+  const currentTotalWithTax = currentSubtotal + currentTaxTotal
+
+  if (currentTaxTotal === 0 || currentTotalWithTax <= 0) {
+    return {
+      subtotal: totalWithTax,
+      tax_total: 0,
+    }
+  }
+
+  const subtotal = (totalWithTax * currentSubtotal) / currentTotalWithTax
+
+  return {
+    subtotal,
+    tax_total: totalWithTax - subtotal,
+  }
+}
+
 export function calculateCommercialValuesPreview(
   input: CommercialValuesCalculationInput
 ): CommercialValuesPreview {
@@ -497,6 +740,13 @@ export function calculateCommercialValuesPreview(
     "original_total_invalid",
     "original total"
   )
+  if (input.current_total !== null && input.current_total !== undefined) {
+    assertFiniteAmount(
+      input.current_total,
+      "current_total_invalid",
+      "current total"
+    )
+  }
 
   if (!input.items.length) {
     throw new CommercialValuesValidationError(
@@ -508,12 +758,22 @@ export function calculateCommercialValuesPreview(
   validateDiscountIntent(input.order_discount, "order")
 
   const itemCalculations = input.items.map(calculateItem)
+  const shippingCalculations = (input.shipping_methods ?? []).map(
+    calculateShippingMethod
+  )
   const itemSubtotalAfterItemDiscounts = itemCalculations.reduce(
     (total, item) => total + item.final_line_total,
     0
   )
-  const eligibleOrderDiscountBase = itemCalculations.reduce(
-    (total, item) => total + item.discountable_base,
+  const orderDiscountTargets = [
+    ...itemCalculations,
+    ...shippingCalculations.map((shippingMethod, index) => ({
+      ...shippingMethod,
+      input_index: itemCalculations.length + index,
+    })),
+  ]
+  const eligibleOrderDiscountBase = orderDiscountTargets.reduce(
+    (total, target) => total + target.discountable_base,
     0
   )
   if (input.order_discount && eligibleOrderDiscountBase <= 0) {
@@ -528,7 +788,10 @@ export function calculateCommercialValuesPreview(
     eligibleOrderDiscountBase,
     "order"
   )
-  const orderAllocations = allocateAmount(orderDiscountTotal, itemCalculations)
+  const orderAllocations = allocateAmount(
+    orderDiscountTotal,
+    orderDiscountTargets
+  )
 
   const items = itemCalculations.map((item, index) => {
     const manualOrderDiscountAmount = orderAllocations[index] ?? 0
@@ -537,7 +800,10 @@ export function calculateCommercialValuesPreview(
 
     return {
       final_line_total: finalLineTotal,
-      final_line_total_with_tax: finalLineTotal + taxTotal,
+      final_line_total_with_tax: item.source_item.is_tax_inclusive
+        ? finalLineTotal
+        : finalLineTotal + taxTotal,
+      is_tax_inclusive: item.is_tax_inclusive,
       item_id: item.item_id,
       line_base: item.line_base,
       manual_item_discount_amount: item.manual_item_discount_amount,
@@ -549,23 +815,59 @@ export function calculateCommercialValuesPreview(
       tax_total: taxTotal,
     }
   })
+  const shippingMethods = shippingCalculations.map((shippingMethod, index) => {
+    const manualOrderDiscountAmount =
+      orderAllocations[itemCalculations.length + index] ?? 0
+    const finalTotalWithTax =
+      shippingMethod.final_total_with_tax - manualOrderDiscountAmount
+    const finalAmounts = splitShippingTotalWithTax(
+      shippingMethod.source_shipping_method,
+      finalTotalWithTax
+    )
+
+    return {
+      current_subtotal: shippingMethod.current_subtotal,
+      current_tax_total: shippingMethod.current_tax_total,
+      final_total: finalAmounts.subtotal,
+      final_total_with_tax: finalTotalWithTax,
+      is_tax_inclusive: shippingMethod.is_tax_inclusive,
+      manual_order_discount_amount: manualOrderDiscountAmount,
+      manual_shipping_discount_amount:
+        shippingMethod.manual_shipping_discount_amount,
+      preserved_adjustment_amount: shippingMethod.preserved_adjustment_amount,
+      shipping_method_id: shippingMethod.shipping_method_id,
+      tax_total: finalAmounts.tax_total,
+    }
+  })
 
   const originalItemsTotalWithTax = input.items.reduce(
-    (total, item) =>
-      total + getOriginalItemTotal(item) + getOriginalItemTaxTotal(item),
+    (total, item) => total + getOriginalItemTotalWithTax(item),
+    0
+  )
+  const originalShippingTotalWithTax = (input.shipping_methods ?? []).reduce(
+    (total, shippingMethod) =>
+      total +
+      shippingMethod.current_subtotal +
+      getShippingMethodTaxTotal(shippingMethod),
     0
   )
   const unchangedTotalComponent =
-    input.original_total - originalItemsTotalWithTax
+    input.original_total -
+    originalItemsTotalWithTax -
+    originalShippingTotalWithTax
   const newItemsTotal = items.reduce(
     (total, item) => total + item.final_line_total_with_tax,
     0
   )
-  const newTotal = unchangedTotalComponent + newItemsTotal
+  const newShippingTotal = shippingMethods.reduce(
+    (total, shippingMethod) => total + shippingMethod.final_total_with_tax,
+    0
+  )
+  const newTotal = unchangedTotalComponent + newItemsTotal + newShippingTotal
 
   return {
     currency_code: input.currency_code,
-    delta: newTotal - input.original_total,
+    delta: newTotal - (input.current_total ?? input.original_total),
     expected_order_version: input.expected_order_version,
     item_subtotal_after_item_discounts: itemSubtotalAfterItemDiscounts,
     items,
@@ -573,5 +875,11 @@ export function calculateCommercialValuesPreview(
     order_discount_total: orderDiscountTotal,
     order_id: input.order_id,
     original_total: input.original_total,
+    shipping_discount_total: shippingCalculations.reduce(
+      (total, shippingMethod) =>
+        total + shippingMethod.manual_shipping_discount_amount,
+      0
+    ),
+    shipping_methods: shippingMethods,
   }
 }

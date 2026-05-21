@@ -23,7 +23,7 @@ export function BenefitsSection({
             className="flex min-h-900 items-center gap-300"
             key={benefit.id}
           >
-            <span className="flex h-850 w-850 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            <span className="flex h-850 w-850 shrink-0 items-center justify-center rounded-full">
               <NextImage src={benefit.image} alt={benefit.text} width={76} height={76} />
             </span>
 

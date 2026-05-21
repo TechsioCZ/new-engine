@@ -142,6 +142,64 @@ describe("GET /admin/order-expedition/orders", () => {
     )
   })
 
+  it("combines carrier and business status filters with AND semantics", async () => {
+    const { GET } = await import(
+      "../../../../../../../src/api/admin/order-expedition/orders/route"
+    )
+    const graph = vi.fn().mockResolvedValueOnce({
+      data: [
+        {
+          id: "order_1",
+          payment_status: "captured",
+          shipping_methods: [{ name: "Packeta" }],
+          status: "pending",
+        },
+        {
+          id: "order_2",
+          payment_status: "awaiting",
+          shipping_methods: [{ name: "Packeta" }],
+          status: "pending",
+        },
+        {
+          id: "order_3",
+          payment_status: "captured",
+          shipping_methods: [{ name: "PPL" }],
+          status: "pending",
+        },
+      ],
+      metadata: {
+        count: 3,
+      },
+    })
+    const req = createMockRequest(
+      {
+        business_status: "paid",
+        carrier: "packeta",
+        limit: 50,
+        offset: 0,
+      },
+      graph
+    )
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        business_status: "paid",
+        carrier: "packeta",
+        count: 1,
+        orders: [
+          expect.objectContaining({
+            id: "order_1",
+            business_status: expect.objectContaining({ id: "paid" }),
+            carrier: expect.objectContaining({ value: "packeta" }),
+          }),
+        ],
+      })
+    )
+  })
+
   it("stops carrier scans after the requested page and a next-page lookahead", async () => {
     const { GET } = await import(
       "../../../../../../../src/api/admin/order-expedition/orders/route"

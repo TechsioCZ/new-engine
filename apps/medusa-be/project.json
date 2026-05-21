@@ -11,6 +11,20 @@
         "cwd": "apps/medusa-be",
         "command": "node ./scripts/run-vitest.mjs run --config vitest.config.ts"
       }
+    },
+    "test-e2e-admin": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/medusa-be",
+        "command": "pnpm test:e2e:admin"
+      }
+    },
+    "test-e2e-admin-built": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/medusa-be",
+        "command": "pnpm test:e2e:admin:built"
+      }
     }
   }
 }

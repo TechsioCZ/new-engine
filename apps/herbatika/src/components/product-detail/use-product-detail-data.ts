@@ -32,6 +32,7 @@ import { routes } from "@/lib/routes";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products";
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 import { IconType } from "@techsio/ui-kit/atoms/icon";
 
 type UseProductDetailDataProps = {
@@ -40,6 +41,7 @@ type UseProductDetailDataProps = {
 
 export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const region = useRegionContext();
+  const regionCurrencyCode = resolveRegionCurrency(region);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<string | null>(
@@ -103,8 +105,8 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
       return null;
     }
 
-    return resolvePriceState(product, selectedVariantId);
-  }, [product, selectedVariantId]);
+    return resolvePriceState(product, selectedVariantId, regionCurrencyCode);
+  }, [product, regionCurrencyCode, selectedVariantId]);
 
   const shortDescriptionHtml = useMemo(() => {
     const metadata = asRecord(product?.metadata);
@@ -144,15 +146,12 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const currentAmount = productPrice?.currentAmount ?? null;
   const currentAmountWithoutTax = productPrice?.currentAmountWithoutTax ?? null;
   const currentAmountLabel = productPrice?.currentLabel ?? "Cena na vyžiadanie";
-  const currentCurrencyCode = productPrice?.currencyCode ?? "EUR";
+  const currentCurrencyCode = productPrice?.currencyCode ?? regionCurrencyCode;
   const canAddToCart =
     Boolean(selectedVariant?.id) &&
     typeof productPrice?.currentAmount === "number";
 
-  const displayOriginalAmount = useMemo(
-    () => resolveDisplayOriginalAmount(productPrice, offerState),
-    [offerState, productPrice],
-  );
+  const displayOriginalAmount = resolveDisplayOriginalAmount(productPrice);
 
   const displayOriginalLabel = useMemo(() => {
     if (!productPrice || typeof displayOriginalAmount !== "number") {

@@ -1,0 +1,173 @@
+.rich-html-editor {
+  --baseBase: #ffffff;
+  --baseBg: #f7f7f8;
+  --baseBgActive: #e4e4e7;
+  --baseBgHover: #ededf0;
+  --baseBgSubtle: #fafafa;
+  --baseBorder: #d4d4d8;
+  --baseBorderHover: #a1a1aa;
+  --basePageBg: #ffffff;
+  --baseTextContrast: #18181b;
+  --baseTextSecondary: #52525b;
+  --accentBase: #eff6ff;
+  --accentBg: #dbeafe;
+  --accentBgActive: #bfdbfe;
+  --accentBgHover: #dbeafe;
+  --accentBgSubtle: #eff6ff;
+  --accentBorder: #93c5fd;
+  --accentBorderHover: #60a5fa;
+  --accentSolid: #2563eb;
+  --accentSolidHover: #1d4ed8;
+  --accentText: #1d4ed8;
+  --accentTextContrast: #ffffff;
+  isolation: isolate;
+  background: var(--basePageBg);
+  color: var(--baseTextContrast);
+  display: flex;
+  max-height: 50vh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dark .rich-html-editor,
+.dark-theme .rich-html-editor,
+[data-theme="dark"] .rich-html-editor {
+  --baseBase: #18181b;
+  --baseBg: #27272a;
+  --baseBgActive: #3f3f46;
+  --baseBgHover: #313135;
+  --baseBgSubtle: #1f1f23;
+  --baseBorder: #3f3f46;
+  --baseBorderHover: #71717a;
+  --basePageBg: #111113;
+  --baseTextContrast: #f4f4f5;
+  --baseTextSecondary: #a1a1aa;
+  --accentBase: #111827;
+  --accentBg: #1e3a8a;
+  --accentBgActive: #1d4ed8;
+  --accentBgHover: #1e40af;
+  --accentBgSubtle: #172554;
+  --accentBorder: #2563eb;
+  --accentBorderHover: #3b82f6;
+  --accentSolid: #60a5fa;
+  --accentSolidHover: #93c5fd;
+  --accentText: #93c5fd;
+  --accentTextContrast: #0b1120;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rich-html-editor {
+    --baseBase: #18181b;
+    --baseBg: #27272a;
+    --baseBgActive: #3f3f46;
+    --baseBgHover: #313135;
+    --baseBgSubtle: #1f1f23;
+    --baseBorder: #3f3f46;
+    --baseBorderHover: #71717a;
+    --basePageBg: #111113;
+    --baseTextContrast: #f4f4f5;
+    --baseTextSecondary: #a1a1aa;
+    --accentBase: #111827;
+    --accentBg: #1e3a8a;
+    --accentBgActive: #1d4ed8;
+    --accentBgHover: #1e40af;
+    --accentBgSubtle: #172554;
+    --accentBorder: #2563eb;
+    --accentBorderHover: #3b82f6;
+    --accentSolid: #60a5fa;
+    --accentSolidHover: #93c5fd;
+    --accentText: #93c5fd;
+    --accentTextContrast: #0b1120;
+  }
+}
+
+.rich-html-editor [role="toolbar"] {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--baseBorder);
+  border-radius: 0;
+}
+
+.rich-html-editor .mdxeditor-root-contenteditable {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+body.product-description-editor-modal-open
+  .mdxeditor-popup-container.rich-html-editor,
+body.product-description-editor-modal-open .rich-html-editor [role="toolbar"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.rich-html-editor [role="toolbar"] button,
+.rich-html-editor [role="toolbar"] [role="combobox"] {
+  color: var(--baseTextContrast);
+}
+
+.rich-html-editor [role="toolbar"] button:disabled,
+.rich-html-editor [role="toolbar"] button[data-disabled] {
+  color: var(--baseBorderHover);
+}
+
+.rich-html-editor-content {
+  min-height: min(320px, calc(50vh - 56px));
+  padding: 16px;
+  color: var(--baseTextContrast);
+  outline: none;
+}
+
+.rich-html-editor-content h1,
+.rich-html-editor-content h2,
+.rich-html-editor-content h3,
+.rich-html-editor-content h4 {
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+
+.rich-html-editor-content h1 {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.rich-html-editor-content h2 {
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.rich-html-editor-content h3 {
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.rich-html-editor-content p,
+.rich-html-editor-content ul,
+.rich-html-editor-content ol,
+.rich-html-editor-content blockquote,
+.rich-html-editor-content table,
+.rich-html-editor-content pre {
+  margin: 0 0 12px;
+}
+
+.rich-html-editor-content ul,
+.rich-html-editor-content ol {
+  padding-left: 24px;
+}
+
+.rich-html-editor-content ul {
+  list-style: disc;
+}
+
+.rich-html-editor-content ol {
+  list-style: decimal;
+}
+
+.rich-html-editor-content blockquote {
+  border-left: 2px solid var(--baseBorder);
+  color: var(--baseTextSecondary);
+  padding-left: 12px;
+}
+
+.rich-html-editor-content a {
+  color: var(--accentText);
+  text-decoration: underline;
+}

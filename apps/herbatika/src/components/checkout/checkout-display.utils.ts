@@ -5,31 +5,47 @@ const normalizeProviderValue = (providerId: string) => {
   return providerId.toLowerCase().replace(/[_-]+/g, " ");
 };
 
+const isQrPaymentProviderValue = (normalizedValue: string) => {
+  return (
+    normalizedValue.includes("system default") ||
+    normalizedValue.includes("bank") ||
+    normalizedValue.includes("wire")
+  );
+};
+
+const isOnlineCardProviderValue = (normalizedValue: string) => {
+  return (
+    normalizedValue.includes("card") ||
+    normalizedValue.includes("stripe") ||
+    normalizedValue.includes("google") ||
+    normalizedValue.includes("apple") ||
+    normalizedValue.includes("gopay")
+  );
+};
+
 export const resolveProviderLabel = (providerId: string) => {
   if (!providerId) {
     return "Neznámy poskytovateľ";
   }
 
   const normalizedValue = normalizeProviderValue(providerId);
-  if (normalizedValue.includes("paypal")) {
-    return "PayPal";
+  if (isQrPaymentProviderValue(normalizedValue)) {
+    return "QR platba bankovým prevodom";
   }
 
-  if (normalizedValue.includes("bank") || normalizedValue.includes("wire")) {
-    return "Platba bankovým prevodom";
+  if (normalizedValue.includes("gopay")) {
+    return "Platba kartou online (GoPay)";
+  }
+
+  if (normalizedValue.includes("paypal")) {
+    return "PayPal";
   }
 
   if (normalizedValue.includes("cod") || normalizedValue.includes("cash")) {
     return "Na dobierku";
   }
 
-  if (
-    normalizedValue.includes("card") ||
-    normalizedValue.includes("stripe") ||
-    normalizedValue.includes("google") ||
-    normalizedValue.includes("apple") ||
-    normalizedValue.includes("system default")
-  ) {
+  if (isOnlineCardProviderValue(normalizedValue)) {
     return "Platba kartou online";
   }
 
@@ -47,13 +63,15 @@ export const resolvePaymentSummaryLabel = (providerId: string) => {
   }
 
   const normalizedValue = normalizeProviderValue(providerId);
-  if (
-    normalizedValue.includes("card") ||
-    normalizedValue.includes("stripe") ||
-    normalizedValue.includes("google") ||
-    normalizedValue.includes("apple") ||
-    normalizedValue.includes("system default")
-  ) {
+  if (isQrPaymentProviderValue(normalizedValue)) {
+    return "QR platba bankovým prevodom";
+  }
+
+  if (normalizedValue.includes("gopay")) {
+    return "Platba kartou online cez GoPay";
+  }
+
+  if (isOnlineCardProviderValue(normalizedValue)) {
     return "Platba kartou, Google Pay alebo Apple Pay";
   }
 
@@ -63,22 +81,16 @@ export const resolvePaymentSummaryLabel = (providerId: string) => {
 export const resolvePaymentIcon = (providerId: string): IconType => {
   const normalizedValue = normalizeProviderValue(providerId);
 
+  if (isQrPaymentProviderValue(normalizedValue)) {
+    return "token-icon-bank";
+  }
+
   if (normalizedValue.includes("paypal")) {
     return "token-icon-paypal";
   }
 
-  if (
-    normalizedValue.includes("card") ||
-    normalizedValue.includes("stripe") ||
-    normalizedValue.includes("google") ||
-    normalizedValue.includes("apple") ||
-    normalizedValue.includes("system default")
-  ) {
+  if (isOnlineCardProviderValue(normalizedValue)) {
     return "token-icon-credit-card";
-  }
-
-  if (normalizedValue.includes("bank") || normalizedValue.includes("wire")) {
-    return "token-icon-bank";
   }
 
   if (normalizedValue.includes("cod") || normalizedValue.includes("cash")) {
@@ -86,6 +98,34 @@ export const resolvePaymentIcon = (providerId: string): IconType => {
   }
 
   return "token-icon-wallet";
+};
+
+export const resolvePaymentHint = (providerId: string) => {
+  const normalizedValue = normalizeProviderValue(providerId);
+
+  if (isQrPaymentProviderValue(normalizedValue)) {
+    return "QR po odoslaní";
+  }
+
+  if (normalizedValue.includes("gopay")) {
+    return "GoPay";
+  }
+
+  return undefined;
+};
+
+export const resolvePaymentDescription = (providerId: string) => {
+  const normalizedValue = normalizeProviderValue(providerId);
+
+  if (isQrPaymentProviderValue(normalizedValue)) {
+    return "Po odoslaní objednávky zobrazíme QR kód aj údaje na bankový prevod.";
+  }
+
+  if (normalizedValue.includes("gopay")) {
+    return "Online platba kartou cez platobnú bránu GoPay.";
+  }
+
+  return undefined;
 };
 
 export const resolveShippingIcon = (option: {

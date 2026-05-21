@@ -61,14 +61,14 @@ export function ProductDetailHero({
   vipCreditLabel,
 }: ProductDetailHeroProps) {
   return (
-    <section className="grid gap-500 lg:grid-cols-2 px-product-detail">
+    <section className="grid min-w-0 max-w-full gap-500 sm:px-product-detail lg:grid-cols-2">
       <ProductDetailMediaColumn
         discountPercent={discountPercent}
         galleryItems={galleryItems}
         mediaFacts={mediaFacts}
       />
 
-      <div className="space-y-300">
+      <div className="min-w-0 space-y-300">
         <ProductDetailPurchasePanel
           canAddToCart={canAddToCart}
           currentAmountLabel={currentAmountLabel}

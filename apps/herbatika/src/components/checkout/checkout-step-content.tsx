@@ -1,3 +1,4 @@
+import type { HttpTypes } from "@medusajs/types";
 import type { ReactNode } from "react";
 import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants";
 import { resolvePaymentSummaryLabel } from "@/components/checkout/checkout-display.utils";
@@ -12,7 +13,6 @@ import type { CheckoutController } from "@/components/checkout/use-checkout-cont
 import { checkoutStepSlugs } from "@/lib/route-paths";
 import { resolveSelectedPaymentProviderId } from "@/lib/storefront/checkout";
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section";
-import { HttpTypes } from "@medusajs/types";
 
 type CheckoutStepContentProps = {
   activeStep: CheckoutStepSlug;
@@ -47,16 +47,14 @@ export function CheckoutStepContent({
   const orderSummaryAside = (
     <CheckoutOrderSummarySection
       cartItems={controller.cartItems}
-      cartSubtotalAmount={controller.cartSubtotalAmount}
+      cartItemsTotalAmount={controller.cartItemsTotalAmount}
       cartTotalAmount={controller.cartTotalAmount}
       cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
       currencyCode={controller.currencyCode}
       detailsFont={orderSummaryDetailsFont}
-      hasPayment={controller.hasPayment}
-      hasShipping={controller.hasShipping}
       paymentLabel={selectedPaymentLabel}
-      selectedOptionName={selectedShippingLabel}
-      selectedShippingPrice={controller.selectedShippingPrice}
+      shippingLabel={selectedShippingLabel}
+      shippingAmount={controller.cartShippingTotalAmount}
     />
   );
 
@@ -69,11 +67,14 @@ export function CheckoutStepContent({
       </h2>}
           aside={
             <CheckoutCartSidebarSection
-              cartSubtotalAmount={controller.cartSubtotalAmount}
+              cartItemsTotalAmount={controller.cartItemsTotalAmount}
               cartTotalAmount={controller.cartTotalAmount}
               cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
               currencyCode={controller.currencyCode}
+              hasShipping={controller.hasShipping}
               nextStepHref={shippingStepHref}
+              shippingAmount={controller.cartShippingTotalAmount}
+              shippingLabel={selectedShippingLabel}
             />
           }
           cartItems={controller.cartItems}
@@ -81,7 +82,7 @@ export function CheckoutStepContent({
           <CheckoutCartStepSection
             cartId={controller.cartQuery.cart?.id}
             cartItems={controller.cartItems}
-            cartSubtotalAmount={controller.cartSubtotalAmount}
+            cartItemsTotalAmount={controller.cartItemsTotalAmount}
             currencyCode={controller.currencyCode}
           />
         </CheckoutStepLayout>

@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types";
+import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants";
 import type { StorefrontRoute } from "@/lib/route-paths";
 import { routes } from "@/lib/routes";
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations";
@@ -59,5 +60,5 @@ export const resolveLineItemThumbnail = (item: HttpTypes.StoreCartLineItem) => {
     return item.thumbnail;
   }
 
-  return "/file.svg";
+  return FALLBACK_IMAGE_SRC;
 };

@@ -12,7 +12,7 @@ import { routes } from "@/lib/routes";
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart";
 import {
   asFiniteNumber,
-  resolveCartSubtotalAmount,
+  resolveCartItemsTotalAmount,
 } from "@/lib/storefront/cart-calculations";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
@@ -39,8 +39,8 @@ export function HerbatikaCartPopover({
   const updateLineItemMutation = useUpdateLineItem();
   const removeLineItemMutation = useRemoveLineItem();
   const cartItems = cart?.items ?? [];
-  const cartSubtotalLabel = formatCurrencyAmount(
-    resolveCartSubtotalAmount(cart),
+  const cartItemsTotalLabel = formatCurrencyAmount(
+    resolveCartItemsTotalAmount(cart),
     currencyCode,
   );
   const shippingAmount = asFiniteNumber(cart?.shipping_total);
@@ -199,8 +199,8 @@ export function HerbatikaCartPopover({
 
               <div className="space-y-150 border-border-secondary border-t pt-250">
                 <div className="flex items-center justify-between gap-200">
-                  <span className="text-fg-secondary">Medzisúčet:</span>
-                  <span>{cartSubtotalLabel}</span>
+                  <span className="text-fg-secondary">Cena produktov:</span>
+                  <span>{cartItemsTotalLabel}</span>
                 </div>
 
                 {shippingAmount !== null && shippingAmount > 0 ? (

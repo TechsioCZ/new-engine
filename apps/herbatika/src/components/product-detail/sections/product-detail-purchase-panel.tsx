@@ -99,8 +99,8 @@ export function ProductDetailPurchasePanel({
     .slice(0, 3)
 
   return (
-    <div className="rounded-base bg-surface p-550">
-      <div className="flex min-h-600 flex-wrap items-start gap-200 pb-500">
+    <div className="min-w-0 rounded-base bg-surface p-400 sm:p-550">
+      <div className="flex min-h-600 min-w-0 flex-wrap items-start gap-200 pb-500">
         {flags.map((flag) => (
           <Badge
             className="leading-tight font-bold"
@@ -111,8 +111,8 @@ export function ProductDetailPurchasePanel({
           </Badge>
         ))}
 
-        <div className="ml-auto flex min-w-0 items-center gap-300 sm:gap-500">
-          <div className="min-w-0 flex flex-wrap items-center gap-x-100 gap-y-50">
+        <div className="flex w-full min-w-0 items-center justify-between gap-300 sm:ml-auto sm:w-auto sm:gap-500">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-100 gap-y-50">
             <span className="text-fg-placeholder text-sm leading-tight">
               ID: {offerState.code ?? product.handle}
             </span>
@@ -150,9 +150,9 @@ export function ProductDetailPurchasePanel({
         </div>
       </div>
 
-      <section className="flex flex-col gap-700">
+      <section className="flex min-w-0 flex-col gap-700">
       <header>
-        <h1 className="font-semibold text-2xl md:text-3xl text-fg-primary leading-none">
+        <h1 className="min-w-0 break-words font-semibold text-2xl md:text-3xl text-fg-primary leading-none">
           {product.title}
         </h1>
       </header>
@@ -189,17 +189,17 @@ export function ProductDetailPurchasePanel({
         </div>
 
         {vipCreditLabel ? (
-          <div className="flex w-full items-center gap-400 rounded-sm bg-highlight px-400 py-200 sm:w-auto">
+          <div className="flex w-full min-w-0 items-center gap-400 rounded-sm bg-highlight px-400 py-200 sm:w-auto">
             <Icon
               className="text-primary"
               icon="token-icon-save-money"
               size="lg"
             />
-            <div className="space-y-50">
+            <div className="min-w-0 space-y-50">
               <p className="font-semibold text-fg-primary text-md leading-tight">
                 VIP kredit
               </p>
-              <p className="text-fg-secondary text-sm leading-tight">
+              <p className="break-words text-fg-secondary text-sm leading-tight">
                 {`Nákupom získate ${vipCreditLabel}`}
               </p>
             </div>
@@ -213,7 +213,7 @@ export function ProductDetailPurchasePanel({
           onValueChange={(details) => {
             onVariantChange(details.value[0] ?? null)
           }}
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
           size="lg"
           value={selectedVariantId ? [selectedVariantId] : []}
         >
@@ -236,9 +236,9 @@ export function ProductDetailPurchasePanel({
         </Select>
       ) : null}
 
-      <div className="grid items-center gap-350 sm:grid-cols-4 min-h-purchase-panel-footer">
+      <div className="grid min-w-0 items-center gap-350 sm:grid-cols-4 min-h-purchase-panel-footer">
           <NumericInput
-            className="w-full px-0 xl:px-300"
+            className="min-w-0 w-full px-0 xl:px-300"
             id="product-quantity"
             max={50}
             min={1}
@@ -260,7 +260,7 @@ export function ProductDetailPurchasePanel({
           </NumericInput>
         <Button
           block
-          className="h-full sm:col-span-3 text-md"
+          className="min-w-0 h-full sm:col-span-3 text-md"
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAdding}

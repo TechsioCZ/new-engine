@@ -1,20 +1,30 @@
+import {
+  type ProducerAdminI18nNamespace,
+  producerAdminI18n,
+} from "../../modules/producer/admin/i18n"
 import type { OrderBusinessStatusId } from "../../utils/order-business-status"
 
 type AdminLocale = "cs" | "en"
 
 type OrderCommercialValuesNamespace = {
-  actions: Record<"cancel" | "confirm" | "edit" | "preview", string>
+  actions: Record<"cancel" | "confirm" | "edit", string>
   blockers: Record<
     "activeOrderChangeExists" | "orderStatusNotEditable" | "unknown",
     string
   >
   discount: Record<"amount" | "none", string>
   errors: Record<
-    "invalidValues" | "loadFailed" | "previewFailed" | "saveFailed",
+    "invalidValues" | "loadFailed" | "recalculateFailed" | "saveFailed",
     string
   >
   fields: Record<
-    "internalNote" | "itemDiscount" | "orderDiscount" | "unitPrice",
+    | "internalNote"
+    | "itemDiscount"
+    | "orderDiscount"
+    | "shipping"
+    | "shippingDiscount"
+    | "shippingMethods"
+    | "unitPrice",
     string
   >
   item: Record<"fallbackName" | "line" | "quantity" | "sku", string>
@@ -46,6 +56,7 @@ type AdminI18nResources = Record<
   AdminLocale,
   {
     orderBusinessStatuses: OrderBusinessStatusesNamespace
+    producers: ProducerAdminI18nNamespace
     translation: {
       orderCommercialValues: OrderCommercialValuesNamespace
     }
@@ -145,7 +156,6 @@ const orderCommercialValues = {
       cancel: "Zrušit",
       confirm: "Potvrdit",
       edit: "Upravit",
-      preview: "Přepočítat",
     },
     blockers: {
       activeOrderChangeExists:
@@ -160,13 +170,16 @@ const orderCommercialValues = {
     errors: {
       invalidValues: "Zadané obchodní hodnoty nejsou platné.",
       loadFailed: "Obchodní hodnoty se nepodařilo načíst.",
-      previewFailed: "Přepočet se nepodařil.",
+      recalculateFailed: "Přepočet se nepodařil.",
       saveFailed: "Uložení se nepodařilo.",
     },
     fields: {
       internalNote: "Interní poznámka",
       itemDiscount: "Sleva na položku",
       orderDiscount: "Sleva na objednávku",
+      shipping: "Doprava",
+      shippingDiscount: "Sleva na dopravu",
+      shippingMethods: "Doprava",
       unitPrice: "Jednotková cena",
     },
     item: {
@@ -194,7 +207,6 @@ const orderCommercialValues = {
       cancel: "Cancel",
       confirm: "Confirm",
       edit: "Edit",
-      preview: "Preview",
     },
     blockers: {
       activeOrderChangeExists:
@@ -209,13 +221,16 @@ const orderCommercialValues = {
     errors: {
       invalidValues: "The commercial values are invalid.",
       loadFailed: "Failed to load commercial values.",
-      previewFailed: "Preview failed.",
+      recalculateFailed: "Recalculation failed.",
       saveFailed: "Save failed.",
     },
     fields: {
       internalNote: "Internal note",
       itemDiscount: "Item discount",
       orderDiscount: "Order discount",
+      shipping: "Shipping",
+      shippingDiscount: "Shipping discount",
+      shippingMethods: "Shipping",
       unitPrice: "Unit price",
     },
     item: {
@@ -243,12 +258,14 @@ const orderCommercialValues = {
 const resources = {
   cs: {
     orderBusinessStatuses: orderBusinessStatuses.cs,
+    producers: producerAdminI18n.cs,
     translation: {
       orderCommercialValues: orderCommercialValues.cs,
     },
   },
   en: {
     orderBusinessStatuses: orderBusinessStatuses.en,
+    producers: producerAdminI18n.en,
     translation: {
       orderCommercialValues: orderCommercialValues.en,
     },

@@ -35,6 +35,12 @@ export const resolveLineItemTotalAmount = (
   return unitPrice * resolveLineItemQuantity(item);
 };
 
+export const resolveLineItemSubtotalAmount = (
+  item: HttpTypes.StoreCartLineItem,
+): number => {
+  return asFiniteNumber(item.subtotal) ?? resolveLineItemTotalAmount(item);
+};
+
 export const resolveLineItemUnitAmount = (
   item: HttpTypes.StoreCartLineItem,
 ): number => {
@@ -80,7 +86,7 @@ export const resolveCartTotalAmount = (
   );
 };
 
-export const resolveCartSubtotalAmount = (
+export const resolveCartItemsTotalAmount = (
   cart: HttpTypes.StoreCart | null | undefined,
 ): number => {
   if (!cart) {
@@ -91,40 +97,50 @@ export const resolveCartSubtotalAmount = (
     return 0;
   }
 
-  const subtotal = asFiniteNumber(cart.subtotal);
-  if (subtotal !== null) {
-    return subtotal;
-  }
-
-  const itemSubtotal = asFiniteNumber(
-    (cart as unknown as Record<string, unknown>).item_subtotal,
-  );
-  const shippingSubtotal = asFiniteNumber(
-    (cart as unknown as Record<string, unknown>).shipping_subtotal,
-  );
-
-  if (itemSubtotal !== null || shippingSubtotal !== null) {
-    return Math.max((itemSubtotal ?? 0) + (shippingSubtotal ?? 0), 0);
-  }
-
-  const total = asFiniteNumber(cart.total);
-  if (total !== null) {
-    const taxTotal = asFiniteNumber(cart.tax_total);
-    const originalTaxTotal = asFiniteNumber(
-      (cart as unknown as Record<string, unknown>).original_tax_total,
-    );
-    const resolvedTaxTotal = taxTotal ?? originalTaxTotal ?? 0;
-    return Math.max(total - resolvedTaxTotal, 0);
+  const cartRecord = cart as unknown as Record<string, unknown>;
+  const itemTotal = asFiniteNumber(cartRecord.item_total);
+  if (itemTotal !== null) {
+    return itemTotal;
   }
 
   return (
     cart.items?.reduce(
-      (sum, item) =>
-        sum +
-        (asFiniteNumber(item.subtotal) ?? resolveLineItemTotalAmount(item)),
+      (sum, item) => sum + resolveLineItemTotalAmount(item),
       0,
     ) ?? 0
   );
+};
+
+export const resolveCartItemsSubtotalAmount = (
+  cart: HttpTypes.StoreCart | null | undefined,
+): number => {
+  if (!cart) {
+    return 0;
+  }
+
+  if (hasExplicitlyNoLineItems(cart)) {
+    return 0;
+  }
+
+  const cartRecord = cart as unknown as Record<string, unknown>;
+  const itemSubtotal = asFiniteNumber(cartRecord.item_subtotal);
+  if (itemSubtotal !== null) {
+    return itemSubtotal;
+  }
+
+  return (
+    cart.items?.reduce(
+      (sum, item) => sum + resolveLineItemSubtotalAmount(item),
+      0,
+    ) ?? 0
+  );
+};
+
+export const resolveCartShippingTotalAmount = (
+  cart: HttpTypes.StoreCart | null | undefined,
+  fallbackAmount = 0,
+): number => {
+  return asFiniteNumber(cart?.shipping_total) ?? fallbackAmount;
 };
 
 export const resolveCartTaxAmount = (
@@ -171,9 +187,22 @@ export const resolveCartTotalWithoutTaxAmount = (
     return 0;
   }
 
-  // `resolveCartSubtotalAmount` already resolves the pre-tax subtotal from the
-  // best available cart fields (or derives it from total-tax fallback).
-  return resolveCartSubtotalAmount(cart);
+  if (hasExplicitlyNoLineItems(cart)) {
+    return 0;
+  }
+
+  const total = asFiniteNumber(cart.total);
+  if (total !== null) {
+    return Math.max(total - resolveCartTaxAmount(cart), 0);
+  }
+
+  const subtotal = asFiniteNumber(cart.subtotal);
+  if (subtotal !== null) {
+    return subtotal;
+  }
+
+  const shippingSubtotal = asFiniteNumber(cart.shipping_subtotal) ?? 0;
+  return resolveCartItemsSubtotalAmount(cart) + shippingSubtotal;
 };
 
 export const resolveCartItemName = (item: HttpTypes.StoreCartLineItem) => {

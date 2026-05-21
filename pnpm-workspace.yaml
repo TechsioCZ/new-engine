@@ -2,6 +2,10 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@techsio/storybook-better-a11y'
   - '@techsio/storybook-a11y-reporter'
+  - '@medusajs/*'
+  - '@paykit-sdk/comgate'
+  - '@paykit-sdk/gopay'
+  - '@rokmohar/medusa-plugin-meilisearch'
 # trustPolicy: no-downgrade
 
 packages:

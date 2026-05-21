@@ -20,6 +20,7 @@ export async function POST(
   const id = requireCommercialValuesOrderId(req.params.id)
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const order = await fetchEditableCommercialValuesOrder(
+    req.scope,
     query,
     id,
     req.validatedBody.expected_order_version

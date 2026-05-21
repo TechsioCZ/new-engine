@@ -5,6 +5,7 @@ const EmailLog = model
     id: model.id().primaryKey(),
     email_id: model.text(),
     customer_id: model.text().nullable(),
+    order_id: model.text().nullable(),
     type: model.text(),
     subject: model.text(),
     sent_to: model.text(),
@@ -20,6 +21,11 @@ const EmailLog = model
     {
       name: "IDX_email_log_customer_id",
       on: ["customer_id"],
+      where: "deleted_at IS NULL",
+    },
+    {
+      name: "IDX_email_log_order_id",
+      on: ["order_id"],
       where: "deleted_at IS NULL",
     },
     {

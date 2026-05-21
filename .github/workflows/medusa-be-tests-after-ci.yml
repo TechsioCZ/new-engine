@@ -54,7 +54,7 @@ jobs:
           while IFS= read -r file; do
             [[ -n "$file" ]] || continue
             case "$file" in
-              apps/medusa-be/**|docker-compose.e2e.yaml|docker/development/medusa-be/**|docker/development/postgres/**|docker/development/medusa-valkey/**|docker/development/medusa-minio/**|docker/development/medusa-meilisearch/**|scripts/ci/**|scripts/e2e/**|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|.npmrc|tsconfig.base.json)
+              apps/medusa-be/**|docker-compose.e2e.yaml|docker/development/medusa-be/**|docker/development/postgres/**|docker/development/medusa-valkey/**|docker/development/medusa-minio/**|docker/development/medusa-meilisearch/**|scripts/ci/**|scripts/e2e/**|.github/workflows/medusa-be-tests-after-ci.yml|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|.npmrc|tsconfig.base.json)
                 should_run=true
                 break
                 ;;

@@ -79,7 +79,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
         ) : null}
       </div>
 
-      <div className="flex h-full flex-col gap-450">
+      <div className="flex flex-col gap-450">
         <div className="flex flex-col gap-450">
           <ProductCard.Name className="sm:min-h-800">
             <NextLink className="hover:text-primary" href={productHref}>
@@ -94,7 +94,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
           ) : null}
         </div>
 
-        <div className="mt-auto flex h-product-card-label flex-col items-stretch gap-200 sm:flex-row sm:items-end sm:justify-between sm:gap-300">
+        <div className="mt-auto flex min-h-product-card-label gap-200 items-end justify-between sm:gap-300">
           <div className="flex h-full flex-col leading-none font-verdana justify-center">
             {price.originalLabel ? (
               <span className="text-xs text-fg-tertiary line-through">
@@ -106,7 +106,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
             </ProductCard.Price>
           </div>
 
-          <ProductCard.Actions className="w-full shrink-0 sm:w-auto">
+          <ProductCard.Actions className="shrink-0 justify-end">
             <Button
               className="min-h-750 rounded-sm"
               disabled={!canAddToCart}

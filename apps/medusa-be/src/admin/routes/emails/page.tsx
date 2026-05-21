@@ -9,6 +9,7 @@ type EmailLog = {
   id: string
   email_id: string
   customer_id: string | null
+  order_id: string | null
   type: string
   subject: string
   sent_to: string
@@ -122,6 +123,7 @@ const EmailRows = ({
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
+        <Table.Cell />
       </Table.Row>
     )
   }
@@ -130,6 +132,7 @@ const EmailRows = ({
     return (
       <Table.Row>
         <Table.Cell>No emails logged yet.</Table.Cell>
+        <Table.Cell />
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -153,6 +156,9 @@ const EmailRows = ({
       </Table.Cell>
       <Table.Cell className="max-w-[180px] truncate">
         {emailLog.customer_id ?? "-"}
+      </Table.Cell>
+      <Table.Cell className="max-w-[180px] truncate">
+        {emailLog.order_id ?? "-"}
       </Table.Cell>
       <Table.Cell className="text-right">
         <Button
@@ -200,6 +206,7 @@ const EmailDetailContent = ({
       <div className="flex flex-col gap-3">
         <DetailField label="Email ID" value={detail.email_log.email_id} />
         <DetailField label="Customer" value={detail.email_log.customer_id} />
+        <DetailField label="Order" value={detail.email_log.order_id} />
         <DetailField label="Type" value={detail.email_log.type} />
         <DetailField
           label="Subject"
@@ -303,6 +310,7 @@ const EmailsPage = () => {
                   <Table.HeaderCell>Type</Table.HeaderCell>
                   <Table.HeaderCell>Subject</Table.HeaderCell>
                   <Table.HeaderCell>Customer</Table.HeaderCell>
+                  <Table.HeaderCell>Order</Table.HeaderCell>
                   <Table.HeaderCell className="w-[1%] text-right">
                     Detail
                   </Table.HeaderCell>

@@ -1,6 +1,6 @@
-import type {ExecArgs, Logger, Query,} from "@medusajs/framework/types"
-import {ContainerRegistrationKeys} from "@medusajs/framework/utils"
-import type {MeiliSearchService} from "@rokmohar/medusa-plugin-meilisearch"
+import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
 
 const BATCH_SIZE = 1000
 
@@ -49,11 +49,13 @@ const resolveRecordId = (record: unknown): string | undefined => {
 
 const syncEntityToMeilisearch = async ({
   config,
+  container,
   logger,
   meilisearchIndexService,
   queryService,
 }: {
   config: SyncEntityConfig
+  container: ExecArgs["container"]
   logger: Logger
   meilisearchIndexService: MeiliSearchService
   queryService: Query
@@ -61,8 +63,12 @@ const syncEntityToMeilisearch = async ({
   indexed: number
   deleted: number
 }> => {
-  const fields = await meilisearchIndexService.getFieldsForType(config.entityType)
-  const indexes = await meilisearchIndexService.getIndexesByType(config.entityType)
+  const fields = await meilisearchIndexService.getFieldsForType(
+    config.entityType
+  )
+  const indexes = await meilisearchIndexService.getIndexesByType(
+    config.entityType
+  )
 
   if (indexes.length === 0) {
     logger.info(
@@ -95,7 +101,16 @@ const syncEntityToMeilisearch = async ({
     }
 
     await Promise.all(
-      indexes.map((index) => meilisearchIndexService.addDocuments(index, records))
+      indexes.map((index) =>
+        meilisearchIndexService.addDocuments(
+          index,
+          records,
+          config.entityType,
+          {
+            container,
+          }
+        )
+      )
     )
 
     for (const record of records) {
@@ -157,7 +172,9 @@ const syncEntityToMeilisearch = async ({
     for (let cursor = 0; cursor < idsToDelete.length; cursor += BATCH_SIZE) {
       const batch = idsToDelete.slice(cursor, cursor + BATCH_SIZE)
       await Promise.all(
-        indexes.map((index) => meilisearchIndexService.deleteDocuments(index, batch))
+        indexes.map((index) =>
+          meilisearchIndexService.deleteDocuments(index, batch)
+        )
       )
     }
   }
@@ -185,6 +202,7 @@ export default async function searchIndexScript({ container }: ExecArgs) {
   for (const config of SYNC_ENTITIES) {
     const result = await syncEntityToMeilisearch({
       config,
+      container,
       logger,
       meilisearchIndexService,
       queryService,

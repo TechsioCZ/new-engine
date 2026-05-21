@@ -11,7 +11,8 @@ import {
 } from "@/lib/storefront/cart";
 import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter";
 import {
-  resolveCartSubtotalAmount,
+  resolveCartItemsTotalAmount,
+  resolveCartShippingTotalAmount,
   resolveCartTotalAmount,
   resolveCartTotalWithoutTaxAmount,
 } from "@/lib/storefront/cart-calculations";
@@ -21,7 +22,18 @@ import {
   resolveEffectiveCheckoutAddressDetails,
 } from "@/lib/forms/checkout/address.form";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
+import {
+  REGION_LIST_FIELDS,
+  REGION_LIST_LIMIT,
+} from "@/lib/storefront/region-query-config";
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
+import { useRegions } from "@/lib/storefront/regions";
 import { storefront } from "@/lib/storefront/storefront";
+import {
+  isCheckoutCountryAvailableForRegion,
+  resolveCheckoutCountryItemsForRegion,
+} from "./checkout.constants";
 import { resolveHasStoredAddress } from "./checkout-address.utils";
 import { useCheckoutActions } from "./use-checkout-actions";
 import { useCheckoutDetailsForm } from "./use-checkout-details-form";
@@ -29,6 +41,7 @@ import { useCheckoutDetailsForm } from "./use-checkout-details-form";
 export function useCheckoutController() {
   const queryClient = useQueryClient();
   const region = useRegionContext();
+  const regionCurrencyCode = resolveRegionCurrency(region);
   const authQuery = useAuth();
   const [allowCartAutoCreate, setAllowCartAutoCreate] = useState(true);
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
@@ -43,6 +56,10 @@ export function useCheckoutController() {
     enabled: Boolean(region?.region_id),
   });
   const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id;
+  const regionsQuery = useRegions({
+    fields: REGION_LIST_FIELDS,
+    limit: REGION_LIST_LIMIT,
+  });
 
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const updateCartAddressMutation = useUpdateCartAddress();
@@ -115,6 +132,14 @@ export function useCheckoutController() {
     });
   }, [activeRegionId, queryClient]);
 
+  const countryItems = useMemo(() => {
+    return resolveCheckoutCountryItemsForRegion({
+      activeCountryCode: region?.country_code,
+      regionId: activeRegionId,
+      regions: regionsQuery.regions,
+    });
+  }, [activeRegionId, region?.country_code, regionsQuery.regions]);
+
   const actions = useCheckoutActions({
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
@@ -148,6 +173,25 @@ export function useCheckoutController() {
 
       const effectiveCheckoutDetails =
         resolveEffectiveCheckoutAddressDetails(values);
+      const hasSupportedShippingCountry = isCheckoutCountryAvailableForRegion({
+        activeCountryCode: region?.country_code,
+        countryCode: effectiveCheckoutDetails.shipping.countryCode,
+        regionId: activeRegionId,
+        regions: regionsQuery.regions,
+      });
+      const hasSupportedBillingCountry = isCheckoutCountryAvailableForRegion({
+        activeCountryCode: region?.country_code,
+        countryCode: effectiveCheckoutDetails.billing.countryCode,
+        regionId: activeRegionId,
+        regions: regionsQuery.regions,
+      });
+
+      if (!hasSupportedShippingCountry || !hasSupportedBillingCountry) {
+        setCheckoutError(
+          "Zvolena krajina nie je dostupna pre aktualny kosik. Zvolte krajinu z ponuky.",
+        );
+        return;
+      }
 
       try {
         await updateCartAddressMutation.mutateAsync({
@@ -185,9 +229,10 @@ export function useCheckoutController() {
     return saveAddressSucceededRef.current;
   };
 
-  const currencyCode = useMemo(() => {
-    return (cartQuery.cart?.currency_code ?? "eur").toUpperCase();
-  }, [cartQuery.cart?.currency_code]);
+  const currencyCode = resolveSupportedCurrencyCode(
+    cartQuery.cart?.currency_code,
+    regionCurrencyCode,
+  );
 
   const cartItems = cartQuery.cart?.items ?? [];
   const hasItems = cartQuery.itemCount > 0 || cartItems.length > 0;
@@ -195,7 +240,7 @@ export function useCheckoutController() {
   const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId);
   const hasPayment = checkoutPaymentQuery.hasPaymentSessions;
 
-  const selectedShippingPrice = useMemo(() => {
+  const selectedShippingOptionPrice = useMemo(() => {
     if (!checkoutShippingQuery.selectedShippingMethodId) {
       return 0;
     }
@@ -210,9 +255,17 @@ export function useCheckoutController() {
     checkoutShippingQuery.shippingPrices,
   ]);
 
-  const cartSubtotalAmount = useMemo(() => {
-    return resolveCartSubtotalAmount(cartQuery.cart);
+  const cartItemsTotalAmount = useMemo(() => {
+    return resolveCartItemsTotalAmount(cartQuery.cart);
   }, [cartQuery.cart]);
+
+  const cartShippingTotalAmount = useMemo(() => {
+    if (cartQuery.cart?.shipping_methods?.length) {
+      return resolveCartShippingTotalAmount(cartQuery.cart);
+    }
+
+    return selectedShippingOptionPrice;
+  }, [cartQuery.cart, selectedShippingOptionPrice]);
 
   const cartTotalAmount = useMemo(() => {
     return resolveCartTotalAmount(cartQuery.cart);
@@ -224,6 +277,8 @@ export function useCheckoutController() {
 
   const isBusy =
     cartQuery.isFetching ||
+    regionsQuery.isLoading ||
+    regionsQuery.isFetching ||
     updateCartAddressMutation.isPending ||
     checkoutShippingQuery.isSettingShipping ||
     checkoutPaymentQuery.isInitiatingPayment ||
@@ -234,11 +289,13 @@ export function useCheckoutController() {
     billingAddressForm: checkoutDetailsForm.effectiveValues.billing,
     cartItems,
     cartQuery,
-    cartSubtotalAmount,
+    cartItemsTotalAmount,
+    cartShippingTotalAmount,
     cartTotalWithoutTaxAmount,
     cartTotalAmount,
     checkoutDetailsForm,
     checkoutError,
+    countryItems,
     checkoutPaymentQuery,
     checkoutShippingQuery,
     completedOrderId,
@@ -254,7 +311,6 @@ export function useCheckoutController() {
     isBusy,
     isCompanyPurchase: checkoutDetailsForm.values.isCompanyPurchase,
     marketingConsent,
-    selectedShippingPrice,
     setHeurekaConsent,
     setMarketingConsent,
     shippingAddressForm: checkoutDetailsForm.effectiveValues.shipping,

@@ -15,22 +15,19 @@ import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/products";
-
-const resolveSupportedCurrency = (currencyCode: string): "EUR" | "CZK" => {
-  return currencyCode.toUpperCase() === "CZK" ? "CZK" : "EUR";
-};
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
 
 type CheckoutCartStepSectionProps = {
   cartId?: string;
   cartItems: HttpTypes.StoreCartLineItem[];
-  cartSubtotalAmount: number;
+  cartItemsTotalAmount: number;
   currencyCode: string;
 };
 
 export function CheckoutCartStepSection({
   cartId,
   cartItems,
-  cartSubtotalAmount,
+  cartItemsTotalAmount,
   currencyCode,
 }: CheckoutCartStepSectionProps) {
   const [lineItemError, setLineItemError] = useState<string | null>(null);
@@ -41,17 +38,17 @@ export function CheckoutCartStepSection({
 
   const isPending =
     updateLineItemMutation.isPending || removeLineItemMutation.isPending;
-  const supportedCurrencyCode = resolveSupportedCurrency(currencyCode);
+  const supportedCurrencyCode = resolveSupportedCurrencyCode(currencyCode);
   const freeShippingThresholdAmount =
     resolveFreeShippingThresholdAmount(supportedCurrencyCode);
   const missingAmount =
     freeShippingThresholdAmount === null
       ? 0
-      : Math.max(freeShippingThresholdAmount - cartSubtotalAmount, 0);
+      : Math.max(freeShippingThresholdAmount - cartItemsTotalAmount, 0);
   const progressValue =
     freeShippingThresholdAmount === null
       ? 0
-      : Math.min((cartSubtotalAmount / freeShippingThresholdAmount) * 100, 100);
+      : Math.min((cartItemsTotalAmount / freeShippingThresholdAmount) * 100, 100);
   const missingAmountLabel =
     freeShippingThresholdAmount === null
       ? null

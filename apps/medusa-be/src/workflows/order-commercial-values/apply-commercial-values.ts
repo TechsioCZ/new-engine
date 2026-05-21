@@ -29,9 +29,11 @@ import {
   type CommercialValuesConfirmResponse,
   type CommercialValuesPreview,
   calculateCommercialValuesPreview,
+  encodeCommercialDiscountDescription,
   isManualDiscountAdjustment,
   MANUAL_ITEM_DISCOUNT_CODE,
   MANUAL_ORDER_DISCOUNT_CODE,
+  MANUAL_SHIPPING_DISCOUNT_CODE,
 } from "../../utils/order-commercial-values"
 
 type ApplyCommercialValuesOrderItem = {
@@ -41,32 +43,44 @@ type ApplyCommercialValuesOrderItem = {
   unit_price?: number | string | null
 }
 
+type ApplyCommercialValuesShippingMethod = {
+  id: string
+  adjustments?: CommercialAdjustmentInput[] | null
+}
+
 type ReplacementAdjustment = {
   amount: number
   code?: string
   description?: string
   is_tax_inclusive?: boolean
-  item_id: string
+  item_id?: string
   promotion_id?: string
   provider_id?: string
+  shipping_method_id?: string
 }
 
 export type ApplyCommercialValuesOrder = {
   id: string
   items?: ApplyCommercialValuesOrderItem[] | null
+  shipping_methods?: ApplyCommercialValuesShippingMethod[] | null
 }
 
 type ActiveOrderChange = {
+  change_type?: string | null
   id: string
   version: number
 }
 
 type ActiveOrderChangeRecord = {
+  change_type?: string | null
   id: string
+  status?: string | null
   version?: number | string | null
 }
 
 type CommercialValuesPreviewItem = CommercialValuesPreview["items"][number]
+type CommercialValuesPreviewShippingMethod =
+  CommercialValuesPreview["shipping_methods"][number]
 
 type ApplyCommercialValuesInput = {
   actor_id?: string
@@ -86,6 +100,7 @@ type CommercialValuesOrderEditDependency = {
 }
 
 type CommercialValuesOrderEditReadiness = {
+  active_order_change?: ActiveOrderChange
   order_id: string
 }
 
@@ -135,9 +150,19 @@ function toActiveOrderChange(
   }
 
   return {
+    change_type: orderChange.change_type ?? undefined,
     id: orderChange.id,
     version: toInteger(orderChange.version),
   }
+}
+
+function isReusableCommercialValuesOrderEdit(
+  activeOrderChange: ActiveOrderChangeRecord | null | undefined
+) {
+  return (
+    activeOrderChange?.change_type === "edit" &&
+    activeOrderChange.status === OrderChangeStatus.PENDING
+  )
 }
 
 function getCommercialValuesLockKey(orderId: string) {
@@ -155,41 +180,69 @@ function getPreviewItem(preview: CommercialValuesPreview, itemId: string) {
   return preview.items.find((item) => item.item_id === itemId)
 }
 
+function getRequestedShippingMethod(
+  request: CommercialValuesConfirmRequest,
+  shippingMethodId: string
+) {
+  return request.shipping_methods?.find(
+    (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId
+  )
+}
+
+function getPreviewShippingMethod(
+  preview: CommercialValuesPreview,
+  shippingMethodId: string
+) {
+  return preview.shipping_methods.find(
+    (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId
+  )
+}
+
 function toReplacementAdjustment(
   adjustment: CommercialAdjustmentInput,
-  itemId: string
+  reference: { item_id?: string; shipping_method_id?: string }
 ): ReplacementAdjustment {
   return {
     amount: adjustment.amount,
     code: adjustment.code ?? undefined,
     description: adjustment.description ?? undefined,
     is_tax_inclusive: adjustment.is_tax_inclusive ?? undefined,
-    item_id: adjustment.item_id ?? itemId,
+    item_id: adjustment.item_id ?? reference.item_id,
     promotion_id: adjustment.promotion_id ?? undefined,
     provider_id: adjustment.provider_id ?? undefined,
+    shipping_method_id:
+      adjustment.shipping_method_id ?? reference.shipping_method_id,
   }
 }
 
-function getPreservedAdjustments(item: ApplyCommercialValuesOrderItem) {
-  return (item.adjustments ?? [])
+function getPreservedAdjustments(
+  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod
+) {
+  return (target.adjustments ?? [])
     .filter((adjustment) => !isManualDiscountAdjustment(adjustment))
-    .map((adjustment) => toReplacementAdjustment(adjustment, item.id))
+    .map((adjustment) =>
+      toReplacementAdjustment(adjustment, getAdjustmentReference(target))
+    )
 }
 
 function hasExistingManualAdjustment(
-  item: ApplyCommercialValuesOrderItem,
+  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod,
   code: string
 ) {
-  return (item.adjustments ?? []).some((adjustment) => adjustment.code === code)
+  return (target.adjustments ?? []).some(
+    (adjustment) => adjustment.code === code
+  )
 }
 
 function getExistingManualAdjustments(
-  item: ApplyCommercialValuesOrderItem,
+  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod,
   code: string
 ) {
-  return (item.adjustments ?? [])
+  return (target.adjustments ?? [])
     .filter((adjustment) => adjustment.code === code)
-    .map((adjustment) => toReplacementAdjustment(adjustment, item.id))
+    .map((adjustment) =>
+      toReplacementAdjustment(adjustment, getAdjustmentReference(target))
+    )
 }
 
 function hasRequestedItemDiscount(
@@ -198,15 +251,54 @@ function hasRequestedItemDiscount(
   return requested ? "discount" in requested : false
 }
 
+function hasRequestedShippingDiscount(
+  requested: ReturnType<typeof getRequestedShippingMethod>
+) {
+  return requested ? "discount" in requested : false
+}
+
+function getAdjustmentReference(
+  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod
+) {
+  return "unit_price" in target
+    ? { item_id: target.id }
+    : { shipping_method_id: target.id }
+}
+
+function toMedusaShippingAdjustmentAmount(
+  previewShippingMethod: CommercialValuesPreviewShippingMethod,
+  displayAmount: number
+) {
+  const shippingTotal =
+    previewShippingMethod.current_subtotal +
+    previewShippingMethod.current_tax_total
+
+  if (
+    previewShippingMethod.current_tax_total <= 0 ||
+    previewShippingMethod.current_subtotal <= 0 ||
+    shippingTotal <= 0
+  ) {
+    return displayAmount
+  }
+
+  return (
+    (displayAmount * previewShippingMethod.current_subtotal) / shippingTotal
+  )
+}
+
 function buildManualDiscountAdjustments({
   item,
   itemDiscountRequested,
   orderDiscountRequested,
+  requestedItemDiscount,
+  requestedOrderDiscount,
   previewItem,
 }: {
   item: ApplyCommercialValuesOrderItem
   itemDiscountRequested: boolean
   orderDiscountRequested: boolean
+  requestedItemDiscount: CommercialValuesConfirmRequest["items"][number]["discount"]
+  requestedOrderDiscount: CommercialValuesConfirmRequest["order_discount"]
   previewItem: CommercialValuesPreviewItem
 }) {
   const manualAdjustments: ReplacementAdjustment[] = []
@@ -219,7 +311,11 @@ function buildManualDiscountAdjustments({
     manualAdjustments.push({
       amount: previewItem.manual_item_discount_amount,
       code: MANUAL_ITEM_DISCOUNT_CODE,
-      description: "Manual item discount",
+      description: encodeCommercialDiscountDescription(
+        "Manual item discount",
+        requestedItemDiscount
+      ),
+      is_tax_inclusive: previewItem.is_tax_inclusive || undefined,
       item_id: item.id,
     })
   }
@@ -232,8 +328,78 @@ function buildManualDiscountAdjustments({
     manualAdjustments.push({
       amount: previewItem.manual_order_discount_amount,
       code: MANUAL_ORDER_DISCOUNT_CODE,
-      description: "Allocated manual order discount",
+      description: encodeCommercialDiscountDescription(
+        "Allocated manual order discount",
+        requestedOrderDiscount
+      ),
+      is_tax_inclusive: previewItem.is_tax_inclusive || undefined,
       item_id: item.id,
+    })
+  }
+
+  return manualAdjustments
+}
+
+function buildManualShippingDiscountAdjustments({
+  orderDiscountRequested,
+  previewShippingMethod,
+  requestedOrderDiscount,
+  requestedShippingDiscount,
+  shippingDiscountRequested,
+  shippingMethod,
+}: {
+  orderDiscountRequested: boolean
+  previewShippingMethod: CommercialValuesPreviewShippingMethod
+  requestedOrderDiscount: CommercialValuesConfirmRequest["order_discount"]
+  requestedShippingDiscount: NonNullable<
+    CommercialValuesConfirmRequest["shipping_methods"]
+  >[number]["discount"]
+  shippingDiscountRequested: boolean
+  shippingMethod: ApplyCommercialValuesShippingMethod
+}) {
+  const manualAdjustments: ReplacementAdjustment[] = []
+
+  if (!shippingDiscountRequested) {
+    manualAdjustments.push(
+      ...getExistingManualAdjustments(
+        shippingMethod,
+        MANUAL_SHIPPING_DISCOUNT_CODE
+      )
+    )
+  } else if (previewShippingMethod.manual_shipping_discount_amount > 0) {
+    manualAdjustments.push({
+      amount: toMedusaShippingAdjustmentAmount(
+        previewShippingMethod,
+        previewShippingMethod.manual_shipping_discount_amount
+      ),
+      code: MANUAL_SHIPPING_DISCOUNT_CODE,
+      description: encodeCommercialDiscountDescription(
+        "Manual shipping discount",
+        requestedShippingDiscount
+      ),
+      shipping_method_id: shippingMethod.id,
+    })
+  }
+
+  if (!orderDiscountRequested) {
+    manualAdjustments.push(
+      ...getExistingManualAdjustments(
+        shippingMethod,
+        MANUAL_ORDER_DISCOUNT_CODE
+      )
+    )
+  } else if (previewShippingMethod.manual_order_discount_amount > 0) {
+    manualAdjustments.push({
+      amount: toMedusaShippingAdjustmentAmount(
+        previewShippingMethod,
+        previewShippingMethod.manual_order_discount_amount
+      ),
+      code: MANUAL_ORDER_DISCOUNT_CODE,
+      description: encodeCommercialDiscountDescription(
+        "Allocated manual order discount",
+        requestedOrderDiscount
+      ),
+      shipping_method_id: shippingMethod.id,
     })
   }
 
@@ -263,11 +429,37 @@ function shouldReplaceManualDiscounts({
   return shouldReplaceItemDiscount || shouldReplaceOrderDiscount
 }
 
+function shouldReplaceManualShippingDiscounts({
+  orderDiscountRequested,
+  previewShippingMethod,
+  shippingDiscountRequested,
+  shippingMethod,
+}: {
+  orderDiscountRequested: boolean
+  previewShippingMethod: CommercialValuesPreviewShippingMethod
+  shippingDiscountRequested: boolean
+  shippingMethod: ApplyCommercialValuesShippingMethod
+}) {
+  const shouldReplaceShippingDiscount =
+    shippingDiscountRequested &&
+    (hasExistingManualAdjustment(
+      shippingMethod,
+      MANUAL_SHIPPING_DISCOUNT_CODE
+    ) ||
+      previewShippingMethod.manual_shipping_discount_amount > 0)
+  const shouldReplaceOrderDiscount =
+    orderDiscountRequested &&
+    (hasExistingManualAdjustment(shippingMethod, MANUAL_ORDER_DISCOUNT_CODE) ||
+      previewShippingMethod.manual_order_discount_amount > 0)
+
+  return shouldReplaceShippingDiscount || shouldReplaceOrderDiscount
+}
+
 function buildItemUpdateInputs(
   order: ApplyCommercialValuesOrder,
   request: CommercialValuesConfirmRequest
 ) {
-  return (order.items ?? []).flatMap((item) => {
+  const itemActions = (order.items ?? []).flatMap((item) => {
     const requested = getRequestedItem(request, item.id)
     const currentUnitPrice = toFiniteNumber(item.unit_price)
 
@@ -284,6 +476,8 @@ function buildItemUpdateInputs(
       },
     ]
   })
+
+  return itemActions
 }
 
 function buildReplacementActions({
@@ -297,7 +491,7 @@ function buildReplacementActions({
   preview: CommercialValuesPreview
   request: CommercialValuesConfirmRequest
 }) {
-  return (order.items ?? []).flatMap((item) => {
+  const itemActions = (order.items ?? []).flatMap((item) => {
     const requested = getRequestedItem(request, item.id)
     const previewItem = getPreviewItem(preview, item.id)
 
@@ -313,6 +507,8 @@ function buildReplacementActions({
       itemDiscountRequested,
       orderDiscountRequested,
       previewItem,
+      requestedItemDiscount: requested?.discount,
+      requestedOrderDiscount: request.order_discount,
     })
 
     if (
@@ -344,12 +540,71 @@ function buildReplacementActions({
       },
     ]
   })
+
+  const shippingActions = (order.shipping_methods ?? []).flatMap(
+    (shippingMethod) => {
+      const requested = getRequestedShippingMethod(request, shippingMethod.id)
+      const previewShippingMethod = getPreviewShippingMethod(
+        preview,
+        shippingMethod.id
+      )
+
+      if (!previewShippingMethod) {
+        return []
+      }
+
+      const shippingDiscountRequested = hasRequestedShippingDiscount(requested)
+      const orderDiscountRequested = request.order_discount !== undefined
+      const preservedAdjustments = getPreservedAdjustments(shippingMethod)
+      const manualAdjustments = buildManualShippingDiscountAdjustments({
+        orderDiscountRequested,
+        previewShippingMethod,
+        requestedOrderDiscount: request.order_discount,
+        requestedShippingDiscount: requested?.discount,
+        shippingDiscountRequested,
+        shippingMethod,
+      })
+
+      if (
+        !shouldReplaceManualShippingDiscounts({
+          orderDiscountRequested,
+          previewShippingMethod,
+          shippingDiscountRequested,
+          shippingMethod,
+        })
+      ) {
+        return []
+      }
+
+      return [
+        {
+          action: ChangeActionType.SHIPPING_ADJUSTMENTS_REPLACE,
+          details: {
+            adjustments: [...preservedAdjustments, ...manualAdjustments],
+            manual_discounts: {
+              order_discount_amount:
+                previewShippingMethod.manual_order_discount_amount,
+              shipping_discount_amount:
+                previewShippingMethod.manual_shipping_discount_amount,
+            },
+            reference_id: shippingMethod.id,
+          },
+          internal_note: request.internal_note,
+          order_change_id: activeOrderChange.id,
+          order_id: order.id,
+          version: activeOrderChange.version,
+        },
+      ]
+    }
+  )
+
+  return [...itemActions, ...shippingActions]
 }
 
 async function fetchActiveOrderChange(query: Query, orderId: string) {
   const { data } = await query.graph({
     entity: "order_change",
-    fields: ["id", "version"],
+    fields: ["id", "version", "change_type", "status"],
     filters: {
       order_id: orderId,
       status: [OrderChangeStatus.PENDING, OrderChangeStatus.REQUESTED],
@@ -357,9 +612,7 @@ async function fetchActiveOrderChange(query: Query, orderId: string) {
     pagination: { take: 1 },
   })
 
-  const activeOrderChange = (data as ActiveOrderChangeRecord[])[0]
-
-  return activeOrderChange ? toActiveOrderChange(activeOrderChange) : undefined
+  return (data as ActiveOrderChangeRecord[])[0]
 }
 
 async function fetchOrderVersion(query: Query, orderId: string) {
@@ -390,7 +643,10 @@ async function assertOrderCanBeginCommercialEdit(
 ) {
   const activeOrderChange = await fetchActiveOrderChange(query, orderId)
 
-  if (activeOrderChange) {
+  if (
+    activeOrderChange &&
+    !isReusableCommercialValuesOrderEdit(activeOrderChange)
+  ) {
     throw new MedusaError(
       MedusaError.Types.CONFLICT,
       `Order already has active order change ${activeOrderChange.id}`
@@ -404,6 +660,8 @@ async function assertOrderCanBeginCommercialEdit(
       `Expected order version ${expectedOrderVersion}, got ${orderVersion}`
     )
   }
+
+  return activeOrderChange ? toActiveOrderChange(activeOrderChange) : undefined
 }
 
 async function cancelStartedEdit(
@@ -440,13 +698,14 @@ const assertCommercialValuesOrderEditCanBeginStep = createStep(
   ) => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-    await assertOrderCanBeginCommercialEdit(
+    const activeOrderChange = await assertOrderCanBeginCommercialEdit(
       query,
       input.order_id,
       input.expected_order_version
     )
 
     return new StepResponse({
+      active_order_change: activeOrderChange,
       order_id: input.order_id,
     })
   }
@@ -462,6 +721,13 @@ const beginCommercialValuesOrderEditStep = createStep(
     },
     { container }
   ) => {
+    if (input.readiness.active_order_change) {
+      return new StepResponse(input.readiness.active_order_change, {
+        order_id: input.readiness.order_id,
+        started_order_edit: false,
+      })
+    }
+
     const { result: orderChange } = await beginOrderEditOrderWorkflow(
       container
     ).run({
@@ -475,10 +741,11 @@ const beginCommercialValuesOrderEditStep = createStep(
 
     return new StepResponse(activeOrderChange, {
       order_id: input.readiness.order_id,
+      started_order_edit: true,
     })
   },
   async (input, { container }) => {
-    if (!input) {
+    if (!input?.started_order_edit) {
       return
     }
 

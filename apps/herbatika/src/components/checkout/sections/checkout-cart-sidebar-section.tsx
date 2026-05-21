@@ -1,45 +1,60 @@
+import { Button } from "@techsio/ui-kit/atoms/button";
+import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { Label } from "@techsio/ui-kit/atoms/label";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
-import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { Select } from "@techsio/ui-kit/molecules/select";
-import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Label } from "@techsio/ui-kit/atoms/label";
 import type { StorefrontRoute } from "@/lib/route-paths";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { CheckoutSelectBenefits } from "../checkout-select-benefits";
 import { CheckoutSelectPromoCode } from "../checkout-select-promo-code";
 
-
 type CheckoutCartSidebarSectionProps = {
-  cartSubtotalAmount: number;
+  cartItemsTotalAmount: number;
   cartTotalAmount: number;
   cartTotalWithoutTaxAmount: number;
   currencyCode: string;
+  hasShipping: boolean;
   nextStepHref: StorefrontRoute;
+  shippingAmount: number;
+  shippingLabel?: string;
 };
 
 export function CheckoutCartSidebarSection({
-  cartSubtotalAmount,
+  cartItemsTotalAmount,
   cartTotalAmount,
   cartTotalWithoutTaxAmount,
   currencyCode,
+  hasShipping,
   nextStepHref,
+  shippingAmount,
+  shippingLabel,
 }: CheckoutCartSidebarSectionProps) {
-
-  
   return (
     <section className="w-full xl:max-w-header-search space-y-300">
       <div className="rounded-sm bg-surface shadow-md">
         <div className="flex flex-col gap-450 px-400 pt-550 pb-450 md:px-550">
-          	<CheckoutSelectPromoCode />
+          <CheckoutSelectPromoCode />
           <div>
-            <div className="flex items-center justify-between pb-150">
-              <p className="text-sm leading-relaxed font-normal text-fg-primary">
-                Cena produktov
-              </p>
-              <p className="text-sm leading-relaxed font-normal text-fg-primary">
-                {formatCurrencyAmount(cartSubtotalAmount, currencyCode)}
-              </p>
+            <div className="space-y-150 pb-150">
+              <div className="flex items-center justify-between">
+                <p className="text-sm leading-relaxed font-normal text-fg-primary">
+                  Cena produktov
+                </p>
+                <p className="text-sm leading-relaxed font-normal text-fg-primary">
+                  {formatCurrencyAmount(cartItemsTotalAmount, currencyCode)}
+                </p>
+              </div>
+
+              {hasShipping ? (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm leading-relaxed font-normal text-fg-primary">
+                    {shippingLabel ?? "Doprava"}
+                  </p>
+                  <p className="text-sm leading-relaxed font-normal text-fg-primary">
+                    {formatCurrencyAmount(shippingAmount, currencyCode)}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-150 flex items-start justify-between gap-300 border-t border-border-secondary pt-350">
@@ -69,7 +84,9 @@ export function CheckoutCartSidebarSection({
             uppercase
             variant="primary"
           >
-            <span className="font-normal text-xs sm:text-md">Pokračovať na dopravu a platbu</span>
+            <span className="font-normal text-xs sm:text-md">
+              Pokračovať na dopravu a platbu
+            </span>
           </LinkButton>
         </div>
       </div>
@@ -77,13 +94,25 @@ export function CheckoutCartSidebarSection({
       <div className="space-y-500">
         <CheckoutSelectBenefits />
         <div className="flex flex-col gap-150">
-          <Label className="text-sm font-[500]">Odložiť si košík na neskôr</Label>
+          <Label className="text-sm font-medium">
+            Odložiť si košík na neskôr
+          </Label>
           <div className="flex gap-300">
-            <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
+            <Button
+              theme="outlined"
+              variant="secondary"
+              size="sm"
+              className="px-400 py-300 h-full border-2 border-border-primary"
+            >
               <Icon icon="token-icon-copy" />
               <span>Uložiť link</span>
             </Button>
-            <Button theme="outlined" variant="secondary" size="sm" className="px-400 py-300 h-full border-2 border-border-primary">
+            <Button
+              theme="outlined"
+              variant="secondary"
+              size="sm"
+              className="px-400 py-300 h-full border-2 border-border-primary"
+            >
               <Icon icon="token-icon-send" />
               <span>Poslať na e-mail</span>
             </Button>

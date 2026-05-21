@@ -1,24 +1,16 @@
 "use client";
-import type { FormEvent } from "react";
-import { useContext, useEffect } from "react";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Dialog } from "@techsio/ui-kit/molecules/dialog";
-import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
 import { HeaderContext } from "@techsio/ui-kit/organisms/header";
 import NextImage from "next/image";
 import NextLink from "next/link";
+import { useContext, useEffect } from "react";
 import { HEADER_ACTION_ITEMS } from "./herbatika-header.navigation";
 import { HerbatikaMobileMenuNav } from "./herbatika-mobile-menu-nav";
 
-type HerbatikaMobileMenuDialogProps = {
-  onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void;
-};
-
 const HEADER_DESKTOP_MEDIA_QUERY = "(min-width: 896px)";
 
-export function HerbatikaMobileMenuDialog({
-  onSearchSubmit,
-}: HerbatikaMobileMenuDialogProps) {
+export function HerbatikaMobileMenuDialog() {
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useContext(HeaderContext);
 
   useEffect(() => {
@@ -36,11 +28,6 @@ export function HerbatikaMobileMenuDialog({
   }, [setIsMobileMenuOpen]);
 
   const handleClose = () => setIsMobileMenuOpen(false);
-
-  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
-    handleClose();
-    onSearchSubmit(event);
-  };
 
   return (
     <div data-herbatika-mobile-menu-dialog-root="">
@@ -60,22 +47,6 @@ export function HerbatikaMobileMenuDialog({
         trapFocus
       >
         <div className="w-full overflow-x-hidden shadow-sm">
-          <div className="border-border-secondary border-b p-400">
-            <SearchForm className="w-full" onSubmit={handleSearch}>
-              <SearchForm.Control>
-                <SearchForm.Input
-                  name="q"
-                  placeholder="Napíšte, čo hľadáte..."
-                />
-                <SearchForm.Button
-                  aria-label="Hľadať"
-                  className="rounded-r-none"
-                  showSearchIcon
-                />
-              </SearchForm.Control>
-            </SearchForm>
-          </div>
-
           <HerbatikaMobileMenuNav />
 
           <div className="grid w-full grid-cols-1 gap-200 p-400 sm:grid-cols-2">

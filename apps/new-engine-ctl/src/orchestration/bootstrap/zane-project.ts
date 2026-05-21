@@ -155,6 +155,27 @@ const sharedEnvCleanupKeys = [
   "INITIAL_PUBLISHABLE_KEY_NAME",
   "FEATURE_PPL_ENABLED",
   "PPL_ENVIRONMENT",
+  "FEATURE_PACKETA_ENABLED",
+  "PACKETA_ENVIRONMENT",
+  "PACKETA_PICKUP_POINTS_API_KEY",
+  "FEATURE_PAYKIT_ENABLED",
+  "FEATURE_PAYKIT_GOPAY_ENABLED",
+  "FEATURE_PAYKIT_STRIPE_ENABLED",
+  "FEATURE_PAYKIT_COMGATE_ENABLED",
+  "PAYKIT_DEBUG",
+  "GOPAY_CLIENT_ID",
+  "GOPAY_CLIENT_SECRET",
+  "GOPAY_GO_ID",
+  "GOPAY_SANDBOX",
+  "GOPAY_WEBHOOK_URL",
+  "STRIPE_API_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "COMGATE_MERCHANT",
+  "COMGATE_SECRET",
+  "COMGATE_SANDBOX",
+  "COMGATE_PAYMENT_LABEL",
+  "HERBATICA_XML_PATH",
+  "HERBATICA_CATEGORIES_XML_PATH",
   "MEDUSA_BE_NODE_ENV",
   "MEDUSA_BE_BACKEND_URL",
   "MEDUSA_BE_STORE_CORS",
@@ -183,6 +204,27 @@ const sharedEnvCleanupKeys = [
   "MEDUSA_BE_INITIAL_PUBLISHABLE_KEY_NAME",
   "MEDUSA_BE_FEATURE_PPL_ENABLED",
   "MEDUSA_BE_PPL_ENVIRONMENT",
+  "MEDUSA_BE_FEATURE_PACKETA_ENABLED",
+  "MEDUSA_BE_PACKETA_ENVIRONMENT",
+  "MEDUSA_BE_PACKETA_PICKUP_POINTS_API_KEY",
+  "MEDUSA_BE_FEATURE_PAYKIT_ENABLED",
+  "MEDUSA_BE_FEATURE_PAYKIT_GOPAY_ENABLED",
+  "MEDUSA_BE_FEATURE_PAYKIT_STRIPE_ENABLED",
+  "MEDUSA_BE_FEATURE_PAYKIT_COMGATE_ENABLED",
+  "MEDUSA_BE_PAYKIT_DEBUG",
+  "MEDUSA_BE_GOPAY_CLIENT_ID",
+  "MEDUSA_BE_GOPAY_CLIENT_SECRET",
+  "MEDUSA_BE_GOPAY_GO_ID",
+  "MEDUSA_BE_GOPAY_SANDBOX",
+  "MEDUSA_BE_GOPAY_WEBHOOK_URL",
+  "MEDUSA_BE_STRIPE_API_KEY",
+  "MEDUSA_BE_STRIPE_WEBHOOK_SECRET",
+  "MEDUSA_BE_COMGATE_MERCHANT",
+  "MEDUSA_BE_COMGATE_SECRET",
+  "MEDUSA_BE_COMGATE_SANDBOX",
+  "MEDUSA_BE_COMGATE_PAYMENT_LABEL",
+  "MEDUSA_BE_HERBATICA_XML_PATH",
+  "MEDUSA_BE_HERBATICA_CATEGORIES_XML_PATH",
   "ZANE_OPERATOR_API_AUTH_TOKEN",
   "ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET",
   "ZANE_OPERATOR_DB_TEMPLATE_NAME",
@@ -690,8 +732,31 @@ function buildZaneProjectServices(
         "DC_SUPERADMIN_PASSWORD",
         "DC_INITIAL_PUBLISHABLE_KEY_NAME",
         "DC_SETTINGS_ENCRYPTION_KEY",
+        "DC_SENTRY_NAME",
+        "DC_SENTRY_DSN",
+        "DC_HERBATICA_XML_PATH",
+        "DC_HERBATICA_CATEGORIES_XML_PATH",
         "DC_FEATURE_PPL_ENABLED",
         "DC_PPL_ENVIRONMENT",
+        "DC_FEATURE_PACKETA_ENABLED",
+        "DC_PACKETA_ENVIRONMENT",
+        "DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
+        "DC_FEATURE_PAYKIT_ENABLED",
+        "DC_FEATURE_PAYKIT_GOPAY_ENABLED",
+        "DC_FEATURE_PAYKIT_STRIPE_ENABLED",
+        "DC_FEATURE_PAYKIT_COMGATE_ENABLED",
+        "DC_PAYKIT_DEBUG",
+        "DC_GOPAY_CLIENT_ID",
+        "DC_GOPAY_CLIENT_SECRET",
+        "DC_GOPAY_GO_ID",
+        "DC_GOPAY_SANDBOX",
+        "DC_GOPAY_WEBHOOK_URL",
+        "DC_STRIPE_API_KEY",
+        "DC_STRIPE_WEBHOOK_SECRET",
+        "DC_COMGATE_MERCHANT",
+        "DC_COMGATE_SECRET",
+        "DC_COMGATE_SANDBOX",
+        "DC_COMGATE_PAYMENT_LABEL",
         "DC_FEATURE_PAYLOAD_ENABLED",
         "DC_IS_IFRAME_PAYLOAD",
         "DC_PAYLOAD_BASE_URL",
@@ -728,7 +793,6 @@ function buildZaneProjectServices(
         "DC_N1_MEDUSA_RESEND_WEBHOOK_SECRET",
       ],
       env: [
-        { envVar: "NODE_ENV", source: literalSource("production") },
         {
           envVar: "JWT_SECRET",
           source: literalSource(process.env.DC_JWT_SECRET ?? ""),
@@ -761,12 +825,117 @@ function buildZaneProjectServices(
           source: literalSource(process.env.DC_SETTINGS_ENCRYPTION_KEY ?? ""),
         },
         {
+          envVar: "SENTRY_NAME",
+          source: literalSource(process.env.DC_SENTRY_NAME ?? ""),
+        },
+        {
+          envVar: "SENTRY_DSN",
+          source: literalSource(process.env.DC_SENTRY_DSN ?? ""),
+        },
+        { envVar: "STOREFRONT_URL", source: servicePublicOrigins.n1 },
+        {
+          envVar: "HERBATICA_XML_PATH",
+          source: literalSource(process.env.DC_HERBATICA_XML_PATH ?? ""),
+        },
+        {
+          envVar: "HERBATICA_CATEGORIES_XML_PATH",
+          source: literalSource(
+            process.env.DC_HERBATICA_CATEGORIES_XML_PATH ?? ""
+          ),
+        },
+        {
           envVar: "FEATURE_PPL_ENABLED",
           source: literalSource(process.env.DC_FEATURE_PPL_ENABLED ?? "0"),
         },
         {
           envVar: "PPL_ENVIRONMENT",
           source: literalSource(process.env.DC_PPL_ENVIRONMENT ?? "testing"),
+        },
+        {
+          envVar: "FEATURE_PACKETA_ENABLED",
+          source: literalSource(process.env.DC_FEATURE_PACKETA_ENABLED ?? "0"),
+        },
+        {
+          envVar: "PACKETA_ENVIRONMENT",
+          source: literalSource(
+            process.env.DC_PACKETA_ENVIRONMENT ?? "testing"
+          ),
+        },
+        {
+          envVar: "PACKETA_PICKUP_POINTS_API_KEY",
+          source: literalSource(
+            process.env.DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
+          ),
+        },
+        {
+          envVar: "FEATURE_PAYKIT_ENABLED",
+          source: literalSource(process.env.DC_FEATURE_PAYKIT_ENABLED ?? "0"),
+        },
+        {
+          envVar: "FEATURE_PAYKIT_GOPAY_ENABLED",
+          source: literalSource(
+            process.env.DC_FEATURE_PAYKIT_GOPAY_ENABLED ?? ""
+          ),
+        },
+        {
+          envVar: "FEATURE_PAYKIT_STRIPE_ENABLED",
+          source: literalSource(
+            process.env.DC_FEATURE_PAYKIT_STRIPE_ENABLED ?? ""
+          ),
+        },
+        {
+          envVar: "FEATURE_PAYKIT_COMGATE_ENABLED",
+          source: literalSource(
+            process.env.DC_FEATURE_PAYKIT_COMGATE_ENABLED ?? ""
+          ),
+        },
+        {
+          envVar: "PAYKIT_DEBUG",
+          source: literalSource(process.env.DC_PAYKIT_DEBUG ?? "0"),
+        },
+        {
+          envVar: "GOPAY_CLIENT_ID",
+          source: literalSource(process.env.DC_GOPAY_CLIENT_ID ?? ""),
+        },
+        {
+          envVar: "GOPAY_CLIENT_SECRET",
+          source: literalSource(process.env.DC_GOPAY_CLIENT_SECRET ?? ""),
+        },
+        {
+          envVar: "GOPAY_GO_ID",
+          source: literalSource(process.env.DC_GOPAY_GO_ID ?? ""),
+        },
+        {
+          envVar: "GOPAY_SANDBOX",
+          source: literalSource(process.env.DC_GOPAY_SANDBOX ?? "true"),
+        },
+        {
+          envVar: "GOPAY_WEBHOOK_URL",
+          source: literalSource(process.env.DC_GOPAY_WEBHOOK_URL ?? ""),
+        },
+        {
+          envVar: "STRIPE_API_KEY",
+          source: literalSource(process.env.DC_STRIPE_API_KEY ?? ""),
+        },
+        {
+          envVar: "STRIPE_WEBHOOK_SECRET",
+          source: literalSource(process.env.DC_STRIPE_WEBHOOK_SECRET ?? ""),
+        },
+        {
+          envVar: "COMGATE_MERCHANT",
+          source: literalSource(process.env.DC_COMGATE_MERCHANT ?? ""),
+        },
+        {
+          envVar: "COMGATE_SECRET",
+          source: literalSource(process.env.DC_COMGATE_SECRET ?? ""),
+        },
+        {
+          envVar: "COMGATE_SANDBOX",
+          source: literalSource(process.env.DC_COMGATE_SANDBOX ?? "true"),
+        },
+        {
+          envVar: "COMGATE_PAYMENT_LABEL",
+          source: literalSource(process.env.DC_COMGATE_PAYMENT_LABEL ?? ""),
         },
         {
           envVar: "FEATURE_PAYLOAD_ENABLED",
@@ -920,7 +1089,6 @@ function buildZaneProjectServices(
         "DC_OPENAI_API_KEY",
       ],
       env: [
-        { envVar: "NODE_ENV", source: literalSource("production") },
         {
           envVar: "DATABASE_URL",
           source: literalSource(
@@ -1068,6 +1236,30 @@ function buildZaneProjectServices(
           ),
         },
         { envVar: "NEXT_PUBLIC_SITE_URL", source: servicePublicOrigins.n1 },
+        {
+          envVar: "NEXT_PUBLIC_META_PIXEL_ID",
+          source: literalSource(
+            process.env.DC_N1_NEXT_PUBLIC_META_PIXEL_ID ?? ""
+          ),
+        },
+        {
+          envVar: "NEXT_PUBLIC_GOOGLE_ADS_ID",
+          source: literalSource(
+            process.env.DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""
+          ),
+        },
+        {
+          envVar: "NEXT_PUBLIC_HEUREKA_API_KEY",
+          source: literalSource(
+            process.env.DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY ?? ""
+          ),
+        },
+        {
+          envVar: "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
+          source: literalSource(
+            process.env.DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""
+          ),
+        },
         {
           envVar: "RESEND_API_KEY",
           source: literalSource(

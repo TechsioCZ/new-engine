@@ -1,6 +1,9 @@
-import type { HttpTypes } from "@medusajs/types";
+import {
+  type HerbatikaCurrencyCode,
+  normalizeSupportedCurrencyCode,
+} from "./currency";
 
-export const DEFAULT_CURRENCY_CODE = "EUR";
+export type { HerbatikaCurrencyCode };
 
 export const asStorefrontRecord = (
   value: unknown,
@@ -72,13 +75,12 @@ export const asStorefrontBoolean = (value: unknown): boolean | null => {
   return null;
 };
 
-export const asCurrencyCode = (value: unknown): string | null => {
-  const normalized = asStorefrontString(value)?.toUpperCase();
-  return normalized ?? null;
+type StorefrontMetadataSource = {
+  metadata?: unknown;
 };
 
 export const resolveProductTopOffer = (
-  product?: Pick<HttpTypes.StoreProduct, "metadata"> | null,
+  product?: StorefrontMetadataSource | null,
 ) => {
   const metadata = asStorefrontRecord(product?.metadata);
   return asStorefrontRecord(metadata?.top_offer);
@@ -92,6 +94,20 @@ export const resolveTopOfferCurrentAmount = (
     asStorefrontNumber(topOffer?.action_price) ??
     asStorefrontNumber(topOffer?.price_vat)
   );
+};
+
+export const resolveTopOfferStockAmount = (
+  topOffer: Record<string, unknown> | null,
+): number | null => {
+  const stock = asStorefrontRecord(topOffer?.stock);
+  return asStorefrontNumber(stock?.amount);
+};
+
+export const resolveTopOfferInStock = (
+  topOffer: Record<string, unknown> | null,
+): boolean => {
+  const amount = resolveTopOfferStockAmount(topOffer);
+  return typeof amount === "number" ? amount > 0 : true;
 };
 
 export const resolveTopOfferOriginalAmount = (params: {
@@ -127,6 +143,116 @@ export const resolveTopOfferOriginalAmount = (params: {
     (hasExplicitOriginalAmount || hasActiveDiscount || hasActionPriceDiscount)
   ) {
     return candidate;
+  }
+
+  return null;
+};
+
+export type StorefrontPriceSource = "calculated_price" | "top_offer";
+
+type StorefrontPriceInput = {
+  calculatedAmount: unknown;
+  calculatedCurrencyCode: unknown;
+  calculatedOriginalAmount?: unknown;
+  expectedCurrencyCode?: unknown;
+  topOffer: Record<string, unknown> | null;
+};
+
+export type ResolvedStorefrontPrice = {
+  currentAmount: number;
+  originalAmount: number | null;
+  currencyCode: HerbatikaCurrencyCode;
+  source: StorefrontPriceSource;
+};
+
+const resolvePositiveOriginalAmount = (
+  currentAmount: number,
+  originalAmount: unknown,
+): number | null => {
+  const normalizedOriginalAmount = asStorefrontNumber(originalAmount);
+
+  return typeof normalizedOriginalAmount === "number" &&
+    normalizedOriginalAmount > currentAmount
+    ? normalizedOriginalAmount
+    : null;
+};
+
+const resolveMatchingTopOfferOriginalAmount = ({
+  currentAmount,
+  currencyCode,
+  topOffer,
+}: {
+  currentAmount: number;
+  currencyCode: HerbatikaCurrencyCode;
+  topOffer: Record<string, unknown> | null;
+}) => {
+  const topOfferCurrencyCode = normalizeSupportedCurrencyCode(
+    topOffer?.currency,
+  );
+
+  if (topOfferCurrencyCode !== currencyCode) {
+    return null;
+  }
+
+  return resolveTopOfferOriginalAmount({
+    currentAmount,
+    topOffer,
+  });
+};
+
+export const resolveStorefrontPrice = ({
+  calculatedAmount,
+  calculatedCurrencyCode,
+  calculatedOriginalAmount,
+  expectedCurrencyCode,
+  topOffer,
+}: StorefrontPriceInput): ResolvedStorefrontPrice | null => {
+  const expectedCurrency = normalizeSupportedCurrencyCode(expectedCurrencyCode);
+  const resolvedCalculatedAmount = asStorefrontNumber(calculatedAmount);
+  const resolvedCalculatedCurrency =
+    normalizeSupportedCurrencyCode(calculatedCurrencyCode);
+
+  if (
+    typeof resolvedCalculatedAmount === "number" &&
+    resolvedCalculatedCurrency &&
+    (!expectedCurrency || resolvedCalculatedCurrency === expectedCurrency)
+  ) {
+    return {
+      currentAmount: resolvedCalculatedAmount,
+      originalAmount:
+        resolvePositiveOriginalAmount(
+          resolvedCalculatedAmount,
+          calculatedOriginalAmount,
+        ) ??
+        resolveMatchingTopOfferOriginalAmount({
+          currentAmount: resolvedCalculatedAmount,
+          currencyCode: resolvedCalculatedCurrency,
+          topOffer,
+        }),
+      currencyCode: resolvedCalculatedCurrency,
+      source: "calculated_price",
+    };
+  }
+
+  const resolvedTopOfferAmount = resolveTopOfferCurrentAmount(topOffer);
+  const resolvedTopOfferCurrency = normalizeSupportedCurrencyCode(
+    topOffer?.currency,
+  );
+
+  if (
+    typeof resolvedTopOfferAmount === "number" &&
+    resolvedTopOfferCurrency &&
+    (!expectedCurrency || resolvedTopOfferCurrency === expectedCurrency)
+  ) {
+    return {
+      currentAmount: resolvedTopOfferAmount,
+      originalAmount: resolveTopOfferOriginalAmount({
+        currentAmount: resolvedTopOfferAmount,
+        topOffer,
+      }),
+      currencyCode: resolvedTopOfferCurrency,
+      source: "top_offer",
+    };
   }
 
   return null;
