@@ -15,6 +15,7 @@ import {
   resolveCartShippingTotalAmount,
   resolveCartTotalAmount,
   resolveCartTotalWithoutTaxAmount,
+  resolveCartItemsSubtotalAmount,
 } from "@/lib/storefront/cart-calculations";
 import { fetchPaymentProviders } from "@/lib/storefront/checkout";
 import {
@@ -275,6 +276,10 @@ export function useCheckoutController() {
     return resolveCartTotalWithoutTaxAmount(cartQuery.cart);
   }, [cartQuery.cart]);
 
+  const cartItemsSubtotalAmount = useMemo(() => {
+    return resolveCartItemsSubtotalAmount(cartQuery.cart);
+  }, [cartQuery.cart]);
+
   const isBusy =
     cartQuery.isFetching ||
     regionsQuery.isLoading ||
@@ -293,6 +298,7 @@ export function useCheckoutController() {
     cartShippingTotalAmount,
     cartTotalWithoutTaxAmount,
     cartTotalAmount,
+    cartItemsSubtotalAmount,
     checkoutDetailsForm,
     checkoutError,
     countryItems,

@@ -14,6 +14,7 @@ import { resolveAvailabilityText } from "../utils/resolve-availability-text";
 type CheckoutOrderSummarySectionProps = {
   cartItems: HttpTypes.StoreCartLineItem[];
   cartItemsTotalAmount: number;
+  cartItemsWithoutTaxAmount: number;
   cartTotalAmount: number;
   cartTotalWithoutTaxAmount: number;
   currencyCode: string;
@@ -26,8 +27,8 @@ type CheckoutOrderSummarySectionProps = {
 export function CheckoutOrderSummarySection({
   cartItems,
   cartItemsTotalAmount,
+  cartItemsWithoutTaxAmount,  
   cartTotalAmount,
-  cartTotalWithoutTaxAmount,
   currencyCode,
   detailsFont,
   paymentLabel,
@@ -119,9 +120,9 @@ export function CheckoutOrderSummarySection({
 
       <div className="space-y-200 border-t border-border-primary">
         <div className="flex items-center justify-between border-b border-border-primary">
-          <span className="text-fg-secondary py-200">Cena produktov</span>
+          <span className="text-fg-secondary py-200">Cena produktov bez DPH</span>
           <p className="text-md font-medium text-fg-primary">
-            {formatCurrencyAmount(cartItemsTotalAmount, currencyCode)}
+            {formatCurrencyAmount(cartItemsWithoutTaxAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between border-b border-border-primary py-200">
@@ -146,9 +147,9 @@ export function CheckoutOrderSummarySection({
             <p className="text-2xl font-bold text-fg-primary">
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
             </p>
-            <span className="text-sm text-fg-secondary">
+            {/* <span className="text-sm text-fg-secondary">
               {`bez DPH: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
-            </span>
+            </span> */}
           </div>
         </div>
       </div>

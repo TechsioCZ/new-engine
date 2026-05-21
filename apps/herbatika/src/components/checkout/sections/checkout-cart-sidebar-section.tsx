@@ -37,7 +37,7 @@ export function CheckoutCartSidebarSection({
             <div className="space-y-150 pb-150">
               <div className="flex items-center justify-between">
                 <p className="text-sm leading-relaxed font-normal text-fg-primary">
-                  Cena produktov
+                  Cena produktov bez DPH
                 </p>
                 <p className="text-sm leading-relaxed font-normal text-fg-primary">
                   {formatCurrencyAmount(cartItemsTotalAmount, currencyCode)}
@@ -64,9 +64,9 @@ export function CheckoutCartSidebarSection({
                 <p className="text-2xl leading-tight font-bold text-fg-primary">
                   {formatCurrencyAmount(cartTotalAmount, currencyCode)}
                 </p>
-                <p className="text-xs leading-normal font-normal text-fg-secondary">
+                {/* <p className="text-xs leading-normal font-normal text-fg-secondary">
                   {`bez DPH: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
-                </p>
+                </p> */}
               </div>
             </div>
           </div>

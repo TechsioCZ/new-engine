@@ -44,6 +44,7 @@ export function CheckoutStepContent({
     <CheckoutOrderSummarySection
       cartItems={controller.cartItems}
       cartItemsTotalAmount={controller.cartItemsTotalAmount}
+      cartItemsWithoutTaxAmount={controller.cartItemsSubtotalAmount}
       cartTotalAmount={controller.cartTotalAmount}
       cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
       currencyCode={controller.currencyCode}
@@ -63,7 +64,7 @@ export function CheckoutStepContent({
       </h2>}
           aside={
             <CheckoutCartSidebarSection
-              cartItemsTotalAmount={controller.cartItemsTotalAmount}
+              cartItemsTotalAmount={controller.cartItemsSubtotalAmount}
               cartTotalAmount={controller.cartTotalAmount}
               cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
               currencyCode={controller.currencyCode}
