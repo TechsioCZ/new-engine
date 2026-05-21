@@ -1,14 +1,14 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { APPROVAL_MODULE } from "../../../modules/approval";
-import { ApprovalStatusType, IApprovalModuleService } from "../../../types";
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { APPROVAL_MODULE } from "../../../modules/approval"
+import { ApprovalStatusType, type IApprovalModuleService } from "../../../types"
 
 export const createApprovalStatusStep = createStep(
   "create-approval-status",
   async (cartIds: string[], { container }) => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY);
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
     const approvalModuleService =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     const {
       data: [existingApprovalStatus],
@@ -18,39 +18,48 @@ export const createApprovalStatusStep = createStep(
       filters: {
         cart_id: cartIds[0],
       },
-    });
+    })
 
     if (existingApprovalStatus) {
-      const [approvalStatus] =
+      const [updatedApprovalStatus] =
         await approvalModuleService.updateApprovalStatuses([
           {
             id: existingApprovalStatus.id,
             status: ApprovalStatusType.PENDING,
           },
-        ]);
+        ])
 
-      return new StepResponse(approvalStatus, [approvalStatus.id]);
+      if (!updatedApprovalStatus) {
+        throw new Error("Failed to update approval status")
+      }
+
+      return new StepResponse(updatedApprovalStatus, [updatedApprovalStatus.id])
     }
 
     const approvalStatusesToCreate = cartIds.map((cartId) => ({
       cart_id: cartId,
       status: ApprovalStatusType.PENDING,
-    }));
+    }))
 
-    const [approvalStatus] = await approvalModuleService.createApprovalStatuses(
-      approvalStatusesToCreate
-    );
+    const [createdApprovalStatus] =
+      await approvalModuleService.createApprovalStatuses(
+        approvalStatusesToCreate
+      )
 
-    return new StepResponse(approvalStatus, [approvalStatus.id]);
+    if (!createdApprovalStatus) {
+      throw new Error("Failed to create approval status")
+    }
+
+    return new StepResponse(createdApprovalStatus, [createdApprovalStatus.id])
   },
-  async (statusIds: string[], { container }) => {
+  async (statusIds: string[] | undefined, { container }) => {
     if (!statusIds) {
-      return;
+      return
     }
 
     const approvalModuleService =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    await approvalModuleService.deleteApprovalStatuses(statusIds);
+    await approvalModuleService.deleteApprovalStatuses(statusIds)
   }
-);
+)

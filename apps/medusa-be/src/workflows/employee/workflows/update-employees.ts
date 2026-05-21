@@ -1,27 +1,25 @@
-import { when } from "@medusajs/framework/workflows-sdk";
 import {
   createWorkflow,
-  WorkflowData,
+  type WorkflowData,
   WorkflowResponse,
-} from "@medusajs/workflows-sdk";
-import { ModuleUpdateEmployee, QueryEmployee } from "../../../types";
-import { removeAdminRoleStep, updateEmployeesStep } from "../steps";
+  when,
+} from "@medusajs/framework/workflows-sdk"
+import type { ModuleUpdateEmployee, QueryEmployee } from "../../../types"
+import { removeAdminRoleStep, updateEmployeesStep } from "../steps"
 
 export const updateEmployeesWorkflow = createWorkflow(
   "update-employees",
   (
     input: WorkflowData<ModuleUpdateEmployee>
   ): WorkflowResponse<QueryEmployee> => {
-    const updatedEmployee = updateEmployeesStep(input);
+    const updatedEmployee = updateEmployeesStep(input)
 
-    when(updatedEmployee, ({ is_admin }) => {
-      return is_admin === false;
-    }).then(() => {
+    when(updatedEmployee, ({ is_admin }) => is_admin === false).then(() => {
       removeAdminRoleStep({
         email: updatedEmployee.customer.email,
-      });
-    });
+      })
+    })
 
-    return new WorkflowResponse(updatedEmployee);
+    return new WorkflowResponse(updatedEmployee)
   }
-);
+)

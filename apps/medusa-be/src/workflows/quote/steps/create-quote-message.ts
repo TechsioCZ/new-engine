@@ -1,10 +1,10 @@
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { QUOTE_MODULE } from "../../../modules/quote";
-import {
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { QUOTE_MODULE } from "../../../modules/quote"
+import type {
   IQuoteModuleService,
   ModuleCreateQuoteMessage,
   ModuleQuoteMessage,
-} from "../../../types";
+} from "../../../types"
 
 /*
   A step to create a quote's message.
@@ -19,15 +19,19 @@ export const createQuoteMessageStep = createStep(
     input: ModuleCreateQuoteMessage,
     { container }
   ): Promise<StepResponse<ModuleQuoteMessage, string>> => {
-    const quoteModule = container.resolve<IQuoteModuleService>(QUOTE_MODULE);
+    const quoteModule = container.resolve<IQuoteModuleService>(QUOTE_MODULE)
 
-    const quoteMessage = await quoteModule.createMessages(input);
+    const quoteMessage = await quoteModule.createMessages(input)
 
-    return new StepResponse(quoteMessage, quoteMessage.id);
+    return new StepResponse(quoteMessage, quoteMessage.id)
   },
-  async (id: string, { container }) => {
-    const quoteModule = container.resolve<IQuoteModuleService>(QUOTE_MODULE);
+  async (id: string | undefined, { container }) => {
+    if (!id) {
+      return
+    }
 
-    await quoteModule.deleteMessages([id]);
+    const quoteModule = container.resolve<IQuoteModuleService>(QUOTE_MODULE)
+
+    await quoteModule.deleteMessages([id])
   }
-);
+)

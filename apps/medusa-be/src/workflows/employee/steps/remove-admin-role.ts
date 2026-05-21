@@ -1,7 +1,6 @@
-import { IAuthModuleService } from "@medusajs/framework/types";
-import { Modules } from "@medusajs/framework/utils";
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
+import type { IAuthModuleService } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 export const removeAdminRoleStep = createStep(
   "remove-admin-role",
@@ -11,9 +10,9 @@ export const removeAdminRoleStep = createStep(
   ): Promise<StepResponse<undefined, string>> => {
     const authModuleService = container.resolve<IAuthModuleService>(
       Modules.AUTH
-    );
+    )
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY);
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
     const {
       data: [providerIdentity],
@@ -24,7 +23,7 @@ export const removeAdminRoleStep = createStep(
         provider: "emailpass",
         entity_id: input.email,
       },
-    });
+    })
 
     await authModuleService.updateProviderIdentities([
       {
@@ -33,14 +32,18 @@ export const removeAdminRoleStep = createStep(
           role: null,
         },
       },
-    ]);
+    ])
 
-    return new StepResponse(undefined, providerIdentity.id);
+    return new StepResponse(undefined, providerIdentity.id)
   },
-  async (providerIdentityId: string, { container }) => {
+  async (providerIdentityId: string | undefined, { container }) => {
+    if (!providerIdentityId) {
+      return
+    }
+
     const authModuleService = container.resolve<IAuthModuleService>(
       Modules.AUTH
-    );
+    )
 
     await authModuleService.updateProviderIdentities([
       {
@@ -49,6 +52,6 @@ export const removeAdminRoleStep = createStep(
           role: "company_admin",
         },
       },
-    ]);
+    ])
   }
-);
+)

@@ -1,8 +1,8 @@
-import { createCartWorkflow } from "@medusajs/core-flows";
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils";
-import { StepResponse } from "@medusajs/workflows-sdk";
-import { COMPANY_MODULE } from "../../modules/company";
-import { CartDTO } from "@medusajs/framework/types";
+import { createCartWorkflow } from "@medusajs/core-flows"
+import type { CartDTO } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { StepResponse } from "@medusajs/framework/workflows-sdk"
+import { COMPANY_MODULE } from "../../modules/company"
 
 createCartWorkflow.hooks.cartCreated(
   async (
@@ -12,12 +12,12 @@ createCartWorkflow.hooks.cartCreated(
     | StepResponse<undefined, null>
     | StepResponse<undefined, { cart_id: string; company_id: string }>
   > => {
-    const remoteLink = container.resolve(ContainerRegistrationKeys.LINK);
+    const remoteLink = container.resolve(ContainerRegistrationKeys.LINK)
 
-    const cartInputdata = cart as CartDTO;
+    const cartInputdata = cart as CartDTO
 
     if (!cartInputdata.metadata?.company_id) {
-      return new StepResponse(undefined, null);
+      return new StepResponse(undefined, null)
     }
 
     await remoteLink.create({
@@ -27,22 +27,22 @@ createCartWorkflow.hooks.cartCreated(
       [Modules.CART]: {
         cart_id: cartInputdata.id,
       },
-    });
+    })
 
     return new StepResponse(undefined, {
       cart_id: cartInputdata.id,
       company_id: cartInputdata.metadata?.company_id as string,
-    });
+    })
   },
   async (
-    input: { cart_id: string; company_id: string } | null,
+    input: { cart_id: string; company_id: string } | null | undefined,
     { container }
   ) => {
     if (!input) {
-      return;
+      return
     }
 
-    const remoteLink = container.resolve(ContainerRegistrationKeys.REMOTE_LINK);
+    const remoteLink = container.resolve(ContainerRegistrationKeys.REMOTE_LINK)
 
     await remoteLink.dismiss({
       [COMPANY_MODULE]: {
@@ -51,6 +51,6 @@ createCartWorkflow.hooks.cartCreated(
       [Modules.CART]: {
         cart_id: input.cart_id,
       },
-    });
+    })
   }
-);
+)

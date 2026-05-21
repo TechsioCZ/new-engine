@@ -1,11 +1,11 @@
-import {
+import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
-} from "@medusajs/framework";
-import { RemoteQueryFunction } from "@medusajs/framework/types";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
-import { createRequestForQuoteWorkflow } from "../../../workflows/quote/workflows/create-request-for-quote";
-import { CreateQuoteType, GetQuoteParamsType } from "./validators";
+} from "@medusajs/framework"
+import type { RemoteQueryFunction } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { createRequestForQuoteWorkflow } from "../../../workflows/quote/workflows/create-request-for-quote"
+import type { CreateQuoteType, GetQuoteParamsType } from "./validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<GetQuoteParamsType>,
@@ -13,9 +13,10 @@ export const GET = async (
 ) => {
   const query = req.scope.resolve<RemoteQueryFunction>(
     ContainerRegistrationKeys.QUERY
-  );
+  )
 
-  const { fields, pagination } = req.queryConfig;
+  const { fields, pagination } = req.queryConfig
+  const skip = pagination.skip ?? 0
   const { data: quotes, metadata } = await query.graph({
     entity: "quote",
     fields,
@@ -24,17 +25,17 @@ export const GET = async (
     },
     pagination: {
       ...pagination,
-      skip: pagination.skip!,
+      skip,
     },
-  });
+  })
 
   res.json({
     quotes,
-    count: metadata!.count,
-    offset: metadata!.skip,
-    limit: metadata!.take,
-  });
-};
+    count: metadata?.count ?? 0,
+    offset: metadata?.skip ?? skip,
+    limit: metadata?.take ?? pagination.take,
+  })
+}
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<CreateQuoteType>,
@@ -42,7 +43,7 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve<RemoteQueryFunction>(
     ContainerRegistrationKeys.QUERY
-  );
+  )
 
   const {
     result: { quote: createdQuote },
@@ -51,7 +52,11 @@ export const POST = async (
       ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
     },
-  });
+  })
+
+  if (!createdQuote) {
+    throw new Error("Failed to create quote")
+  }
 
   const {
     data: [quote],
@@ -62,7 +67,7 @@ export const POST = async (
       filters: { id: createdQuote.id },
     },
     { throwIfKeyNotFound: true }
-  );
+  )
 
-  return res.json({ quote });
-};
+  return res.json({ quote })
+}

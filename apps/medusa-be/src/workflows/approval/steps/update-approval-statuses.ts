@@ -1,11 +1,11 @@
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { APPROVAL_MODULE } from "../../../modules/approval";
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
   ApprovalStatusType,
-  IApprovalModuleService,
-  ModuleApproval,
-  ModuleApprovalStatus,
-} from "../../../types";
+  type IApprovalModuleService,
+  type ModuleApproval,
+  type ModuleApprovalStatus,
+} from "../../../types"
 
 export const updateApprovalStatusStep = createStep(
   "update-approval-status",
@@ -13,9 +13,9 @@ export const updateApprovalStatusStep = createStep(
     input: ModuleApproval,
     { container }
   ): Promise<StepResponse<undefined, ModuleApprovalStatus>> => {
-    const query = container.resolve("query");
+    const query = container.resolve("query")
     const approvalModule =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     const {
       data: [approvalStatus],
@@ -29,13 +29,13 @@ export const updateApprovalStatusStep = createStep(
         skip: 0,
         take: 1,
       },
-    });
+    })
 
-    const previousData = approvalStatus;
+    const previousData = approvalStatus
 
     const hasPendingApprovals = await approvalModule.hasPendingApprovals(
       input.cart_id
-    );
+    )
 
     if (input.status === ApprovalStatusType.APPROVED && !hasPendingApprovals) {
       await approvalModule.updateApprovalStatuses([
@@ -43,7 +43,7 @@ export const updateApprovalStatusStep = createStep(
           id: approvalStatus.id,
           status: ApprovalStatusType.APPROVED,
         },
-      ]);
+      ])
     }
 
     if (input.status === ApprovalStatusType.REJECTED) {
@@ -52,23 +52,27 @@ export const updateApprovalStatusStep = createStep(
           id: approvalStatus.id,
           status: ApprovalStatusType.REJECTED,
         },
-      ]);
+      ])
     }
 
     return new StepResponse(
       undefined,
       previousData as unknown as ModuleApprovalStatus
-    );
+    )
   },
-  async (previousData: ModuleApprovalStatus, { container }) => {
+  async (previousData: ModuleApprovalStatus | undefined, { container }) => {
+    if (!previousData) {
+      return
+    }
+
     const approvalModule =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModule.updateApprovalStatuses([
       {
         id: previousData.id,
         status: previousData.status,
       },
-    ]);
+    ])
   }
-);
+)

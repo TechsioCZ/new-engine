@@ -1,11 +1,11 @@
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { APPROVAL_MODULE } from "../../../modules/approval";
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
   ApprovalStatusType,
   ApprovalType,
-  IApprovalModuleService,
-  ModuleCreateApproval,
-} from "../../../types";
+  type IApprovalModuleService,
+  type ModuleCreateApproval,
+} from "../../../types"
 
 export const createApprovalStep = createStep(
   "create-approval",
@@ -15,9 +15,14 @@ export const createApprovalStep = createStep(
       | Omit<ModuleCreateApproval, "type">[],
     { container }
   ) => {
-    const query = container.resolve("query");
+    const query = container.resolve("query")
 
-    const approvalData = Array.isArray(input) ? input : [input];
+    const approvalData = Array.isArray(input) ? input : [input]
+    const firstApproval = approvalData[0]
+
+    if (!firstApproval) {
+      throw new Error("No approval data provided")
+    }
 
     const {
       data: [cart],
@@ -32,32 +37,32 @@ export const createApprovalStep = createStep(
           "company.approval_settings.*",
         ],
         filters: {
-          id: approvalData[0].cart_id,
+          id: firstApproval.cart_id,
         },
       },
       {
         throwIfKeyNotFound: true,
       }
-    );
+    )
 
     if (
       (cart.approval_status?.status as unknown as ApprovalStatusType) ===
       ApprovalStatusType.PENDING
     ) {
-      throw new Error("Cart already has a pending approval");
+      throw new Error("Cart already has a pending approval")
     }
 
     if (
       (cart.approval_status?.status as unknown as ApprovalStatusType) ===
       ApprovalStatusType.APPROVED
     ) {
-      throw new Error("Cart is already approved");
+      throw new Error("Cart is already approved")
     }
 
     const { requires_admin_approval, requires_sales_manager_approval } =
-      cart?.company?.approval_settings || {};
+      cart?.company?.approval_settings || {}
 
-    const approvalsToCreate = [] as ModuleCreateApproval[];
+    const approvalsToCreate = [] as ModuleCreateApproval[]
 
     if (requires_admin_approval) {
       approvalsToCreate.push(
@@ -65,7 +70,7 @@ export const createApprovalStep = createStep(
           ...data,
           type: ApprovalType.ADMIN,
         }))
-      );
+      )
     }
 
     if (requires_sales_manager_approval) {
@@ -74,29 +79,32 @@ export const createApprovalStep = createStep(
           ...data,
           type: ApprovalType.SALES_MANAGER,
         }))
-      );
+      )
     }
 
     if (approvalsToCreate.length === 0) {
-      throw new Error("No enabled approval types found");
+      throw new Error("No enabled approval types found")
     }
 
     const approvalModuleService =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    const approvals = await approvalModuleService.createApprovals(
-      approvalsToCreate
-    );
+    const approvals =
+      await approvalModuleService.createApprovals(approvalsToCreate)
 
     return new StepResponse(
       approvals,
       approvals.map((approval) => approval.id)
-    );
+    )
   },
-  async (approvalIds: string[], { container }) => {
-    const approvalModuleService =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+  async (approvalIds: string[] | undefined, { container }) => {
+    if (!approvalIds) {
+      return
+    }
 
-    await approvalModuleService.deleteApprovals(approvalIds);
+    const approvalModuleService =
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
+
+    await approvalModuleService.deleteApprovals(approvalIds)
   }
-);
+)

@@ -1,22 +1,22 @@
-import { FetchError } from "@medusajs/js-sdk";
+import type { FetchError } from "@medusajs/js-sdk"
 import {
+  type QueryKey,
+  type UseMutationOptions,
+  type UseQueryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
+import type {
   AdminCompaniesResponse,
   AdminCompanyResponse,
   AdminCreateCompany,
   AdminUpdateCompany,
-} from "../../../types";
-import {
-  QueryKey,
-  useMutation,
-  UseMutationOptions,
-  useQuery,
-  useQueryClient,
-  UseQueryOptions,
-} from "@tanstack/react-query";
-import { queryKeysFactory } from "../../lib/query-key-factory";
-import { sdk } from "../../lib/client";
+} from "../../../types"
+import { queryKeysFactory } from "../../lib/query-key-factory"
+import { sdk } from "../../lib/sdk"
 
-export const companyQueryKey = queryKeysFactory("company");
+export const companyQueryKey = queryKeysFactory("company")
 
 export const useCompanies = (
   query?: Record<string, any>,
@@ -27,7 +27,7 @@ export const useCompanies = (
     QueryKey
   >
 ) => {
-  const filterQuery = new URLSearchParams(query).toString();
+  const filterQuery = new URLSearchParams(query).toString()
 
   const fetchCompanies = async () =>
     sdk.client.fetch<AdminCompaniesResponse>(
@@ -35,14 +35,14 @@ export const useCompanies = (
       {
         method: "GET",
       }
-    );
+    )
 
   return useQuery({
     queryKey: companyQueryKey.list(query),
     queryFn: fetchCompanies,
     ...options,
-  });
-};
+  })
+}
 
 export const useCompany = (
   companyId: string,
@@ -54,7 +54,7 @@ export const useCompany = (
     QueryKey
   >
 ) => {
-  const filterQuery = new URLSearchParams(query).toString();
+  const filterQuery = new URLSearchParams(query).toString()
 
   const fetchCompany = async () =>
     sdk.client.fetch<AdminCompanyResponse>(
@@ -62,14 +62,14 @@ export const useCompany = (
       {
         method: "GET",
       }
-    );
+    )
 
   return useQuery({
     queryKey: companyQueryKey.detail(companyId),
     queryFn: fetchCompany,
     ...options,
-  });
-};
+  })
+}
 
 export const useCreateCompany = (
   options?: UseMutationOptions<
@@ -78,7 +78,7 @@ export const useCreateCompany = (
     AdminCreateCompany
   >
 ) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (company: AdminCreateCompany) =>
@@ -92,15 +92,15 @@ export const useCreateCompany = (
     onSuccess: (data: any, variables: any, context: any) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
-      });
+      })
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.detail(data.id),
-      });
-      options?.onSuccess?.(data, variables, context);
+      })
+      options?.onSuccess?.(data, variables, context)
     },
     ...options,
-  });
-};
+  })
+}
 
 export const useUpdateCompany = (
   companyId: string,
@@ -110,7 +110,7 @@ export const useUpdateCompany = (
     AdminUpdateCompany
   >
 ) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (company: AdminUpdateCompany) =>
@@ -124,21 +124,21 @@ export const useUpdateCompany = (
     onSuccess: (data: any, variables: any, context: any) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
-      });
+      })
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.detail(companyId),
-      });
-      options?.onSuccess?.(data, variables, context);
+      })
+      options?.onSuccess?.(data, variables, context)
     },
     ...options,
-  });
-};
+  })
+}
 
 export const useDeleteCompany = (
   companyId: string,
   options?: UseMutationOptions<void, FetchError>
 ) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () =>
       sdk.client.fetch<void>(`/admin/companies/${companyId}`, {
@@ -147,18 +147,18 @@ export const useDeleteCompany = (
     onSuccess: (data: any, variables: any, context: any) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
-      });
-      options?.onSuccess?.(data, variables, context);
+      })
+      options?.onSuccess?.(data, variables, context)
     },
     ...options,
-  });
-};
+  })
+}
 
 export const useAddCompanyToCustomerGroup = (
   companyId: string,
   options?: UseMutationOptions<void, FetchError, string>
 ) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (groupId: string) =>
@@ -172,21 +172,21 @@ export const useAddCompanyToCustomerGroup = (
     onSuccess: (data: any, variables: any, context: any) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
-      });
+      })
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.detail(companyId),
-      });
-      options?.onSuccess?.(data, variables, context);
+      })
+      options?.onSuccess?.(data, variables, context)
     },
     ...options,
-  });
-};
+  })
+}
 
 export const useRemoveCompanyFromCustomerGroup = (
   companyId: string,
   options?: UseMutationOptions<void, FetchError, string>
 ) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (groupId: string) =>
@@ -202,12 +202,12 @@ export const useRemoveCompanyFromCustomerGroup = (
     onSuccess: (_, variables: any, context: any) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
-      });
+      })
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.detail(companyId),
-      });
-      options?.onSuccess?.(undefined, variables, context);
+      })
+      options?.onSuccess?.(undefined, variables, context)
     },
     ...options,
-  });
-};
+  })
+}

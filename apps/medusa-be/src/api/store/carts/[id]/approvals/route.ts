@@ -1,18 +1,18 @@
-import {
+import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
-} from "@medusajs/framework";
-import { ApprovalStatusType } from "../../../../../types/approval";
-import { createApprovalsWorkflow } from "../../../../../workflows/approval/workflows";
+} from "@medusajs/framework"
+import { ApprovalStatusType } from "../../../../../types/approval"
+import { createApprovalsWorkflow } from "../../../../../workflows/approval/workflows"
 
 export const POST = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const { id: cartId } = req.params;
+  const { id: cartId } = req.params
   const { customer_id } = req.auth_context.app_metadata as {
-    customer_id: string;
-  };
+    customer_id: string
+  }
 
   const { result: approvals, errors } = await createApprovalsWorkflow.run({
     input: {
@@ -22,15 +22,15 @@ export const POST = async (
     },
     container: req.scope,
     throwOnError: false,
-  });
+  })
 
   if (errors.length > 0) {
     res.status(400).json({
-      message: errors[0].error.message,
+      message: errors[0]?.error.message,
       code: "INVALID_DATA",
-    });
-    return;
+    })
+    return
   }
 
-  res.json({ approvals });
-};
+  res.json({ approvals })
+}

@@ -1,12 +1,12 @@
-import { createSelectParams } from "@medusajs/medusa/api/utils/validators";
-import { z } from "zod";
+import { z } from "@medusajs/framework/zod"
+import { createSelectParams } from "@medusajs/medusa/api/utils/validators"
 
 export type GetCartLineItemsBulkParamsType = z.infer<
   typeof GetCartLineItemsBulkParams
->;
-export const GetCartLineItemsBulkParams = createSelectParams();
+>
+export const GetCartLineItemsBulkParams = createSelectParams()
 
-export type StoreAddLineItemsBulkType = z.infer<typeof StoreAddLineItemsBulk>;
+export type StoreAddLineItemsBulkType = z.infer<typeof StoreAddLineItemsBulk>
 export const StoreAddLineItemsBulk = z
   .object({
     line_items: z.array(
@@ -16,4 +16,4 @@ export const StoreAddLineItemsBulk = z
       })
     ),
   })
-  .strict();
+  .strict()

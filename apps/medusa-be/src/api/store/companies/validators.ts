@@ -1,12 +1,12 @@
-import { createSelectParams } from "@medusajs/medusa/api/utils/validators";
-import { z } from "zod";
-import { ApprovalStatusType } from "../../../types/approval";
+import { z } from "@medusajs/framework/zod"
+import { createSelectParams } from "@medusajs/medusa/api/utils/validators"
+import { ApprovalStatusType } from "../../../types/approval"
 
 /* Company Validators */
-export type StoreGetCompanyParamsType = z.infer<typeof StoreGetCompanyParams>;
-export const StoreGetCompanyParams = createSelectParams();
+export type StoreGetCompanyParamsType = z.infer<typeof StoreGetCompanyParams>
+export const StoreGetCompanyParams = createSelectParams()
 
-export type StoreCreateCompanyType = z.infer<typeof StoreCreateCompany>;
+export type StoreCreateCompanyType = z.infer<typeof StoreCreateCompany>
 export const StoreCreateCompany = z
   .object({
     name: z.string(),
@@ -24,9 +24,9 @@ export const StoreCreateCompany = z
       .optional()
       .nullable(),
   })
-  .strict();
+  .strict()
 
-export type StoreUpdateCompanyType = z.infer<typeof StoreUpdateCompany>;
+export type StoreUpdateCompanyType = z.infer<typeof StoreUpdateCompany>
 export const StoreUpdateCompany = z
   .object({
     name: z.string().optional(),
@@ -44,22 +44,22 @@ export const StoreUpdateCompany = z
       .optional()
       .nullable(),
   })
-  .strict();
+  .strict()
 
 /* Employee Validators */
-export type StoreGetEmployeeParamsType = z.infer<typeof StoreGetEmployeeParams>;
-export const StoreGetEmployeeParams = createSelectParams();
+export type StoreGetEmployeeParamsType = z.infer<typeof StoreGetEmployeeParams>
+export const StoreGetEmployeeParams = createSelectParams()
 
-export type StoreCreateEmployeeType = z.infer<typeof StoreCreateEmployee>;
+export type StoreCreateEmployeeType = z.infer<typeof StoreCreateEmployee>
 export const StoreCreateEmployee = z
   .object({
     spending_limit: z.number().optional().nullable(),
     is_admin: z.boolean().optional().nullable().default(false),
     customer_id: z.string(),
   })
-  .strict();
+  .strict()
 
-export type StoreUpdateEmployeeType = z.infer<typeof StoreUpdateEmployee>;
+export type StoreUpdateEmployeeType = z.infer<typeof StoreUpdateEmployee>
 export const StoreUpdateEmployee = z
   .object({
     spending_limit: z.number().optional(),
@@ -71,35 +71,34 @@ export const StoreUpdateEmployee = z
       .optional(),
     is_admin: z.boolean().optional(),
   })
-  .strict();
+  .strict()
 
 /* Approval Settings Validators */
 export type StoreGetApprovalSettingsParamsType = z.infer<
   typeof StoreGetApprovalSettingsParams
->;
-export const StoreGetApprovalSettingsParams = createSelectParams();
+>
+export const StoreGetApprovalSettingsParams = createSelectParams()
 
 export type StoreUpdateApprovalSettingsType = z.infer<
   typeof StoreUpdateApprovalSettings
->;
+>
 export const StoreUpdateApprovalSettings = z
   .object({
     requires_admin_approval: z.boolean(),
   })
-  .strict();
+  .strict()
 
 /* Approval Validators */
-export type StoreGetApprovalParamsType = z.infer<typeof StoreGetApprovalParams>;
-export const StoreGetApprovalParams = createSelectParams();
+export type StoreGetApprovalParamsType = z.infer<typeof StoreGetApprovalParams>
+export const StoreGetApprovalParams = createSelectParams()
 
-export type StoreUpdateApprovalType = z.infer<typeof StoreUpdateApproval>;
+export type StoreUpdateApprovalType = z.infer<typeof StoreUpdateApproval>
 export const StoreUpdateApproval = z.object({
   status: z.nativeEnum(ApprovalStatusType),
   handled_by: z.string(),
-});
+})
 
-export type StoreDeleteApprovalType = z.infer<typeof StoreDeleteApproval>;
+export type StoreDeleteApprovalType = z.infer<typeof StoreDeleteApproval>
 export const StoreDeleteApproval = z.object({
   id: z.string(),
-});
-``;
+})

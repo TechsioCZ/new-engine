@@ -1,10 +1,14 @@
-import { HttpTypes } from "@medusajs/framework/types";
-import { FetchError } from "@medusajs/js-sdk";
-import { QueryKey, useQuery, UseQueryOptions } from "@tanstack/react-query";
-import { queryKeysFactory } from "../../lib/query-key-factory";
-import { sdk } from "../../lib/client";
+import type { HttpTypes } from "@medusajs/framework/types"
+import type { FetchError } from "@medusajs/js-sdk"
+import {
+  type QueryKey,
+  type UseQueryOptions,
+  useQuery,
+} from "@tanstack/react-query"
+import { queryKeysFactory } from "../../lib/query-key-factory"
+import { sdk } from "../../lib/sdk"
 
-export const orderPreviewQueryKey = queryKeysFactory("custom_orders");
+export const orderPreviewQueryKey = queryKeysFactory("custom_orders")
 
 export const useOrderPreview = (
   id: string,
@@ -23,7 +27,7 @@ export const useOrderPreview = (
     queryFn: async () => sdk.admin.order.retrievePreview(id, query),
     queryKey: orderPreviewQueryKey.detail(id),
     ...options,
-  });
+  })
 
-  return { ...data, ...rest };
-};
+  return { ...data, ...rest }
+}

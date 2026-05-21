@@ -2,14 +2,14 @@ import {
   beginOrderEditOrderWorkflow,
   createOrdersWorkflow,
   useRemoteQueryStep,
-} from "@medusajs/core-flows";
-import { OrderStatus } from "@medusajs/framework/utils";
+} from "@medusajs/core-flows"
+import { OrderStatus } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
   WorkflowResponse,
-} from "@medusajs/workflows-sdk";
-import { createQuotesWorkflow } from "./create-quote";
+} from "@medusajs/framework/workflows-sdk"
+import { createQuotesWorkflow } from "./create-quote"
 
 /*
   A workflow that creates a request for quote. 
@@ -23,7 +23,7 @@ import { createQuotesWorkflow } from "./create-quote";
 */
 export const createRequestForQuoteWorkflow = createWorkflow(
   "create-request-for-quote",
-  function (input: { cart_id: string; customer_id: string }) {
+  (input: { cart_id: string; customer_id: string }) => {
     const cart = useRemoteQueryStep({
       entry_point: "cart",
       fields: [
@@ -42,7 +42,7 @@ export const createRequestForQuoteWorkflow = createWorkflow(
       variables: { id: input.cart_id },
       list: false,
       throw_if_key_not_found: true,
-    });
+    })
 
     const customer = useRemoteQueryStep({
       entry_point: "customer",
@@ -50,41 +50,45 @@ export const createRequestForQuoteWorkflow = createWorkflow(
       variables: { id: input.customer_id },
       list: false,
       throw_if_key_not_found: true,
-    }).config({ name: "customer-query" });
+    }).config({ name: "customer-query" })
 
-    const orderInput = transform({ cart, customer }, ({ cart, customer }) => {
-      return {
+    const orderInput = transform(
+      { cart, customer },
+      ({ cart: cartData, customer: customerData }) => ({
         is_draft_order: true,
         status: OrderStatus.DRAFT,
-        sales_channel_id: cart.sales_channel_id,
-        email: customer.email,
-        customer_id: customer.id,
-        billing_address: cart.billing_address,
-        shipping_address: cart.shipping_address,
-        items: cart.items,
-        region_id: cart.region_id,
-        promo_codes: cart.promotions.map(({ code }) => code),
-        currency_code: cart.currency_code,
-        shipping_methods: cart.shipping_methods,
-      };
-    });
+        sales_channel_id: cartData.sales_channel_id,
+        email: customerData.email,
+        customer_id: customerData.id,
+        billing_address: cartData.billing_address,
+        shipping_address: cartData.shipping_address,
+        items: cartData.items,
+        region_id: cartData.region_id,
+        promo_codes: cartData.promotions.map(
+          ({ code }: { code: string }) => code
+        ),
+        currency_code: cartData.currency_code,
+        shipping_methods: cartData.shipping_methods,
+      })
+    )
 
     const draftOrder = createOrdersWorkflow.runAsStep({
       input: orderInput,
-    });
+    })
 
-    const orderEditInput = transform({ draftOrder }, ({ draftOrder }) => {
-      return {
-        order_id: draftOrder.id,
+    const orderEditInput = transform(
+      { draftOrder },
+      ({ draftOrder: draftOrderData }) => ({
+        order_id: draftOrderData.id,
         description: "",
         internal_note: "",
         metadata: {},
-      };
-    });
+      })
+    )
 
     const changeOrder = beginOrderEditOrderWorkflow.runAsStep({
       input: orderEditInput,
-    });
+    })
 
     const quotes = createQuotesWorkflow.runAsStep({
       input: [
@@ -95,8 +99,8 @@ export const createRequestForQuoteWorkflow = createWorkflow(
           order_change_id: changeOrder.id,
         },
       ],
-    });
+    })
 
-    return new WorkflowResponse({ quote: quotes[0] });
+    return new WorkflowResponse({ quote: quotes[0] })
   }
-);
+)

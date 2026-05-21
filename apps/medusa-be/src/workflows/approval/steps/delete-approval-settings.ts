@@ -1,45 +1,49 @@
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { APPROVAL_MODULE } from "../../../modules/approval";
-import {
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { APPROVAL_MODULE } from "../../../modules/approval"
+import type {
   IApprovalModuleService,
   ModuleApprovalSettingsFilters,
-} from "../../../types";
+} from "../../../types"
 
 type DeleteApprovalSettingsStepInput = {
-  ids?: string[];
-  companyIds?: string[];
-};
+  ids?: string[]
+  companyIds?: string[]
+}
 
 export const deleteApprovalSettingsStep = createStep(
   "delete-approval-settings",
   async (input: DeleteApprovalSettingsStepInput, { container }) => {
     const approvalModule =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    const filters: ModuleApprovalSettingsFilters = {};
+    const filters: ModuleApprovalSettingsFilters = {}
 
     if (input.ids) {
-      filters.id = input.ids;
+      filters.id = input.ids
     }
 
     if (input.companyIds) {
-      filters.company_id = input.companyIds;
+      filters.company_id = input.companyIds
     }
 
-    const approvalSettings = await approvalModule.listApprovalSettings(filters);
+    const approvalSettings = await approvalModule.listApprovalSettings(filters)
 
     await approvalModule.deleteApprovalSettings(
       approvalSettings.map((setting) => setting.id)
-    );
+    )
 
     return new StepResponse(
       undefined,
       approvalSettings.map((setting) => setting.company_id)
-    );
+    )
   },
-  async (companyIds: string[], { container }) => {
+  async (companyIds: string[] | undefined, { container }) => {
+    if (!companyIds) {
+      return
+    }
+
     const approvalModule =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModule.createApprovalSettings(
       companyIds.map((id) => ({
@@ -47,6 +51,6 @@ export const deleteApprovalSettingsStep = createStep(
         requires_admin_approval: false,
         requires_sales_manager_approval: false,
       }))
-    );
+    )
   }
-);
+)

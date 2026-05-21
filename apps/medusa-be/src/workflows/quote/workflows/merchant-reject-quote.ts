@@ -1,8 +1,8 @@
-import { useRemoteQueryStep } from "@medusajs/core-flows";
-import { createWorkflow } from "@medusajs/workflows-sdk";
-import { QueryQuote } from "../../../types";
-import { validateQuoteRejectionStep } from "../steps/validate-quote-rejection";
-import { updateQuotesWorkflow } from "./update-quote";
+import { useRemoteQueryStep } from "@medusajs/core-flows"
+import { createWorkflow } from "@medusajs/framework/workflows-sdk"
+import type { QueryQuote } from "../../../types"
+import { validateQuoteRejectionStep } from "../steps/validate-quote-rejection"
+import { updateQuotesWorkflow } from "./update-quote"
 
 /*
   A workflow that rejects a quote by a merchant. 
@@ -11,16 +11,16 @@ import { updateQuotesWorkflow } from "./update-quote";
 */
 export const merchantRejectQuoteWorkflow = createWorkflow(
   "merchant-reject-quote-workflow",
-  function (input: { quote_id: string }) {
+  (input: { quote_id: string }) => {
     const quote: QueryQuote = useRemoteQueryStep({
       entry_point: "quote",
       fields: ["id", "status"],
       variables: { id: input.quote_id },
       list: false,
       throw_if_key_not_found: true,
-    });
+    })
 
-    validateQuoteRejectionStep({ quote });
+    validateQuoteRejectionStep({ quote })
 
     updateQuotesWorkflow.runAsStep({
       input: [
@@ -29,6 +29,6 @@ export const merchantRejectQuoteWorkflow = createWorkflow(
           status: "merchant_rejected",
         },
       ],
-    });
+    })
   }
-);
+)

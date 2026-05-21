@@ -1,6 +1,6 @@
-import { IAuthModuleService } from "@medusajs/framework/types";
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils";
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
+import type { IAuthModuleService } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 export const setAdminRoleStep = createStep(
   "set-admin-role",
@@ -8,7 +8,7 @@ export const setAdminRoleStep = createStep(
     input: { employeeId: string; customerId: string },
     { container }
   ): Promise<any> => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY);
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
     const {
       data: [employee],
@@ -21,10 +21,10 @@ export const setAdminRoleStep = createStep(
         },
       },
       { throwIfKeyNotFound: true }
-    );
+    )
 
     if (employee.customer?.has_account === false) {
-      return new StepResponse(undefined, input);
+      return new StepResponse(undefined, input)
     }
 
     const {
@@ -38,10 +38,10 @@ export const setAdminRoleStep = createStep(
         },
       },
       { throwIfKeyNotFound: true }
-    );
+    )
 
     if (!customer.email) {
-      return new StepResponse(undefined, input);
+      return new StepResponse(undefined, input)
     }
 
     const {
@@ -53,11 +53,11 @@ export const setAdminRoleStep = createStep(
         provider: "emailpass",
         entity_id: customer.email,
       },
-    });
+    })
 
     const authModuleService = container.resolve<IAuthModuleService>(
       Modules.AUTH
-    );
+    )
 
     if (providerIdentity) {
       await authModuleService.updateProviderIdentities([
@@ -67,15 +67,19 @@ export const setAdminRoleStep = createStep(
             role: "company_admin",
           },
         },
-      ]);
+      ])
     }
 
-    return new StepResponse(undefined, input);
+    return new StepResponse(undefined, input)
   },
-  async (input: { providerIdentityId: string }, { container }) => {
+  async (input: { providerIdentityId: string } | undefined, { container }) => {
+    if (!input) {
+      return
+    }
+
     const authModuleService = container.resolve<IAuthModuleService>(
       Modules.AUTH
-    );
+    )
 
     await authModuleService.updateProviderIdentities([
       {
@@ -84,6 +88,6 @@ export const setAdminRoleStep = createStep(
           role: null,
         },
       },
-    ]);
+    ])
   }
-);
+)

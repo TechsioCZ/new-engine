@@ -1,18 +1,18 @@
-import { HttpTypes } from "@medusajs/framework/types";
-import { FetchError } from "@medusajs/js-sdk";
-import { AdminCreateCustomer, AdminCustomer } from "@medusajs/types";
+import type { HttpTypes } from "@medusajs/framework/types"
+import type { FetchError } from "@medusajs/js-sdk"
+import type { AdminCreateCustomer, AdminCustomer } from "@medusajs/types"
 import {
-  QueryKey,
+  type QueryKey,
+  type UseMutationOptions,
+  type UseQueryOptions,
   useMutation,
-  UseMutationOptions,
   useQuery,
   useQueryClient,
-  UseQueryOptions,
-} from "@tanstack/react-query";
-import { queryKeysFactory } from "../../lib/query-key-factory";
-import { sdk } from "../../lib/client";
+} from "@tanstack/react-query"
+import { queryKeysFactory } from "../../lib/query-key-factory"
+import { sdk } from "../../lib/sdk"
 
-export const customerQueryKey = queryKeysFactory("customer");
+export const customerQueryKey = queryKeysFactory("customer")
 
 export const useAdminCustomerGroups = (
   options?: UseQueryOptions<
@@ -21,14 +21,13 @@ export const useAdminCustomerGroups = (
     HttpTypes.AdminCustomerGroup[],
     QueryKey
   >
-) => {
-  return useQuery({
+) =>
+  useQuery({
     queryKey: customerQueryKey.list("groups"),
     queryFn: () => sdk.admin.customerGroup.list(),
     select: (data) => data.customer_groups,
     ...options,
-  });
-};
+  })
 
 export const useAdminCreateCustomer = (
   options?: UseMutationOptions<
@@ -37,7 +36,7 @@ export const useAdminCreateCustomer = (
     AdminCreateCustomer
   >
 ) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (customer: AdminCreateCustomer) =>
@@ -45,9 +44,9 @@ export const useAdminCreateCustomer = (
     onSuccess: (data: any, variables: any, context: any) => {
       queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
-      });
-      options?.onSuccess?.(data, variables, context);
+      })
+      options?.onSuccess?.(data, variables, context)
     },
     ...options,
-  });
-};
+  })
+}

@@ -1,30 +1,30 @@
-import { useEffect, useState } from "react";
-import { HttpTypes, RegionDTO } from "@medusajs/framework/types";
-import { sdk } from "../lib/client";
+import type { HttpTypes } from "@medusajs/framework/types"
+import { useEffect, useState } from "react"
+import { sdk } from "../lib/sdk"
 
 export function useRegions() {
-  const [data, setData] = useState<HttpTypes.AdminRegion[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [data, setData] = useState<HttpTypes.AdminRegion[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchRegions = async () => {
       try {
-        const result = await sdk.admin.region.list();
-        setData(result.regions);
+        const result = await sdk.admin.region.list()
+        setData(result.regions)
       } catch (err) {
-        setError(err);
+        setError(err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchRegions();
-  }, []);
+    fetchRegions()
+  }, [])
 
   return {
     data,
     loading,
     error,
-  };
+  }
 }

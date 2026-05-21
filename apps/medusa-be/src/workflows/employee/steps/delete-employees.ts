@@ -1,6 +1,6 @@
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { COMPANY_MODULE } from "../../../modules/company";
-import { ICompanyModuleService } from "../../../types";
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { COMPANY_MODULE } from "../../../modules/company"
+import type { ICompanyModuleService } from "../../../types"
 
 export const deleteEmployeesStep = createStep(
   "delete-employees",
@@ -8,17 +8,21 @@ export const deleteEmployeesStep = createStep(
     id: string | string[],
     { container }
   ): Promise<StepResponse<string[], string[]>> => {
-    const ids = Array.isArray(id) ? id : [id];
+    const ids = Array.isArray(id) ? id : [id]
 
     const companyModuleService =
-      container.resolve<ICompanyModuleService>(COMPANY_MODULE);
-    await companyModuleService.softDeleteEmployees(ids);
+      container.resolve<ICompanyModuleService>(COMPANY_MODULE)
+    await companyModuleService.softDeleteEmployees(ids)
 
-    return new StepResponse(ids);
+    return new StepResponse(ids)
   },
-  async (ids: string[], { container }) => {
+  async (ids: string[] | undefined, { container }) => {
+    if (!ids) {
+      return
+    }
+
     const companyModuleService =
-      container.resolve<ICompanyModuleService>(COMPANY_MODULE);
-    await companyModuleService.restoreEmployees(ids);
+      container.resolve<ICompanyModuleService>(COMPANY_MODULE)
+    await companyModuleService.restoreEmployees(ids)
   }
-);
+)

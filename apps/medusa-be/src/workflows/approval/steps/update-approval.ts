@@ -1,11 +1,11 @@
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk";
-import { APPROVAL_MODULE } from "../../../modules/approval";
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
   ApprovalStatusType,
-  IApprovalModuleService,
-  ModuleApproval,
-  ModuleUpdateApproval,
-} from "../../../types";
+  type IApprovalModuleService,
+  type ModuleApproval,
+  type ModuleUpdateApproval,
+} from "../../../types"
 
 export const updateApprovalStep = createStep(
   "update-approval",
@@ -13,9 +13,9 @@ export const updateApprovalStep = createStep(
     input: ModuleUpdateApproval,
     { container }
   ): Promise<StepResponse<ModuleApproval, ModuleUpdateApproval>> => {
-    const query = container.resolve("query");
+    const query = container.resolve("query")
     const approvalModule =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     const {
       data: [approval],
@@ -25,7 +25,7 @@ export const updateApprovalStep = createStep(
       filters: {
         id: input.id,
       },
-    });
+    })
 
     if (input.status === ApprovalStatusType.REJECTED) {
       const { data: approvalsToReject } = await query.graph({
@@ -37,35 +37,39 @@ export const updateApprovalStep = createStep(
             $ne: approval.id,
           },
         },
-      });
+      })
 
-      const updateData = approvalsToReject.map((approval) => ({
-        id: approval.id,
+      const updateData = approvalsToReject.map((approvalToReject) => ({
+        id: approvalToReject.id,
         status: ApprovalStatusType.REJECTED,
         handled_by: input.handled_by,
-      }));
+      }))
 
-      await approvalModule.updateApprovals(updateData);
+      await approvalModule.updateApprovals(updateData)
     }
 
     const previousData = {
       id: approval.id,
       status: approval.status as unknown as ApprovalStatusType,
       handled_by: approval.handled_by,
-    } as ModuleUpdateApproval;
+    } as ModuleUpdateApproval
 
-    const [updatedApproval] = await approvalModule.updateApprovals([input]);
+    const [updatedApproval] = await approvalModule.updateApprovals([input])
 
-    return new StepResponse(updatedApproval, previousData);
+    return new StepResponse(updatedApproval, previousData)
   },
-  async (previousData: ModuleUpdateApproval, { container }) => {
+  async (previousData: ModuleUpdateApproval | undefined, { container }) => {
+    if (!previousData) {
+      return
+    }
+
     const approvalModule =
-      container.resolve<IApprovalModuleService>(APPROVAL_MODULE);
+      container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     const updateData = Array.isArray(previousData)
       ? previousData
-      : [previousData];
+      : [previousData]
 
-    await approvalModule.updateApprovals(updateData);
+    await approvalModule.updateApprovals(updateData)
   }
-);
+)

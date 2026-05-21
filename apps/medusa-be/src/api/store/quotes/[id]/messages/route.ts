@@ -1,17 +1,21 @@
 import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
-} from "@medusajs/framework";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
-import { createQuoteMessageWorkflow } from "../../../../../workflows/quote/workflows";
-import { StoreCreateQuoteMessageType } from "../../validators";
+} from "@medusajs/framework"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { createQuoteMessageWorkflow } from "../../../../../workflows/quote/workflows"
+import type { StoreCreateQuoteMessageType } from "../../validators"
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<StoreCreateQuoteMessageType>,
   res: MedusaResponse
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
-  const { id } = req.params;
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { id } = req.params
+
+  if (!id) {
+    throw new Error("Missing quote id")
+  }
 
   await createQuoteMessageWorkflow(req.scope).run({
     input: {
@@ -19,7 +23,7 @@ export const POST = async (
       customer_id: req.auth_context.actor_id,
       quote_id: id,
     },
-  });
+  })
 
   const {
     data: [quote],
@@ -30,7 +34,7 @@ export const POST = async (
       filters: { id },
     },
     { throwIfKeyNotFound: true }
-  );
+  )
 
-  res.json({ quote });
-};
+  res.json({ quote })
+}

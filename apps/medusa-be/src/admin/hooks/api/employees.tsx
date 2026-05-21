@@ -1,22 +1,22 @@
-import { FetchError } from "@medusajs/js-sdk";
+import type { FetchError } from "@medusajs/js-sdk"
 import {
+  type QueryKey,
+  type UseMutationOptions,
+  type UseQueryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
+import type {
   AdminCreateEmployee,
   AdminEmployeeResponse,
   AdminEmployeesResponse,
   AdminUpdateEmployee,
-} from "../../../types";
-import {
-  QueryKey,
-  useMutation,
-  UseMutationOptions,
-  useQuery,
-  useQueryClient,
-  UseQueryOptions,
-} from "@tanstack/react-query";
-import { sdk } from "../../lib/client";
-import { queryKeysFactory } from "../../lib/query-key-factory";
+} from "../../../types"
+import { queryKeysFactory } from "../../lib/query-key-factory"
+import { sdk } from "../../lib/sdk"
 
-export const employeeQueryKey = queryKeysFactory("employee");
+export const employeeQueryKey = queryKeysFactory("employee")
 
 export const useEmployees = (
   companyId: string,
@@ -28,7 +28,7 @@ export const useEmployees = (
     QueryKey
   >
 ) => {
-  const filterQuery = new URLSearchParams(query).toString();
+  const filterQuery = new URLSearchParams(query).toString()
 
   const fetchEmployees = async () =>
     sdk.client.fetch<AdminEmployeesResponse>(
@@ -38,14 +38,14 @@ export const useEmployees = (
       {
         method: "GET",
       }
-    );
+    )
 
   return useQuery({
     queryKey: employeeQueryKey.list(companyId),
     queryFn: fetchEmployees,
     ...options,
-  });
-};
+  })
+}
 
 export const useCreateEmployee = (
   companyId: string,
@@ -55,7 +55,7 @@ export const useCreateEmployee = (
     AdminCreateEmployee
   >
 ) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (employee: AdminCreateEmployee) =>
@@ -72,12 +72,12 @@ export const useCreateEmployee = (
     onSuccess: (data: any, variables: any, context: any) => {
       queryClient.invalidateQueries({
         queryKey: employeeQueryKey.list(companyId),
-      });
-      options?.onSuccess?.(data, variables, context);
+      })
+      options?.onSuccess?.(data, variables, context)
     },
     ...options,
-  });
-};
+  })
+}
 
 export const useUpdateEmployee = (
   companyId: string,
@@ -88,7 +88,7 @@ export const useUpdateEmployee = (
     AdminUpdateEmployee
   >
 ) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (employee: AdminUpdateEmployee) =>
@@ -105,21 +105,21 @@ export const useUpdateEmployee = (
     onSuccess: (data: any, variables: any, context: any) => {
       queryClient.invalidateQueries({
         queryKey: employeeQueryKey.detail(employeeId),
-      });
+      })
       queryClient.invalidateQueries({
         queryKey: employeeQueryKey.list(companyId),
-      });
-      options?.onSuccess?.(data, variables, context);
+      })
+      options?.onSuccess?.(data, variables, context)
     },
     ...options,
-  });
-};
+  })
+}
 
 export const useDeleteEmployee = (
   companyId: string,
   options?: UseMutationOptions<void, FetchError, string>
 ) => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (employeeId: string) =>
@@ -132,9 +132,9 @@ export const useDeleteEmployee = (
     onSuccess: (data: any, variables: any, context: any) => {
       queryClient.invalidateQueries({
         queryKey: employeeQueryKey.list(companyId),
-      });
-      options?.onSuccess?.(data, variables, context);
+      })
+      options?.onSuccess?.(data, variables, context)
     },
     ...options,
-  });
-};
+  })
+}
