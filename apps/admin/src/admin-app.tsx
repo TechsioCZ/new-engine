@@ -7,6 +7,7 @@ import { clearStoredAdminToken, hasStoredAdminToken } from "./admin-auth"
 import { isAuthError } from "./admin-errors"
 import { LoginPage } from "./admin-login-page"
 import { PacketaLabelsPage } from "./admin-packeta-labels-page"
+import { PacketaSettingsPage } from "./admin-packeta-settings-page"
 import {
   CustomersPage,
   EmailsPage,
@@ -130,10 +131,7 @@ export function AdminApp() {
               element={<QrPaymentsSettingsPage />}
               path="/settings/qr-payments"
             />
-            <Route
-              element={<PlaceholderPage eyebrow="Nastaveni" title="Packeta" />}
-              path="/settings/packeta"
-            />
+            <Route element={<PacketaSettingsPage />} path="/settings/packeta" />
             <Route
               element={<PlaceholderPage eyebrow="Nastaveni" title="PPL" />}
               path="/settings/ppl"

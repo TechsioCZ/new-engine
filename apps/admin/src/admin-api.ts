@@ -22,6 +22,8 @@ import type {
   MedusaAdminProduct,
   MedusaAdminProductsResponse,
   MedusaPacketaLabelOrdersResponse,
+  PacketaConfigInput,
+  PacketaConfigResponse,
   PacketaLabelOrdersResponse,
   PendingB2BCustomersResponse,
   QrPaymentConfigInput,
@@ -404,11 +406,19 @@ function fetchQrPaymentConfigFromAdminApi(): Promise<QrPaymentConfigResponse> {
   return fetchAdminApi<QrPaymentConfigResponse>("/admin/qr-payment-config")
 }
 
+function fetchPacketaConfigFromAdminApi(): Promise<PacketaConfigResponse> {
+  return fetchAdminApi<PacketaConfigResponse>("/admin/packeta-config")
+}
+
 export function updateQrPaymentConfig(input: QrPaymentConfigInput) {
   return postAdminApi<QrPaymentConfigResponse>(
     "/admin/qr-payment-config",
     input
   )
+}
+
+export function updatePacketaConfig(input: PacketaConfigInput) {
+  return postAdminApi<PacketaConfigResponse>("/admin/packeta-config", input)
 }
 
 function toProductListItem(product: MedusaAdminProduct) {
@@ -523,6 +533,13 @@ export function useQrPaymentConfig() {
   return useQuery({
     queryFn: fetchQrPaymentConfigFromAdminApi,
     queryKey: ["qr-payment-config", MEDUSA_BACKEND_URL],
+  })
+}
+
+export function usePacketaConfig() {
+  return useQuery({
+    queryFn: fetchPacketaConfigFromAdminApi,
+    queryKey: ["packeta-config", MEDUSA_BACKEND_URL],
   })
 }
 

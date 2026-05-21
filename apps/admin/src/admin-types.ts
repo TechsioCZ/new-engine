@@ -149,6 +149,52 @@ export type PacketaLabelOrdersResponse = {
   orders: PacketaLabelOrder[]
 }
 
+export type PacketaConfigResponse = {
+  config: PacketaConfig
+}
+
+export type PacketaConfig = {
+  api_password_set: boolean
+  cod_bank_account_set: boolean
+  cod_bank_code_set: boolean
+  cod_iban_set: boolean
+  cod_swift_set: boolean
+  default_label_format: "A6" | "A7" | string
+  default_label_offset: number
+  environment: string
+  eshop_id: string | null
+  id: string
+  is_enabled: boolean
+  sender_city: string | null
+  sender_country: string | null
+  sender_email: string | null
+  sender_label: string | null
+  sender_name: string | null
+  sender_phone: string | null
+  sender_street: string | null
+  sender_zip_code: string | null
+}
+
+export type PacketaConfigInput = {
+  api_password?: string | null
+  cod_bank_account?: string | null
+  cod_bank_code?: string | null
+  cod_iban?: string | null
+  cod_swift?: string | null
+  default_label_format?: "A6" | "A7"
+  default_label_offset?: number
+  eshop_id?: string
+  is_enabled?: boolean
+  sender_city?: string
+  sender_country?: string
+  sender_email?: string
+  sender_label?: string
+  sender_name?: string
+  sender_phone?: string
+  sender_street?: string
+  sender_zip_code?: string
+}
+
 export type MedusaPacketaLabelOrdersResponse = {
   count: number
   limit: number
