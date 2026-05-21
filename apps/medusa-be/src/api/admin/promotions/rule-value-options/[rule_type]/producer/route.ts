@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -26,7 +27,7 @@ export async function GET(
 
   validateRuleType(ruleType)
 
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const filters: Record<string, unknown> = {}
   const searchQuery = req.validatedQuery.q
 
@@ -51,10 +52,12 @@ export async function GET(
     },
   })
 
-  const values = (data as ProducerRuleValue[]).map((producer) => ({
-    label: producer.title,
-    value: producer.id,
-  }))
+  const values = Array.isArray(data)
+    ? data.filter(isProducerRuleValue).map((producer) => ({
+        label: producer.title,
+        value: producer.id,
+      }))
+    : []
 
   res.json({
     values,
@@ -62,4 +65,13 @@ export async function GET(
     offset: metadata?.skip ?? offset,
     limit: metadata?.take ?? limit,
   })
+}
+
+function isProducerRuleValue(value: unknown): value is ProducerRuleValue {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as ProducerRuleValue).id === "string" &&
+    typeof (value as ProducerRuleValue).title === "string"
+  )
 }

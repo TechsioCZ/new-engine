@@ -1,10 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
-import type {
-  ApplicationMethodTargetTypeValues,
-  ApplicationMethodTypeValues,
-  PromotionTypeValues,
-} from "@medusajs/types"
+import type { RuleAttributeOptionsQuerySchemaType } from "../../schema"
 import type { RuleType } from "../../types"
 import { getExtendedRuleAttributesMap, validateRuleType } from "../../utils"
 
@@ -19,7 +15,10 @@ import { getExtendedRuleAttributesMap, validateRuleType } from "../../utils"
  * - application_method_type: "fixed" | "percentage"
  * - application_method_target_type: "order" | "items" | "shipping_methods"
  */
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(
+  req: MedusaRequest<unknown, RuleAttributeOptionsQuerySchemaType>,
+  res: MedusaResponse
+) {
   const ruleType = req.params.rule_type
 
   if (!ruleType) {
@@ -29,7 +28,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     )
   }
 
-  validateRuleType(ruleType)
+  assertRuleType(ruleType)
 
   const {
     promotion_type,
@@ -38,14 +37,14 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   } = req.validatedQuery
   const attributes =
     getExtendedRuleAttributesMap({
-      promotionType: promotion_type as PromotionTypeValues | undefined,
-      applicationMethodType: application_method_type as
-        | ApplicationMethodTypeValues
-        | undefined,
-      applicationMethodTargetType: application_method_target_type as
-        | ApplicationMethodTargetTypeValues
-        | undefined,
-    })[ruleType as RuleType] || []
+      promotionType: promotion_type,
+      applicationMethodType: application_method_type,
+      applicationMethodTargetType: application_method_target_type,
+    })[ruleType] || []
 
   res.json({ attributes })
+}
+
+function assertRuleType(ruleType: string): asserts ruleType is RuleType {
+  validateRuleType(ruleType)
 }

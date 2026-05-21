@@ -28,7 +28,8 @@ export function mapVariantToRuleValueOption(
     parts.push(variant.title)
   }
 
-  let label = parts.join(" - ") || variant.id
+  const joinedLabel = parts.join(" - ")
+  let label = joinedLabel === "" ? variant.id : joinedLabel
 
   if (variant.sku) {
     label += ` (${variant.sku})`

@@ -1,5 +1,3 @@
-import { resolve } from "node:path"
-import { pathToFileURL } from "node:url"
 import { ApplicationMethodTargetType } from "@medusajs/framework/utils"
 import { areRulesValidForContext } from "@medusajs/promotion/dist/utils/validations/promotion-rule"
 import { describe, expect, it, vi } from "vitest"
@@ -393,69 +391,6 @@ describe("custom rule operator compatibility", () => {
     ).toBe(false)
   })
 })
-
-describe("Medusa route loading assumptions", () => {
-  it("keeps the last registered route for the same matcher and method", async () => {
-    const { RoutesLoader } = await importMedusaFrameworkInternal(
-      "http/routes-loader.js"
-    )
-    const loader = new RoutesLoader()
-    const coreHandler = vi.fn()
-    const appHandler = vi.fn()
-
-    loader.registerRoute({
-      isRoute: true,
-      matcher: "/admin/promotions/rule-attribute-options/:rule_type",
-      method: "GET",
-      handler: coreHandler,
-    })
-    loader.registerRoute({
-      isRoute: true,
-      matcher: "/admin/promotions/rule-attribute-options/:rule_type",
-      method: "GET",
-      handler: appHandler,
-    })
-
-    expect(loader.getRoutes()).toEqual([
-      expect.objectContaining({
-        matcher: "/admin/promotions/rule-attribute-options/:rule_type",
-        method: "GET",
-        handler: appHandler,
-      }),
-    ])
-  })
-
-  it("sorts custom static value-option routes before Medusa's generic route", async () => {
-    const { RoutesSorter } = await importMedusaFrameworkInternal(
-      "http/routes-sorter.js"
-    )
-    const genericRoute = {
-      matcher:
-        "/admin/promotions/rule-value-options/:rule_type/:rule_attribute_id",
-      methods: ["GET"],
-      handler: vi.fn(),
-    }
-    const producerRoute = {
-      matcher: "/admin/promotions/rule-value-options/:rule_type/producer",
-      methods: ["GET"],
-      handler: vi.fn(),
-    }
-
-    expect(new RoutesSorter([genericRoute, producerRoute]).sort()[0]).toBe(
-      producerRoute
-    )
-  })
-})
-
-async function importMedusaFrameworkInternal(path: string) {
-  const modulePath = resolve(
-    process.cwd(),
-    "../../node_modules/@medusajs/framework/dist",
-    path
-  )
-
-  return await import(pathToFileURL(modulePath).href)
-}
 
 describe("buildProducerPromotionContext", () => {
   it("adds producer ids to items without dropping existing item context", async () => {

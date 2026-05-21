@@ -1,5 +1,6 @@
 import type {
   MedusaContainer,
+  Query,
   RemoteQueryFunction,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
@@ -35,8 +36,10 @@ export async function buildProducerPromotionContext(
   container: MedusaContainer,
   productProducerLinkEntryPoint: string
 ): Promise<Record<string, unknown>> {
-  const items = (source?.items ?? []) as PromotionContextItem[]
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const items = Array.isArray(source?.items)
+    ? source.items.filter(isPromotionContextItem)
+    : []
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const productIdsByVariantId = await resolveProductIdsByVariantId(query, items)
   const productIds = Array.from(
     new Set(
@@ -59,7 +62,9 @@ export async function buildProducerPromotionContext(
   })
 
   const producerIdsByProductId = new Map<string, string[]>()
-  for (const link of data as ProductProducerLinkRecord[]) {
+  const links = Array.isArray(data) ? data.filter(isProductProducerLink) : []
+
+  for (const link of links) {
     if (!(link.product_id && link.producer_id)) {
       continue
     }
@@ -110,9 +115,35 @@ async function resolveProductIdsByVariantId(
   })
 
   return new Map(
-    (data as ProductVariantRecord[])
-      .filter((variant) => !!(variant.id && variant.product_id))
-      .map((variant) => [variant.id as string, variant.product_id as string])
+    (Array.isArray(data) ? data.filter(isProductVariantRecord) : []).map(
+      (variant) => [variant.id, variant.product_id]
+    )
+  )
+}
+
+function isPromotionContextItem(item: unknown): item is PromotionContextItem {
+  return typeof item === "object" && item !== null
+}
+
+function isProductProducerLink(
+  value: unknown
+): value is Required<ProductProducerLinkRecord> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as ProductProducerLinkRecord).product_id === "string" &&
+    typeof (value as ProductProducerLinkRecord).producer_id === "string"
+  )
+}
+
+function isProductVariantRecord(
+  value: unknown
+): value is Required<ProductVariantRecord> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as ProductVariantRecord).id === "string" &&
+    typeof (value as ProductVariantRecord).product_id === "string"
   )
 }
 

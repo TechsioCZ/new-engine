@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -25,7 +26,7 @@ export async function GET(
 
   validateRuleType(ruleType)
 
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const filters: Record<string, unknown> = {}
   const searchQuery = req.validatedQuery.q
 
