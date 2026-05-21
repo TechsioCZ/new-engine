@@ -40,6 +40,8 @@ import type {
 const ADMIN_API_PAGE_SIZE = 100
 const ADMIN_API_SCAN_LIMIT = 2000
 const ACTION_REQUIRED_LIST_LIMIT = 50
+const ACTION_REQUIRED_REFETCH_INTERVAL_MS = 60_000
+const ACTION_REQUIRED_STALE_TIME_MS = 15_000
 const EMAIL_LOG_LIST_LIMIT = 20
 const PACKETA_LABEL_ORDER_LIST_LIMIT = 50
 const PRODUCT_LIST_LIMIT = 20
@@ -587,29 +589,38 @@ export function useActionRequiredSummary({
         customers: { count: customers.count },
       }
     },
+    refetchInterval: enabled ? ACTION_REQUIRED_REFETCH_INTERVAL_MS : false,
+    refetchOnWindowFocus: true,
     queryKey: ["action-required-summary", MEDUSA_BACKEND_URL],
+    staleTime: ACTION_REQUIRED_STALE_TIME_MS,
   })
 }
 
 export function useActionRequiredOrders() {
   return useQuery({
     queryFn: fetchActionRequiredOrdersFromAdminApi,
+    refetchInterval: ACTION_REQUIRED_REFETCH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
     queryKey: [
       "action-required-orders",
       MEDUSA_BACKEND_URL,
       { limit: ACTION_REQUIRED_LIST_LIMIT, offset: 0 },
     ],
+    staleTime: ACTION_REQUIRED_STALE_TIME_MS,
   })
 }
 
 export function usePendingB2BCustomers() {
   return useQuery({
     queryFn: fetchPendingB2BCustomersFromAdminApi,
+    refetchInterval: ACTION_REQUIRED_REFETCH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
     queryKey: [
       "pending-b2b-customers",
       MEDUSA_BACKEND_URL,
       { limit: ACTION_REQUIRED_LIST_LIMIT, offset: 0 },
     ],
+    staleTime: ACTION_REQUIRED_STALE_TIME_MS,
   })
 }
 
