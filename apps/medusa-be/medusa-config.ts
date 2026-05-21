@@ -6,7 +6,10 @@ import {
 } from "@medusajs/framework/utils"
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
 import { buildPaykitPaymentProviders } from "./src/modules/payment-paykit/medusa-config"
-import { QR_PAYMENT_PROVIDER_ID } from "./src/modules/payment-qr/constants"
+import {
+  QR_PAYMENT_MODULE,
+  QR_PAYMENT_PROVIDER_ID,
+} from "./src/modules/payment-qr/constants"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -393,7 +396,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "@medusajs/medusa/payment",
-      dependencies: [...(FEATURE_PAYMENT_QR_ENABLED ? ["qr_payment"] : [])],
+      dependencies: [
+        ...(FEATURE_PAYMENT_QR_ENABLED ? [QR_PAYMENT_MODULE] : []),
+      ],
       options: {
         providers: PAYMENT_PROVIDERS,
       },
