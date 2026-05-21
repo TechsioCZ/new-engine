@@ -51,6 +51,26 @@ export type PendingB2BCustomersResponse = {
 
 export type BadgeKey = "ordersActionRequired" | "customersActionRequired"
 
+export type AdminProductListItem = {
+  collection_title: string | null
+  handle: string | null
+  id: string
+  sales_channel_count: number
+  status: string | null
+  thumbnail: string | null
+  title: string
+  variant_count: number
+}
+
+export type AdminProductsResponse = {
+  count: number
+  has_next: boolean
+  has_previous: boolean
+  limit: number
+  offset: number
+  products: AdminProductListItem[]
+}
+
 export type MedusaAdminPaymentCollection = {
   status?: string | null
 }
@@ -100,4 +120,34 @@ export type MedusaAdminCustomersResponse = {
   customers: MedusaAdminCustomer[]
   limit: number
   offset: number
+}
+
+export type MedusaAdminProductCollection = {
+  title?: string | null
+}
+
+export type MedusaAdminProductSalesChannel = {
+  id: string
+}
+
+export type MedusaAdminProductVariant = {
+  id: string
+}
+
+export type MedusaAdminProduct = {
+  collection?: MedusaAdminProductCollection | null
+  handle?: string | null
+  id: string
+  sales_channels?: MedusaAdminProductSalesChannel[] | null
+  status?: string | null
+  thumbnail?: string | null
+  title?: string | null
+  variants?: MedusaAdminProductVariant[] | null
+}
+
+export type MedusaAdminProductsResponse = {
+  count: number
+  limit: number
+  offset: number
+  products: MedusaAdminProduct[]
 }

@@ -1,12 +1,17 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom"
 import { useActionRequiredSummary } from "./admin-api"
 import { clearStoredAdminToken, hasStoredAdminToken } from "./admin-auth"
 import { isAuthError } from "./admin-errors"
 import { LoginPage } from "./admin-login-page"
-import { CustomersPage, OrdersPage } from "./admin-pages"
+import {
+  CustomersPage,
+  OrdersPage,
+  PlaceholderPage,
+  ProductsPage,
+} from "./admin-pages"
 import type { BadgeKey } from "./admin-types"
 import { type AdminNavItem, adminNavItems } from "./nav-config"
 
@@ -58,7 +63,82 @@ export function AdminApp() {
               path="/"
             />
             <Route element={<OrdersPage />} path="/orders" />
+            <Route
+              element={
+                <PlaceholderPage
+                  eyebrow="Objednavky"
+                  title="Draft objednavky"
+                />
+              }
+              path="/drafts"
+            />
+            <Route element={<ProductsPage />} path="/products" />
+            <Route
+              element={
+                <PlaceholderPage eyebrow="Sklad" title="Skladove workflow" />
+              }
+              path="/inventory"
+            />
             <Route element={<CustomersPage />} path="/customers" />
+            <Route
+              element={
+                <PlaceholderPage eyebrow="Promoce" title="Promocni workflow" />
+              }
+              path="/promotions"
+            />
+            <Route
+              element={
+                <PlaceholderPage eyebrow="Ceniky" title="Cenikove workflow" />
+              }
+              path="/price-lists"
+            />
+            <Route
+              element={<PlaceholderPage eyebrow="Content" title="Content" />}
+              path="/content"
+            />
+            <Route
+              element={
+                <PlaceholderPage
+                  eyebrow="Image Gallery"
+                  title="Image Gallery"
+                />
+              }
+              path="/image-gallery"
+            />
+            <Route
+              element={<PlaceholderPage eyebrow="Emails" title="Emails" />}
+              path="/emails"
+            />
+            <Route
+              element={
+                <PlaceholderPage eyebrow="Producers" title="Producers" />
+              }
+              path="/producers"
+            />
+            <Route
+              element={
+                <PlaceholderPage eyebrow="Packeta" title="Packeta Labels" />
+              }
+              path="/packeta-labels"
+            />
+            <Route
+              element={
+                <PlaceholderPage
+                  eyebrow="Objednavky"
+                  title="Order Operations"
+                />
+              }
+              path="/order-operations"
+            />
+            <Route
+              element={
+                <PlaceholderPage
+                  eyebrow="Nastaveni"
+                  title="Nastaveni obchodu"
+                />
+              }
+              path="/settings"
+            />
             <Route
               element={<Navigate replace to="/orders?view=action-required" />}
               path="*"
@@ -86,6 +166,8 @@ function Sidebar({
   onLogout: () => void
   summary: SummaryCounts | undefined
 }) {
+  let currentSection: string | undefined
+
   return (
     <aside aria-label="Admin navigation" className="admin-sidebar">
       <div className="admin-brand">
@@ -96,9 +178,19 @@ function Sidebar({
         </span>
       </div>
       <nav className="admin-nav">
-        {adminNavItems.map((item) => (
-          <SidebarItem item={item} key={item.href} summary={summary} />
-        ))}
+        {adminNavItems.map((item) => {
+          const shouldRenderSection = item.section !== currentSection
+          currentSection = item.section
+
+          return (
+            <Fragment key={item.href}>
+              {shouldRenderSection && item.section && (
+                <span className="admin-nav-section">{item.section}</span>
+              )}
+              <SidebarItem item={item} summary={summary} />
+            </Fragment>
+          )
+        })}
       </nav>
       <button className="admin-sidebar-action" onClick={onLogout} type="button">
         Odhlasit

@@ -11,16 +11,20 @@ import {
 import type {
   ActionRequiredOrdersResponse,
   ActionRequiredSummary,
+  AdminProductsResponse,
   MedusaAdminCustomer,
   MedusaAdminCustomersResponse,
   MedusaAdminOrder,
   MedusaAdminOrdersResponse,
+  MedusaAdminProduct,
+  MedusaAdminProductsResponse,
   PendingB2BCustomersResponse,
 } from "./admin-types"
 
 const ADMIN_API_PAGE_SIZE = 100
 const ADMIN_API_SCAN_LIMIT = 2000
 const ACTION_REQUIRED_LIST_LIMIT = 50
+const PRODUCT_LIST_LIMIT = 20
 
 const ORDER_FIELDS = [
   "id",
@@ -49,6 +53,22 @@ const CUSTOMER_FIELDS = [
   "phone",
   "created_at",
   "metadata",
+].join(",")
+
+const PRODUCT_FIELDS = [
+  "id",
+  "title",
+  "handle",
+  "status",
+  "*collection",
+  "*sales_channels",
+  "variants.id",
+  "thumbnail",
+  "-type",
+  "-options",
+  "-tags",
+  "-images",
+  "-variants",
 ].join(",")
 
 type FetchAllAdminPagesInput<TResponse, TItem> = {
@@ -171,6 +191,48 @@ async function fetchPendingB2BCustomersFromAdminApi(): Promise<PendingB2BCustome
   }
 }
 
+async function fetchProductsFromAdminApi({
+  offset,
+  q,
+}: {
+  offset: number
+  q?: string
+}): Promise<AdminProductsResponse> {
+  const response = await fetchAdminApi<MedusaAdminProductsResponse>(
+    "/admin/products",
+    {
+      fields: PRODUCT_FIELDS,
+      is_giftcard: "false",
+      limit: String(PRODUCT_LIST_LIMIT),
+      offset: String(offset),
+      order: "-created_at",
+      ...(q ? { q } : {}),
+    }
+  )
+
+  return {
+    count: response.count,
+    has_next: response.offset + response.limit < response.count,
+    has_previous: response.offset > 0,
+    limit: response.limit,
+    offset: response.offset,
+    products: response.products.map(toProductListItem),
+  }
+}
+
+function toProductListItem(product: MedusaAdminProduct) {
+  return {
+    collection_title: product.collection?.title ?? null,
+    handle: product.handle ?? null,
+    id: product.id,
+    sales_channel_count: product.sales_channels?.length ?? 0,
+    status: product.status ?? null,
+    thumbnail: product.thumbnail ?? null,
+    title: product.title ?? product.id,
+    variant_count: product.variants?.length ?? 0,
+  }
+}
+
 export function useActionRequiredSummary({
   enabled = true,
 }: {
@@ -214,3 +276,22 @@ export function usePendingB2BCustomers() {
     ],
   })
 }
+
+export function useAdminProducts({
+  offset,
+  q,
+}: {
+  offset: number
+  q?: string
+}) {
+  return useQuery({
+    queryFn: () => fetchProductsFromAdminApi({ offset, q }),
+    queryKey: [
+      "admin-products",
+      MEDUSA_BACKEND_URL,
+      { limit: PRODUCT_LIST_LIMIT, offset, q },
+    ],
+  })
+}
+
+export { PRODUCT_LIST_LIMIT }

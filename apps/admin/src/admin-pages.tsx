@@ -1,7 +1,18 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import type { ReactNode } from "react"
-import { useActionRequiredOrders, usePendingB2BCustomers } from "./admin-api"
-import type { ActionRequiredOrder, PendingB2BCustomer } from "./admin-types"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { type FormEvent, type ReactNode, useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
+import {
+  PRODUCT_LIST_LIMIT,
+  useActionRequiredOrders,
+  useAdminProducts,
+  usePendingB2BCustomers,
+} from "./admin-api"
+import type {
+  ActionRequiredOrder,
+  AdminProductListItem,
+  PendingB2BCustomer,
+} from "./admin-types"
 
 const SKELETON_ROW_IDS = [
   "skeleton-1",
@@ -9,6 +20,7 @@ const SKELETON_ROW_IDS = [
   "skeleton-3",
   "skeleton-4",
 ]
+const PRODUCT_TITLE_SPLIT_PATTERN = /\s+/
 
 export function OrdersPage() {
   const orders = useActionRequiredOrders()
@@ -56,6 +68,164 @@ export function CustomersPage() {
   )
 }
 
+export function ProductsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const q = searchParams.get("q")?.trim() ?? ""
+  const offset = readOffset(searchParams.get("offset"))
+  const [searchValue, setSearchValue] = useState(q)
+  const products = useAdminProducts({ offset, q: q || undefined })
+
+  useEffect(() => {
+    setSearchValue(q)
+  }, [q])
+
+  function updateProductParams(next: { offset?: number; q?: string }) {
+    const params = new URLSearchParams(searchParams)
+
+    if (typeof next.offset === "number" && next.offset > 0) {
+      params.set("offset", String(next.offset))
+    } else if (typeof next.offset === "number") {
+      params.delete("offset")
+    }
+
+    if (typeof next.q === "string" && next.q.trim()) {
+      params.set("q", next.q.trim())
+    } else if (typeof next.q === "string") {
+      params.delete("q")
+    }
+
+    setSearchParams(params)
+  }
+
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    updateProductParams({ offset: 0, q: searchValue })
+  }
+
+  function handleClearSearch() {
+    setSearchValue("")
+    updateProductParams({ offset: 0, q: "" })
+  }
+
+  return (
+    <section className="admin-page">
+      <PageHeader
+        eyebrow="Produkty"
+        title="Produktovy katalog"
+        value={products.data?.count}
+      />
+      <div className="admin-page-toolbar">
+        <form className="admin-search-form" onSubmit={handleSearchSubmit}>
+          <input
+            aria-label="Hledat produkty"
+            className="admin-search-input"
+            onChange={(event) => setSearchValue(event.target.value)}
+            placeholder="Nazev nebo handle"
+            type="search"
+            value={searchValue}
+          />
+          <Button
+            className="admin-toolbar-button"
+            size="sm"
+            theme="outlined"
+            type="submit"
+            variant="secondary"
+          >
+            Hledat
+          </Button>
+          {q && (
+            <Button
+              className="admin-toolbar-button"
+              onClick={handleClearSearch}
+              size="sm"
+              theme="borderless"
+              type="button"
+              variant="secondary"
+            >
+              Zrusit
+            </Button>
+          )}
+        </form>
+      </div>
+      <DataSurface
+        emptyLabel="Zadne produkty se nepodarilo najit."
+        errorLabel="Produkty se nepodarilo nacist."
+        isError={products.isError}
+        isLoading={products.isLoading}
+        renderRow={(product) => (
+          <ProductRow key={product.id} product={product} />
+        )}
+        rows={products.data?.products ?? []}
+      />
+      {products.data && products.data.count > 0 && (
+        <div className="admin-pagination">
+          <Button
+            className="admin-pagination-button"
+            disabled={!products.data.has_previous}
+            onClick={() =>
+              updateProductParams({
+                offset: Math.max(0, offset - PRODUCT_LIST_LIMIT),
+                q,
+              })
+            }
+            size="sm"
+            theme="outlined"
+            type="button"
+            variant="secondary"
+          >
+            Predchozi
+          </Button>
+          <span>
+            {products.data.offset + 1}-
+            {Math.min(
+              products.data.offset + products.data.limit,
+              products.data.count
+            )}{" "}
+            z {products.data.count}
+          </span>
+          <Button
+            className="admin-pagination-button"
+            disabled={!products.data.has_next}
+            onClick={() =>
+              updateProductParams({
+                offset: offset + PRODUCT_LIST_LIMIT,
+                q,
+              })
+            }
+            size="sm"
+            theme="outlined"
+            type="button"
+            variant="secondary"
+          >
+            Dalsi
+          </Button>
+        </div>
+      )}
+    </section>
+  )
+}
+
+export function PlaceholderPage({
+  eyebrow,
+  title,
+}: {
+  eyebrow: string
+  title: string
+}) {
+  return (
+    <section className="admin-page">
+      <PageHeader eyebrow={eyebrow} title={title} />
+      <div className="admin-placeholder">
+        <strong>Soucast naseho adminu</strong>
+        <span>
+          Tahle sekce zustava v nove aplikaci. Dalsi krok je napojit jeji
+          konkretni Medusa Admin API workflow bez odkazu do puvodniho adminu.
+        </span>
+      </div>
+    </section>
+  )
+}
+
 function PageHeader({
   eyebrow,
   title,
@@ -63,7 +233,7 @@ function PageHeader({
 }: {
   eyebrow: string
   title: string
-  value: number | undefined
+  value?: number | undefined
 }) {
   return (
     <header className="admin-page-header">
@@ -71,10 +241,12 @@ function PageHeader({
         <span className="admin-eyebrow">{eyebrow}</span>
         <h1>{title}</h1>
       </div>
-      <div className="admin-page-count">
-        <span>{value ?? "-"}</span>
-        <small>polozek</small>
-      </div>
+      {typeof value === "number" && (
+        <div className="admin-page-count">
+          <span>{value}</span>
+          <small>polozek</small>
+        </div>
+      )}
     </header>
   )
 }
@@ -149,6 +321,49 @@ function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
   )
 }
 
+function ProductRow({ product }: { product: AdminProductListItem }) {
+  return (
+    <article className="admin-row admin-product-row">
+      <div className="admin-product-main">
+        <div className="admin-product-media">
+          {product.thumbnail ? (
+            <span
+              className="admin-product-thumb"
+              style={getProductThumbnailStyle(product.thumbnail)}
+            />
+          ) : (
+            <span className="admin-product-thumb-fallback">
+              {getProductInitials(product.title)}
+            </span>
+          )}
+        </div>
+        <div>
+          <strong>{product.title}</strong>
+          <span>{product.handle ? `/${product.handle}` : product.id}</span>
+          {product.collection_title && (
+            <span className="admin-product-subtle">
+              {product.collection_title}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="admin-row-meta admin-product-meta">
+        <Badge
+          className="admin-status-badge"
+          size="sm"
+          variant={product.status === "published" ? "info" : "warning"}
+        >
+          {product.status ?? "draft"}
+        </Badge>
+        <span>{formatCount(product.variant_count, "varianta", "variant")}</span>
+        <span>
+          {formatCount(product.sales_channel_count, "kanal", "kanalu")}
+        </span>
+      </div>
+    </article>
+  )
+}
+
 function formatOrderId(order: ActionRequiredOrder) {
   return (
     order.custom_display_id ??
@@ -162,6 +377,36 @@ function formatCustomerName(customer: PendingB2BCustomer) {
     .join(" ")
 
   return customer.company_name ?? (fullName || customer.id)
+}
+
+function getProductInitials(title: string) {
+  return title
+    .split(PRODUCT_TITLE_SPLIT_PATTERN)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function getProductThumbnailStyle(thumbnail: string) {
+  return {
+    backgroundImage: `url("${thumbnail.replaceAll('"', "%22")}")`,
+  }
+}
+
+function formatCount(value: number, singular: string, plural: string) {
+  return `${value} ${value === 1 ? singular : plural}`
+}
+
+function readOffset(value: string | null) {
+  const offset = Number(value)
+
+  if (!Number.isFinite(offset) || offset <= 0) {
+    return 0
+  }
+
+  return Math.floor(offset)
 }
 
 function formatMoney(
