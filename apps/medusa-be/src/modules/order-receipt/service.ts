@@ -1,5 +1,5 @@
 import { orderPaymentQr } from "../../utils/order-payment-qr"
-import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../qr-payment/constants"
+import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../payment-qr/constants"
 import {
   formatDate,
   formatMoney,

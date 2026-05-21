@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import OrderReceiptModuleService from "../../../../../src/modules/order-receipt/service"
-import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../../../../../src/modules/qr-payment/constants"
+import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../../../../../src/modules/payment-qr/constants"
 
 const baseOrder = {
   created_at: "2026-05-19T08:00:00.000Z",

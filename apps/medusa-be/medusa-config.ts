@@ -6,7 +6,7 @@ import {
 } from "@medusajs/framework/utils"
 import { buildProductFacetDocument } from "./src/modules/meilisearch/facets/product-facets"
 import { buildPaykitPaymentProviders } from "./src/modules/payment-paykit/medusa-config"
-import { QR_PAYMENT_PROVIDER_ID } from "./src/modules/qr-payment/constants"
+import { QR_PAYMENT_PROVIDER_ID } from "./src/modules/payment-qr/constants"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -28,13 +28,19 @@ const MEILISEARCH_TYPO_TOLERANCE_SETTINGS = {
 const FEATURE_PPL_ENABLED = process.env.FEATURE_PPL_ENABLED === "1"
 const FEATURE_PACKETA_ENABLED = process.env.FEATURE_PACKETA_ENABLED === "1"
 const FEATURE_PAYLOAD_ENABLED = process.env.FEATURE_PAYLOAD_ENABLED === "1"
+const FEATURE_PAYMENT_QR_ENABLED =
+  (process.env.FEATURE_PAYMENT_QR_ENABLED ?? "1") === "1"
 
 const PAYKIT_PAYMENT_PROVIDERS = buildPaykitPaymentProviders()
 const QR_PAYMENT_PROVIDER = {
-  resolve: "./src/modules/qr-payment/services/manual",
+  resolve: "./src/modules/payment-qr/services/manual",
   id: QR_PAYMENT_PROVIDER_ID,
   options: {},
 }
+const PAYMENT_PROVIDERS = [
+  ...(FEATURE_PAYMENT_QR_ENABLED ? [QR_PAYMENT_PROVIDER] : []),
+  ...PAYKIT_PAYMENT_PROVIDERS,
+]
 
 const NOTIFICATION_PROVIDER = process.env.NOTIFICATION_PROVIDER ?? "resend"
 const RESEND_API_KEY = process.env.RESEND_API_KEY
@@ -320,9 +326,13 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/order-receipt",
     },
-    {
-      resolve: "./src/modules/qr-payment",
-    },
+    ...(FEATURE_PAYMENT_QR_ENABLED
+      ? [
+          {
+            resolve: "./src/modules/payment-qr",
+          },
+        ]
+      : []),
     {
       resolve: "@medusajs/event-bus-redis",
       key: Modules.EVENT_BUS,
@@ -383,9 +393,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "@medusajs/medusa/payment",
-      dependencies: ["qr_payment"],
+      dependencies: [...(FEATURE_PAYMENT_QR_ENABLED ? ["qr_payment"] : [])],
       options: {
-        providers: [QR_PAYMENT_PROVIDER, ...PAYKIT_PAYMENT_PROVIDERS],
+        providers: PAYMENT_PROVIDERS,
       },
     },
     // PPL Client Module - config stored in DB, managed via Settings → PPL

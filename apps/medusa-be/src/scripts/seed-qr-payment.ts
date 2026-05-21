@@ -18,7 +18,7 @@ import {
   type SetRegionsPaymentProvidersStepInput,
   setRegionsPaymentProvidersStep,
 } from "@medusajs/medusa/core-flows"
-import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../modules/qr-payment/constants"
+import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../modules/payment-qr/constants"
 
 type RegionPaymentProviderLink = {
   payment_provider_id: string
