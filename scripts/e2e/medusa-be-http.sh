@@ -9,7 +9,7 @@ PROJECT_NAME="${MEDUSA_E2E_PROJECT_NAME:-new-engine-e2e}"
 WAIT_TIMEOUT_SECONDS="${MEDUSA_E2E_WAIT_TIMEOUT_SECONDS:-300}"
 KEEP_STACK="${MEDUSA_E2E_KEEP_STACK:-0}"
 TEST_TARGET="${MEDUSA_E2E_TEST_TARGET:-}"
-TEST_TYPE_VALUE="${MEDUSA_E2E_TEST_TYPE:-integration:http}"
+TEST_TYPE_VALUE="${MEDUSA_E2E_TEST_TYPE:-e2e:http}"
 DOWN_VOLUMES="${MEDUSA_E2E_DOWN_VOLUMES:-1}"
 COMPOSE_BUILD="${MEDUSA_E2E_COMPOSE_BUILD:-1}"
 
@@ -163,7 +163,7 @@ Environment:
   MEDUSA_E2E_COMPOSE_OVERRIDE_FILE Optional docker compose override file
   MEDUSA_E2E_COMPOSE_BUILD    Set to 0 to skip docker compose --build on up (default: 1)
   MEDUSA_E2E_DOWN_VOLUMES     Set to 0 to keep volumes on down (default: 1)
-  MEDUSA_E2E_TEST_TARGET      Optional space-separated Vitest targets or file filters (default: all HTTP specs from vitest.config.ts)
+  MEDUSA_E2E_TEST_TARGET      Optional space-separated Vitest targets or file filters (default: all Docker-backed HTTP e2e specs from vitest.config.ts)
 USAGE
 }
 

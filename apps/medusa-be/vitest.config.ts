@@ -8,7 +8,8 @@ const projectRoot = __dirname
 const testType = process.env.TEST_TYPE ?? "unit"
 const isHttpIntegration = testType === "integration:http"
 const isModuleIntegration = testType === "integration:modules"
-const isIntegration = isHttpIntegration || isModuleIntegration
+const isHttpE2E = testType === "e2e:http"
+const isIntegration = isHttpIntegration || isModuleIntegration || isHttpE2E
 
 if (isIntegration) {
   loadEnv("test", projectRoot)
@@ -23,6 +24,10 @@ let include = [
 
 if (isHttpIntegration) {
   include = ["integration-tests/http/**/*.spec.ts"]
+}
+
+if (isHttpE2E) {
+  include = ["e2e-tests/http/**/*.spec.ts"]
 }
 
 if (isModuleIntegration) {
