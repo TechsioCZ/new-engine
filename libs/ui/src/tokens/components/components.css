@@ -30,6 +30,7 @@
 @import "./molecules/_slider.css";
 @import "./molecules/_search-form.css";
 @import "./molecules/_select.css";
+@import "./molecules/_phone-input.css";
 @import "./molecules/_steps.css";
 @import "./molecules/_switch.css";
 @import "./molecules/_toast.css";
