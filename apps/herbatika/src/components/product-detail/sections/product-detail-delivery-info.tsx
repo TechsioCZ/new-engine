@@ -18,7 +18,7 @@ export function ProductDetailDeliveryInfo({
 
   return (
     <div className="rounded-lg bg-surface p-550">
-      <div className="flex flex-wrap items-center gap-650 lg:max-lg:flex lg:max-lg:flex-col">
+      <div className="flex flex-nowrap items-center gap-650 lg:max-lg:flex lg:max-lg:flex-col">
         <div className="flex gap-200 items-start">
           <Icon
             className={`text-icon-delivery-size leading-none self-start ${offerState.isInStock ? "text-primary" : "text-warning"}`}
@@ -28,13 +28,11 @@ export function ProductDetailDeliveryInfo({
             <span className={`font-semibold ${availabilityToneClass}`}>
               {offerState.availabilityLabel}
             </span>
-            {deliveryDateMatch ? (
+            {deliveryDateMatch && (
               <>
                 <span className="font-normal text-fg-secondary">, u vás do </span>
                 <span className="font-semibold text-fg-primary">{deliveryDateMatch[1]}</span>
               </>
-            ) : (
-              <span className="font-normal text-fg-secondary">{`, ${offerState.deliveryLabel}`}</span>
             )}
           </SupportingText>
         </div>
