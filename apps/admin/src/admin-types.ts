@@ -156,6 +156,19 @@ export type MedusaPacketaLabelOrdersResponse = {
   orders: PacketaLabelOrder[]
 }
 
+export type QrPaymentConfig = {
+  iban: string | null
+  id: string
+}
+
+export type QrPaymentConfigResponse = {
+  config: QrPaymentConfig
+}
+
+export type QrPaymentConfigInput = {
+  iban?: string | null
+}
+
 export type MedusaAdminPaymentCollection = {
   status?: string | null
 }

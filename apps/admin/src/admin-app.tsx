@@ -14,6 +14,7 @@ import {
   PlaceholderPage,
   ProductsPage,
 } from "./admin-pages"
+import { QrPaymentsSettingsPage, SettingsPage } from "./admin-settings-page"
 import type { BadgeKey } from "./admin-types"
 import { type AdminNavItem, adminNavItems } from "./nav-config"
 
@@ -124,14 +125,22 @@ export function AdminApp() {
               }
               path="/order-operations"
             />
+            <Route element={<SettingsPage />} path="/settings" />
             <Route
-              element={
-                <PlaceholderPage
-                  eyebrow="Nastaveni"
-                  title="Nastaveni obchodu"
-                />
-              }
-              path="/settings"
+              element={<QrPaymentsSettingsPage />}
+              path="/settings/qr-payments"
+            />
+            <Route
+              element={<PlaceholderPage eyebrow="Nastaveni" title="Packeta" />}
+              path="/settings/packeta"
+            />
+            <Route
+              element={<PlaceholderPage eyebrow="Nastaveni" title="PPL" />}
+              path="/settings/ppl"
+            />
+            <Route
+              element={<PlaceholderPage eyebrow="Nastaveni" title="Payload" />}
+              path="/settings/payload"
             />
             <Route
               element={<Navigate replace to="/orders?view=action-required" />}

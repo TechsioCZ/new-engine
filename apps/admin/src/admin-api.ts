@@ -24,6 +24,8 @@ import type {
   MedusaPacketaLabelOrdersResponse,
   PacketaLabelOrdersResponse,
   PendingB2BCustomersResponse,
+  QrPaymentConfigInput,
+  QrPaymentConfigResponse,
 } from "./admin-types"
 
 const ADMIN_API_PAGE_SIZE = 100
@@ -120,6 +122,42 @@ async function fetchAdminApi<TResponse>(
       `Admin API request failed with ${response.status}`,
       response.status
     )
+  }
+
+  return response.json() as Promise<TResponse>
+}
+
+async function postAdminApi<TResponse>(
+  path: string,
+  body: unknown
+): Promise<TResponse> {
+  const headers = new Headers({
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  })
+  const token = getStoredAdminToken()
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
+  }
+
+  const response = await fetch(buildMedusaUrl(path), {
+    body: JSON.stringify(body),
+    credentials: "include",
+    headers,
+    method: "POST",
+  })
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      message?: unknown
+    } | null
+    const message =
+      typeof payload?.message === "string"
+        ? payload.message
+        : `Admin API request failed with ${response.status}`
+
+    throw createApiError(message, response.status)
   }
 
   return response.json() as Promise<TResponse>
@@ -362,6 +400,17 @@ export function downloadPacketaLabels({
   })
 }
 
+function fetchQrPaymentConfigFromAdminApi(): Promise<QrPaymentConfigResponse> {
+  return fetchAdminApi<QrPaymentConfigResponse>("/admin/qr-payment-config")
+}
+
+export function updateQrPaymentConfig(input: QrPaymentConfigInput) {
+  return postAdminApi<QrPaymentConfigResponse>(
+    "/admin/qr-payment-config",
+    input
+  )
+}
+
 function toProductListItem(product: MedusaAdminProduct) {
   return {
     collection_title: product.collection?.title ?? null,
@@ -467,6 +516,13 @@ export function usePacketaLabelOrders({ offset }: { offset: number }) {
       MEDUSA_BACKEND_URL,
       { limit: PACKETA_LABEL_ORDER_LIST_LIMIT, offset },
     ],
+  })
+}
+
+export function useQrPaymentConfig() {
+  return useQuery({
+    queryFn: fetchQrPaymentConfigFromAdminApi,
+    queryKey: ["qr-payment-config", MEDUSA_BACKEND_URL],
   })
 }
 
