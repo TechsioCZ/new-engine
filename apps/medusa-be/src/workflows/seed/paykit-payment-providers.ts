@@ -4,8 +4,7 @@ import {
   PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
   PAYKIT_STRIPE_PROVIDER_ID,
 } from "../../modules/payment-paykit/config"
-
-const SYSTEM_PAYMENT_PROVIDER_ID = "pp_system_default"
+import { SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID } from "./constants"
 
 const toMedusaPaymentProviderId = (providerId: string) =>
   `pp_${PAYKIT_PAYMENT_PROVIDER_IDENTIFIER}_${providerId}`
@@ -22,7 +21,7 @@ const mergePaymentProviders = (
 ) => {
   const baseProviderIds = currentProviderIds?.length
     ? currentProviderIds
-    : [SYSTEM_PAYMENT_PROVIDER_ID]
+    : [SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID]
 
   return [...new Set([...baseProviderIds, ...paykitProviderIds])]
 }

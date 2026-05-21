@@ -1,5 +1,5 @@
 import { MedusaService } from "@medusajs/framework/utils"
-import QrPaymentConfig from "./models/qr-payment-config"
+import QrPaymentConfig from "./models/payment-qr-config"
 import type { QrPaymentConfigDTO, UpdateQrPaymentConfigInput } from "./types"
 
 export class QrPaymentModuleService extends MedusaService({

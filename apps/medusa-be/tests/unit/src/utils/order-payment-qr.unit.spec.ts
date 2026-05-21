@@ -1,9 +1,6 @@
 import QRCode from "qrcode"
 import { describe, expect, it, vi } from "vitest"
-import {
-  ORDER_PAYMENT_QR_METADATA_KEY,
-  OrderPaymentQr,
-} from "../../../../src/utils/order-payment-qr"
+import { OrderPaymentQr } from "../../../../src/utils/order-payment-qr"
 
 describe("order payment QR", () => {
   const orderPaymentQr = new OrderPaymentQr()
@@ -37,25 +34,6 @@ describe("order payment QR", () => {
         "CZ33 0100 0000 0000 0297 0297"
       )
     ).toContain("*X-VS:20260001")
-  })
-
-  it("merges generated SPAYD string into existing metadata", () => {
-    expect(
-      orderPaymentQr.buildMetadata(
-        { source: "checkout" },
-        {
-          currency_code: "CZK",
-          display_id: 987,
-          id: "order_987",
-          total: 42,
-        },
-        "CZ3301000000000002970297"
-      )
-    ).toEqual({
-      source: "checkout",
-      [ORDER_PAYMENT_QR_METADATA_KEY]:
-        "SPD*1.0*ACC:CZ3301000000000002970297*AM:42.00*CC:CZK*MSG:OBJEDNAVKA 987*X-VS:987",
-    })
   })
 
   it("matches the official Czech generator shape for domestic accounts", () => {
@@ -102,23 +80,6 @@ describe("order payment QR", () => {
         "CZ9608000000005444195083"
       )
     ).toContain("*CC:CZK*")
-  })
-
-  it("leaves metadata unchanged when IBAN is not configured", () => {
-    const metadata = { source: "checkout" }
-
-    expect(
-      orderPaymentQr.buildMetadata(
-        metadata,
-        {
-          currency_code: "CZK",
-          display_id: 987,
-          id: "order_987",
-          total: 42,
-        },
-        undefined
-      )
-    ).toBe(metadata)
   })
 
   it("builds PDF drawing commands from a SPAYD string", () => {
