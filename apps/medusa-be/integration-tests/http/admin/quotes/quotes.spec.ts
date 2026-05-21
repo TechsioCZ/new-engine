@@ -1,21 +1,24 @@
-import { medusaIntegrationTestRunner } from "@medusajs/test-utils";
+import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
+import { vi } from "vitest"
 import {
   adminHeaders,
   createAdminUser,
   createStoreUser,
-} from "../../../utils/admin";
+} from "../../../utils/admin"
 import {
   cartSeeder,
   productSeeder,
   regionSeeder,
   salesChannelSeeder,
-} from "../../../utils/seeder";
+} from "../../../utils/seeder"
 import {
   generatePublishableKey,
   generateStoreHeaders,
-} from "../../../utils/store";
+} from "../../../utils/store"
 
-jest.setTimeout(60 * 1000);
+type TestValue = any
+
+vi.setConfig({ testTimeout: 60 * 1000 })
 
 medusaIntegrationTestRunner({
   inApp: true,
@@ -23,23 +26,28 @@ medusaIntegrationTestRunner({
     JWT_SECRET: "supersecret",
   },
   testSuite: ({ api, getContainer }) => {
-    let storeHeaders, cart, product, salesChannel, region, customerToken;
+    let storeHeaders: TestValue
+    let cart: TestValue
+    let product: TestValue
+    let salesChannel: TestValue
+    let region: TestValue
+    let customerToken: TestValue
 
     beforeEach(async () => {
-      const container = getContainer();
-      await createAdminUser(adminHeaders, container);
-      const publishableKey = await generatePublishableKey(container);
-      storeHeaders = generateStoreHeaders({ publishableKey });
-      const res = await createStoreUser({ api, storeHeaders });
-      customerToken = res.token;
-      storeHeaders.headers["Authorization"] = `Bearer ${customerToken}`;
-      region = await regionSeeder({ api, adminHeaders, data: {} });
+      const container = getContainer()
+      await createAdminUser(adminHeaders, container)
+      const publishableKey = await generatePublishableKey(container)
+      storeHeaders = generateStoreHeaders({ publishableKey })
+      const res = await createStoreUser({ api, storeHeaders })
+      customerToken = res.token
+      storeHeaders.headers.Authorization = `Bearer ${customerToken}`
+      region = await regionSeeder({ api, adminHeaders, data: {} })
 
       salesChannel = await salesChannelSeeder({
         api,
         adminHeaders,
         data: {},
-      });
+      })
 
       product = await productSeeder({
         api,
@@ -47,13 +55,13 @@ medusaIntegrationTestRunner({
         data: {
           sales_channels: [{ id: salesChannel.id }],
         },
-      });
+      })
 
       await api.post(
         `/admin/api-keys/${publishableKey.id}/sales-channels`,
         { add: [salesChannel.id] },
         adminHeaders
-      );
+      )
 
       cart = await cartSeeder({
         api,
@@ -63,19 +71,19 @@ medusaIntegrationTestRunner({
           sales_channel_id: salesChannel.id,
           items: [{ quantity: 1, variant_id: product.variants[0].id }],
         },
-      });
-    });
+      })
+    })
 
     describe("POST /admin/quotes/:id/messages", () => {
-      let quote1;
+      let quote1: TestValue
 
       beforeEach(async () => {
         const {
           data: { quote: newQuote },
-        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders);
+        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders)
 
-        quote1 = newQuote;
-      });
+        quote1 = newQuote
+      })
 
       it("successfully creates an admin quote message", async () => {
         const {
@@ -87,7 +95,7 @@ medusaIntegrationTestRunner({
             item_id: cart.items[0].id,
           },
           adminHeaders
-        );
+        )
 
         expect(quote).toEqual(
           expect.objectContaining({
@@ -101,8 +109,8 @@ medusaIntegrationTestRunner({
               }),
             ],
           })
-        );
-      });
-    });
+        )
+      })
+    })
   },
-});
+})

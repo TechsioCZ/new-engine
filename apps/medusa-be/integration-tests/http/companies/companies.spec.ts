@@ -1,21 +1,21 @@
-import { medusaIntegrationTestRunner } from "@medusajs/test-utils";
+import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
+import { vi } from "vitest"
 import {
   adminHeaders,
   createAdminUser,
   createStoreUser,
-} from "../../utils/admin";
+} from "../../utils/admin"
 import {
   cartSeeder,
   productSeeder,
   regionSeeder,
   salesChannelSeeder,
-} from "../../utils/seeder";
-import {
-  generatePublishableKey,
-  generateStoreHeaders,
-} from "../../utils/store";
+} from "../../utils/seeder"
+import { generatePublishableKey, generateStoreHeaders } from "../../utils/store"
 
-jest.setTimeout(60 * 1000);
+type TestValue = any
+
+vi.setConfig({ testTimeout: 60 * 1000 })
 
 medusaIntegrationTestRunner({
   inApp: true,
@@ -23,25 +23,27 @@ medusaIntegrationTestRunner({
     JWT_SECRET: "supersecret",
   },
   testSuite: ({ api, getContainer }) => {
-    let storeHeaders, cart, product, salesChannel, region, customerToken;
+    let storeHeaders: TestValue
+    let product: TestValue
+    let salesChannel: TestValue
+    let region: TestValue
+    let customerToken: TestValue
 
     beforeEach(async () => {
-      const container = getContainer();
-      await createAdminUser(adminHeaders, container);
-      const publishableKey = await generatePublishableKey(container);
-      storeHeaders = generateStoreHeaders({ publishableKey });
-      const res = await createStoreUser({ api, storeHeaders });
-      customerToken = res.token;
-      console.log("vic logs customerToken", customerToken);
-      storeHeaders.headers["Authorization"] = `Bearer ${customerToken}`;
-      console.log("vic logs storeHeaders", storeHeaders);
-      region = await regionSeeder({ api, adminHeaders, data: {} });
+      const container = getContainer()
+      await createAdminUser(adminHeaders, container)
+      const publishableKey = await generatePublishableKey(container)
+      storeHeaders = generateStoreHeaders({ publishableKey })
+      const res = await createStoreUser({ api, storeHeaders })
+      customerToken = res.token
+      storeHeaders.headers.Authorization = `Bearer ${customerToken}`
+      region = await regionSeeder({ api, adminHeaders, data: {} })
 
       salesChannel = await salesChannelSeeder({
         api,
         adminHeaders,
         data: {},
-      });
+      })
 
       product = await productSeeder({
         api,
@@ -49,15 +51,15 @@ medusaIntegrationTestRunner({
         data: {
           sales_channels: [{ id: salesChannel.id }],
         },
-      });
+      })
 
       await api.post(
         `/admin/api-keys/${publishableKey.id}/sales-channels`,
         { add: [salesChannel.id] },
         adminHeaders
-      );
+      )
 
-      cart = await cartSeeder({
+      await cartSeeder({
         api,
         storeHeaders,
         data: {
@@ -65,8 +67,8 @@ medusaIntegrationTestRunner({
           sales_channel_id: salesChannel.id,
           items: [{ quantity: 1, variant_id: product.variants[0].id }],
         },
-      });
-    });
+      })
+    })
 
     describe("POST /store/companies", () => {
       it("successfully creates a company", async () => {
@@ -86,9 +88,9 @@ medusaIntegrationTestRunner({
             spending_limit_reset_frequency: "monthly",
           },
           storeHeaders
-        );
+        )
 
-        expect(response.status).toEqual(200);
+        expect(response.status).toEqual(200)
         expect(response.data.companies[0]).toMatchObject({
           id: expect.any(String),
           name: "Test Company",
@@ -101,9 +103,9 @@ medusaIntegrationTestRunner({
           country: "Test Country",
           logo_url: "http://test.com/logo.png",
           currency_code: "USD",
-        });
-      });
-    });
+        })
+      })
+    })
 
     describe("GET /store/companies/:id", () => {
       it("successfully retrieves a company", async () => {
@@ -123,12 +125,12 @@ medusaIntegrationTestRunner({
             spending_limit_reset_frequency: "monthly",
           },
           storeHeaders
-        );
+        )
 
         const response2 = await api.get(
           `/store/companies/${response1.data.companies[0].id}`,
           storeHeaders
-        );
+        )
 
         expect(response2.data.company).toMatchObject({
           id: expect.any(String),
@@ -142,22 +144,22 @@ medusaIntegrationTestRunner({
           country: "Test Country",
           logo_url: "http://test.com/logo.png",
           currency_code: "USD",
-        });
-      });
+        })
+      })
 
       it("should throw error when company does not exist", async () => {
         const { response } = await api
-          .get(`/store/companies/does-not-exist`, storeHeaders)
-          .catch((e) => e);
+          .get("/store/companies/does-not-exist", storeHeaders)
+          .catch((e) => e)
 
         expect(response.data).toMatchObject({
           type: "not_found",
-        });
-      });
-    });
+        })
+      })
+    })
 
     describe("POST /store/companies/:id", () => {
-      let company1;
+      let company1: TestValue
 
       beforeEach(async () => {
         const response = await api.post(
@@ -176,10 +178,10 @@ medusaIntegrationTestRunner({
             spending_limit_reset_frequency: "monthly",
           },
           storeHeaders
-        );
+        )
 
-        company1 = response.data.companies[0];
-      });
+        company1 = response.data.companies[0]
+      })
 
       it("successfully updates a company", async () => {
         const response = await api.post(
@@ -198,7 +200,7 @@ medusaIntegrationTestRunner({
             spending_limit_reset_frequency: "yearly",
           },
           storeHeaders
-        );
+        )
 
         expect(response.data.company).toMatchObject({
           id: company1.id,
@@ -212,27 +214,26 @@ medusaIntegrationTestRunner({
           country: "Updated Country",
           logo_url: "http://updated.com/logo.png",
           currency_code: "EUR",
-        });
-      });
+        })
+      })
 
       it("should throw an error when company does not exist", async () => {
         const { response } = await api
           .post(
-            `/store/companies/does-not-exist`,
+            "/store/companies/does-not-exist",
             { name: "Nonexistent Company" },
             storeHeaders
           )
-          .catch((e) => e);
+          .catch((e) => e)
 
         expect(response.data).toMatchObject({
           type: "not_found",
-        });
-      });
-    });
+        })
+      })
+    })
 
     describe("DELETE /store/companies/:id", () => {
-      console.log("vic logs storeHeaders", storeHeaders);
-      let company1;
+      let company1: TestValue
 
       beforeEach(async () => {
         const response = await api.post(
@@ -251,27 +252,27 @@ medusaIntegrationTestRunner({
             spending_limit_reset_frequency: "monthly",
           },
           storeHeaders
-        );
+        )
 
-        company1 = response.data.companies[0];
-      });
+        company1 = response.data.companies[0]
+      })
 
       it("successfully deletes a company", async () => {
         const response = await api.delete(
           `/store/companies/${company1.id}`,
           storeHeaders
-        );
+        )
 
-        expect(response.status).toEqual(204);
-      });
+        expect(response.status).toEqual(204)
+      })
 
       it("should throw an error when company does not exist", async () => {
         const response = await api
-          .delete(`/store/companies/does-not-exist`, storeHeaders)
-          .catch((e) => e);
+          .delete("/store/companies/does-not-exist", storeHeaders)
+          .catch((e) => e)
 
-        expect(response.status).toEqual(204);
-      });
-    });
+        expect(response.status).toEqual(204)
+      })
+    })
   },
-});
+})

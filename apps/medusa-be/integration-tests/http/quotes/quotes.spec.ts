@@ -1,43 +1,48 @@
-import { medusaIntegrationTestRunner } from "@medusajs/test-utils";
+import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
+import { vi } from "vitest"
 import {
   adminHeaders,
   createAdminUser,
   createStoreUser,
-} from "../../utils/admin";
+} from "../../utils/admin"
 import {
   cartSeeder,
   productSeeder,
   regionSeeder,
   salesChannelSeeder,
-} from "../../utils/seeder";
-import {
-  generatePublishableKey,
-  generateStoreHeaders,
-} from "../../utils/store";
+} from "../../utils/seeder"
+import { generatePublishableKey, generateStoreHeaders } from "../../utils/store"
 
-jest.setTimeout(60 * 1000);
+type TestValue = any
+
+vi.setConfig({ testTimeout: 60 * 1000 })
 
 medusaIntegrationTestRunner({
   inApp: true,
   env: {},
   testSuite: ({ api, getContainer }) => {
-    let storeHeaders, cart, product, salesChannel, region, customerToken;
+    let storeHeaders: TestValue
+    let cart: TestValue
+    let product: TestValue
+    let salesChannel: TestValue
+    let region: TestValue
+    let customerToken: TestValue
 
     beforeEach(async () => {
-      const container = getContainer();
-      await createAdminUser(adminHeaders, container);
-      const publishableKey = await generatePublishableKey(container);
-      storeHeaders = generateStoreHeaders({ publishableKey });
-      const res = await createStoreUser({ api, storeHeaders });
-      customerToken = res.token;
-      storeHeaders.headers["Authorization"] = `Bearer ${customerToken}`;
-      region = await regionSeeder({ api, adminHeaders, data: {} });
+      const container = getContainer()
+      await createAdminUser(adminHeaders, container)
+      const publishableKey = await generatePublishableKey(container)
+      storeHeaders = generateStoreHeaders({ publishableKey })
+      const res = await createStoreUser({ api, storeHeaders })
+      customerToken = res.token
+      storeHeaders.headers.Authorization = `Bearer ${customerToken}`
+      region = await regionSeeder({ api, adminHeaders, data: {} })
 
       salesChannel = await salesChannelSeeder({
         api,
         adminHeaders,
         data: {},
-      });
+      })
 
       product = await productSeeder({
         api,
@@ -45,13 +50,13 @@ medusaIntegrationTestRunner({
         data: {
           sales_channels: [{ id: salesChannel.id }],
         },
-      });
+      })
 
       await api.post(
         `/admin/api-keys/${publishableKey.id}/sales-channels`,
         { add: [salesChannel.id] },
         adminHeaders
-      );
+      )
 
       cart = await cartSeeder({
         api,
@@ -61,8 +66,8 @@ medusaIntegrationTestRunner({
           sales_channel_id: salesChannel.id,
           items: [{ quantity: 1, variant_id: product.variants[0].id }],
         },
-      });
-    });
+      })
+    })
 
     describe("POST /store/quotes", () => {
       it("successfully initiates a quote with a draft order", async () => {
@@ -70,11 +75,9 @@ medusaIntegrationTestRunner({
           "/store/quotes",
           { cart_id: cart.id },
           storeHeaders
-        );
+        )
 
-        const draftOrder = response.data.quote.draft_order;
-
-        expect(response.status).toEqual(200);
+        expect(response.status).toEqual(200)
         expect(response.data.quote).toEqual(
           expect.objectContaining({
             id: expect.any(String),
@@ -103,19 +106,19 @@ medusaIntegrationTestRunner({
               actions: [],
             }),
           })
-        );
-      });
-    });
+        )
+      })
+    })
 
     describe("GET /store/quotes/:id", () => {
       it("successfully retrieves a quote", async () => {
         const {
           data: { quote: newQuote },
-        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders);
+        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders)
 
         const {
           data: { quote },
-        } = await api.get(`/store/quotes/${newQuote.id}`, storeHeaders);
+        } = await api.get(`/store/quotes/${newQuote.id}`, storeHeaders)
 
         expect(quote).toEqual(
           expect.objectContaining({
@@ -127,25 +130,25 @@ medusaIntegrationTestRunner({
               id: newQuote.draft_order_id,
             }),
           })
-        );
-      });
+        )
+      })
 
       it("should throw error when quote does not exist", async () => {
         const {
           response: { data },
         } = await api
-          .get(`/store/quotes/does-not-exist`, storeHeaders)
-          .catch((e) => e);
+          .get("/store/quotes/does-not-exist", storeHeaders)
+          .catch((e) => e)
 
         expect(data).toEqual({
           type: "not_found",
           message: "Quote id not found: does-not-exist",
-        });
-      });
-    });
+        })
+      })
+    })
 
     describe("GET /store/quotes", () => {
-      let cart2;
+      let cart2: TestValue
 
       beforeEach(async () => {
         cart2 = await cartSeeder({
@@ -156,25 +159,21 @@ medusaIntegrationTestRunner({
             sales_channel_id: salesChannel.id,
             items: [{ quantity: 1, variant_id: product.variants[0].id }],
           },
-        });
-      });
+        })
+      })
 
       it("successfully retrieves all quote for a customer", async () => {
         const {
           data: { quote: quote1 },
-        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders);
+        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders)
 
         const {
           data: { quote: quote2 },
-        } = await api.post(
-          "/store/quotes",
-          { cart_id: cart2.id },
-          storeHeaders
-        );
+        } = await api.post("/store/quotes", { cart_id: cart2.id }, storeHeaders)
 
         const {
           data: { quotes },
-        } = await api.get(`/store/quotes`, storeHeaders);
+        } = await api.get("/store/quotes", storeHeaders)
 
         expect(quotes).toEqual(
           expect.arrayContaining([
@@ -197,23 +196,23 @@ medusaIntegrationTestRunner({
               }),
             }),
           ])
-        );
-      });
-    });
+        )
+      })
+    })
 
     describe("POST /store/quotes/:id/accept", () => {
-      let quote1;
+      let quote1: TestValue
 
       beforeEach(async () => {
         const {
           data: { quote: newQuote },
-        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders);
+        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders)
 
-        quote1 = newQuote;
-      });
+        quote1 = newQuote
+      })
 
       it("successfully accepts a quote", async () => {
-        await api.post(`/admin/quotes/${quote1.id}/send`, {}, adminHeaders);
+        await api.post(`/admin/quotes/${quote1.id}/send`, {}, adminHeaders)
 
         const {
           data: { quote },
@@ -221,7 +220,7 @@ medusaIntegrationTestRunner({
           `/store/quotes/${quote1.id}/accept?fields=+draft_order.is_draft_order,+draft_order.status`,
           {},
           storeHeaders
-        );
+        )
 
         expect(quote).toEqual(
           expect.objectContaining({
@@ -240,38 +239,38 @@ medusaIntegrationTestRunner({
               ],
             }),
           })
-        );
-      });
+        )
+      })
 
       it("should throw an error when quote is already accepted", async () => {
-        await api.post(`/admin/quotes/${quote1.id}/send`, {}, adminHeaders);
+        await api.post(`/admin/quotes/${quote1.id}/send`, {}, adminHeaders)
 
-        await api.post(`/store/quotes/${quote1.id}/accept`, {}, storeHeaders);
+        await api.post(`/store/quotes/${quote1.id}/accept`, {}, storeHeaders)
 
         const { response } = await api
           .post(`/store/quotes/${quote1.id}/accept`, {}, storeHeaders)
-          .catch((e) => e);
+          .catch((e) => e)
 
         expect(response.data).toEqual({
           type: "invalid_data",
           message: "Cannot accept quote when quote status is accepted",
-        });
-      });
-    });
+        })
+      })
+    })
 
     describe("POST /store/quotes/:id/reject", () => {
-      let quote1;
+      let quote1: TestValue
 
       beforeEach(async () => {
         const {
           data: { quote: newQuote },
-        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders);
+        } = await api.post("/store/quotes", { cart_id: cart.id }, storeHeaders)
 
-        quote1 = newQuote;
-      });
+        quote1 = newQuote
+      })
 
       it("successfully rejects a quote", async () => {
-        await api.post(`/admin/quotes/${quote1.id}/send`, {}, adminHeaders);
+        await api.post(`/admin/quotes/${quote1.id}/send`, {}, adminHeaders)
 
         const {
           data: { quote },
@@ -279,15 +278,15 @@ medusaIntegrationTestRunner({
           `/store/quotes/${quote1.id}/reject?fields=+draft_order.status`,
           {},
           storeHeaders
-        );
+        )
 
         expect(quote).toEqual(
           expect.objectContaining({
             id: quote1.id,
             status: "customer_rejected",
           })
-        );
-      });
-    });
+        )
+      })
+    })
   },
-});
+})
