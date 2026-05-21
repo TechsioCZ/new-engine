@@ -8,6 +8,7 @@ import { isAuthError } from "./admin-errors"
 import { LoginPage } from "./admin-login-page"
 import {
   CustomersPage,
+  EmailsPage,
   OrdersPage,
   PlaceholderPage,
   ProductsPage,
@@ -105,10 +106,7 @@ export function AdminApp() {
               }
               path="/image-gallery"
             />
-            <Route
-              element={<PlaceholderPage eyebrow="Emails" title="Emails" />}
-              path="/emails"
-            />
+            <Route element={<EmailsPage />} path="/emails" />
             <Route
               element={
                 <PlaceholderPage eyebrow="Producers" title="Producers" />

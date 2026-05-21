@@ -11,9 +11,12 @@ import {
 import type {
   ActionRequiredOrdersResponse,
   ActionRequiredSummary,
+  AdminEmailLogDetailResponse,
+  AdminEmailLogsResponse,
   AdminProductsResponse,
   MedusaAdminCustomer,
   MedusaAdminCustomersResponse,
+  MedusaAdminEmailLogsResponse,
   MedusaAdminOrder,
   MedusaAdminOrdersResponse,
   MedusaAdminProduct,
@@ -24,6 +27,7 @@ import type {
 const ADMIN_API_PAGE_SIZE = 100
 const ADMIN_API_SCAN_LIMIT = 2000
 const ACTION_REQUIRED_LIST_LIMIT = 50
+const EMAIL_LOG_LIST_LIMIT = 20
 const PRODUCT_LIST_LIMIT = 20
 
 const ORDER_FIELDS = [
@@ -220,6 +224,35 @@ async function fetchProductsFromAdminApi({
   }
 }
 
+async function fetchEmailLogsFromAdminApi({
+  offset,
+}: {
+  offset: number
+}): Promise<AdminEmailLogsResponse> {
+  const response = await fetchAdminApi<MedusaAdminEmailLogsResponse>(
+    "/admin/email-logs",
+    {
+      limit: String(EMAIL_LOG_LIST_LIMIT),
+      offset: String(offset),
+    }
+  )
+
+  return {
+    count: response.count,
+    email_logs: response.email_logs,
+    has_next: response.offset + response.limit < response.count,
+    has_previous: response.offset > 0,
+    limit: response.limit,
+    offset: response.offset,
+  }
+}
+
+function fetchEmailLogDetailFromAdminApi(
+  id: string
+): Promise<AdminEmailLogDetailResponse> {
+  return fetchAdminApi<AdminEmailLogDetailResponse>(`/admin/email-logs/${id}`)
+}
+
 function toProductListItem(product: MedusaAdminProduct) {
   return {
     collection_title: product.collection?.title ?? null,
@@ -294,4 +327,27 @@ export function useAdminProducts({
   })
 }
 
-export { PRODUCT_LIST_LIMIT }
+export function useAdminEmailLogs({ offset }: { offset: number }) {
+  return useQuery({
+    queryFn: () => fetchEmailLogsFromAdminApi({ offset }),
+    queryKey: [
+      "admin-email-logs",
+      MEDUSA_BACKEND_URL,
+      { limit: EMAIL_LOG_LIST_LIMIT, offset },
+    ],
+  })
+}
+
+export function useAdminEmailLogDetail({
+  id,
+}: {
+  id: string | null | undefined
+}) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () => fetchEmailLogDetailFromAdminApi(id as string),
+    queryKey: ["admin-email-log-detail", MEDUSA_BACKEND_URL, id],
+  })
+}
+
+export { EMAIL_LOG_LIST_LIMIT, PRODUCT_LIST_LIMIT }
