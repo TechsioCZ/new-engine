@@ -56,6 +56,16 @@ describe("order receipt service", () => {
     expect(getItemSubtotal(item)).toBeCloseTo(3304.132_24)
   })
 
+  it("keeps discounted line subtotal when it differs from unit price", () => {
+    expect(
+      getItemSubtotal({
+        quantity: 2,
+        subtotal: 160,
+        unit_price: 100,
+      })
+    ).toBe(160)
+  })
+
   it("renders payment QR commands when SPAYD payment data is present for a QR payment", async () => {
     const service = new OrderReceiptModuleService()
 

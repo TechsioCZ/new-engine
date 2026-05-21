@@ -279,10 +279,15 @@ export function getItemQuantity(item: OrderReceiptLineItem) {
 
 export function getItemSubtotal(item: OrderReceiptLineItem) {
   const quantity = getItemQuantity(item)
-  const unitPriceSubtotal = quantity * getItemUnitPrice(item)
+  const unitPrice = getItemUnitPrice(item)
+  const unitPriceSubtotal = quantity * unitPrice
   const subtotal = toNumber(item.subtotal)
   if (subtotal > 0) {
-    return Math.max(subtotal, unitPriceSubtotal)
+    if (quantity > 1 && subtotal === unitPrice) {
+      return unitPriceSubtotal
+    }
+
+    return subtotal
   }
 
   const total = toNumber(item.total)
