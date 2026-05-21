@@ -18,6 +18,7 @@ import {
 } from "./admin-pages"
 import { PayloadSettingsPage } from "./admin-payload-settings-page"
 import { PplSettingsPage } from "./admin-ppl-settings-page"
+import { ProductDetailPage } from "./admin-product-detail-page"
 import { QrPaymentsSettingsPage, SettingsPage } from "./admin-settings-page"
 import type { BadgeKey } from "./admin-types"
 import { type AdminNavItem, adminNavItems } from "./nav-config"
@@ -81,6 +82,7 @@ export function AdminApp() {
               path="/drafts"
             />
             <Route element={<ProductsPage />} path="/products" />
+            <Route element={<ProductDetailPage />} path="/products/:id" />
             <Route
               element={
                 <PlaceholderPage eyebrow="Sklad" title="Skladove workflow" />

@@ -436,7 +436,10 @@ function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
 
 function ProductRow({ product }: { product: AdminProductListItem }) {
   return (
-    <article className="admin-row admin-product-row">
+    <Link
+      className="admin-row admin-row-link admin-product-row"
+      to={`/products/${product.id}`}
+    >
       <div className="admin-product-main">
         <div className="admin-product-media">
           {product.thumbnail ? (
@@ -473,7 +476,7 @@ function ProductRow({ product }: { product: AdminProductListItem }) {
           {formatCount(product.sales_channel_count, "kanal", "kanalu")}
         </span>
       </div>
-    </article>
+    </Link>
   )
 }
 

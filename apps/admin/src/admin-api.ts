@@ -21,6 +21,7 @@ import type {
   MedusaAdminOrderResponse,
   MedusaAdminOrdersResponse,
   MedusaAdminProduct,
+  MedusaAdminProductResponse,
   MedusaAdminProductsResponse,
   MedusaPacketaLabelOrdersResponse,
   OrderEmailTemplatesResponse,
@@ -114,6 +115,23 @@ const PRODUCT_FIELDS = [
   "-tags",
   "-images",
   "-variants",
+].join(",")
+
+const PRODUCT_DETAIL_FIELDS = [
+  "id",
+  "title",
+  "subtitle",
+  "handle",
+  "description",
+  "thumbnail",
+  "status",
+  "metadata",
+  "*variants",
+  "*options",
+  "*collection",
+  "*sales_channels",
+  "*images",
+  "*categories",
 ].join(",")
 
 const PACKETA_LABEL_ORDER_FIELDS = [
@@ -390,6 +408,14 @@ async function fetchProductsFromAdminApi({
   }
 }
 
+function fetchProductDetailFromAdminApi(
+  id: string
+): Promise<MedusaAdminProductResponse> {
+  return fetchAdminApi<MedusaAdminProductResponse>(`/admin/products/${id}`, {
+    fields: PRODUCT_DETAIL_FIELDS,
+  })
+}
+
 async function fetchEmailLogsFromAdminApi({
   offset,
 }: {
@@ -601,6 +627,18 @@ export function useAdminProducts({
       MEDUSA_BACKEND_URL,
       { limit: PRODUCT_LIST_LIMIT, offset, q },
     ],
+  })
+}
+
+export function useAdminProductDetail({
+  id,
+}: {
+  id: string | null | undefined
+}) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () => fetchProductDetailFromAdminApi(id as string),
+    queryKey: ["admin-product-detail", MEDUSA_BACKEND_URL, id],
   })
 }
 

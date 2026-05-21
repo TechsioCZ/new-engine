@@ -393,26 +393,62 @@ export type MedusaAdminCustomersResponse = {
 }
 
 export type MedusaAdminProductCollection = {
+  id?: string
   title?: string | null
 }
 
 export type MedusaAdminProductSalesChannel = {
   id: string
+  name?: string | null
 }
 
 export type MedusaAdminProductVariant = {
+  allow_backorder?: boolean | null
+  barcode?: string | null
+  ean?: string | null
   id: string
+  manage_inventory?: boolean | null
+  sku?: string | null
+  title?: string | null
+  upc?: string | null
+  variant_rank?: number | null
+}
+
+export type MedusaAdminProductImage = {
+  id?: string
+  url?: string | null
+}
+
+export type MedusaAdminProductOption = {
+  id?: string
+  title?: string | null
+  values?: { id?: string; value?: string | null }[] | null
+}
+
+export type MedusaAdminProductCategory = {
+  id?: string
+  name?: string | null
 }
 
 export type MedusaAdminProduct = {
+  categories?: MedusaAdminProductCategory[] | null
   collection?: MedusaAdminProductCollection | null
+  description?: string | null
   handle?: string | null
   id: string
+  images?: MedusaAdminProductImage[] | null
+  metadata?: Record<string, unknown> | null
+  options?: MedusaAdminProductOption[] | null
   sales_channels?: MedusaAdminProductSalesChannel[] | null
   status?: string | null
+  subtitle?: string | null
   thumbnail?: string | null
   title?: string | null
   variants?: MedusaAdminProductVariant[] | null
+}
+
+export type MedusaAdminProductResponse = {
+  product: MedusaAdminProduct
 }
 
 export type MedusaAdminProductsResponse = {
