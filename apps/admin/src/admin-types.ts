@@ -118,6 +118,44 @@ export type MedusaAdminEmailLogsResponse = {
   offset: number
 }
 
+export type PacketaFulfillmentData = {
+  barcode?: string
+  packet_id?: number
+}
+
+export type PacketaOrderFulfillment = {
+  canceled_at: string | null
+  data: PacketaFulfillmentData | null
+  id: string
+  provider_id: string
+}
+
+export type PacketaLabelOrder = {
+  created_at: string | null
+  custom_display_id: string | null
+  display_id: number | null
+  email: string | null
+  fulfillment_status: string | null
+  fulfillments: PacketaOrderFulfillment[]
+  id: string
+}
+
+export type PacketaLabelOrdersResponse = {
+  count: number
+  has_next: boolean
+  has_previous: boolean
+  limit: number
+  offset: number
+  orders: PacketaLabelOrder[]
+}
+
+export type MedusaPacketaLabelOrdersResponse = {
+  count: number
+  limit: number
+  offset: number
+  orders: PacketaLabelOrder[]
+}
+
 export type MedusaAdminPaymentCollection = {
   status?: string | null
 }

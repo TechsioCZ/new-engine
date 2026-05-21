@@ -409,6 +409,10 @@ a {
   padding: 14px 16px;
 }
 
+.admin-panel-header-stacked {
+  align-items: flex-end;
+}
+
 .admin-panel-header h2,
 .admin-detail-panel h2,
 .admin-email-preview h3 {
@@ -479,6 +483,23 @@ a {
   white-space: nowrap;
 }
 
+.admin-table-check {
+  width: 42px;
+}
+
+.admin-table-check input {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #26382a;
+  cursor: pointer;
+}
+
+.admin-table-check input:disabled {
+  cursor: not-allowed;
+}
+
 .admin-table-state {
   color: #596156;
   font-size: 13px;
@@ -492,6 +513,62 @@ a {
 .admin-panel-pagination {
   border-top: 1px solid rgba(31, 37, 32, 0.1);
   padding: 12px 16px;
+}
+
+.admin-packeta-actions {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.admin-compact-field {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-compact-field span {
+  color: #697066;
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.admin-compact-field select {
+  height: 34px;
+  min-width: 72px;
+  border: 1px solid rgba(31, 37, 32, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #1f2520;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 0 9px;
+}
+
+.admin-feedback {
+  border-bottom: 1px solid rgba(31, 37, 32, 0.1);
+  background: rgba(38, 56, 42, 0.07);
+  color: #26382a;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 10px 16px;
+}
+
+.admin-feedback-error {
+  background: rgba(180, 51, 40, 0.08);
+  color: #7d2119;
+}
+
+.admin-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.admin-muted {
+  color: #7a8176;
 }
 
 .admin-detail-panel {
@@ -764,6 +841,7 @@ a {
 
   .admin-page-header,
   .admin-row,
+  .admin-panel-header-stacked,
   .admin-row-meta {
     align-items: start;
   }
@@ -781,6 +859,16 @@ a {
 
   .admin-split-layout {
     grid-template-columns: 1fr;
+  }
+
+  .admin-packeta-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-compact-field select {
+    width: 100%;
   }
 
   .admin-detail-panel {

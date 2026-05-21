@@ -21,6 +21,8 @@ import type {
   MedusaAdminOrdersResponse,
   MedusaAdminProduct,
   MedusaAdminProductsResponse,
+  MedusaPacketaLabelOrdersResponse,
+  PacketaLabelOrdersResponse,
   PendingB2BCustomersResponse,
 } from "./admin-types"
 
@@ -28,6 +30,7 @@ const ADMIN_API_PAGE_SIZE = 100
 const ADMIN_API_SCAN_LIMIT = 2000
 const ACTION_REQUIRED_LIST_LIMIT = 50
 const EMAIL_LOG_LIST_LIMIT = 20
+const PACKETA_LABEL_ORDER_LIST_LIMIT = 50
 const PRODUCT_LIST_LIMIT = 20
 
 const ORDER_FIELDS = [
@@ -75,6 +78,19 @@ const PRODUCT_FIELDS = [
   "-variants",
 ].join(",")
 
+const PACKETA_LABEL_ORDER_FIELDS = [
+  "id",
+  "display_id",
+  "custom_display_id",
+  "email",
+  "created_at",
+  "fulfillment_status",
+  "fulfillments.id",
+  "fulfillments.provider_id",
+  "fulfillments.canceled_at",
+  "fulfillments.data",
+].join(",")
+
 type FetchAllAdminPagesInput<TResponse, TItem> = {
   params?: Record<string, string>
   path: string
@@ -107,6 +123,52 @@ async function fetchAdminApi<TResponse>(
   }
 
   return response.json() as Promise<TResponse>
+}
+
+async function fetchAdminBlob(
+  path: string,
+  options: {
+    body?: unknown
+    method?: "GET" | "POST"
+    params?: Record<string, string>
+  } = {}
+): Promise<Blob> {
+  const headers = new Headers({
+    Accept: "application/pdf",
+  })
+  const token = getStoredAdminToken()
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
+  }
+
+  if (typeof options.body !== "undefined") {
+    headers.set("Content-Type", "application/json")
+  }
+
+  const response = await fetch(buildMedusaUrl(path, options.params), {
+    body:
+      typeof options.body === "undefined"
+        ? undefined
+        : JSON.stringify(options.body),
+    credentials: "include",
+    headers,
+    method: options.method ?? "GET",
+  })
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      message?: unknown
+    } | null
+    const message =
+      typeof payload?.message === "string"
+        ? payload.message
+        : `Admin API request failed with ${response.status}`
+
+    throw createApiError(message, response.status)
+  }
+
+  return response.blob()
 }
 
 async function fetchAllAdminPages<TResponse extends { count: number }, TItem>({
@@ -253,6 +315,53 @@ function fetchEmailLogDetailFromAdminApi(
   return fetchAdminApi<AdminEmailLogDetailResponse>(`/admin/email-logs/${id}`)
 }
 
+async function fetchPacketaLabelOrdersFromAdminApi({
+  offset,
+}: {
+  offset: number
+}): Promise<PacketaLabelOrdersResponse> {
+  const response = await fetchAdminApi<MedusaPacketaLabelOrdersResponse>(
+    "/admin/orders",
+    {
+      fields: PACKETA_LABEL_ORDER_FIELDS,
+      limit: String(PACKETA_LABEL_ORDER_LIST_LIMIT),
+      offset: String(offset),
+      order: "-created_at",
+    }
+  )
+
+  return {
+    count: response.count,
+    has_next: response.offset + response.limit < response.count,
+    has_previous: response.offset > 0,
+    limit: response.limit,
+    offset: response.offset,
+    orders: response.orders.map((order) => ({
+      ...order,
+      fulfillments: order.fulfillments ?? [],
+    })),
+  }
+}
+
+export function downloadPacketaLabels({
+  labelFormat,
+  labelOffset,
+  orderIds,
+}: {
+  labelFormat: "A6" | "A7"
+  labelOffset?: number
+  orderIds: string[]
+}) {
+  return fetchAdminBlob("/admin/packeta-labels", {
+    body: {
+      label_format: labelFormat,
+      ...(typeof labelOffset === "number" ? { label_offset: labelOffset } : {}),
+      order_ids: orderIds,
+    },
+    method: "POST",
+  })
+}
+
 function toProductListItem(product: MedusaAdminProduct) {
   return {
     collection_title: product.collection?.title ?? null,
@@ -350,4 +459,19 @@ export function useAdminEmailLogDetail({
   })
 }
 
-export { EMAIL_LOG_LIST_LIMIT, PRODUCT_LIST_LIMIT }
+export function usePacketaLabelOrders({ offset }: { offset: number }) {
+  return useQuery({
+    queryFn: () => fetchPacketaLabelOrdersFromAdminApi({ offset }),
+    queryKey: [
+      "packeta-label-orders",
+      MEDUSA_BACKEND_URL,
+      { limit: PACKETA_LABEL_ORDER_LIST_LIMIT, offset },
+    ],
+  })
+}
+
+export {
+  EMAIL_LOG_LIST_LIMIT,
+  PACKETA_LABEL_ORDER_LIST_LIMIT,
+  PRODUCT_LIST_LIMIT,
+}

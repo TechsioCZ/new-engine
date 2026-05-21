@@ -6,6 +6,7 @@ import { useActionRequiredSummary } from "./admin-api"
 import { clearStoredAdminToken, hasStoredAdminToken } from "./admin-auth"
 import { isAuthError } from "./admin-errors"
 import { LoginPage } from "./admin-login-page"
+import { PacketaLabelsPage } from "./admin-packeta-labels-page"
 import {
   CustomersPage,
   EmailsPage,
@@ -113,12 +114,7 @@ export function AdminApp() {
               }
               path="/producers"
             />
-            <Route
-              element={
-                <PlaceholderPage eyebrow="Packeta" title="Packeta Labels" />
-              }
-              path="/packeta-labels"
-            />
+            <Route element={<PacketaLabelsPage />} path="/packeta-labels" />
             <Route
               element={
                 <PlaceholderPage
