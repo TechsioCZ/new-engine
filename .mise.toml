@@ -207,6 +207,26 @@ run = "bash ./scripts/e2e/medusa-be-http.sh run"
 description = "Run Medusa BE HTTP e2e specs against an isolated stack and keep containers running for debugging"
 run = "MEDUSA_E2E_KEEP_STACK=1 bash ./scripts/e2e/medusa-be-http.sh run"
 
+[tasks."test:e2e:medusa-be:http:local"]
+description = "Run Medusa BE HTTP e2e specs against a local dev-target isolated stack with host-mounted dependencies"
+run = "bash ./scripts/e2e/medusa-be-http-local.sh run"
+
+[tasks."test:e2e:medusa-be:http:local:debug"]
+description = "Run local dev-target Medusa BE HTTP e2e specs and keep containers/volumes for fast reruns"
+run = "MEDUSA_E2E_KEEP_STACK=1 bash ./scripts/e2e/medusa-be-http-local.sh run"
+
+[tasks."test:e2e:medusa-be:http:local:test"]
+description = "Run Medusa BE HTTP e2e specs against an already-running local dev-target e2e stack"
+run = "bash ./scripts/e2e/medusa-be-http-local.sh test"
+
+[tasks."test:e2e:medusa-be:http:local:down"]
+description = "Stop the local dev-target Medusa BE HTTP e2e stack while keeping volumes"
+run = "MEDUSA_E2E_DOWN_VOLUMES=0 bash ./scripts/e2e/medusa-be-http-local.sh down"
+
+[tasks."test:e2e:medusa-be:http:local:reset"]
+description = "Stop the local dev-target Medusa BE HTTP e2e stack and remove volumes"
+run = "MEDUSA_E2E_DOWN_VOLUMES=1 bash ./scripts/e2e/medusa-be-http-local.sh down"
+
 [tasks."dev:internal:resources:up"]
 description = "Start manifest-defined shared resource services"
 hide = true
