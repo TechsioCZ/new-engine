@@ -8,6 +8,10 @@ import {
   updateCustomersWorkflow,
 } from "@medusajs/medusa/core-flows"
 import {
+  SYMMY_CUSTOMER_GROUP_CODE_MODULE,
+  type SymmyCustomerGroupCodeModuleService,
+} from "../../modules/customer-group-code"
+import {
   type CustomerLookupKeys,
   customerBatchClientMapperHelper,
 } from "./client-mapper-helper"
@@ -23,6 +27,8 @@ export type ExistingAddress = {
 export type ExistingGroup = {
   id: string
   name: string
+  code?: string | null
+  erp_code?: string | null
   metadata: Metadata | null
 }
 
@@ -64,11 +70,16 @@ export type Query = ReturnType<typeof getQuery>
 
 export class CustomerBatchClient {
   private readonly container: MedusaContainer
+  private readonly customerGroupCodeService: SymmyCustomerGroupCodeModuleService
   private readonly query: Query
   private readonly mapper = customerBatchClientMapperHelper
 
   constructor(container: MedusaContainer) {
     this.container = container
+    this.customerGroupCodeService =
+      container.resolve<SymmyCustomerGroupCodeModuleService>(
+        SYMMY_CUSTOMER_GROUP_CODE_MODULE
+      )
     this.query = getQuery(container)
   }
 
@@ -97,16 +108,19 @@ export class CustomerBatchClient {
       return { byCode: new Map() }
     }
 
-    const [nameGroups, metadataGroupIds] = await Promise.all([
+    const [nameGroups, codeMappings] = await Promise.all([
       this.queryGroups({ name: Array.from(codes) }),
-      this.queryGroupIdsByMetadataCodes(codes),
+      this.customerGroupCodeService.listByCodes(codes),
     ])
-    const metadataGroups = await this.queryGroups({
-      id: Array.from(metadataGroupIds),
+    const codeGroups = await this.queryGroups({
+      id: codeMappings.map((mapping) => mapping.customer_group_id),
     })
 
     return this.mapper.buildGroupIndex(
-      [...nameGroups, ...metadataGroups],
+      [
+        ...nameGroups,
+        ...this.mapper.applyGroupCodeMappings(codeGroups, codeMappings),
+      ],
       codes
     )
   }
@@ -283,42 +297,6 @@ export class CustomerBatchClient {
       for (const row of (data ?? []) as { id: string }[]) {
         ids.add(row.id)
       }
-    }
-    return ids
-  }
-
-  private async queryGroupIdsByMetadataCodes(
-    codes: Set<string>
-  ): Promise<Set<string>> {
-    const ids = new Set<string>()
-    if (!codes.size) {
-      return ids
-    }
-    const [erpCodeGroups, codeGroups] = await Promise.all([
-      this.query.graph({
-        entity: "customer_group",
-        fields: ["id"],
-        filters: {
-          metadata: {
-            erp_code: Array.from(codes),
-          },
-        },
-      }),
-      this.query.graph({
-        entity: "customer_group",
-        fields: ["id"],
-        filters: {
-          metadata: {
-            code: Array.from(codes),
-          },
-        },
-      }),
-    ])
-    for (const row of [
-      ...((erpCodeGroups.data ?? []) as { id: string }[]),
-      ...((codeGroups.data ?? []) as { id: string }[]),
-    ]) {
-      ids.add(row.id)
     }
     return ids
   }

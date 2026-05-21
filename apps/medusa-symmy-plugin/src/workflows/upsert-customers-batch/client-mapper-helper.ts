@@ -129,11 +129,7 @@ export class CustomerBatchClientMapperHelper {
     const byCode = new Map<string, ExistingGroup>()
 
     for (const group of groups) {
-      for (const code of [
-        group.name,
-        this.stringMetadataValue(group.metadata, "erp_code"),
-        this.stringMetadataValue(group.metadata, "code"),
-      ]) {
+      for (const code of [group.name, group.erp_code, group.code]) {
         if (code && codes.has(code)) {
           byCode.set(code, group)
         }
@@ -141,6 +137,26 @@ export class CustomerBatchClientMapperHelper {
     }
 
     return { byCode }
+  }
+
+  applyGroupCodeMappings(
+    groups: ExistingGroup[],
+    mappings: {
+      code: string | null
+      erp_code: string | null
+      customer_group_id: string
+    }[]
+  ): ExistingGroup[] {
+    const mappingsByGroupId = new Map(
+      mappings.map((mapping) => [mapping.customer_group_id, mapping])
+    )
+
+    return groups.map((group) => {
+      const mapping = mappingsByGroupId.get(group.id)
+      return mapping
+        ? { ...group, code: mapping.code, erp_code: mapping.erp_code }
+        : group
+    })
   }
 
   buildCreatePayload(customer: CustomerInput) {

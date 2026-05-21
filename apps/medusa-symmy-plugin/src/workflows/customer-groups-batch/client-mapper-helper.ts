@@ -66,6 +66,8 @@ export class CustomerGroupsBatchClientMapperHelper {
     this.addCustomerGroupToIndex(index, {
       id: groupId,
       name: input.name,
+      code: input.code ?? null,
+      erp_code: input.erp_code ?? null,
       metadata: this.buildMetadata(null, input),
     })
   }
@@ -126,11 +128,11 @@ export class CustomerGroupsBatchClientMapperHelper {
   ): void {
     index.byId.set(group.id, group)
     index.byName.set(group.name, group)
-    const code = this.stringMetadataValue(group.metadata, "code")
+    const code = group.code
     if (code) {
       index.byCode.set(code, group)
     }
-    const erpCode = this.stringMetadataValue(group.metadata, "erp_code")
+    const erpCode = group.erp_code
     if (erpCode) {
       index.byErpCode.set(erpCode, group)
     }
@@ -140,20 +142,37 @@ export class CustomerGroupsBatchClientMapperHelper {
     existingMetadata: Metadata | null | undefined,
     group: CustomerGroupInput
   ) {
-    return {
+    const {
+      code: _code,
+      erp_code: _erpCode,
+      ...metadata
+    } = {
       ...(existingMetadata ?? {}),
       ...(group.metadata ?? {}),
-      ...(group.code ? { code: group.code } : {}),
-      ...(group.erp_code ? { erp_code: group.erp_code } : {}),
+    }
+    return {
+      ...metadata,
     }
   }
 
-  private stringMetadataValue(
-    metadata: Metadata | null | undefined,
-    key: string
-  ) {
-    const value = metadata?.[key]
-    return typeof value === "string" && value.length ? value : null
+  applyCodeMappings(
+    groups: ExistingCustomerGroup[],
+    mappings: {
+      code: string | null
+      erp_code: string | null
+      customer_group_id: string
+    }[]
+  ): ExistingCustomerGroup[] {
+    const mappingsByGroupId = new Map(
+      mappings.map((mapping) => [mapping.customer_group_id, mapping])
+    )
+
+    return groups.map((group) => {
+      const mapping = mappingsByGroupId.get(group.id)
+      return mapping
+        ? { ...group, code: mapping.code, erp_code: mapping.erp_code }
+        : group
+    })
   }
 }
 

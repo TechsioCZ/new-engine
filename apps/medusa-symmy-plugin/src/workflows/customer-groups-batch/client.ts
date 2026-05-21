@@ -5,6 +5,11 @@ import {
   updateCustomerGroupsWorkflow,
 } from "@medusajs/medusa/core-flows"
 import {
+  SYMMY_CUSTOMER_GROUP_CODE_MODULE,
+  type SymmyCustomerGroupCodeDTO,
+  type SymmyCustomerGroupCodeModuleService,
+} from "../../modules/customer-group-code"
+import {
   type CustomerGroupLookupKeys,
   customerGroupsBatchClientMapperHelper,
 } from "./client-mapper-helper"
@@ -15,6 +20,8 @@ type Metadata = Record<string, unknown>
 export type ExistingCustomerGroup = {
   id: string
   name: string
+  code?: string | null
+  erp_code?: string | null
   metadata: Metadata | null
 }
 
@@ -34,11 +41,16 @@ export type Query = ReturnType<typeof getQuery>
 
 export class CustomerGroupsBatchClient {
   private readonly container: MedusaContainer
+  private readonly customerGroupCodeService: SymmyCustomerGroupCodeModuleService
   private readonly query: Query
   private readonly mapper = customerGroupsBatchClientMapperHelper
 
   constructor(container: MedusaContainer) {
     this.container = container
+    this.customerGroupCodeService =
+      container.resolve<SymmyCustomerGroupCodeModuleService>(
+        SYMMY_CUSTOMER_GROUP_CODE_MODULE
+      )
     this.query = getQuery(container)
   }
 
@@ -47,20 +59,22 @@ export class CustomerGroupsBatchClient {
   ): Promise<ExistingCustomerGroupIndex> {
     const { ids, names, codes, erpCodes } =
       this.mapper.collectLookupKeys(groups)
-    const metadataGroupIds = await this.queryGroupIdsByMetadata({
+    const codeMappings = await this.queryGroupCodeMappings({
       codes,
       erpCodes,
     })
-    const [byIdGroups, byNameGroups, byMetadataGroups] = await Promise.all([
+    const [byIdGroups, byNameGroups, byCodeGroups] = await Promise.all([
       this.queryCustomerGroups({ id: Array.from(ids) }),
       this.queryCustomerGroups({ name: Array.from(names) }),
-      this.queryCustomerGroups({ id: Array.from(metadataGroupIds) }),
+      this.queryCustomerGroups({
+        id: codeMappings.map((mapping) => mapping.customer_group_id),
+      }),
     ])
 
     return this.mapper.buildCustomerGroupIndex([
       ...byIdGroups,
       ...byNameGroups,
-      ...byMetadataGroups,
+      ...this.mapper.applyCodeMappings(byCodeGroups, codeMappings),
     ])
   }
 
@@ -94,7 +108,16 @@ export class CustomerGroupsBatchClient {
     if (!created) {
       throw new Error("createCustomerGroupsWorkflow returned empty result")
     }
-    return created
+    await this.customerGroupCodeService.upsertCode({
+      code: group.code,
+      erpCode: group.erp_code,
+      customerGroupId: created.id,
+    })
+    return {
+      ...created,
+      code: group.code ?? null,
+      erp_code: group.erp_code ?? null,
+    }
   }
 
   async updateCustomerGroup(
@@ -107,6 +130,11 @@ export class CustomerGroupsBatchClient {
         selector: { id: groupId },
         update: this.mapper.buildUpdatePayload(existing, group) as never,
       },
+    })
+    await this.customerGroupCodeService.upsertCode({
+      code: group.code,
+      erpCode: group.erp_code,
+      customerGroupId: groupId,
     })
   }
 
@@ -124,31 +152,10 @@ export class CustomerGroupsBatchClient {
     return (data ?? []) as ExistingCustomerGroup[]
   }
 
-  private async queryGroupIdsByMetadata(
+  private queryGroupCodeMappings(
     identifiers: Pick<CustomerGroupLookupKeys, "codes" | "erpCodes">
-  ): Promise<Set<string>> {
-    const ids = new Set<string>()
-    const metadataLookups: [string, Set<string>][] = [
-      ["code", identifiers.codes],
-      ["erp_code", identifiers.erpCodes],
-    ]
-    for (const [key, values] of metadataLookups) {
-      if (!values.size) {
-        continue
-      }
-      const { data } = await this.query.graph({
-        entity: "customer_group",
-        fields: ["id"],
-        filters: {
-          metadata: {
-            [key]: Array.from(values),
-          },
-        },
-      })
-      for (const row of (data ?? []) as { id: string }[]) {
-        ids.add(row.id)
-      }
-    }
-    return ids
+  ): Promise<SymmyCustomerGroupCodeDTO[]> {
+    const codes = new Set([...identifiers.codes, ...identifiers.erpCodes])
+    return this.customerGroupCodeService.listByCodes(codes)
   }
 }

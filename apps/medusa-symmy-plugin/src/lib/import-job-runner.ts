@@ -32,8 +32,22 @@ type RunImportJobInput<TInput, TOutput extends Record<string, unknown>> = {
   getCompletionStats: (output: TOutput) => CompletionStats
 }
 
-const toErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "Unknown error"
+const toErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === "object" && error && "message" in error) {
+    return String(error.message)
+  }
+  if (typeof error === "string") {
+    return error
+  }
+  try {
+    return JSON.stringify(error)
+  } catch {
+    return "Unknown error"
+  }
+}
 
 const buildJobFinishedWebhookPayload = (
   job: SymmyImportJobDTO
@@ -99,11 +113,7 @@ const failJobAfterLockError = async ({
 
   try {
     const currentJob = await importJobService.retrieveJob(jobId)
-    if (
-      currentJob.status === "completed" ||
-      currentJob.status === "failed" ||
-      currentJob.status === "running"
-    ) {
+    if (currentJob.status === "completed" || currentJob.status === "failed") {
       return
     }
 

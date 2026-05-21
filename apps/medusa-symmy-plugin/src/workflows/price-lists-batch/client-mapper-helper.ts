@@ -2,6 +2,7 @@ import type {
   ExistingPrice,
   ExistingPriceList,
   ExistingPriceListIndex,
+  PriceListCodeMapping,
   PriceListCustomerGroupIndex,
   VariantLookupMaps,
 } from "./client"
@@ -47,10 +48,16 @@ export class PriceListsClientMapperHelper {
     return new Set(priceLists.map((priceList) => priceList.code))
   }
 
+  getPriceListCode(priceList: ExistingPriceList): string | null {
+    return (
+      priceList.erp_code ?? this.decodeDescription(priceList.description).code
+    )
+  }
+
   buildPriceListIndex(priceLists: ExistingPriceList[]): ExistingPriceListIndex {
     const byCode = new Map<string, ExistingPriceList>()
     for (const priceList of priceLists) {
-      const { code } = this.decodeDescription(priceList.description)
+      const code = this.getPriceListCode(priceList)
       if (code) {
         byCode.set(code, priceList)
       }
@@ -59,7 +66,8 @@ export class PriceListsClientMapperHelper {
   }
 
   toListedPriceList(priceList: ExistingPriceList): ListedPriceList | null {
-    const { code, description } = this.decodeDescription(priceList.description)
+    const decoded = this.decodeDescription(priceList.description)
+    const code = priceList.erp_code ?? decoded.code
     if (!code) {
       return null
     }
@@ -67,7 +75,7 @@ export class PriceListsClientMapperHelper {
       id: priceList.id,
       code,
       name: priceList.title,
-      description,
+      description: decoded.description,
       starts_at: priceList.starts_at,
       ends_at: priceList.ends_at,
     }
@@ -85,23 +93,45 @@ export class PriceListsClientMapperHelper {
     groups: {
       id: string
       name: string
+      code?: string | null
+      erp_code?: string | null
       metadata: Record<string, unknown> | null
     }[],
     codes: Set<string>
   ): PriceListCustomerGroupIndex {
     const byCode = new Map<string, { id: string }>()
     for (const group of groups) {
-      for (const code of [
-        group.name,
-        this.stringMetadataValue(group.metadata, "code"),
-        this.stringMetadataValue(group.metadata, "erp_code"),
-      ]) {
+      for (const code of [group.name, group.code, group.erp_code]) {
         if (code && codes.has(code)) {
           byCode.set(code, group)
         }
       }
     }
     return { byCode }
+  }
+
+  applyCustomerGroupCodeMappings(
+    groups: {
+      id: string
+      name: string
+      metadata: Record<string, unknown> | null
+    }[],
+    mappings: {
+      code: string | null
+      erp_code: string | null
+      customer_group_id: string
+    }[]
+  ) {
+    const mappingsByGroupId = new Map(
+      mappings.map((mapping) => [mapping.customer_group_id, mapping])
+    )
+
+    return groups.map((group) => {
+      const mapping = mappingsByGroupId.get(group.id)
+      return mapping
+        ? { ...group, code: mapping.code, erp_code: mapping.erp_code }
+        : group
+    })
   }
 
   buildPriceListPayload(
@@ -111,7 +141,7 @@ export class PriceListsClientMapperHelper {
     const rules = this.buildRules(input, groupIndex)
     return {
       title: input.name,
-      description: this.encodeDescription(input.code, input.description),
+      description: input.description,
       starts_at: input.starts_at ?? null,
       ends_at: input.ends_at ?? null,
       status: input.status ?? "active",
@@ -166,6 +196,19 @@ export class PriceListsClientMapperHelper {
       )
     }
     return byKey
+  }
+
+  applyCodeMappings(
+    priceLists: ExistingPriceList[],
+    mappings: PriceListCodeMapping[]
+  ): ExistingPriceList[] {
+    const codeByPriceListId = new Map(
+      mappings.map((mapping) => [mapping.price_list_id, mapping.erp_code])
+    )
+    return priceLists.map((priceList) => ({
+      ...priceList,
+      erp_code: codeByPriceListId.get(priceList.id),
+    }))
   }
 
   buildPriceBatchPayload(
@@ -263,14 +306,6 @@ export class PriceListsClientMapperHelper {
     minQuantity: number | null | undefined
   ) {
     return `${variantId}:${currencyCode.toLowerCase()}:${minQuantity ?? 1}`
-  }
-
-  private stringMetadataValue(
-    metadata: Record<string, unknown> | null | undefined,
-    key: string
-  ) {
-    const value = metadata?.[key]
-    return typeof value === "string" && value.length ? value : null
   }
 }
 

@@ -23,10 +23,12 @@ const updatePrices = async (
   priceListId: string,
   prices: PriceInput[]
 ): Promise<UpdatePriceListPricesBatchOutput> => {
-  const [variantMaps, existingPrices] = await Promise.all([
-    client.preloadVariants(prices),
-    client.preloadPrices(priceListId),
-  ])
+  const variantMaps = await client.preloadVariants(prices)
+  const existingPrices = await client.preloadPrices(
+    priceListId,
+    prices,
+    variantMaps
+  )
   const payload = priceListsClientMapperHelper.buildPriceBatchPayload(
     prices,
     variantMaps,
@@ -122,7 +124,9 @@ export const updatePriceListPricesBatchStep = createStep(
   "symmy-update-price-list-prices-batch",
   async (input: UpdatePriceListPricesBatchInput, { container }) => {
     const client = new PriceListsClient(container)
-    const priceListIndex = await client.preloadPriceLists()
+    const priceListIndex = await client.preloadPriceListsByCodes(
+      new Set([input.code])
+    )
     const priceList = priceListIndex.byCode.get(input.code)
     if (!priceList) {
       return new StepResponse<UpdatePriceListPricesBatchOutput>({
@@ -151,7 +155,7 @@ export const upsertPriceListsBatchStep = createStep(
     const client = new PriceListsClient(container)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const [priceListIndex, groupIndex] = await Promise.all([
-      client.preloadPriceLists(),
+      client.preloadPriceLists(input.price_lists),
       client.preloadCustomerGroups(input.price_lists),
     ])
 

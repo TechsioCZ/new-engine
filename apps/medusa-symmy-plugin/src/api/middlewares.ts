@@ -7,6 +7,7 @@ import {
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { adminSymmyWebhookRoutes } from "./admin/symmy-webhooks/middlewares"
+import { symmyCustomerGroupCustomersBatchRoutes } from "./api/symmy/v1/customer-groups/[code]/customers/batch/middlewares"
 import { symmyCustomerGroupsBatchRoutes } from "./api/symmy/v1/customer-groups/batch/middlewares"
 import { symmyCustomersBatchRoutes } from "./api/symmy/v1/customers/batch/middlewares"
 import { symmyInventoryStockBatchRoutes } from "./api/symmy/v1/inventory/stock/batch/middlewares"
@@ -115,6 +116,7 @@ export default defineMiddlewares({
     ...symmyInventoryStockBatchRoutes,
     ...symmyCustomersBatchRoutes,
     ...symmyCustomerGroupsBatchRoutes,
+    ...symmyCustomerGroupCustomersBatchRoutes,
     ...symmyInvoicesBatchRoutes,
     ...symmyPriceListsRoutes,
     ...symmyPriceListsBatchUpsertRoutes,
