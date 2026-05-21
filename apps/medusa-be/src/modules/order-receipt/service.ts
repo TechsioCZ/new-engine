@@ -4,6 +4,7 @@ import {
   formatDate,
   formatMoney,
   getAddressLines,
+  getItemQuantity,
   getItemSubtotal,
   getItemTitle,
   getItemUnitPrice,
@@ -136,7 +137,7 @@ function buildPdf(order: OrderReceiptOrder) {
 
   visibleItems.forEach((item, index) => {
     const y = tableTop - 24 - index * 22
-    const quantity = toNumber(item.quantity) || 1
+    const quantity = getItemQuantity(item)
     const lineSubtotal = getItemSubtotal(item)
     const fallbackUnitPrice = getItemUnitPrice(item)
     let unitPrice = fallbackUnitPrice

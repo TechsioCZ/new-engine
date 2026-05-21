@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest"
+import {
+  getItemQuantity,
+  getItemSubtotal,
+} from "../../../../../src/modules/order-receipt/helpers"
 import OrderReceiptModuleService from "../../../../../src/modules/order-receipt/service"
 import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../../../../../src/modules/payment-qr/constants"
 
@@ -38,6 +42,20 @@ const qrPaymentCollections = [
 ]
 
 describe("order receipt service", () => {
+  it("uses detail quantity when calculating line subtotal", () => {
+    const item = {
+      detail: {
+        raw_quantity: { value: "2", precision: 20 },
+        raw_unit_price: { value: "1652.06612", precision: 20 },
+      },
+      subtotal: 1652.066_12,
+      title: "Pánská mikina Capita SKULL HOODIE",
+    }
+
+    expect(getItemQuantity(item)).toBe(2)
+    expect(getItemSubtotal(item)).toBeCloseTo(3304.132_24)
+  })
+
   it("renders payment QR commands when SPAYD payment data is present for a QR payment", async () => {
     const service = new OrderReceiptModuleService()
 
