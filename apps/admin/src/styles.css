@@ -209,6 +209,19 @@ a {
   padding-bottom: 18px;
 }
 
+.admin-header-actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.admin-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .admin-eyebrow {
   color: #697066;
   font-size: 12px;
@@ -562,6 +575,10 @@ a {
   font-size: 13px;
 }
 
+.admin-data-table-compact {
+  min-width: 680px;
+}
+
 .admin-data-table th {
   border-bottom: 1px solid rgba(31, 37, 32, 0.1);
   color: #697066;
@@ -603,6 +620,10 @@ a {
   white-space: nowrap;
 }
 
+.admin-payment-nested {
+  padding-left: 28px;
+}
+
 .admin-table-link,
 .admin-text-link {
   color: #26382a;
@@ -619,6 +640,12 @@ a {
 .admin-table-link:hover,
 .admin-text-link:hover {
   text-decoration-color: #26382a;
+}
+
+.admin-inline-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .admin-table-check {
@@ -910,6 +937,36 @@ a {
   display: grid;
   gap: 9px;
   padding: 14px 16px;
+}
+
+.admin-money-breakdown {
+  display: grid;
+  padding: 8px 16px;
+}
+
+.admin-money-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px dashed rgba(31, 37, 32, 0.1);
+  color: #596156;
+  font-size: 13px;
+  padding: 9px 0;
+}
+
+.admin-money-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-money-row strong {
+  color: #1f2520;
+  font-weight: 680;
+}
+
+.admin-money-row.is-strong {
+  color: #1f2520;
+  font-weight: 760;
 }
 
 .admin-detail-field {
@@ -1306,6 +1363,14 @@ a {
 
   .admin-page-count {
     justify-items: start;
+  }
+
+  .admin-header-actions {
+    justify-items: start;
+  }
+
+  .admin-status-row {
+    justify-content: flex-start;
   }
 
   .admin-page h1,

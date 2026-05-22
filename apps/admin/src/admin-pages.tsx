@@ -544,7 +544,18 @@ function EmailLogsTable({
                 </Badge>
               </td>
               <td className="admin-table-truncate">{emailLog.subject}</td>
-              <td>{emailLog.order_id ?? "-"}</td>
+              <td>
+                {emailLog.order_id ? (
+                  <Link
+                    className="admin-table-link"
+                    to={`/orders/${emailLog.order_id}`}
+                  >
+                    {formatCompactId(emailLog.order_id)}
+                  </Link>
+                ) : (
+                  "-"
+                )}
+              </td>
               <td className="admin-table-actions">
                 <Button
                   className="admin-toolbar-button"
@@ -781,6 +792,14 @@ function formatDateTime(value: string | null) {
 
 function formatCount(value: number, singular: string, plural: string) {
   return `${value} ${value === 1 ? singular : plural}`
+}
+
+function formatCompactId(value: string) {
+  if (value.length <= 16) {
+    return value
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-5)}`
 }
 
 function readOffset(value: string | null) {

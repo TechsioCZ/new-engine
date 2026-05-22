@@ -291,14 +291,63 @@ export type MedusaAdminPaymentCollection = {
   amount?: number | string | null
   currency_code?: string | null
   id?: string
+  payments?: MedusaAdminPayment[] | null
   status?: string | null
+}
+
+export type MedusaAdminPayment = {
+  amount?: number | string | null
+  canceled_at?: string | null
+  captured_at?: string | null
+  created_at?: string | null
+  currency_code?: string | null
+  id?: string
+  provider_id?: string | null
+  refunds?: MedusaAdminRefund[] | null
+}
+
+export type MedusaAdminRefund = {
+  amount?: number | string | null
+  created_at?: string | null
+  currency_code?: string | null
+  id?: string
+  payment_id?: string | null
+}
+
+export type MedusaAdminShippingMethod = {
+  amount?: number | string | null
+  id?: string
+  name?: string | null
+  provider_id?: string | null
+  subtotal?: number | string | null
+  tax_total?: number | string | null
+  total?: number | string | null
+}
+
+export type MedusaAdminFulfillmentItem = {
+  id?: string
+  line_item_id?: string | null
+  quantity?: number | string | null
+  title?: string | null
+}
+
+export type MedusaAdminFulfillmentLabel = {
+  id?: string
+  label_url?: string | null
+  tracking_number?: string | null
+  tracking_url?: string | null
 }
 
 export type MedusaAdminFulfillment = {
   canceled_at?: string | null
+  created_at?: string | null
+  data?: Record<string, unknown> | null
   delivered_at?: string | null
   id?: string
+  items?: MedusaAdminFulfillmentItem[] | null
+  labels?: MedusaAdminFulfillmentLabel[] | null
   provider_id?: string | null
+  requires_shipping?: boolean | null
   shipped_at?: string | null
 }
 
@@ -346,20 +395,34 @@ export type MedusaAdminOrderItem = {
 
 export type MedusaAdminOrder = {
   billing_address?: MedusaAdminAddress | null
+  canceled_at?: string | null
   created_at?: string | null
   currency_code?: string | null
+  customer?: MedusaAdminCustomer | null
+  customer_id?: string | null
   custom_display_id?: string | null
+  discount_total?: number | string | null
   display_id?: number | null
   email?: string | null
   fulfillment_status?: string | null
   fulfillments?: MedusaAdminFulfillment[] | null
   id: string
+  item_subtotal?: number | string | null
+  item_total?: number | string | null
   items?: MedusaAdminOrderItem[] | null
   metadata?: Record<string, unknown> | null
+  original_total?: number | string | null
   payment_collections?: MedusaAdminPaymentCollection[] | null
   payment_status?: string | null
+  refundable_total?: number | string | null
+  sales_channel?: MedusaAdminSalesChannel | null
   shipping_address?: MedusaAdminAddress | null
+  shipping_methods?: MedusaAdminShippingMethod[] | null
+  shipping_subtotal?: number | string | null
+  shipping_total?: number | string | null
   status?: string | null
+  subtotal?: number | string | null
+  tax_total?: number | string | null
   total?: number | string | null
 }
 
@@ -376,6 +439,11 @@ export type MedusaAdminCustomer = {
   last_name?: string | null
   metadata?: Record<string, unknown> | null
   phone?: string | null
+}
+
+export type MedusaAdminSalesChannel = {
+  id?: string
+  name?: string | null
 }
 
 export type MedusaAdminOrdersResponse = {

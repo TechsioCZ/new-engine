@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Badge, type BadgeProps } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { type FormEvent, useEffect, useState } from "react"
 import { Link, Navigate, useParams } from "react-router-dom"
@@ -9,8 +10,13 @@ import {
 } from "./admin-api"
 import type {
   MedusaAdminAddress,
+  MedusaAdminFulfillment,
   MedusaAdminOrder,
   MedusaAdminOrderItem,
+  MedusaAdminPayment,
+  MedusaAdminPaymentCollection,
+  MedusaAdminRefund,
+  MedusaAdminShippingMethod,
   OrderEmailTemplate,
 } from "./admin-types"
 
@@ -20,6 +26,14 @@ type Feedback = {
 } | null
 
 const TITLE_SPLIT_PATTERN = /\s+/
+const FULFILLMENT_TRACKING_DATA_KEYS = [
+  "barcode",
+  "packet_id",
+  "shipment_number",
+  "tracking_number",
+]
+
+type BadgeVariant = Exclude<NonNullable<BadgeProps["variant"]>, "dynamic">
 
 export function OrderDetailPage() {
   const { id } = useParams()
@@ -57,6 +71,7 @@ export function OrderDetailPage() {
 function OrderDetail({ order }: { order: MedusaAdminOrder }) {
   const orderLabel = formatOrderLabel(order)
   const items = order.items ?? []
+  const activeFulfillments = getActiveFulfillments(order)
 
   return (
     <section className="admin-page admin-page-wide">
@@ -65,9 +80,16 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
           <span className="admin-eyebrow">Objednavka</span>
           <h1>{orderLabel}</h1>
         </div>
-        <Link className="admin-text-link" to="/orders?view=action-required">
-          Zpet na objednavky
-        </Link>
+        <div className="admin-header-actions">
+          <div className="admin-status-row">
+            <OrderStatusBadge label={order.status} />
+            <OrderStatusBadge label={order.payment_status} />
+            <OrderStatusBadge label={order.fulfillment_status} />
+          </div>
+          <Link className="admin-text-link" to="/orders?view=action-required">
+            Zpet na objednavky
+          </Link>
+        </div>
       </header>
       <div className="admin-detail-layout">
         <div className="admin-detail-stack">
@@ -83,12 +105,23 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
               items={items}
             />
           </section>
+          <OrderTotalsPanel order={order} />
+          <OrderShippingMethodsPanel
+            currencyCode={order.currency_code ?? null}
+            shippingMethods={order.shipping_methods ?? []}
+          />
+          <OrderPaymentsPanel order={order} />
+          <OrderFulfillmentsPanel
+            activeFulfillments={activeFulfillments}
+            order={order}
+          />
           <section className="admin-address-grid">
             <AddressPanel address={order.shipping_address} title="Doruceni" />
             <AddressPanel address={order.billing_address} title="Fakturace" />
           </section>
         </div>
         <aside className="admin-detail-stack">
+          <OrderCustomerPanel order={order} />
           <OrderSummaryPanel order={order} />
           <OrderEmailPanel order={order} />
           <OrderMetadataPanel metadata={order.metadata} />
@@ -104,27 +137,274 @@ function OrderSummaryPanel({ order }: { order: MedusaAdminOrder }) {
       <div className="admin-panel-header">
         <div>
           <h2>Souhrn</h2>
-          <span>{order.email ?? "Bez e-mailu"}</span>
+          <span>{formatDateTime(order.created_at)}</span>
         </div>
       </div>
       <div className="admin-detail-fields">
+        <DetailField label="ID" value={order.id} />
         <DetailField
           label="Vytvoreno"
           value={formatDateTime(order.created_at)}
+        />
+        <DetailField
+          label="Sales channel"
+          value={order.sales_channel?.name ?? order.sales_channel?.id}
         />
         <DetailField label="Stav" value={order.status} />
         <DetailField label="Platba" value={order.payment_status} />
         <DetailField label="Fulfillment" value={order.fulfillment_status} />
         <DetailField
+          label="Zruseno"
+          value={formatDateTime(order.canceled_at)}
+        />
+        <DetailField
           label="Celkem"
           value={formatMoney(order.total ?? null, order.currency_code ?? null)}
         />
-        <DetailField
-          label="Payment collections"
-          value={formatPaymentCollections(order)}
-        />
-        <DetailField label="Fulfillments" value={formatFulfillments(order)} />
       </div>
+    </section>
+  )
+}
+
+function OrderStatusBadge({ label }: { label: string | null | undefined }) {
+  if (!label) {
+    return null
+  }
+
+  return (
+    <Badge size="sm" variant={getStatusBadgeVariant(label)}>
+      {formatStatusLabel(label)}
+    </Badge>
+  )
+}
+
+function OrderCustomerPanel({ order }: { order: MedusaAdminOrder }) {
+  const customer = order.customer
+
+  return (
+    <section className="admin-panel">
+      <div className="admin-panel-header">
+        <div>
+          <h2>Zakaznik</h2>
+          <span>{order.email ?? customer?.email ?? "Bez e-mailu"}</span>
+        </div>
+      </div>
+      <div className="admin-detail-fields">
+        <DetailField label="Jmeno" value={formatCustomerName(order)} />
+        <DetailField label="Email" value={order.email ?? customer?.email} />
+        <DetailField label="Telefon" value={customer?.phone} />
+        <DetailField label="Firma" value={customer?.company_name} />
+        <DetailField label="Customer ID" value={order.customer_id} />
+      </div>
+    </section>
+  )
+}
+
+function OrderTotalsPanel({ order }: { order: MedusaAdminOrder }) {
+  const rows = [
+    {
+      label: "Polozky",
+      value: order.item_total ?? order.item_subtotal ?? null,
+    },
+    {
+      label: "Doprava",
+      value: order.shipping_total ?? order.shipping_subtotal ?? null,
+    },
+    {
+      isDeduction: true,
+      label: "Sleva",
+      value: order.discount_total ?? null,
+    },
+    {
+      label: "Dan",
+      value: order.tax_total ?? null,
+    },
+    {
+      label: "Refundovatelne",
+      value: order.refundable_total ?? null,
+    },
+    {
+      isStrong: true,
+      label: "Celkem",
+      value: order.total ?? order.original_total ?? null,
+    },
+  ]
+
+  return (
+    <section className="admin-panel">
+      <div className="admin-panel-header">
+        <div>
+          <h2>Financni souhrn</h2>
+          <span>{order.currency_code?.toUpperCase() ?? "CZK"}</span>
+        </div>
+      </div>
+      <div className="admin-money-breakdown">
+        {rows.map((row) => (
+          <div
+            className={
+              row.isStrong ? "admin-money-row is-strong" : "admin-money-row"
+            }
+            key={row.label}
+          >
+            <span>{row.label}</span>
+            <strong>
+              {row.isDeduction
+                ? formatDeductionMoney(row.value, order.currency_code ?? null)
+                : formatMoney(row.value, order.currency_code ?? null)}
+            </strong>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function OrderShippingMethodsPanel({
+  currencyCode,
+  shippingMethods,
+}: {
+  currencyCode: string | null
+  shippingMethods: MedusaAdminShippingMethod[]
+}) {
+  return (
+    <section className="admin-panel">
+      <div className="admin-panel-header">
+        <div>
+          <h2>Doprava</h2>
+          <span>{formatCount(shippingMethods.length, "metoda", "metod")}</span>
+        </div>
+      </div>
+      {shippingMethods.length ? (
+        <div className="admin-table-wrap">
+          <table className="admin-data-table admin-data-table-compact">
+            <thead>
+              <tr>
+                <th>Metoda</th>
+                <th>Provider</th>
+                <th>Cena</th>
+                <th>Tax</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shippingMethods.map((method) => (
+                <tr key={method.id ?? method.name}>
+                  <td className="admin-table-strong">
+                    {method.name ?? method.id ?? "-"}
+                  </td>
+                  <td>{method.provider_id ?? "-"}</td>
+                  <td>
+                    {formatMoney(
+                      method.total ?? method.amount ?? method.subtotal ?? null,
+                      currencyCode
+                    )}
+                  </td>
+                  <td>{formatMoney(method.tax_total ?? null, currencyCode)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="admin-table-state">Bez dopravni metody.</div>
+      )}
+    </section>
+  )
+}
+
+function OrderPaymentsPanel({ order }: { order: MedusaAdminOrder }) {
+  const collections = order.payment_collections ?? []
+
+  return (
+    <section className="admin-panel">
+      <div className="admin-panel-header">
+        <div>
+          <h2>Platby</h2>
+          <span>{formatPaymentCollections(order)}</span>
+        </div>
+      </div>
+      {collections.length ? (
+        <div className="admin-table-wrap">
+          <table className="admin-data-table admin-data-table-compact">
+            <thead>
+              <tr>
+                <th>Typ</th>
+                <th>Status</th>
+                <th>Provider</th>
+                <th>Castka</th>
+                <th>Datum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {collections.flatMap((collection) =>
+                toPaymentRows(collection, order.currency_code ?? null)
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="admin-table-state">
+          Objednavka nema payment collection.
+        </div>
+      )}
+    </section>
+  )
+}
+
+function OrderFulfillmentsPanel({
+  activeFulfillments,
+  order,
+}: {
+  activeFulfillments: MedusaAdminFulfillment[]
+  order: MedusaAdminOrder
+}) {
+  return (
+    <section className="admin-panel">
+      <div className="admin-panel-header">
+        <div>
+          <h2>Fulfillment</h2>
+          <span>{formatFulfillments(order)}</span>
+        </div>
+      </div>
+      {activeFulfillments.length ? (
+        <div className="admin-table-wrap">
+          <table className="admin-data-table admin-data-table-compact">
+            <thead>
+              <tr>
+                <th>Fulfillment</th>
+                <th>Status</th>
+                <th>Provider</th>
+                <th>Tracking</th>
+                <th>Polozky</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeFulfillments.map((fulfillment) => (
+                <tr key={fulfillment.id ?? fulfillment.created_at}>
+                  <td className="admin-table-strong">
+                    {formatCompactId(fulfillment.id) ?? "-"}
+                  </td>
+                  <td>
+                    <Badge
+                      size="sm"
+                      variant={getFulfillmentBadgeVariant(fulfillment)}
+                    >
+                      {formatFulfillmentStatus(fulfillment)}
+                    </Badge>
+                  </td>
+                  <td>{fulfillment.provider_id ?? "-"}</td>
+                  <td>{formatFulfillmentTracking(fulfillment)}</td>
+                  <td>{formatFulfillmentItems(fulfillment)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="admin-table-state">
+          Zatim bez aktivniho fulfillmentu. Stav:{" "}
+          {order.fulfillment_status ?? "-"}.
+        </div>
+      )}
     </section>
   )
 }
@@ -449,11 +729,151 @@ function PageTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
   )
 }
 
+function toPaymentRows(
+  collection: MedusaAdminPaymentCollection,
+  fallbackCurrencyCode: string | null
+) {
+  const collectionId = collection.id ?? "payment-collection"
+  const collectionRow = (
+    <PaymentCollectionRow
+      collection={collection}
+      fallbackCurrencyCode={fallbackCurrencyCode}
+      key={`collection-${collectionId}`}
+    />
+  )
+  const paymentRows = (collection.payments ?? []).flatMap((payment, index) => [
+    <PaymentRow
+      collection={collection}
+      fallbackCurrencyCode={fallbackCurrencyCode}
+      key={`payment-${payment.id ?? `${collectionId}-${index}`}`}
+      payment={payment}
+    />,
+    ...(payment.refunds ?? []).map((refund, refundIndex) => (
+      <RefundPaymentRow
+        collection={collection}
+        fallbackCurrencyCode={fallbackCurrencyCode}
+        key={`refund-${refund.id ?? `${payment.id}-${refundIndex}`}`}
+        payment={payment}
+        refund={refund}
+      />
+    )),
+  ])
+
+  return [collectionRow, ...paymentRows]
+}
+
+function PaymentCollectionRow({
+  collection,
+  fallbackCurrencyCode,
+}: {
+  collection: MedusaAdminPaymentCollection
+  fallbackCurrencyCode: string | null
+}) {
+  return (
+    <tr>
+      <td className="admin-table-strong">
+        {formatCompactId(collection.id) ?? "Collection"}
+      </td>
+      <td>
+        <Badge size="sm" variant={getStatusBadgeVariant(collection.status)}>
+          {formatStatusLabel(collection.status)}
+        </Badge>
+      </td>
+      <td>-</td>
+      <td>
+        {formatMoney(
+          collection.amount ?? null,
+          collection.currency_code ?? fallbackCurrencyCode
+        )}
+      </td>
+      <td>-</td>
+    </tr>
+  )
+}
+
+function PaymentRow({
+  collection,
+  fallbackCurrencyCode,
+  payment,
+}: {
+  collection: MedusaAdminPaymentCollection
+  fallbackCurrencyCode: string | null
+  payment: MedusaAdminPayment
+}) {
+  return (
+    <tr>
+      <td className="admin-payment-nested">
+        {formatCompactId(payment.id) ?? "Payment"}
+      </td>
+      <td>
+        <Badge size="sm" variant={getPaymentBadgeVariant(payment)}>
+          {formatPaymentStatus(payment)}
+        </Badge>
+      </td>
+      <td>{payment.provider_id ?? "-"}</td>
+      <td>
+        {formatMoney(
+          payment.amount ?? null,
+          payment.currency_code ??
+            collection.currency_code ??
+            fallbackCurrencyCode
+        )}
+      </td>
+      <td>{formatDateTime(payment.created_at)}</td>
+    </tr>
+  )
+}
+
+function RefundPaymentRow({
+  collection,
+  fallbackCurrencyCode,
+  payment,
+  refund,
+}: {
+  collection: MedusaAdminPaymentCollection
+  fallbackCurrencyCode: string | null
+  payment: MedusaAdminPayment
+  refund: MedusaAdminRefund
+}) {
+  return (
+    <tr>
+      <td className="admin-payment-nested">
+        {formatCompactId(refund.id) ?? "Refund"}
+      </td>
+      <td>
+        <Badge size="sm" variant="warning">
+          Refund
+        </Badge>
+      </td>
+      <td>{payment.provider_id ?? "-"}</td>
+      <td>
+        {formatDeductionMoney(
+          refund.amount ?? null,
+          refund.currency_code ??
+            payment.currency_code ??
+            collection.currency_code ??
+            fallbackCurrencyCode
+        )}
+      </td>
+      <td>{formatDateTime(refund.created_at)}</td>
+    </tr>
+  )
+}
+
 function formatOrderLabel(order: MedusaAdminOrder) {
   return (
     order.custom_display_id ??
     (order.display_id ? `#${order.display_id}` : order.id)
   )
+}
+
+function formatCustomerName(order: MedusaAdminOrder) {
+  const customer = order.customer
+  const fullName = [customer?.first_name, customer?.last_name]
+    .filter(Boolean)
+    .join(" ")
+
+  return customer?.company_name || fullName || order.email || order.customer_id
 }
 
 function getItemTitle(item: MedusaAdminOrderItem) {
@@ -484,9 +904,7 @@ function formatPaymentCollections(order: MedusaAdminOrder) {
 }
 
 function formatFulfillments(order: MedusaAdminOrder) {
-  const fulfillments = (order.fulfillments ?? []).filter(
-    (fulfillment) => !fulfillment.canceled_at
-  )
+  const fulfillments = getActiveFulfillments(order)
 
   if (!fulfillments.length) {
     return "-"
@@ -495,6 +913,167 @@ function formatFulfillments(order: MedusaAdminOrder) {
   return fulfillments
     .map((fulfillment) => fulfillment.provider_id ?? fulfillment.id ?? "-")
     .join(", ")
+}
+
+function getActiveFulfillments(order: MedusaAdminOrder) {
+  return (order.fulfillments ?? []).filter(
+    (fulfillment) => !fulfillment.canceled_at
+  )
+}
+
+function formatFulfillmentStatus(fulfillment: MedusaAdminFulfillment) {
+  if (fulfillment.delivered_at) {
+    return "Doruceno"
+  }
+
+  if (fulfillment.shipped_at) {
+    return "Odeslano"
+  }
+
+  return fulfillment.requires_shipping ? "Ceka na odeslani" : "Ceka"
+}
+
+function formatFulfillmentItems(fulfillment: MedusaAdminFulfillment) {
+  const items = fulfillment.items ?? []
+
+  if (!items.length) {
+    return "-"
+  }
+
+  return items
+    .map((item) => {
+      const title = item.title ?? item.line_item_id
+
+      return title ? `${formatQuantity(item.quantity)}x ${title}` : "-"
+    })
+    .join(", ")
+}
+
+function formatFulfillmentTracking(fulfillment: MedusaAdminFulfillment) {
+  const labels = fulfillment.labels ?? []
+
+  if (labels.length) {
+    return (
+      <div className="admin-inline-list">
+        {labels.map((label, index) => {
+          const labelText = label.tracking_number ?? label.id ?? "Tracking"
+          const key = label.id ?? label.tracking_number ?? `tracking-${index}`
+
+          if (label.tracking_url) {
+            return (
+              <a
+                className="admin-table-link"
+                href={label.tracking_url}
+                key={key}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {labelText}
+              </a>
+            )
+          }
+
+          return <span key={key}>{labelText}</span>
+        })}
+      </div>
+    )
+  }
+
+  const dataTracking = getFulfillmentDataTracking(fulfillment.data)
+
+  return dataTracking ?? "-"
+}
+
+function getFulfillmentDataTracking(
+  data: Record<string, unknown> | null | undefined
+) {
+  if (!data) {
+    return null
+  }
+
+  for (const key of FULFILLMENT_TRACKING_DATA_KEYS) {
+    const value = data[key]
+
+    if (typeof value === "string" && value.trim()) {
+      return value
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value)
+    }
+  }
+
+  return null
+}
+
+function formatCompactId(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  if (value.length <= 16) {
+    return value
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-5)}`
+}
+
+function formatStatusLabel(value: string | null | undefined) {
+  return value ? value.replaceAll("_", " ") : "-"
+}
+
+function getStatusBadgeVariant(value: string | null | undefined): BadgeVariant {
+  const normalized = (value ?? "").toLowerCase()
+
+  if (normalized.includes("cancel") || normalized.includes("failed")) {
+    return "danger"
+  }
+
+  if (
+    normalized.includes("pending") ||
+    normalized.includes("not_paid") ||
+    normalized.includes("not_fulfilled") ||
+    normalized.includes("partially") ||
+    normalized.includes("awaiting") ||
+    normalized.includes("requires")
+  ) {
+    return "warning"
+  }
+
+  if (
+    normalized.includes("paid") ||
+    normalized.includes("captured") ||
+    normalized.includes("complete") ||
+    normalized.includes("delivered") ||
+    normalized.includes("fulfilled") ||
+    normalized.includes("shipped")
+  ) {
+    return "success"
+  }
+
+  return "info"
+}
+
+function getPaymentBadgeVariant(payment: MedusaAdminPayment): BadgeVariant {
+  return getStatusBadgeVariant(formatPaymentStatus(payment))
+}
+
+function formatPaymentStatus(payment: MedusaAdminPayment) {
+  if (payment.canceled_at) {
+    return "Canceled"
+  }
+
+  if (payment.captured_at) {
+    return "Captured"
+  }
+
+  return "Pending"
+}
+
+function getFulfillmentBadgeVariant(
+  fulfillment: MedusaAdminFulfillment
+): BadgeVariant {
+  return getStatusBadgeVariant(formatFulfillmentStatus(fulfillment))
 }
 
 function formatAddressName(address: MedusaAdminAddress | null | undefined) {
@@ -548,6 +1127,23 @@ function formatMoney(
     currency: (currencyCode ?? "CZK").toUpperCase(),
     style: "currency",
   }).format(amount)
+}
+
+function formatDeductionMoney(
+  value: number | string | null,
+  currencyCode: string | null
+) {
+  if (value === null) {
+    return "-"
+  }
+
+  const amount = typeof value === "string" ? Number(value) : value
+
+  if (!Number.isFinite(amount) || amount === 0) {
+    return "-"
+  }
+
+  return `-${formatMoney(Math.abs(amount), currencyCode)}`
 }
 
 function formatQuantity(value: number | string | null | undefined) {
