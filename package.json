@@ -93,6 +93,11 @@
           "@payloadcms/ui": "3.84.1"
         }
       },
+      "@medusajs/caching@2.15.2": {
+        "dependencies": {
+          "graphql": "16.14.0"
+        }
+      },
       "@rokmohar/medusa-plugin-meilisearch@*": {
         "dependencies": {
           "@medusajs/js-sdk": "^2.15.2"

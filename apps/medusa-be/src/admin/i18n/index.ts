@@ -1,3 +1,7 @@
+import {
+  type ProducerAdminI18nNamespace,
+  producerAdminI18n,
+} from "../../modules/producer/admin/i18n"
 import type { OrderBusinessStatusId } from "../../utils/order-business-status"
 
 type AdminLocale = "cs" | "en"
@@ -52,6 +56,7 @@ type AdminI18nResources = Record<
   AdminLocale,
   {
     orderBusinessStatuses: OrderBusinessStatusesNamespace
+    producers: ProducerAdminI18nNamespace
     translation: {
       orderCommercialValues: OrderCommercialValuesNamespace
     }
@@ -253,12 +258,14 @@ const orderCommercialValues = {
 const resources = {
   cs: {
     orderBusinessStatuses: orderBusinessStatuses.cs,
+    producers: producerAdminI18n.cs,
     translation: {
       orderCommercialValues: orderCommercialValues.cs,
     },
   },
   en: {
     orderBusinessStatuses: orderBusinessStatuses.en,
+    producers: producerAdminI18n.en,
     translation: {
       orderCommercialValues: orderCommercialValues.en,
     },

@@ -53,7 +53,7 @@ test-results
 .playwright-cli/
 .playwright
 .env
-.env.zane
+.env.zane*
 
 # Local Netlify folder
 .netlify

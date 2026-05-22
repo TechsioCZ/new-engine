@@ -1,7 +1,10 @@
+import { orderPaymentQr } from "../../utils/order-payment-qr"
+import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../payment-qr/constants"
 import {
   formatDate,
   formatMoney,
   getAddressLines,
+  getItemQuantity,
   getItemSubtotal,
   getItemTitle,
   getItemUnitPrice,
@@ -35,6 +38,11 @@ const RIGHT = 531
 const TOP = 770
 const FONT_NORMAL = "F1" as const
 const FONT_BOLD = "F2" as const
+const PAYMENT_QR_MODULE_SIZE = 4
+const PAYMENT_QR_X = LEFT
+const PAYMENT_QR_PROVIDER_IDS = new Set([QR_PAYMENT_MEDUSA_PROVIDER_ID])
+const SUPPLIER_Y = 626
+const SUPPLIER_Y_WITH_PAYMENT_QR = 560
 
 function customerBlock(
   address?: OrderReceiptAddress | null,
@@ -59,6 +67,10 @@ function buildPdf(order: OrderReceiptOrder) {
   const shippingTotal = toNumber(order.shipping_total)
   const total = getTotal(order)
   const supplierName = process.env.STORE_NAME || "N1 Shop"
+  const paymentQrCommands = buildPaymentQrCommands(order)
+  const supplierY = paymentQrCommands.length
+    ? SUPPLIER_Y_WITH_PAYMENT_QR
+    : SUPPLIER_Y
   const commands: PdfCommand[] = []
 
   commands.push(pdfText("Faktura", 330, TOP, { font: FONT_BOLD, size: 24 }))
@@ -66,6 +78,7 @@ function buildPdf(order: OrderReceiptOrder) {
     pdfText(orderNumber, 330, TOP - 28, { font: FONT_NORMAL, size: 22 })
   )
   commands.push(pdfText("Daňový doklad", 330, TOP - 58, { size: 10 }))
+  commands.push(...paymentQrCommands)
   commands.push(pdfText("Datum vystavení", 330, TOP - 104, { size: 10 }))
   commands.push(
     pdfText(formatDate(order.created_at), RIGHT, TOP - 104, {
@@ -74,13 +87,19 @@ function buildPdf(order: OrderReceiptOrder) {
     })
   )
 
-  commands.push(pdfText("Dodavatel", LEFT, 626, { size: 11 }))
-  commands.push(pdfText(supplierName, LEFT, 603, { font: FONT_BOLD, size: 12 }))
+  commands.push(pdfText("Dodavatel", LEFT, supplierY, { size: 11 }))
   commands.push(
-    pdfText("Faktura vystavena automaticky.", LEFT, 586, { size: 10 })
+    pdfText(supplierName, LEFT, supplierY - 23, { font: FONT_BOLD, size: 12 })
   )
-  commands.push(pdfText("Objednávka", LEFT, 545, { size: 10 }))
-  commands.push(pdfText(orderNumber, 205, 545, { align: "right", size: 10 }))
+  commands.push(
+    pdfText("Faktura vystavena automaticky.", LEFT, supplierY - 40, {
+      size: 10,
+    })
+  )
+  commands.push(pdfText("Objednávka", LEFT, supplierY - 81, { size: 10 }))
+  commands.push(
+    pdfText(orderNumber, 205, supplierY - 81, { align: "right", size: 10 })
+  )
 
   commands.push(pdfText("Odběratel", 322, 626, { size: 11 }))
   customerBlock(billingAddress, order.email)
@@ -118,7 +137,7 @@ function buildPdf(order: OrderReceiptOrder) {
 
   visibleItems.forEach((item, index) => {
     const y = tableTop - 24 - index * 22
-    const quantity = toNumber(item.quantity) || 1
+    const quantity = getItemQuantity(item)
     const lineSubtotal = getItemSubtotal(item)
     const fallbackUnitPrice = getItemUnitPrice(item)
     let unitPrice = fallbackUnitPrice
@@ -256,6 +275,32 @@ function buildPdf(order: OrderReceiptOrder) {
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`
 
   return Buffer.from(pdf, "utf8")
+}
+
+function buildPaymentQrCommands(order: OrderReceiptOrder): PdfCommand[] {
+  return orderPaymentQr.buildPdfCommands(getQrPaymentSpayd(order), {
+    moduleSize: PAYMENT_QR_MODULE_SIZE,
+    top: TOP,
+    x: PAYMENT_QR_X,
+  })
+}
+
+function getQrPaymentSpayd(order: OrderReceiptOrder) {
+  for (const collection of order.payment_collections ?? []) {
+    for (const payment of collection.payments ?? []) {
+      if (!PAYMENT_QR_PROVIDER_IDS.has(payment.provider_id ?? "")) {
+        continue
+      }
+
+      const spayd = payment.data?.payment_qr_spayd
+
+      if (typeof spayd === "string" && spayd.trim()) {
+        return spayd
+      }
+    }
+  }
+
+  return null
 }
 
 class OrderReceiptModuleService {

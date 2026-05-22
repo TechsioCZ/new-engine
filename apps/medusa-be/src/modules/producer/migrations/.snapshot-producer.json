@@ -1,8 +1,8 @@
 {
   "namespaces": [
-    "public"
+    "medusa"
   ],
-  "name": "public",
+  "name": "medusa",
   "tables": [
     {
       "columns": {
@@ -11,8 +11,15 @@
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
-          "primary": false,
+          "primary": true,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "text"
         },
         "title": {
@@ -22,6 +29,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "text"
         },
         "handle": {
@@ -31,6 +45,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "text"
         },
         "created_at": {
@@ -40,8 +61,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
           "length": 6,
+          "precision": null,
+          "scale": null,
           "default": "now()",
+          "comment": null,
+          "enumItems": [],
           "mappedType": "datetime"
         },
         "updated_at": {
@@ -51,8 +77,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
           "length": 6,
+          "precision": null,
+          "scale": null,
           "default": "now()",
+          "comment": null,
+          "enumItems": [],
           "mappedType": "datetime"
         },
         "deleted_at": {
@@ -62,22 +93,19 @@
           "autoincrement": false,
           "primary": false,
           "nullable": true,
+          "unique": false,
           "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "datetime"
         }
       },
       "name": "producer",
-      "schema": "public",
+      "schema": "medusa",
       "indexes": [
-        {
-          "keyName": "IDX_producer_handle_unique",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_producer_handle_unique\" ON \"producer\" (handle) WHERE deleted_at IS NULL"
-        },
         {
           "keyName": "IDX_producer_deleted_at",
           "columnNames": [],
@@ -85,7 +113,16 @@
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_deleted_at\" ON \"producer\" (deleted_at) WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_deleted_at\" ON \"producer\" (\"deleted_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_producer_handle_unique",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_producer_handle_unique\" ON \"producer\" (\"handle\") WHERE deleted_at IS NULL"
         },
         {
           "keyName": "producer_pkey",
@@ -109,8 +146,15 @@
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
-          "primary": false,
+          "primary": true,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "text"
         },
         "name": {
@@ -120,6 +164,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "text"
         },
         "created_at": {
@@ -129,8 +180,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
           "length": 6,
+          "precision": null,
+          "scale": null,
           "default": "now()",
+          "comment": null,
+          "enumItems": [],
           "mappedType": "datetime"
         },
         "updated_at": {
@@ -140,8 +196,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
           "length": 6,
+          "precision": null,
+          "scale": null,
           "default": "now()",
+          "comment": null,
+          "enumItems": [],
           "mappedType": "datetime"
         },
         "deleted_at": {
@@ -151,12 +212,18 @@
           "autoincrement": false,
           "primary": false,
           "nullable": true,
+          "unique": false,
           "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "datetime"
         }
       },
       "name": "producer_attribute_type",
-      "schema": "public",
+      "schema": "medusa",
       "indexes": [
         {
           "keyName": "IDX_producer_attribute_type_deleted_at",
@@ -165,7 +232,16 @@
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_attribute_type_deleted_at\" ON \"producer_attribute_type\" (deleted_at) WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_attribute_type_deleted_at\" ON \"producer_attribute_type\" (\"deleted_at\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_producer_attribute_type_name_unique",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_producer_attribute_type_name_unique\" ON \"producer_attribute_type\" (\"name\") WHERE deleted_at IS NULL"
         },
         {
           "keyName": "producer_attribute_type_pkey",
@@ -189,8 +265,15 @@
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
-          "primary": false,
+          "primary": true,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "text"
         },
         "value": {
@@ -200,6 +283,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "text"
         },
         "attribute_type_id": {
@@ -209,6 +299,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "text"
         },
         "producer_id": {
@@ -218,6 +315,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "text"
         },
         "created_at": {
@@ -227,8 +331,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
           "length": 6,
+          "precision": null,
+          "scale": null,
           "default": "now()",
+          "comment": null,
+          "enumItems": [],
           "mappedType": "datetime"
         },
         "updated_at": {
@@ -238,8 +347,13 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
+          "unique": false,
           "length": 6,
+          "precision": null,
+          "scale": null,
           "default": "now()",
+          "comment": null,
+          "enumItems": [],
           "mappedType": "datetime"
         },
         "deleted_at": {
@@ -249,12 +363,18 @@
           "autoincrement": false,
           "primary": false,
           "nullable": true,
+          "unique": false,
           "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
           "mappedType": "datetime"
         }
       },
       "name": "producer_attribute",
-      "schema": "public",
+      "schema": "medusa",
       "indexes": [
         {
           "keyName": "IDX_producer_attribute_attribute_type_id",
@@ -263,7 +383,7 @@
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_attribute_attribute_type_id\" ON \"producer_attribute\" (attribute_type_id) WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_attribute_attribute_type_id\" ON \"producer_attribute\" (\"attribute_type_id\") WHERE deleted_at IS NULL"
         },
         {
           "keyName": "IDX_producer_attribute_producer_id",
@@ -272,7 +392,7 @@
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_attribute_producer_id\" ON \"producer_attribute\" (producer_id) WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_attribute_producer_id\" ON \"producer_attribute\" (\"producer_id\") WHERE deleted_at IS NULL"
         },
         {
           "keyName": "IDX_producer_attribute_deleted_at",
@@ -281,7 +401,7 @@
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_attribute_deleted_at\" ON \"producer_attribute\" (deleted_at) WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_producer_attribute_deleted_at\" ON \"producer_attribute\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
           "keyName": "producer_attribute_pkey",
@@ -301,11 +421,11 @@
           "columnNames": [
             "attribute_type_id"
           ],
-          "localTableName": "public.producer_attribute",
+          "localTableName": "medusa.producer_attribute",
           "referencedColumnNames": [
             "id"
           ],
-          "referencedTableName": "public.producer_attribute_type",
+          "referencedTableName": "medusa.producer_attribute_type",
           "updateRule": "cascade"
         },
         "producer_attribute_producer_id_foreign": {
@@ -313,11 +433,11 @@
           "columnNames": [
             "producer_id"
           ],
-          "localTableName": "public.producer_attribute",
+          "localTableName": "medusa.producer_attribute",
           "referencedColumnNames": [
             "id"
           ],
-          "referencedTableName": "public.producer",
+          "referencedTableName": "medusa.producer",
           "updateRule": "cascade"
         }
       },

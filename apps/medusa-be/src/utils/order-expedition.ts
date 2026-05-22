@@ -1,4 +1,11 @@
 import type { Query } from "@medusajs/framework/types"
+import {
+  getManualOrderBusinessStatusId,
+  type ManualOrderBusinessStatusId,
+  type OrderBusinessStatus,
+  type OrderBusinessStatusInput,
+  resolveOrderBusinessStatus,
+} from "./order-business-status"
 
 export const ORDER_EXPEDITION_MAX_ORDER_IDS = 1000
 export const ORDER_EXPEDITION_DEFAULT_LIMIT = 50
@@ -81,6 +88,8 @@ export type OrderExpeditionPaymentCollection = {
 export type OrderExpeditionFulfillment = {
   id?: string | null
   canceled_at?: string | null
+  delivered_at?: Date | string | null
+  shipped_at?: Date | string | null
 }
 
 export type OrderExpeditionCustomer = {
@@ -93,12 +102,17 @@ export type OrderExpeditionCustomer = {
 
 export type OrderExpeditionRawOrder = {
   id: string
+  created_at?: Date | string | null
+  currency_code?: string | null
   display_id?: number | null
   custom_display_id?: string | null
   email?: string | null
   status?: string | null
   is_draft_order?: boolean | null
+  fulfillment_status?: string | null
+  metadata?: Record<string, unknown> | null
   payment_status?: string | null
+  total?: number | string | null
   customer_id?: string | null
   customer?: OrderExpeditionCustomer | null
   shipping_address?: OrderExpeditionAddress | null
@@ -124,6 +138,9 @@ export type OrderExpeditionItemDto = {
 
 export type OrderExpeditionOrderDto = {
   id: string
+  business_status: OrderBusinessStatus
+  created_at?: string | null
+  currency_code?: string | null
   display_id?: number | null
   order_display_id: string
   customer: string
@@ -133,6 +150,8 @@ export type OrderExpeditionOrderDto = {
   payment_method: string
   payment_status?: string | null
   status?: string | null
+  manual_status?: ManualOrderBusinessStatusId | null
+  total?: number | string | null
   has_active_fulfillment: boolean
   items: OrderExpeditionItemDto[]
 }
@@ -158,12 +177,17 @@ export const ORDER_EXPEDITION_CARRIER_OPTIONS: OrderExpeditionCarrierOption[] =
 
 export const ORDER_EXPEDITION_ORDER_FIELDS = [
   "id",
+  "created_at",
+  "currency_code",
   "display_id",
   "custom_display_id",
   "email",
   "status",
   "is_draft_order",
+  "fulfillment_status",
+  "metadata",
   "payment_status",
+  "total",
   "customer_id",
   "customer.id",
   "customer.first_name",
@@ -185,6 +209,8 @@ export const ORDER_EXPEDITION_ORDER_FIELDS = [
   "shipping_methods.data",
   "fulfillments.id",
   "fulfillments.canceled_at",
+  "fulfillments.delivered_at",
+  "fulfillments.shipped_at",
   "items.id",
   "items.title",
   "items.subtitle",
@@ -354,6 +380,11 @@ export function toOrderExpeditionDto(
 ): OrderExpeditionOrderDto {
   return {
     id: order.id,
+    business_status: resolveOrderBusinessStatus(
+      order as OrderBusinessStatusInput
+    ),
+    created_at: normalizeDate(order.created_at),
+    currency_code: order.currency_code,
     display_id: order.display_id,
     order_display_id: getOrderExpeditionDisplayId(order),
     customer: getOrderExpeditionCustomerName(order),
@@ -363,6 +394,8 @@ export function toOrderExpeditionDto(
     payment_method: getOrderExpeditionPaymentMethod(order),
     payment_status: order.payment_status,
     status: order.status,
+    manual_status: getManualOrderBusinessStatusId(order) ?? null,
+    total: order.total,
     has_active_fulfillment: hasOrderExpeditionActiveFulfillment(order),
     items: (order.items ?? []).map(toOrderExpeditionItemDto),
   }
@@ -501,6 +534,14 @@ function joinNonEmpty(values: Array<string | null | undefined>) {
     .map((value) => value?.trim())
     .filter((value): value is string => Boolean(value))
     .join(" ")
+}
+
+function normalizeDate(value: Date | string | null | undefined) {
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+
+  return value ?? null
 }
 
 function isOrderExpeditionTransitionSourceStatus(

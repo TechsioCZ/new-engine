@@ -85,6 +85,7 @@ export const buildPaykitPaymentProviders = (
       id: PAYKIT_STRIPE_PROVIDER_ID,
       options: {
         apiKey: env.STRIPE_API_KEY,
+        isSandbox: parseBooleanEnv(env.STRIPE_SANDBOX, true),
         webhookSecret: env.STRIPE_WEBHOOK_SECRET,
         debug,
       },
