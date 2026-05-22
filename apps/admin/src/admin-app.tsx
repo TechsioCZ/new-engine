@@ -17,6 +17,7 @@ import {
 } from "react-router-dom"
 import { useActionRequiredSummary, useAdminStoreSummary } from "./admin-api"
 import { clearStoredAdminToken, hasStoredAdminToken } from "./admin-auth"
+import { CategoriesPage, CategoryDetailPage } from "./admin-category-pages"
 import { isAuthError } from "./admin-errors"
 import { LoginPage } from "./admin-login-page"
 import { OrderDetailPage } from "./admin-order-detail-page"
@@ -105,6 +106,8 @@ export function AdminApp() {
             />
             <Route element={<ProductsPage />} path="/products" />
             <Route element={<ProductDetailPage />} path="/products/:id" />
+            <Route element={<CategoriesPage />} path="/categories" />
+            <Route element={<CategoryDetailPage />} path="/categories/:id" />
             <Route
               element={
                 <PlaceholderPage eyebrow="Sklad" title="Skladove workflow" />

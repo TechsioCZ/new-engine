@@ -16,6 +16,7 @@ import type {
   AdminNamedReferenceResponse,
   AdminPricePreference,
   AdminPricePreferencesResponse,
+  AdminProductCategoriesResponse,
   AdminProductsResponse,
   AdminStoreSummary,
   MedusaAdminCustomer,
@@ -25,6 +26,8 @@ import type {
   MedusaAdminOrderResponse,
   MedusaAdminOrdersResponse,
   MedusaAdminProduct,
+  MedusaAdminProductCategoriesResponse,
+  MedusaAdminProductCategoryResponse,
   MedusaAdminProductResponse,
   MedusaAdminProductsResponse,
   MedusaAdminStoresResponse,
@@ -49,6 +52,8 @@ const ACTION_REQUIRED_REFETCH_INTERVAL_MS = 60_000
 const ACTION_REQUIRED_STALE_TIME_MS = 15_000
 const EMAIL_LOG_LIST_LIMIT = 20
 const PACKETA_LABEL_ORDER_LIST_LIMIT = 50
+const CATEGORY_LIST_LIMIT = 20
+const CATEGORY_PRODUCT_LIST_LIMIT = 10
 const PRODUCT_LIST_LIMIT = 20
 const STORE_SUMMARY_FIELDS = ["id", "name"].join(",")
 const STORE_DETAIL_FIELDS = [
@@ -207,6 +212,40 @@ const PRODUCT_DETAIL_FIELDS = [
   "*sales_channels",
   "*images",
   "*categories",
+].join(",")
+
+const CATEGORY_ROOT_LIST_FIELDS = [
+  "id",
+  "name",
+  "rank",
+  "category_children",
+  "handle",
+  "is_internal",
+  "is_active",
+].join(",")
+
+const CATEGORY_SEARCH_LIST_FIELDS = [
+  "id",
+  "name",
+  "rank",
+  "handle",
+  "is_internal",
+  "is_active",
+  "parent_category",
+].join(",")
+
+const CATEGORY_DETAIL_FIELDS = [
+  "id",
+  "name",
+  "description",
+  "handle",
+  "is_active",
+  "is_internal",
+  "rank",
+  "parent_category_id",
+  "metadata",
+  "*parent_category",
+  "*category_children",
 ].join(",")
 
 const PACKETA_LABEL_ORDER_FIELDS = [
@@ -472,9 +511,13 @@ function getPendingB2BCustomersQueryOptions() {
 }
 
 async function fetchProductsFromAdminApi({
+  categoryId,
+  limit = PRODUCT_LIST_LIMIT,
   offset,
   q,
 }: {
+  categoryId?: string
+  limit?: number
   offset: number
   q?: string
 }): Promise<AdminProductsResponse> {
@@ -483,9 +526,10 @@ async function fetchProductsFromAdminApi({
     {
       fields: PRODUCT_FIELDS,
       is_giftcard: "false",
-      limit: String(PRODUCT_LIST_LIMIT),
+      limit: String(limit),
       offset: String(offset),
       order: "-created_at",
+      ...(categoryId ? { category_id: categoryId } : {}),
       ...(q ? { q } : {}),
     }
   )
@@ -497,6 +541,44 @@ async function fetchProductsFromAdminApi({
     limit: response.limit,
     offset: response.offset,
     products: response.products.map(toProductListItem),
+  }
+}
+
+async function fetchProductCategoriesFromAdminApi({
+  offset,
+  q,
+}: {
+  offset: number
+  q?: string
+}): Promise<AdminProductCategoriesResponse> {
+  const response = await fetchAdminApi<MedusaAdminProductCategoriesResponse>(
+    "/admin/product-categories",
+    q
+      ? {
+          fields: CATEGORY_SEARCH_LIST_FIELDS,
+          include_ancestors_tree: "true",
+          limit: String(CATEGORY_LIST_LIMIT),
+          offset: String(offset),
+          order: "rank",
+          q,
+        }
+      : {
+          fields: CATEGORY_ROOT_LIST_FIELDS,
+          include_descendants_tree: "true",
+          limit: String(CATEGORY_LIST_LIMIT),
+          offset: String(offset),
+          order: "rank",
+          parent_category_id: "null",
+        }
+  )
+
+  return {
+    count: response.count,
+    has_next: response.offset + response.limit < response.count,
+    has_previous: response.offset > 0,
+    limit: response.limit,
+    offset: response.offset,
+    product_categories: response.product_categories,
   }
 }
 
@@ -521,6 +603,19 @@ function fetchProductDetailFromAdminApi(
   return fetchAdminApi<MedusaAdminProductResponse>(`/admin/products/${id}`, {
     fields: PRODUCT_DETAIL_FIELDS,
   })
+}
+
+function fetchProductCategoryDetailFromAdminApi(
+  id: string
+): Promise<MedusaAdminProductCategoryResponse> {
+  return fetchAdminApi<MedusaAdminProductCategoryResponse>(
+    `/admin/product-categories/${id}`,
+    {
+      fields: CATEGORY_DETAIL_FIELDS,
+      include_ancestors_tree: "true",
+      include_descendants_tree: "true",
+    }
+  )
 }
 
 function fetchRegionReferenceFromAdminApi(
@@ -780,6 +875,27 @@ export function usePendingB2BCustomers() {
 }
 
 export function useAdminProducts({
+  categoryId,
+  limit,
+  offset,
+  q,
+}: {
+  categoryId?: string
+  limit?: number
+  offset: number
+  q?: string
+}) {
+  return useQuery({
+    queryFn: () => fetchProductsFromAdminApi({ categoryId, limit, offset, q }),
+    queryKey: [
+      "admin-products",
+      MEDUSA_BACKEND_URL,
+      { categoryId, limit: limit ?? PRODUCT_LIST_LIMIT, offset, q },
+    ],
+  })
+}
+
+export function useAdminProductCategories({
   offset,
   q,
 }: {
@@ -787,11 +903,49 @@ export function useAdminProducts({
   q?: string
 }) {
   return useQuery({
-    queryFn: () => fetchProductsFromAdminApi({ offset, q }),
+    queryFn: () => fetchProductCategoriesFromAdminApi({ offset, q }),
     queryKey: [
-      "admin-products",
+      "admin-product-categories",
       MEDUSA_BACKEND_URL,
-      { limit: PRODUCT_LIST_LIMIT, offset, q },
+      { limit: CATEGORY_LIST_LIMIT, offset, q },
+    ],
+  })
+}
+
+export function useAdminProductCategoryDetail({
+  id,
+}: {
+  id: string | null | undefined
+}) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () => fetchProductCategoryDetailFromAdminApi(id as string),
+    queryKey: ["admin-product-category-detail", MEDUSA_BACKEND_URL, id],
+  })
+}
+
+export function useAdminCategoryProducts({
+  categoryId,
+  offset,
+  q,
+}: {
+  categoryId: string | null | undefined
+  offset: number
+  q?: string
+}) {
+  return useQuery({
+    enabled: Boolean(categoryId),
+    queryFn: () =>
+      fetchProductsFromAdminApi({
+        categoryId: categoryId as string,
+        limit: CATEGORY_PRODUCT_LIST_LIMIT,
+        offset,
+        q,
+      }),
+    queryKey: [
+      "admin-category-products",
+      MEDUSA_BACKEND_URL,
+      { categoryId, limit: CATEGORY_PRODUCT_LIST_LIMIT, offset, q },
     ],
   })
 }
@@ -957,6 +1111,8 @@ export function usePayloadConfig() {
 }
 
 export {
+  CATEGORY_LIST_LIMIT,
+  CATEGORY_PRODUCT_LIST_LIMIT,
   EMAIL_LOG_LIST_LIMIT,
   PACKETA_LABEL_ORDER_LIST_LIMIT,
   PRODUCT_LIST_LIMIT,
