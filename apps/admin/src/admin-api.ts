@@ -13,7 +13,11 @@ import type {
   ActionRequiredSummary,
   AdminEmailLogDetailResponse,
   AdminEmailLogsResponse,
+  AdminNamedReferenceResponse,
+  AdminPricePreference,
+  AdminPricePreferencesResponse,
   AdminProductsResponse,
+  AdminStoreSummary,
   MedusaAdminCustomer,
   MedusaAdminCustomersResponse,
   MedusaAdminEmailLogsResponse,
@@ -23,6 +27,7 @@ import type {
   MedusaAdminProduct,
   MedusaAdminProductResponse,
   MedusaAdminProductsResponse,
+  MedusaAdminStoresResponse,
   MedusaPacketaLabelOrdersResponse,
   OrderEmailTemplatesResponse,
   PacketaConfigInput,
@@ -45,6 +50,17 @@ const ACTION_REQUIRED_STALE_TIME_MS = 15_000
 const EMAIL_LOG_LIST_LIMIT = 20
 const PACKETA_LABEL_ORDER_LIST_LIMIT = 50
 const PRODUCT_LIST_LIMIT = 20
+const STORE_SUMMARY_FIELDS = ["id", "name"].join(",")
+const STORE_DETAIL_FIELDS = [
+  "id",
+  "name",
+  "default_region_id",
+  "default_sales_channel_id",
+  "default_location_id",
+  "metadata",
+  "+supported_currencies",
+  "+supported_locales",
+].join(",")
 
 function getActionRequiredSummaryQueryKey() {
   return ["action-required-summary", MEDUSA_BACKEND_URL] as const
@@ -484,11 +500,88 @@ async function fetchProductsFromAdminApi({
   }
 }
 
+async function fetchActiveStoreFromAdminApi(
+  fields = STORE_SUMMARY_FIELDS
+): Promise<AdminStoreSummary | null> {
+  const response = await fetchAdminApi<MedusaAdminStoresResponse>(
+    "/admin/stores",
+    {
+      fields,
+      limit: "1",
+      offset: "0",
+    }
+  )
+
+  return response.stores[0] ?? null
+}
+
 function fetchProductDetailFromAdminApi(
   id: string
 ): Promise<MedusaAdminProductResponse> {
   return fetchAdminApi<MedusaAdminProductResponse>(`/admin/products/${id}`, {
     fields: PRODUCT_DETAIL_FIELDS,
+  })
+}
+
+function fetchRegionReferenceFromAdminApi(
+  id: string
+): Promise<AdminNamedReferenceResponse<"region">> {
+  return fetchAdminApi<AdminNamedReferenceResponse<"region">>(
+    `/admin/regions/${id}`,
+    {
+      fields: "id,name",
+    }
+  )
+}
+
+function fetchSalesChannelReferenceFromAdminApi(
+  id: string
+): Promise<AdminNamedReferenceResponse<"sales_channel">> {
+  return fetchAdminApi<AdminNamedReferenceResponse<"sales_channel">>(
+    `/admin/sales-channels/${id}`,
+    {
+      fields: "id,name",
+    }
+  )
+}
+
+function fetchStockLocationReferenceFromAdminApi(
+  id: string
+): Promise<AdminNamedReferenceResponse<"stock_location">> {
+  return fetchAdminApi<AdminNamedReferenceResponse<"stock_location">>(
+    `/admin/stock-locations/${id}`,
+    {
+      fields: "id,name",
+    }
+  )
+}
+
+async function fetchCurrencyPricePreferencesFromAdminApi(
+  currencyCodes: string[]
+): Promise<AdminPricePreference[]> {
+  const codeSet = new Set(currencyCodes.map((code) => code.toLowerCase()))
+
+  if (codeSet.size === 0) {
+    return []
+  }
+
+  const { records: preferences } = await fetchAllAdminPages<
+    AdminPricePreferencesResponse,
+    AdminPricePreference
+  >({
+    params: {
+      attribute: "currency_code",
+    },
+    path: "/admin/price-preferences",
+    readItems: (response) => response.price_preferences,
+  })
+
+  return preferences.filter((preference) => {
+    const value = preference.value?.toLowerCase()
+
+    return preference.attribute === "currency_code" && value
+      ? codeSet.has(value)
+      : false
   })
 }
 
@@ -700,6 +793,77 @@ export function useAdminProducts({
       MEDUSA_BACKEND_URL,
       { limit: PRODUCT_LIST_LIMIT, offset, q },
     ],
+  })
+}
+
+export function useAdminStoreSummary() {
+  return useQuery({
+    queryFn: () => fetchActiveStoreFromAdminApi(),
+    queryKey: ["admin-store-summary", MEDUSA_BACKEND_URL],
+    retry: false,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminStoreDetail() {
+  return useQuery({
+    queryFn: () => fetchActiveStoreFromAdminApi(STORE_DETAIL_FIELDS),
+    queryKey: ["admin-store-detail", MEDUSA_BACKEND_URL],
+    retry: false,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminCurrencyPricePreferences(currencyCodes: string[]) {
+  const normalizedCurrencyCodes = [
+    ...new Set(
+      currencyCodes
+        .map((code) => code.trim().toLowerCase())
+        .filter((code) => code.length > 0)
+    ),
+  ].sort()
+
+  return useQuery({
+    enabled: normalizedCurrencyCodes.length > 0,
+    queryFn: () =>
+      fetchCurrencyPricePreferencesFromAdminApi(normalizedCurrencyCodes),
+    queryKey: [
+      "admin-currency-price-preferences",
+      MEDUSA_BACKEND_URL,
+      normalizedCurrencyCodes,
+    ],
+    retry: false,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminRegionReference(id: string | null | undefined) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () => fetchRegionReferenceFromAdminApi(id as string),
+    queryKey: ["admin-region-reference", MEDUSA_BACKEND_URL, id],
+    retry: false,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminSalesChannelReference(id: string | null | undefined) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () => fetchSalesChannelReferenceFromAdminApi(id as string),
+    queryKey: ["admin-sales-channel-reference", MEDUSA_BACKEND_URL, id],
+    retry: false,
+    staleTime: 60_000,
+  })
+}
+
+export function useAdminStockLocationReference(id: string | null | undefined) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () => fetchStockLocationReferenceFromAdminApi(id as string),
+    queryKey: ["admin-stock-location-reference", MEDUSA_BACKEND_URL, id],
+    retry: false,
+    staleTime: 60_000,
   })
 }
 

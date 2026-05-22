@@ -47,6 +47,65 @@ export type PendingB2BCustomersResponse = {
 
 export type BadgeKey = "ordersActionRequired" | "customersActionRequired"
 
+export type AdminStoreSummary = {
+  default_location_id?: string | null
+  default_region_id?: string | null
+  default_sales_channel_id?: string | null
+  id: string
+  metadata?: Record<string, unknown> | null
+  name: string
+  supported_currencies?: AdminStoreCurrency[] | null
+  supported_locales?: AdminStoreLocale[] | null
+}
+
+export type AdminStoreCurrency = {
+  currency?: {
+    code?: string | null
+    name?: string | null
+    symbol?: string | null
+  } | null
+  currency_code: string
+  is_default?: boolean | null
+}
+
+export type AdminStoreLocale = {
+  locale?: {
+    code?: string | null
+    name?: string | null
+  } | null
+  locale_code: string
+}
+
+export type AdminPricePreference = {
+  attribute?: string | null
+  id: string
+  is_tax_inclusive?: boolean | null
+  value?: string | null
+}
+
+export type AdminPricePreferencesResponse = {
+  count: number
+  limit: number
+  offset: number
+  price_preferences: AdminPricePreference[]
+}
+
+export type MedusaAdminStoresResponse = {
+  count: number
+  limit: number
+  offset: number
+  stores: AdminStoreSummary[]
+}
+
+export type AdminNamedReference = {
+  id: string
+  name: string
+}
+
+export type AdminNamedReferenceResponse<TKey extends string> = {
+  [key in TKey]: AdminNamedReference
+}
+
 export type AdminProductListItem = {
   collection_title: string | null
   handle: string | null

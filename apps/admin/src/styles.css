@@ -38,16 +38,9 @@ a {
   padding: 18px 14px;
 }
 
-.admin-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 44px;
-  padding: 0 8px;
-}
-
 .admin-brand-mark {
   display: inline-flex;
+  flex: 0 0 auto;
   width: 34px;
   height: 34px;
   align-items: center;
@@ -60,16 +53,113 @@ a {
   font-weight: 700;
 }
 
-.admin-brand strong,
-.admin-brand small {
-  display: block;
-  line-height: 1.1;
+.admin-account-menu-trigger {
+  display: grid;
+  width: 100%;
+  min-height: 44px;
+  grid-template-columns: 34px minmax(0, 1fr) 17px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #1f2520;
+  cursor: pointer;
+  font: inherit;
+  padding: 5px 8px;
+  text-align: left;
 }
 
-.admin-brand small {
+.admin-account-menu-trigger:hover,
+.admin-account-menu-trigger[data-state="open"] {
+  background: rgba(38, 56, 42, 0.07);
+}
+
+.admin-account-menu-trigger svg {
+  width: 17px;
+  height: 17px;
+  margin-left: auto;
+  color: #697066;
+}
+
+.admin-account-menu-copy {
+  display: block;
+  min-width: 0;
+  text-align: left;
+}
+
+.admin-account-menu-copy strong,
+.admin-account-menu-copy small {
+  display: block;
+  overflow: hidden;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-account-menu-copy strong {
+  color: #1f2520;
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.admin-account-menu-copy small {
   margin-top: 3px;
   color: #697066;
   font-size: 12px;
+}
+
+.admin-account-menu-positioner {
+  z-index: 20;
+}
+
+.admin-account-menu-popover {
+  display: grid;
+  width: 232px;
+  gap: 4px;
+  border: 1px solid rgba(31, 37, 32, 0.12);
+  border-radius: 8px;
+  background: #f8f7f1;
+  box-shadow: 0 18px 42px rgba(31, 37, 32, 0.15);
+  padding: 6px;
+}
+
+.admin-account-menu-summary {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(31, 37, 32, 0.1);
+  padding: 6px 6px 10px;
+}
+
+.admin-account-menu-item {
+  display: grid;
+  min-height: 34px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #3d443a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 7px 8px;
+  text-align: left;
+}
+
+.admin-account-menu-item:hover {
+  background: rgba(38, 56, 42, 0.07);
+  color: #1f2520;
+}
+
+.admin-account-menu-item svg {
+  width: 17px;
+  height: 17px;
+  color: #697066;
 }
 
 .admin-nav {
@@ -89,27 +179,6 @@ a {
 
 .admin-nav-section:first-child {
   margin-top: 0;
-}
-
-.admin-sidebar-action {
-  width: 100%;
-  min-height: 36px;
-  margin-top: auto;
-  border: 1px solid rgba(31, 37, 32, 0.1);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.7);
-  color: #4a5148;
-  cursor: pointer;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 650;
-  text-align: left;
-  padding: 8px 10px;
-}
-
-.admin-sidebar-action:hover {
-  background: rgba(180, 51, 40, 0.08);
-  color: #7d2119;
 }
 
 .admin-nav-item {
@@ -319,7 +388,8 @@ a {
   opacity: 0.48;
 }
 
-.admin-sidebar-action:focus-visible,
+.admin-account-menu-trigger:focus-visible,
+.admin-account-menu-item:focus-visible,
 .admin-nav-item:focus-visible,
 .admin-toolbar-button:focus-visible,
 .admin-pagination-button:focus-visible,
@@ -661,6 +731,19 @@ a {
   gap: 6px;
 }
 
+.admin-pill {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  border: 1px solid rgba(31, 37, 32, 0.12);
+  border-radius: 999px;
+  background: rgba(38, 56, 42, 0.06);
+  color: #26382a;
+  font-size: 12px;
+  font-weight: 760;
+  padding: 2px 8px;
+}
+
 .admin-table-check {
   width: 42px;
 }
@@ -817,6 +900,40 @@ a {
 
 .admin-settings-panel {
   max-width: 900px;
+}
+
+.admin-key-value-list {
+  display: grid;
+}
+
+.admin-key-value-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.42fr) minmax(0, 1fr);
+  gap: 16px;
+  border-bottom: 1px solid rgba(31, 37, 32, 0.08);
+  color: #3d443a;
+  font-size: 13px;
+  padding: 13px 16px;
+}
+
+.admin-key-value-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-key-value-row span {
+  color: #697066;
+  font-weight: 700;
+}
+
+.admin-key-value-row strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #1f2520;
+  font-weight: 650;
+}
+
+.admin-store-inline-list {
+  padding: 14px 16px;
 }
 
 .admin-payload-panel {
