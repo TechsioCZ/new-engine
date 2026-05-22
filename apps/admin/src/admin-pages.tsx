@@ -419,7 +419,7 @@ function OrderRow({ order }: { order: ActionRequiredOrder }) {
 
 function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
   return (
-    <article className="admin-row">
+    <Link className="admin-row admin-row-link" to={`/customers/${customer.id}`}>
       <div>
         <strong>{formatCustomerName(customer)}</strong>
         <span>{customer.email ?? "Bez e-mailu"}</span>
@@ -430,7 +430,7 @@ function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
         </Badge>
         <span>{customer.phone ?? "Bez telefonu"}</span>
       </div>
-    </article>
+    </Link>
   )
 }
 

@@ -194,7 +194,15 @@ function OrderCustomerPanel({ order }: { order: MedusaAdminOrder }) {
         <DetailField label="Email" value={order.email ?? customer?.email} />
         <DetailField label="Telefon" value={customer?.phone} />
         <DetailField label="Firma" value={customer?.company_name} />
-        <DetailField label="Customer ID" value={order.customer_id} />
+        {order.customer_id ? (
+          <DetailLinkField
+            label="Customer ID"
+            to={`/customers/${order.customer_id}`}
+            value={order.customer_id}
+          />
+        ) : (
+          <DetailField label="Customer ID" value={null} />
+        )}
       </div>
     </section>
   )
@@ -714,6 +722,27 @@ function DetailField({
     <div className="admin-detail-field">
       <span>{label}</span>
       <strong>{value || "-"}</strong>
+    </div>
+  )
+}
+
+function DetailLinkField({
+  label,
+  to,
+  value,
+}: {
+  label: string
+  to: string
+  value: string
+}) {
+  return (
+    <div className="admin-detail-field">
+      <span>{label}</span>
+      <strong>
+        <Link className="admin-table-link" to={to}>
+          {value}
+        </Link>
+      </strong>
     </div>
   )
 }

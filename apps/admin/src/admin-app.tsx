@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState } from "react"
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom"
 import { useActionRequiredSummary } from "./admin-api"
 import { clearStoredAdminToken, hasStoredAdminToken } from "./admin-auth"
+import { CustomerDetailPage } from "./admin-customer-detail-page"
 import { isAuthError } from "./admin-errors"
 import { LoginPage } from "./admin-login-page"
 import { OrderDetailPage } from "./admin-order-detail-page"
@@ -90,6 +91,7 @@ export function AdminApp() {
               path="/inventory"
             />
             <Route element={<CustomersPage />} path="/customers" />
+            <Route element={<CustomerDetailPage />} path="/customers/:id" />
             <Route
               element={
                 <PlaceholderPage eyebrow="Promoce" title="Promocni workflow" />

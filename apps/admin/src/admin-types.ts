@@ -431,14 +431,47 @@ export type MedusaAdminOrderResponse = {
 }
 
 export type MedusaAdminCustomer = {
+  addresses?: MedusaAdminCustomerAddress[] | null
   company_name?: string | null
   created_at?: string | null
+  default_billing_address_id?: string | null
+  default_shipping_address_id?: string | null
   email?: string | null
   first_name?: string | null
+  groups?: MedusaAdminCustomerGroup[] | null
+  has_account?: boolean | null
   id: string
   last_name?: string | null
   metadata?: Record<string, unknown> | null
   phone?: string | null
+  updated_at?: string | null
+}
+
+export type MedusaAdminCustomerAddress = {
+  address_1?: string | null
+  address_2?: string | null
+  address_name?: string | null
+  city?: string | null
+  company?: string | null
+  country_code?: string | null
+  customer_id?: string | null
+  first_name?: string | null
+  id: string
+  is_default_billing?: boolean | null
+  is_default_shipping?: boolean | null
+  last_name?: string | null
+  metadata?: Record<string, unknown> | null
+  phone?: string | null
+  postal_code?: string | null
+  province?: string | null
+}
+
+export type MedusaAdminCustomerGroup = {
+  created_at?: string | null
+  id: string
+  metadata?: Record<string, unknown> | null
+  name?: string | null
+  updated_at?: string | null
 }
 
 export type MedusaAdminSalesChannel = {
@@ -456,6 +489,35 @@ export type MedusaAdminOrdersResponse = {
 export type MedusaAdminCustomersResponse = {
   count: number
   customers: MedusaAdminCustomer[]
+  limit: number
+  offset: number
+}
+
+export type MedusaAdminCustomerResponse = {
+  customer: MedusaAdminCustomer
+}
+
+export type MedusaAdminCustomerGroupsResponse = {
+  count: number
+  customer_groups: MedusaAdminCustomerGroup[]
+  limit: number
+  offset: number
+}
+
+export type AdminCustomerOrdersResponse = {
+  count: number
+  has_next: boolean
+  has_previous: boolean
+  limit: number
+  offset: number
+  orders: MedusaAdminOrder[]
+}
+
+export type AdminCustomerGroupsResponse = {
+  count: number
+  customer_groups: MedusaAdminCustomerGroup[]
+  has_next: boolean
+  has_previous: boolean
   limit: number
   offset: number
 }

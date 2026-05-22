@@ -8,8 +8,8 @@ import type {
 const ACTION_REQUIRED_ORDER_STATUS = "pending"
 const ACTION_REQUIRED_ORDER_BUSINESS_STATUS = "awaiting_payment"
 const ORDER_BUSINESS_STATUS_METADATA_KEY = "order_business_status_manual"
-const B2B_CUSTOMER_TYPE_METADATA_KEY = "customer_type"
-const B2B_APPROVAL_STATUS_METADATA_KEY = "b2b_approval_status"
+export const B2B_CUSTOMER_TYPE_METADATA_KEY = "customer_type"
+export const B2B_APPROVAL_STATUS_METADATA_KEY = "b2b_approval_status"
 
 const ACTION_REQUIRED_UNPAID_PAYMENT_STATUSES = new Set([
   "authorized",

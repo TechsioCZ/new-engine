@@ -11,10 +11,14 @@ import {
 import type {
   ActionRequiredOrdersResponse,
   ActionRequiredSummary,
+  AdminCustomerGroupsResponse,
+  AdminCustomerOrdersResponse,
   AdminEmailLogDetailResponse,
   AdminEmailLogsResponse,
   AdminProductsResponse,
   MedusaAdminCustomer,
+  MedusaAdminCustomerGroupsResponse,
+  MedusaAdminCustomerResponse,
   MedusaAdminCustomersResponse,
   MedusaAdminEmailLogsResponse,
   MedusaAdminOrder,
@@ -45,6 +49,8 @@ const ACTION_REQUIRED_STALE_TIME_MS = 15_000
 const EMAIL_LOG_LIST_LIMIT = 20
 const PACKETA_LABEL_ORDER_LIST_LIMIT = 50
 const PRODUCT_LIST_LIMIT = 20
+const CUSTOMER_ORDER_LIST_LIMIT = 10
+const CUSTOMER_GROUP_LIST_LIMIT = 20
 
 const ORDER_FIELDS = [
   "id",
@@ -137,6 +143,44 @@ const CUSTOMER_FIELDS = [
   "company_name",
   "phone",
   "created_at",
+  "metadata",
+].join(",")
+
+const CUSTOMER_DETAIL_FIELDS = [
+  "id",
+  "email",
+  "first_name",
+  "last_name",
+  "company_name",
+  "phone",
+  "created_at",
+  "updated_at",
+  "has_account",
+  "default_billing_address_id",
+  "default_shipping_address_id",
+  "metadata",
+  "+*addresses",
+  "*groups",
+].join(",")
+
+const CUSTOMER_ORDER_FIELDS = [
+  "id",
+  "display_id",
+  "custom_display_id",
+  "email",
+  "created_at",
+  "total",
+  "currency_code",
+  "status",
+  "payment_status",
+  "fulfillment_status",
+].join(",")
+
+const CUSTOMER_GROUP_FIELDS = [
+  "id",
+  "name",
+  "created_at",
+  "updated_at",
   "metadata",
 ].join(",")
 
@@ -418,6 +462,70 @@ async function fetchPendingB2BCustomersFromAdminApi(): Promise<PendingB2BCustome
   }
 }
 
+function fetchCustomerDetailFromAdminApi(
+  id: string
+): Promise<MedusaAdminCustomerResponse> {
+  return fetchAdminApi<MedusaAdminCustomerResponse>(`/admin/customers/${id}`, {
+    fields: CUSTOMER_DETAIL_FIELDS,
+  })
+}
+
+async function fetchCustomerOrdersFromAdminApi({
+  customerId,
+  offset,
+}: {
+  customerId: string
+  offset: number
+}): Promise<AdminCustomerOrdersResponse> {
+  const response = await fetchAdminApi<MedusaAdminOrdersResponse>(
+    "/admin/orders",
+    {
+      customer_id: customerId,
+      fields: CUSTOMER_ORDER_FIELDS,
+      limit: String(CUSTOMER_ORDER_LIST_LIMIT),
+      offset: String(offset),
+      order: "-created_at",
+    }
+  )
+
+  return {
+    count: response.count,
+    has_next: response.offset + response.limit < response.count,
+    has_previous: response.offset > 0,
+    limit: response.limit,
+    offset: response.offset,
+    orders: response.orders,
+  }
+}
+
+async function fetchCustomerGroupsFromAdminApi({
+  customerId,
+  offset,
+}: {
+  customerId: string
+  offset: number
+}): Promise<AdminCustomerGroupsResponse> {
+  const response = await fetchAdminApi<MedusaAdminCustomerGroupsResponse>(
+    "/admin/customer-groups",
+    {
+      "customers[id]": customerId,
+      fields: CUSTOMER_GROUP_FIELDS,
+      limit: String(CUSTOMER_GROUP_LIST_LIMIT),
+      offset: String(offset),
+      order: "name",
+    }
+  )
+
+  return {
+    count: response.count,
+    customer_groups: response.customer_groups,
+    has_next: response.offset + response.limit < response.count,
+    has_previous: response.offset > 0,
+    limit: response.limit,
+    offset: response.offset,
+  }
+}
+
 async function fetchProductsFromAdminApi({
   offset,
   q,
@@ -661,6 +769,62 @@ export function usePendingB2BCustomers() {
   })
 }
 
+export function useAdminCustomerDetail({
+  id,
+}: {
+  id: string | null | undefined
+}) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryFn: () => fetchCustomerDetailFromAdminApi(id as string),
+    queryKey: ["admin-customer-detail", MEDUSA_BACKEND_URL, id],
+  })
+}
+
+export function useAdminCustomerOrders({
+  customerId,
+  offset,
+}: {
+  customerId: string | null | undefined
+  offset: number
+}) {
+  return useQuery({
+    enabled: Boolean(customerId),
+    queryFn: () =>
+      fetchCustomerOrdersFromAdminApi({
+        customerId: customerId as string,
+        offset,
+      }),
+    queryKey: [
+      "admin-customer-orders",
+      MEDUSA_BACKEND_URL,
+      { customerId, limit: CUSTOMER_ORDER_LIST_LIMIT, offset },
+    ],
+  })
+}
+
+export function useAdminCustomerGroups({
+  customerId,
+  offset,
+}: {
+  customerId: string | null | undefined
+  offset: number
+}) {
+  return useQuery({
+    enabled: Boolean(customerId),
+    queryFn: () =>
+      fetchCustomerGroupsFromAdminApi({
+        customerId: customerId as string,
+        offset,
+      }),
+    queryKey: [
+      "admin-customer-groups",
+      MEDUSA_BACKEND_URL,
+      { customerId, limit: CUSTOMER_GROUP_LIST_LIMIT, offset },
+    ],
+  })
+}
+
 export function useAdminProducts({
   offset,
   q,
@@ -768,6 +932,8 @@ export function usePayloadConfig() {
 }
 
 export {
+  CUSTOMER_GROUP_LIST_LIMIT,
+  CUSTOMER_ORDER_LIST_LIMIT,
   EMAIL_LOG_LIST_LIMIT,
   PACKETA_LABEL_ORDER_LIST_LIMIT,
   PRODUCT_LIST_LIMIT,
