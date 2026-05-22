@@ -136,11 +136,13 @@ The UI library uses Zag.js for React components with custom styling with Tailwin
 - **Tokens**: Design system tokens for colors, spacing, typography
 - **Storybook**: Run `bunx nx run ui:storybook` to view components
 
-Import pattern:
+Runtime app import pattern:
 ```typescript
-import { Button } from '@libs/ui/atoms/button'
-import { Dialog } from '@libs/ui/molecules/dialog'
+import { Button } from '@techsio/ui-kit/atoms/button'
+import { Dialog } from '@techsio/ui-kit/molecules/dialog'
 ```
+
+Use `@libs/ui/...` only in projects that define and verify that alias explicitly. The workspace package contract for app consumers is currently `@techsio/ui-kit/...`.
 
 ## Medusa Backend Structure
 

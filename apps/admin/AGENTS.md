@@ -33,12 +33,42 @@ Use `@techsio/ui-kit` / `libs/ui` first. Before adding custom UI primitives, ins
 - `libs/ui/local/skills/adopting-ui-kit-in-apps/app-token-overrides/SKILL.md`
 - `libs/ui/local/skills/authoring-ui-kit-components/component-authoring/SKILL.md` when a real UI kit API gap exists.
 
+Runtime imports in `apps/admin` must use the published workspace package name:
+
+```typescript
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Select } from "@techsio/ui-kit/molecules/select"
+```
+
+Do not rewrite app imports to `@libs/ui/...` unless the same change also adds and verifies the package/export/TypeScript/Vite alias contract. `libs/ui` is the source folder and guidance location; `@techsio/ui-kit` is the app import contract.
+
 Token-first, `className` last:
 
 - Component colors, borders, radius, spacing, typography, and states belong in token mappings or component variants.
 - Use inline `className` mainly for local layout and composition.
 - If the existing token chain already resolves to the desired value, do not add redundant overrides.
 - If a required visual state cannot be expressed through tokens or component API, treat it as a UI kit API gap. Add a short local workaround only if needed, and prefer a follow-up UI kit improvement.
+
+Admin app token files live under `apps/admin/src/styles/tokens` and mirror the UI kit token model:
+
+- `index.css` imports Tailwind, `@techsio/ui-kit/tokens`, admin semantic/spacing/typography files, and component overrides.
+- `_admin-base.css`, `_admin-colors.css`, `_admin-semantic.css`, `_admin-spacing.css`, `_admin-typography.css`, and `_admin-layout.css` are the default places for app-level visual differences.
+- `_admin-colors.css` owns the named admin palette. `_admin-semantic.css` maps UI kit semantic token names such as `--color-primary` and `--color-base` to that palette.
+- In the early admin-design phase, duplicate the relevant `libs/ui/src/tokens` contract tokens explicitly even when values currently match the library defaults. This keeps the admin theme inspectable; redundant entries can be removed in a later cleanup pass.
+- Before overriding an existing token, inspect the matching chain under `libs/ui/src/tokens` and preserve the library contract.
+- App-only layout tokens may use the `--*-admin-*` namespace. Do not add `--*-admin-*` aliases as a substitute for existing UI kit semantic/component tokens.
+- If an app token intentionally remaps an existing UI kit primitive, make that remap explicit in the broadest matching file before touching component token files.
+- The admin 2px spacing scale is `--spacing-1` through `--spacing-80`; `--spacing-50` is reserved for the UI kit primitive alias, so the 50th admin scale step is `--spacing-step-50`.
+- `components/components.css` imports focused component overrides such as `atoms/_admin-button.css`.
+- Add component-specific overrides only when the broader admin token files cannot express the needed result.
+
+Do not add more raw color, radius, spacing, or typography values to `styles.css` when a token can own the value. `styles.css` should move toward layout and composition only.
+
+Use UI-kit components before native controls:
+
+- Prefer `Button`, `Badge`, `Input`, `Checkbox`, `Select`, `Dialog`, `Pagination`, and other existing kit components when their semantics match.
+- Native table markup is acceptable for dense data grids until a shared table component covers the required behavior.
+- Native controls are acceptable only as a documented temporary gap in the current feature slice.
 
 Admin UX should stay dense, operational, and scannable. Do not introduce marketing layouts, oversized hero sections, decorative cards, or broad visual redesigns while implementing workflow parity.
 

@@ -1,0 +1,96 @@
+@theme static {
+  --color-admin-ink: light-dark(
+    oklch(0.257 0.013 150.124),
+    oklch(0.94 0.012 125)
+  );
+  --color-admin-ink-soft: light-dark(
+    oklch(0.426 0.017 138.73),
+    oklch(0.82 0.018 135)
+  );
+  --color-admin-muted: light-dark(
+    oklch(0.536 0.018 136.143),
+    oklch(0.68 0.018 136)
+  );
+  --color-admin-muted-strong: light-dark(
+    oklch(0.482 0.02 137.089),
+    oklch(0.76 0.02 137)
+  );
+  --color-admin-on-accent: light-dark(
+    oklch(0.98 0.014 67.667),
+    oklch(0.22 0.035 29)
+  );
+
+  --color-admin-base-light: oklch(0.954 0.01 125.681);
+  --color-admin-base-dark: oklch(0.19 0.014 150);
+  --color-admin-base: light-dark(
+    var(--color-admin-base-light),
+    var(--color-admin-base-dark)
+  );
+  --color-admin-surface: light-dark(
+    oklch(0.975 0.008 98.878),
+    oklch(0.24 0.014 145)
+  );
+  --color-admin-float: light-dark(oklch(1 0 0), oklch(0.28 0.014 145));
+  --color-admin-overlay: light-dark(
+    oklch(0.257 0.013 150.124 / 0.4),
+    oklch(0 0 0 / 0.55)
+  );
+  --color-admin-highlight: light-dark(
+    oklch(0.32 0.034 150.977 / 0.07),
+    oklch(0.78 0.065 151 / 0.16)
+  );
+  --color-admin-fill: light-dark(oklch(1 0 0 / 0.72), oklch(1 0 0 / 0.06));
+  --color-admin-fill-hover: light-dark(
+    oklch(0.32 0.034 150.977 / 0.07),
+    oklch(0.78 0.065 151 / 0.14)
+  );
+  --color-admin-fill-active: light-dark(
+    oklch(0.32 0.034 150.977 / 0.12),
+    oklch(0.78 0.065 151 / 0.2)
+  );
+
+  --color-admin-primary: light-dark(
+    oklch(0.32 0.034 150.977),
+    oklch(0.78 0.065 151)
+  );
+  --color-admin-secondary: var(--color-admin-muted);
+  --color-admin-tertiary: var(--color-admin-ink-soft);
+  --color-admin-success: light-dark(
+    oklch(0.528 0.108 153.398),
+    oklch(0.72 0.12 153)
+  );
+  --color-admin-info: var(--color-admin-primary);
+  --color-admin-warning: light-dark(
+    oklch(0.88 0.094 96.636),
+    oklch(0.82 0.105 96)
+  );
+  --color-admin-danger: light-dark(
+    oklch(0.516 0.167 29.039),
+    oklch(0.72 0.15 29)
+  );
+
+  --color-admin-border-soft: light-dark(
+    oklch(0.257 0.013 150.124 / 0.1),
+    oklch(0.94 0.012 125 / 0.1)
+  );
+  --color-admin-border: light-dark(
+    oklch(0.257 0.013 150.124 / 0.12),
+    oklch(0.94 0.012 125 / 0.14)
+  );
+  --color-admin-border-strong: light-dark(
+    oklch(0.257 0.013 150.124 / 0.2),
+    oklch(0.94 0.012 125 / 0.24)
+  );
+  --color-admin-disabled-bg: light-dark(
+    oklch(0.92 0.01 125),
+    oklch(0.26 0.014 150)
+  );
+  --color-admin-disabled-fg: light-dark(
+    oklch(0.62 0.014 136),
+    oklch(0.48 0.014 136)
+  );
+  --color-admin-disabled-fill: light-dark(
+    oklch(1 0 0 / 0.45),
+    oklch(1 0 0 / 0.04)
+  );
+}

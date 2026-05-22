@@ -1,0 +1,318 @@
+:root {
+  --state-hover: -0.08;
+  --state-active: -0.12;
+  --state-disabled-chroma: 0.01;
+  --state-light-variant: 0.1;
+  --state-light-chroma: 0.6;
+  --state-secondary-text: 0.15;
+  --state-border: 15%;
+  --state-placeholder: 0.25;
+  --max-lightness: 0.97;
+  --opacity-disabled: 60%;
+  --opacity-placeholder: 60%;
+  --opacity-text-secondary: 70%;
+  --opacity-disabled-placeholder: 30%;
+  --fill-increment: 5%;
+  --surface-increment: 0.05;
+  --state-fg-lightness: 0.42;
+}
+
+:is(.dark, .always-dark) {
+  --state-hover: 0.08;
+  --state-active: 0.12;
+  --state-secondary-text: -0.15;
+  --state-placeholder: -0.25;
+  --surface-increment: -0.05;
+  --state-fg-lightness: 0.85;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.always-light) {
+    --state-hover: 0.08;
+    --state-active: 0.12;
+    --state-secondary-text: -0.15;
+    --state-placeholder: -0.25;
+    --surface-increment: -0.05;
+    --state-fg-lightness: 0.85;
+  }
+}
+
+:is(.light, .always-light) .reverse {
+  --state-hover: 0.08;
+  --state-active: 0.12;
+  --state-secondary-text: -0.15;
+  --state-placeholder: -0.25;
+  --surface-increment: -0.05;
+  --state-fg-lightness: 0.85;
+}
+
+:is(.dark, .always-dark) .reverse {
+  --state-hover: -0.08;
+  --state-active: -0.12;
+  --state-secondary-text: 0.15;
+  --state-placeholder: 0.25;
+  --surface-increment: 0.05;
+  --state-fg-lightness: 0.42;
+}
+
+@media (prefers-color-scheme: light) {
+  .reverse:not(.dark):not(.always-dark):not(.light):not(.always-light) {
+    --state-hover: 0.08;
+    --state-active: 0.12;
+    --state-secondary-text: -0.15;
+    --state-placeholder: -0.25;
+    --surface-increment: -0.05;
+    --state-fg-lightness: 0.85;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .reverse:not(.dark):not(.always-dark):not(.light):not(.always-light) {
+    --state-hover: -0.08;
+    --state-active: -0.12;
+    --state-secondary-text: 0.15;
+    --state-placeholder: 0.25;
+    --surface-increment: 0.05;
+    --state-fg-lightness: 0.42;
+  }
+}
+
+@theme static {
+  --color-primary: var(--color-admin-primary);
+  --color-primary-hover: oklch(
+    from var(--color-primary) calc(l + var(--state-hover)) c h
+  );
+  --color-primary-active: oklch(
+    from var(--color-primary) calc(l + var(--state-active)) c h
+  );
+  --color-primary-disabled: oklch(
+    from var(--color-primary) l var(--state-disabled-chroma) h
+  );
+  --color-primary-light: oklch(
+    from var(--color-primary)
+      min(var(--max-lightness), calc(l + var(--state-light-variant)))
+      calc(c * var(--state-light-chroma)) h
+  );
+  --color-primary-light-hover: oklch(
+    from var(--color-primary-light) calc(l + var(--state-hover)) c h
+  );
+  --color-primary-light-active: oklch(
+    from var(--color-primary-light) calc(l + var(--state-active)) c h
+  );
+  --color-primary-light-disabled: oklch(
+    from var(--color-primary-light) l var(--state-disabled-chroma) h
+  );
+
+  --color-secondary: var(--color-admin-secondary);
+  --color-secondary-hover: oklch(
+    from var(--color-secondary) calc(l + var(--state-hover)) c h
+  );
+  --color-secondary-active: oklch(
+    from var(--color-secondary) calc(l + var(--state-active)) c h
+  );
+  --color-secondary-disabled: oklch(
+    from var(--color-secondary) l var(--state-disabled-chroma) h
+  );
+  --color-secondary-light: oklch(
+    from var(--color-secondary)
+      min(var(--max-lightness), calc(l + var(--state-light-variant)))
+      calc(c * var(--state-light-chroma)) h
+  );
+  --color-secondary-light-hover: oklch(
+    from var(--color-secondary-light) calc(l + var(--state-hover)) c h
+  );
+  --color-secondary-light-active: oklch(
+    from var(--color-secondary-light) calc(l + var(--state-active)) c h
+  );
+  --color-secondary-light-disabled: oklch(
+    from var(--color-secondary-light) l var(--state-disabled-chroma) h
+  );
+
+  --color-tertiary: var(--color-admin-tertiary);
+  --color-tertiary-hover: oklch(
+    from var(--color-tertiary) calc(l + var(--state-hover)) c h
+  );
+  --color-tertiary-active: oklch(
+    from var(--color-tertiary) calc(l + var(--state-active)) c h
+  );
+  --color-tertiary-disabled: oklch(
+    from var(--color-tertiary) l var(--state-disabled-chroma) h
+  );
+  --color-tertiary-light: oklch(
+    from var(--color-tertiary)
+      min(var(--max-lightness), calc(l + var(--state-light-variant)))
+      calc(c * var(--state-light-chroma)) h
+  );
+  --color-tertiary-light-hover: oklch(
+    from var(--color-tertiary-light) calc(l + var(--state-hover)) c h
+  );
+  --color-tertiary-light-active: oklch(
+    from var(--color-tertiary-light) calc(l + var(--state-active)) c h
+  );
+  --color-tertiary-light-disabled: oklch(
+    from var(--color-tertiary-light) l var(--state-disabled-chroma) h
+  );
+
+  --color-success: var(--color-admin-success);
+  --color-success-hover: oklch(
+    from var(--color-success) calc(l + var(--state-hover)) c h
+  );
+  --color-success-active: oklch(
+    from var(--color-success) calc(l + var(--state-active)) c h
+  );
+  --color-success-disabled: oklch(
+    from var(--color-success) l var(--state-disabled-chroma) h
+  );
+  --color-success-light: oklch(
+    from var(--color-success)
+      min(var(--max-lightness), calc(l + var(--state-light-variant)))
+      calc(c * var(--state-light-chroma)) h
+  );
+  --color-success-light-hover: oklch(
+    from var(--color-success-light) calc(l + var(--state-hover)) c h
+  );
+  --color-success-light-active: oklch(
+    from var(--color-success-light) calc(l + var(--state-active)) c h
+  );
+  --color-success-light-disabled: oklch(
+    from var(--color-success-light) l var(--state-disabled-chroma) h
+  );
+
+  --color-info: var(--color-admin-info);
+  --color-info-hover: var(--color-primary-hover);
+  --color-info-active: var(--color-primary-active);
+  --color-info-disabled: var(--color-primary-disabled);
+  --color-info-light: var(--color-primary-light);
+  --color-info-light-hover: var(--color-primary-light-hover);
+  --color-info-light-active: var(--color-primary-light-active);
+  --color-info-light-disabled: var(--color-primary-light-disabled);
+
+  --color-warning: var(--color-admin-warning);
+  --color-warning-hover: oklch(
+    from var(--color-warning) calc(l + var(--state-hover)) c h
+  );
+  --color-warning-active: oklch(
+    from var(--color-warning) calc(l + var(--state-active)) c h
+  );
+  --color-warning-disabled: oklch(
+    from var(--color-warning) l var(--state-disabled-chroma) h
+  );
+  --color-warning-light: oklch(
+    from var(--color-warning)
+      min(var(--max-lightness), calc(l + var(--state-light-variant)))
+      calc(c * var(--state-light-chroma)) h
+  );
+  --color-warning-light-hover: oklch(
+    from var(--color-warning-light) calc(l + var(--state-hover)) c h
+  );
+  --color-warning-light-active: oklch(
+    from var(--color-warning-light) calc(l + var(--state-active)) c h
+  );
+  --color-warning-light-disabled: oklch(
+    from var(--color-warning-light) l var(--state-disabled-chroma) h
+  );
+
+  --color-danger: var(--color-admin-danger);
+  --color-danger-hover: oklch(
+    from var(--color-danger) calc(l + var(--state-hover)) c h
+  );
+  --color-danger-active: oklch(
+    from var(--color-danger) calc(l + var(--state-active)) c h
+  );
+  --color-danger-disabled: oklch(
+    from var(--color-danger) l var(--state-disabled-chroma) h
+  );
+  --color-danger-light: oklch(
+    from var(--color-danger)
+      min(var(--max-lightness), calc(l + var(--state-light-variant)))
+      calc(c * var(--state-light-chroma)) h
+  );
+  --color-danger-light-hover: oklch(
+    from var(--color-danger-light) calc(l + var(--state-hover)) c h
+  );
+  --color-danger-light-active: oklch(
+    from var(--color-danger-light) calc(l + var(--state-active)) c h
+  );
+  --color-danger-light-disabled: oklch(
+    from var(--color-danger-light) l var(--state-disabled-chroma) h
+  );
+
+  --color-primary-accent-fg: oklch(
+    from var(--color-primary) var(--state-fg-lightness) c h
+  );
+  --color-secondary-accent-fg: oklch(
+    from var(--color-secondary) var(--state-fg-lightness) c h
+  );
+  --color-tertiary-accent-fg: oklch(
+    from var(--color-tertiary) var(--state-fg-lightness) c h
+  );
+  --color-success-fg: oklch(
+    from var(--color-success) var(--state-fg-lightness) c h
+  );
+  --color-info-fg: oklch(from var(--color-info) var(--state-fg-lightness) c h);
+  --color-warning-fg: oklch(
+    from var(--color-warning) var(--state-fg-lightness) c h
+  );
+  --color-danger-fg: oklch(
+    from var(--color-danger) var(--state-fg-lightness) c h
+  );
+
+  --color-fg-light: var(--color-admin-on-accent);
+  --color-fg-dark: var(--color-admin-ink);
+  --color-fg-primary: var(--color-admin-ink);
+  --color-fg-secondary: var(--color-admin-muted);
+  --color-fg-tertiary: var(--color-admin-muted-strong);
+  --color-fg-placeholder: oklch(
+    from var(--color-fg-secondary) calc(l + var(--state-placeholder)) c h
+  );
+  --color-fg-reverse: var(--color-admin-on-accent);
+
+  --color-base-light: var(--color-admin-base-light);
+  --color-base-dark: var(--color-admin-base-dark);
+  --color-base: var(--color-admin-base);
+  --color-surface: var(--color-admin-surface);
+  --color-overlay: var(--color-admin-overlay);
+  --color-float: var(--color-admin-float);
+  --color-highlight: var(--color-admin-highlight);
+  --color-base-reverse: light-dark(
+    var(--color-base-dark),
+    var(--color-base-light)
+  );
+
+  --color-border-primary: var(--color-admin-border);
+  --color-border-secondary: var(--color-admin-border-soft);
+  --color-border-tertiary: var(--color-admin-border-strong);
+  --border-width-none: 0px;
+  --border-width-sm: 1px;
+  --border-width-md: 2px;
+  --border-width-lg: 3px;
+  --border-width-validation: var(--border-width-lg);
+
+  --color-link: var(--color-primary);
+  --color-link-hover: oklch(
+    from var(--color-link) calc(l + var(--state-hover)) c h
+  );
+  --color-link-active: oklch(
+    from var(--color-link) calc(l + var(--state-active)) c h
+  );
+  --color-link-visited: oklch(
+    from var(--color-link) calc(l - var(--state-hover)) c h
+  );
+
+  --color-fill-base: var(--color-admin-fill);
+  --color-fill-hover: var(--color-admin-fill-hover);
+  --color-fill-active: var(--color-admin-fill-active);
+
+  --color-bg-disabled: var(--color-admin-disabled-bg);
+  --color-fg-disabled: var(--color-admin-disabled-fg);
+  --color-border-disabled: var(--color-admin-border-soft);
+  --color-fill-disabled: var(--color-admin-disabled-fill);
+
+  --spacing: var(--spacing-1);
+
+  --default-ring-color: var(--color-primary);
+  --color-ring: var(--default-ring-color);
+  --default-ring-width: 2px;
+  --default-ring-offset: 2px;
+  --default-ring-style: solid;
+}

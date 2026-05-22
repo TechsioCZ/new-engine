@@ -1,7 +1,9 @@
+@import "./styles/tokens/index.css";
+
 :root {
-  color: #1f2520;
-  font-family: "Aptos", "Segoe UI", sans-serif;
-  background: #eef1ea;
+  color: var(--color-fg-primary);
+  font-family: var(--font-sans);
+  background: var(--color-base);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -24,9 +26,10 @@ a {
 .admin-shell {
   display: grid;
   min-height: 100vh;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: var(--spacing-admin-shell-sidebar) minmax(0, 1fr);
   background:
-    linear-gradient(90deg, rgba(68, 92, 72, 0.08), transparent 38%), #eef1ea;
+    linear-gradient(90deg, var(--color-highlight), transparent 38%),
+    var(--color-base);
 }
 
 .admin-sidebar {

@@ -101,7 +101,7 @@ importers:
         version: 5.90.10(react@19.2.3)
       '@techsio/ui-kit':
         specifier: workspace:*
-        version: file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwind-merge@3.4.0)(tailwindcss@4.2.4)
+        version: file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwind-merge@3.4.0)(tailwindcss@4.1.17)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -112,6 +112,12 @@ importers:
         specifier: 6.30.3
         version: 6.30.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
     devDependencies:
+      '@iconify/tailwind4':
+        specifier: 1.1.0
+        version: 1.1.0(tailwindcss@4.1.17)
+      '@tailwindcss/postcss':
+        specifier: 4.1.17
+        version: 4.1.17
       '@types/react':
         specifier: 19.2.3
         version: 19.2.3
@@ -121,6 +127,18 @@ importers:
       '@vitejs/plugin-react':
         specifier: 6.0.1
         version: 6.0.1(babel-plugin-react-compiler@1.0.0)(vite@8.0.11(@types/node@25.8.0)(esbuild@0.28.0)(jiti@2.6.1)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.7.1))
+      postcss:
+        specifier: 8.5.6
+        version: 8.5.6
+      postcss-import:
+        specifier: 16.1.1
+        version: 16.1.1(postcss@8.5.6)
+      tailwindcss:
+        specifier: 4.1.17
+        version: 4.1.17
+      tailwindcss-animate:
+        specifier: 1.0.7
+        version: 1.0.7(tailwindcss@4.1.17)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -10661,10 +10679,6 @@ packages:
     resolution: {integrity: sha512-6Fv1DV/TYw//QF5IzQdqsNDjx/wc8TrMBZsqjL9eW01tWb7R7k/mq+/VXfJCl7SoD5emsJop9cOByJZfs8hYIw==}
     engines: {node: ^10 || ^12.20.0 || ^14.13.0 || >=15.0.0}
 
-  css-tree@3.1.0:
-    resolution: {integrity: sha512-0eW44TGN5SQXU1mWSkKwFstI/22X2bG1nYzZTYMAWjylYURhse752YgbE4Cx46AC+bAvI+/dYTPRk1LqSUnu6w==}
-    engines: {node: ^10 || ^12.20.0 || ^14.13.0 || >=15.0.0}
-
   css-tree@3.2.1:
     resolution: {integrity: sha512-X7sjQzceUhu1u7Y/ylrRZFU2FS6LRiFVp6rKLPg23y3x3c3DOKAwuXGDp+PAGjh6CSnCjYeAul8pcT8bAl+lSA==}
     engines: {node: ^10 || ^12.20.0 || ^14.13.0 || >=15.0.0}
@@ -11286,10 +11300,6 @@ packages:
   engine.io@6.6.7:
     resolution: {integrity: sha512-DgOngfDKM2EviOH3Mr9m7ks1q8roetLy/IMmYthAYzbpInMbYc/GS+fWFA3rl1gvwKVsQrVV61fo5emD1y3OJQ==}
     engines: {node: '>=10.2.0'}
-
-  enhanced-resolve@5.18.3:
-    resolution: {integrity: sha512-d4lC8xfavMeBjzGr2vECC3fsGXziXZQyJxD868h2M/mBI3PwAuODxAkLkq5HYuvrPYcUtiLzsTo8U3PgX3Ocww==}
-    engines: {node: '>=10.13.0'}
 
   enhanced-resolve@5.21.3:
     resolution: {integrity: sha512-QyL119InA+XXEkNLNTPCXPugSvOfhwv0JOlGNzvxs0hZaiHLNvXSpudUWsOlsXGWJh8G6ckCScEkVHfX3kw/2Q==}
@@ -12274,10 +12284,6 @@ packages:
     resolution: {integrity: sha512-Hrp5vIK/xr5SkeN2onO32H0MgNZ0f17HRNH39WfL0SYUNOTZ5Lz1TJ8Pajo/87dYGEFlLMm7mIc/k/s6Bvz9HQ==}
     engines: {node: '>=8'}
 
-  hasown@2.0.2:
-    resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
-    engines: {node: '>= 0.4'}
-
   hasown@2.0.3:
     resolution: {integrity: sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg==}
     engines: {node: '>= 0.4'}
@@ -12603,10 +12609,6 @@ packages:
 
   is-callable@1.2.7:
     resolution: {integrity: sha512-1BC0BVFhS/p0qtw6enp8e+8OD0UrK0oFLztSjNzhcKA3WDuJxxAPXzPuPtKkjEY9UUoEWlX/8fgKeu2S8i9JTA==}
-    engines: {node: '>= 0.4'}
-
-  is-core-module@2.16.1:
-    resolution: {integrity: sha512-UfoeMA6fIJ8wTYFEUjelnaGI67v6+N7qXJEvQuIGa99l4xsCruSYOVSQ0uPANn4dAzm8lkYPaKLrrijLq7x23w==}
     engines: {node: '>= 0.4'}
 
   is-core-module@2.16.2:
@@ -13761,9 +13763,6 @@ packages:
 
   mdn-data@2.0.30:
     resolution: {integrity: sha512-GaqWWShW4kv/G9IEucWScBx9G1/vsFZZJUO+tD26M8J8z3Kw5RDQjaoZe03YAClgeS/SWPOcb4nkFBTEi5DUEA==}
-
-  mdn-data@2.12.2:
-    resolution: {integrity: sha512-IEn+pegP1aManZuckezWCO+XZQDplx1366JoVhTpMpBB1sPey/SbveZQUosKiKiGYjg1wH4pMlNgXbCiYgihQA==}
 
   mdn-data@2.27.1:
     resolution: {integrity: sha512-9Yubnt3e8A0OKwxYSXyhLymGW4sCufcLG6VdiDdUGVkPhpqLxlvP5vl1983gQjJl3tqbrM731mjaZaP68AgosQ==}
@@ -16440,10 +16439,6 @@ packages:
   tailwindcss@4.2.4:
     resolution: {integrity: sha512-HhKppgO81FQof5m6TEnuBWCZGgfRAWbaeOaGT00KOy/Pf/j6oUihdvBpA7ltCeAvZpFhW3j0PTclkxsd4IXYDA==}
 
-  tapable@2.3.0:
-    resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
-    engines: {node: '>=6'}
-
   tapable@2.3.3:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
@@ -16455,6 +16450,7 @@ packages:
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   tarn@3.0.2:
     resolution: {integrity: sha512-51LAVKUSZSVfI05vjPESNc5vwqqZpbXCsU+/+wxlOrUjk2SnFTt97v9ZgQrD4YmxYW1Px6w2KjaDitCfkvgxMQ==}
@@ -17342,6 +17338,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@3.0.0:
     resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
@@ -17710,7 +17707,7 @@ snapshots:
     dependencies:
       '@asamuzakjp/nwsapi': 2.3.9
       bidi-js: 1.0.3
-      css-tree: 3.1.0
+      css-tree: 3.2.1
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.2.6
 
@@ -18853,7 +18850,7 @@ snapshots:
       '@babel/helper-plugin-utils': 7.27.1
       debug: 4.4.3(supports-color@8.1.1)
       lodash.debounce: 4.0.8
-      resolve: 1.22.11
+      resolve: 1.22.12
     transitivePeerDependencies:
       - supports-color
 
@@ -27163,7 +27160,7 @@ snapshots:
   '@tailwindcss/node@4.1.17':
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      enhanced-resolve: 5.18.3
+      enhanced-resolve: 5.21.3
       jiti: 2.6.1
       lightningcss: 1.30.2
       magic-string: 0.30.21
@@ -27226,7 +27223,7 @@ snapshots:
       '@alloc/quick-lru': 5.2.0
       '@tailwindcss/node': 4.1.17
       '@tailwindcss/oxide': 4.1.17
-      postcss: 8.5.6
+      postcss: 8.5.14
       tailwindcss: 4.1.17
 
   '@tanstack/devtools-event-client@0.4.0': {}
@@ -27346,38 +27343,6 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
       tailwind-variants: 3.1.1(tailwind-merge@3.4.0)(tailwindcss@4.1.17)
-    transitivePeerDependencies:
-      - tailwind-merge
-      - tailwindcss
-
-  '@techsio/ui-kit@file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwind-merge@3.4.0)(tailwindcss@4.2.4)':
-    dependencies:
-      '@types/react': 19.2.3
-      '@types/react-dom': 19.2.3(@types/react@19.2.3)
-      '@zag-js/accordion': 1.40.0
-      '@zag-js/carousel': 1.40.0
-      '@zag-js/checkbox': 1.40.0
-      '@zag-js/combobox': 1.40.0
-      '@zag-js/dialog': 1.40.0
-      '@zag-js/i18n-utils': 1.40.0
-      '@zag-js/menu': 1.40.0
-      '@zag-js/number-input': 1.40.0
-      '@zag-js/pagination': 1.40.0
-      '@zag-js/popover': 1.40.0
-      '@zag-js/radio-group': 1.40.0
-      '@zag-js/rating-group': 1.40.0
-      '@zag-js/react': 1.40.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@zag-js/select': 1.40.0
-      '@zag-js/slider': 1.40.0
-      '@zag-js/steps': 1.40.0
-      '@zag-js/switch': 1.40.0
-      '@zag-js/tabs': 1.40.0
-      '@zag-js/toast': 1.40.0
-      '@zag-js/tooltip': 1.40.0
-      '@zag-js/tree-view': 1.40.0
-      react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
-      tailwind-variants: 3.1.1(tailwind-merge@3.4.0)(tailwindcss@4.2.4)
     transitivePeerDependencies:
       - tailwind-merge
       - tailwindcss
@@ -28857,10 +28822,6 @@ snapshots:
       mime-types: 2.1.35
       negotiator: 0.6.3
 
-  acorn-import-attributes@1.9.5(acorn@8.15.0):
-    dependencies:
-      acorn: 8.15.0
-
   acorn-import-attributes@1.9.5(acorn@8.16.0):
     dependencies:
       acorn: 8.16.0
@@ -30134,11 +30095,6 @@ snapshots:
       mdn-data: 2.0.30
       source-map-js: 1.2.1
 
-  css-tree@3.1.0:
-    dependencies:
-      mdn-data: 2.12.2
-      source-map-js: 1.2.1
-
   css-tree@3.2.1:
     dependencies:
       mdn-data: 2.27.1
@@ -30165,7 +30121,7 @@ snapshots:
     dependencies:
       '@asamuzakjp/css-color': 4.1.2
       '@csstools/css-syntax-patches-for-csstree': 1.0.27
-      css-tree: 3.1.0
+      css-tree: 3.2.1
       lru-cache: 11.2.4
 
   csstype@3.1.3: {}
@@ -30556,11 +30512,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  enhanced-resolve@5.18.3:
-    dependencies:
-      graceful-fs: 4.2.11
-      tapable: 2.3.0
-
   enhanced-resolve@5.21.3:
     dependencies:
       graceful-fs: 4.2.11
@@ -30628,7 +30579,7 @@ snapshots:
       has-property-descriptors: 1.0.2
       has-proto: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.3
       internal-slot: 1.1.0
       is-array-buffer: 3.0.5
       is-callable: 1.2.7
@@ -30697,11 +30648,11 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.2
+      hasown: 2.0.3
 
   es-shim-unscopables@1.1.0:
     dependencies:
-      hasown: 2.0.2
+      hasown: 2.0.3
 
   es-to-primitive@1.3.0:
     dependencies:
@@ -30893,7 +30844,7 @@ snapshots:
   eslint-import-resolver-node@0.3.10:
     dependencies:
       debug: 3.2.7
-      is-core-module: 2.16.1
+      is-core-module: 2.16.2
       resolve: 2.0.0-next.6
     transitivePeerDependencies:
       - supports-color
@@ -30936,8 +30887,8 @@ snapshots:
       eslint: 9.39.1(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.10
       eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.7.3))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1)))(eslint@9.39.1(jiti@2.6.1))
-      hasown: 2.0.2
-      is-core-module: 2.16.1
+      hasown: 2.0.3
+      is-core-module: 2.16.2
       is-glob: 4.0.3
       minimatch: 3.1.2
       object.fromentries: 2.0.8
@@ -30964,7 +30915,7 @@ snapshots:
       damerau-levenshtein: 1.0.8
       emoji-regex: 9.2.2
       eslint: 9.39.1(jiti@2.6.1)
-      hasown: 2.0.2
+      hasown: 2.0.3
       jsx-ast-utils: 3.3.5
       language-tags: 1.0.9
       minimatch: 3.1.2
@@ -30993,7 +30944,7 @@ snapshots:
       es-iterator-helpers: 1.3.2
       eslint: 9.39.1(jiti@2.6.1)
       estraverse: 5.3.0
-      hasown: 2.0.2
+      hasown: 2.0.3
       jsx-ast-utils: 3.3.5
       minimatch: 3.1.2
       object.entries: 1.1.9
@@ -31008,7 +30959,7 @@ snapshots:
   eslint-plugin-tailwindcss@4.0.0-alpha.2(eslint@9.39.1(jiti@2.6.1))(tailwindcss@4.1.17)(typescript@5.9.3):
     dependencies:
       '@typescript-eslint/utils': 8.59.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
-      postcss: 8.5.6
+      postcss: 8.5.14
       synckit: 0.11.12
       tailwind-api-utils: 1.0.3(tailwindcss@4.1.17)
       tailwindcss: 4.1.17
@@ -31531,7 +31482,7 @@ snapshots:
       asynckit: 0.4.0
       combined-stream: 1.0.8
       es-set-tostringtag: 2.1.0
-      hasown: 2.0.2
+      hasown: 2.0.3
       mime-types: 2.1.35
 
   format@0.2.2: {}
@@ -31620,7 +31571,7 @@ snapshots:
       call-bound: 1.0.4
       define-properties: 1.2.1
       functions-have-names: 1.2.3
-      hasown: 2.0.2
+      hasown: 2.0.3
       is-callable: 1.2.7
 
   functions-have-names@1.2.3: {}
@@ -31647,7 +31598,7 @@ snapshots:
       get-proto: 1.0.1
       gopd: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.3
       math-intrinsics: 1.1.0
 
   get-nonce@1.0.1: {}
@@ -31740,7 +31691,7 @@ snapshots:
       foreground-child: 3.3.1
       jackspeak: 4.1.1
       minimatch: 10.2.5
-      minipass: 7.1.2
+      minipass: 7.1.3
       package-json-from-dist: 1.0.1
       path-scurry: 2.0.1
 
@@ -31894,10 +31845,6 @@ snapshots:
     dependencies:
       is-stream: 2.0.1
       type-fest: 0.8.1
-
-  hasown@2.0.2:
-    dependencies:
-      function-bind: 1.1.2
 
   hasown@2.0.3:
     dependencies:
@@ -32109,8 +32056,8 @@ snapshots:
 
   import-in-the-middle@2.0.0:
     dependencies:
-      acorn: 8.15.0
-      acorn-import-attributes: 1.9.5(acorn@8.15.0)
+      acorn: 8.16.0
+      acorn-import-attributes: 1.9.5(acorn@8.16.0)
       cjs-module-lexer: 1.4.3
       module-details-from-path: 1.0.4
 
@@ -32177,7 +32124,7 @@ snapshots:
   internal-slot@1.1.0:
     dependencies:
       es-errors: 1.3.0
-      hasown: 2.0.2
+      hasown: 2.0.3
       side-channel: 1.1.0
 
   interpret@2.2.0: {}
@@ -32266,10 +32213,6 @@ snapshots:
       semver: 7.7.3
 
   is-callable@1.2.7: {}
-
-  is-core-module@2.16.1:
-    dependencies:
-      hasown: 2.0.2
 
   is-core-module@2.16.2:
     dependencies:
@@ -32369,7 +32312,7 @@ snapshots:
       call-bound: 1.0.4
       gopd: 1.2.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.2
+      hasown: 2.0.3
 
   is-relative@1.0.0:
     dependencies:
@@ -33727,8 +33670,6 @@ snapshots:
 
   mdn-data@2.0.30: {}
 
-  mdn-data@2.12.2: {}
-
   mdn-data@2.27.1: {}
 
   meant@1.0.3: {}
@@ -34117,7 +34058,7 @@ snapshots:
 
   mlly@1.7.4:
     dependencies:
-      acorn: 8.15.0
+      acorn: 8.16.0
       pathe: 2.0.3
       pkg-types: 1.3.1
       ufo: 1.6.1
@@ -35013,12 +34954,12 @@ snapshots:
   path-scurry@2.0.0:
     dependencies:
       lru-cache: 11.1.0
-      minipass: 7.1.2
+      minipass: 7.1.3
 
   path-scurry@2.0.1:
     dependencies:
       lru-cache: 11.2.4
-      minipass: 7.1.2
+      minipass: 7.1.3
 
   path-scurry@2.0.2:
     dependencies:
@@ -35255,7 +35196,7 @@ snapshots:
       postcss: 8.5.6
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
-      resolve: 1.22.11
+      resolve: 1.22.12
 
   postcss-js@4.1.0(postcss@8.5.14):
     dependencies:
@@ -35475,7 +35416,7 @@ snapshots:
       jstransformer: 1.0.0
       pug-error: 2.1.0
       pug-walk: 2.0.0
-      resolve: 1.22.11
+      resolve: 1.22.12
 
   pug-lexer@5.0.1:
     dependencies:
@@ -35676,7 +35617,7 @@ snapshots:
       '@types/doctrine': 0.0.9
       '@types/resolve': 1.20.6
       doctrine: 3.0.0
-      resolve: 1.22.11
+      resolve: 1.22.12
       strip-indent: 4.1.1
     transitivePeerDependencies:
       - supports-color
@@ -35691,7 +35632,7 @@ snapshots:
       '@types/doctrine': 0.0.9
       '@types/resolve': 1.20.6
       doctrine: 3.0.0
-      resolve: 1.22.11
+      resolve: 1.22.12
       strip-indent: 4.1.1
     transitivePeerDependencies:
       - supports-color
@@ -36084,7 +36025,7 @@ snapshots:
 
   resolve@1.22.11:
     dependencies:
-      is-core-module: 2.16.1
+      is-core-module: 2.16.2
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
 
@@ -36098,7 +36039,7 @@ snapshots:
   resolve@2.0.0-next.6:
     dependencies:
       es-errors: 1.3.0
-      is-core-module: 2.16.1
+      is-core-module: 2.16.2
       node-exports-info: 1.6.0
       object-keys: 1.1.1
       path-parse: 1.0.7
@@ -37038,7 +36979,7 @@ snapshots:
 
   tailwind-api-utils@1.0.3(tailwindcss@4.1.17):
     dependencies:
-      enhanced-resolve: 5.18.3
+      enhanced-resolve: 5.21.3
       jiti: 2.6.1
       local-pkg: 1.1.1
       tailwindcss: 4.1.17
@@ -37050,12 +36991,6 @@ snapshots:
   tailwind-variants@3.1.1(tailwind-merge@3.4.0)(tailwindcss@4.1.17):
     dependencies:
       tailwindcss: 4.1.17
-    optionalDependencies:
-      tailwind-merge: 3.4.0
-
-  tailwind-variants@3.1.1(tailwind-merge@3.4.0)(tailwindcss@4.2.4):
-    dependencies:
-      tailwindcss: 4.2.4
     optionalDependencies:
       tailwind-merge: 3.4.0
 
@@ -37094,8 +37029,6 @@ snapshots:
   tailwindcss@4.1.17: {}
 
   tailwindcss@4.2.4: {}
-
-  tapable@2.3.0: {}
 
   tapable@2.3.3: {}
 
