@@ -37,6 +37,7 @@
   "scripts": {
     "build": "medusa plugin:build",
     "dev": "medusa plugin:develop",
+    "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
     "typecheck": "tsc --noEmit"
   },
