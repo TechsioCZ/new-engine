@@ -11,6 +11,11 @@ type Feedback = {
 
 const settingsItems = [
   {
+    description: "Zakladni informace obchodu, meny a lokalizace.",
+    href: "/settings/store",
+    label: "Store",
+  },
+  {
     description: "IBAN pro QR kod manualnich plateb.",
     href: "/settings/qr-payments",
     label: "QR platby",
