@@ -20,7 +20,7 @@ import { PayloadSettingsPage } from "./admin-payload-settings-page"
 import { PplSettingsPage } from "./admin-ppl-settings-page"
 import { ProductDetailPage } from "./admin-product-detail-page"
 import { QrPaymentsSettingsPage, SettingsPage } from "./admin-settings-page"
-import type { BadgeKey } from "./admin-types"
+import type { ActionRequiredSummary, BadgeKey } from "./admin-types"
 import { type AdminNavItem, adminNavItems } from "./nav-config"
 
 export function AdminApp() {
@@ -48,6 +48,10 @@ export function AdminApp() {
     clearStoredAdminToken()
     setIsAuthenticated(false)
     queryClient.clear()
+  }
+
+  if (isAuthenticated && isLoginRoute) {
+    return <Navigate replace to="/orders?view=action-required" />
   }
 
   if (isLoginRoute) {
@@ -151,21 +155,12 @@ export function AdminApp() {
   )
 }
 
-type SummaryCounts = {
-  customers?: {
-    count?: number
-  }
-  orders?: {
-    count?: number
-  }
-}
-
 function Sidebar({
   onLogout,
   summary,
 }: {
   onLogout: () => void
-  summary: SummaryCounts | undefined
+  summary: ActionRequiredSummary | undefined
 }) {
   let currentSection: string | undefined
 
@@ -205,10 +200,10 @@ function SidebarItem({
   summary,
 }: {
   item: AdminNavItem
-  summary: SummaryCounts | undefined
+  summary: ActionRequiredSummary | undefined
 }) {
   const location = useLocation()
-  const badgeCount = getBadgeCount(item.badgeKey, summary)
+  const badge = getBadgeValue(item.badgeKey, summary)
   const isActive = location.pathname.startsWith(item.activeMatch)
 
   return (
@@ -226,26 +221,49 @@ function SidebarItem({
     >
       <span className="admin-nav-icon">{item.icon}</span>
       <span className="admin-nav-label">{item.label}</span>
-      {badgeCount > 0 && (
+      {badge && shouldRenderBadge(badge) && (
         <Badge className="admin-count-badge" size="sm" variant="danger">
-          {String(badgeCount)}
+          {formatCountLabel(badge.count, badge.countExact)}
         </Badge>
       )}
     </NavLink>
   )
 }
 
-function getBadgeCount(
+type BadgeValue = {
+  count: number
+  countExact: boolean
+}
+
+function getBadgeValue(
   badgeKey: BadgeKey | undefined,
-  summary: SummaryCounts | undefined
-) {
+  summary: ActionRequiredSummary | undefined
+): BadgeValue | null {
   if (badgeKey === "ordersActionRequired") {
-    return summary?.orders?.count ?? 0
+    return summary?.orders
+      ? {
+          count: summary.orders.count,
+          countExact: summary.orders.count_exact,
+        }
+      : null
   }
 
   if (badgeKey === "customersActionRequired") {
-    return summary?.customers?.count ?? 0
+    return summary?.customers
+      ? {
+          count: summary.customers.count,
+          countExact: summary.customers.count_exact,
+        }
+      : null
   }
 
-  return 0
+  return null
+}
+
+function shouldRenderBadge(badge: BadgeValue) {
+  return badge.count > 0 || !badge.countExact
+}
+
+function formatCountLabel(count: number, countExact: boolean) {
+  return countExact ? String(count) : `${count}+`
 }

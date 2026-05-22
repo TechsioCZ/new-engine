@@ -35,11 +35,16 @@ export function OrdersPage() {
     <section className="admin-page">
       <PageHeader
         eyebrow="Objednavky"
+        isValueExact={orders.data?.count_exact}
         title="Cekaji na potvrzeni"
         value={orders.data?.count}
       />
       <DataSurface
-        emptyLabel="Zadne objednavky necekaji na rucni zasah."
+        emptyLabel={
+          orders.data?.count_exact === false
+            ? "Scan dosahl limitu; dalsi odpovidajici objednavky mohou byt mimo nacteny rozsah."
+            : "Zadne objednavky necekaji na rucni zasah."
+        }
         errorLabel="Objednavky se nepodarilo nacist."
         isError={orders.isError}
         isLoading={orders.isLoading}
@@ -57,11 +62,16 @@ export function CustomersPage() {
     <section className="admin-page">
       <PageHeader
         eyebrow="Zakaznici"
+        isValueExact={customers.data?.count_exact}
         title="B2B registrace ke schvaleni"
         value={customers.data?.count}
       />
       <DataSurface
-        emptyLabel="Zadne B2B registrace necekaji na potvrzeni."
+        emptyLabel={
+          customers.data?.count_exact === false
+            ? "Scan dosahl limitu; dalsi B2B registrace mohou byt mimo nacteny rozsah."
+            : "Zadne B2B registrace necekaji na potvrzeni."
+        }
         errorLabel="Zakazniky se nepodarilo nacist."
         isError={customers.isError}
         isLoading={customers.isLoading}
@@ -341,10 +351,12 @@ export function PlaceholderPage({
 
 function PageHeader({
   eyebrow,
+  isValueExact = true,
   title,
   value,
 }: {
   eyebrow: string
+  isValueExact?: boolean | undefined
   title: string
   value?: number | undefined
 }) {
@@ -356,12 +368,16 @@ function PageHeader({
       </div>
       {typeof value === "number" && (
         <div className="admin-page-count">
-          <span>{value}</span>
+          <span>{formatCountLabel(value, isValueExact)}</span>
           <small>polozek</small>
         </div>
       )}
     </header>
   )
+}
+
+function formatCountLabel(count: number, countExact: boolean) {
+  return countExact ? String(count) : `${count}+`
 }
 
 function DataSurface<TItem>({

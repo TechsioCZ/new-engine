@@ -1,10 +1,6 @@
 export type ActionRequiredSummary = {
-  orders: {
-    count: number
-  }
-  customers: {
-    count: number
-  }
+  orders: ActionRequiredOrdersResponse
+  customers: PendingB2BCustomersResponse
 }
 
 export type ActionRequiredOrder = {

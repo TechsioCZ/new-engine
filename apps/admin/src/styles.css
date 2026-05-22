@@ -319,6 +319,19 @@ a {
   opacity: 0.48;
 }
 
+.admin-sidebar-action:focus-visible,
+.admin-nav-item:focus-visible,
+.admin-toolbar-button:focus-visible,
+.admin-pagination-button:focus-visible,
+.admin-row-link:focus-visible,
+.admin-table-link:focus-visible,
+.admin-text-link:focus-visible,
+.admin-inline-action:focus-visible,
+.admin-login-submit:focus-visible {
+  outline: 3px solid rgba(38, 56, 42, 0.28);
+  outline-offset: 2px;
+}
+
 .admin-row {
   display: grid;
   min-height: 68px;

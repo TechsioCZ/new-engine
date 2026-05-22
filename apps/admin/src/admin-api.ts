@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getStoredAdminToken } from "./admin-auth"
 import { buildMedusaUrl, MEDUSA_BACKEND_URL } from "./admin-config"
 import { createApiError } from "./admin-errors"
@@ -45,6 +45,26 @@ const ACTION_REQUIRED_STALE_TIME_MS = 15_000
 const EMAIL_LOG_LIST_LIMIT = 20
 const PACKETA_LABEL_ORDER_LIST_LIMIT = 50
 const PRODUCT_LIST_LIMIT = 20
+
+function getActionRequiredSummaryQueryKey() {
+  return ["action-required-summary", MEDUSA_BACKEND_URL] as const
+}
+
+function getActionRequiredOrdersQueryKey() {
+  return [
+    "action-required-orders",
+    MEDUSA_BACKEND_URL,
+    { limit: ACTION_REQUIRED_LIST_LIMIT, offset: 0 },
+  ] as const
+}
+
+function getPendingB2BCustomersQueryKey() {
+  return [
+    "pending-b2b-customers",
+    MEDUSA_BACKEND_URL,
+    { limit: ACTION_REQUIRED_LIST_LIMIT, offset: 0 },
+  ] as const
+}
 
 const ORDER_FIELDS = [
   "id",
@@ -385,7 +405,7 @@ async function fetchActionRequiredOrdersFromAdminApi(): Promise<ActionRequiredOr
   return {
     count: orders.length,
     count_exact: result.countExact,
-    has_next: orders.length > ACTION_REQUIRED_LIST_LIMIT,
+    has_next: !result.countExact || orders.length > ACTION_REQUIRED_LIST_LIMIT,
     limit: ACTION_REQUIRED_LIST_LIMIT,
     offset: 0,
     orders: orders.slice(0, ACTION_REQUIRED_LIST_LIMIT),
@@ -412,9 +432,26 @@ async function fetchPendingB2BCustomersFromAdminApi(): Promise<PendingB2BCustome
     count: customers.length,
     count_exact: result.countExact,
     customers: customers.slice(0, ACTION_REQUIRED_LIST_LIMIT),
-    has_next: customers.length > ACTION_REQUIRED_LIST_LIMIT,
+    has_next:
+      !result.countExact || customers.length > ACTION_REQUIRED_LIST_LIMIT,
     limit: ACTION_REQUIRED_LIST_LIMIT,
     offset: 0,
+  }
+}
+
+function getActionRequiredOrdersQueryOptions() {
+  return {
+    queryFn: fetchActionRequiredOrdersFromAdminApi,
+    queryKey: getActionRequiredOrdersQueryKey(),
+    staleTime: ACTION_REQUIRED_STALE_TIME_MS,
+  }
+}
+
+function getPendingB2BCustomersQueryOptions() {
+  return {
+    queryFn: fetchPendingB2BCustomersFromAdminApi,
+    queryKey: getPendingB2BCustomersQueryKey(),
+    staleTime: ACTION_REQUIRED_STALE_TIME_MS,
   }
 }
 
@@ -613,51 +650,39 @@ export function useActionRequiredSummary({
 }: {
   enabled?: boolean
 } = {}) {
+  const queryClient = useQueryClient()
+
   return useQuery({
     enabled,
     queryFn: async (): Promise<ActionRequiredSummary> => {
       const [orders, customers] = await Promise.all([
-        fetchActionRequiredOrdersFromAdminApi(),
-        fetchPendingB2BCustomersFromAdminApi(),
+        queryClient.fetchQuery(getActionRequiredOrdersQueryOptions()),
+        queryClient.fetchQuery(getPendingB2BCustomersQueryOptions()),
       ])
 
       return {
-        orders: { count: orders.count },
-        customers: { count: customers.count },
+        orders,
+        customers,
       }
     },
     refetchInterval: enabled ? ACTION_REQUIRED_REFETCH_INTERVAL_MS : false,
     refetchOnWindowFocus: true,
-    queryKey: ["action-required-summary", MEDUSA_BACKEND_URL],
+    queryKey: getActionRequiredSummaryQueryKey(),
     staleTime: ACTION_REQUIRED_STALE_TIME_MS,
   })
 }
 
 export function useActionRequiredOrders() {
   return useQuery({
-    queryFn: fetchActionRequiredOrdersFromAdminApi,
-    refetchInterval: ACTION_REQUIRED_REFETCH_INTERVAL_MS,
-    refetchOnWindowFocus: true,
-    queryKey: [
-      "action-required-orders",
-      MEDUSA_BACKEND_URL,
-      { limit: ACTION_REQUIRED_LIST_LIMIT, offset: 0 },
-    ],
-    staleTime: ACTION_REQUIRED_STALE_TIME_MS,
+    ...getActionRequiredOrdersQueryOptions(),
+    refetchOnWindowFocus: false,
   })
 }
 
 export function usePendingB2BCustomers() {
   return useQuery({
-    queryFn: fetchPendingB2BCustomersFromAdminApi,
-    refetchInterval: ACTION_REQUIRED_REFETCH_INTERVAL_MS,
-    refetchOnWindowFocus: true,
-    queryKey: [
-      "pending-b2b-customers",
-      MEDUSA_BACKEND_URL,
-      { limit: ACTION_REQUIRED_LIST_LIMIT, offset: 0 },
-    ],
-    staleTime: ACTION_REQUIRED_STALE_TIME_MS,
+    ...getPendingB2BCustomersQueryOptions(),
+    refetchOnWindowFocus: false,
   })
 }
 
