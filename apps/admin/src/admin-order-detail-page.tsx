@@ -19,6 +19,10 @@ import type {
   MedusaAdminShippingMethod,
   OrderEmailTemplate,
 } from "./admin-types"
+import {
+  AdminSelectField,
+  type AdminSelectFieldItem,
+} from "./components/admin-select-field"
 
 type Feedback = {
   message: string
@@ -518,22 +522,22 @@ function OrderEmailFormContent({
     )
   }
 
+  const templateItems: AdminSelectFieldItem[] = templates.map((template) => ({
+    label: template.label,
+    value: template.template,
+  }))
+
   return (
     <>
-      <label className="admin-field">
-        <span>Sablona</span>
-        <select
-          disabled={!orderEmail || isSending}
-          onChange={(event) => onTemplateChange(event.target.value)}
-          value={selectedTemplate}
-        >
-          {templates.map((template) => (
-            <option key={template.template} value={template.template}>
-              {template.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <AdminSelectField
+        disabled={!(orderEmail && templates.length) || isSending}
+        items={templateItems}
+        label="Sablona"
+        onValueChange={onTemplateChange}
+        placeholder="Vyberte sablonu"
+        size="md"
+        value={selectedTemplate}
+      />
       <TemplatePreview
         template={templates.find((item) => item.template === selectedTemplate)}
       />

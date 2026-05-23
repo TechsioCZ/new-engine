@@ -3,6 +3,10 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePacketaConfig, usePacketaConfig } from "./admin-api"
 import type { PacketaConfig, PacketaConfigInput } from "./admin-types"
+import {
+  AdminSelectField,
+  type AdminSelectFieldItem,
+} from "./components/admin-select-field"
 
 type Feedback = {
   message: string
@@ -53,6 +57,10 @@ type FieldConfig = {
 }
 
 const DEFAULT_LABEL_FORMAT: PacketaLabelFormat = "A6"
+const LABEL_FORMAT_ITEMS: AdminSelectFieldItem[] = [
+  { label: "A6 thermal", value: "A6" },
+  { label: "A7", value: "A7" },
+]
 
 const SENSITIVE_FIELDS = [
   "api_password",
@@ -270,21 +278,15 @@ export function PacketaSettingsPage() {
             </label>
           </div>
           <div className="admin-settings-grid-two">
-            <label className="admin-field">
-              <span>Label format</span>
-              <select
-                onChange={(event) =>
-                  updateField(
-                    "default_label_format",
-                    normalizeLabelFormat(event.target.value)
-                  )
-                }
-                value={formData.default_label_format}
-              >
-                <option value="A6">A6 thermal</option>
-                <option value="A7">A7</option>
-              </select>
-            </label>
+            <AdminSelectField
+              items={LABEL_FORMAT_ITEMS}
+              label="Label format"
+              onValueChange={(value) =>
+                updateField("default_label_format", normalizeLabelFormat(value))
+              }
+              size="md"
+              value={formData.default_label_format}
+            />
             <label className="admin-field">
               <span>Label offset</span>
               <input

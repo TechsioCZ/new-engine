@@ -3,6 +3,10 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
 import type { PplConfig, PplConfigInput, PplLabelFormat } from "./admin-types"
+import {
+  AdminSelectField,
+  type AdminSelectFieldItem,
+} from "./components/admin-select-field"
 
 type Feedback = {
   message: string
@@ -67,6 +71,12 @@ const LABEL_FORMATS: { label: string; value: PplLabelFormat }[] = [
   { label: "PDF", value: "Pdf" },
   { label: "ZPL", value: "Zpl" },
 ]
+const LABEL_FORMAT_ITEMS: AdminSelectFieldItem[] = LABEL_FORMATS.map(
+  (format) => ({
+    label: format.label,
+    value: format.value,
+  })
+)
 
 const credentialFields: FieldConfig[] = [
   {
@@ -265,24 +275,16 @@ export function PplSettingsPage() {
               <span>Aktivni</span>
             </label>
           </div>
-          <label className="admin-field admin-field-wide">
-            <span>Label format</span>
-            <select
-              onChange={(event) =>
-                updateField(
-                  "default_label_format",
-                  normalizeLabelFormat(event.target.value)
-                )
-              }
-              value={formData.default_label_format}
-            >
-              {LABEL_FORMATS.map((format) => (
-                <option key={format.value} value={format.value}>
-                  {format.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <AdminSelectField
+            className="admin-field-wide"
+            items={LABEL_FORMAT_ITEMS}
+            label="Label format"
+            onValueChange={(value) =>
+              updateField("default_label_format", normalizeLabelFormat(value))
+            }
+            size="md"
+            value={formData.default_label_format}
+          />
         </section>
 
         <FormSection

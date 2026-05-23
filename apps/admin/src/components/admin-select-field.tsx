@@ -47,7 +47,7 @@ export function AdminSelectField({
         }
       }}
       size={size}
-      value={[value]}
+      value={value ? [value] : []}
     >
       <Select.Label>{label}</Select.Label>
       <Select.Control>
