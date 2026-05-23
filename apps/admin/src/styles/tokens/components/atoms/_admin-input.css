@@ -11,4 +11,6 @@
   --color-input-border: var(--color-border-primary);
   --color-input-border-focus: var(--color-primary);
   --color-input-ring: var(--color-ring);
+
+  --padding-input-md: var(--spacing-50) var(--spacing-4);
 }

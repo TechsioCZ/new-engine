@@ -1,6 +1,6 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { type FormEvent, type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import {
   EMAIL_LOG_LIST_LIMIT,
@@ -19,6 +19,7 @@ import type {
   PendingB2BCustomer,
   ResendEmail,
 } from "./admin-types"
+import { AdminSearch } from "./components/admin-search"
 
 const SKELETON_ROW_IDS = [
   "skeleton-1",
@@ -113,8 +114,7 @@ export function ProductsPage() {
     setSearchParams(params)
   }
 
-  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function handleSearchSubmit() {
     updateProductParams({ offset: 0, q: searchValue })
   }
 
@@ -130,39 +130,15 @@ export function ProductsPage() {
         title="Produktovy katalog"
         value={products.data?.count}
       />
-      <div className="admin-page-toolbar">
-        <form className="admin-search-form" onSubmit={handleSearchSubmit}>
-          <input
-            aria-label="Hledat produkty"
-            className="admin-search-input"
-            onChange={(event) => setSearchValue(event.target.value)}
-            placeholder="Nazev nebo handle"
-            type="search"
-            value={searchValue}
-          />
-          <Button
-            className="admin-toolbar-button"
-            size="sm"
-            theme="outlined"
-            type="submit"
-            variant="secondary"
-          >
-            Hledat
-          </Button>
-          {q && (
-            <Button
-              className="admin-toolbar-button"
-              onClick={handleClearSearch}
-              size="sm"
-              theme="borderless"
-              type="button"
-              variant="secondary"
-            >
-              Zrusit
-            </Button>
-          )}
-        </form>
-      </div>
+      <AdminSearch
+        ariaLabel="Hledat produkty"
+        isClearVisible={Boolean(q)}
+        onClear={handleClearSearch}
+        onSearch={handleSearchSubmit}
+        onValueChange={setSearchValue}
+        placeholder="Nazev nebo handle"
+        value={searchValue}
+      />
       <DataSurface
         emptyLabel="Zadne produkty se nepodarilo najit."
         errorLabel="Produkty se nepodarilo nacist."
