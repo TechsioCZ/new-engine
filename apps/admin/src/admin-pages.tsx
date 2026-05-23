@@ -19,6 +19,7 @@ import type {
   PendingB2BCustomer,
   ResendEmail,
 } from "./admin-types"
+import { AdminPagination } from "./components/admin-pagination"
 import { AdminSearch } from "./components/admin-search"
 
 const SKELETON_ROW_IDS = [
@@ -118,9 +119,12 @@ export function ProductsPage() {
     updateProductParams({ offset: 0, q: searchValue })
   }
 
-  function handleClearSearch() {
-    setSearchValue("")
-    updateProductParams({ offset: 0, q: "" })
+  function handleSearchValueChange(nextValue: string) {
+    setSearchValue(nextValue)
+
+    if (!nextValue && q) {
+      updateProductParams({ offset: 0, q: "" })
+    }
   }
 
   return (
@@ -132,10 +136,8 @@ export function ProductsPage() {
       />
       <AdminSearch
         ariaLabel="Hledat produkty"
-        isClearVisible={Boolean(q)}
-        onClear={handleClearSearch}
         onSearch={handleSearchSubmit}
-        onValueChange={setSearchValue}
+        onValueChange={handleSearchValueChange}
         placeholder="Nazev nebo handle"
         value={searchValue}
       />
@@ -149,49 +151,13 @@ export function ProductsPage() {
         )}
         rows={products.data?.products ?? []}
       />
-      {products.data && products.data.count > 0 && (
-        <div className="admin-pagination">
-          <Button
-            className="admin-pagination-button"
-            disabled={!products.data.has_previous}
-            onClick={() =>
-              updateProductParams({
-                offset: Math.max(0, offset - PRODUCT_LIST_LIMIT),
-                q,
-              })
-            }
-            size="sm"
-            theme="outlined"
-            type="button"
-            variant="secondary"
-          >
-            Predchozi
-          </Button>
-          <span>
-            {products.data.offset + 1}-
-            {Math.min(
-              products.data.offset + products.data.limit,
-              products.data.count
-            )}{" "}
-            z {products.data.count}
-          </span>
-          <Button
-            className="admin-pagination-button"
-            disabled={!products.data.has_next}
-            onClick={() =>
-              updateProductParams({
-                offset: offset + PRODUCT_LIST_LIMIT,
-                q,
-              })
-            }
-            size="sm"
-            theme="outlined"
-            type="button"
-            variant="secondary"
-          >
-            Dalsi
-          </Button>
-        </div>
+      {products.data && (
+        <AdminPagination
+          ariaLabel="Strankovani produktu"
+          count={products.data.count}
+          offset={products.data.offset}
+          pageSize={PRODUCT_LIST_LIMIT}
+        />
       )}
     </section>
   )
@@ -247,49 +213,15 @@ export function EmailsPage() {
             onOpen={(id) => updateEmailParams({ selectedEmailLogId: id })}
             selectedEmailLogId={selectedEmailLogId}
           />
-          {emailLogs.data && emailLogs.data.count > 0 && (
-            <div className="admin-pagination admin-panel-pagination">
-              <Button
-                className="admin-pagination-button"
-                disabled={!emailLogs.data.has_previous}
-                onClick={() =>
-                  updateEmailParams({
-                    offset: Math.max(0, offset - EMAIL_LOG_LIST_LIMIT),
-                    selectedEmailLogId: null,
-                  })
-                }
-                size="sm"
-                theme="outlined"
-                type="button"
-                variant="secondary"
-              >
-                Predchozi
-              </Button>
-              <span>
-                {emailLogs.data.offset + 1}-
-                {Math.min(
-                  emailLogs.data.offset + emailLogs.data.limit,
-                  emailLogs.data.count
-                )}{" "}
-                z {emailLogs.data.count}
-              </span>
-              <Button
-                className="admin-pagination-button"
-                disabled={!emailLogs.data.has_next}
-                onClick={() =>
-                  updateEmailParams({
-                    offset: offset + EMAIL_LOG_LIST_LIMIT,
-                    selectedEmailLogId: null,
-                  })
-                }
-                size="sm"
-                theme="outlined"
-                type="button"
-                variant="secondary"
-              >
-                Dalsi
-              </Button>
-            </div>
+          {emailLogs.data && (
+            <AdminPagination
+              ariaLabel="Strankovani email logu"
+              className="border-border-primary border-t px-8 py-6"
+              count={emailLogs.data.count}
+              offset={emailLogs.data.offset}
+              pageSize={EMAIL_LOG_LIST_LIMIT}
+              searchParamOverrides={{ email: null }}
+            />
           )}
         </div>
         <EmailDetailPanel
