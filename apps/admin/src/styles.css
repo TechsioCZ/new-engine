@@ -233,8 +233,7 @@ a {
   text-transform: uppercase;
 }
 
-.admin-page h1,
-.admin-login-form h1 {
+.admin-page h1 {
   margin: 5px 0 0;
   color: #1f2520;
   font-size: 42px;
@@ -329,8 +328,7 @@ a {
 .admin-row-link:focus-visible,
 .admin-table-link:focus-visible,
 .admin-text-link:focus-visible,
-.admin-inline-action:focus-visible,
-.admin-login-submit:focus-visible {
+.admin-inline-action:focus-visible {
   outline: 3px solid rgba(38, 56, 42, 0.28);
   outline-offset: 2px;
 }
@@ -1111,68 +1109,6 @@ a {
   padding: 18px;
 }
 
-.admin-login-shell {
-  display: grid;
-  min-height: 100vh;
-  place-items: center;
-  background:
-    linear-gradient(90deg, rgba(38, 56, 42, 0.12), transparent 44%), #eef1ea;
-  padding: 24px;
-}
-
-.admin-login-panel {
-  display: grid;
-  width: min(760px, 100%);
-  min-height: 460px;
-  grid-template-columns: 250px minmax(320px, 1fr);
-  overflow: hidden;
-  border: 1px solid rgba(31, 37, 32, 0.12);
-  border-radius: 8px;
-  background: #f8f7f1;
-  box-shadow: 0 18px 48px rgba(31, 37, 32, 0.12);
-}
-
-.admin-login-brand {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  border-right: 1px solid rgba(31, 37, 32, 0.12);
-  background: #26382a;
-  color: #f7f1dc;
-  padding: 28px;
-}
-
-.admin-login-brand .admin-brand-mark {
-  border-color: rgba(247, 241, 220, 0.28);
-  background: #f7f1dc;
-  color: #26382a;
-}
-
-.admin-login-brand span,
-.admin-login-brand strong {
-  display: block;
-}
-
-.admin-login-brand span {
-  color: rgba(247, 241, 220, 0.72);
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.admin-login-brand strong {
-  margin-top: 4px;
-  font-size: 20px;
-  line-height: 1;
-}
-
-.admin-login-form {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 16px;
-  padding: 38px;
-}
-
 .admin-field {
   display: grid;
   gap: 7px;
@@ -1247,38 +1183,6 @@ a {
 
 .admin-inline-action:hover {
   color: #b43328;
-}
-
-.admin-login-error {
-  margin: 0;
-  border: 1px solid rgba(180, 51, 40, 0.24);
-  border-radius: 7px;
-  background: rgba(180, 51, 40, 0.08);
-  color: #7d2119;
-  font-size: 13px;
-  font-weight: 650;
-  padding: 10px 12px;
-}
-
-.admin-login-submit {
-  min-height: 42px;
-  border: 0;
-  border-radius: 7px;
-  background: #26382a;
-  color: #f7f1dc;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 750;
-  padding: 0 16px;
-}
-
-.admin-login-submit:hover {
-  background: #1f2f23;
-}
-
-.admin-login-submit:disabled {
-  cursor: wait;
-  opacity: 0.72;
 }
 
 @keyframes admin-skeleton {
@@ -1389,8 +1293,7 @@ a {
     justify-content: flex-start;
   }
 
-  .admin-page h1,
-  .admin-login-form h1 {
+  .admin-page h1 {
     font-size: 30px;
   }
 
@@ -1410,18 +1313,5 @@ a {
 
   .admin-product-detail-image {
     width: min(220px, 100%);
-  }
-
-  .admin-login-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-login-brand {
-    border-right: 0;
-    border-bottom: 1px solid rgba(31, 37, 32, 0.12);
-  }
-
-  .admin-login-form {
-    padding: 28px;
   }
 }

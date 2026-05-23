@@ -1,3 +1,6 @@
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { type FormEvent, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getLoginErrorMessage, loginAdmin } from "./admin-auth"
@@ -30,55 +33,61 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
   }
 
   return (
-    <main className="admin-login-shell">
-      <section className="admin-login-panel">
-        <div className="admin-login-brand">
-          <span className="admin-brand-mark">NE</span>
-          <div>
-            <span>New Engine</span>
-            <strong>Admin</strong>
-          </div>
-        </div>
-        <form className="admin-login-form" onSubmit={handleSubmit}>
+    <main className="grid min-h-screen place-items-center bg-base p-12">
+      <section className="grid w-full max-w-xl grid-cols-1 overflow-hidden rounded-md border border-border-primary bg-surface shadow-xl">
+        <form
+          className="flex flex-col justify-center gap-8 p-14 md:p-19"
+          onSubmit={handleSubmit}
+        >
           <header>
-            <span className="admin-eyebrow">Prihlaseni</span>
-            <h1>Admin pristup</h1>
+            <h1 className="mt-2 font-bold text-3xl text-fg-primary md:text-4xl">
+              Přihlášení do administrace
+            </h1>
           </header>
-          <label className="admin-field">
-            <span>E-mail</span>
-            <input
-              autoComplete="email"
-              autoFocus
-              disabled={isSubmitting}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-              type="email"
-              value={email}
-            />
-          </label>
-          <label className="admin-field">
-            <span>Heslo</span>
-            <input
-              autoComplete="current-password"
-              disabled={isSubmitting}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              type="password"
-              value={password}
-            />
-          </label>
-          {errorMessage && (
-            <p className="admin-login-error" role="alert">
-              {errorMessage}
-            </p>
-          )}
-          <button
-            className="admin-login-submit"
+          <FormInput
+            aria-describedby={errorMessage ? "admin-login-error" : undefined}
+            autoComplete="email"
+            autoFocus
             disabled={isSubmitting}
+            id="admin-login-email"
+            label="E-mail"
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            type="email"
+            validateStatus={errorMessage ? "error" : "default"}
+            value={email}
+          />
+          <FormInput
+            aria-describedby={errorMessage ? "admin-login-error" : undefined}
+            autoComplete="current-password"
+            disabled={isSubmitting}
+            id="admin-login-password"
+            label="Heslo"
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            type="password"
+            validateStatus={errorMessage ? "error" : "default"}
+            value={password}
+          />
+          {errorMessage && (
+            <StatusText
+              className="rounded-md border border-danger-light bg-danger-light p-5 font-semibold"
+              id="admin-login-error"
+              role="alert"
+              showIcon
+              status="error"
+            >
+              {errorMessage}
+            </StatusText>
+          )}
+          <Button
+            className="mt-2"
+            isLoading={isSubmitting}
+            loadingText="Přihlašuji..."
             type="submit"
           >
-            {isSubmitting ? "Prihlasuji..." : "Prihlasit"}
-          </button>
+            Přihlásit se
+          </Button>
         </form>
       </section>
     </main>
