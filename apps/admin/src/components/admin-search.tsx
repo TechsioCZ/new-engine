@@ -1,11 +1,7 @@
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form"
 
 type AdminSearchProps = {
   ariaLabel: string
-  clearLabel?: string
-  isClearVisible?: boolean
-  onClear: () => void
   onSearch: () => void
   onValueChange: (value: string) => void
   placeholder?: string
@@ -15,9 +11,6 @@ type AdminSearchProps = {
 
 export function AdminSearch({
   ariaLabel,
-  clearLabel = "Zrusit",
-  isClearVisible = false,
-  onClear,
   onSearch,
   onValueChange,
   placeholder,
@@ -34,14 +27,19 @@ export function AdminSearch({
         value={value}
       >
         <SearchForm.Control>
-          <SearchForm.Input aria-label={ariaLabel} placeholder={placeholder} className="rounded-none"/>
+          <SearchForm.Input
+            aria-label={ariaLabel}
+            className="rounded-none"
+            placeholder={placeholder}
+          />
+          <SearchForm.ClearButton aria-label="Zrusit hledani" />
           <SearchForm.Button
+            aria-label={searchLabel}
+            iconSize="md"
             showSearchIcon
             theme="unstyled"
             variant="secondary"
-            iconSize="md"
-          >
-          </SearchForm.Button>
+          />
         </SearchForm.Control>
       </SearchForm>
     </div>
