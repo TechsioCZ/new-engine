@@ -26,12 +26,13 @@ When official docs, local Medusa dashboard source, and current project code disa
 
 ## UI Kit Rules
 
-Use `@techsio/ui-kit` / `libs/ui` first. Before adding custom UI primitives, inspect:
+Use `@techsio/ui-kit` / `libs/ui` first. Before adding custom UI primitives, inspect the local UI-kit adoption skills:
 
-- `libs/ui/local/skills/adopting-ui-kit-in-apps/app-component-inventory/SKILL.md`
-- `libs/ui/local/skills/adopting-ui-kit-in-apps/component-usage-ux/SKILL.md`
-- `libs/ui/local/skills/adopting-ui-kit-in-apps/app-token-overrides/SKILL.md`
-- `libs/ui/local/skills/authoring-ui-kit-components/component-authoring/SKILL.md` when a real UI kit API gap exists.
+- `.codex/skills/adopting-ui-kit-in-apps/adopt-ui-kit-in-app/SKILL.md`
+- `.codex/skills/adopting-ui-kit-in-apps/app-component-inventory/SKILL.md`
+- `.codex/skills/adopting-ui-kit-in-apps/component-usage-ux/SKILL.md`
+- `.codex/skills/adopting-ui-kit-in-apps/app-token-overrides/SKILL.md`
+- `.codex/skills/authoring-ui-kit-components/component-authoring/SKILL.md` when a real UI kit API gap exists.
 
 Runtime imports in `apps/admin` must use the published workspace package name:
 
@@ -45,7 +46,8 @@ Do not rewrite app imports to `@libs/ui/...` unless the same change also adds an
 Token-first, `className` last:
 
 - Component colors, borders, radius, spacing, typography, and states belong in token mappings or component variants.
-- Use inline `className` mainly for local layout and composition.
+- Use Tailwind utilities directly in JSX for structural layout and composition when no design token is involved, for example `flex`, `grid`, `flex-col`, `items-center`, `justify-between`, `relative`, or `absolute`.
+- When spacing, color, typography, radius, borders, or shadows are involved, use UI-kit token-backed utilities and component props instead of raw app CSS or arbitrary values.
 - If the existing token chain already resolves to the desired value, do not add redundant overrides.
 - If a required visual state cannot be expressed through tokens or component API, treat it as a UI kit API gap. Add a short local workaround only if needed, and prefer a follow-up UI kit improvement.
 
@@ -62,7 +64,7 @@ Admin app token files live under `apps/admin/src/styles/tokens` and mirror the U
 - `components/components.css` imports focused component overrides such as `atoms/_admin-button.css`.
 - Add component-specific overrides only when the broader admin token files cannot express the needed result.
 
-Do not add more raw color, radius, spacing, or typography values to `styles.css` when a token can own the value. `styles.css` should move toward layout and composition only.
+Do not add new app UI selectors to `styles.css`. The long-term target is for `styles.css` to contain only import wiring and truly unavoidable global base rules. Move structural layout into JSX with Tailwind utilities, and move visual values into UI-kit tokens, app token overrides, token-backed utilities, or UI-kit component props.
 
 Use UI-kit components before native controls:
 
@@ -141,5 +143,6 @@ For user-facing workflow changes, also smoke-test in a browser against the deplo
    - If the clone is missing, use official Medusa docs and ask before guessing dashboard internals.
 
 - UI kit rules:
-   - Use `libs/ui/local/skills/...` as the authoritative UI kit guidance.
+   - Use local guidance under `.codex/skills/...` as the authoritative UI kit guidance for this admin work.
+   - Machine-local experiments may also live under `libs/ui/local/skills/...`.
    - Optional local notes may live in `apps/admin/local/ui.md`, but committed instructions must not depend on that file existing.
