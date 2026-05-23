@@ -27,7 +27,7 @@ export function AdminSelectField({
   name,
   onValueChange,
   placeholder,
-  size = "sm",
+  size = "md",
   value,
 }: AdminSelectFieldProps) {
   const valuePlaceholder =

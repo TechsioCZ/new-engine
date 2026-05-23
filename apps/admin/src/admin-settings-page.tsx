@@ -3,6 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { type FormEvent, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { updateQrPaymentConfig, useQrPaymentConfig } from "./admin-api"
+import { AdminTextField } from "./components/admin-text-field"
 
 type Feedback = {
   message: string
@@ -108,18 +109,17 @@ export function QrPaymentsSettingsPage() {
 
     return (
       <form className="admin-settings-form" onSubmit={handleSubmit}>
-        <label className="admin-field">
-          <span>IBAN</span>
-          <input
-            autoComplete="off"
-            onChange={(event) => {
-              setIban(event.target.value)
-              setFeedback(null)
-            }}
-            placeholder="CZ3301000000000002970297"
-            value={iban}
-          />
-        </label>
+        <AdminTextField
+          autoComplete="off"
+          id="qr-payment-iban"
+          label="IBAN"
+          onValueChange={(value) => {
+            setIban(value)
+            setFeedback(null)
+          }}
+          placeholder="CZ3301000000000002970297"
+          value={iban}
+        />
         {feedback && (
           <div
             className={[

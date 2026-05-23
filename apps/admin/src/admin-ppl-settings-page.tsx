@@ -8,6 +8,7 @@ import {
   AdminSelectField,
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
+import { AdminTextField } from "./components/admin-text-field"
 
 type Feedback = {
   message: string
@@ -423,18 +424,9 @@ function FormField({
   const canClear = Boolean(sensitiveField && fieldConfig.isSet && !isCleared)
 
   return (
-    <label
-      className={["admin-field", fieldConfig.wide ? "admin-field-wide" : ""]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <span className="admin-field-label-row">
-        <span>
-          {fieldConfig.label}
-          {fieldConfig.isSet && !isCleared ? <small>nastaveno</small> : null}
-          {isCleared ? <small>smaze se</small> : null}
-        </span>
-        {canClear && onClear && (
+    <AdminTextField
+      action={
+        canClear && onClear ? (
           <button
             className="admin-inline-action"
             onClick={() => {
@@ -446,16 +438,23 @@ function FormField({
           >
             Smazat
           </button>
-        )}
-      </span>
-      <input
-        disabled={isCleared}
-        onChange={(event) => onChange(fieldConfig.field, event.target.value)}
-        placeholder={getPlaceholder(fieldConfig, isCleared)}
-        type={fieldConfig.type ?? "text"}
-        value={isCleared ? "" : formData[fieldConfig.field]}
-      />
-    </label>
+        ) : null
+      }
+      className={fieldConfig.wide ? "admin-field-wide" : undefined}
+      disabled={isCleared}
+      id={`ppl-${fieldConfig.field}`}
+      label={fieldConfig.label}
+      meta={
+        <>
+          {fieldConfig.isSet && !isCleared ? <small>nastaveno</small> : null}
+          {isCleared ? <small>smaze se</small> : null}
+        </>
+      }
+      onValueChange={(value) => onChange(fieldConfig.field, value)}
+      placeholder={getPlaceholder(fieldConfig, isCleared)}
+      type={fieldConfig.type ?? "text"}
+      value={isCleared ? "" : formData[fieldConfig.field]}
+    />
   )
 }
 

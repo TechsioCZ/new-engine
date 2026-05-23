@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+import { FormNumericInput } from "@techsio/ui-kit/molecules/form-numeric-input"
 import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePacketaConfig, usePacketaConfig } from "./admin-api"
@@ -8,6 +10,7 @@ import {
   AdminSelectField,
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
+import { AdminTextField } from "./components/admin-text-field"
 
 type Feedback = {
   message: string
@@ -282,21 +285,24 @@ export function PacketaSettingsPage() {
               size="md"
               value={formData.default_label_format}
             />
-            <label className="admin-field">
-              <span>Label offset</span>
-              <input
-                max={3}
-                min={0}
-                onChange={(event) =>
-                  updateField(
-                    "default_label_offset",
-                    normalizeLabelOffset(event.target.value)
-                  )
-                }
-                type="number"
-                value={formData.default_label_offset}
-              />
-            </label>
+            <div className="[&_label]:text-md">
+            <FormNumericInput
+              id="packeta-default-label-offset"
+              label="Label offset"
+              max={3}
+              min={0}
+              size="md"
+              className=""
+              onChange={(value) =>
+                updateField("default_label_offset", normalizeLabelOffset(value))
+              }
+              value={formData.default_label_offset}
+            >
+              <NumericInput.Control className="mt-2">
+                <NumericInput.Input />
+              </NumericInput.Control>
+            </FormNumericInput>
+            </div>
           </div>
         </section>
 
@@ -441,18 +447,9 @@ function FormField({
   const canClear = Boolean(sensitiveField && fieldConfig.isSet && !isCleared)
 
   return (
-    <label
-      className={["admin-field", fieldConfig.wide ? "admin-field-wide" : ""]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <span className="admin-field-label-row">
-        <span>
-          {fieldConfig.label}
-          {fieldConfig.isSet && !isCleared ? <small>nastaveno</small> : null}
-          {isCleared ? <small>smaze se</small> : null}
-        </span>
-        {canClear && onClear && (
+    <AdminTextField
+      action={
+        canClear && onClear ? (
           <button
             className="admin-inline-action"
             onClick={() => {
@@ -464,16 +461,23 @@ function FormField({
           >
             Smazat
           </button>
-        )}
-      </span>
-      <input
-        disabled={isCleared}
-        onChange={(event) => onChange(fieldConfig.field, event.target.value)}
-        placeholder={getPlaceholder(fieldConfig, isCleared)}
-        type={fieldConfig.type ?? "text"}
-        value={isCleared ? "" : formData[fieldConfig.field]}
-      />
-    </label>
+        ) : null
+      }
+      className={fieldConfig.wide ? "admin-field-wide" : undefined}
+      disabled={isCleared}
+      id={`packeta-${fieldConfig.field}`}
+      label={fieldConfig.label}
+      meta={
+        <>
+          {fieldConfig.isSet && !isCleared ? <small>nastaveno</small> : null}
+          {isCleared ? <small>smaze se</small> : null}
+        </>
+      }
+      onValueChange={(value) => onChange(fieldConfig.field, value)}
+      placeholder={getPlaceholder(fieldConfig, isCleared)}
+      type={fieldConfig.type ?? "text"}
+      value={isCleared ? "" : formData[fieldConfig.field]}
+    />
   )
 }
 
