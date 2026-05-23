@@ -79,6 +79,10 @@ Admin UX should stay dense, operational, and scannable. Do not introduce marketi
 - Keep raw HTTP integration in `admin-api.ts` or a clearly named feature API module.
 - Keep business inclusion rules pure and testable in `admin-rules.ts` or feature rule modules.
 - Keep page components focused on rendering, user interaction, and route state.
+- When a UI-kit compound component needs repeated app-level composition in two or
+  more admin screens, create a small domain-neutral adapter in `src/components`
+  before migrating the second caller. Keep business labels, rules, and API calls
+  in the page or feature module.
 - Do not keep expanding one large file when a feature becomes multi-screen. Prefer `src/features/<domain>/...` for new substantial sections.
 - Shared contracts and normalized types must have one owner per change. Do not let multiple agents independently rewrite shared type surfaces.
 

@@ -9,6 +9,10 @@ import {
 } from "./admin-api"
 import type { PacketaLabelOrder, PacketaOrderFulfillment } from "./admin-types"
 import { AdminPagination } from "./components/admin-pagination"
+import {
+  AdminSelectField,
+  type AdminSelectFieldItem,
+} from "./components/admin-select-field"
 
 type LabelFormat = "A6" | "A7"
 type Feedback = {
@@ -18,6 +22,18 @@ type Feedback = {
 
 const LABEL_FORMATS: LabelFormat[] = ["A6", "A7"]
 const LABEL_OFFSETS = [0, 1, 2, 3]
+const LABEL_FORMAT_ITEMS: AdminSelectFieldItem[] = LABEL_FORMATS.map(
+  (format) => ({
+    label: format,
+    value: format,
+  })
+)
+const LABEL_OFFSET_ITEMS: AdminSelectFieldItem[] = LABEL_OFFSETS.map(
+  (offset) => ({
+    label: String(offset),
+    value: String(offset),
+  })
+)
 
 export function PacketaLabelsPage() {
   const [searchParams] = useSearchParams()
@@ -135,47 +151,15 @@ export function PacketaLabelsPage() {
               {orders.data?.count ?? 0} objednavek podle posledni aktivity
             </span>
           </div>
-          <div className="admin-packeta-actions">
-            <label className="admin-compact-field">
-              <span>Format</span>
-              <select
-                onChange={(event) =>
-                  setLabelFormat(event.target.value as LabelFormat)
-                }
-                value={labelFormat}
-              >
-                {LABEL_FORMATS.map((format) => (
-                  <option key={format} value={format}>
-                    {format}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="admin-compact-field">
-              <span>Offset</span>
-              <select
-                onChange={(event) => setLabelOffset(Number(event.target.value))}
-                value={labelOffset}
-              >
-                {LABEL_OFFSETS.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Button
-              className="admin-toolbar-button"
-              disabled={!selectedPrintableOrderIds.length || isDownloading}
-              onClick={handleDownload}
-              size="sm"
-              theme="outlined"
-              type="button"
-              variant="secondary"
-            >
-              {isDownloading ? "Generuji..." : "Stahnout PDF"}
-            </Button>
-          </div>
+          <PacketaLabelControls
+            isDownloading={isDownloading}
+            labelFormat={labelFormat}
+            labelOffset={labelOffset}
+            onDownload={handleDownload}
+            onLabelFormatChange={setLabelFormat}
+            onLabelOffsetChange={setLabelOffset}
+            selectedCount={selectedPrintableOrderIds.length}
+          />
         </div>
         {feedback && (
           <div
@@ -210,6 +194,54 @@ export function PacketaLabelsPage() {
         )}
       </div>
     </section>
+  )
+}
+
+function PacketaLabelControls({
+  isDownloading,
+  labelFormat,
+  labelOffset,
+  onDownload,
+  onLabelFormatChange,
+  onLabelOffsetChange,
+  selectedCount,
+}: {
+  isDownloading: boolean
+  labelFormat: LabelFormat
+  labelOffset: number
+  onDownload: () => void
+  onLabelFormatChange: (value: LabelFormat) => void
+  onLabelOffsetChange: (value: number) => void
+  selectedCount: number
+}) {
+  return (
+    <div className="flex w-full flex-col items-stretch gap-4 sm:w-auto sm:flex-row sm:items-end">
+      <AdminSelectField
+        className="sm:w-24"
+        items={LABEL_FORMAT_ITEMS}
+        label="Format"
+        onValueChange={(value) => onLabelFormatChange(value as LabelFormat)}
+        value={labelFormat}
+      />
+      <AdminSelectField
+        className="sm:w-24"
+        items={LABEL_OFFSET_ITEMS}
+        label="Offset"
+        onValueChange={(value) => onLabelOffsetChange(Number(value))}
+        value={String(labelOffset)}
+      />
+      <Button
+        className="w-full sm:w-auto"
+        disabled={selectedCount === 0 || isDownloading}
+        onClick={onDownload}
+        size="sm"
+        theme="outlined"
+        type="button"
+        variant="secondary"
+      >
+        {isDownloading ? "Generuji..." : "Stahnout PDF"}
+      </Button>
+    </div>
   )
 }
 
