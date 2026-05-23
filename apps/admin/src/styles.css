@@ -600,16 +600,6 @@ a {
   width: 42px;
 }
 
-.admin-table-state {
-  color: #596156;
-  font-size: 13px;
-  padding: 18px 16px;
-}
-
-.admin-table-state-error {
-  color: #7d2119;
-}
-
 .admin-action-form {
   display: grid;
   gap: 12px;
@@ -936,14 +926,6 @@ a {
   max-width: 680px;
   font-size: 13px;
   line-height: 1.45;
-}
-
-.admin-inline-state {
-  border: 1px solid rgba(31, 37, 32, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #596156;
-  padding: 18px;
 }
 
 .admin-field-wide {

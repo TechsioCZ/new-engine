@@ -3,6 +3,7 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { type FormEvent, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { updateQrPaymentConfig, useQrPaymentConfig } from "./admin-api"
+import { AdminState } from "./components/admin-state"
 import { AdminTextField } from "./components/admin-text-field"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
@@ -93,18 +94,14 @@ export function QrPaymentsSettingsPage() {
 
   function renderConfigContent() {
     if (config.isLoading) {
-      return (
-        <div aria-busy="true" className="admin-table-state">
-          Nacitam konfiguraci...
-        </div>
-      )
+      return <AdminState isBusy>Nacitam konfiguraci...</AdminState>
     }
 
     if (config.isError) {
       return (
-        <div className="admin-table-state admin-table-state-error">
+        <AdminState tone="error">
           Konfiguraci QR plateb se nepodarilo nacist.
-        </div>
+        </AdminState>
       )
     }
 

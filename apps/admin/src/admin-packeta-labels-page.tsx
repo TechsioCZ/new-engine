@@ -14,6 +14,7 @@ import {
   AdminSelectField,
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
+import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 type LabelFormat = "A6" | "A7"
@@ -260,25 +261,19 @@ function PacketaOrdersTable({
   selectedOrderIds: Set<string>
 }) {
   if (isLoading) {
-    return (
-      <div aria-busy="true" className="admin-table-state">
-        Nacitam objednavky...
-      </div>
-    )
+    return <AdminState isBusy>Nacitam objednavky...</AdminState>
   }
 
   if (isError) {
     return (
-      <div className="admin-table-state admin-table-state-error">
+      <AdminState tone="error">
         Objednavky pro Packeta stitky se nepodarilo nacist.
-      </div>
+      </AdminState>
     )
   }
 
   if (!orders.length) {
-    return (
-      <div className="admin-table-state">Zadne objednavky k zobrazeni.</div>
-    )
+    return <AdminState>Zadne objednavky k zobrazeni.</AdminState>
   }
 
   return (

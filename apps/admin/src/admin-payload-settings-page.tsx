@@ -3,6 +3,7 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useState } from "react"
 import { fetchPayloadSsoHtml, usePayloadConfig } from "./admin-api"
 import { MEDUSA_BACKEND_URL } from "./admin-config"
+import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 type Feedback = {
@@ -60,26 +61,20 @@ export function PayloadSettingsPage() {
 
   function renderPayloadContent() {
     if (config.isLoading) {
-      return (
-        <div aria-busy="true" className="admin-table-state">
-          Nacitam Payload konfiguraci...
-        </div>
-      )
+      return <AdminState isBusy>Nacitam Payload konfiguraci...</AdminState>
     }
 
     if (config.isError) {
       return (
-        <div className="admin-table-state admin-table-state-error">
+        <AdminState tone="error">
           Payload konfiguraci se nepodarilo nacist.
-        </div>
+        </AdminState>
       )
     }
 
     if (!iframeUrl) {
       return (
-        <div className="admin-table-state admin-table-state-error">
-          Payload iframe URL neni nastavene.
-        </div>
+        <AdminState tone="error">Payload iframe URL neni nastavene.</AdminState>
       )
     }
 
@@ -164,18 +159,12 @@ function PayloadIframe({
   isLoading: boolean
 }) {
   if (isLoading) {
-    return (
-      <div aria-busy="true" className="admin-table-state">
-        Pripravuji Payload SSO...
-      </div>
-    )
+    return <AdminState isBusy>Pripravuji Payload SSO...</AdminState>
   }
 
   if (isError || !html) {
     return (
-      <div className="admin-table-state admin-table-state-error">
-        Payload SSO se nepodarilo pripravit.
-      </div>
+      <AdminState tone="error">Payload SSO se nepodarilo pripravit.</AdminState>
     )
   }
 

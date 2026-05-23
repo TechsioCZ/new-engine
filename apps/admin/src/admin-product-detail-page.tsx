@@ -7,6 +7,7 @@ import type {
   MedusaAdminProductOption,
   MedusaAdminProductVariant,
 } from "./admin-types"
+import { AdminState } from "./components/admin-state"
 
 const TITLE_SPLIT_PATTERN = /\s+/
 
@@ -22,9 +23,9 @@ export function ProductDetailPage() {
     return (
       <section className="admin-page">
         <PageTitle eyebrow="Produkt" title="Nacitam detail" />
-        <div aria-busy="true" className="admin-inline-state">
+        <AdminState isBusy surface="panel">
           Nacitam produkt...
-        </div>
+        </AdminState>
       </section>
     )
   }
@@ -33,7 +34,9 @@ export function ProductDetailPage() {
     return (
       <section className="admin-page">
         <PageTitle eyebrow="Produkt" title="Detail produktu" />
-        <div className="admin-inline-state">Produkt se nepodarilo nacist.</div>
+        <AdminState surface="panel" tone="error">
+          Produkt se nepodarilo nacist.
+        </AdminState>
       </section>
     )
   }
@@ -178,7 +181,7 @@ function ProductOptionsPanel({
           ))}
         </div>
       ) : (
-        <div className="admin-table-state">Bez option hodnot.</div>
+        <AdminState>Bez option hodnot.</AdminState>
       )}
     </section>
   )
@@ -204,7 +207,7 @@ function ProductMetadataPanel({
           {JSON.stringify(metadata, null, 2)}
         </pre>
       ) : (
-        <div className="admin-table-state">Bez metadat.</div>
+        <AdminState>Bez metadat.</AdminState>
       )}
     </section>
   )
@@ -216,7 +219,7 @@ function ProductVariantsTable({
   variants: MedusaAdminProductVariant[]
 }) {
   if (!variants.length) {
-    return <div className="admin-table-state">Produkt nema varianty.</div>
+    return <AdminState>Produkt nema varianty.</AdminState>
   }
 
   return (
@@ -251,7 +254,7 @@ function ProductVariantsTable({
 
 function ProductImagesGrid({ images }: { images: MedusaAdminProductImage[] }) {
   if (!images.length) {
-    return <div className="admin-table-state">Produkt nema dalsi obrazky.</div>
+    return <AdminState>Produkt nema dalsi obrazky.</AdminState>
   }
 
   return (

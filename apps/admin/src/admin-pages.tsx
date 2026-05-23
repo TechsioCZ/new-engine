@@ -21,6 +21,7 @@ import type {
 } from "./admin-types"
 import { AdminPagination } from "./components/admin-pagination"
 import { AdminSearch } from "./components/admin-search"
+import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 const SKELETON_ROW_IDS = [
@@ -318,11 +319,15 @@ function DataSurface<TItem>({
   }
 
   if (isError) {
-    return <div className="admin-inline-state">{errorLabel}</div>
+    return (
+      <AdminState surface="panel" tone="error">
+        {errorLabel}
+      </AdminState>
+    )
   }
 
   if (!rows.length) {
-    return <div className="admin-inline-state">{emptyLabel}</div>
+    return <AdminState surface="panel">{emptyLabel}</AdminState>
   }
 
   return <div className="admin-list">{rows.map(renderRow)}</div>
@@ -422,25 +427,17 @@ function EmailLogsTable({
   selectedEmailLogId: string | null
 }) {
   if (isLoading) {
-    return (
-      <div aria-busy="true" className="admin-table-state">
-        Nacitam emaily...
-      </div>
-    )
+    return <AdminState isBusy>Nacitam emaily...</AdminState>
   }
 
   if (isError) {
     return (
-      <div className="admin-table-state admin-table-state-error">
-        Email logy se nepodarilo nacist.
-      </div>
+      <AdminState tone="error">Email logy se nepodarilo nacist.</AdminState>
     )
   }
 
   if (!emailLogs.length) {
-    return (
-      <div className="admin-table-state">Zatim nejsou zalogovane emaily.</div>
-    )
+    return <AdminState>Zatim nejsou zalogovane emaily.</AdminState>
   }
 
   return (
@@ -540,9 +537,9 @@ function EmailDetailPanel({
             Zavrit
           </AdminToolbarButton>
         </div>
-        <div className="admin-inline-state">
+        <AdminState surface="panel" tone="error">
           Backend vratil chybu pri nacitani detailu. List zustava dostupny.
-        </div>
+        </AdminState>
       </aside>
     )
   }

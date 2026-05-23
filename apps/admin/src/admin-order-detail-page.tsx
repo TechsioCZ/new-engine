@@ -23,6 +23,7 @@ import {
   AdminSelectField,
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
+import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 type Feedback = {
@@ -52,9 +53,9 @@ export function OrderDetailPage() {
     return (
       <section className="admin-page">
         <PageTitle eyebrow="Objednavka" title="Nacitam detail" />
-        <div aria-busy="true" className="admin-inline-state">
+        <AdminState isBusy surface="panel">
           Nacitam objednavku...
-        </div>
+        </AdminState>
       </section>
     )
   }
@@ -63,9 +64,9 @@ export function OrderDetailPage() {
     return (
       <section className="admin-page">
         <PageTitle eyebrow="Objednavka" title="Detail objednavky" />
-        <div className="admin-inline-state">
+        <AdminState surface="panel" tone="error">
           Objednavku se nepodarilo nacist.
-        </div>
+        </AdminState>
       </section>
     )
   }
@@ -310,7 +311,7 @@ function OrderShippingMethodsPanel({
           </table>
         </div>
       ) : (
-        <div className="admin-table-state">Bez dopravni metody.</div>
+        <AdminState>Bez dopravni metody.</AdminState>
       )}
     </section>
   )
@@ -347,9 +348,7 @@ function OrderPaymentsPanel({ order }: { order: MedusaAdminOrder }) {
           </table>
         </div>
       ) : (
-        <div className="admin-table-state">
-          Objednavka nema payment collection.
-        </div>
+        <AdminState>Objednavka nema payment collection.</AdminState>
       )}
     </section>
   )
@@ -405,10 +404,10 @@ function OrderFulfillmentsPanel({
           </table>
         </div>
       ) : (
-        <div className="admin-table-state">
+        <AdminState>
           Zatim bez aktivniho fulfillmentu. Stav:{" "}
           {order.fulfillment_status ?? "-"}.
-        </div>
+        </AdminState>
       )}
     </section>
   )
@@ -508,18 +507,14 @@ function OrderEmailFormContent({
   templates: OrderEmailTemplate[]
 }) {
   if (isLoading) {
-    return (
-      <div aria-busy="true" className="admin-table-state">
-        Nacitam sablony...
-      </div>
-    )
+    return <AdminState isBusy>Nacitam sablony...</AdminState>
   }
 
   if (isError) {
     return (
-      <div className="admin-table-state admin-table-state-error">
+      <AdminState tone="error">
         Emailove sablony se nepodarilo nacist.
-      </div>
+      </AdminState>
     )
   }
 
@@ -590,7 +585,7 @@ function OrderItemsTable({
   items: MedusaAdminOrderItem[]
 }) {
   if (!items.length) {
-    return <div className="admin-table-state">Objednavka nema polozky.</div>
+    return <AdminState>Objednavka nema polozky.</AdminState>
   }
 
   return (
@@ -697,7 +692,7 @@ function OrderMetadataPanel({
           {JSON.stringify(metadata, null, 2)}
         </pre>
       ) : (
-        <div className="admin-table-state">Bez metadat.</div>
+        <AdminState>Bez metadat.</AdminState>
       )}
     </section>
   )
