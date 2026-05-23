@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
 import type { PplConfig, PplConfigInput, PplLabelFormat } from "./admin-types"
@@ -264,16 +265,10 @@ export function PplSettingsPage() {
               <h3>PPL shipping</h3>
               <span>Prostredi: {pplConfig?.environment ?? "nezname"}</span>
             </div>
-            <label className="admin-switch">
-              <input
-                checked={formData.is_enabled}
-                onChange={(event) =>
-                  updateField("is_enabled", event.target.checked)
-                }
-                type="checkbox"
-              />
-              <span>Aktivni</span>
-            </label>
+            <Switch
+              checked={formData.is_enabled}
+              onCheckedChange={(checked) => updateField("is_enabled", checked)}
+            />
           </div>
           <AdminSelectField
             className="admin-field-wide"

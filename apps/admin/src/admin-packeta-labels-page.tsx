@@ -1,5 +1,6 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
@@ -290,11 +291,10 @@ function PacketaOrdersTable({
         <thead>
           <tr>
             <th className="admin-table-check">
-              <input
+              <Checkbox
                 aria-label="Vybrat vsechny tisknutelne objednavky na strance"
                 checked={allPrintableSelected}
                 onChange={onTogglePrintablePage}
-                type="checkbox"
               />
             </th>
             <th>Objednavka</th>
@@ -312,12 +312,11 @@ function PacketaOrdersTable({
             return (
               <tr key={order.id}>
                 <td className="admin-table-check">
-                  <input
+                  <Checkbox
                     aria-label={`Vybrat ${formatOrderNumber(order)}`}
                     checked={selectedOrderIds.has(order.id)}
                     disabled={!canPrint}
                     onChange={() => onToggleOrder(order.id)}
-                    type="checkbox"
                   />
                 </td>
                 <td className="admin-table-strong">

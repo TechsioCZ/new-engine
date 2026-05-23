@@ -621,19 +621,6 @@ a {
   width: 42px;
 }
 
-.admin-table-check input {
-  display: grid;
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: #26382a;
-  cursor: pointer;
-}
-
-.admin-table-check input:disabled {
-  cursor: not-allowed;
-}
-
 .admin-table-state {
   color: #596156;
   font-size: 13px;
@@ -818,22 +805,6 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-}
-
-.admin-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #4a5148;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.admin-switch input {
-  width: 18px;
-  height: 18px;
-  accent-color: #26382a;
 }
 
 .admin-form-actions {

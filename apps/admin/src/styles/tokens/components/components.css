@@ -2,5 +2,8 @@
 
 @import "./atoms/_admin-badge.css";
 @import "./atoms/_admin-button.css";
+@import "./atoms/_admin-checkbox.css";
 @import "./atoms/_admin-input.css";
+
+
 @import "./molecules/_admin-search.css";

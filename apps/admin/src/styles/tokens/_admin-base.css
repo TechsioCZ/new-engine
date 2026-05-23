@@ -39,7 +39,7 @@
 }
 
 @theme static {
-  --radius-sm: 4px;
+  --radius-sm: 1px;
   --radius-md: 7px;
   --radius-lg: 12px;
   --radius-full: 9999px;

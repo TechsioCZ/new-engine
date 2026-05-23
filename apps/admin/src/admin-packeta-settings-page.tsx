@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePacketaConfig, usePacketaConfig } from "./admin-api"
 import type { PacketaConfig, PacketaConfigInput } from "./admin-types"
@@ -266,16 +267,10 @@ export function PacketaSettingsPage() {
               <h3>Packeta shipping</h3>
               <span>Prostredi: {packetaConfig?.environment ?? "nezname"}</span>
             </div>
-            <label className="admin-switch">
-              <input
-                checked={formData.is_enabled}
-                onChange={(event) =>
-                  updateField("is_enabled", event.target.checked)
-                }
-                type="checkbox"
-              />
-              <span>Aktivni</span>
-            </label>
+            <Switch
+              checked={formData.is_enabled}
+              onCheckedChange={(checked) => updateField("is_enabled", checked)}
+            />
           </div>
           <div className="admin-settings-grid-two">
             <AdminSelectField

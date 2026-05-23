@@ -45,8 +45,8 @@
     oklch(0.78 0.065 151 / 0.14)
   );
   --color-admin-fill-active: light-dark(
-    oklch(0.32 0.034 150.977 / 0.12),
-    oklch(0.78 0.065 151 / 0.2)
+    oklch(0.32 0.034 150.977 / 0.6),
+    oklch(0.02 0.065 151 / 0.6)
   );
 
   --color-admin-primary: light-dark(
