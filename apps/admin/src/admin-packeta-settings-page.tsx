@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormNumericInput } from "@techsio/ui-kit/molecules/form-numeric-input"
 import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
@@ -334,16 +335,15 @@ export function PacketaSettingsPage() {
         />
 
         {feedback && (
-          <div
-            className={[
-              "admin-feedback admin-feedback-inline",
-              feedback.tone === "error" ? "admin-feedback-error" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+          <StatusText
+            align="start"
+            role={feedback.tone === "error" ? "alert" : "status"}
+            showIcon
+            size="sm"
+            status={feedback.tone}
           >
             {feedback.message}
-          </div>
+          </StatusText>
         )}
 
         <div className="admin-form-actions">

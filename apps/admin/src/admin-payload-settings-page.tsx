@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useState } from "react"
 import { fetchPayloadSsoHtml, usePayloadConfig } from "./admin-api"
 import { MEDUSA_BACKEND_URL } from "./admin-config"
@@ -139,16 +140,15 @@ function PayloadNewTabLauncher({
       </div>
       <AdminToolbarButton onClick={onOpen}>Otevrit Payload</AdminToolbarButton>
       {feedback && (
-        <div
-          className={[
-            "admin-feedback admin-feedback-inline",
-            feedback.tone === "error" ? "admin-feedback-error" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+        <StatusText
+          align="start"
+          role={feedback.tone === "error" ? "alert" : "status"}
+          showIcon
+          size="sm"
+          status={feedback.tone}
         >
           {feedback.message}
-        </div>
+        </StatusText>
       )}
     </div>
   )

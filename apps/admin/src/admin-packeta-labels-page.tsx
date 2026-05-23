@@ -1,5 +1,6 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
@@ -163,16 +164,16 @@ export function PacketaLabelsPage() {
           />
         </div>
         {feedback && (
-          <div
-            className={[
-              "admin-feedback",
-              feedback.tone === "error" ? "admin-feedback-error" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+          <StatusText
+            align="start"
+            className="mx-300 mb-300"
+            role={feedback.tone === "error" ? "alert" : "status"}
+            showIcon
+            size="sm"
+            status={feedback.tone}
           >
             {feedback.message}
-          </div>
+          </StatusText>
         )}
         <PacketaOrdersTable
           allPrintableSelected={allPrintableSelected}

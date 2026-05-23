@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
@@ -308,16 +309,15 @@ export function PplSettingsPage() {
         />
 
         {feedback && (
-          <div
-            className={[
-              "admin-feedback admin-feedback-inline",
-              feedback.tone === "error" ? "admin-feedback-error" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+          <StatusText
+            align="start"
+            role={feedback.tone === "error" ? "alert" : "status"}
+            showIcon
+            size="sm"
+            status={feedback.tone}
           >
             {feedback.message}
-          </div>
+          </StatusText>
         )}
 
         <div className="admin-form-actions">

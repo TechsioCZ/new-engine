@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Badge, type BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { type FormEvent, useEffect, useState } from "react"
 import { Link, Navigate, useParams } from "react-router-dom"
 import {
@@ -542,16 +543,15 @@ function OrderEmailFormContent({
         template={templates.find((item) => item.template === selectedTemplate)}
       />
       {feedback && (
-        <div
-          className={[
-            "admin-feedback admin-feedback-inline",
-            feedback.tone === "error" ? "admin-feedback-error" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+        <StatusText
+          align="start"
+          role={feedback.tone === "error" ? "alert" : "status"}
+          showIcon
+          size="sm"
+          status={feedback.tone}
         >
           {feedback.message}
-        </div>
+        </StatusText>
       )}
       <AdminToolbarButton
         disabled={
