@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Badge, type BadgeProps } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { type FormEvent, useEffect, useState } from "react"
 import { Link, Navigate, useParams } from "react-router-dom"
 import {
@@ -23,6 +22,7 @@ import {
   AdminSelectField,
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 type Feedback = {
   message: string
@@ -553,18 +553,14 @@ function OrderEmailFormContent({
           {feedback.message}
         </div>
       )}
-      <Button
-        className="admin-toolbar-button"
+      <AdminToolbarButton
         disabled={
           !(orderEmail && templates.length && selectedTemplate) || isSending
         }
-        size="sm"
-        theme="outlined"
         type="submit"
-        variant="secondary"
       >
         {isSending ? "Odesilam..." : "Odeslat email"}
-      </Button>
+      </AdminToolbarButton>
     </>
   )
 }

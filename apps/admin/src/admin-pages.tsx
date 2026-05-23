@@ -1,5 +1,4 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { type ReactNode, useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import {
@@ -21,6 +20,7 @@ import type {
 } from "./admin-types"
 import { AdminPagination } from "./components/admin-pagination"
 import { AdminSearch } from "./components/admin-search"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 const SKELETON_ROW_IDS = [
   "skeleton-1",
@@ -481,16 +481,9 @@ function EmailLogsTable({
                 )}
               </td>
               <td className="admin-table-actions">
-                <Button
-                  className="admin-toolbar-button"
-                  onClick={() => onOpen(emailLog.id)}
-                  size="sm"
-                  theme="outlined"
-                  type="button"
-                  variant="secondary"
-                >
+                <AdminToolbarButton onClick={() => onOpen(emailLog.id)}>
                   Detail
-                </Button>
+                </AdminToolbarButton>
               </td>
             </tr>
           ))}
@@ -539,16 +532,9 @@ function EmailDetailPanel({
             <h2>Detail emailu</h2>
             <span>Detail se nepodarilo nacist.</span>
           </div>
-          <Button
-            className="admin-toolbar-button"
-            onClick={onClose}
-            size="sm"
-            theme="borderless"
-            type="button"
-            variant="secondary"
-          >
+          <AdminToolbarButton onClick={onClose} theme="borderless">
             Zavrit
-          </Button>
+          </AdminToolbarButton>
         </div>
         <div className="admin-inline-state">
           Backend vratil chybu pri nacitani detailu. List zustava dostupny.
@@ -568,16 +554,9 @@ function EmailDetailPanel({
           <h2>Detail emailu</h2>
           <span>{detail.email_log.subject}</span>
         </div>
-        <Button
-          className="admin-toolbar-button"
-          onClick={onClose}
-          size="sm"
-          theme="borderless"
-          type="button"
-          variant="secondary"
-        >
+        <AdminToolbarButton onClick={onClose} theme="borderless">
           Zavrit
-        </Button>
+        </AdminToolbarButton>
       </div>
       <div className="admin-detail-fields">
         <DetailField label="Email ID" value={detail.email_log.email_id} />

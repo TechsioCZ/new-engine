@@ -1,6 +1,3 @@
 @theme static {
-    /* --color-checkbox-bg: var(--color-base); */
-    --radius-checkbox: var(--radius-sm);
     --spacing-checkbox: var(--spacing-6);
-    --spacing-checkbox-indeterminate-icon: 60%;
 }

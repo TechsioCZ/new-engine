@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { FormNumericInput } from "@techsio/ui-kit/molecules/form-numeric-input"
 import { Switch } from "@techsio/ui-kit/molecules/switch"
@@ -11,6 +10,7 @@ import {
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
 import { AdminTextField } from "./components/admin-text-field"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 type Feedback = {
   message: string
@@ -286,22 +286,25 @@ export function PacketaSettingsPage() {
               value={formData.default_label_format}
             />
             <div className="[&_label]:text-md">
-            <FormNumericInput
-              id="packeta-default-label-offset"
-              label="Label offset"
-              max={3}
-              min={0}
-              size="md"
-              className=""
-              onChange={(value) =>
-                updateField("default_label_offset", normalizeLabelOffset(value))
-              }
-              value={formData.default_label_offset}
-            >
-              <NumericInput.Control className="mt-2">
-                <NumericInput.Input />
-              </NumericInput.Control>
-            </FormNumericInput>
+              <FormNumericInput
+                className=""
+                id="packeta-default-label-offset"
+                label="Label offset"
+                max={3}
+                min={0}
+                onChange={(value) =>
+                  updateField(
+                    "default_label_offset",
+                    normalizeLabelOffset(value)
+                  )
+                }
+                size="md"
+                value={formData.default_label_offset}
+              >
+                <NumericInput.Control className="mt-2">
+                  <NumericInput.Input />
+                </NumericInput.Control>
+              </FormNumericInput>
             </div>
           </div>
         </section>
@@ -344,16 +347,9 @@ export function PacketaSettingsPage() {
         )}
 
         <div className="admin-form-actions">
-          <Button
-            className="admin-toolbar-button"
-            disabled={mutation.isPending}
-            size="sm"
-            theme="outlined"
-            type="submit"
-            variant="secondary"
-          >
+          <AdminToolbarButton disabled={mutation.isPending} type="submit">
             {mutation.isPending ? "Ukladam..." : "Ulozit"}
-          </Button>
+          </AdminToolbarButton>
         </div>
       </form>
     )

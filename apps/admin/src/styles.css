@@ -267,29 +267,8 @@ a {
   gap: 8px;
 }
 
-.admin-toolbar-button {
-  min-height: 34px;
-  border: 1px solid rgba(31, 37, 32, 0.14);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.78);
-  color: #26382a;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 0 12px;
-}
-
-.admin-toolbar-button:hover {
-  background: #ffffff;
-}
-
-.admin-toolbar-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.48;
-}
-
 .admin-sidebar-action:focus-visible,
 .admin-nav-item:focus-visible,
-.admin-toolbar-button:focus-visible,
 .admin-row-link:focus-visible,
 .admin-table-link:focus-visible,
 .admin-text-link:focus-visible,
@@ -1108,10 +1087,6 @@ a {
 
   .admin-detail-panel {
     max-height: none;
-  }
-
-  .admin-toolbar-button {
-    width: 100%;
   }
 
   .admin-page-header {

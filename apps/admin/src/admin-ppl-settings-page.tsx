@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
@@ -9,6 +8,7 @@ import {
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
 import { AdminTextField } from "./components/admin-text-field"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 type Feedback = {
   message: string
@@ -321,16 +321,9 @@ export function PplSettingsPage() {
         )}
 
         <div className="admin-form-actions">
-          <Button
-            className="admin-toolbar-button"
-            disabled={mutation.isPending}
-            size="sm"
-            theme="outlined"
-            type="submit"
-            variant="secondary"
-          >
+          <AdminToolbarButton disabled={mutation.isPending} type="submit">
             {mutation.isPending ? "Ukladam..." : "Ulozit"}
-          </Button>
+          </AdminToolbarButton>
         </div>
       </form>
     )

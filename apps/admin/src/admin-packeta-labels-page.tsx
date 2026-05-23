@@ -1,5 +1,4 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
@@ -14,6 +13,7 @@ import {
   AdminSelectField,
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 type LabelFormat = "A6" | "A7"
 type Feedback = {
@@ -231,17 +231,12 @@ function PacketaLabelControls({
         onValueChange={(value) => onLabelOffsetChange(Number(value))}
         value={String(labelOffset)}
       />
-      <Button
-        className="w-full sm:w-auto"
+      <AdminToolbarButton
         disabled={selectedCount === 0 || isDownloading}
         onClick={onDownload}
-        size="sm"
-        theme="outlined"
-        type="button"
-        variant="secondary"
       >
         {isDownloading ? "Generuji..." : "Stahnout PDF"}
-      </Button>
+      </AdminToolbarButton>
     </div>
   )
 }

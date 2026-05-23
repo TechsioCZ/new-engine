@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { useState } from "react"
 import { fetchPayloadSsoHtml, usePayloadConfig } from "./admin-api"
 import { MEDUSA_BACKEND_URL } from "./admin-config"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 type Feedback = {
   message: string
@@ -137,16 +137,7 @@ function PayloadNewTabLauncher({
         <h3>Payload se otevre v novem tabu</h3>
         <span>{iframeUrl}</span>
       </div>
-      <Button
-        className="admin-toolbar-button"
-        onClick={onOpen}
-        size="sm"
-        theme="outlined"
-        type="button"
-        variant="secondary"
-      >
-        Otevrit Payload
-      </Button>
+      <AdminToolbarButton onClick={onOpen}>Otevrit Payload</AdminToolbarButton>
       {feedback && (
         <div
           className={[
