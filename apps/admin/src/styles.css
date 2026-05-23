@@ -267,8 +267,7 @@ a {
   gap: 8px;
 }
 
-.admin-toolbar-button,
-.admin-pagination-button {
+.admin-toolbar-button {
   min-height: 34px;
   border: 1px solid rgba(31, 37, 32, 0.14);
   border-radius: 7px;
@@ -279,13 +278,11 @@ a {
   padding: 0 12px;
 }
 
-.admin-toolbar-button:hover,
-.admin-pagination-button:hover:not(:disabled) {
+.admin-toolbar-button:hover {
   background: #ffffff;
 }
 
-.admin-toolbar-button:disabled,
-.admin-pagination-button:disabled {
+.admin-toolbar-button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
 }
@@ -293,7 +290,6 @@ a {
 .admin-sidebar-action:focus-visible,
 .admin-nav-item:focus-visible,
 .admin-toolbar-button:focus-visible,
-.admin-pagination-button:focus-visible,
 .admin-row-link:focus-visible,
 .admin-table-link:focus-visible,
 .admin-text-link:focus-visible,
@@ -474,16 +470,6 @@ a {
   line-height: 1.45;
 }
 
-.admin-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  color: #697066;
-  font-size: 13px;
-  font-weight: 650;
-}
-
 .admin-split-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
@@ -656,11 +642,6 @@ a {
 
 .admin-table-state-error {
   color: #7d2119;
-}
-
-.admin-panel-pagination {
-  border-top: 1px solid rgba(31, 37, 32, 0.1);
-  padding: 12px 16px;
 }
 
 .admin-packeta-actions {
@@ -1198,11 +1179,6 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .admin-pagination {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
   .admin-split-layout {
     grid-template-columns: 1fr;
   }
@@ -1240,8 +1216,7 @@ a {
     max-height: none;
   }
 
-  .admin-toolbar-button,
-  .admin-pagination-button {
+  .admin-toolbar-button {
     width: 100%;
   }
 

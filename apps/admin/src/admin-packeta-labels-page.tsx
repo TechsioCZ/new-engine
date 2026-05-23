@@ -8,6 +8,7 @@ import {
   usePacketaLabelOrders,
 } from "./admin-api"
 import type { PacketaLabelOrder, PacketaOrderFulfillment } from "./admin-types"
+import { AdminPagination } from "./components/admin-pagination"
 
 type LabelFormat = "A6" | "A7"
 type Feedback = {
@@ -19,7 +20,7 @@ const LABEL_FORMATS: LabelFormat[] = ["A6", "A7"]
 const LABEL_OFFSETS = [0, 1, 2, 3]
 
 export function PacketaLabelsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const offset = readOffset(searchParams.get("offset"))
   const [labelFormat, setLabelFormat] = useState<LabelFormat>("A6")
   const [labelOffset, setLabelOffset] = useState(0)
@@ -44,19 +45,6 @@ export function PacketaLabelsPage() {
   const allPrintableSelected =
     printableOrderIds.length > 0 &&
     printableOrderIds.every((orderId) => selectedOrderIds.has(orderId))
-
-  function updateOffset(nextOffset: number) {
-    const params = new URLSearchParams(searchParams)
-
-    if (nextOffset > 0) {
-      params.set("offset", String(nextOffset))
-    } else {
-      params.delete("offset")
-    }
-
-    setSearchParams(params)
-    setFeedback(null)
-  }
 
   function toggleOrder(orderId: string) {
     setSelectedOrderIds((current) => {
@@ -210,45 +198,15 @@ export function PacketaLabelsPage() {
           orders={currentOrders}
           selectedOrderIds={selectedOrderIds}
         />
-        {orders.data && orders.data.count > 0 && (
-          <div className="admin-pagination admin-panel-pagination">
-            <Button
-              className="admin-pagination-button"
-              disabled={!orders.data.has_previous}
-              onClick={() =>
-                updateOffset(
-                  Math.max(0, offset - PACKETA_LABEL_ORDER_LIST_LIMIT)
-                )
-              }
-              size="sm"
-              theme="outlined"
-              type="button"
-              variant="secondary"
-            >
-              Predchozi
-            </Button>
-            <span>
-              {orders.data.offset + 1}-
-              {Math.min(
-                orders.data.offset + orders.data.limit,
-                orders.data.count
-              )}{" "}
-              z {orders.data.count}
-            </span>
-            <Button
-              className="admin-pagination-button"
-              disabled={!orders.data.has_next}
-              onClick={() =>
-                updateOffset(offset + PACKETA_LABEL_ORDER_LIST_LIMIT)
-              }
-              size="sm"
-              theme="outlined"
-              type="button"
-              variant="secondary"
-            >
-              Dalsi
-            </Button>
-          </div>
+        {orders.data && (
+          <AdminPagination
+            ariaLabel="Strankovani Packeta objednavek"
+            className="border-border-primary border-t px-8 py-6"
+            count={orders.data.count}
+            offset={orders.data.offset}
+            onPageChange={() => setFeedback(null)}
+            pageSize={PACKETA_LABEL_ORDER_LIST_LIMIT}
+          />
         )}
       </div>
     </section>

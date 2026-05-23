@@ -14,6 +14,7 @@ type AdminPaginationProps = {
   className?: string
   count: number
   offset: number
+  onPageChange?: (page: number) => void
   pageSize: number
   searchParamOverrides?: CreatePaginationGetPageUrlOptions["searchParamOverrides"]
 }
@@ -34,6 +35,7 @@ export function AdminPagination({
   className,
   count,
   offset,
+  onPageChange,
   pageSize,
   searchParamOverrides,
 }: AdminPaginationProps) {
@@ -76,6 +78,7 @@ export function AdminPagination({
         return query ? `${location.pathname}?${query}` : location.pathname
       }}
       linkAs={RouterPaginationLink}
+      onPageChange={onPageChange}
       page={page}
       pageSize={pageSize}
       size="md"
