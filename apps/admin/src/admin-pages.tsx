@@ -1,4 +1,5 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { type ReactNode, useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import {
@@ -307,7 +308,10 @@ function DataSurface<TItem>({
     return (
       <div aria-busy="true" className="admin-list">
         {SKELETON_ROW_IDS.map((id) => (
-          <div className="admin-row admin-row-skeleton" key={id} />
+          <Skeleton.Rectangle
+            className="min-h-34 rounded-md border border-border-primary"
+            key={id}
+          />
         ))}
       </div>
     )

@@ -938,18 +938,6 @@ a {
   line-height: 1.45;
 }
 
-.admin-row-skeleton {
-  background:
-    linear-gradient(
-      100deg,
-      transparent 20%,
-      rgba(255, 255, 255, 0.74) 48%,
-      transparent 76%
-    ), rgba(255, 255, 255, 0.45);
-  background-size: 180% 100%;
-  animation: admin-skeleton 1.35s ease infinite;
-}
-
 .admin-inline-state {
   border: 1px solid rgba(31, 37, 32, 0.1);
   border-radius: 8px;
@@ -997,16 +985,6 @@ a {
 
 .admin-inline-action:hover {
   color: #b43328;
-}
-
-@keyframes admin-skeleton {
-  from {
-    background-position: 160% 0;
-  }
-
-  to {
-    background-position: -80% 0;
-  }
 }
 
 @media (max-width: 860px) {
