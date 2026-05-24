@@ -23,6 +23,7 @@ import {
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminJsonPreview } from "./components/admin-preview"
 import { AdminState } from "./components/admin-state"
+import { formatCount } from "./utils/format"
 
 const TITLE_SPLIT_PATTERN = /\s+/
 
@@ -292,10 +293,6 @@ function formatBoolean(value: boolean | null | undefined) {
   }
 
   return value ? "ano" : "ne"
-}
-
-function formatCount(value: number, singular: string, plural: string) {
-  return `${value} ${value === 1 ? singular : plural}`
 }
 
 function getInitials(title: string) {

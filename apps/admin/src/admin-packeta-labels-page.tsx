@@ -24,6 +24,7 @@ import {
 } from "./components/admin-select-field"
 import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
+import { readOffset } from "./utils/format"
 
 type LabelFormat = "A6" | "A7"
 type Feedback = {
@@ -376,16 +377,6 @@ function formatDate(value: string | null) {
   return new Intl.DateTimeFormat("cs-CZ", {
     dateStyle: "medium",
   }).format(date)
-}
-
-function readOffset(value: string | null) {
-  const offset = Number(value)
-
-  if (!Number.isFinite(offset) || offset <= 0) {
-    return 0
-  }
-
-  return Math.floor(offset)
 }
 
 function downloadBlob(blob: Blob, filename: string) {

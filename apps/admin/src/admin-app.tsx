@@ -23,6 +23,7 @@ import { ProductDetailPage } from "./admin-product-detail-page"
 import { QrPaymentsSettingsPage, SettingsPage } from "./admin-settings-page"
 import type { ActionRequiredSummary, BadgeKey } from "./admin-types"
 import { type AdminNavItem, adminNavItems } from "./nav-config"
+import { formatCountLabel } from "./utils/format"
 
 const ADMIN_SHELL_CLASS_NAME =
   "grid min-h-dvh grid-cols-[var(--spacing-admin-shell-sidebar)_minmax(0,1fr)] [background:linear-gradient(90deg,var(--color-highlight),transparent_38%),var(--color-base)] max-admin-layout:grid-cols-1"
@@ -292,8 +293,4 @@ function getBadgeValue(
 
 function shouldRenderBadge(badge: BadgeValue) {
   return badge.count > 0 || !badge.countExact
-}
-
-function formatCountLabel(count: number, countExact: boolean) {
-  return countExact ? String(count) : `${count}+`
 }

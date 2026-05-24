@@ -53,6 +53,12 @@ import {
 } from "./components/admin-select-field"
 import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
+import {
+  formatCompactId,
+  formatCount,
+  formatDateTime,
+  formatMoney,
+} from "./utils/format"
 
 type Feedback = {
   message: string
@@ -982,18 +988,6 @@ function getFulfillmentDataTracking(
   return null
 }
 
-function formatCompactId(value: string | null | undefined) {
-  if (!value) {
-    return null
-  }
-
-  if (value.length <= 16) {
-    return value
-  }
-
-  return `${value.slice(0, 8)}...${value.slice(-5)}`
-}
-
 function formatStatusLabel(value: string | null | undefined) {
   return value ? value.replaceAll("_", " ") : "-"
 }
@@ -1068,43 +1062,6 @@ function formatCity(address: MedusaAdminAddress | null | undefined) {
     .join(" ")
 }
 
-function formatDateTime(value: string | null | undefined) {
-  if (!value) {
-    return "-"
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return "-"
-  }
-
-  return new Intl.DateTimeFormat("cs-CZ", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date)
-}
-
-function formatMoney(
-  value: number | string | null,
-  currencyCode: string | null
-) {
-  if (value === null) {
-    return "-"
-  }
-
-  const amount = typeof value === "string" ? Number(value) : value
-
-  if (!Number.isFinite(amount)) {
-    return "-"
-  }
-
-  return new Intl.NumberFormat("cs-CZ", {
-    currency: (currencyCode ?? "CZK").toUpperCase(),
-    style: "currency",
-  }).format(amount)
-}
-
 function formatDeductionMoney(
   value: number | string | null,
   currencyCode: string | null
@@ -1126,10 +1083,6 @@ function formatQuantity(value: number | string | null | undefined) {
   const amount = typeof value === "string" ? Number(value) : value
 
   return Number.isFinite(amount) ? String(amount) : "-"
-}
-
-function formatCount(value: number, singular: string, plural: string) {
-  return `${value} ${value === 1 ? singular : plural}`
 }
 
 function getThumbnailStyle(thumbnail: string) {

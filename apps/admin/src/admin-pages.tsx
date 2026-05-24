@@ -51,6 +51,14 @@ import {
 import { AdminSearch } from "./components/admin-search"
 import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
+import {
+  formatCompactId,
+  formatCount,
+  formatCountLabel,
+  formatDateTime,
+  formatMoney,
+  readOffset,
+} from "./utils/format"
 
 const SKELETON_ROW_IDS = [
   "skeleton-1",
@@ -303,10 +311,6 @@ function PageHeader({
       )}
     </AdminPageHeader>
   )
-}
-
-function formatCountLabel(count: number, countExact: boolean) {
-  return countExact ? String(count) : `${count}+`
 }
 
 function DataSurface<TItem>({
@@ -698,63 +702,4 @@ function formatRecipient(recipient: ResendEmail["to"]) {
   }
 
   return Array.isArray(recipient) ? recipient.join(", ") : recipient
-}
-
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return "-"
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return "-"
-  }
-
-  return new Intl.DateTimeFormat("cs-CZ", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date)
-}
-
-function formatCount(value: number, singular: string, plural: string) {
-  return `${value} ${value === 1 ? singular : plural}`
-}
-
-function formatCompactId(value: string) {
-  if (value.length <= 16) {
-    return value
-  }
-
-  return `${value.slice(0, 8)}...${value.slice(-5)}`
-}
-
-function readOffset(value: string | null) {
-  const offset = Number(value)
-
-  if (!Number.isFinite(offset) || offset <= 0) {
-    return 0
-  }
-
-  return Math.floor(offset)
-}
-
-function formatMoney(
-  value: number | string | null,
-  currencyCode: string | null
-) {
-  if (value === null) {
-    return "-"
-  }
-
-  const amount = typeof value === "string" ? Number(value) : value
-
-  if (!Number.isFinite(amount)) {
-    return "-"
-  }
-
-  return new Intl.NumberFormat("cs-CZ", {
-    currency: (currencyCode ?? "CZK").toUpperCase(),
-    style: "currency",
-  }).format(amount)
 }
