@@ -58,7 +58,7 @@ export function AdminPageCount({
   value: ReactNode
 }) {
   return (
-    <div className="grid min-w-46 justify-items-start gap-1 min-[861px]:justify-items-end">
+    <div className="grid min-w-46 justify-items-start gap-50 min-[861px]:justify-items-end">
       <span className="font-bold text-admin-page-count leading-none">
         {value}
       </span>
@@ -69,7 +69,7 @@ export function AdminPageCount({
 
 export function AdminPageHeaderActions({ children }: { children: ReactNode }) {
   return (
-    <div className="grid justify-items-start gap-4 min-[861px]:justify-items-end">
+    <div className="grid justify-items-start gap-200 min-[861px]:justify-items-end">
       {children}
     </div>
   )
@@ -77,7 +77,7 @@ export function AdminPageHeaderActions({ children }: { children: ReactNode }) {
 
 export function AdminStatusRow({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-wrap justify-start gap-3 min-[861px]:justify-end">
+    <div className="flex flex-wrap justify-start gap-150 min-[861px]:justify-end">
       {children}
     </div>
   )

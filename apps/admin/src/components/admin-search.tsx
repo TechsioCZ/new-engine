@@ -18,7 +18,7 @@ export function AdminSearch({
   value,
 }: AdminSearchProps) {
   return (
-    <div className="flex w-full max-w-xl flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+    <div className="flex w-full max-w-xl flex-col items-stretch gap-200 sm:flex-row sm:items-center">
       <SearchForm
         className="min-w-0 flex-1"
         onSubmit={onSearch}

@@ -209,67 +209,12 @@ a {
   line-height: 1.45;
 }
 
-.admin-split-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.admin-detail-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(340px, 0.7fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.admin-detail-stack {
-  display: grid;
-  gap: 16px;
-}
-
-.admin-address-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.admin-panel {
-  overflow: hidden;
-  border: 1px solid rgba(31, 37, 32, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.74);
-}
-
-.admin-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid rgba(31, 37, 32, 0.1);
-  padding: 14px 16px;
-}
-
-.admin-panel-header-stacked {
-  align-items: flex-end;
-}
-
-.admin-panel-header h2,
-.admin-detail-panel h2,
 .admin-email-preview h3 {
   margin: 0;
   color: #1f2520;
   font-size: 16px;
   font-weight: 760;
   line-height: 1.15;
-}
-
-.admin-panel-header span,
-.admin-detail-panel-empty p,
-.admin-detail-panel p {
-  color: #697066;
-  font-size: 13px;
-  line-height: 1.45;
 }
 
 .admin-table-link,
@@ -459,75 +404,6 @@ a {
   padding-top: 16px;
 }
 
-.admin-detail-panel {
-  display: flex;
-  max-height: calc(100vh - 130px);
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.admin-detail-panel-empty,
-.admin-detail-panel[aria-busy="true"] {
-  gap: 8px;
-  padding: 18px;
-}
-
-.admin-detail-fields {
-  display: grid;
-  gap: 9px;
-  padding: 14px 16px;
-}
-
-.admin-money-breakdown {
-  display: grid;
-  padding: 8px 16px;
-}
-
-.admin-money-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  border-bottom: 1px dashed rgba(31, 37, 32, 0.1);
-  color: #596156;
-  font-size: 13px;
-  padding: 9px 0;
-}
-
-.admin-money-row:last-child {
-  border-bottom: 0;
-}
-
-.admin-money-row strong {
-  color: #1f2520;
-  font-weight: 680;
-}
-
-.admin-money-row.is-strong {
-  color: #1f2520;
-  font-weight: 760;
-}
-
-.admin-detail-field {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-}
-
-.admin-detail-field span {
-  color: #697066;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.admin-detail-field strong {
-  overflow-wrap: anywhere;
-  color: #1f2520;
-  font-size: 13px;
-  font-weight: 650;
-}
-
 .admin-json-preview {
   max-height: 260px;
   overflow: auto;
@@ -635,21 +511,11 @@ a {
 
 @media (max-width: 860px) {
   .admin-row,
-  .admin-panel-header-stacked,
   .admin-row-meta {
     align-items: start;
   }
 
   .admin-row {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-split-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-detail-layout,
-  .admin-address-grid {
     grid-template-columns: 1fr;
   }
 
@@ -665,10 +531,6 @@ a {
   .admin-setting-toggle {
     align-items: start;
     flex-direction: column;
-  }
-
-  .admin-detail-panel {
-    max-height: none;
   }
 
   .admin-row-meta {

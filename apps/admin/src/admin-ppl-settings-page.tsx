@@ -5,6 +5,7 @@ import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
 import type { PplConfig, PplConfigInput, PplLabelFormat } from "./admin-types"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanel } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
@@ -331,13 +332,13 @@ export function PplSettingsPage() {
   return (
     <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="PPL" />
-      <div className="admin-panel admin-settings-panel">
+      <AdminPanel as="div" className="admin-settings-panel">
         <AdminPanelHeader
           subtitle="Stejny kontrakt jako aktualni Medusa PPL settings."
           title="Konfigurace dopravce"
         />
         {renderConfigContent()}
-      </div>
+      </AdminPanel>
     </AdminPage>
   )
 }

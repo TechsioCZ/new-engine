@@ -30,6 +30,7 @@ import {
   AdminPageHeader,
 } from "./components/admin-page-header"
 import { AdminPagination } from "./components/admin-pagination"
+import { AdminPanel, AdminSplitLayout } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminSearch } from "./components/admin-search"
 import { AdminState } from "./components/admin-state"
@@ -211,8 +212,8 @@ export function EmailsPage() {
         title="Odeslane emaily"
         value={emailLogs.data?.count}
       />
-      <div className="admin-split-layout">
-        <div className="admin-panel admin-email-list-panel">
+      <AdminSplitLayout>
+        <AdminPanel as="div">
           <AdminPanelHeader
             subtitle="Historie notifikaci z backendu a Resendu."
             title="Email logy"
@@ -227,14 +228,14 @@ export function EmailsPage() {
           {emailLogs.data && (
             <AdminPagination
               ariaLabel="Strankovani email logu"
-              className="border-border-primary border-t px-8 py-6"
+              className="border-border-primary border-t px-400 py-300"
               count={emailLogs.data.count}
               offset={emailLogs.data.offset}
               pageSize={EMAIL_LOG_LIST_LIMIT}
               searchParamOverrides={{ email: null }}
             />
           )}
-        </div>
+        </AdminPanel>
         <EmailDetailPanel
           detail={emailDetail.data}
           isError={emailDetail.isError}
@@ -242,7 +243,7 @@ export function EmailsPage() {
           onClose={() => updateEmailParams({ selectedEmailLogId: null })}
           selectedEmailLogId={selectedEmailLogId}
         />
-      </div>
+      </AdminSplitLayout>
     </AdminPage>
   )
 }
@@ -515,25 +516,43 @@ function EmailDetailPanel({
 }) {
   if (!selectedEmailLogId) {
     return (
-      <aside className="admin-panel admin-detail-panel admin-detail-panel-empty">
-        <h2>Detail emailu</h2>
-        <p>Vyber email v tabulce pro zobrazeni obsahu a Resend payloadu.</p>
-      </aside>
+      <AdminPanel
+        as="aside"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-[860px]:max-h-none"
+      >
+        <h2 className="m-0 font-bold text-fg-primary text-md leading-tight">
+          Detail emailu
+        </h2>
+        <p className="m-0 text-fg-secondary text-sm leading-normal">
+          Vyber email v tabulce pro zobrazeni obsahu a Resend payloadu.
+        </p>
+      </AdminPanel>
     )
   }
 
   if (isLoading) {
     return (
-      <aside aria-busy="true" className="admin-panel admin-detail-panel">
-        <h2>Nacitam detail</h2>
-        <p>Dotazuji Resend detail pro vybrany email.</p>
-      </aside>
+      <AdminPanel
+        aria-busy={true}
+        as="aside"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-[860px]:max-h-none"
+      >
+        <h2 className="m-0 font-bold text-fg-primary text-md leading-tight">
+          Nacitam detail
+        </h2>
+        <p className="m-0 text-fg-secondary text-sm leading-normal">
+          Dotazuji Resend detail pro vybrany email.
+        </p>
+      </AdminPanel>
     )
   }
 
   if (isError || !detail) {
     return (
-      <aside className="admin-panel admin-detail-panel">
+      <AdminPanel
+        as="aside"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col overflow-y-auto max-[860px]:max-h-none"
+      >
         <AdminPanelHeader
           actions={
             <AdminToolbarButton onClick={onClose} theme="borderless">
@@ -546,7 +565,7 @@ function EmailDetailPanel({
         <AdminState surface="panel" tone="error">
           Backend vratil chybu pri nacitani detailu. List zustava dostupny.
         </AdminState>
-      </aside>
+      </AdminPanel>
     )
   }
 
@@ -555,7 +574,10 @@ function EmailDetailPanel({
   const textContent = getTextContent(resendEmail)
 
   return (
-    <aside className="admin-panel admin-detail-panel">
+    <AdminPanel
+      as="aside"
+      className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col overflow-y-auto max-[860px]:max-h-none"
+    >
       <AdminPanelHeader
         actions={
           <AdminToolbarButton onClick={onClose} theme="borderless">
@@ -615,7 +637,7 @@ function EmailDetailPanel({
         <h3>Resend payload</h3>
         <pre>{JSON.stringify(resendEmail, null, 2)}</pre>
       </div>
-    </aside>
+    </AdminPanel>
   )
 }
 

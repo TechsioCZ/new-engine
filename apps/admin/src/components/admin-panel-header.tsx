@@ -14,8 +14,8 @@ export function AdminPanelHeader({
   title: ReactNode
 }) {
   const headerClassName = [
-    "admin-panel-header",
-    stacked ? "admin-panel-header-stacked" : null,
+    "flex items-center justify-between gap-300 border-border-primary border-b px-400 py-350",
+    stacked ? "items-end max-[860px]:items-start" : null,
     className,
   ]
     .filter(Boolean)
@@ -24,8 +24,14 @@ export function AdminPanelHeader({
   return (
     <div className={headerClassName}>
       <div>
-        <h2>{title}</h2>
-        {subtitle !== null && subtitle !== undefined && <span>{subtitle}</span>}
+        <h2 className="m-0 font-bold text-fg-primary text-md leading-tight">
+          {title}
+        </h2>
+        {subtitle !== null && subtitle !== undefined && (
+          <span className="text-fg-secondary text-sm leading-normal">
+            {subtitle}
+          </span>
+        )}
       </div>
       {actions}
     </div>

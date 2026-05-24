@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { updateQrPaymentConfig, useQrPaymentConfig } from "./admin-api"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanel } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 import { AdminTextField } from "./components/admin-text-field"
@@ -143,13 +144,13 @@ export function QrPaymentsSettingsPage() {
   return (
     <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="QR platby" />
-      <div className="admin-panel admin-form-panel">
+      <AdminPanel as="div" className="admin-form-panel">
         <AdminPanelHeader
           subtitle="Aktualni prijemce pro QR platbu u objednavek."
           title="Bankovni ucet"
         />
         {renderConfigContent()}
-      </div>
+      </AdminPanel>
     </AdminPage>
   )
 }

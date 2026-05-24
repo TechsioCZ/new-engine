@@ -7,6 +7,7 @@ import { type FormEvent, useEffect, useState } from "react"
 import { updatePacketaConfig, usePacketaConfig } from "./admin-api"
 import type { PacketaConfig, PacketaConfigInput } from "./admin-types"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanel } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
@@ -357,13 +358,13 @@ export function PacketaSettingsPage() {
   return (
     <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="Packeta" />
-      <div className="admin-panel admin-settings-panel">
+      <AdminPanel as="div" className="admin-settings-panel">
         <AdminPanelHeader
           subtitle="Stejny kontrakt jako aktualni Medusa Packeta settings."
           title="Konfigurace dopravce"
         />
         {renderConfigContent()}
-      </div>
+      </AdminPanel>
     </AdminPage>
   )
 }

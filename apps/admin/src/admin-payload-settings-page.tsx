@@ -4,6 +4,7 @@ import { useState } from "react"
 import { fetchPayloadSsoHtml, usePayloadConfig } from "./admin-api"
 import { MEDUSA_BACKEND_URL } from "./admin-config"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanel } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
@@ -102,13 +103,13 @@ export function PayloadSettingsPage() {
   return (
     <AdminPage width="full">
       <AdminPageHeader eyebrow="Nastaveni" title="Payload" />
-      <div className="admin-panel admin-payload-panel">
+      <AdminPanel as="div" className="admin-payload-panel">
         <AdminPanelHeader
           subtitle="SSO vstup do CMS administrace pres Medusa backend."
           title="Payload Admin"
         />
         {renderPayloadContent()}
-      </div>
+      </AdminPanel>
     </AdminPage>
   )
 }

@@ -13,6 +13,11 @@ import {
   AdminDetailFields,
 } from "./components/admin-detail-field"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import {
+  AdminDetailLayout,
+  AdminDetailStack,
+  AdminPanel,
+} from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 
@@ -63,9 +68,9 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
           Zpet na produkty
         </Link>
       </AdminPageHeader>
-      <div className="admin-detail-layout">
-        <div className="admin-detail-stack">
-          <section className="admin-panel">
+      <AdminDetailLayout>
+        <AdminDetailStack>
+          <AdminPanel>
             <div className="admin-product-detail-hero">
               <ProductImage product={product} />
               <div>
@@ -79,28 +84,28 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
                 <p>{product.description || "Bez popisu."}</p>
               </div>
             </div>
-          </section>
-          <section className="admin-panel">
+          </AdminPanel>
+          <AdminPanel>
             <AdminPanelHeader
               subtitle={formatCount(variants.length, "varianta", "variant")}
               title="Varianty"
             />
             <ProductVariantsTable variants={variants} />
-          </section>
-          <section className="admin-panel">
+          </AdminPanel>
+          <AdminPanel>
             <AdminPanelHeader
               subtitle={formatCount(images.length, "obrazek", "obrazku")}
               title="Obrazky"
             />
             <ProductImagesGrid images={images} />
-          </section>
-        </div>
-        <aside className="admin-detail-stack">
+          </AdminPanel>
+        </AdminDetailStack>
+        <AdminDetailStack as="aside">
           <ProductSummaryPanel product={product} />
           <ProductOptionsPanel options={options} />
           <ProductMetadataPanel metadata={product.metadata} />
-        </aside>
-      </div>
+        </AdminDetailStack>
+      </AdminDetailLayout>
     </AdminPage>
   )
 }
@@ -124,7 +129,7 @@ function ProductImage({ product }: { product: MedusaAdminProduct }) {
 
 function ProductSummaryPanel({ product }: { product: MedusaAdminProduct }) {
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle={product.handle ? `/${product.handle}` : product.id}
         title="Souhrn"
@@ -148,7 +153,7 @@ function ProductSummaryPanel({ product }: { product: MedusaAdminProduct }) {
             .join(", ")}
         />
       </AdminDetailFields>
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -158,7 +163,7 @@ function ProductOptionsPanel({
   options: MedusaAdminProductOption[]
 }) {
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle={formatCount(options.length, "option", "options")}
         title="Options"
@@ -175,7 +180,7 @@ function ProductOptionsPanel({
       ) : (
         <AdminState>Bez option hodnot.</AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -187,7 +192,7 @@ function ProductMetadataPanel({
   const hasMetadata = metadata && Object.keys(metadata).length > 0
 
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle="Technicke hodnoty produktu."
         title="Metadata"
@@ -199,7 +204,7 @@ function ProductMetadataPanel({
       ) : (
         <AdminState>Bez metadat.</AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 

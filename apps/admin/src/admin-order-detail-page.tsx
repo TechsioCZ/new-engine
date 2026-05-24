@@ -30,6 +30,12 @@ import {
   AdminPageHeaderActions,
   AdminStatusRow,
 } from "./components/admin-page-header"
+import {
+  AdminAddressGrid,
+  AdminDetailLayout,
+  AdminDetailStack,
+  AdminPanel,
+} from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
@@ -105,9 +111,9 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
           </Link>
         </AdminPageHeaderActions>
       </AdminPageHeader>
-      <div className="admin-detail-layout">
-        <div className="admin-detail-stack">
-          <section className="admin-panel">
+      <AdminDetailLayout>
+        <AdminDetailStack>
+          <AdminPanel>
             <AdminPanelHeader
               subtitle={formatCount(items.length, "polozka", "polozek")}
               title="Polozky objednavky"
@@ -116,7 +122,7 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
               currencyCode={order.currency_code ?? null}
               items={items}
             />
-          </section>
+          </AdminPanel>
           <OrderTotalsPanel order={order} />
           <OrderShippingMethodsPanel
             currencyCode={order.currency_code ?? null}
@@ -127,25 +133,25 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
             activeFulfillments={activeFulfillments}
             order={order}
           />
-          <section className="admin-address-grid">
+          <AdminAddressGrid>
             <AddressPanel address={order.shipping_address} title="Doruceni" />
             <AddressPanel address={order.billing_address} title="Fakturace" />
-          </section>
-        </div>
-        <aside className="admin-detail-stack">
+          </AdminAddressGrid>
+        </AdminDetailStack>
+        <AdminDetailStack as="aside">
           <OrderCustomerPanel order={order} />
           <OrderSummaryPanel order={order} />
           <OrderEmailPanel order={order} />
           <OrderMetadataPanel metadata={order.metadata} />
-        </aside>
-      </div>
+        </AdminDetailStack>
+      </AdminDetailLayout>
     </AdminPage>
   )
 }
 
 function OrderSummaryPanel({ order }: { order: MedusaAdminOrder }) {
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle={formatDateTime(order.created_at)}
         title="Souhrn"
@@ -175,7 +181,7 @@ function OrderSummaryPanel({ order }: { order: MedusaAdminOrder }) {
           value={formatMoney(order.total ?? null, order.currency_code ?? null)}
         />
       </AdminDetailFields>
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -195,7 +201,7 @@ function OrderCustomerPanel({ order }: { order: MedusaAdminOrder }) {
   const customer = order.customer
 
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle={order.email ?? customer?.email ?? "Bez e-mailu"}
         title="Zakaznik"
@@ -210,7 +216,7 @@ function OrderCustomerPanel({ order }: { order: MedusaAdminOrder }) {
         <AdminDetailField label="Firma" value={customer?.company_name} />
         <AdminDetailField label="Customer ID" value={order.customer_id} />
       </AdminDetailFields>
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -245,21 +251,23 @@ function OrderTotalsPanel({ order }: { order: MedusaAdminOrder }) {
   ]
 
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle={order.currency_code?.toUpperCase() ?? "CZK"}
         title="Financni souhrn"
       />
-      <div className="admin-money-breakdown">
+      <div className="grid px-400 py-200">
         {rows.map((row) => (
           <div
             className={
-              row.isStrong ? "admin-money-row is-strong" : "admin-money-row"
+              row.isStrong
+                ? "flex items-center justify-between gap-450 border-border-secondary border-b border-dashed py-250 font-bold text-fg-primary text-sm last:border-b-0"
+                : "flex items-center justify-between gap-450 border-border-secondary border-b border-dashed py-250 text-fg-secondary text-sm last:border-b-0"
             }
             key={row.label}
           >
             <span>{row.label}</span>
-            <strong>
+            <strong className="font-semibold text-fg-primary">
               {row.isDeduction
                 ? formatDeductionMoney(row.value, order.currency_code ?? null)
                 : formatMoney(row.value, order.currency_code ?? null)}
@@ -267,7 +275,7 @@ function OrderTotalsPanel({ order }: { order: MedusaAdminOrder }) {
           </div>
         ))}
       </div>
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -279,7 +287,7 @@ function OrderShippingMethodsPanel({
   shippingMethods: MedusaAdminShippingMethod[]
 }) {
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle={formatCount(shippingMethods.length, "metoda", "metod")}
         title="Doprava"
@@ -319,7 +327,7 @@ function OrderShippingMethodsPanel({
       ) : (
         <AdminState>Bez dopravni metody.</AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -327,7 +335,7 @@ function OrderPaymentsPanel({ order }: { order: MedusaAdminOrder }) {
   const collections = order.payment_collections ?? []
 
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle={formatPaymentCollections(order)}
         title="Platby"
@@ -354,7 +362,7 @@ function OrderPaymentsPanel({ order }: { order: MedusaAdminOrder }) {
       ) : (
         <AdminState>Objednavka nema payment collection.</AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -366,7 +374,7 @@ function OrderFulfillmentsPanel({
   order: MedusaAdminOrder
 }) {
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle={formatFulfillments(order)}
         title="Fulfillment"
@@ -413,7 +421,7 @@ function OrderFulfillmentsPanel({
           {order.fulfillment_status ?? "-"}.
         </AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -465,7 +473,7 @@ function OrderEmailPanel({ order }: { order: MedusaAdminOrder }) {
   }
 
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle={order.email ?? "Objednavka nema e-mail."}
         title="Email zakaznikovi"
@@ -485,7 +493,7 @@ function OrderEmailPanel({ order }: { order: MedusaAdminOrder }) {
           templates={availableTemplates}
         />
       </form>
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -662,7 +670,7 @@ function AddressPanel({
   title: string
 }) {
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader subtitle={formatAddressName(address)} title={title} />
       <AdminDetailFields>
         <AdminDetailField label="Firma" value={address?.company} />
@@ -671,7 +679,7 @@ function AddressPanel({
         <AdminDetailField label="Zeme" value={address?.country_code} />
         <AdminDetailField label="Telefon" value={address?.phone} />
       </AdminDetailFields>
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -683,7 +691,7 @@ function OrderMetadataPanel({
   const hasMetadata = metadata && Object.keys(metadata).length > 0
 
   return (
-    <section className="admin-panel">
+    <AdminPanel>
       <AdminPanelHeader
         subtitle="Technicke hodnoty objednavky."
         title="Metadata"
@@ -695,7 +703,7 @@ function OrderMetadataPanel({
       ) : (
         <AdminState>Bez metadat.</AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 

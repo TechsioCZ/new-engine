@@ -16,6 +16,7 @@ import {
   AdminPageHeader,
 } from "./components/admin-page-header"
 import { AdminPagination } from "./components/admin-pagination"
+import { AdminPanel } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
@@ -149,7 +150,7 @@ export function PacketaLabelsPage() {
           value={selectedPrintableOrderIds.length}
         />
       </AdminPageHeader>
-      <div className="admin-panel">
+      <AdminPanel as="div">
         <AdminPanelHeader
           actions={
             <PacketaLabelControls
@@ -197,7 +198,7 @@ export function PacketaLabelsPage() {
             pageSize={PACKETA_LABEL_ORDER_LIST_LIMIT}
           />
         )}
-      </div>
+      </AdminPanel>
     </AdminPage>
   )
 }
