@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { cx } from "../utils/cx"
 
 export function AdminPage({
   children,
@@ -16,11 +17,7 @@ export function AdminPage({
   }[width]
 
   return (
-    <section
-      className={["flex flex-col gap-450", widthClassName, className]
-        .filter(Boolean)
-        .join(" ")}
-    >
+    <section className={cx("flex flex-col gap-450", widthClassName, className)}>
       {children}
     </section>
   )

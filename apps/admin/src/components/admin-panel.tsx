@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { cx } from "../utils/cx"
 
 type AdminPanelElement = "aside" | "div" | "section"
 
@@ -15,12 +16,10 @@ export function AdminPanel({
 }) {
   return (
     <Component
-      className={[
+      className={cx(
         "overflow-hidden rounded-md border border-border-primary bg-surface",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+        className
+      )}
       {...props}
     >
       {children}

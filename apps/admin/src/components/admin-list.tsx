@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
+import { cx } from "../utils/cx"
 import { AdminMediaFrame } from "./admin-media"
 
 const rowClassName =
@@ -31,9 +32,7 @@ export function AdminListRow({
   className?: string
   to?: string
 }) {
-  const classNames = [rowClassName, to ? rowLinkClassName : null, className]
-    .filter(Boolean)
-    .join(" ")
+  const classNames = cx(rowClassName, to ? rowLinkClassName : null, className)
 
   if (to) {
     return (
@@ -67,12 +66,10 @@ export function AdminListRowText({
 }) {
   return (
     <span
-      className={[
+      className={cx(
         "block text-fg-secondary text-xs leading-normal",
-        offset ? "mt-100" : null,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+        offset ? "mt-100" : null
+      )}
     >
       {children}
     </span>
@@ -88,12 +85,10 @@ export function AdminListRowMeta({
 }) {
   return (
     <div
-      className={[
+      className={cx(
         "flex items-center gap-250 text-right max-admin-layout:flex-col max-admin-layout:items-start max-admin-layout:gap-150 max-admin-layout:text-left",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+        className
+      )}
     >
       {children}
     </div>

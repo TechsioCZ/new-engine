@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react"
+import { cx } from "../utils/cx"
 
 export function AdminMediaFrame({
   className,
@@ -13,22 +14,18 @@ export function AdminMediaFrame({
 }) {
   return (
     <span
-      className={[
+      className={cx(
         "grid overflow-hidden rounded-md border border-border-primary bg-base bg-center bg-cover",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+        className
+      )}
       style={src ? getBackgroundImageStyle(src) : undefined}
     >
       {!src && (
         <span
-          className={[
+          className={cx(
             "grid size-full place-items-center font-bold text-fg-secondary",
-            fallbackClassName,
-          ]
-            .filter(Boolean)
-            .join(" ")}
+            fallbackClassName
+          )}
         >
           {fallback}
         </span>

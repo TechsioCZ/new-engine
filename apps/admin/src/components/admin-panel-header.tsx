@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { cx } from "../utils/cx"
 
 export function AdminPanelHeader({
   actions,
@@ -13,13 +14,11 @@ export function AdminPanelHeader({
   subtitle?: ReactNode
   title: ReactNode
 }) {
-  const headerClassName = [
+  const headerClassName = cx(
     "flex items-center justify-between gap-300 border-border-primary border-b px-400 py-350",
     stacked ? "items-end max-admin-layout:items-start" : null,
-    className,
-  ]
-    .filter(Boolean)
-    .join(" ")
+    className
+  )
 
   return (
     <div className={headerClassName}>

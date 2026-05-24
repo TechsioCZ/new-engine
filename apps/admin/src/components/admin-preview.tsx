@@ -1,8 +1,5 @@
 import type { IframeHTMLAttributes, ReactNode } from "react"
-
-function cx(...classNames: Array<string | false | null | undefined>) {
-  return classNames.filter(Boolean).join(" ")
-}
+import { cx } from "../utils/cx"
 
 export function AdminJsonPreview({ children }: { children: ReactNode }) {
   return (

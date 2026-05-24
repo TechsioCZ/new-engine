@@ -8,6 +8,7 @@ import {
   useLocation,
   useSearchParams,
 } from "react-router-dom"
+import { cx } from "../utils/cx"
 
 type AdminPaginationProps = {
   ariaLabel: string
@@ -47,9 +48,7 @@ export function AdminPagination({
   }
 
   const page = Math.floor(offset / pageSize) + 1
-  const rootClassName = ["flex justify-end", className]
-    .filter(Boolean)
-    .join(" ")
+  const rootClassName = cx("flex justify-end", className)
 
   return (
     <Pagination

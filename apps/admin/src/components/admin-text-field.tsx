@@ -1,6 +1,6 @@
-import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import type { ReactNode } from "react"
-import { AdminFieldLabelRow } from "./admin-settings-form"
+import { cx } from "../utils/cx"
+import { AdminFormInput } from "./admin-form-input"
 
 type AdminTextFieldProps = {
   action?: ReactNode
@@ -31,28 +31,21 @@ export function AdminTextField({
   value,
   wide = false,
 }: AdminTextFieldProps) {
-  const rootClassName = [wide ? "col-span-full" : null, className]
-    .filter(Boolean)
-    .join(" ")
-  const labelContent =
-    meta || action ? (
-      <AdminFieldLabelRow action={action} label={label} meta={meta} />
-    ) : (
-      label
-    )
+  const rootClassName = cx(wide ? "col-span-full" : null, className)
 
   return (
-    <div className={rootClassName || undefined}>
-      <FormInput
-        autoComplete={autoComplete}
-        disabled={disabled}
-        id={id}
-        label={labelContent}
-        onChange={(event) => onValueChange(event.target.value)}
-        placeholder={placeholder}
-        type={type}
-        value={value}
-      />
-    </div>
+    <AdminFormInput
+      action={action}
+      autoComplete={autoComplete}
+      disabled={disabled}
+      id={id}
+      label={label}
+      meta={meta}
+      onChange={(event) => onValueChange(event.target.value)}
+      placeholder={placeholder}
+      rootClassName={rootClassName}
+      type={type}
+      value={value}
+    />
   )
 }

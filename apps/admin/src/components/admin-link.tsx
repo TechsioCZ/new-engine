@@ -1,6 +1,7 @@
 import { Link as UiLink } from "@techsio/ui-kit/atoms/link"
 import type { ComponentPropsWithoutRef, ReactNode } from "react"
 import { Link as RouterLink } from "react-router-dom"
+import { cx } from "../utils/cx"
 
 type RouterLinkProps = Omit<
   ComponentPropsWithoutRef<typeof RouterLink>,
@@ -25,9 +26,7 @@ export function AdminTextLink({ className, ...props }: RouterLinkProps) {
   return (
     <UiLink
       as={RouterLink}
-      className={[sharedLinkClassName, "text-xs", className]
-        .filter(Boolean)
-        .join(" ")}
+      className={cx(sharedLinkClassName, "text-xs", className)}
       {...props}
     />
   )
@@ -37,7 +36,7 @@ export function AdminTableLink({ className, ...props }: RouterLinkProps) {
   return (
     <UiLink
       as={RouterLink}
-      className={[sharedLinkClassName, className].filter(Boolean).join(" ")}
+      className={cx(sharedLinkClassName, className)}
       {...props}
     />
   )
@@ -49,7 +48,7 @@ export function AdminExternalTableLink({
 }: AnchorLinkProps) {
   return (
     <UiLink
-      className={[sharedLinkClassName, className].filter(Boolean).join(" ")}
+      className={cx(sharedLinkClassName, className)}
       external
       {...props}
     />

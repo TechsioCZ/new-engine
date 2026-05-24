@@ -5,6 +5,13 @@ This app is a custom admin dashboard for the New Engine Medusa stack. It is not 
 ## Scope Default
 
 - Default write scope is `apps/admin`.
+- Treat `libs/ui` as a read-only dependency for ordinary admin work. Inspect its
+  source, tokens, and stories to understand the component contract, but do not
+  edit `libs/ui` from an `apps/admin` task unless the user explicitly widens the
+  scope to shared UI-kit authoring.
+- If admin usage exposes a real UI-kit API gap, document the gap and solve the
+  current slice inside `apps/admin` with a small adapter or bounded workaround.
+  Shared `libs/ui` changes belong in a separate, explicitly scoped task.
 - Do not edit `apps/medusa-be` unless the current admin task proves that an existing Admin API or custom endpoint cannot support the required workflow.
 - If a backend gap is found, document the exact missing endpoint, request/response shape, and user workflow first. Do not work around missing CORS, auth, or backend behavior with frontend hacks.
 - Treat deployed backend compatibility as a first-class constraint. The admin should work against `NEXT_PUBLIC_MEDUSA_BACKEND_URL` without requiring local backend changes for ordinary UI work.
@@ -32,7 +39,7 @@ Use `@techsio/ui-kit` / `libs/ui` first. Before adding custom UI primitives, ins
 - `.codex/skills/adopting-ui-kit-in-apps/app-component-inventory/SKILL.md`
 - `.codex/skills/adopting-ui-kit-in-apps/component-usage-ux/SKILL.md`
 - `.codex/skills/adopting-ui-kit-in-apps/app-token-overrides/SKILL.md`
-- `.codex/skills/authoring-ui-kit-components/component-authoring/SKILL.md` when a real UI kit API gap exists.
+- `.codex/skills/authoring-ui-kit-components/component-authoring/SKILL.md` only to identify or document a real UI-kit API gap unless the current task explicitly includes shared `libs/ui` edits.
 
 Runtime imports in `apps/admin` must use the published workspace package name:
 

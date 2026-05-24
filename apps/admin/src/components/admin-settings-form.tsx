@@ -1,6 +1,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button, type ButtonProps } from "@techsio/ui-kit/atoms/button"
 import type { FormHTMLAttributes, ReactNode } from "react"
+import { cx } from "../utils/cx"
 import { AdminPanel } from "./admin-panel"
 
 type AdminSettingsPanelWidth = "form" | "settings"
@@ -8,10 +9,6 @@ type AdminSettingsPanelWidth = "form" | "settings"
 const panelWidthClassName: Record<AdminSettingsPanelWidth, string> = {
   form: "max-w-2xl",
   settings: "max-w-4xl",
-}
-
-function cx(...classNames: Array<string | false | null | undefined>) {
-  return classNames.filter(Boolean).join(" ")
 }
 
 export function AdminSettingsPanel({
@@ -109,26 +106,6 @@ export function AdminFormActions({ children }: { children: ReactNode }) {
     <div className="flex justify-end pt-400 max-admin-layout:[&>*]:w-full">
       {children}
     </div>
-  )
-}
-
-export function AdminFieldLabelRow({
-  action,
-  label,
-  meta,
-}: {
-  action?: ReactNode
-  label: ReactNode
-  meta?: ReactNode
-}) {
-  return (
-    <span className="flex items-center justify-between gap-200">
-      <span className="inline-flex items-center gap-200">
-        {label}
-        {meta}
-      </span>
-      {action}
-    </span>
   )
 }
 

@@ -1,4 +1,5 @@
 import { Button, type ButtonProps } from "@techsio/ui-kit/atoms/button"
+import { cx } from "../utils/cx"
 
 type AdminToolbarButtonProps = ButtonProps
 
@@ -12,7 +13,7 @@ export function AdminToolbarButton({
 }: AdminToolbarButtonProps) {
   return (
     <Button
-      className={["max-md:w-full", className].filter(Boolean).join(" ")}
+      className={cx("max-md:w-full", className)}
       size={size}
       theme={theme}
       type={type}
