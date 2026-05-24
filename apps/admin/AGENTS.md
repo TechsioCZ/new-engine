@@ -136,6 +136,8 @@ For code changes in `apps/admin`, run the narrowest relevant checks:
 
 - `pnpm.cmd --dir apps/admin run typecheck`
 - `pnpm.cmd --dir apps/admin run build`
+- `pnpm.cmd --dir apps/admin run validate:ui-primitives` when adding or changing JSX controls.
+- `pnpm.cmd --dir apps/admin run validate:token-usage` when changing Tailwind classes or token files.
 - `pnpm.cmd exec biome check --write <changed files>`
 
 For user-facing workflow changes, also smoke-test in a browser against the deployed backend when possible. Do not perform destructive admin actions against deployed data unless the user explicitly approves that action.

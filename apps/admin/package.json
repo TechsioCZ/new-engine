@@ -6,7 +6,10 @@
     "dev": "vite --host 0.0.0.0 --port 3001",
     "build": "vite build --minify esbuild",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "validate:ui": "pnpm run validate:ui-primitives && pnpm run validate:token-usage",
+    "validate:ui-primitives": "node scripts/validate-ui-primitives.mjs",
+    "validate:token-usage": "node scripts/validate-token-usage.mjs"
   },
   "dependencies": {
     "@medusajs/icons": "2.15.2",
