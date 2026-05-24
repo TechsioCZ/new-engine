@@ -1,5 +1,6 @@
-import type { CSSProperties, ReactNode } from "react"
+import type { ReactNode } from "react"
 import { Link } from "react-router-dom"
+import { AdminMediaFrame } from "./admin-media"
 
 const rowClassName =
   "grid min-h-34 grid-cols-[minmax(0,1fr)_auto] items-center gap-400 rounded-md border border-border-primary bg-surface px-350 py-300 max-[860px]:grid-cols-1 max-[860px]:items-start"
@@ -107,23 +108,11 @@ export function AdminListMedia({
   src?: string | null
 }) {
   return (
-    <div className="grid size-23 overflow-hidden rounded-md border border-border-primary bg-base">
-      {src ? (
-        <span
-          className="block size-full bg-center bg-cover"
-          style={getBackgroundImageStyle(src)}
-        />
-      ) : (
-        <span className="grid size-full place-items-center font-bold text-fg-secondary text-xs">
-          {fallback}
-        </span>
-      )}
-    </div>
+    <AdminMediaFrame
+      className="size-23"
+      fallback={fallback}
+      fallbackClassName="text-xs"
+      src={src}
+    />
   )
-}
-
-function getBackgroundImageStyle(src: string): CSSProperties {
-  return {
-    backgroundImage: `url("${src.replaceAll('"', "%22")}")`,
-  }
 }

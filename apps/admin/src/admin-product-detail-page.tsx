@@ -12,6 +12,7 @@ import {
   AdminDetailField,
   AdminDetailFields,
 } from "./components/admin-detail-field"
+import { AdminMediaFrame } from "./components/admin-media"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import {
   AdminDetailLayout,
@@ -71,7 +72,7 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
       <AdminDetailLayout>
         <AdminDetailStack>
           <AdminPanel>
-            <div className="admin-product-detail-hero">
+            <div className="grid grid-cols-[var(--spacing-80)_minmax(0,1fr)] items-start gap-450 p-400 max-[860px]:grid-cols-1">
               <ProductImage product={product} />
               <div>
                 <Badge
@@ -80,8 +81,12 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
                 >
                   {product.status ?? "draft"}
                 </Badge>
-                <h2>{product.subtitle || product.handle || product.id}</h2>
-                <p>{product.description || "Bez popisu."}</p>
+                <h2 className="mt-300 mb-200 font-bold text-fg-primary text-lg leading-tight">
+                  {product.subtitle || product.handle || product.id}
+                </h2>
+                <p className="m-0 max-w-5xl text-fg-secondary text-xs leading-relaxed">
+                  {product.description || "Bez popisu."}
+                </p>
               </div>
             </div>
           </AdminPanel>
@@ -111,19 +116,13 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
 }
 
 function ProductImage({ product }: { product: MedusaAdminProduct }) {
-  if (product.thumbnail) {
-    return (
-      <span
-        className="admin-product-detail-image"
-        style={getThumbnailStyle(product.thumbnail)}
-      />
-    )
-  }
-
   return (
-    <span className="admin-product-detail-image admin-product-detail-image-fallback">
-      {getInitials(product.title ?? product.id)}
-    </span>
+    <AdminMediaFrame
+      className="aspect-square w-80 max-[860px]:aspect-card max-[860px]:w-full"
+      fallback={getInitials(product.title ?? product.id)}
+      fallbackClassName="bg-highlight text-xl"
+      src={product.thumbnail}
+    />
   )
 }
 
@@ -169,11 +168,18 @@ function ProductOptionsPanel({
         title="Options"
       />
       {options.length ? (
-        <div className="admin-chip-list">
+        <div className="grid gap-200 p-400">
           {options.map((option) => (
-            <div className="admin-chip-block" key={option.id ?? option.title}>
-              <strong>{option.title ?? option.id}</strong>
-              <span>{formatOptionValues(option)}</span>
+            <div
+              className="grid gap-100 rounded-md border border-border-primary bg-fill-base px-300 py-250"
+              key={option.id ?? option.title}
+            >
+              <strong className="font-bold text-fg-primary text-xs">
+                {option.title ?? option.id}
+              </strong>
+              <span className="text-fg-secondary text-xs leading-normal">
+                {formatOptionValues(option)}
+              </span>
             </div>
           ))}
         </div>
@@ -255,12 +261,14 @@ function ProductImagesGrid({ images }: { images: MedusaAdminProductImage[] }) {
   }
 
   return (
-    <div className="admin-product-image-grid">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(var(--spacing-43),1fr))] gap-250 p-400">
       {images.map((image) => (
-        <span
-          className="admin-product-gallery-image"
+        <AdminMediaFrame
+          className="aspect-square w-full"
+          fallback=""
+          fallbackClassName="text-xs"
           key={image.id ?? image.url}
-          style={getThumbnailStyle(image.url ?? "")}
+          src={image.url}
         />
       ))}
     </div>
@@ -290,14 +298,6 @@ function formatBoolean(value: boolean | null | undefined) {
 
 function formatCount(value: number, singular: string, plural: string) {
   return `${value} ${value === 1 ? singular : plural}`
-}
-
-function getThumbnailStyle(thumbnail: string) {
-  return {
-    backgroundImage: thumbnail
-      ? `url("${thumbnail.replaceAll('"', "%22")}")`
-      : undefined,
-  }
 }
 
 function getInitials(title: string) {
