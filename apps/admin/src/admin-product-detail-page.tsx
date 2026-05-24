@@ -1,4 +1,5 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Table } from "@techsio/ui-kit/organisms/table"
 import { Link, Navigate, useParams } from "react-router-dom"
 import { useAdminProductDetail } from "./admin-api"
 import type {
@@ -223,31 +224,33 @@ function ProductVariantsTable({
   }
 
   return (
-    <div className="admin-table-wrap">
-      <table className="admin-data-table">
-        <thead>
-          <tr>
-            <th>Varianta</th>
-            <th>SKU</th>
-            <th>EAN</th>
-            <th>Inventory</th>
-            <th>Backorder</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="overflow-x-auto">
+      <Table className="min-w-2xl" size="sm" variant="line">
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader>Varianta</Table.ColumnHeader>
+            <Table.ColumnHeader>SKU</Table.ColumnHeader>
+            <Table.ColumnHeader>EAN</Table.ColumnHeader>
+            <Table.ColumnHeader>Inventory</Table.ColumnHeader>
+            <Table.ColumnHeader>Backorder</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
           {variants.map((variant) => (
-            <tr key={variant.id}>
-              <td className="admin-table-strong">
+            <Table.Row key={variant.id}>
+              <Table.Cell className="font-semibold text-fg-primary">
                 {variant.title ?? variant.id}
-              </td>
-              <td>{variant.sku ?? "-"}</td>
-              <td>{variant.ean ?? variant.barcode ?? variant.upc ?? "-"}</td>
-              <td>{formatBoolean(variant.manage_inventory)}</td>
-              <td>{formatBoolean(variant.allow_backorder)}</td>
-            </tr>
+              </Table.Cell>
+              <Table.Cell>{variant.sku ?? "-"}</Table.Cell>
+              <Table.Cell>
+                {variant.ean ?? variant.barcode ?? variant.upc ?? "-"}
+              </Table.Cell>
+              <Table.Cell>{formatBoolean(variant.manage_inventory)}</Table.Cell>
+              <Table.Cell>{formatBoolean(variant.allow_backorder)}</Table.Cell>
+            </Table.Row>
           ))}
-        </tbody>
-      </table>
+        </Table.Body>
+      </Table>
     </div>
   )
 }
