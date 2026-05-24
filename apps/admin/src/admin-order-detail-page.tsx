@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Badge, type BadgeProps } from "@techsio/ui-kit/atoms/badge"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { Table } from "@techsio/ui-kit/organisms/table"
 import { type FormEvent, useEffect, useState } from "react"
 import { Link, Navigate, useParams } from "react-router-dom"
 import {
@@ -281,34 +282,36 @@ function OrderShippingMethodsPanel({
         </div>
       </div>
       {shippingMethods.length ? (
-        <div className="admin-table-wrap">
-          <table className="admin-data-table admin-data-table-compact">
-            <thead>
-              <tr>
-                <th>Metoda</th>
-                <th>Provider</th>
-                <th>Cena</th>
-                <th>Tax</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="overflow-x-auto">
+          <Table className="min-w-xl" size="sm" variant="line">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Metoda</Table.ColumnHeader>
+                <Table.ColumnHeader>Provider</Table.ColumnHeader>
+                <Table.ColumnHeader>Cena</Table.ColumnHeader>
+                <Table.ColumnHeader>Tax</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {shippingMethods.map((method) => (
-                <tr key={method.id ?? method.name}>
-                  <td className="admin-table-strong">
+                <Table.Row key={method.id ?? method.name}>
+                  <Table.Cell className="font-semibold text-fg-primary">
                     {method.name ?? method.id ?? "-"}
-                  </td>
-                  <td>{method.provider_id ?? "-"}</td>
-                  <td>
+                  </Table.Cell>
+                  <Table.Cell>{method.provider_id ?? "-"}</Table.Cell>
+                  <Table.Cell>
                     {formatMoney(
                       method.total ?? method.amount ?? method.subtotal ?? null,
                       currencyCode
                     )}
-                  </td>
-                  <td>{formatMoney(method.tax_total ?? null, currencyCode)}</td>
-                </tr>
+                  </Table.Cell>
+                  <Table.Cell>
+                    {formatMoney(method.tax_total ?? null, currencyCode)}
+                  </Table.Cell>
+                </Table.Row>
               ))}
-            </tbody>
-          </table>
+            </Table.Body>
+          </Table>
         </div>
       ) : (
         <AdminState>Bez dopravni metody.</AdminState>
