@@ -1,6 +1,6 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Table } from "@techsio/ui-kit/organisms/table"
-import { Link, Navigate, useParams } from "react-router-dom"
+import { Navigate, useParams } from "react-router-dom"
 import { useAdminProductDetail } from "./admin-api"
 import type {
   MedusaAdminProduct,
@@ -12,6 +12,7 @@ import {
   AdminDetailField,
   AdminDetailFields,
 } from "./components/admin-detail-field"
+import { AdminTextLink } from "./components/admin-link"
 import { AdminMediaFrame } from "./components/admin-media"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import {
@@ -65,9 +66,7 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
   return (
     <AdminPage width="wide">
       <AdminPageHeader eyebrow="Produkt" title={product.title ?? product.id}>
-        <Link className="admin-text-link" to="/products">
-          Zpet na produkty
-        </Link>
+        <AdminTextLink to="/products">Zpet na produkty</AdminTextLink>
       </AdminPageHeader>
       <AdminDetailLayout>
         <AdminDetailStack>

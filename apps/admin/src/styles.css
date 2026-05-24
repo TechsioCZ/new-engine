@@ -23,8 +23,6 @@ a {
   text-decoration: none;
 }
 
-.admin-table-link:focus-visible,
-.admin-text-link:focus-visible,
 .admin-inline-action:focus-visible {
   outline: 3px solid rgba(38, 56, 42, 0.28);
   outline-offset: 2px;
@@ -36,24 +34,6 @@ a {
   font-size: 16px;
   font-weight: 760;
   line-height: 1.15;
-}
-
-.admin-table-link,
-.admin-text-link {
-  color: #26382a;
-  font-weight: 760;
-  text-decoration: underline;
-  text-decoration-color: rgba(38, 56, 42, 0.22);
-  text-underline-offset: 3px;
-}
-
-.admin-text-link {
-  font-size: 13px;
-}
-
-.admin-table-link:hover,
-.admin-text-link:hover {
-  text-decoration-color: #26382a;
 }
 
 .admin-inline-list {

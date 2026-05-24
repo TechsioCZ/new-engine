@@ -3,7 +3,7 @@ import { Badge, type BadgeProps } from "@techsio/ui-kit/atoms/badge"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Table } from "@techsio/ui-kit/organisms/table"
 import { type FormEvent, useEffect, useState } from "react"
-import { Link, Navigate, useParams } from "react-router-dom"
+import { Navigate, useParams } from "react-router-dom"
 import {
   sendOrderEmail,
   useAdminOrderDetail,
@@ -24,6 +24,11 @@ import {
   AdminDetailField,
   AdminDetailFields,
 } from "./components/admin-detail-field"
+import {
+  AdminExternalTableLink,
+  AdminTableLink,
+  AdminTextLink,
+} from "./components/admin-link"
 import {
   AdminPage,
   AdminPageHeader,
@@ -106,9 +111,9 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
             <OrderStatusBadge label={order.payment_status} />
             <OrderStatusBadge label={order.fulfillment_status} />
           </AdminStatusRow>
-          <Link className="admin-text-link" to="/orders?view=action-required">
+          <AdminTextLink to="/orders?view=action-required">
             Zpet na objednavky
-          </Link>
+          </AdminTextLink>
         </AdminPageHeaderActions>
       </AdminPageHeader>
       <AdminDetailLayout>
@@ -629,12 +634,9 @@ function OrderItemsTable({
                   )}
                   <div className="min-w-0">
                     {item.product_id ? (
-                      <Link
-                        className="admin-table-link"
-                        to={`/products/${item.product_id}`}
-                      >
+                      <AdminTableLink to={`/products/${item.product_id}`}>
                         {getItemTitle(item)}
-                      </Link>
+                      </AdminTableLink>
                     ) : (
                       <strong>{getItemTitle(item)}</strong>
                     )}
@@ -939,15 +941,9 @@ function formatFulfillmentTracking(fulfillment: MedusaAdminFulfillment) {
 
           if (label.tracking_url) {
             return (
-              <a
-                className="admin-table-link"
-                href={label.tracking_url}
-                key={key}
-                rel="noreferrer"
-                target="_blank"
-              >
+              <AdminExternalTableLink href={label.tracking_url} key={key}>
                 {labelText}
-              </a>
+              </AdminExternalTableLink>
             )
           }
 

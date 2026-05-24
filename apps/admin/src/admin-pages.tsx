@@ -2,7 +2,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Table } from "@techsio/ui-kit/organisms/table"
 import { type ReactNode, useEffect, useState } from "react"
-import { Link, useSearchParams } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import {
   EMAIL_LOG_LIST_LIMIT,
   PRODUCT_LIST_LIMIT,
@@ -24,6 +24,7 @@ import {
   AdminDetailField,
   AdminDetailFields,
 } from "./components/admin-detail-field"
+import { AdminTableLink } from "./components/admin-link"
 import {
   AdminList,
   AdminListMedia,
@@ -484,12 +485,9 @@ function EmailLogsTable({
               </Table.Cell>
               <Table.Cell>
                 {emailLog.order_id ? (
-                  <Link
-                    className="admin-table-link"
-                    to={`/orders/${emailLog.order_id}`}
-                  >
+                  <AdminTableLink to={`/orders/${emailLog.order_id}`}>
                     {formatCompactId(emailLog.order_id)}
-                  </Link>
+                  </AdminTableLink>
                 ) : (
                   "-"
                 )}
