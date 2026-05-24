@@ -3,7 +3,7 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { type FormEvent, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { updateQrPaymentConfig, useQrPaymentConfig } from "./admin-api"
-import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 import { AdminTextField } from "./components/admin-text-field"
@@ -39,7 +39,7 @@ const settingsItems = [
 
 export function SettingsPage() {
   return (
-    <section className="admin-page">
+    <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="Nastaveni adminu" />
       <div className="admin-settings-grid">
         {settingsItems.map((item) => (
@@ -49,7 +49,7 @@ export function SettingsPage() {
           </Link>
         ))}
       </div>
-    </section>
+    </AdminPage>
   )
 }
 
@@ -141,7 +141,7 @@ export function QrPaymentsSettingsPage() {
   }
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="QR platby" />
       <div className="admin-panel admin-form-panel">
         <AdminPanelHeader
@@ -150,6 +150,6 @@ export function QrPaymentsSettingsPage() {
         />
         {renderConfigContent()}
       </div>
-    </section>
+    </AdminPage>
   )
 }

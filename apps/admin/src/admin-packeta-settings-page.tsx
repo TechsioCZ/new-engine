@@ -6,7 +6,7 @@ import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePacketaConfig, usePacketaConfig } from "./admin-api"
 import type { PacketaConfig, PacketaConfigInput } from "./admin-types"
-import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
@@ -355,7 +355,7 @@ export function PacketaSettingsPage() {
   }
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="Packeta" />
       <div className="admin-panel admin-settings-panel">
         <AdminPanelHeader
@@ -364,7 +364,7 @@ export function PacketaSettingsPage() {
         />
         {renderConfigContent()}
       </div>
-    </section>
+    </AdminPage>
   )
 }
 

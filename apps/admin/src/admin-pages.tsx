@@ -24,7 +24,11 @@ import {
   AdminDetailField,
   AdminDetailFields,
 } from "./components/admin-detail-field"
-import { AdminPageCount, AdminPageHeader } from "./components/admin-page-header"
+import {
+  AdminPage,
+  AdminPageCount,
+  AdminPageHeader,
+} from "./components/admin-page-header"
 import { AdminPagination } from "./components/admin-pagination"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminSearch } from "./components/admin-search"
@@ -43,7 +47,7 @@ export function OrdersPage() {
   const orders = useActionRequiredOrders()
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader
         eyebrow="Objednavky"
         isValueExact={orders.data?.count_exact}
@@ -62,7 +66,7 @@ export function OrdersPage() {
         renderRow={(order) => <OrderRow key={order.id} order={order} />}
         rows={orders.data?.orders ?? []}
       />
-    </section>
+    </AdminPage>
   )
 }
 
@@ -70,7 +74,7 @@ export function CustomersPage() {
   const customers = usePendingB2BCustomers()
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader
         eyebrow="Zakaznici"
         isValueExact={customers.data?.count_exact}
@@ -91,7 +95,7 @@ export function CustomersPage() {
         )}
         rows={customers.data?.customers ?? []}
       />
-    </section>
+    </AdminPage>
   )
 }
 
@@ -137,7 +141,7 @@ export function ProductsPage() {
   }
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader
         eyebrow="Produkty"
         title="Produktovy katalog"
@@ -168,7 +172,7 @@ export function ProductsPage() {
           pageSize={PRODUCT_LIST_LIMIT}
         />
       )}
-    </section>
+    </AdminPage>
   )
 }
 
@@ -201,7 +205,7 @@ export function EmailsPage() {
   }
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader
         eyebrow="Emails"
         title="Odeslane emaily"
@@ -239,7 +243,7 @@ export function EmailsPage() {
           selectedEmailLogId={selectedEmailLogId}
         />
       </div>
-    </section>
+    </AdminPage>
   )
 }
 
@@ -251,7 +255,7 @@ export function PlaceholderPage({
   title: string
 }) {
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader eyebrow={eyebrow} title={title} />
       <div className="admin-placeholder">
         <strong>Soucast naseho adminu</strong>
@@ -260,7 +264,7 @@ export function PlaceholderPage({
           konkretni Medusa Admin API workflow bez odkazu do puvodniho adminu.
         </span>
       </div>
-    </section>
+    </AdminPage>
   )
 }
 
@@ -342,7 +346,7 @@ function OrderRow({ order }: { order: ActionRequiredOrder }) {
         <span>{order.email ?? "Bez e-mailu"}</span>
       </div>
       <div className="admin-row-meta">
-        <Badge className="admin-status-badge" size="sm" variant="warning">
+        <Badge size="sm" variant="warning">
           {order.payment_status ?? "nezaplaceno"}
         </Badge>
         <span>{formatMoney(order.total, order.currency_code)}</span>
@@ -359,7 +363,7 @@ function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
         <span>{customer.email ?? "Bez e-mailu"}</span>
       </div>
       <div className="admin-row-meta">
-        <Badge className="admin-status-badge" size="sm" variant="info">
+        <Badge size="sm" variant="info">
           B2B pending
         </Badge>
         <span>{customer.phone ?? "Bez telefonu"}</span>
@@ -399,7 +403,6 @@ function ProductRow({ product }: { product: AdminProductListItem }) {
       </div>
       <div className="admin-row-meta admin-product-meta">
         <Badge
-          className="admin-status-badge"
           size="sm"
           variant={product.status === "published" ? "info" : "warning"}
         >

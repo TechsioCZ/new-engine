@@ -4,7 +4,7 @@ import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
 import type { PplConfig, PplConfigInput, PplLabelFormat } from "./admin-types"
-import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
@@ -329,7 +329,7 @@ export function PplSettingsPage() {
   }
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="PPL" />
       <div className="admin-panel admin-settings-panel">
         <AdminPanelHeader
@@ -338,7 +338,7 @@ export function PplSettingsPage() {
         />
         {renderConfigContent()}
       </div>
-    </section>
+    </AdminPage>
   )
 }
 

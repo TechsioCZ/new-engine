@@ -25,6 +25,7 @@ import {
   AdminDetailFields,
 } from "./components/admin-detail-field"
 import {
+  AdminPage,
   AdminPageHeader,
   AdminPageHeaderActions,
   AdminStatusRow,
@@ -62,23 +63,23 @@ export function OrderDetailPage() {
 
   if (order.isLoading) {
     return (
-      <section className="admin-page">
+      <AdminPage>
         <AdminPageHeader eyebrow="Objednavka" title="Nacitam detail" />
         <AdminState isBusy surface="panel">
           Nacitam objednavku...
         </AdminState>
-      </section>
+      </AdminPage>
     )
   }
 
   if (order.isError || !order.data?.order) {
     return (
-      <section className="admin-page">
+      <AdminPage>
         <AdminPageHeader eyebrow="Objednavka" title="Detail objednavky" />
         <AdminState surface="panel" tone="error">
           Objednavku se nepodarilo nacist.
         </AdminState>
-      </section>
+      </AdminPage>
     )
   }
 
@@ -91,7 +92,7 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
   const activeFulfillments = getActiveFulfillments(order)
 
   return (
-    <section className="admin-page admin-page-wide">
+    <AdminPage width="wide">
       <AdminPageHeader eyebrow="Objednavka" title={orderLabel}>
         <AdminPageHeaderActions>
           <AdminStatusRow>
@@ -138,7 +139,7 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
           <OrderMetadataPanel metadata={order.metadata} />
         </aside>
       </div>
-    </section>
+    </AdminPage>
   )
 }
 

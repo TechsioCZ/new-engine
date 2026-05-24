@@ -23,6 +23,8 @@
   --container-6xl: 72rem;
   --container-max-w: 80rem;
   --container-prose: 65ch;
+  --container-admin-page: 70rem;
+  --container-admin-page-wide: 86.25rem;
 
   --aspect-square: 1;
   --aspect-video: 16 / 9;

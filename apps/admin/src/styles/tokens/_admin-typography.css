@@ -10,6 +10,9 @@
   --text-2xl: 1.5rem;
   --text-3xl: 1.75rem;
   --text-4xl: 2rem;
+  --text-admin-page-title: 2.625rem;
+  --text-admin-page-title-sm: 1.875rem;
+  --text-admin-page-count: 2.375rem;
 
   --font-weight-light: 300;
   --font-weight-normal: 400;

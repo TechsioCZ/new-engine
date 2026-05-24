@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { Fragment, useEffect, useState } from "react"
 import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom"
 import { useActionRequiredSummary } from "./admin-api"
@@ -22,6 +23,15 @@ import { ProductDetailPage } from "./admin-product-detail-page"
 import { QrPaymentsSettingsPage, SettingsPage } from "./admin-settings-page"
 import type { ActionRequiredSummary, BadgeKey } from "./admin-types"
 import { type AdminNavItem, adminNavItems } from "./nav-config"
+
+const ADMIN_SHELL_CLASS_NAME =
+  "grid min-h-dvh grid-cols-[var(--spacing-admin-shell-sidebar)_minmax(0,1fr)] [background:linear-gradient(90deg,var(--color-highlight),transparent_38%),var(--color-base)] max-[860px]:grid-cols-1"
+
+const ADMIN_SIDEBAR_CLASS_NAME =
+  "flex flex-col gap-12 border-border-primary border-e bg-surface px-7 py-9 max-[860px]:sticky max-[860px]:top-0 max-[860px]:z-10 max-[860px]:border-e-0 max-[860px]:border-b"
+
+const ADMIN_NAV_ITEM_CLASS_NAME =
+  "grid min-h-18 grid-cols-[var(--spacing-14)_minmax(0,1fr)_auto] items-center gap-4 rounded-md px-4 py-2 text-fg-secondary transition-all duration-200 hover:bg-fill-hover focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) motion-reduce:transition-none"
 
 export function AdminApp() {
   const location = useLocation()
@@ -63,9 +73,9 @@ export function AdminApp() {
   }
 
   return (
-    <div className="admin-shell">
+    <div className={ADMIN_SHELL_CLASS_NAME}>
       <Sidebar onLogout={handleLogout} summary={summary.data} />
-      <main className="admin-main">
+      <main className="min-w-0 p-14 max-[860px]:p-10">
         {summary.isError && isAuthError(summary.error) ? (
           <Navigate replace to="/login" />
         ) : (
@@ -165,15 +175,19 @@ function Sidebar({
   let currentSection: string | undefined
 
   return (
-    <aside aria-label="Admin navigation" className="admin-sidebar">
-      <div className="admin-brand">
-        <span className="admin-brand-mark">NE</span>
+    <aside aria-label="Admin navigation" className={ADMIN_SIDEBAR_CLASS_NAME}>
+      <div className="flex min-h-22 items-center gap-6 px-4">
+        <span className="inline-flex size-17 items-center justify-center rounded-md border border-border-tertiary bg-primary font-bold text-fg-reverse text-xs">
+          NE
+        </span>
         <span>
-          <strong>New Engine</strong>
-          <small>Admin</small>
+          <strong className="block leading-tight">New Engine</strong>
+          <small className="mt-50 block text-fg-secondary text-xs leading-tight">
+            Admin
+          </small>
         </span>
       </div>
-      <nav className="admin-nav">
+      <nav className="flex flex-col gap-2 max-[860px]:grid max-[860px]:grid-cols-2">
         {adminNavItems.map((item) => {
           const shouldRenderSection = item.section !== currentSection
           currentSection = item.section
@@ -181,16 +195,26 @@ function Sidebar({
           return (
             <Fragment key={item.href}>
               {shouldRenderSection && item.section && (
-                <span className="admin-nav-section">{item.section}</span>
+                <span className="mx-4 mt-8 mb-3 font-bold text-fg-tertiary text-xs uppercase first:mt-0">
+                  {item.section}
+                </span>
               )}
               <SidebarItem item={item} summary={summary} />
             </Fragment>
           )
         })}
       </nav>
-      <button className="admin-sidebar-action" onClick={onLogout} type="button">
+      <Button
+        block
+        className="mt-auto justify-start"
+        onClick={onLogout}
+        size="sm"
+        theme="outlined"
+        type="button"
+        variant="danger"
+      >
         Odhlasit
-      </button>
+      </Button>
     </aside>
   )
 }
@@ -210,19 +234,25 @@ function SidebarItem({
     <NavLink
       className={({ isPending }) =>
         [
-          "admin-nav-item",
-          isActive ? "is-active" : "",
-          isPending ? "is-pending" : "",
+          ADMIN_NAV_ITEM_CLASS_NAME,
+          isActive
+            ? "bg-surface text-fg-primary shadow-sm ring-1 ring-border-secondary"
+            : "",
+          isPending ? "opacity-70" : "",
         ]
           .filter(Boolean)
           .join(" ")
       }
       to={item.href}
     >
-      <span className="admin-nav-icon">{item.icon}</span>
-      <span className="admin-nav-label">{item.label}</span>
+      <span className="inline-flex items-center justify-center text-fg-tertiary [&_svg]:size-9">
+        {item.icon}
+      </span>
+      <span className="overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-sm">
+        {item.label}
+      </span>
       {badge && shouldRenderBadge(badge) && (
-        <Badge className="admin-count-badge" size="sm" variant="danger">
+        <Badge className="min-w-12" size="sm" variant="danger">
           {formatCountLabel(badge.count, badge.countExact)}
         </Badge>
       )}

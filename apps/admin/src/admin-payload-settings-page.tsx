@@ -3,7 +3,7 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useState } from "react"
 import { fetchPayloadSsoHtml, usePayloadConfig } from "./admin-api"
 import { MEDUSA_BACKEND_URL } from "./admin-config"
-import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
@@ -100,7 +100,7 @@ export function PayloadSettingsPage() {
   }
 
   return (
-    <section className="admin-page admin-page-full">
+    <AdminPage width="full">
       <AdminPageHeader eyebrow="Nastaveni" title="Payload" />
       <div className="admin-panel admin-payload-panel">
         <AdminPanelHeader
@@ -109,7 +109,7 @@ export function PayloadSettingsPage() {
         />
         {renderPayloadContent()}
       </div>
-    </section>
+    </AdminPage>
   )
 }
 

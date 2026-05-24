@@ -12,7 +12,7 @@ import {
   AdminDetailField,
   AdminDetailFields,
 } from "./components/admin-detail-field"
-import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 
@@ -28,23 +28,23 @@ export function ProductDetailPage() {
 
   if (product.isLoading) {
     return (
-      <section className="admin-page">
+      <AdminPage>
         <AdminPageHeader eyebrow="Produkt" title="Nacitam detail" />
         <AdminState isBusy surface="panel">
           Nacitam produkt...
         </AdminState>
-      </section>
+      </AdminPage>
     )
   }
 
   if (product.isError || !product.data?.product) {
     return (
-      <section className="admin-page">
+      <AdminPage>
         <AdminPageHeader eyebrow="Produkt" title="Detail produktu" />
         <AdminState surface="panel" tone="error">
           Produkt se nepodarilo nacist.
         </AdminState>
-      </section>
+      </AdminPage>
     )
   }
 
@@ -57,7 +57,7 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
   const options = product.options ?? []
 
   return (
-    <section className="admin-page admin-page-wide">
+    <AdminPage width="wide">
       <AdminPageHeader eyebrow="Produkt" title={product.title ?? product.id}>
         <Link className="admin-text-link" to="/products">
           Zpet na produkty
@@ -70,7 +70,6 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
               <ProductImage product={product} />
               <div>
                 <Badge
-                  className="admin-status-badge"
                   size="sm"
                   variant={product.status === "published" ? "info" : "warning"}
                 >
@@ -102,7 +101,7 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
           <ProductMetadataPanel metadata={product.metadata} />
         </aside>
       </div>
-    </section>
+    </AdminPage>
   )
 }
 

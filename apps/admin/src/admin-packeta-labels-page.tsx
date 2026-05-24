@@ -10,7 +10,11 @@ import {
   usePacketaLabelOrders,
 } from "./admin-api"
 import type { PacketaLabelOrder, PacketaOrderFulfillment } from "./admin-types"
-import { AdminPageCount, AdminPageHeader } from "./components/admin-page-header"
+import {
+  AdminPage,
+  AdminPageCount,
+  AdminPageHeader,
+} from "./components/admin-page-header"
 import { AdminPagination } from "./components/admin-pagination"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
@@ -138,7 +142,7 @@ export function PacketaLabelsPage() {
   }
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <AdminPageHeader eyebrow="Packeta" title="Stitky k objednavkam">
         <AdminPageCount
           label="vybrano"
@@ -194,7 +198,7 @@ export function PacketaLabelsPage() {
           />
         )}
       </div>
-    </section>
+    </AdminPage>
   )
 }
 
