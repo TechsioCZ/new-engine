@@ -1,5 +1,6 @@
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import type { ReactNode } from "react"
+import { AdminFieldLabelRow } from "./admin-settings-form"
 
 type AdminTextFieldProps = {
   action?: ReactNode
@@ -13,6 +14,7 @@ type AdminTextFieldProps = {
   placeholder?: string
   type?: "email" | "password" | "text"
   value: string
+  wide?: boolean
 }
 
 export function AdminTextField({
@@ -27,22 +29,20 @@ export function AdminTextField({
   placeholder,
   type = "text",
   value,
+  wide = false,
 }: AdminTextFieldProps) {
+  const rootClassName = [wide ? "col-span-full" : null, className]
+    .filter(Boolean)
+    .join(" ")
   const labelContent =
     meta || action ? (
-      <span className="admin-field-label-row">
-        <span>
-          {label}
-          {meta}
-        </span>
-        {action}
-      </span>
+      <AdminFieldLabelRow action={action} label={label} meta={meta} />
     ) : (
       label
     )
 
   return (
-    <div className={className}>
+    <div className={rootClassName || undefined}>
       <FormInput
         autoComplete={autoComplete}
         disabled={disabled}

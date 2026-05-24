@@ -407,7 +407,7 @@ function ProductRow({ product }: { product: AdminProductListItem }) {
           )}
         </AdminListRowBody>
       </div>
-      <AdminListRowMeta className="min-w-3xs justify-end max-[860px]:min-w-0">
+      <AdminListRowMeta className="min-w-3xs justify-end max-admin-layout:min-w-0">
         <Badge
           size="sm"
           variant={product.status === "published" ? "info" : "warning"}
@@ -522,7 +522,7 @@ function EmailDetailPanel({
     return (
       <AdminPanel
         as="aside"
-        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-[860px]:max-h-none"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-admin-layout:max-h-none"
       >
         <h2 className="m-0 font-bold text-fg-primary text-md leading-tight">
           Detail emailu
@@ -539,7 +539,7 @@ function EmailDetailPanel({
       <AdminPanel
         aria-busy={true}
         as="aside"
-        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-[860px]:max-h-none"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-admin-layout:max-h-none"
       >
         <h2 className="m-0 font-bold text-fg-primary text-md leading-tight">
           Nacitam detail
@@ -555,7 +555,7 @@ function EmailDetailPanel({
     return (
       <AdminPanel
         as="aside"
-        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col overflow-y-auto max-[860px]:max-h-none"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col overflow-y-auto max-admin-layout:max-h-none"
       >
         <AdminPanelHeader
           actions={
@@ -580,7 +580,7 @@ function EmailDetailPanel({
   return (
     <AdminPanel
       as="aside"
-      className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col overflow-y-auto max-[860px]:max-h-none"
+      className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col overflow-y-auto max-admin-layout:max-h-none"
     >
       <AdminPanelHeader
         actions={

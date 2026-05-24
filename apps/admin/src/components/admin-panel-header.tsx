@@ -15,7 +15,7 @@ export function AdminPanelHeader({
 }) {
   const headerClassName = [
     "flex items-center justify-between gap-300 border-border-primary border-b px-400 py-350",
-    stacked ? "items-end max-[860px]:items-start" : null,
+    stacked ? "items-end max-admin-layout:items-start" : null,
     className,
   ]
     .filter(Boolean)

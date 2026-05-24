@@ -72,7 +72,7 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
       <AdminDetailLayout>
         <AdminDetailStack>
           <AdminPanel>
-            <div className="grid grid-cols-[var(--spacing-80)_minmax(0,1fr)] items-start gap-450 p-400 max-[860px]:grid-cols-1">
+            <div className="grid grid-cols-[var(--spacing-80)_minmax(0,1fr)] items-start gap-450 p-400 max-admin-layout:grid-cols-1">
               <ProductImage product={product} />
               <div>
                 <Badge
@@ -118,7 +118,7 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
 function ProductImage({ product }: { product: MedusaAdminProduct }) {
   return (
     <AdminMediaFrame
-      className="aspect-square w-80 max-[860px]:aspect-card max-[860px]:w-full"
+      className="aspect-square w-80 max-admin-layout:aspect-card max-admin-layout:w-full"
       fallback={getInitials(product.title ?? product.id)}
       fallbackClassName="bg-highlight text-xl"
       src={product.thumbnail}

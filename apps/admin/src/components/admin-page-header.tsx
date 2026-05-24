@@ -36,12 +36,12 @@ export function AdminPageHeader({
   title: ReactNode
 }) {
   return (
-    <header className="grid items-start justify-between gap-450 border-border-primary border-b pb-450 min-[861px]:flex min-[861px]:items-end">
+    <header className="admin-layout:flex grid items-start admin-layout:items-end justify-between gap-450 border-border-primary border-b pb-450">
       <div>
         <span className="font-bold text-fg-secondary text-xs uppercase tracking-normal">
           {eyebrow}
         </span>
-        <h1 className="mt-250 mb-0 font-bold text-admin-page-title-sm text-fg-primary leading-none tracking-normal min-[861px]:text-admin-page-title">
+        <h1 className="mt-250 mb-0 font-bold admin-layout:text-admin-page-title text-admin-page-title-sm text-fg-primary leading-none tracking-normal">
           {title}
         </h1>
       </div>
@@ -58,7 +58,7 @@ export function AdminPageCount({
   value: ReactNode
 }) {
   return (
-    <div className="grid min-w-46 justify-items-start gap-50 min-[861px]:justify-items-end">
+    <div className="grid min-w-46 justify-items-start admin-layout:justify-items-end gap-50">
       <span className="font-bold text-admin-page-count leading-none">
         {value}
       </span>
@@ -69,7 +69,7 @@ export function AdminPageCount({
 
 export function AdminPageHeaderActions({ children }: { children: ReactNode }) {
   return (
-    <div className="grid justify-items-start gap-200 min-[861px]:justify-items-end">
+    <div className="grid justify-items-start admin-layout:justify-items-end gap-200">
       {children}
     </div>
   )
@@ -77,7 +77,7 @@ export function AdminPageHeaderActions({ children }: { children: ReactNode }) {
 
 export function AdminStatusRow({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-wrap justify-start gap-150 min-[861px]:justify-end">
+    <div className="flex flex-wrap justify-start admin-layout:justify-end gap-150">
       {children}
     </div>
   )

@@ -23,11 +23,6 @@ a {
   text-decoration: none;
 }
 
-.admin-inline-action:focus-visible {
-  outline: 3px solid rgba(38, 56, 42, 0.28);
-  outline-offset: 2px;
-}
-
 .admin-email-preview h3 {
   margin: 0;
   color: #1f2520;
@@ -40,14 +35,6 @@ a {
   display: grid;
   gap: 12px;
   padding: 16px;
-}
-
-.admin-form-panel {
-  max-width: 660px;
-}
-
-.admin-settings-panel {
-  max-width: 900px;
 }
 
 .admin-payload-panel {
@@ -80,62 +67,6 @@ a {
   color: #697066;
   font-size: 13px;
   line-height: 1.45;
-}
-
-.admin-settings-form {
-  display: grid;
-  gap: 0;
-  padding: 16px;
-}
-
-.admin-form-section {
-  display: grid;
-  gap: 14px;
-  border-bottom: 1px solid rgba(31, 37, 32, 0.09);
-  padding: 16px 0;
-}
-
-.admin-form-section:first-child {
-  padding-top: 0;
-}
-
-.admin-form-section-heading {
-  display: grid;
-  gap: 4px;
-}
-
-.admin-form-section h3,
-.admin-setting-toggle h3 {
-  margin: 0;
-  color: #1f2520;
-  font-size: 14px;
-  font-weight: 760;
-}
-
-.admin-form-section-heading span,
-.admin-setting-toggle > div > span {
-  color: #697066;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.admin-settings-grid-two {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.admin-setting-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.admin-form-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 16px;
 }
 
 .admin-email-preview {
@@ -187,61 +118,4 @@ a {
   max-width: 680px;
   font-size: 13px;
   line-height: 1.45;
-}
-
-.admin-field-wide {
-  grid-column: 1 / -1;
-}
-
-.admin-field-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.admin-field-label-row > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.admin-field-label-row small {
-  border-radius: 999px;
-  background: rgba(38, 56, 42, 0.09);
-  color: #4a5148;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-}
-
-.admin-inline-action {
-  border: 0;
-  background: transparent;
-  color: #7d2119;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 0;
-}
-
-.admin-inline-action:hover {
-  color: #b43328;
-}
-
-@media (max-width: 860px) {
-  .admin-form-actions {
-    justify-content: stretch;
-  }
-
-  .admin-setting-toggle,
-  .admin-settings-grid-two {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-setting-toggle {
-    align-items: start;
-    flex-direction: column;
-  }
 }

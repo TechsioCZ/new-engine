@@ -25,10 +25,10 @@ import type { ActionRequiredSummary, BadgeKey } from "./admin-types"
 import { type AdminNavItem, adminNavItems } from "./nav-config"
 
 const ADMIN_SHELL_CLASS_NAME =
-  "grid min-h-dvh grid-cols-[var(--spacing-admin-shell-sidebar)_minmax(0,1fr)] [background:linear-gradient(90deg,var(--color-highlight),transparent_38%),var(--color-base)] max-[860px]:grid-cols-1"
+  "grid min-h-dvh grid-cols-[var(--spacing-admin-shell-sidebar)_minmax(0,1fr)] [background:linear-gradient(90deg,var(--color-highlight),transparent_38%),var(--color-base)] max-admin-layout:grid-cols-1"
 
 const ADMIN_SIDEBAR_CLASS_NAME =
-  "flex flex-col gap-12 border-border-primary border-e bg-surface px-7 py-9 max-[860px]:sticky max-[860px]:top-0 max-[860px]:z-10 max-[860px]:border-e-0 max-[860px]:border-b"
+  "flex flex-col gap-12 border-border-primary border-e bg-surface px-7 py-9 max-admin-layout:sticky max-admin-layout:top-0 max-admin-layout:z-10 max-admin-layout:border-e-0 max-admin-layout:border-b"
 
 const ADMIN_NAV_ITEM_CLASS_NAME =
   "grid min-h-18 grid-cols-[var(--spacing-14)_minmax(0,1fr)_auto] items-center gap-4 rounded-md px-4 py-2 text-fg-secondary transition-all duration-200 hover:bg-fill-hover focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) motion-reduce:transition-none"
@@ -75,7 +75,7 @@ export function AdminApp() {
   return (
     <div className={ADMIN_SHELL_CLASS_NAME}>
       <Sidebar onLogout={handleLogout} summary={summary.data} />
-      <main className="min-w-0 p-14 max-[860px]:p-10">
+      <main className="min-w-0 p-14 max-admin-layout:p-10">
         {summary.isError && isAuthError(summary.error) ? (
           <Navigate replace to="/login" />
         ) : (
@@ -187,7 +187,7 @@ function Sidebar({
           </small>
         </span>
       </div>
-      <nav className="flex flex-col gap-2 max-[860px]:grid max-[860px]:grid-cols-2">
+      <nav className="flex flex-col gap-2 max-admin-layout:grid max-admin-layout:grid-cols-2">
         {adminNavItems.map((item) => {
           const shouldRenderSection = item.section !== currentSection
           currentSection = item.section

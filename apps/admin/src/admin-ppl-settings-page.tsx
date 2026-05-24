@@ -5,12 +5,21 @@ import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
 import type { PplConfig, PplConfigInput, PplLabelFormat } from "./admin-types"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
-import { AdminPanel } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
+import {
+  AdminFieldMeta,
+  AdminFormActions,
+  AdminInlineAction,
+  AdminSettingsForm,
+  AdminSettingsGrid,
+  AdminSettingsPanel,
+  AdminSettingsSection,
+  AdminSettingsToggle,
+} from "./components/admin-settings-form"
 import { AdminState } from "./components/admin-state"
 import { AdminTextField } from "./components/admin-text-field"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
@@ -260,20 +269,18 @@ export function PplSettingsPage() {
     const pplConfig = config.data?.config
 
     return (
-      <form className="admin-settings-form" onSubmit={handleSubmit}>
-        <section className="admin-form-section">
-          <div className="admin-setting-toggle">
-            <div>
-              <h3>PPL shipping</h3>
-              <span>Prostredi: {pplConfig?.environment ?? "nezname"}</span>
-            </div>
+      <AdminSettingsForm onSubmit={handleSubmit}>
+        <AdminSettingsSection>
+          <AdminSettingsToggle
+            description={`Prostredi: ${pplConfig?.environment ?? "nezname"}`}
+            title="PPL shipping"
+          >
             <Switch
               checked={formData.is_enabled}
               onCheckedChange={(checked) => updateField("is_enabled", checked)}
             />
-          </div>
+          </AdminSettingsToggle>
           <AdminSelectField
-            className="admin-field-wide"
             items={LABEL_FORMAT_ITEMS}
             label="Label format"
             onValueChange={(value) =>
@@ -282,7 +289,7 @@ export function PplSettingsPage() {
             size="md"
             value={formData.default_label_format}
           />
-        </section>
+        </AdminSettingsSection>
 
         <FormSection
           clearedFields={clearedFields}
@@ -320,25 +327,25 @@ export function PplSettingsPage() {
           </StatusText>
         )}
 
-        <div className="admin-form-actions">
+        <AdminFormActions>
           <AdminToolbarButton disabled={mutation.isPending} type="submit">
             {mutation.isPending ? "Ukladam..." : "Ulozit"}
           </AdminToolbarButton>
-        </div>
-      </form>
+        </AdminFormActions>
+      </AdminSettingsForm>
     )
   }
 
   return (
     <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="PPL" />
-      <AdminPanel as="div" className="admin-settings-panel">
+      <AdminSettingsPanel>
         <AdminPanelHeader
           subtitle="Stejny kontrakt jako aktualni Medusa PPL settings."
           title="Konfigurace dopravce"
         />
         {renderConfigContent()}
-      </AdminPanel>
+      </AdminSettingsPanel>
     </AdminPage>
   )
 }
@@ -364,12 +371,8 @@ function FormSection({
   title: string
 }) {
   return (
-    <section className="admin-form-section">
-      <div className="admin-form-section-heading">
-        <h3>{title}</h3>
-        {description && <span>{description}</span>}
-      </div>
-      <div className="admin-settings-grid-two">
+    <AdminSettingsSection description={description} title={title}>
+      <AdminSettingsGrid>
         {fields.map((field) => (
           <FormField
             clearedFields={clearedFields}
@@ -380,8 +383,8 @@ function FormSection({
             onClear={onClear}
           />
         ))}
-      </div>
-    </section>
+      </AdminSettingsGrid>
+    </AdminSettingsSection>
   )
 }
 
@@ -413,8 +416,7 @@ function FormField({
     <AdminTextField
       action={
         canClear && onClear ? (
-          <button
-            className="admin-inline-action"
+          <AdminInlineAction
             onClick={() => {
               if (sensitiveField) {
                 onClear(sensitiveField)
@@ -423,23 +425,27 @@ function FormField({
             type="button"
           >
             Smazat
-          </button>
+          </AdminInlineAction>
         ) : null
       }
-      className={fieldConfig.wide ? "admin-field-wide" : undefined}
       disabled={isCleared}
       id={`ppl-${fieldConfig.field}`}
       label={fieldConfig.label}
       meta={
         <>
-          {fieldConfig.isSet && !isCleared ? <small>nastaveno</small> : null}
-          {isCleared ? <small>smaze se</small> : null}
+          {fieldConfig.isSet && !isCleared ? (
+            <AdminFieldMeta>nastaveno</AdminFieldMeta>
+          ) : null}
+          {isCleared ? (
+            <AdminFieldMeta tone="danger">smaze se</AdminFieldMeta>
+          ) : null}
         </>
       }
       onValueChange={(value) => onChange(fieldConfig.field, value)}
       placeholder={getPlaceholder(fieldConfig, isCleared)}
       type={fieldConfig.type ?? "text"}
       value={isCleared ? "" : formData[fieldConfig.field]}
+      wide={fieldConfig.wide}
     />
   )
 }

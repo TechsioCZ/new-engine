@@ -9,8 +9,12 @@ import {
   AdminLinkCardTitle,
 } from "./components/admin-link-card"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
-import { AdminPanel } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
+import {
+  AdminFormActions,
+  AdminSettingsForm,
+  AdminSettingsPanel,
+} from "./components/admin-settings-form"
 import { AdminState } from "./components/admin-state"
 import { AdminTextField } from "./components/admin-text-field"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
@@ -116,7 +120,7 @@ export function QrPaymentsSettingsPage() {
     }
 
     return (
-      <form className="admin-settings-form" onSubmit={handleSubmit}>
+      <AdminSettingsForm onSubmit={handleSubmit}>
         <AdminTextField
           autoComplete="off"
           id="qr-payment-iban"
@@ -139,25 +143,25 @@ export function QrPaymentsSettingsPage() {
             {feedback.message}
           </StatusText>
         )}
-        <div className="admin-form-actions">
+        <AdminFormActions>
           <AdminToolbarButton disabled={mutation.isPending} type="submit">
             {mutation.isPending ? "Ukladam..." : "Ulozit"}
           </AdminToolbarButton>
-        </div>
-      </form>
+        </AdminFormActions>
+      </AdminSettingsForm>
     )
   }
 
   return (
     <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="QR platby" />
-      <AdminPanel as="div" className="admin-form-panel">
+      <AdminSettingsPanel width="form">
         <AdminPanelHeader
           subtitle="Aktualni prijemce pro QR platbu u objednavek."
           title="Bankovni ucet"
         />
         {renderConfigContent()}
-      </AdminPanel>
+      </AdminSettingsPanel>
     </AdminPage>
   )
 }

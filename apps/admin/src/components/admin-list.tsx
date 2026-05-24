@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { AdminMediaFrame } from "./admin-media"
 
 const rowClassName =
-  "grid min-h-34 grid-cols-[minmax(0,1fr)_auto] items-center gap-400 rounded-md border border-border-primary bg-surface px-350 py-300 max-[860px]:grid-cols-1 max-[860px]:items-start"
+  "grid min-h-34 grid-cols-[minmax(0,1fr)_auto] items-center gap-400 rounded-md border border-border-primary bg-surface px-350 py-300 max-admin-layout:grid-cols-1 max-admin-layout:items-start"
 
 const rowLinkClassName =
   "cursor-pointer transition-all duration-200 hover:bg-float hover:shadow-sm focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) motion-reduce:transition-none"
@@ -89,7 +89,7 @@ export function AdminListRowMeta({
   return (
     <div
       className={[
-        "flex items-center gap-250 text-right max-[860px]:flex-col max-[860px]:items-start max-[860px]:gap-150 max-[860px]:text-left",
+        "flex items-center gap-250 text-right max-admin-layout:flex-col max-admin-layout:items-start max-admin-layout:gap-150 max-admin-layout:text-left",
         className,
       ]
         .filter(Boolean)
