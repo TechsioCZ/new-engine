@@ -42,6 +42,12 @@ import {
 import { AdminPagination } from "./components/admin-pagination"
 import { AdminPanel, AdminSplitLayout } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
+import { AdminPlaceholder } from "./components/admin-placeholder"
+import {
+  AdminPreviewCode,
+  AdminPreviewFrame,
+  AdminPreviewSection,
+} from "./components/admin-preview"
 import { AdminSearch } from "./components/admin-search"
 import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
@@ -268,13 +274,10 @@ export function PlaceholderPage({
   return (
     <AdminPage>
       <PageHeader eyebrow={eyebrow} title={title} />
-      <div className="admin-placeholder">
-        <strong>Soucast naseho adminu</strong>
-        <span>
-          Tahle sekce zustava v nove aplikaci. Dalsi krok je napojit jeji
-          konkretni Medusa Admin API workflow bez odkazu do puvodniho adminu.
-        </span>
-      </div>
+      <AdminPlaceholder title="Soucast naseho adminu">
+        Tahle sekce zustava v nove aplikaci. Dalsi krok je napojit jeji
+        konkretni Medusa Admin API workflow bez odkazu do puvodniho adminu.
+      </AdminPlaceholder>
     </AdminPage>
   )
 }
@@ -626,21 +629,24 @@ function EmailDetailPanel({
         />
       </AdminDetailFields>
       {htmlContent && (
-        <div className="admin-email-preview">
-          <h3>HTML</h3>
-          <iframe sandbox="" srcDoc={htmlContent} title="Email HTML content" />
-        </div>
+        <AdminPreviewSection title="HTML">
+          <AdminPreviewFrame
+            sandbox=""
+            srcDoc={htmlContent}
+            title="Email HTML content"
+          />
+        </AdminPreviewSection>
       )}
       {textContent && (
-        <div className="admin-email-preview">
-          <h3>Text</h3>
-          <pre>{textContent}</pre>
-        </div>
+        <AdminPreviewSection title="Text">
+          <AdminPreviewCode>{textContent}</AdminPreviewCode>
+        </AdminPreviewSection>
       )}
-      <div className="admin-email-preview">
-        <h3>Resend payload</h3>
-        <pre>{JSON.stringify(resendEmail, null, 2)}</pre>
-      </div>
+      <AdminPreviewSection title="Resend payload">
+        <AdminPreviewCode>
+          {JSON.stringify(resendEmail, null, 2)}
+        </AdminPreviewCode>
+      </AdminPreviewSection>
     </AdminPanel>
   )
 }

@@ -488,7 +488,7 @@ function OrderEmailPanel({ order }: { order: MedusaAdminOrder }) {
         subtitle={order.email ?? "Objednavka nema e-mail."}
         title="Email zakaznikovi"
       />
-      <form className="admin-action-form" onSubmit={handleSubmit}>
+      <form className="grid gap-300 p-400" onSubmit={handleSubmit}>
         <OrderEmailFormContent
           feedback={feedback}
           isError={templates.isError}
