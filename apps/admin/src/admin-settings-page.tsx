@@ -1,8 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { type FormEvent, useEffect, useState } from "react"
-import { Link } from "react-router-dom"
 import { updateQrPaymentConfig, useQrPaymentConfig } from "./admin-api"
+import {
+  AdminLinkCard,
+  AdminLinkCardDescription,
+  AdminLinkCardGrid,
+  AdminLinkCardTitle,
+} from "./components/admin-link-card"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPanel } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
@@ -42,14 +47,16 @@ export function SettingsPage() {
   return (
     <AdminPage>
       <AdminPageHeader eyebrow="Nastaveni" title="Nastaveni adminu" />
-      <div className="admin-settings-grid">
+      <AdminLinkCardGrid>
         {settingsItems.map((item) => (
-          <Link className="admin-settings-card" key={item.href} to={item.href}>
-            <strong>{item.label}</strong>
-            <span>{item.description}</span>
-          </Link>
+          <AdminLinkCard key={item.href} to={item.href}>
+            <AdminLinkCardTitle>{item.label}</AdminLinkCardTitle>
+            <AdminLinkCardDescription>
+              {item.description}
+            </AdminLinkCardDescription>
+          </AdminLinkCard>
         ))}
-      </div>
+      </AdminLinkCardGrid>
     </AdminPage>
   )
 }
