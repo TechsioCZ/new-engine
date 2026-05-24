@@ -1,5 +1,6 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+import { Table } from "@techsio/ui-kit/organisms/table"
 import { type ReactNode, useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import {
@@ -441,35 +442,37 @@ function EmailLogsTable({
   }
 
   return (
-    <div className="admin-table-wrap">
-      <table className="admin-data-table">
-        <thead>
-          <tr>
-            <th>Odeslano</th>
-            <th>Komu</th>
-            <th>Typ</th>
-            <th>Predmet</th>
-            <th>Objednavka</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
+    <div className="overflow-x-auto">
+      <Table className="min-w-3xl" size="sm" variant="line">
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader>Odeslano</Table.ColumnHeader>
+            <Table.ColumnHeader>Komu</Table.ColumnHeader>
+            <Table.ColumnHeader>Typ</Table.ColumnHeader>
+            <Table.ColumnHeader>Predmet</Table.ColumnHeader>
+            <Table.ColumnHeader>Objednavka</Table.ColumnHeader>
+            <Table.ColumnHeader aria-label="Akce" className="w-1" />
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
           {emailLogs.map((emailLog) => (
-            <tr
-              className={
-                emailLog.id === selectedEmailLogId ? "is-selected" : undefined
-              }
+            <Table.Row
               key={emailLog.id}
+              selected={emailLog.id === selectedEmailLogId}
             >
-              <td>{formatDateTime(emailLog.sent_at)}</td>
-              <td className="admin-table-strong">{emailLog.sent_to}</td>
-              <td>
-                <Badge className="admin-status-badge" size="sm" variant="info">
+              <Table.Cell>{formatDateTime(emailLog.sent_at)}</Table.Cell>
+              <Table.Cell className="font-semibold text-fg-primary">
+                {emailLog.sent_to}
+              </Table.Cell>
+              <Table.Cell>
+                <Badge size="sm" variant="info">
                   {emailLog.type}
                 </Badge>
-              </td>
-              <td className="admin-table-truncate">{emailLog.subject}</td>
-              <td>
+              </Table.Cell>
+              <Table.Cell className="max-w-xs truncate">
+                {emailLog.subject}
+              </Table.Cell>
+              <Table.Cell>
                 {emailLog.order_id ? (
                   <Link
                     className="admin-table-link"
@@ -480,16 +483,16 @@ function EmailLogsTable({
                 ) : (
                   "-"
                 )}
-              </td>
-              <td className="admin-table-actions">
+              </Table.Cell>
+              <Table.Cell className="w-1 whitespace-nowrap text-end">
                 <AdminToolbarButton onClick={() => onOpen(emailLog.id)}>
                   Detail
                 </AdminToolbarButton>
-              </td>
-            </tr>
+              </Table.Cell>
+            </Table.Row>
           ))}
-        </tbody>
-      </table>
+        </Table.Body>
+      </Table>
     </div>
   )
 }
