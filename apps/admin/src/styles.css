@@ -512,66 +512,6 @@ a {
   line-height: 1.45;
 }
 
-.admin-table-wrap {
-  overflow-x: auto;
-}
-
-.admin-data-table {
-  width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.admin-data-table-compact {
-  min-width: 680px;
-}
-
-.admin-data-table th {
-  border-bottom: 1px solid rgba(31, 37, 32, 0.1);
-  color: #697066;
-  font-size: 11px;
-  font-weight: 760;
-  letter-spacing: 0;
-  padding: 10px 12px;
-  text-align: left;
-  text-transform: uppercase;
-}
-
-.admin-data-table td {
-  max-width: 240px;
-  border-bottom: 1px solid rgba(31, 37, 32, 0.08);
-  color: #3d443a;
-  padding: 10px 12px;
-  vertical-align: middle;
-}
-
-.admin-data-table tbody tr:hover,
-.admin-data-table tbody tr.is-selected {
-  background: rgba(38, 56, 42, 0.05);
-}
-
-.admin-table-strong {
-  color: #1f2520;
-  font-weight: 680;
-}
-
-.admin-table-truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-table-actions {
-  width: 1%;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.admin-payment-nested {
-  padding-left: 28px;
-}
-
 .admin-table-link,
 .admin-text-link {
   color: #26382a;
@@ -826,28 +766,6 @@ a {
   color: #1f2520;
   font-size: 13px;
   font-weight: 650;
-}
-
-.admin-order-item-product {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  min-width: 240px;
-}
-
-.admin-order-item-thumb {
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(31, 37, 32, 0.1);
-  border-radius: 7px;
-  background-color: #f8f7f1;
-}
-
-.admin-order-item-product span {
-  margin-top: 3px;
-  color: #697066;
-  font-size: 12px;
 }
 
 .admin-json-preview {

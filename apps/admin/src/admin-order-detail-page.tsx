@@ -332,23 +332,23 @@ function OrderPaymentsPanel({ order }: { order: MedusaAdminOrder }) {
         </div>
       </div>
       {collections.length ? (
-        <div className="admin-table-wrap">
-          <table className="admin-data-table admin-data-table-compact">
-            <thead>
-              <tr>
-                <th>Typ</th>
-                <th>Status</th>
-                <th>Provider</th>
-                <th>Castka</th>
-                <th>Datum</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="overflow-x-auto">
+          <Table className="min-w-2xl" size="sm" variant="line">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Typ</Table.ColumnHeader>
+                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Provider</Table.ColumnHeader>
+                <Table.ColumnHeader>Castka</Table.ColumnHeader>
+                <Table.ColumnHeader>Datum</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {collections.flatMap((collection) =>
                 toPaymentRows(collection, order.currency_code ?? null)
               )}
-            </tbody>
-          </table>
+            </Table.Body>
+          </Table>
         </div>
       ) : (
         <AdminState>Objednavka nema payment collection.</AdminState>
@@ -373,38 +373,40 @@ function OrderFulfillmentsPanel({
         </div>
       </div>
       {activeFulfillments.length ? (
-        <div className="admin-table-wrap">
-          <table className="admin-data-table admin-data-table-compact">
-            <thead>
-              <tr>
-                <th>Fulfillment</th>
-                <th>Status</th>
-                <th>Provider</th>
-                <th>Tracking</th>
-                <th>Polozky</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="overflow-x-auto">
+          <Table className="min-w-2xl" size="sm" variant="line">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Fulfillment</Table.ColumnHeader>
+                <Table.ColumnHeader>Status</Table.ColumnHeader>
+                <Table.ColumnHeader>Provider</Table.ColumnHeader>
+                <Table.ColumnHeader>Tracking</Table.ColumnHeader>
+                <Table.ColumnHeader>Polozky</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {activeFulfillments.map((fulfillment) => (
-                <tr key={fulfillment.id ?? fulfillment.created_at}>
-                  <td className="admin-table-strong">
+                <Table.Row key={fulfillment.id ?? fulfillment.created_at}>
+                  <Table.Cell className="font-semibold text-fg-primary">
                     {formatCompactId(fulfillment.id) ?? "-"}
-                  </td>
-                  <td>
+                  </Table.Cell>
+                  <Table.Cell>
                     <Badge
                       size="sm"
                       variant={getFulfillmentBadgeVariant(fulfillment)}
                     >
                       {formatFulfillmentStatus(fulfillment)}
                     </Badge>
-                  </td>
-                  <td>{fulfillment.provider_id ?? "-"}</td>
-                  <td>{formatFulfillmentTracking(fulfillment)}</td>
-                  <td>{formatFulfillmentItems(fulfillment)}</td>
-                </tr>
+                  </Table.Cell>
+                  <Table.Cell>{fulfillment.provider_id ?? "-"}</Table.Cell>
+                  <Table.Cell>
+                    {formatFulfillmentTracking(fulfillment)}
+                  </Table.Cell>
+                  <Table.Cell>{formatFulfillmentItems(fulfillment)}</Table.Cell>
+                </Table.Row>
               ))}
-            </tbody>
-          </table>
+            </Table.Body>
+          </Table>
         </div>
       ) : (
         <AdminState>
@@ -592,35 +594,35 @@ function OrderItemsTable({
   }
 
   return (
-    <div className="admin-table-wrap">
-      <table className="admin-data-table">
-        <thead>
-          <tr>
-            <th>Produkt</th>
-            <th>SKU</th>
-            <th>Mnozstvi</th>
-            <th>Cena</th>
-            <th>Celkem</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="overflow-x-auto">
+      <Table className="min-w-3xl" size="sm" variant="line">
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader>Produkt</Table.ColumnHeader>
+            <Table.ColumnHeader>SKU</Table.ColumnHeader>
+            <Table.ColumnHeader>Mnozstvi</Table.ColumnHeader>
+            <Table.ColumnHeader>Cena</Table.ColumnHeader>
+            <Table.ColumnHeader>Celkem</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
           {items.map((item) => (
-            <tr key={item.id}>
-              <td>
-                <div className="admin-order-item-product">
+            <Table.Row key={item.id}>
+              <Table.Cell>
+                <div className="grid min-w-3xs grid-cols-[var(--spacing-20)_minmax(0,1fr)] items-center gap-250">
                   {item.thumbnail || item.product?.thumbnail ? (
                     <span
-                      className="admin-product-thumb admin-order-item-thumb"
+                      className="block size-20 rounded-md border border-border-primary bg-center bg-cover bg-surface"
                       style={getThumbnailStyle(
                         item.thumbnail ?? item.product?.thumbnail ?? ""
                       )}
                     />
                   ) : (
-                    <span className="admin-product-thumb-fallback admin-order-item-thumb">
+                    <span className="grid size-20 place-items-center rounded-md border border-border-primary bg-surface font-bold text-fg-secondary text-xs">
                       {getInitials(getItemTitle(item))}
                     </span>
                   )}
-                  <div>
+                  <div className="min-w-0">
                     {item.product_id ? (
                       <Link
                         className="admin-table-link"
@@ -631,20 +633,26 @@ function OrderItemsTable({
                     ) : (
                       <strong>{getItemTitle(item)}</strong>
                     )}
-                    <span>
+                    <span className="mt-50 block text-fg-secondary text-xs">
                       {item.variant_title ?? item.variant?.title ?? "-"}
                     </span>
                   </div>
                 </div>
-              </td>
-              <td>{item.variant_sku ?? item.variant?.sku ?? "-"}</td>
-              <td>{formatQuantity(item.quantity)}</td>
-              <td>{formatMoney(item.unit_price ?? null, currencyCode)}</td>
-              <td>{formatMoney(item.total ?? null, currencyCode)}</td>
-            </tr>
+              </Table.Cell>
+              <Table.Cell>
+                {item.variant_sku ?? item.variant?.sku ?? "-"}
+              </Table.Cell>
+              <Table.Cell>{formatQuantity(item.quantity)}</Table.Cell>
+              <Table.Cell>
+                {formatMoney(item.unit_price ?? null, currencyCode)}
+              </Table.Cell>
+              <Table.Cell>
+                {formatMoney(item.total ?? null, currencyCode)}
+              </Table.Cell>
+            </Table.Row>
           ))}
-        </tbody>
-      </table>
+        </Table.Body>
+      </Table>
     </div>
   )
 }
@@ -768,24 +776,24 @@ function PaymentCollectionRow({
   fallbackCurrencyCode: string | null
 }) {
   return (
-    <tr>
-      <td className="admin-table-strong">
+    <Table.Row>
+      <Table.Cell className="font-semibold text-fg-primary">
         {formatCompactId(collection.id) ?? "Collection"}
-      </td>
-      <td>
+      </Table.Cell>
+      <Table.Cell>
         <Badge size="sm" variant={getStatusBadgeVariant(collection.status)}>
           {formatStatusLabel(collection.status)}
         </Badge>
-      </td>
-      <td>-</td>
-      <td>
+      </Table.Cell>
+      <Table.Cell>-</Table.Cell>
+      <Table.Cell>
         {formatMoney(
           collection.amount ?? null,
           collection.currency_code ?? fallbackCurrencyCode
         )}
-      </td>
-      <td>-</td>
-    </tr>
+      </Table.Cell>
+      <Table.Cell>-</Table.Cell>
+    </Table.Row>
   )
 }
 
@@ -799,26 +807,26 @@ function PaymentRow({
   payment: MedusaAdminPayment
 }) {
   return (
-    <tr>
-      <td className="admin-payment-nested">
+    <Table.Row>
+      <Table.Cell className="ps-700">
         {formatCompactId(payment.id) ?? "Payment"}
-      </td>
-      <td>
+      </Table.Cell>
+      <Table.Cell>
         <Badge size="sm" variant={getPaymentBadgeVariant(payment)}>
           {formatPaymentStatus(payment)}
         </Badge>
-      </td>
-      <td>{payment.provider_id ?? "-"}</td>
-      <td>
+      </Table.Cell>
+      <Table.Cell>{payment.provider_id ?? "-"}</Table.Cell>
+      <Table.Cell>
         {formatMoney(
           payment.amount ?? null,
           payment.currency_code ??
             collection.currency_code ??
             fallbackCurrencyCode
         )}
-      </td>
-      <td>{formatDateTime(payment.created_at)}</td>
-    </tr>
+      </Table.Cell>
+      <Table.Cell>{formatDateTime(payment.created_at)}</Table.Cell>
+    </Table.Row>
   )
 }
 
@@ -834,17 +842,17 @@ function RefundPaymentRow({
   refund: MedusaAdminRefund
 }) {
   return (
-    <tr>
-      <td className="admin-payment-nested">
+    <Table.Row>
+      <Table.Cell className="ps-700">
         {formatCompactId(refund.id) ?? "Refund"}
-      </td>
-      <td>
+      </Table.Cell>
+      <Table.Cell>
         <Badge size="sm" variant="warning">
           Refund
         </Badge>
-      </td>
-      <td>{payment.provider_id ?? "-"}</td>
-      <td>
+      </Table.Cell>
+      <Table.Cell>{payment.provider_id ?? "-"}</Table.Cell>
+      <Table.Cell>
         {formatDeductionMoney(
           refund.amount ?? null,
           refund.currency_code ??
@@ -852,9 +860,9 @@ function RefundPaymentRow({
             collection.currency_code ??
             fallbackCurrencyCode
         )}
-      </td>
-      <td>{formatDateTime(refund.created_at)}</td>
-    </tr>
+      </Table.Cell>
+      <Table.Cell>{formatDateTime(refund.created_at)}</Table.Cell>
+    </Table.Row>
   )
 }
 
