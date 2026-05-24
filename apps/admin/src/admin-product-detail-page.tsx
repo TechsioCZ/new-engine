@@ -21,6 +21,7 @@ import {
   AdminPanel,
 } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
+import { AdminJsonPreview } from "./components/admin-preview"
 import { AdminState } from "./components/admin-state"
 
 const TITLE_SPLIT_PATTERN = /\s+/
@@ -203,9 +204,7 @@ function ProductMetadataPanel({
         title="Metadata"
       />
       {hasMetadata ? (
-        <pre className="admin-json-preview">
-          {JSON.stringify(metadata, null, 2)}
-        </pre>
+        <AdminJsonPreview>{JSON.stringify(metadata, null, 2)}</AdminJsonPreview>
       ) : (
         <AdminState>Bez metadat.</AdminState>
       )}

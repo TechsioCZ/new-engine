@@ -36,37 +36,10 @@ a {
   line-height: 1.15;
 }
 
-.admin-inline-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
 .admin-action-form {
   display: grid;
   gap: 12px;
   padding: 16px;
-}
-
-.admin-template-preview {
-  display: grid;
-  gap: 4px;
-  border: 1px solid rgba(31, 37, 32, 0.1);
-  border-radius: 7px;
-  background: rgba(38, 56, 42, 0.05);
-  padding: 10px 12px;
-}
-
-.admin-template-preview span {
-  color: #697066;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.admin-template-preview strong {
-  color: #1f2520;
-  font-size: 13px;
-  line-height: 1.35;
 }
 
 .admin-form-panel {
@@ -163,19 +136,6 @@ a {
   display: flex;
   justify-content: flex-end;
   padding-top: 16px;
-}
-
-.admin-json-preview {
-  max-height: 260px;
-  overflow: auto;
-  margin: 0;
-  background: #f8f7f1;
-  color: #2d332b;
-  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.55;
-  padding: 14px 16px;
-  white-space: pre-wrap;
 }
 
 .admin-email-preview {

@@ -43,6 +43,11 @@ import {
 } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
+  AdminInlineList,
+  AdminJsonPreview,
+  AdminTemplatePreview,
+} from "./components/admin-preview"
+import {
   AdminSelectField,
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
@@ -585,10 +590,9 @@ function TemplatePreview({
   }
 
   return (
-    <div className="admin-template-preview">
-      <span>{template.trigger_type}</span>
-      <strong>{template.subject ?? "Bez predmetu"}</strong>
-    </div>
+    <AdminTemplatePreview label={template.trigger_type}>
+      {template.subject ?? "Bez predmetu"}
+    </AdminTemplatePreview>
   )
 }
 
@@ -699,9 +703,7 @@ function OrderMetadataPanel({
         title="Metadata"
       />
       {hasMetadata ? (
-        <pre className="admin-json-preview">
-          {JSON.stringify(metadata, null, 2)}
-        </pre>
+        <AdminJsonPreview>{JSON.stringify(metadata, null, 2)}</AdminJsonPreview>
       ) : (
         <AdminState>Bez metadat.</AdminState>
       )}
@@ -934,7 +936,7 @@ function formatFulfillmentTracking(fulfillment: MedusaAdminFulfillment) {
 
   if (labels.length) {
     return (
-      <div className="admin-inline-list">
+      <AdminInlineList>
         {labels.map((label, index) => {
           const labelText = label.tracking_number ?? label.id ?? "Tracking"
           const key = label.id ?? label.tracking_number ?? `tracking-${index}`
@@ -949,7 +951,7 @@ function formatFulfillmentTracking(fulfillment: MedusaAdminFulfillment) {
 
           return <span key={key}>{labelText}</span>
         })}
-      </div>
+      </AdminInlineList>
     )
   }
 

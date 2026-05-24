@@ -38,6 +38,7 @@
   --spacing-admin-page-inline: clamp(var(--spacing-10), 2vw, var(--spacing-16));
   --spacing-admin-page-block: clamp(var(--spacing-10), 2vw, var(--spacing-16));
   --spacing-admin-panel-padding: var(--spacing-12);
+  --spacing-admin-preview-max-height: 16.25rem;
   --spacing-admin-row-padding-y: var(--spacing-5);
   --spacing-admin-row-padding-x: var(--spacing-7);
 }
