@@ -596,10 +596,6 @@ a {
   gap: 6px;
 }
 
-.admin-table-check {
-  width: 42px;
-}
-
 .admin-action-form {
   display: grid;
   gap: 12px;
@@ -761,16 +757,6 @@ a {
   display: flex;
   justify-content: flex-end;
   padding-top: 16px;
-}
-
-.admin-chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.admin-muted {
-  color: #7a8176;
 }
 
 .admin-detail-panel {

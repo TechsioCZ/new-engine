@@ -1,6 +1,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { Table } from "@techsio/ui-kit/organisms/table"
 import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
@@ -277,68 +278,68 @@ function PacketaOrdersTable({
   }
 
   return (
-    <div className="admin-table-wrap">
-      <table className="admin-data-table">
-        <thead>
-          <tr>
-            <th className="admin-table-check">
+    <div className="overflow-x-auto">
+      <Table className="min-w-3xl" size="sm" variant="line">
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader className="w-1">
               <Checkbox
                 aria-label="Vybrat vsechny tisknutelne objednavky na strance"
                 checked={allPrintableSelected}
                 onChange={onTogglePrintablePage}
               />
-            </th>
-            <th>Objednavka</th>
-            <th>Email</th>
-            <th>Vytvoreno</th>
-            <th>Status</th>
-            <th>Packeta</th>
-          </tr>
-        </thead>
-        <tbody>
+            </Table.ColumnHeader>
+            <Table.ColumnHeader>Objednavka</Table.ColumnHeader>
+            <Table.ColumnHeader>Email</Table.ColumnHeader>
+            <Table.ColumnHeader>Vytvoreno</Table.ColumnHeader>
+            <Table.ColumnHeader>Status</Table.ColumnHeader>
+            <Table.ColumnHeader>Packeta</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
           {orders.map((order) => {
             const labels = getPacketaLabels(order)
             const canPrint = labels.length > 0
 
             return (
-              <tr key={order.id}>
-                <td className="admin-table-check">
+              <Table.Row
+                key={order.id}
+                selected={selectedOrderIds.has(order.id)}
+              >
+                <Table.Cell className="w-1">
                   <Checkbox
                     aria-label={`Vybrat ${formatOrderNumber(order)}`}
                     checked={selectedOrderIds.has(order.id)}
                     disabled={!canPrint}
                     onChange={() => onToggleOrder(order.id)}
                   />
-                </td>
-                <td className="admin-table-strong">
+                </Table.Cell>
+                <Table.Cell className="font-semibold text-fg-primary">
                   {formatOrderNumber(order)}
-                </td>
-                <td className="admin-table-truncate">{order.email ?? "-"}</td>
-                <td>{formatDate(order.created_at)}</td>
-                <td>{order.fulfillment_status ?? "-"}</td>
-                <td>
+                </Table.Cell>
+                <Table.Cell className="max-w-xs truncate">
+                  {order.email ?? "-"}
+                </Table.Cell>
+                <Table.Cell>{formatDate(order.created_at)}</Table.Cell>
+                <Table.Cell>{order.fulfillment_status ?? "-"}</Table.Cell>
+                <Table.Cell>
                   {canPrint ? (
-                    <div className="admin-chip-row">
+                    <div className="flex flex-wrap gap-100">
                       {labels.map((label) => (
-                        <Badge
-                          className="admin-status-badge"
-                          key={label.id}
-                          size="sm"
-                          variant="info"
-                        >
+                        <Badge key={label.id} size="sm" variant="info">
                           {String(label.data?.barcode ?? label.data?.packet_id)}
                         </Badge>
                       ))}
                     </div>
                   ) : (
-                    <span className="admin-muted">Bez stitku</span>
+                    <span className="text-fg-secondary">Bez stitku</span>
                   )}
-                </td>
-              </tr>
+                </Table.Cell>
+              </Table.Row>
             )
           })}
-        </tbody>
-      </table>
+        </Table.Body>
+      </Table>
     </div>
   )
 }
