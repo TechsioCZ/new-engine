@@ -3,6 +3,8 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useState } from "react"
 import { fetchPayloadSsoHtml, usePayloadConfig } from "./admin-api"
 import { MEDUSA_BACKEND_URL } from "./admin-config"
+import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
@@ -99,19 +101,12 @@ export function PayloadSettingsPage() {
 
   return (
     <section className="admin-page admin-page-full">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Nastaveni</span>
-          <h1>Payload</h1>
-        </div>
-      </header>
+      <AdminPageHeader eyebrow="Nastaveni" title="Payload" />
       <div className="admin-panel admin-payload-panel">
-        <div className="admin-panel-header">
-          <div>
-            <h2>Payload Admin</h2>
-            <span>SSO vstup do CMS administrace pres Medusa backend.</span>
-          </div>
-        </div>
+        <AdminPanelHeader
+          subtitle="SSO vstup do CMS administrace pres Medusa backend."
+          title="Payload Admin"
+        />
         {renderPayloadContent()}
       </div>
     </section>

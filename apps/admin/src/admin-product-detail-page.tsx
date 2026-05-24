@@ -8,6 +8,12 @@ import type {
   MedusaAdminProductOption,
   MedusaAdminProductVariant,
 } from "./admin-types"
+import {
+  AdminDetailField,
+  AdminDetailFields,
+} from "./components/admin-detail-field"
+import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 
 const TITLE_SPLIT_PATTERN = /\s+/
@@ -23,7 +29,7 @@ export function ProductDetailPage() {
   if (product.isLoading) {
     return (
       <section className="admin-page">
-        <PageTitle eyebrow="Produkt" title="Nacitam detail" />
+        <AdminPageHeader eyebrow="Produkt" title="Nacitam detail" />
         <AdminState isBusy surface="panel">
           Nacitam produkt...
         </AdminState>
@@ -34,7 +40,7 @@ export function ProductDetailPage() {
   if (product.isError || !product.data?.product) {
     return (
       <section className="admin-page">
-        <PageTitle eyebrow="Produkt" title="Detail produktu" />
+        <AdminPageHeader eyebrow="Produkt" title="Detail produktu" />
         <AdminState surface="panel" tone="error">
           Produkt se nepodarilo nacist.
         </AdminState>
@@ -52,15 +58,11 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
 
   return (
     <section className="admin-page admin-page-wide">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Produkt</span>
-          <h1>{product.title ?? product.id}</h1>
-        </div>
+      <AdminPageHeader eyebrow="Produkt" title={product.title ?? product.id}>
         <Link className="admin-text-link" to="/products">
           Zpet na produkty
         </Link>
-      </header>
+      </AdminPageHeader>
       <div className="admin-detail-layout">
         <div className="admin-detail-stack">
           <section className="admin-panel">
@@ -80,23 +82,17 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
             </div>
           </section>
           <section className="admin-panel">
-            <div className="admin-panel-header">
-              <div>
-                <h2>Varianty</h2>
-                <span>
-                  {formatCount(variants.length, "varianta", "variant")}
-                </span>
-              </div>
-            </div>
+            <AdminPanelHeader
+              subtitle={formatCount(variants.length, "varianta", "variant")}
+              title="Varianty"
+            />
             <ProductVariantsTable variants={variants} />
           </section>
           <section className="admin-panel">
-            <div className="admin-panel-header">
-              <div>
-                <h2>Obrazky</h2>
-                <span>{formatCount(images.length, "obrazek", "obrazku")}</span>
-              </div>
-            </div>
+            <AdminPanelHeader
+              subtitle={formatCount(images.length, "obrazek", "obrazku")}
+              title="Obrazky"
+            />
             <ProductImagesGrid images={images} />
           </section>
         </div>
@@ -130,31 +126,29 @@ function ProductImage({ product }: { product: MedusaAdminProduct }) {
 function ProductSummaryPanel({ product }: { product: MedusaAdminProduct }) {
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Souhrn</h2>
-          <span>{product.handle ? `/${product.handle}` : product.id}</span>
-        </div>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="ID" value={product.id} />
-        <DetailField label="Handle" value={product.handle} />
-        <DetailField label="Kolekce" value={product.collection?.title} />
-        <DetailField
+      <AdminPanelHeader
+        subtitle={product.handle ? `/${product.handle}` : product.id}
+        title="Souhrn"
+      />
+      <AdminDetailFields>
+        <AdminDetailField label="ID" value={product.id} />
+        <AdminDetailField label="Handle" value={product.handle} />
+        <AdminDetailField label="Kolekce" value={product.collection?.title} />
+        <AdminDetailField
           label="Kategorie"
           value={(product.categories ?? [])
             .map((category) => category.name ?? category.id)
             .filter(Boolean)
             .join(", ")}
         />
-        <DetailField
+        <AdminDetailField
           label="Sales channels"
           value={(product.sales_channels ?? [])
             .map((channel) => channel.name ?? channel.id)
             .filter(Boolean)
             .join(", ")}
         />
-      </div>
+      </AdminDetailFields>
     </section>
   )
 }
@@ -166,12 +160,10 @@ function ProductOptionsPanel({
 }) {
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Options</h2>
-          <span>{formatCount(options.length, "option", "options")}</span>
-        </div>
-      </div>
+      <AdminPanelHeader
+        subtitle={formatCount(options.length, "option", "options")}
+        title="Options"
+      />
       {options.length ? (
         <div className="admin-chip-list">
           {options.map((option) => (
@@ -197,12 +189,10 @@ function ProductMetadataPanel({
 
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Metadata</h2>
-          <span>Technicke hodnoty produktu.</span>
-        </div>
-      </div>
+      <AdminPanelHeader
+        subtitle="Technicke hodnoty produktu."
+        title="Metadata"
+      />
       {hasMetadata ? (
         <pre className="admin-json-preview">
           {JSON.stringify(metadata, null, 2)}
@@ -270,32 +260,6 @@ function ProductImagesGrid({ images }: { images: MedusaAdminProductImage[] }) {
         />
       ))}
     </div>
-  )
-}
-
-function DetailField({
-  label,
-  value,
-}: {
-  label: string
-  value: string | null | undefined
-}) {
-  return (
-    <div className="admin-detail-field">
-      <span>{label}</span>
-      <strong>{value || "-"}</strong>
-    </div>
-  )
-}
-
-function PageTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <header className="admin-page-header">
-      <div>
-        <span className="admin-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-      </div>
-    </header>
   )
 }
 

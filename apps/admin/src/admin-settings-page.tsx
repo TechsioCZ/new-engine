@@ -3,6 +3,8 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { type FormEvent, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { updateQrPaymentConfig, useQrPaymentConfig } from "./admin-api"
+import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 import { AdminTextField } from "./components/admin-text-field"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
@@ -38,7 +40,7 @@ const settingsItems = [
 export function SettingsPage() {
   return (
     <section className="admin-page">
-      <PageTitle eyebrow="Nastaveni" title="Nastaveni adminu" />
+      <AdminPageHeader eyebrow="Nastaveni" title="Nastaveni adminu" />
       <div className="admin-settings-grid">
         {settingsItems.map((item) => (
           <Link className="admin-settings-card" key={item.href} to={item.href}>
@@ -140,27 +142,14 @@ export function QrPaymentsSettingsPage() {
 
   return (
     <section className="admin-page">
-      <PageTitle eyebrow="Nastaveni" title="QR platby" />
+      <AdminPageHeader eyebrow="Nastaveni" title="QR platby" />
       <div className="admin-panel admin-form-panel">
-        <div className="admin-panel-header">
-          <div>
-            <h2>Bankovni ucet</h2>
-            <span>Aktualni prijemce pro QR platbu u objednavek.</span>
-          </div>
-        </div>
+        <AdminPanelHeader
+          subtitle="Aktualni prijemce pro QR platbu u objednavek."
+          title="Bankovni ucet"
+        />
         {renderConfigContent()}
       </div>
     </section>
-  )
-}
-
-function PageTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <header className="admin-page-header">
-      <div>
-        <span className="admin-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-      </div>
-    </header>
   )
 }

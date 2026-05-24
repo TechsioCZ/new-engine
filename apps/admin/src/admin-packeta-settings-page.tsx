@@ -6,6 +6,8 @@ import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePacketaConfig, usePacketaConfig } from "./admin-api"
 import type { PacketaConfig, PacketaConfigInput } from "./admin-types"
+import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
   type AdminSelectFieldItem,
@@ -354,19 +356,12 @@ export function PacketaSettingsPage() {
 
   return (
     <section className="admin-page">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Nastaveni</span>
-          <h1>Packeta</h1>
-        </div>
-      </header>
+      <AdminPageHeader eyebrow="Nastaveni" title="Packeta" />
       <div className="admin-panel admin-settings-panel">
-        <div className="admin-panel-header">
-          <div>
-            <h2>Konfigurace dopravce</h2>
-            <span>Stejny kontrakt jako aktualni Medusa Packeta settings.</span>
-          </div>
-        </div>
+        <AdminPanelHeader
+          subtitle="Stejny kontrakt jako aktualni Medusa Packeta settings."
+          title="Konfigurace dopravce"
+        />
         {renderConfigContent()}
       </div>
     </section>

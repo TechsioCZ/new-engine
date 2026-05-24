@@ -10,7 +10,9 @@ import {
   usePacketaLabelOrders,
 } from "./admin-api"
 import type { PacketaLabelOrder, PacketaOrderFulfillment } from "./admin-types"
+import { AdminPageCount, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPagination } from "./components/admin-pagination"
+import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
   type AdminSelectFieldItem,
@@ -137,34 +139,29 @@ export function PacketaLabelsPage() {
 
   return (
     <section className="admin-page">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Packeta</span>
-          <h1>Stitky k objednavkam</h1>
-        </div>
-        <div className="admin-page-count">
-          <span>{selectedPrintableOrderIds.length}</span>
-          <small>vybrano</small>
-        </div>
-      </header>
+      <AdminPageHeader eyebrow="Packeta" title="Stitky k objednavkam">
+        <AdminPageCount
+          label="vybrano"
+          value={selectedPrintableOrderIds.length}
+        />
+      </AdminPageHeader>
       <div className="admin-panel">
-        <div className="admin-panel-header admin-panel-header-stacked">
-          <div>
-            <h2>Objednavky s Packetou</h2>
-            <span>
-              {orders.data?.count ?? 0} objednavek podle posledni aktivity
-            </span>
-          </div>
-          <PacketaLabelControls
-            isDownloading={isDownloading}
-            labelFormat={labelFormat}
-            labelOffset={labelOffset}
-            onDownload={handleDownload}
-            onLabelFormatChange={setLabelFormat}
-            onLabelOffsetChange={setLabelOffset}
-            selectedCount={selectedPrintableOrderIds.length}
-          />
-        </div>
+        <AdminPanelHeader
+          actions={
+            <PacketaLabelControls
+              isDownloading={isDownloading}
+              labelFormat={labelFormat}
+              labelOffset={labelOffset}
+              onDownload={handleDownload}
+              onLabelFormatChange={setLabelFormat}
+              onLabelOffsetChange={setLabelOffset}
+              selectedCount={selectedPrintableOrderIds.length}
+            />
+          }
+          stacked
+          subtitle={`${orders.data?.count ?? 0} objednavek podle posledni aktivity`}
+          title="Objednavky s Packetou"
+        />
         {feedback && (
           <StatusText
             align="start"

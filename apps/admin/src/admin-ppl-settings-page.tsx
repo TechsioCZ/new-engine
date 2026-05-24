@@ -4,6 +4,8 @@ import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
 import type { PplConfig, PplConfigInput, PplLabelFormat } from "./admin-types"
+import { AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
   AdminSelectField,
   type AdminSelectFieldItem,
@@ -328,19 +330,12 @@ export function PplSettingsPage() {
 
   return (
     <section className="admin-page">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Nastaveni</span>
-          <h1>PPL</h1>
-        </div>
-      </header>
+      <AdminPageHeader eyebrow="Nastaveni" title="PPL" />
       <div className="admin-panel admin-settings-panel">
-        <div className="admin-panel-header">
-          <div>
-            <h2>Konfigurace dopravce</h2>
-            <span>Stejny kontrakt jako aktualni Medusa PPL settings.</span>
-          </div>
-        </div>
+        <AdminPanelHeader
+          subtitle="Stejny kontrakt jako aktualni Medusa PPL settings."
+          title="Konfigurace dopravce"
+        />
         {renderConfigContent()}
       </div>
     </section>

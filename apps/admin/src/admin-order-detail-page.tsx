@@ -21,6 +21,16 @@ import type {
   OrderEmailTemplate,
 } from "./admin-types"
 import {
+  AdminDetailField,
+  AdminDetailFields,
+} from "./components/admin-detail-field"
+import {
+  AdminPageHeader,
+  AdminPageHeaderActions,
+  AdminStatusRow,
+} from "./components/admin-page-header"
+import { AdminPanelHeader } from "./components/admin-panel-header"
+import {
   AdminSelectField,
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
@@ -53,7 +63,7 @@ export function OrderDetailPage() {
   if (order.isLoading) {
     return (
       <section className="admin-page">
-        <PageTitle eyebrow="Objednavka" title="Nacitam detail" />
+        <AdminPageHeader eyebrow="Objednavka" title="Nacitam detail" />
         <AdminState isBusy surface="panel">
           Nacitam objednavku...
         </AdminState>
@@ -64,7 +74,7 @@ export function OrderDetailPage() {
   if (order.isError || !order.data?.order) {
     return (
       <section className="admin-page">
-        <PageTitle eyebrow="Objednavka" title="Detail objednavky" />
+        <AdminPageHeader eyebrow="Objednavka" title="Detail objednavky" />
         <AdminState surface="panel" tone="error">
           Objednavku se nepodarilo nacist.
         </AdminState>
@@ -82,31 +92,25 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
 
   return (
     <section className="admin-page admin-page-wide">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Objednavka</span>
-          <h1>{orderLabel}</h1>
-        </div>
-        <div className="admin-header-actions">
-          <div className="admin-status-row">
+      <AdminPageHeader eyebrow="Objednavka" title={orderLabel}>
+        <AdminPageHeaderActions>
+          <AdminStatusRow>
             <OrderStatusBadge label={order.status} />
             <OrderStatusBadge label={order.payment_status} />
             <OrderStatusBadge label={order.fulfillment_status} />
-          </div>
+          </AdminStatusRow>
           <Link className="admin-text-link" to="/orders?view=action-required">
             Zpet na objednavky
           </Link>
-        </div>
-      </header>
+        </AdminPageHeaderActions>
+      </AdminPageHeader>
       <div className="admin-detail-layout">
         <div className="admin-detail-stack">
           <section className="admin-panel">
-            <div className="admin-panel-header">
-              <div>
-                <h2>Polozky objednavky</h2>
-                <span>{formatCount(items.length, "polozka", "polozek")}</span>
-              </div>
-            </div>
+            <AdminPanelHeader
+              subtitle={formatCount(items.length, "polozka", "polozek")}
+              title="Polozky objednavky"
+            />
             <OrderItemsTable
               currencyCode={order.currency_code ?? null}
               items={items}
@@ -141,34 +145,35 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
 function OrderSummaryPanel({ order }: { order: MedusaAdminOrder }) {
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Souhrn</h2>
-          <span>{formatDateTime(order.created_at)}</span>
-        </div>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="ID" value={order.id} />
-        <DetailField
+      <AdminPanelHeader
+        subtitle={formatDateTime(order.created_at)}
+        title="Souhrn"
+      />
+      <AdminDetailFields>
+        <AdminDetailField label="ID" value={order.id} />
+        <AdminDetailField
           label="Vytvoreno"
           value={formatDateTime(order.created_at)}
         />
-        <DetailField
+        <AdminDetailField
           label="Sales channel"
           value={order.sales_channel?.name ?? order.sales_channel?.id}
         />
-        <DetailField label="Stav" value={order.status} />
-        <DetailField label="Platba" value={order.payment_status} />
-        <DetailField label="Fulfillment" value={order.fulfillment_status} />
-        <DetailField
+        <AdminDetailField label="Stav" value={order.status} />
+        <AdminDetailField label="Platba" value={order.payment_status} />
+        <AdminDetailField
+          label="Fulfillment"
+          value={order.fulfillment_status}
+        />
+        <AdminDetailField
           label="Zruseno"
           value={formatDateTime(order.canceled_at)}
         />
-        <DetailField
+        <AdminDetailField
           label="Celkem"
           value={formatMoney(order.total ?? null, order.currency_code ?? null)}
         />
-      </div>
+      </AdminDetailFields>
     </section>
   )
 }
@@ -190,19 +195,20 @@ function OrderCustomerPanel({ order }: { order: MedusaAdminOrder }) {
 
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Zakaznik</h2>
-          <span>{order.email ?? customer?.email ?? "Bez e-mailu"}</span>
-        </div>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="Jmeno" value={formatCustomerName(order)} />
-        <DetailField label="Email" value={order.email ?? customer?.email} />
-        <DetailField label="Telefon" value={customer?.phone} />
-        <DetailField label="Firma" value={customer?.company_name} />
-        <DetailField label="Customer ID" value={order.customer_id} />
-      </div>
+      <AdminPanelHeader
+        subtitle={order.email ?? customer?.email ?? "Bez e-mailu"}
+        title="Zakaznik"
+      />
+      <AdminDetailFields>
+        <AdminDetailField label="Jmeno" value={formatCustomerName(order)} />
+        <AdminDetailField
+          label="Email"
+          value={order.email ?? customer?.email}
+        />
+        <AdminDetailField label="Telefon" value={customer?.phone} />
+        <AdminDetailField label="Firma" value={customer?.company_name} />
+        <AdminDetailField label="Customer ID" value={order.customer_id} />
+      </AdminDetailFields>
     </section>
   )
 }
@@ -239,12 +245,10 @@ function OrderTotalsPanel({ order }: { order: MedusaAdminOrder }) {
 
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Financni souhrn</h2>
-          <span>{order.currency_code?.toUpperCase() ?? "CZK"}</span>
-        </div>
-      </div>
+      <AdminPanelHeader
+        subtitle={order.currency_code?.toUpperCase() ?? "CZK"}
+        title="Financni souhrn"
+      />
       <div className="admin-money-breakdown">
         {rows.map((row) => (
           <div
@@ -275,12 +279,10 @@ function OrderShippingMethodsPanel({
 }) {
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Doprava</h2>
-          <span>{formatCount(shippingMethods.length, "metoda", "metod")}</span>
-        </div>
-      </div>
+      <AdminPanelHeader
+        subtitle={formatCount(shippingMethods.length, "metoda", "metod")}
+        title="Doprava"
+      />
       {shippingMethods.length ? (
         <div className="overflow-x-auto">
           <Table className="min-w-xl" size="sm" variant="line">
@@ -325,12 +327,10 @@ function OrderPaymentsPanel({ order }: { order: MedusaAdminOrder }) {
 
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Platby</h2>
-          <span>{formatPaymentCollections(order)}</span>
-        </div>
-      </div>
+      <AdminPanelHeader
+        subtitle={formatPaymentCollections(order)}
+        title="Platby"
+      />
       {collections.length ? (
         <div className="overflow-x-auto">
           <Table className="min-w-2xl" size="sm" variant="line">
@@ -366,12 +366,10 @@ function OrderFulfillmentsPanel({
 }) {
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Fulfillment</h2>
-          <span>{formatFulfillments(order)}</span>
-        </div>
-      </div>
+      <AdminPanelHeader
+        subtitle={formatFulfillments(order)}
+        title="Fulfillment"
+      />
       {activeFulfillments.length ? (
         <div className="overflow-x-auto">
           <Table className="min-w-2xl" size="sm" variant="line">
@@ -467,12 +465,10 @@ function OrderEmailPanel({ order }: { order: MedusaAdminOrder }) {
 
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Email zakaznikovi</h2>
-          <span>{order.email ?? "Objednavka nema e-mail."}</span>
-        </div>
-      </div>
+      <AdminPanelHeader
+        subtitle={order.email ?? "Objednavka nema e-mail."}
+        title="Email zakaznikovi"
+      />
       <form className="admin-action-form" onSubmit={handleSubmit}>
         <OrderEmailFormContent
           feedback={feedback}
@@ -666,19 +662,14 @@ function AddressPanel({
 }) {
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>{title}</h2>
-          <span>{formatAddressName(address)}</span>
-        </div>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="Firma" value={address?.company} />
-        <DetailField label="Adresa" value={formatStreet(address)} />
-        <DetailField label="Mesto" value={formatCity(address)} />
-        <DetailField label="Zeme" value={address?.country_code} />
-        <DetailField label="Telefon" value={address?.phone} />
-      </div>
+      <AdminPanelHeader subtitle={formatAddressName(address)} title={title} />
+      <AdminDetailFields>
+        <AdminDetailField label="Firma" value={address?.company} />
+        <AdminDetailField label="Adresa" value={formatStreet(address)} />
+        <AdminDetailField label="Mesto" value={formatCity(address)} />
+        <AdminDetailField label="Zeme" value={address?.country_code} />
+        <AdminDetailField label="Telefon" value={address?.phone} />
+      </AdminDetailFields>
     </section>
   )
 }
@@ -692,12 +683,10 @@ function OrderMetadataPanel({
 
   return (
     <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Metadata</h2>
-          <span>Technicke hodnoty objednavky.</span>
-        </div>
-      </div>
+      <AdminPanelHeader
+        subtitle="Technicke hodnoty objednavky."
+        title="Metadata"
+      />
       {hasMetadata ? (
         <pre className="admin-json-preview">
           {JSON.stringify(metadata, null, 2)}
@@ -706,32 +695,6 @@ function OrderMetadataPanel({
         <AdminState>Bez metadat.</AdminState>
       )}
     </section>
-  )
-}
-
-function DetailField({
-  label,
-  value,
-}: {
-  label: string
-  value: string | null | undefined
-}) {
-  return (
-    <div className="admin-detail-field">
-      <span>{label}</span>
-      <strong>{value || "-"}</strong>
-    </div>
-  )
-}
-
-function PageTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <header className="admin-page-header">
-      <div>
-        <span className="admin-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-      </div>
-    </header>
   )
 }
 

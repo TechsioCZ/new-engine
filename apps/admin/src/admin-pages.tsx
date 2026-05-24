@@ -20,7 +20,13 @@ import type {
   PendingB2BCustomer,
   ResendEmail,
 } from "./admin-types"
+import {
+  AdminDetailField,
+  AdminDetailFields,
+} from "./components/admin-detail-field"
+import { AdminPageCount, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPagination } from "./components/admin-pagination"
+import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminSearch } from "./components/admin-search"
 import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
@@ -203,12 +209,10 @@ export function EmailsPage() {
       />
       <div className="admin-split-layout">
         <div className="admin-panel admin-email-list-panel">
-          <div className="admin-panel-header">
-            <div>
-              <h2>Email logy</h2>
-              <span>Historie notifikaci z backendu a Resendu.</span>
-            </div>
-          </div>
+          <AdminPanelHeader
+            subtitle="Historie notifikaci z backendu a Resendu."
+            title="Email logy"
+          />
           <EmailLogsTable
             emailLogs={emailLogs.data?.email_logs ?? []}
             isError={emailLogs.isError}
@@ -272,18 +276,14 @@ function PageHeader({
   value?: number | undefined
 }) {
   return (
-    <header className="admin-page-header">
-      <div>
-        <span className="admin-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-      </div>
+    <AdminPageHeader eyebrow={eyebrow} title={title}>
       {typeof value === "number" && (
-        <div className="admin-page-count">
-          <span>{formatCountLabel(value, isValueExact)}</span>
-          <small>polozek</small>
-        </div>
+        <AdminPageCount
+          label="polozek"
+          value={formatCountLabel(value, isValueExact)}
+        />
       )}
-    </header>
+    </AdminPageHeader>
   )
 }
 
@@ -531,15 +531,15 @@ function EmailDetailPanel({
   if (isError || !detail) {
     return (
       <aside className="admin-panel admin-detail-panel">
-        <div className="admin-panel-header">
-          <div>
-            <h2>Detail emailu</h2>
-            <span>Detail se nepodarilo nacist.</span>
-          </div>
-          <AdminToolbarButton onClick={onClose} theme="borderless">
-            Zavrit
-          </AdminToolbarButton>
-        </div>
+        <AdminPanelHeader
+          actions={
+            <AdminToolbarButton onClick={onClose} theme="borderless">
+              Zavrit
+            </AdminToolbarButton>
+          }
+          subtitle="Detail se nepodarilo nacist."
+          title="Detail emailu"
+        />
         <AdminState surface="panel" tone="error">
           Backend vratil chybu pri nacitani detailu. List zustava dostupny.
         </AdminState>
@@ -553,35 +553,41 @@ function EmailDetailPanel({
 
   return (
     <aside className="admin-panel admin-detail-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Detail emailu</h2>
-          <span>{detail.email_log.subject}</span>
-        </div>
-        <AdminToolbarButton onClick={onClose} theme="borderless">
-          Zavrit
-        </AdminToolbarButton>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="Email ID" value={detail.email_log.email_id} />
-        <DetailField label="Typ" value={detail.email_log.type} />
-        <DetailField
+      <AdminPanelHeader
+        actions={
+          <AdminToolbarButton onClick={onClose} theme="borderless">
+            Zavrit
+          </AdminToolbarButton>
+        }
+        subtitle={detail.email_log.subject}
+        title="Detail emailu"
+      />
+      <AdminDetailFields>
+        <AdminDetailField label="Email ID" value={detail.email_log.email_id} />
+        <AdminDetailField label="Typ" value={detail.email_log.type} />
+        <AdminDetailField
           label="Od"
           value={
             typeof resendEmail?.from === "string" ? resendEmail.from : null
           }
         />
-        <DetailField
+        <AdminDetailField
           label="Komu"
           value={formatRecipient(resendEmail?.to) ?? detail.email_log.sent_to}
         />
-        <DetailField
+        <AdminDetailField
           label="Odeslano"
           value={formatDateTime(detail.email_log.sent_at)}
         />
-        <DetailField label="Objednavka" value={detail.email_log.order_id} />
-        <DetailField label="Zakaznik" value={detail.email_log.customer_id} />
-        <DetailField
+        <AdminDetailField
+          label="Objednavka"
+          value={detail.email_log.order_id}
+        />
+        <AdminDetailField
+          label="Zakaznik"
+          value={detail.email_log.customer_id}
+        />
+        <AdminDetailField
           label="Posledni event"
           value={
             typeof resendEmail?.last_event === "string"
@@ -589,7 +595,7 @@ function EmailDetailPanel({
               : null
           }
         />
-      </div>
+      </AdminDetailFields>
       {htmlContent && (
         <div className="admin-email-preview">
           <h3>HTML</h3>
@@ -607,21 +613,6 @@ function EmailDetailPanel({
         <pre>{JSON.stringify(resendEmail, null, 2)}</pre>
       </div>
     </aside>
-  )
-}
-
-function DetailField({
-  label,
-  value,
-}: {
-  label: string
-  value: string | null | undefined
-}) {
-  return (
-    <div className="admin-detail-field">
-      <span>{label}</span>
-      <strong>{value || "-"}</strong>
-    </div>
   )
 }
 
