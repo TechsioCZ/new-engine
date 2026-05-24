@@ -1,0 +1,129 @@
+import type { CSSProperties, ReactNode } from "react"
+import { Link } from "react-router-dom"
+
+const rowClassName =
+  "grid min-h-34 grid-cols-[minmax(0,1fr)_auto] items-center gap-400 rounded-md border border-border-primary bg-surface px-350 py-300 max-[860px]:grid-cols-1 max-[860px]:items-start"
+
+const rowLinkClassName =
+  "cursor-pointer transition-all duration-200 hover:bg-float hover:shadow-sm focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) motion-reduce:transition-none"
+
+export function AdminList({
+  "aria-busy": ariaBusy,
+  children,
+}: {
+  "aria-busy"?: boolean
+  children: ReactNode
+}) {
+  return (
+    <div aria-busy={ariaBusy} className="flex flex-col gap-200">
+      {children}
+    </div>
+  )
+}
+
+export function AdminListRow({
+  children,
+  className,
+  to,
+}: {
+  children: ReactNode
+  className?: string
+  to?: string
+}) {
+  const classNames = [rowClassName, to ? rowLinkClassName : null, className]
+    .filter(Boolean)
+    .join(" ")
+
+  if (to) {
+    return (
+      <Link className={classNames} to={to}>
+        {children}
+      </Link>
+    )
+  }
+
+  return <article className={classNames}>{children}</article>
+}
+
+export function AdminListRowBody({ children }: { children: ReactNode }) {
+  return <div className="min-w-0">{children}</div>
+}
+
+export function AdminListRowTitle({ children }: { children: ReactNode }) {
+  return (
+    <strong className="block font-bold text-fg-primary text-sm leading-tight">
+      {children}
+    </strong>
+  )
+}
+
+export function AdminListRowText({
+  children,
+  offset = true,
+}: {
+  children: ReactNode
+  offset?: boolean
+}) {
+  return (
+    <span
+      className={[
+        "block text-fg-secondary text-xs leading-normal",
+        offset ? "mt-100" : null,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {children}
+    </span>
+  )
+}
+
+export function AdminListRowMeta({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={[
+        "flex items-center gap-250 text-right max-[860px]:flex-col max-[860px]:items-start max-[860px]:gap-150 max-[860px]:text-left",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {children}
+    </div>
+  )
+}
+
+export function AdminListMedia({
+  fallback,
+  src,
+}: {
+  fallback: ReactNode
+  src?: string | null
+}) {
+  return (
+    <div className="grid size-23 overflow-hidden rounded-md border border-border-primary bg-base">
+      {src ? (
+        <span
+          className="block size-full bg-center bg-cover"
+          style={getBackgroundImageStyle(src)}
+        />
+      ) : (
+        <span className="grid size-full place-items-center font-bold text-fg-secondary text-xs">
+          {fallback}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function getBackgroundImageStyle(src: string): CSSProperties {
+  return {
+    backgroundImage: `url("${src.replaceAll('"', "%22")}")`,
+  }
+}

@@ -25,6 +25,15 @@ import {
   AdminDetailFields,
 } from "./components/admin-detail-field"
 import {
+  AdminList,
+  AdminListMedia,
+  AdminListRow,
+  AdminListRowBody,
+  AdminListRowMeta,
+  AdminListRowText,
+  AdminListRowTitle,
+} from "./components/admin-list"
+import {
   AdminPage,
   AdminPageCount,
   AdminPageHeader,
@@ -313,14 +322,14 @@ function DataSurface<TItem>({
 }) {
   if (isLoading) {
     return (
-      <div aria-busy="true" className="admin-list">
+      <AdminList aria-busy={true}>
         {SKELETON_ROW_IDS.map((id) => (
           <Skeleton.Rectangle
             className="min-h-34 rounded-md border border-border-primary"
             key={id}
           />
         ))}
-      </div>
+      </AdminList>
     )
   }
 
@@ -336,85 +345,82 @@ function DataSurface<TItem>({
     return <AdminState surface="panel">{emptyLabel}</AdminState>
   }
 
-  return <div className="admin-list">{rows.map(renderRow)}</div>
+  return <AdminList>{rows.map(renderRow)}</AdminList>
 }
 
 function OrderRow({ order }: { order: ActionRequiredOrder }) {
   return (
-    <Link className="admin-row admin-row-link" to={`/orders/${order.id}`}>
-      <div>
-        <strong>{formatOrderId(order)}</strong>
-        <span>{order.email ?? "Bez e-mailu"}</span>
-      </div>
-      <div className="admin-row-meta">
+    <AdminListRow to={`/orders/${order.id}`}>
+      <AdminListRowBody>
+        <AdminListRowTitle>{formatOrderId(order)}</AdminListRowTitle>
+        <AdminListRowText>{order.email ?? "Bez e-mailu"}</AdminListRowText>
+      </AdminListRowBody>
+      <AdminListRowMeta>
         <Badge size="sm" variant="warning">
           {order.payment_status ?? "nezaplaceno"}
         </Badge>
-        <span>{formatMoney(order.total, order.currency_code)}</span>
-      </div>
-    </Link>
+        <AdminListRowText offset={false}>
+          {formatMoney(order.total, order.currency_code)}
+        </AdminListRowText>
+      </AdminListRowMeta>
+    </AdminListRow>
   )
 }
 
 function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
   return (
-    <article className="admin-row">
-      <div>
-        <strong>{formatCustomerName(customer)}</strong>
-        <span>{customer.email ?? "Bez e-mailu"}</span>
-      </div>
-      <div className="admin-row-meta">
+    <AdminListRow>
+      <AdminListRowBody>
+        <AdminListRowTitle>{formatCustomerName(customer)}</AdminListRowTitle>
+        <AdminListRowText>{customer.email ?? "Bez e-mailu"}</AdminListRowText>
+      </AdminListRowBody>
+      <AdminListRowMeta>
         <Badge size="sm" variant="info">
           B2B pending
         </Badge>
-        <span>{customer.phone ?? "Bez telefonu"}</span>
-      </div>
-    </article>
+        <AdminListRowText offset={false}>
+          {customer.phone ?? "Bez telefonu"}
+        </AdminListRowText>
+      </AdminListRowMeta>
+    </AdminListRow>
   )
 }
 
 function ProductRow({ product }: { product: AdminProductListItem }) {
   return (
-    <Link
-      className="admin-row admin-row-link admin-product-row"
-      to={`/products/${product.id}`}
-    >
-      <div className="admin-product-main">
-        <div className="admin-product-media">
-          {product.thumbnail ? (
-            <span
-              className="admin-product-thumb"
-              style={getProductThumbnailStyle(product.thumbnail)}
-            />
-          ) : (
-            <span className="admin-product-thumb-fallback">
-              {getProductInitials(product.title)}
-            </span>
-          )}
-        </div>
-        <div>
-          <strong>{product.title}</strong>
-          <span>{product.handle ? `/${product.handle}` : product.id}</span>
+    <AdminListRow to={`/products/${product.id}`}>
+      <div className="grid min-w-0 grid-cols-[var(--spacing-23)_minmax(0,1fr)] items-center gap-300">
+        <AdminListMedia
+          fallback={getProductInitials(product.title)}
+          src={product.thumbnail}
+        />
+        <AdminListRowBody>
+          <AdminListRowTitle>{product.title}</AdminListRowTitle>
+          <AdminListRowText>
+            {product.handle ? `/${product.handle}` : product.id}
+          </AdminListRowText>
           {product.collection_title && (
-            <span className="admin-product-subtle">
+            <span className="mt-100 block text-fg-tertiary text-xs leading-normal">
               {product.collection_title}
             </span>
           )}
-        </div>
+        </AdminListRowBody>
       </div>
-      <div className="admin-row-meta admin-product-meta">
+      <AdminListRowMeta className="min-w-3xs justify-end max-[860px]:min-w-0">
         <Badge
           size="sm"
           variant={product.status === "published" ? "info" : "warning"}
         >
           {product.status ?? "draft"}
         </Badge>
-        <span>{formatCount(product.variant_count, "varianta", "variant")}</span>
-        <span>
+        <AdminListRowText offset={false}>
+          {formatCount(product.variant_count, "varianta", "variant")}
+        </AdminListRowText>
+        <AdminListRowText offset={false}>
           {formatCount(product.sales_channel_count, "kanal", "kanalu")}
-        </span>
-      </div>
-    </Link>
+        </AdminListRowText>
+      </AdminListRowMeta>
+    </AdminListRow>
   )
 }
 
@@ -664,12 +670,6 @@ function getProductInitials(title: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase()
-}
-
-function getProductThumbnailStyle(thumbnail: string) {
-  return {
-    backgroundImage: `url("${thumbnail.replaceAll('"', "%22")}")`,
-  }
 }
 
 function getTextContent(resendEmail: ResendEmail | null | undefined) {

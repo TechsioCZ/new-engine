@@ -23,105 +23,11 @@ a {
   text-decoration: none;
 }
 
-.admin-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.admin-row-link:focus-visible,
 .admin-table-link:focus-visible,
 .admin-text-link:focus-visible,
 .admin-inline-action:focus-visible {
   outline: 3px solid rgba(38, 56, 42, 0.28);
   outline-offset: 2px;
-}
-
-.admin-row {
-  display: grid;
-  min-height: 68px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 16px;
-  border: 1px solid rgba(31, 37, 32, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
-  padding: 12px 14px;
-}
-
-.admin-row-link {
-  cursor: pointer;
-}
-
-.admin-row-link:hover {
-  background: #ffffff;
-  box-shadow: 0 8px 22px rgba(31, 37, 32, 0.08);
-}
-
-.admin-row strong,
-.admin-row span {
-  display: block;
-}
-
-.admin-row strong {
-  color: #1f2520;
-  font-size: 14px;
-}
-
-.admin-row span {
-  margin-top: 4px;
-  color: #697066;
-  font-size: 13px;
-}
-
-.admin-row-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-align: right;
-}
-
-.admin-product-main {
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.admin-product-media {
-  display: grid;
-  width: 46px;
-  height: 46px;
-  overflow: hidden;
-  place-items: center;
-  border: 1px solid rgba(31, 37, 32, 0.1);
-  border-radius: 7px;
-  background: #f8f7f1;
-}
-
-.admin-product-thumb {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background-position: center;
-  background-size: cover;
-}
-
-.admin-product-thumb-fallback {
-  margin: 0;
-  color: #697066;
-  font-size: 12px;
-  font-weight: 760;
-}
-
-.admin-product-subtle {
-  color: #7a8176;
-}
-
-.admin-product-meta {
-  min-width: 250px;
-  justify-content: end;
 }
 
 .admin-product-detail-hero {
@@ -510,15 +416,6 @@ a {
 }
 
 @media (max-width: 860px) {
-  .admin-row,
-  .admin-row-meta {
-    align-items: start;
-  }
-
-  .admin-row {
-    grid-template-columns: 1fr;
-  }
-
   .admin-form-actions {
     justify-content: stretch;
   }
@@ -531,16 +428,6 @@ a {
   .admin-setting-toggle {
     align-items: start;
     flex-direction: column;
-  }
-
-  .admin-row-meta {
-    flex-direction: column;
-    gap: 6px;
-    text-align: left;
-  }
-
-  .admin-product-meta {
-    min-width: 0;
   }
 
   .admin-product-detail-hero {
