@@ -37,38 +37,6 @@ a {
   padding: 16px;
 }
 
-.admin-payload-panel {
-  min-height: calc(100vh - 130px);
-}
-
-.admin-payload-frame {
-  display: block;
-  width: 100%;
-  min-height: calc(100vh - 200px);
-  border: 0;
-  background: #141414;
-}
-
-.admin-payload-launch {
-  display: grid;
-  gap: 14px;
-  padding: 16px;
-}
-
-.admin-payload-launch h3 {
-  margin: 0 0 4px;
-  color: #1f2520;
-  font-size: 14px;
-  font-weight: 760;
-}
-
-.admin-payload-launch span {
-  overflow-wrap: anywhere;
-  color: #697066;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
 .admin-email-preview {
   display: grid;
   gap: 10px;

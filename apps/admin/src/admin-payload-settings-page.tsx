@@ -103,7 +103,7 @@ export function PayloadSettingsPage() {
   return (
     <AdminPage width="full">
       <AdminPageHeader eyebrow="Nastaveni" title="Payload" />
-      <AdminPanel as="div" className="admin-payload-panel">
+      <AdminPanel as="div" className="min-h-admin-payload-panel">
         <AdminPanelHeader
           subtitle="SSO vstup do CMS administrace pres Medusa backend."
           title="Payload Admin"
@@ -124,10 +124,14 @@ function PayloadNewTabLauncher({
   onOpen: () => void
 }) {
   return (
-    <div className="admin-payload-launch">
+    <div className="grid gap-350 p-400">
       <div>
-        <h3>Payload se otevre v novem tabu</h3>
-        <span>{iframeUrl}</span>
+        <h3 className="mt-0 mb-100 font-bold text-fg-primary text-sm leading-normal">
+          Payload se otevre v novem tabu
+        </h3>
+        <span className="text-fg-secondary text-xs leading-normal [overflow-wrap:anywhere]">
+          {iframeUrl}
+        </span>
       </div>
       <AdminToolbarButton onClick={onOpen}>Otevrit Payload</AdminToolbarButton>
       {feedback && (
@@ -166,7 +170,7 @@ function PayloadIframe({
 
   return (
     <iframe
-      className="admin-payload-frame"
+      className="block min-h-admin-payload-frame w-full border-0 bg-base-reverse"
       srcDoc={html}
       title="Payload Admin"
     />
