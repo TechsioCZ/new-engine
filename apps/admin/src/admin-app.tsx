@@ -22,6 +22,7 @@ import { PplSettingsPage } from "./admin-ppl-settings-page"
 import { ProductDetailPage } from "./admin-product-detail-page"
 import { QrPaymentsSettingsPage, SettingsPage } from "./admin-settings-page"
 import type { ActionRequiredSummary, BadgeKey } from "./admin-types"
+import { AdminThemeToggle } from "./components/admin-theme-toggle"
 import { type AdminNavItem, adminNavItems } from "./nav-config"
 import { formatCountLabel } from "./utils/format"
 
@@ -205,17 +206,20 @@ function Sidebar({
           )
         })}
       </nav>
-      <Button
-        block
-        className="mt-auto justify-start"
-        onClick={onLogout}
-        size="sm"
-        theme="outlined"
-        type="button"
-        variant="danger"
-      >
-        Odhlasit
-      </Button>
+      <div className="mt-auto grid gap-2">
+        <AdminThemeToggle />
+        <Button
+          block
+          className="justify-start"
+          onClick={onLogout}
+          size="sm"
+          theme="outlined"
+          type="button"
+          variant="danger"
+        >
+          Odhlasit
+        </Button>
+      </div>
     </aside>
   )
 }

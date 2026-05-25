@@ -26,6 +26,14 @@
   @apply icon-[mdi-light--information];
 }
 
+@utility token-icon-theme-dark {
+  @apply icon-[lucide--moon];
+}
+
+@utility token-icon-theme-light {
+  @apply icon-[lucide--sun];
+}
+
 @utility token-icon-close {
   @apply icon-[mdi--close];
 }
