@@ -27,9 +27,9 @@ COPY apps/admin ./apps/admin
 COPY libs/ui ./libs/ui
 
 RUN --mount=type=cache,id=pnpm-store-admin,target=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=admin... && \
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=admin... && \
     pnpm --filter=@techsio/ui-kit build && \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=admin...
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=admin...
 
 ARG VITE_MEDUSA_BACKEND_URL
 ENV VITE_MEDUSA_BACKEND_URL=${VITE_MEDUSA_BACKEND_URL}
