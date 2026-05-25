@@ -14,10 +14,7 @@ import {
   useAdminProductCategories,
   useAdminProductCategoryDetail,
 } from "./admin-api"
-import type {
-  AdminProductListItem,
-  MedusaAdminProductCategory,
-} from "./admin-types"
+import type { MedusaAdminProductCategory } from "./admin-types"
 import {
   AdminDetailField,
   AdminDetailFields,
@@ -42,6 +39,7 @@ import {
   AdminJsonPreview,
   AdminPreviewCode,
 } from "./components/admin-preview"
+import { AdminProductTable } from "./components/admin-product-table"
 import { AdminSearch } from "./components/admin-search"
 import { AdminState } from "./components/admin-state"
 import { AdminTable } from "./components/admin-table"
@@ -613,7 +611,9 @@ function CategoryProductsPanel({
         subtitle={formatCount(products.data?.count ?? 0, "produkt", "produktu")}
         title="Products"
       />
-      <CategoryProductsTable
+      <AdminProductTable
+        emptyLabel="Kategorie nema produkty."
+        errorLabel="Produkty kategorie se nepodarilo nacist."
         isError={products.isError}
         isLoading={products.isLoading}
         products={products.data?.products ?? []}
@@ -630,72 +630,6 @@ function CategoryProductsPanel({
         />
       )}
     </AdminPanel>
-  )
-}
-
-function CategoryProductsTable({
-  isError,
-  isLoading,
-  products,
-}: {
-  isError: boolean
-  isLoading: boolean
-  products: AdminProductListItem[]
-}) {
-  if (isLoading) {
-    return <AdminState isBusy>Nacitam produkty...</AdminState>
-  }
-
-  if (isError) {
-    return (
-      <AdminState tone="error">
-        Produkty kategorie se nepodarilo nacist.
-      </AdminState>
-    )
-  }
-
-  if (!products.length) {
-    return <AdminState>Kategorie nema produkty.</AdminState>
-  }
-
-  return (
-    <AdminTable width="3xl">
-      <AdminTable.Header>
-        <AdminTable.Row>
-          <AdminTable.ColumnHeader>Product</AdminTable.ColumnHeader>
-          <AdminTable.ColumnHeader>Handle</AdminTable.ColumnHeader>
-          <AdminTable.ColumnHeader>Status</AdminTable.ColumnHeader>
-          <AdminTable.ColumnHeader numeric>Variants</AdminTable.ColumnHeader>
-          <AdminTable.ColumnHeader numeric>
-            Sales channels
-          </AdminTable.ColumnHeader>
-        </AdminTable.Row>
-      </AdminTable.Header>
-      <AdminTable.Body>
-        {products.map((product) => (
-          <AdminTable.Row key={product.id}>
-            <AdminTable.Cell className="font-semibold text-fg-primary">
-              <AdminTableLink to={`/products/${product.id}`}>
-                {product.title}
-              </AdminTableLink>
-            </AdminTable.Cell>
-            <AdminTable.Cell>{formatHandle(product.handle)}</AdminTable.Cell>
-            <AdminTable.Cell>
-              <Badge
-                size="sm"
-                variant={product.status === "published" ? "info" : "warning"}
-              >
-                {product.status ?? "draft"}
-              </Badge>
-            </AdminTable.Cell>
-            <AdminTable.Cell numeric>{product.variant_count}</AdminTable.Cell>
-            <AdminTable.Cell numeric>
-              {product.sales_channel_count}
-            </AdminTable.Cell>
-          </AdminTable.Row>
-        ))}
-      </AdminTable.Body>
-    </AdminTable>
   )
 }
 

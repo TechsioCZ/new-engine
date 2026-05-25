@@ -826,6 +826,10 @@ function toProductListItem(product: MedusaAdminProduct) {
     handle: product.handle ?? null,
     id: product.id,
     sales_channel_count: product.sales_channels?.length ?? 0,
+    sales_channel_names:
+      product.sales_channels
+        ?.map((salesChannel) => salesChannel.name ?? salesChannel.id)
+        .filter(Boolean) ?? [],
     status: product.status ?? null,
     thumbnail: product.thumbnail ?? null,
     title: product.title ?? product.id,
