@@ -122,9 +122,9 @@ function PayloadNewTabLauncher({
   onOpen: () => void
 }) {
   return (
-    <div className="grid gap-350 p-400">
+    <div className="grid gap-7 p-8">
       <div>
-        <h3 className="mt-0 mb-100 font-bold text-fg-primary text-sm leading-normal">
+        <h3 className="mt-0 mb-2 font-bold text-fg-primary text-sm leading-normal">
           Payload se otevre v novem tabu
         </h3>
         <span className="text-fg-secondary text-xs leading-normal [overflow-wrap:anywhere]">

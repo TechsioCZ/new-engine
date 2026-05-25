@@ -1,4 +1,24 @@
 @theme static {
+  --spacing-50: var(--spacing-1);
+  --spacing-100: var(--spacing-2);
+  --spacing-150: var(--spacing-3);
+  --spacing-200: var(--spacing-4);
+  --spacing-250: var(--spacing-5);
+  --spacing-300: var(--spacing-6);
+  --spacing-350: var(--spacing-7);
+  --spacing-400: var(--spacing-8);
+  --spacing-450: var(--spacing-9);
+  --spacing-500: var(--spacing-10);
+  --spacing-550: var(--spacing-11);
+  --spacing-600: var(--spacing-12);
+  --spacing-650: var(--spacing-13);
+  --spacing-700: var(--spacing-14);
+  --spacing-750: var(--spacing-15);
+  --spacing-800: var(--spacing-16);
+  --spacing-850: var(--spacing-17);
+  --spacing-900: var(--spacing-18);
+  --spacing-950: var(--spacing-19);
+
   --spacing-1: 0.125rem;
   --spacing-2: 0.25rem;
   --spacing-3: 0.375rem;
@@ -48,7 +68,6 @@
   --spacing-47: 5.875rem;
   --spacing-48: 6rem;
   --spacing-49: 6.125rem;
-  /* --spacing-50 is the UI kit primitive alias below. */
   --spacing-step-50: 6.25rem;
   --spacing-51: 6.375rem;
   --spacing-52: 6.5rem;
@@ -80,26 +99,6 @@
   --spacing-78: 9.75rem;
   --spacing-79: 9.875rem;
   --spacing-80: 10rem;
-
-  --spacing-50: var(--spacing-1);
-  --spacing-100: var(--spacing-2);
-  --spacing-150: var(--spacing-3);
-  --spacing-200: var(--spacing-4);
-  --spacing-250: var(--spacing-5);
-  --spacing-300: var(--spacing-6);
-  --spacing-350: var(--spacing-7);
-  --spacing-400: var(--spacing-8);
-  --spacing-450: var(--spacing-9);
-  --spacing-500: var(--spacing-10);
-  --spacing-550: var(--spacing-11);
-  --spacing-600: var(--spacing-12);
-  --spacing-650: var(--spacing-13);
-  --spacing-700: var(--spacing-14);
-  --spacing-750: var(--spacing-15);
-  --spacing-800: var(--spacing-16);
-  --spacing-850: var(--spacing-17);
-  --spacing-900: var(--spacing-18);
-  --spacing-950: var(--spacing-19);
 
   --spacing-admin-entity-sm: var(--spacing-20);
   --spacing-admin-entity-md: var(--spacing-23);

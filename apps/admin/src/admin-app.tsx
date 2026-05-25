@@ -274,7 +274,7 @@ function AccountMenu({
           <strong className="block overflow-hidden text-ellipsis whitespace-nowrap font-bold text-fg-primary text-sm leading-tight">
             {storeName}
           </strong>
-          <small className="mt-50 block overflow-hidden text-ellipsis whitespace-nowrap text-fg-secondary text-xs leading-tight">
+          <small className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-fg-secondary text-xs leading-tight">
             Store
           </small>
         </span>
@@ -293,7 +293,7 @@ function AccountMenu({
               <strong className="block overflow-hidden text-ellipsis whitespace-nowrap font-bold text-fg-primary text-sm leading-tight">
                 {storeName}
               </strong>
-              <small className="mt-50 block overflow-hidden text-ellipsis whitespace-nowrap text-fg-secondary text-xs leading-tight">
+              <small className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-fg-secondary text-xs leading-tight">
                 Store
               </small>
             </span>

@@ -51,10 +51,10 @@ import { formatCount, readOffset } from "./utils/format"
 const CATEGORY_TOP_DESCRIPTION_KEY = "top_description_html"
 const CATEGORY_BOTTOM_DESCRIPTION_KEY = "bottom_description_html"
 const CATEGORY_TREE_GRID_CLASS =
-  "grid min-w-0 flex-1 grid-cols-(--admin-category-tree-columns) items-center gap-300 max-admin-layout:grid-cols-(--admin-category-tree-columns-compact) max-admin-layout:gap-x-300 max-admin-layout:gap-y-100"
+  "grid min-w-0 flex-1 grid-cols-(--admin-category-tree-columns) items-center gap-6 max-admin-layout:grid-cols-(--admin-category-tree-columns-compact) max-admin-layout:gap-x-6 max-admin-layout:gap-y-2"
 const CATEGORY_TREE_HEADER_CELL_CLASS =
   "min-w-0 truncate font-medium text-fg-secondary text-xs"
-const CATEGORY_TREE_ROW_CONTROL_CLASS = "min-h-20 min-w-0 px-400 py-0 text-sm"
+const CATEGORY_TREE_ROW_CONTROL_CLASS = "min-h-20 min-w-0 px-8 py-0 text-sm"
 
 type CategoryWithId = MedusaAdminProductCategory & { id: string }
 type CategoryStatusTone = "success" | "warning"
@@ -150,7 +150,7 @@ export function CategoriesPage() {
         {categories.data && (
           <AdminPagination
             ariaLabel="Strankovani kategorii"
-            className="border-border-primary border-t px-400 py-300"
+            className="border-border-primary border-t px-8 py-6"
             count={categories.data.count}
             offset={categories.data.offset}
             pageSize={CATEGORY_LIST_LIMIT}
@@ -345,7 +345,7 @@ function CategoryTreeNode({
 
 function CategoryTreeHeader() {
   return (
-    <div className="border-border-primary border-b px-400 py-250">
+    <div className="border-border-primary border-b px-8 py-5">
       <div className={CATEGORY_TREE_GRID_CLASS}>
         <span className={CATEGORY_TREE_HEADER_CELL_CLASS}>Name</span>
         <span className={CATEGORY_TREE_HEADER_CELL_CLASS}>Handle</span>
@@ -365,7 +365,7 @@ function CategoryTreeNodeContent({
 }) {
   return (
     <span className={CATEGORY_TREE_GRID_CLASS}>
-      <span className="flex min-w-0 items-center gap-250">
+      <span className="flex min-w-0 items-center gap-5">
         {hasChildren ? (
           <TreeView.BranchIndicator className="shrink-0 text-fg-tertiary" />
         ) : (
@@ -407,7 +407,7 @@ function CategoryTreeStatusIndicator({
 
   return (
     <span
-      className={`flex min-w-0 items-center gap-150 text-fg-secondary max-admin-layout:justify-self-end max-admin-layout:text-xs ${className}`}
+      className={`flex min-w-0 items-center gap-3 text-fg-secondary max-admin-layout:justify-self-end max-admin-layout:text-xs ${className}`}
     >
       <span
         aria-hidden="true"
@@ -524,7 +524,7 @@ function CategoryDescriptionsPanel({
         title="Category descriptions"
       />
       {topDescription || bottomDescription ? (
-        <div className="grid gap-300 p-400">
+        <div className="grid gap-6 p-8">
           {topDescription && (
             <DescriptionPreview
               label="Top description"
@@ -716,11 +716,11 @@ function CategoryProductsPagination({
   const end = Math.min(offset + CATEGORY_PRODUCT_LIST_LIMIT, count)
 
   return (
-    <div className="flex items-center justify-between gap-300 border-border-primary border-t px-400 py-300 text-fg-secondary text-sm max-admin-layout:flex-col max-admin-layout:items-start">
+    <div className="flex items-center justify-between gap-6 border-border-primary border-t px-8 py-6 text-fg-secondary text-sm max-admin-layout:flex-col max-admin-layout:items-start">
       <span>
         {start}-{end} z {count}
       </span>
-      <div className="flex gap-150">
+      <div className="flex gap-3">
         <AdminToolbarButton
           disabled={!hasPrevious}
           onClick={() =>
@@ -779,7 +779,7 @@ function CategoryOrganizePanel({
         />
       </AdminDetailFields>
       {children.length ? (
-        <div className="border-border-primary border-t p-400">
+        <div className="border-border-primary border-t p-8">
           <AdminInlineList>
             {children.map((child) =>
               child.id ? (
@@ -842,7 +842,7 @@ function DescriptionPreview({
   value: string
 }) {
   return (
-    <div className="grid gap-150">
+    <div className="grid gap-3">
       <strong className="font-bold text-fg-primary text-xs">{label}</strong>
       <AdminPreviewCode>{value}</AdminPreviewCode>
     </div>

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 
 export function AdminLinkCardGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(var(--container-3xs),100%),1fr))] gap-250">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(var(--container-3xs),100%),1fr))] gap-5">
       {children}
     </div>
   )
@@ -18,7 +18,7 @@ export function AdminLinkCard({
 }) {
   return (
     <Link
-      className="hover:-translate-y-50 focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-offset-(length:--default-ring-offset) grid min-h-48 content-start gap-200 rounded-md border border-border-primary bg-fill-base p-400 text-fg-primary transition-all duration-200 hover:bg-float hover:shadow-sm focus-visible:outline-ring motion-reduce:transition-none"
+      className="hover:-translate-y-50 focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-offset-(length:--default-ring-offset) grid min-h-48 content-start gap-4 rounded-md border border-border-primary bg-fill-base p-8 text-fg-primary transition-all duration-200 hover:bg-float hover:shadow-sm focus-visible:outline-ring motion-reduce:transition-none"
       to={to}
     >
       {children}

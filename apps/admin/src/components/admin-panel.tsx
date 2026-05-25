@@ -29,7 +29,7 @@ export function AdminPanel({
 
 export function AdminSplitLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(var(--container-sm),0.75fr)] items-start gap-400 max-admin-layout:grid-cols-1">
+    <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(var(--container-sm),0.75fr)] items-start gap-8 max-admin-layout:grid-cols-1">
       {children}
     </div>
   )
@@ -37,7 +37,7 @@ export function AdminSplitLayout({ children }: { children: ReactNode }) {
 
 export function AdminDetailLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(var(--container-xs),0.7fr)] items-start gap-400 max-admin-layout:grid-cols-1">
+    <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(var(--container-xs),0.7fr)] items-start gap-8 max-admin-layout:grid-cols-1">
       {children}
     </div>
   )
@@ -50,12 +50,12 @@ export function AdminDetailStack({
   as?: "aside" | "div"
   children: ReactNode
 }) {
-  return <Component className="grid gap-400">{children}</Component>
+  return <Component className="grid gap-8">{children}</Component>
 }
 
 export function AdminAddressGrid({ children }: { children: ReactNode }) {
   return (
-    <section className="grid grid-cols-2 gap-400 max-admin-layout:grid-cols-1">
+    <section className="grid grid-cols-2 gap-8 max-admin-layout:grid-cols-1">
       {children}
     </section>
   )

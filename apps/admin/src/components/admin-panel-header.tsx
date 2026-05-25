@@ -15,7 +15,7 @@ export function AdminPanelHeader({
   title: ReactNode
 }) {
   const headerClassName = cx(
-    "flex items-center justify-between gap-300 border-border-primary border-b px-400 py-350",
+    "flex items-center justify-between gap-6 border-border-primary border-b px-8 py-7",
     stacked ? "items-end max-admin-layout:items-start" : null,
     className
   )
