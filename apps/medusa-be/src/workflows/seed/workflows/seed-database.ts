@@ -1,4 +1,8 @@
-import {createWorkflow, transform, WorkflowResponse,} from "@medusajs/framework/workflows-sdk"
+import {
+  createWorkflow,
+  transform,
+  WorkflowResponse,
+} from "@medusajs/framework/workflows-sdk"
 import * as Steps from "../steps"
 
 const SeedDatabaseWorkflowId = "seed-database-workflow"
@@ -16,6 +20,38 @@ export type SeedDatabaseWorkflowInput = {
   publishableKey: Steps.CreatePublishableKeyStepInput
   productCategories: Steps.CreateProductCategoriesStepInput
   products: Steps.CreateProductsStepInput
+}
+
+function buildInventoryItemsInput(
+  products: SeedDatabaseWorkflowInput["products"]
+): Steps.CreateInventoryLevelsStepInput["inventoryItems"] {
+  const inventoryItems: Steps.CreateInventoryLevelsStepInput["inventoryItems"] =
+    []
+
+  for (const product of products) {
+    for (const variant of product.variants ?? []) {
+      if (!variant.sku) {
+        continue
+      }
+
+      if (variant.quantities?.locations?.length) {
+        inventoryItems.push({
+          sku: variant.sku,
+          locations: variant.quantities.locations,
+        })
+        continue
+      }
+
+      if (variant.quantities?.quantity !== undefined) {
+        inventoryItems.push({
+          sku: variant.sku,
+          quantity: variant.quantities.quantity,
+        })
+      }
+    }
+  }
+
+  return inventoryItems
 }
 
 const seedDatabaseWorkflow = createWorkflow(
@@ -272,25 +308,10 @@ const seedDatabaseWorkflow = createWorkflow(
           createStockLocationResult,
           input,
         },
-        (data) => {
-          const inventoryItems: Steps.CreateInventoryLevelsStepInput["inventoryItems"] =
-            []
-          for (const p of data.input.products) {
-            for (const v of p.variants ?? []) {
-              if (v.quantities?.quantity !== undefined) {
-                inventoryItems.push({
-                  sku: v.sku,
-                  quantity: v.quantities.quantity,
-                })
-              }
-            }
-          }
-
-          return {
-            stockLocations: data.createStockLocationResult.result,
-            inventoryItems,
-          }
-        }
+        (data) => ({
+          stockLocations: data.createStockLocationResult.result,
+          inventoryItems: buildInventoryItemsInput(data.input.products),
+        })
       )
 
     const createInventoryLevelsResult = Steps.createInventoryLevelsStep(

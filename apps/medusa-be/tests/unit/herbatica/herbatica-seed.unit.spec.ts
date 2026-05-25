@@ -162,6 +162,178 @@ describe("Herbatica seed promo rebase", () => {
   })
 })
 
+describe("Herbatica seed stock parsing", () => {
+  it("preserves simple STOCK/AMOUNT inventory on the default stock location", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="stock-simple">
+          <NAME>Simple stock product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>9.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>7</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const variant = result.products[0]?.variants?.[0]
+
+    expect(result.stockLocations).toEqual([
+      {
+        name: "European Warehouse",
+        address: {
+          city: "Copenhagen",
+          country_code: "DK",
+          address_1: "",
+        },
+      },
+    ])
+    expect(variant?.quantities).toEqual({
+      quantity: 7,
+      locations: [
+        {
+          stockLocationName: "European Warehouse",
+          quantity: 7,
+        },
+      ],
+    })
+    expect(variant?.metadata).toMatchObject({
+      stock: {
+        amount: 7,
+        warehouses: [],
+      },
+    })
+  })
+
+  it("preserves STOCK/WAREHOUSES quantities per Shoptet warehouse", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="stock-warehouse">
+          <NAME>Warehouse stock product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>9.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <WAREHOUSES>
+              <WAREHOUSE>
+                <NAME>Default stock</NAME>
+                <VALUE>84</VALUE>
+              </WAREHOUSE>
+              <WAREHOUSE>
+                <NAME>Pobočka Čadca</NAME>
+                <VALUE>2</VALUE>
+                <LOCATION>Čadca branch</LOCATION>
+              </WAREHOUSE>
+            </WAREHOUSES>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const variant = result.products[0]?.variants?.[0]
+
+    expect(result.stockLocations).toEqual([
+      {
+        name: "Default stock",
+        address: {
+          address_1: "Shoptet Warehouse",
+          city: "Unknown",
+          country_code: "SK",
+        },
+      },
+      {
+        name: "Pobočka Čadca",
+        address: {
+          address_1: "Čadca branch",
+          city: "Unknown",
+          country_code: "SK",
+        },
+      },
+    ])
+    expect(variant?.quantities).toEqual({
+      locations: [
+        {
+          stockLocationName: "Default stock",
+          quantity: 84,
+        },
+        {
+          stockLocationName: "Pobočka Čadca",
+          quantity: 2,
+        },
+      ],
+    })
+    expect(variant?.metadata).toMatchObject({
+      stock: {
+        warehouses: [
+          {
+            name: "Default stock",
+            value: 84,
+          },
+          {
+            name: "Pobočka Čadca",
+            value: 2,
+            location: "Čadca branch",
+          },
+        ],
+      },
+    })
+  })
+
+  it("warns and uses fallback stock location name for unnamed warehouses", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="stock-unnamed">
+          <NAME>Unnamed warehouse product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>9.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <WAREHOUSES>
+              <WAREHOUSE>
+                <VALUE>5</VALUE>
+              </WAREHOUSE>
+            </WAREHOUSES>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const variant = result.products[0]?.variants?.[0]
+
+    expect(result.stockLocations.map((location) => location.name)).toEqual([
+      "Shoptet Warehouse",
+    ])
+    expect(result.warnings).toEqual([
+      '1 Shoptet warehouse stock entries had no warehouse name and were mapped to "Shoptet Warehouse".',
+    ])
+    expect(variant?.quantities).toEqual({
+      locations: [
+        {
+          stockLocationName: "Shoptet Warehouse",
+          quantity: 5,
+        },
+      ],
+    })
+  })
+})
+
 describe("Herbatica seed product references", () => {
   it("keeps raw related product codes and adds resolved handles for published products", () => {
     const xml = `
@@ -443,6 +615,8 @@ describe("Herbatica committed feed fixtures", () => {
       products: 4,
       variants: 5,
       hiddenProducts: 1,
+      stockLocations: 1,
+      warnings: 0,
     })
     expect(result.categories.map((category) => category.handle)).toEqual(
       expect.arrayContaining([

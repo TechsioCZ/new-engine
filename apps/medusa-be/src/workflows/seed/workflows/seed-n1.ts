@@ -36,6 +36,38 @@ export type SeedN1WorkflowInput = {
   publishableKey: Steps.CreatePublishableKeyStepInput
 }
 
+function buildInventoryItemsInput(
+  products: Steps.CreateProductsStepInput
+): Steps.CreateInventoryLevelsStepInput["inventoryItems"] {
+  const inventoryItems: Steps.CreateInventoryLevelsStepInput["inventoryItems"] =
+    []
+
+  for (const product of products) {
+    for (const variant of product.variants ?? []) {
+      if (!variant.sku) {
+        continue
+      }
+
+      if (variant.quantities?.locations?.length) {
+        inventoryItems.push({
+          sku: variant.sku,
+          locations: variant.quantities.locations,
+        })
+        continue
+      }
+
+      if (variant.quantities?.quantity !== undefined) {
+        inventoryItems.push({
+          sku: variant.sku,
+          quantity: variant.quantities.quantity,
+        })
+      }
+    }
+  }
+
+  return inventoryItems
+}
+
 const seedN1Workflow = createWorkflow(
   seedN1WorkflowId,
   (input: SeedN1WorkflowInput) => {
@@ -249,26 +281,12 @@ const seedN1Workflow = createWorkflow(
           createStockLocationResult,
           createProductsStepInput,
         },
-        (data) => {
-          const inventoryItems: Steps.CreateInventoryLevelsStepInput["inventoryItems"] =
-            []
-          for (const p of data.createProductsStepInput) {
-            for (const v of p.variants ?? []) {
-              if (!v.sku || v.quantities?.quantity === undefined) {
-                continue
-              }
-              inventoryItems.push({
-                sku: v.sku,
-                quantity: v.quantities.quantity,
-              })
-            }
-          }
-
-          return {
-            stockLocations: data.createStockLocationResult.result,
-            inventoryItems,
-          }
-        }
+        (data) => ({
+          stockLocations: data.createStockLocationResult.result,
+          inventoryItems: buildInventoryItemsInput(
+            data.createProductsStepInput
+          ),
+        })
       )
 
     Steps.createInventoryLevelsStep(createInventoryLevelsInput)

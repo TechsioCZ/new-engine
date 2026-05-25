@@ -71,6 +71,12 @@ type ParsedOssTaxRate = {
   level?: string
 }
 
+type ParsedStockWarehouse = {
+  name?: string
+  quantity?: number
+  location?: string
+}
+
 type ParsedRelatedFile = {
   url?: string
   title?: string
@@ -107,6 +113,7 @@ type ParsedOfferData = {
   stockMinimalAmount?: number
   stockMaximalAmount?: number
   stockMinSupply?: number
+  stockWarehouses: ParsedStockWarehouse[]
   availabilityOutOfStock?: string
   availabilityInStock?: string
   imageRef?: string
@@ -222,12 +229,16 @@ type CategoryBuildResult = {
 type BuildResult = {
   categories: CategorySeedInput[]
   products: ProductSeedInput[]
+  stockLocations: SeedDatabaseWorkflowInput["stockLocations"]["locations"]
+  warnings: string[]
   stats: {
     shopItems: number
     categories: number
     products: number
     variants: number
     hiddenProducts: number
+    stockLocations: number
+    warnings: number
   }
 }
 
@@ -261,6 +272,14 @@ type BuildVariantsForProductOptions = {
   usedSkus: Set<string>
   usedEans: Set<string>
   referenceDate?: Date
+}
+
+const DEFAULT_STOCK_LOCATION_NAME = "European Warehouse"
+const FALLBACK_SHOPTET_WAREHOUSE_NAME = "Shoptet Warehouse"
+const FALLBACK_SHOPTET_WAREHOUSE_ADDRESS = {
+  address_1: "Shoptet Warehouse",
+  city: "Unknown",
+  country_code: "SK",
 }
 
 const DEFAULT_PRODUCTS_XML_PATHS = [
@@ -1544,6 +1563,70 @@ function normalizeInventoryQuantity(quantity?: number): number {
   return Math.max(0, Math.trunc(quantity))
 }
 
+function resolveWarehouseStockLocationName(warehouse: ParsedStockWarehouse): {
+  name: string
+  usedFallback: boolean
+} {
+  const name = normalizeInlineText(warehouse.name)
+  if (name) {
+    return {
+      name,
+      usedFallback: false,
+    }
+  }
+
+  return {
+    name: FALLBACK_SHOPTET_WAREHOUSE_NAME,
+    usedFallback: true,
+  }
+}
+
+function buildWarehouseStockLocationAddress(location?: string): {
+  city: string
+  country_code: string
+  address_1: string
+} {
+  const address = normalizeInlineText(location)
+  if (!address) {
+    return { ...FALLBACK_SHOPTET_WAREHOUSE_ADDRESS }
+  }
+
+  return {
+    address_1: address,
+    city: "Unknown",
+    country_code: "SK",
+  }
+}
+
+function buildOfferInventoryQuantities(offer: ParsedOfferData): {
+  quantity?: number
+  supplier_quantity?: number
+  locations?: {
+    stockLocationName: string
+    quantity: number
+  }[]
+} {
+  if (offer.stockWarehouses.length === 0) {
+    const quantity = normalizeInventoryQuantity(offer.stockAmountRaw)
+    return {
+      quantity,
+      locations: [
+        {
+          stockLocationName: DEFAULT_STOCK_LOCATION_NAME,
+          quantity,
+        },
+      ],
+    }
+  }
+
+  return {
+    locations: offer.stockWarehouses.map((warehouse) => ({
+      stockLocationName: resolveWarehouseStockLocationName(warehouse).name,
+      quantity: normalizeInventoryQuantity(warehouse.quantity),
+    })),
+  }
+}
+
 function parseParameters(
   source: string,
   containerTag: string
@@ -1597,12 +1680,26 @@ function parseOssTaxRates(source: string): ParsedOssTaxRate[] {
   }))
 }
 
+function parseStockWarehouses(stockRaw?: string): ParsedStockWarehouse[] {
+  const warehousesRaw = extractFirstElementContent(stockRaw ?? "", "WAREHOUSES")
+  if (!warehousesRaw) {
+    return []
+  }
+
+  return extractElements(warehousesRaw, "WAREHOUSE").map((warehouse) => ({
+    name: extractFirstText(warehouse.inner, "NAME"),
+    quantity: parseInteger(extractFirstText(warehouse.inner, "VALUE")),
+    location: extractFirstText(warehouse.inner, "LOCATION"),
+  }))
+}
+
 function parseOfferData(
   source: string,
   attributes?: Record<string, string>
 ): ParsedOfferData {
   const stockRaw = extractFirstElementContent(source, "STOCK")
   const stockAmount = parseInteger(extractFirstText(stockRaw ?? "", "AMOUNT"))
+  const stockWarehouses = parseStockWarehouses(stockRaw)
   const stockMinSupply = parseInteger(
     extractFirstText(source, "STOCK_MIN_SUPPLY")
   )
@@ -1640,6 +1737,7 @@ function parseOfferData(
       extractFirstText(stockRaw ?? "", "MAXIMAL_AMOUNT")
     ),
     stockMinSupply,
+    stockWarehouses,
     availabilityOutOfStock: extractFirstText(
       source,
       "AVAILABILITY_OUT_OF_STOCK"
@@ -2278,6 +2376,11 @@ function buildVariantMetadata(
     stock: {
       amount: offer.stockAmountRaw,
       location: offer.stockLocation,
+      warehouses: offer.stockWarehouses.map((warehouse) => ({
+        name: warehouse.name,
+        value: warehouse.quantity,
+        location: warehouse.location,
+      })),
       minimal_amount: offer.stockMinimalAmount,
       maximal_amount: offer.stockMaximalAmount,
       min_supply: offer.stockMinSupply,
@@ -2421,7 +2524,7 @@ function buildVariantsForProduct({
     }
     const amount = resolveOfferCurrentPrice(topOffer, undefined, referenceDate)
     const currencyCode = (topOffer.currency ?? "EUR").toLowerCase()
-    const quantity = normalizeInventoryQuantity(topOffer.stockAmountRaw)
+    const quantities = buildOfferInventoryQuantities(topOffer)
     const thumbnail = topOffer.imageRef
     const optionTitle = DEFAULT_OPTION_TITLE
     const optionValue = DEFAULT_OPTION_VALUE
@@ -2450,9 +2553,7 @@ function buildVariantsForProduct({
           images: thumbnail ? [{ url: thumbnail }] : undefined,
           thumbnail,
           metadata: buildVariantMetadata(topOffer, undefined, referenceDate),
-          quantities: {
-            quantity,
-          },
+          quantities,
         },
       ],
     }
@@ -2534,7 +2635,7 @@ function buildVariantsForProduct({
       item.topOffer,
       referenceDate
     )
-    const quantity = normalizeInventoryQuantity(variant.stockAmountRaw)
+    const quantities = buildOfferInventoryQuantities(variant)
     const thumbnail = variant.imageRef
     const rawEan = normalizeInlineText(variant.ean)
     const ean = rawEan && !usedEans.has(rawEan) ? rawEan : undefined
@@ -2556,9 +2657,7 @@ function buildVariantsForProduct({
       images: thumbnail ? [{ url: thumbnail }] : undefined,
       thumbnail,
       metadata: buildVariantMetadata(variant, item.topOffer, referenceDate),
-      quantities: {
-        quantity,
-      },
+      quantities,
     }
   })
 
@@ -2673,6 +2772,93 @@ function buildProducts(
   })
 }
 
+function getItemOffers(item: ParsedShopItem): ParsedOfferData[] {
+  return item.variants.length > 0 ? item.variants : [item.topOffer]
+}
+
+function addWarehouseStockLocation(
+  locationsByName: Map<
+    string,
+    SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
+  >,
+  warehouse: ParsedStockWarehouse
+): boolean {
+  const { name, usedFallback } = resolveWarehouseStockLocationName(warehouse)
+  const address = buildWarehouseStockLocationAddress(warehouse.location)
+  const existingLocation = locationsByName.get(name)
+
+  if (!existingLocation) {
+    locationsByName.set(name, {
+      name,
+      address,
+    })
+    return usedFallback
+  }
+
+  if (
+    existingLocation.address.address_1 ===
+      FALLBACK_SHOPTET_WAREHOUSE_ADDRESS.address_1 &&
+    address.address_1 !== FALLBACK_SHOPTET_WAREHOUSE_ADDRESS.address_1
+  ) {
+    existingLocation.address = address
+  }
+
+  return usedFallback
+}
+
+function addDefaultStockLocation(
+  locationsByName: Map<
+    string,
+    SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
+  >
+) {
+  locationsByName.set(DEFAULT_STOCK_LOCATION_NAME, {
+    name: DEFAULT_STOCK_LOCATION_NAME,
+    address: {
+      city: "Copenhagen",
+      country_code: "DK",
+      address_1: "",
+    },
+  })
+}
+
+function buildStockLocationsFromItems(items: ParsedShopItem[]): {
+  locations: SeedDatabaseWorkflowInput["stockLocations"]["locations"]
+  warnings: string[]
+} {
+  const locationsByName = new Map<
+    string,
+    SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
+  >()
+  const warnings: string[] = []
+  const offers = items.flatMap(getItemOffers)
+  const hasSimpleStock = offers.some(
+    (offer) => offer.stockWarehouses.length === 0
+  )
+  let missingWarehouseNames = 0
+
+  for (const warehouse of offers.flatMap((offer) => offer.stockWarehouses)) {
+    if (addWarehouseStockLocation(locationsByName, warehouse)) {
+      missingWarehouseNames += 1
+    }
+  }
+
+  if (hasSimpleStock || locationsByName.size === 0) {
+    addDefaultStockLocation(locationsByName)
+  }
+
+  if (missingWarehouseNames > 0) {
+    warnings.push(
+      `${missingWarehouseNames} Shoptet warehouse stock entries had no warehouse name and were mapped to "${FALLBACK_SHOPTET_WAREHOUSE_NAME}".`
+    )
+  }
+
+  return {
+    locations: [...locationsByName.values()],
+    warnings,
+  }
+}
+
 function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
   const usedSkus = new Set<string>()
 
@@ -2717,6 +2903,8 @@ export function buildSeedInputFromXml(
     categoryIdToHandle,
     buildOptions
   )
+  const { locations: stockLocations, warnings } =
+    buildStockLocationsFromItems(items)
   enforceUniqueVariantSkus(products)
   const hiddenProducts = products.filter(
     (product) => product.status === ProductStatus.DRAFT
@@ -2729,12 +2917,16 @@ export function buildSeedInputFromXml(
   return {
     categories,
     products,
+    stockLocations,
+    warnings,
     stats: {
       shopItems: items.length,
       categories: categories.length,
       products: products.length,
       variants,
       hiddenProducts,
+      stockLocations: stockLocations.length,
+      warnings: warnings.length,
     },
   }
 }
@@ -2819,6 +3011,12 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   logger.info(
     `Products set to draft due to visibility rules: ${parsed.stats.hiddenProducts}`
   )
+  logger.info(
+    `Parsed ${parsed.stats.stockLocations} stock locations from stock data`
+  )
+  for (const warning of parsed.warnings) {
+    logger.warn(warning)
+  }
 
   const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
   const existingRegions = await regionService.listRegions({})
@@ -2914,16 +3112,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
       countries: [...DEFAULT_COUNTRIES],
     },
     stockLocations: {
-      locations: [
-        {
-          name: "European Warehouse",
-          address: {
-            city: "Copenhagen",
-            country_code: "DK",
-            address_1: "",
-          },
-        },
-      ],
+      locations: parsed.stockLocations,
     },
     defaultShippingProfile: {
       name: "Default Shipping Profile",
