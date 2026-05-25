@@ -27,6 +27,8 @@ const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
  *       application/json:
  *         schema:
  *           $ref: "#/components/schemas/SymmyWebhookConfigResponse"
+ *   "401":
+ *     description: Missing or invalid admin authentication.
  */
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const webhookService = req.scope.resolve<SymmyWebhookConfigModuleService>(
@@ -58,6 +60,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
  *           $ref: "#/components/schemas/SymmyWebhookConfigResponse"
  *   "400":
  *     description: Invalid webhook configuration payload.
+ *   "401":
+ *     description: Missing or invalid admin authentication.
  */
 export async function POST(
   req: MedusaRequest<PostAdminSymmyWebhookConfigSchemaType>,

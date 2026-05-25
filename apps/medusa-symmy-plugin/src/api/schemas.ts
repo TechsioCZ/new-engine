@@ -297,6 +297,25 @@ export {}
  * required:
  *   - identifier_type
  *   - title
+ * oneOf:
+ *   - required:
+ *       - sku
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - sku
+ *   - required:
+ *       - ean
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - ean
+ *   - required:
+ *       - variant_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - variant_id
  * properties:
  *   identifier_type:
  *     type: string
@@ -306,12 +325,16 @@ export {}
  *       - variant_id
  *   sku:
  *     type: string
+ *     minLength: 1
  *   ean:
  *     type: string
+ *     minLength: 1
  *   variant_id:
  *     type: string
+ *     minLength: 1
  *   title:
  *     type: string
+ *     minLength: 1
  *   manage_inventory:
  *     type: boolean
  *     default: true
@@ -340,6 +363,25 @@ export {}
  * required:
  *   - identifier_type
  *   - title
+ * oneOf:
+ *   - required:
+ *       - sku
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - sku
+ *   - required:
+ *       - ean
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - ean
+ *   - required:
+ *       - erp_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - erp_id
  * properties:
  *   identifier_type:
  *     type: string
@@ -349,18 +391,23 @@ export {}
  *       - erp_id
  *   sku:
  *     type: string
+ *     minLength: 1
  *   ean:
  *     type: string
+ *     minLength: 1
  *   erp_id:
  *     type: string
+ *     minLength: 1
  *   title:
  *     type: string
+ *     minLength: 1
  *   subtitle:
  *     type: string
  *   description:
  *     type: string
  *   handle:
  *     type: string
+ *     minLength: 1
  *   status:
  *     type: string
  *     enum:
@@ -380,11 +427,18 @@ export {}
  *     maxItems: 50
  *     items:
  *       type: object
+ *       anyOf:
+ *         - required:
+ *             - handle
+ *         - required:
+ *             - name
  *       properties:
  *         handle:
  *           type: string
+ *           minLength: 1
  *         name:
  *           type: string
+ *           minLength: 1
  *   images:
  *     type: array
  *     maxItems: 50
@@ -436,6 +490,7 @@ export {}
  * properties:
  *   address_id:
  *     type: string
+ *     minLength: 1
  *   first_name:
  *     type: string
  *   last_name:
@@ -444,14 +499,18 @@ export {}
  *     type: string
  *   address_1:
  *     type: string
+ *     minLength: 1
  *   address_2:
  *     type: string
  *   city:
  *     type: string
+ *     minLength: 1
  *   postal_code:
  *     type: string
+ *     minLength: 1
  *   country_code:
  *     type: string
+ *     minLength: 1
  *   phone:
  *     type: string
  */
@@ -463,6 +522,46 @@ export {}
  *   - identifier_type
  *   - first_name
  *   - last_name
+ * oneOf:
+ *   - required:
+ *       - email
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - email
+ *   - required:
+ *       - metadata
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - erp_id
+ *       metadata:
+ *         required:
+ *           - erp_id
+ *   - required:
+ *       - customer_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - customer_id
+ *   - required:
+ *       - metadata
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - vat_id
+ *       metadata:
+ *         required:
+ *           - vat_id
+ *   - required:
+ *       - metadata
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - company_registration_number
+ *       metadata:
+ *         required:
+ *           - company_registration_number
  * properties:
  *   identifier_type:
  *     type: string
@@ -477,10 +576,13 @@ export {}
  *     format: email
  *   customer_id:
  *     type: string
+ *     minLength: 1
  *   first_name:
  *     type: string
+ *     minLength: 1
  *   last_name:
  *     type: string
+ *     minLength: 1
  *   phone:
  *     type: string
  *   company_name:
@@ -495,8 +597,19 @@ export {}
  *     maxItems: 100
  *     items:
  *       type: string
+ *       minLength: 1
  *   metadata:
  *     type: object
+ *     properties:
+ *       erp_id:
+ *         type: string
+ *         minLength: 1
+ *       vat_id:
+ *         type: string
+ *         minLength: 1
+ *       company_registration_number:
+ *         type: string
+ *         minLength: 1
  *     additionalProperties: true
  */
 
@@ -520,6 +633,29 @@ export {}
  * required:
  *   - identifier_type
  *   - name
+ * oneOf:
+ *   - properties:
+ *       identifier_type:
+ *         enum:
+ *           - name
+ *   - required:
+ *       - customer_group_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - customer_group_id
+ *   - required:
+ *       - code
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - code
+ *   - required:
+ *       - erp_code
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - erp_code
  * properties:
  *   identifier_type:
  *     type: string
@@ -530,12 +666,16 @@ export {}
  *       - erp_code
  *   customer_group_id:
  *     type: string
+ *     minLength: 1
  *   name:
  *     type: string
+ *     minLength: 1
  *   code:
  *     type: string
+ *     minLength: 1
  *   erp_code:
  *     type: string
+ *     minLength: 1
  *   metadata:
  *     type: object
  *     additionalProperties: true
@@ -608,6 +748,25 @@ export {}
  * type: object
  * required:
  *   - identifier_type
+ * oneOf:
+ *   - required:
+ *       - email
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - email
+ *   - required:
+ *       - customer_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - customer_id
+ *   - required:
+ *       - erp_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - erp_id
  * properties:
  *   identifier_type:
  *     type: string
@@ -620,8 +779,10 @@ export {}
  *     format: email
  *   customer_id:
  *     type: string
+ *     minLength: 1
  *   erp_id:
  *     type: string
+ *     minLength: 1
  */
 
 /**
@@ -644,6 +805,31 @@ export {}
  * required:
  *   - identifier_type
  *   - stocked_quantity
+ * oneOf:
+ *   - required:
+ *       - sku
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - sku
+ *   - required:
+ *       - ean
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - ean
+ *   - required:
+ *       - variant_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - variant_id
+ *   - required:
+ *       - inventory_item_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - inventory_item_id
  * properties:
  *   identifier_type:
  *     type: string
@@ -654,14 +840,19 @@ export {}
  *       - inventory_item_id
  *   sku:
  *     type: string
+ *     minLength: 1
  *   ean:
  *     type: string
+ *     minLength: 1
  *   variant_id:
  *     type: string
+ *     minLength: 1
  *   inventory_item_id:
  *     type: string
+ *     minLength: 1
  *   location_id:
  *     type: string
+ *     minLength: 1
  *   stocked_quantity:
  *     type: integer
  *     minimum: 0
@@ -739,6 +930,30 @@ export {}
  * required:
  *   - identifier_type
  *   - invoice_number
+ * oneOf:
+ *   - required:
+ *       - display_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - display_id
+ *   - required:
+ *       - order_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - order_id
+ *   - required:
+ *       - erp_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - erp_id
+ * anyOf:
+ *   - required:
+ *       - url
+ *   - required:
+ *       - data
  * properties:
  *   identifier_type:
  *     type: string
@@ -748,12 +963,16 @@ export {}
  *       - erp_id
  *   display_id:
  *     type: string
+ *     minLength: 1
  *   order_id:
  *     type: string
+ *     minLength: 1
  *   erp_id:
  *     type: string
+ *     minLength: 1
  *   invoice_number:
  *     type: string
+ *     minLength: 1
  *   invoice_date:
  *     type: string
  *     format: date
@@ -762,6 +981,7 @@ export {}
  *     format: uri
  *   data:
  *     type: string
+ *     minLength: 1
  */
 
 /**
@@ -827,6 +1047,25 @@ export {}
  *   - identifier_type
  *   - currency_code
  *   - amount
+ * oneOf:
+ *   - required:
+ *       - sku
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - sku
+ *   - required:
+ *       - ean
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - ean
+ *   - required:
+ *       - variant_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - variant_id
  * properties:
  *   identifier_type:
  *     type: string
@@ -836,10 +1075,13 @@ export {}
  *       - variant_id
  *   sku:
  *     type: string
+ *     minLength: 1
  *   ean:
  *     type: string
+ *     minLength: 1
  *   variant_id:
  *     type: string
+ *     minLength: 1
  *   currency_code:
  *     type: string
  *     minLength: 3
@@ -862,8 +1104,10 @@ export {}
  * properties:
  *   code:
  *     type: string
+ *     minLength: 1
  *   name:
  *     type: string
+ *     minLength: 1
  *   description:
  *     type: string
  *   type:
@@ -886,6 +1130,7 @@ export {}
  *     format: date-time
  *   customer_group_code:
  *     type: string
+ *     minLength: 1
  *   prices:
  *     type: array
  *     maxItems: 500
@@ -972,6 +1217,7 @@ export {}
  * properties:
  *   sku:
  *     type: string
+ *     minLength: 1
  *   quantity:
  *     type: integer
  *     minimum: 1
@@ -983,6 +1229,25 @@ export {}
  * required:
  *   - identifier_type
  *   - tracking_number
+ * oneOf:
+ *   - required:
+ *       - display_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - display_id
+ *   - required:
+ *       - order_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - order_id
+ *   - required:
+ *       - erp_id
+ *     properties:
+ *       identifier_type:
+ *         enum:
+ *           - erp_id
  * properties:
  *   identifier_type:
  *     type: string
@@ -992,17 +1257,22 @@ export {}
  *       - erp_id
  *   display_id:
  *     type: string
+ *     minLength: 1
  *   order_id:
  *     type: string
+ *     minLength: 1
  *   erp_id:
  *     type: string
+ *     minLength: 1
  *   tracking_number:
  *     type: string
+ *     minLength: 1
  *   tracking_url:
  *     type: string
  *     format: uri
  *   carrier:
  *     type: string
+ *     minLength: 1
  *   send_notification:
  *     type: boolean
  *     default: true
