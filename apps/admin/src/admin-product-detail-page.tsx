@@ -11,6 +11,7 @@ import {
   AdminDetailField,
   AdminDetailFields,
 } from "./components/admin-detail-field"
+import { AdminInfoItem, AdminInfoList } from "./components/admin-info-list"
 import { AdminTextLink } from "./components/admin-link"
 import { AdminMediaFrame } from "./components/admin-media"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
@@ -169,21 +170,16 @@ function ProductOptionsPanel({
         title="Options"
       />
       {options.length ? (
-        <div className="grid gap-200 p-400">
+        <AdminInfoList>
           {options.map((option) => (
-            <div
-              className="grid gap-100 rounded-md border border-border-primary bg-fill-base px-300 py-250"
+            <AdminInfoItem
               key={option.id ?? option.title}
+              title={option.title ?? option.id}
             >
-              <strong className="font-bold text-fg-primary text-xs">
-                {option.title ?? option.id}
-              </strong>
-              <span className="text-fg-secondary text-xs leading-normal">
-                {formatOptionValues(option)}
-              </span>
-            </div>
+              {formatOptionValues(option)}
+            </AdminInfoItem>
           ))}
-        </div>
+        </AdminInfoList>
       ) : (
         <AdminState>Bez option hodnot.</AdminState>
       )}

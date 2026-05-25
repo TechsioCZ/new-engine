@@ -23,6 +23,11 @@ import {
   AdminDetailField,
   AdminDetailFields,
 } from "./components/admin-detail-field"
+import {
+  AdminEntityBody,
+  AdminEntityLayout,
+  AdminEntityText,
+} from "./components/admin-entity"
 import { AdminTableLink } from "./components/admin-link"
 import {
   AdminList,
@@ -397,23 +402,23 @@ function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
 function ProductRow({ product }: { product: AdminProductListItem }) {
   return (
     <AdminListRow to={`/products/${product.id}`}>
-      <div className="grid min-w-0 grid-cols-[var(--spacing-23)_minmax(0,1fr)] items-center gap-300">
+      <AdminEntityLayout>
         <AdminListMedia
           fallback={getProductInitials(product.title)}
           src={product.thumbnail}
         />
-        <AdminListRowBody>
+        <AdminEntityBody>
           <AdminListRowTitle>{product.title}</AdminListRowTitle>
           <AdminListRowText>
             {product.handle ? `/${product.handle}` : product.id}
           </AdminListRowText>
           {product.collection_title && (
-            <span className="mt-100 block text-fg-tertiary text-xs leading-normal">
+            <AdminEntityText tone="tertiary">
               {product.collection_title}
-            </span>
+            </AdminEntityText>
           )}
-        </AdminListRowBody>
-      </div>
+        </AdminEntityBody>
+      </AdminEntityLayout>
       <AdminListRowMeta className="min-w-3xs justify-end max-admin-layout:min-w-0">
         <Badge
           size="sm"

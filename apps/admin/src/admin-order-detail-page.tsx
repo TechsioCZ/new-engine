@@ -23,6 +23,11 @@ import {
   AdminDetailFields,
 } from "./components/admin-detail-field"
 import {
+  AdminEntityBody,
+  AdminEntityLayout,
+  AdminEntityText,
+} from "./components/admin-entity"
+import {
   AdminFeedback,
   type AdminFeedbackState,
 } from "./components/admin-feedback"
@@ -55,6 +60,10 @@ import {
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
 import { AdminState } from "./components/admin-state"
+import {
+  AdminSummaryList,
+  AdminSummaryRow,
+} from "./components/admin-summary-list"
 import { AdminTable } from "./components/admin-table"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 import {
@@ -271,25 +280,19 @@ function OrderTotalsPanel({ order }: { order: MedusaAdminOrder }) {
         subtitle={order.currency_code?.toUpperCase() ?? "CZK"}
         title="Financni souhrn"
       />
-      <div className="grid px-400 py-200">
+      <AdminSummaryList>
         {rows.map((row) => (
-          <div
-            className={
-              row.isStrong
-                ? "flex items-center justify-between gap-450 border-border-secondary border-b border-dashed py-250 font-bold text-fg-primary text-sm last:border-b-0"
-                : "flex items-center justify-between gap-450 border-border-secondary border-b border-dashed py-250 text-fg-secondary text-sm last:border-b-0"
-            }
+          <AdminSummaryRow
+            emphasized={row.isStrong}
             key={row.label}
+            label={row.label}
           >
-            <span>{row.label}</span>
-            <strong className="font-semibold text-fg-primary">
-              {row.isDeduction
-                ? formatDeductionMoney(row.value, order.currency_code ?? null)
-                : formatMoney(row.value, order.currency_code ?? null)}
-            </strong>
-          </div>
+            {row.isDeduction
+              ? formatDeductionMoney(row.value, order.currency_code ?? null)
+              : formatMoney(row.value, order.currency_code ?? null)}
+          </AdminSummaryRow>
         ))}
-      </div>
+      </AdminSummaryList>
     </AdminPanel>
   )
 }
@@ -617,14 +620,14 @@ function OrderItemsTable({
         {items.map((item) => (
           <AdminTable.Row key={item.id}>
             <AdminTable.Cell>
-              <div className="grid min-w-3xs grid-cols-[var(--spacing-20)_minmax(0,1fr)] items-center gap-250">
+              <AdminEntityLayout className="min-w-3xs" size="sm">
                 <AdminMediaFrame
                   className="size-20"
                   fallback={getInitials(getItemTitle(item))}
                   fallbackClassName="text-xs"
                   src={item.thumbnail ?? item.product?.thumbnail}
                 />
-                <div className="min-w-0">
+                <AdminEntityBody>
                   {item.product_id ? (
                     <AdminTableLink to={`/products/${item.product_id}`}>
                       {getItemTitle(item)}
@@ -632,11 +635,11 @@ function OrderItemsTable({
                   ) : (
                     <strong>{getItemTitle(item)}</strong>
                   )}
-                  <span className="mt-50 block text-fg-secondary text-xs">
+                  <AdminEntityText offset="sm">
                     {item.variant_title ?? item.variant?.title ?? "-"}
-                  </span>
-                </div>
-              </div>
+                  </AdminEntityText>
+                </AdminEntityBody>
+              </AdminEntityLayout>
             </AdminTable.Cell>
             <AdminTable.Cell>
               {item.variant_sku ?? item.variant?.sku ?? "-"}

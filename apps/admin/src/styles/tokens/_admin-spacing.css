@@ -100,4 +100,7 @@
   --spacing-850: var(--spacing-17);
   --spacing-900: var(--spacing-18);
   --spacing-950: var(--spacing-19);
+
+  --spacing-admin-entity-sm: var(--spacing-20);
+  --spacing-admin-entity-md: var(--spacing-23);
 }
