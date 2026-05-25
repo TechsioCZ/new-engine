@@ -1,9 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
 import type { PplConfig, PplConfigInput, PplLabelFormat } from "./admin-types"
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
@@ -23,11 +26,6 @@ import {
 import { AdminState } from "./components/admin-state"
 import { AdminTextField } from "./components/admin-text-field"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
-
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
 
 type PplFormData = {
   client_id: string
@@ -196,7 +194,7 @@ export function PplSettingsPage() {
   const [clearedFields, setClearedFields] = useState<Set<SensitiveField>>(
     new Set()
   )
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const mutation = useMutation({
     mutationFn: updatePplConfig,
     onError: (error) => {
@@ -316,15 +314,7 @@ export function PplSettingsPage() {
         />
 
         {feedback && (
-          <StatusText
-            align="start"
-            role={feedback.tone === "error" ? "alert" : "status"}
-            showIcon
-            size="sm"
-            status={feedback.tone}
-          >
-            {feedback.message}
-          </StatusText>
+          <AdminFeedback tone={feedback.tone}>{feedback.message}</AdminFeedback>
         )}
 
         <AdminFormActions>

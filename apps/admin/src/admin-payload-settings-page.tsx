@@ -1,22 +1,20 @@
 import { useQuery } from "@tanstack/react-query"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useState } from "react"
 import { fetchPayloadSsoHtml, usePayloadConfig } from "./admin-api"
 import { MEDUSA_BACKEND_URL } from "./admin-config"
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPanel } from "./components/admin-panel"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminState } from "./components/admin-state"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
-
 export function PayloadSettingsPage() {
   const config = usePayloadConfig()
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const iframeUrl = config.data?.iframeUrl
   const returnTo = getPayloadReturnTo(iframeUrl)
   const ssoHtml = useQuery({
@@ -119,7 +117,7 @@ function PayloadNewTabLauncher({
   iframeUrl,
   onOpen,
 }: {
-  feedback: Feedback
+  feedback: AdminFeedbackState
   iframeUrl: string
   onOpen: () => void
 }) {
@@ -135,15 +133,7 @@ function PayloadNewTabLauncher({
       </div>
       <AdminToolbarButton onClick={onOpen}>Otevrit Payload</AdminToolbarButton>
       {feedback && (
-        <StatusText
-          align="start"
-          role={feedback.tone === "error" ? "alert" : "status"}
-          showIcon
-          size="sm"
-          status={feedback.tone}
-        >
-          {feedback.message}
-        </StatusText>
+        <AdminFeedback tone={feedback.tone}>{feedback.message}</AdminFeedback>
       )}
     </div>
   )

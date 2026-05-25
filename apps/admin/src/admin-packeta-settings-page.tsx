@@ -1,11 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormNumericInput } from "@techsio/ui-kit/molecules/form-numeric-input"
 import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePacketaConfig, usePacketaConfig } from "./admin-api"
 import type { PacketaConfig, PacketaConfigInput } from "./admin-types"
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
 import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import {
@@ -25,11 +28,6 @@ import {
 import { AdminState } from "./components/admin-state"
 import { AdminTextField } from "./components/admin-text-field"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
-
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
 
 type PacketaLabelFormat = "A6" | "A7"
 
@@ -200,7 +198,7 @@ export function PacketaSettingsPage() {
   const [clearedFields, setClearedFields] = useState<Set<SensitiveField>>(
     new Set()
   )
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const mutation = useMutation({
     mutationFn: updatePacketaConfig,
     onError: (error) => {
@@ -339,15 +337,7 @@ export function PacketaSettingsPage() {
         />
 
         {feedback && (
-          <StatusText
-            align="start"
-            role={feedback.tone === "error" ? "alert" : "status"}
-            showIcon
-            size="sm"
-            status={feedback.tone}
-          >
-            {feedback.message}
-          </StatusText>
+          <AdminFeedback tone={feedback.tone}>{feedback.message}</AdminFeedback>
         )}
 
         <AdminFormActions>

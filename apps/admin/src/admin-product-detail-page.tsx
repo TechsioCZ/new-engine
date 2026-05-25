@@ -1,5 +1,4 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Table } from "@techsio/ui-kit/organisms/table"
 import { Navigate, useParams } from "react-router-dom"
 import { useAdminProductDetail } from "./admin-api"
 import type {
@@ -23,6 +22,7 @@ import {
 import { AdminPanelHeader } from "./components/admin-panel-header"
 import { AdminJsonPreview } from "./components/admin-preview"
 import { AdminState } from "./components/admin-state"
+import { AdminTable } from "./components/admin-table"
 import { formatCount } from "./utils/format"
 
 const TITLE_SPLIT_PATTERN = /\s+/
@@ -223,34 +223,36 @@ function ProductVariantsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table className="min-w-2xl" size="sm" variant="line">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader>Varianta</Table.ColumnHeader>
-            <Table.ColumnHeader>SKU</Table.ColumnHeader>
-            <Table.ColumnHeader>EAN</Table.ColumnHeader>
-            <Table.ColumnHeader>Inventory</Table.ColumnHeader>
-            <Table.ColumnHeader>Backorder</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {variants.map((variant) => (
-            <Table.Row key={variant.id}>
-              <Table.Cell className="font-semibold text-fg-primary">
-                {variant.title ?? variant.id}
-              </Table.Cell>
-              <Table.Cell>{variant.sku ?? "-"}</Table.Cell>
-              <Table.Cell>
-                {variant.ean ?? variant.barcode ?? variant.upc ?? "-"}
-              </Table.Cell>
-              <Table.Cell>{formatBoolean(variant.manage_inventory)}</Table.Cell>
-              <Table.Cell>{formatBoolean(variant.allow_backorder)}</Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table>
-    </div>
+    <AdminTable width="2xl">
+      <AdminTable.Header>
+        <AdminTable.Row>
+          <AdminTable.ColumnHeader>Varianta</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>SKU</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>EAN</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Inventory</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Backorder</AdminTable.ColumnHeader>
+        </AdminTable.Row>
+      </AdminTable.Header>
+      <AdminTable.Body>
+        {variants.map((variant) => (
+          <AdminTable.Row key={variant.id}>
+            <AdminTable.Cell className="font-semibold text-fg-primary">
+              {variant.title ?? variant.id}
+            </AdminTable.Cell>
+            <AdminTable.Cell>{variant.sku ?? "-"}</AdminTable.Cell>
+            <AdminTable.Cell>
+              {variant.ean ?? variant.barcode ?? variant.upc ?? "-"}
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              {formatBoolean(variant.manage_inventory)}
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              {formatBoolean(variant.allow_backorder)}
+            </AdminTable.Cell>
+          </AdminTable.Row>
+        ))}
+      </AdminTable.Body>
+    </AdminTable>
   )
 }
 

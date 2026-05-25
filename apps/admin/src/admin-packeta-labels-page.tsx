@@ -1,7 +1,5 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { Table } from "@techsio/ui-kit/organisms/table"
 import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
@@ -10,6 +8,10 @@ import {
   usePacketaLabelOrders,
 } from "./admin-api"
 import type { PacketaLabelOrder, PacketaOrderFulfillment } from "./admin-types"
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
 import {
   AdminPage,
   AdminPageCount,
@@ -23,15 +25,11 @@ import {
   type AdminSelectFieldItem,
 } from "./components/admin-select-field"
 import { AdminState } from "./components/admin-state"
+import { AdminTable } from "./components/admin-table"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 import { readOffset } from "./utils/format"
 
 type LabelFormat = "A6" | "A7"
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
-
 const LABEL_FORMATS: LabelFormat[] = ["A6", "A7"]
 const LABEL_OFFSETS = [0, 1, 2, 3]
 const LABEL_FORMAT_ITEMS: AdminSelectFieldItem[] = LABEL_FORMATS.map(
@@ -55,7 +53,7 @@ export function PacketaLabelsPage() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(
     new Set()
   )
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const orders = usePacketaLabelOrders({ offset })
 
@@ -169,16 +167,9 @@ export function PacketaLabelsPage() {
           title="Objednavky s Packetou"
         />
         {feedback && (
-          <StatusText
-            align="start"
-            className="mx-300 mb-300"
-            role={feedback.tone === "error" ? "alert" : "status"}
-            showIcon
-            size="sm"
-            status={feedback.tone}
-          >
+          <AdminFeedback className="mx-300 mb-300" tone={feedback.tone}>
             {feedback.message}
-          </StatusText>
+          </AdminFeedback>
         )}
         <PacketaOrdersTable
           allPrintableSelected={allPrintableSelected}
@@ -281,69 +272,69 @@ function PacketaOrdersTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table className="min-w-3xl" size="sm" variant="line">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader className="w-1">
-              <Checkbox
-                aria-label="Vybrat vsechny tisknutelne objednavky na strance"
-                checked={allPrintableSelected}
-                onChange={onTogglePrintablePage}
-              />
-            </Table.ColumnHeader>
-            <Table.ColumnHeader>Objednavka</Table.ColumnHeader>
-            <Table.ColumnHeader>Email</Table.ColumnHeader>
-            <Table.ColumnHeader>Vytvoreno</Table.ColumnHeader>
-            <Table.ColumnHeader>Status</Table.ColumnHeader>
-            <Table.ColumnHeader>Packeta</Table.ColumnHeader>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {orders.map((order) => {
-            const labels = getPacketaLabels(order)
-            const canPrint = labels.length > 0
+    <AdminTable width="3xl">
+      <AdminTable.Header>
+        <AdminTable.Row>
+          <AdminTable.ColumnHeader className="w-1">
+            <Checkbox
+              aria-label="Vybrat vsechny tisknutelne objednavky na strance"
+              checked={allPrintableSelected}
+              onChange={onTogglePrintablePage}
+            />
+          </AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Objednavka</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Email</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Vytvoreno</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Status</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Packeta</AdminTable.ColumnHeader>
+        </AdminTable.Row>
+      </AdminTable.Header>
+      <AdminTable.Body>
+        {orders.map((order) => {
+          const labels = getPacketaLabels(order)
+          const canPrint = labels.length > 0
 
-            return (
-              <Table.Row
-                key={order.id}
-                selected={selectedOrderIds.has(order.id)}
-              >
-                <Table.Cell className="w-1">
-                  <Checkbox
-                    aria-label={`Vybrat ${formatOrderNumber(order)}`}
-                    checked={selectedOrderIds.has(order.id)}
-                    disabled={!canPrint}
-                    onChange={() => onToggleOrder(order.id)}
-                  />
-                </Table.Cell>
-                <Table.Cell className="font-semibold text-fg-primary">
-                  {formatOrderNumber(order)}
-                </Table.Cell>
-                <Table.Cell className="max-w-xs truncate">
-                  {order.email ?? "-"}
-                </Table.Cell>
-                <Table.Cell>{formatDate(order.created_at)}</Table.Cell>
-                <Table.Cell>{order.fulfillment_status ?? "-"}</Table.Cell>
-                <Table.Cell>
-                  {canPrint ? (
-                    <div className="flex flex-wrap gap-100">
-                      {labels.map((label) => (
-                        <Badge key={label.id} size="sm" variant="info">
-                          {String(label.data?.barcode ?? label.data?.packet_id)}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-fg-secondary">Bez stitku</span>
-                  )}
-                </Table.Cell>
-              </Table.Row>
-            )
-          })}
-        </Table.Body>
-      </Table>
-    </div>
+          return (
+            <AdminTable.Row
+              key={order.id}
+              selected={selectedOrderIds.has(order.id)}
+            >
+              <AdminTable.Cell className="w-1">
+                <Checkbox
+                  aria-label={`Vybrat ${formatOrderNumber(order)}`}
+                  checked={selectedOrderIds.has(order.id)}
+                  disabled={!canPrint}
+                  onChange={() => onToggleOrder(order.id)}
+                />
+              </AdminTable.Cell>
+              <AdminTable.Cell className="font-semibold text-fg-primary">
+                {formatOrderNumber(order)}
+              </AdminTable.Cell>
+              <AdminTable.Cell className="max-w-xs truncate">
+                {order.email ?? "-"}
+              </AdminTable.Cell>
+              <AdminTable.Cell>{formatDate(order.created_at)}</AdminTable.Cell>
+              <AdminTable.Cell>
+                {order.fulfillment_status ?? "-"}
+              </AdminTable.Cell>
+              <AdminTable.Cell>
+                {canPrint ? (
+                  <div className="flex flex-wrap gap-100">
+                    {labels.map((label) => (
+                      <Badge key={label.id} size="sm" variant="info">
+                        {String(label.data?.barcode ?? label.data?.packet_id)}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-fg-secondary">Bez stitku</span>
+                )}
+              </AdminTable.Cell>
+            </AdminTable.Row>
+          )
+        })}
+      </AdminTable.Body>
+    </AdminTable>
   )
 }
 

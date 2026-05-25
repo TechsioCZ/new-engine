@@ -1,9 +1,9 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { type FormEvent, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getLoginErrorMessage, loginAdmin } from "./admin-auth"
+import { AdminFeedback } from "./components/admin-feedback"
 
 type LoginPageProps = {
   onAuthenticated: () => Promise<void> | void
@@ -70,15 +70,9 @@ export function LoginPage({ onAuthenticated }: LoginPageProps) {
             value={password}
           />
           {errorMessage && (
-            <StatusText
-              className="rounded-md border border-danger-light bg-danger-light p-5 font-semibold"
-              id="admin-login-error"
-              role="alert"
-              showIcon
-              status="error"
-            >
+            <AdminFeedback id="admin-login-error" tone="error">
               {errorMessage}
-            </StatusText>
+            </AdminFeedback>
           )}
           <Button
             className="mt-2"

@@ -1,7 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { type FormEvent, useEffect, useState } from "react"
 import { updateQrPaymentConfig, useQrPaymentConfig } from "./admin-api"
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
 import {
   AdminLinkCard,
   AdminLinkCardDescription,
@@ -18,11 +21,6 @@ import {
 import { AdminState } from "./components/admin-state"
 import { AdminTextField } from "./components/admin-text-field"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
-
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
 
 const settingsItems = [
   {
@@ -69,7 +67,7 @@ export function QrPaymentsSettingsPage() {
   const queryClient = useQueryClient()
   const config = useQrPaymentConfig()
   const [iban, setIban] = useState("")
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const mutation = useMutation({
     mutationFn: updateQrPaymentConfig,
     onError: (error) => {
@@ -133,15 +131,7 @@ export function QrPaymentsSettingsPage() {
           value={iban}
         />
         {feedback && (
-          <StatusText
-            align="start"
-            role={feedback.tone === "error" ? "alert" : "status"}
-            showIcon
-            size="sm"
-            status={feedback.tone}
-          >
-            {feedback.message}
-          </StatusText>
+          <AdminFeedback tone={feedback.tone}>{feedback.message}</AdminFeedback>
         )}
         <AdminFormActions>
           <AdminToolbarButton disabled={mutation.isPending} type="submit">

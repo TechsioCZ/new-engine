@@ -1,6 +1,5 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
-import { Table } from "@techsio/ui-kit/organisms/table"
 import { type ReactNode, useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
@@ -50,6 +49,7 @@ import {
 } from "./components/admin-preview"
 import { AdminSearch } from "./components/admin-search"
 import { AdminState } from "./components/admin-state"
+import { AdminTable } from "./components/admin-table"
 import { AdminToolbarButton } from "./components/admin-toolbar-button"
 import {
   formatCompactId,
@@ -460,55 +460,55 @@ function EmailLogsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table className="min-w-3xl" size="sm" variant="line">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeader>Odeslano</Table.ColumnHeader>
-            <Table.ColumnHeader>Komu</Table.ColumnHeader>
-            <Table.ColumnHeader>Typ</Table.ColumnHeader>
-            <Table.ColumnHeader>Predmet</Table.ColumnHeader>
-            <Table.ColumnHeader>Objednavka</Table.ColumnHeader>
-            <Table.ColumnHeader aria-label="Akce" className="w-1" />
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {emailLogs.map((emailLog) => (
-            <Table.Row
-              key={emailLog.id}
-              selected={emailLog.id === selectedEmailLogId}
-            >
-              <Table.Cell>{formatDateTime(emailLog.sent_at)}</Table.Cell>
-              <Table.Cell className="font-semibold text-fg-primary">
-                {emailLog.sent_to}
-              </Table.Cell>
-              <Table.Cell>
-                <Badge size="sm" variant="info">
-                  {emailLog.type}
-                </Badge>
-              </Table.Cell>
-              <Table.Cell className="max-w-xs truncate">
-                {emailLog.subject}
-              </Table.Cell>
-              <Table.Cell>
-                {emailLog.order_id ? (
-                  <AdminTableLink to={`/orders/${emailLog.order_id}`}>
-                    {formatCompactId(emailLog.order_id)}
-                  </AdminTableLink>
-                ) : (
-                  "-"
-                )}
-              </Table.Cell>
-              <Table.Cell className="w-1 whitespace-nowrap text-end">
-                <AdminToolbarButton onClick={() => onOpen(emailLog.id)}>
-                  Detail
-                </AdminToolbarButton>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table>
-    </div>
+    <AdminTable width="3xl">
+      <AdminTable.Header>
+        <AdminTable.Row>
+          <AdminTable.ColumnHeader>Odeslano</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Komu</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Typ</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Predmet</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Objednavka</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader aria-label="Akce" className="w-1" />
+        </AdminTable.Row>
+      </AdminTable.Header>
+      <AdminTable.Body>
+        {emailLogs.map((emailLog) => (
+          <AdminTable.Row
+            key={emailLog.id}
+            selected={emailLog.id === selectedEmailLogId}
+          >
+            <AdminTable.Cell>
+              {formatDateTime(emailLog.sent_at)}
+            </AdminTable.Cell>
+            <AdminTable.Cell className="font-semibold text-fg-primary">
+              {emailLog.sent_to}
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              <Badge size="sm" variant="info">
+                {emailLog.type}
+              </Badge>
+            </AdminTable.Cell>
+            <AdminTable.Cell className="max-w-xs truncate">
+              {emailLog.subject}
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              {emailLog.order_id ? (
+                <AdminTableLink to={`/orders/${emailLog.order_id}`}>
+                  {formatCompactId(emailLog.order_id)}
+                </AdminTableLink>
+              ) : (
+                "-"
+              )}
+            </AdminTable.Cell>
+            <AdminTable.Cell className="w-1 whitespace-nowrap text-end">
+              <AdminToolbarButton onClick={() => onOpen(emailLog.id)}>
+                Detail
+              </AdminToolbarButton>
+            </AdminTable.Cell>
+          </AdminTable.Row>
+        ))}
+      </AdminTable.Body>
+    </AdminTable>
   )
 }
 
