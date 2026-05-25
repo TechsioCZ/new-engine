@@ -107,6 +107,7 @@
     "tslib": "^2.8.1"
   },
   "devDependencies": {
+    "@medusajs/medusa-oas-cli": "^2.15.2",
     "@medusajs/test-utils": "^2.15.2",
     "@swc/core": "^1.15.3",
     "@types/escape-html": "^1.0.4",

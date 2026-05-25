@@ -21,6 +21,45 @@ const serializeJob = (job: SymmyImportJobDTO) => ({
   finished_at: job.finished_at,
 })
 
+/**
+ * @api [get] /api/symmy/v1/jobs/{id}
+ * operationId: GetSymmyImportJob
+ * summary: Get a Symmy import job
+ * tags:
+ *   - Symmy
+ * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * parameters:
+ *   - in: path
+ *     name: id
+ *     required: true
+ *     schema:
+ *       type: string
+ * responses:
+ *   "200":
+ *     description: The import job.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyImportJobResponse"
+ *   "401":
+ *     description: Missing or invalid authentication token.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyUnauthorizedErrorResponse"
+ *   "404":
+ *     description: Import job was not found.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyNotFoundErrorResponse"
+ *   "500":
+ *     description: Unexpected Symmy API error.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
+ */
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const importJobService = req.scope.resolve<SymmyImportJobModuleService>(
     SYMMY_IMPORT_JOB_MODULE

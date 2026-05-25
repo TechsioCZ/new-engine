@@ -10,6 +10,57 @@ const parseQueryNumber = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
+/**
+ * @api [get] /api/symmy/v1/price-lists
+ * operationId: ListSymmyPriceLists
+ * summary: List Symmy price lists
+ * tags:
+ *   - Symmy
+ * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * parameters:
+ *   - in: query
+ *     name: code
+ *     required: false
+ *     schema:
+ *       type: string
+ *   - in: query
+ *     name: limit
+ *     required: false
+ *     schema:
+ *       type: number
+ *       default: 50
+ *   - in: query
+ *     name: offset
+ *     required: false
+ *     schema:
+ *       type: number
+ *       default: 0
+ * responses:
+ *   "200":
+ *     description: Price lists linked to Symmy codes.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyListPriceListsResponse"
+ *   "400":
+ *     description: limit or offset is not numeric.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyPriceListsQueryValidationErrorResponse"
+ *   "401":
+ *     description: Missing or invalid authentication token.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyUnauthorizedErrorResponse"
+ *   "500":
+ *     description: Unexpected Symmy API error.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
+ */
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const limit = parseQueryNumber(req.query.limit)
   const offset = parseQueryNumber(req.query.offset)
