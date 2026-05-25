@@ -13,17 +13,26 @@ import type { AssignCustomersToGroupBatchSchemaType } from "./validators"
  * tags:
  *   - Symmy
  * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * x-authenticated: true
+ * security:
+ *   - api_token: []
+ *   - cookie_auth: []
+ *   - jwt_token: []
  * parameters:
  *   - in: path
  *     name: code
+ *     description: The Symmy customer group code.
  *     required: true
  *     schema:
  *       type: string
+ *       description: The Symmy customer group code.
  *   - in: header
  *     name: Idempotency-Key
+ *     description: A unique key used to make the queued import request idempotent.
  *     required: false
  *     schema:
  *       type: string
+ *       description: A unique key used to make the queued import request idempotent.
  * requestBody:
  *   required: true
  *   content:
@@ -55,6 +64,15 @@ import type { AssignCustomersToGroupBatchSchemaType } from "./validators"
  *       application/json:
  *         schema:
  *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
+ * x-workflow: assignCustomersToGroupBatchWorkflow
+ * x-events:
+ *   - name: symmy.customer_group_customers.assign.requested
+ *     payload: |-
+ *       ```ts
+ *       {
+ *         job_id, // The ID of the Symmy import job
+ *       }
+ *       ```
  */
 export const POST = async (
   req: MedusaRequest<AssignCustomersToGroupBatchSchemaType>,

@@ -11,5 +11,8 @@ const symmyImportJobModule: ModuleExports<typeof SymmyImportJobModuleService> =
 
 export default symmyImportJobModule
 
-export type { SymmyImportJobDTO, SymmyImportJobStatus } from "./service"
-export type { SymmyImportJobModuleService } from "./service"
+export type {
+  SymmyImportJobDTO,
+  SymmyImportJobModuleService,
+  SymmyImportJobStatus,
+} from "./service"

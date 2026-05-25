@@ -16,6 +16,11 @@ type AuthenticatedRequest =
  * tags:
  *   - Symmy
  * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * x-authenticated: true
+ * security:
+ *   - api_token: []
+ *   - cookie_auth: []
+ *   - jwt_token: []
  * requestBody:
  *   required: true
  *   content:
@@ -47,6 +52,8 @@ type AuthenticatedRequest =
  *       application/json:
  *         schema:
  *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
+ * x-workflow: upsertCustomerGroupsBatchWorkflow
+ * x-events: []
  */
 export const POST = async (
   req: MedusaRequest<UpsertCustomerGroupsBatchSchemaType>,

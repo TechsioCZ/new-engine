@@ -17,23 +17,34 @@ const parseQueryNumber = (value: unknown) => {
  * tags:
  *   - Symmy
  * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * x-authenticated: true
+ * security:
+ *   - api_token: []
+ *   - cookie_auth: []
+ *   - jwt_token: []
  * parameters:
  *   - in: query
  *     name: code
+ *     description: Filter price lists by Symmy code.
  *     required: false
  *     schema:
  *       type: string
+ *       description: Filter price lists by Symmy code.
  *   - in: query
  *     name: limit
+ *     description: Limit the number of price lists returned.
  *     required: false
  *     schema:
  *       type: number
+ *       description: Limit the number of price lists returned.
  *       default: 50
  *   - in: query
  *     name: offset
+ *     description: The number of price lists to skip.
  *     required: false
  *     schema:
  *       type: number
+ *       description: The number of price lists to skip.
  *       default: 0
  * responses:
  *   "200":
@@ -60,6 +71,8 @@ const parseQueryNumber = (value: unknown) => {
  *       application/json:
  *         schema:
  *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
+ * x-workflow: listPriceListsWorkflow
+ * x-events: []
  */
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const limit = parseQueryNumber(req.query.limit)

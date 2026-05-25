@@ -1,11 +1,7 @@
 import { MedusaService } from "@medusajs/framework/utils"
 import SymmyImportJob from "./models/symmy-import-job"
 
-export type SymmyImportJobStatus =
-  | "queued"
-  | "running"
-  | "completed"
-  | "failed"
+export type SymmyImportJobStatus = "queued" | "running" | "completed" | "failed"
 
 export type SymmyImportJobDTO = {
   id: string

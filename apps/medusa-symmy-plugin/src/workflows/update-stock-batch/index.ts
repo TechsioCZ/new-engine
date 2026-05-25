@@ -5,4 +5,3 @@ export type {
   UpdateStockBatchOutput,
   UpdateStockBatchResult,
 } from "./types"
-export { updateStockBatchWorkflow } from "./workflow"

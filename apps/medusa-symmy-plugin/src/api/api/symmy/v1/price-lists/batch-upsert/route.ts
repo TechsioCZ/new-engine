@@ -13,12 +13,19 @@ import type { UpsertPriceListsBatchSchemaType } from "./validators"
  * tags:
  *   - Symmy
  * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * x-authenticated: true
+ * security:
+ *   - api_token: []
+ *   - cookie_auth: []
+ *   - jwt_token: []
  * parameters:
  *   - in: header
  *     name: Idempotency-Key
+ *     description: A unique key used to make the queued import request idempotent.
  *     required: false
  *     schema:
  *       type: string
+ *       description: A unique key used to make the queued import request idempotent.
  * requestBody:
  *   required: true
  *   content:
@@ -50,6 +57,15 @@ import type { UpsertPriceListsBatchSchemaType } from "./validators"
  *       application/json:
  *         schema:
  *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
+ * x-workflow: upsertPriceListsBatchWorkflow
+ * x-events:
+ *   - name: symmy.price_lists.upsert.requested
+ *     payload: |-
+ *       ```ts
+ *       {
+ *         job_id, // The ID of the Symmy import job
+ *       }
+ *       ```
  */
 export const POST = async (
   req: MedusaRequest<UpsertPriceListsBatchSchemaType>,

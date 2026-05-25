@@ -21,6 +21,11 @@ const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
  * tags:
  *   - Symmy
  * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * x-authenticated: true
+ * security:
+ *   - api_token: []
+ *   - cookie_auth: []
+ *   - jwt_token: []
  * responses:
  *   "200":
  *     description: The current Symmy webhook configuration.
@@ -46,6 +51,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
  * summary: Update Symmy webhook configuration
  * tags:
  *   - Symmy
+ * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * x-authenticated: true
+ * security:
+ *   - api_token: []
+ *   - cookie_auth: []
+ *   - jwt_token: []
  * requestBody:
  *   required: true
  *   content:
