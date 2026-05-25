@@ -9,6 +9,45 @@ type AuthenticatedRequest =
     }
   }
 
+/**
+ * @api [post] /api/symmy/v1/customer-groups/batch
+ * operationId: PostSymmyCustomerGroupsBatch
+ * summary: Upsert customer groups in batch
+ * tags:
+ *   - Symmy
+ * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * requestBody:
+ *   required: true
+ *   content:
+ *     application/json:
+ *       schema:
+ *         $ref: "#/components/schemas/SymmyUpsertCustomerGroupsBatchRequest"
+ * responses:
+ *   "200":
+ *     description: Per-customer-group upsert results.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyUpsertCustomerGroupsBatchResponse"
+ *   "400":
+ *     description: Invalid customer group batch payload.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyValidationErrorResponse"
+ *   "401":
+ *     description: Missing or invalid authentication token.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyUnauthorizedErrorResponse"
+ *   "500":
+ *     description: Unexpected Symmy API error.
+ *     content:
+ *       application/json:
+ *         schema:
+ *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
+ */
 export const POST = async (
   req: MedusaRequest<UpsertCustomerGroupsBatchSchemaType>,
   res: MedusaResponse
