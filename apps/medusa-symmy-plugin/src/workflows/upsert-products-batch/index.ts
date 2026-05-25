@@ -10,4 +10,3 @@ export type {
   VariantIdentifierType,
   VariantInput,
 } from "./types"
-export { upsertProductsBatchWorkflow } from "./workflow"

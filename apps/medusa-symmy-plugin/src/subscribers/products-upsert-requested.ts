@@ -1,6 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { runImportJob } from "../lib/import-job-runner"
-import { upsertProductsBatchWorkflow } from "../workflows/upsert-products-batch"
 import {
   SYMMY_PRODUCTS_UPSERT_REQUESTED_EVENT,
   type SymmyProductsUpsertRequestedEvent,
@@ -9,6 +8,7 @@ import type {
   UpsertProductsBatchInput,
   UpsertProductsBatchOutput,
 } from "../workflows/upsert-products-batch/types"
+import { upsertProductsBatchWorkflow } from "../workflows/upsert-products-batch/workflow"
 
 export default async function productsUpsertRequestedHandler({
   event: { data },

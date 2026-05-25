@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { updateStockBatchWorkflow } from "../../../../../../../workflows/update-stock-batch"
+import { updateStockBatchWorkflow } from "../../../../../../../workflows/update-stock-batch/workflow"
 import type { UpdateStockBatchSchemaType } from "./validators"
 
 /**
@@ -9,6 +9,11 @@ import type { UpdateStockBatchSchemaType } from "./validators"
  * tags:
  *   - Symmy
  * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * x-authenticated: true
+ * security:
+ *   - api_token: []
+ *   - cookie_auth: []
+ *   - jwt_token: []
  * requestBody:
  *   required: true
  *   content:
@@ -40,6 +45,8 @@ import type { UpdateStockBatchSchemaType } from "./validators"
  *       application/json:
  *         schema:
  *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
+ * x-workflow: updateStockBatchWorkflow
+ * x-events: []
  */
 export const POST = async (
   req: MedusaRequest<UpdateStockBatchSchemaType>,

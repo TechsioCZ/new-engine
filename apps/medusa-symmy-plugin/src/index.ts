@@ -64,14 +64,14 @@ export type {
   UpsertCustomersBatchResult,
 } from "./workflows/upsert-customers-batch/types"
 export { upsertCustomersBatchWorkflow } from "./workflows/upsert-customers-batch/workflow"
-export {
-  type UpsertProductsBatchInput,
-  type UpsertProductsBatchOutput,
-  type UpsertProductsBatchResult,
-  upsertProductsBatchWorkflow,
+export type {
+  UpsertProductsBatchInput,
+  UpsertProductsBatchOutput,
+  UpsertProductsBatchResult,
 } from "./workflows/upsert-products-batch"
 export {
   SYMMY_PRODUCTS_UPSERT_JOB_TYPE,
   SYMMY_PRODUCTS_UPSERT_REQUESTED_EVENT,
   type SymmyProductsUpsertRequestedEvent,
 } from "./workflows/upsert-products-batch/async"
+export { upsertProductsBatchWorkflow } from "./workflows/upsert-products-batch/workflow"

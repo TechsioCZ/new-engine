@@ -15,6 +15,11 @@ type AuthenticatedRequest = MedusaRequest<AttachInvoicesBatchSchemaType> & {
  * tags:
  *   - Symmy
  * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * x-authenticated: true
+ * security:
+ *   - api_token: []
+ *   - cookie_auth: []
+ *   - jwt_token: []
  * requestBody:
  *   required: true
  *   content:
@@ -46,6 +51,8 @@ type AuthenticatedRequest = MedusaRequest<AttachInvoicesBatchSchemaType> & {
  *       application/json:
  *         schema:
  *           $ref: "#/components/schemas/SymmyInternalErrorResponse"
+ * x-workflow: attachInvoicesBatchWorkflow
+ * x-events: []
  */
 export const POST = async (
   req: MedusaRequest<AttachInvoicesBatchSchemaType>,

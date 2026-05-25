@@ -28,9 +28,15 @@ const serializeJob = (job: SymmyImportJobDTO) => ({
  * tags:
  *   - Symmy
  * description: Requires Medusa user authentication through bearer token, session, or API key.
+ * x-authenticated: true
+ * security:
+ *   - api_token: []
+ *   - cookie_auth: []
+ *   - jwt_token: []
  * parameters:
  *   - in: path
  *     name: id
+ *     description: The Symmy import job's ID.
  *     required: true
  *     schema:
  *       type: string

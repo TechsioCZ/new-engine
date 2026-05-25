@@ -112,9 +112,9 @@ const SymmyWebhooksSettingsPage = () => {
   const removeEndpoint = (index: number) => {
     setFormData((current) => ({
       ...current,
-      endpoints: current.endpoints.filter((_, endpointIndex) => {
-        return endpointIndex !== index
-      }),
+      endpoints: current.endpoints.filter(
+        (_, endpointIndex) => endpointIndex !== index
+      ),
     }))
   }
 
@@ -149,7 +149,8 @@ const SymmyWebhooksSettingsPage = () => {
       })
       toast.success("Symmy webhook configuration saved")
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown request error"
+      const message =
+        err instanceof Error ? err.message : "Unknown request error"
       toast.error(`Failed to save webhook configuration: ${message}`)
     } finally {
       setIsSaving(false)
@@ -247,6 +248,7 @@ const SymmyWebhooksSettingsPage = () => {
               return (
                 <div
                   className="grid grid-cols-[1fr_auto_auto] items-end gap-3"
+                  // biome-ignore lint/suspicious/noArrayIndexKey: Endpoint rows are controlled by index and are only appended or removed.
                   key={index}
                 >
                   <div className="flex flex-col gap-2">

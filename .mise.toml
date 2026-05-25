@@ -117,7 +117,7 @@ run = """bash -lc 'test -n \"${MODULE:-}\" || { echo \"MODULE is required.\" >&2
 
 [tasks."dev:medusa:oas"]
 description = "Generate combined Medusa OAS with backend and Symmy plugin API docs (OAS_OUT_DIR defaults to .oas/)"
-run = "pnpm --dir apps/medusa-be exec medusa-oas oas --type combined --paths ./src/api ../medusa-symmy-plugin/src/api --out-dir ${OAS_OUT_DIR:-.oas/}"
+run = "pnpm --dir apps/medusa-be exec medusa-oas oas --type combined --paths ./src/api ../medusa-symmy-plugin/src/api --base ../medusa-symmy-plugin/src/api/symmy.oas.base.yaml --out-dir ${OAS_OUT_DIR:-.oas/}"
 
 [tasks."dev:medusa:minio:init"]
 description = "Manually reapply the local MinIO bootstrap fallback against the running stack"

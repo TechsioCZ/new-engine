@@ -3,6 +3,7 @@ export {}
 /**
  * @schema SymmyValidationErrorResponse
  * type: object
+ * description: Validation error returned when a Symmy API request fails schema validation.
  * required:
  *   - error
  * properties:
@@ -33,6 +34,7 @@ export {}
 /**
  * @schema SymmyPriceListsQueryValidationErrorResponse
  * type: object
+ * description: Validation error returned when Symmy price-list pagination parameters are invalid.
  * required:
  *   - error
  * properties:
@@ -55,6 +57,7 @@ export {}
 /**
  * @schema SymmyUnauthorizedErrorResponse
  * type: object
+ * description: Authentication error returned when Symmy API credentials are missing or invalid.
  * required:
  *   - error
  * properties:
@@ -77,6 +80,7 @@ export {}
 /**
  * @schema SymmyNotFoundErrorResponse
  * type: object
+ * description: Error returned when a requested Symmy resource cannot be found.
  * required:
  *   - error
  * properties:
@@ -107,6 +111,7 @@ export {}
 /**
  * @schema SymmyInternalErrorResponse
  * type: object
+ * description: Error returned when an unexpected Symmy API failure occurs.
  * required:
  *   - error
  * properties:
@@ -129,6 +134,7 @@ export {}
 /**
  * @schema SymmyQueuedJobResponse
  * type: object
+ * description: A queued Symmy import job response.
  * required:
  *   - job_id
  *   - status
@@ -150,6 +156,7 @@ export {}
 /**
  * @schema SymmyWebhookEndpoint
  * type: object
+ * description: A webhook endpoint that receives Symmy import job notifications.
  * required:
  *   - url
  * properties:
@@ -164,6 +171,7 @@ export {}
 /**
  * @schema SymmyWebhookConfig
  * type: object
+ * description: The Symmy webhook notification configuration.
  * required:
  *   - id
  *   - is_enabled
@@ -188,6 +196,7 @@ export {}
 /**
  * @schema SymmyWebhookConfigResponse
  * type: object
+ * description: Response containing the Symmy webhook configuration.
  * required:
  *   - config
  * properties:
@@ -198,6 +207,7 @@ export {}
 /**
  * @schema SymmyUpdateWebhookConfigRequest
  * type: object
+ * description: Request body used to update Symmy webhook configuration.
  * properties:
  *   is_enabled:
  *     type: boolean
@@ -210,6 +220,7 @@ export {}
 /**
  * @schema SymmyImportJob
  * type: object
+ * description: A Symmy import job and its processing status.
  * required:
  *   - id
  *   - type
@@ -268,6 +279,7 @@ export {}
 /**
  * @schema SymmyImportJobResponse
  * type: object
+ * description: Response containing a Symmy import job.
  * required:
  *   - job
  * properties:
@@ -278,6 +290,7 @@ export {}
 /**
  * @schema SymmyPrice
  * type: object
+ * description: A money amount in a specific currency.
  * required:
  *   - currency_code
  *   - amount
@@ -294,6 +307,7 @@ export {}
 /**
  * @schema SymmyProductVariantInput
  * type: object
+ * description: Product variant data accepted by Symmy product imports.
  * required:
  *   - identifier_type
  *   - title
@@ -360,6 +374,7 @@ export {}
 /**
  * @schema SymmyProductInput
  * type: object
+ * description: Product data accepted by Symmy product imports.
  * required:
  *   - identifier_type
  *   - title
@@ -468,6 +483,7 @@ export {}
 /**
  * @schema SymmyUpsertProductsBatchRequest
  * type: object
+ * description: Request body used to queue product upserts in batch.
  * required:
  *   - products
  * properties:
@@ -482,6 +498,7 @@ export {}
 /**
  * @schema SymmyCustomerAddressInput
  * type: object
+ * description: Customer address data accepted by Symmy customer imports.
  * required:
  *   - address_1
  *   - city
@@ -518,6 +535,7 @@ export {}
 /**
  * @schema SymmyCustomerInput
  * type: object
+ * description: Customer data accepted by Symmy customer imports.
  * required:
  *   - identifier_type
  *   - first_name
@@ -616,6 +634,7 @@ export {}
 /**
  * @schema SymmyUpsertCustomersBatchRequest
  * type: object
+ * description: Request body used to queue customer upserts in batch.
  * required:
  *   - customers
  * properties:
@@ -630,6 +649,7 @@ export {}
 /**
  * @schema SymmyCustomerGroupInput
  * type: object
+ * description: Customer group data accepted by Symmy customer group imports.
  * required:
  *   - identifier_type
  *   - name
@@ -684,6 +704,7 @@ export {}
 /**
  * @schema SymmyUpsertCustomerGroupsBatchRequest
  * type: object
+ * description: Request body used to upsert customer groups in batch.
  * required:
  *   - customer_groups
  * properties:
@@ -698,6 +719,7 @@ export {}
 /**
  * @schema SymmyUpsertCustomerGroupsBatchResponse
  * type: object
+ * description: Per-customer-group results returned after a batch upsert.
  * required:
  *   - success
  *   - processed
@@ -746,6 +768,7 @@ export {}
 /**
  * @schema SymmyCustomerIdentifier
  * type: object
+ * description: A customer identifier used to assign customers to a customer group.
  * required:
  *   - identifier_type
  * oneOf:
@@ -788,6 +811,7 @@ export {}
 /**
  * @schema SymmyAssignCustomersToGroupBatchRequest
  * type: object
+ * description: Request body used to queue customer assignments to a customer group.
  * required:
  *   - customer_identifiers
  * properties:
@@ -802,6 +826,7 @@ export {}
 /**
  * @schema SymmyStockUpdateInput
  * type: object
+ * description: Inventory stock update data accepted by Symmy stock imports.
  * required:
  *   - identifier_type
  *   - stocked_quantity
@@ -864,6 +889,7 @@ export {}
 /**
  * @schema SymmyUpdateStockBatchRequest
  * type: object
+ * description: Request body used to update inventory stock in batch.
  * required:
  *   - updates
  * properties:
@@ -878,6 +904,7 @@ export {}
 /**
  * @schema SymmyUpdateStockBatchResponse
  * type: object
+ * description: Per-stock-update results returned after a batch update.
  * required:
  *   - success
  *   - updated
@@ -927,6 +954,7 @@ export {}
 /**
  * @schema SymmyInvoiceInput
  * type: object
+ * description: Invoice data accepted by Symmy invoice attachment imports.
  * required:
  *   - identifier_type
  *   - invoice_number
@@ -987,6 +1015,7 @@ export {}
 /**
  * @schema SymmyAttachInvoicesBatchRequest
  * type: object
+ * description: Request body used to attach invoices to orders in batch.
  * required:
  *   - invoices
  * properties:
@@ -1001,6 +1030,7 @@ export {}
 /**
  * @schema SymmyAttachInvoicesBatchResponse
  * type: object
+ * description: Per-invoice results returned after attaching invoices to orders.
  * required:
  *   - success
  *   - processed
@@ -1043,6 +1073,7 @@ export {}
 /**
  * @schema SymmyPriceListPriceInput
  * type: object
+ * description: Price data accepted by Symmy price list imports.
  * required:
  *   - identifier_type
  *   - currency_code
@@ -1098,6 +1129,7 @@ export {}
 /**
  * @schema SymmyPriceListInput
  * type: object
+ * description: Price list data accepted by Symmy price list imports.
  * required:
  *   - code
  *   - name
@@ -1141,6 +1173,7 @@ export {}
 /**
  * @schema SymmyUpsertPriceListsBatchRequest
  * type: object
+ * description: Request body used to queue price list upserts in batch.
  * required:
  *   - price_lists
  * properties:
@@ -1155,6 +1188,7 @@ export {}
 /**
  * @schema SymmyUpdatePriceListPricesBatchRequest
  * type: object
+ * description: Request body used to queue price updates for a Symmy price list.
  * required:
  *   - prices
  * properties:
@@ -1169,6 +1203,7 @@ export {}
 /**
  * @schema SymmyListPriceListsResponse
  * type: object
+ * description: Paginated response containing price lists linked to Symmy codes.
  * required:
  *   - price_lists
  *   - count
@@ -1211,6 +1246,7 @@ export {}
 /**
  * @schema SymmyTrackingItemInput
  * type: object
+ * description: Shipment item data accepted by Symmy tracking imports.
  * required:
  *   - sku
  *   - quantity
@@ -1226,6 +1262,7 @@ export {}
 /**
  * @schema SymmyTrackingShipmentInput
  * type: object
+ * description: Shipment tracking data accepted by Symmy tracking imports.
  * required:
  *   - identifier_type
  *   - tracking_number
@@ -1285,6 +1322,7 @@ export {}
 /**
  * @schema SymmyAddTrackingBatchRequest
  * type: object
+ * description: Request body used to add tracking to orders in batch.
  * required:
  *   - shipments
  * properties:
@@ -1299,6 +1337,7 @@ export {}
 /**
  * @schema SymmyAddTrackingBatchResponse
  * type: object
+ * description: Per-shipment results returned after adding tracking to orders.
  * required:
  *   - success
  *   - processed

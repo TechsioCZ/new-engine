@@ -334,7 +334,7 @@ export class ProductBatchClientMapperHelper {
                   }),
               metadata: this.buildVariantMetadata(variant),
             }
-        })
+          })
         : undefined,
       categories: this.buildCategoryAssociations(categoryIds),
     }
