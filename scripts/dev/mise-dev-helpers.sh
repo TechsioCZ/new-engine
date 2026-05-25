@@ -62,13 +62,16 @@ services_for_phase() {
   local phase="$1"
   local default_only="${2:-true}"
   local ctl_dist="$ROOT_DIR/apps/new-engine-ctl/dist/cli.js"
+  local ctl_root="$ROOT_DIR/apps/new-engine-ctl"
 
   require_cmd pnpm
   require_cmd node
 
-  if [[ ! -f "$ctl_dist" ]] || find "$ROOT_DIR/apps/new-engine-ctl/src" "$ROOT_DIR/apps/new-engine-ctl/config" -type f -newer "$ctl_dist" -print -quit | grep -q .; then
+  if [[ ! -f "$ctl_dist" ]] ||
+    find "$ctl_root/src" "$ctl_root/config" "$ctl_root/scripts" -type f -newer "$ctl_dist" -print -quit | grep -q . ||
+    find "$ctl_root/package.json" "$ROOT_DIR/pnpm-lock.yaml" "$ROOT_DIR/pnpm-workspace.yaml" "$ROOT_DIR/node_modules/.modules.yaml" -maxdepth 0 -type f -newer "$ctl_dist" -print -quit 2>/dev/null | grep -q .; then
     (
-      cd "$ROOT_DIR/apps/new-engine-ctl"
+      cd "$ctl_root"
       pnpm run build >/dev/null
     )
   fi
