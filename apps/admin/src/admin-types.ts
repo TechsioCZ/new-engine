@@ -111,6 +111,7 @@ export type AdminProductListItem = {
   handle: string | null
   id: string
   sales_channel_count: number
+  sales_channel_names: string[]
   status: string | null
   thumbnail: string | null
   title: string

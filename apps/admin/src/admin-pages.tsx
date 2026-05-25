@@ -15,7 +15,6 @@ import type {
   ActionRequiredOrder,
   AdminEmailLog,
   AdminEmailLogDetailResponse,
-  AdminProductListItem,
   PendingB2BCustomer,
   ResendEmail,
 } from "./admin-types"
@@ -23,15 +22,9 @@ import {
   AdminDetailField,
   AdminDetailFields,
 } from "./components/admin-detail-field"
-import {
-  AdminEntityBody,
-  AdminEntityLayout,
-  AdminEntityText,
-} from "./components/admin-entity"
 import { AdminTableLink } from "./components/admin-link"
 import {
   AdminList,
-  AdminListMedia,
   AdminListRow,
   AdminListRowBody,
   AdminListRowMeta,
@@ -52,6 +45,7 @@ import {
   AdminPreviewFrame,
   AdminPreviewSection,
 } from "./components/admin-preview"
+import { AdminProductTable } from "./components/admin-product-table"
 import { AdminSearch } from "./components/admin-search"
 import { AdminState } from "./components/admin-state"
 import { AdminTable } from "./components/admin-table"
@@ -71,8 +65,6 @@ const SKELETON_ROW_IDS = [
   "skeleton-3",
   "skeleton-4",
 ]
-const PRODUCT_TITLE_SPLIT_PATTERN = /\s+/
-
 export function OrdersPage() {
   const orders = useActionRequiredOrders()
 
@@ -171,37 +163,49 @@ export function ProductsPage() {
   }
 
   return (
-    <AdminPage>
+    <AdminPage width="wide">
       <PageHeader
         eyebrow="Produkty"
         title="Produktovy katalog"
         value={products.data?.count}
       />
-      <AdminSearch
-        ariaLabel="Hledat produkty"
-        onSearch={handleSearchSubmit}
-        onValueChange={handleSearchValueChange}
-        placeholder="Nazev nebo handle"
-        value={searchValue}
-      />
-      <DataSurface
-        emptyLabel="Zadne produkty se nepodarilo najit."
-        errorLabel="Produkty se nepodarilo nacist."
-        isError={products.isError}
-        isLoading={products.isLoading}
-        renderRow={(product) => (
-          <ProductRow key={product.id} product={product} />
-        )}
-        rows={products.data?.products ?? []}
-      />
-      {products.data && (
-        <AdminPagination
-          ariaLabel="Strankovani produktu"
-          count={products.data.count}
-          offset={products.data.offset}
-          pageSize={PRODUCT_LIST_LIMIT}
+      <AdminPanel>
+        <AdminPanelHeader
+          actions={
+            <AdminSearch
+              ariaLabel="Hledat produkty"
+              onSearch={handleSearchSubmit}
+              onValueChange={handleSearchValueChange}
+              placeholder="Nazev nebo handle"
+              value={searchValue}
+            />
+          }
+          className="max-admin-layout:grid max-admin-layout:items-start"
+          stacked
+          subtitle={formatCount(
+            products.data?.count ?? 0,
+            "produkt",
+            "produktu"
+          )}
+          title="Products"
         />
-      )}
+        <AdminProductTable
+          emptyLabel="Zadne produkty se nepodarilo najit."
+          errorLabel="Produkty se nepodarilo nacist."
+          isError={products.isError}
+          isLoading={products.isLoading}
+          products={products.data?.products ?? []}
+        />
+        {products.data && (
+          <AdminPagination
+            ariaLabel="Strankovani produktu"
+            className="border-border-primary border-t px-8 py-6"
+            count={products.data.count}
+            offset={products.data.offset}
+            pageSize={PRODUCT_LIST_LIMIT}
+          />
+        )}
+      </AdminPanel>
     </AdminPage>
   )
 }
@@ -393,44 +397,6 @@ function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
         </Badge>
         <AdminListRowText offset={false}>
           {customer.phone ?? "Bez telefonu"}
-        </AdminListRowText>
-      </AdminListRowMeta>
-    </AdminListRow>
-  )
-}
-
-function ProductRow({ product }: { product: AdminProductListItem }) {
-  return (
-    <AdminListRow to={`/products/${product.id}`}>
-      <AdminEntityLayout>
-        <AdminListMedia
-          fallback={getProductInitials(product.title)}
-          src={product.thumbnail}
-        />
-        <AdminEntityBody>
-          <AdminListRowTitle>{product.title}</AdminListRowTitle>
-          <AdminListRowText>
-            {product.handle ? `/${product.handle}` : product.id}
-          </AdminListRowText>
-          {product.collection_title && (
-            <AdminEntityText tone="tertiary">
-              {product.collection_title}
-            </AdminEntityText>
-          )}
-        </AdminEntityBody>
-      </AdminEntityLayout>
-      <AdminListRowMeta className="min-w-3xs justify-end max-admin-layout:min-w-0">
-        <Badge
-          size="sm"
-          variant={product.status === "published" ? "info" : "warning"}
-        >
-          {product.status ?? "draft"}
-        </Badge>
-        <AdminListRowText offset={false}>
-          {formatCount(product.variant_count, "varianta", "variant")}
-        </AdminListRowText>
-        <AdminListRowText offset={false}>
-          {formatCount(product.sales_channel_count, "kanal", "kanalu")}
         </AdminListRowText>
       </AdminListRowMeta>
     </AdminListRow>
@@ -673,16 +639,6 @@ function formatCustomerName(customer: PendingB2BCustomer) {
     .join(" ")
 
   return customer.company_name ?? (fullName || customer.id)
-}
-
-function getProductInitials(title: string) {
-  return title
-    .split(PRODUCT_TITLE_SPLIT_PATTERN)
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
 }
 
 function getTextContent(resendEmail: ResendEmail | null | undefined) {
