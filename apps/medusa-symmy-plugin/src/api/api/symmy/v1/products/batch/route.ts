@@ -25,7 +25,6 @@ import type { UpsertProductsBatchSchemaType } from "./validators"
  *     required: false
  *     schema:
  *       type: string
- *       description: A unique key used to make the queued import request idempotent.
  * requestBody:
  *   required: true
  *   content:

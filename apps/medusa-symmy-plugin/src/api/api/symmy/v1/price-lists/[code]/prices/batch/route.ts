@@ -25,14 +25,12 @@ import type { UpdatePriceListPricesBatchSchemaType } from "./validators"
  *     required: true
  *     schema:
  *       type: string
- *       description: The Symmy price list code.
  *   - in: header
  *     name: Idempotency-Key
  *     description: A unique key used to make the queued import request idempotent.
  *     required: false
  *     schema:
  *       type: string
- *       description: A unique key used to make the queued import request idempotent.
  * requestBody:
  *   required: true
  *   content:

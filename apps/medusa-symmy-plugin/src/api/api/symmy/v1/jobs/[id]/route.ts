@@ -40,7 +40,6 @@ const serializeJob = (job: SymmyImportJobDTO) => ({
  *     required: true
  *     schema:
  *       type: string
- *       description: The Symmy import job's ID.
  * responses:
  *   "200":
  *     description: The import job.
