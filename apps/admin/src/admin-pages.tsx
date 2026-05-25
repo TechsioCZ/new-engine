@@ -257,7 +257,7 @@ export function EmailsPage() {
           {emailLogs.data && (
             <AdminPagination
               ariaLabel="Strankovani email logu"
-              className="border-border-primary border-t px-400 py-300"
+              className="border-border-primary border-t px-8 py-6"
               count={emailLogs.data.count}
               offset={emailLogs.data.offset}
               pageSize={EMAIL_LOG_LIST_LIMIT}
@@ -534,7 +534,7 @@ function EmailDetailPanel({
     return (
       <AdminPanel
         as="aside"
-        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-admin-layout:max-h-none"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-4 overflow-y-auto p-9 max-admin-layout:max-h-none"
       >
         <h2 className="m-0 font-bold text-fg-primary text-md leading-tight">
           Detail emailu
@@ -551,7 +551,7 @@ function EmailDetailPanel({
       <AdminPanel
         aria-busy={true}
         as="aside"
-        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-admin-layout:max-h-none"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-4 overflow-y-auto p-9 max-admin-layout:max-h-none"
       >
         <h2 className="m-0 font-bold text-fg-primary text-md leading-tight">
           Nacitam detail

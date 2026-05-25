@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { cx } from "../utils/cx"
 
 export function AdminSummaryList({ children }: { children: ReactNode }) {
-  return <dl className="grid px-400 py-200">{children}</dl>
+  return <dl className="grid px-8 py-4">{children}</dl>
 }
 
 export function AdminSummaryRow({
@@ -17,7 +17,7 @@ export function AdminSummaryRow({
   return (
     <div
       className={cx(
-        "flex items-center justify-between gap-450 border-border-secondary border-b border-dashed py-250 text-sm last:border-b-0",
+        "flex items-center justify-between gap-9 border-border-secondary border-b border-dashed py-5 text-sm last:border-b-0",
         emphasized ? "font-bold text-fg-primary" : "text-fg-secondary"
       )}
     >

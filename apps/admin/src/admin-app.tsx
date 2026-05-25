@@ -21,6 +21,7 @@ import {
 } from "react-router-dom"
 import { useActionRequiredSummary, useAdminStoreSummary } from "./admin-api"
 import { clearStoredAdminToken, hasStoredAdminToken } from "./admin-auth"
+import { CategoriesPage, CategoryDetailPage } from "./admin-category-pages"
 import { isAuthError } from "./admin-errors"
 import { LoginPage } from "./admin-login-page"
 import { OrderDetailPage } from "./admin-order-detail-page"
@@ -124,6 +125,8 @@ export function AdminApp() {
             />
             <Route element={<ProductsPage />} path="/products" />
             <Route element={<ProductDetailPage />} path="/products/:id" />
+            <Route element={<CategoriesPage />} path="/categories" />
+            <Route element={<CategoryDetailPage />} path="/categories/:id" />
             <Route
               element={
                 <PlaceholderPage eyebrow="Sklad" title="Skladove workflow" />
@@ -271,7 +274,7 @@ function AccountMenu({
           <strong className="block overflow-hidden text-ellipsis whitespace-nowrap font-bold text-fg-primary text-sm leading-tight">
             {storeName}
           </strong>
-          <small className="mt-50 block overflow-hidden text-ellipsis whitespace-nowrap text-fg-secondary text-xs leading-tight">
+          <small className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-fg-secondary text-xs leading-tight">
             Store
           </small>
         </span>
@@ -290,7 +293,7 @@ function AccountMenu({
               <strong className="block overflow-hidden text-ellipsis whitespace-nowrap font-bold text-fg-primary text-sm leading-tight">
                 {storeName}
               </strong>
-              <small className="mt-50 block overflow-hidden text-ellipsis whitespace-nowrap text-fg-secondary text-xs leading-tight">
+              <small className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-fg-secondary text-xs leading-tight">
                 Store
               </small>
             </span>

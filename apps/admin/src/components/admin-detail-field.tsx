@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 
 export function AdminDetailFields({ children }: { children: ReactNode }) {
-  return <div className="grid gap-250 px-400 py-350">{children}</div>
+  return <div className="grid gap-5 px-8 py-7">{children}</div>
 }
 
 export function AdminDetailField({
@@ -17,7 +17,7 @@ export function AdminDetailField({
     value === null || value === undefined || value === "" ? fallback : value
 
   return (
-    <div className="grid grid-cols-[var(--spacing-56)_minmax(0,1fr)] items-start gap-300">
+    <div className="grid grid-cols-[var(--spacing-56)_minmax(0,1fr)] items-start gap-6">
       <span className="font-bold text-fg-secondary text-xs">{label}</span>
       <strong className="font-semibold text-fg-primary text-sm [overflow-wrap:anywhere]">
         {displayValue}

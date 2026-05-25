@@ -4,7 +4,7 @@ import { cx } from "../utils/cx"
 import { AdminMediaFrame } from "./admin-media"
 
 const rowClassName =
-  "grid min-h-34 grid-cols-[minmax(0,1fr)_auto] items-center gap-400 rounded-md border border-border-primary bg-surface px-350 py-300 max-admin-layout:grid-cols-1 max-admin-layout:items-start"
+  "grid min-h-34 grid-cols-[minmax(0,1fr)_auto] items-center gap-8 rounded-md border border-border-primary bg-surface px-7 py-6 max-admin-layout:grid-cols-1 max-admin-layout:items-start"
 
 const rowLinkClassName =
   "cursor-pointer transition-all duration-200 hover:bg-float hover:shadow-sm focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) motion-reduce:transition-none"
@@ -17,7 +17,7 @@ export function AdminList({
   children: ReactNode
 }) {
   return (
-    <div aria-busy={ariaBusy} className="flex flex-col gap-200">
+    <div aria-busy={ariaBusy} className="flex flex-col gap-4">
       {children}
     </div>
   )
@@ -68,7 +68,7 @@ export function AdminListRowText({
     <span
       className={cx(
         "block text-fg-secondary text-xs leading-normal",
-        offset ? "mt-100" : null
+        offset ? "mt-2" : null
       )}
     >
       {children}
@@ -86,7 +86,7 @@ export function AdminListRowMeta({
   return (
     <div
       className={cx(
-        "flex items-center gap-250 text-right max-admin-layout:flex-col max-admin-layout:items-start max-admin-layout:gap-150 max-admin-layout:text-left",
+        "flex items-center gap-5 text-right max-admin-layout:flex-col max-admin-layout:items-start max-admin-layout:gap-3 max-admin-layout:text-left",
         className
       )}
     >

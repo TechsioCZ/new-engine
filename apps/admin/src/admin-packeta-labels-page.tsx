@@ -167,7 +167,7 @@ export function PacketaLabelsPage() {
           title="Objednavky s Packetou"
         />
         {feedback && (
-          <AdminFeedback className="mx-300 mb-300" tone={feedback.tone}>
+          <AdminFeedback className="mx-6 mb-6" tone={feedback.tone}>
             {feedback.message}
           </AdminFeedback>
         )}
@@ -319,7 +319,7 @@ function PacketaOrdersTable({
               </AdminTable.Cell>
               <AdminTable.Cell>
                 {canPrint ? (
-                  <div className="flex flex-wrap gap-100">
+                  <div className="flex flex-wrap gap-2">
                     {labels.map((label) => (
                       <Badge key={label.id} size="sm" variant="info">
                         {String(label.data?.barcode ?? label.data?.packet_id)}

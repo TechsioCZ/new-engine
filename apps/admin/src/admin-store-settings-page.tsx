@@ -266,7 +266,7 @@ function StoreLocalesPanel({
       {locales.length === 0 ? (
         <AdminState>Store nema nastavene zadne locales.</AdminState>
       ) : (
-        <div className="px-400 py-350">
+        <div className="px-8 py-7">
           <AdminInlineList>
             {locales.map((locale) => (
               <Badge key={locale.locale_code} size="sm" variant="outline">

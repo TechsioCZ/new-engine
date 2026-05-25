@@ -12,8 +12,8 @@ type AdminStateProps = {
 }
 
 const surfaceClassName: Record<AdminStateSurface, string> = {
-  panel: "rounded-md border border-border-primary bg-surface p-450",
-  table: "px-400 py-450",
+  panel: "rounded-md border border-border-primary bg-surface p-9",
+  table: "px-8 py-9",
 }
 
 export function AdminState({

@@ -74,7 +74,7 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
       <AdminDetailLayout>
         <AdminDetailStack>
           <AdminPanel>
-            <div className="grid grid-cols-[var(--spacing-80)_minmax(0,1fr)] items-start gap-450 p-400 max-admin-layout:grid-cols-1">
+            <div className="grid grid-cols-[var(--spacing-80)_minmax(0,1fr)] items-start gap-9 p-8 max-admin-layout:grid-cols-1">
               <ProductImage product={product} />
               <div>
                 <Badge
@@ -83,7 +83,7 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
                 >
                   {product.status ?? "draft"}
                 </Badge>
-                <h2 className="mt-300 mb-200 font-bold text-fg-primary text-lg leading-tight">
+                <h2 className="mt-6 mb-4 font-bold text-fg-primary text-lg leading-tight">
                   {product.subtitle || product.handle || product.id}
                 </h2>
                 <p className="m-0 max-w-5xl text-fg-secondary text-xs leading-relaxed">
@@ -258,7 +258,7 @@ function ProductImagesGrid({ images }: { images: MedusaAdminProductImage[] }) {
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(var(--spacing-43),1fr))] gap-250 p-400">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(var(--spacing-43),1fr))] gap-5 p-8">
       {images.map((image) => (
         <AdminMediaFrame
           className="aspect-square w-full"

@@ -33,7 +33,7 @@ export function AdminSettingsForm({
   ...props
 }: FormHTMLAttributes<HTMLFormElement>) {
   return (
-    <form className={cx("grid p-400", className)} {...props}>
+    <form className={cx("grid p-8", className)} {...props}>
       {children}
     </form>
   )
@@ -53,7 +53,7 @@ export function AdminSettingsSection({
   return (
     <section
       className={cx(
-        "grid gap-350 border-border-secondary border-b py-400 first:pt-0",
+        "grid gap-7 border-border-secondary border-b py-8 first:pt-0",
         className
       )}
     >
@@ -75,7 +75,7 @@ export function AdminSettingsGrid({
   return (
     <div
       className={cx(
-        "grid grid-cols-2 gap-300 max-admin-layout:grid-cols-1",
+        "grid grid-cols-2 gap-6 max-admin-layout:grid-cols-1",
         className
       )}
     >
@@ -94,7 +94,7 @@ export function AdminSettingsToggle({
   title: ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between gap-350 max-admin-layout:flex-col max-admin-layout:items-start">
+    <div className="flex items-center justify-between gap-7 max-admin-layout:flex-col max-admin-layout:items-start">
       <AdminSettingsSectionHeading description={description} title={title} />
       {children}
     </div>
@@ -103,7 +103,7 @@ export function AdminSettingsToggle({
 
 export function AdminFormActions({ children }: { children: ReactNode }) {
   return (
-    <div className="flex justify-end pt-400 max-admin-layout:[&>*]:w-full">
+    <div className="flex justify-end pt-8 max-admin-layout:[&>*]:w-full">
       {children}
     </div>
   )
@@ -151,7 +151,7 @@ function AdminSettingsSectionHeading({
   title?: ReactNode
 }) {
   return (
-    <div className="grid gap-100">
+    <div className="grid gap-2">
       {title && (
         <h3 className="m-0 font-bold text-fg-primary text-sm leading-normal">
           {title}

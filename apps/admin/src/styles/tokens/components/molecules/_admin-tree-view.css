@@ -1,0 +1,18 @@
+@theme static {
+  --color-tree-bg: transparent;
+  --color-tree-root-bg: transparent;
+  --color-tree-node-bg-hover: var(--color-fill-hover);
+  --color-tree-fg-hover: var(--color-fg-primary);
+  --color-tree-fg-selected: var(--color-fg-primary);
+  --color-tree-icon-hover: var(--color-fg-primary);
+  --color-tree-indent-bg: var(--color-border-secondary);
+  --tree-indent-per-level: var(--spacing-2);
+  --padding-tree-node: 0;
+
+  --spacing-admin-category-tree-handle: var(--spacing-48);
+  --spacing-admin-category-tree-state: var(--spacing-32);
+  --admin-category-tree-columns: minmax(0, 1.45fr)
+    minmax(var(--spacing-admin-category-tree-handle), 0.8fr)
+    repeat(2, minmax(var(--spacing-admin-category-tree-state), 0.45fr));
+  --admin-category-tree-columns-compact: minmax(0, 1fr) auto;
+}

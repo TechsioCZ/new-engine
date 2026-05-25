@@ -494,7 +494,7 @@ function OrderEmailPanel({ order }: { order: MedusaAdminOrder }) {
         subtitle={order.email ?? "Objednavka nema e-mail."}
         title="Email zakaznikovi"
       />
-      <form className="grid gap-300 p-400" onSubmit={handleSubmit}>
+      <form className="grid gap-6 p-8" onSubmit={handleSubmit}>
         <OrderEmailFormContent
           feedback={feedback}
           isError={templates.isError}
@@ -774,7 +774,7 @@ function PaymentRow({
 }) {
   return (
     <AdminTable.Row>
-      <AdminTable.Cell className="ps-700">
+      <AdminTable.Cell className="ps-14">
         {formatCompactId(payment.id) ?? "Payment"}
       </AdminTable.Cell>
       <AdminTable.Cell>
@@ -809,7 +809,7 @@ function RefundPaymentRow({
 }) {
   return (
     <AdminTable.Row>
-      <AdminTable.Cell className="ps-700">
+      <AdminTable.Cell className="ps-14">
         {formatCompactId(refund.id) ?? "Refund"}
       </AdminTable.Cell>
       <AdminTable.Cell>

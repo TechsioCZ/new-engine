@@ -25,8 +25,8 @@ export function AdminFormInput({
 }: AdminFormInputProps) {
   return (
     <div className={cx("flex flex-col gap-form-field-gap", rootClassName)}>
-      <div className="flex items-center justify-between gap-200">
-        <div className="inline-flex min-w-0 items-center gap-200">
+      <div className="flex items-center justify-between gap-4">
+        <div className="inline-flex min-w-0 items-center gap-4">
           <Label
             disabled={disabled}
             htmlFor={id}

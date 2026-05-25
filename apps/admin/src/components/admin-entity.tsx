@@ -6,14 +6,14 @@ type AdminEntityTextOffset = "none" | "sm" | "md"
 type AdminEntityTextTone = "secondary" | "tertiary"
 
 const entitySizeClassName: Record<AdminEntitySize, string> = {
-  md: "grid-cols-[var(--spacing-admin-entity-md)_minmax(0,1fr)] gap-300",
-  sm: "grid-cols-[var(--spacing-admin-entity-sm)_minmax(0,1fr)] gap-250",
+  md: "grid-cols-[var(--spacing-admin-entity-md)_minmax(0,1fr)] gap-6",
+  sm: "grid-cols-[var(--spacing-admin-entity-sm)_minmax(0,1fr)] gap-5",
 }
 
 const textOffsetClassName: Record<AdminEntityTextOffset, string | null> = {
-  md: "mt-100",
+  md: "mt-2",
   none: null,
-  sm: "mt-50",
+  sm: "mt-1",
 }
 
 const textToneClassName: Record<AdminEntityTextTone, string> = {
