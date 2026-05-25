@@ -20,6 +20,7 @@ const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
  * summary: Get Symmy webhook configuration
  * tags:
  *   - Symmy
+ * description: Requires Medusa user authentication through bearer token, session, or API key.
  * responses:
  *   "200":
  *     description: The current Symmy webhook configuration.
