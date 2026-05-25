@@ -1,7 +1,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
-import { type FormEvent, type ReactNode, useEffect, useState } from "react"
-import { Link, useSearchParams } from "react-router-dom"
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+import { type ReactNode, useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import {
   EMAIL_LOG_LIST_LIMIT,
   PRODUCT_LIST_LIMIT,
@@ -19,6 +19,51 @@ import type {
   PendingB2BCustomer,
   ResendEmail,
 } from "./admin-types"
+import {
+  AdminDetailField,
+  AdminDetailFields,
+} from "./components/admin-detail-field"
+import {
+  AdminEntityBody,
+  AdminEntityLayout,
+  AdminEntityText,
+} from "./components/admin-entity"
+import { AdminTableLink } from "./components/admin-link"
+import {
+  AdminList,
+  AdminListMedia,
+  AdminListRow,
+  AdminListRowBody,
+  AdminListRowMeta,
+  AdminListRowText,
+  AdminListRowTitle,
+} from "./components/admin-list"
+import {
+  AdminPage,
+  AdminPageCount,
+  AdminPageHeader,
+} from "./components/admin-page-header"
+import { AdminPagination } from "./components/admin-pagination"
+import { AdminPanel, AdminSplitLayout } from "./components/admin-panel"
+import { AdminPanelHeader } from "./components/admin-panel-header"
+import { AdminPlaceholder } from "./components/admin-placeholder"
+import {
+  AdminPreviewCode,
+  AdminPreviewFrame,
+  AdminPreviewSection,
+} from "./components/admin-preview"
+import { AdminSearch } from "./components/admin-search"
+import { AdminState } from "./components/admin-state"
+import { AdminTable } from "./components/admin-table"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
+import {
+  formatCompactId,
+  formatCount,
+  formatCountLabel,
+  formatDateTime,
+  formatMoney,
+  readOffset,
+} from "./utils/format"
 
 const SKELETON_ROW_IDS = [
   "skeleton-1",
@@ -32,7 +77,7 @@ export function OrdersPage() {
   const orders = useActionRequiredOrders()
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader
         eyebrow="Objednavky"
         isValueExact={orders.data?.count_exact}
@@ -51,7 +96,7 @@ export function OrdersPage() {
         renderRow={(order) => <OrderRow key={order.id} order={order} />}
         rows={orders.data?.orders ?? []}
       />
-    </section>
+    </AdminPage>
   )
 }
 
@@ -59,7 +104,7 @@ export function CustomersPage() {
   const customers = usePendingB2BCustomers()
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader
         eyebrow="Zakaznici"
         isValueExact={customers.data?.count_exact}
@@ -80,7 +125,7 @@ export function CustomersPage() {
         )}
         rows={customers.data?.customers ?? []}
       />
-    </section>
+    </AdminPage>
   )
 }
 
@@ -113,56 +158,32 @@ export function ProductsPage() {
     setSearchParams(params)
   }
 
-  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function handleSearchSubmit() {
     updateProductParams({ offset: 0, q: searchValue })
   }
 
-  function handleClearSearch() {
-    setSearchValue("")
-    updateProductParams({ offset: 0, q: "" })
+  function handleSearchValueChange(nextValue: string) {
+    setSearchValue(nextValue)
+
+    if (!nextValue && q) {
+      updateProductParams({ offset: 0, q: "" })
+    }
   }
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader
         eyebrow="Produkty"
         title="Produktovy katalog"
         value={products.data?.count}
       />
-      <div className="admin-page-toolbar">
-        <form className="admin-search-form" onSubmit={handleSearchSubmit}>
-          <input
-            aria-label="Hledat produkty"
-            className="admin-search-input"
-            onChange={(event) => setSearchValue(event.target.value)}
-            placeholder="Nazev nebo handle"
-            type="search"
-            value={searchValue}
-          />
-          <Button
-            className="admin-toolbar-button"
-            size="sm"
-            theme="outlined"
-            type="submit"
-            variant="secondary"
-          >
-            Hledat
-          </Button>
-          {q && (
-            <Button
-              className="admin-toolbar-button"
-              onClick={handleClearSearch}
-              size="sm"
-              theme="borderless"
-              type="button"
-              variant="secondary"
-            >
-              Zrusit
-            </Button>
-          )}
-        </form>
-      </div>
+      <AdminSearch
+        ariaLabel="Hledat produkty"
+        onSearch={handleSearchSubmit}
+        onValueChange={handleSearchValueChange}
+        placeholder="Nazev nebo handle"
+        value={searchValue}
+      />
       <DataSurface
         emptyLabel="Zadne produkty se nepodarilo najit."
         errorLabel="Produkty se nepodarilo nacist."
@@ -173,51 +194,15 @@ export function ProductsPage() {
         )}
         rows={products.data?.products ?? []}
       />
-      {products.data && products.data.count > 0 && (
-        <div className="admin-pagination">
-          <Button
-            className="admin-pagination-button"
-            disabled={!products.data.has_previous}
-            onClick={() =>
-              updateProductParams({
-                offset: Math.max(0, offset - PRODUCT_LIST_LIMIT),
-                q,
-              })
-            }
-            size="sm"
-            theme="outlined"
-            type="button"
-            variant="secondary"
-          >
-            Predchozi
-          </Button>
-          <span>
-            {products.data.offset + 1}-
-            {Math.min(
-              products.data.offset + products.data.limit,
-              products.data.count
-            )}{" "}
-            z {products.data.count}
-          </span>
-          <Button
-            className="admin-pagination-button"
-            disabled={!products.data.has_next}
-            onClick={() =>
-              updateProductParams({
-                offset: offset + PRODUCT_LIST_LIMIT,
-                q,
-              })
-            }
-            size="sm"
-            theme="outlined"
-            type="button"
-            variant="secondary"
-          >
-            Dalsi
-          </Button>
-        </div>
+      {products.data && (
+        <AdminPagination
+          ariaLabel="Strankovani produktu"
+          count={products.data.count}
+          offset={products.data.offset}
+          pageSize={PRODUCT_LIST_LIMIT}
+        />
       )}
-    </section>
+    </AdminPage>
   )
 }
 
@@ -250,20 +235,18 @@ export function EmailsPage() {
   }
 
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader
         eyebrow="Emails"
         title="Odeslane emaily"
         value={emailLogs.data?.count}
       />
-      <div className="admin-split-layout">
-        <div className="admin-panel admin-email-list-panel">
-          <div className="admin-panel-header">
-            <div>
-              <h2>Email logy</h2>
-              <span>Historie notifikaci z backendu a Resendu.</span>
-            </div>
-          </div>
+      <AdminSplitLayout>
+        <AdminPanel as="div">
+          <AdminPanelHeader
+            subtitle="Historie notifikaci z backendu a Resendu."
+            title="Email logy"
+          />
           <EmailLogsTable
             emailLogs={emailLogs.data?.email_logs ?? []}
             isError={emailLogs.isError}
@@ -271,51 +254,17 @@ export function EmailsPage() {
             onOpen={(id) => updateEmailParams({ selectedEmailLogId: id })}
             selectedEmailLogId={selectedEmailLogId}
           />
-          {emailLogs.data && emailLogs.data.count > 0 && (
-            <div className="admin-pagination admin-panel-pagination">
-              <Button
-                className="admin-pagination-button"
-                disabled={!emailLogs.data.has_previous}
-                onClick={() =>
-                  updateEmailParams({
-                    offset: Math.max(0, offset - EMAIL_LOG_LIST_LIMIT),
-                    selectedEmailLogId: null,
-                  })
-                }
-                size="sm"
-                theme="outlined"
-                type="button"
-                variant="secondary"
-              >
-                Predchozi
-              </Button>
-              <span>
-                {emailLogs.data.offset + 1}-
-                {Math.min(
-                  emailLogs.data.offset + emailLogs.data.limit,
-                  emailLogs.data.count
-                )}{" "}
-                z {emailLogs.data.count}
-              </span>
-              <Button
-                className="admin-pagination-button"
-                disabled={!emailLogs.data.has_next}
-                onClick={() =>
-                  updateEmailParams({
-                    offset: offset + EMAIL_LOG_LIST_LIMIT,
-                    selectedEmailLogId: null,
-                  })
-                }
-                size="sm"
-                theme="outlined"
-                type="button"
-                variant="secondary"
-              >
-                Dalsi
-              </Button>
-            </div>
+          {emailLogs.data && (
+            <AdminPagination
+              ariaLabel="Strankovani email logu"
+              className="border-border-primary border-t px-400 py-300"
+              count={emailLogs.data.count}
+              offset={emailLogs.data.offset}
+              pageSize={EMAIL_LOG_LIST_LIMIT}
+              searchParamOverrides={{ email: null }}
+            />
           )}
-        </div>
+        </AdminPanel>
         <EmailDetailPanel
           detail={emailDetail.data}
           isError={emailDetail.isError}
@@ -323,8 +272,8 @@ export function EmailsPage() {
           onClose={() => updateEmailParams({ selectedEmailLogId: null })}
           selectedEmailLogId={selectedEmailLogId}
         />
-      </div>
-    </section>
+      </AdminSplitLayout>
+    </AdminPage>
   )
 }
 
@@ -336,16 +285,13 @@ export function PlaceholderPage({
   title: string
 }) {
   return (
-    <section className="admin-page">
+    <AdminPage>
       <PageHeader eyebrow={eyebrow} title={title} />
-      <div className="admin-placeholder">
-        <strong>Soucast naseho adminu</strong>
-        <span>
-          Tahle sekce zustava v nove aplikaci. Dalsi krok je napojit jeji
-          konkretni Medusa Admin API workflow bez odkazu do puvodniho adminu.
-        </span>
-      </div>
-    </section>
+      <AdminPlaceholder title="Soucast naseho adminu">
+        Tahle sekce zustava v nove aplikaci. Dalsi krok je napojit jeji
+        konkretni Medusa Admin API workflow bez odkazu do puvodniho adminu.
+      </AdminPlaceholder>
+    </AdminPage>
   )
 }
 
@@ -361,23 +307,15 @@ function PageHeader({
   value?: number | undefined
 }) {
   return (
-    <header className="admin-page-header">
-      <div>
-        <span className="admin-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-      </div>
+    <AdminPageHeader eyebrow={eyebrow} title={title}>
       {typeof value === "number" && (
-        <div className="admin-page-count">
-          <span>{formatCountLabel(value, isValueExact)}</span>
-          <small>polozek</small>
-        </div>
+        <AdminPageCount
+          label="polozek"
+          value={formatCountLabel(value, isValueExact)}
+        />
       )}
-    </header>
+    </AdminPageHeader>
   )
-}
-
-function formatCountLabel(count: number, countExact: boolean) {
-  return countExact ? String(count) : `${count}+`
 }
 
 function DataSurface<TItem>({
@@ -397,102 +335,105 @@ function DataSurface<TItem>({
 }) {
   if (isLoading) {
     return (
-      <div aria-busy="true" className="admin-list">
+      <AdminList aria-busy={true}>
         {SKELETON_ROW_IDS.map((id) => (
-          <div className="admin-row admin-row-skeleton" key={id} />
+          <Skeleton.Rectangle
+            className="min-h-34 rounded-md border border-border-primary"
+            key={id}
+          />
         ))}
-      </div>
+      </AdminList>
     )
   }
 
   if (isError) {
-    return <div className="admin-inline-state">{errorLabel}</div>
+    return (
+      <AdminState surface="panel" tone="error">
+        {errorLabel}
+      </AdminState>
+    )
   }
 
   if (!rows.length) {
-    return <div className="admin-inline-state">{emptyLabel}</div>
+    return <AdminState surface="panel">{emptyLabel}</AdminState>
   }
 
-  return <div className="admin-list">{rows.map(renderRow)}</div>
+  return <AdminList>{rows.map(renderRow)}</AdminList>
 }
 
 function OrderRow({ order }: { order: ActionRequiredOrder }) {
   return (
-    <Link className="admin-row admin-row-link" to={`/orders/${order.id}`}>
-      <div>
-        <strong>{formatOrderId(order)}</strong>
-        <span>{order.email ?? "Bez e-mailu"}</span>
-      </div>
-      <div className="admin-row-meta">
-        <Badge className="admin-status-badge" size="sm" variant="warning">
+    <AdminListRow to={`/orders/${order.id}`}>
+      <AdminListRowBody>
+        <AdminListRowTitle>{formatOrderId(order)}</AdminListRowTitle>
+        <AdminListRowText>{order.email ?? "Bez e-mailu"}</AdminListRowText>
+      </AdminListRowBody>
+      <AdminListRowMeta>
+        <Badge size="sm" variant="warning">
           {order.payment_status ?? "nezaplaceno"}
         </Badge>
-        <span>{formatMoney(order.total, order.currency_code)}</span>
-      </div>
-    </Link>
+        <AdminListRowText offset={false}>
+          {formatMoney(order.total, order.currency_code)}
+        </AdminListRowText>
+      </AdminListRowMeta>
+    </AdminListRow>
   )
 }
 
 function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
   return (
-    <article className="admin-row">
-      <div>
-        <strong>{formatCustomerName(customer)}</strong>
-        <span>{customer.email ?? "Bez e-mailu"}</span>
-      </div>
-      <div className="admin-row-meta">
-        <Badge className="admin-status-badge" size="sm" variant="info">
+    <AdminListRow>
+      <AdminListRowBody>
+        <AdminListRowTitle>{formatCustomerName(customer)}</AdminListRowTitle>
+        <AdminListRowText>{customer.email ?? "Bez e-mailu"}</AdminListRowText>
+      </AdminListRowBody>
+      <AdminListRowMeta>
+        <Badge size="sm" variant="info">
           B2B pending
         </Badge>
-        <span>{customer.phone ?? "Bez telefonu"}</span>
-      </div>
-    </article>
+        <AdminListRowText offset={false}>
+          {customer.phone ?? "Bez telefonu"}
+        </AdminListRowText>
+      </AdminListRowMeta>
+    </AdminListRow>
   )
 }
 
 function ProductRow({ product }: { product: AdminProductListItem }) {
   return (
-    <Link
-      className="admin-row admin-row-link admin-product-row"
-      to={`/products/${product.id}`}
-    >
-      <div className="admin-product-main">
-        <div className="admin-product-media">
-          {product.thumbnail ? (
-            <span
-              className="admin-product-thumb"
-              style={getProductThumbnailStyle(product.thumbnail)}
-            />
-          ) : (
-            <span className="admin-product-thumb-fallback">
-              {getProductInitials(product.title)}
-            </span>
-          )}
-        </div>
-        <div>
-          <strong>{product.title}</strong>
-          <span>{product.handle ? `/${product.handle}` : product.id}</span>
+    <AdminListRow to={`/products/${product.id}`}>
+      <AdminEntityLayout>
+        <AdminListMedia
+          fallback={getProductInitials(product.title)}
+          src={product.thumbnail}
+        />
+        <AdminEntityBody>
+          <AdminListRowTitle>{product.title}</AdminListRowTitle>
+          <AdminListRowText>
+            {product.handle ? `/${product.handle}` : product.id}
+          </AdminListRowText>
           {product.collection_title && (
-            <span className="admin-product-subtle">
+            <AdminEntityText tone="tertiary">
               {product.collection_title}
-            </span>
+            </AdminEntityText>
           )}
-        </div>
-      </div>
-      <div className="admin-row-meta admin-product-meta">
+        </AdminEntityBody>
+      </AdminEntityLayout>
+      <AdminListRowMeta className="min-w-3xs justify-end max-admin-layout:min-w-0">
         <Badge
-          className="admin-status-badge"
           size="sm"
           variant={product.status === "published" ? "info" : "warning"}
         >
           {product.status ?? "draft"}
         </Badge>
-        <span>{formatCount(product.variant_count, "varianta", "variant")}</span>
-        <span>
+        <AdminListRowText offset={false}>
+          {formatCount(product.variant_count, "varianta", "variant")}
+        </AdminListRowText>
+        <AdminListRowText offset={false}>
           {formatCount(product.sales_channel_count, "kanal", "kanalu")}
-        </span>
-      </div>
-    </Link>
+        </AdminListRowText>
+      </AdminListRowMeta>
+    </AdminListRow>
   )
 }
 
@@ -510,85 +451,69 @@ function EmailLogsTable({
   selectedEmailLogId: string | null
 }) {
   if (isLoading) {
-    return (
-      <div aria-busy="true" className="admin-table-state">
-        Nacitam emaily...
-      </div>
-    )
+    return <AdminState isBusy>Nacitam emaily...</AdminState>
   }
 
   if (isError) {
     return (
-      <div className="admin-table-state admin-table-state-error">
-        Email logy se nepodarilo nacist.
-      </div>
+      <AdminState tone="error">Email logy se nepodarilo nacist.</AdminState>
     )
   }
 
   if (!emailLogs.length) {
-    return (
-      <div className="admin-table-state">Zatim nejsou zalogovane emaily.</div>
-    )
+    return <AdminState>Zatim nejsou zalogovane emaily.</AdminState>
   }
 
   return (
-    <div className="admin-table-wrap">
-      <table className="admin-data-table">
-        <thead>
-          <tr>
-            <th>Odeslano</th>
-            <th>Komu</th>
-            <th>Typ</th>
-            <th>Predmet</th>
-            <th>Objednavka</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {emailLogs.map((emailLog) => (
-            <tr
-              className={
-                emailLog.id === selectedEmailLogId ? "is-selected" : undefined
-              }
-              key={emailLog.id}
-            >
-              <td>{formatDateTime(emailLog.sent_at)}</td>
-              <td className="admin-table-strong">{emailLog.sent_to}</td>
-              <td>
-                <Badge className="admin-status-badge" size="sm" variant="info">
-                  {emailLog.type}
-                </Badge>
-              </td>
-              <td className="admin-table-truncate">{emailLog.subject}</td>
-              <td>
-                {emailLog.order_id ? (
-                  <Link
-                    className="admin-table-link"
-                    to={`/orders/${emailLog.order_id}`}
-                  >
-                    {formatCompactId(emailLog.order_id)}
-                  </Link>
-                ) : (
-                  "-"
-                )}
-              </td>
-              <td className="admin-table-actions">
-                <Button
-                  className="admin-toolbar-button"
-                  onClick={() => onOpen(emailLog.id)}
-                  size="sm"
-                  theme="outlined"
-                  type="button"
-                  variant="secondary"
-                >
-                  Detail
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <AdminTable width="3xl">
+      <AdminTable.Header>
+        <AdminTable.Row>
+          <AdminTable.ColumnHeader>Odeslano</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Komu</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Typ</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Predmet</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Objednavka</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader aria-label="Akce" className="w-1" />
+        </AdminTable.Row>
+      </AdminTable.Header>
+      <AdminTable.Body>
+        {emailLogs.map((emailLog) => (
+          <AdminTable.Row
+            key={emailLog.id}
+            selected={emailLog.id === selectedEmailLogId}
+          >
+            <AdminTable.Cell>
+              {formatDateTime(emailLog.sent_at)}
+            </AdminTable.Cell>
+            <AdminTable.Cell className="font-semibold text-fg-primary">
+              {emailLog.sent_to}
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              <Badge size="sm" variant="info">
+                {emailLog.type}
+              </Badge>
+            </AdminTable.Cell>
+            <AdminTable.Cell className="max-w-xs truncate">
+              {emailLog.subject}
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              {emailLog.order_id ? (
+                <AdminTableLink to={`/orders/${emailLog.order_id}`}>
+                  {formatCompactId(emailLog.order_id)}
+                </AdminTableLink>
+              ) : (
+                "-"
+              )}
+            </AdminTable.Cell>
+            <AdminTable.Cell className="w-1 whitespace-nowrap text-end">
+              <AdminToolbarButton onClick={() => onOpen(emailLog.id)}>
+                Detail
+              </AdminToolbarButton>
+            </AdminTable.Cell>
+          </AdminTable.Row>
+        ))}
+      </AdminTable.Body>
+    </AdminTable>
   )
 }
 
@@ -607,45 +532,56 @@ function EmailDetailPanel({
 }) {
   if (!selectedEmailLogId) {
     return (
-      <aside className="admin-panel admin-detail-panel admin-detail-panel-empty">
-        <h2>Detail emailu</h2>
-        <p>Vyber email v tabulce pro zobrazeni obsahu a Resend payloadu.</p>
-      </aside>
+      <AdminPanel
+        as="aside"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-admin-layout:max-h-none"
+      >
+        <h2 className="m-0 font-bold text-fg-primary text-md leading-tight">
+          Detail emailu
+        </h2>
+        <p className="m-0 text-fg-secondary text-sm leading-normal">
+          Vyber email v tabulce pro zobrazeni obsahu a Resend payloadu.
+        </p>
+      </AdminPanel>
     )
   }
 
   if (isLoading) {
     return (
-      <aside aria-busy="true" className="admin-panel admin-detail-panel">
-        <h2>Nacitam detail</h2>
-        <p>Dotazuji Resend detail pro vybrany email.</p>
-      </aside>
+      <AdminPanel
+        aria-busy={true}
+        as="aside"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col gap-200 overflow-y-auto p-450 max-admin-layout:max-h-none"
+      >
+        <h2 className="m-0 font-bold text-fg-primary text-md leading-tight">
+          Nacitam detail
+        </h2>
+        <p className="m-0 text-fg-secondary text-sm leading-normal">
+          Dotazuji Resend detail pro vybrany email.
+        </p>
+      </AdminPanel>
     )
   }
 
   if (isError || !detail) {
     return (
-      <aside className="admin-panel admin-detail-panel">
-        <div className="admin-panel-header">
-          <div>
-            <h2>Detail emailu</h2>
-            <span>Detail se nepodarilo nacist.</span>
-          </div>
-          <Button
-            className="admin-toolbar-button"
-            onClick={onClose}
-            size="sm"
-            theme="borderless"
-            type="button"
-            variant="secondary"
-          >
-            Zavrit
-          </Button>
-        </div>
-        <div className="admin-inline-state">
+      <AdminPanel
+        as="aside"
+        className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col overflow-y-auto max-admin-layout:max-h-none"
+      >
+        <AdminPanelHeader
+          actions={
+            <AdminToolbarButton onClick={onClose} theme="borderless">
+              Zavrit
+            </AdminToolbarButton>
+          }
+          subtitle="Detail se nepodarilo nacist."
+          title="Detail emailu"
+        />
+        <AdminState surface="panel" tone="error">
           Backend vratil chybu pri nacitani detailu. List zustava dostupny.
-        </div>
-      </aside>
+        </AdminState>
+      </AdminPanel>
     )
   }
 
@@ -654,43 +590,45 @@ function EmailDetailPanel({
   const textContent = getTextContent(resendEmail)
 
   return (
-    <aside className="admin-panel admin-detail-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Detail emailu</h2>
-          <span>{detail.email_log.subject}</span>
-        </div>
-        <Button
-          className="admin-toolbar-button"
-          onClick={onClose}
-          size="sm"
-          theme="borderless"
-          type="button"
-          variant="secondary"
-        >
-          Zavrit
-        </Button>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="Email ID" value={detail.email_log.email_id} />
-        <DetailField label="Typ" value={detail.email_log.type} />
-        <DetailField
+    <AdminPanel
+      as="aside"
+      className="flex max-h-[calc(100dvh_-_var(--spacing-65))] flex-col overflow-y-auto max-admin-layout:max-h-none"
+    >
+      <AdminPanelHeader
+        actions={
+          <AdminToolbarButton onClick={onClose} theme="borderless">
+            Zavrit
+          </AdminToolbarButton>
+        }
+        subtitle={detail.email_log.subject}
+        title="Detail emailu"
+      />
+      <AdminDetailFields>
+        <AdminDetailField label="Email ID" value={detail.email_log.email_id} />
+        <AdminDetailField label="Typ" value={detail.email_log.type} />
+        <AdminDetailField
           label="Od"
           value={
             typeof resendEmail?.from === "string" ? resendEmail.from : null
           }
         />
-        <DetailField
+        <AdminDetailField
           label="Komu"
           value={formatRecipient(resendEmail?.to) ?? detail.email_log.sent_to}
         />
-        <DetailField
+        <AdminDetailField
           label="Odeslano"
           value={formatDateTime(detail.email_log.sent_at)}
         />
-        <DetailField label="Objednavka" value={detail.email_log.order_id} />
-        <DetailField label="Zakaznik" value={detail.email_log.customer_id} />
-        <DetailField
+        <AdminDetailField
+          label="Objednavka"
+          value={detail.email_log.order_id}
+        />
+        <AdminDetailField
+          label="Zakaznik"
+          value={detail.email_log.customer_id}
+        />
+        <AdminDetailField
           label="Posledni event"
           value={
             typeof resendEmail?.last_event === "string"
@@ -698,39 +636,27 @@ function EmailDetailPanel({
               : null
           }
         />
-      </div>
+      </AdminDetailFields>
       {htmlContent && (
-        <div className="admin-email-preview">
-          <h3>HTML</h3>
-          <iframe sandbox="" srcDoc={htmlContent} title="Email HTML content" />
-        </div>
+        <AdminPreviewSection title="HTML">
+          <AdminPreviewFrame
+            sandbox=""
+            srcDoc={htmlContent}
+            title="Email HTML content"
+          />
+        </AdminPreviewSection>
       )}
       {textContent && (
-        <div className="admin-email-preview">
-          <h3>Text</h3>
-          <pre>{textContent}</pre>
-        </div>
+        <AdminPreviewSection title="Text">
+          <AdminPreviewCode>{textContent}</AdminPreviewCode>
+        </AdminPreviewSection>
       )}
-      <div className="admin-email-preview">
-        <h3>Resend payload</h3>
-        <pre>{JSON.stringify(resendEmail, null, 2)}</pre>
-      </div>
-    </aside>
-  )
-}
-
-function DetailField({
-  label,
-  value,
-}: {
-  label: string
-  value: string | null | undefined
-}) {
-  return (
-    <div className="admin-detail-field">
-      <span>{label}</span>
-      <strong>{value || "-"}</strong>
-    </div>
+      <AdminPreviewSection title="Resend payload">
+        <AdminPreviewCode>
+          {JSON.stringify(resendEmail, null, 2)}
+        </AdminPreviewCode>
+      </AdminPreviewSection>
+    </AdminPanel>
   )
 }
 
@@ -759,12 +685,6 @@ function getProductInitials(title: string) {
     .toUpperCase()
 }
 
-function getProductThumbnailStyle(thumbnail: string) {
-  return {
-    backgroundImage: `url("${thumbnail.replaceAll('"', "%22")}")`,
-  }
-}
-
 function getTextContent(resendEmail: ResendEmail | null | undefined) {
   if (typeof resendEmail?.text === "string" && resendEmail.text.trim()) {
     return resendEmail.text
@@ -787,63 +707,4 @@ function formatRecipient(recipient: ResendEmail["to"]) {
   }
 
   return Array.isArray(recipient) ? recipient.join(", ") : recipient
-}
-
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return "-"
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return "-"
-  }
-
-  return new Intl.DateTimeFormat("cs-CZ", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date)
-}
-
-function formatCount(value: number, singular: string, plural: string) {
-  return `${value} ${value === 1 ? singular : plural}`
-}
-
-function formatCompactId(value: string) {
-  if (value.length <= 16) {
-    return value
-  }
-
-  return `${value.slice(0, 8)}...${value.slice(-5)}`
-}
-
-function readOffset(value: string | null) {
-  const offset = Number(value)
-
-  if (!Number.isFinite(offset) || offset <= 0) {
-    return 0
-  }
-
-  return Math.floor(offset)
-}
-
-function formatMoney(
-  value: number | string | null,
-  currencyCode: string | null
-) {
-  if (value === null) {
-    return "-"
-  }
-
-  const amount = typeof value === "string" ? Number(value) : value
-
-  if (!Number.isFinite(amount)) {
-    return "-"
-  }
-
-  return new Intl.NumberFormat("cs-CZ", {
-    currency: (currencyCode ?? "CZK").toUpperCase(),
-    style: "currency",
-  }).format(amount)
 }

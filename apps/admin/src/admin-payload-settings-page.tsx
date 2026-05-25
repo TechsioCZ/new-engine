@@ -1,17 +1,20 @@
 import { useQuery } from "@tanstack/react-query"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { useState } from "react"
 import { fetchPayloadSsoHtml, usePayloadConfig } from "./admin-api"
 import { MEDUSA_BACKEND_URL } from "./admin-config"
-
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanel } from "./components/admin-panel"
+import { AdminPanelHeader } from "./components/admin-panel-header"
+import { AdminState } from "./components/admin-state"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 export function PayloadSettingsPage() {
   const config = usePayloadConfig()
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const iframeUrl = config.data?.iframeUrl
   const returnTo = getPayloadReturnTo(iframeUrl)
   const ssoHtml = useQuery({
@@ -59,26 +62,20 @@ export function PayloadSettingsPage() {
 
   function renderPayloadContent() {
     if (config.isLoading) {
-      return (
-        <div aria-busy="true" className="admin-table-state">
-          Nacitam Payload konfiguraci...
-        </div>
-      )
+      return <AdminState isBusy>Nacitam Payload konfiguraci...</AdminState>
     }
 
     if (config.isError) {
       return (
-        <div className="admin-table-state admin-table-state-error">
+        <AdminState tone="error">
           Payload konfiguraci se nepodarilo nacist.
-        </div>
+        </AdminState>
       )
     }
 
     if (!iframeUrl) {
       return (
-        <div className="admin-table-state admin-table-state-error">
-          Payload iframe URL neni nastavene.
-        </div>
+        <AdminState tone="error">Payload iframe URL neni nastavene.</AdminState>
       )
     }
 
@@ -102,23 +99,16 @@ export function PayloadSettingsPage() {
   }
 
   return (
-    <section className="admin-page admin-page-full">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Nastaveni</span>
-          <h1>Payload</h1>
-        </div>
-      </header>
-      <div className="admin-panel admin-payload-panel">
-        <div className="admin-panel-header">
-          <div>
-            <h2>Payload Admin</h2>
-            <span>SSO vstup do CMS administrace pres Medusa backend.</span>
-          </div>
-        </div>
+    <AdminPage width="full">
+      <AdminPageHeader eyebrow="Nastaveni" title="Payload" />
+      <AdminPanel as="div" className="min-h-admin-payload-panel">
+        <AdminPanelHeader
+          subtitle="SSO vstup do CMS administrace pres Medusa backend."
+          title="Payload Admin"
+        />
         {renderPayloadContent()}
-      </div>
-    </section>
+      </AdminPanel>
+    </AdminPage>
   )
 }
 
@@ -127,37 +117,23 @@ function PayloadNewTabLauncher({
   iframeUrl,
   onOpen,
 }: {
-  feedback: Feedback
+  feedback: AdminFeedbackState
   iframeUrl: string
   onOpen: () => void
 }) {
   return (
-    <div className="admin-payload-launch">
+    <div className="grid gap-350 p-400">
       <div>
-        <h3>Payload se otevre v novem tabu</h3>
-        <span>{iframeUrl}</span>
+        <h3 className="mt-0 mb-100 font-bold text-fg-primary text-sm leading-normal">
+          Payload se otevre v novem tabu
+        </h3>
+        <span className="text-fg-secondary text-xs leading-normal [overflow-wrap:anywhere]">
+          {iframeUrl}
+        </span>
       </div>
-      <Button
-        className="admin-toolbar-button"
-        onClick={onOpen}
-        size="sm"
-        theme="outlined"
-        type="button"
-        variant="secondary"
-      >
-        Otevrit Payload
-      </Button>
+      <AdminToolbarButton onClick={onOpen}>Otevrit Payload</AdminToolbarButton>
       {feedback && (
-        <div
-          className={[
-            "admin-feedback admin-feedback-inline",
-            feedback.tone === "error" ? "admin-feedback-error" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          {feedback.message}
-        </div>
+        <AdminFeedback tone={feedback.tone}>{feedback.message}</AdminFeedback>
       )}
     </div>
   )
@@ -173,24 +149,18 @@ function PayloadIframe({
   isLoading: boolean
 }) {
   if (isLoading) {
-    return (
-      <div aria-busy="true" className="admin-table-state">
-        Pripravuji Payload SSO...
-      </div>
-    )
+    return <AdminState isBusy>Pripravuji Payload SSO...</AdminState>
   }
 
   if (isError || !html) {
     return (
-      <div className="admin-table-state admin-table-state-error">
-        Payload SSO se nepodarilo pripravit.
-      </div>
+      <AdminState tone="error">Payload SSO se nepodarilo pripravit.</AdminState>
     )
   }
 
   return (
     <iframe
-      className="admin-payload-frame"
+      className="block min-h-admin-payload-frame w-full border-0 bg-base-reverse"
       srcDoc={html}
       title="Payload Admin"
     />

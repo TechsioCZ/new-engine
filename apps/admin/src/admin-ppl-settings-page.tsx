@@ -1,13 +1,31 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@techsio/ui-kit/atoms/button"
+import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { type FormEvent, useEffect, useState } from "react"
 import { updatePplConfig, usePplConfig } from "./admin-api"
 import type { PplConfig, PplConfigInput, PplLabelFormat } from "./admin-types"
-
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanelHeader } from "./components/admin-panel-header"
+import {
+  AdminSelectField,
+  type AdminSelectFieldItem,
+} from "./components/admin-select-field"
+import {
+  AdminFieldMeta,
+  AdminFormActions,
+  AdminInlineAction,
+  AdminSettingsForm,
+  AdminSettingsGrid,
+  AdminSettingsPanel,
+  AdminSettingsSection,
+  AdminSettingsToggle,
+} from "./components/admin-settings-form"
+import { AdminState } from "./components/admin-state"
+import { AdminTextField } from "./components/admin-text-field"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 type PplFormData = {
   client_id: string
@@ -67,6 +85,12 @@ const LABEL_FORMATS: { label: string; value: PplLabelFormat }[] = [
   { label: "PDF", value: "Pdf" },
   { label: "ZPL", value: "Zpl" },
 ]
+const LABEL_FORMAT_ITEMS: AdminSelectFieldItem[] = LABEL_FORMATS.map(
+  (format) => ({
+    label: format.label,
+    value: format.value,
+  })
+)
 
 const credentialFields: FieldConfig[] = [
   {
@@ -170,7 +194,7 @@ export function PplSettingsPage() {
   const [clearedFields, setClearedFields] = useState<Set<SensitiveField>>(
     new Set()
   )
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const mutation = useMutation({
     mutationFn: updatePplConfig,
     onError: (error) => {
@@ -229,61 +253,41 @@ export function PplSettingsPage() {
 
   function renderConfigContent() {
     if (config.isLoading) {
-      return (
-        <div aria-busy="true" className="admin-table-state">
-          Nacitam konfiguraci...
-        </div>
-      )
+      return <AdminState isBusy>Nacitam konfiguraci...</AdminState>
     }
 
     if (config.isError) {
       return (
-        <div className="admin-table-state admin-table-state-error">
+        <AdminState tone="error">
           Konfiguraci PPL se nepodarilo nacist.
-        </div>
+        </AdminState>
       )
     }
 
     const pplConfig = config.data?.config
 
     return (
-      <form className="admin-settings-form" onSubmit={handleSubmit}>
-        <section className="admin-form-section">
-          <div className="admin-setting-toggle">
-            <div>
-              <h3>PPL shipping</h3>
-              <span>Prostredi: {pplConfig?.environment ?? "nezname"}</span>
-            </div>
-            <label className="admin-switch">
-              <input
-                checked={formData.is_enabled}
-                onChange={(event) =>
-                  updateField("is_enabled", event.target.checked)
-                }
-                type="checkbox"
-              />
-              <span>Aktivni</span>
-            </label>
-          </div>
-          <label className="admin-field admin-field-wide">
-            <span>Label format</span>
-            <select
-              onChange={(event) =>
-                updateField(
-                  "default_label_format",
-                  normalizeLabelFormat(event.target.value)
-                )
-              }
-              value={formData.default_label_format}
-            >
-              {LABEL_FORMATS.map((format) => (
-                <option key={format.value} value={format.value}>
-                  {format.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
+      <AdminSettingsForm onSubmit={handleSubmit}>
+        <AdminSettingsSection>
+          <AdminSettingsToggle
+            description={`Prostredi: ${pplConfig?.environment ?? "nezname"}`}
+            title="PPL shipping"
+          >
+            <Switch
+              checked={formData.is_enabled}
+              onCheckedChange={(checked) => updateField("is_enabled", checked)}
+            />
+          </AdminSettingsToggle>
+          <AdminSelectField
+            items={LABEL_FORMAT_ITEMS}
+            label="Label format"
+            onValueChange={(value) =>
+              updateField("default_label_format", normalizeLabelFormat(value))
+            }
+            size="md"
+            value={formData.default_label_format}
+          />
+        </AdminSettingsSection>
 
         <FormSection
           clearedFields={clearedFields}
@@ -310,52 +314,29 @@ export function PplSettingsPage() {
         />
 
         {feedback && (
-          <div
-            className={[
-              "admin-feedback admin-feedback-inline",
-              feedback.tone === "error" ? "admin-feedback-error" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            {feedback.message}
-          </div>
+          <AdminFeedback tone={feedback.tone}>{feedback.message}</AdminFeedback>
         )}
 
-        <div className="admin-form-actions">
-          <Button
-            className="admin-toolbar-button"
-            disabled={mutation.isPending}
-            size="sm"
-            theme="outlined"
-            type="submit"
-            variant="secondary"
-          >
+        <AdminFormActions>
+          <AdminToolbarButton disabled={mutation.isPending} type="submit">
             {mutation.isPending ? "Ukladam..." : "Ulozit"}
-          </Button>
-        </div>
-      </form>
+          </AdminToolbarButton>
+        </AdminFormActions>
+      </AdminSettingsForm>
     )
   }
 
   return (
-    <section className="admin-page">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Nastaveni</span>
-          <h1>PPL</h1>
-        </div>
-      </header>
-      <div className="admin-panel admin-settings-panel">
-        <div className="admin-panel-header">
-          <div>
-            <h2>Konfigurace dopravce</h2>
-            <span>Stejny kontrakt jako aktualni Medusa PPL settings.</span>
-          </div>
-        </div>
+    <AdminPage>
+      <AdminPageHeader eyebrow="Nastaveni" title="PPL" />
+      <AdminSettingsPanel>
+        <AdminPanelHeader
+          subtitle="Stejny kontrakt jako aktualni Medusa PPL settings."
+          title="Konfigurace dopravce"
+        />
         {renderConfigContent()}
-      </div>
-    </section>
+      </AdminSettingsPanel>
+    </AdminPage>
   )
 }
 
@@ -380,12 +361,8 @@ function FormSection({
   title: string
 }) {
   return (
-    <section className="admin-form-section">
-      <div className="admin-form-section-heading">
-        <h3>{title}</h3>
-        {description && <span>{description}</span>}
-      </div>
-      <div className="admin-settings-grid-two">
+    <AdminSettingsSection description={description} title={title}>
+      <AdminSettingsGrid>
         {fields.map((field) => (
           <FormField
             clearedFields={clearedFields}
@@ -396,8 +373,8 @@ function FormSection({
             onClear={onClear}
           />
         ))}
-      </div>
-    </section>
+      </AdminSettingsGrid>
+    </AdminSettingsSection>
   )
 }
 
@@ -426,20 +403,10 @@ function FormField({
   const canClear = Boolean(sensitiveField && fieldConfig.isSet && !isCleared)
 
   return (
-    <label
-      className={["admin-field", fieldConfig.wide ? "admin-field-wide" : ""]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <span className="admin-field-label-row">
-        <span>
-          {fieldConfig.label}
-          {fieldConfig.isSet && !isCleared ? <small>nastaveno</small> : null}
-          {isCleared ? <small>smaze se</small> : null}
-        </span>
-        {canClear && onClear && (
-          <button
-            className="admin-inline-action"
+    <AdminTextField
+      action={
+        canClear && onClear ? (
+          <AdminInlineAction
             onClick={() => {
               if (sensitiveField) {
                 onClear(sensitiveField)
@@ -448,17 +415,28 @@ function FormField({
             type="button"
           >
             Smazat
-          </button>
-        )}
-      </span>
-      <input
-        disabled={isCleared}
-        onChange={(event) => onChange(fieldConfig.field, event.target.value)}
-        placeholder={getPlaceholder(fieldConfig, isCleared)}
-        type={fieldConfig.type ?? "text"}
-        value={isCleared ? "" : formData[fieldConfig.field]}
-      />
-    </label>
+          </AdminInlineAction>
+        ) : null
+      }
+      disabled={isCleared}
+      id={`ppl-${fieldConfig.field}`}
+      label={fieldConfig.label}
+      meta={
+        <>
+          {fieldConfig.isSet && !isCleared ? (
+            <AdminFieldMeta>nastaveno</AdminFieldMeta>
+          ) : null}
+          {isCleared ? (
+            <AdminFieldMeta tone="danger">smaze se</AdminFieldMeta>
+          ) : null}
+        </>
+      }
+      onValueChange={(value) => onChange(fieldConfig.field, value)}
+      placeholder={getPlaceholder(fieldConfig, isCleared)}
+      type={fieldConfig.type ?? "text"}
+      value={isCleared ? "" : formData[fieldConfig.field]}
+      wide={fieldConfig.wide}
+    />
   )
 }
 

@@ -1,0 +1,14 @@
+@theme static {
+  --radius-button-sm: var(--radius-md);
+  --radius-button-md: var(--radius-md);
+  --radius-button-lg: var(--radius-md);
+
+  --text-button-sm: var(--text-xs);
+  --text-button-md: var(--text-sm);
+
+  --color-button-secondary: var(--color-float);
+  --color-button-fg-secondary: var(--color-primary);
+  --color-button-fg-outlined-secondary: var(--color-primary);
+  --color-button-border-secondary: var(--color-border-primary);
+  --color-button-ring: var(--color-ring);
+}

@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Badge, type BadgeProps } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { type FormEvent, useEffect, useState } from "react"
-import { Link, Navigate, useParams } from "react-router-dom"
+import { Navigate, useParams } from "react-router-dom"
 import {
   sendOrderEmail,
   useAdminOrderDetail,
@@ -19,11 +18,60 @@ import type {
   MedusaAdminShippingMethod,
   OrderEmailTemplate,
 } from "./admin-types"
-
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
+import {
+  AdminDetailField,
+  AdminDetailFields,
+} from "./components/admin-detail-field"
+import {
+  AdminEntityBody,
+  AdminEntityLayout,
+  AdminEntityText,
+} from "./components/admin-entity"
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
+import {
+  AdminExternalTableLink,
+  AdminTableLink,
+  AdminTextLink,
+} from "./components/admin-link"
+import { AdminMediaFrame } from "./components/admin-media"
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminPageHeaderActions,
+  AdminStatusRow,
+} from "./components/admin-page-header"
+import {
+  AdminAddressGrid,
+  AdminDetailLayout,
+  AdminDetailStack,
+  AdminPanel,
+} from "./components/admin-panel"
+import { AdminPanelHeader } from "./components/admin-panel-header"
+import {
+  AdminInlineList,
+  AdminJsonPreview,
+  AdminTemplatePreview,
+} from "./components/admin-preview"
+import {
+  AdminSelectField,
+  type AdminSelectFieldItem,
+} from "./components/admin-select-field"
+import { AdminState } from "./components/admin-state"
+import {
+  AdminSummaryList,
+  AdminSummaryRow,
+} from "./components/admin-summary-list"
+import { AdminTable } from "./components/admin-table"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
+import {
+  formatCompactId,
+  formatCount,
+  formatDateTime,
+  formatMoney,
+} from "./utils/format"
 
 const TITLE_SPLIT_PATTERN = /\s+/
 const FULFILLMENT_TRACKING_DATA_KEYS = [
@@ -45,23 +93,23 @@ export function OrderDetailPage() {
 
   if (order.isLoading) {
     return (
-      <section className="admin-page">
-        <PageTitle eyebrow="Objednavka" title="Nacitam detail" />
-        <div aria-busy="true" className="admin-inline-state">
+      <AdminPage>
+        <AdminPageHeader eyebrow="Objednavka" title="Nacitam detail" />
+        <AdminState isBusy surface="panel">
           Nacitam objednavku...
-        </div>
-      </section>
+        </AdminState>
+      </AdminPage>
     )
   }
 
   if (order.isError || !order.data?.order) {
     return (
-      <section className="admin-page">
-        <PageTitle eyebrow="Objednavka" title="Detail objednavky" />
-        <div className="admin-inline-state">
+      <AdminPage>
+        <AdminPageHeader eyebrow="Objednavka" title="Detail objednavky" />
+        <AdminState surface="panel" tone="error">
           Objednavku se nepodarilo nacist.
-        </div>
-      </section>
+        </AdminState>
+      </AdminPage>
     )
   }
 
@@ -74,37 +122,31 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
   const activeFulfillments = getActiveFulfillments(order)
 
   return (
-    <section className="admin-page admin-page-wide">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Objednavka</span>
-          <h1>{orderLabel}</h1>
-        </div>
-        <div className="admin-header-actions">
-          <div className="admin-status-row">
+    <AdminPage width="wide">
+      <AdminPageHeader eyebrow="Objednavka" title={orderLabel}>
+        <AdminPageHeaderActions>
+          <AdminStatusRow>
             <OrderStatusBadge label={order.status} />
             <OrderStatusBadge label={order.payment_status} />
             <OrderStatusBadge label={order.fulfillment_status} />
-          </div>
-          <Link className="admin-text-link" to="/orders?view=action-required">
+          </AdminStatusRow>
+          <AdminTextLink to="/orders?view=action-required">
             Zpet na objednavky
-          </Link>
-        </div>
-      </header>
-      <div className="admin-detail-layout">
-        <div className="admin-detail-stack">
-          <section className="admin-panel">
-            <div className="admin-panel-header">
-              <div>
-                <h2>Polozky objednavky</h2>
-                <span>{formatCount(items.length, "polozka", "polozek")}</span>
-              </div>
-            </div>
+          </AdminTextLink>
+        </AdminPageHeaderActions>
+      </AdminPageHeader>
+      <AdminDetailLayout>
+        <AdminDetailStack>
+          <AdminPanel>
+            <AdminPanelHeader
+              subtitle={formatCount(items.length, "polozka", "polozek")}
+              title="Polozky objednavky"
+            />
             <OrderItemsTable
               currencyCode={order.currency_code ?? null}
               items={items}
             />
-          </section>
+          </AdminPanel>
           <OrderTotalsPanel order={order} />
           <OrderShippingMethodsPanel
             currencyCode={order.currency_code ?? null}
@@ -115,54 +157,55 @@ function OrderDetail({ order }: { order: MedusaAdminOrder }) {
             activeFulfillments={activeFulfillments}
             order={order}
           />
-          <section className="admin-address-grid">
+          <AdminAddressGrid>
             <AddressPanel address={order.shipping_address} title="Doruceni" />
             <AddressPanel address={order.billing_address} title="Fakturace" />
-          </section>
-        </div>
-        <aside className="admin-detail-stack">
+          </AdminAddressGrid>
+        </AdminDetailStack>
+        <AdminDetailStack as="aside">
           <OrderCustomerPanel order={order} />
           <OrderSummaryPanel order={order} />
           <OrderEmailPanel order={order} />
           <OrderMetadataPanel metadata={order.metadata} />
-        </aside>
-      </div>
-    </section>
+        </AdminDetailStack>
+      </AdminDetailLayout>
+    </AdminPage>
   )
 }
 
 function OrderSummaryPanel({ order }: { order: MedusaAdminOrder }) {
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Souhrn</h2>
-          <span>{formatDateTime(order.created_at)}</span>
-        </div>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="ID" value={order.id} />
-        <DetailField
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle={formatDateTime(order.created_at)}
+        title="Souhrn"
+      />
+      <AdminDetailFields>
+        <AdminDetailField label="ID" value={order.id} />
+        <AdminDetailField
           label="Vytvoreno"
           value={formatDateTime(order.created_at)}
         />
-        <DetailField
+        <AdminDetailField
           label="Sales channel"
           value={order.sales_channel?.name ?? order.sales_channel?.id}
         />
-        <DetailField label="Stav" value={order.status} />
-        <DetailField label="Platba" value={order.payment_status} />
-        <DetailField label="Fulfillment" value={order.fulfillment_status} />
-        <DetailField
+        <AdminDetailField label="Stav" value={order.status} />
+        <AdminDetailField label="Platba" value={order.payment_status} />
+        <AdminDetailField
+          label="Fulfillment"
+          value={order.fulfillment_status}
+        />
+        <AdminDetailField
           label="Zruseno"
           value={formatDateTime(order.canceled_at)}
         />
-        <DetailField
+        <AdminDetailField
           label="Celkem"
           value={formatMoney(order.total ?? null, order.currency_code ?? null)}
         />
-      </div>
-    </section>
+      </AdminDetailFields>
+    </AdminPanel>
   )
 }
 
@@ -182,21 +225,22 @@ function OrderCustomerPanel({ order }: { order: MedusaAdminOrder }) {
   const customer = order.customer
 
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Zakaznik</h2>
-          <span>{order.email ?? customer?.email ?? "Bez e-mailu"}</span>
-        </div>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="Jmeno" value={formatCustomerName(order)} />
-        <DetailField label="Email" value={order.email ?? customer?.email} />
-        <DetailField label="Telefon" value={customer?.phone} />
-        <DetailField label="Firma" value={customer?.company_name} />
-        <DetailField label="Customer ID" value={order.customer_id} />
-      </div>
-    </section>
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle={order.email ?? customer?.email ?? "Bez e-mailu"}
+        title="Zakaznik"
+      />
+      <AdminDetailFields>
+        <AdminDetailField label="Jmeno" value={formatCustomerName(order)} />
+        <AdminDetailField
+          label="Email"
+          value={order.email ?? customer?.email}
+        />
+        <AdminDetailField label="Telefon" value={customer?.phone} />
+        <AdminDetailField label="Firma" value={customer?.company_name} />
+        <AdminDetailField label="Customer ID" value={order.customer_id} />
+      </AdminDetailFields>
+    </AdminPanel>
   )
 }
 
@@ -231,31 +275,25 @@ function OrderTotalsPanel({ order }: { order: MedusaAdminOrder }) {
   ]
 
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Financni souhrn</h2>
-          <span>{order.currency_code?.toUpperCase() ?? "CZK"}</span>
-        </div>
-      </div>
-      <div className="admin-money-breakdown">
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle={order.currency_code?.toUpperCase() ?? "CZK"}
+        title="Financni souhrn"
+      />
+      <AdminSummaryList>
         {rows.map((row) => (
-          <div
-            className={
-              row.isStrong ? "admin-money-row is-strong" : "admin-money-row"
-            }
+          <AdminSummaryRow
+            emphasized={row.isStrong}
             key={row.label}
+            label={row.label}
           >
-            <span>{row.label}</span>
-            <strong>
-              {row.isDeduction
-                ? formatDeductionMoney(row.value, order.currency_code ?? null)
-                : formatMoney(row.value, order.currency_code ?? null)}
-            </strong>
-          </div>
+            {row.isDeduction
+              ? formatDeductionMoney(row.value, order.currency_code ?? null)
+              : formatMoney(row.value, order.currency_code ?? null)}
+          </AdminSummaryRow>
         ))}
-      </div>
-    </section>
+      </AdminSummaryList>
+    </AdminPanel>
   )
 }
 
@@ -267,47 +305,45 @@ function OrderShippingMethodsPanel({
   shippingMethods: MedusaAdminShippingMethod[]
 }) {
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Doprava</h2>
-          <span>{formatCount(shippingMethods.length, "metoda", "metod")}</span>
-        </div>
-      </div>
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle={formatCount(shippingMethods.length, "metoda", "metod")}
+        title="Doprava"
+      />
       {shippingMethods.length ? (
-        <div className="admin-table-wrap">
-          <table className="admin-data-table admin-data-table-compact">
-            <thead>
-              <tr>
-                <th>Metoda</th>
-                <th>Provider</th>
-                <th>Cena</th>
-                <th>Tax</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shippingMethods.map((method) => (
-                <tr key={method.id ?? method.name}>
-                  <td className="admin-table-strong">
-                    {method.name ?? method.id ?? "-"}
-                  </td>
-                  <td>{method.provider_id ?? "-"}</td>
-                  <td>
-                    {formatMoney(
-                      method.total ?? method.amount ?? method.subtotal ?? null,
-                      currencyCode
-                    )}
-                  </td>
-                  <td>{formatMoney(method.tax_total ?? null, currencyCode)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AdminTable width="xl">
+          <AdminTable.Header>
+            <AdminTable.Row>
+              <AdminTable.ColumnHeader>Metoda</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Provider</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Cena</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Tax</AdminTable.ColumnHeader>
+            </AdminTable.Row>
+          </AdminTable.Header>
+          <AdminTable.Body>
+            {shippingMethods.map((method) => (
+              <AdminTable.Row key={method.id ?? method.name}>
+                <AdminTable.Cell className="font-semibold text-fg-primary">
+                  {method.name ?? method.id ?? "-"}
+                </AdminTable.Cell>
+                <AdminTable.Cell>{method.provider_id ?? "-"}</AdminTable.Cell>
+                <AdminTable.Cell>
+                  {formatMoney(
+                    method.total ?? method.amount ?? method.subtotal ?? null,
+                    currencyCode
+                  )}
+                </AdminTable.Cell>
+                <AdminTable.Cell>
+                  {formatMoney(method.tax_total ?? null, currencyCode)}
+                </AdminTable.Cell>
+              </AdminTable.Row>
+            ))}
+          </AdminTable.Body>
+        </AdminTable>
       ) : (
-        <div className="admin-table-state">Bez dopravni metody.</div>
+        <AdminState>Bez dopravni metody.</AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -315,38 +351,32 @@ function OrderPaymentsPanel({ order }: { order: MedusaAdminOrder }) {
   const collections = order.payment_collections ?? []
 
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Platby</h2>
-          <span>{formatPaymentCollections(order)}</span>
-        </div>
-      </div>
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle={formatPaymentCollections(order)}
+        title="Platby"
+      />
       {collections.length ? (
-        <div className="admin-table-wrap">
-          <table className="admin-data-table admin-data-table-compact">
-            <thead>
-              <tr>
-                <th>Typ</th>
-                <th>Status</th>
-                <th>Provider</th>
-                <th>Castka</th>
-                <th>Datum</th>
-              </tr>
-            </thead>
-            <tbody>
-              {collections.flatMap((collection) =>
-                toPaymentRows(collection, order.currency_code ?? null)
-              )}
-            </tbody>
-          </table>
-        </div>
+        <AdminTable width="2xl">
+          <AdminTable.Header>
+            <AdminTable.Row>
+              <AdminTable.ColumnHeader>Typ</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Status</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Provider</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Castka</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Datum</AdminTable.ColumnHeader>
+            </AdminTable.Row>
+          </AdminTable.Header>
+          <AdminTable.Body>
+            {collections.flatMap((collection) =>
+              toPaymentRows(collection, order.currency_code ?? null)
+            )}
+          </AdminTable.Body>
+        </AdminTable>
       ) : (
-        <div className="admin-table-state">
-          Objednavka nema payment collection.
-        </div>
+        <AdminState>Objednavka nema payment collection.</AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -358,54 +388,56 @@ function OrderFulfillmentsPanel({
   order: MedusaAdminOrder
 }) {
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Fulfillment</h2>
-          <span>{formatFulfillments(order)}</span>
-        </div>
-      </div>
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle={formatFulfillments(order)}
+        title="Fulfillment"
+      />
       {activeFulfillments.length ? (
-        <div className="admin-table-wrap">
-          <table className="admin-data-table admin-data-table-compact">
-            <thead>
-              <tr>
-                <th>Fulfillment</th>
-                <th>Status</th>
-                <th>Provider</th>
-                <th>Tracking</th>
-                <th>Polozky</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeFulfillments.map((fulfillment) => (
-                <tr key={fulfillment.id ?? fulfillment.created_at}>
-                  <td className="admin-table-strong">
-                    {formatCompactId(fulfillment.id) ?? "-"}
-                  </td>
-                  <td>
-                    <Badge
-                      size="sm"
-                      variant={getFulfillmentBadgeVariant(fulfillment)}
-                    >
-                      {formatFulfillmentStatus(fulfillment)}
-                    </Badge>
-                  </td>
-                  <td>{fulfillment.provider_id ?? "-"}</td>
-                  <td>{formatFulfillmentTracking(fulfillment)}</td>
-                  <td>{formatFulfillmentItems(fulfillment)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AdminTable width="2xl">
+          <AdminTable.Header>
+            <AdminTable.Row>
+              <AdminTable.ColumnHeader>Fulfillment</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Status</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Provider</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Tracking</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Polozky</AdminTable.ColumnHeader>
+            </AdminTable.Row>
+          </AdminTable.Header>
+          <AdminTable.Body>
+            {activeFulfillments.map((fulfillment) => (
+              <AdminTable.Row key={fulfillment.id ?? fulfillment.created_at}>
+                <AdminTable.Cell className="font-semibold text-fg-primary">
+                  {formatCompactId(fulfillment.id) ?? "-"}
+                </AdminTable.Cell>
+                <AdminTable.Cell>
+                  <Badge
+                    size="sm"
+                    variant={getFulfillmentBadgeVariant(fulfillment)}
+                  >
+                    {formatFulfillmentStatus(fulfillment)}
+                  </Badge>
+                </AdminTable.Cell>
+                <AdminTable.Cell>
+                  {fulfillment.provider_id ?? "-"}
+                </AdminTable.Cell>
+                <AdminTable.Cell>
+                  {formatFulfillmentTracking(fulfillment)}
+                </AdminTable.Cell>
+                <AdminTable.Cell>
+                  {formatFulfillmentItems(fulfillment)}
+                </AdminTable.Cell>
+              </AdminTable.Row>
+            ))}
+          </AdminTable.Body>
+        </AdminTable>
       ) : (
-        <div className="admin-table-state">
+        <AdminState>
           Zatim bez aktivniho fulfillmentu. Stav:{" "}
           {order.fulfillment_status ?? "-"}.
-        </div>
+        </AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -413,7 +445,7 @@ function OrderEmailPanel({ order }: { order: MedusaAdminOrder }) {
   const queryClient = useQueryClient()
   const templates = useOrderEmailTemplates()
   const [selectedTemplate, setSelectedTemplate] = useState("")
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const availableTemplates = templates.data?.templates ?? []
   const mutation = useMutation({
     mutationFn: sendOrderEmail,
@@ -457,14 +489,12 @@ function OrderEmailPanel({ order }: { order: MedusaAdminOrder }) {
   }
 
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Email zakaznikovi</h2>
-          <span>{order.email ?? "Objednavka nema e-mail."}</span>
-        </div>
-      </div>
-      <form className="admin-action-form" onSubmit={handleSubmit}>
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle={order.email ?? "Objednavka nema e-mail."}
+        title="Email zakaznikovi"
+      />
+      <form className="grid gap-300 p-400" onSubmit={handleSubmit}>
         <OrderEmailFormContent
           feedback={feedback}
           isError={templates.isError}
@@ -479,7 +509,7 @@ function OrderEmailPanel({ order }: { order: MedusaAdminOrder }) {
           templates={availableTemplates}
         />
       </form>
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -493,7 +523,7 @@ function OrderEmailFormContent({
   selectedTemplate,
   templates,
 }: {
-  feedback: Feedback
+  feedback: AdminFeedbackState
   isError: boolean
   isLoading: boolean
   isSending: boolean
@@ -503,64 +533,47 @@ function OrderEmailFormContent({
   templates: OrderEmailTemplate[]
 }) {
   if (isLoading) {
-    return (
-      <div aria-busy="true" className="admin-table-state">
-        Nacitam sablony...
-      </div>
-    )
+    return <AdminState isBusy>Nacitam sablony...</AdminState>
   }
 
   if (isError) {
     return (
-      <div className="admin-table-state admin-table-state-error">
+      <AdminState tone="error">
         Emailove sablony se nepodarilo nacist.
-      </div>
+      </AdminState>
     )
   }
 
+  const templateItems: AdminSelectFieldItem[] = templates.map((template) => ({
+    label: template.label,
+    value: template.template,
+  }))
+
   return (
     <>
-      <label className="admin-field">
-        <span>Sablona</span>
-        <select
-          disabled={!orderEmail || isSending}
-          onChange={(event) => onTemplateChange(event.target.value)}
-          value={selectedTemplate}
-        >
-          {templates.map((template) => (
-            <option key={template.template} value={template.template}>
-              {template.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <AdminSelectField
+        disabled={!(orderEmail && templates.length) || isSending}
+        items={templateItems}
+        label="Sablona"
+        onValueChange={onTemplateChange}
+        placeholder="Vyberte sablonu"
+        size="md"
+        value={selectedTemplate}
+      />
       <TemplatePreview
         template={templates.find((item) => item.template === selectedTemplate)}
       />
       {feedback && (
-        <div
-          className={[
-            "admin-feedback admin-feedback-inline",
-            feedback.tone === "error" ? "admin-feedback-error" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          {feedback.message}
-        </div>
+        <AdminFeedback tone={feedback.tone}>{feedback.message}</AdminFeedback>
       )}
-      <Button
-        className="admin-toolbar-button"
+      <AdminToolbarButton
         disabled={
           !(orderEmail && templates.length && selectedTemplate) || isSending
         }
-        size="sm"
-        theme="outlined"
         type="submit"
-        variant="secondary"
       >
         {isSending ? "Odesilam..." : "Odeslat email"}
-      </Button>
+      </AdminToolbarButton>
     </>
   )
 }
@@ -575,10 +588,9 @@ function TemplatePreview({
   }
 
   return (
-    <div className="admin-template-preview">
-      <span>{template.trigger_type}</span>
-      <strong>{template.subject ?? "Bez predmetu"}</strong>
-    </div>
+    <AdminTemplatePreview label={template.trigger_type}>
+      {template.subject ?? "Bez predmetu"}
+    </AdminTemplatePreview>
   )
 }
 
@@ -590,64 +602,59 @@ function OrderItemsTable({
   items: MedusaAdminOrderItem[]
 }) {
   if (!items.length) {
-    return <div className="admin-table-state">Objednavka nema polozky.</div>
+    return <AdminState>Objednavka nema polozky.</AdminState>
   }
 
   return (
-    <div className="admin-table-wrap">
-      <table className="admin-data-table">
-        <thead>
-          <tr>
-            <th>Produkt</th>
-            <th>SKU</th>
-            <th>Mnozstvi</th>
-            <th>Cena</th>
-            <th>Celkem</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.id}>
-              <td>
-                <div className="admin-order-item-product">
-                  {item.thumbnail || item.product?.thumbnail ? (
-                    <span
-                      className="admin-product-thumb admin-order-item-thumb"
-                      style={getThumbnailStyle(
-                        item.thumbnail ?? item.product?.thumbnail ?? ""
-                      )}
-                    />
+    <AdminTable width="3xl">
+      <AdminTable.Header>
+        <AdminTable.Row>
+          <AdminTable.ColumnHeader>Produkt</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>SKU</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Mnozstvi</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Cena</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Celkem</AdminTable.ColumnHeader>
+        </AdminTable.Row>
+      </AdminTable.Header>
+      <AdminTable.Body>
+        {items.map((item) => (
+          <AdminTable.Row key={item.id}>
+            <AdminTable.Cell>
+              <AdminEntityLayout className="min-w-3xs" size="sm">
+                <AdminMediaFrame
+                  className="size-20"
+                  fallback={getInitials(getItemTitle(item))}
+                  fallbackClassName="text-xs"
+                  src={item.thumbnail ?? item.product?.thumbnail}
+                />
+                <AdminEntityBody>
+                  {item.product_id ? (
+                    <AdminTableLink to={`/products/${item.product_id}`}>
+                      {getItemTitle(item)}
+                    </AdminTableLink>
                   ) : (
-                    <span className="admin-product-thumb-fallback admin-order-item-thumb">
-                      {getInitials(getItemTitle(item))}
-                    </span>
+                    <strong>{getItemTitle(item)}</strong>
                   )}
-                  <div>
-                    {item.product_id ? (
-                      <Link
-                        className="admin-table-link"
-                        to={`/products/${item.product_id}`}
-                      >
-                        {getItemTitle(item)}
-                      </Link>
-                    ) : (
-                      <strong>{getItemTitle(item)}</strong>
-                    )}
-                    <span>
-                      {item.variant_title ?? item.variant?.title ?? "-"}
-                    </span>
-                  </div>
-                </div>
-              </td>
-              <td>{item.variant_sku ?? item.variant?.sku ?? "-"}</td>
-              <td>{formatQuantity(item.quantity)}</td>
-              <td>{formatMoney(item.unit_price ?? null, currencyCode)}</td>
-              <td>{formatMoney(item.total ?? null, currencyCode)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                  <AdminEntityText offset="sm">
+                    {item.variant_title ?? item.variant?.title ?? "-"}
+                  </AdminEntityText>
+                </AdminEntityBody>
+              </AdminEntityLayout>
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              {item.variant_sku ?? item.variant?.sku ?? "-"}
+            </AdminTable.Cell>
+            <AdminTable.Cell>{formatQuantity(item.quantity)}</AdminTable.Cell>
+            <AdminTable.Cell>
+              {formatMoney(item.unit_price ?? null, currencyCode)}
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              {formatMoney(item.total ?? null, currencyCode)}
+            </AdminTable.Cell>
+          </AdminTable.Row>
+        ))}
+      </AdminTable.Body>
+    </AdminTable>
   )
 }
 
@@ -659,21 +666,16 @@ function AddressPanel({
   title: string
 }) {
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>{title}</h2>
-          <span>{formatAddressName(address)}</span>
-        </div>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="Firma" value={address?.company} />
-        <DetailField label="Adresa" value={formatStreet(address)} />
-        <DetailField label="Mesto" value={formatCity(address)} />
-        <DetailField label="Zeme" value={address?.country_code} />
-        <DetailField label="Telefon" value={address?.phone} />
-      </div>
-    </section>
+    <AdminPanel>
+      <AdminPanelHeader subtitle={formatAddressName(address)} title={title} />
+      <AdminDetailFields>
+        <AdminDetailField label="Firma" value={address?.company} />
+        <AdminDetailField label="Adresa" value={formatStreet(address)} />
+        <AdminDetailField label="Mesto" value={formatCity(address)} />
+        <AdminDetailField label="Zeme" value={address?.country_code} />
+        <AdminDetailField label="Telefon" value={address?.phone} />
+      </AdminDetailFields>
+    </AdminPanel>
   )
 }
 
@@ -685,47 +687,17 @@ function OrderMetadataPanel({
   const hasMetadata = metadata && Object.keys(metadata).length > 0
 
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Metadata</h2>
-          <span>Technicke hodnoty objednavky.</span>
-        </div>
-      </div>
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle="Technicke hodnoty objednavky."
+        title="Metadata"
+      />
       {hasMetadata ? (
-        <pre className="admin-json-preview">
-          {JSON.stringify(metadata, null, 2)}
-        </pre>
+        <AdminJsonPreview>{JSON.stringify(metadata, null, 2)}</AdminJsonPreview>
       ) : (
-        <div className="admin-table-state">Bez metadat.</div>
+        <AdminState>Bez metadat.</AdminState>
       )}
-    </section>
-  )
-}
-
-function DetailField({
-  label,
-  value,
-}: {
-  label: string
-  value: string | null | undefined
-}) {
-  return (
-    <div className="admin-detail-field">
-      <span>{label}</span>
-      <strong>{value || "-"}</strong>
-    </div>
-  )
-}
-
-function PageTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <header className="admin-page-header">
-      <div>
-        <span className="admin-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-      </div>
-    </header>
+    </AdminPanel>
   )
 }
 
@@ -770,24 +742,24 @@ function PaymentCollectionRow({
   fallbackCurrencyCode: string | null
 }) {
   return (
-    <tr>
-      <td className="admin-table-strong">
+    <AdminTable.Row>
+      <AdminTable.Cell className="font-semibold text-fg-primary">
         {formatCompactId(collection.id) ?? "Collection"}
-      </td>
-      <td>
+      </AdminTable.Cell>
+      <AdminTable.Cell>
         <Badge size="sm" variant={getStatusBadgeVariant(collection.status)}>
           {formatStatusLabel(collection.status)}
         </Badge>
-      </td>
-      <td>-</td>
-      <td>
+      </AdminTable.Cell>
+      <AdminTable.Cell>-</AdminTable.Cell>
+      <AdminTable.Cell>
         {formatMoney(
           collection.amount ?? null,
           collection.currency_code ?? fallbackCurrencyCode
         )}
-      </td>
-      <td>-</td>
-    </tr>
+      </AdminTable.Cell>
+      <AdminTable.Cell>-</AdminTable.Cell>
+    </AdminTable.Row>
   )
 }
 
@@ -801,26 +773,26 @@ function PaymentRow({
   payment: MedusaAdminPayment
 }) {
   return (
-    <tr>
-      <td className="admin-payment-nested">
+    <AdminTable.Row>
+      <AdminTable.Cell className="ps-700">
         {formatCompactId(payment.id) ?? "Payment"}
-      </td>
-      <td>
+      </AdminTable.Cell>
+      <AdminTable.Cell>
         <Badge size="sm" variant={getPaymentBadgeVariant(payment)}>
           {formatPaymentStatus(payment)}
         </Badge>
-      </td>
-      <td>{payment.provider_id ?? "-"}</td>
-      <td>
+      </AdminTable.Cell>
+      <AdminTable.Cell>{payment.provider_id ?? "-"}</AdminTable.Cell>
+      <AdminTable.Cell>
         {formatMoney(
           payment.amount ?? null,
           payment.currency_code ??
             collection.currency_code ??
             fallbackCurrencyCode
         )}
-      </td>
-      <td>{formatDateTime(payment.created_at)}</td>
-    </tr>
+      </AdminTable.Cell>
+      <AdminTable.Cell>{formatDateTime(payment.created_at)}</AdminTable.Cell>
+    </AdminTable.Row>
   )
 }
 
@@ -836,17 +808,17 @@ function RefundPaymentRow({
   refund: MedusaAdminRefund
 }) {
   return (
-    <tr>
-      <td className="admin-payment-nested">
+    <AdminTable.Row>
+      <AdminTable.Cell className="ps-700">
         {formatCompactId(refund.id) ?? "Refund"}
-      </td>
-      <td>
+      </AdminTable.Cell>
+      <AdminTable.Cell>
         <Badge size="sm" variant="warning">
           Refund
         </Badge>
-      </td>
-      <td>{payment.provider_id ?? "-"}</td>
-      <td>
+      </AdminTable.Cell>
+      <AdminTable.Cell>{payment.provider_id ?? "-"}</AdminTable.Cell>
+      <AdminTable.Cell>
         {formatDeductionMoney(
           refund.amount ?? null,
           refund.currency_code ??
@@ -854,9 +826,9 @@ function RefundPaymentRow({
             collection.currency_code ??
             fallbackCurrencyCode
         )}
-      </td>
-      <td>{formatDateTime(refund.created_at)}</td>
-    </tr>
+      </AdminTable.Cell>
+      <AdminTable.Cell>{formatDateTime(refund.created_at)}</AdminTable.Cell>
+    </AdminTable.Row>
   )
 }
 
@@ -954,28 +926,22 @@ function formatFulfillmentTracking(fulfillment: MedusaAdminFulfillment) {
 
   if (labels.length) {
     return (
-      <div className="admin-inline-list">
+      <AdminInlineList>
         {labels.map((label, index) => {
           const labelText = label.tracking_number ?? label.id ?? "Tracking"
           const key = label.id ?? label.tracking_number ?? `tracking-${index}`
 
           if (label.tracking_url) {
             return (
-              <a
-                className="admin-table-link"
-                href={label.tracking_url}
-                key={key}
-                rel="noreferrer"
-                target="_blank"
-              >
+              <AdminExternalTableLink href={label.tracking_url} key={key}>
                 {labelText}
-              </a>
+              </AdminExternalTableLink>
             )
           }
 
           return <span key={key}>{labelText}</span>
         })}
-      </div>
+      </AdminInlineList>
     )
   }
 
@@ -1004,18 +970,6 @@ function getFulfillmentDataTracking(
   }
 
   return null
-}
-
-function formatCompactId(value: string | null | undefined) {
-  if (!value) {
-    return null
-  }
-
-  if (value.length <= 16) {
-    return value
-  }
-
-  return `${value.slice(0, 8)}...${value.slice(-5)}`
 }
 
 function formatStatusLabel(value: string | null | undefined) {
@@ -1092,43 +1046,6 @@ function formatCity(address: MedusaAdminAddress | null | undefined) {
     .join(" ")
 }
 
-function formatDateTime(value: string | null | undefined) {
-  if (!value) {
-    return "-"
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return "-"
-  }
-
-  return new Intl.DateTimeFormat("cs-CZ", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date)
-}
-
-function formatMoney(
-  value: number | string | null,
-  currencyCode: string | null
-) {
-  if (value === null) {
-    return "-"
-  }
-
-  const amount = typeof value === "string" ? Number(value) : value
-
-  if (!Number.isFinite(amount)) {
-    return "-"
-  }
-
-  return new Intl.NumberFormat("cs-CZ", {
-    currency: (currencyCode ?? "CZK").toUpperCase(),
-    style: "currency",
-  }).format(amount)
-}
-
 function formatDeductionMoney(
   value: number | string | null,
   currencyCode: string | null
@@ -1150,16 +1067,6 @@ function formatQuantity(value: number | string | null | undefined) {
   const amount = typeof value === "string" ? Number(value) : value
 
   return Number.isFinite(amount) ? String(amount) : "-"
-}
-
-function formatCount(value: number, singular: string, plural: string) {
-  return `${value} ${value === 1 ? singular : plural}`
-}
-
-function getThumbnailStyle(thumbnail: string) {
-  return {
-    backgroundImage: `url("${thumbnail.replaceAll('"', "%22")}")`,
-  }
 }
 
 function getInitials(title: string) {

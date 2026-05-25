@@ -1,5 +1,5 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Link, Navigate, useParams } from "react-router-dom"
+import { Navigate, useParams } from "react-router-dom"
 import { useAdminProductDetail } from "./admin-api"
 import type {
   MedusaAdminProduct,
@@ -7,6 +7,24 @@ import type {
   MedusaAdminProductOption,
   MedusaAdminProductVariant,
 } from "./admin-types"
+import {
+  AdminDetailField,
+  AdminDetailFields,
+} from "./components/admin-detail-field"
+import { AdminInfoItem, AdminInfoList } from "./components/admin-info-list"
+import { AdminTextLink } from "./components/admin-link"
+import { AdminMediaFrame } from "./components/admin-media"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import {
+  AdminDetailLayout,
+  AdminDetailStack,
+  AdminPanel,
+} from "./components/admin-panel"
+import { AdminPanelHeader } from "./components/admin-panel-header"
+import { AdminJsonPreview } from "./components/admin-preview"
+import { AdminState } from "./components/admin-state"
+import { AdminTable } from "./components/admin-table"
+import { formatCount } from "./utils/format"
 
 const TITLE_SPLIT_PATTERN = /\s+/
 
@@ -20,21 +38,23 @@ export function ProductDetailPage() {
 
   if (product.isLoading) {
     return (
-      <section className="admin-page">
-        <PageTitle eyebrow="Produkt" title="Nacitam detail" />
-        <div aria-busy="true" className="admin-inline-state">
+      <AdminPage>
+        <AdminPageHeader eyebrow="Produkt" title="Nacitam detail" />
+        <AdminState isBusy surface="panel">
           Nacitam produkt...
-        </div>
-      </section>
+        </AdminState>
+      </AdminPage>
     )
   }
 
   if (product.isError || !product.data?.product) {
     return (
-      <section className="admin-page">
-        <PageTitle eyebrow="Produkt" title="Detail produktu" />
-        <div className="admin-inline-state">Produkt se nepodarilo nacist.</div>
-      </section>
+      <AdminPage>
+        <AdminPageHeader eyebrow="Produkt" title="Detail produktu" />
+        <AdminState surface="panel" tone="error">
+          Produkt se nepodarilo nacist.
+        </AdminState>
+      </AdminPage>
     )
   }
 
@@ -47,111 +67,94 @@ function ProductDetail({ product }: { product: MedusaAdminProduct }) {
   const options = product.options ?? []
 
   return (
-    <section className="admin-page admin-page-wide">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Produkt</span>
-          <h1>{product.title ?? product.id}</h1>
-        </div>
-        <Link className="admin-text-link" to="/products">
-          Zpet na produkty
-        </Link>
-      </header>
-      <div className="admin-detail-layout">
-        <div className="admin-detail-stack">
-          <section className="admin-panel">
-            <div className="admin-product-detail-hero">
+    <AdminPage width="wide">
+      <AdminPageHeader eyebrow="Produkt" title={product.title ?? product.id}>
+        <AdminTextLink to="/products">Zpet na produkty</AdminTextLink>
+      </AdminPageHeader>
+      <AdminDetailLayout>
+        <AdminDetailStack>
+          <AdminPanel>
+            <div className="grid grid-cols-[var(--spacing-80)_minmax(0,1fr)] items-start gap-450 p-400 max-admin-layout:grid-cols-1">
               <ProductImage product={product} />
               <div>
                 <Badge
-                  className="admin-status-badge"
                   size="sm"
                   variant={product.status === "published" ? "info" : "warning"}
                 >
                   {product.status ?? "draft"}
                 </Badge>
-                <h2>{product.subtitle || product.handle || product.id}</h2>
-                <p>{product.description || "Bez popisu."}</p>
+                <h2 className="mt-300 mb-200 font-bold text-fg-primary text-lg leading-tight">
+                  {product.subtitle || product.handle || product.id}
+                </h2>
+                <p className="m-0 max-w-5xl text-fg-secondary text-xs leading-relaxed">
+                  {product.description || "Bez popisu."}
+                </p>
               </div>
             </div>
-          </section>
-          <section className="admin-panel">
-            <div className="admin-panel-header">
-              <div>
-                <h2>Varianty</h2>
-                <span>
-                  {formatCount(variants.length, "varianta", "variant")}
-                </span>
-              </div>
-            </div>
+          </AdminPanel>
+          <AdminPanel>
+            <AdminPanelHeader
+              subtitle={formatCount(variants.length, "varianta", "variant")}
+              title="Varianty"
+            />
             <ProductVariantsTable variants={variants} />
-          </section>
-          <section className="admin-panel">
-            <div className="admin-panel-header">
-              <div>
-                <h2>Obrazky</h2>
-                <span>{formatCount(images.length, "obrazek", "obrazku")}</span>
-              </div>
-            </div>
+          </AdminPanel>
+          <AdminPanel>
+            <AdminPanelHeader
+              subtitle={formatCount(images.length, "obrazek", "obrazku")}
+              title="Obrazky"
+            />
             <ProductImagesGrid images={images} />
-          </section>
-        </div>
-        <aside className="admin-detail-stack">
+          </AdminPanel>
+        </AdminDetailStack>
+        <AdminDetailStack as="aside">
           <ProductSummaryPanel product={product} />
           <ProductOptionsPanel options={options} />
           <ProductMetadataPanel metadata={product.metadata} />
-        </aside>
-      </div>
-    </section>
+        </AdminDetailStack>
+      </AdminDetailLayout>
+    </AdminPage>
   )
 }
 
 function ProductImage({ product }: { product: MedusaAdminProduct }) {
-  if (product.thumbnail) {
-    return (
-      <span
-        className="admin-product-detail-image"
-        style={getThumbnailStyle(product.thumbnail)}
-      />
-    )
-  }
-
   return (
-    <span className="admin-product-detail-image admin-product-detail-image-fallback">
-      {getInitials(product.title ?? product.id)}
-    </span>
+    <AdminMediaFrame
+      className="aspect-square w-80 max-admin-layout:aspect-card max-admin-layout:w-full"
+      fallback={getInitials(product.title ?? product.id)}
+      fallbackClassName="bg-highlight text-xl"
+      src={product.thumbnail}
+    />
   )
 }
 
 function ProductSummaryPanel({ product }: { product: MedusaAdminProduct }) {
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Souhrn</h2>
-          <span>{product.handle ? `/${product.handle}` : product.id}</span>
-        </div>
-      </div>
-      <div className="admin-detail-fields">
-        <DetailField label="ID" value={product.id} />
-        <DetailField label="Handle" value={product.handle} />
-        <DetailField label="Kolekce" value={product.collection?.title} />
-        <DetailField
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle={product.handle ? `/${product.handle}` : product.id}
+        title="Souhrn"
+      />
+      <AdminDetailFields>
+        <AdminDetailField label="ID" value={product.id} />
+        <AdminDetailField label="Handle" value={product.handle} />
+        <AdminDetailField label="Kolekce" value={product.collection?.title} />
+        <AdminDetailField
           label="Kategorie"
           value={(product.categories ?? [])
             .map((category) => category.name ?? category.id)
             .filter(Boolean)
             .join(", ")}
         />
-        <DetailField
+        <AdminDetailField
           label="Sales channels"
           value={(product.sales_channels ?? [])
             .map((channel) => channel.name ?? channel.id)
             .filter(Boolean)
             .join(", ")}
         />
-      </div>
-    </section>
+      </AdminDetailFields>
+    </AdminPanel>
   )
 }
 
@@ -161,26 +164,26 @@ function ProductOptionsPanel({
   options: MedusaAdminProductOption[]
 }) {
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Options</h2>
-          <span>{formatCount(options.length, "option", "options")}</span>
-        </div>
-      </div>
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle={formatCount(options.length, "option", "options")}
+        title="Options"
+      />
       {options.length ? (
-        <div className="admin-chip-list">
+        <AdminInfoList>
           {options.map((option) => (
-            <div className="admin-chip-block" key={option.id ?? option.title}>
-              <strong>{option.title ?? option.id}</strong>
-              <span>{formatOptionValues(option)}</span>
-            </div>
+            <AdminInfoItem
+              key={option.id ?? option.title}
+              title={option.title ?? option.id}
+            >
+              {formatOptionValues(option)}
+            </AdminInfoItem>
           ))}
-        </div>
+        </AdminInfoList>
       ) : (
-        <div className="admin-table-state">Bez option hodnot.</div>
+        <AdminState>Bez option hodnot.</AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -192,21 +195,17 @@ function ProductMetadataPanel({
   const hasMetadata = metadata && Object.keys(metadata).length > 0
 
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Metadata</h2>
-          <span>Technicke hodnoty produktu.</span>
-        </div>
-      </div>
+    <AdminPanel>
+      <AdminPanelHeader
+        subtitle="Technicke hodnoty produktu."
+        title="Metadata"
+      />
       {hasMetadata ? (
-        <pre className="admin-json-preview">
-          {JSON.stringify(metadata, null, 2)}
-        </pre>
+        <AdminJsonPreview>{JSON.stringify(metadata, null, 2)}</AdminJsonPreview>
       ) : (
-        <div className="admin-table-state">Bez metadat.</div>
+        <AdminState>Bez metadat.</AdminState>
       )}
-    </section>
+    </AdminPanel>
   )
 }
 
@@ -216,80 +215,60 @@ function ProductVariantsTable({
   variants: MedusaAdminProductVariant[]
 }) {
   if (!variants.length) {
-    return <div className="admin-table-state">Produkt nema varianty.</div>
+    return <AdminState>Produkt nema varianty.</AdminState>
   }
 
   return (
-    <div className="admin-table-wrap">
-      <table className="admin-data-table">
-        <thead>
-          <tr>
-            <th>Varianta</th>
-            <th>SKU</th>
-            <th>EAN</th>
-            <th>Inventory</th>
-            <th>Backorder</th>
-          </tr>
-        </thead>
-        <tbody>
-          {variants.map((variant) => (
-            <tr key={variant.id}>
-              <td className="admin-table-strong">
-                {variant.title ?? variant.id}
-              </td>
-              <td>{variant.sku ?? "-"}</td>
-              <td>{variant.ean ?? variant.barcode ?? variant.upc ?? "-"}</td>
-              <td>{formatBoolean(variant.manage_inventory)}</td>
-              <td>{formatBoolean(variant.allow_backorder)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <AdminTable width="2xl">
+      <AdminTable.Header>
+        <AdminTable.Row>
+          <AdminTable.ColumnHeader>Varianta</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>SKU</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>EAN</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Inventory</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Backorder</AdminTable.ColumnHeader>
+        </AdminTable.Row>
+      </AdminTable.Header>
+      <AdminTable.Body>
+        {variants.map((variant) => (
+          <AdminTable.Row key={variant.id}>
+            <AdminTable.Cell className="font-semibold text-fg-primary">
+              {variant.title ?? variant.id}
+            </AdminTable.Cell>
+            <AdminTable.Cell>{variant.sku ?? "-"}</AdminTable.Cell>
+            <AdminTable.Cell>
+              {variant.ean ?? variant.barcode ?? variant.upc ?? "-"}
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              {formatBoolean(variant.manage_inventory)}
+            </AdminTable.Cell>
+            <AdminTable.Cell>
+              {formatBoolean(variant.allow_backorder)}
+            </AdminTable.Cell>
+          </AdminTable.Row>
+        ))}
+      </AdminTable.Body>
+    </AdminTable>
   )
 }
 
 function ProductImagesGrid({ images }: { images: MedusaAdminProductImage[] }) {
   if (!images.length) {
-    return <div className="admin-table-state">Produkt nema dalsi obrazky.</div>
+    return <AdminState>Produkt nema dalsi obrazky.</AdminState>
   }
 
   return (
-    <div className="admin-product-image-grid">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(var(--spacing-43),1fr))] gap-250 p-400">
       {images.map((image) => (
-        <span
-          className="admin-product-gallery-image"
+        <AdminMediaFrame
+          className="aspect-square w-full"
+          fallback=""
+          fallbackClassName="text-xs"
           key={image.id ?? image.url}
-          style={getThumbnailStyle(image.url ?? "")}
+          src={image.url}
         />
       ))}
     </div>
-  )
-}
-
-function DetailField({
-  label,
-  value,
-}: {
-  label: string
-  value: string | null | undefined
-}) {
-  return (
-    <div className="admin-detail-field">
-      <span>{label}</span>
-      <strong>{value || "-"}</strong>
-    </div>
-  )
-}
-
-function PageTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <header className="admin-page-header">
-      <div>
-        <span className="admin-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-      </div>
-    </header>
   )
 }
 
@@ -312,18 +291,6 @@ function formatBoolean(value: boolean | null | undefined) {
   }
 
   return value ? "ano" : "ne"
-}
-
-function formatCount(value: number, singular: string, plural: string) {
-  return `${value} ${value === 1 ? singular : plural}`
-}
-
-function getThumbnailStyle(thumbnail: string) {
-  return {
-    backgroundImage: thumbnail
-      ? `url("${thumbnail.replaceAll('"', "%22")}")`
-      : undefined,
-  }
 }
 
 function getInitials(title: string) {

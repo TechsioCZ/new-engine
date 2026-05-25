@@ -5,6 +5,13 @@ This app is a custom admin dashboard for the New Engine Medusa stack. It is not 
 ## Scope Default
 
 - Default write scope is `apps/admin`.
+- Treat `libs/ui` as a read-only dependency for ordinary admin work. Inspect its
+  source, tokens, and stories to understand the component contract, but do not
+  edit `libs/ui` from an `apps/admin` task unless the user explicitly widens the
+  scope to shared UI-kit authoring.
+- If admin usage exposes a real UI-kit API gap, document the gap and solve the
+  current slice inside `apps/admin` with a small adapter or bounded workaround.
+  Shared `libs/ui` changes belong in a separate, explicitly scoped task.
 - Do not edit `apps/medusa-be` unless the current admin task proves that an existing Admin API or custom endpoint cannot support the required workflow.
 - If a backend gap is found, document the exact missing endpoint, request/response shape, and user workflow first. Do not work around missing CORS, auth, or backend behavior with frontend hacks.
 - Treat deployed backend compatibility as a first-class constraint. The admin should work against `NEXT_PUBLIC_MEDUSA_BACKEND_URL` without requiring local backend changes for ordinary UI work.
@@ -26,19 +33,51 @@ When official docs, local Medusa dashboard source, and current project code disa
 
 ## UI Kit Rules
 
-Use `@techsio/ui-kit` / `libs/ui` first. Before adding custom UI primitives, inspect:
+Use `@techsio/ui-kit` / `libs/ui` first. Before adding custom UI primitives, inspect the local UI-kit adoption skills:
 
-- `libs/ui/local/skills/adopting-ui-kit-in-apps/app-component-inventory/SKILL.md`
-- `libs/ui/local/skills/adopting-ui-kit-in-apps/component-usage-ux/SKILL.md`
-- `libs/ui/local/skills/adopting-ui-kit-in-apps/app-token-overrides/SKILL.md`
-- `libs/ui/local/skills/authoring-ui-kit-components/component-authoring/SKILL.md` when a real UI kit API gap exists.
+- `.codex/skills/adopting-ui-kit-in-apps/adopt-ui-kit-in-app/SKILL.md`
+- `.codex/skills/adopting-ui-kit-in-apps/app-component-inventory/SKILL.md`
+- `.codex/skills/adopting-ui-kit-in-apps/component-usage-ux/SKILL.md`
+- `.codex/skills/adopting-ui-kit-in-apps/app-token-overrides/SKILL.md`
+- `.codex/skills/authoring-ui-kit-components/component-authoring/SKILL.md` only to identify or document a real UI-kit API gap unless the current task explicitly includes shared `libs/ui` edits.
+
+Runtime imports in `apps/admin` must use the published workspace package name:
+
+```typescript
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Select } from "@techsio/ui-kit/molecules/select"
+```
+
+Do not rewrite app imports to `@libs/ui/...` unless the same change also adds and verifies the package/export/TypeScript/Vite alias contract. `libs/ui` is the source folder and guidance location; `@techsio/ui-kit` is the app import contract.
 
 Token-first, `className` last:
 
 - Component colors, borders, radius, spacing, typography, and states belong in token mappings or component variants.
-- Use inline `className` mainly for local layout and composition.
+- Use Tailwind utilities directly in JSX for structural layout and composition when no design token is involved, for example `flex`, `grid`, `flex-col`, `items-center`, `justify-between`, `relative`, or `absolute`.
+- When spacing, color, typography, radius, borders, or shadows are involved, use UI-kit token-backed utilities and component props instead of raw app CSS or arbitrary values.
 - If the existing token chain already resolves to the desired value, do not add redundant overrides.
 - If a required visual state cannot be expressed through tokens or component API, treat it as a UI kit API gap. Add a short local workaround only if needed, and prefer a follow-up UI kit improvement.
+
+Admin app token files live under `apps/admin/src/styles/tokens` and mirror the UI kit token model:
+
+- `index.css` imports Tailwind, `@techsio/ui-kit/tokens`, admin semantic/spacing/typography files, and component overrides.
+- `_admin-base.css`, `_admin-colors.css`, `_admin-semantic.css`, `_admin-spacing.css`, `_admin-typography.css`, and `_admin-layout.css` are the default places for app-level visual differences.
+- `_admin-colors.css` owns the named admin palette. `_admin-semantic.css` maps UI kit semantic token names such as `--color-primary` and `--color-base` to that palette.
+- In the early admin-design phase, duplicate the relevant `libs/ui/src/tokens` contract tokens explicitly even when values currently match the library defaults. This keeps the admin theme inspectable; redundant entries can be removed in a later cleanup pass.
+- Before overriding an existing token, inspect the matching chain under `libs/ui/src/tokens` and preserve the library contract.
+- App-only layout tokens may use the `--*-admin-*` namespace. Do not add `--*-admin-*` aliases as a substitute for existing UI kit semantic/component tokens.
+- If an app token intentionally remaps an existing UI kit primitive, make that remap explicit in the broadest matching file before touching component token files.
+- The admin 2px spacing scale is `--spacing-1` through `--spacing-80`; `--spacing-50` is reserved for the UI kit primitive alias, so the 50th admin scale step is `--spacing-step-50`.
+- `components/components.css` imports focused component overrides such as `atoms/_admin-button.css`.
+- Add component-specific overrides only when the broader admin token files cannot express the needed result.
+
+Do not add new app UI selectors to `styles.css`. The long-term target is for `styles.css` to contain only import wiring and truly unavoidable global base rules. Move structural layout into JSX with Tailwind utilities, and move visual values into UI-kit tokens, app token overrides, token-backed utilities, or UI-kit component props.
+
+Use UI-kit components before native controls:
+
+- Prefer `Button`, `Badge`, `Input`, `Checkbox`, `Select`, `Dialog`, `Pagination`, and other existing kit components when their semantics match.
+- Native table markup is acceptable for dense data grids until a shared table component covers the required behavior.
+- Native controls are acceptable only as a documented temporary gap in the current feature slice.
 
 Admin UX should stay dense, operational, and scannable. Do not introduce marketing layouts, oversized hero sections, decorative cards, or broad visual redesigns while implementing workflow parity.
 
@@ -47,6 +86,10 @@ Admin UX should stay dense, operational, and scannable. Do not introduce marketi
 - Keep raw HTTP integration in `admin-api.ts` or a clearly named feature API module.
 - Keep business inclusion rules pure and testable in `admin-rules.ts` or feature rule modules.
 - Keep page components focused on rendering, user interaction, and route state.
+- When a UI-kit compound component needs repeated app-level composition in two or
+  more admin screens, create a small domain-neutral adapter in `src/components`
+  before migrating the second caller. Keep business labels, rules, and API calls
+  in the page or feature module.
 - Do not keep expanding one large file when a feature becomes multi-screen. Prefer `src/features/<domain>/...` for new substantial sections.
 - Shared contracts and normalized types must have one owner per change. Do not let multiple agents independently rewrite shared type surfaces.
 
@@ -93,6 +136,8 @@ For code changes in `apps/admin`, run the narrowest relevant checks:
 
 - `pnpm.cmd --dir apps/admin run typecheck`
 - `pnpm.cmd --dir apps/admin run build`
+- `pnpm.cmd --dir apps/admin run validate:ui-primitives` when adding or changing JSX controls.
+- `pnpm.cmd --dir apps/admin run validate:token-usage` when changing Tailwind classes or token files.
 - `pnpm.cmd exec biome check --write <changed files>`
 
 For user-facing workflow changes, also smoke-test in a browser against the deployed backend when possible. Do not perform destructive admin actions against deployed data unless the user explicitly approves that action.
@@ -111,5 +156,6 @@ For user-facing workflow changes, also smoke-test in a browser against the deplo
    - If the clone is missing, use official Medusa docs and ask before guessing dashboard internals.
 
 - UI kit rules:
-   - Use `libs/ui/local/skills/...` as the authoritative UI kit guidance.
+   - Use local guidance under `.codex/skills/...` as the authoritative UI kit guidance for this admin work.
+   - Machine-local experiments may also live under `libs/ui/local/skills/...`.
    - Optional local notes may live in `apps/admin/local/ui.md`, but committed instructions must not depend on that file existing.

@@ -1,0 +1,63 @@
+:root {
+  color-scheme: light dark;
+}
+
+.light {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+.always-light {
+  color-scheme: light;
+}
+
+.always-dark {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  .reverse {
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .reverse {
+    color-scheme: light;
+  }
+}
+
+.light .reverse {
+  color-scheme: dark;
+}
+
+.dark .reverse {
+  color-scheme: light;
+}
+
+@theme static {
+  --radius-sm: 1px;
+  --radius-md: 7px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  --color-shadow-1: light-dark(oklch(0 0 0 / 0.16), oklch(0 0 0 / 1));
+  --color-shadow-2: light-dark(oklch(0 0 0 / 0.06), oklch(0 0 0 / 1));
+  --color-shadow-3: light-dark(oklch(0 0 0 / 0.1), oklch(0 0 0 / 1));
+
+  --offset-shadow-1: 0px 1px 3px 0px;
+  --offset-shadow-2: 0px 5px 6px 0px;
+  --offset-shadow-3: 1px 1px 20px 0px;
+
+  --shadow-primary:
+    var(--offset-shadow-1) var(--color-shadow-1), var(--offset-shadow-2)
+    var(--color-shadow-2), var(--offset-shadow-3) var(--color-shadow-3);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px oklch(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px oklch(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px oklch(0 0 0 / 0.15), 0 10px 10px oklch(0 0 0 / 0.04);
+}

@@ -1,4 +1,5 @@
-import { useMemo } from "react"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { type ReactNode, useMemo } from "react"
 import {
   useAdminCurrencyPricePreferences,
   useAdminRegionReference,
@@ -11,60 +12,84 @@ import type {
   AdminStoreCurrency,
   AdminStoreSummary,
 } from "./admin-types"
+import {
+  AdminDetailField,
+  AdminDetailFields,
+} from "./components/admin-detail-field"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import { AdminDetailStack } from "./components/admin-panel"
+import { AdminPanelHeader } from "./components/admin-panel-header"
+import { AdminInlineList, AdminJsonPreview } from "./components/admin-preview"
+import { AdminSettingsPanel } from "./components/admin-settings-form"
+import { AdminState } from "./components/admin-state"
+import { AdminTable } from "./components/admin-table"
 
 export function StoreSettingsPage() {
   const store = useAdminStoreDetail()
 
   if (store.isLoading) {
     return (
-      <section className="admin-page">
-        <PageTitle eyebrow="Settings" title="Store" />
-        <div aria-busy="true" className="admin-panel admin-settings-panel">
-          <div className="admin-table-state">Nacitam store nastaveni...</div>
-        </div>
-      </section>
+      <StoreSettingsFrame>
+        <AdminSettingsPanel>
+          <AdminPanelHeader
+            subtitle="Zakladni nastaveni obchodu dostupne pres Admin API."
+            title="Store"
+          />
+          <AdminState isBusy>Nacitam store nastaveni...</AdminState>
+        </AdminSettingsPanel>
+      </StoreSettingsFrame>
     )
   }
 
   if (store.isError) {
     return (
-      <section className="admin-page">
-        <PageTitle eyebrow="Settings" title="Store" />
-        <div className="admin-panel admin-settings-panel">
-          <div className="admin-table-state admin-table-state-error">
+      <StoreSettingsFrame>
+        <AdminSettingsPanel>
+          <AdminPanelHeader
+            subtitle="Zakladni nastaveni obchodu dostupne pres Admin API."
+            title="Store"
+          />
+          <AdminState tone="error">
             Store nastaveni se nepodarilo nacist.
-          </div>
-        </div>
-      </section>
+          </AdminState>
+        </AdminSettingsPanel>
+      </StoreSettingsFrame>
     )
   }
 
   if (!store.data) {
     return (
-      <section className="admin-page">
-        <PageTitle eyebrow="Settings" title="Store" />
-        <div className="admin-panel admin-settings-panel">
-          <div className="admin-table-state">
-            Zadny aktivni store nebyl nalezen.
-          </div>
-        </div>
-      </section>
+      <StoreSettingsFrame>
+        <AdminSettingsPanel>
+          <AdminPanelHeader
+            subtitle="Zakladni nastaveni obchodu dostupne pres Admin API."
+            title="Store"
+          />
+          <AdminState>Zadny aktivni store nebyl nalezen.</AdminState>
+        </AdminSettingsPanel>
+      </StoreSettingsFrame>
     )
   }
 
   return (
-    <section className="admin-page">
-      <PageTitle eyebrow="Settings" title="Store" />
-      <div className="admin-detail-stack">
-        <StoreGeneralPanel store={store.data} />
-        <StoreCurrenciesPanel
-          currencies={store.data.supported_currencies ?? []}
-        />
-        <StoreLocalesPanel locales={store.data.supported_locales ?? []} />
-        <StoreMetadataPanel metadata={store.data.metadata} />
-        <StoreJsonPanel store={store.data} />
-      </div>
-    </section>
+    <StoreSettingsFrame>
+      <StoreGeneralPanel store={store.data} />
+      <StoreCurrenciesPanel
+        currencies={store.data.supported_currencies ?? []}
+      />
+      <StoreLocalesPanel locales={store.data.supported_locales ?? []} />
+      <StoreMetadataPanel metadata={store.data.metadata} />
+      <StoreJsonPanel store={store.data} />
+    </StoreSettingsFrame>
+  )
+}
+
+function StoreSettingsFrame({ children }: { children: ReactNode }) {
+  return (
+    <AdminPage>
+      <AdminPageHeader eyebrow="Nastaveni" title="Store" />
+      <AdminDetailStack>{children}</AdminDetailStack>
+    </AdminPage>
   )
 }
 
@@ -81,20 +106,18 @@ function StoreGeneralPanel({ store }: { store: AdminStoreSummary }) {
   )
 
   return (
-    <div className="admin-panel admin-settings-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Store</h2>
-          <span>Zakladni nastaveni obchodu dostupne pres Admin API.</span>
-        </div>
-      </div>
-      <div className="admin-key-value-list">
-        <KeyValue label="Name" value={store.name} />
-        <KeyValue
+    <AdminSettingsPanel>
+      <AdminPanelHeader
+        subtitle="Zakladni nastaveni obchodu dostupne pres Admin API."
+        title="Store"
+      />
+      <AdminDetailFields>
+        <AdminDetailField label="Name" value={store.name} />
+        <AdminDetailField
           label="Default currency"
           value={formatCurrencyLabel(defaultCurrency)}
         />
-        <KeyValue
+        <AdminDetailField
           label="Default region"
           value={formatReferenceLabel(
             region.data?.region.name,
@@ -102,7 +125,7 @@ function StoreGeneralPanel({ store }: { store: AdminStoreSummary }) {
             region.isLoading
           )}
         />
-        <KeyValue
+        <AdminDetailField
           label="Default sales channel"
           value={formatReferenceLabel(
             salesChannel.data?.sales_channel.name,
@@ -110,7 +133,7 @@ function StoreGeneralPanel({ store }: { store: AdminStoreSummary }) {
             salesChannel.isLoading
           )}
         />
-        <KeyValue
+        <AdminDetailField
           label="Default location"
           value={formatReferenceLabel(
             stockLocation.data?.stock_location.name,
@@ -118,8 +141,8 @@ function StoreGeneralPanel({ store }: { store: AdminStoreSummary }) {
             stockLocation.isLoading
           )}
         />
-      </div>
-    </div>
+      </AdminDetailFields>
+    </AdminSettingsPanel>
   )
 }
 
@@ -142,54 +165,59 @@ function StoreCurrenciesPanel({
   )
 
   return (
-    <div className="admin-panel admin-settings-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Currencies</h2>
-          <span>Meny povolene pro tento store.</span>
-        </div>
-      </div>
+    <AdminSettingsPanel>
+      <AdminPanelHeader
+        subtitle="Meny povolene pro tento store."
+        title="Currencies"
+      />
       {currencies.length === 0 ? (
-        <div className="admin-table-state">
-          Store nema nastavene zadne meny.
-        </div>
+        <AdminState>Store nema nastavene zadne meny.</AdminState>
       ) : (
-        <div className="admin-table-wrap">
-          <table className="admin-data-table admin-data-table-compact">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Tax inclusive pricing</th>
-                <th>Default</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currencies.map((currency) => (
-                <tr key={currency.currency_code.toLowerCase()}>
-                  <td>
-                    <span className="admin-pill">
-                      {currency.currency_code.toUpperCase()}
-                    </span>
-                  </td>
-                  <td>{currency.currency?.name ?? "-"}</td>
-                  <td>
-                    {formatTaxInclusivePricing(
-                      pricePreferenceByCode.get(
-                        currency.currency_code.toLowerCase()
-                      ),
-                      pricePreferences.isLoading,
-                      pricePreferences.isError
-                    )}
-                  </td>
-                  <td>{currency.is_default ? "Yes" : "No"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AdminTable width="2xl">
+          <AdminTable.Header>
+            <AdminTable.Row>
+              <AdminTable.ColumnHeader>Code</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Name</AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>
+                Tax inclusive pricing
+              </AdminTable.ColumnHeader>
+              <AdminTable.ColumnHeader>Default</AdminTable.ColumnHeader>
+            </AdminTable.Row>
+          </AdminTable.Header>
+          <AdminTable.Body>
+            {currencies.map((currency) => (
+              <AdminTable.Row key={currency.currency_code.toLowerCase()}>
+                <AdminTable.Cell>
+                  <Badge size="sm" variant="outline">
+                    {currency.currency_code.toUpperCase()}
+                  </Badge>
+                </AdminTable.Cell>
+                <AdminTable.Cell>
+                  {currency.currency?.name ?? "-"}
+                </AdminTable.Cell>
+                <AdminTable.Cell>
+                  {renderTaxInclusivePricing(
+                    pricePreferenceByCode.get(
+                      currency.currency_code.toLowerCase()
+                    ),
+                    pricePreferences.isLoading,
+                    pricePreferences.isError
+                  )}
+                </AdminTable.Cell>
+                <AdminTable.Cell>
+                  <Badge
+                    size="sm"
+                    variant={currency.is_default ? "success" : "outline"}
+                  >
+                    {currency.is_default ? "Yes" : "No"}
+                  </Badge>
+                </AdminTable.Cell>
+              </AdminTable.Row>
+            ))}
+          </AdminTable.Body>
+        </AdminTable>
       )}
-    </div>
+    </AdminSettingsPanel>
   )
 }
 
@@ -201,35 +229,26 @@ function StoreMetadataPanel({
   const keyCount = Object.keys(metadata ?? {}).length
 
   return (
-    <div className="admin-panel admin-settings-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Metadata</h2>
-          <span>{keyCount} keys</span>
-        </div>
-      </div>
+    <AdminSettingsPanel>
+      <AdminPanelHeader subtitle={`${keyCount} keys`} title="Metadata" />
       {keyCount > 0 ? (
-        <pre className="admin-json-preview">
-          {JSON.stringify(metadata, null, 2)}
-        </pre>
+        <AdminJsonPreview>{JSON.stringify(metadata, null, 2)}</AdminJsonPreview>
       ) : (
-        <div className="admin-table-state">Store nema zadna metadata.</div>
+        <AdminState>Store nema zadna metadata.</AdminState>
       )}
-    </div>
+    </AdminSettingsPanel>
   )
 }
 
 function StoreJsonPanel({ store }: { store: AdminStoreSummary }) {
   return (
-    <div className="admin-panel admin-settings-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>JSON</h2>
-          <span>{Object.keys(store).length} keys</span>
-        </div>
-      </div>
-      <pre className="admin-json-preview">{JSON.stringify(store, null, 2)}</pre>
-    </div>
+    <AdminSettingsPanel>
+      <AdminPanelHeader
+        subtitle={`${Object.keys(store).length} keys`}
+        title="JSON"
+      />
+      <AdminJsonPreview>{JSON.stringify(store, null, 2)}</AdminJsonPreview>
+    </AdminSettingsPanel>
   )
 }
 
@@ -239,47 +258,25 @@ function StoreLocalesPanel({
   locales: NonNullable<AdminStoreSummary["supported_locales"]>
 }) {
   return (
-    <div className="admin-panel admin-settings-panel">
-      <div className="admin-panel-header">
-        <div>
-          <h2>Locales</h2>
-          <span>Lokalizace dostupne pro obsah obchodu.</span>
-        </div>
-      </div>
+    <AdminSettingsPanel>
+      <AdminPanelHeader
+        subtitle="Lokalizace dostupne pro obsah obchodu."
+        title="Locales"
+      />
       {locales.length === 0 ? (
-        <div className="admin-table-state">
-          Store nema nastavene zadne locales.
-        </div>
+        <AdminState>Store nema nastavene zadne locales.</AdminState>
       ) : (
-        <div className="admin-inline-list admin-store-inline-list">
-          {locales.map((locale) => (
-            <span className="admin-pill" key={locale.locale_code}>
-              {locale.locale?.name ?? locale.locale_code}
-            </span>
-          ))}
+        <div className="px-400 py-350">
+          <AdminInlineList>
+            {locales.map((locale) => (
+              <Badge key={locale.locale_code} size="sm" variant="outline">
+                {locale.locale?.name ?? locale.locale_code}
+              </Badge>
+            ))}
+          </AdminInlineList>
         </div>
       )}
-    </div>
-  )
-}
-
-function KeyValue({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="admin-key-value-row">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  )
-}
-
-function PageTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <header className="admin-page-header">
-      <div>
-        <span className="admin-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-      </div>
-    </header>
+    </AdminSettingsPanel>
   )
 }
 
@@ -294,7 +291,7 @@ function formatCurrencyLabel(currency: AdminStoreCurrency | undefined) {
   return name ? `${code} ${name}` : code
 }
 
-function formatTaxInclusivePricing(
+function renderTaxInclusivePricing(
   preference: AdminPricePreference | undefined,
   isLoading: boolean,
   isError: boolean
@@ -307,7 +304,13 @@ function formatTaxInclusivePricing(
     return "Unavailable"
   }
 
-  return preference?.is_tax_inclusive ? "True" : "False"
+  const isTaxInclusive = Boolean(preference?.is_tax_inclusive)
+
+  return (
+    <Badge size="sm" variant={isTaxInclusive ? "success" : "outline"}>
+      {isTaxInclusive ? "True" : "False"}
+    </Badge>
+  )
 }
 
 function formatReferenceLabel(

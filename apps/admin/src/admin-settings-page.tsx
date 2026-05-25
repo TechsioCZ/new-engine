@@ -1,13 +1,26 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { type FormEvent, useEffect, useState } from "react"
-import { Link } from "react-router-dom"
 import { updateQrPaymentConfig, useQrPaymentConfig } from "./admin-api"
-
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
+import {
+  AdminLinkCard,
+  AdminLinkCardDescription,
+  AdminLinkCardGrid,
+  AdminLinkCardTitle,
+} from "./components/admin-link-card"
+import { AdminPage, AdminPageHeader } from "./components/admin-page-header"
+import { AdminPanelHeader } from "./components/admin-panel-header"
+import {
+  AdminFormActions,
+  AdminSettingsForm,
+  AdminSettingsPanel,
+} from "./components/admin-settings-form"
+import { AdminState } from "./components/admin-state"
+import { AdminTextField } from "./components/admin-text-field"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
 
 const settingsItems = [
   {
@@ -39,17 +52,19 @@ const settingsItems = [
 
 export function SettingsPage() {
   return (
-    <section className="admin-page">
-      <PageTitle eyebrow="Nastaveni" title="Nastaveni adminu" />
-      <div className="admin-settings-grid">
+    <AdminPage>
+      <AdminPageHeader eyebrow="Nastaveni" title="Nastaveni adminu" />
+      <AdminLinkCardGrid>
         {settingsItems.map((item) => (
-          <Link className="admin-settings-card" key={item.href} to={item.href}>
-            <strong>{item.label}</strong>
-            <span>{item.description}</span>
-          </Link>
+          <AdminLinkCard key={item.href} to={item.href}>
+            <AdminLinkCardTitle>{item.label}</AdminLinkCardTitle>
+            <AdminLinkCardDescription>
+              {item.description}
+            </AdminLinkCardDescription>
+          </AdminLinkCard>
         ))}
-      </div>
-    </section>
+      </AdminLinkCardGrid>
+    </AdminPage>
   )
 }
 
@@ -57,7 +72,7 @@ export function QrPaymentsSettingsPage() {
   const queryClient = useQueryClient()
   const config = useQrPaymentConfig()
   const [iban, setIban] = useState("")
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const mutation = useMutation({
     mutationFn: updateQrPaymentConfig,
     onError: (error) => {
@@ -96,86 +111,52 @@ export function QrPaymentsSettingsPage() {
 
   function renderConfigContent() {
     if (config.isLoading) {
-      return (
-        <div aria-busy="true" className="admin-table-state">
-          Nacitam konfiguraci...
-        </div>
-      )
+      return <AdminState isBusy>Nacitam konfiguraci...</AdminState>
     }
 
     if (config.isError) {
       return (
-        <div className="admin-table-state admin-table-state-error">
+        <AdminState tone="error">
           Konfiguraci QR plateb se nepodarilo nacist.
-        </div>
+        </AdminState>
       )
     }
 
     return (
-      <form className="admin-settings-form" onSubmit={handleSubmit}>
-        <label className="admin-field">
-          <span>IBAN</span>
-          <input
-            autoComplete="off"
-            onChange={(event) => {
-              setIban(event.target.value)
-              setFeedback(null)
-            }}
-            placeholder="CZ3301000000000002970297"
-            value={iban}
-          />
-        </label>
+      <AdminSettingsForm onSubmit={handleSubmit}>
+        <AdminTextField
+          autoComplete="off"
+          id="qr-payment-iban"
+          label="IBAN"
+          onValueChange={(value) => {
+            setIban(value)
+            setFeedback(null)
+          }}
+          placeholder="CZ3301000000000002970297"
+          value={iban}
+        />
         {feedback && (
-          <div
-            className={[
-              "admin-feedback admin-feedback-inline",
-              feedback.tone === "error" ? "admin-feedback-error" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            {feedback.message}
-          </div>
+          <AdminFeedback tone={feedback.tone}>{feedback.message}</AdminFeedback>
         )}
-        <div className="admin-form-actions">
-          <Button
-            className="admin-toolbar-button"
-            disabled={mutation.isPending}
-            size="sm"
-            theme="outlined"
-            type="submit"
-            variant="secondary"
-          >
+        <AdminFormActions>
+          <AdminToolbarButton disabled={mutation.isPending} type="submit">
             {mutation.isPending ? "Ukladam..." : "Ulozit"}
-          </Button>
-        </div>
-      </form>
+          </AdminToolbarButton>
+        </AdminFormActions>
+      </AdminSettingsForm>
     )
   }
 
   return (
-    <section className="admin-page">
-      <PageTitle eyebrow="Nastaveni" title="QR platby" />
-      <div className="admin-panel admin-form-panel">
-        <div className="admin-panel-header">
-          <div>
-            <h2>Bankovni ucet</h2>
-            <span>Aktualni prijemce pro QR platbu u objednavek.</span>
-          </div>
-        </div>
+    <AdminPage>
+      <AdminPageHeader eyebrow="Nastaveni" title="QR platby" />
+      <AdminSettingsPanel width="form">
+        <AdminPanelHeader
+          subtitle="Aktualni prijemce pro QR platbu u objednavek."
+          title="Bankovni ucet"
+        />
         {renderConfigContent()}
-      </div>
-    </section>
-  )
-}
-
-function PageTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <header className="admin-page-header">
-      <div>
-        <span className="admin-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-      </div>
-    </header>
+      </AdminSettingsPanel>
+    </AdminPage>
   )
 }

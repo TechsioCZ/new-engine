@@ -1,5 +1,5 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
+import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 import { useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import {
@@ -8,25 +8,52 @@ import {
   usePacketaLabelOrders,
 } from "./admin-api"
 import type { PacketaLabelOrder, PacketaOrderFulfillment } from "./admin-types"
+import {
+  AdminFeedback,
+  type AdminFeedbackState,
+} from "./components/admin-feedback"
+import {
+  AdminPage,
+  AdminPageCount,
+  AdminPageHeader,
+} from "./components/admin-page-header"
+import { AdminPagination } from "./components/admin-pagination"
+import { AdminPanel } from "./components/admin-panel"
+import { AdminPanelHeader } from "./components/admin-panel-header"
+import {
+  AdminSelectField,
+  type AdminSelectFieldItem,
+} from "./components/admin-select-field"
+import { AdminState } from "./components/admin-state"
+import { AdminTable } from "./components/admin-table"
+import { AdminToolbarButton } from "./components/admin-toolbar-button"
+import { readOffset } from "./utils/format"
 
 type LabelFormat = "A6" | "A7"
-type Feedback = {
-  message: string
-  tone: "error" | "success"
-} | null
-
 const LABEL_FORMATS: LabelFormat[] = ["A6", "A7"]
 const LABEL_OFFSETS = [0, 1, 2, 3]
+const LABEL_FORMAT_ITEMS: AdminSelectFieldItem[] = LABEL_FORMATS.map(
+  (format) => ({
+    label: format,
+    value: format,
+  })
+)
+const LABEL_OFFSET_ITEMS: AdminSelectFieldItem[] = LABEL_OFFSETS.map(
+  (offset) => ({
+    label: String(offset),
+    value: String(offset),
+  })
+)
 
 export function PacketaLabelsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const offset = readOffset(searchParams.get("offset"))
   const [labelFormat, setLabelFormat] = useState<LabelFormat>("A6")
   const [labelOffset, setLabelOffset] = useState(0)
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(
     new Set()
   )
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const [feedback, setFeedback] = useState<AdminFeedbackState>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const orders = usePacketaLabelOrders({ offset })
 
@@ -44,19 +71,6 @@ export function PacketaLabelsPage() {
   const allPrintableSelected =
     printableOrderIds.length > 0 &&
     printableOrderIds.every((orderId) => selectedOrderIds.has(orderId))
-
-  function updateOffset(nextOffset: number) {
-    const params = new URLSearchParams(searchParams)
-
-    if (nextOffset > 0) {
-      params.set("offset", String(nextOffset))
-    } else {
-      params.delete("offset")
-    }
-
-    setSearchParams(params)
-    setFeedback(null)
-  }
 
   function toggleOrder(orderId: string) {
     setSelectedOrderIds((current) => {
@@ -128,78 +142,34 @@ export function PacketaLabelsPage() {
   }
 
   return (
-    <section className="admin-page">
-      <header className="admin-page-header">
-        <div>
-          <span className="admin-eyebrow">Packeta</span>
-          <h1>Stitky k objednavkam</h1>
-        </div>
-        <div className="admin-page-count">
-          <span>{selectedPrintableOrderIds.length}</span>
-          <small>vybrano</small>
-        </div>
-      </header>
-      <div className="admin-panel">
-        <div className="admin-panel-header admin-panel-header-stacked">
-          <div>
-            <h2>Objednavky s Packetou</h2>
-            <span>
-              {orders.data?.count ?? 0} objednavek podle posledni aktivity
-            </span>
-          </div>
-          <div className="admin-packeta-actions">
-            <label className="admin-compact-field">
-              <span>Format</span>
-              <select
-                onChange={(event) =>
-                  setLabelFormat(event.target.value as LabelFormat)
-                }
-                value={labelFormat}
-              >
-                {LABEL_FORMATS.map((format) => (
-                  <option key={format} value={format}>
-                    {format}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="admin-compact-field">
-              <span>Offset</span>
-              <select
-                onChange={(event) => setLabelOffset(Number(event.target.value))}
-                value={labelOffset}
-              >
-                {LABEL_OFFSETS.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Button
-              className="admin-toolbar-button"
-              disabled={!selectedPrintableOrderIds.length || isDownloading}
-              onClick={handleDownload}
-              size="sm"
-              theme="outlined"
-              type="button"
-              variant="secondary"
-            >
-              {isDownloading ? "Generuji..." : "Stahnout PDF"}
-            </Button>
-          </div>
-        </div>
+    <AdminPage>
+      <AdminPageHeader eyebrow="Packeta" title="Stitky k objednavkam">
+        <AdminPageCount
+          label="vybrano"
+          value={selectedPrintableOrderIds.length}
+        />
+      </AdminPageHeader>
+      <AdminPanel as="div">
+        <AdminPanelHeader
+          actions={
+            <PacketaLabelControls
+              isDownloading={isDownloading}
+              labelFormat={labelFormat}
+              labelOffset={labelOffset}
+              onDownload={handleDownload}
+              onLabelFormatChange={setLabelFormat}
+              onLabelOffsetChange={setLabelOffset}
+              selectedCount={selectedPrintableOrderIds.length}
+            />
+          }
+          stacked
+          subtitle={`${orders.data?.count ?? 0} objednavek podle posledni aktivity`}
+          title="Objednavky s Packetou"
+        />
         {feedback && (
-          <div
-            className={[
-              "admin-feedback",
-              feedback.tone === "error" ? "admin-feedback-error" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
+          <AdminFeedback className="mx-300 mb-300" tone={feedback.tone}>
             {feedback.message}
-          </div>
+          </AdminFeedback>
         )}
         <PacketaOrdersTable
           allPrintableSelected={allPrintableSelected}
@@ -210,48 +180,61 @@ export function PacketaLabelsPage() {
           orders={currentOrders}
           selectedOrderIds={selectedOrderIds}
         />
-        {orders.data && orders.data.count > 0 && (
-          <div className="admin-pagination admin-panel-pagination">
-            <Button
-              className="admin-pagination-button"
-              disabled={!orders.data.has_previous}
-              onClick={() =>
-                updateOffset(
-                  Math.max(0, offset - PACKETA_LABEL_ORDER_LIST_LIMIT)
-                )
-              }
-              size="sm"
-              theme="outlined"
-              type="button"
-              variant="secondary"
-            >
-              Predchozi
-            </Button>
-            <span>
-              {orders.data.offset + 1}-
-              {Math.min(
-                orders.data.offset + orders.data.limit,
-                orders.data.count
-              )}{" "}
-              z {orders.data.count}
-            </span>
-            <Button
-              className="admin-pagination-button"
-              disabled={!orders.data.has_next}
-              onClick={() =>
-                updateOffset(offset + PACKETA_LABEL_ORDER_LIST_LIMIT)
-              }
-              size="sm"
-              theme="outlined"
-              type="button"
-              variant="secondary"
-            >
-              Dalsi
-            </Button>
-          </div>
+        {orders.data && (
+          <AdminPagination
+            ariaLabel="Strankovani Packeta objednavek"
+            className="border-border-primary border-t px-8 py-6"
+            count={orders.data.count}
+            offset={orders.data.offset}
+            onPageChange={() => setFeedback(null)}
+            pageSize={PACKETA_LABEL_ORDER_LIST_LIMIT}
+          />
         )}
-      </div>
-    </section>
+      </AdminPanel>
+    </AdminPage>
+  )
+}
+
+function PacketaLabelControls({
+  isDownloading,
+  labelFormat,
+  labelOffset,
+  onDownload,
+  onLabelFormatChange,
+  onLabelOffsetChange,
+  selectedCount,
+}: {
+  isDownloading: boolean
+  labelFormat: LabelFormat
+  labelOffset: number
+  onDownload: () => void
+  onLabelFormatChange: (value: LabelFormat) => void
+  onLabelOffsetChange: (value: number) => void
+  selectedCount: number
+}) {
+  return (
+    <div className="flex w-full flex-col items-stretch gap-4 sm:w-auto sm:flex-row sm:items-end">
+      <AdminSelectField
+        className="sm:w-24"
+        items={LABEL_FORMAT_ITEMS}
+        label="Format"
+        onValueChange={(value) => onLabelFormatChange(value as LabelFormat)}
+        value={labelFormat}
+      />
+      <AdminSelectField
+        className="sm:w-24"
+        items={LABEL_OFFSET_ITEMS}
+        label="Offset"
+        onValueChange={(value) => onLabelOffsetChange(Number(value))}
+        value={String(labelOffset)}
+      />
+      <AdminToolbarButton
+        disabled={selectedCount === 0 || isDownloading}
+        onClick={onDownload}
+      >
+        {isDownloading ? "Generuji..." : "Stahnout PDF"}
+      </AdminToolbarButton>
+    </div>
   )
 }
 
@@ -273,93 +256,85 @@ function PacketaOrdersTable({
   selectedOrderIds: Set<string>
 }) {
   if (isLoading) {
-    return (
-      <div aria-busy="true" className="admin-table-state">
-        Nacitam objednavky...
-      </div>
-    )
+    return <AdminState isBusy>Nacitam objednavky...</AdminState>
   }
 
   if (isError) {
     return (
-      <div className="admin-table-state admin-table-state-error">
+      <AdminState tone="error">
         Objednavky pro Packeta stitky se nepodarilo nacist.
-      </div>
+      </AdminState>
     )
   }
 
   if (!orders.length) {
-    return (
-      <div className="admin-table-state">Zadne objednavky k zobrazeni.</div>
-    )
+    return <AdminState>Zadne objednavky k zobrazeni.</AdminState>
   }
 
   return (
-    <div className="admin-table-wrap">
-      <table className="admin-data-table">
-        <thead>
-          <tr>
-            <th className="admin-table-check">
-              <input
-                aria-label="Vybrat vsechny tisknutelne objednavky na strance"
-                checked={allPrintableSelected}
-                onChange={onTogglePrintablePage}
-                type="checkbox"
-              />
-            </th>
-            <th>Objednavka</th>
-            <th>Email</th>
-            <th>Vytvoreno</th>
-            <th>Status</th>
-            <th>Packeta</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => {
-            const labels = getPacketaLabels(order)
-            const canPrint = labels.length > 0
+    <AdminTable width="3xl">
+      <AdminTable.Header>
+        <AdminTable.Row>
+          <AdminTable.ColumnHeader className="w-1">
+            <Checkbox
+              aria-label="Vybrat vsechny tisknutelne objednavky na strance"
+              checked={allPrintableSelected}
+              onChange={onTogglePrintablePage}
+            />
+          </AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Objednavka</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Email</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Vytvoreno</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Status</AdminTable.ColumnHeader>
+          <AdminTable.ColumnHeader>Packeta</AdminTable.ColumnHeader>
+        </AdminTable.Row>
+      </AdminTable.Header>
+      <AdminTable.Body>
+        {orders.map((order) => {
+          const labels = getPacketaLabels(order)
+          const canPrint = labels.length > 0
 
-            return (
-              <tr key={order.id}>
-                <td className="admin-table-check">
-                  <input
-                    aria-label={`Vybrat ${formatOrderNumber(order)}`}
-                    checked={selectedOrderIds.has(order.id)}
-                    disabled={!canPrint}
-                    onChange={() => onToggleOrder(order.id)}
-                    type="checkbox"
-                  />
-                </td>
-                <td className="admin-table-strong">
-                  {formatOrderNumber(order)}
-                </td>
-                <td className="admin-table-truncate">{order.email ?? "-"}</td>
-                <td>{formatDate(order.created_at)}</td>
-                <td>{order.fulfillment_status ?? "-"}</td>
-                <td>
-                  {canPrint ? (
-                    <div className="admin-chip-row">
-                      {labels.map((label) => (
-                        <Badge
-                          className="admin-status-badge"
-                          key={label.id}
-                          size="sm"
-                          variant="info"
-                        >
-                          {String(label.data?.barcode ?? label.data?.packet_id)}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="admin-muted">Bez stitku</span>
-                  )}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+          return (
+            <AdminTable.Row
+              key={order.id}
+              selected={selectedOrderIds.has(order.id)}
+            >
+              <AdminTable.Cell className="w-1">
+                <Checkbox
+                  aria-label={`Vybrat ${formatOrderNumber(order)}`}
+                  checked={selectedOrderIds.has(order.id)}
+                  disabled={!canPrint}
+                  onChange={() => onToggleOrder(order.id)}
+                />
+              </AdminTable.Cell>
+              <AdminTable.Cell className="font-semibold text-fg-primary">
+                {formatOrderNumber(order)}
+              </AdminTable.Cell>
+              <AdminTable.Cell className="max-w-xs truncate">
+                {order.email ?? "-"}
+              </AdminTable.Cell>
+              <AdminTable.Cell>{formatDate(order.created_at)}</AdminTable.Cell>
+              <AdminTable.Cell>
+                {order.fulfillment_status ?? "-"}
+              </AdminTable.Cell>
+              <AdminTable.Cell>
+                {canPrint ? (
+                  <div className="flex flex-wrap gap-100">
+                    {labels.map((label) => (
+                      <Badge key={label.id} size="sm" variant="info">
+                        {String(label.data?.barcode ?? label.data?.packet_id)}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-fg-secondary">Bez stitku</span>
+                )}
+              </AdminTable.Cell>
+            </AdminTable.Row>
+          )
+        })}
+      </AdminTable.Body>
+    </AdminTable>
   )
 }
 
@@ -393,16 +368,6 @@ function formatDate(value: string | null) {
   return new Intl.DateTimeFormat("cs-CZ", {
     dateStyle: "medium",
   }).format(date)
-}
-
-function readOffset(value: string | null) {
-  const offset = Number(value)
-
-  if (!Number.isFinite(offset) || offset <= 0) {
-    return 0
-  }
-
-  return Math.floor(offset)
 }
 
 function downloadBlob(blob: Blob, filename: string) {
