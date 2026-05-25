@@ -179,13 +179,29 @@
   );
 
   --color-info: var(--color-admin-info);
-  --color-info-hover: var(--color-primary-hover);
-  --color-info-active: var(--color-primary-active);
-  --color-info-disabled: var(--color-primary-disabled);
-  --color-info-light: var(--color-primary-light);
-  --color-info-light-hover: var(--color-primary-light-hover);
-  --color-info-light-active: var(--color-primary-light-active);
-  --color-info-light-disabled: var(--color-primary-light-disabled);
+  --color-info-hover: oklch(
+    from var(--color-info) calc(l + var(--state-hover)) c h
+  );
+  --color-info-active: oklch(
+    from var(--color-info) calc(l + var(--state-active)) c h
+  );
+  --color-info-disabled: oklch(
+    from var(--color-info) l var(--state-disabled-chroma) h
+  );
+  --color-info-light: oklch(
+    from var(--color-info)
+      min(var(--max-lightness), calc(l + var(--state-light-variant)))
+      calc(c * var(--state-light-chroma)) h
+  );
+  --color-info-light-hover: oklch(
+    from var(--color-info-light) calc(l + var(--state-hover)) c h
+  );
+  --color-info-light-active: oklch(
+    from var(--color-info-light) calc(l + var(--state-active)) c h
+  );
+  --color-info-light-disabled: oklch(
+    from var(--color-info-light) l var(--state-disabled-chroma) h
+  );
 
   --color-warning: var(--color-admin-warning);
   --color-warning-hover: oklch(
@@ -258,7 +274,7 @@
   );
 
   --color-fg-light: var(--color-admin-on-accent);
-  --color-fg-dark: var(--color-admin-ink);
+  --color-fg-dark: var(--color-stone-100);
   --color-fg-primary: var(--color-admin-ink);
   --color-fg-secondary: var(--color-admin-muted);
   --color-fg-tertiary: var(--color-admin-muted-strong);

@@ -27,7 +27,7 @@ import { type AdminNavItem, adminNavItems } from "./nav-config"
 import { formatCountLabel } from "./utils/format"
 
 const ADMIN_SHELL_CLASS_NAME =
-  "grid min-h-dvh grid-cols-[var(--spacing-admin-shell-sidebar)_minmax(0,1fr)] [background:linear-gradient(90deg,var(--color-highlight),transparent_38%),var(--color-base)] max-admin-layout:grid-cols-1"
+  "grid min-h-dvh grid-cols-[var(--spacing-admin-shell-sidebar)_minmax(0,1fr)] bg-base max-admin-layout:grid-cols-1"
 
 const ADMIN_SIDEBAR_CLASS_NAME =
   "flex flex-col gap-12 border-border-primary border-e bg-surface px-7 py-9 max-admin-layout:sticky max-admin-layout:top-0 max-admin-layout:z-10 max-admin-layout:border-e-0 max-admin-layout:border-b"

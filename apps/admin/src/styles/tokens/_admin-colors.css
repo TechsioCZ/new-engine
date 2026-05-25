@@ -1,93 +1,84 @@
 @theme static {
-  --color-admin-ink: light-dark(
-    oklch(0.257 0.013 150.124),
-    oklch(0.94 0.012 125)
-  );
+  --color-admin-ink: light-dark(var(--color-stone-900), var(--color-stone-100));
   --color-admin-ink-soft: light-dark(
-    oklch(0.426 0.017 138.73),
-    oklch(0.82 0.018 135)
+    var(--color-stone-800),
+    var(--color-stone-200)
   );
   --color-admin-muted: light-dark(
-    oklch(0.536 0.018 136.143),
-    oklch(0.9 0.018 136)
+    var(--color-stone-600),
+    var(--color-stone-300)
   );
   --color-admin-muted-strong: light-dark(
-    oklch(0.482 0.02 137.089),
-    oklch(0.76 0.02 137)
+    var(--color-stone-500),
+    var(--color-stone-400)
   );
   --color-admin-on-accent: light-dark(
-    oklch(0.98 0.014 67.667),
-    oklch(0.22 0.035 29)
+    var(--color-stone-50),
+    var(--color-stone-950)
   );
 
-  --color-admin-base-light: oklch(0.954 0.01 125.681);
-  --color-admin-base-dark: oklch(0.19 0.014 150);
+  --color-admin-base-light: var(--color-stone-50);
+  --color-admin-base-dark: var(--color-stone-950);
   --color-admin-base: light-dark(
     var(--color-admin-base-light),
     var(--color-admin-base-dark)
   );
-  --color-admin-surface: light-dark(
-    oklch(0.975 0.008 98.878),
-    oklch(0.24 0.014 145)
-  );
-  --color-admin-float: light-dark(oklch(1 0 0), oklch(0.28 0.014 145));
+  --color-admin-surface: light-dark(var(--color-white), var(--color-stone-900));
+  --color-admin-float: light-dark(var(--color-white), var(--color-stone-800));
   --color-admin-overlay: light-dark(
-    oklch(0.257 0.013 150.124 / 0.4),
+    oklch(from var(--color-stone-950) l c h / 0.4),
     oklch(0 0 0 / 0.55)
   );
   --color-admin-highlight: light-dark(
-    oklch(0.32 0.034 150.977 / 0.07),
-    oklch(0.78 0.065 151 / 0.16)
+    oklch(from var(--color-stone-950) l c h / 0.04),
+    oklch(from var(--color-stone-50) l c h / 0.06)
   );
   --color-admin-fill: light-dark(oklch(1 0 0 / 0.72), oklch(1 0 0 / 0.06));
   --color-admin-fill-hover: light-dark(
-    oklch(0.32 0.034 150.977 / 0.07),
-    oklch(0.78 0.065 151 / 0.14)
+    oklch(from var(--color-stone-950) l c h / 0.06),
+    oklch(from var(--color-stone-50) l c h / 0.08)
   );
   --color-admin-fill-active: light-dark(
-    oklch(0.32 0.034 150.977 / 0.6),
-    oklch(0.02 0.065 151 / 0.6)
+    oklch(from var(--color-stone-950) l c h / 0.1),
+    oklch(from var(--color-stone-50) l c h / 0.12)
   );
 
   --color-admin-primary: light-dark(
-    oklch(0.32 0.034 150.977),
-    oklch(0.78 0.065 151)
+    var(--color-stone-900),
+    var(--color-stone-300)
   );
   --color-admin-secondary: var(--color-admin-muted);
   --color-admin-tertiary: var(--color-admin-ink-soft);
   --color-admin-success: light-dark(
-    oklch(0.528 0.108 153.398),
-    oklch(0.72 0.12 153)
+    var(--color-emerald-700),
+    var(--color-emerald-400)
   );
-  --color-admin-info: var(--color-admin-primary);
+  --color-admin-info: light-dark(var(--color-sky-700), var(--color-sky-300));
   --color-admin-warning: light-dark(
-    oklch(0.88 0.094 96.636),
-    oklch(0.82 0.105 96)
+    var(--color-amber-700),
+    var(--color-amber-400)
   );
-  --color-admin-danger: light-dark(
-    oklch(0.516 0.167 29.039),
-    oklch(0.72 0.15 29)
-  );
+  --color-admin-danger: light-dark(var(--color-red-700), var(--color-red-400));
 
   --color-admin-border-soft: light-dark(
-    oklch(0.257 0.013 150.124 / 0.1),
-    oklch(0.94 0.012 125 / 0.1)
+    oklch(from var(--color-stone-950) l c h / 0.1),
+    oklch(from var(--color-stone-50) l c h / 0.1)
   );
   --color-admin-border: light-dark(
-    oklch(0.257 0.013 150.124 / 0.12),
-    oklch(0.94 0.012 125 / 0.14)
+    oklch(from var(--color-stone-950) l c h / 0.12),
+    oklch(from var(--color-stone-50) l c h / 0.14)
   );
   --color-admin-border-strong: light-dark(
-    oklch(0.257 0.013 150.124 / 0.2),
-    oklch(0.94 0.012 125 / 0.24)
+    oklch(from var(--color-stone-950) l c h / 0.2),
+    oklch(from var(--color-stone-50) l c h / 0.24)
   );
   --color-admin-disabled-bg: light-dark(
-    oklch(0.92 0.01 125),
-    oklch(0.26 0.014 150)
+    var(--color-stone-200),
+    var(--color-stone-800)
   );
   --color-admin-disabled-fg: light-dark(
-    oklch(0.62 0.014 136),
-    oklch(0.48 0.014 136)
+    var(--color-stone-400),
+    var(--color-stone-600)
   );
   --color-admin-disabled-fill: light-dark(
     oklch(1 0 0 / 0.45),
