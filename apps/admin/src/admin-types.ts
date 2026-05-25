@@ -126,6 +126,15 @@ export type AdminProductsResponse = {
   products: AdminProductListItem[]
 }
 
+export type AdminProductCategoriesResponse = {
+  count: number
+  has_next: boolean
+  has_previous: boolean
+  limit: number
+  offset: number
+  product_categories: MedusaAdminProductCategory[]
+}
+
 export type AdminEmailLog = {
   checked_at: string | null
   created_at: string | null
@@ -550,7 +559,18 @@ export type MedusaAdminProductOption = {
 
 export type MedusaAdminProductCategory = {
   id?: string
+  category_children?: MedusaAdminProductCategory[] | null
+  created_at?: string | null
+  description?: string | null
+  handle?: string | null
+  is_active?: boolean | null
+  is_internal?: boolean | null
+  metadata?: Record<string, unknown> | null
   name?: string | null
+  parent_category?: MedusaAdminProductCategory | null
+  parent_category_id?: string | null
+  rank?: number | null
+  updated_at?: string | null
 }
 
 export type MedusaAdminProduct = {
@@ -579,4 +599,15 @@ export type MedusaAdminProductsResponse = {
   limit: number
   offset: number
   products: MedusaAdminProduct[]
+}
+
+export type MedusaAdminProductCategoriesResponse = {
+  count: number
+  limit: number
+  offset: number
+  product_categories: MedusaAdminProductCategory[]
+}
+
+export type MedusaAdminProductCategoryResponse = {
+  product_category: MedusaAdminProductCategory
 }

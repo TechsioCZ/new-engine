@@ -9,6 +9,7 @@ import {
   QueueList,
   ReceiptPercent,
   ShoppingCart,
+  SquaresPlus,
   Tag,
   TruckFast,
   Users,
@@ -46,6 +47,13 @@ export const adminNavItems: AdminNavItem[] = [
     href: "/products",
     icon: <Tag />,
     label: "Produkty",
+    section: "Obchod",
+  },
+  {
+    activeMatch: "/categories",
+    href: "/categories",
+    icon: <SquaresPlus />,
+    label: "Kategorie",
     section: "Obchod",
   },
   {
