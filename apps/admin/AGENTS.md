@@ -126,9 +126,9 @@ If backend work is justified, load `.codex/skills/building-with-medusa` and the 
 
 ## Planning
 
-Plan files for this admin live in `apps/admin/local/agent-plans`. Use `plan-graph` with explicit dependency overlays from `apps/admin/local/agent-plans/README.md`; do not assume a pile of `.plan.md` files has an implicit execution order.
+Plan files for this admin live in `apps/admin/agent-plans`. Use `plan-graph` with explicit dependency overlays from `apps/admin/agent-plans/README.md`; do not assume a pile of `.plan.md` files has an implicit execution order.
 
-For current-lane status use `dag` against the same plan selection and dependency overlay. Keep generated graph snapshots under `apps/admin/local/plan-graphs` so they remain local-only unless intentionally promoted.
+For current-lane status use `dag` against the same plan selection and dependency overlay. Keep generated graph snapshots under `apps/admin/plan-graphs` so they remain local-only unless intentionally promoted.
 
 ## Verification
 
@@ -151,11 +151,10 @@ For user-facing workflow changes, also smoke-test in a browser against the deplo
 ## Important Sources
 
 - Medusa source reference:
-   - Prefer local clone at `~/.local/share/medusajs/medusa` when available.
-   - For dashboard parity inspect `~/.local/share/medusajs/medusa/packages/admin/dashboard/src`.
+   - Prefer local clone at `~/.local/share/medusa-js/medusa` when available.
+   - For dashboard parity inspect `~/.local/share/medusa-js/medusa/packages/admin/dashboard/src`.
    - If the clone is missing, use official Medusa docs and ask before guessing dashboard internals.
 
 - UI kit rules:
    - Use local guidance under `.codex/skills/...` as the authoritative UI kit guidance for this admin work.
-   - Machine-local experiments may also live under `libs/ui/local/skills/...`.
-   - Optional local notes may live in `apps/admin/local/ui.md`, but committed instructions must not depend on that file existing.
+   - Optional local notes may live in `apps/admin/ui.md`, but committed instructions must not depend on that file existing.
