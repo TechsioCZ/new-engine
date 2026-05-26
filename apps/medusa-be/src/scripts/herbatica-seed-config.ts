@@ -106,11 +106,11 @@ export const HERBATICA_WORKFLOW_DEFAULTS = {
 export const HERBATICA_CURRENCIES = [
   {
     code: "czk",
-    default: true,
+    default: false,
   },
   {
     code: "eur",
-    default: false,
+    default: true,
   },
   {
     code: "usd",
