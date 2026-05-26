@@ -358,6 +358,11 @@ function stripVariants(className) {
       continue
     }
 
+    if (baseClass.endsWith("!")) {
+      baseClass = baseClass.slice(0, -1)
+      continue
+    }
+
     const separatorIndex = findTopLevelColon(baseClass)
 
     if (separatorIndex === -1) {
