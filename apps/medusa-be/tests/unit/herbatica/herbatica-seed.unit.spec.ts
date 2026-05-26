@@ -13,6 +13,7 @@ import {
 import {
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
   HERBATICA_TAX_RATE_CONFIG,
+  HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
 } from "../../../src/scripts/herbatica-seed-config"
 
@@ -796,7 +797,7 @@ describe("Herbatica Shoptet workflow input", () => {
     expect(input.priceLists).toBe(parsed.priceLists)
     expect(input.priceListSync).toBe(HERBATICA_PRICE_LIST_SYNC_CONFIG)
     expect(input.taxRates?.config).toBe(HERBATICA_TAX_RATE_CONFIG)
-    expect(input.taxRates?.countries).toEqual(["sk", "cz"])
+    expect(input.taxRates?.countries).toBe(HERBATICA_TAX_RATE_COUNTRIES)
   })
 })
 

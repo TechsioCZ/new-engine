@@ -80,6 +80,10 @@ export const HERBATICA_DEFAULT_TAX_RATES = [
   { countryCode: "cz", rate: 19 },
 ] as const
 
+export const HERBATICA_TAX_RATE_COUNTRIES = HERBATICA_DEFAULT_TAX_RATES.map(
+  ({ countryCode }) => countryCode
+)
+
 export const HERBATICA_TAX_RATE_CONFIG = {
   metadataSource: "herbatica-seed-tax-rates",
   defaultRates: [...HERBATICA_DEFAULT_TAX_RATES],

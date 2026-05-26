@@ -40,6 +40,7 @@ import {
   HERBATICA_SALES_CHANNELS,
   HERBATICA_SHIPPING_OPTIONS,
   HERBATICA_TAX_RATE_CONFIG,
+  HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
 } from "./herbatica-seed-config"
 
@@ -3358,7 +3359,7 @@ export function buildHerbaticaSeedWorkflowInput(
       taxProviderId: undefined,
     },
     taxRates: {
-      countries: ["sk", "cz"],
+      countries: HERBATICA_TAX_RATE_COUNTRIES,
       config: HERBATICA_TAX_RATE_CONFIG,
     },
     stockLocations: {

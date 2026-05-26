@@ -242,7 +242,7 @@ export function buildTaxRateSeedTargets(
     }
   }
 
-  const slovakiaProductRateGroups = new Map<number, string[]>()
+  const overrideProductRateGroups = new Map<number, string[]>()
   for (const product of products) {
     const vat = extractProductVat(
       asObject(product.metadata),
@@ -252,15 +252,15 @@ export function buildTaxRateSeedTargets(
       continue
     }
 
-    const existing = slovakiaProductRateGroups.get(vat) ?? []
+    const existing = overrideProductRateGroups.get(vat) ?? []
     existing.push(product.id)
-    slovakiaProductRateGroups.set(vat, existing)
+    overrideProductRateGroups.set(vat, existing)
   }
 
-  if (slovakiaProductRateGroups.size > 0) {
+  if (overrideProductRateGroups.size > 0) {
     productRateGroupsByCountry.set(
       productOverridesCountryCode,
-      slovakiaProductRateGroups
+      overrideProductRateGroups
     )
   }
 
